@@ -1,8 +1,5 @@
 module.exports = async (hre) => {
-  console.log(await hre.getUnnamedAccounts());
   const deployer = (await hre.getUnnamedAccounts())[0];
-
-  // return;
 
   const mangroveResult = await hre.deployments.deploy("Mangrove", {
     from: deployer,
@@ -12,6 +9,11 @@ module.exports = async (hre) => {
   const mgvReader = await hre.deployments.deploy("MgvReader", {
     from: deployer,
     args: [mangroveResult.address],
+  });
+
+  const oracle = await hre.deployments.deploy("MgvOracle", {
+    from: deployer,
+    args: [deployer,deployer],
   });
 };
 

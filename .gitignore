@@ -1,0 +1,26 @@
+node_modules
+build
+cache
+ignore
+modd.conf
+out.html
+deployments/hardhat
+doc/MgvDoc.html
+doc/specs.txt
+**/.sethrc
+.DS_Store
+.vscode/settings.json
+.env.local
+.env.*.local
+*test-report.json
+*tests-report.json
+*.code-workspace
+
+# Yarn
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*

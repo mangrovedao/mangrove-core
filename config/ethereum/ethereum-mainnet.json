@@ -1,0 +1,51 @@
+{
+    "chain": "Ethereum",
+    "network": "mainnet",
+    "tokens": {
+        "dai": {
+            "address": "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+            "abi": "config/ethereum/abis/dai-abi.json",
+            "adminAddress": "0x9759A6Ac90977b93B58547b4A71c78317f391A28"
+        },
+        "wEth": {
+            "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+            "abi": "config/ethereum/abis/weth-abi.json"
+        },
+        "cDai": {
+            "address": "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643",
+            "abi": "config/ethereum/abis/CErc20.json",
+            "isCompoundToken": true
+        },
+        "usdc":{
+            "address" : "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+            "abi" : "config/ethereum/abis/usdc-abi.json",
+            "masterMinterAddress": "0xe982615d461dd5cd06575bbea87624fda4e3de17"
+        },
+        "cUsdc": {
+            "address": "0x39aa39c021dfbae8fac545936693ac917d5e7563",
+            "abi": "config/ethereum/abis/CErc20.json",
+            "isCompoundToken": true
+        },
+        "cwEth": {
+            "address": "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5",
+            "abi": "config/ethereum/abis/CEth.json",
+            "isCompoundToken": true
+        }
+    },
+    "compound": {
+        "unitrollerAddress": "0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b",
+        "unitrollerAbi": "config/ethereum/abis/comp-abi.json",
+        "whale": "0x6c6d03a20613867fefe4df04bd103fa544e3f1df"
+    },
+    "aave": {
+        "addressesProviderAddress": "0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5",
+        "addressesProviderAbi": "config/ethereum/abis/addressesProvider-abi.json",
+        "lendingPoolAddress":"0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",
+        "lendingPoolAbi": "config/ethereum/abis/lendingPool-abi.json"
+    },
+    "extraAbis" : {
+        "stableDebtToken": "config/ethereum/abis/stableDebtToken-abi.json",
+        "variableDebtToken": "config/ethereum/abis/variableDebtToken-abi.json",
+        "aToken": "config/ethereum/abis/aToken-abi.json"
+    }
+}

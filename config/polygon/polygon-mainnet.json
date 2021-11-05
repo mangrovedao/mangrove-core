@@ -1,0 +1,55 @@
+{
+    "chain": "Polygon",
+    "network": "mainnet",
+
+    "tokens": {
+        "dai": {
+            "address": "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
+            "abi": "config/polygon/abis/UChild-abi.json"
+        },
+        "wMATIC": {
+            "address": "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
+            "abi": "config/polygon/abis/erc20-abi.json"
+        },
+        "wEth": {
+            "address": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+            "abi": "config/polygon/abis/UChild-abi.json"
+        },
+        "cDai": {
+            "address" : "0x4eceddf62277ed78623f9a94995c680f8fd6c00e",
+            "abi": "config/polygon/abis/CErc20-delegator-abi.json"
+        },
+        "cwEth": {
+            "address" : "0x7ef18d0a9C3Fb1A716FF6c3ED0Edf52a2427F716",
+            "abi": "config/polygon/abis/CErc20-delegator-abi.json"
+        },
+        "usdc":{
+            "address" : "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+            "abi":"config/polygon/abis/UChild-abi.json"
+        },
+        "cUsdc": {
+            "address" : "0x73cf8c5d14aa0ebc89f18272a568319f5bab6cbd",
+            "abi": "config/polygon/abis/CErc20-delegator-abi.json"
+        },
+        "cwMATIC":{
+            "address" : "0x3FaE5e5722C51cdb5B0afD8c7082e8a6AF336Ee8",
+            "abi": "config/polygon/abis/CErc20-delegator-abi.json"
+        }
+    },
+    "compound": {
+        "unitrollerAddress": "0x20CA53E2395FA571798623F1cFBD11Fe2C114c24",
+        "unitrollerAbi": "config/polygon/abis/comp-abi.json"
+    },
+    "aave" : {
+        "addressesProviderAddress": "0xd05e3E715d945B59290df0ae8eF85c1BdB684744",
+        "addressesProviderAbi": "config/polygon/abis/addressesProvider-abi.json",
+        "lendingPoolAddress": "0x8dff5e27ea6b7ac08ebfdf9eb090f32ee9a30fcf",
+        "lendingPoolAbi": "config/polygon/abis/lendingPool-abi.json"
+    },
+    "ChildChainManager" : "0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa",
+    "extraAbis" : {
+        "stableDebtToken": "config/polygon/abis/stableDebtToken-abi.json",
+        "variableDebtToken": "config/polygon/abis/variableDebtToken-abi.json",
+        "aToken": "config/polygon/abis/aToken-abi.json"
+    }
+}

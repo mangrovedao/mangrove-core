@@ -33,7 +33,7 @@ describe("Running tests...", function () {
     // Provisioning mangrove
     const MgvOffer = await ethers.getContractFactory("Basic");
 
-    // Listenning to Credid events from Mangrove
+    // Listenning to Credit events from Mangrove
     const filter_Credit = mgv.filters.Credit();
     let creditEvents = 0;
     mgv.on(filter_Credit, (maker, amount, event) => {

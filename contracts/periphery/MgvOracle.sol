@@ -36,6 +36,7 @@ contract MgvOracle is IMgvMonitor {
     mutator = _initialMutator;
 
     //NOTE: Hardwiring density for now
+    /* Mangrove will reject densities from the Monitor that don't fit in 32 bits and use its internal density instead, so setting this contract's density to `type(uint).max` is a way to let Mangrove deal with density on its own. */
     lastReceivedDensity = type(uint).max;
   }
 

@@ -16,6 +16,8 @@
    * If the offer succeeds, the provision returns to the maker.
    * If the offer fails, the provision is given to the taker as penalty.
    * The penalty should overcompensate for the taker's lost gas.
+    
+   **Let the devs know about any error, typo etc, by contacting 	devs@mangrove.exchange**
  */
 //+clear+
 

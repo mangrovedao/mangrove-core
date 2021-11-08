@@ -2,7 +2,7 @@
   "name": "@giry/mangrove-solidity",
   "version": "1.0.0",
   "author": "Mangrove DAO",
-  "license": "MIT",
+  "license": "(AGPL-3.0-only OR BSD-2-Clause)",
   "scripts": {
     "precommit": "lint-staged",
     "prepack": "yarn run build",

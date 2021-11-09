@@ -122,8 +122,15 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     uint takerGives,
     bool fillWants,
     address taker
-  ) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave) = generalMarketOrder(
+  )
+    external
+    returns (
+      uint takerGot,
+      uint takerGave,
+      uint bounty
+    )
+  {
+    (takerGot, takerGave, bounty) = generalMarketOrder(
       outbound_tkn,
       inbound_tkn,
       takerWants,
@@ -146,10 +153,11 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     returns (
       uint successes,
       uint takerGot,
-      uint takerGave
+      uint takerGave,
+      uint bounty
     )
   {
-    (successes, takerGot, takerGave) = generalSnipes(
+    (successes, takerGot, takerGave, bounty) = generalSnipes(
       outbound_tkn,
       inbound_tkn,
       targets,

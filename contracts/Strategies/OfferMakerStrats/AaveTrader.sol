@@ -36,9 +36,13 @@ abstract contract AaveTrader is AaveLender {
   {
     // 1. Computing total borrow and redeem capacities of underlying asset
     (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
-      outbound_tkn
+      outbound_tkn,
+      true
     );
 
+    if (add_(redeemable, liquidity_after_redeem) < amount) {
+      return amount; // give up early if not possible to fetch amount of underlying
+    }
     // 2. trying to redeem liquidity from Compound
     uint toRedeem = min(redeemable, amount);
 

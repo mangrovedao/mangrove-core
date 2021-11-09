@@ -41,6 +41,11 @@ abstract contract CompoundTrader is CompoundLender {
       address(outbound_cTkn)
     );
 
+    // give up if amount is not gettable
+    if (add_(redeemable, liquidity_after_redeem) < amount) {
+      return amount;
+    }
+
     // 2. trying to redeem liquidity from Compound
     uint toRedeem = min(redeemable, amount);
 

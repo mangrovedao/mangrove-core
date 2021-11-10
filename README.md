@@ -95,7 +95,7 @@ The folder [./deploy](./deploy) contains [hardhat-deploy](https://github.com/wig
 
 # Generate documentation
 
-The Mangrove Solidity files contains documentation that can be extracted to a nicely formatted and navigable HTML file by running `yarn doc` which will generate a `doc/MgvDoc.html`.
+The Mangrove Solidity files contain documentation that can be extracted to a nicely formatted and navigable HTML file by running `yarn doc` which will generate a `doc/MgvDoc.html`.
 
 # Configuration
 

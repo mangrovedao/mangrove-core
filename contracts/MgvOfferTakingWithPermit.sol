@@ -138,6 +138,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       fillWants,
       taker
     );
+    /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
     deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
   }
 
@@ -164,6 +165,9 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       fillWants,
       taker
     );
+    /* The sender's allowance is verified after the order complete so that the actual amounts are checked against the allowance, instead of the declared `takerGives`. The former may be lower.
+    
+    An immediate consequence is that any funds availale to Mangrove through `approve` can be used to clean offers. After a `snipesFor` where all offers have failed, all token transfers have been reverted, so `takerGave=0` and the check will succeed -- but the sender will still have received the bounty of the failing offers. */
     deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
   }
 

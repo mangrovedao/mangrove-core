@@ -848,7 +848,7 @@ __metadata:
     "@ethersproject/experimental": ^5.5.0
     "@ethersproject/hardware-wallets": ^5.4.0
     "@giry/commonlib-js": "workspace:*"
-    "@giry/hardhat-mangrove": "workspace:*"
+    "@giry/hardhat-utils": "workspace:*"
     "@giry/mangrove-js": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
@@ -908,26 +908,10 @@ __metadata:
     mocha-multi-reporters: ^1.5.1
     prettier: 2.3.2
     prettier-eslint: ^13.0.0
+    rimraf: ^3.0.2
     ts-node: ^10.2.1
     typescript: ^4.4.2
     winston: ^3.3.3
-  languageName: unknown
-  linkType: soft
-
-"@giry/hardhat-mangrove@workspace:*, @giry/hardhat-mangrove@workspace:packages/hardhat-mangrove":
-  version: 0.0.0-use.local
-  resolution: "@giry/hardhat-mangrove@workspace:packages/hardhat-mangrove"
-  dependencies:
-    "@giry/mangrove-solidity": "workspace:*"
-    config: ^3.3.6
-    eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
-    ethers: ^5.4.7
-    hardhat: ^2.6.5
-    lint-staged: ^11.1.2
-    mocha: ^9.1.2
-    prettier: 2.3.2
-    prettier-eslint: ^13.0.0
   languageName: unknown
   linkType: soft
 
@@ -945,6 +929,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@giry/hardhat-utils@workspace:*, @giry/hardhat-utils@workspace:packages/hardhat-utils":
+  version: 0.0.0-use.local
+  resolution: "@giry/hardhat-utils@workspace:packages/hardhat-utils"
+  dependencies:
+    "@giry/mangrove-solidity": "workspace:*"
+    eslint: ^7.32.0
+    eslint-config-prettier: ^8.3.0
+    ethers: ^5.4.7
+    hardhat: ^2.6.5
+    lint-staged: ^11.1.2
+    mocha: ^9.1.2
+    prettier: 2.3.2
+    prettier-eslint: ^13.0.0
+  languageName: unknown
+  linkType: soft
+
 "@giry/mangrove-js@workspace:*, @giry/mangrove-js@workspace:packages/mangrove.js":
   version: 0.0.0-use.local
   resolution: "@giry/mangrove-js@workspace:packages/mangrove.js"
@@ -954,7 +954,7 @@ __metadata:
     "@ethersproject/bytes": ^5.0.0
     "@ethersproject/hardware-wallets": ^5.0.0
     "@ethersproject/providers": ^5.0.0
-    "@giry/hardhat-mangrove": "workspace:*"
+    "@giry/hardhat-utils": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@rollup/plugin-commonjs": ^20.0.0
@@ -1043,7 +1043,7 @@ __metadata:
     "@ethersproject/experimental": ^5.5.0
     "@ethersproject/hardware-wallets": ^5.4.0
     "@giry/commonlib-js": "workspace:*"
-    "@giry/hardhat-mangrove": "workspace:*"
+    "@giry/hardhat-utils": "workspace:*"
     "@giry/mangrove-js": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2

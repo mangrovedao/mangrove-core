@@ -5,7 +5,7 @@
   "license": "(AGPL-3.0-only OR BSD-2-Clause)",
   "scripts": {
     "precommit": "lint-staged",
-    "prepack": "yarn run build",
+    "prepack": "yarn build",
     "build-this-package": "hardhat compile && yarn run copy-distribution-assets",
     "build": "yarn install && yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run build-this-package",
     "copy-distribution-assets": "node copyDistributionAssets.js",
@@ -18,6 +18,9 @@
     "test:ethereum-mainnet": "yarn run testSuites --network ethereum",
     "test:polygon-mainnet": "yarn run testSuites --network polygon",
     "testSuites": "cross-env NODE_ENV=test node lib/test-suite-runner.js"
+  },
+  "lint-staged": {
+    "*.{js,css,md,sol}": "prettier --write --ignore-unknown"
   },
   "devDependencies": {
     "@espendk/json-file-reporter": "^1.4.1",
@@ -47,8 +50,5 @@
     "shelljs": "^0.8.4",
     "solcco": ">=1.0.11",
     "yargs": "^17.1.1"
-  },
-  "lint-staged": {
-    "*.{js,css,md,sol}": "prettier --write"
   }
 }

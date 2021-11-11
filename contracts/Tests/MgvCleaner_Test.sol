@@ -33,7 +33,7 @@ contract MgvCleaner_Test is HasMgvEvents {
     inbound = address(Inbound);
     mgv = MgvSetup.setup(Outbound, Inbound);
     mkr = MakerSetup.setup(mgv, outbound, inbound);
-    cleaner = new MgvCleaner(mgv);
+    cleaner = new MgvCleaner(address(mgv));
 
     address(mkr).transfer(10 ether);
 

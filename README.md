@@ -100,3 +100,7 @@ The Mangrove Solidity files contain documentation that can be extracted to a nic
 # Configuration
 
 This package uses hierarchical configurations via [node-config](https://github.com/lorenwest/node-config). The main configuration is in [./config/default.js](./config/default.js) and the other .js files in the same directory specify environment/stage specific overrides. Please refer to the documentation for node-config for details on how the configuration hierarchy is resolved.
+
+It is possible to override parts of the configuration with environment variables. This is controlled by [./config/custom-environment-variables.json](./config/custom-environment-variables.json). The structure of this file mirrors the configuration structure but with names of environment variables in the places where these can override a part of the configuration.
+
+For more information, please refer to the node-config's documentation of this feature: https://github.com/lorenwest/node-config/wiki/Environment-Variables#custom-environment-variables .

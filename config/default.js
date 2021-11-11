@@ -7,7 +7,7 @@ var defer = require("config/defer").deferConfig;
 // Hardhat configuration //
 /* to test deployments, make the hardhat network emulate another network & reuse 
    the deployment addresses in `accounts` so they are funded:
-   hardaht {
+   hardhat {
      ...
       chainId: 80001,
       accounts: [{privateKey: process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"] || "", balance: "10000000000000000000000"}]
@@ -34,7 +34,7 @@ config.hardhat = {
       // add a node url in mangrove-solidity/.env.local
       url: process.env["MUMBAI_NODE_URL"] || "",
       chainId: 80001,
-      accounts: mumbaiAccounts
+      accounts: mumbaiAccounts,
     },
     localhost: {
       url: "http://127.0.0.1:8545",

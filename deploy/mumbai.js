@@ -11,9 +11,14 @@ module.exports = async (hre) => {
     args: [mangroveResult.address],
   });
 
+  const mgvCleaner = await hre.deployments.deploy("MgvCleaner", {
+    from: deployer,
+    args: [mangroveResult.address],
+  });
+
   const oracle = await hre.deployments.deploy("MgvOracle", {
     from: deployer,
-    args: [deployer,deployer],
+    args: [deployer, deployer],
   });
 };
 

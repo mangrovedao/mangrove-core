@@ -149,8 +149,8 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     address inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) external internalOrAdmin returns (uint) {
-    return MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  ) external internalOrAdmin {
+    MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
   // Returns the amount of WEI necessary to (re)provision the (re)posting of offer `offerID` in the (`outbound_tkn, inbound_tkn`) Offer List.

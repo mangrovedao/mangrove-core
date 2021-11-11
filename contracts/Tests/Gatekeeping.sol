@@ -733,12 +733,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     address _quote,
     uint id
   ) external {
-    uint collected = mgv.retractOffer(_base, _quote, id, false);
-    TestEvents.eq(
-      collected,
-      0,
-      "Unexpected collected provision after retract w/o deprovision"
-    );
+    mgv.retractOffer(_base, _quote, id, false);
   }
 
   function retractOffer_on_reentrancy_succeeds_test() public {

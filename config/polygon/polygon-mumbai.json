@@ -1,0 +1,30 @@
+{
+    "chain": "Polygon",
+    "network": "mumbai",
+
+    "tokens": {
+        "dai": {
+            "address": "0x001B3B4d0F3714Ca98ba10F6042DaEbF0B1B7b6F",
+            "abi": "config/polygon/abis/MintableERC20-abi.json"
+        },
+        "wEth": {
+            "address": "0x3C68CE8504087f89c640D02d133646d98e64ddd9",
+            "abi": "config/polygon/abis/MintableERC20-abi.json"
+        },
+        "usdc":{
+            "address" : "0x2058A9D7613eEE744279e3856Ef0eAda5FCbaA7e",
+            "abi":"config/polygon/abis/MintableERC20-abi.json"
+        }
+    },
+    "aave" : {
+        "addressesProviderAddress": "0x178113104fEcbcD7fF8669a0150721e231F0FD4B",
+        "addressesProviderAbi": "config/polygon/abis/addressesProvider-abi.json",
+        "lendingPoolAddress": "0x9198F13B08E299d85E096929fA9781A1E3d5d827",
+        "lendingPoolAbi": "config/polygon/abis/lendingPool-abi.json"
+    },
+    "extraAbis" : {
+        "stableDebtToken": "config/polygon/abis/stableDebtToken-abi.json",
+        "variableDebtToken": "config/polygon/abis/variableDebtToken-abi.json",
+        "aToken": "config/polygon/abis/aToken-abi.json"
+    }
+}

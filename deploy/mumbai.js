@@ -1,5 +1,5 @@
 module.exports = async (hre) => {
-  const deployer = (await hre.getUnnamedAccounts())[0];
+  const deployer = (await hre.getNamedAccounts()).deployer;
 
   const mangroveResult = await hre.deployments.deploy("Mangrove", {
     from: deployer,

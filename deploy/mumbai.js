@@ -1,6 +1,3 @@
-const config = require("../config/mumbai");
-const persistentOffer = require("../lib/mumbai-offer.js");
-
 module.exports = async (hre) => {
   const deployer = (await hre.getUnnamedAccounts())[0];
 
@@ -32,10 +29,6 @@ module.exports = async (hre) => {
     from: deployer,
     args: [mangroveResult.address],
     skipIfAlreadyDeployed: true,
-  });
-
-  await persistentOffer.configureOffer().catch((e) => {
-    console.error(e);
   });
 };
 

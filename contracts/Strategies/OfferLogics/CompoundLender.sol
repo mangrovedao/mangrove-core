@@ -218,14 +218,14 @@ abstract contract CompoundLender is MangroveOffer {
     if (address(outbound_cTkn) == address(0)) {
       return amount;
     }
-    outbound_cTkn.accrueInterest();
     (uint redeemable, ) = maxGettableUnderlying(address(outbound_cTkn));
-
-    uint redeemAmount = min(redeemable, amount);
-
-    if (compoundRedeem(outbound_cTkn, redeemAmount) == 0) {
+    if (redeemable < amount) {
+      return amount; //give up if __get__ cannot withdraw enough
+    }
+    // else try redeem on compound
+    if (compoundRedeem(outbound_cTkn, amount) == 0) {
       // redeemAmount was transfered to `this`
-      return (amount - redeemAmount);
+      return 0;
     }
     return amount;
   }

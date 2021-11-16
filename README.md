@@ -1,20 +1,27 @@
-# Mangrove development repo
+This package contains the Solidity implementation of Mangrove as well as deployment scripts and example Solidity offer logics.
 
-## How to install
+# Installation
 
+First, clone the repo and install the prerequisites for the monorepo described in the root [README.md](../../README.md).
+
+Next, run the following commands:
+
+```shell
+$ cd <Mangrove monorepo>/packages/mangrove-solidity
+$ yarn install   # Sets up the Mangrove monorepo and install dependencies
+$ yarn build     # Compiles Mangrove and offer logics
 ```
-npm install
-```
 
-## How to run all tests
+After the initial installation, it is sufficient to run `yarn build` after updating the clone - this will also run `yarn install`.
 
-```
-npm run test
-```
+# Hardhat and its use in this package
 
-#### What you can do
+This package relies heavily on the [Hardhat](https://hardhat.org) development framework for Ethereum. It includes an [EVM interpreter](https://hardhat.org/hardhat-network/) with special hooks for
 
-- Use Hardhat's `console.log` in contracts for debugging; those logs survive transaction revert. More in [Hardhat's documentation](https://hardhat.org/hardhat-network/#console-log). Example:
+- interpreting `console.log`-type statements
+- displaying Solidity stack traces on reverts.
+
+For example, you can use Hardhat's `console.log` in contracts for debugging; those logs survive transaction revert. More in [Hardhat's documentation](https://hardhat.org/hardhat-network/#console-log). Example:
 
 ```
 string memory s = "Hello";
@@ -22,31 +29,78 @@ uint n = 31;
 console.log("Message %s number %d",s,d);
 ```
 
-- Run test for a specific contract and show all events of non-reverted transactions. Example:
+# Tests
 
+To run all tests in the package, just run `yarn test`.
+
+To run specific tests or test suites, see the instructions in the following sectins.
+
+## How to run Solidity tests for Mangrove
+
+This package contains a comprehensive test suite for Mangrove, implemented in Solidity using the [hardhat-test-solidity](https://github.com/giry-dev/hardhat-test-solidity) Hardhat plugin.
+
+This test suite can be run with:
+
+```bash
+$ yarn test:solidity
 ```
-npx hardhat test-solidity --show-events
+
+The tests are located in [./contracts/Tests](./contracts/Tests).
+
+Refer to the documentation of [hardhat-test-solidity](https://github.com/giry-dev/hardhat-test-solidity) for details on how tests are structured and options for running it.
+
+## How to run offer logic tests
+
+Tests for the example offer logics are implemented in JavaScript and are located here: [./test](./test).
+
+The tests run a on a local fork of either Ethereum or Polygon mainnet. This ensures that the offer logics use the actual mainnet versions of the DeFi bricks they use, e.g. Aave and Compound.
+
+In order to run the tests, you must provide URLs for mainnet endpoints in the following environment variables:
+
+```bash
+# URL for an Ethereum endpoint
+ETHEREUM_NODE_URL=https://eth-mainnet.alchemyapi.io/v2/<API key>
+# URL for a Polygon endpoint
+POLYGON_NODE_URL=https://polygon-mainnet.g.alchemy.com/v2/<API key>
 ```
 
-- Run test for `permit` function, which needs js instrumentation (cannot do reasonably it in pure solidity)
+You can set up free accounts with any endpoint provider, e.g. Infura or Alchemy.
 
+For convencience, you can store the environment variables in `./.env.test.local`. You can use [.env.local.example](.env.local.example) as a template.
+
+The full test suite can be run with:
+
+```bash
+# Run offer logic tests against fork of Ethereum mainnet:
+$ yarn test:ethereum-mainnet
+
+# Run offer logic tests against fork of Polygon mainnet:
+$ yarn test:polygon-mainnet
 ```
-npx hardhat run scripts/permit.js
+
+To run specific test suites, use the `testSuites` package script:
+
+```bash
+ yarn run testSuites -n/--network <network> [testSuite1 ...]
+ # Example running the basic test suite (test-basic.js) on a Polygon mainnet fork:
+ yarn run testSuites -n polygon basic
 ```
 
-- See a Solidity stack trace on reverts
+# Deployment
 
-#### More on tests
+The folder [./deploy](./deploy) contains [hardhat-deploy](https://github.com/wighawag/hardhat-deploy) deployment scripts that can be used to deploy Mangrove on various networks:
 
-To test a contract `C`, create a contract `C_Test`. You will probably use the contents of `contracts/Toolbox/TestEvents.sol`. To see how it all works, see [`test_solidity.js`](lib/test_solidity.js).
+- [./deploy/mangrove.js](./deploy/mangrove.js): Can be used for test network deployments and includes some IERC20 test tokens. This is particularly useful for setting up local (Hardhat) networks for integration tests against Mangrove.
+- [./deploy/mumbai.js](./deploy/mumbai.js): Deployment script for the Polygon Mumbai testnet.
 
-[Hardhat](https://hardhat.org) is a development framework for Ethereum. It includes an [EVM interpreter](https://hardhat.org/hardhat-network/) with special hooks for
+# Generate documentation
 
-- interpreting `console.log`-type statements
-- displaying Solidity stack traces
+The Mangrove Solidity files contain documentation that can be extracted to a nicely formatted and navigable HTML file by running `yarn doc` which will generate a `doc/MgvDoc.html`.
 
-It has an extendable task system; this repo adds a `test-solidity` task. Run `npx hardhat help test-solidity` for available options. The task itself is defined in [hardhat.config.js](./hardhat.config.js).
+# Configuration
 
-## Generate documentation
+This package uses hierarchical configurations via [node-config](https://github.com/lorenwest/node-config). The main configuration is in [./config/default.js](./config/default.js) and the other .js files in the same directory specify environment/stage specific overrides. Please refer to the documentation for node-config for details on how the configuration hierarchy is resolved.
 
-After running `npm install`, run `npm run doc` to generate a `doc/MgvDoc.html` file.
+It is possible to override parts of the configuration with environment variables. This is controlled by [./config/custom-environment-variables.json](./config/custom-environment-variables.json). The structure of this file mirrors the configuration structure but with names of environment variables in the places where these can override a part of the configuration.
+
+For more information, please refer to the node-config's documentation of this feature: https://github.com/lorenwest/node-config/wiki/Environment-Variables#custom-environment-variables .

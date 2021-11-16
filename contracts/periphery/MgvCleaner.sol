@@ -17,7 +17,31 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.7.6;
-import "../Mangrove.sol";
+pragma abicoder v2;
+import {MgvLib as ML} from "../MgvLib.sol";
+
+interface MangroveLike {
+  function snipesFor(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint[4][] calldata targets,
+    bool fillWants,
+    address taker
+  )
+    external
+    returns (
+      uint successes,
+      uint takerGot,
+      uint takerGave,
+      uint bounty
+    );
+
+  function offerInfo(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint offerId
+  ) external view returns (ML.Offer memory, ML.OfferDetail memory);
+}
 
 /* The purpose of the Cleaner contract is to execute failing offers and collect
  * their associated bounty. It takes an array of offers with same definition as
@@ -33,10 +57,10 @@ import "../Mangrove.sol";
    TODO: add `collectWith` with an additional `taker` argument.
 */
 contract MgvCleaner {
-  AbstractMangrove immutable MGV;
+  MangroveLike immutable MGV;
 
-  constructor(AbstractMangrove _MGV) {
-    MGV = _MGV;
+  constructor(address _MGV) {
+    MGV = MangroveLike(_MGV);
   }
 
   receive() external payable {}

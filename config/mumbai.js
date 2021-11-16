@@ -3,6 +3,6 @@ var config = {};
 
 ////////////////////////////
 // Mumbai configuration //
-config.mumbai = require("./polygon/polygon-mumbai.json");
+config.network = require("./polygon/polygon-mumbai.json");
 
 module.exports = config;

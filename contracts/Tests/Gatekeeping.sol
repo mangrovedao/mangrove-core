@@ -317,10 +317,10 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
   }
 
   function set_density_ceiling_test() public {
-    try mgv.setDensity(base, quote, uint(type(uint32).max) + 1) {
+    try mgv.setDensity(base, quote, uint(type(uint128).max) + 1) {
       TestEvents.fail("density above ceiling should fail");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/config/density/32bits");
+      TestUtils.revertEq(r, "mgv/config/density/128bits");
     }
   }
 
@@ -567,7 +567,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     mkr.approveMgv(TestToken(base), 1 ether);
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     tkr.approveSpender(address(this), 1.2 ether);
-    (uint takerGot, ) = mgv.marketOrderFor(
+    (uint takerGot, , ) = mgv.marketOrderFor(
       base,
       quote,
       1 ether,
@@ -733,7 +733,12 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     address _quote,
     uint id
   ) external {
-    mgv.retractOffer(_base, _quote, id, false);
+    uint collected = mgv.retractOffer(_base, _quote, id, false);
+    TestEvents.eq(
+      collected,
+      0,
+      "Unexpected collected provision after retract w/o deprovision"
+    );
   }
 
   function retractOffer_on_reentrancy_succeeds_test() public {

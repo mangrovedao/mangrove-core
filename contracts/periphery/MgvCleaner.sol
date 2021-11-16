@@ -32,7 +32,8 @@ interface MangroveLike {
     returns (
       uint successes,
       uint takerGot,
-      uint takerGave
+      uint takerGave,
+      uint bounty
     );
 
   function offerInfo(
@@ -64,13 +65,14 @@ contract MgvCleaner {
 
   receive() external payable {}
 
+  /* Returns the entire balance, not just the bounty collected */
   function collect(
     address outbound_tkn,
     address inbound_tkn,
     uint[4][] calldata targets,
     bool fillWants
   ) external returns (uint bal) {
-    (uint successes, , ) = MGV.snipesFor(
+    (uint successes, , , ) = MGV.snipesFor(
       outbound_tkn,
       inbound_tkn,
       targets,

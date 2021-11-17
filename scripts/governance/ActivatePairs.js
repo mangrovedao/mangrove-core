@@ -1,67 +1,45 @@
 const hre = require("hardhat");
-const networkConfig = require("config");
+const helper = require("../helper");
 const chalk = require("chalk");
 
 async function main() {
-  function addressOfToken(env, tokenName) {
-    function tryGet(cfg, name) {
-      if (cfg.has(name)) {
-        return cfg.get(name);
-      }
-    }
-    const tkCfg = tryGet(env, `tokens.${tokenName}`);
-    return tryGet(tkCfg, "address");
-  }
-
-  const url = hre.network.config.url;
-  const provider = new hre.ethers.providers.JsonRpcProvider(url);
-
-  let env = {};
-  if (networkConfig.has("network")) {
-    env = networkConfig.get("network");
-  } else {
-    console.warn("No configuration found for current network");
-    return;
-  }
-  // reading deploy oracle for the deployed network
-  const oracle = require(`../${env.network}/deployOracle`);
-
-  //gives price of `tokenSym` in `oracle.native` token
-  function priceOf(tokenSym) {
-    return oracle[tokenSym].price;
-  }
-
-  //gives gas cost of transfer in `oracle.native` token
-  function overheadOf(tokenSym) {
-    return parseInt(oracle[tokenSym].transferCost, 10);
-  }
-
-  function getMangroveIntParam(param) {
-    return parseInt(oracle.Mangrove[param]);
-  }
-
+  const env = helper.getCurrentNetworkEnv();
+  const provider = helper.getProvider();
   // Privileged account should be 0 by convention
   const deployer = (await provider.listAccounts())[0];
   //  const deployer = (await hre.getUnnamedAccounts())[0]; from some reason this does not work
   const signer = await provider.getSigner(deployer);
 
+  // reading deploy oracle for the deployed network
+  const oracle = require(`../${env.network}/deployOracle`);
+  //gives price of `tokenSym` in `oracle.native` token
+  function priceOf(tokenSym) {
+    return oracle[tokenSym].price;
+  }
+  //gives gas cost of transfer in `oracle.native` token
+  function overheadOf(tokenSym) {
+    return parseInt(oracle[tokenSym].transferCost, 10);
+  }
+  function getMangroveIntParam(param) {
+    return parseInt(oracle.Mangrove[param]);
+  }
+
   const mgv = await hre.ethers.getContract("Mangrove");
-  const mgov = await mgv.governance();
-  if (mgov != deployer) {
+  if ((await mgv.governance()) != deployer) {
     console.error(
       "Deployer is not the admin of the deployed mangrove contract"
     );
     return;
   }
 
-  const wethAddr = addressOfToken(env, "wEth");
-  const daiAddr = addressOfToken(env, "dai");
-  const usdcAddr = addressOfToken(env, "usdc");
+  const wethAddr = helper.addressOfToken(env, "wEth");
+  const daiAddr = helper.addressOfToken(env, "dai");
+  const usdcAddr = helper.addressOfToken(env, "usdc");
 
   const tokenParams = [
-    [wethAddr, 18, "WETH", ethers.utils.parseEther(priceOf("WETH"))],
-    [daiAddr, 18, "DAI", ethers.utils.parseEther(priceOf("DAI"))],
-    [usdcAddr, 6, "USDC", ethers.utils.parseEther(priceOf("USDC"))],
+    [wethAddr, "WETH", 18, ethers.utils.parseEther(priceOf("WETH"))],
+    [daiAddr, "DAI", 18, ethers.utils.parseEther(priceOf("DAI"))],
+    [usdcAddr, "USDC", 6, ethers.utils.parseEther(priceOf("USDC"))],
   ];
 
   const MgvReader = await hre.ethers.getContract("MgvReader");
@@ -73,11 +51,11 @@ async function main() {
 
   for (const [
     outbound_tkn,
-    outDecimals,
     outName,
+    outDecimals,
     outTknInMatic,
   ] of tokenParams) {
-    for (const [inbound_tkn, inDecimals, inName] of tokenParams) {
+    for (const [inbound_tkn, inName] of tokenParams) {
       if (outbound_tkn != inbound_tkn) {
         const overhead = ethers.BigNumber.from(
           overheadOf(outName) + overheadOf(inName)

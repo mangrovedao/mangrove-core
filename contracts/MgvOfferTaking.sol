@@ -54,7 +54,14 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint takerWants,
     uint takerGives,
     bool fillWants
-  ) external returns (uint, uint) {
+  )
+    external
+    returns (
+      uint,
+      uint,
+      uint
+    )
+  {
     return
       generalMarketOrder(
         outbound_tkn,
@@ -77,7 +84,14 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint takerGives,
     bool fillWants,
     address taker
-  ) internal returns (uint, uint) {
+  )
+    internal
+    returns (
+      uint,
+      uint,
+      uint
+    )
+  {
     /* Since amounts stored in offers are 96 bits wide, checking that `takerWants` and `takerGives` fit in 160 bits prevents overflow during the main market order loop. */
     require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
     require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
@@ -130,7 +144,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     );
 
     //+clear+
-    return (mor.totalGot, mor.totalGave);
+    return (mor.totalGot, mor.totalGave, mor.totalPenalty);
   }
 
   /* ## Internal market order */
@@ -251,7 +265,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Snipes */
   //+clear+
 
-  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,takerWants,takerGives,offerGasreq]`. The return parameters are of the form `(successes,totalGot,totalGave)`. 
+  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,takerWants,takerGives,offerGasreq]`. The return parameters are of the form `(successes,totalGot,totalGave,bounty)`. 
   Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`). */
   function snipes(
     address outbound_tkn,
@@ -263,6 +277,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (
       uint,
       uint,
+      uint,
       uint
     )
   {
@@ -271,7 +286,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /*
-     From an array of _n_ `[offerId, takerWants,takerGives,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave)`. 
+     From an array of _n_ `[offerId, takerWants,takerGives,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty)`. 
 
      Note that if this function is not internal, anyone can make anyone use Mangrove. */
   function generalSnipes(
@@ -283,6 +298,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   )
     internal
     returns (
+      uint,
       uint,
       uint,
       uint
@@ -323,7 +339,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       mor.totalGave
     );
 
-    return (mor.successCount, mor.totalGot, mor.totalGave);
+    return (mor.successCount, mor.totalGot, mor.totalGave, mor.totalPenalty);
   }
 
   /* ## Internal snipes */

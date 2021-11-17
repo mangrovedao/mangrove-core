@@ -151,7 +151,7 @@ contract Monitor_Test {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofrId, 0.04 ether, 0.05 ether, 100_000];
-    (uint successes, , ) = mgv.snipes(base, quote, targets, true);
+    (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(successes == 1, "snipe should succeed");
     (bytes32 _global, bytes32 _local) = mgv.config(base, quote);
     _local = $$(set_local("_local", [["best", 1], ["lock", 1]]));
@@ -180,7 +180,7 @@ contract Monitor_Test {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofrId, 0.04 ether, 0.05 ether, 100_000];
-    (uint successes, , ) = mgv.snipes(base, quote, targets, true);
+    (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(successes == 0, "snipe should fail");
 
     (bytes32 _global, bytes32 _local) = mgv.config(base, quote);

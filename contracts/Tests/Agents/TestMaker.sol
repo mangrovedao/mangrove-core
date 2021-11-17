@@ -182,12 +182,12 @@ contract TestMaker is IMaker, Passthrough {
     _mgv.updateOffer(_base, _quote, wants, gives, gasreq, 0, pivotId, offerId);
   }
 
-  function retractOffer(uint offerId) public {
-    _mgv.retractOffer(_base, _quote, offerId, false);
+  function retractOffer(uint offerId) public returns (uint) {
+    return _mgv.retractOffer(_base, _quote, offerId, false);
   }
 
-  function retractOfferWithDeprovision(uint offerId) public {
-    _mgv.retractOffer(_base, _quote, offerId, true);
+  function retractOfferWithDeprovision(uint offerId) public returns (uint) {
+    return _mgv.retractOffer(_base, _quote, offerId, true);
   }
 
   function provisionMgv(uint amount) public {

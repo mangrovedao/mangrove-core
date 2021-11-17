@@ -153,7 +153,7 @@ contract MgvOfferMaking is MgvHasOffers {
     address inbound_tkn,
     uint offerId,
     bool deprovision
-  ) external {
+  ) external returns (uint provision) {
     (, bytes32 local) = config(outbound_tkn, inbound_tkn);
     unlockedMarketOnly(local);
     bytes32 offer = offers[outbound_tkn][inbound_tkn][offerId];
@@ -183,7 +183,8 @@ contract MgvOfferMaking is MgvHasOffers {
 
     /* If the user wants to get their provision back, we compute its provision from the offer's `gasprice`, `*_gasbase` and `gasreq`. */
     if (deprovision) {
-      uint provision = 10**9 *
+      provision =
+        10**9 *
         $$(offer_gasprice("offer")) * //gasprice is 0 if offer was deprovisioned
         ($$(offerDetail_gasreq("offerDetail")) +
           $$(offerDetail_overhead_gasbase("offerDetail")) +

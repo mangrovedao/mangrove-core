@@ -130,7 +130,7 @@ contract OfferManager is IMaker, ITaker {
     IERC20(quote).approve(address(MGV), 100 ether); // to pay maker
     IERC20(base).approve(address(MGV), 100 ether); // takerfee
 
-    (uint netReceived, ) = MGV.marketOrder(base, quote, wants, gives, true); // OfferManager might collect provisions of failing offers
+    (uint netReceived, , ) = MGV.marketOrder(base, quote, wants, gives, true); // OfferManager might collect provisions of failing offers
 
     try IERC20(base).transfer(msg.sender, netReceived) {
       uint residual_w = wants - netReceived;

@@ -22,6 +22,28 @@
         "lendingPoolAddress": "0x9198F13B08E299d85E096929fA9781A1E3d5d827",
         "lendingPoolAbi": "config/polygon/abis/lendingPool-abi.json"
     },
+    "mangrove" : {
+        "addresses" : {
+            "contracts": {
+                "main": "0xF15A2ada64A9C3C14ca11359c8F1d22B063DB2AD",
+                "cleaner": "0xad53eB62d210DeeB30854e1b73dD4Ee88E612cc9",
+                "reader": "0xc00d2da52195b123d3c994aaf2eb1e8da8999d4f",
+                "oracle": "0xb4C0B66F158C314FfBDF1b64d9B517B8aaB46773"
+            },
+            "deployers" :{
+                "main": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",
+                "cleaner": "0xE47e3D08f6e879Fb704E2EA68E27c39eEe9C163D",
+                "reader": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",
+                "oracle": "0x47897EE61498D02B18794601Ed3A71896A1Ff894"
+            }
+        },
+        "abis" : {
+            "main": "build/exported-abis/Mangrove.json",
+            "cleaner": "build/exported-abis/MgvCleaner.json",
+            "reader": "build/exported-abis/MgvReader.json",
+            "oracle": "build/exported-abis/MgvOracle.json"
+        }
+    },
     "extraAbis" : {
         "stableDebtToken": "config/polygon/abis/stableDebtToken-abi.json",
         "variableDebtToken": "config/polygon/abis/variableDebtToken-abi.json",

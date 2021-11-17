@@ -4,14 +4,9 @@ const chalk = require("chalk");
 
 async function main() {
   const env = helper.getCurrentNetworkEnv();
-  const provider = helper.getProvider();
-  // Privileged account should be 0 by convention
-  const deployer = (await provider.listAccounts())[0];
-  //  const deployer = (await hre.getUnnamedAccounts())[0]; from some reason this does not work
-  const signer = await provider.getSigner(deployer);
 
   // reading deploy oracle for the deployed network
-  const oracle = require(`../${env.network}/deployOracle`);
+  const oracle = require(`../${env.network}/activationOracle`);
   //gives price of `tokenSym` in `oracle.native` token
   function priceOf(tokenSym) {
     return oracle[tokenSym].price;
@@ -24,17 +19,11 @@ async function main() {
     return parseInt(oracle.Mangrove[param]);
   }
 
-  const mgv = await hre.ethers.getContract("Mangrove");
-  if ((await mgv.governance()) != deployer) {
-    console.error(
-      "Deployer is not the admin of the deployed mangrove contract"
-    );
-    return;
-  }
+  const mgv = await helper.getMangrove();
 
-  const wethAddr = helper.addressOfToken(env, "wEth");
-  const daiAddr = helper.addressOfToken(env, "dai");
-  const usdcAddr = helper.addressOfToken(env, "usdc");
+  const wethAddr = helper.contractOfToken("wEth").address;
+  const daiAddr = helper.contractOfToken("dai").address;
+  const usdcAddr = helper.contractOfToken("usdc").address;
 
   const tokenParams = [
     [wethAddr, "WETH", 18, ethers.utils.parseEther(priceOf("WETH"))],
@@ -42,8 +31,7 @@ async function main() {
     [usdcAddr, "USDC", 6, ethers.utils.parseEther(priceOf("USDC"))],
   ];
 
-  const MgvReader = await hre.ethers.getContract("MgvReader");
-  const [global] = await MgvReader.config(
+  const [global] = await mgv.reader.config(
     ethers.constants.AddressZero,
     ethers.constants.AddressZero
   );
@@ -71,7 +59,7 @@ async function main() {
           density_outIn = ethers.BigNumber.from(1);
         }
 
-        await mgv.connect(signer).activate(
+        await mgv.contract.activate(
           outbound_tkn,
           inbound_tkn,
           ethers.BigNumber.from(getMangroveIntParam("defaultFee")),

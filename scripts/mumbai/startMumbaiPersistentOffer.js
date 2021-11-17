@@ -1,36 +1,37 @@
 const hre = require("hardhat");
 const helper = require("../helper");
 
-async function main() {
+async function getMinter() {
   const provider = helper.getProvider();
+  const minter = {};
+  try {
+    // trying to see whether Minter is part of current deployment
+    let minter = await hre.ethers.getContract("MumbaiMinter");
+    const deployer = (await provider.listAccounts())[0];
+    minter = minter.connect(provider.getSigner(deployer));
+    return minter;
+  } catch (error) {
+    // otherwise retrieves the pre deployed contract on chain
+    console.log("Don't know how to retrieve minter yet...");
+  }
+}
+
+async function main() {
   const env = helper.getCurrentNetworkEnv();
 
-  // Privileged account is 0 by convention
-  const deployer = (await provider.listAccounts())[0];
-  //  const deployer = (await hre.getUnnamedAccounts())[0]; from some reason this does not work
-  const signer = await provider.getSigner(deployer);
-
   // accessing ethers.js MumbaiMinter
-  const MumbaiMinter = await hre.ethers.getContract("MumbaiMinter");
-  const minterAdmin = await MumbaiMinter.admin();
-  if (minterAdmin != deployer) {
-    console.error(
-      "Deployer is not the admin of the deployed persistent offer contract"
-    );
-    return;
-  }
+  const MumbaiMinter = await getMinter();
+  const mgv = await helper.getMangrove();
 
-  const mgv = await hre.ethers.getContract("Mangrove");
-
-  const wethAddr = helper.addressOfToken(env, "wEth");
-  const daiAddr = helper.addressOfToken(env, "dai");
-  const usdcAddr = helper.addressOfToken(env, "usdc");
+  const wethAddr = helper.contractOfToken("wEth").address;
+  const daiAddr = helper.contractOfToken("dai").address;
+  const usdcAddr = helper.contractOfToken("usdc").address;
 
   let overrides = { value: ethers.utils.parseEther("1.0") };
-  await mgv["fund(address)"](MumbaiMinter.address, overrides);
+  await mgv.contract["fund(address)"](MumbaiMinter.address, overrides);
 
   // reading deploy oracle for the deployed network
-  const oracle = require(`../${env.network}/deployOracle`);
+  const oracle = require(`../${env.network}/activationOracle`);
   //gives price of `tokenSym` in `oracle.native` token
   function priceOf(tokenSym) {
     return oracle[tokenSym].price;
@@ -45,12 +46,6 @@ async function main() {
   const ofr_gasreq = ethers.BigNumber.from(30000);
   const ofr_gasprice = ethers.BigNumber.from(0);
   const ofr_pivot = ethers.BigNumber.from(0);
-
-  const MgvReader = await hre.ethers.getContract("MgvReader");
-  const [global] = await MgvReader.config(
-    ethers.constants.AddressZero,
-    ethers.constants.AddressZero
-  );
 
   const usdToNative = ethers.utils.parseEther(priceOf("USDC"));
 
@@ -87,7 +82,7 @@ async function main() {
           ofr_pivot
         );
         await ofrTx.wait();
-        const [, , offers] = await MgvReader.offerList(
+        const [, , offers] = await mgv.reader.offerList(
           outbound_tkn,
           inbound_tkn,
           ethers.BigNumber.from(0),

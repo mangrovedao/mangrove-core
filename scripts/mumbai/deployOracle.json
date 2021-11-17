@@ -1,0 +1,22 @@
+{
+  "chain": "Polygon",
+  "network": "mumbai",
+  "blockNumber": "21576080",
+  "native": "MATIC",
+  "USDC": {
+      "price": "0.62",
+      "transferCost": "25000"
+  },
+  "DAI": {
+    "price": "0.62",
+    "transferCost": "25000"
+  },
+  "WETH":{
+    "price": "2700",
+    "transferCost": "25000"
+  },
+  "Mangrove":{
+    "defaultFee": "30", 
+    "orderOverhead": "20000"
+  }
+}

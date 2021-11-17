@@ -17,19 +17,6 @@ async function main() {
     return new ethers.Contract(tkAddr, tkAbi, provider);
   }
 
-  async function eval_overhead(tokens) {
-    const recipient = await signer.getAddress();
-    let overhead = ethers.BigNumber.from(0);
-    for (const i in tokens) {
-      const amount = ethers.utils.parseEther("1");
-      await tokens[i].connect(signer).mint(amount);
-      const tx = await tokens[i].connect(signer).transfer(recipient, amount);
-      const ticket = await tx.wait();
-      overhead = overhead.add(ticket.gasUsed);
-    }
-    return overhead;
-  }
-
   const url = hre.network.config.url;
   const provider = new hre.ethers.providers.JsonRpcProvider(url);
   //console.log(await provider.listAccounts());
@@ -58,13 +45,6 @@ async function main() {
   }
 
   const mgv = await hre.ethers.getContract("Mangrove");
-  const mgov = await mgv.governance();
-  if (mgov != deployer) {
-    console.error(
-      "Deployer is not the admin of the deployed mangrove contract"
-    );
-    return;
-  }
 
   const weth = contractOfToken(env, provider, "wEth");
   const dai = contractOfToken(env, provider, "dai");

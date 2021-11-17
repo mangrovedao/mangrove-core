@@ -1,37 +1,20 @@
 const hre = require("hardhat");
 const networkConfig = require("config");
-//const activatePair = require("governance/activateOfferList");
+const chalk = require("chalk");
 
 async function main() {
-  //const hre = require("hardhat");
-
-  function contractOfToken(env, provider, tokenName) {
+  function addressOfToken(env, tokenName) {
     function tryGet(cfg, name) {
       if (cfg.has(name)) {
         return cfg.get(name);
       }
     }
     const tkCfg = tryGet(env, `tokens.${tokenName}`);
-    const tkAddr = tryGet(tkCfg, "address");
-    const tkAbi = require(tryGet(tkCfg, "abi"));
-    return new ethers.Contract(tkAddr, tkAbi, provider);
-  }
-
-  async function eval_overhead(tokens) {
-    const recipient = await signer.getAddress();
-    let overhead = ethers.BigNumber.from(0);
-    for (const i in tokens) {
-      const amount = ethers.utils.parseEther("1");
-      const tx = await tokens[i].connect(signer).transfer(recipient, amount);
-      const ticket = await tx.wait();
-      overhead = overhead.add(ticket.gasUsed);
-    }
-    return overhead;
+    return tryGet(tkCfg, "address");
   }
 
   const url = hre.network.config.url;
   const provider = new hre.ethers.providers.JsonRpcProvider(url);
-  //console.log(await provider.listAccounts());
 
   let env = {};
   if (networkConfig.has("network")) {
@@ -40,8 +23,24 @@ async function main() {
     console.warn("No configuration found for current network");
     return;
   }
+  // reading deploy oracle for the deployed network
+  const oracle = require(`../${env.network}/deployOracle`);
 
-  // Privileged account is 0 by convention
+  //gives price of `tokenSym` in `oracle.native` token
+  function priceOf(tokenSym) {
+    return oracle[tokenSym].price;
+  }
+
+  //gives gas cost of transfer in `oracle.native` token
+  function overheadOf(tokenSym) {
+    return parseInt(oracle[tokenSym].transferCost, 10);
+  }
+
+  function getMangroveIntParam(param) {
+    return parseInt(oracle.Mangrove[param]);
+  }
+
+  // Privileged account should be 0 by convention
   const deployer = (await provider.listAccounts())[0];
   //  const deployer = (await hre.getUnnamedAccounts())[0]; from some reason this does not work
   const signer = await provider.getSigner(deployer);
@@ -55,16 +54,14 @@ async function main() {
     return;
   }
 
-  const weth = contractOfToken(env, provider, "wEth");
-  const dai = contractOfToken(env, provider, "dai");
-  const usdc = contractOfToken(env, provider, "usdc");
+  const wethAddr = addressOfToken(env, "wEth");
+  const daiAddr = addressOfToken(env, "dai");
+  const usdcAddr = addressOfToken(env, "usdc");
 
-  const tokenPrices = [
-    // in MATICS --TODO read price from an external source that should be network specific
-    // this is just for Mumbai
-    [weth, ethers.utils.parseEther("2700")], // 1 eth = 2700 Matic
-    [dai, ethers.utils.parseEther("0.58")], // 1 usd = 0.58 Matic
-    [usdc, ethers.utils.parseEther("0.58")],
+  const tokenParams = [
+    [wethAddr, 18, "WETH", ethers.utils.parseEther(priceOf("WETH"))],
+    [daiAddr, 18, "DAI", ethers.utils.parseEther(priceOf("DAI"))],
+    [usdcAddr, 6, "USDC", ethers.utils.parseEther(priceOf("USDC"))],
   ];
 
   const MgvReader = await hre.ethers.getContract("MgvReader");
@@ -74,21 +71,17 @@ async function main() {
   );
   const mgv_gasprice = global.gasprice.mul(ethers.utils.parseUnits("1", 9)); //GWEI
 
-  let inName;
-  let inDecimals;
-  let outName;
-  let outDecimals;
-
-  for (let [outbound_tkn, outTknInMatic] of tokenPrices) {
-    outName = await outbound_tkn.name();
-    outDecimals = await outbound_tkn.decimals();
-
-    for (let [inbound_tkn, inTknInMatic] of tokenPrices) {
-      if (outbound_tkn.address != inbound_tkn.address) {
-        inName = await inbound_tkn.name();
-        inDecimals = await inbound_tkn.decimals();
-
-        const overhead = await eval_overhead([outbound_tkn, inbound_tkn]);
+  for (const [
+    outbound_tkn,
+    outDecimals,
+    outName,
+    outTknInMatic,
+  ] of tokenParams) {
+    for (const [inbound_tkn, inDecimals, inName] of tokenParams) {
+      if (outbound_tkn != inbound_tkn) {
+        const overhead = ethers.BigNumber.from(
+          overheadOf(outName) + overheadOf(inName)
+        );
 
         let density_outIn = mgv_gasprice
           .add(overhead)
@@ -101,18 +94,23 @@ async function main() {
         }
 
         await mgv.connect(signer).activate(
-          outbound_tkn.address,
-          inbound_tkn.address,
-          ethers.BigNumber.from(30), //fee 0.3%
+          outbound_tkn,
+          inbound_tkn,
+          ethers.BigNumber.from(getMangroveIntParam("defaultFee")),
           density_outIn,
-          ethers.BigNumber.from(20000), // overhead gas to execute taker order
-          overhead // offer gas
+          ethers.BigNumber.from(getMangroveIntParam("orderOverhead")),
+          overhead // transfer induced gas overhead
         );
         console.log(
-          `(${outName},${inName}) OfferList activated with a required density of ${ethers.utils.formatUnits(
+          chalk.blue(`(${outName},${inName})`),
+          `OfferList activated with a required density of ${ethers.utils.formatUnits(
             density_outIn,
             outDecimals
-          )} ${outName} per gas units`
+          )} ${outName} per gas units`,
+          `and a fee of ${ethers.utils.formatUnits(
+            getMangroveIntParam("defaultFee"),
+            3
+          )}%`
         );
       }
     }

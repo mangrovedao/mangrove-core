@@ -1035,6 +1035,55 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@giry/obfiller-bot@workspace:packages/obfiller-bot":
+  version: 0.0.0-use.local
+  resolution: "@giry/obfiller-bot@workspace:packages/obfiller-bot"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.2
+    "@ethersproject/experimental": ^5.5.0
+    "@ethersproject/hardware-wallets": ^5.4.0
+    "@giry/commonlib-js": "workspace:*"
+    "@giry/hardhat-utils": "workspace:*"
+    "@giry/mangrove-js": "workspace:*"
+    "@giry/mangrove-solidity": "workspace:*"
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@types/big.js": ^6.1.2
+    "@types/chai": ^4.2.22
+    "@types/chai-as-promised": ^7.1.4
+    "@types/config": ^0.0.39
+    "@types/dotenv-flow": ^3.2.0
+    "@types/mocha": ^9.0.0
+    "@types/node": ^16.9.4
+    "@types/shelljs": ^0.8.9
+    "@typescript-eslint/eslint-plugin": ^4.31.0
+    "@typescript-eslint/parser": ^4.31.0
+    big.js: ^6.1.1
+    chai: ^4.3.4
+    chai-as-promised: ^7.1.1
+    config: ^3.3.6
+    cross-env: ^7.0.3
+    dotenv-flow: ^3.2.0
+    eslint: ^7.32.0
+    eslint-config-prettier: ^8.3.0
+    ethers: ^5.4.7
+    fast-safe-stringify: ^2.1.1
+    hardhat: ^2.6.4
+    hardhat-deploy: ^0.9.1
+    hardhat-deploy-ethers: ^0.3.0-beta.11
+    lint-staged: ^11.1.2
+    mocha: ^9.1.1
+    mocha-multi-reporters: ^1.5.1
+    npm-run-all: ^4.1.5
+    prettier: 2.3.2
+    prettier-eslint: ^13.0.0
+    random: ^3.0.6
+    rimraf: ^3.0.2
+    shelljs: ^0.8.4
+    ts-node: ^10.2.1
+    typescript: ^4.4.2
+  languageName: unknown
+  linkType: soft
+
 "@giry/updategas-bot@workspace:packages/updategas-bot":
   version: 0.0.0-use.local
   resolution: "@giry/updategas-bot@workspace:packages/updategas-bot"
@@ -7746,6 +7795,15 @@ fsevents@~2.1.1:
   version: 4.0.1
   resolution: "quick-lru@npm:4.0.1"
   checksum: bea46e1abfaa07023e047d3cf1716a06172c4947886c053ede5c50321893711577cb6119360f810cc3ffcd70c4d7db4069c3cee876b358ceff8596e062bd1154
+  languageName: node
+  linkType: hard
+
+"random@npm:^3.0.6":
+  version: 3.0.6
+  resolution: "random@npm:3.0.6"
+  dependencies:
+    seedrandom: ^3.0.5
+  checksum: 3e900ebadafda77e6e321180e1f813a08adbed35dcc0d283fea4d73ddd82eaabd5aa1c26ce251d6e7e3205650ae5d9210a82be058b03e4607eb3ae53adb8798b
   languageName: node
   linkType: hard
 

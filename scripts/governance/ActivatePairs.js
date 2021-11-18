@@ -3,10 +3,8 @@ const helper = require("../helper");
 const chalk = require("chalk");
 
 async function main() {
-  const env = helper.getCurrentNetworkEnv();
-
   // reading deploy oracle for the deployed network
-  const oracle = require(`../${env.network}/activationOracle`);
+  const oracle = require(`../${hre.network.name}/activationOracle`);
   //gives price of `tokenSym` in `oracle.native` token
   function priceOf(tokenSym) {
     return oracle[tokenSym].price;
@@ -37,6 +35,7 @@ async function main() {
   );
   const mgv_gasprice = global.gasprice.mul(ethers.utils.parseUnits("1", 9)); //GWEI
 
+  // TODO also set overheads in mgv
   for (const [
     outbound_tkn,
     outName,
@@ -52,7 +51,7 @@ async function main() {
         let density_outIn = mgv_gasprice
           .add(overhead)
           .add(ethers.BigNumber.from(20000))
-          .mul(ethers.utils.parseUnits("10", outDecimals)) // N=10
+          .mul(ethers.utils.parseUnits("50", outDecimals)) // N=50
           .div(outTknInMatic);
         if (density_outIn.eq(0)) {
           // if volume imposed by density is lower than ERC20 precision, set it to minimal

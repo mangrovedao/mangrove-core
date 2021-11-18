@@ -1,26 +1,8 @@
 const hre = require("hardhat");
 const helper = require("../helper");
 
-async function getMinter() {
-  const provider = helper.getProvider();
-  const minter = {};
-  try {
-    // trying to see whether Minter is part of current deployment
-    let minter = await hre.ethers.getContract("MumbaiMinter");
-    const deployer = (await provider.listAccounts())[0];
-    minter = minter.connect(provider.getSigner(deployer));
-    return minter;
-  } catch (error) {
-    // otherwise retrieves the pre deployed contract on chain
-    console.log("Don't know how to retrieve minter yet...");
-  }
-}
-
 async function main() {
-  const env = helper.getCurrentNetworkEnv();
-
-  // accessing ethers.js MumbaiMinter
-  const MumbaiMinter = await getMinter();
+  const MumbaiMinter = await hre.ethers.getContract("MumbaiMinter");
   const mgv = await helper.getMangrove();
 
   const wethAddr = helper.contractOfToken("wEth").address;
@@ -31,23 +13,19 @@ async function main() {
   await mgv.contract["fund(address)"](MumbaiMinter.address, overrides);
 
   // reading deploy oracle for the deployed network
-  const oracle = require(`../${env.network}/activationOracle`);
-  //gives price of `tokenSym` in `oracle.native` token
-  function priceOf(tokenSym) {
-    return oracle[tokenSym].price;
-  }
+  const oracle = require(`../${hre.network.name}/activationOracle`);
 
   const tokenParams = [
-    [wethAddr, "WETH", 18, ethers.utils.parseEther(priceOf("WETH"))],
-    [daiAddr, "DAI", 18, ethers.utils.parseEther(priceOf("DAI"))],
-    [usdcAddr, "USDC", 6, ethers.utils.parseEther(priceOf("USDC"))],
+    [wethAddr, "WETH", 18, ethers.utils.parseEther(oracle["WETH"].price)],
+    [daiAddr, "DAI", 18, ethers.utils.parseEther(oracle["DAI"].price)],
+    [usdcAddr, "USDC", 6, ethers.utils.parseEther(oracle["USDC"].price)],
   ];
 
-  const ofr_gasreq = ethers.BigNumber.from(30000);
+  const ofr_gasreq = ethers.BigNumber.from(100000);
   const ofr_gasprice = ethers.BigNumber.from(0);
   const ofr_pivot = ethers.BigNumber.from(0);
 
-  const usdToNative = ethers.utils.parseEther(priceOf("USDC"));
+  const usdToNative = ethers.utils.parseEther(oracle["USDC"].price);
 
   for (const [
     outbound_tkn,

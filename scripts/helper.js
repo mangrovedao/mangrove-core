@@ -11,6 +11,10 @@ function tryGet(cfg, name) {
   }
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function contractOfToken(tokenName) {
   const env = getCurrentNetworkEnv();
   const tkAddr = tryGet(env, `tokens.${tokenName}.address`);
@@ -22,39 +26,10 @@ function contractOfToken(tokenName) {
 async function getMangrove() {
   const provider = getProvider();
   const mgv = {};
-  try {
-    // trying to see whether Mangrove is part of current deployment
-    let main = await hre.ethers.getContract("Mangrove");
-    const deployer = (await provider.listAccounts())[0];
-    main = main.connect(provider.getSigner(deployer));
-    mgv.reader = await hre.ethers.getContract("MgvReader");
-    mgv.contract = main;
-    return mgv;
-  } catch (error) {
-    // otherwise fetches Mangrove in the static addresses of the network config
-    const env = getCurrentNetworkEnv();
-    const mgvCfg = tryGet(env, "mangrove");
-    const mgvAbi = require(tryGet(mgvCfg, "abis.main"));
-    const mgvAddr = tryGet(mgvCfg, "addresses.contracts.main");
-    const readerAbi = require(tryGet(mgvCfg, "abis.reader"));
-    const readerAddr = tryGet(mgvCfg, "addresses.contracts.reader");
-    let main = new ethers.Contract(mgvAddr, mgvAbi, provider);
-    const reader = new ethers.Contract(readerAddr, readerAbi, provider);
-
-    const key = hre.config.networks[env.network].accounts[0];
-    const signer = new ethers.Wallet(key, provider);
-    const deployer = tryGet(mgvCfg, "addresses.deployers.main");
-    const addr = await signer.getAddress();
-    //sanity check
-    if (addr != deployer) {
-      console.error("Invalid deployer key/address");
-      return;
-    }
-    main = main.connect(signer);
-    mgv.contract = main;
-    mgv.reader = reader;
-    return mgv;
-  }
+  let main = await hre.ethers.getContract("Mangrove");
+  mgv.reader = await hre.ethers.getContract("MgvReader");
+  mgv.contract = main;
+  return mgv;
 }
 
 function getCurrentNetworkEnv() {
@@ -68,6 +43,7 @@ function getCurrentNetworkEnv() {
   return env;
 }
 
+exports.sleep = sleep;
 exports.getMangrove = getMangrove;
 exports.getCurrentNetworkEnv = getCurrentNetworkEnv;
 exports.contractOfToken = contractOfToken;

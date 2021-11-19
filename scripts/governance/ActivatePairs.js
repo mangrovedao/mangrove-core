@@ -10,11 +10,11 @@ async function main() {
     return oracle[tokenSym].price;
   }
   //gives gas cost of transfer in `oracle.native` token
-  function overheadOf(tokenSym) {
+  function transferCostOf(tokenSym) {
     return parseInt(oracle[tokenSym].transferCost, 10);
   }
   function getMangroveIntParam(param) {
-    return parseInt(oracle.Mangrove[param]);
+    return parseInt(oracle.Mangrove[param], 10);
   }
 
   const mgv = await helper.getMangrove();
@@ -29,13 +29,19 @@ async function main() {
     [usdcAddr, "USDC", 6, ethers.utils.parseEther(priceOf("USDC"))],
   ];
 
-  const [global] = await mgv.reader.config(
-    ethers.constants.AddressZero,
-    ethers.constants.AddressZero
-  );
-  const mgv_gasprice = global.gasprice.mul(ethers.utils.parseUnits("1", 9)); //GWEI
+  const oracle_gasprice = getMangroveIntParam("gasprice");
 
-  // TODO also set overheads in mgv
+  const gaspriceTx = await mgv.contract.setGasprice(
+    ethers.BigNumber.from(oracle_gasprice)
+  );
+  await gaspriceTx.wait();
+  console.log(
+    chalk.yellow("*"),
+    `Setting mangrove gasprice to ${oracle_gasprice} GWEI`
+  );
+
+  const mgv_gasprice = ethers.utils.parseUnits("1", 9).mul(oracle_gasprice); //GWEI
+
   for (const [
     outbound_tkn,
     outName,
@@ -44,14 +50,36 @@ async function main() {
   ] of tokenParams) {
     for (const [inbound_tkn, inName] of tokenParams) {
       if (outbound_tkn != inbound_tkn) {
-        const overhead = ethers.BigNumber.from(
-          overheadOf(outName) + overheadOf(inName)
+        const overhead_gasbase = ethers.BigNumber.from(transferCostOf(inName));
+        const offer_gasbase = ethers.BigNumber.from(
+          transferCostOf(inName) + transferCostOf(outName)
+        );
+        const overheadTx = await mgv.contract.setGasbase(
+          outbound_tkn,
+          inbound_tkn,
+          overhead_gasbase,
+          offer_gasbase
+        );
+        await overheadTx.wait();
+        console.log(
+          chalk.yellow("*"),
+          `Setting (${outName},${inName}) overhead_gasbase to ${transferCostOf(
+            inName
+          )} gas units`
+        );
+        console.log(
+          chalk.yellow("*"),
+          `Setting (${outName},${inName}) offer_gasbase to ${
+            transferCostOf(inName) + transferCostOf(outName)
+          } gas units`
         );
 
         let density_outIn = mgv_gasprice
-          .add(overhead)
-          .add(ethers.BigNumber.from(20000))
-          .mul(ethers.utils.parseUnits("50", outDecimals)) // N=50
+          .add(overhead_gasbase)
+          .add(offer_gasbase)
+          .mul(
+            ethers.utils.parseUnits(oracle.Mangrove.coverFactor, outDecimals)
+          ) // N=50
           .div(outTknInMatic);
         if (density_outIn.eq(0)) {
           // if volume imposed by density is lower than ERC20 precision, set it to minimal
@@ -63,11 +91,12 @@ async function main() {
           inbound_tkn,
           ethers.BigNumber.from(getMangroveIntParam("defaultFee")),
           density_outIn,
-          ethers.BigNumber.from(getMangroveIntParam("orderOverhead")),
-          overhead // transfer induced gas overhead
+          offer_gasbase,
+          overhead_gasbase
         );
         console.log(
-          chalk.blue(`(${outName},${inName})`),
+          chalk.yellow("*"),
+          `(${outName},${inName})`,
           `OfferList activated with a required density of ${ethers.utils.formatUnits(
             density_outIn,
             outDecimals

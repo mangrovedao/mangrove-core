@@ -149,18 +149,22 @@ describe("Running tests...", function () {
     const Repost = await ethers.getContractFactory("Reposting");
 
     // deploying strat
-    const repostLogic = await Repost.deploy(mgv.address);
+    const repostLogic = (await Repost.deploy(mgv.address)).connect(testSigner);
+    const signerAddr = await testSigner.getAddress();
 
     await lc.fund([
       ["DAI", "100000.0", repostLogic.address],
+      ["DAI", "100000.0", signerAddr],
       ["WETH", "100.0", repostLogic.address],
+      ["WETH", "100.0", signerAddr],
       ["USDC", "100000.0", repostLogic.address],
+      ["USDC", "100000.0", signerAddr],
     ]);
 
     const tokenParams = [
-      [wEth.address, "WETH", 18, ethers.utils.parseEther("1")],
-      [dai.address, "DAI", 18, ethers.utils.parseEther("0.0003")],
-      [usdc.address, "USDC", 6, ethers.utils.parseEther("0.0003")],
+      [wEth.connect(testSigner), "WETH", 18, ethers.utils.parseEther("1")],
+      [dai.connect(testSigner), "DAI", 18, ethers.utils.parseEther("0.0003")],
+      [usdc.connect(testSigner), "USDC", 6, ethers.utils.parseEther("0.0003")],
     ];
 
     const ofr_gasreq = ethers.BigNumber.from(500000);
@@ -172,6 +176,13 @@ describe("Running tests...", function () {
     let overrides = { value: ethers.utils.parseEther("1.0") };
     await mgv["fund(address)"](repostLogic.address, overrides);
 
+    // taker side actions
+    for (const [token] of tokenParams) {
+      await token.approve(mgv.address, ethers.constants.MaxUint256);
+    }
+
+    lc.listenMgv(mgv);
+
     for (const [
       outbound_tkn,
       outName,
@@ -179,7 +190,7 @@ describe("Running tests...", function () {
       outTknInMatic,
     ] of tokenParams) {
       const tx = await repostLogic.approveMangrove(
-        outbound_tkn,
+        outbound_tkn.address,
         ethers.constants.MaxUint256
       );
       await tx.wait();
@@ -190,7 +201,7 @@ describe("Running tests...", function () {
         inDecimals,
         inTknInMatic,
       ] of tokenParams) {
-        if (outbound_tkn != inbound_tkn) {
+        if (outbound_tkn.address != inbound_tkn.address) {
           const makerWants = ethers.utils
             .parseUnits("1000", inDecimals)
             .mul(usdToNative)
@@ -201,8 +212,8 @@ describe("Running tests...", function () {
             .div(outTknInMatic); // makerGives
 
           const ofrTx = await repostLogic.newOffer(
-            outbound_tkn, //e.g weth
-            inbound_tkn, //e.g dai
+            outbound_tkn.address, //e.g weth
+            inbound_tkn.address, //e.g dai
             makerWants,
             makerGives,
             ofr_gasreq,
@@ -210,22 +221,28 @@ describe("Running tests...", function () {
             ofr_pivot
           );
           await ofrTx.wait();
+
           const book = await mgv.reader.offerList(
-            outbound_tkn,
-            inbound_tkn,
+            outbound_tkn.address,
+            inbound_tkn.address,
             ethers.BigNumber.from(0),
             ethers.BigNumber.from(1)
           );
           lc.logOrderBook(book, outbound_tkn, inbound_tkn);
-          console.log(
-            `Out[${outName}]`,
-            `Inb[${inName}]`,
-            ethers.utils.formatUnits(offers[0].wants, inDecimals),
-            ethers.utils.formatUnits(offers[0].gives, outDecimals)
+          const tx = await mgv.marketOrder(
+            outbound_tkn.address,
+            inbound_tkn.address,
+            makerGives,
+            makerWants,
+            true
           );
+          tx.wait();
+          lc.logOrderBook(book, outbound_tkn, inbound_tkn);
         }
       }
     }
+    lc.sleep(5000);
+    lc.stopListeners([mgv]);
   });
 });
 

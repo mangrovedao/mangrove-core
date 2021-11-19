@@ -14,7 +14,7 @@ pragma abicoder v2;
 
 import "../Persistent.sol";
 
-contract MumbaiSwapper is Persistent {
+contract Reposting is Persistent {
   constructor(address payable _MGV) MangroveOffer(_MGV) {}
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order)

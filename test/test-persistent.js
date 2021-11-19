@@ -31,6 +31,8 @@ describe("Running tests...", function () {
     // deploying mangrove and opening WETH/USDC market.
     mgv = await lc.deployMangrove();
     await lc.activateMarket(mgv, wEth.address, usdc.address);
+    await lc.activateMarket(mgv, wEth.address, dai.address);
+    await lc.activateMarket(mgv, usdc.address, dai.address);
   });
 
   it("Swinging strat", async function () {
@@ -141,6 +143,89 @@ describe("Running tests...", function () {
       }
     }
     await lc.logLenderStatus(makerContract, "compound", ["USDC", "WETH"]);
+  });
+
+  it("Reposting strat", async function () {
+    const Repost = await ethers.getContractFactory("Reposting");
+
+    // deploying strat
+    const repostLogic = await Repost.deploy(mgv.address);
+
+    await lc.fund([
+      ["DAI", "100000.0", repostLogic.address],
+      ["WETH", "100.0", repostLogic.address],
+      ["USDC", "100000.0", repostLogic.address],
+    ]);
+
+    const tokenParams = [
+      [wEth.address, "WETH", 18, ethers.utils.parseEther("1")],
+      [dai.address, "DAI", 18, ethers.utils.parseEther("0.0003")],
+      [usdc.address, "USDC", 6, ethers.utils.parseEther("0.0003")],
+    ];
+
+    const ofr_gasreq = ethers.BigNumber.from(500000);
+    const ofr_gasprice = ethers.BigNumber.from(0);
+    const ofr_pivot = ethers.BigNumber.from(0);
+
+    const usdToNative = ethers.utils.parseEther("0.0003");
+
+    let overrides = { value: ethers.utils.parseEther("1.0") };
+    await mgv["fund(address)"](repostLogic.address, overrides);
+
+    for (const [
+      outbound_tkn,
+      outName,
+      outDecimals,
+      outTknInMatic,
+    ] of tokenParams) {
+      const tx = await repostLogic.approveMangrove(
+        outbound_tkn,
+        ethers.constants.MaxUint256
+      );
+      await tx.wait();
+
+      for (const [
+        inbound_tkn,
+        inName,
+        inDecimals,
+        inTknInMatic,
+      ] of tokenParams) {
+        if (outbound_tkn != inbound_tkn) {
+          const makerWants = ethers.utils
+            .parseUnits("1000", inDecimals)
+            .mul(usdToNative)
+            .div(inTknInMatic); // makerWants
+          const makerGives = ethers.utils
+            .parseUnits("1000", outDecimals)
+            .mul(usdToNative)
+            .div(outTknInMatic); // makerGives
+
+          const ofrTx = await repostLogic.newOffer(
+            outbound_tkn, //e.g weth
+            inbound_tkn, //e.g dai
+            makerWants,
+            makerGives,
+            ofr_gasreq,
+            ofr_gasprice,
+            ofr_pivot
+          );
+          await ofrTx.wait();
+          const book = await mgv.reader.offerList(
+            outbound_tkn,
+            inbound_tkn,
+            ethers.BigNumber.from(0),
+            ethers.BigNumber.from(1)
+          );
+          lc.logOrderBook(book, outbound_tkn, inbound_tkn);
+          console.log(
+            `Out[${outName}]`,
+            `Inb[${inName}]`,
+            ethers.utils.formatUnits(offers[0].wants, inDecimals),
+            ethers.utils.formatUnits(offers[0].gives, outDecimals)
+          );
+        }
+      }
+    }
   });
 });
 

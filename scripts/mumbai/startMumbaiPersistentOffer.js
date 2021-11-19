@@ -4,6 +4,8 @@ const helper = require("../helper");
 async function main() {
   const MumbaiMinter = await hre.ethers.getContract("MumbaiMinter");
   const mgv = await helper.getMangrove();
+  const signerAddr = await MumbaiMinter.signer.getAddress();
+  const admin = await MumbaiMinter["admin()"]();
 
   const wethAddr = helper.contractOfToken("wEth").address;
   const daiAddr = helper.contractOfToken("dai").address;
@@ -21,7 +23,7 @@ async function main() {
     [usdcAddr, "USDC", 6, ethers.utils.parseEther(oracle["USDC"].price)],
   ];
 
-  const ofr_gasreq = ethers.BigNumber.from(100000);
+  const ofr_gasreq = ethers.BigNumber.from(500000);
   const ofr_gasprice = ethers.BigNumber.from(0);
   const ofr_pivot = ethers.BigNumber.from(0);
 

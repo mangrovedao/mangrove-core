@@ -25,7 +25,7 @@ module.exports = async (hre) => {
     skipIfAlreadyDeployed: true,
   });
 
-  const minter = await hre.deployments.deploy("MumbaiMinter", {
+  const minter = await hre.deployments.deploy("Reposting", {
     from: deployer,
     args: [mangroveResult.address],
     skipIfAlreadyDeployed: true,

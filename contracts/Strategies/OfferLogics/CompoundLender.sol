@@ -17,8 +17,21 @@ import "../interfaces/compound/ICompound.sol";
 import "hardhat/console.sol";
 
 abstract contract CompoundLender is MangroveOffer {
-  event ErrorOnRedeem(address ctoken, uint amount, uint errorCode);
-  event ErrorOnMint(address ctoken, uint amount, uint errorCode);
+  event ErrorOnRedeem(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed offerId,
+    uint amount,
+    uint errorCode
+  );
+  event ErrorOnMint(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed offerId,
+    uint amount,
+    uint errorCode
+  );
+
   event ComptrollerError(address comp, uint errorCode);
 
   // mapping : ERC20 -> cERC20
@@ -41,23 +54,9 @@ abstract contract CompoundLender is MangroveOffer {
     weth = IERC20(wethAddress);
   }
 
-  /**************************************************************************/
-  ///@notice Required functions to let `this` contract interact with compound
-  /**************************************************************************/
-
-  ///@notice approval of ctoken contract by the underlying is necessary for minting and repaying borrow
-  ///@notice user must use this function to do so.
-  function approveLender(address ctoken, uint amount) external onlyAdmin {
-    IERC20 token = underlying(IcERC20(ctoken));
-    token.approve(ctoken, amount);
-  }
-
-  function mint(address ctoken, uint amount) external onlyAdmin {
-    compoundMint(IcERC20(ctoken), amount);
-  }
-
-  function redeem(address ctoken, uint amount) external onlyAdmin {
-    require(compoundRedeem(IcERC20(ctoken), amount) == 0);
+  function approveLender(IcERC20 ctoken, uint amount) external onlyAdmin {
+    IERC20 token = underlying(ctoken);
+    token.approve(address(ctoken), amount);
   }
 
   function isCeth(IcERC20 ctoken) internal view returns (bool) {
@@ -76,7 +75,6 @@ abstract contract CompoundLender is MangroveOffer {
     }
   }
 
-  ///@notice enters markets in order to be able to use assets as collateral
   function enterMarkets(address[] calldata ctokens) external onlyAdmin {
     uint[] memory results = comptroller.enterMarkets(ctokens);
     for (uint i = 0; i < ctokens.length; i++) {
@@ -88,17 +86,18 @@ abstract contract CompoundLender is MangroveOffer {
     }
   }
 
-  function isPooled(address token) public view returns (bool) {
-    IcERC20 ctoken = overlyings[IERC20(token)];
+  function isPooled(IERC20 token) public view returns (bool) {
+    IcERC20 ctoken = overlyings[token];
     return comptroller.checkMembership(address(this), ctoken);
   }
 
-  ///@notice exits markets
-  function exitMarket(address ctoken) external onlyAdmin {
-    require(comptroller.exitMarket(ctoken) == 0, "failed to exit marker");
+  function exitMarket(IcERC20 ctoken) external onlyAdmin {
+    require(
+      comptroller.exitMarket(address(ctoken)) == 0,
+      "failed to exit marker"
+    );
   }
 
-  ///@notice claims COMP token for `this` contract. One may afterward transfer them using `MangroveOffer.transferToken`
   function claimComp() external onlyAdmin {
     comptroller.claimComp(address(this));
   }
@@ -200,21 +199,18 @@ abstract contract CompoundLender is MangroveOffer {
     );
   }
 
-  ///@notice method to get `outbound_tkn` during makerExecute
-  ///@param outbound_tkn address of the ERC20 managing `outbound_tkn` token
-  ///@param amount of token that the trade is still requiring
-  function __get__(IERC20 outbound_tkn, uint amount)
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
-    if (!isPooled(address(outbound_tkn))) {
+    if (!isPooled(order.outbound_tkn)) {
       // if flag says not to fetch liquidity on compound
       return amount;
     }
     // if outbound_tkn == weth, overlying will return cEth
-    IcERC20 outbound_cTkn = IcERC20(overlyings[outbound_tkn]); // this is 0x0 if outbound_tkn is not compound sourced.
+    IcERC20 outbound_cTkn = IcERC20(overlyings[IERC20(order.outbound_tkn)]); // this is 0x0 if outbound_tkn is not compound sourced.
     if (address(outbound_cTkn) == address(0)) {
       return amount;
     }
@@ -223,60 +219,80 @@ abstract contract CompoundLender is MangroveOffer {
       return amount; //give up if __get__ cannot withdraw enough
     }
     // else try redeem on compound
-    if (compoundRedeem(outbound_cTkn, amount) == 0) {
+    if (compoundRedeem(amount, order) == 0) {
       // redeemAmount was transfered to `this`
       return 0;
     }
     return amount;
   }
 
-  function compoundRedeem(IcERC20 coutbound_tkn, uint amountToRedeem)
-    internal
-    returns (uint)
-  {
-    uint errorCode = coutbound_tkn.redeemUnderlying(amountToRedeem); // accrues interests
+  function compoundRedeem(
+    uint amountToRedeem,
+    MgvLib.SingleOrder calldata order
+  ) internal returns (uint) {
+    IcERC20 outbound_cTkn = IcERC20(overlyings[order.outbound_tkn]); // this is 0x0 if outbound_tkn is not compound sourced.
+    if (address(outbound_cTkn) == address(0)) {
+      return amountToRedeem;
+    }
+    uint errorCode = outbound_cTkn.redeemUnderlying(amountToRedeem); // accrues interests
     if (errorCode == 0) {
       //compound redeem was a success
       // if ETH was redeemed, one needs to convert them into wETH
-      if (isCeth(coutbound_tkn)) {
+      if (isCeth(outbound_cTkn)) {
         weth.deposit{value: amountToRedeem}();
       }
       return 0;
     } else {
       //compound redeem failed
-      emit ErrorOnRedeem(address(coutbound_tkn), amountToRedeem, errorCode);
+      emit ErrorOnRedeem(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        amountToRedeem,
+        errorCode
+      );
       return amountToRedeem;
     }
   }
 
-  function __put__(IERC20 inbound_tkn, uint amount) internal virtual override {
+  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
     //optim
-    if (amount == 0 || !isPooled(address(inbound_tkn))) {
-      return;
+    if (!isPooled(order.inbound_tkn)) {
+      return amount;
     }
-    IcERC20 ctoken = IcERC20(overlyings[inbound_tkn]);
-    if (address(ctoken) != address(0)) {
-      compoundMint(ctoken, amount);
-    }
+    return compoundMint(amount, order);
   }
 
   // adapted from https://medium.com/compound-finance/supplying-assets-to-the-compound-protocol-ec2cf5df5aa#afff
   // utility to supply erc20 to compound
-  // NB `ctoken` contract MUST be approved to perform `transferFrom token` by `this` contract.
-  /// @notice user need to approve ctoken in order to mint
-  function compoundMint(IcERC20 ctoken, uint amount) internal {
+  function compoundMint(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+  {
+    IcERC20 ctoken = IcERC20(overlyings[order.inbound_tkn]);
     if (isCeth(ctoken)) {
       // turning `amount` of wETH into ETH
       weth.withdraw(amount);
       // minting amount of ETH into cETH
       ctoken.mint{value: amount}();
+      return 0;
     } else {
       // Approve transfer on the ERC20 contract (not needed if cERC20 is already approved for `this`)
       // IERC20(ctoken.underlying()).approve(ctoken, amount);
       uint errCode = ctoken.mint(amount); // accrues interest
       // Mint ctokens
       if (errCode != 0) {
-        emit ErrorOnMint(address(ctoken), amount, errCode);
+        emit ErrorOnMint(
+          order.outbound_tkn,
+          order.inbound_tkn,
+          order.offerId,
+          amount,
+          errCode
+        );
       }
     }
   }

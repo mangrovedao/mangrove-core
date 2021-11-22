@@ -18,19 +18,16 @@ abstract contract CompoundTrader is CompoundLender {
   event ErrorOnBorrow(address cToken, uint amount, uint errorCode);
   event ErrorOnRepay(address cToken, uint amount, uint errorCode);
 
-  ///@notice method to get `outbound_tkn` during makerExecute
-  ///@param outbound_tkn address of the ERC20 managing `outbound_tkn` token
-  ///@param amount of token that the trade is still requiring
-  function __get__(IERC20 outbound_tkn, uint amount)
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
-    if (!isPooled(address(outbound_tkn))) {
+    if (!isPooled(order.outbound_tkn)) {
       return amount;
     }
-    IcERC20 outbound_cTkn = IcERC20(overlyings[outbound_tkn]); // this is 0x0 if outbound_tkn is not compound sourced for borrow.
+    IcERC20 outbound_cTkn = IcERC20(overlyings[order.outbound_tkn]); // this is 0x0 if outbound_tkn is not compound sourced for borrow.
 
     if (address(outbound_cTkn) == address(0)) {
       return amount;
@@ -49,7 +46,7 @@ abstract contract CompoundTrader is CompoundLender {
     // 2. trying to redeem liquidity from Compound
     uint toRedeem = min(redeemable, amount);
 
-    uint notRedeemed = compoundRedeem(outbound_cTkn, toRedeem);
+    uint notRedeemed = compoundRedeem(toRedeem, order);
     if (notRedeemed > 0 && toRedeem > 0) {
       // => notRedeemed == toRedeem
       // this should not happen unless compound is out of cash, thus no need to try to borrow
@@ -75,15 +72,20 @@ abstract contract CompoundTrader is CompoundLender {
   }
 
   /// @notice contract need to have approved `inbound_tkn` overlying in order to repay borrow
-  function __put__(IERC20 inbound_tkn, uint amount) internal virtual override {
+  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
     //optim
-    if (amount == 0 || !isPooled(address(inbound_tkn))) {
-      return;
+    if (!isPooled(order.inbound_tkn)) {
+      return amount;
     }
     // NB: overlyings[wETH] = cETH
-    IcERC20 inbound_cTkn = IcERC20(overlyings[inbound_tkn]);
+    IcERC20 inbound_cTkn = IcERC20(overlyings[order.inbound_tkn]);
     if (address(inbound_cTkn) == address(0)) {
-      return;
+      return amount;
     }
     // trying to repay debt if user is in borrow position for inbound_tkn token
     uint toRepay = min(

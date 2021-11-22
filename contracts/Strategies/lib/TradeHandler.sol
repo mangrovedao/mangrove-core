@@ -22,6 +22,7 @@ contract TradeHandler {
   // internal bytes32 to select appropriate posthook
   bytes32 constant RENEGED = "mgvOffer/reneged";
   bytes32 constant OUTOFLIQUIDITY = "mgvOffer/outOfLiquidity";
+  bytes32 constant PUTFAILURE = "mgvOffer/putFailure";
 
   // to wrap potentially reverting calls to mangrove
   event PosthookFail(
@@ -32,6 +33,8 @@ contract TradeHandler {
   );
 
   event NotEnoughLiquidity(address token, uint amountMissing);
+  event AccessVaultFailure(address token, uint amountMissing);
+
   event PostHookError(address outbound_tkn, address inbound_tkn, uint offerId);
 
   /// @notice extracts old offer from the order that is received from the Mangrove

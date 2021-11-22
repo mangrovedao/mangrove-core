@@ -41,13 +41,14 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     address token,
     address recipient,
     uint amount
-  ) external onlyAdmin returns (bool success) {
+  ) external virtual onlyAdmin returns (bool success) {
     success = IERC20(token).transfer(recipient, amount);
   }
 
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
   function approveMangrove(address outbound_tkn, uint amount)
     external
+    virtual
     onlyAdmin
   {
     require(
@@ -58,8 +59,9 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
 
   /// withdraws ETH from the bounty vault of the Mangrove.
   /// NB: `Mangrove.fund` function need not be called by `this` so is not included here.
-  function withdraw(address receiver, uint amount)
+  function withdrawFromMangrove(address receiver, uint amount)
     external
+    virtual
     onlyAdmin
     returns (bool noRevert)
   {
@@ -82,7 +84,7 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
-  ) external internalOrAdmin returns (uint offerId) {
+  ) external virtual internalOrAdmin returns (uint offerId) {
     if (gasreq == type(uint).max) {
       gasreq = OFR_GASREQ;
     }
@@ -120,7 +122,7 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external internalOrAdmin {
+  ) external virtual internalOrAdmin {
     uint missing = __autoRefill__(
       outbound_tkn,
       inbound_tkn,
@@ -149,7 +151,7 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     address inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) external internalOrAdmin returns (uint) {
+  ) external virtual internalOrAdmin returns (uint) {
     return MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
@@ -189,9 +191,14 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
       // hook to check order details and decide whether `this` contract should renege on the offer.
       return RENEGED;
     }
-    __put__(IERC20(order.inbound_tkn), order.gives); // implements what should be done with the liquidity that is flashswapped by the offer taker to `this` contract
-    uint missingGet = __get__(IERC20(order.outbound_tkn), order.wants); // implements how `this` contract should make the outbound tokens available
+    uint missingPut = __put__(order.gives, order); // implements what should be done with the liquidity that is flashswapped by the offer taker to `this` contract
+    if (missingPut > 0) {
+      emit AccessVaultFailure(order.inbound_tkn, missingPut);
+      return PUTFAILURE;
+    }
+    uint missingGet = __get__(order.wants, order); // implements how `this` contract should make the outbound tokens available
     if (missingGet > 0) {
+      emit NotEnoughLiquidity(order.outbound_tkn, missingPut);
       return OUTOFLIQUIDITY;
     }
   }
@@ -245,20 +252,25 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
   // Override this hook to describe where the inbound token, which are flashswapped by the Offer Taker, should go during Taker Order's execution.
   // `amount` is the quantity of outbound tokens whose destination is to be resolved.
   // All tokens that are not transfered to a different contract remain listed in the balance of `this` contract
-  function __put__(IERC20 inbound_tkn, uint amount) internal virtual {
-    /// @notice receive payment is just stored at this address
-    inbound_tkn; //shh
-    amount;
-  }
-
-  // Override this hook to implement fetching `amount` of outbound tokens, possibly from another source than `this` contract during Taker Order's execution.
-  // For composability, return value MUST be the remaining quantity (i.e <= `amount`) of tokens remaining to be fetched.
-  function __get__(IERC20 outbound_tkn, uint amount)
+  function __put__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
     returns (uint)
   {
-    uint local = outbound_tkn.balanceOf(address(this));
+    /// @notice receive payment is just stored at this address
+    amount;
+    order;
+    return 0;
+  }
+
+  // Override this hook to implement fetching `amount` of outbound tokens, possibly from another source than `this` contract during Taker Order's execution.
+  // For composability, return value MUST be the remaining quantity (i.e <= `amount`) of tokens remaining to be fetched.
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    returns (uint)
+  {
+    uint local = IERC20(order.outbound_tkn).balanceOf(address(this));
     return (local > amount ? 0 : amount - local);
   }
 
@@ -288,9 +300,7 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     internal
     virtual
   {
-    uint missing = order.wants -
-      IERC20(order.outbound_tkn).balanceOf(address(this));
-    emit NotEnoughLiquidity(order.outbound_tkn, missing);
+    order;
   }
 
   // Override this post-hook to implement what `this` contract should do when called back after an order that did not pass its last look (see `__lastLook__` hook).

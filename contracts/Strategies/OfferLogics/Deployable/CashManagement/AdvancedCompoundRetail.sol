@@ -21,15 +21,15 @@ contract AdvancedCompoundRetail is CompoundTrader {
   ) CompoundLender(_unitroller, wethAddress) MangroveOffer(_MGV) {}
 
   // Tries to take base directly from `this` balance. Fetches the remainder on Compound.
-  function __get__(IERC20 outbound_tkn, uint amount)
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
-    uint missing = MangroveOffer.__get__(outbound_tkn, amount);
+    uint missing = MangroveOffer.__get__(order.outbound_tkn, amount, order);
     if (missing > 0) {
-      return super.__get__(outbound_tkn, missing);
+      return super.__get__(order.outbound_tkn, missing, order);
     }
     return 0;
   }

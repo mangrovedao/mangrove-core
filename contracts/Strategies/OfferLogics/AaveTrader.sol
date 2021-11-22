@@ -22,13 +22,22 @@ abstract contract AaveTrader is AaveLender {
     interestRateMode = _interestRateMode;
   }
 
-  event ErrorOnBorrow(address cToken, uint amount, string errorCode);
-  event ErrorOnRepay(address cToken, uint amount);
+  event ErrorOnBorrow(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed offerId,
+    uint amount,
+    string errorCode
+  );
+  event ErrorOnRepay(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed offerId,
+    uint amount,
+    string errorCode
+  );
 
-  ///@notice method to get `outbound_tkn` during makerExecute
-  ///@param outbound_tkn address of the ERC20 managing `outbound_tkn` token
-  ///@param amount of token that the trade is still requiring
-  function __get__(IERC20 outbound_tkn, uint amount)
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
@@ -36,7 +45,7 @@ abstract contract AaveTrader is AaveLender {
   {
     // 1. Computing total borrow and redeem capacities of underlying asset
     (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
-      outbound_tkn,
+      order.outbound_tkn,
       true
     );
 
@@ -46,7 +55,7 @@ abstract contract AaveTrader is AaveLender {
     // 2. trying to redeem liquidity from Compound
     uint toRedeem = min(redeemable, amount);
 
-    uint notRedeemed = aaveRedeem(outbound_tkn, toRedeem);
+    uint notRedeemed = aaveRedeem(toRedeem, order);
     if (notRedeemed > 0 && toRedeem > 0) {
       // => notRedeemed == toRedeem
       // this should not happen unless compound is out of cash, thus no need to try to borrow
@@ -61,7 +70,7 @@ abstract contract AaveTrader is AaveLender {
     // 3. trying to borrow missing liquidity
     try
       lendingPool.borrow(
-        address(outbound_tkn),
+        order.outbound_tkn,
         toBorrow,
         interestRateMode,
         referralCode,
@@ -69,24 +78,31 @@ abstract contract AaveTrader is AaveLender {
       )
     {
       return sub_(amount, toBorrow);
-    } catch Error(string memory errorCode) {
-      emit ErrorOnBorrow(address(outbound_tkn), toBorrow, errorCode);
-      return amount; // unable to borrow requested amount
-    } catch {
-      emit ErrorOnBorrow(address(outbound_tkn), toBorrow, "Unexpected reason");
+    } catch Error(string memory message) {
+      emit ErrorOnBorrow(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        toBorrow,
+        message
+      );
       return amount;
     }
   }
 
-  /// @notice user need to have approved `inbound_tkn` overlying in order to repay borrow
-  function __put__(IERC20 inbound_tkn, uint amount) internal virtual override {
+  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
     //optim
     if (amount == 0) {
-      return;
+      return 0;
     }
     // trying to repay debt if user is in borrow position for inbound_tkn token
     DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
-      address(inbound_tkn)
+      order.inbound_tkn
     );
 
     uint debtOfUnderlying;
@@ -105,17 +121,23 @@ abstract contract AaveTrader is AaveLender {
     uint toMint;
     try
       lendingPool.repay(
-        address(inbound_tkn),
+        order.inbound_tkn,
         toRepay,
         interestRateMode,
         address(this)
       )
     {
       toMint = sub_(amount, toRepay);
-    } catch {
-      emit ErrorOnRepay(address(inbound_tkn), toRepay);
+    } catch Error(string memory message) {
+      emit ErrorOnRepay(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        toRepay,
+        message
+      );
       toMint = amount;
     }
-    aaveMint(inbound_tkn, toMint);
+    return aaveMint(toMint, order);
   }
 }

@@ -14,9 +14,11 @@ var defer = require("config/defer").deferConfig;
    }
 */
 
-let mumbaiAccounts = [];
-if (process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
-  mumbaiAccounts = [process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]];
+let mumbaiExtraConfig = {};
+if (process.env["USE_DEPLOYER_ACCOUNTS"]) {
+  if (process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
+    mumbaiExtraConfig.accounts = [process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]];
+  }
 }
 config.hardhat = {
   defaultNetwork: "hardhat",
@@ -26,6 +28,7 @@ config.hardhat = {
       gasMultiplier: 1,
       blockGasLimit: 7000000000,
       allowUnlimitedContractSize: true,
+      chainId: 80001, // change if deploying on another network than mumba
     },
     mumbai: {
       gasPrice: 30 * 10 ** 9,
@@ -34,7 +37,7 @@ config.hardhat = {
       // add a node url in mangrove-solidity/.env.local
       url: process.env["MUMBAI_NODE_URL"] || "",
       chainId: 80001,
-      accounts: mumbaiAccounts,
+      ...mumbaiExtraConfig,
     },
     localhost: {
       url: "http://127.0.0.1:8545",

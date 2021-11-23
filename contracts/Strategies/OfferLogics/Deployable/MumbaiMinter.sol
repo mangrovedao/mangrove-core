@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AccessedControlled.sol
+// Basic.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -12,35 +12,16 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 
-contract AccessControlled {
-  address public admin;
+import "../Persistent.sol";
+import {IMintableERC20 as Mintable} from "../../interfaces/IMintableERC20.sol";
 
-  constructor() {
-    admin = msg.sender;
-  }
+//import "hardhat/console.sol";
 
-  modifier onlyCaller(address caller) {
-    require(
-      caller == address(0) || msg.sender == caller,
-      "AccessControlled/Invalid"
-    );
-    _;
-  }
+contract MumbaiMinter is Persistent {
+  constructor(address payable _MGV) MangroveOffer(_MGV) {}
 
-  modifier onlyAdmin() {
-    require(msg.sender == admin, "AccessControlled/Invalid");
-    _;
-  }
-
-  modifier internalOrAdmin() {
-    require(
-      msg.sender == admin || msg.sender == address(this),
-      "AccessControlled/Invalid"
-    );
-    _;
-  }
-
-  function setAdmin(address _admin) external onlyAdmin {
-    admin = _admin;
+  function __get__(IERC20 token, uint amount) internal override returns (uint) {
+    Mintable(address(token)).mint(amount);
+    return 0;
   }
 }

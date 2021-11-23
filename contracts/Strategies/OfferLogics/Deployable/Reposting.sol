@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AccessedControlled.sol
+// Basic.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -12,35 +12,45 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 
-contract AccessControlled {
-  address public admin;
+import "../Persistent.sol";
 
-  constructor() {
-    admin = msg.sender;
-  }
+contract Reposting is Persistent {
+  constructor(address payable _MGV) MangroveOffer(_MGV) {}
 
-  modifier onlyCaller(address caller) {
-    require(
-      caller == address(0) || msg.sender == caller,
-      "AccessControlled/Invalid"
-    );
-    _;
-  }
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
+    internal
+    override
+  {
+    address token0 = order.outbound_tkn;
+    address token1 = order.inbound_tkn;
+    (, , uint gives, uint wants, uint gasprice) = MP.offer_unpack(order.offer); // amount with token1.decimals() decimals
+    uint gasreq = MP.offerDetail_unpack_gasreq(order.offerDetail); // amount with token1.decimals() decimals
 
-  modifier onlyAdmin() {
-    require(msg.sender == admin, "AccessControlled/Invalid");
-    _;
-  }
-
-  modifier internalOrAdmin() {
-    require(
-      msg.sender == admin || msg.sender == address(this),
-      "AccessControlled/Invalid"
-    );
-    _;
-  }
-
-  function setAdmin(address _admin) external onlyAdmin {
-    admin = _admin;
+    try
+      this.updateOffer({
+        outbound_tkn: order.outbound_tkn,
+        inbound_tkn: order.inbound_tkn,
+        wants: wants,
+        gives: gives,
+        gasreq: gasreq,
+        gasprice: gasprice,
+        pivotId: 0,
+        offerId: order.offerId
+      })
+    {} catch Error(string memory error_msg) {
+      emit PosthookFail(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        error_msg
+      );
+    } catch {
+      emit PosthookFail(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        "unexpected"
+      );
+    }
   }
 }

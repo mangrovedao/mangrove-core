@@ -3,7 +3,9 @@ require("dotenv-flow").config({ silent: true }); // Reads local environment vari
 if (!process.env["NODE_CONFIG_DIR"]) {
   process.env["NODE_CONFIG_DIR"] = __dirname + "/config/";
 }
+// Hierachical loading of config/ (see ^^) files (default.js)
 const config = require("config"); // Reads configuration files from /config/
+
 require("hardhat-deploy");
 require("hardhat-deploy-ethers");
 require("hardhat-abi-exporter");

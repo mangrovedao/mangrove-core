@@ -1,0 +1,22 @@
+{
+  "chain": "Polygon",
+  "network": "mumbai",
+  "native": "MATIC",
+  "USDC": {
+      "price": "0.62",
+      "transferCost": "25000"
+  },
+  "DAI": {
+    "price": "0.62",
+    "transferCost": "25000"
+  },
+  "WETH":{
+    "price": "2700",
+    "transferCost": "25000"
+  },
+  "Mangrove":{
+    "gasprice": "30",
+    "coverFactor": "50",
+    "defaultFee": "0"
+  }
+}

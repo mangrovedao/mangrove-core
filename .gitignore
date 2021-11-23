@@ -5,8 +5,11 @@ ignore
 modd.conf
 out.html
 deployments/hardhat
+deployments/localhost
 doc/MgvDoc.html
 doc/specs.txt
+*-mumbai.sh
+
 **/.sethrc
 .DS_Store
 .vscode/settings.json

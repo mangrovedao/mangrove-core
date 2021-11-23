@@ -24,6 +24,12 @@ module.exports = async (hre) => {
     args: [deployer, deployer],
     skipIfAlreadyDeployed: true,
   });
+
+  const minter = await hre.deployments.deploy("Reposting", {
+    from: deployer,
+    args: [mangroveResult.address],
+    skipIfAlreadyDeployed: true,
+  });
 };
 
 module.exports.tags = ["mumbai"];

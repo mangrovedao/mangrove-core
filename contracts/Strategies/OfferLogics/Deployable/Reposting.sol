@@ -44,13 +44,6 @@ contract Reposting is Persistent {
         order.offerId,
         error_msg
       );
-    } catch {
-      emit PosthookFail(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        "unexpected"
-      );
     }
   }
 }

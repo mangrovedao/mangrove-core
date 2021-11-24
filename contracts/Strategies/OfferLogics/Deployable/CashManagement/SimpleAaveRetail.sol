@@ -26,9 +26,9 @@ contract SimpleAaveRetail is AaveLender {
     override
     returns (uint)
   {
-    uint missing = MangroveOffer.__get__(order.outbound_tkn, amount, order);
+    uint missing = MangroveOffer.__get__(amount, order);
     if (missing > 0) {
-      return super.__get__(order.outbound_tkn, missing, order);
+      return super.__get__(missing, order);
     }
     return 0;
   }

@@ -12,14 +12,14 @@
 
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "./MangroveOffer.sol";
+import "./SingleUser.sol";
 import "../interfaces/Aave/ILendingPool.sol";
 import "../interfaces/Aave/ILendingPoolAddressesProvider.sol";
 import "../interfaces/Aave/IPriceOracleGetter.sol";
 
 import "hardhat/console.sol";
 
-abstract contract AaveLender is MangroveOffer {
+abstract contract AaveLender is SingleUser {
   event ErrorOnRedeem(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
@@ -235,6 +235,10 @@ abstract contract AaveLender is MangroveOffer {
       return 0;
     }
     return aaveMint(amount, order);
+  }
+
+  function mint(uint amount, address token) external onlyAdmin {
+    lendingPool.deposit(token, amount, address(this), referralCode);
   }
 
   // adapted from https://medium.com/compound-finance/supplying-assets-to-the-compound-protocol-ec2cf5df5aa#afff

@@ -25,48 +25,51 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
 
   receive() external payable {}
 
-  // Offer constructor (caller will be admin)
-  constructor(address _MGV) {
-    (bytes32 global_pack, ) = Mangrove(payable(_MGV)).config(
-      address(0),
-      address(0)
-    );
-    uint dead = MP.global_unpack_dead(global_pack);
-    require(dead == 0, "Mangrove contract is permanently disabled"); //sanity check
-    MGV = Mangrove(payable(_MGV));
+  constructor(address payable _mgv) {
+    MGV = Mangrove(_mgv);
   }
 
-  /// transfers token stored in `this` contract to some recipient address
-  function transferToken(
+  function getMissingProvision(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint gasreq,
+    uint gasprice,
+    uint offerId
+  ) public view returns (uint) {
+    return
+      _getMissingProvision(
+        MGV,
+        outbound_tkn,
+        inbound_tkn,
+        gasreq,
+        gasprice,
+        offerId
+      );
+  }
+
+  function _transferToken(
     address token,
     address recipient,
     uint amount
-  ) external virtual onlyAdmin returns (bool success) {
+  ) internal returns (bool success) {
     success = IERC20(token).transfer(recipient, amount);
   }
 
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
-  function approveMangrove(address outbound_tkn, uint amount)
-    external
-    virtual
-    onlyAdmin
-  {
+  function _approveMangrove(address outbound_tkn, uint amount) internal {
     require(
       IERC20(outbound_tkn).approve(address(MGV), amount),
-      "Failed to approve Mangrove"
+      "mgvOffer/approve/Fail"
     );
   }
 
   /// withdraws ETH from the bounty vault of the Mangrove.
   /// NB: `Mangrove.fund` function need not be called by `this` so is not included here.
-  function withdrawFromMangrove(address receiver, uint amount)
-    external
-    virtual
-    onlyAdmin
+  function _withdrawFromMangrove(address receiver, uint amount)
+    internal
     returns (bool noRevert)
   {
     require(MGV.withdraw(amount));
-    require(receiver != address(0), "Cannot transfer WEIs to 0x0 address");
     (noRevert, ) = receiver.call{value: amount}("");
   }
 
@@ -76,7 +79,7 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
   // * Make sure that offer maker has enough WEI provision on Mangrove to cover for the new offer bounty
   // * Make sure that `gasreq` and `gives` yield a sufficient offer density
   // NB #2: This function may revert when the above points are not met, it is thus made external only so that it can be encapsulated when called during `makerExecute`.
-  function newOffer(
+  function _newOffer(
     address outbound_tkn, // address of the ERC20 contract managing outbound tokens
     address inbound_tkn, // address of the ERC20 contract managing outbound tokens
     uint wants, // amount of `inbound_tkn` required for full delivery
@@ -84,7 +87,7 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
-  ) external virtual internalOrAdmin returns (uint offerId) {
+  ) internal returns (uint offerId) {
     if (gasreq == type(uint).max) {
       gasreq = OFR_GASREQ;
     }
@@ -113,7 +116,7 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
   //  Updates an existing `offerId` on the Mangrove. `updateOffer` rely on the same offer requirements as `newOffer` and may throw if they are not met.
   //  Additionally `updateOffer` will thow if `this` contract is not the owner of `offerId`.
   //  The `__autoRefill__` hook may be overridden to provide a method to refill offer provision automatically.
-  function updateOffer(
+  function _updateOffer(
     address outbound_tkn,
     address inbound_tkn,
     uint wants,
@@ -122,7 +125,7 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external virtual internalOrAdmin {
+  ) internal {
     uint missing = __autoRefill__(
       outbound_tkn,
       inbound_tkn,
@@ -146,33 +149,13 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
   }
 
   // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove. Function call will throw if `this` contract is not the owner of `offerId`.
-  function retractOffer(
+  function _retractOffer(
     address outbound_tkn,
     address inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) external virtual internalOrAdmin returns (uint) {
+  ) internal returns (uint) {
     return MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
-  }
-
-  // Returns the amount of WEI necessary to (re)provision the (re)posting of offer `offerID` in the (`outbound_tkn, inbound_tkn`) Offer List.
-  // If `OfferId` is not in the Offer List (possibly not live), the returned amount is the amount needed to post a fresh offer.
-  function getMissingProvision(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint gasreq,
-    uint gasprice,
-    uint offerId
-  ) public view returns (uint) {
-    return
-      getMissingProvision(
-        MGV,
-        outbound_tkn,
-        inbound_tkn,
-        gasreq,
-        gasprice,
-        offerId
-      );
   }
 
   /////// Mandatory callback functions
@@ -193,12 +176,22 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     }
     uint missingPut = __put__(order.gives, order); // implements what should be done with the liquidity that is flashswapped by the offer taker to `this` contract
     if (missingPut > 0) {
-      emit AccessVaultFailure(order.inbound_tkn, missingPut);
+      emit PutFail(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        missingPut
+      );
       return PUTFAILURE;
     }
     uint missingGet = __get__(order.wants, order); // implements how `this` contract should make the outbound tokens available
     if (missingGet > 0) {
-      emit NotEnoughLiquidity(order.outbound_tkn, missingPut);
+      emit GetFail(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        missingGet
+      );
       return OUTOFLIQUIDITY;
     }
   }
@@ -316,11 +309,7 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     MgvLib.SingleOrder calldata order,
     MgvLib.OrderResult calldata result
   ) internal virtual {
-    emit PosthookFail(
-      order.outbound_tkn,
-      order.inbound_tkn,
-      order.offerId,
-      string(bytesOfWord(result.mgvData))
-    );
+    order;
+    result;
   }
 }

@@ -14,9 +14,9 @@ pragma abicoder v2;
 import "../../AaveTrader.sol";
 
 contract AdvancedAaveRetail is AaveTrader(2) {
-  constructor(address addressesProvider, address payable MGV)
+  constructor(address addressesProvider, address payable _MGV)
     AaveLender(addressesProvider, 0)
-    MangroveOffer(MGV)
+    MangroveOffer(_MGV)
   {}
 
   // Tries to take base directly from `this` balance. Fetches the remainder on Aave.
@@ -26,9 +26,9 @@ contract AdvancedAaveRetail is AaveTrader(2) {
     override
     returns (uint)
   {
-    uint missing = MangroveOffer.__get__(order.outbound_tkn, amount, order);
+    uint missing = MangroveOffer.__get__(amount, order);
     if (missing > 0) {
-      return super.__get__(order.outbound_tkn, missing, order);
+      return super.__get__(missing, order);
     }
     return 0;
   }

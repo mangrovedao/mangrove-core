@@ -14,21 +14,21 @@ pragma abicoder v2;
 import "../../AaveTrader.sol";
 
 contract AdvancedAaveRetail is AaveTrader(2) {
-  constructor(address addressesProvider, address payable MGV)
+  constructor(address addressesProvider, address payable _MGV)
     AaveLender(addressesProvider, 0)
-    MangroveOffer(MGV)
+    MangroveOffer(_MGV)
   {}
 
   // Tries to take base directly from `this` balance. Fetches the remainder on Aave.
-  function __get__(IERC20 outbound_tkn, uint amount)
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
-    uint missing = MangroveOffer.__get__(outbound_tkn, amount);
+    uint missing = MangroveOffer.__get__(amount, order);
     if (missing > 0) {
-      return super.__get__(outbound_tkn, missing);
+      return super.__get__(missing, order);
     }
     return 0;
   }

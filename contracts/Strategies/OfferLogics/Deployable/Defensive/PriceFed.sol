@@ -61,19 +61,20 @@ contract PriceFed is Defensive, AaveLender {
 
   // Closing diamond inheritance for solidity compiler
   // get/put and lender strat's functions
-  function __get__(IERC20 base, uint amount)
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     override(MangroveOffer, AaveLender)
     returns (uint)
   {
-    AaveLender.__get__(base, amount);
+    return AaveLender.__get__(amount, order);
   }
 
-  function __put__(IERC20 quote, uint amount)
+  function __put__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     override(MangroveOffer, AaveLender)
+    returns (uint)
   {
-    AaveLender.__put__(quote, amount);
+    return AaveLender.__put__(amount, order);
   }
 
   // lastlook is defensive strat's function

@@ -54,7 +54,7 @@ describe("Running tests...", function () {
     const makerContract = await MgvOffer.deploy(mgv.address);
 
     // // Listening
-    // const filter_Fail = makerContract.filters.PosthookFail();
+    // const filter_Fail = makerContract.filters.PosthookFailure();
     // makerContract.once(
     //   filter_Fail,
     //   (outbound_tkn, inbound_tkn, offerId, message, event) => {
@@ -148,7 +148,7 @@ describe("Running tests...", function () {
 });
 
 // const usdc_decimals = await usdc.decimals();
-// const filter_PosthookFail = mgv.filters.PosthookFail();
+// const filter_PosthookFail = mgv.filters.PosthookFailure();
 // mgv.once(filter_PosthookFail, (
 //   outbound_tkn,
 //   inbound_tkn,

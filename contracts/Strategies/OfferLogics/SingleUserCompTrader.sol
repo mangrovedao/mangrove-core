@@ -11,26 +11,24 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "./CompoundLender.sol";
-import "hardhat/console.sol";
+import "./SingleUserCompLender.sol";
 
-abstract contract CompoundTrader is CompoundLender {
+//import "hardhat/console.sol";
+
+abstract contract SingleUserCompTrader is SingleUserCompLender {
   event ErrorOnBorrow(address cToken, uint amount, uint errorCode);
   event ErrorOnRepay(address cToken, uint amount, uint errorCode);
 
-  ///@notice method to get `outbound_tkn` during makerExecute
-  ///@param outbound_tkn address of the ERC20 managing `outbound_tkn` token
-  ///@param amount of token that the trade is still requiring
-  function __get__(IERC20 outbound_tkn, uint amount)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
-    if (!isPooled(address(outbound_tkn))) {
+    if (!isPooled(IERC20(order.outbound_tkn))) {
       return amount;
     }
-    IcERC20 outbound_cTkn = IcERC20(overlyings[outbound_tkn]); // this is 0x0 if outbound_tkn is not compound sourced for borrow.
+    IcERC20 outbound_cTkn = overlyings[IERC20(order.outbound_tkn)]; // this is 0x0 if outbound_tkn is not compound sourced for borrow.
 
     if (address(outbound_cTkn) == address(0)) {
       return amount;
@@ -49,7 +47,7 @@ abstract contract CompoundTrader is CompoundLender {
     // 2. trying to redeem liquidity from Compound
     uint toRedeem = min(redeemable, amount);
 
-    uint notRedeemed = compoundRedeem(outbound_cTkn, toRedeem);
+    uint notRedeemed = compoundRedeem(toRedeem, order);
     if (notRedeemed > 0 && toRedeem > 0) {
       // => notRedeemed == toRedeem
       // this should not happen unless compound is out of cash, thus no need to try to borrow
@@ -75,15 +73,20 @@ abstract contract CompoundTrader is CompoundLender {
   }
 
   /// @notice contract need to have approved `inbound_tkn` overlying in order to repay borrow
-  function __put__(IERC20 inbound_tkn, uint amount) internal virtual override {
+  function __put__(uint amount, ML.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
     //optim
-    if (amount == 0 || !isPooled(address(inbound_tkn))) {
-      return;
+    if (!isPooled(IERC20(order.inbound_tkn))) {
+      return amount;
     }
     // NB: overlyings[wETH] = cETH
-    IcERC20 inbound_cTkn = IcERC20(overlyings[inbound_tkn]);
+    IcERC20 inbound_cTkn = overlyings[IERC20(order.inbound_tkn)];
     if (address(inbound_cTkn) == address(0)) {
-      return;
+      return amount;
     }
     // trying to repay debt if user is in borrow position for inbound_tkn token
     uint toRepay = min(
@@ -107,6 +110,6 @@ abstract contract CompoundTrader is CompoundLender {
     } else {
       toMint = amount - toRepay;
     }
-    compoundMint(inbound_cTkn, toMint);
+    return compoundMint(toMint, order);
   }
 }

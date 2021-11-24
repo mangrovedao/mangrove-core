@@ -22,6 +22,7 @@ contract TradeHandler {
   // internal bytes32 to select appropriate posthook
   bytes32 constant RENEGED = "mgvOffer/reneged";
   bytes32 constant OUTOFLIQUIDITY = "mgvOffer/outOfLiquidity";
+  bytes32 constant PUTFAILURE = "mgvOffer/putFailure";
 
   // to wrap potentially reverting calls to mangrove
   event PosthookFail(
@@ -30,9 +31,18 @@ contract TradeHandler {
     uint offerId,
     string message
   );
-
-  event NotEnoughLiquidity(address token, uint amountMissing);
-  event PostHookError(address outbound_tkn, address inbound_tkn, uint offerId);
+  event GetFail(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint offerId,
+    uint amount
+  );
+  event PutFail(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint offerId,
+    uint amount
+  );
 
   /// @notice extracts old offer from the order that is received from the Mangrove
   function unpackOfferFromOrder(MgvLib.SingleOrder calldata order)
@@ -49,7 +59,7 @@ contract TradeHandler {
     (, , offer_wants, offer_gives, gasprice) = MP.offer_unpack(order.offer);
   }
 
-  function getMissingProvision(
+  function _getMissingProvision(
     Mangrove mgv,
     address outbound_tkn,
     address inbound_tkn,
@@ -91,7 +101,7 @@ contract TradeHandler {
   }
 
   //queries the mangrove to get current gasprice (considered to compute bounty)
-  function getCurrentGasPrice(Mangrove mgv) internal view returns (uint) {
+  function _getCurrentGasPrice(Mangrove mgv) internal view returns (uint) {
     (bytes32 global_pack, ) = mgv.config(address(0), address(0));
     return MP.global_unpack_gasprice(global_pack);
   }

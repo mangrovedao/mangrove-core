@@ -11,12 +11,12 @@ let testSigner = null;
 const zero = lc.parseToken("0.0", 18);
 
 async function deployStrat(strategy, mgv) {
-  const dai = await lc.getContract("DAI");
-  const wEth = await lc.getContract("WETH");
-  const comp = await lc.getContract("COMP");
-  const aave = await lc.getContract("AAVE"); //returns addressesProvider
-  const cwEth = await lc.getContract("CWETH");
-  const cDai = await lc.getContract("CDAI");
+  const dai = (await lc.getContract("DAI")).connect(testSigner);
+  const wEth = (await lc.getContract("WETH")).connect(testSigner);
+  const comp = (await lc.getContract("COMP")).connect(testSigner);
+  const aave = (await lc.getContract("AAVE")).connect(testSigner); //returns addressesProvider
+  const cwEth = (await lc.getContract("CWETH")).connect(testSigner);
+  const cDai = (await lc.getContract("CDAI")).connect(testSigner);
   const Strat = await ethers.getContractFactory(strategy);
   let makerContract = null;
   let market = [null, null]; // market pair for lender
@@ -29,11 +29,13 @@ async function deployStrat(strategy, mgv) {
         mgv.address,
         wEth.address
       );
+      makerContract = makerContract.connect(testSigner);
       market = [cwEth.address, cDai.address];
       break;
     case "SimpleAaveRetail":
     case "AdvancedAaveRetail":
       makerContract = await Strat.deploy(aave.address, mgv.address);
+      makerContract = makerContract.connect(testSigner);
       market = [wEth.address, dai.address];
       // aave rejects market entering if underlying balance is 0 (will self enter at first deposit)
       enterMarkets = false;
@@ -55,17 +57,13 @@ async function deployStrat(strategy, mgv) {
   );
 
   // testSigner approves Mangrove for WETH/DAI before trying to take offers
-  tkrTx = await wEth
-    .connect(testSigner)
-    .approve(mgv.address, ethers.constants.MaxUint256);
+  tkrTx = await wEth.approve(mgv.address, ethers.constants.MaxUint256);
   await tkrTx.wait();
   // taker approves mgv for DAI erc
-  tkrTx = await dai
-    .connect(testSigner)
-    .approve(mgv.address, ethers.constants.MaxUint256);
+  tkrTx = await dai.approve(mgv.address, ethers.constants.MaxUint256);
   await tkrTx.wait();
 
-  allowed = await wEth.allowance(testSigner.address, mgv.address);
+  const allowed = await wEth.allowance(testSigner.address, mgv.address);
   lc.assertEqualBN(allowed, ethers.constants.MaxUint256, "Approve failed");
 
   /*********************** MAKER SIDE PREMICES **************************/
@@ -73,35 +71,38 @@ async function deployStrat(strategy, mgv) {
   let i = 0;
   // offer should get/put base/quote tokens on lender contract (OK since `testSigner` is MakerContract admin)
   if (enterMarkets) {
-    mkrTxs[i++] = await makerContract.connect(testSigner).enterMarkets(market);
+    mkrTxs[i++] = await makerContract.enterMarkets(market);
   }
 
   // testSigner asks MakerContract to approve Mangrove for base (DAI/WETH)
-  mkrTxs[i++] = await makerContract
-    .connect(testSigner)
-    .approveMangrove(dai.address, ethers.constants.MaxUint256);
-  mkrTxs[i++] = await makerContract
-    .connect(testSigner)
-    .approveMangrove(wEth.address, ethers.constants.MaxUint256);
+  mkrTxs[i++] = await makerContract.approveMangrove(
+    dai.address,
+    ethers.constants.MaxUint256
+  );
+  mkrTxs[i++] = await makerContract.approveMangrove(
+    wEth.address,
+    ethers.constants.MaxUint256
+  );
   // One sends 1000 DAI to MakerContract
-  mkrTxs[i++] = await dai
-    .connect(testSigner)
-    .transfer(
-      makerContract.address,
-      lc.parseToken("1000.0", await lc.getDecimals("DAI"))
-    );
+  mkrTxs[i++] = await dai.transfer(
+    makerContract.address,
+    lc.parseToken("1000.0", await lc.getDecimals("DAI"))
+  );
   // testSigner asks makerContract to approve lender to be able to mint [c/a]Token
-  mkrTxs[i++] = await makerContract
-    .connect(testSigner)
-    .approveLender(market[0], ethers.constants.MaxUint256);
+  mkrTxs[i++] = await makerContract.approveLender(
+    market[0],
+    ethers.constants.MaxUint256
+  );
   // NB in the special case of cEth this is only necessary to repay debt
-  mkrTxs[i++] = await makerContract
-    .connect(testSigner)
-    .approveLender(market[1], ethers.constants.MaxUint256);
+  mkrTxs[i++] = await makerContract.approveLender(
+    market[1],
+    ethers.constants.MaxUint256
+  );
   // makerContract deposits some DAI on Lender (remains 100 DAIs on the contract)
-  mkrTxs[i++] = await makerContract
-    .connect(testSigner)
-    .mint(market[1], lc.parseToken("900.0", await lc.getDecimals("DAI")));
+  mkrTxs[i++] = await makerContract.mint(
+    lc.parseToken("900.0", await lc.getDecimals("DAI")),
+    market[1]
+  );
 
   await lc.synch(mkrTxs);
 

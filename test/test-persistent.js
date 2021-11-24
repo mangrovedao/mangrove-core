@@ -41,21 +41,15 @@ describe("Running tests...", function () {
     const comp = await lc.getContract("COMP");
 
     // deploying strat
-    const makerContract = await Strat.deploy(
-      comp.address,
-      mgv.address,
-      wEth.address
-    );
+    const makerContract = (
+      await Strat.deploy(comp.address, mgv.address, wEth.address)
+    ).connect(testSigner);
     const eth_for_one_usdc = lc.parseToken("0.0004", 18); // 1/2500 ethers
     const usdc_for_one_eth = lc.parseToken("2510", 6); // 2510 $
 
     // setting p(WETH|USDC) and p(USDC|WETH) s.t p(WETH|USDC)*p(USDC|WETH) > 1
-    await makerContract
-      .connect(testSigner)
-      .setPrice(wEth.address, usdc.address, eth_for_one_usdc);
-    await makerContract
-      .connect(testSigner)
-      .setPrice(usdc.address, wEth.address, usdc_for_one_eth);
+    await makerContract.setPrice(wEth.address, usdc.address, eth_for_one_usdc);
+    await makerContract.setPrice(usdc.address, wEth.address, usdc_for_one_eth);
 
     // taker premices (approving Mgv on inbound erc20 for taker orders)
     // 1. test runner will need to sell weth and usdc so getting some...
@@ -74,34 +68,40 @@ describe("Running tests...", function () {
     // maker premices
 
     //1. approve lender for c[DAI|WETH|USDC] minting
-    await makerContract
-      .connect(testSigner)
-      .approveLender(cwEth.address, ethers.constants.MaxUint256);
-    await makerContract
-      .connect(testSigner)
-      .approveLender(cUsdc.address, ethers.constants.MaxUint256);
-    await makerContract
-      .connect(testSigner)
-      .approveLender(cDai.address, ethers.constants.MaxUint256);
+    await makerContract.approveLender(
+      cwEth.address,
+      ethers.constants.MaxUint256
+    );
+    await makerContract.approveLender(
+      cUsdc.address,
+      ethers.constants.MaxUint256
+    );
+    await makerContract.approveLender(
+      cDai.address,
+      ethers.constants.MaxUint256
+    );
 
     // 2. entering markets to be allowed to borrow USDC and WETH on DAI collateral
-    await makerContract.connect(testSigner).enterMarkets([cwEth.address]);
-    await makerContract.connect(testSigner).enterMarkets([cUsdc.address]);
-    await makerContract.connect(testSigner).enterMarkets([cDai.address]);
+    await makerContract.enterMarkets([cwEth.address]);
+    await makerContract.enterMarkets([cUsdc.address]);
+    await makerContract.enterMarkets([cDai.address]);
 
     // 3. pushing DAIs on compound to be used as collateral
     // 3.1 sending DAIs to makerContract to be used as collateral
     await lc.fund([["DAI", "100000.0", makerContract.address]]);
     // 3.2 asking maker contract to mint cDAIs
     const daiAmount = lc.parseToken("100000.0", 18);
-    await makerContract.connect(testSigner).mint(cDai.address, daiAmount);
+    await makerContract.mint(daiAmount, cDai.address);
 
     // starting strategy by offering 1000 USDC on the book
     const overrides = { value: lc.parseToken("2.0", 18) };
     const gives_amount = lc.parseToken("1000.0", 6);
-    await makerContract
-      .connect(testSigner)
-      .startStrat(usdc.address, wEth.address, gives_amount, overrides); // gives 1000 $
+    await makerContract.startStrat(
+      usdc.address,
+      wEth.address,
+      gives_amount,
+      overrides
+    ); // gives 1000 $
 
     await lc.logLenderStatus(makerContract, "compound", ["WETH"]);
 
@@ -247,7 +247,7 @@ describe("Running tests...", function () {
 });
 
 // const usdc_decimals = await usdc.decimals();
-// const filter_PosthookFail = mgv.filters.PosthookFail();
+// const filter_PosthookFail = mgv.filters.PosthookFailure();
 // mgv.once(filter_PosthookFail, (
 //   outbound_tkn,
 //   inbound_tkn,

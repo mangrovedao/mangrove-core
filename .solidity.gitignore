@@ -1,1 +1,5 @@
 dist
+deployments/hardhat
+deployments/localhost
+doc/MgvDoc.html
+doc/specs.txt

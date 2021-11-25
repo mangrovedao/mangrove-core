@@ -4,9 +4,6 @@ cache
 ignore
 modd.conf
 out.html
-deployments/hardhat
-doc/MgvDoc.html
-doc/specs.txt
 **/.sethrc
 .DS_Store
 .vscode/settings.json

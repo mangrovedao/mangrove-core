@@ -118,16 +118,16 @@ async function execLenderStrat(makerContract, mgv, lenderName) {
   let offerId = await lc.newOffer(
     mgv,
     makerContract,
-    "DAI", // base
-    "WETH", // quote
+    "DAI", // outbound
+    "WETH", // inbound
     lc.parseToken("0.5", await lc.getDecimals("WETH")), // required WETH
     lc.parseToken("1000.0", await lc.getDecimals("DAI")) // promised DAI
   );
 
   let [takerGot, takerGave] = await lc.snipeSuccess(
     mgv,
-    "DAI", // maker base
-    "WETH", // maker quote
+    "DAI", // maker outbound
+    "WETH", // maker inbound
     offerId,
     lc.parseToken("800.0", await lc.getDecimals("DAI")), // taker wants 0.8 DAI
     lc.parseToken("0.5", await lc.getDecimals("WETH")) // taker is ready to give up-to 0.5 WETH

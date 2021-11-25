@@ -2,7 +2,7 @@
 # Manual changes might be lost - proceed with caution!
 
 __metadata:
-  version: 4
+  version: 5
   cacheKey: 8
 
 "@babel/code-frame@npm:7.12.11":
@@ -30,7 +30,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/core@npm:7.16.0, @babel/core@npm:^7.7.5":
+"@babel/core@npm:^7.7.5":
   version: 7.16.0
   resolution: "@babel/core@npm:7.16.0"
   dependencies:
@@ -848,7 +848,7 @@ __metadata:
     "@ethersproject/experimental": ^5.5.0
     "@ethersproject/hardware-wallets": ^5.4.0
     "@giry/commonlib-js": "workspace:*"
-    "@giry/hardhat-mangrove": "workspace:*"
+    "@giry/hardhat-utils": "workspace:*"
     "@giry/mangrove-js": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
@@ -908,26 +908,10 @@ __metadata:
     mocha-multi-reporters: ^1.5.1
     prettier: 2.3.2
     prettier-eslint: ^13.0.0
+    rimraf: ^3.0.2
     ts-node: ^10.2.1
     typescript: ^4.4.2
     winston: ^3.3.3
-  languageName: unknown
-  linkType: soft
-
-"@giry/hardhat-mangrove@workspace:*, @giry/hardhat-mangrove@workspace:packages/hardhat-mangrove":
-  version: 0.0.0-use.local
-  resolution: "@giry/hardhat-mangrove@workspace:packages/hardhat-mangrove"
-  dependencies:
-    "@giry/mangrove-solidity": "workspace:*"
-    config: ^3.3.6
-    eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
-    ethers: ^5.4.7
-    hardhat: ^2.6.5
-    lint-staged: ^11.1.2
-    mocha: ^9.1.2
-    prettier: 2.3.2
-    prettier-eslint: ^13.0.0
   languageName: unknown
   linkType: soft
 
@@ -945,6 +929,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@giry/hardhat-utils@workspace:*, @giry/hardhat-utils@workspace:packages/hardhat-utils":
+  version: 0.0.0-use.local
+  resolution: "@giry/hardhat-utils@workspace:packages/hardhat-utils"
+  dependencies:
+    "@giry/mangrove-solidity": "workspace:*"
+    eslint: ^7.32.0
+    eslint-config-prettier: ^8.3.0
+    ethers: ^5.4.7
+    hardhat: ^2.6.5
+    lint-staged: ^11.1.2
+    mocha: ^9.1.2
+    prettier: 2.3.2
+    prettier-eslint: ^13.0.0
+  languageName: unknown
+  linkType: soft
+
 "@giry/mangrove-js@workspace:*, @giry/mangrove-js@workspace:packages/mangrove.js":
   version: 0.0.0-use.local
   resolution: "@giry/mangrove-js@workspace:packages/mangrove.js"
@@ -954,13 +954,13 @@ __metadata:
     "@ethersproject/bytes": ^5.0.0
     "@ethersproject/hardware-wallets": ^5.0.0
     "@ethersproject/providers": ^5.0.0
-    "@giry/hardhat-mangrove": "workspace:*"
+    "@giry/hardhat-utils": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@rollup/plugin-commonjs": ^20.0.0
     "@rollup/plugin-json": ^4.1.0
     "@rollup/plugin-node-resolve": ^9.0.0
-    "@typechain/ethers-v5": ^7.0.1
+    "@typechain/ethers-v5": ^8.0.2
     "@types/big.js": ^6.1.1
     "@types/chai-as-promised": ^7.1.4
     "@types/mocha": ^8.2.0
@@ -995,7 +995,7 @@ __metadata:
     shelljs: ^0.8.4
     ts-essentials: ^8.1.0
     ts-node: ^9.1.1
-    typechain: ^5.1.2
+    typechain: ^6.0.2
     typedoc: ^0.22.3
     typescript: ^4.4.0
   languageName: unknown
@@ -1035,6 +1035,55 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@giry/obfiller-bot@workspace:packages/obfiller-bot":
+  version: 0.0.0-use.local
+  resolution: "@giry/obfiller-bot@workspace:packages/obfiller-bot"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.2
+    "@ethersproject/experimental": ^5.5.0
+    "@ethersproject/hardware-wallets": ^5.4.0
+    "@giry/commonlib-js": "workspace:*"
+    "@giry/hardhat-utils": "workspace:*"
+    "@giry/mangrove-js": "workspace:*"
+    "@giry/mangrove-solidity": "workspace:*"
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@types/big.js": ^6.1.2
+    "@types/chai": ^4.2.22
+    "@types/chai-as-promised": ^7.1.4
+    "@types/config": ^0.0.39
+    "@types/dotenv-flow": ^3.2.0
+    "@types/mocha": ^9.0.0
+    "@types/node": ^16.9.4
+    "@types/shelljs": ^0.8.9
+    "@typescript-eslint/eslint-plugin": ^4.31.0
+    "@typescript-eslint/parser": ^4.31.0
+    big.js: ^6.1.1
+    chai: ^4.3.4
+    chai-as-promised: ^7.1.1
+    config: ^3.3.6
+    cross-env: ^7.0.3
+    dotenv-flow: ^3.2.0
+    eslint: ^7.32.0
+    eslint-config-prettier: ^8.3.0
+    ethers: ^5.4.7
+    fast-safe-stringify: ^2.1.1
+    hardhat: ^2.6.4
+    hardhat-deploy: ^0.9.1
+    hardhat-deploy-ethers: ^0.3.0-beta.11
+    lint-staged: ^11.1.2
+    mocha: ^9.1.1
+    mocha-multi-reporters: ^1.5.1
+    npm-run-all: ^4.1.5
+    prettier: 2.3.2
+    prettier-eslint: ^13.0.0
+    random: ^3.0.6
+    rimraf: ^3.0.2
+    shelljs: ^0.8.4
+    ts-node: ^10.2.1
+    typescript: ^4.4.2
+  languageName: unknown
+  linkType: soft
+
 "@giry/updategas-bot@workspace:packages/updategas-bot":
   version: 0.0.0-use.local
   resolution: "@giry/updategas-bot@workspace:packages/updategas-bot"
@@ -1043,7 +1092,7 @@ __metadata:
     "@ethersproject/experimental": ^5.5.0
     "@ethersproject/hardware-wallets": ^5.4.0
     "@giry/commonlib-js": "workspace:*"
-    "@giry/hardhat-mangrove": "workspace:*"
+    "@giry/hardhat-utils": "workspace:*"
     "@giry/mangrove-js": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
@@ -1492,9 +1541,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typechain/ethers-v5@npm:^7.0.1":
-  version: 7.2.0
-  resolution: "@typechain/ethers-v5@npm:7.2.0"
+"@typechain/ethers-v5@npm:^8.0.2":
+  version: 8.0.2
+  resolution: "@typechain/ethers-v5@npm:8.0.2"
   dependencies:
     lodash: ^4.17.15
     ts-essentials: ^7.0.1
@@ -1503,9 +1552,9 @@ __metadata:
     "@ethersproject/bytes": ^5.0.0
     "@ethersproject/providers": ^5.0.0
     ethers: ^5.1.3
-    typechain: ^5.0.0
+    typechain: ^6.0.0
     typescript: ">=4.0.0"
-  checksum: 23c7bcb6ef3582fe7ec32dec26bd5067a751b7e3b88ece0b98b2c4bb9623ac074f079ebe3dbcdf57f7e659d8d3a3f018105bd660806f6e7bdafa0dc56c5de450
+  checksum: bedd6a9a35db324913bbdd0e8fa38de0b103309e9f866780498c91cbd3d6d737e45e8ede3f46145d26114cbf80e9d75e339e332ab9344ca01e450f0aeb08581a
   languageName: node
   linkType: hard
 
@@ -4332,7 +4381,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fromentries@npm:^1.2.0":
+"fromentries@npm:^1.2.0, fromentries@npm:^1.3.2":
   version: 1.3.2
   resolution: "fromentries@npm:1.3.2"
   checksum: 33729c529ce19f5494f846f0dd4945078f4e37f4e8955f4ae8cc7385c218f600e9d93a7d225d17636c20d1889106fd87061f911550861b7072f53bf891e6b341
@@ -4406,19 +4455,19 @@ __metadata:
 
 "fsevents@patch:fsevents@~2.1.1#~builtin<compat/fsevents>":
   version: 2.1.3
-  resolution: "fsevents@patch:fsevents@npm%3A2.1.3#~builtin<compat/fsevents>::version=2.1.3&hash=1cc4b2"
+  resolution: "fsevents@patch:fsevents@npm%3A2.1.3#~builtin<compat/fsevents>::version=2.1.3&hash=18f3a7"
   dependencies:
     node-gyp: latest
-  checksum: 37502954e1b2cf7d1f555561e45956521afa12e12cbfe05445ffa1f2852a3d8932980cacb808d504b1def84b12b3b7b41c26673180691295001fa7740cc63fba
+  conditions: os=darwin
   languageName: node
   linkType: hard
 
 "fsevents@patch:fsevents@~2.3.1#~builtin<compat/fsevents>, fsevents@patch:fsevents@~2.3.2#~builtin<compat/fsevents>":
   version: 2.3.2
-  resolution: "fsevents@patch:fsevents@npm%3A2.3.2#~builtin<compat/fsevents>::version=2.3.2&hash=1cc4b2"
+  resolution: "fsevents@patch:fsevents@npm%3A2.3.2#~builtin<compat/fsevents>::version=2.3.2&hash=18f3a7"
   dependencies:
     node-gyp: latest
-  checksum: 78db9daf1f6526a49cefee3917cc988f62dc7f25b5dd80ad6de4ffc4af7f0cab7491ac737626ff53e482a111bc53aac9e411fe3602458eca36f6a003ecf69c16
+  conditions: os=darwin
   languageName: node
   linkType: hard
 
@@ -4428,6 +4477,7 @@ fsevents@~2.1.1:
   dependencies:
     node-gyp: latest
   checksum: b5ec0516b44d75b60af5c01ff80a80cd995d175e4640d2a92fbabd02991dd664d76b241b65feef0775c23d531c3c74742c0fbacd6205af812a9c3cef59f04292
+  conditions: os=darwin
   languageName: node
   linkType: hard
 
@@ -4437,6 +4487,7 @@ fsevents@~2.1.1:
   dependencies:
     node-gyp: latest
   checksum: 97ade64e75091afee5265e6956cb72ba34db7819b4c3e94c431d4be2b19b8bb7a2d4116da417950c3425f17c8fe693d25e20212cac583ac1521ad066b77ae31f
+  conditions: os=darwin
   languageName: node
   linkType: hard
 
@@ -6273,6 +6324,7 @@ fsevents@~2.1.1:
   resolution: "mangrove-monorepo@workspace:."
   dependencies:
     husky: ^7.0.2
+    pinst: ^2.1.6
   languageName: unknown
   linkType: soft
 
@@ -7497,6 +7549,17 @@ fsevents@~2.1.1:
   languageName: node
   linkType: hard
 
+"pinst@npm:^2.1.6":
+  version: 2.1.6
+  resolution: "pinst@npm:2.1.6"
+  dependencies:
+    fromentries: ^1.3.2
+  bin:
+    pinst: bin.js
+  checksum: 3644c352a7a956a0a299012609783456e055b2c4dab274bcbe8ea86d3347355a0552da31a7f3fb6ce91d6102f27b6dde64edd69c2cdaaeb811b87bf205655e36
+  languageName: node
+  linkType: hard
+
 "pkg-dir@npm:^4.1.0":
   version: 4.2.0
   resolution: "pkg-dir@npm:4.2.0"
@@ -7737,6 +7800,15 @@ fsevents@~2.1.1:
   languageName: node
   linkType: hard
 
+"random@npm:^3.0.6":
+  version: 3.0.6
+  resolution: "random@npm:3.0.6"
+  dependencies:
+    seedrandom: ^3.0.5
+  checksum: 3e900ebadafda77e6e321180e1f813a08adbed35dcc0d283fea4d73ddd82eaabd5aa1c26ce251d6e7e3205650ae5d9210a82be058b03e4607eb3ae53adb8798b
+  languageName: node
+  linkType: hard
+
 "randombytes@npm:^2.1.0":
   version: 2.1.0
   resolution: "randombytes@npm:2.1.0"
@@ -7957,20 +8029,20 @@ resolve@1.17.0:
 
 "resolve@patch:resolve@1.17.0#~builtin<compat/resolve>":
   version: 1.17.0
-  resolution: "resolve@patch:resolve@npm%3A1.17.0#~builtin<compat/resolve>::version=1.17.0&hash=00b1ff"
+  resolution: "resolve@patch:resolve@npm%3A1.17.0#~builtin<compat/resolve>::version=1.17.0&hash=07638b"
   dependencies:
     path-parse: ^1.0.6
-  checksum: a3606308046ca75c0a6350c26df636b64a71904a8e00f3181fd838b46b4fc303c32ae3e694c156eae5d9102cbe194c444f85822d8e6ce30cf7c510e412029908
+  checksum: 6fd799f282ddf078c4bc20ce863e3af01fa8cb218f0658d9162c57161a2dbafe092b13015b9a4c58d0e1e801cf7aa7a4f13115fea9db98c3f9a0c43e429bad6f
   languageName: node
   linkType: hard
 
 "resolve@patch:resolve@^1.1.6#~builtin<compat/resolve>, resolve@patch:resolve@^1.10.0#~builtin<compat/resolve>, resolve@patch:resolve@^1.17.0#~builtin<compat/resolve>":
   version: 1.20.0
-  resolution: "resolve@patch:resolve@npm%3A1.20.0#~builtin<compat/resolve>::version=1.20.0&hash=00b1ff"
+  resolution: "resolve@patch:resolve@npm%3A1.20.0#~builtin<compat/resolve>::version=1.20.0&hash=07638b"
   dependencies:
     is-core-module: ^2.2.0
     path-parse: ^1.0.6
-  checksum: bed00be983cd20a8af0e7840664f655c4b269786dbd9595c5f156cd9d8a0050e65cdbbbdafc30ee9b6245b230c78a2c8ab6447a52545b582f476c29adb188cc5
+  checksum: a0dd7d16a8e47af23afa9386df2dff10e3e0debb2c7299a42e581d9d9b04d7ad5d2c53f24f1e043f7b3c250cbdc71150063e53d0b6559683d37f790b7c8c3cd5
   languageName: node
   linkType: hard
 
@@ -9251,9 +9323,9 @@ resolve@1.17.0:
   languageName: node
   linkType: hard
 
-"typechain@npm:^5.1.2":
-  version: 5.2.0
-  resolution: "typechain@npm:5.2.0"
+"typechain@npm:^6.0.2":
+  version: 6.0.2
+  resolution: "typechain@npm:6.0.2"
   dependencies:
     "@types/prettier": ^2.1.1
     command-line-args: ^4.0.7
@@ -9269,7 +9341,7 @@ resolve@1.17.0:
     typescript: ">=4.1.0"
   bin:
     typechain: dist/cli/cli.js
-  checksum: 1116e835a355b0d9dc9be77ebbfe972e1fe93eec6dc71cabaaada9e606c2bbaa18c786a22388e41ea3d2745fee1479b542b45dd9ebab4f60b2773524668a5d05
+  checksum: 8e72a05ece9eb03ee6b5175a14206f6a26f407b25071a4bb37edd42d1303075ea5d9c2798bdcbe2517fea37ebf48710d5f055055718935c363358c4343e50004
   languageName: node
   linkType: hard
 
@@ -9321,21 +9393,21 @@ typescript@^3.9.3:
 
 "typescript@patch:typescript@^3.9.3#~builtin<compat/typescript>":
   version: 3.9.10
-  resolution: "typescript@patch:typescript@npm%3A3.9.10#~builtin<compat/typescript>::version=3.9.10&hash=32657b"
+  resolution: "typescript@patch:typescript@npm%3A3.9.10#~builtin<compat/typescript>::version=3.9.10&hash=ddd1e8"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 8dcd46a8a2cb81198497f00c7721a34c914bf6b3241bf9687b868bdec9e59f1f44da41e7917cfc1dcabee4595229c73bab047f2d85c1aedacc0d1b526cc81534
+  checksum: dc7141ab555b23a8650a6787f98845fc11692063d02b75ff49433091b3af2fe3d773650dea18389d7c21f47d620fb3b110ea363dab4ab039417a6ccbbaf96fc2
   languageName: node
   linkType: hard
 
 "typescript@patch:typescript@^4.4.0#~builtin<compat/typescript>, typescript@patch:typescript@^4.4.2#~builtin<compat/typescript>":
   version: 4.4.4
-  resolution: "typescript@patch:typescript@npm%3A4.4.4#~builtin<compat/typescript>::version=4.4.4&hash=32657b"
+  resolution: "typescript@patch:typescript@npm%3A4.4.4#~builtin<compat/typescript>::version=4.4.4&hash=ddd1e8"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: c97c33903f1eb4f9e178649befdfc859d93157db1eccd1e521e84976ec6861db53412d8018e5e4c5d09268771c65498d42caa64bd881878346c3644f6b7cd202
+  checksum: bd629ad0da4a15d79aaad56baf3ee7d96f6a181760d430ae77f8c5325df7bffd9edee57544a3970e3651e8b796fe03a5838a7eb39c6d46cc3866c0b23d36a0dd
   languageName: node
   linkType: hard
 

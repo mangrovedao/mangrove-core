@@ -7,13 +7,19 @@ var defer = require("config/defer").deferConfig;
 // Hardhat configuration //
 /* to test deployments, make the hardhat network emulate another network & reuse 
    the deployment addresses in `accounts` so they are funded:
-   hardaht {
+   hardhat {
      ...
       chainId: 80001,
       accounts: [{privateKey: process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"] || "", balance: "10000000000000000000000"}]
    }
 */
 
+let mumbaiExtraConfig = {};
+if (process.env["USE_DEPLOYER_ACCOUNTS"]) {
+  if (process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
+    mumbaiExtraConfig.accounts = [process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]];
+  }
+}
 config.hardhat = {
   defaultNetwork: "hardhat",
   networks: {
@@ -22,6 +28,8 @@ config.hardhat = {
       gasMultiplier: 1,
       blockGasLimit: 7000000000,
       allowUnlimitedContractSize: true,
+      // FIXME: Should definitely not be Mumbai's chainid
+      //      chainId: 80001,  // change if deploying on another network than mumba
     },
     mumbai: {
       gasPrice: 30 * 10 ** 9,
@@ -30,7 +38,7 @@ config.hardhat = {
       // add a node url in mangrove-solidity/.env.local
       url: process.env["MUMBAI_NODE_URL"] || "",
       chainId: 80001,
-      accounts: [process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"] || ""],
+      ...mumbaiExtraConfig,
     },
     localhost: {
       url: "http://127.0.0.1:8545",

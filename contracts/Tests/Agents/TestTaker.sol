@@ -46,7 +46,7 @@ contract TestTaker is ITaker {
     //uint taken = TestEvents.min(makerGives, takerWants);
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [offerId, takerWants, type(uint96).max, type(uint48).max];
-    (uint successes, uint got, uint gave) = _mgv.snipes(
+    (uint successes, uint got, uint gave, ) = _mgv.snipes(
       _base,
       _quote,
       targets,
@@ -67,7 +67,7 @@ contract TestTaker is ITaker {
   ) external returns (bool) {
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [offerId, takerWants, takerGives, gasreq];
-    (uint successes, , ) = __mgv.snipes(__base, __quote, targets, true);
+    (uint successes, , , ) = __mgv.snipes(__base, __quote, targets, true);
     return successes == 1;
   }
 
@@ -78,8 +78,17 @@ contract TestTaker is ITaker {
     uint
   ) external pure override {}
 
-  function marketOrder(uint wants, uint gives) external returns (uint, uint) {
-    return _mgv.marketOrder(_base, _quote, wants, gives, true);
+  function marketOrder(uint wants, uint gives)
+    external
+    returns (uint takerGot, uint takerGave)
+  {
+    (takerGot, takerGave, ) = _mgv.marketOrder(
+      _base,
+      _quote,
+      wants,
+      gives,
+      true
+    );
   }
 
   function marketOrder(
@@ -88,14 +97,26 @@ contract TestTaker is ITaker {
     address __quote,
     uint takerWants,
     uint takerGives
-  ) external returns (uint, uint) {
-    return __mgv.marketOrder(__base, __quote, takerWants, takerGives, true);
+  ) external returns (uint takerGot, uint takerGave) {
+    (takerGot, takerGave, ) = __mgv.marketOrder(
+      __base,
+      __quote,
+      takerWants,
+      takerGives,
+      true
+    );
   }
 
   function marketOrderWithFail(uint wants, uint gives)
     external
-    returns (uint, uint)
+    returns (uint takerGot, uint takerGave)
   {
-    return _mgv.marketOrder(_base, _quote, wants, gives, true);
+    (takerGot, takerGave, ) = _mgv.marketOrder(
+      _base,
+      _quote,
+      wants,
+      gives,
+      true
+    );
   }
 }

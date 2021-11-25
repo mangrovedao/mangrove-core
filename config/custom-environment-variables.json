@@ -1,0 +1,12 @@
+{
+    "hardhat": {
+        "networks": {
+            "hardhat": {
+                "chainId": {
+                    "__name": "HARDHAT_NETWORK_CHAIN_ID",
+                    "__format": "number"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,52 @@
+{
+    "chain": "Polygon",
+    "network": "mumbai",
+
+    "tokens": {
+        "dai": {
+            "address": "0x001B3B4d0F3714Ca98ba10F6042DaEbF0B1B7b6F",
+            "abi": "config/polygon/abis/MintableERC20-abi.json"
+        },
+        "wEth": {
+            "address": "0x3C68CE8504087f89c640D02d133646d98e64ddd9",
+            "abi": "config/polygon/abis/MintableERC20-abi.json"
+        },
+        "usdc":{
+            "address" : "0x2058A9D7613eEE744279e3856Ef0eAda5FCbaA7e",
+            "abi":"config/polygon/abis/MintableERC20-abi.json"
+        }
+    },
+    "aave" : {
+        "addressesProviderAddress": "0x178113104fEcbcD7fF8669a0150721e231F0FD4B",
+        "addressesProviderAbi": "config/polygon/abis/addressesProvider-abi.json",
+        "lendingPoolAddress": "0x9198F13B08E299d85E096929fA9781A1E3d5d827",
+        "lendingPoolAbi": "config/polygon/abis/lendingPool-abi.json"
+    },
+    "mangrove" : {
+        "addresses" : {
+            "contracts": {
+                "main": "0xF15A2ada64A9C3C14ca11359c8F1d22B063DB2AD",
+                "cleaner": "0xad53eB62d210DeeB30854e1b73dD4Ee88E612cc9",
+                "reader": "0xc00d2da52195b123d3c994aaf2eb1e8da8999d4f",
+                "oracle": "0xb4C0B66F158C314FfBDF1b64d9B517B8aaB46773"
+            },
+            "deployers" :{
+                "main": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",
+                "cleaner": "0xE47e3D08f6e879Fb704E2EA68E27c39eEe9C163D",
+                "reader": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",
+                "oracle": "0x47897EE61498D02B18794601Ed3A71896A1Ff894"
+            }
+        },
+        "abis" : {
+            "main": "build/exported-abis/Mangrove.json",
+            "cleaner": "build/exported-abis/MgvCleaner.json",
+            "reader": "build/exported-abis/MgvReader.json",
+            "oracle": "build/exported-abis/MgvOracle.json"
+        }
+    },
+    "extraAbis" : {
+        "stableDebtToken": "config/polygon/abis/stableDebtToken-abi.json",
+        "variableDebtToken": "config/polygon/abis/variableDebtToken-abi.json",
+        "aToken": "config/polygon/abis/aToken-abi.json"
+    }
+}

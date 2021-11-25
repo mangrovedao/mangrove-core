@@ -95,7 +95,7 @@ abstract contract AaveLender is MangroveOffer {
   /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
   /// returns (R, B|R)
 
-  function maxGettableUnderlying(IERC20 asset)
+  function maxGettableUnderlying(IERC20 asset, bool tryBorrow)
     public
     view
     returns (uint, uint)
@@ -145,6 +145,11 @@ abstract contract AaveLender is MangroveOffer {
       maxRedeemableUnderlying,
       account.balanceOfUnderlying
     );
+
+    if (!tryBorrow) {
+      //gas saver
+      return (maxRedeemableUnderlying, 0);
+    }
     // computing max borrow capacity on the premisses that maxRedeemableUnderlying has been redeemed.
     // max borrow capacity = (account.borrowPower - (ltv*redeemed)) / underlying.ltv * underlying.price
 
@@ -181,13 +186,14 @@ abstract contract AaveLender is MangroveOffer {
     (
       uint redeemable, /*maxBorrowAfterRedeem*/
 
-    ) = maxGettableUnderlying(outbound_tkn);
+    ) = maxGettableUnderlying(outbound_tkn, false);
+    if (amount > redeemable) {
+      return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
+    }
 
-    uint redeemAmount = min(redeemable, amount);
-
-    if (aaveRedeem(outbound_tkn, redeemAmount) == 0) {
-      // redeemAmount was transfered to `this`
-      return (amount - redeemAmount);
+    if (aaveRedeem(outbound_tkn, amount) == 0) {
+      // amount was transfered to `this`
+      return 0;
     }
     return amount;
   }

@@ -18,7 +18,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "../Mangrove.sol";
 import "../MgvLib.sol";
 
 /* The purpose of the Oracle contract is to act as a gas price and density
@@ -37,6 +36,7 @@ contract MgvOracle is IMgvMonitor {
     mutator = _initialMutator;
 
     //NOTE: Hardwiring density for now
+    /* Mangrove will reject densities from the Monitor that don't fit in 32 bits and use its internal density instead, so setting this contract's density to `type(uint).max` is a way to let Mangrove deal with density on its own. */
     lastReceivedDensity = type(uint).max;
   }
 

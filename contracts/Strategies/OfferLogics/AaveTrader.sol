@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// CompoundTrader.sol
+// AaveTrader.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -9,14 +9,21 @@
 // 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "./CompoundLender.sol";
+import "./AaveLender.sol";
 import "hardhat/console.sol";
 
-abstract contract CompoundTrader is CompoundLender {
-  event ErrorOnBorrow(address cToken, uint amount, uint errorCode);
-  event ErrorOnRepay(address cToken, uint amount, uint errorCode);
+abstract contract AaveTrader is AaveLender {
+  uint public immutable interestRateMode;
+
+  constructor(uint _interestRateMode) {
+    interestRateMode = _interestRateMode;
+  }
+
+  event ErrorOnBorrow(address cToken, uint amount, string errorCode);
+  event ErrorOnRepay(address cToken, uint amount);
 
   ///@notice method to get `outbound_tkn` during makerExecute
   ///@param outbound_tkn address of the ERC20 managing `outbound_tkn` token
@@ -27,24 +34,19 @@ abstract contract CompoundTrader is CompoundLender {
     override
     returns (uint)
   {
-    if (!isPooled(address(outbound_tkn))) {
-      return amount;
-    }
-    IcERC20 outbound_cTkn = IcERC20(overlyings[outbound_tkn]); // this is 0x0 if outbound_tkn is not compound sourced for borrow.
-
-    if (address(outbound_cTkn) == address(0)) {
-      return amount;
-    }
-
     // 1. Computing total borrow and redeem capacities of underlying asset
     (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
-      address(outbound_cTkn)
+      outbound_tkn,
+      true
     );
 
+    if (add_(redeemable, liquidity_after_redeem) < amount) {
+      return amount; // give up early if not possible to fetch amount of underlying
+    }
     // 2. trying to redeem liquidity from Compound
     uint toRedeem = min(redeemable, amount);
 
-    uint notRedeemed = compoundRedeem(outbound_cTkn, toRedeem);
+    uint notRedeemed = aaveRedeem(outbound_tkn, toRedeem);
     if (notRedeemed > 0 && toRedeem > 0) {
       // => notRedeemed == toRedeem
       // this should not happen unless compound is out of cash, thus no need to try to borrow
@@ -57,51 +59,63 @@ abstract contract CompoundTrader is CompoundLender {
       return amount;
     }
     // 3. trying to borrow missing liquidity
-    uint errorCode = outbound_cTkn.borrow(toBorrow);
-    if (errorCode != 0) {
-      emit ErrorOnBorrow(address(outbound_cTkn), toBorrow, errorCode);
+    try
+      lendingPool.borrow(
+        address(outbound_tkn),
+        toBorrow,
+        interestRateMode,
+        referralCode,
+        address(this)
+      )
+    {
+      return sub_(amount, toBorrow);
+    } catch Error(string memory errorCode) {
+      emit ErrorOnBorrow(address(outbound_tkn), toBorrow, errorCode);
       return amount; // unable to borrow requested amount
+    } catch {
+      emit ErrorOnBorrow(address(outbound_tkn), toBorrow, "Unexpected reason");
+      return amount;
     }
-    // if ETH were borrowed, one needs to turn them into wETH
-    if (isCeth(outbound_cTkn)) {
-      weth.deposit{value: toBorrow}();
-    }
-    return sub_(amount, toBorrow);
   }
 
-  /// @notice contract need to have approved `inbound_tkn` overlying in order to repay borrow
+  /// @notice user need to have approved `inbound_tkn` overlying in order to repay borrow
   function __put__(IERC20 inbound_tkn, uint amount) internal virtual override {
     //optim
-    if (amount == 0 || !isPooled(address(inbound_tkn))) {
-      return;
-    }
-    // NB: overlyings[wETH] = cETH
-    IcERC20 inbound_cTkn = IcERC20(overlyings[inbound_tkn]);
-    if (address(inbound_cTkn) == address(0)) {
+    if (amount == 0) {
       return;
     }
     // trying to repay debt if user is in borrow position for inbound_tkn token
-    uint toRepay = min(
-      inbound_cTkn.borrowBalanceCurrent(address(this)),
-      amount
-    ); //accrues interests
+    DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
+      address(inbound_tkn)
+    );
 
-    uint errCode;
-    if (isCeth(inbound_cTkn)) {
-      // turning WETHs to ETHs
-      weth.withdraw(toRepay);
-      // OK since repayBorrow throws if failing in the case of Eth
-      inbound_cTkn.repayBorrow{value: toRepay}();
+    uint debtOfUnderlying;
+    if (interestRateMode == 1) {
+      debtOfUnderlying = IERC20(reserveData.stableDebtTokenAddress).balanceOf(
+        address(this)
+      );
     } else {
-      errCode = inbound_cTkn.repayBorrow(toRepay);
+      debtOfUnderlying = IERC20(reserveData.variableDebtTokenAddress).balanceOf(
+          address(this)
+        );
     }
+
+    uint toRepay = min(debtOfUnderlying, amount);
+
     uint toMint;
-    if (errCode != 0) {
-      emit ErrorOnRepay(address(inbound_cTkn), toRepay, errCode);
+    try
+      lendingPool.repay(
+        address(inbound_tkn),
+        toRepay,
+        interestRateMode,
+        address(this)
+      )
+    {
+      toMint = sub_(amount, toRepay);
+    } catch {
+      emit ErrorOnRepay(address(inbound_tkn), toRepay);
       toMint = amount;
-    } else {
-      toMint = amount - toRepay;
     }
-    compoundMint(inbound_cTkn, toMint);
+    aaveMint(inbound_tkn, toMint);
   }
 }

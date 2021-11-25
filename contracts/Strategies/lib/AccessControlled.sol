@@ -13,7 +13,7 @@ pragma solidity ^0.7.0;
 pragma abicoder v2;
 
 contract AccessControlled {
-  address admin;
+  address public admin;
 
   constructor() {
     admin = msg.sender;

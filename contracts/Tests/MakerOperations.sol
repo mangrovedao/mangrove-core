@@ -216,9 +216,15 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
 
   function delete_restores_balance_test() public {
     mkr.provisionMgv(1 ether);
-    uint bal = mkr.freeWei();
-    mkr.retractOfferWithDeprovision(mkr.newOffer(1 ether, 1 ether, 2300, 0));
-
+    uint bal = mkr.freeWei(); // should be 1 ether
+    uint offerId = mkr.newOffer(1 ether, 1 ether, 2300, 0);
+    uint bal_ = mkr.freeWei(); // 1 ether minus provision
+    uint collected = mkr.retractOfferWithDeprovision(offerId); // provision
+    TestEvents.eq(
+      bal - bal_,
+      collected,
+      "retract does not return a correct amount"
+    );
     TestEvents.eq(mkr.freeWei(), bal, "delete has not restored balance");
   }
 
@@ -237,11 +243,16 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.retractOffer(ofr);
 
     uint bal1 = mgv.balanceOf(address(mkr));
-    mkr.retractOfferWithDeprovision(ofr);
+    uint collected = mkr.retractOfferWithDeprovision(ofr);
+    TestEvents.check(collected > 0, "deprovision should give credit");
     uint bal2 = mgv.balanceOf(address(mkr));
     TestEvents.less(bal1, bal2, "Balance should have increased");
 
-    mkr.retractOfferWithDeprovision(ofr);
+    uint collected2 = mkr.retractOfferWithDeprovision(ofr);
+    TestEvents.check(
+      collected2 == 0,
+      "second deprovision should not give credit"
+    );
     uint bal3 = mgv.balanceOf(address(mkr));
     TestEvents.eq(bal3, bal2, "Balance should not have increased");
   }
@@ -259,7 +270,11 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     uint bal2 = mgv.balanceOf(address(mkr));
     TestEvents.less(bal1, bal2, "Balance should have increased");
 
-    mkr.retractOfferWithDeprovision(ofr);
+    uint collected = mkr.retractOfferWithDeprovision(ofr);
+    TestEvents.check(
+      collected == 0,
+      "second deprovision should not give credit"
+    );
     uint bal3 = mgv.balanceOf(address(mkr));
     TestEvents.eq(bal3, bal2, "Balance should not have increased");
   }

@@ -116,7 +116,6 @@ async function execLenderStrat(makerContract, mgv, lenderName) {
   const dai = await lc.getContract("DAI");
   const wEth = await lc.getContract("WETH");
   const gasreq = await makerContract.OFR_GASREQ();
-  listenMgv(mgv);
   //  listenERC20(wEth,18);
 
   await lc.logLenderStatus(makerContract, lenderName, ["DAI", "WETH"]);
@@ -314,6 +313,7 @@ describe("Deploy strategies", function () {
     );
 
     mgv = await lc.deployMangrove();
+    listenMgv(mgv);
     await lc.activateMarket(mgv, dai.address, wEth.address);
     let [, local] = await mgv.reader.config(dai.address, wEth.address);
     assert(local.active, "Market is inactive");
@@ -336,42 +336,6 @@ describe("Deploy strategies", function () {
 
   it("Lender/borrower strat on aave", async function () {
     const makerContract = await deployStrat("AdvancedAaveRetail", mgv);
-    const filter_Fail = mgv.filters.OfferFail();
-    mgv.on(
-      filter_Fail,
-      (
-        outbound_tkn,
-        inbound_tkn,
-        offerId,
-        taker,
-        takerWants,
-        takerGives,
-        mgvData,
-        event
-      ) => {
-        console.log(
-          chalk.red(
-            `Offer ${offerId} failed with`,
-            ethers.utils.parseBytes32String(mgvData)
-          )
-        );
-      }
-    );
-    const filter_Success = mgv.filters.OfferSuccess();
-    mgv.on(
-      filter_Success,
-      (
-        outbound_tkn,
-        inbound_tkn,
-        offerId,
-        taker,
-        takerWants,
-        takerGives,
-        event
-      ) => {
-        console.log(chalk.green(`Offer ${offerId} succeeded`));
-      }
-    );
     await execTraderStrat(makerContract, mgv, "aave");
     lc.stopListeners([mgv]);
   });

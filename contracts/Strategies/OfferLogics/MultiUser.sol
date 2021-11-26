@@ -13,7 +13,7 @@ pragma solidity ^0.7.0;
 pragma abicoder v2;
 import "./MangroveOffer.sol";
 
-abstract contract MultiOwner is MangroveOffer {
+abstract contract MultiUser is MangroveOffer {
   mapping(address => mapping(address => mapping(uint => address)))
     internal _offerOwners; // outbound_tkn => inbound_tkn => offerId => ownerAddress
   mapping(address => mapping(address => uint)) public tokenBalances; // owner => erc20 => balance

@@ -17,13 +17,16 @@ import "../lib/TradeHandler.sol";
 import "../lib/consolerr/consolerr.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
-contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
+abstract contract MangroveOffer is
+  AccessControlled,
+  IMaker,
+  TradeHandler,
+  Exponential
+{
   Mangrove immutable MGV; // Address of the deployed Mangrove contract
 
   // default values
   uint public OFR_GASREQ = 1_000_000;
-
-  receive() external payable {}
 
   constructor(address payable _mgv) {
     MGV = Mangrove(_mgv);
@@ -88,19 +91,6 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
   ) internal returns (uint offerId) {
-    if (gasreq == type(uint).max) {
-      gasreq = OFR_GASREQ;
-    }
-    uint missing = __autoRefill__(
-      outbound_tkn,
-      inbound_tkn,
-      gasreq,
-      gasprice,
-      0
-    );
-    if (missing > 0) {
-      consolerr.errorUint("mgvOffer/new/outOfFunds: ", missing);
-    }
     return
       MGV.newOffer(
         outbound_tkn,
@@ -126,16 +116,6 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
     uint pivotId,
     uint offerId
   ) internal {
-    uint missing = __autoRefill__(
-      outbound_tkn,
-      inbound_tkn,
-      gasreq,
-      gasprice,
-      offerId
-    );
-    if (missing > 0) {
-      consolerr.errorUint("mgvOffer/update/outOfFunds: ", missing);
-    }
     MGV.updateOffer(
       outbound_tkn,
       inbound_tkn,
@@ -225,58 +205,27 @@ contract MangroveOffer is AccessControlled, IMaker, TradeHandler, Exponential {
 
   ////// Customizable hooks for Taker Order'execution
 
-  // Override this hook to let the offer refill its provision on Mangrove (provided `this` contract has enough ETH).
-  // Use this hook to increase outbound token approval for Mangrove when the Offer Maker wishes to keep it tight.
-  // return value `missingETH` should be 0 if `offerId` doesn't lack provision.
-  function __autoRefill__(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint gasreq, // gas required by the offer to be reposted
-    uint gasprice, // gas price for the computation of the bounty
-    uint offerId // ID of the offer to be updated.
-  ) internal virtual returns (uint missingETH) {
-    outbound_tkn; //shh
-    inbound_tkn;
-    gasreq;
-    gasprice;
-    offerId;
-  }
-
   // Override this hook to describe where the inbound token, which are flashswapped by the Offer Taker, should go during Taker Order's execution.
   // `amount` is the quantity of outbound tokens whose destination is to be resolved.
   // All tokens that are not transfered to a different contract remain listed in the balance of `this` contract
   function __put__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (uint)
-  {
-    /// @notice receive payment is just stored at this address
-    amount;
-    order;
-    return 0;
-  }
+    returns (uint);
 
   // Override this hook to implement fetching `amount` of outbound tokens, possibly from another source than `this` contract during Taker Order's execution.
   // For composability, return value MUST be the remaining quantity (i.e <= `amount`) of tokens remaining to be fetched.
   function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (uint)
-  {
-    uint local = IERC20(order.outbound_tkn).balanceOf(address(this));
-    return (local > amount ? 0 : amount - local);
-  }
+    returns (uint);
 
   // Override this hook to implement a last look check during Taker Order's execution.
   // Return value should be `true` if Taker Order is acceptable.
   function __lastLook__(MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (bool proceed)
-  {
-    order; //shh
-    proceed = true;
-  }
+    returns (bool proceed);
 
   ////// Customizable post-hooks.
 

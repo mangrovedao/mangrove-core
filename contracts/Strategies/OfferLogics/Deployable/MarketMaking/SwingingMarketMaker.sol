@@ -120,7 +120,7 @@ contract SwingingMarketMaker is SingleUserCompTrader {
     returns (uint)
   {
     // checks whether `this` contract has enough `base` token
-    uint missingGet = MangroveOffer.__get__(amount, order);
+    uint missingGet = SingleUser.__get__(amount, order);
     // if not tries to fetch missing liquidity on compound using `CompoundTrader`'s strat
     return super.__get__(missingGet, order);
   }

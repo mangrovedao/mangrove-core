@@ -63,7 +63,7 @@ contract PriceFed is Defensive, AaveLender {
   // get/put and lender strat's functions
   function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
-    override(MangroveOffer, AaveLender)
+    override(SingleUser, AaveLender)
     returns (uint)
   {
     return AaveLender.__get__(amount, order);
@@ -71,7 +71,7 @@ contract PriceFed is Defensive, AaveLender {
 
   function __put__(uint amount, MgvLib.SingleOrder calldata order)
     internal
-    override(MangroveOffer, AaveLender)
+    override(SingleUser, AaveLender)
     returns (uint)
   {
     return AaveLender.__put__(amount, order);
@@ -81,7 +81,7 @@ contract PriceFed is Defensive, AaveLender {
   function __lastLook__(MgvLib.SingleOrder calldata order)
     internal
     virtual
-    override(MangroveOffer, Defensive)
+    override(SingleUser, Defensive)
     returns (bool)
   {
     return Defensive.__lastLook__(order);

@@ -13,169 +13,27 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 import "./SingleUser.sol";
-import "../interfaces/Aave/ILendingPool.sol";
-import "../interfaces/Aave/ILendingPoolAddressesProvider.sol";
-import "../interfaces/Aave/IPriceOracleGetter.sol";
+import "./AaveModule.sol";
 
-import "hardhat/console.sol";
-
-abstract contract AaveLender is SingleUser {
-  event ErrorOnRedeem(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed offerId,
-    uint amount,
-    string errorCode
-  );
-  event ErrorOnMint(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed offerId,
-    uint amount,
-    string errorCode
-  );
-
-  // address of the lendingPool
-  ILendingPool public immutable lendingPool;
-  IPriceOracleGetter public immutable priceOracle;
-  uint16 referralCode;
-
-  constructor(address _addressesProvider, uint _referralCode) {
-    require(
-      uint16(_referralCode) == _referralCode,
-      "Referral code should be uint16"
-    );
-    referralCode = uint16(referralCode); // for aave reference, put 0 for tests
-    address _lendingPool = ILendingPoolAddressesProvider(_addressesProvider)
-      .getLendingPool();
-    address _priceOracle = ILendingPoolAddressesProvider(_addressesProvider)
-      .getPriceOracle();
-    require(_lendingPool != address(0), "Invalid lendingPool address");
-    require(_priceOracle != address(0), "Invalid priceOracle address");
-    lendingPool = ILendingPool(_lendingPool);
-    priceOracle = IPriceOracleGetter(_priceOracle);
-  }
-
+abstract contract AaveLender is SingleUser, AaveModule {
   /**************************************************************************/
   ///@notice Required functions to let `this` contract interact with Aave
   /**************************************************************************/
 
   ///@notice approval of ctoken contract by the underlying is necessary for minting and repaying borrow
   ///@notice user must use this function to do so.
+
   function approveLender(address token, uint amount) external onlyAdmin {
-    IERC20(token).approve(address(lendingPool), amount);
+    _approveLender(token, amount);
   }
 
   ///@notice exits markets
   function exitMarket(IERC20 underlying) external onlyAdmin {
-    lendingPool.setUserUseReserveAsCollateral(address(underlying), false);
+    _exitMarket(underlying);
   }
 
   function enterMarkets(IERC20[] calldata underlyings) external onlyAdmin {
-    for (uint i = 0; i < underlyings.length; i++) {
-      lendingPool.setUserUseReserveAsCollateral(address(underlyings[i]), true);
-    }
-  }
-
-  // structs to avoir stack too deep in maxGettableUnderlying
-  struct Underlying {
-    uint ltv;
-    uint liquidationThreshold;
-    uint decimals;
-    uint price;
-  }
-
-  struct Account {
-    uint collateral;
-    uint debt;
-    uint borrowPower;
-    uint redeemPower;
-    uint ltv;
-    uint liquidationThreshold;
-    uint health;
-    uint balanceOfUnderlying;
-  }
-
-  /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
-  /// returns (R, B|R)
-
-  function maxGettableUnderlying(address asset, bool tryBorrow)
-    public
-    view
-    returns (uint, uint)
-  {
-    Underlying memory underlying; // asset parameters
-    Account memory account; // accound parameters
-    (
-      account.collateral,
-      account.debt,
-      account.borrowPower, // avgLtv * sumCollateralEth - sumDebtEth
-      account.liquidationThreshold,
-      account.ltv,
-      account.health // avgLiquidityThreshold * sumCollateralEth / sumDebtEth  -- should be less than 10**18
-    ) = lendingPool.getUserAccountData(address(this));
-    DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
-      asset
-    );
-    (
-      underlying.ltv, // collateral factor for lending
-      underlying.liquidationThreshold, // collateral factor for borrowing
-      ,
-      /*liquidationBonus*/
-      underlying.decimals,
-      /*reserveFactor*/
-
-    ) = DataTypes.getParams(reserveData.configuration);
-    account.balanceOfUnderlying = IERC20(reserveData.aTokenAddress).balanceOf(
-      address(this)
-    );
-
-    underlying.price = priceOracle.getAssetPrice(asset); // divided by 10**underlying.decimals
-
-    // account.redeemPower = account.liquidationThreshold * account.collateral - account.debt
-    account.redeemPower = sub_(
-      div_(mul_(account.liquidationThreshold, account.collateral), 10**4),
-      account.debt
-    );
-    // max redeem capacity = account.redeemPower/ underlying.liquidationThreshold * underlying.price
-    // unless account doesn't have enough collateral in asset token (hence the min())
-
-    uint maxRedeemableUnderlying = div_( // in 10**underlying.decimals
-      account.redeemPower * 10**(underlying.decimals) * 10**4,
-      mul_(underlying.liquidationThreshold, underlying.price)
-    );
-
-    maxRedeemableUnderlying = min(
-      maxRedeemableUnderlying,
-      account.balanceOfUnderlying
-    );
-
-    if (!tryBorrow) {
-      //gas saver
-      return (maxRedeemableUnderlying, 0);
-    }
-    // computing max borrow capacity on the premisses that maxRedeemableUnderlying has been redeemed.
-    // max borrow capacity = (account.borrowPower - (ltv*redeemed)) / underlying.ltv * underlying.price
-
-    uint borrowPowerImpactOfRedeemInUnderlying = div_(
-      mul_(maxRedeemableUnderlying, underlying.ltv),
-      10**4
-    );
-    uint borrowPowerInUnderlying = div_(
-      mul_(account.borrowPower, 10**underlying.decimals),
-      underlying.price
-    );
-
-    if (borrowPowerImpactOfRedeemInUnderlying > borrowPowerInUnderlying) {
-      // no more borrowPower left after max redeem operation
-      return (maxRedeemableUnderlying, 0);
-    }
-
-    uint maxBorrowAfterRedeemInUnderlying = sub_( // max borrow power in underlying after max redeem has been withdrawn
-      borrowPowerInUnderlying,
-      borrowPowerImpactOfRedeemInUnderlying
-    );
-    return (maxRedeemableUnderlying, maxBorrowAfterRedeemInUnderlying);
+    _enterMarkets(underlyings);
   }
 
   function __get__(uint amount, MgvLib.SingleOrder calldata order)
@@ -192,14 +50,14 @@ abstract contract AaveLender is SingleUser {
       return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
     }
 
-    if (aaveRedeem(amount, order) == 0) {
+    if (aaveRedeem(outbound_tkn, amount) == 0) {
       // amount was transfered to `this`
       return 0;
     }
     return amount;
   }
 
-  function aaveRedeem(uint amountToRedeem, MgvLib.SingleOrder calldata order)
+  function aaveRedeem(IERC20 asset, uint amountToRedeem)
     internal
     returns (uint)
   {
@@ -239,35 +97,6 @@ abstract contract AaveLender is SingleUser {
 
   function mint(uint amount, address token) external onlyAdmin {
     lendingPool.deposit(token, amount, address(this), referralCode);
-  }
-
-  // adapted from https://medium.com/compound-finance/supplying-assets-to-the-compound-protocol-ec2cf5df5aa#afff
-  // utility to supply erc20 to compound
-  // NB `ctoken` contract MUST be approved to perform `transferFrom token` by `this` contract.
-  /// @notice user need to approve ctoken in order to mint
-  function aaveMint(uint amount, MgvLib.SingleOrder calldata order)
-    internal
-    returns (uint)
-  {
-    // contract must haveallowance()to spend funds on behalf ofmsg.sender for at-leastamount for the asset being deposited. This can be done via the standard ERC20 approve() method.
-    try
-      lendingPool.deposit(
-        order.inbound_tkn,
-        amount,
-        address(this),
-        referralCode
-      )
-    {
-      return 0;
-    } catch Error(string memory message) {
-      emit ErrorOnMint(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        amount,
-        message
-      );
-      return amount;
-    }
+    aaveMint(inbound_tkn, amount);
   }
 }

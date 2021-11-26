@@ -26,7 +26,7 @@ contract AdvancedAaveRetail is AaveTrader(2) {
     override
     returns (uint)
   {
-    uint missing = MangroveOffer.__get__(amount, order);
+    uint missing = SingleUser.__get__(amount, order);
     if (missing > 0) {
       return super.__get__(missing, order);
     }

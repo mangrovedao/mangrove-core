@@ -22,7 +22,7 @@ abstract contract SingleUser is MangroveOffer {
     address recipient,
     uint amount
   ) external virtual onlyAdmin returns (bool success) {
-    success = IERC20(token).transfer(recipient, amount);
+    success = _transferToken(token, recipient, amount);
   }
 
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
@@ -31,10 +31,7 @@ abstract contract SingleUser is MangroveOffer {
     virtual
     onlyAdmin
   {
-    require(
-      IERC20(outbound_tkn).approve(address(MGV), amount),
-      "SingleUser/approve/Fail"
-    );
+    _approveMangrove(outbound_tkn, amount);
   }
 
   /// withdraws ETH from the bounty vault of the Mangrove.
@@ -45,8 +42,7 @@ abstract contract SingleUser is MangroveOffer {
     onlyAdmin
     returns (bool noRevert)
   {
-    require(MGV.withdraw(amount));
-    (noRevert, ) = receiver.call{value: amount}("");
+    _withdrawFromMangrove(receiver, amount);
   }
 
   // Posting a new offer on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
@@ -64,9 +60,6 @@ abstract contract SingleUser is MangroveOffer {
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
   ) external virtual internalOrAdmin returns (uint offerId) {
-    if (gasreq == type(uint).max) {
-      gasreq = OFR_GASREQ;
-    }
     uint missing = __autoRefill__(
       outbound_tkn,
       inbound_tkn,
@@ -78,7 +71,7 @@ abstract contract SingleUser is MangroveOffer {
       consolerr.errorUint("SingleUser/new/outOfFunds: ", missing);
     }
     return
-      MGV.newOffer(
+      _newOffer(
         outbound_tkn,
         inbound_tkn,
         wants,
@@ -112,7 +105,7 @@ abstract contract SingleUser is MangroveOffer {
     if (missing > 0) {
       consolerr.errorUint("SingleUser/update/outOfFunds: ", missing);
     }
-    MGV.updateOffer(
+    _updateOffer(
       outbound_tkn,
       inbound_tkn,
       wants,
@@ -131,6 +124,58 @@ abstract contract SingleUser is MangroveOffer {
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
   ) external virtual internalOrAdmin returns (uint) {
-    return MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+    _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  }
+
+  // Override this hook to let the offer refill its provision on Mangrove (provided `this` contract has enough ETH).
+  // Use this hook to increase outbound token approval for Mangrove when the Offer Maker wishes to keep it tight.
+  // return value `missingETH` should be 0 if `offerId` doesn't lack provision.
+  function __autoRefill__(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint gasreq, // gas required by the offer to be reposted
+    uint gasprice, // gas price for the computation of the bounty
+    uint offerId // ID of the offer to be updated.
+  ) internal virtual returns (uint missingETH) {
+    outbound_tkn; //shh
+    inbound_tkn;
+    gasreq;
+    gasprice;
+    offerId;
+  }
+
+  function __put__(uint amount, MgvLib.SingleOrder calldata)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
+    return 0;
+  }
+
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
+    uint balance = IERC20(order.outbound_tkn).balanceOf(address(this));
+    if (balance >= amount) {
+      return 0;
+    } else {
+      return (amount - balance);
+    }
+  }
+
+  // Override this hook to implement a last look check during Taker Order's execution.
+  // Return value should be `true` if Taker Order is acceptable.
+  function __lastLook__(MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (bool proceed)
+  {
+    order; //shh
+    proceed = true;
   }
 }

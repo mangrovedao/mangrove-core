@@ -28,7 +28,7 @@ abstract contract MangroveOffer is
   Mangrove immutable MGV; // Address of the deployed Mangrove contract
 
   // default values
-  uint public OFR_GASREQ = 400_000;
+  uint public OFR_GASREQ = 1_000_000;
 
   constructor(address payable _mgv) {
     MGV = Mangrove(_mgv);
@@ -58,15 +58,6 @@ abstract contract MangroveOffer is
     uint amount
   ) internal returns (bool success) {
     success = IERC20(token).transfer(recipient, amount);
-  }
-
-  // get back any ETH that might linger in the contract
-  function transferETH(address recipient, uint amount)
-    external
-    onlyAdmin
-    returns (bool success)
-  {
-    recipient.call{value: amount}("");
   }
 
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function

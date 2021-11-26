@@ -7,9 +7,3 @@ console.log(path.join(distAbiDir, "*"));
 shell.rm("-rf", path.join(distAbiDir, "*"));
 shell.cd("build/exported-abis/"); // Workaround because shelljs.cp replicates the path to the files (contrary to regular `cp -R`)
 shell.cp("-R", "./*", distAbiDir);
-shell.cd("../../");
-// adding true abi export for Mangroveoffer so mangrove.js has deploy code
-shell.cd(
-  "build/cache/solpp-generated-contracts/cache/solpp-generated-contracts/Strategies/OfferLogics/MangroveOffer.sol"
-);
-shell.cp("./MangroveOffer.json", distAbiDir);

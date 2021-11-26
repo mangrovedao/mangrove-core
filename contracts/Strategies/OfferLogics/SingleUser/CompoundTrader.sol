@@ -34,7 +34,8 @@ abstract contract CompoundTrader is CompoundLender {
 
     // 1. Computing total borrow and redeem capacities of underlying asset
     (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
-      address(outbound_cTkn)
+      address(outbound_cTkn),
+      address(this)
     );
 
     // give up if amount is not gettable

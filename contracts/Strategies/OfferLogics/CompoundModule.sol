@@ -124,7 +124,7 @@ contract CompoundModule is Exponential {
 
   /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
   /// returns (R, B|R)
-  function maxGettableUnderlying(address _ctoken)
+  function maxGettableUnderlying(address _ctoken, address account)
     public
     view
     returns (uint, uint)
@@ -153,7 +153,7 @@ contract CompoundModule is Exponential {
       heap.liquidity, // is USD:18 decimals
       /*shortFall*/
 
-    ) = comptroller.getAccountLiquidity(address(this)); // underapprox
+    ) = comptroller.getAccountLiquidity(account); // underapprox
 
     // to get liquidity expressed in outbound_Tkn token instead of USD
     (heap.mErr, heap.underlyingLiquidity) = divScalarByExpTruncate(
@@ -169,7 +169,7 @@ contract CompoundModule is Exponential {
     // also true if market is not entered
     if (
       heap.collateralFactorMantissa == 0 ||
-      !comptroller.checkMembership(address(this), ctoken)
+      !comptroller.checkMembership(account, ctoken)
     ) {
       return (heap.balanceOfUnderlying, heap.underlyingLiquidity);
     }

@@ -57,7 +57,10 @@ abstract contract CompoundLender is SingleUser, CompoundModule {
     if (address(outbound_cTkn) == address(0)) {
       return amount;
     }
-    (uint redeemable, ) = maxGettableUnderlying(address(outbound_cTkn));
+    (uint redeemable, ) = maxGettableUnderlying(
+      address(outbound_cTkn),
+      address(this)
+    );
     if (redeemable < amount) {
       return amount; //give up if __get__ cannot withdraw enough
     }

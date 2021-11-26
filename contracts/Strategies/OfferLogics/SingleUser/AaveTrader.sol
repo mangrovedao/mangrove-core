@@ -13,7 +13,6 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 import "./AaveLender.sol";
-import "hardhat/console.sol";
 
 abstract contract AaveTrader is AaveLender {
   uint public immutable interestRateMode;

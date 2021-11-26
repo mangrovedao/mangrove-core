@@ -13,12 +13,11 @@ pragma solidity ^0.7.0;
 pragma abicoder v2;
 import "./CompoundModule.sol";
 import "./SingleUser.sol";
+import "hardhat/console.sol";
 
-//import "hardhat/console.sol";
-
-abstract contract SingleUserCompLender is SingleUser, CompoundModule {
+abstract contract CompoundLender is SingleUser, CompoundModule {
   function approveLender(IcERC20 ctoken, uint amount) external onlyAdmin {
-    _approveLender(ctoken, amount);
+    require(_approveLender(ctoken, amount), "Lender/ApproveFail");
   }
 
   function enterMarkets(address[] calldata ctokens) external onlyAdmin {
@@ -46,6 +45,7 @@ abstract contract SingleUserCompLender is SingleUser, CompoundModule {
     override
     returns (uint)
   {
+    console.log("HERE 0");
     if (!isPooled(IERC20(order.outbound_tkn))) {
       // if flag says not to fetch liquidity on compound
       return amount;
@@ -74,6 +74,7 @@ abstract contract SingleUserCompLender is SingleUser, CompoundModule {
     returns (uint)
   {
     //optim
+    console.log("in PUT (compoundLender)");
     if (!isPooled(IERC20(order.inbound_tkn))) {
       return amount;
     }

@@ -11,9 +11,9 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "../interfaces/compound/ICompound.sol";
-import "../lib/Exponential.sol";
-import {MgvLib as ML} from "../../MgvLib.sol";
+import "../../interfaces/compound/ICompound.sol";
+import "../../lib/Exponential.sol";
+import {MgvLib as ML} from "../../../MgvLib.sol";
 
 //import "hardhat/console.sol";
 
@@ -71,9 +71,9 @@ contract CompoundModule is Exponential {
     }
   }
 
-  function _approveLender(IcERC20 ctoken, uint amount) internal {
+  function _approveLender(IcERC20 ctoken, uint amount) internal returns (bool) {
     IERC20 token = underlying(ctoken);
-    token.approve(address(ctoken), amount);
+    return token.approve(address(ctoken), amount);
   }
 
   function _enterMarkets(address[] calldata ctokens) internal {
@@ -231,9 +231,13 @@ contract CompoundModule is Exponential {
   function _mint(uint amount, IcERC20 ctoken) internal returns (uint errCode) {
     if (isCeth(ctoken)) {
       // turning `amount` of wETH into ETH
-      weth.withdraw(amount);
-      // minting amount of ETH into cETH
-      ctoken.mint{value: amount}();
+      try weth.withdraw(amount) {
+        // minting amount of ETH into cETH
+        ctoken.mint{value: amount}();
+      } catch {
+        if (amount == weth.balanceOf(address(this))) {}
+        require(false);
+      }
     } else {
       // Approve transfer on the ERC20 contract (not needed if cERC20 is already approved for `this`)
       // IERC20(ctoken.underlying()).approve(ctoken, amount);

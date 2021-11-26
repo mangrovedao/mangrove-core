@@ -12,14 +12,14 @@
 
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "./SingleUser.sol";
-import "../interfaces/Aave/ILendingPool.sol";
-import "../interfaces/Aave/ILendingPoolAddressesProvider.sol";
-import "../interfaces/Aave/IPriceOracleGetter.sol";
+import "../../interfaces/Aave/ILendingPool.sol";
+import "../../interfaces/Aave/ILendingPoolAddressesProvider.sol";
+import "../../interfaces/Aave/IPriceOracleGetter.sol";
+import "../../lib/Exponential.sol";
+import "../../../IERC20.sol";
+import "../../../MgvLib.sol";
 
-import "hardhat/console.sol";
-
-abstract contract AaveLender is SingleUser {
+contract AaveModule is Exponential {
   event ErrorOnRedeem(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
@@ -62,16 +62,16 @@ abstract contract AaveLender is SingleUser {
 
   ///@notice approval of ctoken contract by the underlying is necessary for minting and repaying borrow
   ///@notice user must use this function to do so.
-  function approveLender(address token, uint amount) external onlyAdmin {
+  function _approveLender(address token, uint amount) internal {
     IERC20(token).approve(address(lendingPool), amount);
   }
 
   ///@notice exits markets
-  function exitMarket(IERC20 underlying) external onlyAdmin {
+  function _exitMarket(IERC20 underlying) internal {
     lendingPool.setUserUseReserveAsCollateral(address(underlying), false);
   }
 
-  function enterMarkets(IERC20[] calldata underlyings) external onlyAdmin {
+  function _enterMarkets(IERC20[] calldata underlyings) internal {
     for (uint i = 0; i < underlyings.length; i++) {
       lendingPool.setUserUseReserveAsCollateral(address(underlyings[i]), true);
     }
@@ -178,27 +178,6 @@ abstract contract AaveLender is SingleUser {
     return (maxRedeemableUnderlying, maxBorrowAfterRedeemInUnderlying);
   }
 
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
-    (
-      uint redeemable, /*maxBorrowAfterRedeem*/
-
-    ) = maxGettableUnderlying(order.outbound_tkn, false);
-    if (amount > redeemable) {
-      return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
-    }
-
-    if (aaveRedeem(amount, order) == 0) {
-      // amount was transfered to `this`
-      return 0;
-    }
-    return amount;
-  }
-
   function aaveRedeem(uint amountToRedeem, MgvLib.SingleOrder calldata order)
     internal
     returns (uint)
@@ -224,20 +203,7 @@ abstract contract AaveLender is SingleUser {
     }
   }
 
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
-    //optim
-    if (amount == 0) {
-      return 0;
-    }
-    return aaveMint(amount, order);
-  }
-
-  function mint(uint amount, address token) external onlyAdmin {
+  function _mint(uint amount, address token) internal {
     lendingPool.deposit(token, amount, address(this), referralCode);
   }
 

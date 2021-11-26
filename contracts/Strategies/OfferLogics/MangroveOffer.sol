@@ -28,7 +28,7 @@ abstract contract MangroveOffer is
   Mangrove immutable MGV; // Address of the deployed Mangrove contract
 
   // default values
-  uint public OFR_GASREQ = 1_000_000;
+  uint public OFR_GASREQ = 400_000;
 
   constructor(address payable _mgv) {
     MGV = Mangrove(_mgv);

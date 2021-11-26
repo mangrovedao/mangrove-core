@@ -12,12 +12,12 @@
 
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "../../interfaces/Aave/ILendingPool.sol";
-import "../../interfaces/Aave/ILendingPoolAddressesProvider.sol";
-import "../../interfaces/Aave/IPriceOracleGetter.sol";
-import "../../lib/Exponential.sol";
-import "../../../IERC20.sol";
-import "../../../MgvLib.sol";
+import "../interfaces/Aave/ILendingPool.sol";
+import "../interfaces/Aave/ILendingPoolAddressesProvider.sol";
+import "../interfaces/Aave/IPriceOracleGetter.sol";
+import "../lib/Exponential.sol";
+import "../../IERC20.sol";
+import "../../MgvLib.sol";
 
 contract AaveModule is Exponential {
   event ErrorOnRedeem(
@@ -77,6 +77,10 @@ contract AaveModule is Exponential {
     }
   }
 
+  function overlying(IERC20 asset) public returns (IERC20 aToken) {
+    aToken = IERC20(lendingPool.getReserveData(address(asset)).aTokenAddress);
+  }
+
   // structs to avoir stack too deep in maxGettableUnderlying
   struct Underlying {
     uint ltv;
@@ -99,11 +103,11 @@ contract AaveModule is Exponential {
   /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
   /// returns (R, B|R)
 
-  function maxGettableUnderlying(address asset, bool tryBorrow)
-    public
-    view
-    returns (uint, uint)
-  {
+  function maxGettableUnderlying(
+    address asset,
+    bool tryBorrow,
+    address onBehalf
+  ) public view returns (uint, uint) {
     Underlying memory underlying; // asset parameters
     Account memory account; // accound parameters
     (
@@ -113,7 +117,7 @@ contract AaveModule is Exponential {
       account.liquidationThreshold,
       account.ltv,
       account.health // avgLiquidityThreshold * sumCollateralEth / sumDebtEth  -- should be less than 10**18
-    ) = lendingPool.getUserAccountData(address(this));
+    ) = lendingPool.getUserAccountData(onBehalf);
     DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
       asset
     );
@@ -127,7 +131,7 @@ contract AaveModule is Exponential {
 
     ) = DataTypes.getParams(reserveData.configuration);
     account.balanceOfUnderlying = IERC20(reserveData.aTokenAddress).balanceOf(
-      address(this)
+      onBehalf
     );
 
     underlying.price = priceOracle.getAssetPrice(asset); // divided by 10**underlying.decimals
@@ -178,12 +182,13 @@ contract AaveModule is Exponential {
     return (maxRedeemableUnderlying, maxBorrowAfterRedeemInUnderlying);
   }
 
-  function aaveRedeem(uint amountToRedeem, MgvLib.SingleOrder calldata order)
-    internal
-    returns (uint)
-  {
+  function aaveRedeem(
+    uint amountToRedeem,
+    address onBehalf,
+    MgvLib.SingleOrder calldata order
+  ) internal returns (uint) {
     try
-      lendingPool.withdraw(order.outbound_tkn, amountToRedeem, address(this))
+      lendingPool.withdraw(order.outbound_tkn, amountToRedeem, onBehalf)
     returns (uint withdrawn) {
       //aave redeem was a success
       if (amountToRedeem == withdrawn) {
@@ -203,27 +208,25 @@ contract AaveModule is Exponential {
     }
   }
 
-  function _mint(uint amount, address token) internal {
-    lendingPool.deposit(token, amount, address(this), referralCode);
+  function _mint(
+    uint amount,
+    address token,
+    address onBehalf
+  ) internal {
+    lendingPool.deposit(token, amount, onBehalf, referralCode);
   }
 
   // adapted from https://medium.com/compound-finance/supplying-assets-to-the-compound-protocol-ec2cf5df5aa#afff
   // utility to supply erc20 to compound
   // NB `ctoken` contract MUST be approved to perform `transferFrom token` by `this` contract.
   /// @notice user need to approve ctoken in order to mint
-  function aaveMint(uint amount, MgvLib.SingleOrder calldata order)
-    internal
-    returns (uint)
-  {
+  function aaveMint(
+    uint amount,
+    address onBehalf,
+    MgvLib.SingleOrder calldata order
+  ) internal returns (uint) {
     // contract must haveallowance()to spend funds on behalf ofmsg.sender for at-leastamount for the asset being deposited. This can be done via the standard ERC20 approve() method.
-    try
-      lendingPool.deposit(
-        order.inbound_tkn,
-        amount,
-        address(this),
-        referralCode
-      )
-    {
+    try lendingPool.deposit(order.inbound_tkn, amount, onBehalf, referralCode) {
       return 0;
     } catch Error(string memory message) {
       emit ErrorOnMint(

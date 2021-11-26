@@ -11,7 +11,11 @@ async function execPriceFedStrat(makerContract, mgv, lenderName) {
   //putting DAI on lender for contract
   await lc.fund([["DAI", "1000.0", makerContract.address]]);
   await makerContract.approveLender(dai.address, ethers.constants.MaxUint256);
-  await makerContract.mint(await lc.parseToken("1000", 18), dai.address);
+  await makerContract.mint(
+    await lc.parseToken("1000", 18),
+    dai.address,
+    makerContract.address
+  );
   await makerContract.approveMangrove(dai.address, ethers.constants.MaxUint256);
   await makerContract.approveMangrove(
     wEth.address,

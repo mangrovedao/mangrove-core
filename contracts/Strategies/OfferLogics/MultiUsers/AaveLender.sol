@@ -12,58 +12,74 @@
 
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "./SingleUser.sol";
+import "./MultiUser.sol";
 import "../AaveModule.sol";
 
-abstract contract AaveLender is SingleUser, AaveModule {
+abstract contract MultiUserAaveLender is MultiUser, AaveModule {
   /**************************************************************************/
   ///@notice Required functions to let `this` contract interact with Aave
   /**************************************************************************/
 
-  ///@notice approval of ctoken contract by the underlying is necessary for minting and repaying borrow
-  ///@notice user must use this function to do so.
-  function approveLender(address token, uint amount) external onlyAdmin {
-    _approveLender(token, amount);
-  }
-
-  ///@notice exits markets
-  function exitMarket(IERC20 underlying) external onlyAdmin {
-    _exitMarket(underlying);
-  }
-
-  function enterMarkets(IERC20[] calldata underlyings) external onlyAdmin {
-    _enterMarkets(underlyings);
-  }
-
   function mint(
     uint amount,
-    address token,
+    address asset,
     address onBehalf
   ) external onlyAdmin {
-    _mint(amount, token, onBehalf);
+    _mint(amount, asset, onBehalf);
   }
 
+  // tokens are fetched on Aave (on behalf of offer owner)
   function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
+    address owner = ownerOf(
+      order.outbound_tkn,
+      order.inbound_tkn,
+      order.offerId
+    );
+    if (owner == address(0)) {
+      emit UnkownOffer(order.outbound_tkn, order.inbound_tkn, order.offerId);
+      return amount;
+    }
     (
       uint redeemable, /*maxBorrowAfterRedeem*/
 
-    ) = maxGettableUnderlying(order.outbound_tkn, false, address(this));
+    ) = maxGettableUnderlying(order.outbound_tkn, false, owner);
     if (amount > redeemable) {
       return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
     }
-
-    if (aaveRedeem(amount, address(this), order) == 0) {
-      // amount was transfered to `this`
-      return 0;
+    // need to retreive overlyings from msg.sender (we suppose `this` is approved for that)
+    IERC20 aToken = overlying(IERC20(order.outbound_tkn));
+    try aToken.transferFrom(owner, address(this), amount) returns (
+      bool success
+    ) {
+      if (aaveRedeem(amount, owner, order) == 0) {
+        // amount was transfered to `this`
+        return 0;
+      }
+      emit ErrorOnRedeem(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        amount,
+        "lender/multi/redeemFailed"
+      );
+    } catch {
+      emit ErrorOnRedeem(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        amount,
+        "lender/multi/transferFromFail"
+      );
     }
-    return amount;
+    return amount; // nothing was fetched
   }
 
+  // received inbound token are put on Aave on behalf of offer owner
   function __put__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
@@ -74,6 +90,16 @@ abstract contract AaveLender is SingleUser, AaveModule {
     if (amount == 0) {
       return 0;
     }
-    return aaveMint(amount, address(this), order);
+    address owner = ownerOf(
+      order.outbound_tkn,
+      order.inbound_tkn,
+      order.offerId
+    );
+    if (owner == address(0)) {
+      emit UnkownOffer(order.outbound_tkn, order.inbound_tkn, order.offerId);
+      return amount;
+    }
+    // minted Atokens are sent to owner
+    return aaveMint(amount, owner, order);
   }
 }

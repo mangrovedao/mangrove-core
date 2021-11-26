@@ -104,7 +104,8 @@ async function deployStrat(strategy, mgv) {
   // makerContract deposits some DAI on Lender (remains 100 DAIs on the contract)
   mkrTxs[i++] = await makerContract.mint(
     lc.parseToken("900.0", await lc.getDecimals("DAI")),
-    market[1]
+    market[1],
+    makerContract.address
   );
 
   await lc.synch(mkrTxs);

@@ -45,7 +45,8 @@ abstract contract AaveTrader is AaveLender {
     // 1. Computing total borrow and redeem capacities of underlying asset
     (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
       order.outbound_tkn,
-      true
+      true,
+      address(this)
     );
 
     if (add_(redeemable, liquidity_after_redeem) < amount) {
@@ -54,7 +55,7 @@ abstract contract AaveTrader is AaveLender {
     // 2. trying to redeem liquidity from Compound
     uint toRedeem = min(redeemable, amount);
 
-    uint notRedeemed = aaveRedeem(toRedeem, order);
+    uint notRedeemed = aaveRedeem(toRedeem, address(this), order);
     if (notRedeemed > 0 && toRedeem > 0) {
       // => notRedeemed == toRedeem
       // this should not happen unless compound is out of cash, thus no need to try to borrow
@@ -137,6 +138,6 @@ abstract contract AaveTrader is AaveLender {
       );
       toMint = amount;
     }
-    return aaveMint(toMint, order);
+    return aaveMint(toMint, address(this), order);
   }
 }

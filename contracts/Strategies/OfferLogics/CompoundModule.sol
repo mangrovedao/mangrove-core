@@ -11,9 +11,9 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "../../interfaces/compound/ICompound.sol";
-import "../../lib/Exponential.sol";
-import {MgvLib as ML} from "../../../MgvLib.sol";
+import "../interfaces/compound/ICompound.sol";
+import "../lib/Exponential.sol";
+import {MgvLib as ML} from "../../MgvLib.sol";
 
 //import "hardhat/console.sol";
 
@@ -124,7 +124,7 @@ contract CompoundModule is Exponential {
 
   /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
   /// returns (R, B|R)
-  function maxGettableUnderlying(address _ctoken)
+  function maxGettableUnderlying(address _ctoken, address account)
     public
     view
     returns (uint, uint)
@@ -153,7 +153,7 @@ contract CompoundModule is Exponential {
       heap.liquidity, // is USD:18 decimals
       /*shortFall*/
 
-    ) = comptroller.getAccountLiquidity(address(this)); // underapprox
+    ) = comptroller.getAccountLiquidity(account); // underapprox
 
     // to get liquidity expressed in outbound_Tkn token instead of USD
     (heap.mErr, heap.underlyingLiquidity) = divScalarByExpTruncate(
@@ -169,7 +169,7 @@ contract CompoundModule is Exponential {
     // also true if market is not entered
     if (
       heap.collateralFactorMantissa == 0 ||
-      !comptroller.checkMembership(address(this), ctoken)
+      !comptroller.checkMembership(account, ctoken)
     ) {
       return (heap.balanceOfUnderlying, heap.underlyingLiquidity);
     }

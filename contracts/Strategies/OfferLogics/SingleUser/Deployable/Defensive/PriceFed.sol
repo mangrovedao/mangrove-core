@@ -79,7 +79,7 @@ contract PriceFed is Defensive, AaveLender {
   function __lastLook__(MgvLib.SingleOrder calldata order)
     internal
     virtual
-    override(SingleUser, Defensive)
+    override(MangroveOffer, Defensive)
     returns (bool)
   {
     return Defensive.__lastLook__(order);

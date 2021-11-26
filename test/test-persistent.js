@@ -91,7 +91,7 @@ describe("Running tests...", function () {
     await lc.fund([["DAI", "100000.0", makerContract.address]]);
     // 3.2 asking maker contract to mint cDAIs
     const daiAmount = lc.parseToken("100000.0", 18);
-    await makerContract.mint(daiAmount, cDai.address);
+    await makerContract.mint(daiAmount, cDai.address, makerContract.address);
 
     // starting strategy by offering 1000 USDC on the book
     const overrides = { value: lc.parseToken("2.0", 18) };

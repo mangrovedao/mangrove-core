@@ -17,7 +17,6 @@ abstract contract MultiUser is MangroveOffer {
   mapping(address => uint) public balanceOf; // owner => local balance of ETH
   mapping(address => mapping(address => mapping(uint => address)))
     internal _offerOwners; // outbound_tkn => inbound_tkn => offerId => ownerAddress
-  mapping(address => mapping(address => uint)) public tokenBalanceOf; // owner => erc20 => local balance
   mapping(address => uint) public mgvBalanceOf; // owner => WEI balance on mangrove
 
   // Offer management
@@ -33,6 +32,7 @@ abstract contract MultiUser is MangroveOffer {
     uint indexed offerId
   );
 
+  // receive necessary when trading cEth
   receive() external payable {
     balanceOf[msg.sender] += msg.value;
   }
@@ -58,28 +58,6 @@ abstract contract MultiUser is MangroveOffer {
     mgvBalanceOf[owner] -= amount;
   }
 
-  function putToken(
-    address owner,
-    address token,
-    uint amount
-  ) internal {
-    tokenBalanceOf[owner][token] += amount;
-  }
-
-  // making function public to be able to catch it but is essentially internal
-  function getToken(
-    address owner,
-    address token,
-    uint amount
-  ) public {
-    require(msg.sender == address(this), "MultiOwner/getToken/unauthorized");
-    require(
-      tokenBalanceOf[owner][token] >= amount,
-      "MultiOwner/getToken/insufficient"
-    );
-    tokenBalanceOf[owner][token] -= amount;
-  }
-
   function addOwner(
     address outbound_tkn,
     address inbound_tkn,
@@ -96,19 +74,6 @@ abstract contract MultiUser is MangroveOffer {
     uint offerId
   ) public returns (address owner) {
     owner = _offerOwners[outbound_tkn][inbound_tkn][offerId];
-    require(owner != address(0), "multiUser/unkownOffer");
-  }
-
-  /// transfers tokens of msg.sender stored in `this` contract to some recipient address
-  /// Warning: this function should never be called internally for msg.sender provision has to be verified
-  function transferToken(
-    address token,
-    address recipient,
-    uint amount
-  ) external returns (bool success) {
-    // making sure msg.sender has the tokens, will throw otherwise
-    getToken(msg.sender, token, amount);
-    return _transferToken(token, recipient, amount);
   }
 
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
@@ -210,6 +175,7 @@ abstract contract MultiUser is MangroveOffer {
     }
   }
 
+  // put received inbound tokens on offer owner account
   function __put__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
@@ -219,16 +185,22 @@ abstract contract MultiUser is MangroveOffer {
     try
       this.ownerOf(order.outbound_tkn, order.inbound_tkn, order.offerId)
     returns (address owner) {
-      putToken(owner, order.inbound_tkn, amount);
-      return 0;
-    } catch Error(string memory message) {
+      try IERC20(order.inbound_tkn).transfer(owner, amount) returns (
+        bool success
+      ) {
+        if (success) {
+          return 0;
+        }
+      } catch {}
+    } catch {
+      // unkown offer
       emit UnkownOffer(order.outbound_tkn, order.inbound_tkn, order.offerId);
-      return amount;
     }
+    // put failed mangrove will revert
+    return amount;
   }
 
-  // Override this hook to implement fetching `amount` of outbound tokens, possibly from another source than `this` contract during Taker Order's execution.
-  // For composability, return value MUST be the remaining quantity (i.e <= `amount`) of tokens remaining to be fetched.
+  // get outbound tokens from offer owner account
   function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
@@ -238,15 +210,17 @@ abstract contract MultiUser is MangroveOffer {
     try
       this.ownerOf(order.outbound_tkn, order.inbound_tkn, order.offerId)
     returns (address owner) {
-      try this.getToken(owner, order.outbound_tkn, amount) {
-        return 0;
-      } catch Error(string memory message) {
-        //getToken throws if amount > tokenBalance
-        return (amount - tokenBalanceOf[owner][order.outbound_tkn]);
-      }
+      try
+        IERC20(order.outbound_tkn).transferFrom(owner, address(this), amount)
+      returns (bool success) {
+        if (success) {
+          return 0;
+        }
+      } catch {}
     } catch {
       emit UnkownOffer(order.outbound_tkn, order.inbound_tkn, order.offerId);
-      return amount;
     }
+    // get failed, mangrove will revert
+    return amount;
   }
 }

@@ -247,7 +247,11 @@ abstract contract MangroveOffer is
   function __lastLook__(MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (bool proceed);
+    returns (bool proceed)
+  {
+    order; //shh
+    proceed = true;
+  }
 
   ////// Customizable post-hooks.
 

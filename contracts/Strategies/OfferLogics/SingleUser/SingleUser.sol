@@ -133,16 +133,4 @@ abstract contract SingleUser is MangroveOffer {
       return (amount - balance);
     }
   }
-
-  // Override this hook to implement a last look check during Taker Order's execution.
-  // Return value should be `true` if Taker Order is acceptable.
-  function __lastLook__(MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (bool proceed)
-  {
-    order; //shh
-    proceed = true;
-  }
 }

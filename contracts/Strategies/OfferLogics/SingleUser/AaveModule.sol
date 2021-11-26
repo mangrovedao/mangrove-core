@@ -12,12 +12,12 @@
 
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "../interfaces/Aave/ILendingPool.sol";
-import "../interfaces/Aave/ILendingPoolAddressesProvider.sol";
-import "../interfaces/Aave/IPriceOracleGetter.sol";
-import "../lib/Exponential.sol";
-import "../../IERC20.sol";
-import "../../MgvLib.sol";
+import "../../interfaces/Aave/ILendingPool.sol";
+import "../../interfaces/Aave/ILendingPoolAddressesProvider.sol";
+import "../../interfaces/Aave/IPriceOracleGetter.sol";
+import "../../lib/Exponential.sol";
+import "../../../IERC20.sol";
+import "../../../MgvLib.sol";
 
 contract AaveModule is Exponential {
   event ErrorOnRedeem(

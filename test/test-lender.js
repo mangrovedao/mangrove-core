@@ -3,6 +3,7 @@ const { assert } = require("chai");
 const { ethers, env, mangrove, network } = require("hardhat");
 const lc = require("lib/libcommon.js");
 const chalk = require("chalk");
+const { listenMgv, listenERC20 } = require("../lib/libcommon");
 // const config = require ("config");
 // const url = config.hardhat.networks.hardhat.forking.url;
 // const blockNumber = config.hardhat.networks.hardhat.forking.blockNumber;
@@ -63,7 +64,9 @@ async function deployStrat(strategy, mgv) {
   tkrTx = await dai.approve(mgv.address, ethers.constants.MaxUint256);
   await tkrTx.wait();
 
-  const allowed = await wEth.allowance(testSigner.address, mgv.address);
+  let allowed = await wEth.allowance(testSigner.address, mgv.address);
+  lc.assertEqualBN(allowed, ethers.constants.MaxUint256, "Approve failed");
+  allowed = await dai.allowance(testSigner.address, mgv.address);
   lc.assertEqualBN(allowed, ethers.constants.MaxUint256, "Approve failed");
 
   /*********************** MAKER SIDE PREMICES **************************/
@@ -112,6 +115,9 @@ async function deployStrat(strategy, mgv) {
 async function execLenderStrat(makerContract, mgv, lenderName) {
   const dai = await lc.getContract("DAI");
   const wEth = await lc.getContract("WETH");
+  const gasreq = await makerContract.OFR_GASREQ();
+  listenMgv(mgv);
+  //  listenERC20(wEth,18);
 
   await lc.logLenderStatus(makerContract, lenderName, ["DAI", "WETH"]);
 

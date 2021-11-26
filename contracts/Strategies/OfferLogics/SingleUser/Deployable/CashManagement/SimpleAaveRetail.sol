@@ -15,7 +15,7 @@ import "../../AaveLender.sol";
 
 contract SimpleAaveRetail is AaveLender {
   constructor(address _addressesProvider, address payable _MGV)
-    AaveLender(_addressesProvider, 0)
+    AaveModule(_addressesProvider, 0)
     MangroveOffer(_MGV)
   {}
 

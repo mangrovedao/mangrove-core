@@ -12,7 +12,7 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 import "./SingleUser.sol";
-import "../interfaces/IOracle.sol";
+import "../../interfaces/IOracle.sol";
 
 // import "hardhat/console.sol";
 

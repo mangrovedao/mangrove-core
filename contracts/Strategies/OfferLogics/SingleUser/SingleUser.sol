@@ -12,10 +12,14 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 
-import "./MangroveOffer.sol";
+import "../MangroveOffer.sol";
+
+//import "hardhat/console.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract SingleUser is MangroveOffer {
+  receive() external payable {}
+
   /// transfers token stored in `this` contract to some recipient address
   function transferToken(
     address token,
@@ -60,16 +64,6 @@ abstract contract SingleUser is MangroveOffer {
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
   ) external virtual internalOrAdmin returns (uint offerId) {
-    uint missing = __autoRefill__(
-      outbound_tkn,
-      inbound_tkn,
-      gasreq,
-      gasprice,
-      0
-    );
-    if (missing > 0) {
-      consolerr.errorUint("SingleUser/new/outOfFunds: ", missing);
-    }
     return
       _newOffer(
         outbound_tkn,
@@ -95,16 +89,6 @@ abstract contract SingleUser is MangroveOffer {
     uint pivotId,
     uint offerId
   ) external virtual internalOrAdmin {
-    uint missing = __autoRefill__(
-      outbound_tkn,
-      inbound_tkn,
-      gasreq,
-      gasprice,
-      offerId
-    );
-    if (missing > 0) {
-      consolerr.errorUint("SingleUser/update/outOfFunds: ", missing);
-    }
     _updateOffer(
       outbound_tkn,
       inbound_tkn,
@@ -125,23 +109,6 @@ abstract contract SingleUser is MangroveOffer {
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
   ) external virtual internalOrAdmin returns (uint) {
     _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
-  }
-
-  // Override this hook to let the offer refill its provision on Mangrove (provided `this` contract has enough ETH).
-  // Use this hook to increase outbound token approval for Mangrove when the Offer Maker wishes to keep it tight.
-  // return value `missingETH` should be 0 if `offerId` doesn't lack provision.
-  function __autoRefill__(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint gasreq, // gas required by the offer to be reposted
-    uint gasprice, // gas price for the computation of the bounty
-    uint offerId // ID of the offer to be updated.
-  ) internal virtual returns (uint missingETH) {
-    outbound_tkn; //shh
-    inbound_tkn;
-    gasreq;
-    gasprice;
-    offerId;
   }
 
   function __put__(uint amount, MgvLib.SingleOrder calldata)

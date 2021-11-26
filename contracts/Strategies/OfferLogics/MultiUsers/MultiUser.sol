@@ -11,18 +11,14 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "./MangroveOffer.sol";
+import "../MangroveOffer.sol";
 
 abstract contract MultiUser is MangroveOffer {
+  mapping(address => uint) public balanceOf; // owner => local balance of ETH
   mapping(address => mapping(address => mapping(uint => address)))
     internal _offerOwners; // outbound_tkn => inbound_tkn => offerId => ownerAddress
-  mapping(address => mapping(address => uint)) public tokenBalances; // owner => erc20 => balance
-  mapping(address => uint) public weiBalances; // owner => WEI balance
-
-  event CreditWei(address owner, uint amount);
-  event DebitWei(address owner, uint amount);
-  event CreditToken(address owner, address token, uint amount);
-  event DebitToken(address owner, address token, uint amount);
+  mapping(address => mapping(address => uint)) public tokenBalanceOf; // owner => erc20 => local balance
+  mapping(address => uint) public mgvBalanceOf; // owner => WEI balance on mangrove
 
   // Offer management
   event NewOffer(
@@ -37,15 +33,29 @@ abstract contract MultiUser is MangroveOffer {
     uint indexed offerId
   );
 
-  function creditWei(address owner, uint balance) internal {
-    emit CreditWei(owner, balance);
-    weiBalances[owner] += balance;
+  receive() external payable {
+    balanceOf[msg.sender] += msg.value;
   }
 
-  function debitWei(address owner, uint amount) internal {
-    require(weiBalances[owner] >= amount, "MultiOwner/debitWei/insufficient");
-    weiBalances[owner] -= amount;
-    emit DebitWei(owner, amount);
+  function withdraw(uint amount) external {
+    require(
+      balanceOf[msg.sender] >= amount,
+      "MultiUser/withdraw/notEngoughFunds"
+    );
+    balanceOf[msg.sender] -= amount;
+    msg.sender.transfer(amount);
+  }
+
+  function creditOnMgv(address owner, uint balance) internal {
+    mgvBalanceOf[owner] += balance;
+  }
+
+  function debitOnMgv(address owner, uint amount) internal {
+    require(
+      mgvBalanceOf[owner] >= amount,
+      "MultiOwner/debitOnMgv/insufficient"
+    );
+    mgvBalanceOf[owner] -= amount;
   }
 
   function putToken(
@@ -53,8 +63,7 @@ abstract contract MultiUser is MangroveOffer {
     address token,
     uint amount
   ) internal {
-    emit CreditToken(owner, token, amount);
-    tokenBalances[owner][token] += amount;
+    tokenBalanceOf[owner][token] += amount;
   }
 
   // making function public to be able to catch it but is essentially internal
@@ -63,13 +72,12 @@ abstract contract MultiUser is MangroveOffer {
     address token,
     uint amount
   ) public {
-    require(msg.sender == address(this), "MultiOwner/debitTkn/unauthorized");
+    require(msg.sender == address(this), "MultiOwner/getToken/unauthorized");
     require(
-      tokenBalances[owner][token] >= amount,
-      "MultiOwner/debitTkn/insufficient"
+      tokenBalanceOf[owner][token] >= amount,
+      "MultiOwner/getToken/insufficient"
     );
-    tokenBalances[owner][token] -= amount;
-    emit DebitToken(owner, token, amount);
+    tokenBalanceOf[owner][token] -= amount;
   }
 
   function addOwner(
@@ -116,13 +124,13 @@ abstract contract MultiUser is MangroveOffer {
     external
     returns (bool noRevert)
   {
-    debitWei(msg.sender, amount);
+    debitOnMgv(msg.sender, amount);
     return _withdrawFromMangrove(receiver, amount);
   }
 
   function fundMangrove() external payable {
     MGV.fund{value: msg.value}();
-    creditWei(msg.sender, msg.value);
+    creditOnMgv(msg.sender, msg.value);
   }
 
   function newOffer(
@@ -148,7 +156,7 @@ abstract contract MultiUser is MangroveOffer {
     //setting owner of offerId
     addOwner(outbound_tkn, inbound_tkn, offerId, msg.sender);
     //updating wei balance of owner will revert if msg.sender does not have the funds
-    debitWei(msg.sender, weiBalanceBefore - MGV.balanceOf(address(this)));
+    debitOnMgv(msg.sender, weiBalanceBefore - MGV.balanceOf(address(this)));
   }
 
   function updateOffer(
@@ -179,9 +187,9 @@ abstract contract MultiUser is MangroveOffer {
     uint weiBalanceAfter = MGV.balanceOf(address(this));
     if (weiBalanceBefore >= weiBalanceAfter) {
       // will throw if use doesn't have the funds
-      debitWei(msg.sender, weiBalanceBefore - weiBalanceAfter);
+      debitOnMgv(msg.sender, weiBalanceBefore - weiBalanceAfter);
     } else {
-      creditWei(msg.sender, weiBalanceAfter - weiBalanceBefore);
+      creditOnMgv(msg.sender, weiBalanceAfter - weiBalanceBefore);
     }
   }
 
@@ -198,7 +206,7 @@ abstract contract MultiUser is MangroveOffer {
     );
     received = _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
     if (received > 0) {
-      creditWei(msg.sender, received);
+      creditOnMgv(msg.sender, received);
     }
   }
 
@@ -234,7 +242,7 @@ abstract contract MultiUser is MangroveOffer {
         return 0;
       } catch Error(string memory message) {
         //getToken throws if amount > tokenBalance
-        return (amount - tokenBalances[owner][order.outbound_tkn]);
+        return (amount - tokenBalanceOf[owner][order.outbound_tkn]);
       }
     } catch {
       emit UnkownOffer(order.outbound_tkn, order.inbound_tkn, order.offerId);

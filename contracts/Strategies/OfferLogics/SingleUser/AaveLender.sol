@@ -22,7 +22,6 @@ abstract contract AaveLender is SingleUser, AaveModule {
 
   ///@notice approval of ctoken contract by the underlying is necessary for minting and repaying borrow
   ///@notice user must use this function to do so.
-
   function approveLender(address token, uint amount) external onlyAdmin {
     _approveLender(token, amount);
   }
@@ -50,36 +49,11 @@ abstract contract AaveLender is SingleUser, AaveModule {
       return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
     }
 
-    if (aaveRedeem(outbound_tkn, amount) == 0) {
+    if (aaveRedeem(amount, order) == 0) {
       // amount was transfered to `this`
       return 0;
     }
     return amount;
-  }
-
-  function aaveRedeem(IERC20 asset, uint amountToRedeem)
-    internal
-    returns (uint)
-  {
-    try
-      lendingPool.withdraw(order.outbound_tkn, amountToRedeem, address(this))
-    returns (uint withdrawn) {
-      //aave redeem was a success
-      if (amountToRedeem == withdrawn) {
-        return 0;
-      } else {
-        return (amountToRedeem - withdrawn);
-      }
-    } catch Error(string memory message) {
-      emit ErrorOnRedeem(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        amountToRedeem,
-        message
-      );
-      return amountToRedeem;
-    }
   }
 
   function __put__(uint amount, MgvLib.SingleOrder calldata order)
@@ -96,7 +70,6 @@ abstract contract AaveLender is SingleUser, AaveModule {
   }
 
   function mint(uint amount, address token) external onlyAdmin {
-    lendingPool.deposit(token, amount, address(this), referralCode);
-    aaveMint(inbound_tkn, amount);
+    _mint(amount, token);
   }
 }

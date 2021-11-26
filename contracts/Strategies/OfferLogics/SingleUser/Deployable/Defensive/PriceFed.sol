@@ -15,14 +15,12 @@ pragma abicoder v2;
 import "../../Defensive.sol";
 import "../../AaveLender.sol";
 
-//import "hardhat/console.sol";
-
 contract PriceFed is Defensive, AaveLender {
   constructor(
     address _oracle,
     address _addressesProvider,
     address payable _MGV
-  ) Defensive(_oracle) AaveLender(_addressesProvider, 0) MangroveOffer(_MGV) {}
+  ) Defensive(_oracle) AaveModule(_addressesProvider, 0) MangroveOffer(_MGV) {}
 
   event Slippage(uint indexed offerId, uint old_wants, uint new_wants);
 

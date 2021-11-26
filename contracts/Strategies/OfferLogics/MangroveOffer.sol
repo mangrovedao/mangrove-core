@@ -60,6 +60,15 @@ abstract contract MangroveOffer is
     success = IERC20(token).transfer(recipient, amount);
   }
 
+  // get back any ETH that might linger in the contract
+  function transferETH(address recipient, uint amount)
+    external
+    onlyAdmin
+    returns (bool success)
+  {
+    recipient.call{value: amount}("");
+  }
+
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
   function _approveMangrove(address outbound_tkn, uint amount) internal {
     require(

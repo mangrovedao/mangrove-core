@@ -183,6 +183,7 @@ abstract contract MangroveOffer is
   {
     if (!__lastLook__(order)) {
       // hook to check order details and decide whether `this` contract should renege on the offer.
+      emit Reneged(order.outbound_tkn, order.inbound_tkn, order.offerId);
       return RENEGED;
     }
     uint missingPut = __put__(order.gives, order); // implements what should be done with the liquidity that is flashswapped by the offer taker to `this` contract

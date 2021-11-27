@@ -43,6 +43,11 @@ contract TradeHandler {
     uint offerId,
     uint amount
   );
+  event Reneged(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint offerId
+  );
 
   /// @notice extracts old offer from the order that is received from the Mangrove
   function unpackOfferFromOrder(MgvLib.SingleOrder calldata order)

@@ -23,7 +23,7 @@ contract Reposting is Persistent {
   {
     address token0 = order.outbound_tkn;
     address token1 = order.inbound_tkn;
-    (, , uint gives, uint wants, uint gasprice) = MP.offer_unpack(order.offer); // amount with token1.decimals() decimals
+    (, , uint wants, uint gives, uint gasprice) = MP.offer_unpack(order.offer); // amount with token1.decimals() decimals
     uint gasreq = MP.offerDetail_unpack_gasreq(order.offerDetail); // amount with token1.decimals() decimals
 
     try

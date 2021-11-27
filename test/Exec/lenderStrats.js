@@ -1,6 +1,10 @@
 const lc = require("lib/libcommon.js");
+const { assert } = require("chai");
+const { ethers } = require("hardhat");
 
 async function execLenderStrat(makerContract, mgv, lenderName) {
+  const zero = ethers.BigNumber.from(0);
+
   const dai = await lc.getContract("DAI");
   const wEth = await lc.getContract("WETH");
   const gasreq = await makerContract.OFR_GASREQ();
@@ -49,6 +53,7 @@ async function execLenderStrat(makerContract, mgv, lenderName) {
 
 async function execTraderStrat(makerContract, mgv, lenderName) {
   const wEth = await lc.getContract("WETH");
+  const zero = ethers.BigNumber.from(0);
 
   await lc.logLenderStatus(makerContract, lenderName, ["DAI", "WETH"]);
 

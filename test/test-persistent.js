@@ -9,6 +9,7 @@ let testSigner = null;
 describe("Running tests...", function () {
   this.timeout(200_000); // Deployment is slow so timeout is increased
   let mgv = null;
+  let reader = null;
   let dai = null;
   let usdc = null;
   let wEth = null;
@@ -29,7 +30,7 @@ describe("Running tests...", function () {
     [testSigner] = await ethers.getSigners();
 
     // deploying mangrove and opening WETH/USDC market.
-    mgv = await lc.deployMangrove();
+    [mgv, reader] = await lc.deployMangrove();
     await lc.activateMarket(mgv, wEth.address, usdc.address);
     await lc.activateMarket(mgv, wEth.address, dai.address);
     await lc.activateMarket(mgv, usdc.address, dai.address);
@@ -103,11 +104,16 @@ describe("Running tests...", function () {
       overrides
     ); // gives 1000 $
 
-    await lc.logLenderStatus(makerContract, "compound", ["WETH"]);
+    await lc.logLenderStatus(
+      makerContract,
+      "compound",
+      ["WETH"],
+      makerContract.address
+    );
 
     for (let i = 0; i < 10; i++) {
-      let book01 = await mgv.reader.offerList(usdc.address, wEth.address, 0, 1);
-      let book10 = await mgv.reader.offerList(wEth.address, usdc.address, 0, 1);
+      let book01 = await reader.offerList(usdc.address, wEth.address, 0, 1);
+      let book10 = await reader.offerList(wEth.address, usdc.address, 0, 1);
       await lc.logOrderBook(book01, usdc, wEth);
       await lc.logOrderBook(book10, wEth, usdc);
 
@@ -142,7 +148,12 @@ describe("Running tests...", function () {
         );
       }
     }
-    await lc.logLenderStatus(makerContract, "compound", ["USDC", "WETH"]);
+    await lc.logLenderStatus(
+      makerContract,
+      "compound",
+      ["USDC", "WETH"],
+      makerContract.address
+    );
   });
 
   it("Reposting strat", async function () {
@@ -222,7 +233,7 @@ describe("Running tests...", function () {
           );
           await ofrTx.wait();
 
-          const book = await mgv.reader.offerList(
+          const book = await reader.offerList(
             outbound_tkn.address,
             inbound_tkn.address,
             ethers.BigNumber.from(0),

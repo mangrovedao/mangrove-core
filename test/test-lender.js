@@ -122,6 +122,7 @@ async function deployStrat(strategy, mgv) {
 describe("Deploy strategies", function () {
   this.timeout(200_000); // Deployment is slow so timeout is increased
   let mgv = null;
+  let reader = null;
 
   before(async function () {
     // 1. mint (1000 dai, 1000 eth, 1000 weth) for testSigner
@@ -151,31 +152,21 @@ describe("Deploy strategies", function () {
       "Minting WETH failed"
     );
 
-    mgv = await lc.deployMangrove();
+    [mgv, reader] = await lc.deployMangrove();
     listenMgv(mgv);
     await lc.activateMarket(mgv, dai.address, wEth.address);
-    let [, local] = await mgv.reader.config(dai.address, wEth.address);
+    let [, local] = await reader.config(dai.address, wEth.address);
     assert(local.active, "Market is inactive");
-  });
-
-  it("Pure lender strat on compound", async function () {
-    const makerContract = await deployStrat("SimpleCompoundRetail", mgv);
-    await execLenderStrat(makerContract, mgv, "compound");
   });
 
   it("Lender/borrower strat on compound", async function () {
     const makerContract = await deployStrat("AdvancedCompoundRetail", mgv);
-    await execTraderStrat(makerContract, mgv, "compound");
-  });
-
-  it("Pure lender strat on aave", async function () {
-    const makerContract = await deployStrat("SimpleAaveRetail", mgv);
-    await execLenderStrat(makerContract, mgv, "aave");
+    await execTraderStrat(makerContract, mgv, reader, "compound");
   });
 
   it("Lender/borrower strat on aave", async function () {
     const makerContract = await deployStrat("AdvancedAaveRetail", mgv);
-    await execTraderStrat(makerContract, mgv, "aave");
+    await execTraderStrat(makerContract, mgv, reader, "aave");
     lc.stopListeners([mgv]);
   });
 });

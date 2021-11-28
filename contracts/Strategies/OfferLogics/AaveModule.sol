@@ -19,6 +19,8 @@ import "../lib/Exponential.sol";
 import "../../IERC20.sol";
 import "../../MgvLib.sol";
 
+//import "hardhat/console.sol";
+
 contract AaveModule is Exponential {
   event ErrorOnRedeem(
     address indexed outbound_tkn,
@@ -236,7 +238,15 @@ contract AaveModule is Exponential {
         amount,
         message
       );
-      return amount;
+    } catch {
+      emit ErrorOnMint(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        amount,
+        "unexpected"
+      );
     }
+    return amount;
   }
 }

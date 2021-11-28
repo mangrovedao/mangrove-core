@@ -1,21 +1,27 @@
 const lc = require("lib/libcommon.js");
-const { assert } = require("chai");
 const { ethers } = require("hardhat");
 
-async function execLenderStrat(makerContract, mgv, lenderName) {
+async function execLenderStrat(
+  makerContract,
+  mgv,
+  reader,
+  lenderName,
+  players
+) {
   const zero = ethers.BigNumber.from(0);
 
-  const dai = await lc.getContract("DAI");
-  const wEth = await lc.getContract("WETH");
-  const gasreq = await makerContract.OFR_GASREQ();
-  //  listenERC20(wEth,18);
-
-  await lc.logLenderStatus(makerContract, lenderName, ["DAI", "WETH"]);
+  await lc.logLenderStatus(
+    makerContract,
+    lenderName,
+    ["DAI", "WETH"],
+    players.maker.address
+  );
 
   // // posting new offer on Mangrove via the MakerContract `newOffer` external function
   let offerId = await lc.newOffer(
     mgv,
-    makerContract,
+    reader,
+    makerContract.connect(players.maker.signer),
     "DAI", // outbound
     "WETH", // inbound
     lc.parseToken("0.5", await lc.getDecimals("WETH")), // required WETH
@@ -23,7 +29,8 @@ async function execLenderStrat(makerContract, mgv, lenderName) {
   );
 
   let [takerGot, takerGave] = await lc.snipeSuccess(
-    mgv,
+    mgv.connect(players.taker.signer),
+    reader,
     "DAI", // maker outbound
     "WETH", // maker inbound
     offerId,
@@ -44,22 +51,33 @@ async function execLenderStrat(makerContract, mgv, lenderName) {
   );
 
   // checking that MakerContract did put WETH on lender
-  await lc.expectAmountOnLender(makerContract, lenderName, [
+  await lc.expectAmountOnLender(players.maker.address, lenderName, [
     ["DAI", lc.parseToken("200", await lc.getDecimals("DAI")), zero, 4],
     ["WETH", takerGave, zero, 8],
   ]);
-  await lc.logLenderStatus(makerContract, lenderName, ["DAI", "WETH"]);
+  await lc.logLenderStatus(
+    makerContract,
+    lenderName,
+    ["DAI", "WETH"],
+    players.maker.address
+  );
 }
 
-async function execTraderStrat(makerContract, mgv, lenderName) {
+async function execTraderStrat(makerContract, mgv, reader, lenderName) {
   const wEth = await lc.getContract("WETH");
   const zero = ethers.BigNumber.from(0);
 
-  await lc.logLenderStatus(makerContract, lenderName, ["DAI", "WETH"]);
+  await lc.logLenderStatus(
+    makerContract,
+    lenderName,
+    ["DAI", "WETH"],
+    makerContract.address
+  );
 
   // // posting new offer on Mangrove via the MakerContract `post` method
   let offerId = await lc.newOffer(
     mgv,
+    reader,
     makerContract,
     "DAI", //base
     "WETH", //quote
@@ -69,6 +87,7 @@ async function execTraderStrat(makerContract, mgv, lenderName) {
 
   let [takerGot, takerGave] = await lc.snipeSuccess(
     mgv,
+    reader,
     "DAI", // maker base
     "WETH", // maker quote
     offerId,
@@ -86,8 +105,13 @@ async function execTraderStrat(makerContract, mgv, lenderName) {
     "Incorrect given amount"
   );
 
-  await lc.logLenderStatus(makerContract, lenderName, ["DAI", "WETH"]);
-  await lc.expectAmountOnLender(makerContract, lenderName, [
+  await lc.logLenderStatus(
+    makerContract,
+    lenderName,
+    ["DAI", "WETH"],
+    makerContract.address
+  );
+  await lc.expectAmountOnLender(makerContract.address, lenderName, [
     ["DAI", lc.parseToken("700", await lc.getDecimals("DAI")), zero, 4],
     ["WETH", takerGave, zero, 8],
   ]);
@@ -100,6 +124,7 @@ async function execTraderStrat(makerContract, mgv, lenderName) {
 
   offerId = await lc.newOffer(
     mgv,
+    reader,
     makerContract,
     "WETH", // base
     "DAI", //quote
@@ -109,6 +134,7 @@ async function execTraderStrat(makerContract, mgv, lenderName) {
 
   [takerGot, takerGave] = await lc.snipeSuccess(
     mgv,
+    reader,
     "WETH",
     "DAI",
     offerId,
@@ -127,14 +153,25 @@ async function execTraderStrat(makerContract, mgv, lenderName) {
     "Incorrect given amount"
   );
 
-  await lc.logLenderStatus(makerContract, lenderName, ["DAI", "WETH"]);
-  await lc.expectAmountOnLender(makerContract, lenderName, [
-    // dai_on_lender = (1080 * CF_DAI * price_DAI - 0.05 * price_ETH)/price_DAI
-    ["WETH", zero, lc.parseToken("0.05", await lc.getDecimals("WETH")), 9],
-  ]);
+  await lc.logLenderStatus(
+    makerContract,
+    lenderName,
+    ["DAI", "WETH"],
+    makerContract.address
+  );
+  await lc.expectAmountOnLender(
+    makerContract.address,
+    lenderName,
+    [
+      // dai_on_lender = (1080 * CF_DAI * price_DAI - 0.05 * price_ETH)/price_DAI
+      ["WETH", zero, lc.parseToken("0.05", await lc.getDecimals("WETH")), 9],
+    ],
+    makerContract.address
+  );
 
   offerId = await lc.newOffer(
     mgv,
+    reader,
     makerContract,
     "DAI", //base
     "WETH", //quote
@@ -143,6 +180,7 @@ async function execTraderStrat(makerContract, mgv, lenderName) {
   );
   [takerGot, takerGave] = await lc.snipeSuccess(
     mgv,
+    reader,
     "DAI",
     "WETH",
     offerId,
@@ -159,7 +197,12 @@ async function execTraderStrat(makerContract, mgv, lenderName) {
     lc.parseToken("0.63", await lc.getDecimals("WETH")),
     "Incorrect given amount"
   );
-  await lc.logLenderStatus(makerContract, lenderName, ["DAI", "WETH"]);
+  await lc.logLenderStatus(
+    makerContract,
+    lenderName,
+    ["DAI", "WETH"],
+    makerContract.address
+  );
   //TODO check borrowing DAIs and not borrowing WETHs anymore
 }
 

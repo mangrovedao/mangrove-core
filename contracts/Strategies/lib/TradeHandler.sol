@@ -16,7 +16,7 @@ import {MgvPack as MP} from "../../MgvPack.sol";
 import "../../Mangrove.sol";
 import "../../MgvLib.sol";
 
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 contract TradeHandler {
   // internal bytes32 to select appropriate posthook

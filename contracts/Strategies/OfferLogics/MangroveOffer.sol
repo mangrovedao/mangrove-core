@@ -16,7 +16,7 @@ import "../lib/Exponential.sol";
 import "../lib/TradeHandler.sol";
 import "../lib/consolerr/consolerr.sol";
 
-// import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract MangroveOffer is

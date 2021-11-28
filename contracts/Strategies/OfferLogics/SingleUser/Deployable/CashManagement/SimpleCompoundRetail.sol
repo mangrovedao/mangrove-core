@@ -12,7 +12,8 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 import "../../CompoundLender.sol";
-import "hardhat/console.sol";
+
+//import "hardhat/console.sol";
 
 contract SimpleCompoundRetail is CompoundLender {
   constructor(

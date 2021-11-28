@@ -20,6 +20,12 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
   ///@notice Required functions to let `this` contract interact with Aave
   /**************************************************************************/
 
+  ///@notice approval of ctoken contract by the underlying is necessary for minting and repaying borrow
+  ///@notice user must use this function to do so.
+  function approveLender(address token, uint amount) external onlyAdmin {
+    _approveLender(token, amount);
+  }
+
   function mint(
     uint amount,
     address asset,
@@ -56,8 +62,8 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
     try aToken.transferFrom(owner, address(this), amount) returns (
       bool success
     ) {
-      if (aaveRedeem(amount, owner, order) == 0) {
-        // amount was transfered to `this`
+      if (aaveRedeem(amount, address(this), order) == 0) {
+        // amount was transfered to `owner`
         return 0;
       }
       emit ErrorOnRedeem(

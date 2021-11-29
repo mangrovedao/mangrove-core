@@ -95,9 +95,11 @@ abstract contract MultiUser is MangroveOffer {
     return _withdrawFromMangrove(receiver, amount);
   }
 
-  function fundMangrove() external payable {
+  function fundMangrove(address owner) external payable {
+    // increasing the provision of `this` contract
     MGV.fund{value: msg.value}();
-    creditOnMgv(msg.sender, msg.value);
+    // increasing the virtual provision of owner
+    creditOnMgv(owner, msg.value);
   }
 
   function newOffer(
@@ -137,7 +139,8 @@ abstract contract MultiUser is MangroveOffer {
     uint offerId
   ) external {
     require(
-      ownerOf(outbound_tkn, inbound_tkn, offerId) == msg.sender,
+      address(this) == msg.sender ||
+        ownerOf(outbound_tkn, inbound_tkn, offerId) == msg.sender,
       "mgvOffer/MultiOwner/unauthorized"
     );
     uint weiBalanceBefore = MGV.balanceOf(address(this));

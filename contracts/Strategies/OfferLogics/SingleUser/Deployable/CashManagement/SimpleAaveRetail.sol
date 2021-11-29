@@ -18,7 +18,7 @@ contract SimpleAaveRetail is AaveLender {
     AaveModule(_addressesProvider, 0)
     MangroveOffer(_MGV)
   {
-    setGasreq(800_000);
+    setGasreq(1_000_000);
   }
 
   // Tries to take base directly from `this` balance. Fetches the remainder on Aave.

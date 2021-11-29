@@ -21,7 +21,7 @@ contract SimpleCompoundRetail is CompoundLender {
     address payable _MGV,
     address wethAddress
   ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {
-    setGasreq(800_000);
+    setGasreq(1_000_000);
   }
 
   // Tries to take base directly from `this` balance. Fetches the remainder on Compound.

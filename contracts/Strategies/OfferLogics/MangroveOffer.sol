@@ -28,7 +28,7 @@ abstract contract MangroveOffer is
   Mangrove immutable MGV; // Address of the deployed Mangrove contract
 
   // default values
-  uint public OFR_GASREQ = 400_000;
+  uint public OFR_GASREQ = 100_000;
 
   constructor(address payable _mgv) {
     MGV = Mangrove(_mgv);
@@ -50,6 +50,11 @@ abstract contract MangroveOffer is
         gasprice,
         offerId
       );
+  }
+
+  function setGasreq(uint gasreq) public internalOrAdmin {
+    require(uint24(gasreq) == gasreq, "MangroveOffer/gasreq/overflow");
+    OFR_GASREQ = gasreq;
   }
 
   function _transferToken(

@@ -12,8 +12,9 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 import "../AaveLender.sol";
+import "../Persistent.sol";
 
-contract OfferProxy is MultiUserAaveLender {
+contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
   constructor(address _addressesProvider, address payable _MGV)
     AaveModule(_addressesProvider, 0)
     MangroveOffer(_MGV)
@@ -24,9 +25,46 @@ contract OfferProxy is MultiUserAaveLender {
   // overrides AaveLender.__put__ with MutliUser's one in order to put inbound token directly to user account
   function __put__(uint amount, MgvLib.SingleOrder calldata order)
     internal
-    override
+    override(MultiUser, MultiUserAaveLender)
     returns (uint)
   {
     return (MultiUser.__put__(amount, order));
+  }
+
+  function __autoRefill__(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint gasreq,
+    uint gasprice,
+    uint offerId
+  )
+    internal
+    virtual
+    override(MangroveOffer, MultiUserPersistent)
+    returns (uint)
+  {
+    return
+      MultiUserPersistent.__autoRefill__(
+        outbound_tkn,
+        inbound_tkn,
+        gasreq,
+        gasprice,
+        offerId
+      );
+  }
+
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+    override(MultiUser, MultiUserAaveLender)
+    returns (uint)
+  {
+    return MultiUserAaveLender.__get__(amount, order);
+  }
+
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
+    internal
+    override(MangroveOffer, MultiUserPersistent)
+  {
+    MultiUserPersistent.__posthookSuccess__(order);
   }
 }

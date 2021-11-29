@@ -40,7 +40,7 @@ async function deployStrat(mgv, players) {
   let overrides = { value: lc.parseToken("2.0", 18) };
   mkrTxs[i++] = await offerProxy
     .connect(players.maker.signer)
-    .fundMangrove(overrides);
+    .fundMangrove(players.maker.address, overrides);
   // sanity check
   lc.assertEqualBN(
     await mgv.balanceOf(offerProxy.address),
@@ -139,6 +139,7 @@ describe("Deploy offerProxy", function () {
   it("Offer proxy on aave", async function () {
     let offerProxy = await deployStrat(mgv, players);
     await execLenderStrat(offerProxy, mgv, reader, "aave", players);
+    lc.sleep(5000);
     lc.stopListeners([mgv]);
   });
 });

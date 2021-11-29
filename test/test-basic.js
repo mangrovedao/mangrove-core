@@ -13,6 +13,7 @@ function Big(x) {
 describe("Running tests...", function () {
   this.timeout(200_000); // Deployment is slow so timeout is increased
   let mgv = null;
+  let reader = null;
   let dai = null;
   let usdc = null;
 
@@ -25,7 +26,7 @@ describe("Running tests...", function () {
     [testSigner] = await ethers.getSigners();
 
     // deploying mangrove and opening WETH/USDC market.
-    mgv = await lc.deployMangrove();
+    [mgv, reader] = await lc.deployMangrove();
     await lc.activateMarket(mgv, dai.address, usdc.address);
   });
 
@@ -54,7 +55,7 @@ describe("Running tests...", function () {
     const makerContract = await MgvOffer.deploy(mgv.address);
 
     // // Listening
-    // const filter_Fail = makerContract.filters.PosthookFail();
+    // const filter_Fail = makerContract.filters.PosthookFailure();
     // makerContract.once(
     //   filter_Fail,
     //   (outbound_tkn, inbound_tkn, offerId, message, event) => {
@@ -99,6 +100,7 @@ describe("Running tests...", function () {
       .approve(mgv.address, ethers.constants.MaxUint256);
     await lc.newOffer(
       mgv,
+      reader,
       makerContract,
       "DAI",
       "USDC",
@@ -122,6 +124,7 @@ describe("Running tests...", function () {
 
     const [takerGot, takerGave] = await lc.snipeSuccess(
       mgv,
+      reader,
       "DAI",
       "USDC",
       1,
@@ -148,7 +151,7 @@ describe("Running tests...", function () {
 });
 
 // const usdc_decimals = await usdc.decimals();
-// const filter_PosthookFail = mgv.filters.PosthookFail();
+// const filter_PosthookFail = mgv.filters.PosthookFailure();
 // mgv.once(filter_PosthookFail, (
 //   outbound_tkn,
 //   inbound_tkn,

@@ -25,7 +25,9 @@ contract SwingingMarketMaker is CompoundTrader {
     address _unitroller,
     address payable _MGV,
     address wethAddress
-  ) CompoundLender(_unitroller, wethAddress) MangroveOffer(_MGV) {}
+  ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {
+    setGasreq(1_000_000);
+  }
 
   // sets P(tk0|tk1)
   // one wants P(tk0|tk1).P(tk1|tk0) >= 1
@@ -113,15 +115,15 @@ contract SwingingMarketMaker is CompoundTrader {
     });
   }
 
-  function __get__(IERC20 base, uint amount)
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
     // checks whether `this` contract has enough `base` token
-    uint missingGet = MangroveOffer.__get__(base, amount);
+    uint missingGet = SingleUser.__get__(amount, order);
     // if not tries to fetch missing liquidity on compound using `CompoundTrader`'s strat
-    return super.__get__(base, missingGet);
+    return super.__get__(missingGet, order);
   }
 }

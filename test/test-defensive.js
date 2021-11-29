@@ -4,30 +4,42 @@ const { ethers, env, mangrove, network } = require("hardhat");
 const lc = require("lib/libcommon.js");
 const chalk = require("chalk");
 
-async function execPriceFedStrat(makerContract, mgv, lenderName) {
+async function execPriceFedStrat(makerContract, mgv, reader, lenderName) {
   const dai = await lc.getContract("DAI");
   const wEth = await lc.getContract("WETH");
 
   //putting DAI on lender for contract
   await lc.fund([["DAI", "1000.0", makerContract.address]]);
   await makerContract.approveLender(dai.address, ethers.constants.MaxUint256);
-  await makerContract.mint(dai.address, await lc.parseToken("1000", 18));
+  await makerContract.mint(
+    await lc.parseToken("1000", 18),
+    dai.address,
+    makerContract.address
+  );
   await makerContract.approveMangrove(dai.address, ethers.constants.MaxUint256);
   await makerContract.approveMangrove(
     wEth.address,
     ethers.constants.MaxUint256
   );
+  let overrides = { value: ethers.utils.parseEther("1") };
+  await mgv["fund(address)"](makerContract.address, overrides);
 
   // to be able to put received WETH on lender
   await makerContract.approveLender(wEth.address, ethers.constants.MaxUint256);
 
-  await lc.logLenderStatus(makerContract, lenderName, ["DAI", "WETH"]);
+  await lc.logLenderStatus(
+    makerContract,
+    lenderName,
+    ["DAI", "WETH"],
+    makerContract.address
+  );
 
   // // posting new offer on Mangrove via the MakerContract `post` method
   // when offer is taken contract must have approved Mangrove for dai transfer
 
   let offerId = await lc.newOffer(
     mgv,
+    reader,
     makerContract,
     "DAI", //base
     "WETH", //quote
@@ -58,6 +70,7 @@ async function execPriceFedStrat(makerContract, mgv, lenderName) {
 
   await lc.snipeFail(
     mgv,
+    reader,
     "DAI", // maker base
     "WETH", // maker quote
     offerId,
@@ -68,6 +81,7 @@ async function execPriceFedStrat(makerContract, mgv, lenderName) {
   // new offer should have been put on the book with the correct price (same offer ID)
   let [takerGot, takerGave] = await lc.snipeSuccess(
     mgv,
+    reader,
     "DAI", // maker base
     "WETH", // maker quote
     offerId,
@@ -81,10 +95,15 @@ async function execPriceFedStrat(makerContract, mgv, lenderName) {
     "Incorrect received amount"
   );
 
-  await lc.logLenderStatus(makerContract, lenderName, ["DAI", "WETH"]);
+  await lc.logLenderStatus(
+    makerContract,
+    lenderName,
+    ["DAI", "WETH"],
+    makerContract.address
+  );
   const zero = lc.parseToken("0.0", 1);
   const hundred = lc.parseToken("100", 18);
-  await lc.expectAmountOnLender(makerContract, lenderName, [
+  await lc.expectAmountOnLender(makerContract.address, lenderName, [
     ["DAI", hundred, zero, 4], // 100 DAI remaining
     ["WETH", takerGave, zero, 8], // should have received takerGave WETH
   ]);
@@ -93,6 +112,7 @@ async function execPriceFedStrat(makerContract, mgv, lenderName) {
 describe("Deploy defensive strategies", function () {
   this.timeout(200_000); // Deployment is slow so timeout is increased
   let mgv = null;
+  let reader = null;
   let oracle = null;
 
   before(async function () {
@@ -107,7 +127,7 @@ describe("Deploy defensive strategies", function () {
       //["DAI", "10000.0", testSigner.address],
     ]);
 
-    mgv = await lc.deployMangrove();
+    [mgv, reader] = await lc.deployMangrove();
     await lc.activateMarket(mgv, dai.address, wEth.address);
 
     const SimpleOracle = await ethers.getContractFactory("SimpleOracle");
@@ -136,6 +156,6 @@ describe("Deploy defensive strategies", function () {
       lc.parseToken("3000.0", oracle_decimals)
     );
 
-    await execPriceFedStrat(makerContract, mgv, "aave");
+    await execPriceFedStrat(makerContract, mgv, reader, "aave");
   });
 });

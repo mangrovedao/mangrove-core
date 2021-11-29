@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// PriceFed.sol
+// Persistent.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -11,45 +11,32 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-
-import "../../Defensive.sol";
-import "../../AaveLender.sol";
+import "./MultiUser.sol";
 
 //import "hardhat/console.sol";
 
-contract PriceFed is Defensive, AaveLender {
-  constructor(
-    address _oracle,
-    address _addressesProvider,
-    address payable _MGV
-  ) Defensive(_oracle) AaveLender(_addressesProvider, 0) MangroveOffer(_MGV) {}
-
-  event Slippage(uint indexed offerId, uint old_wants, uint new_wants);
-
-  // reposts only if offer was reneged due to a price slippage
-  function __posthookReneged__(MgvLib.SingleOrder calldata order)
+/// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
+abstract contract MultiUserPersistent is MultiUser {
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
     internal
+    virtual
     override
   {
-    (uint old_wants, uint old_gives, , ) = unpackOfferFromOrder(order);
-    uint price_quote = oracle.getPrice(order.inbound_tkn);
-    uint price_base = oracle.getPrice(order.outbound_tkn);
-
-    uint new_offer_wants = div_(mul_(old_gives, price_base), price_quote);
-    emit Slippage(order.offerId, old_wants, new_offer_wants);
-    // since offer is persistent it will auto refill if contract does not have enough provision on the Mangrove
+    uint new_gives = MP.offer_unpack_gives(order.offer) - order.wants;
+    uint new_wants = MP.offer_unpack_wants(order.offer) - order.gives;
     try
       this.updateOffer(
         order.outbound_tkn,
         order.inbound_tkn,
-        new_offer_wants,
-        old_gives,
-        OFR_GASREQ,
-        0,
-        0,
+        new_wants,
+        new_gives,
+        MP.offerDetail_unpack_gasreq(order.offerDetail),
+        MP.offer_unpack_gasprice(order.offer),
+        MP.offer_unpack_next(order.offer),
         order.offerId
       )
     {} catch Error(string memory message) {
+      // density could be too low, or offer provision be insufficient
       emit PosthookFail(
         order.outbound_tkn,
         order.inbound_tkn,
@@ -59,30 +46,33 @@ contract PriceFed is Defensive, AaveLender {
     }
   }
 
-  // Closing diamond inheritance for solidity compiler
-  // get/put and lender strat's functions
-  function __get__(IERC20 base, uint amount)
-    internal
-    override(MangroveOffer, AaveLender)
-    returns (uint)
-  {
-    AaveLender.__get__(base, amount);
-  }
-
-  function __put__(IERC20 quote, uint amount)
-    internal
-    override(MangroveOffer, AaveLender)
-  {
-    AaveLender.__put__(quote, amount);
-  }
-
-  // lastlook is defensive strat's function
-  function __lastLook__(MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    override(MangroveOffer, Defensive)
-    returns (bool)
-  {
-    return Defensive.__lastLook__(order);
+  function __autoRefill__(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint gasreq,
+    uint gasprice,
+    uint offerId
+  ) internal virtual override returns (uint) {
+    uint toAdd = getMissingProvision(
+      outbound_tkn,
+      inbound_tkn,
+      gasreq,
+      gasprice,
+      offerId
+    );
+    if (toAdd > 0) {
+      address owner = ownerOf(outbound_tkn, inbound_tkn, offerId);
+      if (owner == address(0)) {
+        emit UnkownOffer(outbound_tkn, inbound_tkn, offerId);
+        return toAdd;
+      }
+      try this.fundMangrove{value: toAdd}(owner) {
+        return 0;
+      } catch {
+        // _updateOffer will throw
+        return toAdd;
+      }
+    }
+    return 0;
   }
 }

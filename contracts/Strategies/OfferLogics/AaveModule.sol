@@ -12,16 +12,30 @@
 
 pragma solidity ^0.7.0;
 pragma abicoder v2;
-import "./MangroveOffer.sol";
 import "../interfaces/Aave/ILendingPool.sol";
 import "../interfaces/Aave/ILendingPoolAddressesProvider.sol";
 import "../interfaces/Aave/IPriceOracleGetter.sol";
+import "../lib/Exponential.sol";
+import "../../IERC20.sol";
+import "../../MgvLib.sol";
 
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
-abstract contract AaveLender is MangroveOffer {
-  event ErrorOnRedeem(address ctoken, uint amount);
-  event ErrorOnMint(address ctoken, uint amount);
+contract AaveModule is Exponential {
+  event ErrorOnRedeem(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed offerId,
+    uint amount,
+    string errorCode
+  );
+  event ErrorOnMint(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed offerId,
+    uint amount,
+    string errorCode
+  );
 
   // address of the lendingPool
   ILendingPool public immutable lendingPool;
@@ -50,27 +64,23 @@ abstract contract AaveLender is MangroveOffer {
 
   ///@notice approval of ctoken contract by the underlying is necessary for minting and repaying borrow
   ///@notice user must use this function to do so.
-  function approveLender(IERC20 token, uint amount) external onlyAdmin {
-    token.approve(address(lendingPool), amount);
-  }
-
-  function mint(IERC20 underlying, uint amount) external onlyAdmin {
-    aaveMint(underlying, amount);
-  }
-
-  function redeem(IERC20 underlying, uint amount) external onlyAdmin {
-    aaveRedeem(underlying, amount);
+  function _approveLender(address token, uint amount) internal {
+    IERC20(token).approve(address(lendingPool), amount);
   }
 
   ///@notice exits markets
-  function exitMarket(IERC20 underlying) external onlyAdmin {
+  function _exitMarket(IERC20 underlying) internal {
     lendingPool.setUserUseReserveAsCollateral(address(underlying), false);
   }
 
-  function enterMarkets(IERC20[] calldata underlyings) external onlyAdmin {
+  function _enterMarkets(IERC20[] calldata underlyings) internal {
     for (uint i = 0; i < underlyings.length; i++) {
       lendingPool.setUserUseReserveAsCollateral(address(underlyings[i]), true);
     }
+  }
+
+  function overlying(IERC20 asset) public returns (IERC20 aToken) {
+    aToken = IERC20(lendingPool.getReserveData(address(asset)).aTokenAddress);
   }
 
   // structs to avoir stack too deep in maxGettableUnderlying
@@ -95,11 +105,11 @@ abstract contract AaveLender is MangroveOffer {
   /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
   /// returns (R, B|R)
 
-  function maxGettableUnderlying(IERC20 asset, bool tryBorrow)
-    public
-    view
-    returns (uint, uint)
-  {
+  function maxGettableUnderlying(
+    address asset,
+    bool tryBorrow,
+    address onBehalf
+  ) public view returns (uint, uint) {
     Underlying memory underlying; // asset parameters
     Account memory account; // accound parameters
     (
@@ -109,9 +119,9 @@ abstract contract AaveLender is MangroveOffer {
       account.liquidationThreshold,
       account.ltv,
       account.health // avgLiquidityThreshold * sumCollateralEth / sumDebtEth  -- should be less than 10**18
-    ) = lendingPool.getUserAccountData(address(this));
+    ) = lendingPool.getUserAccountData(onBehalf);
     DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
-      address(asset)
+      asset
     );
     (
       underlying.ltv, // collateral factor for lending
@@ -123,10 +133,10 @@ abstract contract AaveLender is MangroveOffer {
 
     ) = DataTypes.getParams(reserveData.configuration);
     account.balanceOfUnderlying = IERC20(reserveData.aTokenAddress).balanceOf(
-      address(this)
+      onBehalf
     );
 
-    underlying.price = priceOracle.getAssetPrice(address(asset)); // divided by 10**underlying.decimals
+    underlying.price = priceOracle.getAssetPrice(asset); // divided by 10**underlying.decimals
 
     // account.redeemPower = account.liquidationThreshold * account.collateral - account.debt
     account.redeemPower = sub_(
@@ -174,76 +184,69 @@ abstract contract AaveLender is MangroveOffer {
     return (maxRedeemableUnderlying, maxBorrowAfterRedeemInUnderlying);
   }
 
-  ///@notice method to get `outbound_tkn` during makerExecute
-  ///@param outbound_tkn address of the ERC20 managing `outbound_tkn` token
-  ///@param amount of token that the trade is still requiring
-  function __get__(IERC20 outbound_tkn, uint amount)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
-    (
-      uint redeemable, /*maxBorrowAfterRedeem*/
-
-    ) = maxGettableUnderlying(outbound_tkn, false);
-    if (amount > redeemable) {
-      return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
-    }
-
-    if (aaveRedeem(outbound_tkn, amount) == 0) {
-      // amount was transfered to `this`
-      return 0;
-    }
-    return amount;
-  }
-
-  function aaveRedeem(IERC20 asset, uint amountToRedeem)
-    internal
-    returns (uint)
-  {
+  function aaveRedeem(
+    uint amountToRedeem,
+    address onBehalf,
+    MgvLib.SingleOrder calldata order
+  ) internal returns (uint) {
     try
-      lendingPool.withdraw(address(asset), amountToRedeem, address(this))
+      lendingPool.withdraw(order.outbound_tkn, amountToRedeem, onBehalf)
     returns (uint withdrawn) {
       //aave redeem was a success
       if (amountToRedeem == withdrawn) {
         return 0;
       } else {
-        emit ErrorOnRedeem(address(asset), amountToRedeem);
         return (amountToRedeem - withdrawn);
       }
-    } catch {
-      //compound redeem failed
-      emit ErrorOnRedeem(address(asset), amountToRedeem);
+    } catch Error(string memory message) {
+      emit ErrorOnRedeem(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        amountToRedeem,
+        message
+      );
       return amountToRedeem;
     }
   }
 
-  function __put__(IERC20 inbound_tkn, uint amount) internal virtual override {
-    //optim
-    if (amount == 0) {
-      return;
-    }
-    aaveMint(inbound_tkn, amount);
+  function _mint(
+    uint amount,
+    address token,
+    address onBehalf
+  ) internal {
+    lendingPool.deposit(token, amount, onBehalf, referralCode);
   }
 
   // adapted from https://medium.com/compound-finance/supplying-assets-to-the-compound-protocol-ec2cf5df5aa#afff
   // utility to supply erc20 to compound
   // NB `ctoken` contract MUST be approved to perform `transferFrom token` by `this` contract.
   /// @notice user need to approve ctoken in order to mint
-  function aaveMint(IERC20 inbound_tkn, uint amount) internal {
+  function aaveMint(
+    uint amount,
+    address onBehalf,
+    MgvLib.SingleOrder calldata order
+  ) internal returns (uint) {
     // contract must haveallowance()to spend funds on behalf ofmsg.sender for at-leastamount for the asset being deposited. This can be done via the standard ERC20 approve() method.
-    try
-      lendingPool.deposit(
-        address(inbound_tkn),
+    try lendingPool.deposit(order.inbound_tkn, amount, onBehalf, referralCode) {
+      return 0;
+    } catch Error(string memory message) {
+      emit ErrorOnMint(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
         amount,
-        address(this),
-        referralCode
-      )
-    {
-      return;
+        message
+      );
     } catch {
-      emit ErrorOnMint(address(inbound_tkn), amount);
+      emit ErrorOnMint(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        amount,
+        "unexpected"
+      );
     }
+    return amount;
   }
 }

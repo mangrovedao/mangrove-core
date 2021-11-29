@@ -9,6 +9,7 @@ let testSigner = null;
 describe("Running tests...", function () {
   this.timeout(200_000); // Deployment is slow so timeout is increased
   let mgv = null;
+  let reader = null;
   let dai = null;
   let usdc = null;
   let wEth = null;
@@ -29,33 +30,30 @@ describe("Running tests...", function () {
     [testSigner] = await ethers.getSigners();
 
     // deploying mangrove and opening WETH/USDC market.
-    mgv = await lc.deployMangrove();
+    [mgv, reader] = await lc.deployMangrove();
     await lc.activateMarket(mgv, wEth.address, usdc.address);
     await lc.activateMarket(mgv, wEth.address, dai.address);
     await lc.activateMarket(mgv, usdc.address, dai.address);
   });
 
   it("Swinging strat", async function () {
+    lc.listenMgv(mgv);
+
     const strategy = "SwingingMarketMaker";
     const Strat = await ethers.getContractFactory(strategy);
     const comp = await lc.getContract("COMP");
 
     // deploying strat
-    const makerContract = await Strat.deploy(
-      comp.address,
-      mgv.address,
-      wEth.address
-    );
+    const makerContract = (
+      await Strat.deploy(comp.address, mgv.address, wEth.address)
+    ).connect(testSigner);
+    lc.listenOfferLogic(makerContract, ["PosthookFail"]);
     const eth_for_one_usdc = lc.parseToken("0.0004", 18); // 1/2500 ethers
     const usdc_for_one_eth = lc.parseToken("2510", 6); // 2510 $
 
     // setting p(WETH|USDC) and p(USDC|WETH) s.t p(WETH|USDC)*p(USDC|WETH) > 1
-    await makerContract
-      .connect(testSigner)
-      .setPrice(wEth.address, usdc.address, eth_for_one_usdc);
-    await makerContract
-      .connect(testSigner)
-      .setPrice(usdc.address, wEth.address, usdc_for_one_eth);
+    await makerContract.setPrice(wEth.address, usdc.address, eth_for_one_usdc);
+    await makerContract.setPrice(usdc.address, wEth.address, usdc_for_one_eth);
 
     // taker premices (approving Mgv on inbound erc20 for taker orders)
     // 1. test runner will need to sell weth and usdc so getting some...
@@ -74,40 +72,51 @@ describe("Running tests...", function () {
     // maker premices
 
     //1. approve lender for c[DAI|WETH|USDC] minting
-    await makerContract
-      .connect(testSigner)
-      .approveLender(cwEth.address, ethers.constants.MaxUint256);
-    await makerContract
-      .connect(testSigner)
-      .approveLender(cUsdc.address, ethers.constants.MaxUint256);
-    await makerContract
-      .connect(testSigner)
-      .approveLender(cDai.address, ethers.constants.MaxUint256);
+    await makerContract.approveLender(
+      cwEth.address,
+      ethers.constants.MaxUint256
+    );
+    await makerContract.approveLender(
+      cUsdc.address,
+      ethers.constants.MaxUint256
+    );
+    await makerContract.approveLender(
+      cDai.address,
+      ethers.constants.MaxUint256
+    );
 
     // 2. entering markets to be allowed to borrow USDC and WETH on DAI collateral
-    await makerContract.connect(testSigner).enterMarkets([cwEth.address]);
-    await makerContract.connect(testSigner).enterMarkets([cUsdc.address]);
-    await makerContract.connect(testSigner).enterMarkets([cDai.address]);
+    await makerContract.enterMarkets([cwEth.address]);
+    await makerContract.enterMarkets([cUsdc.address]);
+    await makerContract.enterMarkets([cDai.address]);
 
     // 3. pushing DAIs on compound to be used as collateral
     // 3.1 sending DAIs to makerContract to be used as collateral
     await lc.fund([["DAI", "100000.0", makerContract.address]]);
     // 3.2 asking maker contract to mint cDAIs
     const daiAmount = lc.parseToken("100000.0", 18);
-    await makerContract.connect(testSigner).mint(cDai.address, daiAmount);
+    await makerContract.mint(daiAmount, cDai.address, makerContract.address);
 
     // starting strategy by offering 1000 USDC on the book
     const overrides = { value: lc.parseToken("2.0", 18) };
     const gives_amount = lc.parseToken("1000.0", 6);
-    await makerContract
-      .connect(testSigner)
-      .startStrat(usdc.address, wEth.address, gives_amount, overrides); // gives 1000 $
+    await makerContract.startStrat(
+      usdc.address,
+      wEth.address,
+      gives_amount,
+      overrides
+    ); // gives 1000 $
 
-    await lc.logLenderStatus(makerContract, "compound", ["WETH"]);
+    await lc.logLenderStatus(
+      makerContract,
+      "compound",
+      ["WETH"],
+      makerContract.address
+    );
 
     for (let i = 0; i < 10; i++) {
-      let book01 = await mgv.reader.offerList(usdc.address, wEth.address, 0, 1);
-      let book10 = await mgv.reader.offerList(wEth.address, usdc.address, 0, 1);
+      let book01 = await reader.offerList(usdc.address, wEth.address, 0, 1);
+      let book10 = await reader.offerList(wEth.address, usdc.address, 0, 1);
       await lc.logOrderBook(book01, usdc, wEth);
       await lc.logOrderBook(book10, wEth, usdc);
 
@@ -142,112 +151,119 @@ describe("Running tests...", function () {
         );
       }
     }
-    await lc.logLenderStatus(makerContract, "compound", ["USDC", "WETH"]);
-  });
-
-  it("Reposting strat", async function () {
-    const Repost = await ethers.getContractFactory("Reposting");
-
-    // deploying strat
-    const repostLogic = (await Repost.deploy(mgv.address)).connect(testSigner);
-    const signerAddr = await testSigner.getAddress();
-
-    await lc.fund([
-      ["DAI", "100000.0", repostLogic.address],
-      ["DAI", "100000.0", signerAddr],
-      ["WETH", "100.0", repostLogic.address],
-      ["WETH", "100.0", signerAddr],
-      ["USDC", "100000.0", repostLogic.address],
-      ["USDC", "100000.0", signerAddr],
-    ]);
-
-    const tokenParams = [
-      [wEth.connect(testSigner), "WETH", 18, ethers.utils.parseEther("1")],
-      [dai.connect(testSigner), "DAI", 18, ethers.utils.parseEther("0.0003")],
-      [usdc.connect(testSigner), "USDC", 6, ethers.utils.parseEther("0.0003")],
-    ];
-
-    const ofr_gasreq = ethers.BigNumber.from(500000);
-    const ofr_gasprice = ethers.BigNumber.from(0);
-    const ofr_pivot = ethers.BigNumber.from(0);
-
-    const usdToNative = ethers.utils.parseEther("0.0003");
-
-    let overrides = { value: ethers.utils.parseEther("1.0") };
-    await mgv["fund(address)"](repostLogic.address, overrides);
-
-    // taker side actions
-    for (const [token] of tokenParams) {
-      await token.approve(mgv.address, ethers.constants.MaxUint256);
-    }
-
-    lc.listenMgv(mgv);
-
-    for (const [
-      outbound_tkn,
-      outName,
-      outDecimals,
-      outTknInMatic,
-    ] of tokenParams) {
-      const tx = await repostLogic.approveMangrove(
-        outbound_tkn.address,
-        ethers.constants.MaxUint256
-      );
-      await tx.wait();
-
-      for (const [
-        inbound_tkn,
-        inName,
-        inDecimals,
-        inTknInMatic,
-      ] of tokenParams) {
-        if (outbound_tkn.address != inbound_tkn.address) {
-          const makerWants = ethers.utils
-            .parseUnits("1000", inDecimals)
-            .mul(usdToNative)
-            .div(inTknInMatic); // makerWants
-          const makerGives = ethers.utils
-            .parseUnits("1000", outDecimals)
-            .mul(usdToNative)
-            .div(outTknInMatic); // makerGives
-
-          const ofrTx = await repostLogic.newOffer(
-            outbound_tkn.address, //e.g weth
-            inbound_tkn.address, //e.g dai
-            makerWants,
-            makerGives,
-            ofr_gasreq,
-            ofr_gasprice,
-            ofr_pivot
-          );
-          await ofrTx.wait();
-
-          const book = await mgv.reader.offerList(
-            outbound_tkn.address,
-            inbound_tkn.address,
-            ethers.BigNumber.from(0),
-            ethers.BigNumber.from(1)
-          );
-          lc.logOrderBook(book, outbound_tkn, inbound_tkn);
-          const tx = await mgv.marketOrder(
-            outbound_tkn.address,
-            inbound_tkn.address,
-            makerGives,
-            makerWants,
-            true
-          );
-          tx.wait();
-          lc.logOrderBook(book, outbound_tkn, inbound_tkn);
-        }
-      }
-    }
+    await lc.logLenderStatus(
+      makerContract,
+      "compound",
+      ["USDC", "WETH"],
+      makerContract.address
+    );
     lc.sleep(5000);
-    lc.stopListeners([mgv]);
+    lc.stopListeners([mgv, makerContract]);
   });
+
+  //   it("Reposting strat", async function () {
+  //     const Repost = await ethers.getContractFactory("Reposting");
+
+  //     // deploying strat
+  //     const repostLogic = (await Repost.deploy(mgv.address)).connect(testSigner);
+  //     const signerAddr = await testSigner.getAddress();
+
+  //     await lc.fund([
+  //       ["DAI", "100000.0", repostLogic.address],
+  //       ["DAI", "100000.0", signerAddr],
+  //       ["WETH", "100.0", repostLogic.address],
+  //       ["WETH", "100.0", signerAddr],
+  //       ["USDC", "100000.0", repostLogic.address],
+  //       ["USDC", "100000.0", signerAddr],
+  //     ]);
+
+  //     const tokenParams = [
+  //       [wEth.connect(testSigner), "WETH", 18, ethers.utils.parseEther("1")],
+  //       [dai.connect(testSigner), "DAI", 18, ethers.utils.parseEther("0.0003")],
+  //       [usdc.connect(testSigner), "USDC", 6, ethers.utils.parseEther("0.0003")],
+  //     ];
+
+  //     const ofr_gasreq = ethers.BigNumber.from(500000);
+  //     const ofr_gasprice = ethers.BigNumber.from(0);
+  //     const ofr_pivot = ethers.BigNumber.from(0);
+
+  //     const usdToNative = ethers.utils.parseEther("0.0003");
+
+  //     let overrides = { value: ethers.utils.parseEther("1.0") };
+  //     await mgv["fund(address)"](repostLogic.address, overrides);
+
+  //     // taker side actions
+  //     for (const [token] of tokenParams) {
+  //       await token.approve(mgv.address, ethers.constants.MaxUint256);
+  //     }
+
+  //     lc.listenMgv(mgv);
+
+  //     for (const [
+  //       outbound_tkn,
+  //       outName,
+  //       outDecimals,
+  //       outTknInMatic,
+  //     ] of tokenParams) {
+  //       const tx = await repostLogic.approveMangrove(
+  //         outbound_tkn.address,
+  //         ethers.constants.MaxUint256
+  //       );
+  //       await tx.wait();
+
+  //       for (const [
+  //         inbound_tkn,
+  //         inName,
+  //         inDecimals,
+  //         inTknInMatic,
+  //       ] of tokenParams) {
+  //         if (outbound_tkn.address != inbound_tkn.address) {
+  //           const makerWants = ethers.utils
+  //             .parseUnits("1000", inDecimals)
+  //             .mul(usdToNative)
+  //             .div(inTknInMatic); // makerWants
+  //           const makerGives = ethers.utils
+  //             .parseUnits("1000", outDecimals)
+  //             .mul(usdToNative)
+  //             .div(outTknInMatic); // makerGives
+
+  //           const ofrTx = await repostLogic.newOffer(
+  //             outbound_tkn.address, //e.g weth
+  //             inbound_tkn.address, //e.g dai
+  //             makerWants,
+  //             makerGives,
+  //             ofr_gasreq,
+  //             ofr_gasprice,
+  //             ofr_pivot
+  //           );
+  //           await ofrTx.wait();
+
+  //           const book = await reader.offerList(
+  //             outbound_tkn.address,
+  //             inbound_tkn.address,
+  //             ethers.BigNumber.from(0),
+  //             ethers.BigNumber.from(1)
+  //           );
+  //           lc.logOrderBook(book, outbound_tkn, inbound_tkn);
+  //           const tx = await mgv.marketOrder(
+  //             outbound_tkn.address,
+  //             inbound_tkn.address,
+  //             makerGives,
+  //             makerWants,
+  //             true
+  //           );
+  //           tx.wait();
+  //           lc.logOrderBook(book, outbound_tkn, inbound_tkn);
+  //         }
+  //       }
+  //     }
+  //     lc.sleep(5000);
+  //     lc.stopListeners([mgv]);
+  //   });
 });
 
 // const usdc_decimals = await usdc.decimals();
-// const filter_PosthookFail = mgv.filters.PosthookFail();
+// const filter_PosthookFail = mgv.filters.PosthookFailure();
 // mgv.once(filter_PosthookFail, (
 //   outbound_tkn,
 //   inbound_tkn,

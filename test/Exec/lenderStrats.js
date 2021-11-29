@@ -50,16 +50,20 @@ async function execLenderStrat(
     "Incorrect given amount"
   );
 
-  // checking that MakerContract did put WETH on lender
   await lc.expectAmountOnLender(players.maker.address, lenderName, [
     ["DAI", lc.parseToken("200", await lc.getDecimals("DAI")), zero, 4],
-    ["WETH", takerGave, zero, 8],
   ]);
   await lc.logLenderStatus(
     makerContract,
     lenderName,
     ["DAI", "WETH"],
     players.maker.address
+  );
+  let weth = await lc.getContract("WETH");
+  lc.assertEqualBN(
+    await weth.balanceOf(players.maker.address),
+    takerGave,
+    "Incorrect received amount for maker"
   );
 }
 

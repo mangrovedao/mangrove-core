@@ -25,7 +25,9 @@ contract SwingingMarketMaker is CompoundTrader {
     address _unitroller,
     address payable _MGV,
     address wethAddress
-  ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {}
+  ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {
+    setGasreq(800_000);
+  }
 
   // sets P(tk0|tk1)
   // one wants P(tk0|tk1).P(tk1|tk0) >= 1

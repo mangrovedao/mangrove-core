@@ -20,7 +20,9 @@ contract PriceFed is Defensive, AaveLender {
     address _oracle,
     address _addressesProvider,
     address payable _MGV
-  ) Defensive(_oracle) AaveModule(_addressesProvider, 0) MangroveOffer(_MGV) {}
+  ) Defensive(_oracle) AaveModule(_addressesProvider, 0) MangroveOffer(_MGV) {
+    setGasreq(800_000);
+  }
 
   event Slippage(uint indexed offerId, uint old_wants, uint new_wants);
 

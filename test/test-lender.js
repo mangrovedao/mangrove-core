@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const lc = require("lib/libcommon.js");
 const { listenMgv, parseToken, listenERC20 } = require("../lib/libcommon");
 
-const { execLenderStrat, execTraderStrat } = require("./Exec/lenderStrats");
+const { execTraderStrat } = require("./Exec/lenderStrats");
 
 let testSigner = null;
 

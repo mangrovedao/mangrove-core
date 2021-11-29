@@ -17,7 +17,9 @@ contract SimpleAaveRetail is AaveLender {
   constructor(address _addressesProvider, address payable _MGV)
     AaveModule(_addressesProvider, 0)
     MangroveOffer(_MGV)
-  {}
+  {
+    setGasreq(800_000);
+  }
 
   // Tries to take base directly from `this` balance. Fetches the remainder on Aave.
   function __get__(uint amount, MgvLib.SingleOrder calldata order)

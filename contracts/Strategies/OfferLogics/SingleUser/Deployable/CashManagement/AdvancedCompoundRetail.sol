@@ -18,7 +18,9 @@ contract AdvancedCompoundRetail is CompoundTrader {
     address _unitroller,
     address payable _MGV,
     address wethAddress
-  ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {}
+  ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {
+    setGasreq(800_000);
+  }
 
   // Tries to take base directly from `this` balance. Fetches the remainder on Compound.
   function __get__(uint amount, MgvLib.SingleOrder calldata order)

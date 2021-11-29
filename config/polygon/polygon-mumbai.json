@@ -5,15 +5,29 @@
     "tokens": {
         "dai": {
             "address": "0x001B3B4d0F3714Ca98ba10F6042DaEbF0B1B7b6F",
-            "abi": "config/polygon/abis/MintableERC20-abi.json"
+            "abi": "config/polygon/abis/mumbai/MintableERC20-abi.json"
         },
         "wEth": {
             "address": "0x3C68CE8504087f89c640D02d133646d98e64ddd9",
-            "abi": "config/polygon/abis/MintableERC20-abi.json"
+            "abi": "config/polygon/abis/mumbai/MintableERC20-abi.json"
         },
         "usdc":{
             "address" : "0x2058A9D7613eEE744279e3856Ef0eAda5FCbaA7e",
-            "abi":"config/polygon/abis/MintableERC20-abi.json"
+            "abi":"config/polygon/abis/mumbai/MintableERC20-abi.json"
+        }
+    },
+    "faucets":{
+        "dai":{
+            "address": "0x3CbfeF76bF52cf8c5aF3b2E204e94A45034a2cF5",
+            "abi": "config/polygon/abis/mumbai/faucet-abi.json"
+        },
+        "usdc":{
+            "address": "0x1480376aB166Eb712CF944592d215ECe0D47f268",
+            "abi": "config/polygon/abis/mumbai/faucet-abi.json"
+        },
+        "wEth":{
+            "address": "0x36Eb4C5702131a10AC0D65bDa0236e3B8A38Bba8",
+            "abi": "config/polygon/abis/mumbai/faucet-abi.json"
         }
     },
     "aave" : {

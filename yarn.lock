@@ -915,6 +915,40 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@giry/faucet@workspace:packages/faucet":
+  version: 0.0.0-use.local
+  resolution: "@giry/faucet@workspace:packages/faucet"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.1
+    "@ethersproject/hardware-wallets": ^5.0.0
+    "@giry/hardhat-test-solidity": ^0.0.11
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    adhusson-hardhat-solpp: ^2.0.2
+    app-module-path: ^2.2.0
+    chai: ^4.3.4
+    chai-events: ^0.0.3
+    config: ^3.3.6
+    cross-env: ^7.0.3
+    dotenv-flow: ^3.2.0
+    ethers: ^5.4.6
+    fs: ^0.0.1-security
+    hardhat: ^2.4.1
+    hardhat-abi-exporter: ^2.3.0
+    hardhat-deploy: ^0.9.4
+    hardhat-deploy-ethers: ^0.3.0-beta.10
+    lint-staged: ^10.5.1
+    mocha: ^7.2.0
+    mocha-multi-reporters: ^1.5.1
+    npm-run-all: ^4.1.5
+    prettier: ^2.4.1
+    prettier-plugin-solidity: ^1.0.0-beta.3
+    rimraf: ^3.0.2
+    shelljs: ^0.8.4
+    solcco: ">=1.0.11"
+    yargs: ^17.1.1
+  languageName: unknown
+  linkType: soft
+
 "@giry/hardhat-test-solidity@npm:^0.0.11":
   version: 0.0.11
   resolution: "@giry/hardhat-test-solidity@npm:0.0.11"

@@ -18,12 +18,12 @@ async function deployStrat(mgv, players) {
 
   const aave = await lc.getContract("AAVE");
   const lendingPool = await lc.getContract("AAVEPOOL");
-  const Strat = (await ethers.getContractFactory("TakeProfit")).connect(
+  const Strat = (await ethers.getContractFactory("OfferProxy")).connect(
     players.deployer.signer
   );
-  let takeProfit = await Strat.deploy(aave.address, mgv.address);
+  let offerProxy = await Strat.deploy(aave.address, mgv.address);
 
-  await takeProfit.deployed();
+  await offerProxy.deployed();
 
   // Taker side premises
   // taker approves Mangrove for WETH (inbound) before trying to take offers
@@ -38,24 +38,24 @@ async function deployStrat(mgv, players) {
   // provisioning Mangrove in case offer fails
   // NB: for multi user offers this has to be done via the contract and not direclty
   let overrides = { value: lc.parseToken("2.0", 18) };
-  mkrTxs[i++] = await takeProfit
+  mkrTxs[i++] = await offerProxy
     .connect(players.maker.signer)
     .fundMangrove(overrides);
   // sanity check
   lc.assertEqualBN(
-    await mgv.balanceOf(takeProfit.address),
+    await mgv.balanceOf(offerProxy.address),
     lc.parseToken("2.0", 18),
     "Failed to fund the Mangrove"
   );
   lc.assertEqualBN(
-    await takeProfit.mgvBalanceOf(players.maker.address),
+    await offerProxy.mgvBalanceOf(players.maker.address),
     lc.parseToken("2.0", 18),
     "Failed to fund the user account"
   );
   // maker approves takerProfit for aDai (Dai is outbound) transfer
   mkrTxs[i++] = await aDai
     .connect(players.maker.signer)
-    .approve(takeProfit.address, ethers.constants.MaxUint256);
+    .approve(offerProxy.address, ethers.constants.MaxUint256);
   // Maker mints 1000 aDai on AAVE
   mkrTxs[i++] = await dai
     .connect(players.maker.signer)
@@ -66,34 +66,34 @@ async function deployStrat(mgv, players) {
   await lc.synch(mkrTxs);
 
   /*********************** DEPLOYER SIDE PREMICES **************************/
-  takeProfit = takeProfit.connect(players.deployer.signer);
+  offerProxy = offerProxy.connect(players.deployer.signer);
   let depTxs = [];
   let j = 0;
 
   // admin of makerContract
   // deployer asks MakerContract to approve Mangrove for DAI & WETH --here only DAI is needed
-  depTxs[j++] = await takeProfit.approveMangrove(
+  depTxs[j++] = await offerProxy.approveMangrove(
     dai.address,
     ethers.constants.MaxUint256
   );
-  depTxs[j++] = await takeProfit.approveMangrove(
+  depTxs[j++] = await offerProxy.approveMangrove(
     wEth.address,
     ethers.constants.MaxUint256
   );
   // maker contract need to approve lender for dai and weth transfer to be able to mint (during put)
-  depTxs[j++] = await takeProfit.approveLender(
+  depTxs[j++] = await offerProxy.approveLender(
     dai.address,
     ethers.constants.MaxUint256
   );
-  depTxs[j++] = await takeProfit.approveLender(
+  depTxs[j++] = await offerProxy.approveLender(
     wEth.address,
     ethers.constants.MaxUint256
   );
   await lc.synch(depTxs);
-  return takeProfit;
+  return offerProxy;
 }
 
-describe("Deploy takeProfit", function () {
+describe("Deploy offerProxy", function () {
   this.timeout(200_000); // Deployment is slow so timeout is increased
   let mgv;
   let reader;
@@ -136,9 +136,9 @@ describe("Deploy takeProfit", function () {
   });
 
   // testing strat
-  it("Take profit on aave", async function () {
-    let takeprofit = await deployStrat(mgv, players);
-    await execLenderStrat(takeprofit, mgv, reader, "aave", players);
+  it("Offer proxy on aave", async function () {
+    let offerProxy = await deployStrat(mgv, players);
+    await execLenderStrat(offerProxy, mgv, reader, "aave", players);
     lc.stopListeners([mgv]);
   });
 });

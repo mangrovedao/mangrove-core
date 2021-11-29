@@ -13,9 +13,20 @@ pragma solidity ^0.7.0;
 pragma abicoder v2;
 import "../AaveLender.sol";
 
-contract TakeProfit is MultiUserAaveLender {
+contract OfferProxy is MultiUserAaveLender {
   constructor(address _addressesProvider, address payable _MGV)
     AaveModule(_addressesProvider, 0)
     MangroveOffer(_MGV)
-  {}
+  {
+    setGasreq(800_000); // Offer proxy requires AAVE interactions
+  }
+
+  // overrides AaveLender.__put__ with MutliUser's one in order to put inbound token directly to user account
+  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+    override
+    returns (uint)
+  {
+    return (MultiUser.__put__(amount, order));
+  }
 }

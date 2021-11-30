@@ -24,7 +24,6 @@ function contractOfToken(tokenName) {
 }
 
 async function getMangrove() {
-  const provider = getProvider();
   const mgv = {};
   let main = await hre.ethers.getContract("Mangrove");
   mgv.reader = await hre.ethers.getContract("MgvReader");
@@ -46,9 +45,30 @@ function getCurrentNetworkEnv() {
 function getAave() {
   const env = getCurrentNetworkEnv();
   const lendingPoolAddr = tryGet(env, `aave.lendingPoolAddress`);
-  const lendingPoolAbi = require(tryGet(env, `aave.lendingPoolAddress`));
+  const lendingPoolAbi = require(tryGet(env, `aave.lendingPoolAbi`));
+  const addressesProviderAddr = tryGet(env, `aave.addressesProviderAddress`);
+  const addressesProviderAbi = require(tryGet(
+    env,
+    `aave.addressesProviderAbi`
+  ));
   const provider = getProvider();
-  return new ethers.Contract(lendingPoolAddr, lendingPoolAbi, provider);
+  const aave = {};
+  for (const name of ["wEth", "usdc", "dai"]) {
+    const aTokenAddress = tryGet(env, `aave.${name}.address`);
+    const aTokenAbi = require(tryGet(env, `aave.${name}.abi`));
+    aave[name] = new ethers.Contract(aTokenAddress, aTokenAbi, provider);
+  }
+  aave.lendingPool = new ethers.Contract(
+    lendingPoolAddr,
+    lendingPoolAbi,
+    provider
+  );
+  aave.addressesProvider = new ethers.Contract(
+    addressesProviderAddr,
+    addressesProviderAbi,
+    provider
+  );
+  return aave;
 }
 
 function getFaucet(faucetName) {

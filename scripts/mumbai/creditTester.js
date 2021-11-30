@@ -9,7 +9,6 @@ async function main() {
     process.env["MUMBAI_TESTER_PRIVATE_KEY"],
     helper.getProvider()
   );
-  const walletAddr = await wallet.getAddress();
 
   for (const name of ["wEth", "dai", "usdc"]) {
     let decimals = 18;
@@ -24,7 +23,7 @@ async function main() {
     const tx = await faucet
       .connect(wallet)
       .pull(ethers.utils.parseUnits(amount, decimals));
-    console.log(`Minting ${amount} ${name} for tester ${walletAddr}`);
+    console.log(`* Minting ${amount} ${name} for tester ${wallet.address}`);
     await tx.wait();
   }
 }

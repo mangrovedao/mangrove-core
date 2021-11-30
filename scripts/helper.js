@@ -43,8 +43,26 @@ function getCurrentNetworkEnv() {
   return env;
 }
 
+function getAave() {
+  const env = getCurrentNetworkEnv();
+  const lendingPoolAddr = tryGet(env, `aave.lendingPoolAddress`);
+  const lendingPoolAbi = require(tryGet(env, `aave.lendingPoolAddress`));
+  const provider = getProvider();
+  return new ethers.Contract(lendingPoolAddr, lendingPoolAbi, provider);
+}
+
+function getFaucet(faucetName) {
+  const env = getCurrentNetworkEnv();
+  const faucetAddr = tryGet(env, `faucets.${faucetName}.address`);
+  const faucetAbi = require(tryGet(env, `faucets.${faucetName}.abi`));
+  const provider = getProvider();
+  return new ethers.Contract(faucetAddr, faucetAbi, provider);
+}
+
 exports.sleep = sleep;
 exports.getMangrove = getMangrove;
 exports.getCurrentNetworkEnv = getCurrentNetworkEnv;
 exports.contractOfToken = contractOfToken;
 exports.getProvider = getProvider;
+exports.getAave = getAave;
+exports.getFaucet = getFaucet;

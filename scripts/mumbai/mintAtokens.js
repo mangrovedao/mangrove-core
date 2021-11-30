@@ -27,7 +27,7 @@ async function main() {
       .approve(lendingPool.address, ethers.constants.MaxUint256);
     await Approvetx.wait();
 
-    let txGasReq = ethers.BigNumber.from(300000);
+    let txGasReq = ethers.BigNumber.from(500000);
     let overrides = { gasLimit: txGasReq };
     const mintTx = await lendingPool.deposit(
       erc.address,

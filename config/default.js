@@ -29,7 +29,7 @@ config.hardhat = {
       blockGasLimit: 7000000000,
       allowUnlimitedContractSize: true,
       // FIXME: Should definitely not be Mumbai's chainid
-      //      chainId: 80001,  // change if deploying on another network than mumba
+      chainId: 80001, // change if deploying on another network than mumba
     },
     mumbai: {
       gasPrice: 30 * 10 ** 9,

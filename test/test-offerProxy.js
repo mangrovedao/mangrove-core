@@ -80,16 +80,16 @@ async function deployStrat(mgv, players) {
     wEth.address,
     ethers.constants.MaxUint256
   );
-  // maker contract need to approve lender for dai and weth transfer to be able to mint (during put)
-  depTxs[j++] = await offerProxy.approveLender(
-    dai.address,
-    ethers.constants.MaxUint256
-  );
-  depTxs[j++] = await offerProxy.approveLender(
-    wEth.address,
-    ethers.constants.MaxUint256
-  );
-  await lc.synch(depTxs);
+  // maker contract need to approve lender for dai and weth transfer to be able to mint (not used for now in put)
+  // depTxs[j++] = await offerProxy.approveLender(
+  //   dai.address,
+  //   ethers.constants.MaxUint256
+  // );
+  // depTxs[j++] = await offerProxy.approveLender(
+  //   wEth.address,
+  //   ethers.constants.MaxUint256
+  // );
+  // await lc.synch(depTxs);
   return offerProxy;
 }
 

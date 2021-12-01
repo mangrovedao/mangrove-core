@@ -1,10 +1,20 @@
 const hre = require("hardhat");
 const helper = require("../helper");
+const chalk = require("chalk");
 
 async function main() {
   const offerProxy = await hre.ethers.getContract("OfferProxy");
-
   const weth = helper.contractOfToken("wEth").connect(offerProxy.signer);
+  const mgv = await helper.getMangrove();
+
+  if ((await weth.allowance(offerProxy.address, mgv.contract.address)) > 0) {
+    console.log(
+      chalk.yellow(
+        "Markets are already active for this instance of OfferProxy, exiting."
+      )
+    );
+    return;
+  }
   const dai = helper.contractOfToken("dai").connect(offerProxy.signer);
   const usdc = helper.contractOfToken("usdc").connect(offerProxy.signer);
 

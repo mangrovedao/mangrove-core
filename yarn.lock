@@ -1006,6 +1006,7 @@ __metadata:
   resolution: "@giry/mangrove-solidity@workspace:packages/mangrove-solidity"
   dependencies:
     "@espendk/json-file-reporter": ^1.4.1
+    "@ethersproject/experimental": ^5.5.0
     "@ethersproject/hardware-wallets": ^5.0.0
     "@giry/hardhat-test-solidity": ^0.0.11
     "@nomiclabs/hardhat-ethers": ^2.0.2

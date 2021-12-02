@@ -2,6 +2,7 @@ const hre = require("hardhat");
 const helper = require("../helper");
 const { logOrderBook } = require("../../lib/libcommon");
 const chalk = require("chalk");
+const { NonceManager } = require("@ethersproject/experimental");
 
 async function main() {
   if (!process.env["MUMBAI_OBFILLER_PRIVATE_KEY"]) {
@@ -11,13 +12,14 @@ async function main() {
     process.env["MUMBAI_OBFILLER_PRIVATE_KEY"],
     helper.getProvider()
   );
+  const nonceManager = new NonceManager(wallet);
 
   const mgvContracts = await helper.getMangrove();
   console.log(
     "Running script on Mangrove",
     chalk.gray(`(${mgvContracts.contract.address})`)
   );
-  const mgv = mgvContracts.contract.connect(wallet);
+  const mgv = mgvContracts.contract.connect(nonceManager);
 
   const weth = helper.contractOfToken("wEth");
   const dai = helper.contractOfToken("dai");
@@ -40,13 +42,14 @@ async function main() {
             outbound_tkn.address,
             inbound_tkn.address,
             ethers.BigNumber.from(0),
-            ethers.BigNumber.from(50)
+            ethers.BigNumber.from(1000)
           );
         await logOrderBook(
           [id, offerIds, offers, offerDetails],
           outbound_tkn,
           inbound_tkn
         );
+        const retractTxPromises = [];
         for (const i in offerDetails) {
           if (offerDetails[i].maker == wallet.address) {
             const provision = await mgv.callStatic.retractOffer(
@@ -55,23 +58,28 @@ async function main() {
               offerIds[i],
               true
             );
-            const tx = await mgv.retractOffer(
-              outbound_tkn.address,
-              inbound_tkn.address,
-              offerIds[i],
-              true
-            );
-            await tx.wait();
-            console.log(
-              `* Offer`,
-              chalk.gray(offerIds[i].toString()),
-              `retracted, ${ethers.utils.formatUnits(
-                provision,
-                18
-              )} was credited to OBFiller provisions`
-            );
+            const txPromise = mgv
+              .retractOffer(
+                outbound_tkn.address,
+                inbound_tkn.address,
+                offerIds[i],
+                true
+              )
+              .then((tx) => tx.wait())
+              .then((txReceipt) => {
+                console.log(
+                  `* Offer`,
+                  chalk.gray(offerIds[i].toString()),
+                  `retracted, ${ethers.utils.formatUnits(
+                    provision,
+                    18
+                  )} was credited to OBFiller provisions`
+                );
+              });
+            retractTxPromises.push(txPromise);
           }
         }
+        await Promise.allSettled(retractTxPromises);
       }
     }
   }

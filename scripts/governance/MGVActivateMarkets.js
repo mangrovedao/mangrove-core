@@ -40,6 +40,11 @@ async function main() {
     `Setting mangrove gasprice to ${oracle_gasprice} GWEI`
   );
 
+  const gasmaxTx = await mgv.contract.setGasmax(ethers.BigNumber.from(1500000));
+  await gasmaxTx.wait();
+
+  console.log(chalk.yellow("*"), `Setting mangrove gasmax to 1.5M`);
+
   const mgv_gasprice = ethers.utils.parseUnits("1", 9).mul(oracle_gasprice); //GWEI
 
   for (const [

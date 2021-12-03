@@ -27,6 +27,7 @@ if (!process.env.POLYGON_NODE_URL) {
 config.hardhat = {
   networks: {
     hardhat: {
+      timeout: 50000,
       forking: {
         url: process.env.POLYGON_NODE_URL,
         blockNumber: 18552121,

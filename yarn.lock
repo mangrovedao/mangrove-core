@@ -966,6 +966,7 @@ __metadata:
     "@types/mocha": ^8.2.0
     "@types/node": ^14.0.11
     "@types/shelljs": ^0.8.9
+    "@types/yargs": ^17.0.7
     "@typescript-eslint/eslint-plugin": ^4.31.1
     "@typescript-eslint/parser": ^4.2.0
     big.js: ^6.1.1
@@ -998,6 +999,7 @@ __metadata:
     typechain: ^6.0.2
     typedoc: ^0.22.3
     typescript: ^4.4.0
+    yargs: ^17.3.0
   languageName: unknown
   linkType: soft
 
@@ -1836,6 +1838,22 @@ __metadata:
     "@types/glob": "*"
     "@types/node": "*"
   checksum: 3d36b010d84665eed34076b4d4501c81f327df5e0c4062183bd2ce14ad927e82de2d1b00d49d356f9cc48390dd6b4db7b38fa221bc9f0eeb63cb7f873cd09fe4
+  languageName: node
+  linkType: hard
+
+"@types/yargs-parser@npm:*":
+  version: 20.2.1
+  resolution: "@types/yargs-parser@npm:20.2.1"
+  checksum: 1d039e64494a7a61ddd278349a3dc60b19f99ff0517425696e796f794e4252452b9d62178e69755ad03f439f9dc0c8c3d7b3a1201b3a24e134bac1a09fa11eaa
+  languageName: node
+  linkType: hard
+
+"@types/yargs@npm:^17.0.7":
+  version: 17.0.7
+  resolution: "@types/yargs@npm:17.0.7"
+  dependencies:
+    "@types/yargs-parser": "*"
+  checksum: 520e803720b2a626338c0e2b61825dd1b956910fec4d855018c17e62cf9fb41eb67bcf122ba5c6fb569b1bfac73520d5d73e8be502b87f9a551619df441b1875
   languageName: node
   linkType: hard
 
@@ -9927,6 +9945,13 @@ typescript@^3.9.3:
   languageName: node
   linkType: hard
 
+"yargs-parser@npm:^21.0.0":
+  version: 21.0.0
+  resolution: "yargs-parser@npm:21.0.0"
+  checksum: 1e205fca1cb7a36a1585e2b94a64e641c12741b53627d338e12747f4dca3c3610cdd9bb235040621120548dd74c3ef03a8168d52a1eabfedccbe4a62462b6731
+  languageName: node
+  linkType: hard
+
 "yargs-unparser@npm:1.6.0":
   version: 1.6.0
   resolution: "yargs-unparser@npm:1.6.0"
@@ -10014,6 +10039,21 @@ typescript@^3.9.3:
     y18n: ^5.0.5
     yargs-parser: ^20.2.2
   checksum: 451aac46f82da776f436018feed0244bc0e7b4355f7e397bcb53d34c691b177c0d71db3dda9653760e1bc240254d8b763a252ff918ef9e235a8d202e2909c4eb
+  languageName: node
+  linkType: hard
+
+"yargs@npm:^17.3.0":
+  version: 17.3.0
+  resolution: "yargs@npm:17.3.0"
+  dependencies:
+    cliui: ^7.0.2
+    escalade: ^3.1.1
+    get-caller-file: ^2.0.5
+    require-directory: ^2.1.1
+    string-width: ^4.2.3
+    y18n: ^5.0.5
+    yargs-parser: ^21.0.0
+  checksum: 2b687338684bf9645e9389ffdbe813fc5a2ddfede299d46fbe5ac80eb9a391e558b97861ba44d2256936ebe9d7f8135f6a38af1c76a5685eac4061008b2df57a
   languageName: node
   linkType: hard
 

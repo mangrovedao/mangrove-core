@@ -849,8 +849,8 @@ __metadata:
     "@ethersproject/hardware-wallets": ^5.4.0
     "@giry/commonlib-js": "workspace:*"
     "@giry/hardhat-utils": "workspace:*"
-    "@giry/mangrove-js": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
+    "@giry/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.22
@@ -945,9 +945,44 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@giry/mangrove-js@workspace:*, @giry/mangrove-js@workspace:packages/mangrove.js":
+"@giry/mangrove-solidity@workspace:*, @giry/mangrove-solidity@workspace:packages/mangrove-solidity":
   version: 0.0.0-use.local
-  resolution: "@giry/mangrove-js@workspace:packages/mangrove.js"
+  resolution: "@giry/mangrove-solidity@workspace:packages/mangrove-solidity"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.1
+    "@ethersproject/experimental": ^5.5.0
+    "@ethersproject/hardware-wallets": ^5.0.0
+    "@giry/hardhat-test-solidity": ^0.0.11
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    adhusson-hardhat-solpp: ^2.0.2
+    app-module-path: ^2.2.0
+    chai: ^4.3.4
+    chai-events: ^0.0.3
+    config: ^3.3.6
+    cross-env: ^7.0.3
+    dotenv-flow: ^3.2.0
+    ethers: ^5.4.6
+    fs: ^0.0.1-security
+    hardhat: ^2.4.1
+    hardhat-abi-exporter: ^2.3.0
+    hardhat-deploy: ^0.9.4
+    hardhat-deploy-ethers: ^0.3.0-beta.10
+    lint-staged: ^10.5.1
+    mocha: ^7.2.0
+    mocha-multi-reporters: ^1.5.1
+    npm-run-all: ^4.1.5
+    prettier: ^2.4.1
+    prettier-plugin-solidity: ^1.0.0-beta.3
+    rimraf: ^3.0.2
+    shelljs: ^0.8.4
+    solcco: ">=1.0.11"
+    yargs: ^17.1.1
+  languageName: unknown
+  linkType: soft
+
+"@giry/mangrove.js@workspace:*, @giry/mangrove.js@workspace:packages/mangrove.js":
+  version: 0.0.0-use.local
+  resolution: "@giry/mangrove.js@workspace:packages/mangrove.js"
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
     "@ethersproject/abi": ^5.0.0
@@ -1003,41 +1038,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@giry/mangrove-solidity@workspace:*, @giry/mangrove-solidity@workspace:packages/mangrove-solidity":
-  version: 0.0.0-use.local
-  resolution: "@giry/mangrove-solidity@workspace:packages/mangrove-solidity"
-  dependencies:
-    "@espendk/json-file-reporter": ^1.4.1
-    "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.0.0
-    "@giry/hardhat-test-solidity": ^0.0.11
-    "@nomiclabs/hardhat-ethers": ^2.0.2
-    adhusson-hardhat-solpp: ^2.0.2
-    app-module-path: ^2.2.0
-    chai: ^4.3.4
-    chai-events: ^0.0.3
-    config: ^3.3.6
-    cross-env: ^7.0.3
-    dotenv-flow: ^3.2.0
-    ethers: ^5.4.6
-    fs: ^0.0.1-security
-    hardhat: ^2.4.1
-    hardhat-abi-exporter: ^2.3.0
-    hardhat-deploy: ^0.9.4
-    hardhat-deploy-ethers: ^0.3.0-beta.10
-    lint-staged: ^10.5.1
-    mocha: ^7.2.0
-    mocha-multi-reporters: ^1.5.1
-    npm-run-all: ^4.1.5
-    prettier: ^2.4.1
-    prettier-plugin-solidity: ^1.0.0-beta.3
-    rimraf: ^3.0.2
-    shelljs: ^0.8.4
-    solcco: ">=1.0.11"
-    yargs: ^17.1.1
-  languageName: unknown
-  linkType: soft
-
 "@giry/obfiller-bot@workspace:packages/obfiller-bot":
   version: 0.0.0-use.local
   resolution: "@giry/obfiller-bot@workspace:packages/obfiller-bot"
@@ -1047,8 +1047,8 @@ __metadata:
     "@ethersproject/hardware-wallets": ^5.4.0
     "@giry/commonlib-js": "workspace:*"
     "@giry/hardhat-utils": "workspace:*"
-    "@giry/mangrove-js": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
+    "@giry/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.22
@@ -1096,8 +1096,8 @@ __metadata:
     "@ethersproject/hardware-wallets": ^5.4.0
     "@giry/commonlib-js": "workspace:*"
     "@giry/hardhat-utils": "workspace:*"
-    "@giry/mangrove-js": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
+    "@giry/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.21
@@ -1144,8 +1144,8 @@ __metadata:
     "@ethersproject/hardware-wallets": ^5.4.0
     "@giry/commonlib-js": "workspace:*"
     "@giry/hardhat-utils": "workspace:*"
-    "@giry/mangrove-js": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
+    "@giry/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.21

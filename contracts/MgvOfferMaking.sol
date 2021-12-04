@@ -78,7 +78,7 @@ contract MgvOfferMaking is MgvHasOffers {
     activeMarketOnly(ofp.global, ofp.local);
 
     ofp.id = 1 + $$(local_last("ofp.local"));
-    require(uint24(ofp.id) == ofp.id, "mgv/offerIdOverflow");
+    require(uint32(ofp.id) == ofp.id, "mgv/offerIdOverflow");
 
     ofp.local = $$(set_local("ofp.local", [["last", "ofp.id"]]));
 
@@ -179,13 +179,20 @@ contract MgvOfferMaking is MgvHasOffers {
       }
     }
     /* Set `gives` to 0. Moreover, the last argument depends on whether the user wishes to get their provision back (if true, `gasprice` will be set to 0 as well). */
-    dirtyDeleteOffer(outbound_tkn, inbound_tkn, offerId, offer, deprovision);
+    dirtyDeleteOffer(
+      outbound_tkn,
+      inbound_tkn,
+      offerId,
+      offer,
+      offerDetail,
+      deprovision
+    );
 
     /* If the user wants to get their provision back, we compute its provision from the offer's `gasprice`, `*_gasbase` and `gasreq`. */
     if (deprovision) {
       provision =
         10**9 *
-        $$(offer_gasprice("offer")) * //gasprice is 0 if offer was deprovisioned
+        $$(offerDetail_gasprice("offerDetail")) * //gasprice is 0 if offer was deprovisioned
         ($$(offerDetail_gasreq("offerDetail")) +
           $$(offerDetail_overhead_gasbase("offerDetail")) +
           $$(offerDetail_offer_gasbase("offerDetail")));
@@ -293,16 +300,17 @@ contract MgvOfferMaking is MgvHasOffers {
         );
         oldProvision =
           10**9 *
-          $$(offer_gasprice("ofp.oldOffer")) *
+          $$(offerDetail_gasprice("offerDetail")) *
           ($$(offerDetail_gasreq("offerDetail")) +
             $$(offerDetail_overhead_gasbase("offerDetail")) +
             $$(offerDetail_offer_gasbase("offerDetail")));
       }
 
-      /* If the offer is new, has a new `gasreq`, or if the Mangrove's `*_gasbase` configuration parameter has changed, we also update `offerDetails`. */
+      /* If the offer is new, has a new `gasprice`, `gasreq`, or if the Mangrove's `*_gasbase` configuration parameter has changed, we also update `offerDetails`. */
       if (
         !update ||
         $$(offerDetail_gasreq("offerDetail")) != ofp.gasreq ||
+        $$(offerDetail_gasprice("offerDetail")) != ofp.gasprice ||
         $$(offerDetail_overhead_gasbase("offerDetail")) !=
         $$(local_overhead_gasbase("ofp.local")) ||
         $$(offerDetail_offer_gasbase("offerDetail")) !=
@@ -316,7 +324,8 @@ contract MgvOfferMaking is MgvHasOffers {
               ["maker", "uint(msg.sender)"],
               ["gasreq", "ofp.gasreq"],
               ["overhead_gasbase", "overhead_gasbase"],
-              ["offer_gasbase", "offer_gasbase"]
+              ["offer_gasbase", "offer_gasbase"],
+              ["gasprice", "ofp.gasprice"]
             ]
           )
         );
@@ -383,8 +392,7 @@ contract MgvOfferMaking is MgvHasOffers {
           ["prev", "prev"],
           ["next", "next"],
           ["wants", "ofp.wants"],
-          ["gives", "ofp.gives"],
-          ["gasprice", "ofp.gasprice"]
+          ["gives", "ofp.gives"]
         ]
       )
     );

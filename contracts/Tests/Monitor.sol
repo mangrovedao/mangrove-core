@@ -177,6 +177,7 @@ contract Monitor_Test {
     mgv.setNotify(true);
     uint ofrId = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     bytes32 offer = mgv.offers(base, quote, ofrId);
+    bytes32 offerDetail = mgv.offerDetails(base, quote, ofrId);
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofrId, 0.04 ether, 0.05 ether, 100_000];
@@ -194,7 +195,7 @@ contract Monitor_Test {
       offer: offer,
       wants: 0.04 ether,
       gives: 0.04 ether, // gives has been updated to offer price
-      offerDetail: mgv.offerDetails(base, quote, ofrId),
+      offerDetail: offerDetail, // gasprice logged will still be as before failure
       global: _global,
       local: _local
     });

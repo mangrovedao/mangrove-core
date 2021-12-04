@@ -561,12 +561,9 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
     MgvLib.OrderResult calldata
   ) external {
     called = true;
-    (, , uint __wants, uint __gives, uint __gasprice) = MgvPack.offer_unpack(
-      order.offer
-    );
-    (address __maker, uint __gasreq, , ) = MgvPack.offerDetail_unpack(
-      order.offerDetail
-    );
+    (, , uint __wants, uint __gives) = MgvPack.offer_unpack(order.offer);
+    (address __maker, uint __gasreq, , , uint __gasprice) = MgvPack
+      .offerDetail_unpack(order.offerDetail);
     TestEvents.eq(__wants, 1 ether, "Incorrect wants for offer in posthook");
     TestEvents.eq(__gives, 2 ether, "Incorrect gives for offer in posthook");
     TestEvents.eq(__gasprice, 500, "Incorrect gasprice for offer in posthook");

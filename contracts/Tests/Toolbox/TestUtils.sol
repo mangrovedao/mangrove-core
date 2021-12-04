@@ -329,7 +329,7 @@ library TestUtils {
     if (infKey == Info.gasreq) {
       return offerDetail.gasreq;
     } else {
-      return offer.gasprice;
+      return offerDetail.gasprice;
     }
   }
 

@@ -618,6 +618,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sor.inbound_tkn,
       sor.offerId,
       sor.offer,
+      sor.offerDetail,
       mgvData != "mgv/tradeSuccess"
     );
   }
@@ -784,9 +785,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
    * If the transaction was a success, we entirely refund the maker and send nothing to the taker.
    * Otherwise, the maker loses the cost of `gasused + overhead_gasbase/n + offer_gasbase` gas, where `n` is the number of failed offers. The gas price is estimated by `gasprice`.
-   * To create the offer, the maker had to provision for `gasreq + overhead_gasbase/n + offer_gasbase` gas at a price of `offer.gasprice`.
+   * To create the offer, the maker had to provision for `gasreq + overhead_gasbase/n + offer_gasbase` gas at a price of `offerDetail.gasprice`.
    * We do not consider the tx.gasprice.
-   * `offerDetail.gasbase` and `offer.gasprice` are the values of the Mangrove parameters `config.*_gasbase` and `config.gasprice` when the offer was created. Without caching those values, the provision set aside could end up insufficient to reimburse the maker (or to retribute the taker).
+   * `offerDetail.gasbase` and `offerDetail.gasprice` are the values of the Mangrove parameters `config.*_gasbase` and `config.gasprice` when the offer was created. Without caching those values, the provision set aside could end up insufficient to reimburse the maker (or to retribute the taker).
    */
   function applyPenalty(
     ML.SingleOrder memory sor,
@@ -796,7 +797,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint gasreq = $$(offerDetail_gasreq("sor.offerDetail"));
 
     uint provision = 10**9 *
-      $$(offer_gasprice("sor.offer")) *
+      $$(offerDetail_gasprice("sor.offerDetail")) *
       (gasreq +
         $$(offerDetail_overhead_gasbase("sor.offerDetail")) +
         $$(offerDetail_offer_gasbase("sor.offerDetail")));

@@ -60,8 +60,8 @@ contract TradeHandler {
       uint gasprice
     )
   {
-    gasreq = MP.offerDetail_unpack_gasreq(order.offerDetail);
-    (, , offer_wants, offer_gives, gasprice) = MP.offer_unpack(order.offer);
+    (, gasreq, , , gasprice) = MP.offerDetail_unpack(order.offerDetail);
+    (, , offer_wants, offer_gives) = MP.offer_unpack(order.offer);
   }
 
   function _getMissingProvision(
@@ -98,7 +98,7 @@ contract TradeHandler {
     ) +
       MP.offerDetail_unpack_overhead_gasbase(offerDetailData) +
       MP.offerDetail_unpack_offer_gasbase(offerDetailData)) *
-      MP.offer_unpack_gasprice(offerData) *
+      MP.offerDetail_unpack_gasprice(offerDetailData) *
       10**9;
     uint currentProvision = currentProvisionLocked +
       mgv.balanceOf(address(this));

@@ -63,8 +63,7 @@ contract MgvHasOffers is MgvRoot {
       prev: $$(offer_prev("offer")),
       next: $$(offer_next("offer")),
       wants: $$(offer_wants("offer")),
-      gives: $$(offer_gives("offer")),
-      gasprice: $$(offer_gasprice("offer"))
+      gives: $$(offer_gives("offer"))
     });
 
     bytes32 offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
@@ -73,7 +72,8 @@ contract MgvHasOffers is MgvRoot {
       maker: $$(offerDetail_maker("offerDetail")),
       gasreq: $$(offerDetail_gasreq("offerDetail")),
       overhead_gasbase: $$(offerDetail_overhead_gasbase("offerDetail")),
-      offer_gasbase: $$(offerDetail_offer_gasbase("offerDetail"))
+      offer_gasbase: $$(offerDetail_offer_gasbase("offerDetail")),
+      gasprice: $$(offerDetail_gasprice("offerDetail"))
     });
     return (offerStruct, offerDetailStruct);
   }
@@ -96,7 +96,7 @@ contract MgvHasOffers is MgvRoot {
   /* # Misc. low-level functions */
   /* ## Offer deletion */
 
-  /* When an offer is deleted, it is marked as such by setting `gives` to 0. Note that provision accounting in the Mangrove aims to minimize writes. Each maker `fund`s the Mangrove to increase its balance. When an offer is created/updated, we compute how much should be reserved to pay for possible penalties. That amount can always be recomputed with `offer.gasprice * (offerDetail.gasreq + offerDetail.overhead_gasbase + offerDetail.offer_gasbase)`. The balance is updated to reflect the remaining available ethers.
+  /* When an offer is deleted, it is marked as such by setting `gives` to 0. Note that provision accounting in the Mangrove aims to minimize writes. Each maker `fund`s the Mangrove to increase its balance. When an offer is created/updated, we compute how much should be reserved to pay for possible penalties. That amount can always be recomputed with `offerDetail.gasprice * (offerDetail.gasreq + offerDetail.overhead_gasbase + offerDetail.offer_gasbase)`. The balance is updated to reflect the remaining available ethers.
 
      Now, when an offer is deleted, the offer can stay provisioned, or be `deprovision`ed. In the latter case, we set `gasprice` to 0, which induces a provision of 0. All code calling `dirtyDeleteOffer` with `deprovision` set to `true` must be careful to correctly account for where that provision is going (back to the maker's `balanceOf`, or sent to a taker as compensation). */
   function dirtyDeleteOffer(
@@ -104,13 +104,15 @@ contract MgvHasOffers is MgvRoot {
     address inbound_tkn,
     uint offerId,
     bytes32 offer,
+    bytes32 offerDetail,
     bool deprovision
   ) internal {
     offer = $$(set_offer("offer", [["gives", 0]]));
     if (deprovision) {
-      offer = $$(set_offer("offer", [["gasprice", 0]]));
+      offerDetail = $$(set_offerDetail("offerDetail", [["gasprice", 0]]));
     }
     offers[outbound_tkn][inbound_tkn][offerId] = offer;
+    offerDetails[outbound_tkn][inbound_tkn][offerId] = offerDetail;
   }
 
   /* ## Stitching the orderbook */

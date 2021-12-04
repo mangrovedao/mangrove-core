@@ -107,7 +107,7 @@ contract MgvGovernable is MgvRoot {
   ) public {
     authOnly();
 
-    require(checkDensity(density), "mgv/config/density/128bits");
+    require(checkDensity(density), "mgv/config/density/112bits");
     //+clear+
     locals[outbound_tkn][inbound_tkn] = $$(
       set_local("locals[outbound_tkn][inbound_tkn]", [["density", "density"]])

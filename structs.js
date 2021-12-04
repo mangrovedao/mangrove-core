@@ -39,7 +39,7 @@ const fields = {
 };
 
 const id_field = (name) => {
-  return { name, bits: 24, type: "uint" };
+  return { name, bits: 32, type: "uint" };
 };
 
 /* # Structs */
@@ -50,10 +50,10 @@ const id_field = (name) => {
 //+clear+
 const structs = {
   offer: [
-    /* * `prev` points to immediately better offer. The best offer's `prev` is 0. _24 bits wide_. */
+    /* * `prev` points to immediately better offer. The best offer's `prev` is 0. _32 bits wide_. */
 
     id_field("prev"),
-    /* * `next` points to the immediately worse offer. The worst offer's `next` is 0. _24 bits wide_. */
+    /* * `next` points to the immediately worse offer. The worst offer's `next` is 0. _32 bits wide_. */
     id_field("next"),
     /* * `wants` is the amount of `inbound_tkn` the offer wants in exchange for `gives`.
      _96 bits wide_, so assuming the usual 18 decimals, amounts can only go up to
@@ -63,8 +63,6 @@ const structs = {
     _96 bits wide_, so assuming the usual 18 decimals, amounts can only go up to
     10 billions. */
     fields.gives,
-    /* * `gasprice` is in gwei/gas and _16 bits wide_, which accomodates 1 to ~65k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and the Mangrove's global `gasprice`. */
-    fields.gasprice,
   ],
 
   /* ## `OfferDetail` */
@@ -115,6 +113,8 @@ They have the following fields: */
     */
     fields.overhead_gasbase,
     fields.offer_gasbase,
+    /* * `gasprice` is in gwei/gas and _16 bits wide_, which accomodates 1 to ~65k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and the Mangrove's global `gasprice`. */
+    fields.gasprice,
   ],
 
   /* ## Configuration and state
@@ -143,8 +143,8 @@ They have the following fields: */
     { name: "active", bits: 8, type: "uint" },
     /* * `fee`, in basis points, of `outbound_tkn` given to the taker. This fee is sent to the Mangrove. Fee is capped to 5%. */
     { name: "fee", bits: 16, type: "uint" },
-    /* * `density` is similar to a 'dust' parameter. We prevent spamming of low-volume offers by asking for a minimum 'density' in `outbound_tkn` per gas requested. For instance, if `density == 10`, `offer_gasbase == 5000`, `overhead_gasbase == 0`, an offer with `gasreq == 30000` must promise at least _10 × (30000 + 5) = 305000_ `outbound_tkn`. */
-    { name: "density", bits: 128, type: "uint" },
+    /* * `density` is similar to a 'dust' parameter. We prevent spamming of low-volume offers by asking for a minimum 'density' in `outbound_tkn` per gas requested. For instance, if `density == 10`, `offer_gasbase == 5000`, `overhead_gasbase == 0`, an offer with `gasreq == 30000` must promise at least _10 × (30000 + 5) = 305000_ `outbound_tkn`. _112 bits wide_. */
+    { name: "density", bits: 112, type: "uint" },
     /* * `overhead_gasbase` is an overapproximation of the gas overhead consumed by making an order (snipes or market order). Local to a pair because the costs of paying the fee depends on the relevant ERC20 contract. */
     fields.overhead_gasbase,
     /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. Local to a pair because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
@@ -161,7 +161,7 @@ Note: An optimization in the `marketOrder` function relies on reentrancy being f
     { name: "lock", bits: 8, type: "uint" },
     /* * `best` holds the current best offer id. Has size of an id field. *Danger*: reading best inside a lock may give you a stale value. */
     id_field("best"),
-    /* * `last` is a counter for offer ids, incremented every time a new offer is created. It can't go above $2^{24}-1$. */
+    /* * `last` is a counter for offer ids, incremented every time a new offer is created. It can't go above $2^{32}-1$. */
     id_field("last"),
   ],
 };

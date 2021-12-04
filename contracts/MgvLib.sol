@@ -27,7 +27,6 @@ library MgvLib {
     uint next;
     uint gives;
     uint wants;
-    uint gasprice;
   }
 
   struct OfferDetail {
@@ -35,6 +34,7 @@ library MgvLib {
     uint gasreq;
     uint overhead_gasbase;
     uint offer_gasbase;
+    uint gasprice;
   }
   struct Global {
     address monitor;

@@ -317,10 +317,10 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
   }
 
   function set_density_ceiling_test() public {
-    try mgv.setDensity(base, quote, uint(type(uint128).max) + 1) {
+    try mgv.setDensity(base, quote, uint(type(uint112).max) + 1) {
       TestEvents.fail("density above ceiling should fail");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/config/density/128bits");
+      TestUtils.revertEq(r, "mgv/config/density/112bits");
     }
   }
 

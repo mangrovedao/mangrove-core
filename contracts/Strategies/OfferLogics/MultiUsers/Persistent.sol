@@ -31,7 +31,7 @@ abstract contract MultiUserPersistent is MultiUser {
         new_wants,
         new_gives,
         MP.offerDetail_unpack_gasreq(order.offerDetail),
-        MP.offer_unpack_gasprice(order.offer),
+        MP.offerDetail_unpack_gasprice(order.offerDetail),
         MP.offer_unpack_next(order.offer),
         order.offerId
       )

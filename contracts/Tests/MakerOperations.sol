@@ -312,11 +312,15 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       !mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Offer was not removed from OB"
     );
-    (ML.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
+    (ML.Offer memory offer, ML.OfferDetail memory offerDetail) = mgv.offerInfo(
+      _base,
+      _quote,
+      ofr
+    );
     TestEvents.eq(offer.prev, ofr0, "Invalid prev");
     TestEvents.eq(offer.next, ofr1, "Invalid next");
     TestEvents.eq(offer.gives, 0, "offer gives was not set to 0");
-    TestEvents.eq(offer.gasprice, 100, "offer gasprice is incorrect");
+    TestEvents.eq(offerDetail.gasprice, 100, "offer gasprice is incorrect");
 
     TestEvents.check(
       mgv.isLive(mgv.offers(_base, _quote, offer.prev)),
@@ -347,11 +351,15 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       !mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Offer was not removed from OB"
     );
-    (ML.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
+    (ML.Offer memory offer, ML.OfferDetail memory offerDetail) = mgv.offerInfo(
+      _base,
+      _quote,
+      ofr
+    );
     TestEvents.eq(offer.prev, 0, "Invalid prev");
     TestEvents.eq(offer.next, ofr1, "Invalid next");
     TestEvents.eq(offer.gives, 0, "offer gives was not set to 0");
-    TestEvents.eq(offer.gasprice, 100, "offer gasprice is incorrect");
+    TestEvents.eq(offerDetail.gasprice, 100, "offer gasprice is incorrect");
 
     TestEvents.check(
       mgv.isLive(mgv.offers(_base, _quote, offer.next)),
@@ -382,11 +390,15 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       "Offer was not removed from OB"
     );
     mkr.retractOffer(ofr);
-    (ML.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
+    (ML.Offer memory offer, ML.OfferDetail memory offerDetail) = mgv.offerInfo(
+      _base,
+      _quote,
+      ofr
+    );
     TestEvents.eq(offer.prev, ofr0, "Invalid prev");
     TestEvents.eq(offer.next, 0, "Invalid next");
     TestEvents.eq(offer.gives, 0, "offer gives was not set to 0");
-    TestEvents.eq(offer.gasprice, 100, "offer gasprice is incorrect");
+    TestEvents.eq(offerDetail.gasprice, 100, "offer gasprice is incorrect");
 
     TestEvents.check(
       mgv.isLive(mgv.offers(_base, _quote, offer.prev)),
@@ -854,10 +866,14 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       0,
       "Maker should have no more provision on Mangrove"
     );
-    (MgvLib.Offer memory ofr, ) = mgv.offerInfo(_base, _quote, offerId);
+    (MgvLib.Offer memory ofr, MgvLib.OfferDetail memory dtl) = mgv.offerInfo(
+      _base,
+      _quote,
+      offerId
+    );
     TestEvents.eq(ofr.gives, 0, "Retracted offer should have 0 gives");
     TestEvents.eq(
-      ofr.gasprice,
+      dtl.gasprice,
       0,
       "Deprovisioned offer should have 0 gasprice"
     );

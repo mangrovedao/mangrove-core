@@ -25,8 +25,8 @@ library MgvLib {
   struct Offer {
     uint prev;
     uint next;
-    uint gives;
     uint wants;
+    uint gives;
     uint gasprice;
   }
 

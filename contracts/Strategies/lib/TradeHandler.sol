@@ -12,13 +12,18 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import {MgvPack as MP} from "../../MgvPack.sol";
 import "../../Mangrove.sol";
 import "../../MgvLib.sol";
+
+
 
 //import "hardhat/console.sol";
 
 contract TradeHandler {
+  using P.Offer for P.Offer.t;
+  using P.OfferDetail for P.OfferDetail.t;
+  using P.Global for P.Global.t;
+  using P.Local for P.Local.t;
   // internal bytes32 to select appropriate posthook
   bytes32 constant RENEGED = "mgvOffer/reneged";
   bytes32 constant OUTOFLIQUIDITY = "mgvOffer/outOfLiquidity";
@@ -60,8 +65,10 @@ contract TradeHandler {
       uint gasprice
     )
   {
-    (, gasreq, , , gasprice) = MP.offerDetail_unpack(order.offerDetail);
-    (, , offer_wants, offer_gives) = MP.offer_unpack(order.offer);
+    gasreq = order.offerDetail.gasreq();
+    gasprice = order.offerDetail.gasprice();
+    offer_wants = order.offer.wants();
+    offer_gives = order.offer.gives();
   }
 
   function _getMissingProvision(
@@ -72,33 +79,31 @@ contract TradeHandler {
     uint gasprice,
     uint offerId
   ) internal view returns (uint) {
-    (bytes32 globalData, bytes32 localData) = mgv.config(
+    (P.Global.t globalData, P.Local.t localData) = mgv.config(
       outbound_tkn,
       inbound_tkn
     );
-    bytes32 offerData = mgv.offers(outbound_tkn, inbound_tkn, offerId);
-    bytes32 offerDetailData = mgv.offerDetails(
+    P.Offer.t offerData = mgv.offers(outbound_tkn, inbound_tkn, offerId);
+    P.OfferDetail.t offerDetailData = mgv.offerDetails(
       outbound_tkn,
       inbound_tkn,
       offerId
     );
     uint _gp;
-    if (MP.global_unpack_gasprice(globalData) > gasprice) {
-      _gp = MP.global_unpack_gasprice(globalData);
+    if (globalData.gasprice() > gasprice) {
+      _gp = globalData.gasprice();
     } else {
       _gp = gasprice;
     }
     uint bounty = (gasreq +
-      MP.local_unpack_overhead_gasbase(localData) +
-      MP.local_unpack_offer_gasbase(localData)) *
+      localData.overhead_gasbase() +
+      localData.offer_gasbase()) *
       _gp *
       10**9; // in WEI
-    uint currentProvisionLocked = (MP.offerDetail_unpack_gasreq(
-      offerDetailData
-    ) +
-      MP.offerDetail_unpack_overhead_gasbase(offerDetailData) +
-      MP.offerDetail_unpack_offer_gasbase(offerDetailData)) *
-      MP.offerDetail_unpack_gasprice(offerDetailData) *
+    uint currentProvisionLocked = (offerDetailData.gasreq() +
+    offerDetailData.overhead_gasbase() +
+      offerDetailData.offer_gasbase()) * 
+      offerDetailData.gasprice() *
       10**9;
     uint currentProvision = currentProvisionLocked +
       mgv.balanceOf(address(this));
@@ -107,8 +112,8 @@ contract TradeHandler {
 
   //queries the mangrove to get current gasprice (considered to compute bounty)
   function _getCurrentGasPrice(Mangrove mgv) internal view returns (uint) {
-    (bytes32 global_pack, ) = mgv.config(address(0), address(0));
-    return MP.global_unpack_gasprice(global_pack);
+    (P.Global.t global_pack, ) = mgv.config(address(0), address(0));
+    return global_pack.gasprice();
   }
 
   //truncate some bytes into a byte32 word

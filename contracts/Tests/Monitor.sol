@@ -5,6 +5,7 @@ pragma abicoder v2;
 
 import "../AbstractMangrove.sol";
 import "hardhat/console.sol";
+import "../MgvLib.sol";
 
 import "./Toolbox/TestUtils.sol";
 
@@ -13,6 +14,10 @@ import "./Agents/TestMonitor.sol";
 
 // In these tests, the testing contract is the market maker.
 contract Monitor_Test {
+  using P.Offer for P.Offer.t;
+  using P.OfferDetail for P.OfferDetail.t;
+  using P.Global for P.Global.t;
+  using P.Local for P.Local.t;
   receive() external payable {}
 
   AbstractMangrove mgv;
@@ -51,13 +56,13 @@ contract Monitor_Test {
   }
 
   function initial_monitor_values_test() public {
-    (bytes32 config, ) = mgv.config(base, quote);
+    (P.Global.t config, ) = mgv.config(base, quote);
     TestEvents.check(
-      MP.global_unpack_useOracle(config) == 0,
+      config.useOracle() == 0,
       "initial useOracle should be false"
     );
     TestEvents.check(
-      MP.global_unpack_notify(config) == 0,
+      config.notify() == 0,
       "initial notify should be false"
     );
   }
@@ -66,18 +71,18 @@ contract Monitor_Test {
     mgv.setMonitor(address(monitor));
     mgv.setUseOracle(true);
     mgv.setNotify(true);
-    (bytes32 config, ) = mgv.config(base, quote);
+    (P.Global.t config, ) = mgv.config(base, quote);
     TestEvents.eq(
-      MP.global_unpack_monitor(config),
+      config.monitor(),
       address(monitor),
       "monitor should be set"
     );
     TestEvents.check(
-      MP.global_unpack_useOracle(config) > 0,
+      config.useOracle() > 0,
       "useOracle should be set"
     );
     TestEvents.check(
-      MP.global_unpack_notify(config) > 0,
+      config.notify() > 0,
       "notify should be set"
     );
   }
@@ -87,9 +92,9 @@ contract Monitor_Test {
     mgv.setUseOracle(true);
     mgv.setDensity(base, quote, 898);
     monitor.setDensity(base, quote, 899);
-    (, bytes32 config) = mgv.config(base, quote);
+    (, P.Local.t config) = mgv.config(base, quote);
     TestEvents.eq(
-      MP.local_unpack_density(config),
+      config.density(),
       899,
       "density should be set oracle"
     );
@@ -99,9 +104,9 @@ contract Monitor_Test {
     mgv.setMonitor(address(monitor));
     mgv.setDensity(base, quote, 898);
     monitor.setDensity(base, quote, 899);
-    (, bytes32 config) = mgv.config(base, quote);
+    (, P.Local.t config) = mgv.config(base, quote);
     TestEvents.eq(
-      MP.local_unpack_density(config),
+      config.density(),
       898,
       "density should be set by mgv"
     );
@@ -112,9 +117,9 @@ contract Monitor_Test {
     mgv.setUseOracle(true);
     mgv.setGasprice(900);
     monitor.setGasprice(901);
-    (bytes32 config, ) = mgv.config(base, quote);
+    (P.Global.t config, ) = mgv.config(base, quote);
     TestEvents.eq(
-      MP.global_unpack_gasprice(config),
+      config.gasprice(),
       901,
       "gasprice should be set by oracle"
     );
@@ -124,9 +129,9 @@ contract Monitor_Test {
     mgv.setMonitor(address(monitor));
     mgv.setGasprice(900);
     monitor.setGasprice(901);
-    (bytes32 config, ) = mgv.config(base, quote);
+    (P.Global.t config, ) = mgv.config(base, quote);
     TestEvents.eq(
-      MP.global_unpack_gasprice(config),
+      config.gasprice(),
       900,
       "gasprice should be set by mgv"
     );
@@ -147,14 +152,14 @@ contract Monitor_Test {
     mgv.setMonitor(address(monitor));
     mgv.setNotify(true);
     uint ofrId = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
-    bytes32 offer = mgv.offers(base, quote, ofrId);
+    P.Offer.t offer = mgv.offers(base, quote, ofrId);
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofrId, 0.04 ether, 0.05 ether, 100_000];
     (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(successes == 1, "snipe should succeed");
-    (bytes32 _global, bytes32 _local) = mgv.config(base, quote);
-    _local = $$(set_local("_local", [["best", 1], ["lock", 1]]));
+    (P.Global.t _global, P.Local.t _local) = mgv.config(base, quote);
+    _local = _local.best(1).lock(1);
 
     ML.SingleOrder memory order = ML.SingleOrder({
       outbound_tkn: base,
@@ -176,17 +181,17 @@ contract Monitor_Test {
     mgv.setMonitor(address(monitor));
     mgv.setNotify(true);
     uint ofrId = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
-    bytes32 offer = mgv.offers(base, quote, ofrId);
-    bytes32 offerDetail = mgv.offerDetails(base, quote, ofrId);
+    P.Offer.t offer = mgv.offers(base, quote, ofrId);
+    P.OfferDetail.t offerDetail = mgv.offerDetails(base, quote, ofrId);
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofrId, 0.04 ether, 0.05 ether, 100_000];
     (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(successes == 0, "snipe should fail");
 
-    (bytes32 _global, bytes32 _local) = mgv.config(base, quote);
+    (P.Global.t _global, P.Local.t _local) = mgv.config(base, quote);
     // config sent during maker callback has stale best and, is locked
-    _local = $$(set_local("_local", [["best", 1], ["lock", 1]]));
+    _local = _local.best(1).lock(1);
 
     ML.SingleOrder memory order = ML.SingleOrder({
       outbound_tkn: base,

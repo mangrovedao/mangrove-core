@@ -11,9 +11,11 @@ import "../Agents/TestToken.sol";
 import {Display, Test as TestEvents} from "@giry/hardhat-test-solidity/test.sol";
 import "../../InvertedMangrove.sol";
 import "../../Mangrove.sol";
-import {MgvPack as MP} from "../../MgvPack.sol";
+import "../../MgvLib.sol";
 
 library TestUtils {
+  using P.Global for P.Global.t;
+  using P.Local for P.Local.t;
   /* Various utilities */
 
   function uint2str(uint _i)
@@ -130,7 +132,7 @@ library TestUtils {
     uint[] memory gasreqs = new uint[](size);
     uint c = 0;
     while ((offerId != 0) && (c < size)) {
-      (ML.Offer memory offer, ML.OfferDetail memory od) = mgv.offerInfo(
+      (ML.OfferStruct memory offer, ML.OfferDetail memory od) = mgv.offerInfo(
         base,
         quote,
         offerId
@@ -158,7 +160,7 @@ library TestUtils {
 
     console.log("-----Best offer: %d-----", offerId);
     while (offerId != 0) {
-      (ML.Offer memory ofr, ) = mgv.offerInfo(base, quote, offerId);
+      (ML.OfferStruct memory ofr, ) = mgv.offerInfo(base, quote, offerId);
       console.log(
         "[offer %d] %s/%s",
         offerId,
@@ -265,8 +267,8 @@ library TestUtils {
     address quote,
     uint price
   ) internal view returns (uint) {
-    (, bytes32 local) = mgv.config(base, quote);
-    return ((price * MP.local_unpack_fee(local)) / 10000);
+    (, P.Local.t local) = mgv.config(base, quote);
+    return ((price * local.fee()) / 10000);
   }
 
   function getProvision(
@@ -275,11 +277,11 @@ library TestUtils {
     address quote,
     uint gasreq
   ) internal view returns (uint) {
-    (bytes32 glo_cfg, bytes32 loc_cfg) = mgv.config(base, quote);
+    (P.Global.t glo_cfg, P.Local.t loc_cfg) = mgv.config(base, quote);
     return ((gasreq +
-      MP.local_unpack_overhead_gasbase(loc_cfg) +
-      MP.local_unpack_offer_gasbase(loc_cfg)) *
-      uint(MP.global_unpack_gasprice(glo_cfg)) *
+      loc_cfg.overhead_gasbase() +
+      loc_cfg.offer_gasbase()) *
+      uint(glo_cfg.gasprice()) *
       10**9);
   }
 
@@ -290,16 +292,16 @@ library TestUtils {
     uint gasreq,
     uint gasprice
   ) internal view returns (uint) {
-    (bytes32 glo_cfg, bytes32 loc_cfg) = mgv.config(base, quote);
+    (P.Global.t glo_cfg, P.Local.t loc_cfg) = mgv.config(base, quote);
     uint _gp;
-    if (MP.global_unpack_gasprice(glo_cfg) > gasprice) {
-      _gp = uint(MP.global_unpack_gasprice(glo_cfg));
+    if (glo_cfg.gasprice() > gasprice) {
+      _gp = uint(glo_cfg.gasprice());
     } else {
       _gp = gasprice;
     }
     return ((gasreq +
-      MP.local_unpack_overhead_gasbase(loc_cfg) +
-      MP.local_unpack_offer_gasbase(loc_cfg)) *
+      loc_cfg.overhead_gasbase() +
+      loc_cfg.offer_gasbase()) *
       _gp *
       10**9);
   }
@@ -311,7 +313,7 @@ library TestUtils {
     Info infKey,
     uint offerId
   ) internal view returns (uint) {
-    (ML.Offer memory offer, ML.OfferDetail memory offerDetail) = mgv.offerInfo(
+    (ML.OfferStruct memory offer, ML.OfferDetail memory offerDetail) = mgv.offerInfo(
       base,
       quote,
       offerId

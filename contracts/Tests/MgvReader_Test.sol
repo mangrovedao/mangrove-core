@@ -73,7 +73,7 @@ contract MgvReader_Test is HasMgvEvents {
     (
       uint currentId,
       uint[] memory offerIds,
-      ML.Offer[] memory offers,
+      ML.OfferStruct[] memory offers,
       ML.OfferDetail[] memory details
     ) = reader.offerList(base, quote, 0, 50);
 

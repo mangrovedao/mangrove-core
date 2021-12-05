@@ -15,6 +15,8 @@ pragma abicoder v2;
 import "../Persistent.sol";
 
 contract Reposting is Persistent {
+  using P.Offer for P.Offer.t;
+  using P.OfferDetail for P.OfferDetail.t;
   constructor(address payable _MGV) MangroveOffer(_MGV) {}
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order)
@@ -23,10 +25,10 @@ contract Reposting is Persistent {
   {
     address token0 = order.outbound_tkn;
     address token1 = order.inbound_tkn;
-    (, , uint wants, uint gives) = MP.offer_unpack(order.offer); // amount with token1.decimals() decimals
-    (, uint gasreq, , , uint gasprice) = MP.offerDetail_unpack(
-      order.offerDetail
-    ); // amount with token1.decimals() decimals
+    uint wants = order.offer.wants();// amount with token1.decimals() decimals
+    uint gives = order.offer.gives();// amount with token1.decimals() decimals
+    uint gasreq = order.offerDetail.gasreq();
+    uint gasprice = order.offerDetail.gasprice();
 
     try
       this.updateOffer({

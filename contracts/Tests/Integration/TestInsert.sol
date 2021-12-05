@@ -4,6 +4,8 @@ pragma abicoder v2;
 import "../Toolbox/TestUtils.sol";
 
 library TestInsert {
+  using P.Global for P.Global.t;
+  using P.Local for P.Local.t;
   function run(
     TestUtils.Balances storage balances,
     AbstractMangrove mgv,
@@ -32,11 +34,11 @@ library TestInsert {
       gasreq: 90_000,
       pivotId: 72
     });
-    (bytes32 cfg, ) = mgv.config(address(base), address(quote));
+    (P.Global.t cfg, ) = mgv.config(address(base), address(quote));
     offerOf[0] = makers.getMaker(0).newOffer({ //failer offer 4
       wants: 20 ether,
       gives: 10 ether,
-      gasreq: MP.global_unpack_gasmax(cfg),
+      gasreq: cfg.gasmax(),
       pivotId: 0
     });
     //TestUtils.printOfferBook(mgv);
@@ -68,7 +70,7 @@ library TestInsert {
     uint offerId = mgv.best(address(base), address(quote));
     uint expected_maker = 3;
     while (offerId != 0) {
-      (ML.Offer memory offer, ML.OfferDetail memory od) = mgv.offerInfo(
+      (ML.OfferStruct memory offer, ML.OfferDetail memory od) = mgv.offerInfo(
         address(base),
         address(quote),
         offerId

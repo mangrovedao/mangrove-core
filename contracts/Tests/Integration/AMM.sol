@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "hardhat/console.sol";
-import {MgvPack as MP} from "../../MgvPack.sol";
+import "../../MgvLib.sol";
 import "../Toolbox/TestUtils.sol";
 
 import "../Agents/TestToken.sol";
@@ -13,6 +13,8 @@ import "../Agents/OfferManager.sol";
 import "../Agents/UniSwapMaker.sol";
 
 contract AMM_Test is HasMgvEvents {
+  using P.Global for P.Global.t;
+
   AbstractMangrove mgv;
   AbstractMangrove invMgv;
   TestToken tk0;
@@ -119,14 +121,14 @@ contract AMM_Test is HasMgvEvents {
       TestEvents.expectFrom(address(invMgv));
       MGV = invMgv;
     }
-    (bytes32 global, ) = MGV.config(address(0), address(0));
+    (P.Global.t global, ) = MGV.config(address(0), address(0));
     emit OfferWrite(
       address(tk1),
       address(tk0),
       mgr,
       1.2 ether,
       1.2 ether,
-      MP.global_unpack_gasprice(global),
+      global.gasprice(),
       100_000,
       1,
       0
@@ -141,14 +143,14 @@ contract AMM_Test is HasMgvEvents {
     );
     TestEvents.expectFrom(address(mgv));
 
-    (bytes32 cfg, ) = mgv.config(address(0), address(0));
+    (P.Global.t cfg, ) = mgv.config(address(0), address(0));
     emit OfferWrite(
       address(tk0),
       address(tk1),
       mgr,
       0.6 ether,
       0.6 ether,
-      MP.global_unpack_gasprice(cfg),
+      cfg.gasprice(),
       100_000,
       4,
       0

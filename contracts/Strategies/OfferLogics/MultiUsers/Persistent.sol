@@ -17,22 +17,24 @@ import "./MultiUser.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract MultiUserPersistent is MultiUser {
+  using P.Offer for P.Offer.t;
+  using P.OfferDetail for P.OfferDetail.t;
   function __posthookSuccess__(MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
   {
-    uint new_gives = MP.offer_unpack_gives(order.offer) - order.wants;
-    uint new_wants = MP.offer_unpack_wants(order.offer) - order.gives;
+    uint new_gives = order.offer.gives() - order.wants;
+    uint new_wants = order.offer.wants() - order.gives;
     try
       this.updateOffer(
         order.outbound_tkn,
         order.inbound_tkn,
         new_wants,
         new_gives,
-        MP.offerDetail_unpack_gasreq(order.offerDetail),
-        MP.offerDetail_unpack_gasprice(order.offerDetail),
-        MP.offer_unpack_next(order.offer),
+        order.offerDetail.gasreq(),
+        order.offerDetail.gasprice(),
+        order.offer.next(),
         order.offerId
       )
     {} catch Error(string memory message) {

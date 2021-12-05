@@ -14,6 +14,7 @@ pragma abicoder v2;
 import "../../CompoundTrader.sol";
 
 contract SwingingMarketMaker is CompoundTrader {
+  using P.Offer for P.Offer.t;
   event MissingPriceConverter(address token0, address token1);
   event NotEnoughProvision(uint amount);
 
@@ -107,7 +108,7 @@ contract SwingingMarketMaker is CompoundTrader {
   {
     address token0 = order.outbound_tkn;
     address token1 = order.inbound_tkn;
-    uint offer_received = MP.offer_unpack_wants(order.offer); // amount with token1.decimals() decimals
+    uint offer_received = order.offer.wants(); // amount with token1.decimals() decimals
     repostOffer({
       outbound_tkn: token1,
       inbound_tkn: token0,

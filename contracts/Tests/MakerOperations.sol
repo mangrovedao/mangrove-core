@@ -5,7 +5,6 @@ pragma abicoder v2;
 
 import "../AbstractMangrove.sol";
 import "../MgvLib.sol";
-import {MgvPack as MP} from "../MgvPack.sol";
 import "hardhat/console.sol";
 
 import "./Toolbox/TestUtils.sol";
@@ -17,6 +16,10 @@ import "./Agents/MakerDeployer.sol";
 import "./Agents/TestTaker.sol";
 
 contract MakerOperations_Test is IMaker, HasMgvEvents {
+  using P.Global for P.Global.t;
+  using P.OfferDetail for P.OfferDetail.t;
+  using P.Offer for P.Offer.t;
+  using P.Local for P.Local.t;
   AbstractMangrove mgv;
   TestMaker mkr;
   TestMaker mkr2;
@@ -110,18 +113,18 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     TestEvents.eq(order.wants, 0.05 ether, "wrong takerWants");
     TestEvents.eq(order.gives, 0.05 ether, "wrong takerGives");
     TestEvents.eq(
-      MgvPack.offerDetail_unpack_gasreq(order.offerDetail),
+      order.offerDetail.gasreq(),
       200_000,
       "wrong gasreq"
     );
     TestEvents.eq(order.offerId, 1, "wrong offerId");
     TestEvents.eq(
-      MgvPack.offer_unpack_wants(order.offer),
+      order.offer.wants(),
       0.05 ether,
       "wrong offerWants"
     );
     TestEvents.eq(
-      MgvPack.offer_unpack_gives(order.offer),
+      order.offer.gives(),
       0.05 ether,
       "wrong offerGives"
     );
@@ -312,7 +315,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       !mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Offer was not removed from OB"
     );
-    (ML.Offer memory offer, ML.OfferDetail memory offerDetail) = mgv.offerInfo(
+    (ML.OfferStruct memory offer, ML.OfferDetail memory offerDetail) = mgv.offerInfo(
       _base,
       _quote,
       ofr
@@ -330,8 +333,8 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, offer.next)),
       "Invalid OB"
     );
-    (ML.Offer memory offer0, ) = mgv.offerInfo(_base, _quote, offer.prev);
-    (ML.Offer memory offer1, ) = mgv.offerInfo(_base, _quote, offer.next);
+    (ML.OfferStruct memory offer0, ) = mgv.offerInfo(_base, _quote, offer.prev);
+    (ML.OfferStruct memory offer1, ) = mgv.offerInfo(_base, _quote, offer.next);
     TestEvents.eq(offer1.prev, ofr0, "Invalid snitching for ofr1");
     TestEvents.eq(offer0.next, ofr1, "Invalid snitching for ofr0");
   }
@@ -351,7 +354,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       !mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Offer was not removed from OB"
     );
-    (ML.Offer memory offer, ML.OfferDetail memory offerDetail) = mgv.offerInfo(
+    (ML.OfferStruct memory offer, ML.OfferDetail memory offerDetail) = mgv.offerInfo(
       _base,
       _quote,
       ofr
@@ -365,11 +368,11 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, offer.next)),
       "Invalid OB"
     );
-    (ML.Offer memory offer1, ) = mgv.offerInfo(_base, _quote, offer.next);
+    (ML.OfferStruct memory offer1, ) = mgv.offerInfo(_base, _quote, offer.next);
     TestEvents.eq(offer1.prev, 0, "Invalid snitching for ofr1");
-    (, bytes32 cfg) = mgv.config(_base, _quote);
+    (, P.Local.t cfg) = mgv.config(_base, _quote);
     TestEvents.eq(
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       ofr1,
       "Invalid best after retract"
     );
@@ -390,7 +393,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       "Offer was not removed from OB"
     );
     mkr.retractOffer(ofr);
-    (ML.Offer memory offer, ML.OfferDetail memory offerDetail) = mgv.offerInfo(
+    (ML.OfferStruct memory offer, ML.OfferDetail memory offerDetail) = mgv.offerInfo(
       _base,
       _quote,
       ofr
@@ -404,11 +407,11 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, offer.prev)),
       "Invalid OB"
     );
-    (ML.Offer memory offer0, ) = mgv.offerInfo(_base, _quote, offer.prev);
+    (ML.OfferStruct memory offer0, ) = mgv.offerInfo(_base, _quote, offer.prev);
     TestEvents.eq(offer0.next, 0, "Invalid snitching for ofr0");
-    (, bytes32 cfg) = mgv.config(_base, _quote);
+    (, P.Local.t cfg) = mgv.config(_base, _quote);
     TestEvents.eq(
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       ofr0,
       "Invalid best after retract"
     );
@@ -504,13 +507,13 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.1 ether, 1 ether, 50_000, 0);
     uint ofr01 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, bytes32 loc_cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(ofr0, MP.local_unpack_best(loc_cfg), "Wrong best offer");
+    (, P.Local.t loc_cfg) = mgv.config(_base, _quote);
+    TestEvents.eq(ofr0, loc_cfg.best(), "Wrong best offer");
     TestEvents.check(
       mgv.isLive(mgv.offers(_base, _quote, ofr0)),
       "Oldest equivalent offer should be first"
     );
-    (MgvLib.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr0);
+    (MgvLib.OfferStruct memory offer, ) = mgv.offerInfo(_base, _quote, ofr0);
     uint _ofr01 = offer.next;
     TestEvents.eq(_ofr01, ofr01, "Wrong 2nd offer");
     TestEvents.check(
@@ -545,13 +548,13 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, bytes32 cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(ofr0, MP.local_unpack_best(cfg), "Wrong best offer");
+    (, P.Local.t cfg) = mgv.config(_base, _quote);
+    TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_000, ofr0, ofr0);
     (, cfg) = mgv.config(_base, _quote);
     TestEvents.eq(
       ofr1,
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       "Best offer should have changed"
     );
   }
@@ -560,13 +563,13 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, bytes32 cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(ofr0, MP.local_unpack_best(cfg), "Wrong best offer");
+    (, P.Local.t cfg) = mgv.config(_base, _quote);
+    TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether + 1, 1.0 ether, 100_000, ofr0, ofr0);
     (, cfg) = mgv.config(_base, _quote);
     TestEvents.eq(
       ofr1,
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       "Best offer should have changed"
     );
   }
@@ -575,13 +578,13 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, bytes32 cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(ofr0, MP.local_unpack_best(cfg), "Wrong best offer");
+    (, P.Local.t cfg) = mgv.config(_base, _quote);
+    TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr0, ofr0);
     (, cfg) = mgv.config(_base, _quote);
     TestEvents.eq(
       ofr1,
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       "Best offer should have changed"
     );
   }
@@ -590,13 +593,13 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, bytes32 cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(ofr0, MP.local_unpack_best(cfg), "Wrong best offer");
+    (, P.Local.t cfg) = mgv.config(_base, _quote);
+    TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether + 1, 100_000, ofr1, ofr1);
     (, cfg) = mgv.config(_base, _quote);
     TestEvents.eq(
       ofr1,
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       "Best offer should have changed"
     );
   }
@@ -605,13 +608,13 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1.0 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1.0 ether, 100_000, 0);
-    (, bytes32 cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(ofr0, MP.local_unpack_best(cfg), "Wrong best offer");
+    (, P.Local.t cfg) = mgv.config(_base, _quote);
+    TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 99_999, ofr1, ofr1);
     (, cfg) = mgv.config(_base, _quote);
     TestUtils.logOfferBook(mgv, _base, _quote, 2);
     TestEvents.eq(
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       ofr1,
       "Best offer should have changed"
     );
@@ -621,13 +624,13 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, bytes32 cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(ofr0, MP.local_unpack_best(cfg), "Wrong best offer");
+    (, P.Local.t cfg) = mgv.config(_base, _quote);
+    TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether + 1, 100_000, ofr0, ofr1);
     (, cfg) = mgv.config(_base, _quote);
     TestEvents.eq(
       ofr1,
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       "Best offer should have changed"
     );
   }
@@ -636,13 +639,13 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1.0 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1.0 ether, 100_000, 0);
-    (, bytes32 cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(ofr0, MP.local_unpack_best(cfg), "Wrong best offer");
+    (, P.Local.t cfg) = mgv.config(_base, _quote);
+    TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 99_999, ofr0, ofr1);
     (, cfg) = mgv.config(_base, _quote);
     TestUtils.logOfferBook(mgv, _base, _quote, 2);
     TestEvents.eq(
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       ofr1,
       "Best offer should have changed"
     );
@@ -662,7 +665,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Insertion error"
     );
-    (MgvLib.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
+    (MgvLib.OfferStruct memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
     TestEvents.eq(offer.prev, ofr0, "Wrong prev offer");
     TestEvents.eq(offer.next, ofr1, "Wrong next offer");
     mkr.updateOffer(1.1 ether, 1.0 ether, 100_000, ofr0, ofr);
@@ -689,7 +692,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Insertion error"
     );
-    (MgvLib.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
+    (MgvLib.OfferStruct memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
     TestEvents.eq(offer.prev, ofr0, "Wrong prev offer");
     TestEvents.eq(offer.next, ofr1, "Wrong next offer");
     mkr.updateOffer(1.1 ether, 1.0 ether, 100_000, ofr, ofr);
@@ -716,7 +719,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Insertion error"
     );
-    (MgvLib.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
+    (MgvLib.OfferStruct memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
     TestEvents.eq(offer.prev, ofr0, "Wrong prev offer");
     TestEvents.eq(offer.next, ofr1, "Wrong next offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr0, ofr);
@@ -743,7 +746,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Insertion error"
     );
-    (MgvLib.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
+    (MgvLib.OfferStruct memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
     TestEvents.eq(offer.prev, ofr0, "Wrong prev offer");
     TestEvents.eq(offer.next, ofr1, "Wrong next offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr, ofr);
@@ -760,8 +763,8 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     uint provision = TestUtils.getProvision(mgv, _base, _quote, 100_000);
     mkr.provisionMgv(provision);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (bytes32 cfg, ) = mgv.config(_base, _quote);
-    mgv.setGasprice(MP.global_unpack_gasprice(cfg) + 1); //gasprice goes up
+    (P.Global.t cfg, ) = mgv.config(_base, _quote);
+    mgv.setGasprice(cfg.gasprice() + 1); //gasprice goes up
     try mkr.updateOffer(1.0 ether + 2, 1.0 ether, 100_000, ofr0, ofr0) {
       TestEvents.fail("Update offer should have failed");
     } catch Error(string memory r) {
@@ -772,8 +775,8 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
   function update_offer_after_higher_gasprice_change_succeeds_when_over_provisioned_test()
     public
   {
-    (bytes32 cfg, ) = mgv.config(_base, _quote);
-    uint gasprice = MP.global_unpack_gasprice(cfg);
+    (P.Global.t cfg, ) = mgv.config(_base, _quote);
+    uint gasprice = cfg.gasprice();
     uint provision = TestUtils.getProvision(
       mgv,
       _base,
@@ -813,7 +816,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
         address(mkr),
         1.0 ether + 2,
         1.0 ether,
-        MP.global_unpack_gasprice(cfg), // offer gasprice should be the new gasprice
+        cfg.gasprice(), // offer gasprice should be the new gasprice
         100_000,
         ofr0,
         0
@@ -828,8 +831,8 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     uint provision = TestUtils.getProvision(mgv, _base, _quote, 100_000);
     mkr.provisionMgv(provision);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (bytes32 cfg, ) = mgv.config(_base, _quote);
-    mgv.setGasprice(MP.global_unpack_gasprice(cfg) - 1); //gasprice goes down
+    (P.Global.t cfg, ) = mgv.config(_base, _quote);
+    mgv.setGasprice(cfg.gasprice() - 1); //gasprice goes down
     uint _provision = TestUtils.getProvision(mgv, _base, _quote, 100_000);
     try mkr.updateOffer(1.0 ether + 2, 1.0 ether, 100_000, ofr0, ofr0) {
       TestEvents.eq(
@@ -850,7 +853,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     uint right = mkr.newOffer(1 ether + 3, 1 ether, 100_000, 0);
     uint center = mkr.newOffer(1 ether + 1, 1 ether, 100_000, 0);
     mkr.updateOffer(1 ether + 2, 1 ether, 100_000, center, center);
-    (MgvLib.Offer memory ofr, ) = mgv.offerInfo(_base, _quote, center);
+    (MgvLib.OfferStruct memory ofr, ) = mgv.offerInfo(_base, _quote, center);
     TestEvents.eq(ofr.prev, left, "ofr.prev should be unchanged");
     TestEvents.eq(ofr.next, right, "ofr.next should be unchanged");
   }
@@ -866,7 +869,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       0,
       "Maker should have no more provision on Mangrove"
     );
-    (MgvLib.Offer memory ofr, MgvLib.OfferDetail memory dtl) = mgv.offerInfo(
+    (MgvLib.OfferStruct memory ofr, MgvLib.OfferDetail memory dtl) = mgv.offerInfo(
       _base,
       _quote,
       offerId
@@ -894,18 +897,18 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
   }
 
   function testOBBest(uint id) internal {
-    (MgvLib.Offer memory ofr, ) = mgv.offerInfo(_base, _quote, id);
+    (MgvLib.OfferStruct memory ofr, ) = mgv.offerInfo(_base, _quote, id);
     TestEvents.eq(mgv.best(_base, _quote), id, "testOBBest: not best");
     TestEvents.eq(ofr.prev, 0, "testOBBest: prev not 0");
   }
 
   function testOBWorst(uint id) internal {
-    (MgvLib.Offer memory ofr, ) = mgv.offerInfo(_base, _quote, id);
+    (MgvLib.OfferStruct memory ofr, ) = mgv.offerInfo(_base, _quote, id);
     TestEvents.eq(ofr.next, 0, "testOBWorst fail");
   }
 
   function testOBLink(uint left, uint right) internal {
-    (MgvLib.Offer memory ofr, ) = mgv.offerInfo(_base, _quote, left);
+    (MgvLib.OfferStruct memory ofr, ) = mgv.offerInfo(_base, _quote, left);
     TestEvents.eq(ofr.next, right, "testOBLink: wrong ofr.next");
     (ofr, ) = mgv.offerInfo(_base, _quote, right);
     TestEvents.eq(ofr.prev, left, "testOBLink: wrong ofr.prev");
@@ -1035,7 +1038,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     uint right = mkr.newOffer(1 ether + 3, 1 ether, 100_000, 0);
     uint center = mkr.newOffer(1 ether + 2, 1 ether, 100_000, 0);
     mkr.updateOffer(1 ether + 1, 1 ether, 100_000, center, center);
-    (MgvLib.Offer memory ofr, ) = mgv.offerInfo(_base, _quote, center);
+    (MgvLib.OfferStruct memory ofr, ) = mgv.offerInfo(_base, _quote, center);
     TestEvents.eq(ofr.prev, left, "ofr.prev should be unchanged");
     TestEvents.eq(ofr.next, right, "ofr.next should be unchanged");
   }
@@ -1044,13 +1047,13 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     mkr.newOffer(1.0 ether + 2, 1 ether, 100_000, 0);
-    (, bytes32 cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(ofr0, MP.local_unpack_best(cfg), "Wrong best offer");
+    (, P.Local.t cfg) = mgv.config(_base, _quote);
+    TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether + 1, 1.0 ether, 100_000, ofr0, ofr0);
     (, cfg) = mgv.config(_base, _quote);
     TestEvents.eq(
       ofr0,
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       "Best offer should not have changed"
     );
   }
@@ -1059,13 +1062,13 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     mkr.newOffer(1.0 ether, 1 ether, 100_002, 0);
-    (, bytes32 cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(ofr0, MP.local_unpack_best(cfg), "Wrong best offer");
+    (, P.Local.t cfg) = mgv.config(_base, _quote);
+    TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr0, ofr0);
     (, cfg) = mgv.config(_base, _quote);
     TestEvents.eq(
       ofr0,
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       "Best offer should not have changed"
     );
   }

@@ -82,7 +82,9 @@ library TestInsert {
         )
       );
 
-      expected_maker -= 1;
+      unchecked {
+        expected_maker -= 1;
+      }
       offerId = offer.next;
     }
     return offerOf;

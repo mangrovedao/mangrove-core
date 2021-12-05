@@ -18,13 +18,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {ITaker, MgvLib as ML} from "./MgvLib.sol";
+import {ITaker, MgvLib as ML, P} from "./MgvLib.sol";
 
 import {AbstractMangrove} from "./AbstractMangrove.sol";
-import {MgvPack as MP} from "./MgvPack.sol";
 
 /* <a id="InvertedMangrove"></a> The `InvertedMangrove` contract implements the "inverted" version of Mangrove, where each maker loans money to the taker. The taker is then called, and finally each maker is sent its payment and called again (with the orderbook unlocked). */
 contract InvertedMangrove is AbstractMangrove {
+  // prettier-ignore
+  using P.OfferDetail for P.OfferDetail.t;
   constructor(
     address governance,
     uint gasprice,
@@ -66,7 +67,7 @@ So :
     if (
       !transferToken(
         sor.inbound_tkn,
-        MP.offerDetail_unpack_maker(sor.offerDetail),
+        sor.offerDetail.maker(),
         sor.gives
       )
     ) {

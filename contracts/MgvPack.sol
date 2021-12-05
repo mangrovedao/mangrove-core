@@ -14,40 +14,57 @@
 
 pragma solidity ^0.8.10;
 
-library MgvPack {
+// fields are of the form [name,bits,type]
 
-  // fields are of the form [name,bits,type]
+// struct_defs are of the form [name,obj]
+// $for ns in struct_defs
+// $def sname ns[0]
+// $def struct_def ns[1]
 
-  // $for ns in struct_defs
+library $$(capitalize(sname)) {
+  //some type safety for each struct
+  type t is bytes32;
 
-  // $def sname ns[0]
-  // $def scontents ns[1]
-  /* $def arguments
-    join(map(scontents,(field) => `$${f_type(field)} __$${f_name(field)}`),', ')
-  */
-
-  /* $def params
-     map(scontents, (field) => [f_name(field),`__$${f_name(field)}`])
-  */
-
-  function $$(sname)_pack($$(arguments)) internal pure returns (bytes32) {
-    return $$(make(
-      scontents,
-      map(scontents, (field) =>
-    [f_name(field),`__$${f_name(field)}`])));
+  struct s {
+    $$(solidity_struct_of(struct_def))
   }
 
-  function $$(sname)_unpack(bytes32 __packed) internal pure returns ($$(arguments)) {
-    // $for field in scontents
-    __$$(f_name(field)) = $$(get('__packed',scontents,f_name(field)));
+  function eq(t a, t b) internal pure returns (bool) {
+    return t.unwrap(a) == t.unwrap(b);
+  }
+
+/* $def arguments
+  join(map(struct_def,(field) => `$${f_type(field)} $${f_name(field)}`),', ')
+*/
+
+/* $def params
+    map(struct_def, (field) => [f_name(field),`__$${f_name(field)}`])
+*/
+
+  function pack($$(arguments)) internal pure returns (t) {
+    return t.wrap($$(make(
+      struct_def,
+      map(struct_def, (field) =>
+    [f_name(field),`$${f_name(field)}`]))));
+  }
+
+  function unpack(t __packed) internal pure returns ($$(arguments)) {
+    // $for field in struct_def
+    $$(f_name(field)) = $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
     // $done
   }
 
-  // $for field in scontents
-  function $$(sname)_unpack_$$(f_name(field))(bytes32 __packed) internal pure returns($$(f_type(field))) {
-    return $$(get('__packed',scontents,f_name(field)));
+  // $for field in struct_def
+  function $$(f_name(field))(t __packed) internal pure returns($$(f_type(field))) {
+    return $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
+  }
+  function $$(f_name(field))(t __packed,$$(f_type(field)) val) internal pure returns(t) {
+    return t.wrap($$(set1('t.unwrap(__packed)',struct_def,f_name(field),'val')));
+    // return $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
   }
   // $done
-
-  // $done
 }
+
+//$done
+
+ 

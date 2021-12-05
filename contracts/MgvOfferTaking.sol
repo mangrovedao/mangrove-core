@@ -18,10 +18,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {IERC20, HasMgvEvents, IMaker, IMgvMonitor, MgvLib as ML} from "./MgvLib.sol";
+import {IERC20, HasMgvEvents, IMaker, IMgvMonitor, MgvLib as ML, P} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
+  using P.Offer for P.Offer.t;
+  using P.OfferDetail for P.OfferDetail.t;
+  using P.Global for P.Global.t;
+  using P.Local for P.Local.t;
   /* # MultiOrder struct */
   /* The `MultiOrder` struct is used by market orders and snipes. Some of its fields are only used by market orders (`initialWants, initialGives`, `fillWants`), and others only by snipes (`successCount`). We need a common data structure for both since low-level calls are shared between market orders and snipes. The struct is helpful in decreasing stack use. */
   struct MultiOrder {
@@ -102,7 +106,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     sor.inbound_tkn = inbound_tkn;
     (sor.global, sor.local) = config(outbound_tkn, inbound_tkn);
     /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
-    sor.offerId = $$(local_best("sor.local"));
+    sor.offerId = sor.local.best();
     sor.offer = offers[outbound_tkn][inbound_tkn][sor.offerId];
     /* `sor.wants` and `sor.gives` may evolve, but they are initially however much remains in the market order. */
     sor.wants = takerWants;
@@ -126,7 +130,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
      * after consuming a segment of offers, will update the current `best` offer to be the best remaining offer on the book. */
 
     /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
-    sor.local = $$(set_local("sor.local", [["lock", 1]]));
+    sor.local = sor.local.lock(1);
     locals[outbound_tkn][inbound_tkn] = sor.local;
 
     /* Call recursive `internalMarketOrder` function.*/
@@ -194,8 +198,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       uint takerWants = sor.wants;
       uint takerGives = sor.gives;
       uint offerId = sor.offerId;
-      bytes32 offer = sor.offer;
-      bytes32 offerDetail = sor.offerDetail;
+      P.Offer.t offer = sor.offer;
+      P.OfferDetail.t offerDetail = sor.offerDetail;
 
       /* If an execution was attempted, we move `sor` to the next offer. Note that the current state is inconsistent, since we have not yet updated `sor.offerDetails`. */
       if (mgvData != "mgv/notExecuted") {
@@ -208,7 +212,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
            3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
         */
         sor.gives = mor.initialGives - mor.totalGave;
-        sor.offerId = $$(offer_next("sor.offer"));
+        sor.offerId = sor.offer.next();
         sor.offer = offers[sor.outbound_tkn][sor.inbound_tkn][sor.offerId];
       }
 
@@ -250,7 +254,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       so we are free from out of order storage writes.
       */
-      sor.local = $$(set_local("sor.local", [["lock", 0]]));
+      sor.local = sor.local.lock(0);
       locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
 
       /* `payTakerMinusFees` sends the fee to the vault, proportional to the amount purchased, and gives the rest to the taker */
@@ -321,7 +325,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     //+clear+
 
     /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
-    sor.local = $$(set_local("sor.local", [["lock", 1]]));
+    sor.local = sor.local.lock(1);
     locals[outbound_tkn][inbound_tkn] = sor.local;
 
     /* Call recursive `internalSnipes` function. */
@@ -364,7 +368,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. A mismatched price will be detected by `execute`. */
       if (
         !isLive(sor.offer) ||
-        $$(offerDetail_gasreq("sor.offerDetail")) > targets[i][3]
+        sor.offerDetail.gasreq() > targets[i][3]
       ) {
         /* We move on to the next offer in the array. */
         internalSnipes(mor, sor, targets, i + 1);
@@ -393,8 +397,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           sor.local = stitchOffers(
             sor.outbound_tkn,
             sor.inbound_tkn,
-            $$(offer_prev("sor.offer")),
-            $$(offer_next("sor.offer")),
+            sor.offer.prev(),
+            sor.offer.next(),
             sor.local
           );
         }
@@ -404,8 +408,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           uint offerId = sor.offerId;
           uint takerWants = sor.wants;
           uint takerGives = sor.gives;
-          bytes32 offer = sor.offer;
-          bytes32 offerDetail = sor.offerDetail;
+          P.Offer.t offer = sor.offer;
+          P.OfferDetail.t offerDetail = sor.offerDetail;
 
           /* We move on to the next offer in the array. */
           internalSnipes(mor, sor, targets, i + 1);
@@ -431,7 +435,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       so we are free from out of order storage writes.
       */
-      sor.local = $$(set_local("sor.local", [["lock", 0]]));
+      sor.local = sor.local.lock(0);
       locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
       /* `payTakerMinusFees` sends the fee to the vault, proportional to the amount purchased, and gives the rest to the taker */
       payTakerMinusFees(mor, sor);
@@ -464,8 +468,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     /* The current offer has a price `p = offerWants ÷ offerGives` and the taker is ready to accept a price up to `p' = takerGives ÷ takerWants`. Comparing `offerWants * takerWants` and `offerGives * takerGives` tels us whether `p < p'`.
      */
     {
-      uint offerWants = $$(offer_wants("sor.offer"));
-      uint offerGives = $$(offer_gives("sor.offer"));
+      uint offerWants = sor.offer.wants();
+      uint offerGives = sor.offer.gives();
       uint takerWants = sor.wants;
       uint takerGives = sor.gives;
       /* <a id="MgvOfferTaking/checkPrice"></a>If the price is too high, we return early.
@@ -561,8 +565,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       );
 
       /* If configured to do so, the Mangrove notifies an external contract that a successful trade has taken place. */
-      if ($$(global_notify("sor.global")) > 0) {
-        IMgvMonitor($$(global_monitor("sor.global"))).notifySuccess(
+      if (sor.global.notify() > 0) {
+        IMgvMonitor(sor.global.monitor()).notifySuccess(
           sor,
           mor.taker
         );
@@ -595,8 +599,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         );
 
         /* If configured to do so, the Mangrove notifies an external contract that a failed trade has taken place. */
-        if ($$(global_notify("sor.global")) > 0) {
-          IMgvMonitor($$(global_monitor("sor.global"))).notifyFail(
+        if (sor.global.notify() > 0) {
+          IMgvMonitor(sor.global.monitor()).notifyFail(
             sor,
             mor.taker
           );
@@ -641,8 +645,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   {
     bytes memory cd = abi.encodeWithSelector(IMaker.makerExecute.selector, sor);
 
-    uint gasreq = $$(offerDetail_gasreq("sor.offerDetail"));
-    address maker = $$(offerDetail_maker("sor.offerDetail"));
+    uint gasreq = sor.offerDetail.gasreq();
+    address maker = sor.offerDetail.maker();
     uint oldGas = gasleft();
     /* We let the maker pay for the overhead of checking remaining gas and making the call, as well as handling the return data (constant gas since only the first 32 bytes of return data are read). So the `require` below is just an approximation: if the overhead of (`require` + cost of `CALL`) is $h$, the maker will receive at worst $\textrm{gasreq} - \frac{63h}{64}$ gas. */
     /* Note : as a possible future feature, we could stop an order when there's not enough gas left to continue processing offers. This could be done safely by checking, as soon as we start processing an offer, whether `63/64(gasleft-overhead_gasbase-offer_gasbase) > gasreq`. If no, we could stop and know by induction that there is enough gas left to apply fees, stitch offers, etc for the offers already executed. */
@@ -700,7 +704,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       beforePosthook(sor);
     }
 
-    uint gasreq = $$(offerDetail_gasreq("sor.offerDetail"));
+    uint gasreq = sor.offerDetail.gasreq();
 
     /* We are about to call back the maker, giving it its unused gas (`gasreq - gasused`). Since the gas used so far may exceed `gasreq`, we prevent underflow in the subtraction below by bounding `gasused` above with `gasreq`. We could have decided not to call back the maker at all when there is no gas left, but we do it for uniformity. */
     if (gasused > gasreq) {
@@ -735,7 +739,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       ML.OrderResult({makerData: makerData, mgvData: mgvData})
     );
 
-    address maker = $$(offerDetail_maker("sor.offerDetail"));
+    address maker = sor.offerDetail.maker();
 
     uint oldGas = gasleft();
     /* We let the maker pay for the overhead of checking remaining gas and making the call. So the `require` below is just an approximation: if the overhead of (`require` + cost of `CALL`) is $h$, the maker will receive at worst $\textrm{gasreq} - \frac{63h}{64}$ gas. */
@@ -794,13 +798,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint gasused,
     uint failCount
   ) internal returns (uint) {
-    uint gasreq = $$(offerDetail_gasreq("sor.offerDetail"));
+    uint gasreq = sor.offerDetail.gasreq();
 
     uint provision = 10**9 *
-      $$(offerDetail_gasprice("sor.offerDetail")) *
+      sor.offerDetail.gasprice() * 
       (gasreq +
-        $$(offerDetail_overhead_gasbase("sor.offerDetail")) +
-        $$(offerDetail_offer_gasbase("sor.offerDetail")));
+      sor.offerDetail.overhead_gasbase() + sor.offerDetail.offer_gasbase());
 
     /* We set `gasused = min(gasused,gasreq)` since `gasreq < gasused` is possible e.g. with `gasreq = 0` (all calls consume nonzero gas). */
     if (gasused > gasreq) {
@@ -809,18 +812,18 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
     /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/notExecuted","mgv/tradeSuccess"]`, and thus when `failCount > 0`. */
     uint penalty = 10**9 *
-      $$(global_gasprice("sor.global")) *
+      sor.global.gasprice() *
       (gasused +
-        $$(local_overhead_gasbase("sor.local")) /
+        sor.local.overhead_gasbase() /
         failCount +
-        $$(local_offer_gasbase("sor.local")));
+        sor.local.offer_gasbase());
 
     if (penalty > provision) {
       penalty = provision;
     }
 
     /* Here we write to storage the new maker balance. This occurs _after_ possible reentrant calls. How do we know we're not crediting twice the same amounts? Because the `offer`'s provision was set to 0 in storage (through `dirtyDeleteOffer`) before the reentrant calls. In this function, we are working with cached copies of the offer as it was before it was consumed. */
-    creditWei($$(offerDetail_maker("sor.offerDetail")), provision - penalty);
+    creditWei(sor.offerDetail.maker(), provision - penalty);
 
     return penalty;
   }
@@ -838,7 +841,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   {
     /* Should be statically provable that the 2 transfers below cannot return false under well-behaved ERC20s and a non-blacklisted, non-0 target. */
 
-    uint concreteFee = (mor.totalGot * $$(local_fee("sor.local"))) / 10_000;
+    uint concreteFee = (mor.totalGot * sor.local.fee()) / 10_000;
     if (concreteFee > 0) {
       mor.totalGot -= concreteFee;
       require(

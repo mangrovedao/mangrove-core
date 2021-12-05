@@ -18,10 +18,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {HasMgvEvents} from "./MgvLib.sol";
+import {HasMgvEvents, P} from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
 
 contract MgvGovernable is MgvRoot {
+  // using P.Offer for P.Offer.t;
+  // using P.OfferDetail for P.OfferDetail.t;
+  using P.Global for P.Global.t;
+  using P.Local for P.Local.t;
   /* The `governance` address. Governance is the only address that can configure parameters. */
   address public governance;
 
@@ -66,9 +70,7 @@ contract MgvGovernable is MgvRoot {
     uint offer_gasbase
   ) public {
     authOnly();
-    locals[outbound_tkn][inbound_tkn] = $$(
-      set_local("locals[outbound_tkn][inbound_tkn]", [["active", 1]])
-    );
+    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].active(1);
     emit SetActive(outbound_tkn, inbound_tkn, true);
     setFee(outbound_tkn, inbound_tkn, fee);
     setDensity(outbound_tkn, inbound_tkn, density);
@@ -77,9 +79,7 @@ contract MgvGovernable is MgvRoot {
 
   function deactivate(address outbound_tkn, address inbound_tkn) public {
     authOnly();
-    locals[outbound_tkn][inbound_tkn] = $$(
-      set_local("locals[outbound_tkn][inbound_tkn]", [["active", 0]])
-    );
+    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].active(0);
     emit SetActive(outbound_tkn, inbound_tkn, false);
   }
 
@@ -92,9 +92,7 @@ contract MgvGovernable is MgvRoot {
     authOnly();
     /* `fee` is in basis points, i.e. in percents of a percent. */
     require(fee <= 500, "mgv/config/fee/<=500"); // at most 5%
-    locals[outbound_tkn][inbound_tkn] = $$(
-      set_local("locals[outbound_tkn][inbound_tkn]", [["fee", "fee"]])
-    );
+    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].fee(fee);
     emit SetFee(outbound_tkn, inbound_tkn, fee);
   }
 
@@ -109,9 +107,7 @@ contract MgvGovernable is MgvRoot {
 
     require(checkDensity(density), "mgv/config/density/112bits");
     //+clear+
-    locals[outbound_tkn][inbound_tkn] = $$(
-      set_local("locals[outbound_tkn][inbound_tkn]", [["density", "density"]])
-    );
+    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].density(density);
     emit SetDensity(outbound_tkn, inbound_tkn, density);
   }
 
@@ -133,15 +129,7 @@ contract MgvGovernable is MgvRoot {
       "mgv/config/offer_gasbase/24bits"
     );
     //+clear+
-    locals[outbound_tkn][inbound_tkn] = $$(
-      set_local(
-        "locals[outbound_tkn][inbound_tkn]",
-        [
-          ["offer_gasbase", "offer_gasbase"],
-          ["overhead_gasbase", "overhead_gasbase"]
-        ]
-      )
-    );
+    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].offer_gasbase(offer_gasbase).overhead_gasbase(overhead_gasbase);
     emit SetGasbase(outbound_tkn, inbound_tkn, overhead_gasbase, offer_gasbase);
   }
 
@@ -149,7 +137,7 @@ contract MgvGovernable is MgvRoot {
   /* ### `kill` */
   function kill() public {
     authOnly();
-    global = $$(set_global("global", [["dead", 1]]));
+    global = global.dead(1);
     emit Kill();
   }
 
@@ -161,7 +149,7 @@ contract MgvGovernable is MgvRoot {
 
     //+clear+
 
-    global = $$(set_global("global", [["gasprice", "gasprice"]]));
+    global = global.gasprice(gasprice);
     emit SetGasprice(gasprice);
   }
 
@@ -171,7 +159,7 @@ contract MgvGovernable is MgvRoot {
     /* Since any new `gasreq` is bounded above by `config.gasmax`, this check implies that all offers' `gasreq` is 24 bits wide at most. */
     require(uint24(gasmax) == gasmax, "mgv/config/gasmax/24bits");
     //+clear+
-    global = $$(set_global("global", [["gasmax", "gasmax"]]));
+    global = global.gasmax(gasmax);
     emit SetGasmax(gasmax);
   }
 
@@ -192,7 +180,7 @@ contract MgvGovernable is MgvRoot {
   /* ### `monitor` */
   function setMonitor(address monitor) public {
     authOnly();
-    global = $$(set_global("global", [["monitor", "monitor"]]));
+    global = global.monitor(monitor);
     emit SetMonitor(monitor);
   }
 
@@ -200,7 +188,7 @@ contract MgvGovernable is MgvRoot {
   function setUseOracle(bool useOracle) public {
     authOnly();
     uint _useOracle = useOracle ? 1 : 0;
-    global = $$(set_global("global", [["useOracle", "_useOracle"]]));
+    global = global.useOracle(_useOracle);
     emit SetUseOracle(useOracle);
   }
 
@@ -208,7 +196,7 @@ contract MgvGovernable is MgvRoot {
   function setNotify(bool notify) public {
     authOnly();
     uint _notify = notify ? 1 : 0;
-    global = $$(set_global("global", [["notify", "_notify"]]));
+    global = global.notify(_notify);
     emit SetNotify(notify);
   }
 }

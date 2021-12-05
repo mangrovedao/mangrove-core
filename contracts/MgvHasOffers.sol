@@ -18,19 +18,22 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {MgvLib as ML, HasMgvEvents, IMgvMonitor} from "./MgvLib.sol";
+import {MgvLib as ML, HasMgvEvents, IMgvMonitor,P} from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
 
 /* `MgvHasOffers` contains the state variables and functions common to both market-maker operations and market-taker operations. Mostly: storing offers, removing them, updating market makers' provisions. */
 contract MgvHasOffers is MgvRoot {
+  using P.Offer for P.Offer.t;
+  using P.OfferDetail for P.OfferDetail.t;
+  using P.Local for P.Local.t;
   /* # State variables */
   /* Given a `outbound_tkn`,`inbound_tkn` pair, the mappings `offers` and `offerDetails` associate two 256 bits words to each offer id. Those words encode information detailed in [`structs.js`](#structs.js).
 
-     The mappings are `outbound_tkn => inbound_tkn => offerId => bytes32`.
+     The mappings are `outbound_tkn => inbound_tkn => offerId => P.Offer.t|P.OfferDetail.t`.
    */
-  mapping(address => mapping(address => mapping(uint => bytes32)))
+  mapping(address => mapping(address => mapping(uint => P.Offer.t)))
     public offers;
-  mapping(address => mapping(address => mapping(uint => bytes32)))
+  mapping(address => mapping(address => mapping(uint => P.OfferDetail.t)))
     public offerDetails;
 
   /* Makers provision their possible penalties in the `balanceOf` mapping.
@@ -48,8 +51,8 @@ contract MgvHasOffers is MgvRoot {
     view
     returns (uint)
   {
-    bytes32 local = locals[outbound_tkn][inbound_tkn];
-    return $$(local_best("local"));
+    P.Local.t local = locals[outbound_tkn][inbound_tkn];
+    return local.best();
   }
 
   /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offers[outbound_tkn][inbound_tkn]` and `offerDetails[outbound_tkn][inbound_tkn]` instead. */
@@ -57,23 +60,23 @@ contract MgvHasOffers is MgvRoot {
     address outbound_tkn,
     address inbound_tkn,
     uint offerId
-  ) external view returns (ML.Offer memory, ML.OfferDetail memory) {
-    bytes32 offer = offers[outbound_tkn][inbound_tkn][offerId];
-    ML.Offer memory offerStruct = ML.Offer({
-      prev: $$(offer_prev("offer")),
-      next: $$(offer_next("offer")),
-      wants: $$(offer_wants("offer")),
-      gives: $$(offer_gives("offer"))
+  ) external view returns (ML.OfferStruct memory, ML.OfferDetail memory) {
+    P.Offer.t offer = offers[outbound_tkn][inbound_tkn][offerId];
+    ML.OfferStruct memory offerStruct = ML.OfferStruct({
+      prev: offer.prev(),
+      next: offer.next(),
+      wants: offer.wants(),
+      gives: offer.gives()
     });
 
-    bytes32 offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
+    P.OfferDetail.t offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
 
     ML.OfferDetail memory offerDetailStruct = ML.OfferDetail({
-      maker: $$(offerDetail_maker("offerDetail")),
-      gasreq: $$(offerDetail_gasreq("offerDetail")),
-      overhead_gasbase: $$(offerDetail_overhead_gasbase("offerDetail")),
-      offer_gasbase: $$(offerDetail_offer_gasbase("offerDetail")),
-      gasprice: $$(offerDetail_gasprice("offerDetail"))
+      maker: offerDetail.maker(),
+      gasreq: offerDetail.gasreq(),
+      overhead_gasbase: offerDetail.overhead_gasbase(),
+      offer_gasbase: offerDetail.offer_gasbase(),
+      gasprice: offerDetail.gasprice()
     });
     return (offerStruct, offerDetailStruct);
   }
@@ -103,13 +106,13 @@ contract MgvHasOffers is MgvRoot {
     address outbound_tkn,
     address inbound_tkn,
     uint offerId,
-    bytes32 offer,
-    bytes32 offerDetail,
+    P.Offer.t offer,
+    P.OfferDetail.t offerDetail,
     bool deprovision
   ) internal {
-    offer = $$(set_offer("offer", [["gives", 0]]));
+    offer = offer.gives(0);
     if (deprovision) {
-      offerDetail = $$(set_offerDetail("offerDetail", [["gasprice", 0]]));
+      offerDetail = offerDetail.gasprice(0);
     }
     offers[outbound_tkn][inbound_tkn][offerId] = offer;
     offerDetails[outbound_tkn][inbound_tkn][offerId] = offerDetail;
@@ -127,34 +130,24 @@ contract MgvHasOffers is MgvRoot {
     address inbound_tkn,
     uint betterId,
     uint worseId,
-    bytes32 local
-  ) internal returns (bytes32) {
+    P.Local.t local
+  ) internal returns (P.Local.t) {
     if (betterId != 0) {
-      offers[outbound_tkn][inbound_tkn][betterId] = $$(
-        set_offer(
-          "offers[outbound_tkn][inbound_tkn][betterId]",
-          [["next", "worseId"]]
-        )
-      );
+      offers[outbound_tkn][inbound_tkn][betterId] = offers[outbound_tkn][inbound_tkn][betterId].next(worseId);
     } else {
-      local = $$(set_local("local", [["best", "worseId"]]));
+      local = local.best(worseId);
     }
 
     if (worseId != 0) {
-      offers[outbound_tkn][inbound_tkn][worseId] = $$(
-        set_offer(
-          "offers[outbound_tkn][inbound_tkn][worseId]",
-          [["prev", "betterId"]]
-        )
-      );
+      offers[outbound_tkn][inbound_tkn][worseId] = offers[outbound_tkn][inbound_tkn][worseId].prev(betterId);
     }
 
     return local;
   }
 
   /* ## Check offer is live */
-  /* Check whether an offer is 'live', that is: inserted in the order book. The Mangrove holds a `outbound_tkn => inbound_tkn => id => bytes32` mapping in storage. Offer ids that are not yet assigned or that point to since-deleted offer will point to an offer with `gives` field at 0. */
-  function isLive(bytes32 offer) public pure returns (bool) {
-    return $$(offer_gives("offer")) > 0;
+  /* Check whether an offer is 'live', that is: inserted in the order book. The Mangrove holds a `outbound_tkn => inbound_tkn => id => P.Offer.t` mapping in storage. Offer ids that are not yet assigned or that point to since-deleted offer will point to an offer with `gives` field at 0. */
+  function isLive(P.Offer.t offer) public pure returns (bool) {
+    return offer.gives() > 0;
   }
 }

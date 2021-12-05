@@ -40,7 +40,7 @@ interface MangroveLike {
     address outbound_tkn,
     address inbound_tkn,
     uint offerId
-  ) external view returns (ML.Offer memory, ML.OfferDetail memory);
+  ) external view returns (ML.OfferStruct memory, ML.OfferDetail memory);
 }
 
 /* The purpose of the Cleaner contract is to execute failing offers and collect

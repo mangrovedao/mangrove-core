@@ -18,8 +18,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {MgvLib as ML} from "../MgvLib.sol";
-import {MgvPack as MP} from "../MgvPack.sol";
+import {MgvLib as ML, P} from "../MgvLib.sol";
 
 interface MangroveLike {
   function best(address, address) external view returns (uint);
@@ -28,7 +27,7 @@ interface MangroveLike {
     address,
     address,
     uint
-  ) external view returns (bytes32);
+  ) external view returns (P.Offer.t);
 
   function offerDetails(
     address,
@@ -40,12 +39,15 @@ interface MangroveLike {
     address,
     address,
     uint
-  ) external view returns (ML.Offer memory, ML.OfferDetail memory);
+  ) external view returns (ML.OfferStruct memory, ML.OfferDetail memory);
 
-  function config(address, address) external view returns (bytes32, bytes32);
+  function config(address, address) external view returns (P.Global.t, P.Local.t);
 }
 
 contract MgvReader {
+  using P.Offer for P.Offer.t;
+  using P.Global for P.Global.t;
+  using P.Local for P.Local.t;
   MangroveLike immutable mgv;
 
   constructor(address _mgv) {
@@ -70,9 +72,8 @@ contract MgvReader {
     if (fromId == 0) {
       startId = mgv.best(outbound_tkn, inbound_tkn);
     } else {
-      startId = MP.offer_unpack_gives(
-        mgv.offers(outbound_tkn, inbound_tkn, fromId)
-      ) > 0
+      startId = mgv.offers(outbound_tkn, inbound_tkn, fromId).gives()
+      > 0
         ? fromId
         : 0;
     }
@@ -80,9 +81,7 @@ contract MgvReader {
     uint currentId = startId;
 
     while (currentId != 0 && length < maxOffers) {
-      currentId = MP.offer_unpack_next(
-        mgv.offers(outbound_tkn, inbound_tkn, currentId)
-      );
+      currentId = mgv.offers(outbound_tkn, inbound_tkn, currentId).next();
       length = length + 1;
     }
 
@@ -101,7 +100,7 @@ contract MgvReader {
     returns (
       uint,
       uint[] memory,
-      bytes32[] memory,
+      P.Offer.t[] memory,
       bytes32[] memory
     )
   {
@@ -113,7 +112,7 @@ contract MgvReader {
     );
 
     uint[] memory offerIds = new uint[](length);
-    bytes32[] memory offers = new bytes32[](length);
+    P.Offer.t[] memory offers = new P.Offer.t[](length);
     bytes32[] memory details = new bytes32[](length);
 
     uint i = 0;
@@ -122,7 +121,7 @@ contract MgvReader {
       offerIds[i] = currentId;
       offers[i] = mgv.offers(outbound_tkn, inbound_tkn, currentId);
       details[i] = mgv.offerDetails(outbound_tkn, inbound_tkn, currentId);
-      currentId = MP.offer_unpack_next(offers[i]);
+      currentId = offers[i].next();
       i = i + 1;
     }
 
@@ -141,7 +140,7 @@ contract MgvReader {
     returns (
       uint,
       uint[] memory,
-      ML.Offer[] memory,
+      ML.OfferStruct[] memory,
       ML.OfferDetail[] memory
     )
   {
@@ -153,7 +152,7 @@ contract MgvReader {
     );
 
     uint[] memory offerIds = new uint[](length);
-    ML.Offer[] memory offers = new ML.Offer[](length);
+    ML.OfferStruct[] memory offers = new ML.OfferStruct[](length);
     ML.OfferDetail[] memory details = new ML.OfferDetail[](length);
 
     uint i = 0;
@@ -177,9 +176,9 @@ contract MgvReader {
     uint ofr_gasreq,
     uint ofr_gasprice
   ) external view returns (uint) {
-    (bytes32 global, bytes32 local) = mgv.config(outbound_tkn, inbound_tkn);
+    (P.Global.t global, P.Local.t local) = mgv.config(outbound_tkn, inbound_tkn);
     uint _gp;
-    uint global_gasprice = MP.global_unpack_gasprice(global);
+    uint global_gasprice = global.gasprice();
     if (global_gasprice > ofr_gasprice) {
       _gp = global_gasprice;
     } else {
@@ -187,8 +186,8 @@ contract MgvReader {
     }
     return
       (ofr_gasreq +
-        MP.local_unpack_overhead_gasbase(local) +
-        MP.local_unpack_offer_gasbase(local)) *
+      local.overhead_gasbase() +
+        local.offer_gasbase()) *
       _gp *
       10**9;
   }
@@ -199,25 +198,25 @@ contract MgvReader {
     view
     returns (ML.Global memory global, ML.Local memory local)
   {
-    (bytes32 _global, bytes32 _local) = mgv.config(outbound_tkn, inbound_tkn);
+    (P.Global.t _global, P.Local.t _local) = mgv.config(outbound_tkn, inbound_tkn);
     return (
       ML.Global({
-        monitor: $$(global_monitor("_global")),
-        useOracle: $$(global_useOracle("_global")) > 0,
-        notify: $$(global_notify("_global")) > 0,
-        gasprice: $$(global_gasprice("_global")),
-        gasmax: $$(global_gasmax("_global")),
-        dead: $$(global_dead("_global")) > 0
+        monitor: _global.monitor(),
+        useOracle: _global.useOracle() > 0,
+        notify: _global.notify() > 0,
+        gasprice: _global.gasprice(),
+        gasmax: _global.gasmax(),
+        dead: _global.dead() > 0
       }),
       ML.Local({
-        active: $$(local_active("_local")) > 0,
-        overhead_gasbase: $$(local_overhead_gasbase("_local")),
-        offer_gasbase: $$(local_offer_gasbase("_local")),
-        fee: $$(local_fee("_local")),
-        density: $$(local_density("_local")),
-        best: $$(local_best("_local")),
-        lock: $$(local_lock("_local")) > 0,
-        last: $$(local_last("_local"))
+        active: _local.active() > 0,
+        overhead_gasbase: _local.overhead_gasbase(),
+        offer_gasbase: _local.offer_gasbase(),
+        fee: _local.fee(),
+        density: _local.density(),
+        best: _local.best(),
+        lock: _local.lock() > 0,
+        last: _local.last()
       })
     );
   }

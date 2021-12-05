@@ -18,12 +18,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {MgvLib as ML} from "./MgvLib.sol";
+import {MgvLib as ML, P} from "./MgvLib.sol";
 
 import {AbstractMangrove} from "./AbstractMangrove.sol";
 
 /* <a id="Mangrove"></a> The `Mangrove` contract implements the "normal" version of Mangrove, where the taker flashloans the desired amount to each maker. Each time, makers are called after the loan. When the order is complete, each maker is called once again (with the orderbook unlocked). */
 contract Mangrove is AbstractMangrove {
+  using P.OfferDetail for P.OfferDetail.t;
+
   constructor(
     address governance,
     uint gasprice,
@@ -59,7 +61,7 @@ contract Mangrove is AbstractMangrove {
       if (
         transferToken(
           sor.inbound_tkn,
-          $$(offerDetail_maker("sor.offerDetail")),
+          sor.offerDetail.maker(),
           sor.gives
         )
       ) {

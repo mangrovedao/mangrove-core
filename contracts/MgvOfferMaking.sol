@@ -16,7 +16,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 import {IMaker, HasMgvEvents} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
@@ -321,7 +321,7 @@ contract MgvOfferMaking is MgvHasOffers {
         offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id] = $$(
           make_offerDetail(
             [
-              ["maker", "uint(msg.sender)"],
+              ["maker", "uint160(msg.sender)"],
               ["gasreq", "ofp.gasreq"],
               ["overhead_gasbase", "overhead_gasbase"],
               ["offer_gasbase", "offer_gasbase"],

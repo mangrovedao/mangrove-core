@@ -1,5 +1,5 @@
 // SPDX-License-Identifier:	AGPL-3.0
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
 import "../AbstractMangrove.sol";
@@ -195,7 +195,7 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
 
     baseT.approve(address(mgv), 10 ether);
 
-    address(tkr).transfer(10 ether);
+    payable(tkr).transfer(10 ether);
     quoteT.mint(address(tkr), 1 ether);
     baseT.mint(address(this), 5 ether);
 

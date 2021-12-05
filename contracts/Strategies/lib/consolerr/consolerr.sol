@@ -1,4 +1,4 @@
-pragma solidity >=0.6.10 <0.8.0;
+pragma solidity >=0.6.10 <=0.8.10;
 
 /*
  * Error logging

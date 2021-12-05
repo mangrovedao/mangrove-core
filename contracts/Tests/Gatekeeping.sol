@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
 import "../AbstractMangrove.sol";
@@ -130,9 +130,9 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     mkr = MakerSetup.setup(mgv, base, quote);
     dual_mkr = MakerSetup.setup(mgv, quote, base);
 
-    address(tkr).transfer(10 ether);
-    address(mkr).transfer(10 ether);
-    address(dual_mkr).transfer(10 ether);
+    payable(tkr).transfer(10 ether);
+    payable(mkr).transfer(10 ether);
+    payable(dual_mkr).transfer(10 ether);
 
     bool noRevert;
     (noRevert, ) = address(mgv).call{value: 10 ether}("");

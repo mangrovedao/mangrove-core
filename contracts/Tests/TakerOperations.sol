@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../AbstractMangrove.sol";
@@ -47,9 +47,9 @@ contract TakerOperations_Test is HasMgvEvents {
     refusemkr = MakerSetup.setup(mgv, base, quote, 1);
     failmkr = MakerSetup.setup(mgv, base, quote, 2);
 
-    address(mkr).transfer(10 ether);
-    address(refusemkr).transfer(10 ether);
-    address(failmkr).transfer(10 ether);
+    payable(mkr).transfer(10 ether);
+    payable(refusemkr).transfer(10 ether);
+    payable(failmkr).transfer(10 ether);
 
     mkr.provisionMgv(10 ether);
     mkr.approveMgv(baseT, 10 ether);

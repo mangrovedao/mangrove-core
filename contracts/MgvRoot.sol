@@ -35,7 +35,7 @@
    <img src="./modular_mangrove.svg" width="180%"> </img>
  */
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 import {MgvLib as ML, HasMgvEvents, IMgvMonitor} from "./MgvLib.sol";
 

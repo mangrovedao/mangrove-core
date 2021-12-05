@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
 import "../AbstractMangrove.sol";
@@ -34,8 +34,8 @@ contract MM1T_Test {
     mkr = MakerSetup.setup(mgv, base, quote);
     mm1 = new MM1{value: 2 ether}(mgv, base, quote);
 
-    address(tkr).transfer(10 ether);
-    address(mkr).transfer(10 ether);
+    payable(tkr).transfer(10 ether);
+    payable(mkr).transfer(10 ether);
 
     //bool noRevert;
     //(noRevert, ) = address(mgv).call{value: 10 ether}("");

@@ -15,8 +15,13 @@ import "../AaveLender.sol";
 import "../Persistent.sol";
 
 contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
-  constructor(address _addressesProvider, address payable _MGV)
+  constructor(
+    address _addressesProvider,
+    address _MgvReader,
+    address payable _MGV
+  )
     AaveModule(_addressesProvider, 0)
+    MultiUser(_MgvReader)
     MangroveOffer(_MGV)
   {
     setGasreq(800_000); // Offer proxy requires AAVE interactions

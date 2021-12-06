@@ -36,130 +36,130 @@ describe("Running tests...", function () {
     await lc.activateMarket(mgv, usdc.address, dai.address);
   });
 
-  // it("Swinging strat", async function () {
-  //   lc.listenMgv(mgv);
+  it("Swinging strat", async function () {
+    //    lc.listenMgv(mgv);
 
-  //   const strategy = "SwingingMarketMaker";
-  //   const Strat = await ethers.getContractFactory(strategy);
-  //   const comp = await lc.getContract("COMP");
+    const strategy = "SwingingMarketMaker";
+    const Strat = await ethers.getContractFactory(strategy);
+    const comp = await lc.getContract("COMP");
 
-  //   // deploying strat
-  //   const makerContract = (
-  //     await Strat.deploy(comp.address, mgv.address, wEth.address)
-  //   ).connect(testSigner);
-  //   lc.listenOfferLogic(makerContract, ["PosthookFail"]);
-  //   const eth_for_one_usdc = lc.parseToken("0.0004", 18); // 1/2500 ethers
-  //   const usdc_for_one_eth = lc.parseToken("2510", 6); // 2510 $
+    // deploying strat
+    const makerContract = (
+      await Strat.deploy(comp.address, mgv.address, wEth.address)
+    ).connect(testSigner);
+    //   lc.listenOfferLogic(makerContract, ["PosthookFail"]);
+    const eth_for_one_usdc = lc.parseToken("0.0004", 18); // 1/2500 ethers
+    const usdc_for_one_eth = lc.parseToken("2510", 6); // 2510 $
 
-  //   // setting p(WETH|USDC) and p(USDC|WETH) s.t p(WETH|USDC)*p(USDC|WETH) > 1
-  //   await makerContract.setPrice(wEth.address, usdc.address, eth_for_one_usdc);
-  //   await makerContract.setPrice(usdc.address, wEth.address, usdc_for_one_eth);
+    // setting p(WETH|USDC) and p(USDC|WETH) s.t p(WETH|USDC)*p(USDC|WETH) > 1
+    await makerContract.setPrice(wEth.address, usdc.address, eth_for_one_usdc);
+    await makerContract.setPrice(usdc.address, wEth.address, usdc_for_one_eth);
 
-  //   // taker premices (approving Mgv on inbound erc20 for taker orders)
-  //   // 1. test runner will need to sell weth and usdc so getting some...
-  //   await lc.fund([
-  //     ["WETH", "1000.0", testSigner.address],
-  //     ["USDC", "1000000.0", testSigner.address],
-  //   ]);
-  //   // 2. sending WETH and USDC to mangrove requires approval
-  //   await wEth
-  //     .connect(testSigner)
-  //     .approve(mgv.address, ethers.constants.MaxUint256);
-  //   await usdc
-  //     .connect(testSigner)
-  //     .approve(mgv.address, ethers.constants.MaxUint256);
+    // taker premices (approving Mgv on inbound erc20 for taker orders)
+    // 1. test runner will need to sell weth and usdc so getting some...
+    await lc.fund([
+      ["WETH", "1000.0", testSigner.address],
+      ["USDC", "1000000.0", testSigner.address],
+    ]);
+    // 2. sending WETH and USDC to mangrove requires approval
+    await wEth
+      .connect(testSigner)
+      .approve(mgv.address, ethers.constants.MaxUint256);
+    await usdc
+      .connect(testSigner)
+      .approve(mgv.address, ethers.constants.MaxUint256);
 
-  //   // maker premices
+    // maker premices
 
-  //   //1. approve lender for c[DAI|WETH|USDC] minting
-  //   await makerContract.approveLender(
-  //     cwEth.address,
-  //     ethers.constants.MaxUint256
-  //   );
-  //   await makerContract.approveLender(
-  //     cUsdc.address,
-  //     ethers.constants.MaxUint256
-  //   );
-  //   await makerContract.approveLender(
-  //     cDai.address,
-  //     ethers.constants.MaxUint256
-  //   );
+    //1. approve lender for c[DAI|WETH|USDC] minting
+    await makerContract.approveLender(
+      cwEth.address,
+      ethers.constants.MaxUint256
+    );
+    await makerContract.approveLender(
+      cUsdc.address,
+      ethers.constants.MaxUint256
+    );
+    await makerContract.approveLender(
+      cDai.address,
+      ethers.constants.MaxUint256
+    );
 
-  //   // 2. entering markets to be allowed to borrow USDC and WETH on DAI collateral
-  //   await makerContract.enterMarkets([cwEth.address]);
-  //   await makerContract.enterMarkets([cUsdc.address]);
-  //   await makerContract.enterMarkets([cDai.address]);
+    // 2. entering markets to be allowed to borrow USDC and WETH on DAI collateral
+    await makerContract.enterMarkets([cwEth.address]);
+    await makerContract.enterMarkets([cUsdc.address]);
+    await makerContract.enterMarkets([cDai.address]);
 
-  //   // 3. pushing DAIs on compound to be used as collateral
-  //   // 3.1 sending DAIs to makerContract to be used as collateral
-  //   await lc.fund([["DAI", "100000.0", makerContract.address]]);
-  //   // 3.2 asking maker contract to mint cDAIs
-  //   const daiAmount = lc.parseToken("100000.0", 18);
-  //   await makerContract.mint(daiAmount, cDai.address, makerContract.address);
+    // 3. pushing DAIs on compound to be used as collateral
+    // 3.1 sending DAIs to makerContract to be used as collateral
+    await lc.fund([["DAI", "100000.0", makerContract.address]]);
+    // 3.2 asking maker contract to mint cDAIs
+    const daiAmount = lc.parseToken("100000.0", 18);
+    await makerContract.mint(daiAmount, cDai.address, makerContract.address);
 
-  //   // starting strategy by offering 1000 USDC on the book
-  //   const overrides = { value: lc.parseToken("2.0", 18) };
-  //   const gives_amount = lc.parseToken("1000.0", 6);
-  //   await makerContract.startStrat(
-  //     usdc.address,
-  //     wEth.address,
-  //     gives_amount,
-  //     overrides
-  //   ); // gives 1000 $
+    // starting strategy by offering 1000 USDC on the book
+    const overrides = { value: lc.parseToken("2.0", 18) };
+    const gives_amount = lc.parseToken("1000.0", 6);
+    await makerContract.startStrat(
+      usdc.address,
+      wEth.address,
+      gives_amount,
+      overrides
+    ); // gives 1000 $
 
-  //   await lc.logLenderStatus(
-  //     makerContract,
-  //     "compound",
-  //     ["WETH"],
-  //     makerContract.address
-  //   );
+    await lc.logLenderStatus(
+      makerContract,
+      "compound",
+      ["WETH"],
+      makerContract.address
+    );
 
-  //   for (let i = 0; i < 10; i++) {
-  //     let book01 = await reader.offerList(usdc.address, wEth.address, 0, 1);
-  //     let book10 = await reader.offerList(wEth.address, usdc.address, 0, 1);
-  //     await lc.logOrderBook(book01, usdc, wEth);
-  //     await lc.logOrderBook(book10, wEth, usdc);
+    for (let i = 0; i < 10; i++) {
+      let book01 = await reader.offerList(usdc.address, wEth.address, 0, 1);
+      let book10 = await reader.offerList(wEth.address, usdc.address, 0, 1);
+      await lc.logOrderBook(book01, usdc, wEth);
+      await lc.logOrderBook(book10, wEth, usdc);
 
-  //     // market order
-  //     let takerGot;
-  //     let takerGave;
-  //     if (i % 2 == 0) {
-  //       // every even events, taker buys USDC
-  //       [takerGot, takerGave] = await lc.marketOrder(
-  //         mgv,
-  //         "USDC",
-  //         "WETH",
-  //         lc.parseToken("1000", await usdc.decimals()), //takerWants
-  //         lc.parseToken("1.0", 18) //takerGives
-  //       );
-  //       console.log(
-  //         chalk.green(lc.formatToken(takerGot, 6)),
-  //         chalk.red(lc.formatToken(takerGave, 18))
-  //       );
-  //     } else {
-  //       // every odd events taker buys WETH
-  //       [takerGot, takerGave] = await lc.marketOrder(
-  //         mgv,
-  //         "WETH",
-  //         "USDC",
-  //         lc.parseToken("0.4", 18), //takerWants
-  //         lc.parseToken("2000", await usdc.decimals()) //takerGives
-  //       );
-  //       console.log(
-  //         chalk.green(lc.formatToken(takerGot, 18)),
-  //         chalk.red(lc.formatToken(takerGave, 6))
-  //       );
-  //     }
-  //   }
-  //   await lc.logLenderStatus(
-  //     makerContract,
-  //     "compound",
-  //     ["USDC", "WETH"],
-  //     makerContract.address
-  //   );
-  //   lc.sleep(5000);
-  //   lc.stopListeners([mgv, makerContract]);
-  // });
+      // market order
+      let takerGot;
+      let takerGave;
+      if (i % 2 == 0) {
+        // every even events, taker buys USDC
+        [takerGot, takerGave] = await lc.marketOrder(
+          mgv,
+          "USDC",
+          "WETH",
+          lc.parseToken("1000", await usdc.decimals()), //takerWants
+          lc.parseToken("1.0", 18) //takerGives
+        );
+        console.log(
+          chalk.green(lc.formatToken(takerGot, 6)),
+          chalk.red(lc.formatToken(takerGave, 18))
+        );
+      } else {
+        // every odd events taker buys WETH
+        [takerGot, takerGave] = await lc.marketOrder(
+          mgv,
+          "WETH",
+          "USDC",
+          lc.parseToken("0.4", 18), //takerWants
+          lc.parseToken("2000", await usdc.decimals()) //takerGives
+        );
+        console.log(
+          chalk.green(lc.formatToken(takerGot, 18)),
+          chalk.red(lc.formatToken(takerGave, 6))
+        );
+      }
+    }
+    await lc.logLenderStatus(
+      makerContract,
+      "compound",
+      ["USDC", "WETH"],
+      makerContract.address
+    );
+    //    lc.sleep(5000);
+    //    lc.stopListeners([mgv, makerContract]);
+  });
 
   it("Reposting strat", async function () {
     const Repost = await ethers.getContractFactory("Reposting");
@@ -197,7 +197,7 @@ describe("Running tests...", function () {
       await token.approve(mgv.address, ethers.constants.MaxUint256);
     }
 
-    lc.listenMgv(mgv);
+    //lc.listenMgv(mgv);
 
     for (const [
       outbound_tkn,
@@ -227,6 +227,15 @@ describe("Running tests...", function () {
             .mul(usdToNative)
             .div(outTknInMatic); // makerGives
 
+          const ofrId = await repostLogic.callStatic.newOffer(
+            outbound_tkn.address, //e.g weth
+            inbound_tkn.address, //e.g dai
+            makerWants,
+            makerGives,
+            ofr_gasreq,
+            ofr_gasprice,
+            ofr_pivot
+          );
           const ofrTx = await repostLogic.newOffer(
             outbound_tkn.address, //e.g weth
             inbound_tkn.address, //e.g dai
@@ -242,128 +251,43 @@ describe("Running tests...", function () {
             outbound_tkn.address,
             inbound_tkn.address,
             ethers.BigNumber.from(0),
-            ethers.BigNumber.from(1)
+            ethers.BigNumber.from(5)
           );
           await lc.logOrderBook(book, outbound_tkn, inbound_tkn);
+          const [offer, offerDetail] = await mgv.offerInfo(
+            outbound_tkn.address,
+            inbound_tkn.address,
+            ofrId
+          );
+          // checking offer is indeed reposting
+          const [successes, takerGot, takerGave, bounty] =
+            await mgv.callStatic.snipes(
+              outbound_tkn.address,
+              inbound_tkn.address,
+              [[ofrId, offer.gives, offer.wants, offerDetail.gasreq]],
+              true
+            );
+          assert(successes == 1, "Snipe failed");
+          const snipeTx = await mgv.snipes(
+            outbound_tkn.address,
+            inbound_tkn.address,
+            [[ofrId, offer.gives, offer.wants, offerDetail.gasreq]],
+            true
+          );
+          await snipeTx.wait();
+          const [offer_] = await mgv.offerInfo(
+            outbound_tkn.address,
+            inbound_tkn.address,
+            ofrId
+          );
+          lc.assertEqualBN(
+            offer_.gives,
+            offer.gives,
+            `Offer gives is incorrect`
+          );
         }
       }
     }
-    const [offer, offerDetail] = await mgv.offerInfo(
-      wEth.address,
-      usdc.address,
-      ethers.BigNumber.from(1)
-    );
-
-    {
-      const [successes, takerGot, takerGave, bounty] =
-        await mgv.callStatic.snipes(
-          wEth.address,
-          usdc.address,
-          [
-            [
-              ethers.BigNumber.from(1),
-              offer.gives,
-              offer.wants,
-              offerDetail.gasreq,
-            ],
-          ],
-          true
-        );
-      console.log(
-        ethers.utils.formatUnits(takerGot, 18),
-        ethers.utils.formatUnits(takerGave, 6)
-      );
-    }
-    {
-      const snipeTx = await mgv.snipes(
-        wEth.address,
-        usdc.address,
-        [
-          [
-            ethers.BigNumber.from(1),
-            offer.gives,
-            offer.wants,
-            offerDetail.gasreq,
-          ],
-        ],
-        true
-      );
-      await snipeTx.wait();
-    }
-    {
-      const [successes, takerGot, takerGave, bounty] =
-        await mgv.callStatic.snipes(
-          wEth.address,
-          usdc.address,
-          [
-            [
-              ethers.BigNumber.from(1),
-              offer.gives,
-              offer.wants,
-              offerDetail.gasreq,
-            ],
-          ],
-          true
-        );
-      console.log(
-        ethers.utils.formatUnits(takerGot, 18),
-        ethers.utils.formatUnits(takerGave, 6)
-      );
-    }
-    {
-      const snipeTx = await mgv.snipes(
-        wEth.address,
-        usdc.address,
-        [
-          [
-            ethers.BigNumber.from(1),
-            offer.gives,
-            offer.wants,
-            offerDetail.gasreq,
-          ],
-        ],
-        true
-      );
-      await snipeTx.wait();
-    }
-    {
-      const [successes, takerGot, takerGave, bounty] =
-        await mgv.callStatic.snipes(
-          wEth.address,
-          usdc.address,
-          [
-            [
-              ethers.BigNumber.from(1),
-              offer.gives,
-              offer.wants,
-              offerDetail.gasreq,
-            ],
-          ],
-          true
-        );
-      console.log(
-        ethers.utils.formatUnits(takerGot, 18),
-        ethers.utils.formatUnits(takerGave, 6)
-      );
-    }
-    {
-      const snipeTx = await mgv.snipes(
-        wEth.address,
-        usdc.address,
-        [
-          [
-            ethers.BigNumber.from(1),
-            offer.gives,
-            offer.wants,
-            offerDetail.gasreq,
-          ],
-        ],
-        true
-      );
-      await snipeTx.wait();
-    }
-    lc.sleep(5000);
-    lc.stopListeners([mgv]);
   });
 });
 

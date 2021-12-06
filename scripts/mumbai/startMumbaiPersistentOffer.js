@@ -15,26 +15,32 @@ async function main() {
     wallet
   );
 
-  const mgv = await Mangrove.connect(hre.network.config.url);
+  const MgvJS = await Mangrove.connect({
+    provider: hre.network.config.url,
+    signer: wallet,
+  });
+  // const { readOnly, signer } = await eth._createSigner(options); // returns a provider equipped signer
+  // const network = await Eth.getProviderNetwork(signer.provider);
 
-  const weth = Mangrove.getAddress("WETH").connect(wallet);
-  const dai = Mangrove.getAddress("DAI").connect(wallet);
-  const usdc = Mangrove.getAddress("USDC").connect(wallet);
+  const weth = MgvJS.token("WETH").contract;
+  const dai = MgvJS.token("DAI").contract;
+  const usdc = MgvJS.token("USDC").contract;
+
+  MgvJS._provider.pollingInterval = 250;
 
   const tokenParams = [
-    [dai, "DAI", 18, ethers.utils.parseEther("0.0003")],
-    [weth, "WETH", 18, ethers.utils.parseEther("1")],
-    [usdc, "USDC", 6, ethers.utils.parseEther("0.0003")],
+    [dai, "DAI", MgvJS.getDecimals("DAI"), 0.0003],
+    [weth, "WETH", MgvJS.getDecimals("WETH"), 1],
+    [usdc, "USDC", MgvJS.getDecimals("USDC"), 0.0003],
   ];
 
-  const ofr_gasreq = ethers.BigNumber.from(200000);
-  const ofr_gasprice = ethers.BigNumber.from(0);
-  const ofr_pivot = ethers.BigNumber.from(0);
+  // const ofr_gasreq = ethers.BigNumber.from(200000);
+  // const ofr_gasprice = ethers.BigNumber.from(0);
+  // const ofr_pivot = ethers.BigNumber.from(0);
 
-  const usdToNative = ethers.utils.parseEther("0.0003");
+  const usdToNative = ethers.utils.parseUnits("0.0003", 18);
 
-  let overrides = { value: ethers.utils.parseEther("1.0"), gasLimit: 60000 };
-  const fundTx = await mgv["fund(address)"](repostLogic.address, overrides);
+  const fundTx = await MgvJS.fund(repostLogic.address, 1);
   await fundTx.wait();
 
   for (const [
@@ -51,38 +57,29 @@ async function main() {
 
     for (const [inbound_tkn, inName, inDecimals, inTknInMatic] of tokenParams) {
       if (outbound_tkn.address != inbound_tkn.address) {
-        const makerWants = ethers.utils
-          .parseUnits("1000", inDecimals)
-          .mul(usdToNative)
-          .div(inTknInMatic); // makerWants
-        const makerGives = ethers.utils
-          .parseUnits("1000", outDecimals)
-          .mul(usdToNative)
-          .div(outTknInMatic); // makerGives
+        const mkr = await MgvJS.simpleMakerConnect({
+          address: repostLogic.address,
+          base: outName,
+          quote: inName,
+        });
 
         const transferTx = await outbound_tkn.transfer(
           repostLogic.address,
-          makerGives
+          MgvJS.toUnits(1000 * inTknInMatic, outName)
         );
         await transferTx.wait();
         console.log(
-          `* Transfering ${ethers.utils.formatUnits(
-            makerGives,
-            outDecimals
-          )} ${outName} to persistent offer logic`
+          `* Transferred ${
+            1000 * inTknInMatic
+          } ${outName} to persistent offer logic`
         );
-        const ofrTx = await repostLogic.newOffer(
-          outbound_tkn.address, //e.g weth
-          inbound_tkn.address, //e.g dai
-          makerWants,
-          makerGives,
-          ofr_gasreq,
-          ofr_gasprice,
-          ethers.BigNumber.from(180)
-        );
-        await ofrTx.wait();
+        const { id: ofrId } = await mkr.newAsk({
+          wants: 1000 * outTknInMatic,
+          gives: 1000 * inTknInMatic,
+        });
+
         console.log(
-          `* Posting new persistent offer on (${outName},${inName}) offer list`
+          `* Posting new persistent offer ${ofrId} on (${outName},${inName}) Market`
         );
         const book = await mgvContracts.reader.offerList(
           outbound_tkn.address,

@@ -46,10 +46,6 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
       order.inbound_tkn,
       order.offerId
     );
-    if (owner == address(0)) {
-      emit UnkownOffer(order.outbound_tkn, order.inbound_tkn, order.offerId);
-      return amount;
-    }
     (
       uint redeemable, /*maxBorrowAfterRedeem*/
 
@@ -101,10 +97,6 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
       order.inbound_tkn,
       order.offerId
     );
-    if (owner == address(0)) {
-      emit UnkownOffer(order.outbound_tkn, order.inbound_tkn, order.offerId);
-      return amount;
-    }
     // minted Atokens are sent to owner
     return aaveMint(amount, owner, order);
   }

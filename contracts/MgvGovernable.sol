@@ -33,7 +33,7 @@ contract MgvGovernable is MgvRoot {
     address _governance,
     uint _gasprice,
     uint gasmax
-  ) MgvRoot() {
+  ) MgvRoot() { unchecked {
     emit NewMgv();
 
     /* Initially, governance is open to anyone. */
@@ -44,18 +44,18 @@ contract MgvGovernable is MgvRoot {
     setGasmax(gasmax);
     /* Initialize governance to `_governance` after parameter setting. */
     setGovernance(_governance);
-  }
+  }}
 
   /* ## `authOnly` check */
 
-  function authOnly() internal view {
+  function authOnly() internal view { unchecked {
     require(
       msg.sender == governance ||
         msg.sender == address(this) ||
         governance == address(0),
       "mgv/unauthorized"
     );
-  }
+  }}
 
   /* # Set configuration and Mangrove state */
 
@@ -68,14 +68,14 @@ contract MgvGovernable is MgvRoot {
     uint density,
     uint overhead_gasbase,
     uint offer_gasbase
-  ) public {
+  ) public { unchecked {
     authOnly();
     locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].active(1);
     emit SetActive(outbound_tkn, inbound_tkn, true);
     setFee(outbound_tkn, inbound_tkn, fee);
     setDensity(outbound_tkn, inbound_tkn, density);
     setGasbase(outbound_tkn, inbound_tkn, overhead_gasbase, offer_gasbase);
-  }
+  }}
 
   function deactivate(address outbound_tkn, address inbound_tkn) public {
     authOnly();
@@ -88,13 +88,13 @@ contract MgvGovernable is MgvRoot {
     address outbound_tkn,
     address inbound_tkn,
     uint fee
-  ) public {
+  ) public { unchecked {
     authOnly();
     /* `fee` is in basis points, i.e. in percents of a percent. */
     require(fee <= 500, "mgv/config/fee/<=500"); // at most 5%
     locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].fee(fee);
     emit SetFee(outbound_tkn, inbound_tkn, fee);
-  }
+  }}
 
   /* ### `density` */
   /* Useless if `global.useOracle != 0` */
@@ -102,14 +102,14 @@ contract MgvGovernable is MgvRoot {
     address outbound_tkn,
     address inbound_tkn,
     uint density
-  ) public {
+  ) public { unchecked {
     authOnly();
 
     require(checkDensity(density), "mgv/config/density/112bits");
     //+clear+
     locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].density(density);
     emit SetDensity(outbound_tkn, inbound_tkn, density);
-  }
+  }}
 
   /* ### `gasbase` */
   function setGasbase(
@@ -117,7 +117,7 @@ contract MgvGovernable is MgvRoot {
     address inbound_tkn,
     uint overhead_gasbase,
     uint offer_gasbase
-  ) public {
+  ) public { unchecked {
     authOnly();
     /* Checking the size of `*_gasbase` is necessary to prevent a) data loss when `*_gasbase` is copied to an `OfferDetail` struct, and b) overflow when `*_gasbase` is used in calculations. */
     require(
@@ -131,19 +131,19 @@ contract MgvGovernable is MgvRoot {
     //+clear+
     locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].offer_gasbase(offer_gasbase).overhead_gasbase(overhead_gasbase);
     emit SetGasbase(outbound_tkn, inbound_tkn, overhead_gasbase, offer_gasbase);
-  }
+  }}
 
   /* ## Globals */
   /* ### `kill` */
-  function kill() public {
+  function kill() public { unchecked {
     authOnly();
     global = global.dead(1);
     emit Kill();
-  }
+  }}
 
   /* ### `gasprice` */
   /* Useless if `global.useOracle is != 0` */
-  function setGasprice(uint gasprice) public {
+  function setGasprice(uint gasprice) public { unchecked {
     authOnly();
     require(checkGasprice(gasprice), "mgv/config/gasprice/16bits");
 
@@ -151,52 +151,52 @@ contract MgvGovernable is MgvRoot {
 
     global = global.gasprice(gasprice);
     emit SetGasprice(gasprice);
-  }
+  }}
 
   /* ### `gasmax` */
-  function setGasmax(uint gasmax) public {
+  function setGasmax(uint gasmax) public { unchecked {
     authOnly();
     /* Since any new `gasreq` is bounded above by `config.gasmax`, this check implies that all offers' `gasreq` is 24 bits wide at most. */
     require(uint24(gasmax) == gasmax, "mgv/config/gasmax/24bits");
     //+clear+
     global = global.gasmax(gasmax);
     emit SetGasmax(gasmax);
-  }
+  }}
 
   /* ### `governance` */
-  function setGovernance(address governanceAddress) public {
+  function setGovernance(address governanceAddress) public { unchecked {
     authOnly();
     governance = governanceAddress;
     emit SetGovernance(governanceAddress);
-  }
+  }}
 
   /* ### `vault` */
-  function setVault(address vaultAddress) public {
+  function setVault(address vaultAddress) public { unchecked {
     authOnly();
     vault = vaultAddress;
     emit SetVault(vaultAddress);
-  }
+  }}
 
   /* ### `monitor` */
-  function setMonitor(address monitor) public {
+  function setMonitor(address monitor) public { unchecked {
     authOnly();
     global = global.monitor(monitor);
     emit SetMonitor(monitor);
-  }
+  }}
 
   /* ### `useOracle` */
-  function setUseOracle(bool useOracle) public {
+  function setUseOracle(bool useOracle) public { unchecked {
     authOnly();
     uint _useOracle = useOracle ? 1 : 0;
     global = global.useOracle(_useOracle);
     emit SetUseOracle(useOracle);
-  }
+  }}
 
   /* ### `notify` */
-  function setNotify(bool notify) public {
+  function setNotify(bool notify) public { unchecked {
     authOnly();
     uint _notify = notify ? 1 : 0;
     global = global.notify(_notify);
     emit SetNotify(notify);
-  }
+  }}
 }

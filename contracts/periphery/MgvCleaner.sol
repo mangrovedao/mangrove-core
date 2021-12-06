@@ -71,7 +71,7 @@ contract MgvCleaner {
     address inbound_tkn,
     uint[4][] calldata targets,
     bool fillWants
-  ) external returns (uint bal) {
+  ) external returns (uint bal) { unchecked {
     (uint successes, , , ) = MGV.snipesFor(
       outbound_tkn,
       inbound_tkn,
@@ -82,5 +82,5 @@ contract MgvCleaner {
     require(successes == 0, "mgvCleaner/anOfferDidNotFail");
     bal = address(this).balance;
     msg.sender.call{value: bal}("");
-  }
+  }}
 }

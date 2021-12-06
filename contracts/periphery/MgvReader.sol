@@ -68,7 +68,7 @@ contract MgvReader {
     address inbound_tkn,
     uint fromId,
     uint maxOffers
-  ) public view returns (uint startId, uint length) {
+  ) public view returns (uint startId, uint length) { unchecked {
     if (fromId == 0) {
       startId = mgv.best(outbound_tkn, inbound_tkn);
     } else {
@@ -86,7 +86,7 @@ contract MgvReader {
     }
 
     return (startId, length);
-  }
+  }}
 
   // Returns the orderbook for the outbound_tkn/inbound_tkn pair in packed form. First number is id of next offer (0 is we're done). First array is ids, second is offers (as bytes32), third is offerDetails (as bytes32). Array will be of size `min(# of offers in out/in list, maxOffers)`.
   function packedOfferList(
@@ -103,7 +103,7 @@ contract MgvReader {
       P.Offer.t[] memory,
       bytes32[] memory
     )
-  {
+  { unchecked {
     (uint currentId, uint length) = offerListEndPoints(
       outbound_tkn,
       inbound_tkn,
@@ -126,7 +126,7 @@ contract MgvReader {
     }
 
     return (currentId, offerIds, offers, details);
-  }
+  }}
 
   // Returns the orderbook for the outbound_tkn/inbound_tkn pair in unpacked form. First number is id of next offer (0 if we're done). First array is ids, second is offers (as structs), third is offerDetails (as structs). Array will be of size `min(# of offers in out/in list, maxOffers)`.
   function offerList(
@@ -143,7 +143,7 @@ contract MgvReader {
       ML.OfferStruct[] memory,
       ML.OfferDetail[] memory
     )
-  {
+  { unchecked {
     (uint currentId, uint length) = offerListEndPoints(
       outbound_tkn,
       inbound_tkn,
@@ -168,14 +168,14 @@ contract MgvReader {
     }
 
     return (currentId, offerIds, offers, details);
-  }
+  }}
 
   function getProvision(
     address outbound_tkn,
     address inbound_tkn,
     uint ofr_gasreq,
     uint ofr_gasprice
-  ) external view returns (uint) {
+  ) external view returns (uint) { unchecked {
     (P.Global.t global, P.Local.t local) = mgv.config(outbound_tkn, inbound_tkn);
     uint _gp;
     uint global_gasprice = global.gasprice();
@@ -190,14 +190,14 @@ contract MgvReader {
         local.offer_gasbase()) *
       _gp *
       10**9;
-  }
+  }}
 
   /* Returns the configuration in an ABI-compatible struct. Should not be called internally, would be a huge memory copying waste. Use `config` instead. */
   function config(address outbound_tkn, address inbound_tkn)
     external
     view
     returns (ML.Global memory global, ML.Local memory local)
-  {
+  { unchecked {
     (P.Global.t _global, P.Local.t _local) = mgv.config(outbound_tkn, inbound_tkn);
     return (
       ML.Global({
@@ -219,5 +219,5 @@ contract MgvReader {
         last: _local.last()
       })
     );
-  }
+  }}
 }

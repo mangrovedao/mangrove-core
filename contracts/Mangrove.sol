@@ -50,7 +50,7 @@ contract Mangrove is AbstractMangrove {
     external
     override
     returns (uint gasused)
-  {
+  { unchecked {
     /* `flashloan` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would be fatal. */
     require(msg.sender == address(this), "mgv/flashloan/protected");
     /* The transfer taker -> maker is in 2 steps. First, taker->mgv. Then
@@ -72,5 +72,5 @@ contract Mangrove is AbstractMangrove {
     } else {
       innerRevert([bytes32("mgv/takerTransferFail"), "", ""]);
     }
-  }
+  }}
 }

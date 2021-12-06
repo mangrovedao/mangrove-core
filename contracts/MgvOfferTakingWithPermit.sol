@@ -69,7 +69,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) external {
+  ) external { unchecked {
     require(deadline >= block.timestamp, "mgv/permit/expired");
 
     uint nonce = nonces[owner]++;
@@ -99,18 +99,18 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
 
     allowances[outbound_tkn][inbound_tkn][owner][spender] = value;
     emit Approval(outbound_tkn, inbound_tkn, owner, spender, value);
-  }
+  }}
 
   function approve(
     address outbound_tkn,
     address inbound_tkn,
     address spender,
     uint value
-  ) external returns (bool) {
+  ) external returns (bool) { unchecked {
     allowances[outbound_tkn][inbound_tkn][msg.sender][spender] = value;
     emit Approval(outbound_tkn, inbound_tkn, msg.sender, spender, value);
     return true;
-  }
+  }}
 
   /* The delegate version of `marketOrder` is `marketOrderFor`, which takes a `taker` address as additional argument. Penalties incurred by failed offers will still be sent to `msg.sender`, but exchanged amounts will be transferred from and to the `taker`. If the `msg.sender`'s allowance for the given `outbound_tkn`,`inbound_tkn` and `taker` are strictly less than the total amount eventually spent by `taker`, the call will fail. */
 
@@ -129,7 +129,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       uint takerGave,
       uint bounty
     )
-  {
+  { unchecked {
     (takerGot, takerGave, bounty) = generalMarketOrder(
       outbound_tkn,
       inbound_tkn,
@@ -140,7 +140,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     );
     /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
     deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
-  }
+  }}
 
   /* The delegate version of `snipes` is `snipesFor`, which takes a `taker` address as additional argument. */
   function snipesFor(
@@ -157,7 +157,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       uint takerGave,
       uint bounty
     )
-  {
+  { unchecked {
     (successes, takerGot, takerGave, bounty) = generalSnipes(
       outbound_tkn,
       inbound_tkn,
@@ -169,7 +169,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     
     An immediate consequence is that any funds availale to Mangrove through `approve` can be used to clean offers. After a `snipesFor` where all offers have failed, all token transfers have been reverted, so `takerGave=0` and the check will succeed -- but the sender will still have received the bounty of the failing offers. */
     deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
-  }
+  }}
 
   /* # Misc. low-level functions */
 
@@ -179,9 +179,9 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     address inbound_tkn,
     address owner,
     uint amount
-  ) internal {
+  ) internal { unchecked {
     uint allowed = allowances[outbound_tkn][inbound_tkn][owner][msg.sender];
     require(allowed >= amount, "mgv/lowAllowance");
     allowances[outbound_tkn][inbound_tkn][owner][msg.sender] = allowed - amount;
-  }
+  }}
 }

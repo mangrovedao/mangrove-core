@@ -29,9 +29,9 @@ library $$(capitalize(sname)) {
     $$(solidity_struct_of(struct_def))
   }
 
-  function eq(t a, t b) internal pure returns (bool) {
+  function eq(t a, t b) internal pure returns (bool) { unchecked {
     return t.unwrap(a) == t.unwrap(b);
-  }
+  }}
 
 /* $def arguments
   join(map(struct_def,(field) => `$${f_type(field)} $${f_name(field)}`),', ')
@@ -41,27 +41,28 @@ library $$(capitalize(sname)) {
     map(struct_def, (field) => [f_name(field),`__$${f_name(field)}`])
 */
 
-  function pack($$(arguments)) internal pure returns (t) {
+  function pack($$(arguments)) internal pure returns (t) { unchecked {
     return t.wrap($$(make(
       struct_def,
       map(struct_def, (field) =>
     [f_name(field),`$${f_name(field)}`]))));
-  }
+  }}
 
-  function unpack(t __packed) internal pure returns ($$(arguments)) {
+  function unpack(t __packed) internal pure returns ($$(arguments)) { unchecked {
     // $for field in struct_def
     $$(f_name(field)) = $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
     // $done
-  }
+  }}
 
   // $for field in struct_def
-  function $$(f_name(field))(t __packed) internal pure returns($$(f_type(field))) {
+  function $$(f_name(field))(t __packed) internal pure returns($$(f_type(field))) { unchecked {
     return $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
-  }
-  function $$(f_name(field))(t __packed,$$(f_type(field)) val) internal pure returns(t) {
+  }}
+
+  function $$(f_name(field))(t __packed,$$(f_type(field)) val) internal pure returns(t) { unchecked {
     return t.wrap($$(set1('t.unwrap(__packed)',struct_def,f_name(field),'val')));
     // return $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
-  }
+  }}
   // $done
 }
 

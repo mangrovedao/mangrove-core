@@ -17,20 +17,38 @@ pragma solidity ^0.8.10;
 // fields are of the form [name,bits,type]
 
 // struct_defs are of the form [name,obj]
+library Structs {
+  // $for ns in struct_defs
+  // $def sname ns[0]
+  // $def Sname capitalize(ns[0])
+  // $def struct_def ns[1]
+  struct $$(Sname) {
+    $$(join(map(struct_def,(field) => `$${f_type(field)} $${f_name(field)};`),' '))
+  }
+  // $done
+}
+
 // $for ns in struct_defs
 // $def sname ns[0]
 // $def struct_def ns[1]
-
-library $$(capitalize(sname)) {
+// $def Sname capitalize(sname)
+library $$(Sname) {
   //some type safety for each struct
   type t is bytes32;
 
-  struct s {
-    $$(solidity_struct_of(struct_def))
-  }
 
-  function eq(t a, t b) internal pure returns (bool) { unchecked {
-    return t.unwrap(a) == t.unwrap(b);
+  function to_struct(t __packed) internal pure returns (Structs.$$(Sname) memory __s) { unchecked {
+    // $for field in struct_def
+    __s.$$(f_name(field)) = $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
+    // $done
+  }}
+
+  function t_of_struct(Structs.$$(Sname) memory __s) internal pure returns (t) { unchecked {
+    return pack($$(join(map(struct_def,(field) => `__s.$${f_name(field)}`),', ')));
+  }}
+
+  function eq(t __packed1, t __packed2) internal pure returns (bool) { unchecked {
+    return t.unwrap(__packed1) == t.unwrap(__packed2);
   }}
 
 /* $def arguments
@@ -58,7 +76,6 @@ library $$(capitalize(sname)) {
   function $$(f_name(field))(t __packed) internal pure returns($$(f_type(field))) { unchecked {
     return $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
   }}
-
   function $$(f_name(field))(t __packed,$$(f_type(field)) val) internal pure returns(t) { unchecked {
     return t.wrap($$(set1('t.unwrap(__packed)',struct_def,f_name(field),'val')));
     // return $$(get('t.unwrap(__packed)',struct_def,f_name(field)));

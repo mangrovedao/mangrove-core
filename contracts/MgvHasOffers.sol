@@ -60,26 +60,13 @@ contract MgvHasOffers is MgvRoot {
     address outbound_tkn,
     address inbound_tkn,
     uint offerId
-  ) external view returns (ML.OfferStruct memory, ML.OfferDetail memory) { unchecked {
+  ) external view returns (P.Structs.Offer memory offer, P.Structs.OfferDetail memory offerDetail) { unchecked {
 
-    P.Offer.t offer = offers[outbound_tkn][inbound_tkn][offerId];
-    ML.OfferStruct memory offerStruct = ML.OfferStruct({
-      prev: offer.prev(),
-      next: offer.next(),
-      wants: offer.wants(),
-      gives: offer.gives()
-    });
+    P.Offer.t _offer = offers[outbound_tkn][inbound_tkn][offerId];
+    offer = _offer.to_struct();
 
-    P.OfferDetail.t offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
-
-    ML.OfferDetail memory offerDetailStruct = ML.OfferDetail({
-      maker: offerDetail.maker(),
-      gasreq: offerDetail.gasreq(),
-      overhead_gasbase: offerDetail.overhead_gasbase(),
-      offer_gasbase: offerDetail.offer_gasbase(),
-      gasprice: offerDetail.gasprice()
-    });
-    return (offerStruct, offerDetailStruct);
+    P.OfferDetail.t _offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
+    offerDetail = _offerDetail.to_struct();
   }}
 
   /* # Provision debit/credit utility functions */

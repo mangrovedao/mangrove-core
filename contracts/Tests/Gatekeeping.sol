@@ -693,7 +693,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     );
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 400_000, 0, 0);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    (, ML.OfferDetail memory od) = mgv.offerInfo(quote, base, other_ofr);
+    (, P.Structs.OfferDetail memory od) = mgv.offerInfo(quote, base, other_ofr);
     require(od.gasreq == 35_000, "updateOffer on swapped pair must work");
   }
 
@@ -707,7 +707,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     );
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 300_000, 0, 0);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    (, ML.OfferDetail memory od) = mgv.offerInfo(base, quote, other_ofr);
+    (, P.Structs.OfferDetail memory od) = mgv.offerInfo(base, quote, other_ofr);
     require(od.gasreq == 35_000, "updateOffer on posthook must work");
   }
 

@@ -24,20 +24,6 @@ import "./MgvPack.sol" as P;
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */
 
 library MgvLib {
-  struct OfferStruct {
-    uint prev;
-    uint next;
-    uint gives;
-    uint wants;
-  }
-
-  struct OfferDetail {
-    address maker;
-    uint gasreq;
-    uint overhead_gasbase;
-    uint offer_gasbase;
-    uint gasprice;
-  }
   struct Global {
     address monitor;
     bool useOracle;

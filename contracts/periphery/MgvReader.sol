@@ -39,7 +39,7 @@ interface MangroveLike {
     address,
     address,
     uint
-  ) external view returns (ML.OfferStruct memory, ML.OfferDetail memory);
+  ) external view returns (P.Structs.Offer memory, P.Structs.OfferDetail memory);
 
   function config(address, address) external view returns (P.Global.t, P.Local.t);
 }
@@ -127,7 +127,6 @@ contract MgvReader {
 
     return (currentId, offerIds, offers, details);
   }}
-
   // Returns the orderbook for the outbound_tkn/inbound_tkn pair in unpacked form. First number is id of next offer (0 if we're done). First array is ids, second is offers (as structs), third is offerDetails (as structs). Array will be of size `min(# of offers in out/in list, maxOffers)`.
   function offerList(
     address outbound_tkn,
@@ -140,8 +139,8 @@ contract MgvReader {
     returns (
       uint,
       uint[] memory,
-      ML.OfferStruct[] memory,
-      ML.OfferDetail[] memory
+      P.Structs.Offer[] memory,
+      P.Structs.OfferDetail[] memory
     )
   { unchecked {
     (uint currentId, uint length) = offerListEndPoints(
@@ -152,8 +151,8 @@ contract MgvReader {
     );
 
     uint[] memory offerIds = new uint[](length);
-    ML.OfferStruct[] memory offers = new ML.OfferStruct[](length);
-    ML.OfferDetail[] memory details = new ML.OfferDetail[](length);
+    P.Structs.Offer[] memory offers = new P.Structs.Offer[](length);
+    P.Structs.OfferDetail[] memory details = new P.Structs.OfferDetail[](length);
 
     uint i = 0;
     while (currentId != 0 && i < length) {
@@ -199,25 +198,25 @@ contract MgvReader {
     returns (ML.Global memory global, ML.Local memory local)
   { unchecked {
     (P.Global.t _global, P.Local.t _local) = mgv.config(outbound_tkn, inbound_tkn);
-    return (
-      ML.Global({
-        monitor: _global.monitor(),
-        useOracle: _global.useOracle() > 0,
-        notify: _global.notify() > 0,
-        gasprice: _global.gasprice(),
-        gasmax: _global.gasmax(),
-        dead: _global.dead() > 0
-      }),
-      ML.Local({
-        active: _local.active() > 0,
-        overhead_gasbase: _local.overhead_gasbase(),
-        offer_gasbase: _local.offer_gasbase(),
-        fee: _local.fee(),
-        density: _local.density(),
-        best: _local.best(),
-        lock: _local.lock() > 0,
-        last: _local.last()
-      })
-    );
+    global = ML.Global({
+      monitor: _global.monitor(),
+      useOracle: _global.useOracle() > 0,
+      notify: _global.notify() > 0,
+      gasprice: _global.gasprice(),
+      gasmax: _global.gasmax(),
+      dead: _global.dead() > 0
+    });
+    local = ML.Local({
+      active: _local.active() > 0,
+      overhead_gasbase: _local.overhead_gasbase(),
+      offer_gasbase: _local.offer_gasbase(),
+      fee: _local.fee(),
+      density: _local.density(),
+      best: _local.best(),
+      lock: _local.lock() > 0,
+      last: _local.last()
+    });
+    // global = _global.to_struct();
+    // local = _local.to_struct();
   }}
 }

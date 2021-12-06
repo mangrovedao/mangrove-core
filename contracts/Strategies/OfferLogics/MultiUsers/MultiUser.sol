@@ -12,6 +12,7 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 import "../MangroveOffer.sol";
+import "../../../periphery/MgvReader.sol";
 
 //import "hardhat/console.sol";
 
@@ -20,6 +21,12 @@ abstract contract MultiUser is MangroveOffer {
     internal _offerOwners; // outbound_tkn => inbound_tkn => offerId => ownerAddress
   mapping(address => uint) public mgvBalanceOf; // owner => WEI balance on mangrove
 
+  MgvReader immutable reader;
+
+  constructor(address _reader) {
+    reader = MgvReader(_reader);
+  }
+
   // Offer management
   event NewOffer(
     address indexed outbound_tkn,
@@ -27,6 +34,32 @@ abstract contract MultiUser is MangroveOffer {
     uint indexed offerId,
     address owner
   );
+
+  function offerOwners(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint fromId,
+    uint maxOffers
+  )
+    public
+    view
+    returns (
+      uint nextId,
+      uint[] memory offerIds,
+      address[] memory offerOwners
+    )
+  {
+    (
+      nextId,
+      offerIds, /*offers*/ /*offerDetails*/
+      ,
+
+    ) = reader.offerList(outbound_tkn, inbound_tkn, fromId, maxOffers);
+    offerOwners = new address[](offerIds.length);
+    for (uint i = 0; i < offerIds.length; i++) {
+      offerOwners[i] = ownerOf(outbound_tkn, inbound_tkn, offerIds[i]);
+    }
+  }
 
   function creditOnMgv(address owner, uint balance) internal {
     mgvBalanceOf[owner] += balance;
@@ -54,7 +87,7 @@ abstract contract MultiUser is MangroveOffer {
     address outbound_tkn,
     address inbound_tkn,
     uint offerId
-  ) public returns (address owner) {
+  ) public view returns (address owner) {
     owner = _offerOwners[outbound_tkn][inbound_tkn][offerId];
     require(owner != address(0), "multiUser/unkownOffer");
   }

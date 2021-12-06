@@ -42,28 +42,4 @@ abstract contract Persistent is SingleUser {
       );
     }
   }
-
-  function __autoRefill__(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint gasreq,
-    uint gasprice,
-    uint offerId
-  ) internal virtual override returns (uint) {
-    uint toAdd = getMissingProvision(
-      outbound_tkn,
-      inbound_tkn,
-      gasreq,
-      gasprice,
-      offerId
-    );
-    if (toAdd > 0) {
-      try MGV.fund{value: toAdd}() {
-        return 0;
-      } catch {
-        return toAdd;
-      }
-    }
-    return 0;
-  }
 }

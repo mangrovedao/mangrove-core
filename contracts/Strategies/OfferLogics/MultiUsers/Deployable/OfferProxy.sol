@@ -31,28 +31,6 @@ contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
     return (MultiUser.__put__(amount, order));
   }
 
-  function __autoRefill__(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint gasreq,
-    uint gasprice,
-    uint offerId
-  )
-    internal
-    virtual
-    override(MangroveOffer, MultiUserPersistent)
-    returns (uint)
-  {
-    return
-      MultiUserPersistent.__autoRefill__(
-        outbound_tkn,
-        inbound_tkn,
-        gasreq,
-        gasprice,
-        offerId
-      );
-  }
-
   function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     override(MultiUser, MultiUserAaveLender)

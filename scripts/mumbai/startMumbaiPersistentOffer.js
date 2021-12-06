@@ -3,28 +3,39 @@ const helper = require("../helper");
 const lc = require("../../lib/libcommon");
 
 async function main() {
-  const repostLogic = await hre.ethers.getContract("Reposting");
-  const mgvContracts = await helper.getMangrove();
-  const mgv = mgvContracts.contract.connect(repostLogic.signer);
+  if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
+    console.error("No tester account defined");
+  }
+  const wallet = new ethers.Wallet(
+    process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"],
+    helper.getProvider()
+  );
+  const repostLogic = (await hre.ethers.getContract("Reposting")).connect(
+    wallet
+  );
 
-  const weth = helper.contractOfToken("wEth").connect(repostLogic.signer);
-  const dai = helper.contractOfToken("dai").connect(repostLogic.signer);
-  const usdc = helper.contractOfToken("usdc").connect(repostLogic.signer);
+  const mgvContracts = await helper.getMangrove();
+  const mgv = mgvContracts.contract.connect(wallet);
+
+  const weth = helper.contractOfToken("wEth").connect(wallet);
+  const dai = helper.contractOfToken("dai").connect(wallet);
+  const usdc = helper.contractOfToken("usdc").connect(wallet);
 
   const tokenParams = [
-    [weth, "WETH", 18, ethers.utils.parseEther("1")],
     [dai, "DAI", 18, ethers.utils.parseEther("0.0003")],
+    [weth, "WETH", 18, ethers.utils.parseEther("1")],
     [usdc, "USDC", 6, ethers.utils.parseEther("0.0003")],
   ];
 
-  const ofr_gasreq = ethers.BigNumber.from(100000);
+  const ofr_gasreq = ethers.BigNumber.from(200000);
   const ofr_gasprice = ethers.BigNumber.from(0);
   const ofr_pivot = ethers.BigNumber.from(0);
 
   const usdToNative = ethers.utils.parseEther("0.0003");
 
-  let overrides = { value: ethers.utils.parseEther("1.0") };
-  await mgv["fund(address)"](repostLogic.address, overrides);
+  let overrides = { value: ethers.utils.parseEther("1.0"), gasLimit: 60000 };
+  const fundTx = await mgv["fund(address)"](repostLogic.address, overrides);
+  await fundTx.wait();
 
   for (const [
     outbound_tkn,
@@ -49,6 +60,17 @@ async function main() {
           .mul(usdToNative)
           .div(outTknInMatic); // makerGives
 
+        const transferTx = await outbound_tkn.transfer(
+          repostLogic.address,
+          makerGives
+        );
+        await transferTx.wait();
+        console.log(
+          `* Transfering ${ethers.utils.formatUnits(
+            makerGives,
+            outDecimals
+          )} ${outName} to persistent offer logic`
+        );
         const ofrTx = await repostLogic.newOffer(
           outbound_tkn.address, //e.g weth
           inbound_tkn.address, //e.g dai
@@ -56,16 +78,19 @@ async function main() {
           makerGives,
           ofr_gasreq,
           ofr_gasprice,
-          ofr_pivot
+          ethers.BigNumber.from(180)
         );
         await ofrTx.wait();
+        console.log(
+          `* Posting new persistent offer on (${outName},${inName}) offer list`
+        );
         const book = await mgvContracts.reader.offerList(
           outbound_tkn.address,
           inbound_tkn.address,
           ethers.BigNumber.from(0),
-          ethers.BigNumber.from(1)
+          ethers.BigNumber.from(3)
         );
-        lc.logOrderBook(book, outbound_tkn, inbound_tkn);
+        await lc.logOrderBook(book, outbound_tkn, inbound_tkn);
       }
     }
   }

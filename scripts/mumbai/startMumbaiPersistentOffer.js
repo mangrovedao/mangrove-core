@@ -1,6 +1,7 @@
 const hre = require("hardhat");
 const helper = require("../helper");
 const lc = require("../../lib/libcommon");
+const { Mangrove } = require("@giry/mangrove.js");
 
 async function main() {
   if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
@@ -14,12 +15,11 @@ async function main() {
     wallet
   );
 
-  const mgvContracts = await helper.getMangrove();
-  const mgv = mgvContracts.contract.connect(wallet);
+  const mgv = await Mangrove.connect(hre.network.config.url);
 
-  const weth = helper.contractOfToken("wEth").connect(wallet);
-  const dai = helper.contractOfToken("dai").connect(wallet);
-  const usdc = helper.contractOfToken("usdc").connect(wallet);
+  const weth = Mangrove.getAddress("WETH").connect(wallet);
+  const dai = Mangrove.getAddress("DAI").connect(wallet);
+  const usdc = Mangrove.getAddress("USDC").connect(wallet);
 
   const tokenParams = [
     [dai, "DAI", 18, ethers.utils.parseEther("0.0003")],

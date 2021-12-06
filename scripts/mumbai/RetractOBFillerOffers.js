@@ -73,7 +73,9 @@ async function main() {
                   `retracted, ${ethers.utils.formatUnits(
                     provision,
                     18
-                  )} was credited to OBFiller provisions`
+                  )} was credited to OBFiller provisions (${
+                    txReceipt.gasUsed
+                  } gas used)`
                 );
               });
             retractTxPromises.push(txPromise);

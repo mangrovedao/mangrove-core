@@ -14,6 +14,8 @@
 
 pragma solidity ^0.8.10;
 
+$(preamble)
+
 // fields are of the form [name,bits,type]
 
 // struct_defs are of the form [name,obj]

@@ -218,12 +218,12 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
   function killing_updates_config_test() public {
     (P.Global.t global, ) = mgv.config(address(0), address(0));
     TestEvents.check(
-      global.dead() == 0,
+      !global.dead(),
       "mgv should not be dead "
     );
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
-    TestEvents.check(global.dead() > 0, "mgv should be dead ");
+    TestEvents.check(global.dead(), "mgv should be dead ");
     // Logging tests
     TestEvents.expectFrom(address(mgv));
     emit Kill();
@@ -232,16 +232,16 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
   function kill_is_idempotent_test() public {
     (P.Global.t global, ) = mgv.config(address(0), address(0));
     TestEvents.check(
-      global.dead() == 0,
+      !global.dead(),
       "mgv should not be dead "
     );
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
-    TestEvents.check(global.dead() > 0, "mgv should be dead");
+    TestEvents.check(global.dead(), "mgv should be dead");
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
     TestEvents.check(
-      global.dead() > 0,
+      global.dead(),
       "mgv should still be dead"
     );
     // Logging tests

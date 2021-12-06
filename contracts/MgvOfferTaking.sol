@@ -130,7 +130,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
      * after consuming a segment of offers, will update the current `best` offer to be the best remaining offer on the book. */
 
     /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
-    sor.local = sor.local.lock(1);
+    sor.local = sor.local.lock(true);
     locals[outbound_tkn][inbound_tkn] = sor.local;
 
     /* Call recursive `internalMarketOrder` function.*/
@@ -254,7 +254,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       so we are free from out of order storage writes.
       */
-      sor.local = sor.local.lock(0);
+      sor.local = sor.local.lock(false);
       locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
 
       /* `payTakerMinusFees` sends the fee to the vault, proportional to the amount purchased, and gives the rest to the taker */
@@ -325,7 +325,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     //+clear+
 
     /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
-    sor.local = sor.local.lock(1);
+    sor.local = sor.local.lock(true);
     locals[outbound_tkn][inbound_tkn] = sor.local;
 
     /* Call recursive `internalSnipes` function. */
@@ -435,7 +435,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       so we are free from out of order storage writes.
       */
-      sor.local = sor.local.lock(0);
+      sor.local = sor.local.lock(false);
       locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
       /* `payTakerMinusFees` sends the fee to the vault, proportional to the amount purchased, and gives the rest to the taker */
       payTakerMinusFees(mor, sor);
@@ -565,7 +565,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       );
 
       /* If configured to do so, the Mangrove notifies an external contract that a successful trade has taken place. */
-      if (sor.global.notify() > 0) {
+      if (sor.global.notify()) {
         IMgvMonitor(sor.global.monitor()).notifySuccess(
           sor,
           mor.taker
@@ -599,7 +599,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         );
 
         /* If configured to do so, the Mangrove notifies an external contract that a failed trade has taken place. */
-        if (sor.global.notify() > 0) {
+        if (sor.global.notify()) {
           IMgvMonitor(sor.global.monitor()).notifyFail(
             sor,
             mor.taker

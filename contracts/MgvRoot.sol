@@ -74,7 +74,7 @@ contract MgvRoot is HasMgvEvents {
   { unchecked {
     _global = global;
     _local = locals[outbound_tkn][inbound_tkn];
-    if (_global.useOracle() > 0) {
+    if (_global.useOracle()) {
       (uint gasprice, uint density) = IMgvMonitor(_global.monitor())
         .read(outbound_tkn, inbound_tkn);
       if (checkGasprice(gasprice)) {
@@ -93,7 +93,7 @@ contract MgvRoot is HasMgvEvents {
     returns (bool)
   {
     P.Local.t local = locals[outbound_tkn][inbound_tkn];
-    return local.lock() > 0;
+    return local.lock();
   }
 
   /*
@@ -104,7 +104,7 @@ contract MgvRoot is HasMgvEvents {
 
   /* `unlockedMarketOnly` protects modifying the market while an order is in progress. Since external contracts are called during orders, allowing reentrancy would, for instance, let a market maker replace offers currently on the book with worse ones. Note that the external contracts _will_ be called again after the order is complete, this time without any lock on the market.  */
   function unlockedMarketOnly(P.Local.t local) internal pure {
-    require(local.lock() == 0, "mgv/reentrancyLocked");
+    require(!local.lock(), "mgv/reentrancyLocked");
   }
 
   /* <a id="Mangrove/definition/liveMgvOnly"></a>
@@ -114,12 +114,12 @@ contract MgvRoot is HasMgvEvents {
        * Creating a new offer
    */
   function liveMgvOnly(P.Global.t _global) internal pure {
-    require(_global.dead() == 0, "mgv/dead");
+    require(!_global.dead(), "mgv/dead");
   }
 
   /* When the Mangrove is deployed, all pairs are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive pairs cannot be taken or created. They can be updated and retracted. */
   function activeMarketOnly(P.Global.t _global, P.Local.t _local) internal pure {
     liveMgvOnly(_global);
-    require(_local.active() > 0, "mgv/inactive");
+    require(_local.active(), "mgv/inactive");
   }
 }

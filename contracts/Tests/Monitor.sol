@@ -58,11 +58,11 @@ contract Monitor_Test {
   function initial_monitor_values_test() public {
     (P.Global.t config, ) = mgv.config(base, quote);
     TestEvents.check(
-      config.useOracle() == 0,
+      !config.useOracle(),
       "initial useOracle should be false"
     );
     TestEvents.check(
-      config.notify() == 0,
+      !config.notify(),
       "initial notify should be false"
     );
   }
@@ -78,11 +78,11 @@ contract Monitor_Test {
       "monitor should be set"
     );
     TestEvents.check(
-      config.useOracle() > 0,
+      config.useOracle(),
       "useOracle should be set"
     );
     TestEvents.check(
-      config.notify() > 0,
+      config.notify(),
       "notify should be set"
     );
   }
@@ -159,7 +159,7 @@ contract Monitor_Test {
     (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(successes == 1, "snipe should succeed");
     (P.Global.t _global, P.Local.t _local) = mgv.config(base, quote);
-    _local = _local.best(1).lock(1);
+    _local = _local.best(1).lock(true);
 
     ML.SingleOrder memory order = ML.SingleOrder({
       outbound_tkn: base,
@@ -191,7 +191,7 @@ contract Monitor_Test {
 
     (P.Global.t _global, P.Local.t _local) = mgv.config(base, quote);
     // config sent during maker callback has stale best and, is locked
-    _local = _local.best(1).lock(1);
+    _local = _local.best(1).lock(true);
 
     ML.SingleOrder memory order = ML.SingleOrder({
       outbound_tkn: base,

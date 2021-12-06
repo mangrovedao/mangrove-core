@@ -195,28 +195,10 @@ contract MgvReader {
   function config(address outbound_tkn, address inbound_tkn)
     external
     view
-    returns (ML.Global memory global, ML.Local memory local)
+    returns (P.Structs.Global memory global, P.Structs.Local memory local)
   { unchecked {
     (P.Global.t _global, P.Local.t _local) = mgv.config(outbound_tkn, inbound_tkn);
-    global = ML.Global({
-      monitor: _global.monitor(),
-      useOracle: _global.useOracle() > 0,
-      notify: _global.notify() > 0,
-      gasprice: _global.gasprice(),
-      gasmax: _global.gasmax(),
-      dead: _global.dead() > 0
-    });
-    local = ML.Local({
-      active: _local.active() > 0,
-      overhead_gasbase: _local.overhead_gasbase(),
-      offer_gasbase: _local.offer_gasbase(),
-      fee: _local.fee(),
-      density: _local.density(),
-      best: _local.best(),
-      lock: _local.lock() > 0,
-      last: _local.last()
-    });
-    // global = _global.to_struct();
-    // local = _local.to_struct();
+    global = _global.to_struct();
+    local = _local.to_struct();
   }}
 }

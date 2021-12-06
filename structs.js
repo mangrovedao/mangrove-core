@@ -125,22 +125,22 @@ They have the following fields: */
     /* * The `monitor` can provide realtime values for `gasprice` and `density` to the dex, and receive liquidity events notifications. */
     { name: "monitor", bits: 160, type: "address" },
     /* * If `useOracle` is true, the dex will use the monitor address as an oracle for `gasprice` and `density`, for every outbound_tkn/inbound_tkn pair. */
-    { name: "useOracle", bits: 8, type: "uint" },
+    { name: "useOracle", bits: 8, type: "bool" },
     /* * If `notify` is true, the dex will notify the monitor address after every offer execution. */
-    { name: "notify", bits: 8, type: "uint" },
+    { name: "notify", bits: 8, type: "bool" },
     /* * The `gasprice` is the amount of penalty paid by failed offers, in gwei per gas used. `gasprice` should approximate the average gas price and will be subject to regular updates. */
     fields.gasprice,
     /* * `gasmax` specifies how much gas an offer may ask for at execution time. An offer which asks for more gas than the block limit would live forever on the book. Nobody could take it or remove it, except its creator (who could cancel it). In practice, we will set this parameter to a reasonable limit taking into account both practical transaction sizes and the complexity of maker contracts.
      */
     { name: "gasmax", bits: 24, type: "uint" },
     /* * `dead` dexes cannot be resurrected. */
-    { name: "dead", bits: 8, type: "uint" },
+    { name: "dead", bits: 8, type: "bool" },
   ],
 
   /* ### Local configuration */
   local: [
     /* * A `outbound_tkn`,`inbound_tkn` pair is in`active` by default, but may be activated/deactivated by governance. */
-    { name: "active", bits: 8, type: "uint" },
+    { name: "active", bits: 8, type: "bool" },
     /* * `fee`, in basis points, of `outbound_tkn` given to the taker. This fee is sent to the Mangrove. Fee is capped to 5%. */
     { name: "fee", bits: 16, type: "uint" },
     /* * `density` is similar to a 'dust' parameter. We prevent spamming of low-volume offers by asking for a minimum 'density' in `outbound_tkn` per gas requested. For instance, if `density == 10`, `offer_gasbase == 5000`, `overhead_gasbase == 0`, an offer with `gasreq == 30000` must promise at least _10 × (30000 + 5) = 305000_ `outbound_tkn`. _112 bits wide_. */
@@ -158,7 +158,7 @@ They have the following fields: */
 
 Note: An optimization in the `marketOrder` function relies on reentrancy being forbidden.
      */
-    { name: "lock", bits: 8, type: "uint" },
+    { name: "lock", bits: 8, type: "bool" },
     /* * `best` holds the current best offer id. Has size of an id field. *Danger*: reading best inside a lock may give you a stale value. */
     id_field("best"),
     /* * `last` is a counter for offer ids, incremented every time a new offer is created. It can't go above $2^{32}-1$. */

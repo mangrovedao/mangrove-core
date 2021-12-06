@@ -70,7 +70,7 @@ contract MgvGovernable is MgvRoot {
     uint offer_gasbase
   ) public { unchecked {
     authOnly();
-    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].active(1);
+    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].active(true);
     emit SetActive(outbound_tkn, inbound_tkn, true);
     setFee(outbound_tkn, inbound_tkn, fee);
     setDensity(outbound_tkn, inbound_tkn, density);
@@ -79,7 +79,7 @@ contract MgvGovernable is MgvRoot {
 
   function deactivate(address outbound_tkn, address inbound_tkn) public {
     authOnly();
-    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].active(0);
+    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].active(false);
     emit SetActive(outbound_tkn, inbound_tkn, false);
   }
 
@@ -137,7 +137,7 @@ contract MgvGovernable is MgvRoot {
   /* ### `kill` */
   function kill() public { unchecked {
     authOnly();
-    global = global.dead(1);
+    global = global.dead(true);
     emit Kill();
   }}
 
@@ -187,16 +187,14 @@ contract MgvGovernable is MgvRoot {
   /* ### `useOracle` */
   function setUseOracle(bool useOracle) public { unchecked {
     authOnly();
-    uint _useOracle = useOracle ? 1 : 0;
-    global = global.useOracle(_useOracle);
+    global = global.useOracle(useOracle);
     emit SetUseOracle(useOracle);
   }}
 
   /* ### `notify` */
   function setNotify(bool notify) public { unchecked {
     authOnly();
-    uint _notify = notify ? 1 : 0;
-    global = global.notify(_notify);
+    global = global.notify(notify);
     emit SetNotify(notify);
   }}
 }

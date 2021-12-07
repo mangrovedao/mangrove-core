@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 const helper = require("../helper");
 const lc = require("../../lib/libcommon");
-const { Mangrove } = require("@giry/mangrove.js");
+const { Mangrove } = require("../../../mangrove.js");
 
 async function main() {
   if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
@@ -73,6 +73,7 @@ async function main() {
             1000 * inTknInMatic
           } ${outName} to persistent offer logic`
         );
+        // will hang if pivot ID not correctly evaluated
         const { id: ofrId } = await mkr.newAsk({
           wants: 1000 * outTknInMatic,
           gives: 1000 * inTknInMatic,

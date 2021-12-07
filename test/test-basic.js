@@ -46,7 +46,7 @@ describe("Running tests...", function () {
         lc.formatToken(amount, 18),
         "ethers"
       );
-      if (creditEvents == 2) {
+      if (creditEvents > 0) {
         mgv.removeAllListeners();
       }
     });

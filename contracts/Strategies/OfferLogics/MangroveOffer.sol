@@ -107,16 +107,6 @@ abstract contract MangroveOffer is
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
   ) internal returns (uint offerId) {
-    uint missing = __autoRefill__(
-      outbound_tkn,
-      inbound_tkn,
-      gasreq,
-      gasprice,
-      0
-    );
-    if (missing > 0) {
-      consolerr.errorUint("SingleUser/update/outOfFunds: ", missing);
-    }
     return
       MGV.newOffer(
         outbound_tkn,
@@ -131,7 +121,6 @@ abstract contract MangroveOffer is
 
   //  Updates an existing `offerId` on the Mangrove. `updateOffer` rely on the same offer requirements as `newOffer` and may throw if they are not met.
   //  Additionally `updateOffer` will thow if `this` contract is not the owner of `offerId`.
-  //  The `__autoRefill__` hook may be overridden to provide a method to refill offer provision automatically.
   function _updateOffer(
     address outbound_tkn,
     address inbound_tkn,
@@ -142,16 +131,6 @@ abstract contract MangroveOffer is
     uint pivotId,
     uint offerId
   ) internal {
-    uint missing = __autoRefill__(
-      outbound_tkn,
-      inbound_tkn,
-      gasreq,
-      gasprice,
-      offerId
-    );
-    if (missing > 0) {
-      consolerr.errorUint("SingleUser/update/outOfFunds: ", missing);
-    }
     MGV.updateOffer(
       outbound_tkn,
       inbound_tkn,
@@ -301,19 +280,5 @@ abstract contract MangroveOffer is
   ) internal virtual {
     order;
     result;
-  }
-
-  function __autoRefill__(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint gasreq, // gas required by the offer to be reposted
-    uint gasprice, // gas price for the computation of the bounty
-    uint offerId // ID of the offer to be updated.
-  ) internal virtual returns (uint missingETH) {
-    outbound_tkn; //shh
-    inbound_tkn;
-    gasreq;
-    gasprice;
-    offerId;
   }
 }

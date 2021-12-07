@@ -47,34 +47,4 @@ abstract contract MultiUserPersistent is MultiUser {
       );
     }
   }
-
-  function __autoRefill__(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint gasreq,
-    uint gasprice,
-    uint offerId
-  ) internal virtual override returns (uint) {
-    uint toAdd = getMissingProvision(
-      outbound_tkn,
-      inbound_tkn,
-      gasreq,
-      gasprice,
-      offerId
-    );
-    if (toAdd > 0) {
-      address owner = ownerOf(outbound_tkn, inbound_tkn, offerId);
-      if (owner == address(0)) {
-        emit UnkownOffer(outbound_tkn, inbound_tkn, offerId);
-        return toAdd;
-      }
-      try this.fundMangrove{value: toAdd}(owner) {
-        return 0;
-      } catch {
-        // _updateOffer will throw
-        return toAdd;
-      }
-    }
-    return 0;
-  }
 }

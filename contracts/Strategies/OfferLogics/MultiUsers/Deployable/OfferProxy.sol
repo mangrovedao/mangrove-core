@@ -31,9 +31,15 @@ contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
   function __put__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     override(MultiUser, MultiUserAaveLender)
-    returns (uint)
+    returns (uint missing)
   {
-    return (MultiUser.__put__(amount, order));
+    missing = MultiUser.__put__(amount, order);
+    address owner = ownerOf(
+      order.inbound_tkn,
+      order.outbound_tkn,
+      order.offerId
+    );
+    redeemToken(order.outbound_tkn, owner, amount);
   }
 
   function __get__(uint amount, MgvLib.SingleOrder calldata order)

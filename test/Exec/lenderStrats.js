@@ -1,5 +1,6 @@
 const lc = require("lib/libcommon.js");
 const { ethers } = require("hardhat");
+const { stopListeners } = require("../../lib/libcommon");
 
 async function execLenderStrat(
   makerContract,
@@ -27,7 +28,7 @@ async function execLenderStrat(
     lc.parseToken("0.5", await lc.getDecimals("WETH")), // required WETH
     lc.parseToken("1000.0", await lc.getDecimals("DAI")) // promised DAI
   );
-
+  lc.listenOfferLogic(makerContract);
   let [takerGot, takerGave] = await lc.snipeSuccess(
     mgv.connect(players.taker.signer),
     reader,
@@ -37,6 +38,7 @@ async function execLenderStrat(
     lc.parseToken("800.0", await lc.getDecimals("DAI")), // taker wants 0.8 DAI
     lc.parseToken("0.5", await lc.getDecimals("WETH")) // taker is ready to give up-to 0.5 WETH
   );
+  stopListeners([makerContract]);
 
   lc.assertEqualBN(
     takerGot,

@@ -10,6 +10,6 @@ shell.cp("-R", "./*", distAbiDir);
 shell.cd("../../");
 // adding true abi export for Mangroveoffer so mangrove.js has deploy code
 shell.cd(
-  "build/cache/solpp-generated-contracts/cache/solpp-generated-contracts/Strategies/OfferLogics/SingleUser/Deployable/SimpleMaker.sol"
+  "artifacts/contracts/Strategies/OfferLogics/SingleUser/Deployable/SimpleMaker.sol"
 );
 shell.cp("./SimpleMaker.json", distAbiDir);

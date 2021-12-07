@@ -56,6 +56,11 @@ const get = (ptr, struct_def, _name) => {
   }
 };
 const preamble = `
+
+/* ************************************************** *
+            GENERATED FILE. DO NOT EDIT.              
+ * ************************************************** */
+
 /* since you can't convert bool to uint in an expression without conditionals, 
  * we add a file-level function and rely on compiler optimization
  */

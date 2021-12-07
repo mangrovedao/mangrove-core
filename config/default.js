@@ -55,10 +55,10 @@ config.hardhat = {
     sources: "./contracts",
     tests: "./test",
     cache: "./cache",
-    artifacts: "./build/cache/solpp-generated-contracts", // NB This path is a bit weird - can we remove the cache part?
+    artifacts: "./artifacts",
   },
   abiExporter: {
-    path: "./build/exported-abis",
+    path: "./exported-abis",
     clear: true,
     flat: true,
     only: [
@@ -76,9 +76,6 @@ config.hardhat = {
   },
   testSolidity: {
     logFormatters: require("lib/log_formatters"),
-  },
-  solpp: {
-    defs: require("structs.js"),
   },
   // see github.com/wighawag/hardhat-deploy#1-namedaccounts-ability-to-name-addresses
   namedAccounts: {

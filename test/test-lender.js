@@ -153,7 +153,7 @@ describe("Deploy strategies", function () {
     );
 
     [mgv, reader] = await lc.deployMangrove();
-    listenMgv(mgv);
+    //listenMgv(mgv);
     await lc.activateMarket(mgv, dai.address, wEth.address);
     let [, local] = await reader.config(dai.address, wEth.address);
     assert(local.active, "Market is inactive");
@@ -167,6 +167,6 @@ describe("Deploy strategies", function () {
   it("Lender/borrower strat on aave", async function () {
     const makerContract = await deployStrat("AdvancedAaveRetail", mgv);
     await execTraderStrat(makerContract, mgv, reader, "aave");
-    lc.stopListeners([mgv]);
+    // lc.stopListeners([mgv]);
   });
 });

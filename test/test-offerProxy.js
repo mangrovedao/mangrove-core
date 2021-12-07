@@ -10,7 +10,7 @@ const { execLenderStrat } = require("./Exec/lenderStrats");
 // const url = config.hardhat.networks.hardhat.forking.url;
 // const blockNumber = config.hardhat.networks.hardhat.forking.blockNumber;
 
-async function deployStrat(mgv, players) {
+async function deployStrat(mgv, reader, players) {
   const dai = await lc.getContract("DAI");
   const aDai = await lc.getContract("ADAI");
 
@@ -21,7 +21,11 @@ async function deployStrat(mgv, players) {
   const Strat = (await ethers.getContractFactory("OfferProxy")).connect(
     players.deployer.signer
   );
-  let offerProxy = await Strat.deploy(aave.address, mgv.address);
+  let offerProxy = await Strat.deploy(
+    aave.address,
+    reader.address,
+    mgv.address
+  );
 
   await offerProxy.deployed();
 
@@ -71,15 +75,15 @@ async function deployStrat(mgv, players) {
   let j = 0;
 
   // admin of makerContract
-  // deployer asks MakerContract to approve Mangrove for DAI & WETH --here only DAI is needed
+  // deployer asks MakerContract to approve Mangrove for DAI --here the outbound token
   depTxs[j++] = await offerProxy.approveMangrove(
     dai.address,
     ethers.constants.MaxUint256
   );
-  depTxs[j++] = await offerProxy.approveMangrove(
-    wEth.address,
-    ethers.constants.MaxUint256
-  );
+  // depTxs[j++] = await offerProxy.approveMangrove(
+  //   wEth.address,
+  //   ethers.constants.MaxUint256
+  // );
   // maker contract need to approve lender for dai and weth transfer to be able to mint (not used for now in put)
   // depTxs[j++] = await offerProxy.approveLender(
   //   dai.address,
@@ -128,7 +132,7 @@ describe("Deploy offerProxy", function () {
 
     // Retrieving Mangrove contract and activting weth-dai market
     [mgv, reader] = await lc.deployMangrove();
-    listenMgv(mgv);
+    //listenMgv(mgv);
 
     await lc.activateMarket(mgv, dai.address, wEth.address);
     let [, local] = await reader.config(dai.address, wEth.address);
@@ -137,9 +141,27 @@ describe("Deploy offerProxy", function () {
 
   // testing strat
   it("Offer proxy on aave", async function () {
-    let offerProxy = await deployStrat(mgv, players);
+    const dai = await lc.getContract("DAI");
+    const wEth = await lc.getContract("WETH");
+    let offerProxy = await deployStrat(mgv, reader, players);
     await execLenderStrat(offerProxy, mgv, reader, "aave", players);
-    lc.sleep(5000);
-    lc.stopListeners([mgv]);
+    // checking offer owner of offerId 1 (residual)
+    const [nextId, offerIds, owners] = await offerProxy.offerOwners(
+      dai.address,
+      wEth.address,
+      0,
+      2
+    );
+    for (const i in offerIds) {
+      console.log(
+        "offer",
+        offerIds[i].toNumber(),
+        "is owned by",
+        chalk.gray(`${owners[i]}`)
+      );
+      assert(owners[i] == players.maker.address, "wrong offer owner");
+    }
+    // lc.sleep(5000);
+    // lc.stopListeners([mgv]);
   });
 });

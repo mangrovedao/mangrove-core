@@ -78,7 +78,6 @@ abstract contract SingleUser is MangroveOffer {
 
   //  Updates an existing `offerId` on the Mangrove. `updateOffer` rely on the same offer requirements as `newOffer` and may throw if they are not met.
   //  Additionally `updateOffer` will thow if `this` contract is not the owner of `offerId`.
-  //  The `__autoRefill__` hook may be overridden to provide a method to refill offer provision automatically.
   function updateOffer(
     address outbound_tkn,
     address inbound_tkn,

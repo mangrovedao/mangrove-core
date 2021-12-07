@@ -15,8 +15,13 @@ import "../AaveLender.sol";
 import "../Persistent.sol";
 
 contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
-  constructor(address _addressesProvider, address payable _MGV)
+  constructor(
+    address _addressesProvider,
+    address _MgvReader,
+    address payable _MGV
+  )
     AaveModule(_addressesProvider, 0)
+    MultiUser(_MgvReader)
     MangroveOffer(_MGV)
   {
     setGasreq(800_000); // Offer proxy requires AAVE interactions
@@ -29,28 +34,6 @@ contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
     returns (uint)
   {
     return (MultiUser.__put__(amount, order));
-  }
-
-  function __autoRefill__(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint gasreq,
-    uint gasprice,
-    uint offerId
-  )
-    internal
-    virtual
-    override(MangroveOffer, MultiUserPersistent)
-    returns (uint)
-  {
-    return
-      MultiUserPersistent.__autoRefill__(
-        outbound_tkn,
-        inbound_tkn,
-        gasreq,
-        gasprice,
-        offerId
-      );
   }
 
   function __get__(uint amount, MgvLib.SingleOrder calldata order)

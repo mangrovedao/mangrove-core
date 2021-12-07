@@ -37,7 +37,7 @@ describe("Running tests...", function () {
   });
 
   it("Swinging strat", async function () {
-    lc.listenMgv(mgv);
+    //    lc.listenMgv(mgv);
 
     const strategy = "SwingingMarketMaker";
     const Strat = await ethers.getContractFactory(strategy);
@@ -47,7 +47,7 @@ describe("Running tests...", function () {
     const makerContract = (
       await Strat.deploy(comp.address, mgv.address, wEth.address)
     ).connect(testSigner);
-    lc.listenOfferLogic(makerContract, ["PosthookFail"]);
+    //   lc.listenOfferLogic(makerContract, ["PosthookFail"]);
     const eth_for_one_usdc = lc.parseToken("0.0004", 18); // 1/2500 ethers
     const usdc_for_one_eth = lc.parseToken("2510", 6); // 2510 $
 
@@ -157,109 +157,138 @@ describe("Running tests...", function () {
       ["USDC", "WETH"],
       makerContract.address
     );
-    lc.sleep(5000);
-    lc.stopListeners([mgv, makerContract]);
+    //    lc.sleep(5000);
+    //    lc.stopListeners([mgv, makerContract]);
   });
 
-  //   it("Reposting strat", async function () {
-  //     const Repost = await ethers.getContractFactory("Reposting");
+  it("Reposting strat", async function () {
+    const Repost = await ethers.getContractFactory("Reposting");
 
-  //     // deploying strat
-  //     const repostLogic = (await Repost.deploy(mgv.address)).connect(testSigner);
-  //     const signerAddr = await testSigner.getAddress();
+    // deploying strat
+    const repostLogic = (await Repost.deploy(mgv.address)).connect(testSigner);
+    const signerAddr = await testSigner.getAddress();
 
-  //     await lc.fund([
-  //       ["DAI", "100000.0", repostLogic.address],
-  //       ["DAI", "100000.0", signerAddr],
-  //       ["WETH", "100.0", repostLogic.address],
-  //       ["WETH", "100.0", signerAddr],
-  //       ["USDC", "100000.0", repostLogic.address],
-  //       ["USDC", "100000.0", signerAddr],
-  //     ]);
+    await lc.fund([
+      ["DAI", "100000.0", repostLogic.address],
+      ["DAI", "100000.0", signerAddr],
+      ["WETH", "100.0", repostLogic.address],
+      ["WETH", "100.0", signerAddr],
+      ["USDC", "100000.0", repostLogic.address],
+      ["USDC", "100000.0", signerAddr],
+    ]);
 
-  //     const tokenParams = [
-  //       [wEth.connect(testSigner), "WETH", 18, ethers.utils.parseEther("1")],
-  //       [dai.connect(testSigner), "DAI", 18, ethers.utils.parseEther("0.0003")],
-  //       [usdc.connect(testSigner), "USDC", 6, ethers.utils.parseEther("0.0003")],
-  //     ];
+    const tokenParams = [
+      [wEth.connect(testSigner), "WETH", 18, ethers.utils.parseEther("1")],
+      [dai.connect(testSigner), "DAI", 18, ethers.utils.parseEther("0.0003")],
+      [usdc.connect(testSigner), "USDC", 6, ethers.utils.parseEther("0.0003")],
+    ];
 
-  //     const ofr_gasreq = ethers.BigNumber.from(500000);
-  //     const ofr_gasprice = ethers.BigNumber.from(0);
-  //     const ofr_pivot = ethers.BigNumber.from(0);
+    const ofr_gasreq = ethers.BigNumber.from(500000);
+    const ofr_gasprice = ethers.BigNumber.from(0);
+    const ofr_pivot = ethers.BigNumber.from(0);
 
-  //     const usdToNative = ethers.utils.parseEther("0.0003");
+    const usdToNative = ethers.utils.parseEther("0.0003");
 
-  //     let overrides = { value: ethers.utils.parseEther("1.0") };
-  //     await mgv["fund(address)"](repostLogic.address, overrides);
+    let overrides = { value: ethers.utils.parseEther("1.0") };
+    await mgv["fund(address)"](repostLogic.address, overrides);
 
-  //     // taker side actions
-  //     for (const [token] of tokenParams) {
-  //       await token.approve(mgv.address, ethers.constants.MaxUint256);
-  //     }
+    // taker side actions
+    for (const [token] of tokenParams) {
+      await token.approve(mgv.address, ethers.constants.MaxUint256);
+    }
 
-  //     lc.listenMgv(mgv);
+    //lc.listenMgv(mgv);
 
-  //     for (const [
-  //       outbound_tkn,
-  //       outName,
-  //       outDecimals,
-  //       outTknInMatic,
-  //     ] of tokenParams) {
-  //       const tx = await repostLogic.approveMangrove(
-  //         outbound_tkn.address,
-  //         ethers.constants.MaxUint256
-  //       );
-  //       await tx.wait();
+    for (const [
+      outbound_tkn,
+      outName,
+      outDecimals,
+      outTknInMatic,
+    ] of tokenParams) {
+      const tx = await repostLogic.approveMangrove(
+        outbound_tkn.address,
+        ethers.constants.MaxUint256
+      );
+      await tx.wait();
 
-  //       for (const [
-  //         inbound_tkn,
-  //         inName,
-  //         inDecimals,
-  //         inTknInMatic,
-  //       ] of tokenParams) {
-  //         if (outbound_tkn.address != inbound_tkn.address) {
-  //           const makerWants = ethers.utils
-  //             .parseUnits("1000", inDecimals)
-  //             .mul(usdToNative)
-  //             .div(inTknInMatic); // makerWants
-  //           const makerGives = ethers.utils
-  //             .parseUnits("1000", outDecimals)
-  //             .mul(usdToNative)
-  //             .div(outTknInMatic); // makerGives
+      for (const [
+        inbound_tkn,
+        inName,
+        inDecimals,
+        inTknInMatic,
+      ] of tokenParams) {
+        if (outbound_tkn.address != inbound_tkn.address) {
+          const makerWants = ethers.utils
+            .parseUnits("1000", inDecimals)
+            .mul(usdToNative)
+            .div(inTknInMatic); // makerWants
+          const makerGives = ethers.utils
+            .parseUnits("1000", outDecimals)
+            .mul(usdToNative)
+            .div(outTknInMatic); // makerGives
 
-  //           const ofrTx = await repostLogic.newOffer(
-  //             outbound_tkn.address, //e.g weth
-  //             inbound_tkn.address, //e.g dai
-  //             makerWants,
-  //             makerGives,
-  //             ofr_gasreq,
-  //             ofr_gasprice,
-  //             ofr_pivot
-  //           );
-  //           await ofrTx.wait();
+          const ofrId = await repostLogic.callStatic.newOffer(
+            outbound_tkn.address, //e.g weth
+            inbound_tkn.address, //e.g dai
+            makerWants,
+            makerGives,
+            ofr_gasreq,
+            ofr_gasprice,
+            ofr_pivot
+          );
+          const ofrTx = await repostLogic.newOffer(
+            outbound_tkn.address, //e.g weth
+            inbound_tkn.address, //e.g dai
+            makerWants,
+            makerGives,
+            ofr_gasreq,
+            ofr_gasprice,
+            ofr_pivot
+          );
+          await ofrTx.wait();
 
-  //           const book = await reader.offerList(
-  //             outbound_tkn.address,
-  //             inbound_tkn.address,
-  //             ethers.BigNumber.from(0),
-  //             ethers.BigNumber.from(1)
-  //           );
-  //           lc.logOrderBook(book, outbound_tkn, inbound_tkn);
-  //           const tx = await mgv.marketOrder(
-  //             outbound_tkn.address,
-  //             inbound_tkn.address,
-  //             makerGives,
-  //             makerWants,
-  //             true
-  //           );
-  //           tx.wait();
-  //           lc.logOrderBook(book, outbound_tkn, inbound_tkn);
-  //         }
-  //       }
-  //     }
-  //     lc.sleep(5000);
-  //     lc.stopListeners([mgv]);
-  //   });
+          const book = await reader.offerList(
+            outbound_tkn.address,
+            inbound_tkn.address,
+            ethers.BigNumber.from(0),
+            ethers.BigNumber.from(5)
+          );
+          await lc.logOrderBook(book, outbound_tkn, inbound_tkn);
+          const [offer, offerDetail] = await mgv.offerInfo(
+            outbound_tkn.address,
+            inbound_tkn.address,
+            ofrId
+          );
+          // checking offer is indeed reposting
+          const [successes, takerGot, takerGave, bounty] =
+            await mgv.callStatic.snipes(
+              outbound_tkn.address,
+              inbound_tkn.address,
+              [[ofrId, offer.gives, offer.wants, offerDetail.gasreq]],
+              true
+            );
+          assert(successes == 1, "Snipe failed");
+          const snipeTx = await mgv.snipes(
+            outbound_tkn.address,
+            inbound_tkn.address,
+            [[ofrId, offer.gives, offer.wants, offerDetail.gasreq]],
+            true
+          );
+          await snipeTx.wait();
+          const [offer_] = await mgv.offerInfo(
+            outbound_tkn.address,
+            inbound_tkn.address,
+            ofrId
+          );
+          lc.assertEqualBN(
+            offer_.gives,
+            offer.gives,
+            `Offer gives is incorrect`
+          );
+        }
+      }
+    }
+  });
 });
 
 // const usdc_decimals = await usdc.decimals();

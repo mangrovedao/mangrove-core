@@ -27,7 +27,7 @@ contract Reposting is Persistent {
     uint gasreq = MP.offerDetail_unpack_gasreq(order.offerDetail); // amount with token1.decimals() decimals
 
     try
-      this.updateOffer({
+      MGV.updateOffer({
         outbound_tkn: order.outbound_tkn,
         inbound_tkn: order.inbound_tkn,
         wants: wants,

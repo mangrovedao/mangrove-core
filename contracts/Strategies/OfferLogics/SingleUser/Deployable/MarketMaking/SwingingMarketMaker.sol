@@ -12,6 +12,7 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 import "../../CompoundTrader.sol";
+import "hardhat/console.sol";
 
 contract SwingingMarketMaker is CompoundTrader {
   event MissingPriceConverter(address token0, address token1);
@@ -71,17 +72,20 @@ contract SwingingMarketMaker is CompoundTrader {
     uint offerId = offers[outbound_tkn][inbound_tkn];
     if (offerId == 0) {
       try
-        this.newOffer(outbound_tkn, inbound_tkn, wants, gives, OFR_GASREQ, 0, 0)
+        MGV.newOffer(outbound_tkn, inbound_tkn, wants, gives, OFR_GASREQ, 0, 0)
       returns (uint id) {
-        offers[outbound_tkn][inbound_tkn] = id;
-        return true;
-      } catch Error(string memory message) {
-        emit PosthookFail(outbound_tkn, inbound_tkn, offerId, message);
+        if (id > 0) {
+          offers[outbound_tkn][inbound_tkn] = id;
+          return true;
+        } else {
+          return false;
+        }
+      } catch {
         return false;
       }
     } else {
       try
-        this.updateOffer(
+        MGV.updateOffer(
           outbound_tkn,
           inbound_tkn,
           wants,

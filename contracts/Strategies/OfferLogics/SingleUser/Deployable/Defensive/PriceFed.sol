@@ -39,7 +39,7 @@ contract PriceFed is Defensive, AaveLender {
     emit Slippage(order.offerId, old_wants, new_offer_wants);
     // since offer is persistent it will auto refill if contract does not have enough provision on the Mangrove
     try
-      this.updateOffer(
+      MGV.updateOffer(
         order.outbound_tkn,
         order.inbound_tkn,
         new_offer_wants,

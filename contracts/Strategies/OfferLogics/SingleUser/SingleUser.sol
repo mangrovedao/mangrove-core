@@ -21,12 +21,13 @@ abstract contract SingleUser is MangroveOffer {
   receive() external payable {}
 
   /// transfers token stored in `this` contract to some recipient address
-  function redeemToken(
-    address token,
-    address redeemer,
-    uint amount
-  ) public override onlyAdmin returns (bool success) {
-    success = _transferToken(token, redeemer, amount);
+  function redeemToken(address token, uint amount)
+    external
+    override
+    onlyAdmin
+    returns (bool success)
+  {
+    success = _transferToken(token, msg.sender, amount);
   }
 
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
@@ -90,7 +91,7 @@ abstract contract SingleUser is MangroveOffer {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external payable override internalOrAdmin {
+  ) external payable override onlyAdmin {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
@@ -112,8 +113,8 @@ abstract contract SingleUser is MangroveOffer {
     address inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) external override internalOrAdmin returns (uint) {
-    MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  ) external override onlyAdmin returns (uint) {
+    return (MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision));
   }
 
   function getMissingProvision(

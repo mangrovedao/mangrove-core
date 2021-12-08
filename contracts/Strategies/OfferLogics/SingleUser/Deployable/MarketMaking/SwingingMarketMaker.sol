@@ -12,7 +12,6 @@
 pragma solidity ^0.7.0;
 pragma abicoder v2;
 import "../../CompoundTrader.sol";
-import "hardhat/console.sol";
 
 contract SwingingMarketMaker is CompoundTrader {
   event MissingPriceConverter(address token0, address token1);

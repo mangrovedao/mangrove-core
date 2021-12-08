@@ -31,16 +31,35 @@ function uint_of_bool(bool b) pure returns (uint u) {
 // (would generate lots of spurious warnings about a nameclash between Structs.Offer and library Offer for instance)
 // struct_defs are of the form [name,obj]
 struct OfferStruct {
-  uint prev; uint next; uint wants; uint gives;
+  uint prev;
+  uint next;
+  uint wants;
+  uint gives;
 }
 struct OfferDetailStruct {
-  address maker; uint gasreq; uint overhead_gasbase; uint offer_gasbase; uint gasprice;
+  address maker;
+  uint gasreq;
+  uint overhead_gasbase;
+  uint offer_gasbase;
+  uint gasprice;
 }
 struct GlobalStruct {
-  address monitor; bool useOracle; bool notify; uint gasprice; uint gasmax; bool dead;
+  address monitor;
+  bool useOracle;
+  bool notify;
+  uint gasprice;
+  uint gasmax;
+  bool dead;
 }
 struct LocalStruct {
-  bool active; uint fee; uint density; uint overhead_gasbase; uint offer_gasbase; bool lock; uint best; uint last;
+  bool active;
+  uint fee;
+  uint density;
+  uint overhead_gasbase;
+  uint offer_gasbase;
+  bool lock;
+  uint best;
+  uint last;
 }
 
 library Offer {

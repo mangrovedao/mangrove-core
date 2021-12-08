@@ -26,7 +26,7 @@ $(preamble)
 // #def Sname capitalize(ns[0])
 // #def struct_def ns[1]
 struct $$(Sname)Struct {
-  $$(join(map(struct_def,(field) => `$${f_type(field)} $${f_name(field)};`),' '))
+  $$(join(map(struct_def,(field) => `$${f_type(field)} $${f_name(field)};`),`\n$${__indent}`))
 }
 // #done
 

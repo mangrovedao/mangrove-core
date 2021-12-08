@@ -44,6 +44,8 @@ interface OfferLogic is IMaker {
   // Offer logic default gas required --value is used in update and new offer if maxUint is given
   function OFR_GASREQ() external returns (uint);
 
+  function admin() external returns (address);
+
   // returns missing provision on Mangrove, should `offerId` be reposted using `gasreq` and `gasprice` parameters
   // if `offerId` is not in the `outbound_tkn,inbound_tkn` offer list, the totality of the necessary provision is returned
   function getMissingProvision(
@@ -57,11 +59,9 @@ interface OfferLogic is IMaker {
   // Changing OFR_GASREQ of the logic
   function setGasreq(uint gasreq) external;
 
-  function redeemToken(
-    address token,
-    address redeemer,
-    uint amount
-  ) external returns (bool success);
+  function redeemToken(address token, uint amount)
+    external
+    returns (bool success);
 
   function approveMangrove(address outbound_tkn, uint amount) external;
 

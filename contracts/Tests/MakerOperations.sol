@@ -315,7 +315,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       !mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Offer was not removed from OB"
     );
-    (P.Structs.Offer memory offer, P.Structs.OfferDetail memory offerDetail) = mgv.offerInfo(
+    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv.offerInfo(
       _base,
       _quote,
       ofr
@@ -333,8 +333,8 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, offer.next)),
       "Invalid OB"
     );
-    (P.Structs.Offer memory offer0, ) = mgv.offerInfo(_base, _quote, offer.prev);
-    (P.Structs.Offer memory offer1, ) = mgv.offerInfo(_base, _quote, offer.next);
+    (P.OfferStruct memory offer0, ) = mgv.offerInfo(_base, _quote, offer.prev);
+    (P.OfferStruct memory offer1, ) = mgv.offerInfo(_base, _quote, offer.next);
     TestEvents.eq(offer1.prev, ofr0, "Invalid snitching for ofr1");
     TestEvents.eq(offer0.next, ofr1, "Invalid snitching for ofr0");
   }
@@ -354,7 +354,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       !mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Offer was not removed from OB"
     );
-    (P.Structs.Offer memory offer, P.Structs.OfferDetail memory offerDetail) = mgv.offerInfo(
+    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv.offerInfo(
       _base,
       _quote,
       ofr
@@ -368,7 +368,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, offer.next)),
       "Invalid OB"
     );
-    (P.Structs.Offer memory offer1, ) = mgv.offerInfo(_base, _quote, offer.next);
+    (P.OfferStruct memory offer1, ) = mgv.offerInfo(_base, _quote, offer.next);
     TestEvents.eq(offer1.prev, 0, "Invalid snitching for ofr1");
     (, P.Local.t cfg) = mgv.config(_base, _quote);
     TestEvents.eq(
@@ -393,7 +393,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       "Offer was not removed from OB"
     );
     mkr.retractOffer(ofr);
-    (P.Structs.Offer memory offer, P.Structs.OfferDetail memory offerDetail) = mgv.offerInfo(
+    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv.offerInfo(
       _base,
       _quote,
       ofr
@@ -407,7 +407,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, offer.prev)),
       "Invalid OB"
     );
-    (P.Structs.Offer memory offer0, ) = mgv.offerInfo(_base, _quote, offer.prev);
+    (P.OfferStruct memory offer0, ) = mgv.offerInfo(_base, _quote, offer.prev);
     TestEvents.eq(offer0.next, 0, "Invalid snitching for ofr0");
     (, P.Local.t cfg) = mgv.config(_base, _quote);
     TestEvents.eq(
@@ -513,7 +513,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, ofr0)),
       "Oldest equivalent offer should be first"
     );
-    (P.Structs.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr0);
+    (P.OfferStruct memory offer, ) = mgv.offerInfo(_base, _quote, ofr0);
     uint _ofr01 = offer.next;
     TestEvents.eq(_ofr01, ofr01, "Wrong 2nd offer");
     TestEvents.check(
@@ -665,7 +665,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Insertion error"
     );
-    (P.Structs.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
+    (P.OfferStruct memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
     TestEvents.eq(offer.prev, ofr0, "Wrong prev offer");
     TestEvents.eq(offer.next, ofr1, "Wrong next offer");
     mkr.updateOffer(1.1 ether, 1.0 ether, 100_000, ofr0, ofr);
@@ -692,7 +692,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Insertion error"
     );
-    (P.Structs.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
+    (P.OfferStruct memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
     TestEvents.eq(offer.prev, ofr0, "Wrong prev offer");
     TestEvents.eq(offer.next, ofr1, "Wrong next offer");
     mkr.updateOffer(1.1 ether, 1.0 ether, 100_000, ofr, ofr);
@@ -719,7 +719,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Insertion error"
     );
-    (P.Structs.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
+    (P.OfferStruct memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
     TestEvents.eq(offer.prev, ofr0, "Wrong prev offer");
     TestEvents.eq(offer.next, ofr1, "Wrong next offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr0, ofr);
@@ -746,7 +746,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Insertion error"
     );
-    (P.Structs.Offer memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
+    (P.OfferStruct memory offer, ) = mgv.offerInfo(_base, _quote, ofr);
     TestEvents.eq(offer.prev, ofr0, "Wrong prev offer");
     TestEvents.eq(offer.next, ofr1, "Wrong next offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr, ofr);
@@ -853,7 +853,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     uint right = mkr.newOffer(1 ether + 3, 1 ether, 100_000, 0);
     uint center = mkr.newOffer(1 ether + 1, 1 ether, 100_000, 0);
     mkr.updateOffer(1 ether + 2, 1 ether, 100_000, center, center);
-    (P.Structs.Offer memory ofr, ) = mgv.offerInfo(_base, _quote, center);
+    (P.OfferStruct memory ofr, ) = mgv.offerInfo(_base, _quote, center);
     TestEvents.eq(ofr.prev, left, "ofr.prev should be unchanged");
     TestEvents.eq(ofr.next, right, "ofr.next should be unchanged");
   }
@@ -869,7 +869,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       0,
       "Maker should have no more provision on Mangrove"
     );
-    (P.Structs.Offer memory ofr, P.Structs.OfferDetail memory dtl) = mgv.offerInfo(
+    (P.OfferStruct memory ofr, P.OfferDetailStruct memory dtl) = mgv.offerInfo(
       _base,
       _quote,
       offerId
@@ -897,18 +897,18 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
   }
 
   function testOBBest(uint id) internal {
-    (P.Structs.Offer memory ofr, ) = mgv.offerInfo(_base, _quote, id);
+    (P.OfferStruct memory ofr, ) = mgv.offerInfo(_base, _quote, id);
     TestEvents.eq(mgv.best(_base, _quote), id, "testOBBest: not best");
     TestEvents.eq(ofr.prev, 0, "testOBBest: prev not 0");
   }
 
   function testOBWorst(uint id) internal {
-    (P.Structs.Offer memory ofr, ) = mgv.offerInfo(_base, _quote, id);
+    (P.OfferStruct memory ofr, ) = mgv.offerInfo(_base, _quote, id);
     TestEvents.eq(ofr.next, 0, "testOBWorst fail");
   }
 
   function testOBLink(uint left, uint right) internal {
-    (P.Structs.Offer memory ofr, ) = mgv.offerInfo(_base, _quote, left);
+    (P.OfferStruct memory ofr, ) = mgv.offerInfo(_base, _quote, left);
     TestEvents.eq(ofr.next, right, "testOBLink: wrong ofr.next");
     (ofr, ) = mgv.offerInfo(_base, _quote, right);
     TestEvents.eq(ofr.prev, left, "testOBLink: wrong ofr.prev");
@@ -1038,7 +1038,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     uint right = mkr.newOffer(1 ether + 3, 1 ether, 100_000, 0);
     uint center = mkr.newOffer(1 ether + 2, 1 ether, 100_000, 0);
     mkr.updateOffer(1 ether + 1, 1 ether, 100_000, center, center);
-    (P.Structs.Offer memory ofr, ) = mgv.offerInfo(_base, _quote, center);
+    (P.OfferStruct memory ofr, ) = mgv.offerInfo(_base, _quote, center);
     TestEvents.eq(ofr.prev, left, "ofr.prev should be unchanged");
     TestEvents.eq(ofr.next, right, "ofr.next should be unchanged");
   }

@@ -27,34 +27,34 @@ function uint_of_bool(bool b) pure returns (uint u) {
 
 // fields are of the form [name,bits,type]
 
+// Can't put all structs under a 'Structs' library due to bad variable shadowing rules in Solidity
+// (would generate lots of spurious warnings about a nameclash between Structs.Offer and library Offer for instance)
 // struct_defs are of the form [name,obj]
-library Structs {
-  struct Offer {
-    uint prev; uint next; uint wants; uint gives;
-  }
-  struct OfferDetail {
-    address maker; uint gasreq; uint overhead_gasbase; uint offer_gasbase; uint gasprice;
-  }
-  struct Global {
-    address monitor; bool useOracle; bool notify; uint gasprice; uint gasmax; bool dead;
-  }
-  struct Local {
-    bool active; uint fee; uint density; uint overhead_gasbase; uint offer_gasbase; bool lock; uint best; uint last;
-  }
+struct OfferStruct {
+  uint prev; uint next; uint wants; uint gives;
+}
+struct OfferDetailStruct {
+  address maker; uint gasreq; uint overhead_gasbase; uint offer_gasbase; uint gasprice;
+}
+struct GlobalStruct {
+  address monitor; bool useOracle; bool notify; uint gasprice; uint gasmax; bool dead;
+}
+struct LocalStruct {
+  bool active; uint fee; uint density; uint overhead_gasbase; uint offer_gasbase; bool lock; uint best; uint last;
 }
 
 library Offer {
   //some type safety for each struct
   type t is bytes32;
 
-  function to_struct(t __packed) internal pure returns (Structs.Offer memory __s) { unchecked {
+  function to_struct(t __packed) internal pure returns (OfferStruct memory __s) { unchecked {
     __s.prev = uint(uint((t.unwrap(__packed) << 0)) >> 224);
     __s.next = uint(uint((t.unwrap(__packed) << 32)) >> 224);
     __s.wants = uint(uint((t.unwrap(__packed) << 64)) >> 160);
     __s.gives = uint(uint((t.unwrap(__packed) << 160)) >> 160);
   }}
 
-  function t_of_struct(Structs.Offer memory __s) internal pure returns (t) { unchecked {
+  function t_of_struct(OfferStruct memory __s) internal pure returns (t) { unchecked {
     return pack(__s.prev, __s.next, __s.wants, __s.gives);
   }}
 
@@ -62,15 +62,15 @@ library Offer {
     return t.unwrap(__packed1) == t.unwrap(__packed2);
   }}
 
-  function pack(uint prev, uint next, uint wants, uint gives) internal pure returns (t) { unchecked {
-    return t.wrap(((((bytes32(0) | bytes32((uint(prev) << 224) >> 0)) | bytes32((uint(next) << 224) >> 32)) | bytes32((uint(wants) << 160) >> 64)) | bytes32((uint(gives) << 160) >> 160)));
+  function pack(uint __prev, uint __next, uint __wants, uint __gives) internal pure returns (t) { unchecked {
+    return t.wrap(((((bytes32(0) | bytes32((uint(__prev) << 224) >> 0)) | bytes32((uint(__next) << 224) >> 32)) | bytes32((uint(__wants) << 160) >> 64)) | bytes32((uint(__gives) << 160) >> 160)));
   }}
 
-  function unpack(t __packed) internal pure returns (uint prev, uint next, uint wants, uint gives) { unchecked {
-    prev = uint(uint((t.unwrap(__packed) << 0)) >> 224);
-    next = uint(uint((t.unwrap(__packed) << 32)) >> 224);
-    wants = uint(uint((t.unwrap(__packed) << 64)) >> 160);
-    gives = uint(uint((t.unwrap(__packed) << 160)) >> 160);
+  function unpack(t __packed) internal pure returns (uint __prev, uint __next, uint __wants, uint __gives) { unchecked {
+    __prev = uint(uint((t.unwrap(__packed) << 0)) >> 224);
+    __next = uint(uint((t.unwrap(__packed) << 32)) >> 224);
+    __wants = uint(uint((t.unwrap(__packed) << 64)) >> 160);
+    __gives = uint(uint((t.unwrap(__packed) << 160)) >> 160);
   }}
 
   function prev(t __packed) internal pure returns(uint) { unchecked {
@@ -103,7 +103,7 @@ library OfferDetail {
   //some type safety for each struct
   type t is bytes32;
 
-  function to_struct(t __packed) internal pure returns (Structs.OfferDetail memory __s) { unchecked {
+  function to_struct(t __packed) internal pure returns (OfferDetailStruct memory __s) { unchecked {
     __s.maker = address(uint160(uint((t.unwrap(__packed) << 0)) >> 96));
     __s.gasreq = uint(uint((t.unwrap(__packed) << 160)) >> 232);
     __s.overhead_gasbase = uint(uint((t.unwrap(__packed) << 184)) >> 232);
@@ -111,7 +111,7 @@ library OfferDetail {
     __s.gasprice = uint(uint((t.unwrap(__packed) << 232)) >> 240);
   }}
 
-  function t_of_struct(Structs.OfferDetail memory __s) internal pure returns (t) { unchecked {
+  function t_of_struct(OfferDetailStruct memory __s) internal pure returns (t) { unchecked {
     return pack(__s.maker, __s.gasreq, __s.overhead_gasbase, __s.offer_gasbase, __s.gasprice);
   }}
 
@@ -119,16 +119,16 @@ library OfferDetail {
     return t.unwrap(__packed1) == t.unwrap(__packed2);
   }}
 
-  function pack(address maker, uint gasreq, uint overhead_gasbase, uint offer_gasbase, uint gasprice) internal pure returns (t) { unchecked {
-    return t.wrap((((((bytes32(0) | bytes32((uint(uint160(maker)) << 96) >> 0)) | bytes32((uint(gasreq) << 232) >> 160)) | bytes32((uint(overhead_gasbase) << 232) >> 184)) | bytes32((uint(offer_gasbase) << 232) >> 208)) | bytes32((uint(gasprice) << 240) >> 232)));
+  function pack(address __maker, uint __gasreq, uint __overhead_gasbase, uint __offer_gasbase, uint __gasprice) internal pure returns (t) { unchecked {
+    return t.wrap((((((bytes32(0) | bytes32((uint(uint160(__maker)) << 96) >> 0)) | bytes32((uint(__gasreq) << 232) >> 160)) | bytes32((uint(__overhead_gasbase) << 232) >> 184)) | bytes32((uint(__offer_gasbase) << 232) >> 208)) | bytes32((uint(__gasprice) << 240) >> 232)));
   }}
 
-  function unpack(t __packed) internal pure returns (address maker, uint gasreq, uint overhead_gasbase, uint offer_gasbase, uint gasprice) { unchecked {
-    maker = address(uint160(uint((t.unwrap(__packed) << 0)) >> 96));
-    gasreq = uint(uint((t.unwrap(__packed) << 160)) >> 232);
-    overhead_gasbase = uint(uint((t.unwrap(__packed) << 184)) >> 232);
-    offer_gasbase = uint(uint((t.unwrap(__packed) << 208)) >> 232);
-    gasprice = uint(uint((t.unwrap(__packed) << 232)) >> 240);
+  function unpack(t __packed) internal pure returns (address __maker, uint __gasreq, uint __overhead_gasbase, uint __offer_gasbase, uint __gasprice) { unchecked {
+    __maker = address(uint160(uint((t.unwrap(__packed) << 0)) >> 96));
+    __gasreq = uint(uint((t.unwrap(__packed) << 160)) >> 232);
+    __overhead_gasbase = uint(uint((t.unwrap(__packed) << 184)) >> 232);
+    __offer_gasbase = uint(uint((t.unwrap(__packed) << 208)) >> 232);
+    __gasprice = uint(uint((t.unwrap(__packed) << 232)) >> 240);
   }}
 
   function maker(t __packed) internal pure returns(address) { unchecked {
@@ -167,7 +167,7 @@ library Global {
   //some type safety for each struct
   type t is bytes32;
 
-  function to_struct(t __packed) internal pure returns (Structs.Global memory __s) { unchecked {
+  function to_struct(t __packed) internal pure returns (GlobalStruct memory __s) { unchecked {
     __s.monitor = address(uint160(uint((t.unwrap(__packed) << 0)) >> 96));
     __s.useOracle = (uint((t.unwrap(__packed) << 160)) >> 248 > 0);
     __s.notify = (uint((t.unwrap(__packed) << 168)) >> 248 > 0);
@@ -176,7 +176,7 @@ library Global {
     __s.dead = (uint((t.unwrap(__packed) << 216)) >> 248 > 0);
   }}
 
-  function t_of_struct(Structs.Global memory __s) internal pure returns (t) { unchecked {
+  function t_of_struct(GlobalStruct memory __s) internal pure returns (t) { unchecked {
     return pack(__s.monitor, __s.useOracle, __s.notify, __s.gasprice, __s.gasmax, __s.dead);
   }}
 
@@ -184,17 +184,17 @@ library Global {
     return t.unwrap(__packed1) == t.unwrap(__packed2);
   }}
 
-  function pack(address monitor, bool useOracle, bool notify, uint gasprice, uint gasmax, bool dead) internal pure returns (t) { unchecked {
-    return t.wrap(((((((bytes32(0) | bytes32((uint(uint160(monitor)) << 96) >> 0)) | bytes32((uint(uint_of_bool(useOracle)) << 248) >> 160)) | bytes32((uint(uint_of_bool(notify)) << 248) >> 168)) | bytes32((uint(gasprice) << 240) >> 176)) | bytes32((uint(gasmax) << 232) >> 192)) | bytes32((uint(uint_of_bool(dead)) << 248) >> 216)));
+  function pack(address __monitor, bool __useOracle, bool __notify, uint __gasprice, uint __gasmax, bool __dead) internal pure returns (t) { unchecked {
+    return t.wrap(((((((bytes32(0) | bytes32((uint(uint160(__monitor)) << 96) >> 0)) | bytes32((uint(uint_of_bool(__useOracle)) << 248) >> 160)) | bytes32((uint(uint_of_bool(__notify)) << 248) >> 168)) | bytes32((uint(__gasprice) << 240) >> 176)) | bytes32((uint(__gasmax) << 232) >> 192)) | bytes32((uint(uint_of_bool(__dead)) << 248) >> 216)));
   }}
 
-  function unpack(t __packed) internal pure returns (address monitor, bool useOracle, bool notify, uint gasprice, uint gasmax, bool dead) { unchecked {
-    monitor = address(uint160(uint((t.unwrap(__packed) << 0)) >> 96));
-    useOracle = (uint((t.unwrap(__packed) << 160)) >> 248 > 0);
-    notify = (uint((t.unwrap(__packed) << 168)) >> 248 > 0);
-    gasprice = uint(uint((t.unwrap(__packed) << 176)) >> 240);
-    gasmax = uint(uint((t.unwrap(__packed) << 192)) >> 232);
-    dead = (uint((t.unwrap(__packed) << 216)) >> 248 > 0);
+  function unpack(t __packed) internal pure returns (address __monitor, bool __useOracle, bool __notify, uint __gasprice, uint __gasmax, bool __dead) { unchecked {
+    __monitor = address(uint160(uint((t.unwrap(__packed) << 0)) >> 96));
+    __useOracle = (uint((t.unwrap(__packed) << 160)) >> 248 > 0);
+    __notify = (uint((t.unwrap(__packed) << 168)) >> 248 > 0);
+    __gasprice = uint(uint((t.unwrap(__packed) << 176)) >> 240);
+    __gasmax = uint(uint((t.unwrap(__packed) << 192)) >> 232);
+    __dead = (uint((t.unwrap(__packed) << 216)) >> 248 > 0);
   }}
 
   function monitor(t __packed) internal pure returns(address) { unchecked {
@@ -239,7 +239,7 @@ library Local {
   //some type safety for each struct
   type t is bytes32;
 
-  function to_struct(t __packed) internal pure returns (Structs.Local memory __s) { unchecked {
+  function to_struct(t __packed) internal pure returns (LocalStruct memory __s) { unchecked {
     __s.active = (uint((t.unwrap(__packed) << 0)) >> 248 > 0);
     __s.fee = uint(uint((t.unwrap(__packed) << 8)) >> 240);
     __s.density = uint(uint((t.unwrap(__packed) << 24)) >> 144);
@@ -250,7 +250,7 @@ library Local {
     __s.last = uint(uint((t.unwrap(__packed) << 224)) >> 224);
   }}
 
-  function t_of_struct(Structs.Local memory __s) internal pure returns (t) { unchecked {
+  function t_of_struct(LocalStruct memory __s) internal pure returns (t) { unchecked {
     return pack(__s.active, __s.fee, __s.density, __s.overhead_gasbase, __s.offer_gasbase, __s.lock, __s.best, __s.last);
   }}
 
@@ -258,19 +258,19 @@ library Local {
     return t.unwrap(__packed1) == t.unwrap(__packed2);
   }}
 
-  function pack(bool active, uint fee, uint density, uint overhead_gasbase, uint offer_gasbase, bool lock, uint best, uint last) internal pure returns (t) { unchecked {
-    return t.wrap(((((((((bytes32(0) | bytes32((uint(uint_of_bool(active)) << 248) >> 0)) | bytes32((uint(fee) << 240) >> 8)) | bytes32((uint(density) << 144) >> 24)) | bytes32((uint(overhead_gasbase) << 232) >> 136)) | bytes32((uint(offer_gasbase) << 232) >> 160)) | bytes32((uint(uint_of_bool(lock)) << 248) >> 184)) | bytes32((uint(best) << 224) >> 192)) | bytes32((uint(last) << 224) >> 224)));
+  function pack(bool __active, uint __fee, uint __density, uint __overhead_gasbase, uint __offer_gasbase, bool __lock, uint __best, uint __last) internal pure returns (t) { unchecked {
+    return t.wrap(((((((((bytes32(0) | bytes32((uint(uint_of_bool(__active)) << 248) >> 0)) | bytes32((uint(__fee) << 240) >> 8)) | bytes32((uint(__density) << 144) >> 24)) | bytes32((uint(__overhead_gasbase) << 232) >> 136)) | bytes32((uint(__offer_gasbase) << 232) >> 160)) | bytes32((uint(uint_of_bool(__lock)) << 248) >> 184)) | bytes32((uint(__best) << 224) >> 192)) | bytes32((uint(__last) << 224) >> 224)));
   }}
 
-  function unpack(t __packed) internal pure returns (bool active, uint fee, uint density, uint overhead_gasbase, uint offer_gasbase, bool lock, uint best, uint last) { unchecked {
-    active = (uint((t.unwrap(__packed) << 0)) >> 248 > 0);
-    fee = uint(uint((t.unwrap(__packed) << 8)) >> 240);
-    density = uint(uint((t.unwrap(__packed) << 24)) >> 144);
-    overhead_gasbase = uint(uint((t.unwrap(__packed) << 136)) >> 232);
-    offer_gasbase = uint(uint((t.unwrap(__packed) << 160)) >> 232);
-    lock = (uint((t.unwrap(__packed) << 184)) >> 248 > 0);
-    best = uint(uint((t.unwrap(__packed) << 192)) >> 224);
-    last = uint(uint((t.unwrap(__packed) << 224)) >> 224);
+  function unpack(t __packed) internal pure returns (bool __active, uint __fee, uint __density, uint __overhead_gasbase, uint __offer_gasbase, bool __lock, uint __best, uint __last) { unchecked {
+    __active = (uint((t.unwrap(__packed) << 0)) >> 248 > 0);
+    __fee = uint(uint((t.unwrap(__packed) << 8)) >> 240);
+    __density = uint(uint((t.unwrap(__packed) << 24)) >> 144);
+    __overhead_gasbase = uint(uint((t.unwrap(__packed) << 136)) >> 232);
+    __offer_gasbase = uint(uint((t.unwrap(__packed) << 160)) >> 232);
+    __lock = (uint((t.unwrap(__packed) << 184)) >> 248 > 0);
+    __best = uint(uint((t.unwrap(__packed) << 192)) >> 224);
+    __last = uint(uint((t.unwrap(__packed) << 224)) >> 224);
   }}
 
   function active(t __packed) internal pure returns(bool) { unchecked {

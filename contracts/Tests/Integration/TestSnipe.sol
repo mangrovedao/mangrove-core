@@ -74,7 +74,7 @@ library TestSnipe {
       "incorrect maker B balance"
     );
     // Testing residual offer
-    (P.Structs.Offer memory ofr, ) = mgv.offerInfo(
+    (P.OfferStruct memory ofr, ) = mgv.offerInfo(
       address(base),
       address(quote),
       snipedId

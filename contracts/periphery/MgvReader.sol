@@ -39,7 +39,7 @@ interface MangroveLike {
     address,
     address,
     uint
-  ) external view returns (P.Structs.Offer memory, P.Structs.OfferDetail memory);
+  ) external view returns (P.OfferStruct memory, P.OfferDetailStruct memory);
 
   function config(address, address) external view returns (P.Global.t, P.Local.t);
 }
@@ -139,8 +139,8 @@ contract MgvReader {
     returns (
       uint,
       uint[] memory,
-      P.Structs.Offer[] memory,
-      P.Structs.OfferDetail[] memory
+      P.OfferStruct[] memory,
+      P.OfferDetailStruct[] memory
     )
   { unchecked {
     (uint currentId, uint length) = offerListEndPoints(
@@ -151,8 +151,8 @@ contract MgvReader {
     );
 
     uint[] memory offerIds = new uint[](length);
-    P.Structs.Offer[] memory offers = new P.Structs.Offer[](length);
-    P.Structs.OfferDetail[] memory details = new P.Structs.OfferDetail[](length);
+    P.OfferStruct[] memory offers = new P.OfferStruct[](length);
+    P.OfferDetailStruct[] memory details = new P.OfferDetailStruct[](length);
 
     uint i = 0;
     while (currentId != 0 && i < length) {
@@ -195,7 +195,7 @@ contract MgvReader {
   function config(address outbound_tkn, address inbound_tkn)
     external
     view
-    returns (P.Structs.Global memory global, P.Structs.Local memory local)
+    returns (P.GlobalStruct memory global, P.LocalStruct memory local)
   { unchecked {
     (P.Global.t _global, P.Local.t _local) = mgv.config(outbound_tkn, inbound_tkn);
     global = _global.to_struct();

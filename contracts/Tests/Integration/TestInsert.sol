@@ -70,7 +70,7 @@ library TestInsert {
     uint offerId = mgv.best(address(base), address(quote));
     uint expected_maker = 3;
     while (offerId != 0) {
-      (P.Structs.Offer memory offer, P.Structs.OfferDetail memory od) = mgv.offerInfo(
+      (P.OfferStruct memory offer, P.OfferDetailStruct memory od) = mgv.offerInfo(
         address(base),
         address(quote),
         offerId

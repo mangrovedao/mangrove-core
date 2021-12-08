@@ -132,7 +132,7 @@ library TestUtils {
     uint[] memory gasreqs = new uint[](size);
     uint c = 0;
     while ((offerId != 0) && (c < size)) {
-      (P.Structs.Offer memory offer, P.Structs.OfferDetail memory od) = mgv.offerInfo(
+      (P.OfferStruct memory offer, P.OfferDetailStruct memory od) = mgv.offerInfo(
         base,
         quote,
         offerId
@@ -160,7 +160,7 @@ library TestUtils {
 
     console.log("-----Best offer: %d-----", offerId);
     while (offerId != 0) {
-      (P.Structs.Offer memory ofr, ) = mgv.offerInfo(base, quote, offerId);
+      (P.OfferStruct memory ofr, ) = mgv.offerInfo(base, quote, offerId);
       console.log(
         "[offer %d] %s/%s",
         offerId,
@@ -313,7 +313,7 @@ library TestUtils {
     Info infKey,
     uint offerId
   ) internal view returns (uint) {
-    (P.Structs.Offer memory offer, P.Structs.OfferDetail memory offerDetail) = mgv.offerInfo(
+    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv.offerInfo(
       base,
       quote,
       offerId
@@ -352,7 +352,7 @@ library TestUtils {
     address quote,
     uint offerId
   ) internal view returns (address) {
-    (, P.Structs.OfferDetail memory od) = mgv.offerInfo(base, quote, offerId);
+    (, P.OfferDetailStruct memory od) = mgv.offerInfo(base, quote, offerId);
     return od.maker;
   }
 }

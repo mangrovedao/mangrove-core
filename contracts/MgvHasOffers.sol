@@ -60,7 +60,7 @@ contract MgvHasOffers is MgvRoot {
     address outbound_tkn,
     address inbound_tkn,
     uint offerId
-  ) external view returns (P.Structs.Offer memory offer, P.Structs.OfferDetail memory offerDetail) { unchecked {
+  ) external view returns (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) { unchecked {
 
     P.Offer.t _offer = offers[outbound_tkn][inbound_tkn][offerId];
     offer = _offer.to_struct();

@@ -73,8 +73,8 @@ contract MgvReader_Test is HasMgvEvents {
     (
       uint currentId,
       uint[] memory offerIds,
-      P.Structs.Offer[] memory offers,
-      P.Structs.OfferDetail[] memory details
+      P.OfferStruct[] memory offers,
+      P.OfferDetailStruct[] memory details
     ) = reader.offerList(base, quote, 0, 50);
 
     TestEvents.eq(offerIds.length, 0, "ids: wrong length on 2elem");

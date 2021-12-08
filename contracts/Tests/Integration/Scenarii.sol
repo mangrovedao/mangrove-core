@@ -45,7 +45,7 @@ contract Scenarii_Test {
   function saveOffers() internal {
     uint offerId = mgv.best(address(base), address(quote));
     while (offerId != 0) {
-      (P.Structs.Offer memory offer, P.Structs.OfferDetail memory offerDetail) = mgv
+      (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv
         .offerInfo(address(base), address(quote), offerId);
       offers[offerId][TestUtils.Info.makerWants] = offer.wants;
       offers[offerId][TestUtils.Info.makerGives] = offer.gives;

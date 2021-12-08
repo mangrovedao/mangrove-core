@@ -18,17 +18,17 @@ $(preamble)
 
 // fields are of the form [name,bits,type]
 
+// Can't put all structs under a 'Structs' library due to bad variable shadowing rules in Solidity
+// (would generate lots of spurious warnings about a nameclash between Structs.Offer and library Offer for instance)
 // struct_defs are of the form [name,obj]
-library Structs {
-  // #for ns in struct_defs
-  // #def sname ns[0]
-  // #def Sname capitalize(ns[0])
-  // #def struct_def ns[1]
-  struct $$(Sname) {
-    $$(join(map(struct_def,(field) => `$${f_type(field)} $${f_name(field)};`),' '))
-  }
-  // #done
+// #for ns in struct_defs
+// #def sname ns[0]
+// #def Sname capitalize(ns[0])
+// #def struct_def ns[1]
+struct $$(Sname)Struct {
+  $$(join(map(struct_def,(field) => `$${f_type(field)} $${f_name(field)};`),' '))
 }
+// #done
 
 // #for ns in struct_defs
 // #def sname ns[0]
@@ -38,14 +38,13 @@ library $$(Sname) {
   //some type safety for each struct
   type t is bytes32;
 
-
-  function to_struct(t __packed) internal pure returns (Structs.$$(Sname) memory __s) { unchecked {
+  function to_struct(t __packed) internal pure returns ($$(Sname)Struct memory __s) { unchecked {
     // #for field in struct_def
     __s.$$(f_name(field)) = $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
     // #done
   }}
 
-  function t_of_struct(Structs.$$(Sname) memory __s) internal pure returns (t) { unchecked {
+  function t_of_struct($$(Sname)Struct memory __s) internal pure returns (t) { unchecked {
     return pack($$(join(map(struct_def,(field) => `__s.$${f_name(field)}`),', ')));
   }}
 
@@ -54,23 +53,19 @@ library $$(Sname) {
   }}
 
 /* #def arguments
-  join(map(struct_def,(field) => `$${f_type(field)} $${f_name(field)}`),', ')
-*/
-
-/* #def params
-    map(struct_def, (field) => [f_name(field),`__$${f_name(field)}`])
+  join(map(struct_def,(field) => `$${f_type(field)} __$${f_name(field)}`),', ')
 */
 
   function pack($$(arguments)) internal pure returns (t) { unchecked {
     return t.wrap($$(make(
       struct_def,
       map(struct_def, (field) =>
-    [f_name(field),`$${f_name(field)}`]))));
+    [f_name(field),`__$${f_name(field)}`]))));
   }}
 
   function unpack(t __packed) internal pure returns ($$(arguments)) { unchecked {
     // #for field in struct_def
-    $$(f_name(field)) = $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
+    __$$(f_name(field)) = $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
     // #done
   }}
 
@@ -85,3 +80,4 @@ library $$(Sname) {
 }
 
 //#done
+

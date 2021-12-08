@@ -322,11 +322,11 @@ contract MgvOfferMaking is MgvHasOffers {
         uint offer_gasbase = ofp.local.offer_gasbase();
         offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id] = 
         P.OfferDetail.pack({
-          maker: msg.sender,
-          gasreq: ofp.gasreq,
-          overhead_gasbase: overhead_gasbase,
-          offer_gasbase: offer_gasbase,
-          gasprice: ofp.gasprice
+          __maker: msg.sender,
+          __gasreq: ofp.gasreq,
+          __overhead_gasbase: overhead_gasbase,
+          __offer_gasbase: offer_gasbase,
+          __gasprice: ofp.gasprice
         });
       }
     }
@@ -376,10 +376,10 @@ contract MgvOfferMaking is MgvHasOffers {
 
     /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
     P.Offer.t ofr = P.Offer.pack({
-      prev: prev,
-      next: next,
-      wants: ofp.wants,
-      gives: ofp.gives
+      __prev: prev,
+      __next: next,
+      __wants: ofp.wants,
+      __gives: ofp.gives
     });
     offers[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id] = ofr;
   }}

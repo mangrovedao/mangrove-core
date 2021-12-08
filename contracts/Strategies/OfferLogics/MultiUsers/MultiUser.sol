@@ -14,8 +14,6 @@ pragma abicoder v2;
 import "../MangroveOffer.sol";
 import "../../../periphery/MgvReader.sol";
 
-//import "hardhat/console.sol";
-
 abstract contract MultiUser is MangroveOffer {
   mapping(address => mapping(address => mapping(uint => address)))
     internal _offerOwners; // outbound_tkn => inbound_tkn => offerId => ownerAddress
@@ -95,13 +93,23 @@ abstract contract MultiUser is MangroveOffer {
     tokenBalanceOf[token][owner] -= amount;
   }
 
-  function redeemToken(
+  function redeemToken(address token, uint amount)
+    external
+    override
+    returns (bool success)
+  {
+    require(msg.sender != address(this), "MutliUser/noReentrancy");
+    debitToken(token, msg.sender, amount);
+    success = _transferToken(token, msg.sender, amount);
+  }
+
+  function transferToken(
     address token,
-    address redeemer,
+    address owner,
     uint amount
-  ) public override returns (bool success) {
-    debitToken(token, redeemer, amount);
-    success = _transferToken(token, redeemer, amount);
+  ) internal returns (bool success) {
+    debitToken(token, owner, amount);
+    success = _transferToken(token, owner, amount);
   }
 
   function addOwner(
@@ -205,10 +213,7 @@ abstract contract MultiUser is MangroveOffer {
     uint offerId
   ) external payable override {
     address owner = ownerOf(outbound_tkn, inbound_tkn, offerId);
-    require(
-      address(this) == msg.sender || owner == msg.sender,
-      "mgvOffer/MultiOwner/unauthorized"
-    );
+    require(owner == msg.sender, "mgvOffer/MultiOwner/unauthorized");
     uint weiBalanceBefore = MGV.balanceOf(address(this));
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();

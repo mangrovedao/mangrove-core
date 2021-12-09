@@ -27,17 +27,16 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
   /* # MultiOrder struct */
-  /* The `MultiOrder` struct is used by market orders and snipes. Some of its fields are only used by market orders (`initialWants, initialGives`, `fillWants`), and others only by snipes (`successCount`). We need a common data structure for both since low-level calls are shared between market orders and snipes. The struct is helpful in decreasing stack use. */
+  /* The `MultiOrder` struct is used by market orders and snipes. Some of its fields are only used by market orders (`initialWants, initialGives`). We need a common data structure for both since low-level calls are shared between market orders and snipes. The struct is helpful in decreasing stack use. */
   struct MultiOrder {
-    uint initialWants;
-    uint initialGives;
-    uint totalGot;
-    uint totalGave;
-    uint totalPenalty;
-    address taker;
-    uint successCount;
-    uint failCount;
-    bool fillWants;
+    uint initialWants; // used globally by market order, not used by snipes
+    uint initialGives; // used globally by market order, not used by snipes
+    uint totalGot; // used globally by market order, per-offer by snipes
+    uint totalGave; // used globally by market order, per-offer by snipes
+    uint totalPenalty; // used globally
+    address taker; // used globally
+    uint failCount; // used globally by market order, per-offer by snipes
+    bool fillWants; // used globally
   }
 
   /* # Market Orders */
@@ -324,12 +323,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     /* ### Main loop */
     //+clear+
 
-    /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
-    sor.local = sor.local.lock(true);
-    locals[outbound_tkn][inbound_tkn] = sor.local;
-
-    /* Call recursive `internalSnipes` function. */
-    internalSnipes(mor, sor, targets, 0);
+    /* Call `internalSnipes` function. */
+    uint successCount = internalSnipes(mor, sor, targets);
 
     /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by the Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
     sendPenalty(mor.totalPenalty);
@@ -343,22 +338,24 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       mor.totalGave
     );
 
-    return (mor.successCount, mor.totalGot, mor.totalGave, mor.totalPenalty);
+    return (successCount, mor.totalGot, mor.totalGave, mor.totalPenalty);
   }}
 
   /* ## Internal snipes */
   //+clear+
-  /* `internalSnipes` works recursively. Going downward, each successive offer is executed until each snipe in the array has been tried. Then the reentrancy lock [is lifted](#internalSnipes/liftReentrancy). Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book.
-
-    The last argument is the array index for the current offer. It is initially 0. */
+  /* `internalSnipes` works by looping over targets. Each successive offer is executed under a [reentrancy lock](#internalSnipes/liftReentrancy), then its posthook is called.y lock [is lifted](). Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book. */
   function internalSnipes(
     MultiOrder memory mor,
     ML.SingleOrder memory sor,
-    uint[4][] calldata targets,
-    uint i
-  ) internal { unchecked {
-    /* #### Case 1 : continuation of snipes */
-    if (i < targets.length) {
+    uint[4][] calldata targets
+  ) internal returns (uint successCount) { unchecked {
+    for (uint i = 0; i < targets.length; i++) {
+      /* Reset these amounts since every snipe is treated individually. Only the total penalty is sent at the end of all snipes. */
+      mor.totalGot = 0;
+      mor.totalGave = 0;
+      mor.failCount = 0;
+
+      /* Initialize single order struct. */
       sor.offerId = targets[i][0];
       sor.offer = offers[sor.outbound_tkn][sor.inbound_tkn][sor.offerId];
       sor.offerDetail = offerDetails[sor.outbound_tkn][sor.inbound_tkn][
@@ -371,12 +368,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         sor.offerDetail.gasreq() > targets[i][3]
       ) {
         /* We move on to the next offer in the array. */
-        internalSnipes(mor, sor, targets, i + 1);
+        continue;
       } else {
-        uint gasused;
-        bytes32 makerData;
-        bytes32 mgvData;
-
         require(
           uint96(targets[i][1]) == targets[i][1],
           "mgv/snipes/takerWants/96bits"
@@ -388,9 +381,17 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         sor.wants = targets[i][1];
         sor.gives = targets[i][2];
 
+        /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
+        sor.local = sor.local.lock(true);
+        locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
+
         /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/tradeSuccess","mgv/notExecuted"]` means the failure is the maker's fault. */
-        /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. We will need it after the recursive call, so we save it in local variables. Same goes for `offerId`, `sor.offer` and `sor.offerDetail`. */
-        (gasused, makerData, mgvData) = execute(mor, sor);
+        /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. */
+        (uint gasused, bytes32 makerData, bytes32 mgvData) = execute(mor, sor);
+
+        if (mgvData == "mgv/tradeSuccess") {
+          successCount += 1;
+        }
 
         /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since offers in the `targets` array may be anywhere in the book. So we stitch together offers immediately after each `execute`. */
         if (mgvData != "mgv/notExecuted") {
@@ -403,44 +404,26 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           );
         }
 
-        {
-          /* Keep cached copy of current `sor` values. */
-          uint offerId = sor.offerId;
-          uint takerWants = sor.wants;
-          uint takerGives = sor.gives;
-          P.Offer.t offer = sor.offer;
-          P.OfferDetail.t offerDetail = sor.offerDetail;
+        /* <a id="internalSnipes/liftReentrancy"></a> Now that the current snipe is over, we can lift the lock on the book. In the same operation we
+        * lift the reentrancy lock, and
+        * update the storage
 
-          /* We move on to the next offer in the array. */
-          internalSnipes(mor, sor, targets, i + 1);
+        so we are free from out of order storage writes.
+        */
+        sor.local = sor.local.lock(false);
+        locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
 
-          /* Restore `sor` values from to before recursive call */
-          sor.offerId = offerId;
-          sor.wants = takerWants;
-          sor.gives = takerGives;
-          sor.offer = offer;
-          sor.offerDetail = offerDetail;
-        }
+        /* `payTakerMinusFees` sends the fee to the vault, proportional to the amount purchased, and gives the rest to the taker */
+        payTakerMinusFees(mor, sor);
+
+        /* In an inverted Mangrove, amounts have been lent by each offer's maker to the taker. We now call the taker. This is a noop in a normal Mangrove. */
+        executeEnd(mor, sor);
 
         /* After an offer execution, we may run callbacks and increase the total penalty. As that part is common to market orders and snipes, it lives in its own `postExecute` function. */
         if (mgvData != "mgv/notExecuted") {
           postExecute(mor, sor, gasused, makerData, mgvData);
         }
       }
-      /* #### Case 2 : End of snipes */
-    } else {
-      /* <a id="internalSnipes/liftReentrancy"></a> Now that the snipes is over, we can lift the lock on the book. In the same operation we
-      * lift the reentrancy lock, and
-      * update the storage
-
-      so we are free from out of order storage writes.
-      */
-      sor.local = sor.local.lock(false);
-      locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
-      /* `payTakerMinusFees` sends the fee to the vault, proportional to the amount purchased, and gives the rest to the taker */
-      payTakerMinusFees(mor, sor);
-      /* In an inverted Mangrove, amounts have been lent by each offer's maker to the taker. We now call the taker. This is a noop in a normal Mangrove. */
-      executeEnd(mor, sor);
     }
   }}
 
@@ -550,7 +533,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
     /* `success` is true: trade is complete */
     if (success) {
-      mor.successCount += 1;
       /* In case of success, `retdata` encodes the gas used by the offer. */
       gasused = abi.decode(retdata, (uint));
       /* `mgvData` indicates trade success */

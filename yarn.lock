@@ -987,6 +987,7 @@ __metadata:
     "@espendk/json-file-reporter": ^1.4.2
     "@ethersproject/abi": ^5.0.0
     "@ethersproject/bytes": ^5.0.0
+    "@ethersproject/experimental": ^5.5.0
     "@ethersproject/hardware-wallets": ^5.0.0
     "@ethersproject/providers": ^5.0.0
     "@giry/hardhat-utils": "workspace:*"

@@ -187,6 +187,37 @@ contract TakerOperations_Test is HasMgvEvents {
     }
   }
 
+  function multiple_snipes_fillWants_test() public {
+    uint i;
+    uint[] memory ofrs = new uint[](3);
+    ofrs[i++] = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
+    ofrs[i++] = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
+    ofrs[i++] = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
+
+    mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
+    quoteT.approve(address(mgv), 3 ether);
+    uint[4][] memory targets = new uint[4][](3);
+    uint j;
+    targets[j] = [ofrs[j], 0.5 ether, 1 ether, 100_000];
+    j++;
+    targets[j] = [ofrs[j], 1 ether, 1 ether, 100_000];
+    j++;
+    targets[j] = [ofrs[j], 0.8 ether, 1 ether, 100_000];
+
+    try mgv.snipes(base, quote, targets, true) returns (
+      uint successes,
+      uint got,
+      uint gave,
+      uint
+    ) {
+      TestEvents.check(successes == 3, "Snipes should not fail");
+      TestEvents.eq(got, 2.3 ether, "Taker did not get enough");
+      TestEvents.eq(gave, 2.3 ether, "Taker did not give enough");
+    } catch {
+      TestEvents.fail("Transaction should not revert");
+    }
+  }
+
   event Transfer(address indexed from, address indexed to, uint value);
 
   function snipe_fillWants_zero_test() public {

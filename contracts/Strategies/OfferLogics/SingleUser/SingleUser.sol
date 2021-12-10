@@ -21,18 +21,19 @@ abstract contract SingleUser is MangroveOffer {
   receive() external payable {}
 
   /// transfers token stored in `this` contract to some recipient address
-  function transferToken(
-    address token,
-    address recipient,
-    uint amount
-  ) external virtual onlyAdmin returns (bool success) {
-    success = _transferToken(token, recipient, amount);
+  function redeemToken(address token, uint amount)
+    external
+    override
+    onlyAdmin
+    returns (bool success)
+  {
+    success = _transferToken(token, msg.sender, amount);
   }
 
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
   function approveMangrove(address outbound_tkn, uint amount)
     external
-    virtual
+    override
     onlyAdmin
   {
     _approveMangrove(outbound_tkn, amount);
@@ -42,7 +43,7 @@ abstract contract SingleUser is MangroveOffer {
   /// NB: `Mangrove.fund` function need not be called by `this` so is not included here.
   function withdrawFromMangrove(address receiver, uint amount)
     external
-    virtual
+    override
     onlyAdmin
     returns (bool noRevert)
   {
@@ -63,9 +64,12 @@ abstract contract SingleUser is MangroveOffer {
     uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
-  ) external virtual internalOrAdmin returns (uint offerId) {
+  ) external payable override onlyAdmin returns (uint offerId) {
+    if (msg.value > 0) {
+      MGV.fund{value: msg.value}();
+    }
     return
-      _newOffer(
+      MGV.newOffer(
         outbound_tkn,
         inbound_tkn,
         wants,
@@ -87,8 +91,11 @@ abstract contract SingleUser is MangroveOffer {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external virtual internalOrAdmin {
-    _updateOffer(
+  ) external payable override onlyAdmin {
+    if (msg.value > 0) {
+      MGV.fund{value: msg.value}();
+    }
+    MGV.updateOffer(
       outbound_tkn,
       inbound_tkn,
       wants,
@@ -106,8 +113,27 @@ abstract contract SingleUser is MangroveOffer {
     address inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) external virtual internalOrAdmin returns (uint) {
-    _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  ) external override onlyAdmin returns (uint) {
+    return (MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision));
+  }
+
+  function getMissingProvision(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint gasreq,
+    uint gasprice,
+    uint offerId
+  ) public view override returns (uint) {
+    return
+      _getMissingProvision(
+        MGV,
+        MGV.balanceOf(address(this)),
+        outbound_tkn,
+        inbound_tkn,
+        gasreq,
+        gasprice,
+        offerId
+      );
   }
 
   function __put__(uint amount, MgvLib.SingleOrder calldata)

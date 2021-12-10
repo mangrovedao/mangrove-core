@@ -25,7 +25,7 @@ abstract contract MultiUserPersistent is MultiUser {
     uint new_gives = MP.offer_unpack_gives(order.offer) - order.wants;
     uint new_wants = MP.offer_unpack_wants(order.offer) - order.gives;
     try
-      this.updateOffer(
+      MGV.updateOffer(
         order.outbound_tkn,
         order.inbound_tkn,
         new_wants,

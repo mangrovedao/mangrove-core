@@ -12,12 +12,12 @@ async function main() {
 
   for (const name of ["wEth", "dai", "usdc"]) {
     let decimals = 18;
-    let amount = "10000";
+    let amount = "100000";
     if (name == "usdc") {
       decimals = 6;
     }
     if (name == "wEth") {
-      amount = "2";
+      amount = "1";
     }
     const faucet = helper.getFaucet(name);
     const tx = await faucet

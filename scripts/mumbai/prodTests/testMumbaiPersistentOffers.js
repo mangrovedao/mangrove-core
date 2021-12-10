@@ -50,8 +50,8 @@ async function main() {
                 [
                   [
                     ids[i],
-                    offers[i].gives,
-                    offers[i].wants,
+                    offers[i].gives.div(10),
+                    offers[i].wants.div(10),
                     offerDetails[i].gasreq,
                   ],
                 ],
@@ -90,8 +90,8 @@ async function main() {
                 [
                   [
                     ids[i],
-                    offers[i].gives,
-                    offers[i].wants,
+                    offers[i].gives.div(10),
+                    offers[i].wants.div(10),
                     offerDetails[i].gasreq,
                   ],
                 ],

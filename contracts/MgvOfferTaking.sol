@@ -268,7 +268,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Snipes */
   //+clear+
 
-  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,takerWants,takerGives,offerGasreq]`. The return parameters are of the form `(successes,totalGot,totalGave,bounty)`. 
+  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,takerWants,takerGives,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty)`. 
   Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`). */
   function snipes(
     address outbound_tkn,
@@ -291,7 +291,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /*
      From an array of _n_ `[offerId, takerWants,takerGives,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty)`. 
 
-     Note that if this function is not internal, anyone can make anyone use Mangrove. */
+     Note that if this function is not internal, anyone can make anyone use Mangrove.
+     Note that unlike general market order, the returned total values are _not_ `mor.totalGot` and `mor.totalGave`, since those are reset at every iteration of the `targets` array. Instead, accumulators `snipesGot` and `snipesGave` are used. */
   function generalSnipes(
     address outbound_tkn,
     address inbound_tkn,
@@ -324,7 +325,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     //+clear+
 
     /* Call `internalSnipes` function. */
-    uint successCount = internalSnipes(mor, sor, targets);
+    (uint successCount, uint snipesGot, uint snipesGave) = internalSnipes(mor, sor, targets);
 
     /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by the Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
     sendPenalty(mor.totalPenalty);
@@ -334,11 +335,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       outbound_tkn,
       inbound_tkn,
       taker,
-      mor.totalGot,
-      mor.totalGave
+      snipesGot,
+      snipesGave
     );
 
-    return (successCount, mor.totalGot, mor.totalGave, mor.totalPenalty);
+    return (successCount, snipesGot, snipesGave, mor.totalPenalty);
   }}
 
   /* ## Internal snipes */
@@ -348,7 +349,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     MultiOrder memory mor,
     ML.SingleOrder memory sor,
     uint[4][] calldata targets
-  ) internal returns (uint successCount) { unchecked {
+  ) internal returns (uint successCount, uint snipesGot, uint snipesGave) { unchecked {
     for (uint i = 0; i < targets.length; i++) {
       /* Reset these amounts since every snipe is treated individually. Only the total penalty is sent at the end of all snipes. */
       mor.totalGot = 0;
@@ -423,6 +424,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         if (mgvData != "mgv/notExecuted") {
           postExecute(mor, sor, gasused, makerData, mgvData);
         }
+
+
+        snipesGot += mor.totalGot;
+        snipesGave += mor.totalGave;
       }
     }
   }}

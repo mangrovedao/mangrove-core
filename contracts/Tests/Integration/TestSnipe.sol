@@ -13,15 +13,13 @@ library TestSnipe {
     TestTaker taker,
     TestToken base,
     TestToken quote
-  ) external {
+  ) external returns (uint takerGot, uint takerGave) {
     uint orderAmount = 0.3 ether;
     uint snipedId = 2;
     TestMaker maker = makers.getMaker(snipedId); // maker whose offer will be sniped
 
     //(uint init_mkr_wants, uint init_mkr_gives,,,,,)=mgv.getOfferInfo(2);
     //---------------SNIPE------------------//
-    uint takerGave;
-    uint takerGot;
     {
       bool takeSuccess;
       (takeSuccess, takerGot, takerGave) = taker.takeWithInfo(

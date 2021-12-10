@@ -213,6 +213,14 @@ contract TakerOperations_Test is HasMgvEvents {
       TestEvents.check(successes == 3, "Snipes should not fail");
       TestEvents.eq(got, 2.3 ether, "Taker did not get enough");
       TestEvents.eq(gave, 2.3 ether, "Taker did not give enough");
+      TestEvents.expectFrom(address(mgv));
+      emit OrderComplete(
+        address(base),
+        address(quote),
+        address(this),
+        got,
+        gave
+      );
     } catch {
       TestEvents.fail("Transaction should not revert");
     }

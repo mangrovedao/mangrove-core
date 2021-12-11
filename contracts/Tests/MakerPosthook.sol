@@ -652,7 +652,8 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
   function makerRevert_is_logged_test() public {
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     makerRevert = true; // maker should fail
-    bool success = tkr.take(ofr, 2 ether);
+    bool success;
+    success = tkr.take(ofr, 2 ether);
     TestEvents.expectFrom(address(mgv));
     emit OfferFail(
       base,

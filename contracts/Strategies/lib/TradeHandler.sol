@@ -59,7 +59,6 @@ contract TradeHandler {
       outbound_tkn,
       inbound_tkn
     );
-    P.Offer.t offerData = mgv.offers(outbound_tkn, inbound_tkn, offerId);
     P.OfferDetail.t offerDetailData = mgv.offerDetails(
       outbound_tkn,
       inbound_tkn,

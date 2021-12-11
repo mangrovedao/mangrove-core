@@ -17,9 +17,9 @@ import "./Agents/TestTaker.sol";
 import {MgvReader} from "../periphery/MgvReader.sol";
 
 contract Oracle {
-  function read(address base, address quote)
+  function read(address /*base*/, address /*quote*/)
     external
-    view
+    pure
     returns (uint, uint)
   {
     return (23, 2);
@@ -195,7 +195,8 @@ contract MgvReader_Test is HasMgvEvents {
   function correct_endpoints_1_test() public {
     uint startId;
     uint length;
-    uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
+    uint ofr;
+    ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
 
     (startId, length) = reader.offerListEndPoints(base, quote, 0, 0);
     TestEvents.eq(startId, 1, "1.0 wrong startId");

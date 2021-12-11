@@ -79,7 +79,7 @@ contract AaveModule is Exponential {
     }
   }
 
-  function overlying(IERC20 asset) public returns (IERC20 aToken) {
+  function overlying(IERC20 asset) public view returns (IERC20 aToken) {
     aToken = IERC20(lendingPool.getReserveData(address(asset)).aTokenAddress);
   }
 

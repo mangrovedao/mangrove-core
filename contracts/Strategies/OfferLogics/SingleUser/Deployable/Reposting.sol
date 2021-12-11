@@ -23,8 +23,6 @@ contract Reposting is Persistent {
     internal
     override
   {
-    address token0 = order.outbound_tkn;
-    address token1 = order.inbound_tkn;
     uint wants = order.offer.wants();// amount with token1.decimals() decimals
     uint gives = order.offer.gives();// amount with token1.decimals() decimals
     uint gasreq = order.offerDetail.gasreq();

@@ -61,7 +61,7 @@ contract CompoundModule is Exponential {
   }
 
   //dealing with cEth special case
-  function underlying(IcERC20 ctoken) internal returns (IERC20) {
+  function underlying(IcERC20 ctoken) internal view returns (IERC20) {
     require(ctoken.isCToken(), "Invalid ctoken address");
     if (isCeth(ctoken)) {
       // cETH has no underlying() function...
@@ -97,7 +97,7 @@ contract CompoundModule is Exponential {
     comptroller.claimComp(address(this));
   }
 
-  function isPooled(IERC20 token) public returns (bool) {
+  function isPooled(IERC20 token) public view returns (bool) {
     IcERC20 ctoken = overlyings[token];
     return comptroller.checkMembership(address(this), ctoken);
   }

@@ -560,7 +560,8 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     mkr.approveMgv(TestToken(base), 1 ether);
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     tkr.approveSpender(address(this), 1.2 ether);
-    (uint takerGot, , ) = mgv.marketOrderFor(
+    uint takerGot;
+    (takerGot, , ) = mgv.marketOrderFor(
       base,
       quote,
       1 ether,

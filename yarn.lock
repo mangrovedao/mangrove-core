@@ -918,7 +918,7 @@ __metadata:
   dependencies:
     "@espendk/json-file-reporter": ^1.4.1
     "@ethersproject/hardware-wallets": ^5.0.0
-    "@giry/hardhat-test-solidity": ^0.0.11
+    "@giry/hardhat-test-solidity": ^0.0.12
     "@nomiclabs/hardhat-ethers": ^2.0.2
     adhusson-hardhat-solpp: ^2.0.2
     app-module-path: ^2.2.0
@@ -949,6 +949,20 @@ __metadata:
 "@giry/hardhat-test-solidity@npm:^0.0.11":
   version: 0.0.11
   resolution: "@giry/hardhat-test-solidity@npm:0.0.11"
+  dependencies:
+    chai: ^4.2.0
+    debug: ^4.3.2
+    mocha: ^7.1.2
+  peerDependencies:
+    hardhat: ^2.0.0
+    hardhat-deploy: ">=0.8.9"
+  checksum: f3d3e60625f6094122059707c2ea1660df80aa61e6ba9627448b1dde756771f13c333ee3f9973bec58092948bd9b0020ee5fcf535209a80f1b7dcf8473b4a528
+  languageName: node
+  linkType: hard
+
+"@giry/hardhat-test-solidity@npm:^0.0.12":
+  version: 0.0.12
+  resolution: "@giry/hardhat-test-solidity@npm:0.0.12"
   dependencies:
     chai: ^4.2.0
     debug: ^4.3.2

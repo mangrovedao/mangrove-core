@@ -31,7 +31,7 @@ contract Reposting is Persistent {
     uint gasprice = order.offerDetail.gasprice();
 
     try
-      this.updateOffer({
+      MGV.updateOffer({
         outbound_tkn: order.outbound_tkn,
         inbound_tkn: order.inbound_tkn,
         wants: wants,

@@ -35,7 +35,11 @@ module.exports = async (hre) => {
     require("../scripts/helper").getAave().addressesProvider;
   const offerProxy = await hre.deployments.deploy("OfferProxy", {
     from: deployer,
-    args: [addressesProvider.address, mangroveResult.address],
+    args: [
+      addressesProvider.address,
+      mgvReader.address,
+      mangroveResult.address,
+    ],
     skipIfAlreadyDeployed: true,
   });
 };

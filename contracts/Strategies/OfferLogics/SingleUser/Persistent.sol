@@ -25,7 +25,7 @@ abstract contract Persistent is SingleUser {
     uint new_gives = order.offer.gives() - order.wants;
     uint new_wants = order.offer.wants() - order.gives;
     try
-      this.updateOffer(
+      MGV.updateOffer(
         order.outbound_tkn,
         order.inbound_tkn,
         new_wants,

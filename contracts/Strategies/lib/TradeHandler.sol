@@ -29,31 +29,6 @@ contract TradeHandler {
   bytes32 constant OUTOFLIQUIDITY = "mgvOffer/outOfLiquidity";
   bytes32 constant PUTFAILURE = "mgvOffer/putFailure";
 
-  // to wrap potentially reverting calls to mangrove
-  event PosthookFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId,
-    string message
-  );
-  event GetFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId,
-    uint amount
-  );
-  event PutFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId,
-    uint amount
-  );
-  event Reneged(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId
-  );
-
   /// @notice extracts old offer from the order that is received from the Mangrove
   function unpackOfferFromOrder(MgvLib.SingleOrder calldata order)
     internal
@@ -73,6 +48,7 @@ contract TradeHandler {
 
   function _getMissingProvision(
     Mangrove mgv,
+    uint balance, // offer owner balance on Mangrove
     address outbound_tkn,
     address inbound_tkn,
     uint gasreq,
@@ -105,8 +81,7 @@ contract TradeHandler {
       offerDetailData.offer_gasbase()) * 
       offerDetailData.gasprice() *
       10**9;
-    uint currentProvision = currentProvisionLocked +
-      mgv.balanceOf(address(this));
+    uint currentProvision = currentProvisionLocked + balance;
     return (currentProvision >= bounty ? 0 : bounty - currentProvision);
   }
 

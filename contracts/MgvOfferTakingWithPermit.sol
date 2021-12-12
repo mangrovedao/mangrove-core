@@ -39,10 +39,6 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
 
   constructor(string memory contractName) {
     /* Initialize [EIP712](https://eips.ethereum.org/EIPS/eip-712) `DOMAIN_SEPARATOR`. */
-    uint chainId;
-    assembly {
-      chainId := chainid()
-    }
     DOMAIN_SEPARATOR = keccak256(
       abi.encode(
         keccak256(
@@ -50,7 +46,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
         ),
         keccak256(bytes(contractName)),
         keccak256(bytes("1")),
-        chainId,
+        block.chainid,
         address(this)
       )
     );
@@ -69,48 +65,52 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     uint8 v,
     bytes32 r,
     bytes32 s
-  ) external { unchecked {
-    require(deadline >= block.timestamp, "mgv/permit/expired");
+  ) external {
+    unchecked {
+      require(deadline >= block.timestamp, "mgv/permit/expired");
 
-    uint nonce = nonces[owner]++;
-    bytes32 digest = keccak256(
-      abi.encodePacked(
-        "\x19\x01",
-        DOMAIN_SEPARATOR,
-        keccak256(
-          abi.encode(
-            PERMIT_TYPEHASH,
-            outbound_tkn,
-            inbound_tkn,
-            owner,
-            spender,
-            value,
-            nonce,
-            deadline
+      uint nonce = nonces[owner]++;
+      bytes32 digest = keccak256(
+        abi.encodePacked(
+          "\x19\x01",
+          DOMAIN_SEPARATOR,
+          keccak256(
+            abi.encode(
+              PERMIT_TYPEHASH,
+              outbound_tkn,
+              inbound_tkn,
+              owner,
+              spender,
+              value,
+              nonce,
+              deadline
+            )
           )
         )
-      )
-    );
-    address recoveredAddress = ecrecover(digest, v, r, s);
-    require(
-      recoveredAddress != address(0) && recoveredAddress == owner,
-      "mgv/permit/invalidSignature"
-    );
+      );
+      address recoveredAddress = ecrecover(digest, v, r, s);
+      require(
+        recoveredAddress != address(0) && recoveredAddress == owner,
+        "mgv/permit/invalidSignature"
+      );
 
-    allowances[outbound_tkn][inbound_tkn][owner][spender] = value;
-    emit Approval(outbound_tkn, inbound_tkn, owner, spender, value);
-  }}
+      allowances[outbound_tkn][inbound_tkn][owner][spender] = value;
+      emit Approval(outbound_tkn, inbound_tkn, owner, spender, value);
+    }
+  }
 
   function approve(
     address outbound_tkn,
     address inbound_tkn,
     address spender,
     uint value
-  ) external returns (bool) { unchecked {
-    allowances[outbound_tkn][inbound_tkn][msg.sender][spender] = value;
-    emit Approval(outbound_tkn, inbound_tkn, msg.sender, spender, value);
-    return true;
-  }}
+  ) external returns (bool) {
+    unchecked {
+      allowances[outbound_tkn][inbound_tkn][msg.sender][spender] = value;
+      emit Approval(outbound_tkn, inbound_tkn, msg.sender, spender, value);
+      return true;
+    }
+  }
 
   /* The delegate version of `marketOrder` is `marketOrderFor`, which takes a `taker` address as additional argument. Penalties incurred by failed offers will still be sent to `msg.sender`, but exchanged amounts will be transferred from and to the `taker`. If the `msg.sender`'s allowance for the given `outbound_tkn`,`inbound_tkn` and `taker` are strictly less than the total amount eventually spent by `taker`, the call will fail. */
 
@@ -129,18 +129,20 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       uint takerGave,
       uint bounty
     )
-  { unchecked {
-    (takerGot, takerGave, bounty) = generalMarketOrder(
-      outbound_tkn,
-      inbound_tkn,
-      takerWants,
-      takerGives,
-      fillWants,
-      taker
-    );
-    /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
-    deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
-  }}
+  {
+    unchecked {
+      (takerGot, takerGave, bounty) = generalMarketOrder(
+        outbound_tkn,
+        inbound_tkn,
+        takerWants,
+        takerGives,
+        fillWants,
+        taker
+      );
+      /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
+      deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
+    }
+  }
 
   /* The delegate version of `snipes` is `snipesFor`, which takes a `taker` address as additional argument. */
   function snipesFor(
@@ -157,19 +159,21 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       uint takerGave,
       uint bounty
     )
-  { unchecked {
-    (successes, takerGot, takerGave, bounty) = generalSnipes(
-      outbound_tkn,
-      inbound_tkn,
-      targets,
-      fillWants,
-      taker
-    );
-    /* The sender's allowance is verified after the order complete so that the actual amounts are checked against the allowance, instead of the declared `takerGives`. The former may be lower.
+  {
+    unchecked {
+      (successes, takerGot, takerGave, bounty) = generalSnipes(
+        outbound_tkn,
+        inbound_tkn,
+        targets,
+        fillWants,
+        taker
+      );
+      /* The sender's allowance is verified after the order complete so that the actual amounts are checked against the allowance, instead of the declared `takerGives`. The former may be lower.
     
     An immediate consequence is that any funds availale to Mangrove through `approve` can be used to clean offers. After a `snipesFor` where all offers have failed, all token transfers have been reverted, so `takerGave=0` and the check will succeed -- but the sender will still have received the bounty of the failing offers. */
-    deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
-  }}
+      deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
+    }
+  }
 
   /* # Misc. low-level functions */
 
@@ -179,9 +183,13 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     address inbound_tkn,
     address owner,
     uint amount
-  ) internal { unchecked {
-    uint allowed = allowances[outbound_tkn][inbound_tkn][owner][msg.sender];
-    require(allowed >= amount, "mgv/lowAllowance");
-    allowances[outbound_tkn][inbound_tkn][owner][msg.sender] = allowed - amount;
-  }}
+  ) internal {
+    unchecked {
+      uint allowed = allowances[outbound_tkn][inbound_tkn][owner][msg.sender];
+      require(allowed >= amount, "mgv/lowAllowance");
+      allowances[outbound_tkn][inbound_tkn][owner][msg.sender] =
+        allowed -
+        amount;
+    }
+  }
 }

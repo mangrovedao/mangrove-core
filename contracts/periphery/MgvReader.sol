@@ -184,9 +184,7 @@ contract MgvReader {
       _gp = ofr_gasprice;
     }
     return
-      (ofr_gasreq +
-      local.overhead_gasbase() +
-        local.offer_gasbase()) *
+      (ofr_gasreq + local.offer_gasbase()) *
       _gp *
       10**9;
   }}

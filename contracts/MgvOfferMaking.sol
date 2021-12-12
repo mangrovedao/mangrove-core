@@ -112,7 +112,7 @@ contract MgvOfferMaking is MgvHasOffers {
      Gas use is minimal when:
      1. The offer does not move in the book
      2. The offer does not change its `gasreq`
-     3. The (`outbound_tkn`,`inbound_tkn`)'s `*_gasbase` has not changed since the offer was last written
+     3. The (`outbound_tkn`,`inbound_tkn`)'s `offer_gasbase` has not changed since the offer was last written
      4. `gasprice` has not changed since the offer was last written
      5. `gasprice` is greater than the Mangrove's gasprice estimation
   */
@@ -192,13 +192,12 @@ contract MgvOfferMaking is MgvHasOffers {
       deprovision
     );
 
-    /* If the user wants to get their provision back, we compute its provision from the offer's `gasprice`, `*_gasbase` and `gasreq`. */
+    /* If the user wants to get their provision back, we compute its provision from the offer's `gasprice`, `offer_gasbase` and `gasreq`. */
     if (deprovision) {
       provision =
         10**9 *
         offerDetail.gasprice() * //gasprice is 0 if offer was deprovisioned
-        (offerDetail.gasreq() +
-          offerDetail.overhead_gasbase() + offerDetail.offer_gasbase());
+        (offerDetail.gasreq() + offerDetail.offer_gasbase());
       // credit `balanceOf` and log transfer
       creditWei(msg.sender, provision);
     }
@@ -206,7 +205,7 @@ contract MgvOfferMaking is MgvHasOffers {
   }}
 
   /* ## Provisioning
-  Market makers must have enough provisions for possible penalties. These provisions are in ETH. Every time a new offer is created or an offer is updated, `balanceOf` is adjusted to provision the offer's maximum possible penalty (`gasprice * (gasreq + overhead_gasbase + offer_gasbase)`).
+  Market makers must have enough provisions for possible penalties. These provisions are in ETH. Every time a new offer is created or an offer is updated, `balanceOf` is adjusted to provision the offer's maximum possible penalty (`gasprice * (gasreq + offer_gasbase)`).
 
   For instance, if the current `balanceOf` of a maker is 1 ether and they create an offer that requires a provision of 0.01 ethers, their `balanceOf` will be reduced to 0.99 ethers. No ethers will move; this is just an internal accounting movement to make sure the maker cannot `withdraw` the provisioned amounts.
 
@@ -303,28 +302,22 @@ contract MgvOfferMaking is MgvHasOffers {
         oldProvision =
           10**9 *
           offerDetail.gasprice() *
-          (offerDetail.gasreq() +
-            offerDetail.overhead_gasbase() +
-            offerDetail.offer_gasbase());
+          (offerDetail.gasreq() + offerDetail.offer_gasbase());
       }
 
-      /* If the offer is new, has a new `gasprice`, `gasreq`, or if the Mangrove's `*_gasbase` configuration parameter has changed, we also update `offerDetails`. */
+      /* If the offer is new, has a new `gasprice`, `gasreq`, or if the Mangrove's `offer_gasbase` configuration parameter has changed, we also update `offerDetails`. */
       if (
         !update ||
         offerDetail.gasreq() != ofp.gasreq ||
         offerDetail.gasprice() != ofp.gasprice ||
-        offerDetail.overhead_gasbase() !=
-        ofp.local.overhead_gasbase() ||
         offerDetail.offer_gasbase() !=
         ofp.local.offer_gasbase()
       ) {
-        uint overhead_gasbase = ofp.local.overhead_gasbase();
         uint offer_gasbase = ofp.local.offer_gasbase();
         offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id] = 
         P.OfferDetail.pack({
           __maker: msg.sender,
           __gasreq: ofp.gasreq,
-          __overhead_gasbase: overhead_gasbase,
           __offer_gasbase: offer_gasbase,
           __gasprice: ofp.gasprice
         });
@@ -334,8 +327,7 @@ contract MgvOfferMaking is MgvHasOffers {
     /* With every change to an offer, a maker may deduct provisions from its `balanceOf` balance. It may also get provisions back if the updated offer requires fewer provisions than before. */
     {
       uint provision = (ofp.gasreq +
-        ofp.local.offer_gasbase() +
-        ofp.local.overhead_gasbase()) *
+        ofp.local.offer_gasbase()) *
         ofp.gasprice *
         10**9;
       if (provision > oldProvision) {

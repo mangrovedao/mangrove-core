@@ -227,7 +227,7 @@ contract MgvReader_Test is HasMgvEvents {
   }
 
   function provision_1_test() public {
-    mgv.setGasbase(base, quote, 17_000, 280_000);
+    mgv.setGasbase(base, quote, 17_000);
     try_provision();
   }
 

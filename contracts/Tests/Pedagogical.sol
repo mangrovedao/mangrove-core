@@ -164,7 +164,6 @@ contract Pedagogical_Test {
       inbound_tkn: address(dai),
       fee: 0,
       density: 100,
-      overhead_gasbase: 30_000,
       offer_gasbase: 10_000
     });
 

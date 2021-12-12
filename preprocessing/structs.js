@@ -34,7 +34,6 @@ const fields = {
   gives: { name: "gives", bits: 96, type: "uint" },
   gasprice: { name: "gasprice", bits: 16, type: "uint" },
   gasreq: { name: "gasreq", bits: 24, type: "uint" },
-  overhead_gasbase: { name: "overhead_gasbase", bits: 24, type: "uint" },
   offer_gasbase: { name: "offer_gasbase", bits: 24, type: "uint" },
 };
 
@@ -77,41 +76,40 @@ They have the following fields: */
   */
     fields.gasreq,
     /*
-       * <a id="structs.js/gasbase"></a>`overhead_gasbase` represents the gas used by initiating an entire order (snipes or market order).
-       *  `offer_gasbase` represents the gas overhead used by processing the offer inside the Mangrove.
+       * <a id="structs.js/gasbase"></a>  `offer_gasbase` represents the gas overhead used by processing the offer inside the Mangrove + the overhead of initiating an entire order.
 
     The gas considered 'used' by an offer is the sum of
     * gas consumed during the call to the offer
     * `offer_gasbase`
-    * `overhead_gasbase/n`, where `n` is the number of offers that failed during the entire order
+    * 
+   (There is an inefficiency here. The overhead could be split into an "offer-local overhead" and a "general overhead". That general overhead gas penalty could be spread between all offers executed during an order, or all failing offers. It would still be possible for a cleaner to execute a failing offer alone and make them pay the entire general gas overhead. For the sake of simplicity we keep only one "offer overhead" value.)
 
    If an offer fails, `gasprice` wei is taken from the
    provision per unit of gas used. `gasprice` should approximate the average gas
    price at offer creation time.
 
-   `overhead_gasbase` and `offer_gasbase` are _24 bits wide_ -- note that if more room was needed, we could bring them down to 8 bits and have it represent 1k gas increments.
+   `offer_gasbase` is _24 bits wide_ -- note that if more room was needed, we could bring it down to 8 bits and have it represent 1k gas increments.
 
-   `overhead_gasbase` and `offer_gasbase` are also the names of global Mangrove
-   parameters. When an offer is created, their current value is copied from the Mangrove global configuration.  The maker does not choose it.
+   `offer_gasbase` is also the name of a local Mangrove
+   parameters. When an offer is created, their current value is copied from the Mangrove local configuration.  The maker does not choose it.
 
    So, when an offer is created, the maker is asked to provision the
    following amount of wei:
    ```
-   (gasreq + offer_gasbase + overhead_gasbase) * gasprice
+   (gasreq + offer_gasbase) * gasprice
    ```
 
-    where `overhead_gasbase`, `offer_gasbase` and `gasprice` are the Mangrove's current configuration values (or a higher value for `gasprice` if specified by the maker).
+    where `offer_gasbase` and `gasprice` are the Mangrove's current configuration values (or a higher value for `gasprice` if specified by the maker).
 
 
     When an offer fails, the following amount is given to the taker as compensation:
    ```
-   (gasused + offer_gasbase + overhead_gasbase/n) * gasprice
+   (gasused + offer_gasbase) * gasprice
    ```
 
-   where `n` is the number of failing offers, and `overhead_gasbase`, `offer_gasbase`, and `gasprice` are the Mangrove's current configuration values.  The rest is given back to the maker.
+   where `offer_gasbase` and `gasprice` are the Mangrove's current configuration values.  The rest is given back to the maker.
 
     */
-    fields.overhead_gasbase,
     fields.offer_gasbase,
     /* * `gasprice` is in gwei/gas and _16 bits wide_, which accomodates 1 to ~65k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and the Mangrove's global `gasprice`. */
     fields.gasprice,
@@ -143,10 +141,8 @@ They have the following fields: */
     { name: "active", bits: 8, type: "bool" },
     /* * `fee`, in basis points, of `outbound_tkn` given to the taker. This fee is sent to the Mangrove. Fee is capped to 5%. */
     { name: "fee", bits: 16, type: "uint" },
-    /* * `density` is similar to a 'dust' parameter. We prevent spamming of low-volume offers by asking for a minimum 'density' in `outbound_tkn` per gas requested. For instance, if `density == 10`, `offer_gasbase == 5000`, `overhead_gasbase == 0`, an offer with `gasreq == 30000` must promise at least _10 × (30000 + 5) = 305000_ `outbound_tkn`. _112 bits wide_. */
+    /* * `density` is similar to a 'dust' parameter. We prevent spamming of low-volume offers by asking for a minimum 'density' in `outbound_tkn` per gas requested. For instance, if `density == 10`, `offer_gasbase == 5000`, an offer with `gasreq == 30000` must promise at least _10 × (30000 + 5) = 305000_ `outbound_tkn`. _112 bits wide_. */
     { name: "density", bits: 112, type: "uint" },
-    /* * `overhead_gasbase` is an overapproximation of the gas overhead consumed by making an order (snipes or market order). Local to a pair because the costs of paying the fee depends on the relevant ERC20 contract. */
-    fields.overhead_gasbase,
     /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. Local to a pair because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
     fields.offer_gasbase,
     /* * If `lock` is true, orders may not be added nor executed.

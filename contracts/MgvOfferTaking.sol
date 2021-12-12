@@ -35,7 +35,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint totalGave; // used globally by market order, per-offer by snipes
     uint totalPenalty; // used globally
     address taker; // used globally
-    uint failCount; // used globally by market order, per-offer by snipes
     bool fillWants; // used globally
   }
 
@@ -354,7 +353,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Reset these amounts since every snipe is treated individually. Only the total penalty is sent at the end of all snipes. */
       mor.totalGot = 0;
       mor.totalGave = 0;
-      mor.failCount = 0;
 
       /* Initialize single order struct. */
       sor.offerId = targets[i][0];
@@ -573,7 +571,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mgvData == "mgv/makerTransferFail" ||
         mgvData == "mgv/makerReceiveFail"
       ) {
-        mor.failCount += 1;
 
         emit OfferFail(
           sor.outbound_tkn,
@@ -636,7 +633,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     address maker = sor.offerDetail.maker();
     uint oldGas = gasleft();
     /* We let the maker pay for the overhead of checking remaining gas and making the call, as well as handling the return data (constant gas since only the first 32 bytes of return data are read). So the `require` below is just an approximation: if the overhead of (`require` + cost of `CALL`) is $h$, the maker will receive at worst $\textrm{gasreq} - \frac{63h}{64}$ gas. */
-    /* Note : as a possible future feature, we could stop an order when there's not enough gas left to continue processing offers. This could be done safely by checking, as soon as we start processing an offer, whether `63/64(gasleft-overhead_gasbase-offer_gasbase) > gasreq`. If no, we could stop and know by induction that there is enough gas left to apply fees, stitch offers, etc for the offers already executed. */
+    /* Note : as a possible future feature, we could stop an order when there's not enough gas left to continue processing offers. This could be done safely by checking, as soon as we start processing an offer, whether `63/64(gasleft-offer_gasbase) > gasreq`. If no, we could stop and know by induction that there is enough gas left to apply fees, stitch offers, etc for the offers already executed. */
     if (!(oldGas - oldGas / 64 >= gasreq)) {
       innerRevert([bytes32("mgv/notEnoughGasForMakerTrade"), "", ""]);
     }
@@ -703,7 +700,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       makerPosthook(sor, gasreq - gasused, makerData, mgvData);
 
     if (mgvData != "mgv/tradeSuccess") {
-      mor.totalPenalty += applyPenalty(sor, gasused, mor.failCount);
+      mor.totalPenalty += applyPenalty(sor, gasused);
     }
   }}
 
@@ -744,7 +741,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }}
 
   /* ## `controlledCall` */
-  /* Calls an external function with controlled gas expense. A direct call of the form `(,bytes memory retdata) = maker.call{gas}(selector,...args)` enables a griefing attack: the maker uses half its gas to write in its memory, then reverts with that memory segment as argument. After a low-level call, solidity automaticaly copies `returndatasize` bytes of `returndata` into memory. So the total gas consumed to execute a failing offer could exceed `gasreq + overhead_gasbase/n + offer_gasbase` where `n` is the number of failing offers. This yul call only retrieves the first 32 bytes of the maker's `returndata`. */
+  /* Calls an external function with controlled gas expense. A direct call of the form `(,bytes memory retdata) = maker.call{gas}(selector,...args)` enables a griefing attack: the maker uses half its gas to write in its memory, then reverts with that memory segment as argument. After a low-level call, solidity automaticaly copies `returndatasize` bytes of `returndata` into memory. So the total gas consumed to execute a failing offer could exceed `gasreq + offer_gasbase` where `n` is the number of failing offers. This yul call only retrieves the first 32 bytes of the maker's `returndata`. */
   function controlledCall(
     address callee,
     uint gasreq,
@@ -775,34 +772,30 @@ abstract contract MgvOfferTaking is MgvHasOffers {
      Penalty application summary:
 
    * If the transaction was a success, we entirely refund the maker and send nothing to the taker.
-   * Otherwise, the maker loses the cost of `gasused + overhead_gasbase/n + offer_gasbase` gas, where `n` is the number of failed offers. The gas price is estimated by `gasprice`.
-   * To create the offer, the maker had to provision for `gasreq + overhead_gasbase/n + offer_gasbase` gas at a price of `offerDetail.gasprice`.
+   * Otherwise, the maker loses the cost of `gasused + offer_gasbase` gas. The gas price is estimated by `gasprice`.
+   * To create the offer, the maker had to provision for `gasreq + offer_gasbase` gas at a price of `offerDetail.gasprice`.
    * We do not consider the tx.gasprice.
-   * `offerDetail.gasbase` and `offerDetail.gasprice` are the values of the Mangrove parameters `config.*_gasbase` and `config.gasprice` when the offer was created. Without caching those values, the provision set aside could end up insufficient to reimburse the maker (or to retribute the taker).
+   * `offerDetail.gasbase` and `offerDetail.gasprice` are the values of the Mangrove parameters `config.offer_gasbase` and `config.gasprice` when the offer was created. Without caching those values, the provision set aside could end up insufficient to reimburse the maker (or to retribute the taker).
    */
   function applyPenalty(
     ML.SingleOrder memory sor,
-    uint gasused,
-    uint failCount
+    uint gasused
   ) internal returns (uint) { unchecked {
     uint gasreq = sor.offerDetail.gasreq();
 
     uint provision = 10**9 *
       sor.offerDetail.gasprice() * 
-      (gasreq +
-      sor.offerDetail.overhead_gasbase() + sor.offerDetail.offer_gasbase());
+      (gasreq + sor.offerDetail.offer_gasbase());
 
     /* We set `gasused = min(gasused,gasreq)` since `gasreq < gasused` is possible e.g. with `gasreq = 0` (all calls consume nonzero gas). */
     if (gasused > gasreq) {
       gasused = gasreq;
     }
 
-    /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/notExecuted","mgv/tradeSuccess"]`, and thus when `failCount > 0`. */
+    /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/notExecuted","mgv/tradeSuccess"]` */
     uint penalty = 10**9 *
       sor.global.gasprice() *
       (gasused +
-        sor.local.overhead_gasbase() /
-        failCount +
         sor.local.offer_gasbase());
 
     if (penalty > provision) {

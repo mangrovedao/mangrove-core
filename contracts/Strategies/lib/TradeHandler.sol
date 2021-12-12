@@ -71,13 +71,10 @@ contract TradeHandler {
     } else {
       _gp = gasprice;
     }
-    uint bounty = (gasreq +
-      localData.overhead_gasbase() +
-      localData.offer_gasbase()) *
+    uint bounty = (gasreq + localData.offer_gasbase()) *
       _gp *
       10**9; // in WEI
     uint currentProvisionLocked = (offerDetailData.gasreq() +
-    offerDetailData.overhead_gasbase() +
       offerDetailData.offer_gasbase()) * 
       offerDetailData.gasprice() *
       10**9;

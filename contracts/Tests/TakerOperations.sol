@@ -1132,7 +1132,7 @@ contract TakerOperations_Test is HasMgvEvents {
   }
 
   function unsafe_gas_left_fails_order_test() public {
-    mgv.setGasbase(base, quote, 1, 1);
+    mgv.setGasbase(base, quote, 1);
     quoteT.approve(address(mgv), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 120_000, 0);
     uint[4][] memory targets = new uint[4][](1);

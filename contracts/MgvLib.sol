@@ -24,26 +24,6 @@ import "./MgvPack.sol" as P;
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */
 
 library MgvLib {
-  struct Global {
-    address monitor;
-    bool useOracle;
-    bool notify;
-    uint gasprice;
-    uint gasmax;
-    bool dead;
-  }
-
-  struct Local {
-    bool active;
-    uint fee;
-    uint density;
-    uint overhead_gasbase;
-    uint offer_gasbase;
-    bool lock;
-    uint best;
-    uint last;
-  }
-
   /*
    Some miscellaneous data types useful to `Mangrove` and external contracts */
   //+clear+

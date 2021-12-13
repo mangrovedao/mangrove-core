@@ -66,7 +66,6 @@ contract MgvGovernable is MgvRoot {
     address inbound_tkn,
     uint fee,
     uint density,
-    uint overhead_gasbase,
     uint offer_gasbase
   ) public { unchecked {
     authOnly();
@@ -74,7 +73,7 @@ contract MgvGovernable is MgvRoot {
     emit SetActive(outbound_tkn, inbound_tkn, true);
     setFee(outbound_tkn, inbound_tkn, fee);
     setDensity(outbound_tkn, inbound_tkn, density);
-    setGasbase(outbound_tkn, inbound_tkn, overhead_gasbase, offer_gasbase);
+    setGasbase(outbound_tkn, inbound_tkn, offer_gasbase);
   }}
 
   function deactivate(address outbound_tkn, address inbound_tkn) public {
@@ -115,22 +114,17 @@ contract MgvGovernable is MgvRoot {
   function setGasbase(
     address outbound_tkn,
     address inbound_tkn,
-    uint overhead_gasbase,
     uint offer_gasbase
   ) public { unchecked {
     authOnly();
-    /* Checking the size of `*_gasbase` is necessary to prevent a) data loss when `*_gasbase` is copied to an `OfferDetail` struct, and b) overflow when `*_gasbase` is used in calculations. */
-    require(
-      uint24(overhead_gasbase) == overhead_gasbase,
-      "mgv/config/overhead_gasbase/24bits"
-    );
+    /* Checking the size of `offer_gasbase` is necessary to prevent a) data loss when copied to an `OfferDetail` struct, and b) overflow when used in calculations. */
     require(
       uint24(offer_gasbase) == offer_gasbase,
       "mgv/config/offer_gasbase/24bits"
     );
     //+clear+
-    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].offer_gasbase(offer_gasbase).overhead_gasbase(overhead_gasbase);
-    emit SetGasbase(outbound_tkn, inbound_tkn, overhead_gasbase, offer_gasbase);
+    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].offer_gasbase(offer_gasbase);
+    emit SetGasbase(outbound_tkn, inbound_tkn, offer_gasbase);
   }}
 
   /* ## Globals */

@@ -55,23 +55,15 @@ async function main() {
   ] of tokenParams) {
     for (const [inbound_tkn, inName] of tokenParams) {
       if (outbound_tkn != inbound_tkn) {
-        const overhead_gasbase = ethers.BigNumber.from(transferCostOf(inName));
         const offer_gasbase = ethers.BigNumber.from(
           transferCostOf(inName) + transferCostOf(outName)
         );
         const overheadTx = await mgv.contract.setGasbase(
           outbound_tkn,
           inbound_tkn,
-          overhead_gasbase,
           offer_gasbase
         );
         await overheadTx.wait();
-        console.log(
-          chalk.yellow("*"),
-          `Setting (${outName},${inName}) overhead_gasbase to ${transferCostOf(
-            inName
-          )} gas units`
-        );
         console.log(
           chalk.yellow("*"),
           `Setting (${outName},${inName}) offer_gasbase to ${
@@ -80,7 +72,6 @@ async function main() {
         );
 
         let density_outIn = mgv_gasprice
-          .add(overhead_gasbase)
           .add(offer_gasbase)
           .mul(
             ethers.utils.parseUnits(oracle.Mangrove.coverFactor, outDecimals)
@@ -96,8 +87,7 @@ async function main() {
           inbound_tkn,
           ethers.BigNumber.from(getMangroveIntParam("defaultFee")),
           density_outIn,
-          offer_gasbase,
-          overhead_gasbase
+          offer_gasbase
         );
         console.log(
           chalk.yellow("*"),

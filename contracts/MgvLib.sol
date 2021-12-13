@@ -79,7 +79,6 @@ contract HasMgvEvents {
   event SetGasbase(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
-    uint overhead_gasbase,
     uint offer_gasbase
   );
   event SetGovernance(address value);

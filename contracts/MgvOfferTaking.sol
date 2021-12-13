@@ -27,17 +27,15 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
   /* # MultiOrder struct */
-  /* The `MultiOrder` struct is used by market orders and snipes. Some of its fields are only used by market orders (`initialWants, initialGives`, `fillWants`), and others only by snipes (`successCount`). We need a common data structure for both since low-level calls are shared between market orders and snipes. The struct is helpful in decreasing stack use. */
+  /* The `MultiOrder` struct is used by market orders and snipes. Some of its fields are only used by market orders (`initialWants, initialGives`). We need a common data structure for both since low-level calls are shared between market orders and snipes. The struct is helpful in decreasing stack use. */
   struct MultiOrder {
-    uint initialWants;
-    uint initialGives;
-    uint totalGot;
-    uint totalGave;
-    uint totalPenalty;
-    address taker;
-    uint successCount;
-    uint failCount;
-    bool fillWants;
+    uint initialWants; // used globally by market order, not used by snipes
+    uint initialGives; // used globally by market order, not used by snipes
+    uint totalGot; // used globally by market order, per-offer by snipes
+    uint totalGave; // used globally by market order, per-offer by snipes
+    uint totalPenalty; // used globally
+    address taker; // used globally
+    bool fillWants; // used globally
   }
 
   /* # Market Orders */
@@ -269,7 +267,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Snipes */
   //+clear+
 
-  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,takerWants,takerGives,offerGasreq]`. The return parameters are of the form `(successes,totalGot,totalGave,bounty)`. 
+  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,takerWants,takerGives,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty)`. 
   Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`). */
   function snipes(
     address outbound_tkn,
@@ -292,7 +290,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /*
      From an array of _n_ `[offerId, takerWants,takerGives,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty)`. 
 
-     Note that if this function is not internal, anyone can make anyone use Mangrove. */
+     Note that if this function is not internal, anyone can make anyone use Mangrove.
+     Note that unlike general market order, the returned total values are _not_ `mor.totalGot` and `mor.totalGave`, since those are reset at every iteration of the `targets` array. Instead, accumulators `snipesGot` and `snipesGave` are used. */
   function generalSnipes(
     address outbound_tkn,
     address inbound_tkn,
@@ -324,12 +323,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     /* ### Main loop */
     //+clear+
 
-    /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
-    sor.local = sor.local.lock(true);
-    locals[outbound_tkn][inbound_tkn] = sor.local;
-
-    /* Call recursive `internalSnipes` function. */
-    internalSnipes(mor, sor, targets, 0);
+    /* Call `internalSnipes` function. */
+    (uint successCount, uint snipesGot, uint snipesGave) = internalSnipes(mor, sor, targets);
 
     /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by the Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
     sendPenalty(mor.totalPenalty);
@@ -339,26 +334,27 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       outbound_tkn,
       inbound_tkn,
       taker,
-      mor.totalGot,
-      mor.totalGave
+      snipesGot,
+      snipesGave
     );
 
-    return (mor.successCount, mor.totalGot, mor.totalGave, mor.totalPenalty);
+    return (successCount, snipesGot, snipesGave, mor.totalPenalty);
   }}
 
   /* ## Internal snipes */
   //+clear+
-  /* `internalSnipes` works recursively. Going downward, each successive offer is executed until each snipe in the array has been tried. Then the reentrancy lock [is lifted](#internalSnipes/liftReentrancy). Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book.
-
-    The last argument is the array index for the current offer. It is initially 0. */
+  /* `internalSnipes` works by looping over targets. Each successive offer is executed under a [reentrancy lock](#internalSnipes/liftReentrancy), then its posthook is called.y lock [is lifted](). Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book. */
   function internalSnipes(
     MultiOrder memory mor,
     ML.SingleOrder memory sor,
-    uint[4][] calldata targets,
-    uint i
-  ) internal { unchecked {
-    /* #### Case 1 : continuation of snipes */
-    if (i < targets.length) {
+    uint[4][] calldata targets
+  ) internal returns (uint successCount, uint snipesGot, uint snipesGave) { unchecked {
+    for (uint i = 0; i < targets.length; i++) {
+      /* Reset these amounts since every snipe is treated individually. Only the total penalty is sent at the end of all snipes. */
+      mor.totalGot = 0;
+      mor.totalGave = 0;
+
+      /* Initialize single order struct. */
       sor.offerId = targets[i][0];
       sor.offer = offers[sor.outbound_tkn][sor.inbound_tkn][sor.offerId];
       sor.offerDetail = offerDetails[sor.outbound_tkn][sor.inbound_tkn][
@@ -371,12 +367,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         sor.offerDetail.gasreq() > targets[i][3]
       ) {
         /* We move on to the next offer in the array. */
-        internalSnipes(mor, sor, targets, i + 1);
+        continue;
       } else {
-        uint gasused;
-        bytes32 makerData;
-        bytes32 mgvData;
-
         require(
           uint96(targets[i][1]) == targets[i][1],
           "mgv/snipes/takerWants/96bits"
@@ -388,9 +380,17 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         sor.wants = targets[i][1];
         sor.gives = targets[i][2];
 
+        /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
+        sor.local = sor.local.lock(true);
+        locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
+
         /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/tradeSuccess","mgv/notExecuted"]` means the failure is the maker's fault. */
-        /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. We will need it after the recursive call, so we save it in local variables. Same goes for `offerId`, `sor.offer` and `sor.offerDetail`. */
-        (gasused, makerData, mgvData) = execute(mor, sor);
+        /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. */
+        (uint gasused, bytes32 makerData, bytes32 mgvData) = execute(mor, sor);
+
+        if (mgvData == "mgv/tradeSuccess") {
+          successCount += 1;
+        }
 
         /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since offers in the `targets` array may be anywhere in the book. So we stitch together offers immediately after each `execute`. */
         if (mgvData != "mgv/notExecuted") {
@@ -403,44 +403,30 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           );
         }
 
-        {
-          /* Keep cached copy of current `sor` values. */
-          uint offerId = sor.offerId;
-          uint takerWants = sor.wants;
-          uint takerGives = sor.gives;
-          P.Offer.t offer = sor.offer;
-          P.OfferDetail.t offerDetail = sor.offerDetail;
+        /* <a id="internalSnipes/liftReentrancy"></a> Now that the current snipe is over, we can lift the lock on the book. In the same operation we
+        * lift the reentrancy lock, and
+        * update the storage
 
-          /* We move on to the next offer in the array. */
-          internalSnipes(mor, sor, targets, i + 1);
+        so we are free from out of order storage writes.
+        */
+        sor.local = sor.local.lock(false);
+        locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
 
-          /* Restore `sor` values from to before recursive call */
-          sor.offerId = offerId;
-          sor.wants = takerWants;
-          sor.gives = takerGives;
-          sor.offer = offer;
-          sor.offerDetail = offerDetail;
-        }
+        /* `payTakerMinusFees` sends the fee to the vault, proportional to the amount purchased, and gives the rest to the taker */
+        payTakerMinusFees(mor, sor);
+
+        /* In an inverted Mangrove, amounts have been lent by each offer's maker to the taker. We now call the taker. This is a noop in a normal Mangrove. */
+        executeEnd(mor, sor);
 
         /* After an offer execution, we may run callbacks and increase the total penalty. As that part is common to market orders and snipes, it lives in its own `postExecute` function. */
         if (mgvData != "mgv/notExecuted") {
           postExecute(mor, sor, gasused, makerData, mgvData);
         }
-      }
-      /* #### Case 2 : End of snipes */
-    } else {
-      /* <a id="internalSnipes/liftReentrancy"></a> Now that the snipes is over, we can lift the lock on the book. In the same operation we
-      * lift the reentrancy lock, and
-      * update the storage
 
-      so we are free from out of order storage writes.
-      */
-      sor.local = sor.local.lock(false);
-      locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
-      /* `payTakerMinusFees` sends the fee to the vault, proportional to the amount purchased, and gives the rest to the taker */
-      payTakerMinusFees(mor, sor);
-      /* In an inverted Mangrove, amounts have been lent by each offer's maker to the taker. We now call the taker. This is a noop in a normal Mangrove. */
-      executeEnd(mor, sor);
+
+        snipesGot += mor.totalGot;
+        snipesGave += mor.totalGave;
+      }
     }
   }}
 
@@ -550,7 +536,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
     /* `success` is true: trade is complete */
     if (success) {
-      mor.successCount += 1;
       /* In case of success, `retdata` encodes the gas used by the offer. */
       gasused = abi.decode(retdata, (uint));
       /* `mgvData` indicates trade success */
@@ -586,7 +571,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mgvData == "mgv/makerTransferFail" ||
         mgvData == "mgv/makerReceiveFail"
       ) {
-        mor.failCount += 1;
 
         emit OfferFail(
           sor.outbound_tkn,
@@ -649,7 +633,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     address maker = sor.offerDetail.maker();
     uint oldGas = gasleft();
     /* We let the maker pay for the overhead of checking remaining gas and making the call, as well as handling the return data (constant gas since only the first 32 bytes of return data are read). So the `require` below is just an approximation: if the overhead of (`require` + cost of `CALL`) is $h$, the maker will receive at worst $\textrm{gasreq} - \frac{63h}{64}$ gas. */
-    /* Note : as a possible future feature, we could stop an order when there's not enough gas left to continue processing offers. This could be done safely by checking, as soon as we start processing an offer, whether `63/64(gasleft-overhead_gasbase-offer_gasbase) > gasreq`. If no, we could stop and know by induction that there is enough gas left to apply fees, stitch offers, etc for the offers already executed. */
+    /* Note : as a possible future feature, we could stop an order when there's not enough gas left to continue processing offers. This could be done safely by checking, as soon as we start processing an offer, whether `63/64(gasleft-offer_gasbase) > gasreq`. If no, we could stop and know by induction that there is enough gas left to apply fees, stitch offers, etc for the offers already executed. */
     if (!(oldGas - oldGas / 64 >= gasreq)) {
       innerRevert([bytes32("mgv/notEnoughGasForMakerTrade"), "", ""]);
     }
@@ -716,7 +700,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       makerPosthook(sor, gasreq - gasused, makerData, mgvData);
 
     if (mgvData != "mgv/tradeSuccess") {
-      mor.totalPenalty += applyPenalty(sor, gasused, mor.failCount);
+      mor.totalPenalty += applyPenalty(sor, gasused);
     }
   }}
 
@@ -757,7 +741,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }}
 
   /* ## `controlledCall` */
-  /* Calls an external function with controlled gas expense. A direct call of the form `(,bytes memory retdata) = maker.call{gas}(selector,...args)` enables a griefing attack: the maker uses half its gas to write in its memory, then reverts with that memory segment as argument. After a low-level call, solidity automaticaly copies `returndatasize` bytes of `returndata` into memory. So the total gas consumed to execute a failing offer could exceed `gasreq + overhead_gasbase/n + offer_gasbase` where `n` is the number of failing offers. This yul call only retrieves the first 32 bytes of the maker's `returndata`. */
+  /* Calls an external function with controlled gas expense. A direct call of the form `(,bytes memory retdata) = maker.call{gas}(selector,...args)` enables a griefing attack: the maker uses half its gas to write in its memory, then reverts with that memory segment as argument. After a low-level call, solidity automaticaly copies `returndatasize` bytes of `returndata` into memory. So the total gas consumed to execute a failing offer could exceed `gasreq + offer_gasbase` where `n` is the number of failing offers. This yul call only retrieves the first 32 bytes of the maker's `returndata`. */
   function controlledCall(
     address callee,
     uint gasreq,
@@ -788,34 +772,30 @@ abstract contract MgvOfferTaking is MgvHasOffers {
      Penalty application summary:
 
    * If the transaction was a success, we entirely refund the maker and send nothing to the taker.
-   * Otherwise, the maker loses the cost of `gasused + overhead_gasbase/n + offer_gasbase` gas, where `n` is the number of failed offers. The gas price is estimated by `gasprice`.
-   * To create the offer, the maker had to provision for `gasreq + overhead_gasbase/n + offer_gasbase` gas at a price of `offerDetail.gasprice`.
+   * Otherwise, the maker loses the cost of `gasused + offer_gasbase` gas. The gas price is estimated by `gasprice`.
+   * To create the offer, the maker had to provision for `gasreq + offer_gasbase` gas at a price of `offerDetail.gasprice`.
    * We do not consider the tx.gasprice.
-   * `offerDetail.gasbase` and `offerDetail.gasprice` are the values of the Mangrove parameters `config.*_gasbase` and `config.gasprice` when the offer was created. Without caching those values, the provision set aside could end up insufficient to reimburse the maker (or to retribute the taker).
+   * `offerDetail.gasbase` and `offerDetail.gasprice` are the values of the Mangrove parameters `config.offer_gasbase` and `config.gasprice` when the offer was created. Without caching those values, the provision set aside could end up insufficient to reimburse the maker (or to retribute the taker).
    */
   function applyPenalty(
     ML.SingleOrder memory sor,
-    uint gasused,
-    uint failCount
+    uint gasused
   ) internal returns (uint) { unchecked {
     uint gasreq = sor.offerDetail.gasreq();
 
     uint provision = 10**9 *
       sor.offerDetail.gasprice() * 
-      (gasreq +
-      sor.offerDetail.overhead_gasbase() + sor.offerDetail.offer_gasbase());
+      (gasreq + sor.offerDetail.offer_gasbase());
 
     /* We set `gasused = min(gasused,gasreq)` since `gasreq < gasused` is possible e.g. with `gasreq = 0` (all calls consume nonzero gas). */
     if (gasused > gasreq) {
       gasused = gasreq;
     }
 
-    /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/notExecuted","mgv/tradeSuccess"]`, and thus when `failCount > 0`. */
+    /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/notExecuted","mgv/tradeSuccess"]` */
     uint penalty = 10**9 *
       sor.global.gasprice() *
       (gasused +
-        sor.local.overhead_gasbase() /
-        failCount +
         sor.local.offer_gasbase());
 
     if (penalty > provision) {

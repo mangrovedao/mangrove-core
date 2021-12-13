@@ -56,7 +56,11 @@ function getAave() {
   for (const name of ["wEth", "usdc", "dai"]) {
     const aTokenAddress = tryGet(env, `aave.${name}.address`);
     const aTokenAbi = require(tryGet(env, `aave.${name}.abi`));
-    aave[name] = new ethers.Contract(aTokenAddress, aTokenAbi, provider);
+    aave[name.toUpperCase()] = new ethers.Contract(
+      aTokenAddress,
+      aTokenAbi,
+      provider
+    );
   }
   aave.lendingPool = new ethers.Contract(
     lendingPoolAddr,

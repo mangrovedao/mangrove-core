@@ -48,19 +48,17 @@ contract NotAdmin {
     address quote,
     uint fee,
     uint density,
-    uint overhead_gasbase,
     uint offer_gasbase
   ) public {
-    mgv.activate(base, quote, fee, density, overhead_gasbase, offer_gasbase);
+    mgv.activate(base, quote, fee, density, offer_gasbase);
   }
 
   function setGasbase(
     address base,
     address quote,
-    uint overhead_gasbase,
     uint offer_gasbase
   ) public {
-    mgv.setGasbase(base, quote, overhead_gasbase, offer_gasbase);
+    mgv.setGasbase(base, quote, offer_gasbase);
   }
 
   function setGasmax(uint value) public {
@@ -270,7 +268,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   function only_gov_can_set_active_test() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
-    try notAdmin.activate(quote, base, 0, 100, 30_000, 0) {
+    try notAdmin.activate(quote, base, 0, 100, 0) {
       TestEvents.fail("nonadmin cannot set active");
     } catch Error(string memory r) {
       TestUtils.revertEq(r, "mgv/unauthorized");
@@ -297,7 +295,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   function only_gov_can_set_gasbase_test() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
-    try notAdmin.setGasbase(base, quote, 0, 0) {
+    try notAdmin.setGasbase(base, quote, 0) {
       TestEvents.fail("nonadmin cannot set gasbase");
     } catch Error(string memory r) {
       TestUtils.revertEq(r, "mgv/unauthorized");
@@ -334,19 +332,13 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
   }
 
   function set_zero_gasbase_test() public {
-    try mgv.setGasbase(base, quote, 0, 0) {} catch Error(string memory) {
+    try mgv.setGasbase(base, quote, 0) {} catch Error(string memory) {
       TestEvents.fail("setting gasbases to 0 should work");
     }
   }
 
   function set_gasbase_ceiling_test() public {
-    try mgv.setGasbase(base, quote, uint(type(uint24).max) + 1, 0) {
-      TestEvents.fail("overhead_gasbase above ceiling should fail");
-    } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/config/overhead_gasbase/24bits");
-    }
-
-    try mgv.setGasbase(base, quote, 0, uint(type(uint24).max) + 1) {
+    try mgv.setGasbase(base, quote, uint(type(uint24).max) + 1) {
       TestEvents.fail("offer_gasbase above ceiling should fail");
     } catch Error(string memory r) {
       TestUtils.revertEq(r, "mgv/config/offer_gasbase/24bits");
@@ -972,12 +964,12 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
   }
 
   function activation_emits_events_in_order_test() public {
-    mgv.activate(quote, base, 7, 0, 1, 3);
+    mgv.activate(quote, base, 7, 0, 3);
     TestEvents.expectFrom(address(mgv));
     emit SetActive(quote, base, true);
     emit SetFee(quote, base, 7);
     emit SetDensity(quote, base, 0);
-    emit SetGasbase(quote, base, 1, 3);
+    emit SetGasbase(quote, base, 3);
   }
 
   function updateOffer_on_inactive_fails_test() public {

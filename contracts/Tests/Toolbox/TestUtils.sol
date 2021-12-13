@@ -278,9 +278,7 @@ library TestUtils {
     uint gasreq
   ) internal view returns (uint) {
     (P.Global.t glo_cfg, P.Local.t loc_cfg) = mgv.config(base, quote);
-    return ((gasreq +
-      loc_cfg.overhead_gasbase() +
-      loc_cfg.offer_gasbase()) *
+    return ((gasreq + loc_cfg.offer_gasbase()) *
       uint(glo_cfg.gasprice()) *
       10**9);
   }
@@ -300,7 +298,6 @@ library TestUtils {
       _gp = gasprice;
     }
     return ((gasreq +
-      loc_cfg.overhead_gasbase() +
       loc_cfg.offer_gasbase()) *
       _gp *
       10**9);
@@ -409,8 +406,8 @@ library MgvSetup {
     } else {
       mgv = deploy(address(this));
     }
-    mgv.activate(address(base), address(quote), 0, 100, 80_000, 20_000);
-    mgv.activate(address(quote), address(base), 0, 100, 80_000, 20_000);
+    mgv.activate(address(base), address(quote), 0, 100, 20_000);
+    mgv.activate(address(quote), address(base), 0, 100, 20_000);
   }
 }
 

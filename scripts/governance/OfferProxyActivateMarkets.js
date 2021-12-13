@@ -1,9 +1,11 @@
 const hre = require("hardhat");
 const helper = require("../helper");
+const { Mangrove } = require("../../../mangrove.js");
 const chalk = require("chalk");
 
 async function main() {
   const offerProxy = await hre.ethers.getContract("OfferProxy");
+
   const weth = helper.contractOfToken("wEth").connect(offerProxy.signer);
   const mgv = await helper.getMangrove();
 

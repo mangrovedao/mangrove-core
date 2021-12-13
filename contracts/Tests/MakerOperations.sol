@@ -457,14 +457,14 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
   function min_density_with_newOffer_ok_test() public {
     mkr.provisionMgv(1 ether);
     uint density = 10**7;
-    mgv.setGasbase(_base, _quote, 0, 1);
+    mgv.setGasbase(_base, _quote, 1);
     mgv.setDensity(_base, _quote, density);
     mkr.newOffer(1 ether, density, 0, 0);
   }
 
   function low_density_fails_newOffer_test() public {
     uint density = 10**7;
-    mgv.setGasbase(_base, _quote, 0, 1);
+    mgv.setGasbase(_base, _quote, 1);
     mgv.setDensity(_base, _quote, density);
     try mkr.newOffer(1 ether, density - 1, 0, 0) {
       TestEvents.fail("density too low, newOffer should fail");
@@ -1074,100 +1074,31 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
   }
 
   function gasbase_is_deducted_1_test() public {
-    uint overhead_gasbase = 100_000;
     uint offer_gasbase = 20_000;
     mkr.provisionMgv(1 ether);
-    mgv.setGasbase(_base, _quote, overhead_gasbase, offer_gasbase);
+    mgv.setGasbase(_base, _quote, offer_gasbase);
     mgv.setGasprice(1);
     mgv.setDensity(_base, _quote, 0);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 0, 0);
     tkr.take(ofr, 0.1 ether);
     TestEvents.eq(
       mgv.balanceOf(address(mkr)),
-      1 ether - (overhead_gasbase + offer_gasbase) * 10**9,
+      1 ether - offer_gasbase * 10**9,
       "Wrong gasbase deducted"
     );
   }
 
   function gasbase_is_deducted_2_test() public {
-    uint overhead_gasbase = 100_000;
     uint offer_gasbase = 20_000;
     mkr.provisionMgv(1 ether);
-    mgv.setGasbase(_base, _quote, overhead_gasbase, offer_gasbase);
+    mgv.setGasbase(_base, _quote, offer_gasbase);
     mgv.setGasprice(1);
     mgv.setDensity(_base, _quote, 0);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 0, 0);
     tkr.take(ofr, 0.1 ether);
     TestEvents.eq(
       mgv.balanceOf(address(mkr)),
-      1 ether - (overhead_gasbase + offer_gasbase) * 10**9,
-      "Wrong gasbase deducted"
-    );
-  }
-
-  // test gasbase deduction and test that gasbase changes are tracked
-  function gasbase_with_change_is_deducted_multi_1_test() public {
-    uint overhead_gasbase = 100_000;
-    uint offer_gasbase = 20_000;
-    mkr.provisionMgv(1 ether);
-    mkr2.provisionMgv(1 ether);
-    mgv.setGasbase(_base, _quote, overhead_gasbase, offer_gasbase);
-    mgv.setGasprice(1);
-    mgv.setDensity(_base, _quote, 0);
-    mkr2.newOffer(1 ether, 1 ether, 0, 0);
-    mkr.newOffer(1 ether, 1 ether, 0, 0);
-    overhead_gasbase = 90_000;
-    offer_gasbase = 10_000;
-    mgv.setGasbase(_base, _quote, overhead_gasbase, offer_gasbase);
-    tkr.marketOrder(0.1 ether, 0.1 ether);
-    TestEvents.eq(
-      mgv.balanceOf(address(mkr)),
-      1 ether - (overhead_gasbase / 2 + offer_gasbase) * 10**9,
-      "Wrong gasbase deducted"
-    );
-  }
-
-  // test gasbase deduction and test that gasbase changes are tracked
-  function gasbase_is_deducted_multi_2_test() public {
-    uint overhead_gasbase = 100_000;
-    uint offer_gasbase = 20_000;
-    mkr.provisionMgv(1 ether);
-    mkr2.provisionMgv(1 ether);
-    mgv.setGasbase(_base, _quote, overhead_gasbase, offer_gasbase);
-    mgv.setGasprice(1);
-    mgv.setDensity(_base, _quote, 0);
-    mkr2.newOffer(1 ether, 1 ether, 0, 0);
-    mkr2.newOffer(1 ether, 1 ether, 0, 0);
-    mkr.newOffer(1 ether, 1 ether, 0, 0);
-    overhead_gasbase = 90_000;
-    offer_gasbase = 10_000;
-    mgv.setGasbase(_base, _quote, overhead_gasbase, offer_gasbase);
-    tkr.marketOrder(0.1 ether, 0.1 ether);
-    TestEvents.eq(
-      mgv.balanceOf(address(mkr)),
-      1 ether - (overhead_gasbase / 3 + offer_gasbase) * 10**9,
-      "Wrong gasbase deducted"
-    );
-  }
-
-  function gasbase_is_deducted_multi_3_test() public {
-    uint overhead_gasbase = 30_000;
-    uint offer_gasbase = 20_000;
-    mkr.provisionMgv(1 ether);
-    mkr2.provisionMgv(1 ether);
-    mgv.setGasbase(_base, _quote, overhead_gasbase, offer_gasbase);
-    mgv.setGasprice(1);
-    mgv.setDensity(_base, _quote, 0);
-    mkr2.newOffer(1 ether, 1 ether, 0, 0);
-    mkr.newOffer(1 ether, 1 ether, 0, 0);
-    mkr.newOffer(1 ether, 1 ether, 0, 0);
-    overhead_gasbase = 21_000;
-    offer_gasbase = 10_000;
-    mgv.setGasbase(_base, _quote, overhead_gasbase, offer_gasbase);
-    tkr.marketOrder(0.1 ether, 0.1 ether);
-    TestEvents.eq(
-      mgv.balanceOf(address(mkr)),
-      1 ether - ((2 * overhead_gasbase) / 3 + offer_gasbase * 2) * 10**9,
+      1 ether - offer_gasbase * 10**9,
       "Wrong gasbase deducted"
     );
   }

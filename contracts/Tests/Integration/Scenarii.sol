@@ -29,7 +29,7 @@ import "./TestMarketOrder.sol";
 // Otherwise bytecode can be too large. See EIP 170 for more on size limit:
 // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-170.md
 
-contract Scenarii_Test {
+contract Scenarii_Test is HasMgvEvents {
   AbstractMangrove mgv;
   TestTaker taker;
   MakerDeployer makers;
@@ -138,7 +138,25 @@ contract Scenarii_Test {
     //TestEvents.logString("=== Snipe test ===", 0);
     saveBalances();
     saveOffers();
-    TestSnipe.run(balances, offers, mgv, makers, taker, base, quote);
+    (uint takerGot, uint takerGave) = TestSnipe.run(
+      balances,
+      offers,
+      mgv,
+      makers,
+      taker,
+      base,
+      quote
+    );
+    TestEvents.expectFrom(address(mgv));
+    emit OrderComplete(
+      address(base),
+      address(quote),
+      address(taker),
+      takerGot,
+      takerGave
+    );
+    TestEvents.stopExpecting();
+
     TestUtils.logOfferBook(mgv, address(base), address(quote), 4);
 
     // restore offer that was deleted after partial fill, minus taken amount

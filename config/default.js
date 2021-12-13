@@ -28,6 +28,7 @@ config.hardhat = {
       gasMultiplier: 1,
       blockGasLimit: 7000000000,
       allowUnlimitedContractSize: true,
+      chainId: 80001,
     },
     mumbai: {
       gasPrice: 30 * 10 ** 9,
@@ -43,7 +44,7 @@ config.hardhat = {
     },
   },
   solidity: {
-    version: "0.7.6",
+    version: "0.8.10",
     settings: {
       optimizer: {
         enabled: true,
@@ -55,10 +56,10 @@ config.hardhat = {
     sources: "./contracts",
     tests: "./test",
     cache: "./cache",
-    artifacts: "./build/cache/solpp-generated-contracts", // NB This path is a bit weird - can we remove the cache part?
+    artifacts: "./artifacts",
   },
   abiExporter: {
-    path: "./build/exported-abis",
+    path: "./exported-abis",
     clear: true,
     flat: true,
     only: [
@@ -76,9 +77,6 @@ config.hardhat = {
   },
   testSolidity: {
     logFormatters: require("lib/log_formatters"),
-  },
-  solpp: {
-    defs: require("structs.js"),
   },
   // see github.com/wighawag/hardhat-deploy#1-namedaccounts-ability-to-name-addresses
   namedAccounts: {

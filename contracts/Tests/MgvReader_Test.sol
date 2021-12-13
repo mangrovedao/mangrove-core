@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
 import "../AbstractMangrove.sol";
@@ -48,7 +48,7 @@ contract MgvReader_Test is HasMgvEvents {
     mkr = MakerSetup.setup(mgv, base, quote);
     reader = new MgvReader(address(mgv));
 
-    address(mkr).transfer(10 ether);
+    payable(mkr).transfer(10 ether);
 
     bool noRevert;
     (noRevert, ) = address(mgv).call{value: 10 ether}("");
@@ -73,8 +73,8 @@ contract MgvReader_Test is HasMgvEvents {
     (
       uint currentId,
       uint[] memory offerIds,
-      ML.Offer[] memory offers,
-      ML.OfferDetail[] memory details
+      P.OfferStruct[] memory offers,
+      P.OfferDetailStruct[] memory details
     ) = reader.offerList(base, quote, 0, 50);
 
     TestEvents.eq(offerIds.length, 0, "ids: wrong length on 2elem");
@@ -227,7 +227,7 @@ contract MgvReader_Test is HasMgvEvents {
   }
 
   function provision_1_test() public {
-    mgv.setGasbase(base, quote, 17_000, 280_000);
+    mgv.setGasbase(base, quote, 17_000);
     try_provision();
   }
 

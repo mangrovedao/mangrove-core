@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 
 import "./SafeMath.sol";
 import {IERC20} from "../MgvLib.sol";
@@ -41,7 +41,7 @@ import {IERC20} from "../MgvLib.sol";
  */
 abstract contract Context {
   function _msgSender() internal view virtual returns (address payable) {
-    return msg.sender;
+    return payable(msg.sender);
   }
 
   function _msgData() internal view virtual returns (bytes memory) {

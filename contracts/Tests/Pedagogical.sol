@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../AbstractMangrove.sol";
@@ -164,7 +164,6 @@ contract Pedagogical_Test {
       inbound_tkn: address(dai),
       fee: 0,
       density: 100,
-      overhead_gasbase: 30_000,
       offer_gasbase: 10_000
     });
 
@@ -189,7 +188,7 @@ contract Pedagogical_Test {
     Display.register({addr: address(mkr), name: "maker-basic"});
 
     // testing contract starts with 1000 ETH
-    address(mkr).transfer(10 ether);
+    payable(mkr).transfer(10 ether);
     mkr.provisionMgv({amount: 5 ether});
     bat.mint({amount: 10 ether, to: address(mkr)});
   }
@@ -215,7 +214,7 @@ contract Pedagogical_Test {
     Display.register({addr: address(mkr), name: "maker-compound"});
 
     // testing contract starts with 1000 ETH
-    address(mkr).transfer(10 ether);
+    payable(mkr).transfer(10 ether);
     mkr.provisionMgv({amount: 5 ether});
   }
 
@@ -226,7 +225,7 @@ contract Pedagogical_Test {
     Display.register({addr: address(mkr), name: "maker-callback"});
 
     // testing contract starts with 1000 ETH
-    address(mkr).transfer(10 ether);
+    payable(mkr).transfer(10 ether);
     mkr.provisionMgv({amount: 5 ether});
 
     bat.mint({amount: 10 ether, to: address(mkr)});
@@ -323,7 +322,7 @@ contract Maker_callback is TestMaker {
     override
   {
     Display.log("Reinserting offer...");
-    AbstractMangrove mgv = AbstractMangrove(msg.sender);
+    AbstractMangrove mgv = AbstractMangrove(payable(msg.sender));
     mgv.updateOffer({
       outbound_tkn: order.outbound_tkn,
       inbound_tkn: order.inbound_tkn,

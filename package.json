@@ -11,7 +11,8 @@
     "copy-distribution-assets": "node copyDistributionAssets.js",
     "clean-this-package": "rimraf build cache dist",
     "clean": "yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run clean-this-package",
-    "doc": "solcco -f doc/MgvDoc.html structs.js contracts/MgvLib.sol contracts/MgvRoot.sol contracts/MgvHasOffers.sol contracts/MgvOfferMaking.sol contracts/MgvOfferTaking.sol contracts/MgvOfferTakingWithPermit.sol contracts/MgvGovernable.sol contracts/AbstractMangrove.sol contracts/Mangrove.sol contracts/InvertedMangrove.sol",
+    "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.js contracts/MgvLib.sol contracts/MgvRoot.sol contracts/MgvHasOffers.sol contracts/MgvOfferMaking.sol contracts/MgvOfferTaking.sol contracts/MgvOfferTakingWithPermit.sol contracts/MgvGovernable.sol contracts/AbstractMangrove.sol contracts/Mangrove.sol contracts/InvertedMangrove.sol",
+    "preproc": "solpp --defs preprocessing/structs.js preprocessing/MgvPack.pre.sol > contracts/MgvPack.sol",
     "test-with-dependencies": "yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run test",
     "test": "npm-run-all \"test:*\"",
     "test:solidity": "cross-env NODE_ENV=test NODE_APP_INSTANCE=solidity hardhat test-solidity",
@@ -26,9 +27,9 @@
     "@espendk/json-file-reporter": "^1.4.1",
     "@ethersproject/experimental": "^5.5.0",
     "@ethersproject/hardware-wallets": "^5.0.0",
-    "@giry/hardhat-test-solidity": "^0.0.11",
+    "@giry/hardhat-test-solidity": "^0.0.12",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
-    "adhusson-hardhat-solpp": "^2.0.2",
+    "@nomiclabs/hardhat-solpp": "^2.0.0",
     "app-module-path": "^2.2.0",
     "chai": "^4.3.4",
     "chai-events": "^0.0.3",
@@ -50,6 +51,7 @@
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.4",
     "solcco": ">=1.0.11",
+    "solpp": "^0.11.5",
     "yargs": "^17.1.1"
   }
 }

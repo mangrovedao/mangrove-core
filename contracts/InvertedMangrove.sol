@@ -16,15 +16,16 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {ITaker, MgvLib as ML} from "./MgvLib.sol";
+import {ITaker, MgvLib as ML, P} from "./MgvLib.sol";
 
 import {AbstractMangrove} from "./AbstractMangrove.sol";
-import {MgvPack as MP} from "./MgvPack.sol";
 
 /* <a id="InvertedMangrove"></a> The `InvertedMangrove` contract implements the "inverted" version of Mangrove, where each maker loans money to the taker. The taker is then called, and finally each maker is sent its payment and called again (with the orderbook unlocked). */
 contract InvertedMangrove is AbstractMangrove {
+  // prettier-ignore
+  using P.OfferDetail for P.OfferDetail.t;
   constructor(
     address governance,
     uint gasprice,
@@ -35,7 +36,7 @@ contract InvertedMangrove is AbstractMangrove {
   function executeEnd(MultiOrder memory mor, ML.SingleOrder memory sor)
     internal
     override
-  {
+  { unchecked {
     ITaker(mor.taker).takerTrade(
       sor.outbound_tkn,
       sor.inbound_tkn,
@@ -49,7 +50,7 @@ contract InvertedMangrove is AbstractMangrove {
       mor.totalGave
     );
     require(success, "mgv/takerFailToPayTotal");
-  }
+  }}
 
   /* We use `transferFrom` with takers (instead of checking `balanceOf` before/after the call) for the following reason we want the taker to be awaken after all loans have been made, so either
      1. The taker gets a list of all makers and loops through them to pay back, or
@@ -61,19 +62,19 @@ So :
    2. Is OK, but has an extra CALL cost on top of the token transfer, one for each maker. This is unavoidable anyway when calling makerExecute (since the maker must be able to execute arbitrary code at that moment), but we can skip it here.
    3. Is the cheapest, but it has the drawbacks of `transferFrom`: money must end up owned by the taker, and taker needs to `approve` Mangrove
    */
-  function beforePosthook(ML.SingleOrder memory sor) internal override {
+  function beforePosthook(ML.SingleOrder memory sor) internal override { unchecked {
     /* If `transferToken` returns false here, we're in a special (and bad) situation. The taker is returning part of their total loan to a maker, but the maker can't receive the tokens. Only case we can see: maker is blacklisted. In that case, we send the tokens to the vault, so things have a chance of getting sorted out later (Mangrove is a token black hole). */
     if (
       !transferToken(
         sor.inbound_tkn,
-        MP.offerDetail_unpack_maker(sor.offerDetail),
+        sor.offerDetail.maker(),
         sor.gives
       )
     ) {
       /* If that transfer fails there's nothing we can do -- reverting would punish the taker for the maker's blacklisting. */
       transferToken(sor.inbound_tkn, vault, sor.gives);
     }
-  }
+  }}
 
   /* # Flashloans */
   //+clear+
@@ -103,9 +104,9 @@ So :
     external
     override
     returns (uint gasused)
-  {
+  { unchecked {
     /* `invertedFlashloan` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would be fatal. */
     require(msg.sender == address(this), "mgv/invertedFlashloan/protected");
     gasused = makerExecute(sor);
-  }
+  }}
 }

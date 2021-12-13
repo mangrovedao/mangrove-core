@@ -1,10 +1,9 @@
 // SPDX-License-Identifier:	AGPL-3.0
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "./Passthrough.sol";
 import "../../AbstractMangrove.sol";
-import "../../MgvPack.sol";
 import "hardhat/console.sol";
 import {IERC20, IMaker} from "../../MgvLib.sol";
 import {Test as TestEvents} from "@giry/hardhat-test-solidity/test.sol";

@@ -9,11 +9,12 @@
 // 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../../CompoundTrader.sol";
 
 contract SwingingMarketMaker is CompoundTrader {
+  using P.Offer for P.Offer.t;
   event MissingPriceConverter(address token0, address token1);
   event NotEnoughProvision(uint amount);
 
@@ -46,8 +47,8 @@ contract SwingingMarketMaker is CompoundTrader {
   ) external payable onlyAdmin {
     MGV.fund{value: msg.value}();
     require(repostOffer(tk0, tk1, gives), "Could not start strategy");
-    IERC20(tk0).approve(address(MGV), uint(-1)); // approving MGV for tk0 transfer
-    IERC20(tk1).approve(address(MGV), uint(-1)); // approving MGV for tk1 transfer
+    IERC20(tk0).approve(address(MGV), type(uint).max); // approving MGV for tk0 transfer
+    IERC20(tk1).approve(address(MGV), type(uint).max); // approving MGV for tk1 transfer
   }
 
   // at this stage contract has `received` amount in token0
@@ -71,17 +72,20 @@ contract SwingingMarketMaker is CompoundTrader {
     uint offerId = offers[outbound_tkn][inbound_tkn];
     if (offerId == 0) {
       try
-        this.newOffer(outbound_tkn, inbound_tkn, wants, gives, OFR_GASREQ, 0, 0)
+        MGV.newOffer(outbound_tkn, inbound_tkn, wants, gives, OFR_GASREQ, 0, 0)
       returns (uint id) {
-        offers[outbound_tkn][inbound_tkn] = id;
-        return true;
-      } catch Error(string memory message) {
-        emit PosthookFail(outbound_tkn, inbound_tkn, offerId, message);
+        if (id > 0) {
+          offers[outbound_tkn][inbound_tkn] = id;
+          return true;
+        } else {
+          return false;
+        }
+      } catch {
         return false;
       }
     } else {
       try
-        this.updateOffer(
+        MGV.updateOffer(
           outbound_tkn,
           inbound_tkn,
           wants,
@@ -107,7 +111,7 @@ contract SwingingMarketMaker is CompoundTrader {
   {
     address token0 = order.outbound_tkn;
     address token1 = order.inbound_tkn;
-    uint offer_received = MP.offer_unpack_wants(order.offer); // amount with token1.decimals() decimals
+    uint offer_received = order.offer.wants(); // amount with token1.decimals() decimals
     repostOffer({
       outbound_tkn: token1,
       inbound_tkn: token0,

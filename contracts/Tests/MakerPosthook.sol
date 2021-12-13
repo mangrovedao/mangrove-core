@@ -1,5 +1,5 @@
 // SPDX-License-Identifier:	AGPL-3.0
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
 import "../AbstractMangrove.sol";
@@ -11,6 +11,11 @@ import "./Toolbox/TestUtils.sol";
 import "./Agents/TestToken.sol";
 
 contract MakerPosthook_Test is IMaker, HasMgvEvents {
+  using P.Offer for P.Offer.t;
+  using P.OfferDetail for P.OfferDetail.t;
+  using P.Global for P.Global.t;
+  using P.Local for P.Local.t;
+
   AbstractMangrove mgv;
   TestTaker tkr;
   TestToken baseT;
@@ -195,7 +200,7 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
 
     baseT.approve(address(mgv), 10 ether);
 
-    address(tkr).transfer(10 ether);
+    payable(tkr).transfer(10 ether);
     quoteT.mint(address(tkr), 1 ether);
     baseT.mint(address(this), 5 ether);
 
@@ -530,9 +535,9 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
     MgvLib.OrderResult calldata
   ) external {
     called = true;
-    (, bytes32 cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
+    (, P.Local.t cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
     TestEvents.eq(
-      MP.local_unpack_best(cfg),
+      cfg.best(),
       ofr,
       "Incorrect best offer id in posthook"
     );
@@ -561,12 +566,11 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
     MgvLib.OrderResult calldata
   ) external {
     called = true;
-    (, , uint __wants, uint __gives, uint __gasprice) = MgvPack.offer_unpack(
-      order.offer
-    );
-    (address __maker, uint __gasreq, , ) = MgvPack.offerDetail_unpack(
-      order.offerDetail
-    );
+    uint __wants = order.offer.wants();
+    uint __gives = order.offer.gives();
+    address __maker = order.offerDetail.maker();
+    uint __gasreq = order.offerDetail.gasreq();
+    uint __gasprice = order.offerDetail.gasprice();
     TestEvents.eq(__wants, 1 ether, "Incorrect wants for offer in posthook");
     TestEvents.eq(__gives, 2 ether, "Incorrect gives for offer in posthook");
     TestEvents.eq(__gasprice, 500, "Incorrect gasprice for offer in posthook");
@@ -587,9 +591,9 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
     MgvLib.OrderResult calldata
   ) external {
     called = true;
-    (, bytes32 cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
+    (, P.Local.t cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
     TestEvents.eq(
-      MP.local_unpack_last(cfg),
+      cfg.last(),
       ofr,
       "Incorrect last offer id in posthook"
     );

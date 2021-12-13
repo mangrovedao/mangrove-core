@@ -5,7 +5,7 @@
 // We can't even encode storage references without the experimental encoder
 pragma abicoder v2;
 
-pragma solidity ^0.7.4;
+pragma solidity ^0.8.10;
 import {Test as TestEvents} from "@giry/hardhat-test-solidity/test.sol";
 import "hardhat/console.sol";
 

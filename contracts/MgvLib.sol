@@ -14,48 +14,16 @@
 
 /* `MgvLib` contains data structures returned by external calls to Mangrove and the interfaces it uses for its own external calls. */
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "./IERC20.sol";
+import "./MgvPack.sol" as P;
 
 /* # Structs
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */
+
 library MgvLib {
-  struct Offer {
-    uint prev;
-    uint next;
-    uint wants;
-    uint gives;
-    uint gasprice;
-  }
-
-  struct OfferDetail {
-    address maker;
-    uint gasreq;
-    uint overhead_gasbase;
-    uint offer_gasbase;
-  }
-  struct Global {
-    address monitor;
-    bool useOracle;
-    bool notify;
-    uint gasprice;
-    uint gasmax;
-    bool dead;
-  }
-
-  struct Local {
-    bool active;
-    uint fee;
-    uint density;
-    uint overhead_gasbase;
-    uint offer_gasbase;
-    bool lock;
-    uint best;
-    uint last;
-  }
-
   /*
    Some miscellaneous data types useful to `Mangrove` and external contracts */
   //+clear+
@@ -65,14 +33,14 @@ library MgvLib {
     address outbound_tkn;
     address inbound_tkn;
     uint offerId;
-    bytes32 offer;
+    P.Offer.t offer;
     /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
     uint wants;
     uint gives;
     /* `offerDetail` is only populated when necessary. */
-    bytes32 offerDetail;
-    bytes32 global;
-    bytes32 local;
+    P.OfferDetail.t offerDetail;
+    P.Global.t global;
+    P.Local.t local;
   }
 
   /* <a id="MgvLib/OrderResult"></a> `OrderResult` holds additional data for the maker and is given to them _after_ they fulfilled an offer. It gives them their own returned data from the previous call, and an `mgvData` specifying whether the Mangrove encountered an error. */
@@ -111,7 +79,6 @@ contract HasMgvEvents {
   event SetGasbase(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
-    uint overhead_gasbase,
     uint offer_gasbase
   );
   event SetGovernance(address value);

@@ -48,7 +48,7 @@ abstract contract SingleUser is MangroveOffer {
     external
     override
     onlyAdmin
-    returns (bool noRevert)
+    returns (bool)
   {
     return _withdrawFromMangrove(receiver, amount);
   }
@@ -145,7 +145,7 @@ abstract contract SingleUser is MangroveOffer {
       );
   }
 
-  function __put__(uint amount, MgvLib.SingleOrder calldata)
+  function __put__(uint /*amount*/, MgvLib.SingleOrder calldata)
     internal
     virtual
     override

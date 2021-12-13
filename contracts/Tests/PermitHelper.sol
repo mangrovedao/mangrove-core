@@ -30,6 +30,7 @@ contract PermitHelper is IMaker {
 
   function makerExecute(ML.SingleOrder calldata)
     external
+    pure
     override
     returns (bytes32)
   {

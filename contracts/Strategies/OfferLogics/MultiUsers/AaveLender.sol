@@ -56,7 +56,7 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
     // need to retreive overlyings from msg.sender (we suppose `this` is approved for that)
     IERC20 aToken = overlying(IERC20(order.outbound_tkn));
     try aToken.transferFrom(owner, address(this), amount) returns (
-      bool success
+      bool 
     ) {
       if (aaveRedeem(amount, address(this), order) == 0) {
         // amount was transfered to `owner`

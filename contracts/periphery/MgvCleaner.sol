@@ -81,6 +81,7 @@ contract MgvCleaner {
     );
     require(successes == 0, "mgvCleaner/anOfferDidNotFail");
     bal = address(this).balance;
-    msg.sender.call{value: bal}("");
+    bool noRevert;
+    (noRevert, ) = msg.sender.call{value: bal}("");
   }}
 }

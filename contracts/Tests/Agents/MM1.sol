@@ -45,7 +45,7 @@ contract MM1 {
     doMakerPosthook();
   }
 
-  function makerExecute(DC.SingleOrder calldata) external returns (bytes32) {
+  function makerExecute(DC.SingleOrder calldata) external pure returns (bytes32) {
     return "";
   }
 

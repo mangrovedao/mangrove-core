@@ -82,7 +82,7 @@ contract MgvOracle is IMgvMonitor {
     lastReceivedGasPrice = gasPrice;
   }
 
-  function setDensity(uint density) private {
+  function setDensity(uint /*density*/) private view {
     // governance or mutator are allowed to update the density
     require(
       msg.sender == governance || msg.sender == mutator,
@@ -92,7 +92,7 @@ contract MgvOracle is IMgvMonitor {
     //NOTE: Not implemented, so not made external yet
   }
 
-  function read(address outbound_tkn, address inbound_tkn)
+  function read(address /*outbound_tkn*/, address /*inbound_tkn*/)
     external
     view
     override

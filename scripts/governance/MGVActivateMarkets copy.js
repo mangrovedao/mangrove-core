@@ -65,13 +65,16 @@ async function main() {
           overhead_gasbase,
           offer_gasbase
         );
+
         await overheadTx.wait();
+
         console.log(
           chalk.yellow("*"),
           `Setting (${outName},${inName}) overhead_gasbase to ${transferCostOf(
             inName
           )} gas units`
         );
+
         console.log(
           chalk.yellow("*"),
           `Setting (${outName},${inName}) offer_gasbase to ${

@@ -148,15 +148,17 @@ abstract contract MultiUser is MangroveOffer {
     override
     returns (bool noRevert)
   {
+    require(msg.sender != address(this), "MutliUser/noReentrancy");
     debitOnMgv(msg.sender, amount);
     return _withdrawFromMangrove(receiver, amount);
   }
 
-  function fundMangrove(address owner) external payable {
+  function fundMangrove() external payable override {
+    require(msg.sender != address(this), "MutliUser/noReentrancy");
     // increasing the provision of `this` contract
     MGV.fund{value: msg.value}();
     // increasing the virtual provision of owner
-    creditOnMgv(owner, msg.value);
+    creditOnMgv(msg.sender, msg.value);
   }
 
   function updateUserBalanceOnMgv(address user, uint mgvBalanceBefore)
@@ -182,6 +184,7 @@ abstract contract MultiUser is MangroveOffer {
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
   ) external payable override returns (uint offerId) {
+    require(msg.sender != address(this), "MutliUser/noReentrancy");
     uint weiBalanceBefore = MGV.balanceOf(address(this));
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();

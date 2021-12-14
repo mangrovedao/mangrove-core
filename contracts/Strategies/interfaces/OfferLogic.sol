@@ -67,6 +67,8 @@ interface OfferLogic is IMaker {
     external
     returns (bool noRevert);
 
+  function fundMangrove() external payable;
+
   function newOffer(
     address outbound_tkn, // address of the ERC20 contract managing outbound tokens
     address inbound_tkn, // address of the ERC20 contract managing outbound tokens

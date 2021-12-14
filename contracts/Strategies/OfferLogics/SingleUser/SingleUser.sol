@@ -39,15 +39,18 @@ abstract contract SingleUser is MangroveOffer {
     _approveMangrove(outbound_tkn, amount);
   }
 
+  function fundMangrove() external payable override {
+    MGV.fund{value: msg.value}();
+  }
+
   /// withdraws ETH from the bounty vault of the Mangrove.
-  /// NB: `Mangrove.fund` function need not be called by `this` so is not included here.
   function withdrawFromMangrove(address receiver, uint amount)
     external
     override
     onlyAdmin
     returns (bool noRevert)
   {
-    _withdrawFromMangrove(receiver, amount);
+    return _withdrawFromMangrove(receiver, amount);
   }
 
   // Posting a new offer on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
@@ -67,6 +70,9 @@ abstract contract SingleUser is MangroveOffer {
   ) external payable override onlyAdmin returns (uint offerId) {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
+    }
+    if (gasreq == type(uint).max) {
+      gasreq = OFR_GASREQ;
     }
     return
       MGV.newOffer(
@@ -94,6 +100,9 @@ abstract contract SingleUser is MangroveOffer {
   ) external payable override onlyAdmin {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
+    }
+    if (gasreq == type(uint).max) {
+      gasreq = OFR_GASREQ;
     }
     MGV.updateOffer(
       outbound_tkn,

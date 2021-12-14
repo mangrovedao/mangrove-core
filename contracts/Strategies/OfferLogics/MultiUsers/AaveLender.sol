@@ -26,13 +26,13 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
     _approveLender(token, amount);
   }
 
-  function mint(
-    uint amount,
-    address asset,
-    address onBehalf
-  ) external onlyAdmin {
-    _mint(amount, asset, onBehalf);
-  }
+  // function mint(
+  //   uint amount,
+  //   address asset,
+  //   address onBehalf
+  // ) external onlyAdmin {
+  //   _mint(amount, asset, onBehalf);
+  // }
 
   // tokens are fetched on Aave (on behalf of offer owner)
   function __get__(uint amount, MgvLib.SingleOrder calldata order)

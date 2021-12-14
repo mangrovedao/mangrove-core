@@ -44,7 +44,7 @@ async function deployStrat(mgv, reader, players) {
   let overrides = { value: lc.parseToken("2.0", 18) };
   mkrTxs[i++] = await offerProxy
     .connect(players.maker.signer)
-    .fundMangrove(players.maker.address, overrides);
+    .fundMangrove(overrides);
   // sanity check
   lc.assertEqualBN(
     await mgv.balanceOf(offerProxy.address),

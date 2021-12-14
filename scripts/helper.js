@@ -1,4 +1,5 @@
 const hre = require("hardhat");
+const { ethers } = require("../../mangrove.js/node_modules/ethers/lib");
 
 function getProvider() {
   const url = hre.network.config.url;
@@ -51,6 +52,9 @@ function getAave() {
     env,
     `aave.addressesProviderAbi`
   ));
+  const priceOracleAddr = tryGet(env, `aave.priceOracleAddress`);
+  const priceOracleAbi = require(tryGet(env, `aave.priceOracleAbi`));
+
   const provider = getProvider();
   const aave = {};
   for (const name of ["wEth", "usdc", "dai"]) {
@@ -70,6 +74,11 @@ function getAave() {
   aave.addressesProvider = new ethers.Contract(
     addressesProviderAddr,
     addressesProviderAbi,
+    provider
+  );
+  aave.priceOracle = new ethers.Contract(
+    priceOracleAddr,
+    priceOracleAbi,
     provider
   );
   return aave;

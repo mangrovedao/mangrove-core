@@ -55,9 +55,8 @@ async function main() {
   ] of tokenParams) {
     for (const [inbound_tkn, inName] of tokenParams) {
       if (outbound_tkn != inbound_tkn) {
-        const overhead_gasbase = ethers.BigNumber.from(transferCostOf(inName));
         const offer_gasbase = ethers.BigNumber.from(
-          transferCostOf(inName) + transferCostOf(outName)
+          (transferCostOf(inName) + transferCostOf(outName)) * 2
         );
         const overheadTx = await mgv.contract.setGasbase(
           outbound_tkn,

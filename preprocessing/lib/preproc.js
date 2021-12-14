@@ -67,24 +67,24 @@ const preamble = `
 function uint_of_bool(bool b) pure returns (uint u) {
   assembly { u := b }
 }
-`
+`;
 
-const precast = (type,val) => {
+const precast = (type, val) => {
   if (type === "address") {
     return `uint160(${val})`;
   } else if (type === "bool") {
-    return `uint_of_bool(${val})`; 
+    return `uint_of_bool(${val})`;
   } else {
     return val;
   }
-}
+};
 
 // prints setter for a single field
 const set1 = (ptr, struct_def, _name, val) => {
   const msk = mask(struct_def, _name);
   const left = before(struct_def, _name) + after(struct_def, _name);
   const right = before(struct_def, _name);
-  const inner = precast(type_of(struct_def, _name),val);
+  const inner = precast(type_of(struct_def, _name), val);
   return `(${ptr} & bytes32(${msk}) | bytes32((uint(${inner}) << ${left}) >> ${right}))`;
 };
 
@@ -99,7 +99,7 @@ const set = (ptr, struct_def, values) => {
 const set1_unsafe = (ptr, struct_def, _name, val) => {
   const left = before(struct_def, _name) + after(struct_def, _name);
   const right = before(struct_def, _name);
-  const inner = precast(type_of(struct_def, _name),val);
+  const inner = precast(type_of(struct_def, _name), val);
   return `(${ptr} | bytes32((uint(${inner}) << ${left}) >> ${right}))`;
 };
 
@@ -112,14 +112,22 @@ const make = (struct_def, values) => {
 // validate struct_def: total size is <256 bits, each bitsize is divisible by 4 (since bitmasks work at the nibble granularity level).
 const validate = (sname, struct_def) => {
   const red = (acc, field) => {
-    if (!["uint","address","bool"].includes(field.type)) {
-      throw new Error(`bad field ${util.inspect(field)}, only allowed types are uint,address and bool`);
+    if (!["uint", "address", "bool"].includes(field.type)) {
+      throw new Error(
+        `bad field ${util.inspect(
+          field
+        )}, only allowed types are uint,address and bool`
+      );
     }
     if (field.type === "address" && field.bits !== 160) {
-      throw new Error(`bad field ${util.inspect(field)}, addresses must have 160 bits`);
+      throw new Error(
+        `bad field ${util.inspect(field)}, addresses must have 160 bits`
+      );
     }
     if (field.type === "bool" && field.bits !== 8) {
-      throw new Error(`bad field ${util.inspect(field)}, bools must have 8 bits`);
+      throw new Error(
+        `bad field ${util.inspect(field)}, bools must have 8 bits`
+      );
     }
     if (field.bits % 4 != 0) {
       throw new Error(
@@ -154,6 +162,7 @@ exports.structs_with_macros = (obj_struct_defs) => {
     f_bits: (field) => field.bits,
     f_type: (field) => field.type,
     // utility methods
+    // solpp's default capitalize removes other capital letters in the word
     capitalize: (s) => s.slice(0, 1).toUpperCase() + s.slice(1),
   };
 

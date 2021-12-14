@@ -53,7 +53,10 @@ function getAave() {
     `aave.addressesProviderAbi`
   ));
   const priceOracleAddr = tryGet(env, `aave.priceOracleAddress`);
-  const priceOracleAbi = require(tryGet(env, `aave.priceOracleAbi`));
+  const priceOracleAbi = require(tryGet(
+    env,
+    `aave.priceOracleAbi`
+  ));
 
   const provider = getProvider();
   const aave = {};

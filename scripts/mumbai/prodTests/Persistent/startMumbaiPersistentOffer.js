@@ -67,7 +67,7 @@ async function main() {
 
     for (const [inbound_tkn, inName, inDecimals, inTknInUSD] of tokenParams) {
       if (outbound_tkn.address != inbound_tkn.address) {
-        const mkr = await MgvJS.simpleMakerConnect({
+        const mkr = await MgvJS.MakerConnect({
           address: repostLogic.address,
           base: outName,
           quote: inName,

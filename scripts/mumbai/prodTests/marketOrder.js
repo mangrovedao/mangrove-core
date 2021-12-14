@@ -27,7 +27,7 @@ async function main() {
   MgvJS._provider.pollingInterval = 250;
 
   const market = await MgvJS.market({ base: "WETH", quote: "USDC" });
-  prettyPrintBook(await market.book());
+  market.prettyPrint();
 
   const tx = await MgvJS.token("USDC").approveMgv();
   await tx.wait();

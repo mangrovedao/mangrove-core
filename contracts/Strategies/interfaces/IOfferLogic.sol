@@ -3,7 +3,7 @@ pragma abicoder v2;
 
 import "../../MgvLib.sol";
 
-interface OfferLogic is IMaker {
+interface IOfferLogic is IMaker {
   ///////////////////
   // MangroveOffer //
   ///////////////////

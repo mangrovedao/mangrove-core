@@ -850,7 +850,7 @@ __metadata:
     "@giry/commonlib-js": "workspace:*"
     "@giry/hardhat-utils": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
-    "@giry/mangrove.js": "workspace:*"
+    "@mangrovedao/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.22
@@ -1029,67 +1029,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@giry/mangrove.js@workspace:*, @giry/mangrove.js@workspace:packages/mangrove.js":
-  version: 0.0.0-use.local
-  resolution: "@giry/mangrove.js@workspace:packages/mangrove.js"
-  dependencies:
-    "@espendk/json-file-reporter": ^1.4.2
-    "@ethersproject/abi": ^5.0.0
-    "@ethersproject/bytes": ^5.0.0
-    "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.0.0
-    "@ethersproject/providers": ^5.0.0
-    "@giry/hardhat-utils": "workspace:*"
-    "@giry/mangrove-solidity": "workspace:*"
-    "@nomiclabs/hardhat-ethers": ^2.0.2
-    "@rollup/plugin-commonjs": ^20.0.0
-    "@rollup/plugin-json": ^4.1.0
-    "@rollup/plugin-node-resolve": ^9.0.0
-    "@typechain/ethers-v5": ^8.0.2
-    "@types/big.js": ^6.1.1
-    "@types/chai-as-promised": ^7.1.4
-    "@types/mocha": ^8.2.0
-    "@types/node": ^14.0.11
-    "@types/shelljs": ^0.8.9
-    "@types/yargs": ^17.0.7
-    "@typescript-eslint/eslint-plugin": ^4.31.1
-    "@typescript-eslint/parser": ^4.2.0
-    big.js: ^6.1.1
-    chai: ^4.3.4
-    chai-as-promised: ^7.1.1
-    chalk: ^4.1.2
-    config: ^3.3.6
-    cross-env: ^7.0.3
-    dir-compare: ^3.3.0
-    docblock-parser: ^1.0.0
-    dotenv-flow: ^3.2.0
-    eslint: ^7.9.0
-    ethers: ^5.4.6
-    hardhat: ^2.6.1
-    hardhat-deploy: ^0.9.1
-    hardhat-deploy-ethers: ^0.3.0-beta.10
-    lint-staged: ^10.5.1
-    mocha: ^8.2.1
-    mocha-multi-reporters: ^1.5.1
-    npm-run-all: ^4.1.5
-    nyc: ^15.1.0
-    prettier: ^2.4.1
-    rimraf: ^3.0.2
-    rollup: ^2.57.0
-    rollup-plugin-terser: ^7.0.2
-    seedrandom: ^3.0.5
-    shelljs: ^0.8.4
-    ts-essentials: ^8.1.0
-    ts-node: ^9.1.1
-    typechain: ^6.0.2
-    typedoc: ^0.22.3
-    typescript: ^4.4.0
-    yargs: ^17.3.0
-  bin:
-    mgv: ./cli/mgv.ts
-  languageName: unknown
-  linkType: soft
-
 "@giry/obfiller-bot@workspace:packages/obfiller-bot":
   version: 0.0.0-use.local
   resolution: "@giry/obfiller-bot@workspace:packages/obfiller-bot"
@@ -1100,7 +1039,7 @@ __metadata:
     "@giry/commonlib-js": "workspace:*"
     "@giry/hardhat-utils": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
-    "@giry/mangrove.js": "workspace:*"
+    "@mangrovedao/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.22
@@ -1149,7 +1088,7 @@ __metadata:
     "@giry/commonlib-js": "workspace:*"
     "@giry/hardhat-utils": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
-    "@giry/mangrove.js": "workspace:*"
+    "@mangrovedao/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.21
@@ -1197,7 +1136,7 @@ __metadata:
     "@giry/commonlib-js": "workspace:*"
     "@giry/hardhat-utils": "workspace:*"
     "@giry/mangrove-solidity": "workspace:*"
-    "@giry/mangrove.js": "workspace:*"
+    "@mangrovedao/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.21
@@ -1394,6 +1333,67 @@ __metadata:
   checksum: ad2e2f0f52ef2c921ccd19e4e65911d661fe625880f9358dc7cde5375d2a3fbc30bc0af6f1d219887878366e814e05b5008e924bfcabf35880c927909dd20b83
   languageName: node
   linkType: hard
+
+"@mangrovedao/mangrove.js@workspace:*, @mangrovedao/mangrove.js@workspace:packages/mangrove.js":
+  version: 0.0.0-use.local
+  resolution: "@mangrovedao/mangrove.js@workspace:packages/mangrove.js"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.2
+    "@ethersproject/abi": ^5.0.0
+    "@ethersproject/bytes": ^5.0.0
+    "@ethersproject/experimental": ^5.5.0
+    "@ethersproject/hardware-wallets": ^5.0.0
+    "@ethersproject/providers": ^5.0.0
+    "@giry/hardhat-utils": "workspace:*"
+    "@giry/mangrove-solidity": "workspace:*"
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@rollup/plugin-commonjs": ^20.0.0
+    "@rollup/plugin-json": ^4.1.0
+    "@rollup/plugin-node-resolve": ^9.0.0
+    "@typechain/ethers-v5": ^8.0.2
+    "@types/big.js": ^6.1.1
+    "@types/chai-as-promised": ^7.1.4
+    "@types/mocha": ^8.2.0
+    "@types/node": ^14.0.11
+    "@types/shelljs": ^0.8.9
+    "@types/yargs": ^17.0.7
+    "@typescript-eslint/eslint-plugin": ^4.31.1
+    "@typescript-eslint/parser": ^4.2.0
+    big.js: ^6.1.1
+    chai: ^4.3.4
+    chai-as-promised: ^7.1.1
+    chalk: ^4.1.2
+    config: ^3.3.6
+    cross-env: ^7.0.3
+    dir-compare: ^3.3.0
+    docblock-parser: ^1.0.0
+    dotenv-flow: ^3.2.0
+    eslint: ^7.9.0
+    ethers: ^5.4.6
+    hardhat: ^2.6.1
+    hardhat-deploy: ^0.9.1
+    hardhat-deploy-ethers: ^0.3.0-beta.10
+    lint-staged: ^10.5.1
+    mocha: ^8.2.1
+    mocha-multi-reporters: ^1.5.1
+    npm-run-all: ^4.1.5
+    nyc: ^15.1.0
+    prettier: ^2.4.1
+    rimraf: ^3.0.2
+    rollup: ^2.57.0
+    rollup-plugin-terser: ^7.0.2
+    seedrandom: ^3.0.5
+    shelljs: ^0.8.4
+    ts-essentials: ^8.1.0
+    ts-node: ^9.1.1
+    typechain: ^6.0.2
+    typedoc: ^0.22.3
+    typescript: ^4.4.0
+    yargs: ^17.3.0
+  bin:
+    mgv: ./cli/mgv.ts
+  languageName: unknown
+  linkType: soft
 
 "@nodelib/fs.scandir@npm:2.1.5":
   version: 2.1.5

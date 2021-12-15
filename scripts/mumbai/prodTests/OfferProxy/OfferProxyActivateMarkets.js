@@ -1,10 +1,14 @@
 const hre = require("hardhat");
-const helper = require("../helper");
-const { Mangrove } = require("../../../mangrove.js");
+const helper = require("../../../helper");
+const { Mangrove } = require("../../../../../mangrove.js");
 const chalk = require("chalk");
 
 async function main() {
   const offerProxy = await hre.ethers.getContract("OfferProxy");
+  await offerProxy.setGasreq(ethers.BigNumber.from(800000));
+  console.log(
+    `* Set gas required of offer proxy to ${await offerProxy.OFR_GASREQ()}`
+  );
 
   const weth = helper.contractOfToken("wEth").connect(offerProxy.signer);
   const mgv = await helper.getMangrove();

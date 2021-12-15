@@ -4,19 +4,19 @@
   "native": "MATIC",
   "USDC": {
       "price": "0.54",
-      "transferCost": "27000"
+      "transferCost": "52000"
   },
   "DAI": {
     "price": "0.54",
-    "transferCost": "27000"
+    "transferCost": "52000"
   },
   "WETH":{
     "price": "2103.69",
-    "transferCost": "27000"
+    "transferCost": "52000"
   },
   "Mangrove":{
     "gasprice": "30",
-    "coverFactor": "50",
+    "coverFactor": "100",
     "defaultFee": "0",
     "gasbase" : "20000"
   }

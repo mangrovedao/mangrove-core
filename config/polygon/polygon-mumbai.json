@@ -35,6 +35,8 @@
         "addressesProviderAbi": "config/polygon/abis/addressesProvider-abi.json",
         "lendingPoolAddress": "0x9198F13B08E299d85E096929fA9781A1E3d5d827",
         "lendingPoolAbi": "config/polygon/abis/lendingPool-abi.json",
+        "priceOracleAddress": "0xC365C653f7229894F93994CD0b30947Ab69Ff1D5",
+        "priceOracleAbi": "config/polygon/abis/priceOracle-abi.json",
         "dai": {
             "address":"0x639cB7b21ee2161DF9c882483C9D55c90c20Ca3e",
             "abi":"config/polygon/abis/aToken-abi.json"

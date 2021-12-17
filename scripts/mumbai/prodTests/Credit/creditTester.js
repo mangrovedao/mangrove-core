@@ -12,7 +12,7 @@ async function main() {
 
   for (const name of ["wEth", "dai", "usdc"]) {
     let decimals = 18;
-    let amount = "100000";
+    let amount = "10000";
     if (name == "usdc") {
       decimals = 6;
     }

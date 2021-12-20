@@ -50,7 +50,7 @@ const get = (ptr, struct_def, _name) => {
   if (type === "address") {
     return `${type}(uint160(${inner}))`;
   } else if (type === "bool") {
-    return `(${inner} > 0)`;
+    return `((${inner}) > 0)`;
   } else {
     return `${type}(${inner})`;
   }
@@ -71,7 +71,7 @@ function uint_of_bool(bool b) pure returns (uint u) {
 
 const precast = (type, val) => {
   if (type === "address") {
-    return `uint160(${val})`;
+    return `uint(uint160(${val}))`;
   } else if (type === "bool") {
     return `uint_of_bool(${val})`;
   } else {
@@ -100,7 +100,7 @@ const set1_unsafe = (ptr, struct_def, _name, val) => {
   const left = before(struct_def, _name) + after(struct_def, _name);
   const right = before(struct_def, _name);
   const inner = precast(type_of(struct_def, _name), val);
-  return `(${ptr} | bytes32((uint(${inner}) << ${left}) >> ${right}))`;
+  return `(${ptr} | bytes32((${inner} << ${left}) >> ${right}))`;
 };
 
 const make = (struct_def, values) => {

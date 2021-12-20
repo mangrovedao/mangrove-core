@@ -51,7 +51,7 @@ contract MgvRoot is HasMgvEvents {
   address public vault;
 
   /* Global mgv configuration, encoded in a 256 bits word. The information encoded is detailed in [`structs.js`](#structs.js). */
-  P.Global.t internal global;
+  P.Global.t internal internal_global;
   /* Configuration mapping for each token pair of the form `outbound_tkn => inbound_tkn => P.Local.t`. The structure of each `P.Local.t` value is detailed in [`structs.js`](#structs.js). It fits in one word. */
   mapping(address => mapping(address => P.Local.t)) internal locals;
 
@@ -72,7 +72,7 @@ contract MgvRoot is HasMgvEvents {
     view
     returns (P.Global.t _global, P.Local.t _local)
   { unchecked {
-    _global = global;
+    _global = internal_global;
     _local = locals[outbound_tkn][inbound_tkn];
     if (_global.useOracle()) {
       (uint gasprice, uint density) = IMgvMonitor(_global.monitor())
@@ -84,6 +84,17 @@ contract MgvRoot is HasMgvEvents {
         _local = _local.density(density);
       }
     }
+  }}
+
+  /* Returns the configuration in an ABI-compatible struct. Should not be called internally, would be a huge memory copying waste. Use `config` instead. */
+  function configInfo(address outbound_tkn, address inbound_tkn)
+    external
+    view
+    returns (P.GlobalStruct memory global, P.LocalStruct memory local)
+  { unchecked {
+    (P.Global.t _global, P.Local.t _local) = config(outbound_tkn, inbound_tkn);
+    global = _global.to_struct();
+    local = _local.to_struct();
   }}
 
   /* Convenience function to check whether given pair is locked */

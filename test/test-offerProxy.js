@@ -135,7 +135,7 @@ describe("Deploy offerProxy", function () {
     //listenMgv(mgv);
 
     await lc.activateMarket(mgv, dai.address, wEth.address);
-    let [, local] = await reader.config(dai.address, wEth.address);
+    let [, local] = await mgv.configInfo(dai.address, wEth.address);
     assert(local.active, "Market is inactive");
   });
 

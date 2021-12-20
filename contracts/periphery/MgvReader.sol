@@ -188,15 +188,4 @@ contract MgvReader {
       _gp *
       10**9;
   }}
-
-  /* Returns the configuration in an ABI-compatible struct. Should not be called internally, would be a huge memory copying waste. Use `config` instead. */
-  function config(address outbound_tkn, address inbound_tkn)
-    external
-    view
-    returns (P.GlobalStruct memory global, P.LocalStruct memory local)
-  { unchecked {
-    (P.Global.t _global, P.Local.t _local) = mgv.config(outbound_tkn, inbound_tkn);
-    global = _global.to_struct();
-    local = _local.to_struct();
-  }}
 }

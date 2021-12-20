@@ -131,7 +131,7 @@ contract MgvGovernable is MgvRoot {
   /* ### `kill` */
   function kill() public { unchecked {
     authOnly();
-    global = global.dead(true);
+    internal_global = internal_global.dead(true);
     emit Kill();
   }}
 
@@ -143,7 +143,7 @@ contract MgvGovernable is MgvRoot {
 
     //+clear+
 
-    global = global.gasprice(gasprice);
+    internal_global = internal_global.gasprice(gasprice);
     emit SetGasprice(gasprice);
   }}
 
@@ -153,7 +153,7 @@ contract MgvGovernable is MgvRoot {
     /* Since any new `gasreq` is bounded above by `config.gasmax`, this check implies that all offers' `gasreq` is 24 bits wide at most. */
     require(uint24(gasmax) == gasmax, "mgv/config/gasmax/24bits");
     //+clear+
-    global = global.gasmax(gasmax);
+    internal_global = internal_global.gasmax(gasmax);
     emit SetGasmax(gasmax);
   }}
 
@@ -174,21 +174,21 @@ contract MgvGovernable is MgvRoot {
   /* ### `monitor` */
   function setMonitor(address monitor) public { unchecked {
     authOnly();
-    global = global.monitor(monitor);
+    internal_global = internal_global.monitor(monitor);
     emit SetMonitor(monitor);
   }}
 
   /* ### `useOracle` */
   function setUseOracle(bool useOracle) public { unchecked {
     authOnly();
-    global = global.useOracle(useOracle);
+    internal_global = internal_global.useOracle(useOracle);
     emit SetUseOracle(useOracle);
   }}
 
   /* ### `notify` */
   function setNotify(bool notify) public { unchecked {
     authOnly();
-    global = global.notify(notify);
+    internal_global = internal_global.notify(notify);
     emit SetNotify(notify);
   }}
 }

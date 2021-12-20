@@ -33,7 +33,7 @@ interface MangroveLike {
     address,
     address,
     uint
-  ) external view returns (bytes32);
+  ) external view returns (P.OfferDetail.t);
 
   function offerInfo(
     address,
@@ -101,7 +101,7 @@ contract MgvReader {
       uint,
       uint[] memory,
       P.Offer.t[] memory,
-      bytes32[] memory
+      P.OfferDetail.t[] memory
     )
   { unchecked {
     (uint currentId, uint length) = offerListEndPoints(
@@ -113,7 +113,7 @@ contract MgvReader {
 
     uint[] memory offerIds = new uint[](length);
     P.Offer.t[] memory offers = new P.Offer.t[](length);
-    bytes32[] memory details = new bytes32[](length);
+    P.OfferDetail.t[] memory details = new P.OfferDetail.t[](length);
 
     uint i = 0;
 

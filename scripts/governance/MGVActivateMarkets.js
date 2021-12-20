@@ -56,14 +56,23 @@ async function main() {
     for (const [inbound_tkn, inName] of tokenParams) {
       if (outbound_tkn != inbound_tkn) {
         const offer_gasbase = ethers.BigNumber.from(
-          transferCostOf(inName) + transferCostOf(outName)
+          (transferCostOf(inName) + transferCostOf(outName)) * 2
         );
         const overheadTx = await mgv.contract.setGasbase(
           outbound_tkn,
           inbound_tkn,
           offer_gasbase
         );
+
         await overheadTx.wait();
+
+        console.log(
+          chalk.yellow("*"),
+          `Setting (${outName},${inName}) overhead_gasbase to ${transferCostOf(
+            inName
+          )} gas units`
+        );
+
         console.log(
           chalk.yellow("*"),
           `Setting (${outName},${inName}) offer_gasbase to ${

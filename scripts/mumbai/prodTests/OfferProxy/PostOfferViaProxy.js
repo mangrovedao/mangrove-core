@@ -1,7 +1,8 @@
 const hre = require("hardhat");
 const helper = require("../helper");
 const lc = require("../../lib/libcommon");
-const { Mangrove } = require("../../../mangrove.js");
+const { Mangrove } = require("../../../mangrove.js/dist/nodejs/index.js");
+const chalk = require("chalk");
 
 async function main() {
   if (!process.env["MUMBAI_TESTER_PRIVATE_KEY"]) {
@@ -13,16 +14,7 @@ async function main() {
     helper.getProvider()
   );
 
-  // if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
-  //   console.error("No tester account defined");
-  // }
-
-  // const walletDeployer = new ethers.Wallet(
-  //   process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"],
-  //   helper.getProvider()
-  // );
-
-  const repostLogic = await hre.ethers.getContract("Reposting");
+  const offerProxy = await hre.ethers.getContract("OfferProxy");
 
   // const adminTx = await repostLogic.connect(walletDeployer).setAdmin(wallet.address);
   // await adminTx.wait();
@@ -31,6 +23,7 @@ async function main() {
     provider: hre.network.config.url,
     signer: wallet,
   });
+
   // const { readOnly, signer } = await eth._createSigner(options); // returns a provider equipped signer
   // const network = await Eth.getProviderNetwork(signer.provider);
 
@@ -50,44 +43,40 @@ async function main() {
   // const ofr_gasprice = ethers.BigNumber.from(0);
   // const ofr_pivot = ethers.BigNumber.from(0);
 
-  const fundTx = await MgvJS.fund(repostLogic.address, 1);
-  await fundTx.wait();
   const overrides = { gasLimit: 200000 };
-  const volume = 10000;
+  const gasreq = await offerProxy.OFR_GASREQ();
+  const volume = 1000;
+  const mgvContracts = await helper.getMangrove();
+  const badReader = MgvJS.readerContract;
+  const goodReader = mgvContracts.reader;
+  const aave = helper.getAave();
 
   for (const [outbound_tkn, outName, outDecimals, outTknInUSD] of tokenParams) {
-    const tx = await repostLogic
+    await aave[outName]
       .connect(wallet)
-      .approveMangrove(
-        outbound_tkn.address,
-        ethers.constants.MaxUint256,
-        overrides
-      );
-    await tx.wait();
+      .approve(offerProxy.address, ethers.constants.MaxUint256);
+    console.log(
+      `* User`,
+      chalk.gray(`${wallet.address}`),
+      `approves OfferProxy`,
+      chalk.gray(`${offerProxy.address}`),
+      `for am-${outName} transfer`
+    );
 
     for (const [inbound_tkn, inName, inDecimals, inTknInUSD] of tokenParams) {
       if (outbound_tkn.address != inbound_tkn.address) {
-        const mkr = await MgvJS.simpleMakerConnect({
-          address: repostLogic.address,
+        const mkr = await MgvJS.MakerConnect({
+          address: offerProxy.address,
           base: outName,
           quote: inName,
         });
+        const fundTx = await mkr.fundMangrove(0.1);
+        await fundTx.wait();
 
-        const transferTx = await outbound_tkn.transfer(
-          repostLogic.address,
-          MgvJS.toUnits(volume / outTknInUSD, outName),
-          overrides
-        );
-        await transferTx.wait();
-        console.log(
-          `* Transferred ${
-            volume / outTknInUSD
-          } ${outName} to persistent offer logic`
-        );
         // will hang if pivot ID not correctly evaluated
         const { id: ofrId } = await mkr.newAsk(
           {
-            wants: (volume + 10) / inTknInUSD,
+            wants: (volume + 20) / inTknInUSD,
             gives: volume / outTknInUSD,
           },
           overrides
@@ -96,9 +85,6 @@ async function main() {
         console.log(
           `* Posting new persistent offer ${ofrId} on (${outName},${inName}) Offer List`
         );
-        const mgvContracts = await helper.getMangrove();
-        const badReader = MgvJS.readerContract;
-        const goodReader = mgvContracts.reader;
         const book = await goodReader.offerList(
           outbound_tkn.address,
           inbound_tkn.address,

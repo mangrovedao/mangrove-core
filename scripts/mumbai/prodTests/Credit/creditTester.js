@@ -1,5 +1,5 @@
 //const hre = require("hardhat");
-const helper = require("../helper");
+const helper = require("../../../helper");
 
 async function main() {
   if (!process.env["MUMBAI_TESTER_PRIVATE_KEY"]) {

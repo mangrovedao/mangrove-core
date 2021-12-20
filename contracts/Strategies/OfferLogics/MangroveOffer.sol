@@ -15,12 +15,12 @@ import "../lib/AccessControlled.sol";
 import "../lib/Exponential.sol";
 import "../lib/TradeHandler.sol";
 import "../lib/consolerr/consolerr.sol";
-import "../interfaces/OfferLogic.sol";
+import "../interfaces/IOfferLogic.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract MangroveOffer is
   AccessControlled,
-  OfferLogic,
+  IOfferLogic,
   TradeHandler,
   Exponential
 {

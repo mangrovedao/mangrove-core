@@ -94,25 +94,25 @@ library Offer {
     return uint(uint((t.unwrap(__packed) << 0)) >> 224);
   }}
   function prev(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff) | bytes32((uint(val) << 224) >> 0)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff) | bytes32((val << 224) >> 0)));
   }}
   function next(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 32)) >> 224);
   }}
   function next(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff) | bytes32((uint(val) << 224) >> 32)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff) | bytes32((val << 224) >> 32)));
   }}
   function wants(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 64)) >> 160);
   }}
   function wants(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffff000000000000000000000000ffffffffffffffffffffffff) | bytes32((uint(val) << 160) >> 64)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffff000000000000000000000000ffffffffffffffffffffffff) | bytes32((val << 160) >> 64)));
   }}
   function gives(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 160)) >> 160);
   }}
   function gives(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffff000000000000000000000000) | bytes32((uint(val) << 160) >> 160)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffff000000000000000000000000) | bytes32((val << 160) >> 160)));
   }}
 }
 
@@ -150,25 +150,25 @@ library OfferDetail {
     return address(uint160(uint((t.unwrap(__packed) << 0)) >> 96));
   }}
   function maker(t __packed,address val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0x0000000000000000000000000000000000000000ffffffffffffffffffffffff) | bytes32((uint(uint(uint160(val))) << 96) >> 0)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0x0000000000000000000000000000000000000000ffffffffffffffffffffffff) | bytes32((uint(uint160(val)) << 96) >> 0)));
   }}
   function gasreq(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 160)) >> 232);
   }}
   function gasreq(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffff000000ffffffffffffffffff) | bytes32((uint(val) << 232) >> 160)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffff000000ffffffffffffffffff) | bytes32((val << 232) >> 160)));
   }}
   function offer_gasbase(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 184)) >> 232);
   }}
   function offer_gasbase(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffffff000000ffffffffffff) | bytes32((uint(val) << 232) >> 184)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffffff000000ffffffffffff) | bytes32((val << 232) >> 184)));
   }}
   function gasprice(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 208)) >> 240);
   }}
   function gasprice(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffffffffffff0000ffffffff) | bytes32((uint(val) << 240) >> 208)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffffffffffff0000ffffffff) | bytes32((val << 240) >> 208)));
   }}
 }
 
@@ -210,37 +210,37 @@ library Global {
     return address(uint160(uint((t.unwrap(__packed) << 0)) >> 96));
   }}
   function monitor(t __packed,address val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0x0000000000000000000000000000000000000000ffffffffffffffffffffffff) | bytes32((uint(uint(uint160(val))) << 96) >> 0)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0x0000000000000000000000000000000000000000ffffffffffffffffffffffff) | bytes32((uint(uint160(val)) << 96) >> 0)));
   }}
   function useOracle(t __packed) internal pure returns(bool) { unchecked {
     return ((uint((t.unwrap(__packed) << 160)) >> 248) > 0);
   }}
   function useOracle(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffff00ffffffffffffffffffffff) | bytes32((uint(uint_of_bool(val)) << 248) >> 160)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffff00ffffffffffffffffffffff) | bytes32((uint_of_bool(val) << 248) >> 160)));
   }}
   function notify(t __packed) internal pure returns(bool) { unchecked {
     return ((uint((t.unwrap(__packed) << 168)) >> 248) > 0);
   }}
   function notify(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffff00ffffffffffffffffffff) | bytes32((uint(uint_of_bool(val)) << 248) >> 168)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffff00ffffffffffffffffffff) | bytes32((uint_of_bool(val) << 248) >> 168)));
   }}
   function gasprice(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 176)) >> 240);
   }}
   function gasprice(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffff0000ffffffffffffffff) | bytes32((uint(val) << 240) >> 176)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffff0000ffffffffffffffff) | bytes32((val << 240) >> 176)));
   }}
   function gasmax(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 192)) >> 232);
   }}
   function gasmax(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffffffff000000ffffffffff) | bytes32((uint(val) << 232) >> 192)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffffffff000000ffffffffff) | bytes32((val << 232) >> 192)));
   }}
   function dead(t __packed) internal pure returns(bool) { unchecked {
     return ((uint((t.unwrap(__packed) << 216)) >> 248) > 0);
   }}
   function dead(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffffffffffffff00ffffffff) | bytes32((uint(uint_of_bool(val)) << 248) >> 216)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffffffffffffff00ffffffff) | bytes32((uint_of_bool(val) << 248) >> 216)));
   }}
 }
 
@@ -284,42 +284,42 @@ library Local {
     return ((uint((t.unwrap(__packed) << 0)) >> 248) > 0);
   }}
   function active(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff) | bytes32((uint(uint_of_bool(val)) << 248) >> 0)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff) | bytes32((uint_of_bool(val) << 248) >> 0)));
   }}
   function fee(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 8)) >> 240);
   }}
   function fee(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xff0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff) | bytes32((uint(val) << 240) >> 8)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xff0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff) | bytes32((val << 240) >> 8)));
   }}
   function density(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 24)) >> 144);
   }}
   function density(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffff0000000000000000000000000000ffffffffffffffffffffffffffffff) | bytes32((uint(val) << 144) >> 24)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffff0000000000000000000000000000ffffffffffffffffffffffffffffff) | bytes32((val << 144) >> 24)));
   }}
   function offer_gasbase(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 136)) >> 232);
   }}
   function offer_gasbase(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffff000000ffffffffffffffffffffffff) | bytes32((uint(val) << 232) >> 136)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffff000000ffffffffffffffffffffffff) | bytes32((val << 232) >> 136)));
   }}
   function lock(t __packed) internal pure returns(bool) { unchecked {
     return ((uint((t.unwrap(__packed) << 160)) >> 248) > 0);
   }}
   function lock(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffff00ffffffffffffffffffffff) | bytes32((uint(uint_of_bool(val)) << 248) >> 160)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffff00ffffffffffffffffffffff) | bytes32((uint_of_bool(val) << 248) >> 160)));
   }}
   function best(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 168)) >> 224);
   }}
   function best(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff) | bytes32((uint(val) << 224) >> 168)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff) | bytes32((val << 224) >> 168)));
   }}
   function last(t __packed) internal pure returns(uint) { unchecked {
     return uint(uint((t.unwrap(__packed) << 200)) >> 224);
   }}
   function last(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff) | bytes32((uint(val) << 224) >> 200)));
+    return t.wrap((t.unwrap(__packed) & bytes32(0xffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff) | bytes32((val << 224) >> 200)));
   }}
 }

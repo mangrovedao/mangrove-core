@@ -85,7 +85,7 @@ const set1 = (ptr, struct_def, _name, val) => {
   const left = before(struct_def, _name) + after(struct_def, _name);
   const right = before(struct_def, _name);
   const inner = precast(type_of(struct_def, _name), val);
-  return `(${ptr} & bytes32(${msk}) | bytes32((uint(${inner}) << ${left}) >> ${right}))`;
+  return `(${ptr} & bytes32(${msk}) | bytes32((${inner} << ${left}) >> ${right}))`;
 };
 
 // prints setter for multiple fields

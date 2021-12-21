@@ -1,8 +1,8 @@
 const hre = require("hardhat");
-const helper = require("../helper");
-const { logOrderBook } = require("../../lib/libcommon");
+const helper = require("../../../helper");
+//const { logOrderBook } = require("../../lib/libcommon");
 const chalk = require("chalk");
-const { NonceManager } = require("@ethersproject/experimental");
+const { Mangrove } = require("../../../../../mangrove.js");
 
 async function main() {
   if (!process.env["MUMBAI_TESTER_PRIVATE_KEY"]) {
@@ -12,81 +12,44 @@ async function main() {
     process.env["MUMBAI_TESTER_PRIVATE_KEY"],
     helper.getProvider()
   );
-  const nonceManager = new NonceManager(wallet);
   const offerProxy = (await hre.ethers.getContract("OfferProxy")).connect(
     wallet
   );
 
-  // const admin = await repostLogic.admin();
-  // const admin_ = await oldRepostLogic.admin();
+  const MgvAPI = await Mangrove.connect({
+    provider: hre.network.config.url,
+    privateKey: wallet.privateKey,
+  });
 
-  const mgvContracts = await helper.getMangrove();
-  console.log(
-    "Running script on Mangrove",
-    chalk.gray(`(${mgvContracts.contract.address})`)
-  );
+  const weth = MgvAPI.token("WETH");
+  const dai = MgvAPI.token("DAI");
+  const usdc = MgvAPI.token("USDC");
 
-  const weth = helper.contractOfToken("wEth");
-  const dai = helper.contractOfToken("dai");
-  const usdc = helper.contractOfToken("usdc");
-
-  const tokenParams = [
-    [weth, "wEth", 18, ethers.utils.parseEther("1")],
-    [dai, "dai", 18, ethers.utils.parseEther("0.0002")],
-    [usdc, "usdc", 6, ethers.utils.parseEther("0.0002")],
+  const markets = [
+    [weth, dai],
+    [weth, usdc],
+    [dai, usdc],
   ];
 
-  for (const [outbound_tkn, outName] of tokenParams) {
-    for (const [inbound_tkn, inName] of tokenParams) {
-      if (outbound_tkn.address != inbound_tkn.address) {
-        console.log(
-          `* Looking for Tester owned offer proxies in the (${outName},${inName}) OfferList...`
-        );
-        const [id, offerIds, offers, offerDetails] =
-          await mgvContracts.reader.offerList(
-            outbound_tkn.address,
-            inbound_tkn.address,
-            ethers.BigNumber.from(0),
-            ethers.BigNumber.from(1000)
-          );
-        await logOrderBook(
-          [id, offerIds, offers, offerDetails],
-          outbound_tkn,
-          inbound_tkn
-        );
-        const retractTxPromises = [];
-        for (const i in offerDetails) {
-          if (offerProxy.address == offerDetails[i].maker) {
-            const provision = await offerProxy.callStatic.retractOffer(
-              outbound_tkn.address,
-              inbound_tkn.address,
-              offerIds[i],
-              true
-            );
-            const txPromise = offerProxy
-              .retractOffer(
-                outbound_tkn.address,
-                inbound_tkn.address,
-                offerIds[i],
-                true
-              )
-              .then((tx) => tx.wait())
-              .then((txReceipt) => {
-                console.log(
-                  `* Offer`,
-                  chalk.gray(offerIds[i].toString()),
-                  `retracted, ${ethers.utils.formatUnits(
-                    provision,
-                    18
-                  )} was credited to Tester provisions (${
-                    txReceipt.gasUsed
-                  } gas used)`
-                );
-              });
-            retractTxPromises.push(txPromise);
-          }
-        }
-        await Promise.allSettled(retractTxPromises);
+  for (const [base, quote] of markets) {
+    const maker = await MgvAPI.MakerConnect({
+      address: offerProxy.address,
+      base: base.name,
+      quote: quote.name,
+    });
+    const book = maker.market.book();
+
+    MgvAPI.prettyPrint(book);
+    for (const offer of book.asks) {
+      if (offer.maker == offerProxy.address) {
+        await maker.cancelAsk(offer.id, true);
+        console.log(`* Ask ${offer.id} retracted`);
+      }
+    }
+    for (const offer of book.bids) {
+      if (offer.maker == offerProxy.address) {
+        await maker.cancelBid(offer.id, true);
+        console.log(`* Ask ${offer.id} retracted`);
       }
     }
   }

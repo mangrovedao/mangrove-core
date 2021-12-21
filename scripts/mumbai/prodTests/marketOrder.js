@@ -1,13 +1,8 @@
-// const hre = require("hardhat");
+const hre = require("hardhat");
 const helper = require("../../helper");
 // const lc = require("../../lib/libcommon");
-const { Mangrove, MgvToken } = require("../../../../mangrove.js");
+const { Mangrove } = require("../../../../mangrove.js");
 // const chalk = require("chalk");
-
-function prettyPrintBook(book) {
-  console.table(book.asks, ["maker", "gives", "volume", "price"]);
-  console.table(book.bids, ["maker", "wants", "volume", "price"]);
-}
 
 async function main() {
   if (!process.env["MUMBAI_TESTER_PRIVATE_KEY"]) {
@@ -27,22 +22,29 @@ async function main() {
   MgvJS._provider.pollingInterval = 250;
 
   const market = await MgvJS.market({ base: "WETH", quote: "USDC" });
-  market.prettyPrint();
+  await market.consoleAsks(["id", "maker", "volume", "price"]);
+  await market.consoleBids(["id", "maker", "volume", "price"]);
 
-  const tx = await MgvJS.token("USDC").approveMgv();
+  const tx = await MgvJS.token("USDC").approveMangrove();
   await tx.wait();
 
   const approval = await MgvJS.token("USDC").allowance();
 
+  const repostLogic = await ethers.getContract("Reposting");
+  const filter_Fail = repostLogic.filters.NotEnoughLiquidity();
+  repostLogic.on(filter_Fail, (event) => {
+    console.error("Offer logic failed");
+  });
+
   // will hang if pivot ID not correctly evaluated
   const { got: takerGot, gave: takerGave } = await market.buy({
-    volume: 1.4,
-    price: 5000,
+    volume: 1,
+    price: 4291.287,
+    slippage: 2,
   });
   console.log(
-    `* Market Order complete  (${takerGot} ETH for ${takerGave} USD)`
+    `* Market Order complete  (${takerGot} USD for ${takerGave} WETH)`
   );
-  prettyPrintBook(await market.book());
 }
 main()
   .then(() => process.exit(0))

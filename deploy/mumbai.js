@@ -42,6 +42,20 @@ module.exports = async (hre) => {
     ],
     skipIfAlreadyDeployed: true,
   });
+
+  const mangroveResult2 = await hre.deployments.deploy("Mangrove-2", {
+    contract: "Mangrove",
+    from: deployer,
+    args: [deployer /* governance */, 40 /*gasprice*/, 700000 /*gasmax*/],
+    skipIfAlreadyDeployed: true,
+  });
+
+  const mgvReader2 = await hre.deployments.deploy("MgvReader-2", {
+    contract: "MgvReader",
+    from: deployer,
+    args: [mangroveResult2.address],
+    skipIfAlreadyDeployed: true,
+  });
 };
 
 module.exports.tags = ["mumbai"];

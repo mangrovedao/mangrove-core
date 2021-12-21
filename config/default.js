@@ -14,7 +14,9 @@ var defer = require("config/defer").deferConfig;
    }
 */
 
-let mumbaiExtraConfig = {};
+let mumbaiExtraConfig = {
+  accounts: [],
+};
 if (process.env["USE_DEPLOYER_ACCOUNTS"]) {
   if (process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
     mumbaiExtraConfig.accounts = [process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]];

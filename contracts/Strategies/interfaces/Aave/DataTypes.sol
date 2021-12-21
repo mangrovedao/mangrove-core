@@ -85,7 +85,7 @@ library DataTypes {
 
   function getParams(ReserveConfigurationMap memory configMap)
     internal
-    view
+    pure
     returns (
       uint,
       uint,

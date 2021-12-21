@@ -950,20 +950,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@giry/hardhat-test-solidity@npm:^0.0.11":
-  version: 0.0.11
-  resolution: "@giry/hardhat-test-solidity@npm:0.0.11"
-  dependencies:
-    chai: ^4.2.0
-    debug: ^4.3.2
-    mocha: ^7.1.2
-  peerDependencies:
-    hardhat: ^2.0.0
-    hardhat-deploy: ">=0.8.9"
-  checksum: 681c81663d313cf6ed78aef8f7e07b086b9aded4c8656ac78fa6a840cf78715d186d5fbcd2c246eb4afc7954bb48e6b110d57a6ac98365d7a617fced863eb73f
-  languageName: node
-  linkType: hard
-
 "@giry/hardhat-test-solidity@npm:^0.0.12":
   version: 0.0.12
   resolution: "@giry/hardhat-test-solidity@npm:0.0.12"
@@ -1001,9 +987,9 @@ __metadata:
     "@espendk/json-file-reporter": ^1.4.1
     "@ethersproject/experimental": ^5.5.0
     "@ethersproject/hardware-wallets": ^5.0.0
-    "@giry/hardhat-test-solidity": ^0.0.11
+    "@giry/hardhat-test-solidity": ^0.0.12
     "@nomiclabs/hardhat-ethers": ^2.0.2
-    adhusson-hardhat-solpp: ^2.0.2
+    "@nomiclabs/hardhat-solpp": ^2.0.0
     app-module-path: ^2.2.0
     chai: ^4.3.4
     chai-events: ^0.0.3
@@ -1025,6 +1011,7 @@ __metadata:
     rimraf: ^3.0.2
     shelljs: ^0.8.4
     solcco: ">=1.0.11"
+    solpp: ^0.11.5
     yargs: ^17.1.1
   languageName: unknown
   linkType: soft
@@ -1432,6 +1419,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@nomiclabs/hardhat-solpp@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@nomiclabs/hardhat-solpp@npm:2.0.0"
+  dependencies:
+    fs-extra: ^7.0.1
+    solpp: ^0.10.1
+  peerDependencies:
+    hardhat: ^2.0.0
+  checksum: 416c7e42edfef2be58659b19c0ddaa78bffb611a0d10160c6a3f4178cc70a7017e4bf6540e1d755fe2c0f83d5f942ba32e484e3523ee987afd5cb8dce6b99d68
+  languageName: node
+  linkType: hard
+
 "@npmcli/fs@npm:^1.0.0":
   version: 1.0.0
   resolution: "@npmcli/fs@npm:1.0.0"
@@ -1645,8 +1644,8 @@ __metadata:
   linkType: hard
 
 "@typechain/ethers-v5@npm:^8.0.2":
-  version: 8.0.2
-  resolution: "@typechain/ethers-v5@npm:8.0.2"
+  version: 8.0.5
+  resolution: "@typechain/ethers-v5@npm:8.0.5"
   dependencies:
     lodash: ^4.17.15
     ts-essentials: ^7.0.1
@@ -1655,9 +1654,9 @@ __metadata:
     "@ethersproject/bytes": ^5.0.0
     "@ethersproject/providers": ^5.0.0
     ethers: ^5.1.3
-    typechain: ^6.0.0
+    typechain: ^6.0.4
     typescript: ">=4.0.0"
-  checksum: bedd6a9a35db324913bbdd0e8fa38de0b103309e9f866780498c91cbd3d6d737e45e8ede3f46145d26114cbf80e9d75e339e332ab9344ca01e450f0aeb08581a
+  checksum: d6c0f3114a9b853b6288ca00406f21e2ade75908cac8e230510be1d130c05da5a239923428cf221d547d2f9d79bdf234285f070948e62d4f87526e8ab433215b
   languageName: node
   linkType: hard
 
@@ -2316,6 +2315,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"antlr4@npm:^4.7.1":
+  version: 4.9.3
+  resolution: "antlr4@npm:4.9.3"
+  checksum: 2e3b7bcf3b79686311182dac71a4d320abbb7e7bca5fb0e47585771130f4f07489fb4012339bb9a45c1bb0e724d4e185b7a6995111b3b86abfbdfc89b4f92bb1
+  languageName: node
+  linkType: hard
+
 "antlr4@npm:~4.8.0":
   version: 4.8.0
   resolution: "antlr4@npm:4.8.0"
@@ -2487,6 +2493,16 @@ __metadata:
   version: 0.4.0
   resolution: "asynckit@npm:0.4.0"
   checksum: 7b78c451df768adba04e2d02e63e2d0bf3b07adcd6e42b4cf665cb7ce899bedd344c69a1dcbce355b5f972d597b25aaa1c1742b52cffd9caccb22f348114f6be
+  languageName: node
+  linkType: hard
+
+"axios@npm:^0.18.0":
+  version: 0.18.1
+  resolution: "axios@npm:0.18.1"
+  dependencies:
+    follow-redirects: 1.5.10
+    is-buffer: ^2.0.2
+  checksum: 4a27cea1e3c674d89d9097fe13b62081b692280401b9c4216f37c42dfa8b433091baa15832336523ddad1df2f3f21e1e38a4cff207b4926ead3076c91a8ec5fe
   languageName: node
   linkType: hard
 
@@ -3412,6 +3428,15 @@ __metadata:
     supports-color:
       optional: true
   checksum: 2c3352e37d5c46b0d203317cd45ea0e26b2c99f2d9dfec8b128e6ceba90dfb65425f5331bf3020fe9929d7da8c16758e737f4f3bfc0fce6b8b3d503bae03298b
+  languageName: node
+  linkType: hard
+
+"debug@npm:=3.1.0":
+  version: 3.1.0
+  resolution: "debug@npm:3.1.0"
+  dependencies:
+    ms: 2.0.0
+  checksum: 0b52718ab957254a5b3ca07fc34543bc778f358620c206a08452251eb7fc193c3ea3505072acbf4350219c14e2d71ceb7bdaa0d3370aa630b50da790458d08b3
   languageName: node
   linkType: hard
 
@@ -4446,6 +4471,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"follow-redirects@npm:1.5.10":
+  version: 1.5.10
+  resolution: "follow-redirects@npm:1.5.10"
+  dependencies:
+    debug: =3.1.0
+  checksum: 0edc4b74e37e7b88ee716188a8f2a790238877c1d954f00c7b78d560f3bef40061c130536d13bee8e47b4e8e71edf1175a2de2729e51ab8206e4646b2370e484
+  languageName: node
+  linkType: hard
+
 "follow-redirects@npm:^1.12.1, follow-redirects@npm:^1.14.0, follow-redirects@npm:^1.14.4":
   version: 1.14.5
   resolution: "follow-redirects@npm:1.14.5"
@@ -5378,7 +5412,7 @@ fsevents@~2.1.1:
   languageName: node
   linkType: hard
 
-"is-buffer@npm:~2.0.3":
+"is-buffer@npm:^2.0.2, is-buffer@npm:~2.0.3":
   version: 2.0.5
   resolution: "is-buffer@npm:2.0.5"
   checksum: 764c9ad8b523a9f5a32af29bdf772b08eb48c04d2ad0a7240916ac2688c983bf5f8504bf25b35e66240edeb9d9085461f9b5dae1f3d2861c6b06a65fe983de42
@@ -8680,6 +8714,44 @@ resolve@1.17.0:
   languageName: node
   linkType: hard
 
+"solpp@npm:^0.10.1":
+  version: 0.10.2
+  resolution: "solpp@npm:0.10.2"
+  dependencies:
+    antlr4: ^4.7.1
+    axios: ^0.18.0
+    bn-str-256: ^1.9.1
+    commander: ^2.19.0
+    ethereumjs-util: ^6.0.0
+    lodash: ^4.17.11
+    mz: ^2.7.0
+    resolve: ^1.10.0
+    semver: ^5.6.0
+  bin:
+    solpp: src/solpp.js
+  checksum: fe513797a6fd3e1b23f6bba12dd2f804fb32d287c955b504217cdb9f5d98b856bf4505f081a75c25a576d6bac89d6332abe6dd414b12af08e4448d31546400b6
+  languageName: node
+  linkType: hard
+
+"solpp@npm:^0.11.5":
+  version: 0.11.5
+  resolution: "solpp@npm:0.11.5"
+  dependencies:
+    antlr4: ~4.8.0
+    axios: ^0.21.1
+    bn-str-256: ^1.9.1
+    commander: ^2.19.0
+    ethereumjs-util: ^6.0.0
+    lodash: ^4.17.11
+    mz: ^2.7.0
+    resolve: ^1.10.0
+    semver: ^5.6.0
+  bin:
+    solpp: src/solpp.js
+  checksum: b2aabd23570b0bcb522e70dd5bfd29bbaed2ad2063b18df72beaa71fe84e343822005fad250120c847e656d81e7eb0ca5d77871302c40fd276dd67c79aacc3f5
+  languageName: node
+  linkType: hard
+
 "source-map-support@npm:^0.5.13, source-map-support@npm:^0.5.16, source-map-support@npm:^0.5.17, source-map-support@npm:~0.5.20":
   version: 0.5.20
   resolution: "source-map-support@npm:0.5.20"
@@ -9443,8 +9515,8 @@ resolve@1.17.0:
   linkType: hard
 
 "typechain@npm:^6.0.2":
-  version: 6.0.2
-  resolution: "typechain@npm:6.0.2"
+  version: 6.0.5
+  resolution: "typechain@npm:6.0.5"
   dependencies:
     "@types/prettier": ^2.1.1
     command-line-args: ^4.0.7
@@ -9460,7 +9532,7 @@ resolve@1.17.0:
     typescript: ">=4.1.0"
   bin:
     typechain: dist/cli/cli.js
-  checksum: 8e72a05ece9eb03ee6b5175a14206f6a26f407b25071a4bb37edd42d1303075ea5d9c2798bdcbe2517fea37ebf48710d5f055055718935c363358c4343e50004
+  checksum: 2bb68e7c53ec3cac360a4115670d6fb5177934f1ba4f1f06079903e71971d5662331a14bfe8519b140310ed6e663ee4c1d9bee423d8c859636d90b24bbf52e14
   languageName: node
   linkType: hard
 

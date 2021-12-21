@@ -1,5 +1,5 @@
 // SPDX-License-Identifier:	AGPL-3.0
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "./TestToken.sol";
@@ -14,8 +14,8 @@ contract UniSwapMaker is IMaker {
   uint gasreq = 80_000;
   uint8 share; // [1,100] for 1/1 to 1/100
   uint8 fee; // per 1000
-  uint24 ofr0;
-  uint24 ofr1;
+  uint32 ofr0;
+  uint32 ofr1;
 
   constructor(
     AbstractMangrove _mgv,
@@ -85,8 +85,8 @@ contract UniSwapMaker is IMaker {
 
     (uint wants0, uint gives1) = newPrice(pool0, pool1);
     (uint wants1, uint gives0) = newPrice(pool1, pool0);
-    ofr0 = uint24(mgv.newOffer(tk0, tk1, wants0, gives1, gasreq, 0, 0));
-    ofr1 = uint24(mgv.newOffer(tk1, tk0, wants1, gives0, gasreq, 0, 0)); // natural OB
+    ofr0 = uint32(mgv.newOffer(tk0, tk1, wants0, gives1, gasreq, 0, 0));
+    ofr1 = uint32(mgv.newOffer(tk1, tk0, wants1, gives0, gasreq, 0, 0)); // natural OB
   }
 
   function makerPosthook(ML.SingleOrder calldata order, ML.OrderResult calldata)

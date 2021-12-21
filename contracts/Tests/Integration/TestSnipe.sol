@@ -1,5 +1,5 @@
 // SPDX-License-Identifier:	AGPL-3.0
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../Toolbox/TestUtils.sol";
@@ -13,15 +13,13 @@ library TestSnipe {
     TestTaker taker,
     TestToken base,
     TestToken quote
-  ) external {
+  ) external returns (uint takerGot, uint takerGave) {
     uint orderAmount = 0.3 ether;
     uint snipedId = 2;
     TestMaker maker = makers.getMaker(snipedId); // maker whose offer will be sniped
 
     //(uint init_mkr_wants, uint init_mkr_gives,,,,,)=mgv.getOfferInfo(2);
     //---------------SNIPE------------------//
-    uint takerGave;
-    uint takerGot;
     {
       bool takeSuccess;
       (takeSuccess, takerGot, takerGave) = taker.takeWithInfo(
@@ -74,7 +72,7 @@ library TestSnipe {
       "incorrect maker B balance"
     );
     // Testing residual offer
-    (ML.Offer memory ofr, ) = mgv.offerInfo(
+    (P.OfferStruct memory ofr, ) = mgv.offerInfo(
       address(base),
       address(quote),
       snipedId

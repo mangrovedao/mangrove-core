@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 //import "../Mangrove.sol";
@@ -29,7 +29,7 @@ import "./TestMarketOrder.sol";
 // Otherwise bytecode can be too large. See EIP 170 for more on size limit:
 // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-170.md
 
-contract Scenarii_Test {
+contract Scenarii_Test is HasMgvEvents {
   AbstractMangrove mgv;
   TestTaker taker;
   MakerDeployer makers;
@@ -45,7 +45,7 @@ contract Scenarii_Test {
   function saveOffers() internal {
     uint offerId = mgv.best(address(base), address(quote));
     while (offerId != 0) {
-      (ML.Offer memory offer, ML.OfferDetail memory offerDetail) = mgv
+      (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv
         .offerInfo(address(base), address(quote), offerId);
       offers[offerId][TestUtils.Info.makerWants] = offer.wants;
       offers[offerId][TestUtils.Info.makerGives] = offer.gives;
@@ -138,7 +138,25 @@ contract Scenarii_Test {
     //TestEvents.logString("=== Snipe test ===", 0);
     saveBalances();
     saveOffers();
-    TestSnipe.run(balances, offers, mgv, makers, taker, base, quote);
+    (uint takerGot, uint takerGave) = TestSnipe.run(
+      balances,
+      offers,
+      mgv,
+      makers,
+      taker,
+      base,
+      quote
+    );
+    TestEvents.expectFrom(address(mgv));
+    emit OrderComplete(
+      address(base),
+      address(quote),
+      address(taker),
+      takerGot,
+      takerGave
+    );
+    TestEvents.stopExpecting();
+
     TestUtils.logOfferBook(mgv, address(base), address(quote), 4);
 
     // restore offer that was deleted after partial fill, minus taken amount

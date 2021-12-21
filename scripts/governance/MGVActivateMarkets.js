@@ -61,7 +61,6 @@ async function main() {
         const overheadTx = await mgv.contract.setGasbase(
           outbound_tkn,
           inbound_tkn,
-          overhead_gasbase,
           offer_gasbase
         );
 
@@ -82,7 +81,6 @@ async function main() {
         );
 
         let density_outIn = mgv_gasprice
-          .add(overhead_gasbase)
           .add(offer_gasbase)
           .mul(
             ethers.utils.parseUnits(oracle.Mangrove.coverFactor, outDecimals)
@@ -98,8 +96,7 @@ async function main() {
           inbound_tkn,
           ethers.BigNumber.from(getMangroveIntParam("defaultFee")),
           density_outIn,
-          offer_gasbase,
-          overhead_gasbase
+          offer_gasbase
         );
         console.log(
           chalk.yellow("*"),

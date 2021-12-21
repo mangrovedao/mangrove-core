@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../AbstractMangrove.sol";
@@ -47,9 +47,9 @@ contract TakerOperations_Test is HasMgvEvents {
     refusemkr = MakerSetup.setup(mgv, base, quote, 1);
     failmkr = MakerSetup.setup(mgv, base, quote, 2);
 
-    address(mkr).transfer(10 ether);
-    address(refusemkr).transfer(10 ether);
-    address(failmkr).transfer(10 ether);
+    payable(mkr).transfer(10 ether);
+    payable(refusemkr).transfer(10 ether);
+    payable(failmkr).transfer(10 ether);
 
     mkr.provisionMgv(10 ether);
     mkr.approveMgv(baseT, 10 ether);
@@ -182,6 +182,45 @@ contract TakerOperations_Test is HasMgvEvents {
       TestEvents.check(successes == 1, "Snipe should not fail");
       TestEvents.eq(got, 0.5 ether, "Taker did not get enough");
       TestEvents.eq(gave, 0.5 ether, "Taker did not give enough");
+    } catch {
+      TestEvents.fail("Transaction should not revert");
+    }
+  }
+
+  function multiple_snipes_fillWants_test() public {
+    uint i;
+    uint[] memory ofrs = new uint[](3);
+    ofrs[i++] = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
+    ofrs[i++] = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
+    ofrs[i++] = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
+
+    mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
+    quoteT.approve(address(mgv), 3 ether);
+    uint[4][] memory targets = new uint[4][](3);
+    uint j;
+    targets[j] = [ofrs[j], 0.5 ether, 1 ether, 100_000];
+    j++;
+    targets[j] = [ofrs[j], 1 ether, 1 ether, 100_000];
+    j++;
+    targets[j] = [ofrs[j], 0.8 ether, 1 ether, 100_000];
+
+    try mgv.snipes(base, quote, targets, true) returns (
+      uint successes,
+      uint got,
+      uint gave,
+      uint
+    ) {
+      TestEvents.check(successes == 3, "Snipes should not fail");
+      TestEvents.eq(got, 2.3 ether, "Taker did not get enough");
+      TestEvents.eq(gave, 2.3 ether, "Taker did not give enough");
+      TestEvents.expectFrom(address(mgv));
+      emit OrderComplete(
+        address(base),
+        address(quote),
+        address(this),
+        got,
+        gave
+      );
     } catch {
       TestEvents.fail("Transaction should not revert");
     }
@@ -1093,7 +1132,7 @@ contract TakerOperations_Test is HasMgvEvents {
   }
 
   function unsafe_gas_left_fails_order_test() public {
-    mgv.setGasbase(base, quote, 1, 1);
+    mgv.setGasbase(base, quote, 1);
     quoteT.approve(address(mgv), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 120_000, 0);
     uint[4][] memory targets = new uint[4][](1);

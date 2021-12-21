@@ -1,5 +1,5 @@
 // SPDX-License-Identifier:	AGPL-3.0
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma experimental ABIEncoderV2;
 
 import "../periphery/MgvCleaner.sol";
@@ -35,7 +35,7 @@ contract MgvCleaner_Test is HasMgvEvents {
     mkr = MakerSetup.setup(mgv, outbound, inbound);
     cleaner = new MgvCleaner(address(mgv));
 
-    address(mkr).transfer(10 ether);
+    payable(mkr).transfer(10 ether);
 
     mkr.provisionMgv(5 ether);
 

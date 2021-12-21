@@ -1,8 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {ITaker, IMaker, MgvLib as DC, HasMgvEvents, IMgvMonitor} from "../../MgvLib.sol";
+import {ITaker, IMaker, MgvLib as DC, HasMgvEvents, IMgvMonitor, P} from "../../MgvLib.sol";
 import "../../AbstractMangrove.sol";
 import "../Toolbox/TestUtils.sol";
 import "hardhat/console.sol";
@@ -45,7 +45,7 @@ contract MM1 {
     doMakerPosthook();
   }
 
-  function makerExecute(DC.SingleOrder calldata) external returns (bytes32) {
+  function makerExecute(DC.SingleOrder calldata) external pure returns (bytes32) {
     return "";
   }
 
@@ -72,7 +72,7 @@ contract MM1 {
 
     // best offers
     uint best_sell_id = mgv.best(a_addr, b_addr);
-    (DC.Offer memory best_sell, ) = mgv.offerInfo(a_addr, b_addr, best_sell_id);
+    (P.OfferStruct memory best_sell, ) = mgv.offerInfo(a_addr, b_addr, best_sell_id);
 
     //console.log("initial bs.w",best_sell.wants);
     //console.log("initial bs.g",best_sell.gives);
@@ -93,7 +93,7 @@ contract MM1 {
     //console.log("bs.g",best_sell.gives);
 
     uint best_buy_id = mgv.best(b_addr, a_addr);
-    (DC.Offer memory best_buy, ) = mgv.offerInfo(b_addr, a_addr, best_buy_id);
+    (P.OfferStruct memory best_buy, ) = mgv.offerInfo(b_addr, a_addr, best_buy_id);
 
     //console.log("initial bb.w",best_buy.wants);
     //console.log("initial bb.g",best_buy.gives);

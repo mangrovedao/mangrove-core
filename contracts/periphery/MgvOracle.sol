@@ -16,7 +16,7 @@
 //
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../MgvLib.sol";
 
@@ -82,7 +82,7 @@ contract MgvOracle is IMgvMonitor {
     lastReceivedGasPrice = gasPrice;
   }
 
-  function setDensity(uint density) private {
+  function setDensity(uint /*density*/) private view {
     // governance or mutator are allowed to update the density
     require(
       msg.sender == governance || msg.sender == mutator,
@@ -92,7 +92,7 @@ contract MgvOracle is IMgvMonitor {
     //NOTE: Not implemented, so not made external yet
   }
 
-  function read(address outbound_tkn, address inbound_tkn)
+  function read(address /*outbound_tkn*/, address /*inbound_tkn*/)
     external
     view
     override

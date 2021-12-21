@@ -1,5 +1,5 @@
 // SPDX-License-Identifier:	AGPL-3.0
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.10;
 import "./ERC20BLWithDecimals.sol";
 import "./SafeMath.sol";
 

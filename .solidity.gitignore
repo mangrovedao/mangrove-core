@@ -1,5 +1,7 @@
 dist
 deployments/hardhat
 deployments/localhost
+artifacts/*
+exported-abis/*
 doc/MgvDoc.html
 doc/specs.txt

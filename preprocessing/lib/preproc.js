@@ -13,6 +13,18 @@ const before = (struct_def, _name) => {
   }, 0);
 };
 
+const before_formula = (struct_def, _name) => {
+  const stop = struct_def.findIndex(({ name }) => name == _name);
+  if (stop < 0) {
+    throw "preproc/before/not_found";
+  } else if (stop === 0) { 
+    return '0' 
+  } else {
+    const prev_name = struct_def[stop-1].name;
+    return before_cst(prev_name,struct_def)+" + "+bits_cst(prev_name,struct_def);
+  }
+};
+
 // number of bits in a field
 const bits_of = (struct_def, _name) =>
   struct_def.find(({ name }) => name == _name).bits;
@@ -43,16 +55,16 @@ const after = (struct_def, _name) => {
 
 // prints accessor for a field
 const get = (ptr, struct_def, _name) => {
-  const left = before(struct_def, _name);
-  const right = before(struct_def, _name) + after(struct_def, _name);
-  const inner = `uint((${ptr} << ${left})) >> ${right}`;
+  const left = before_cst(_name,struct_def).trim();
+  const right = `(256-${bits_cst(_name,struct_def).trim()})`;
+  const inner = `(${ptr} << ${left}) >> ${right}`;
   const type = type_of(struct_def, _name);
   if (type === "address") {
-    return `${type}(uint160(${inner}))`;
+    return `address(uint160(${inner}))`;
   } else if (type === "bool") {
     return `((${inner}) > 0)`;
-  } else {
-    return `${type}(${inner})`;
+  } else { // uint by default
+    return `${inner}`;
   }
 };
 const preamble = `
@@ -80,33 +92,53 @@ const precast = (type, val) => {
 };
 
 // prints setter for a single field
-const set1 = (ptr, struct_def, _name, val) => {
-  const msk = mask(struct_def, _name);
-  const left = before(struct_def, _name) + after(struct_def, _name);
-  const right = before(struct_def, _name);
+const set1 = (ptr, struct_def, _name, val,indent) => {
+  const msk = mask_cst(_name,struct_def).trim();
+  const left = `(256-${bits_cst(_name,struct_def).trim()})`;
+  const right = before_cst(_name,struct_def).trim();
   const inner = precast(type_of(struct_def, _name), val);
-  return `(${ptr} & bytes32(${msk}) | bytes32((${inner} << ${left}) >> ${right}))`;
+  return `(${ptr} & ${msk}) \n${indent}| ((${inner} << ${left} >> ${right}))`;
 };
 
 // prints setter for multiple fields
 // set(set1,...) better than set1(set,...) because it keeps stack use constant
-const set = (ptr, struct_def, values) => {
-  const red = (acc, [_name, value]) => set1(acc, struct_def, _name, value);
+const set = (ptr, struct_def, values,indent) => {
+  const red = (acc, [_name, value]) => set1(acc, struct_def, _name, value,indent);
   return values.reduce(red, ptr);
 };
 
 // !unsafe version! prints setter for a single field, without bitmask cleanup
-const set1_unsafe = (ptr, struct_def, _name, val) => {
-  const left = before(struct_def, _name) + after(struct_def, _name);
-  const right = before(struct_def, _name);
+const set1_unsafe = (ptr, struct_def, _name, val,indent) => {
+  const left = `(256-${bits_cst(_name,struct_def).trim()})`;
+  const right = before_cst(_name,struct_def).trim();
   const inner = precast(type_of(struct_def, _name), val);
-  return `(${ptr} | bytes32((${inner} << ${left}) >> ${right}))`;
+  return `(${ptr} \n${indent}| ((${inner} << ${left}) >> ${right}))`;
 };
 
-const make = (struct_def, values) => {
+const make = (struct_def, values,indent) => {
   const red = (acc, [_name, value]) =>
-    set1_unsafe(acc, struct_def, _name, value);
-  return values.reduce(red, "bytes32(0)");
+    set1_unsafe(acc, struct_def, _name, value,indent);
+  return values.reduce(red, "0");
+};
+
+const padTo =  (s,n) => {
+  return s+' '.repeat(Math.max(n-s.length,0));
+}
+
+const maxPad = (struct_def) => {
+  return struct_def.reduce((l,{name}) => Math.max(name.length,l),0);
+}
+
+const bits_cst = (_name,struct_def) => {
+  return padTo(_name+"_bits","_bits".length+maxPad(struct_def));
+};
+
+const before_cst = (_name,struct_def) => {
+  return padTo(_name+"_before","_before".length+maxPad(struct_def));
+};
+
+const mask_cst = (_name,struct_def) => {
+  return padTo(_name+"_mask","_mask".length+maxPad(struct_def));
 };
 
 // validate struct_def: total size is <256 bits, each bitsize is divisible by 4 (since bitmasks work at the nibble granularity level).
@@ -153,22 +185,28 @@ exports.structs_with_macros = (obj_struct_defs) => {
   const ret = {
     preamble,
     struct_defs,
-    make: (struct_def, values) => make(struct_def, values),
+    make: (struct_def, values,indent) => make(struct_def, values,indent),
     get: (ptr, struct_def, _name) => get(ptr, struct_def, _name),
-    set1: (ptr, struct_def, _name, value) =>
-      set1(ptr, struct_def, _name, value),
+    set1: (ptr, struct_def, _name, value,indent) =>
+      set1(ptr, struct_def, _name, value,indent),
     // accessors since dot access broken in preproc
     f_name: (field) => field.name,
-    f_bits: (field) => field.bits,
     f_type: (field) => field.type,
+    f_bits_cst: (field,struct_def) => bits_cst(field.name,struct_def),
+    f_bits: (field) => field.bits,
+    f_before_cst: (field,struct_def) => before_cst(field.name,struct_def),
+    f_before: (field,struct_def) => before(struct_def,field.name),
+    f_before_formula: (field,struct_def) => before_formula(struct_def,field.name),
+    f_mask_cst: (field,struct_def) => mask_cst(field.name,struct_def),
+    f_mask: (field,struct_def) => mask(struct_def,field.name),
     // utility methods
     // solpp's default capitalize removes other capital letters in the word
     capitalize: (s) => s.slice(0, 1).toUpperCase() + s.slice(1),
   };
 
   for (const [sname, struct_def] of struct_defs) {
-    ret[`set_${sname}`] = (ptr, values) => set(ptr, struct_def, values);
-    ret[`make_${sname}`] = (values) => make(struct_def, values);
+    ret[`set_${sname}`] = (ptr, values,indent) => set(ptr, struct_def, values,indent);
+    ret[`make_${sname}`] = (values,indent) => make(struct_def, values,indent);
     for (const { name } of struct_def) {
       ret[`${sname}_${name}`] = (ptr) => get(ptr, struct_def, name);
     }

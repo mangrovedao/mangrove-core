@@ -95,7 +95,11 @@ library Offer {
   }}
 
   function pack(uint __prev, uint __next, uint __wants, uint __gives) internal pure returns (t) { unchecked {
-    return t.wrap(((((0 | ((__prev << (256-prev_bits)) >> prev_before)) | ((__next << (256-next_bits)) >> next_before)) | ((__wants << (256-wants_bits)) >> wants_before)) | ((__gives << (256-gives_bits)) >> gives_before)));
+    return t.wrap(((((0
+                  | ((__prev << (256-prev_bits)) >> prev_before))
+                  | ((__next << (256-next_bits)) >> next_before))
+                  | ((__wants << (256-wants_bits)) >> wants_before))
+                  | ((__gives << (256-gives_bits)) >> gives_before)));
   }}
 
   function unpack(t __packed) internal pure returns (uint __prev, uint __next, uint __wants, uint __gives) { unchecked {
@@ -109,25 +113,29 @@ library Offer {
     return (t.unwrap(__packed) << prev_before) >> (256-prev_bits);
   }}
   function prev(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & prev_mask) | ((val << (256-prev_bits) >> prev_before)));
+    return t.wrap((t.unwrap(__packed) & prev_mask)
+                  | ((val << (256-prev_bits) >> prev_before)));
   }}
   function next(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << next_before) >> (256-next_bits);
   }}
   function next(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & next_mask) | ((val << (256-next_bits) >> next_before)));
+    return t.wrap((t.unwrap(__packed) & next_mask)
+                  | ((val << (256-next_bits) >> next_before)));
   }}
   function wants(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << wants_before) >> (256-wants_bits);
   }}
   function wants(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & wants_mask) | ((val << (256-wants_bits) >> wants_before)));
+    return t.wrap((t.unwrap(__packed) & wants_mask)
+                  | ((val << (256-wants_bits) >> wants_before)));
   }}
   function gives(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << gives_before) >> (256-gives_bits);
   }}
   function gives(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & gives_mask) | ((val << (256-gives_bits) >> gives_before)));
+    return t.wrap((t.unwrap(__packed) & gives_mask)
+                  | ((val << (256-gives_bits) >> gives_before)));
   }}
 }
 
@@ -166,7 +174,11 @@ library OfferDetail {
   }}
 
   function pack(address __maker, uint __gasreq, uint __offer_gasbase, uint __gasprice) internal pure returns (t) { unchecked {
-    return t.wrap(((((0 | ((uint(uint160(__maker)) << (256-maker_bits)) >> maker_before)) | ((__gasreq << (256-gasreq_bits)) >> gasreq_before)) | ((__offer_gasbase << (256-offer_gasbase_bits)) >> offer_gasbase_before)) | ((__gasprice << (256-gasprice_bits)) >> gasprice_before)));
+    return t.wrap(((((0
+                  | ((uint(uint160(__maker)) << (256-maker_bits)) >> maker_before))
+                  | ((__gasreq << (256-gasreq_bits)) >> gasreq_before))
+                  | ((__offer_gasbase << (256-offer_gasbase_bits)) >> offer_gasbase_before))
+                  | ((__gasprice << (256-gasprice_bits)) >> gasprice_before)));
   }}
 
   function unpack(t __packed) internal pure returns (address __maker, uint __gasreq, uint __offer_gasbase, uint __gasprice) { unchecked {
@@ -180,25 +192,29 @@ library OfferDetail {
     return address(uint160((t.unwrap(__packed) << maker_before) >> (256-maker_bits)));
   }}
   function maker(t __packed,address val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & maker_mask) | ((uint(uint160(val)) << (256-maker_bits) >> maker_before)));
+    return t.wrap((t.unwrap(__packed) & maker_mask)
+                  | ((uint(uint160(val)) << (256-maker_bits) >> maker_before)));
   }}
   function gasreq(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << gasreq_before) >> (256-gasreq_bits);
   }}
   function gasreq(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & gasreq_mask) | ((val << (256-gasreq_bits) >> gasreq_before)));
+    return t.wrap((t.unwrap(__packed) & gasreq_mask)
+                  | ((val << (256-gasreq_bits) >> gasreq_before)));
   }}
   function offer_gasbase(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << offer_gasbase_before) >> (256-offer_gasbase_bits);
   }}
   function offer_gasbase(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & offer_gasbase_mask) | ((val << (256-offer_gasbase_bits) >> offer_gasbase_before)));
+    return t.wrap((t.unwrap(__packed) & offer_gasbase_mask)
+                  | ((val << (256-offer_gasbase_bits) >> offer_gasbase_before)));
   }}
   function gasprice(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << gasprice_before) >> (256-gasprice_bits);
   }}
   function gasprice(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & gasprice_mask) | ((val << (256-gasprice_bits) >> gasprice_before)));
+    return t.wrap((t.unwrap(__packed) & gasprice_mask)
+                  | ((val << (256-gasprice_bits) >> gasprice_before)));
   }}
 }
 
@@ -245,7 +261,13 @@ library Global {
   }}
 
   function pack(address __monitor, bool __useOracle, bool __notify, uint __gasprice, uint __gasmax, bool __dead) internal pure returns (t) { unchecked {
-    return t.wrap(((((((0 | ((uint(uint160(__monitor)) << (256-monitor_bits)) >> monitor_before)) | ((uint_of_bool(__useOracle) << (256-useOracle_bits)) >> useOracle_before)) | ((uint_of_bool(__notify) << (256-notify_bits)) >> notify_before)) | ((__gasprice << (256-gasprice_bits)) >> gasprice_before)) | ((__gasmax << (256-gasmax_bits)) >> gasmax_before)) | ((uint_of_bool(__dead) << (256-dead_bits)) >> dead_before)));
+    return t.wrap(((((((0
+                  | ((uint(uint160(__monitor)) << (256-monitor_bits)) >> monitor_before))
+                  | ((uint_of_bool(__useOracle) << (256-useOracle_bits)) >> useOracle_before))
+                  | ((uint_of_bool(__notify) << (256-notify_bits)) >> notify_before))
+                  | ((__gasprice << (256-gasprice_bits)) >> gasprice_before))
+                  | ((__gasmax << (256-gasmax_bits)) >> gasmax_before))
+                  | ((uint_of_bool(__dead) << (256-dead_bits)) >> dead_before)));
   }}
 
   function unpack(t __packed) internal pure returns (address __monitor, bool __useOracle, bool __notify, uint __gasprice, uint __gasmax, bool __dead) { unchecked {
@@ -261,37 +283,43 @@ library Global {
     return address(uint160((t.unwrap(__packed) << monitor_before) >> (256-monitor_bits)));
   }}
   function monitor(t __packed,address val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & monitor_mask) | ((uint(uint160(val)) << (256-monitor_bits) >> monitor_before)));
+    return t.wrap((t.unwrap(__packed) & monitor_mask)
+                  | ((uint(uint160(val)) << (256-monitor_bits) >> monitor_before)));
   }}
   function useOracle(t __packed) internal pure returns(bool) { unchecked {
     return (((t.unwrap(__packed) << useOracle_before) >> (256-useOracle_bits)) > 0);
   }}
   function useOracle(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & useOracle_mask) | ((uint_of_bool(val) << (256-useOracle_bits) >> useOracle_before)));
+    return t.wrap((t.unwrap(__packed) & useOracle_mask)
+                  | ((uint_of_bool(val) << (256-useOracle_bits) >> useOracle_before)));
   }}
   function notify(t __packed) internal pure returns(bool) { unchecked {
     return (((t.unwrap(__packed) << notify_before) >> (256-notify_bits)) > 0);
   }}
   function notify(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & notify_mask) | ((uint_of_bool(val) << (256-notify_bits) >> notify_before)));
+    return t.wrap((t.unwrap(__packed) & notify_mask)
+                  | ((uint_of_bool(val) << (256-notify_bits) >> notify_before)));
   }}
   function gasprice(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << gasprice_before) >> (256-gasprice_bits);
   }}
   function gasprice(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & gasprice_mask) | ((val << (256-gasprice_bits) >> gasprice_before)));
+    return t.wrap((t.unwrap(__packed) & gasprice_mask)
+                  | ((val << (256-gasprice_bits) >> gasprice_before)));
   }}
   function gasmax(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << gasmax_before) >> (256-gasmax_bits);
   }}
   function gasmax(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & gasmax_mask) | ((val << (256-gasmax_bits) >> gasmax_before)));
+    return t.wrap((t.unwrap(__packed) & gasmax_mask)
+                  | ((val << (256-gasmax_bits) >> gasmax_before)));
   }}
   function dead(t __packed) internal pure returns(bool) { unchecked {
     return (((t.unwrap(__packed) << dead_before) >> (256-dead_bits)) > 0);
   }}
   function dead(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & dead_mask) | ((uint_of_bool(val) << (256-dead_bits) >> dead_before)));
+    return t.wrap((t.unwrap(__packed) & dead_mask)
+                  | ((uint_of_bool(val) << (256-dead_bits) >> dead_before)));
   }}
 }
 
@@ -342,7 +370,14 @@ library Local {
   }}
 
   function pack(bool __active, uint __fee, uint __density, uint __offer_gasbase, bool __lock, uint __best, uint __last) internal pure returns (t) { unchecked {
-    return t.wrap((((((((0 | ((uint_of_bool(__active) << (256-active_bits)) >> active_before)) | ((__fee << (256-fee_bits)) >> fee_before)) | ((__density << (256-density_bits)) >> density_before)) | ((__offer_gasbase << (256-offer_gasbase_bits)) >> offer_gasbase_before)) | ((uint_of_bool(__lock) << (256-lock_bits)) >> lock_before)) | ((__best << (256-best_bits)) >> best_before)) | ((__last << (256-last_bits)) >> last_before)));
+    return t.wrap((((((((0
+                  | ((uint_of_bool(__active) << (256-active_bits)) >> active_before))
+                  | ((__fee << (256-fee_bits)) >> fee_before))
+                  | ((__density << (256-density_bits)) >> density_before))
+                  | ((__offer_gasbase << (256-offer_gasbase_bits)) >> offer_gasbase_before))
+                  | ((uint_of_bool(__lock) << (256-lock_bits)) >> lock_before))
+                  | ((__best << (256-best_bits)) >> best_before))
+                  | ((__last << (256-last_bits)) >> last_before)));
   }}
 
   function unpack(t __packed) internal pure returns (bool __active, uint __fee, uint __density, uint __offer_gasbase, bool __lock, uint __best, uint __last) { unchecked {
@@ -359,42 +394,49 @@ library Local {
     return (((t.unwrap(__packed) << active_before) >> (256-active_bits)) > 0);
   }}
   function active(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & active_mask) | ((uint_of_bool(val) << (256-active_bits) >> active_before)));
+    return t.wrap((t.unwrap(__packed) & active_mask)
+                  | ((uint_of_bool(val) << (256-active_bits) >> active_before)));
   }}
   function fee(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << fee_before) >> (256-fee_bits);
   }}
   function fee(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & fee_mask) | ((val << (256-fee_bits) >> fee_before)));
+    return t.wrap((t.unwrap(__packed) & fee_mask)
+                  | ((val << (256-fee_bits) >> fee_before)));
   }}
   function density(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << density_before) >> (256-density_bits);
   }}
   function density(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & density_mask) | ((val << (256-density_bits) >> density_before)));
+    return t.wrap((t.unwrap(__packed) & density_mask)
+                  | ((val << (256-density_bits) >> density_before)));
   }}
   function offer_gasbase(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << offer_gasbase_before) >> (256-offer_gasbase_bits);
   }}
   function offer_gasbase(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & offer_gasbase_mask) | ((val << (256-offer_gasbase_bits) >> offer_gasbase_before)));
+    return t.wrap((t.unwrap(__packed) & offer_gasbase_mask)
+                  | ((val << (256-offer_gasbase_bits) >> offer_gasbase_before)));
   }}
   function lock(t __packed) internal pure returns(bool) { unchecked {
     return (((t.unwrap(__packed) << lock_before) >> (256-lock_bits)) > 0);
   }}
   function lock(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & lock_mask) | ((uint_of_bool(val) << (256-lock_bits) >> lock_before)));
+    return t.wrap((t.unwrap(__packed) & lock_mask)
+                  | ((uint_of_bool(val) << (256-lock_bits) >> lock_before)));
   }}
   function best(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << best_before) >> (256-best_bits);
   }}
   function best(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & best_mask) | ((val << (256-best_bits) >> best_before)));
+    return t.wrap((t.unwrap(__packed) & best_mask)
+                  | ((val << (256-best_bits) >> best_before)));
   }}
   function last(t __packed) internal pure returns(uint) { unchecked {
     return (t.unwrap(__packed) << last_before) >> (256-last_bits);
   }}
   function last(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & last_mask) | ((val << (256-last_bits) >> last_before)));
+    return t.wrap((t.unwrap(__packed) & last_mask)
+                  | ((val << (256-last_bits) >> last_before)));
   }}
 }

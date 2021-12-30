@@ -92,32 +92,32 @@ const precast = (type, val) => {
 };
 
 // prints setter for a single field
-const set1 = (ptr, struct_def, _name, val) => {
+const set1 = (ptr, struct_def, _name, val,indent) => {
   const msk = mask_cst(_name,struct_def).trim();
   const left = `(256-${bits_cst(_name,struct_def).trim()})`;
   const right = before_cst(_name,struct_def).trim();
   const inner = precast(type_of(struct_def, _name), val);
-  return `(${ptr} & ${msk}) | ((${inner} << ${left} >> ${right}))`;
+  return `(${ptr} & ${msk}) \n${indent}| ((${inner} << ${left} >> ${right}))`;
 };
 
 // prints setter for multiple fields
 // set(set1,...) better than set1(set,...) because it keeps stack use constant
-const set = (ptr, struct_def, values) => {
-  const red = (acc, [_name, value]) => set1(acc, struct_def, _name, value);
+const set = (ptr, struct_def, values,indent) => {
+  const red = (acc, [_name, value]) => set1(acc, struct_def, _name, value,indent);
   return values.reduce(red, ptr);
 };
 
 // !unsafe version! prints setter for a single field, without bitmask cleanup
-const set1_unsafe = (ptr, struct_def, _name, val) => {
+const set1_unsafe = (ptr, struct_def, _name, val,indent) => {
   const left = `(256-${bits_cst(_name,struct_def).trim()})`;
   const right = before_cst(_name,struct_def).trim();
   const inner = precast(type_of(struct_def, _name), val);
-  return `(${ptr} | ((${inner} << ${left}) >> ${right}))`;
+  return `(${ptr} \n${indent}| ((${inner} << ${left}) >> ${right}))`;
 };
 
-const make = (struct_def, values) => {
+const make = (struct_def, values,indent) => {
   const red = (acc, [_name, value]) =>
-    set1_unsafe(acc, struct_def, _name, value);
+    set1_unsafe(acc, struct_def, _name, value,indent);
   return values.reduce(red, "0");
 };
 
@@ -185,10 +185,10 @@ exports.structs_with_macros = (obj_struct_defs) => {
   const ret = {
     preamble,
     struct_defs,
-    make: (struct_def, values) => make(struct_def, values),
+    make: (struct_def, values,indent) => make(struct_def, values,indent),
     get: (ptr, struct_def, _name) => get(ptr, struct_def, _name),
-    set1: (ptr, struct_def, _name, value) =>
-      set1(ptr, struct_def, _name, value),
+    set1: (ptr, struct_def, _name, value,indent) =>
+      set1(ptr, struct_def, _name, value,indent),
     // accessors since dot access broken in preproc
     f_name: (field) => field.name,
     f_type: (field) => field.type,
@@ -205,8 +205,8 @@ exports.structs_with_macros = (obj_struct_defs) => {
   };
 
   for (const [sname, struct_def] of struct_defs) {
-    ret[`set_${sname}`] = (ptr, values) => set(ptr, struct_def, values);
-    ret[`make_${sname}`] = (values) => make(struct_def, values);
+    ret[`set_${sname}`] = (ptr, values,indent) => set(ptr, struct_def, values,indent);
+    ret[`make_${sname}`] = (values,indent) => make(struct_def, values,indent);
     for (const { name } of struct_def) {
       ret[`${sname}_${name}`] = (ptr) => get(ptr, struct_def, name);
     }

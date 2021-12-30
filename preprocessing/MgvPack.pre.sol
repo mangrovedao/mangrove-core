@@ -72,7 +72,7 @@ library $$(Sname) {
     return t.wrap($$(make(
       struct_def,
       map(struct_def, (field) =>
-    [f_name(field),`__$${f_name(field)}`]))));
+    [f_name(field),`__$${f_name(field)}`]),__indent)));
   }}
 
 
@@ -88,7 +88,7 @@ library $$(Sname) {
     return $$(get('t.unwrap(__packed)',struct_def,f_name(field)));
   }}
   function $$(f_name(field))(t __packed,$$(f_type(field)) val) internal pure returns(t) { unchecked {
-    return t.wrap($$(set1('t.unwrap(__packed)',struct_def,f_name(field),'val')));
+    return t.wrap($$(set1('t.unwrap(__packed)',struct_def,f_name(field),'val',__indent)));
   }}
   // #done
 }

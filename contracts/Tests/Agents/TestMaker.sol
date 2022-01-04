@@ -6,7 +6,7 @@ import "./Passthrough.sol";
 import "../../AbstractMangrove.sol";
 import "hardhat/console.sol";
 import {IERC20, IMaker} from "../../MgvLib.sol";
-import {Test as TestEvents} from "@giry/hardhat-test-solidity/test.sol";
+import {Test as TestEvents} from "@mangrovedao/hardhat-test-solidity/test.sol";
 
 contract TestMaker is IMaker, Passthrough {
   AbstractMangrove _mgv;

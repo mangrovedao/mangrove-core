@@ -37,7 +37,7 @@ To run specific tests or test suites, see the instructions in the following sect
 
 ## How to run Solidity tests for Mangrove
 
-This package contains a comprehensive test suite for Mangrove, implemented in Solidity using the [hardhat-test-solidity](https://github.com/giry-dev/hardhat-test-solidity) Hardhat plugin.
+This package contains a comprehensive test suite for Mangrove, implemented in Solidity using the [hardhat-test-solidity](https://github.com/mangrovedao/hardhat-test-solidity) Hardhat plugin.
 
 This test suite can be run with:
 
@@ -47,7 +47,7 @@ $ yarn test:solidity
 
 The tests are located in [./contracts/Tests](./contracts/Tests).
 
-Refer to the documentation of [hardhat-test-solidity](https://github.com/giry-dev/hardhat-test-solidity) for details on how tests are structured and options for running it.
+Refer to the documentation of [hardhat-test-solidity](https://github.com/mangrovedao/hardhat-test-solidity) for details on how tests are structured and options for running it.
 
 ## How to run offer logic tests
 

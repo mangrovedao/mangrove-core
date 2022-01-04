@@ -840,329 +840,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@giry/cleaning-bot@workspace:packages/cleaning-bot":
-  version: 0.0.0-use.local
-  resolution: "@giry/cleaning-bot@workspace:packages/cleaning-bot"
-  dependencies:
-    "@espendk/json-file-reporter": ^1.4.2
-    "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.4.0
-    "@giry/commonlib-js": "workspace:*"
-    "@giry/hardhat-utils": "workspace:*"
-    "@giry/mangrove-solidity": "workspace:*"
-    "@mangrovedao/mangrove.js": "workspace:*"
-    "@nomiclabs/hardhat-ethers": ^2.0.2
-    "@types/big.js": ^6.1.2
-    "@types/chai": ^4.2.22
-    "@types/chai-as-promised": ^7.1.4
-    "@types/config": ^0.0.39
-    "@types/dotenv-flow": ^3.2.0
-    "@types/mocha": ^9.0.0
-    "@types/node": ^16.9.4
-    "@types/shelljs": ^0.8.9
-    "@typescript-eslint/eslint-plugin": ^4.31.0
-    "@typescript-eslint/parser": ^4.31.0
-    big.js: ^6.1.1
-    chai: ^4.3.4
-    chai-as-promised: ^7.1.1
-    config: ^3.3.6
-    cross-env: ^7.0.3
-    dotenv-flow: ^3.2.0
-    eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
-    ethers: ^5.4.7
-    fast-safe-stringify: ^2.1.1
-    hardhat: ^2.6.4
-    hardhat-deploy: ^0.9.1
-    hardhat-deploy-ethers: ^0.3.0-beta.11
-    lint-staged: ^11.1.2
-    mocha: ^9.1.1
-    mocha-multi-reporters: ^1.5.1
-    npm-run-all: ^4.1.5
-    prettier: 2.3.2
-    prettier-eslint: ^13.0.0
-    rimraf: ^3.0.2
-    shelljs: ^0.8.4
-    toad-scheduler: ^1.6.0
-    ts-node: ^10.2.1
-    typescript: ^4.4.2
-  languageName: unknown
-  linkType: soft
-
-"@giry/commonlib-js@workspace:*, @giry/commonlib-js@workspace:packages/commonlib.js":
-  version: 0.0.0-use.local
-  resolution: "@giry/commonlib-js@workspace:packages/commonlib.js"
-  dependencies:
-    "@espendk/json-file-reporter": ^1.4.2
-    "@types/config": ^0.0.39
-    "@types/dotenv-flow": ^3.2.0
-    "@types/mocha": ^9.0.0
-    "@types/node": ^16.9.4
-    "@typescript-eslint/eslint-plugin": ^4.31.0
-    "@typescript-eslint/parser": ^4.31.0
-    config: ^3.3.6
-    dotenv-flow: ^3.2.0
-    eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
-    lint-staged: ^11.1.2
-    mocha: ^9.1.1
-    mocha-multi-reporters: ^1.5.1
-    prettier: 2.3.2
-    prettier-eslint: ^13.0.0
-    rimraf: ^3.0.2
-    ts-node: ^10.2.1
-    typescript: ^4.4.2
-    winston: ^3.3.3
-  languageName: unknown
-  linkType: soft
-
-"@giry/faucet@workspace:packages/faucet":
-  version: 0.0.0-use.local
-  resolution: "@giry/faucet@workspace:packages/faucet"
-  dependencies:
-    "@espendk/json-file-reporter": ^1.4.1
-    "@ethersproject/hardware-wallets": ^5.0.0
-    "@giry/hardhat-test-solidity": ^0.0.12
-    "@nomiclabs/hardhat-ethers": ^2.0.2
-    adhusson-hardhat-solpp: ^2.0.2
-    app-module-path: ^2.2.0
-    chai: ^4.3.4
-    chai-events: ^0.0.3
-    config: ^3.3.6
-    cross-env: ^7.0.3
-    dotenv-flow: ^3.2.0
-    ethers: ^5.4.6
-    fs: ^0.0.1-security
-    hardhat: ^2.4.1
-    hardhat-abi-exporter: ^2.3.0
-    hardhat-deploy: ^0.9.4
-    hardhat-deploy-ethers: ^0.3.0-beta.10
-    lint-staged: ^10.5.1
-    mocha: ^7.2.0
-    mocha-multi-reporters: ^1.5.1
-    npm-run-all: ^4.1.5
-    prettier: ^2.4.1
-    prettier-plugin-solidity: ^1.0.0-beta.3
-    rimraf: ^3.0.2
-    shelljs: ^0.8.4
-    solcco: ">=1.0.11"
-    yargs: ^17.1.1
-  languageName: unknown
-  linkType: soft
-
-"@giry/hardhat-test-solidity@npm:^0.0.12":
-  version: 0.0.12
-  resolution: "@giry/hardhat-test-solidity@npm:0.0.12"
-  dependencies:
-    chai: ^4.2.0
-    debug: ^4.3.2
-    mocha: ^7.1.2
-  peerDependencies:
-    hardhat: ^2.0.0
-    hardhat-deploy: ">=0.8.9"
-  checksum: f3d3e60625f6094122059707c2ea1660df80aa61e6ba9627448b1dde756771f13c333ee3f9973bec58092948bd9b0020ee5fcf535209a80f1b7dcf8473b4a528
-  languageName: node
-  linkType: hard
-
-"@giry/hardhat-utils@workspace:*, @giry/hardhat-utils@workspace:packages/hardhat-utils":
-  version: 0.0.0-use.local
-  resolution: "@giry/hardhat-utils@workspace:packages/hardhat-utils"
-  dependencies:
-    "@giry/mangrove-solidity": "workspace:*"
-    eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
-    ethers: ^5.4.7
-    hardhat: ^2.6.5
-    lint-staged: ^11.1.2
-    mocha: ^9.1.2
-    prettier: 2.3.2
-    prettier-eslint: ^13.0.0
-  languageName: unknown
-  linkType: soft
-
-"@giry/mangrove-solidity@workspace:*, @giry/mangrove-solidity@workspace:packages/mangrove-solidity":
-  version: 0.0.0-use.local
-  resolution: "@giry/mangrove-solidity@workspace:packages/mangrove-solidity"
-  dependencies:
-    "@espendk/json-file-reporter": ^1.4.1
-    "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.0.0
-    "@giry/hardhat-test-solidity": ^0.0.12
-    "@nomiclabs/hardhat-ethers": ^2.0.2
-    "@nomiclabs/hardhat-solpp": ^2.0.0
-    app-module-path: ^2.2.0
-    chai: ^4.3.4
-    chai-events: ^0.0.3
-    config: ^3.3.6
-    cross-env: ^7.0.3
-    dotenv-flow: ^3.2.0
-    ethers: ^5.4.6
-    fs: ^0.0.1-security
-    hardhat: ^2.4.1
-    hardhat-abi-exporter: ^2.3.0
-    hardhat-deploy: ^0.9.4
-    hardhat-deploy-ethers: ^0.3.0-beta.10
-    lint-staged: ^10.5.1
-    mocha: ^7.2.0
-    mocha-multi-reporters: ^1.5.1
-    npm-run-all: ^4.1.5
-    prettier: ^2.4.1
-    prettier-plugin-solidity: ^1.0.0-beta.3
-    rimraf: ^3.0.2
-    shelljs: ^0.8.4
-    solcco: ">=1.0.11"
-    solpp: ^0.11.5
-    yargs: ^17.1.1
-  languageName: unknown
-  linkType: soft
-
-"@giry/obfiller-bot@workspace:packages/obfiller-bot":
-  version: 0.0.0-use.local
-  resolution: "@giry/obfiller-bot@workspace:packages/obfiller-bot"
-  dependencies:
-    "@espendk/json-file-reporter": ^1.4.2
-    "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.4.0
-    "@giry/commonlib-js": "workspace:*"
-    "@giry/hardhat-utils": "workspace:*"
-    "@giry/mangrove-solidity": "workspace:*"
-    "@mangrovedao/mangrove.js": "workspace:*"
-    "@nomiclabs/hardhat-ethers": ^2.0.2
-    "@types/big.js": ^6.1.2
-    "@types/chai": ^4.2.22
-    "@types/chai-as-promised": ^7.1.4
-    "@types/config": ^0.0.39
-    "@types/dotenv-flow": ^3.2.0
-    "@types/mocha": ^9.0.0
-    "@types/node": ^16.9.4
-    "@types/shelljs": ^0.8.9
-    "@typescript-eslint/eslint-plugin": ^4.31.0
-    "@typescript-eslint/parser": ^4.31.0
-    big.js: ^6.1.1
-    chai: ^4.3.4
-    chai-as-promised: ^7.1.1
-    config: ^3.3.6
-    cross-env: ^7.0.3
-    dotenv-flow: ^3.2.0
-    eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
-    ethers: ^5.4.7
-    fast-safe-stringify: ^2.1.1
-    hardhat: ^2.6.4
-    hardhat-deploy: ^0.9.1
-    hardhat-deploy-ethers: ^0.3.0-beta.11
-    lint-staged: ^11.1.2
-    mocha: ^9.1.1
-    mocha-multi-reporters: ^1.5.1
-    npm-run-all: ^4.1.5
-    prettier: 2.3.2
-    prettier-eslint: ^13.0.0
-    random: ^3.0.6
-    rimraf: ^3.0.2
-    shelljs: ^0.8.4
-    ts-node: ^10.2.1
-    typescript: ^4.4.2
-  languageName: unknown
-  linkType: soft
-
-"@giry/template-bot@workspace:packages/template-bot":
-  version: 0.0.0-use.local
-  resolution: "@giry/template-bot@workspace:packages/template-bot"
-  dependencies:
-    "@espendk/json-file-reporter": ^1.4.2
-    "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.4.0
-    "@giry/commonlib-js": "workspace:*"
-    "@giry/hardhat-utils": "workspace:*"
-    "@giry/mangrove-solidity": "workspace:*"
-    "@mangrovedao/mangrove.js": "workspace:*"
-    "@nomiclabs/hardhat-ethers": ^2.0.2
-    "@types/big.js": ^6.1.2
-    "@types/chai": ^4.2.21
-    "@types/chai-as-promised": ^7.1.4
-    "@types/config": ^0.0.39
-    "@types/dotenv-flow": ^3.2.0
-    "@types/mocha": ^9.0.0
-    "@types/node": ^16.9.4
-    "@types/shelljs": ^0.8.9
-    "@typescript-eslint/eslint-plugin": ^4.31.0
-    "@typescript-eslint/parser": ^4.31.0
-    big.js: ^6.1.1
-    chai: ^4.3.4
-    chai-as-promised: ^7.1.1
-    config: ^3.3.6
-    cross-env: ^7.0.3
-    dotenv-flow: ^3.2.0
-    eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
-    ethers: ^5.4.7
-    fast-safe-stringify: ^2.1.1
-    hardhat: ^2.6.4
-    hardhat-deploy: ^0.9.1
-    hardhat-deploy-ethers: ^0.3.0-beta.11
-    lint-staged: ^11.1.2
-    mocha: ^9.1.1
-    mocha-multi-reporters: ^1.5.1
-    npm-run-all: ^4.1.5
-    prettier: 2.3.2
-    prettier-eslint: ^13.0.0
-    rimraf: ^3.0.2
-    shelljs: ^0.8.4
-    ts-node: ^10.2.1
-    typescript: ^4.4.2
-  languageName: unknown
-  linkType: soft
-
-"@giry/updategas-bot@workspace:packages/updategas-bot":
-  version: 0.0.0-use.local
-  resolution: "@giry/updategas-bot@workspace:packages/updategas-bot"
-  dependencies:
-    "@espendk/json-file-reporter": ^1.4.2
-    "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.4.0
-    "@giry/commonlib-js": "workspace:*"
-    "@giry/hardhat-utils": "workspace:*"
-    "@giry/mangrove-solidity": "workspace:*"
-    "@mangrovedao/mangrove.js": "workspace:*"
-    "@nomiclabs/hardhat-ethers": ^2.0.2
-    "@types/big.js": ^6.1.2
-    "@types/chai": ^4.2.21
-    "@types/chai-as-promised": ^7.1.4
-    "@types/config": ^0.0.39
-    "@types/dotenv-flow": ^3.2.0
-    "@types/mocha": ^9.0.0
-    "@types/node": ^16.9.4
-    "@types/shelljs": ^0.8.9
-    "@typescript-eslint/eslint-plugin": ^4.31.0
-    "@typescript-eslint/parser": ^4.31.0
-    axios: ^0.24.0
-    big.js: ^6.1.1
-    chai: ^4.3.4
-    chai-as-promised: ^7.1.1
-    config: ^3.3.6
-    cross-env: ^7.0.3
-    dotenv-flow: ^3.2.0
-    eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
-    ethers: ^5.4.7
-    fast-safe-stringify: ^2.1.1
-    hardhat: ^2.6.4
-    hardhat-deploy: ^0.9.1
-    hardhat-deploy-ethers: ^0.3.0-beta.11
-    lint-staged: ^11.1.2
-    mocha: ^9.1.1
-    mocha-multi-reporters: ^1.5.1
-    npm-run-all: ^4.1.5
-    prettier: 2.3.2
-    prettier-eslint: ^13.0.0
-    rimraf: ^3.0.2
-    shelljs: ^0.8.4
-    toad-scheduler: ^1.6.0
-    ts-node: ^10.2.1
-    typescript: ^4.4.2
-  languageName: unknown
-  linkType: soft
-
 "@humanwhocodes/config-array@npm:^0.5.0":
   version: 0.5.0
   resolution: "@humanwhocodes/config-array@npm:0.5.0"
@@ -1321,6 +998,182 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mangrovedao/cleaning-bot@workspace:packages/cleaning-bot":
+  version: 0.0.0-use.local
+  resolution: "@mangrovedao/cleaning-bot@workspace:packages/cleaning-bot"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.2
+    "@ethersproject/experimental": ^5.5.0
+    "@ethersproject/hardware-wallets": ^5.4.0
+    "@mangrovedao/commonlib-js": "workspace:*"
+    "@mangrovedao/hardhat-utils": "workspace:*"
+    "@mangrovedao/mangrove-solidity": "workspace:*"
+    "@mangrovedao/mangrove.js": "workspace:*"
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@types/big.js": ^6.1.2
+    "@types/chai": ^4.2.22
+    "@types/chai-as-promised": ^7.1.4
+    "@types/config": ^0.0.39
+    "@types/dotenv-flow": ^3.2.0
+    "@types/mocha": ^9.0.0
+    "@types/node": ^16.9.4
+    "@types/shelljs": ^0.8.9
+    "@typescript-eslint/eslint-plugin": ^4.31.0
+    "@typescript-eslint/parser": ^4.31.0
+    big.js: ^6.1.1
+    chai: ^4.3.4
+    chai-as-promised: ^7.1.1
+    config: ^3.3.6
+    cross-env: ^7.0.3
+    dotenv-flow: ^3.2.0
+    eslint: ^7.32.0
+    eslint-config-prettier: ^8.3.0
+    ethers: ^5.4.7
+    fast-safe-stringify: ^2.1.1
+    hardhat: ^2.6.4
+    hardhat-deploy: ^0.9.1
+    hardhat-deploy-ethers: ^0.3.0-beta.11
+    lint-staged: ^11.1.2
+    mocha: ^9.1.1
+    mocha-multi-reporters: ^1.5.1
+    npm-run-all: ^4.1.5
+    prettier: 2.3.2
+    prettier-eslint: ^13.0.0
+    rimraf: ^3.0.2
+    shelljs: ^0.8.4
+    toad-scheduler: ^1.6.0
+    ts-node: ^10.2.1
+    typescript: ^4.4.2
+  languageName: unknown
+  linkType: soft
+
+"@mangrovedao/commonlib-js@workspace:*, @mangrovedao/commonlib-js@workspace:packages/commonlib.js":
+  version: 0.0.0-use.local
+  resolution: "@mangrovedao/commonlib-js@workspace:packages/commonlib.js"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.2
+    "@types/config": ^0.0.39
+    "@types/dotenv-flow": ^3.2.0
+    "@types/mocha": ^9.0.0
+    "@types/node": ^16.9.4
+    "@typescript-eslint/eslint-plugin": ^4.31.0
+    "@typescript-eslint/parser": ^4.31.0
+    config: ^3.3.6
+    dotenv-flow: ^3.2.0
+    eslint: ^7.32.0
+    eslint-config-prettier: ^8.3.0
+    lint-staged: ^11.1.2
+    mocha: ^9.1.1
+    mocha-multi-reporters: ^1.5.1
+    prettier: 2.3.2
+    prettier-eslint: ^13.0.0
+    rimraf: ^3.0.2
+    ts-node: ^10.2.1
+    typescript: ^4.4.2
+    winston: ^3.3.3
+  languageName: unknown
+  linkType: soft
+
+"@mangrovedao/faucet@workspace:packages/faucet":
+  version: 0.0.0-use.local
+  resolution: "@mangrovedao/faucet@workspace:packages/faucet"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.1
+    "@ethersproject/hardware-wallets": ^5.0.0
+    "@mangrovedao/hardhat-test-solidity": ^0.0.14
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    adhusson-hardhat-solpp: ^2.0.2
+    app-module-path: ^2.2.0
+    chai: ^4.3.4
+    chai-events: ^0.0.3
+    config: ^3.3.6
+    cross-env: ^7.0.3
+    dotenv-flow: ^3.2.0
+    ethers: ^5.4.6
+    fs: ^0.0.1-security
+    hardhat: ^2.4.1
+    hardhat-abi-exporter: ^2.3.0
+    hardhat-deploy: ^0.9.4
+    hardhat-deploy-ethers: ^0.3.0-beta.10
+    lint-staged: ^10.5.1
+    mocha: ^7.2.0
+    mocha-multi-reporters: ^1.5.1
+    npm-run-all: ^4.1.5
+    prettier: ^2.4.1
+    prettier-plugin-solidity: ^1.0.0-beta.3
+    rimraf: ^3.0.2
+    shelljs: ^0.8.4
+    solcco: ">=1.0.11"
+    yargs: ^17.1.1
+  languageName: unknown
+  linkType: soft
+
+"@mangrovedao/hardhat-test-solidity@npm:^0.0.14":
+  version: 0.0.14
+  resolution: "@mangrovedao/hardhat-test-solidity@npm:0.0.14"
+  dependencies:
+    chai: ^4.2.0
+    debug: ^4.3.2
+    mocha: ^7.1.2
+  peerDependencies:
+    hardhat: ^2.0.0
+    hardhat-deploy: ">=0.8.9"
+  checksum: fdcdd7a89a78981e1a2534bd1a666912d26a814312b3710a165aa645cbc4d2cf37e7352af46bdb9d24a5b03b6986a4e7268d51ddc328847d66409a2d3dbc555e
+  languageName: node
+  linkType: hard
+
+"@mangrovedao/hardhat-utils@workspace:*, @mangrovedao/hardhat-utils@workspace:packages/hardhat-utils":
+  version: 0.0.0-use.local
+  resolution: "@mangrovedao/hardhat-utils@workspace:packages/hardhat-utils"
+  dependencies:
+    "@mangrovedao/mangrove-solidity": "workspace:*"
+    eslint: ^7.32.0
+    eslint-config-prettier: ^8.3.0
+    ethers: ^5.4.7
+    hardhat: ^2.6.5
+    lint-staged: ^11.1.2
+    mocha: ^9.1.2
+    prettier: 2.3.2
+    prettier-eslint: ^13.0.0
+  languageName: unknown
+  linkType: soft
+
+"@mangrovedao/mangrove-solidity@workspace:*, @mangrovedao/mangrove-solidity@workspace:packages/mangrove-solidity":
+  version: 0.0.0-use.local
+  resolution: "@mangrovedao/mangrove-solidity@workspace:packages/mangrove-solidity"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.1
+    "@ethersproject/experimental": ^5.5.0
+    "@ethersproject/hardware-wallets": ^5.0.0
+    "@mangrovedao/hardhat-test-solidity": ^0.0.14
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@nomiclabs/hardhat-solpp": ^2.0.0
+    app-module-path: ^2.2.0
+    chai: ^4.3.4
+    chai-events: ^0.0.3
+    config: ^3.3.6
+    cross-env: ^7.0.3
+    dotenv-flow: ^3.2.0
+    ethers: ^5.4.6
+    fs: ^0.0.1-security
+    hardhat: ^2.4.1
+    hardhat-abi-exporter: ^2.3.0
+    hardhat-deploy: ^0.9.4
+    hardhat-deploy-ethers: ^0.3.0-beta.10
+    lint-staged: ^10.5.1
+    mocha: ^7.2.0
+    mocha-multi-reporters: ^1.5.1
+    npm-run-all: ^4.1.5
+    prettier: ^2.4.1
+    prettier-plugin-solidity: ^1.0.0-beta.3
+    rimraf: ^3.0.2
+    shelljs: ^0.8.4
+    solcco: ">=1.0.11"
+    solpp: ^0.11.5
+    yargs: ^17.1.1
+  languageName: unknown
+  linkType: soft
+
 "@mangrovedao/mangrove.js@workspace:*, @mangrovedao/mangrove.js@workspace:packages/mangrove.js":
   version: 0.0.0-use.local
   resolution: "@mangrovedao/mangrove.js@workspace:packages/mangrove.js"
@@ -1331,8 +1184,8 @@ __metadata:
     "@ethersproject/experimental": ^5.5.0
     "@ethersproject/hardware-wallets": ^5.0.0
     "@ethersproject/providers": ^5.0.0
-    "@giry/hardhat-utils": "workspace:*"
-    "@giry/mangrove-solidity": "workspace:*"
+    "@mangrovedao/hardhat-utils": "workspace:*"
+    "@mangrovedao/mangrove-solidity": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2
     "@rollup/plugin-commonjs": ^20.0.0
     "@rollup/plugin-json": ^4.1.0
@@ -1379,6 +1232,153 @@ __metadata:
     yargs: ^17.3.0
   bin:
     mgv: ./cli/mgv.ts
+  languageName: unknown
+  linkType: soft
+
+"@mangrovedao/obfiller-bot@workspace:packages/obfiller-bot":
+  version: 0.0.0-use.local
+  resolution: "@mangrovedao/obfiller-bot@workspace:packages/obfiller-bot"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.2
+    "@ethersproject/experimental": ^5.5.0
+    "@ethersproject/hardware-wallets": ^5.4.0
+    "@mangrovedao/commonlib-js": "workspace:*"
+    "@mangrovedao/hardhat-utils": "workspace:*"
+    "@mangrovedao/mangrove-solidity": "workspace:*"
+    "@mangrovedao/mangrove.js": "workspace:*"
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@types/big.js": ^6.1.2
+    "@types/chai": ^4.2.22
+    "@types/chai-as-promised": ^7.1.4
+    "@types/config": ^0.0.39
+    "@types/dotenv-flow": ^3.2.0
+    "@types/mocha": ^9.0.0
+    "@types/node": ^16.9.4
+    "@types/shelljs": ^0.8.9
+    "@typescript-eslint/eslint-plugin": ^4.31.0
+    "@typescript-eslint/parser": ^4.31.0
+    big.js: ^6.1.1
+    chai: ^4.3.4
+    chai-as-promised: ^7.1.1
+    config: ^3.3.6
+    cross-env: ^7.0.3
+    dotenv-flow: ^3.2.0
+    eslint: ^7.32.0
+    eslint-config-prettier: ^8.3.0
+    ethers: ^5.4.7
+    fast-safe-stringify: ^2.1.1
+    hardhat: ^2.6.4
+    hardhat-deploy: ^0.9.1
+    hardhat-deploy-ethers: ^0.3.0-beta.11
+    lint-staged: ^11.1.2
+    mocha: ^9.1.1
+    mocha-multi-reporters: ^1.5.1
+    npm-run-all: ^4.1.5
+    prettier: 2.3.2
+    prettier-eslint: ^13.0.0
+    random: ^3.0.6
+    rimraf: ^3.0.2
+    shelljs: ^0.8.4
+    ts-node: ^10.2.1
+    typescript: ^4.4.2
+  languageName: unknown
+  linkType: soft
+
+"@mangrovedao/template-bot@workspace:packages/template-bot":
+  version: 0.0.0-use.local
+  resolution: "@mangrovedao/template-bot@workspace:packages/template-bot"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.2
+    "@ethersproject/experimental": ^5.5.0
+    "@ethersproject/hardware-wallets": ^5.4.0
+    "@mangrovedao/commonlib-js": "workspace:*"
+    "@mangrovedao/hardhat-utils": "workspace:*"
+    "@mangrovedao/mangrove-solidity": "workspace:*"
+    "@mangrovedao/mangrove.js": "workspace:*"
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@types/big.js": ^6.1.2
+    "@types/chai": ^4.2.21
+    "@types/chai-as-promised": ^7.1.4
+    "@types/config": ^0.0.39
+    "@types/dotenv-flow": ^3.2.0
+    "@types/mocha": ^9.0.0
+    "@types/node": ^16.9.4
+    "@types/shelljs": ^0.8.9
+    "@typescript-eslint/eslint-plugin": ^4.31.0
+    "@typescript-eslint/parser": ^4.31.0
+    big.js: ^6.1.1
+    chai: ^4.3.4
+    chai-as-promised: ^7.1.1
+    config: ^3.3.6
+    cross-env: ^7.0.3
+    dotenv-flow: ^3.2.0
+    eslint: ^7.32.0
+    eslint-config-prettier: ^8.3.0
+    ethers: ^5.4.7
+    fast-safe-stringify: ^2.1.1
+    hardhat: ^2.6.4
+    hardhat-deploy: ^0.9.1
+    hardhat-deploy-ethers: ^0.3.0-beta.11
+    lint-staged: ^11.1.2
+    mocha: ^9.1.1
+    mocha-multi-reporters: ^1.5.1
+    npm-run-all: ^4.1.5
+    prettier: 2.3.2
+    prettier-eslint: ^13.0.0
+    rimraf: ^3.0.2
+    shelljs: ^0.8.4
+    ts-node: ^10.2.1
+    typescript: ^4.4.2
+  languageName: unknown
+  linkType: soft
+
+"@mangrovedao/updategas-bot@workspace:packages/updategas-bot":
+  version: 0.0.0-use.local
+  resolution: "@mangrovedao/updategas-bot@workspace:packages/updategas-bot"
+  dependencies:
+    "@espendk/json-file-reporter": ^1.4.2
+    "@ethersproject/experimental": ^5.5.0
+    "@ethersproject/hardware-wallets": ^5.4.0
+    "@mangrovedao/commonlib-js": "workspace:*"
+    "@mangrovedao/hardhat-utils": "workspace:*"
+    "@mangrovedao/mangrove-solidity": "workspace:*"
+    "@mangrovedao/mangrove.js": "workspace:*"
+    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@types/big.js": ^6.1.2
+    "@types/chai": ^4.2.21
+    "@types/chai-as-promised": ^7.1.4
+    "@types/config": ^0.0.39
+    "@types/dotenv-flow": ^3.2.0
+    "@types/mocha": ^9.0.0
+    "@types/node": ^16.9.4
+    "@types/shelljs": ^0.8.9
+    "@typescript-eslint/eslint-plugin": ^4.31.0
+    "@typescript-eslint/parser": ^4.31.0
+    axios: ^0.24.0
+    big.js: ^6.1.1
+    chai: ^4.3.4
+    chai-as-promised: ^7.1.1
+    config: ^3.3.6
+    cross-env: ^7.0.3
+    dotenv-flow: ^3.2.0
+    eslint: ^7.32.0
+    eslint-config-prettier: ^8.3.0
+    ethers: ^5.4.7
+    fast-safe-stringify: ^2.1.1
+    hardhat: ^2.6.4
+    hardhat-deploy: ^0.9.1
+    hardhat-deploy-ethers: ^0.3.0-beta.11
+    lint-staged: ^11.1.2
+    mocha: ^9.1.1
+    mocha-multi-reporters: ^1.5.1
+    npm-run-all: ^4.1.5
+    prettier: 2.3.2
+    prettier-eslint: ^13.0.0
+    rimraf: ^3.0.2
+    shelljs: ^0.8.4
+    toad-scheduler: ^1.6.0
+    ts-node: ^10.2.1
+    typescript: ^4.4.2
   languageName: unknown
   linkType: soft
 

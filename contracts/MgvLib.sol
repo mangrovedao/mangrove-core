@@ -100,7 +100,8 @@ contract HasMgvEvents {
     address indexed inbound_tkn,
     address taker,
     uint takerGot,
-    uint takerGave
+    uint takerGave,
+    uint penalty
   );
 
   /* * Offer execution */

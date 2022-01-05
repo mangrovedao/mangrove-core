@@ -142,7 +142,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       inbound_tkn,
       taker,
       mor.totalGot,
-      mor.totalGave
+      mor.totalGave,
+      mor.totalPenalty
     );
 
     //+clear+
@@ -335,7 +336,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       inbound_tkn,
       taker,
       snipesGot,
-      snipesGave
+      snipesGave,
+      mor.totalPenalty
     );
 
     return (successCount, snipesGot, snipesGave, mor.totalPenalty);

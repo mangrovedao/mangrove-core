@@ -219,7 +219,8 @@ contract TakerOperations_Test is HasMgvEvents {
         address(quote),
         address(this),
         got,
-        gave
+        gave,
+        0
       );
     } catch {
       TestEvents.fail("Transaction should not revert");

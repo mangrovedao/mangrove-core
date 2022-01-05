@@ -40,8 +40,6 @@ async function main() {
     privateKey: wallet.privateKey,
   });
 
-  MgvAPI._provider.pollingInterval = 250;
-
   const markets = [
     ["WETH", 4287, "USDC", 1],
     ["WETH", 4287, "DAI", 1],
@@ -50,54 +48,30 @@ async function main() {
 
   const fundTx = await MgvAPI.fund(repostLogic.address, 0.5);
   await fundTx.wait();
-  const overrides = { gasLimit: 200000 };
   const volume = 1000;
-  const gasreq = 200000;
   for (const [base, baseInUSD, quote, quoteInUSD] of markets) {
-    const makerAPI = await MgvAPI.MakerConnect({
-      address: repostLogic.address,
+    const market = await MgvAPI.market({
       base: base,
       quote: quote,
+      maxOffers: 100,
     });
-
-    await makerAPI.approveMangrove(base);
-    await makerAPI.approveMangrove(quote);
-    await makerAPI.depositToken(base, volume / baseInUSD, overrides);
-    console.log(
-      `* Transferred ${volume / baseInUSD} ${base} to persistent offer logic`
-    );
-    await makerAPI.depositToken(quote, volume / quoteInUSD, overrides);
-    console.log(
-      `* Transferred ${volume / quoteInUSD} ${quote} to persistent offer logic`
-    );
-    // will hang if pivot ID not correctly evaluated
-    const { id: ofrId } = await makerAPI.newAsk(
-      {
-        wants: (volume + 10) / quoteInUSD,
-        gives: volume / baseInUSD,
-        gasreq: gasreq,
-      },
-      overrides
-    );
-    const { id: ofrId_ } = await makerAPI.newBid(
-      {
-        wants: (volume + 10) / baseInUSD,
-        gives: volume / quoteInUSD,
-        gasreq: gasreq,
-      },
-      overrides
-    );
-    const market = await MgvAPI.market({ base: base, quote: quote });
-    const filter = [
-      `id`,
-      `gasreq`,
-      `offer_gasbase`,
-      `maker`,
-      `price`,
-      `volume`,
-    ];
-    await market.consoleAsks(filter);
-    await market.consoleBids(filter);
+    //await market.consoleAsks();
+    //await market.consoleBids();
+    console.log(`* On market ${base},${quote}`);
+    const tx_ = await market.base.approveMangrove();
+    await tx_.wait();
+    const tx = await market.quote.approveMangrove();
+    await tx.wait();
+    const resultBuy = await market.buy({
+      wants: volume / baseInUSD,
+      gives: (volume + 10) / quoteInUSD,
+    });
+    console.log(resultBuy);
+    const resultSell = await market.sell({
+      wants: volume / quoteInUSD,
+      gives: (volume + 10) / baseInUSD,
+    });
+    console.log(resultSell);
   }
 }
 main()

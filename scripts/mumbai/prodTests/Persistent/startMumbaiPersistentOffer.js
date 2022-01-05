@@ -44,12 +44,12 @@ async function main() {
 
   const markets = [
     ["WETH", 4287, "USDC", 1],
-    ["WETH", 4287, "DAI", 1],
-    ["DAI", 1, "USDC", 1],
+    // ["WETH", 4287, "DAI", 1],
+    // ["DAI", 1, "USDC", 1],
   ];
 
-  const fundTx = await MgvAPI.fund(repostLogic.address, 0.5);
-  await fundTx.wait();
+  // const fundTx = await MgvAPI.fund(repostLogic.address, 1);
+  // await fundTx.wait();
   const overrides = { gasLimit: 200000 };
   const volume = 1000;
   const gasreq = 200000;
@@ -59,9 +59,11 @@ async function main() {
       base: base,
       quote: quote,
     });
-
+    await makerAPI.fundMangrove(await makerAPI.computeAskProvision());
+    await makerAPI.fundMangrove(await makerAPI.computeBidProvision());
     await makerAPI.approveMangrove(base);
     await makerAPI.approveMangrove(quote);
+
     await makerAPI.depositToken(base, volume / baseInUSD, overrides);
     console.log(
       `* Transferred ${volume / baseInUSD} ${base} to persistent offer logic`

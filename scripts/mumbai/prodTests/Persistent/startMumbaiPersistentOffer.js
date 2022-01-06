@@ -44,8 +44,8 @@ async function main() {
 
   const markets = [
     ["WETH", 4287, "USDC", 1],
-    // ["WETH", 4287, "DAI", 1],
-    // ["DAI", 1, "USDC", 1],
+    ["WETH", 4287, "DAI", 1],
+    ["DAI", 1, "USDC", 1],
   ];
 
   // const fundTx = await MgvAPI.fund(repostLogic.address, 1);
@@ -59,10 +59,24 @@ async function main() {
       base: base,
       quote: quote,
     });
-    await makerAPI.fundMangrove(await makerAPI.computeAskProvision());
-    await makerAPI.fundMangrove(await makerAPI.computeBidProvision());
-    await makerAPI.approveMangrove(base);
-    await makerAPI.approveMangrove(quote);
+    console.log(
+      "* Balance before",
+      await MgvAPI.balanceOf(repostLogic.address)
+    );
+    const txFund1 = await makerAPI.fundMangrove(
+      2 * (await makerAPI.computeAskProvision({ gasreq: gasreq }))
+    );
+    const txFund2 = await makerAPI.fundMangrove(
+      2 * (await makerAPI.computeBidProvision({ gasreq: gasreq }))
+    );
+    await tx1.wait();
+    await tx2.wait();
+    console.log("* Balance after", await MgvAPI.balanceOf(repostLogic.address));
+
+    const txApp1 = await makerAPI.approveMangrove(base);
+    const txApp2 = await makerAPI.approveMangrove(quote);
+    await txApp1.wait();
+    await txApp2.wait();
 
     await makerAPI.depositToken(base, volume / baseInUSD, overrides);
     console.log(

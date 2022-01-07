@@ -4,7 +4,7 @@
 pragma abicoder v2;
 
 pragma solidity ^0.8.10;
-import {Test as T} from "@giry/hardhat-test-solidity/test.sol";
+import {Test as T} from "@mangrovedao/hardhat-test-solidity/test.sol";
 import "hardhat/console.sol";
 
 contract Throw_Test {

@@ -6,7 +6,7 @@ import "../periphery/MgvCleaner.sol";
 
 import "../MgvLib.sol";
 import "hardhat/console.sol";
-import "@giry/hardhat-test-solidity/test.sol";
+import "@mangrovedao/hardhat-test-solidity/test.sol";
 
 import "./Toolbox/TestUtils.sol";
 

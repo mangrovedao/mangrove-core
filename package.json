@@ -1,5 +1,5 @@
 {
-  "name": "@giry/mangrove-solidity",
+  "name": "@mangrovedao/mangrove-solidity",
   "version": "1.0.0",
   "author": "Mangrove DAO",
   "license": "(AGPL-3.0-only OR BSD-2-Clause)",
@@ -27,7 +27,7 @@
     "@espendk/json-file-reporter": "^1.4.1",
     "@ethersproject/experimental": "^5.5.0",
     "@ethersproject/hardware-wallets": "^5.0.0",
-    "@giry/hardhat-test-solidity": "^0.0.12",
+    "@mangrovedao/hardhat-test-solidity": "^0.0.14",
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-solpp": "^2.0.0",
     "app-module-path": "^2.2.0",

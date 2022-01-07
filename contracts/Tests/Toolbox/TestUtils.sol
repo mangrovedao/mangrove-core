@@ -8,7 +8,7 @@ import "../Agents/MakerDeployer.sol";
 import "../Agents/TestMoriartyMaker.sol";
 import "../Agents/TestToken.sol";
 
-import {Display, Test as TestEvents} from "@giry/hardhat-test-solidity/test.sol";
+import {Display, Test as TestEvents} from "@mangrovedao/hardhat-test-solidity/test.sol";
 import "../../InvertedMangrove.sol";
 import "../../Mangrove.sol";
 import "../../MgvLib.sol";

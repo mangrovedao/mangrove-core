@@ -12,6 +12,6 @@ require("hardhat-abi-exporter");
 
 require("./lib/hardhat-mainnet-env.js"); // Adds Ethereum/polygon environment to Hardhat Runtime Envrionment
 
-require("@giry/hardhat-test-solidity");
+require("@mangrovedao/hardhat-test-solidity");
 // Use Hardhat configuration from loaded configuration files
 module.exports = config.hardhat;

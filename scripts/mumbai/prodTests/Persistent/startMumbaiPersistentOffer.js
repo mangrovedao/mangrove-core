@@ -48,20 +48,36 @@ async function main() {
     ["DAI", 1, "USDC", 1],
   ];
 
-  const fundTx = await MgvAPI.fund(repostLogic.address, 0.5);
-  await fundTx.wait();
+  // const fundTx = await MgvAPI.fund(repostLogic.address, 1);
+  // await fundTx.wait();
   const overrides = { gasLimit: 200000 };
   const volume = 1000;
-
+  const gasreq = 200000;
   for (const [base, baseInUSD, quote, quoteInUSD] of markets) {
     const makerAPI = await MgvAPI.MakerConnect({
       address: repostLogic.address,
       base: base,
       quote: quote,
     });
+    console.log(
+      "* Balance before",
+      await MgvAPI.balanceOf(repostLogic.address)
+    );
+    const txFund1 = await makerAPI.fundMangrove(
+      2 * (await makerAPI.computeAskProvision({ gasreq: gasreq }))
+    );
+    const txFund2 = await makerAPI.fundMangrove(
+      2 * (await makerAPI.computeBidProvision({ gasreq: gasreq }))
+    );
+    await tx1.wait();
+    await tx2.wait();
+    console.log("* Balance after", await MgvAPI.balanceOf(repostLogic.address));
 
-    await makerAPI.approveMangrove(base);
-    await makerAPI.approveMangrove(quote);
+    const txApp1 = await makerAPI.approveMangrove(base);
+    const txApp2 = await makerAPI.approveMangrove(quote);
+    await txApp1.wait();
+    await txApp2.wait();
+
     await makerAPI.depositToken(base, volume / baseInUSD, overrides);
     console.log(
       `* Transferred ${volume / baseInUSD} ${base} to persistent offer logic`
@@ -75,6 +91,7 @@ async function main() {
       {
         wants: (volume + 10) / quoteInUSD,
         gives: volume / baseInUSD,
+        gasreq: gasreq,
       },
       overrides
     );
@@ -82,12 +99,21 @@ async function main() {
       {
         wants: (volume + 10) / baseInUSD,
         gives: volume / quoteInUSD,
+        gasreq: gasreq,
       },
       overrides
     );
     const market = await MgvAPI.market({ base: base, quote: quote });
-    await market.consoleAsks();
-    await market.consoleBids();
+    const filter = [
+      `id`,
+      `gasreq`,
+      `offer_gasbase`,
+      `maker`,
+      `price`,
+      `volume`,
+    ];
+    await market.consoleAsks(filter);
+    await market.consoleBids(filter);
   }
 }
 main()

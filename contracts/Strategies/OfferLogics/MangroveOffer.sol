@@ -24,7 +24,7 @@ abstract contract MangroveOffer is
   TradeHandler,
   Exponential
 {
-  Mangrove immutable MGV; // Address of the deployed Mangrove contract
+  Mangrove public immutable MGV; // Address of the deployed Mangrove contract
 
   // default values
   uint public override OFR_GASREQ = 100_000;
@@ -52,7 +52,7 @@ abstract contract MangroveOffer is
     onlyAdmin
     returns (bool success)
   {
-    (success,) = recipient.call{value: amount}("");
+    (success, ) = recipient.call{value: amount}("");
   }
 
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function

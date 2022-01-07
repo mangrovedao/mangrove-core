@@ -153,7 +153,8 @@ contract Scenarii_Test is HasMgvEvents {
       address(quote),
       address(taker),
       takerGot,
-      takerGave
+      takerGave,
+      0
     );
     TestEvents.stopExpecting();
 

@@ -89,7 +89,7 @@ async function execTraderStrat(makerContract, mgv, reader, lenderName) {
     lc.parseToken("300.0", await lc.getDecimals("DAI")) // promised DAI (will need to borrow)
   );
 
-  let [takerGot, takerGave] = await lc.snipeSuccess(
+  let [takerGot, takerGave, bounty] = await lc.snipeSuccess(
     mgv,
     reader,
     "DAI", // maker base
@@ -108,6 +108,7 @@ async function execTraderStrat(makerContract, mgv, reader, lenderName) {
     lc.parseToken("0.15", await lc.getDecimals("WETH")),
     "Incorrect given amount"
   );
+  lc.assertEqualBN(bounty, 0, "Snipe should not fail on the maker side");
 
   await lc.logLenderStatus(
     makerContract,

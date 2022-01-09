@@ -24,12 +24,21 @@ async function main() {
   const weth = MgvAPI.token("WETH");
   const dai = MgvAPI.token("DAI");
   const usdc = MgvAPI.token("USDC");
+  const aweth = MgvAPI.token("amWETH");
+  const adai = MgvAPI.token("amDAI");
+  const ausdc = MgvAPI.token("amUSDC");
 
   const volume = 1000;
 
+  for (aToken of [aweth, adai, ausdc]) {
+    const tx = await aToken.approve(offerProxy.address);
+    await tx.wait();
+    console.log(`* Approving OfferProxy for ${aToken.name} transfer`);
+  }
+
   const markets = [
-    [weth, 3500, dai, 1],
-    [weth, 3500, usdc, 1],
+    [weth, 4300, dai, 1],
+    [weth, 4300, usdc, 1],
     [dai, 1, usdc, 1],
   ];
 
@@ -41,6 +50,7 @@ async function main() {
     });
     const fundTx = await mkr.fundMangrove(0.1);
     await fundTx.wait();
+
     // will hang if pivot ID not correctly evaluated
     const { id: ofrId, pivot: pivot } = await mkr.newAsk({
       wants: (volume + 12) / quoteInUSD,

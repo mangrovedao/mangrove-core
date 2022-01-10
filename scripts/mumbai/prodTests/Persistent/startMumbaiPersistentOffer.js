@@ -48,8 +48,6 @@ async function main() {
     ["DAI", 1, "USDC", 1],
   ];
 
-  // const fundTx = await MgvAPI.fund(repostLogic.address, 1);
-  // await fundTx.wait();
   const overrides = { gasLimit: 200000 };
   const volume = 1000;
   const gasreq = 200000;
@@ -59,19 +57,14 @@ async function main() {
       base: base,
       quote: quote,
     });
-    console.log(
-      "* Balance before",
-      await MgvAPI.balanceOf(repostLogic.address)
-    );
     const txFund1 = await makerAPI.fundMangrove(
-      2 * (await makerAPI.computeAskProvision({ gasreq: gasreq }))
+      await makerAPI.computeAskProvision({ gasreq: gasreq })
     );
     const txFund2 = await makerAPI.fundMangrove(
-      2 * (await makerAPI.computeBidProvision({ gasreq: gasreq }))
+      await makerAPI.computeBidProvision({ gasreq: gasreq })
     );
-    await tx1.wait();
-    await tx2.wait();
-    console.log("* Balance after", await MgvAPI.balanceOf(repostLogic.address));
+    await txFund1.wait();
+    await txFund2.wait();
 
     const txApp1 = await makerAPI.approveMangrove(base);
     const txApp2 = await makerAPI.approveMangrove(quote);

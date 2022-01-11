@@ -45,17 +45,6 @@ async function deployStrat(mgv, reader, players) {
   mkrTxs[i++] = await offerProxy
     .connect(players.maker.signer)
     .fundMangrove(overrides);
-  // sanity check
-  lc.assertEqualBN(
-    await mgv.balanceOf(offerProxy.address),
-    lc.parseToken("2.0", 18),
-    "Failed to fund the Mangrove"
-  );
-  lc.assertEqualBN(
-    await offerProxy.mgvBalanceOf(players.maker.address),
-    lc.parseToken("2.0", 18),
-    "Failed to fund the user account"
-  );
   // maker approves takerProfit for aDai (Dai is outbound) transfer
   mkrTxs[i++] = await aDai
     .connect(players.maker.signer)
@@ -69,7 +58,19 @@ async function deployStrat(mgv, reader, players) {
     .deposit(dai.address, lc.parseToken("1000", 18), players.maker.address, 0);
   await lc.synch(mkrTxs);
 
-  /*********************** DEPLOYER SIDE PREMICES **************************/
+  // sanity check
+  lc.assertEqualBN(
+    await mgv.balanceOf(offerProxy.address),
+    lc.parseToken("2.0", 18),
+    "Failed to fund the Mangrove"
+  );
+  lc.assertEqualBN(
+    await offerProxy.mgvBalanceOf(players.maker.address),
+    lc.parseToken("2.0", 18),
+    "Failed to fund the user account"
+  );
+
+  /*********************** DEPLOYER SIDE PREMISES **************************/
   offerProxy = offerProxy.connect(players.deployer.signer);
   let depTxs = [];
   let j = 0;
@@ -93,7 +94,7 @@ async function deployStrat(mgv, reader, players) {
   //   wEth.address,
   //   ethers.constants.MaxUint256
   // );
-  // await lc.synch(depTxs);
+  await lc.synch(depTxs);
   return offerProxy;
 }
 

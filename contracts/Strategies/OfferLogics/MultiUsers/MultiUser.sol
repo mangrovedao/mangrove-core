@@ -217,6 +217,7 @@ abstract contract MultiUser is MangroveOffer {
   ) external payable override {
     address owner = ownerOf(outbound_tkn, inbound_tkn, offerId);
     require(owner == msg.sender, "mgvOffer/MultiOwner/unauthorized");
+    uint weiBalanceBefore = MGV.balanceOf(address(this));
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
@@ -230,8 +231,7 @@ abstract contract MultiUser is MangroveOffer {
       pivotId,
       offerId
     );
-    uint weiBalanceAfter = MGV.balanceOf(address(this));
-    updateUserBalanceOnMgv(owner, weiBalanceAfter);
+    updateUserBalanceOnMgv(owner, weiBalanceBefore);
   }
 
   // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove. Function call will throw if `this` contract is not the owner of `offerId`.

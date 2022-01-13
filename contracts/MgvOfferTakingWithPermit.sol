@@ -190,6 +190,14 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       allowances[outbound_tkn][inbound_tkn][owner][msg.sender] =
         allowed -
         amount;
+
+      emit Approval(
+        outbound_tkn,
+        inbound_tkn,
+        owner,
+        msg.sender,
+        allowed - amount
+      );
     }
   }
 }

@@ -32,7 +32,7 @@ async function main() {
   ];
 
   for (const [base, quote] of markets) {
-    const maker = await MgvAPI.MakerConnect({
+    const maker = await MgvAPI.makerConnect({
       address: offerProxy.address,
       base: base.name,
       quote: quote.name,

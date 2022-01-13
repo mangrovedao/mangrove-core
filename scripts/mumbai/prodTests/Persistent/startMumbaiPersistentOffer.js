@@ -52,7 +52,7 @@ async function main() {
   const volume = 1000;
   const gasreq = 200000;
   for (const [base, baseInUSD, quote, quoteInUSD] of markets) {
-    const makerAPI = await MgvAPI.MakerConnect({
+    const makerAPI = await MgvAPI.makerConnect({
       address: repostLogic.address,
       base: base,
       quote: quote,

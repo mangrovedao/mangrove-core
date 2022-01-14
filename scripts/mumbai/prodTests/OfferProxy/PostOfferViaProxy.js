@@ -43,7 +43,7 @@ async function main() {
   ];
 
   for (const [base, baseInUSD, quote, quoteInUSD] of markets) {
-    const mkr = await MgvAPI.MakerConnect({
+    const mkr = await MgvAPI.makerConnect({
       address: offerProxy.address,
       base: base.name,
       quote: quote.name,

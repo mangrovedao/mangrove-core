@@ -37,14 +37,14 @@ async function main() {
       base: base.name,
       quote: quote.name,
     });
-    await maker.market.consoleAsks();
+    maker.market.consoleAsks();
     for (const offer of maker.asks()) {
       if (offer.maker == offerProxy.address) {
         await maker.cancelAsk(offer.id, true);
         console.log(`* Ask ${offer.id} retracted`);
       }
     }
-    await maker.market.consoleBids();
+    maker.market.consoleBids();
     for (const offer of maker.bids()) {
       if (offer.maker == offerProxy.address) {
         await maker.cancelBid(offer.id, true);

@@ -68,8 +68,8 @@ async function main() {
     console.log(
       `* Posting new offer proxy ${ofrId_} on (${base.name},${quote.name}) market using pivot ${pivot_}`
     );
-    await mkr.market.consoleAsks();
-    await mkr.market.consoleBids();
+    mkr.market.consoleAsks();
+    mkr.market.consoleBids();
   }
 }
 main()

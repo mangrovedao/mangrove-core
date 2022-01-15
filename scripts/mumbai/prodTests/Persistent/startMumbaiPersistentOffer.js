@@ -105,8 +105,8 @@ async function main() {
       `price`,
       `volume`,
     ];
-    await market.consoleAsks(filter);
-    await market.consoleBids(filter);
+    market.consoleAsks(filter);
+    market.consoleBids(filter);
   }
 }
 main()

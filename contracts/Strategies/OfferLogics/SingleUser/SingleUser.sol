@@ -133,6 +133,9 @@ abstract contract SingleUser is MangroveOffer {
     uint gasprice,
     uint offerId
   ) public view override returns (uint) {
+    if (gasreq > type(uint24).max) {
+      gasreq = OFR_GASREQ;
+    }
     return
       _getMissingProvision(
         MGV,
@@ -145,12 +148,10 @@ abstract contract SingleUser is MangroveOffer {
       );
   }
 
-  function __put__(uint /*amount*/, MgvLib.SingleOrder calldata)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
+  function __put__(
+    uint, /*amount*/
+    MgvLib.SingleOrder calldata
+  ) internal virtual override returns (uint) {
     return 0;
   }
 

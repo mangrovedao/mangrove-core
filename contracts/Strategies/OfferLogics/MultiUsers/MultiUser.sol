@@ -264,6 +264,9 @@ abstract contract MultiUser is MangroveOffer {
     uint offerId
   ) public view override returns (uint) {
     uint balance;
+    if (gasreq > type(uint24).max) {
+      gasreq = OFR_GASREQ;
+    }
     address owner = ownerOf(outbound_tkn, inbound_tkn, offerId);
     if (owner == address(0)) {
       balance = 0;

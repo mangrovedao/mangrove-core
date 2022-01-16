@@ -189,6 +189,9 @@ abstract contract MultiUser is MangroveOffer {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
+    if (gasreq > type(uint24).max) {
+      gasreq = OFR_GASREQ;
+    }
     // this call could revert if this contract does not have the provision to cover the bounty
     offerId = MGV.newOffer(
       outbound_tkn,
@@ -220,6 +223,9 @@ abstract contract MultiUser is MangroveOffer {
     uint weiBalanceBefore = MGV.balanceOf(address(this));
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
+    }
+    if (gasreq > type(uint24).max) {
+      gasreq = OFR_GASREQ;
     }
     MGV.updateOffer(
       outbound_tkn,

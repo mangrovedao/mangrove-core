@@ -267,10 +267,8 @@ abstract contract MultiUser is MangroveOffer {
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
     }
-    address owner = ownerOf(outbound_tkn, inbound_tkn, offerId);
-    if (owner == address(0)) {
-      balance = 0;
-    } else {
+    if (offerId != 0) {
+      address owner = ownerOf(outbound_tkn, inbound_tkn, offerId);
       balance = mgvBalanceOf[owner];
     }
     return

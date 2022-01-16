@@ -14,16 +14,12 @@ async function main() {
     provider
   );
 
-  const offerProxy = await hre.ethers.getContract("OfferProxy");
-
   const MgvAPI = await Mangrove.connect({
-    provider: hre.network.config.url,
-    privateKey: wallet.privateKey,
+    signer: wallet,
   });
 
-  const weth = MgvAPI.token("WETH");
-  const dai = MgvAPI.token("DAI");
-  const usdc = MgvAPI.token("USDC");
+  const logic = MgvAPI.offerLogic(await hre.ethers.getContract("OfferProxy"));
+
   const aweth = MgvAPI.token("amWETH");
   const adai = MgvAPI.token("amDAI");
   const ausdc = MgvAPI.token("amUSDC");
@@ -31,45 +27,55 @@ async function main() {
   const volume = 1000;
 
   for (aToken of [aweth, adai, ausdc]) {
-    const tx = await aToken.approve(offerProxy.address);
+    const tx = await aToken.approve(logic.address);
     await tx.wait();
     console.log(`* Approving OfferProxy for ${aToken.name} transfer`);
   }
 
   const markets = [
-    [weth, 4300, dai, 1],
-    [weth, 4300, usdc, 1],
-    [dai, 1, usdc, 1],
+    ["WETH", 4300, "DAI", 1],
+    ["WETH", 4300, "USDC", 1],
+    ["DAI", 1, "USDC", 1],
   ];
 
   for (const [base, baseInUSD, quote, quoteInUSD] of markets) {
-    const mkr = await MgvAPI.MakerConnect({
-      address: offerProxy.address,
-      base: base.name,
-      quote: quote.name,
+    //getting a liquidity provider API on the (base,quote) market
+    const lp = await logic.connectMarket({
+      base: base,
+      quote: quote,
     });
-    const fundTx = await mkr.fundMangrove(0.1);
+    // computing necessary provision to post a bid and a ask using offerProxy logic
+    const provAsk = await lp.computeAskProvision();
+    const provBid = await lp.computeBidProvision();
+
+    const fundTx = await logic.fundMangrove(provAsk.add(provBid));
     await fundTx.wait();
 
     // will hang if pivot ID not correctly evaluated
-    const { id: ofrId, pivot: pivot } = await mkr.newAsk({
-      wants: (volume + 12) / quoteInUSD,
-      gives: volume / baseInUSD,
-    });
+    const { id: ofrId, pivot: pivot } = await lp.newAsk(
+      {
+        wants: (volume + 12) / quoteInUSD,
+        gives: volume / baseInUSD,
+      },
+      { gasLimit: 500000 }
+    );
 
     console.log(
-      `* Posting new offer proxy ${ofrId} on (${base.name},${quote.name}) market using pivot ${pivot}`
+      `* Posting new offer proxy ${ofrId} on (${base},${quote}) market using pivot ${pivot}`
     );
-    const { id: ofrId_, pivot: pivot_ } = await mkr.newBid({
-      wants: (volume + 13) / baseInUSD,
-      gives: volume / quoteInUSD,
-    });
+    const { id: ofrId_, pivot: pivot_ } = await lp.newBid(
+      {
+        wants: (volume + 13) / baseInUSD,
+        gives: volume / quoteInUSD,
+      },
+      { gasLimit: 500000 }
+    );
 
     console.log(
-      `* Posting new offer proxy ${ofrId_} on (${base.name},${quote.name}) market using pivot ${pivot_}`
+      `* Posting new offer proxy ${ofrId_} on (${base},${quote}) market using pivot ${pivot_}`
     );
-    await mkr.market.consoleAsks();
-    await mkr.market.consoleBids();
+    await lp.market.consoleAsks();
+    await lp.market.consoleBids();
   }
 }
 main()

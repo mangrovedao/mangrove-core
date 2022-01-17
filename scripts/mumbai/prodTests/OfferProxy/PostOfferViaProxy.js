@@ -40,7 +40,7 @@ async function main() {
 
   for (const [base, baseInUSD, quote, quoteInUSD] of markets) {
     //getting a liquidity provider API on the (base,quote) market
-    const lp = await logic.connectMarket({
+    const lp = await logic.liquidityProvider({
       base: base,
       quote: quote,
     });
@@ -48,7 +48,7 @@ async function main() {
     const provAsk = await lp.computeAskProvision();
     const provBid = await lp.computeBidProvision();
 
-    const fundTx = await logic.fundMangrove(provAsk.add(provBid));
+    const fundTx = await lp.fundMangrove(provAsk.add(provBid));
     await fundTx.wait();
 
     // will hang if pivot ID not correctly evaluated
@@ -74,8 +74,8 @@ async function main() {
     console.log(
       `* Posting new offer proxy ${ofrId_} on (${base},${quote}) market using pivot ${pivot_}`
     );
-    await lp.market.consoleAsks();
-    await lp.market.consoleBids();
+    await lp.consoleAsks();
+    await lp.consoleBids();
   }
 }
 main()

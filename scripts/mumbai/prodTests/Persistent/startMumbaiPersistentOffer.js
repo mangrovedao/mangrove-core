@@ -19,7 +19,7 @@ async function main() {
   const repostLogic = MgvAPI.offerLogic(
     (await hre.ethers.getContract("Reposting")).address
   );
-  const admin = await repostLogic.admin();
+  const admin = await repostLogic.getAdmin();
 
   // if admin is still deployer, changing it to Mumbai tester
   if (admin != wallet.address) {
@@ -52,6 +52,12 @@ async function main() {
   const gasreq = 200000;
 
   for (const [base, baseInUSD, quote, quoteInUSD] of markets) {
+    // getting a liquidityProvider object to interact with Mangrove using Reposting offer.
+    const lp = await repostLogic.liquidityProvider({
+      base: base,
+      quote: quote,
+    });
+
     const txFund1 = await repostLogic.fundMangrove(
       await lp.computeAskProvision({ gasreq: gasreq })
     );
@@ -75,11 +81,6 @@ async function main() {
       `* Transferred ${volume / quoteInUSD} ${quote} to persistent offer logic`
     );
 
-    // getting a liquidityProvider object to interact with Mangrove using Reposting offer.
-    const lp = await repostLogic.liquidityProvider({
-      base: base,
-      quote: quote,
-    });
     // will hang if pivot ID not correctly evaluated
     const { id: ofrId } = await lp.newAsk(
       {

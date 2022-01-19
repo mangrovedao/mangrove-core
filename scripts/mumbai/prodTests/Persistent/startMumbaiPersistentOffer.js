@@ -5,21 +5,25 @@ async function main() {
   const provider = new ethers.providers.WebSocketProvider(
     hre.network.config.url
   );
-
   if (!process.env["MUMBAI_TESTER_PRIVATE_KEY"]) {
     console.error("No tester account defined");
   }
-
   const wallet = new ethers.Wallet(
     process.env["MUMBAI_TESTER_PRIVATE_KEY"],
     provider
   );
+  const MgvAPI = await Mangrove.connect({
+    signer: wallet,
+  });
 
-  const repostLogic = await hre.ethers.getContract("Reposting");
+  const repostLogic = MgvAPI.offerLogic(
+    (await hre.ethers.getContract("Reposting")).address
+  );
   const admin = await repostLogic.admin();
 
   // if admin is still deployer, changing it to Mumbai tester
   if (admin != wallet.address) {
+    console.log("* Setting new admin for Reposting offer");
     if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
       console.error("No tester account defined");
     }
@@ -29,18 +33,13 @@ async function main() {
       provider
     );
 
+    // using walletDeployer signature to change admin
+    // NB `connect` has no side effect on `repostLogic`
     const adminTx = await repostLogic
       .connect(walletDeployer)
       .setAdmin(wallet.address);
     await adminTx.wait();
   }
-
-  const MgvAPI = await Mangrove.connect({
-    provider: hre.network.config.url,
-    privateKey: wallet.privateKey,
-  });
-
-  MgvAPI._provider.pollingInterval = 250;
 
   const markets = [
     ["WETH", 4287, "USDC", 1],
@@ -51,36 +50,38 @@ async function main() {
   const overrides = { gasLimit: 200000 };
   const volume = 1000;
   const gasreq = 200000;
+
   for (const [base, baseInUSD, quote, quoteInUSD] of markets) {
-    const makerAPI = await MgvAPI.makerConnect({
-      address: repostLogic.address,
-      base: base,
-      quote: quote,
-    });
-    const txFund1 = await makerAPI.fundMangrove(
-      await makerAPI.computeAskProvision({ gasreq: gasreq })
+    const txFund1 = await repostLogic.fundMangrove(
+      await lp.computeAskProvision({ gasreq: gasreq })
     );
-    const txFund2 = await makerAPI.fundMangrove(
-      await makerAPI.computeBidProvision({ gasreq: gasreq })
+    const txFund2 = await repostLogic.fundMangrove(
+      await lp.computeBidProvision({ gasreq: gasreq })
     );
     await txFund1.wait();
     await txFund2.wait();
 
-    const txApp1 = await makerAPI.approveMangrove(base);
-    const txApp2 = await makerAPI.approveMangrove(quote);
+    const txApp1 = await repostLogic.approveMangrove(base);
+    const txApp2 = await repostLogic.approveMangrove(quote);
     await txApp1.wait();
     await txApp2.wait();
 
-    await makerAPI.depositToken(base, volume / baseInUSD, overrides);
+    await repostLogic.depositToken(base, volume / baseInUSD, overrides);
     console.log(
       `* Transferred ${volume / baseInUSD} ${base} to persistent offer logic`
     );
-    await makerAPI.depositToken(quote, volume / quoteInUSD, overrides);
+    await repostLogic.depositToken(quote, volume / quoteInUSD, overrides);
     console.log(
       `* Transferred ${volume / quoteInUSD} ${quote} to persistent offer logic`
     );
+
+    // getting a liquidityProvider object to interact with Mangrove using Reposting offer.
+    const lp = await repostLogic.liquidityProvider({
+      base: base,
+      quote: quote,
+    });
     // will hang if pivot ID not correctly evaluated
-    const { id: ofrId } = await makerAPI.newAsk(
+    const { id: ofrId } = await lp.newAsk(
       {
         wants: (volume + 10) / quoteInUSD,
         gives: volume / baseInUSD,
@@ -88,7 +89,7 @@ async function main() {
       },
       overrides
     );
-    const { id: ofrId_ } = await makerAPI.newBid(
+    const { id: ofrId_ } = await lp.newBid(
       {
         wants: (volume + 10) / baseInUSD,
         gives: volume / quoteInUSD,
@@ -96,7 +97,6 @@ async function main() {
       },
       overrides
     );
-    const market = await MgvAPI.market({ base: base, quote: quote });
     const filter = [
       `id`,
       `gasreq`,
@@ -105,8 +105,8 @@ async function main() {
       `price`,
       `volume`,
     ];
-    market.consoleAsks(filter);
-    market.consoleBids(filter);
+    await lp.market.consoleAsks(filter);
+    await lp.market.consoleBids(filter);
   }
 }
 main()

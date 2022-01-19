@@ -133,12 +133,8 @@ abstract contract SingleUser is MangroveOffer {
     uint gasprice,
     uint offerId
   ) public view override returns (uint) {
-    if (gasreq > type(uint24).max) {
-      gasreq = OFR_GASREQ;
-    }
     return
       _getMissingProvision(
-        MGV,
         MGV.balanceOf(address(this)),
         outbound_tkn,
         inbound_tkn,

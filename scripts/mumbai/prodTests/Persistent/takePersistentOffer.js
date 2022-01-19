@@ -15,8 +15,6 @@ async function main() {
     provider
   );
 
-  const repostLogic = await hre.ethers.getContract("Reposting");
-
   const MgvAPI = await Mangrove.connect({
     provider: hre.network.config.url,
     privateKey: wallet.privateKey,
@@ -38,9 +36,9 @@ async function main() {
     });
 
     console.log(`* On market ${base},${quote}`);
-    const tx_ = await market.base.approveMangrove();
+    const tx_ = await market.approveMangrove(base.name);
     await tx_.wait();
-    const tx = await market.quote.approveMangrove();
+    const tx = await market.approveMangrove(quote.name);
     await tx.wait();
     const resultBuy = await market.buy({
       wants: volume / baseInUSD,

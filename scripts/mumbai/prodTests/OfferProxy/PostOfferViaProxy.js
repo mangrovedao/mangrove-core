@@ -18,7 +18,9 @@ async function main() {
     signer: wallet,
   });
 
-  const logic = MgvAPI.offerLogic(await hre.ethers.getContract("OfferProxy"));
+  const logic = MgvAPI.offerLogic(
+    (await hre.ethers.getContract("OfferProxy")).address
+  );
 
   const aweth = MgvAPI.token("amWETH");
   const adai = MgvAPI.token("amDAI");

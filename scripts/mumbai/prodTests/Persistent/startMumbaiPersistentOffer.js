@@ -17,7 +17,7 @@ async function main() {
   });
 
   const repostLogic = MgvAPI.offerLogic(
-    await hre.ethers.getContract("Reposting")
+    (await hre.ethers.getContract("Reposting")).address
   );
   const admin = await repostLogic.admin();
 

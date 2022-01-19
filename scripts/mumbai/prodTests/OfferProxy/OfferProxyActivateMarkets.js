@@ -16,25 +16,18 @@ async function main() {
   const MgvAPI = await Mangrove.connect({
     signer: wallet,
   });
-  const offerProxy = (await hre.ethers.getContract("OfferProxy")).connect(
-    wallet
+
+  // just manually getting the address of OfferProxy would suffice here
+  const logic = MgvAPI.offerLogic(
+    (await hre.ethers.getContract("OfferProxy")).address
   );
 
-  const logic = MgvAPI.offerLogic(offerProxy);
-
   for (const tokenName of ["WETH", "USDC", "DAI"]) {
-    const token = MgvAPI.token(tokenName);
-    const approval = await token.allowance({
-      owner: logic.address,
-      spender: MgvAPI.contract.address,
-    });
+    const approval = await logic.mangroveAllowance(tokenName);
     if (approval.eq(0)) {
-      // this ethers.js call should be done via the API
       const tx = await logic.approveMangrove(tokenName);
       console.log(
-        `* OfferProxy contract (${
-          offerProxy.address
-        }) approved Mangrove (${await offerProxy.MGV()}) for ${tokenName} transfer`
+        `* OfferProxy contract (${logic.address}) approved Mangrove (${MgvAPI.address}) for ${tokenName} transfer`
       );
       await tx.wait();
     } else {

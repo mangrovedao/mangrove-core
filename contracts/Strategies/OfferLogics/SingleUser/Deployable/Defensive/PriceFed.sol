@@ -23,6 +23,10 @@ contract PriceFed is Defensive, AaveLender {
   ) Defensive(_oracle) AaveModule(_addressesProvider, 0) MangroveOffer(_MGV) {
     setGasreq(800_000);
   }
+  using P.Offer for P.Offer.t;
+  using P.OfferDetail for P.OfferDetail.t;
+  using P.Global for P.Global.t;
+  using P.Local for P.Local.t;
 
   event Slippage(uint indexed offerId, uint old_wants, uint new_wants);
 
@@ -31,7 +35,8 @@ contract PriceFed is Defensive, AaveLender {
     internal
     override
   {
-    (uint old_wants, uint old_gives, , ) = unpackOfferFromOrder(order);
+    uint old_wants = order.offer.wants();
+    uint old_gives = order.offer.gives();
     uint price_quote = oracle.getPrice(order.inbound_tkn);
     uint price_base = oracle.getPrice(order.outbound_tkn);
 

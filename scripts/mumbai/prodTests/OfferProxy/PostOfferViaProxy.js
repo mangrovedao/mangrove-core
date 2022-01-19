@@ -59,7 +59,7 @@ async function main() {
         wants: (volume + 12) / quoteInUSD,
         gives: volume / baseInUSD,
       },
-      { gasLimit: 500000 }
+      { gasLimit: 200000 }
     );
 
     console.log(
@@ -70,14 +70,14 @@ async function main() {
         wants: (volume + 13) / baseInUSD,
         gives: volume / quoteInUSD,
       },
-      { gasLimit: 500000 }
+      { gasLimit: 200000 }
     );
 
     console.log(
       `* Posting new offer proxy ${ofrId_} on (${base},${quote}) market using pivot ${pivot_}`
     );
-    await lp.consoleAsks();
-    await lp.consoleBids();
+    await lp.market.consoleAsks();
+    await lp.market.consoleBids();
   }
 }
 main()

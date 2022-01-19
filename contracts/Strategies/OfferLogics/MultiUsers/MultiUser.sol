@@ -270,16 +270,12 @@ abstract contract MultiUser is MangroveOffer {
     uint offerId
   ) public view override returns (uint) {
     uint balance;
-    if (gasreq > type(uint24).max) {
-      gasreq = OFR_GASREQ;
-    }
     if (offerId != 0) {
       address owner = ownerOf(outbound_tkn, inbound_tkn, offerId);
       balance = mgvBalanceOf[owner];
     }
     return
       _getMissingProvision(
-        MGV,
         balance,
         outbound_tkn,
         inbound_tkn,

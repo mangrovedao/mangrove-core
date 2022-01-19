@@ -27,7 +27,7 @@ async function main() {
     if (approval.eq(0)) {
       const tx = await logic.approveMangrove(tokenName);
       console.log(
-        `* OfferProxy contract (${logic.address}) approved Mangrove (${MgvAPI.address}) for ${tokenName} transfer`
+        `* OfferProxy contract (${logic.address}) approved Mangrove (${MgvAPI.contract.address}) for ${tokenName} transfer`
       );
       await tx.wait();
     } else {

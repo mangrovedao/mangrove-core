@@ -11,19 +11,30 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
+
+import "../../MgvLib.sol";
 import "../lib/AccessControlled.sol";
 import "../lib/Exponential.sol";
-import "../lib/TradeHandler.sol";
 import "../lib/consolerr/consolerr.sol";
 import "../interfaces/IOfferLogic.sol";
+import "../../Mangrove.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract MangroveOffer is
   AccessControlled,
   IOfferLogic,
-  TradeHandler,
   Exponential
 {
+  using P.Offer for P.Offer.t;
+  using P.OfferDetail for P.OfferDetail.t;
+  using P.Global for P.Global.t;
+  using P.Local for P.Local.t;
+  
+  bytes32 immutable RENEGED = "MangroveOffer/reneged";
+  bytes32 immutable PUTFAILURE = "MangroveOffer/putFailure";
+  bytes32 immutable OUTOFLIQUIDITY = "MangroveOffer/outOfLiquidity";
+  
+
   Mangrove public immutable MGV; // Address of the deployed Mangrove contract
 
   // default values
@@ -71,6 +82,46 @@ abstract contract MangroveOffer is
   {
     require(MGV.withdraw(amount));
     (noRevert, ) = receiver.call{value: amount}("");
+  }
+
+  // returns missing provision to repost `offerId` at given `gasreq` and `gasprice`
+  // if `offerId` is not in the offerList, will simply return how much is needed to post
+  function _getMissingProvision(
+    uint balance, // offer owner balance on Mangrove
+    address outbound_tkn,
+    address inbound_tkn,
+    uint gasreq, // give > type(uint24).max to use `this.OFR_GASREQ()`
+    uint gasprice, // give 0 to use Mangrove's gasprice
+    uint offerId // set this to 0 if one is not reposting an offer
+  ) internal view returns (uint) {
+    (P.Global.t globalData, P.Local.t localData) = MGV.config(
+      outbound_tkn,
+      inbound_tkn
+    );
+    P.OfferDetail.t offerDetailData = MGV.offerDetails(
+      outbound_tkn,
+      inbound_tkn,
+      offerId
+    );
+    uint _gp;
+    if (globalData.gasprice() > gasprice) {
+      _gp = globalData.gasprice();
+    } else {
+      _gp = gasprice;
+    }
+    if (gasreq > type(uint24).max) {
+      gasreq = OFR_GASREQ;
+    }
+    uint bounty = (gasreq + localData.offer_gasbase()) *
+      _gp *
+      10**9; // in WEI
+    // if `offerId` is not in the OfferList, all returned values will be 0
+    uint currentProvisionLocked = (offerDetailData.gasreq() +
+      offerDetailData.offer_gasbase()) * 
+      offerDetailData.gasprice() *
+      10**9;
+    uint currentProvision = currentProvisionLocked + balance;
+    return (currentProvision >= bounty ? 0 : bounty - currentProvision);
   }
 
   /////// Mandatory callback functions

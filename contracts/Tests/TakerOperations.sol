@@ -214,6 +214,7 @@ contract TakerOperations_Test is HasMgvEvents {
       TestEvents.eq(got, 2.3 ether, "Taker did not get enough");
       TestEvents.eq(gave, 2.3 ether, "Taker did not give enough");
       TestEvents.expectFrom(address(mgv));
+      emit OrderStart();
       emit OrderComplete(
         address(base),
         address(quote),

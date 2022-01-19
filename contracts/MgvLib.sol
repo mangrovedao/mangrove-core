@@ -95,6 +95,7 @@ contract HasMgvEvents {
   event SetGasprice(uint value);
 
   /* Market order execution */
+  event OrderStart();
   event OrderComplete(
     address indexed outbound_tkn,
     address indexed inbound_tkn,

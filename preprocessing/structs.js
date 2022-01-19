@@ -21,6 +21,59 @@
  */
 //+clear+
 
+/* # Preprocessing
+
+The current file (`structs.js`) is used in `MgvPack.pre.sol` (not shown here) to generate the libraries in `MgvPack.sol`. Here is an example of js struct specification and of a generated library:
+```
+structs = {
+  universe: [
+    {name: "serialnumber", bits: 16, type: "uint"},
+    {name: "hospitable",bits: 8, type:"bool"}
+  ]
+}
+```
+
+The generated file will store all data in a single EVM stack slot (seen as an abstract type `t` by Solidity); here is a simplified version:
+
+```
+struct UniverseStruct {
+  uint serialnumber;
+  bool hospitable;
+}
+
+library Universe {
+  // use Solidity 0.8* custom types
+  type t is uint;
+
+  // test word equality
+  function eq(t,t) returns (bool);
+
+  // word <-> struct conversion
+  function to_struct(t) returns (UniverseStruct memory);
+  function t_of_struct(UniverseStruct memory) returns (t);
+
+  // arguments <-> word conversion
+  function unpack(t) returns (uint serialnumber, bool hospitable);
+  function pack(uint serialnumber, bool hospitable) returns(t);
+
+  // read and write first property
+  function serialnumber(t) returns (uint);
+  function serialnumber(t,uint) returns (t);
+
+  // read and write second property
+  function hospitable(t) returns (bool);
+  function hospitable(t,bool) returns (t);
+}
+```
+Then, in Solidity code, one can write:
+```
+using Universe for Universe.t
+Universe.t uni = Universe.pack(32,false);
+uint num = uni.serialnumber();
+uni.hospitable(true);
+```
+*/
+
 /* # Data stuctures */
 
 /* Struct-like data structures are stored in storage and memory as 256 bits words. We avoid using structs due to significant gas savings gained by extracting data from words only when needed. To make development easier, we use the preprocessor `solpp` and generate getters and setters for each struct we declare. The generation is defined in `lib/preproc.js`. */
@@ -162,25 +215,4 @@ Note: An optimization in the `marketOrder` function relies on reentrancy being f
   ],
 };
 
-/* # Example */
-/* `preproc.structs_with_macros` generates preprocessor instruction to get/set all fields in the above structs. A preprocessor method `m(args)` is invoked in solidity code by writing `$$(m(args))`.
-
-For instance, the structs object
-
-```
-{
-  myStruct: [
-    {name: "a", bits: 8,  type: "uint"},
-    {name: "b", bits: 160, type: "address"}
-  ]
-}
-```
-
-will generate the following preprocessor macros:
-* `set_myStruct(ptr,values)`. In a context where the solidity variable `v` holds an encoded `myStruct`, it can be used with `$$(set_myStruct('v',[['b','msg.sender']]))`. Note that solidity expression are given as strings. Here : `$$(set_myStruct('v',[['a',256]]))` and in all other methods, arguments exceeding the `bits` parameter of a field will be left-truncated.
-* `make_myStruct(values)`. An optimised version of `set_myStruct` where the initial value is the null word.
-* `myStruct_a(ptr)`, to access the `a` field. Returns a uint. If the solidity variable `v` holds an encoded `myStruct`, it can be used with `$$(myStruct_a('v'))`.
-* `myStruct_b(ptr)`, to access the `b` field. Returns an address.
-
-*/
 module.exports = preproc.structs_with_macros(structs);

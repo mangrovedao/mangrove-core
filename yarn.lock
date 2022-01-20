@@ -1229,6 +1229,7 @@ __metadata:
     rollup-plugin-terser: ^7.0.2
     seedrandom: ^3.0.5
     shelljs: ^0.8.4
+    shx: ^0.3.4
     ts-essentials: ^8.1.0
     ts-node: ^9.1.1
     typechain: ^6.0.2
@@ -1236,7 +1237,7 @@ __metadata:
     typescript: ^4.4.0
     yargs: ^17.3.0
   bin:
-    mgv: ./cli/mgv.ts
+    mgv: ./dist/nodejs/cli/mgv.js
   languageName: unknown
   linkType: soft
 
@@ -8722,6 +8723,19 @@ resolve@1.17.0:
   languageName: node
   linkType: hard
 
+"shelljs@npm:^0.8.5":
+  version: 0.8.5
+  resolution: "shelljs@npm:0.8.5"
+  dependencies:
+    glob: ^7.0.0
+    interpret: ^1.0.0
+    rechoir: ^0.6.2
+  bin:
+    shjs: bin/shjs
+  checksum: 7babc46f732a98f4c054ec1f048b55b9149b98aa2da32f6cf9844c434b43c6251efebd6eec120937bd0999e13811ebd45efe17410edb3ca938f82f9381302748
+  languageName: node
+  linkType: hard
+
 "shiki@npm:^0.9.12":
   version: 0.9.12
   resolution: "shiki@npm:0.9.12"
@@ -8730,6 +8744,18 @@ resolve@1.17.0:
     onigasm: ^2.2.5
     vscode-textmate: 5.2.0
   checksum: ee2ca7b997ffe6d412af946c7fa3909f2ade3fe505fe03b5c3f3c5cc90a9b10dbe34a208c9557ee0376d7a64c23995445cdb7c69e60da855cf80305bafdc018e
+  languageName: node
+  linkType: hard
+
+"shx@npm:^0.3.4":
+  version: 0.3.4
+  resolution: "shx@npm:0.3.4"
+  dependencies:
+    minimist: ^1.2.3
+    shelljs: ^0.8.5
+  bin:
+    shx: lib/cli.js
+  checksum: 0aa168bfddc11e3fe8943cce2e0d2d8514a560bd58cf2b835b4351ba03f46068f7d88286c2627f4b85604e81952154c43746369fb3f0d60df0e3b511f465e5b8
   languageName: node
   linkType: hard
 

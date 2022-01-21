@@ -18,7 +18,7 @@ abstract contract MultiUser is MangroveOffer {
   mapping(address => mapping(address => mapping(uint => address)))
     internal _offerOwners; // outbound_tkn => inbound_tkn => offerId => ownerAddress
 
-  mapping(address => uint) public mgvBalanceOf; // owner => WEI balance on mangrove
+  mapping(address => uint) public mgvBalance; // owner => WEI balance on mangrove
   mapping(address => mapping(address => uint)) public tokenBalanceOf; // erc20 => owner => balance on `this`
 
   MgvReader immutable reader;
@@ -34,6 +34,14 @@ abstract contract MultiUser is MangroveOffer {
     uint indexed offerId,
     address owner
   );
+
+  function tokenBalance(address token) external view returns (uint) {
+    return tokenBalanceOf[token][msg.sender];
+  }
+
+  function balanceOnMangrove() external view returns (uint) {
+    return mgvBalance[msg.sender];
+  }
 
   function offerOwners(
     address outbound_tkn,
@@ -62,15 +70,15 @@ abstract contract MultiUser is MangroveOffer {
   }
 
   function creditOnMgv(address owner, uint balance) internal {
-    mgvBalanceOf[owner] += balance;
+    mgvBalance[owner] += balance;
   }
 
   function debitOnMgv(address owner, uint amount) internal {
     require(
-      mgvBalanceOf[owner] >= amount,
+      mgvBalance[owner] >= amount,
       "MultiOwner/debitOnMgv/insufficient"
     );
-    mgvBalanceOf[owner] -= amount;
+    mgvBalance[owner] -= amount;
   }
 
   function creditToken(
@@ -272,7 +280,7 @@ abstract contract MultiUser is MangroveOffer {
     uint balance;
     if (offerId != 0) {
       address owner = ownerOf(outbound_tkn, inbound_tkn, offerId);
-      balance = mgvBalanceOf[owner];
+      balance = mgvBalance[owner];
     }
     return
       _getMissingProvision(

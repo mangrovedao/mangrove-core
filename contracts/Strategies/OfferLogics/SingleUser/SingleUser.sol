@@ -18,7 +18,13 @@ import "../MangroveOffer.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract SingleUser is MangroveOffer {
-  receive() external payable {}
+  function balanceOnMangrove() external view returns (uint) {
+    return MGV.balanceOf(address(this));
+  }
+
+  function tokenBalance(address token) external view returns (uint) {
+    return IERC20(token).balanceOf(address(this));
+  }
 
   /// transfers token stored in `this` contract to some recipient address
   function redeemToken(address token, uint amount)

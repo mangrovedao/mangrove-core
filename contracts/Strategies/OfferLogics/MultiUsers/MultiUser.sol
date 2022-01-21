@@ -18,8 +18,8 @@ abstract contract MultiUser is MangroveOffer {
   mapping(address => mapping(address => mapping(uint => address)))
     internal _offerOwners; // outbound_tkn => inbound_tkn => offerId => ownerAddress
 
-  mapping(address => uint) public mgvBalanceOf; // owner => WEI balance on mangrove
-  mapping(address => mapping(address => uint)) public tokenBalanceOf; // erc20 => owner => balance on `this`
+  mapping(address => uint) internal mgvBalanceOf; // owner => WEI balance on mangrove
+  mapping(address => mapping(address => uint)) internal tokenBalanceOf; // erc20 => owner => balance on `this`
 
   MgvReader immutable reader;
 
@@ -34,6 +34,14 @@ abstract contract MultiUser is MangroveOffer {
     uint indexed offerId,
     address owner
   );
+
+  function balanceOnMangrove() external view returns (uint) {
+    return mgvBalanceOf[msg.sender];
+  }
+
+  function tokenBalance(address token) external view returns (uint) {
+    return tokenBalanceOf[token][msg.sender];
+  }
 
   function offerOwners(
     address outbound_tkn,

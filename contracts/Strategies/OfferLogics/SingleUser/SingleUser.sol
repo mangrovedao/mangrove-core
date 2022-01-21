@@ -14,8 +14,6 @@ pragma abicoder v2;
 
 import "../MangroveOffer.sol";
 
-//import "hardhat/console.sol";
-
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract SingleUser is MangroveOffer {
   function balanceOnMangrove() external view returns (uint) {

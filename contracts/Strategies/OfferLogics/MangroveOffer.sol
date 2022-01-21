@@ -40,6 +40,8 @@ abstract contract MangroveOffer is
   // default values
   uint public override OFR_GASREQ = 100_000;
 
+  receive() external payable {}
+
   constructor(address payable _mgv) {
     MGV = Mangrove(_mgv);
   }
@@ -80,7 +82,7 @@ abstract contract MangroveOffer is
     internal
     returns (bool noRevert)
   {
-    require(MGV.withdraw(amount));
+    require(MGV.withdraw(amount), "MangroveOffer/withdraw/transferFail");
     (noRevert, ) = receiver.call{value: amount}("");
   }
 

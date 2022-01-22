@@ -1066,6 +1066,7 @@ __metadata:
     dotenv-flow: ^3.2.0
     eslint: ^7.32.0
     eslint-config-prettier: ^8.3.0
+    fast-safe-stringify: ^2.1.1
     lint-staged: ^11.1.2
     mocha: ^9.1.1
     mocha-multi-reporters: ^1.5.1

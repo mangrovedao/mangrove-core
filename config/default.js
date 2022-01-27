@@ -62,6 +62,7 @@ config.hardhat = {
   },
   abiExporter: {
     path: "./exported-abis",
+    runOnCompile: true,
     clear: true,
     flat: true,
     only: [

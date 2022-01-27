@@ -1097,7 +1097,7 @@ __metadata:
     ethers: ^5.4.6
     fs: ^0.0.1-security
     hardhat: ^2.4.1
-    hardhat-abi-exporter: ^2.3.0
+    hardhat-abi-exporter: ^2.8.0
     hardhat-deploy: ^0.9.4
     hardhat-deploy-ethers: ^0.3.0-beta.10
     lint-staged: ^10.5.1
@@ -1162,7 +1162,7 @@ __metadata:
     ethers: ^5.4.6
     fs: ^0.0.1-security
     hardhat: ^2.4.1
-    hardhat-abi-exporter: ^2.3.0
+    hardhat-abi-exporter: ^2.8.0
     hardhat-deploy: ^0.9.4
     hardhat-deploy-ethers: ^0.3.0-beta.10
     lint-staged: ^10.5.1
@@ -2295,7 +2295,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ansi-colors@npm:4.1.1, ansi-colors@npm:^4.1.1":
+"ansi-colors@npm:4.1.1, ansi-colors@npm:^4.1.0, ansi-colors@npm:^4.1.1":
   version: 4.1.1
   resolution: "ansi-colors@npm:4.1.1"
   checksum: 138d04a51076cb085da0a7e2d000c5c0bb09f6e772ed5c65c53cb118d37f6c5f1637506d7155fb5f330f0abcf6f12fa2e489ac3f8cdab9da393bf1bb4f9a32b0
@@ -3632,6 +3632,20 @@ __metadata:
   version: 1.0.0
   resolution: "delegates@npm:1.0.0"
   checksum: a51744d9b53c164ba9c0492471a1a2ffa0b6727451bdc89e31627fdf4adda9d51277cfcbfb20f0a6f08ccb3c436f341df3e92631a3440226d93a8971724771fd
+  languageName: node
+  linkType: hard
+
+"delete-empty@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "delete-empty@npm:3.0.0"
+  dependencies:
+    ansi-colors: ^4.1.0
+    minimist: ^1.2.0
+    path-starts-with: ^2.0.0
+    rimraf: ^2.6.2
+  bin:
+    delete-empty: bin/cli.js
+  checksum: 1e2b030346683f49b12460b91d7e1793fc61e9aa0be152a1b31317363632e92426be270f8d635b89d3915ae7da753dcfa6e3bd200f62edf21eaa876ef4443fd2
   languageName: node
   linkType: hard
 
@@ -5002,12 +5016,15 @@ fsevents@~2.1.1:
   languageName: node
   linkType: hard
 
-"hardhat-abi-exporter@npm:^2.3.0":
-  version: 2.3.1
-  resolution: "hardhat-abi-exporter@npm:2.3.1"
+"hardhat-abi-exporter@npm:^2.8.0":
+  version: 2.8.0
+  resolution: "hardhat-abi-exporter@npm:2.8.0"
+  dependencies:
+    "@ethersproject/abi": ^5.5.0
+    delete-empty: ^3.0.0
   peerDependencies:
     hardhat: ^2.0.0
-  checksum: 8c6a96485f64c6deaa1caeef5c863913915c2f3c98ae61137a00892a5b81e2778e99ca45bc25f25afd96ece1e2209d6cf97425205092d9ca9b92a35d0c625597
+  checksum: d8657b0d4ed55e1de0a18d8e70b8de38cf1f8c85e4162cdfe499b74d75f17992359c0c621d1b920f5a666eed2bd26c0a63d8c18ba60d1660f49c9fed378afe62
   languageName: node
   linkType: hard
 
@@ -7805,6 +7822,13 @@ fsevents@~2.1.1:
   languageName: node
   linkType: hard
 
+"path-starts-with@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "path-starts-with@npm:2.0.0"
+  checksum: c780e5feb53f37a0cc78c446181aac2d1e4554e5693bbc4ad03c99157b9411ade26a3503dcd5b3b8f0fd56d36daa60ce5a8c24d66b54a400c812fe11eb5bcab9
+  languageName: node
+  linkType: hard
+
 "path-type@npm:^3.0.0":
   version: 3.0.0
   resolution: "path-type@npm:3.0.0"
@@ -8399,7 +8423,7 @@ resolve@1.17.0:
   languageName: node
   linkType: hard
 
-"rimraf@npm:^2.2.8":
+"rimraf@npm:^2.2.8, rimraf@npm:^2.6.2":
   version: 2.7.1
   resolution: "rimraf@npm:2.7.1"
   dependencies:

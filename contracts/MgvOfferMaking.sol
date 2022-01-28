@@ -74,12 +74,15 @@ contract MgvOfferMaking is MgvHasOffers {
     uint gasreq,
     uint gasprice,
     uint pivotId
-  ) external returns (uint) { unchecked {
+  ) external payable returns (uint) { unchecked {
     /* In preparation for calling `writeOffer`, we read the `outbound_tkn`,`inbound_tkn` pair configuration, check for reentrancy and market liveness, fill the `OfferPack` struct and increment the `outbound_tkn`,`inbound_tkn` pair's `last`. */
     OfferPack memory ofp;
     (ofp.global, ofp.local) = config(outbound_tkn, inbound_tkn);
     unlockedMarketOnly(ofp.local);
     activeMarketOnly(ofp.global, ofp.local);
+    if (msg.value > 0) {
+      creditWei(msg.sender, msg.value);
+    }
 
     ofp.id = 1 + ofp.local.last();
     require(uint32(ofp.id) == ofp.id, "mgv/offerIdOverflow");
@@ -125,11 +128,14 @@ contract MgvOfferMaking is MgvHasOffers {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external { unchecked {
+  ) external payable { unchecked {
     OfferPack memory ofp;
     (ofp.global, ofp.local) = config(outbound_tkn, inbound_tkn);
     unlockedMarketOnly(ofp.local);
     activeMarketOnly(ofp.global, ofp.local);
+    if (msg.value > 0) {
+      creditWei(msg.sender, msg.value);
+    }
     ofp.outbound_tkn = outbound_tkn;
     ofp.inbound_tkn = inbound_tkn;
     ofp.wants = wants;

@@ -148,6 +148,16 @@ contract TestMaker is IMaker, Passthrough {
     return (_mgv.newOffer(_base, _quote, wants, gives, gasreq, 0, pivotId));
   }
 
+  function newOfferWithFunding(
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint pivotId,
+    uint amount
+  ) public returns (uint) {
+    return (_mgv.newOffer{value:amount}(_base, _quote, wants, gives, gasreq, 0, pivotId));
+  }
+
   function newOffer(
     address base,
     address quote,
@@ -157,6 +167,18 @@ contract TestMaker is IMaker, Passthrough {
     uint pivotId
   ) public returns (uint) {
     return (_mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId));
+  }
+
+  function newOfferWithFunding(
+    address base,
+    address quote,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint pivotId,
+    uint amount
+  ) public returns (uint) {
+    return (_mgv.newOffer{value:amount}(base, quote, wants, gives, gasreq, 0, pivotId));
   }
 
   function newOffer(
@@ -171,6 +193,17 @@ contract TestMaker is IMaker, Passthrough {
     );
   }
 
+  function newOfferWithFunding(
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint pivotId,
+    uint amount
+  ) public returns (uint) {
+    return (_mgv.newOffer{value:amount}(_base, _quote, wants, gives, gasreq, gasprice, pivotId));
+  }
+
   function updateOffer(
     uint wants,
     uint gives,
@@ -179,6 +212,17 @@ contract TestMaker is IMaker, Passthrough {
     uint offerId
   ) public {
     _mgv.updateOffer(_base, _quote, wants, gives, gasreq, 0, pivotId, offerId);
+  }
+
+  function updateOfferWithFunding(
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint pivotId,
+    uint offerId,
+    uint amount
+  ) public {
+    _mgv.updateOffer{value:amount}(_base, _quote, wants, gives, gasreq, 0, pivotId, offerId);
   }
 
   function retractOffer(uint offerId) public returns (uint) {

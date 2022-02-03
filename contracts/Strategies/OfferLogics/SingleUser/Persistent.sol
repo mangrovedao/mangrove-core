@@ -18,11 +18,11 @@ abstract contract Persistent is SingleUser {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
 
-  function __newWants__(MgvLib.SingleOrder calldata order) internal returns (uint){
+  function __newWants__(MgvLib.SingleOrder calldata order) internal virtual returns (uint){
     return order.offer.wants() - order.gives;
   }
 
-  function __newGives__(MgvLib.SingleOrder calldata order) internal returns (uint){
+  function __newGives__(MgvLib.SingleOrder calldata order) internal virtual returns (uint){
     return order.offer.gives() - order.wants;
   }
 

@@ -29,6 +29,80 @@ contract DAMM is Persistent {
   /** Mutables */
   int current_shift=0;
   uint current_delta; // offer[i+1].gives = offer[i].gives + current_delta
+
+  constructor(
+    address mgv,
+    address base,
+    address quote,
+    uint init_gives,
+    uint init_wants,
+    uint delta, // parameter for the price increment (default is arithmetic progression)
+    uint nslots,
+    uint nbids, // `nbids <= NSLOTS`. Says how many bids should be placed
+    uint gasreq,
+    uint[][2] pivotIds // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
+  ) MangroveOffer(mgv) {
+    // sanity check
+    require(nslots>0 && nbids<=nslots && mgv!=address(0), "Invalid arguments");
+    BASE = base;
+    QUOTE = quote;
+    INIT_MINGIVES = init_gives;
+    NSLOTS = nslots;
+    OFR_GASREQ = gasreq;
+    current_delta = delta;
+    /** Initializing Asks and Bids */
+    /** NB cannot read immutable storage yet*/
+    /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
+    /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
+    uint pivotId=0;
+    uint i;
+    for(i=0; i<nslots; i++) {
+      uint bidId = newOffer({
+        outbound_tkn: quote,
+        inbound_tkn: base,
+        wants: init_wants,
+        gives: __gives_of_position__(i,delta,init_gives), // arithmetic progression by default
+        gasreq: gasreq,
+        gasprice: 0,
+        pivotId: pivotIds[0][i]!=0?pivotIds[0][i]:pivotId // use offchain computed pivot if available otherwise use last inserted offerId
+      });
+      pivotId = bidId;
+      BIDS[i] = bidId;
+
+      pivotId=0;
+      for(i=0; i<nslots; i++) {
+        uint askId = newOffer({
+          outbound_tkn: base,
+          inbound_tkn: quote,
+          wants: init_wants,
+          gives: __gives_of_position__(i,delta,init_gives), // arithmetic progression by default
+          gasreq: gasreq,
+          gasprice: 0,
+          pivotId: pivotIds[1][i]!=0?pivotIds[1][i]:pivotId // use offchain computed pivot if available otherwise use last inserted offerId
+        });
+        pivotId = askId;
+        ASKS[i] = askId;
+
+        // If i<nbids, ask should be retracted, else bid should be retracted
+        if (i<nbids) {
+          retractOfferInternal({
+            outbound_tkn:base,
+            inbound_tkn:quote,
+            offerId:askId,
+            deprovision:false, // leaving provision
+            owner:msg.sender
+          });
+        } else {
+          retractOffer({
+            outbound_tkn:quote,
+            inbound_tkn:base,
+            offerId:bidId,
+            deprovision:false // leaving provision
+          });
+        }
+      }
+    }
+  }
   
   /** Returns the position in the order book of the offer associated to this index `i` */
   function position_of_index(uint i) internal view returns (uint) {
@@ -50,13 +124,13 @@ contract DAMM is Persistent {
 
   /**Previous index in the ring of offers */
   function prev_index(uint i) internal view returns (uint) {
-    return i>0?i-1:NSLOTS-1
+    return i>0?i-1:NSLOTS-1;
   }
 
   /** Returns the quantity of outbound_tkn the offer at position `p` is supposed to offer according to actual shift */
   /** NB the returned `gives` might not the one actually offered on Mangrove if the price has shifted or if the offer is not Live*/
-  function __gives_of_position__(uint p) internal virtual view returns (uint) {
-    return current_delta*p*INIT_MINGIVES;
+  function __gives_of_position__(uint p, uint delta, uint init_gives) internal virtual pure returns (uint) {
+    return delta*p + init_gives;
   } 
 
 /** Recenter the order book by shifting min price up `s` positions in the book */
@@ -84,7 +158,7 @@ contract DAMM is Persistent {
       );
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
-      uint new_gives = __gives_of_position__(pos);
+      uint new_gives = __gives_of_position__(pos, current_delta, INIT_MINGIVES);
       uint new_wants = (offer.wants() * new_gives) / offer.gives();
       updateOffer({
         outbound_tkn:QUOTE,
@@ -126,7 +200,7 @@ contract DAMM is Persistent {
       );
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
-      uint new_gives = __gives_of_position__(pos);
+      uint new_gives = __gives_of_position__(pos, current_delta, INIT_MINGIVES);
       uint new_wants = (offer.wants() * new_gives) / offer.gives();
       updateOffer({
         outbound_tkn:BASE,
@@ -143,112 +217,8 @@ contract DAMM is Persistent {
     }
   }
 
-  constructor(
-    address _MGV,
-    address _BASE,
-    address _QUOTE,
-    uint _pmin,
-    uint _NSLOTS // initial mid-price will be price_of_position(_NSLOTS/2)
-  ) MangroveOffer(_MGV) {}
-
-  // sets P(tk0|tk1)
-  // one wants P(tk0|tk1).P(tk1|tk0) >= 1
-  function setPrice(
-    address tk0,
-    address tk1,
-    uint p
-  ) external onlyAdmin {
-    price[tk0][tk1] = p; // has tk0.decimals() decimals
-  }
-
-  function startStrat(
-    address tk0,
-    address tk1,
-    uint gives // amount of tk0 (with tk0.decimals() decimals)
-  ) external payable onlyAdmin {
-    MGV.fund{value: msg.value}();
-    require(repostOffer(tk0, tk1, gives), "Could not start strategy");
-    IERC20(tk0).approve(address(MGV), type(uint).max); // approving MGV for tk0 transfer
-    IERC20(tk1).approve(address(MGV), type(uint).max); // approving MGV for tk1 transfer
-  }
-
-  // at this stage contract has `received` amount in token0
-  function repostOffer(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint gives // in outbound_tkn
-  ) internal returns (bool) {
-    // computing how much inbound_tkn one should ask for `gives` amount of outbound tokens
-    // NB p_10 has inbound_tkn.decimals() number of decimals
-    uint p_10 = price[inbound_tkn][outbound_tkn];
-    if (p_10 == 0) {
-      // ! p_10 has the decimals of inbound_tkn
-      emit MissingPriceConverter(inbound_tkn, outbound_tkn);
-      return false;
-    }
-    uint wants = div_(
-      mul_(p_10, gives), // p(base|quote).(gives:quote) : base
-      10**(IERC20(outbound_tkn).decimals())
-    ); // in base units
-    uint offerId = offers[outbound_tkn][inbound_tkn];
-    if (offerId == 0) {
-      try
-        MGV.newOffer(outbound_tkn, inbound_tkn, wants, gives, OFR_GASREQ, 0, 0)
-      returns (uint id) {
-        if (id > 0) {
-          offers[outbound_tkn][inbound_tkn] = id;
-          return true;
-        } else {
-          return false;
-        }
-      } catch {
-        return false;
-      }
-    } else {
-      try
-        MGV.updateOffer(
-          outbound_tkn,
-          inbound_tkn,
-          wants,
-          gives,
-          // offerId is already on the book so a good pivot
-          OFR_GASREQ, // default value
-          0, // default value
-          offerId,
-          offerId
-        )
-      {
-        return true;
-      } catch Error(string memory message) {
-        emit PosthookFail(outbound_tkn, inbound_tkn, offerId, message);
-        return false;
-      }
-    }
-  }
-
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
-    internal
-    override
-  {
-    address token0 = order.outbound_tkn;
-    address token1 = order.inbound_tkn;
-    uint offer_received = order.offer.wants(); // amount with token1.decimals() decimals
-    repostOffer({
-      outbound_tkn: token1,
-      inbound_tkn: token0,
-      gives: offer_received
-    });
-  }
-
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
-    // checks whether `this` contract has enough `base` token
-    uint missingGet = SingleUser.__get__(amount, order);
-    // if not tries to fetch missing liquidity on compound using `CompoundTrader`'s strat
-    return super.__get__(missingGet, order);
-  }
+  // TODO  __posthookSuccess__
+  // TODO  compact/dilate functions
+  // TODO __posthookFail__
+  
 }

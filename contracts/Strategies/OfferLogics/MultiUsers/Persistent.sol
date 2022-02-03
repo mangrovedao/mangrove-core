@@ -19,13 +19,22 @@ import "./MultiUser.sol";
 abstract contract MultiUserPersistent is MultiUser {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
+
+  function __newWants__(MgvLib.SingleOrder calldata order) internal virtual returns (uint){
+    return order.offer.wants() - order.gives;
+  }
+
+  function __newGives__(MgvLib.SingleOrder calldata order) internal virtual returns (uint){
+    return order.offer.gives() - order.wants;
+  }
+
   function __posthookSuccess__(MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
   {
-    uint new_gives = order.offer.gives() - order.wants;
-    uint new_wants = order.offer.wants() - order.gives;
+    uint new_gives = __newGives__(order);
+    uint new_wants = __newWants__(order);
     try
       MGV.updateOffer(
         order.outbound_tkn,

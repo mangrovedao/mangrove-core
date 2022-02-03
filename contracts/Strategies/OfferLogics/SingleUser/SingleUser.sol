@@ -44,7 +44,14 @@ abstract contract SingleUser is MangroveOffer {
   }
 
   function fundMangrove() external payable override {
-    MGV.fund{value: msg.value}();
+    require(msg.sender != address(this), "MutliUser/noReentrancy");
+    fundMangroveInternal(msg.sender, msg.value);
+  }
+
+  function fundMangroveInternal(address caller, uint provision) internal {
+    // increasing the provision of `this` contract
+    caller; //shh
+    MGV.fund{value: provision}();
   }
 
   /// withdraws ETH from the bounty vault of the Mangrove.
@@ -72,23 +79,69 @@ abstract contract SingleUser is MangroveOffer {
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
   ) external payable override onlyAdmin returns (uint offerId) {
-    if (msg.value > 0) {
-      MGV.fund{value: msg.value}();
-    }
-    if (gasreq == type(uint).max) {
-      gasreq = OFR_GASREQ;
-    }
-    return
-      MGV.newOffer(
+    return newOfferInternal(
         outbound_tkn,
         inbound_tkn,
         wants,
         gives,
         gasreq,
         gasprice,
-        pivotId
-      );
+        pivotId,
+        msg.value
+    );
   }
+
+  function newOfferInternal(
+    address outbound_tkn, // address of the ERC20 contract managing outbound tokens
+    address inbound_tkn, // address of the ERC20 contract managing outbound tokens
+    uint wants, // amount of `inbound_tkn` required for full delivery
+    uint gives, // max amount of `outbound_tkn` promised by the offer
+    uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
+    uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
+    uint pivotId,
+    address caller,
+    uint provision
+  ) internal returns (uint) {
+    caller; //shh
+    return newOfferInternal(
+      outbound_tkn,
+        inbound_tkn,
+        wants,
+        gives,
+        gasreq,
+        gasprice,
+        pivotId,
+        provision
+    );
+  }
+  function newOfferInternal(
+    address outbound_tkn, // address of the ERC20 contract managing outbound tokens
+    address inbound_tkn, // address of the ERC20 contract managing outbound tokens
+    uint wants, // amount of `inbound_tkn` required for full delivery
+    uint gives, // max amount of `outbound_tkn` promised by the offer
+    uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
+    uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
+    uint pivotId,
+    uint provision
+  ) internal returns (uint offerId) {
+    if (provision > 0) {
+      MGV.fund{value: provision}();
+    }
+    if (gasreq > type(uint24).max) {
+      gasreq = OFR_GASREQ;
+    }
+    // this call could revert if this contract does not have the provision to cover the bounty
+    offerId = MGV.newOffer(
+      outbound_tkn,
+      inbound_tkn,
+      wants,
+      gives,
+      gasreq,
+      gasprice,
+      pivotId
+    );
+  }
+
 
   //  Updates an existing `offerId` on the Mangrove. `updateOffer` rely on the same offer requirements as `newOffer` and may throw if they are not met.
   //  Additionally `updateOffer` will thow if `this` contract is not the owner of `offerId`.
@@ -102,10 +155,61 @@ abstract contract SingleUser is MangroveOffer {
     uint pivotId,
     uint offerId
   ) external payable override onlyAdmin {
-    if (msg.value > 0) {
-      MGV.fund{value: msg.value}();
+    updateOfferInternal(
+      outbound_tkn,
+      inbound_tkn,
+      wants,
+      gives,
+      gasreq,
+      gasprice,
+      pivotId,
+      offerId,
+      msg.value
+    );
+  }
+
+// overloading `updateOfferInternal` in order to keep the same internal calls as `MultiUsers` contracts 
+// which require a `caller` argument that is not needed here.
+function updateOfferInternal(
+  address outbound_tkn,
+  address inbound_tkn,
+  uint wants,
+  uint gives,
+  uint gasreq,
+  uint gasprice,
+  uint pivotId,
+  uint offerId,
+  address caller,
+  uint provision 
+) internal {
+  caller; // shh
+  updateOfferInternal(
+    outbound_tkn,
+    inbound_tkn,
+    wants,
+    gives,
+    gasreq,
+    gasprice,
+    pivotId,
+    offerId,
+    msg.value
+  );
+}
+function updateOfferInternal(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint pivotId,
+    uint offerId,
+    uint provision // dangerous to use msg.value in a internal call
+  ) internal {
+    if (provision > 0) {
+      MGV.fund{value: provision}();
     }
-    if (gasreq == type(uint).max) {
+    if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
     }
     MGV.updateOffer(
@@ -120,6 +224,7 @@ abstract contract SingleUser is MangroveOffer {
     );
   }
 
+
   // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove. Function call will throw if `this` contract is not the owner of `offerId`.
   function retractOffer(
     address outbound_tkn,
@@ -127,7 +232,42 @@ abstract contract SingleUser is MangroveOffer {
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
   ) external override onlyAdmin returns (uint) {
-    return (MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision));
+    return retractOfferInternal(
+      outbound_tkn, 
+      inbound_tkn, 
+      offerId, 
+      deprovision,
+      msg.sender
+    );
+  }
+
+  function retractOfferInternal(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint offerId,
+    bool deprovision,
+    address caller
+  ) internal returns (uint) {
+    caller; //shh
+    return retractOfferInternal(
+      outbound_tkn, 
+      inbound_tkn, 
+      offerId, 
+      deprovision
+    );
+  }
+  function retractOfferInternal(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint offerId,
+    bool deprovision
+  ) internal returns (uint) {
+    return MGV.retractOffer(
+      outbound_tkn,
+      inbound_tkn,
+      offerId,
+      deprovision
+    );
   }
 
   function getMissingProvision(

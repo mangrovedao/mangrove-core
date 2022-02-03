@@ -196,6 +196,24 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     }
   }
 
+  function fund_newOffer_test() public {
+    uint oldBal = mgv.balanceOf(address(mkr));
+    mkr.newOfferWithFunding(1 ether, 1 ether, 50000, 0, 1 ether);
+    TestEvents.more(mgv.balanceOf(address(mkr)),oldBal,"balance should have increased");
+
+    TestEvents.expectFrom(address(mgv));
+    emit Credit(address(mkr),1 ether);
+  }
+
+  function fund_updateOffer_test() public {
+    mkr.provisionMgv(1 ether);
+    uint ofr = mkr.newOffer(1 ether, 1 ether, 50000, 0);
+    mkr.updateOfferWithFunding(1 ether, 1 ether, 50000, 0,ofr, 0.9 ether);
+
+    TestEvents.expectFrom(address(mgv));
+    emit Credit(address(mkr),0.9 ether);
+  }
+
   function posthook_fail_message_test() public {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50000, 0);

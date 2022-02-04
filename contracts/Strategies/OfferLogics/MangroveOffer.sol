@@ -40,7 +40,7 @@ abstract contract MangroveOffer is
   // default values
   uint public override OFR_GASREQ = 100_000;
 
-  receive() external payable {}
+  receive() external virtual payable {}
 
   constructor(address payable _mgv) {
     MGV = Mangrove(_mgv);
@@ -124,6 +124,15 @@ abstract contract MangroveOffer is
       10**9;
     uint currentProvision = currentProvisionLocked + balance;
     return (currentProvision >= bounty ? 0 : bounty - currentProvision);
+  }
+
+  function giveAtDensity(address outbound_tkn, address inbound_tkn, uint wants, uint gasreq) public view returns (uint){
+    (P.Global.t globalData, P.Local.t localData) = MGV.config(
+      outbound_tkn,
+      inbound_tkn
+    );
+    gasreq = gasreq > type(uint24).max ? OFR_GASREQ : gasreq;
+    return (gasreq + localData.offer_gasbase()) * localData.density(); 
   }
 
   /////// Mandatory callback functions

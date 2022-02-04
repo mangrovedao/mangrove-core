@@ -44,14 +44,14 @@ abstract contract SingleUser is MangroveOffer {
   }
 
   function fundMangrove() external payable override {
-    require(msg.sender != address(this), "MutliUser/noReentrancy");
-    fundMangroveInternal(msg.sender, msg.value);
+    fundMangroveInternal(msg.value);
   }
 
-  function fundMangroveInternal(address caller, uint provision) internal {
+  function fundMangroveInternal(uint provision) internal {
     // increasing the provision of `this` contract
-    caller; //shh
-    MGV.fund{value: provision}();
+    if (provision>0) {
+      MGV.fund{value: provision}();
+    }
   }
 
   /// withdraws ETH from the bounty vault of the Mangrove.
@@ -91,29 +91,6 @@ abstract contract SingleUser is MangroveOffer {
     );
   }
 
-  function newOfferInternal(
-    address outbound_tkn, // address of the ERC20 contract managing outbound tokens
-    address inbound_tkn, // address of the ERC20 contract managing outbound tokens
-    uint wants, // amount of `inbound_tkn` required for full delivery
-    uint gives, // max amount of `outbound_tkn` promised by the offer
-    uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
-    uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
-    uint pivotId,
-    address caller,
-    uint provision
-  ) internal returns (uint) {
-    caller; //shh
-    return newOfferInternal(
-      outbound_tkn,
-        inbound_tkn,
-        wants,
-        gives,
-        gasreq,
-        gasprice,
-        pivotId,
-        provision
-    );
-  }
   function newOfferInternal(
     address outbound_tkn, // address of the ERC20 contract managing outbound tokens
     address inbound_tkn, // address of the ERC20 contract managing outbound tokens
@@ -168,33 +145,6 @@ abstract contract SingleUser is MangroveOffer {
     );
   }
 
-// overloading `updateOfferInternal` in order to keep the same internal calls as `MultiUsers` contracts 
-// which require a `caller` argument that is not needed here.
-function updateOfferInternal(
-  address outbound_tkn,
-  address inbound_tkn,
-  uint wants,
-  uint gives,
-  uint gasreq,
-  uint gasprice,
-  uint pivotId,
-  uint offerId,
-  address caller,
-  uint provision 
-) internal {
-  caller; // shh
-  updateOfferInternal(
-    outbound_tkn,
-    inbound_tkn,
-    wants,
-    gives,
-    gasreq,
-    gasprice,
-    pivotId,
-    offerId,
-    msg.value
-  );
-}
 function updateOfferInternal(
     address outbound_tkn,
     address inbound_tkn,
@@ -236,26 +186,10 @@ function updateOfferInternal(
       outbound_tkn, 
       inbound_tkn, 
       offerId, 
-      deprovision,
-      msg.sender
-    );
-  }
-
-  function retractOfferInternal(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint offerId,
-    bool deprovision,
-    address caller
-  ) internal returns (uint) {
-    caller; //shh
-    return retractOfferInternal(
-      outbound_tkn, 
-      inbound_tkn, 
-      offerId, 
       deprovision
     );
   }
+
   function retractOfferInternal(
     address outbound_tkn,
     address inbound_tkn,

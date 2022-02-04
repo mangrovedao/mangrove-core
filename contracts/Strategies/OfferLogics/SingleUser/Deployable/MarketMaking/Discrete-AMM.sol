@@ -18,17 +18,27 @@ contract DAMM is Persistent {
   using P.OfferDetail for P.OfferDetail.t;
   
   /** Immutables */
-  uint immutable NSLOTS; // total number of Asks (Bids)
-  uint immutable INIT_MINGIVES; // initial Gives for min offer 
+  uint16 immutable NSLOTS; // total number of Asks (Bids)
+  uint immutable INIT_MINPRICE; // initial min price with QUOTE decimals precision
+  
 
-  uint[] ASKS;
-  uint[] BIDS;
   address immutable BASE;
   address immutable QUOTE;
+  uint8 immutable QUOTE_DECIMALS;
+  uint8 immutable BASE_DECIMALS;
 
   /** Mutables */
+  //NB if one wants to allow this contract to be multi-makers one should use uint[][] ASKS/BIDS and allocate a new array for each maker.
+  uint[] ASKS;
+  uint[] BIDS;
+  mapping(uint => uint) index_of_bid; // bidId -> index
+  mapping(uint => uint) index_of_ask; // askId -> index
+  
+  
+  //NB if one wants to allow this contract to be multi-makers one should use uint[] for each mutable fields to allow user specific parameters.
   int current_shift;
-  uint current_delta; // offer[i+1].gives = offer[i].gives + current_delta
+  // offer[i+1] = offer[i] + current_delta for arithmetic progression. offer[i+1] = current_delta*offer[i] for geometric
+  uint current_delta; 
   bool is_initialized;
 
   modifier initialized() {
@@ -36,29 +46,41 @@ contract DAMM is Persistent {
     _; 
   }
 
-  /** NB: constructor is `payable` in order to fund initial bids and asks */
+  /** NB: constructor is `payable` in order to allow deployer to fund initial bids and asks */
   constructor(
     address payable mgv,
     address base,
     address quote,
     uint nslots,
-    uint init_gives
-  ) MangroveOffer(mgv) payable {
+    uint init_price
+  ) MangroveOffer(mgv) {
     // sanity check
-    require(nslots>0 && mgv!=address(0), "DAMM/constructor/invalidArguments");
-    if (msg.value > 0) {
-      fundMangroveInternal(msg.sender, msg.value);
-    }
+    require(
+      nslots>0 
+    && mgv!=address(0)
+    && uint16(nslots)==nslots, 
+    "DAMM/constructor/invalidArguments"
+    );
     BASE = base;
     QUOTE = quote;
-    INIT_MINGIVES = init_gives;
+    INIT_MINPRICE = init_price;
     NSLOTS = nslots;
     ASKS = new uint[](nslots);
     BIDS = new uint[](nslots);
+    BASE_DECIMALS = IERC20(base.decimals();
+    QUOTE_DECIMALS = IERC20(quote.decimals());
+  }
+
+  function _getPivot(uint[] calldata pivots, uint i) internal returns (uint) {
+    if (pivots[i]!=0) {
+      return pivots[i];
+    } else {
+      return i>0?pivots[i-1]:0;
+    }
   }
 
   function initialize(
-    uint init_wants,
+    uint init_base,
     uint delta, // parameter for the price increment (default is arithmetic progression)
     uint nbids, // `nbids <= NSLOTS`. Says how many bids should be placed
     uint[][2] calldata pivotIds // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
@@ -68,85 +90,82 @@ contract DAMM is Persistent {
     /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
     require(nbids<=NSLOTS, "DAMM/initialize/nbidsTooHigh");
     current_delta = delta;
-    uint pivotId=0;
+    
     uint i;
     for(i=0; i<NSLOTS; i++) {
+      // bidId is either fresh is contract is not initialized or already present at index
       uint bidId;
       if(is_initialized) {
         bidId = BIDS[i];
         updateOfferInternal({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
-          wants: init_wants,
-          gives: __gives_of_position__(i, delta, INIT_MINGIVES), // arithmetic progression by default
+          wants: init_base,
+          gives: __quotesOfPosition__(i, delta, init_base, INIT_MINPRICE), 
           gasreq: OFR_GASREQ,
           gasprice: 0,
           offerId: bidId,
-          pivotId: pivotIds[0][i]!=0?pivotIds[0][i]:pivotId, // use offchain computed pivot if available otherwise use last inserted offerId
+          pivotId: _getPivot(pivotIds[0],i), // use offchain computed pivot if available otherwise use last inserted bid id if any
           provision: 0 
         });
       } else {
         bidId = newOfferInternal({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
-          wants: init_wants,
-          gives: __gives_of_position__(i, delta, INIT_MINGIVES), // arithmetic progression by default
+          wants: init_base,
+          gives: __quotesOfPosition__(i, delta, init_base, INIT_MINPRICE),
           gasreq: OFR_GASREQ,
           gasprice: 0,
-          pivotId: pivotIds[0][i]!=0?pivotIds[0][i]:pivotId, // use offchain computed pivot if available otherwise use last inserted offerId
+          pivotId: _getPivot(pivotIds[0],i) , // use offchain computed pivot if available otherwise use last inserted offerId
           provision:0 
         });
+        index_of_bid[bidId] = i;
       }
-      pivotId = bidId;
       BIDS[i] = bidId;
-
-      pivotId=0;
+      
       uint askId;
-      for(i=0; i<NSLOTS; i++) {
-        if (is_initialized) {
-          askId = ASKS[i];
-          updateOfferInternal({
-            outbound_tkn: BASE,
-            inbound_tkn: QUOTE,
-            wants: init_wants,
-            gives: __gives_of_position__(i, delta, INIT_MINGIVES), // arithmetic progression by default
-            gasreq: OFR_GASREQ,
-            gasprice: 0,
-            pivotId: pivotIds[1][i]!=0?pivotIds[1][i]:pivotId, // use offchain computed pivot if available otherwise use last inserted offerId
-            provision: 0,
-            offerId: askId
-          });
-        } else {
-          askId = newOfferInternal({
-            outbound_tkn: BASE,
-            inbound_tkn: QUOTE,
-            wants: init_wants,
-            gives: __gives_of_position__(i, delta, INIT_MINGIVES), // arithmetic progression by default
-            gasreq: OFR_GASREQ,
-            gasprice: 0,
-            pivotId: pivotIds[1][i]!=0?pivotIds[1][i]:pivotId, // use offchain computed pivot if available otherwise use last inserted offerId
-            provision: 0
-          });
-        }
-        pivotId = askId;
-        ASKS[i] = askId;
-
-        // If i<nbids, ask should be retracted, else bid should be retracted
-        if (i<nbids) {
-          retractOfferInternal({
-            outbound_tkn:BASE,
-            inbound_tkn:QUOTE,
-            offerId: askId,
-            deprovision:false // leaving provision
-          });
-        } else {
-          retractOfferInternal({
-            outbound_tkn:QUOTE,
-            inbound_tkn:BASE,
-            offerId: bidId,
-            deprovision:false // leaving provision
-          });
-        }
+      if (is_initialized) {
+        askId = ASKS[i];
+        updateOfferInternal({
+          outbound_tkn: BASE,
+          inbound_tkn: QUOTE,
+          wants: __quotesOfPosition__(i, delta, init_base, INIT_MINPRICE),
+          gives: init_base, 
+          gasreq: OFR_GASREQ,
+          gasprice: 0,
+          pivotId: _getPivot(pivotIds[1],i), // use offchain computed pivot if available otherwise use last inserted offerId
+          provision: 0,
+          offerId: askId
+        });
+      } else {
+        askId = newOfferInternal({
+          outbound_tkn: BASE,
+          inbound_tkn: QUOTE,
+          wants: __quotesOfPosition__(i, delta, init_base, INIT_MINPRICE),
+          gives: init_base, 
+          gasreq: OFR_GASREQ,
+          gasprice: 0,
+          pivotId: _getPivot(pivotIds[1],i), // use offchain computed pivot if available otherwise use last inserted offerId
+          provision: 0
+        });
+        index_of_ask[askId] = i;
+      }
+      ASKS[i] = askId;
+      // If i<nbids, ask should be retracted, else bid should be retracted
+      if (i<nbids) {
+        retractOfferInternal({
+          outbound_tkn:BASE,
+          inbound_tkn:QUOTE,
+          offerId: askId,
+          deprovision:false // leaving provision
+        });
+      } else {
+        retractOfferInternal({
+          outbound_tkn:QUOTE,
+          inbound_tkn:BASE,
+          offerId: bidId,
+          deprovision:false // leaving provision
+        });
       }
     }
     is_initialized = true;
@@ -175,11 +194,19 @@ contract DAMM is Persistent {
     return i>0?i-1:NSLOTS-1;
   }
 
-  /** Returns the quantity of outbound_tkn the offer at position `p` is supposed to offer according to actual shift */
-  /** NB the returned `gives` might not the one actually offered on Mangrove if the price has shifted or if the offer is not Live*/
-  function __gives_of_position__(uint p, uint delta, uint init_gives) internal virtual pure returns (uint) {
-    return delta*p + init_gives;
+  /** Returns the quantity of quote tokens the offer at position `p` is willing to sell or buy according to actual shift */
+  /** NB the returned quantity might not the one actually offered on Mangrove if the price has shifted or if the offer is not Live*/
+  function __quotesOfPosition__(uint p, uint delta, uint base_amount, uint init_price) internal virtual pure returns (uint) {
+    return ((delta*p + init_price) * base_amount) * 10**BASE_DECIMALS;
   } 
+
+  /** Returns the quantity of base tokens the offer at position `p` is willing
+  
+   to sell or buy according to actual shift */
+  function __basesOfPosition__(uint p, uint delta, uint quote_amount, uint init_price) internal virtual pure returns (uint) {
+    return (quote_amount * 10**BASE_DECIMALS) / (delta*p + init_price);
+  } 
+
 
 /** Recenter the order book by shifting min price up `s` positions in the book */
 /** As a consequence `s` Bids will be cancelled and `s` new asks will be posted */
@@ -265,6 +292,34 @@ contract DAMM is Persistent {
       s--;
       index = prev_index(index);
     }
+  }
+
+  // price at which offer should be reposted in case of a partial fill
+  // function __newGives__(MgvLib.SingleOrder calldata order) virtual overrides returns (uint) {
+  //   uint index;
+  //   if (order.outbound_tkn == BASE){ // order is buying BASE so offer was an ASK
+  //     index = index_of_ask[order.offerId];
+  //   } else {
+  //     index = index_of_bid[order.offerId];
+  //   }
+  //   return __gives_of_position__(
+  //     position_of_index(index),
+  //     current_delta,
+  //     INIT_MINGIVES
+  //   ); 
+  // }
+
+  // function __newWants__(MgvLib.SingleOrder calldata order) virtual overrides returns (uint) {
+
+  // }
+
+
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+  {
+
   }
 
   // TODO  __posthookSuccess__

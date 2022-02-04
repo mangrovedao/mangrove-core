@@ -20,7 +20,6 @@ contract DAMM is Persistent {
   /** Immutables */
   uint16 immutable NSLOTS; // total number of Asks (Bids)
   uint immutable INIT_MINPRICE; // initial min price with QUOTE decimals precision
-  
 
   address immutable BASE;
   address immutable QUOTE;
@@ -39,6 +38,7 @@ contract DAMM is Persistent {
   int current_shift;
   // offer[i+1] = offer[i] + current_delta for arithmetic progression. offer[i+1] = current_delta*offer[i] for geometric
   uint current_delta; 
+  uint current_new_base_amount; // new base amount for fresh offers
   bool is_initialized;
 
   modifier initialized() {
@@ -51,8 +51,8 @@ contract DAMM is Persistent {
     address payable mgv,
     address base,
     address quote,
-    uint nslots,
-    uint init_price
+    uint init_price,
+    uint nslots
   ) MangroveOffer(mgv) {
     // sanity check
     require(
@@ -64,11 +64,11 @@ contract DAMM is Persistent {
     BASE = base;
     QUOTE = quote;
     INIT_MINPRICE = init_price;
-    NSLOTS = nslots;
+    NSLOTS = uint16(nslots);
     ASKS = new uint[](nslots);
     BIDS = new uint[](nslots);
-    BASE_DECIMALS = IERC20(base.decimals();
-    QUOTE_DECIMALS = IERC20(quote.decimals());
+    BASE_DECIMALS = IERC20(base).decimals();
+    QUOTE_DECIMALS = IERC20(quote).decimals();
   }
 
   function _getPivot(uint[] calldata pivots, uint i) internal returns (uint) {
@@ -80,7 +80,7 @@ contract DAMM is Persistent {
   }
 
   function initialize(
-    uint init_base,
+    uint default_base,
     uint delta, // parameter for the price increment (default is arithmetic progression)
     uint nbids, // `nbids <= NSLOTS`. Says how many bids should be placed
     uint[][2] calldata pivotIds // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
@@ -90,6 +90,7 @@ contract DAMM is Persistent {
     /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
     require(nbids<=NSLOTS, "DAMM/initialize/nbidsTooHigh");
     current_delta = delta;
+    current_new_base_amount = default_base;
     
     uint i;
     for(i=0; i<NSLOTS; i++) {
@@ -100,8 +101,8 @@ contract DAMM is Persistent {
         updateOfferInternal({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
-          wants: init_base,
-          gives: __quotesOfPosition__(i, delta, init_base, INIT_MINPRICE), 
+          wants: default_base,
+          gives: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS), 
           gasreq: OFR_GASREQ,
           gasprice: 0,
           offerId: bidId,
@@ -112,8 +113,8 @@ contract DAMM is Persistent {
         bidId = newOfferInternal({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
-          wants: init_base,
-          gives: __quotesOfPosition__(i, delta, init_base, INIT_MINPRICE),
+          wants: default_base,
+          gives: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS),
           gasreq: OFR_GASREQ,
           gasprice: 0,
           pivotId: _getPivot(pivotIds[0],i) , // use offchain computed pivot if available otherwise use last inserted offerId
@@ -129,8 +130,8 @@ contract DAMM is Persistent {
         updateOfferInternal({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
-          wants: __quotesOfPosition__(i, delta, init_base, INIT_MINPRICE),
-          gives: init_base, 
+          wants: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS),
+          gives: default_base, 
           gasreq: OFR_GASREQ,
           gasprice: 0,
           pivotId: _getPivot(pivotIds[1],i), // use offchain computed pivot if available otherwise use last inserted offerId
@@ -141,8 +142,8 @@ contract DAMM is Persistent {
         askId = newOfferInternal({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
-          wants: __quotesOfPosition__(i, delta, init_base, INIT_MINPRICE),
-          gives: init_base, 
+          wants: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS),
+          gives: default_base, 
           gasreq: OFR_GASREQ,
           gasprice: 0,
           pivotId: _getPivot(pivotIds[1],i), // use offchain computed pivot if available otherwise use last inserted offerId
@@ -174,13 +175,13 @@ contract DAMM is Persistent {
   /** Returns the position in the order book of the offer associated to this index `i` */
   function position_of_index(uint i) internal view returns (uint) {
     // position(i) = (i+shift) % N
-    int p = (int(i) + current_shift) % int(NSLOTS); 
+    int p = (int(i) + current_shift) % int(uint(NSLOTS)); 
     return (p<0) ? uint(-p) : uint(p);
   }
 
   /** Returns the index in the ring of offers at which the offer Id at position `p` in the book is stored */
   function index_of_position(uint p) internal view returns (uint) {
-    int i = (int(p) - current_shift) % int(NSLOTS);
+    int i = (int(p) - current_shift) % int(uint(NSLOTS));
     return (i<0) ? uint(-i) : uint(i);
   }
 
@@ -194,19 +195,17 @@ contract DAMM is Persistent {
     return i>0?i-1:NSLOTS-1;
   }
 
-  /** Returns the quantity of quote tokens the offer at position `p` is willing to sell or buy according to actual shift */
+  /** Price function to determine the price of position i of the OB depending on initial_price and paramater delta*/
+  /** Default here is arithmetic progression, override this function to implement a geometric one for instance*/
+  function __price_of_position__(uint p, uint delta, uint init_price) internal virtual pure returns (uint) {
+    return delta * p + init_price;
+  }
+
+  /** Returns the quantity of quote tokens the offer at position `p` is asking (for selling base) or bidding (for buying base) according to actual shift */
   /** NB the returned quantity might not the one actually offered on Mangrove if the price has shifted or if the offer is not Live*/
-  function __quotesOfPosition__(uint p, uint delta, uint base_amount, uint init_price) internal virtual pure returns (uint) {
-    return ((delta*p + init_price) * base_amount) * 10**BASE_DECIMALS;
+  function quotes_of_position(uint p, uint delta, uint base_amount, uint init_price, uint8 base_decimals) internal pure returns (uint) {
+    return __price_of_position__(p,delta,init_price)*base_amount / 10**base_decimals;
   } 
-
-  /** Returns the quantity of base tokens the offer at position `p` is willing
-  
-   to sell or buy according to actual shift */
-  function __basesOfPosition__(uint p, uint delta, uint quote_amount, uint init_price) internal virtual pure returns (uint) {
-    return (quote_amount * 10**BASE_DECIMALS) / (delta*p + init_price);
-  } 
-
 
 /** Recenter the order book by shifting min price up `s` positions in the book */
 /** As a consequence `s` Bids will be cancelled and `s` new asks will be posted */
@@ -221,28 +220,19 @@ contract DAMM is Persistent {
       // slots are replaced by `s` Asks.
       // NB the price of Ask[index] is computed given the new position associated to `index`
       // because the shift has been updated above
-      P.Offer.t offer = MGV.offers(
-        QUOTE,
-        BASE,
-        ASKS[index]
-      );
-      P.OfferDetail.t offerDetail = MGV.offerDetails(
-        QUOTE,
-        BASE,
-        ASKS[index]
-      );
+      
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
-      uint new_gives = __gives_of_position__(pos, current_delta, INIT_MINGIVES);
-      uint new_wants = (offer.wants() * new_gives) / offer.gives();
+      // defining new_gives (in quotes) based on default base amount for new offers
+      uint new_gives = quotes_of_position(pos, current_delta, current_new_base_amount, INIT_MINPRICE, BASE_DECIMALS);
       updateOfferInternal({
         outbound_tkn:QUOTE,
         inbound_tkn:BASE,
         offerId:ASKS[index],
-        wants: new_wants,
+        wants: current_new_base_amount,
         gives: new_gives,
-        gasprice: offerDetail.gasprice(),
-        gasreq: offerDetail.gasreq(),
+        gasprice: 0,
+        gasreq: OFR_GASREQ,
         pivotId: pos>0 ? index_of_position(pos-1) : 0,
         provision:0
       });
@@ -264,28 +254,18 @@ contract DAMM is Persistent {
       // slots are replaced by `s` Bids.
       // NB the price of Bids[index] is computed given the new position associated to `index`
       // because the shift has been updated above
-      P.Offer.t offer = MGV.offers(
-        BASE,
-        QUOTE,
-        BIDS[index]
-      );
-      P.OfferDetail.t offerDetail = MGV.offerDetails(
-        BASE,
-        QUOTE,
-        BIDS[index]
-      );
+
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
-      uint new_gives = __gives_of_position__(pos, current_delta, INIT_MINGIVES);
-      uint new_wants = (offer.wants() * new_gives) / offer.gives();
+      uint new_wants = quotes_of_position(pos, current_delta, current_new_base_amount, INIT_MINPRICE, BASE_DECIMALS);
       updateOfferInternal({
         outbound_tkn:BASE,
         inbound_tkn:QUOTE,
         offerId:BIDS[index],
         wants: new_wants,
-        gives: new_gives,
-        gasprice: offerDetail.gasprice(),
-        gasreq: offerDetail.gasreq(),
+        gives: current_new_base_amount,
+        gasprice: 0,
+        gasreq: OFR_GASREQ,
         pivotId: pos<NSLOTS-1 ? index_of_position(pos+1) : 0,
         provision:0
       });
@@ -294,11 +274,19 @@ contract DAMM is Persistent {
     }
   }
 
-  // price at which offer should be reposted in case of a partial fill
+  // if price has increased one should lower gives, otherwise give the residual of the offer
   // function __newGives__(MgvLib.SingleOrder calldata order) virtual overrides returns (uint) {
   //   uint index;
   //   if (order.outbound_tkn == BASE){ // order is buying BASE so offer was an ASK
   //     index = index_of_ask[order.offerId];
+  //     uint old_price = (order.offer.wants*10**BASE_DECIMALS) / order.offer.gives;
+  //     uint new_price = __price_of_position__(
+  //       position_of_index(index), 
+  //       current_delta, INIT_MINPRICE
+  //     );
+  //     if (old_price < new_price) {
+
+  //     } 
   //   } else {
   //     index = index_of_bid[order.offerId];
   //   }

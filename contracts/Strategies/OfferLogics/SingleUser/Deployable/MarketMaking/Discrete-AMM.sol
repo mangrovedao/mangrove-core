@@ -207,33 +207,52 @@ contract DAMM is Persistent {
     return __price_of_position__(p,delta,init_price)*base_amount / 10**base_decimals;
   } 
 
-/** Recenter the order book by shifting min price up `s` positions in the book */
-/** As a consequence `s` Bids will be cancelled and `s` new asks will be posted */
-  function positive_shift(uint s) public internalOrAdmin initialized {
+  function shift(int s) external onlyAdmin initialized {
+    if (s<0) {
+      negative_shift(uint(-s));
+    } else {
+      positive_shift(uint(s));
+    }
+  }
+
+  /** Recenter the order book by shifting min price up `s` positions in the book */
+  /** As a consequence `s` Bids will be cancelled and `s` new asks will be posted */
+  function positive_shift(uint s) internal {
     uint index = index_of_position(0);
     current_shift += int(s); // updating new shift
     // Warning: from now on position_of_index reflects the new shift
     // One must progress relative to index when retracting offers
     while (s>0) {
       // slots occupied by [Bids[index],..,Bids[index+`s` % N]] are retracted
-      retractOfferInternal(BASE,QUOTE,BIDS[index],false);
+      retractOfferInternal({
+        outbound_tkn: QUOTE, 
+        inbound_tkn: BASE,
+        offerId: BIDS[index], 
+        deprovision: false
+      });
       // slots are replaced by `s` Asks.
       // NB the price of Ask[index] is computed given the new position associated to `index`
       // because the shift has been updated above
       
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
-      // defining new_gives (in quotes) based on default base amount for new offers
-      uint new_gives = quotes_of_position(pos, current_delta, current_new_base_amount, INIT_MINPRICE, BASE_DECIMALS);
+      // defining new_wants (in quotes) based on default base amount for new offers
+      uint new_wants = quotes_of_position(
+        pos, 
+        current_delta, 
+        current_new_base_amount, 
+        INIT_MINPRICE, 
+        BASE_DECIMALS
+      );
       updateOfferInternal({
-        outbound_tkn:QUOTE,
-        inbound_tkn:BASE,
-        offerId:ASKS[index],
-        wants: current_new_base_amount,
-        gives: new_gives,
+        outbound_tkn: BASE,
+        inbound_tkn: QUOTE,
+        offerId: ASKS[index],
+        wants: new_wants,
+        gives: current_new_base_amount,
         gasprice: 0,
         gasreq: OFR_GASREQ,
-        pivotId: pos>0 ? index_of_position(pos-1) : 0,
+        pivotId: pos>0 ? ASKS[index_of_position(pos-1)] : 0,
         provision:0
       });
       s--;
@@ -243,30 +262,41 @@ contract DAMM is Persistent {
 
   /** Recenter the order book by shifting max price down `s` positions in the book */
   /** As a consequence `s` Asks will be cancelled and `s` new Bids will be posted */
-  function negative_shift(uint s) public internalOrAdmin initialized {
+  function negative_shift(uint s) internal {
     uint index = index_of_position(NSLOTS-1);
     current_shift -= int(s); // updating new shift
     // Warning: from now on position_of_index reflects the new shift
     // One must progress relative to index when retracting offers
     while (s>0) {
       // slots occupied by [Asks[index-`s` % N],..,Asks[index]] are retracted
-      retractOfferInternal(QUOTE,BASE,ASKS[index],false);
+      retractOfferInternal({
+        outbound_tkn: BASE, 
+        inbound_tkn: QUOTE, 
+        offerId: ASKS[index],
+        deprovision: false
+      });
       // slots are replaced by `s` Bids.
       // NB the price of Bids[index] is computed given the new position associated to `index`
       // because the shift has been updated above
 
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
-      uint new_wants = quotes_of_position(pos, current_delta, current_new_base_amount, INIT_MINPRICE, BASE_DECIMALS);
+      uint new_gives = quotes_of_position(
+        pos, 
+        current_delta, 
+        current_new_base_amount, 
+        INIT_MINPRICE, 
+        BASE_DECIMALS
+      );
       updateOfferInternal({
-        outbound_tkn:BASE,
-        inbound_tkn:QUOTE,
-        offerId:BIDS[index],
-        wants: new_wants,
-        gives: current_new_base_amount,
+        outbound_tkn: QUOTE,
+        inbound_tkn: BASE,
+        offerId: BIDS[index],
+        wants: current_new_base_amount,
+        gives: new_gives,
         gasprice: 0,
         gasreq: OFR_GASREQ,
-        pivotId: pos<NSLOTS-1 ? index_of_position(pos+1) : 0,
+        pivotId: pos<NSLOTS-1 ? BIDS[index_of_position(pos+1)] : 0,
         provision:0
       });
       s--;
@@ -274,43 +304,40 @@ contract DAMM is Persistent {
     }
   }
 
-  // if price has increased one should lower gives, otherwise give the residual of the offer
-  // function __newGives__(MgvLib.SingleOrder calldata order) virtual overrides returns (uint) {
-  //   uint index;
-  //   if (order.outbound_tkn == BASE){ // order is buying BASE so offer was an ASK
-  //     index = index_of_ask[order.offerId];
-  //     uint old_price = (order.offer.wants*10**BASE_DECIMALS) / order.offer.gives;
-  //     uint new_price = __price_of_position__(
-  //       position_of_index(index), 
-  //       current_delta, INIT_MINPRICE
-  //     );
-  //     if (old_price < new_price) {
+  function lazyResetPriceParameter(uint delta) public internalOrAdmin {
+    current_delta = delta;
+  }
 
-  //     } 
-  //   } else {
-  //     index = index_of_bid[order.offerId];
-  //   }
-  //   return __gives_of_position__(
-  //     position_of_index(index),
-  //     current_delta,
-  //     INIT_MINGIVES
-  //   ); 
-  // }
-
-  // function __newWants__(MgvLib.SingleOrder calldata order) virtual overrides returns (uint) {
-
-  // }
-
+  // for reposting partial filled offers one always gives the residual (default behavior)
+  // and adapts wants to the new price (if different).
+  function __residualWants__(MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
+    uint residual_gives = __residualGives__(order); // default
+    uint index;
+    if (order.outbound_tkn == BASE){ // Ask offer (selling BASE) 
+      index = index_of_ask[order.offerId];
+    } else {
+      // Bid order (buying BASE)
+      index = index_of_bid[order.offerId];
+    }
+    uint target_price = __price_of_position__(
+      position_of_index(index), 
+      current_delta, 
+      INIT_MINPRICE
+    );
+    // new_wants / (residual_gives * e-BD) = target_price
+    // hence new_wants = target_price * residual_gives * e-BD
+    return (target_price * residual_gives) / 10**BASE_DECIMALS;
+  }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
   {
-
+    super.__posthookSuccess__(order); // reposting residual of offer using __newWants__ to update price
+    // TODO post new bid when ask consumed and new ask when bid consumed
   }
 
-  // TODO  __posthookSuccess__
   // TODO  compact/dilate functions
   // TODO __posthookFail__
   

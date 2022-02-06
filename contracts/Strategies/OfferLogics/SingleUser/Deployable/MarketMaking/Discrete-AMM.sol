@@ -18,7 +18,7 @@ contract DAMM is Persistent {
   using P.OfferDetail for P.OfferDetail.t;
   
   /** Immutables */
-  uint16 immutable NSLOTS; // total number of Asks (Bids)
+  uint16 immutable NSLOTS; // total number of Asks (resp. Bids)
   uint immutable INIT_MINPRICE; // initial min price with QUOTE decimals precision
 
   address immutable BASE;
@@ -88,7 +88,8 @@ contract DAMM is Persistent {
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
     /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
-    require(nbids<=NSLOTS, "DAMM/initialize/nbidsTooHigh");
+    require(nbids < NSLOTS, "DAMM/initialize/noSlotForAsk");
+    require(nbids > 0, "DAMM/initialize/noSlotForBids");
     current_delta = delta;
     current_new_base_amount = default_base;
     
@@ -187,24 +188,26 @@ contract DAMM is Persistent {
 
   /**Next index in the ring of offers */
   function next_index(uint i) internal view returns (uint) {
-    return (i+1)%NSLOTS;
+    return (i+1) % NSLOTS;
   }
 
   /**Previous index in the ring of offers */
   function prev_index(uint i) internal view returns (uint) {
-    return i>0?i-1:NSLOTS-1;
+    return i>0 ? i-1 : NSLOTS-1;
   }
 
   /** Price function to determine the price of position i of the OB depending on initial_price and paramater delta*/
   /** Default here is arithmetic progression, override this function to implement a geometric one for instance*/
-  function __price_of_position__(uint p, uint delta, uint init_price) internal virtual pure returns (uint) {
-    return delta * p + init_price;
+  function __price_of_position__(uint position, uint delta, uint init_price) internal virtual pure returns (uint) {
+    return delta * position + init_price;
   }
 
   /** Returns the quantity of quote tokens the offer at position `p` is asking (for selling base) or bidding (for buying base) according to actual shift */
   /** NB the returned quantity might not the one actually offered on Mangrove if the price has shifted or if the offer is not Live*/
   function quotes_of_position(uint p, uint delta, uint base_amount, uint init_price, uint8 base_decimals) internal pure returns (uint) {
-    return __price_of_position__(p,delta,init_price)*base_amount / 10**base_decimals;
+    // price(@pos) * e-QD = quote_amount * e-QD / base_amount * e-BD
+    // hence quote_amount = price(@pos) * base_amount * e-BD
+    return (__price_of_position__(p,delta,init_price)*base_amount) / 10**base_decimals;
   } 
 
   function shift(int s) external onlyAdmin initialized {
@@ -335,10 +338,99 @@ contract DAMM is Persistent {
     override
   {
     super.__posthookSuccess__(order); // reposting residual of offer using __newWants__ to update price
-    // TODO post new bid when ask consumed and new ask when bid consumed
+    if (order.outbound_tkn == BASE) { // Ask Offer (`this` contract just sold some BASE @ pos)
+      uint pos = position_of_index(index_of_ask[order.offerId]);
+      // bid for some BASE token with the received QUOTE tokens @ pos-1
+      if (pos > 0) {
+        uint ofrId = BIDS[index_of_position(pos-1)];
+        updateBid({offerId:ofrId, quote_amount:order.gives, position:pos-1});
+      } else { // Ask cannot be at Pmin unless a shift has eliminated all bids
+        emit PosthookFail(
+          order.outbound_tkn,
+          order.inbound_tkn,
+          order.offerId,
+          "DAMM/posthook/BuyingOutOfPriceRange"  
+        );
+        return;
+      }
+    } else { // Bid offer (`this` contract just bought some BASE)
+      uint pos = position_of_index(index_of_bid[order.offerId]);
+      // ask for some QUOTE tokens in exchange of the received BASE tokens @ pos+1
+      if (pos < NSLOTS-1) {
+        uint ofrId = ASKS[index_of_position(pos+1)];
+        updateAsk({offerId:ofrId, base_amount:order.gives, position: pos+1});
+      } else { // Take profit
+        emit PosthookFail(
+          order.outbound_tkn,
+          order.inbound_tkn,
+          order.offerId,
+          "DAMM/posthook/SellingOutOfPriceRange"  
+        );
+        return;
+      }
+    }
   }
 
-  // TODO  compact/dilate functions
+  function updateBid(uint offerId, uint quote_amount, uint position) internal {
+    // outbound : QUOTE, inbound: BASE
+    uint price = __price_of_position__(position, current_delta, INIT_MINPRICE);
+    uint old_gives = MGV.offers(QUOTE, BASE, offerId).gives();
+    uint new_gives = old_gives + quote_amount;
+    uint pivot;
+    if (old_gives == 0) { // offer was not live
+    // Warning: `position==0` here would be a bad situation: 
+    // bids offer list is empty so we don't have a good pivot for inserting new bid
+    // this will likely run out of gas.
+      pivot = position == 0 ? 0 : BIDS[index_of_position(position-1)];
+    } else {
+      pivot = offerId;
+    }
+    // price * e-QD = gives * e-QD / wants * e-BD
+    // hence wants = (gives*e+BD) / price 
+    uint new_wants = (new_gives * 10**BASE_DECIMALS) / price;
+    updateOfferInternal({
+      outbound_tkn: QUOTE,
+      inbound_tkn: BASE,
+      wants: new_wants,
+      gives: new_gives,
+      gasreq: OFR_GASREQ,
+      gasprice: 0,
+      pivotId: pivot,
+      offerId: offerId,
+      provision: 0
+    });
+  }
+
+  function updateAsk(uint offerId, uint base_amount, uint position) internal {
+    // outbound : BASE, inbound: QUOTE
+    uint price = __price_of_position__(position, current_delta, INIT_MINPRICE);
+    uint old_gives = MGV.offers(BASE, QUOTE, offerId).gives();
+    uint new_gives = old_gives + base_amount;
+    uint pivot;
+    if (old_gives == 0) { // offer was not live
+    // Warning: `position==NSLOTS-1` here would be a bad situation: 
+    // asks offer list is empty so we don't have a good pivot for inserting new ask
+    // this will likely run out of gas.
+      pivot = position == NSLOTS-1 ? 0 : ASKS[index_of_position(position+1)];
+    } else {
+      pivot = offerId;
+    }
+    // price * e-QD = gives * e-QD / wants * e-BD
+    // hence wants = (gives*e+BD) / price 
+    uint new_wants = (new_gives * 10**BASE_DECIMALS) / price;
+    updateOfferInternal({
+      outbound_tkn: BASE,
+      inbound_tkn: QUOTE,
+      wants: new_wants,
+      gives: new_gives,
+      gasreq: OFR_GASREQ,
+      gasprice: 0,
+      pivotId: pivot,
+      offerId: offerId,
+      provision: 0
+    });
+  }
+
   // TODO __posthookFail__
   
 }

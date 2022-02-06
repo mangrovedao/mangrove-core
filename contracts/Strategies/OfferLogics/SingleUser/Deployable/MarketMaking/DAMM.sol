@@ -35,11 +35,12 @@ contract DAMM is Persistent {
   
   
   //NB if one wants to allow this contract to be multi-makers one should use uint[] for each mutable fields to allow user specific parameters.
-  int current_shift;
+  int public current_shift;
+
   // offer[i+1] = offer[i] + current_delta for arithmetic progression. offer[i+1] = current_delta*offer[i] for geometric
-  uint current_delta; 
-  uint current_new_base_amount; // new base amount for fresh offers
-  bool is_initialized;
+  uint public current_delta; // quote decimals precision
+  uint public current_new_base_amount; // new base amount for fresh offers
+  bool public is_initialized;
 
   modifier initialized() {
     require(is_initialized, "DAMM/uninitialized");
@@ -103,7 +104,7 @@ contract DAMM is Persistent {
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
           wants: default_base,
-          gives: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS), 
+          gives: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS, QUOTE_DECIMALS), 
           gasreq: OFR_GASREQ,
           gasprice: 0,
           offerId: bidId,
@@ -115,7 +116,7 @@ contract DAMM is Persistent {
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
           wants: default_base,
-          gives: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS),
+          gives: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS, QUOTE_DECIMALS),
           gasreq: OFR_GASREQ,
           gasprice: 0,
           pivotId: _getPivot(pivotIds[0],i) , // use offchain computed pivot if available otherwise use last inserted offerId
@@ -131,7 +132,7 @@ contract DAMM is Persistent {
         updateOfferInternal({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
-          wants: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS),
+          wants: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS, QUOTE_DECIMALS),
           gives: default_base, 
           gasreq: OFR_GASREQ,
           gasprice: 0,
@@ -143,7 +144,7 @@ contract DAMM is Persistent {
         askId = newOfferInternal({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
-          wants: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS),
+          wants: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS, QUOTE_DECIMALS),
           gives: default_base, 
           gasreq: OFR_GASREQ,
           gasprice: 0,
@@ -198,16 +199,21 @@ contract DAMM is Persistent {
 
   /** Price function to determine the price of position i of the OB depending on initial_price and paramater delta*/
   /** Default here is arithmetic progression, override this function to implement a geometric one for instance*/
-  function __price_of_position__(uint position, uint delta, uint init_price) internal virtual pure returns (uint) {
-    return delta * position + init_price;
+  function __price_of_position__(uint position, uint delta, uint init_price, uint quote_decimals) 
+  internal virtual pure returns (uint) {
+    // price * e-QD = delta * e-QD * position * e-QD + init_price * e-QD
+    // price = delta * position * e-QD + init_price
+
+    return (delta * position)/10**quote_decimals + init_price;
   }
 
   /** Returns the quantity of quote tokens the offer at position `p` is asking (for selling base) or bidding (for buying base) according to actual shift */
   /** NB the returned quantity might not the one actually offered on Mangrove if the price has shifted or if the offer is not Live*/
-  function quotes_of_position(uint p, uint delta, uint base_amount, uint init_price, uint8 base_decimals) internal pure returns (uint) {
+  function quotes_of_position(uint p, uint delta, uint base_amount, uint init_price, uint8 base_decimals, uint8 quote_decimals) 
+  internal pure returns (uint) {
     // price(@pos) * e-QD = quote_amount * e-QD / base_amount * e-BD
     // hence quote_amount = price(@pos) * base_amount * e-BD
-    return (__price_of_position__(p,delta,init_price)*base_amount) / 10**base_decimals;
+    return (__price_of_position__(p,delta,init_price,quote_decimals)*base_amount) / 10**base_decimals;
   } 
 
   function shift(int s) external onlyAdmin initialized {
@@ -245,7 +251,8 @@ contract DAMM is Persistent {
         current_delta, 
         current_new_base_amount, 
         INIT_MINPRICE, 
-        BASE_DECIMALS
+        BASE_DECIMALS,
+        QUOTE_DECIMALS
       );
       updateOfferInternal({
         outbound_tkn: BASE,
@@ -289,7 +296,8 @@ contract DAMM is Persistent {
         current_delta, 
         current_new_base_amount, 
         INIT_MINPRICE, 
-        BASE_DECIMALS
+        BASE_DECIMALS,
+        QUOTE_DECIMALS
       );
       updateOfferInternal({
         outbound_tkn: QUOTE,
@@ -325,7 +333,8 @@ contract DAMM is Persistent {
     uint target_price = __price_of_position__(
       position_of_index(index), 
       current_delta, 
-      INIT_MINPRICE
+      INIT_MINPRICE,
+      QUOTE_DECIMALS
     );
     // new_wants / (residual_gives * e-BD) = target_price
     // hence new_wants = target_price * residual_gives * e-BD
@@ -373,7 +382,7 @@ contract DAMM is Persistent {
 
   function updateBid(uint offerId, uint quote_amount, uint position) internal {
     // outbound : QUOTE, inbound: BASE
-    uint price = __price_of_position__(position, current_delta, INIT_MINPRICE);
+    uint price = __price_of_position__(position, current_delta, INIT_MINPRICE, QUOTE_DECIMALS);
     uint old_gives = MGV.offers(QUOTE, BASE, offerId).gives();
     uint new_gives = old_gives + quote_amount;
     uint pivot;
@@ -403,7 +412,7 @@ contract DAMM is Persistent {
 
   function updateAsk(uint offerId, uint base_amount, uint position) internal {
     // outbound : BASE, inbound: QUOTE
-    uint price = __price_of_position__(position, current_delta, INIT_MINPRICE);
+    uint price = __price_of_position__(position, current_delta, INIT_MINPRICE, QUOTE_DECIMALS);
     uint old_gives = MGV.offers(BASE, QUOTE, offerId).gives();
     uint new_gives = old_gives + base_amount;
     uint pivot;

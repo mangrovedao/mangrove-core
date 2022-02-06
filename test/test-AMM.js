@@ -51,7 +51,7 @@ describe("Running tests...", function () {
     let pivotIds = [0,0,0,0,0,0,0,0,0,0];
     await makerContract.initialize(
       lc.parseToken("1",18), // each offer is on 1 ether volume
-      lc.parseToken("0.01",18), // parameter for the price increment (default is arithmetic progression)
+      lc.parseToken("100",6), // parameter for the price increment (default is arithmetic progression)
       ethers.BigNumber.from(5), // `nbids <= NSLOTS`. Says how many bids should be placed
       [pivotIds,pivotIds]
     );

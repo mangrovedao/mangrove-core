@@ -12,19 +12,26 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../../Persistent.sol";
+import "hardhat/console.sol";
 
 contract DAMM is Persistent {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
-  
+
+  event BidAtMaxPrice(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId);
+  event AskAtMinPrice(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId);
+  event PriceParamUpdated(uint delta);
+
   /** Immutables */
-  uint16 immutable NSLOTS; // total number of Asks (resp. Bids)
-  uint immutable INIT_MINPRICE; // initial min price with QUOTE decimals precision
+  // total number of Asks (resp. Bids)
+  uint16 immutable NSLOTS; 
+
+  // initial min price
+  uint96 immutable BASE_0; 
+  uint96 immutable QUOTE_0;
 
   address immutable BASE;
   address immutable QUOTE;
-  uint8 immutable QUOTE_DECIMALS;
-  uint8 immutable BASE_DECIMALS;
 
   /** Mutables */
   //NB if one wants to allow this contract to be multi-makers one should use uint[][] ASKS/BIDS and allocate a new array for each maker.
@@ -37,9 +44,8 @@ contract DAMM is Persistent {
   //NB if one wants to allow this contract to be multi-makers one should use uint[] for each mutable fields to allow user specific parameters.
   int public current_shift;
 
-  // offer[i+1] = offer[i] + current_delta for arithmetic progression. offer[i+1] = current_delta*offer[i] for geometric
-  uint public current_delta; // quote decimals precision
-  uint public current_new_base_amount; // new base amount for fresh offers
+  // P_i = (Q_0 + i*delta)/B_0
+  uint public current_delta; // price decimals precision
   bool public is_initialized;
 
   modifier initialized() {
@@ -52,24 +58,26 @@ contract DAMM is Persistent {
     address payable mgv,
     address base,
     address quote,
-    uint init_price,
+    uint base_0,
+    uint quote_0,
     uint nslots
   ) MangroveOffer(mgv) {
     // sanity check
     require(
       nslots>0 
-    && mgv!=address(0)
-    && uint16(nslots)==nslots, 
+    && mgv != address(0)
+    && uint16(nslots) == nslots 
+    && uint96(base_0) == base_0
+    && uint96(quote_0) == quote_0,
     "DAMM/constructor/invalidArguments"
     );
     BASE = base;
     QUOTE = quote;
-    INIT_MINPRICE = init_price;
     NSLOTS = uint16(nslots);
     ASKS = new uint[](nslots);
     BIDS = new uint[](nslots);
-    BASE_DECIMALS = IERC20(base).decimals();
-    QUOTE_DECIMALS = IERC20(quote).decimals();
+    BASE_0 = uint96(base_0);
+    QUOTE_0 = uint96(quote_0);
   }
 
   function _getPivot(uint[] calldata pivots, uint i) internal returns (uint) {
@@ -81,8 +89,7 @@ contract DAMM is Persistent {
   }
 
   function initialize(
-    uint default_base,
-    uint delta, // parameter for the price increment (default is arithmetic progression)
+    uint delta, // parameter for quote progression as position in the OB increases (default is arithmetic progression)
     uint nbids, // `nbids <= NSLOTS`. Says how many bids should be placed
     uint[][2] calldata pivotIds // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
   ) public internalOrAdmin {
@@ -92,7 +99,6 @@ contract DAMM is Persistent {
     require(nbids < NSLOTS, "DAMM/initialize/noSlotForAsk");
     require(nbids > 0, "DAMM/initialize/noSlotForBids");
     current_delta = delta;
-    current_new_base_amount = default_base;
     
     uint i;
     for(i=0; i<NSLOTS; i++) {
@@ -103,8 +109,8 @@ contract DAMM is Persistent {
         updateOfferInternal({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
-          wants: default_base,
-          gives: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS, QUOTE_DECIMALS), 
+          wants: bases_of_position(i, QUOTE_0),
+          gives: QUOTE_0,
           gasreq: OFR_GASREQ,
           gasprice: 0,
           offerId: bidId,
@@ -115,8 +121,8 @@ contract DAMM is Persistent {
         bidId = newOfferInternal({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
-          wants: default_base,
-          gives: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS, QUOTE_DECIMALS),
+          wants: bases_of_position(i, QUOTE_0),
+          gives: QUOTE_0,
           gasreq: OFR_GASREQ,
           gasprice: 0,
           pivotId: _getPivot(pivotIds[0],i) , // use offchain computed pivot if available otherwise use last inserted offerId
@@ -132,8 +138,8 @@ contract DAMM is Persistent {
         updateOfferInternal({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
-          wants: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS, QUOTE_DECIMALS),
-          gives: default_base, 
+          wants: quotes_of_position(i, BASE_0),
+          gives: BASE_0, 
           gasreq: OFR_GASREQ,
           gasprice: 0,
           pivotId: _getPivot(pivotIds[1],i), // use offchain computed pivot if available otherwise use last inserted offerId
@@ -144,8 +150,8 @@ contract DAMM is Persistent {
         askId = newOfferInternal({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
-          wants: quotes_of_position(i, delta, default_base, INIT_MINPRICE, BASE_DECIMALS, QUOTE_DECIMALS),
-          gives: default_base, 
+          wants: quotes_of_position(i, BASE_0),
+          gives: BASE_0, 
           gasreq: OFR_GASREQ,
           gasprice: 0,
           pivotId: _getPivot(pivotIds[1],i), // use offchain computed pivot if available otherwise use last inserted offerId
@@ -198,23 +204,26 @@ contract DAMM is Persistent {
   }
 
   /** Price function to determine the price of position i of the OB depending on initial_price and paramater delta*/
-  /** Default here is arithmetic progression, override this function to implement a geometric one for instance*/
-  function __price_of_position__(uint position, uint delta, uint init_price, uint quote_decimals) 
-  internal virtual pure returns (uint) {
-    // price * e-QD = delta * e-QD * position * e-QD + init_price * e-QD
-    // price = delta * position * e-QD + init_price
-
-    return (delta * position)/10**quote_decimals + init_price;
+  /** (1) Q/B = Q(i)/B_0 */
+  /** from (1) one derives: */
+  /** Q = Q(i)/B_0 * B (2) and B = B_0/Q(i) * Q (3)*/
+  /** where Q(i) is the quote amount at position i (by default arithmetic progression) */
+  function __quote_progression__(uint position) 
+  internal virtual view returns (uint) {
+    return (current_delta * position + QUOTE_0); 
   }
 
-  /** Returns the quantity of quote tokens the offer at position `p` is asking (for selling base) or bidding (for buying base) according to actual shift */
-  /** NB the returned quantity might not the one actually offered on Mangrove if the price has shifted or if the offer is not Live*/
-  function quotes_of_position(uint p, uint delta, uint base_amount, uint init_price, uint8 base_decimals, uint8 quote_decimals) 
-  internal pure returns (uint) {
-    // price(@pos) * e-QD = quote_amount * e-QD / base_amount * e-BD
-    // hence quote_amount = price(@pos) * base_amount * e-BD
-    return (__price_of_position__(p,delta,init_price,quote_decimals)*base_amount) / 10**base_decimals;
-  } 
+  /** Returns the quantity of quote tokens for an offer at position `p` given an amount of Base tokens (eq. 2)*/
+  function quotes_of_position(uint p, uint base_amount) 
+  internal view returns (uint) {
+    return (__quote_progression__(p) * base_amount) / BASE_0;
+  }
+
+  /** Returns the quantity of base tokens for an offer at position `p` given an amount of quote tokens (eq. 3)*/
+  function bases_of_position(uint p, uint quote_amount)
+  internal returns (uint) {
+    return quote_amount * BASE_0 / __quote_progression__(p);
+  }
 
   function shift(int s) external onlyAdmin initialized {
     if (s<0) {
@@ -245,21 +254,15 @@ contract DAMM is Persistent {
       
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
-      // defining new_wants (in quotes) based on default base amount for new offers
-      uint new_wants = quotes_of_position(
-        pos, 
-        current_delta, 
-        current_new_base_amount, 
-        INIT_MINPRICE, 
-        BASE_DECIMALS,
-        QUOTE_DECIMALS
-      );
+      // defining new_gives (in bases) based on default quote amount for new offers
+      // in order to minimize base input to the strat
+      uint new_gives = bases_of_position(pos, QUOTE_0);
       updateOfferInternal({
         outbound_tkn: BASE,
         inbound_tkn: QUOTE,
         offerId: ASKS[index],
-        wants: new_wants,
-        gives: current_new_base_amount,
+        wants: QUOTE_0,
+        gives: new_gives,
         gasprice: 0,
         gasreq: OFR_GASREQ,
         pivotId: pos>0 ? ASKS[index_of_position(pos-1)] : 0,
@@ -291,20 +294,13 @@ contract DAMM is Persistent {
 
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
-      uint new_gives = quotes_of_position(
-        pos, 
-        current_delta, 
-        current_new_base_amount, 
-        INIT_MINPRICE, 
-        BASE_DECIMALS,
-        QUOTE_DECIMALS
-      );
+      uint new_wants = quotes_of_position(pos, BASE_0);
       updateOfferInternal({
         outbound_tkn: QUOTE,
         inbound_tkn: BASE,
         offerId: BIDS[index],
-        wants: current_new_base_amount,
-        gives: new_gives,
+        wants: new_wants,
+        gives: BASE_0,
         gasprice: 0,
         gasreq: OFR_GASREQ,
         pivotId: pos<NSLOTS-1 ? BIDS[index_of_position(pos+1)] : 0,
@@ -317,28 +313,37 @@ contract DAMM is Persistent {
 
   function lazyResetPriceParameter(uint delta) public internalOrAdmin {
     current_delta = delta;
+    emit PriceParamUpdated(delta);
   }
 
   // for reposting partial filled offers one always gives the residual (default behavior)
   // and adapts wants to the new price (if different).
   function __residualWants__(MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
-    uint residual_gives = __residualGives__(order); // default
-    uint index;
     if (order.outbound_tkn == BASE){ // Ask offer (selling BASE) 
-      index = index_of_ask[order.offerId];
+      uint index = index_of_ask[order.offerId];
+      uint residual_base = __residualGives__(order); // default
+      return quotes_of_position(
+        position_of_index(index),
+        residual_base
+      );
     } else {
       // Bid order (buying BASE)
-      index = index_of_bid[order.offerId];
+      uint index = index_of_bid[order.offerId];
+      uint residual_quote = __residualGives__(order); // default
+      return bases_of_position(
+        position_of_index(index),
+        residual_quote
+      );
     }
-    uint target_price = __price_of_position__(
-      position_of_index(index), 
-      current_delta, 
-      INIT_MINPRICE,
-      QUOTE_DECIMALS
-    );
-    // new_wants / (residual_gives * e-BD) = target_price
-    // hence new_wants = target_price * residual_gives * e-BD
-    return (target_price * residual_gives) / 10**BASE_DECIMALS;
+  }
+
+  /** Define what to do when the AMM boundaries are reached (either when reposting a bid or a ask) */
+  function __boundariesReached__(bool bid, uint offerId) internal virtual {
+    if (bid) {
+      emit BidAtMaxPrice(QUOTE, BASE, offerId);
+    } else {
+      emit AskAtMinPrice(BASE, QUOTE, offerId);
+    }
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order)
@@ -346,13 +351,16 @@ contract DAMM is Persistent {
     virtual
     override
   {
-    super.__posthookSuccess__(order); // reposting residual of offer using __newWants__ to update price
+    super.__posthookSuccess__(order); // reposting residual of offer using `this.__newWants__` to update price
     if (order.outbound_tkn == BASE) { // Ask Offer (`this` contract just sold some BASE @ pos)
       uint pos = position_of_index(index_of_ask[order.offerId]);
       // bid for some BASE token with the received QUOTE tokens @ pos-1
       if (pos > 0) {
         uint ofrId = BIDS[index_of_position(pos-1)];
         updateBid({offerId:ofrId, quote_amount:order.gives, position:pos-1});
+        if (pos == NSLOTS-1) {
+          __boundariesReached__(true, ofrId);
+        }
       } else { // Ask cannot be at Pmin unless a shift has eliminated all bids
         emit PosthookFail(
           order.outbound_tkn,
@@ -368,6 +376,9 @@ contract DAMM is Persistent {
       if (pos < NSLOTS-1) {
         uint ofrId = ASKS[index_of_position(pos+1)];
         updateAsk({offerId:ofrId, base_amount:order.gives, position: pos+1});
+        if (pos == 1) {
+          __boundariesReached__(false, ofrId);
+        }
       } else { // Take profit
         emit PosthookFail(
           order.outbound_tkn,
@@ -382,7 +393,6 @@ contract DAMM is Persistent {
 
   function updateBid(uint offerId, uint quote_amount, uint position) internal {
     // outbound : QUOTE, inbound: BASE
-    uint price = __price_of_position__(position, current_delta, INIT_MINPRICE, QUOTE_DECIMALS);
     uint old_gives = MGV.offers(QUOTE, BASE, offerId).gives();
     uint new_gives = old_gives + quote_amount;
     uint pivot;
@@ -394,9 +404,9 @@ contract DAMM is Persistent {
     } else {
       pivot = offerId;
     }
-    // price * e-QD = gives * e-QD / wants * e-BD
-    // hence wants = (gives*e+BD) / price 
-    uint new_wants = (new_gives * 10**BASE_DECIMALS) / price;
+    // price * e-PD = gives / wants
+    // hence wants = (gives*e+PD) / price 
+    uint new_wants = bases_of_position(position, new_gives);
     updateOfferInternal({
       outbound_tkn: QUOTE,
       inbound_tkn: BASE,
@@ -412,7 +422,6 @@ contract DAMM is Persistent {
 
   function updateAsk(uint offerId, uint base_amount, uint position) internal {
     // outbound : BASE, inbound: QUOTE
-    uint price = __price_of_position__(position, current_delta, INIT_MINPRICE, QUOTE_DECIMALS);
     uint old_gives = MGV.offers(BASE, QUOTE, offerId).gives();
     uint new_gives = old_gives + base_amount;
     uint pivot;
@@ -424,9 +433,7 @@ contract DAMM is Persistent {
     } else {
       pivot = offerId;
     }
-    // price * e-QD = gives * e-QD / wants * e-BD
-    // hence wants = (gives*e+BD) / price 
-    uint new_wants = (new_gives * 10**BASE_DECIMALS) / price;
+    uint new_wants = quotes_of_position(position, new_gives);
     updateOfferInternal({
       outbound_tkn: BASE,
       inbound_tkn: QUOTE,
@@ -441,5 +448,6 @@ contract DAMM is Persistent {
   }
 
   // TODO __posthookFail__
+  // TODO initialize by chunks
   
 }

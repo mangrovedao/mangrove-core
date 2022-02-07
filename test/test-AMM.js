@@ -34,32 +34,39 @@ describe("Running tests...", function () {
 
     const strategy = "DAMM";
     const Strat = await ethers.getContractFactory(strategy);
-
+    const NSLOTS = 100;
+  
     // deploying strat
-    init_price = lc.parseToken("3000",6); // 1 eth = 3000 USDC (6 decimals)
     const makerContract = (
       await Strat.deploy(
         mgv.address, 
         wEth.address, // base
         usdc.address, // quote
-        init_price,
-        10 // 10 price slots
+        ethers.utils.parseEther("1"), // BASE0
+        ethers.utils.parseUnits("3000", 6), // QUOTE0
+        NSLOTS // price slots
       )
     ).connect(testSigner);
     assert(!await makerContract.is_initialized(),"Contract should not be initialized");
-    await makerContract.fundMangrove({value:lc.parseToken("2",18)});
-    let pivotIds = [0,0,0,0,0,0,0,0,0,0];
-    await makerContract.initialize(
-      lc.parseToken("1",18), // each offer is on 1 ether volume
-      lc.parseToken("100",6), // parameter for the price increment (default is arithmetic progression)
-      ethers.BigNumber.from(5), // `nbids <= NSLOTS`. Says how many bids should be placed
+    await makerContract.fundMangrove({value:lc.parseToken("10",18)});
+    let pivotIds = new Array(NSLOTS);  
+    pivotIds = pivotIds.fill(0,0);
+
+    const receipt = await makerContract.initialize(
+      lc.parseToken("100", 6), // quote progression
+      NSLOTS/2, // NSLOTS/2 bids
       [pivotIds,pivotIds]
     );
-    let book = await reader.offerList(usdc.address, wEth.address, 0, 10);
+    console.log(`Contract initialized, ${(await receipt.wait()).gasUsed} gas used`);
+    let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
     console.log("===bids===")
     await lc.logOrderBook(book, usdc, wEth);
-    book = await reader.offerList(wEth.address, usdc.address, 0, 10);
+    book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
     console.log("===asks===")
     await lc.logOrderBook(book, wEth, usdc);
+
+    await makerContract.approveMangrove(wEth.address, ethers.constants.MaxUint256);
+    await makerContract.approveMangrove(usdc.address, ethers.constants.MaxUint256);
+
   });
 });    

@@ -294,13 +294,13 @@ contract DAMM is Persistent {
 
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
-      uint new_wants = quotes_of_position(pos, BASE_0);
+      uint new_wants = bases_of_position(pos, QUOTE_0);
       updateOfferInternal({
         outbound_tkn: QUOTE,
         inbound_tkn: BASE,
         offerId: BIDS[index],
         wants: new_wants,
-        gives: BASE_0,
+        gives: QUOTE_0,
         gasprice: 0,
         gasreq: OFR_GASREQ,
         pivotId: pos<NSLOTS-1 ? BIDS[index_of_position(pos+1)] : 0,

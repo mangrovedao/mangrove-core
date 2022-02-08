@@ -84,6 +84,69 @@ contract DAMM is Persistent {
     }
   }
 
+  function writeOffer(
+    uint index,
+    address outbound_tkn, 
+    address inbound_tkn,
+    uint wants,
+    uint gives,
+    uint pivotId
+  ) internal {
+    if (outbound_tkn == BASE) { // Asks
+      if (ASKS[index] == 0) {
+        ASKS[index] = newOfferInternal({
+          outbound_tkn: BASE,
+          inbound_tkn: QUOTE,
+          wants: wants,
+          gives: gives,
+          gasreq: OFR_GASREQ,
+          gasprice: 0,
+          pivotId: pivotId,
+          provision: 0
+        });
+        index_of_ask[index] = ASKS[index];
+      } else {
+        updateOfferInternal({
+          outbound_tkn: BASE,
+          inbound_tkn: QUOTE,
+          wants: wants,
+          gives: gives, 
+          gasreq: OFR_GASREQ,
+          gasprice: 0,
+          pivotId: pivotId, 
+          provision: 0,
+          offerId: ASKS[index]
+        });
+      }
+    } else { // Bids
+      if (BIDS[index] == 0) {
+        BIDS[index] = newOfferInternal({
+          outbound_tkn: QUOTE,
+          inbound_tkn: BASE,
+          wants: wants,
+          gives: gives,
+          gasreq: OFR_GASREQ,
+          gasprice: 0,
+          pivotId: pivotId,
+          provision: 0
+        });
+        index_of_bid[index] = BIDS[index];
+      } else {
+        updateOfferInternal({
+          outbound_tkn: QUOTE,
+          inbound_tkn: BASE,
+          wants: wants,
+          gives: gives, 
+          gasreq: OFR_GASREQ,
+          gasprice: 0,
+          pivotId: pivotId, 
+          provision: 0,
+          offerId: BIDS[index]
+        });
+      }
+    }
+  }
+
   function initialize(
     bool bidding, // if true, OB slots will be populated 
     uint from, // slice (from included)
@@ -98,85 +161,32 @@ contract DAMM is Persistent {
     require(bidding || from != 0, "DAMM/initialize/NoSlotForBids"); // asking => slice doesn't start from MinPrice
     uint i;
     for(i=from; i<to; i++) {
-      // bidId is either fresh is contract is not initialized or already present at index
-      uint bidPivot =  _getPivot(pivotIds[0],i-from);
-      bidPivot = bidPivot>0
-      ? bidPivot // taking pivot from the user
-      : i>0 ? BIDS[i-1] : 0 ; // otherwise getting last inserted offer as pivot
-
-      uint askPivot =  _getPivot(pivotIds[1],i-from);
-      askPivot = askPivot>0
-      ? askPivot // taking pivot from the user
-      : i>0 ? ASKS[i-1] : 0 ; // otherwise getting last inserted offer as pivot
-
-      if(BIDS[i]!=0) {
-        updateOfferInternal({
-          outbound_tkn: QUOTE,
-          inbound_tkn: BASE,
-          wants: bases_of_position(i, QUOTE_0),
-          gives: QUOTE_0,
-          gasreq: OFR_GASREQ,
-          gasprice: 0,
-          offerId: BIDS[i],
-          pivotId: bidPivot, // use offchain computed pivot if available otherwise use last inserted bid id if any
-          provision: 0 
-        });
-      } else {
-        uint bidId = newOfferInternal({
-          outbound_tkn: QUOTE,
-          inbound_tkn: BASE,
-          wants: bases_of_position(i, QUOTE_0),
-          gives: QUOTE_0,
-          gasreq: OFR_GASREQ,
-          gasprice: 0,
-          pivotId: bidPivot, // use offchain computed pivot if available otherwise use last inserted offerId
-          provision:0 
-        });
-        index_of_bid[bidId] = i;
-        BIDS[i]=bidId;
-      }
-      
-      if (ASKS[i]!=0) {
-        updateOfferInternal({
-          outbound_tkn: BASE,
-          inbound_tkn: QUOTE,
-          wants: quotes_of_position(i, BASE_0),
-          gives: BASE_0, 
-          gasreq: OFR_GASREQ,
-          gasprice: 0,
-          pivotId: askPivot, // use offchain computed pivot if available otherwise use last inserted offerId
-          provision: 0,
-          offerId: ASKS[i]
-        });
-      } else {
-        uint askId = newOfferInternal({
-          outbound_tkn: BASE,
-          inbound_tkn: QUOTE,
-          wants: quotes_of_position(i, BASE_0),
-          gives: BASE_0, 
-          gasreq: OFR_GASREQ,
-          gasprice: 0,
-          pivotId: askPivot, // use offchain computed pivot if available otherwise use last inserted offerId
-          provision: 0
-        });
-        index_of_ask[askId] = i;
-        ASKS[i] = askId;
-      }
-      // If bidding, asks should be retracted, else bid should be retracted
       if (bidding) {
-        retractOfferInternal({
-          outbound_tkn:BASE,
-          inbound_tkn:QUOTE,
-          offerId: ASKS[i],
-          deprovision:false // leaving provision
-        });
+        uint bidPivot =  _getPivot(pivotIds[0],i-from);
+        bidPivot = bidPivot>0
+          ? bidPivot // taking pivot from the user
+          : i>0 ? BIDS[i-1] : 0 ; // otherwise getting last inserted offer as pivot
+        writeOffer({
+          index: i, 
+          outbound_tkn:QUOTE, 
+          inbound_tkn: BASE,
+          wants: bases_of_position(i, QUOTE_0),
+          gives: QUOTE_0,
+          pivotId: bidPivot
+        }); 
       } else {
-        retractOfferInternal({
-          outbound_tkn:QUOTE,
-          inbound_tkn:BASE,
-          offerId: BIDS[i],
-          deprovision:false // leaving provision
-        });
+        uint askPivot =  _getPivot(pivotIds[1],i-from);
+          askPivot = askPivot>0
+          ? askPivot // taking pivot from the user
+          : i>0 ? ASKS[i-1] : 0 ; // otherwise getting last inserted offer as pivot
+        writeOffer({
+          index: i, 
+          outbound_tkn: BASE, 
+          inbound_tkn: QUOTE,
+          wants: quotes_of_position(i, BASE_0),
+          gives: BASE_0,
+          pivotId: askPivot
+        }); 
       }
     }
   }
@@ -258,16 +268,13 @@ contract DAMM is Persistent {
       // defining new_gives (in bases) based on default quote amount for new offers
       // in order to minimize base input to the strat
       uint new_gives = bases_of_position(pos, QUOTE_0);
-      updateOfferInternal({
+      writeOffer({
+        index: index,
         outbound_tkn: BASE,
         inbound_tkn: QUOTE,
-        offerId: ASKS[index],
         wants: QUOTE_0,
         gives: new_gives,
-        gasprice: 0,
-        gasreq: OFR_GASREQ,
-        pivotId: pos>0 ? ASKS[index_of_position(pos-1)] : 0,
-        provision:0
+        pivotId: pos>0 ? ASKS[index_of_position(pos-1)] : 0
       });
       s--;
       index = next_index(index);
@@ -296,16 +303,13 @@ contract DAMM is Persistent {
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
       uint new_wants = bases_of_position(pos, QUOTE_0);
-      updateOfferInternal({
+      writeOffer({
+        index: index,
         outbound_tkn: QUOTE,
         inbound_tkn: BASE,
-        offerId: BIDS[index],
         wants: new_wants,
         gives: QUOTE_0,
-        gasprice: 0,
-        gasreq: OFR_GASREQ,
-        pivotId: pos<NSLOTS-1 ? BIDS[index_of_position(pos+1)] : 0,
-        provision:0
+        pivotId: pos<NSLOTS-1 ? BIDS[index_of_position(pos+1)] : 0
       });
       s--;
       index = prev_index(index);
@@ -408,16 +412,13 @@ contract DAMM is Persistent {
     // price * e-PD = gives / wants
     // hence wants = (gives*e+PD) / price 
     uint new_wants = bases_of_position(position, new_gives);
-    updateOfferInternal({
+    writeOffer({
+      index: index_of_position(position),
       outbound_tkn: QUOTE,
       inbound_tkn: BASE,
       wants: new_wants,
       gives: new_gives,
-      gasreq: OFR_GASREQ,
-      gasprice: 0,
-      pivotId: pivot,
-      offerId: offerId,
-      provision: 0
+      pivotId: pivot
     });
   }
 
@@ -435,16 +436,13 @@ contract DAMM is Persistent {
       pivot = offerId;
     }
     uint new_wants = quotes_of_position(position, new_gives);
-    updateOfferInternal({
+    writeOffer({
+      index: index_of_position(position),
       outbound_tkn: BASE,
       inbound_tkn: QUOTE,
       wants: new_wants,
       gives: new_gives,
-      gasreq: OFR_GASREQ,
-      gasprice: 0,
-      pivotId: pivot,
-      offerId: offerId,
-      provision: 0
+      pivotId: pivot
     });
   }
 

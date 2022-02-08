@@ -46,12 +46,6 @@ contract DAMM is Persistent {
 
   // P_i = (Q_0 + i*delta)/B_0
   uint public current_delta; // price decimals precision
-  bool public is_initialized;
-
-  modifier initialized() {
-    require(is_initialized, "DAMM/uninitialized");
-    _; 
-  }
 
   /** NB: constructor is `payable` in order to allow deployer to fund initial bids and asks */
   constructor(
@@ -60,7 +54,8 @@ contract DAMM is Persistent {
     address quote,
     uint base_0,
     uint quote_0,
-    uint nslots
+    uint nslots,
+    uint delta
   ) MangroveOffer(mgv) {
     // sanity check
     require(
@@ -78,34 +73,43 @@ contract DAMM is Persistent {
     BIDS = new uint[](nslots);
     BASE_0 = uint96(base_0);
     QUOTE_0 = uint96(quote_0);
+    current_delta = delta;
   }
 
   function _getPivot(uint[] calldata pivots, uint i) internal returns (uint) {
     if (pivots[i]!=0) {
       return pivots[i];
     } else {
-      return i>0?pivots[i-1]:0;
+      return 0;
     }
   }
 
   function initialize(
-    uint delta, // parameter for quote progression as position in the OB increases (default is arithmetic progression)
-    uint nbids, // `nbids <= NSLOTS`. Says how many bids should be placed
+    bool bidding, // if true, OB slots will be populated 
+    uint from, // slice (from included)
+    uint to, // to index excluded
     uint[][2] calldata pivotIds // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
   ) public internalOrAdmin {
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
     /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
-    require(nbids < NSLOTS, "DAMM/initialize/noSlotForAsk");
-    require(nbids > 0, "DAMM/initialize/noSlotForBids");
-    current_delta = delta;
-    
+    require(to > from && pivotIds[0].length == to-from, "DAMM/initialize/invalidSlice");
+    require(!bidding || to != NSLOTS, "DAMM/initialize/NoSlotForAsks"); // bidding => slice doesn't fill the book
+    require(bidding || from != 0, "DAMM/initialize/NoSlotForBids"); // asking => slice doesn't start from MinPrice
     uint i;
-    for(i=0; i<NSLOTS; i++) {
+    for(i=from; i<to; i++) {
       // bidId is either fresh is contract is not initialized or already present at index
-      uint bidId;
-      if(is_initialized) {
-        bidId = BIDS[i];
+      uint bidPivot =  _getPivot(pivotIds[0],i-from);
+      bidPivot = bidPivot>0
+      ? bidPivot // taking pivot from the user
+      : i>0 ? BIDS[i-1] : 0 ; // otherwise getting last inserted offer as pivot
+
+      uint askPivot =  _getPivot(pivotIds[1],i-from);
+      askPivot = askPivot>0
+      ? askPivot // taking pivot from the user
+      : i>0 ? ASKS[i-1] : 0 ; // otherwise getting last inserted offer as pivot
+
+      if(BIDS[i]!=0) {
         updateOfferInternal({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
@@ -113,28 +117,26 @@ contract DAMM is Persistent {
           gives: QUOTE_0,
           gasreq: OFR_GASREQ,
           gasprice: 0,
-          offerId: bidId,
-          pivotId: _getPivot(pivotIds[0],i), // use offchain computed pivot if available otherwise use last inserted bid id if any
+          offerId: BIDS[i],
+          pivotId: bidPivot, // use offchain computed pivot if available otherwise use last inserted bid id if any
           provision: 0 
         });
       } else {
-        bidId = newOfferInternal({
+        uint bidId = newOfferInternal({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
           wants: bases_of_position(i, QUOTE_0),
           gives: QUOTE_0,
           gasreq: OFR_GASREQ,
           gasprice: 0,
-          pivotId: _getPivot(pivotIds[0],i) , // use offchain computed pivot if available otherwise use last inserted offerId
+          pivotId: bidPivot, // use offchain computed pivot if available otherwise use last inserted offerId
           provision:0 
         });
         index_of_bid[bidId] = i;
+        BIDS[i]=bidId;
       }
-      BIDS[i] = bidId;
       
-      uint askId;
-      if (is_initialized) {
-        askId = ASKS[i];
+      if (ASKS[i]!=0) {
         updateOfferInternal({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
@@ -142,42 +144,41 @@ contract DAMM is Persistent {
           gives: BASE_0, 
           gasreq: OFR_GASREQ,
           gasprice: 0,
-          pivotId: _getPivot(pivotIds[1],i), // use offchain computed pivot if available otherwise use last inserted offerId
+          pivotId: askPivot, // use offchain computed pivot if available otherwise use last inserted offerId
           provision: 0,
-          offerId: askId
+          offerId: ASKS[i]
         });
       } else {
-        askId = newOfferInternal({
+        uint askId = newOfferInternal({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
           wants: quotes_of_position(i, BASE_0),
           gives: BASE_0, 
           gasreq: OFR_GASREQ,
           gasprice: 0,
-          pivotId: _getPivot(pivotIds[1],i), // use offchain computed pivot if available otherwise use last inserted offerId
+          pivotId: askPivot, // use offchain computed pivot if available otherwise use last inserted offerId
           provision: 0
         });
         index_of_ask[askId] = i;
+        ASKS[i] = askId;
       }
-      ASKS[i] = askId;
-      // If i<nbids, ask should be retracted, else bid should be retracted
-      if (i<nbids) {
+      // If bidding, asks should be retracted, else bid should be retracted
+      if (bidding) {
         retractOfferInternal({
           outbound_tkn:BASE,
           inbound_tkn:QUOTE,
-          offerId: askId,
+          offerId: ASKS[i],
           deprovision:false // leaving provision
         });
       } else {
         retractOfferInternal({
           outbound_tkn:QUOTE,
           inbound_tkn:BASE,
-          offerId: bidId,
+          offerId: BIDS[i],
           deprovision:false // leaving provision
         });
       }
     }
-    is_initialized = true;
   }
   
   /** Returns the position in the order book of the offer associated to this index `i` */
@@ -225,7 +226,7 @@ contract DAMM is Persistent {
     return quote_amount * BASE_0 / __quote_progression__(p);
   }
 
-  function shift(int s) external onlyAdmin initialized {
+  function shift(int s) external onlyAdmin {
     if (s<0) {
       negative_shift(uint(-s));
     } else {

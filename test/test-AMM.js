@@ -30,8 +30,8 @@ describe("Running tests...", function () {
     [mgv, reader] = await lc.deployMangrove();
     await lc.activateMarket(mgv, wEth.address, usdc.address);
     await lc.fund([
-      ["WETH", "10.0", taker.address],
-      ["USDC", "30000", taker.address],
+      ["WETH", "50.0", taker.address],
+      ["USDC", "100000", taker.address],
     ]);
   });
 
@@ -39,7 +39,8 @@ describe("Running tests...", function () {
     //lc.listenMgv(mgv);
     const strategy = "DAMM";
     const Strat = await ethers.getContractFactory(strategy);
-    const NSLOTS = 10;
+    const NSLOTS = 100;
+    const delta = lc.parseToken("10", 6); //  (in quotes!)
 
     // deploying strat
     const makerContract = (
@@ -47,34 +48,50 @@ describe("Running tests...", function () {
         mgv.address,
         wEth.address, // base
         usdc.address, // quote
-        ethers.utils.parseEther("1"), // BASE0
-        ethers.utils.parseUnits("3000", 6), // QUOTE0
-        NSLOTS // price slots
+        ethers.utils.parseEther("0.34"), // BASE0
+        ethers.utils.parseUnits("1000", 6), // QUOTE0
+        NSLOTS, // price slots
+        delta //quote progression
       )
     ).connect(maker);
-    assert(
-      !(await makerContract.is_initialized()),
-      "Contract should not be initialized"
-    );
-    await makerContract.fundMangrove({ value: lc.parseToken("10", 18) });
 
     await lc.fund([
-      ["WETH", "5.0", makerContract.address],
-      ["USDC", "15000", makerContract.address],
+      ["WETH", "17.0", makerContract.address],
+      ["USDC", "50000", makerContract.address],
     ]);
-
-    let pivotIds = new Array(NSLOTS);
-    pivotIds = pivotIds.fill(0, 0);
     const txGas = await makerContract.setGasreq(ethers.BigNumber.from(500000));
     await txGas.wait();
-    const receipt = await makerContract.initialize(
-      lc.parseToken("100", 6), // quote progression
-      NSLOTS / 2, // NSLOTS/2 bids
-      [pivotIds, pivotIds]
+    const prov = await makerContract.getMissingProvision(
+      wEth.address,
+      usdc.address,
+      await makerContract.OFR_GASREQ(),
+      0,
+      0
     );
-    console.log(
-      `Contract initialized (${(await receipt.wait()).gasUsed} gas used)`
-    );
+
+    await makerContract.fundMangrove({ value: prov.mul(200) });
+
+    let slice = NSLOTS / 10;
+    let bidding = true;
+    let pivotIds = new Array(slice);
+    pivotIds = pivotIds.fill(0, 0);
+
+    for (let i = 0; i < 10; i++) {
+      if (i >= 5) {
+        bidding = false;
+      }
+      console.log(`[${slice * i}-${slice * i + 10}[`);
+      const receipt = await makerContract.initialize(
+        bidding,
+        slice * i, // from
+        slice * i + 10, // to
+        [pivotIds, pivotIds]
+      );
+      console.log(
+        `Slice initialized (${(await receipt.wait()).gasUsed} gas used)`
+      );
+    }
+
     let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
     console.log("===bids===");
     await lc.logOrderBook(book, usdc, wEth);

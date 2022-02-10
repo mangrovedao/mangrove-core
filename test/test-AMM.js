@@ -39,8 +39,8 @@ describe("Running tests...", function () {
     //lc.listenMgv(mgv);
     const strategy = "DAMM";
     const Strat = await ethers.getContractFactory(strategy);
-    const NSLOTS = 100;
-    const delta = lc.parseToken("10", 6); //  (in quotes!)
+    const NSLOTS = 10;
+    const delta = lc.parseToken("100", 6); //  (in quotes!)
 
     // deploying strat
     const makerContract = (
@@ -48,6 +48,7 @@ describe("Running tests...", function () {
         mgv.address,
         wEth.address, // base
         usdc.address, // quote
+        // Pmin = QUOTE0/BASE0
         ethers.utils.parseEther("0.34"), // BASE0
         ethers.utils.parseUnits("1000", 6), // QUOTE0
         NSLOTS, // price slots
@@ -71,21 +72,25 @@ describe("Running tests...", function () {
 
     await makerContract.fundMangrove({ value: prov.mul(200) });
 
-    let slice = NSLOTS / 10;
+    let slice = NSLOTS / 2;
     let bidding = true;
     let pivotIds = new Array(slice);
+    let amounts = new Array(slice);
     pivotIds = pivotIds.fill(0, 0);
+    amounts.fill(ethers.utils.parseUnits("1000", 6),0);
 
-    for (let i = 0; i < 10; i++) {
-      if (i >= 5) {
+    for (let i = 0; i < 2; i++) {
+      if (i >= 1) {
         bidding = false;
       }
-      console.log(`[${slice * i}-${slice * i + 10}[`);
+      console.log(`[${slice * i}-${slice * (i + 1)}[`);
       const receipt = await makerContract.initialize(
         bidding,
+        false, //withQuotes
         slice * i, // from
-        slice * i + 10, // to
-        [pivotIds, pivotIds]
+        slice * (i + 1), // to
+        [pivotIds, pivotIds],
+        amounts
       );
       console.log(
         `Slice initialized (${(await receipt.wait()).gasUsed} gas used)`
@@ -115,13 +120,13 @@ describe("Running tests...", function () {
       mgv.connect(taker),
       "WETH", // outbound
       "USDC", // inbound
-      ethers.utils.parseEther("2.5"), // wants
-      ethers.utils.parseUnits("9000", 6) // gives
+      ethers.utils.parseEther("0.5"), // wants
+      ethers.utils.parseUnits("3000", 6) // gives
     );
 
     lc.assertEqualBN(
       takerGot,
-      lc.netOf(ethers.utils.parseEther("2.5"), 30),
+      lc.netOf(ethers.utils.parseEther("0.5"), 30),
       "Incorrect received amount"
     );
     lc.assertEqualBN(
@@ -141,8 +146,8 @@ describe("Running tests...", function () {
       mgv.connect(taker),
       "USDC", // outbound
       "WETH", // inbound
-      ethers.utils.parseUnits("4000", 6), // wants
-      ethers.utils.parseEther("3") // gives
+      ethers.utils.parseUnits("3500", 6), // wants
+      ethers.utils.parseEther("1.5") // gives
     );
 
     book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
@@ -162,7 +167,7 @@ describe("Running tests...", function () {
     await lc.logOrderBook(book, wEth, usdc);
 
     console.log(chalk.yellow("Shifting"), chalk.green(6));
-    await makerContract.shift(6);
+    await makerContract.shift(3);
     book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
     console.log("===bids===");
     await lc.logOrderBook(book, usdc, wEth);

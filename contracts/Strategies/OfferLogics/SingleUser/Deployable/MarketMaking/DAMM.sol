@@ -45,7 +45,7 @@ contract DAMM is Persistent {
   int public current_shift;
 
   // P_i = (Q_0 + i*delta)/B_0
-  uint public current_delta; // price decimals precision
+  uint public current_delta; // quote increment
 
   /** NB: constructor is `payable` in order to allow deployer to fund initial bids and asks */
   constructor(
@@ -76,7 +76,7 @@ contract DAMM is Persistent {
     current_delta = delta;
   }
 
-  function _getPivot(uint[] calldata pivots, uint i) internal returns (uint) {
+  function _getPivot(uint[] calldata pivots, uint i) internal pure returns (uint) {
     if (pivots[i]!=0) {
       return pivots[i];
     } else {
@@ -92,8 +92,9 @@ contract DAMM is Persistent {
     uint gives,
     uint pivotId
   ) internal {
+    inbound_tkn; // shh
     if (outbound_tkn == BASE) { // Asks
-      if (ASKS[index] == 0) {
+      if (ASKS[index] == 0) { // offer slot not initialized yet
         ASKS[index] = newOfferInternal({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
@@ -104,7 +105,7 @@ contract DAMM is Persistent {
           pivotId: pivotId,
           provision: 0
         });
-        index_of_ask[index] = ASKS[index];
+        index_of_ask[ASKS[index]] = index;
       } else {
         updateOfferInternal({
           outbound_tkn: BASE,
@@ -130,7 +131,7 @@ contract DAMM is Persistent {
           pivotId: pivotId,
           provision: 0
         });
-        index_of_bid[index] = BIDS[index];
+        index_of_bid[BIDS[index]] = index;
       } else {
         updateOfferInternal({
           outbound_tkn: QUOTE,
@@ -149,14 +150,17 @@ contract DAMM is Persistent {
 
   function initialize(
     bool bidding, // if true, OB slots will be populated 
+    bool withBase,
     uint from, // slice (from included)
     uint to, // to index excluded
-    uint[][2] calldata pivotIds // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
+    uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
+    uint[] calldata tokenAmounts
   ) public internalOrAdmin {
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
     /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
     require(to > from && pivotIds[0].length == to-from, "DAMM/initialize/invalidSlice");
+    require(tokenAmounts.length == to-from, "DAMM/initialize/invalidBaseAmounts");
     require(!bidding || to != NSLOTS, "DAMM/initialize/NoSlotForAsks"); // bidding => slice doesn't fill the book
     require(bidding || from != 0, "DAMM/initialize/NoSlotForBids"); // asking => slice doesn't start from MinPrice
     uint i;
@@ -166,27 +170,23 @@ contract DAMM is Persistent {
         bidPivot = bidPivot>0
           ? bidPivot // taking pivot from the user
           : i>0 ? BIDS[i-1] : 0 ; // otherwise getting last inserted offer as pivot
-        writeOffer({
-          index: i, 
-          outbound_tkn:QUOTE, 
-          inbound_tkn: BASE,
-          wants: bases_of_position(i, QUOTE_0),
-          gives: QUOTE_0,
+        updateBid({
+          index:i,
+          withBase: withBase,
+          amount: tokenAmounts[i-from],
           pivotId: bidPivot
-        }); 
+        });
       } else {
         uint askPivot =  _getPivot(pivotIds[1],i-from);
           askPivot = askPivot>0
           ? askPivot // taking pivot from the user
           : i>0 ? ASKS[i-1] : 0 ; // otherwise getting last inserted offer as pivot
-        writeOffer({
+        updateAsk({
           index: i, 
-          outbound_tkn: BASE, 
-          inbound_tkn: QUOTE,
-          wants: quotes_of_position(i, BASE_0),
-          gives: BASE_0,
+          withBase: withBase,
+          amount: tokenAmounts[i-from],
           pivotId: askPivot
-        }); 
+        });
       }
     }
   }
@@ -232,8 +232,8 @@ contract DAMM is Persistent {
 
   /** Returns the quantity of base tokens for an offer at position `p` given an amount of quote tokens (eq. 3)*/
   function bases_of_position(uint p, uint quote_amount)
-  internal returns (uint) {
-    return quote_amount * BASE_0 / __quote_progression__(p);
+  internal view returns (uint) {
+    return (quote_amount * BASE_0) / __quote_progression__(p);
   }
 
   function shift(int s) external onlyAdmin {
@@ -324,17 +324,23 @@ contract DAMM is Persistent {
   // for reposting partial filled offers one always gives the residual (default behavior)
   // and adapts wants to the new price (if different).
   function __residualWants__(MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
-    if (order.outbound_tkn == BASE){ // Ask offer (selling BASE) 
+    if (order.outbound_tkn == BASE){ // Ask offer (wants QUOTE) 
       uint index = index_of_ask[order.offerId];
       uint residual_base = __residualGives__(order); // default
+      if (residual_base == 0) {
+        return 0;
+      }
       return quotes_of_position(
         position_of_index(index),
         residual_base
       );
     } else {
-      // Bid order (buying BASE)
+      // Bid order (wants BASE)
       uint index = index_of_bid[order.offerId];
       uint residual_quote = __residualGives__(order); // default
+      if (residual_quote == 0) {
+        return 0;
+      }
       return bases_of_position(
         position_of_index(index),
         residual_quote
@@ -359,12 +365,18 @@ contract DAMM is Persistent {
     super.__posthookSuccess__(order); // reposting residual of offer using `this.__newWants__` to update price
     if (order.outbound_tkn == BASE) { // Ask Offer (`this` contract just sold some BASE @ pos)
       uint pos = position_of_index(index_of_ask[order.offerId]);
+      console.log("ask offer at position, index", pos, index_of_ask[order.offerId]);
+      console.log("will post a bid at position, index", pos-1, index_of_position(pos-1));
       // bid for some BASE token with the received QUOTE tokens @ pos-1
       if (pos > 0) {
-        uint ofrId = BIDS[index_of_position(pos-1)];
-        updateBid({offerId:ofrId, quote_amount:order.gives, position:pos-1});
+        updateBid({
+          index: index_of_position(pos-1), 
+          withBase: false, 
+          amount: order.gives, 
+          pivotId: 0
+        });
         if (pos == NSLOTS-1) {
-          __boundariesReached__(true, ofrId);
+          __boundariesReached__(true, BIDS[index_of_position(pos-1)]);
         }
       } else { // Ask cannot be at Pmin unless a shift has eliminated all bids
         emit PosthookFail(
@@ -379,10 +391,14 @@ contract DAMM is Persistent {
       uint pos = position_of_index(index_of_bid[order.offerId]);
       // ask for some QUOTE tokens in exchange of the received BASE tokens @ pos+1
       if (pos < NSLOTS-1) {
-        uint ofrId = ASKS[index_of_position(pos+1)];
-        updateAsk({offerId:ofrId, base_amount:order.gives, position: pos+1});
+        updateAsk({
+          index:index_of_position(pos+1), 
+          withBase: true,
+          amount: order.gives, 
+          pivotId: 0
+        });
         if (pos == 1) {
-          __boundariesReached__(false, ofrId);
+          __boundariesReached__(false, ASKS[index_of_position(pos+1)]);
         }
       } else { // Take profit
         emit PosthookFail(
@@ -396,24 +412,36 @@ contract DAMM is Persistent {
     }
   }
 
-  function updateBid(uint offerId, uint quote_amount, uint position) internal {
+  function updateBid(uint index, bool withBase, uint amount, uint pivotId) internal {
     // outbound : QUOTE, inbound: BASE
-    uint old_gives = MGV.offers(QUOTE, BASE, offerId).gives();
-    uint new_gives = old_gives + quote_amount;
-    uint pivot;
-    if (old_gives == 0) { // offer was not live
-    // Warning: `position==0` here would be a bad situation: 
-    // bids offer list is empty so we don't have a good pivot for inserting new bid
-    // this will likely run out of gas.
-      pivot = position == 0 ? 0 : BIDS[index_of_position(position-1)];
+    P.Offer.t offer = MGV.offers(QUOTE, BASE, BIDS[index]);
+    
+    uint position = position_of_index(index);
+    uint new_wants;
+    uint new_gives;
+    if (withBase) { // amount: BASE
+      new_wants = amount + offer.wants();
+      new_gives = quotes_of_position(position, new_wants);
     } else {
-      pivot = offerId;
+      new_gives = amount + offer.gives();
+      new_wants = bases_of_position(position, new_gives);
     }
-    // price * e-PD = gives / wants
-    // hence wants = (gives*e+PD) / price 
-    uint new_wants = bases_of_position(position, new_gives);
+    uint pivot;
+    if (offer.gives() == 0) { // offer was not live
+      if (pivotId != 0) {
+        pivot = pivotId;
+      } else {
+        if (position > 0) {
+          pivot = BIDS[index_of_position(position-1)]; // if this offer is no longer in the book will start form best
+        } else {
+          pivot = offer.prev(); // trying previous offer on Mangrove as a pivot
+        }
+      }
+    } else { // offer is live, so reusing its id for pivot
+      pivot = BIDS[index];
+    }
     writeOffer({
-      index: index_of_position(position),
+      index: index,
       outbound_tkn: QUOTE,
       inbound_tkn: BASE,
       wants: new_wants,
@@ -422,22 +450,36 @@ contract DAMM is Persistent {
     });
   }
 
-  function updateAsk(uint offerId, uint base_amount, uint position) internal {
+  function updateAsk(uint index, bool withBase, uint amount, uint pivotId) internal {
     // outbound : BASE, inbound: QUOTE
-    uint old_gives = MGV.offers(BASE, QUOTE, offerId).gives();
-    uint new_gives = old_gives + base_amount;
-    uint pivot;
-    if (old_gives == 0) { // offer was not live
-    // Warning: `position==NSLOTS-1` here would be a bad situation: 
-    // asks offer list is empty so we don't have a good pivot for inserting new ask
-    // this will likely run out of gas.
-      pivot = position == NSLOTS-1 ? 0 : ASKS[index_of_position(position+1)];
+    P.Offer.t offer = MGV.offers(BASE, QUOTE, ASKS[index]);
+    uint position = position_of_index(index);
+    uint new_gives; 
+    uint new_wants;
+    if (withBase) { // amount: BASE
+      new_gives = amount + offer.gives(); // in BASE
+      new_wants = quotes_of_position(position, new_gives); 
     } else {
-      pivot = offerId;
+      new_wants = amount + offer.wants(); // in QUOTES
+      new_gives = bases_of_position(position, new_wants);
     }
-    uint new_wants = quotes_of_position(position, new_gives);
+
+    uint pivot;
+    if (offer.gives() == 0) { // offer was not live
+      if (pivotId != 0) {
+        pivot = pivotId;
+      } else {
+        if (position > 0) {
+          pivot = ASKS[index_of_position(position-1)]; // if this offer is no longer in the book will start form best
+        } else {
+          pivot = offer.prev(); // trying previous offer on Mangrove as a pivot
+        }
+      }
+    } else { // offer is live, so reusing its id for pivot
+      pivot = ASKS[index];
+    }
     writeOffer({
-      index: index_of_position(position),
+      index: index,
       outbound_tkn: BASE,
       inbound_tkn: QUOTE,
       wants: new_wants,

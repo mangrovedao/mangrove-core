@@ -126,8 +126,8 @@ abstract contract MangroveOffer is
     return (currentProvision >= bounty ? 0 : bounty - currentProvision);
   }
 
-  function giveAtDensity(address outbound_tkn, address inbound_tkn, uint wants, uint gasreq) public view returns (uint){
-    (P.Global.t globalData, P.Local.t localData) = MGV.config(
+  function giveAtDensity(address outbound_tkn, address inbound_tkn, uint gasreq) public view returns (uint){
+    (, P.Local.t localData) = MGV.config(
       outbound_tkn,
       inbound_tkn
     );

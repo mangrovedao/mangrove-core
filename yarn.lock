@@ -1171,7 +1171,7 @@ __metadata:
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
     prettier: ^2.4.1
-    prettier-plugin-solidity: ^1.0.0-beta.3
+    prettier-plugin-solidity: ^1.0.0-beta.19
     rimraf: ^3.0.2
     shelljs: ^0.8.4
     solcco: ">=1.0.11"
@@ -1629,6 +1629,15 @@ __metadata:
   dependencies:
     antlr4ts: ^0.5.0-alpha.4
   checksum: fe92710e53b2bb9e8423129ca2984c08723f575eda2e4f83a8e883a741436e5ca0bd36826c10ec553bd72d6fe6abd5178ee291baafdf0bb71eb56ca91e383804
+  languageName: node
+  linkType: hard
+
+"@solidity-parser/parser@npm:^0.14.1":
+  version: 0.14.1
+  resolution: "@solidity-parser/parser@npm:0.14.1"
+  dependencies:
+    antlr4ts: ^0.5.0-alpha.4
+  checksum: 616df6c31007710f2a99f8022fa5917968bbe83293cdc0154ba378aad405c0fc0b7af45cf2c99d159ff0b24b67c7a9bc01f80178d086c705682f2f8c7f771137
   languageName: node
   linkType: hard
 
@@ -3780,6 +3789,13 @@ __metadata:
     minimalistic-assert: ^1.0.1
     minimalistic-crypto-utils: ^1.0.1
   checksum: d56d21fd04e97869f7ffcc92e18903b9f67f2d4637a23c860492fbbff5a3155fd9ca0184ce0c865dd6eb2487d234ce9551335c021c376cd2d3b7cb749c7d10f4
+  languageName: node
+  linkType: hard
+
+"emoji-regex@npm:^10.0.0":
+  version: 10.0.0
+  resolution: "emoji-regex@npm:10.0.0"
+  checksum: 9a2e0ad35b84d8ce92777126d122196ff319f64de596e0ca8560298f94eec64b9be26f5b799bb47e2ad3e8791691817f3aec4e3c507e58d5b94a6adeea271921
   languageName: node
   linkType: hard
 
@@ -8004,6 +8020,22 @@ fsevents@~2.1.1:
     typescript: ^3.9.3
     vue-eslint-parser: ~7.1.0
   checksum: a745ae6d2d05ab8d596be6885f79dc0fd486d9e15408be2c7696fa87cec93f4f7d91afeae31d414260301402164f9e5e689b538795413aeaaa456e01df9184eb
+  languageName: node
+  linkType: hard
+
+"prettier-plugin-solidity@npm:^1.0.0-beta.19":
+  version: 1.0.0-dev.21
+  resolution: "prettier-plugin-solidity@npm:1.0.0-dev.21"
+  dependencies:
+    "@solidity-parser/parser": ^0.14.1
+    emoji-regex: ^10.0.0
+    escape-string-regexp: ^4.0.0
+    semver: ^7.3.5
+    solidity-comments-extractor: ^0.0.7
+    string-width: ^4.2.3
+  peerDependencies:
+    prettier: ^2.3.0
+  checksum: 3c43bb7404c380091310e59be718ec0161d268e4674e5e658723f7a7bc9b0f541df9816a8e7bd93b9e73a289f1e13ea1eab58027d4ee51d25460ea6e63c0c99e
   languageName: node
   linkType: hard
 

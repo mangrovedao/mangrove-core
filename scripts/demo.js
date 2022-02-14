@@ -1,11 +1,13 @@
 // this script assumes dotenv package is installed `(npm install dotenv --save)`
 // and you have MUMBAI_NODE_URL and MUMBAI_TESTER_PRIVATE_KEY in your .env file
+util.inspect.replDefaults.depth = 0;
 const env = require("dotenv").config();
-const { Mangrove } = require("../mangrove/packages/mangrove.js");
+const { Mangrove } = require("@mangrovedao/mangrove.js");
 const ethers = require("ethers");
 let provider = new ethers.providers.WebSocketProvider(
   env.parsed.MUMBAI_NODE_URL
 );
+
 let wallet = new ethers.Wallet(env.parsed.MUMBAI_TESTER_PRIVATE_KEY, provider);
 
 //connecting the API to Mangrove

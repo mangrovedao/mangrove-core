@@ -17,13 +17,22 @@ import "./SingleUser.sol";
 abstract contract Persistent is SingleUser {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
+
+  function __residualWants__(MgvLib.SingleOrder calldata order) internal virtual returns (uint){
+    return order.offer.wants() - order.gives;
+  }
+
+  function __residualGives__(MgvLib.SingleOrder calldata order) internal virtual returns (uint){
+    return order.offer.gives() - order.wants;
+  }
+
   function __posthookSuccess__(MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
   {
-    uint new_gives = order.offer.gives() - order.wants;
-    uint new_wants = order.offer.wants() - order.gives;
+    uint new_gives = __residualGives__(order);
+    uint new_wants = __residualWants__(order);
     try
       MGV.updateOffer(
         order.outbound_tkn,

@@ -163,10 +163,14 @@ abstract contract MultiUser is MangroveOffer {
 
   function fundMangrove() external payable override {
     require(msg.sender != address(this), "MutliUser/noReentrancy");
+    fundMangroveInternal(msg.sender, msg.value);
+  }
+
+  function fundMangroveInternal(address caller, uint provision) internal {
     // increasing the provision of `this` contract
-    MGV.fund{value: msg.value}();
+    MGV.fund{value: provision}();
     // increasing the virtual provision of owner
-    creditOnMgv(msg.sender, msg.value);
+    creditOnMgv(caller, provision);
   }
 
   function updateUserBalanceOnMgv(address user, uint mgvBalanceBefore)
@@ -193,9 +197,33 @@ abstract contract MultiUser is MangroveOffer {
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
   ) external payable override returns (uint offerId) {
     require(msg.sender != address(this), "MutliUser/noReentrancy");
+    offerId = newOfferInternal(
+      outbound_tkn,
+      inbound_tkn,
+      wants,
+      gives,
+      gasreq,
+      gasprice,
+      pivotId,
+      msg.sender,
+      msg.value
+    );
+  }
+
+  function newOfferInternal(
+    address outbound_tkn, // address of the ERC20 contract managing outbound tokens
+    address inbound_tkn, // address of the ERC20 contract managing outbound tokens
+    uint wants, // amount of `inbound_tkn` required for full delivery
+    uint gives, // max amount of `outbound_tkn` promised by the offer
+    uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
+    uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
+    uint pivotId,
+    address caller,
+    uint provision
+  ) internal returns (uint offerId) {
     uint weiBalanceBefore = MGV.balanceOf(address(this));
-    if (msg.value > 0) {
-      MGV.fund{value: msg.value}();
+    if (provision > 0) {
+      MGV.fund{value: provision}();
     }
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
@@ -211,9 +239,9 @@ abstract contract MultiUser is MangroveOffer {
       pivotId
     );
     //setting owner of offerId
-    addOwner(outbound_tkn, inbound_tkn, offerId, msg.sender);
+    addOwner(outbound_tkn, inbound_tkn, offerId, caller);
     //updating wei balance of owner will revert if msg.sender does not have the funds
-    updateUserBalanceOnMgv(msg.sender, weiBalanceBefore);
+    updateUserBalanceOnMgv(caller, weiBalanceBefore);
   }
 
   function updateOffer(
@@ -226,11 +254,39 @@ abstract contract MultiUser is MangroveOffer {
     uint pivotId,
     uint offerId
   ) external payable override {
-    address owner = ownerOf(outbound_tkn, inbound_tkn, offerId);
-    require(owner == msg.sender, "mgvOffer/MultiOwner/unauthorized");
+    updateOfferInternal(
+      outbound_tkn,
+      inbound_tkn,
+      wants,
+      gives,
+      gasreq,
+      gasprice,
+      pivotId,
+      offerId,
+      msg.sender,
+      msg.value
+    );
+  }
+
+  function updateOfferInternal(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint pivotId,
+    uint offerId,
+    address caller,
+    uint provision // dangerous to use msg.value in a internal call
+  ) internal {
+    require(
+      caller == ownerOf(outbound_tkn, inbound_tkn, offerId), 
+      "mgvOffer/MultiOwner/unauthorized"
+    );
     uint weiBalanceBefore = MGV.balanceOf(address(this));
-    if (msg.value > 0) {
-      MGV.fund{value: msg.value}();
+    if (provision > 0) {
+      MGV.fund{value: provision}();
     }
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
@@ -245,7 +301,7 @@ abstract contract MultiUser is MangroveOffer {
       pivotId,
       offerId
     );
-    updateUserBalanceOnMgv(owner, weiBalanceBefore);
+    updateUserBalanceOnMgv(caller, weiBalanceBefore);
   }
 
   // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove. Function call will throw if `this` contract is not the owner of `offerId`.
@@ -255,8 +311,18 @@ abstract contract MultiUser is MangroveOffer {
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
   ) external override returns (uint received) {
+    received = retractOfferInternal(outbound_tkn,inbound_tkn,offerId,deprovision,msg.sender);
+  }
+
+  function retractOfferInternal(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint offerId,
+    bool deprovision,
+    address caller
+  ) internal returns (uint received) {
     require(
-      _offerOwners[outbound_tkn][inbound_tkn][offerId] == msg.sender,
+      _offerOwners[outbound_tkn][inbound_tkn][offerId] == caller,
       "mgvOffer/MultiOwner/unauthorized"
     );
     received = MGV.retractOffer(
@@ -266,7 +332,7 @@ abstract contract MultiUser is MangroveOffer {
       deprovision
     );
     if (received > 0) {
-      creditOnMgv(msg.sender, received);
+      creditOnMgv(caller, received);
     }
   }
 

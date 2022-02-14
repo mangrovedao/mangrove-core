@@ -191,17 +191,25 @@ contract DAMM is Persistent {
     }
   }
   
+  function modulo(int x, uint m) internal view returns (uint) {
+    if (x>=0) {
+      return uint(x)%m;
+    } else {
+      console.log("negative modulo");
+      console.log(m, uint(-x));
+      return m - (uint(-x) % m);
+    }
+  }
+
   /** Returns the position in the order book of the offer associated to this index `i` */
   function position_of_index(uint i) internal view returns (uint) {
     // position(i) = (i+shift) % N
-    int p = (int(i) + current_shift) % int(uint(NSLOTS)); 
-    return (p<0) ? uint(-p) : uint(p);
+    return modulo(int(i) - current_shift, NSLOTS); 
   }
 
   /** Returns the index in the ring of offers at which the offer Id at position `p` in the book is stored */
   function index_of_position(uint p) internal view returns (uint) {
-    int i = (int(p) - current_shift) % int(uint(NSLOTS));
-    return (i<0) ? uint(-i) : uint(i);
+    return modulo(int(p) + current_shift, NSLOTS);
   }
 
   /**Next index in the ring of offers */
@@ -221,7 +229,9 @@ contract DAMM is Persistent {
   /** where Q(i) is the quote amount at position i (by default arithmetic progression) */
   function __quote_progression__(uint position) 
   internal virtual view returns (uint) {
-    return (current_delta * position + QUOTE_0); 
+    int quote_amount = int(current_delta * position + uint(QUOTE_0)) - current_shift * int(current_delta); 
+    require(quote_amount > 0, "Shift underflow");
+    return uint(quote_amount); 
   }
 
   /** Returns the quantity of quote tokens for an offer at position `p` given an amount of Base tokens (eq. 2)*/
@@ -248,10 +258,12 @@ contract DAMM is Persistent {
   /** As a consequence `s` Bids will be cancelled and `s` new asks will be posted */
   function positive_shift(uint s) internal {
     uint index = index_of_position(0);
+    console.log("index of position 0", index);
     current_shift += int(s); // updating new shift
     // Warning: from now on position_of_index reflects the new shift
     // One must progress relative to index when retracting offers
     while (s>0) {
+      console.log("Retracting", BIDS[index]);
       // slots occupied by [Bids[index],..,Bids[index+`s` % N]] are retracted
       retractOfferInternal({
         outbound_tkn: QUOTE, 
@@ -285,10 +297,16 @@ contract DAMM is Persistent {
   /** As a consequence `s` Asks will be cancelled and `s` new Bids will be posted */
   function negative_shift(uint s) internal {
     uint index = index_of_position(NSLOTS-1);
+    console.log("index of position max", index);
+    if (-2%10 == -2) {
+      console.log("=-2");
+      console.log(modulo(-2,10));
+    }
     current_shift -= int(s); // updating new shift
     // Warning: from now on position_of_index reflects the new shift
     // One must progress relative to index when retracting offers
     while (s>0) {
+      console.log("Retracting", ASKS[index]);
       // slots occupied by [Asks[index-`s` % N],..,Asks[index]] are retracted
       retractOfferInternal({
         outbound_tkn: BASE, 
@@ -365,8 +383,6 @@ contract DAMM is Persistent {
     super.__posthookSuccess__(order); // reposting residual of offer using `this.__newWants__` to update price
     if (order.outbound_tkn == BASE) { // Ask Offer (`this` contract just sold some BASE @ pos)
       uint pos = position_of_index(index_of_ask[order.offerId]);
-      console.log("ask offer at position, index", pos, index_of_ask[order.offerId]);
-      console.log("will post a bid at position, index", pos-1, index_of_position(pos-1));
       // bid for some BASE token with the received QUOTE tokens @ pos-1
       if (pos > 0) {
         updateBid({

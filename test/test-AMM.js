@@ -40,7 +40,8 @@ describe("Running tests...", function () {
     const strategy = "DAMM";
     const Strat = await ethers.getContractFactory(strategy);
     const NSLOTS = 10;
-    const delta = lc.parseToken("100", 6); //  (in quotes!)
+    // price increase is delta/BASE_0
+    const delta = lc.parseToken("34", 6); //  (in quotes!)
 
     // deploying strat
     const makerContract = (
@@ -60,8 +61,7 @@ describe("Running tests...", function () {
       ["WETH", "17.0", makerContract.address],
       ["USDC", "50000", makerContract.address],
     ]);
-    const txGas = await makerContract.setGasreq(ethers.BigNumber.from(500000));
-    await txGas.wait();
+    
     const prov = await makerContract.getMissingProvision(
       wEth.address,
       usdc.address,
@@ -71,6 +71,7 @@ describe("Running tests...", function () {
     );
 
     await makerContract.fundMangrove({ value: prov.mul(200) });
+    await makerContract.setGasreq(ethers.BigNumber.from(500000));
 
     let slice = NSLOTS / 2;
     let bidding = true;

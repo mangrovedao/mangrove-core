@@ -194,7 +194,7 @@ They have the following fields: */
     { name: "active", bits: 8, type: "bool" },
     /* * `fee`, in basis points, of `outbound_tkn` given to the taker. This fee is sent to the Mangrove. Fee is capped to 5%. */
     { name: "fee", bits: 16, type: "uint" },
-    /* * `density` is similar to a 'dust' parameter. We prevent spamming of low-volume offers by asking for a minimum 'density' in `outbound_tkn` per gas requested. For instance, if `density == 10`, `offer_gasbase == 5000`, an offer with `gasreq == 30000` must promise at least _10 × (30000 + 5) = 305000_ `outbound_tkn`. _112 bits wide_. */
+    /* * `density` is similar to a 'dust' parameter. We prevent spamming of low-volume offers by asking for a minimum 'density' in `outbound_tkn` per gas requested. For instance, if `density == 10`, `offer_gasbase == 5000`, an offer with `gasreq == 30000` must promise at least _10 × (30000 + 5000) = 350000_ `outbound_tkn`. _112 bits wide_. */
     { name: "density", bits: 112, type: "uint" },
     /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. Local to a pair because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
     fields.offer_gasbase,

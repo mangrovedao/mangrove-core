@@ -17,16 +17,6 @@ contract DAMM is Persistent {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
 
-  event BidAtMaxPrice(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId
-  );
-  event AskAtMinPrice(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId
-  );
   event PriceParamUpdated(uint delta);
 
   /** Immutables */
@@ -52,6 +42,11 @@ contract DAMM is Persistent {
 
   // P_i = (Q_0 + i*delta)/B_0
   uint public current_delta; // quote increment
+
+  // triggers `__boundariesReached__` whenever amounts of bids/asks is below `min_semi_book_size`
+  uint min_semi_book_size;
+  event BidAtMaxPosition(address quote, address base, uint offerId);
+  event AskAtMinPosition(address quote, address base, uint offerId);
 
   /** NB: constructor is `payable` in order to allow deployer to fund initial bids and asks */
   constructor(
@@ -80,6 +75,7 @@ contract DAMM is Persistent {
     BASE_0 = uint96(base_0);
     QUOTE_0 = uint96(quote_0);
     current_delta = delta;
+    min_semi_book_size = 1;
   }
 
   function _getPivot(uint[] calldata pivots, uint i)
@@ -131,6 +127,9 @@ contract DAMM is Persistent {
           offerId: ASKS[index]
         });
       }
+      if (position_of_index(index) <= min_semi_book_size) {
+        __boundariesReached__(false, ASKS[index]);
+      }
     } else {
       // Bids
       if (BIDS[index] == 0) {
@@ -157,6 +156,9 @@ contract DAMM is Persistent {
           provision: 0,
           offerId: BIDS[index]
         });
+      }
+      if (position_of_index(index) >= NSLOTS - 1 - min_semi_book_size) {
+        __boundariesReached__(true, BIDS[index]);
       }
     }
   }
@@ -372,7 +374,7 @@ contract DAMM is Persistent {
     }
   }
 
-  function lazyResetPriceParameter(uint delta) public internalOrAdmin {
+  function resetPriceParameter(uint delta) public internalOrAdmin {
     current_delta = delta;
     emit PriceParamUpdated(delta);
   }
@@ -407,9 +409,9 @@ contract DAMM is Persistent {
   /** Define what to do when the AMM boundaries are reached (either when reposting a bid or a ask) */
   function __boundariesReached__(bool bid, uint offerId) internal virtual {
     if (bid) {
-      emit BidAtMaxPrice(QUOTE, BASE, offerId);
+      emit BidAtMaxPosition(QUOTE, BASE, offerId);
     } else {
-      emit AskAtMinPrice(BASE, QUOTE, offerId);
+      emit AskAtMinPosition(BASE, QUOTE, offerId);
     }
   }
 
@@ -418,7 +420,8 @@ contract DAMM is Persistent {
     virtual
     override
   {
-    super.__posthookSuccess__(order); // reposting residual of offer using `this.__newWants__` to update price
+    // reposting residual of offer using override `__newWants__` and default `__newGives` for new price
+    super.__posthookSuccess__(order);
     if (order.outbound_tkn == BASE) {
       // Ask Offer (`this` contract just sold some BASE @ pos)
       uint pos = position_of_index(index_of_ask[order.offerId]);
@@ -430,9 +433,6 @@ contract DAMM is Persistent {
           amount: order.gives,
           pivotId: 0
         });
-        if (pos == NSLOTS - 1) {
-          __boundariesReached__(true, BIDS[index_of_position(pos - 1)]);
-        }
       } else {
         // Ask cannot be at Pmin unless a shift has eliminated all bids
         emit PosthookFail(
@@ -454,9 +454,6 @@ contract DAMM is Persistent {
           amount: order.gives,
           pivotId: 0
         });
-        if (pos == 1) {
-          __boundariesReached__(false, ASKS[index_of_position(pos + 1)]);
-        }
       } else {
         // Take profit
         emit PosthookFail(

@@ -17,6 +17,10 @@ describe("Running tests...", function () {
   let wEth = null;
   let maker = null;
   let taker = null;
+  let makerContract = null;
+  const NSLOTS = 10;
+  // price increase is delta/BASE_0
+  const delta = lc.parseToken("34", 6); //  (in quotes!)
 
   before(async function () {
     // fetches all token contracts
@@ -39,12 +43,9 @@ describe("Running tests...", function () {
     //lc.listenMgv(mgv);
     const strategy = "DAMM";
     const Strat = await ethers.getContractFactory(strategy);
-    const NSLOTS = 10;
-    // price increase is delta/BASE_0
-    const delta = lc.parseToken("34", 6); //  (in quotes!)
 
     // deploying strat
-    const makerContract = (
+    makerContract = (
       await Strat.deploy(
         mgv.address,
         wEth.address, // base
@@ -96,7 +97,8 @@ describe("Running tests...", function () {
         `Slice initialized (${(await receipt.wait()).gasUsed} gas used)`
       );
     }
-
+  });
+  it("Market orders", async function () {
     let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
     console.log("===bids===");
     await lc.logOrderBook(book, usdc, wEth);
@@ -156,8 +158,10 @@ describe("Running tests...", function () {
     book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
     console.log("===asks===");
     await lc.logOrderBook(book, wEth, usdc);
+  });
 
-    console.log(chalk.yellow("Shifting"), chalk.red(-9));
+  it("Shifting OB", async function () {
+    console.log(chalk.yellow("Shifting"), chalk.red(-3));
     await makerContract.shift(-9);
     book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
     console.log("===bids===");
@@ -166,7 +170,7 @@ describe("Running tests...", function () {
     console.log("===asks===");
     await lc.logOrderBook(book, wEth, usdc);
 
-    console.log(chalk.yellow("Shifting"), chalk.green(6));
+    console.log(chalk.yellow("Shifting"), chalk.green(4));
     await makerContract.shift(6);
     book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
     console.log("===bids===");
@@ -175,4 +179,40 @@ describe("Running tests...", function () {
     console.log("===asks===");
     await lc.logOrderBook(book, wEth, usdc);
   });
+
+  // it("Testing boundaries", async function () {
+  //   const filter_bidMax = makerContract.filters.BidAtMaxPosition();
+  //   let correct = false;
+  //   makerContract.on(
+  //     filter_bidMax,
+  //     async (outbound_tkn, inbound_tkn, offerId, event) => {
+  //       console.log(`${offerId} is Bidding at max position!`);
+  //       correct = true;
+  //     }
+  //   );
+  //   const filter_AskMin = makerContract.filters.AskAtMinPosition();
+  //   makerContract.on(
+  //     filter_AskMin,
+  //     async (outbound_tkn, inbound_tkn, offerId, event) => {
+  //       console.log(`${offerId} is asking at min position!`);
+  //       await lc.marketOrder(
+  //         mgv.connect(taker),
+  //         "WETH", // outbound
+  //         "USDC", // inbound
+  //         ethers.utils.parseEther("3"), // wants
+  //         ethers.utils.parseUnits("10000", 6) // gives
+  //       );
+  //     }
+  //   );
+  //   await lc.marketOrder(
+  //     mgv.connect(taker),
+  //     "USDC", // outbound
+  //     "WETH", // inbound
+  //     ethers.utils.parseUnits("4000", 6), // wants
+  //     ethers.utils.parseEther("2.0") // gives
+  //   );
+  //   await lc.sleep(10000);
+  //   assert(correct,"Event not caught");
+  //   lc.stopListeners([makerContract]);
+  // });
 });

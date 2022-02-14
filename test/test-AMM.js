@@ -62,7 +62,7 @@ describe("Running tests...", function () {
       ["WETH", "17.0", makerContract.address],
       ["USDC", "50000", makerContract.address],
     ]);
-    await makerContract.setGasreq(ethers.BigNumber.from(500000));
+    //await makerContract.setGasreq(ethers.BigNumber.from(500000));
     const prov = await makerContract.getMissingProvision(
       wEth.address,
       usdc.address,
@@ -162,7 +162,7 @@ describe("Running tests...", function () {
 
   it("Shifting OB", async function () {
     console.log(chalk.yellow("Shifting"), chalk.red(-3));
-    await makerContract.shift(-9);
+    await makerContract.set_shift(-3);
     book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
     console.log("===bids===");
     await lc.logOrderBook(book, usdc, wEth);
@@ -171,7 +171,7 @@ describe("Running tests...", function () {
     await lc.logOrderBook(book, wEth, usdc);
 
     console.log(chalk.yellow("Shifting"), chalk.green(4));
-    await makerContract.shift(6);
+    await makerContract.set_shift(4);
     book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
     console.log("===bids===");
     await lc.logOrderBook(book, usdc, wEth);

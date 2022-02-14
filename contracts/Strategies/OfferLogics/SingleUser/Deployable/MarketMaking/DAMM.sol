@@ -38,17 +38,70 @@ contract DAMM is Persistent {
   mapping(uint => uint) index_of_ask; // askId -> index
 
   //NB if one wants to allow this contract to be multi-makers one should use uint[] for each mutable fields to allow user specific parameters.
-  int public current_shift;
+  int current_shift;
 
   // P_i = (Q_0 + i*delta)/B_0
-  uint public current_delta; // quote increment
+  uint current_delta; // quote increment
 
-  // triggers `__boundariesReached__` whenever amounts of bids/asks is below `min_semi_book_size`
-  uint min_semi_book_size;
+  // triggers `__boundariesReached__` whenever amounts of bids/asks is below `current_min_offer_type`
+  uint current_min_offer_type;
   event BidAtMaxPosition(address quote, address base, uint offerId);
   event AskAtMinPosition(address quote, address base, uint offerId);
 
-  /** NB: constructor is `payable` in order to allow deployer to fund initial bids and asks */
+  // whether the strat reneges on offers
+  bool killed = false;
+
+  /** Setters and getters */
+  function get_delta() external view onlyAdmin returns (uint) {
+    return current_delta;
+  }
+
+  function set_delta(uint delta) public mgvOrAdmin {
+    current_delta = delta;
+  }
+
+  function get_shift() external view onlyAdmin returns (int) {
+    return current_shift;
+  }
+
+  /** Shift the price (induced by quote amount) of n slots down or up */
+  /** price at position i will be shifted (up or down depending on the sign of `shift`) of (shift*delta) / BASE_0 */
+  function set_shift(int s) public mgvOrAdmin {
+    if (s < 0) {
+      negative_shift(uint(-s));
+    } else {
+      positive_shift(uint(s));
+    }
+  }
+
+  function set_min_offer_type(uint m) public mgvOrAdmin {
+    current_min_offer_type = m;
+  }
+
+  function get_offers(bool bids) external view returns (uint[] memory) {
+    return bids ? BIDS : ASKS;
+  }
+
+  // starts reneging all offers
+  // NB reneged offers will not be reposted
+  function kill() public mgvOrAdmin {
+    killed = true;
+  }
+
+  function revive() external onlyAdmin {
+    killed = false;
+  }
+
+  function __lastLook__(MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (bool proceed)
+  {
+    order; //shh
+    proceed = !killed;
+  }
+
   constructor(
     address payable mgv,
     address base,
@@ -75,19 +128,8 @@ contract DAMM is Persistent {
     BASE_0 = uint96(base_0);
     QUOTE_0 = uint96(quote_0);
     current_delta = delta;
-    min_semi_book_size = 1;
-  }
-
-  function _getPivot(uint[] calldata pivots, uint i)
-    internal
-    pure
-    returns (uint)
-  {
-    if (pivots[i] != 0) {
-      return pivots[i];
-    } else {
-      return 0;
-    }
+    current_min_offer_type = 1;
+    OFR_GASREQ = 300_000;
   }
 
   function writeOffer(
@@ -127,7 +169,7 @@ contract DAMM is Persistent {
           offerId: ASKS[index]
         });
       }
-      if (position_of_index(index) <= min_semi_book_size) {
+      if (position_of_index(index) <= current_min_offer_type) {
         __boundariesReached__(false, ASKS[index]);
       }
     } else {
@@ -157,9 +199,21 @@ contract DAMM is Persistent {
           offerId: BIDS[index]
         });
       }
-      if (position_of_index(index) >= NSLOTS - 1 - min_semi_book_size) {
+      if (position_of_index(index) >= NSLOTS - 1 - current_min_offer_type) {
         __boundariesReached__(true, BIDS[index]);
       }
+    }
+  }
+
+  function _getPivot(uint[] calldata pivots, uint i)
+    internal
+    pure
+    returns (uint)
+  {
+    if (pivots[i] != 0) {
+      return pivots[i];
+    } else {
+      return 0;
     }
   }
 
@@ -170,7 +224,7 @@ contract DAMM is Persistent {
     uint to, // to index excluded
     uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
     uint[] calldata tokenAmounts
-  ) public internalOrAdmin {
+  ) public mgvOrAdmin {
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
     /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
@@ -286,16 +340,6 @@ contract DAMM is Persistent {
     return (quote_amount * BASE_0) / __quote_progression__(p);
   }
 
-  /** Shift the price (induced by quote amount) of n slots down or up */
-  /** price at position i will be shifted (up or down depending on the sign of `shift`) of (shift*delta) / BASE_0 */
-  function shift(int s) external onlyAdmin {
-    if (s < 0) {
-      negative_shift(uint(-s));
-    } else {
-      positive_shift(uint(s));
-    }
-  }
-
   /** Recenter the order book by shifting min price up `s` positions in the book */
   /** As a consequence `s` Bids will be cancelled and `s` new asks will be posted */
   function positive_shift(uint s) internal {
@@ -372,11 +416,6 @@ contract DAMM is Persistent {
       s--;
       index = prev_index(index);
     }
-  }
-
-  function resetPriceParameter(uint delta) public internalOrAdmin {
-    current_delta = delta;
-    emit PriceParamUpdated(delta);
   }
 
   // for reposting partial filled offers one always gives the residual (default behavior)
@@ -558,7 +597,4 @@ contract DAMM is Persistent {
       pivotId: pivot
     });
   }
-
-  // TODO __posthookFail__
-  // TODO initialize by chunks
 }

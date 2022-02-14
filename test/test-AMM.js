@@ -71,14 +71,13 @@ describe("Running tests...", function () {
     );
 
     await makerContract.fundMangrove({ value: prov.mul(200) });
-   
 
     let slice = NSLOTS / 2;
     let bidding = true;
     let pivotIds = new Array(slice);
     let amounts = new Array(slice);
     pivotIds = pivotIds.fill(0, 0);
-    amounts.fill(ethers.utils.parseUnits("1000", 6),0);
+    amounts.fill(ethers.utils.parseUnits("1000", 6), 0);
 
     for (let i = 0; i < 2; i++) {
       if (i >= 1) {
@@ -158,8 +157,8 @@ describe("Running tests...", function () {
     console.log("===asks===");
     await lc.logOrderBook(book, wEth, usdc);
 
-    console.log(chalk.yellow("Shifting"), chalk.red(-2));
-    await makerContract.shift(-2);
+    console.log(chalk.yellow("Shifting"), chalk.red(-9));
+    await makerContract.shift(-9);
     book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
     console.log("===bids===");
     await lc.logOrderBook(book, usdc, wEth);
@@ -167,8 +166,8 @@ describe("Running tests...", function () {
     console.log("===asks===");
     await lc.logOrderBook(book, wEth, usdc);
 
-    console.log(chalk.yellow("Shifting"), chalk.green(3));
-    await makerContract.shift(3);
+    console.log(chalk.yellow("Shifting"), chalk.green(6));
+    await makerContract.shift(6);
     book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
     console.log("===bids===");
     await lc.logOrderBook(book, usdc, wEth);

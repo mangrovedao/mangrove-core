@@ -5,9 +5,24 @@ const lc = require("../lib/libcommon.js");
 const chalk = require("chalk");
 //const { Mangrove } = require("../../mangrove.js");
 
-let testSigner = null;
-
-const z = ethers.BigNumber.from(0);
+async function checkOB(msg, mgv, outb, inb, bigNumbers, t) {
+  for (const i in bigNumbers) {
+    let expected = t[i];
+    let retract = false;
+    if (t[i] < 0) {
+      expected = -t[i];
+      retract = true;
+    }
+    assert(
+      bigNumbers[i].eq(expected),
+      `${msg}: ${bigNumbers[i].toString()} != ${expected} `
+    );
+    if (retract) {
+      const [offer] = await mgv.offerInfo(outb, inb, expected);
+      assert(offer.gives.eq(0), `Offer ${expected} is still live`);
+    }
+  }
+}
 
 describe("Running tests...", function () {
   this.timeout(200_000); // Deployment is slow so timeout is increased
@@ -84,7 +99,6 @@ describe("Running tests...", function () {
       if (i >= 1) {
         bidding = false;
       }
-      console.log(`[${slice * i}-${slice * (i + 1)}[`);
       const receipt = await makerContract.initialize(
         bidding,
         false, //withQuotes
@@ -99,12 +113,12 @@ describe("Running tests...", function () {
     }
   });
   it("Market orders", async function () {
-    let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
-    console.log("===bids===");
-    await lc.logOrderBook(book, usdc, wEth);
-    book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
-    console.log("===asks===");
-    await lc.logOrderBook(book, wEth, usdc);
+    // let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
+    // console.log("===bids===");
+    // await lc.logOrderBook(book, usdc, wEth);
+    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
+    // console.log("===asks===");
+    // await lc.logOrderBook(book, wEth, usdc);
 
     await makerContract.approveMangrove(
       wEth.address,
@@ -126,6 +140,24 @@ describe("Running tests...", function () {
       ethers.utils.parseUnits("3000", 6) // gives
     );
 
+    let [bids, asks] = await makerContract.get_offers();
+    await checkOB(
+      "OB bids",
+      mgv,
+      usdc.address,
+      wEth.address,
+      bids,
+      [1, 2, 3, 4, 5, 6, 0, 0, 0, 0]
+    );
+    await checkOB(
+      "OB asks",
+      mgv,
+      wEth.address,
+      usdc.address,
+      asks,
+      [0, 0, 0, 0, 0, -1, 2, 3, 4, 5]
+    );
+
     lc.assertEqualBN(
       takerGot,
       lc.netOf(ethers.utils.parseEther("0.5"), 30),
@@ -137,12 +169,12 @@ describe("Running tests...", function () {
       "Taker should not receive a bounty"
     );
 
-    book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
-    console.log("===bids===");
-    await lc.logOrderBook(book, usdc, wEth);
-    book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
-    console.log("===asks===");
-    await lc.logOrderBook(book, wEth, usdc);
+    // book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
+    // console.log("===bids===");
+    // await lc.logOrderBook(book, usdc, wEth);
+    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
+    // console.log("===asks===");
+    // await lc.logOrderBook(book, wEth, usdc);
 
     [takerGot, takerGave, bounty] = await lc.marketOrder(
       mgv.connect(taker),
@@ -151,33 +183,127 @@ describe("Running tests...", function () {
       ethers.utils.parseUnits("3500", 6), // wants
       ethers.utils.parseEther("1.5") // gives
     );
+    [bids, asks] = await makerContract.get_offers();
+    await checkOB(
+      "OB bids",
+      mgv,
+      usdc.address,
+      wEth.address,
+      bids,
+      [1, 2, 3, 4, -5, -6, 0, 0, 0, 0]
+    );
+    await checkOB(
+      "OB asks",
+      mgv,
+      wEth.address,
+      usdc.address,
+      asks,
+      [0, 0, 0, 0, 6, 1, 2, 3, 4, 5]
+    );
 
-    book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
-    console.log("===bids===");
-    await lc.logOrderBook(book, usdc, wEth);
-    book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
-    console.log("===asks===");
-    await lc.logOrderBook(book, wEth, usdc);
+    lc.assertEqualBN(
+      takerGot,
+      lc.netOf(ethers.utils.parseUnits("3500", 6), 30),
+      "Incorrect received amount"
+    );
+    lc.assertEqualBN(
+      bounty,
+      ethers.utils.parseEther("0"),
+      "Taker should not receive a bounty"
+    );
+
+    // book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
+    // console.log("===bids===");
+    // await lc.logOrderBook(book, usdc, wEth);
+    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
+    // console.log("===asks===");
+    // await lc.logOrderBook(book, wEth, usdc);
   });
 
-  it("Shifting OB", async function () {
-    console.log(chalk.yellow("Shifting"), chalk.red(-3));
-    await makerContract.set_shift(-3);
-    book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
-    console.log("===bids===");
-    await lc.logOrderBook(book, usdc, wEth);
-    book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
-    console.log("===asks===");
-    await lc.logOrderBook(book, wEth, usdc);
+  it("Negative shift", async function () {
+    //console.log(chalk.yellow("Shifting"), chalk.red(-2));
+    await makerContract.set_shift(-2);
+    let [bids, asks] = await makerContract.get_offers();
+    await checkOB(
+      "OB bids",
+      mgv,
+      usdc.address,
+      wEth.address,
+      bids,
+      [8, 7, 1, 2, 3, 4, -5, -6, 0, 0]
+    );
+    await checkOB(
+      "OB asks",
+      mgv,
+      wEth.address,
+      usdc.address,
+      asks,
+      [-4, -5, 0, 0, 0, 0, 6, 1, 2, 3]
+    );
 
-    console.log(chalk.yellow("Shifting"), chalk.green(4));
-    await makerContract.set_shift(4);
-    book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
-    console.log("===bids===");
-    await lc.logOrderBook(book, usdc, wEth);
-    book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
-    console.log("===asks===");
-    await lc.logOrderBook(book, wEth, usdc);
+    // book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
+    // console.log("===bids===");
+    // await lc.logOrderBook(book, usdc, wEth);
+    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
+    // console.log("===asks===");
+    // await lc.logOrderBook(book, wEth, usdc);
+
+    //console.log(chalk.yellow("Shifting"), chalk.green(3));
+  });
+
+  it("Positive shift", async function () {
+    await makerContract.set_shift(3);
+
+    [bids, asks] = await makerContract.get_offers();
+    await checkOB(
+      "OB bids",
+      mgv,
+      usdc.address,
+      wEth.address,
+      bids,
+      [2, 3, 4, -5, -6, 0, 0, -8, -7, -1]
+    );
+    await checkOB(
+      "OB asks",
+      mgv,
+      wEth.address,
+      usdc.address,
+      asks,
+      [0, 0, 0, 6, 1, 2, 3, 4, 5, 7]
+    );
+
+    // book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
+    // console.log("===bids===");
+    // await lc.logOrderBook(book, usdc, wEth);
+    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
+    // console.log("===asks===");
+    // await lc.logOrderBook(book, wEth, usdc);
+  });
+
+  it("Test kill", async function () {
+    await makerContract.pause();
+    // taking all bids
+    [takerGot, takerGave, bounty] = await lc.marketOrder(
+      mgv.connect(taker),
+      "USDC", // outbound
+      "WETH", // inbound
+      ethers.utils.parseUnits("2500", 6), // wants
+      ethers.utils.parseEther("1.5"), // gives
+      true
+    );
+    assert(
+      takerGot.eq(0) && takerGave.eq(0),
+      "Start is not reneging on trades"
+    );
+    const [bids] = await makerContract.get_offers();
+    await checkOB(
+      "OB bids",
+      mgv,
+      usdc.address,
+      wEth.address,
+      bids,
+      [-2, -3, -4, -5, -6, 0, 0, -8, -7, -1]
+    );
   });
 
   // it("Testing boundaries", async function () {

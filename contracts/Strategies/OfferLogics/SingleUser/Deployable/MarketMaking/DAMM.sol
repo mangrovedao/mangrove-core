@@ -49,7 +49,7 @@ contract DAMM is Persistent {
   event AskAtMinPosition(address quote, address base, uint offerId);
 
   // whether the strat reneges on offers
-  bool killed = false;
+  bool paused = false;
 
   /** Setters and getters */
   function get_delta() external view onlyAdmin returns (uint) {
@@ -78,18 +78,23 @@ contract DAMM is Persistent {
     current_min_offer_type = m;
   }
 
-  function get_offers(bool bids) external view returns (uint[] memory) {
-    return bids ? BIDS : ASKS;
+  function get_offers() external view returns (uint[][2] memory offers) {
+    offers[0] = new uint[](NSLOTS);
+    offers[1] = new uint[](NSLOTS);
+    for (uint i = 0; i < NSLOTS; i++) {
+      offers[0][i] = BIDS[index_of_position(i)];
+      offers[1][i] = ASKS[index_of_position(i)];
+    }
   }
 
   // starts reneging all offers
   // NB reneged offers will not be reposted
-  function kill() public mgvOrAdmin {
-    killed = true;
+  function pause() public mgvOrAdmin {
+    paused = true;
   }
 
-  function revive() external onlyAdmin {
-    killed = false;
+  function restart() external onlyAdmin {
+    paused = false;
   }
 
   function __lastLook__(MgvLib.SingleOrder calldata order)
@@ -99,7 +104,7 @@ contract DAMM is Persistent {
     returns (bool proceed)
   {
     order; //shh
-    proceed = !killed;
+    proceed = !paused;
   }
 
   constructor(
@@ -129,7 +134,7 @@ contract DAMM is Persistent {
     QUOTE_0 = uint96(quote_0);
     current_delta = delta;
     current_min_offer_type = 1;
-    OFR_GASREQ = 300_000;
+    OFR_GASREQ = 400_000; // dry run OK with 200_000
   }
 
   function writeOffer(

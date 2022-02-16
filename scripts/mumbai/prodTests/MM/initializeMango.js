@@ -24,17 +24,21 @@ async function main() {
   });
 
   const markets = [
-    ["WETH", "USDC"],
-    ["WETH", "DAI"],
+    //    ["WETH", "USDC"],
+    //    ["WETH", "DAI"],
     ["DAI", "USDC"],
   ];
   for (const [baseName, quoteName] of markets) {
     // NSLOTS/2 offers giving base (~1000 USD each)
     // NSLOTS/2 offers giving quote (~1000 USD)
+
     let MangoRaw = (
       await hre.ethers.getContract(`Mango_${baseName}_${quoteName}`)
     ).connect(deployer);
-    await MangoRaw.setAdmin(tester.address);
+    if ((await MangoRaw.admin()) === deployer.address) {
+      const tx = await MangoRaw.setAdmin(tester.address);
+      await tx.wait();
+    }
     MangoRaw = MangoRaw.connect(tester);
 
     const NSLOTS = await MangoRaw.NSLOTS();

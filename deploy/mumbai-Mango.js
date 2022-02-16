@@ -35,9 +35,9 @@ module.exports = async (hre) => {
       `./deployments/${hre.network.name}/Mango_${baseName}_${quoteName}.json`
     );
   };
-  await deployOnMarket("WETH", "USDC", 0.325, 1000, 30);
-  await deployOnMarket("WETH", "DAI", 0.325, 1000, 30);
-  await deployOnMarket("DAI", "USDC", 1000, 1000, 30);
+  await deployOnMarket("WETH", "USDC", 0.3, 1000, 30);
+  await deployOnMarket("WETH", "DAI", 0.3, 1000, 30);
+  await deployOnMarket("DAI", "USDC", 900, 1000, 30);
 };
 
 module.exports.tags = ["mumbai-Mango"];

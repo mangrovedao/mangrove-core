@@ -46,9 +46,9 @@ async function main() {
     const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
       market
     );
-    const provBid = await Mango.computeBidProvision();
-    const provAsk = await Mango.computeAskProvision();
-    const totalFund = provAsk.add(provBid).mul(NSLOTS);
+    // const provBid = await Mango.computeBidProvision();
+    // const provAsk = await Mango.computeAskProvision();
+    // const totalFund = provAsk.add(provBid).mul(NSLOTS);
 
     // This does not work as listener of maker contract is not synched with listener of Mgv events
     // const filter_initialized = MangoRaw.filters.Initialized();
@@ -69,25 +69,29 @@ async function main() {
     //   }
     // });
 
-    console.log(`* Funding mangrove (${totalFund} MATIC for Mango)`);
-    const tx = await Mango.fundMangrove(totalFund);
-    await tx.wait();
+    // console.log(`* Funding mangrove (${totalFund} MATIC for Mango)`);
+    // const tx = await Mango.fundMangrove(totalFund);
+    // await tx.wait();
 
     console.log(
       `* Approving mangrove for ${baseName} and ${quoteName} transfer`
     );
     const tx1 = await Mango.approveMangroveForBase();
     const tx2 = await Mango.approveMangroveForQuote();
-    await tx.wait();
+    await tx1.wait();
+    await tx2.wait();
 
     //TODO: should only provision if needed.
     console.log(
       `* Provisionning Mango with ${baseName} and ${quoteName} tokens`
     );
+
+    const baseAmount = baseName === "WETH" ? 0.325 : 1000;
     await MgvAPI.token(baseName).transfer(
       MangoRaw.address,
-      (NSLOTS / 2) * 0.325
+      (NSLOTS / 2) * baseAmount
     );
+    const balQuote = await MgvAPI.token(quoteName).balanceOf(MangoRaw.address);
     await MgvAPI.token(quoteName).transfer(
       MangoRaw.address,
       (NSLOTS / 2) * 1000

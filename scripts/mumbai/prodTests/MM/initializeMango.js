@@ -24,8 +24,8 @@ async function main() {
   });
 
   const markets = [
-    //    ["WETH", "USDC"],
-    //    ["WETH", "DAI"],
+    ["WETH", "USDC"],
+    ["WETH", "DAI"],
     ["DAI", "USDC"],
   ];
   for (const [baseName, quoteName] of markets) {
@@ -51,28 +51,36 @@ async function main() {
     const totalFund = provAsk.add(provBid).mul(NSLOTS);
 
     // This does not work as listener of maker contract is not synched with listener of Mgv events
-    const filter_initialized = MangoRaw.filters.Initialized();
-    let listened = 0;
-    MangoRaw.on(filter_initialized, async (from, to, bidding) => {
-      await market.requestBook(); //not helping
-      if (bidding) {
-        console.log(`=== Bids on market (${baseName},${quoteName}) ===`);
-        market.consoleBids();
-        listened++;
-      } else {
-        console.log(`=== Asks on market (${baseName},${quoteName}) ===`);
-        market.consoleAsks();
-        listened++;
-      }
-      if (listened == 2) {
-        MangoRaw.removeAllListeners();
-      }
-    });
+    // const filter_initialized = MangoRaw.filters.Initialized();
+    // let listened = 0;
+    // MangoRaw.on(filter_initialized, async (from, to, bidding) => {
+    //   await market.requestBook(); //not helping
+    //   if (bidding) {
+    //     console.log(`=== Bids on market (${baseName},${quoteName}) ===`);
+    //     market.consoleBids();
+    //     listened++;
+    //   } else {
+    //     console.log(`=== Asks on market (${baseName},${quoteName}) ===`);
+    //     market.consoleAsks();
+    //     listened++;
+    //   }
+    //   if (listened == 2) {
+    //     MangoRaw.removeAllListeners();
+    //   }
+    // });
 
     console.log(`* Funding mangrove (${totalFund} MATIC for Mango)`);
     const tx = await Mango.fundMangrove(totalFund);
     await tx.wait();
 
+    console.log(
+      `* Approving mangrove for ${baseName} and ${quoteName} transfer`
+    );
+    const tx1 = await Mango.approveMangroveForBase();
+    const tx2 = await Mango.approveMangroveForQuote();
+    await tx.wait();
+
+    //TODO: should only provision if needed.
     console.log(
       `* Provisionning Mango with ${baseName} and ${quoteName} tokens`
     );

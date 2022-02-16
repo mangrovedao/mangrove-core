@@ -13,22 +13,24 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../../Persistent.sol";
 
-contract DAMM is Persistent {
+contract Mango is Persistent {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
 
-  event PriceParamUpdated(uint delta);
+  event BidAtMaxPosition(address quote, address base, uint offerId);
+  event AskAtMinPosition(address quote, address base, uint offerId);
+  event Initialized(uint from, uint to, bool bidding);
 
   /** Immutables */
   // total number of Asks (resp. Bids)
-  uint16 immutable NSLOTS;
+  uint16 public immutable NSLOTS;
 
   // initial min price
   uint96 immutable BASE_0;
   uint96 immutable QUOTE_0;
 
-  address immutable BASE;
-  address immutable QUOTE;
+  address public immutable BASE;
+  address public immutable QUOTE;
 
   /** Mutables */
   //NB if one wants to allow this contract to be multi-makers one should use uint[][] ASKS/BIDS and allocate a new array for each maker.
@@ -45,8 +47,6 @@ contract DAMM is Persistent {
 
   // triggers `__boundariesReached__` whenever amounts of bids/asks is below `current_min_offer_type`
   uint current_min_offer_type;
-  event BidAtMaxPosition(address quote, address base, uint offerId);
-  event AskAtMinPosition(address quote, address base, uint offerId);
 
   // whether the strat reneges on offers
   bool paused = false;
@@ -273,6 +273,7 @@ contract DAMM is Persistent {
         });
       }
     }
+    emit Initialized({from: from, to: to, bidding: bidding});
   }
 
   // returns the value of x in the ring [0,m]

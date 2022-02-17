@@ -51,6 +51,85 @@ contract Mango is Persistent {
   // whether the strat reneges on offers
   bool paused = false;
 
+  // Base and quote token treasuries
+  address current_base_treasury;
+  address current_quote_treasury;
+
+  /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
+  function set_treasury(bool base, address treasury) external onlyAdmin {
+    require(treasury != address(0), "Mango/set_treasury/zeroAddress");
+    if (base) {
+      current_base_treasury = treasury;
+    } else {
+      current_quote_treasury = treasury;
+    }
+  }
+
+  function get_treasury(bool base) external view onlyAdmin returns (address) {
+    return base ? current_base_treasury : current_quote_treasury;
+  }
+
+  /** Deposits received tokens into the corresponding treasury*/
+  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
+    if (order.inbound_tkn == BASE && current_base_treasury != address(this)) {
+      return IERC20(BASE).transfer(current_base_treasury, amount) ? 0 : amount;
+    }
+    if (current_quote_treasury != address(this)) {
+      return
+        IERC20(QUOTE).transfer(current_quote_treasury, amount) ? 0 : amount;
+    }
+    // order.inbound_tkn has to be either BASE or QUOTE so only possibility is `this` is treasury
+    return 0;
+  }
+
+  /** Fetches required tokens from the corresponding treasury*/
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
+    if (order.outbound_tkn == BASE && current_base_treasury != address(this)) {
+      return
+        IERC20(BASE).transferFrom(current_base_treasury, address(this), amount)
+          ? 0
+          : amount;
+    }
+    if (current_quote_treasury != address(this)) {
+      return
+        IERC20(QUOTE).transferFrom(
+          current_quote_treasury,
+          address(this),
+          amount
+        )
+          ? 0
+          : amount;
+    }
+    // order.outbound_tkn has to be either BASE or QUOTE so only possibility is `this` is treasury
+    return 0;
+  }
+
+  function retractOffers(uint from, uint to)
+    external
+    onlyAdmin
+    returns (uint collected)
+  {
+    uint collected;
+    for (uint i = from; i < to; i++) {
+      collected += ASKS[i] > 0
+        ? retractOfferInternal(BASE, QUOTE, ASKS[i], true)
+        : 0;
+      collected += BIDS[i] > 0
+        ? retractOfferInternal(QUOTE, BASE, BIDS[i], true)
+        : 0;
+    }
+  }
+
   /** Setters and getters */
   function get_delta() external view onlyAdmin returns (uint) {
     return current_delta;
@@ -123,7 +202,7 @@ contract Mango is Persistent {
         uint16(nslots) == nslots &&
         uint96(base_0) == base_0 &&
         uint96(quote_0) == quote_0,
-      "DAMM/constructor/invalidArguments"
+      "Mango/constructor/invalidArguments"
     );
     BASE = base;
     QUOTE = quote;
@@ -134,6 +213,8 @@ contract Mango is Persistent {
     QUOTE_0 = uint96(quote_0);
     current_delta = delta;
     current_min_offer_type = 1;
+    current_quote_treasury = msg.sender;
+    current_base_treasury = msg.sender;
     OFR_GASREQ = 400_000; // dry run OK with 200_000
   }
 
@@ -235,14 +316,14 @@ contract Mango is Persistent {
     /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
     require(
       to > from && pivotIds[0].length == to - from,
-      "DAMM/initialize/invalidSlice"
+      "Mango/initialize/invalidSlice"
     );
     require(
       tokenAmounts.length == to - from,
-      "DAMM/initialize/invalidBaseAmounts"
+      "Mango/initialize/invalidBaseAmounts"
     );
-    require(!bidding || to != NSLOTS, "DAMM/initialize/NoSlotForAsks"); // bidding => slice doesn't fill the book
-    require(bidding || from != 0, "DAMM/initialize/NoSlotForBids"); // asking => slice doesn't start from MinPrice
+    require(!bidding || to != NSLOTS, "Mango/initialize/NoSlotForAsks"); // bidding => slice doesn't fill the book
+    require(bidding || from != 0, "Mango/initialize/NoSlotForBids"); // asking => slice doesn't start from MinPrice
     uint i;
     for (i = from; i < to; i++) {
       if (bidding) {
@@ -292,7 +373,7 @@ contract Mango is Persistent {
   /** In general this is QUOTE_0 + shift*delta */
   function quote_min() internal view returns (uint) {
     int qm = int(uint(QUOTE_0)) + current_shift * int(current_delta);
-    require(qm > 0, "DAMM/quote_min/ShiftUnderflow");
+    require(qm > 0, "Mango/quote_min/ShiftUnderflow");
     return (uint(qm));
   }
 
@@ -349,7 +430,7 @@ contract Mango is Persistent {
   /** Recenter the order book by shifting min price up `s` positions in the book */
   /** As a consequence `s` Bids will be cancelled and `s` new asks will be posted */
   function positive_shift(uint s) internal {
-    require(s < NSLOTS, "DAMM/shift/positiveShiftTooLarge");
+    require(s < NSLOTS, "Mango/shift/positiveShiftTooLarge");
     uint index = index_of_position(0);
     current_shift += int(s); // updating new shift
     // Warning: from now on position_of_index reflects the new shift
@@ -389,7 +470,7 @@ contract Mango is Persistent {
   /** Recenter the order book by shifting max price down `s` positions in the book */
   /** As a consequence `s` Asks will be cancelled and `s` new Bids will be posted */
   function negative_shift(uint s) internal {
-    require(s < NSLOTS, "DAMM/shift/NegativeShiftTooLarge");
+    require(s < NSLOTS, "Mango/shift/NegativeShiftTooLarge");
     uint index = index_of_position(NSLOTS - 1);
     current_shift -= int(s); // updating new shift
     // Warning: from now on position_of_index reflects the new shift
@@ -484,7 +565,7 @@ contract Mango is Persistent {
           order.outbound_tkn,
           order.inbound_tkn,
           order.offerId,
-          "DAMM/posthook/BuyingOutOfPriceRange"
+          "Mango/posthook/BuyingOutOfPriceRange"
         );
         return;
       }
@@ -505,7 +586,7 @@ contract Mango is Persistent {
           order.outbound_tkn,
           order.inbound_tkn,
           order.offerId,
-          "DAMM/posthook/SellingOutOfPriceRange"
+          "Mango/posthook/SellingOutOfPriceRange"
         );
         return;
       }

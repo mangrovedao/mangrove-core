@@ -46,32 +46,32 @@ async function main() {
     const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
       market
     );
-    // const provBid = await Mango.computeBidProvision();
-    // const provAsk = await Mango.computeAskProvision();
-    // const totalFund = provAsk.add(provBid).mul(NSLOTS);
+    const provBid = await Mango.computeBidProvision();
+    const provAsk = await Mango.computeAskProvision();
+    const totalFund = provAsk.add(provBid).mul(NSLOTS);
 
     // This does not work as listener of maker contract is not synched with listener of Mgv events
-    // const filter_initialized = MangoRaw.filters.Initialized();
-    // let listened = 0;
-    // MangoRaw.on(filter_initialized, async (from, to, bidding) => {
-    //   await market.requestBook(); //not helping
-    //   if (bidding) {
-    //     console.log(`=== Bids on market (${baseName},${quoteName}) ===`);
-    //     market.consoleBids();
-    //     listened++;
-    //   } else {
-    //     console.log(`=== Asks on market (${baseName},${quoteName}) ===`);
-    //     market.consoleAsks();
-    //     listened++;
-    //   }
-    //   if (listened == 2) {
-    //     MangoRaw.removeAllListeners();
-    //   }
-    // });
+    const filter_initialized = MangoRaw.filters.Initialized();
+    let listened = 0;
+    MangoRaw.on(filter_initialized, async (from, to, bidding) => {
+      await market.requestBook(); //not helping
+      if (bidding) {
+        console.log(`=== Bids on market (${baseName},${quoteName}) ===`);
+        market.consoleBids();
+        listened++;
+      } else {
+        console.log(`=== Asks on market (${baseName},${quoteName}) ===`);
+        market.consoleAsks();
+        listened++;
+      }
+      if (listened == 2) {
+        MangoRaw.removeAllListeners();
+      }
+    });
 
-    // console.log(`* Funding mangrove (${totalFund} MATIC for Mango)`);
-    // const tx = await Mango.fundMangrove(totalFund);
-    // await tx.wait();
+    console.log(`* Funding mangrove (${totalFund} MATIC for Mango)`);
+    const tx = await Mango.fundMangrove(totalFund);
+    await tx.wait();
 
     console.log(
       `* Approving mangrove for ${baseName} and ${quoteName} transfer`
@@ -81,21 +81,12 @@ async function main() {
     await tx1.wait();
     await tx2.wait();
 
-    //TODO: should only provision if needed.
     console.log(
-      `* Provisionning Mango with ${baseName} and ${quoteName} tokens`
+      `* Approve Mango for ${baseName} and ${quoteName} token transfer`
     );
 
-    const baseAmount = baseName === "WETH" ? 0.325 : 1000;
-    await MgvAPI.token(baseName).transfer(
-      MangoRaw.address,
-      (NSLOTS / 2) * baseAmount
-    );
-    const balQuote = await MgvAPI.token(quoteName).balanceOf(MangoRaw.address);
-    await MgvAPI.token(quoteName).transfer(
-      MangoRaw.address,
-      (NSLOTS / 2) * 1000
-    );
+    await MgvAPI.token(baseName).approve(MangoRaw.address);
+    await MgvAPI.token(quoteName).approve(MangoRaw.address);
 
     console.log(`* Posting Mango offers on (${baseName},${quoteName}) market`);
     const slice = NSLOTS / 2;

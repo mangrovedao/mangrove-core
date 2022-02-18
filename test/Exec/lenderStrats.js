@@ -36,7 +36,7 @@ async function execLenderStrat(
     "DAI", // maker outbound
     "WETH", // maker inbound
     offerId,
-    lc.parseToken("800.0", await lc.getDecimals("DAI")), // taker wants 0.8 DAI
+    lc.parseToken("800.0", await lc.getDecimals("DAI")), // taker wants 800 DAI
     lc.parseToken("0.5", await lc.getDecimals("WETH")) // taker is ready to give up-to 0.5 WETH
   );
 

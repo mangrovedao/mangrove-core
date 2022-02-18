@@ -157,12 +157,24 @@ contract Mango is Persistent {
     current_min_offer_type = m;
   }
 
-  function get_offers() external view returns (uint[][2] memory offers) {
+  // return Mango offer Ids on Mangrove. If `liveOnly` will only return offer Ids that are live (0 otherwise).
+  function get_offers(bool liveOnly)
+    external
+    view
+    returns (uint[][2] memory offers)
+  {
     offers[0] = new uint[](NSLOTS);
     offers[1] = new uint[](NSLOTS);
     for (uint i = 0; i < NSLOTS; i++) {
-      offers[0][i] = BIDS[index_of_position(i)];
-      offers[1][i] = ASKS[index_of_position(i)];
+      uint askId = ASKS[index_of_position(i)];
+      uint bidId = BIDS[index_of_position(i)];
+
+      offers[0][i] = (MGV.offers(QUOTE, BASE, bidId).gives() > 0 || !liveOnly)
+        ? BIDS[index_of_position(i)]
+        : 0;
+      offers[1][i] = (MGV.offers(BASE, QUOTE, askId).gives() > 0 || !liveOnly)
+        ? ASKS[index_of_position(i)]
+        : 0;
     }
   }
 

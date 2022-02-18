@@ -550,7 +550,12 @@ contract Mango is Persistent {
     super.__posthookSuccess__(order);
     if (order.outbound_tkn == BASE) {
       // Ask Offer (`this` contract just sold some BASE @ pos)
-      uint pos = position_of_index(index_of_ask[order.offerId]);
+      uint index = index_of_ask[order.offerId];
+      if (index == 0) {
+        // offer was posted using newOffer, not during initialization
+        return;
+      }
+      uint pos = position_of_index(index);
       // bid for some BASE token with the received QUOTE tokens @ pos-1
       if (pos > 0) {
         updateBid({
@@ -571,7 +576,12 @@ contract Mango is Persistent {
       }
     } else {
       // Bid offer (`this` contract just bought some BASE)
-      uint pos = position_of_index(index_of_bid[order.offerId]);
+      uint index = index_of_bid[order.offerId];
+      if (index == 0) {
+        // offer was posted using newOffer, not during initialization
+        return;
+      }
+      uint pos = position_of_index(index);
       // ask for some QUOTE tokens in exchange of the received BASE tokens @ pos+1
       if (pos < NSLOTS - 1) {
         updateAsk({

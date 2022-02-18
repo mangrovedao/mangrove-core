@@ -13,32 +13,24 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../../Persistent.sol";
 
-contract DAMM is Persistent {
+contract Mango is Persistent {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
 
-  event BidAtMaxPrice(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId
-  );
-  event AskAtMinPrice(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId
-  );
-  event PriceParamUpdated(uint delta);
+  event BidAtMaxPosition(address quote, address base, uint offerId);
+  event AskAtMinPosition(address quote, address base, uint offerId);
+  event Initialized(uint from, uint to, bool bidding);
 
   /** Immutables */
   // total number of Asks (resp. Bids)
-  uint16 immutable NSLOTS;
+  uint16 public immutable NSLOTS;
 
   // initial min price
   uint96 immutable BASE_0;
   uint96 immutable QUOTE_0;
 
-  address immutable BASE;
-  address immutable QUOTE;
+  address public immutable BASE;
+  address public immutable QUOTE;
 
   /** Mutables */
   //NB if one wants to allow this contract to be multi-makers one should use uint[][] ASKS/BIDS and allocate a new array for each maker.
@@ -48,12 +40,152 @@ contract DAMM is Persistent {
   mapping(uint => uint) index_of_ask; // askId -> index
 
   //NB if one wants to allow this contract to be multi-makers one should use uint[] for each mutable fields to allow user specific parameters.
-  int public current_shift;
+  int current_shift;
 
   // P_i = (Q_0 + i*delta)/B_0
-  uint public current_delta; // quote increment
+  uint current_delta; // quote increment
 
-  /** NB: constructor is `payable` in order to allow deployer to fund initial bids and asks */
+  // triggers `__boundariesReached__` whenever amounts of bids/asks is below `current_min_offer_type`
+  uint current_min_offer_type;
+
+  // whether the strat reneges on offers
+  bool paused = false;
+
+  // Base and quote token treasuries
+  address current_base_treasury;
+  address current_quote_treasury;
+
+  /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
+  function set_treasury(bool base, address treasury) external onlyAdmin {
+    require(treasury != address(0), "Mango/set_treasury/zeroAddress");
+    if (base) {
+      current_base_treasury = treasury;
+    } else {
+      current_quote_treasury = treasury;
+    }
+  }
+
+  function get_treasury(bool base) external view onlyAdmin returns (address) {
+    return base ? current_base_treasury : current_quote_treasury;
+  }
+
+  /** Deposits received tokens into the corresponding treasury*/
+  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
+    if (order.inbound_tkn == BASE && current_base_treasury != address(this)) {
+      return IERC20(BASE).transfer(current_base_treasury, amount) ? 0 : amount;
+    }
+    if (current_quote_treasury != address(this)) {
+      return
+        IERC20(QUOTE).transfer(current_quote_treasury, amount) ? 0 : amount;
+    }
+    // order.inbound_tkn has to be either BASE or QUOTE so only possibility is `this` is treasury
+    return 0;
+  }
+
+  /** Fetches required tokens from the corresponding treasury*/
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
+    if (order.outbound_tkn == BASE && current_base_treasury != address(this)) {
+      return
+        IERC20(BASE).transferFrom(current_base_treasury, address(this), amount)
+          ? 0
+          : amount;
+    }
+    if (current_quote_treasury != address(this)) {
+      return
+        IERC20(QUOTE).transferFrom(
+          current_quote_treasury,
+          address(this),
+          amount
+        )
+          ? 0
+          : amount;
+    }
+    // order.outbound_tkn has to be either BASE or QUOTE so only possibility is `this` is treasury
+    return 0;
+  }
+
+  function retractOffers(uint from, uint to)
+    external
+    onlyAdmin
+    returns (uint collected)
+  {
+    uint collected;
+    for (uint i = from; i < to; i++) {
+      collected += ASKS[i] > 0
+        ? retractOfferInternal(BASE, QUOTE, ASKS[i], true)
+        : 0;
+      collected += BIDS[i] > 0
+        ? retractOfferInternal(QUOTE, BASE, BIDS[i], true)
+        : 0;
+    }
+  }
+
+  /** Setters and getters */
+  function get_delta() external view onlyAdmin returns (uint) {
+    return current_delta;
+  }
+
+  function set_delta(uint delta) public mgvOrAdmin {
+    current_delta = delta;
+  }
+
+  function get_shift() external view onlyAdmin returns (int) {
+    return current_shift;
+  }
+
+  /** Shift the price (induced by quote amount) of n slots down or up */
+  /** price at position i will be shifted (up or down depending on the sign of `shift`) of (shift*delta) / BASE_0 */
+  function set_shift(int s) public mgvOrAdmin {
+    if (s < 0) {
+      negative_shift(uint(-s));
+    } else {
+      positive_shift(uint(s));
+    }
+  }
+
+  function set_min_offer_type(uint m) public mgvOrAdmin {
+    current_min_offer_type = m;
+  }
+
+  function get_offers() external view returns (uint[][2] memory offers) {
+    offers[0] = new uint[](NSLOTS);
+    offers[1] = new uint[](NSLOTS);
+    for (uint i = 0; i < NSLOTS; i++) {
+      offers[0][i] = BIDS[index_of_position(i)];
+      offers[1][i] = ASKS[index_of_position(i)];
+    }
+  }
+
+  // starts reneging all offers
+  // NB reneged offers will not be reposted
+  function pause() public mgvOrAdmin {
+    paused = true;
+  }
+
+  function restart() external onlyAdmin {
+    paused = false;
+  }
+
+  function __lastLook__(MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (bool proceed)
+  {
+    order; //shh
+    proceed = !paused;
+  }
+
   constructor(
     address payable mgv,
     address base,
@@ -70,7 +202,7 @@ contract DAMM is Persistent {
         uint16(nslots) == nslots &&
         uint96(base_0) == base_0 &&
         uint96(quote_0) == quote_0,
-      "DAMM/constructor/invalidArguments"
+      "Mango/constructor/invalidArguments"
     );
     BASE = base;
     QUOTE = quote;
@@ -80,18 +212,10 @@ contract DAMM is Persistent {
     BASE_0 = uint96(base_0);
     QUOTE_0 = uint96(quote_0);
     current_delta = delta;
-  }
-
-  function _getPivot(uint[] calldata pivots, uint i)
-    internal
-    pure
-    returns (uint)
-  {
-    if (pivots[i] != 0) {
-      return pivots[i];
-    } else {
-      return 0;
-    }
+    current_min_offer_type = 1;
+    current_quote_treasury = msg.sender;
+    current_base_treasury = msg.sender;
+    OFR_GASREQ = 400_000; // dry run OK with 200_000
   }
 
   function writeOffer(
@@ -131,6 +255,9 @@ contract DAMM is Persistent {
           offerId: ASKS[index]
         });
       }
+      if (position_of_index(index) <= current_min_offer_type) {
+        __boundariesReached__(false, ASKS[index]);
+      }
     } else {
       // Bids
       if (BIDS[index] == 0) {
@@ -158,6 +285,21 @@ contract DAMM is Persistent {
           offerId: BIDS[index]
         });
       }
+      if (position_of_index(index) >= NSLOTS - 1 - current_min_offer_type) {
+        __boundariesReached__(true, BIDS[index]);
+      }
+    }
+  }
+
+  function _getPivot(uint[] calldata pivots, uint i)
+    internal
+    pure
+    returns (uint)
+  {
+    if (pivots[i] != 0) {
+      return pivots[i];
+    } else {
+      return 0;
     }
   }
 
@@ -168,20 +310,20 @@ contract DAMM is Persistent {
     uint to, // to index excluded
     uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
     uint[] calldata tokenAmounts
-  ) public internalOrAdmin {
+  ) public mgvOrAdmin {
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
     /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
     require(
       to > from && pivotIds[0].length == to - from,
-      "DAMM/initialize/invalidSlice"
+      "Mango/initialize/invalidSlice"
     );
     require(
       tokenAmounts.length == to - from,
-      "DAMM/initialize/invalidBaseAmounts"
+      "Mango/initialize/invalidBaseAmounts"
     );
-    require(!bidding || to != NSLOTS, "DAMM/initialize/NoSlotForAsks"); // bidding => slice doesn't fill the book
-    require(bidding || from != 0, "DAMM/initialize/NoSlotForBids"); // asking => slice doesn't start from MinPrice
+    require(!bidding || to != NSLOTS, "Mango/initialize/NoSlotForAsks"); // bidding => slice doesn't fill the book
+    require(bidding || from != 0, "Mango/initialize/NoSlotForBids"); // asking => slice doesn't start from MinPrice
     uint i;
     for (i = from; i < to; i++) {
       if (bidding) {
@@ -212,6 +354,7 @@ contract DAMM is Persistent {
         });
       }
     }
+    emit Initialized({from: from, to: to, bidding: bidding});
   }
 
   // returns the value of x in the ring [0,m]
@@ -230,7 +373,7 @@ contract DAMM is Persistent {
   /** In general this is QUOTE_0 + shift*delta */
   function quote_min() internal view returns (uint) {
     int qm = int(uint(QUOTE_0)) + current_shift * int(current_delta);
-    require(qm > 0, "DAMM/quote_min/ShiftUnderflow");
+    require(qm > 0, "Mango/quote_min/ShiftUnderflow");
     return (uint(qm));
   }
 
@@ -284,20 +427,10 @@ contract DAMM is Persistent {
     return (quote_amount * BASE_0) / __quote_progression__(p);
   }
 
-  /** Shift the price (induced by quote amount) of n slots down or up */
-  /** price at position i will be shifted (up or down depending on the sign of `shift`) of (shift*delta) / BASE_0 */
-  function shift(int s) external onlyAdmin {
-    if (s < 0) {
-      negative_shift(uint(-s));
-    } else {
-      positive_shift(uint(s));
-    }
-  }
-
   /** Recenter the order book by shifting min price up `s` positions in the book */
   /** As a consequence `s` Bids will be cancelled and `s` new asks will be posted */
   function positive_shift(uint s) internal {
-    require(s < NSLOTS, "DAMM/shift/positiveShiftTooLarge");
+    require(s < NSLOTS, "Mango/shift/positiveShiftTooLarge");
     uint index = index_of_position(0);
     current_shift += int(s); // updating new shift
     // Warning: from now on position_of_index reflects the new shift
@@ -337,7 +470,7 @@ contract DAMM is Persistent {
   /** Recenter the order book by shifting max price down `s` positions in the book */
   /** As a consequence `s` Asks will be cancelled and `s` new Bids will be posted */
   function negative_shift(uint s) internal {
-    require(s < NSLOTS, "DAMM/shift/NegativeShiftTooLarge");
+    require(s < NSLOTS, "Mango/shift/NegativeShiftTooLarge");
     uint index = index_of_position(NSLOTS - 1);
     current_shift -= int(s); // updating new shift
     // Warning: from now on position_of_index reflects the new shift
@@ -372,11 +505,6 @@ contract DAMM is Persistent {
     }
   }
 
-  function lazyResetPriceParameter(uint delta) public internalOrAdmin {
-    current_delta = delta;
-    emit PriceParamUpdated(delta);
-  }
-
   // for reposting partial filled offers one always gives the residual (default behavior)
   // and adapts wants to the new price (if different).
   function __residualWants__(MgvLib.SingleOrder calldata order)
@@ -407,9 +535,9 @@ contract DAMM is Persistent {
   /** Define what to do when the AMM boundaries are reached (either when reposting a bid or a ask) */
   function __boundariesReached__(bool bid, uint offerId) internal virtual {
     if (bid) {
-      emit BidAtMaxPrice(QUOTE, BASE, offerId);
+      emit BidAtMaxPosition(QUOTE, BASE, offerId);
     } else {
-      emit AskAtMinPrice(BASE, QUOTE, offerId);
+      emit AskAtMinPosition(BASE, QUOTE, offerId);
     }
   }
 
@@ -418,10 +546,16 @@ contract DAMM is Persistent {
     virtual
     override
   {
-    super.__posthookSuccess__(order); // reposting residual of offer using `this.__newWants__` to update price
+    // reposting residual of offer using override `__newWants__` and default `__newGives` for new price
+    super.__posthookSuccess__(order);
     if (order.outbound_tkn == BASE) {
       // Ask Offer (`this` contract just sold some BASE @ pos)
-      uint pos = position_of_index(index_of_ask[order.offerId]);
+      uint index = index_of_ask[order.offerId];
+      if (index == 0) {
+        // offer was posted using newOffer, not during initialization
+        return;
+      }
+      uint pos = position_of_index(index);
       // bid for some BASE token with the received QUOTE tokens @ pos-1
       if (pos > 0) {
         updateBid({
@@ -430,22 +564,24 @@ contract DAMM is Persistent {
           amount: order.gives,
           pivotId: 0
         });
-        if (pos == NSLOTS - 1) {
-          __boundariesReached__(true, BIDS[index_of_position(pos - 1)]);
-        }
       } else {
         // Ask cannot be at Pmin unless a shift has eliminated all bids
         emit PosthookFail(
           order.outbound_tkn,
           order.inbound_tkn,
           order.offerId,
-          "DAMM/posthook/BuyingOutOfPriceRange"
+          "Mango/posthook/BuyingOutOfPriceRange"
         );
         return;
       }
     } else {
       // Bid offer (`this` contract just bought some BASE)
-      uint pos = position_of_index(index_of_bid[order.offerId]);
+      uint index = index_of_bid[order.offerId];
+      if (index == 0) {
+        // offer was posted using newOffer, not during initialization
+        return;
+      }
+      uint pos = position_of_index(index);
       // ask for some QUOTE tokens in exchange of the received BASE tokens @ pos+1
       if (pos < NSLOTS - 1) {
         updateAsk({
@@ -454,16 +590,13 @@ contract DAMM is Persistent {
           amount: order.gives,
           pivotId: 0
         });
-        if (pos == 1) {
-          __boundariesReached__(false, ASKS[index_of_position(pos + 1)]);
-        }
       } else {
         // Take profit
         emit PosthookFail(
           order.outbound_tkn,
           order.inbound_tkn,
           order.offerId,
-          "DAMM/posthook/SellingOutOfPriceRange"
+          "Mango/posthook/SellingOutOfPriceRange"
         );
         return;
       }
@@ -561,7 +694,4 @@ contract DAMM is Persistent {
       pivotId: pivot
     });
   }
-
-  // TODO __posthookFail__
-  // TODO initialize by chunks
 }

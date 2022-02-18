@@ -32,14 +32,6 @@ contract AccessControlled {
     _;
   }
 
-  modifier internalOrAdmin() {
-    require(
-      msg.sender == admin || msg.sender == address(this),
-      "AccessControlled/Invalid"
-    );
-    _;
-  }
-
   function setAdmin(address _admin) external onlyAdmin {
     admin = _admin;
   }

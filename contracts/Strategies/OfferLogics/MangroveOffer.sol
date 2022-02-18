@@ -20,33 +20,35 @@ import "../interfaces/IOfferLogic.sol";
 import "../../Mangrove.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
-abstract contract MangroveOffer is
-  AccessControlled,
-  IOfferLogic,
-  Exponential
-{
+abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
-  
+
   bytes32 immutable RENEGED = "MangroveOffer/reneged";
   bytes32 immutable PUTFAILURE = "MangroveOffer/putFailure";
   bytes32 immutable OUTOFLIQUIDITY = "MangroveOffer/outOfLiquidity";
-  
 
   Mangrove public immutable MGV; // Address of the deployed Mangrove contract
 
+  modifier mgvOrAdmin() {
+    require(
+      msg.sender == admin || msg.sender == address(MGV),
+      "AccessControlled/Invalid"
+    );
+    _;
+  }
   // default values
   uint public override OFR_GASREQ = 100_000;
 
-  receive() external virtual payable {}
+  receive() external payable virtual {}
 
   constructor(address payable _mgv) {
     MGV = Mangrove(_mgv);
   }
 
-  function setGasreq(uint gasreq) public override internalOrAdmin {
+  function setGasreq(uint gasreq) public override mgvOrAdmin {
     require(uint24(gasreq) == gasreq, "MangroveOffer/gasreq/overflow");
     OFR_GASREQ = gasreq;
   }
@@ -114,25 +116,24 @@ abstract contract MangroveOffer is
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
     }
-    uint bounty = (gasreq + localData.offer_gasbase()) *
-      _gp *
-      10**9; // in WEI
+    uint bounty = (gasreq + localData.offer_gasbase()) * _gp * 10**9; // in WEI
     // if `offerId` is not in the OfferList, all returned values will be 0
     uint currentProvisionLocked = (offerDetailData.gasreq() +
-      offerDetailData.offer_gasbase()) * 
+      offerDetailData.offer_gasbase()) *
       offerDetailData.gasprice() *
       10**9;
     uint currentProvision = currentProvisionLocked + balance;
     return (currentProvision >= bounty ? 0 : bounty - currentProvision);
   }
 
-  function giveAtDensity(address outbound_tkn, address inbound_tkn, uint gasreq) public view returns (uint){
-    (, P.Local.t localData) = MGV.config(
-      outbound_tkn,
-      inbound_tkn
-    );
+  function giveAtDensity(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint gasreq
+  ) public view returns (uint) {
+    (, P.Local.t localData) = MGV.config(outbound_tkn, inbound_tkn);
     gasreq = gasreq > type(uint24).max ? OFR_GASREQ : gasreq;
-    return (gasreq + localData.offer_gasbase()) * localData.density(); 
+    return (gasreq + localData.offer_gasbase()) * localData.density();
   }
 
   /////// Mandatory callback functions

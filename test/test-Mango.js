@@ -87,26 +87,23 @@ describe("Running tests...", function () {
       0
     );
 
-    await makerContract.fundMangrove({ value: prov.mul(200) });
+    await makerContract.fundMangrove({ value: prov.mul(20) });
 
     let slice = NSLOTS / 2;
-    let bidding = true;
     let pivotIds = new Array(slice);
     let amounts = new Array(slice);
     pivotIds = pivotIds.fill(0, 0);
-    amounts.fill(ethers.utils.parseUnits("1000", 6), 0);
 
     for (let i = 0; i < 2; i++) {
-      if (i >= 1) {
-        bidding = false;
-      }
       const receipt = await makerContract.initialize(
-        bidding,
-        false, //withQuotes
+        4,
+        i > 0, //slice 1 with quotes, slice 2 with base
         slice * i, // from
         slice * (i + 1), // to
         [pivotIds, pivotIds],
-        amounts
+        i == 0
+          ? amounts.fill(ethers.utils.parseUnits("1000", 6), 0) // fill with fixed quotes if bidding
+          : amounts.fill(ethers.utils.parseEther("0.3"), 0) // fill with fixed bases if Asking
       );
       console.log(
         `Slice initialized (${(await receipt.wait()).gasUsed} gas used)`
@@ -114,12 +111,12 @@ describe("Running tests...", function () {
     }
   });
   it("Market orders", async function () {
-    // let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
-    // console.log("===bids===");
-    // await lc.logOrderBook(book, usdc, wEth);
-    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
-    // console.log("===asks===");
-    // await lc.logOrderBook(book, wEth, usdc);
+    let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
+    console.log("===bids===");
+    await lc.logOrderBook(book, usdc, wEth);
+    book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
+    console.log("===asks===");
+    await lc.logOrderBook(book, wEth, usdc);
 
     await makerContract.approveMangrove(
       wEth.address,
@@ -148,7 +145,7 @@ describe("Running tests...", function () {
       ethers.utils.parseUnits("3000", 6) // gives
     );
 
-    let [bids, asks] = await makerContract.get_offers();
+    let [bids, asks] = await makerContract.get_offers(false);
     await checkOB(
       "OB bids",
       mgv,
@@ -191,7 +188,7 @@ describe("Running tests...", function () {
       ethers.utils.parseUnits("3500", 6), // wants
       ethers.utils.parseEther("1.5") // gives
     );
-    [bids, asks] = await makerContract.get_offers();
+    [bids, asks] = await makerContract.get_offers(false);
     await checkOB(
       "OB bids",
       mgv,
@@ -230,8 +227,11 @@ describe("Running tests...", function () {
 
   it("Negative shift", async function () {
     //console.log(chalk.yellow("Shifting"), chalk.red(-2));
-    await makerContract.set_shift(-2);
-    let [bids, asks] = await makerContract.get_offers();
+    await makerContract.set_shift(-2, false, [
+      ethers.utils.parseUnits("1000", 6),
+      ethers.utils.parseUnits("1000", 6),
+    ]);
+    let [bids, asks] = await makerContract.get_offers(false);
     await checkOB(
       "OB bids",
       mgv,
@@ -260,9 +260,13 @@ describe("Running tests...", function () {
   });
 
   it("Positive shift", async function () {
-    await makerContract.set_shift(3);
+    await makerContract.set_shift(3, true, [
+      ethers.utils.parseUnits("0.3", 18),
+      ethers.utils.parseUnits("0.3", 18),
+      ethers.utils.parseUnits("0.3", 18),
+    ]);
 
-    [bids, asks] = await makerContract.get_offers();
+    [bids, asks] = await makerContract.get_offers(false);
     await checkOB(
       "OB bids",
       mgv,
@@ -303,7 +307,7 @@ describe("Running tests...", function () {
       takerGot.eq(0) && takerGave.eq(0),
       "Start is not reneging on trades"
     );
-    const [bids] = await makerContract.get_offers();
+    const [bids] = await makerContract.get_offers(false);
     await checkOB(
       "OB bids",
       mgv,

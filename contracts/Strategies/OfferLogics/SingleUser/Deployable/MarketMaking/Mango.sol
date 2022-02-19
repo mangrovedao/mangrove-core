@@ -249,6 +249,10 @@ contract Mango is Persistent {
     bool withBase,
     uint[] calldata amounts
   ) public mgvOrAdmin {
+    require(
+      amounts.length == (s < 0 ? uint(-s) : uint(s)),
+      "Mango/set_shift/notEnoughAmounts"
+    );
     if (s < 0) {
       negative_shift(uint(-s), withBase, amounts);
     } else {

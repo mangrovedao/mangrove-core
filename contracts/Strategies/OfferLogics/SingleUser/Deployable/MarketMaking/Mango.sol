@@ -19,13 +19,13 @@ contract Mango is Persistent {
 
   event BidAtMaxPosition(address quote, address base, uint offerId);
   event AskAtMinPosition(address quote, address base, uint offerId);
-  event Initialized(uint from, uint to, bool bidding);
+  event Initialized(uint from, uint to);
 
   /** Immutables */
   // total number of Asks (resp. Bids)
   uint16 public immutable NSLOTS;
 
-  // initial min price
+  // initial min price given by `QUOTE_0/BASE_0`
   uint96 immutable BASE_0;
   uint96 immutable QUOTE_0;
 
@@ -42,7 +42,7 @@ contract Mango is Persistent {
   //NB if one wants to allow this contract to be multi-makers one should use uint[] for each mutable fields to allow user specific parameters.
   int current_shift;
 
-  // P_i = (Q_0 + i*delta)/B_0
+  // price increment is current_delta / BASE_0
   uint current_delta; // quote increment
 
   // triggers `__boundariesReached__` whenever amounts of bids/asks is below `current_min_offer_type`
@@ -54,6 +54,105 @@ contract Mango is Persistent {
   // Base and quote token treasuries
   address current_base_treasury;
   address current_quote_treasury;
+
+  constructor(
+    address payable mgv,
+    address base,
+    address quote,
+    uint base_0,
+    uint quote_0,
+    uint nslots,
+    uint delta
+  ) MangroveOffer(mgv) {
+    // sanity check
+    require(
+      nslots > 0 &&
+        mgv != address(0) &&
+        uint16(nslots) == nslots &&
+        uint96(base_0) == base_0 &&
+        uint96(quote_0) == quote_0,
+      "Mango/constructor/invalidArguments"
+    );
+    BASE = base;
+    QUOTE = quote;
+    NSLOTS = uint16(nslots);
+    ASKS = new uint[](nslots);
+    BIDS = new uint[](nslots);
+    BASE_0 = uint96(base_0);
+    QUOTE_0 = uint96(quote_0);
+    current_delta = delta;
+    current_min_offer_type = 1;
+    current_quote_treasury = msg.sender;
+    current_base_treasury = msg.sender;
+    OFR_GASREQ = 400_000; // dry run OK with 200_000
+  }
+
+  function _getPivot(uint[] calldata pivots, uint i)
+    internal
+    pure
+    returns (uint)
+  {
+    if (pivots[i] != 0) {
+      return pivots[i];
+    } else {
+      return 0;
+    }
+  }
+
+  function initialize(
+    uint lastBidPosition, // [0,..,lastBidPosition] are bids
+    bool withBase,
+    uint from, // slice (from included)
+    uint to, // to index excluded
+    uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
+    uint[] calldata tokenAmounts
+  ) public mgvOrAdmin {
+    /** Initializing Asks and Bids */
+    /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
+    /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
+    require(
+      to > from && pivotIds[0].length == to - from,
+      "Mango/initialize/invalidSlice"
+    );
+    require(
+      tokenAmounts.length == to - from,
+      "Mango/initialize/invalidBaseAmounts"
+    );
+    require(lastBidPosition < NSLOTS - 1, "Mango/initialize/NoSlotForAsks"); // bidding => slice doesn't fill the book
+    uint i;
+    for (i = from; i < to; i++) {
+      if (i <= lastBidPosition) {
+        uint bidPivot = _getPivot(pivotIds[0], i - from);
+        bidPivot = bidPivot > 0
+          ? bidPivot // taking pivot from the user
+          : i > 0
+          ? BIDS[i - 1]
+          : 0; // otherwise getting last inserted offer as pivot
+        updateBid({
+          index: i,
+          withBase: withBase,
+          reset: true, // overwrites old value
+          amount: tokenAmounts[i - from],
+          pivotId: bidPivot
+        });
+      } else {
+        uint askPivot = _getPivot(pivotIds[1], i - from);
+        askPivot = askPivot > 0
+          ? askPivot // taking pivot from the user
+          : i > 0
+          ? ASKS[i - 1]
+          : 0; // otherwise getting last inserted offer as pivot
+        updateAsk({
+          index: i,
+          withBase: withBase,
+          reset: true,
+          amount: tokenAmounts[i - from],
+          pivotId: askPivot
+        });
+      }
+    }
+    emit Initialized({from: from, to: to});
+  }
 
   /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
   function set_treasury(bool base, address treasury) external onlyAdmin {
@@ -119,7 +218,6 @@ contract Mango is Persistent {
     onlyAdmin
     returns (uint collected)
   {
-    uint collected;
     for (uint i = from; i < to; i++) {
       collected += ASKS[i] > 0
         ? retractOfferInternal(BASE, QUOTE, ASKS[i], true)
@@ -144,12 +242,17 @@ contract Mango is Persistent {
   }
 
   /** Shift the price (induced by quote amount) of n slots down or up */
-  /** price at position i will be shifted (up or down depending on the sign of `shift`) of (shift*delta) / BASE_0 */
-  function set_shift(int s) public mgvOrAdmin {
+  /** price at position i will be shifted (up or down depending on the sign of `shift`) */
+  /** New positions 0<= i < s are initialized with amount[i] in base tokens if `withBase`. In quote tokens otherwise*/
+  function set_shift(
+    int s,
+    bool withBase,
+    uint[] calldata amounts
+  ) public mgvOrAdmin {
     if (s < 0) {
-      negative_shift(uint(-s));
+      negative_shift(uint(-s), withBase, amounts);
     } else {
-      positive_shift(uint(s));
+      positive_shift(uint(s), withBase, amounts);
     }
   }
 
@@ -196,38 +299,6 @@ contract Mango is Persistent {
   {
     order; //shh
     proceed = !paused;
-  }
-
-  constructor(
-    address payable mgv,
-    address base,
-    address quote,
-    uint base_0,
-    uint quote_0,
-    uint nslots,
-    uint delta
-  ) MangroveOffer(mgv) {
-    // sanity check
-    require(
-      nslots > 0 &&
-        mgv != address(0) &&
-        uint16(nslots) == nslots &&
-        uint96(base_0) == base_0 &&
-        uint96(quote_0) == quote_0,
-      "Mango/constructor/invalidArguments"
-    );
-    BASE = base;
-    QUOTE = quote;
-    NSLOTS = uint16(nslots);
-    ASKS = new uint[](nslots);
-    BIDS = new uint[](nslots);
-    BASE_0 = uint96(base_0);
-    QUOTE_0 = uint96(quote_0);
-    current_delta = delta;
-    current_min_offer_type = 1;
-    current_quote_treasury = msg.sender;
-    current_base_treasury = msg.sender;
-    OFR_GASREQ = 400_000; // dry run OK with 200_000
   }
 
   function writeOffer(
@@ -303,72 +374,6 @@ contract Mango is Persistent {
     }
   }
 
-  function _getPivot(uint[] calldata pivots, uint i)
-    internal
-    pure
-    returns (uint)
-  {
-    if (pivots[i] != 0) {
-      return pivots[i];
-    } else {
-      return 0;
-    }
-  }
-
-  function initialize(
-    bool bidding, // if true, OB slots will be populated
-    bool withBase,
-    uint from, // slice (from included)
-    uint to, // to index excluded
-    uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
-    uint[] calldata tokenAmounts
-  ) public mgvOrAdmin {
-    /** Initializing Asks and Bids */
-    /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
-    /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
-    require(
-      to > from && pivotIds[0].length == to - from,
-      "Mango/initialize/invalidSlice"
-    );
-    require(
-      tokenAmounts.length == to - from,
-      "Mango/initialize/invalidBaseAmounts"
-    );
-    require(!bidding || to != NSLOTS, "Mango/initialize/NoSlotForAsks"); // bidding => slice doesn't fill the book
-    require(bidding || from != 0, "Mango/initialize/NoSlotForBids"); // asking => slice doesn't start from MinPrice
-    uint i;
-    for (i = from; i < to; i++) {
-      if (bidding) {
-        uint bidPivot = _getPivot(pivotIds[0], i - from);
-        bidPivot = bidPivot > 0
-          ? bidPivot // taking pivot from the user
-          : i > 0
-          ? BIDS[i - 1]
-          : 0; // otherwise getting last inserted offer as pivot
-        updateBid({
-          index: i,
-          withBase: withBase,
-          amount: tokenAmounts[i - from],
-          pivotId: bidPivot
-        });
-      } else {
-        uint askPivot = _getPivot(pivotIds[1], i - from);
-        askPivot = askPivot > 0
-          ? askPivot // taking pivot from the user
-          : i > 0
-          ? ASKS[i - 1]
-          : 0; // otherwise getting last inserted offer as pivot
-        updateAsk({
-          index: i,
-          withBase: withBase,
-          amount: tokenAmounts[i - from],
-          pivotId: askPivot
-        });
-      }
-    }
-    emit Initialized({from: from, to: to, bidding: bidding});
-  }
-
   // returns the value of x in the ring [0,m]
   // i.e if x>=0 this is just x % m
   // if x<0 this is m + (x % m)
@@ -441,13 +446,18 @@ contract Mango is Persistent {
 
   /** Recenter the order book by shifting min price up `s` positions in the book */
   /** As a consequence `s` Bids will be cancelled and `s` new asks will be posted */
-  function positive_shift(uint s) internal {
+  function positive_shift(
+    uint s,
+    bool withBase,
+    uint[] calldata amounts
+  ) internal {
     require(s < NSLOTS, "Mango/shift/positiveShiftTooLarge");
     uint index = index_of_position(0);
     current_shift += int(s); // updating new shift
     // Warning: from now on position_of_index reflects the new shift
     // One must progress relative to index when retracting offers
-    while (s > 0) {
+    uint cpt = 0;
+    while (cpt < s) {
       // slots occupied by [Bids[index],..,Bids[index+`s` % N]] are retracted
       if (BIDS[index] != 0) {
         retractOfferInternal({
@@ -463,31 +473,42 @@ contract Mango is Persistent {
 
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
-      // defining new_gives (in bases) based on default quote amount for new offers
-      // in order to minimize base input to the strat
-      uint new_gives = bases_of_position(pos, QUOTE_0);
+      uint new_gives;
+      uint new_wants;
+      if (withBase) {
+        new_gives = quotes_of_position(pos, amounts[cpt]);
+        new_wants = amounts[cpt];
+      } else {
+        new_wants = bases_of_position(pos, amounts[cpt]);
+        new_gives = amounts[cpt];
+      }
       writeOffer({
         index: index,
         outbound_tkn: BASE,
         inbound_tkn: QUOTE,
-        wants: QUOTE_0,
+        wants: new_wants,
         gives: new_gives,
         pivotId: pos > 0 ? ASKS[index_of_position(pos - 1)] : 0
       });
-      s--;
+      cpt++;
       index = next_index(index);
     }
   }
 
   /** Recenter the order book by shifting max price down `s` positions in the book */
   /** As a consequence `s` Asks will be cancelled and `s` new Bids will be posted */
-  function negative_shift(uint s) internal {
+  function negative_shift(
+    uint s,
+    bool withBase,
+    uint[] calldata amounts
+  ) internal {
     require(s < NSLOTS, "Mango/shift/NegativeShiftTooLarge");
     uint index = index_of_position(NSLOTS - 1);
     current_shift -= int(s); // updating new shift
     // Warning: from now on position_of_index reflects the new shift
     // One must progress relative to index when retracting offers
-    while (s > 0) {
+    uint cpt;
+    while (cpt < s) {
       // slots occupied by [Asks[index-`s` % N],..,Asks[index]] are retracted
       if (ASKS[index] != 0) {
         retractOfferInternal({
@@ -503,16 +524,24 @@ contract Mango is Persistent {
 
       // `pos` is the offer position in the OB (not the array)
       uint pos = position_of_index(index);
-      uint new_wants = bases_of_position(pos, QUOTE_0);
+      uint new_gives;
+      uint new_wants;
+      if (withBase) {
+        new_wants = amounts[cpt];
+        new_gives = quotes_of_position(pos, amounts[cpt]);
+      } else {
+        new_wants = bases_of_position(pos, amounts[cpt]);
+        new_gives = amounts[cpt];
+      }
       writeOffer({
         index: index,
         outbound_tkn: QUOTE,
         inbound_tkn: BASE,
         wants: new_wants,
-        gives: QUOTE_0,
+        gives: new_gives,
         pivotId: pos < NSLOTS - 1 ? BIDS[index_of_position(pos + 1)] : 0
       });
-      s--;
+      cpt++;
       index = prev_index(index);
     }
   }
@@ -573,6 +602,7 @@ contract Mango is Persistent {
         updateBid({
           index: index_of_position(pos - 1),
           withBase: false,
+          reset: false, // top up old value with received amount
           amount: order.gives,
           pivotId: 0
         });
@@ -599,6 +629,7 @@ contract Mango is Persistent {
         updateAsk({
           index: index_of_position(pos + 1),
           withBase: true,
+          reset: false, // top up old value with received amount
           amount: order.gives,
           pivotId: 0
         });
@@ -618,6 +649,7 @@ contract Mango is Persistent {
   function updateBid(
     uint index,
     bool withBase,
+    bool reset,
     uint amount,
     uint pivotId
   ) internal {
@@ -629,10 +661,10 @@ contract Mango is Persistent {
     uint new_gives;
     if (withBase) {
       // amount: BASE
-      new_wants = amount + offer.wants();
+      new_wants = reset ? amount : amount + offer.wants();
       new_gives = quotes_of_position(position, new_wants);
     } else {
-      new_gives = amount + offer.gives();
+      new_gives = reset ? amount : amount + offer.gives();
       new_wants = bases_of_position(position, new_gives);
     }
     uint pivot;
@@ -664,6 +696,7 @@ contract Mango is Persistent {
   function updateAsk(
     uint index,
     bool withBase,
+    bool reset,
     uint amount,
     uint pivotId
   ) internal {
@@ -674,10 +707,10 @@ contract Mango is Persistent {
     uint new_wants;
     if (withBase) {
       // amount: BASE
-      new_gives = amount + offer.gives(); // in BASE
+      new_gives = reset ? amount : amount + offer.gives(); // in BASE
       new_wants = quotes_of_position(position, new_gives);
     } else {
-      new_wants = amount + offer.wants(); // in QUOTES
+      new_wants = reset ? amount : amount + offer.wants(); // in QUOTES
       new_gives = bases_of_position(position, new_wants);
     }
 

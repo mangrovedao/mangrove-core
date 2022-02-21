@@ -34,15 +34,7 @@ contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
     returns (uint missing)
   {
     // puts amount inbound_tkn in `this`
-    missing = MultiUser.__put__(amount, order);
-    // transfers the deposited tokens to owner
-    address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
-      order.offerId
-    );
-    // NOTE this could be done off chain by the owner
-    transferToken(order.inbound_tkn, owner, amount);
+    missing = MultiUserAaveLender.__put__(amount, order);
   }
 
   function __get__(uint amount, MgvLib.SingleOrder calldata order)
@@ -58,6 +50,7 @@ contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
     internal
     override(MangroveOffer, MultiUserPersistent)
   {
+    // reposting residual if possible
     MultiUserPersistent.__posthookSuccess__(order);
   }
 }

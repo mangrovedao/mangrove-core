@@ -20,19 +20,11 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
   ///@notice Required functions to let `this` contract interact with Aave
   /**************************************************************************/
 
-  ///@notice approval of ctoken contract by the underlying is necessary for minting and repaying borrow
+  ///@notice approval of overlying token contract by the underlying is necessary for minting and repaying borrow
   ///@notice user must use this function to do so.
   function approveLender(address token, uint amount) external onlyAdmin {
     _approveLender(token, amount);
   }
-
-  // function mint(
-  //   uint amount,
-  //   address asset,
-  //   address onBehalf
-  // ) external onlyAdmin {
-  //   _mint(amount, asset, onBehalf);
-  // }
 
   // tokens are fetched on Aave (on behalf of offer owner)
   function __get__(uint amount, MgvLib.SingleOrder calldata order)
@@ -55,9 +47,7 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
     }
     // need to retreive overlyings from msg.sender (we suppose `this` is approved for that)
     IERC20 aToken = overlying(IERC20(order.outbound_tkn));
-    try aToken.transferFrom(owner, address(this), amount) returns (
-      bool 
-    ) {
+    try aToken.transferFrom(owner, address(this), amount) returns (bool) {
       if (aaveRedeem(amount, address(this), order) == 0) {
         // amount was transfered to `owner`
         return 0;

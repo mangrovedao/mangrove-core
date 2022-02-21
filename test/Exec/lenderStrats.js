@@ -28,8 +28,7 @@ async function execLenderStrat(
     lc.parseToken("0.5", await lc.getDecimals("WETH")), // required WETH
     lc.parseToken("1000.0", await lc.getDecimals("DAI")) // promised DAI
   );
-  let weth = await lc.getContract("WETH");
-  let olBalMaker = await weth.balanceOf(players.maker.address);
+
   let [takerGot, takerGave] = await lc.snipeSuccess(
     mgv.connect(players.taker.signer),
     reader,
@@ -54,17 +53,13 @@ async function execLenderStrat(
 
   await lc.expectAmountOnLender(players.maker.address, lenderName, [
     ["DAI", lc.parseToken("200", await lc.getDecimals("DAI")), zero, 4],
+    ["WETH", lc.parseToken("0.4", await lc.getDecimals("WETH")), zero, 8],
   ]);
   await lc.logLenderStatus(
     makerContract,
     lenderName,
     ["DAI", "WETH"],
     players.maker.address
-  );
-  lc.assertEqualBN(
-    await weth.balanceOf(players.maker.address),
-    takerGave.add(olBalMaker),
-    "Incorrect received amount for maker"
   );
 }
 

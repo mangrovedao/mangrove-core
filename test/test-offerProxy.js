@@ -21,6 +21,8 @@ async function deployStrat(mgv, reader, players) {
   const Strat = (await ethers.getContractFactory("OfferProxy")).connect(
     players.deployer.signer
   );
+
+  // admin side premices
   let offerProxy = await Strat.deploy(
     aave.address,
     reader.address,
@@ -28,6 +30,11 @@ async function deployStrat(mgv, reader, players) {
   );
 
   await offerProxy.deployed();
+  // offerProxy needs to let lendingPool pull inbound tokens from it in order to mint
+  let tx = await offerProxy
+    .connect(players.deployer.signer)
+    .approveLender(wEth.address, ethers.constants.MaxUint256);
+  await tx.wait();
 
   // Taker side premises
   // taker approves Mangrove for WETH (inbound) before trying to take offers
@@ -45,10 +52,11 @@ async function deployStrat(mgv, reader, players) {
   mkrTxs[i++] = await offerProxy
     .connect(players.maker.signer)
     .fundMangrove(overrides);
-  // maker approves takerProfit for aDai (Dai is outbound) transfer
+  // maker approves aDai (Dai is outbound) transfer so that offerProxy can pull them on demand
   mkrTxs[i++] = await aDai
     .connect(players.maker.signer)
     .approve(offerProxy.address, ethers.constants.MaxUint256);
+
   // Maker mints 1000 aDai on AAVE
   mkrTxs[i++] = await dai
     .connect(players.maker.signer)
@@ -56,6 +64,7 @@ async function deployStrat(mgv, reader, players) {
   mkrTxs[i++] = await lendingPool
     .connect(players.maker.signer)
     .deposit(dai.address, lc.parseToken("1000", 18), players.maker.address, 0);
+
   await lc.synch(mkrTxs);
 
   // sanity check

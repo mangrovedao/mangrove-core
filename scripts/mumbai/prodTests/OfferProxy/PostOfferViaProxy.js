@@ -35,8 +35,8 @@ async function main() {
   }
 
   const markets = [
-    ["WETH", 4300, "DAI", 1],
-    ["WETH", 4300, "USDC", 1],
+    ["WETH", 2800, "DAI", 1],
+    ["WETH", 2800, "USDC", 1],
     ["DAI", 1, "USDC", 1],
   ];
 
@@ -76,8 +76,8 @@ async function main() {
     console.log(
       `* Posting new offer proxy ${ofrId_} on (${base},${quote}) market using pivot ${pivot_}`
     );
-    await lp.market.consoleAsks();
-    await lp.market.consoleBids();
+    lp.market.consoleAsks();
+    lp.market.consoleBids();
   }
 }
 main()

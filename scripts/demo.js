@@ -39,7 +39,7 @@ const { id: ofrId } = await directLP.newAsk({ wants: 105, gives: 104 });
 
 /// with an onchain logic
 
-const logic = mgv.offerLogic("0xca02FF4541f9B7B9878e925d7daE87d8A7501C68");
+const logic = mgv.offerLogic("0x08e64b9deEDCa3352Db74957b63775044a510882");
 const onchainLP = await logic.liquidityProvider(market);
 
 // approves amBase transfer to logic
@@ -51,4 +51,4 @@ prov = await onchainLP.computeAskProvision();
 tx = await onchainLP.fundMangrove(prov);
 await tx.wait();
 
-const { id: ofrId_ } = await onchainLP.newAsk({ wants: 1005, gives: 1004 });
+const { id: ofrId_ } = await onchainLP.newAsk({ wants: 1000, gives: 1000 });

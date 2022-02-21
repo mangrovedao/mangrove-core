@@ -87,18 +87,6 @@ contract Mango is Persistent {
     OFR_GASREQ = 400_000; // dry run OK with 200_000
   }
 
-  function _getPivot(uint[] calldata pivots, uint i)
-    internal
-    pure
-    returns (uint)
-  {
-    if (pivots[i] != 0) {
-      return pivots[i];
-    } else {
-      return 0;
-    }
-  }
-
   function initialize(
     uint lastBidPosition, // [0,..,lastBidPosition] are bids
     bool withBase,
@@ -122,7 +110,7 @@ contract Mango is Persistent {
     uint i;
     for (i = from; i < to; i++) {
       if (i <= lastBidPosition) {
-        uint bidPivot = _getPivot(pivotIds[0], i - from);
+        uint bidPivot = pivotIds[0][i - from];
         bidPivot = bidPivot > 0
           ? bidPivot // taking pivot from the user
           : i > 0
@@ -136,7 +124,7 @@ contract Mango is Persistent {
           pivotId: bidPivot
         });
       } else {
-        uint askPivot = _getPivot(pivotIds[1], i - from);
+        uint askPivot = pivotIds[1][i - from];
         askPivot = askPivot > 0
           ? askPivot // taking pivot from the user
           : i > 0
@@ -213,18 +201,23 @@ contract Mango is Persistent {
     return 0;
   }
 
-  function retractOffers(uint from, uint to)
-    external
-    onlyAdmin
-    returns (uint collected)
-  {
+  // with ba=0:bids only, ba=1: asks only ba>1 all
+  function retractOffers(
+    uint ba,
+    uint from,
+    uint to
+  ) external onlyAdmin returns (uint collected) {
     for (uint i = from; i < to; i++) {
-      collected += ASKS[i] > 0
-        ? retractOfferInternal(BASE, QUOTE, ASKS[i], true)
-        : 0;
-      collected += BIDS[i] > 0
-        ? retractOfferInternal(QUOTE, BASE, BIDS[i], true)
-        : 0;
+      if (ba > 0) {
+        collected += ASKS[i] > 0
+          ? retractOfferInternal(BASE, QUOTE, ASKS[i], true)
+          : 0;
+      }
+      if (ba == 0 || ba > 1) {
+        collected += BIDS[i] > 0
+          ? retractOfferInternal(QUOTE, BASE, BIDS[i], true)
+          : 0;
+      }
     }
   }
 

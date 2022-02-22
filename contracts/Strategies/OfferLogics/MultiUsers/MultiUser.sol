@@ -74,10 +74,7 @@ abstract contract MultiUser is MangroveOffer {
   }
 
   function debitOnMgv(address owner, uint amount) internal {
-    require(
-      mgvBalance[owner] >= amount,
-      "MultiOwner/debitOnMgv/insufficient"
-    );
+    require(mgvBalance[owner] >= amount, "MultiOwner/debitOnMgv/insufficient");
     mgvBalance[owner] -= amount;
   }
 
@@ -94,6 +91,9 @@ abstract contract MultiUser is MangroveOffer {
     address owner,
     uint amount
   ) internal {
+    if (amount == 0) {
+      return;
+    }
     require(
       tokenBalanceOf[token][owner] >= amount,
       "MultiOwner/debitToken/insufficient"
@@ -281,7 +281,7 @@ abstract contract MultiUser is MangroveOffer {
     uint provision // dangerous to use msg.value in a internal call
   ) internal {
     require(
-      caller == ownerOf(outbound_tkn, inbound_tkn, offerId), 
+      caller == ownerOf(outbound_tkn, inbound_tkn, offerId),
       "mgvOffer/MultiOwner/unauthorized"
     );
     uint weiBalanceBefore = MGV.balanceOf(address(this));
@@ -311,7 +311,13 @@ abstract contract MultiUser is MangroveOffer {
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
   ) external override returns (uint received) {
-    received = retractOfferInternal(outbound_tkn,inbound_tkn,offerId,deprovision,msg.sender);
+    received = retractOfferInternal(
+      outbound_tkn,
+      inbound_tkn,
+      offerId,
+      deprovision,
+      msg.sender
+    );
   }
 
   function retractOfferInternal(

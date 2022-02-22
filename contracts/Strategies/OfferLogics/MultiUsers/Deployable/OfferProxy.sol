@@ -27,13 +27,12 @@ contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
     setGasreq(800_000); // Offer proxy requires AAVE interactions
   }
 
-  // overrides AaveLender.__put__ with MutliUser's one in order to put inbound token directly to user account
   function __put__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     override(MultiUser, MultiUserAaveLender)
     returns (uint missing)
   {
-    // puts amount inbound_tkn in `this`
+    // puts amount inbound_tkn on AAVE
     missing = MultiUserAaveLender.__put__(amount, order);
   }
 

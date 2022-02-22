@@ -32,8 +32,11 @@ contract OasisLike is MultiUserPersistent {
       order.inbound_tkn,
       order.offerId
     );
-    // NOTE this could be done off chain by the owner
-    transferToken(order.inbound_tkn, owner, amount - missing);
+    if (IERC20(order.inbound_tkn).transfer(owner, amount)) {
+      return 0;
+    } else {
+      return amount;
+    }
   }
 
   function __get__(uint amount, MgvLib.SingleOrder calldata order)

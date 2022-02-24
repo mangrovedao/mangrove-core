@@ -26,29 +26,21 @@ describe("Running tests...", function () {
     // deploying mangrove and opening WETH/USDC market.
     [mgv, reader] = await lc.deployMangrove();
     await lc.activateMarket(mgv, wEth.address, usdc.address);
-    await lc.fund([
-      ["WETH", "50.0", taker.address],
-      ["USDC", "100000", taker.address],
-    ]);
+    await lc.fund([["USDC", "3000", taker.address]]);
   });
 
   it("Deploy strat", async function () {
-    //lc.listenMgv(mgv);
     const strategy = "OasisLike";
     const Strat = await ethers.getContractFactory(strategy);
 
     // deploying strat
-    makerContract = await Strat.deploy(reader.address, mgv.address);
+    makerContract = await Strat.deploy(mgv.address);
     await makerContract.deployed();
-    tx = await makerContract.setGasreq(800000);
-    await tx.wait();
     makerContract = makerContract.connect(maker);
+
     // funds come from deployer's wallet by default
-    await lc.fund([
-      ["WETH", "17.0", maker.address],
-      ["USDC", "50000", maker.address],
-    ]);
-    //await makerContract.setGasreq(ethers.BigNumber.from(500000));
+    await lc.fund([["WETH", "0.5", maker.address]]);
+
     const prov = await makerContract.getMissingProvision(
       wEth.address,
       usdc.address,
@@ -60,26 +52,22 @@ describe("Running tests...", function () {
   });
 
   it("Market orders", async function () {
+    // makerContract approves mangrove for outbound token transfer
+    // anyone can call this function
     await makerContract.approveMangrove(
       wEth.address,
       ethers.constants.MaxUint256
     );
-    await makerContract.approveMangrove(
-      usdc.address,
-      ethers.constants.MaxUint256
-    );
-
-    await wEth.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
-    await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
-
+    // since funds are in maker wallet, maker approves contract for outbound token transfer
+    // this approval is also used for `depositToken` call
     await wEth
       .connect(maker)
       .approve(makerContract.address, ethers.constants.MaxUint256);
-    await usdc
-      .connect(maker)
-      .approve(makerContract.address, ethers.constants.MaxUint256);
 
-    await lc.newOffer(
+    // taker approves mangrove for inbound token transfer
+    await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
+
+    const ofrId = await lc.newOffer(
       mgv,
       reader,
       makerContract,
@@ -93,8 +81,8 @@ describe("Running tests...", function () {
       mgv.connect(taker),
       "WETH", // outbound
       "USDC", // inbound
-      ethers.utils.parseEther("0.5"), // wants
-      ethers.utils.parseUnits("3000", 6), // gives
+      ethers.utils.parseEther("0.25"), // wants
+      ethers.utils.parseUnits("1500", 6), // gives
       true
     );
 
@@ -105,16 +93,61 @@ describe("Running tests...", function () {
     );
     lc.assertEqualBN(
       takerGot,
-      lc.netOf(ethers.utils.parseEther("0.5"), 30),
+      lc.netOf(ethers.utils.parseEther("0.25"), 30),
       "Incorrect received amount"
     );
+    const [offer] = await mgv.offerInfo(wEth.address, usdc.address, ofrId);
+    lc.assertEqualBN(
+      offer.gives,
+      ethers.utils.parseEther("0.25"),
+      "Offer residual missing"
+    );
+  });
 
-    // book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
-    // console.log("===bids===");
-    // await lc.logOrderBook(book, usdc, wEth);
-    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
-    // console.log("===asks===");
-    // await lc.logOrderBook(book, wEth, usdc);
+  it("Partly provisioned offer", async function () {
+    // transfering part of the promised amount into maker's account of `makerContract`
+    // NB this does not fail because maker approved `makerContract` on the previous test
+    const tx = await makerContract.depositToken(
+      wEth.address,
+      ethers.utils.parseEther("0.20")
+    );
+    await tx.wait();
+    lc.assertEqualBN(
+      await makerContract.tokenBalanceOf(wEth.address, maker.address),
+      ethers.utils.parseEther("0.20"),
+      "incorrect initial balance"
+    );
+
+    // running a market order on the residual offer
+    let [takerGot, takerGave, bounty] = await lc.marketOrder(
+      mgv.connect(taker),
+      "WETH", // outbound
+      "USDC", // inbound
+      ethers.utils.parseEther("0.25"), // wants
+      ethers.utils.parseUnits("1500", 6), // gives
+      true
+    );
+
+    lc.assertEqualBN(
+      bounty,
+      ethers.utils.parseEther("0"),
+      "Taker should not receive a bounty"
+    );
+    lc.assertEqualBN(
+      takerGave,
+      ethers.utils.parseUnits("1500", 6),
+      "Taker should not receive a bounty"
+    );
+    lc.assertEqualBN(
+      takerGot,
+      lc.netOf(ethers.utils.parseEther("0.25"), 30),
+      "Incorrect received amount"
+    );
+    lc.assertEqualBN(
+      await makerContract.tokenBalanceOf(wEth.address, maker.address),
+      ethers.utils.parseEther("0"),
+      "incorrect final balance"
+    );
   });
 
   // it("Testing boundaries", async function () {

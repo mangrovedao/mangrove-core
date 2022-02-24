@@ -23,11 +23,7 @@ async function deployStrat(mgv, reader, players) {
   );
 
   // admin side premices
-  let offerProxy = await Strat.deploy(
-    aave.address,
-    reader.address,
-    mgv.address
-  );
+  let offerProxy = await Strat.deploy(aave.address, mgv.address);
 
   await offerProxy.deployed();
   // offerProxy needs to let lendingPool pull inbound tokens from it in order to mint
@@ -157,6 +153,7 @@ describe("Deploy offerProxy", function () {
     await execLenderStrat(offerProxy, mgv, reader, "aave", players);
     // checking offer owner of offerId 1 (residual)
     const [nextId, offerIds, owners] = await offerProxy.offerOwners(
+      reader.address,
       dai.address,
       wEth.address,
       0,

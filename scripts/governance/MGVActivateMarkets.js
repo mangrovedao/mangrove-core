@@ -1,11 +1,28 @@
 const hre = require("hardhat");
-const helper = require("../helper");
 const chalk = require("chalk");
+const { Mangrove } = require("../../../mangrove.js");
 
 async function main() {
+  const provider = new ethers.providers.WebSocketProvider(
+    hre.network.config.url
+  );
+  if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
+    console.error("No tester account defined");
+  }
+
+  const wallet = new ethers.Wallet(
+    process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"],
+    provider
+  );
+
+  const MgvAPI = await Mangrove.connect({
+    signer: wallet,
+  });
+
   // reading deploy oracle for the deployed network
   const oracle = require(`../${hre.network.name}/activationOracle`);
   //gives price of `tokenSym` in `oracle.native` token
+
   function priceOf(tokenSym) {
     return oracle[tokenSym].price;
   }
@@ -17,21 +34,15 @@ async function main() {
     return parseInt(oracle.Mangrove[param], 10);
   }
 
-  const mgv = await helper.getMangrove();
-
-  const wethAddr = helper.contractOfToken("wEth").address;
-  const daiAddr = helper.contractOfToken("dai").address;
-  const usdcAddr = helper.contractOfToken("usdc").address;
-
   const tokenParams = [
-    [wethAddr, "WETH", 18, ethers.utils.parseEther(priceOf("WETH"))],
-    [daiAddr, "DAI", 18, ethers.utils.parseEther(priceOf("DAI"))],
-    [usdcAddr, "USDC", 6, ethers.utils.parseEther(priceOf("USDC"))],
+    ["WETH", priceOf("WETH")],
+    ["DAI", priceOf("DAI")],
+    ["USDC", priceOf("USDC")],
   ];
 
   const oracle_gasprice = getMangroveIntParam("gasprice");
 
-  const gaspriceTx = await mgv.contract.setGasprice(
+  const gaspriceTx = await MgvAPI.contract.setGasprice(
     ethers.BigNumber.from(oracle_gasprice)
   );
   await gaspriceTx.wait();
@@ -40,27 +51,27 @@ async function main() {
     `Setting mangrove gasprice to ${oracle_gasprice} GWEI`
   );
 
-  const gasmaxTx = await mgv.contract.setGasmax(ethers.BigNumber.from(1500000));
+  const gasmaxTx = await MgvAPI.contract.setGasmax(
+    ethers.BigNumber.from(1500000)
+  );
   await gasmaxTx.wait();
 
   console.log(chalk.yellow("*"), `Setting mangrove gasmax to 1.5M`);
 
   const mgv_gasprice = ethers.utils.parseUnits("1", 9).mul(oracle_gasprice); //GWEI
 
-  for (const [
-    outbound_tkn,
-    outName,
-    outDecimals,
-    outTknInMatic,
-  ] of tokenParams) {
-    for (const [inbound_tkn, inName] of tokenParams) {
-      if (outbound_tkn != inbound_tkn) {
+  for (const [outName, outTknInMatic] of tokenParams) {
+    for (const [inName] of tokenParams) {
+      if (outName != inName) {
+        const outbound_tkn = MgvAPI.token(outName);
+        const inbound_tkn = MgvAPI.token(inName);
+
         const offer_gasbase = ethers.BigNumber.from(
           (transferCostOf(inName) + transferCostOf(outName)) * 2
         );
-        const overheadTx = await mgv.contract.setGasbase(
-          outbound_tkn,
-          inbound_tkn,
+        const overheadTx = await MgvAPI.contract.setGasbase(
+          outbound_tkn.address,
+          inbound_tkn.address,
           offer_gasbase
         );
 
@@ -76,17 +87,20 @@ async function main() {
         let density_outIn = mgv_gasprice
           .add(offer_gasbase)
           .mul(
-            ethers.utils.parseUnits(oracle.Mangrove.coverFactor, outDecimals)
+            ethers.utils.parseUnits(
+              oracle.Mangrove.coverFactor,
+              outbound_tkn.decimals
+            )
           ) // N=50
-          .div(outTknInMatic);
+          .div(ethers.utils.parseUnits(outTknInMatic, outbound_tkn.decimals));
         if (density_outIn.eq(0)) {
           // if volume imposed by density is lower than ERC20 precision, set it to minimal
           density_outIn = ethers.BigNumber.from(1);
         }
 
-        await mgv.contract.activate(
-          outbound_tkn,
-          inbound_tkn,
+        await MgvAPI.contract.activate(
+          outbound_tkn.address,
+          inbound_tkn.address,
           ethers.BigNumber.from(getMangroveIntParam("defaultFee")),
           density_outIn,
           offer_gasbase
@@ -96,7 +110,7 @@ async function main() {
           `(${outName},${inName})`,
           `OfferList activated with a required density of ${ethers.utils.formatUnits(
             density_outIn,
-            outDecimals
+            outbound_tkn.decimals
           )} ${outName} per gas units`,
           `and a fee of ${ethers.utils.formatUnits(
             getMangroveIntParam("defaultFee"),

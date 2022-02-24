@@ -34,6 +34,14 @@ abstract contract SingleUser is MangroveOffer {
     success = _transferToken(token, msg.sender, amount);
   }
 
+  function depositToken(address token, uint amount)
+    external
+    override
+    returns (bool success)
+  {
+    success = _transferTokenFrom(token, msg.sender, amount);
+  }
+
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
   function approveMangrove(address outbound_tkn, uint amount)
     external
@@ -49,7 +57,7 @@ abstract contract SingleUser is MangroveOffer {
 
   function fundMangroveInternal(uint provision) internal {
     // increasing the provision of `this` contract
-    if (provision>0) {
+    if (provision > 0) {
       MGV.fund{value: provision}();
     }
   }
@@ -79,7 +87,8 @@ abstract contract SingleUser is MangroveOffer {
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
   ) external payable override onlyAdmin returns (uint offerId) {
-    return newOfferInternal(
+    return
+      newOfferInternal(
         outbound_tkn,
         inbound_tkn,
         wants,
@@ -88,7 +97,7 @@ abstract contract SingleUser is MangroveOffer {
         gasprice,
         pivotId,
         msg.value
-    );
+      );
   }
 
   function newOfferInternal(
@@ -101,9 +110,7 @@ abstract contract SingleUser is MangroveOffer {
     uint pivotId,
     uint provision
   ) internal returns (uint offerId) {
-    if (provision > 0) {
-      MGV.fund{value: provision}();
-    }
+    fundMangroveInternal(provision);
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
     }
@@ -118,7 +125,6 @@ abstract contract SingleUser is MangroveOffer {
       pivotId
     );
   }
-
 
   //  Updates an existing `offerId` on the Mangrove. `updateOffer` rely on the same offer requirements as `newOffer` and may throw if they are not met.
   //  Additionally `updateOffer` will thow if `this` contract is not the owner of `offerId`.
@@ -145,7 +151,7 @@ abstract contract SingleUser is MangroveOffer {
     );
   }
 
-function updateOfferInternal(
+  function updateOfferInternal(
     address outbound_tkn,
     address inbound_tkn,
     uint wants,
@@ -156,9 +162,7 @@ function updateOfferInternal(
     uint offerId,
     uint provision // dangerous to use msg.value in a internal call
   ) internal {
-    if (provision > 0) {
-      MGV.fund{value: provision}();
-    }
+    fundMangroveInternal(provision);
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
     }
@@ -174,7 +178,6 @@ function updateOfferInternal(
     );
   }
 
-
   // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove. Function call will throw if `this` contract is not the owner of `offerId`.
   function retractOffer(
     address outbound_tkn,
@@ -182,12 +185,8 @@ function updateOfferInternal(
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
   ) external override onlyAdmin returns (uint) {
-    return retractOfferInternal(
-      outbound_tkn, 
-      inbound_tkn, 
-      offerId, 
-      deprovision
-    );
+    return
+      retractOfferInternal(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
   function retractOfferInternal(
@@ -196,12 +195,7 @@ function updateOfferInternal(
     uint offerId,
     bool deprovision
   ) internal returns (uint) {
-    return MGV.retractOffer(
-      outbound_tkn,
-      inbound_tkn,
-      offerId,
-      deprovision
-    );
+    return MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
   function getMissingProvision(

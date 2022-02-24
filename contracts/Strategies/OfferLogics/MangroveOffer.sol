@@ -61,13 +61,12 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
     success = IERC20(token).transfer(recipient, amount);
   }
 
-  // get back any ETH that might linger in the contract
-  function transferETH(address recipient, uint amount)
-    external
-    onlyAdmin
-    returns (bool success)
-  {
-    (success, ) = recipient.call{value: amount}("");
+  function _transferTokenFrom(
+    address token,
+    address sender,
+    uint amount
+  ) internal returns (bool success) {
+    success = IERC20(token).transferFrom(sender, address(this), amount);
   }
 
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function

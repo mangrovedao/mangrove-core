@@ -80,6 +80,10 @@ interface IOfferLogic is IMaker {
     external
     returns (bool success);
 
+  function depositToken(address token, uint amount)
+    external
+    returns (bool success);
+
   function approveMangrove(address outbound_tkn, uint amount) external;
 
   function withdrawFromMangrove(address receiver, uint amount)

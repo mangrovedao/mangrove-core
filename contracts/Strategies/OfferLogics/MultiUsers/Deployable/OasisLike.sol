@@ -15,10 +15,7 @@ import "../AaveLender.sol";
 import "../Persistent.sol";
 
 contract OasisLike is MultiUserPersistent {
-  constructor(address _MgvReader, address payable _MGV)
-    MultiUser(_MgvReader)
-    MangroveOffer(_MGV)
-  {}
+  constructor(address payable _MGV) MangroveOffer(_MGV) {}
 
   // overrides MultiUser.__put__ in order to transfer all inbound tokens to owner
   function __put__(uint amount, MgvLib.SingleOrder calldata order)
@@ -44,7 +41,7 @@ contract OasisLike is MultiUserPersistent {
     override
     returns (uint)
   {
-    // tries to get funds from `this` balance
+    // tries to get funds from `this` balance if any
     amount = super.__get__(amount, order);
     // if not enough, tries to fetch missing amount into owner's wallet
     address owner = ownerOf(

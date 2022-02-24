@@ -10,14 +10,12 @@ module.exports = async (hre) => {
     signer: signer,
   });
 
-  const Oasis = await hre.deployments.deploy("OasisLike", {
+  const offerProxy = await hre.deployments.deploy("OfferProxy", {
     from: deployer,
-    args: [MgvAPI.contract.address],
+    args: [MgvAPI.getAddress("addressProvider"), MgvAPI.contract.address],
     skipIfAlreadyDeployed: true,
   });
-  console.log(
-    `OasisLike multi maker contract deployed (${Oasis.address}), don't forget to activate it.`
-  );
+  console.log(`OfferProxy deployed on mumbai (${offerProxy.address})`);
 };
 
-module.exports.tags = ["mumbai-OasisLike"];
+module.exports.tags = ["mumbai-OfferProxy"];

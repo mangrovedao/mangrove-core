@@ -160,6 +160,7 @@ contract MgvGovernable is MgvRoot {
   /* ### `governance` */
   function setGovernance(address governanceAddress) public { unchecked {
     authOnly();
+    require(governanceAddress != address(0),"mgv/config/gov/not0");
     governance = governanceAddress;
     emit SetGovernance(governanceAddress);
   }}

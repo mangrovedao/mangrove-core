@@ -160,6 +160,14 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   /* # Test Config */
 
+  function gov_cant_be_zero_test() public {
+    try mgv.setGovernance(address(0)) {
+      TestEvents.fail("setting gov to 0 should be impossible");
+    } catch Error(string memory r) {
+      TestUtils.revertEq(r, "mgv/config/gov/not0");
+    }
+  }
+
   function gov_can_transfer_rights_test() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
     mgv.setGovernance(address(notAdmin));

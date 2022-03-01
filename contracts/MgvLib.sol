@@ -48,7 +48,7 @@ library MgvLib {
   struct OrderResult {
     /* `makerdata` holds a message that was either returned by the maker or passed as revert message at the end of the trade execution*/
     bytes32 makerData;
-    /* `mgvData` is an [internal Mangrove status](#MgvOfferTaking/statusCodes) code. */
+    /* `mgvData` is an [internal Mangrove status code](#MgvOfferTaking/statusCodes) code. */
     bytes32 mgvData;
   }
 }
@@ -99,7 +99,7 @@ contract HasMgvEvents {
   event OrderComplete(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
-    address taker,
+    address indexed taker,
     uint takerGot,
     uint takerGave,
     uint penalty
@@ -186,7 +186,11 @@ contract HasMgvEvents {
 
 /* # IMaker interface */
 interface IMaker {
-  /* Called upon offer execution. If the call returns normally with the first 32 bytes are 0, Mangrove will try to transfer funds; otherwise not. Returned data (truncated to leftmost 32 bytes) can be accessed during the call to `makerPosthook` in the `result.mgvData` field. To revert with a 32 bytes value, use something like:
+  /* Called upon offer execution. 
+  - If the call fails, Mangrove will not try to transfer funds.
+  - If the call succeeds but returndata's first 32 bytes are not 0, Mangrove will not try to transfer funds either.
+  - If the call succeeds and returndata's first 32 bytes are 0, Mangrove will try to transfer funds.
+  In other words, you may declare failure by reverting or by returning nonzero data. In both cases, those 32 first bytes will be passed back to you during the call to `makerPosthook` in the `result.mgvData` field.
      ```
      function tradeRevert(bytes32 data) internal pure {
        bytes memory revData = new bytes(32);

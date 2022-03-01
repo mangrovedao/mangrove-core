@@ -336,8 +336,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     //+clear+
 
     emit OrderComplete(
-      outbound_tkn,
-      inbound_tkn,
+      sor.outbound_tkn,
+      sor.inbound_tkn,
       taker,
       snipesGot,
       snipesGave,
@@ -349,7 +349,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   /* ## Internal snipes */
   //+clear+
-  /* `internalSnipes` works by looping over targets. Each successive offer is executed under a [reentrancy lock](#internalSnipes/liftReentrancy), then its posthook is called.y lock [is lifted](). Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book. */
+  /* `internalSnipes` works by looping over targets. Each successive offer is executed under a [reentrancy lock](#internalSnipes/liftReentrancy), then its posthook is called. Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book. */
   function internalSnipes(
     MultiOrder memory mor,
     ML.SingleOrder memory sor,

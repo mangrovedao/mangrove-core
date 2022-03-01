@@ -62,7 +62,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   An offer cannot be inserted in a closed market, nor when a reentrancy lock for `outbound_tkn`,`inbound_tkn` is on.
 
-  No more than $2^{24}-1$ offers can ever be created for one `outbound_tkn`,`inbound_tkn` pair.
+  No more than $2^{32}-1$ offers can ever be created for one `outbound_tkn`,`inbound_tkn` pair.
 
   The actual contents of the function is in `writeOffer`, which is called by both `newOffer` and `updateOffer`.
   */
@@ -248,7 +248,7 @@ contract MgvOfferMaking is MgvHasOffers {
   function writeOffer(OfferPack memory ofp, bool update) internal { unchecked {
     /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
     require(
-      uint16(ofp.gasprice) == ofp.gasprice,
+      checkGasprice(ofp.gasprice),
       "mgv/writeOffer/gasprice/16bits"
     );
 

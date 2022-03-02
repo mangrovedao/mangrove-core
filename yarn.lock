@@ -1190,7 +1190,6 @@ __metadata:
     "@ethersproject/experimental": ^5.5.0
     "@ethersproject/hardware-wallets": ^5.0.0
     "@ethersproject/providers": ^5.0.0
-    "@mangrovedao/commonlib-js": "workspace:*"
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.2

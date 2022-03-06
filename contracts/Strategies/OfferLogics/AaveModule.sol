@@ -62,9 +62,9 @@ contract AaveModule is Exponential {
   ///@notice Required functions to let `this` contract interact with Aave
   /**************************************************************************/
 
-  ///@notice approval of ctoken contract by the underlying is necessary for minting and repaying borrow
+  ///@notice approval of overlying contract by the underlying is necessary for minting and repaying borrow
   ///@notice user must use this function to do so.
-  function _approveLender(address token, uint amount) internal {
+  function approveLender(address token, uint amount) public {
     IERC20(token).approve(address(lendingPool), amount);
   }
 

@@ -20,12 +20,6 @@ abstract contract AaveLender is SingleUser, AaveModule {
   ///@notice Required functions to let `this` contract interact with Aave
   /**************************************************************************/
 
-  ///@notice approval of ctoken contract by the underlying is necessary for minting and repaying borrow
-  ///@notice user must use this function to do so.
-  function approveLender(address token, uint amount) external onlyAdmin {
-    _approveLender(token, amount);
-  }
-
   ///@notice exits markets
   function exitMarket(IERC20 underlying) external onlyAdmin {
     _exitMarket(underlying);

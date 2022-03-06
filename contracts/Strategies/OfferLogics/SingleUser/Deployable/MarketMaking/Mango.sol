@@ -323,7 +323,7 @@ contract Mango is Persistent {
         });
         index_of_ask[ASKS[index]] = index;
       } else {
-        updateOfferInternal({
+        ASKS[index] = updateOfferInternal({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
           wants: wants,
@@ -335,6 +335,7 @@ contract Mango is Persistent {
           offerId: ASKS[index]
         });
       }
+      require(ASKS[index] > 0, "Mango/writeOfferFailed");
       if (position_of_index(index) <= current_min_offer_type) {
         __boundariesReached__(false, ASKS[index]);
       }
@@ -353,7 +354,7 @@ contract Mango is Persistent {
         });
         index_of_bid[BIDS[index]] = index;
       } else {
-        updateOfferInternal({
+        BIDS[index] = updateOfferInternal({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
           wants: wants,
@@ -365,6 +366,7 @@ contract Mango is Persistent {
           offerId: BIDS[index]
         });
       }
+      require(BIDS[index] > 0, "Mango/writeOfferFailed");
       if (position_of_index(index) >= NSLOTS - 1 - current_min_offer_type) {
         __boundariesReached__(true, BIDS[index]);
       }

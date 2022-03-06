@@ -53,6 +53,14 @@ interface IOfferLogic is IMaker {
     uint offerId
   );
 
+  // Log incident during pre/post trade execution
+  event LogIncident(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed offerId,
+    bytes32 error_data
+  );
+
   // Offer logic default gas required --value is used in update and new offer if maxUint is given
   function OFR_GASREQ() external returns (uint);
 
@@ -111,7 +119,7 @@ interface IOfferLogic is IMaker {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external payable;
+  ) external payable returns (uint); //returns 0 if updateOffer failed (for instance if offer is underprovisioned) otherwise returns `offerId`
 
   function retractOffer(
     address outbound_tkn,

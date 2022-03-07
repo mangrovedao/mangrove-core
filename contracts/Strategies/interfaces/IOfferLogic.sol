@@ -77,18 +77,7 @@ interface IOfferLogic is IMaker {
   // Changing OFR_GASREQ of the logic
   function setGasreq(uint gasreq) external;
 
-  function balanceOnMangrove() external view returns (uint balance);
-
-  function tokenBalance(address token)
-    external
-    view
-    returns (uint token_balance);
-
   function redeemToken(address token, uint amount)
-    external
-    returns (bool success);
-
-  function depositToken(address token, uint amount)
     external
     returns (bool success);
 
@@ -97,8 +86,6 @@ interface IOfferLogic is IMaker {
   function withdrawFromMangrove(address receiver, uint amount)
     external
     returns (bool noRevert);
-
-  function fundMangrove() external payable;
 
   function newOffer(
     address outbound_tkn, // address of the ERC20 contract managing outbound tokens

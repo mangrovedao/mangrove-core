@@ -113,8 +113,10 @@ abstract contract MultiUser is MangroveOffer {
 
   function depositToken(address token, uint amount)
     external
-    override
-    returns (bool success)
+    returns (
+      //override
+      bool success
+    )
   {
     uint balBefore = IERC20(token).balanceOf(address(this));
     success = _transferTokenFrom(token, msg.sender, amount);
@@ -157,7 +159,8 @@ abstract contract MultiUser is MangroveOffer {
     return _withdrawFromMangrove(receiver, amount);
   }
 
-  function fundMangrove() external payable override {
+  function fundMangrove() external payable // override
+  {
     require(msg.sender != address(this), "Mutli/noReentrancy");
     fundMangroveInternal(msg.sender, msg.value);
   }

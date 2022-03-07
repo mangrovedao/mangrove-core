@@ -36,13 +36,16 @@ abstract contract SingleUser is MangroveOffer {
 
   function depositToken(address token, uint amount)
     external
-    override
-    returns (bool success)
+    returns (
+      //override
+      bool success
+    )
   {
     success = _transferTokenFrom(token, msg.sender, amount);
   }
 
-  function fundMangrove() external payable override {
+  function fundMangrove() external payable //override
+  {
     fundMangroveInternal(msg.value);
   }
 

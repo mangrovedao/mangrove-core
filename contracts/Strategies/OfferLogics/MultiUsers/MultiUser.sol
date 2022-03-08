@@ -221,15 +221,12 @@ abstract contract MultiUser is MangroveOffer {
     uint provision
   ) internal returns (uint) {
     uint weiBalanceBefore = MGV.balanceOf(address(this));
-    if (provision > 0) {
-      MGV.fund{value: provision}();
-    }
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
     }
     // this call could revert if this contract does not have the provision to cover the bounty
     try
-      MGV.newOffer(
+      MGV.newOffer{value: provision}(
         outbound_tkn,
         inbound_tkn,
         wants,
@@ -244,8 +241,14 @@ abstract contract MultiUser is MangroveOffer {
       //updating wei balance of owner will revert if msg.sender does not have the funds
       updateUserBalanceOnMgv(caller, weiBalanceBefore);
       return offerId;
-    } catch {
-      return 0;
+    } catch Error(string memory message) {
+      if (msg.sender == address(MGV)) {
+        // if `this` is executing a Mangrove trade do not throw by default
+        return 0;
+      } else {
+        // if `this` is executing an offchain tx, throw
+        revert(message);
+      }
     }
   }
 
@@ -258,20 +261,19 @@ abstract contract MultiUser is MangroveOffer {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external payable override returns (uint) {
-    return
-      updateOfferInternal(
-        outbound_tkn,
-        inbound_tkn,
-        wants,
-        gives,
-        gasreq,
-        gasprice,
-        pivotId,
-        offerId,
-        msg.sender,
-        msg.value
-      );
+  ) external payable override {
+    updateOfferInternal(
+      outbound_tkn,
+      inbound_tkn,
+      wants,
+      gives,
+      gasreq,
+      gasprice,
+      pivotId,
+      offerId,
+      msg.sender,
+      msg.value
+    );
   }
 
   function updateOfferInternal(
@@ -291,14 +293,11 @@ abstract contract MultiUser is MangroveOffer {
       "Multi/updateOffer/unauthorized"
     );
     uint weiBalanceBefore = MGV.balanceOf(address(this));
-    if (provision > 0) {
-      MGV.fund{value: provision}();
-    }
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
     }
     try
-      MGV.updateOffer(
+      MGV.updateOffer{value: provision}(
         outbound_tkn,
         inbound_tkn,
         wants,
@@ -311,8 +310,12 @@ abstract contract MultiUser is MangroveOffer {
     {
       updateUserBalanceOnMgv(caller, weiBalanceBefore);
       return offerId;
-    } catch {
-      return 0;
+    } catch Error(string memory message) {
+      if (msg.sender == address(MGV)) {
+        return 0;
+      } else {
+        revert(message);
+      }
     }
   }
 

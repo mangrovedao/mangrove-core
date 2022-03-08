@@ -106,7 +106,7 @@ interface IOfferLogic is IMaker {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external payable returns (uint); //returns 0 if updateOffer failed (for instance if offer is underprovisioned) otherwise returns `offerId`
+  ) external payable; //returns 0 if updateOffer failed (for instance if offer is underprovisioned) otherwise returns `offerId`
 
   function retractOffer(
     address outbound_tkn,

@@ -13,6 +13,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../MangroveOffer.sol";
+import "hardhat/console.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract SingleUser is MangroveOffer {
@@ -44,18 +45,6 @@ abstract contract SingleUser is MangroveOffer {
     success = _transferTokenFrom(token, msg.sender, amount);
   }
 
-  function fundMangrove() external payable //override
-  {
-    fundMangroveInternal(msg.value);
-  }
-
-  function fundMangroveInternal(uint provision) internal {
-    // increasing the provision of `this` contract
-    if (provision > 0) {
-      MGV.fund{value: provision}();
-    }
-  }
-
   /// withdraws ETH from the bounty vault of the Mangrove.
   function withdrawFromMangrove(address receiver, uint amount)
     external
@@ -82,15 +71,14 @@ abstract contract SingleUser is MangroveOffer {
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
   ) external payable override onlyAdmin returns (uint offerId) {
     return
-      newOfferInternal(
+      MGV.newOffer{value: msg.value}(
         outbound_tkn,
         inbound_tkn,
         wants,
         gives,
         gasreq,
         gasprice,
-        pivotId,
-        msg.value
+        pivotId
       );
   }
 
@@ -104,14 +92,13 @@ abstract contract SingleUser is MangroveOffer {
     uint pivotId,
     uint provision
   ) internal returns (uint offerId) {
-    fundMangroveInternal(provision);
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
     }
     // this call could revert if this contract does not have the provision to cover the bounty
     // this may happen if gasprice has been updated on MGV
     try
-      MGV.newOffer(
+      MGV.newOffer{value: provision}(
         outbound_tkn,
         inbound_tkn,
         wants,
@@ -138,9 +125,9 @@ abstract contract SingleUser is MangroveOffer {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external payable override onlyAdmin returns (uint) {
+  ) external payable override onlyAdmin {
     return
-      updateOfferInternal(
+      MGV.updateOffer{value: msg.value}(
         outbound_tkn,
         inbound_tkn,
         wants,
@@ -148,8 +135,7 @@ abstract contract SingleUser is MangroveOffer {
         gasreq,
         gasprice,
         pivotId,
-        offerId,
-        msg.value
+        offerId
       );
   }
 
@@ -164,12 +150,11 @@ abstract contract SingleUser is MangroveOffer {
     uint offerId,
     uint provision // dangerous to use msg.value in a internal call
   ) internal returns (uint) {
-    fundMangroveInternal(provision);
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
     }
     try
-      MGV.updateOffer(
+      MGV.updateOffer{value: msg.value}(
         outbound_tkn,
         inbound_tkn,
         wants,

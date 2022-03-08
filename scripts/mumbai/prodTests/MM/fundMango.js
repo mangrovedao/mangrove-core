@@ -11,23 +11,12 @@ async function main() {
 
   const baseName = process.env["BASE"];
   const quoteName = process.env["QUOTE"];
-  const shift = parseInt(process.env["SHIFT"]);
   const amount = Number(process.env["AMOUNT"]);
   // sanity check
-  if (!baseName || !quoteName || !shift) {
+  if (!baseName || !quoteName || !amount) {
     throw Error(
-      "Missing environment variables, must provide BASE, QUOTE, SHIFT [AMOUNT]"
+      "Missing environment variables, must provide BASE, QUOTE, AMOUNT"
     );
-  }
-  let default_amount;
-  if (amount) {
-    default_amount = amount;
-  } else {
-    if (shift < 0) {
-      default_amount = baseName === "WETH" ? 0.3 : 1000;
-    } else {
-      default_amount = quoteName === "WETH" ? 0.3 : 1000;
-    }
   }
   const MgvAPI = await Mangrove.connect({
     signer: tester,
@@ -37,24 +26,14 @@ async function main() {
     await hre.ethers.getContract(`Mango_${baseName}_${quoteName}`)
   ).connect(tester);
 
-  MangoRaw = MangoRaw.connect(tester);
   let Mango = await MgvAPI.offerLogic(
     MangoRaw.address,
     false
   ).liquidityProvider({ base: baseName, quote: quoteName });
-  const admin = await Mango.logic.getAdmin();
-  const amounts = new Array(Math.abs(shift));
-  amounts.fill(
-    MgvAPI.toUnits(default_amount, shift < 0 ? baseName : quoteName),
-    0
-  );
-  const tx = await MangoRaw.set_shift(shift, shift < 0, amounts);
+  const tx = await Mango.fundMangrove(amount);
   await tx.wait();
-  console.log(
-    `Mango (${baseName},${quoteName}) shifted of ${Math.abs(
-      shift
-    )} position(s) ${shift < 0 ? "down" : "up"}`
-  );
+  console.log(`Funded`, amount, `MATICS to (${baseName},${quoteName}) Mango`);
+  console.log();
 }
 main()
   .then(() => process.exit(0))

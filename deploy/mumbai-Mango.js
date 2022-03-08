@@ -13,26 +13,26 @@ module.exports = async (hre) => {
   });
 
   const deployOnMarket = async (baseName, quoteName, base0, quote0, delta) => {
-    const Mango = await hre.deployments.deploy("Mango", {
-      from: deployer,
-      args: [
-        MgvAPI.contract.address,
-        MgvAPI.token(baseName).address, // base
-        MgvAPI.token(quoteName).address, // quote
-        // Pmin = QUOTE0/BASE0
-        MgvAPI.toUnits(base0, baseName),
-        MgvAPI.toUnits(quote0, quoteName), // QUOTE0
-        NSLOTS, // price slots
-        MgvAPI.toUnits(delta, quoteName), // quote progression
-      ],
-      //skipIfAlreadyDeployed: true,
-    });
+    const Mango = await hre.deployments.deploy(
+      `Mango_${baseName}_${quoteName}`,
+      {
+        contract: "Mango",
+        from: deployer,
+        args: [
+          MgvAPI.contract.address,
+          MgvAPI.token(baseName).address, // base
+          MgvAPI.token(quoteName).address, // quote
+          // Pmin = QUOTE0/BASE0
+          MgvAPI.toUnits(base0, baseName),
+          MgvAPI.toUnits(quote0, quoteName), // QUOTE0
+          NSLOTS, // price slots
+          MgvAPI.toUnits(delta, quoteName), // quote progression
+        ],
+        skipIfAlreadyDeployed: true,
+      }
+    );
     console.log(
       `Mango deployed (${Mango.address}) on market (${baseName},${quoteName})`
-    );
-    fs.renameSync(
-      `./deployments/${hre.network.name}/Mango.json`,
-      `./deployments/${hre.network.name}/Mango_${baseName}_${quoteName}.json`
     );
   };
   await deployOnMarket("WETH", "USDC", 0.5, 1000, 40); // [2000 USD/ETH, 4000 USD/ETH] inc 80 USD

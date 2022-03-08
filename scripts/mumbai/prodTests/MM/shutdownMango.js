@@ -43,17 +43,20 @@ async function main() {
       0, // from
       Math.floor(N / 3) // to
     );
+    await tx1.wait();
     const tx2 = await MangoRaw.retractOffers(
       2, // both bids and asks
       Math.floor(N / 3), // from
       Math.floor((2 * N) / 3) // to
     );
+    await tx2.wait();
     const tx3 = await MangoRaw.retractOffers(
       2, // both bids and asks
       Math.floor((2 * N) / 3), // from
       N // to
     );
-    await Promise.all([tx1, tx2, tx3]);
+    await tx3.wait();
+    //await Promise.all([tx1, tx2, tx3]);
     console.log(`Offers retracted on (${baseName},${quoteName}) market`);
 
     const balBase = await MgvAPI.token(baseName).balanceOf(MangoRaw.address);
@@ -65,7 +68,6 @@ async function main() {
     // if treasury was set to Mango itself
     await Mango.logic.redeemToken(baseName, balBase);
     await Mango.logic.redeemToken(quoteName, balQuote);
-    await Mango.logic.withdrawFromMangrove(await Mango.balanceOnMangrove());
   }
 }
 main()

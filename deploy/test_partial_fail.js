@@ -5,7 +5,17 @@ OFFER1_GIVES = 1;
 OFFER2_WANTS = 1;
 OFFER2_GIVES = 1;
 
+const {
+  TEST_TAKER_WALLET_ADDRESS: TAKER_WALLET_ADDRESS,
+  TEST_TOKEN_A: TOKEN_A = "TokenA",
+  TEST_TOKEN_B: TOKEN_B = "TokenB",
+} = process.env;
+
 module.exports = async (hre) => {
+  if (!TAKER_WALLET_ADDRESS)
+    throw Error(
+      "You must provide your taker wallet address in order to provision it for UI testing"
+    );
   const ethers = hre.ethers;
   const deployer = (await hre.getNamedAccounts()).deployer;
   const signer = await ethers.getSigner(deployer);
@@ -15,9 +25,8 @@ module.exports = async (hre) => {
   };
 
   const mgv = await ethers.getContract("Mangrove", signer);
-  const tokenA = await ethers.getContract("TokenA", signer);
-  const tokenB = await ethers.getContract("TokenB", signer);
-  const maker = await ethers.getContract("TestMaker", signer);
+  const tokenA = await ethers.getContract(TOKEN_A, signer);
+  const tokenB = await ethers.getContract(TOKEN_B, signer);
 
   console.log("Activating Token A/B market");
   await mgv.activate(tokenA.address, tokenB.address, 0, 0, 0);
@@ -30,8 +39,6 @@ module.exports = async (hre) => {
     args: [mgv.address, tokenA.address, tokenB.address],
   });
 
-  const maker1 = await ethers.getContract("TestMaker1", signer);
-
   await hre.deployments.deploy("TestMaker2", {
     log: true,
     contract: "TestMaker",
@@ -39,9 +46,21 @@ module.exports = async (hre) => {
     args: [mgv.address, tokenA.address, tokenB.address],
   });
 
+  console.log(`Minting ${TOKEN_A} for taker`);
+  await tokenA.mint(TAKER_WALLET_ADDRESS, big(10));
+  console.log(`Minting ${TOKEN_B} for taker`);
+  await tokenB.mint(TAKER_WALLET_ADDRESS, big(10));
+
+  console.log("Giving native tokens to taker");
+  await signer.sendTransaction({
+    to: TAKER_WALLET_ADDRESS,
+    value: big(2),
+  });
+
+  const maker1 = await ethers.getContract("TestMaker1", signer);
   const maker2 = await ethers.getContract("TestMaker2", signer);
 
-  console.log("Minting Token A for maker{1,2}");
+  console.log(`Minting ${TOKEN_A} for maker{1,2}`);
   await tokenA.mint(maker1.address, big(10));
   await tokenA.mint(maker2.address, big(10));
 
@@ -51,7 +70,7 @@ module.exports = async (hre) => {
     value: big(2),
   });
 
-  const tx = await signer.sendTransaction({
+  await signer.sendTransaction({
     to: maker2.address,
     value: big(2),
   });

@@ -13,27 +13,20 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../MangroveOffer.sol";
 import "../../../periphery/MgvReader.sol";
+import "../../interfaces/IOfferLogicMulti.sol";
 
-abstract contract MultiUser is MangroveOffer {
+abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   mapping(address => mapping(address => mapping(uint => address)))
     internal _offerOwners; // outbound_tkn => inbound_tkn => offerId => ownerAddress
 
   mapping(address => uint) public mgvBalance; // owner => WEI balance on mangrove
   mapping(address => mapping(address => uint)) public tokenBalanceOf; // erc20 => owner => balance on `this`
 
-  // Offer management
-  event NewOffer(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed offerId,
-    address owner
-  );
-
-  function tokenBalance(address token) external view returns (uint) {
+  function tokenBalance(address token) external view override returns (uint) {
     return tokenBalanceOf[token][msg.sender];
   }
 
-  function balanceOnMangrove() external view returns (uint) {
+  function balanceOnMangrove() external view override returns (uint) {
     return mgvBalance[msg.sender];
   }
 
@@ -46,6 +39,7 @@ abstract contract MultiUser is MangroveOffer {
   )
     public
     view
+    override
     returns (
       uint nextId,
       uint[] memory offerIds,
@@ -71,19 +65,22 @@ abstract contract MultiUser is MangroveOffer {
 
   function creditOnMgv(address owner, uint balance) internal {
     mgvBalance[owner] += balance;
+    emit CreditMgvUser(owner, balance);
   }
 
   function debitOnMgv(address owner, uint amount) internal {
     require(mgvBalance[owner] >= amount, "Multi/debitOnMgv/insufficient");
     mgvBalance[owner] -= amount;
+    emit DebitMgvUser(owner, amount);
   }
 
   function creditToken(
     address token,
     address owner,
-    uint balance
+    uint amount
   ) internal {
-    tokenBalanceOf[token][owner] += balance;
+    tokenBalanceOf[token][owner] += amount;
+    emit CreditUserTokenBalance(owner, token, amount);
   }
 
   function debitToken(
@@ -99,6 +96,7 @@ abstract contract MultiUser is MangroveOffer {
       "Multi/debitToken/insufficient"
     );
     tokenBalanceOf[token][owner] -= amount;
+    emit DebitUserTokenBalance(owner, token, amount);
   }
 
   function redeemToken(address token, uint amount)
@@ -113,6 +111,7 @@ abstract contract MultiUser is MangroveOffer {
 
   function depositToken(address token, uint amount)
     external
+    override
     returns (
       //override
       bool success
@@ -141,7 +140,7 @@ abstract contract MultiUser is MangroveOffer {
     address outbound_tkn,
     address inbound_tkn,
     uint offerId
-  ) public view returns (address owner) {
+  ) public view override returns (address owner) {
     owner = _offerOwners[outbound_tkn][inbound_tkn][offerId];
     require(owner != address(0), "multiUser/unkownOffer");
   }
@@ -159,7 +158,7 @@ abstract contract MultiUser is MangroveOffer {
     return _withdrawFromMangrove(receiver, amount);
   }
 
-  function fundMangrove() external payable // override
+  function fundMangrove() external payable override // override
   {
     require(msg.sender != address(this), "Mutli/noReentrancy");
     fundMangroveInternal(msg.sender, msg.value);

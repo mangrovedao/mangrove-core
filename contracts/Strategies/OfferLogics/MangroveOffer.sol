@@ -70,7 +70,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
   }
 
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
-  function _approveMangrove(address outbound_tkn, uint amount) internal {
+  /// NB anyone can call
+  function approveMangrove(address outbound_tkn, uint amount) public {
     require(
       IERC20(outbound_tkn).approve(address(MGV), amount),
       "mgvOffer/approve/Fail"
@@ -84,7 +85,11 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
     returns (bool noRevert)
   {
     require(MGV.withdraw(amount), "MangroveOffer/withdraw/transferFail");
-    (noRevert, ) = receiver.call{value: amount}("");
+    if (receiver != address(this)) {
+      (noRevert, ) = receiver.call{value: amount}("");
+    } else {
+      noRevert = true;
+    }
   }
 
   // returns missing provision to repost `offerId` at given `gasreq` and `gasprice`

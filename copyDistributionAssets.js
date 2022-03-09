@@ -13,3 +13,8 @@ shell.cd(
   "artifacts/contracts/Strategies/OfferLogics/SingleUser/Deployable/SimpleMaker.sol"
 );
 shell.cp("./SimpleMaker.json", distAbiDir);
+shell.cd(here);
+shell.cd(
+  "artifacts/contracts/Strategies/OfferLogics/MultiUsers/Deployable/MultiMaker.sol"
+);
+shell.cp("./MultiMaker.json", distAbiDir);

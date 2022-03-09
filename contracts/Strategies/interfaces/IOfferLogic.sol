@@ -53,6 +53,14 @@ interface IOfferLogic is IMaker {
     uint offerId
   );
 
+  // Log incident during pre/post trade execution
+  event LogIncident(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed offerId,
+    bytes32 error_data
+  );
+
   // Offer logic default gas required --value is used in update and new offer if maxUint is given
   function OFR_GASREQ() external returns (uint);
 
@@ -69,18 +77,7 @@ interface IOfferLogic is IMaker {
   // Changing OFR_GASREQ of the logic
   function setGasreq(uint gasreq) external;
 
-  function balanceOnMangrove() external view returns (uint balance);
-
-  function tokenBalance(address token)
-    external
-    view
-    returns (uint token_balance);
-
   function redeemToken(address token, uint amount)
-    external
-    returns (bool success);
-
-  function depositToken(address token, uint amount)
     external
     returns (bool success);
 
@@ -89,8 +86,6 @@ interface IOfferLogic is IMaker {
   function withdrawFromMangrove(address receiver, uint amount)
     external
     returns (bool noRevert);
-
-  function fundMangrove() external payable;
 
   function newOffer(
     address outbound_tkn, // address of the ERC20 contract managing outbound tokens
@@ -111,7 +106,7 @@ interface IOfferLogic is IMaker {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external payable;
+  ) external payable; //returns 0 if updateOffer failed (for instance if offer is underprovisioned) otherwise returns `offerId`
 
   function retractOffer(
     address outbound_tkn,

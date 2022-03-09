@@ -209,11 +209,13 @@ contract Mango is Persistent {
   ) external onlyAdmin returns (uint collected) {
     for (uint i = from; i < to; i++) {
       if (ba > 0) {
+        // asks or bids+asks
         collected += ASKS[i] > 0
           ? retractOfferInternal(BASE, QUOTE, ASKS[i], true)
           : 0;
       }
       if (ba == 0 || ba > 1) {
+        // bids or bids + asks
         collected += BIDS[i] > 0
           ? retractOfferInternal(QUOTE, BASE, BIDS[i], true)
           : 0;
@@ -323,7 +325,7 @@ contract Mango is Persistent {
         });
         index_of_ask[ASKS[index]] = index;
       } else {
-        updateOfferInternal({
+        ASKS[index] = updateOfferInternal({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
           wants: wants,
@@ -335,6 +337,7 @@ contract Mango is Persistent {
           offerId: ASKS[index]
         });
       }
+      require(ASKS[index] > 0, "Mango/writeOfferFailed");
       if (position_of_index(index) <= current_min_offer_type) {
         __boundariesReached__(false, ASKS[index]);
       }
@@ -353,7 +356,7 @@ contract Mango is Persistent {
         });
         index_of_bid[BIDS[index]] = index;
       } else {
-        updateOfferInternal({
+        BIDS[index] = updateOfferInternal({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
           wants: wants,
@@ -365,6 +368,7 @@ contract Mango is Persistent {
           offerId: BIDS[index]
         });
       }
+      require(BIDS[index] > 0, "Mango/writeOfferFailed");
       if (position_of_index(index) >= NSLOTS - 1 - current_min_offer_type) {
         __boundariesReached__(true, BIDS[index]);
       }
@@ -473,11 +477,13 @@ contract Mango is Persistent {
       uint new_gives;
       uint new_wants;
       if (withBase) {
-        new_gives = quotes_of_position(pos, amounts[cpt]);
-        new_wants = amounts[cpt];
-      } else {
-        new_wants = bases_of_position(pos, amounts[cpt]);
+        // posting new ASKS with base amount fixed
         new_gives = amounts[cpt];
+        new_wants = quotes_of_position(pos, amounts[cpt]);
+      } else {
+        // posting new ASKS with quote amount fixed
+        new_wants = amounts[cpt];
+        new_gives = bases_of_position(pos, amounts[cpt]);
       }
       writeOffer({
         index: index,
@@ -524,9 +530,11 @@ contract Mango is Persistent {
       uint new_gives;
       uint new_wants;
       if (withBase) {
+        // amounts in base
         new_wants = amounts[cpt];
         new_gives = quotes_of_position(pos, amounts[cpt]);
       } else {
+        // amounts in quote
         new_wants = bases_of_position(pos, amounts[cpt]);
         new_gives = amounts[cpt];
       }
@@ -598,9 +606,9 @@ contract Mango is Persistent {
       if (pos > 0) {
         updateBid({
           index: index_of_position(pos - 1),
-          withBase: false,
+          withBase: false, // order gave QUOTES
           reset: false, // top up old value with received amount
-          amount: order.gives,
+          amount: order.gives, // in QUOTES
           pivotId: 0
         });
       } else {
@@ -625,9 +633,9 @@ contract Mango is Persistent {
       if (pos < NSLOTS - 1) {
         updateAsk({
           index: index_of_position(pos + 1),
-          withBase: true,
+          withBase: true, // order gave BASE
           reset: false, // top up old value with received amount
-          amount: order.gives,
+          amount: order.gives, // in BASE
           pivotId: 0
         });
       } else {
@@ -661,6 +669,7 @@ contract Mango is Persistent {
       new_wants = reset ? amount : amount + offer.wants();
       new_gives = quotes_of_position(position, new_wants);
     } else {
+      // amount: QUOTE
       new_gives = reset ? amount : amount + offer.gives();
       new_wants = bases_of_position(position, new_gives);
     }

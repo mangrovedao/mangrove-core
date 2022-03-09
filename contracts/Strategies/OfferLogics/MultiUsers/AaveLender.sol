@@ -20,12 +20,6 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
   ///@notice Required functions to let `this` contract interact with Aave
   /**************************************************************************/
 
-  ///@notice approval of overlying token contract by the underlying is necessary for minting and repaying borrow
-  ///@notice user must use this function to do so.
-  function approveLender(address token, uint amount) external onlyAdmin {
-    _approveLender(token, amount);
-  }
-
   // tokens are fetched on Aave (on behalf of offer owner)
   function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
@@ -47,27 +41,25 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
     }
     // need to retreive overlyings from msg.sender (we suppose `this` is approved for that)
     IERC20 aToken = overlying(IERC20(order.outbound_tkn));
-    try aToken.transferFrom(owner, address(this), amount) returns (bool) {
-      if (aaveRedeem(amount, address(this), order) == 0) {
-        // amount was transfered to `owner`
+    try aToken.transferFrom(owner, address(this), amount) returns (
+      bool success
+    ) {
+      if (success) {
+        // amount overlying was transfered from `owner`'s wallet
+        // anything wrong beyond this point should revert
+        // trying to redeem from AAVE
+        require(aaveRedeem(amount, address(this), order) == 0); // throwing to cancel overlying transfer
         return 0;
       }
-      emit ErrorOnRedeem(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        amount,
-        "lender/multi/redeemFailed"
-      );
     } catch {
-      emit ErrorOnRedeem(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        amount,
-        "lender/multi/transferFromFail"
-      );
+      // nothing to be done
     }
+    emit LogIncident(
+      order.outbound_tkn,
+      order.inbound_tkn,
+      order.offerId,
+      "aaveLender/overlyingTransferFail"
+    );
     return amount; // nothing was fetched
   }
 

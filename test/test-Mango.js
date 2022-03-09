@@ -87,7 +87,10 @@ describe("Running tests...", function () {
       0
     );
 
-    await makerContract.fundMangrove({ value: prov.mul(20) });
+    const fundTx = await mgv["fund(address)"](makerContract.address, {
+      value: prov.mul(20),
+    });
+    await fundTx.wait();
 
     let slice = NSLOTS / 2;
     let pivotIds = new Array(slice);

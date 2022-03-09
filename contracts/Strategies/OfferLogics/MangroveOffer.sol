@@ -85,7 +85,11 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
     returns (bool noRevert)
   {
     require(MGV.withdraw(amount), "MangroveOffer/withdraw/transferFail");
-    (noRevert, ) = receiver.call{value: amount}("");
+    if (receiver != address(this)) {
+      (noRevert, ) = receiver.call{value: amount}("");
+    } else {
+      noRevert = true;
+    }
   }
 
   // returns missing provision to repost `offerId` at given `gasreq` and `gasprice`

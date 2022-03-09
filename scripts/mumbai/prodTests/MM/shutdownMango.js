@@ -29,26 +29,35 @@ async function main() {
     ["DAI", "USDC"],
   ];
   for (const [baseName, quoteName] of markets) {
-    // NSLOTS/2 offers giving base (~1000 USD each)
-    // NSLOTS/2 offers giving quote (~1000 USD)
-
     let MangoRaw = (
       await hre.ethers.getContract(`Mango_${baseName}_${quoteName}`)
-    ).connect(deployer);
+    ).connect(tester);
     if ((await MangoRaw.admin()) === deployer.address) {
-      const tx = await MangoRaw.setAdmin(tester.address);
+      const tx = await MangoRaw.connect(deployer).setAdmin(tester.address);
       await tx.wait();
     }
-    MangoRaw = MangoRaw.connect(tester);
-    let slice = 5;
+    const N = await MangoRaw.NSLOTS();
 
-    for (let i = 0; i < 2; i++) {
-      const receipt = await MangoRaw.retractOffers(
-        slice * i, // from
-        slice * (i + 1) // to
-      );
-      console.log(`* Slice [${[slice * i, slice * (i + 1)]}[ retracted`);
-    }
+    const tx1 = await MangoRaw.retractOffers(
+      2, // both bids and asks
+      0, // from
+      Math.floor(N / 3) // to
+    );
+    await tx1.wait();
+    const tx2 = await MangoRaw.retractOffers(
+      2, // both bids and asks
+      Math.floor(N / 3), // from
+      Math.floor((2 * N) / 3) // to
+    );
+    await tx2.wait();
+    const tx3 = await MangoRaw.retractOffers(
+      2, // both bids and asks
+      Math.floor((2 * N) / 3), // from
+      N // to
+    );
+    await tx3.wait();
+    //await Promise.all([tx1, tx2, tx3]);
+    console.log(`Offers retracted on (${baseName},${quoteName}) market`);
 
     const balBase = await MgvAPI.token(baseName).balanceOf(MangoRaw.address);
     const balQuote = await MgvAPI.token(quoteName).balanceOf(MangoRaw.address);
@@ -56,19 +65,9 @@ async function main() {
     const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
       market
     );
-
+    // if treasury was set to Mango itself
     await Mango.logic.redeemToken(baseName, balBase);
     await Mango.logic.redeemToken(quoteName, balQuote);
-    // const [bids, asks] = await MangoRaw.get_offers();
-    // for (let i=0; i<10; i++) {
-    //   if (bids[i]>0) {
-    //     await Mango.cancelBid(bids[i].toNumber(), true);
-    //   }
-    //   if (asks[i]>0) {
-    //     await Mango.cancelAsk(asks[i].toNumber(), true);
-    //   }
-    // }
-    await Mango.logic.withdrawFromMangrove(await Mango.balanceOnMangrove());
   }
 }
 main()

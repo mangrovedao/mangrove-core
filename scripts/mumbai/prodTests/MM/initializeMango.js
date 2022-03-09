@@ -30,6 +30,8 @@ async function main() {
   ];
   for (const [baseName, quoteName] of markets) {
     let tx = null;
+    let default_base_amount = baseName === "WETH" ? 0.3 : 1000;
+    let default_quote_amount = quoteName === "WETH" ? 0.3 : 1000;
     // NSLOTS/2 offers giving base (~1000 USD each)
     // NSLOTS/2 offers giving quote (~1000 USD)
 
@@ -82,33 +84,30 @@ async function main() {
     await tx2.wait();
 
     console.log(`* Posting Mango offers on (${baseName},${quoteName}) market`);
-    const chunks = 5;
-    const slice = NSLOTS / chunks;
-    let bidding = true;
+    const batch = 5;
+    const slice = NSLOTS / batch; // slices of 10 offers
     let pivotIds = new Array(slice);
     let amounts = new Array(slice);
+
     // TODO: define a procedure to get better pivots
     pivotIds = pivotIds.fill(0, 0);
-    amounts.fill(MgvAPI.toUnits(1000, quoteName), 0); // quotes are always in USD equivalent so using a volume of 1000 USD here
 
-    for (let i = 0; i < chunks; i++) {
-      if (i >= chunks / 2) {
-        bidding = false;
+    for (let i = 0; i < batch; i++) {
+      const withBase = slice * i < 30;
+      if (withBase) {
+        amounts.fill(MgvAPI.toUnits(default_base_amount, baseName), 0, 10);
+      } else {
+        amounts.fill(MgvAPI.toUnits(default_quote_amount, quoteName), 0, 10);
       }
       const receipt = await MangoRaw.initialize(
-        bidding,
-        false, //withQuotes
+        29, // last bid position
+        withBase, // with base until Asking
         slice * i, // from
         slice * (i + 1), // to
         [pivotIds, pivotIds],
         amounts
       );
-      console.log(
-        `* ${bidding ? "Bids" : "Asks"} [${[
-          slice * i,
-          slice * (i + 1),
-        ]}[ initialized (${(await receipt.wait()).gasUsed} gas used)`
-      );
+      await receipt.wait();
     }
   }
 }

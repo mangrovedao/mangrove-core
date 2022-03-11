@@ -16,14 +16,6 @@ import "../MangroveOffer.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract SingleUser is MangroveOffer {
-  function balanceOnMangrove() external view returns (uint) {
-    return MGV.balanceOf(address(this));
-  }
-
-  function tokenBalance(address token) external view returns (uint) {
-    return IEIP20(token).balanceOf(address(this));
-  }
-
   /// transfers token stored in `this` contract to some recipient address
   function redeemToken(address token, uint amount)
     external
@@ -31,17 +23,7 @@ abstract contract SingleUser is MangroveOffer {
     onlyAdmin
     returns (bool success)
   {
-    success = _transferToken(token, msg.sender, amount);
-  }
-
-  function depositToken(address token, uint amount)
-    external
-    returns (
-      //override
-      bool success
-    )
-  {
-    success = _transferTokenFrom(token, msg.sender, amount);
+    success = IEIP20(token).transfer(msg.sender, amount);
   }
 
   /// withdraws ETH from the bounty vault of the Mangrove.

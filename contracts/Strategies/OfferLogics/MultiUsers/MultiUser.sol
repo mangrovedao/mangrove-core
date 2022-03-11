@@ -106,7 +106,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   {
     require(msg.sender != address(this), "Mutli/noReentrancy");
     debitToken(token, msg.sender, amount);
-    success = _transferToken(token, msg.sender, amount);
+    success = IEIP20(token).transfer(msg.sender, amount);
   }
 
   function depositToken(address token, uint amount)
@@ -118,7 +118,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     )
   {
     uint balBefore = IEIP20(token).balanceOf(address(this));
-    success = _transferTokenFrom(token, msg.sender, amount);
+    success = IEIP20(token).transferFrom(address(this), msg.sender, amount);
     require(
       IEIP20(token).balanceOf(address(this)) - balBefore == amount,
       "Multi/transferFail"

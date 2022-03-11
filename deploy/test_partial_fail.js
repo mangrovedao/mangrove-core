@@ -2,9 +2,9 @@
  * This script allows you to posts two offers (with one that fails) on market.
  * Its goal is to reproduce on the front side the behavior of a transaction where an offer is eaten and another offer reverts.
  *
- * This script has "TestingSetup" as dependency, which means that this script will be executeed after the whole Mangrove ecosystem is deployed and freshly installed.
+ * This script has "TestingSetup" as dependency, which means that this script will be executed after the whole Mangrove ecosystem is deployed and freshly installed.
  *
- * By running this script you'll be able to interact a fresh local chain containing Mangrove contracts.
+ * By running this script you'll be able to interact with a fresh local chain containing Mangrove contracts.
  */
 
 // wants/gives for successful offer

@@ -37,9 +37,7 @@ abstract contract CompoundLender is SingleUser, CompoundModule {
     address
   ) external onlyAdmin {
     uint errCode = _mint(amount, ctoken);
-    if (errCode != 0) {
-      consolerr.errorUint("Lender/mintFailed: ", errCode);
-    }
+    require(errCode == 0, "Lender/mintFailed");
   }
 
   function __get__(uint amount, ML.SingleOrder calldata order)

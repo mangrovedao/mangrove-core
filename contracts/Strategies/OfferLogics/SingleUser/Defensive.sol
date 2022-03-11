@@ -41,14 +41,8 @@ abstract contract Defensive is SingleUser {
     override
     returns (bool)
   {
-    uint offer_gives_REF = mul_(
-      order.wants,
-      oracle.getPrice(order.outbound_tkn) // returns price in oracle base units (i.e ETH or USD)
-    );
-    uint offer_wants_REF = mul_(
-      order.gives,
-      oracle.getPrice(order.inbound_tkn) // returns price is oracle base units (i.e ETH or USD)
-    );
+    uint offer_gives_REF = order.wants * oracle.getPrice(order.outbound_tkn); // returns price in oracle base units (i.e ETH or USD)
+    uint offer_wants_REF = order.gives * oracle.getPrice(order.inbound_tkn); // returns price is oracle base units (i.e ETH or USD)
     // abort trade if price data is not available
     if (offer_gives_REF == 0) {
       emit MissingPrice(order.outbound_tkn);
@@ -60,9 +54,8 @@ abstract contract Defensive is SingleUser {
     }
     // if offer_gives_REF * (1-slippage) > offer_wants_REF one is getting arb'ed
     // i.e slippage_den * OGR - slippage_num * OGR > OWR * slippage_den
-    return (sub_(
-      mul_(offer_gives_REF, slippage_den),
-      mul_(offer_gives_REF, slippage_num)
-    ) <= mul_(offer_wants_REF, slippage_den));
+    return
+      offer_gives_REF * slippage_den - offer_gives_REF * slippage_num <=
+      offer_wants_REF * slippage_den;
   }
 }

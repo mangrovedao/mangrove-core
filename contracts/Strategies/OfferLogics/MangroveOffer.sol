@@ -13,14 +13,12 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../lib/AccessControlled.sol";
-import "../lib/Exponential.sol";
-import "../lib/consolerr/consolerr.sol";
 import "../interfaces/IOfferLogic.sol";
 import "../interfaces/IMangrove.sol";
 import "../interfaces/IEIP20.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
-abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
+abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
   using P.Global for P.Global.t;

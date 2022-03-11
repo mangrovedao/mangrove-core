@@ -18,7 +18,7 @@ contract OasisLike is MultiUserPersistent {
   constructor(address payable _MGV) MangroveOffer(_MGV) {}
 
   // overrides MultiUser.__put__ in order to transfer all inbound tokens to owner
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
     override
     returns (uint missing)
@@ -29,14 +29,14 @@ contract OasisLike is MultiUserPersistent {
       order.inbound_tkn,
       order.offerId
     );
-    if (IERC20(order.inbound_tkn).transfer(owner, amount)) {
+    if (IEIP20(order.inbound_tkn).transfer(owner, amount)) {
       return 0;
     } else {
       return amount;
     }
   }
 
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     override
     returns (uint)
@@ -50,7 +50,7 @@ contract OasisLike is MultiUserPersistent {
       order.offerId
     );
     try
-      IERC20(order.outbound_tkn).transferFrom(owner, address(this), amount)
+      IEIP20(order.outbound_tkn).transferFrom(owner, address(this), amount)
     returns (bool success) {
       if (success) {
         return 0;
@@ -62,7 +62,7 @@ contract OasisLike is MultiUserPersistent {
     }
   }
 
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
+  function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     override
   {

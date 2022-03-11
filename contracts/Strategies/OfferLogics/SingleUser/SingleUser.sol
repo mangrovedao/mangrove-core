@@ -13,7 +13,6 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../MangroveOffer.sol";
-import "hardhat/console.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract SingleUser is MangroveOffer {
@@ -22,7 +21,7 @@ abstract contract SingleUser is MangroveOffer {
   }
 
   function tokenBalance(address token) external view returns (uint) {
-    return IERC20(token).balanceOf(address(this));
+    return IEIP20(token).balanceOf(address(this));
   }
 
   /// transfers token stored in `this` contract to some recipient address
@@ -211,18 +210,18 @@ abstract contract SingleUser is MangroveOffer {
 
   function __put__(
     uint, /*amount*/
-    MgvLib.SingleOrder calldata
+    ML.SingleOrder calldata
   ) internal virtual override returns (uint) {
     return 0;
   }
 
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
-    uint balance = IERC20(order.outbound_tkn).balanceOf(address(this));
+    uint balance = IEIP20(order.outbound_tkn).balanceOf(address(this));
     if (balance >= amount) {
       return 0;
     } else {

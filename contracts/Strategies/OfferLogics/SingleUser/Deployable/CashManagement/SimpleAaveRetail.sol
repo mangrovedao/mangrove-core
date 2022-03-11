@@ -22,7 +22,7 @@ contract SimpleAaveRetail is AaveLender {
   }
 
   // Tries to take base directly from `this` balance. Fetches the remainder on Aave.
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override

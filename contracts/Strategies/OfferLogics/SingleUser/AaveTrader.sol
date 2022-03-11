@@ -36,7 +36,7 @@ abstract contract AaveTrader is AaveLender {
     string errorCode
   );
 
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
@@ -90,7 +90,7 @@ abstract contract AaveTrader is AaveLender {
     }
   }
 
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
@@ -107,11 +107,11 @@ abstract contract AaveTrader is AaveLender {
 
     uint debtOfUnderlying;
     if (interestRateMode == 1) {
-      debtOfUnderlying = IERC20(reserveData.stableDebtTokenAddress).balanceOf(
+      debtOfUnderlying = IEIP20(reserveData.stableDebtTokenAddress).balanceOf(
         address(this)
       );
     } else {
-      debtOfUnderlying = IERC20(reserveData.variableDebtTokenAddress).balanceOf(
+      debtOfUnderlying = IEIP20(reserveData.variableDebtTokenAddress).balanceOf(
           address(this)
         );
     }

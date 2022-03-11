@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../interfaces/compound/ICompound.sol";
 import "../lib/Exponential.sol";
-import {MgvLib as ML} from "../../MgvLib.sol";
+import "../interfaces/IMangrove.sol";
 
 //import "hardhat/console.sol";
 
@@ -36,7 +36,7 @@ contract CompoundModule is Exponential {
   event ComptrollerError(address comp, uint errorCode);
 
   // mapping : ERC20 -> cERC20
-  mapping(IERC20 => IcERC20) overlyings;
+  mapping(IEIP20 => IcERC20) overlyings;
 
   // address of the comptroller
   IComptroller public immutable comptroller;
@@ -44,7 +44,7 @@ contract CompoundModule is Exponential {
   // address of the price oracle used by the comptroller
   ICompoundPriceOracle public immutable oracle;
 
-  IERC20 immutable weth;
+  IEIP20 immutable weth;
 
   constructor(address _unitroller, address wethAddress) {
     comptroller = IComptroller(_unitroller); // unitroller is a proxy for comptroller calls
@@ -52,7 +52,7 @@ contract CompoundModule is Exponential {
     ICompoundPriceOracle _oracle = IComptroller(_unitroller).oracle(); // pricefeed used by the comptroller
     require(address(_oracle) != address(0), "Failed to get price oracle");
     oracle = _oracle;
-    weth = IERC20(wethAddress);
+    weth = IEIP20(wethAddress);
   }
 
   function isCeth(IcERC20 ctoken) internal view returns (bool) {
@@ -61,18 +61,18 @@ contract CompoundModule is Exponential {
   }
 
   //dealing with cEth special case
-  function underlying(IcERC20 ctoken) internal view returns (IERC20) {
+  function underlying(IcERC20 ctoken) internal view returns (IEIP20) {
     require(ctoken.isCToken(), "Invalid ctoken address");
     if (isCeth(ctoken)) {
       // cETH has no underlying() function...
       return weth;
     } else {
-      return IERC20(ctoken.underlying());
+      return IEIP20(ctoken.underlying());
     }
   }
 
   function _approveLender(IcERC20 ctoken, uint amount) internal returns (bool) {
-    IERC20 token = underlying(ctoken);
+    IEIP20 token = underlying(ctoken);
     return token.approve(address(ctoken), amount);
   }
 
@@ -80,7 +80,7 @@ contract CompoundModule is Exponential {
     uint[] memory results = comptroller.enterMarkets(ctokens);
     for (uint i = 0; i < ctokens.length; i++) {
       require(results[i] == 0, "Failed to enter market");
-      IERC20 token = underlying(IcERC20(ctokens[i]));
+      IEIP20 token = underlying(IcERC20(ctokens[i]));
       // adding ctoken.underlying --> ctoken mapping
       overlyings[token] = IcERC20(ctokens[i]);
     }
@@ -97,7 +97,7 @@ contract CompoundModule is Exponential {
     comptroller.claimComp(address(this));
   }
 
-  function isPooled(IERC20 token) public view returns (bool) {
+  function isPooled(IEIP20 token) public view returns (bool) {
     IcERC20 ctoken = overlyings[token];
     return comptroller.checkMembership(address(this), ctoken);
   }
@@ -203,7 +203,7 @@ contract CompoundModule is Exponential {
     internal
     returns (uint)
   {
-    IcERC20 outbound_cTkn = overlyings[IERC20(order.outbound_tkn)]; // this is 0x0 if outbound_tkn is not compound sourced.
+    IcERC20 outbound_cTkn = overlyings[IEIP20(order.outbound_tkn)]; // this is 0x0 if outbound_tkn is not compound sourced.
     if (address(outbound_cTkn) == address(0)) {
       return amountToRedeem;
     }
@@ -240,7 +240,7 @@ contract CompoundModule is Exponential {
       }
     } else {
       // Approve transfer on the ERC20 contract (not needed if cERC20 is already approved for `this`)
-      // IERC20(ctoken.underlying()).approve(ctoken, amount);
+      // IEIP20(ctoken.underlying()).approve(ctoken, amount);
       errCode = ctoken.mint(amount); // accrues interest
     }
   }
@@ -251,7 +251,7 @@ contract CompoundModule is Exponential {
     internal
     returns (uint missing)
   {
-    IcERC20 ctoken = overlyings[IERC20(order.inbound_tkn)];
+    IcERC20 ctoken = overlyings[IEIP20(order.inbound_tkn)];
     uint errCode = _mint(amount, ctoken);
     // Mint ctokens
     if (errCode != 0) {

@@ -17,14 +17,15 @@ import "../Persistent.sol";
 contract Reposting is Persistent {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
+
   constructor(address payable _MGV) MangroveOffer(_MGV) {}
 
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
+  function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     override
   {
-    uint wants = order.offer.wants();// amount with token1.decimals() decimals
-    uint gives = order.offer.gives();// amount with token1.decimals() decimals
+    uint wants = order.offer.wants(); // amount with token1.decimals() decimals
+    uint gives = order.offer.gives(); // amount with token1.decimals() decimals
     uint gasreq = order.offerDetail.gasreq();
     uint gasprice = order.offerDetail.gasprice();
 

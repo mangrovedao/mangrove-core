@@ -157,25 +157,25 @@ contract Mango is Persistent {
   }
 
   /** Deposits received tokens into the corresponding treasury*/
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
     if (order.inbound_tkn == BASE && current_base_treasury != address(this)) {
-      return IERC20(BASE).transfer(current_base_treasury, amount) ? 0 : amount;
+      return IEIP20(BASE).transfer(current_base_treasury, amount) ? 0 : amount;
     }
     if (current_quote_treasury != address(this)) {
       return
-        IERC20(QUOTE).transfer(current_quote_treasury, amount) ? 0 : amount;
+        IEIP20(QUOTE).transfer(current_quote_treasury, amount) ? 0 : amount;
     }
     // order.inbound_tkn has to be either BASE or QUOTE so only possibility is `this` is treasury
     return 0;
   }
 
   /** Fetches required tokens from the corresponding treasury*/
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
@@ -183,13 +183,13 @@ contract Mango is Persistent {
   {
     if (order.outbound_tkn == BASE && current_base_treasury != address(this)) {
       return
-        IERC20(BASE).transferFrom(current_base_treasury, address(this), amount)
+        IEIP20(BASE).transferFrom(current_base_treasury, address(this), amount)
           ? 0
           : amount;
     }
     if (current_quote_treasury != address(this)) {
       return
-        IERC20(QUOTE).transferFrom(
+        IEIP20(QUOTE).transferFrom(
           current_quote_treasury,
           address(this),
           amount
@@ -290,7 +290,7 @@ contract Mango is Persistent {
     paused = false;
   }
 
-  function __lastLook__(MgvLib.SingleOrder calldata order)
+  function __lastLook__(ML.SingleOrder calldata order)
     internal
     virtual
     override
@@ -553,7 +553,7 @@ contract Mango is Persistent {
 
   // for reposting partial filled offers one always gives the residual (default behavior)
   // and adapts wants to the new price (if different).
-  function __residualWants__(MgvLib.SingleOrder calldata order)
+  function __residualWants__(ML.SingleOrder calldata order)
     internal
     virtual
     override
@@ -587,7 +587,7 @@ contract Mango is Persistent {
     }
   }
 
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
+  function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     virtual
     override

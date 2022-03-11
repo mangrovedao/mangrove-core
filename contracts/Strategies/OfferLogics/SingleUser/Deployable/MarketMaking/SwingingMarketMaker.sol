@@ -47,8 +47,8 @@ contract SwingingMarketMaker is CompoundTrader {
   ) external payable onlyAdmin {
     MGV.fund{value: msg.value}();
     require(repostOffer(tk0, tk1, gives), "Could not start strategy");
-    IERC20(tk0).approve(address(MGV), type(uint).max); // approving MGV for tk0 transfer
-    IERC20(tk1).approve(address(MGV), type(uint).max); // approving MGV for tk1 transfer
+    IEIP20(tk0).approve(address(MGV), type(uint).max); // approving MGV for tk0 transfer
+    IEIP20(tk1).approve(address(MGV), type(uint).max); // approving MGV for tk1 transfer
   }
 
   // at this stage contract has `received` amount in token0
@@ -67,7 +67,7 @@ contract SwingingMarketMaker is CompoundTrader {
     }
     uint wants = div_(
       mul_(p_10, gives), // p(base|quote).(gives:quote) : base
-      10**(IERC20(outbound_tkn).decimals())
+      10**(IEIP20(outbound_tkn).decimals())
     ); // in base units
     uint offerId = offers[outbound_tkn][inbound_tkn];
     if (offerId == 0) {
@@ -105,7 +105,7 @@ contract SwingingMarketMaker is CompoundTrader {
     }
   }
 
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
+  function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     override
   {
@@ -119,7 +119,7 @@ contract SwingingMarketMaker is CompoundTrader {
     });
   }
 
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override

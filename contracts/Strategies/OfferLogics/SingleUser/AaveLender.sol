@@ -21,11 +21,11 @@ abstract contract AaveLender is SingleUser, AaveModule {
   /**************************************************************************/
 
   ///@notice exits markets
-  function exitMarket(IERC20 underlying) external onlyAdmin {
+  function exitMarket(IEIP20 underlying) external onlyAdmin {
     _exitMarket(underlying);
   }
 
-  function enterMarkets(IERC20[] calldata underlyings) external onlyAdmin {
+  function enterMarkets(IEIP20[] calldata underlyings) external onlyAdmin {
     _enterMarkets(underlyings);
   }
 
@@ -37,7 +37,7 @@ abstract contract AaveLender is SingleUser, AaveModule {
     _mint(amount, token, onBehalf);
   }
 
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
@@ -58,7 +58,7 @@ abstract contract AaveLender is SingleUser, AaveModule {
     return amount;
   }
 
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override

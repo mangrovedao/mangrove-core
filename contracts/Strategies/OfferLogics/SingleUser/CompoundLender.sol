@@ -48,12 +48,12 @@ abstract contract CompoundLender is SingleUser, CompoundModule {
     override
     returns (uint)
   {
-    if (!isPooled(IERC20(order.outbound_tkn))) {
+    if (!isPooled(IEIP20(order.outbound_tkn))) {
       // if flag says not to fetch liquidity on compound
       return amount;
     }
     // if outbound_tkn == weth, overlying will return cEth
-    IcERC20 outbound_cTkn = overlyings[IERC20(order.outbound_tkn)]; // this is 0x0 if outbound_tkn is not compound sourced.
+    IcERC20 outbound_cTkn = overlyings[IEIP20(order.outbound_tkn)]; // this is 0x0 if outbound_tkn is not compound sourced.
     if (address(outbound_cTkn) == address(0)) {
       return amount;
     }
@@ -79,7 +79,7 @@ abstract contract CompoundLender is SingleUser, CompoundModule {
     returns (uint)
   {
     //optim
-    if (!isPooled(IERC20(order.inbound_tkn))) {
+    if (!isPooled(IEIP20(order.inbound_tkn))) {
       return amount;
     }
     return compoundMint(amount, order);

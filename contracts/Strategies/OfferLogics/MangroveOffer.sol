@@ -12,12 +12,12 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "../../MgvLib.sol";
 import "../lib/AccessControlled.sol";
 import "../lib/Exponential.sol";
 import "../lib/consolerr/consolerr.sol";
 import "../interfaces/IOfferLogic.sol";
-import "../../Mangrove.sol";
+import "../interfaces/IMangrove.sol";
+import "../interfaces/IEIP20.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
@@ -30,7 +30,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
   bytes32 immutable PUTFAILURE = "MangroveOffer/putFailure";
   bytes32 immutable OUTOFLIQUIDITY = "MangroveOffer/outOfLiquidity";
 
-  Mangrove public immutable MGV; // Address of the deployed Mangrove contract
+  IMangrove public immutable MGV; // Address of the deployed Mangrove contract
 
   modifier mgvOrAdmin() {
     require(
@@ -45,7 +45,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
   receive() external payable virtual {}
 
   constructor(address payable _mgv) {
-    MGV = Mangrove(_mgv);
+    MGV = IMangrove(_mgv);
   }
 
   function setGasreq(uint gasreq) public override mgvOrAdmin {
@@ -58,7 +58,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
     address recipient,
     uint amount
   ) internal returns (bool success) {
-    success = IERC20(token).transfer(recipient, amount);
+    success = IEIP20(token).transfer(recipient, amount);
   }
 
   function _transferTokenFrom(
@@ -66,14 +66,14 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
     address sender,
     uint amount
   ) internal returns (bool success) {
-    success = IERC20(token).transferFrom(sender, address(this), amount);
+    success = IEIP20(token).transferFrom(sender, address(this), amount);
   }
 
   /// trader needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
   /// NB anyone can call
   function approveMangrove(address outbound_tkn, uint amount) public {
     require(
-      IERC20(outbound_tkn).approve(address(MGV), amount),
+      IEIP20(outbound_tkn).approve(address(MGV), amount),
       "mgvOffer/approve/Fail"
     );
   }
@@ -146,7 +146,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
   // it may not be overriden although it can be customized using `__lastLook__`, `__put__` and `__get__` hooks.
   // NB #1: When overriding the above hooks, the Offer Maker SHOULD make sure they do not revert in order to be able to post logs in case of bad executions.
   // NB #2: if `makerExecute` does revert, the offer will be considered to be refusing the trade.
-  function makerExecute(MgvLib.SingleOrder calldata order)
+  function makerExecute(ML.SingleOrder calldata order)
     external
     override
     onlyCaller(address(MGV))
@@ -183,8 +183,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
   // It may not be overriden although it can be customized via the post-hooks `__posthookSuccess__`, `__posthookGetFailure__`, `__posthookReneged__` and `__posthookFallback__` (see below).
   // Offer Maker SHOULD make sure the overriden posthooks do not revert in order to be able to post logs in case of bad executions.
   function makerPosthook(
-    MgvLib.SingleOrder calldata order,
-    MgvLib.OrderResult calldata result
+    ML.SingleOrder calldata order,
+    ML.OrderResult calldata result
   ) external override onlyCaller(address(MGV)) {
     if (result.mgvData == "mgv/tradeSuccess") {
       // if trade was a success
@@ -211,21 +211,21 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
   // Override this hook to describe where the inbound token, which are flashswapped by the Offer Taker, should go during Taker Order's execution.
   // `amount` is the quantity of outbound tokens whose destination is to be resolved.
   // All tokens that are not transfered to a different contract remain listed in the balance of `this` contract
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     returns (uint);
 
   // Override this hook to implement fetching `amount` of outbound tokens, possibly from another source than `this` contract during Taker Order's execution.
   // For composability, return value MUST be the remaining quantity (i.e <= `amount`) of tokens remaining to be fetched.
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     returns (uint);
 
   // Override this hook to implement a last look check during Taker Order's execution.
   // Return value should be `true` if Taker Order is acceptable.
-  function __lastLook__(MgvLib.SingleOrder calldata order)
+  function __lastLook__(ML.SingleOrder calldata order)
     internal
     virtual
     returns (bool proceed)
@@ -237,15 +237,12 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
   ////// Customizable post-hooks.
 
   // Override this post-hook to implement what `this` contract should do when called back after a successfully executed order.
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-  {
+  function __posthookSuccess__(ML.SingleOrder calldata order) internal virtual {
     order; // shh
   }
 
   // Override this post-hook to implement what `this` contract should do when called back after an order that failed to be executed because of a lack of liquidity (not enough outbound tokens).
-  function __posthookGetFailure__(MgvLib.SingleOrder calldata order)
+  function __posthookGetFailure__(ML.SingleOrder calldata order)
     internal
     virtual
   {
@@ -253,17 +250,14 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic, Exponential {
   }
 
   // Override this post-hook to implement what `this` contract should do when called back after an order that did not pass its last look (see `__lastLook__` hook).
-  function __posthookReneged__(MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-  {
+  function __posthookReneged__(ML.SingleOrder calldata order) internal virtual {
     order; //shh
   }
 
   // Override this post-hook to implement fallback behavior when Taker Order's execution failed unexpectedly. Information from Mangrove is accessible in `result.mgvData` for logging purpose.
   function __posthookFallback__(
-    MgvLib.SingleOrder calldata order,
-    MgvLib.OrderResult calldata result
+    ML.SingleOrder calldata order,
+    ML.OrderResult calldata result
   ) internal virtual {
     order;
     result;

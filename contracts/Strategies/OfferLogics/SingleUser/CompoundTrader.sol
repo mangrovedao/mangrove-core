@@ -23,10 +23,10 @@ abstract contract CompoundTrader is CompoundLender {
     override
     returns (uint)
   {
-    if (!isPooled(IERC20(order.outbound_tkn))) {
+    if (!isPooled(IEIP20(order.outbound_tkn))) {
       return amount;
     }
-    IcERC20 outbound_cTkn = overlyings[IERC20(order.outbound_tkn)]; // this is 0x0 if outbound_tkn is not compound sourced for borrow.
+    IcERC20 outbound_cTkn = overlyings[IEIP20(order.outbound_tkn)]; // this is 0x0 if outbound_tkn is not compound sourced for borrow.
 
     if (address(outbound_cTkn) == address(0)) {
       return amount;
@@ -79,11 +79,11 @@ abstract contract CompoundTrader is CompoundLender {
     returns (uint)
   {
     //optim
-    if (!isPooled(IERC20(order.inbound_tkn))) {
+    if (!isPooled(IEIP20(order.inbound_tkn))) {
       return amount;
     }
     // NB: overlyings[wETH] = cETH
-    IcERC20 inbound_cTkn = overlyings[IERC20(order.inbound_tkn)];
+    IcERC20 inbound_cTkn = overlyings[IEIP20(order.inbound_tkn)];
     if (address(inbound_cTkn) == address(0)) {
       return amount;
     }

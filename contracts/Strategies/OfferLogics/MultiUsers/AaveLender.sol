@@ -21,7 +21,7 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
   /**************************************************************************/
 
   // tokens are fetched on Aave (on behalf of offer owner)
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
@@ -40,7 +40,7 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
       return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
     }
     // need to retreive overlyings from msg.sender (we suppose `this` is approved for that)
-    IERC20 aToken = overlying(IERC20(order.outbound_tkn));
+    IEIP20 aToken = overlying(IEIP20(order.outbound_tkn));
     try aToken.transferFrom(owner, address(this), amount) returns (
       bool success
     ) {
@@ -64,7 +64,7 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
   }
 
   // received inbound token are put on Aave on behalf of offer owner
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override

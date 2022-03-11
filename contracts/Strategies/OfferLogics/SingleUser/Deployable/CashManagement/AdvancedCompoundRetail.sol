@@ -23,7 +23,7 @@ contract AdvancedCompoundRetail is CompoundTrader {
   }
 
   // Tries to take base directly from `this` balance. Fetches the remainder on Compound.
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override

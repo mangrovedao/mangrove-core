@@ -16,8 +16,8 @@ import "../interfaces/Aave/ILendingPool.sol";
 import "../interfaces/Aave/ILendingPoolAddressesProvider.sol";
 import "../interfaces/Aave/IPriceOracleGetter.sol";
 import "../lib/Exponential.sol";
-import "../../IERC20.sol";
-import "../../MgvLib.sol";
+import "../interfaces/IMangrove.sol";
+import "../interfaces/IEIP20.sol";
 
 //import "hardhat/console.sol";
 
@@ -65,22 +65,22 @@ contract AaveModule is Exponential {
   ///@notice approval of overlying contract by the underlying is necessary for minting and repaying borrow
   ///@notice user must use this function to do so.
   function approveLender(address token, uint amount) public {
-    IERC20(token).approve(address(lendingPool), amount);
+    IEIP20(token).approve(address(lendingPool), amount);
   }
 
   ///@notice exits markets
-  function _exitMarket(IERC20 underlying) internal {
+  function _exitMarket(IEIP20 underlying) internal {
     lendingPool.setUserUseReserveAsCollateral(address(underlying), false);
   }
 
-  function _enterMarkets(IERC20[] calldata underlyings) internal {
+  function _enterMarkets(IEIP20[] calldata underlyings) internal {
     for (uint i = 0; i < underlyings.length; i++) {
       lendingPool.setUserUseReserveAsCollateral(address(underlyings[i]), true);
     }
   }
 
-  function overlying(IERC20 asset) public view returns (IERC20 aToken) {
-    aToken = IERC20(lendingPool.getReserveData(address(asset)).aTokenAddress);
+  function overlying(IEIP20 asset) public view returns (IEIP20 aToken) {
+    aToken = IEIP20(lendingPool.getReserveData(address(asset)).aTokenAddress);
   }
 
   // structs to avoir stack too deep in maxGettableUnderlying
@@ -132,7 +132,7 @@ contract AaveModule is Exponential {
       /*reserveFactor*/
 
     ) = DataTypes.getParams(reserveData.configuration);
-    account.balanceOfUnderlying = IERC20(reserveData.aTokenAddress).balanceOf(
+    account.balanceOfUnderlying = IEIP20(reserveData.aTokenAddress).balanceOf(
       onBehalf
     );
 
@@ -187,7 +187,7 @@ contract AaveModule is Exponential {
   function aaveRedeem(
     uint amountToRedeem,
     address onBehalf,
-    MgvLib.SingleOrder calldata order
+    ML.SingleOrder calldata order
   ) internal returns (uint) {
     try
       lendingPool.withdraw(order.outbound_tkn, amountToRedeem, onBehalf)
@@ -225,7 +225,7 @@ contract AaveModule is Exponential {
   function aaveMint(
     uint amount,
     address onBehalf,
-    MgvLib.SingleOrder calldata order
+    ML.SingleOrder calldata order
   ) internal returns (uint) {
     // contract must haveallowance()to spend funds on behalf ofmsg.sender for at-leastamount for the asset being deposited. This can be done via the standard ERC20 approve() method.
     try lendingPool.deposit(order.inbound_tkn, amount, onBehalf, referralCode) {

@@ -117,10 +117,10 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
       bool success
     )
   {
-    uint balBefore = IERC20(token).balanceOf(address(this));
+    uint balBefore = IEIP20(token).balanceOf(address(this));
     success = _transferTokenFrom(token, msg.sender, amount);
     require(
-      IERC20(token).balanceOf(address(this)) - balBefore == amount,
+      IEIP20(token).balanceOf(address(this)) - balBefore == amount,
       "Multi/transferFail"
     );
     creditToken(token, msg.sender, amount);
@@ -380,7 +380,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   // put received inbound tokens on offer owner account
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
@@ -396,7 +396,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   // get outbound tokens from offer owner account
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override

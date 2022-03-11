@@ -35,7 +35,7 @@ abstract contract Defensive is SingleUser {
     slippage_num = uint16(_slippage);
   }
 
-  function __lastLook__(MgvLib.SingleOrder calldata order)
+  function __lastLook__(ML.SingleOrder calldata order)
     internal
     virtual
     override

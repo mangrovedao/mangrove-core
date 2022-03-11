@@ -210,15 +210,11 @@ contract Mango is Persistent {
     for (uint i = from; i < to; i++) {
       if (ba > 0) {
         // asks or bids+asks
-        collected += ASKS[i] > 0
-          ? retractOfferInternal(BASE, QUOTE, ASKS[i], true)
-          : 0;
+        collected += ASKS[i] > 0 ? retractOffer(BASE, QUOTE, ASKS[i], true) : 0;
       }
       if (ba == 0 || ba > 1) {
         // bids or bids + asks
-        collected += BIDS[i] > 0
-          ? retractOfferInternal(QUOTE, BASE, BIDS[i], true)
-          : 0;
+        collected += BIDS[i] > 0 ? retractOffer(QUOTE, BASE, BIDS[i], true) : 0;
       }
     }
   }
@@ -461,7 +457,7 @@ contract Mango is Persistent {
     while (cpt < s) {
       // slots occupied by [Bids[index],..,Bids[index+`s` % N]] are retracted
       if (BIDS[index] != 0) {
-        retractOfferInternal({
+        retractOffer({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
           offerId: BIDS[index],
@@ -514,7 +510,7 @@ contract Mango is Persistent {
     while (cpt < s) {
       // slots occupied by [Asks[index-`s` % N],..,Asks[index]] are retracted
       if (ASKS[index] != 0) {
-        retractOfferInternal({
+        retractOffer({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
           offerId: ASKS[index],

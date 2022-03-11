@@ -141,7 +141,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   /// withdraws ETH from the bounty vault of the Mangrove.
-  function _withdrawFromMangrove(address receiver, uint amount)
+  function _withdrawFromMangrove(address payable receiver, uint amount)
     internal
     returns (bool noRevert)
   {

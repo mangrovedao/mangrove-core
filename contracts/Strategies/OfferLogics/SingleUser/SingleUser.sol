@@ -17,31 +17,33 @@ import "../MangroveOffer.sol";
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract SingleUser is MangroveOffer {
   /// transfers token stored in `this` contract to some recipient address
-  function redeemToken(address token, uint amount)
-    external
-    override
-    onlyAdmin
-    returns (bool success)
-  {
-    success = IEIP20(token).transfer(msg.sender, amount);
+  function redeemToken(
+    address token,
+    address receiver,
+    uint amount
+  ) external override onlyAdmin returns (bool success) {
+    require(receiver != address(0), "SingleUser/redeemToken/0xReceiver");
+    success = IEIP20(token).transfer(receiver, amount);
   }
 
   /// withdraws ETH from the bounty vault of the Mangrove.
-  function withdrawFromMangrove(address receiver, uint amount)
+  /// ETH are sent to `receiver`
+  function withdrawFromMangrove(address payable receiver, uint amount)
     external
     override
     onlyAdmin
     returns (bool)
   {
+    require(receiver != address(0), "SingleUser/withdrawMGV/0xReceiver");
     return _withdrawFromMangrove(receiver, amount);
   }
 
   // Posting a new offer on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
-  // NB #1: Offer maker MUST:
+  // NB #1: Offer maker maker MUST:
   // * Approve Mangrove for at least `gives` amount of `outbound_tkn`.
-  // * Make sure that offer maker has enough WEI provision on Mangrove to cover for the new offer bounty
+  // * Make sure that `this` contract has enough WEI provision on Mangrove to cover for the new offer bounty (function is payable so that caller can increase provision prior to posting the new offer)
   // * Make sure that `gasreq` and `gives` yield a sufficient offer density
-  // NB #2: This function may revert when the above points are not met, it is thus made external only so that it can be encapsulated when called during `makerExecute`.
+  // NB #2: This function will revert when the above points are not met
   function newOffer(
     address outbound_tkn, // address of the ERC20 contract managing outbound tokens
     address inbound_tkn, // address of the ERC20 contract managing outbound tokens
@@ -63,13 +65,17 @@ abstract contract SingleUser is MangroveOffer {
       );
   }
 
+  // internal function to post a newOffer during a trade execution
+  // call to `MGV.newOffer` is wrapped to avoid reverting if not necessary
+  // function returns `offerId > 0` if new offer was successfully inserted on Mangrove's offer List
+  // `provision` argument MUST correspond to the amount of ethers that should be transfered to Mangrove for reprovisioning purpose
   function newOfferInternal(
-    address outbound_tkn, // address of the ERC20 contract managing outbound tokens
-    address inbound_tkn, // address of the ERC20 contract managing outbound tokens
-    uint wants, // amount of `inbound_tkn` required for full delivery
-    uint gives, // max amount of `outbound_tkn` promised by the offer
-    uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
-    uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
+    address outbound_tkn,
+    address inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
     uint pivotId,
     uint provision
   ) internal returns (uint offerId) {
@@ -95,8 +101,11 @@ abstract contract SingleUser is MangroveOffer {
     }
   }
 
-  //  Updates an existing `offerId` on the Mangrove. `updateOffer` rely on the same offer requirements as `newOffer` and may throw if they are not met.
-  //  Additionally `updateOffer` will thow if `this` contract is not the owner of `offerId`.
+  // Updates offer `offerId` on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
+  // NB #1: Offer maker MUST:
+  // * Make sure that offer maker has enough WEI provision on Mangrove to cover for the new offer bounty in case Mangrove gasprice has increased (function is payable so that caller can increase provision prior to updating the offer)
+  // * Make sure that `gasreq` and `gives` yield a sufficient offer density
+  // NB #2: This function will revert when the above points are not met
   function updateOffer(
     address outbound_tkn,
     address inbound_tkn,
@@ -120,6 +129,10 @@ abstract contract SingleUser is MangroveOffer {
       );
   }
 
+  // internal function to update an offer during a trade execution
+  // call to `MGV.updateOffer` is wrapped to avoid reverting if not necessary
+  // function returns `offerId` if offer was successfully updated on Mangrove's offer List and returns 0 otherwise
+  // `provision` argument MUST correspond to the amount of ethers that should be transfered to Mangrove for reprovisioning purpose
   function updateOfferInternal(
     address outbound_tkn,
     address inbound_tkn,
@@ -152,26 +165,20 @@ abstract contract SingleUser is MangroveOffer {
     }
   }
 
-  // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove. Function call will throw if `this` contract is not the owner of `offerId`.
+  // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove.
+  // Function call will throw if `this` contract is not the owner of `offerId`.
+  // Returned value is the amount of ethers that have been credited to `this` contract balance on Mangrove (always 0 if `deprovision=false`)
+  // NB `mgvOrAdmin` modifier guarantees that this function is either called by contract admin or during trade execution by Mangrove
   function retractOffer(
     address outbound_tkn,
     address inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) external override onlyAdmin returns (uint) {
-    return
-      retractOfferInternal(outbound_tkn, inbound_tkn, offerId, deprovision);
-  }
-
-  function retractOfferInternal(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint offerId,
-    bool deprovision
-  ) internal returns (uint) {
+  ) public override mgvOrAdmin returns (uint) {
     return MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
+  // missing provision for offer maker is simply the missing provision for `this` contract (single user contract)
   function getMissingProvision(
     address outbound_tkn,
     address inbound_tkn,
@@ -190,6 +197,7 @@ abstract contract SingleUser is MangroveOffer {
       );
   }
 
+  // default `__put__` hook for `SingleUser` strats: received tokens are juste stored in `this` contract balance of `inbound` tokens.
   function __put__(
     uint, /*amount*/
     ML.SingleOrder calldata
@@ -197,6 +205,7 @@ abstract contract SingleUser is MangroveOffer {
     return 0;
   }
 
+  // default `__get__` hook for `SingleUser` strats: promised liquidity is obtained from `this` contract balance of `outbound` tokens
   function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual

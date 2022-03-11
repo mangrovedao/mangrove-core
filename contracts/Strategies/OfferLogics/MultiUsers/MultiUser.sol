@@ -99,11 +99,11 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     emit DebitUserTokenBalance(owner, token, amount);
   }
 
-  function redeemToken(address token, uint amount)
-    external
-    override
-    returns (bool success)
-  {
+  function redeemToken(
+    address token,
+    address receiver,
+    uint amount
+  ) external override returns (bool success) {
     require(msg.sender != address(this), "Mutli/noReentrancy");
     debitToken(token, msg.sender, amount);
     success = IEIP20(token).transfer(msg.sender, amount);
@@ -148,7 +148,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   /// withdraws ETH from the bounty vault of the Mangrove.
   /// NB: `Mangrove.fund` function need not be called by `this` so is not included here.
   /// Warning: this function should not be called internally for msg.sender provision is being checked
-  function withdrawFromMangrove(address receiver, uint amount)
+  function withdrawFromMangrove(address payable receiver, uint amount)
     external
     override
     returns (bool noRevert)

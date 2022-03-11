@@ -76,13 +76,15 @@ interface IOfferLogic is IMaker {
   // Changing OFR_GASREQ of the logic
   function setGasreq(uint gasreq) external;
 
-  function redeemToken(address token, uint amount)
-    external
-    returns (bool success);
+  function redeemToken(
+    address token,
+    address receiver,
+    uint amount
+  ) external returns (bool success);
 
   function approveMangrove(address outbound_tkn, uint amount) external;
 
-  function withdrawFromMangrove(address receiver, uint amount)
+  function withdrawFromMangrove(address payable receiver, uint amount)
     external
     returns (bool noRevert);
 

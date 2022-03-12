@@ -118,7 +118,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     )
   {
     uint balBefore = IEIP20(token).balanceOf(address(this));
-    success = IEIP20(token).transferFrom(address(this), msg.sender, amount);
+    success = IEIP20(token).transferFrom(msg.sender, address(this), amount);
     require(
       IEIP20(token).balanceOf(address(this)) - balBefore == amount,
       "Multi/transferFail"

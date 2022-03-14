@@ -70,6 +70,7 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
       }
       uint toBorrow = min(liquidity_after_redeem, amount);
       // 3. trying to borrow missing liquidity, failure to borrow will revert
+      // not encapsulating this external call to make sure aToken transfer is also reverted
       lendingPool.borrow(
         order.outbound_tkn,
         toBorrow,
@@ -77,6 +78,8 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
         referralCode,
         address(this)
       );
+      // if this point is reached, borrow has succeeded.
+      return 0;
     } catch {
       // overlying transfer reverted.
       emit LogIncident(

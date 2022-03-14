@@ -58,7 +58,7 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
           order.outbound_tkn,
           order.inbound_tkn,
           order.offerId,
-          "Multi/aaveTrader/aTkn/Transfer"
+          "Multi/aaveTrader/aTkn/TransferFail"
         );
         return amount;
       }
@@ -80,12 +80,13 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
       );
       // if this point is reached, borrow has succeeded.
       return 0;
-    } catch { // overlying transfer reverted.
+    } catch {
+      // overlying transfer reverted.
       emit LogIncident(
         order.outbound_tkn,
         order.inbound_tkn,
         order.offerId,
-        reason
+        "Multi/AaveTrader/aTkn/transferRevert"
       );
       return amount;
     }

@@ -77,13 +77,13 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
         referralCode,
         address(this)
       );
-    } catch {
+    } catch (bytes memory reason) {
       // overlying transfer reverted.
       emit LogIncident(
         order.outbound_tkn,
         order.inbound_tkn,
         order.offerId,
-        "Multi/aaveTrader/aTkn/Transfer"
+        reason
       );
       return amount;
     }
@@ -125,12 +125,12 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
     );
     try lendingPool.repay(order.inbound_tkn, toRepay, interestRateMode, owner) {
       toMint = sub_(amount, toRepay);
-    } catch {
+    } catch (bytes memory message) {
       emit LogIncident(
         order.outbound_tkn,
         order.inbound_tkn,
         order.offerId,
-        "Multi/aaveTrader/aTkn/repay"
+        message
       );
       toMint = amount;
     }

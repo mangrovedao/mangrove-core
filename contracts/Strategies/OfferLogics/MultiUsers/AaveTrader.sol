@@ -80,13 +80,12 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
       );
       // if this point is reached, borrow has succeeded.
       return 0;
-    } catch {
-      // overlying transfer reverted.
+    } catch { // overlying transfer reverted.
       emit LogIncident(
         order.outbound_tkn,
         order.inbound_tkn,
         order.offerId,
-        "Multi/aaveTrader/aTkn/Transfer"
+        reason
       );
       return amount;
     }
@@ -128,12 +127,12 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
     );
     try lendingPool.repay(order.inbound_tkn, toRepay, interestRateMode, owner) {
       toMint = sub_(amount, toRepay);
-    } catch {
+    } catch (bytes memory message) {
       emit LogIncident(
         order.outbound_tkn,
         order.inbound_tkn,
         order.offerId,
-        "Multi/aaveTrader/aTkn/repay"
+        message
       );
       toMint = amount;
     }

@@ -57,7 +57,7 @@ interface IOfferLogic is IMaker {
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     uint indexed offerId,
-    bytes32 error_data
+    bytes error_data
   );
 
   // Offer logic default gas required --value is used in update and new offer if maxUint is given

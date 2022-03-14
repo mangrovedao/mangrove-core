@@ -106,7 +106,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   ) external override returns (bool success) {
     require(msg.sender != address(this), "Mutli/noReentrancy");
     debitToken(token, msg.sender, amount);
-    success = IEIP20(token).transfer(msg.sender, amount);
+    success = IEIP20(token).transfer(receiver, amount);
   }
 
   function depositToken(address token, uint amount)

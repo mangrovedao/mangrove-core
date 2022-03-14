@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// Basic.sol
+// SimpleMaker.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -13,8 +13,6 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../SingleUser.sol";
-
-//import "hardhat/console.sol";
 
 /* Simply inherits SingleUser and is deployable. No internal logic. */
 contract SimpleMaker is SingleUser {

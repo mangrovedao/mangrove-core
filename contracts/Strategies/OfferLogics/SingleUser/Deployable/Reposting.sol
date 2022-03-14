@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// Basic.sol
+// Reposting.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -14,39 +14,7 @@ pragma abicoder v2;
 
 import "../Persistent.sol";
 
+/* Simply inherits Persistent and is deployable. No additional internal logic. */
 contract Reposting is Persistent {
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
-
   constructor(address payable _MGV) MangroveOffer(_MGV) {}
-
-  function __posthookSuccess__(ML.SingleOrder calldata order)
-    internal
-    override
-  {
-    uint wants = order.offer.wants(); // amount with token1.decimals() decimals
-    uint gives = order.offer.gives(); // amount with token1.decimals() decimals
-    uint gasreq = order.offerDetail.gasreq();
-    uint gasprice = order.offerDetail.gasprice();
-
-    try
-      MGV.updateOffer({
-        outbound_tkn: order.outbound_tkn,
-        inbound_tkn: order.inbound_tkn,
-        wants: wants,
-        gives: gives,
-        gasreq: gasreq,
-        gasprice: gasprice,
-        pivotId: 0,
-        offerId: order.offerId
-      })
-    {} catch Error(string memory error_msg) {
-      emit PosthookFail(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        error_msg
-      );
-    }
-  }
 }

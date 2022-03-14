@@ -65,42 +65,6 @@ abstract contract SingleUser is MangroveOffer {
       );
   }
 
-  // internal function to post a newOffer during a trade execution
-  // call to `MGV.newOffer` is wrapped to avoid reverting if not necessary
-  // function returns `offerId > 0` if new offer was successfully inserted on Mangrove's offer List
-  // `provision` argument MUST correspond to the amount of ethers that should be transfered to Mangrove for reprovisioning purpose
-  function newOfferInternal(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId,
-    uint provision
-  ) internal returns (uint offerId) {
-    if (gasreq > type(uint24).max) {
-      gasreq = OFR_GASREQ;
-    }
-    // this call could revert if this contract does not have the provision to cover the bounty
-    // this may happen if gasprice has been updated on MGV
-    try
-      MGV.newOffer{value: provision}(
-        outbound_tkn,
-        inbound_tkn,
-        wants,
-        gives,
-        gasreq,
-        gasprice,
-        pivotId
-      )
-    returns (uint _offerId) {
-      offerId = _offerId;
-    } catch {
-      offerId = 0;
-    }
-  }
-
   // Updates offer `offerId` on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
   // NB #1: Offer maker MUST:
   // * Make sure that offer maker has enough WEI provision on Mangrove to cover for the new offer bounty in case Mangrove gasprice has increased (function is payable so that caller can increase provision prior to updating the offer)
@@ -129,42 +93,6 @@ abstract contract SingleUser is MangroveOffer {
       );
   }
 
-  // internal function to update an offer during a trade execution
-  // call to `MGV.updateOffer` is wrapped to avoid reverting if not necessary
-  // function returns `offerId` if offer was successfully updated on Mangrove's offer List and returns 0 otherwise
-  // `provision` argument MUST correspond to the amount of ethers that should be transfered to Mangrove for reprovisioning purpose
-  function updateOfferInternal(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId,
-    uint offerId,
-    uint provision // dangerous to use msg.value in a internal call
-  ) internal returns (uint) {
-    if (gasreq > type(uint24).max) {
-      gasreq = OFR_GASREQ;
-    }
-    try
-      MGV.updateOffer{value: msg.value}(
-        outbound_tkn,
-        inbound_tkn,
-        wants,
-        gives,
-        gasreq,
-        gasprice,
-        pivotId,
-        offerId
-      )
-    {
-      return offerId;
-    } catch {
-      return 0;
-    }
-  }
-
   // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove.
   // Function call will throw if `this` contract is not the owner of `offerId`.
   // Returned value is the amount of ethers that have been credited to `this` contract balance on Mangrove (always 0 if `deprovision=false`)
@@ -178,7 +106,6 @@ abstract contract SingleUser is MangroveOffer {
     return MGV.retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
-  // missing provision for offer maker is simply the missing provision for `this` contract (single user contract)
   function getMissingProvision(
     address outbound_tkn,
     address inbound_tkn,
@@ -188,7 +115,7 @@ abstract contract SingleUser is MangroveOffer {
   ) public view override returns (uint) {
     return
       _getMissingProvision(
-        MGV.balanceOf(address(this)),
+        MGV.balanceOf(address(this)), // current provision of offer maker is simply the current provision of `this` contract on Mangrove
         outbound_tkn,
         inbound_tkn,
         gasreq,

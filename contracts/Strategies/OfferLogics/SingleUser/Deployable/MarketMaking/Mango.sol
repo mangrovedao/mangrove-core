@@ -309,19 +309,18 @@ contract Mango is Persistent {
       // Asks
       if (ASKS[index] == 0) {
         // offer slot not initialized yet
-        ASKS[index] = newOfferInternal({
+        ASKS[index] = MGV.newOffer({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
           wants: wants,
           gives: gives,
           gasreq: OFR_GASREQ,
           gasprice: 0,
-          pivotId: pivotId,
-          provision: 0
+          pivotId: pivotId
         });
         index_of_ask[ASKS[index]] = index;
       } else {
-        ASKS[index] = updateOfferInternal({
+        MGV.updateOffer({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
           wants: wants,
@@ -329,30 +328,27 @@ contract Mango is Persistent {
           gasreq: OFR_GASREQ,
           gasprice: 0,
           pivotId: pivotId,
-          provision: 0,
           offerId: ASKS[index]
         });
       }
-      require(ASKS[index] > 0, "Mango/writeOfferFailed");
       if (position_of_index(index) <= current_min_offer_type) {
         __boundariesReached__(false, ASKS[index]);
       }
     } else {
       // Bids
       if (BIDS[index] == 0) {
-        BIDS[index] = newOfferInternal({
+        BIDS[index] = MGV.newOffer({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
           wants: wants,
           gives: gives,
           gasreq: OFR_GASREQ,
           gasprice: 0,
-          pivotId: pivotId,
-          provision: 0
+          pivotId: pivotId
         });
         index_of_bid[BIDS[index]] = index;
       } else {
-        BIDS[index] = updateOfferInternal({
+        MGV.updateOffer({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
           wants: wants,
@@ -360,11 +356,9 @@ contract Mango is Persistent {
           gasreq: OFR_GASREQ,
           gasprice: 0,
           pivotId: pivotId,
-          provision: 0,
           offerId: BIDS[index]
         });
       }
-      require(BIDS[index] > 0, "Mango/writeOfferFailed");
       if (position_of_index(index) >= NSLOTS - 1 - current_min_offer_type) {
         __boundariesReached__(true, BIDS[index]);
       }

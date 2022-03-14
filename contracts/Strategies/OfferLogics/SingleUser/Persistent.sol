@@ -13,11 +13,17 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./SingleUser.sol";
 
-/// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
+/** Strat class with specialized hooks that repost offer residual after a partial fill */
+/** (Single user variant) */
+
 abstract contract Persistent is SingleUser {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
 
+  /** Persistent class specific hooks. */
+
+  // Hook that defines how much inbound tokens the residual offer should ask for when repositing itself on the Offer List.
+  // default is to repost the old amount minus the partial fill
   function __residualWants__(ML.SingleOrder calldata order)
     internal
     virtual
@@ -26,6 +32,9 @@ abstract contract Persistent is SingleUser {
     return order.offer.wants() - order.gives;
   }
 
+  // Hook that defines how much outbound tokens the residual offer should promise for when repositing itself on the Offer List.
+  // default is to repost the old required amount minus the partial fill
+  // NB this could produce an offer below the density. Offer Maker should perform a density check at repost time if not willing to fail reposting.
   function __residualGives__(ML.SingleOrder calldata order)
     internal
     virtual
@@ -34,14 +43,17 @@ abstract contract Persistent is SingleUser {
     return order.offer.gives() - order.wants;
   }
 
+  // Specializing this hook to repost offer residual when trade was a success
   function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     virtual
     override
   {
     uint new_gives = __residualGives__(order);
+    // Density check would be too gas costly.
+    // We only treat the special case of `gives==0` (total fill).
+    // Offer below the density will cause Mangrove to throw (revert is catched to log information)
     if (new_gives == 0) {
-      // saving gas
       return;
     }
     uint new_wants = __residualWants__(order);
@@ -57,6 +69,9 @@ abstract contract Persistent is SingleUser {
         order.offerId
       )
     {} catch Error(string memory message) {
+      // Two possible reasons to reach this code:
+      // * Offer was reposted below density
+      // * Offer is not sufficiently provisioned (because Mangrove gas price was updated)
       emit PosthookFail(
         order.outbound_tkn,
         order.inbound_tkn,

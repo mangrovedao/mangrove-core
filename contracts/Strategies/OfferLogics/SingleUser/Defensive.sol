@@ -14,7 +14,8 @@ pragma abicoder v2;
 import "./SingleUser.sol";
 import "../../interfaces/IOracle.sol";
 
-// import "hardhat/console.sol";
+/** Strat class with simple oracle based last-look management */
+/** (Single user variant) */
 
 abstract contract Defensive is SingleUser {
   uint16 slippage_num;
@@ -25,13 +26,15 @@ abstract contract Defensive is SingleUser {
   event MissingPrice(address token);
 
   constructor(address _oracle) {
-    require(!(_oracle == address(0)), "Invalid oracle address");
+    require(!(_oracle == address(0)), "SingleUser/Defensive/0xOracle");
     oracle = IOracle(_oracle);
   }
 
   function setSlippage(uint _slippage) external onlyAdmin {
-    require(uint16(_slippage) == _slippage, "Slippage overflow");
-    require(uint16(_slippage) <= slippage_den, "Slippage should be <= 1");
+    require(
+      uint16(_slippage) == _slippage && uint16(_slippage) <= slippage_den,
+      "SingelUser/Defensive/SlippageInvalid"
+    );
     slippage_num = uint16(_slippage);
   }
 

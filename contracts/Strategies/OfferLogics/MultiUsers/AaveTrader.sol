@@ -21,7 +21,7 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
     interestRateMode = _interestRateMode;
   }
 
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
@@ -47,7 +47,7 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
     if (toRedeem == 0) {
       return amount;
     }
-    IERC20 aToken = overlying(IERC20(order.outbound_tkn));
+    IEIP20 aToken = overlying(IEIP20(order.outbound_tkn));
     try aToken.transferFrom(owner, address(this), amount) returns (
       bool success
     ) {
@@ -58,7 +58,7 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
           order.outbound_tkn,
           order.inbound_tkn,
           order.offerId,
-          "Multi/aaveTrader/aTkn/Transfer"
+          "Multi/aaveTrader/aTkn/TransferFail"
         );
         return amount;
       }
@@ -70,6 +70,7 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
       }
       uint toBorrow = min(liquidity_after_redeem, amount);
       // 3. trying to borrow missing liquidity, failure to borrow will revert
+      // not encapsulating this external call to make sure aToken transfer is also reverted
       lendingPool.borrow(
         order.outbound_tkn,
         toBorrow,
@@ -77,19 +78,21 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
         referralCode,
         address(this)
       );
-    } catch (bytes memory reason) {
+      // if this point is reached, borrow has succeeded.
+      return 0;
+    } catch {
       // overlying transfer reverted.
       emit LogIncident(
         order.outbound_tkn,
         order.inbound_tkn,
         order.offerId,
-        reason
+        "Multi/AaveTrader/aTkn/transferRevert"
       );
       return amount;
     }
   }
 
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
@@ -106,11 +109,11 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
 
     uint debtOfUnderlying;
     if (interestRateMode == 1) {
-      debtOfUnderlying = IERC20(reserveData.stableDebtTokenAddress).balanceOf(
+      debtOfUnderlying = IEIP20(reserveData.stableDebtTokenAddress).balanceOf(
         address(this)
       );
     } else {
-      debtOfUnderlying = IERC20(reserveData.variableDebtTokenAddress).balanceOf(
+      debtOfUnderlying = IEIP20(reserveData.variableDebtTokenAddress).balanceOf(
           address(this)
         );
     }

@@ -22,7 +22,7 @@ contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
     setGasreq(800_000); // Offer proxy requires AAVE interactions
   }
 
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
     override(MultiUser, MultiUserAaveLender)
     returns (uint missing)
@@ -31,7 +31,7 @@ contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
     missing = MultiUserAaveLender.__put__(amount, order);
   }
 
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     override(MultiUser, MultiUserAaveLender)
     returns (uint)
@@ -40,7 +40,7 @@ contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
     return MultiUserAaveLender.__get__(amount, order);
   }
 
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
+  function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     override(MangroveOffer, MultiUserPersistent)
   {

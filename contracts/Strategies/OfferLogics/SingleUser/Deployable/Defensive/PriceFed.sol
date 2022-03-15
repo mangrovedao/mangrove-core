@@ -23,6 +23,7 @@ contract PriceFed is Defensive, AaveLender {
   ) Defensive(_oracle) AaveModule(_addressesProvider, 0) MangroveOffer(_MGV) {
     setGasreq(800_000);
   }
+
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
   using P.Global for P.Global.t;
@@ -31,7 +32,7 @@ contract PriceFed is Defensive, AaveLender {
   event Slippage(uint indexed offerId, uint old_wants, uint new_wants);
 
   // reposts only if offer was reneged due to a price slippage
-  function __posthookReneged__(MgvLib.SingleOrder calldata order)
+  function __posthookReneged__(ML.SingleOrder calldata order)
     internal
     override
   {
@@ -66,7 +67,7 @@ contract PriceFed is Defensive, AaveLender {
 
   // Closing diamond inheritance for solidity compiler
   // get/put and lender strat's functions
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     override(SingleUser, AaveLender)
     returns (uint)
@@ -74,7 +75,7 @@ contract PriceFed is Defensive, AaveLender {
     return AaveLender.__get__(amount, order);
   }
 
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
     override(SingleUser, AaveLender)
     returns (uint)
@@ -83,7 +84,7 @@ contract PriceFed is Defensive, AaveLender {
   }
 
   // lastlook is defensive strat's function
-  function __lastLook__(MgvLib.SingleOrder calldata order)
+  function __lastLook__(ML.SingleOrder calldata order)
     internal
     virtual
     override(MangroveOffer, Defensive)

@@ -99,14 +99,14 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     emit DebitUserTokenBalance(owner, token, amount);
   }
 
-  function redeemToken(address token, uint amount)
-    external
-    override
-    returns (bool success)
-  {
+  function redeemToken(
+    address token,
+    address receiver,
+    uint amount
+  ) external override returns (bool success) {
     require(msg.sender != address(this), "Mutli/noReentrancy");
     debitToken(token, msg.sender, amount);
-    success = _transferToken(token, msg.sender, amount);
+    success = IEIP20(token).transfer(receiver, amount);
   }
 
   function depositToken(address token, uint amount)
@@ -117,10 +117,10 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
       bool success
     )
   {
-    uint balBefore = IERC20(token).balanceOf(address(this));
-    success = _transferTokenFrom(token, msg.sender, amount);
+    uint balBefore = IEIP20(token).balanceOf(address(this));
+    success = IEIP20(token).transferFrom(msg.sender, address(this), amount);
     require(
-      IERC20(token).balanceOf(address(this)) - balBefore == amount,
+      IEIP20(token).balanceOf(address(this)) - balBefore == amount,
       "Multi/transferFail"
     );
     creditToken(token, msg.sender, amount);
@@ -148,7 +148,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   /// withdraws ETH from the bounty vault of the Mangrove.
   /// NB: `Mangrove.fund` function need not be called by `this` so is not included here.
   /// Warning: this function should not be called internally for msg.sender provision is being checked
-  function withdrawFromMangrove(address receiver, uint amount)
+  function withdrawFromMangrove(address payable receiver, uint amount)
     external
     override
     returns (bool noRevert)
@@ -380,7 +380,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   // put received inbound tokens on offer owner account
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
@@ -396,7 +396,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   // get outbound tokens from offer owner account
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
+  function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override

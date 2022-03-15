@@ -20,7 +20,7 @@ abstract contract MultiUserPersistent is MultiUser {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
 
-  function __residualWants__(MgvLib.SingleOrder calldata order)
+  function __residualWants__(ML.SingleOrder calldata order)
     internal
     virtual
     returns (uint)
@@ -28,7 +28,7 @@ abstract contract MultiUserPersistent is MultiUser {
     return order.offer.wants() - order.gives;
   }
 
-  function __residualGives__(MgvLib.SingleOrder calldata order)
+  function __residualGives__(ML.SingleOrder calldata order)
     internal
     virtual
     returns (uint)
@@ -36,7 +36,7 @@ abstract contract MultiUserPersistent is MultiUser {
     return order.offer.gives() - order.wants;
   }
 
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order)
+  function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     virtual
     override

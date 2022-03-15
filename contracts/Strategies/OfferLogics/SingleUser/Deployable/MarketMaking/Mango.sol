@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// SwingingMarketMaker.sol
+// Mango.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -13,15 +13,32 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../../Persistent.sol";
 
+/** Discrete automated market making strat */
+/** This AMM is headless (no price model) and market makes on `NSLOTS` price ranges*/
+/** current `Pmin` is the price of an offer at position `0`, current `Pmax` is the price of an offer at position `NSLOTS-1`*/
+/** Initially `Pmin = P(0) = QUOTE_0/BASE_0` and the general term is P(i) = __quote_progression__(i)/BASE_0 */
+/** NB `__quote_progression__` is a hook that defines how price increases with positions and is by default an arithmetic progression, i.e __quote_progression__(i) = QUOTE_0 + `current_delta`*i */
+/** When one of its offer is matched on Mangrove, the headless strat does the following: */
+/** Each time this strat receives b `BASE` tokens (bid was taken) at price position i, it increases the offered (`BASE`) volume of the ask at position i+1 of 'b'*/
+/** Each time this strat receives q `QUOTE` tokens (ask was taken) at price position i, it increases the offered (`QUOTE`) volume of the bid at position i-1 of 'q'*/
+/** In case of a partial fill of an offer at position i, the offer residual is reposted (see `Persistent` strat class)*/
+
 contract Mango is Persistent {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
 
+  /** Strat specific events */
+
+  // emitted when strat has reached max amount of Bids and needs rebalancing (should shift of x>0 positions in order to have bid prices that are better for the taker)
   event BidAtMaxPosition(address quote, address base, uint offerId);
+
+  // emitted when strat has reached max amount of Asks and needs rebalancing (should shift of x<0 positions in order to have ask prices that are better for the taker)
   event AskAtMinPosition(address quote, address base, uint offerId);
+
+  // emitted when init function has been called and AMM becomes active
   event Initialized(uint from, uint to);
 
-  /** Immutables */
+  /** Immutable fields */
   // total number of Asks (resp. Bids)
   uint16 public immutable NSLOTS;
 
@@ -32,26 +49,30 @@ contract Mango is Persistent {
   address public immutable BASE;
   address public immutable QUOTE;
 
-  /** Mutables */
-  //NB if one wants to allow this contract to be multi-makers one should use uint[][] ASKS/BIDS and allocate a new array for each maker.
+  /** Mutable fields */
+  // Asks and bids offer Ids are stored in `ASKS` and `BIDS` arrays respectively.
   uint[] ASKS;
   uint[] BIDS;
   mapping(uint => uint) index_of_bid; // bidId -> index
   mapping(uint => uint) index_of_ask; // askId -> index
 
-  //NB if one wants to allow this contract to be multi-makers one should use uint[] for each mutable fields to allow user specific parameters.
+  // Price shift is in number of price increments (decrements when current_shift < 0) since initialization of the strat.
+  // e.g. for arithmetic progression, `current_shift = -3` indicates that Pmin is now (`QUOTE_0` - 3*`current_delta`)/`BASE_0`
   int current_shift;
 
-  // price increment is current_delta / BASE_0
+  // parameter for price progression
+  // NB for arithmetic progression, price(i+1) = price(i) + current_delta/`BASE_0`
   uint current_delta; // quote increment
 
   // triggers `__boundariesReached__` whenever amounts of bids/asks is below `current_min_offer_type`
   uint current_min_offer_type;
 
-  // whether the strat reneges on offers
+  // puts the strat into a (cancellable) state where it reneges on all incoming taker orders.
+  // NB reneged offers are removed from Mangrove's OB
   bool paused = false;
 
   // Base and quote token treasuries
+  // default is `this` for both
   address current_base_treasury;
   address current_quote_treasury;
 
@@ -144,7 +165,7 @@ contract Mango is Persistent {
 
   /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
   function set_treasury(bool base, address treasury) external onlyAdmin {
-    require(treasury != address(0), "Mango/set_treasury/zeroAddress");
+    require(treasury != address(0), "Mango/set_treasury/0xTreasury");
     if (base) {
       current_base_treasury = treasury;
     } else {
@@ -156,6 +177,43 @@ contract Mango is Persistent {
     return base ? current_base_treasury : current_quote_treasury;
   }
 
+  function putInternal(
+    address erc_,
+    uint amount,
+    ML.SingleOrder calldata order
+  ) internal returns (uint) {
+    IEIP20 erc;
+    address treasury;
+    if (erc_ == BASE) {
+      erc = IEIP20(BASE);
+      treasury = current_base_treasury;
+    } else {
+      erc = IEIP20(QUOTE);
+      treasury = current_quote_treasury;
+    }
+    try erc.transfer(treasury, amount) returns (bool success) {
+      if (success) {
+        return 0;
+      } else {
+        emit LogIncident(
+          order.outbound_tkn,
+          order.inbound_tkn,
+          order.offerId,
+          "Mango/transferFailed"
+        );
+        return amount;
+      }
+    } catch (bytes memory reason) {
+      emit LogIncident(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        reason
+      );
+      return amount;
+    }
+  }
+
   /** Deposits received tokens into the corresponding treasury*/
   function __put__(uint amount, ML.SingleOrder calldata order)
     internal
@@ -164,14 +222,52 @@ contract Mango is Persistent {
     returns (uint)
   {
     if (order.inbound_tkn == BASE && current_base_treasury != address(this)) {
-      return IEIP20(BASE).transfer(current_base_treasury, amount) ? 0 : amount;
+      return putInternal(BASE, amount, order);
     }
     if (current_quote_treasury != address(this)) {
-      return
-        IEIP20(QUOTE).transfer(current_quote_treasury, amount) ? 0 : amount;
+      return putInternal(QUOTE, amount, order);
     }
     // order.inbound_tkn has to be either BASE or QUOTE so only possibility is `this` is treasury
     return 0;
+  }
+
+  function getInternal(
+    address erc_,
+    uint amount,
+    ML.SingleOrder calldata order
+  ) internal returns (uint) {
+    IEIP20 erc;
+    address treasury;
+    if (erc_ == BASE) {
+      erc = IEIP20(BASE);
+      treasury = current_base_treasury;
+    } else {
+      erc = IEIP20(QUOTE);
+      treasury = current_quote_treasury;
+    }
+    try erc.transferFrom(treasury, address(this), amount) returns (
+      bool success
+    ) {
+      if (success) {
+        return 0;
+      } else {
+        emit LogIncident(
+          order.outbound_tkn,
+          order.inbound_tkn,
+          order.offerId,
+          "Mango/transferFromFailed"
+        );
+        return amount;
+      }
+    } catch (bytes memory reason) {
+      emit LogIncident(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        reason
+      );
+      return amount;
+    }
   }
 
   /** Fetches required tokens from the corresponding treasury*/
@@ -182,23 +278,13 @@ contract Mango is Persistent {
     returns (uint)
   {
     if (order.outbound_tkn == BASE && current_base_treasury != address(this)) {
-      return
-        IEIP20(BASE).transferFrom(current_base_treasury, address(this), amount)
-          ? 0
-          : amount;
+      return getInternal(BASE, amount, order);
     }
     if (current_quote_treasury != address(this)) {
-      return
-        IEIP20(QUOTE).transferFrom(
-          current_quote_treasury,
-          address(this),
-          amount
-        )
-          ? 0
-          : amount;
+      return getInternal(QUOTE, amount, order);
     }
     // order.outbound_tkn has to be either BASE or QUOTE so only possibility is `this` is treasury
-    return 0;
+    return super.__get__(amount, order);
   }
 
   // with ba=0:bids only, ba=1: asks only ba>1 all

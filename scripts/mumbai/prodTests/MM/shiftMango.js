@@ -55,6 +55,9 @@ async function main() {
       shift
     )} position(s) ${shift < 0 ? "down" : "up"}`
   );
+  console.log(
+    `Current price shift is ${(await MangoRaw.get_shift()).toNumber()}`
+  );
 }
 main()
   .then(() => process.exit(0))

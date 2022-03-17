@@ -59,15 +59,15 @@ async function main() {
     //await Promise.all([tx1, tx2, tx3]);
     console.log(`Offers retracted on (${baseName},${quoteName}) market`);
 
-    const balBase = await MgvAPI.token(baseName).balanceOf(MangoRaw.address);
-    const balQuote = await MgvAPI.token(quoteName).balanceOf(MangoRaw.address);
-    const market = await MgvAPI.market({ base: baseName, quote: quoteName });
-    const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
-      market
-    );
-    // if treasury was set to Mango itself
-    await Mango.logic.redeemToken(baseName, balBase);
-    await Mango.logic.redeemToken(quoteName, balQuote);
+    // const balBase = await MgvAPI.token(baseName).balanceOf(MangoRaw.address);
+    // const balQuote = await MgvAPI.token(quoteName).balanceOf(MangoRaw.address);
+    // const market = await MgvAPI.market({ base: baseName, quote: quoteName });
+    // const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
+    //   market
+    // );
+    // // if treasury was set to Mango itself
+    // await Mango.logic.redeemToken(baseName, tester.address, balBase);
+    // await Mango.logic.redeemToken(quoteName, tester.address, balQuote);
   }
 }
 main()

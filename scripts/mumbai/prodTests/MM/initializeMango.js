@@ -83,7 +83,11 @@ async function main() {
     await tx1.wait();
     await tx2.wait();
 
-    console.log(`* Posting Mango offers on (${baseName},${quoteName}) market`);
+    console.log(
+      `* Posting Mango offers on (${baseName},${quoteName}) market (current price shift ${(
+        await MangoRaw.get_shift()
+      ).toNumber()})`
+    );
     const batch = 5;
     const slice = NSLOTS / batch; // slices of 10 offers
     let pivotIds = new Array(slice);
@@ -100,7 +104,7 @@ async function main() {
         amounts.fill(MgvAPI.toUnits(default_quote_amount, quoteName), 0, 10);
       }
       const receipt = await MangoRaw.initialize(
-        29, // last bid position
+        24, // last bid position
         withBase, // with base until Asking
         slice * i, // from
         slice * (i + 1), // to

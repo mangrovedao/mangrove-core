@@ -56,7 +56,7 @@ contract Mango is Persistent {
   mapping(uint => uint) index_of_bid; // bidId -> index
   mapping(uint => uint) index_of_ask; // askId -> index
 
-  // Price shift is in number of price increments (decrements when current_shift < 0) since initialization of the strat.
+  // Price shift is in number of price increments (or decrements when current_shift < 0) since deployment of the strat.
   // e.g. for arithmetic progression, `current_shift = -3` indicates that Pmin is now (`QUOTE_0` - 3*`current_delta`)/`BASE_0`
   int current_shift;
 
@@ -64,8 +64,8 @@ contract Mango is Persistent {
   // NB for arithmetic progression, price(i+1) = price(i) + current_delta/`BASE_0`
   uint current_delta; // quote increment
 
-  // triggers `__boundariesReached__` whenever amounts of bids/asks is below `current_min_offer_type`
-  uint current_min_offer_type;
+  // triggers `__boundariesReached__` whenever amounts of bids/asks is below `current_min_buffer`
+  uint current_min_buffer;
 
   // puts the strat into a (cancellable) state where it reneges on all incoming taker orders.
   // NB reneged offers are removed from Mangrove's OB
@@ -102,19 +102,20 @@ contract Mango is Persistent {
     BASE_0 = uint96(base_0);
     QUOTE_0 = uint96(quote_0);
     current_delta = delta;
-    current_min_offer_type = 1;
+    current_min_buffer = 1;
     current_quote_treasury = msg.sender;
     current_base_treasury = msg.sender;
     OFR_GASREQ = 400_000; // dry run OK with 200_000
   }
 
+  // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
   function initialize(
-    uint lastBidPosition, // [0,..,lastBidPosition] are bids
-    bool withBase,
-    uint from, // slice (from included)
-    uint to, // to index excluded
+    uint lastBidPosition, // if `lastBidPosition` is in R, then all offers before `lastBidPosition` (included) will be bids, offers strictly after will be asks.
+    bool withBase, // tokenAmounts are expressed in `BASE` tokens if `withBase=true`. They are expressed in `QUOTE` tokens otherwise.
+    uint from, // first price position to be populated
+    uint to, // last price position to be populated
     uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
-    uint[] calldata tokenAmounts
+    uint[] calldata tokenAmounts // `tokenAmounts[i]` is the amount of `BASE` or `QUOTE` tokens (depending on `withBase` flag) that is used to fixed one parameter of the price at position `from+i`.
   ) public mgvOrAdmin {
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
@@ -128,36 +129,48 @@ contract Mango is Persistent {
       "Mango/initialize/invalidBaseAmounts"
     );
     require(lastBidPosition < NSLOTS - 1, "Mango/initialize/NoSlotForAsks"); // bidding => slice doesn't fill the book
-    uint i;
-    for (i = from; i < to; i++) {
-      if (i <= lastBidPosition) {
-        uint bidPivot = pivotIds[0][i - from];
+    uint pos;
+    for (pos = from; pos < to; pos++) {
+      // if shift is not 0, must convert
+      uint i = index_of_position(pos);
+      if (pos <= lastBidPosition) {
+        uint bidPivot = pivotIds[0][pos - from];
         bidPivot = bidPivot > 0
           ? bidPivot // taking pivot from the user
-          : i > 0
-          ? BIDS[i - 1]
+          : pos > 0
+          ? BIDS[index_of_position(pos - 1)]
           : 0; // otherwise getting last inserted offer as pivot
         updateBid({
           index: i,
           withBase: withBase,
           reset: true, // overwrites old value
-          amount: tokenAmounts[i - from],
+          amount: tokenAmounts[pos - from],
           pivotId: bidPivot
         });
+        if (ASKS[i] > 0) {
+          // if an ASK is also positioned, remove it to prevent spread crossing
+          // (should not happen if this is the first initialization of the strat)
+          retractOffer(BASE, QUOTE, ASKS[i], false);
+        }
       } else {
-        uint askPivot = pivotIds[1][i - from];
+        uint askPivot = pivotIds[1][pos - from];
         askPivot = askPivot > 0
           ? askPivot // taking pivot from the user
-          : i > 0
-          ? ASKS[i - 1]
+          : pos > 0
+          ? ASKS[index_of_position(pos - 1)]
           : 0; // otherwise getting last inserted offer as pivot
         updateAsk({
           index: i,
           withBase: withBase,
           reset: true,
-          amount: tokenAmounts[i - from],
+          amount: tokenAmounts[pos - from],
           pivotId: askPivot
         });
+        if (BIDS[i] > 0) {
+          // if a BID is also positioned, remove it to prevent spread crossing
+          // (should not happen if this is the first initialization of the strat)
+          retractOffer(QUOTE, BASE, BIDS[i], false);
+        }
       }
     }
     emit Initialized({from: from, to: to});
@@ -338,7 +351,7 @@ contract Mango is Persistent {
   }
 
   function set_min_offer_type(uint m) public mgvOrAdmin {
-    current_min_offer_type = m;
+    current_min_buffer = m;
   }
 
   // return Mango offer Ids on Mangrove. If `liveOnly` will only return offer Ids that are live (0 otherwise).
@@ -417,7 +430,7 @@ contract Mango is Persistent {
           offerId: ASKS[index]
         });
       }
-      if (position_of_index(index) <= current_min_offer_type) {
+      if (position_of_index(index) <= current_min_buffer) {
         __boundariesReached__(false, ASKS[index]);
       }
     } else {
@@ -445,7 +458,7 @@ contract Mango is Persistent {
           offerId: BIDS[index]
         });
       }
-      if (position_of_index(index) >= NSLOTS - 1 - current_min_offer_type) {
+      if (position_of_index(index) >= NSLOTS - 1 - current_min_buffer) {
         __boundariesReached__(true, BIDS[index]);
       }
     }

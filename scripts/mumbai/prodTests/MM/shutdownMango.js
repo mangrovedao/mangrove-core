@@ -32,6 +32,10 @@ async function main() {
     let MangoRaw = (
       await hre.ethers.getContract(`Mango_${baseName}_${quoteName}`)
     ).connect(tester);
+    const market = await MgvAPI.market({ base: baseName, quote: quoteName });
+    const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
+      market
+    );
     if ((await MangoRaw.admin()) === deployer.address) {
       const tx = await MangoRaw.connect(deployer).setAdmin(tester.address);
       await tx.wait();
@@ -59,15 +63,9 @@ async function main() {
     //await Promise.all([tx1, tx2, tx3]);
     console.log(`Offers retracted on (${baseName},${quoteName}) market`);
 
-    // const balBase = await MgvAPI.token(baseName).balanceOf(MangoRaw.address);
-    // const balQuote = await MgvAPI.token(quoteName).balanceOf(MangoRaw.address);
-    // const market = await MgvAPI.market({ base: baseName, quote: quoteName });
-    // const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
-    //   market
-    // );
-    // // if treasury was set to Mango itself
-    // await Mango.logic.redeemToken(baseName, tester.address, balBase);
-    // await Mango.logic.redeemToken(quoteName, tester.address, balQuote);
+    const bal = await Mango.balanceOnMangrove();
+    await Mango.withdrawFromMangrove(bal);
+    console.log(`${bal} MATICS recovered`);
   }
 }
 main()

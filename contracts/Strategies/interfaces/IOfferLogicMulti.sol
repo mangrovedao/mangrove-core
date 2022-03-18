@@ -18,7 +18,7 @@ import "./IOfferLogic.sol";
 interface IOfferLogicMulti is IOfferLogic {
   /** Multi offer specific Events */
   // Offer management
-  event NewOffer(
+  event NewOwnedOffer(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     uint indexed offerId,

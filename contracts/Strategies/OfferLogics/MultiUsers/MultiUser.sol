@@ -133,7 +133,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     address owner
   ) internal {
     _offerOwners[outbound_tkn][inbound_tkn][offerId] = owner;
-    emit NewOffer(outbound_tkn, inbound_tkn, offerId, owner);
+    emit NewOwnedOffer(outbound_tkn, inbound_tkn, offerId, owner);
   }
 
   function ownerOf(

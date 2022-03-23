@@ -111,7 +111,7 @@ contract Mango is Persistent {
   // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
   function initialize(
     uint lastBidPosition, // if `lastBidPosition` is in R, then all offers before `lastBidPosition` (included) will be bids, offers strictly after will be asks.
-    bool withBase, // tokenAmounts are expressed in `BASE` tokens if `withBase=true`. They are expressed in `QUOTE` tokens otherwise.
+    bool withBaseWhenBidding,
     uint from, // first price position to be populated
     uint to, // last price position to be populated
     uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
@@ -120,13 +120,13 @@ contract Mango is Persistent {
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
     /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
+    require(to > from, "Mango/initialize/invalidSlice");
     require(
-      to > from && pivotIds[0].length == to - from,
-      "Mango/initialize/invalidSlice"
-    );
-    require(
-      tokenAmounts.length == to - from,
-      "Mango/initialize/invalidBaseAmounts"
+      tokenAmounts.length == NSLOTS &&
+        pivotIds.length == 2 &&
+        pivotIds[0].length == NSLOTS &&
+        pivotIds[1].length == NSLOTS,
+      "Mango/initialize/invalidArrayLength"
     );
     require(lastBidPosition < NSLOTS - 1, "Mango/initialize/NoSlotForAsks"); // bidding => slice doesn't fill the book
     uint pos;
@@ -134,7 +134,7 @@ contract Mango is Persistent {
       // if shift is not 0, must convert
       uint i = index_of_position(pos);
       if (pos <= lastBidPosition) {
-        uint bidPivot = pivotIds[0][pos - from];
+        uint bidPivot = pivotIds[0][pos];
         bidPivot = bidPivot > 0
           ? bidPivot // taking pivot from the user
           : pos > 0
@@ -142,9 +142,9 @@ contract Mango is Persistent {
           : 0; // otherwise getting last inserted offer as pivot
         updateBid({
           index: i,
-          withBase: withBase,
+          withBase: withBaseWhenBidding,
           reset: true, // overwrites old value
-          amount: tokenAmounts[pos - from],
+          amount: tokenAmounts[pos],
           pivotId: bidPivot
         });
         if (ASKS[i] > 0) {
@@ -153,7 +153,7 @@ contract Mango is Persistent {
           retractOffer(BASE, QUOTE, ASKS[i], false);
         }
       } else {
-        uint askPivot = pivotIds[1][pos - from];
+        uint askPivot = pivotIds[1][pos];
         askPivot = askPivot > 0
           ? askPivot // taking pivot from the user
           : pos > 0
@@ -161,9 +161,9 @@ contract Mango is Persistent {
           : 0; // otherwise getting last inserted offer as pivot
         updateAsk({
           index: i,
-          withBase: withBase,
+          withBase: !withBaseWhenBidding,
           reset: true,
-          amount: tokenAmounts[pos - from],
+          amount: tokenAmounts[pos],
           pivotId: askPivot
         });
         if (BIDS[i] > 0) {

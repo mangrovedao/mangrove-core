@@ -93,20 +93,20 @@ describe("Running tests...", function () {
     await fundTx.wait();
 
     let slice = NSLOTS / 2;
-    let pivotIds = new Array(slice);
-    let amounts = new Array(slice);
+    let pivotIds = new Array(NSLOTS);
+    let amounts = new Array(NSLOTS);
     pivotIds = pivotIds.fill(0, 0);
+    amounts.fill(ethers.utils.parseUnits("1000", 6), 0, NSLOTS / 2);
+    amounts.fill(ethers.utils.parseEther("0.3"), NSLOTS / 2, NSLOTS);
 
     for (let i = 0; i < 2; i++) {
       const receipt = await makerContract.initialize(
         4,
-        i > 0, //slice 1 with quotes, slice 2 with base
+        false,
         slice * i, // from
         slice * (i + 1), // to
         [pivotIds, pivotIds],
-        i == 0
-          ? amounts.fill(ethers.utils.parseUnits("1000", 6), 0) // fill with fixed quotes if bidding
-          : amounts.fill(ethers.utils.parseEther("0.3"), 0) // fill with fixed bases if Asking
+        amounts
       );
       console.log(
         `Slice initialized (${(await receipt.wait()).gasUsed} gas used)`

@@ -32,7 +32,7 @@ module.exports = async (hre) => {
       }
     );
     console.log(
-      `Mango deployed (${Mango.address}) on market (${baseName},${quoteName})`
+      `Mango deployed (${Mango.address}) on market (${baseName},${quoteName}) of Mangrove (${MgvAPI.contract.address})`
     );
   };
   await deployOnMarket("WETH", "USDC", 1, 2000, 32); // [2000 USD/ETH,...,|2800|..., 3600 USD/ETH] inc 32 USD

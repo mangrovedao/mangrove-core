@@ -18,6 +18,9 @@ async function main() {
   const MgvAPI = await Mangrove.connect({
     signer: wallet,
   });
+  console.log(
+    `Activating markets on Mangrove (${chalk.grey(MgvAPI.contract.address)})`
+  );
 
   // reading deploy oracle for the deployed network
   const oracle = require(`../${hre.network.name}/activationOracle`);
@@ -84,6 +87,9 @@ async function main() {
           } gas units`
         );
 
+        // density (in outbound tokens per gas unit)
+        // gives*price_in_ETH / (gasbase + gasreq)*gasprice (in ETH) >= cover_factor > 1
+
         let density_outIn = mgv_gasprice
           .add(offer_gasbase)
           .mul(
@@ -92,19 +98,20 @@ async function main() {
               outbound_tkn.decimals
             )
           ) // N=50
-          .div(ethers.utils.parseUnits(outTknInMatic, outbound_tkn.decimals));
+          .div(ethers.utils.parseEther(outTknInMatic));
         if (density_outIn.eq(0)) {
           // if volume imposed by density is lower than ERC20 precision, set it to minimal
           density_outIn = ethers.BigNumber.from(1);
         }
 
-        await MgvAPI.contract.activate(
+        const txActivate = await MgvAPI.contract.activate(
           outbound_tkn.address,
           inbound_tkn.address,
           ethers.BigNumber.from(getMangroveIntParam("defaultFee")),
           density_outIn,
           offer_gasbase
         );
+        await txActivate.wait();
         console.log(
           chalk.yellow("*"),
           `(${outName},${inName})`,

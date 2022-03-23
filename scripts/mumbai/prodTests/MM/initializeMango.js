@@ -1,5 +1,6 @@
 const { ethers, network } = require("hardhat");
 const { Mangrove } = require("../../../../../mangrove.js");
+const { expectAmountOnLender } = require("../../../../lib/libcommon.js");
 
 async function main() {
   const provider = new ethers.providers.WebSocketProvider(network.config.url);
@@ -69,19 +70,22 @@ async function main() {
     console.log(
       `* Approving mangrove as spender for ${baseName} and ${quoteName} transfer from Mango`
     );
-    let tx1 = await Mango.approveMangroveForBase();
-    let tx2 = await Mango.approveMangroveForQuote();
-    await tx1.wait();
-    await tx2.wait();
+    tx = await Mango.approveMangroveForBase();
+    await tx.wait();
+    tx = await Mango.approveMangroveForQuote();
+    await tx.wait();
 
     console.log(
       `* Approve Mango as spender for ${baseName} and ${quoteName} token transfer from tester wallet`
     );
 
-    tx1 = await MgvAPI.token(baseName).approve(MangoRaw.address);
-    tx2 = await MgvAPI.token(quoteName).approve(MangoRaw.address);
-    await tx1.wait();
-    await tx2.wait();
+    tx = await MgvAPI.token(baseName).approve(MangoRaw.address);
+    await tx.wait();
+    tx = await MgvAPI.token(quoteName).approve(MangoRaw.address);
+    await tx.wait();
+
+    tx = await MangoRaw.restart();
+    await tx.wait();
 
     console.log(
       `* Posting Mango offers on (${baseName},${quoteName}) market (current price shift ${(
@@ -90,28 +94,35 @@ async function main() {
     );
     const batch = 5;
     const slice = NSLOTS / batch; // slices of 10 offers
-    let pivotIds = new Array(slice);
-    let amounts = new Array(slice);
+
+    let pivotIdsSemi = new Array(NSLOTS);
+    pivotIdsSemi.fill(0, 0);
+
+    let amounts = new Array(NSLOTS);
+    amounts.fill(MgvAPI.toUnits(default_base_amount, baseName), 0, NSLOTS / 2);
+    amounts.fill(
+      MgvAPI.toUnits(default_quote_amount, quoteName),
+      NSLOTS / 2,
+      NSLOTS
+    );
 
     // TODO: define a procedure to get better pivots
-    pivotIds = pivotIds.fill(0, 0);
+    const pivotIds = [pivotIdsSemi, pivotIdsSemi];
 
     for (let i = 0; i < batch; i++) {
-      const withBase = slice * i < 30;
-      if (withBase) {
-        amounts.fill(MgvAPI.toUnits(default_base_amount, baseName), 0, 10);
-      } else {
-        amounts.fill(MgvAPI.toUnits(default_quote_amount, quoteName), 0, 10);
-      }
-      const receipt = await MangoRaw.initialize(
-        24, // last bid position
-        withBase, // with base until Asking
+      console.log(
+        `Posting offers in price range [${slice * i},${slice * (i + 1)}[...`
+      );
+      tx = await MangoRaw.initialize(
+        NSLOTS / 2 - 1, // last bid position (included)
+        true, // with base tokens when bidding
         slice * i, // from
         slice * (i + 1), // to
-        [pivotIds, pivotIds],
+        pivotIds,
         amounts
       );
-      await receipt.wait();
+      const receipt = await tx.wait();
+      console.log(`Done! (gas used ${receipt.gasUsed.toString()})`);
     }
   }
 }

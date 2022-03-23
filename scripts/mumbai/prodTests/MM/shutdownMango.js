@@ -22,6 +22,7 @@ async function main() {
   const MgvAPI = await Mangrove.connect({
     signer: tester,
   });
+  console.log(`Shutting down Mango on Mangrove (${MgvAPI.contract.address})`);
 
   const markets = [
     ["WETH", "USDC"],
@@ -62,6 +63,15 @@ async function main() {
     await tx3.wait();
     //await Promise.all([tx1, tx2, tx3]);
     console.log(`Offers retracted on (${baseName},${quoteName}) market`);
+    const tx4 = await MangoRaw.pause();
+    await tx4.wait();
+    console.log(`Mango (${baseName},${quoteName}) is now set on reneging mode`);
+    const MangoLogic = MgvAPI.offerLogic(MangoRaw.address);
+
+    const bal = await MangoLogic.balanceOnMangrove();
+    const txWithdraw = await MangoLogic.withdrawFromMangrove(bal);
+    await txWithdraw.wait();
+    console.log(`${bal} MATICS recovered from provisions on Mangrove`);
 
     const bal = await Mango.balanceOnMangrove();
     await Mango.withdrawFromMangrove(bal);

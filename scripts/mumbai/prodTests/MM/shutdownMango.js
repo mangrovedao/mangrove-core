@@ -72,10 +72,6 @@ async function main() {
     const txWithdraw = await MangoLogic.withdrawFromMangrove(bal);
     await txWithdraw.wait();
     console.log(`${bal} MATICS recovered from provisions on Mangrove`);
-
-    const bal = await Mango.balanceOnMangrove();
-    await Mango.withdrawFromMangrove(bal);
-    console.log(`${bal} MATICS recovered`);
   }
 }
 main()

@@ -1,29 +1,38 @@
-//const hre = require("hardhat");
-const helper = require("../../../helper");
+const { ethers } = require("hardhat");
+const { Mangrove } = require("../../../../../mangrove.js");
 
 async function main() {
-  if (!process.env["MUMBAI_TESTER_PRIVATE_KEY"]) {
-    console.error("No tester account defined");
-  }
-  const wallet = new ethers.Wallet(
+  const provider = new ethers.providers.WebSocketProvider(network.config.url);
+
+  const tester = new ethers.Wallet(
     process.env["MUMBAI_TESTER_PRIVATE_KEY"],
-    helper.getProvider()
+    provider
   );
 
-  for (const name of ["wEth", "dai", "usdc"]) {
-    let decimals = 18;
-    let amount = "10000";
-    if (name == "usdc") {
-      decimals = 6;
-    }
-    if (name == "wEth") {
-      amount = "1";
-    }
-    const faucet = helper.getFaucet(name);
-    const tx = await faucet
-      .connect(wallet)
-      .pull(ethers.utils.parseUnits(amount, decimals));
-    console.log(`* Minting ${amount} ${name} for tester ${wallet.address}`);
+  if (!process.env["TOKEN"]) {
+    throw Error("Missing TOKEN environment variable");
+  }
+  if (!process.env["AMOUNT"]) {
+    throw Error("Missing AMOUNT environment variable");
+  }
+
+  let mgv = await Mangrove.connect({ signer: tester });
+  let token = mgv.token(process.env["TOKEN"]);
+  let amount = Number(process.env["AMOUNT"]);
+
+  console.log(
+    `Trying to mint ${amount} (${token.toUnits(
+      amount
+    )} raw units) tokens from ${process.env["TOKEN"]} (${
+      token.contract.address
+    })`
+  );
+  let tx = await token.contract.mint(token.toUnits(amount));
+  console.log("Processing...");
+  await tx.wait();
+  console.log("Success!");
+  if (process.env["TO"]) {
+    tx = await token.transfer(process.env["TO"], amount);
     await tx.wait();
   }
 }

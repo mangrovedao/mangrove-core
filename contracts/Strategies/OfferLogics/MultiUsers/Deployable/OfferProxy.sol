@@ -11,12 +11,12 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "../AaveLender.sol";
+import "../AaveV3Lender.sol";
 import "../Persistent.sol";
 
-contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
+contract OfferProxy is MultiUserAaveV3Lender, MultiUserPersistent {
   constructor(address _addressesProvider, address payable _MGV)
-    AaveModule(_addressesProvider, 0)
+    AaveV3Module(_addressesProvider, 0)
     MangroveOffer(_MGV)
   {
     setGasreq(800_000); // Offer proxy requires AAVE interactions
@@ -24,20 +24,20 @@ contract OfferProxy is MultiUserAaveLender, MultiUserPersistent {
 
   function __put__(uint amount, ML.SingleOrder calldata order)
     internal
-    override(MultiUser, MultiUserAaveLender)
+    override(MultiUser, MultiUserAaveV3Lender)
     returns (uint missing)
   {
     // puts amount inbound_tkn on AAVE
-    missing = MultiUserAaveLender.__put__(amount, order);
+    missing = MultiUserAaveV3Lender.__put__(amount, order);
   }
 
   function __get__(uint amount, ML.SingleOrder calldata order)
     internal
-    override(MultiUser, MultiUserAaveLender)
+    override(MultiUser, MultiUserAaveV3Lender)
     returns (uint)
   {
     // gets tokens from AAVE's owner deposit -- will transfer aTokens from owner first
-    return MultiUserAaveLender.__get__(amount, order);
+    return MultiUserAaveV3Lender.__get__(amount, order);
   }
 
   function __posthookSuccess__(ML.SingleOrder calldata order)

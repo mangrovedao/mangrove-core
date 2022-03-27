@@ -13,14 +13,14 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../../Defensive.sol";
-import "../../AaveLender.sol";
+import "../../AaveV3Lender.sol";
 
-contract PriceFed is Defensive, AaveLender {
+contract PriceFed is Defensive, AaveV3Lender {
   constructor(
     address _oracle,
     address _addressesProvider,
     address payable _MGV
-  ) Defensive(_oracle) AaveModule(_addressesProvider, 0) MangroveOffer(_MGV) {
+  ) Defensive(_oracle) AaveV3Module(_addressesProvider, 0) MangroveOffer(_MGV) {
     setGasreq(800_000);
   }
 
@@ -41,7 +41,7 @@ contract PriceFed is Defensive, AaveLender {
     uint price_quote = oracle.getPrice(order.inbound_tkn);
     uint price_base = oracle.getPrice(order.outbound_tkn);
 
-    uint new_offer_wants = div_(mul_(old_gives, price_base), price_quote);
+    uint new_offer_wants = (old_gives * price_base) / price_quote;
     emit Slippage(order.offerId, old_wants, new_offer_wants);
     // since offer is persistent it will auto refill if contract does not have enough provision on the Mangrove
     try
@@ -69,18 +69,18 @@ contract PriceFed is Defensive, AaveLender {
   // get/put and lender strat's functions
   function __get__(uint amount, ML.SingleOrder calldata order)
     internal
-    override(SingleUser, AaveLender)
+    override(SingleUser, AaveV3Lender)
     returns (uint)
   {
-    return AaveLender.__get__(amount, order);
+    return AaveV3Lender.__get__(amount, order);
   }
 
   function __put__(uint amount, ML.SingleOrder calldata order)
     internal
-    override(SingleUser, AaveLender)
+    override(SingleUser, AaveV3Lender)
     returns (uint)
   {
-    return AaveLender.__put__(amount, order);
+    return AaveV3Lender.__put__(amount, order);
   }
 
   // lastlook is defensive strat's function

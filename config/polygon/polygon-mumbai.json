@@ -4,15 +4,15 @@
 
     "tokens": {
         "dai": {
-            "address": "0x001B3B4d0F3714Ca98ba10F6042DaEbF0B1B7b6F",
+            "address": "0x9A753f0F7886C9fbF63cF59D0D4423C5eFaCE95B",
             "abi": "config/polygon/abis/mumbai/MintableERC20-abi.json"
         },
         "wEth": {
-            "address": "0x3C68CE8504087f89c640D02d133646d98e64ddd9",
+            "address": "0xd575d4047f8c667E064a4ad433D04E25187F40BB",
             "abi": "config/polygon/abis/mumbai/MintableERC20-abi.json"
         },
         "usdc":{
-            "address" : "0x2058A9D7613eEE744279e3856Ef0eAda5FCbaA7e",
+            "address" : "0x9aa7fEc87CA69695Dd1f879567CcF49F3ba417E2",
             "abi":"config/polygon/abis/mumbai/MintableERC20-abi.json"
         }
     },
@@ -31,22 +31,22 @@
         }
     },
     "aave" : {
-        "addressesProviderAddress": "0x178113104fEcbcD7fF8669a0150721e231F0FD4B",
+        "addressesProviderAddress": "0x5343b5bA672Ae99d627A1C87866b8E53F47Db2E6",
         "addressesProviderAbi": "config/polygon/abis/addressesProvider-abi.json",
-        "lendingPoolAddress": "0x9198F13B08E299d85E096929fA9781A1E3d5d827",
+        "lendingPoolAddress": "0x6C9fB0D5bD9429eb9Cd96B85B81d872281771E6B",
         "lendingPoolAbi": "config/polygon/abis/lendingPool-abi.json",
-        "priceOracleAddress": "0xC365C653f7229894F93994CD0b30947Ab69Ff1D5",
+        "priceOracleAddress": "0x520D14AE678b41067f029Ad770E2870F85E76588",
         "priceOracleAbi": "config/polygon/abis/priceOracle-abi.json",
         "dai": {
-            "address":"0x639cB7b21ee2161DF9c882483C9D55c90c20Ca3e",
+            "address":"0xDD4f3Ee61466C4158D394d57f3D4C397E91fBc51",
             "abi":"config/polygon/abis/aToken-abi.json"
         },
         "usdc":{
-            "address":"0x2271e3Fef9e15046d09E1d78a8FF038c691E9Cf9",
+            "address":"0xCdc2854e97798AfDC74BC420BD5060e022D14607",
             "abi":"config/polygon/abis/aToken-abi.json"
         },
         "wEth":{
-            "address":"0x7aE20397Ca327721F013BB9e140C707F82871b56",
+            "address":"0x685bF4eab23993E94b4CFb9383599c926B66cF57",
             "abi":"config/polygon/abis/aToken-abi.json"
         }
     },

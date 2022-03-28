@@ -32,6 +32,7 @@ async function main() {
   await tx.wait();
   console.log("Success!");
   if (process.env["TO"]) {
+    console.log(`Transfering freshly minted tokens to ${process.env["TO"]}`);
     tx = await token.transfer(process.env["TO"], amount);
     await tx.wait();
   }

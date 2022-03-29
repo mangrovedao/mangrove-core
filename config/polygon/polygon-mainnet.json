@@ -41,15 +41,15 @@
         "unitrollerAbi": "config/polygon/abis/comp-abi.json"
     },
     "aave" : {
-        "addressesProviderAddress": "0xd05e3E715d945B59290df0ae8eF85c1BdB684744",
-        "addressesProviderAbi": "config/polygon/abis/addressesProvider-abi.json",
-        "lendingPoolAddress": "0x8dff5e27ea6b7ac08ebfdf9eb090f32ee9a30fcf",
-        "lendingPoolAbi": "config/polygon/abis/lendingPool-abi.json"
+        "addressesProviderAddress": "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
+        "addressesProviderAbi": "config/polygon/abis/aave/V3/addressesProvider-abi.json",
+        "lendingPoolAddress": "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
+        "lendingPoolAbi": "config/polygon/abis/aave/V3/lendingPool-abi.json"
     },
     "ChildChainManager" : "0xA6FA4fB5f76172d178d61B04b0ecd319C5d1C0aa",
     "extraAbis" : {
-        "stableDebtToken": "config/polygon/abis/stableDebtToken-abi.json",
-        "variableDebtToken": "config/polygon/abis/variableDebtToken-abi.json",
-        "aToken": "config/polygon/abis/aToken-abi.json"
+        "stableDebtToken": "config/polygon/abis/aave/V3/stableDebtToken-abi.json",
+        "variableDebtToken": "config/polygon/abis/aave/V3/variableDebtToken-abi.json",
+        "aToken": "config/polygon/abis/aave/V3/aToken-abi.json"
     }
 }

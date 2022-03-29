@@ -13,8 +13,8 @@
 pragma solidity >=0.6.12;
 pragma abicoder v2;
 
-import {ILendingPoolAddressesProvider} from './ILendingPoolAddressesProvider.sol';
-import {DataTypes} from './DataTypes.sol';
+import {ILendingPoolAddressesProvider} from "./ILendingPoolAddressesProvider.sol";
+import {DataTypes} from "../../../lib/aave/V2/DataTypes.sol";
 
 interface ILendingPool {
   /**
@@ -29,7 +29,7 @@ interface ILendingPool {
     address indexed reserve,
     address user,
     address indexed onBehalfOf,
-    uint256 amount,
+    uint amount,
     uint16 indexed referral
   );
 
@@ -40,7 +40,12 @@ interface ILendingPool {
    * @param to Address that will receive the underlying
    * @param amount The amount to be withdrawn
    **/
-  event Withdraw(address indexed reserve, address indexed user, address indexed to, uint256 amount);
+  event Withdraw(
+    address indexed reserve,
+    address indexed user,
+    address indexed to,
+    uint amount
+  );
 
   /**
    * @dev Emitted on borrow() and flashLoan() when debt needs to be opened
@@ -57,9 +62,9 @@ interface ILendingPool {
     address indexed reserve,
     address user,
     address indexed onBehalfOf,
-    uint256 amount,
-    uint256 borrowRateMode,
-    uint256 borrowRate,
+    uint amount,
+    uint borrowRateMode,
+    uint borrowRate,
     uint16 indexed referral
   );
 
@@ -74,7 +79,7 @@ interface ILendingPool {
     address indexed reserve,
     address indexed user,
     address indexed repayer,
-    uint256 amount
+    uint amount
   );
 
   /**
@@ -83,28 +88,37 @@ interface ILendingPool {
    * @param user The address of the user swapping his rate mode
    * @param rateMode The rate mode that the user wants to swap to
    **/
-  event Swap(address indexed reserve, address indexed user, uint256 rateMode);
+  event Swap(address indexed reserve, address indexed user, uint rateMode);
 
   /**
    * @dev Emitted on setUserUseReserveAsCollateral()
    * @param reserve The address of the underlying asset of the reserve
    * @param user The address of the user enabling the usage as collateral
    **/
-  event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
+  event ReserveUsedAsCollateralEnabled(
+    address indexed reserve,
+    address indexed user
+  );
 
   /**
    * @dev Emitted on setUserUseReserveAsCollateral()
    * @param reserve The address of the underlying asset of the reserve
    * @param user The address of the user enabling the usage as collateral
    **/
-  event ReserveUsedAsCollateralDisabled(address indexed reserve, address indexed user);
+  event ReserveUsedAsCollateralDisabled(
+    address indexed reserve,
+    address indexed user
+  );
 
   /**
    * @dev Emitted on rebalanceStableBorrowRate()
    * @param reserve The address of the underlying asset of the reserve
    * @param user The address of the user for which the rebalance has been executed
    **/
-  event RebalanceStableBorrowRate(address indexed reserve, address indexed user);
+  event RebalanceStableBorrowRate(
+    address indexed reserve,
+    address indexed user
+  );
 
   /**
    * @dev Emitted on flashLoan()
@@ -119,8 +133,8 @@ interface ILendingPool {
     address indexed target,
     address indexed initiator,
     address indexed asset,
-    uint256 amount,
-    uint256 premium,
+    uint amount,
+    uint premium,
     uint16 referralCode
   );
 
@@ -151,8 +165,8 @@ interface ILendingPool {
     address indexed collateralAsset,
     address indexed debtAsset,
     address indexed user,
-    uint256 debtToCover,
-    uint256 liquidatedCollateralAmount,
+    uint debtToCover,
+    uint liquidatedCollateralAmount,
     address liquidator,
     bool receiveAToken
   );
@@ -171,11 +185,11 @@ interface ILendingPool {
    **/
   event ReserveDataUpdated(
     address indexed reserve,
-    uint256 liquidityRate,
-    uint256 stableBorrowRate,
-    uint256 variableBorrowRate,
-    uint256 liquidityIndex,
-    uint256 variableBorrowIndex
+    uint liquidityRate,
+    uint stableBorrowRate,
+    uint variableBorrowRate,
+    uint liquidityIndex,
+    uint variableBorrowIndex
   );
 
   /**
@@ -191,7 +205,7 @@ interface ILendingPool {
    **/
   function deposit(
     address asset,
-    uint256 amount,
+    uint amount,
     address onBehalfOf,
     uint16 referralCode
   ) external;
@@ -209,9 +223,9 @@ interface ILendingPool {
    **/
   function withdraw(
     address asset,
-    uint256 amount,
+    uint amount,
     address to
-  ) external returns (uint256);
+  ) external returns (uint);
 
   /**
    * @dev Allows users to borrow a specific `amount` of the reserve underlying asset, provided that the borrower
@@ -230,8 +244,8 @@ interface ILendingPool {
    **/
   function borrow(
     address asset,
-    uint256 amount,
-    uint256 interestRateMode,
+    uint amount,
+    uint interestRateMode,
     uint16 referralCode,
     address onBehalfOf
   ) external;
@@ -250,17 +264,17 @@ interface ILendingPool {
    **/
   function repay(
     address asset,
-    uint256 amount,
-    uint256 rateMode,
+    uint amount,
+    uint rateMode,
     address onBehalfOf
-  ) external returns (uint256);
+  ) external returns (uint);
 
   /**
    * @dev Allows a borrower to swap his debt between stable and variable mode, or viceversa
    * @param asset The address of the underlying asset borrowed
    * @param rateMode The rate mode that the user wants to swap to
    **/
-  function swapBorrowRateMode(address asset, uint256 rateMode) external;
+  function swapBorrowRateMode(address asset, uint rateMode) external;
 
   /**
    * @dev Rebalances the stable interest rate of a user to the current stable rate defined on the reserve.
@@ -278,7 +292,8 @@ interface ILendingPool {
    * @param asset The address of the underlying asset deposited
    * @param useAsCollateral `true` if the user wants to use the deposit as collateral, `false` otherwise
    **/
-  function setUserUseReserveAsCollateral(address asset, bool useAsCollateral) external;
+  function setUserUseReserveAsCollateral(address asset, bool useAsCollateral)
+    external;
 
   /**
    * @dev Function to liquidate a non-healthy position collateral-wise, with Health Factor below 1
@@ -295,7 +310,7 @@ interface ILendingPool {
     address collateralAsset,
     address debtAsset,
     address user,
-    uint256 debtToCover,
+    uint debtToCover,
     bool receiveAToken
   ) external;
 
@@ -319,8 +334,8 @@ interface ILendingPool {
   function flashLoan(
     address receiverAddress,
     address[] calldata assets,
-    uint256[] calldata amounts,
-    uint256[] calldata modes,
+    uint[] calldata amounts,
+    uint[] calldata modes,
     address onBehalfOf,
     bytes calldata params,
     uint16 referralCode
@@ -340,12 +355,12 @@ interface ILendingPool {
     external
     view
     returns (
-      uint256 totalCollateralETH,
-      uint256 totalDebtETH,
-      uint256 availableBorrowsETH,
-      uint256 currentLiquidationThreshold,
-      uint256 ltv,
-      uint256 healthFactor
+      uint totalCollateralETH,
+      uint totalDebtETH,
+      uint availableBorrowsETH,
+      uint currentLiquidationThreshold,
+      uint ltv,
+      uint healthFactor
     );
 
   function initReserve(
@@ -356,10 +371,12 @@ interface ILendingPool {
     address interestRateStrategyAddress
   ) external;
 
-  function setReserveInterestRateStrategyAddress(address reserve, address rateStrategyAddress)
-    external;
+  function setReserveInterestRateStrategyAddress(
+    address reserve,
+    address rateStrategyAddress
+  ) external;
 
-  function setConfiguration(address reserve, uint256 configuration) external;
+  function setConfiguration(address reserve, uint configuration) external;
 
   /**
    * @dev Returns the configuration of the reserve
@@ -386,34 +403,46 @@ interface ILendingPool {
    * @param asset The address of the underlying asset of the reserve
    * @return The reserve's normalized income
    */
-  function getReserveNormalizedIncome(address asset) external view returns (uint256);
+  function getReserveNormalizedIncome(address asset)
+    external
+    view
+    returns (uint);
 
   /**
    * @dev Returns the normalized variable debt per unit of asset
    * @param asset The address of the underlying asset of the reserve
    * @return The reserve normalized variable debt
    */
-  function getReserveNormalizedVariableDebt(address asset) external view returns (uint256);
+  function getReserveNormalizedVariableDebt(address asset)
+    external
+    view
+    returns (uint);
 
   /**
    * @dev Returns the state and configuration of the reserve
    * @param asset The address of the underlying asset of the reserve
    * @return The state of the reserve
    **/
-  function getReserveData(address asset) external view returns (DataTypes.ReserveData memory);
+  function getReserveData(address asset)
+    external
+    view
+    returns (DataTypes.ReserveData memory);
 
   function finalizeTransfer(
     address asset,
     address from,
     address to,
-    uint256 amount,
-    uint256 balanceFromAfter,
-    uint256 balanceToBefore
+    uint amount,
+    uint balanceFromAfter,
+    uint balanceToBefore
   ) external;
 
   function getReservesList() external view returns (address[] memory);
 
-  function getAddressesProvider() external view returns (ILendingPoolAddressesProvider);
+  function getAddressesProvider()
+    external
+    view
+    returns (ILendingPoolAddressesProvider);
 
   function setPause(bool val) external;
 

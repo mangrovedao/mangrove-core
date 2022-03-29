@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AdvancedCompoundRetail.sol
+//AaveLender.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -9,29 +9,65 @@
 // 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "../../AaveV3Lender.sol";
+import "./SingleUser.sol";
+import "../AaveV3Module.sol";
 
-contract SimpleAaveRetail is AaveV3Lender {
-  constructor(address _addressesProvider, address payable _MGV)
-    AaveV3Module(_addressesProvider, 0)
-    MangroveOffer(_MGV)
-  {
-    setGasreq(1_000_000);
+abstract contract AaveV3Lender is SingleUser, AaveV3Module {
+  /**************************************************************************/
+  ///@notice Required functions to let `this` contract interact with Aave
+  /**************************************************************************/
+
+  ///@notice exits markets
+  function exitMarket(IEIP20 underlying) external onlyAdmin {
+    _exitMarket(underlying);
   }
 
-  // Tries to take base directly from `this` balance. Fetches the remainder on Aave.
+  function enterMarkets(IEIP20[] calldata underlyings) external onlyAdmin {
+    _enterMarkets(underlyings);
+  }
+
+  function mint(
+    uint amount,
+    address token,
+    address onBehalf
+  ) external onlyAdmin {
+    _mint(amount, token, onBehalf);
+  }
+
   function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
-    uint missing = SingleUser.__get__(amount, order);
-    if (missing > 0) {
-      return super.__get__(missing, order);
+    (
+      uint redeemable, /*maxBorrowAfterRedeem*/
+
+    ) = maxGettableUnderlying(order.outbound_tkn, false, address(this));
+    if (amount > redeemable) {
+      return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
     }
-    return 0;
+
+    if (aaveRedeem(amount, address(this), order) == 0) {
+      // amount was transfered to `this`
+      return 0;
+    }
+    return amount;
+  }
+
+  function __put__(uint amount, ML.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
+    //optim
+    if (amount == 0) {
+      return 0;
+    }
+    return aaveMint(amount, address(this), order);
   }
 }

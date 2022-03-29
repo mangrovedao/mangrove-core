@@ -33,16 +33,16 @@ async function main() {
     let MangoRaw = (
       await hre.ethers.getContract(`Mango_${baseName}_${quoteName}`)
     ).connect(tester);
-    const market = await MgvAPI.market({ base: baseName, quote: quoteName });
-    const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
-      market
-    );
+    // const market = await MgvAPI.market({ base: baseName, quote: quoteName });
+    // const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
+    //   market
+    // );
     if ((await MangoRaw.admin()) === deployer.address) {
       const tx = await MangoRaw.connect(deployer).setAdmin(tester.address);
       await tx.wait();
     }
     const N = await MangoRaw.NSLOTS();
-
+    console.log("Retracting offers...");
     const tx1 = await MangoRaw.retractOffers(
       2, // both bids and asks
       0, // from

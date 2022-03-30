@@ -4,6 +4,8 @@ Copyright (c) 2021 Giry SAS. All rights reserved.
 * Tools are BSD-2.
 * Contract interfaces (ABIs) are public domain.
 * Specific licenses for each package can be found here:
+  * https://github.com/mangrovedao/mangrove/blob/master/packages/bot-maker-noise/LICENSE
+  * https://github.com/mangrovedao/mangrove/blob/master/packages/bot-taker-greedy/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/packages/cleaning-bot/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/packages/commonlib.js/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/packages/hardhat-mangrove/LICENSE
@@ -11,5 +13,4 @@ Copyright (c) 2021 Giry SAS. All rights reserved.
   * https://github.com/mangrovedao/mangrove/blob/master/packages/mangrove.js/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/packages/updategas-bot/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/packages/template-bot/LICENSE
-  * https://github.com/mangrovedao/mangrove/blob/master/packages/obfiller-bot/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/packages/faucet/LICENSE

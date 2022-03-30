@@ -1,9 +1,9 @@
 const { ethers, network } = require("hardhat");
 const { Mangrove } = require("../../../../../mangrove.js");
-const { expectAmountOnLender } = require("../../../../lib/libcommon.js");
 
 async function main() {
-  const provider = new ethers.providers.WebSocketProvider(network.config.url);
+  //const provider = new ethers.providers.WebSocketProvider(network.config.url);
+  const provider = new ethers.providers.JsonRpcProvider(network.config.url);
 
   if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
     console.error("No deployer account defined");

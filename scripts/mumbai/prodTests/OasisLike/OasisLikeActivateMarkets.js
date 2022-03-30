@@ -15,28 +15,22 @@ async function main() {
     signer: wallet,
   });
 
-  const rawLogic = (await hre.ethers.getContract("OfferProxy")).connect(wallet);
+  const rawLogic = (await hre.ethers.getContract("OasisLike")).connect(wallet);
 
-  // just manually getting the address of OfferProxy would suffice here
+  // just manually getting the address of OasisLike would suffice here
   const logic = MgvAPI.offerLogic(rawLogic.address);
 
   for (const tokenName of ["WETH", "USDC", "DAI"]) {
-    console.log(`* Approving Lender for minting ${tokenName}`);
-    const txLender = await rawLogic.approveLender(
-      MgvAPI.token(tokenName).address,
-      hre.ethers.constants.MaxUint256
-    );
-    await txLender.wait();
     const approval = await logic.mangroveAllowance(tokenName);
     if (approval.eq(0)) {
       const tx = await logic.approveMangrove(tokenName);
       console.log(
-        `* OfferProxy contract (${logic.address}) approved Mangrove (${MgvAPI.contract.address}) for ${tokenName} transfer`
+        `* OasisLike contract (${logic.address}) approved Mangrove (${MgvAPI.contract.address}) for ${tokenName} transfer`
       );
       await tx.wait();
     } else {
       console.log(
-        `* OfferProxy already approved Mangrove for ${tokenName} transfer`
+        `* OasisLike already approved Mangrove for ${tokenName} transfer`
       );
     }
   }

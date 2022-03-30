@@ -21,7 +21,7 @@
     "testSuites": "cross-env NODE_ENV=test node lib/test-suite-runner.js"
   },
   "lint-staged": {
-    "*.{js,css,md,sol}": "prettier --write --ignore-unknown"
+    "*.{js,css,md,sol,json}": "prettier --write --ignore-unknown"
   },
   "devDependencies": {
     "@espendk/json-file-reporter": "^1.4.1",

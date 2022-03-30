@@ -40,9 +40,7 @@ contract OasisLike is MultiUserPersistent {
     override
     returns (uint)
   {
-    // tries to get funds from `this` balance if any
-    amount = super.__get__(amount, order);
-    // if not enough, tries to fetch missing amount into owner's wallet
+    // tries to fetch missing amount into owner's wallet
     address owner = ownerOf(
       order.outbound_tkn,
       order.inbound_tkn,

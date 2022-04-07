@@ -25,8 +25,8 @@ async function main() {
   });
 
   const markets = [
-    ["WETH", "USDC"],
-    ["WETH", "DAI"],
+    // ["WETH", "USDC"],
+    // ["WETH", "DAI"],
     ["DAI", "USDC"],
   ];
   for (const [baseName, quoteName] of markets) {

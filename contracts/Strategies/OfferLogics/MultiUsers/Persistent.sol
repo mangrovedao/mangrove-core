@@ -40,12 +40,13 @@ abstract contract MultiUserPersistent is MultiUser {
     internal
     virtual
     override
+    returns (bool)
   {
     uint new_gives = __residualGives__(order);
     uint new_wants = __residualWants__(order);
     if (new_gives == 0) {
       // gas saving
-      return;
+      return true;
     }
     try
       MGV.updateOffer(
@@ -58,14 +59,18 @@ abstract contract MultiUserPersistent is MultiUser {
         order.offer.next(),
         order.offerId
       )
-    {} catch Error(string memory message) {
+    {
+      return true;
+    } catch {
       // density could be too low, or offer provision be insufficient
-      emit PosthookFail(
+      retractOfferInternal(
         order.outbound_tkn,
         order.inbound_tkn,
         order.offerId,
-        message
+        true,
+        ownerOf(order.outbound_tkn, order.inbound_tkn, order.offerId)
       );
+      return false;
     }
   }
 }

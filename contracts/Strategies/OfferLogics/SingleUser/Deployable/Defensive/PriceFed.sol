@@ -35,6 +35,7 @@ contract PriceFed is Defensive, AaveV3Lender {
   function __posthookReneged__(ML.SingleOrder calldata order)
     internal
     override
+    returns (bool)
   {
     uint old_wants = order.offer.wants();
     uint old_gives = order.offer.gives();
@@ -55,13 +56,10 @@ contract PriceFed is Defensive, AaveV3Lender {
         0,
         order.offerId
       )
-    {} catch Error(string memory message) {
-      emit PosthookFail(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        message
-      );
+    {
+      return true;
+    } catch {
+      return false;
     }
   }
 

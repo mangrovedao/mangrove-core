@@ -48,13 +48,14 @@ abstract contract Persistent is SingleUser {
     internal
     virtual
     override
+    returns (bool)
   {
     uint new_gives = __residualGives__(order);
     // Density check would be too gas costly.
     // We only treat the special case of `gives==0` (total fill).
     // Offer below the density will cause Mangrove to throw (revert is catched to log information)
     if (new_gives == 0) {
-      return;
+      return true;
     }
     uint new_wants = __residualWants__(order);
     try
@@ -68,16 +69,13 @@ abstract contract Persistent is SingleUser {
         order.offer.next(),
         order.offerId
       )
-    {} catch Error(string memory message) {
+    {
+      return true;
+    } catch {
       // Two possible reasons to reach this code:
       // * Offer was reposted below density
       // * Offer is not sufficiently provisioned (because Mangrove gas price was updated)
-      emit PosthookFail(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        message
-      );
+      return false;
     }
   }
 }

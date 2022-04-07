@@ -99,7 +99,6 @@ contract SwingingMarketMaker is CompoundTrader {
       {
         return true;
       } catch Error(string memory message) {
-        emit PosthookFail(outbound_tkn, inbound_tkn, offerId, message);
         return false;
       }
     }
@@ -108,15 +107,17 @@ contract SwingingMarketMaker is CompoundTrader {
   function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     override
+    returns (bool)
   {
     address token0 = order.outbound_tkn;
     address token1 = order.inbound_tkn;
     uint offer_received = order.offer.wants(); // amount with token1.decimals() decimals
-    repostOffer({
-      outbound_tkn: token1,
-      inbound_tkn: token0,
-      gives: offer_received
-    });
+    return
+      repostOffer({
+        outbound_tkn: token1,
+        inbound_tkn: token0,
+        gives: offer_received
+      });
   }
 
   function __get__(uint amount, ML.SingleOrder calldata order)

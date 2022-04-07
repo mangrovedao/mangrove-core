@@ -26,7 +26,7 @@ interface IOfferLogic is IMaker {
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     uint offerId,
-    string message
+    bytes32 reason
   );
 
   // Logged whenever `__get__` hook failed to fetch the totality of the requested amount

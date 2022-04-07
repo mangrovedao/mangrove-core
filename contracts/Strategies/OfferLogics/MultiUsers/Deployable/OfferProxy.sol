@@ -43,8 +43,9 @@ contract OfferProxy is MultiUserAaveV3Lender, MultiUserPersistent {
   function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     override(MangroveOffer, MultiUserPersistent)
+    returns (bool)
   {
     // reposting residual if possible
-    MultiUserPersistent.__posthookSuccess__(order);
+    return MultiUserPersistent.__posthookSuccess__(order);
   }
 }

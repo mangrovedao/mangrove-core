@@ -107,21 +107,49 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   ) external override onlyCaller(address(MGV)) {
     if (result.mgvData == "mgv/tradeSuccess") {
       // if trade was a success
-      __posthookSuccess__(order);
+      if (!__posthookSuccess__(order)) {
+        emit PosthookFail(
+          order.outbound_tkn,
+          order.inbound_tkn,
+          order.offerId,
+          result.mgvData
+        );
+      }
       return;
     }
     // if trade was aborted because of a lack of liquidity
     if (result.makerData == OUTOFLIQUIDITY) {
-      __posthookGetFailure__(order);
+      if (!__posthookGetFailure__(order)) {
+        emit PosthookFail(
+          order.outbound_tkn,
+          order.inbound_tkn,
+          order.offerId,
+          result.makerData
+        );
+      }
       return;
     }
     // if trade was reneged on during lastLook
     if (result.makerData == RENEGED) {
-      __posthookReneged__(order);
+      if (!__posthookReneged__(order)) {
+        emit PosthookFail(
+          order.outbound_tkn,
+          order.inbound_tkn,
+          order.offerId,
+          result.makerData
+        );
+      }
       return;
     }
     // if trade failed unexpectedly (`makerExecute` reverted or Mangrove failed to transfer the outbound tokens to the Offer Taker)
-    __posthookFallback__(order, result);
+    if (!__posthookFallback__(order, result)) {
+      emit PosthookFail(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        result.mgvData
+      );
+    }
     return;
   }
 
@@ -230,29 +258,42 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   ////// Customizable post-hooks.
 
   // Override this post-hook to implement what `this` contract should do when called back after a successfully executed order.
-  function __posthookSuccess__(ML.SingleOrder calldata order) internal virtual {
+  function __posthookSuccess__(ML.SingleOrder calldata order)
+    internal
+    virtual
+    returns (bool)
+  {
     order; // shh
+    return true;
   }
 
   // Override this post-hook to implement what `this` contract should do when called back after an order that failed to be executed because of a lack of liquidity (most inner call to `__get__` returned a non zero value).
   function __posthookGetFailure__(ML.SingleOrder calldata order)
     internal
     virtual
+    returns (bool)
   {
     order;
+    return true;
   }
 
   // Override this post-hook to implement what `this` contract should do when called back after an order that did not pass its last look (most inner call to `__lastLook__` returned `false`).
-  function __posthookReneged__(ML.SingleOrder calldata order) internal virtual {
+  function __posthookReneged__(ML.SingleOrder calldata order)
+    internal
+    virtual
+    returns (bool)
+  {
     order; //shh
+    return true;
   }
 
   // Override this post-hook to implement fallback behavior when Taker Order's execution failed unexpectedly. Information from Mangrove is accessible in `result.mgvData` for logging purpose.
   function __posthookFallback__(
     ML.SingleOrder calldata order,
     ML.OrderResult calldata result
-  ) internal virtual {
+  ) internal virtual returns (bool) {
     order;
     result;
+    return true;
   }
 }

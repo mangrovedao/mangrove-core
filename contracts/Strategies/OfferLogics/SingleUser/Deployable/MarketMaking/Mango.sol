@@ -53,7 +53,10 @@ contract Mango is Persistent {
   // Asks and bids offer Ids are stored in `ASKS` and `BIDS` arrays respectively.
   uint[] ASKS;
   uint[] BIDS;
-  uint[] MISSING_AT_INDEX;
+
+  uint PENDING_BASE;
+  uint PENDING_QUOTE;
+
   mapping(uint => uint) index_of_bid; // bidId -> index
   mapping(uint => uint) index_of_ask; // askId -> index
 
@@ -100,7 +103,6 @@ contract Mango is Persistent {
     NSLOTS = uint16(nslots);
     ASKS = new uint[](nslots);
     BIDS = new uint[](nslots);
-    MISSING_AT_INDEX = new uint[](nslots);
     BASE_0 = uint96(base_0);
     QUOTE_0 = uint96(quote_0);
     current_delta = delta;
@@ -117,7 +119,7 @@ contract Mango is Persistent {
     uint from, // first price position to be populated
     uint to, // last price position to be populated
     uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
-    uint[] calldata tokenAmounts // `tokenAmounts[i]` is the amount of `BASE` or `QUOTE` tokens (depending on `withBase` flag) that is used to fixed one parameter of the price at position `from+i`.
+    uint[] calldata tokenAmounts // `tokenAmounts[i]` is the amount of `BASE` or `QUOTE` tokens (dePENDING on `withBase` flag) that is used to fixed one parameter of the price at position `from+i`.
   ) public mgvOrAdmin {
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
@@ -152,7 +154,7 @@ contract Mango is Persistent {
         if (ASKS[i] > 0) {
           // if an ASK is also positioned, remove it to prevent spread crossing
           // (should not happen if this is the first initialization of the strat)
-          safeRetractOffer(BASE, QUOTE, ASKS[i], false);
+          retractOffer(BASE, QUOTE, ASKS[i], false);
         }
       } else {
         uint askPivot = pivotIds[1][pos];
@@ -171,7 +173,7 @@ contract Mango is Persistent {
         if (BIDS[i] > 0) {
           // if a BID is also positioned, remove it to prevent spread crossing
           // (should not happen if this is the first initialization of the strat)
-          safeRetractOffer(QUOTE, BASE, BIDS[i], false);
+          retractOffer(QUOTE, BASE, BIDS[i], false);
         }
       }
     }
@@ -333,8 +335,12 @@ contract Mango is Persistent {
     return current_shift;
   }
 
+  function get_pending() external view onlyAdmin returns (uint[2] memory) {
+    return [PENDING_BASE, PENDING_QUOTE];
+  }
+
   /** Shift the price (induced by quote amount) of n slots down or up */
-  /** price at position i will be shifted (up or down depending on the sign of `shift`) */
+  /** price at position i will be shifted (up or down dePENDING on the sign of `shift`) */
   /** New positions 0<= i < s are initialized with amount[i] in base tokens if `withBase`. In quote tokens otherwise*/
   function set_shift(
     int s,
@@ -397,140 +403,142 @@ contract Mango is Persistent {
     proceed = !paused;
   }
 
-  function writeOffer(
+  // posts or updates ask at position of `index`
+  // returns the amount of `BASE` tokens that failed to be published at that position
+  function writeAsk(
     uint index,
-    address outbound_tkn,
-    address inbound_tkn,
     uint wants,
     uint gives,
     uint pivotId
-  ) internal returns (bool) {
-    inbound_tkn; // shh
-    bool success = true;
-    if (outbound_tkn == BASE) {
-      // Asks
-      if (ASKS[index] == 0) {
-        // offer slot not initialized yet
-        try
-          MGV.newOffer({
-            outbound_tkn: BASE,
-            inbound_tkn: QUOTE,
-            wants: wants,
-            gives: gives,
-            gasreq: OFR_GASREQ,
-            gasprice: 0,
-            pivotId: pivotId
-          })
-        returns (uint offerId) {
-          ASKS[index] = offerId;
-          index_of_ask[ASKS[index]] = index;
-        } catch {
-          // `newOffer` can fail is Mango is underprovisioned or if `offer.gives` is below density
-          success = false;
-        }
-      } else {
-        try
-          MGV.updateOffer({
-            outbound_tkn: BASE,
-            inbound_tkn: QUOTE,
-            wants: wants,
-            gives: gives,
-            gasreq: OFR_GASREQ,
-            gasprice: 0,
-            pivotId: pivotId,
-            offerId: ASKS[index]
-          })
-        {
-          /* empty */
-        } catch {
-          success = false;
-        }
+  ) internal returns (uint) {
+    if (position_of_index(index) <= current_min_buffer) {
+      __boundariesReached__(false, ASKS[index]);
+    }
+    if (ASKS[index] == 0) {
+      // offer slot not initialized yet
+      try
+        MGV.newOffer({
+          outbound_tkn: BASE,
+          inbound_tkn: QUOTE,
+          wants: wants,
+          gives: gives,
+          gasreq: OFR_GASREQ,
+          gasprice: 0,
+          pivotId: pivotId
+        })
+      returns (uint offerId) {
+        ASKS[index] = offerId;
+        index_of_ask[ASKS[index]] = index;
+        return 0;
+      } catch {
+        // `newOffer` can fail when Mango is underprovisioned or if `offer.gives` is below density
+        return gives;
       }
-      if (position_of_index(index) <= current_min_buffer) {
-        __boundariesReached__(false, ASKS[index]);
-      }
-      return success;
     } else {
-      // Bids
-      if (BIDS[index] == 0) {
-        try
-          MGV.newOffer({
-            outbound_tkn: QUOTE,
-            inbound_tkn: BASE,
-            wants: wants,
-            gives: gives,
-            gasreq: OFR_GASREQ,
-            gasprice: 0,
-            pivotId: pivotId
-          })
-        returns (uint offerId) {
-          BIDS[index] = offerId;
-          index_of_bid[BIDS[index]] = index;
-        } catch {
-          success = false;
-        }
-      } else {
-        try
-          MGV.updateOffer({
-            outbound_tkn: QUOTE,
-            inbound_tkn: BASE,
-            wants: wants,
-            gives: gives,
-            gasreq: OFR_GASREQ,
-            gasprice: 0,
-            pivotId: pivotId,
-            offerId: BIDS[index]
-          })
-        {
-          /* empty */
-        } catch {
-          success = false;
-        }
+      try
+        MGV.updateOffer({
+          outbound_tkn: BASE,
+          inbound_tkn: QUOTE,
+          wants: wants,
+          gives: gives,
+          gasreq: OFR_GASREQ,
+          gasprice: 0,
+          pivotId: pivotId,
+          offerId: ASKS[index]
+        })
+      {
+        // updateOffer succeeded
+        return 0;
+      } catch {
+        // updateOffer failed
+        return (gives - MGV.offers(BASE, QUOTE, ASKS[index]).gives());
       }
-      if (position_of_index(index) >= NSLOTS - 1 - current_min_buffer) {
-        __boundariesReached__(true, BIDS[index]);
-      }
-      return success;
     }
   }
 
-  // tries to write a new offer. If it fails, updates the volume still to be offered at given index
-  // invariant, function is always called with `gives` taking into account `MISSING_AT_INDEX`
+  function writeBid(
+    uint index,
+    uint wants,
+    uint gives,
+    uint pivotId
+  ) internal returns (uint) {
+    if (position_of_index(index) >= NSLOTS - 1 - current_min_buffer) {
+      __boundariesReached__(true, BIDS[index]);
+    }
+    if (BIDS[index] == 0) {
+      try
+        MGV.newOffer({
+          outbound_tkn: QUOTE,
+          inbound_tkn: BASE,
+          wants: wants,
+          gives: gives,
+          gasreq: OFR_GASREQ,
+          gasprice: 0,
+          pivotId: pivotId
+        })
+      returns (uint offerId) {
+        BIDS[index] = offerId;
+        index_of_bid[BIDS[index]] = index;
+        return 0;
+      } catch {
+        return gives;
+      }
+    } else {
+      try
+        MGV.updateOffer({
+          outbound_tkn: QUOTE,
+          inbound_tkn: BASE,
+          wants: wants,
+          gives: gives,
+          gasreq: OFR_GASREQ,
+          gasprice: 0,
+          pivotId: pivotId,
+          offerId: BIDS[index]
+        })
+      {
+        return 0;
+      } catch {
+        return (gives - MGV.offers(QUOTE, BASE, BIDS[index]).gives());
+      }
+    }
+  }
+
   function safeWriteOffer(
     uint index,
     address outbound_tkn,
-    address inbound_tkn,
     uint wants,
     uint gives,
+    bool withPending,
     uint pivotId
   ) internal {
-    bool success = writeOffer(
-      index,
-      outbound_tkn,
-      inbound_tkn,
-      wants,
-      gives,
-      pivotId
-    );
-    if (!success) {
-      MISSING_AT_INDEX[index] = gives;
-    } else {
-      MISSING_AT_INDEX[index] = 0;
-    }
-  }
-
-  // retracts offerId
-  function safeRetractOffer(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint offerId,
-    bool deprovision
-  ) internal {
-    retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
     if (outbound_tkn == BASE) {
-      MISSING_AT_INDEX[index_of_bid[offerId]] = 0;
+      uint pending = writeAsk(
+        index,
+        wants,
+        gives + (withPending ? PENDING_BASE : 0),
+        pivotId
+      );
+      if (pending > 0) {
+        PENDING_BASE = withPending ? pending : (PENDING_BASE + pending);
+      } else {
+        if (withPending) {
+          PENDING_BASE = 0;
+        }
+      }
     } else {
-      MISSING_AT_INDEX[index_of_ask[offerId]] = 0;
+      uint pending = writeBid(
+        index,
+        wants,
+        gives + (withPending ? PENDING_QUOTE : 0),
+        pivotId
+      );
+      if (pending > 0) {
+        PENDING_QUOTE = withPending ? pending : (PENDING_QUOTE + pending);
+      } else {
+        if (withPending) {
+          PENDING_QUOTE = 0;
+        }
+      }
     }
   }
 
@@ -575,7 +583,7 @@ contract Mango is Persistent {
     return i > 0 ? i - 1 : NSLOTS - 1;
   }
 
-  /** Function that determines the amount of quotes that are offered at position i of the OB depending on initial_price and paramater delta*/
+  /** Function that determines the amount of quotes that are offered at position i of the OB dePENDING on initial_price and paramater delta*/
   /** Here the default is an arithmetic progression */
   function __quote_progression__(uint position)
     internal
@@ -620,7 +628,7 @@ contract Mango is Persistent {
     while (cpt < s) {
       // slots occupied by [Bids[index],..,Bids[index+`s` % N]] are retracted
       if (BIDS[index] != 0) {
-        safeRetractOffer({
+        retractOffer({
           outbound_tkn: QUOTE,
           inbound_tkn: BASE,
           offerId: BIDS[index],
@@ -648,9 +656,9 @@ contract Mango is Persistent {
       safeWriteOffer({
         index: index,
         outbound_tkn: BASE,
-        inbound_tkn: QUOTE,
         wants: new_wants,
         gives: new_gives,
+        withPending: false, // don't add pending liqudity in new offers (they are far from mid price)
         pivotId: pos > 0 ? ASKS[index_of_position(pos - 1)] : 0
       });
       cpt++;
@@ -674,7 +682,7 @@ contract Mango is Persistent {
     while (cpt < s) {
       // slots occupied by [Asks[index-`s` % N],..,Asks[index]] are retracted
       if (ASKS[index] != 0) {
-        safeRetractOffer({
+        retractOffer({
           outbound_tkn: BASE,
           inbound_tkn: QUOTE,
           offerId: ASKS[index],
@@ -701,9 +709,9 @@ contract Mango is Persistent {
       safeWriteOffer({
         index: index,
         outbound_tkn: QUOTE,
-        inbound_tkn: BASE,
         wants: new_wants,
         gives: new_gives,
+        withPending: false,
         pivotId: pos < NSLOTS - 1 ? BIDS[index_of_position(pos + 1)] : 0
       });
       cpt++;
@@ -711,22 +719,20 @@ contract Mango is Persistent {
     }
   }
 
-  // residual gives is default (i.e offer.gives - order.wants) + MISSING_AT_INDEX
+  // residual gives is default (i.e offer.gives - order.wants) + PENDING
   function __residualGives__(ML.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
-    uint index;
     if (order.outbound_tkn == BASE) {
       // Ask offer
-      uint index = index_of_ask[order.offerId];
+      return super.__residualGives__(order) + PENDING_BASE;
     } else {
       // Bid offer
-      uint index = index_of_bid[order.offerId];
+      return super.__residualGives__(order) + PENDING_QUOTE;
     }
-    return super.__residualGives__(order) + MISSING_AT_INDEX[index];
   }
 
   // for reposting partial filled offers one always gives the residual (default behavior)
@@ -771,16 +777,26 @@ contract Mango is Persistent {
     override
     returns (bool)
   {
-    uint index;
-    bool success = true;
+    // reposting residual of offer using override `__newWants__` and `__newGives__` for new price
+
     if (order.outbound_tkn == BASE) {
-      // Ask Offer (`this` contract just sold some BASE @ pos)
-      index = index_of_ask[order.offerId];
+      // order is an Ask
+
+      //// Reposting Offer Residual (if any)
+      if (!super.__posthookSuccess__(order)) {
+        // residual could not be reposted --either below density or Mango went out of provision on Mangrove
+        PENDING_BASE = __residualGives__(order); // this includes previous `PENDING_BASE`
+      } else {
+        PENDING_BASE = 0;
+      }
+      //// Posting dual bid offer
+      uint index = index_of_ask[order.offerId];
       if (index != 0) {
         // offer was not posted using newOffer
         uint pos = position_of_index(index);
         // bid for some BASE token with the received QUOTE tokens @ pos-1
         if (pos > 0) {
+          // updateBid will include PENDING_QUOTES if any
           updateBid({
             index: index_of_position(pos - 1),
             withBase: false, // order gave QUOTES
@@ -788,27 +804,38 @@ contract Mango is Persistent {
             amount: order.gives, // in QUOTES
             pivotId: 0
           });
+          return true;
         } else {
           // Ask cannot be at Pmin unless a shift has eliminated all bids
-          emit PosthookFail(
+          emit LogIncident(
             order.outbound_tkn,
             order.inbound_tkn,
             order.offerId,
             "Mango/posthook/BuyOutOfRange"
           );
-          success = false;
+          return false;
         }
       } else {
-        /** Not clear what one should do with a single offer not connected to the strat */
+        // nothing to be done with an offer that is not part of the strat
+        return true;
       }
     } else {
       // Bid offer (`this` contract just bought some BASE)
+
+      if (!super.__posthookSuccess__(order)) {
+        // residual could not be reposted --either below density or Mango went out of provision on Mangrove
+        PENDING_QUOTE = __residualGives__(order); // this includes previous `PENDING_QUOTE`
+      } else {
+        PENDING_QUOTE = 0;
+      }
+
       uint index = index_of_bid[order.offerId];
       if (index != 0) {
         // offer was not posted using newOffer
         uint pos = position_of_index(index);
         // ask for some QUOTE tokens in exchange of the received BASE tokens @ pos+1
         if (pos < NSLOTS - 1) {
+          // updateAsk will include PENDING_BASES if any
           updateAsk({
             index: index_of_position(pos + 1),
             withBase: true, // order gave BASE
@@ -816,26 +843,22 @@ contract Mango is Persistent {
             amount: order.gives, // in BASE
             pivotId: 0
           });
+          return true;
         } else {
           // Take profit
-          emit PosthookFail(
+          emit LogIncident(
             order.outbound_tkn,
             order.inbound_tkn,
             order.offerId,
             "Mango/posthook/SellOutOfRange"
           );
-          success = false;
+          return false;
         }
       } else {
         /**  Not clear what one should do with a single offer not connected to the strat */
+        return true;
       }
     }
-    // reposting residual of offer using override `__newWants__` and `__newGives__` for new price
-    if (!super.__posthookSuccess__(order)) {
-      // residual could not be reposted --either below density or Mango went out of provision on Mangrove
-      MISSING_AT_INDEX[index] = __residualGives__(order);
-    }
-    return success;
   }
 
   function updateBid(
@@ -879,9 +902,9 @@ contract Mango is Persistent {
     safeWriteOffer({
       index: index,
       outbound_tkn: QUOTE,
-      inbound_tkn: BASE,
       wants: new_wants,
-      gives: new_gives + MISSING_AT_INDEX[index],
+      gives: new_gives,
+      withPending: true,
       pivotId: pivot
     });
   }
@@ -926,9 +949,9 @@ contract Mango is Persistent {
     safeWriteOffer({
       index: index,
       outbound_tkn: BASE,
-      inbound_tkn: QUOTE,
       wants: new_wants,
-      gives: new_gives + MISSING_AT_INDEX[index],
+      gives: new_gives,
+      withPending: true,
       pivotId: pivot
     });
   }

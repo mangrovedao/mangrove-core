@@ -98,7 +98,7 @@ contract SwingingMarketMaker is CompoundTrader {
         )
       {
         return true;
-      } catch Error(string memory message) {
+      } catch {
         return false;
       }
     }

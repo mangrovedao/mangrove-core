@@ -3,6 +3,9 @@ const { assert } = require("chai");
 const { ethers } = require("hardhat");
 const lc = require("../lib/libcommon.js");
 const chalk = require("chalk");
+const {
+  default: Mangrove,
+} = require("../../mangrove.js/dist/nodejs/mangrove.js");
 //const { Mangrove } = require("../../mangrove.js");
 
 async function checkOB(msg, mgv, outb, inb, bigNumbers, t) {
@@ -286,7 +289,99 @@ describe("Running tests...", function () {
       asks,
       [0, 0, 0, 6, 1, 2, 3, 4, 5, 7]
     );
+  });
 
+  it("Test partial fill", async function () {
+    // scenario:
+    // - set density so high that offer can no longer be updated
+    // - run a market order and check that bid is not updated after ask is being consumed
+    // - verify takerGave is pending
+    // - put back the density and run another market order
+    // - v
+    // book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
+    // console.log("===bids===");
+    // await lc.logOrderBook(book, usdc, wEth);
+    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
+    // console.log("===asks===");
+    // await lc.logOrderBook(book, wEth, usdc);
+
+    let tx = await mgv.setDensity(
+      wEth.address,
+      usdc.address,
+      ethers.utils.parseUnits("1", 18)
+    );
+    await tx.wait();
+
+    let density = (await mgv.configInfo(wEth.address, usdc.address)).local
+      .density;
+    lc.assertEqualBN(
+      ethers.utils.parseUnits("1", 18),
+      density,
+      "Density was not correctly set"
+    );
+
+    [takerGot, takerGave, bounty] = await lc.marketOrder(
+      mgv.connect(taker),
+      "USDC", // outbound
+      "WETH", // inbound
+      ethers.utils.parseUnits("0.01", 6), // wants
+      ethers.utils.parseEther("1"), // gives
+      true
+    );
+
+    let best = await mgv.best(wEth.address, usdc.address);
+    let offerInfo = await mgv.offerInfo(wEth.address, usdc.address, best);
+    let old_gives = offerInfo.offer.gives;
+
+    let [pendingBase] = await makerContract.get_pending();
+
+    lc.assertEqualBN(
+      pendingBase,
+      takerGave,
+      "Taker liquidity should be pending"
+    );
+
+    // tx = await mgv.setDensity(wEth.address, usdc.address, 100);
+    // await tx.wait();
+
+    [takerGot, takerGave, bounty] = await lc.marketOrder(
+      mgv.connect(taker),
+      "USDC", // outbound
+      "WETH", // inbound
+      ethers.utils.parseUnits("0.01", 6), // wants
+      ethers.utils.parseEther("1"), // gives
+      true
+    );
+
+    let [pendingBase_] = await makerContract.get_pending();
+    lc.assertEqualBN(
+      pendingBase_,
+      pendingBase.add(takerGave),
+      "Missing pending base"
+    );
+
+    tx = await mgv.setDensity(wEth.address, usdc.address, 100);
+    await tx.wait();
+
+    [takerGot, takerGave, bounty] = await lc.marketOrder(
+      mgv.connect(taker),
+      "USDC", // outbound
+      "WETH", // inbound
+      ethers.utils.parseUnits("0.01", 6), // wants
+      ethers.utils.parseEther("1"), // gives
+      true
+    );
+    let [pendingBase__] = await makerContract.get_pending();
+    lc.assertEqualBN(pendingBase__, 0, "There should be no more pending base");
+
+    best = await mgv.best(wEth.address, usdc.address);
+    offerInfo = await mgv.offerInfo(wEth.address, usdc.address, best);
+
+    lc.assertEqualBN(
+      offerInfo.offer.gives,
+      old_gives.add(pendingBase_.add(takerGave)),
+      "Incorrect given amount"
+    );
     // book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
     // console.log("===bids===");
     // await lc.logOrderBook(book, usdc, wEth);
@@ -294,6 +389,128 @@ describe("Running tests...", function () {
     // console.log("===asks===");
     // await lc.logOrderBook(book, wEth, usdc);
   });
+
+  it("Test residual", async function () {
+    let tx = await mgv.setDensity(
+      usdc.address,
+      wEth.address,
+      ethers.utils.parseUnits("1", 6)
+    );
+    await tx.wait();
+    tx = await mgv.setDensity(
+      wEth.address,
+      usdc.address,
+      ethers.utils.parseUnits("1", 18)
+    );
+    await tx.wait();
+
+    [takerGot, takerGave, bounty] = await lc.marketOrder(
+      mgv.connect(taker),
+      "USDC", // outbound
+      "WETH", // inbound
+      ethers.utils.parseUnits("100", 6), // wants
+      ethers.utils.parseEther("1"), // gives
+      true
+    );
+
+    let [pendingBase, pendingQuote] = await makerContract.get_pending();
+    console.log("Taker got:", ethers.utils.formatUnits(takerGot, 18));
+
+    console.log(
+      ethers.utils.formatUnits(pendingBase, 18),
+      ethers.utils.formatUnits(pendingQuote, 6)
+    );
+
+    [takerGot, takerGave, bounty] = await lc.marketOrder(
+      mgv.connect(taker),
+      "USDC", // outbound
+      "WETH", // inbound
+      ethers.utils.parseUnits("100", 6), // wants
+      ethers.utils.parseEther("1"), // gives
+      true
+    );
+
+    let [pendingBase_, pendingQuote_] = await makerContract.get_pending();
+    console.log(
+      ethers.utils.formatUnits(pendingBase_, 18),
+      ethers.utils.formatUnits(pendingQuote_, 6)
+    );
+    tx = await mgv.setDensity(usdc.address, wEth.address, 100);
+    await tx.wait();
+    tx = await mgv.setDensity(wEth.address, usdc.address, 100);
+    await tx.wait();
+
+    await checkOB(
+      "OB bids",
+      mgv,
+      usdc.address,
+      wEth.address,
+      bids,
+      [2, -3, -4, -5, -6, 0, 0, -8, -7, -1]
+    );
+    await checkOB(
+      "OB asks",
+      mgv,
+      wEth.address,
+      usdc.address,
+      asks,
+      [0, 0, 0, 6, 1, 2, 3, 4, 5, 7]
+    );
+
+    console.log(chalk.yellow("Putting density back to normal"));
+
+    [takerGot, takerGave, bounty] = await lc.marketOrder(
+      mgv.connect(taker),
+      "USDC", // outbound
+      "WETH", // inbound
+      ethers.utils.parseUnits("100", 6), // wants
+      ethers.utils.parseEther("1"), // gives
+      true
+    );
+    let [pendingBase__, pendingQuote__] = await makerContract.get_pending();
+
+    console.log(
+      ethers.utils.formatUnits(pendingBase__, 18),
+      ethers.utils.formatUnits(pendingQuote__, 6)
+    );
+    book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
+    console.log("===bids===");
+    await lc.logOrderBook(book, usdc, wEth);
+    book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
+    console.log("===asks===");
+    await lc.logOrderBook(book, wEth, usdc);
+  });
+  //   // tx = await mgv.setDensity(usdc.address, wEth.address, 100);
+  //   // await tx.wait();
+  //   // tx = await mgv.setDensity(wEth.address, usdc.address, 100);
+  //   // await tx.wait();
+
+  //   [takerGot, takerGave, bounty] = await lc.marketOrder(
+  //     mgv.connect(taker),
+  //     "USDC", // outbound
+  //     "WETH", // inbound
+  //     ethers.utils.parseUnits("100", 6), // wants
+  //     ethers.utils.parseEther("1"), // gives
+  //     true
+  //   );
+  //   pendingOffers = await makerContract.get_pending();
+  //   for (pending of pendingOffers) {
+  //     console.log(ethers.utils.formatUnits(pending,6));
+  //   }
+  //   [takerGot, takerGave, bounty] = await lc.marketOrder(
+  //     mgv.connect(taker),
+  //     "USDC", // outbound
+  //     "WETH", // inbound
+  //     ethers.utils.parseUnits("100", 6), // wants
+  //     ethers.utils.parseEther("1"), // gives
+  //     true
+  //   );
+  //   pendingOffers = await makerContract.get_pending();
+  //   for (pending of pendingOffers) {
+  //     console.log(ethers.utils.formatUnits(pending,6));
+  //   }
+
+  // });
 
   it("Test kill", async function () {
     await makerContract.pause();

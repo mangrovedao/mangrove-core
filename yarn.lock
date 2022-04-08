@@ -1371,7 +1371,7 @@ __metadata:
     seedrandom: ^3.0.5
     shelljs: ^0.8.4
     shx: ^0.3.4
-    ts-essentials: ^8.1.0
+    ts-essentials: ^9.1.2
     ts-node: ^9.1.1
     typechain: ^6.0.2
     typedoc: ^0.22.3
@@ -9821,12 +9821,12 @@ resolve@1.17.0:
   languageName: node
   linkType: hard
 
-"ts-essentials@npm:^8.1.0":
-  version: 8.1.0
-  resolution: "ts-essentials@npm:8.1.0"
+"ts-essentials@npm:^9.1.2":
+  version: 9.1.2
+  resolution: "ts-essentials@npm:9.1.2"
   peerDependencies:
-    typescript: ">=4.0.0"
-  checksum: 228b907967b17bacba18d06be95179c8fecda49cb47eb1b3342fb84cd815d50f0afedcb74ca16cd07137f856c3327ab03c90f90f07596fffb7ef260f851b117d
+    typescript: ">=4.1.0"
+  checksum: 3b14d8511557bd1bdec068505074ee41d3b1cdb052d3c66a5046f00b483bd4722d529b32a99cca424a9d7db9caff7ba108acbf344a5477a741e0616af5649b47
   languageName: node
   linkType: hard
 

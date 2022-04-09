@@ -1251,7 +1251,7 @@ __metadata:
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
     "@mangrovedao/mangrove.js": "workspace:*"
-    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.22
     "@types/chai-as-promised": ^7.1.4
@@ -1304,7 +1304,7 @@ __metadata:
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
     "@mangrovedao/mangrove.js": "workspace:*"
-    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.22
     "@types/chai-as-promised": ^7.1.4
@@ -1357,7 +1357,7 @@ __metadata:
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
     "@mangrovedao/mangrove.js": "workspace:*"
-    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.22
     "@types/chai-as-promised": ^7.1.4
@@ -1435,7 +1435,7 @@ __metadata:
     "@espendk/json-file-reporter": ^1.4.1
     "@ethersproject/hardware-wallets": ^5.0.0
     "@mangrovedao/hardhat-test-solidity": ^0.0.14
-    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@nomiclabs/hardhat-ethers": ^2.0.5
     adhusson-hardhat-solpp: ^2.0.2
     app-module-path: ^2.2.0
     chai: ^4.3.4
@@ -1500,7 +1500,7 @@ __metadata:
     "@ethersproject/experimental": ^5.5.0
     "@ethersproject/hardware-wallets": ^5.0.0
     "@mangrovedao/hardhat-test-solidity": ^0.0.14
-    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@nomiclabs/hardhat-ethers": ^2.0.5
     "@nomiclabs/hardhat-solpp": ^2.0.0
     app-module-path: ^2.2.0
     chai: ^4.3.4
@@ -1540,7 +1540,7 @@ __metadata:
     "@ethersproject/providers": ^5.0.0
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
-    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@nomiclabs/hardhat-ethers": ^2.0.5
     "@rollup/plugin-commonjs": ^20.0.0
     "@rollup/plugin-json": ^4.1.0
     "@rollup/plugin-node-resolve": ^9.0.0
@@ -1605,7 +1605,7 @@ __metadata:
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
     "@mangrovedao/mangrove.js": "workspace:*"
-    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.21
     "@types/chai-as-promised": ^7.1.4
@@ -1657,7 +1657,7 @@ __metadata:
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
     "@mangrovedao/mangrove.js": "workspace:*"
-    "@nomiclabs/hardhat-ethers": ^2.0.2
+    "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.2.21
     "@types/chai-as-promised": ^7.1.4
@@ -1740,13 +1740,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nomiclabs/hardhat-ethers@npm:^2.0.2":
-  version: 2.0.2
-  resolution: "@nomiclabs/hardhat-ethers@npm:2.0.2"
+"@nomiclabs/hardhat-ethers@npm:^2.0.5":
+  version: 2.0.5
+  resolution: "@nomiclabs/hardhat-ethers@npm:2.0.5"
   peerDependencies:
     ethers: ^5.0.0
     hardhat: ^2.0.0
-  checksum: b9a4b4e011aa64a6a79ffa402d8e022c0ff8c74ddc30ef8887c72ecc75fb66d02d8d6991151ec659f147753b41ad4f58d823f73c4c4415726388bd58b0367b93
+  checksum: 07a5916f9fbb1efd24effc0d3949c70d1f45240d0bc4705653f1d378573c419c72d9a00f8db48b19c4aa27bd6c9dc0033aa40717cc9d77025a2cceeb59668463
   languageName: node
   linkType: hard
 

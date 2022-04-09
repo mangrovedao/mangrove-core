@@ -117,12 +117,12 @@ describe("Running tests...", function () {
     }
   });
   it("Market orders", async function () {
-    let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
-    console.log("===bids===");
-    await lc.logOrderBook(book, usdc, wEth);
-    book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
-    console.log("===asks===");
-    await lc.logOrderBook(book, wEth, usdc);
+    // let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
+    // console.log("===bids===");
+    // await lc.logOrderBook(book, usdc, wEth);
+    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
+    // console.log("===asks===");
+    // await lc.logOrderBook(book, wEth, usdc);
 
     await makerContract.approveMangrove(
       wEth.address,

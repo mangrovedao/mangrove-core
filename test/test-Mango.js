@@ -105,7 +105,6 @@ describe("Running tests...", function () {
     for (let i = 0; i < 2; i++) {
       const receipt = await makerContract.initialize(
         4,
-        false,
         slice * i, // from
         slice * (i + 1), // to
         [pivotIds, pivotIds],
@@ -524,6 +523,12 @@ describe("Running tests...", function () {
       offer2.gives,
       pendingQuote_.add(oldOffer2.gives.sub(ethers.utils.parseUnits("100", 6))),
       "Incorrect offer gives"
+    );
+    console.log(
+      ethers.utils.formatUnits(oldOffer2.gives, 6),
+      ethers.utils.formatUnits(oldOffer2.wants, 18),
+      ethers.utils.formatUnits(offer2.gives, 6),
+      ethers.utils.formatEther(offer2.wants)
     );
   });
 

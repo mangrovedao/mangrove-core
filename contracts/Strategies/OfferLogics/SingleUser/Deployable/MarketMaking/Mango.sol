@@ -113,9 +113,9 @@ contract Mango is Persistent {
   }
 
   // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
+  // tokenAmounts are always expressed `gives`units, i.e in BASE when asking and in QUOTE when bidding
   function initialize(
     uint lastBidPosition, // if `lastBidPosition` is in R, then all offers before `lastBidPosition` (included) will be bids, offers strictly after will be asks.
-    bool withBaseWhenBidding,
     uint from, // first price position to be populated
     uint to, // last price position to be populated
     uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
@@ -146,7 +146,6 @@ contract Mango is Persistent {
           : 0; // otherwise getting last inserted offer as pivot
         updateBid({
           index: i,
-          withBase: withBaseWhenBidding,
           reset: true, // overwrites old value
           amount: tokenAmounts[pos],
           pivotId: bidPivot
@@ -165,7 +164,6 @@ contract Mango is Persistent {
           : 0; // otherwise getting last inserted offer as pivot
         updateAsk({
           index: i,
-          withBase: !withBaseWhenBidding,
           reset: true,
           amount: tokenAmounts[pos],
           pivotId: askPivot
@@ -503,22 +501,19 @@ contract Mango is Persistent {
     }
   }
 
+  /** Writes (creates or updates) a maker offer on Mangrove's order book*/
   function safeWriteOffer(
     uint index,
     address outbound_tkn,
     uint wants,
     uint gives,
-    bool withPending,
+    bool withPending, // whether `gives` amount includes current pending tokens
     uint pivotId
   ) internal {
     if (outbound_tkn == BASE) {
-      uint pending = writeAsk(
-        index,
-        wants,
-        gives + (withPending ? PENDING_BASE : 0),
-        pivotId
-      );
+      uint pending = writeAsk(index, wants, gives, pivotId);
       if (pending > 0) {
+        // Ask could not be written on the book (density or provision issue)
         PENDING_BASE = withPending ? pending : (PENDING_BASE + pending);
       } else {
         if (withPending) {
@@ -526,12 +521,7 @@ contract Mango is Persistent {
         }
       }
     } else {
-      uint pending = writeBid(
-        index,
-        wants,
-        gives + (withPending ? PENDING_QUOTE : 0),
-        pivotId
-      );
+      uint pending = writeBid(index, wants, gives, pivotId);
       if (pending > 0) {
         PENDING_QUOTE = withPending ? pending : (PENDING_QUOTE + pending);
       } else {
@@ -799,7 +789,6 @@ contract Mango is Persistent {
           // updateBid will include PENDING_QUOTES if any
           updateBid({
             index: index_of_position(pos - 1),
-            withBase: false, // order gave QUOTES
             reset: false, // top up old value with received amount
             amount: order.gives, // in QUOTES
             pivotId: 0
@@ -838,7 +827,6 @@ contract Mango is Persistent {
           // updateAsk will include PENDING_BASES if any
           updateAsk({
             index: index_of_position(pos + 1),
-            withBase: true, // order gave BASE
             reset: false, // top up old value with received amount
             amount: order.gives, // in BASE
             pivotId: 0
@@ -863,26 +851,18 @@ contract Mango is Persistent {
 
   function updateBid(
     uint index,
-    bool withBase,
-    bool reset,
-    uint amount,
+    bool reset, // whether this call is part of an `initialize` procedure
+    uint amount, // in QUOTE tokens
     uint pivotId
   ) internal {
     // outbound : QUOTE, inbound: BASE
     P.Offer.t offer = MGV.offers(QUOTE, BASE, BIDS[index]);
 
     uint position = position_of_index(index);
-    uint new_wants;
-    uint new_gives;
-    if (withBase) {
-      // amount: BASE
-      new_wants = reset ? amount : amount + offer.wants();
-      new_gives = quotes_of_position(position, new_wants);
-    } else {
-      // amount: QUOTE
-      new_gives = reset ? amount : amount + offer.gives();
-      new_wants = bases_of_position(position, new_gives);
-    }
+
+    uint new_gives = reset ? amount : (amount + offer.gives() + PENDING_QUOTE);
+    uint new_wants = bases_of_position(position, new_gives);
+
     uint pivot;
     if (offer.gives() == 0) {
       // offer was not live
@@ -904,31 +884,23 @@ contract Mango is Persistent {
       outbound_tkn: QUOTE,
       wants: new_wants,
       gives: new_gives,
-      withPending: true,
+      withPending: !reset,
       pivotId: pivot
     });
   }
 
   function updateAsk(
     uint index,
-    bool withBase,
-    bool reset,
-    uint amount,
+    bool reset, // whether this call is part of an `initialize` procedure
+    uint amount, // in BASE tokens
     uint pivotId
   ) internal {
     // outbound : BASE, inbound: QUOTE
     P.Offer.t offer = MGV.offers(BASE, QUOTE, ASKS[index]);
     uint position = position_of_index(index);
-    uint new_gives;
-    uint new_wants;
-    if (withBase) {
-      // amount: BASE
-      new_gives = reset ? amount : amount + offer.gives(); // in BASE
-      new_wants = quotes_of_position(position, new_gives);
-    } else {
-      new_wants = reset ? amount : amount + offer.wants(); // in QUOTES
-      new_gives = bases_of_position(position, new_wants);
-    }
+
+    uint new_gives = reset ? amount : (amount + offer.gives() + PENDING_BASE); // in BASE
+    uint new_wants = quotes_of_position(position, new_gives);
 
     uint pivot;
     if (offer.gives() == 0) {
@@ -951,7 +923,7 @@ contract Mango is Persistent {
       outbound_tkn: BASE,
       wants: new_wants,
       gives: new_gives,
-      withPending: true,
+      withPending: !reset,
       pivotId: pivot
     });
   }

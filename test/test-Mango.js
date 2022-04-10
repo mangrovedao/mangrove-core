@@ -552,40 +552,4 @@ describe("Running tests...", function () {
       [-2, -3, -4, -5, -6, 0, 0, -8, -7, -1]
     );
   });
-
-  // it("Testing boundaries", async function () {
-  //   const filter_bidMax = makerContract.filters.BidAtMaxPosition();
-  //   let correct = false;
-  //   makerContract.on(
-  //     filter_bidMax,
-  //     async (outbound_tkn, inbound_tkn, offerId, event) => {
-  //       console.log(`${offerId} is Bidding at max position!`);
-  //       correct = true;
-  //     }
-  //   );
-  //   const filter_AskMin = makerContract.filters.AskAtMinPosition();
-  //   makerContract.on(
-  //     filter_AskMin,
-  //     async (outbound_tkn, inbound_tkn, offerId, event) => {
-  //       console.log(`${offerId} is asking at min position!`);
-  //       await lc.marketOrder(
-  //         mgv.connect(taker),
-  //         "WETH", // outbound
-  //         "USDC", // inbound
-  //         ethers.utils.parseEther("3"), // wants
-  //         ethers.utils.parseUnits("10000", 6) // gives
-  //       );
-  //     }
-  //   );
-  //   await lc.marketOrder(
-  //     mgv.connect(taker),
-  //     "USDC", // outbound
-  //     "WETH", // inbound
-  //     ethers.utils.parseUnits("4000", 6), // wants
-  //     ethers.utils.parseEther("2.0") // gives
-  //   );
-  //   await lc.sleep(10000);
-  //   assert(correct,"Event not caught");
-  //   lc.stopListeners([makerContract]);
-  // });
 });

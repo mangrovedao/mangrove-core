@@ -31,8 +31,8 @@ async function main() {
   ];
   for (const [baseName, quoteName] of markets) {
     let tx = null;
-    let default_base_amount = baseName === "WETH" ? 0.3 : 1000;
-    let default_quote_amount = quoteName === "WETH" ? 0.3 : 1000;
+    let default_base_amount = baseName === "WETH" ? 0.25 : 1000;
+    let default_quote_amount = quoteName === "WETH" ? 0.25 : 1000;
     // NSLOTS/2 offers giving base (~1000 USD each)
     // NSLOTS/2 offers giving quote (~1000 USD)
 
@@ -92,8 +92,8 @@ async function main() {
         await MangoRaw.get_shift()
       ).toNumber()})`
     );
-    const batch = 5;
-    const slice = NSLOTS / batch; // slices of 10 offers
+    const offers_per_slice = 10;
+    const slices = NSLOTS / offers_per_slice; // slices of 10 offers
 
     let pivotIdsSemi = new Array(NSLOTS);
     pivotIdsSemi.fill(0, 0);
@@ -109,15 +109,16 @@ async function main() {
     // TODO: define a procedure to get better pivots
     const pivotIds = [pivotIdsSemi, pivotIdsSemi];
 
-    for (let i = 0; i < batch; i++) {
+    for (let i = 0; i < slices; i++) {
       console.log(
-        `Posting offers in price range [${slice * i},${slice * (i + 1)}[...`
+        `Posting offers in price range [${offers_per_slice * i},${
+          offers_per_slice * (i + 1)
+        }[...`
       );
       tx = await MangoRaw.initialize(
         NSLOTS / 2 - 1, // last bid position (included)
-        true, // with base tokens when bidding
-        slice * i, // from
-        slice * (i + 1), // to
+        offers_per_slice * i, // from
+        offers_per_slice * (i + 1), // to
         pivotIds,
         amounts
       );

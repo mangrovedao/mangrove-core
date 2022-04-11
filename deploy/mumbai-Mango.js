@@ -7,7 +7,7 @@ module.exports = async (hre) => {
     throw Error("No deployer account found in the hardhat environment.");
   }
   const signer = await hre.ethers.getSigner(deployer);
-  const NSLOTS = 50;
+  const NSLOTS = 100;
   const MgvAPI = await Mangrove.connect({
     signer: signer,
   });
@@ -35,8 +35,8 @@ module.exports = async (hre) => {
       `Mango deployed (${Mango.address}) on market (${baseName},${quoteName}) of Mangrove (${MgvAPI.contract.address})`
     );
   };
-  await deployOnMarket("WETH", "USDC", 1, 2000, 32); // [2000 USD/ETH,...,|2800|..., 3600 USD/ETH] inc 32 USD
-  await deployOnMarket("WETH", "DAI", 1, 2000, 32); // [2000 DAI/ETH,..,|2800|,... 3600 USD/ETH] inc 32 DAI
+  await deployOnMarket("WETH", "USDC", 1, 900, 32); // [900 USD/ETH,...,|2500|..., 4100 USD/ETH] inc 32 USD
+  await deployOnMarket("WETH", "DAI", 1, 900, 32); // [900 DAI/ETH,..,|2500|,... 4100 USD/ETH] inc 32 DAI
   await deployOnMarket("DAI", "USDC", 1000, 997, 0.12); // Pmin=997/1000, inc=0.12/1000, Pmax= 997/1000 + 0.12*50/1000 = 1003/1000
 };
 

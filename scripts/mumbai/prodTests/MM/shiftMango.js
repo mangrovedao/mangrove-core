@@ -42,7 +42,14 @@ async function main() {
     MangoRaw.address,
     false
   ).liquidityProvider({ base: baseName, quote: quoteName });
-  const admin = await Mango.logic.getAdmin();
+
+  const funding = (await Mango.computeAskProvision()) * Math.abs(shift);
+  if (funding > 0) {
+    console.log(`* funding mangrove for ${funding} native tokens`);
+  }
+  const fundTx = await Mango.fundMangrove(funding);
+  await fundTx.wait();
+
   const amounts = new Array(Math.abs(shift));
   amounts.fill(
     MgvAPI.toUnits(default_amount, shift < 0 ? baseName : quoteName),

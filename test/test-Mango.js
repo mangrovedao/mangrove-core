@@ -2,11 +2,9 @@ const { assert } = require("chai");
 //const { parseToken } = require("ethers/lib/utils");
 const { ethers } = require("hardhat");
 const lc = require("../lib/libcommon.js");
-const chalk = require("chalk");
 const {
   default: Mangrove,
 } = require("../../mangrove.js/dist/nodejs/mangrove.js");
-//const { Mangrove } = require("../../mangrove.js");
 
 async function checkOB(msg, mgv, outb, inb, bigNumbers, t) {
   for (const i in bigNumbers) {
@@ -30,7 +28,6 @@ async function checkOB(msg, mgv, outb, inb, bigNumbers, t) {
 describe("Running tests...", function () {
   this.timeout(200_000); // Deployment is slow so timeout is increased
   let mgv = null;
-  let reader = null;
   let usdc = null;
   let wEth = null;
   let maker = null;

@@ -552,7 +552,7 @@ contract Mango is Persistent {
     return (uint(qm));
   }
 
-  /** Returns the position in the order book of the offer associated to this index `i` */
+  /** Returns the price position in the order book of the offer associated to this index `i` */
   function position_of_index(uint i) internal view returns (uint) {
     // position(i) = (i+shift) % N
     return modulo(int(i) - current_shift, NSLOTS);

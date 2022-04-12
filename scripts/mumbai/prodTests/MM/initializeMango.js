@@ -25,8 +25,8 @@ async function main() {
   });
 
   const markets = [
-    // ["WETH", "USDC"],
-    // ["WETH", "DAI"],
+    ["WETH", "USDC"],
+    ["WETH", "DAI"],
     ["DAI", "USDC"],
   ];
   for (const [baseName, quoteName] of markets) {
@@ -99,9 +99,13 @@ async function main() {
     pivotIdsSemi.fill(0, 0);
 
     let amounts = new Array(NSLOTS);
-    amounts.fill(MgvAPI.toUnits(default_base_amount, baseName), 0, NSLOTS / 2);
     amounts.fill(
       MgvAPI.toUnits(default_quote_amount, quoteName),
+      0,
+      NSLOTS / 2
+    );
+    amounts.fill(
+      MgvAPI.toUnits(default_base_amount, baseName),
       NSLOTS / 2,
       NSLOTS
     );
@@ -124,6 +128,16 @@ async function main() {
       );
       const receipt = await tx.wait();
       console.log(`Done! (gas used ${receipt.gasUsed.toString()})`);
+      const [pendingBase, pendingQuote] = await MangoRaw.get_pending();
+      if (pendingBase.gt(0) || pendingQuote.gt(0)) {
+        throw Error(
+          `Init error, failed to initialize (${MgvAPI.token(baseName).fromUnits(
+            pendingBase
+          )} pending base,${MgvAPI.token(quoteName).fromUnits(
+            pendingQuote
+          )} pending quotes)`
+        );
+      }
     }
   }
 }

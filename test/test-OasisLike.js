@@ -26,7 +26,7 @@ describe("Running tests...", function () {
     // deploying mangrove and opening WETH/USDC market.
     [mgv, reader] = await lc.deployMangrove();
     await lc.activateMarket(mgv, wEth.address, usdc.address);
-    await lc.fund([["USDC", "3000", taker.address]]);
+    await lc.fund([["USDC", "10000", taker.address]]);
   });
 
   it("Deploy strat", async function () {
@@ -39,7 +39,7 @@ describe("Running tests...", function () {
     makerContract = makerContract.connect(maker);
 
     // funds come from deployer's wallet by default
-    await lc.fund([["WETH", "0.5", maker.address]]);
+    await lc.fund([["WETH", "10", maker.address]]);
 
     const prov = await makerContract.getMissingProvision(
       wEth.address,
@@ -48,10 +48,7 @@ describe("Running tests...", function () {
       0,
       0
     );
-    await makerContract.fundMangrove({ value: prov });
-  });
-
-  it("Market orders", async function () {
+    await makerContract.fundMangrove({ value: prov.mul(10) });
     // makerContract approves mangrove for outbound token transfer
     // anyone can call this function
     await makerContract.approveMangrove(
@@ -63,7 +60,9 @@ describe("Running tests...", function () {
     await wEth
       .connect(maker)
       .approve(makerContract.address, ethers.constants.MaxUint256);
+  });
 
+  it("Market orders", async function () {
     // taker approves mangrove for inbound token transfer
     await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
 
@@ -102,5 +101,39 @@ describe("Running tests...", function () {
       ethers.utils.parseEther("0.25"),
       "Offer residual missing"
     );
+  });
+
+  it("Non reposting offer should deprovision", async function () {
+    const oldBalMaker = await makerContract.balanceOnMangrove();
+    const ofrId = await lc.newOffer(
+      mgv,
+      reader,
+      makerContract,
+      "WETH",
+      "USDC",
+      ethers.utils.parseUnits("3000", 6),
+      ethers.utils.parseEther("0.5")
+    );
+    const newBalMaker = await makerContract.balanceOnMangrove();
+    const prov = oldBalMaker.sub(newBalMaker);
+    assert(prov.gt(0), "Invalid provision");
+    let [takerGot, takerGave, bounty] = await lc.marketOrder(
+      mgv.connect(taker),
+      "WETH", // outbound
+      "USDC", // inbound
+      ethers.utils.parseEther("0.49999999999"), // wants
+      ethers.utils.parseUnits("3000", 6), // gives
+      true
+    );
+    lc.assertEqualBN(bounty, 0, "Taker should not receive a bounty");
+    lc.assertEqualBN(
+      takerGot,
+      lc.netOf(ethers.utils.parseEther("0.49999999999"), 30),
+      "Incorrect received amount"
+    );
+    const [offer] = await mgv.offerInfo(wEth.address, usdc.address, ofrId);
+    lc.assertEqualBN(offer.gives, 0, "Offer should not be reposted");
+    const balMaker = await makerContract.balanceOnMangrove();
+    lc.assertEqualBN(balMaker, oldBalMaker, "Incorrect deprovision amount");
   });
 });

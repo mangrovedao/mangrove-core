@@ -6,11 +6,11 @@ Copyright (c) 2021 Giry SAS. All rights reserved.
 * Specific licenses for each package can be found here:
   * https://github.com/mangrovedao/mangrove/blob/master/packages/bot-maker-noise/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/packages/bot-taker-greedy/LICENSE
-  * https://github.com/mangrovedao/mangrove/blob/master/packages/cleaning-bot/LICENSE
+  * https://github.com/mangrovedao/mangrove/blob/master/packages/bot-cleaning/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/packages/commonlib.js/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/packages/hardhat-mangrove/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/packages/mangrove.js/LICENSE
-  * https://github.com/mangrovedao/mangrove/blob/master/packages/updategas-bot/LICENSE
-  * https://github.com/mangrovedao/mangrove/blob/master/packages/template-bot/LICENSE
+  * https://github.com/mangrovedao/mangrove/blob/master/packages/bot-updategas/LICENSE
+  * https://github.com/mangrovedao/mangrove/blob/master/packages/bot-template/LICENSE
   * https://github.com/mangrovedao/mangrove/blob/master/packages/faucet/LICENSE

@@ -51,47 +51,43 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
     try aToken.transferFrom(owner, address(this), amount) returns (
       bool success
     ) {
-      if (!success) {
-        // notRedeemed > 0 should not happen unless lender is out of cash, thus no need to try to borrow
-        // log already emitted by `aaveRedeem`
-        emit LogIncident(
-          order.outbound_tkn,
-          order.inbound_tkn,
-          order.offerId,
-          "Multi/aaveTrader/aTkn/TransferFail"
+      if (success) {
+        // overlying transfer has succeeded, anything wrong beyond this point should revert
+        requireInTrade(
+          aaveRedeem(toRedeem, address(this), order) == 0,
+          "mgvOffer/aave/redeemFailed"
         );
-        return amount;
+        amount = amount - toRedeem;
+        if (amount == 0) {
+          return 0;
+        }
+        uint toBorrow = (liquidity_after_redeem < amount)
+          ? liquidity_after_redeem
+          : amount;
+        // 3. trying to borrow missing liquidity, failure to borrow must revert
+        try
+          lendingPool.borrow(
+            order.outbound_tkn,
+            toBorrow,
+            interestRateMode,
+            referralCode,
+            address(this)
+          )
+        {
+          return 0;
+        } catch {
+          revertInTrade("mgvOffer/aave/borrowFailed");
+        }
       }
-      // overlying transfer has succeeded, anything wrong beyond this point should revert
-      require(aaveRedeem(toRedeem, address(this), order) == 0); // throwing to cancel transfer of overlying
-      amount = amount - toRedeem;
-      if (amount == 0) {
-        return 0;
-      }
-      uint toBorrow = (liquidity_after_redeem < amount)
-        ? liquidity_after_redeem
-        : amount;
-      // 3. trying to borrow missing liquidity, failure to borrow will revert
-      // not encapsulating this external call to make sure aToken transfer is also reverted
-      lendingPool.borrow(
-        order.outbound_tkn,
-        toBorrow,
-        interestRateMode,
-        referralCode,
-        address(this)
-      );
-      // if this point is reached, borrow has succeeded.
-      return 0;
-    } catch {
-      // overlying transfer reverted.
-      emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        "Multi/AaveV3Trader/aTkn/transferRevert"
-      );
-      return amount;
-    }
+    } catch {}
+    // overlying transfer reverted or `success == false`.
+    emit LogIncident(
+      order.outbound_tkn,
+      order.inbound_tkn,
+      order.offerId,
+      "mgvOffer/aToken/TransferFail"
+    );
+    return amount;
   }
 
   function __put__(uint amount, ML.SingleOrder calldata order)

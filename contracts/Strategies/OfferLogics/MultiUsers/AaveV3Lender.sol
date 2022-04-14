@@ -48,17 +48,20 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
         // amount overlying was transfered from `owner`'s wallet
         // anything wrong beyond this point should revert
         // trying to redeem from AAVE
-        require(aaveRedeem(amount, address(this), order) == 0); // throwing to cancel overlying transfer
+        requireInTrade(
+          aaveRedeem(amount, address(this), order) == 0,
+          "mgvOffer/aave/redeemFailed"
+        );
         return 0;
       }
     } catch {
-      // nothing to be done
+      // same as `success == false`
     }
     emit LogIncident(
       order.outbound_tkn,
       order.inbound_tkn,
       order.offerId,
-      "aaveV3Lender/overlyingTransferFail"
+      "mgvOffer/aToken/TransferFail"
     );
     return amount; // nothing was fetched
   }

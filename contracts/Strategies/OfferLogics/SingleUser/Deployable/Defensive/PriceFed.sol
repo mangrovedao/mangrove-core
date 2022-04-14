@@ -31,35 +31,36 @@ contract PriceFed is Defensive, AaveV3Lender {
 
   event Slippage(uint indexed offerId, uint old_wants, uint new_wants);
 
-  // reposts only if offer was reneged due to a price slippage
-  function __posthookReneged__(ML.SingleOrder calldata order)
-    internal
-    override
-    returns (bool)
-  {
-    uint old_wants = order.offer.wants();
-    uint old_gives = order.offer.gives();
-    uint price_quote = oracle.getPrice(order.inbound_tkn);
-    uint price_base = oracle.getPrice(order.outbound_tkn);
+  function __posthookFallback__(
+    ML.SingleOrder calldata order,
+    ML.OrderResult calldata result
+  ) internal override returns (bool) {
+    // reposts only if offer was reneged due to a price slippage
+    if (result.makerData == RENEGED) {
+      uint price_quote = oracle.getPrice(order.inbound_tkn);
+      uint price_base = oracle.getPrice(order.outbound_tkn);
 
-    uint new_offer_wants = (old_gives * price_base) / price_quote;
-    emit Slippage(order.offerId, old_wants, new_offer_wants);
-    // since offer is persistent it will auto refill if contract does not have enough provision on the Mangrove
-    try
-      MGV.updateOffer(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        new_offer_wants,
-        old_gives,
-        OFR_GASREQ,
-        0,
-        0,
-        order.offerId
-      )
-    {
-      return true;
-    } catch {
-      return false;
+      uint new_offer_wants = (order.offer.gives() * price_base) / price_quote;
+      emit Slippage(order.offerId, order.offer.wants(), new_offer_wants);
+      // since offer is persistent it will auto refill if contract does not have enough provision on the Mangrove
+      try
+        MGV.updateOffer(
+          order.outbound_tkn,
+          order.inbound_tkn,
+          new_offer_wants,
+          order.offer.gives(),
+          OFR_GASREQ,
+          0,
+          0,
+          order.offerId
+        )
+      {
+        return true;
+      } catch {
+        return false;
+      }
+    } else {
+      return super.__posthookFallback__(order, result);
     }
   }
 

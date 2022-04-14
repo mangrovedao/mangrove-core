@@ -115,11 +115,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
           result.mgvData
         );
       }
-      return;
-    }
-    // if trade was aborted because of a lack of liquidity
-    if (result.makerData == OUTOFLIQUIDITY) {
-      if (!__posthookGetFailure__(order)) {
+    } else {
+      if (!__posthookFallback__(order, result)) {
         emit PosthookFail(
           order.outbound_tkn,
           order.inbound_tkn,
@@ -127,30 +124,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
           result.makerData
         );
       }
-      return;
     }
-    // if trade was reneged on during lastLook
-    if (result.makerData == RENEGED) {
-      if (!__posthookReneged__(order)) {
-        emit PosthookFail(
-          order.outbound_tkn,
-          order.inbound_tkn,
-          order.offerId,
-          result.makerData
-        );
-      }
-      return;
-    }
-    // if trade failed unexpectedly (`makerExecute` reverted or Mangrove failed to transfer the outbound tokens to the Offer Taker)
-    if (!__posthookFallback__(order, result)) {
-      emit PosthookFail(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        result.mgvData
-      );
-    }
-    return;
   }
 
   // sets default gasreq for `new/updateOffer`
@@ -219,6 +193,20 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     return (currentProvision >= bounty ? 0 : bounty - currentProvision);
   }
 
+  function revertInTrade(bytes32 reason) internal {
+    bytes memory b = new bytes(32);
+    assembly {
+      mstore(add(b, 32), reason)
+    }
+    revert(string(b));
+  }
+
+  function requireInTrade(bool requirement, bytes32 reason) internal {
+    if (!requirement) {
+      revertInTrade(reason);
+    }
+  }
+
   ////// Default Customizable hooks for Taker Order'execution
 
   // Define this hook to describe where the inbound token, which are brought by the Offer Taker, should go during Taker Order's execution.
@@ -261,39 +249,35 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     virtual
-    returns (bool)
+    returns (bool success)
   {
     order; // shh
-    return true;
-  }
-
-  // Override this post-hook to implement what `this` contract should do when called back after an order that failed to be executed because of a lack of liquidity (most inner call to `__get__` returned a non zero value).
-  function __posthookGetFailure__(ML.SingleOrder calldata order)
-    internal
-    virtual
-    returns (bool)
-  {
-    order;
-    return true;
-  }
-
-  // Override this post-hook to implement what `this` contract should do when called back after an order that did not pass its last look (most inner call to `__lastLook__` returned `false`).
-  function __posthookReneged__(ML.SingleOrder calldata order)
-    internal
-    virtual
-    returns (bool)
-  {
-    order; //shh
-    return true;
+    success = true;
   }
 
   // Override this post-hook to implement fallback behavior when Taker Order's execution failed unexpectedly. Information from Mangrove is accessible in `result.mgvData` for logging purpose.
   function __posthookFallback__(
     ML.SingleOrder calldata order,
     ML.OrderResult calldata result
-  ) internal virtual returns (bool) {
-    order;
-    result;
-    return true;
+  ) internal virtual returns (bool success) {
+    // If maker reverted during trade, one logs `makerData`
+    if (result.mgvData == "mgv/makerRevert") {
+      // decoding makerData
+      // NB makerData will be garbled if maker did not use `revertTrade`
+      bytes memory reason = new bytes(32);
+      bytes32 w = result.makerData;
+      assembly {
+        mstore(add(reason, 32), w)
+      }
+      emit LogIncident(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        reason
+      );
+      return true;
+    } else {
+      return true;
+    }
   }
 }

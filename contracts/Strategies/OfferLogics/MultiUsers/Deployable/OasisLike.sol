@@ -58,4 +58,20 @@ contract OasisLike is MultiUserPersistent {
       return amount;
     }
   }
+
+  // if offer failed to execute or reneged it should deprovision since owner might not keep track of offers out of the book
+
+  function __posthookFallback__(
+    ML.SingleOrder calldata order,
+    ML.OrderResult calldata result
+  ) internal virtual override returns (bool) {
+    retractOfferInternal(
+      order.outbound_tkn,
+      order.inbound_tkn,
+      order.offerId,
+      true,
+      ownerOf(order.outbound_tkn, order.inbound_tkn, order.offerId)
+    );
+    return super.__posthookFallback__(order, result);
+  }
 }

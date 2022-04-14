@@ -26,7 +26,6 @@ config.hardhat = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
-      loggingEnabled: true,
       gasPrice: 8000000000,
       gasMultiplier: 1,
       blockGasLimit: 7000000000,

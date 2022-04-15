@@ -209,24 +209,10 @@ contract Mango is Persistent {
     try erc.transfer(treasury, amount) returns (bool success) {
       if (success) {
         return 0;
-      } else {
-        emit LogIncident(
-          order.outbound_tkn,
-          order.inbound_tkn,
-          order.offerId,
-          "Mango/transferFailed"
-        );
-        return amount;
       }
-    } catch (bytes memory reason) {
-      emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        reason
-      );
-      return amount;
-    }
+    } catch {}
+    // here either because transfer reverted of `success == false`
+    return amount;
   }
 
   /** Deposits received tokens into the corresponding treasury*/
@@ -265,24 +251,10 @@ contract Mango is Persistent {
     ) {
       if (success) {
         return 0;
-      } else {
-        emit LogIncident(
-          order.outbound_tkn,
-          order.inbound_tkn,
-          order.offerId,
-          "Mango/transferFromFailed"
-        );
-        return amount;
       }
-    } catch (bytes memory reason) {
-      emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        reason
-      );
-      return amount;
-    }
+    } catch {}
+    // transfer reverted or `success == false`
+    return amount;
   }
 
   /** Fetches required tokens from the corresponding treasury*/

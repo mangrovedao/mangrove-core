@@ -29,9 +29,9 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
 
-  bytes32 immutable RENEGED = "MangroveOffer/reneged";
-  bytes32 immutable PUTFAILURE = "MangroveOffer/putFailure";
-  bytes32 immutable OUTOFLIQUIDITY = "MangroveOffer/outOfLiquidity";
+  bytes32 immutable RENEGED = "mgvOffer/abort/reneged";
+  bytes32 immutable PUTFAILURE = "mgvOffer/abort/putFailed";
+  bytes32 immutable OUTOFLIQUIDITY = "mgvOffer/abort/getFailed";
 
   // The deployed Mangrove contract
   IMangrove public immutable MGV;
@@ -73,27 +73,12 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   {
     if (!__lastLook__(order)) {
       // hook to check order details and decide whether `this` contract should renege on the offer.
-      emit Reneged(order.outbound_tkn, order.inbound_tkn, order.offerId);
       return RENEGED;
     }
-    uint missingPut = __put__(order.gives, order); // implements what should be done with the liquidity that is flashswapped by the offer taker to `this` contract
-    if (missingPut > 0) {
-      emit PutFail(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        missingPut
-      );
+    if (__put__(order.gives, order) > 0) {
       return PUTFAILURE;
     }
-    uint missingGet = __get__(order.wants, order); // implements how `this` contract should make the outbound tokens available
-    if (missingGet > 0) {
-      emit GetFail(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        missingGet
-      );
+    if (__get__(order.wants, order) > 0) {
       return OUTOFLIQUIDITY;
     }
   }
@@ -106,30 +91,17 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     ML.OrderResult calldata result
   ) external override onlyCaller(address(MGV)) {
     if (result.mgvData == "mgv/tradeSuccess") {
-      // if trade was a success
-      if (!__posthookSuccess__(order)) {
-        emit PosthookFail(
-          order.outbound_tkn,
-          order.inbound_tkn,
-          order.offerId,
-          result.mgvData
-        );
-      }
-    } else {
-      if (!__posthookFallback__(order, result)) {
-        emit PosthookFail(
-          order.outbound_tkn,
-          order.inbound_tkn,
-          order.offerId,
-          result.makerData
-        );
-      }
+      // if trade was a success call `__posthookSuccess__`
+      // throw to ask Mangrove to log `PosthooFail`
+      require(__posthookSuccess__(order));
+      return;
     }
+    require(__posthookFallback__(order, result));
   }
 
   // sets default gasreq for `new/updateOffer`
   function setGasreq(uint gasreq) public override mgvOrAdmin {
-    require(uint24(gasreq) == gasreq, "MangroveOffer/gasreq/overflow");
+    require(uint24(gasreq) == gasreq, "mgvOffer/gasreq/overflow");
     OFR_GASREQ = gasreq;
   }
 
@@ -147,7 +119,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     internal
     returns (bool noRevert)
   {
-    require(MGV.withdraw(amount), "MangroveOffer/withdraw/transferFail");
+    require(MGV.withdraw(amount), "mgvOffer/withdraw/transferFail");
     if (receiver != address(this)) {
       (noRevert, ) = receiver.call{value: amount}("");
     } else {
@@ -193,15 +165,17 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     return (currentProvision >= bounty ? 0 : bounty - currentProvision);
   }
 
-  function revertInTrade(bytes32 reason) internal {
+  // if logic must revert during a trade execution it should use `revertInTrade` in order to pass `reason` to the posthook for loggin purpose
+  function revertInTrade(bytes32 reason) internal pure {
     bytes memory b = new bytes(32);
     assembly {
       mstore(add(b, 32), reason)
+      revert(add(b, 32), 32)
     }
-    revert(string(b));
   }
 
-  function requireInTrade(bool requirement, bytes32 reason) internal {
+  // if logic must require a property during a trade execution it should use `requireInTrade` in order to pass `reason` to the posthook for loggin purpose
+  function requireInTrade(bool requirement, bytes32 reason) internal pure {
     if (!requirement) {
       revertInTrade(reason);
     }
@@ -260,24 +234,12 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     ML.SingleOrder calldata order,
     ML.OrderResult calldata result
   ) internal virtual returns (bool success) {
-    // If maker reverted during trade, one logs `makerData`
-    if (result.mgvData == "mgv/makerRevert") {
-      // decoding makerData
-      // NB makerData will be garbled if maker did not use `revertTrade`
-      bytes memory reason = new bytes(32);
-      bytes32 w = result.makerData;
-      assembly {
-        mstore(add(reason, 32), w)
-      }
-      emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        reason
-      );
-      return true;
-    } else {
-      return true;
-    }
+    emit LogIncident(
+      order.outbound_tkn,
+      order.inbound_tkn,
+      order.offerId,
+      result.makerData
+    );
+    return true;
   }
 }

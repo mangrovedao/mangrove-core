@@ -91,12 +91,11 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     ML.OrderResult calldata result
   ) external override onlyCaller(address(MGV)) {
     if (result.mgvData == "mgv/tradeSuccess") {
-      // if trade was a success call `__posthookSuccess__`
-      // throw to ask Mangrove to log `PosthooFail`
-      require(__posthookSuccess__(order));
-      return;
+      // toplevel posthook may ignore returned value which is only usefull for compositionality
+      __posthookSuccess__(order);
+    } else {
+      __posthookFallback__(order, result);
     }
-    require(__posthookFallback__(order, result));
   }
 
   // sets default gasreq for `new/updateOffer`

@@ -51,6 +51,10 @@ abstract contract AaveV3Lender is SingleUser, AaveV3Module {
       return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
     }
 
+    // A more gas efficient strategy if this offer is not alone in the book is to redeem `redeemable` here
+    // in the deployable contract, the `__get__` method should call `AaveV2Lender.__get__` only if it does not have the cash
+    // `__posthookSuccess__` should then deposit back the unspent underlying
+    // NB redeeming all underlying would put the user at risk of a liquiditation (when user is borrowing) if the posthook fails to put back money
     if (aaveRedeem(amount, address(this), order) == 0) {
       // amount was transfered to `this`
       return 0;

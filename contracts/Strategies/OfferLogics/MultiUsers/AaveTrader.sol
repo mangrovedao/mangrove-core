@@ -79,12 +79,6 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
       }
     } catch {}
     // overlying transfer reverted or `success == false`.
-    emit LogIncident(
-      order.outbound_tkn,
-      order.inbound_tkn,
-      order.offerId,
-      "mgvOffer/aToken/TransferFailed"
-    );
     return amount;
   }
 
@@ -124,13 +118,7 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
     );
     try lendingPool.repay(order.inbound_tkn, toRepay, interestRateMode, owner) {
       toMint = sub_(amount, toRepay);
-    } catch (bytes memory message) {
-      emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        message
-      );
+    } catch {
       toMint = amount;
     }
     return aaveMint(toMint, owner, order);

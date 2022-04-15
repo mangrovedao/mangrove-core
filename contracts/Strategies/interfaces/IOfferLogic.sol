@@ -21,43 +21,12 @@ interface IOfferLogic is IMaker {
 
   /** @notice Events */
 
-  // Logged whenever something went wrong during `makerPosthook` execution
-  event PosthookFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId,
-    bytes32 reason
-  );
-
-  // Logged whenever `__get__` hook failed to fetch the totality of the requested amount
-  event GetFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId,
-    uint missingAmount
-  );
-
-  // Logged whenever `__put__` hook failed to deposit the totality of the requested amount
-  event PutFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId,
-    uint missingAmount
-  );
-
-  // Logged whenever `__lastLook__` hook returned `false`
-  event Reneged(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId
-  );
-
-  // Log incident during pre/post trade execution
+  // Log incident (during post trade execution)
   event LogIncident(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     uint indexed offerId,
-    bytes error_data
+    bytes32 reason
   );
 
   // Offer logic default gas required --value is used in update and new offer if maxUint is given

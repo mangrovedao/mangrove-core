@@ -192,11 +192,7 @@ contract Mango is Persistent {
     return base ? current_base_treasury : current_quote_treasury;
   }
 
-  function putInternal(
-    address erc_,
-    uint amount,
-    ML.SingleOrder calldata order
-  ) internal returns (uint) {
+  function putInternal(address erc_, uint amount) internal returns (uint) {
     IEIP20 erc;
     address treasury;
     if (erc_ == BASE) {
@@ -209,24 +205,10 @@ contract Mango is Persistent {
     try erc.transfer(treasury, amount) returns (bool success) {
       if (success) {
         return 0;
-      } else {
-        emit LogIncident(
-          order.outbound_tkn,
-          order.inbound_tkn,
-          order.offerId,
-          "Mango/transferFailed"
-        );
-        return amount;
       }
-    } catch (bytes memory reason) {
-      emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        reason
-      );
-      return amount;
-    }
+    } catch {}
+    // here either because transfer reverted of `success == false`
+    return amount;
   }
 
   /** Deposits received tokens into the corresponding treasury*/
@@ -237,20 +219,16 @@ contract Mango is Persistent {
     returns (uint)
   {
     if (order.inbound_tkn == BASE && current_base_treasury != address(this)) {
-      return putInternal(BASE, amount, order);
+      return putInternal(BASE, amount);
     }
     if (current_quote_treasury != address(this)) {
-      return putInternal(QUOTE, amount, order);
+      return putInternal(QUOTE, amount);
     }
     // order.inbound_tkn has to be either BASE or QUOTE so only possibility is `this` is treasury
     return 0;
   }
 
-  function getInternal(
-    address erc_,
-    uint amount,
-    ML.SingleOrder calldata order
-  ) internal returns (uint) {
+  function getInternal(address erc_, uint amount) internal returns (uint) {
     IEIP20 erc;
     address treasury;
     if (erc_ == BASE) {
@@ -265,24 +243,10 @@ contract Mango is Persistent {
     ) {
       if (success) {
         return 0;
-      } else {
-        emit LogIncident(
-          order.outbound_tkn,
-          order.inbound_tkn,
-          order.offerId,
-          "Mango/transferFromFailed"
-        );
-        return amount;
       }
-    } catch (bytes memory reason) {
-      emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        reason
-      );
-      return amount;
-    }
+    } catch {}
+    // transfer reverted or `success == false`
+    return amount;
   }
 
   /** Fetches required tokens from the corresponding treasury*/
@@ -293,10 +257,10 @@ contract Mango is Persistent {
     returns (uint)
   {
     if (order.outbound_tkn == BASE && current_base_treasury != address(this)) {
-      return getInternal(BASE, amount, order);
+      return getInternal(BASE, amount);
     }
     if (current_quote_treasury != address(this)) {
-      return getInternal(QUOTE, amount, order);
+      return getInternal(QUOTE, amount);
     }
     // order.outbound_tkn has to be either BASE or QUOTE so only possibility is `this` is treasury
     return super.__get__(amount, order);

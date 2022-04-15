@@ -3,7 +3,6 @@ const { assert } = require("chai");
 const { ethers, env, mangrove, network } = require("hardhat");
 const lc = require("lib/libcommon.js");
 const chalk = require("chalk");
-const { listenMgv, listenERC20 } = require("../lib/libcommon");
 const { execLenderStrat } = require("./Exec/lenderStrats");
 
 // const config = require ("config");
@@ -108,6 +107,7 @@ describe("Deploy offerProxy", function () {
   let mgv;
   let reader;
   let players;
+  let offerProxy;
 
   before(async function () {
     // 1. mint (1000 dai, 1000 eth, 1000 weth) for testSigner
@@ -149,7 +149,7 @@ describe("Deploy offerProxy", function () {
   it("Offer proxy on aave", async function () {
     const dai = await lc.getContract("DAI");
     const wEth = await lc.getContract("WETH");
-    let offerProxy = await deployStrat(mgv, reader, players);
+    offerProxy = await deployStrat(mgv, reader, players);
     await execLenderStrat(offerProxy, mgv, reader, "aave", players);
     // checking offer owner of offerId 1 (residual)
     const [nextId, offerIds, owners] = await offerProxy.offerOwners(
@@ -168,7 +168,43 @@ describe("Deploy offerProxy", function () {
       );
       assert(owners[i] == players.maker.address, "wrong offer owner");
     }
-    // lc.sleep(5000);
-    // lc.stopListeners([mgv]);
+  });
+
+  it("Clean revert", async function () {
+    // check that getFail is emitted during offer logic posthook
+    lc.listenOfferLogic(offerProxy, await offerProxy.OUTOFLIQUIDITY());
+    const aDai = await lc.getContract("ADAI");
+    const dai = await lc.getContract("DAI");
+    const wEth = await lc.getContract("WETH");
+
+    //cancelling maker approval for aDai transfer to makerContract
+    await aDai.connect(players.maker.signer).approve(offerProxy.address, 0);
+
+    let offerId = await lc.newOffer(
+      mgv,
+      reader,
+      offerProxy.connect(players.maker.signer),
+      "DAI", // outbound
+      "WETH", // inbound
+      lc.parseToken("0.5", await lc.getDecimals("WETH")), // required WETH
+      lc.parseToken("1000.0", await lc.getDecimals("DAI")) // promised DAI
+    );
+
+    let [offer] = await mgv.offerInfo(dai.address, wEth.address, offerId);
+    lc.assertEqualBN(
+      offer.gives,
+      lc.parseToken("1000.0", await lc.getDecimals("DAI")),
+      "Offer was not correctly published"
+    );
+    let bounty = await lc.snipeFail(
+      mgv.connect(players.taker.signer),
+      reader,
+      "DAI", // maker outbound
+      "WETH", // maker inbound
+      offerId,
+      lc.parseToken("800.0", await lc.getDecimals("DAI")), // taker wants 800 DAI
+      lc.parseToken("0.5", await lc.getDecimals("WETH")) // taker is ready to give up-to 0.5 WETH
+    );
+    assert(bounty.gt(0), "Bounty missing");
   });
 });

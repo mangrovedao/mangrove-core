@@ -1253,7 +1253,7 @@ __metadata:
     "@mangrovedao/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
-    "@types/chai": ^4.2.22
+    "@types/chai": ^4.3.1
     "@types/chai-as-promised": ^7.1.4
     "@types/config": ^0.0.39
     "@types/dotenv-flow": ^3.2.0
@@ -1306,7 +1306,7 @@ __metadata:
     "@mangrovedao/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
-    "@types/chai": ^4.2.22
+    "@types/chai": ^4.3.1
     "@types/chai-as-promised": ^7.1.4
     "@types/config": ^0.0.39
     "@types/dotenv-flow": ^3.2.0
@@ -1359,7 +1359,7 @@ __metadata:
     "@mangrovedao/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
-    "@types/chai": ^4.2.22
+    "@types/chai": ^4.3.1
     "@types/chai-as-promised": ^7.1.4
     "@types/config": ^0.0.39
     "@types/dotenv-flow": ^3.2.0
@@ -1413,7 +1413,7 @@ __metadata:
     "@mangrovedao/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
-    "@types/chai": ^4.2.21
+    "@types/chai": ^4.3.1
     "@types/chai-as-promised": ^7.1.4
     "@types/config": ^0.0.39
     "@types/dotenv-flow": ^3.2.0
@@ -1465,7 +1465,7 @@ __metadata:
     "@mangrovedao/mangrove.js": "workspace:*"
     "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
-    "@types/chai": ^4.2.21
+    "@types/chai": ^4.3.1
     "@types/chai-as-promised": ^7.1.4
     "@types/config": ^0.0.39
     "@types/dotenv-flow": ^3.2.0
@@ -2033,10 +2033,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/chai@npm:*, @types/chai@npm:^4.2.21, @types/chai@npm:^4.2.22":
+"@types/chai@npm:*":
   version: 4.2.22
   resolution: "@types/chai@npm:4.2.22"
   checksum: dca66a263b25c26112c0a8c6df20316412fa54b557443a108836c07cee961aa56cc5b1763273f69eb450c83ca9f28069ff78b617bffc01806cdd83afc1c20c2a
+  languageName: node
+  linkType: hard
+
+"@types/chai@npm:^4.3.1":
+  version: 4.3.1
+  resolution: "@types/chai@npm:4.3.1"
+  checksum: 2ee246b76c469cd620a7a1876a73bc597074361b67d547b4bd96a0c1adb43597ede2d8589ab626192e14349d83cbb646cc11e2c179eeeb43ff11596de94d82c4
   languageName: node
   linkType: hard
 

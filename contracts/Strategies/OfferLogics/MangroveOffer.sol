@@ -94,6 +94,12 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       // toplevel posthook may ignore returned value which is only usefull for compositionality
       __posthookSuccess__(order);
     } else {
+      emit LogIncident(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        result.makerData
+      );
       __posthookFallback__(order, result);
     }
   }
@@ -233,12 +239,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     ML.SingleOrder calldata order,
     ML.OrderResult calldata result
   ) internal virtual returns (bool success) {
-    emit LogIncident(
-      order.outbound_tkn,
-      order.inbound_tkn,
-      order.offerId,
-      result.makerData
-    );
+    order;
+    result;
     return true;
   }
 }

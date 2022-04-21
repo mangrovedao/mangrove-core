@@ -137,6 +137,7 @@ contract Mango is Persistent {
     for (pos = from; pos < to; pos++) {
       // if shift is not 0, must convert
       uint i = index_of_position(pos);
+
       if (pos <= lastBidPosition) {
         uint bidPivot = pivotIds[0][pos];
         bidPivot = bidPivot > 0
@@ -367,6 +368,7 @@ contract Mango is Persistent {
 
   // posts or updates ask at position of `index`
   // returns the amount of `BASE` tokens that failed to be published at that position
+  // `writeOffer` is split into `writeAsk` and `writeBid` to avoid stack too deep exception
   function writeAsk(
     uint index,
     uint wants,
@@ -412,8 +414,11 @@ contract Mango is Persistent {
         // updateOffer succeeded
         return 0;
       } catch {
-        // updateOffer failed
-        return (gives - MGV.offers(BASE, QUOTE, ASKS[index]).gives());
+        // updateOffer failed but `offer` might still be live (i.e with `offer.gives>0`)
+        uint oldGives = MGV.offers(BASE, QUOTE, ASKS[index]).gives();
+        // if not during initialize we necessarily have gives > oldGives
+        // otherwise we are trying to reset the offer and oldGives is irrelevant
+        return (gives > oldGives) ? gives - oldGives : gives;
       }
     }
   }
@@ -460,7 +465,11 @@ contract Mango is Persistent {
       {
         return 0;
       } catch {
-        return (gives - MGV.offers(QUOTE, BASE, BIDS[index]).gives());
+        // updateOffer failed but `offer` might still be live (i.e with `offer.gives>0`)
+        uint oldGives = MGV.offers(QUOTE, BASE, BIDS[index]).gives();
+        // if not during initialize we necessarily have gives > oldGives
+        // otherwise we are trying to reset the offer and oldGives is irrelevant
+        return (gives > oldGives) ? gives - oldGives : gives;
       }
     }
   }
@@ -475,19 +484,23 @@ contract Mango is Persistent {
     uint pivotId
   ) internal {
     if (outbound_tkn == BASE) {
-      uint pending = writeAsk(index, wants, gives, pivotId);
-      if (pending > 0) {
+      uint not_published = writeAsk(index, wants, gives, pivotId);
+      if (not_published > 0) {
         // Ask could not be written on the book (density or provision issue)
-        PENDING_BASE = withPending ? pending : (PENDING_BASE + pending);
+        PENDING_BASE = withPending
+          ? not_published
+          : (PENDING_BASE + not_published);
       } else {
         if (withPending) {
           PENDING_BASE = 0;
         }
       }
     } else {
-      uint pending = writeBid(index, wants, gives, pivotId);
-      if (pending > 0) {
-        PENDING_QUOTE = withPending ? pending : (PENDING_QUOTE + pending);
+      uint not_published = writeBid(index, wants, gives, pivotId);
+      if (not_published > 0) {
+        PENDING_QUOTE = withPending
+          ? not_published
+          : (PENDING_QUOTE + not_published);
       } else {
         if (withPending) {
           PENDING_QUOTE = 0;

@@ -146,12 +146,20 @@ library TestUtils {
     emit OBState(base, quote, offerIds, wants, gives, makerAddr, gasreqs);
   }
 
+  function s32(bytes32 b) internal pure returns (string memory) {
+    string memory s = new string(32);
+    assembly {
+      mstore(add(s, 32), b)
+    }
+    return s;
+  }
+
   function logString32(bytes32 b) internal view {
     string memory s = new string(32);
     assembly {
       mstore(add(s, 32), b)
     }
-    console.log(s, "(bytes32)");
+    console.log(s32(b));
   }
 
   /* Log OB with hardhat's console.log */

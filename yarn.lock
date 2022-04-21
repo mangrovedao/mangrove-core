@@ -1715,7 +1715,7 @@ __metadata:
     "@types/mocha": ^8.2.0
     "@types/node": ^14.0.11
     "@types/shelljs": ^0.8.11
-    "@types/yargs": ^17.0.7
+    "@types/yargs": ^17.0.10
     "@typescript-eslint/eslint-plugin": ^4.31.1
     "@typescript-eslint/parser": ^4.2.0
     async-mutex: ^0.3.2
@@ -2322,12 +2322,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/yargs@npm:^17.0.7":
-  version: 17.0.7
-  resolution: "@types/yargs@npm:17.0.7"
+"@types/yargs@npm:^17.0.10":
+  version: 17.0.10
+  resolution: "@types/yargs@npm:17.0.10"
   dependencies:
     "@types/yargs-parser": "*"
-  checksum: 520e803720b2a626338c0e2b61825dd1b956910fec4d855018c17e62cf9fb41eb67bcf122ba5c6fb569b1bfac73520d5d73e8be502b87f9a551619df441b1875
+  checksum: f0673cbfc08e17239dc58952a88350d6c4db04a027a28a06fbad27d87b670e909f9cd9e66f9c64cebdd5071d1096261e33454a55868395f125297e5c50992ca8
   languageName: node
   linkType: hard
 

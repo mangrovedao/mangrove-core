@@ -16,6 +16,7 @@ import "../../MgvLib.sol";
 library TestUtils {
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
+
   /* Various utilities */
 
   function uint2str(uint _i)
@@ -132,11 +133,8 @@ library TestUtils {
     uint[] memory gasreqs = new uint[](size);
     uint c = 0;
     while ((offerId != 0) && (c < size)) {
-      (P.OfferStruct memory offer, P.OfferDetailStruct memory od) = mgv.offerInfo(
-        base,
-        quote,
-        offerId
-      );
+      (P.OfferStruct memory offer, P.OfferDetailStruct memory od) = mgv
+        .offerInfo(base, quote, offerId);
       wants[c] = offer.wants;
       gives[c] = offer.gives;
       makerAddr[c] = od.maker;
@@ -146,6 +144,14 @@ library TestUtils {
       c++;
     }
     emit OBState(base, quote, offerIds, wants, gives, makerAddr, gasreqs);
+  }
+
+  function logString32(bytes32 b) internal view {
+    string memory s = new string(32);
+    assembly {
+      mstore(add(s, 32), b)
+    }
+    console.log(s, "(bytes32)");
   }
 
   /* Log OB with hardhat's console.log */
@@ -297,10 +303,7 @@ library TestUtils {
     } else {
       _gp = gasprice;
     }
-    return ((gasreq +
-      loc_cfg.offer_gasbase()) *
-      _gp *
-      10**9);
+    return ((gasreq + loc_cfg.offer_gasbase()) * _gp * 10**9);
   }
 
   function getOfferInfo(
@@ -310,11 +313,8 @@ library TestUtils {
     Info infKey,
     uint offerId
   ) internal view returns (uint) {
-    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv.offerInfo(
-      base,
-      quote,
-      offerId
-    );
+    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv
+      .offerInfo(base, quote, offerId);
     if (!mgv.isLive(mgv.offers(base, quote, offerId))) {
       return 0;
     }

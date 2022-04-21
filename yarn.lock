@@ -1312,7 +1312,7 @@ __metadata:
     "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.3.1
-    "@types/chai-as-promised": ^7.1.4
+    "@types/chai-as-promised": ^7.1.5
     "@types/config": ^0.0.39
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
@@ -1365,7 +1365,7 @@ __metadata:
     "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.3.1
-    "@types/chai-as-promised": ^7.1.4
+    "@types/chai-as-promised": ^7.1.5
     "@types/config": ^0.0.39
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
@@ -1418,7 +1418,7 @@ __metadata:
     "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.3.1
-    "@types/chai-as-promised": ^7.1.4
+    "@types/chai-as-promised": ^7.1.5
     "@types/config": ^0.0.39
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
@@ -1472,7 +1472,7 @@ __metadata:
     "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.3.1
-    "@types/chai-as-promised": ^7.1.4
+    "@types/chai-as-promised": ^7.1.5
     "@types/config": ^0.0.39
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
@@ -1524,7 +1524,7 @@ __metadata:
     "@nomiclabs/hardhat-ethers": ^2.0.5
     "@types/big.js": ^6.1.2
     "@types/chai": ^4.3.1
-    "@types/chai-as-promised": ^7.1.4
+    "@types/chai-as-promised": ^7.1.5
     "@types/config": ^0.0.39
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
@@ -1711,7 +1711,7 @@ __metadata:
     "@rollup/plugin-node-resolve": ^13.2.1
     "@typechain/ethers-v5": ^8.0.2
     "@types/big.js": ^6.1.1
-    "@types/chai-as-promised": ^7.1.4
+    "@types/chai-as-promised": ^7.1.5
     "@types/mocha": ^8.2.0
     "@types/node": ^14.0.11
     "@types/shelljs": ^0.8.11
@@ -2082,12 +2082,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/chai-as-promised@npm:^7.1.4":
-  version: 7.1.4
-  resolution: "@types/chai-as-promised@npm:7.1.4"
+"@types/chai-as-promised@npm:^7.1.5":
+  version: 7.1.5
+  resolution: "@types/chai-as-promised@npm:7.1.5"
   dependencies:
     "@types/chai": "*"
-  checksum: bb974e77e0357fcc9a01f4b46eb1d3d6a40621a479654fa17539890cd59635faf9b860b8c3851f638d1e239404b1dc8e7ab1305f26dec43e19cce6796e01fe48
+  checksum: 7c1345c6e32513d52d8e562ec173c23161648d6b792046525f18803a9932d7b3ad3dca8f0181e3c529ec42b106099f174e34edeb184d61dc93e32c98b5132fd4
   languageName: node
   linkType: hard
 

@@ -57,12 +57,6 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
     } catch {
       // same as `success == false`
     }
-    emit LogIncident(
-      order.outbound_tkn,
-      order.inbound_tkn,
-      order.offerId,
-      "mgvOffer/aToken/TransferFail"
-    );
     return amount; // nothing was fetched
   }
 

@@ -1,24 +1,47 @@
 const { assert } = require("chai");
+const { existsSync } = require("fs");
 //const { parseToken } = require("ethers/lib/utils");
 const { ethers } = require("hardhat");
 const lc = require("../lib/libcommon.js");
 
 async function checkOB(msg, mgv, outb, inb, bigNumbers, t) {
-  for (const i in bigNumbers) {
-    let expected = t[i];
-    let retract = false;
-    if (t[i] < 0) {
-      expected = -t[i];
-      retract = true;
+  for (const i in t) {
+    let id;
+    if (t[i] <= 0) {
+      const [offer] = await mgv.offerInfo(outb, inb, -t[i]);
+      assert(offer.gives.eq(0), `Offer ${-t[i]} should not be on the book`);
+      id = -t[i];
+    } else {
+      const [offer] = await mgv.offerInfo(outb, inb, t[i]);
+      assert(!offer.gives.eq(0), `Offer ${t[i]} is not live`);
+      id = t[i];
     }
     assert(
-      bigNumbers[i].eq(expected),
-      `${msg}: ${bigNumbers[i].toString()} != ${expected} `
+      bigNumbers[i].eq(id),
+      `Offer ${id} misplaced, seeing ${bigNumbers[i].toNumber()}`
     );
-    if (retract) {
-      const [offer] = await mgv.offerInfo(outb, inb, expected);
-      assert(offer.gives.eq(0), `Offer ${expected} is still live`);
-    }
+  }
+}
+
+async function init(NSLOTS, makerContract, bidAmount, askAmount) {
+  let slice = NSLOTS / 2;
+  let pivotIds = new Array(NSLOTS);
+  let amounts = new Array(NSLOTS);
+  pivotIds = pivotIds.fill(0, 0);
+  amounts.fill(bidAmount, 0, NSLOTS / 2);
+  amounts.fill(askAmount, NSLOTS / 2, NSLOTS);
+
+  for (let i = 0; i < 2; i++) {
+    const receipt = await makerContract.initialize(
+      4,
+      slice * i, // from
+      slice * (i + 1), // to
+      [pivotIds, pivotIds],
+      amounts
+    );
+    console.log(
+      `Slice initialized (${(await receipt.wait()).gasUsed} gas used)`
+    );
   }
 }
 
@@ -89,25 +112,29 @@ describe("Running tests...", function () {
     });
     await fundTx.wait();
 
-    let slice = NSLOTS / 2;
-    let pivotIds = new Array(NSLOTS);
-    let amounts = new Array(NSLOTS);
-    pivotIds = pivotIds.fill(0, 0);
-    amounts.fill(ethers.utils.parseUnits("1000", 6), 0, NSLOTS / 2);
-    amounts.fill(ethers.utils.parseEther("0.3"), NSLOTS / 2, NSLOTS);
-
-    for (let i = 0; i < 2; i++) {
-      const receipt = await makerContract.initialize(
-        4,
-        slice * i, // from
-        slice * (i + 1), // to
-        [pivotIds, pivotIds],
-        amounts
-      );
-      console.log(
-        `Slice initialized (${(await receipt.wait()).gasUsed} gas used)`
-      );
-    }
+    await init(
+      NSLOTS,
+      makerContract,
+      ethers.utils.parseUnits("1000", 6),
+      ethers.utils.parseEther("0.3")
+    );
+    let [bids, asks] = await makerContract.get_offers(false);
+    await checkOB(
+      "OB bids",
+      mgv,
+      usdc.address,
+      wEth.address,
+      bids,
+      [1, 2, 3, 4, 5, 0, 0, 0, 0, 0]
+    );
+    await checkOB(
+      "OB asks",
+      mgv,
+      wEth.address,
+      usdc.address,
+      asks,
+      [0, 0, 0, 0, 0, 1, 2, 3, 4, 5]
+    );
   });
   it("Market orders", async function () {
     // let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
@@ -215,13 +242,6 @@ describe("Running tests...", function () {
       ethers.utils.parseEther("0"),
       "Taker should not receive a bounty"
     );
-
-    // book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
-    // console.log("===bids===");
-    // await lc.logOrderBook(book, usdc, wEth);
-    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
-    // console.log("===asks===");
-    // await lc.logOrderBook(book, wEth, usdc);
   });
 
   it("Negative shift", async function () {
@@ -535,7 +555,7 @@ describe("Running tests...", function () {
       takerGot.eq(0) && takerGave.eq(0),
       "Start is not reneging on trades"
     );
-    const [bids] = await makerContract.get_offers(false);
+    const [bids, asks] = await makerContract.get_offers(false);
     await checkOB(
       "OB bids",
       mgv,
@@ -543,6 +563,51 @@ describe("Running tests...", function () {
       wEth.address,
       bids,
       [-2, -3, -4, -5, -6, 0, 0, -8, -7, -1]
+    );
+    await checkOB(
+      "OB asks",
+      mgv,
+      wEth.address,
+      usdc.address,
+      asks,
+      [0, 8, 0, 6, 1, 2, 3, 4, 5, 7]
+    );
+  });
+
+  it("Test restart at fixed shift", async function () {
+    let tx = await makerContract.restart();
+    await tx.wait();
+
+    await init(
+      NSLOTS,
+      makerContract,
+      ethers.utils.parseUnits("500", 6),
+      ethers.utils.parseEther("0.15")
+    );
+
+    // book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
+    // console.log("===bids===");
+    // await lc.logOrderBook(book, usdc, wEth);
+    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
+    // console.log("===asks===");
+    // await lc.logOrderBook(book, wEth, usdc);
+
+    const [bids, asks] = await makerContract.get_offers(false);
+    await checkOB(
+      "OB bids",
+      mgv,
+      usdc.address,
+      wEth.address,
+      bids,
+      [2, 3, 4, 5, 6, 0, 0, -8, -7, -1]
+    );
+    await checkOB(
+      "OB asks",
+      mgv,
+      wEth.address,
+      usdc.address,
+      asks,
+      [0, -8, 0, -6, -1, 2, 3, 4, 5, 7]
     );
   });
 });

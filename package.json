@@ -29,7 +29,7 @@
     "@ethersproject/hardware-wallets": "^5.0.0",
     "@mangrovedao/hardhat-test-solidity": "^0.0.14",
     "@nomiclabs/hardhat-ethers": "^2.0.5",
-    "@nomiclabs/hardhat-solpp": "^2.0.0",
+    "@nomiclabs/hardhat-solpp": "^2.0.1",
     "app-module-path": "^2.2.0",
     "chai": "^4.3.4",
     "chai-events": "^0.0.3",

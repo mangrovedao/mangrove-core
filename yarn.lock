@@ -1666,7 +1666,7 @@ __metadata:
     "@ethersproject/hardware-wallets": ^5.0.0
     "@mangrovedao/hardhat-test-solidity": ^0.0.14
     "@nomiclabs/hardhat-ethers": ^2.0.5
-    "@nomiclabs/hardhat-solpp": ^2.0.0
+    "@nomiclabs/hardhat-solpp": ^2.0.1
     app-module-path: ^2.2.0
     chai: ^4.3.4
     chai-events: ^0.0.3
@@ -1810,15 +1810,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@nomiclabs/hardhat-solpp@npm:^2.0.0":
-  version: 2.0.0
-  resolution: "@nomiclabs/hardhat-solpp@npm:2.0.0"
+"@nomiclabs/hardhat-solpp@npm:^2.0.1":
+  version: 2.0.1
+  resolution: "@nomiclabs/hardhat-solpp@npm:2.0.1"
   dependencies:
     fs-extra: ^7.0.1
-    solpp: ^0.10.1
+    solpp: ^0.11.5
   peerDependencies:
     hardhat: ^2.0.0
-  checksum: 416c7e42edfef2be58659b19c0ddaa78bffb611a0d10160c6a3f4178cc70a7017e4bf6540e1d755fe2c0f83d5f942ba32e484e3523ee987afd5cb8dce6b99d68
+  checksum: 0b70f318edd9cd194046c107ece7f39742c4a4f4ba82caa74423e05e96941af1df859b34254ad8c8846a15fd09834f928bf840ce979c817c7a05d2a8923a43c0
   languageName: node
   linkType: hard
 
@@ -2739,13 +2739,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"antlr4@npm:^4.7.1":
-  version: 4.9.3
-  resolution: "antlr4@npm:4.9.3"
-  checksum: 2e3b7bcf3b79686311182dac71a4d320abbb7e7bca5fb0e47585771130f4f07489fb4012339bb9a45c1bb0e724d4e185b7a6995111b3b86abfbdfc89b4f92bb1
-  languageName: node
-  linkType: hard
-
 "antlr4@npm:~4.8.0":
   version: 4.8.0
   resolution: "antlr4@npm:4.8.0"
@@ -2926,16 +2919,6 @@ __metadata:
   version: 0.4.0
   resolution: "asynckit@npm:0.4.0"
   checksum: 7b78c451df768adba04e2d02e63e2d0bf3b07adcd6e42b4cf665cb7ce899bedd344c69a1dcbce355b5f972d597b25aaa1c1742b52cffd9caccb22f348114f6be
-  languageName: node
-  linkType: hard
-
-"axios@npm:^0.18.0":
-  version: 0.18.1
-  resolution: "axios@npm:0.18.1"
-  dependencies:
-    follow-redirects: 1.5.10
-    is-buffer: ^2.0.2
-  checksum: 4a27cea1e3c674d89d9097fe13b62081b692280401b9c4216f37c42dfa8b433091baa15832336523ddad1df2f3f21e1e38a4cff207b4926ead3076c91a8ec5fe
   languageName: node
   linkType: hard
 
@@ -3879,15 +3862,6 @@ __metadata:
     supports-color:
       optional: true
   checksum: 14472d56fe4a94dbcfaa6dbed2dd3849f1d72ba78104a1a328047bb564643ca49df0224c3a17fa63533fd11dd3d4c8636cd861191232a2c6735af00cc2d4de16
-  languageName: node
-  linkType: hard
-
-"debug@npm:=3.1.0":
-  version: 3.1.0
-  resolution: "debug@npm:3.1.0"
-  dependencies:
-    ms: 2.0.0
-  checksum: 0b52718ab957254a5b3ca07fc34543bc778f358620c206a08452251eb7fc193c3ea3505072acbf4350219c14e2d71ceb7bdaa0d3370aa630b50da790458d08b3
   languageName: node
   linkType: hard
 
@@ -4989,15 +4963,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"follow-redirects@npm:1.5.10":
-  version: 1.5.10
-  resolution: "follow-redirects@npm:1.5.10"
-  dependencies:
-    debug: =3.1.0
-  checksum: 0edc4b74e37e7b88ee716188a8f2a790238877c1d954f00c7b78d560f3bef40061c130536d13bee8e47b4e8e71edf1175a2de2729e51ab8206e4646b2370e484
-  languageName: node
-  linkType: hard
-
 "follow-redirects@npm:^1.12.1, follow-redirects@npm:^1.14.0, follow-redirects@npm:^1.14.4":
   version: 1.14.5
   resolution: "follow-redirects@npm:1.14.5"
@@ -5931,7 +5896,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"is-buffer@npm:^2.0.2, is-buffer@npm:~2.0.3":
+"is-buffer@npm:~2.0.3":
   version: 2.0.5
   resolution: "is-buffer@npm:2.0.5"
   checksum: 764c9ad8b523a9f5a32af29bdf772b08eb48c04d2ad0a7240916ac2688c983bf5f8504bf25b35e66240edeb9d9085461f9b5dae1f3d2861c6b06a65fe983de42
@@ -9406,25 +9371,6 @@ resolve@1.17.0:
   bin:
     solpp: src/solpp.js
   checksum: cfbf4b1c8bd5ee0c972a2fcbf0e9c1fed26095a093489120300713814f78685faf630c48e7febfaf84fba0f8a501c8d4ad823c064a759d0549a123373361a610
-  languageName: node
-  linkType: hard
-
-"solpp@npm:^0.10.1":
-  version: 0.10.2
-  resolution: "solpp@npm:0.10.2"
-  dependencies:
-    antlr4: ^4.7.1
-    axios: ^0.18.0
-    bn-str-256: ^1.9.1
-    commander: ^2.19.0
-    ethereumjs-util: ^6.0.0
-    lodash: ^4.17.11
-    mz: ^2.7.0
-    resolve: ^1.10.0
-    semver: ^5.6.0
-  bin:
-    solpp: src/solpp.js
-  checksum: fe513797a6fd3e1b23f6bba12dd2f804fb32d287c955b504217cdb9f5d98b856bf4505f081a75c25a576d6bac89d6332abe6dd414b12af08e4448d31546400b6
   languageName: node
   linkType: hard
 

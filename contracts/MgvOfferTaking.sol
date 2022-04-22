@@ -745,20 +745,21 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }}
 
   /* ## `controlledCall` */
-  /* Calls an external function with controlled gas expense. A direct call of the form `(,bytes memory retdata) = maker.call{gas}(selector,...args)` enables a griefing attack: the maker uses half its gas to write in its memory, then reverts with that memory segment as argument. After a low-level call, solidity automaticaly copies `returndatasize` bytes of `returndata` into memory. So the total gas consumed to execute a failing offer could exceed `gasreq + offer_gasbase` where `n` is the number of failing offers. This yul call only retrieves the first 32 bytes of the maker's `returndata`. */
+  /* Calls an external function with controlled gas expense. A direct call of the form `(,bytes memory retdata) = maker.call{gas}(selector,...args)` enables a griefing attack: the maker uses half its gas to write in its memory, then reverts with that memory segment as argument. After a low-level call, solidity automaticaly copies `returndatasize` bytes of `returndata` into memory. So the total gas consumed to execute a failing offer could exceed `gasreq + offer_gasbase` where `n` is the number of failing offers. In case of success, we read the first 32 bytes of returndata (the signature of `makerExecute` is `bytes32`). Otherwise, for compatibility with most errors that bubble up from contract calls and Solidity's `require`, we read 32 bytes of returndata starting from the 69th (4 bytes of method sig + 32 bytes of offset + 32 bytes of string length). */
   function controlledCall(
     address callee,
     uint gasreq,
     bytes memory cd
   ) internal returns (bool success, bytes32 data) { unchecked {
-    bytes32[1] memory retdata;
+    bytes32[4] memory retdata;
 
+    /* if success, read returned bytes 1..32, otherwise read returned bytes 69..100. */
     assembly {
-      success := call(gasreq, callee, 0, add(cd, 32), mload(cd), retdata, 32)
+      success := call(gasreq, callee, 0, add(cd, 32), mload(cd), retdata, 100)
+      data := mload(add(mul(iszero(success), 68), retdata))
     }
-
-    data = retdata[0];
   }}
+    
 
   /* # Penalties */
   /* Offers are just promises. They can fail. Penalty provisioning discourages from failing too much: we ask makers to provision more ETH than the expected gas cost of executing their offer and penalize them accoridng to wasted gas.

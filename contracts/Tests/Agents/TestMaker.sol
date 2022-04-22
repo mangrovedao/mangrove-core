@@ -135,10 +135,7 @@ contract TestMaker is IMaker, Passthrough {
   ) external virtual override {
     order; //shh
     if (_shouldFailHook) {
-      bytes32[1] memory refuse_msg = [bytes32("posthookFail")];
-      assembly {
-        revert(refuse_msg, 32)
-      }
+      revert("posthookFail");
     }
 
     if (_expectedStatus != bytes32("")) {

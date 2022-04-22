@@ -31,6 +31,9 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
   bool willFail = false;
   bool makerRevert = false;
   bool called;
+  string sExecuteRevertData = "NOK";
+  bytes32 bExecuteRevertData = "NOK";
+  bytes32 executeReturnData = "NOK";
 
   event Execute(
     address mgv,
@@ -58,10 +61,10 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
   {
     require(msg.sender == address(mgv));
     if (makerRevert) {
-      tradeRevert("NOK");
+      revert(sExecuteRevertData);
     }
     if (abort) {
-      return "NOK";
+      return executeReturnData;
     }
     emit Execute(
       msg.sender,
@@ -337,7 +340,38 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
   ) external {
     bool success = (res.mgvData == "mgv/tradeSuccess");
     TestEvents.check(!success, "Offer should be marked as failed");
-    TestEvents.check(res.makerData == "NOK", "Incorrect maker data");
+    TestEvents.check(res.makerData == bExecuteRevertData, "Incorrect maker data");
+  }
+
+  function failed_offer_truncates_test() public {
+    sExecuteRevertData = "abcdefghijklmnopqrstuvwxyz1234567";
+    bExecuteRevertData = "abcdefghijklmnopqrstuvwxyz123456";
+    uint balMaker = baseT.balanceOf(address(this));
+    uint balTaker = quoteT.balanceOf(address(tkr));
+    ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
+    abort = true;
+    bool success = tkr.take(ofr, 1 ether);
+    TestEvents.check(!success, "Snipe should fail");
+    TestEvents.eq(
+      baseT.balanceOf(address(this)),
+      balMaker,
+      "Maker should not have been debited of her base tokens"
+    );
+    TestEvents.eq(
+      quoteT.balanceOf(address(tkr)),
+      balTaker,
+      "Taker should not have been debited of her quote tokens"
+    );
+    TestEvents.expectFrom(address(mgv));
+    emit OfferFail(
+      base,
+      quote,
+      ofr,
+      address(tkr),
+      1 ether,
+      1 ether,
+      "mgv/makerAbort"
+    );
   }
 
   function failed_offer_is_not_executed_test() public {

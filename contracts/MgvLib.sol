@@ -126,7 +126,7 @@ contract HasMgvEvents {
     address taker,
     uint takerWants,
     uint takerGives,
-    // `mgvData` may only be `"mgv/makerRevert"`, `"mgv/makerAbort"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"`
+    // `mgvData` may only be `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"`
     bytes32 mgvData
   );
 

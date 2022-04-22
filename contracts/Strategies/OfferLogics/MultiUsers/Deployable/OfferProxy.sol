@@ -50,6 +50,7 @@ contract OfferProxy is MultiUserAaveV3Lender, MultiUserPersistent {
   }
 
   // if offer failed to execute or reneged it should deprovision since owner might not keep track of offers out of the book
+  // Note this has currently no effect since Mangrove is deprovisioning failed offers by default
   function __posthookFallback__(
     ML.SingleOrder calldata order,
     ML.OrderResult calldata result

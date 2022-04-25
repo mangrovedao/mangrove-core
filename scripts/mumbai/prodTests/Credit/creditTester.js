@@ -2,7 +2,7 @@ const { ethers } = require("hardhat");
 const { Mangrove } = require("../../../../../mangrove.js");
 
 async function main() {
-  const provider = new ethers.providers.WebSocketProvider(network.config.url);
+  const provider = ethers.getDefaultProvider(network.config.url);
 
   const tester = new ethers.Wallet(
     process.env["MUMBAI_TESTER_PRIVATE_KEY"],

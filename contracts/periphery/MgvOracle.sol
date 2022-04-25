@@ -25,6 +25,9 @@ import "../MgvLib.sol";
  * a given sender to update the gas price and density which the oracle
  * reports to Mangrove. */
 contract MgvOracle is IMgvMonitor {
+  event SetGasprice(uint gasPrice);
+  event SetDensity(uint density);
+
   address governance;
   address mutator;
 
@@ -80,6 +83,7 @@ contract MgvOracle is IMgvMonitor {
     );
 
     lastReceivedGasPrice = gasPrice;
+    emit SetGasprice(gasPrice);
   }
 
   function setDensity(uint /*density*/) private view {

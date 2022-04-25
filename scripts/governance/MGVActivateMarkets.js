@@ -3,7 +3,7 @@ const chalk = require("chalk");
 const { Mangrove } = require("../../../mangrove.js");
 
 async function main() {
-  const provider = new ethers.providers.JsonRpcProvider(hre.network.config.url);
+  const provider = ethers.getDefaultProvider(hre.network.config.url);
   if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
     console.error("No tester account defined");
   }

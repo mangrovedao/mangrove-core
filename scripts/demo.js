@@ -4,9 +4,7 @@ util.inspect.replDefaults.depth = 0;
 const env = require("dotenv").config();
 const { Mangrove } = require("../mangrove/packages/mangrove.js");
 const ethers = require("ethers");
-let provider = new ethers.providers.WebSocketProvider(
-  env.parsed.MUMBAI_NODE_URL
-);
+let provider = ethers.getDefaultProvider(env.parsed.MUMBAI_NODE_URL);
 
 let wallet = new ethers.Wallet(env.parsed.MUMBAI_TESTER_PRIVATE_KEY, provider);
 

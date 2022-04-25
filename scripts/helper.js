@@ -3,7 +3,7 @@ const { ethers } = require("../../mangrove.js/node_modules/ethers/lib");
 
 function getProvider() {
   const url = hre.network.config.url;
-  return new hre.ethers.providers.JsonRpcProvider(url);
+  return new hre.ethers.getDefaultProvider(url);
 }
 
 function tryGet(cfg, name) {
@@ -53,10 +53,7 @@ function getAave() {
     `aave.addressesProviderAbi`
   ));
   const priceOracleAddr = tryGet(env, `aave.priceOracleAddress`);
-  const priceOracleAbi = require(tryGet(
-    env,
-    `aave.priceOracleAbi`
-  ));
+  const priceOracleAbi = require(tryGet(env, `aave.priceOracleAbi`));
 
   const provider = getProvider();
   const aave = {};

@@ -193,9 +193,9 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
-  ) external payable override returns (uint offerId) {
+  ) external payable override returns (uint) {
     require(msg.sender != address(this), "Mutli/noReentrancy");
-    offerId = newOfferInternal(
+    (uint offerId, string memory reason) = newOfferInternal(
       outbound_tkn,
       inbound_tkn,
       wants,
@@ -206,6 +206,8 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
       msg.sender,
       msg.value
     );
+    require(offerId > 0, reason);
+    return offerId;
   }
 
   function newOfferInternal(
@@ -218,7 +220,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     uint pivotId,
     address caller,
     uint provision
-  ) internal returns (uint) {
+  ) internal returns (uint, string memory) {
     uint weiBalanceBefore = MGV.balanceOf(address(this));
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
@@ -239,15 +241,9 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
       addOwner(outbound_tkn, inbound_tkn, offerId, caller);
       //updating wei balance of owner will revert if msg.sender does not have the funds
       updateUserBalanceOnMgv(caller, weiBalanceBefore);
-      return offerId;
-    } catch Error(string memory message) {
-      if (msg.sender == address(MGV)) {
-        // if `this` is executing a Mangrove trade do not throw by default
-        return 0;
-      } else {
-        // if `this` is executing an offchain tx, throw
-        revert(message);
-      }
+      return (offerId, "");
+    } catch Error(string memory reason) {
+      return (0, reason);
     }
   }
 
@@ -261,7 +257,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     uint pivotId,
     uint offerId
   ) external payable override {
-    updateOfferInternal(
+    (uint offerId_, string memory reason) = updateOfferInternal(
       outbound_tkn,
       inbound_tkn,
       wants,
@@ -273,6 +269,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
       msg.sender,
       msg.value
     );
+    require(offerId_ > 0, reason);
   }
 
   function updateOfferInternal(
@@ -286,7 +283,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     uint offerId,
     address caller,
     uint provision // dangerous to use msg.value in a internal call
-  ) internal returns (uint) {
+  ) internal returns (uint, string memory) {
     require(
       caller == ownerOf(outbound_tkn, inbound_tkn, offerId),
       "Multi/updateOffer/unauthorized"
@@ -308,13 +305,9 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
       )
     {
       updateUserBalanceOnMgv(caller, weiBalanceBefore);
-      return offerId;
-    } catch Error(string memory message) {
-      if (msg.sender == address(MGV)) {
-        return 0;
-      } else {
-        revert(message);
-      }
+      return (offerId, "");
+    } catch Error(string memory reason) {
+      return (0, reason);
     }
   }
 

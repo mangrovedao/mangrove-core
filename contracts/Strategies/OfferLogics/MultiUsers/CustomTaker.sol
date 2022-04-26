@@ -216,13 +216,11 @@ abstract contract CustomTaker is MultiUserPersistent {
 
   // we need to make sure that if offer is taken and not reposted (because of insufficient provision or density) then remaining provision and outbound tokens are sent back to owner
 
-  function redeemAll(ML.SingleOrder calldata order) internal returns (bool) {
+  function redeemAll(ML.SingleOrder calldata order, address owner)
+    internal
+    returns (bool)
+  {
     // Resting order was not reposted, sending out/in tokens to original taker
-    address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
-      order.offerId
-    );
     // balOut was increased during `take` function and is now possibly empty
     uint balOut = tokenBalanceOf[order.outbound_tkn][owner];
     if (!transferERC(IEIP20(order.outbound_tkn), owner, balOut)) {
@@ -264,8 +262,13 @@ abstract contract CustomTaker is MultiUserPersistent {
       // else we need to send the remaining outbounds tokens to owner and their remaining provision on mangrove (offer was deprovisioned in super call)
       return true;
     }
+    address owner = ownerOf(
+      order.outbound_tkn,
+      order.inbound_tkn,
+      order.offerId
+    );
     // returning all inbound/outbound tokens that belong to the original taker to their balance
-    if (!redeemAll(order)) {
+    if (!redeemAll(order, owner)) {
       return false;
     }
     // returning remaining WEIs
@@ -295,6 +298,11 @@ abstract contract CustomTaker is MultiUserPersistent {
     ML.OrderResult calldata result
   ) internal virtual override returns (bool) {
     result; //shh
-    return redeemAll(order);
+    address owner = ownerOf(
+      order.outbound_tkn,
+      order.inbound_tkn,
+      order.offerId
+    );
+    return redeemAll(order, owner);
   }
 }

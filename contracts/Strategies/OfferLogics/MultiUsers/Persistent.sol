@@ -13,8 +13,6 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MultiUser.sol";
 
-//import "hardhat/console.sol";
-
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract MultiUserPersistent is MultiUser {
   using P.Offer for P.Offer.t;

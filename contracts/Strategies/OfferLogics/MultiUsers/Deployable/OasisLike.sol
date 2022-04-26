@@ -60,7 +60,7 @@ contract OasisLike is MultiUserPersistent {
   }
 
   // if offer failed to execute or reneged it should deprovision since owner might not keep track of offers out of the book
-
+  // note this doesn't work currently since Mangrove deprovisions failed offers
   function __posthookFallback__(
     ML.SingleOrder calldata order,
     ML.OrderResult calldata result

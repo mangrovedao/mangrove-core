@@ -38,8 +38,9 @@ contract MgvOracle is IMgvMonitor {
     governance = _governance;
     mutator = _initialMutator;
 
-    //NOTE: Hardwiring density for now
-    /* Mangrove will reject densities from the Monitor that don't fit in 32 bits and use its internal density instead, so setting this contract's density to `type(uint).max` is a way to let Mangrove deal with density on its own. */
+    /* Set initial density from the MgvOracle to let Mangrove use its internal density by default.
+
+      Mangrove will reject densities from the Monitor that don't fit in 32 bits and use its internal density instead, so setting this contract's density to `type(uint).max` is a way to let Mangrove deal with density on its own. */
     lastReceivedDensity = type(uint).max;
   }
 
@@ -86,16 +87,15 @@ contract MgvOracle is IMgvMonitor {
     emit SetGasprice(gasPrice);
   }
 
-  function setDensity(
-    uint /*density*/
-  ) private view {
+  function setDensity(uint density) external {
     // governance or mutator are allowed to update the density
     require(
       msg.sender == governance || msg.sender == mutator,
       "MgvOracle/unauthorized"
     );
 
-    //NOTE: Not implemented, so not made external yet
+    lastReceivedDensity = density;
+    emit SetDensity(density);
   }
 
   function read(

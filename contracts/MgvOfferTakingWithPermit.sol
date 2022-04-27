@@ -127,11 +127,12 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     returns (
       uint takerGot,
       uint takerGave,
-      uint bounty
+      uint bounty,
+      uint feePaid
     )
   {
     unchecked {
-      (takerGot, takerGave, bounty) = generalMarketOrder(
+      (takerGot, takerGave, bounty, feePaid) = generalMarketOrder(
         outbound_tkn,
         inbound_tkn,
         takerWants,
@@ -157,11 +158,12 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       uint successes,
       uint takerGot,
       uint takerGave,
-      uint bounty
+      uint bounty,
+      uint feePaid
     )
   {
     unchecked {
-      (successes, takerGot, takerGave, bounty) = generalSnipes(
+      (successes, takerGot, takerGave, bounty, feePaid) = generalSnipes(
         outbound_tkn,
         inbound_tkn,
         targets,

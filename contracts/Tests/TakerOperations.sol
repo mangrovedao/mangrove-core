@@ -138,6 +138,7 @@ contract TakerOperations_Test is HasMgvEvents {
       uint successes,
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.check(successes == 0, "Snipe should fail");
@@ -177,6 +178,7 @@ contract TakerOperations_Test is HasMgvEvents {
       uint successes,
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.check(successes == 1, "Snipe should not fail");
@@ -208,6 +210,7 @@ contract TakerOperations_Test is HasMgvEvents {
       uint successes,
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.check(successes == 3, "Snipes should not fail");
@@ -221,6 +224,7 @@ contract TakerOperations_Test is HasMgvEvents {
         address(this),
         got,
         gave,
+        0,
         0
       );
     } catch {
@@ -245,6 +249,7 @@ contract TakerOperations_Test is HasMgvEvents {
       uint successes,
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.check(successes == 1, "Snipe should not fail");
@@ -281,6 +286,7 @@ contract TakerOperations_Test is HasMgvEvents {
       uint successes,
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.check(successes == 1, "Snipe should not fail");
@@ -314,6 +320,7 @@ contract TakerOperations_Test is HasMgvEvents {
       uint successes,
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.check(successes == 1, "Snipe should not fail");
@@ -343,6 +350,7 @@ contract TakerOperations_Test is HasMgvEvents {
       uint successes,
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.check(successes == 1, "Snipe should not fail");
@@ -368,6 +376,7 @@ contract TakerOperations_Test is HasMgvEvents {
       uint successes,
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.check(successes == 1, "Snipe should not fail");
@@ -386,6 +395,7 @@ contract TakerOperations_Test is HasMgvEvents {
     try mgv.marketOrder(base, quote, 1.1 ether, 2 ether, true) returns (
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.eq(got, 1.1 ether, "Taker did not get enough");
@@ -403,6 +413,7 @@ contract TakerOperations_Test is HasMgvEvents {
     try mgv.marketOrder(base, quote, 1.1 ether, 2 ether, false) returns (
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.eq(got, 2 ether, "Taker did not get enough");
@@ -438,6 +449,7 @@ contract TakerOperations_Test is HasMgvEvents {
     try mgv.marketOrder(base, quote, 0 ether, 3 ether, false) returns (
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.eq(got, 3 ether, "Taker did not get enough");
@@ -457,7 +469,7 @@ contract TakerOperations_Test is HasMgvEvents {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 100_000];
-    (uint successes, uint takerGot, uint takerGave, ) = mgv.snipes(
+    (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       base,
       quote,
       targets,
@@ -515,7 +527,7 @@ contract TakerOperations_Test is HasMgvEvents {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 100_000];
-    (uint successes, uint takerGot, uint takerGave, ) = mgv.snipes(
+    (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       base,
       quote,
       targets,
@@ -557,7 +569,7 @@ contract TakerOperations_Test is HasMgvEvents {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 100_000];
-    (uint successes, uint takerGot, uint takerGave, ) = mgv.snipes(
+    (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       base,
       quote,
       targets,
@@ -595,7 +607,7 @@ contract TakerOperations_Test is HasMgvEvents {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 0, 0, 100_000];
-    (uint successes, uint takerGot, uint takerGave, ) = mgv.snipes(
+    (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       base,
       quote,
       targets,
@@ -621,7 +633,7 @@ contract TakerOperations_Test is HasMgvEvents {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 100_000];
-    (uint successes, uint takerGot, uint takerGave, ) = mgv.snipes(
+    (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       base,
       quote,
       targets,
@@ -713,6 +725,7 @@ contract TakerOperations_Test is HasMgvEvents {
       uint successes,
       uint takerGot,
       uint takerGave,
+      uint,
       uint
     ) {
       TestEvents.check(successes == 1, "Snipe should succeed");
@@ -748,6 +761,7 @@ contract TakerOperations_Test is HasMgvEvents {
     try mgv.marketOrder(base, quote, 2 ether, 4 ether, true) returns (
       uint takerGot,
       uint takerGave,
+      uint,
       uint
     ) {
       TestEvents.eq(
@@ -780,7 +794,7 @@ contract TakerOperations_Test is HasMgvEvents {
     mkr.expect("mgv/tradeSuccess");
     quoteT.approve(address(mgv), 10 ether);
 
-    (uint takerGot, uint takerGave, ) = mgv.marketOrder(
+    (uint takerGot, uint takerGave, , ) = mgv.marketOrder(
       base,
       quote,
       1 ether,
@@ -804,7 +818,7 @@ contract TakerOperations_Test is HasMgvEvents {
     mkr.expect("mgv/tradeSuccess");
     quoteT.approve(address(mgv), 10 ether);
 
-    (uint takerGot, uint takerGave, ) = mgv.marketOrder(
+    (uint takerGot, uint takerGave, , ) = mgv.marketOrder(
       base,
       quote,
       1 ether,
@@ -831,7 +845,7 @@ contract TakerOperations_Test is HasMgvEvents {
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 2 ether, 0 ether, 300_000];
 
-    (, uint takerGot, uint takerGave, ) = mgv.snipes(
+    (, uint takerGot, uint takerGave, , ) = mgv.snipes(
       base,
       quote,
       targets,
@@ -854,7 +868,7 @@ contract TakerOperations_Test is HasMgvEvents {
     mkr.expect("mgv/tradeSuccess");
     quoteT.approve(address(mgv), 10 ether);
 
-    (uint takerGot, uint takerGave, ) = mgv.marketOrder(
+    (uint takerGot, uint takerGave, , ) = mgv.marketOrder(
       base,
       quote,
       0 ether,
@@ -878,7 +892,7 @@ contract TakerOperations_Test is HasMgvEvents {
     mkr.expect("mgv/tradeSuccess");
     quoteT.approve(address(mgv), 10 ether);
 
-    (uint takerGot, uint takerGave, ) = mgv.marketOrder(
+    (uint takerGot, uint takerGave, , ) = mgv.marketOrder(
       base,
       quote,
       0 ether,
@@ -924,7 +938,7 @@ contract TakerOperations_Test is HasMgvEvents {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 50 ether, 0.5 ether, 100_000];
-    (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(successes == 0, "order should fail");
     TestEvents.expectFrom(address(mgv));
     emit OfferFail(
@@ -964,7 +978,7 @@ contract TakerOperations_Test is HasMgvEvents {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 0.5 ether, 100_000];
-    (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(
       successes == 0,
       "Order should fail when order price is higher than offer"
@@ -977,7 +991,7 @@ contract TakerOperations_Test is HasMgvEvents {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 50_000];
-    (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(
       successes == 0,
       "Order should fail when order gas is higher than offer"
@@ -1017,7 +1031,7 @@ contract TakerOperations_Test is HasMgvEvents {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 2 ether, 100_000];
-    (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(
       successes == 1,
       "Order should succeed when order price is lower than offer"
@@ -1051,7 +1065,7 @@ contract TakerOperations_Test is HasMgvEvents {
     mkr.newOffer(0.1 ether, 0.1 ether, 50_000, 0);
     mkr.newOffer(0.1 ether, 0.1 ether, 50_000, 1);
     mkr.expect("mgv/tradeSuccess");
-    (uint takerGot, , ) = mgv.marketOrder(
+    (uint takerGot, , , ) = mgv.marketOrder(
       base,
       quote,
       0.15 ether,
@@ -1123,7 +1137,7 @@ contract TakerOperations_Test is HasMgvEvents {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 0, 1 ether, 50_000];
-    (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(successes == 1, "snipe should succeed");
     TestEvents.eq(mgv.best(base, quote), 0, "offer should be gone");
     TestEvents.eq(
@@ -1166,6 +1180,7 @@ contract TakerOperations_Test is HasMgvEvents {
     try mgv.marketOrder(base, quote, 0, 1 ether, true) returns (
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.eq(got, 0, "Taker got too much");
@@ -1179,6 +1194,7 @@ contract TakerOperations_Test is HasMgvEvents {
     try mgv.marketOrder(base, quote, 1 ether, 0, true) returns (
       uint got,
       uint gave,
+      uint,
       uint
     ) {
       TestEvents.eq(got, 0, "Taker got too much");

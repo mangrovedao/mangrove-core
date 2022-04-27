@@ -97,7 +97,13 @@ contract InvertedTakerOperations_Test is ITaker, HasMgvEvents {
     mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     takerTrade_bytes = this.checkPay.selector;
     toPay = 0.2 ether;
-    (, uint gave, ) = mgv.marketOrder(base, quote, 0.2 ether, 0.2 ether, true);
+    (, uint gave, , ) = mgv.marketOrder(
+      base,
+      quote,
+      0.2 ether,
+      0.2 ether,
+      true
+    );
     TestEvents.eq(
       quoteBalance - gave,
       quoteT.balanceOf(address(this)),
@@ -176,7 +182,7 @@ contract InvertedTakerOperations_Test is ITaker, HasMgvEvents {
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 50_000];
 
-    (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(successes == 1, "Trade should succeed");
     TestEvents.eq(
       quoteT.balanceOf(vault) - vaultBal,
@@ -200,7 +206,7 @@ contract InvertedTakerOperations_Test is ITaker, HasMgvEvents {
     skipCheck = true;
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [uint(2), 0.1 ether, 0.1 ether, 100_000];
-    (uint successes, uint totalGot, uint totalGave, ) = mgv.snipes(
+    (uint successes, uint totalGot, uint totalGave, , ) = mgv.snipes(
       _base,
       _quote,
       targets,
@@ -215,7 +221,7 @@ contract InvertedTakerOperations_Test is ITaker, HasMgvEvents {
     mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     takerTrade_bytes = this.reenter.selector;
-    (uint got, uint gave, ) = mgv.marketOrder(
+    (uint got, uint gave, , ) = mgv.marketOrder(
       base,
       quote,
       0.1 ether,

@@ -46,7 +46,7 @@ contract TestTaker is ITaker {
     //uint taken = TestEvents.min(makerGives, takerWants);
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [offerId, takerWants, type(uint96).max, type(uint48).max];
-    (uint successes, uint got, uint gave, ) = _mgv.snipes(
+    (uint successes, uint got, uint gave, , ) = _mgv.snipes(
       _base,
       _quote,
       targets,
@@ -67,7 +67,7 @@ contract TestTaker is ITaker {
   ) external returns (bool) {
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [offerId, takerWants, takerGives, gasreq];
-    (uint successes, , , ) = __mgv.snipes(__base, __quote, targets, true);
+    (uint successes, , , , ) = __mgv.snipes(__base, __quote, targets, true);
     return successes == 1;
   }
 
@@ -82,7 +82,7 @@ contract TestTaker is ITaker {
     external
     returns (uint takerGot, uint takerGave)
   {
-    (takerGot, takerGave, ) = _mgv.marketOrder(
+    (takerGot, takerGave, , ) = _mgv.marketOrder(
       _base,
       _quote,
       wants,
@@ -98,7 +98,7 @@ contract TestTaker is ITaker {
     uint takerWants,
     uint takerGives
   ) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave, ) = __mgv.marketOrder(
+    (takerGot, takerGave, , ) = __mgv.marketOrder(
       __base,
       __quote,
       takerWants,
@@ -111,7 +111,7 @@ contract TestTaker is ITaker {
     external
     returns (uint takerGot, uint takerGave)
   {
-    (takerGot, takerGave, ) = _mgv.marketOrder(
+    (takerGot, takerGave, , ) = _mgv.marketOrder(
       _base,
       _quote,
       wants,

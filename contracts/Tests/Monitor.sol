@@ -18,6 +18,7 @@ contract Monitor_Test {
   using P.OfferDetail for P.OfferDetail.t;
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
+
   receive() external payable {}
 
   AbstractMangrove mgv;
@@ -57,14 +58,8 @@ contract Monitor_Test {
 
   function initial_monitor_values_test() public {
     (P.Global.t config, ) = mgv.config(base, quote);
-    TestEvents.check(
-      !config.useOracle(),
-      "initial useOracle should be false"
-    );
-    TestEvents.check(
-      !config.notify(),
-      "initial notify should be false"
-    );
+    TestEvents.check(!config.useOracle(), "initial useOracle should be false");
+    TestEvents.check(!config.notify(), "initial notify should be false");
   }
 
   function set_monitor_values_test() public {
@@ -72,19 +67,9 @@ contract Monitor_Test {
     mgv.setUseOracle(true);
     mgv.setNotify(true);
     (P.Global.t config, ) = mgv.config(base, quote);
-    TestEvents.eq(
-      config.monitor(),
-      address(monitor),
-      "monitor should be set"
-    );
-    TestEvents.check(
-      config.useOracle(),
-      "useOracle should be set"
-    );
-    TestEvents.check(
-      config.notify(),
-      "notify should be set"
-    );
+    TestEvents.eq(config.monitor(), address(monitor), "monitor should be set");
+    TestEvents.check(config.useOracle(), "useOracle should be set");
+    TestEvents.check(config.notify(), "notify should be set");
   }
 
   function set_oracle_density_with_useOracle_works_test() public {
@@ -93,11 +78,7 @@ contract Monitor_Test {
     mgv.setDensity(base, quote, 898);
     monitor.setDensity(base, quote, 899);
     (, P.Local.t config) = mgv.config(base, quote);
-    TestEvents.eq(
-      config.density(),
-      899,
-      "density should be set oracle"
-    );
+    TestEvents.eq(config.density(), 899, "density should be set oracle");
   }
 
   function set_oracle_density_without_useOracle_fails_test() public {
@@ -105,11 +86,7 @@ contract Monitor_Test {
     mgv.setDensity(base, quote, 898);
     monitor.setDensity(base, quote, 899);
     (, P.Local.t config) = mgv.config(base, quote);
-    TestEvents.eq(
-      config.density(),
-      898,
-      "density should be set by mgv"
-    );
+    TestEvents.eq(config.density(), 898, "density should be set by mgv");
   }
 
   function set_oracle_gasprice_with_useOracle_works_test() public {
@@ -118,11 +95,7 @@ contract Monitor_Test {
     mgv.setGasprice(900);
     monitor.setGasprice(901);
     (P.Global.t config, ) = mgv.config(base, quote);
-    TestEvents.eq(
-      config.gasprice(),
-      901,
-      "gasprice should be set by oracle"
-    );
+    TestEvents.eq(config.gasprice(), 901, "gasprice should be set by oracle");
   }
 
   function set_oracle_gasprice_without_useOracle_fails_test() public {
@@ -130,11 +103,7 @@ contract Monitor_Test {
     mgv.setGasprice(900);
     monitor.setGasprice(901);
     (P.Global.t config, ) = mgv.config(base, quote);
-    TestEvents.eq(
-      config.gasprice(),
-      900,
-      "gasprice should be set by mgv"
-    );
+    TestEvents.eq(config.gasprice(), 900, "gasprice should be set by mgv");
   }
 
   function invalid_oracle_address_throws_test() public {
@@ -156,7 +125,7 @@ contract Monitor_Test {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofrId, 0.04 ether, 0.05 ether, 100_000];
-    (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(successes == 1, "snipe should succeed");
     (P.Global.t _global, P.Local.t _local) = mgv.config(base, quote);
     _local = _local.best(1).lock(true);
@@ -186,7 +155,7 @@ contract Monitor_Test {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofrId, 0.04 ether, 0.05 ether, 100_000];
-    (uint successes, , , ) = mgv.snipes(base, quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(base, quote, targets, true);
     TestEvents.check(successes == 0, "snipe should fail");
 
     (P.Global.t _global, P.Local.t _local) = mgv.config(base, quote);

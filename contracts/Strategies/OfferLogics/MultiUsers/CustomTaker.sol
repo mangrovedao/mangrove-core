@@ -14,7 +14,7 @@ pragma abicoder v2;
 
 import "./Persistent.sol";
 
-abstract contract CustomTaker is MultiUserPersistent {
+contract CustomTaker is MultiUserPersistent {
   using P.Local for P.Local.t;
 
   // `blockToLive[token1][token2][offerId]` gives block number beyond which the offer should renege on trade.
@@ -34,18 +34,21 @@ abstract contract CustomTaker is MultiUserPersistent {
     uint blocksToLiveForRestingOrder; // number of blocks the resting order should be allowed to live, 0 means for ever
   }
 
+  constructor(address payable _MGV) MangroveOffer(_MGV) {}
+
   // transfer with no revert
   function transferERC(
     IEIP20 token,
     address recipient,
     uint amount
-  ) internal returns (bool success) {
+  ) internal returns (bool) {
     if (amount == 0) {
       return true;
     }
-    (success, ) = address(token).call(
-      abi.encodeWithSignature("transfer(address,uint)", recipient, amount)
+    (bool success, bytes memory data) = address(token).call(
+      abi.encodeWithSelector(token.transfer.selector, recipient, amount)
     );
+    return (success && (data.length == 0 || abi.decode(data, (bool))));
   }
 
   function __lastLook__(ML.SingleOrder calldata order)
@@ -58,22 +61,28 @@ abstract contract CustomTaker is MultiUserPersistent {
     return (exp == 0 || block.number <= exp);
   }
 
+  struct TakerOrderResult {
+    uint takerGot;
+    uint takerGave;
+    uint bounty;
+    uint offerId;
+  }
+
   // revert when order was partially filled and it is not allowed
   function checkCompleteness(
-    address outbound,
-    address inbound,
+    address outbound_tkn,
+    address inbound_tkn,
     TakerOrder calldata tko,
-    uint takerGot,
-    uint takerGave
+    TakerOrderResult memory res
   ) internal view returns (bool isPartial) {
     // revert if sell is partial and `partialFillNotAllowed` and not posting residual
     if (tko.selling) {
-      return takerGave >= tko.gives;
+      return res.takerGave >= tko.gives;
     }
     // revert if buy is partial and `partialFillNotAllowed` and not posting residual
     if (!tko.selling) {
-      (, P.Local.t local) = MGV.config(outbound, inbound);
-      return takerGot >= tko.wants - (tko.wants * local.fee()) / 10_000;
+      (, P.Local.t local) = MGV.config(outbound_tkn, inbound_tkn);
+      return res.takerGot >= tko.wants - (tko.wants * local.fee()) / 10_000;
     }
   }
 
@@ -83,53 +92,49 @@ abstract contract CustomTaker is MultiUserPersistent {
   // gasLimit of this `tx` MUST be at least `(retryNumber+1)*gasForMarketOrder`
   // msg.value SHOULD contain enough native token to cover for the resting order provision
   // msg.value MUST be 0 if `!restingOrder` otherwise tranfered WEIs are burnt.
+
   function take(TakerOrder calldata tko)
     external
     payable
-    returns (
-      uint takerGot,
-      uint takerGave,
-      uint bounty,
-      uint offerId
-    )
+    returns (TakerOrderResult memory res)
   {
-    (address out, address inb) = tko.selling
+    (address outbound_tkn, address inbound_tkn) = tko.selling
       ? (tko.quote, tko.base)
       : (tko.base, tko.quote);
     require(
-      IEIP20(inb).transferFrom(msg.sender, address(this), tko.gives),
+      IEIP20(inbound_tkn).transferFrom(msg.sender, address(this), tko.gives),
       "ctkr/take/transferInFail"
     );
     // passing an iterated market order with the transfered funds
-    for (uint i = 0; i < tko.retryNumber; i++) {
+    for (uint i = 0; i < tko.retryNumber + 1; i++) {
       if (gasleft() < tko.gasForMarketOrder) {
         break;
       }
       (uint takerGot_, uint takerGave_, uint bounty_) = MGV.marketOrder({
-        outbound_tkn: out, // expecting quote (outbound) when selling
-        inbound_tkn: inb,
+        outbound_tkn: outbound_tkn, // expecting quote (outbound) when selling
+        inbound_tkn: inbound_tkn,
         takerWants: tko.wants,
         takerGives: tko.gives,
         fillWants: tko.selling ? false : true // only buy order should try to fill takerWants
       });
-      takerGot += takerGot_;
-      takerGave += takerGave_;
-      bounty += bounty_;
+      res.takerGot += takerGot_;
+      res.takerGave += takerGave_;
+      res.bounty += bounty_;
       if (takerGot_ == 0 && bounty_ == 0) {
         break;
       }
     }
-    bool isComplete = checkCompleteness(out, inb, tko, takerGot, takerGave);
-    // requiring `partialFillNotAllowed` => `isComplete`
+    bool isComplete = checkCompleteness(outbound_tkn, inbound_tkn, tko, res);
+    // requiring `partialFillNotAllowed` => `isComplete \/ restingOrder`
     require(
-      !tko.partialFillNotAllowed || isComplete,
+      !tko.partialFillNotAllowed || isComplete || tko.restingOrder,
       "ctkr/take/noPartialFill"
     );
 
     // sending received tokens to taker
-    if (takerGot > 0) {
+    if (res.takerGot > 0) {
       require(
-        IEIP20(out).transfer(msg.sender, takerGot),
+        IEIP20(outbound_tkn).transfer(msg.sender, res.takerGot),
         "ctkr/take/transferOutFail"
       );
     }
@@ -142,57 +147,63 @@ abstract contract CustomTaker is MultiUserPersistent {
     if (tko.restingOrder && !isComplete) {
       // resting limit order for the residual of the taker order
       // this call will credit offer owner virtual account on Mangrove with msg.value before trying to post the offer
-      (uint offerId_, string memory reason) = newOfferInternal({
-        outbound_tkn: inb,
-        inbound_tkn: out,
-        wants: tko.wants - takerGot,
-        gives: tko.gives - takerGave,
+      // `offerId_==0` if mangrove rejects the update because of low density.
+      // If user does not have enough funds, call will revert
+      res.offerId = newOfferInternal({
+        outbound_tkn: inbound_tkn,
+        inbound_tkn: outbound_tkn,
+        wants: tko.wants - res.takerGot,
+        gives: tko.gives - res.takerGave,
         gasreq: OFR_GASREQ,
         gasprice: 0,
         pivotId: 0, // offer should be best in the book
         caller: msg.sender, // msg.sender is the owner of the resting order
         provision: msg.value
       });
-      offerId = offerId_;
-      if (offerId == 0) {
+      if (res.offerId == 0) {
         // unable to post resting order
         // reverting because partial fill is not an option
-        require(!tko.partialFillNotAllowed, reason);
+        require(!tko.partialFillNotAllowed, "ctkr/take/noPartialFill");
         // sending partial fill to taker --when partial fill is allowed
         require(
-          IEIP20(inb).transfer(msg.sender, tko.gives - takerGave),
+          IEIP20(inbound_tkn).transfer(msg.sender, tko.gives - res.takerGave),
           "ctkr/take/transferInFail"
         );
         // msg.value is no longer needed so sending it back to msg.sender along with possible collected bounty
-        if (msg.value + bounty > 0) {
-          (bool noRevert, ) = msg.sender.call{value: msg.value + bounty}("");
+        if (msg.value + res.bounty > 0) {
+          (bool noRevert, ) = msg.sender.call{value: msg.value + res.bounty}(
+            ""
+          );
           require(noRevert, "ctkr/take/refundProvisionFail");
         }
+        return res;
       } else {
         // offer was successfully posted
         // crediting offer owner's balance with amount of offered tokens (transfered from caller at the begining of this function)
         // NB `inb` is the outbound token for the resting order
-        creditToken(inb, msg.sender, tko.gives - takerGave);
+        creditToken(inbound_tkn, msg.sender, tko.gives - res.takerGave);
 
         // setting a time to live for the resting order
         if (tko.blocksToLiveForRestingOrder > 0) {
-          expiring[inb][out][offerId] =
+          expiring[inbound_tkn][outbound_tkn][res.offerId] =
             block.number +
             tko.blocksToLiveForRestingOrder;
         }
+        return res;
       }
     } else {
       // either fill was complete or taker does not want to post residual as a resting order
       // transfering remaining inbound tokens to msg.sender
       require(
-        IEIP20(inb).transfer(msg.sender, tko.gives - takerGave),
+        IEIP20(inbound_tkn).transfer(msg.sender, tko.gives - res.takerGave),
         "ctkr/take/transferInFail"
       );
       // transfering potential bounty and msg.value back to the taker
-      if (msg.value + bounty > 0) {
-        (bool noRevert, ) = msg.sender.call{value: msg.value + bounty}("");
+      if (msg.value + res.bounty > 0) {
+        (bool noRevert, ) = msg.sender.call{value: msg.value + res.bounty}("");
         require(noRevert, "ctkr/take/refundFail");
       }
+      return res;
     }
   }
 
@@ -211,7 +222,9 @@ abstract contract CustomTaker is MultiUserPersistent {
       order.inbound_tkn,
       order.offerId
     );
-    return transferERC(IEIP20(order.outbound_tkn), owner, amount) ? 0 : amount;
+    // IEIP20(order.inbound_tkn).transfer(owner, amount);
+    // return 0;
+    return transferERC(IEIP20(order.inbound_tkn), owner, amount) ? 0 : amount;
   }
 
   // we need to make sure that if offer is taken and not reposted (because of insufficient provision or density) then remaining provision and outbound tokens are sent back to owner
@@ -305,4 +318,8 @@ abstract contract CustomTaker is MultiUserPersistent {
     );
     return redeemAll(order, owner);
   }
+
+  // TODO:
+  // * Solidity tests
+  // * Decentralized way to recover the status of the resting orders that belong to a given wallet
 }

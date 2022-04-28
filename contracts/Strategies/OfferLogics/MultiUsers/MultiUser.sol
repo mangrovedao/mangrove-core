@@ -193,9 +193,9 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
     uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
     uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
-  ) external payable override returns (uint) {
+  ) external payable override returns (uint offerId) {
     require(msg.sender != address(this), "Mutli/noReentrancy");
-    (uint offerId, string memory reason) = newOfferInternal(
+    offerId = newOfferInternal(
       outbound_tkn,
       inbound_tkn,
       wants,
@@ -206,10 +206,12 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
       msg.sender,
       msg.value
     );
-    require(offerId > 0, reason);
-    return offerId;
   }
 
+  // Calls new offer on Mangrove. If successful the function will:
+  // 1. Update `_offerOwners` mapping `caller` to returned `offerId`
+  // 2. maintain `mgvBalance` with the redeemable WEIs for caller on Mangrove
+  // This call will revert if `newOffer` reverts on Mangrove or if `caller` does not have the provisions to cover for the bounty.
   function newOfferInternal(
     address outbound_tkn, // address of the ERC20 contract managing outbound tokens
     address inbound_tkn, // address of the ERC20 contract managing outbound tokens
@@ -220,31 +222,25 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     uint pivotId,
     address caller,
     uint provision
-  ) internal returns (uint, string memory) {
+  ) internal returns (uint offerId) {
     uint weiBalanceBefore = MGV.balanceOf(address(this));
     if (gasreq > type(uint24).max) {
       gasreq = OFR_GASREQ;
     }
     // this call could revert if this contract does not have the provision to cover the bounty
-    try
-      MGV.newOffer{value: provision}(
-        outbound_tkn,
-        inbound_tkn,
-        wants,
-        gives,
-        gasreq,
-        gasprice,
-        pivotId
-      )
-    returns (uint offerId) {
-      //setting owner of offerId
-      addOwner(outbound_tkn, inbound_tkn, offerId, caller);
-      //updating wei balance of owner will revert if msg.sender does not have the funds
-      updateUserBalanceOnMgv(caller, weiBalanceBefore);
-      return (offerId, "");
-    } catch Error(string memory reason) {
-      return (0, reason);
-    }
+    offerId = MGV.newOffer{value: provision}(
+      outbound_tkn,
+      inbound_tkn,
+      wants,
+      gives,
+      gasreq,
+      gasprice,
+      pivotId
+    );
+    //setting owner of offerId
+    addOwner(outbound_tkn, inbound_tkn, offerId, caller);
+    //updating wei balance of owner will revert if msg.sender does not have the funds
+    updateUserBalanceOnMgv(caller, weiBalanceBefore);
   }
 
   function updateOffer(
@@ -272,6 +268,10 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     require(offerId_ > 0, reason);
   }
 
+  // Calls update offer on Mangrove. If successful the function will take care of maintaining `mgvBalance` for offer owner.
+  // This call does not revert if `updateOffer` fails on Mangrove, due for instance to low density or incorrect `wants`/`gives`.
+  // It will however revert if user does not have the provision to cover the bounty (in case of gas increase).
+  // When offer failed to be updated, the returned value is always 0 and the revert message. Otherwise it is equal to `offerId` and the empty string.
   function updateOfferInternal(
     address outbound_tkn,
     address inbound_tkn,

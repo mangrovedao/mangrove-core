@@ -1329,7 +1329,7 @@ __metadata:
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
+    eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
@@ -1382,7 +1382,7 @@ __metadata:
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
+    eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
@@ -1435,7 +1435,7 @@ __metadata:
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
+    eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
@@ -1489,7 +1489,7 @@ __metadata:
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
+    eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
@@ -1542,7 +1542,7 @@ __metadata:
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
+    eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
@@ -1578,7 +1578,7 @@ __metadata:
     config: ^3.3.6
     dotenv-flow: ^3.2.0
     eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
+    eslint-config-prettier: ^8.5.0
     fast-safe-stringify: ^2.1.1
     json-truncate: ^3.0.0
     lint-staged: ^11.1.2
@@ -1647,7 +1647,7 @@ __metadata:
   dependencies:
     "@mangrovedao/mangrove-solidity": "workspace:*"
     eslint: ^7.32.0
-    eslint-config-prettier: ^8.3.0
+    eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
     hardhat: ^2.9.2
     lint-staged: ^11.1.2
@@ -1729,7 +1729,7 @@ __metadata:
     docblock-parser: ^1.0.0
     dotenv-flow: ^3.2.0
     eslint: ^7.9.0
-    eslint-config-prettier: ^8.3.0
+    eslint-config-prettier: ^8.5.0
     ethers: ^5.4.6
     hardhat: ^2.9.2
     hardhat-deploy: ^0.9.1
@@ -4431,14 +4431,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-config-prettier@npm:^8.3.0":
-  version: 8.3.0
-  resolution: "eslint-config-prettier@npm:8.3.0"
+"eslint-config-prettier@npm:^8.5.0":
+  version: 8.5.0
+  resolution: "eslint-config-prettier@npm:8.5.0"
   peerDependencies:
     eslint: ">=7.0.0"
   bin:
     eslint-config-prettier: bin/cli.js
-  checksum: df4cea3032671995bb5ab07e016169072f7fa59f44a53251664d9ca60951b66cdc872683b5c6a3729c91497c11490ca44a79654b395dd6756beb0c3903a37196
+  checksum: 0d0f5c32e7a0ad91249467ce71ca92394ccd343178277d318baf32063b79ea90216f4c81d1065d60f96366fdc60f151d4d68ae7811a58bd37228b84c2083f893
   languageName: node
   linkType: hard
 

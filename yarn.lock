@@ -1361,7 +1361,7 @@ __metadata:
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^11.1.2
@@ -1414,7 +1414,7 @@ __metadata:
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^11.1.2
@@ -1467,7 +1467,7 @@ __metadata:
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^11.1.2
@@ -1521,7 +1521,7 @@ __metadata:
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^11.1.2
@@ -1574,7 +1574,7 @@ __metadata:
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^11.1.2
@@ -1638,7 +1638,7 @@ __metadata:
     dotenv-flow: ^3.2.0
     ethers: ^5.4.6
     fs: ^0.0.1-security
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-abi-exporter: ^2.8.0
     hardhat-deploy: ^0.9.4
     hardhat-deploy-ethers: ^0.3.0-beta.10
@@ -1677,7 +1677,7 @@ __metadata:
     eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     lint-staged: ^11.1.2
     mocha: ^9.1.2
     prettier: 2.3.2
@@ -1703,7 +1703,7 @@ __metadata:
     dotenv-flow: ^3.2.0
     ethers: ^5.4.6
     fs: ^0.0.1-security
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-abi-exporter: ^2.8.0
     hardhat-deploy: ^0.9.4
     hardhat-deploy-ethers: ^0.3.0-beta.10
@@ -1759,7 +1759,7 @@ __metadata:
     eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.4.6
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.10
     lint-staged: ^10.5.1
@@ -5617,9 +5617,9 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"hardhat@npm:^2.9.2":
-  version: 2.9.2
-  resolution: "hardhat@npm:2.9.2"
+"hardhat@npm:^2.9.3":
+  version: 2.9.3
+  resolution: "hardhat@npm:2.9.3"
   dependencies:
     "@ethereumjs/block": ^3.6.0
     "@ethereumjs/blockchain": ^5.5.0
@@ -5671,7 +5671,7 @@ fsevents@~2.3.2:
     ws: ^7.4.6
   bin:
     hardhat: internal/cli/cli.js
-  checksum: bbee86d43e85a7a841f8b6a6d7bc6609fa2f052db75cbc131eb40e770744f847ca5ed5211314219c90a375f065c987cfd79e0167bfd84c8b674aa2963c94f1a6
+  checksum: 1f563957185a7639d68afc778449989f1d6fc7326eda8a1f9fd01d6144ddc74de01607ecc077aaae6eaeafcd17eb3df4c827f59af244340ef4d3d393ca7c6faa
   languageName: node
   linkType: hard
 

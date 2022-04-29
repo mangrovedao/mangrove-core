@@ -60,6 +60,11 @@ contract CustomTaker_Test is HasMgvEvents {
 
     // returns an activated Mangrove on market (base,quote)
     mgv = MgvSetup.setup(base, quote);
+    mgv.setFee(_base, _quote, 30);
+    mgv.setFee(_quote, _base, 30);
+    // to prevent test runner (taker) from receiving fees!
+    mgv.setVault(address(mgv));
+
     mgvGateway = new CustomTaker(payable(mgv));
 
     // mgvGateway needs to approve mangrove for outbound token transfer
@@ -92,9 +97,9 @@ contract CustomTaker_Test is HasMgvEvents {
     payable(askMkr).transfer(10 ether);
 
     bidMkr.approveMgv(quote, 10 ether);
-    quote.mint(address(bidMkr), 1 ether);
+    quote.mint(address(bidMkr), 10 ether);
 
-    base.mint(address(askMkr), 1 ether);
+    base.mint(address(askMkr), 10 ether);
     askMkr.approveMgv(base, 10 ether);
 
     bidMkr.newOfferWithFunding(1 ether, 0.1 ether, 50_000, 0, 0, 0.1 ether);
@@ -135,7 +140,7 @@ contract CustomTaker_Test is HasMgvEvents {
     CustomTaker.TakerOrderResult memory res = mgvGateway.take(buyOrder);
     TestEvents.eq(
       res.takerGot,
-      1 ether,
+      netBuy(1 ether),
       "Incorrect partial fill of taker order"
     );
     TestEvents.eq(
@@ -274,7 +279,7 @@ contract CustomTaker_Test is HasMgvEvents {
     );
     TestEvents.eq(
       base.balanceOf(address(this)),
-      balBaseBefore + netBuy(res.takerGot),
+      balBaseBefore + res.takerGot,
       "incorrect base balance"
     );
   }
@@ -358,6 +363,7 @@ contract CustomTaker_Test is HasMgvEvents {
   }
 
   function resting_buy_order_can_be_partially_filled_test() public {
+    mgv.setFee(_quote, _base, 0);
     CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
       base: _base,
       quote: _quote,
@@ -398,6 +404,9 @@ contract CustomTaker_Test is HasMgvEvents {
       "Incorrect forwarded amount to initial taker"
     );
     // outbound token debited from test runner account on `mgvGateway`
+    // computation below is incorrect when fee != 0 since sellTkrGot is net for taker and brut should be taken from Quote balance
+    // setting fees to 0 to have correct computation
+
     TestEvents.eq(
       mgvGateway.tokenBalance(_quote),
       oldRemoteQuoteBal - sellTkrGot,
@@ -456,5 +465,84 @@ contract CustomTaker_Test is HasMgvEvents {
     );
     TestEvents.expectFrom(address(mgv));
     emit OfferRetract(_quote, _base, res.offerId);
+  }
+
+  function user_can_retract_resting_offer_test() public {
+    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+      base: _base,
+      quote: _quote,
+      partialFillNotAllowed: false,
+      selling: false, //i.e buying
+      wants: 2 ether,
+      gives: 0.26 ether,
+      restingOrder: true,
+      retryNumber: 0,
+      gasForMarketOrder: 6_500_000,
+      blocksToLiveForRestingOrder: 0 //NA
+    });
+    CustomTaker.TakerOrderResult memory res = mgvGateway.take{value: 0.1 ether}(
+      buyOrder
+    );
+    uint userWeiOnMangroveOld = mgvGateway.balanceOnMangrove();
+    uint userWeiBalanceLocalOld = address(this).balance;
+    uint credited = mgvGateway.retractOffer(_quote, _base, res.offerId, true);
+    TestEvents.eq(
+      mgvGateway.balanceOnMangrove(),
+      userWeiOnMangroveOld + credited,
+      "Incorrect wei balance after retract"
+    );
+    TestEvents.check(
+      mgvGateway.withdrawFromMangrove(
+        payable(this),
+        mgvGateway.balanceOnMangrove()
+      ),
+      "Withdraw failed"
+    );
+    TestEvents.eq(
+      address(this).balance,
+      userWeiBalanceLocalOld + userWeiOnMangroveOld + credited,
+      "Incorrect provision received"
+    );
+  }
+
+  function iterative_market_order_completes_test() public {
+    askMkr.shouldRepost(true);
+    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+      base: _base,
+      quote: _quote,
+      partialFillNotAllowed: false,
+      selling: false, //i.e buying
+      wants: 2 ether,
+      gives: 0.26 ether,
+      restingOrder: true,
+      retryNumber: 1,
+      gasForMarketOrder: 6_500_000,
+      blocksToLiveForRestingOrder: 0 //NA
+    });
+    CustomTaker.TakerOrderResult memory res = mgvGateway.take{value: 0.1 ether}(
+      buyOrder
+    );
+    TestEvents.eq(
+      res.takerGot,
+      netBuy(2 ether),
+      "Iterative market order was not complete"
+    );
+    TestEvents.expectFrom(address(mgv));
+    emit OrderComplete(
+      _base,
+      _quote,
+      address(mgvGateway),
+      netBuy(1 ether),
+      0.13 ether,
+      0
+    );
+    emit OrderComplete(
+      _base,
+      _quote,
+      address(mgvGateway),
+      netBuy(1 ether),
+      0.13 ether,
+      0
+    );
   }
 }

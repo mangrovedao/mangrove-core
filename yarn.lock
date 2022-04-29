@@ -307,6 +307,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@eslint/eslintrc@npm:^1.2.2":
+  version: 1.2.2
+  resolution: "@eslint/eslintrc@npm:1.2.2"
+  dependencies:
+    ajv: ^6.12.4
+    debug: ^4.3.2
+    espree: ^9.3.1
+    globals: ^13.9.0
+    ignore: ^5.2.0
+    import-fresh: ^3.2.1
+    js-yaml: ^4.1.0
+    minimatch: ^3.0.4
+    strip-json-comments: ^3.1.1
+  checksum: d891036bbffb0efec1462aa4a603ed6e349d546b1632dde7d474ddd15c2a8b6895671b25293f1d3ba10ff629c24a3649ad049373fe695a0e44b612537088563c
+  languageName: node
+  linkType: hard
+
 "@espendk/json-file-reporter@npm:^1.4.1, @espendk/json-file-reporter@npm:^1.4.2":
   version: 1.4.2
   resolution: "@espendk/json-file-reporter@npm:1.4.2"
@@ -1151,7 +1168,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@humanwhocodes/object-schema@npm:^1.2.0":
+"@humanwhocodes/config-array@npm:^0.9.2":
+  version: 0.9.5
+  resolution: "@humanwhocodes/config-array@npm:0.9.5"
+  dependencies:
+    "@humanwhocodes/object-schema": ^1.2.1
+    debug: ^4.1.1
+    minimatch: ^3.0.4
+  checksum: 8ba6281bc0590f6c6eadeefc14244b5a3e3f5903445aadd1a32099ed80e753037674026ce1b3c945ab93561bea5eb29e3c5bff67060e230c295595ba517a3492
+  languageName: node
+  linkType: hard
+
+"@humanwhocodes/object-schema@npm:^1.2.0, @humanwhocodes/object-schema@npm:^1.2.1":
   version: 1.2.1
   resolution: "@humanwhocodes/object-schema@npm:1.2.1"
   checksum: a824a1ec31591231e4bad5787641f59e9633827d0a2eaae131a288d33c9ef0290bd16fda8da6f7c0fcb014147865d12118df10db57f27f41e20da92369fcb3f1
@@ -1328,12 +1356,12 @@ __metadata:
     config: ^3.3.6
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
-    eslint: ^7.32.0
+    eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^11.1.2
@@ -1381,12 +1409,12 @@ __metadata:
     config: ^3.3.6
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
-    eslint: ^7.32.0
+    eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^11.1.2
@@ -1434,12 +1462,12 @@ __metadata:
     config: ^3.3.6
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
-    eslint: ^7.32.0
+    eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^11.1.2
@@ -1488,12 +1516,12 @@ __metadata:
     config: ^3.3.6
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
-    eslint: ^7.32.0
+    eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^11.1.2
@@ -1541,12 +1569,12 @@ __metadata:
     config: ^3.3.6
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
-    eslint: ^7.32.0
+    eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^11.1.2
@@ -1610,7 +1638,7 @@ __metadata:
     dotenv-flow: ^3.2.0
     ethers: ^5.4.6
     fs: ^0.0.1-security
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-abi-exporter: ^2.8.0
     hardhat-deploy: ^0.9.4
     hardhat-deploy-ethers: ^0.3.0-beta.10
@@ -1646,10 +1674,10 @@ __metadata:
   resolution: "@mangrovedao/hardhat-utils@workspace:packages/hardhat-utils"
   dependencies:
     "@mangrovedao/mangrove-solidity": "workspace:*"
-    eslint: ^7.32.0
+    eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.4.7
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     lint-staged: ^11.1.2
     mocha: ^9.1.2
     prettier: 2.3.2
@@ -1675,7 +1703,7 @@ __metadata:
     dotenv-flow: ^3.2.0
     ethers: ^5.4.6
     fs: ^0.0.1-security
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-abi-exporter: ^2.8.0
     hardhat-deploy: ^0.9.4
     hardhat-deploy-ethers: ^0.3.0-beta.10
@@ -1728,10 +1756,10 @@ __metadata:
     dir-compare: ^3.3.0
     docblock-parser: ^1.0.0
     dotenv-flow: ^3.2.0
-    eslint: ^7.9.0
+    eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.4.6
-    hardhat: ^2.9.2
+    hardhat: ^2.9.3
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.10
     lint-staged: ^10.5.1
@@ -2649,6 +2677,15 @@ __metadata:
   bin:
     acorn: bin/acorn
   checksum: 2e4c1dbed3da327684863debf31d341bf8882c6893c506653872c00977eee45675feb9129255d6c74c88424d2b20d889ca6de5b39776e5e3cccfc756b3ca1da8
+  languageName: node
+  linkType: hard
+
+"acorn@npm:^8.7.0":
+  version: 8.7.1
+  resolution: "acorn@npm:8.7.1"
+  bin:
+    acorn: bin/acorn
+  checksum: aca0aabf98826717920ac2583fdcad0a6fbe4e583fdb6e843af2594e907455aeafe30b1e14f1757cd83ce1776773cf8296ffc3a4acf13f0bd3dfebcf1db6ae80
   languageName: node
   linkType: hard
 
@@ -4452,6 +4489,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"eslint-scope@npm:^7.1.1":
+  version: 7.1.1
+  resolution: "eslint-scope@npm:7.1.1"
+  dependencies:
+    esrecurse: ^4.3.0
+    estraverse: ^5.2.0
+  checksum: 9f6e974ab2db641ca8ab13508c405b7b859e72afe9f254e8131ff154d2f40c99ad4545ce326fd9fde3212ff29707102562a4834f1c48617b35d98c71a97fbf3e
+  languageName: node
+  linkType: hard
+
 "eslint-utils@npm:^2.0.0, eslint-utils@npm:^2.1.0":
   version: 2.1.0
   resolution: "eslint-utils@npm:2.1.0"
@@ -4486,7 +4533,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-visitor-keys@npm:^3.0.0":
+"eslint-visitor-keys@npm:^3.0.0, eslint-visitor-keys@npm:^3.3.0":
   version: 3.3.0
   resolution: "eslint-visitor-keys@npm:3.3.0"
   checksum: d59e68a7c5a6d0146526b0eec16ce87fbf97fe46b8281e0d41384224375c4e52f5ffb9e16d48f4ea50785cde93f766b0c898e31ab89978d88b0e1720fbfb7808
@@ -4543,6 +4590,51 @@ __metadata:
   languageName: node
   linkType: hard
 
+"eslint@npm:^8.14.0":
+  version: 8.14.0
+  resolution: "eslint@npm:8.14.0"
+  dependencies:
+    "@eslint/eslintrc": ^1.2.2
+    "@humanwhocodes/config-array": ^0.9.2
+    ajv: ^6.10.0
+    chalk: ^4.0.0
+    cross-spawn: ^7.0.2
+    debug: ^4.3.2
+    doctrine: ^3.0.0
+    escape-string-regexp: ^4.0.0
+    eslint-scope: ^7.1.1
+    eslint-utils: ^3.0.0
+    eslint-visitor-keys: ^3.3.0
+    espree: ^9.3.1
+    esquery: ^1.4.0
+    esutils: ^2.0.2
+    fast-deep-equal: ^3.1.3
+    file-entry-cache: ^6.0.1
+    functional-red-black-tree: ^1.0.1
+    glob-parent: ^6.0.1
+    globals: ^13.6.0
+    ignore: ^5.2.0
+    import-fresh: ^3.0.0
+    imurmurhash: ^0.1.4
+    is-glob: ^4.0.0
+    js-yaml: ^4.1.0
+    json-stable-stringify-without-jsonify: ^1.0.1
+    levn: ^0.4.1
+    lodash.merge: ^4.6.2
+    minimatch: ^3.0.4
+    natural-compare: ^1.4.0
+    optionator: ^0.9.1
+    regexpp: ^3.2.0
+    strip-ansi: ^6.0.1
+    strip-json-comments: ^3.1.0
+    text-table: ^0.2.0
+    v8-compile-cache: ^2.0.3
+  bin:
+    eslint: bin/eslint.js
+  checksum: 87d2e3e5eb93216d4ab36006e7b8c0bfad02f40b0a0f193f1d42754512cd3a9d8244152f1c69df5db2e135b3c4f1c10d0ed2f0881fe8a8c01af55465968174c1
+  languageName: node
+  linkType: hard
+
 "espree@npm:^6.2.1":
   version: 6.2.1
   resolution: "espree@npm:6.2.1"
@@ -4562,6 +4654,17 @@ __metadata:
     acorn-jsx: ^5.3.1
     eslint-visitor-keys: ^1.3.0
   checksum: aa9b50dcce883449af2e23bc2b8d9abb77118f96f4cb313935d6b220f77137eaef7724a83c3f6243b96bc0e4ab14766198e60818caad99f9519ae5a336a39b45
+  languageName: node
+  linkType: hard
+
+"espree@npm:^9.3.1":
+  version: 9.3.1
+  resolution: "espree@npm:9.3.1"
+  dependencies:
+    acorn: ^8.7.0
+    acorn-jsx: ^5.3.1
+    eslint-visitor-keys: ^3.3.0
+  checksum: d7161db30b65427e0799383699ac4c441533a38faee005153694b68b933ba7a24666680edfc490fa77e3a84a22dbd955768034a6f811af5049774eead83063a5
   languageName: node
   linkType: hard
 
@@ -5332,6 +5435,15 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
+"glob-parent@npm:^6.0.1":
+  version: 6.0.2
+  resolution: "glob-parent@npm:6.0.2"
+  dependencies:
+    is-glob: ^4.0.3
+  checksum: c13ee97978bef4f55106b71e66428eb1512e71a7466ba49025fc2aec59a5bfb0954d5abd58fc5ee6c9b076eef4e1f6d3375c2e964b88466ca390da4419a786a8
+  languageName: node
+  linkType: hard
+
 "glob@npm:7.1.3":
   version: 7.1.3
   resolution: "glob@npm:7.1.3"
@@ -5512,9 +5624,9 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"hardhat@npm:^2.9.2":
-  version: 2.9.2
-  resolution: "hardhat@npm:2.9.2"
+"hardhat@npm:^2.9.3":
+  version: 2.9.3
+  resolution: "hardhat@npm:2.9.3"
   dependencies:
     "@ethereumjs/block": ^3.6.0
     "@ethereumjs/blockchain": ^5.5.0
@@ -5566,7 +5678,7 @@ fsevents@~2.3.2:
     ws: ^7.4.6
   bin:
     hardhat: internal/cli/cli.js
-  checksum: bbee86d43e85a7a841f8b6a6d7bc6609fa2f052db75cbc131eb40e770744f847ca5ed5211314219c90a375f065c987cfd79e0167bfd84c8b674aa2963c94f1a6
+  checksum: 1f563957185a7639d68afc778449989f1d6fc7326eda8a1f9fd01d6144ddc74de01607ecc077aaae6eaeafcd17eb3df4c827f59af244340ef4d3d393ca7c6faa
   languageName: node
   linkType: hard
 
@@ -6372,7 +6484,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"js-yaml@npm:4.1.0":
+"js-yaml@npm:4.1.0, js-yaml@npm:^4.1.0":
   version: 4.1.0
   resolution: "js-yaml@npm:4.1.0"
   dependencies:

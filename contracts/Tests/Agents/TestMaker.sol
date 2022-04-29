@@ -5,16 +5,23 @@ pragma abicoder v2;
 import "./Passthrough.sol";
 import "../../AbstractMangrove.sol";
 import "hardhat/console.sol";
-import {IERC20, IMaker} from "../../MgvLib.sol";
+import {IERC20} from "../../MgvLib.sol";
 import {Test as TestEvents} from "@mangrovedao/hardhat-test-solidity/test.sol";
+import {MgvLib as ML, P, IMaker} from "../../MgvLib.sol";
 
 contract TestMaker is IMaker, Passthrough {
+  using P.Offer for P.Offer.t;
+  using P.OfferDetail for P.OfferDetail.t;
+  using P.Global for P.Global.t;
+  using P.Local for P.Local.t;
+
   AbstractMangrove _mgv;
   address _base;
   address _quote;
   bool _shouldFail; // will set mgv allowance to 0
   bool _shouldAbort; // will not return bytes32("")
   bool _shouldRevert; // will revert
+  bool _shouldRepost; // will try to repost offer with identical parameters
   bytes32 _expectedStatus;
 
   constructor(
@@ -59,6 +66,10 @@ contract TestMaker is IMaker, Passthrough {
 
   function shouldAbort(bool should) external {
     _shouldAbort = should;
+  }
+
+  function shouldRepost(bool should) external {
+    _shouldRepost = should;
   }
 
   function approveMgv(IERC20 token, uint amount) public {
@@ -137,6 +148,19 @@ contract TestMaker is IMaker, Passthrough {
         "Incorrect status message"
       );
     }
+
+    if (_shouldRepost) {
+      _mgv.updateOffer(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offer.wants(),
+        order.offer.gives(),
+        order.offerDetail.gasreq(),
+        0,
+        order.offer.prev(),
+        order.offerId
+      );
+    }
   }
 
   function newOffer(
@@ -155,7 +179,17 @@ contract TestMaker is IMaker, Passthrough {
     uint pivotId,
     uint amount
   ) public returns (uint) {
-    return (_mgv.newOffer{value:amount}(_base, _quote, wants, gives, gasreq, 0, pivotId));
+    return (
+      _mgv.newOffer{value: amount}(
+        _base,
+        _quote,
+        wants,
+        gives,
+        gasreq,
+        0,
+        pivotId
+      )
+    );
   }
 
   function newOffer(
@@ -178,7 +212,17 @@ contract TestMaker is IMaker, Passthrough {
     uint pivotId,
     uint amount
   ) public returns (uint) {
-    return (_mgv.newOffer{value:amount}(base, quote, wants, gives, gasreq, 0, pivotId));
+    return (
+      _mgv.newOffer{value: amount}(
+        base,
+        quote,
+        wants,
+        gives,
+        gasreq,
+        0,
+        pivotId
+      )
+    );
   }
 
   function newOffer(
@@ -201,7 +245,17 @@ contract TestMaker is IMaker, Passthrough {
     uint pivotId,
     uint amount
   ) public returns (uint) {
-    return (_mgv.newOffer{value:amount}(_base, _quote, wants, gives, gasreq, gasprice, pivotId));
+    return (
+      _mgv.newOffer{value: amount}(
+        _base,
+        _quote,
+        wants,
+        gives,
+        gasreq,
+        gasprice,
+        pivotId
+      )
+    );
   }
 
   function updateOffer(
@@ -222,7 +276,16 @@ contract TestMaker is IMaker, Passthrough {
     uint offerId,
     uint amount
   ) public {
-    _mgv.updateOffer{value:amount}(_base, _quote, wants, gives, gasreq, 0, pivotId, offerId);
+    _mgv.updateOffer{value: amount}(
+      _base,
+      _quote,
+      wants,
+      gives,
+      gasreq,
+      0,
+      pivotId,
+      offerId
+    );
   }
 
   function retractOffer(uint offerId) public returns (uint) {

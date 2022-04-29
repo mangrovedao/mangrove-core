@@ -1753,7 +1753,7 @@ __metadata:
     chalk: ^4.1.2
     config: ^3.3.6
     cross-env: ^7.0.3
-    dir-compare: ^3.3.0
+    dir-compare: ^4.0.0
     docblock-parser: ^1.0.0
     dotenv-flow: ^3.2.0
     eslint: ^8.14.0
@@ -3239,13 +3239,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"buffer-equal@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "buffer-equal@npm:1.0.0"
-  checksum: c63a62d25ffc6f3a7064a86dd0d92d93a32d03b14f22d17374790bc10e94bca2312302895fdd28a2b0060999d4385cf90cbf6ad1a6678065156c664016d3be45
-  languageName: node
-  linkType: hard
-
 "buffer-from@npm:^1.0.0":
   version: 1.1.2
   resolution: "buffer-from@npm:1.1.2"
@@ -4176,13 +4169,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dir-compare@npm:^3.3.0":
-  version: 3.3.0
-  resolution: "dir-compare@npm:3.3.0"
+"dir-compare@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "dir-compare@npm:4.0.0"
   dependencies:
-    buffer-equal: ^1.0.0
     minimatch: ^3.0.4
-  checksum: 05e7381509b17cb4e6791bd9569c12ce4267f44b1ee36594946ed895ed7ad24da9285130dc42af3a60707d58c76307bb3a1cbae2acd0a9cce8c74664e6a26828
+    p-limit: "^3.1.0 "
+  checksum: 54d7620453d239c8c64cb8ca54e8ca6ea3f9f9633eb2923f1143f0822b4bb63702029d8d18570186b950d4e1a7575691a0730b3e22f3fa3d2102c1279562091a
   languageName: node
   linkType: hard
 
@@ -8246,7 +8239,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"p-limit@npm:^3.0.2":
+"p-limit@npm:^3.0.2, p-limit@npm:^3.1.0 ":
   version: 3.1.0
   resolution: "p-limit@npm:3.1.0"
   dependencies:

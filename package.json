@@ -36,7 +36,7 @@
     "config": "^3.3.6",
     "cross-env": "^7.0.3",
     "dotenv-flow": "^3.2.0",
-    "ethers": "^5.4.6",
+    "ethers": "^5.6.4",
     "fs": "^0.0.1-security",
     "hardhat": "^2.9.3",
     "hardhat-abi-exporter": "^2.8.0",

@@ -24,14 +24,14 @@ contract CustomTaker is MultiUserPersistent {
   struct TakerOrder {
     address base; //identifying Mangrove market
     address quote;
-    bool partialFillNotAllowed; //revert if taker order cannot be filled
+    bool partialFillNotAllowed; //revert if taker order cannot be filled and resting order failed or is not enabled
     bool selling; // whether this is a selling order (otherwise a buy order)
-    uint wants;
-    uint gives;
+    uint wants; // if `selling` amount of quote tokens, otherwise amount of base tokens
+    uint gives; // if `selling` amount of base tokens, otherwise amount of quote tokens
     bool restingOrder; // whether the complement of the partial fill (if any) should be posted as a resting limit order
     uint retryNumber; // number of times filling the taker order should be retried (0 means 1 attempt).
-    uint gasForMarketOrder;
-    uint blocksToLiveForRestingOrder; // number of blocks the resting order should be allowed to live, 0 means for ever
+    uint gasForMarketOrder; // gas limit per market order attempt
+    uint blocksToLiveForRestingOrder; // number of blocks the resting order should be allowed to live, 0 means forever
   }
 
   constructor(address payable _MGV) MangroveOffer(_MGV) {}

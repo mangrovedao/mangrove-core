@@ -722,19 +722,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethersproject/hardware-wallets@npm:^5.0.0, @ethersproject/hardware-wallets@npm:^5.4.0":
-  version: 5.5.0
-  resolution: "@ethersproject/hardware-wallets@npm:5.5.0"
+"@ethersproject/hardware-wallets@npm:^5.6.0":
+  version: 5.6.0
+  resolution: "@ethersproject/hardware-wallets@npm:5.6.0"
   dependencies:
     "@ledgerhq/hw-app-eth": 5.27.2
     "@ledgerhq/hw-transport": 5.26.0
     "@ledgerhq/hw-transport-node-hid": 5.26.0
     "@ledgerhq/hw-transport-u2f": 5.26.0
-    ethers: ^5.5.0
+    ethers: ^5.6.0
   dependenciesMeta:
     "@ledgerhq/hw-transport-node-hid":
       optional: true
-  checksum: 12f6357071ed5c2630c9d17632da2c9510ed14959223f95d53e664cd29a29020fb7fdda5e3f0e88f782a5cee4bd543d644599e45c008004d7fb7e1bd8721f183
+  checksum: 342c4a13252140c72c6e8fc62b3d1b23977c4747a92112c5749ee2b783c4ead7e9588bbcdfd6b97929e9853d8c5db59c63814b59d06e0c88709a713627d0282a
   languageName: node
   linkType: hard
 
@@ -1488,7 +1488,7 @@ __metadata:
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
     "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.4.0
+    "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/commonlib-js": "workspace:*"
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
@@ -1541,7 +1541,7 @@ __metadata:
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
     "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.4.0
+    "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/commonlib-js": "workspace:*"
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
@@ -1594,7 +1594,7 @@ __metadata:
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
     "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.4.0
+    "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/commonlib-js": "workspace:*"
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
@@ -1648,7 +1648,7 @@ __metadata:
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
     "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.4.0
+    "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/commonlib-js": "workspace:*"
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
@@ -1700,7 +1700,7 @@ __metadata:
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
     "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.4.0
+    "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/commonlib-js": "workspace:*"
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
@@ -1782,7 +1782,7 @@ __metadata:
   resolution: "@mangrovedao/faucet@workspace:packages/faucet"
   dependencies:
     "@espendk/json-file-reporter": ^1.4.1
-    "@ethersproject/hardware-wallets": ^5.0.0
+    "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/hardhat-test-solidity": ^0.0.16
     "@nomiclabs/hardhat-ethers": ^2.0.5
     adhusson-hardhat-solpp: ^2.0.2
@@ -1847,7 +1847,7 @@ __metadata:
   dependencies:
     "@espendk/json-file-reporter": ^1.4.1
     "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.0.0
+    "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/hardhat-test-solidity": ^0.0.16
     "@nomiclabs/hardhat-ethers": ^2.0.5
     "@nomiclabs/hardhat-solpp": ^2.0.1
@@ -1885,7 +1885,7 @@ __metadata:
     "@ethersproject/abi": ^5.6.0
     "@ethersproject/bytes": ^5.0.0
     "@ethersproject/experimental": ^5.5.0
-    "@ethersproject/hardware-wallets": ^5.0.0
+    "@ethersproject/hardware-wallets": ^5.6.0
     "@ethersproject/providers": ^5.6.4
     "@mangrovedao/hardhat-utils": "workspace:*"
     "@mangrovedao/mangrove-solidity": "workspace:*"
@@ -4999,7 +4999,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ethers@npm:^5.6.4":
+"ethers@npm:^5.6.0, ethers@npm:^5.6.4":
   version: 5.6.4
   resolution: "ethers@npm:5.6.4"
   dependencies:

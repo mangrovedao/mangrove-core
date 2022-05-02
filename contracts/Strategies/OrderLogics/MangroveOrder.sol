@@ -12,29 +12,21 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "./Persistent.sol";
+import "../OfferLogics/MultiUsers/Persistent.sol";
+import "../interfaces/IOrderLogic.sol";
 
-contract CustomTaker is MultiUserPersistent {
+contract MangroveOrder is MultiUserPersistent, IOrderLogic {
   using P.Local for P.Local.t;
 
   // `blockToLive[token1][token2][offerId]` gives block number beyond which the offer should renege on trade.
-  mapping(address => mapping(address => mapping(uint => uint))) expiring;
-  event LogFailure(address outbound_tkn, address inbound_tkn, string reason);
-
-  struct TakerOrder {
-    address base; //identifying Mangrove market
-    address quote;
-    bool partialFillNotAllowed; //revert if taker order cannot be filled and resting order failed or is not enabled
-    bool selling; // whether this is a selling order (otherwise a buy order)
-    uint wants; // if `selling` amount of quote tokens, otherwise amount of base tokens
-    uint gives; // if `selling` amount of base tokens, otherwise amount of quote tokens
-    bool restingOrder; // whether the complement of the partial fill (if any) should be posted as a resting limit order
-    uint retryNumber; // number of times filling the taker order should be retried (0 means 1 attempt).
-    uint gasForMarketOrder; // gas limit per market order attempt
-    uint blocksToLiveForRestingOrder; // number of blocks the resting order should be allowed to live, 0 means forever
-  }
+  mapping(address => mapping(address => mapping(uint => uint))) public expiring;
+  uint public GASLIMIT = 10_000_000;
 
   constructor(address payable _MGV) MangroveOffer(_MGV) {}
+
+  function set_gasLimit(uint gasLimit) external onlyAdmin {
+    GASLIMIT = gasLimit;
+  }
 
   // transfer with no revert
   function transferERC(
@@ -59,13 +51,6 @@ contract CustomTaker is MultiUserPersistent {
   {
     uint exp = expiring[order.outbound_tkn][order.inbound_tkn][order.offerId];
     return (exp == 0 || block.number <= exp);
-  }
-
-  struct TakerOrderResult {
-    uint takerGot;
-    uint takerGave;
-    uint bounty;
-    uint offerId;
   }
 
   // revert when order was partially filled and it is not allowed
@@ -103,7 +88,7 @@ contract CustomTaker is MultiUserPersistent {
       : (tko.base, tko.quote);
     require(
       IEIP20(inbound_tkn).transferFrom(msg.sender, address(this), tko.gives),
-      "ctkr/take/transferInFail"
+      "mgvOrder/mo/transferInFail"
     );
     // passing an iterated market order with the transfered funds
     for (uint i = 0; i < tko.retryNumber + 1; i++) {
@@ -128,14 +113,14 @@ contract CustomTaker is MultiUserPersistent {
     // requiring `partialFillNotAllowed` => `isComplete \/ restingOrder`
     require(
       !tko.partialFillNotAllowed || isComplete || tko.restingOrder,
-      "ctkr/take/noPartialFill"
+      "mgvOrder/mo/noPartialFill"
     );
 
     // sending received tokens to taker
     if (res.takerGot > 0) {
       require(
         IEIP20(outbound_tkn).transfer(msg.sender, res.takerGot),
-        "ctkr/take/transferOutFail"
+        "mgvOrder/mo/transferOutFail"
       );
     }
 
@@ -163,18 +148,18 @@ contract CustomTaker is MultiUserPersistent {
       if (res.offerId == 0) {
         // unable to post resting order
         // reverting because partial fill is not an option
-        require(!tko.partialFillNotAllowed, "ctkr/take/noPartialFill");
+        require(!tko.partialFillNotAllowed, "mgvOrder/mo/noPartialFill");
         // sending partial fill to taker --when partial fill is allowed
         require(
           IEIP20(inbound_tkn).transfer(msg.sender, tko.gives - res.takerGave),
-          "ctkr/take/transferInFail"
+          "mgvOrder/mo/transferInFail"
         );
         // msg.value is no longer needed so sending it back to msg.sender along with possible collected bounty
         if (msg.value + res.bounty > 0) {
           (bool noRevert, ) = msg.sender.call{value: msg.value + res.bounty}(
             ""
           );
-          require(noRevert, "ctkr/take/refundProvisionFail");
+          require(noRevert, "mgvOrder/mo/refundProvisionFail");
         }
         return res;
       } else {
@@ -196,12 +181,12 @@ contract CustomTaker is MultiUserPersistent {
       // transfering remaining inbound tokens to msg.sender
       require(
         IEIP20(inbound_tkn).transfer(msg.sender, tko.gives - res.takerGave),
-        "ctkr/take/transferInFail"
+        "mgvOrder/mo/transferInFail"
       );
       // transfering potential bounty and msg.value back to the taker
       if (msg.value + res.bounty > 0) {
         (bool noRevert, ) = msg.sender.call{value: msg.value + res.bounty}("");
-        require(noRevert, "ctkr/take/refundFail");
+        require(noRevert, "mgvOrder/mo/refundFail");
       }
       return res;
     }
@@ -241,7 +226,7 @@ contract CustomTaker is MultiUserPersistent {
         order.outbound_tkn,
         order.inbound_tkn,
         order.offerId,
-        "ctkr/posthook/transferOutFail"
+        "mgvOrder/redeemAll/transferOut"
       );
       return false;
     }
@@ -255,7 +240,7 @@ contract CustomTaker is MultiUserPersistent {
         order.outbound_tkn,
         order.inbound_tkn,
         order.offerId,
-        "ctkr/posthook/transferInFail"
+        "mgvOrder/redeemAll/transferIn"
       );
       return false;
     }
@@ -297,7 +282,7 @@ contract CustomTaker is MultiUserPersistent {
         order.outbound_tkn,
         order.inbound_tkn,
         order.offerId,
-        "ctkr/posthook/transferWeiFail"
+        "mgvOrder/posthook/transferWei"
       );
       return false;
     }

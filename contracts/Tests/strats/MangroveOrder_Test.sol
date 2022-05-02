@@ -13,9 +13,10 @@ import "../Toolbox/TestUtils.sol";
 import "../Agents/TestToken.sol";
 import "../Agents/TestMaker.sol";
 
-import "../../Strategies/OfferLogics/MultiUsers/CustomTaker.sol";
+import {MangroveOrder as MgvOrder} from "../../Strategies/OrderLogics/MangroveOrder.sol";
+import "../../Strategies/interfaces/IOrderLogic.sol";
 
-contract CustomTaker_Test is HasMgvEvents {
+contract MangroveOrder_Test is HasMgvEvents {
   using P.Global for P.Global.t;
   using P.OfferDetail for P.OfferDetail.t;
   using P.Offer for P.Offer.t;
@@ -37,7 +38,7 @@ contract CustomTaker_Test is HasMgvEvents {
   TestToken quote;
   address _base;
   address _quote;
-  CustomTaker mgvGateway;
+  MgvOrder mgvOrder;
   TestMaker bidMkr;
   TestMaker askMkr;
   TestTaker sellTkr;
@@ -65,30 +66,30 @@ contract CustomTaker_Test is HasMgvEvents {
     // to prevent test runner (taker) from receiving fees!
     mgv.setVault(address(mgv));
 
-    mgvGateway = new CustomTaker(payable(mgv));
+    mgvOrder = new MgvOrder(payable(mgv));
 
-    // mgvGateway needs to approve mangrove for outbound token transfer
-    mgvGateway.approveMangrove(_base, 10 ether);
-    mgvGateway.approveMangrove(_quote, 10 ether);
+    // mgvOrder needs to approve mangrove for outbound token transfer
+    mgvOrder.approveMangrove(_base, 10 ether);
+    mgvOrder.approveMangrove(_quote, 10 ether);
 
-    //adding provision on Mangrove for `mgvGateway` in order to fake having already multiple users
-    mgv.fund{value: 1 ether}(address(mgvGateway));
+    //adding provision on Mangrove for `mgvOrder` in order to fake having already multiple users
+    mgv.fund{value: 1 ether}(address(mgvOrder));
 
-    // `this` contract will act as `CustomTaker` user
+    // `this` contract will act as `MgvOrder` user
     quote.mint(address(this), 10 ether);
     base.mint(address(this), 10 ether);
 
-    // user approves `mgvGateway` to pull quote or base when doing a market order
-    quote.approve(address(mgvGateway), 10 ether);
-    base.approve(address(mgvGateway), 10 ether);
+    // user approves `mgvOrder` to pull quote or base when doing a market order
+    quote.approve(address(mgvOrder), 10 ether);
+    base.approve(address(mgvOrder), 10 ether);
 
     // `sellTkr` will take resting offer
     sellTkr = TakerSetup.setup(mgv, _quote, _base);
     base.mint(address(sellTkr), 10 ether);
     // if seller wants to sell direclty on mangrove
     sellTkr.approve(base, address(mgv), 10 ether);
-    // if seller wants to sell via mgvGateway
-    sellTkr.approve(base, address(mgvGateway), 10 ether);
+    // if seller wants to sell via mgvOrder
+    sellTkr.approve(base, address(mgvOrder), 10 ether);
 
     // populating order book with offers
     bidMkr = MakerSetup.setup(mgv, _quote, _base);
@@ -112,7 +113,7 @@ contract CustomTaker_Test is HasMgvEvents {
 
     Display.register(msg.sender, "Test Runner");
     Display.register(address(this), "Taker");
-    Display.register(address(mgvGateway), "Gateway");
+    Display.register(address(mgvOrder), "MgvOrder");
     Display.register(_base, "$A");
     Display.register(_quote, "$B");
     Display.register(address(mgv), "mgv");
@@ -125,7 +126,7 @@ contract CustomTaker_Test is HasMgvEvents {
   }
 
   function partial_filled_buy_order_returns_residual_test() public {
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: false,
@@ -137,7 +138,7 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    CustomTaker.TakerOrderResult memory res = mgvGateway.take(buyOrder);
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take(buyOrder);
     TestEvents.eq(
       res.takerGot,
       netBuy(1 ether),
@@ -150,14 +151,14 @@ contract CustomTaker_Test is HasMgvEvents {
     );
 
     TestEvents.expectFrom(_quote); // checking quote is sent to mgv and remainder is sent back to taker
-    emit Transfer(address(this), address(mgvGateway), 0.26 ether);
-    emit Transfer(address(mgvGateway), address(this), 0.13 ether);
+    emit Transfer(address(this), address(mgvOrder), 0.26 ether);
+    emit Transfer(address(mgvOrder), address(this), 0.13 ether);
   }
 
   function partial_filled_buy_order_reverts_when_noPartialFill_enabled_test()
     public
   {
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: true,
@@ -169,12 +170,12 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    try mgvGateway.take(buyOrder) {
+    try mgvOrder.take(buyOrder) {
       TestEvents.fail("Partial fill should revert");
     } catch Error(string memory reason) {
       TestEvents.eq(
         reason,
-        "ctkr/take/noPartialFill",
+        "mgvOrder/mo/noPartialFill",
         "Unexpected revert reason"
       );
     }
@@ -182,7 +183,7 @@ contract CustomTaker_Test is HasMgvEvents {
 
   function partial_filled_buy_order_returns_provision_test() public {
     uint balBefore = address(this).balance;
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: false,
@@ -194,9 +195,10 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    CustomTaker.TakerOrderResult memory res = mgvGateway.take{value: 0.1 ether}(
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
       buyOrder
     );
+    TestEvents.eq(res.takerGot, netBuy(1 ether), "Incorrect taker got");
     TestEvents.eq(
       balBefore,
       address(this).balance,
@@ -208,7 +210,7 @@ contract CustomTaker_Test is HasMgvEvents {
     uint balBefore = address(this).balance;
     askMkr.shouldRevert(true);
 
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: false,
@@ -220,7 +222,7 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    CustomTaker.TakerOrderResult memory res = mgvGateway.take{value: 0.1 ether}(
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
       buyOrder
     );
     TestEvents.check(res.bounty > 0, "Bounty should not be zero");
@@ -232,7 +234,7 @@ contract CustomTaker_Test is HasMgvEvents {
   }
 
   function resting_buy_order_reverts_when_unprovisioned_test() public {
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: false,
@@ -244,7 +246,7 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    try mgvGateway.take(buyOrder) {
+    try mgvOrder.take(buyOrder) {
       TestEvents.fail("Maker order should have failed.");
     } catch Error(string memory reason) {
       TestEvents.eq(
@@ -259,7 +261,7 @@ contract CustomTaker_Test is HasMgvEvents {
     uint balQuoteBefore = quote.balanceOf(address(this));
     uint balBaseBefore = base.balanceOf(address(this));
 
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: false,
@@ -271,7 +273,7 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    CustomTaker.TakerOrderResult memory res = mgvGateway.take(buyOrder);
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take(buyOrder);
     TestEvents.eq(
       quote.balanceOf(address(this)),
       balQuoteBefore - res.takerGave,
@@ -287,7 +289,7 @@ contract CustomTaker_Test is HasMgvEvents {
   function filled_resting_buy_order_returns_provision_test() public {
     uint balWeiBefore = address(this).balance;
 
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: false,
@@ -299,12 +301,13 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    CustomTaker.TakerOrderResult memory res = mgvGateway.take(buyOrder);
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take(buyOrder);
+    res; // ssh
     TestEvents.eq(address(this).balance, balWeiBefore, "incorrect wei balance");
   }
 
   function resting_buy_order_is_successfully_posted_test() public {
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: false,
@@ -316,7 +319,7 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    CustomTaker.TakerOrderResult memory res = mgvGateway.take{value: 0.1 ether}(
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
       buyOrder
     );
     TestEvents.check(
@@ -337,26 +340,26 @@ contract CustomTaker_Test is HasMgvEvents {
       "Incorrect gives for bid resting order"
     );
 
-    // checking `mgvGateway` mappings
-    uint prov = mgvGateway.getMissingProvision(
+    // checking `mgvOrder` mappings
+    uint prov = mgvOrder.getMissingProvision(
       _quote,
       _base,
-      mgvGateway.OFR_GASREQ(),
+      mgvOrder.OFR_GASREQ(),
       0,
       0
     );
     TestEvents.eq(
-      mgvGateway.balanceOnMangrove(),
+      mgvOrder.balanceOnMangrove(),
       0.1 ether - prov,
       "Incorrect user balance on mangrove"
     );
     TestEvents.eq(
-      mgvGateway.ownerOf(_quote, _base, res.offerId),
+      mgvOrder.ownerOf(_quote, _base, res.offerId),
       address(this),
       "Invalid offer owner"
     );
     TestEvents.eq(
-      mgvGateway.tokenBalance(_quote),
+      mgvOrder.tokenBalance(_quote),
       0.13 ether,
       "Invalid offer owner"
     );
@@ -364,7 +367,7 @@ contract CustomTaker_Test is HasMgvEvents {
 
   function resting_buy_order_can_be_partially_filled_test() public {
     mgv.setFee(_quote, _base, 0);
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: false,
@@ -376,11 +379,11 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    CustomTaker.TakerOrderResult memory res = mgvGateway.take{value: 0.1 ether}(
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
       buyOrder
     );
     uint oldLocalBaseBal = base.balanceOf(address(this));
-    uint oldRemoteQuoteBal = mgvGateway.tokenBalance(_quote); // quote balance of test runner
+    uint oldRemoteQuoteBal = mgvOrder.tokenBalance(_quote); // quote balance of test runner
 
     // TestUtils.logOfferBook(mgv,_base,_quote,4);
     // TestUtils.logOfferBook(mgv,_quote,_base,4);
@@ -403,14 +406,14 @@ contract CustomTaker_Test is HasMgvEvents {
       oldLocalBaseBal + sellTkrGave,
       "Incorrect forwarded amount to initial taker"
     );
-    // outbound token debited from test runner account on `mgvGateway`
+    // outbound token debited from test runner account on `mgvOrder`
     // computation below is incorrect when fee != 0 since sellTkrGot is net for taker and brut should be taken from Quote balance
     // setting fees to 0 to have correct computation
 
     TestEvents.eq(
-      mgvGateway.tokenBalance(_quote),
+      mgvOrder.tokenBalance(_quote),
       oldRemoteQuoteBal - sellTkrGot,
-      "Incorrect token balance on mgvGateway"
+      "Incorrect token balance on mgvOrder"
     );
 
     // checking resting order residual
@@ -424,7 +427,7 @@ contract CustomTaker_Test is HasMgvEvents {
   }
 
   function resting_offer_deprovisions_when_unable_to_repost_test() public {
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: false,
@@ -436,16 +439,16 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    CustomTaker.TakerOrderResult memory res = mgvGateway.take{value: 0.1 ether}(
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
       buyOrder
     );
     // test runner quote balance on the gateway
-    uint balQuoteRemote = mgvGateway.tokenBalance(_quote);
+    uint balQuoteRemote = mgvOrder.tokenBalance(_quote);
     uint balQuoteLocal = quote.balanceOf(address(this));
 
     // increasing density on mangrove so that resting offer can no longer repost
     mgv.setDensity(_quote, _base, 1 ether);
-    (bool success, uint sellTkrGot, uint sellTkrGave) = sellTkr.takeWithInfo({
+    (bool success, , ) = sellTkr.takeWithInfo({
       offerId: res.offerId,
       takerWants: 0
     });
@@ -456,11 +459,11 @@ contract CustomTaker_Test is HasMgvEvents {
       "Quote was not transfered to user"
     );
     TestEvents.check(
-      mgvGateway.tokenBalance(_quote) == 0,
+      mgvOrder.tokenBalance(_quote) == 0,
       "Inconsistent token balance"
     );
     TestEvents.check(
-      mgvGateway.balanceOnMangrove() == 0,
+      mgvOrder.balanceOnMangrove() == 0,
       "Inconsistent wei balance"
     );
     TestEvents.expectFrom(address(mgv));
@@ -468,7 +471,7 @@ contract CustomTaker_Test is HasMgvEvents {
   }
 
   function user_can_retract_resting_offer_test() public {
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: false,
@@ -480,21 +483,21 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    CustomTaker.TakerOrderResult memory res = mgvGateway.take{value: 0.1 ether}(
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
       buyOrder
     );
-    uint userWeiOnMangroveOld = mgvGateway.balanceOnMangrove();
+    uint userWeiOnMangroveOld = mgvOrder.balanceOnMangrove();
     uint userWeiBalanceLocalOld = address(this).balance;
-    uint credited = mgvGateway.retractOffer(_quote, _base, res.offerId, true);
+    uint credited = mgvOrder.retractOffer(_quote, _base, res.offerId, true);
     TestEvents.eq(
-      mgvGateway.balanceOnMangrove(),
+      mgvOrder.balanceOnMangrove(),
       userWeiOnMangroveOld + credited,
       "Incorrect wei balance after retract"
     );
     TestEvents.check(
-      mgvGateway.withdrawFromMangrove(
+      mgvOrder.withdrawFromMangrove(
         payable(this),
-        mgvGateway.balanceOnMangrove()
+        mgvOrder.balanceOnMangrove()
       ),
       "Withdraw failed"
     );
@@ -507,7 +510,7 @@ contract CustomTaker_Test is HasMgvEvents {
 
   function iterative_market_order_completes_test() public {
     askMkr.shouldRepost(true);
-    CustomTaker.TakerOrder memory buyOrder = CustomTaker.TakerOrder({
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: _base,
       quote: _quote,
       partialFillNotAllowed: false,
@@ -519,7 +522,7 @@ contract CustomTaker_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    CustomTaker.TakerOrderResult memory res = mgvGateway.take{value: 0.1 ether}(
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
       buyOrder
     );
     TestEvents.eq(
@@ -531,7 +534,7 @@ contract CustomTaker_Test is HasMgvEvents {
     emit OrderComplete(
       _base,
       _quote,
-      address(mgvGateway),
+      address(mgvOrder),
       netBuy(1 ether),
       0.13 ether,
       0
@@ -539,7 +542,7 @@ contract CustomTaker_Test is HasMgvEvents {
     emit OrderComplete(
       _base,
       _quote,
-      address(mgvGateway),
+      address(mgvOrder),
       netBuy(1 ether),
       0.13 ether,
       0

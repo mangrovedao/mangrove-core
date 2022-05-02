@@ -26,6 +26,14 @@ contract TestTaker is ITaker {
     token.approve(address(_mgv), amount);
   }
 
+  function approve(
+    IERC20 token,
+    address spender,
+    uint amount
+  ) external {
+    token.approve(spender, amount);
+  }
+
   function approveSpender(address spender, uint amount) external {
     _mgv.approve(_base, _quote, spender, amount);
   }

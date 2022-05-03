@@ -134,7 +134,8 @@ contract HasMgvEvents {
   event PosthookFail(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
-    uint offerId
+    uint offerId,
+    bytes32 posthookData
   );
 
   /* * After `permit` and `approve` */

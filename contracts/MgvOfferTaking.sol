@@ -743,12 +743,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       revert("mgv/notEnoughGasForMakerPosthook");
     }
 
-    (bool callSuccess, ) = controlledCall(maker, gasLeft, cd);
+    (bool callSuccess, bytes32 posthookData) = controlledCall(maker, gasLeft, cd);
 
     gasused = oldGas - gasleft();
 
     if (!callSuccess) {
-      emit PosthookFail(sor.outbound_tkn, sor.inbound_tkn, sor.offerId);
+      emit PosthookFail(sor.outbound_tkn, sor.inbound_tkn, sor.offerId, posthookData);
     }
   }}
 

@@ -126,7 +126,7 @@ contract HasMgvEvents {
     address taker,
     uint takerWants,
     uint takerGives,
-    // `mgvData` may only be `"mgv/makerRevert"`, `"mgv/makerAbort"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"`
+    // `mgvData` may only be `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"`
     bytes32 mgvData
   );
 
@@ -134,7 +134,8 @@ contract HasMgvEvents {
   event PosthookFail(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
-    uint offerId
+    uint offerId,
+    bytes32 posthookData
   );
 
   /* * After `permit` and `approve` */

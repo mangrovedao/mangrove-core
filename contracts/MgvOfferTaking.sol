@@ -180,7 +180,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       * `"mgv/tradeSuccess"`: offer execution succeeded. Will appear in `OrderResult`.
       * `"mgv/notEnoughGasForMakerTrade"`: cannot give maker close enough to `gasreq`. Triggers a revert of the entire order.
       * `"mgv/makerRevert"`: execution of `makerExecute` reverted. Will appear in `OrderResult`.
-      * `"mgv/makerAbort"`: execution of `makerExecute` returned normally, but returndata did not start with 32 bytes of 0s. Will appear in `OrderResult`.
       * `"mgv/makerTransferFail"`: maker could not send outbound_tkn tokens. Will appear in `OrderResult`.
       * `"mgv/makerReceiveFail"`: maker could not receive inbound_tkn tokens. Will appear in `OrderResult`.
       * `"mgv/takerTransferFail"`: taker could not send inbound_tkn tokens. Triggers a revert of the entire order.
@@ -579,7 +578,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
       if (
         mgvData == "mgv/makerRevert" ||
-        mgvData == "mgv/makerAbort" ||
         mgvData == "mgv/makerTransferFail" ||
         mgvData == "mgv/makerReceiveFail"
       ) {
@@ -658,12 +656,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       innerRevert([bytes32("mgv/makerRevert"), bytes32(gasused), makerData]);
     }
 
-    /* Successful execution must have a returndata that begins with `bytes32("")`.
-     */
-    if (makerData != "") {
-      innerRevert([bytes32("mgv/makerAbort"), bytes32(gasused), makerData]);
-    }
-
     bool transferSuccess = transferTokenFrom(
       sor.outbound_tkn,
       maker,
@@ -728,7 +720,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     bytes32 makerData,
     bytes32 mgvData
   ) internal returns (uint gasused) { unchecked {
-    /* At this point, mgvData can only be `"mgv/tradeSuccess"`, `"mgv/makerAbort"`, `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"` */
+    /* At this point, mgvData can only be `"mgv/tradeSuccess"`, `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"` */
     bytes memory cd = abi.encodeWithSelector(
       IMaker.makerPosthook.selector,
       sor,
@@ -743,30 +735,31 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       revert("mgv/notEnoughGasForMakerPosthook");
     }
 
-    (bool callSuccess, ) = controlledCall(maker, gasLeft, cd);
+    (bool callSuccess, bytes32 posthookData) = controlledCall(maker, gasLeft, cd);
 
     gasused = oldGas - gasleft();
 
     if (!callSuccess) {
-      emit PosthookFail(sor.outbound_tkn, sor.inbound_tkn, sor.offerId);
+      emit PosthookFail(sor.outbound_tkn, sor.inbound_tkn, sor.offerId, posthookData);
     }
   }}
 
   /* ## `controlledCall` */
-  /* Calls an external function with controlled gas expense. A direct call of the form `(,bytes memory retdata) = maker.call{gas}(selector,...args)` enables a griefing attack: the maker uses half its gas to write in its memory, then reverts with that memory segment as argument. After a low-level call, solidity automaticaly copies `returndatasize` bytes of `returndata` into memory. So the total gas consumed to execute a failing offer could exceed `gasreq + offer_gasbase` where `n` is the number of failing offers. This yul call only retrieves the first 32 bytes of the maker's `returndata`. */
+  /* Calls an external function with controlled gas expense. A direct call of the form `(,bytes memory retdata) = maker.call{gas}(selector,...args)` enables a griefing attack: the maker uses half its gas to write in its memory, then reverts with that memory segment as argument. After a low-level call, solidity automaticaly copies `returndatasize` bytes of `returndata` into memory. So the total gas consumed to execute a failing offer could exceed `gasreq + offer_gasbase` where `n` is the number of failing offers. In case of success, we read the first 32 bytes of returndata (the signature of `makerExecute` is `bytes32`). Otherwise, for compatibility with most errors that bubble up from contract calls and Solidity's `require`, we read 32 bytes of returndata starting from the 69th (4 bytes of method sig + 32 bytes of offset + 32 bytes of string length). */
   function controlledCall(
     address callee,
     uint gasreq,
     bytes memory cd
   ) internal returns (bool success, bytes32 data) { unchecked {
-    bytes32[1] memory retdata;
+    bytes32[4] memory retdata;
 
+    /* if success, read returned bytes 1..32, otherwise read returned bytes 69..100. */
     assembly {
-      success := call(gasreq, callee, 0, add(cd, 32), mload(cd), retdata, 32)
+      success := call(gasreq, callee, 0, add(cd, 32), mload(cd), retdata, 100)
+      data := mload(add(mul(iszero(success), 68), retdata))
     }
-
-    data = retdata[0];
   }}
+    
 
   /* # Penalties */
   /* Offers are just promises. They can fail. Penalty provisioning discourages from failing too much: we ask makers to provision more ETH than the expected gas cost of executing their offer and penalize them accoridng to wasted gas.

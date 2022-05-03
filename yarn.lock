@@ -1785,7 +1785,6 @@ __metadata:
     "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/hardhat-test-solidity": ^0.0.16
     "@nomiclabs/hardhat-ethers": ^2.0.5
-    adhusson-hardhat-solpp: ^2.0.2
     app-module-path: ^2.2.0
     chai: ^4.3.4
     chai-events: ^0.0.3
@@ -2842,18 +2841,6 @@ __metadata:
   bin:
     acorn: bin/acorn
   checksum: aca0aabf98826717920ac2583fdcad0a6fbe4e583fdb6e843af2594e907455aeafe30b1e14f1757cd83ce1776773cf8296ffc3a4acf13f0bd3dfebcf1db6ae80
-  languageName: node
-  linkType: hard
-
-"adhusson-hardhat-solpp@npm:^2.0.2":
-  version: 2.0.4
-  resolution: "adhusson-hardhat-solpp@npm:2.0.4"
-  dependencies:
-    fs-extra: ^7.0.1
-    solpp: "git+https://github.com/adhusson/solpp.git"
-  peerDependencies:
-    hardhat: ^2.0.0
-  checksum: dbc97cea901e3a65f5e5e1ed397ef707313d2df23bbcde5ac85dd89e3461336955d5a73d127bfb36f39adca2bba74e471afb3307bd9ccf38aeee3eae77fb0850
   languageName: node
   linkType: hard
 
@@ -9761,25 +9748,6 @@ resolve@1.17.0:
   version: 0.0.7
   resolution: "solidity-comments-extractor@npm:0.0.7"
   checksum: a5cedf2310709969bc1783a6c336171478536f2f0ea96ad88437e0ef1e8844c0b37dd75591b0a824ec9c30640ea7e31b5f03128e871e6235bef3426617ce96c4
-  languageName: node
-  linkType: hard
-
-"solpp@git+https://github.com/adhusson/solpp.git":
-  version: 0.11.5
-  resolution: "solpp@https://github.com/adhusson/solpp.git#commit=4d9d5d35161696b5af71b431110bd26d9095b7bb"
-  dependencies:
-    antlr4: ~4.8.0
-    axios: ^0.21.1
-    bn-str-256: ^1.9.1
-    commander: ^2.19.0
-    ethereumjs-util: ^6.0.0
-    lodash: ^4.17.11
-    mz: ^2.7.0
-    resolve: ^1.10.0
-    semver: ^5.6.0
-  bin:
-    solpp: src/solpp.js
-  checksum: f435aff71eac290e782a513a5ca771944588b58c177ab8d9a6c7b66426c775d0a67bd15fe75b8d24c71f88e42f9a90c6b418b54be69a1674f1ca925ec8285db4
   languageName: node
   linkType: hard
 

@@ -36,6 +36,7 @@ contract Scenarii_Test is HasMgvEvents {
   TestToken base;
   TestToken quote;
   TestUtils.Balances balances;
+  uint constant testFee = 300;
   uint[] offerOf;
 
   mapping(uint => mapping(TestUtils.Info => uint)) offers;
@@ -94,7 +95,7 @@ contract Scenarii_Test is HasMgvEvents {
     mgv = MgvSetup.setup(base, quote);
     Display.register(address(mgv), "Mgv");
     TestUtils.not0x(address(mgv));
-    mgv.setFee(address(base), address(quote), 300);
+    mgv.setFee(address(base), address(quote), testFee);
   }
 
   function c_deployMakersTaker_beforeAll() public {
@@ -138,7 +139,7 @@ contract Scenarii_Test is HasMgvEvents {
     //TestEvents.logString("=== Snipe test ===", 0);
     saveBalances();
     saveOffers();
-    (uint takerGot, uint takerGave) = TestSnipe.run(
+    (uint takerGot, uint takerGave, uint expectedFee) = TestSnipe.run(
       balances,
       offers,
       mgv,
@@ -147,6 +148,7 @@ contract Scenarii_Test is HasMgvEvents {
       base,
       quote
     );
+    console.log("expected", expectedFee);
     TestEvents.expectFrom(address(mgv));
     emit OrderStart();
     emit OrderComplete(
@@ -155,7 +157,8 @@ contract Scenarii_Test is HasMgvEvents {
       address(taker),
       takerGot,
       takerGave,
-      0
+      0,
+      expectedFee
     );
     TestEvents.stopExpecting();
 

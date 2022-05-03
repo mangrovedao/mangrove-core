@@ -99,6 +99,7 @@ contract Deployer {
 contract Gatekeeping_Test is IMaker, HasMgvEvents {
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
+
   receive() external payable {}
 
   AbstractMangrove mgv;
@@ -223,10 +224,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   function killing_updates_config_test() public {
     (P.Global.t global, ) = mgv.config(address(0), address(0));
-    TestEvents.check(
-      !global.dead(),
-      "mgv should not be dead "
-    );
+    TestEvents.check(!global.dead(), "mgv should not be dead ");
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
     TestEvents.check(global.dead(), "mgv should be dead ");
@@ -237,19 +235,13 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   function kill_is_idempotent_test() public {
     (P.Global.t global, ) = mgv.config(address(0), address(0));
-    TestEvents.check(
-      !global.dead(),
-      "mgv should not be dead "
-    );
+    TestEvents.check(!global.dead(), "mgv should not be dead ");
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
     TestEvents.check(global.dead(), "mgv should be dead");
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
-    TestEvents.check(
-      global.dead(),
-      "mgv should still be dead"
-    );
+    TestEvents.check(global.dead(), "mgv should still be dead");
     // Logging tests
     TestEvents.expectFrom(address(mgv));
     emit Kill();
@@ -405,9 +397,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   function makerGasreq_at_gasmax_succeeds_newOffer_test() public {
     (P.Global.t cfg, ) = mgv.config(base, quote);
-    try
-      mkr.newOffer(1 ether, 1 ether, cfg.gasmax(), 0)
-    returns (uint ofr) {
+    try mkr.newOffer(1 ether, 1 ether, cfg.gasmax(), 0) returns (uint ofr) {
       TestEvents.check(
         mgv.isLive(mgv.offers(base, quote, ofr)),
         "Offer should have been inserted"
@@ -442,8 +432,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   function makerGasreq_lower_than_density_fails_newOffer_test() public {
     (, P.Local.t cfg) = mgv.config(base, quote);
-    uint amount = (1 + cfg.offer_gasbase()) *
-      cfg.density();
+    uint amount = (1 + cfg.offer_gasbase()) * cfg.density();
     try mkr.newOffer(amount - 1, amount - 1, 1, 0) {
       TestEvents.fail("Offer should not be inserted");
     } catch Error(string memory r) {
@@ -453,8 +442,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   function makerGasreq_at_density_suceeds_test() public {
     (P.Global.t glob, P.Local.t cfg) = mgv.config(base, quote);
-    uint amount = (1 + cfg.offer_gasbase()) *
-      cfg.density();
+    uint amount = (1 + cfg.offer_gasbase()) * cfg.density();
     try mkr.newOffer(amount, amount, 1, 0) returns (uint ofr) {
       TestEvents.check(
         mgv.isLive(mgv.offers(base, quote, ofr)),
@@ -569,7 +557,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     tkr.approveSpender(address(this), 1.2 ether);
     uint takerGot;
-    (takerGot, , ) = mgv.marketOrderFor(
+    (takerGot, , , ) = mgv.marketOrderFor(
       base,
       quote,
       1 ether,

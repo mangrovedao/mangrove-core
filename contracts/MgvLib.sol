@@ -102,7 +102,8 @@ contract HasMgvEvents {
     address indexed taker,
     uint takerGot,
     uint takerGave,
-    uint penalty
+    uint penalty,
+    uint feePaid
   );
 
   /* * Offer execution */

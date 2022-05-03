@@ -36,6 +36,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint totalPenalty; // used globally
     address taker; // used globally
     bool fillWants; // used globally
+    uint feePaid; // used globally
   }
 
   /* # Market Orders */
@@ -61,6 +62,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (
       uint,
       uint,
+      uint,
       uint
     )
   { unchecked {
@@ -77,7 +79,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   /* # General Market Order */
   //+clear+
-  /* General market orders set up the market order with a given `taker` (`msg.sender` in the most common case). Returns `(totalGot, totalGave)`.
+  /* General market orders set up the market order with a given `taker` (`msg.sender` in the most common case). Returns `(totalGot, totalGave, penaltyReceived, feePaid)`.
   Note that the `taker` can be anyone. This is safe when `taker == msg.sender`, but `generalMarketOrder` must not be called with `taker != msg.sender` unless a security check is done after (see [`MgvOfferTakingWithPermit`](#mgvoffertakingwithpermit.sol)`. */
   function generalMarketOrder(
     address outbound_tkn,
@@ -89,6 +91,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   )
     internal
     returns (
+      uint,
       uint,
       uint,
       uint
@@ -110,8 +113,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     sor.wants = takerWants;
     sor.gives = takerGives;
 
-    /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */
-    MultiOrder memory mor;
+    /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */ MultiOrder memory mor;
     mor.initialWants = takerWants;
     mor.initialGives = takerGives;
     mor.taker = taker;
@@ -145,11 +147,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       taker,
       mor.totalGot,
       mor.totalGave,
-      mor.totalPenalty
+      mor.totalPenalty,
+      mor.feePaid
     );
 
     //+clear+
-    return (mor.totalGot, mor.totalGave, mor.totalPenalty);
+    return (mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid);
   }}
 
   /* ## Internal market order */
@@ -270,7 +273,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Snipes */
   //+clear+
 
-  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,takerWants,takerGives,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty)`. 
+  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,takerWants,takerGives,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty,feePaid)`. 
   Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`). */
   function snipes(
     address outbound_tkn,
@@ -283,6 +286,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       uint,
       uint,
       uint,
+      uint,
       uint
     )
   { unchecked {
@@ -291,7 +295,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }}
 
   /*
-     From an array of _n_ `[offerId, takerWants,takerGives,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty)`. 
+     From an array of _n_ `[offerId, takerWants,takerGives,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty, feePaid)`. 
 
      Note that if this function is not internal, anyone can make anyone use Mangrove.
      Note that unlike general market order, the returned total values are _not_ `mor.totalGot` and `mor.totalGave`, since those are reset at every iteration of the `targets` array. Instead, accumulators `snipesGot` and `snipesGave` are used. */
@@ -304,10 +308,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   )
     internal
     returns (
-      uint,
-      uint,
-      uint,
-      uint
+      uint successCount,
+      uint snipesGot,
+      uint snipesGave,
+      uint totalPenalty,
+      uint feePaid
     )
   { unchecked {
     ML.SingleOrder memory sor;
@@ -329,7 +334,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     //+clear+
 
     /* Call `internalSnipes` function. */
-    (uint successCount, uint snipesGot, uint snipesGave) = internalSnipes(mor, sor, targets);
+    (successCount, snipesGot, snipesGave) = internalSnipes(mor, sor, targets);
 
     /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by the Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
     sendPenalty(mor.totalPenalty);
@@ -341,10 +346,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       taker,
       snipesGot,
       snipesGave,
-      mor.totalPenalty
+      mor.totalPenalty,
+      mor.feePaid
     );
-
-    return (successCount, snipesGot, snipesGave, mor.totalPenalty);
+    totalPenalty = mor.totalPenalty;
+    feePaid = mor.feePaid;
   }}
 
   /* ## Internal snipes */
@@ -830,6 +836,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint concreteFee = (mor.totalGot * sor.local.fee()) / 10_000;
     if (concreteFee > 0) {
       mor.totalGot -= concreteFee;
+      mor.feePaid = concreteFee;
       require(
         transferToken(sor.outbound_tkn, vault, concreteFee),
         "mgv/feeTransferFail"

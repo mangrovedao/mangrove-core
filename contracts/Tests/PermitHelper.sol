@@ -173,7 +173,7 @@ contract PermitHelper is IMaker {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [uint(1), 1 ether, 1 ether, 300_000];
-    (uint successes, uint takerGot, uint takerGave, ) = mgv.snipesFor(
+    (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipesFor(
       base,
       quote,
       targets,

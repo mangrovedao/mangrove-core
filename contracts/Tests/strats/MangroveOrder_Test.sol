@@ -537,6 +537,7 @@ contract MangroveOrder_Test is HasMgvEvents {
       address(mgvOrder),
       netBuy(1 ether),
       0.13 ether,
+      0,
       0
     );
     emit OrderComplete(
@@ -545,6 +546,7 @@ contract MangroveOrder_Test is HasMgvEvents {
       address(mgvOrder),
       netBuy(1 ether),
       0.13 ether,
+      0,
       0
     );
   }

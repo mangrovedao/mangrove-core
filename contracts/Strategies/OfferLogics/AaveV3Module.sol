@@ -152,8 +152,8 @@ contract AaveV3Module {
     // unless account doesn't have enough collateral in asset token (hence the min())
 
     uint maxRedeemableUnderlying = (account.redeemPower * // in 10**underlying.decimals
-        10**(underlying.decimals) *
-        10**4) / (underlying.liquidationThreshold * underlying.price);
+      10**(underlying.decimals) *
+      10**4) / (underlying.liquidationThreshold * underlying.price);
 
     maxRedeemableUnderlying = (maxRedeemableUnderlying <
       account.balanceOfUnderlying)

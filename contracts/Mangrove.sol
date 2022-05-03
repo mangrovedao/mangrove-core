@@ -50,27 +50,25 @@ contract Mangrove is AbstractMangrove {
     external
     override
     returns (uint gasused)
-  { unchecked {
-    /* `flashloan` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would be fatal. */
-    require(msg.sender == address(this), "mgv/flashloan/protected");
-    /* The transfer taker -> maker is in 2 steps. First, taker->mgv. Then
+  {
+    unchecked {
+      /* `flashloan` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would be fatal. */
+      require(msg.sender == address(this), "mgv/flashloan/protected");
+      /* The transfer taker -> maker is in 2 steps. First, taker->mgv. Then
        mgv->maker. With a direct taker->maker transfer, if one of taker/maker
        is blacklisted, we can't tell which one. We need to know which one:
        if we incorrectly blame the taker, a blacklisted maker can block a pair forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume the Mangrove is not blacklisted. Also note that this setup doesn't not work well with tokens that take fees or recompute balances at transfer time. */
-    if (transferTokenFrom(sor.inbound_tkn, taker, address(this), sor.gives)) {
-      if (
-        transferToken(
-          sor.inbound_tkn,
-          sor.offerDetail.maker(),
-          sor.gives
-        )
-      ) {
-        gasused = makerExecute(sor);
+      if (transferTokenFrom(sor.inbound_tkn, taker, address(this), sor.gives)) {
+        if (
+          transferToken(sor.inbound_tkn, sor.offerDetail.maker(), sor.gives)
+        ) {
+          gasused = makerExecute(sor);
+        } else {
+          innerRevert([bytes32("mgv/makerReceiveFail"), bytes32(0), ""]);
+        }
       } else {
-        innerRevert([bytes32("mgv/makerReceiveFail"), bytes32(0), ""]);
+        innerRevert([bytes32("mgv/takerTransferFail"), "", ""]);
       }
-    } else {
-      innerRevert([bytes32("mgv/takerTransferFail"), "", ""]);
     }
-  }}
+  }
 }

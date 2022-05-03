@@ -17,11 +17,10 @@ import "./Agents/TestTaker.sol";
 import {MgvReader} from "../periphery/MgvReader.sol";
 
 contract Oracle {
-  function read(address /*base*/, address /*quote*/)
-    external
-    pure
-    returns (uint, uint)
-  {
+  function read(
+    address, /*base*/
+    address /*quote*/
+  ) external pure returns (uint, uint) {
     return (23, 2);
   }
 }

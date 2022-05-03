@@ -9779,7 +9779,7 @@ resolve@1.17.0:
     semver: ^5.6.0
   bin:
     solpp: src/solpp.js
-  checksum: cfbf4b1c8bd5ee0c972a2fcbf0e9c1fed26095a093489120300713814f78685faf630c48e7febfaf84fba0f8a501c8d4ad823c064a759d0549a123373361a610
+  checksum: f435aff71eac290e782a513a5ca771944588b58c177ab8d9a6c7b66426c775d0a67bd15fe75b8d24c71f88e42f9a90c6b418b54be69a1674f1ca925ec8285db4
   languageName: node
   linkType: hard
 

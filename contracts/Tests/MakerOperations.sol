@@ -222,7 +222,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     tkr.take(ofr, 0.1 ether); // fails but we don't care
 
     TestEvents.expectFrom(address(mgv));
-    emit PosthookFail(_base, _quote, ofr);
+    emit PosthookFail(_base, _quote, ofr,"posthookFail");
   }
 
   function badReturn_fails_test() public {

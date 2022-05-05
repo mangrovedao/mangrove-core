@@ -20,13 +20,8 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
 
   // `blockToLive[token1][token2][offerId]` gives block number beyond which the offer should renege on trade.
   mapping(address => mapping(address => mapping(uint => uint))) public expiring;
-  uint public GASLIMIT = 10_000_000;
 
   constructor(address payable _MGV) MangroveOffer(_MGV) {}
-
-  function set_gasLimit(uint gasLimit) external onlyAdmin {
-    GASLIMIT = gasLimit;
-  }
 
   // transfer with no revert
   function transferERC(
@@ -92,7 +87,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     );
     // passing an iterated market order with the transfered funds
     for (uint i = 0; i < tko.retryNumber + 1; i++) {
-      if (gasleft() < tko.gasForMarketOrder) {
+      if (tko.gasForMarketOrder != 0 && gasleft() < tko.gasForMarketOrder) {
         break;
       }
       (uint takerGot_, uint takerGave_, uint bounty_) = MGV.marketOrder({
@@ -145,6 +140,17 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
         caller: msg.sender, // msg.sender is the owner of the resting order
         provision: msg.value
       });
+
+      emit OrderSummary({
+        base: tko.base,
+        quote: tko.quote,
+        taker: msg.sender,
+        takerGot: res.takerGot,
+        takerGave: res.takerGave,
+        penalty: res.bounty,
+        restingOrderId: res.offerId
+      });
+
       if (res.offerId == 0) {
         // unable to post resting order
         // reverting because partial fill is not an option
@@ -188,6 +194,15 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
         (bool noRevert, ) = msg.sender.call{value: msg.value + res.bounty}("");
         require(noRevert, "mgvOrder/mo/refundFail");
       }
+      emit OrderSummary({
+        base: tko.base,
+        quote: tko.quote,
+        taker: msg.sender,
+        takerGot: res.takerGot,
+        takerGave: res.takerGave,
+        penalty: res.bounty,
+        restingOrderId: 0
+      });
       return res;
     }
   }

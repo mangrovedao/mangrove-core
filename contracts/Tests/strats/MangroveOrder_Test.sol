@@ -33,6 +33,16 @@ contract MangroveOrder_Test is HasMgvEvents {
     bytes32 reason
   );
 
+  event OrderSummary(
+    address indexed base,
+    address indexed quote,
+    address indexed taker,
+    uint takerGot,
+    uint takerGave,
+    uint bounty,
+    uint restingOrderId
+  );
+
   AbstractMangrove mgv;
   TestToken base;
   TestToken quote;
@@ -363,6 +373,16 @@ contract MangroveOrder_Test is HasMgvEvents {
       0.13 ether,
       "Invalid offer owner"
     );
+    TestEvents.expectFrom(address(mgvOrder));
+    emit OrderSummary(
+      _base,
+      _quote,
+      address(this),
+      netBuy(1 ether),
+      0.13 ether,
+      0,
+      res.offerId
+    );
   }
 
   function resting_buy_order_can_be_partially_filled_test() public {
@@ -545,6 +565,16 @@ contract MangroveOrder_Test is HasMgvEvents {
       address(mgvOrder),
       netBuy(1 ether),
       0.13 ether,
+      0
+    );
+    TestEvents.expectFrom(address(mgvOrder));
+    emit OrderSummary(
+      _base,
+      _quote,
+      address(this),
+      netBuy(2 ether),
+      0.26 ether,
+      0,
       0
     );
   }

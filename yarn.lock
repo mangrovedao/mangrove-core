@@ -1509,7 +1509,7 @@ __metadata:
     big.js: ^6.1.1
     chai: ^4.3.4
     chai-as-promised: ^7.1.1
-    config: ^3.3.6
+    config: ^3.3.7
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     eslint: ^8.14.0
@@ -1562,7 +1562,7 @@ __metadata:
     big.js: ^6.1.1
     chai: ^4.3.4
     chai-as-promised: ^7.1.1
-    config: ^3.3.6
+    config: ^3.3.7
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     eslint: ^8.14.0
@@ -1615,7 +1615,7 @@ __metadata:
     big.js: ^6.1.1
     chai: ^4.3.4
     chai-as-promised: ^7.1.1
-    config: ^3.3.6
+    config: ^3.3.7
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     eslint: ^8.14.0
@@ -1669,7 +1669,7 @@ __metadata:
     big.js: ^6.1.1
     chai: ^4.3.4
     chai-as-promised: ^7.1.1
-    config: ^3.3.6
+    config: ^3.3.7
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     eslint: ^8.14.0
@@ -1722,7 +1722,7 @@ __metadata:
     big.js: ^6.1.1
     chai: ^4.3.4
     chai-as-promised: ^7.1.1
-    config: ^3.3.6
+    config: ^3.3.7
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     eslint: ^8.14.0
@@ -1759,7 +1759,7 @@ __metadata:
     "@types/node": ^16.9.4
     "@typescript-eslint/eslint-plugin": ^5.21.0
     "@typescript-eslint/parser": ^5.22.0
-    config: ^3.3.6
+    config: ^3.3.7
     dotenv-flow: ^3.2.0
     eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
@@ -1788,7 +1788,7 @@ __metadata:
     app-module-path: ^2.2.0
     chai: ^4.3.4
     chai-events: ^0.0.3
-    config: ^3.3.6
+    config: ^3.3.7
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     ethers: ^5.6.4
@@ -1853,7 +1853,7 @@ __metadata:
     app-module-path: ^2.2.0
     chai: ^4.3.4
     chai-events: ^0.0.3
-    config: ^3.3.6
+    config: ^3.3.7
     cross-env: ^7.0.3
     dotenv-flow: ^3.2.0
     ethers: ^5.6.4
@@ -1906,7 +1906,7 @@ __metadata:
     chai: ^4.3.4
     chai-as-promised: ^7.1.1
     chalk: ^4.1.2
-    config: ^3.3.6
+    config: ^3.3.7
     cross-env: ^7.0.3
     dir-compare: ^4.0.0
     docblock-parser: ^1.0.0
@@ -3925,12 +3925,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"config@npm:^3.3.6":
-  version: 3.3.6
-  resolution: "config@npm:3.3.6"
+"config@npm:^3.3.7":
+  version: 3.3.7
+  resolution: "config@npm:3.3.7"
   dependencies:
     json5: ^2.1.1
-  checksum: 53684cae0d1c9fa2fe6db41fa85201aa5ab92dcbe7596d63381e7e48f0cb3dea45bee812dc18ee91a3daf887ec0f3c57bf4acc555629ba7608d5a3b932e61c8e
+  checksum: 53b68dbf303a262b16ee376bb8ee08a9f1f4d09ea5d35a45cd9a47a47591a0817c00d5d10f0d53328221f2a927c98ef8eb921679ad9722c80400df6839c40861
   languageName: node
   linkType: hard
 

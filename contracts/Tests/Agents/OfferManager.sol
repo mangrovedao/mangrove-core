@@ -132,7 +132,7 @@ contract OfferManager is IMaker, ITaker {
     IERC20(quote).approve(address(MGV), 100 ether); // to pay maker
     IERC20(base).approve(address(MGV), 100 ether); // takerfee
 
-    (uint netReceived, , ) = MGV.marketOrder(base, quote, wants, gives, true); // OfferManager might collect provisions of failing offers
+    (uint netReceived, , , ) = MGV.marketOrder(base, quote, wants, gives, true); // OfferManager might collect provisions of failing offers
 
     try IERC20(base).transfer(msg.sender, netReceived) {
       uint residual_w = wants - netReceived;
@@ -146,8 +146,7 @@ contract OfferManager is IMaker, ITaker {
       }
       (P.Global.t config, ) = _MGV.config(base, quote);
       require(
-        msg.value >=
-          gas_to_execute * uint(config.gasprice()) * 10**9,
+        msg.value >= gas_to_execute * uint(config.gasprice()) * 10**9,
         "Insufficent funds to delegate order"
       ); //not checking overflow issues
       (bool success, ) = address(_MGV).call{value: msg.value}("");

@@ -44,7 +44,6 @@ contract MgvRoot is HasMgvEvents {
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
 
-
   /* # State variables */
   //+clear+
   /* The `vault` address. If a pair has fees >0, those fees are sent to the vault. */
@@ -56,14 +55,18 @@ contract MgvRoot is HasMgvEvents {
   mapping(address => mapping(address => P.Local.t)) internal locals;
 
   /* Checking the size of `density` is necessary to prevent overflow when `density` is used in calculations. */
-  function checkDensity(uint density) internal pure returns (bool) { unchecked {
-    return uint112(density) == density;
-  }}
+  function checkDensity(uint density) internal pure returns (bool) {
+    unchecked {
+      return uint112(density) == density;
+    }
+  }
 
   /* Checking the size of `gasprice` is necessary to prevent a) data loss when `gasprice` is copied to an `OfferDetail` struct, and b) overflow when `gasprice` is used in calculations. */
-  function checkGasprice(uint gasprice) internal pure returns (bool) { unchecked {
-    return uint16(gasprice) == gasprice;
-  }}
+  function checkGasprice(uint gasprice) internal pure returns (bool) {
+    unchecked {
+      return uint16(gasprice) == gasprice;
+    }
+  }
 
   /* # Configuration Reads */
   /* Reading the configuration for a pair involves reading the config global to all pairs and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
@@ -71,31 +74,40 @@ contract MgvRoot is HasMgvEvents {
     public
     view
     returns (P.Global.t _global, P.Local.t _local)
-  { unchecked {
-    _global = internal_global;
-    _local = locals[outbound_tkn][inbound_tkn];
-    if (_global.useOracle()) {
-      (uint gasprice, uint density) = IMgvMonitor(_global.monitor())
-        .read(outbound_tkn, inbound_tkn);
-      if (checkGasprice(gasprice)) {
-        _global = _global.gasprice(gasprice);
-      }
-      if (checkDensity(density)) {
-        _local = _local.density(density);
+  {
+    unchecked {
+      _global = internal_global;
+      _local = locals[outbound_tkn][inbound_tkn];
+      if (_global.useOracle()) {
+        (uint gasprice, uint density) = IMgvMonitor(_global.monitor()).read(
+          outbound_tkn,
+          inbound_tkn
+        );
+        if (checkGasprice(gasprice)) {
+          _global = _global.gasprice(gasprice);
+        }
+        if (checkDensity(density)) {
+          _local = _local.density(density);
+        }
       }
     }
-  }}
+  }
 
   /* Returns the configuration in an ABI-compatible struct. Should not be called internally, would be a huge memory copying waste. Use `config` instead. */
   function configInfo(address outbound_tkn, address inbound_tkn)
     external
     view
     returns (P.GlobalStruct memory global, P.LocalStruct memory local)
-  { unchecked {
-    (P.Global.t _global, P.Local.t _local) = config(outbound_tkn, inbound_tkn);
-    global = _global.to_struct();
-    local = _local.to_struct();
-  }}
+  {
+    unchecked {
+      (P.Global.t _global, P.Local.t _local) = config(
+        outbound_tkn,
+        inbound_tkn
+      );
+      global = _global.to_struct();
+      local = _local.to_struct();
+    }
+  }
 
   /* Convenience function to check whether given pair is locked */
   function locked(address outbound_tkn, address inbound_tkn)
@@ -129,7 +141,10 @@ contract MgvRoot is HasMgvEvents {
   }
 
   /* When the Mangrove is deployed, all pairs are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive pairs cannot be taken or created. They can be updated and retracted. */
-  function activeMarketOnly(P.Global.t _global, P.Local.t _local) internal pure {
+  function activeMarketOnly(P.Global.t _global, P.Local.t _local)
+    internal
+    pure
+  {
     liveMgvOnly(_global);
     require(_local.active(), "mgv/inactive");
   }

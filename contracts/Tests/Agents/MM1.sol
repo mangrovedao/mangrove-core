@@ -45,7 +45,11 @@ contract MM1 {
     doMakerPosthook();
   }
 
-  function makerExecute(DC.SingleOrder calldata) external pure returns (bytes32) {
+  function makerExecute(DC.SingleOrder calldata)
+    external
+    pure
+    returns (bytes32)
+  {
     return "";
   }
 
@@ -72,7 +76,11 @@ contract MM1 {
 
     // best offers
     uint best_sell_id = mgv.best(a_addr, b_addr);
-    (P.OfferStruct memory best_sell, ) = mgv.offerInfo(a_addr, b_addr, best_sell_id);
+    (P.OfferStruct memory best_sell, ) = mgv.offerInfo(
+      a_addr,
+      b_addr,
+      best_sell_id
+    );
 
     //console.log("initial bs.w",best_sell.wants);
     //console.log("initial bs.g",best_sell.gives);
@@ -93,7 +101,11 @@ contract MM1 {
     //console.log("bs.g",best_sell.gives);
 
     uint best_buy_id = mgv.best(b_addr, a_addr);
-    (P.OfferStruct memory best_buy, ) = mgv.offerInfo(b_addr, a_addr, best_buy_id);
+    (P.OfferStruct memory best_buy, ) = mgv.offerInfo(
+      b_addr,
+      a_addr,
+      best_buy_id
+    );
 
     //console.log("initial bb.w",best_buy.wants);
     //console.log("initial bb.g",best_buy.gives);

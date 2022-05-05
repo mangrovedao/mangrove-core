@@ -6,6 +6,7 @@ import "../Toolbox/TestUtils.sol";
 library TestInsert {
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
+
   function run(
     TestUtils.Balances storage balances,
     AbstractMangrove mgv,
@@ -70,11 +71,8 @@ library TestInsert {
     uint offerId = mgv.best(address(base), address(quote));
     uint expected_maker = 3;
     while (offerId != 0) {
-      (P.OfferStruct memory offer, P.OfferDetailStruct memory od) = mgv.offerInfo(
-        address(base),
-        address(quote),
-        offerId
-      );
+      (P.OfferStruct memory offer, P.OfferDetailStruct memory od) = mgv
+        .offerInfo(address(base), address(quote), offerId);
       TestEvents.eq(
         od.maker,
         address(makers.getMaker(expected_maker)),

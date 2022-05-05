@@ -18,7 +18,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {MgvLib as ML, HasMgvEvents, IMgvMonitor,P} from "./MgvLib.sol";
+import {MgvLib as ML, HasMgvEvents, IMgvMonitor, P} from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
 
 /* `MgvHasOffers` contains the state variables and functions common to both market-maker operations and market-taker operations. Mostly: storing offers, removing them, updating market makers' provisions. */
@@ -50,39 +50,52 @@ contract MgvHasOffers is MgvRoot {
     external
     view
     returns (uint)
-  { unchecked {
-    P.Local.t local = locals[outbound_tkn][inbound_tkn];
-    return local.best();
-  }}
+  {
+    unchecked {
+      P.Local.t local = locals[outbound_tkn][inbound_tkn];
+      return local.best();
+    }
+  }
 
   /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offers[outbound_tkn][inbound_tkn]` and `offerDetails[outbound_tkn][inbound_tkn]` instead. */
   function offerInfo(
     address outbound_tkn,
     address inbound_tkn,
     uint offerId
-  ) external view returns (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) { unchecked {
+  )
+    external
+    view
+    returns (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail)
+  {
+    unchecked {
+      P.Offer.t _offer = offers[outbound_tkn][inbound_tkn][offerId];
+      offer = _offer.to_struct();
 
-    P.Offer.t _offer = offers[outbound_tkn][inbound_tkn][offerId];
-    offer = _offer.to_struct();
-
-    P.OfferDetail.t _offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
-    offerDetail = _offerDetail.to_struct();
-  }}
+      P.OfferDetail.t _offerDetail = offerDetails[outbound_tkn][inbound_tkn][
+        offerId
+      ];
+      offerDetail = _offerDetail.to_struct();
+    }
+  }
 
   /* # Provision debit/credit utility functions */
   /* `balanceOf` is in wei of ETH. */
 
-  function debitWei(address maker, uint amount) internal { unchecked {
-    uint makerBalance = balanceOf[maker];
-    require(makerBalance >= amount, "mgv/insufficientProvision");
-    balanceOf[maker] = makerBalance - amount;
-    emit Debit(maker, amount);
-  }}
+  function debitWei(address maker, uint amount) internal {
+    unchecked {
+      uint makerBalance = balanceOf[maker];
+      require(makerBalance >= amount, "mgv/insufficientProvision");
+      balanceOf[maker] = makerBalance - amount;
+      emit Debit(maker, amount);
+    }
+  }
 
-  function creditWei(address maker, uint amount) internal { unchecked {
-    balanceOf[maker] += amount;
-    emit Credit(maker, amount);
-  }}
+  function creditWei(address maker, uint amount) internal {
+    unchecked {
+      balanceOf[maker] += amount;
+      emit Credit(maker, amount);
+    }
+  }
 
   /* # Misc. low-level functions */
   /* ## Offer deletion */
@@ -97,14 +110,16 @@ contract MgvHasOffers is MgvRoot {
     P.Offer.t offer,
     P.OfferDetail.t offerDetail,
     bool deprovision
-  ) internal { unchecked {
-    offer = offer.gives(0);
-    if (deprovision) {
-      offerDetail = offerDetail.gasprice(0);
+  ) internal {
+    unchecked {
+      offer = offer.gives(0);
+      if (deprovision) {
+        offerDetail = offerDetail.gasprice(0);
+      }
+      offers[outbound_tkn][inbound_tkn][offerId] = offer;
+      offerDetails[outbound_tkn][inbound_tkn][offerId] = offerDetail;
     }
-    offers[outbound_tkn][inbound_tkn][offerId] = offer;
-    offerDetails[outbound_tkn][inbound_tkn][offerId] = offerDetail;
-  }}
+  }
 
   /* ## Stitching the orderbook */
 
@@ -119,23 +134,31 @@ contract MgvHasOffers is MgvRoot {
     uint betterId,
     uint worseId,
     P.Local.t local
-  ) internal returns (P.Local.t) { unchecked {
-    if (betterId != 0) {
-      offers[outbound_tkn][inbound_tkn][betterId] = offers[outbound_tkn][inbound_tkn][betterId].next(worseId);
-    } else {
-      local = local.best(worseId);
-    }
+  ) internal returns (P.Local.t) {
+    unchecked {
+      if (betterId != 0) {
+        offers[outbound_tkn][inbound_tkn][betterId] = offers[outbound_tkn][
+          inbound_tkn
+        ][betterId].next(worseId);
+      } else {
+        local = local.best(worseId);
+      }
 
-    if (worseId != 0) {
-      offers[outbound_tkn][inbound_tkn][worseId] = offers[outbound_tkn][inbound_tkn][worseId].prev(betterId);
-    }
+      if (worseId != 0) {
+        offers[outbound_tkn][inbound_tkn][worseId] = offers[outbound_tkn][
+          inbound_tkn
+        ][worseId].prev(betterId);
+      }
 
-    return local;
-  }}
+      return local;
+    }
+  }
 
   /* ## Check offer is live */
   /* Check whether an offer is 'live', that is: inserted in the order book. The Mangrove holds a `outbound_tkn => inbound_tkn => id => P.Offer.t` mapping in storage. Offer ids that are not yet assigned or that point to since-deleted offer will point to an offer with `gives` field at 0. */
-  function isLive(P.Offer.t offer) public pure returns (bool) { unchecked {
-    return offer.gives() > 0;
-  }}
+  function isLive(P.Offer.t offer) public pure returns (bool) {
+    unchecked {
+      return offer.gives() > 0;
+    }
+  }
 }

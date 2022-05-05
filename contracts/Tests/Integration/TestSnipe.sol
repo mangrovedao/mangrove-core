@@ -5,6 +5,12 @@ pragma abicoder v2;
 import "../Toolbox/TestUtils.sol";
 
 library TestSnipe {
+  struct Bag {
+    uint orderAmount;
+    uint snipedId;
+    uint expectedFee;
+  }
+
   function run(
     TestUtils.Balances storage balances,
     mapping(uint => mapping(TestUtils.Info => uint)) storage offers,
@@ -13,45 +19,57 @@ library TestSnipe {
     TestTaker taker,
     TestToken base,
     TestToken quote
-  ) external returns (uint takerGot, uint takerGave) {
-    uint orderAmount = 0.3 ether;
-    uint snipedId = 2;
-    TestMaker maker = makers.getMaker(snipedId); // maker whose offer will be sniped
+  )
+    external
+    returns (
+      uint takerGot,
+      uint takerGave,
+      uint expectedFee
+    )
+  {
+    Bag memory bag;
+    bag.orderAmount = 0.3 ether;
+    bag.snipedId = 2;
+    // uint orderAmount = 0.3 ether;
+    // uint snipedId = 2;
+    expectedFee = TestUtils.getFee(
+      mgv,
+      address(base),
+      address(quote),
+      bag.orderAmount
+    );
+    TestMaker maker = makers.getMaker(bag.snipedId); // maker whose offer will be sniped
 
     //(uint init_mkr_wants, uint init_mkr_gives,,,,,)=mgv.getOfferInfo(2);
     //---------------SNIPE------------------//
     {
       bool takeSuccess;
       (takeSuccess, takerGot, takerGave) = taker.takeWithInfo(
-        snipedId,
-        orderAmount
+        bag.snipedId,
+        bag.orderAmount
       );
 
       TestEvents.check(takeSuccess, "snipe should be a success");
     }
     TestEvents.eq(
       base.balanceOf(TestUtils.adminOf(mgv)), //actual
-      balances.mgvBalanceFees +
-        TestUtils.getFee(mgv, address(base), address(quote), orderAmount), //expected
+      balances.mgvBalanceFees + expectedFee, // expected
       "incorrect Mangrove A balance"
     );
     TestEvents.eq(
       base.balanceOf(address(taker)), // actual
-      balances.takerBalanceA +
-        orderAmount -
-        TestUtils.getFee(mgv, address(base), address(quote), orderAmount), // expected
+      balances.takerBalanceA + bag.orderAmount - expectedFee, // expected
       "incorrect taker A balance"
     );
     TestEvents.eq(
       takerGot,
-      orderAmount -
-        TestUtils.getFee(mgv, address(base), address(quote), orderAmount),
+      bag.orderAmount - expectedFee, // expected
       "Incorrect takerGot"
     );
     {
-      uint shouldGive = (orderAmount *
-        offers[snipedId][TestUtils.Info.makerWants]) /
-        offers[snipedId][TestUtils.Info.makerGives];
+      uint shouldGive = (bag.orderAmount *
+        offers[bag.snipedId][TestUtils.Info.makerWants]) /
+        offers[bag.snipedId][TestUtils.Info.makerGives];
       TestEvents.eq(
         quote.balanceOf(address(taker)),
         balances.takerBalanceB - shouldGive,
@@ -61,21 +79,21 @@ library TestSnipe {
     }
     TestEvents.eq(
       base.balanceOf(address(maker)),
-      balances.makersBalanceA[snipedId] - orderAmount,
+      balances.makersBalanceA[bag.snipedId] - bag.orderAmount,
       "incorrect maker A balance"
     );
     TestEvents.eq(
       quote.balanceOf(address(maker)),
-      balances.makersBalanceB[snipedId] +
-        (orderAmount * offers[snipedId][TestUtils.Info.makerWants]) /
-        offers[snipedId][TestUtils.Info.makerGives],
+      balances.makersBalanceB[bag.snipedId] +
+        (bag.orderAmount * offers[bag.snipedId][TestUtils.Info.makerWants]) /
+        offers[bag.snipedId][TestUtils.Info.makerGives],
       "incorrect maker B balance"
     );
     // Testing residual offer
     (P.OfferStruct memory ofr, ) = mgv.offerInfo(
       address(base),
       address(quote),
-      snipedId
+      bag.snipedId
     );
     TestEvents.check(ofr.gives == 0, "Offer should not have a residual");
   }

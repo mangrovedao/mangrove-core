@@ -112,22 +112,10 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     TestEvents.eq(order.inbound_tkn, _quote, "wrong quote");
     TestEvents.eq(order.wants, 0.05 ether, "wrong takerWants");
     TestEvents.eq(order.gives, 0.05 ether, "wrong takerGives");
-    TestEvents.eq(
-      order.offerDetail.gasreq(),
-      200_000,
-      "wrong gasreq"
-    );
+    TestEvents.eq(order.offerDetail.gasreq(), 200_000, "wrong gasreq");
     TestEvents.eq(order.offerId, 1, "wrong offerId");
-    TestEvents.eq(
-      order.offer.wants(),
-      0.05 ether,
-      "wrong offerWants"
-    );
-    TestEvents.eq(
-      order.offer.gives(),
-      0.05 ether,
-      "wrong offerGives"
-    );
+    TestEvents.eq(order.offer.wants(), 0.05 ether, "wrong offerWants");
+    TestEvents.eq(order.offer.gives(), 0.05 ether, "wrong offerGives");
     // test flashloan
     TestEvents.eq(
       quote.balanceOf(address(this)),
@@ -199,19 +187,23 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
   function fund_newOffer_test() public {
     uint oldBal = mgv.balanceOf(address(mkr));
     mkr.newOfferWithFunding(1 ether, 1 ether, 50000, 0, 1 ether);
-    TestEvents.more(mgv.balanceOf(address(mkr)),oldBal,"balance should have increased");
+    TestEvents.more(
+      mgv.balanceOf(address(mkr)),
+      oldBal,
+      "balance should have increased"
+    );
 
     TestEvents.expectFrom(address(mgv));
-    emit Credit(address(mkr),1 ether);
+    emit Credit(address(mkr), 1 ether);
   }
 
   function fund_updateOffer_test() public {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50000, 0);
-    mkr.updateOfferWithFunding(1 ether, 1 ether, 50000, 0,ofr, 0.9 ether);
+    mkr.updateOfferWithFunding(1 ether, 1 ether, 50000, 0, ofr, 0.9 ether);
 
     TestEvents.expectFrom(address(mgv));
-    emit Credit(address(mkr),0.9 ether);
+    emit Credit(address(mkr), 0.9 ether);
   }
 
   function posthook_fail_message_test() public {
@@ -222,7 +214,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     tkr.take(ofr, 0.1 ether); // fails but we don't care
 
     TestEvents.expectFrom(address(mgv));
-    emit PosthookFail(_base, _quote, ofr);
+    emit PosthookFail(_base, _quote, ofr, "posthookFail");
   }
 
   function badReturn_fails_test() public {
@@ -333,11 +325,8 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       !mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Offer was not removed from OB"
     );
-    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv.offerInfo(
-      _base,
-      _quote,
-      ofr
-    );
+    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv
+      .offerInfo(_base, _quote, ofr);
     TestEvents.eq(offer.prev, ofr0, "Invalid prev");
     TestEvents.eq(offer.next, ofr1, "Invalid next");
     TestEvents.eq(offer.gives, 0, "offer gives was not set to 0");
@@ -372,11 +361,8 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       !mgv.isLive(mgv.offers(_base, _quote, ofr)),
       "Offer was not removed from OB"
     );
-    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv.offerInfo(
-      _base,
-      _quote,
-      ofr
-    );
+    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv
+      .offerInfo(_base, _quote, ofr);
     TestEvents.eq(offer.prev, 0, "Invalid prev");
     TestEvents.eq(offer.next, ofr1, "Invalid next");
     TestEvents.eq(offer.gives, 0, "offer gives was not set to 0");
@@ -389,11 +375,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     (P.OfferStruct memory offer1, ) = mgv.offerInfo(_base, _quote, offer.next);
     TestEvents.eq(offer1.prev, 0, "Invalid snitching for ofr1");
     (, P.Local.t cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(
-      cfg.best(),
-      ofr1,
-      "Invalid best after retract"
-    );
+    TestEvents.eq(cfg.best(), ofr1, "Invalid best after retract");
   }
 
   function retract_worst_offer_leaves_a_valid_book_test() public {
@@ -411,11 +393,8 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
       "Offer was not removed from OB"
     );
     mkr.retractOffer(ofr);
-    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv.offerInfo(
-      _base,
-      _quote,
-      ofr
-    );
+    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv
+      .offerInfo(_base, _quote, ofr);
     TestEvents.eq(offer.prev, ofr0, "Invalid prev");
     TestEvents.eq(offer.next, 0, "Invalid next");
     TestEvents.eq(offer.gives, 0, "offer gives was not set to 0");
@@ -428,11 +407,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     (P.OfferStruct memory offer0, ) = mgv.offerInfo(_base, _quote, offer.prev);
     TestEvents.eq(offer0.next, 0, "Invalid snitching for ofr0");
     (, P.Local.t cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(
-      cfg.best(),
-      ofr0,
-      "Invalid best after retract"
-    );
+    TestEvents.eq(cfg.best(), ofr0, "Invalid best after retract");
   }
 
   function delete_wrong_offer_fails_test() public {
@@ -570,11 +545,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_000, ofr0, ofr0);
     (, cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(
-      ofr1,
-      cfg.best(),
-      "Best offer should have changed"
-    );
+    TestEvents.eq(ofr1, cfg.best(), "Best offer should have changed");
   }
 
   function update_offer_price_nolonger_best_test() public {
@@ -585,11 +556,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether + 1, 1.0 ether, 100_000, ofr0, ofr0);
     (, cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(
-      ofr1,
-      cfg.best(),
-      "Best offer should have changed"
-    );
+    TestEvents.eq(ofr1, cfg.best(), "Best offer should have changed");
   }
 
   function update_offer_density_nolonger_best_test() public {
@@ -600,11 +567,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr0, ofr0);
     (, cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(
-      ofr1,
-      cfg.best(),
-      "Best offer should have changed"
-    );
+    TestEvents.eq(ofr1, cfg.best(), "Best offer should have changed");
   }
 
   function update_offer_price_with_self_as_pivot_becomes_best_test() public {
@@ -615,11 +578,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether + 1, 100_000, ofr1, ofr1);
     (, cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(
-      ofr1,
-      cfg.best(),
-      "Best offer should have changed"
-    );
+    TestEvents.eq(ofr1, cfg.best(), "Best offer should have changed");
   }
 
   function update_offer_density_with_self_as_pivot_becomes_best_test() public {
@@ -631,11 +590,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.updateOffer(1.0 ether, 1.0 ether, 99_999, ofr1, ofr1);
     (, cfg) = mgv.config(_base, _quote);
     TestUtils.logOfferBook(mgv, _base, _quote, 2);
-    TestEvents.eq(
-      cfg.best(),
-      ofr1,
-      "Best offer should have changed"
-    );
+    TestEvents.eq(cfg.best(), ofr1, "Best offer should have changed");
   }
 
   function update_offer_price_with_best_as_pivot_becomes_best_test() public {
@@ -646,11 +601,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether + 1, 100_000, ofr0, ofr1);
     (, cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(
-      ofr1,
-      cfg.best(),
-      "Best offer should have changed"
-    );
+    TestEvents.eq(ofr1, cfg.best(), "Best offer should have changed");
   }
 
   function update_offer_density_with_best_as_pivot_becomes_best_test() public {
@@ -662,11 +613,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     mkr.updateOffer(1.0 ether, 1.0 ether, 99_999, ofr0, ofr1);
     (, cfg) = mgv.config(_base, _quote);
     TestUtils.logOfferBook(mgv, _base, _quote, 2);
-    TestEvents.eq(
-      cfg.best(),
-      ofr1,
-      "Best offer should have changed"
-    );
+    TestEvents.eq(cfg.best(), ofr1, "Best offer should have changed");
   }
 
   function update_offer_price_with_best_as_pivot_changes_prevnext_test()
@@ -1069,11 +1016,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether + 1, 1.0 ether, 100_000, ofr0, ofr0);
     (, cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(
-      ofr0,
-      cfg.best(),
-      "Best offer should not have changed"
-    );
+    TestEvents.eq(ofr0, cfg.best(), "Best offer should not have changed");
   }
 
   function update_offer_density_stays_best_test() public {
@@ -1084,11 +1027,7 @@ contract MakerOperations_Test is IMaker, HasMgvEvents {
     TestEvents.eq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr0, ofr0);
     (, cfg) = mgv.config(_base, _quote);
-    TestEvents.eq(
-      ofr0,
-      cfg.best(),
-      "Best offer should not have changed"
-    );
+    TestEvents.eq(ofr0, cfg.best(), "Best offer should not have changed");
   }
 
   function gasbase_is_deducted_1_test() public {

@@ -1,0 +1,8 @@
+# Note: remember to `git submodule update --recursive` to pull in dependencies
+[default]
+src='contracts'
+test='foundry_test'
+out='foundry_out'
+libs=['foundry_lib']
+remappings=['hardhat/=foundry_lib/forge-std/src','@mangrovedao/hardhat-test-solidity/=node_modules/@mangrovedao/hardhat-test-solidity/']
+cache_path='foundry_cache'

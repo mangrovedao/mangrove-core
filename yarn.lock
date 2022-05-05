@@ -1501,7 +1501,7 @@ __metadata:
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
-    "@types/node": ^16.9.4
+    "@types/node": ^17.0.31
     "@types/serve-static": ^1.13.10
     "@types/shelljs": ^0.8.11
     "@typescript-eslint/eslint-plugin": ^5.21.0
@@ -1554,7 +1554,7 @@ __metadata:
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
-    "@types/node": ^16.9.4
+    "@types/node": ^17.0.31
     "@types/serve-static": ^1.13.10
     "@types/shelljs": ^0.8.11
     "@typescript-eslint/eslint-plugin": ^5.21.0
@@ -1607,7 +1607,7 @@ __metadata:
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
-    "@types/node": ^16.9.4
+    "@types/node": ^17.0.31
     "@types/serve-static": ^1.13.10
     "@types/shelljs": ^0.8.11
     "@typescript-eslint/eslint-plugin": ^5.21.0
@@ -1661,7 +1661,7 @@ __metadata:
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
-    "@types/node": ^16.9.4
+    "@types/node": ^17.0.31
     "@types/serve-static": ^1.13.10
     "@types/shelljs": ^0.8.11
     "@typescript-eslint/eslint-plugin": ^5.21.0
@@ -1713,7 +1713,7 @@ __metadata:
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
-    "@types/node": ^16.9.4
+    "@types/node": ^17.0.31
     "@types/serve-static": ^1.13.10
     "@types/shelljs": ^0.8.11
     "@typescript-eslint/eslint-plugin": ^5.21.0
@@ -1756,7 +1756,7 @@ __metadata:
     "@types/config": ^0.0.39
     "@types/dotenv-flow": ^3.2.0
     "@types/mocha": ^9.0.0
-    "@types/node": ^16.9.4
+    "@types/node": ^17.0.31
     "@typescript-eslint/eslint-plugin": ^5.21.0
     "@typescript-eslint/parser": ^5.22.0
     config: ^3.3.7
@@ -1896,7 +1896,7 @@ __metadata:
     "@types/big.js": ^6.1.1
     "@types/chai-as-promised": ^7.1.5
     "@types/mocha": ^8.2.0
-    "@types/node": ^14.0.11
+    "@types/node": ^17.0.31
     "@types/shelljs": ^0.8.11
     "@types/yargs": ^17.0.10
     "@typescript-eslint/eslint-plugin": ^5.21.0
@@ -2417,17 +2417,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:^16.9.4":
+"@types/node@npm:*":
   version: 16.11.6
   resolution: "@types/node@npm:16.11.6"
   checksum: 6e19634766ff589d3d2f361c2196b671f8f133cdadc5ad347a621c360d8994b6c4fbccfb2ad9c60c588c593831a96497c9c6b77d2b7e91be723384b94f6368e7
   languageName: node
   linkType: hard
 
-"@types/node@npm:^14.0.11":
-  version: 14.17.32
-  resolution: "@types/node@npm:14.17.32"
-  checksum: c3ec45db5d8ca6ed80bcc2fe3cd9f15c1518d43cf048dd5444d1fcbe308d302a42721cb3f19548ac2e7b8b7db4f7f6cd4bf9ed58ab1d30a0bf61758350edd9d5
+"@types/node@npm:^17.0.31":
+  version: 17.0.31
+  resolution: "@types/node@npm:17.0.31"
+  checksum: 704618350f8420d5c47db0f7778398e821b7724369946f5c441a7e6b9343295553936400eb8309f0b07d5e39c240988ab3456b983712ca86265dabc9aee4ad3d
   languageName: node
   linkType: hard
 

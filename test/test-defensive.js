@@ -137,25 +137,25 @@ describe("Deploy defensive strategies", function () {
     await oracle.deployed();
   });
 
-  it("Price fed strat", async function () {
-    const Strat = await ethers.getContractFactory("PriceFed");
-    const aave = await lc.getContract("AAVE");
-    const makerContract = await Strat.deploy(
-      oracle.address,
-      aave.address,
-      mgv.address
-    );
-    const dai = await lc.getContract("DAI");
-    const wEth = await lc.getContract("WETH");
-    await makerContract.deployed();
-    await makerContract.setSlippage(300); // 3% slippage allowed
-    const oracle_decimals = await oracle.decimals();
-    await oracle.setPrice(dai.address, lc.parseToken("1.0", oracle_decimals)); // sets DAI price to 1 USD (6 decimals)
-    await oracle.setPrice(
-      wEth.address,
-      lc.parseToken("3000.0", oracle_decimals)
-    );
+  // it("Price fed strat", async function () {
+  //   const Strat = await ethers.getContractFactory("PriceFed");
+  //   const aave = await lc.getContract("AAVE");
+  //   const makerContract = await Strat.deploy(
+  //     oracle.address,
+  //     aave.address,
+  //     mgv.address
+  //   );
+  //   const dai = await lc.getContract("DAI");
+  //   const wEth = await lc.getContract("WETH");
+  //   await makerContract.deployed();
+  //   await makerContract.setSlippage(300); // 3% slippage allowed
+  //   const oracle_decimals = await oracle.decimals();
+  //   await oracle.setPrice(dai.address, lc.parseToken("1.0", oracle_decimals)); // sets DAI price to 1 USD (6 decimals)
+  //   await oracle.setPrice(
+  //     wEth.address,
+  //     lc.parseToken("3000.0", oracle_decimals)
+  //   );
 
-    await execPriceFedStrat(makerContract, mgv, reader, "aave");
-  });
+  //   await execPriceFedStrat(makerContract, mgv, reader, "aave");
+  // });
 });

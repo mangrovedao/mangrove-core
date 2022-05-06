@@ -35,11 +35,15 @@ interface IOrderLogic {
     uint offerId;
   }
 
-  // Offer logic default gas required --value is used in update and new offer if maxUint is given
-  function GASLIMIT() external returns (uint);
-
-  // Changing OFR_GASREQ of the logic
-  function set_gasLimit(uint gasLimit) external;
+  event OrderSummary(
+    address indexed base,
+    address indexed quote,
+    address indexed taker,
+    uint takerGot,
+    uint takerGave,
+    uint penalty,
+    uint restingOrderId
+  );
 
   function expiring(
     address,

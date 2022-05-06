@@ -38,6 +38,12 @@ module.exports = async (hre) => {
     args: [deployer, deployer],
     skipIfAlreadyDeployed: true,
   });
+
+  await runDeploy("MangroveOrder", {
+    from: deployer,
+    args: [mangroveResult.address],
+    skipIfAlreadyDeployed: true,
+  });
 };
 
 module.exports.tags = ["mumbai"];

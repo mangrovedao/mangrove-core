@@ -1524,7 +1524,7 @@ __metadata:
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
-    prettier: 2.3.2
+    prettier: 2.6.2
     prettier-eslint: ^13.0.0
     rimraf: ^3.0.2
     serve-static: ^1.15.0
@@ -1577,7 +1577,7 @@ __metadata:
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
-    prettier: 2.3.2
+    prettier: 2.6.2
     prettier-eslint: ^13.0.0
     random: ^3.0.6
     rimraf: ^3.0.2
@@ -1630,7 +1630,7 @@ __metadata:
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
-    prettier: 2.3.2
+    prettier: 2.6.2
     prettier-eslint: ^13.0.0
     random: ^3.0.6
     rimraf: ^3.0.2
@@ -1684,7 +1684,7 @@ __metadata:
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
-    prettier: 2.3.2
+    prettier: 2.6.2
     prettier-eslint: ^13.0.0
     rimraf: ^3.0.2
     serve-static: ^1.15.0
@@ -1737,7 +1737,7 @@ __metadata:
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
-    prettier: 2.3.2
+    prettier: 2.6.2
     prettier-eslint: ^13.0.0
     rimraf: ^3.0.2
     serve-static: ^1.15.0
@@ -1768,7 +1768,7 @@ __metadata:
     lint-staged: ^12.4.1
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
-    prettier: 2.3.2
+    prettier: 2.6.2
     prettier-eslint: ^13.0.0
     rimraf: ^3.0.2
     ts-node: ^10.2.1
@@ -1835,7 +1835,7 @@ __metadata:
     hardhat: ^2.9.3
     lint-staged: ^12.4.1
     mocha: ^10.0.0
-    prettier: 2.3.2
+    prettier: 2.6.2
     prettier-eslint: ^13.0.0
   languageName: unknown
   linkType: soft
@@ -8642,12 +8642,12 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"prettier@npm:2.3.2":
-  version: 2.3.2
-  resolution: "prettier@npm:2.3.2"
+"prettier@npm:2.6.2":
+  version: 2.6.2
+  resolution: "prettier@npm:2.6.2"
   bin:
     prettier: bin-prettier.js
-  checksum: 17ce5784ac67621c292df58e2da60b2ee150c2d6aebea22a6ad9e52fcd6a5e66c349d0a8436ea3bd8ff9d778920a5f68000d7625b74f43558718a49755aa5259
+  checksum: 48d08dde8e9fb1f5bccdd205baa7f192e9fc8bc98f86e1b97d919de804e28c806b0e6cc685e4a88211aa7987fa9668f30baae19580d87ced3ed0f2ec6572106f
   languageName: node
   linkType: hard
 

@@ -26,13 +26,13 @@ contract MintableERC20BLWithDecimals is ERC20BLWithDecimals {
     admins[admin] = true;
   }
 
-  function mint(uint amount) external {
+  function mint(address to, uint amount) external {
     uint limit = 1000;
     require(
       amount <= limit.mul(pow(10, decimals())),
       "MintableERC20BLWithDecimals/mintLimitExceeded"
     );
-    _mint(_msgSender(), amount);
+    _mint(to, amount);
   }
 
   function mintAdmin(address to, uint amount) external {

@@ -53,7 +53,7 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
     ) {
       if (success) {
         // overlying transfer has succeeded, anything wrong beyond this point should revert
-        requireInTrade(
+        require(
           aaveRedeem(toRedeem, address(this), order) == 0,
           "mgvOffer/aave/redeemFailed"
         );
@@ -63,19 +63,14 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
         }
         uint toBorrow = min(liquidity_after_redeem, amount);
         // 3. trying to borrow missing liquidity, failure to borrow must revert
-        try
-          lendingPool.borrow(
-            order.outbound_tkn,
-            toBorrow,
-            interestRateMode,
-            referralCode,
-            address(this)
-          )
-        {
-          return 0;
-        } catch {
-          revertInTrade("mgvOffer/aave/borrowFailed");
-        }
+        lendingPool.borrow(
+          order.outbound_tkn,
+          toBorrow,
+          interestRateMode,
+          referralCode,
+          address(this)
+        );
+        return 0;
       }
     } catch {}
     // overlying transfer reverted or `success == false`.

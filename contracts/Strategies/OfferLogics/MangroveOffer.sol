@@ -73,13 +73,13 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   {
     if (!__lastLook__(order)) {
       // hook to check order details and decide whether `this` contract should renege on the offer.
-      return RENEGED;
+      revert("mgvOffer/abort/reneged");
     }
     if (__put__(order.gives, order) > 0) {
-      return PUTFAILURE;
+      revert("mgvOffer/abort/putFailed");
     }
     if (__get__(order.wants, order) > 0) {
-      return OUTOFLIQUIDITY;
+      revert("mgvOffer/abort/getFailed");
     }
   }
 
@@ -168,22 +168,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       10**9;
     uint currentProvision = currentProvisionLocked + balance;
     return (currentProvision >= bounty ? 0 : bounty - currentProvision);
-  }
-
-  // if logic must revert during a trade execution it should use `revertInTrade` in order to pass `reason` to the posthook for loggin purpose
-  function revertInTrade(bytes32 reason) internal pure {
-    bytes memory b = new bytes(32);
-    assembly {
-      mstore(add(b, 32), reason)
-      revert(add(b, 32), 32)
-    }
-  }
-
-  // if logic must require a property during a trade execution it should use `requireInTrade` in order to pass `reason` to the posthook for loggin purpose
-  function requireInTrade(bool requirement, bytes32 reason) internal pure {
-    if (!requirement) {
-      revertInTrade(reason);
-    }
   }
 
   ////// Default Customizable hooks for Taker Order'execution

@@ -81,10 +81,7 @@ async function deployStrat(mgv, reader, players) {
 
   // admin of makerContract
   // deployer asks MakerContract to approve Mangrove for DAI --here the outbound token
-  depTxs[j++] = await offerProxy.approveMangrove(
-    dai.address,
-    ethers.constants.MaxUint256
-  );
+  depTxs[j++] = await offerProxy.approveMangrove(dai.address);
   // depTxs[j++] = await offerProxy.approveMangrove(
   //   wEth.address,
   //   ethers.constants.MaxUint256

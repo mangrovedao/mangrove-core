@@ -144,14 +144,8 @@ describe("Running tests...", function () {
     // console.log("===asks===");
     // await lc.logOrderBook(book, wEth, usdc);
 
-    await makerContract.approveMangrove(
-      wEth.address,
-      ethers.constants.MaxUint256
-    );
-    await makerContract.approveMangrove(
-      usdc.address,
-      ethers.constants.MaxUint256
-    );
+    await makerContract.approveMangrove(wEth.address);
+    await makerContract.approveMangrove(usdc.address);
 
     await wEth.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
     await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);

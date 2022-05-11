@@ -117,10 +117,7 @@ async function execTraderStrat(makerContract, mgv, reader, lenderName) {
     ["WETH", takerGave, zero, 8],
   ]);
   // testSigner asks MakerContract to approve Mangrove for base (weth)
-  mkrTx2 = await makerContract.approveMangrove(
-    wEth.address,
-    ethers.constants.MaxUint256
-  );
+  mkrTx2 = await makerContract.approveMangrove(wEth.address);
   await mkrTx2.wait();
 
   offerId = await lc.newOffer(

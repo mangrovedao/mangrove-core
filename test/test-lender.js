@@ -74,14 +74,8 @@ async function deployStrat(strategy, mgv) {
   }
 
   // testSigner asks MakerContract to approve Mangrove for base (DAI/WETH)
-  mkrTxs[i++] = await makerContract.approveMangrove(
-    dai.address,
-    ethers.constants.MaxUint256
-  );
-  mkrTxs[i++] = await makerContract.approveMangrove(
-    wEth.address,
-    ethers.constants.MaxUint256
-  );
+  mkrTxs[i++] = await makerContract.approveMangrove(dai.address);
+  mkrTxs[i++] = await makerContract.approveMangrove(wEth.address);
   // One sends 1000 DAI to MakerContract
   mkrTxs[i++] = await dai.transfer(
     makerContract.address,

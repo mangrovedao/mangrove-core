@@ -79,8 +79,8 @@ contract MangroveOrder_Test is HasMgvEvents {
     mgvOrder = new MgvOrder(payable(mgv));
 
     // mgvOrder needs to approve mangrove for outbound token transfer
-    mgvOrder.approveMangrove(_base, 10 ether);
-    mgvOrder.approveMangrove(_quote, 10 ether);
+    mgvOrder.approveMangrove(_base);
+    mgvOrder.approveMangrove(_quote);
 
     //adding provision on Mangrove for `mgvOrder` in order to fake having already multiple users
     mgv.fund{value: 1 ether}(address(mgvOrder));

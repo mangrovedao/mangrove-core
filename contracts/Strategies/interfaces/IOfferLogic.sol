@@ -51,7 +51,7 @@ interface IOfferLogic is IMaker {
     uint amount
   ) external returns (bool success);
 
-  function approveMangrove(address outbound_tkn, uint amount) external;
+  function approveMangrove(address outbound_tkn) external;
 
   function withdrawFromMangrove(address payable receiver, uint amount)
     external

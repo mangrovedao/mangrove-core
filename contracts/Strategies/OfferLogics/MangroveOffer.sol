@@ -111,10 +111,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   /// `this` contract needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
-  /// NB anyone can call this function
-  function approveMangrove(address outbound_tkn, uint amount) public {
+  /// NB anyone can call this function so this function only allows max uint (otherwise someone could reset it to 0)
+  function approveMangrove(address outbound_tkn) public {
     require(
-      IEIP20(outbound_tkn).approve(address(MGV), amount),
+      IEIP20(outbound_tkn).approve(address(MGV), type(uint).max),
       "mgvOffer/approve/Fail"
     );
   }

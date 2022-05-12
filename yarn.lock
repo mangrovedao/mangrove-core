@@ -345,7 +345,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethereumjs/block@npm:^3.6.0, @ethereumjs/block@npm:^3.6.2":
+"@ethereumjs/block@npm:^3.6.2":
   version: 3.6.2
   resolution: "@ethereumjs/block@npm:3.6.2"
   dependencies:
@@ -357,7 +357,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethereumjs/blockchain@npm:^5.5.0, @ethereumjs/blockchain@npm:^5.5.2":
+"@ethereumjs/blockchain@npm:^5.5.2":
   version: 5.5.2
   resolution: "@ethereumjs/blockchain@npm:5.5.2"
   dependencies:
@@ -383,13 +383,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethereumjs/common@npm:^2.6.0, @ethereumjs/common@npm:^2.6.3":
+"@ethereumjs/common@npm:^2.6.3":
   version: 2.6.3
   resolution: "@ethereumjs/common@npm:2.6.3"
   dependencies:
     crc-32: ^1.2.0
     ethereumjs-util: ^7.1.4
   checksum: 660deabc93c3a6fc7c03af864406dcb8d9a4a502e321ce455cc62c0ff4117e11ce5d42ad49c5ca16ddc5364c189a302f6a64bc055049606757f4324ce857ca60
+  languageName: node
+  linkType: hard
+
+"@ethereumjs/common@npm:^2.6.4":
+  version: 2.6.4
+  resolution: "@ethereumjs/common@npm:2.6.4"
+  dependencies:
+    crc-32: ^1.2.0
+    ethereumjs-util: ^7.1.4
+  checksum: 2d3ef9e76c2dfb9fd1fc390834107ffd49e7074b893f3985f3d5996e217064cfe3617b16aff42fb7e8631a21ae32286ddf8ec21251589c4ac43d5b3c03217f9f
   languageName: node
   linkType: hard
 
@@ -416,7 +426,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethereumjs/tx@npm:^3.4.0, @ethereumjs/tx@npm:^3.5.1":
+"@ethereumjs/tx@npm:^3.5.1":
   version: 3.5.1
   resolution: "@ethereumjs/tx@npm:3.5.1"
   dependencies:
@@ -426,13 +436,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethereumjs/vm@npm:^5.6.0":
-  version: 5.8.0
-  resolution: "@ethereumjs/vm@npm:5.8.0"
+"@ethereumjs/vm@npm:^5.9.0":
+  version: 5.9.0
+  resolution: "@ethereumjs/vm@npm:5.9.0"
   dependencies:
     "@ethereumjs/block": ^3.6.2
     "@ethereumjs/blockchain": ^5.5.2
-    "@ethereumjs/common": ^2.6.3
+    "@ethereumjs/common": ^2.6.4
     "@ethereumjs/tx": ^3.5.1
     async-eventemitter: ^0.2.4
     core-js-pure: ^3.0.1
@@ -442,7 +452,7 @@ __metadata:
     mcl-wasm: ^0.7.1
     merkle-patricia-tree: ^4.2.4
     rustbn.js: ~0.2.0
-  checksum: b97ac422ec97400df39cc2c720a0148fa679fd947c5221cbd1c6a2ddc0d04ee56d3033eea69f3c084b659db135a8deaa9a5647a10f8a792eae15708da33975b5
+  checksum: f707a1ca924b31db93cbec06a0782882092cd479ccf7359d9a8c9e9a0a00ef10efde873187ffa8728243122a8ad066c1f6f544b0c6ce10f3055a6ddcf765fc8c
   languageName: node
   linkType: hard
 
@@ -1506,7 +1516,7 @@ __metadata:
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.3
+    hardhat: ^2.9.4
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^12.4.1
@@ -1559,7 +1569,7 @@ __metadata:
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.3
+    hardhat: ^2.9.4
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^12.4.1
@@ -1612,7 +1622,7 @@ __metadata:
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.3
+    hardhat: ^2.9.4
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^12.4.1
@@ -1666,7 +1676,7 @@ __metadata:
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.3
+    hardhat: ^2.9.4
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^12.4.1
@@ -1719,7 +1729,7 @@ __metadata:
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.1.2
-    hardhat: ^2.9.3
+    hardhat: ^2.9.4
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^12.4.1
@@ -1782,7 +1792,7 @@ __metadata:
     dotenv-flow: ^3.2.0
     ethers: ^5.6.4
     fs: ^0.0.1-security
-    hardhat: ^2.9.3
+    hardhat: ^2.9.4
     hardhat-abi-exporter: ^2.9.0
     hardhat-deploy: ^0.9.4
     hardhat-deploy-ethers: ^0.3.0-beta.10
@@ -1821,7 +1831,7 @@ __metadata:
     eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.6.4
-    hardhat: ^2.9.3
+    hardhat: ^2.9.4
     lint-staged: ^12.4.1
     mocha: ^10.0.0
     prettier: 2.6.2
@@ -1847,7 +1857,7 @@ __metadata:
     dotenv-flow: ^3.2.0
     ethers: ^5.6.4
     fs: ^0.0.1-security
-    hardhat: ^2.9.3
+    hardhat: ^2.9.4
     hardhat-abi-exporter: ^2.9.0
     hardhat-deploy: ^0.9.4
     hardhat-deploy-ethers: ^0.3.0-beta.10
@@ -1903,7 +1913,7 @@ __metadata:
     eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.6.4
-    hardhat: ^2.9.3
+    hardhat: ^2.9.4
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.10
     lint-staged: ^12.4.1
@@ -4863,7 +4873,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ethereumjs-util@npm:^7.1.3, ethereumjs-util@npm:^7.1.4":
+"ethereumjs-util@npm:^7.1.4":
   version: 7.1.4
   resolution: "ethereumjs-util@npm:7.1.4"
   dependencies:
@@ -5624,15 +5634,15 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"hardhat@npm:^2.9.3":
-  version: 2.9.3
-  resolution: "hardhat@npm:2.9.3"
+"hardhat@npm:^2.9.4":
+  version: 2.9.4
+  resolution: "hardhat@npm:2.9.4"
   dependencies:
-    "@ethereumjs/block": ^3.6.0
-    "@ethereumjs/blockchain": ^5.5.0
-    "@ethereumjs/common": ^2.6.0
-    "@ethereumjs/tx": ^3.4.0
-    "@ethereumjs/vm": ^5.6.0
+    "@ethereumjs/block": ^3.6.2
+    "@ethereumjs/blockchain": ^5.5.2
+    "@ethereumjs/common": ^2.6.4
+    "@ethereumjs/tx": ^3.5.1
+    "@ethereumjs/vm": ^5.9.0
     "@ethersproject/abi": ^5.1.2
     "@metamask/eth-sig-util": ^4.0.0
     "@sentry/node": ^5.18.1
@@ -5651,7 +5661,7 @@ fsevents@~2.3.2:
     env-paths: ^2.2.0
     ethereum-cryptography: ^0.1.2
     ethereumjs-abi: ^0.6.8
-    ethereumjs-util: ^7.1.3
+    ethereumjs-util: ^7.1.4
     find-up: ^2.1.0
     fp-ts: 1.19.3
     fs-extra: ^7.0.1
@@ -5659,7 +5669,7 @@ fsevents@~2.3.2:
     immutable: ^4.0.0-rc.12
     io-ts: 1.10.4
     lodash: ^4.17.11
-    merkle-patricia-tree: ^4.2.2
+    merkle-patricia-tree: ^4.2.4
     mnemonist: ^0.38.0
     mocha: ^9.2.0
     p-map: ^4.0.0
@@ -5676,9 +5686,11 @@ fsevents@~2.3.2:
     undici: ^4.14.1
     uuid: ^8.3.2
     ws: ^7.4.6
+  peerDependencies:
+    chai: ^4.2.0
   bin:
     hardhat: internal/cli/cli.js
-  checksum: 1f563957185a7639d68afc778449989f1d6fc7326eda8a1f9fd01d6144ddc74de01607ecc077aaae6eaeafcd17eb3df4c827f59af244340ef4d3d393ca7c6faa
+  checksum: dce08125de50d5cfc9bcff3fdfa5405aeaf2cb857c7d4284148560ad2ef9baf2ff6334c54dd12783c18c266d4ab3c01074c4e3561ede91653218047c4bd2cc76
   languageName: node
   linkType: hard
 
@@ -7323,7 +7335,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"merkle-patricia-tree@npm:^4.2.2, merkle-patricia-tree@npm:^4.2.4":
+"merkle-patricia-tree@npm:^4.2.4":
   version: 4.2.4
   resolution: "merkle-patricia-tree@npm:4.2.4"
   dependencies:

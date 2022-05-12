@@ -39,6 +39,7 @@ interface IOrderLogic {
     address indexed base,
     address indexed quote,
     address indexed taker,
+    bool selling,
     uint takerGot,
     uint takerGave,
     uint penalty,

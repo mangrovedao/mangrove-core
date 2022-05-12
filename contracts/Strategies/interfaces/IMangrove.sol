@@ -146,7 +146,7 @@ interface IMangrove {
 
   function governance() external view returns (address);
 
-  function isLive(uint offer) external pure returns (bool);
+  function isLive(P.Offer.t offer) external pure returns (bool);
 
   function kill() external;
 

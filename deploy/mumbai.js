@@ -39,8 +39,9 @@ module.exports = async (hre) => {
     skipIfAlreadyDeployed: true,
   });
 
-  await runDeploy("MangroveOrder", {
+  await runDeploy("MangroveOrderEnriched", {
     from: deployer,
+    contract: "MangroveOrderEnriched",
     args: [mangroveResult.address, deployer],
     skipIfAlreadyDeployed: true,
   });

@@ -16,8 +16,11 @@ async function execPriceFedStrat(makerContract, mgv, reader, lenderName) {
     dai.address,
     makerContract.address
   );
-  await makerContract.approveMangrove(dai.address);
-  await makerContract.approveMangrove(wEth.address);
+  await makerContract.approveMangrove(dai.address, ethers.constants.MaxUint256);
+  await makerContract.approveMangrove(
+    wEth.address,
+    ethers.constants.MaxUint256
+  );
   let overrides = { value: ethers.utils.parseEther("1") };
   await mgv["fund(address)"](makerContract.address, overrides);
 

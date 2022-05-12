@@ -76,11 +76,11 @@ contract MangroveOrder_Test is HasMgvEvents {
     // to prevent test runner (taker) from receiving fees!
     mgv.setVault(address(mgv));
 
-    mgvOrder = new MgvOrder(payable(mgv));
+    mgvOrder = new MgvOrder(payable(mgv), address(this));
 
     // mgvOrder needs to approve mangrove for outbound token transfer
-    mgvOrder.approveMangrove(_base);
-    mgvOrder.approveMangrove(_quote);
+    mgvOrder.approveMangrove(_base, type(uint).max);
+    mgvOrder.approveMangrove(_quote, type(uint).max);
 
     //adding provision on Mangrove for `mgvOrder` in order to fake having already multiple users
     mgv.fund{value: 1 ether}(address(mgvOrder));
@@ -133,6 +133,10 @@ contract MangroveOrder_Test is HasMgvEvents {
 
     TestUtils.logOfferBook(mgv, _base, _quote, 3);
     TestUtils.logOfferBook(mgv, _quote, _base, 3);
+  }
+
+  function admin_test() public {
+    TestEvents.eq(mgv.governance(), mgvOrder.admin(), "Invalid admin address");
   }
 
   function partial_filled_buy_order_returns_residual_test() public {

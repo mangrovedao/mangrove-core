@@ -24,14 +24,19 @@ async function deployStrat(strategy, mgv) {
       makerContract = await Strat.deploy(
         comp.address,
         mgv.address,
-        wEth.address
+        wEth.address,
+        testSigner.address
       );
       makerContract = makerContract.connect(testSigner);
       market = [cwEth.address, cDai.address];
       break;
     case "SimpleAaveRetail":
     case "AdvancedAaveRetail":
-      makerContract = await Strat.deploy(aave.address, mgv.address);
+      makerContract = await Strat.deploy(
+        aave.address,
+        mgv.address,
+        testSigner.address
+      );
       makerContract = makerContract.connect(testSigner);
       market = [wEth.address, dai.address];
       // aave rejects market entering if underlying balance is 0 (will self enter at first deposit)
@@ -74,8 +79,14 @@ async function deployStrat(strategy, mgv) {
   }
 
   // testSigner asks MakerContract to approve Mangrove for base (DAI/WETH)
-  mkrTxs[i++] = await makerContract.approveMangrove(dai.address);
-  mkrTxs[i++] = await makerContract.approveMangrove(wEth.address);
+  mkrTxs[i++] = await makerContract.approveMangrove(
+    dai.address,
+    ethers.constants.MaxUint256
+  );
+  mkrTxs[i++] = await makerContract.approveMangrove(
+    wEth.address,
+    ethers.constants.MaxUint256
+  );
   // One sends 1000 DAI to MakerContract
   mkrTxs[i++] = await dai.transfer(
     makerContract.address,
@@ -154,12 +165,20 @@ describe("Deploy strategies", function () {
   });
 
   it("Lender/borrower strat on compound", async function () {
-    const makerContract = await deployStrat("AdvancedCompoundRetail", mgv);
+    const makerContract = await deployStrat(
+      "AdvancedCompoundRetail",
+      mgv,
+      testSigner.address
+    );
     await execTraderStrat(makerContract, mgv, reader, "compound");
   });
 
   it("Lender/borrower strat on aave", async function () {
-    const makerContract = await deployStrat("AdvancedAaveRetail", mgv);
+    const makerContract = await deployStrat(
+      "AdvancedAaveRetail",
+      mgv,
+      testSigner.address
+    );
     await execTraderStrat(makerContract, mgv, reader, "aave");
     // lc.stopListeners([mgv]);
   });

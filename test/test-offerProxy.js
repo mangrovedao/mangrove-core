@@ -22,7 +22,11 @@ async function deployStrat(mgv, reader, players) {
   );
 
   // admin side premices
-  let offerProxy = await Strat.deploy(aave.address, mgv.address);
+  let offerProxy = await Strat.deploy(
+    aave.address,
+    mgv.address,
+    players.deployer.address
+  );
 
   await offerProxy.deployed();
   // offerProxy needs to let lendingPool pull inbound tokens from it in order to mint
@@ -81,7 +85,10 @@ async function deployStrat(mgv, reader, players) {
 
   // admin of makerContract
   // deployer asks MakerContract to approve Mangrove for DAI --here the outbound token
-  depTxs[j++] = await offerProxy.approveMangrove(dai.address);
+  depTxs[j++] = await offerProxy.approveMangrove(
+    dai.address,
+    ethers.constants.MaxUint256
+  );
   // depTxs[j++] = await offerProxy.approveMangrove(
   //   wEth.address,
   //   ethers.constants.MaxUint256

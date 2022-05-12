@@ -14,7 +14,7 @@ pragma abicoder v2;
 import "../Persistent.sol";
 
 contract OasisLike is MultiUserPersistent {
-  constructor(address payable _MGV) MangroveOffer(_MGV) {}
+  constructor(address payable _MGV, address admin) MangroveOffer(_MGV, admin) {}
 
   // overrides MultiUser.__put__ in order to transfer all inbound tokens to owner
   function __put__(uint amount, ML.SingleOrder calldata order)

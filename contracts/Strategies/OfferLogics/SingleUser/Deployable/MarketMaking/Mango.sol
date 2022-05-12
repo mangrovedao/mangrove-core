@@ -87,8 +87,9 @@ contract Mango is Persistent {
     uint base_0,
     uint quote_0,
     uint nslots,
-    uint delta
-  ) MangroveOffer(mgv) {
+    uint delta,
+    address admin
+  ) MangroveOffer(mgv, admin) {
     // sanity check
     require(
       nslots > 0 &&

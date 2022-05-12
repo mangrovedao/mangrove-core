@@ -15,8 +15,9 @@ pragma abicoder v2;
 contract AccessControlled {
   address public admin;
 
-  constructor() {
-    admin = msg.sender;
+  constructor(address admin_) {
+    require(admin_ != address(0), "accessControlled/0xAdmin");
+    admin = admin_;
   }
 
   modifier onlyCaller(address caller) {

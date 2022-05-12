@@ -12,7 +12,7 @@ module.exports = async (hre) => {
 
   const Oasis = await hre.deployments.deploy("OasisLike", {
     from: deployer,
-    args: [MgvAPI.contract.address],
+    args: [MgvAPI.contract.address, deployer],
     skipIfAlreadyDeployed: true,
   });
   console.log(

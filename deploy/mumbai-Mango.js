@@ -27,6 +27,7 @@ module.exports = async (hre) => {
           MgvAPI.toUnits(quote0, quoteName), // QUOTE0
           NSLOTS, // price slots
           MgvAPI.toUnits(delta, quoteName), // quote progression
+          deployer, // admin
         ],
         skipIfAlreadyDeployed: true,
       }

@@ -34,7 +34,7 @@ describe("Running tests...", function () {
     const Strat = await ethers.getContractFactory(strategy);
 
     // deploying strat
-    makerContract = await Strat.deploy(mgv.address);
+    makerContract = await Strat.deploy(mgv.address, maker.address);
     await makerContract.deployed();
     makerContract = makerContract.connect(maker);
 
@@ -51,7 +51,10 @@ describe("Running tests...", function () {
     await makerContract.fundMangrove({ value: prov.mul(10) });
     // makerContract approves mangrove for outbound token transfer
     // anyone can call this function
-    await makerContract.approveMangrove(wEth.address);
+    await makerContract.approveMangrove(
+      wEth.address,
+      ethers.constants.MaxUint256
+    );
     // since funds are in maker wallet, maker approves contract for outbound token transfer
     // this approval is also used for `depositToken` call
     await wEth

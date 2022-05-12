@@ -12,7 +12,11 @@ module.exports = async (hre) => {
 
   const offerProxy = await hre.deployments.deploy("OfferProxy", {
     from: deployer,
-    args: [MgvAPI.getAddress("addressProvider"), MgvAPI.contract.address],
+    args: [
+      MgvAPI.getAddress("addressProvider"),
+      MgvAPI.contract.address,
+      deployer,
+    ],
     skipIfAlreadyDeployed: true,
   });
   console.log(`OfferProxy deployed on mumbai (${offerProxy.address})`);

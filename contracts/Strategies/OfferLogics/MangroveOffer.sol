@@ -51,7 +51,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   // necessary function to withdraw funds from Mangrove
   receive() external payable virtual {}
 
-  constructor(address payable _mgv) {
+  constructor(address payable _mgv, address admin) AccessControlled(admin) {
     MGV = IMangrove(_mgv);
   }
 
@@ -81,6 +81,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     if (__get__(order.wants, order) > 0) {
       revert("mgvOffer/abort/getFailed");
     }
+    return ret;
   }
 
   // `makerPosthook` is the callback function that is called by Mangrove *after* the offer execution.
@@ -111,10 +112,13 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   /// `this` contract needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
-  /// NB anyone can call this function so this function only allows max uint (otherwise someone could reset it to 0)
-  function approveMangrove(address outbound_tkn) public {
+  /// NB if anyone can call this function someone could reset it to 0 for griefing
+  function approveMangrove(address outbound_tkn, uint amount)
+    public
+    mgvOrAdmin
+  {
     require(
-      IEIP20(outbound_tkn).approve(address(MGV), type(uint).max),
+      IEIP20(outbound_tkn).approve(address(MGV), amount),
       "mgvOffer/approve/Fail"
     );
   }

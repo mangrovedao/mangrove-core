@@ -89,7 +89,8 @@ describe("Running tests...", function () {
         ethers.utils.parseEther("0.34"), // BASE0
         ethers.utils.parseUnits("1000", 6), // QUOTE0
         NSLOTS, // price slots
-        delta //quote progression
+        delta, //quote progression
+        maker.address
       )
     ).connect(maker);
 
@@ -144,8 +145,14 @@ describe("Running tests...", function () {
     // console.log("===asks===");
     // await lc.logOrderBook(book, wEth, usdc);
 
-    await makerContract.approveMangrove(wEth.address);
-    await makerContract.approveMangrove(usdc.address);
+    await makerContract.approveMangrove(
+      wEth.address,
+      ethers.constants.MaxUint256
+    );
+    await makerContract.approveMangrove(
+      usdc.address,
+      ethers.constants.MaxUint256
+    );
 
     await wEth.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
     await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);

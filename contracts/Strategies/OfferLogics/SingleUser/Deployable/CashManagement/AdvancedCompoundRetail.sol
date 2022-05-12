@@ -17,8 +17,9 @@ contract AdvancedCompoundRetail is CompoundTrader {
   constructor(
     address _unitroller,
     address payable _MGV,
-    address wethAddress
-  ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {
+    address wethAddress,
+    address admin
+  ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV, admin) {
     setGasreq(1_000_000);
   }
 

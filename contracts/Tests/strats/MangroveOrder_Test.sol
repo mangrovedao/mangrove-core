@@ -13,7 +13,7 @@ import "../Toolbox/TestUtils.sol";
 import "../Agents/TestToken.sol";
 import "../Agents/TestMaker.sol";
 
-import {MangroveOrder as MgvOrder} from "../../Strategies/OrderLogics/MangroveOrder.sol";
+import {MangroveOrderEnriched as MgvOrder} from "../../Strategies/OrderLogics/MangroveOrderEnriched.sol";
 import "../../Strategies/interfaces/IOrderLogic.sol";
 
 contract MangroveOrder_Test is HasMgvEvents {
@@ -37,9 +37,10 @@ contract MangroveOrder_Test is HasMgvEvents {
     address indexed base,
     address indexed quote,
     address indexed taker,
+    bool selling,
     uint takerGot,
     uint takerGave,
-    uint bounty,
+    uint penalty,
     uint restingOrderId
   );
 
@@ -382,6 +383,7 @@ contract MangroveOrder_Test is HasMgvEvents {
       _base,
       _quote,
       address(this),
+      false, //buying
       netBuy(1 ether),
       0.13 ether,
       0,
@@ -578,10 +580,68 @@ contract MangroveOrder_Test is HasMgvEvents {
       _base,
       _quote,
       address(this),
+      false,
       netBuy(2 ether),
       0.26 ether,
       0,
       0
+    );
+  }
+
+  function ownership_relation_test() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      base: _base,
+      quote: _quote,
+      partialFillNotAllowed: false,
+      selling: false,
+      wants: 2 ether,
+      gives: 0.1 ether,
+      restingOrder: true,
+      retryNumber: 1,
+      gasForMarketOrder: 6_500_000,
+      blocksToLiveForRestingOrder: 0 //NA
+    });
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
+      buyOrder
+    );
+    IOrderLogic.TakerOrderResult memory res_ = mgvOrder.take{value: 0.1 ether}(
+      buyOrder
+    );
+    TestEvents.expectFrom(address(mgvOrder));
+    emit OrderSummary(
+      _base,
+      _quote,
+      address(this),
+      false,
+      0,
+      0,
+      0,
+      res.offerId
+    );
+    emit OrderSummary(
+      _base,
+      _quote,
+      address(this),
+      false,
+      0,
+      0,
+      0,
+      res_.offerId
+    );
+    (uint[] memory live, uint[] memory dead) = mgvOrder.offersOfOwner(
+      address(this),
+      _quote,
+      _base
+    );
+    TestEvents.check(
+      live.length == 2 && dead.length == 0,
+      "Incorrect offer list"
+    );
+    mgvOrder.retractOffer(_quote, _base, live[0], false);
+    (live, dead) = mgvOrder.offersOfOwner(address(this), _quote, _base);
+    TestEvents.check(
+      live.length == 1 && dead.length == 1,
+      "Incorrect offer list after retract"
     );
   }
 }

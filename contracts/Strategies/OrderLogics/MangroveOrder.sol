@@ -141,9 +141,17 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
         provision: msg.value
       });
 
+      __logOwnerShipRelation__({
+        owner: msg.sender,
+        outbound_tkn: inbound_tkn,
+        inbound_tkn: outbound_tkn,
+        offerId: res.offerId
+      });
+
       emit OrderSummary({
         base: tko.base,
         quote: tko.quote,
+        selling: tko.selling,
         taker: msg.sender,
         takerGot: res.takerGot,
         takerGave: res.takerGave,
@@ -197,6 +205,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       emit OrderSummary({
         base: tko.base,
         quote: tko.quote,
+        selling: tko.selling,
         taker: msg.sender,
         takerGot: res.takerGot,
         takerGave: res.takerGave,
@@ -319,7 +328,15 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     return redeemAll(order, owner);
   }
 
-  // TODO:
-  // * Solidity tests
-  // * Decentralized way to recover the status of the resting orders that belong to a given wallet
+  function __logOwnerShipRelation__(
+    address owner,
+    address outbound_tkn,
+    address inbound_tkn,
+    uint offerId
+  ) internal virtual {
+    owner; //ssh
+    outbound_tkn; //ssh
+    inbound_tkn; //ssh
+    offerId; //ssh
+  }
 }

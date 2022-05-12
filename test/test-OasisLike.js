@@ -34,7 +34,7 @@ describe("Running tests...", function () {
     const Strat = await ethers.getContractFactory(strategy);
 
     // deploying strat
-    makerContract = await Strat.deploy(mgv.address);
+    makerContract = await Strat.deploy(mgv.address, maker.address);
     await makerContract.deployed();
     makerContract = makerContract.connect(maker);
 

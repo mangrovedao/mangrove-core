@@ -14,10 +14,11 @@ pragma abicoder v2;
 import "../../AaveV3Lender.sol";
 
 contract SimpleAaveRetail is AaveV3Lender {
-  constructor(address _addressesProvider, address payable _MGV)
-    AaveV3Module(_addressesProvider, 0)
-    MangroveOffer(_MGV)
-  {
+  constructor(
+    address _addressesProvider,
+    address payable _MGV,
+    address admin
+  ) AaveV3Module(_addressesProvider, 0) MangroveOffer(_MGV, admin) {
     setGasreq(1_000_000);
   }
 

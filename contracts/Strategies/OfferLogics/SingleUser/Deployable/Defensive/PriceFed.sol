@@ -19,8 +19,13 @@ contract PriceFed is Defensive, AaveV3Lender {
   constructor(
     address _oracle,
     address _addressesProvider,
-    address payable _MGV
-  ) Defensive(_oracle) AaveV3Module(_addressesProvider, 0) MangroveOffer(_MGV) {
+    address payable _MGV,
+    address admin
+  )
+    Defensive(_oracle)
+    AaveV3Module(_addressesProvider, 0)
+    MangroveOffer(_MGV, admin)
+  {
     setGasreq(800_000);
   }
 

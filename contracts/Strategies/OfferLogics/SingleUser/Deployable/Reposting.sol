@@ -16,5 +16,5 @@ import "../Persistent.sol";
 
 /* Simply inherits Persistent and is deployable. No additional internal logic. */
 contract Reposting is Persistent {
-  constructor(address payable _MGV) MangroveOffer(_MGV) {}
+  constructor(address payable _MGV) MangroveOffer(_MGV, tx.origin) {}
 }

@@ -22,7 +22,11 @@ async function deployStrat(mgv, reader, players) {
   );
 
   // admin side premices
-  let offerProxy = await Strat.deploy(aave.address, mgv.address);
+  let offerProxy = await Strat.deploy(
+    aave.address,
+    mgv.address,
+    players.deployer.address
+  );
 
   await offerProxy.deployed();
   // offerProxy needs to let lendingPool pull inbound tokens from it in order to mint

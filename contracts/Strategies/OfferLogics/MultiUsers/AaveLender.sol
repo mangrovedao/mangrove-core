@@ -48,7 +48,7 @@ abstract contract MultiUserAaveLender is MultiUser, AaveModule {
         // amount overlying was transfered from `owner`'s wallet
         // anything wrong beyond this point should revert
         // trying to redeem from AAVE
-        requireInTrade(
+        require(
           aaveRedeem(amount, address(this), order) == 0,
           "mgvOffer/aave/redeemFail"
         );

@@ -69,9 +69,9 @@ async function main() {
     console.log(
       `* Approving mangrove as spender for ${baseName} and ${quoteName} transfer from Mango`
     );
-    tx = await Mango.approveMangroveForBase();
+    tx = await Mango.approveMangrove(baseName);
     await tx.wait();
-    tx = await Mango.approveMangroveForQuote();
+    tx = await Mango.approveMangrove(quoteName);
     await tx.wait();
 
     console.log(

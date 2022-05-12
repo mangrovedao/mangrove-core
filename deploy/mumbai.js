@@ -41,7 +41,7 @@ module.exports = async (hre) => {
 
   await runDeploy("MangroveOrder", {
     from: deployer,
-    args: [mangroveResult.address],
+    args: [mangroveResult.address, deployer],
     skipIfAlreadyDeployed: true,
   });
 };

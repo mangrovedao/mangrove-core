@@ -89,7 +89,8 @@ describe("Running tests...", function () {
         ethers.utils.parseEther("0.34"), // BASE0
         ethers.utils.parseUnits("1000", 6), // QUOTE0
         NSLOTS, // price slots
-        delta //quote progression
+        delta, //quote progression
+        maker.address
       )
     ).connect(maker);
 

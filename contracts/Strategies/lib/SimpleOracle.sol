@@ -21,7 +21,7 @@ contract SimpleOracle is IOracle, AccessControlled {
   IERC20 public immutable base_token;
   mapping(address => uint96) internal priceData;
 
-  constructor(address _base) {
+  constructor(address _base, address admin) AccessControlled(admin) {
     try IERC20(_base).decimals() returns (uint8 d) {
       require(d != 0, "Invalid decimals number for Oracle base");
       base_token = IERC20(_base);

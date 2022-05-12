@@ -23,7 +23,7 @@ let directLP = await mgv.liquidityProvider(market);
 //
 // //Ask on market (promise base (DAI) in exchange of quote (USDC))
 // //LP needs to approve Mangrove for base transfer
-let tx = await directLP.approveMangroveForBase();
+let tx = await directLP.logic.approveMangrove("DAI");
 await tx.wait();
 await market.base.allowance();
 //

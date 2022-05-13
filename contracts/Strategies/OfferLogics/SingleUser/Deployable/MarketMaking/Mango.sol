@@ -397,6 +397,7 @@ contract Mango is Persistent {
         return 0;
       } catch {
         // `newOffer` can fail when Mango is underprovisioned or if `offer.gives` is below density
+        emit LogIncident(BASE, QUOTE, 0, "Mango/writeAsk/newOfferFail");
         return gives;
       }
     } else {
@@ -415,6 +416,12 @@ contract Mango is Persistent {
         // updateOffer succeeded
         return 0;
       } catch {
+        emit LogIncident(
+          BASE,
+          QUOTE,
+          ASKS[index],
+          "Mango/writeAsk/updateOfferFail"
+        );
         // updateOffer failed but `offer` might still be live (i.e with `offer.gives>0`)
         uint oldGives = MGV.offers(BASE, QUOTE, ASKS[index]).gives();
         // if not during initialize we necessarily have gives > oldGives
@@ -449,6 +456,7 @@ contract Mango is Persistent {
         index_of_bid[BIDS[index]] = index;
         return 0;
       } catch {
+        emit LogIncident(QUOTE, BASE, 0, "Mango/writeBid/newOfferFail");
         return gives;
       }
     } else {
@@ -466,6 +474,12 @@ contract Mango is Persistent {
       {
         return 0;
       } catch {
+        emit LogIncident(
+          QUOTE,
+          BASE,
+          BIDS[index],
+          "Mango/writeBid/updateOfferFail"
+        );
         // updateOffer failed but `offer` might still be live (i.e with `offer.gives>0`)
         uint oldGives = MGV.offers(QUOTE, BASE, BIDS[index]).gives();
         // if not during initialize we necessarily have gives > oldGives

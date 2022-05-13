@@ -59,11 +59,17 @@ async function main() {
       market
     );
     const provBid = await Mango.computeBidProvision();
+    console.log(
+      `Actual provision needed for a Bid on (${baseName},${quoteName}) Market is ${provBid}`
+    );
     const provAsk = await Mango.computeAskProvision();
+    console.log(
+      `Actual provision needed for an Ask on (${baseName},${quoteName}) Market is ${provAsk}`
+    );
     const totalFund = provAsk.add(provBid).mul(NSLOTS);
 
-    console.log(`* Funding mangrove (${totalFund.mul(2)} MATIC for Mango)`);
-    tx = await Mango.fundMangrove(totalFund.mul(2));
+    console.log(`* Funding mangrove (${totalFund} MATIC for Mango)`);
+    tx = await Mango.fundMangrove(totalFund);
     await tx.wait();
 
     console.log(

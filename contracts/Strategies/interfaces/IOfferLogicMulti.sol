@@ -45,9 +45,12 @@ interface IOfferLogicMulti is IOfferLogic {
     uint amount
   );
 
-  function tokenBalance(address token) external view returns (uint);
+  function tokenBalance(address token, address owner)
+    external
+    view
+    returns (uint);
 
-  function balanceOnMangrove() external view returns (uint);
+  function balanceOnMangrove(address owner) external view returns (uint);
 
   function offerOwners(
     address reader,

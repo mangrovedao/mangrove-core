@@ -22,12 +22,22 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   mapping(address => uint) public mgvBalance; // owner => WEI balance on mangrove
   mapping(address => mapping(address => uint)) public tokenBalanceOf; // erc20 => owner => balance on `this`
 
-  function tokenBalance(address token) external view override returns (uint) {
-    return tokenBalanceOf[token][msg.sender];
+  function tokenBalance(address token, address owner)
+    external
+    view
+    override
+    returns (uint)
+  {
+    return tokenBalanceOf[token][owner];
   }
 
-  function balanceOnMangrove() external view override returns (uint) {
-    return mgvBalance[msg.sender];
+  function balanceOnMangrove(address owner)
+    external
+    view
+    override
+    returns (uint)
+  {
+    return mgvBalance[owner];
   }
 
   function offerOwners(

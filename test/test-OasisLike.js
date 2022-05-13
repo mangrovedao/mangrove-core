@@ -104,7 +104,7 @@ describe("Running tests...", function () {
   });
 
   it("Non reposting offer should deprovision", async function () {
-    const oldBalMaker = await makerContract.balanceOnMangrove();
+    const oldBalMaker = await makerContract.balanceOnMangrove(maker.address);
     const ofrId = await lc.newOffer(
       mgv,
       reader,
@@ -114,7 +114,7 @@ describe("Running tests...", function () {
       ethers.utils.parseUnits("3000", 6),
       ethers.utils.parseEther("0.5")
     );
-    const newBalMaker = await makerContract.balanceOnMangrove();
+    const newBalMaker = await makerContract.balanceOnMangrove(maker.address);
     const prov = oldBalMaker.sub(newBalMaker);
     assert(prov.gt(0), "Invalid provision");
     let [takerGot, takerGave, bounty] = await lc.marketOrder(
@@ -133,7 +133,7 @@ describe("Running tests...", function () {
     );
     const [offer] = await mgv.offerInfo(wEth.address, usdc.address, ofrId);
     lc.assertEqualBN(offer.gives, 0, "Offer should not be reposted");
-    const balMaker = await makerContract.balanceOnMangrove();
+    const balMaker = await makerContract.balanceOnMangrove(maker.address);
     lc.assertEqualBN(balMaker, oldBalMaker, "Incorrect deprovision amount");
   });
 });

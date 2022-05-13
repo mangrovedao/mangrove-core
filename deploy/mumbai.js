@@ -1,5 +1,10 @@
+let deployer;
+
 module.exports = async (hre) => {
-  const deployer = (await hre.getUnnamedAccounts())[0];
+  deployer = (await hre.getUnnamedAccounts())[0];
+  if (!deployer) {
+    throw Error("No deployer account is known to HH");
+  }
 
   const runDeploy = async (name, args) => {
     const result = await hre.deployments.deploy(name, args);
@@ -16,7 +21,7 @@ module.exports = async (hre) => {
   const mangroveResult = await runDeploy("Mangrove", {
     contract: "Mangrove",
     from: deployer,
-    args: [deployer /* governance */, 40 /*gasprice*/, 700000 /*gasmax*/],
+    args: [deployer /* governance */, 40 /*gasprice*/, 1000000 /*gasmax*/],
     skipIfAlreadyDeployed: true,
   });
 
@@ -39,7 +44,7 @@ module.exports = async (hre) => {
     skipIfAlreadyDeployed: true,
   });
 
-  await runDeploy("MangroveOrderEnriched", {
+  await runDeploy("MangroveOrder", {
     from: deployer,
     contract: "MangroveOrderEnriched",
     args: [mangroveResult.address, deployer],

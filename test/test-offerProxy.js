@@ -73,7 +73,9 @@ async function deployStrat(mgv, reader, players) {
     "Failed to fund the Mangrove"
   );
   lc.assertEqualBN(
-    await offerProxy.connect(players.maker.signer).balanceOnMangrove(),
+    await offerProxy
+      .connect(players.maker.signer)
+      .balanceOnMangrove(players.maker.address),
     lc.parseToken("2.0", 18),
     "Failed to fund the user account"
   );

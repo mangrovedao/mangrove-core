@@ -32,8 +32,12 @@ async function main() {
   ).liquidityProvider({ base: baseName, quote: quoteName });
   const tx = await Mango.fundMangrove(amount);
   await tx.wait();
-  console.log(`Funded`, amount, `MATICS to (${baseName},${quoteName}) Mango`);
-  console.log();
+  console.log(
+    `Funded`,
+    amount,
+    `MATICS to (${baseName},${quoteName}) Mango (${Mango.logic.address})`
+  );
+  console.log(await Mango.balanceOnMangrove());
 }
 main()
   .then(() => process.exit(0))

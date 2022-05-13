@@ -62,8 +62,8 @@ async function main() {
     const provAsk = await Mango.computeAskProvision();
     const totalFund = provAsk.add(provBid).mul(NSLOTS);
 
-    console.log(`* Funding mangrove (${totalFund} MATIC for Mango)`);
-    tx = await Mango.fundMangrove(totalFund);
+    console.log(`* Funding mangrove (${totalFund.mul(2)} MATIC for Mango)`);
+    tx = await Mango.fundMangrove(totalFund.mul(2));
     await tx.wait();
 
     console.log(

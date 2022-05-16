@@ -22,21 +22,6 @@ import "../interfaces/IEIP20.sol";
 //import "hardhat/console.sol";
 
 contract AaveV3Module {
-  event ErrorOnRedeem(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed offerId,
-    uint amount,
-    string errorCode
-  );
-  event ErrorOnMint(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed offerId,
-    uint amount,
-    string errorCode
-  );
-
   // address of the lendingPool
   IPool public immutable lendingPool;
   IPriceOracleGetter public immutable priceOracle;
@@ -185,6 +170,107 @@ contract AaveV3Module {
     return (maxRedeemableUnderlying, maxBorrowAfterRedeemInUnderlying);
   }
 
+  function getDebt(uint interestRateMode, address token)
+    internal
+    returns (uint debtOfUnderlying)
+  {
+    DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
+      token
+    );
+    if (interestRateMode == 1) {
+      debtOfUnderlying = IEIP20(reserveData.stableDebtTokenAddress).balanceOf(
+        address(this)
+      );
+    } else {
+      debtOfUnderlying = IEIP20(reserveData.variableDebtTokenAddress).balanceOf(
+          address(this)
+        );
+    }
+  }
+
+  function repayAndDeposit(
+    uint interestRateMode,
+    address token,
+    uint amount
+  ) internal returns (uint) {
+    uint debtOfUnderlying;
+    DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
+      token
+    );
+    if (interestRateMode == 1) {
+      debtOfUnderlying = IEIP20(reserveData.stableDebtTokenAddress).balanceOf(
+        address(this)
+      );
+    } else {
+      debtOfUnderlying = IEIP20(reserveData.variableDebtTokenAddress).balanceOf(
+          address(this)
+        );
+    }
+    uint toRepay = debtOfUnderlying < amount ? debtOfUnderlying : amount;
+    uint toMint;
+    try
+      lendingPool.repay(
+        order.inbound_tkn,
+        toRepay,
+        interestRateMode,
+        address(this)
+      )
+    {
+      toMint = amount - toRepay;
+    } catch {
+      toMint = amount;
+    }
+    return aaveMint(toMint, address(this), order);
+  }
+
+  function redeemAndBorrow(
+    uint interestRateMode,
+    address token,
+    uint amount
+  ) internal returns (uint) {
+    // 1. Computing total borrow and redeem capacities of underlying asset
+    (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
+      token,
+      true,
+      address(this)
+    );
+
+    if (redeemable + liquidity_after_redeem < amount) {
+      return amount; // give up early if not possible to fetch amount of underlying
+    }
+    // 2. trying to redeem liquidity from Compound
+    uint toRedeem = redeemable < amount ? redeemable : amount;
+
+    uint notRedeemed = aaveRedeem(toRedeem, address(this), order);
+    if (notRedeemed > 0 && toRedeem > 0) {
+      // => notRedeemed == toRedeem
+      // this should not happen unless compound is out of cash, thus no need to try to borrow
+      // log already emitted by `compoundRedeem`
+      return amount;
+    }
+    amount = amount - toRedeem;
+    uint toBorrow = liquidity_after_redeem < amount
+      ? liquidity_after_redeem
+      : amount;
+    if (toBorrow == 0) {
+      return amount;
+    }
+    // 3. trying to borrow missing liquidity
+    try
+      lendingPool.borrow(
+        token,
+        toBorrow,
+        interestRateMode,
+        referralCode,
+        address(this)
+      )
+    {
+      return amount - toBorrow;
+    } catch {
+      return amount;
+    }
+  }
+
   function aaveRedeem(
     uint amountToRedeem,
     address onBehalf,
@@ -199,30 +285,11 @@ contract AaveV3Module {
       } else {
         return (amountToRedeem - withdrawn);
       }
-    } catch Error(string memory message) {
-      emit ErrorOnRedeem(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        amountToRedeem,
-        message
-      );
+    } catch {
       return amountToRedeem;
     }
   }
 
-  function _mint(
-    uint amount,
-    address token,
-    address onBehalf
-  ) internal {
-    lendingPool.deposit(token, amount, onBehalf, referralCode);
-  }
-
-  // adapted from https://medium.com/compound-finance/supplying-assets-to-the-compound-protocol-ec2cf5df5aa#afff
-  // utility to supply erc20 to compound
-  // NB `ctoken` contract MUST be approved to perform `transferFrom token` by `this` contract.
-  /// @notice user need to approve ctoken in order to mint
   function aaveMint(
     uint amount,
     address onBehalf,
@@ -231,23 +298,8 @@ contract AaveV3Module {
     // contract must haveallowance()to spend funds on behalf ofmsg.sender for at-leastamount for the asset being deposited. This can be done via the standard ERC20 approve() method.
     try lendingPool.deposit(order.inbound_tkn, amount, onBehalf, referralCode) {
       return 0;
-    } catch Error(string memory message) {
-      emit ErrorOnMint(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        amount,
-        message
-      );
     } catch {
-      emit ErrorOnMint(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        amount,
-        "unexpected"
-      );
+      return amount;
     }
-    return amount;
   }
 }

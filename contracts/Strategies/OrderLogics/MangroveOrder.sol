@@ -24,19 +24,6 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
   constructor(address payable _MGV, address admin) MangroveOffer(_MGV, admin) {}
 
   // transfer with no revert
-  function transferERC(
-    IEIP20 token,
-    address recipient,
-    uint amount
-  ) internal returns (bool) {
-    if (amount == 0) {
-      return true;
-    }
-    (bool success, bytes memory data) = address(token).call(
-      abi.encodeWithSelector(token.transfer.selector, recipient, amount)
-    );
-    return (success && (data.length == 0 || abi.decode(data, (bool))));
-  }
 
   function __lastLook__(ML.SingleOrder calldata order)
     internal
@@ -82,7 +69,12 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       ? (tko.quote, tko.base)
       : (tko.base, tko.quote);
     require(
-      IEIP20(inbound_tkn).transferFrom(msg.sender, address(this), tko.gives),
+      transferFromERC(
+        IEIP20(inbound_tkn),
+        msg.sender,
+        address(this),
+        tko.gives
+      ),
       "mgvOrder/mo/transferInFail"
     );
     // passing an iterated market order with the transfered funds
@@ -114,7 +106,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     // sending received tokens to taker
     if (res.takerGot > 0) {
       require(
-        IEIP20(outbound_tkn).transfer(msg.sender, res.takerGot),
+        transferERC(IEIP20(outbound_tkn), msg.sender, res.takerGot),
         "mgvOrder/mo/transferOutFail"
       );
     }
@@ -141,6 +133,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
         provision: msg.value
       });
 
+      // if one wants to maintain an inverse mapping owner => offerIds
       __logOwnerShipRelation__({
         owner: msg.sender,
         outbound_tkn: inbound_tkn,
@@ -165,7 +158,11 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
         require(!tko.partialFillNotAllowed, "mgvOrder/mo/noPartialFill");
         // sending partial fill to taker --when partial fill is allowed
         require(
-          IEIP20(inbound_tkn).transfer(msg.sender, tko.gives - res.takerGave),
+          transferERC(
+            IEIP20(inbound_tkn),
+            msg.sender,
+            tko.gives - res.takerGave
+          ),
           "mgvOrder/mo/transferInFail"
         );
         // msg.value is no longer needed so sending it back to msg.sender along with possible collected bounty
@@ -194,7 +191,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       // either fill was complete or taker does not want to post residual as a resting order
       // transfering remaining inbound tokens to msg.sender
       require(
-        IEIP20(inbound_tkn).transfer(msg.sender, tko.gives - res.takerGave),
+        transferERC(IEIP20(inbound_tkn), msg.sender, tko.gives - res.takerGave),
         "mgvOrder/mo/transferInFail"
       );
       // transfering potential bounty and msg.value back to the taker

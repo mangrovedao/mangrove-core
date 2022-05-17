@@ -170,32 +170,14 @@ contract AaveV3Module {
     return (maxRedeemableUnderlying, maxBorrowAfterRedeemInUnderlying);
   }
 
-  function getDebt(uint interestRateMode, address token)
-    internal
-    returns (uint debtOfUnderlying)
-  {
-    DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
-      token
-    );
-    if (interestRateMode == 1) {
-      debtOfUnderlying = IEIP20(reserveData.stableDebtTokenAddress).balanceOf(
-        address(this)
-      );
-    } else {
-      debtOfUnderlying = IEIP20(reserveData.variableDebtTokenAddress).balanceOf(
-          address(this)
-        );
-    }
-  }
-
-  function repayAndDeposit(
+  function repayThenDeposit(
     uint interestRateMode,
-    address token,
+    IEIP20 token,
     uint amount
-  ) internal returns (uint) {
+  ) internal {
     uint debtOfUnderlying;
     DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
-      token
+      address(token)
     );
     if (interestRateMode == 1) {
       debtOfUnderlying = IEIP20(reserveData.stableDebtTokenAddress).balanceOf(
@@ -206,100 +188,99 @@ contract AaveV3Module {
           address(this)
         );
     }
-    uint toRepay = debtOfUnderlying < amount ? debtOfUnderlying : amount;
     uint toMint;
-    try
-      lendingPool.repay(
-        order.inbound_tkn,
-        toRepay,
+    if (debtOfUnderlying == 0) {
+      toMint = amount;
+    } else {
+      uint repaid = lendingPool.repay(
+        address(token),
+        amount,
         interestRateMode,
         address(this)
-      )
-    {
-      toMint = amount - toRepay;
-    } catch {
-      toMint = amount;
+      );
+      toMint = amount - repaid;
     }
-    return aaveMint(toMint, address(this), order);
+    lendingPool.supply(address(token), toMint, address(this), referralCode);
   }
 
-  function redeemAndBorrow(
+  function exactRedeemThenBorrow(
     uint interestRateMode,
-    address token,
+    IEIP20 token,
+    address to,
     uint amount
   ) internal returns (uint) {
-    // 1. Computing total borrow and redeem capacities of underlying asset
     (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
-      token,
-      true,
-      address(this)
+      address(token),
+      true, // compute borrow power after redeem
+      address(this) // assuming aTokens are on `this` contract's balance
     );
 
     if (redeemable + liquidity_after_redeem < amount) {
       return amount; // give up early if not possible to fetch amount of underlying
     }
     // 2. trying to redeem liquidity from Compound
-    uint toRedeem = redeemable < amount ? redeemable : amount;
+    uint toRedeem = (redeemable < amount) ? redeemable : amount;
 
-    uint notRedeemed = aaveRedeem(toRedeem, address(this), order);
-    if (notRedeemed > 0 && toRedeem > 0) {
-      // => notRedeemed == toRedeem
-      // this should not happen unless compound is out of cash, thus no need to try to borrow
-      // log already emitted by `compoundRedeem`
-      return amount;
-    }
+    uint redeemed = lendingPool.withdraw(address(token), toRedeem, to);
+    // `toRedeem` was computed such that lender should allow this contract to withdraw all of it
+    // if this should fail it must be because the lender is running out of cash
+    require(redeemed == toRedeem, "AaveModule/lenderOutOfCash");
+
     amount = amount - toRedeem;
-    uint toBorrow = liquidity_after_redeem < amount
-      ? liquidity_after_redeem
-      : amount;
-    if (toBorrow == 0) {
-      return amount;
+
+    if (amount == 0) {
+      return 0;
     }
     // 3. trying to borrow missing liquidity
-    try
-      lendingPool.borrow(
-        token,
-        toBorrow,
-        interestRateMode,
-        referralCode,
-        address(this)
-      )
-    {
-      return amount - toBorrow;
-    } catch {
-      return amount;
-    }
+    // NB `to` must have approved `this` contract for delegation unless `to == address(this)`
+    lendingPool.borrow(
+      address(token),
+      amount,
+      interestRateMode,
+      referralCode,
+      to
+    );
+    return 0;
   }
 
-  function aaveRedeem(
-    uint amountToRedeem,
-    address onBehalf,
-    ML.SingleOrder calldata order
-  ) internal returns (uint) {
-    try
-      lendingPool.withdraw(order.outbound_tkn, amountToRedeem, onBehalf)
-    returns (uint withdrawn) {
-      //aave redeem was a success
-      if (amountToRedeem == withdrawn) {
-        return 0;
-      } else {
-        return (amountToRedeem - withdrawn);
-      }
-    } catch {
-      return amountToRedeem;
-    }
-  }
-
-  function aaveMint(
+  function _borrow(
+    IEIP20 token,
     uint amount,
-    address onBehalf,
-    ML.SingleOrder calldata order
-  ) internal returns (uint) {
-    // contract must haveallowance()to spend funds on behalf ofmsg.sender for at-leastamount for the asset being deposited. This can be done via the standard ERC20 approve() method.
-    try lendingPool.deposit(order.inbound_tkn, amount, onBehalf, referralCode) {
-      return 0;
-    } catch {
-      return amount;
-    }
+    uint interestRateMode,
+    address to
+  ) internal {
+    lendingPool.borrow(
+      address(token),
+      amount,
+      interestRateMode,
+      referralCode,
+      to
+    );
+  }
+
+  function _redeem(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) internal returns (uint redeemed) {
+    redeemed = lendingPool.withdraw(address(token), amount, to);
+  }
+
+  function _mint(
+    IEIP20 token,
+    uint amount,
+    address onBehalf
+  ) internal {
+    lendingPool.supply(address(token), amount, onBehalf, referralCode);
+  }
+
+  function _repay(
+    IEIP20 token,
+    uint amount,
+    uint interestRateMode,
+    address onBehalf
+  ) internal returns (uint repaid) {
+    return
+      lendingPool.repay(address(token), amount, interestRateMode, onBehalf);
   }
 }

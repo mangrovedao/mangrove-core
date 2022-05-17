@@ -30,7 +30,13 @@ abstract contract AaveV3Trader is AaveV3Lender {
     if (amount == 0) {
       return 0;
     }
-    return redeemAndBorrow(interestRateMode, order.outbound_tkn, amount);
+    return
+      exactRedeemThenBorrow(
+        interestRateMode,
+        IEIP20(order.outbound_tkn),
+        address(this),
+        amount
+      );
   }
 
   function __put__(uint amount, ML.SingleOrder calldata order)
@@ -43,6 +49,23 @@ abstract contract AaveV3Trader is AaveV3Lender {
     if (amount == 0) {
       return 0;
     }
-    return repayAndDeposit(interestRateMode, order.inbound_tkn, amount);
+    repayThenDeposit(interestRateMode, IEIP20(order.inbound_tkn), amount);
+    return 0;
+  }
+
+  function borrow(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) external onlyAdmin {
+    _borrow(token, amount, interestRateMode, to);
+  }
+
+  function repay(
+    IEIP20 token,
+    uint amount,
+    address onBehalf
+  ) external onlyAdmin returns (uint repaid) {
+    return _repay(token, amount, interestRateMode, onBehalf);
   }
 }

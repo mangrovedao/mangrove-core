@@ -54,7 +54,8 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
       if (success) {
         // overlying transfer has succeeded, anything wrong beyond this point should revert
         require(
-          aaveRedeem(toRedeem, address(this), order) == 0,
+          lendingPool.withdraw(order.outbound_tkn, toRedeem, address(this)) ==
+            amount,
           "mgvOffer/aave/redeemFailed"
         );
         amount = amount - toRedeem;
@@ -64,8 +65,7 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
         uint toBorrow = (liquidity_after_redeem < amount)
           ? liquidity_after_redeem
           : amount;
-        // 3. trying to borrow missing liquidity, failure to borrow must revert
-
+        // 3. trying to borrow missing liquidity, failure to borrow reverts
         lendingPool.borrow(
           order.outbound_tkn,
           toBorrow,
@@ -119,6 +119,7 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
     } catch {
       toMint = amount;
     }
-    return aaveMint(toMint, owner, order);
+    lendingPool.supply(order.inbound_tkn, toMint, owner, referralCode);
+    return 0;
   }
 }

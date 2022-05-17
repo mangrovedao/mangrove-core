@@ -32,8 +32,8 @@ abstract contract CompoundLender is SingleUser, CompoundModule {
   }
 
   function mint(
-    uint amount,
     IcERC20 ctoken,
+    uint amount,
     address
   ) external onlyAdmin {
     uint errCode = _mint(amount, ctoken);

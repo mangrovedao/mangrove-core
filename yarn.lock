@@ -728,14 +728,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ethersproject/experimental@npm:^5.6.0":
-  version: 5.6.0
-  resolution: "@ethersproject/experimental@npm:5.6.0"
+"@ethersproject/experimental@npm:^5.6.1":
+  version: 5.6.1
+  resolution: "@ethersproject/experimental@npm:5.6.1"
   dependencies:
     "@ethersproject/web": ^5.6.0
     ethers: ^5.6.0
     scrypt-js: 3.0.1
-  checksum: 8d683c8da179d374e88f3fbc36be3d333ea4553c47f489ce9582e48f506dab4bb1a31e496829b1f5cd93a9c9ad0d86bf5b22b8703d110fc08752b652466f8df7
+  checksum: d18d543dab73d1616f43b1e58a1958c767494f602cb8cc16b85ee4ea76de023fd411ce6a091a4571201bb38113b3cf8abd46fcd17b01b82c3c9315ea07d46d0a
   languageName: node
   linkType: hard
 
@@ -1493,7 +1493,7 @@ __metadata:
   resolution: "@mangrovedao/bot-cleaning@workspace:packages/bot-cleaning"
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
-    "@ethersproject/experimental": ^5.6.0
+    "@ethersproject/experimental": ^5.6.1
     "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/commonlib-js": "workspace:*"
     "@mangrovedao/hardhat-utils": "workspace:*"
@@ -1546,7 +1546,7 @@ __metadata:
   resolution: "@mangrovedao/bot-maker-noise@workspace:packages/bot-maker-noise"
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
-    "@ethersproject/experimental": ^5.6.0
+    "@ethersproject/experimental": ^5.6.1
     "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/commonlib-js": "workspace:*"
     "@mangrovedao/hardhat-utils": "workspace:*"
@@ -1599,7 +1599,7 @@ __metadata:
   resolution: "@mangrovedao/bot-taker-greedy@workspace:packages/bot-taker-greedy"
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
-    "@ethersproject/experimental": ^5.6.0
+    "@ethersproject/experimental": ^5.6.1
     "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/commonlib-js": "workspace:*"
     "@mangrovedao/hardhat-utils": "workspace:*"
@@ -1653,7 +1653,7 @@ __metadata:
   resolution: "@mangrovedao/bot-template@workspace:packages/bot-template"
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
-    "@ethersproject/experimental": ^5.6.0
+    "@ethersproject/experimental": ^5.6.1
     "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/commonlib-js": "workspace:*"
     "@mangrovedao/hardhat-utils": "workspace:*"
@@ -1705,7 +1705,7 @@ __metadata:
   resolution: "@mangrovedao/bot-updategas@workspace:packages/bot-updategas"
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
-    "@ethersproject/experimental": ^5.6.0
+    "@ethersproject/experimental": ^5.6.1
     "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/commonlib-js": "workspace:*"
     "@mangrovedao/hardhat-utils": "workspace:*"
@@ -1851,7 +1851,7 @@ __metadata:
   resolution: "@mangrovedao/mangrove-solidity@workspace:packages/mangrove-solidity"
   dependencies:
     "@espendk/json-file-reporter": ^1.4.1
-    "@ethersproject/experimental": ^5.6.0
+    "@ethersproject/experimental": ^5.6.1
     "@ethersproject/hardware-wallets": ^5.6.0
     "@mangrovedao/hardhat-test-solidity": ^0.0.16
     "@nomiclabs/hardhat-ethers": ^2.0.5
@@ -1889,7 +1889,7 @@ __metadata:
     "@espendk/json-file-reporter": ^1.4.2
     "@ethersproject/abi": ^5.6.0
     "@ethersproject/bytes": ^5.0.0
-    "@ethersproject/experimental": ^5.6.0
+    "@ethersproject/experimental": ^5.6.1
     "@ethersproject/hardware-wallets": ^5.6.0
     "@ethersproject/providers": ^5.6.4
     "@mangrovedao/hardhat-utils": "workspace:*"

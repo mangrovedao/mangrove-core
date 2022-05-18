@@ -14,12 +14,13 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../interfaces/aave/V3/IPool.sol";
 import {IPoolAddressesProvider} from "../interfaces/aave/V3/IPoolAddressesProvider.sol";
+import {IRewardsControllerIsh} from "../interfaces/aave/V3/IRewardsControllerIsh.sol";
+
 import "../interfaces/aave/V3/IPriceOracleGetter.sol";
 import {ReserveConfiguration as RC} from "../lib/aave/V3/ReserveConfiguration.sol";
+
 import "../interfaces/IMangrove.sol";
 import "../interfaces/IEIP20.sol";
-
-//import "hardhat/console.sol";
 
 contract AaveV3Module {
   // address of the lendingPool
@@ -37,7 +38,6 @@ contract AaveV3Module {
 
     address _priceOracle = IPoolAddressesProvider(_addressesProvider)
       .getAddress("PRICE_ORACLE");
-
     address _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
 
     require(_lendingPool != address(0), "Invalid lendingPool address");
@@ -282,5 +282,19 @@ contract AaveV3Module {
   ) internal returns (uint repaid) {
     return
       lendingPool.repay(address(token), amount, interestRateMode, onBehalf);
+  }
+
+  // rewards claiming.
+  // may use `SingleUser.redeemToken` to move collected tokens afterwards
+  function _claimRewards(
+    IRewardsControllerIsh rewardsController,
+    address[] calldata assets
+  )
+    internal
+    returns (address[] memory rewardsList, uint[] memory claimedAmounts)
+  {
+    (rewardsList, claimedAmounts) = rewardsController.claimAllRewardsToSelf(
+      assets
+    );
   }
 }

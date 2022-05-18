@@ -21,7 +21,9 @@ interface IOrderLogic {
     bool partialFillNotAllowed; //revert if taker order cannot be filled and resting order failed or is not enabled
     bool selling; // whether this is a selling order (otherwise a buy order)
     uint wants; // if `selling` amount of quote tokens, otherwise amount of base tokens
+    uint makerWants; // taker wants before slippage (`makerWants == wants` when `!selling`)
     uint gives; // if `selling` amount of base tokens, otherwise amount of quote tokens
+    uint makerGives; // taker gives before slippage (`makerGives == gives` when `selling`)
     bool restingOrder; // whether the complement of the partial fill (if any) should be posted as a resting limit order
     uint retryNumber; // number of times filling the taker order should be retried (0 means 1 attempt).
     uint gasForMarketOrder; // gas limit per market order attempt

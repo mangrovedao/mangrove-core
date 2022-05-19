@@ -147,7 +147,9 @@ contract MangroveOrder_Test is HasMgvEvents {
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
+      makerWants: 2 ether,
       gives: 0.26 ether,
+      makerGives: 0.26 ether,
       restingOrder: false,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
@@ -179,7 +181,9 @@ contract MangroveOrder_Test is HasMgvEvents {
       partialFillNotAllowed: true,
       selling: false, //i.e buying
       wants: 2 ether,
+      makerWants: 2 ether,
       gives: 0.26 ether,
+      makerGives: 0.26 ether,
       restingOrder: false,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
@@ -204,7 +208,9 @@ contract MangroveOrder_Test is HasMgvEvents {
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
+      makerWants: 2 ether,
       gives: 0.26 ether,
+      makerGives: 0.26 ether,
       restingOrder: false,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
@@ -232,6 +238,8 @@ contract MangroveOrder_Test is HasMgvEvents {
       selling: false, //i.e buying
       wants: 2 ether,
       gives: 0.26 ether,
+      makerWants: 2 ether,
+      makerGives: 0.26 ether,
       restingOrder: false,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
@@ -256,6 +264,8 @@ contract MangroveOrder_Test is HasMgvEvents {
       selling: false, //i.e buying
       wants: 2 ether,
       gives: 0.26 ether,
+      makerWants: 2 ether,
+      makerGives: 0.26 ether,
       restingOrder: true,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
@@ -283,6 +293,8 @@ contract MangroveOrder_Test is HasMgvEvents {
       selling: false, //i.e buying
       wants: 1 ether,
       gives: 0.13 ether,
+      makerWants: 1 ether,
+      makerGives: 0.13 ether,
       restingOrder: true,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
@@ -311,6 +323,8 @@ contract MangroveOrder_Test is HasMgvEvents {
       selling: false, //i.e buying
       wants: 1 ether,
       gives: 0.13 ether,
+      makerWants: 1 ether,
+      makerGives: 0.13 ether,
       restingOrder: true,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
@@ -328,7 +342,9 @@ contract MangroveOrder_Test is HasMgvEvents {
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
-      gives: 0.26 ether,
+      gives: 0.26 ether, // with 2% slippage
+      makerWants: 2 ether,
+      makerGives: 0.2548 ether, //without 2% slippage
       restingOrder: true,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
@@ -346,12 +362,12 @@ contract MangroveOrder_Test is HasMgvEvents {
     P.Offer.t offer = mgv.offers(_quote, _base, res.offerId);
     TestEvents.eq(
       offer.wants(),
-      buyOrder.wants - res.takerGot,
+      buyOrder.makerWants - res.takerGot,
       "Incorrect wants for bid resting order"
     );
     TestEvents.eq(
       offer.gives(),
-      buyOrder.gives - res.takerGave,
+      buyOrder.makerGives - res.takerGave,
       "Incorrect gives for bid resting order"
     );
 
@@ -400,6 +416,8 @@ contract MangroveOrder_Test is HasMgvEvents {
       selling: false, //i.e buying
       wants: 2 ether,
       gives: 0.26 ether,
+      makerWants: 2 ether,
+      makerGives: 0.26 ether,
       restingOrder: true,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
@@ -460,6 +478,8 @@ contract MangroveOrder_Test is HasMgvEvents {
       selling: false, //i.e buying
       wants: 2 ether,
       gives: 0.26 ether,
+      makerWants: 2 ether,
+      makerGives: 0.26 ether,
       restingOrder: true,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
@@ -504,6 +524,8 @@ contract MangroveOrder_Test is HasMgvEvents {
       selling: false, //i.e buying
       wants: 2 ether,
       gives: 0.26 ether,
+      makerWants: 2 ether,
+      makerGives: 0.26 ether,
       restingOrder: true,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
@@ -543,6 +565,8 @@ contract MangroveOrder_Test is HasMgvEvents {
       selling: false, //i.e buying
       wants: 2 ether,
       gives: 0.26 ether,
+      makerWants: 2 ether,
+      makerGives: 0.26 ether,
       restingOrder: true,
       retryNumber: 1,
       gasForMarketOrder: 6_500_000,
@@ -596,6 +620,8 @@ contract MangroveOrder_Test is HasMgvEvents {
       selling: false,
       wants: 2 ether,
       gives: 0.1 ether,
+      makerWants: 2 ether,
+      makerGives: 0.1 ether,
       restingOrder: true,
       retryNumber: 1,
       gasForMarketOrder: 6_500_000,

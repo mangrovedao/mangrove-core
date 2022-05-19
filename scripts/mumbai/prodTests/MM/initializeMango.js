@@ -45,13 +45,16 @@ async function main() {
     }
 
     MangoRaw = MangoRaw.connect(tester);
-    console.log(`* Set ${baseName} treasury to tester wallet`);
-    tx = await MangoRaw.set_treasury(true, tester.address);
-    await tx.wait();
-
-    console.log(`* Set ${quoteName} treasury to tester wallet`);
-    tx = await MangoRaw.set_treasury(false, tester.address);
-    await tx.wait();
+    if (!((await MangoRaw.get_treasury(true)) === tester.address)) {
+      console.log(`* Set ${baseName} treasury to tester wallet`);
+      tx = await MangoRaw.set_treasury(true, tester.address);
+      await tx.wait();
+    }
+    if (!((await MangoRaw.get_treasury(false)) === tester.address)) {
+      console.log(`* Set ${quoteName} treasury to tester wallet`);
+      tx = await MangoRaw.set_treasury(false, tester.address);
+      await tx.wait();
+    }
 
     const NSLOTS = await MangoRaw.NSLOTS();
     const market = await MgvAPI.market({ base: baseName, quote: quoteName });
@@ -68,15 +71,20 @@ async function main() {
     );
     const totalFund = provAsk.add(provBid).mul(NSLOTS);
 
-    console.log(`* Funding mangrove (${totalFund} MATIC for Mango)`);
-    tx = await Mango.fundMangrove(totalFund);
-    await tx.wait();
+    if (totalFund.gt(0)) {
+      console.log(`* Funding mangrove (${totalFund} MATIC for Mango)`);
+      tx = await Mango.fundMangrove(totalFund);
+      await tx.wait();
+    }
 
-    console.log(
-      `* Approving mangrove as spender for ${baseName} and ${quoteName} transfer from Mango`
-    );
-    tx = await Mango.approveMangrove(baseName);
-    await tx.wait();
+    if ((await MgvAPI.token(baseName).allowance()).eq(0)) {
+      console.log(
+        `* Approving mangrove as spender for ${baseName} and ${quoteName} transfer from Mango`
+      );
+      tx = await Mango.approveMangrove(baseName);
+      await tx.wait();
+    }
+
     tx = await Mango.approveMangrove(quoteName);
     await tx.wait();
 
@@ -133,16 +141,16 @@ async function main() {
       );
       const receipt = await tx.wait();
       console.log(`Done! (gas used ${receipt.gasUsed.toString()})`);
-      const [pendingBase, pendingQuote] = await MangoRaw.get_pending();
-      if (pendingBase.gt(0) || pendingQuote.gt(0)) {
-        throw Error(
-          `Init error, failed to initialize (${MgvAPI.token(baseName).fromUnits(
-            pendingBase
-          )} pending base,${MgvAPI.token(quoteName).fromUnits(
-            pendingQuote
-          )} pending quotes)`
-        );
-      }
+      //      const [pendingBase, pendingQuote] = await MangoRaw.get_pending();
+      // if (pendingBase.gt(0) || pendingQuote.gt(0)) {
+      //   throw Error(
+      //     `Init error, failed to initialize (${MgvAPI.token(baseName).fromUnits(
+      //       pendingBase
+      //     )} pending base,${MgvAPI.token(quoteName).fromUnits(
+      //       pendingQuote
+      //     )} pending quotes)`
+      //   );
+      // }
     }
   }
 }

@@ -77,7 +77,9 @@ contract Guaave is Mango, AaveV3Module {
     }
   }
 
-  function token_data(IEIP20 token, bool get)
+  // returns the target buffer level of `token` and the address of the treasury where the buffer is held
+  // `get` is the low target (when liquidity needs to be fetched) `!get` is the high target for the buffer
+  function token_buffer_data(IEIP20 token, bool get)
     internal
     view
     returns (uint, address)
@@ -101,15 +103,15 @@ contract Guaave is Mango, AaveV3Module {
     override
     returns (uint)
   {
-    (uint outbound_tkn_buffer_target, address outbound_treasury) = token_data(
-      IEIP20(order.outbound_tkn),
-      true
-    );
+    (
+      uint outbound_tkn_buffer_low_target,
+      address outbound_treasury
+    ) = token_buffer_data(IEIP20(order.outbound_tkn), true);
     // if treasury is below target buffer, redeem on lender
     uint outbound_tkn_current_buffer = IEIP20(order.outbound_tkn).balanceOf(
       outbound_treasury
     );
-    if (outbound_tkn_current_buffer < outbound_tkn_buffer_target) {
+    if (outbound_tkn_current_buffer < outbound_tkn_buffer_low_target) {
       // redeems as many outbound tokens as `this` contract has overlyings.
       // redeem is deposited on the treasury of `outbound_tkn`
       uint redeemed = _redeem({
@@ -125,11 +127,14 @@ contract Guaave is Mango, AaveV3Module {
   }
 
   function maintain_token_buffer_level(IEIP20 token) internal {
-    (uint tkn_buffer_target, address tkn_treasury) = token_data(token, false);
+    (uint tkn_buffer_high_target, address tkn_treasury) = token_buffer_data(
+      token,
+      false
+    );
     uint current_buffer = token.balanceOf(tkn_treasury);
-    if (current_buffer > tkn_buffer_target) {
+    if (current_buffer > tkn_buffer_high_target) {
       // pulling funds from the treasury to deposit them on Aaave
-      uint amount = tkn_buffer_target - current_buffer;
+      uint amount = tkn_buffer_high_target - current_buffer;
       require(
         transferFromERC(token, tkn_treasury, address(this), amount),
         "Guaave/maintainBuffer/transferFail"

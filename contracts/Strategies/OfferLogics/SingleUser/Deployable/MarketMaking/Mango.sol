@@ -190,8 +190,19 @@ contract Mango is Persistent {
     }
   }
 
-  function get_treasury(bool base) external view onlyAdmin returns (address) {
+  function get_treasury(bool base) external view returns (address) {
     return base ? current_base_treasury : current_quote_treasury;
+  }
+
+  function reset_pending()
+    external
+    onlyAdmin
+    returns (uint pending_base, uint pending_quote)
+  {
+    pending_base = PENDING_BASE;
+    pending_quote = PENDING_QUOTE;
+    PENDING_BASE = 0;
+    PENDING_QUOTE = 0;
   }
 
   function putInternal(address erc_, uint amount) internal returns (uint) {
@@ -415,13 +426,17 @@ contract Mango is Persistent {
       {
         // updateOffer succeeded
         return 0;
-      } catch {
-        emit LogIncident(
-          BASE,
-          QUOTE,
-          ASKS[index],
-          "Mango/writeAsk/updateOfferFail"
-        );
+      } catch (bytes memory reason) {
+        // update offer might fail because residual is below density (this is OK)
+        // it may also fail because there is not enough provision on Mangrove (this is Not OK so we log)
+        if (keccak256(reason) == keccak256("mgv/insufficientProvision")) {
+          emit LogIncident(
+            BASE,
+            QUOTE,
+            ASKS[index],
+            "Mango/writeAsk/outOfProvision"
+          );
+        }
         // updateOffer failed but `offer` might still be live (i.e with `offer.gives>0`)
         uint oldGives = MGV.offers(BASE, QUOTE, ASKS[index]).gives();
         // if not during initialize we necessarily have gives > oldGives

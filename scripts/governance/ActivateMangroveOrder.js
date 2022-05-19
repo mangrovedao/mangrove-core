@@ -18,17 +18,28 @@ async function main() {
   const MgvAPI = await Mangrove.connect({
     signer: wallet,
   });
-  console.log(
-    `Will activate MangroveOrder (${chalk.grey(MgvAPI.orderContract.address)})`
-  );
+
   const ercs = ["WETH", "DAI", "USDC"];
   const logic = MgvAPI.offerLogic(MgvAPI.orderContract.address);
+
   for (tokenName of ercs) {
-    console.log(
-      `* approving Mangrove for transfering ${tokenName} from MangroveOrder`
-    );
-    const tx = await logic.approveMangrove(tokenName);
-    await tx.wait();
+    if (
+      (await MgvAPI.token(tokenName).allowance({ owner: logic.address })).eq(0)
+    ) {
+      console.log(
+        `* Approving Mangrove for transfering ${tokenName} from MangroveOrder (${chalk.grey(
+          logic.address
+        )})`
+      );
+      const tx = await logic.approveMangrove(tokenName);
+      await tx.wait();
+    } else {
+      console.log(
+        `* ${tokenName} already approved MangroveOrder (${chalk.grey(
+          logic.address
+        )}) for transferring ${tokenName}`
+      );
+    }
   }
 }
 main()

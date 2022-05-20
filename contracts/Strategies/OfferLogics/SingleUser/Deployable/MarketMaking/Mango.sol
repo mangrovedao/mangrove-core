@@ -215,13 +215,11 @@ contract Mango is Persistent {
       erc = IEIP20(QUOTE);
       treasury = current_quote_treasury;
     }
-    try erc.transfer(treasury, amount) returns (bool success) {
-      if (success) {
-        return 0;
-      }
-    } catch {}
-    // here either because transfer reverted of `success == false`
-    return amount;
+    if (transferERC(erc, treasury, amount)) {
+      return 0;
+    } else {
+      return amount;
+    }
   }
 
   /** Deposits received tokens into the corresponding treasury*/
@@ -251,15 +249,12 @@ contract Mango is Persistent {
       erc = IEIP20(QUOTE);
       treasury = current_quote_treasury;
     }
-    try erc.transferFrom(treasury, address(this), amount) returns (
-      bool success
-    ) {
-      if (success) {
-        return 0;
-      }
-    } catch {}
-    // transfer reverted or `success == false`
-    return amount;
+    if (transferFromERC(erc, treasury, address(this), amount)) {
+      return 0;
+    } else {
+      // transfer reverted or `success == false`
+      return amount;
+    }
   }
 
   /** Fetches required tokens from the corresponding treasury*/
@@ -406,9 +401,11 @@ contract Mango is Persistent {
         ASKS[index] = offerId;
         index_of_ask[ASKS[index]] = index;
         return 0;
-      } catch {
+      } catch (bytes memory reason) {
         // `newOffer` can fail when Mango is underprovisioned or if `offer.gives` is below density
-        emit LogIncident(BASE, QUOTE, 0, "Mango/writeAsk/newOfferFail");
+        if (keccak256(reason) == keccak256("mgv/insufficientProvision")) {
+          emit LogIncident(BASE, QUOTE, 0, "Mango/newAsk/outOfProvision");
+        }
         return gives;
       }
     } else {
@@ -434,7 +431,7 @@ contract Mango is Persistent {
             BASE,
             QUOTE,
             ASKS[index],
-            "Mango/writeAsk/outOfProvision"
+            "Mango/updateAsk/outOfProvision"
           );
         }
         // updateOffer failed but `offer` might still be live (i.e with `offer.gives>0`)
@@ -470,8 +467,10 @@ contract Mango is Persistent {
         BIDS[index] = offerId;
         index_of_bid[BIDS[index]] = index;
         return 0;
-      } catch {
-        emit LogIncident(QUOTE, BASE, 0, "Mango/writeBid/newOfferFail");
+      } catch (bytes memory reason) {
+        if (keccak256(reason) == keccak256("mgv/insufficientProvision")) {
+          emit LogIncident(QUOTE, BASE, 0, "Mango/newBid/outOfProvision");
+        }
         return gives;
       }
     } else {
@@ -488,13 +487,15 @@ contract Mango is Persistent {
         })
       {
         return 0;
-      } catch {
-        emit LogIncident(
-          QUOTE,
-          BASE,
-          BIDS[index],
-          "Mango/writeBid/updateOfferFail"
-        );
+      } catch (bytes memory reason) {
+        if (keccak256(reason) == keccak256("mgv/insufficientProvision")) {
+          emit LogIncident(
+            QUOTE,
+            BASE,
+            BIDS[index],
+            "Mango/writeBid/updateOfferFail"
+          );
+        }
         // updateOffer failed but `offer` might still be live (i.e with `offer.gives>0`)
         uint oldGives = MGV.offers(QUOTE, BASE, BIDS[index]).gives();
         // if not during initialize we necessarily have gives > oldGives

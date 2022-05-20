@@ -13,12 +13,11 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./AaveModuleStorage.sol";
+import "hardhat/console.sol";
 
-contract AaveV3ModuleImplementation is AaveV3ModuleStorage {
-  constructor(address _addressesProvider, uint _referralCode)
-    AaveV3ModuleStorage(_addressesProvider, _referralCode)
-  {}
-
+contract AaveV3ModuleImplementation is
+  AaveV3ModuleStorage(false, address(42), 0)
+{
   /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
   /// returns (R, B|R)
 
@@ -27,6 +26,8 @@ contract AaveV3ModuleImplementation is AaveV3ModuleStorage {
     bool tryBorrow,
     address onBehalf
   ) public view returns (uint, uint) {
+    console.log(address(lendingPool));
+    console.log(address(priceOracle));
     Underlying memory underlying; // asset parameters
     Account memory account; // accound parameters
     (

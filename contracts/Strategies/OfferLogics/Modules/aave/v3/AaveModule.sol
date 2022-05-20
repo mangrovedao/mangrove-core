@@ -14,14 +14,13 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./AaveModuleStorage.sol";
 import {AaveV3ModuleImplementation as AMI} from "./AaveModuleImplementation.sol";
+import "hardhat/console.sol";
 
 contract AaveV3Module is AaveV3ModuleStorage {
-  address immutable implementation;
-
   constructor(address _addressesProvider, uint _referralCode)
-    AaveV3ModuleStorage(_addressesProvider, _referralCode)
+    AaveV3ModuleStorage(true, _addressesProvider, _referralCode)
   {
-    AMI impl = new AMI(_addressesProvider, _referralCode);
+    AMI impl = new AMI();
     implementation = address(impl);
   }
 
@@ -65,13 +64,15 @@ contract AaveV3Module is AaveV3ModuleStorage {
     address onBehalf
   )
     public
-    view
     returns (
+      //view
       uint maxRedeemableUnderlying,
       uint maxBorrowAfterRedeemInUnderlying
     )
   {
-    (bool success, bytes memory retdata) = implementation.staticcall(
+    console.log(address(lendingPool));
+    console.log(address(priceOracle));
+    (bool success, bytes memory retdata) = implementation.delegatecall(
       abi.encodeWithSelector(
         AMI.maxGettableUnderlying.selector,
         asset,

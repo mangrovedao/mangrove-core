@@ -24,8 +24,12 @@ import "../../../../interfaces/IEIP20.sol";
 
 contract AaveV3ModuleStorage {
   // address of the lendingPool
-  IPool public immutable lendingPool;
-  IPriceOracleGetter public immutable priceOracle;
+  IPool public lendingPool;
+  IPriceOracleGetter public priceOracle;
+
+  // cannot be immutable because address is known at AaveModule construction time
+  address implementation;
+
   uint16 referralCode;
 
   // structs to avoir stack too deep in maxGettableUnderlying
@@ -47,22 +51,29 @@ contract AaveV3ModuleStorage {
     uint balanceOfUnderlying;
   }
 
-  constructor(address _addressesProvider, uint _referralCode) {
+  constructor(
+    bool has_storage,
+    address _addressesProvider,
+    uint _referralCode
+  ) {
     require(
       uint16(_referralCode) == _referralCode,
       "Referral code should be uint16"
     );
 
-    referralCode = uint16(referralCode); // for aave reference, put 0 for tests
+    referralCode = uint16(_referralCode); // for aave reference, put 0 for tests
 
-    address _priceOracle = IPoolAddressesProvider(_addressesProvider)
-      .getAddress("PRICE_ORACLE");
-    address _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
-
-    require(_lendingPool != address(0), "Invalid lendingPool address");
-    require(_priceOracle != address(0), "Invalid priceOracle address");
+    address _priceOracle;
+    address _lendingPool;
+    if (has_storage) {
+      _priceOracle = IPoolAddressesProvider(_addressesProvider).getAddress(
+        "PRICE_ORACLE"
+      );
+      _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
+      require(_priceOracle != address(0), "AaveModuleStorage/0xPriceOracle");
+      require(_lendingPool != address(0), "AaveModuleStorage/0xPool");
+    }
     lendingPool = IPool(_lendingPool);
     priceOracle = IPriceOracleGetter(_priceOracle);
   }
-  // utils for delegate calls
 }

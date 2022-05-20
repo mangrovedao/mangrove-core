@@ -13,7 +13,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MultiUser.sol";
-import "../AaveModule.sol";
+import "../Modules/aave/v2/AaveModule.sol";
 
 abstract contract MultiUserAaveLender is MultiUser, AaveModule {
   /**************************************************************************/

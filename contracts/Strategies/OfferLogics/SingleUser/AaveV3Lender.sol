@@ -13,7 +13,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./SingleUser.sol";
-import "../AaveV3Module.sol";
+import "../Modules/aave/v3/AaveModule.sol";
 
 abstract contract AaveV3Lender is SingleUser, AaveV3Module {
   /**************************************************************************/
@@ -27,6 +27,10 @@ abstract contract AaveV3Lender is SingleUser, AaveV3Module {
 
   function enterMarkets(IEIP20[] calldata underlyings) external onlyAdmin {
     _enterMarkets(underlyings);
+  }
+
+  function approveLender(IEIP20 token, uint amount) external onlyAdmin {
+    _approveLender(token, amount);
   }
 
   function __get__(uint amount, ML.SingleOrder calldata order)

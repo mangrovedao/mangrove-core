@@ -13,9 +13,13 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MultiUser.sol";
-import "../AaveV3Module.sol";
+import "../Modules/aave/v3/AaveModule.sol";
 
 abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
+  function approveLender(IEIP20 token, uint amount) external onlyAdmin {
+    _approveLender(token, amount);
+  }
+
   /**************************************************************************/
   ///@notice Required functions to let `this` contract interact with Aave
   /**************************************************************************/

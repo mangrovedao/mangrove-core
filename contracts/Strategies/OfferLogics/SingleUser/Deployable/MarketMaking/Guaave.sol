@@ -59,7 +59,9 @@ contract Guaave is Mango, AaveV3Module {
       caller
     )
     AaveV3Module(aave_args.addressesProvider, 0)
-  {}
+  {
+    OFR_GASREQ = 800_000;
+  }
 
   function set_buffer(
     bool base,

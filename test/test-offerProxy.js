@@ -182,7 +182,7 @@ describe("Deploy offerProxy", function () {
 
   it("Clean revert", async function () {
     // check that getFail is emitted during offer logic posthook
-    lc.listenOfferLogic(offerProxy, await offerProxy.OUTOFLIQUIDITY());
+    lc.listenOfferLogic(offerProxy, "mgvOffer/abort/getFailed");
     const aDai = await lc.getContract("ADAI");
     const dai = await lc.getContract("DAI");
     const wEth = await lc.getContract("WETH");

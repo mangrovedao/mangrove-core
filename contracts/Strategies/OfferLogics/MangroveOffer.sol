@@ -29,10 +29,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
 
-  bytes32 public immutable RENEGED = "mgvOffer/abort/reneged";
-  bytes32 public immutable PUTFAILURE = "mgvOffer/abort/putFailed";
-  bytes32 public immutable OUTOFLIQUIDITY = "mgvOffer/abort/getFailed";
-
   // The deployed Mangrove contract
   IMangrove public immutable MGV;
 

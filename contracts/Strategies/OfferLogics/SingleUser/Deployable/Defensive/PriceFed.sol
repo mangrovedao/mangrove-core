@@ -41,7 +41,7 @@ contract PriceFed is Defensive, AaveV3Lender {
     ML.OrderResult calldata result
   ) internal override returns (bool) {
     // reposts only if offer was reneged due to a price slippage
-    if (result.makerData == RENEGED) {
+    if (result.makerData == "mgvOffer/abort/reneged") {
       uint price_quote = oracle.getPrice(order.inbound_tkn);
       uint price_base = oracle.getPrice(order.outbound_tkn);
 

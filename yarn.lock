@@ -1868,6 +1868,7 @@ __metadata:
     hardhat-abi-exporter: ^2.9.0
     hardhat-deploy: ^0.9.4
     hardhat-deploy-ethers: ^0.3.0-beta.10
+    hardhat-storage-layout: ^0.1.6
     lint-staged: ^12.4.1
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
@@ -3898,6 +3899,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"console-table-printer@npm:^2.9.0":
+  version: 2.11.0
+  resolution: "console-table-printer@npm:2.11.0"
+  dependencies:
+    simple-wcswidth: ^1.0.1
+  checksum: 125797e3b936eb08182cc704eb8d6aaa6ab82c6fb1f739afad3dd06847b8a89227fe80f84ed105accfa6f4487ff12821f931727624bfda67d8a8ebdc1314f168
+  languageName: node
+  linkType: hard
+
 "convert-source-map@npm:^1.7.0":
   version: 1.8.0
   resolution: "convert-source-map@npm:1.8.0"
@@ -5638,6 +5648,17 @@ fsevents@~2.3.2:
     "@ethersproject/hardware-wallets": ^5.0.14
     hardhat: ^2.0.0
   checksum: fb13114e7d27bb58ca7dab00036f7cd29dc02923bfbe30029d659a8cab8e86d3e924797a64f70a9f67388f30eba9860a665d1432b9e09abb141932395b6584cc
+  languageName: node
+  linkType: hard
+
+"hardhat-storage-layout@npm:^0.1.6":
+  version: 0.1.6
+  resolution: "hardhat-storage-layout@npm:0.1.6"
+  dependencies:
+    console-table-printer: ^2.9.0
+  peerDependencies:
+    hardhat: ^2.0.3
+  checksum: 041041582ca32ccce90a71a8c243c8cbf0cb09d908fcf69e3994b2805b84f37310cc825ad63ad47ccb803260a6c94237881b2ed9098ac4704e022c19045cd075
   languageName: node
   linkType: hard
 
@@ -9469,6 +9490,13 @@ resolve@1.17.0:
   dependencies:
     is-arrayish: ^0.3.1
   checksum: a7f3f2ab5c76c4472d5c578df892e857323e452d9f392e1b5cf74b74db66e6294a1e1b8b390b519fa1b96b5b613f2a37db6cffef52c3f1f8f3c5ea64eb2d54c0
+  languageName: node
+  linkType: hard
+
+"simple-wcswidth@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "simple-wcswidth@npm:1.0.1"
+  checksum: dc5bf4cb131d9c386825d1355add2b1ecc408b37dc2c2334edd7a1a4c9f527e6b594dedcdbf6d949bce2740c3a332e39af1183072a2d068e40d9e9146067a37f
   languageName: node
   linkType: hard
 

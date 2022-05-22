@@ -31,6 +31,7 @@ config.hardhat = {
       blockGasLimit: 7000000000,
       allowUnlimitedContractSize: true,
       chainId: 31337,
+      // loggingEnabled: true,
       //    chainId: 80001,
     },
     mumbai: {
@@ -52,6 +53,11 @@ config.hardhat = {
       optimizer: {
         enabled: true,
         runs: 20000,
+      },
+    },
+    outputSelection: {
+      "*": {
+        "*": ["storageLayout"],
       },
     },
   },

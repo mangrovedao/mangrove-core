@@ -14,7 +14,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./AaveV3Lender.sol";
 
-abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
+abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
   uint public immutable interestRateMode;
 
   constructor(uint _interestRateMode) {
@@ -54,7 +54,7 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
       if (success) {
         // overlying transfer has succeeded, anything wrong beyond this point should revert
         require(
-          lendingPool.withdraw(order.outbound_tkn, toRedeem, address(this)) ==
+          lendingPool().withdraw(order.outbound_tkn, toRedeem, address(this)) ==
             amount,
           "mgvOffer/aave/redeemFailed"
         );
@@ -66,11 +66,11 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
           ? liquidity_after_redeem
           : amount;
         // 3. trying to borrow missing liquidity, failure to borrow reverts
-        lendingPool.borrow(
+        lendingPool().borrow(
           order.outbound_tkn,
           toBorrow,
           interestRateMode,
-          referralCode,
+          referralCode(),
           address(this)
         );
         return 0;
@@ -91,7 +91,7 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
       return 0;
     }
     // trying to repay debt if user is in borrow position for inbound_tkn token
-    DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
+    DataTypes.ReserveData memory reserveData = lendingPool().getReserveData(
       order.inbound_tkn
     );
 
@@ -114,12 +114,14 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
       order.inbound_tkn,
       order.offerId
     );
-    try lendingPool.repay(order.inbound_tkn, toRepay, interestRateMode, owner) {
+    try
+      lendingPool().repay(order.inbound_tkn, toRepay, interestRateMode, owner)
+    {
       toMint = amount - toRepay;
     } catch {
       toMint = amount;
     }
-    lendingPool.supply(order.inbound_tkn, toMint, owner, referralCode);
+    lendingPool().supply(order.inbound_tkn, toMint, owner, referralCode());
     return 0;
   }
 }

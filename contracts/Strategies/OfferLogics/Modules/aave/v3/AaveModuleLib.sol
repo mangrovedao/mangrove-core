@@ -22,58 +22,19 @@ import {ReserveConfiguration as RC} from "./ReserveConfiguration.sol";
 import "../../../../interfaces/IMangrove.sol";
 import "../../../../interfaces/IEIP20.sol";
 
-contract AaveV3ModuleStorage {
+library AaveV3ModuleLib {
   // address of the lendingPool
-  IPool public lendingPool;
-  IPriceOracleGetter public priceOracle;
-
-  // cannot be immutable because address is known at AaveModule construction time
-  address implementation;
-
-  uint16 referralCode;
-
-  // structs to avoir stack too deep in maxGettableUnderlying
-  struct Underlying {
-    uint ltv;
-    uint liquidationThreshold;
-    uint decimals;
-    uint price;
+  struct AaveStorage {
+    IPool lendingPool;
+    IPriceOracleGetter priceOracle;
+    address implementation;
+    uint16 referralCode;
   }
 
-  struct Account {
-    uint collateral;
-    uint debt;
-    uint borrowPower;
-    uint redeemPower;
-    uint ltv;
-    uint liquidationThreshold;
-    uint health;
-    uint balanceOfUnderlying;
-  }
-
-  constructor(
-    bool has_storage,
-    address _addressesProvider,
-    uint _referralCode
-  ) {
-    require(
-      uint16(_referralCode) == _referralCode,
-      "Referral code should be uint16"
-    );
-
-    referralCode = uint16(_referralCode); // for aave reference, put 0 for tests
-
-    address _priceOracle;
-    address _lendingPool;
-    if (has_storage) {
-      _priceOracle = IPoolAddressesProvider(_addressesProvider).getAddress(
-        "PRICE_ORACLE"
-      );
-      _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
-      require(_priceOracle != address(0), "AaveModuleStorage/0xPriceOracle");
-      require(_lendingPool != address(0), "AaveModuleStorage/0xPool");
+  function aaveStorage() internal pure returns (AaveStorage storage st) {
+    bytes32 storagePosition = keccak256("AaveV3ModuleStorageLib.AaveStorage");
+    assembly {
+      st.slot := storagePosition
     }
-    lendingPool = IPool(_lendingPool);
-    priceOracle = IPriceOracleGetter(_priceOracle);
   }
 }

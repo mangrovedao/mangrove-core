@@ -15,6 +15,7 @@ pragma abicoder v2;
 import "./MultiUser.sol";
 import "../Modules/aave/v3/AaveModule.sol";
 
+// NB make sure to inherit AaveV3Module first to maintain storage layout
 abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
   function approveLender(IEIP20 token, uint amount) external onlyAdmin {
     _approveLender(token, amount);
@@ -53,7 +54,7 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
         // anything wrong beyond this point should revert
         // trying to redeem from AAVE
         require(
-          lendingPool.withdraw(order.outbound_tkn, amount, address(this)) ==
+          lendingPool().withdraw(order.outbound_tkn, amount, address(this)) ==
             amount,
           "mgvOffer/aave/redeemFailed"
         );
@@ -82,7 +83,7 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
       order.offerId
     );
     // minted Atokens are sent to owner
-    lendingPool.supply(order.inbound_tkn, amount, owner, referralCode);
+    lendingPool().supply(order.inbound_tkn, amount, owner, referralCode());
     return 0;
   }
 }

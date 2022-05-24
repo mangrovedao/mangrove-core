@@ -15,9 +15,9 @@ pragma abicoder v2;
 import "./ILendingPool.sol";
 import "./ILendingPoolAddressesProvider.sol";
 import "./IPriceOracleGetter.sol";
-import "../../../../lib/Exponential.sol";
-import "../../../../interfaces/IMangrove.sol";
-import "../../../../interfaces/IEIP20.sol";
+import "../../../utils/Exponential.sol";
+import "../../../interfaces/IMangrove.sol";
+import "../../../interfaces/IEIP20.sol";
 
 //import "hardhat/console.sol";
 

@@ -13,7 +13,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./SingleUser.sol";
-import "../Modules/aave/v3/AaveModule.sol";
+import "../../Modules/aave/v3/AaveModule.sol";
 
 abstract contract AaveV3Lender is SingleUser, AaveV3Module {
   /**************************************************************************/

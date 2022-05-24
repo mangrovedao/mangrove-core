@@ -13,7 +13,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MultiUser.sol";
-import "../Modules/aave/v3/AaveModule.sol";
+import "../../Modules/aave/v3/AaveModule.sol";
 
 // NB make sure to inherit AaveV3Module first to maintain storage layout
 abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {

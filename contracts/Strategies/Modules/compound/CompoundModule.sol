@@ -12,8 +12,8 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./ICompound.sol";
-import "../../../lib/Exponential.sol";
-import "../../../interfaces/IMangrove.sol";
+import "../../utils/Exponential.sol";
+import "../../interfaces/IMangrove.sol";
 
 //import "hardhat/console.sol";
 

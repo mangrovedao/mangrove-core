@@ -32,7 +32,18 @@ contract AaveV3Module {
 
     AML.aaveStorage().lendingPool = IPool(_lendingPool);
     AML.aaveStorage().priceOracle = IPriceOracleGetter(_priceOracle);
+    // NB it is possible to pass _lendingPool and _priceOracle to AMI constructor so that one can
+    // also staticcall it and maintain view function that require querying aave contracts
     AML.aaveStorage().implementation = address(new AMI());
+  }
+
+  function revertWithData(bytes memory retdata) internal pure {
+    if (retdata.length == 0) {
+      revert("AaveModule/revert");
+    }
+    assembly {
+      revert(add(retdata, 32), mload(retdata))
+    }
   }
 
   function lendingPool() public view returns (IPool) {
@@ -49,15 +60,6 @@ contract AaveV3Module {
 
   function implementation() public view returns (address) {
     return AML.aaveStorage().implementation;
-  }
-
-  function revertWithData(bytes memory retdata) internal pure {
-    if (retdata.length == 0) {
-      revert("AaveModule/revert");
-    }
-    assembly {
-      revert(add(retdata, 32), mload(retdata))
-    }
   }
 
   /**************************************************************************/

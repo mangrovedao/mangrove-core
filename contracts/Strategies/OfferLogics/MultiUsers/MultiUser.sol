@@ -213,7 +213,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   ) internal returns (uint offerId) {
     uint weiBalanceBefore = MGV.balanceOf(address(this));
     if (gasreq > type(uint24).max) {
-      gasreq = OFR_GASREQ;
+      gasreq = OFR_GASREQ();
     }
     // this call could revert if this contract does not have the provision to cover the bounty
     offerId = MGV.newOffer{value: provision}(
@@ -278,7 +278,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     );
     uint weiBalanceBefore = MGV.balanceOf(address(this));
     if (gasreq > type(uint24).max) {
-      gasreq = OFR_GASREQ;
+      gasreq = OFR_GASREQ();
     }
     try
       MGV.updateOffer{value: provision}(

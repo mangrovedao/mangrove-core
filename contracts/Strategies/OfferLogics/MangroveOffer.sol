@@ -12,7 +12,8 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "../lib/AccessControlled.sol";
+import "../utils/AccessControlled.sol";
+import {MangroveOfferStorage as MOS} from "./MangroveOfferStorage.sol";
 import "../interfaces/IOfferLogic.sol";
 import "../interfaces/IMangrove.sol";
 import "../interfaces/IEIP20.sol";
@@ -29,26 +30,31 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
 
-  // The deployed Mangrove contract
+  // immutable does not impact storage layout
   IMangrove public immutable MGV;
+
+  function OFR_GASREQ() public view returns (uint) {
+    return MOS.get_storage().OFR_GASREQ;
+  }
 
   // `this` contract entypoint is `makerExecute` or `makerPosthook` if `msg.sender == address(MGV)`
   // `this` contract was called on an admin function iff `msg.sender = admin`
   modifier mgvOrAdmin() {
     require(
-      msg.sender == admin || msg.sender == address(MGV),
+      msg.sender == admin() || msg.sender == address(MGV),
       "AccessControlled/Invalid"
     );
     _;
   }
-  // default values
-  uint public override OFR_GASREQ = 100_000;
 
   // necessary function to withdraw funds from Mangrove
   receive() external payable virtual {}
 
-  constructor(address payable _mgv, address admin) AccessControlled(admin) {
+  constructor(address payable _mgv, address deployer)
+    AccessControlled(deployer)
+  {
     MGV = IMangrove(_mgv);
+    MOS.get_storage().OFR_GASREQ = 50_000;
   }
 
   // utils
@@ -139,7 +145,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   // sets default gasreq for `new/updateOffer`
   function setGasreq(uint gasreq) public override mgvOrAdmin {
     require(uint24(gasreq) == gasreq, "mgvOffer/gasreq/overflow");
-    OFR_GASREQ = gasreq;
+    MOS.get_storage().OFR_GASREQ = gasreq;
   }
 
   /// `this` contract needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
@@ -193,7 +199,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       _gp = gasprice;
     }
     if (gasreq > type(uint24).max) {
-      gasreq = OFR_GASREQ;
+      gasreq = OFR_GASREQ();
     }
     uint bounty = (gasreq + localData.offer_gasbase()) * _gp * 10**9; // in WEI
     // if `offerId` is not in the OfferList, all returned values will be 0

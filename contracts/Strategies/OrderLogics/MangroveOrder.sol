@@ -126,7 +126,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
         inbound_tkn: outbound_tkn,
         wants: tko.makerWants - res.takerGot,
         gives: tko.makerGives - res.takerGave,
-        gasreq: OFR_GASREQ,
+        gasreq: OFR_GASREQ(),
         gasprice: 0,
         pivotId: 0, // offer should be best in the book
         caller: msg.sender, // `msg.sender` will be the owner of the resting order

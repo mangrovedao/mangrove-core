@@ -43,9 +43,7 @@ contract Mango is Persistent {
   // Market on which Mango will be acting
   address BASE;
   address QUOTE;
-  address implementation;
-
-  // Asks and bids offer Ids are stored in `ASKS` and `BIDS` arrays respectively.
+ // Asks and bids offer Ids are stored in `ASKS` and `BIDS` arrays respectively.
 
   constructor(
     address payable mgv,
@@ -74,7 +72,7 @@ contract Mango is Persistent {
     BASE_0 = uint96(base_0);
     QUOTE_0 = uint96(quote_0);
     implementation = address(0); //address(new MangoImplementation());
-
+    
     // setting local storage
     mStr.asks = new uint[](nslots);
     mStr.bids = new uint[](nslots);
@@ -82,10 +80,11 @@ contract Mango is Persistent {
     mStr.current_min_buffer = 1;
     mStr.current_quote_treasury = msg.sender;
     mStr.current_base_treasury = msg.sender;
-
+    
     // setting inherited storage
     setGasreq(400_000); // dry run OK with 200_000
   }
+
 
   // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
   // tokenAmounts are always expressed `gives`units, i.e in BASE when asking and in QUOTE when bidding
@@ -209,9 +208,7 @@ contract Mango is Persistent {
     returns (uint)
   {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    if (
-      order.inbound_tkn == BASE && mStr.current_base_treasury != address(this)
-    ) {
+    if (order.inbound_tkn == BASE && mStr.current_base_treasury != address(this)) {
       return putInternal(BASE, amount);
     }
     if (mStr.current_quote_treasury != address(this)) {
@@ -248,9 +245,7 @@ contract Mango is Persistent {
     returns (uint)
   {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    if (
-      order.outbound_tkn == BASE && mStr.current_base_treasury != address(this)
-    ) {
+    if (order.outbound_tkn == BASE && mStr.current_base_treasury != address(this)) {
       return getInternal(BASE, amount);
     }
     if (mStr.current_quote_treasury != address(this)) {
@@ -270,15 +265,11 @@ contract Mango is Persistent {
     for (uint i = from; i < to; i++) {
       if (ba > 0) {
         // asks or bids+asks
-        collected += mStr.asks[i] > 0
-          ? retractOffer(BASE, QUOTE, mStr.asks[i], true)
-          : 0;
+        collected += mStr.asks[i] > 0 ? retractOffer(BASE, QUOTE, mStr.asks[i], true) : 0;
       }
       if (ba == 0 || ba > 1) {
         // bids or bids + asks
-        collected += mStr.bids[i] > 0
-          ? retractOffer(QUOTE, BASE, mStr.bids[i], true)
-          : 0;
+        collected += mStr.bids[i] > 0 ? retractOffer(QUOTE, BASE, mStr.bids[i], true) : 0;
       }
     }
   }
@@ -869,9 +860,7 @@ contract Mango is Persistent {
 
     uint position = position_of_index(index);
 
-    uint new_gives = reset
-      ? amount
-      : (amount + offer.gives() + mStr.pending_quote);
+    uint new_gives = reset ? amount : (amount + offer.gives() + mStr.pending_quote);
     uint new_wants = bases_of_position(position, new_gives);
 
     uint pivot;
@@ -911,9 +900,7 @@ contract Mango is Persistent {
     P.Offer.t offer = MGV.offers(BASE, QUOTE, mStr.asks[index]);
     uint position = position_of_index(index);
 
-    uint new_gives = reset
-      ? amount
-      : (amount + offer.gives() + mStr.pending_base); // in BASE
+    uint new_gives = reset ? amount : (amount + offer.gives() + mStr.pending_base); // in BASE
     uint new_wants = quotes_of_position(position, new_gives);
 
     uint pivot;

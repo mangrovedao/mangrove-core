@@ -72,7 +72,15 @@ contract SwingingMarketMaker is CompoundTrader {
     uint offerId = offers[outbound_tkn][inbound_tkn];
     if (offerId == 0) {
       try
-        MGV.newOffer(outbound_tkn, inbound_tkn, wants, gives, OFR_GASREQ, 0, 0)
+        MGV.newOffer(
+          outbound_tkn,
+          inbound_tkn,
+          wants,
+          gives,
+          OFR_GASREQ(),
+          0,
+          0
+        )
       returns (uint id) {
         if (id > 0) {
           offers[outbound_tkn][inbound_tkn] = id;
@@ -91,7 +99,7 @@ contract SwingingMarketMaker is CompoundTrader {
           wants,
           gives,
           // offerId is already on the book so a good pivot
-          OFR_GASREQ, // default value
+          OFR_GASREQ(), // default value
           0, // default value
           offerId,
           offerId

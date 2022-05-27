@@ -12,7 +12,7 @@
 
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {AaveV3ModuleLib as AML, IEIP20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, IPriceOracleGetter, DataTypes, RC} from "./AaveModuleLib.sol";
+import {AaveV3ModuleStorage as AMS, IEIP20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, IPriceOracleGetter, DataTypes, RC} from "./AaveModuleStorage.sol";
 
 contract AaveV3ModuleImplementation {
   IPool public immutable POOL;
@@ -151,7 +151,7 @@ contract AaveV3ModuleImplementation {
       address(token),
       toMint,
       address(this),
-      AML.get_storage().referralCode
+      AMS.get_storage().referralCode
     );
   }
 
@@ -189,7 +189,7 @@ contract AaveV3ModuleImplementation {
       address(token),
       amount,
       interestRateMode,
-      AML.get_storage().referralCode,
+      AMS.get_storage().referralCode,
       to
     );
     return 0;

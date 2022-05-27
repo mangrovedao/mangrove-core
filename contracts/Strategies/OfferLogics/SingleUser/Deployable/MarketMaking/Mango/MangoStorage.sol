@@ -51,7 +51,7 @@ library MangoStorage {
 
   function revertWithData(bytes memory retdata) internal pure {
     if (retdata.length == 0) {
-      revert("Mango/revert/noReason");
+      revert("MangoStorage/revertNoReason");
     }
     assembly {
       revert(add(retdata, 32), mload(retdata))

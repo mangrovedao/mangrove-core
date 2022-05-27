@@ -22,7 +22,7 @@ import {ReserveConfiguration as RC} from "./ReserveConfiguration.sol";
 import "../../../interfaces/IMangrove.sol";
 import "../../../interfaces/IEIP20.sol";
 
-library AaveV3ModuleLib {
+library AaveV3ModuleStorage {
   // address of the lendingPool
   struct Layout {
     uint16 referralCode;
@@ -39,7 +39,7 @@ library AaveV3ModuleLib {
 
   function revertWithData(bytes memory retdata) internal pure {
     if (retdata.length == 0) {
-      revert("AaveModule/revert/noReason");
+      revert("AaveModuleStorage/revertNoReason");
     }
     assembly {
       revert(add(retdata, 32), mload(retdata))

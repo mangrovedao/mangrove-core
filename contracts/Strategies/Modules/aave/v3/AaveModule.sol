@@ -13,7 +13,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import {AaveV3ModuleLib as AML} from "./AaveModuleLib.sol";
+import {AaveV3ModuleStorage as AMS} from "./AaveModuleStorage.sol";
 import {AaveV3ModuleImplementation as AMI, IEIP20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, IPriceOracleGetter, DataTypes} from "./AaveModuleImplementation.sol";
 
 contract AaveV3Module {
@@ -26,7 +26,7 @@ contract AaveV3Module {
       uint16(_referralCode) == _referralCode,
       "Referral code should be uint16"
     );
-    AML.get_storage().referralCode = uint16(_referralCode); // for aave reference, put 0 for tests
+    AMS.get_storage().referralCode = uint16(_referralCode); // for aave reference, put 0 for tests
 
     address _priceOracle = IPoolAddressesProvider(_addressesProvider)
       .getAddress("PRICE_ORACLE");
@@ -42,7 +42,7 @@ contract AaveV3Module {
   }
 
   function referralCode() public view returns (uint16) {
-    return AML.get_storage().referralCode;
+    return AMS.get_storage().referralCode;
   }
 
   /**************************************************************************/
@@ -97,7 +97,7 @@ contract AaveV3Module {
         (uint, uint)
       );
     } else {
-      AML.revertWithData(retdata);
+      AMS.revertWithData(retdata);
     }
   }
 
@@ -115,7 +115,7 @@ contract AaveV3Module {
       )
     );
     if (!success) {
-      AML.revertWithData(retdata);
+      AMS.revertWithData(retdata);
     }
   }
 
@@ -137,7 +137,7 @@ contract AaveV3Module {
     if (success) {
       got = abi.decode(retdata, (uint));
     } else {
-      AML.revertWithData(retdata);
+      AMS.revertWithData(retdata);
     }
   }
 

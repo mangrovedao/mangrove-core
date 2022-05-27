@@ -32,13 +32,9 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   // immutable does not impact storage layout
   IMangrove public immutable MGV;
-
-  function OFR_GASREQ() public view returns (uint) {
-    return MOS.get_storage().OFR_GASREQ;
-  }
-
   // `this` contract entypoint is `makerExecute` or `makerPosthook` if `msg.sender == address(MGV)`
   // `this` contract was called on an admin function iff `msg.sender = admin`
+
   modifier mgvOrAdmin() {
     require(
       msg.sender == admin() || msg.sender == address(MGV),
@@ -55,6 +51,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   {
     MGV = IMangrove(_mgv);
     MOS.get_storage().OFR_GASREQ = 50_000;
+  }
+
+  function OFR_GASREQ() public view returns (uint) {
+    return MOS.get_storage().OFR_GASREQ;
   }
 
   // utils

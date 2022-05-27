@@ -54,8 +54,7 @@ abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
       if (success) {
         // overlying transfer has succeeded, anything wrong beyond this point should revert
         require(
-          lendingPool().withdraw(order.outbound_tkn, toRedeem, address(this)) ==
-            amount,
+          POOL.withdraw(order.outbound_tkn, toRedeem, address(this)) == amount,
           "mgvOffer/aave/redeemFailed"
         );
         amount = amount - toRedeem;
@@ -66,7 +65,7 @@ abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
           ? liquidity_after_redeem
           : amount;
         // 3. trying to borrow missing liquidity, failure to borrow reverts
-        lendingPool().borrow(
+        POOL.borrow(
           order.outbound_tkn,
           toBorrow,
           interestRateMode,
@@ -91,7 +90,7 @@ abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
       return 0;
     }
     // trying to repay debt if user is in borrow position for inbound_tkn token
-    DataTypes.ReserveData memory reserveData = lendingPool().getReserveData(
+    DataTypes.ReserveData memory reserveData = POOL.getReserveData(
       order.inbound_tkn
     );
 
@@ -114,14 +113,12 @@ abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
       order.inbound_tkn,
       order.offerId
     );
-    try
-      lendingPool().repay(order.inbound_tkn, toRepay, interestRateMode, owner)
-    {
+    try POOL.repay(order.inbound_tkn, toRepay, interestRateMode, owner) {
       toMint = amount - toRepay;
     } catch {
       toMint = amount;
     }
-    lendingPool().supply(order.inbound_tkn, toMint, owner, referralCode());
+    POOL.supply(order.inbound_tkn, toMint, owner, referralCode());
     return 0;
   }
 }

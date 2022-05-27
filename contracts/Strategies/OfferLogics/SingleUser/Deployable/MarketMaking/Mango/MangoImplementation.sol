@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// Mango.sol
+// MangoImplementation.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 

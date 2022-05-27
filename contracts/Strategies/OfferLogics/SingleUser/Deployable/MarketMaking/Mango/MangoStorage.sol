@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// Mango.sol
+// MangoStorage.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -43,7 +43,7 @@ library MangoStorage {
   }
 
   function get_storage() internal pure returns (Layout storage st) {
-    bytes32 storagePosition = keccak256("Mangrove.MangoLib.MangoStorage");
+    bytes32 storagePosition = keccak256("Mangrove.MangoStorage.Layout");
     assembly {
       st.slot := storagePosition
     }

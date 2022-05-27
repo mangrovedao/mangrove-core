@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveLender.sol
+//AaveModuleStorage.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -30,7 +30,7 @@ library AaveV3ModuleStorage {
 
   function get_storage() internal pure returns (Layout storage st) {
     bytes32 storagePosition = keccak256(
-      "Mangrove.AaveV3ModuleStorageLib.AaveStorage"
+      "Mangrove.AaveV3ModuleStorageLib.Layout"
     );
     assembly {
       st.slot := storagePosition

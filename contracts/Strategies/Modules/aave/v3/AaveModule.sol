@@ -17,49 +17,32 @@ import {AaveV3ModuleLib as AML} from "./AaveModuleLib.sol";
 import {AaveV3ModuleImplementation as AMI, IEIP20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, IPriceOracleGetter, DataTypes} from "./AaveModuleImplementation.sol";
 
 contract AaveV3Module {
+  address private immutable IMPLEMENTATION;
+  IPool public immutable POOL;
+  IPriceOracleGetter public immutable ORACLE;
+
   constructor(address _addressesProvider, uint _referralCode) {
     require(
       uint16(_referralCode) == _referralCode,
       "Referral code should be uint16"
     );
+    AML.get_storage().referralCode = uint16(_referralCode); // for aave reference, put 0 for tests
 
-    AML.aaveStorage().referralCode = uint16(_referralCode); // for aave reference, put 0 for tests
     address _priceOracle = IPoolAddressesProvider(_addressesProvider)
       .getAddress("PRICE_ORACLE");
     address _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
     require(_priceOracle != address(0), "AaveModule/0xPriceOracle");
     require(_lendingPool != address(0), "AaveModule/0xPool");
 
-    AML.aaveStorage().lendingPool = IPool(_lendingPool);
-    AML.aaveStorage().priceOracle = IPriceOracleGetter(_priceOracle);
-    // NB it is possible to pass _lendingPool and _priceOracle to AMI constructor so that one can
-    // also staticcall it and maintain view function that require querying aave contracts
-    AML.aaveStorage().implementation = address(new AMI());
-  }
-
-  function revertWithData(bytes memory retdata) internal pure {
-    if (retdata.length == 0) {
-      revert("AaveModule/revert");
-    }
-    assembly {
-      revert(add(retdata, 32), mload(retdata))
-    }
-  }
-
-  function lendingPool() public view returns (IPool) {
-    return AML.aaveStorage().lendingPool;
-  }
-
-  function priceOracle() public view returns (IPriceOracleGetter) {
-    return AML.aaveStorage().priceOracle;
+    POOL = IPool(_lendingPool);
+    ORACLE = IPriceOracleGetter(_priceOracle);
+    IMPLEMENTATION = address(
+      new AMI(IPool(_lendingPool), IPriceOracleGetter(_priceOracle))
+    );
   }
 
   function referralCode() public view returns (uint16) {
-    return AML.aaveStorage().referralCode;
-  }
-
-  function implementation() public view returns (address) {
-    return AML.aaveStorage().implementation;
+    return AML.get_storage().referralCode;
   }
 
   /**************************************************************************/
@@ -69,30 +52,26 @@ contract AaveV3Module {
   ///@notice approval of overlying contract by the underlying is necessary for minting and repaying borrow
   ///@notice user must use this function to do so.
   function _approveLender(IEIP20 token, uint amount) internal {
-    token.approve(address(lendingPool()), amount);
+    token.approve(address(POOL), amount);
   }
 
   ///@notice exits markets
   function _exitMarket(IEIP20 underlying) internal {
-    lendingPool().setUserUseReserveAsCollateral(address(underlying), false);
+    POOL.setUserUseReserveAsCollateral(address(underlying), false);
   }
 
   function _enterMarkets(IEIP20[] calldata underlyings) internal {
     for (uint i = 0; i < underlyings.length; i++) {
-      lendingPool().setUserUseReserveAsCollateral(
-        address(underlyings[i]),
-        true
-      );
+      POOL.setUserUseReserveAsCollateral(address(underlyings[i]), true);
     }
   }
 
   function overlying(IEIP20 asset) public view returns (IEIP20 aToken) {
-    aToken = IEIP20(lendingPool().getReserveData(address(asset)).aTokenAddress);
+    aToken = IEIP20(POOL.getReserveData(address(asset)).aTokenAddress);
   }
 
   /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
   /// returns (R, B|R)
-
   function maxGettableUnderlying(
     address asset,
     bool tryBorrow,
@@ -100,14 +79,13 @@ contract AaveV3Module {
   )
     public
     returns (
-      //view
       uint maxRedeemableUnderlying,
       uint maxBorrowAfterRedeemInUnderlying
     )
   {
-    (bool success, bytes memory retdata) = implementation().delegatecall(
+    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        AMI.maxGettableUnderlying.selector,
+        AMI.$maxGettableUnderlying.selector,
         asset,
         tryBorrow,
         onBehalf
@@ -119,7 +97,7 @@ contract AaveV3Module {
         (uint, uint)
       );
     } else {
-      revertWithData(retdata);
+      AML.revertWithData(retdata);
     }
   }
 
@@ -128,16 +106,16 @@ contract AaveV3Module {
     IEIP20 token,
     uint amount
   ) internal {
-    (bool success, bytes memory retdata) = implementation().delegatecall(
+    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        AMI.repayThenDeposit.selector,
+        AMI.$repayThenDeposit.selector,
         interestRateMode,
         token,
         amount
       )
     );
     if (!success) {
-      revertWithData(retdata);
+      AML.revertWithData(retdata);
     }
   }
 
@@ -147,9 +125,9 @@ contract AaveV3Module {
     address to,
     uint amount
   ) internal returns (uint got) {
-    (bool success, bytes memory retdata) = implementation().delegatecall(
+    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        AMI.exactRedeemThenBorrow.selector,
+        AMI.$exactRedeemThenBorrow.selector,
         interestRateMode,
         token,
         to,
@@ -159,7 +137,7 @@ contract AaveV3Module {
     if (success) {
       got = abi.decode(retdata, (uint));
     } else {
-      revertWithData(retdata);
+      AML.revertWithData(retdata);
     }
   }
 
@@ -169,13 +147,7 @@ contract AaveV3Module {
     uint interestRateMode,
     address to
   ) internal {
-    lendingPool().borrow(
-      address(token),
-      amount,
-      interestRateMode,
-      referralCode(),
-      to
-    );
+    POOL.borrow(address(token), amount, interestRateMode, referralCode(), to);
   }
 
   function _redeem(
@@ -183,7 +155,7 @@ contract AaveV3Module {
     uint amount,
     address to
   ) internal returns (uint redeemed) {
-    redeemed = lendingPool().withdraw(address(token), amount, to);
+    redeemed = POOL.withdraw(address(token), amount, to);
   }
 
   function _mint(
@@ -191,7 +163,7 @@ contract AaveV3Module {
     uint amount,
     address onBehalf
   ) internal {
-    lendingPool().supply(address(token), amount, onBehalf, referralCode());
+    POOL.supply(address(token), amount, onBehalf, referralCode());
   }
 
   function _repay(
@@ -200,8 +172,7 @@ contract AaveV3Module {
     uint interestRateMode,
     address onBehalf
   ) internal returns (uint repaid) {
-    return
-      lendingPool().repay(address(token), amount, interestRateMode, onBehalf);
+    return POOL.repay(address(token), amount, interestRateMode, onBehalf);
   }
 
   // rewards claiming.

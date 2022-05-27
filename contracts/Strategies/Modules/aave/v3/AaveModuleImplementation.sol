@@ -15,8 +15,13 @@ pragma abicoder v2;
 import {AaveV3ModuleLib as AML, IEIP20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, IPriceOracleGetter, DataTypes, RC} from "./AaveModuleLib.sol";
 
 contract AaveV3ModuleImplementation {
-  /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
-  /// returns (R, B|R)
+  IPool public immutable POOL;
+  IPriceOracleGetter public immutable ORACLE;
+
+  constructor(IPool pool, IPriceOracleGetter oracle) {
+    POOL = pool;
+    ORACLE = oracle;
+  }
 
   // structs to avoir stack too deep in maxGettableUnderlying
   struct Underlying {
@@ -37,13 +42,11 @@ contract AaveV3ModuleImplementation {
     uint balanceOfUnderlying;
   }
 
-  function maxGettableUnderlying(
+  function $maxGettableUnderlying(
     address asset,
     bool tryBorrow,
     address onBehalf
   ) public view returns (uint, uint) {
-    AML.AaveStorage storage st = AML.aaveStorage();
-
     Underlying memory underlying; // asset parameters
     Account memory account; // accound parameters
     (
@@ -53,10 +56,8 @@ contract AaveV3ModuleImplementation {
       account.liquidationThreshold,
       account.ltv,
       account.health // avgLiquidityThreshold * sumCollateralEth / sumDebtEth  -- should be less than 10**18
-    ) = st.lendingPool.getUserAccountData(onBehalf);
-    DataTypes.ReserveData memory reserveData = st.lendingPool.getReserveData(
-      asset
-    );
+    ) = POOL.getUserAccountData(onBehalf);
+    DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
     (
       underlying.ltv, // collateral factor for lending
       underlying.liquidationThreshold, // collateral factor for borrowing
@@ -72,7 +73,7 @@ contract AaveV3ModuleImplementation {
       onBehalf
     );
 
-    underlying.price = st.priceOracle.getAssetPrice(asset); // divided by 10**underlying.decimals
+    underlying.price = ORACLE.getAssetPrice(asset); // divided by 10**underlying.decimals
 
     // account.redeemPower = account.liquidationThreshold * account.collateral - account.debt
     account.redeemPower =
@@ -116,15 +117,13 @@ contract AaveV3ModuleImplementation {
     return (maxRedeemableUnderlying, maxBorrowAfterRedeemInUnderlying);
   }
 
-  function repayThenDeposit(
+  function $repayThenDeposit(
     uint interestRateMode,
     IEIP20 token,
     uint amount
   ) external {
-    AML.AaveStorage storage st = AML.aaveStorage();
-
     uint debtOfUnderlying;
-    DataTypes.ReserveData memory reserveData = st.lendingPool.getReserveData(
+    DataTypes.ReserveData memory reserveData = POOL.getReserveData(
       address(token)
     );
     if (interestRateMode == 1) {
@@ -140,7 +139,7 @@ contract AaveV3ModuleImplementation {
     if (debtOfUnderlying == 0) {
       toMint = amount;
     } else {
-      uint repaid = st.lendingPool.repay(
+      uint repaid = POOL.repay(
         address(token),
         amount,
         interestRateMode,
@@ -148,23 +147,21 @@ contract AaveV3ModuleImplementation {
       );
       toMint = amount - repaid;
     }
-    st.lendingPool.supply(
+    POOL.supply(
       address(token),
       toMint,
       address(this),
-      st.referralCode
+      AML.get_storage().referralCode
     );
   }
 
-  function exactRedeemThenBorrow(
+  function $exactRedeemThenBorrow(
     uint interestRateMode,
     IEIP20 token,
     address to,
     uint amount
   ) external returns (uint) {
-    AML.AaveStorage storage st = AML.aaveStorage();
-
-    (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
+    (uint redeemable, uint liquidity_after_redeem) = $maxGettableUnderlying(
       address(token),
       true, // compute borrow power after redeem
       address(this) // assuming aTokens are on `this` contract's balance
@@ -176,7 +173,7 @@ contract AaveV3ModuleImplementation {
     // 2. trying to redeem liquidity from Compound
     uint toRedeem = (redeemable < amount) ? redeemable : amount;
 
-    uint redeemed = st.lendingPool.withdraw(address(token), toRedeem, to);
+    uint redeemed = POOL.withdraw(address(token), toRedeem, to);
     // `toRedeem` was computed such that lender should allow this contract to withdraw all of it
     // if this should fail it must be because the lender is running out of cash
     require(redeemed == toRedeem, "AaveModule/lenderOutOfCash");
@@ -188,11 +185,11 @@ contract AaveV3ModuleImplementation {
     }
     // 3. trying to borrow missing liquidity
     // NB `to` must have approved `this` contract for delegation unless `to == address(this)`
-    st.lendingPool.borrow(
+    POOL.borrow(
       address(token),
       amount,
       interestRateMode,
-      st.referralCode,
+      AML.get_storage().referralCode,
       to
     );
     return 0;

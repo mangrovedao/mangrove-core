@@ -48,4 +48,21 @@ library MangoStorage {
       st.slot := storagePosition
     }
   }
+
+  function revertWithData(bytes memory retdata) internal pure {
+    if (retdata.length == 0) {
+      revert("Mango/revert/noReason");
+    }
+    assembly {
+      revert(add(retdata, 32), mload(retdata))
+    }
+  }
+
+  function quote_price_jumps(
+    uint delta,
+    uint position,
+    uint quote_min
+  ) internal pure returns (uint) {
+    return delta * position + quote_min;
+  }
 }

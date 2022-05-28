@@ -65,6 +65,9 @@ contract Guaave is Mango, AaveV3Module {
     // Approving lender for base and quote transfer in order to be able to mint
     _approveLender(IEIP20(base), type(uint).max);
     _approveLender(IEIP20(quote), type(uint).max);
+    // approve Mangrove to pull funds during trade in order to pay takers
+    approveMangrove(quote, type(uint).max);
+    approveMangrove(base, type(uint).max);
   }
 
   function set_buffer(

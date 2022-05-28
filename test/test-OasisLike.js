@@ -37,7 +37,7 @@ describe("Running tests...", function () {
     makerContract = await Strat.deploy(mgv.address, maker.address);
     await makerContract.deployed();
     makerContract = makerContract.connect(maker);
-
+    await (await makerContract.setGasreq(100000)).wait();
     // funds come from deployer's wallet by default
     await lc.fund([["WETH", "10", maker.address]]);
 

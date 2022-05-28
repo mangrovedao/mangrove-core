@@ -50,7 +50,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     AccessControlled(deployer)
   {
     MGV = IMangrove(_mgv);
-    MOS.get_storage().OFR_GASREQ = 50_000;
+    MOS.get_storage().OFR_GASREQ = 80_000;
   }
 
   function OFR_GASREQ() public view returns (uint) {

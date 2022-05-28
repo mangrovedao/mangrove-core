@@ -61,7 +61,10 @@ contract Guaave is Mango, AaveV3Module {
   {
     BASE = base;
     QUOTE = quote;
-    setGasreq(800_000);
+    setGasreq(500_000);
+    // Approving lender for base and quote transfer in order to be able to mint
+    _approveLender(IEIP20(base), type(uint).max);
+    _approveLender(IEIP20(quote), type(uint).max);
   }
 
   function set_buffer(
@@ -116,7 +119,10 @@ contract Guaave is Mango, AaveV3Module {
     uint outbound_tkn_current_buffer = IEIP20(order.outbound_tkn).balanceOf(
       outbound_treasury
     );
-    if (outbound_tkn_current_buffer < outbound_tkn_buffer_low_target) {
+    if (
+      outbound_tkn_current_buffer < outbound_tkn_buffer_low_target ||
+      outbound_tkn_current_buffer < order.wants
+    ) {
       // redeems as many outbound tokens as `this` contract has overlyings.
       // redeem is deposited on the treasury of `outbound_tkn`
       uint redeemed = _redeem({
@@ -139,7 +145,7 @@ contract Guaave is Mango, AaveV3Module {
     uint current_buffer = token.balanceOf(tkn_treasury);
     if (current_buffer > tkn_buffer_high_target) {
       // pulling funds from the treasury to deposit them on Aaave
-      uint amount = tkn_buffer_high_target - current_buffer;
+      uint amount = current_buffer - tkn_buffer_high_target;
       require(
         transferFromERC(token, tkn_treasury, address(this), amount),
         "Guaave/maintainBuffer/transferFail"

@@ -1511,7 +1511,7 @@ __metadata:
     eslint-config-prettier: ^8.5.0
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
-    finalhandler: ^1.1.2
+    finalhandler: ^1.2.0
     hardhat: ^2.9.5
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
@@ -1564,7 +1564,7 @@ __metadata:
     eslint-config-prettier: ^8.5.0
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
-    finalhandler: ^1.1.2
+    finalhandler: ^1.2.0
     hardhat: ^2.9.5
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
@@ -1617,7 +1617,7 @@ __metadata:
     eslint-config-prettier: ^8.5.0
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
-    finalhandler: ^1.1.2
+    finalhandler: ^1.2.0
     hardhat: ^2.9.5
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
@@ -1671,7 +1671,7 @@ __metadata:
     eslint-config-prettier: ^8.5.0
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
-    finalhandler: ^1.1.2
+    finalhandler: ^1.2.0
     hardhat: ^2.9.5
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
@@ -1724,7 +1724,7 @@ __metadata:
     eslint-config-prettier: ^8.5.0
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
-    finalhandler: ^1.1.2
+    finalhandler: ^1.2.0
     hardhat: ^2.9.5
     hardhat-deploy: ^0.9.1
     hardhat-deploy-ethers: ^0.3.0-beta.11
@@ -5035,18 +5035,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"finalhandler@npm:^1.1.2":
-  version: 1.1.2
-  resolution: "finalhandler@npm:1.1.2"
+"finalhandler@npm:^1.2.0":
+  version: 1.2.0
+  resolution: "finalhandler@npm:1.2.0"
   dependencies:
     debug: 2.6.9
     encodeurl: ~1.0.2
     escape-html: ~1.0.3
-    on-finished: ~2.3.0
+    on-finished: 2.4.1
     parseurl: ~1.3.3
-    statuses: ~1.5.0
+    statuses: 2.0.1
     unpipe: ~1.0.0
-  checksum: 617880460c5138dd7ccfd555cb5dde4d8f170f4b31b8bd51e4b646bb2946c30f7db716428a1f2882d730d2b72afb47d1f67cc487b874cb15426f95753a88965e
+  checksum: 92effbfd32e22a7dff2994acedbd9bcc3aa646a3e919ea6a53238090e87097f8ef07cced90aa2cc421abdf993aefbdd5b00104d55c7c5479a8d00ed105b45716
   languageName: node
   linkType: hard
 
@@ -8110,15 +8110,6 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"on-finished@npm:~2.3.0":
-  version: 2.3.0
-  resolution: "on-finished@npm:2.3.0"
-  dependencies:
-    ee-first: 1.1.1
-  checksum: 1db595bd963b0124d6fa261d18320422407b8f01dc65863840f3ddaaf7bcad5b28ff6847286703ca53f4ec19595bd67a2f1253db79fc4094911ec6aa8df1671b
-  languageName: node
-  linkType: hard
-
 "once@npm:^1.3.0, once@npm:^1.3.1, once@npm:^1.4.0":
   version: 1.4.0
   resolution: "once@npm:1.4.0"
@@ -9645,7 +9636,7 @@ resolve@1.17.0:
   languageName: node
   linkType: hard
 
-"statuses@npm:>= 1.5.0 < 2, statuses@npm:~1.5.0":
+"statuses@npm:>= 1.5.0 < 2":
   version: 1.5.0
   resolution: "statuses@npm:1.5.0"
   checksum: c469b9519de16a4bb19600205cffb39ee471a5f17b82589757ca7bd40a8d92ebb6ed9f98b5a540c5d302ccbc78f15dc03cc0280dd6e00df1335568a5d5758a5c

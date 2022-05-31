@@ -21,75 +21,22 @@ abstract contract AaveV3Trader is AaveV3Lender {
     interestRateMode = _interestRateMode;
   }
 
-  event ErrorOnBorrow(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed offerId,
-    uint amount,
-    string errorCode
-  );
-  event ErrorOnRepay(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed offerId,
-    uint amount,
-    string errorCode
-  );
-
   function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
-    // 1. Computing total borrow and redeem capacities of underlying asset
-    (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
-      order.outbound_tkn,
-      true,
-      address(this)
-    );
-
-    if (redeemable + liquidity_after_redeem < amount) {
-      return amount; // give up early if not possible to fetch amount of underlying
+    if (amount == 0) {
+      return 0;
     }
-    // 2. trying to redeem liquidity from Compound
-    uint toRedeem = redeemable < amount ? redeemable : amount;
-
-    uint notRedeemed = aaveRedeem(toRedeem, address(this), order);
-    if (notRedeemed > 0 && toRedeem > 0) {
-      // => notRedeemed == toRedeem
-      // this should not happen unless compound is out of cash, thus no need to try to borrow
-      // log already emitted by `compoundRedeem`
-      return amount;
-    }
-    amount = amount - toRedeem;
-    uint toBorrow = liquidity_after_redeem < amount
-      ? liquidity_after_redeem
-      : amount;
-    if (toBorrow == 0) {
-      return amount;
-    }
-    // 3. trying to borrow missing liquidity
-    try
-      lendingPool.borrow(
-        order.outbound_tkn,
-        toBorrow,
+    return
+      exactRedeemThenBorrow(
         interestRateMode,
-        referralCode,
-        address(this)
-      )
-    {
-      return amount - toBorrow;
-    } catch Error(string memory message) {
-      emit ErrorOnBorrow(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        toBorrow,
-        message
+        IEIP20(order.outbound_tkn),
+        address(this),
+        amount
       );
-      return amount;
-    }
   }
 
   function __put__(uint amount, ML.SingleOrder calldata order)
@@ -102,44 +49,23 @@ abstract contract AaveV3Trader is AaveV3Lender {
     if (amount == 0) {
       return 0;
     }
-    // trying to repay debt if user is in borrow position for inbound_tkn token
-    DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
-      order.inbound_tkn
-    );
+    repayThenDeposit(interestRateMode, IEIP20(order.inbound_tkn), amount);
+    return 0;
+  }
 
-    uint debtOfUnderlying;
-    if (interestRateMode == 1) {
-      debtOfUnderlying = IEIP20(reserveData.stableDebtTokenAddress).balanceOf(
-        address(this)
-      );
-    } else {
-      debtOfUnderlying = IEIP20(reserveData.variableDebtTokenAddress).balanceOf(
-          address(this)
-        );
-    }
+  function borrow(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) external onlyAdmin {
+    _borrow(token, amount, interestRateMode, to);
+  }
 
-    uint toRepay = debtOfUnderlying < amount ? debtOfUnderlying : amount;
-
-    uint toMint;
-    try
-      lendingPool.repay(
-        order.inbound_tkn,
-        toRepay,
-        interestRateMode,
-        address(this)
-      )
-    {
-      toMint = amount - toRepay;
-    } catch Error(string memory message) {
-      emit ErrorOnRepay(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        toRepay,
-        message
-      );
-      toMint = amount;
-    }
-    return aaveMint(toMint, address(this), order);
+  function repay(
+    IEIP20 token,
+    uint amount,
+    address onBehalf
+  ) external onlyAdmin returns (uint repaid) {
+    return _repay(token, amount, interestRateMode, onBehalf);
   }
 }

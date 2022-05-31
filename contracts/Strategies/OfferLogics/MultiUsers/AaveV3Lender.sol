@@ -13,9 +13,13 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MultiUser.sol";
-import "../AaveV3Module.sol";
+import "../Modules/aave/v3/AaveModule.sol";
 
 abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
+  function approveLender(IEIP20 token, uint amount) external onlyAdmin {
+    _approveLender(token, amount);
+  }
+
   /**************************************************************************/
   ///@notice Required functions to let `this` contract interact with Aave
   /**************************************************************************/
@@ -49,7 +53,8 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
         // anything wrong beyond this point should revert
         // trying to redeem from AAVE
         require(
-          aaveRedeem(amount, address(this), order) == 0,
+          lendingPool.withdraw(order.outbound_tkn, amount, address(this)) ==
+            amount,
           "mgvOffer/aave/redeemFailed"
         );
         return 0;
@@ -77,6 +82,7 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
       order.offerId
     );
     // minted Atokens are sent to owner
-    return aaveMint(amount, owner, order);
+    lendingPool.supply(order.inbound_tkn, amount, owner, referralCode);
+    return 0;
   }
 }

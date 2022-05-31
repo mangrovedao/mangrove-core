@@ -14,7 +14,7 @@ pragma solidity >=0.6.12;
 pragma abicoder v2;
 
 import {ILendingPoolAddressesProvider} from "./ILendingPoolAddressesProvider.sol";
-import {DataTypes} from "../../../lib/aave/V2/DataTypes.sol";
+import {DataTypes} from "./DataTypes.sol";
 
 interface ILendingPool {
   /**

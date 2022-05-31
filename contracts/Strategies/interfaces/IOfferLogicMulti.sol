@@ -53,19 +53,10 @@ interface IOfferLogicMulti is IOfferLogic {
   function balanceOnMangrove(address owner) external view returns (uint);
 
   function offerOwners(
-    address reader,
     address outbound_tkn,
     address inbound_tkn,
-    uint fromId,
-    uint maxOffers
-  )
-    external
-    view
-    returns (
-      uint nextId,
-      uint[] memory offerIds,
-      address[] memory __offerOwners
-    );
+    uint[] calldata offerIds
+  ) external view returns (address[] memory __offerOwners);
 
   function ownerOf(
     address outbound_tkn,

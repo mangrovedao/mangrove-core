@@ -12,16 +12,16 @@
 
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "../interfaces/aave/V3/IPool.sol";
-import {IPoolAddressesProvider} from "../interfaces/aave/V3/IPoolAddressesProvider.sol";
-import "../interfaces/aave/V3/IPriceOracleGetter.sol";
-import {ReserveConfiguration as RC} from "../lib/aave/V3/ReserveConfiguration.sol";
-import "../interfaces/IMangrove.sol";
-import "../interfaces/IEIP20.sol";
+import "./ILendingPool.sol";
+import "./ILendingPoolAddressesProvider.sol";
+import "./IPriceOracleGetter.sol";
+import "../../../../lib/Exponential.sol";
+import "../../../../interfaces/IMangrove.sol";
+import "../../../../interfaces/IEIP20.sol";
 
 //import "hardhat/console.sol";
 
-contract AaveV3Module {
+contract AaveModule is Exponential {
   event ErrorOnRedeem(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
@@ -38,7 +38,7 @@ contract AaveV3Module {
   );
 
   // address of the lendingPool
-  IPool public immutable lendingPool;
+  ILendingPool public immutable lendingPool;
   IPriceOracleGetter public immutable priceOracle;
   uint16 referralCode;
 
@@ -47,17 +47,14 @@ contract AaveV3Module {
       uint16(_referralCode) == _referralCode,
       "Referral code should be uint16"
     );
-
     referralCode = uint16(referralCode); // for aave reference, put 0 for tests
-
-    address _priceOracle = IPoolAddressesProvider(_addressesProvider)
-      .getAddress("PRICE_ORACLE");
-
-    address _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
-
+    address _lendingPool = ILendingPoolAddressesProvider(_addressesProvider)
+      .getLendingPool();
+    address _priceOracle = ILendingPoolAddressesProvider(_addressesProvider)
+      .getPriceOracle();
     require(_lendingPool != address(0), "Invalid lendingPool address");
     require(_priceOracle != address(0), "Invalid priceOracle address");
-    lendingPool = IPool(_lendingPool);
+    lendingPool = ILendingPool(_lendingPool);
     priceOracle = IPriceOracleGetter(_priceOracle);
   }
 
@@ -133,10 +130,8 @@ contract AaveV3Module {
       /*liquidationBonus*/
       underlying.decimals,
       /*reserveFactor*/
-      /*emode_category*/
-      ,
 
-    ) = RC.getParams(reserveData.configuration);
+    ) = DataTypes.getParams(reserveData.configuration);
     account.balanceOfUnderlying = IEIP20(reserveData.aTokenAddress).balanceOf(
       onBehalf
     );
@@ -144,21 +139,22 @@ contract AaveV3Module {
     underlying.price = priceOracle.getAssetPrice(asset); // divided by 10**underlying.decimals
 
     // account.redeemPower = account.liquidationThreshold * account.collateral - account.debt
-    account.redeemPower =
-      (account.liquidationThreshold * account.collateral) /
-      10**4 -
-      account.debt;
+    account.redeemPower = sub_(
+      div_(mul_(account.liquidationThreshold, account.collateral), 10**4),
+      account.debt
+    );
     // max redeem capacity = account.redeemPower/ underlying.liquidationThreshold * underlying.price
     // unless account doesn't have enough collateral in asset token (hence the min())
 
-    uint maxRedeemableUnderlying = (account.redeemPower * // in 10**underlying.decimals
-      10**(underlying.decimals) *
-      10**4) / (underlying.liquidationThreshold * underlying.price);
+    uint maxRedeemableUnderlying = div_( // in 10**underlying.decimals
+      account.redeemPower * 10**(underlying.decimals) * 10**4,
+      mul_(underlying.liquidationThreshold, underlying.price)
+    );
 
-    maxRedeemableUnderlying = (maxRedeemableUnderlying <
-      account.balanceOfUnderlying)
-      ? maxRedeemableUnderlying
-      : account.balanceOfUnderlying;
+    maxRedeemableUnderlying = min(
+      maxRedeemableUnderlying,
+      account.balanceOfUnderlying
+    );
 
     if (!tryBorrow) {
       //gas saver
@@ -167,21 +163,24 @@ contract AaveV3Module {
     // computing max borrow capacity on the premisses that maxRedeemableUnderlying has been redeemed.
     // max borrow capacity = (account.borrowPower - (ltv*redeemed)) / underlying.ltv * underlying.price
 
-    uint borrowPowerImpactOfRedeemInUnderlying = (maxRedeemableUnderlying *
-      underlying.ltv) / 10**4;
-
-    uint borrowPowerInUnderlying = (account.borrowPower *
-      10**underlying.decimals) / underlying.price;
+    uint borrowPowerImpactOfRedeemInUnderlying = div_(
+      mul_(maxRedeemableUnderlying, underlying.ltv),
+      10**4
+    );
+    uint borrowPowerInUnderlying = div_(
+      mul_(account.borrowPower, 10**underlying.decimals),
+      underlying.price
+    );
 
     if (borrowPowerImpactOfRedeemInUnderlying > borrowPowerInUnderlying) {
       // no more borrowPower left after max redeem operation
       return (maxRedeemableUnderlying, 0);
     }
 
-    // max borrow power in underlying after max redeem has been withdrawn
-    uint maxBorrowAfterRedeemInUnderlying = borrowPowerInUnderlying -
-      borrowPowerImpactOfRedeemInUnderlying;
-
+    uint maxBorrowAfterRedeemInUnderlying = sub_( // max borrow power in underlying after max redeem has been withdrawn
+      borrowPowerInUnderlying,
+      borrowPowerImpactOfRedeemInUnderlying
+    );
     return (maxRedeemableUnderlying, maxBorrowAfterRedeemInUnderlying);
   }
 

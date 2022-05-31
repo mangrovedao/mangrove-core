@@ -41,32 +41,10 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   function offerOwners(
-    address reader,
     address outbound_tkn,
     address inbound_tkn,
-    uint fromId,
-    uint maxOffers
-  )
-    public
-    view
-    override
-    returns (
-      uint nextId,
-      uint[] memory offerIds,
-      address[] memory __offerOwners
-    )
-  {
-    (
-      nextId,
-      offerIds, /*offers*/ /*offerDetails*/
-      ,
-
-    ) = MgvReader(reader).offerList(
-      outbound_tkn,
-      inbound_tkn,
-      fromId,
-      maxOffers
-    );
+    uint[] calldata offerIds
+  ) public view override returns (address[] memory __offerOwners) {
     __offerOwners = new address[](offerIds.length);
     for (uint i = 0; i < offerIds.length; i++) {
       __offerOwners[i] = ownerOf(outbound_tkn, inbound_tkn, offerIds[i]);

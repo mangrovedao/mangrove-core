@@ -55,6 +55,41 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     MGV = IMangrove(_mgv);
   }
 
+  // utils
+  function transferERC(
+    IEIP20 token,
+    address recipient,
+    uint amount
+  ) internal returns (bool) {
+    if (amount == 0) {
+      return true;
+    }
+    (bool success, bytes memory data) = address(token).call(
+      abi.encodeWithSelector(token.transfer.selector, recipient, amount)
+    );
+    return (success && (data.length == 0 || abi.decode(data, (bool))));
+  }
+
+  function transferFromERC(
+    IEIP20 token,
+    address spender,
+    address recipient,
+    uint amount
+  ) internal returns (bool) {
+    if (amount == 0) {
+      return true;
+    }
+    (bool success, bytes memory data) = address(token).call(
+      abi.encodeWithSelector(
+        token.transferFrom.selector,
+        spender,
+        recipient,
+        amount
+      )
+    );
+    return (success && (data.length == 0 || abi.decode(data, (bool))));
+  }
+
   /////// Mandatory callback functions
 
   // `makerExecute` is the callback function to execute all offers that were posted on Mangrove by `this` contract.

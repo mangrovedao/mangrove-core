@@ -320,25 +320,27 @@ contract Mango is Persistent {
       if (retcode == "") {
         // sucessfully posted dual offer according to MM strategy
         return true;
-      } else {
-        // all ask or all bids
-        if (retcode == "Bid/BoundaryReached") {
-          __boundariesReached__(true);
-          return true;
-        } else if (retcode == "Bid/BoundaryReached") {
-          __boundariesReached__(false);
-          return true;
-        } else {
-          // no MM strategy defined for this offer or out of range
-          emit LogIncident(
-            order.outbound_tkn,
-            order.inbound_tkn,
-            order.offerId,
-            retcode
-          );
-          return false;
-        }
       }
+      if (retcode == "Bid/OK" || retcode == "Ask/OK") {
+        return true;
+      }
+      // all ask or all bids
+      if (retcode == "Bid/BoundaryReached") {
+        __boundariesReached__(true);
+        return true;
+      }
+      if (retcode == "Ask/BoundaryReached") {
+        __boundariesReached__(false);
+        return true;
+      }
+      // no MM strategy defined for this offer or out of range
+      emit LogIncident(
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        retcode
+      );
+      return false;
     }
   }
 }

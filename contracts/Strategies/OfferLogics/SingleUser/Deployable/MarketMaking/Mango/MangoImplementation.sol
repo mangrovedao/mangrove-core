@@ -650,7 +650,7 @@ contract MangoImplementation is Persistent {
 
   function $posthookSuccess(ML.SingleOrder calldata order)
     external
-    returns (bytes32 retcode)
+    returns (bytes32 ret)
   {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     // reposting residual of offer using override `__newWants__` and `__newGives__` for new price
@@ -665,28 +665,25 @@ contract MangoImplementation is Persistent {
       }
       //// Posting dual bid offer
       uint index = mStr.index_of_ask[order.offerId];
-      if (index != 0) {
-        // offer was not posted using newOffer
-        uint pos = position_of_index(index);
-        // bid for some BASE token with the received QUOTE tokens @ pos-1
-        if (pos > 0) {
-          // updateBid will include PENDING_QUOTES if any
-          updateBid({
-            index: index_of_position(pos - 1),
-            reset: false, // top up old value with received amount
-            amount: order.gives, // in QUOTES
-            pivotId: 0
-          });
-          if (pos - 1 <= mStr.current_min_buffer) {
-            retcode = "Bid/BoundaryReached";
-          }
+
+      uint pos = position_of_index(index);
+      // bid for some BASE token with the received QUOTE tokens @ pos-1
+      if (pos > 0) {
+        // updateBid will include PENDING_QUOTES if any
+        updateBid({
+          index: index_of_position(pos - 1),
+          reset: false, // top up old value with received amount
+          amount: order.gives, // in QUOTES
+          pivotId: 0
+        });
+        if (pos - 1 <= mStr.current_min_buffer) {
+          return "Bid/BoundaryReached";
         } else {
-          // Ask cannot be at Pmin unless a shift has eliminated all bids
-          retcode = "Bid/OutOfRange";
+          return "Bid/OK";
         }
       } else {
-        // nothing to be done with an offer that is not part of the strat
-        retcode = "Bid/OutOfStrat";
+        // Ask cannot be at Pmin unless a shift has eliminated all bids
+        return "Bid/OutOfRange";
       }
     } else {
       // Bid offer (`this` contract just bought some BASE)
@@ -699,28 +696,25 @@ contract MangoImplementation is Persistent {
       }
 
       uint index = mStr.index_of_bid[order.offerId];
-      if (index != 0) {
-        // offer was not posted using newOffer
-        uint pos = position_of_index(index);
-        // ask for some QUOTE tokens in exchange of the received BASE tokens @ pos+1
-        if (pos < NSLOTS - 1) {
-          // updateAsk will include mStr.pending_baseS if any
-          updateAsk({
-            index: index_of_position(pos + 1),
-            reset: false, // top up old value with received amount
-            amount: order.gives, // in BASE
-            pivotId: 0
-          });
-          if (pos + 1 >= NSLOTS - mStr.current_min_buffer) {
-            retcode = "Asks/BoundaryReached";
-          }
+      // offer was not posted using newOffer
+      uint pos = position_of_index(index);
+      // ask for some QUOTE tokens in exchange of the received BASE tokens @ pos+1
+      if (pos < NSLOTS - 1) {
+        // updateAsk will include mStr.pending_baseS if any
+        updateAsk({
+          index: index_of_position(pos + 1),
+          reset: false, // top up old value with received amount
+          amount: order.gives, // in BASE
+          pivotId: 0
+        });
+        if (pos + 1 >= NSLOTS - mStr.current_min_buffer) {
+          return "Ask/BoundaryReached";
         } else {
-          // Take profit
-          retcode = "Ask/OutOfRange";
+          return "Ask/OK";
         }
       } else {
-        /**  Not clear what one should do with a single offer not connected to the strat */
-        return "Ask/OutOfStrat";
+        // Take profit
+        return "Ask/OutOfRange";
       }
     }
   }

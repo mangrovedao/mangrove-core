@@ -24,18 +24,17 @@ import "../../../interfaces/IEIP20.sol";
 
 library AaveV3ModuleStorage {
   // address of the lendingPool
-  struct Layout {
-    uint16 referralCode;
-  }
+  // struct Layout {
+  // }
 
-  function get_storage() internal pure returns (Layout storage st) {
-    bytes32 storagePosition = keccak256(
-      "Mangrove.AaveV3ModuleStorageLib.Layout"
-    );
-    assembly {
-      st.slot := storagePosition
-    }
-  }
+  // function get_storage() internal pure returns (Layout storage st) {
+  //   bytes32 storagePosition = keccak256(
+  //     "Mangrove.AaveV3ModuleStorageLib.Layout"
+  //   );
+  //   assembly {
+  //     st.slot := storagePosition
+  //   }
+  // }
 
   function revertWithData(bytes memory retdata) internal pure {
     if (retdata.length == 0) {

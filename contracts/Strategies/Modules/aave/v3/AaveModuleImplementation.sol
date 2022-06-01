@@ -13,6 +13,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import {AaveV3ModuleStorage as AMS, IEIP20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, IPriceOracleGetter, DataTypes, RC} from "./AaveModuleStorage.sol";
+import "hardhat/console.sol";
 
 contract AaveV3ModuleImplementation {
   IPool public immutable POOL;
@@ -119,9 +120,14 @@ contract AaveV3ModuleImplementation {
 
   function $repayThenDeposit(
     uint interestRateMode,
+    uint referralCode,
     IEIP20 token,
     uint amount
   ) external {
+    // AAVE repay/deposit throws if amount == 0
+    if (amount == 0) {
+      return;
+    }
     uint debtOfUnderlying;
     DataTypes.ReserveData memory reserveData = POOL.getReserveData(
       address(token)
@@ -146,19 +152,18 @@ contract AaveV3ModuleImplementation {
         address(this)
       );
       toMint = amount - repaid;
+      if (toMint == 0) {
+        return;
+      }
     }
-    POOL.supply(
-      address(token),
-      toMint,
-      address(this),
-      AMS.get_storage().referralCode
-    );
+    POOL.supply(address(token), toMint, address(this), uint16(referralCode));
   }
 
   function $exactRedeemThenBorrow(
     uint interestRateMode,
+    uint referralCode,
     IEIP20 token,
-    address to,
+    address onBehalfOf,
     uint amount
   ) external returns (uint) {
     (uint redeemable, uint liquidity_after_redeem) = $maxGettableUnderlying(
@@ -173,7 +178,7 @@ contract AaveV3ModuleImplementation {
     // 2. trying to redeem liquidity from Compound
     uint toRedeem = (redeemable < amount) ? redeemable : amount;
 
-    uint redeemed = POOL.withdraw(address(token), toRedeem, to);
+    uint redeemed = POOL.withdraw(address(token), toRedeem, onBehalfOf);
     // `toRedeem` was computed such that lender should allow this contract to withdraw all of it
     // if this should fail it must be because the lender is running out of cash
     require(redeemed == toRedeem, "AaveModule/lenderOutOfCash");
@@ -189,8 +194,8 @@ contract AaveV3ModuleImplementation {
       address(token),
       amount,
       interestRateMode,
-      AMS.get_storage().referralCode,
-      to
+      uint16(referralCode),
+      onBehalfOf
     );
     return 0;
   }

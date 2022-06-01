@@ -45,6 +45,15 @@ async function init(NSLOTS, makerContract, bidAmount, askAmount) {
   }
 }
 
+async function logLender(makerContract) {
+  await lc.logLenderStatus(
+    makerContract,
+    "aave",
+    ["USDC", "WETH"],
+    makerContract.address // account on lender
+  );
+}
+
 describe("Running tests...", function () {
   this.timeout(200_000); // Deployment is slow so timeout is increased
   let mgv = null;
@@ -55,6 +64,8 @@ describe("Running tests...", function () {
   let maker = null;
   let taker = null;
   let makerContract = null;
+  let lendingPool = null;
+
   const NSLOTS = 10;
   // price increase is delta/BASE_0
   const delta = lc.parseToken("34", 6); //  (in quotes!)
@@ -65,6 +76,7 @@ describe("Running tests...", function () {
     usdc = await lc.getContract("USDC");
     awEth = await lc.getContract("AWETH");
     aUsdc = await lc.getContract("AUSDC");
+    lendingPool = await lc.getContract("AAVEPOOL");
 
     // setting testRunner signer
     [maker, taker] = await ethers.getSigners();
@@ -84,7 +96,6 @@ describe("Running tests...", function () {
     //lc.listenMgv(mgv);
     const strategy = "Guaave";
     const Strat = await ethers.getContractFactory(strategy);
-    const lendingPool = await lc.getContract("AAVEPOOL");
     const addressesProvider = await lc.getContract("AAVE");
 
     // deploying strat
@@ -102,28 +113,25 @@ describe("Running tests...", function () {
         },
         {
           addressesProvider: addressesProvider.address,
-          interestRateMode: 0,
+          referralCode: 0,
+          interestRateMode: 1, // Stable
         },
         maker.address // default treasury for base and quote
       )
     ).connect(maker);
 
-    await makerContract.set_buffer(true, true, ethers.utils.parseEther("0.34"));
-    await makerContract.set_buffer(
-      true,
-      false,
-      ethers.utils.parseEther("0.68")
-    );
-    await makerContract.set_buffer(
-      false,
-      true,
-      ethers.utils.parseUnits("1000", 6)
-    );
-    await makerContract.set_buffer(
-      false,
-      false,
-      ethers.utils.parseUnits("2000", 6)
-    );
+    await (
+      await makerContract.set_buffer(true, ethers.utils.parseEther("0.68"))
+    ).wait();
+    await (
+      await makerContract.set_buffer(false, ethers.utils.parseUnits("2000", 6))
+    ).wait();
+    await (
+      await makerContract.set_treasury(true, makerContract.address)
+    ).wait();
+    await (
+      await makerContract.set_treasury(false, makerContract.address)
+    ).wait();
 
     // maker is the EOA for quote and base treasury
     await lc.fund([
@@ -153,14 +161,14 @@ describe("Running tests...", function () {
     // minting...
     mkrTxs[i++] = await lendingPool
       .connect(maker)
-      .supply(wEth.address, lc.parseToken("9", 18), makerContract.address, 0);
+      .supply(wEth.address, lc.parseToken("9", 18), makerContract.address, 1);
     mkrTxs[i++] = await lendingPool
       .connect(maker)
       .supply(
         usdc.address,
         lc.parseToken("18000", 6),
         makerContract.address,
-        0
+        1
       );
     await lc.synch(mkrTxs);
 
@@ -223,41 +231,13 @@ describe("Running tests...", function () {
     book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
     console.log("===asks===");
     await lc.logOrderBook(book, wEth, usdc);
-    await lc.logLenderStatus(
-      makerContract,
-      "aave",
-      ["USDC", "WETH"],
-      makerContract.address,
-      maker.address
-    );
+    await logLender(makerContract);
   });
 
   it("Market orders", async function () {
-    // let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
-    // console.log("===bids===");
-    // await lc.logOrderBook(book, usdc, wEth);
-    // book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
-    // console.log("===asks===");
-    // await lc.logOrderBook(book, wEth, usdc);
-
-    await makerContract.approveMangrove(
-      wEth.address,
-      ethers.constants.MaxUint256
-    );
-    await makerContract.approveMangrove(
-      usdc.address,
-      ethers.constants.MaxUint256
-    );
-
+    // taker needs to approve mangrove to run market orders
     await wEth.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
     await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
-
-    await wEth
-      .connect(maker)
-      .approve(makerContract.address, ethers.constants.MaxUint256);
-    await usdc
-      .connect(maker)
-      .approve(makerContract.address, ethers.constants.MaxUint256);
 
     //lc.listenOfferLogic(makerContract);
     //lc.listenMgv(mgv);
@@ -268,13 +248,7 @@ describe("Running tests...", function () {
       ethers.utils.parseEther("0.5"), // wants
       ethers.utils.parseUnits("3000", 6) // gives
     );
-    await lc.logLenderStatus(
-      makerContract,
-      "aave",
-      ["USDC", "WETH"],
-      makerContract.address, // account on lender
-      maker.address // vault for local reserve
-    );
+    await logLender(makerContract);
 
     let [bids, asks] = await makerContract.get_offers(false);
     await checkOB(
@@ -312,13 +286,8 @@ describe("Running tests...", function () {
       ethers.utils.parseUnits("3500", 6), // wants
       ethers.utils.parseEther("1.5") // gives
     );
-    await lc.logLenderStatus(
-      makerContract,
-      "aave",
-      ["USDC", "WETH"],
-      makerContract.address, // account on lender
-      maker.address // vault for local reserve
-    );
+    await logLender(makerContract);
+
     [bids, asks] = await makerContract.get_offers(false);
     await checkOB(
       "OB bids",
@@ -347,5 +316,33 @@ describe("Running tests...", function () {
       ethers.utils.parseEther("0"),
       "Taker should not receive a bounty"
     );
+  });
+
+  it("Guaave repays first when borrowing", async function () {
+    // sending all ETH on aave to taker acount
+    const tx1 = await makerContract.redeem(
+      usdc.address,
+      ethers.constants.MaxUint256,
+      taker.address
+    );
+    await tx1.wait();
+
+    const tx2 = await makerContract.borrow(
+      usdc.address,
+      ethers.utils.parseUnits("5000", 6),
+      makerContract.address
+    );
+    await tx2.wait();
+
+    await logLender(makerContract);
+
+    [takerGot, takerGave, bounty] = await lc.marketOrder(
+      mgv.connect(taker),
+      "USDC", // outbound
+      "WETH", // inbound
+      ethers.utils.parseUnits("3500", 6), // wants
+      ethers.utils.parseEther("1.5") // gives
+    );
+    await logLender(makerContract);
   });
 });

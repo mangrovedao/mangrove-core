@@ -54,7 +54,7 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
         // anything wrong beyond this point should revert
         // trying to redeem from AAVE
         require(
-          POOL.withdraw(order.outbound_tkn, amount, address(this)) == amount,
+          _redeem(IEIP20(order.outbound_tkn), amount, address(this)) == amount,
           "mgvOffer/aave/redeemFailed"
         );
         return 0;
@@ -82,7 +82,7 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
       order.offerId
     );
     // minted Atokens are sent to owner
-    POOL.supply(order.inbound_tkn, amount, owner, referralCode());
+    _mint(IEIP20(order.inbound_tkn), amount, owner);
     return 0;
   }
 }

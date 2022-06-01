@@ -18,7 +18,14 @@ contract SimpleAaveRetail is AaveV3Lender {
     address _addressesProvider,
     address payable _MGV,
     address admin
-  ) AaveV3Module(_addressesProvider, 0) MangroveOffer(_MGV, admin) {
+  )
+    AaveV3Module(
+      _addressesProvider,
+      0,
+      1 /* Interest rate mode */
+    )
+    MangroveOffer(_MGV, admin)
+  {
     setGasreq(1_000_000);
   }
 

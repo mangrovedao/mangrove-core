@@ -15,12 +15,6 @@ pragma abicoder v2;
 import "./AaveV3Lender.sol";
 
 abstract contract AaveV3Trader is AaveV3Lender {
-  uint public immutable interestRateMode;
-
-  constructor(uint _interestRateMode) {
-    interestRateMode = _interestRateMode;
-  }
-
   function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
@@ -31,12 +25,7 @@ abstract contract AaveV3Trader is AaveV3Lender {
       return 0;
     }
     return
-      exactRedeemThenBorrow(
-        interestRateMode,
-        IEIP20(order.outbound_tkn),
-        address(this),
-        amount
-      );
+      exactRedeemThenBorrow(IEIP20(order.outbound_tkn), address(this), amount);
   }
 
   function __put__(uint amount, ML.SingleOrder calldata order)
@@ -49,7 +38,7 @@ abstract contract AaveV3Trader is AaveV3Lender {
     if (amount == 0) {
       return 0;
     }
-    repayThenDeposit(interestRateMode, IEIP20(order.inbound_tkn), amount);
+    repayThenDeposit(IEIP20(order.inbound_tkn), amount);
     return 0;
   }
 
@@ -58,7 +47,7 @@ abstract contract AaveV3Trader is AaveV3Lender {
     uint amount,
     address to
   ) external onlyAdmin {
-    _borrow(token, amount, interestRateMode, to);
+    _borrow(token, amount, to);
   }
 
   function repay(
@@ -66,6 +55,6 @@ abstract contract AaveV3Trader is AaveV3Lender {
     uint amount,
     address onBehalf
   ) external onlyAdmin returns (uint repaid) {
-    return _repay(token, amount, interestRateMode, onBehalf);
+    return _repay(token, amount, onBehalf);
   }
 }

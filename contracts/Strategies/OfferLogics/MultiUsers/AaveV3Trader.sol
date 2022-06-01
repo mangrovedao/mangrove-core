@@ -15,12 +15,6 @@ pragma abicoder v2;
 import "./AaveV3Lender.sol";
 
 abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
-  uint public immutable interestRateMode;
-
-  constructor(uint _interestRateMode) {
-    interestRateMode = _interestRateMode;
-  }
-
   function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
@@ -68,8 +62,8 @@ abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
         POOL.borrow(
           order.outbound_tkn,
           toBorrow,
-          interestRateMode,
-          referralCode(),
+          INTEREST_RATE_MODE,
+          REFERRAL_CODE,
           address(this)
         );
         return 0;
@@ -95,7 +89,7 @@ abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
     );
 
     uint debtOfUnderlying;
-    if (interestRateMode == 1) {
+    if (INTEREST_RATE_MODE == 1) {
       debtOfUnderlying = IEIP20(reserveData.stableDebtTokenAddress).balanceOf(
         address(this)
       );
@@ -113,12 +107,12 @@ abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
       order.inbound_tkn,
       order.offerId
     );
-    try POOL.repay(order.inbound_tkn, toRepay, interestRateMode, owner) {
+    try POOL.repay(order.inbound_tkn, toRepay, INTEREST_RATE_MODE, owner) {
       toMint = amount - toRepay;
     } catch {
       toMint = amount;
     }
-    POOL.supply(order.inbound_tkn, toMint, owner, referralCode());
+    _mint(IEIP20(order.inbound_tkn), toMint, owner);
     return 0;
   }
 }

@@ -63,7 +63,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     address recipient,
     uint amount
   ) internal returns (bool) {
-    if (amount == 0) {
+    if (amount == 0 || recipient == address(this)) {
       return true;
     }
     (bool success, bytes memory data) = address(token).call(
@@ -78,7 +78,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     address recipient,
     uint amount
   ) internal returns (bool) {
-    if (amount == 0) {
+    if (amount == 0 || spender == recipient) {
       return true;
     }
     (bool success, bytes memory data) = address(token).call(

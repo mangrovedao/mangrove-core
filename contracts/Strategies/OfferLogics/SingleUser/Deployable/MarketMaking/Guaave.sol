@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./Mango/Mango.sol";
 import "./GuaaveStorage.sol";
-import "../../AaveV3Trader.sol";
+import "contracts/Strategies/Modules/aave/v3/AaveModule.sol";
 
 /** Extension of Mango market maker with optimized yeilds on AAVE */
 /** outbound/inbound token buffers are the base/quote treasuries (possibly EOA) */
@@ -57,11 +57,12 @@ contract Guaave is Mango, AaveV3Module {
       mango_args.delta,
       caller
     )
-    AaveV3Module(aave_args.addressesProvider, 0)
+    AaveV3Module(aave_args.addressesProvider, 0, aave_args.interestRateMode)
   {
     BASE = base;
     QUOTE = quote;
-    setGasreq(500_000);
+    // setting base and quote treasury to `this` to save transfer gas
+    setGasreq(700_000);
     // Approving lender for base and quote transfer in order to be able to mint
     _approveLender(IEIP20(base), type(uint).max);
     _approveLender(IEIP20(quote), type(uint).max);
@@ -70,41 +71,26 @@ contract Guaave is Mango, AaveV3Module {
     approveMangrove(base, type(uint).max);
   }
 
-  function set_buffer(
-    bool base,
-    bool get,
-    uint buffer
-  ) external onlyAdmin {
+  function set_buffer(bool base, uint buffer) external onlyAdmin {
     GuaaveStorage.Layout storage st = GuaaveStorage.get_storage();
-    if (base && get) {
-      st.base_get_threshold = buffer;
-    } else if (base && !get) {
+    if (base) {
       st.base_put_threshold = buffer;
-    } else if (get) {
-      st.quote_get_threshold = buffer;
     } else {
       st.quote_put_threshold = buffer;
     }
   }
 
   // returns the target buffer level of `token` and the address of the treasury where the buffer is held
-  // `get` is the low target (when liquidity needs to be fetched) `!get` is the high target for the buffer
-  function token_buffer_data(IEIP20 token, bool get)
+  function token_buffer_data(IEIP20 token)
     internal
     view
     returns (uint, address)
   {
     GuaaveStorage.Layout storage st = GuaaveStorage.get_storage();
-    if (get) {
-      return
-        (address(token) == BASE)
-          ? (st.base_get_threshold, get_treasury({base: true}))
-          : (st.quote_get_threshold, get_treasury({base: false}));
+    if (address(token) == BASE) {
+      return (st.base_put_threshold, get_treasury({base: true}));
     } else {
-      return
-        (address(token) == BASE)
-          ? (st.base_put_threshold, get_treasury({base: true}))
-          : (st.quote_put_threshold, get_treasury({base: false}));
+      return (st.quote_put_threshold, get_treasury({base: false}));
     }
   }
 
@@ -114,18 +100,14 @@ contract Guaave is Mango, AaveV3Module {
     override
     returns (uint)
   {
-    (
-      uint outbound_tkn_buffer_low_target,
-      address outbound_treasury
-    ) = token_buffer_data(IEIP20(order.outbound_tkn), true);
+    address outbound_treasury = (order.outbound_tkn == BASE)
+      ? get_treasury({base: true})
+      : get_treasury({base: false});
     // if treasury is below target buffer, redeem on lender
     uint outbound_tkn_current_buffer = IEIP20(order.outbound_tkn).balanceOf(
       outbound_treasury
     );
-    if (
-      outbound_tkn_current_buffer < outbound_tkn_buffer_low_target ||
-      outbound_tkn_current_buffer < order.wants
-    ) {
+    if (outbound_tkn_current_buffer < order.wants) {
       // redeems as many outbound tokens as `this` contract has overlyings.
       // redeem is deposited on the treasury of `outbound_tkn`
       uint redeemed = _redeem({
@@ -141,19 +123,17 @@ contract Guaave is Mango, AaveV3Module {
   }
 
   function maintain_token_buffer_level(IEIP20 token) internal {
-    (uint tkn_buffer_high_target, address tkn_treasury) = token_buffer_data(
-      token,
-      false
-    );
+    (uint tkn_buffer_target, address tkn_treasury) = token_buffer_data(token);
     uint current_buffer = token.balanceOf(tkn_treasury);
-    if (current_buffer > tkn_buffer_high_target) {
+    if (current_buffer > tkn_buffer_target) {
       // pulling funds from the treasury to deposit them on Aaave
-      uint amount = current_buffer - tkn_buffer_high_target;
+      uint amount = current_buffer - tkn_buffer_target;
       require(
         transferFromERC(token, tkn_treasury, address(this), amount),
         "Guaave/maintainBuffer/transferFail"
       );
-      _mint({token: token, amount: amount, onBehalf: address(this)});
+      repayThenDeposit(token, amount);
+      //_mint({token: token, amount: amount, onBehalf: address(this)});
       emit DecreaseBuffer(address(token), amount);
     }
   }
@@ -170,5 +150,51 @@ contract Guaave is Mango, AaveV3Module {
     // since buffer has received `inbound_tkn` it might also be overfilled
     maintain_token_buffer_level(IEIP20(order.inbound_tkn));
     return super.__posthookSuccess__(order);
+  }
+
+  function redeem(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) public mgvOrAdmin returns (uint) {
+    require(to != address(0), "Guaave/redeem/0xAddress");
+    return _redeem(token, amount, to);
+  }
+
+  function borrow(
+    IEIP20 token,
+    uint amount,
+    address onBehalf
+  ) public mgvOrAdmin {
+    _borrow(token, amount, onBehalf);
+  }
+
+  function repay(
+    IEIP20 token,
+    uint amount,
+    address onBehalf
+  ) public mgvOrAdmin {
+    _repay(token, amount, onBehalf);
+  }
+
+  function mint(
+    IEIP20 token,
+    uint amount,
+    address onBehalf
+  ) public mgvOrAdmin {
+    _mint(token, amount, onBehalf);
+  }
+
+  // rewards claiming.
+  // may use `SingleUser.redeemToken` to move collected tokens afterwards
+  function claimRewards(
+    IRewardsControllerIsh rewardsController,
+    address[] calldata assets
+  )
+    public
+    mgvOrAdmin
+    returns (address[] memory rewardsList, uint[] memory claimedAmounts)
+  {
+    return _claimRewards(rewardsController, assets);
   }
 }

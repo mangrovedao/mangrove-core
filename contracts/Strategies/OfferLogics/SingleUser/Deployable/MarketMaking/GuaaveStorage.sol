@@ -14,9 +14,6 @@ pragma abicoder v2;
 
 library GuaaveStorage {
   struct Layout {
-    // when base/quote reserve is below `base_get_threshold` contract will redeem all liquidity from `Aave`
-    uint base_get_threshold;
-    uint quote_get_threshold;
     // when base/quote reserve is above `base_put_threshold` contract will deposit liquidity on `Aave`
     uint base_put_threshold;
     uint quote_put_threshold;

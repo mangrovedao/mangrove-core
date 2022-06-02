@@ -37,6 +37,7 @@ contract Mango is Persistent {
   event Initialized(uint from, uint to);
 
   address private immutable IMPLEMENTATION;
+  uint public immutable NSLOTS;
 
   // Asks and bids offer Ids are stored in `ASKS` and `BIDS` arrays respectively.
 
@@ -60,6 +61,7 @@ contract Mango is Persistent {
         uint96(quote_0) == quote_0,
       "Mango/constructor/invalidArguments"
     );
+    NSLOTS = nslots;
 
     // implementation should have correct immutables
     IMPLEMENTATION = address(
@@ -69,7 +71,7 @@ contract Mango is Persistent {
         quote,
         uint96(base_0),
         uint96(quote_0),
-        uint16(nslots)
+        nslots
       )
     );
     // setting local storage
@@ -126,14 +128,8 @@ contract Mango is Persistent {
     return base ? mStr.current_base_treasury : mStr.current_quote_treasury;
   }
 
-  function reset_pending()
-    external
-    onlyAdmin
-    returns (uint pending_base, uint pending_quote)
-  {
+  function reset_pending() external onlyAdmin {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    pending_base = mStr.pending_base;
-    pending_quote = mStr.pending_quote;
     mStr.pending_base = 0;
     mStr.pending_quote = 0;
   }
@@ -279,6 +275,10 @@ contract Mango is Persistent {
 
   function restart() external onlyAdmin {
     MangoStorage.get_storage().paused = false;
+  }
+
+  function is_paused() external view returns (bool) {
+    return MangoStorage.get_storage().paused;
   }
 
   // this overrides is read during `makerExecute` call (see `MangroveOffer`)

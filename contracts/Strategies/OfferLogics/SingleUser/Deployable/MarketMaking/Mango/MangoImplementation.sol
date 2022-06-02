@@ -29,7 +29,7 @@ contract MangoImplementation is Persistent {
   using P.OfferDetail for P.OfferDetail.t;
 
   // total number of Asks (resp. Bids)
-  uint16 immutable NSLOTS;
+  uint immutable NSLOTS;
   // initial min price given by `QUOTE_0/BASE_0`
   uint96 immutable BASE_0;
   uint96 immutable QUOTE_0;
@@ -43,7 +43,7 @@ contract MangoImplementation is Persistent {
     address quote,
     uint96 base_0,
     uint96 quote_0,
-    uint16 nslots
+    uint nslots
   ) MangroveOffer(mgv, address(this)) {
     // setting immutable fields to match those of `Mango`
     BASE = base;

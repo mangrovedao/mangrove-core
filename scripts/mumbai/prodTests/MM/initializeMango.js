@@ -45,6 +45,15 @@ async function main() {
     }
 
     MangoRaw = MangoRaw.connect(tester);
+
+    let [pendingBase, pendingQuote] = await MangoRaw.get_pending();
+    if (pendingBase.gt(0) || pendingQuote.gt(0)) {
+      console.log(
+        `* Current deployment of Mango has pending liquidity, resetting.`
+      );
+      tx = await MangoRaw.reset_pending();
+    }
+
     if (!((await MangoRaw.get_treasury(true)) === tester.address)) {
       console.log(`* Set ${baseName} treasury to tester wallet`);
       tx = await MangoRaw.set_treasury(true, tester.address);
@@ -141,16 +150,17 @@ async function main() {
       );
       const receipt = await tx.wait();
       console.log(`Done! (gas used ${receipt.gasUsed.toString()})`);
-      //      const [pendingBase, pendingQuote] = await MangoRaw.get_pending();
-      // if (pendingBase.gt(0) || pendingQuote.gt(0)) {
-      //   throw Error(
-      //     `Init error, failed to initialize (${MgvAPI.token(baseName).fromUnits(
-      //       pendingBase
-      //     )} pending base,${MgvAPI.token(quoteName).fromUnits(
-      //       pendingQuote
-      //     )} pending quotes)`
-      //   );
-      // }
+
+      [pendingBase, pendingQuote] = await MangoRaw.get_pending();
+      if (pendingBase.gt(0) || pendingQuote.gt(0)) {
+        throw Error(
+          `Init error, failed to initialize (${MgvAPI.token(baseName).fromUnits(
+            pendingBase
+          )} pending base,${MgvAPI.token(quoteName).fromUnits(
+            pendingQuote
+          )} pending quotes)`
+        );
+      }
     }
   }
 }

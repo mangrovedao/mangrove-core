@@ -13,62 +13,42 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./Mango/Mango.sol";
 import "./GuaaveStorage.sol";
-import "contracts/Strategies/Modules/aave/v3/AaveModule.sol";
+import "contracts/Strategies/utils/TransferLib.sol";
 
-/** Extension of Mango market maker with optimized yeilds on AAVE */
-/** outbound/inbound token buffers are the base/quote treasuries (possibly EOA) */
-/** aTokens should be the custody of `Guaava` */
+/** Extension of Mango market maker with optimized liquidity buffer management when sourcing liqudity is expensive */
 
-contract Guaave is Mango, AaveV3Module {
-  // Market on which Guaave will be acting
-  address immutable BASE;
-  address immutable QUOTE;
-
-  struct MMoptions {
-    uint base_0;
-    uint quote_0;
-    uint nslots;
-    uint delta;
-  }
-
-  struct AaveOptions {
-    address addressesProvider;
-    uint interestRateMode;
-  }
-
+contract Guaave is Mango {
+  
   event IncreaseBuffer(address indexed token, uint amount);
   event DecreaseBuffer(address indexed token, uint amount);
 
   constructor(
-    address payable mgv,
+    IMangrove mgv,
     address base,
     address quote,
-    MMoptions memory mango_args,
-    AaveOptions memory aave_args,
-    address caller
+    uint base_0,
+    uint quote_0,
+    uint nslots,
+    uint delta,
+    address base_sourcer,
+    address quote_sourcer,
+    address deployer
   )
     Mango(
       mgv,
       base,
       quote,
-      mango_args.base_0,
-      mango_args.quote_0,
-      mango_args.nslots,
-      mango_args.delta,
-      caller
+      base_0,
+      quote_0,
+      nslots,
+      delta,
+      base_sourcer,
+      quote_sourcer,
+      deployer
     )
-    AaveV3Module(aave_args.addressesProvider, 0, aave_args.interestRateMode)
   {
-    BASE = base;
-    QUOTE = quote;
     // setting base and quote treasury to `this` to save transfer gas
     setGasreq(700_000);
-    // Approving lender for base and quote transfer in order to be able to mint
-    _approveLender(IEIP20(base), type(uint).max);
-    _approveLender(IEIP20(quote), type(uint).max);
-    // approve Mangrove to pull funds during trade in order to pay takers
-    approveMangrove(quote, type(uint).max);
-    approveMangrove(base, type(uint).max);
   }
 
   function set_buffer(bool base, uint buffer) external onlyAdmin {
@@ -104,17 +84,9 @@ contract Guaave is Mango, AaveV3Module {
       ? get_treasury({base: true})
       : get_treasury({base: false});
     // if treasury is below target buffer, redeem on lender
-    uint outbound_tkn_current_buffer = IEIP20(order.outbound_tkn).balanceOf(
-      outbound_treasury
-    );
+    uint outbound_tkn_current_buffer = ISourcer(outbound_treasury).balance(order.outbound_tkn);
     if (outbound_tkn_current_buffer < order.wants) {
-      // redeems as many outbound tokens as `this` contract has overlyings.
-      // redeem is deposited on the treasury of `outbound_tkn`
-      uint redeemed = _redeem({
-        token: IEIP20(order.outbound_tkn),
-        amount: type(uint).max,
-        to: outbound_treasury
-      });
+      uint redeemed = 
       outbound_tkn_current_buffer += redeemed;
       emit IncreaseBuffer(order.outbound_tkn, redeemed);
     }
@@ -129,11 +101,11 @@ contract Guaave is Mango, AaveV3Module {
       // pulling funds from the treasury to deposit them on Aaave
       uint amount = current_buffer - tkn_buffer_target;
       require(
-        transferFromERC(token, tkn_treasury, address(this), amount),
+        TransferLib.transferTokenFrom(token, tkn_treasury, address(this), amount),
         "Guaave/maintainBuffer/transferFail"
       );
       repayThenDeposit(token, amount);
-      //_mint({token: token, amount: amount, onBehalf: address(this)});
+      //_supply({token: token, amount: amount, onBehalf: address(this)});
       emit DecreaseBuffer(address(token), amount);
     }
   }
@@ -152,49 +124,4 @@ contract Guaave is Mango, AaveV3Module {
     return super.__posthookSuccess__(order);
   }
 
-  function redeem(
-    IEIP20 token,
-    uint amount,
-    address to
-  ) public mgvOrAdmin returns (uint) {
-    require(to != address(0), "Guaave/redeem/0xAddress");
-    return _redeem(token, amount, to);
-  }
-
-  function borrow(
-    IEIP20 token,
-    uint amount,
-    address onBehalf
-  ) public mgvOrAdmin {
-    _borrow(token, amount, onBehalf);
-  }
-
-  function repay(
-    IEIP20 token,
-    uint amount,
-    address onBehalf
-  ) public mgvOrAdmin {
-    _repay(token, amount, onBehalf);
-  }
-
-  function mint(
-    IEIP20 token,
-    uint amount,
-    address onBehalf
-  ) public mgvOrAdmin {
-    _mint(token, amount, onBehalf);
-  }
-
-  // rewards claiming.
-  // may use `SingleUser.redeemToken` to move collected tokens afterwards
-  function claimRewards(
-    IRewardsControllerIsh rewardsController,
-    address[] calldata assets
-  )
-    public
-    mgvOrAdmin
-    returns (address[] memory rewardsList, uint[] memory claimedAmounts)
-  {
-    return _claimRewards(rewardsController, assets);
-  }
 }

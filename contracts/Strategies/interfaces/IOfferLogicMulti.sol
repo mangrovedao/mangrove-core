@@ -19,8 +19,8 @@ interface IOfferLogicMulti is IOfferLogic {
   /** Multi offer specific Events */
   // Offer management
   event NewOwnedOffer(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
+    IEIP20 indexed outbound_tkn,
+    IEIP20 indexed inbound_tkn,
     uint indexed offerId,
     address owner
   );
@@ -34,18 +34,18 @@ interface IOfferLogicMulti is IOfferLogic {
   // user token balance on contract has increased
   event CreditUserTokenBalance(
     address indexed user,
-    address indexed token,
+    IEIP20 indexed token,
     uint amount
   );
 
   // user token balance on contract has decreased
   event DebitUserTokenBalance(
     address indexed user,
-    address indexed token,
+    IEIP20 indexed token,
     uint amount
   );
 
-  function tokenBalance(address token, address owner)
+  function tokenBalance(IEIP20 token, address owner)
     external
     view
     returns (uint);
@@ -53,18 +53,18 @@ interface IOfferLogicMulti is IOfferLogic {
   function balanceOnMangrove(address owner) external view returns (uint);
 
   function offerOwners(
-    address outbound_tkn,
-    address inbound_tkn,
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
     uint[] calldata offerIds
   ) external view returns (address[] memory __offerOwners);
 
   function ownerOf(
-    address outbound_tkn,
-    address inbound_tkn,
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
     uint offerId
   ) external view returns (address owner);
 
-  function depositToken(address token, uint amount)
+  function depositToken(IEIP20 token, uint amount)
     external
     returns (
       //override

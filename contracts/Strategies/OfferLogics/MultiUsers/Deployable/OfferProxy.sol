@@ -17,7 +17,7 @@ import "../Persistent.sol";
 contract OfferProxy is MultiUserAaveV3Lender, MultiUserPersistent {
   constructor(
     address _addressesProvider,
-    address payable _MGV,
+    IMangrove _MGV,
     address admin
   )
     AaveV3Module(
@@ -64,11 +64,15 @@ contract OfferProxy is MultiUserAaveV3Lender, MultiUserPersistent {
     ML.OrderResult calldata result
   ) internal virtual override returns (bool) {
     retractOfferInternal(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId,
       true,
-      ownerOf(order.outbound_tkn, order.inbound_tkn, order.offerId)
+      ownerOf(
+        IEIP20(order.outbound_tkn),
+        IEIP20(order.inbound_tkn),
+        order.offerId
+      )
     );
     return super.__posthookFallback__(order, result);
   }

@@ -62,11 +62,15 @@ abstract contract MultiUserPersistent is MultiUser {
     } catch {
       // density could be too low, or offer provision be insufficient
       retractOfferInternal(
-        order.outbound_tkn,
-        order.inbound_tkn,
+        IEIP20(order.outbound_tkn),
+        IEIP20(order.inbound_tkn),
         order.offerId,
         true,
-        ownerOf(order.outbound_tkn, order.inbound_tkn, order.offerId)
+        ownerOf(
+          IEIP20(order.outbound_tkn),
+          IEIP20(order.inbound_tkn),
+          order.offerId
+        )
       );
       return false;
     }

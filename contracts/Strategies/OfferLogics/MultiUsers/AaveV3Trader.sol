@@ -22,13 +22,13 @@ abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
     returns (uint)
   {
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     // 1. Computing total borrow and redeem capacities of underlying asset
     (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
-      order.outbound_tkn,
+      IEIP20(order.outbound_tkn),
       true,
       owner
     );
@@ -103,8 +103,8 @@ abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
 
     uint toMint;
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     try POOL.repay(order.inbound_tkn, toRepay, INTEREST_RATE_MODE, owner) {
@@ -112,7 +112,7 @@ abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
     } catch {
       toMint = amount;
     }
-    _mint(IEIP20(order.inbound_tkn), toMint, owner);
+    _supply(IEIP20(order.inbound_tkn), toMint, owner);
     return 0;
   }
 }

@@ -33,14 +33,14 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
     returns (uint)
   {
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     (
       uint redeemable, /*maxBorrowAfterRedeem*/
 
-    ) = maxGettableUnderlying(order.outbound_tkn, false, owner);
+    ) = maxGettableUnderlying(IEIP20(order.outbound_tkn), false, owner);
     if (amount > redeemable) {
       return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
     }
@@ -77,12 +77,12 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
       return 0;
     }
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     // minted Atokens are sent to owner
-    _mint(IEIP20(order.inbound_tkn), amount, owner);
+    _supply(IEIP20(order.inbound_tkn), amount, owner);
     return 0;
   }
 }

@@ -19,7 +19,7 @@ contract PriceFed is Defensive, AaveV3Lender {
   constructor(
     address _oracle,
     address _addressesProvider,
-    address payable _MGV,
+    IMangrove _MGV,
     address admin
   )
     Defensive(_oracle)

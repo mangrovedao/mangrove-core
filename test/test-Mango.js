@@ -90,9 +90,23 @@ describe("Running tests...", function () {
         ethers.utils.parseUnits("1000", 6), // QUOTE0
         NSLOTS, // price slots
         delta, //quote progression
-        maker.address
+        ethers.constants.AddressZero, // tmp for liquidity sourcer
+        maker.address // admin
       )
     ).connect(maker);
+
+    await wEth
+      .connect(maker)
+      .approve(
+        await makerContract.liquidity_sourcer(),
+        ethers.constants.MaxUint256
+      );
+    await usdc
+      .connect(maker)
+      .approve(
+        await makerContract.liquidity_sourcer(),
+        ethers.constants.MaxUint256
+      );
 
     // funds come from deployer's wallet by default
     await lc.fund([
@@ -340,7 +354,7 @@ describe("Running tests...", function () {
     let offerInfo = await mgv.offerInfo(wEth.address, usdc.address, best);
     let old_gives = offerInfo.offer.gives;
 
-    let [pendingBase] = await makerContract.get_pending();
+    let [pendingBase] = await makerContract.pending();
 
     lc.assertEqualBN(
       pendingBase,
@@ -360,7 +374,7 @@ describe("Running tests...", function () {
       true
     );
 
-    let [pendingBase_] = await makerContract.get_pending();
+    let [pendingBase_] = await makerContract.pending();
     lc.assertEqualBN(
       pendingBase_,
       pendingBase.add(takerGave),
@@ -378,7 +392,7 @@ describe("Running tests...", function () {
       ethers.utils.parseEther("1"), // gives
       true
     );
-    let [pendingBase__] = await makerContract.get_pending();
+    let [pendingBase__] = await makerContract.pending();
     lc.assertEqualBN(pendingBase__, 0, "There should be no more pending base");
 
     best = await mgv.best(wEth.address, usdc.address);
@@ -421,7 +435,7 @@ describe("Running tests...", function () {
     // and residual will be added to USDC (quote) pending pool
     // and what taker gave will not be added in the dual offer and added to the WETH (base) pending pool
 
-    let [pendingBase, pendingQuote] = await makerContract.get_pending();
+    let [pendingBase, pendingQuote] = await makerContract.pending();
 
     lc.assertEqualBN(
       takerGave,
@@ -447,7 +461,7 @@ describe("Running tests...", function () {
       true
     );
 
-    let [pendingBase_, pendingQuote_] = await makerContract.get_pending();
+    let [pendingBase_, pendingQuote_] = await makerContract.pending();
     lc.assertEqualBN(
       pendingBase.add(takerGave),
       pendingBase_,
@@ -520,7 +534,7 @@ describe("Running tests...", function () {
       [0, 8, 0, 6, 1, 2, 3, 4, 5, 7]
     );
 
-    let [pendingBase__, pendingQuote__] = await makerContract.get_pending();
+    let [pendingBase__, pendingQuote__] = await makerContract.pending();
     lc.assertEqualBN(pendingBase__, 0, "Pending base pool should be empty");
     lc.assertEqualBN(pendingQuote__, 0, "Pending quote pool should be empty");
     best = await mgv.best(wEth.address, usdc.address);

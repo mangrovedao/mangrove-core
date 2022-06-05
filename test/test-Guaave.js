@@ -45,12 +45,13 @@ async function init(NSLOTS, makerContract, bidAmount, askAmount) {
   }
 }
 
-async function logLender(makerContract) {
+async function logLender(makerContract, vault = undefined) {
   await lc.logLenderStatus(
     makerContract,
     "aave",
     ["USDC", "WETH"],
-    makerContract.address // account on lender
+    makerContract.address, // account on lender
+    vault
   );
 }
 
@@ -65,6 +66,7 @@ describe("Running tests...", function () {
   let taker = null;
   let makerContract = null;
   let lendingPool = null;
+  let vault = null;
 
   const NSLOTS = 10;
   // price increase is delta/BASE_0
@@ -126,12 +128,14 @@ describe("Running tests...", function () {
     await (
       await makerContract.set_buffer(false, ethers.utils.parseUnits("2000", 6))
     ).wait();
-    await (
-      await makerContract.set_treasury(true, makerContract.address)
-    ).wait();
-    await (
-      await makerContract.set_treasury(false, makerContract.address)
-    ).wait();
+    // await (
+    //   await makerContract.set_treasury(true, makerContract.address)
+    // ).wait();
+    // await (
+    //   await makerContract.set_treasury(false, makerContract.address)
+    // ).wait();
+    // vault = makerContract.address;
+    vault = maker.address;
 
     // maker is the EOA for quote and base treasury
     await lc.fund([
@@ -231,7 +235,7 @@ describe("Running tests...", function () {
     book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
     console.log("===asks===");
     await lc.logOrderBook(book, wEth, usdc);
-    await logLender(makerContract);
+    await logLender(makerContract, vault);
   });
 
   it("Market orders", async function () {
@@ -248,7 +252,7 @@ describe("Running tests...", function () {
       ethers.utils.parseEther("0.5"), // wants
       ethers.utils.parseUnits("3000", 6) // gives
     );
-    await logLender(makerContract);
+    await logLender(makerContract, vault);
 
     let [bids, asks] = await makerContract.get_offers(false);
     await checkOB(
@@ -286,7 +290,7 @@ describe("Running tests...", function () {
       ethers.utils.parseUnits("3500", 6), // wants
       ethers.utils.parseEther("1.5") // gives
     );
-    await logLender(makerContract);
+    await logLender(makerContract, vault);
 
     [bids, asks] = await makerContract.get_offers(false);
     await checkOB(
@@ -330,11 +334,18 @@ describe("Running tests...", function () {
     const tx2 = await makerContract.borrow(
       usdc.address,
       ethers.utils.parseUnits("5000", 6),
-      makerContract.address
+      makerContract.address // onbehalf
     );
     await tx2.wait();
 
-    await logLender(makerContract);
+    const tx3 = await makerContract.withdrawToken(
+      usdc.address, //token
+      vault, //recipient
+      ethers.utils.parseUnits("5000", 6) //amount
+    );
+    await tx3.wait();
+
+    await logLender(makerContract, vault);
 
     [takerGot, takerGave, bounty] = await lc.marketOrder(
       mgv.connect(taker),
@@ -343,6 +354,6 @@ describe("Running tests...", function () {
       ethers.utils.parseUnits("3500", 6), // wants
       ethers.utils.parseEther("1.5") // gives
     );
-    await logLender(makerContract);
+    await logLender(makerContract, vault);
   });
 });

@@ -49,13 +49,13 @@ async function main() {
     }
 
     GuaaveRaw = GuaaveRaw.connect(tester);
-    if (!((await GuaaveRaw.get_treasury(true)) === GuaaveRaw.address)) {
-      console.log(`* Set ${baseName} treasury to Guaave address`);
-      tx = await GuaaveRaw.set_treasury(true, GuaaveRaw.address);
+    if (!((await GuaaveRaw.get_treasury(true)) === tester.address)) {
+      console.log(`* Set ${baseName} treasury to ${tester.address}`);
+      tx = await GuaaveRaw.set_treasury(true, tester.address);
       await tx.wait();
     }
     if (!((await GuaaveRaw.get_treasury(false)) === tester.address)) {
-      console.log(`* Set ${quoteName} treasury to Guaave address`);
+      console.log(`* Set ${quoteName} treasury to ${tester.address}`);
       tx = await GuaaveRaw.set_treasury(false, GuaaveRaw.address);
       await tx.wait();
     }
@@ -125,7 +125,6 @@ async function main() {
       );
     }
   }
-  // TODO Guaave has no credit line on AAVE
 }
 main()
   .then(() => process.exit(0))

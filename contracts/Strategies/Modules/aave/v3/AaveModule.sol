@@ -72,7 +72,7 @@ contract AaveV3Module {
   /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
   /// returns (R, B|R)
   function maxGettableUnderlying(
-    address asset,
+    IEIP20 asset,
     bool tryBorrow,
     address onBehalf
   )
@@ -164,7 +164,7 @@ contract AaveV3Module {
     }
   }
 
-  function _mint(
+  function _supply(
     IEIP20 token,
     uint amount,
     address onBehalf
@@ -181,7 +181,7 @@ contract AaveV3Module {
   }
 
   // rewards claiming.
-  // may use `SingleUser.redeemToken` to move collected tokens afterwards
+  // may use `SingleUser.withdrawToken` to move collected tokens afterwards
   function _claimRewards(
     IRewardsControllerIsh rewardsController,
     address[] calldata assets

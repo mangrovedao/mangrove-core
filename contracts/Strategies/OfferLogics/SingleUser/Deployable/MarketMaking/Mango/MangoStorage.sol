@@ -12,6 +12,8 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
+import "contracts/Strategies/interfaces/ISourcer.sol";
+
 library MangoStorage {
   /** Strat specific events */
 
@@ -24,22 +26,19 @@ library MangoStorage {
     // offerId -> index in ASKS/BIDS maps
     mapping(uint => uint) index_of_bid; // bidId -> index
     mapping(uint => uint) index_of_ask; // askId -> index
-    // Price shift is in number of price increments (or decrements when current_shift < 0) since deployment of the strat.
-    // e.g. for arithmetic progression, `current_shift = -3` indicates that Pmin is now (`QUOTE_0` - 3*`current_delta`)/`BASE_0`
-    int current_shift;
+    // Price shift is in number of price increments (or decrements when shift < 0) since deployment of the strat.
+    // e.g. for arithmetic progression, `shift = -3` indicates that Pmin is now (`QUOTE_0` - 3*`delta`)/`BASE_0`
+    int shift;
     // parameter for price progression
-    // NB for arithmetic progression, price(i+1) = price(i) + current_delta/`BASE_0`
-    uint current_delta; // quote increment
-    // triggers `__boundariesReached__` whenever amounts of bids/asks is below `current_min_buffer`
-    uint current_min_buffer;
+    // NB for arithmetic progression, price(i+1) = price(i) + delta/`BASE_0`
+    uint delta; // quote increment
+    // triggers `__boundariesReached__` whenever amounts of bids/asks is below `min_buffer`
+    uint min_buffer;
     // puts the strat into a (cancellable) state where it reneges on all incoming taker orders.
     // NB reneged offers are removed from Mangrove's OB
     bool paused;
     // Base and quote token treasuries
-    // default is `this` for both
-    address current_base_treasury;
-    address current_quote_treasury;
-    // address of the Mango implementation
+    ISourcer liquidity_sourcer;
   }
 
   function get_storage() internal pure returns (Layout storage st) {

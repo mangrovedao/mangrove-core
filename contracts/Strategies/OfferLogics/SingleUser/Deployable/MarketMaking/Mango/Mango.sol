@@ -12,15 +12,15 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MangoStorage.sol";
-import "./IMangoImplementation.sol";
 import "./MangoImplementation.sol";
 import "../../../Persistent.sol";
+import "../Sourcers/EOASourcer.sol";
 
 /** Discrete automated market making strat */
 /** This AMM is headless (no price model) and market makes on `NSLOTS` price ranges*/
 /** current `Pmin` is the price of an offer at position `0`, current `Pmax` is the price of an offer at position `NSLOTS-1`*/
 /** Initially `Pmin = P(0) = QUOTE_0/BASE_0` and the general term is P(i) = __quote_progression__(i)/BASE_0 */
-/** NB `__quote_progression__` is a hook that defines how price increases with positions and is by default an arithmetic progression, i.e __quote_progression__(i) = QUOTE_0 + `current_delta`*i */
+/** NB `__quote_progression__` is a hook that defines how price increases with positions and is by default an arithmetic progression, i.e __quote_progression__(i) = QUOTE_0 + `delta`*i */
 /** When one of its offer is matched on Mangrove, the headless strat does the following: */
 /** Each time this strat receives b `BASE` tokens (bid was taken) at price position i, it increases the offered (`BASE`) volume of the ask at position i+1 of 'b'*/
 /** Each time this strat receives q `QUOTE` tokens (ask was taken) at price position i, it increases the offered (`QUOTE`) volume of the bid at position i-1 of 'q'*/
@@ -29,38 +29,43 @@ import "../../../Persistent.sol";
 contract Mango is Persistent {
   using P.Offer for P.Offer.t;
   using P.OfferDetail for P.OfferDetail.t;
-  // emitted when strat has reached max amount of Bids and needs rebalancing (should shift of x>0 positions in order to have bid prices that are better for the taker)
-  event BidAtMaxPosition();
-  // emitted when strat has reached max amount of Asks and needs rebalancing (should shift of x<0 positions in order to have ask prices that are better for the taker)
-  event AskAtMinPosition();
+
   // emitted when init function has been called and AMM becomes active
   event Initialized(uint from, uint to);
 
   address private immutable IMPLEMENTATION;
+
   uint public immutable NSLOTS;
+  IEIP20 public immutable BASE;
+  IEIP20 public immutable QUOTE;
 
   // Asks and bids offer Ids are stored in `ASKS` and `BIDS` arrays respectively.
 
   constructor(
-    address payable mgv,
-    address base,
-    address quote,
+    IMangrove mgv,
+    IEIP20 base,
+    IEIP20 quote,
     uint base_0,
     uint quote_0,
     uint nslots,
     uint delta,
+    ISourcer liquidity_sourcer,
     address deployer
   ) MangroveOffer(mgv, deployer) {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     // sanity check
     require(
       nslots > 0 &&
-        mgv != address(0) &&
+        address(mgv) != address(0) &&
         uint16(nslots) == nslots &&
         uint96(base_0) == base_0 &&
         uint96(quote_0) == quote_0,
       "Mango/constructor/invalidArguments"
     );
+    // require(
+    //   address(liquidity_sourcer) != address(0),
+    //   "Mango/constructor/0xLiquiditySource"
+    // );
     NSLOTS = nslots;
 
     // implementation should have correct immutables
@@ -74,16 +79,28 @@ contract Mango is Persistent {
         nslots
       )
     );
+    BASE = base;
+    QUOTE = quote;
     // setting local storage
     mStr.asks = new uint[](nslots);
     mStr.bids = new uint[](nslots);
-    mStr.current_delta = delta;
-    mStr.current_min_buffer = 1;
-    mStr.current_quote_treasury = msg.sender;
-    mStr.current_base_treasury = msg.sender;
+    mStr.delta = delta;
+    // logs `BID/ASKatMin/MaxPosition` events when only 1 slot remains
+    mStr.min_buffer = 1;
+    // This Mango instance will source liquidity from the deployer account's balance
+    // Note this can be changed later using `set_treasury` function
+    //mStr.liquidity_sourcer = liquidity_sourcer;
+    mStr.liquidity_sourcer = ISourcer(
+      address(new EOASourcer(address(this), deployer))
+    );
 
     // setting inherited storage
     setGasreq(400_000); // dry run OK with 200_000
+    // approve Mangrove to pull funds during trade in order to pay takers
+    approveMangrove(quote, type(uint).max);
+    approveMangrove(base, type(uint).max);
+    base.approve(address(mStr.liquidity_sourcer), type(uint).max);
+    quote.approve(address(mStr.liquidity_sourcer), type(uint).max);
   }
 
   // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
@@ -97,7 +114,7 @@ contract Mango is Persistent {
   ) public mgvOrAdmin {
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        IMangoImplementation.$initialize.selector,
+        MangoImplementation.$initialize.selector,
         lastBidPosition,
         from,
         to,
@@ -113,19 +130,12 @@ contract Mango is Persistent {
   }
 
   /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
-  function set_treasury(bool base, address treasury) external onlyAdmin {
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    require(treasury != address(0), "Mango/set_treasury/0xTreasury");
-    if (base) {
-      mStr.current_base_treasury = treasury;
-    } else {
-      mStr.current_quote_treasury = treasury;
-    }
+  function set_liquidity_sourcer(ISourcer sourcer) external onlyAdmin {
+    MangoStorage.get_storage().liquidity_sourcer = sourcer;
   }
 
-  function get_treasury(bool base) public view returns (address) {
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    return base ? mStr.current_base_treasury : mStr.current_quote_treasury;
+  function liquidity_sourcer() public view returns (ISourcer) {
+    return MangoStorage.get_storage().liquidity_sourcer;
   }
 
   function reset_pending() external onlyAdmin {
@@ -135,55 +145,37 @@ contract Mango is Persistent {
   }
 
   /** Setters and getters */
-  function get_delta() external view onlyAdmin returns (uint) {
-    return MangoStorage.get_storage().current_delta;
+  function delta() external view onlyAdmin returns (uint) {
+    return MangoStorage.get_storage().delta;
   }
 
   function set_delta(uint delta) public mgvOrAdmin {
-    MangoStorage.get_storage().current_delta = delta;
+    MangoStorage.get_storage().delta = delta;
   }
 
-  function get_shift() external view onlyAdmin returns (int) {
-    return MangoStorage.get_storage().current_shift;
+  function shift() external view onlyAdmin returns (int) {
+    return MangoStorage.get_storage().shift;
   }
 
-  function get_pending() external view onlyAdmin returns (uint[2] memory) {
+  function pending() external view onlyAdmin returns (uint[2] memory) {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     return [mStr.pending_base, mStr.pending_quote];
   }
 
-  /** Deposits received tokens into the corresponding treasury*/
-  function __put__(uint amount, ML.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
-    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
-      abi.encodeWithSelector(IMangoImplementation.$put.selector, amount, order)
-    );
-    if (!success) {
-      MangoStorage.revertWithData(retdata);
-    } else {
-      return abi.decode(retdata, (uint));
-    }
-  }
+  /** __put__ is default SingleUser.__put__*/
 
-  /** Fetches required tokens from the corresponding treasury*/
+  /** Fetches required tokens from the corresponding source*/
   function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
-    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
-      abi.encodeWithSelector(IMangoImplementation.$get.selector, amount, order)
-    );
-    if (!success) {
-      MangoStorage.revertWithData(retdata);
-    } else {
-      return abi.decode(retdata, (uint));
-    }
+    return
+      MangoStorage.get_storage().liquidity_sourcer.pull(
+        IEIP20(order.outbound_tkn),
+        amount
+      );
   }
 
   // with ba=0:bids only, ba=1: asks only ba>1 all
@@ -194,7 +186,7 @@ contract Mango is Persistent {
   ) external onlyAdmin returns (uint collected) {
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        IMangoImplementation.$retractOffers.selector,
+        MangoImplementation.$retractOffers.selector,
         ba,
         from,
         to
@@ -217,7 +209,7 @@ contract Mango is Persistent {
   ) public mgvOrAdmin {
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        IMangoImplementation.$set_shift.selector,
+        MangoImplementation.$set_shift.selector,
         s,
         withBase,
         amounts
@@ -229,7 +221,7 @@ contract Mango is Persistent {
   }
 
   function set_min_offer_type(uint m) external mgvOrAdmin {
-    MangoStorage.get_storage().current_min_buffer = m;
+    MangoStorage.get_storage().min_buffer = m;
   }
 
   function _staticdelegatecall(bytes calldata data)
@@ -255,7 +247,7 @@ contract Mango is Persistent {
       abi.encodeWithSelector(
         this._staticdelegatecall.selector,
         abi.encodeWithSelector(
-          IMangoImplementation.$get_offers.selector,
+          MangoImplementation.$get_offers.selector,
           liveOnly
         )
       )
@@ -292,15 +284,6 @@ contract Mango is Persistent {
     proceed = !MangoStorage.get_storage().paused;
   }
 
-  /** Define what to do when the AMM boundaries are reached (either when reposting a bid or a ask) */
-  function __boundariesReached__(bool bid) internal virtual {
-    if (bid) {
-      emit BidAtMaxPosition();
-    } else {
-      emit AskAtMinPosition();
-    }
-  }
-
   function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     virtual
@@ -309,38 +292,14 @@ contract Mango is Persistent {
   {
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        IMangoImplementation.$posthookSuccess.selector,
+        MangoImplementation.$posthookSuccess.selector,
         order
       )
     );
     if (!success) {
       MangoStorage.revertWithData(retdata);
     } else {
-      bytes32 retcode = abi.decode(retdata, (bytes32));
-      if (retcode == "") {
-        // sucessfully posted dual offer according to MM strategy
-        return true;
-      }
-      if (retcode == "Bid/OK" || retcode == "Ask/OK") {
-        return true;
-      }
-      // all ask or all bids
-      if (retcode == "Bid/BoundaryReached") {
-        __boundariesReached__(true);
-        return true;
-      }
-      if (retcode == "Ask/BoundaryReached") {
-        __boundariesReached__(false);
-        return true;
-      }
-      // no MM strategy defined for this offer or out of range
-      emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        retcode
-      );
-      return false;
+      return abi.decode(retdata, (bool));
     }
   }
 }

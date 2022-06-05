@@ -42,7 +42,7 @@ abstract contract AaveV3Lender is SingleUser, AaveV3Module {
     (
       uint redeemable, /*maxBorrowAfterRedeem*/
 
-    ) = maxGettableUnderlying(order.outbound_tkn, false, address(this));
+    ) = maxGettableUnderlying(IEIP20(order.outbound_tkn), false, address(this));
     if (amount > redeemable) {
       return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
     }
@@ -69,7 +69,7 @@ abstract contract AaveV3Lender is SingleUser, AaveV3Module {
     if (amount == 0) {
       return 0;
     }
-    _mint(IEIP20(order.inbound_tkn), amount, address(this));
+    _supply(IEIP20(order.inbound_tkn), amount, address(this));
     return 0;
   }
 
@@ -86,6 +86,6 @@ abstract contract AaveV3Lender is SingleUser, AaveV3Module {
     uint amount,
     address to
   ) external onlyAdmin {
-    _mint(token, amount, to);
+    _supply(token, amount, to);
   }
 }

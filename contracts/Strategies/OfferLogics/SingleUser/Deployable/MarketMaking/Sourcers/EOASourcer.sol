@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AdvancedAaveRetail.sol
+//AaveTreasury.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -9,37 +9,51 @@
 // 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "../../AaveV3Trader.sol";
 
-contract AdvancedAaveRetail is AaveV3Trader {
-  constructor(
-    address addressesProvider,
-    IMangrove _MGV,
-    address admin
-  )
-    AaveV3Module(
-      addressesProvider,
-      0,
-      1 /* Interest rate mode */
-    )
-    MangroveOffer(_MGV, admin)
+import "contracts/Strategies/utils/AccessControlled.sol";
+import "contracts/Strategies/utils/TransferLib.sol";
+import "contracts/Strategies/interfaces/ISourcer.sol";
+
+contract EOASourcer is ISourcer, AccessControlled {
+  address immutable SOURCE;
+  address immutable MAKER;
+
+  constructor(address spenderContract, address deployer)
+    AccessControlled(deployer)
   {
-    setGasreq(1_000_000);
+    MAKER = spenderContract;
+    SOURCE = deployer;
   }
 
-  // Tries to take base directly from `this` balance. Fetches the remainder on Aave.
-  function __get__(uint amount, ML.SingleOrder calldata order)
-    internal
-    virtual
+  // requires approval of contract deployer
+  function pull(IEIP20 token, uint amount)
+    external
     override
-    returns (uint)
+    onlyCaller(MAKER)
+    returns (uint missing)
   {
-    uint missing = SingleUser.__get__(amount, order);
-    if (missing > 0) {
-      return super.__get__(missing, order);
+    if (TransferLib.transferTokenFrom(token, SOURCE, MAKER, amount)) {
+      return 0;
+    } else {
+      return amount;
     }
-    return 0;
+  }
+
+  // requires approval of Maker contract
+  function flush(IEIP20[] calldata tokens) external override onlyCaller(MAKER) {
+    for (uint i = 0; i < tokens.length; i++) {
+      uint amount = tokens[i].balanceOf(MAKER);
+      require(
+        TransferLib.transferTokenFrom(tokens[i], MAKER, SOURCE, amount),
+        "EOASourcer/flush/transferFail"
+      );
+    }
+  }
+
+  function balance(IEIP20 token) external view returns (uint) {
+    return token.balanceOf(SOURCE);
   }
 }

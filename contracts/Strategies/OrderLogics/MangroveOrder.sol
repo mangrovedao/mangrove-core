@@ -12,6 +12,8 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
+import "contracts/Strategies/utils/TransferLib.sol";
+
 import "../OfferLogics/MultiUsers/Persistent.sol";
 import "../interfaces/IOrderLogic.sol";
 
@@ -19,9 +21,9 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
   using P.Local for P.Local.t;
 
   // `blockToLive[token1][token2][offerId]` gives block number beyond which the offer should renege on trade.
-  mapping(address => mapping(address => mapping(uint => uint))) public expiring;
+  mapping(IEIP20 => mapping(IEIP20 => mapping(uint => uint))) public expiring;
 
-  constructor(address payable _MGV, address admin) MangroveOffer(_MGV, admin) {}
+  constructor(IMangrove _MGV, address admin) MangroveOffer(_MGV, admin) {}
 
   // transfer with no revert
 
@@ -31,14 +33,16 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     override
     returns (bool)
   {
-    uint exp = expiring[order.outbound_tkn][order.inbound_tkn][order.offerId];
+    uint exp = expiring[IEIP20(order.outbound_tkn)][IEIP20(order.inbound_tkn)][
+      order.offerId
+    ];
     return (exp == 0 || block.number <= exp);
   }
 
   // revert when order was partially filled and it is not allowed
   function checkCompleteness(
-    address outbound_tkn,
-    address inbound_tkn,
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
     TakerOrder calldata tko,
     TakerOrderResult memory res
   ) internal view returns (bool isPartial) {
@@ -48,7 +52,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     }
     // revert if buy is partial and `partialFillNotAllowed` and not posting residual
     if (!tko.selling) {
-      (, P.Local.t local) = MGV.config(outbound_tkn, inbound_tkn);
+      (, P.Local.t local) = MGV.config($(outbound_tkn), $(inbound_tkn));
       return res.takerGot >= tko.wants - (tko.wants * local.fee()) / 10_000;
     }
   }
@@ -65,12 +69,12 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     payable
     returns (TakerOrderResult memory res)
   {
-    (address outbound_tkn, address inbound_tkn) = tko.selling
+    (IEIP20 outbound_tkn, IEIP20 inbound_tkn) = tko.selling
       ? (tko.quote, tko.base)
       : (tko.base, tko.quote);
     require(
-      transferFromERC(
-        IEIP20(inbound_tkn),
+      TransferLib.transferTokenFrom(
+        inbound_tkn,
         msg.sender,
         address(this),
         tko.gives
@@ -83,8 +87,8 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
         break;
       }
       (uint takerGot_, uint takerGave_, uint bounty_) = MGV.marketOrder({
-        outbound_tkn: outbound_tkn, // expecting quote (outbound) when selling
-        inbound_tkn: inbound_tkn,
+        outbound_tkn: $(outbound_tkn), // expecting quote (outbound) when selling
+        inbound_tkn: $(inbound_tkn),
         takerWants: tko.wants,
         takerGives: tko.gives,
         fillWants: tko.selling ? false : true // only buy order should try to fill takerWants
@@ -106,7 +110,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     // sending received tokens to taker
     if (res.takerGot > 0) {
       require(
-        transferERC(IEIP20(outbound_tkn), msg.sender, res.takerGot),
+        TransferLib.transferToken(outbound_tkn, msg.sender, res.takerGot),
         "mgvOrder/mo/transferOutFail"
       );
     }
@@ -122,13 +126,15 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       // `offerId_==0` if mangrove rejects the update because of low density.
       // If user does not have enough funds, call will revert
       res.offerId = newOfferInternal({
-        outbound_tkn: inbound_tkn,
-        inbound_tkn: outbound_tkn,
-        wants: tko.makerWants - res.takerGot,
-        gives: tko.makerGives - res.takerGave,
-        gasreq: OFR_GASREQ(),
-        gasprice: 0,
-        pivotId: 0, // offer should be best in the book
+        mko: MakerOrder({
+          outbound_tkn: inbound_tkn,
+          inbound_tkn: outbound_tkn,
+          wants: tko.makerWants - res.takerGot,
+          gives: tko.makerGives - res.takerGave,
+          gasreq: OFR_GASREQ(),
+          gasprice: 0,
+          pivotId: 0
+        }), // offer should be best in the book
         caller: msg.sender, // `msg.sender` will be the owner of the resting order
         provision: msg.value
       });
@@ -158,8 +164,8 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
         require(!tko.partialFillNotAllowed, "mgvOrder/mo/noPartialFill");
         // sending partial fill to taker --when partial fill is allowed
         require(
-          transferERC(
-            IEIP20(inbound_tkn),
+          TransferLib.transferToken(
+            inbound_tkn,
             msg.sender,
             tko.gives - res.takerGave
           ),
@@ -191,7 +197,11 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       // either fill was complete or taker does not want to post residual as a resting order
       // transfering remaining inbound tokens to msg.sender
       require(
-        transferERC(IEIP20(inbound_tkn), msg.sender, tko.gives - res.takerGave),
+        TransferLib.transferToken(
+          inbound_tkn,
+          msg.sender,
+          tko.gives - res.takerGave
+        ),
         "mgvOrder/mo/transferInFail"
       );
       // transfering potential bounty and msg.value back to the taker
@@ -224,13 +234,16 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     returns (uint)
   {
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     // IEIP20(order.inbound_tkn).transfer(owner, amount);
     // return 0;
-    return transferERC(IEIP20(order.inbound_tkn), owner, amount) ? 0 : amount;
+    return
+      TransferLib.transferToken(IEIP20(order.inbound_tkn), owner, amount)
+        ? 0
+        : amount;
   }
 
   // we need to make sure that if offer is taken and not reposted (because of insufficient provision or density) then remaining provision and outbound tokens are sent back to owner
@@ -239,33 +252,35 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     internal
     returns (bool)
   {
+    IEIP20 outTkn = IEIP20(order.outbound_tkn);
+    IEIP20 inTkn = IEIP20(order.outbound_tkn);
     // Resting order was not reposted, sending out/in tokens to original taker
     // balOut was increased during `take` function and is now possibly empty
-    uint balOut = tokenBalanceOf[order.outbound_tkn][owner];
-    if (!transferERC(IEIP20(order.outbound_tkn), owner, balOut)) {
+    uint balOut = tokenBalanceOf[IEIP20(order.outbound_tkn)][owner];
+    if (!TransferLib.transferToken(IEIP20(order.outbound_tkn), owner, balOut)) {
       emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
+        outTkn,
+        inTkn,
         order.offerId,
         "mgvOrder/redeemAll/transferOut"
       );
       return false;
     }
     // should not move `debitToken` before the above transfer that does not revert when failing
-    // offer owner might still recover tokens later using `redeemToken` external call
-    debitToken(order.outbound_tkn, owner, balOut);
+    // offer owner might still recover tokens later using `withdrawToken` external call
+    debitToken(outTkn, owner, balOut);
     // balIn contains the amount of tokens that was received during the trade that triggered this posthook
-    uint balIn = tokenBalanceOf[order.inbound_tkn][owner];
-    if (!transferERC(IEIP20(order.inbound_tkn), owner, balIn)) {
+    uint balIn = tokenBalanceOf[inTkn][owner];
+    if (!TransferLib.transferToken(inTkn, owner, balIn)) {
       emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
+        outTkn,
+        inTkn,
         order.offerId,
         "mgvOrder/redeemAll/transferIn"
       );
       return false;
     }
-    debitToken(order.inbound_tkn, owner, balIn);
+    debitToken(inTkn, owner, balIn);
     return true;
   }
 
@@ -275,17 +290,16 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     override
     returns (bool)
   {
+    IEIP20 outTkn = IEIP20(order.outbound_tkn);
+    IEIP20 inTkn = IEIP20(order.outbound_tkn);
+
     // trying to repost offer remainder
     if (super.__posthookSuccess__(order)) {
       // if `success` then offer residual was reposted and nothing needs to be done
       // else we need to send the remaining outbounds tokens to owner and their remaining provision on mangrove (offer was deprovisioned in super call)
       return true;
     }
-    address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
-      order.offerId
-    );
+    address owner = ownerOf(outTkn, inTkn, order.offerId);
     // returning all inbound/outbound tokens that belong to the original taker to their balance
     if (!redeemAll(order, owner)) {
       return false;
@@ -300,8 +314,8 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       // this code might be reached if `owner` is not an EOA and has no `receive` or `fallback` payable method.
       // in this case the provision is lost and one should not revert, to the risk of being unable to recover in/out tokens transfered earlier
       emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
+        outTkn,
+        inTkn,
         order.offerId,
         "mgvOrder/posthook/transferWei"
       );
@@ -318,8 +332,8 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
   ) internal virtual override returns (bool) {
     result; //shh
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     return redeemAll(order, owner);
@@ -327,8 +341,8 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
 
   function __logOwnerShipRelation__(
     address owner,
-    address outbound_tkn,
-    address inbound_tkn,
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
     uint offerId
   ) internal virtual {
     owner; //ssh

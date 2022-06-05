@@ -28,13 +28,13 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
     returns (uint)
   {
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     // 1. Computing total borrow and redeem capacities of underlying asset
     (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
-      order.outbound_tkn,
+      IEIP20(order.outbound_tkn),
       true,
       owner
     );
@@ -107,8 +107,8 @@ abstract contract MultiUserAaveTrader is MultiUser, AaveModule {
 
     uint toMint;
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     try lendingPool.repay(order.inbound_tkn, toRepay, interestRateMode, owner) {

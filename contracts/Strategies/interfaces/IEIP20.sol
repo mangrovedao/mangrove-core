@@ -48,7 +48,4 @@ interface IEIP20 {
   function withdraw(uint) external;
 
   function decimals() external view returns (uint8);
-
-  // for mintable contracts
-  function mint(address, uint) external;
 }

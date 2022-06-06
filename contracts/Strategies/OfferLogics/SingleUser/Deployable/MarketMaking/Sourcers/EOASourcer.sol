@@ -18,8 +18,8 @@ import "contracts/Strategies/utils/TransferLib.sol";
 import "contracts/Strategies/interfaces/ISourcer.sol";
 
 contract EOASourcer is ISourcer, AccessControlled {
-  address immutable SOURCE;
-  address immutable MAKER;
+  address public immutable SOURCE;
+  address public immutable MAKER;
 
   constructor(address spenderContract, address deployer)
     AccessControlled(deployer)
@@ -42,7 +42,7 @@ contract EOASourcer is ISourcer, AccessControlled {
     }
   }
 
-  // requires approval of Maker contract
+  // requires approval of Maker
   function flush(IEIP20[] calldata tokens) external override onlyCaller(MAKER) {
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(MAKER);

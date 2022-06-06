@@ -253,11 +253,11 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     returns (bool)
   {
     IEIP20 outTkn = IEIP20(order.outbound_tkn);
-    IEIP20 inTkn = IEIP20(order.outbound_tkn);
+    IEIP20 inTkn = IEIP20(order.inbound_tkn);
     // Resting order was not reposted, sending out/in tokens to original taker
     // balOut was increased during `take` function and is now possibly empty
-    uint balOut = tokenBalanceOf[IEIP20(order.outbound_tkn)][owner];
-    if (!TransferLib.transferToken(IEIP20(order.outbound_tkn), owner, balOut)) {
+    uint balOut = tokenBalanceOf[outTkn][owner];
+    if (!TransferLib.transferToken(outTkn, owner, balOut)) {
       emit LogIncident(
         outTkn,
         inTkn,
@@ -291,7 +291,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     returns (bool)
   {
     IEIP20 outTkn = IEIP20(order.outbound_tkn);
-    IEIP20 inTkn = IEIP20(order.outbound_tkn);
+    IEIP20 inTkn = IEIP20(order.inbound_tkn);
 
     // trying to repost offer remainder
     if (super.__posthookSuccess__(order)) {

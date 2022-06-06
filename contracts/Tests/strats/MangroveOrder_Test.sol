@@ -69,10 +69,10 @@ contract MangroveOrder_Test is HasMgvEvents {
   function a_beforeAll() public {
     TestToken tka = TokenSetup.setup("A", "$A");
     $base = address(tka);
-    IEIP20 base = IEIP20($base);
+    base = IEIP20($base);
     TestToken tkb = TokenSetup.setup("B", "$B");
     $quote = address(tkb);
-    IEIP20 quote = IEIP20($quote);
+    quote = IEIP20($quote);
 
     // returns an activated Mangrove on market (base,quote)
     mgv = MgvSetup.setup(tka, tkb);
@@ -91,8 +91,8 @@ contract MangroveOrder_Test is HasMgvEvents {
     mgv.fund{value: 1 ether}(address(mgvOrder));
 
     // `this` contract will act as `MgvOrder` user
-    quote.mint(address(this), 10 ether);
-    base.mint(address(this), 10 ether);
+    tkb.mint(address(this), 10 ether);
+    tka.mint(address(this), 10 ether);
 
     // user approves `mgvOrder` to pull quote or base when doing a market order
     quote.approve(address(mgvOrder), 10 ether);
@@ -100,7 +100,7 @@ contract MangroveOrder_Test is HasMgvEvents {
 
     // `sellTkr` will take resting offer
     sellTkr = TakerSetup.setup(mgv, $quote, $base);
-    base.mint(address(sellTkr), 10 ether);
+    tka.mint(address(sellTkr), 10 ether);
     // if seller wants to sell direclty on mangrove
     sellTkr.approve(tka, address(mgv), 10 ether);
     // if seller wants to sell via mgvOrder
@@ -113,9 +113,9 @@ contract MangroveOrder_Test is HasMgvEvents {
     payable(askMkr).transfer(10 ether);
 
     bidMkr.approveMgv(tkb, 10 ether);
-    quote.mint(address(bidMkr), 10 ether);
+    tkb.mint(address(bidMkr), 10 ether);
 
-    base.mint(address(askMkr), 10 ether);
+    tka.mint(address(askMkr), 10 ether);
     askMkr.approveMgv(tka, 10 ether);
 
     bidMkr.newOfferWithFunding(1 ether, 0.1 ether, 50_000, 0, 0, 0.1 ether);

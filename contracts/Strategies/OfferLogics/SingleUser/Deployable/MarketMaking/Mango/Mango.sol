@@ -48,8 +48,7 @@ contract Mango is Persistent {
     uint base_0,
     uint quote_0,
     uint nslots,
-    uint delta,
-    ISourcer liquidity_sourcer,
+    uint price_incr,
     address deployer
   ) MangroveOffer(mgv, deployer) {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
@@ -84,12 +83,9 @@ contract Mango is Persistent {
     // setting local storage
     mStr.asks = new uint[](nslots);
     mStr.bids = new uint[](nslots);
-    mStr.delta = delta;
+    mStr.delta = price_incr;
     // logs `BID/ASKatMin/MaxPosition` events when only 1 slot remains
     mStr.min_buffer = 1;
-    // This Mango instance will source liquidity from the deployer account's balance
-    // Note this can be changed later using `set_treasury` function
-    //mStr.liquidity_sourcer = liquidity_sourcer;
     mStr.liquidity_sourcer = ISourcer(
       address(new EOASourcer(address(this), deployer))
     );
@@ -149,8 +145,8 @@ contract Mango is Persistent {
     return MangoStorage.get_storage().delta;
   }
 
-  function set_delta(uint delta) public mgvOrAdmin {
-    MangoStorage.get_storage().delta = delta;
+  function set_delta(uint _delta) public mgvOrAdmin {
+    MangoStorage.get_storage().delta = _delta;
   }
 
   function shift() external view onlyAdmin returns (int) {

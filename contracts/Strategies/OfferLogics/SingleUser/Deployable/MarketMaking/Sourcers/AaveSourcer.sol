@@ -82,4 +82,15 @@ contract AaveSourcer is ISourcer, AaveV3Module, AccessControlled {
   {
     return _claimRewards(rewardsController, assets);
   }
+
+  function approveLender(IEIP20 token) external onlyAdmin {
+    _approveLender(token, type(uint).max);
+  }
+
+  function transferToken(IEIP20 token, uint amount) external onlyAdmin {
+    require(
+      TransferLib.transferToken(token, msg.sender, amount),
+      "AaveSourcer/transferTokenFail"
+    );
+  }
 }

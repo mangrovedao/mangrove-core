@@ -178,6 +178,8 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     override
     returns (uint offerId)
   {
+    // Just a sanity check for future development
+    // If a multi user contract was able to post in its name, the offer would be able to draw from the collective pool
     require(msg.sender != address(this), "Mutli/noReentrancy");
     offerId = newOfferInternal(mko, msg.sender, msg.value);
   }
@@ -191,6 +193,8 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     address caller,
     uint provision
   ) internal returns (uint offerId) {
+    require(caller != address(this), "Mutli/noReentrancy");
+
     uint weiBalanceBefore = MGV.balanceOf(address(this));
     uint gasreq = (mko.gasreq > type(uint24).max) ? OFR_GASREQ() : mko.gasreq;
     // this call could revert if this contract does not have the provision to cover the bounty

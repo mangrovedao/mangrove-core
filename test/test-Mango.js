@@ -94,20 +94,26 @@ describe("Running tests...", function () {
       )
     ).connect(maker);
 
-    await wEth
+    let txs = [];
+    let i = 0;
+    txs[i++] = await makerContract.set_EOA_sourcer();
+    // maker has to approve liquidity sourcer of Mango for ETH and USDC transfer
+    txs[i++] = await wEth
       .connect(maker)
       .approve(
         await makerContract.liquidity_sourcer(),
         ethers.constants.MaxUint256
       );
-    await usdc
+    txs[i++] = await usdc
       .connect(maker)
       .approve(
         await makerContract.liquidity_sourcer(),
         ethers.constants.MaxUint256
       );
+    await lc.synch(txs);
 
-    // funds come from deployer's wallet by default
+    // funds come from maker's wallet by default
+    // liquidity sourcer will pull the funds from the wallet when needed
     await lc.fund([
       ["WETH", "17.0", maker.address],
       ["USDC", "50000", maker.address],
@@ -158,24 +164,8 @@ describe("Running tests...", function () {
     // console.log("===asks===");
     // await lc.logOrderBook(book, wEth, usdc);
 
-    await makerContract.approveMangrove(
-      wEth.address,
-      ethers.constants.MaxUint256
-    );
-    await makerContract.approveMangrove(
-      usdc.address,
-      ethers.constants.MaxUint256
-    );
-
     await wEth.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
     await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
-
-    await wEth
-      .connect(maker)
-      .approve(makerContract.address, ethers.constants.MaxUint256);
-    await usdc
-      .connect(maker)
-      .approve(makerContract.address, ethers.constants.MaxUint256);
 
     let [takerGot, takerGave, bounty] = await lc.marketOrder(
       mgv.connect(taker),

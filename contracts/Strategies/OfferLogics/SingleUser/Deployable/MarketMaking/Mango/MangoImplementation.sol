@@ -595,6 +595,8 @@ contract MangoImplementation is Persistent {
     tokens[0] = BASE;
     tokens[1] = QUOTE;
 
+    // tells liquidity sourcer to handle locally stored liquidity (liquidity from the taker and possibly liquidity brought locally during `__get__` function).
+    // this will throw if sourcer is 0x
     mStr.liquidity_sourcer.flush(tokens);
 
     // reposting residual of offer using override `__newWants__` and `__newGives__` for new price

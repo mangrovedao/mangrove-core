@@ -32,6 +32,7 @@ contract Mango is Persistent {
 
   // emitted when init function has been called and AMM becomes active
   event Initialized(uint from, uint to);
+  event SetLiquiditySourcer(ISourcer);
 
   address private immutable IMPLEMENTATION;
 
@@ -86,17 +87,12 @@ contract Mango is Persistent {
     mStr.delta = price_incr;
     // logs `BID/ASKatMin/MaxPosition` events when only 1 slot remains
     mStr.min_buffer = 1;
-    mStr.liquidity_sourcer = ISourcer(
-      address(new EOASourcer(address(this), deployer))
-    );
 
     // setting inherited storage
     setGasreq(400_000); // dry run OK with 200_000
     // approve Mangrove to pull funds during trade in order to pay takers
     approveMangrove(quote, type(uint).max);
     approveMangrove(base, type(uint).max);
-    base.approve(address(mStr.liquidity_sourcer), type(uint).max);
-    quote.approve(address(mStr.liquidity_sourcer), type(uint).max);
   }
 
   // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
@@ -126,8 +122,20 @@ contract Mango is Persistent {
   }
 
   /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
+  /** NB Sourcer might need further approval to work as intended*/
   function set_liquidity_sourcer(ISourcer sourcer) external onlyAdmin {
     MangoStorage.get_storage().liquidity_sourcer = sourcer;
+    BASE.approve(address(sourcer), type(uint).max);
+    QUOTE.approve(address(sourcer), type(uint).max);
+    emit SetLiquiditySourcer(sourcer);
+  }
+
+  function set_EOA_sourcer() external onlyAdmin {
+    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+    mStr.liquidity_sourcer = new EOASourcer(address(this), admin());
+    BASE.approve(address(mStr.liquidity_sourcer), type(uint).max);
+    QUOTE.approve(address(mStr.liquidity_sourcer), type(uint).max);
+    emit SetLiquiditySourcer(mStr.liquidity_sourcer);
   }
 
   function liquidity_sourcer() public view returns (ISourcer) {
@@ -167,11 +175,11 @@ contract Mango is Persistent {
     override
     returns (uint)
   {
-    return
-      MangoStorage.get_storage().liquidity_sourcer.pull(
-        IEIP20(order.outbound_tkn),
-        amount
-      );
+    uint pulled = MangoStorage.get_storage().liquidity_sourcer.pull(
+      IEIP20(order.outbound_tkn),
+      amount
+    );
+    return (amount - pulled);
   }
 
   // with ba=0:bids only, ba=1: asks only ba>1 all

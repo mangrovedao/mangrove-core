@@ -90,7 +90,6 @@ describe("Running tests...", function () {
         ethers.utils.parseUnits("1000", 6), // QUOTE0
         NSLOTS, // price slots
         delta, //quote progression
-        ethers.constants.AddressZero, // tmp for liquidity sourcer
         maker.address // admin
       )
     ).connect(maker);

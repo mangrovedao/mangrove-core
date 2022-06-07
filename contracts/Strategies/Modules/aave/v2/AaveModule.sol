@@ -64,7 +64,7 @@ contract AaveModule is Exponential {
 
   ///@notice approval of overlying contract by the underlying is necessary for minting and repaying borrow
   ///@notice user must use this function to do so.
-  function approveLender(IEIP20 token, uint amount) public {
+  function _approveLender(IEIP20 token, uint amount) internal {
     token.approve(address(lendingPool), amount);
   }
 

@@ -37,15 +37,21 @@ contract AaveSourcer is ISourcer, AaveV3Module, AccessControlled {
   // Liquidity : SOURCE --> MAKER
   function pull(IEIP20 token, uint amount)
     external
+    virtual
     override
     onlyCaller(MAKER)
-    returns (uint missing)
+    returns (uint pulled)
   {
     return _redeem(token, amount, MAKER);
   }
 
   // Liquidity : MAKER --> SOURCE
-  function flush(IEIP20[] calldata tokens) external override onlyCaller(MAKER) {
+  function flush(IEIP20[] calldata tokens)
+    external
+    virtual
+    override
+    onlyCaller(MAKER)
+  {
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(MAKER);
       require(
@@ -56,7 +62,7 @@ contract AaveSourcer is ISourcer, AaveV3Module, AccessControlled {
     }
   }
 
-  function balance(IEIP20 token) public view returns (uint) {
+  function balance(IEIP20 token) public view virtual override returns (uint) {
     return overlying(token).balanceOf(address(this));
   }
 

@@ -13,47 +13,71 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "contracts/Strategies/utils/AccessControlled.sol";
-import "contracts/Strategies/utils/TransferLib.sol";
-import "contracts/Strategies/interfaces/ISourcer.sol";
+import "./AaveSourcer.sol";
 
-contract EOASourcer is ISourcer, AccessControlled {
-  address public immutable SOURCE;
-  address public immutable MAKER;
+contract BufferedAaveSourcer is AaveSourcer {
+  mapping(IEIP20 => uint) public liquidity_buffer_size;
 
-  constructor(address spenderContract, address deployer)
-    AccessControlled(deployer)
-  {
-    MAKER = spenderContract;
-    SOURCE = deployer;
-  }
+  constructor(
+    address _addressesProvider,
+    uint _referralCode,
+    uint _interestRateMode,
+    address spenderContract,
+    address deployer
+  )
+    AaveSourcer(
+      _addressesProvider,
+      _referralCode,
+      _interestRateMode,
+      spenderContract,
+      deployer
+    )
+  {}
 
-  // requires approval of contract deployer
+  // Liquidity : SOURCE --> MAKER
   function pull(IEIP20 token, uint amount)
     external
     override
     onlyCaller(MAKER)
-    returns (uint missing)
+    returns (uint pulled)
   {
-    if (TransferLib.transferTokenFrom(token, SOURCE, MAKER, amount)) {
-      return 0;
+    if (token.balanceOf(MAKER) < amount) {
+      return _redeem(token, type(uint).max, MAKER);
     } else {
-      return amount;
+      // there is enough liquidity on `MAKER`, nothing to do
+      return 0;
     }
   }
 
-  // requires approval of Maker
+  // Liquidity : MAKER --> SOURCE
   function flush(IEIP20[] calldata tokens) external override onlyCaller(MAKER) {
     for (uint i = 0; i < tokens.length; i++) {
-      uint amount = tokens[i].balanceOf(MAKER);
-      require(
-        TransferLib.transferTokenFrom(tokens[i], MAKER, SOURCE, amount),
-        "EOASourcer/flush/transferFail"
-      );
+      uint buffer = tokens[i].balanceOf(MAKER);
+      uint target = liquidity_buffer_size[tokens[i]];
+      if (buffer > target) {
+        unchecked {
+          uint amount = buffer - target;
+          require(
+            TransferLib.transferTokenFrom(
+              tokens[i],
+              MAKER,
+              address(this),
+              amount
+            ),
+            "AaveSourcer/flush/transferFail"
+          );
+          repayThenDeposit(tokens[i], amount);
+        }
+      }
     }
   }
 
-  function balance(IEIP20 token) external view override returns (uint) {
-    return token.balanceOf(SOURCE);
+  // balance assumes here that `this` contract is not borrowing, so all overlyings can be converted
+  function balance(IEIP20 token) public view override returns (uint) {
+    return token.balanceOf(MAKER) + overlying(token).balanceOf(address(this));
+  }
+
+  function set_buffer(IEIP20 token, uint buffer_size) external onlyAdmin {
+    liquidity_buffer_size[token] = buffer_size;
   }
 }

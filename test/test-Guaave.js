@@ -50,7 +50,8 @@ describe("Running tests...", function () {
 
     // deploying mangrove and opening WETH/USDC market.
     [mgv, reader] = await lc.deployMangrove();
-    // sets fee to 30
+    // sets fee to 30 so redirecting fees to mgv itself to avoid crediting maker
+    await mgv.setVault(mgv.address);
     await lc.activateMarket(mgv, wEth.address, usdc.address);
     await lc.fund([
       ["WETH", "50.0", taker.address],
@@ -93,7 +94,9 @@ describe("Running tests...", function () {
   });
 
   it("Deploy AAVE sourcer", async function () {
-    const SourcerFactory = await ethers.getContractFactory("AaveSourcer");
+    const SourcerFactory = await ethers.getContractFactory(
+      "BufferedAaveSourcer"
+    );
     sourcer = await SourcerFactory.deploy(
       (
         await lc.getContract("AAVE")
@@ -120,16 +123,27 @@ describe("Running tests...", function () {
       usdc.address,
       ethers.utils.parseUnits("50000", 6)
     );
-    txs[i++] = await makerContract.set_liquidity_sourcer(sourcer.address);
+    // setting buffer to be twice the promised volume of an offer
+    txs[i++] = await sourcer.set_buffer(
+      wEth.address,
+      ethers.utils.parseEther("0.6")
+    );
+    txs[i++] = await sourcer.set_buffer(
+      usdc.address,
+      ethers.utils.parseUnits("2000", 6)
+    );
+    txs[i++] = await makerContract.set_liquidity_sourcer(
+      sourcer.address,
+      800000
+    );
     await lc.synch(txs);
     await lc.logLenderStatus(
       sourcer,
       "aave",
       ["WETH", "USDC"],
-      sourcer.address
+      sourcer.address,
+      makerContract.address
     );
-    //console.log("Sourcer balance of awETH on aave: ", ethers.utils.formatEther(await sourcer.balance(wEth.address)));
-    //console.log("Sourcer balance of aUSDC on aave: ", ethers.utils.formatUnits(await sourcer.balance(usdc.address),6));
   });
 
   it("Initialize", async function () {
@@ -139,6 +153,12 @@ describe("Running tests...", function () {
       ethers.utils.parseUnits("1000", 6),
       ethers.utils.parseEther("0.3")
     );
+    let book = await reader.offerList(usdc.address, wEth.address, 0, NSLOTS);
+    console.log("===bids===");
+    await lc.logOrderBook(book, usdc, wEth);
+    book = await reader.offerList(wEth.address, usdc.address, 0, NSLOTS);
+    console.log("===asks===");
+    await lc.logOrderBook(book, wEth, usdc);
   });
 
   it("Market order", async function () {
@@ -148,38 +168,31 @@ describe("Running tests...", function () {
     const awETHBalance = await sourcer.balance(wEth.address);
     const aUSDCBalance = await sourcer.balance(usdc.address);
 
-    let [takerGot, takerGave, bounty] = await lc.marketOrder(
-      mgv.connect(taker),
-      "WETH", // outbound
-      "USDC", // inbound
-      ethers.utils.parseEther("0.5"), // wants
-      ethers.utils.parseUnits("3000", 6) // gives
-    );
+    const receipt = await (
+      await mgv
+        .connect(taker)
+        .marketOrder(
+          wEth.address,
+          usdc.address,
+          ethers.utils.parseEther("1.3"),
+          ethers.utils.parseUnits("6000", 6),
+          true
+        )
+    ).wait();
+    console.log(`Market order passed for ${receipt.gasUsed} gas units`);
     await lc.logLenderStatus(
       sourcer,
       "aave",
       ["WETH", "USDC"],
-      sourcer.address
+      sourcer.address,
+      makerContract.address
     );
-    lc.assertEqualBN(
-      takerGot,
-      lc.netOf(ethers.utils.parseEther("0.5"), 30),
-      "incorrect taker got"
-    );
-    assert(bounty.eq(0), "incorrect bounty");
     lc.assertAlmost(
-      awETHBalance.sub(ethers.utils.parseEther("0.5")), //maker pays before Mangrove fees
+      awETHBalance.sub(ethers.utils.parseEther("1.3")), //maker pays before Mangrove fees
       await sourcer.balance(wEth.address),
       18,
-      9,
+      9, // decimals of precision
       "incorrect WETH balance on aave"
-    );
-    lc.assertAlmost(
-      aUSDCBalance.add(takerGave),
-      await sourcer.balance(usdc.address),
-      6,
-      4,
-      "incorrect USDC balance on aave"
     );
   });
 });

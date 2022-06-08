@@ -122,11 +122,16 @@ contract Mango is Persistent {
   }
 
   /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
+  /** */
   /** NB Sourcer might need further approval to work as intended*/
-  function set_liquidity_sourcer(ISourcer sourcer) external onlyAdmin {
+  function set_liquidity_sourcer(ISourcer sourcer, uint gasreq)
+    external
+    onlyAdmin
+  {
     MangoStorage.get_storage().liquidity_sourcer = sourcer;
     BASE.approve(address(sourcer), type(uint).max);
     QUOTE.approve(address(sourcer), type(uint).max);
+    setGasreq(gasreq);
     emit SetLiquiditySourcer(sourcer);
   }
 
@@ -175,11 +180,17 @@ contract Mango is Persistent {
     override
     returns (uint)
   {
+    // pulled might be lower or higher than amount
     uint pulled = MangoStorage.get_storage().liquidity_sourcer.pull(
       IEIP20(order.outbound_tkn),
       amount
     );
-    return (amount - pulled);
+    if (pulled > amount) {
+      return 0; //nothing is missing
+    } else {
+      // still needs to get liquidity using `SingleUser.__get__()`
+      return super.__get__(amount - pulled, order);
+    }
   }
 
   // with ba=0:bids only, ba=1: asks only ba>1 all

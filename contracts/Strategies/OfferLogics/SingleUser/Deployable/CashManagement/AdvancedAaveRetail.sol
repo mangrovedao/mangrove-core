@@ -13,12 +13,19 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../../AaveV3Trader.sol";
 
-contract AdvancedAaveRetail is AaveV3Trader(2) {
+contract AdvancedAaveRetail is AaveV3Trader {
   constructor(
     address addressesProvider,
-    address payable _MGV,
+    IMangrove _MGV,
     address admin
-  ) AaveV3Module(addressesProvider, 0) MangroveOffer(_MGV, admin) {
+  )
+    AaveV3Module(
+      addressesProvider,
+      0,
+      1 /* Interest rate mode */
+    )
+    MangroveOffer(_MGV, admin)
+  {
     setGasreq(1_000_000);
   }
 

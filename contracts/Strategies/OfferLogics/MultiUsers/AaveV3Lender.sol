@@ -13,9 +13,14 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MultiUser.sol";
-import "../AaveV3Module.sol";
+import "../../Modules/aave/v3/AaveModule.sol";
 
+// NB make sure to inherit AaveV3Module first to maintain storage layout
 abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
+  function approveLender(IEIP20 token, uint amount) external onlyAdmin {
+    _approveLender(token, amount);
+  }
+
   /**************************************************************************/
   ///@notice Required functions to let `this` contract interact with Aave
   /**************************************************************************/
@@ -28,14 +33,14 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
     returns (uint)
   {
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     (
       uint redeemable, /*maxBorrowAfterRedeem*/
 
-    ) = maxGettableUnderlying(order.outbound_tkn, false, owner);
+    ) = maxGettableUnderlying(IEIP20(order.outbound_tkn), false, owner);
     if (amount > redeemable) {
       return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
     }
@@ -49,7 +54,7 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
         // anything wrong beyond this point should revert
         // trying to redeem from AAVE
         require(
-          aaveRedeem(amount, address(this), order) == 0,
+          _redeem(IEIP20(order.outbound_tkn), amount, address(this)) == amount,
           "mgvOffer/aave/redeemFailed"
         );
         return 0;
@@ -72,11 +77,12 @@ abstract contract MultiUserAaveV3Lender is MultiUser, AaveV3Module {
       return 0;
     }
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     // minted Atokens are sent to owner
-    return aaveMint(amount, owner, order);
+    _supply(IEIP20(order.inbound_tkn), amount, owner);
+    return 0;
   }
 }

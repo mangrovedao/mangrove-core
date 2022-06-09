@@ -19,11 +19,11 @@ contract PriceFed is Defensive, AaveV3Lender {
   constructor(
     address _oracle,
     address _addressesProvider,
-    address payable _MGV,
+    IMangrove _MGV,
     address admin
   )
     Defensive(_oracle)
-    AaveV3Module(_addressesProvider, 0)
+    AaveV3Module(_addressesProvider, 0, 0)
     MangroveOffer(_MGV, admin)
   {
     setGasreq(800_000);
@@ -41,7 +41,7 @@ contract PriceFed is Defensive, AaveV3Lender {
     ML.OrderResult calldata result
   ) internal override returns (bool) {
     // reposts only if offer was reneged due to a price slippage
-    if (result.makerData == RENEGED) {
+    if (result.makerData == "mgvOffer/abort/reneged") {
       uint price_quote = oracle.getPrice(order.inbound_tkn);
       uint price_base = oracle.getPrice(order.outbound_tkn);
 
@@ -54,7 +54,7 @@ contract PriceFed is Defensive, AaveV3Lender {
           order.inbound_tkn,
           new_offer_wants,
           order.offer.gives(),
-          OFR_GASREQ,
+          OFR_GASREQ(),
           0,
           0,
           order.offerId

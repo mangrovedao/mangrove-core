@@ -16,5 +16,5 @@ import "../SingleUser.sol";
 
 /* Simply inherits SingleUser and is deployable. No internal logic. */
 contract SimpleMaker is SingleUser {
-  constructor(address payable _MGV) MangroveOffer(_MGV, tx.origin) {}
+  constructor(IMangrove _MGV) MangroveOffer(_MGV, tx.origin) {}
 }

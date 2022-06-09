@@ -1,4 +1,5 @@
 require("app-module-path/register");
+require("hardhat-storage-layout");
 require("dotenv-flow").config({ silent: true }); // Reads local environment variables from .env*.local files
 if (!process.env["NODE_CONFIG_DIR"]) {
   process.env["NODE_CONFIG_DIR"] = __dirname + "/config/";
@@ -13,5 +14,7 @@ require("hardhat-abi-exporter");
 require("./lib/hardhat-mainnet-env.js"); // Adds Ethereum/polygon environment to Hardhat Runtime Envrionment
 
 require("@mangrovedao/hardhat-test-solidity");
+require("hardhat-contract-sizer");
 // Use Hardhat configuration from loaded configuration files
+
 module.exports = config.hardhat;

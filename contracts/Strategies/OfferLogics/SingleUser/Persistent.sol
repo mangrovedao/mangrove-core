@@ -71,10 +71,17 @@ abstract contract Persistent is SingleUser {
       )
     {
       return true;
-    } catch {
-      // Two possible reasons to reach this code:
-      // * Offer was reposted below density
-      // * Offer is not sufficiently provisioned (because Mangrove gas price was updated)
+    } catch (bytes memory reason) {
+      // `newOffer` can fail when Mango is under provisioned or if `offer.gives` is below density
+      // Log incident only if under provisioned
+      if (keccak256(reason) == keccak256("mgv/insufficientProvision")) {
+        emit LogIncident(
+          IEIP20(order.outbound_tkn),
+          IEIP20(order.inbound_tkn),
+          order.offerId,
+          "Persistent/hook/outOfProvision"
+        );
+      }
       return false;
     }
   }

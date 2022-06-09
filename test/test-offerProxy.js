@@ -158,17 +158,21 @@ describe("Deploy offerProxy", function () {
     offerProxy = await deployStrat(mgv, reader, players);
     await execLenderStrat(offerProxy, mgv, reader, "aave", players);
     // checking offer owner of offerId 1 (residual)
-    const [nextId, offerIds, owners] = await offerProxy.offerOwners(
-      reader.address,
+    const [, ofrIds, ,] = await reader.offerList(
       dai.address,
       wEth.address,
       0,
       2
     );
-    for (const i in offerIds) {
+    const owners = await offerProxy.offerOwners(
+      dai.address,
+      wEth.address,
+      ofrIds
+    );
+    for (const i in ofrIds) {
       console.log(
         "offer",
-        offerIds[i].toNumber(),
+        ofrIds[i].toNumber(),
         "is owned by",
         chalk.gray(`${owners[i]}`)
       );
@@ -178,7 +182,7 @@ describe("Deploy offerProxy", function () {
 
   it("Clean revert", async function () {
     // check that getFail is emitted during offer logic posthook
-    lc.listenOfferLogic(offerProxy, await offerProxy.OUTOFLIQUIDITY());
+    lc.listenOfferLogic(true, offerProxy, "mgvOffer/abort/getFailed");
     const aDai = await lc.getContract("ADAI");
     const dai = await lc.getContract("DAI");
     const wEth = await lc.getContract("WETH");

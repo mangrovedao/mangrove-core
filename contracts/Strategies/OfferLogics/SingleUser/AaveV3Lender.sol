@@ -13,7 +13,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./SingleUser.sol";
-import "../AaveV3Module.sol";
+import "../../Modules/aave/v3/AaveModule.sol";
 
 abstract contract AaveV3Lender is SingleUser, AaveV3Module {
   /**************************************************************************/
@@ -29,12 +29,8 @@ abstract contract AaveV3Lender is SingleUser, AaveV3Module {
     _enterMarkets(underlyings);
   }
 
-  function mint(
-    uint amount,
-    address token,
-    address onBehalf
-  ) external onlyAdmin {
-    _mint(amount, token, onBehalf);
+  function approveLender(IEIP20 token, uint amount) external onlyAdmin {
+    _approveLender(token, amount);
   }
 
   function __get__(uint amount, ML.SingleOrder calldata order)
@@ -46,7 +42,7 @@ abstract contract AaveV3Lender is SingleUser, AaveV3Module {
     (
       uint redeemable, /*maxBorrowAfterRedeem*/
 
-    ) = maxGettableUnderlying(order.outbound_tkn, false, address(this));
+    ) = maxGettableUnderlying(IEIP20(order.outbound_tkn), false, address(this));
     if (amount > redeemable) {
       return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
     }
@@ -55,11 +51,12 @@ abstract contract AaveV3Lender is SingleUser, AaveV3Module {
     // in the deployable contract, the `__get__` method should call `AaveV2Lender.__get__` only if it does not have the cash
     // `__posthookSuccess__` should then deposit back the unspent underlying
     // NB redeeming all underlying would put the user at risk of a liquiditation (when user is borrowing) if the posthook fails to put back money
-    if (aaveRedeem(amount, address(this), order) == 0) {
+    if (_redeem(IEIP20(order.outbound_tkn), amount, address(this)) == amount) {
       // amount was transfered to `this`
       return 0;
+    } else {
+      return amount;
     }
-    return amount;
   }
 
   function __put__(uint amount, ML.SingleOrder calldata order)
@@ -72,6 +69,23 @@ abstract contract AaveV3Lender is SingleUser, AaveV3Module {
     if (amount == 0) {
       return 0;
     }
-    return aaveMint(amount, address(this), order);
+    _supply(IEIP20(order.inbound_tkn), amount, address(this));
+    return 0;
+  }
+
+  function redeem(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) external onlyAdmin returns (uint redeemed) {
+    redeemed = _redeem(token, amount, to);
+  }
+
+  function mint(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) external onlyAdmin {
+    _supply(token, amount, to);
   }
 }

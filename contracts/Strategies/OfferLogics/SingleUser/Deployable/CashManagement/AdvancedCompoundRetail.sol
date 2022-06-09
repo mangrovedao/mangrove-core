@@ -16,7 +16,7 @@ import "../../CompoundTrader.sol";
 contract AdvancedCompoundRetail is CompoundTrader {
   constructor(
     address _unitroller,
-    address payable _MGV,
+    IMangrove _MGV,
     address wethAddress,
     address admin
   ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV, admin) {

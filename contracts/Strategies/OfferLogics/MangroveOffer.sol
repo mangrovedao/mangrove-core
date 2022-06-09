@@ -12,7 +12,8 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "../lib/AccessControlled.sol";
+import "../utils/AccessControlled.sol";
+import {MangroveOfferStorage as MOS} from "./MangroveOfferStorage.sol";
 import "../interfaces/IOfferLogic.sol";
 import "../interfaces/IMangrove.sol";
 import "../interfaces/IEIP20.sol";
@@ -29,30 +30,29 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   using P.Global for P.Global.t;
   using P.Local for P.Local.t;
 
-  bytes32 public immutable RENEGED = "mgvOffer/abort/reneged";
-  bytes32 public immutable PUTFAILURE = "mgvOffer/abort/putFailed";
-  bytes32 public immutable OUTOFLIQUIDITY = "mgvOffer/abort/getFailed";
-
-  // The deployed Mangrove contract
+  // immutable does not impact storage layout
   IMangrove public immutable MGV;
-
   // `this` contract entypoint is `makerExecute` or `makerPosthook` if `msg.sender == address(MGV)`
   // `this` contract was called on an admin function iff `msg.sender = admin`
+
   modifier mgvOrAdmin() {
     require(
-      msg.sender == admin || msg.sender == address(MGV),
+      msg.sender == admin() || msg.sender == address(MGV),
       "AccessControlled/Invalid"
     );
     _;
   }
-  // default values
-  uint public override OFR_GASREQ = 100_000;
 
   // necessary function to withdraw funds from Mangrove
   receive() external payable virtual {}
 
-  constructor(address payable _mgv, address admin) AccessControlled(admin) {
-    MGV = IMangrove(_mgv);
+  constructor(IMangrove _mgv, address deployer) AccessControlled(deployer) {
+    MGV = _mgv;
+    MOS.get_storage().OFR_GASREQ = 80_000;
+  }
+
+  function OFR_GASREQ() public view returns (uint) {
+    return MOS.get_storage().OFR_GASREQ;
   }
 
   /////// Mandatory callback functions
@@ -96,8 +96,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       __posthookSuccess__(order);
     } else {
       emit LogIncident(
-        order.outbound_tkn,
-        order.inbound_tkn,
+        IEIP20(order.outbound_tkn),
+        IEIP20(order.inbound_tkn),
         order.offerId,
         result.makerData
       );
@@ -108,17 +108,14 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   // sets default gasreq for `new/updateOffer`
   function setGasreq(uint gasreq) public override mgvOrAdmin {
     require(uint24(gasreq) == gasreq, "mgvOffer/gasreq/overflow");
-    OFR_GASREQ = gasreq;
+    MOS.get_storage().OFR_GASREQ = gasreq;
   }
 
   /// `this` contract needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
   /// NB if anyone can call this function someone could reset it to 0 for griefing
-  function approveMangrove(address outbound_tkn, uint amount)
-    public
-    mgvOrAdmin
-  {
+  function approveMangrove(IEIP20 outbound_tkn, uint amount) public mgvOrAdmin {
     require(
-      IEIP20(outbound_tkn).approve(address(MGV), amount),
+      outbound_tkn.approve(address(MGV), amount),
       "mgvOffer/approve/Fail"
     );
   }
@@ -134,44 +131,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     } else {
       noRevert = true;
     }
-  }
-
-  // returns missing provision to repost `offerId` at given `gasreq` and `gasprice`
-  // if `offerId` is not in the Order Book, will simply return how much is needed to post
-  function _getMissingProvision(
-    uint balance, // offer owner balance on Mangrove
-    address outbound_tkn,
-    address inbound_tkn,
-    uint gasreq, // give > type(uint24).max to use `this.OFR_GASREQ()`
-    uint gasprice, // give 0 to use Mangrove's gasprice
-    uint offerId // set this to 0 if one is not reposting an offer
-  ) internal view returns (uint) {
-    (P.Global.t globalData, P.Local.t localData) = MGV.config(
-      outbound_tkn,
-      inbound_tkn
-    );
-    P.OfferDetail.t offerDetailData = MGV.offerDetails(
-      outbound_tkn,
-      inbound_tkn,
-      offerId
-    );
-    uint _gp;
-    if (globalData.gasprice() > gasprice) {
-      _gp = globalData.gasprice();
-    } else {
-      _gp = gasprice;
-    }
-    if (gasreq > type(uint24).max) {
-      gasreq = OFR_GASREQ;
-    }
-    uint bounty = (gasreq + localData.offer_gasbase()) * _gp * 10**9; // in WEI
-    // if `offerId` is not in the OfferList, all returned values will be 0
-    uint currentProvisionLocked = (offerDetailData.gasreq() +
-      offerDetailData.offer_gasbase()) *
-      offerDetailData.gasprice() *
-      10**9;
-    uint currentProvision = currentProvisionLocked + balance;
-    return (currentProvision >= bounty ? 0 : bounty - currentProvision);
   }
 
   ////// Default Customizable hooks for Taker Order'execution
@@ -230,5 +189,48 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     order;
     result;
     return true;
+  }
+
+  //utils
+  function $(IEIP20 token) internal pure returns (address) {
+    return address(token);
+  }
+
+  // returns missing provision to repost `offerId` at given `gasreq` and `gasprice`
+  // if `offerId` is not in the Order Book, will simply return how much is needed to post
+  function _getMissingProvision(
+    uint balance, // offer owner balance on Mangrove
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
+    uint gasreq, // give > type(uint24).max to use `this.OFR_GASREQ()`
+    uint gasprice, // give 0 to use Mangrove's gasprice
+    uint offerId // set this to 0 if one is not reposting an offer
+  ) internal view returns (uint) {
+    (P.Global.t globalData, P.Local.t localData) = MGV.config(
+      $(outbound_tkn),
+      $(inbound_tkn)
+    );
+    P.OfferDetail.t offerDetailData = MGV.offerDetails(
+      $(outbound_tkn),
+      $(inbound_tkn),
+      offerId
+    );
+    uint _gp;
+    if (globalData.gasprice() > gasprice) {
+      _gp = globalData.gasprice();
+    } else {
+      _gp = gasprice;
+    }
+    if (gasreq > type(uint24).max) {
+      gasreq = OFR_GASREQ();
+    }
+    uint bounty = (gasreq + localData.offer_gasbase()) * _gp * 10**9; // in WEI
+    // if `offerId` is not in the OfferList, all returned values will be 0
+    uint currentProvisionLocked = (offerDetailData.gasreq() +
+      offerDetailData.offer_gasbase()) *
+      offerDetailData.gasprice() *
+      10**9;
+    uint currentProvision = currentProvisionLocked + balance;
+    return (currentProvision >= bounty ? 0 : bounty - currentProvision);
   }
 }

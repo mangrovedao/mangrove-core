@@ -13,7 +13,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./SingleUser.sol";
-import "../AaveModule.sol";
+import "../../Modules/aave/v2/AaveModule.sol";
 
 abstract contract AaveLender is SingleUser, AaveModule {
   /**************************************************************************/
@@ -34,7 +34,7 @@ abstract contract AaveLender is SingleUser, AaveModule {
     address token,
     address onBehalf
   ) external onlyAdmin {
-    _mint(amount, token, onBehalf);
+    _supply(amount, token, onBehalf);
   }
 
   function __get__(uint amount, ML.SingleOrder calldata order)
@@ -46,7 +46,7 @@ abstract contract AaveLender is SingleUser, AaveModule {
     (
       uint redeemable, /*maxBorrowAfterRedeem*/
 
-    ) = maxGettableUnderlying(order.outbound_tkn, false, address(this));
+    ) = maxGettableUnderlying(IEIP20(order.outbound_tkn), false, address(this));
     if (amount > redeemable) {
       return amount; // give up if amount is not redeemable (anti flashloan manipulation of AAVE)
     }

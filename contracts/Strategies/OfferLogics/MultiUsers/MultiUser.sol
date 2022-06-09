@@ -16,13 +16,13 @@ import "../../../periphery/MgvReader.sol";
 import "../../interfaces/IOfferLogicMulti.sol";
 
 abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
-  mapping(address => mapping(address => mapping(uint => address)))
+  mapping(IEIP20 => mapping(IEIP20 => mapping(uint => address)))
     internal _offerOwners; // outbound_tkn => inbound_tkn => offerId => ownerAddress
 
   mapping(address => uint) public mgvBalance; // owner => WEI balance on mangrove
-  mapping(address => mapping(address => uint)) public tokenBalanceOf; // erc20 => owner => balance on `this`
+  mapping(IEIP20 => mapping(address => uint)) public tokenBalanceOf; // erc20 => owner => balance on `this`
 
-  function tokenBalance(address token, address owner)
+  function tokenBalance(IEIP20 token, address owner)
     external
     view
     override
@@ -41,32 +41,10 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   function offerOwners(
-    address reader,
-    address outbound_tkn,
-    address inbound_tkn,
-    uint fromId,
-    uint maxOffers
-  )
-    public
-    view
-    override
-    returns (
-      uint nextId,
-      uint[] memory offerIds,
-      address[] memory __offerOwners
-    )
-  {
-    (
-      nextId,
-      offerIds, /*offers*/ /*offerDetails*/
-      ,
-
-    ) = MgvReader(reader).offerList(
-      outbound_tkn,
-      inbound_tkn,
-      fromId,
-      maxOffers
-    );
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
+    uint[] calldata offerIds
+  ) public view override returns (address[] memory __offerOwners) {
     __offerOwners = new address[](offerIds.length);
     for (uint i = 0; i < offerIds.length; i++) {
       __offerOwners[i] = ownerOf(outbound_tkn, inbound_tkn, offerIds[i]);
@@ -85,7 +63,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   function creditToken(
-    address token,
+    IEIP20 token,
     address owner,
     uint amount
   ) internal {
@@ -94,7 +72,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   function debitToken(
-    address token,
+    IEIP20 token,
     address owner,
     uint amount
   ) internal {
@@ -109,17 +87,16 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     emit DebitUserTokenBalance(owner, token, amount);
   }
 
-  function redeemToken(
-    address token,
+  function withdrawToken(
+    IEIP20 token,
     address receiver,
     uint amount
   ) external override returns (bool success) {
-    require(msg.sender != address(this), "Mutli/noReentrancy");
     debitToken(token, msg.sender, amount);
-    success = IEIP20(token).transfer(receiver, amount);
+    success = token.transfer(receiver, amount);
   }
 
-  function depositToken(address token, uint amount)
+  function depositToken(IEIP20 token, uint amount)
     external
     override
     returns (
@@ -127,18 +104,18 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
       bool success
     )
   {
-    uint balBefore = IEIP20(token).balanceOf(address(this));
-    success = IEIP20(token).transferFrom(msg.sender, address(this), amount);
+    uint balBefore = token.balanceOf(address(this));
+    success = token.transferFrom(msg.sender, address(this), amount);
     require(
-      IEIP20(token).balanceOf(address(this)) - balBefore == amount,
+      token.balanceOf(address(this)) - balBefore == amount,
       "Multi/transferFail"
     );
     creditToken(token, msg.sender, amount);
   }
 
   function addOwner(
-    address outbound_tkn,
-    address inbound_tkn,
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
     uint offerId,
     address owner
   ) internal {
@@ -147,8 +124,8 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   function ownerOf(
-    address outbound_tkn,
-    address inbound_tkn,
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
     uint offerId
   ) public view override returns (address owner) {
     owner = _offerOwners[outbound_tkn][inbound_tkn][offerId];
@@ -195,27 +172,16 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     }
   }
 
-  function newOffer(
-    address outbound_tkn, // address of the ERC20 contract managing outbound tokens
-    address inbound_tkn, // address of the ERC20 contract managing outbound tokens
-    uint wants, // amount of `inbound_tkn` required for full delivery
-    uint gives, // max amount of `outbound_tkn` promised by the offer
-    uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
-    uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
-    uint pivotId // identifier of an offer in the (`outbound_tkn,inbound_tkn`) Offer List after which the new offer should be inserted (gas cost of insertion will increase if the `pivotId` is far from the actual position of the new offer)
-  ) external payable override returns (uint offerId) {
+  function newOffer(MakerOrder calldata mko)
+    external
+    payable
+    override
+    returns (uint offerId)
+  {
+    // Just a sanity check for future development
+    // If a multi user contract was able to post in its name, the offer would be able to draw from the collective pool
     require(msg.sender != address(this), "Mutli/noReentrancy");
-    offerId = newOfferInternal(
-      outbound_tkn,
-      inbound_tkn,
-      wants,
-      gives,
-      gasreq,
-      gasprice,
-      pivotId,
-      msg.sender,
-      msg.value
-    );
+    offerId = newOfferInternal(mko, msg.sender, msg.value);
   }
 
   // Calls new offer on Mangrove. If successful the function will:
@@ -223,54 +189,37 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   // 2. maintain `mgvBalance` with the redeemable WEIs for caller on Mangrove
   // This call will revert if `newOffer` reverts on Mangrove or if `caller` does not have the provisions to cover for the bounty.
   function newOfferInternal(
-    address outbound_tkn, // address of the ERC20 contract managing outbound tokens
-    address inbound_tkn, // address of the ERC20 contract managing outbound tokens
-    uint wants, // amount of `inbound_tkn` required for full delivery
-    uint gives, // max amount of `outbound_tkn` promised by the offer
-    uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
-    uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
-    uint pivotId,
+    MakerOrder memory mko,
     address caller,
     uint provision
   ) internal returns (uint offerId) {
+    require(caller != address(this), "Mutli/noReentrancy");
+
     uint weiBalanceBefore = MGV.balanceOf(address(this));
-    if (gasreq > type(uint24).max) {
-      gasreq = OFR_GASREQ;
-    }
+    uint gasreq = (mko.gasreq > type(uint24).max) ? OFR_GASREQ() : mko.gasreq;
     // this call could revert if this contract does not have the provision to cover the bounty
     offerId = MGV.newOffer{value: provision}(
-      outbound_tkn,
-      inbound_tkn,
-      wants,
-      gives,
+      $(mko.outbound_tkn),
+      $(mko.inbound_tkn),
+      mko.wants,
+      mko.gives,
       gasreq,
-      gasprice,
-      pivotId
+      mko.gasprice,
+      mko.pivotId
     );
     //setting owner of offerId
-    addOwner(outbound_tkn, inbound_tkn, offerId, caller);
+    addOwner(mko.outbound_tkn, mko.inbound_tkn, offerId, caller);
     //updating wei balance of owner will revert if msg.sender does not have the funds
     updateUserBalanceOnMgv(caller, weiBalanceBefore);
   }
 
-  function updateOffer(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId,
-    uint offerId
-  ) external payable override {
+  function updateOffer(MakerOrder calldata mko, uint offerId)
+    external
+    payable
+    override
+  {
     (uint offerId_, string memory reason) = updateOfferInternal(
-      outbound_tkn,
-      inbound_tkn,
-      wants,
-      gives,
-      gasreq,
-      gasprice,
-      pivotId,
+      mko,
       offerId,
       msg.sender,
       msg.value
@@ -283,34 +232,25 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   // It will however revert if user does not have the provision to cover the bounty (in case of gas increase).
   // When offer failed to be updated, the returned value is always 0 and the revert message. Otherwise it is equal to `offerId` and the empty string.
   function updateOfferInternal(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId,
+    MakerOrder memory mko,
     uint offerId,
     address caller,
     uint provision // dangerous to use msg.value in a internal call
   ) internal returns (uint, string memory) {
     require(
-      caller == ownerOf(outbound_tkn, inbound_tkn, offerId),
+      caller == ownerOf(mko.outbound_tkn, mko.inbound_tkn, offerId),
       "Multi/updateOffer/unauthorized"
     );
     uint weiBalanceBefore = MGV.balanceOf(address(this));
-    if (gasreq > type(uint24).max) {
-      gasreq = OFR_GASREQ;
-    }
     try
       MGV.updateOffer{value: provision}(
-        outbound_tkn,
-        inbound_tkn,
-        wants,
-        gives,
-        gasreq,
-        gasprice,
-        pivotId,
+        $(mko.outbound_tkn),
+        $(mko.inbound_tkn),
+        mko.wants,
+        mko.gives,
+        (mko.gasreq > type(uint24).max) ? OFR_GASREQ() : mko.gasreq,
+        mko.gasprice,
+        mko.pivotId,
         offerId
       )
     {
@@ -323,8 +263,8 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
 
   // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove. Function call will throw if `this` contract is not the owner of `offerId`.
   function retractOffer(
-    address outbound_tkn,
-    address inbound_tkn,
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
   ) external override returns (uint received) {
@@ -338,8 +278,8 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   function retractOfferInternal(
-    address outbound_tkn,
-    address inbound_tkn,
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
     uint offerId,
     bool deprovision,
     address caller
@@ -349,8 +289,8 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
       "Multi/retractOffer/unauthorized"
     );
     received = MGV.retractOffer(
-      outbound_tkn,
-      inbound_tkn,
+      $(outbound_tkn),
+      $(inbound_tkn),
       offerId,
       deprovision
     );
@@ -360,8 +300,8 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   function getMissingProvision(
-    address outbound_tkn,
-    address inbound_tkn,
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
     uint gasreq,
     uint gasprice,
     uint offerId
@@ -389,12 +329,10 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     override
     returns (uint)
   {
-    address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
-      order.offerId
-    );
-    creditToken(order.inbound_tkn, owner, amount);
+    IEIP20 outTkn = IEIP20(order.outbound_tkn);
+    IEIP20 inTkn = IEIP20(order.inbound_tkn);
+    address owner = ownerOf(outTkn, inTkn, order.offerId);
+    creditToken(IEIP20(order.inbound_tkn), owner, amount);
     return 0;
   }
 
@@ -405,17 +343,15 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     override
     returns (uint)
   {
-    address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
-      order.offerId
-    );
-    uint ownerBalance = tokenBalanceOf[order.outbound_tkn][owner];
+    IEIP20 outTkn = IEIP20(order.outbound_tkn);
+    IEIP20 inTkn = IEIP20(order.inbound_tkn);
+    address owner = ownerOf(outTkn, inTkn, order.offerId);
+    uint ownerBalance = tokenBalanceOf[outTkn][owner];
     if (ownerBalance < amount) {
-      debitToken(order.outbound_tkn, owner, ownerBalance);
+      debitToken(outTkn, owner, ownerBalance);
       return (amount - ownerBalance);
     } else {
-      debitToken(order.outbound_tkn, owner, amount);
+      debitToken(outTkn, owner, amount);
       return 0;
     }
   }

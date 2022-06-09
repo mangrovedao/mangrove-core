@@ -10,10 +10,6 @@ import {Test as TestEvents} from "@mangrovedao/hardhat-test-solidity/test.sol";
 import {MgvLib as ML, P, IMaker} from "../../MgvLib.sol";
 
 contract TestMaker is IMaker, Passthrough {
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
 
   AbstractMangrove _mgv;
   address _base;

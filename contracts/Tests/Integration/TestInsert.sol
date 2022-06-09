@@ -4,8 +4,6 @@ pragma abicoder v2;
 import "../Toolbox/TestUtils.sol";
 
 library TestInsert {
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
 
   function run(
     TestUtils.Balances storage balances,

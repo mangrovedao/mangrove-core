@@ -73,12 +73,6 @@ const preamble = `
             GENERATED FILE. DO NOT EDIT.              
  * ************************************************** */
 
-/* since you can't convert bool to uint in an expression without conditionals, 
- * we add a file-level function and rely on compiler optimization
- */
-function uint_of_bool(bool b) pure returns (uint u) {
-  assembly { u := b }
-}
 `;
 
 const precast = (type, val) => {
@@ -175,6 +169,8 @@ const validate = (sname, struct_def) => {
   }
 };
 
+const capitalize = (s) => s.slice(0, 1).toUpperCase() + s.slice(1);
+
 exports.structs_with_macros = (obj_struct_defs) => {
   for (const sname in obj_struct_defs) {
     validate(sname, obj_struct_defs[sname]);
@@ -201,7 +197,8 @@ exports.structs_with_macros = (obj_struct_defs) => {
     f_mask: (field,struct_def) => mask(struct_def,field.name),
     // utility methods
     // solpp's default capitalize removes other capital letters in the word
-    capitalize: (s) => s.slice(0, 1).toUpperCase() + s.slice(1),
+    capitalize,
+    filename: (ns) => `Mgv${capitalize(ns[0])}.post.sol`
   };
 
   for (const [sname, struct_def] of struct_defs) {

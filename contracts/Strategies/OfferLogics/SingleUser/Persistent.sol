@@ -17,8 +17,6 @@ import "./SingleUser.sol";
 /** (Single user variant) */
 
 abstract contract Persistent is SingleUser {
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
 
   /** Persistent class specific hooks. */
 

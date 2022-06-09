@@ -18,7 +18,6 @@ import "../OfferLogics/MultiUsers/Persistent.sol";
 import "../interfaces/IOrderLogic.sol";
 
 contract MangroveOrder is MultiUserPersistent, IOrderLogic {
-  using P.Local for P.Local.t;
 
   // `blockToLive[token1][token2][offerId]` gives block number beyond which the offer should renege on trade.
   mapping(IEIP20 => mapping(IEIP20 => mapping(uint => uint))) public expiring;

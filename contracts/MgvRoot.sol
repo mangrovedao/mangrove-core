@@ -41,8 +41,6 @@ import {MgvLib as ML, HasMgvEvents, IMgvMonitor, P} from "./MgvLib.sol";
 
 /* `MgvRoot` contains state variables used everywhere in the operation of the Mangrove and their related function. */
 contract MgvRoot is HasMgvEvents {
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
 
   /* # State variables */
   //+clear+

@@ -6,7 +6,6 @@ import "../../AbstractMangrove.sol";
 import "../../MgvLib.sol";
 
 contract TestMoriartyMaker is IMaker, Passthrough {
-  using P.Local for P.Local.t;
 
   AbstractMangrove mgv;
   address base;

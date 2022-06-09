@@ -14,7 +14,6 @@ pragma abicoder v2;
 import "../../CompoundTrader.sol";
 
 contract SwingingMarketMaker is CompoundTrader {
-  using P.Offer for P.Offer.t;
   event MissingPriceConverter(address token0, address token1);
   event NotEnoughProvision(uint amount);
 

@@ -14,8 +14,6 @@ import "../../Mangrove.sol";
 import "../../MgvLib.sol";
 
 library TestUtils {
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
 
   /* Various utilities */
 

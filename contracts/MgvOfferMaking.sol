@@ -23,10 +23,6 @@ import {MgvHasOffers} from "./MgvHasOffers.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
 contract MgvOfferMaking is MgvHasOffers {
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
   /* # Public Maker operations
      ## New Offer */
   //+clear+

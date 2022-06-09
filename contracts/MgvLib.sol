@@ -18,7 +18,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "./IERC20.sol";
-import "./MgvPack.sol" as P;
+import "./preprocessed/MgvPack.post.sol" as P;
 
 /* # Structs
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */

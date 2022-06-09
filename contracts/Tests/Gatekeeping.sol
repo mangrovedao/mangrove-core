@@ -97,8 +97,6 @@ contract Deployer {
 
 // In these tests, the testing contract is the market maker.
 contract Gatekeeping_Test is IMaker, HasMgvEvents {
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
 
   receive() external payable {}
 

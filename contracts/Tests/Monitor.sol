@@ -14,10 +14,6 @@ import "./Agents/TestMonitor.sol";
 
 // In these tests, the testing contract is the market maker.
 contract Monitor_Test {
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
 
   receive() external payable {}
 

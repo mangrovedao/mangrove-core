@@ -27,8 +27,6 @@ import "contracts/Strategies/interfaces/ISourcer.sol";
 /** In case of a partial fill of an offer at position i, the offer residual is reposted (see `Persistent` strat class)*/
 
 contract MangoImplementation is Persistent {
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
 
   event BidAtMaxPosition();
   // emitted when strat has reached max amount of Asks and needs rebalancing (should shift of x<0 positions in order to have ask prices that are better for the taker)

@@ -14,7 +14,7 @@ pragma abicoder v2;
 import "../Persistent.sol";
 
 contract OasisLike is MultiUserPersistent {
-  constructor(address payable _MGV, address admin) MangroveOffer(_MGV, admin) {}
+  constructor(IMangrove _MGV, address admin) MangroveOffer(_MGV, admin) {}
 
   // overrides MultiUser.__put__ in order to transfer all inbound tokens to owner
   function __put__(uint amount, ML.SingleOrder calldata order)
@@ -24,8 +24,8 @@ contract OasisLike is MultiUserPersistent {
   {
     // transfers the deposited tokens to owner
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     if (IEIP20(order.inbound_tkn).transfer(owner, amount)) {
@@ -42,8 +42,8 @@ contract OasisLike is MultiUserPersistent {
   {
     // tries to fetch missing amount into owner's wallet
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     try
@@ -66,11 +66,15 @@ contract OasisLike is MultiUserPersistent {
     ML.OrderResult calldata result
   ) internal virtual override returns (bool) {
     retractOfferInternal(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId,
       true,
-      ownerOf(order.outbound_tkn, order.inbound_tkn, order.offerId)
+      ownerOf(
+        IEIP20(order.outbound_tkn),
+        IEIP20(order.inbound_tkn),
+        order.offerId
+      )
     );
     return super.__posthookFallback__(order, result);
   }

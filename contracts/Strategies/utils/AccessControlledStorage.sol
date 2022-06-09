@@ -12,28 +12,15 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-contract AccessControlled {
-  address public admin;
-
-  constructor(address admin_) {
-    require(admin_ != address(0), "accessControlled/0xAdmin");
-    admin = admin_;
+library AccessControlledStorage {
+  struct Layout {
+    address admin;
   }
 
-  modifier onlyCaller(address caller) {
-    require(
-      caller == address(0) || msg.sender == caller,
-      "AccessControlled/Invalid"
-    );
-    _;
-  }
-
-  modifier onlyAdmin() {
-    require(msg.sender == admin, "AccessControlled/Invalid");
-    _;
-  }
-
-  function setAdmin(address _admin) external onlyAdmin {
-    admin = _admin;
+  function get_storage() internal pure returns (Layout storage st) {
+    bytes32 storagePosition = keccak256("Mangrove.AccessControlledStorage");
+    assembly {
+      st.slot := storagePosition
+    }
   }
 }

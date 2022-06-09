@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveLender.sol
+//AaveModule.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -12,22 +12,36 @@
 
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "./AaveModuleStorage.sol";
-import {AaveV3ModuleImplementation as AMI} from "./AaveModuleImplementation.sol";
-import "hardhat/console.sol";
 
-contract AaveV3Module is AaveV3ModuleStorage {
-  constructor(address _addressesProvider, uint _referralCode)
-    AaveV3ModuleStorage(true, _addressesProvider, _referralCode)
-  {
-    AMI impl = new AMI();
-    implementation = address(impl);
-  }
+import {AaveV3ModuleStorage as AMS} from "./AaveModuleStorage.sol";
+import {AaveV3ModuleImplementation as AMI, IEIP20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, IPriceOracleGetter, DataTypes} from "./AaveModuleImplementation.sol";
 
-  function revertWithData(bytes memory retdata) internal pure {
-    assembly {
-      revert(add(retdata, 32), mload(retdata))
-    }
+contract AaveV3Module {
+  address private immutable IMPLEMENTATION;
+  IPool public immutable POOL;
+  IPriceOracleGetter public immutable ORACLE;
+  uint public immutable INTEREST_RATE_MODE;
+  uint16 public immutable REFERRAL_CODE;
+
+  constructor(
+    address _addressesProvider,
+    uint _referralCode,
+    uint _interestRateMode
+  ) {
+    REFERRAL_CODE = uint16(_referralCode);
+    INTEREST_RATE_MODE = _interestRateMode;
+
+    address _priceOracle = IPoolAddressesProvider(_addressesProvider)
+      .getAddress("PRICE_ORACLE");
+    address _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
+    require(_priceOracle != address(0), "AaveModule/0xPriceOracle");
+    require(_lendingPool != address(0), "AaveModule/0xPool");
+
+    POOL = IPool(_lendingPool);
+    ORACLE = IPriceOracleGetter(_priceOracle);
+    IMPLEMENTATION = address(
+      new AMI(IPool(_lendingPool), IPriceOracleGetter(_priceOracle))
+    );
   }
 
   /**************************************************************************/
@@ -37,44 +51,40 @@ contract AaveV3Module is AaveV3ModuleStorage {
   ///@notice approval of overlying contract by the underlying is necessary for minting and repaying borrow
   ///@notice user must use this function to do so.
   function _approveLender(IEIP20 token, uint amount) internal {
-    token.approve(address(lendingPool), amount);
+    token.approve(address(POOL), amount);
   }
 
   ///@notice exits markets
   function _exitMarket(IEIP20 underlying) internal {
-    lendingPool.setUserUseReserveAsCollateral(address(underlying), false);
+    POOL.setUserUseReserveAsCollateral(address(underlying), false);
   }
 
   function _enterMarkets(IEIP20[] calldata underlyings) internal {
     for (uint i = 0; i < underlyings.length; i++) {
-      lendingPool.setUserUseReserveAsCollateral(address(underlyings[i]), true);
+      POOL.setUserUseReserveAsCollateral(address(underlyings[i]), true);
     }
   }
 
   function overlying(IEIP20 asset) public view returns (IEIP20 aToken) {
-    aToken = IEIP20(lendingPool.getReserveData(address(asset)).aTokenAddress);
+    aToken = IEIP20(POOL.getReserveData(address(asset)).aTokenAddress);
   }
 
   /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
   /// returns (R, B|R)
-
   function maxGettableUnderlying(
-    address asset,
+    IEIP20 asset,
     bool tryBorrow,
     address onBehalf
   )
     public
     returns (
-      //view
       uint maxRedeemableUnderlying,
       uint maxBorrowAfterRedeemInUnderlying
     )
   {
-    console.log(address(lendingPool));
-    console.log(address(priceOracle));
-    (bool success, bytes memory retdata) = implementation.delegatecall(
+    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        AMI.maxGettableUnderlying.selector,
+        AMI.$maxGettableUnderlying.selector,
         asset,
         tryBorrow,
         onBehalf
@@ -86,38 +96,35 @@ contract AaveV3Module is AaveV3ModuleStorage {
         (uint, uint)
       );
     } else {
-      revertWithData(retdata);
+      AMS.revertWithData(retdata);
     }
   }
 
-  function repayThenDeposit(
-    uint interestRateMode,
-    IEIP20 token,
-    uint amount
-  ) internal {
-    (bool success, bytes memory retdata) = implementation.delegatecall(
+  function repayThenDeposit(IEIP20 token, uint amount) internal {
+    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        AMI.repayThenDeposit.selector,
-        interestRateMode,
+        AMI.$repayThenDeposit.selector,
+        INTEREST_RATE_MODE,
+        REFERRAL_CODE,
         token,
         amount
       )
     );
     if (!success) {
-      revertWithData(retdata);
+      AMS.revertWithData(retdata);
     }
   }
 
   function exactRedeemThenBorrow(
-    uint interestRateMode,
     IEIP20 token,
     address to,
     uint amount
   ) internal returns (uint got) {
-    (bool success, bytes memory retdata) = implementation.delegatecall(
+    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        AMI.exactRedeemThenBorrow.selector,
-        interestRateMode,
+        AMI.$exactRedeemThenBorrow.selector,
+        INTEREST_RATE_MODE,
+        REFERRAL_CODE,
         token,
         to,
         amount
@@ -126,22 +133,21 @@ contract AaveV3Module is AaveV3ModuleStorage {
     if (success) {
       got = abi.decode(retdata, (uint));
     } else {
-      revertWithData(retdata);
+      AMS.revertWithData(retdata);
     }
   }
 
   function _borrow(
     IEIP20 token,
     uint amount,
-    uint interestRateMode,
-    address to
+    address onBehalf
   ) internal {
-    lendingPool.borrow(
+    POOL.borrow(
       address(token),
       amount,
-      interestRateMode,
-      referralCode,
-      to
+      INTEREST_RATE_MODE,
+      REFERRAL_CODE,
+      onBehalf
     );
   }
 
@@ -150,29 +156,32 @@ contract AaveV3Module is AaveV3ModuleStorage {
     uint amount,
     address to
   ) internal returns (uint redeemed) {
-    redeemed = lendingPool.withdraw(address(token), amount, to);
+    try POOL.withdraw(address(token), amount, to) returns (uint _redeemed) {
+      redeemed = _redeemed;
+    } catch // AAVE v3 throws if amount is 0 or if user redeemable balance is 0
+    {
+      return 0;
+    }
   }
 
-  function _mint(
+  function _supply(
     IEIP20 token,
     uint amount,
     address onBehalf
   ) internal {
-    lendingPool.supply(address(token), amount, onBehalf, referralCode);
+    POOL.supply(address(token), amount, onBehalf, REFERRAL_CODE);
   }
 
   function _repay(
     IEIP20 token,
     uint amount,
-    uint interestRateMode,
     address onBehalf
   ) internal returns (uint repaid) {
-    return
-      lendingPool.repay(address(token), amount, interestRateMode, onBehalf);
+    return POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf);
   }
 
   // rewards claiming.
-  // may use `SingleUser.redeemToken` to move collected tokens afterwards
+  // may use `SingleUser.withdrawToken` to move collected tokens afterwards
   function _claimRewards(
     IRewardsControllerIsh rewardsController,
     address[] calldata assets

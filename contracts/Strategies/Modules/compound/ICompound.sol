@@ -15,7 +15,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "../../../interfaces/IEIP20.sol";
+import "../../interfaces/IEIP20.sol";
 
 interface ICompoundPriceOracle {
   function getUnderlyingPrice(IcERC20 cToken) external view returns (uint);
@@ -61,7 +61,7 @@ interface IComptroller {
 
 interface IcERC20 is IEIP20 {
   // from https://github.com/compound-finance/compound-protocol/blob/master/contracts/CTokenInterfaces.sol
-  function redeem(uint redeemTokens) external returns (uint);
+  function redeem(uint withdrawTokens) external returns (uint);
 
   function borrow(uint borrowAmount) external returns (uint);
 

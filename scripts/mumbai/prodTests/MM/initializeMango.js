@@ -45,6 +45,15 @@ async function main() {
     }
 
     MangoRaw = MangoRaw.connect(tester);
+
+    let [pendingBase, pendingQuote] = await MangoRaw.get_pending();
+    if (pendingBase.gt(0) || pendingQuote.gt(0)) {
+      console.log(
+        `* Current deployment of Mango has pending liquidity, resetting.`
+      );
+      tx = await MangoRaw.reset_pending();
+    }
+
     if (!((await MangoRaw.get_treasury(true)) === tester.address)) {
       console.log(`* Set ${baseName} treasury to tester wallet`);
       tx = await MangoRaw.set_treasury(true, tester.address);
@@ -105,55 +114,45 @@ async function main() {
         await MangoRaw.get_shift()
       ).toNumber()})`
     );
+
     const offers_per_slice = 10;
     const slices = NSLOTS / offers_per_slice; // slices of 10 offers
 
-    let pivotIdsSemi = new Array(NSLOTS);
-    pivotIdsSemi.fill(0, 0);
-
+    let pivotIds = new Array(NSLOTS);
     let amounts = new Array(NSLOTS);
-    amounts.fill(
-      MgvAPI.toUnits(default_quote_amount, quoteName),
-      0,
-      NSLOTS / 2
-    );
-    amounts.fill(
-      MgvAPI.toUnits(default_base_amount, baseName),
-      NSLOTS / 2,
-      NSLOTS
-    );
 
-    // TODO: define a procedure to get better pivots
-    const pivotIds = [pivotIdsSemi, pivotIdsSemi];
+    pivotIds = pivotIds.fill(0, 0);
+    // init amount is expressed in `makerGives` amount (i.e base for bids and quote for asks)
+    amounts.fill(default_base_amount, 0, NSLOTS / 2);
+    amounts.fill(default_quote_amount, NSLOTS / 2, NSLOTS);
 
     for (let i = 0; i < slices; i++) {
-      console.log(
-        `Posting offers in price range [${offers_per_slice * i},${
-          offers_per_slice * (i + 1)
-        }[...`
-      );
-      tx = await MangoRaw.initialize(
-        NSLOTS / 2 - 1, // last bid position (included)
+      const receipt = await MangoRaw.initialize(
+        NSLOTS / 2 - 1,
         offers_per_slice * i, // from
         offers_per_slice * (i + 1), // to
-        pivotIds,
+        [pivotIds, pivotIds],
         amounts
       );
-      const receipt = await tx.wait();
-      console.log(`Done! (gas used ${receipt.gasUsed.toString()})`);
-      //      const [pendingBase, pendingQuote] = await MangoRaw.get_pending();
-      // if (pendingBase.gt(0) || pendingQuote.gt(0)) {
-      //   throw Error(
-      //     `Init error, failed to initialize (${MgvAPI.token(baseName).fromUnits(
-      //       pendingBase
-      //     )} pending base,${MgvAPI.token(quoteName).fromUnits(
-      //       pendingQuote
-      //     )} pending quotes)`
-      //   );
-      // }
+      console.log(
+        `Slice initialized (${(await receipt.wait()).gasUsed} gas used)`
+      );
+    }
+    console.log(`Done! (gas used ${receipt.gasUsed.toString()})`);
+
+    [pendingBase, pendingQuote] = await MangoRaw.get_pending();
+    if (pendingBase.gt(0) || pendingQuote.gt(0)) {
+      throw Error(
+        `Init error, failed to initialize (${MgvAPI.token(baseName).fromUnits(
+          pendingBase
+        )} pending base,${MgvAPI.token(quoteName).fromUnits(
+          pendingQuote
+        )} pending quotes)`
+      );
     }
   }
 }
+
 main()
   .then(() => process.exit(0))
   .catch((error) => {

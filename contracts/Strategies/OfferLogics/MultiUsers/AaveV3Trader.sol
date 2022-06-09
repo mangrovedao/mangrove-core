@@ -14,13 +14,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./AaveV3Lender.sol";
 
-abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
-  uint public immutable interestRateMode;
-
-  constructor(uint _interestRateMode) {
-    interestRateMode = _interestRateMode;
-  }
-
+abstract contract MultiUserAaveV3Trader is AaveV3Module, MultiUser {
   function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
@@ -28,13 +22,13 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
     returns (uint)
   {
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
     // 1. Computing total borrow and redeem capacities of underlying asset
     (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
-      order.outbound_tkn,
+      IEIP20(order.outbound_tkn),
       true,
       owner
     );
@@ -54,8 +48,7 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
       if (success) {
         // overlying transfer has succeeded, anything wrong beyond this point should revert
         require(
-          lendingPool.withdraw(order.outbound_tkn, toRedeem, address(this)) ==
-            amount,
+          POOL.withdraw(order.outbound_tkn, toRedeem, address(this)) == amount,
           "mgvOffer/aave/redeemFailed"
         );
         amount = amount - toRedeem;
@@ -66,11 +59,11 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
           ? liquidity_after_redeem
           : amount;
         // 3. trying to borrow missing liquidity, failure to borrow reverts
-        lendingPool.borrow(
+        POOL.borrow(
           order.outbound_tkn,
           toBorrow,
-          interestRateMode,
-          referralCode,
+          INTEREST_RATE_MODE,
+          REFERRAL_CODE,
           address(this)
         );
         return 0;
@@ -91,12 +84,12 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
       return 0;
     }
     // trying to repay debt if user is in borrow position for inbound_tkn token
-    DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
+    DataTypes.ReserveData memory reserveData = POOL.getReserveData(
       order.inbound_tkn
     );
 
     uint debtOfUnderlying;
-    if (interestRateMode == 1) {
+    if (INTEREST_RATE_MODE == 1) {
       debtOfUnderlying = IEIP20(reserveData.stableDebtTokenAddress).balanceOf(
         address(this)
       );
@@ -110,16 +103,16 @@ abstract contract MultiUserAaveV3Trader is MultiUser, AaveV3Module {
 
     uint toMint;
     address owner = ownerOf(
-      order.outbound_tkn,
-      order.inbound_tkn,
+      IEIP20(order.outbound_tkn),
+      IEIP20(order.inbound_tkn),
       order.offerId
     );
-    try lendingPool.repay(order.inbound_tkn, toRepay, interestRateMode, owner) {
+    try POOL.repay(order.inbound_tkn, toRepay, INTEREST_RATE_MODE, owner) {
       toMint = amount - toRepay;
     } catch {
       toMint = amount;
     }
-    lendingPool.supply(order.inbound_tkn, toMint, owner, referralCode);
+    _supply(IEIP20(order.inbound_tkn), toMint, owner);
     return 0;
   }
 }

@@ -16,14 +16,14 @@ import "./MangroveOrder.sol";
 
 contract MangroveOrderEnriched is MangroveOrder {
   // `next[out_tkn][in_tkn][owner][id] = id'` with `next[out_tkn][in_tkn][owner][0]==0` iff owner has now offers on the semi book (out,in)
-  mapping(address => mapping(address => mapping(address => mapping(uint => uint)))) next;
+  mapping(IEIP20 => mapping(IEIP20 => mapping(address => mapping(uint => uint)))) next;
 
-  constructor(address payable _MGV, address admin) MangroveOrder(_MGV, admin) {}
+  constructor(IMangrove _MGV, address admin) MangroveOrder(_MGV, admin) {}
 
   function __logOwnerShipRelation__(
     address owner,
-    address outbound_tkn,
-    address inbound_tkn,
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn,
     uint offerId
   ) internal virtual override {
     uint head = next[outbound_tkn][inbound_tkn][owner][0];
@@ -36,15 +36,15 @@ contract MangroveOrderEnriched is MangroveOrder {
   // we let the following view function consume loads of gas units in exchange of a rather minimalistic state bookeeping
   function offersOfOwner(
     address owner,
-    address outbound_tkn,
-    address inbound_tkn
+    IEIP20 outbound_tkn,
+    IEIP20 inbound_tkn
   ) external view returns (uint[] memory live, uint[] memory dead) {
     uint head = next[outbound_tkn][inbound_tkn][owner][0];
     uint id = head;
     uint n_live = 0;
     uint n_dead = 0;
     while (id != 0) {
-      if (MGV.isLive(MGV.offers(outbound_tkn, inbound_tkn, id))) {
+      if (MGV.isLive(MGV.offers($(outbound_tkn), $(inbound_tkn), id))) {
         n_live++;
       } else {
         n_dead++;
@@ -57,7 +57,7 @@ contract MangroveOrderEnriched is MangroveOrder {
     n_live = 0;
     n_dead = 0;
     while (id != 0) {
-      if (MGV.isLive(MGV.offers(outbound_tkn, inbound_tkn, id))) {
+      if (MGV.isLive(MGV.offers($(outbound_tkn), $(inbound_tkn), id))) {
         live[n_live++] = id;
       } else {
         dead[n_dead++] = id;

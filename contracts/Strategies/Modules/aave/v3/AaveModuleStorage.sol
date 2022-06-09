@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveLender.sol
+//AaveModuleStorage.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -19,61 +19,29 @@ import {IRewardsControllerIsh} from "./IRewardsControllerIsh.sol";
 import "./IPriceOracleGetter.sol";
 import {ReserveConfiguration as RC} from "./ReserveConfiguration.sol";
 
-import "../../../../interfaces/IMangrove.sol";
-import "../../../../interfaces/IEIP20.sol";
+import "../../../interfaces/IMangrove.sol";
+import "../../../interfaces/IEIP20.sol";
 
-contract AaveV3ModuleStorage {
+library AaveV3ModuleStorage {
   // address of the lendingPool
-  IPool public lendingPool;
-  IPriceOracleGetter public priceOracle;
+  // struct Layout {
+  // }
 
-  // cannot be immutable because address is known at AaveModule construction time
-  address implementation;
+  // function get_storage() internal pure returns (Layout storage st) {
+  //   bytes32 storagePosition = keccak256(
+  //     "Mangrove.AaveV3ModuleStorageLib.Layout"
+  //   );
+  //   assembly {
+  //     st.slot := storagePosition
+  //   }
+  // }
 
-  uint16 referralCode;
-
-  // structs to avoir stack too deep in maxGettableUnderlying
-  struct Underlying {
-    uint ltv;
-    uint liquidationThreshold;
-    uint decimals;
-    uint price;
-  }
-
-  struct Account {
-    uint collateral;
-    uint debt;
-    uint borrowPower;
-    uint redeemPower;
-    uint ltv;
-    uint liquidationThreshold;
-    uint health;
-    uint balanceOfUnderlying;
-  }
-
-  constructor(
-    bool has_storage,
-    address _addressesProvider,
-    uint _referralCode
-  ) {
-    require(
-      uint16(_referralCode) == _referralCode,
-      "Referral code should be uint16"
-    );
-
-    referralCode = uint16(_referralCode); // for aave reference, put 0 for tests
-
-    address _priceOracle;
-    address _lendingPool;
-    if (has_storage) {
-      _priceOracle = IPoolAddressesProvider(_addressesProvider).getAddress(
-        "PRICE_ORACLE"
-      );
-      _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
-      require(_priceOracle != address(0), "AaveModuleStorage/0xPriceOracle");
-      require(_lendingPool != address(0), "AaveModuleStorage/0xPool");
+  function revertWithData(bytes memory retdata) internal pure {
+    if (retdata.length == 0) {
+      revert("AaveModuleStorage/revertNoReason");
     }
-    lendingPool = IPool(_lendingPool);
-    priceOracle = IPriceOracleGetter(_priceOracle);
+    assembly {
+      revert(add(retdata, 32), mload(retdata))
+    }
   }
 }

@@ -90,11 +90,30 @@ describe("Running tests...", function () {
         ethers.utils.parseUnits("1000", 6), // QUOTE0
         NSLOTS, // price slots
         delta, //quote progression
-        maker.address
+        maker.address // admin
       )
     ).connect(maker);
 
-    // funds come from deployer's wallet by default
+    let txs = [];
+    let i = 0;
+    txs[i++] = await makerContract.set_EOA_sourcer();
+    // maker has to approve liquidity sourcer of Mango for ETH and USDC transfer
+    txs[i++] = await wEth
+      .connect(maker)
+      .approve(
+        await makerContract.liquidity_sourcer(),
+        ethers.constants.MaxUint256
+      );
+    txs[i++] = await usdc
+      .connect(maker)
+      .approve(
+        await makerContract.liquidity_sourcer(),
+        ethers.constants.MaxUint256
+      );
+    await lc.synch(txs);
+
+    // funds come from maker's wallet by default
+    // liquidity sourcer will pull the funds from the wallet when needed
     await lc.fund([
       ["WETH", "17.0", maker.address],
       ["USDC", "50000", maker.address],
@@ -145,24 +164,8 @@ describe("Running tests...", function () {
     // console.log("===asks===");
     // await lc.logOrderBook(book, wEth, usdc);
 
-    await makerContract.approveMangrove(
-      wEth.address,
-      ethers.constants.MaxUint256
-    );
-    await makerContract.approveMangrove(
-      usdc.address,
-      ethers.constants.MaxUint256
-    );
-
     await wEth.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
     await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
-
-    await wEth
-      .connect(maker)
-      .approve(makerContract.address, ethers.constants.MaxUint256);
-    await usdc
-      .connect(maker)
-      .approve(makerContract.address, ethers.constants.MaxUint256);
 
     let [takerGot, takerGave, bounty] = await lc.marketOrder(
       mgv.connect(taker),
@@ -340,7 +343,7 @@ describe("Running tests...", function () {
     let offerInfo = await mgv.offerInfo(wEth.address, usdc.address, best);
     let old_gives = offerInfo.offer.gives;
 
-    let [pendingBase] = await makerContract.get_pending();
+    let [pendingBase] = await makerContract.pending();
 
     lc.assertEqualBN(
       pendingBase,
@@ -360,7 +363,7 @@ describe("Running tests...", function () {
       true
     );
 
-    let [pendingBase_] = await makerContract.get_pending();
+    let [pendingBase_] = await makerContract.pending();
     lc.assertEqualBN(
       pendingBase_,
       pendingBase.add(takerGave),
@@ -378,7 +381,7 @@ describe("Running tests...", function () {
       ethers.utils.parseEther("1"), // gives
       true
     );
-    let [pendingBase__] = await makerContract.get_pending();
+    let [pendingBase__] = await makerContract.pending();
     lc.assertEqualBN(pendingBase__, 0, "There should be no more pending base");
 
     best = await mgv.best(wEth.address, usdc.address);
@@ -421,7 +424,7 @@ describe("Running tests...", function () {
     // and residual will be added to USDC (quote) pending pool
     // and what taker gave will not be added in the dual offer and added to the WETH (base) pending pool
 
-    let [pendingBase, pendingQuote] = await makerContract.get_pending();
+    let [pendingBase, pendingQuote] = await makerContract.pending();
 
     lc.assertEqualBN(
       takerGave,
@@ -447,7 +450,7 @@ describe("Running tests...", function () {
       true
     );
 
-    let [pendingBase_, pendingQuote_] = await makerContract.get_pending();
+    let [pendingBase_, pendingQuote_] = await makerContract.pending();
     lc.assertEqualBN(
       pendingBase.add(takerGave),
       pendingBase_,
@@ -520,7 +523,7 @@ describe("Running tests...", function () {
       [0, 8, 0, 6, 1, 2, 3, 4, 5, 7]
     );
 
-    let [pendingBase__, pendingQuote__] = await makerContract.get_pending();
+    let [pendingBase__, pendingQuote__] = await makerContract.pending();
     lc.assertEqualBN(pendingBase__, 0, "Pending base pool should be empty");
     lc.assertEqualBN(pendingQuote__, 0, "Pending quote pool should be empty");
     best = await mgv.best(wEth.address, usdc.address);

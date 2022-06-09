@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveLender.sol
+//AaveModuleImplementation.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -12,22 +12,42 @@
 
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "./AaveModuleStorage.sol";
+import {AaveV3ModuleStorage as AMS, IEIP20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, IPriceOracleGetter, DataTypes, RC} from "./AaveModuleStorage.sol";
 import "hardhat/console.sol";
 
-contract AaveV3ModuleImplementation is
-  AaveV3ModuleStorage(false, address(42), 0)
-{
-  /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
-  /// returns (R, B|R)
+contract AaveV3ModuleImplementation {
+  IPool public immutable POOL;
+  IPriceOracleGetter public immutable ORACLE;
 
-  function maxGettableUnderlying(
+  constructor(IPool pool, IPriceOracleGetter oracle) {
+    POOL = pool;
+    ORACLE = oracle;
+  }
+
+  // structs to avoir stack too deep in maxGettableUnderlying
+  struct Underlying {
+    uint ltv;
+    uint liquidationThreshold;
+    uint decimals;
+    uint price;
+  }
+
+  struct Account {
+    uint collateral;
+    uint debt;
+    uint borrowPower;
+    uint redeemPower;
+    uint ltv;
+    uint liquidationThreshold;
+    uint health;
+    uint balanceOfUnderlying;
+  }
+
+  function $maxGettableUnderlying(
     address asset,
     bool tryBorrow,
     address onBehalf
   ) public view returns (uint, uint) {
-    console.log(address(lendingPool));
-    console.log(address(priceOracle));
     Underlying memory underlying; // asset parameters
     Account memory account; // accound parameters
     (
@@ -37,10 +57,8 @@ contract AaveV3ModuleImplementation is
       account.liquidationThreshold,
       account.ltv,
       account.health // avgLiquidityThreshold * sumCollateralEth / sumDebtEth  -- should be less than 10**18
-    ) = lendingPool.getUserAccountData(onBehalf);
-    DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
-      asset
-    );
+    ) = POOL.getUserAccountData(onBehalf);
+    DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
     (
       underlying.ltv, // collateral factor for lending
       underlying.liquidationThreshold, // collateral factor for borrowing
@@ -56,7 +74,7 @@ contract AaveV3ModuleImplementation is
       onBehalf
     );
 
-    underlying.price = priceOracle.getAssetPrice(asset); // divided by 10**underlying.decimals
+    underlying.price = ORACLE.getAssetPrice(asset); // divided by 10**underlying.decimals
 
     // account.redeemPower = account.liquidationThreshold * account.collateral - account.debt
     account.redeemPower =
@@ -100,13 +118,18 @@ contract AaveV3ModuleImplementation is
     return (maxRedeemableUnderlying, maxBorrowAfterRedeemInUnderlying);
   }
 
-  function repayThenDeposit(
+  function $repayThenDeposit(
     uint interestRateMode,
+    uint referralCode,
     IEIP20 token,
     uint amount
   ) external {
+    // AAVE repay/deposit throws if amount == 0
+    if (amount == 0) {
+      return;
+    }
     uint debtOfUnderlying;
-    DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
+    DataTypes.ReserveData memory reserveData = POOL.getReserveData(
       address(token)
     );
     if (interestRateMode == 1) {
@@ -122,24 +145,28 @@ contract AaveV3ModuleImplementation is
     if (debtOfUnderlying == 0) {
       toMint = amount;
     } else {
-      uint repaid = lendingPool.repay(
+      uint repaid = POOL.repay(
         address(token),
         amount,
         interestRateMode,
         address(this)
       );
       toMint = amount - repaid;
+      if (toMint == 0) {
+        return;
+      }
     }
-    lendingPool.supply(address(token), toMint, address(this), referralCode);
+    POOL.supply(address(token), toMint, address(this), uint16(referralCode));
   }
 
-  function exactRedeemThenBorrow(
+  function $exactRedeemThenBorrow(
     uint interestRateMode,
+    uint referralCode,
     IEIP20 token,
-    address to,
+    address onBehalfOf,
     uint amount
   ) external returns (uint) {
-    (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
+    (uint redeemable, uint liquidity_after_redeem) = $maxGettableUnderlying(
       address(token),
       true, // compute borrow power after redeem
       address(this) // assuming aTokens are on `this` contract's balance
@@ -151,7 +178,7 @@ contract AaveV3ModuleImplementation is
     // 2. trying to redeem liquidity from Compound
     uint toRedeem = (redeemable < amount) ? redeemable : amount;
 
-    uint redeemed = lendingPool.withdraw(address(token), toRedeem, to);
+    uint redeemed = POOL.withdraw(address(token), toRedeem, onBehalfOf);
     // `toRedeem` was computed such that lender should allow this contract to withdraw all of it
     // if this should fail it must be because the lender is running out of cash
     require(redeemed == toRedeem, "AaveModule/lenderOutOfCash");
@@ -163,68 +190,13 @@ contract AaveV3ModuleImplementation is
     }
     // 3. trying to borrow missing liquidity
     // NB `to` must have approved `this` contract for delegation unless `to == address(this)`
-    lendingPool.borrow(
+    POOL.borrow(
       address(token),
       amount,
       interestRateMode,
-      referralCode,
-      to
+      uint16(referralCode),
+      onBehalfOf
     );
     return 0;
-  }
-
-  function _borrow(
-    IEIP20 token,
-    uint amount,
-    uint interestRateMode,
-    address to
-  ) internal {
-    lendingPool.borrow(
-      address(token),
-      amount,
-      interestRateMode,
-      referralCode,
-      to
-    );
-  }
-
-  function _redeem(
-    IEIP20 token,
-    uint amount,
-    address to
-  ) internal returns (uint redeemed) {
-    redeemed = lendingPool.withdraw(address(token), amount, to);
-  }
-
-  function _mint(
-    IEIP20 token,
-    uint amount,
-    address onBehalf
-  ) internal {
-    lendingPool.supply(address(token), amount, onBehalf, referralCode);
-  }
-
-  function _repay(
-    IEIP20 token,
-    uint amount,
-    uint interestRateMode,
-    address onBehalf
-  ) internal returns (uint repaid) {
-    return
-      lendingPool.repay(address(token), amount, interestRateMode, onBehalf);
-  }
-
-  // rewards claiming.
-  // may use `SingleUser.redeemToken` to move collected tokens afterwards
-  function _claimRewards(
-    IRewardsControllerIsh rewardsController,
-    address[] calldata assets
-  )
-    internal
-    returns (address[] memory rewardsList, uint[] memory claimedAmounts)
-  {
-    (rewardsList, claimedAmounts) = rewardsController.claimAllRewardsToSelf(
-      assets
-    );
   }
 }

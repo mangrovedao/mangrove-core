@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AdvancedAaveRetail.sol
+// MangroveOffer.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -11,35 +11,27 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "../../AaveV3Trader.sol";
 
-contract AdvancedAaveRetail is AaveV3Trader {
-  constructor(
-    address addressesProvider,
-    IMangrove _MGV,
-    address admin
-  )
-    AaveV3Module(
-      addressesProvider,
-      0,
-      1 /* Interest rate mode */
-    )
-    MangroveOffer(_MGV, admin)
-  {
-    setGasreq(1_000_000);
+import "../interfaces/IOfferLogic.sol";
+import "../interfaces/IMangrove.sol";
+import "../interfaces/IEIP20.sol";
+
+// Naming scheme:
+// `f() public`: can be used as is in all descendants of `this` contract
+// `_f() internal`: descendant of this contract should provide a public wrapper of this function
+// `__f__() virtual internal`: descendant of this contract may override this function to specialize the strat
+
+/// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
+library MangroveOfferStorage {
+  struct Layout {
+    // default values
+    uint OFR_GASREQ;
   }
 
-  // Tries to take base directly from `this` balance. Fetches the remainder on Aave.
-  function __get__(uint amount, ML.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
-    uint missing = SingleUser.__get__(amount, order);
-    if (missing > 0) {
-      return super.__get__(missing, order);
+  function get_storage() internal pure returns (Layout storage st) {
+    bytes32 storagePosition = keccak256("Mangrove.MangroveOfferStorage");
+    assembly {
+      st.slot := storagePosition
     }
-    return 0;
   }
 }

@@ -44,7 +44,7 @@ abstract contract AaveTrader is AaveLender {
   {
     // 1. Computing total borrow and redeem capacities of underlying asset
     (uint redeemable, uint liquidity_after_redeem) = maxGettableUnderlying(
-      order.outbound_tkn,
+      IEIP20(order.outbound_tkn),
       true,
       address(this)
     );

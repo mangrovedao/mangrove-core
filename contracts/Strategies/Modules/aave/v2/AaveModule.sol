@@ -15,9 +15,9 @@ pragma abicoder v2;
 import "./ILendingPool.sol";
 import "./ILendingPoolAddressesProvider.sol";
 import "./IPriceOracleGetter.sol";
-import "../../../../lib/Exponential.sol";
-import "../../../../interfaces/IMangrove.sol";
-import "../../../../interfaces/IEIP20.sol";
+import "../../../utils/Exponential.sol";
+import "../../../interfaces/IMangrove.sol";
+import "../../../interfaces/IEIP20.sol";
 
 //import "hardhat/console.sol";
 
@@ -64,8 +64,8 @@ contract AaveModule is Exponential {
 
   ///@notice approval of overlying contract by the underlying is necessary for minting and repaying borrow
   ///@notice user must use this function to do so.
-  function approveLender(address token, uint amount) public {
-    IEIP20(token).approve(address(lendingPool), amount);
+  function _approveLender(IEIP20 token, uint amount) internal {
+    token.approve(address(lendingPool), amount);
   }
 
   ///@notice exits markets
@@ -106,7 +106,7 @@ contract AaveModule is Exponential {
   /// returns (R, B|R)
 
   function maxGettableUnderlying(
-    address asset,
+    IEIP20 asset,
     bool tryBorrow,
     address onBehalf
   ) public view returns (uint, uint) {
@@ -121,7 +121,7 @@ contract AaveModule is Exponential {
       account.health // avgLiquidityThreshold * sumCollateralEth / sumDebtEth  -- should be less than 10**18
     ) = lendingPool.getUserAccountData(onBehalf);
     DataTypes.ReserveData memory reserveData = lendingPool.getReserveData(
-      asset
+      address(asset)
     );
     (
       underlying.ltv, // collateral factor for lending
@@ -136,7 +136,7 @@ contract AaveModule is Exponential {
       onBehalf
     );
 
-    underlying.price = priceOracle.getAssetPrice(asset); // divided by 10**underlying.decimals
+    underlying.price = priceOracle.getAssetPrice(address(asset)); // divided by 10**underlying.decimals
 
     // account.redeemPower = account.liquidationThreshold * account.collateral - account.debt
     account.redeemPower = sub_(
@@ -210,7 +210,7 @@ contract AaveModule is Exponential {
     }
   }
 
-  function _mint(
+  function _supply(
     uint amount,
     address token,
     address onBehalf

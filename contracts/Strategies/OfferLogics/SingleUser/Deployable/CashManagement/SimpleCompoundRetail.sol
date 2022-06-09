@@ -18,7 +18,7 @@ import "../../CompoundLender.sol";
 contract SimpleCompoundRetail is CompoundLender {
   constructor(
     address _unitroller,
-    address payable _MGV,
+    IMangrove _MGV,
     address wethAddress,
     address admin
   ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV, admin) {

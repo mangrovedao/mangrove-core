@@ -161,12 +161,11 @@ describe("Running tests...", function () {
     await lc.logOrderBook(book, wEth, usdc);
   });
 
-  it("Market order", async function () {
+  it("Market order with buffer", async function () {
     await wEth.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
     await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
 
     const awETHBalance = await sourcer.balance(wEth.address);
-    const aUSDCBalance = await sourcer.balance(usdc.address);
 
     const receipt = await (
       await mgv

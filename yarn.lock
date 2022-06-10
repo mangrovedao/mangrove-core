@@ -1711,7 +1711,7 @@ __metadata:
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.2.0
-    hardhat: ^2.9.5
+    hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^12.4.1
@@ -1764,7 +1764,7 @@ __metadata:
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.2.0
-    hardhat: ^2.9.5
+    hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^12.4.1
@@ -1817,7 +1817,7 @@ __metadata:
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.2.0
-    hardhat: ^2.9.5
+    hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^12.4.1
@@ -1871,7 +1871,7 @@ __metadata:
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.2.0
-    hardhat: ^2.9.5
+    hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^12.4.1
@@ -1924,7 +1924,7 @@ __metadata:
     ethers: ^5.6.4
     fast-safe-stringify: ^2.1.1
     finalhandler: ^1.2.0
-    hardhat: ^2.9.5
+    hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.11
     lint-staged: ^12.4.1
@@ -1990,7 +1990,7 @@ __metadata:
     dotenv-flow: ^3.2.0
     ethers: ^5.6.4
     fs: ^0.0.1-security
-    hardhat: ^2.9.5
+    hardhat: ^2.9.9
     hardhat-abi-exporter: ^2.9.0
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.10
@@ -2029,7 +2029,7 @@ __metadata:
     eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.6.4
-    hardhat: ^2.9.5
+    hardhat: ^2.9.9
     lint-staged: ^12.4.1
     mocha: ^10.0.0
     prettier: 2.6.2
@@ -2055,7 +2055,7 @@ __metadata:
     dotenv-flow: ^3.2.0
     ethers: ^5.6.4
     fs: ^0.0.1-security
-    hardhat: ^2.9.5
+    hardhat: ^2.9.9
     hardhat-abi-exporter: ^2.9.0
     hardhat-contract-sizer: ^2.5.1
     hardhat-deploy: ^0.11.10
@@ -2114,7 +2114,7 @@ __metadata:
     eslint: ^8.14.0
     eslint-config-prettier: ^8.5.0
     ethers: ^5.6.4
-    hardhat: ^2.9.5
+    hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.10
     lint-staged: ^12.4.1
@@ -5914,9 +5914,9 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"hardhat@npm:^2.9.5":
-  version: 2.9.5
-  resolution: "hardhat@npm:2.9.5"
+"hardhat@npm:^2.9.9":
+  version: 2.9.9
+  resolution: "hardhat@npm:2.9.9"
   dependencies:
     "@ethereumjs/block": ^3.6.2
     "@ethereumjs/blockchain": ^5.5.2
@@ -5945,7 +5945,7 @@ fsevents@~2.3.2:
     find-up: ^2.1.0
     fp-ts: 1.19.3
     fs-extra: ^7.0.1
-    glob: ^7.1.3
+    glob: 7.2.0
     immutable: ^4.0.0-rc.12
     io-ts: 1.10.4
     lodash: ^4.17.11
@@ -5963,14 +5963,20 @@ fsevents@~2.3.2:
     stacktrace-parser: ^0.1.10
     true-case-path: ^2.2.1
     tsort: 0.0.1
-    undici: ^4.14.1
+    undici: ^5.4.0
     uuid: ^8.3.2
     ws: ^7.4.6
   peerDependencies:
-    chai: ^4.2.0
+    ts-node: "*"
+    typescript: "*"
+  peerDependenciesMeta:
+    ts-node:
+      optional: true
+    typescript:
+      optional: true
   bin:
     hardhat: internal/cli/cli.js
-  checksum: 231a12c1f19c9d1e468bf90d44ee3808a99e1189952eda8ba134daa732ed8fd6d1237c70adef37fdf3deb7eab0739986f88abd0ef5e7c2d6302d8fb3f13bfa7c
+  checksum: 1d30f4b5e56de82608e0fc8436b8338d5f6eb79125229236d65e32f4f0da39e9649c3a7138e743c62bb2fa1b00eac91e67cdb1775cd934fb8daedb1ede6eea01
   languageName: node
   linkType: hard
 
@@ -10785,10 +10791,10 @@ typescript@^3.9.3:
   languageName: node
   linkType: hard
 
-"undici@npm:^4.14.1":
-  version: 4.16.0
-  resolution: "undici@npm:4.16.0"
-  checksum: 5e88c2b3381085e25ed1d1a308610ac7ee985f478ac705af7a8e03213536e10f73ef8dd8d85e6ed38948d1883fa0ae935e04357c317b0f5d3d3c0211d0c8c393
+"undici@npm:^5.4.0":
+  version: 5.4.0
+  resolution: "undici@npm:5.4.0"
+  checksum: 2852397ee1dbb2b3ad58166520ec30f4f0143895f6e7b157dbedfac4e43b522a710a3927be61a67b2ae791190973f206d30785564ece7675e08133427cebaaa1
   languageName: node
   linkType: hard
 

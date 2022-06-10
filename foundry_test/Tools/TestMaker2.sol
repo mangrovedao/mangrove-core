@@ -5,10 +5,10 @@ pragma abicoder v2;
 import {Test2} from "./Test2.sol";
 //import "./Passthrough.sol";
 // import "./TestUtils2.sol";
-import "src/AbstractMangrove.sol";
+import "mgv_src/AbstractMangrove.sol";
 import "hardhat/console.sol";
-import {IERC20} from "src/MgvLib.sol";
-import {MgvLib as ML, P, IMaker} from "src/MgvLib.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
+import {MgvLib as ML, P, IMaker} from "mgv_src/MgvLib.sol";
 
 contract TestMaker2 is IMaker, Test2 {
   AbstractMangrove _mgv;

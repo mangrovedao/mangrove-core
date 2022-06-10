@@ -4,5 +4,5 @@ src='contracts'
 test='foundry_test'
 out='foundry_out'
 libs=['foundry_lib']
-remappings=['hardhat/=foundry_lib/forge-std/src','@mangrovedao/hardhat-test-solidity/=node_modules/@mangrovedao/hardhat-test-solidity/','src/=contracts','test/=foundry_test']
+remappings=['hardhat/=foundry_lib/forge-std/src','@mangrovedao/hardhat-test-solidity/=node_modules/@mangrovedao/hardhat-test-solidity/','mgv_src/=contracts','mgv_test/=foundry_test']
 cache_path='foundry_cache'

@@ -3,11 +3,11 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "src/AbstractMangrove.sol";
-import "src/MgvLib.sol";
+import "mgv_src/AbstractMangrove.sol";
+import "mgv_src/MgvLib.sol";
 import "hardhat/console.sol";
 
-import "test/Tools/MangroveTest.sol";
+import "mgv_test/Tools/MangroveTest.sol";
 
 /* The following constructs an ERC20 with a transferFrom callback method,
    and a TestTaker which throws away any funds received upon getting

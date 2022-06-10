@@ -22,10 +22,6 @@ import {IERC20, HasMgvEvents, IMaker, IMgvMonitor, MgvLib as ML, P} from "./MgvL
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
   /* # MultiOrder struct */
   /* The `MultiOrder` struct is used by market orders and snipes. Some of its fields are only used by market orders (`initialWants, initialGives`). We need a common data structure for both since low-level calls are shared between market orders and snipes. The struct is helpful in decreasing stack use. */
   struct MultiOrder {

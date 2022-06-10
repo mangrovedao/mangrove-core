@@ -19,10 +19,6 @@ import {MangroveOrderEnriched as MgvOrder} from "../../Strategies/OrderLogics/Ma
 import "../../Strategies/interfaces/IOrderLogic.sol";
 
 contract MangroveOrder_Test is HasMgvEvents {
-  using P.Global for P.Global.t;
-  using P.OfferDetail for P.OfferDetail.t;
-  using P.Offer for P.Offer.t;
-  using P.Local for P.Local.t;
 
   // to check ERC20 logging
   event Transfer(address indexed from, address indexed to, uint value);

@@ -30,9 +30,9 @@ config.hardhat = {
       gasMultiplier: 1,
       blockGasLimit: 7000000000,
       allowUnlimitedContractSize: true,
-      //chainId: 31337,
-      loggingEnabled: true,
-      chainId: 80001,
+      chainId: 31337,
+      // loggingEnabled: true,
+      // chainId: 80001,
     },
     mumbai: {
       gasPrice: 30 * 10 ** 9,
@@ -48,7 +48,7 @@ config.hardhat = {
     },
   },
   solidity: {
-    version: "0.8.10",
+    version: "0.8.14",
     settings: {
       optimizer: {
         enabled: true,

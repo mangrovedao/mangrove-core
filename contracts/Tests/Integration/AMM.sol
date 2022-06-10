@@ -13,7 +13,6 @@ import "../Agents/OfferManager.sol";
 import "../Agents/UniSwapMaker.sol";
 
 contract AMM_Test is HasMgvEvents {
-  using P.Global for P.Global.t;
 
   AbstractMangrove mgv;
   AbstractMangrove invMgv;

@@ -27,8 +27,6 @@ import "../Sourcers/EOASourcer.sol";
 /** In case of a partial fill of an offer at position i, the offer residual is reposted (see `Persistent` strat class)*/
 
 contract Mango is Persistent {
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
 
   // emitted when init function has been called and AMM becomes active
   event Initialized(uint from, uint to);

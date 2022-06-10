@@ -22,10 +22,6 @@ import {HasMgvEvents, P} from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
 
 contract MgvGovernable is MgvRoot {
-  // using P.Offer for P.Offer.t;
-  // using P.OfferDetail for P.OfferDetail.t;
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
   /* The `governance` address. Governance is the only address that can configure parameters. */
   address public governance;
 

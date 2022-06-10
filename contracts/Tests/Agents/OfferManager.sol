@@ -8,9 +8,6 @@ import {IERC20, IMaker, ITaker, MgvLib as ML, HasMgvEvents, IMgvMonitor, P} from
 import "hardhat/console.sol";
 
 contract OfferManager is IMaker, ITaker {
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
-  using P.Global for P.Global.t;
   // erc_addr -> owner_addr -> balance
   AbstractMangrove mgv;
   AbstractMangrove invMgv;

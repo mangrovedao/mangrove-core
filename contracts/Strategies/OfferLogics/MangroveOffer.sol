@@ -25,10 +25,6 @@ import "../interfaces/IEIP20.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract MangroveOffer is AccessControlled, IOfferLogic {
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
 
   // immutable does not impact storage layout
   IMangrove public immutable MGV;

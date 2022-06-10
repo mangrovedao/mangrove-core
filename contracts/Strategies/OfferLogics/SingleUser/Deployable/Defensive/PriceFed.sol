@@ -29,10 +29,6 @@ contract PriceFed is Defensive, AaveV3Lender {
     setGasreq(800_000);
   }
 
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
 
   event Slippage(uint indexed offerId, uint old_wants, uint new_wants);
 

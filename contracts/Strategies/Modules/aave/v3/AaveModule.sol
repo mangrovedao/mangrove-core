@@ -69,6 +69,17 @@ contract AaveV3Module {
     aToken = IEIP20(POOL.getReserveData(address(asset)).aTokenAddress);
   }
 
+  function _staticdelegatecall(bytes calldata data) external {
+    require(msg.sender == address(this), "AaveModule/internalOnly");
+    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(data);
+    if (!success) {
+      AMS.revertWithData(retdata);
+    }
+    assembly {
+      return(add(retdata, 32), returndatasize())
+    }
+  }
+
   /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
   /// returns (R, B|R)
   function maxGettableUnderlying(
@@ -77,26 +88,27 @@ contract AaveV3Module {
     address onBehalf
   )
     public
+    view
     returns (
       uint maxRedeemableUnderlying,
       uint maxBorrowAfterRedeemInUnderlying
     )
   {
-    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
+    (bool success, bytes memory retdata) = address(this).staticcall(
       abi.encodeWithSelector(
-        AMI.$maxGettableUnderlying.selector,
-        asset,
-        tryBorrow,
-        onBehalf
+        this._staticdelegatecall.selector,
+        abi.encodeWithSelector(
+          AMI.$maxGettableUnderlying.selector,
+          asset,
+          tryBorrow,
+          onBehalf
+        )
       )
     );
-    if (success) {
-      (maxRedeemableUnderlying, maxBorrowAfterRedeemInUnderlying) = abi.decode(
-        retdata,
-        (uint, uint)
-      );
-    } else {
+    if (!success) {
       AMS.revertWithData(retdata);
+    } else {
+      return abi.decode(retdata, (uint, uint));
     }
   }
 
@@ -156,12 +168,7 @@ contract AaveV3Module {
     uint amount,
     address to
   ) internal returns (uint redeemed) {
-    try POOL.withdraw(address(token), amount, to) returns (uint _redeemed) {
-      redeemed = _redeemed;
-    } catch // AAVE v3 throws if amount is 0 or if user redeemable balance is 0
-    {
-      return 0;
-    }
+    return POOL.withdraw(address(token), amount, to);
   }
 
   function _supply(

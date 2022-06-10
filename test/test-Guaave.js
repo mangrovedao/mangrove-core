@@ -5,23 +5,26 @@ const { ethers } = require("hardhat");
 const lc = require("../lib/libcommon.js");
 
 async function init(NSLOTS, makerContract, bidAmount, askAmount) {
-  let slice = NSLOTS / 2;
+  let slice = 5;
   let pivotIds = new Array(NSLOTS);
   let amounts = new Array(NSLOTS);
   pivotIds = pivotIds.fill(0, 0);
   amounts.fill(bidAmount, 0, NSLOTS / 2);
   amounts.fill(askAmount, NSLOTS / 2, NSLOTS);
 
-  for (let i = 0; i < 2; i++) {
-    const receipt = await makerContract.initialize(
-      4,
+  for (let i = 0; i < NSLOTS / slice; i++) {
+    const tx = await makerContract.initialize(
+      NSLOTS / 2 - 1, // starts asking at NSLOTS/2
       slice * i, // from
       slice * (i + 1), // to
       [pivotIds, pivotIds],
       amounts
     );
+    const receipt = await tx.wait();
     console.log(
-      `Slice initialized (${(await receipt.wait()).gasUsed} gas used)`
+      `Offers [${slice * i},${slice * (i + 1)}[ initialized (${
+        receipt.gasUsed
+      } gas used)`
     );
   }
 }
@@ -36,7 +39,7 @@ describe("Running tests...", function () {
   let makerContract = null;
   let sourcer = null;
 
-  const NSLOTS = 10;
+  const NSLOTS = 20;
   // price increase is delta/BASE_0
   const delta = lc.parseToken("34", 6); //  (in quotes!)
 
@@ -60,7 +63,6 @@ describe("Running tests...", function () {
   });
 
   it("Deploy strat", async function () {
-    //lc.listenMgv(mgv);
     const strategy = "Mango";
     const Strat = await ethers.getContractFactory(strategy);
 
@@ -88,12 +90,13 @@ describe("Running tests...", function () {
       0
     );
     const fundTx = await mgv["fund(address)"](makerContract.address, {
-      value: prov.mul(20),
+      value: prov.mul(NSLOTS * 2),
     });
     await fundTx.wait();
+    await lc.fund([["WETH", "17.0", makerContract.address]]);
   });
 
-  it("Deploy AAVE sourcer", async function () {
+  it("Deploy buffered AAVE sourcer", async function () {
     const SourcerFactory = await ethers.getContractFactory(
       "BufferedAaveSourcer"
     );
@@ -107,35 +110,37 @@ describe("Running tests...", function () {
       maker.address
     );
     // liquidity sourcer will pull funds from AAVE
-    await lc.fund([
-      ["WETH", "17.0", sourcer.address],
-      ["USDC", "50000", sourcer.address],
-    ]);
+
     let txs = [];
     let i = 0;
-    txs[i++] = await sourcer.approveLender(wEth.address); // to mint awETH
-    txs[i++] = await sourcer.approveLender(usdc.address); // to mint aUSDC
-    txs[i++] = await sourcer.supply(
-      wEth.address,
-      ethers.utils.parseEther("17")
-    );
-    txs[i++] = await sourcer.supply(
-      usdc.address,
-      ethers.utils.parseUnits("50000", 6)
-    );
-    // setting buffer to be twice the promised volume of an offer
-    txs[i++] = await sourcer.set_buffer(
-      wEth.address,
-      ethers.utils.parseEther("0.6")
-    );
-    txs[i++] = await sourcer.set_buffer(
-      usdc.address,
-      ethers.utils.parseUnits("2000", 6)
-    );
     txs[i++] = await makerContract.set_liquidity_sourcer(
       sourcer.address,
       800000
     );
+    txs[i++] = await sourcer.approveLender(wEth.address); // to mint awETH
+    txs[i++] = await sourcer.approveLender(usdc.address); // to mint aUSDC
+
+    // putting ETH as collateral on AAVE
+    txs[i++] = await sourcer.supply(
+      wEth.address,
+      ethers.utils.parseEther("17")
+    );
+
+    // borrowing USDC on collateral
+    txs[i++] = await sourcer.borrow(
+      usdc.address,
+      ethers.utils.parseUnits("2000", 6)
+    );
+    // setting buffer to be twice the promised volume of an offer
+    // txs[i++] = await sourcer.set_buffer(
+    //   wEth.address,
+    //   ethers.utils.parseEther("3")
+    // );
+    // txs[i++] = await sourcer.set_buffer(
+    //   usdc.address,
+    //   ethers.utils.parseUnits("2000", 6)
+    // );
+
     await lc.synch(txs);
     await lc.logLenderStatus(
       sourcer,
@@ -162,21 +167,22 @@ describe("Running tests...", function () {
   });
 
   it("Market order with buffer", async function () {
+    // lc.listenOfferLogic(false, makerContract);
+    // lc.listenMgv(mgv);
+    const takerWants = ethers.utils.parseEther("3");
     await wEth.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
     await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
 
     const awETHBalance = await sourcer.balance(wEth.address);
 
     const receipt = await (
-      await mgv
-        .connect(taker)
-        .marketOrder(
-          wEth.address,
-          usdc.address,
-          ethers.utils.parseEther("1.3"),
-          ethers.utils.parseUnits("6000", 6),
-          true
-        )
+      await mgv.connect(taker).marketOrder(
+        wEth.address,
+        usdc.address,
+        takerWants, // wants
+        ethers.utils.parseUnits("100000", 6), // reaaaally wants
+        true
+      )
     ).wait();
     console.log(`Market order passed for ${receipt.gasUsed} gas units`);
     await lc.logLenderStatus(
@@ -187,7 +193,7 @@ describe("Running tests...", function () {
       makerContract.address
     );
     lc.assertAlmost(
-      awETHBalance.sub(ethers.utils.parseEther("1.3")), //maker pays before Mangrove fees
+      awETHBalance.sub(takerWants), //maker pays before Mangrove fees
       await sourcer.balance(wEth.address),
       18,
       9, // decimals of precision

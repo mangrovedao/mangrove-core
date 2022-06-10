@@ -24,8 +24,6 @@ import {AbstractMangrove} from "./AbstractMangrove.sol";
 
 /* <a id="InvertedMangrove"></a> The `InvertedMangrove` contract implements the "inverted" version of Mangrove, where each maker loans money to the taker. The taker is then called, and finally each maker is sent its payment and called again (with the orderbook unlocked). */
 contract InvertedMangrove is AbstractMangrove {
-  // prettier-ignore
-  using P.OfferDetail for P.OfferDetail.t;
 
   constructor(
     address governance,

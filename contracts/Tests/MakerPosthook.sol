@@ -11,10 +11,6 @@ import "./Toolbox/TestUtils.sol";
 import "./Agents/TestToken.sol";
 
 contract MakerPosthook_Test is IMaker, HasMgvEvents {
-  using P.Offer for P.Offer.t;
-  using P.OfferDetail for P.OfferDetail.t;
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
 
   AbstractMangrove mgv;
   TestTaker tkr;

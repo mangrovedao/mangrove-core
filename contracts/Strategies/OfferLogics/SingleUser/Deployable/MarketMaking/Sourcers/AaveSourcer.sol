@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveTreasury.sol
+//AaveSourcer.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -53,6 +53,7 @@ contract AaveSourcer is ISourcer, AaveV3Module, AccessControlled {
     onlyCaller(MAKER)
   {
     for (uint i = 0; i < tokens.length; i++) {
+      // checking how much tokens are stored on MAKER's balance as a consequence of __put__
       uint amount = tokens[i].balanceOf(MAKER);
       require(
         TransferLib.transferTokenFrom(tokens[i], MAKER, address(this), amount),
@@ -62,20 +63,48 @@ contract AaveSourcer is ISourcer, AaveV3Module, AccessControlled {
     }
   }
 
-  function balance(IEIP20 token) public view virtual override returns (uint) {
+  function balance(IEIP20 token)
+    public
+    view
+    virtual
+    override
+    returns (uint available)
+  {
     return overlying(token).balanceOf(address(this));
   }
 
   function borrow(IEIP20 token, uint amount) external onlyAdmin {
     _borrow(token, amount, address(this));
+    require(
+      TransferLib.transferToken(token, MAKER, amount),
+      "AaveSourcer/borrow/transferFail"
+    );
   }
 
   function repay(IEIP20 token, uint amount) external onlyAdmin {
+    require(
+      TransferLib.transferTokenFrom(token, MAKER, address(this), amount),
+      "AaveSourcer/repay/transferFromFail"
+    );
     _repay(token, amount, address(this));
   }
 
   function supply(IEIP20 token, uint amount) external onlyAdmin {
+    require(
+      TransferLib.transferTokenFrom(token, MAKER, address(this), amount),
+      "AaveSourcer/supply/transferFromFail"
+    );
     _supply(token, amount, address(this));
+  }
+
+  // returns 0 if redeem failed (amount > balance).
+  // Redeems user balance is amount == type(uint).max
+  function withdraw(IEIP20 token, uint amount)
+    external
+    onlyAdmin
+    returns (uint)
+  {
+    return _redeem(token, amount, MAKER);
   }
 
   function claimRewards(

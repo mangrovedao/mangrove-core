@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveTreasury.sol
+//BufferedAaveSourcer.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -22,8 +22,8 @@ contract BufferedAaveSourcer is AaveSourcer {
     address _addressesProvider,
     uint _referralCode,
     uint _interestRateMode,
-    address spenderContract,
-    address deployer
+    address spenderContract, // maker contract the liquidity sourcer of which is `this` contract
+    address deployer // initial admin
   )
     AaveSourcer(
       _addressesProvider,
@@ -42,7 +42,9 @@ contract BufferedAaveSourcer is AaveSourcer {
     returns (uint pulled)
   {
     if (token.balanceOf(MAKER) < amount) {
-      return _redeem(token, type(uint).max, MAKER);
+      // transfer *all* aTokens from AAVE account
+      (uint amount, ) = maxGettableUnderlying(token, false, address(this));
+      return _redeem(token, amount, MAKER);
     } else {
       // there is enough liquidity on `MAKER`, nothing to do
       return 0;
@@ -72,9 +74,13 @@ contract BufferedAaveSourcer is AaveSourcer {
     }
   }
 
-  // balance assumes here that `this` contract is not borrowing, so all overlyings can be converted
-  function balance(IEIP20 token) public view override returns (uint) {
-    return token.balanceOf(MAKER) + overlying(token).balanceOf(address(this));
+  // returns total amount of `token` owned by MAKER
+  // if sourcer has a borrowing position, then this total amount may not be entirely redeemable
+  function balance(IEIP20 token) public view override returns (uint available) {
+    unchecked {
+      available = overlying(token).balanceOf(address(this));
+      available += token.balanceOf(MAKER);
+    }
   }
 
   function set_buffer(IEIP20 token, uint buffer_size) external onlyAdmin {

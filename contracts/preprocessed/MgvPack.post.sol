@@ -1,3 +1,5 @@
+pragma solidity ^0.8.13;
+
 // SPDX-License-Identifier: Unlicense
 
 // MgvPack.sol
@@ -12,17 +14,13 @@
 
 // For more information, please refer to <https://unlicense.org/>
 
-pragma solidity ^0.8.13;
-
-$(preamble)
-
+/* ************************************************** *
+            GENERATED FILE. DO NOT EDIT.
+ * ************************************************** */
 
 import "./MgvStructs.post.sol";
 
-// #for ns in struct_defs
-// #def sname ns[0]
-// #def Sname capitalize(ns[0])
-// #def struct_def ns[1]
-$$(concat('import \"./',filename(ns),'\" as ',Sname));
-// #done
-// #def __x avoid_solpp_eof_error_by_adding_useless_line
+import "./MgvOffer.post.sol" as Offer;
+import "./MgvOfferDetail.post.sol" as OfferDetail;
+import "./MgvGlobal.post.sol" as Global;
+import "./MgvLocal.post.sol" as Local;

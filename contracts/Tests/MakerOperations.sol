@@ -16,10 +16,6 @@ import "./Agents/MakerDeployer.sol";
 import "./Agents/TestTaker.sol";
 
 contract MakerOperations_Test is IMaker, HasMgvEvents {
-  using P.Global for P.Global.t;
-  using P.OfferDetail for P.OfferDetail.t;
-  using P.Offer for P.Offer.t;
-  using P.Local for P.Local.t;
   AbstractMangrove mgv;
   TestMaker mkr;
   TestMaker mkr2;

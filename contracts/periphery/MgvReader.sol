@@ -48,9 +48,6 @@ interface MangroveLike {
 }
 
 contract MgvReader {
-  using P.Offer for P.Offer.t;
-  using P.Global for P.Global.t;
-  using P.Local for P.Local.t;
   MangroveLike immutable mgv;
 
   constructor(address _mgv) {

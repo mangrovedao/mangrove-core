@@ -8,6 +8,27 @@ contract Test2 is Test {
     assertTrue(true);
   }
 
+  // both mock a call and expect the call to happen
+  function expectToMockCall(
+    address addr,
+    bytes memory req,
+    bytes memory res
+  ) internal {
+    vm.mockCall(addr, req, res);
+    vm.expectCall(addr, req);
+  }
+
+  // generate fresh addresses that will be called (and be mocked before being called)
+  uint addressIterator = 0;
+
+  function addressToMock() internal returns (address) {
+    uint nonce = block.timestamp + (addressIterator++);
+    address addr = address(bytes20(keccak256(abi.encode(nonce))));
+    // set code to nonzero so solidity-inserted extcodesize checks don't fail
+    vm.etch(addr, bytes("not zero"));
+    return addr;
+  }
+
   /* expect exact log from address */
   function expectFrom(address addr) internal {
     vm.expectEmit(true, true, true, true, addr);

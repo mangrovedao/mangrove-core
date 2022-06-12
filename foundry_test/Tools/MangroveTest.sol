@@ -3,14 +3,16 @@ pragma solidity ^0.8.13;
 import {Test2} from "./Test2.sol";
 import {Utilities} from "./Utilities.sol";
 
-import "mgv_src/Tests/Agents/TestTaker.sol";
-import "mgv_src/Tests/Agents/MakerDeployer.sol";
-import "mgv_src/Tests/Agents/TestMoriartyMaker.sol";
-import "mgv_src/Tests/Agents/TestToken.sol";
+import {TestTaker} from "mgv_src/Tests/Agents/TestTaker.sol";
+import {TestMaker} from "mgv_src/Tests/Agents/TestMaker.sol";
+import {MakerDeployer} from "mgv_src/Tests/Agents/MakerDeployer.sol";
+import {TestMoriartyMaker} from "mgv_src/Tests/Agents/TestMoriartyMaker.sol";
+import {TestToken} from "mgv_src/Tests/Agents/TestToken.sol";
 
-import "mgv_src/InvertedMangrove.sol";
-import "mgv_src/Mangrove.sol";
-import "mgv_src/MgvLib.sol";
+import {AbstractMangrove, Mangrove} from "mgv_src/Mangrove.sol";
+import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
+import {IERC20, MgvLib, P, HasMgvEvents, IMaker, ITaker, IMgvMonitor} from "mgv_src/MgvLib.sol";
+import {console2 as console} from "forge-std/console2.sol";
 
 contract MangroveTest is Utilities, Test2, HasMgvEvents {
   /* Log offer book */

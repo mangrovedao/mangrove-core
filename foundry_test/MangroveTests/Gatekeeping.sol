@@ -1,20 +1,9 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
 pragma solidity ^0.8.10;
-pragma experimental ABIEncoderV2;
+pragma abicoder v2;
 
-import "../AbstractMangrove.sol";
-import "../MgvLib.sol";
-import "hardhat/console.sol";
-import "@mangrovedao/hardhat-test-solidity/test.sol";
-
-import "./Toolbox/TestUtils.sol";
-
-import "./Agents/TestToken.sol";
-import "./Agents/TestMaker.sol";
-import "./Agents/TestMoriartyMaker.sol";
-import "./Agents/MakerDeployer.sol";
-import "./Agents/TestTaker.sol";
+import "mgv_test/Tools/MangroveTest.sol";
 
 contract NotAdmin {
   AbstractMangrove mgv;
@@ -82,11 +71,11 @@ contract NotAdmin {
   }
 }
 
-contract Deployer {
+contract Deployer is MangroveTest {
   AbstractMangrove mgv;
 
   function deploy() public returns (AbstractMangrove) {
-    mgv = MgvSetup.deploy(msg.sender);
+    mgv = deployMangrove(msg.sender);
     return mgv;
   }
 
@@ -96,8 +85,7 @@ contract Deployer {
 }
 
 // In these tests, the testing contract is the market maker.
-contract Gatekeeping_Test is IMaker, HasMgvEvents {
-
+contract GatekeepingTest is IMaker, MangroveTest {
   receive() external payable {}
 
   AbstractMangrove mgv;
@@ -107,26 +95,22 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
   address base;
   address quote;
 
-  function gov_is_not_sender_test() public {
+  function test_gov_is_not_sender() public {
     Deployer deployer = new Deployer();
     AbstractMangrove _mgv = deployer.deploy();
 
-    TestEvents.eq(
-      _mgv.governance(),
-      address(this),
-      "governance should return this"
-    );
+    assertEq(_mgv.governance(), address(this), "governance should return this");
   }
 
-  function a_beforeAll() public {
-    TestToken baseT = TokenSetup.setup("A", "$A");
-    TestToken quoteT = TokenSetup.setup("B", "$B");
+  function setUp() public {
+    TestToken baseT = setupToken("A", "$A");
+    TestToken quoteT = setupToken("B", "$B");
     base = address(baseT);
     quote = address(quoteT);
-    mgv = MgvSetup.setup(baseT, quoteT);
-    tkr = TakerSetup.setup(mgv, base, quote);
-    mkr = MakerSetup.setup(mgv, base, quote);
-    dual_mkr = MakerSetup.setup(mgv, quote, base);
+    mgv = setupMangrove(baseT, quoteT);
+    tkr = setupTaker(mgv, base, quote);
+    mkr = setupMaker(mgv, base, quote);
+    dual_mkr = setupMaker(mgv, quote, base);
 
     payable(tkr).transfer(10 ether);
     payable(mkr).transfer(10 ether);
@@ -147,344 +131,342 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     quoteT.approve(address(mgv), 1 ether);
     tkr.approveMgv(quoteT, 1 ether);
 
-    Display.register(msg.sender, "Test Runner");
-    Display.register(address(this), "Gatekeeping_Test/maker");
-    Display.register(base, "$A");
-    Display.register(quote, "$B");
-    Display.register(address(mgv), "mgv");
-    Display.register(address(tkr), "taker[$A,$B]");
-    Display.register(address(dual_mkr), "maker[$B,$A]");
-    Display.register(address(mkr), "maker[$A,$B]");
+    vm.label(msg.sender, "Test Runner");
+    vm.label(address(this), "Gatekeeping_Test/maker");
+    vm.label(base, "$A");
+    vm.label(quote, "$B");
+    vm.label(address(mgv), "mgv");
+    vm.label(address(tkr), "taker[$A,$B]");
+    vm.label(address(dual_mkr), "maker[$B,$A]");
+    vm.label(address(mkr), "maker[$A,$B]");
   }
 
   /* # Test Config */
 
-  function gov_cant_be_zero_test() public {
+  function test_gov_cant_be_zero() public {
     try mgv.setGovernance(address(0)) {
-      TestEvents.fail("setting gov to 0 should be impossible");
+      fail("setting gov to 0 should be impossible");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/config/gov/not0");
+      revertEq(r, "mgv/config/gov/not0");
     }
   }
 
-  function gov_can_transfer_rights_test() public {
+  function test_gov_can_transfer_rights() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
+    // Logging tests
+    expectFrom(address(mgv));
+    emit SetGovernance(address(notAdmin));
     mgv.setGovernance(address(notAdmin));
 
     try mgv.setFee(base, quote, 0) {
-      TestEvents.fail("testing contracts should no longer be admin");
+      fail("testing contracts should no longer be admin");
     } catch {}
 
-    try notAdmin.setFee(base, quote, 1) {} catch {
-      TestEvents.fail("notAdmin should have been given admin rights");
-    }
-    // Logging tests
-    TestEvents.expectFrom(address(mgv));
-    emit SetGovernance(address(notAdmin));
+    expectFrom(address(mgv));
     emit SetFee(base, quote, 1);
+    try notAdmin.setFee(base, quote, 1) {} catch {
+      fail("notAdmin should have been given admin rights");
+    }
   }
 
-  function only_gov_can_set_fee_test() public {
+  function test_only_gov_can_set_fee() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
     try notAdmin.setFee(base, quote, 0) {
-      TestEvents.fail("nonadmin cannot set fee");
+      fail("nonadmin cannot set fee");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/unauthorized");
+      revertEq(r, "mgv/unauthorized");
     }
   }
 
-  function only_gov_can_set_density_test() public {
+  function test_only_gov_can_set_density() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
     try notAdmin.setDensity(base, quote, 0) {
-      TestEvents.fail("nonadmin cannot set density");
+      fail("nonadmin cannot set density");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/unauthorized");
+      revertEq(r, "mgv/unauthorized");
     }
   }
 
-  function set_zero_density_test() public {
-    try mgv.setDensity(base, quote, 0) {} catch Error(string memory) {
-      TestEvents.fail("setting density to 0 should work");
-    }
+  function test_set_zero_density() public {
     // Logging tests
-    TestEvents.expectFrom(address(mgv));
+    expectFrom(address(mgv));
     emit SetDensity(base, quote, 0);
+    try mgv.setDensity(base, quote, 0) {} catch Error(string memory) {
+      fail("setting density to 0 should work");
+    }
   }
 
-  function only_gov_can_kill_test() public {
+  function test_only_gov_can_kill() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
     try notAdmin.kill() {
-      TestEvents.fail("nonadmin cannot kill");
+      fail("nonadmin cannot kill");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/unauthorized");
+      revertEq(r, "mgv/unauthorized");
     }
   }
 
-  function killing_updates_config_test() public {
+  function test_killing_updates_config() public {
     (P.Global.t global, ) = mgv.config(address(0), address(0));
-    TestEvents.check(!global.dead(), "mgv should not be dead ");
+    assertTrue(!global.dead(), "mgv should not be dead ");
+    expectFrom(address(mgv));
+    emit Kill();
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
-    TestEvents.check(global.dead(), "mgv should be dead ");
+    assertTrue(global.dead(), "mgv should be dead ");
     // Logging tests
-    TestEvents.expectFrom(address(mgv));
-    emit Kill();
   }
 
-  function kill_is_idempotent_test() public {
+  function test_kill_is_idempotent() public {
     (P.Global.t global, ) = mgv.config(address(0), address(0));
-    TestEvents.check(!global.dead(), "mgv should not be dead ");
+    assertTrue(!global.dead(), "mgv should not be dead ");
+    expectFrom(address(mgv));
+    emit Kill();
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
-    TestEvents.check(global.dead(), "mgv should be dead");
+    assertTrue(global.dead(), "mgv should be dead");
+    expectFrom(address(mgv));
+    emit Kill();
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
-    TestEvents.check(global.dead(), "mgv should still be dead");
+    assertTrue(global.dead(), "mgv should still be dead");
     // Logging tests
-    TestEvents.expectFrom(address(mgv));
-    emit Kill();
-    emit Kill();
   }
 
-  function only_gov_can_set_vault_test() public {
+  function test_only_gov_can_set_vault() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
     try notAdmin.setVault(address(this)) {
-      TestEvents.fail("nonadmin cannot set vault");
+      fail("nonadmin cannot set vault");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/unauthorized");
+      revertEq(r, "mgv/unauthorized");
     }
   }
 
-  function only_gov_can_set_monitor_test() public {
+  function test_only_gov_can_set_monitor() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
     try notAdmin.setMonitor(address(this)) {
-      TestEvents.fail("nonadmin cannot set monitor");
+      fail("nonadmin cannot set monitor");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/unauthorized");
+      revertEq(r, "mgv/unauthorized");
     }
   }
 
-  function only_gov_can_set_active_test() public {
+  function test_only_gov_can_set_active() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
     try notAdmin.activate(quote, base, 0, 100, 0) {
-      TestEvents.fail("nonadmin cannot set active");
+      fail("nonadmin cannot set active");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/unauthorized");
+      revertEq(r, "mgv/unauthorized");
     }
   }
 
-  function only_gov_can_set_gasprice_test() public {
+  function test_only_gov_can_set_gasprice() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
     try notAdmin.setGasprice(0) {
-      TestEvents.fail("nonadmin cannot set gasprice");
+      fail("nonadmin cannot set gasprice");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/unauthorized");
+      revertEq(r, "mgv/unauthorized");
     }
   }
 
-  function only_gov_can_set_gasmax_test() public {
+  function test_only_gov_can_set_gasmax() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
     try notAdmin.setGasmax(0) {
-      TestEvents.fail("nonadmin cannot set gasmax");
+      fail("nonadmin cannot set gasmax");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/unauthorized");
+      revertEq(r, "mgv/unauthorized");
     }
   }
 
-  function only_gov_can_set_gasbase_test() public {
+  function test_only_gov_can_set_gasbase() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
     try notAdmin.setGasbase(base, quote, 0) {
-      TestEvents.fail("nonadmin cannot set gasbase");
+      fail("nonadmin cannot set gasbase");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/unauthorized");
+      revertEq(r, "mgv/unauthorized");
     }
   }
 
-  function empty_mgv_ok_test() public {
+  function test_empty_mgv_ok() public {
     try tkr.marketOrder(0, 0) {} catch {
-      TestEvents.fail("market order on empty mgv should not fail");
+      fail("market order on empty mgv should not fail");
     }
     // Logging tests
   }
 
-  function set_fee_ceiling_test() public {
+  function test_set_fee_ceiling() public {
     try mgv.setFee(base, quote, 501) {} catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/config/fee/<=500");
+      revertEq(r, "mgv/config/fee/<=500");
     }
   }
 
-  function set_density_ceiling_test() public {
+  function test_set_density_ceiling() public {
     try mgv.setDensity(base, quote, uint(type(uint112).max) + 1) {
-      TestEvents.fail("density above ceiling should fail");
+      fail("density above ceiling should fail");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/config/density/112bits");
+      revertEq(r, "mgv/config/density/112bits");
     }
   }
 
-  function set_gasprice_ceiling_test() public {
+  function test_set_gasprice_ceiling() public {
     try mgv.setGasprice(uint(type(uint16).max) + 1) {
-      TestEvents.fail("gasprice above ceiling should fail");
+      fail("gasprice above ceiling should fail");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/config/gasprice/16bits");
+      revertEq(r, "mgv/config/gasprice/16bits");
     }
   }
 
-  function set_zero_gasbase_test() public {
+  function test_set_zero_gasbase() public {
     try mgv.setGasbase(base, quote, 0) {} catch Error(string memory) {
-      TestEvents.fail("setting gasbases to 0 should work");
+      fail("setting gasbases to 0 should work");
     }
   }
 
-  function set_gasbase_ceiling_test() public {
+  function test_set_gasbase_ceiling() public {
     try mgv.setGasbase(base, quote, uint(type(uint24).max) + 1) {
-      TestEvents.fail("offer_gasbase above ceiling should fail");
+      fail("offer_gasbase above ceiling should fail");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/config/offer_gasbase/24bits");
+      revertEq(r, "mgv/config/offer_gasbase/24bits");
     }
   }
 
-  function set_gasmax_ceiling_test() public {
+  function test_set_gasmax_ceiling() public {
     try mgv.setGasmax(uint(type(uint24).max) + 1) {
-      TestEvents.fail("gasmax above ceiling should fail");
+      fail("gasmax above ceiling should fail");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/config/gasmax/24bits");
+      revertEq(r, "mgv/config/gasmax/24bits");
     }
   }
 
-  function makerWants_wider_than_96_bits_fails_newOffer_test() public {
+  function test_makerWants_wider_than_96_bits_fails_newOffer() public {
     try mkr.newOffer(2**96, 1 ether, 10_000, 0) {
-      TestEvents.fail("Too wide offer should not be inserted");
+      fail("Too wide offer should not be inserted");
     } catch Error(string memory r) {
-      TestEvents.eq(r, "mgv/writeOffer/wants/96bits", "wrong revert reason");
+      assertEq(r, "mgv/writeOffer/wants/96bits", "wrong revert reason");
     }
   }
 
-  function retractOffer_wrong_owner_fails_test() public {
+  function test_retractOffer_wrong_owner_fails() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 10_000, 0);
     try mgv.retractOffer(base, quote, ofr, false) {
-      TestEvents.fail("Too wide offer should not be inserted");
+      fail("Too wide offer should not be inserted");
     } catch Error(string memory r) {
-      TestEvents.eq(r, "mgv/retractOffer/unauthorized", "wrong revert reason");
+      assertEq(r, "mgv/retractOffer/unauthorized", "wrong revert reason");
     }
   }
 
-  function makerGives_wider_than_96_bits_fails_newOffer_test() public {
+  function test_makerGives_wider_than_96_bits_fails_newOffer() public {
     try mkr.newOffer(1, 2**96, 10_000, 0) {
-      TestEvents.fail("Too wide offer should not be inserted");
+      fail("Too wide offer should not be inserted");
     } catch Error(string memory r) {
-      TestEvents.eq(r, "mgv/writeOffer/gives/96bits", "wrong revert reason");
+      assertEq(r, "mgv/writeOffer/gives/96bits", "wrong revert reason");
     }
   }
 
-  function makerGasreq_wider_than_24_bits_fails_newOffer_test() public {
+  function test_makerGasreq_wider_than_24_bits_fails_newOffer() public {
     try mkr.newOffer(1, 1, 2**24, 0) {
-      TestEvents.fail("Too wide offer should not be inserted");
+      fail("Too wide offer should not be inserted");
     } catch Error(string memory r) {
-      TestEvents.eq(r, "mgv/writeOffer/gasreq/tooHigh", "wrong revert reason");
+      assertEq(r, "mgv/writeOffer/gasreq/tooHigh", "wrong revert reason");
     }
   }
 
-  function makerGasreq_bigger_than_gasmax_fails_newOffer_test() public {
+  function test_makerGasreq_bigger_than_gasmax_fails_newOffer() public {
     (P.Global.t cfg, ) = mgv.config(base, quote);
     try mkr.newOffer(1, 1, cfg.gasmax() + 1, 0) {
-      TestEvents.fail("Offer should not be inserted");
+      fail("Offer should not be inserted");
     } catch Error(string memory r) {
-      TestEvents.eq(r, "mgv/writeOffer/gasreq/tooHigh", "wrong revert reason");
+      assertEq(r, "mgv/writeOffer/gasreq/tooHigh", "wrong revert reason");
     }
   }
 
-  function makerGasreq_at_gasmax_succeeds_newOffer_test() public {
+  function test_makerGasreq_at_gasmax_succeeds_newOffer() public {
     (P.Global.t cfg, ) = mgv.config(base, quote);
+    // Logging tests
+    expectFrom(address(mgv));
+    emit OfferWrite(
+      address(base),
+      address(quote),
+      address(mkr),
+      1 ether, //base
+      1 ether, //quote
+      cfg.gasprice(), //gasprice
+      cfg.gasmax(), //gasreq
+      1, //ofrId
+      0 // prev
+    );
+    expectFrom(address(mgv));
+    emit Debit(
+      address(mkr),
+      getProvision(mgv, address(base), address(quote), cfg.gasmax(), 0)
+    );
     try mkr.newOffer(1 ether, 1 ether, cfg.gasmax(), 0) returns (uint ofr) {
-      TestEvents.check(
+      assertTrue(
         mgv.isLive(mgv.offers(base, quote, ofr)),
         "Offer should have been inserted"
       );
-      // Logging tests
-      TestEvents.expectFrom(address(mgv));
-      emit OfferWrite(
-        address(base),
-        address(quote),
-        address(mkr),
-        1 ether, //base
-        1 ether, //quote
-        cfg.gasprice(), //gasprice
-        cfg.gasmax(), //gasreq
-        ofr, //ofrId
-        0 // prev
-      );
-      emit Debit(
-        address(mkr),
-        TestUtils.getProvision(
-          mgv,
-          address(base),
-          address(quote),
-          cfg.gasmax(),
-          0
-        )
-      );
     } catch {
-      TestEvents.fail("Offer at gasmax should pass");
+      fail("Offer at gasmax should pass");
     }
   }
 
-  function makerGasreq_lower_than_density_fails_newOffer_test() public {
+  function test_makerGasreq_lower_than_density_fails_newOffer() public {
     (, P.Local.t cfg) = mgv.config(base, quote);
     uint amount = (1 + cfg.offer_gasbase()) * cfg.density();
     try mkr.newOffer(amount - 1, amount - 1, 1, 0) {
-      TestEvents.fail("Offer should not be inserted");
+      fail("Offer should not be inserted");
     } catch Error(string memory r) {
-      TestEvents.eq(r, "mgv/writeOffer/density/tooLow", "wrong revert reason");
+      assertEq(r, "mgv/writeOffer/density/tooLow", "wrong revert reason");
     }
   }
 
-  function makerGasreq_at_density_suceeds_test() public {
+  function test_makerGasreq_at_density_suceeds() public {
     (P.Global.t glob, P.Local.t cfg) = mgv.config(base, quote);
     uint amount = (1 + cfg.offer_gasbase()) * cfg.density();
+    // Logging tests
+    expectFrom(address(mgv));
+    emit OfferWrite(
+      address(base),
+      address(quote),
+      address(mkr),
+      amount, //base
+      amount, //quote
+      glob.gasprice(), //gasprice
+      1, //gasreq
+      1, //ofrId
+      0 // prev
+    );
+    expectFrom(address(mgv));
+    emit Debit(
+      address(mkr),
+      getProvision(mgv, address(base), address(quote), 1, 0)
+    );
     try mkr.newOffer(amount, amount, 1, 0) returns (uint ofr) {
-      TestEvents.check(
+      assertTrue(
         mgv.isLive(mgv.offers(base, quote, ofr)),
         "Offer should have been inserted"
       );
-      // Logging tests
-      TestEvents.expectFrom(address(mgv));
-      emit OfferWrite(
-        address(base),
-        address(quote),
-        address(mkr),
-        amount, //base
-        amount, //quote
-        glob.gasprice(), //gasprice
-        1, //gasreq
-        ofr, //ofrId
-        0 // prev
-      );
-      emit Debit(
-        address(mkr),
-        TestUtils.getProvision(mgv, address(base), address(quote), 1, 0)
-      );
     } catch {
-      TestEvents.fail("Offer at density should pass");
+      fail("Offer at density should pass");
     }
   }
 
-  function makerGasprice_wider_than_16_bits_fails_newOffer_test() public {
+  function test_makerGasprice_wider_than_16_bits_fails_newOffer() public {
     try mkr.newOffer(1, 1, 1, 2**16, 0) {
-      TestEvents.fail("Too wide offer should not be inserted");
+      fail("Too wide offer should not be inserted");
     } catch Error(string memory r) {
-      TestEvents.eq(r, "mgv/writeOffer/gasprice/16bits", "wrong revert reason");
+      assertEq(r, "mgv/writeOffer/gasprice/16bits", "wrong revert reason");
     }
   }
 
-  function takerWants_wider_than_160_bits_fails_marketOrder_test() public {
+  function test_takerWants_wider_than_160_bits_fails_marketOrder() public {
     try tkr.marketOrder(2**160, 0) {
-      TestEvents.fail("takerWants > 160bits, order should fail");
+      fail("takerWants > 160bits, order should fail");
     } catch Error(string memory r) {
-      TestEvents.eq(r, "mgv/mOrder/takerWants/160bits", "wrong revert reason");
+      assertEq(r, "mgv/mOrder/takerWants/160bits", "wrong revert reason");
     }
   }
 
-  function takerWants_above_96bits_fails_snipes_test() public {
+  function test_takerWants_above_96bits_fails_snipes() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [
@@ -494,13 +476,13 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
       type(uint).max
     ];
     try mgv.snipes(base, quote, targets, true) {
-      TestEvents.fail("Snipes with takerWants > 96bits should fail");
+      fail("Snipes with takerWants > 96bits should fail");
     } catch Error(string memory reason) {
-      TestUtils.revertEq(reason, "mgv/snipes/takerWants/96bits");
+      revertEq(reason, "mgv/snipes/takerWants/96bits");
     }
   }
 
-  function takerGives_above_96bits_fails_snipes_test() public {
+  function test_takerGives_above_96bits_fails_snipes() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [
@@ -510,21 +492,21 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
       type(uint).max
     ];
     try mgv.snipes(base, quote, targets, true) {
-      TestEvents.fail("Snipes with takerGives > 96bits should fail");
+      fail("Snipes with takerGives > 96bits should fail");
     } catch Error(string memory reason) {
-      TestUtils.revertEq(reason, "mgv/snipes/takerGives/96bits");
+      revertEq(reason, "mgv/snipes/takerGives/96bits");
     }
   }
 
-  function initial_allowance_is_zero_test() public {
-    TestEvents.eq(
+  function test_initial_allowance_is_zero() public {
+    assertEq(
       mgv.allowances(base, quote, address(tkr), address(this)),
       0,
       "initial allowance should be 0"
     );
   }
 
-  function cannot_snipesFor_for_without_allowance_test() public {
+  function test_cannot_snipesFor_for_without_allowance() public {
     TestToken(base).mint(address(mkr), 1 ether);
     mkr.approveMgv(TestToken(base), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
@@ -532,24 +514,24 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 300_000];
     try mgv.snipesFor(base, quote, targets, true, address(tkr)) {
-      TestEvents.fail("snipeFor should fail without allowance");
+      fail("snipeFor should fail without allowance");
     } catch Error(string memory reason) {
-      TestUtils.revertEq(reason, "mgv/lowAllowance");
+      revertEq(reason, "mgv/lowAllowance");
     }
   }
 
-  function cannot_marketOrderFor_for_without_allowance_test() public {
+  function test_cannot_marketOrderFor_for_without_allowance() public {
     TestToken(base).mint(address(mkr), 1 ether);
     mkr.approveMgv(TestToken(base), 1 ether);
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     try mgv.marketOrderFor(base, quote, 1 ether, 1 ether, true, address(tkr)) {
-      TestEvents.fail("marketOrderfor should fail without allowance");
+      fail("marketOrderfor should fail without allowance");
     } catch Error(string memory reason) {
-      TestUtils.revertEq(reason, "mgv/lowAllowance");
+      revertEq(reason, "mgv/lowAllowance");
     }
   }
 
-  function can_marketOrderFor_for_with_allowance_test() public {
+  function test_can_marketOrderFor_for_with_allowance() public {
     TestToken(base).mint(address(mkr), 1 ether);
     mkr.approveMgv(TestToken(base), 1 ether);
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
@@ -563,7 +545,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
       true,
       address(tkr)
     );
-    TestEvents.eq(
+    assertEq(
       mgv.allowances(base, quote, address(tkr), address(this)),
       0.2 ether,
       "allowance should have correctly reduced"
@@ -576,7 +558,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
   bytes posthook_cb;
 
   // maker's trade fn for the mgv
-  function makerExecute(ML.SingleOrder calldata)
+  function makerExecute(MgvLib.SingleOrder calldata)
     external
     override
     returns (bytes32 ret)
@@ -591,8 +573,8 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
   }
 
   function makerPosthook(
-    ML.SingleOrder calldata order,
-    ML.OrderResult calldata result
+    MgvLib.SingleOrder calldata order,
+    MgvLib.OrderResult calldata result
   ) external override {
     bool success;
     order; // silence compiler warning
@@ -609,13 +591,13 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   function newOfferKO() external {
     try mgv.newOffer(base, quote, 1 ether, 1 ether, 30_000, 0, 0) {
-      TestEvents.fail("newOffer on same pair should fail");
+      fail("newOffer on same pair should fail");
     } catch Error(string memory reason) {
-      TestUtils.revertEq(reason, "mgv/reentrancyLocked");
+      revertEq(reason, "mgv/reentrancyLocked");
     }
   }
 
-  function newOffer_on_reentrancy_fails_test() public {
+  function test_newOffer_on_reentrancy_fails() public {
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeWithSelector(this.newOfferKO.selector);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
@@ -628,14 +610,14 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     mgv.newOffer(_base, _quote, 1 ether, 1 ether, 30_000, 0, 0);
   }
 
-  function newOffer_on_reentrancy_succeeds_test() public {
+  function test_newOffer_on_reentrancy_succeeds() public {
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 200_000, 0, 0);
     trade_cb = abi.encodeWithSelector(this.newOfferOK.selector, quote, base);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
     require(mgv.best(quote, base) == 1, "newOffer on swapped pair must work");
   }
 
-  function newOffer_on_posthook_succeeds_test() public {
+  function test_newOffer_on_posthook_succeeds() public {
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 200_000, 0, 0);
     posthook_cb = abi.encodeWithSelector(this.newOfferOK.selector, base, quote);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
@@ -646,13 +628,13 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   function updateOfferKO(uint ofr) external {
     try mgv.updateOffer(base, quote, 1 ether, 2 ether, 35_000, 0, 0, ofr) {
-      TestEvents.fail("update offer on same pair should fail");
+      fail("update offer on same pair should fail");
     } catch Error(string memory reason) {
-      TestUtils.revertEq(reason, "mgv/reentrancyLocked");
+      revertEq(reason, "mgv/reentrancyLocked");
     }
   }
 
-  function updateOffer_on_reentrancy_fails_test() public {
+  function test_updateOffer_on_reentrancy_fails() public {
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeWithSelector(this.updateOfferKO.selector, ofr);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
@@ -669,7 +651,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     mgv.updateOffer(_base, _quote, 1 ether, 2 ether, 35_000, 0, 0, ofr);
   }
 
-  function updateOffer_on_reentrancy_succeeds_test() public {
+  function test_updateOffer_on_reentrancy_succeeds() public {
     uint other_ofr = mgv.newOffer(quote, base, 1 ether, 1 ether, 100_000, 0, 0);
 
     trade_cb = abi.encodeWithSelector(
@@ -684,7 +666,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     require(od.gasreq == 35_000, "updateOffer on swapped pair must work");
   }
 
-  function updateOffer_on_posthook_succeeds_test() public {
+  function test_updateOffer_on_posthook_succeeds() public {
     uint other_ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 100_000, 0, 0);
     posthook_cb = abi.encodeWithSelector(
       this.updateOfferOK.selector,
@@ -702,13 +684,13 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   function retractOfferKO(uint id) external {
     try mgv.retractOffer(base, quote, id, false) {
-      TestEvents.fail("retractOffer on same pair should fail");
+      fail("retractOffer on same pair should fail");
     } catch Error(string memory reason) {
-      TestUtils.revertEq(reason, "mgv/reentrancyLocked");
+      revertEq(reason, "mgv/reentrancyLocked");
     }
   }
 
-  function retractOffer_on_reentrancy_fails_test() public {
+  function test_retractOffer_on_reentrancy_fails() public {
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeWithSelector(this.retractOfferKO.selector, ofr);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
@@ -722,14 +704,14 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     uint id
   ) external {
     uint collected = mgv.retractOffer(_base, _quote, id, false);
-    TestEvents.eq(
+    assertEq(
       collected,
       0,
       "Unexpected collected provision after retract w/o deprovision"
     );
   }
 
-  function retractOffer_on_reentrancy_succeeds_test() public {
+  function test_retractOffer_on_reentrancy_succeeds() public {
     uint other_ofr = mgv.newOffer(quote, base, 1 ether, 1 ether, 90_000, 0, 0);
     trade_cb = abi.encodeWithSelector(
       this.retractOfferOK.selector,
@@ -746,7 +728,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     );
   }
 
-  function retractOffer_on_posthook_succeeds_test() public {
+  function test_retractOffer_on_posthook_succeeds() public {
     uint other_ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 190_000, 0, 0);
     posthook_cb = abi.encodeWithSelector(
       this.retractOfferOK.selector,
@@ -764,13 +746,13 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
 
   function marketOrderKO() external {
     try mgv.marketOrder(base, quote, 0.2 ether, 0.2 ether, true) {
-      TestEvents.fail("marketOrder on same pair should fail");
+      fail("marketOrder on same pair should fail");
     } catch Error(string memory reason) {
-      TestUtils.revertEq(reason, "mgv/reentrancyLocked");
+      revertEq(reason, "mgv/reentrancyLocked");
     }
   }
 
-  function marketOrder_on_reentrancy_fails_test() public {
+  function test_marketOrder_on_reentrancy_fails() public {
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeWithSelector(this.marketOrderKO.selector);
     require(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
@@ -786,7 +768,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     }
   }
 
-  function marketOrder_on_reentrancy_succeeds_test() public {
+  function test_marketOrder_on_reentrancy_succeeds() public {
     console.log(
       "dual mkr offer",
       dual_mkr.newOffer(0.5 ether, 0.5 ether, 30_000, 0)
@@ -801,7 +783,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     );
   }
 
-  function marketOrder_on_posthook_succeeds_test() public {
+  function test_marketOrder_on_posthook_succeeds() public {
     uint ofr = mgv.newOffer(base, quote, 0.5 ether, 0.5 ether, 500_000, 0, 0);
     mgv.newOffer(base, quote, 0.5 ether, 0.5 ether, 200_000, 0, 0);
     posthook_cb = abi.encodeWithSelector(
@@ -822,13 +804,13 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [id, 1 ether, type(uint96).max, type(uint48).max];
     try mgv.snipes(base, quote, targets, true) {
-      TestEvents.fail("snipe on same pair should fail");
+      fail("snipe on same pair should fail");
     } catch Error(string memory reason) {
-      TestUtils.revertEq(reason, "mgv/reentrancyLocked");
+      revertEq(reason, "mgv/reentrancyLocked");
     }
   }
 
-  function snipe_on_reentrancy_fails_test() public {
+  function test_snipe_on_reentrancy_fails() public {
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 60_000, 0, 0);
     trade_cb = abi.encodeWithSelector(this.snipesKO.selector, ofr);
     require(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
@@ -846,7 +828,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     mgv.snipes(_base, _quote, targets, true);
   }
 
-  function snipes_on_reentrancy_succeeds_test() public {
+  function test_snipes_on_reentrancy_succeeds() public {
     uint other_ofr = dual_mkr.newOffer(1 ether, 1 ether, 30_000, 0);
     trade_cb = abi.encodeWithSelector(
       this.snipesOK.selector,
@@ -860,7 +842,7 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     require(mgv.best(quote, base) == 0, "snipe in swapped pair must work");
   }
 
-  function snipes_on_posthook_succeeds_test() public {
+  function test_snipes_on_posthook_succeeds() public {
     uint other_ofr = mkr.newOffer(1 ether, 1 ether, 30_000, 0);
     posthook_cb = abi.encodeWithSelector(
       this.snipesOK.selector,
@@ -874,108 +856,111 @@ contract Gatekeeping_Test is IMaker, HasMgvEvents {
     require(mgv.best(base, quote) == 0, "snipe in posthook must work");
   }
 
-  function newOffer_on_closed_fails_test() public {
+  function test_newOffer_on_closed_fails() public {
     mgv.kill();
     try mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0) {
-      TestEvents.fail("newOffer should fail on closed market");
+      fail("newOffer should fail on closed market");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/dead");
+      revertEq(r, "mgv/dead");
     }
   }
 
   /* # Mangrove closed/inactive */
 
-  function take_on_closed_fails_test() public {
+  function test_take_on_closed_fails() public {
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0);
 
     mgv.kill();
     try tkr.take(ofr, 1 ether) {
-      TestEvents.fail("take offer should fail on closed market");
+      fail("take offer should fail on closed market");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/dead");
+      revertEq(r, "mgv/dead");
     }
   }
 
-  function newOffer_on_inactive_fails_test() public {
+  function test_newOffer_on_inactive_fails() public {
     mgv.deactivate(base, quote);
     try mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0) {
-      TestEvents.fail("newOffer should fail on closed market");
+      fail("newOffer should fail on closed market");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/inactive");
+      revertEq(r, "mgv/inactive");
     }
   }
 
-  function receive_on_closed_fails_test() public {
+  function test_receive_on_closed_fails() public {
     mgv.kill();
 
     (bool success, bytes memory retdata) = address(mgv).call{value: 10 ether}(
       ""
     );
     if (success) {
-      TestEvents.fail("receive() should fail on closed market");
+      fail("receive() should fail on closed market");
     } else {
-      string memory r = TestUtils.getReason(retdata);
-      TestUtils.revertEq(r, "mgv/dead");
+      string memory r = getReason(retdata);
+      revertEq(r, "mgv/dead");
     }
   }
 
-  function marketOrder_on_closed_fails_test() public {
+  function test_marketOrder_on_closed_fails() public {
     mgv.kill();
     try tkr.marketOrder(1 ether, 1 ether) {
-      TestEvents.fail("marketOrder should fail on closed market");
+      fail("marketOrder should fail on closed market");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/dead");
+      revertEq(r, "mgv/dead");
     }
   }
 
-  function snipe_on_closed_fails_test() public {
+  function test_snipe_on_closed_fails() public {
     mgv.kill();
     try tkr.take(0, 1 ether) {
-      TestEvents.fail("snipe should fail on closed market");
+      fail("snipe should fail on closed market");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/dead");
+      revertEq(r, "mgv/dead");
     }
   }
 
-  function withdraw_on_closed_ok_test() public {
+  function test_withdraw_on_closed_ok() public {
     mgv.kill();
     mgv.withdraw(0.1 ether);
   }
 
-  function retractOffer_on_closed_ok_test() public {
+  function test_retractOffer_on_closed_ok() public {
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0);
     mgv.kill();
     mgv.retractOffer(base, quote, ofr, false);
   }
 
-  function updateOffer_on_closed_fails_test() public {
+  function test_updateOffer_on_closed_fails() public {
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0);
     mgv.kill();
     try mgv.updateOffer(base, quote, 1 ether, 1 ether, 0, 0, 0, ofr) {
-      TestEvents.fail("update offer should fail on closed market");
+      fail("update offer should fail on closed market");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/dead");
+      revertEq(r, "mgv/dead");
     }
   }
 
-  function activation_emits_events_in_order_test() public {
-    mgv.activate(quote, base, 7, 0, 3);
-    TestEvents.expectFrom(address(mgv));
+  function test_activation_emits_events_in_order() public {
+    expectFrom(address(mgv));
     emit SetActive(quote, base, true);
+    expectFrom(address(mgv));
     emit SetFee(quote, base, 7);
+    expectFrom(address(mgv));
     emit SetDensity(quote, base, 0);
+    expectFrom(address(mgv));
     emit SetGasbase(quote, base, 3);
+    mgv.activate(quote, base, 7, 0, 3);
   }
 
-  function updateOffer_on_inactive_fails_test() public {
+  function test_updateOffer_on_inactive_fails() public {
     uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0);
+    expectFrom(address(mgv));
+    emit SetActive(base, quote, false);
     mgv.deactivate(base, quote);
     try mgv.updateOffer(base, quote, 1 ether, 1 ether, 0, 0, 0, ofr) {
-      TestEvents.fail("update offer should fail on inactive market");
+      fail("update offer should fail on inactive market");
     } catch Error(string memory r) {
-      TestUtils.revertEq(r, "mgv/inactive");
-      TestEvents.expectFrom(address(mgv));
-      emit SetActive(base, quote, false);
+      revertEq(r, "mgv/inactive");
     }
   }
 }

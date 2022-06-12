@@ -1,11 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 
 pragma solidity ^0.8.10;
-pragma abicoder v2;
-
-import "mgv_src/AbstractMangrove.sol";
-import "mgv_src/MgvLib.sol";
-import "hardhat/console.sol";
 
 import "mgv_test/Tools/MangroveTest.sol";
 

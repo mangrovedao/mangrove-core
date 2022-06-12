@@ -43,8 +43,8 @@ contract BufferedAaveSourcer is AaveSourcer {
   {
     if (token.balanceOf(MAKER) < amount) {
       // transfer *all* aTokens from AAVE account
-      (uint amount, ) = maxGettableUnderlying(token, false, address(this));
-      return _redeem(token, amount, MAKER);
+      (uint _amount, ) = maxGettableUnderlying(token, false, address(this));
+      return _redeem(token, _amount, MAKER);
     } else {
       // there is enough liquidity on `MAKER`, nothing to do
       return 0;

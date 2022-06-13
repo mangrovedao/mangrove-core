@@ -27,10 +27,14 @@ import "contracts/Strategies/interfaces/ISourcer.sol";
 /** In case of a partial fill of an offer at position i, the offer residual is reposted (see `Persistent` strat class)*/
 
 contract MangoImplementation is Persistent {
-
   event BidAtMaxPosition();
   // emitted when strat has reached max amount of Asks and needs rebalancing (should shift of x<0 positions in order to have ask prices that are better for the taker)
   event AskAtMinPosition();
+
+  modifier delegated() {
+    require(address(this) == PROXY, "MangoImplementation/invalidCall");
+    _;
+  }
 
   // total number of Asks (resp. Bids)
   uint immutable NSLOTS;
@@ -40,6 +44,8 @@ contract MangoImplementation is Persistent {
   // Market on which Mango will be acting
   IEIP20 immutable BASE;
   IEIP20 immutable QUOTE;
+
+  address immutable PROXY;
 
   constructor(
     IMangrove mgv,
@@ -55,6 +61,7 @@ contract MangoImplementation is Persistent {
     NSLOTS = nslots;
     BASE_0 = base_0;
     QUOTE_0 = quote_0;
+    PROXY = msg.sender;
   }
 
   // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
@@ -65,8 +72,13 @@ contract MangoImplementation is Persistent {
     uint to, // last price position to be populated
     uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
     uint[] calldata tokenAmounts // `tokenAmounts[i]` is the amount of `BASE` or `QUOTE` tokens (dePENDING on `withBase` flag) that is used to fixed one parameter of the price at position `from+i`.
-  ) external {
+  ) external delegated {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+    // making sure a sourcer has been defined between deployment and initialization
+    require(
+      address(mStr.liquidity_sourcer) != address(0),
+      "Mango/initialize/0xSourcer"
+    );
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
     /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
@@ -129,7 +141,7 @@ contract MangoImplementation is Persistent {
     uint ba,
     uint from,
     uint to
-  ) external returns (uint collected) {
+  ) external delegated returns (uint collected) {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     for (uint i = from; i < to; i++) {
       if (ba > 0) {
@@ -154,7 +166,7 @@ contract MangoImplementation is Persistent {
     int s,
     bool withBase,
     uint[] calldata amounts
-  ) external {
+  ) external delegated {
     require(
       amounts.length == (s < 0 ? uint(-s) : uint(s)),
       "Mango/set_shift/notEnoughAmounts"
@@ -584,6 +596,7 @@ contract MangoImplementation is Persistent {
   // TODO add LogIncident and Bid/AskatMax logs
   function $posthookSuccess(ML.SingleOrder calldata order)
     external
+    delegated
     returns (bool success)
   {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();

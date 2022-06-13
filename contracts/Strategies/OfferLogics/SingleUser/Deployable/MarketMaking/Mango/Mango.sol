@@ -27,7 +27,6 @@ import "../Sourcers/EOASourcer.sol";
 /** In case of a partial fill of an offer at position i, the offer residual is reposted (see `Persistent` strat class)*/
 
 contract Mango is Persistent {
-
   // emitted when init function has been called and AMM becomes active
   event Initialized(uint from, uint to);
   event SetLiquiditySourcer(ISourcer);
@@ -179,6 +178,7 @@ contract Mango is Persistent {
     returns (uint)
   {
     // pulled might be lower or higher than amount
+    ISourcer sourcer = MangoStorage.get_storage().liquidity_sourcer;
     uint pulled = MangoStorage.get_storage().liquidity_sourcer.pull(
       IEIP20(order.outbound_tkn),
       amount

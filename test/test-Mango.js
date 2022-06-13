@@ -93,10 +93,10 @@ describe("Running tests...", function () {
         maker.address // admin
       )
     ).connect(maker);
+    await (await makerContract.set_EOA_sourcer()).wait();
 
     let txs = [];
     let i = 0;
-    txs[i++] = await makerContract.set_EOA_sourcer();
     // maker has to approve liquidity sourcer of Mango for ETH and USDC transfer
     txs[i++] = await wEth
       .connect(maker)

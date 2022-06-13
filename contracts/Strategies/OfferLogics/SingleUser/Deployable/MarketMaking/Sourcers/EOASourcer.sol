@@ -28,7 +28,7 @@ contract EOASourcer is ISourcer, AccessControlled {
     SOURCE = deployer;
   }
 
-  // requires approval of contract deployer
+  // requires approval of SOURCE deployer
   function pull(IEIP20 token, uint amount)
     external
     override

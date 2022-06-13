@@ -2,7 +2,7 @@ const { ethers, network } = require("hardhat");
 const { Mangrove } = require("../../../../../mangrove.js");
 
 async function main() {
-  const provider = ethers.getDefaultProvider(network.config.url);
+  const provider = new ethers.providers.WebSocketProvider(network.config.url); //ethers.getDefaultProvider(network.config.url);
 
   if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
     console.error("No deployer account defined");
@@ -24,20 +24,31 @@ async function main() {
   });
 
   const markets = [
-    ["WETH", "USDC"],
+    // ["WETH", "USDC"],
     ["WETH", "DAI"],
-    ["DAI", "USDC"],
+    //["DAI", "USDC"],
   ];
+
+  let sourcer = null;
+
   for (const [baseName, quoteName] of markets) {
     let tx = null;
-    let default_base_amount = baseName === "WETH" ? 0.25 : 1000;
-    let default_quote_amount = quoteName === "WETH" ? 0.25 : 1000;
+    // bids give quote, asks give base
+    let default_ask_amount = baseName === "WETH" ? 0.25 : 1000;
+    let default_bid_amount = quoteName === "WETH" ? 0.25 : 1000;
+    default_ask_amount = MgvAPI.token(baseName).toUnits(default_ask_amount);
+    default_bid_amount = MgvAPI.token(quoteName).toUnits(default_bid_amount);
+
     // NSLOTS/2 offers giving base (~1000 USD each)
     // NSLOTS/2 offers giving quote (~1000 USD)
 
     let MangoRaw = (
       await hre.ethers.getContract(`Mango_${baseName}_${quoteName}`)
     ).connect(deployer);
+    // in case deployment was interupted after the liquidity sourcer was deployed
+    if (!sourcer) {
+      sourcer = await MangoRaw.liquidity_sourcer();
+    }
 
     if ((await MangoRaw.admin()) === deployer.address) {
       tx = await MangoRaw.setAdmin(tester.address);
@@ -46,26 +57,49 @@ async function main() {
 
     MangoRaw = MangoRaw.connect(tester);
 
-    let [pendingBase, pendingQuote] = await MangoRaw.get_pending();
+    let [pendingBase, pendingQuote] = await MangoRaw.pending();
     if (pendingBase.gt(0) || pendingQuote.gt(0)) {
       console.log(
         `* Current deployment of Mango has pending liquidity, resetting.`
       );
       tx = await MangoRaw.reset_pending();
     }
-
-    if (!((await MangoRaw.get_treasury(true)) === tester.address)) {
-      console.log(`* Set ${baseName} treasury to tester wallet`);
-      tx = await MangoRaw.set_treasury(true, tester.address);
+    if (sourcer === ethers.constants.AddressZero) {
+      console.log(`* Set liquidity sourcer to tester wallet`);
+      await (await MangoRaw.set_EOA_sourcer()).wait();
+      sourcer = await MangoRaw.liquidity_sourcer();
+    } else {
+      console.log(`* Reusing sourcer ${sourcer}`);
+      tx = await MangoRaw.set_liquidity_sourcer(
+        sourcer,
+        await MangoRaw.OFR_GASREQ()
+      );
       await tx.wait();
     }
-    if (!((await MangoRaw.get_treasury(false)) === tester.address)) {
-      console.log(`* Set ${quoteName} treasury to tester wallet`);
-      tx = await MangoRaw.set_treasury(false, tester.address);
+
+    if ((await MgvAPI.token(baseName).allowance({ spender: sourcer })).eq(0)) {
+      // maker has to approve liquidity sourcer of Mango for base and quote transfer
+      console.log(
+        `* Approving sourcer to transfer ${baseName} from tester wallet`
+      );
+      tx = await MgvAPI.token(baseName).approve(
+        sourcer,
+        ethers.constants.MaxUint256
+      );
+      await tx.wait();
+    }
+    if ((await MgvAPI.token(quoteName).allowance({ spender: sourcer })).eq(0)) {
+      console.log(
+        `* Approving sourcer to transfer ${quoteName} from tester wallet`
+      );
+      tx = await MgvAPI.token(quoteName).approve(
+        sourcer,
+        ethers.constants.MaxUint256
+      );
       await tx.wait();
     }
 
-    const NSLOTS = await MangoRaw.NSLOTS();
+    const NSLOTS = (await MangoRaw.NSLOTS()).toNumber();
     const market = await MgvAPI.market({ base: baseName, quote: quoteName });
     const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
       market
@@ -86,34 +120,19 @@ async function main() {
       await tx.wait();
     }
 
-    if ((await MgvAPI.token(baseName).allowance()).eq(0)) {
-      console.log(
-        `* Approving mangrove as spender for ${baseName} and ${quoteName} transfer from Mango`
-      );
-      tx = await Mango.approveMangrove(baseName);
+    if (await MangoRaw.is_paused()) {
+      console.log("* Mango was previously paused. Restarting now...");
+      tx = await MangoRaw.restart();
       await tx.wait();
     }
 
-    tx = await Mango.approveMangrove(quoteName);
-    await tx.wait();
-
-    console.log(
-      `* Approve Mango as spender for ${baseName} and ${quoteName} token transfer from tester wallet`
-    );
-
-    tx = await MgvAPI.token(baseName).approve(MangoRaw.address);
-    await tx.wait();
-    tx = await MgvAPI.token(quoteName).approve(MangoRaw.address);
-    await tx.wait();
-
-    tx = await MangoRaw.restart();
-    await tx.wait();
-
-    console.log(
-      `* Posting Mango offers on (${baseName},${quoteName}) market (current price shift ${(
-        await MangoRaw.get_shift()
-      ).toNumber()})`
-    );
+    if ((await MangoRaw.shift()).gt(0)) {
+      console.warn(
+        `* Posting Mango offers on (${baseName},${quoteName}) market (current price shift ${(
+          await MangoRaw.shift()
+        ).toNumber()})`
+      );
+    }
 
     const offers_per_slice = 10;
     const slices = NSLOTS / offers_per_slice; // slices of 10 offers
@@ -123,8 +142,8 @@ async function main() {
 
     pivotIds = pivotIds.fill(0, 0);
     // init amount is expressed in `makerGives` amount (i.e base for bids and quote for asks)
-    amounts.fill(default_base_amount, 0, NSLOTS / 2);
-    amounts.fill(default_quote_amount, NSLOTS / 2, NSLOTS);
+    amounts.fill(default_bid_amount, 0, NSLOTS / 2);
+    amounts.fill(default_ask_amount, NSLOTS / 2, NSLOTS);
 
     for (let i = 0; i < slices; i++) {
       const receipt = await MangoRaw.initialize(
@@ -135,12 +154,13 @@ async function main() {
         amounts
       );
       console.log(
-        `Slice initialized (${(await receipt.wait()).gasUsed} gas used)`
+        `Slice [${offers_per_slice * i},${
+          offers_per_slice * (i + 1)
+        }[ initialized (${(await receipt.wait()).gasUsed} gas used)`
       );
     }
-    console.log(`Done! (gas used ${receipt.gasUsed.toString()})`);
 
-    [pendingBase, pendingQuote] = await MangoRaw.get_pending();
+    [pendingBase, pendingQuote] = await MangoRaw.pending();
     if (pendingBase.gt(0) || pendingQuote.gt(0)) {
       throw Error(
         `Init error, failed to initialize (${MgvAPI.token(baseName).fromUnits(

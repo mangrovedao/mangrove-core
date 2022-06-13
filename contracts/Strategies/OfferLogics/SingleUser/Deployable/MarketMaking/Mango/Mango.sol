@@ -14,7 +14,7 @@ pragma abicoder v2;
 import "./MangoStorage.sol";
 import "./MangoImplementation.sol";
 import "../../../Persistent.sol";
-import "../Sourcers/EOASourcer.sol";
+import "../Sourcers/Sourcer.sol";
 
 /** Discrete automated market making strat */
 /** This AMM is headless (no price model) and market makes on `NSLOTS` price ranges*/
@@ -29,7 +29,7 @@ import "../Sourcers/EOASourcer.sol";
 contract Mango is Persistent {
   // emitted when init function has been called and AMM becomes active
   event Initialized(uint from, uint to);
-  event SetLiquiditySourcer(ISourcer);
+  event SetLiquiditySourcer(Sourcer);
 
   address private immutable IMPLEMENTATION;
 
@@ -121,7 +121,7 @@ contract Mango is Persistent {
   /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
   /** */
   /** NB Sourcer might need further approval to work as intended*/
-  function set_liquidity_sourcer(ISourcer sourcer, uint gasreq)
+  function set_liquidity_sourcer(Sourcer sourcer, uint gasreq)
     external
     onlyAdmin
   {
@@ -132,15 +132,7 @@ contract Mango is Persistent {
     emit SetLiquiditySourcer(sourcer);
   }
 
-  function set_EOA_sourcer() external onlyAdmin {
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    mStr.liquidity_sourcer = new EOASourcer(address(this), admin());
-    BASE.approve(address(mStr.liquidity_sourcer), type(uint).max);
-    QUOTE.approve(address(mStr.liquidity_sourcer), type(uint).max);
-    emit SetLiquiditySourcer(mStr.liquidity_sourcer);
-  }
-
-  function liquidity_sourcer() public view returns (ISourcer) {
+  function liquidity_sourcer() public view returns (Sourcer) {
     return MangoStorage.get_storage().liquidity_sourcer;
   }
 
@@ -178,7 +170,7 @@ contract Mango is Persistent {
     returns (uint)
   {
     // pulled might be lower or higher than amount
-    ISourcer sourcer = MangoStorage.get_storage().liquidity_sourcer;
+    Sourcer sourcer = MangoStorage.get_storage().liquidity_sourcer;
     uint pulled = MangoStorage.get_storage().liquidity_sourcer.pull(
       IEIP20(order.outbound_tkn),
       amount

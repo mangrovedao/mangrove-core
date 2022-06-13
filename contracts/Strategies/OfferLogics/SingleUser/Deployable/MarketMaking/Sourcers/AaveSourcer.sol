@@ -16,9 +16,9 @@ pragma abicoder v2;
 import "contracts/Strategies/Modules/aave/v3/AaveModule.sol";
 import "contracts/Strategies/utils/AccessControlled.sol";
 import "contracts/Strategies/utils/TransferLib.sol";
-import "contracts/Strategies/interfaces/ISourcer.sol";
+import "./Sourcer.sol";
 
-contract AaveSourcer is ISourcer, AaveV3Module, AccessControlled {
+contract AaveSourcer is Sourcer, AaveV3Module, AccessControlled {
   address immutable MAKER;
 
   constructor(

@@ -93,7 +93,16 @@ describe("Running tests...", function () {
         maker.address // admin
       )
     ).connect(maker);
-    await (await makerContract.set_EOA_sourcer()).wait();
+    const SourcerFactory = await ethers.getContractFactory("EOASourcer");
+    const sourcer = await SourcerFactory.deploy(maker.address);
+    await sourcer.deployed();
+    tx = await sourcer.bind(makerContract.address);
+    await tx.wait();
+    tx = await makerContract.set_liquidity_sourcer(
+      sourcer.address,
+      await makerContract.OFR_GASREQ()
+    );
+    await tx.wait();
 
     let txs = [];
     let i = 0;

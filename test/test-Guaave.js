@@ -117,6 +117,8 @@ describe("Running tests...", function () {
       sourcer.address,
       800000
     );
+    txs[i++] = await sourcer.bind(makerContract.address); // allowing makerContract to pull from sourcer
+
     txs[i++] = await sourcer.approveLender(wEth.address); // to mint awETH
     txs[i++] = await sourcer.approveLender(usdc.address); // to mint aUSDC
 

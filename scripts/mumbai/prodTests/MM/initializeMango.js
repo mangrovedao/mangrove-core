@@ -24,9 +24,9 @@ async function main() {
   });
 
   const markets = [
-    // ["WETH", "USDC"],
+    ["WETH", "USDC"],
     ["WETH", "DAI"],
-    //["DAI", "USDC"],
+    ["DAI", "USDC"],
   ];
 
   let sourcer = null;
@@ -63,17 +63,38 @@ async function main() {
         `* Current deployment of Mango has pending liquidity, resetting.`
       );
       tx = await MangoRaw.reset_pending();
+      await tx.wait();
     }
+    const SourcerFactory = await ethers.getContractFactory("EOASourcer");
     if (sourcer === ethers.constants.AddressZero) {
-      console.log(`* Set liquidity sourcer to tester wallet`);
-      await (await MangoRaw.set_EOA_sourcer()).wait();
-      sourcer = await MangoRaw.liquidity_sourcer();
-    } else {
-      console.log(`* Reusing sourcer ${sourcer}`);
+      console.log(`* Deploying a new liquidity sourcer`);
+      const sourcerContract = await SourcerFactory.connect(tester).deploy(
+        tester.address
+      );
+      await sourcerContract.deployed();
+
+      console.log(
+        `* Binding sourcer (${sourcerContract.address}) to this Mango`
+      );
+      tx = await sourcerContract.bind(MangoRaw.address);
+      await tx.wait();
+      sourcer = sourcerContract.address;
+
+      console.log(`* Setting Mango to use sourcer (${sourcer})`);
       tx = await MangoRaw.set_liquidity_sourcer(
         sourcer,
         await MangoRaw.OFR_GASREQ()
       );
+      await tx.wait();
+    } else {
+      console.log(`* Reusing already deployed sourcer ${sourcer}`);
+      tx = await MangoRaw.set_liquidity_sourcer(
+        sourcer,
+        await MangoRaw.OFR_GASREQ()
+      );
+      await tx.wait();
+      const sourcerContract = SourcerFactory.connect(tester).attach(sourcer);
+      tx = await sourcerContract.bind(MangoRaw.address);
       await tx.wait();
     }
 

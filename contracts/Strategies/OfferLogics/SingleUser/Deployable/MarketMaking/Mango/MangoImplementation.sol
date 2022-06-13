@@ -14,7 +14,8 @@ pragma abicoder v2;
 import "./MangoStorage.sol";
 import "../../../Persistent.sol";
 import "contracts/Strategies/utils/TransferLib.sol";
-import "contracts/Strategies/interfaces/ISourcer.sol";
+
+//import "../Sourcers/Sourcer.sol";
 
 /** Discrete automated market making strat */
 /** This AMM is headless (no price model) and market makes on `NSLOTS` price ranges*/

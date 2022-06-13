@@ -15,16 +15,12 @@ pragma abicoder v2;
 
 import "contracts/Strategies/utils/AccessControlled.sol";
 import "contracts/Strategies/utils/TransferLib.sol";
-import "contracts/Strategies/interfaces/ISourcer.sol";
+import "./Sourcer.sol";
 
-contract EOASourcer is ISourcer, AccessControlled {
+contract EOASourcer is Sourcer, AccessControlled {
   address public immutable SOURCE;
-  address public immutable MAKER;
 
-  constructor(address spenderContract, address deployer)
-    AccessControlled(deployer)
-  {
-    MAKER = spenderContract;
+  constructor(address deployer) AccessControlled(deployer) {
     SOURCE = deployer;
   }
 
@@ -32,10 +28,10 @@ contract EOASourcer is ISourcer, AccessControlled {
   function pull(IEIP20 token, uint amount)
     external
     override
-    onlyCaller(MAKER)
+    makersOnly
     returns (uint missing)
   {
-    if (TransferLib.transferTokenFrom(token, SOURCE, MAKER, amount)) {
+    if (TransferLib.transferTokenFrom(token, SOURCE, msg.sender, amount)) {
       return 0;
     } else {
       return amount;
@@ -43,11 +39,11 @@ contract EOASourcer is ISourcer, AccessControlled {
   }
 
   // requires approval of Maker
-  function flush(IEIP20[] calldata tokens) external override onlyCaller(MAKER) {
+  function flush(IEIP20[] calldata tokens) external override makersOnly {
     for (uint i = 0; i < tokens.length; i++) {
-      uint amount = tokens[i].balanceOf(MAKER);
+      uint amount = tokens[i].balanceOf(msg.sender);
       require(
-        TransferLib.transferTokenFrom(tokens[i], MAKER, SOURCE, amount),
+        TransferLib.transferTokenFrom(tokens[i], msg.sender, SOURCE, amount),
         "EOASourcer/flush/transferFail"
       );
     }

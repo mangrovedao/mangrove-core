@@ -10,7 +10,7 @@ import "hardhat/console.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 import {MgvLib as ML, P, IMaker} from "mgv_src/MgvLib.sol";
 
-contract TestMaker2 is IMaker, Test2 {
+contract TestMaker is IMaker, Test2 {
   AbstractMangrove _mgv;
   address _base;
   address _quote;

@@ -4,8 +4,8 @@ import {Test2} from "./Test2.sol";
 import {Utilities} from "./Utilities.sol";
 
 import {TestTaker} from "mgv_src/Tests/Agents/TestTaker.sol";
-import {TestMaker} from "mgv_src/Tests/Agents/TestMaker.sol";
-import {MakerDeployer} from "mgv_src/Tests/Agents/MakerDeployer.sol";
+import {TestMaker} from "mgv_test/tools/TestMaker.sol";
+import {MakerDeployer} from "mgv_test/tools/MakerDeployer.sol";
 import {TestMoriartyMaker} from "mgv_src/Tests/Agents/TestMoriartyMaker.sol";
 import {TestToken} from "mgv_src/Tests/Agents/TestToken.sol";
 

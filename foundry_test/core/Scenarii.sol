@@ -146,35 +146,6 @@ contract Scenarii_Test is MangroveTest {
 
   /* **************** TEST ROUTINES ************* */
 
-  // not used
-  function cancelOffer(
-    TestMaker wrongOwner,
-    TestMaker maker,
-    uint offerId
-  ) internal {
-    try wrongOwner.retractOfferWithDeprovision(offerId) {
-      fail("Invalid authorization to cancel order");
-    } catch Error(string memory reason) {
-      assertEq(reason, "mgv/cancelOffer/unauthorized", "Unexpected throw");
-      try maker.retractOfferWithDeprovision(offerId) {
-        maker.retractOfferWithDeprovision(0);
-        uint provisioned = getProvision(
-          mgv,
-          address(base),
-          address(quote),
-          offers[offerId][Info.gasreq]
-        );
-        assertEq(
-          mgv.balanceOf(address(maker)),
-          balances.makersBalanceWei[offerId] + provisioned,
-          "Incorrect returned provision to maker"
-        );
-      } catch {
-        fail("Cancel order failed unexpectedly");
-      }
-    }
-  }
-
   function collectFailingOffer(uint failingOfferId) internal {
     // executing failing offer
     try taker.takeWithInfo(failingOfferId, 0.5 ether) returns (

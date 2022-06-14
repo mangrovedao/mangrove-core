@@ -1,8 +1,10 @@
 const { ethers, network } = require("hardhat");
 const { Mangrove } = require("../../../../../mangrove.js");
+const { getProvider } = require("scripts/helper.js");
 
 async function main() {
-  const provider = ethers.getDefaultProvider(network.config.url);
+  console.log("SHUTTING DOWN MANGO INSTANCES...");
+  const provider = getProvider();
 
   if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
     console.error("No deployer account defined");

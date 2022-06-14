@@ -1,8 +1,9 @@
 const { ethers, network } = require("hardhat");
 const { Mangrove } = require("../../../../../mangrove.js");
+const { getProvider } = require("scripts/helper.js");
 
 async function main() {
-  const provider = ethers.getDefaultProvider(network.config.url);
+  const provider = getProvider();
 
   const tester = new ethers.Wallet(
     process.env["MUMBAI_TESTER_PRIVATE_KEY"],

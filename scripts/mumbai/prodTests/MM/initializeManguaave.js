@@ -66,10 +66,15 @@ async function main() {
       tx = await MangoRaw.reset_pending();
       await tx.wait();
     }
-    const SourcerFactory = await ethers.getContractFactory("EOASourcer");
+    const SourcerFactory = await ethers.getContractFactory(
+      "BufferedAaveSourcer"
+    );
     if (sourcer === ethers.constants.AddressZero) {
       console.log(`* Deploying a new liquidity sourcer`);
       const sourcerContract = await SourcerFactory.connect(tester).deploy(
+        MgvAPI.getAddress("AaveProvider"),
+        0, // referralCode
+        1, //stable interest rate mode
         tester.address
       );
       await sourcerContract.deployed();
@@ -77,6 +82,7 @@ async function main() {
       console.log(
         `* Binding sourcer (${sourcerContract.address}) to this Mango`
       );
+
       tx = await sourcerContract.bind(MangoRaw.address);
       await tx.wait();
       sourcer = sourcerContract.address;

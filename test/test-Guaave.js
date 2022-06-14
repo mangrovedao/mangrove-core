@@ -14,6 +14,7 @@ async function init(NSLOTS, makerContract, bidAmount, askAmount) {
 
   for (let i = 0; i < NSLOTS / slice; i++) {
     const tx = await makerContract.initialize(
+      true,
       NSLOTS / 2 - 1, // starts asking at NSLOTS/2
       slice * i, // from
       slice * (i + 1), // to
@@ -106,7 +107,6 @@ describe("Running tests...", function () {
       ).address,
       0, // referral code
       1, // interest rate mode -stable-
-      makerContract.address,
       maker.address
     );
     // liquidity sourcer will pull funds from AAVE
@@ -124,14 +124,16 @@ describe("Running tests...", function () {
 
     // putting ETH as collateral on AAVE
     txs[i++] = await sourcer.supply(
-      wEth.address,
-      ethers.utils.parseEther("17")
+      wEth.address, //asset
+      ethers.utils.parseEther("17"), //amount
+      makerContract.address // from
     );
 
     // borrowing USDC on collateral
     txs[i++] = await sourcer.borrow(
       usdc.address,
-      ethers.utils.parseUnits("2000", 6)
+      ethers.utils.parseUnits("2000", 6),
+      makerContract.address // to
     );
     // setting buffer to be twice the promised volume of an offer
     // txs[i++] = await sourcer.set_buffer(

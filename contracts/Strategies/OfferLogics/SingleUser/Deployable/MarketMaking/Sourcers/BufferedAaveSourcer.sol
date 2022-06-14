@@ -22,29 +22,22 @@ contract BufferedAaveSourcer is AaveSourcer {
     address _addressesProvider,
     uint _referralCode,
     uint _interestRateMode,
-    address spenderContract, // maker contract the liquidity sourcer of which is `this` contract
     address deployer // initial admin
   )
-    AaveSourcer(
-      _addressesProvider,
-      _referralCode,
-      _interestRateMode,
-      spenderContract,
-      deployer
-    )
+    AaveSourcer(_addressesProvider, _referralCode, _interestRateMode, deployer)
   {}
 
   // Liquidity : SOURCE --> MAKER
-  function pull(IEIP20 token, uint amount)
-    external
+  function __pull__(IEIP20 token, uint amount)
+    internal
+    virtual
     override
-    onlyCaller(MAKER)
     returns (uint pulled)
   {
-    if (token.balanceOf(MAKER) < amount) {
+    if (token.balanceOf(msg.sender) < amount) {
       // transfer *all* aTokens from AAVE account
       (uint amount_, ) = maxGettableUnderlying(token, false, address(this));
-      return _redeem(token, amount_, MAKER);
+      return _redeem(token, amount_, msg.sender);
     } else {
       // there is enough liquidity on `MAKER`, nothing to do
       return 0;
@@ -52,9 +45,9 @@ contract BufferedAaveSourcer is AaveSourcer {
   }
 
   // Liquidity : MAKER --> SOURCE
-  function flush(IEIP20[] calldata tokens) external override onlyCaller(MAKER) {
+  function __flush__(IEIP20[] calldata tokens) internal virtual override {
     for (uint i = 0; i < tokens.length; i++) {
-      uint buffer = tokens[i].balanceOf(MAKER);
+      uint buffer = tokens[i].balanceOf(msg.sender);
       uint target = liquidity_buffer_size[tokens[i]];
       if (buffer > target) {
         unchecked {
@@ -62,7 +55,7 @@ contract BufferedAaveSourcer is AaveSourcer {
           require(
             TransferLib.transferTokenFrom(
               tokens[i],
-              MAKER,
+              msg.sender,
               address(this),
               amount
             ),
@@ -79,7 +72,7 @@ contract BufferedAaveSourcer is AaveSourcer {
   function balance(IEIP20 token) public view override returns (uint available) {
     unchecked {
       available = overlying(token).balanceOf(address(this));
-      available += token.balanceOf(MAKER);
+      available += token.balanceOf(msg.sender);
     }
   }
 

@@ -19,44 +19,38 @@ import "contracts/Strategies/utils/TransferLib.sol";
 import "./Sourcer.sol";
 
 contract AaveSourcer is Sourcer, AaveV3Module {
-  address immutable MAKER;
-
   constructor(
     address _addressesProvider,
     uint _referralCode,
     uint _interestRateMode,
-    address spenderContract,
     address deployer
   )
     Sourcer(deployer)
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
-  {
-    MAKER = spenderContract;
-  }
+  {}
 
   // Liquidity : SOURCE --> MAKER
-  function pull(IEIP20 token, uint amount)
-    external
+  function __pull__(IEIP20 token, uint amount)
+    internal
     virtual
     override
-    onlyCaller(MAKER)
     returns (uint pulled)
   {
-    return _redeem(token, amount, MAKER);
+    return _redeem(token, amount, msg.sender);
   }
 
   // Liquidity : MAKER --> SOURCE
-  function flush(IEIP20[] calldata tokens)
-    external
-    virtual
-    override
-    onlyCaller(MAKER)
-  {
+  function __flush__(IEIP20[] calldata tokens) internal virtual override {
     for (uint i = 0; i < tokens.length; i++) {
       // checking how much tokens are stored on MAKER's balance as a consequence of __put__
-      uint amount = tokens[i].balanceOf(MAKER);
+      uint amount = tokens[i].balanceOf(msg.sender);
       require(
-        TransferLib.transferTokenFrom(tokens[i], MAKER, address(this), amount),
+        TransferLib.transferTokenFrom(
+          tokens[i],
+          msg.sender,
+          address(this),
+          amount
+        ),
         "AaveSourcer/flush/transferFail"
       );
       repayThenDeposit(tokens[i], amount);
@@ -73,25 +67,37 @@ contract AaveSourcer is Sourcer, AaveV3Module {
     return overlying(token).balanceOf(address(this));
   }
 
-  function borrow(IEIP20 token, uint amount) external onlyAdmin {
+  function borrow(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) external onlyAdmin {
     _borrow(token, amount, address(this));
     require(
-      TransferLib.transferToken(token, MAKER, amount),
+      TransferLib.transferToken(token, to, amount),
       "AaveSourcer/borrow/transferFail"
     );
   }
 
-  function repay(IEIP20 token, uint amount) external onlyAdmin {
+  function repay(
+    IEIP20 token,
+    uint amount,
+    address from
+  ) external onlyAdmin {
     require(
-      TransferLib.transferTokenFrom(token, MAKER, address(this), amount),
+      TransferLib.transferTokenFrom(token, from, address(this), amount),
       "AaveSourcer/repay/transferFromFail"
     );
     _repay(token, amount, address(this));
   }
 
-  function supply(IEIP20 token, uint amount) external onlyAdmin {
+  function supply(
+    IEIP20 token,
+    uint amount,
+    address from
+  ) external onlyAdmin {
     require(
-      TransferLib.transferTokenFrom(token, MAKER, address(this), amount),
+      TransferLib.transferTokenFrom(token, from, address(this), amount),
       "AaveSourcer/supply/transferFromFail"
     );
     _supply(token, amount, address(this));
@@ -99,12 +105,12 @@ contract AaveSourcer is Sourcer, AaveV3Module {
 
   // returns 0 if redeem failed (amount > balance).
   // Redeems user balance is amount == type(uint).max
-  function withdraw(IEIP20 token, uint amount)
-    external
-    onlyAdmin
-    returns (uint)
-  {
-    return _redeem(token, amount, MAKER);
+  function withdraw(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) external onlyAdmin returns (uint) {
+    return _redeem(token, amount, to);
   }
 
   function claimRewards(
@@ -122,9 +128,13 @@ contract AaveSourcer is Sourcer, AaveV3Module {
     _approveLender(token, type(uint).max);
   }
 
-  function transferToken(IEIP20 token, uint amount) external onlyAdmin {
+  function transferToken(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) external onlyAdmin {
     require(
-      TransferLib.transferToken(token, msg.sender, amount),
+      TransferLib.transferToken(token, to, amount),
       "AaveSourcer/transferTokenFail"
     );
   }

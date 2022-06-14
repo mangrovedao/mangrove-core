@@ -25,10 +25,10 @@ contract EOASourcer is Sourcer {
   }
 
   // requires approval of SOURCE deployer
-  function pull(IEIP20 token, uint amount)
-    external
+  function __pull__(IEIP20 token, uint amount)
+    internal
+    virtual
     override
-    makersOnly
     returns (uint missing)
   {
     if (TransferLib.transferTokenFrom(token, SOURCE, msg.sender, amount)) {
@@ -39,7 +39,7 @@ contract EOASourcer is Sourcer {
   }
 
   // requires approval of Maker
-  function flush(IEIP20[] calldata tokens) external override makersOnly {
+  function __flush__(IEIP20[] calldata tokens) internal virtual override {
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);
       require(

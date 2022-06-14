@@ -18,7 +18,7 @@ import "contracts/Strategies/utils/AccessControlled.sol";
 
 abstract contract Sourcer is AccessControlled {
   mapping(address => bool) public makers;
-  modifier makersOnly() {
+  modifier onlyMakers() {
     require(makers[msg.sender], "Sourcer/unauthorized");
     _;
   }
@@ -26,10 +26,18 @@ abstract contract Sourcer is AccessControlled {
   constructor(address deployer) AccessControlled(deployer) {}
 
   // gets `amount` of `token`s from liquidity source
-  function pull(IEIP20 token, uint amount) external virtual returns (uint);
+  function pull(IEIP20 token, uint amount) external onlyMakers returns (uint) {
+    return __pull__(token, amount);
+  }
+
+  function __pull__(IEIP20 token, uint amount) internal virtual returns (uint);
 
   // deposits `amount` of `token`s into liquidity source
-  function flush(IEIP20[] calldata tokens) external virtual;
+  function flush(IEIP20[] calldata tokens) external onlyMakers {
+    __flush__(tokens);
+  }
+
+  function __flush__(IEIP20[] calldata tokens) internal virtual;
 
   // checks amount of `token`s available in the liquidity source
   function balance(IEIP20 token) external view virtual returns (uint);

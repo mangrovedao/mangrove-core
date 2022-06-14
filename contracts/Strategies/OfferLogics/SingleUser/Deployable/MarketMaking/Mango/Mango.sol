@@ -95,6 +95,7 @@ contract Mango is Persistent {
   // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
   // tokenAmounts are always expressed `gives`units, i.e in BASE when asking and in QUOTE when bidding
   function initialize(
+    bool reset,
     uint lastBidPosition, // if `lastBidPosition` is in R, then all offers before `lastBidPosition` (included) will be bids, offers strictly after will be asks.
     uint from, // first price position to be populated
     uint to, // last price position to be populated
@@ -104,6 +105,7 @@ contract Mango is Persistent {
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
         MangoImplementation.$initialize.selector,
+        reset,
         lastBidPosition,
         from,
         to,

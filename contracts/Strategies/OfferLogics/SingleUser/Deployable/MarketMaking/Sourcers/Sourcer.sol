@@ -14,13 +14,16 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "contracts/Strategies/interfaces/IEIP20.sol";
+import "contracts/Strategies/utils/AccessControlled.sol";
 
-abstract contract Sourcer {
+abstract contract Sourcer is AccessControlled {
   mapping(address => bool) public makers;
   modifier makersOnly() {
     require(makers[msg.sender], "Sourcer/unauthorized");
     _;
   }
+
+  constructor(address deployer) AccessControlled(deployer) {}
 
   // gets `amount` of `token`s from liquidity source
   function pull(IEIP20 token, uint amount) external virtual returns (uint);
@@ -32,11 +35,11 @@ abstract contract Sourcer {
   function balance(IEIP20 token) external view virtual returns (uint);
 
   // connect a maker contract to this sourcer
-  function bind(address maker) external {
+  function bind(address maker) external onlyAdmin {
     makers[maker] = true;
   }
 
-  function unbind(address maker) external {
+  function unbind(address maker) external onlyAdmin {
     makers[maker] = false;
   }
 }

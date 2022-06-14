@@ -17,10 +17,10 @@ import "contracts/Strategies/utils/AccessControlled.sol";
 import "contracts/Strategies/utils/TransferLib.sol";
 import "./Sourcer.sol";
 
-contract EOASourcer is Sourcer, AccessControlled {
+contract EOASourcer is Sourcer {
   address public immutable SOURCE;
 
-  constructor(address deployer) AccessControlled(deployer) {
+  constructor(address deployer) Sourcer(deployer) {
     SOURCE = deployer;
   }
 

@@ -18,7 +18,7 @@ import "contracts/Strategies/utils/AccessControlled.sol";
 import "contracts/Strategies/utils/TransferLib.sol";
 import "./Sourcer.sol";
 
-contract AaveSourcer is Sourcer, AaveV3Module, AccessControlled {
+contract AaveSourcer is Sourcer, AaveV3Module {
   address immutable MAKER;
 
   constructor(
@@ -28,8 +28,8 @@ contract AaveSourcer is Sourcer, AaveV3Module, AccessControlled {
     address spenderContract,
     address deployer
   )
+    Sourcer(deployer)
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
-    AccessControlled(deployer)
   {
     MAKER = spenderContract;
   }

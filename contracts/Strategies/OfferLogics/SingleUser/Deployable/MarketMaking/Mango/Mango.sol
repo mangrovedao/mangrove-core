@@ -170,7 +170,6 @@ contract Mango is Persistent {
     returns (uint)
   {
     // pulled might be lower or higher than amount
-    Sourcer sourcer = MangoStorage.get_storage().liquidity_sourcer;
     uint pulled = MangoStorage.get_storage().liquidity_sourcer.pull(
       IEIP20(order.outbound_tkn),
       amount

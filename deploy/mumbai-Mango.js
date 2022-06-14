@@ -35,10 +35,16 @@ module.exports = async (hre) => {
     console.log(
       `Mango deployed (${Mango.address}) on market (${baseName},${quoteName}) of Mangrove (${MgvAPI.contract.address})`
     );
+    return Mango;
   };
-  await deployOnMarket("WETH", "USDC", 1, 500, 36); // [500 USD/ETH,...,|2500|..., 4100 USD/ETH] inc 36 USD
-  await deployOnMarket("WETH", "DAI", 1, 500, 36); // [500 DAI/ETH,..,|2500|,... 4100 USD/ETH] inc 36 DAI
-  await deployOnMarket("DAI", "USDC", 1000, 997, 0.12); // Pmin=997/1000, inc=0.12/1000, Pmax= 997/1000 + 0.12*50/1000 = 1003/1000
+  let contracts = [];
+  let i = 0;
+  contracts[i++] = await deployOnMarket("WETH", "USDC", 1, 500, 36); // [500 USD/ETH,...,|2500|..., 4100 USD/ETH] inc 36 USD
+  contracts[i++] = await deployOnMarket("WETH", "DAI", 1, 500, 36); // [500 DAI/ETH,..,|2500|,... 4100 USD/ETH] inc 36 DAI
+  contracts[i++] = await deployOnMarket("DAI", "USDC", 1000, 997, 0.12); // Pmin=997/1000, inc=0.12/1000, Pmax= 997/1000 + 0.12*50/1000 = 1003/1000
+  for (const contract of contracts) {
+    await contract.deployed();
+  }
 };
 
 module.exports.tags = ["mumbai-Mango"];

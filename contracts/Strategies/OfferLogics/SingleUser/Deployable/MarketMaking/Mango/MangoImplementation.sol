@@ -68,6 +68,7 @@ contract MangoImplementation is Persistent {
   // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
   // tokenAmounts are always expressed `gives`units, i.e in BASE when asking and in QUOTE when bidding
   function $initialize(
+    bool reset,
     uint lastBidPosition, // if `lastBidPosition` is in R, then all offers before `lastBidPosition` (included) will be bids, offers strictly after will be asks.
     uint from, // first price position to be populated
     uint to, // last price position to be populated
@@ -106,7 +107,7 @@ contract MangoImplementation is Persistent {
           : 0; // otherwise getting last inserted offer as pivot
         updateBid({
           index: i,
-          reset: true, // overwrites old value
+          reset: reset, // overwrites old value
           amount: tokenAmounts[pos],
           pivotId: bidPivot
         });
@@ -124,7 +125,7 @@ contract MangoImplementation is Persistent {
           : 0; // otherwise getting last inserted offer as pivot
         updateAsk({
           index: i,
-          reset: true,
+          reset: reset,
           amount: tokenAmounts[pos],
           pivotId: askPivot
         });

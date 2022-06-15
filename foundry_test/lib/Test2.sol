@@ -3,6 +3,9 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
+/* Some ease-of-life additions to forge-std/Test.sol */
+/* You mostly want to inherit `MangroveTest` (which inherits `Test2`) rather than inherit `Test2` directly */
+
 contract Test2 is Test {
   function succeed() internal {
     assertTrue(true);

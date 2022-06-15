@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import "mgv_test/tools/MangroveTest.sol";
+import "mgv_test/lib/MangroveTest.sol";
 
 contract MakerPosthook_Test is MangroveTest, IMaker {
   AbstractMangrove mgv;

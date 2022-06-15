@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.10;
 
-import "mgv_test/tools/MangroveTest.sol";
+import "mgv_test/lib/MangroveTest.sol";
 
 /* The following constructs an ERC20 with a transferFrom callback method,
    and a TestTaker which throws away any funds received upon getting

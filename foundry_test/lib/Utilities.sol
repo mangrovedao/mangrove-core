@@ -2,6 +2,9 @@
 pragma solidity ^0.8.13;
 import {console2 as console} from "forge-std/console2.sol";
 
+/* Some general utility methods.
+/* You mostly want to inherit `MangroveTest` (which inherits `Utilities`) rather than inherit `Utilities` directly */
+
 contract Utilities {
   /* Convert a uint to its string representation */
   function uint2str(uint _i)

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "mgv_test/tools/MangroveTest.sol";
+import "mgv_test/lib/MangroveTest.sol";
 
 contract NotAdmin {
   AbstractMangrove mgv;

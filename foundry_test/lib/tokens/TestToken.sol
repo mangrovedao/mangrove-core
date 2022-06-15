@@ -1,16 +1,15 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
-import "./ERC20BLWithDecimals.sol";
+import "./ERC20BL.sol";
 
-contract TestTokenWithDecimals is ERC20BLWithDecimals {
+contract TestToken is ERC20BL {
   mapping(address => bool) admins;
 
   constructor(
     address admin,
     string memory name,
-    string memory symbol,
-    uint8 decimals
-  ) ERC20BLWithDecimals(name, symbol, decimals) {
+    string memory symbol
+  ) ERC20BL(name, symbol, 18) {
     admins[admin] = true;
   }
 
@@ -23,14 +22,19 @@ contract TestTokenWithDecimals is ERC20BLWithDecimals {
     admins[admin] = true;
   }
 
+  function removeAdmin(address admin) external {
+    requireAdmin();
+    admins[admin] = false;
+  }
+
   function mint(address to, uint amount) external {
     requireAdmin();
     _mint(to, amount);
   }
 
-  function burn(address account, uint amount) external {
+  function burn(address from, uint amount) external {
     requireAdmin();
-    _burn(account, amount);
+    _burn(from, amount);
   }
 
   function blacklists(address account) external {

@@ -43,9 +43,9 @@ interface IERC20 {
   event Approval(address indexed owner, address indexed spender, uint value);
 
   /// for wETH contract
-  function deposit() external payable;
+  // function deposit() external payable;
 
-  function withdraw(uint) external;
+  // function withdraw(uint) external;
 
   function decimals() external view returns (uint8);
 }

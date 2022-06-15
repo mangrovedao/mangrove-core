@@ -2,11 +2,11 @@
 pragma solidity ^0.8.13;
 pragma abicoder v2;
 
-import {Test2} from "./Test2.sol";
+import {Test} from "forge-std/test.sol";
 import "mgv_src/AbstractMangrove.sol";
 import {IERC20, MgvLib as ML, P, IMaker} from "mgv_src/MgvLib.sol";
 
-contract TestMaker is IMaker, Test2 {
+contract TestMaker is IMaker, Test {
   AbstractMangrove _mgv;
   address _base;
   address _quote;

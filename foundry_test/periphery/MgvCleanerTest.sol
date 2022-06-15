@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
-import "mgv_test/tools/MangroveTest.sol";
+import "mgv_test/lib/MangroveTest.sol";
 // pragma experimental ABIEncoderV2;
 
 import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";

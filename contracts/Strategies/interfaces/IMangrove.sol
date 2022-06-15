@@ -164,9 +164,10 @@ interface IMangrove {
   )
     external
     returns (
-      uint,
-      uint,
-      uint
+      uint takerGot,
+      uint takerGave,
+      uint bounty,
+      uint fee
     );
 
   function marketOrderFor(
@@ -181,7 +182,8 @@ interface IMangrove {
     returns (
       uint takerGot,
       uint takerGave,
-      uint bounty
+      uint bounty,
+      uint fee
     );
 
   function newOffer(
@@ -279,10 +281,11 @@ interface IMangrove {
   )
     external
     returns (
-      uint,
-      uint,
-      uint,
-      uint
+      uint successes,
+      uint takerGot,
+      uint takerGave,
+      uint bounty,
+      uint fee
     );
 
   function snipesFor(
@@ -297,7 +300,8 @@ interface IMangrove {
       uint successes,
       uint takerGot,
       uint takerGave,
-      uint bounty
+      uint bounty,
+      uint fee
     );
 
   function updateOffer(

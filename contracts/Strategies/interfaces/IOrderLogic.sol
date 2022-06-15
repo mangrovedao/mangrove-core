@@ -35,6 +35,7 @@ interface IOrderLogic {
     uint takerGot;
     uint takerGave;
     uint bounty;
+    uint fee;
     uint offerId;
   }
 

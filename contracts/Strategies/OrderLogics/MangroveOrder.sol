@@ -18,7 +18,6 @@ import "../OfferLogics/MultiUsers/Persistent.sol";
 import "../interfaces/IOrderLogic.sol";
 
 contract MangroveOrder is MultiUserPersistent, IOrderLogic {
-
   // `blockToLive[token1][token2][offerId]` gives block number beyond which the offer should renege on trade.
   mapping(IEIP20 => mapping(IEIP20 => mapping(uint => uint))) public expiring;
 
@@ -40,8 +39,6 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
 
   // revert when order was partially filled and it is not allowed
   function checkCompleteness(
-    IEIP20 outbound_tkn,
-    IEIP20 inbound_tkn,
     TakerOrder calldata tko,
     TakerOrderResult memory res
   ) internal view returns (bool isPartial) {
@@ -50,9 +47,8 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       return res.takerGave >= tko.gives;
     }
     // revert if buy is partial and `partialFillNotAllowed` and not posting residual
-    if (!tko.selling) {
-      (, P.Local.t local) = MGV.config($(outbound_tkn), $(inbound_tkn));
-      return res.takerGot >= tko.wants - (tko.wants * local.fee()) / 10_000;
+    else {
+      return res.takerGot + res.fee >= tko.wants;
     }
   }
 
@@ -85,21 +81,23 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       if (tko.gasForMarketOrder != 0 && gasleft() < tko.gasForMarketOrder) {
         break;
       }
-      (uint takerGot_, uint takerGave_, uint bounty_) = MGV.marketOrder({
-        outbound_tkn: $(outbound_tkn), // expecting quote (outbound) when selling
-        inbound_tkn: $(inbound_tkn),
-        takerWants: tko.wants,
-        takerGives: tko.gives,
-        fillWants: tko.selling ? false : true // only buy order should try to fill takerWants
-      });
+      (uint takerGot_, uint takerGave_, uint bounty_, uint fee_) = MGV
+        .marketOrder({
+          outbound_tkn: $(outbound_tkn), // expecting quote (outbound) when selling
+          inbound_tkn: $(inbound_tkn),
+          takerWants: tko.wants, // `tko.wants` includes user defined slippage
+          takerGives: tko.gives,
+          fillWants: tko.selling ? false : true // only buy order should try to fill takerWants
+        });
       res.takerGot += takerGot_;
       res.takerGave += takerGave_;
       res.bounty += bounty_;
+      res.fee += fee_;
       if (takerGot_ == 0 && bounty_ == 0) {
         break;
       }
     }
-    bool isComplete = checkCompleteness(outbound_tkn, inbound_tkn, tko, res);
+    bool isComplete = checkCompleteness(tko, res);
     // requiring `partialFillNotAllowed` => `isComplete \/ restingOrder`
     require(
       !tko.partialFillNotAllowed || isComplete || tko.restingOrder,
@@ -128,7 +126,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
         mko: MakerOrder({
           outbound_tkn: inbound_tkn,
           inbound_tkn: outbound_tkn,
-          wants: tko.makerWants - res.takerGot,
+          wants: tko.makerWants - (res.takerGot + res.fee), // tko.makerWants is before slippage
           gives: tko.makerGives - res.takerGave,
           gasreq: OFR_GASREQ(),
           gasprice: 0,

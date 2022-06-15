@@ -40,7 +40,7 @@ contract TestTaker is ITaker {
 
   function take(uint offerId, uint takerWants) external returns (bool success) {
     //uint taken = TestEvents.min(makerGives, takerWants);
-    (success, , ) = this.takeWithInfo(offerId, takerWants);
+    (success, , , ) = this.takeWithInfo(offerId, takerWants);
   }
 
   function takeWithInfo(uint offerId, uint takerWants)
@@ -48,19 +48,20 @@ contract TestTaker is ITaker {
     returns (
       bool,
       uint,
+      uint,
       uint
     )
   {
     //uint taken = TestEvents.min(makerGives, takerWants);
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [offerId, takerWants, type(uint96).max, type(uint48).max];
-    (uint successes, uint got, uint gave, , ) = _mgv.snipes(
+    (uint successes, uint got, uint gave, , uint fee) = _mgv.snipes(
       _base,
       _quote,
       targets,
       true
     );
-    return (successes == 1, got, gave);
+    return (successes == 1, got, gave, fee);
     //return taken;
   }
 

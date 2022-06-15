@@ -19,7 +19,6 @@ import {MangroveOrderEnriched as MgvOrder} from "../../Strategies/OrderLogics/Ma
 import "../../Strategies/interfaces/IOrderLogic.sol";
 
 contract MangroveOrder_Test is HasMgvEvents {
-
   // to check ERC20 logging
   event Transfer(address indexed from, address indexed to, uint value);
 
@@ -362,7 +361,7 @@ contract MangroveOrder_Test is HasMgvEvents {
     P.Offer.t offer = mgv.offers($quote, $base, res.offerId);
     TestEvents.eq(
       offer.wants(),
-      buyOrder.makerWants - res.takerGot,
+      buyOrder.makerWants - (res.takerGot + res.fee),
       "Incorrect wants for bid resting order"
     );
     TestEvents.eq(
@@ -408,7 +407,7 @@ contract MangroveOrder_Test is HasMgvEvents {
   }
 
   function resting_buy_order_can_be_partially_filled_test() public {
-    mgv.setFee($quote, $base, 0);
+    //mgv.setFee($quote, $base, 0);
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: base,
       quote: quote,
@@ -432,10 +431,8 @@ contract MangroveOrder_Test is HasMgvEvents {
     // TestUtils.logOfferBook(mgv,$base,$quote,4);
     // TestUtils.logOfferBook(mgv,$quote,$base,4);
 
-    (bool success, uint sellTkrGot, uint sellTkrGave) = sellTkr.takeWithInfo({
-      offerId: res.offerId,
-      takerWants: 0.1 ether
-    });
+    (bool success, uint sellTkrGot, uint sellTkrGave, uint fee) = sellTkr
+      .takeWithInfo({offerId: res.offerId, takerWants: 0.1 ether});
 
     TestEvents.check(success, "Resting order failed");
     // offer delivers
@@ -450,13 +447,10 @@ contract MangroveOrder_Test is HasMgvEvents {
       oldLocalBaseBal + sellTkrGave,
       "Incorrect forwarded amount to initial taker"
     );
-    // outbound token debited from test runner account on `mgvOrder`
-    // computation below is incorrect when fee != 0 since sellTkrGot is net for taker and brut should be taken from Quote balance
-    // setting fees to 0 to have correct computation
 
     TestEvents.eq(
       mgvOrder.tokenBalance(quote, address(this)),
-      oldRemoteQuoteBal - sellTkrGot,
+      oldRemoteQuoteBal - (sellTkrGot + fee),
       "Incorrect token balance on mgvOrder"
     );
 
@@ -494,7 +488,7 @@ contract MangroveOrder_Test is HasMgvEvents {
 
     // increasing density on mangrove so that resting offer can no longer repost
     mgv.setDensity($quote, $base, 1 ether);
-    (bool success, , ) = sellTkr.takeWithInfo({
+    (bool success, , , ) = sellTkr.takeWithInfo({
       offerId: res.offerId,
       takerWants: 0
     });

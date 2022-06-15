@@ -4,6 +4,9 @@ src='contracts'
 test='foundry_test'
 out='foundry_out'
 libs=['foundry_lib']
-remappings=['hardhat/=foundry_lib/forge-std/src','@mangrovedao/hardhat-test-solidity/=node_modules/@mangrovedao/hardhat-test-solidity/','mgv_src/=contracts','mgv_test/=foundry_test']
 cache_path='foundry_cache'
 solc_version="0.8.14"
+# The remappings are in remappings.txt so vscode solidity ext. can read them
+# The first lines are the manual remappings
+# The other lines are a copy/paste of the inferred mappings shown by `forge config` (inferred from imported libs)
+# You should update remappings.txt whenever a lib change impacts remappings

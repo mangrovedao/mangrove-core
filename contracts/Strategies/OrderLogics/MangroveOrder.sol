@@ -41,7 +41,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
   function checkCompleteness(
     TakerOrder calldata tko,
     TakerOrderResult memory res
-  ) internal view returns (bool isPartial) {
+  ) internal pure returns (bool isPartial) {
     // revert if sell is partial and `partialFillNotAllowed` and not posting residual
     if (tko.selling) {
       return res.takerGave >= tko.gives;

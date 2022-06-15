@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "./SafeMath.sol";
-import {IERC20} from "../MgvLib.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
 
 // From OpenZeppelin
 //The MIT License (MIT)

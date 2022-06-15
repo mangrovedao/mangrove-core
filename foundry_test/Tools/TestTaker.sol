@@ -2,8 +2,9 @@
 
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "../../AbstractMangrove.sol";
-import "./OfferManager.sol";
+
+import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+import {IERC20, ITaker} from "mgv_src/MgvLib.sol";
 
 contract TestTaker is ITaker {
   AbstractMangrove _mgv;
@@ -39,7 +40,6 @@ contract TestTaker is ITaker {
   }
 
   function take(uint offerId, uint takerWants) external returns (bool success) {
-    //uint taken = TestEvents.min(makerGives, takerWants);
     (success, , ) = this.takeWithInfo(offerId, takerWants);
   }
 
@@ -51,7 +51,6 @@ contract TestTaker is ITaker {
       uint
     )
   {
-    //uint taken = TestEvents.min(makerGives, takerWants);
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [offerId, takerWants, type(uint96).max, type(uint48).max];
     (uint successes, uint got, uint gave, , ) = _mgv.snipes(

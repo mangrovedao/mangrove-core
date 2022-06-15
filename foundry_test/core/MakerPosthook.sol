@@ -1,17 +1,9 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
-pragma experimental ABIEncoderV2;
 
-import "../AbstractMangrove.sol";
-import "../MgvLib.sol";
-import "hardhat/console.sol";
+import "mgv_test/tools/MangroveTest.sol";
 
-import "./Toolbox/TestUtils.sol";
-
-import "./Agents/TestToken.sol";
-
-contract MakerPosthook_Test is IMaker, HasMgvEvents {
-
+contract MakerPosthook_Test is MangroveTest, IMaker {
   AbstractMangrove mgv;
   TestTaker tkr;
   TestToken baseT;
@@ -111,7 +103,7 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
   ) external {
     require(msg.sender == address(this));
     called = true;
-    TestEvents.fail("Posthook should not be called");
+    fail("Posthook should not be called");
   }
 
   function retractOffer_posthook(
@@ -123,7 +115,7 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
     uint bal = mgv.balanceOf(address(this));
     mgv.retractOffer(base, quote, ofr, true);
     if (makerRevert) {
-      TestEvents.eq(
+      assertEq(
         bal,
         mgv.balanceOf(address(this)),
         "Cancel offer of a failed offer should not give provision to maker"
@@ -137,31 +129,22 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
   ) external override {
     require(msg.sender == address(mgv));
     bool success = (result.mgvData == "mgv/tradeSuccess");
-    TestEvents.eq(
-      success,
-      !(makerRevert || willFail),
-      "incorrect success flag"
-    );
+    assertEq(success, !(makerRevert || willFail), "incorrect success flag");
     if (makerRevert) {
-      TestEvents.eq(
+      assertEq(
         result.mgvData,
         "mgv/makerRevert",
         "mgvData should be makerRevert"
       );
     } else {
-      TestEvents.eq(
+      assertEq(
         result.mgvData,
         bytes32("mgv/tradeSuccess"),
         "mgvData should be tradeSuccess"
       );
     }
-    TestEvents.check(
-      !TestUtils.hasOffer(
-        mgv,
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId
-      ),
+    assertTrue(
+      !hasOffer(mgv, order.outbound_tkn, order.inbound_tkn, order.offerId),
       "Offer was not removed after take"
     );
     bool noRevert;
@@ -170,21 +153,21 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
     );
   }
 
-  function a_beforeAll() public {
-    Display.register(address(this), "Test runner");
+  function setUp() public {
+    vm.label(address(this), "Test runner");
 
-    baseT = TokenSetup.setup("A", "$A");
-    quoteT = TokenSetup.setup("B", "$B");
+    baseT = setupToken("A", "$A");
+    quoteT = setupToken("B", "$B");
     base = address(baseT);
     quote = address(quoteT);
-    Display.register(base, "base");
-    Display.register(quote, "quote");
+    vm.label(base, "base");
+    vm.label(quote, "quote");
 
-    mgv = MgvSetup.setup(baseT, quoteT);
-    Display.register(address(mgv), "Mgv");
+    mgv = setupMangrove(baseT, quoteT);
+    vm.label(address(mgv), "Mgv");
 
-    tkr = TakerSetup.setup(mgv, base, quote);
-    Display.register(address(tkr), "Taker");
+    tkr = setupTaker(mgv, base, quote);
+    vm.label(address(tkr), "Taker");
 
     baseT.approve(address(mgv), 10 ether);
 
@@ -199,84 +182,58 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
     weiBalMaker = mgv.balanceOf(address(this));
   }
 
-  function renew_offer_after_partial_fill_test() public {
-    uint mkr_provision = TestUtils.getProvision(
-      mgv,
-      base,
-      quote,
-      gasreq,
-      _gasprice
-    );
+  function test_renew_offer_after_partial_fill() public {
+    uint mkr_provision = getProvision(mgv, base, quote, gasreq, _gasprice);
     posthook_bytes = this.renew_offer_at_posthook.selector;
 
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
-    TestEvents.eq(
+    assertEq(
       mgv.balanceOf(address(this)),
       weiBalMaker - mkr_provision, // maker has provision for his gasprice
       "Incorrect maker balance before take"
     );
 
+    expectFrom(address(mgv));
+    emit OfferWrite(
+      base,
+      quote,
+      address(this),
+      1 ether,
+      1 ether,
+      _gasprice,
+      gasreq,
+      ofr,
+      0
+    );
     bool success = tkr.take(ofr, 0.5 ether);
-    TestEvents.check(success, "Snipe should succeed");
-    TestEvents.check(called, "PostHook not called");
+    assertTrue(success, "Snipe should succeed");
+    assertTrue(called, "PostHook not called");
 
-    TestEvents.eq(
+    assertEq(
       mgv.balanceOf(address(this)),
       weiBalMaker - mkr_provision, // maker reposts
       "Incorrect maker balance after take"
     );
-    TestEvents.eq(
-      TestUtils.getOfferInfo(mgv, base, quote, TestUtils.Info.makerGives, ofr),
+    assertEq(
+      getOfferInfo(mgv, base, quote, Info.makerGives, ofr),
       1 ether,
       "Offer was not correctly updated"
     );
-    TestEvents.expectFrom(address(mgv));
-    emit OfferWrite(
-      base,
-      quote,
-      address(this),
-      1 ether,
-      1 ether,
-      _gasprice,
-      gasreq,
-      ofr,
-      0
-    );
   }
 
-  function renew_offer_after_complete_fill_test() public {
-    uint mkr_provision = TestUtils.getProvision(
-      mgv,
-      base,
-      quote,
-      gasreq,
-      _gasprice
-    );
+  function test_renew_offer_after_complete_fill() public {
+    uint mkr_provision = getProvision(mgv, base, quote, gasreq, _gasprice);
     posthook_bytes = this.renew_offer_at_posthook.selector;
 
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
 
-    TestEvents.eq(
+    assertEq(
       mgv.balanceOf(address(this)),
       weiBalMaker - mkr_provision, // maker has provision for his gasprice
       "Incorrect maker balance before take"
     );
 
-    bool success = tkr.take(ofr, 2 ether);
-    TestEvents.check(called, "PostHook not called");
-    TestEvents.check(success, "Snipe should succeed");
-
-    TestEvents.eq(
-      mgv.balanceOf(address(this)),
-      weiBalMaker - mkr_provision, // maker reposts
-      "Incorrect maker balance after take"
-    );
-    TestEvents.eq(
-      TestUtils.getOfferInfo(mgv, base, quote, TestUtils.Info.makerGives, ofr),
-      1 ether,
-      "Offer was not correctly updated"
-    );
-    TestEvents.expectFrom(address(mgv));
+    expectFrom(address(mgv));
     emit OfferWrite(
       base,
       quote,
@@ -288,24 +245,29 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
       ofr,
       0
     );
+    bool success = tkr.take(ofr, 2 ether);
+    assertTrue(called, "PostHook not called");
+    assertTrue(success, "Snipe should succeed");
+
+    assertEq(
+      mgv.balanceOf(address(this)),
+      weiBalMaker - mkr_provision, // maker reposts
+      "Incorrect maker balance after take"
+    );
+    assertEq(
+      getOfferInfo(mgv, base, quote, Info.makerGives, ofr),
+      1 ether,
+      "Offer was not correctly updated"
+    );
   }
 
-  function renew_offer_after_failed_execution_test() public {
+  function test_renew_offer_after_failed_execution() public {
     posthook_bytes = this.renew_offer_at_posthook.selector;
 
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     makerRevert = true;
 
-    bool success = tkr.take(ofr, 2 ether);
-    TestEvents.check(!success, "Snipe should fail");
-    TestEvents.check(called, "PostHook not called");
-
-    TestEvents.eq(
-      TestUtils.getOfferInfo(mgv, base, quote, TestUtils.Info.makerGives, ofr),
-      1 ether,
-      "Offer was not correctly updated"
-    );
-    TestEvents.expectFrom(address(mgv));
+    expectFrom(address(mgv));
     emit OfferWrite(
       base,
       quote,
@@ -316,6 +278,15 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
       gasreq,
       ofr,
       0
+    );
+    bool success = tkr.take(ofr, 2 ether);
+    assertTrue(!success, "Snipe should fail");
+    assertTrue(called, "PostHook not called");
+
+    assertEq(
+      getOfferInfo(mgv, base, quote, Info.makerGives, ofr),
+      1 ether,
+      "Offer was not correctly updated"
     );
   }
 
@@ -324,33 +295,18 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
     MgvLib.OrderResult calldata res
   ) external {
     bool success = (res.mgvData == "mgv/tradeSuccess");
-    TestEvents.check(!success, "Offer should be marked as failed");
-    TestEvents.check(
-      res.makerData == bExecuteRevertData,
-      "Incorrect maker data"
-    );
+    assertTrue(!success, "Offer should be marked as failed");
+    assertTrue(res.makerData == bExecuteRevertData, "Incorrect maker data");
   }
 
-  function failed_offer_truncates_test() public {
+  function test_failed_offer_truncates() public {
     sExecuteRevertData = "abcdefghijklmnopqrstuvwxyz1234567";
     bExecuteRevertData = "abcdefghijklmnopqrstuvwxyz123456";
     uint balMaker = baseT.balanceOf(address(this));
     uint balTaker = quoteT.balanceOf(address(tkr));
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     makerRevert = true;
-    bool success = tkr.take(ofr, 1 ether);
-    TestEvents.check(!success, "Snipe should fail");
-    TestEvents.eq(
-      baseT.balanceOf(address(this)),
-      balMaker,
-      "Maker should not have been debited of her base tokens"
-    );
-    TestEvents.eq(
-      quoteT.balanceOf(address(tkr)),
-      balTaker,
-      "Taker should not have been debited of her quote tokens"
-    );
-    TestEvents.expectFrom(address(mgv));
+    expectFrom(address(mgv));
     emit OfferFail(
       base,
       quote,
@@ -360,28 +316,28 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
       1 ether,
       "mgv/makerRevert"
     );
+    bool success = tkr.take(ofr, 1 ether);
+    assertTrue(!success, "Snipe should fail");
+    assertEq(
+      baseT.balanceOf(address(this)),
+      balMaker,
+      "Maker should not have been debited of her base tokens"
+    );
+    assertEq(
+      quoteT.balanceOf(address(tkr)),
+      balTaker,
+      "Taker should not have been debited of her quote tokens"
+    );
   }
 
-  function failed_offer_is_not_executed_test() public {
+  function test_failed_offer_is_not_executed() public {
     posthook_bytes = this.treat_fail_at_posthook.selector;
     uint balMaker = baseT.balanceOf(address(this));
     uint balTaker = quoteT.balanceOf(address(tkr));
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     makerRevert = true;
 
-    bool success = tkr.take(ofr, 1 ether);
-    TestEvents.check(!success, "Snipe should fail");
-    TestEvents.eq(
-      baseT.balanceOf(address(this)),
-      balMaker,
-      "Maker should not have been debited of her base tokens"
-    );
-    TestEvents.eq(
-      quoteT.balanceOf(address(tkr)),
-      balTaker,
-      "Taker should not have been debited of her quote tokens"
-    );
-    TestEvents.expectFrom(address(mgv));
+    expectFrom(address(mgv));
     emit OfferFail(
       base,
       quote,
@@ -391,42 +347,34 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
       1 ether,
       "mgv/makerRevert"
     );
+    bool success = tkr.take(ofr, 1 ether);
+    assertTrue(!success, "Snipe should fail");
+    assertEq(
+      baseT.balanceOf(address(this)),
+      balMaker,
+      "Maker should not have been debited of her base tokens"
+    );
+    assertEq(
+      quoteT.balanceOf(address(tkr)),
+      balTaker,
+      "Taker should not have been debited of her quote tokens"
+    );
   }
 
-  function update_offer_with_more_gasprice_test() public {
-    uint mkr_provision = TestUtils.getProvision(
-      mgv,
-      base,
-      quote,
-      gasreq,
-      _gasprice
-    );
-    uint standard_provision = TestUtils.getProvision(mgv, base, quote, gasreq);
+  function test_update_offer_with_more_gasprice() public {
+    uint mkr_provision = getProvision(mgv, base, quote, gasreq, _gasprice);
+    uint standard_provision = getProvision(mgv, base, quote, gasreq);
     posthook_bytes = this.update_gas_offer_at_posthook.selector;
     // provision for mgv.global.gasprice
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, 0, 0);
 
-    TestEvents.eq(
+    assertEq(
       mgv.balanceOf(address(this)),
       weiBalMaker - standard_provision, // maker has provision for his gasprice
       "Incorrect maker balance before take"
     );
 
-    bool success = tkr.take(ofr, 2 ether);
-    TestEvents.check(success, "Snipe should succeed");
-    TestEvents.check(called, "PostHook not called");
-
-    TestEvents.eq(
-      mgv.balanceOf(address(this)),
-      weiBalMaker - mkr_provision, // maker reposts
-      "Incorrect maker balance after take"
-    );
-    TestEvents.eq(
-      TestUtils.getOfferInfo(mgv, base, quote, TestUtils.Info.makerGives, ofr),
-      1 ether,
-      "Offer was not correctly updated"
-    );
-    TestEvents.expectFrom(address(mgv));
+    expectFrom(address(mgv));
     emit OfferWrite(
       base,
       quote,
@@ -438,9 +386,23 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
       ofr,
       0
     );
+    bool success = tkr.take(ofr, 2 ether);
+    assertTrue(success, "Snipe should succeed");
+    assertTrue(called, "PostHook not called");
+
+    assertEq(
+      mgv.balanceOf(address(this)),
+      weiBalMaker - mkr_provision, // maker reposts
+      "Incorrect maker balance after take"
+    );
+    assertEq(
+      getOfferInfo(mgv, base, quote, Info.makerGives, ofr),
+      1 ether,
+      "Offer was not correctly updated"
+    );
   }
 
-  function posthook_of_skipped_offer_wrong_gas_should_not_be_called_test()
+  function test_posthook_of_skipped_offer_wrong_gas_should_not_be_called()
     public
   {
     posthook_bytes = this.failer_posthook.selector;
@@ -456,76 +418,58 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
       1 ether,
       gasreq - 1
     );
-    TestEvents.check(!called, "PostHook was called");
-    TestEvents.check(!success, "Snipe should fail");
+    assertTrue(!called, "PostHook was called");
+    assertTrue(!success, "Snipe should fail");
   }
 
-  function posthook_of_skipped_offer_wrong_price_should_not_be_called_test()
+  function test_posthook_of_skipped_offer_wrong_price_should_not_be_called()
     public
   {
     posthook_bytes = this.failer_posthook.selector;
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     bool success = tkr.snipe(mgv, base, quote, ofr, 1.1 ether, 1 ether, gasreq);
-    TestEvents.check(!success, "Snipe should fail");
-    TestEvents.check(!called, "PostHook was called");
+    assertTrue(!success, "Snipe should fail");
+    assertTrue(!called, "PostHook was called");
   }
 
-  function retract_offer_in_posthook_test() public {
-    uint mkr_provision = TestUtils.getProvision(
-      mgv,
-      base,
-      quote,
-      gasreq,
-      _gasprice
-    );
+  function test_retract_offer_in_posthook() public {
+    uint mkr_provision = getProvision(mgv, base, quote, gasreq, _gasprice);
     posthook_bytes = this.retractOffer_posthook.selector;
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
-    TestEvents.eq(
+    assertEq(
       mgv.balanceOf(address(this)),
       weiBalMaker - mkr_provision, // maker has provision for his gasprice
       "Incorrect maker balance before take"
     );
+    expectFrom(address(mgv));
+    emit OfferSuccess(base, quote, ofr, address(tkr), 1 ether, 1 ether);
+    expectFrom(address(mgv));
+    emit Credit(address(this), mkr_provision);
+    expectFrom(address(mgv));
+    emit OfferRetract(base, quote, ofr);
     bool success = tkr.take(ofr, 2 ether);
-    TestEvents.check(success, "Snipe should succeed");
-    TestEvents.check(called, "PostHook not called");
+    assertTrue(success, "Snipe should succeed");
+    assertTrue(called, "PostHook not called");
 
-    TestEvents.eq(
+    assertEq(
       mgv.balanceOf(address(this)),
       weiBalMaker, // provision returned to taker
       "Incorrect maker balance after take"
     );
-    TestEvents.expectFrom(address(mgv));
-    emit OfferSuccess(base, quote, ofr, address(tkr), 1 ether, 1 ether);
-    emit Credit(address(this), mkr_provision);
-    emit OfferRetract(base, quote, ofr);
   }
 
-  function balance_after_fail_and_retract_test() public {
-    uint mkr_provision = TestUtils.getProvision(
-      mgv,
-      base,
-      quote,
-      gasreq,
-      _gasprice
-    );
+  function test_balance_after_fail_and_retract() public {
+    uint mkr_provision = getProvision(mgv, base, quote, gasreq, _gasprice);
     uint tkr_weis = address(tkr).balance;
     posthook_bytes = this.retractOffer_posthook.selector;
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
-    TestEvents.eq(
+    assertEq(
       mgv.balanceOf(address(this)),
       weiBalMaker - mkr_provision, // maker has provision for his gasprice
       "Incorrect maker balance before take"
     );
     makerRevert = true;
-    bool success = tkr.take(ofr, 2 ether);
-    TestEvents.check(!success, "Snipe should fail");
-    uint penalty = weiBalMaker - mgv.balanceOf(address(this));
-    TestEvents.eq(
-      penalty,
-      address(tkr).balance - tkr_weis,
-      "Incorrect overall balance after penalty for taker"
-    );
-    TestEvents.expectFrom(address(mgv));
+    expectFrom(address(mgv));
     emit OfferFail(
       base,
       quote,
@@ -535,21 +479,36 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
       1 ether,
       "mgv/makerRevert"
     );
+    expectFrom(address(mgv));
     emit OfferRetract(base, quote, ofr);
-    emit Credit(address(this), mkr_provision - penalty);
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, address(mgv));
+    emit Credit(
+      address(this),
+      0 /*penalty*/
+    );
+    bool success = tkr.take(ofr, 2 ether);
+    assertTrue(!success, "Snipe should fail");
+    uint penalty = weiBalMaker - mgv.balanceOf(address(this));
+    assertEq(
+      penalty,
+      address(tkr).balance - tkr_weis,
+      "Incorrect overall balance after penalty for taker"
+    );
   }
 
-  function update_offer_after_deprovision_in_posthook_succeeds_test() public {
+  function test_update_offer_after_deprovision_in_posthook_succeeds() public {
     posthook_bytes = this.retractOffer_posthook.selector;
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
-    bool success = tkr.take(ofr, 2 ether);
-    TestEvents.check(called, "PostHook not called");
-
-    TestEvents.check(success, "Snipe should succeed");
-    mgv.updateOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0, ofr);
-    TestEvents.expectFrom(address(mgv));
+    expectFrom(address(mgv));
     emit OfferSuccess(base, quote, ofr, address(tkr), 1 ether, 1 ether);
+    expectFrom(address(mgv));
     emit OfferRetract(base, quote, ofr);
+    bool success = tkr.take(ofr, 2 ether);
+    assertTrue(called, "PostHook not called");
+
+    assertTrue(success, "Snipe should succeed");
+    mgv.updateOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0, ofr);
   }
 
   function check_best_in_posthook(
@@ -558,10 +517,10 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
   ) external {
     called = true;
     (, P.Local.t cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
-    TestEvents.eq(cfg.best(), ofr, "Incorrect best offer id in posthook");
+    assertEq(cfg.best(), ofr, "Incorrect best offer id in posthook");
   }
 
-  function best_in_posthook_is_correct_test() public {
+  function test_best_in_posthook_is_correct() public {
     mgv.newOffer(base, quote, 2 ether, 1 ether, gasreq, _gasprice, 0);
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     uint best = mgv.newOffer(
@@ -575,8 +534,8 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
     );
     posthook_bytes = this.check_best_in_posthook.selector;
     bool success = tkr.take(best, 1 ether);
-    TestEvents.check(called, "PostHook not called");
-    TestEvents.check(success, "Snipe should succeed");
+    assertTrue(called, "PostHook not called");
+    assertTrue(success, "Snipe should succeed");
   }
 
   function check_offer_in_posthook(
@@ -589,19 +548,19 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
     address __maker = order.offerDetail.maker();
     uint __gasreq = order.offerDetail.gasreq();
     uint __gasprice = order.offerDetail.gasprice();
-    TestEvents.eq(__wants, 1 ether, "Incorrect wants for offer in posthook");
-    TestEvents.eq(__gives, 2 ether, "Incorrect gives for offer in posthook");
-    TestEvents.eq(__gasprice, 500, "Incorrect gasprice for offer in posthook");
-    TestEvents.eq(__maker, address(this), "Incorrect maker address");
-    TestEvents.eq(__gasreq, gasreq, "Incorrect gasreq");
+    assertEq(__wants, 1 ether, "Incorrect wants for offer in posthook");
+    assertEq(__gives, 2 ether, "Incorrect gives for offer in posthook");
+    assertEq(__gasprice, 500, "Incorrect gasprice for offer in posthook");
+    assertEq(__maker, address(this), "Incorrect maker address");
+    assertEq(__gasreq, gasreq, "Incorrect gasreq");
   }
 
-  function check_offer_in_posthook_test() public {
+  function test_check_offer_in_posthook() public {
     ofr = mgv.newOffer(base, quote, 1 ether, 2 ether, gasreq, 500, 0);
     posthook_bytes = this.check_offer_in_posthook.selector;
     bool success = tkr.take(ofr, 2 ether);
-    TestEvents.check(called, "PostHook not called");
-    TestEvents.check(success, "Snipe should succeed");
+    assertTrue(called, "PostHook not called");
+    assertTrue(success, "Snipe should succeed");
   }
 
   function check_lastId_in_posthook(
@@ -610,65 +569,65 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
   ) external {
     called = true;
     (, P.Local.t cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
-    TestEvents.eq(cfg.last(), ofr, "Incorrect last offer id in posthook");
+    assertEq(cfg.last(), ofr, "Incorrect last offer id in posthook");
   }
 
-  function lastId_in_posthook_is_correct_test() public {
+  function test_lastId_in_posthook_is_correct() public {
     mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     ofr = mgv.newOffer(base, quote, 0.5 ether, 1 ether, gasreq, _gasprice, 0);
     posthook_bytes = this.check_lastId_in_posthook.selector;
     bool success = tkr.take(ofr, 1 ether);
-    TestEvents.check(called, "PostHook not called");
-    TestEvents.check(success, "Snipe should succeed");
+    assertTrue(called, "PostHook not called");
+    assertTrue(success, "Snipe should succeed");
   }
 
-  function retract_offer_after_fail_in_posthook_test() public {
-    uint mkr_provision = TestUtils.getProvision(
-      mgv,
-      base,
-      quote,
-      gasreq,
-      _gasprice
-    );
+  function test_retract_offer_after_fail_in_posthook() public {
+    uint mkr_provision = getProvision(mgv, base, quote, gasreq, _gasprice);
     posthook_bytes = this.retractOffer_posthook.selector;
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
-    TestEvents.eq(
+    assertEq(
       mgv.balanceOf(address(this)),
       weiBalMaker - mkr_provision, // maker has provision for his gasprice
       "Incorrect maker balance before take"
     );
     makerRevert = true; // maker should fail
+    expectFrom(address(mgv));
+    emit OfferFail(
+      base,
+      quote,
+      ofr,
+      address(tkr),
+      1 ether,
+      1 ether,
+      "mgv/makerRevert"
+    );
+    expectFrom(address(mgv));
+    emit OfferRetract(base, quote, ofr);
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, address(mgv));
+    emit Credit(
+      address(this),
+      0 /*refund*/
+    );
     bool success = tkr.take(ofr, 2 ether);
-    TestEvents.check(called, "PostHook not called");
+    assertTrue(called, "PostHook not called");
 
-    TestEvents.check(!success, "Snipe should fail");
+    assertTrue(!success, "Snipe should fail");
 
-    TestEvents.less(
+    assertLt(
       mgv.balanceOf(address(this)),
       weiBalMaker,
       "Maker balance after take should be less than original balance"
     );
     uint refund = mgv.balanceOf(address(this)) + mkr_provision - weiBalMaker;
-    TestEvents.expectFrom(address(mgv));
-    emit OfferFail(
-      base,
-      quote,
-      ofr,
-      address(tkr),
-      1 ether,
-      1 ether,
-      "mgv/makerRevert"
-    );
-    emit OfferRetract(base, quote, ofr);
-    emit Credit(address(this), refund);
+    console.log(refund);
   }
 
-  function makerRevert_is_logged_test() public {
+  function test_makerRevert_is_logged() public {
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     makerRevert = true; // maker should fail
     bool success;
-    success = tkr.take(ofr, 2 ether);
-    TestEvents.expectFrom(address(mgv));
+    expectFrom(address(mgv));
     emit OfferFail(
       base,
       quote,
@@ -678,6 +637,7 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
       1 ether,
       "mgv/makerRevert"
     );
+    success = tkr.take(ofr, 2 ether);
   }
 
   function reverting_posthook(
@@ -687,21 +647,21 @@ contract MakerPosthook_Test is IMaker, HasMgvEvents {
     assert(false);
   }
 
-  function reverting_posthook_does_not_revert_offer_test() public {
-    TestUtils.getProvision(mgv, base, quote, gasreq, _gasprice);
+  function test_reverting_posthook_does_not_revert_offer() public {
+    getProvision(mgv, base, quote, gasreq, _gasprice);
     uint balMaker = baseT.balanceOf(address(this));
     uint balTaker = quoteT.balanceOf(address(tkr));
     posthook_bytes = this.reverting_posthook.selector;
 
     ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     bool success = tkr.take(ofr, 1 ether);
-    TestEvents.check(success, "snipe should succeed");
-    TestEvents.eq(
+    assertTrue(success, "snipe should succeed");
+    assertEq(
       balMaker - 1 ether,
       baseT.balanceOf(address(this)),
       "Incorrect maker balance"
     );
-    TestEvents.eq(
+    assertEq(
       balTaker - 1 ether,
       quoteT.balanceOf(address(tkr)),
       "Incorrect taker balance"

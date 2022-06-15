@@ -4,12 +4,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_src/Mangrove.sol";
 import "./TestMaker.sol";
-import "mgv_src/Tests/Agents/TestToken.sol";
-
-//import "hardhat/console.sol";
-
-//import "./TestMaker.sol";
-//import "./TestToken.sol";
+import "mgv_test/tools/TestToken.sol";
 
 contract MakerDeployer {
   address payable[] makers;

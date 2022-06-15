@@ -3,13 +3,14 @@ pragma solidity ^0.8.13;
 import {Test2} from "./Test2.sol";
 import {Utilities} from "./Utilities.sol";
 
-import {TestTaker} from "mgv_src/Tests/Agents/TestTaker.sol";
+import {TestTaker} from "mgv_test/tools/TestTaker.sol";
 import {TestMaker} from "mgv_test/tools/TestMaker.sol";
 import {MakerDeployer} from "mgv_test/tools/MakerDeployer.sol";
-import {TestMoriartyMaker} from "mgv_src/Tests/Agents/TestMoriartyMaker.sol";
-import {TestToken} from "mgv_src/Tests/Agents/TestToken.sol";
+import {TestMoriartyMaker} from "mgv_test/Tools/TestMoriartyMaker.sol";
+import {TestToken} from "mgv_test/tools/TestToken.sol";
 
-import {AbstractMangrove, Mangrove} from "mgv_src/Mangrove.sol";
+import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+import {Mangrove} from "mgv_src/Mangrove.sol";
 import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
 import {IERC20, MgvLib, P, HasMgvEvents, IMaker, ITaker, IMgvMonitor} from "mgv_src/MgvLib.sol";
 import {console2 as console} from "forge-std/console2.sol";
@@ -279,6 +280,11 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
     }
     mgv.activate(address(base), address(quote), 0, 100, 20_000);
     mgv.activate(address(quote), address(base), 0, 100, 20_000);
+  }
+
+  // setup mangrove, no markets
+  function setupMangrove() public returns (AbstractMangrove mgv) {
+    mgv = deployMangrove(address(this));
   }
 
   // setup maker with failure params

@@ -1,22 +1,12 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
-pragma experimental ABIEncoderV2;
+import "mgv_test/tools/MangroveTest.sol";
+// pragma experimental ABIEncoderV2;
 
-import "../periphery/MgvCleaner.sol";
-
-import "../MgvLib.sol";
-import "hardhat/console.sol";
-import "@mangrovedao/hardhat-test-solidity/test.sol";
-
-import "./Toolbox/TestUtils.sol";
-
-import "./Agents/TestToken.sol";
-import "./Agents/TestMaker.sol";
-// import "./Agents/TestMoriartyMaker.sol";
-import "./Agents/TestTaker.sol";
+import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 
 // In these tests, the testing contract is the market maker.
-contract MgvCleaner_Test is HasMgvEvents {
+contract MgvCleanerTest is MangroveTest {
   receive() external payable {}
 
   AbstractMangrove mgv;
@@ -26,13 +16,13 @@ contract MgvCleaner_Test is HasMgvEvents {
   address inbound;
   MgvCleaner cleaner;
 
-  function a_beforeAll() public {
-    TestToken Outbound = TokenSetup.setup("A", "$A");
-    TestToken Inbound = TokenSetup.setup("B", "$B");
+  function setUp() public {
+    TestToken Outbound = setupToken("A", "$A");
+    TestToken Inbound = setupToken("B", "$B");
     outbound = address(Outbound);
     inbound = address(Inbound);
-    mgv = MgvSetup.setup(Outbound, Inbound);
-    mkr = MakerSetup.setup(mgv, outbound, inbound);
+    mgv = setupMangrove(Outbound, Inbound);
+    mkr = setupMaker(mgv, outbound, inbound);
     cleaner = new MgvCleaner(address(mgv));
 
     payable(mkr).transfer(10 ether);
@@ -46,18 +36,18 @@ contract MgvCleaner_Test is HasMgvEvents {
     Inbound.approve(address(mgv), 1 ether);
     mkr.approveMgv(Outbound, 1 ether);
 
-    Display.register(msg.sender, "Test Runner");
-    Display.register(address(this), "MgvCleaner_Test");
-    Display.register(outbound, "$A");
-    Display.register(inbound, "$B");
-    Display.register(address(mgv), "mgv");
-    Display.register(address(mkr), "maker[$A,$B]");
-    Display.register(address(cleaner), "cleaner");
+    vm.label(msg.sender, "Test Runner");
+    vm.label(address(this), "MgvCleaner_Test");
+    vm.label(outbound, "$A");
+    vm.label(inbound, "$B");
+    vm.label(address(mgv), "mgv");
+    vm.label(address(mkr), "maker[$A,$B]");
+    vm.label(address(cleaner), "cleaner");
   }
 
   /* # Test Config */
 
-  function single_failing_offer_test() public {
+  function test_single_failing_offer() public {
     mgv.approve(outbound, inbound, address(cleaner), type(uint).max);
 
     mkr.shouldFail(true);
@@ -71,10 +61,10 @@ contract MgvCleaner_Test is HasMgvEvents {
 
     uint newBal = address(this).balance;
 
-    TestEvents.more(newBal, oldBal, "balance should have increased");
+    assertGt(newBal, oldBal, "balance should have increased");
   }
 
-  function mult_failing_offer_test() public {
+  function test_mult_failing_offer() public {
     mgv.approve(outbound, inbound, address(cleaner), type(uint).max);
 
     mkr.shouldFail(true);
@@ -90,10 +80,10 @@ contract MgvCleaner_Test is HasMgvEvents {
 
     uint newBal = address(this).balance;
 
-    TestEvents.more(newBal, oldBal, "balance should have increased");
+    assertGt(newBal, oldBal, "balance should have increased");
   }
 
-  function no_fail_no_cleaning_test() public {
+  function test_no_fail_no_cleaning() public {
     mgv.approve(outbound, inbound, address(cleaner), type(uint).max);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
 
@@ -102,9 +92,9 @@ contract MgvCleaner_Test is HasMgvEvents {
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];
     try cleaner.collect(outbound, inbound, targets, true) {
-      TestEvents.fail("collect should fail since offer succeeded");
+      fail("collect should fail since offer succeeded");
     } catch Error(string memory reason) {
-      TestEvents.eq(
+      assertEq(
         "mgvCleaner/anOfferDidNotFail",
         reason,
         "fail should be due to offer execution succeeding"
@@ -113,20 +103,20 @@ contract MgvCleaner_Test is HasMgvEvents {
 
     uint newBal = address(this).balance;
 
-    TestEvents.eq(newBal, oldBal, "balance should be the same");
+    assertEq(newBal, oldBal, "balance should be the same");
   }
 
   // For now there is no need to approve
-  // function no_approve_no_cleaning_test() public {
+  // function test_no_approve_no_cleaning() public {
   //   uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000,0);
 
   //   uint[4][] memory targets = new uint[4][](1);
   //   targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];
 
   //   try cleaner.collect(outbound, inbound,targets,true) {
-  //     TestEvents.fail("collect should fail since cleaner was not approved");
+  //     fail("collect should fail since cleaner was not approved");
   //   } catch Error(string memory reason) {
-  //     TestEvents.eq("mgv/lowAllowance",reason,"Fail should be due to no allowance");
+  //     assertEq("mgv/lowAllowance",reason,"Fail should be due to no allowance");
   //   }
   // }
 }

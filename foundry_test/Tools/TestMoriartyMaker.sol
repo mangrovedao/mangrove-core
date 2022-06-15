@@ -1,12 +1,10 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
-pragma abicoder v2;
-import "./Passthrough.sol";
-import "../../AbstractMangrove.sol";
-import "../../MgvLib.sol";
 
-contract TestMoriartyMaker is IMaker, Passthrough {
+import "mgv_src/AbstractMangrove.sol";
+import {IERC20, MgvLib as ML, P, IMaker} from "mgv_src/MgvLib.sol";
 
+contract TestMoriartyMaker is IMaker {
   AbstractMangrove mgv;
   address base;
   address quote;

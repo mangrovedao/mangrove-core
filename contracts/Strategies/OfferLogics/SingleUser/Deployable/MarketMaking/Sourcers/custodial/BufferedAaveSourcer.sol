@@ -15,6 +15,13 @@ pragma abicoder v2;
 
 import "./AaveSourcer.sol";
 
+// Underlying on AAVE and a buffer on maker contract
+// Overlying on sourcer contract
+// `this` must approve Lender for outbound token transfer (pull)
+// `this` must approve Lender for inbound token transfer (flush)
+// `this` must be approved by maker contract for outbound token transfer (flush/pull buffer)
+// `this` must be approved by maker contract for inbound token transfer (flush)
+
 contract BufferedAaveSourcer is AaveSourcer {
   mapping(IEIP20 => uint) public liquidity_buffer_size;
 
@@ -37,7 +44,11 @@ contract BufferedAaveSourcer is AaveSourcer {
     if (token.balanceOf(msg.sender) < amount) {
       // transfer *all* aTokens from AAVE account
       (uint amount_, ) = maxGettableUnderlying(token, false, address(this));
-      return _redeem(token, amount_, msg.sender);
+      if (amount_ == 0) {
+        return 0;
+      } else {
+        return _redeem(token, amount_, msg.sender);
+      }
     } else {
       // there is enough liquidity on `MAKER`, nothing to do
       return 0;
@@ -61,7 +72,7 @@ contract BufferedAaveSourcer is AaveSourcer {
             ),
             "AaveSourcer/flush/transferFail"
           );
-          repayThenDeposit(tokens[i], amount);
+          repayThenDeposit(tokens[i], address(this), amount);
         }
       }
     }

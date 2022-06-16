@@ -15,7 +15,7 @@ pragma abicoder v2;
 
 import "contracts/Strategies/utils/AccessControlled.sol";
 import "contracts/Strategies/utils/TransferLib.sol";
-import "./Sourcer.sol";
+import "../Sourcer.sol";
 
 contract EOASourcer is Sourcer {
   address public immutable SOURCE;

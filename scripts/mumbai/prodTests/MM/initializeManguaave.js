@@ -1,4 +1,4 @@
-const { ethers, network } = require("hardhat");
+const { ethers } = require("hardhat");
 const { Mangrove } = require("../../../../../mangrove.js");
 const { getProvider } = require("scripts/helper.js");
 
@@ -105,27 +105,27 @@ async function main() {
       await tx.wait();
     }
 
-    if ((await MgvAPI.token(baseName).allowance({ spender: sourcer })).eq(0)) {
-      // maker has to approve liquidity sourcer of Mango for base and quote transfer
-      console.log(
-        `* Approving sourcer to transfer ${baseName} from tester wallet`
-      );
-      tx = await MgvAPI.token(baseName).approve(
-        sourcer,
-        ethers.constants.MaxUint256
-      );
-      await tx.wait();
-    }
-    if ((await MgvAPI.token(quoteName).allowance({ spender: sourcer })).eq(0)) {
-      console.log(
-        `* Approving sourcer to transfer ${quoteName} from tester wallet`
-      );
-      tx = await MgvAPI.token(quoteName).approve(
-        sourcer,
-        ethers.constants.MaxUint256
-      );
-      await tx.wait();
-    }
+    // if ((await MgvAPI.token(baseName).allowance({ spender: sourcer })).eq(0)) {
+    //   // maker has to approve liquidity sourcer of Mango for base and quote transfer
+    //   console.log(
+    //     `* Approving sourcer to transfer ${baseName} from tester wallet`
+    //   );
+    //   tx = await MgvAPI.token(baseName).approve(
+    //     sourcer,
+    //     ethers.constants.MaxUint256
+    //   );
+    //   await tx.wait();
+    // }
+    // if ((await MgvAPI.token(quoteName).allowance({ spender: sourcer })).eq(0)) {
+    //   console.log(
+    //     `* Approving sourcer to transfer ${quoteName} from tester wallet`
+    //   );
+    //   tx = await MgvAPI.token(quoteName).approve(
+    //     sourcer,
+    //     ethers.constants.MaxUint256
+    //   );
+    //   await tx.wait();
+    // }
 
     const NSLOTS = (await MangoRaw.NSLOTS()).toNumber();
     const market = await MgvAPI.market({ base: baseName, quote: quoteName });

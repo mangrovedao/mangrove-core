@@ -112,13 +112,18 @@ contract AaveV3Module {
     }
   }
 
-  function repayThenDeposit(IEIP20 token, uint amount) internal {
+  function repayThenDeposit(
+    IEIP20 token,
+    address onBehalf,
+    uint amount
+  ) internal {
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
         AMI.$repayThenDeposit.selector,
         INTEREST_RATE_MODE,
         REFERRAL_CODE,
         token,
+        onBehalf,
         amount
       )
     );
@@ -168,7 +173,7 @@ contract AaveV3Module {
     uint amount,
     address to
   ) internal returns (uint redeemed) {
-    return POOL.withdraw(address(token), amount, to);
+    redeemed = (amount == 0) ? 0 : POOL.withdraw(address(token), amount, to);
   }
 
   function _supply(
@@ -176,7 +181,11 @@ contract AaveV3Module {
     uint amount,
     address onBehalf
   ) internal {
-    POOL.supply(address(token), amount, onBehalf, REFERRAL_CODE);
+    if (amount == 0) {
+      return;
+    } else {
+      POOL.supply(address(token), amount, onBehalf, REFERRAL_CODE);
+    }
   }
 
   function _repay(
@@ -184,7 +193,9 @@ contract AaveV3Module {
     uint amount,
     address onBehalf
   ) internal returns (uint repaid) {
-    return POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf);
+    repaid = (amount == 0)
+      ? 0
+      : POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf);
   }
 
   // rewards claiming.

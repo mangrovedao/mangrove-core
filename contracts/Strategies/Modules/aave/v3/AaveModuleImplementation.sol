@@ -122,6 +122,7 @@ contract AaveV3ModuleImplementation {
     uint interestRateMode,
     uint referralCode,
     IEIP20 token,
+    address onBehalf,
     uint amount
   ) external {
     // AAVE repay/deposit throws if amount == 0
@@ -149,14 +150,14 @@ contract AaveV3ModuleImplementation {
         address(token),
         amount,
         interestRateMode,
-        address(this)
+        onBehalf
       );
       toMint = amount - repaid;
       if (toMint == 0) {
         return;
       }
     }
-    POOL.supply(address(token), toMint, address(this), uint16(referralCode));
+    POOL.supply(address(token), toMint, onBehalf, uint16(referralCode));
   }
 
   function $exactRedeemThenBorrow(

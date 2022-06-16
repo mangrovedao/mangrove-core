@@ -38,7 +38,7 @@ abstract contract AaveV3Trader is AaveV3Lender {
     if (amount == 0) {
       return 0;
     }
-    repayThenDeposit(IEIP20(order.inbound_tkn), amount);
+    repayThenDeposit(IEIP20(order.inbound_tkn), address(this), amount);
     return 0;
   }
 

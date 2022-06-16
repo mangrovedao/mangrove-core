@@ -4,21 +4,26 @@ pragma abicoder v2;
 import "../Toolbox/TestUtils.sol";
 
 library TestCollectFailingOffer {
+  struct TestVars {
+    AbstractMangrove mgv;
+    uint failingOfferId;
+    MakerDeployer makers;
+    TestTaker taker;
+    TestToken base;
+    TestToken quote;
+  }
+
   function run(
     TestUtils.Balances storage balances,
     mapping(uint => mapping(TestUtils.Info => uint)) storage offers,
-    AbstractMangrove mgv,
-    uint failingOfferId,
-    MakerDeployer makers,
-    TestTaker taker,
-    TestToken base,
-    TestToken quote
+    TestVars memory vars
   ) external {
     // executing failing offer
-    try taker.takeWithInfo(failingOfferId, 0.5 ether) returns (
+    try vars.taker.takeWithInfo(vars.failingOfferId, 0.5 ether) returns (
       bool success,
       uint takerGot,
-      uint takerGave
+      uint takerGave,
+      uint
     ) {
       // take should return false not throw
       TestEvents.check(!success, "Failer should fail");
@@ -27,22 +32,26 @@ library TestCollectFailingOffer {
       // failingOffer should have been removed from Mgv
       {
         TestEvents.check(
-          !mgv.isLive(
-            mgv.offers(address(base), address(quote), failingOfferId)
+          !vars.mgv.isLive(
+            vars.mgv.offers(
+              address(vars.base),
+              address(vars.quote),
+              vars.failingOfferId
+            )
           ),
           "Failing offer should have been removed from Mgv"
         );
       }
       uint provision = TestUtils.getProvision(
-        mgv,
-        address(base),
-        address(quote),
-        offers[failingOfferId][TestUtils.Info.gasreq]
+        vars.mgv,
+        address(vars.base),
+        address(vars.quote),
+        offers[vars.failingOfferId][TestUtils.Info.gasreq]
       );
-      uint returned = mgv.balanceOf(address(makers.getMaker(0))) -
+      uint returned = vars.mgv.balanceOf(address(vars.makers.getMaker(0))) -
         balances.makersBalanceWei[0];
       TestEvents.eq(
-        address(mgv).balance,
+        address(vars.mgv).balance,
         balances.mgvBalanceWei - (provision - returned),
         "Mangrove has not send the correct amount to taker"
       );

@@ -132,34 +132,45 @@ contract Scenarii_Test is HasMgvEvents {
   }
 
   function snipe_insert_and_fail_test() public {
-    offerOf = TestInsert.run(balances, mgv, makers, taker, base, quote);
+    offerOf = TestInsert.run(
+      balances,
+      TestInsert.TestVars({
+        mgv: mgv,
+        makers: makers,
+        taker: taker,
+        base: base,
+        quote: quote
+      })
+    );
     //TestUtils.printOfferBook(mgv);
     TestUtils.logOfferBook(mgv, address(base), address(quote), 4);
 
     //TestEvents.logString("=== Snipe test ===", 0);
     saveBalances();
     saveOffers();
-    (uint takerGot, uint takerGave, uint expectedFee) = TestSnipe.run(
-      balances,
-      offers,
-      mgv,
-      makers,
-      taker,
-      base,
-      quote
-    );
-    console.log("expected", expectedFee);
-    TestEvents.expectFrom(address(mgv));
-    emit OrderStart();
-    emit OrderComplete(
-      address(base),
-      address(quote),
-      address(taker),
-      takerGot,
-      takerGave,
-      0,
-      expectedFee
-    );
+    {
+      (uint takerGot, uint takerGave, uint expectedFee) = TestSnipe.run(
+        balances,
+        offers,
+        mgv,
+        makers,
+        taker,
+        base,
+        quote
+      );
+      console.log("expected", expectedFee);
+      TestEvents.expectFrom(address(mgv));
+      emit OrderStart();
+      emit OrderComplete(
+        address(base),
+        address(quote),
+        address(taker),
+        takerGot,
+        takerGave,
+        0,
+        expectedFee
+      );
+    }
     TestEvents.stopExpecting();
 
     TestUtils.logOfferBook(mgv, address(base), address(quote), 4);
@@ -187,12 +198,14 @@ contract Scenarii_Test is HasMgvEvents {
     TestCollectFailingOffer.run(
       balances,
       offers,
-      mgv,
-      offerOf[0],
-      makers,
-      taker,
-      base,
-      quote
+      TestCollectFailingOffer.TestVars({
+        mgv: mgv,
+        failingOfferId: offerOf[0],
+        makers: makers,
+        taker: taker,
+        base: base,
+        quote: quote
+      })
     );
     TestUtils.logOfferBook(mgv, address(base), address(quote), 4);
     saveBalances();

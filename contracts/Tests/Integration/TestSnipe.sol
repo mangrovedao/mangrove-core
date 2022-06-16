@@ -44,7 +44,7 @@ library TestSnipe {
     //---------------SNIPE------------------//
     {
       bool takeSuccess;
-      (takeSuccess, takerGot, takerGave) = taker.takeWithInfo(
+      (takeSuccess, takerGot, takerGave, ) = taker.takeWithInfo(
         bag.snipedId,
         bag.orderAmount
       );

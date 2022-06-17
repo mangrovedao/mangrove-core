@@ -2,6 +2,47 @@
 
 pragma solidity ^0.8.10;
 
+/*  *** CHEAT SHEET ********************************
+
+  Cheat sheet about ethers.js sig generation
+
+  // Follow https://eips.ethereum.org/EIPS/eip-2612
+
+  declare owner: Signer;
+
+  const domain = {
+    name: "Mangrove",
+    version: "1",
+    chainId: 31337, // hardhat chainid
+    verifyingContract: mgvAddress,
+  };
+
+  const types = {
+    Permit: [
+      { name: "base", type: "address" },
+      { name: "quote", type: "address" },
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+      { name: "value", type: "uint256" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ],
+  };
+
+  const data = {
+    base: baseAddress,
+    quote: quoteAddress,
+    owner: await owner.getAddress(),
+    spender: permit.address,
+    value: value,
+    nonce: 0,
+    deadline: deadline,
+  };
+
+  owner._signTypedData(domain, types, data);
+
+*/
+
 import "mgv_test/lib/MangroveTest.sol";
 import {Vm} from "forge-std/Vm.sol";
 

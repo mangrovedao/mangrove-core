@@ -2,14 +2,13 @@
 pragma solidity ^0.8.10;
 import "./ERC20.sol";
 
-contract ERC20BL is ERC20 {
+abstract contract ERC20BL is ERC20 {
   mapping(address => bool) public _blacklisted;
 
-  constructor(
-    string memory _name,
-    string memory _symbol,
-    uint8 _decimals
-  ) ERC20(_name, _symbol, _decimals) {}
+  constructor(string memory _name, string memory _symbol)
+    ERC20Base(_name, _symbol)
+    ERC20(_name)
+  {}
 
   modifier notBlackListed(address addr) {
     require(!_blacklisted[addr], "ERC20BL/Blacklisted");

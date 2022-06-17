@@ -9,7 +9,7 @@ contract TestToken is ERC20BL {
     address admin,
     string memory name,
     string memory symbol
-  ) ERC20BL(name, symbol, 18) {
+  ) ERC20BL(name, symbol) {
     admins[admin] = true;
   }
 

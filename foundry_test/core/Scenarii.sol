@@ -151,7 +151,9 @@ contract Scenarii_Test is MangroveTest {
     try taker.takeWithInfo(failingOfferId, 0.5 ether) returns (
       bool success,
       uint takerGot,
-      uint takerGave
+      uint takerGave,
+      uint,
+      uint
     ) {
       // take should return false not throw
       assertTrue(!success, "Failer should fail");
@@ -357,7 +359,7 @@ contract Scenarii_Test is MangroveTest {
     //---------------SNIPE------------------//
     {
       bool takeSuccess;
-      (takeSuccess, takerGot, takerGave) = taker.takeWithInfo(
+      (takeSuccess, takerGot, takerGave, , ) = taker.takeWithInfo(
         bag.snipedId,
         bag.orderAmount
       );

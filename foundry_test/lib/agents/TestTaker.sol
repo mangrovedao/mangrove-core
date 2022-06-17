@@ -40,7 +40,7 @@ contract TestTaker is ITaker {
   }
 
   function take(uint offerId, uint takerWants) external returns (bool success) {
-    (success, , ) = this.takeWithInfo(offerId, takerWants);
+    (success, , , , ) = this.takeWithInfo(offerId, takerWants);
   }
 
   function takeWithInfo(uint offerId, uint takerWants)
@@ -48,18 +48,21 @@ contract TestTaker is ITaker {
     returns (
       bool,
       uint,
+      uint,
+      uint,
       uint
     )
   {
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [offerId, takerWants, type(uint96).max, type(uint48).max];
-    (uint successes, uint got, uint gave, , ) = _mgv.snipes(
-      _base,
-      _quote,
-      targets,
-      true
-    );
-    return (successes == 1, got, gave);
+    (
+      uint successes,
+      uint got,
+      uint gave,
+      uint totalPenalty,
+      uint feePaid
+    ) = _mgv.snipes(_base, _quote, targets, true);
+    return (successes == 1, got, gave, totalPenalty, feePaid);
     //return taken;
   }
 

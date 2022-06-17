@@ -2,11 +2,26 @@
 pragma solidity ^0.8.13;
 pragma abicoder v2;
 
-import {Test} from "forge-std/test.sol";
+import {Test} from "forge-std/Test.sol";
 import "mgv_src/AbstractMangrove.sol";
 import {IERC20, MgvLib as ML, P, IMaker} from "mgv_src/MgvLib.sol";
 
-contract TestMaker is IMaker, Test {
+contract TrivialTestMaker is IMaker, Test {
+  function makerExecute(ML.SingleOrder calldata)
+    external
+    virtual
+    returns (bytes32)
+  {
+    return "";
+  }
+
+  function makerPosthook(ML.SingleOrder calldata, ML.OrderResult calldata)
+    external
+    virtual
+  {}
+}
+
+contract TestMaker is TrivialTestMaker {
   AbstractMangrove _mgv;
   address _base;
   address _quote;
@@ -83,6 +98,7 @@ contract TestMaker is IMaker, Test {
   function makerExecute(ML.SingleOrder calldata order)
     public
     virtual
+    override
     returns (bytes32)
   {
     if (_shouldRevert) {
@@ -123,7 +139,7 @@ contract TestMaker is IMaker, Test {
   function makerPosthook(
     ML.SingleOrder calldata order,
     ML.OrderResult calldata result
-  ) external virtual {
+  ) external virtual override {
     order; //shh
     if (_shouldFailHook) {
       revert("posthookFail");

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
-import {Test2} from "./Test2.sol";
+import "./Test2.sol";
 import {Utilities} from "./Utilities.sol";
 
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
-import {TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
+import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {MakerDeployer} from "mgv_test/lib/agents/MakerDeployer.sol";
 import {TestMoriartyMaker} from "mgv_test/lib/agents/TestMoriartyMaker.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
@@ -13,7 +13,7 @@ import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
 import {IERC20, MgvLib, P, HasMgvEvents, IMaker, ITaker, IMgvMonitor} from "mgv_src/MgvLib.sol";
-import {console2 as console} from "forge-std/console2.sol";
+import {console2 as csl} from "forge-std/console2.sol";
 
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 

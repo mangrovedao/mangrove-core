@@ -21,15 +21,35 @@ contract Test2 is Test {
     vm.expectCall(addr, req);
   }
 
-  // generate fresh addresses that will be called (and be mocked before being called)
-  uint addressIterator = 0;
+  uint keyIterator = 1;
 
-  function addressToMock() internal returns (address) {
-    uint nonce = block.timestamp + (addressIterator++);
-    address addr = address(bytes20(keccak256(abi.encode(nonce))));
+  // create addr/key pairs, with/without label
+  function freshAccount() internal returns (uint, address) {
+    uint key = keyIterator++;
+    address addr = vm.addr(key);
     // set code to nonzero so solidity-inserted extcodesize checks don't fail
     vm.etch(addr, bytes("not zero"));
-    return addr;
+    return (key, addr);
+  }
+
+  function freshAccount(string memory label)
+    internal
+    returns (uint key, address addr)
+  {
+    (key, addr) = freshAccount();
+    vm.label(addr, label);
+  }
+
+  function freshKey() internal returns (uint key) {
+    (key, ) = freshAccount();
+  }
+
+  function freshAddress() internal returns (address addr) {
+    (, addr) = freshAccount();
+  }
+
+  function freshAddress(string memory label) internal returns (address addr) {
+    (, addr) = freshAccount(label);
   }
 
   /* expect exact log from address */

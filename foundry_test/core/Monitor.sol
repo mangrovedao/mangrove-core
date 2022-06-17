@@ -23,7 +23,7 @@ contract MonitorTest is MangroveTest {
     mgv = setupMangrove(baseT, quoteT);
     mkr = setupMaker(mgv, base, quote);
 
-    monitor = addressToMock();
+    monitor = freshAddress();
     monitor_read_cd = abi.encodeCall(IMgvMonitor.read, (base, quote));
 
     payable(mkr).transfer(10 ether);

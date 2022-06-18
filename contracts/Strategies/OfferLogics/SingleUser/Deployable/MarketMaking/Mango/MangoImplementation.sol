@@ -13,8 +13,8 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MangoStorage.sol";
 import "../../../Persistent.sol";
-import "contracts/Strategies/utils/TransferLib.sol";
-import "contracts/Strategies/interfaces/ISourcer.sol";
+import "contracts/strategies/utils/TransferLib.sol";
+import "contracts/strategies/interfaces/ISourcer.sol";
 
 /** Discrete automated market making strat */
 /** This AMM is headless (no price model) and market makes on `NSLOTS` price ranges*/
@@ -27,7 +27,6 @@ import "contracts/Strategies/interfaces/ISourcer.sol";
 /** In case of a partial fill of an offer at position i, the offer residual is reposted (see `Persistent` strat class)*/
 
 contract MangoImplementation is Persistent {
-
   event BidAtMaxPosition();
   // emitted when strat has reached max amount of Asks and needs rebalancing (should shift of x<0 positions in order to have ask prices that are better for the taker)
   event AskAtMinPosition();

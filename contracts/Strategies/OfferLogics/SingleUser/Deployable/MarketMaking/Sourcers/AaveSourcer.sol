@@ -13,10 +13,10 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "contracts/Strategies/Modules/aave/v3/AaveModule.sol";
-import "contracts/Strategies/utils/AccessControlled.sol";
-import "contracts/Strategies/utils/TransferLib.sol";
-import "contracts/Strategies/interfaces/ISourcer.sol";
+import "contracts/strategies/Modules/aave/v3/AaveModule.sol";
+import "contracts/strategies/utils/AccessControlled.sol";
+import "contracts/strategies/utils/TransferLib.sol";
+import "contracts/strategies/interfaces/ISourcer.sol";
 
 contract AaveSourcer is ISourcer, AaveV3Module, AccessControlled {
   address immutable MAKER;

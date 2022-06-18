@@ -72,15 +72,8 @@ contract NotAdmin {
 }
 
 contract Deployer is MangroveTest {
-  AbstractMangrove mgv;
-
   function deploy() public returns (AbstractMangrove) {
-    mgv = deployMangrove(msg.sender);
-    return mgv;
-  }
-
-  function setGovernance(address governance) public {
-    mgv.setGovernance(governance);
+    return new Mangrove({governance: msg.sender, gasprice: 0, gasmax: 0});
   }
 }
 
@@ -88,60 +81,34 @@ contract Deployer is MangroveTest {
 contract GatekeepingTest is IMaker, MangroveTest {
   receive() external payable {}
 
-  AbstractMangrove mgv;
   TestTaker tkr;
   TestMaker mkr;
   TestMaker dual_mkr;
-  address base;
-  address quote;
 
-  function test_gov_is_not_sender() public {
-    Deployer deployer = new Deployer();
-    AbstractMangrove _mgv = deployer.deploy();
+  function setUp() public override {
+    super.setUp();
 
-    assertEq(_mgv.governance(), address(this), "governance should return this");
-  }
-
-  function setUp() public {
-    TestToken baseT = setupToken("A", "$A");
-    TestToken quoteT = setupToken("B", "$B");
-    base = address(baseT);
-    quote = address(quoteT);
-    mgv = setupMangrove(baseT, quoteT);
-    tkr = setupTaker(mgv, base, quote);
-    mkr = setupMaker(mgv, base, quote);
-    dual_mkr = setupMaker(mgv, quote, base);
-
-    payable(tkr).transfer(10 ether);
-    payable(mkr).transfer(10 ether);
-    payable(dual_mkr).transfer(10 ether);
-
-    bool noRevert;
-    (noRevert, ) = address(mgv).call{value: 10 ether}("");
+    tkr = setupTaker($base, $quote, "taker[$A,$B]");
+    mkr = setupMaker($base, $quote, "maker[$A,$B]");
+    dual_mkr = setupMaker($quote, $base, "maker[$B,$A]");
 
     mkr.provisionMgv(5 ether);
     dual_mkr.provisionMgv(5 ether);
 
-    baseT.mint(address(this), 2 ether);
-    quoteT.mint(address(tkr), 1 ether);
-    quoteT.mint(address(mkr), 1 ether);
-    baseT.mint(address(dual_mkr), 1 ether);
+    deal($quote, address(tkr), 1 ether);
+    deal($quote, address(mkr), 1 ether);
+    deal($base, address(dual_mkr), 1 ether);
 
-    baseT.approve(address(mgv), 1 ether);
-    quoteT.approve(address(mgv), 1 ether);
-    tkr.approveMgv(quoteT, 1 ether);
-
-    vm.label(msg.sender, "Test Runner");
-    vm.label(address(this), "Gatekeeping_Test/maker");
-    vm.label(base, "$A");
-    vm.label(quote, "$B");
-    vm.label(address(mgv), "mgv");
-    vm.label(address(tkr), "taker[$A,$B]");
-    vm.label(address(dual_mkr), "maker[$B,$A]");
-    vm.label(address(mkr), "maker[$A,$B]");
+    tkr.approveMgv(quote, 1 ether);
   }
 
   /* # Test Config */
+
+  function test_gov_is_not_sender() public {
+    AbstractMangrove new_mgv = (new Deployer()).deploy();
+
+    assertEq(new_mgv.governance(), $this, "governance should return this");
+  }
 
   function test_gov_cant_be_zero() public {
     try mgv.setGovernance(address(0)) {
@@ -154,24 +121,24 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_gov_can_transfer_rights() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
     // Logging tests
-    expectFrom(address(mgv));
+    expectFrom($mgv);
     emit SetGovernance(address(notAdmin));
     mgv.setGovernance(address(notAdmin));
 
-    try mgv.setFee(base, quote, 0) {
+    try mgv.setFee($base, $quote, 0) {
       fail("testing contracts should no longer be admin");
     } catch {}
 
-    expectFrom(address(mgv));
-    emit SetFee(base, quote, 1);
-    try notAdmin.setFee(base, quote, 1) {} catch {
+    expectFrom($mgv);
+    emit SetFee($base, $quote, 1);
+    try notAdmin.setFee($base, $quote, 1) {} catch {
       fail("notAdmin should have been given admin rights");
     }
   }
 
   function test_only_gov_can_set_fee() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
-    try notAdmin.setFee(base, quote, 0) {
+    try notAdmin.setFee($base, $quote, 0) {
       fail("nonadmin cannot set fee");
     } catch Error(string memory r) {
       revertEq(r, "mgv/unauthorized");
@@ -180,7 +147,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_only_gov_can_set_density() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
-    try notAdmin.setDensity(base, quote, 0) {
+    try notAdmin.setDensity($base, $quote, 0) {
       fail("nonadmin cannot set density");
     } catch Error(string memory r) {
       revertEq(r, "mgv/unauthorized");
@@ -189,9 +156,9 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_set_zero_density() public {
     // Logging tests
-    expectFrom(address(mgv));
-    emit SetDensity(base, quote, 0);
-    try mgv.setDensity(base, quote, 0) {} catch Error(string memory) {
+    expectFrom($mgv);
+    emit SetDensity($base, $quote, 0);
+    try mgv.setDensity($base, $quote, 0) {} catch Error(string memory) {
       fail("setting density to 0 should work");
     }
   }
@@ -208,7 +175,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_killing_updates_config() public {
     (P.Global.t global, ) = mgv.config(address(0), address(0));
     assertTrue(!global.dead(), "mgv should not be dead ");
-    expectFrom(address(mgv));
+    expectFrom($mgv);
     emit Kill();
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
@@ -219,12 +186,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_kill_is_idempotent() public {
     (P.Global.t global, ) = mgv.config(address(0), address(0));
     assertTrue(!global.dead(), "mgv should not be dead ");
-    expectFrom(address(mgv));
+    expectFrom($mgv);
     emit Kill();
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
     assertTrue(global.dead(), "mgv should be dead");
-    expectFrom(address(mgv));
+    expectFrom($mgv);
     emit Kill();
     mgv.kill();
     (global, ) = mgv.config(address(0), address(0));
@@ -234,7 +201,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_only_gov_can_set_vault() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
-    try notAdmin.setVault(address(this)) {
+    try notAdmin.setVault($this) {
       fail("nonadmin cannot set vault");
     } catch Error(string memory r) {
       revertEq(r, "mgv/unauthorized");
@@ -243,7 +210,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_only_gov_can_set_monitor() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
-    try notAdmin.setMonitor(address(this)) {
+    try notAdmin.setMonitor($this) {
       fail("nonadmin cannot set monitor");
     } catch Error(string memory r) {
       revertEq(r, "mgv/unauthorized");
@@ -252,7 +219,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_only_gov_can_set_active() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
-    try notAdmin.activate(quote, base, 0, 100, 0) {
+    try notAdmin.activate($quote, $base, 0, 100, 0) {
       fail("nonadmin cannot set active");
     } catch Error(string memory r) {
       revertEq(r, "mgv/unauthorized");
@@ -279,7 +246,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_only_gov_can_set_gasbase() public {
     NotAdmin notAdmin = new NotAdmin(mgv);
-    try notAdmin.setGasbase(base, quote, 0) {
+    try notAdmin.setGasbase($base, $quote, 0) {
       fail("nonadmin cannot set gasbase");
     } catch Error(string memory r) {
       revertEq(r, "mgv/unauthorized");
@@ -294,13 +261,13 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_set_fee_ceiling() public {
-    try mgv.setFee(base, quote, 501) {} catch Error(string memory r) {
+    try mgv.setFee($base, $quote, 501) {} catch Error(string memory r) {
       revertEq(r, "mgv/config/fee/<=500");
     }
   }
 
   function test_set_density_ceiling() public {
-    try mgv.setDensity(base, quote, uint(type(uint112).max) + 1) {
+    try mgv.setDensity($base, $quote, uint(type(uint112).max) + 1) {
       fail("density above ceiling should fail");
     } catch Error(string memory r) {
       revertEq(r, "mgv/config/density/112bits");
@@ -316,13 +283,13 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_set_zero_gasbase() public {
-    try mgv.setGasbase(base, quote, 0) {} catch Error(string memory) {
+    try mgv.setGasbase($base, $quote, 0) {} catch Error(string memory) {
       fail("setting gasbases to 0 should work");
     }
   }
 
   function test_set_gasbase_ceiling() public {
-    try mgv.setGasbase(base, quote, uint(type(uint24).max) + 1) {
+    try mgv.setGasbase($base, $quote, uint(type(uint24).max) + 1) {
       fail("offer_gasbase above ceiling should fail");
     } catch Error(string memory r) {
       revertEq(r, "mgv/config/offer_gasbase/24bits");
@@ -347,7 +314,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_retractOffer_wrong_owner_fails() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 10_000, 0);
-    try mgv.retractOffer(base, quote, ofr, false) {
+    try mgv.retractOffer($base, $quote, ofr, false) {
       fail("Too wide offer should not be inserted");
     } catch Error(string memory r) {
       assertEq(r, "mgv/retractOffer/unauthorized", "wrong revert reason");
@@ -371,7 +338,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_makerGasreq_bigger_than_gasmax_fails_newOffer() public {
-    (P.Global.t cfg, ) = mgv.config(base, quote);
+    (P.Global.t cfg, ) = mgv.config($base, $quote);
     try mkr.newOffer(1, 1, cfg.gasmax() + 1, 0) {
       fail("Offer should not be inserted");
     } catch Error(string memory r) {
@@ -380,12 +347,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_makerGasreq_at_gasmax_succeeds_newOffer() public {
-    (P.Global.t cfg, ) = mgv.config(base, quote);
+    (P.Global.t cfg, ) = mgv.config($base, $quote);
     // Logging tests
-    expectFrom(address(mgv));
+    expectFrom($mgv);
     emit OfferWrite(
-      address(base),
-      address(quote),
+      $base,
+      $quote,
       address(mkr),
       1 ether, //base
       1 ether, //quote
@@ -394,14 +361,11 @@ contract GatekeepingTest is IMaker, MangroveTest {
       1, //ofrId
       0 // prev
     );
-    expectFrom(address(mgv));
-    emit Debit(
-      address(mkr),
-      getProvision(mgv, address(base), address(quote), cfg.gasmax(), 0)
-    );
+    expectFrom($mgv);
+    emit Debit(address(mkr), getProvision($base, $quote, cfg.gasmax(), 0));
     try mkr.newOffer(1 ether, 1 ether, cfg.gasmax(), 0) returns (uint ofr) {
       assertTrue(
-        mgv.isLive(mgv.offers(base, quote, ofr)),
+        mgv.isLive(mgv.offers($base, $quote, ofr)),
         "Offer should have been inserted"
       );
     } catch {
@@ -410,7 +374,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_makerGasreq_lower_than_density_fails_newOffer() public {
-    (, P.Local.t cfg) = mgv.config(base, quote);
+    mgv.setDensity($base, $quote, 100);
+    (, P.Local.t cfg) = mgv.config($base, $quote);
     uint amount = (1 + cfg.offer_gasbase()) * cfg.density();
     try mkr.newOffer(amount - 1, amount - 1, 1, 0) {
       fail("Offer should not be inserted");
@@ -420,13 +385,14 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_makerGasreq_at_density_suceeds() public {
-    (P.Global.t glob, P.Local.t cfg) = mgv.config(base, quote);
+    mgv.setDensity($base, $quote, 100);
+    (P.Global.t glob, P.Local.t cfg) = mgv.config($base, $quote);
     uint amount = (1 + cfg.offer_gasbase()) * cfg.density();
     // Logging tests
-    expectFrom(address(mgv));
+    expectFrom($mgv);
     emit OfferWrite(
-      address(base),
-      address(quote),
+      $base,
+      $quote,
       address(mkr),
       amount, //base
       amount, //quote
@@ -435,14 +401,11 @@ contract GatekeepingTest is IMaker, MangroveTest {
       1, //ofrId
       0 // prev
     );
-    expectFrom(address(mgv));
-    emit Debit(
-      address(mkr),
-      getProvision(mgv, address(base), address(quote), 1, 0)
-    );
+    expectFrom($mgv);
+    emit Debit(address(mkr), getProvision($base, $quote, 1, 0));
     try mkr.newOffer(amount, amount, 1, 0) returns (uint ofr) {
       assertTrue(
-        mgv.isLive(mgv.offers(base, quote, ofr)),
+        mgv.isLive(mgv.offers($base, $quote, ofr)),
         "Offer should have been inserted"
       );
     } catch {
@@ -475,7 +438,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
       type(uint96).max,
       type(uint).max
     ];
-    try mgv.snipes(base, quote, targets, true) {
+    try mgv.snipes($base, $quote, targets, true) {
       fail("Snipes with takerWants > 96bits should fail");
     } catch Error(string memory reason) {
       revertEq(reason, "mgv/snipes/takerWants/96bits");
@@ -491,7 +454,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
       uint(type(uint96).max) + 1,
       type(uint).max
     ];
-    try mgv.snipes(base, quote, targets, true) {
+    try mgv.snipes($base, $quote, targets, true) {
       fail("Snipes with takerGives > 96bits should fail");
     } catch Error(string memory reason) {
       revertEq(reason, "mgv/snipes/takerGives/96bits");
@@ -500,20 +463,20 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_initial_allowance_is_zero() public {
     assertEq(
-      mgv.allowances(base, quote, address(tkr), address(this)),
+      mgv.allowances($base, $quote, address(tkr), $this),
       0,
       "initial allowance should be 0"
     );
   }
 
   function test_cannot_snipesFor_for_without_allowance() public {
-    TestToken(base).mint(address(mkr), 1 ether);
-    mkr.approveMgv(TestToken(base), 1 ether);
+    deal($base, address(mkr), 1 ether);
+    mkr.approveMgv(base, 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 300_000];
-    try mgv.snipesFor(base, quote, targets, true, address(tkr)) {
+    try mgv.snipesFor($base, $quote, targets, true, address(tkr)) {
       fail("snipeFor should fail without allowance");
     } catch Error(string memory reason) {
       revertEq(reason, "mgv/lowAllowance");
@@ -521,10 +484,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_cannot_marketOrderFor_for_without_allowance() public {
-    TestToken(base).mint(address(mkr), 1 ether);
-    mkr.approveMgv(TestToken(base), 1 ether);
+    deal($base, address(mkr), 1 ether);
+    mkr.approveMgv(base, 1 ether);
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
-    try mgv.marketOrderFor(base, quote, 1 ether, 1 ether, true, address(tkr)) {
+    try
+      mgv.marketOrderFor($base, $quote, 1 ether, 1 ether, true, address(tkr))
+    {
       fail("marketOrderfor should fail without allowance");
     } catch Error(string memory reason) {
       revertEq(reason, "mgv/lowAllowance");
@@ -532,21 +497,21 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_can_marketOrderFor_for_with_allowance() public {
-    TestToken(base).mint(address(mkr), 1 ether);
-    mkr.approveMgv(TestToken(base), 1 ether);
+    deal($base, address(mkr), 1 ether);
+    mkr.approveMgv(base, 1 ether);
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
-    tkr.approveSpender(address(this), 1.2 ether);
+    tkr.approveSpender($this, 1.2 ether);
     uint takerGot;
     (takerGot, , , ) = mgv.marketOrderFor(
-      base,
-      quote,
+      $base,
+      $quote,
       1 ether,
       1 ether,
       true,
       address(tkr)
     );
     assertEq(
-      mgv.allowances(base, quote, address(tkr), address(this)),
+      mgv.allowances($base, $quote, address(tkr), $this),
       0.2 ether,
       "allowance should have correctly reduced"
     );
@@ -566,7 +531,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     ret; // silence unused function parameter
     bool success;
     if (trade_cb.length > 0) {
-      (success, ) = address(this).call(trade_cb);
+      (success, ) = $this.call(trade_cb);
       require(success, "makerExecute callback must work");
     }
     return "";
@@ -579,7 +544,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     bool success;
     order; // silence compiler warning
     if (posthook_cb.length > 0) {
-      (success, ) = address(this).call(posthook_cb);
+      (success, ) = $this.call(posthook_cb);
       bool tradeResult = (result.mgvData == "mgv/tradeSuccess");
       require(success == tradeResult, "makerPosthook callback must work");
     }
@@ -590,7 +555,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* New Offer failure */
 
   function newOfferKO() external {
-    try mgv.newOffer(base, quote, 1 ether, 1 ether, 30_000, 0, 0) {
+    try mgv.newOffer($base, $quote, 1 ether, 1 ether, 30_000, 0, 0) {
       fail("newOffer on same pair should fail");
     } catch Error(string memory reason) {
       revertEq(reason, "mgv/reentrancyLocked");
@@ -598,7 +563,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_newOffer_on_reentrancy_fails() public {
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 100_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeWithSelector(this.newOfferKO.selector);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
   }
@@ -611,23 +576,27 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_newOffer_on_reentrancy_succeeds() public {
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 200_000, 0, 0);
-    trade_cb = abi.encodeWithSelector(this.newOfferOK.selector, quote, base);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 200_000, 0, 0);
+    trade_cb = abi.encodeWithSelector(this.newOfferOK.selector, $quote, $base);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    require(mgv.best(quote, base) == 1, "newOffer on swapped pair must work");
+    require(mgv.best($quote, $base) == 1, "newOffer on swapped pair must work");
   }
 
   function test_newOffer_on_posthook_succeeds() public {
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 200_000, 0, 0);
-    posthook_cb = abi.encodeWithSelector(this.newOfferOK.selector, base, quote);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 200_000, 0, 0);
+    posthook_cb = abi.encodeWithSelector(
+      this.newOfferOK.selector,
+      $base,
+      $quote
+    );
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    require(mgv.best(base, quote) == 2, "newOffer on posthook must work");
+    require(mgv.best($base, $quote) == 2, "newOffer on posthook must work");
   }
 
   /* Update offer failure */
 
   function updateOfferKO(uint ofr) external {
-    try mgv.updateOffer(base, quote, 1 ether, 2 ether, 35_000, 0, 0, ofr) {
+    try mgv.updateOffer($base, $quote, 1 ether, 2 ether, 35_000, 0, 0, ofr) {
       fail("update offer on same pair should fail");
     } catch Error(string memory reason) {
       revertEq(reason, "mgv/reentrancyLocked");
@@ -635,7 +604,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_updateOffer_on_reentrancy_fails() public {
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 100_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeWithSelector(this.updateOfferKO.selector, ofr);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
   }
@@ -652,38 +621,54 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_updateOffer_on_reentrancy_succeeds() public {
-    uint other_ofr = mgv.newOffer(quote, base, 1 ether, 1 ether, 100_000, 0, 0);
+    uint other_ofr = mgv.newOffer(
+      $quote,
+      $base,
+      1 ether,
+      1 ether,
+      100_000,
+      0,
+      0
+    );
 
     trade_cb = abi.encodeWithSelector(
       this.updateOfferOK.selector,
-      quote,
-      base,
+      $quote,
+      $base,
       other_ofr
     );
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 400_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 400_000, 0, 0);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    (, P.OfferDetailStruct memory od) = mgv.offerInfo(quote, base, other_ofr);
+    (, P.OfferDetailStruct memory od) = mgv.offerInfo($quote, $base, other_ofr);
     require(od.gasreq == 35_000, "updateOffer on swapped pair must work");
   }
 
   function test_updateOffer_on_posthook_succeeds() public {
-    uint other_ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 100_000, 0, 0);
+    uint other_ofr = mgv.newOffer(
+      $base,
+      $quote,
+      1 ether,
+      1 ether,
+      100_000,
+      0,
+      0
+    );
     posthook_cb = abi.encodeWithSelector(
       this.updateOfferOK.selector,
-      base,
-      quote,
+      $base,
+      $quote,
       other_ofr
     );
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 300_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 300_000, 0, 0);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    (, P.OfferDetailStruct memory od) = mgv.offerInfo(base, quote, other_ofr);
+    (, P.OfferDetailStruct memory od) = mgv.offerInfo($base, $quote, other_ofr);
     require(od.gasreq == 35_000, "updateOffer on posthook must work");
   }
 
   /* Cancel Offer failure */
 
   function retractOfferKO(uint id) external {
-    try mgv.retractOffer(base, quote, id, false) {
+    try mgv.retractOffer($base, $quote, id, false) {
       fail("retractOffer on same pair should fail");
     } catch Error(string memory reason) {
       revertEq(reason, "mgv/reentrancyLocked");
@@ -691,7 +676,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_retractOffer_on_reentrancy_fails() public {
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 100_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeWithSelector(this.retractOfferKO.selector, ofr);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
   }
@@ -712,40 +697,56 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_retractOffer_on_reentrancy_succeeds() public {
-    uint other_ofr = mgv.newOffer(quote, base, 1 ether, 1 ether, 90_000, 0, 0);
+    uint other_ofr = mgv.newOffer(
+      $quote,
+      $base,
+      1 ether,
+      1 ether,
+      90_000,
+      0,
+      0
+    );
     trade_cb = abi.encodeWithSelector(
       this.retractOfferOK.selector,
-      quote,
-      base,
+      $quote,
+      $base,
       other_ofr
     );
 
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 90_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 90_000, 0, 0);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
     require(
-      mgv.best(quote, base) == 0,
+      mgv.best($quote, $base) == 0,
       "retractOffer on swapped pair must work"
     );
   }
 
   function test_retractOffer_on_posthook_succeeds() public {
-    uint other_ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 190_000, 0, 0);
+    uint other_ofr = mgv.newOffer(
+      $base,
+      $quote,
+      1 ether,
+      1 ether,
+      190_000,
+      0,
+      0
+    );
     posthook_cb = abi.encodeWithSelector(
       this.retractOfferOK.selector,
-      base,
-      quote,
+      $base,
+      $quote,
       other_ofr
     );
 
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 90_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 90_000, 0, 0);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    require(mgv.best(base, quote) == 0, "retractOffer on posthook must work");
+    require(mgv.best($base, $quote) == 0, "retractOffer on posthook must work");
   }
 
   /* Market Order failure */
 
   function marketOrderKO() external {
-    try mgv.marketOrder(base, quote, 0.2 ether, 0.2 ether, true) {
+    try mgv.marketOrder($base, $quote, 0.2 ether, 0.2 ether, true) {
       fail("marketOrder on same pair should fail");
     } catch Error(string memory reason) {
       revertEq(reason, "mgv/reentrancyLocked");
@@ -753,7 +754,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_marketOrder_on_reentrancy_fails() public {
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 100_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeWithSelector(this.marketOrderKO.selector);
     require(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
   }
@@ -773,27 +774,31 @@ contract GatekeepingTest is IMaker, MangroveTest {
       "dual mkr offer",
       dual_mkr.newOffer(0.5 ether, 0.5 ether, 30_000, 0)
     );
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 392_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 392_000, 0, 0);
     console.log("normal offer", ofr);
-    trade_cb = abi.encodeWithSelector(this.marketOrderOK.selector, quote, base);
+    trade_cb = abi.encodeWithSelector(
+      this.marketOrderOK.selector,
+      $quote,
+      $base
+    );
     require(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
     require(
-      mgv.best(quote, base) == 0,
+      mgv.best($quote, $base) == 0,
       "2nd market order must have emptied mgv"
     );
   }
 
   function test_marketOrder_on_posthook_succeeds() public {
-    uint ofr = mgv.newOffer(base, quote, 0.5 ether, 0.5 ether, 500_000, 0, 0);
-    mgv.newOffer(base, quote, 0.5 ether, 0.5 ether, 200_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 0.5 ether, 0.5 ether, 500_000, 0, 0);
+    mgv.newOffer($base, $quote, 0.5 ether, 0.5 ether, 200_000, 0, 0);
     posthook_cb = abi.encodeWithSelector(
       this.marketOrderOK.selector,
-      base,
-      quote
+      $base,
+      $quote
     );
     require(tkr.take(ofr, 0.6 ether), "take must succeed or test is void");
     require(
-      mgv.best(base, quote) == 0,
+      mgv.best($base, $quote) == 0,
       "2nd market order must have emptied mgv"
     );
   }
@@ -803,7 +808,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function snipesKO(uint id) external {
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [id, 1 ether, type(uint96).max, type(uint48).max];
-    try mgv.snipes(base, quote, targets, true) {
+    try mgv.snipes($base, $quote, targets, true) {
       fail("snipe on same pair should fail");
     } catch Error(string memory reason) {
       revertEq(reason, "mgv/reentrancyLocked");
@@ -811,7 +816,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_snipe_on_reentrancy_fails() public {
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 60_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 60_000, 0, 0);
     trade_cb = abi.encodeWithSelector(this.snipesKO.selector, ofr);
     require(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
   }
@@ -832,33 +837,33 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint other_ofr = dual_mkr.newOffer(1 ether, 1 ether, 30_000, 0);
     trade_cb = abi.encodeWithSelector(
       this.snipesOK.selector,
-      quote,
-      base,
+      $quote,
+      $base,
       other_ofr
     );
 
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 190_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 190_000, 0, 0);
     require(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
-    require(mgv.best(quote, base) == 0, "snipe in swapped pair must work");
+    require(mgv.best($quote, $base) == 0, "snipe in swapped pair must work");
   }
 
   function test_snipes_on_posthook_succeeds() public {
     uint other_ofr = mkr.newOffer(1 ether, 1 ether, 30_000, 0);
     posthook_cb = abi.encodeWithSelector(
       this.snipesOK.selector,
-      base,
-      quote,
+      $base,
+      $quote,
       other_ofr
     );
 
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 190_000, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 190_000, 0, 0);
     require(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    require(mgv.best(base, quote) == 0, "snipe in posthook must work");
+    require(mgv.best($base, $quote) == 0, "snipe in posthook must work");
   }
 
   function test_newOffer_on_closed_fails() public {
     mgv.kill();
-    try mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0) {
+    try mgv.newOffer($base, $quote, 1 ether, 1 ether, 0, 0, 0) {
       fail("newOffer should fail on closed market");
     } catch Error(string memory r) {
       revertEq(r, "mgv/dead");
@@ -868,7 +873,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* # Mangrove closed/inactive */
 
   function test_take_on_closed_fails() public {
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 0, 0, 0);
 
     mgv.kill();
     try tkr.take(ofr, 1 ether) {
@@ -879,8 +884,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_newOffer_on_inactive_fails() public {
-    mgv.deactivate(base, quote);
-    try mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0) {
+    mgv.deactivate($base, $quote);
+    try mgv.newOffer($base, $quote, 1 ether, 1 ether, 0, 0, 0) {
       fail("newOffer should fail on closed market");
     } catch Error(string memory r) {
       revertEq(r, "mgv/inactive");
@@ -890,9 +895,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_receive_on_closed_fails() public {
     mgv.kill();
 
-    (bool success, bytes memory retdata) = address(mgv).call{value: 10 ether}(
-      ""
-    );
+    (bool success, bytes memory retdata) = $mgv.call{value: 10 ether}("");
     if (success) {
       fail("receive() should fail on closed market");
     } else {
@@ -925,15 +928,15 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_retractOffer_on_closed_ok() public {
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 0, 0, 0);
     mgv.kill();
-    mgv.retractOffer(base, quote, ofr, false);
+    mgv.retractOffer($base, $quote, ofr, false);
   }
 
   function test_updateOffer_on_closed_fails() public {
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0);
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 0, 0, 0);
     mgv.kill();
-    try mgv.updateOffer(base, quote, 1 ether, 1 ether, 0, 0, 0, ofr) {
+    try mgv.updateOffer($base, $quote, 1 ether, 1 ether, 0, 0, 0, ofr) {
       fail("update offer should fail on closed market");
     } catch Error(string memory r) {
       revertEq(r, "mgv/dead");
@@ -941,23 +944,23 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_activation_emits_events_in_order() public {
-    expectFrom(address(mgv));
-    emit SetActive(quote, base, true);
-    expectFrom(address(mgv));
-    emit SetFee(quote, base, 7);
-    expectFrom(address(mgv));
-    emit SetDensity(quote, base, 0);
-    expectFrom(address(mgv));
-    emit SetGasbase(quote, base, 3);
-    mgv.activate(quote, base, 7, 0, 3);
+    expectFrom($mgv);
+    emit SetActive($quote, $base, true);
+    expectFrom($mgv);
+    emit SetFee($quote, $base, 7);
+    expectFrom($mgv);
+    emit SetDensity($quote, $base, 0);
+    expectFrom($mgv);
+    emit SetGasbase($quote, $base, 3);
+    mgv.activate($quote, $base, 7, 0, 3);
   }
 
   function test_updateOffer_on_inactive_fails() public {
-    uint ofr = mgv.newOffer(base, quote, 1 ether, 1 ether, 0, 0, 0);
-    expectFrom(address(mgv));
-    emit SetActive(base, quote, false);
-    mgv.deactivate(base, quote);
-    try mgv.updateOffer(base, quote, 1 ether, 1 ether, 0, 0, 0, ofr) {
+    uint ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, 0, 0, 0);
+    expectFrom($mgv);
+    emit SetActive($base, $quote, false);
+    mgv.deactivate($base, $quote);
+    try mgv.updateOffer($base, $quote, 1 ether, 1 ether, 0, 0, 0, ofr) {
       fail("update offer should fail on inactive market");
     } catch Error(string memory r) {
       revertEq(r, "mgv/inactive");

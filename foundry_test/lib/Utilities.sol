@@ -60,6 +60,29 @@ contract Utilities {
     return string(abi.encodePacked(a, b, c, d));
   }
 
+  /* Concatenate 5 strings */
+  function append(
+    string memory a,
+    string memory b,
+    string memory c,
+    string memory d,
+    string memory e
+  ) internal pure returns (string memory) {
+    return string(abi.encodePacked(a, b, c, d, e));
+  }
+
+  /* Concatenate 6 strings */
+  function append(
+    string memory a,
+    string memory b,
+    string memory c,
+    string memory d,
+    string memory e,
+    string memory f
+  ) internal pure returns (string memory) {
+    return string(abi.encodePacked(a, b, c, d, e, f));
+  }
+
   /* units to e-18 units */
   function toEthUnits(uint w, string memory units)
     internal

@@ -19,43 +19,20 @@ contract Oracle {
 contract MgvReaderTest is MangroveTest {
   //receive() external payable {}
 
-  AbstractMangrove mgv;
   TestMaker mkr;
   MgvReader reader;
-  address base;
-  address quote;
   Oracle oracle;
 
-  function setUp() public {
-    TestToken baseT = setupToken("A", "$A");
-    TestToken quoteT = setupToken("B", "$B");
+  function setUp() public override {
+    super.setUp();
     oracle = new Oracle();
+    vm.label(address(oracle), "oracle");
 
-    base = address(baseT);
-    quote = address(quoteT);
-    mgv = setupMangrove(baseT, quoteT);
-    mkr = setupMaker(mgv, base, quote);
-    reader = new MgvReader(address(mgv));
-
-    payable(mkr).transfer(10 ether);
-
-    bool noRevert;
-    (noRevert, ) = address(mgv).call{value: 10 ether}("");
-
+    mkr = setupMaker($base, $quote, "maker");
+    reader = new MgvReader($mgv);
     mkr.provisionMgv(5 ether);
 
-    baseT.mint(address(this), 2 ether);
-    quoteT.mint(address(mkr), 1 ether);
-
-    baseT.approve(address(mgv), 1 ether);
-    quoteT.approve(address(mgv), 1 ether);
-
-    vm.label(msg.sender, "Test Runner");
-    vm.label(address(this), "Gatekeeping_Test/maker");
-    vm.label(base, "$A");
-    vm.label(quote, "$B");
-    vm.label(address(mgv), "mgv");
-    vm.label(address(mkr), "maker[$A,$B]");
+    deal($quote, address(mkr), 1 ether);
   }
 
   function test_read_packed() public {
@@ -64,7 +41,7 @@ contract MgvReaderTest is MangroveTest {
       uint[] memory offerIds,
       P.OfferStruct[] memory offers,
       P.OfferDetailStruct[] memory details
-    ) = reader.offerList(base, quote, 0, 50);
+    ) = reader.offerList($base, $quote, 0, 50);
 
     assertEq(offerIds.length, 0, "ids: wrong length on 2elem");
     assertEq(offers.length, 0, "offers: wrong length on 1elem");
@@ -73,8 +50,8 @@ contract MgvReaderTest is MangroveTest {
     mkr.newOffer(1 ether, 1 ether, 10_000, 0);
 
     (currentId, offerIds, offers, details) = reader.offerList(
-      base,
-      quote,
+      $base,
+      $quote,
       0,
       50
     );
@@ -87,8 +64,8 @@ contract MgvReaderTest is MangroveTest {
     mkr.newOffer(0.9 ether, 1 ether, 10_000, 0);
 
     (currentId, offerIds, offers, details) = reader.offerList(
-      base,
-      quote,
+      $base,
+      $quote,
       0,
       50
     );
@@ -99,8 +76,8 @@ contract MgvReaderTest is MangroveTest {
 
     // test 2 elem read from elem 1
     (currentId, offerIds, offers, details) = reader.offerList(
-      base,
-      quote,
+      $base,
+      $quote,
       1,
       50
     );
@@ -111,8 +88,8 @@ contract MgvReaderTest is MangroveTest {
     // test 3 elem read in chunks of 2
     mkr.newOffer(0.8 ether, 1 ether, 10_000, 0);
     (currentId, offerIds, offers, details) = reader.offerList(
-      base,
-      quote,
+      $base,
+      $quote,
       0,
       2
     );
@@ -122,8 +99,8 @@ contract MgvReaderTest is MangroveTest {
 
     // test offer order
     (currentId, offerIds, offers, details) = reader.offerList(
-      base,
-      quote,
+      $base,
+      $quote,
       0,
       50
     );
@@ -135,7 +112,7 @@ contract MgvReaderTest is MangroveTest {
   function test_returns_zero_on_nonexisting_offer() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 10_000, 0);
     mkr.retractOffer(ofr);
-    (, uint[] memory offerIds, , ) = reader.offerList(base, quote, ofr, 50);
+    (, uint[] memory offerIds, , ) = reader.offerList($base, $quote, ofr, 50);
     assertEq(
       offerIds.length,
       0,
@@ -144,14 +121,14 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_no_wasted_time() public {
-    reader.offerList(base, quote, 0, 50); // warming up caches
+    reader.offerList($base, $quote, 0, 50); // warming up caches
 
     uint g = gasleft();
-    reader.offerList(base, quote, 0, 50);
+    reader.offerList($base, $quote, 0, 50);
     uint used1 = g - gasleft();
 
     g = gasleft();
-    reader.offerList(base, quote, 0, 50000000);
+    reader.offerList($base, $quote, 0, 50000000);
     uint used2 = g - gasleft();
 
     assertEq(
@@ -164,11 +141,11 @@ contract MgvReaderTest is MangroveTest {
   function test_correct_endpoints_0() public {
     uint startId;
     uint length;
-    (startId, length) = reader.offerListEndPoints(base, quote, 0, 100000);
+    (startId, length) = reader.offerListEndPoints($base, $quote, 0, 100000);
     assertEq(startId, 0, "0.0 wrong startId");
     assertEq(length, 0, "0.0 wrong length");
 
-    (startId, length) = reader.offerListEndPoints(base, quote, 32, 100000);
+    (startId, length) = reader.offerListEndPoints($base, $quote, 32, 100000);
     assertEq(startId, 0, "0.1 wrong startId");
     assertEq(length, 0, "0.1 wrong length");
   }
@@ -179,25 +156,25 @@ contract MgvReaderTest is MangroveTest {
     uint ofr;
     ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
 
-    (startId, length) = reader.offerListEndPoints(base, quote, 0, 0);
+    (startId, length) = reader.offerListEndPoints($base, $quote, 0, 0);
     assertEq(startId, 1, "1.0 wrong startId");
     assertEq(length, 0, "1.0 wrong length");
 
-    (startId, length) = reader.offerListEndPoints(base, quote, 1, 1);
+    (startId, length) = reader.offerListEndPoints($base, $quote, 1, 1);
     assertEq(startId, 1, "1.1 wrong startId");
     assertEq(length, 1, "1.1 wrong length");
 
-    (startId, length) = reader.offerListEndPoints(base, quote, 1, 1321);
+    (startId, length) = reader.offerListEndPoints($base, $quote, 1, 1321);
     assertEq(startId, 1, "1.2 wrong startId");
     assertEq(length, 1, "1.2 wrong length");
 
-    (startId, length) = reader.offerListEndPoints(base, quote, 2, 12);
+    (startId, length) = reader.offerListEndPoints($base, $quote, 2, 12);
     assertEq(startId, 0, "1.0 wrong startId");
     assertEq(length, 0, "1.0 wrong length");
   }
 
   function try_provision() internal {
-    uint prov = reader.getProvision(base, quote, 0, 0);
+    uint prov = reader.getProvision($base, $quote, 0, 0);
     uint bal1 = mgv.balanceOf(address(mkr));
     mkr.newOffer(1 ether, 1 ether, 0, 0);
     uint bal2 = mgv.balanceOf(address(mkr));
@@ -209,7 +186,7 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_provision_1() public {
-    mgv.setGasbase(base, quote, 17_000);
+    mgv.setGasbase($base, $quote, 17_000);
     try_provision();
   }
 

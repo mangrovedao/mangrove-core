@@ -67,9 +67,12 @@ contract Test2 is Test {
   }
 
   /* assert address is not 0 */
-  function not0x(address actual) internal returns (bool) {
-    bool success = actual != address(0);
-    assertTrue(success, "address should be 0");
-    return success;
+  function not0x(address a) internal returns (bool) {
+    if (a == address(0)) {
+      emit log("Error: address should not be 0");
+      emit log_named_address("Address", a);
+      fail();
+    }
+    return (a != address(0));
   }
 }

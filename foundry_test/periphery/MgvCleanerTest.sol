@@ -9,89 +9,70 @@ import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 contract MgvCleanerTest is MangroveTest {
   receive() external payable {}
 
-  AbstractMangrove mgv;
   TestTaker tkr;
   TestMaker mkr;
-  address outbound;
-  address inbound;
   MgvCleaner cleaner;
 
-  function setUp() public {
-    TestToken Outbound = setupToken("A", "$A");
-    TestToken Inbound = setupToken("B", "$B");
-    outbound = address(Outbound);
-    inbound = address(Inbound);
-    mgv = setupMangrove(Outbound, Inbound);
-    mkr = setupMaker(mgv, outbound, inbound);
-    cleaner = new MgvCleaner(address(mgv));
-
-    payable(mkr).transfer(10 ether);
+  function setUp() public override {
+    super.setUp();
+    mkr = setupMaker($base, $quote, "maker");
+    cleaner = new MgvCleaner($mgv);
+    vm.label(address(cleaner), "cleaner");
 
     mkr.provisionMgv(5 ether);
 
-    Inbound.mint(address(this), 2 ether);
-    Outbound.mint(address(mkr), 1 ether);
+    deal($base, address(mkr), 1 ether);
 
-    Outbound.approve(address(mgv), 1 ether);
-    Inbound.approve(address(mgv), 1 ether);
-    mkr.approveMgv(Outbound, 1 ether);
-
-    vm.label(msg.sender, "Test Runner");
-    vm.label(address(this), "MgvCleaner_Test");
-    vm.label(outbound, "$A");
-    vm.label(inbound, "$B");
-    vm.label(address(mgv), "mgv");
-    vm.label(address(mkr), "maker[$A,$B]");
-    vm.label(address(cleaner), "cleaner");
+    mkr.approveMgv(base, 1 ether);
   }
 
   /* # Test Config */
 
   function test_single_failing_offer() public {
-    mgv.approve(outbound, inbound, address(cleaner), type(uint).max);
+    mgv.approve($base, $quote, address(cleaner), type(uint).max);
 
     mkr.shouldFail(true);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
 
-    uint oldBal = address(this).balance;
+    uint oldBal = $this.balance;
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];
-    cleaner.collect(outbound, inbound, targets, true);
+    cleaner.collect($base, $quote, targets, true);
 
-    uint newBal = address(this).balance;
+    uint newBal = $this.balance;
 
     assertGt(newBal, oldBal, "balance should have increased");
   }
 
   function test_mult_failing_offer() public {
-    mgv.approve(outbound, inbound, address(cleaner), type(uint).max);
+    mgv.approve($base, $quote, address(cleaner), type(uint).max);
 
     mkr.shouldFail(true);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
     uint ofr2 = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
 
-    uint oldBal = address(this).balance;
+    uint oldBal = $this.balance;
 
     uint[4][] memory targets = new uint[4][](2);
     targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];
     targets[1] = [ofr2, 1 ether, 1 ether, type(uint).max];
-    cleaner.collect(outbound, inbound, targets, true);
+    cleaner.collect($base, $quote, targets, true);
 
-    uint newBal = address(this).balance;
+    uint newBal = $this.balance;
 
     assertGt(newBal, oldBal, "balance should have increased");
   }
 
   function test_no_fail_no_cleaning() public {
-    mgv.approve(outbound, inbound, address(cleaner), type(uint).max);
+    mgv.approve($base, $quote, address(cleaner), type(uint).max);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
 
-    uint oldBal = address(this).balance;
+    uint oldBal = $this.balance;
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];
-    try cleaner.collect(outbound, inbound, targets, true) {
+    try cleaner.collect($base, $quote, targets, true) {
       fail("collect should fail since offer succeeded");
     } catch Error(string memory reason) {
       assertEq(
@@ -101,7 +82,7 @@ contract MgvCleanerTest is MangroveTest {
       );
     }
 
-    uint newBal = address(this).balance;
+    uint newBal = $this.balance;
 
     assertEq(newBal, oldBal, "balance should be the same");
   }
@@ -113,7 +94,7 @@ contract MgvCleanerTest is MangroveTest {
   //   uint[4][] memory targets = new uint[4][](1);
   //   targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];
 
-  //   try cleaner.collect(outbound, inbound,targets,true) {
+  //   try cleaner.collect($base, $quote,targets,true) {
   //     fail("collect should fail since cleaner was not approved");
   //   } catch Error(string memory reason) {
   //     assertEq("mgv/lowAllowance",reason,"Fail should be due to no allowance");

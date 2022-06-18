@@ -6,51 +6,19 @@ import "mgv_test/lib/MangroveTest.sol";
 
 // In these tests, the testing contract is the market maker.
 contract GasTest is MangroveTest, IMaker {
-  //receive() external payable {}
-
-  AbstractMangrove _mgv;
   TestTaker _tkr;
-  address _base;
-  address _quote;
 
-  function setUp() public {
-    TestToken baseT = setupToken("A", "$A");
-    TestToken quoteT = setupToken("B", "$B");
-    _base = address(baseT);
-    _quote = address(quoteT);
-    _mgv = setupMangrove(baseT, quoteT);
+  function setUp() public override {
+    super.setUp();
 
-    bool noRevert;
-    (noRevert, ) = address(_mgv).call{value: 10 ether}("");
+    mgv.newOffer($base, $quote, 1 ether, 1 ether, 100_000, 0, 0);
 
-    baseT.mint(address(this), 2 ether);
-    baseT.approve(address(_mgv), 2 ether);
-    quoteT.approve(address(_mgv), 1 ether);
-
-    vm.label(msg.sender, "Test Runner");
-    vm.label(address(this), "Gatekeeping_Test/maker");
-    vm.label(_base, "$A");
-    vm.label(_quote, "$B");
-    vm.label(address(_mgv), "mgv");
-
-    _mgv.newOffer(_base, _quote, 1 ether, 1 ether, 100_000, 0, 0);
-    console.log("mgv", address(_mgv));
-
-    _tkr = setupTaker(_mgv, _base, _quote);
-    quoteT.mint(address(_tkr), 2 ether);
-    _tkr.approveMgv(quoteT, 2 ether);
-    vm.label(address(_tkr), "Taker");
+    _tkr = setupTaker($base, $quote, "Taker");
+    deal($quote, address(_tkr), 2 ether);
+    _tkr.approveMgv(quote, 2 ether);
 
     /* set lock to 1 to avoid spurious 15k gas cost */
-    uint ofr = _mgv.newOffer(
-      _base,
-      _quote,
-      0.1 ether,
-      0.1 ether,
-      100_000,
-      0,
-      0
-    );
+    uint ofr = mgv.newOffer($base, $quote, 0.1 ether, 0.1 ether, 100_000, 0, 0);
     _tkr.take(ofr, 0.1 ether);
   }
 
@@ -64,7 +32,7 @@ contract GasTest is MangroveTest, IMaker {
       address
     )
   {
-    return (_mgv, _tkr, _base, _quote);
+    return (mgv, _tkr, $base, $quote);
   }
 
   function makerExecute(MgvLib.SingleOrder calldata)

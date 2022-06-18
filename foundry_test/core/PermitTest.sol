@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.10;
 
-/*  *** CHEAT SHEET ********************************
+/*  *** JS CHEAT SHEET ******************************
 
   Cheat sheet about ethers.js sig generation
 
@@ -50,66 +50,38 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   using stdStorage for StdStorage;
   using mgvPermitData for mgvPermitData.t;
 
-  AbstractMangrove mgv;
-  address base;
-  address quote;
-
   uint bad_owner_key;
   address bad_owner;
   uint good_owner_key;
   address good_owner;
   mgvPermitData.t permit_data;
 
-  function setUp() public {
-    TestToken baseT = setupToken("A", "$A");
-    TestToken quoteT = setupToken("B", "$B");
-    base = address(baseT);
-    quote = address(quoteT);
-    mgv = setupMangrove(baseT, quoteT);
-
-    bool noRevert;
-    (noRevert, ) = address(mgv).call{value: 10 ether}("");
+  function setUp() public override {
+    super.setUp();
 
     (bad_owner_key, bad_owner) = freshAccount("bad owner");
     (good_owner_key, good_owner) = freshAccount("good owner");
 
     vm.prank(good_owner);
-    quoteT.approve(address(mgv), type(uint).max);
-
-    baseT.mint(address(this), 2 ether);
-    quoteT.mint(msg.sender, 2 ether);
-    quoteT.mint(good_owner, 2 ether);
-
-    baseT.approve(address(mgv), 1 ether);
-
-    vm.label(msg.sender, "Permit signer");
-    vm.label(address(this), "Permit Helper");
-    vm.label(base, "$A");
-    vm.label(quote, "$B");
-    vm.label(address(mgv), "mgv");
-
-    mgv.newOffer(base, quote, 1 ether, 1 ether, 100_000, 0, 0);
+    quote.approve($mgv, type(uint).max);
+    deal($quote, good_owner, 2 ether);
 
     permit_data = mgvPermitData.t({
-      outbound_tkn: base,
-      inbound_tkn: quote,
+      outbound_tkn: $base,
+      inbound_tkn: $quote,
       owner: good_owner,
-      spender: address(this),
+      spender: $this,
       value: 1 ether,
       nonce: 0,
       deadline: block.timestamp + 1,
-      v: 0,
-      r: 0,
-      s: 0,
       key: good_owner_key,
-      domain_separator: mgv.DOMAIN_SEPARATOR(),
+      mgv: mgv,
       permit_typehash: mgv.PERMIT_TYPEHASH(),
-      mgv: mgv
+      domain_separator: mgv.DOMAIN_SEPARATOR()
     });
   }
 
-  // do a single snipe on mgv for goodOwner
-  function snipe(uint value)
+  function snipeFor(uint value, address who)
     internal
     returns (
       uint,
@@ -121,12 +93,21 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   {
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [uint(1), value, value, 300_000];
-    return mgv.snipesFor(base, quote, targets, true, good_owner);
+    return mgv.snipesFor($base, $quote, targets, true, who);
   }
 
-  function test_no_allowance() external {
+  function newOffer(uint amount) internal {
+    mgv.newOffer($base, $quote, amount, amount, 100_000, 0, 0);
+  }
+
+  function test_no_allowance(uint96 value) external {
+    /* You can use 0 from someone who gave you an allowance of 0. */
+    vm.assume(value > 0); //can't create a 0 offer
+    deal($base, $this, value);
+    deal($quote, good_owner, value);
+    newOffer(value);
     vm.expectRevert("mgv/lowAllowance");
-    snipe(1 ether);
+    snipeFor(value, good_owner);
   }
 
   function test_wrong_owner() public {
@@ -149,7 +130,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
 
   function test_early_nonce() public {
     stdstore
-      .target(address(mgv))
+      .target($mgv)
       .sig(mgv.nonces.selector)
       .with_key(good_owner)
       .checked_write(1);
@@ -162,7 +143,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     permit_data.outbound_tkn = address(1);
     permit_data.submit();
     assertEq(
-      mgv.allowances(base, quote, good_owner, address(this)),
+      mgv.allowances($base, $quote, good_owner, $this),
       0,
       "Allowance should be 0"
     );
@@ -172,7 +153,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     permit_data.inbound_tkn = address(1);
     permit_data.submit();
     assertEq(
-      mgv.allowances(base, quote, good_owner, address(this)),
+      mgv.allowances($base, $quote, good_owner, $this),
       0,
       "Allowance should be 0"
     );
@@ -182,18 +163,18 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     permit_data.spender = address(1);
     permit_data.submit();
     assertEq(
-      mgv.allowances(base, quote, good_owner, address(this)),
+      mgv.allowances($base, $quote, good_owner, $this),
       0,
       "Allowance should be 0"
     );
   }
 
-  function test_good_permit(uint value) public {
+  function test_good_permit(uint96 value) public {
     permit_data.value = value;
     permit_data.submit();
 
     assertEq(
-      mgv.allowances(base, quote, good_owner, address(this)),
+      mgv.allowances($base, $quote, good_owner, $this),
       value,
       "Allowance not set"
     );
@@ -203,29 +184,27 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     uint value = 1 ether;
     // set allowance manually
     stdstore
-      .target(address(mgv))
+      .target($mgv)
       .sig(mgv.allowances.selector)
-      .with_key(base)
-      .with_key(quote)
+      .with_key($base)
+      .with_key($quote)
       .with_key(good_owner)
-      .with_key(address(this))
+      .with_key($this)
       .checked_write(value);
 
-    (uint successes, uint takerGot, uint takerGave, , ) = snipe(value / 2);
+    deal($base, $this, value);
+    deal($quote, good_owner, value);
+    newOffer(value);
+    (uint successes, uint takerGot, uint takerGave, , ) = snipeFor(
+      value / 2,
+      good_owner
+    );
     assertEq(successes, 1, "Snipe should succeed");
-    assertEq(
-      takerGot,
-      value / 2 > 1 ether ? 1 ether : value / 2,
-      "takerGot should be 1 ether"
-    );
-    assertEq(
-      takerGave,
-      value / 2 > 1 ether ? 1 ether : value / 2,
-      "takerGot should be 1 ether"
-    );
+    assertEq(takerGot, value / 2, "takerGot should be 1 ether");
+    assertEq(takerGave, value / 2, "takerGot should be 1 ether");
 
     assertEq(
-      mgv.allowances(base, quote, good_owner, address(this)),
+      mgv.allowances($base, $quote, good_owner, $this),
       value / 2 + (value % 2),
       "Allowance incorrectly decreased"
     );
@@ -248,14 +227,13 @@ library mgvPermitData {
     uint deadline;
     // used at submit() time
     uint key;
-    // may not match above fields
-    uint8 v;
-    bytes32 r;
-    bytes32 s;
     // easier to store here (avoids an extra `mgv` arg to lib fns)
+    AbstractMangrove mgv;
+    // must preread from mangrove since calling mgv
+    // just-in-time will trip up `expectRevert`
+    // (looking for a fix to this)
     bytes32 permit_typehash;
     bytes32 domain_separator;
-    AbstractMangrove mgv;
   }
 
   function signer(t storage p, uint key) internal returns (t storage) {
@@ -263,7 +241,14 @@ library mgvPermitData {
     return p;
   }
 
-  function sign(t storage p) internal returns (t storage) {
+  function sign(t storage p)
+    internal
+    returns (
+      uint8 v,
+      bytes32 r,
+      bytes32 s
+    )
+  {
     bytes32 digest = keccak256(
       abi.encodePacked(
         "\x19\x01",
@@ -282,16 +267,11 @@ library mgvPermitData {
         )
       )
     );
-
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(p.key, digest);
-    p.v = v;
-    p.r = r;
-    p.s = s;
-    return p;
+    return vm.sign(p.key, digest);
   }
 
   function submit(t storage p) internal {
-    sign(p);
+    (uint8 v, bytes32 r, bytes32 s) = sign(p);
     p.mgv.permit({
       outbound_tkn: p.outbound_tkn,
       inbound_tkn: p.inbound_tkn,
@@ -299,9 +279,9 @@ library mgvPermitData {
       spender: p.spender,
       value: p.value,
       deadline: p.deadline,
-      v: p.v,
-      r: p.r,
-      s: p.s
+      v: v,
+      r: r,
+      s: s
     });
   }
 }

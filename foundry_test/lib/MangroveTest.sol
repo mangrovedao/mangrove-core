@@ -25,6 +25,57 @@ import {console2 as csl} from "forge-std/console2.sol";
  */
 
 contract MangroveTest is Utilities, Test2, HasMgvEvents {
+  struct MangroveTestOptions {
+    bool invertedMangrove;
+  }
+
+  AbstractMangrove mgv;
+  address $mgv;
+  address $base;
+  address $quote;
+  TestToken base;
+  TestToken quote;
+  address $this;
+  MangroveTestOptions options = MangroveTestOptions({invertedMangrove: false});
+
+  /* Defaults:
+  - testing contract has
+    - 10eth base&quote
+    - approved mangrove on base&quote
+    - 10eth ETH funded in mangrove
+  - new makers
+    - have 10 eth ETH
+  - new takers
+    - have 10 eth ETH
+  */
+  function setUp() public virtual {
+    // shortcuts
+    $this = address(this);
+    // tokens
+    base = new TestToken($this, "A", "$A");
+    quote = new TestToken($this, "B", "$B");
+    // mangrove deploy
+    mgv = setupMangrove(base, quote, options.invertedMangrove);
+    // shortcuts
+    $base = address(base);
+    $quote = address(quote);
+    $mgv = address(mgv);
+    // self-deal tokens
+    deal($base, $this, 10 ether);
+    deal($quote, $this, 10 ether);
+    // start with freeWei on mangrove
+    mgv.fund{value: 10 ether}();
+    // approve mgv
+    base.approve($mgv, type(uint).max);
+    quote.approve($mgv, type(uint).max);
+    // logging
+    vm.label(tx.origin, "tx.origin");
+    vm.label($this, "Test runner");
+    vm.label($base, "$A");
+    vm.label($quote, "$B");
+    vm.label($mgv, "mgv");
+  }
+
   /* Log offer book */
 
   event OBState(
@@ -39,69 +90,79 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
 
   /** Two different OB logging methods.
    *
-   *  `logOfferBook` will be well-interlaced with tests so you can easily see what's going on.
+   *  `logOfferBook` will be easy to read in traces
    *
-   *  `printOfferBook` will survive reverts so you can log inside a reverting call.
+   *  `printOfferBook` will be easy to read in the console.logs section
    */
 
   /* Log OB with events and hardhat-test-solidity */
+  event offers_head(address outbound, address inbound);
+  event offers_line(
+    uint id,
+    uint wants,
+    uint gives,
+    address maker,
+    uint gasreq
+  );
+
   function logOfferBook(
-    AbstractMangrove mgv,
-    address base,
-    address quote,
+    address $out,
+    address $in,
     uint size
   ) internal {
-    uint offerId = mgv.best(base, quote);
+    uint offerId = mgv.best($out, $in);
 
-    uint[] memory wants = new uint[](size);
-    uint[] memory gives = new uint[](size);
-    address[] memory makerAddr = new address[](size);
-    uint[] memory offerIds = new uint[](size);
-    uint[] memory gasreqs = new uint[](size);
+    // save call results so logs are easier to read
+    uint[] memory ids = new uint[](size);
+    P.Offer.t[] memory offers = new P.Offer.t[](size);
+    P.OfferDetail.t[] memory details = new P.OfferDetail.t[](size);
     uint c = 0;
     while ((offerId != 0) && (c < size)) {
-      (P.OfferStruct memory offer, P.OfferDetailStruct memory od) = mgv
-        .offerInfo(base, quote, offerId);
-      wants[c] = offer.wants;
-      gives[c] = offer.gives;
-      makerAddr[c] = od.maker;
-      offerIds[c] = offerId;
-      gasreqs[c] = od.gasreq;
-      offerId = offer.next;
+      ids[c] = offerId;
+      offers[c] = mgv.offers($out, $in, offerId);
+      details[c] = mgv.offerDetails($out, $in, offerId);
+      offerId = offers[c].next();
       c++;
     }
-    emit OBState(base, quote, offerIds, wants, gives, makerAddr, gasreqs);
+    c = 0;
+    emit offers_head($out, $in);
+    while (c < size) {
+      emit offers_line(
+        ids[c],
+        offers[c].wants(),
+        offers[c].gives(),
+        details[c].maker(),
+        details[c].gasreq()
+      );
+      c++;
+    }
+    // emit OBState($out, $in, offerIds, wants, gives, makerAddr, gasreqs);
   }
 
-  /* Log OB with hardhat's console.log */
-  function printOfferBook(
-    AbstractMangrove mgv,
-    address base,
-    address quote
-  ) internal view {
-    uint offerId = mgv.best(base, quote);
-    TestToken req_tk = TestToken(quote);
-    TestToken ofr_tk = TestToken(base);
+  /* Log OB with console */
+  function printOfferBook(address $out, address $in) internal view {
+    uint offerId = mgv.best($out, $in);
+    TestToken req_tk = TestToken($in);
+    TestToken ofr_tk = TestToken($out);
 
-    console.log("-----Best offer: %d-----", offerId);
+    console.log(
+      append(unicode"┌────┬──Best offer: ", uint2str(offerId), unicode"──────")
+    );
     while (offerId != 0) {
-      (P.OfferStruct memory ofr, ) = mgv.offerInfo(base, quote, offerId);
+      (P.OfferStruct memory ofr, ) = mgv.offerInfo($out, $in, offerId);
       console.log(
-        "[offer %d] %s/%s",
-        offerId,
-        toEthUnits(ofr.wants, req_tk.symbol()),
-        toEthUnits(ofr.gives, ofr_tk.symbol())
+        append(
+          unicode"│ ",
+          append(offerId < 9 ? " " : "", uint2str(offerId)), // breaks on id>99
+          unicode" ┆ ",
+          toEthUnits(ofr.wants, req_tk.symbol()),
+          "  /  ",
+          toEthUnits(ofr.gives, ofr_tk.symbol())
+        )
       );
-      // console.log(
-      //   "(%d gas, %d to finish, %d penalty)",
-      //   gasreq,
-      //   minFinishGas,
-      //   gasprice
-      // );
-      // console.log(name(makerAddr));
       offerId = ofr.next;
     }
-    console.log("-----------------------");
+    console.log(unicode"└────┴─────────────────────");
   }
 
   event GasCost(string callname, uint value);
@@ -137,48 +198,37 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
     gasreq
   }
 
-  function isEmptyOB(
-    AbstractMangrove mgv,
-    address base,
-    address quote
-  ) internal view returns (bool) {
-    return mgv.best(base, quote) == 0;
-  }
-
-  function adminOf(AbstractMangrove mgv) internal view returns (address) {
-    return mgv.governance();
+  function isEmptyOB(address $out, address $in) internal view returns (bool) {
+    return mgv.best($out, $in) == 0;
   }
 
   function getFee(
-    AbstractMangrove mgv,
-    address base,
-    address quote,
+    address $out,
+    address $in,
     uint price
   ) internal view returns (uint) {
-    (, P.Local.t local) = mgv.config(base, quote);
+    (, P.Local.t local) = mgv.config($out, $in);
     return ((price * local.fee()) / 10000);
   }
 
   function getProvision(
-    AbstractMangrove mgv,
-    address base,
-    address quote,
+    address $out,
+    address $in,
     uint gasreq
   ) internal view returns (uint) {
-    (P.Global.t glo_cfg, P.Local.t loc_cfg) = mgv.config(base, quote);
+    (P.Global.t glo_cfg, P.Local.t loc_cfg) = mgv.config($out, $in);
     return ((gasreq + loc_cfg.offer_gasbase()) *
       uint(glo_cfg.gasprice()) *
       10**9);
   }
 
   function getProvision(
-    AbstractMangrove mgv,
-    address base,
-    address quote,
+    address $out,
+    address $in,
     uint gasreq,
     uint gasprice
   ) internal view returns (uint) {
-    (P.Global.t glo_cfg, P.Local.t loc_cfg) = mgv.config(base, quote);
+    (P.Global.t glo_cfg, P.Local.t loc_cfg) = mgv.config($out, $in);
     uint _gp;
     if (glo_cfg.gasprice() > gasprice) {
       _gp = uint(glo_cfg.gasprice());
@@ -188,151 +238,81 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
     return ((gasreq + loc_cfg.offer_gasbase()) * _gp * 10**9);
   }
 
-  function getOfferInfo(
-    AbstractMangrove mgv,
-    address base,
-    address quote,
-    Info infKey,
-    uint offerId
-  ) internal view returns (uint) {
-    (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv
-      .offerInfo(base, quote, offerId);
-    if (!mgv.isLive(mgv.offers(base, quote, offerId))) {
-      return 0;
-    }
-    if (infKey == Info.makerWants) {
-      return offer.wants;
-    }
-    if (infKey == Info.makerGives) {
-      return offer.gives;
-    }
-    if (infKey == Info.nextId) {
-      return offer.next;
-    }
-    if (infKey == Info.gasreq) {
-      return offerDetail.gasreq;
-    } else {
-      return offerDetail.gasprice;
-    }
-  }
-
   function hasOffer(
-    AbstractMangrove mgv,
-    address base,
-    address quote,
+    address $out,
+    address $in,
     uint offerId
   ) internal view returns (bool) {
-    return (getOfferInfo(mgv, base, quote, Info.makerGives, offerId) > 0);
+    return mgv.offers($out, $in, offerId).gives() > 0;
   }
 
-  function makerOf(
-    AbstractMangrove mgv,
-    address base,
-    address quote,
-    uint offerId
-  ) internal view returns (address) {
-    (, P.OfferDetailStruct memory od) = mgv.offerInfo(base, quote, offerId);
-    return od.maker;
+  // Deploy mangrove
+  function setupMangrove() public returns (AbstractMangrove) {
+    return setupMangrove(false);
   }
 
-  function setupToken(string memory name, string memory ticker)
-    public
-    returns (TestToken)
-  {
-    return new TestToken(address(this), name, ticker);
+  // Deploy mangrove, inverted or not
+  function setupMangrove(bool inverted) public returns (AbstractMangrove) {
+    if (inverted) {
+      return
+        new InvertedMangrove({
+          governance: $this,
+          gasprice: 40,
+          gasmax: 1_000_000
+        });
+    } else {
+      return new Mangrove({governance: $this, gasprice: 40, gasmax: 1_000_000});
+    }
   }
 
-  // low level mangrove deploy
-  function deployMangrove(address governance)
-    public
-    returns (AbstractMangrove mgv)
-  {
-    mgv = new Mangrove({
-      governance: governance,
-      gasprice: 40,
-      gasmax: 1_000_000
-    });
-  }
-
-  // low level inverted mangrove deploy
-  function deployInvertedMangrove(address governance)
-    public
-    returns (AbstractMangrove mgv)
-  {
-    mgv = new InvertedMangrove({
-      governance: governance,
-      gasprice: 40,
-      gasmax: 1_000_000
-    });
-  }
-
-  // setup normal mangrove
-  function setupMangrove(TestToken base, TestToken quote)
+  // Deploy mangrove with a pair
+  function setupMangrove(TestToken outbound_tkn, TestToken inbound_tkn)
     public
     returns (AbstractMangrove)
   {
-    return setupMangrove(base, quote, false);
+    return setupMangrove(outbound_tkn, inbound_tkn, false);
   }
 
-  // setup mangrove, inverted or not
+  // Deploy mangrove with a pair, inverted or not
   function setupMangrove(
-    TestToken base,
-    TestToken quote,
+    TestToken outbound_tkn,
+    TestToken inbound_tkn,
     bool inverted
-  ) public returns (AbstractMangrove mgv) {
-    not0x(address(base));
-    not0x(address(quote));
-    if (inverted) {
-      mgv = deployInvertedMangrove(address(this));
-    } else {
-      mgv = deployMangrove(address(this));
-    }
-    mgv.activate(address(base), address(quote), 0, 100, 20_000);
-    mgv.activate(address(quote), address(base), 0, 100, 20_000);
+  ) public returns (AbstractMangrove _mgv) {
+    _mgv = setupMangrove(inverted);
+    not0x(address(outbound_tkn));
+    not0x(address(outbound_tkn));
+    _mgv.activate(address(outbound_tkn), address(inbound_tkn), 0, 0, 20_000);
+    _mgv.activate(address(inbound_tkn), address(outbound_tkn), 0, 0, 20_000);
   }
 
-  // setup mangrove, no markets
-  function setupMangrove() public returns (AbstractMangrove mgv) {
-    mgv = deployMangrove(address(this));
-  }
-
-  // setup maker with failure params
   function setupMaker(
-    AbstractMangrove mgv,
-    address base,
-    address quote,
-    uint failer // 1 shouldFail, 2 shouldRevert
+    address $out,
+    address $in,
+    string memory label
   ) public returns (TestMaker) {
-    TestMaker tm = new TestMaker(mgv, IERC20(base), IERC20(quote));
-    tm.shouldFail(failer == 1);
-    tm.shouldRevert(failer == 2);
-    return (tm);
+    TestMaker tm = new TestMaker(mgv, IERC20($out), IERC20($in));
+    vm.deal(address(tm), 10 ether);
+    vm.label(address(tm), label);
+    return tm;
   }
 
-  // simple setup maker
-  function setupMaker(
-    AbstractMangrove mgv,
-    address base,
-    address quote
-  ) public returns (TestMaker) {
-    return new TestMaker(mgv, IERC20(base), IERC20(quote));
-  }
-
-  function setupMakerDeployer(
-    AbstractMangrove mgv,
-    address base,
-    address quote
-  ) public returns (MakerDeployer) {
-    not0x(address(mgv));
-    return (new MakerDeployer(mgv, base, quote));
+  function setupMakerDeployer(address $out, address $in)
+    public
+    returns (MakerDeployer)
+  {
+    not0x($mgv);
+    return (new MakerDeployer(mgv, $out, $in));
   }
 
   function setupTaker(
-    AbstractMangrove mgv,
-    address base,
-    address quote
+    address $out,
+    address $in,
+    string memory label
   ) public returns (TestTaker) {
-    not0x(address(mgv));
-    return new TestTaker(mgv, IERC20(base), IERC20(quote));
+    TestTaker tt = new TestTaker(mgv, IERC20($out), IERC20($in));
+    vm.deal(address(tt), 10 ether);
+    vm.label(address(tt), label);
+    return tt;
   }
 }

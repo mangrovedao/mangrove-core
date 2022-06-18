@@ -23,9 +23,9 @@ contract MakerDeployer {
     quote = _quote;
   }
 
-  receive() external payable {
+  function dispatch() external {
     uint k = makers.length;
-    uint perMaker = msg.value / k;
+    uint perMaker = address(this).balance / k;
     require(perMaker > 0, "0 ether to transfer");
     for (uint i = 0; i < k; i++) {
       address payable maker = makers[i];

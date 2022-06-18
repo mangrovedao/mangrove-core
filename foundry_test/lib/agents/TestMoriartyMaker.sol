@@ -60,7 +60,7 @@ contract TestMoriartyMaker is IMaker {
       outbound_tkn: base,
       inbound_tkn: quote,
       wants: 1,
-      gives: density * (offer_gasbase + 100000),
+      gives: (density > 0 ? density : 1) * (offer_gasbase + 100000),
       gasreq: 100000,
       gasprice: 0,
       pivotId: 0

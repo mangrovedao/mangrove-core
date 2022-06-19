@@ -40,13 +40,11 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
 
   /* Defaults:
   - testing contract has
-    - 10eth base&quote
-    - approved mangrove on base&quote
-    - 10eth ETH funded in mangrove
+    - 10 ETH funded in mangrove
   - new makers
-    - have 10 eth ETH
+    - have 10 ETH
   - new takers
-    - have 10 eth ETH
+    - have 10 ETH
   */
   function setUp() public virtual {
     // shortcuts
@@ -60,9 +58,6 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
     $base = address(base);
     $quote = address(quote);
     $mgv = address(mgv);
-    // self-deal tokens
-    deal($base, $this, 10 ether);
-    deal($quote, $this, 10 ether);
     // start with freeWei on mangrove
     mgv.fund{value: 10 ether}();
     // approve mgv

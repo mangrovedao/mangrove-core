@@ -18,6 +18,8 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     options.invertedMangrove = true;
     super.setUp();
 
+    deal($quote, $this, 10 ether);
+
     mkr = setupMaker($base, $quote, "maker");
 
     deal($base, address(mkr), 5 ether);

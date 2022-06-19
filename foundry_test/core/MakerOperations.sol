@@ -12,7 +12,6 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function setUp() public override {
     super.setUp();
-    deal($quote, $this, 0 ether); // reset initial quote amount
 
     mkr = setupMaker($base, $quote, "maker");
     mkr2 = setupMaker($base, $quote, "maker2");

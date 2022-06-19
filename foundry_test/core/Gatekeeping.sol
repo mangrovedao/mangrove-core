@@ -87,6 +87,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function setUp() public override {
     super.setUp();
+    deal($base, $this, 10 ether);
 
     tkr = setupTaker($base, $quote, "taker[$A,$B]");
     mkr = setupMaker($base, $quote, "maker[$A,$B]");

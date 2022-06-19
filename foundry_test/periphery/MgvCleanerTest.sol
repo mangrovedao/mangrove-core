@@ -15,6 +15,7 @@ contract MgvCleanerTest is MangroveTest {
 
   function setUp() public override {
     super.setUp();
+    deal($quote, $this, 10 ether);
     mkr = setupMaker($base, $quote, "maker");
     cleaner = new MgvCleaner($mgv);
     vm.label(address(cleaner), "cleaner");

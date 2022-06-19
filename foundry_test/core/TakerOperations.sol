@@ -8,7 +8,7 @@ import "mgv_test/lib/MangroveTest.sol";
    and a TestTaker which throws away any funds received upon getting
    a callback.
 */
-contract TakerOperations is MangroveTest {
+contract TakerOperationsTest is MangroveTest {
   TestMaker mkr;
   TestMaker refusemkr;
   TestMaker failmkr;

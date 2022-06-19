@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 
-contract MakerPosthook_Test is MangroveTest, IMaker {
+contract MakerPosthookTest is MangroveTest, IMaker {
   TestTaker tkr;
   uint gasreq = 200_000;
   uint ofr;

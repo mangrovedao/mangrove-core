@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 
-contract Scenarii_Test is MangroveTest {
+contract ScenariiTest is MangroveTest {
   TestTaker taker;
   MakerDeployer makers;
   Balances balances;
@@ -372,7 +372,7 @@ contract Scenarii_Test is MangroveTest {
   }
 }
 
-contract DeepCollect_Test is MangroveTest {
+contract DeepCollectTest is MangroveTest {
   TestTaker tkr;
   TestMoriartyMaker evil;
 

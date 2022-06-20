@@ -1980,7 +1980,7 @@ __metadata:
   dependencies:
     "@espendk/json-file-reporter": ^1.4.1
     "@ethersproject/hardware-wallets": ^5.6.0
-    "@mangrovedao/hardhat-test-solidity": ^0.0.16
+    "@mangrovedao/hardhat-test-solidity": ^0.0.17
     "@nomiclabs/hardhat-ethers": ^2.0.6
     app-module-path: ^2.2.0
     chai: ^4.3.4
@@ -2007,9 +2007,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@mangrovedao/hardhat-test-solidity@npm:^0.0.16":
-  version: 0.0.16
-  resolution: "@mangrovedao/hardhat-test-solidity@npm:0.0.16"
+"@mangrovedao/hardhat-test-solidity@npm:^0.0.17":
+  version: 0.0.17
+  resolution: "@mangrovedao/hardhat-test-solidity@npm:0.0.17"
   dependencies:
     chai: ^4.2.0
     debug: ^4.3.2
@@ -2017,7 +2017,7 @@ __metadata:
   peerDependencies:
     hardhat: ^2.0.0
     hardhat-deploy: ">=0.8.9"
-  checksum: 3cec5b3fb4fc4b1dcf46e6480c309d448b5ba8ded46de2ad94c49a362ff41e866a6f76d6f4f02f31bbce31dbe993ea6b5940046a667c1260d989f75e8e762520
+  checksum: a2d61f0b1e6e84845f5d30cb7afe560044496d04693d08193329f66cfec826fad9b808f7b5e94edb928dc535ff1e9a66946ff792f829adab6ec263d0f149dae7
   languageName: node
   linkType: hard
 
@@ -2044,7 +2044,7 @@ __metadata:
     "@espendk/json-file-reporter": ^1.4.1
     "@ethersproject/experimental": ^5.6.1
     "@ethersproject/hardware-wallets": ^5.6.0
-    "@mangrovedao/hardhat-test-solidity": ^0.0.16
+    "@mangrovedao/hardhat-test-solidity": ^0.0.17
     "@nomiclabs/hardhat-ethers": ^2.0.6
     "@nomiclabs/hardhat-solpp": ^2.0.1
     app-module-path: ^2.2.0

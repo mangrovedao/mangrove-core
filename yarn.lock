@@ -1723,7 +1723,7 @@ __metadata:
     rimraf: ^3.0.2
     serve-static: ^1.15.0
     shelljs: ^0.8.4
-    toad-scheduler: ^1.6.0
+    toad-scheduler: ^1.6.1
     ts-node: ^10.2.1
     typescript: ^4.4.2
   languageName: unknown
@@ -1830,7 +1830,7 @@ __metadata:
     rimraf: ^3.0.2
     serve-static: ^1.15.0
     shelljs: ^0.8.4
-    toad-scheduler: ^1.6.0
+    toad-scheduler: ^1.6.1
     ts-node: ^10.2.1
     typescript: ^4.4.2
   languageName: unknown
@@ -1936,7 +1936,7 @@ __metadata:
     rimraf: ^3.0.2
     serve-static: ^1.15.0
     shelljs: ^0.8.4
-    toad-scheduler: ^1.6.0
+    toad-scheduler: ^1.6.1
     ts-node: ^10.2.1
     typescript: ^4.4.2
   languageName: unknown
@@ -10393,10 +10393,10 @@ resolve@1.17.0:
   languageName: node
   linkType: hard
 
-"toad-scheduler@npm:^1.6.0":
-  version: 1.6.0
-  resolution: "toad-scheduler@npm:1.6.0"
-  checksum: 99936b88a96995fd9320d3a0afe45a5fee7f243ac2a689f5219dc861f03e3d7faadcebeb9d284019eef12776bbfefbf7e6f538548cf51f6ef7ca3e37174b63f4
+"toad-scheduler@npm:^1.6.1":
+  version: 1.6.1
+  resolution: "toad-scheduler@npm:1.6.1"
+  checksum: 0f3b16c851d67901360a76bf5c341c6b8f992de85a9b37d9fa498126134c4dc5c83d3b797070f8bcfc6e775e3d9f3ea1d32638de05521c9507701f085008a514
   languageName: node
   linkType: hard
 

@@ -10,7 +10,6 @@ import "mgv_test/lib/MangroveTest.sol";
 */
 contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   TestMaker mkr;
-  bytes4 takerTrade_bytes;
   uint baseBalance;
   uint quoteBalance;
 
@@ -36,7 +35,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     address,
     address,
     uint totalGives
-  ) external {
+  ) internal {
     assertEq(
       toPay,
       totalGives,
@@ -46,9 +45,11 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
 
   bool skipCheck;
 
+  function(address, address, uint) internal _takerTrade; // stored function pointer
+
   function takerTrade(
     address _$base,
-    address _quote,
+    address _$quote,
     uint totalGot,
     uint totalGives
   ) public override {
@@ -60,16 +61,14 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
         "totalGot should be sum of maker flashloans"
       );
     }
-    (bool success, ) = $this.call(
-      abi.encodeWithSelector(takerTrade_bytes, _$base, _quote, totalGives)
-    );
-    require(success, "TradeFail");
+    _takerTrade(_$base, _$quote, totalGives);
+    // require(false);
   }
 
   function test_taker_gets_sum_of_borrows_in_execute() public {
     mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
-    takerTrade_bytes = this.checkPay.selector;
+    _takerTrade = checkPay;
     toPay = 0.2 ether;
     (, uint gave, , ) = mgv.marketOrder(
       $base,
@@ -85,23 +84,25 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     );
   }
 
+  string constant REVERT_TRADE_REASON = "InvertedTakerOperationsTest/TradeFail";
+
   function revertTrade(
     address,
     address,
     uint
-  ) external pure {
-    require(false);
+  ) internal pure {
+    revert(REVERT_TRADE_REASON);
   }
 
   function test_taker_reverts_during_trade() public {
     uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     uint _ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
-    takerTrade_bytes = this.revertTrade.selector;
+    _takerTrade = revertTrade;
     skipCheck = true;
     try mgv.marketOrder($base, $quote, 0.2 ether, 0.2 ether, true) {
       fail("Market order should have reverted");
     } catch Error(string memory reason) {
-      assertEq("TradeFail", reason, "Unexpected throw");
+      assertEq(REVERT_TRADE_REASON, reason, "Unexpected throw");
       assertTrue(
         mgv.isLive(mgv.offers($base, $quote, ofr)),
         "Offer 1 should be present"
@@ -125,13 +126,13 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     address,
     address _quote,
     uint
-  ) external {
+  ) internal {
     IERC20(_quote).approve($mgv, 0);
   }
 
   function test_taker_refuses_to_deliver_during_trade() public {
     mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
-    takerTrade_bytes = this.refusePayTrade.selector;
+    _takerTrade = refusePayTrade;
     try mgv.marketOrder($base, $quote, 0.2 ether, 0.2 ether, true) {
       fail("Market order should have reverted");
     } catch Error(string memory reason) {
@@ -142,7 +143,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   function test_vault_receives_quote_tokens_if_maker_is_blacklisted_for_quote()
     public
   {
-    takerTrade_bytes = this.noop.selector;
+    _takerTrade = noop;
     quote.blacklists(address(mkr));
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
     address vault = address(1);
@@ -165,14 +166,14 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     address,
     address,
     uint
-  ) external {}
+  ) internal {}
 
   function reenter(
     address _base,
     address _quote,
     uint
-  ) external {
-    takerTrade_bytes = this.noop.selector;
+  ) internal {
+    _takerTrade = noop;
     skipCheck = true;
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [uint(2), 0.1 ether, 0.1 ether, 100_000];
@@ -190,7 +191,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   function test_taker_snipe_mgv_during_trade() public {
     mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
-    takerTrade_bytes = this.reenter.selector;
+    _takerTrade = reenter;
     expectFrom($mgv);
     emit OfferSuccess($base, $quote, 1, $this, 0.1 ether, 0.1 ether);
     expectFrom($mgv);
@@ -217,7 +218,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   function test_taker_pays_back_correct_amount_1() public {
     uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     uint bal = quote.balanceOf($this);
-    takerTrade_bytes = this.noop.selector;
+    _takerTrade = noop;
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 0.05 ether, 0.05 ether, 100_000];
     mgv.snipes($base, $quote, targets, true);
@@ -227,7 +228,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   function test_taker_pays_back_correct_amount_2() public {
     uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     uint bal = quote.balanceOf($this);
-    takerTrade_bytes = this.noop.selector;
+    _takerTrade = noop;
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 0.02 ether, 0.02 ether, 100_000];
     mgv.snipes($base, $quote, targets, true);

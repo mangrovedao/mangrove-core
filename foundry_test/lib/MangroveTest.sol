@@ -58,7 +58,7 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
     $base = address(base);
     $quote = address(quote);
     $mgv = address(mgv);
-    // start with freeWei on mangrove
+    // start with mgvBalance on mangrove
     mgv.fund{value: 10 ether}();
     // approve mgv
     base.approve($mgv, type(uint).max);

@@ -24,19 +24,23 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     tkr.approveMgv(quote, 1 ether);
   }
 
-  function test_provision_adds_freeWei_and_ethers() public {
+  function test_provision_adds_mgv_balance_and_ethers() public {
     uint mgv_bal = $mgv.balance;
     uint amt1 = 235;
     uint amt2 = 1.3 ether;
 
     mkr.provisionMgv(amt1);
 
-    assertEq(mkr.freeWei(), amt1, "incorrect mkr freeWei amount (1)");
+    assertEq(mkr.mgvBalance(), amt1, "incorrect mkr mgvBalance amount (1)");
     assertEq($mgv.balance, mgv_bal + amt1, "incorrect mgv ETH balance (1)");
 
     mkr.provisionMgv(amt2);
 
-    assertEq(mkr.freeWei(), amt1 + amt2, "incorrect mkr freeWei amount (2)");
+    assertEq(
+      mkr.mgvBalance(),
+      amt1 + amt2,
+      "incorrect mkr mgvBalance amount (2)"
+    );
     assertEq(
       $mgv.balance,
       mgv_bal + amt1 + amt2,
@@ -94,7 +98,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     require(tkr.take(ofr, 0.05 ether), "take must work or test is void");
   }
 
-  function test_withdraw_removes_freeWei_and_ethers() public {
+  function test_withdraw_removes_mgv_balance_and_ethers() public {
     uint mgv_bal = $mgv.balance;
     uint amt1 = 0.86 ether;
     uint amt2 = 0.12 ether;
@@ -102,7 +106,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(amt1);
     bool success = mkr.withdrawMgv(amt2);
     assertTrue(success, "mkr was not able to withdraw from mgv");
-    assertEq(mkr.freeWei(), amt1 - amt2, "incorrect mkr freeWei amount");
+    assertEq(mkr.mgvBalance(), amt1 - amt2, "incorrect mkr mgvBalance amount");
     assertEq($mgv.balance, mgv_bal + amt1 - amt2, "incorrect mgv ETH balance");
   }
 
@@ -116,7 +120,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     }
   }
 
-  function test_newOffer_without_freeWei_fails() public {
+  function test_newOffer_without_mgv_balance_fails() public {
     try mkr.newOffer(1 ether, 1 ether, 0, 0) {
       fail("mkr cannot create offer without provision");
     } catch Error(string memory r) {
@@ -170,12 +174,12 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_delete_restores_balance() public {
     mkr.provisionMgv(1 ether);
-    uint bal = mkr.freeWei(); // should be 1 ether
+    uint bal = mkr.mgvBalance(); // should be 1 ether
     uint offerId = mkr.newOffer(1 ether, 1 ether, 2300, 0);
-    uint bal_ = mkr.freeWei(); // 1 ether minus provision
+    uint bal_ = mkr.mgvBalance(); // 1 ether minus provision
     uint collected = mkr.retractOfferWithDeprovision(offerId); // provision
     assertEq(bal - bal_, collected, "retract does not return a correct amount");
-    assertEq(mkr.freeWei(), bal, "delete has not restored balance");
+    assertEq(mkr.mgvBalance(), bal, "delete has not restored balance");
   }
 
   function test_delete_offer_log() public {
@@ -233,10 +237,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_retract_offer_maintains_balance() public {
     mkr.provisionMgv(1 ether);
-    uint bal = mkr.freeWei();
+    uint bal = mkr.mgvBalance();
     uint prov = getProvision($base, $quote, 2300);
     mkr.retractOffer(mkr.newOffer(1 ether, 1 ether, 2300, 0));
-    assertEq(mkr.freeWei(), bal - prov, "unexpected maker balance");
+    assertEq(mkr.mgvBalance(), bal - prov, "unexpected maker balance");
   }
 
   function test_retract_middle_offer_leaves_a_valid_book() public {
@@ -385,7 +389,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     }
   }
 
-  function test_maker_gets_no_freeWei_on_partial_fill() public {
+  function test_maker_gets_no_mgv_balance_on_partial_fill() public {
     mkr.provisionMgv(1 ether);
     deal($base, address(mkr), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
@@ -399,7 +403,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     );
   }
 
-  function test_maker_gets_no_freeWei_on_full_fill() public {
+  function test_maker_gets_no_mgv_balance_on_full_fill() public {
     mkr.provisionMgv(1 ether);
     deal($base, address(mkr), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);

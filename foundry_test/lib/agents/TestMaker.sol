@@ -304,7 +304,7 @@ contract TestMaker is TrivialTestMaker {
     return _mgv.withdraw(amount);
   }
 
-  function freeWei() public view returns (uint) {
+  function mgvBalance() public view returns (uint) {
     return _mgv.balanceOf(address(this));
   }
 }

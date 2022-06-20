@@ -5,12 +5,6 @@ pragma abicoder v2;
 
 import "mgv_test/lib/MangroveTest.sol";
 
-contract Deployer is MangroveTest {
-  function deploy() public returns (AbstractMangrove) {
-    return new Mangrove({governance: msg.sender, gasprice: 0, gasmax: 0});
-  }
-}
-
 // In these tests, the testing contract is the market maker.
 contract GatekeepingTest is IMaker, MangroveTest {
   receive() external payable {}

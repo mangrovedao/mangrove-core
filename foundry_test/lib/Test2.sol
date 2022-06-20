@@ -75,4 +75,23 @@ contract Test2 is Test {
     }
     return (a != address(0));
   }
+
+  /* inline gas measures */
+  uint private checkpointGasLeft = 1; // Start the slot non0.
+  string checkpointLabel;
+
+  function _gas() internal virtual {
+    // checkpointLabel = label;
+
+    checkpointGasLeft = gasleft();
+  }
+
+  function gas_() internal virtual {
+    uint checkpointGasLeft2 = gasleft();
+
+    // Subtract 100 to account for the warm SLOAD in startMeasuringGas.
+    uint gasDelta = checkpointGasLeft - checkpointGasLeft2 - 100;
+
+    emit log_named_uint("Gas used", gasDelta);
+  }
 }

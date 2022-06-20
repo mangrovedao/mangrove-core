@@ -7,7 +7,6 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   TestTaker tkr;
   uint gasreq = 200_000;
   uint ofr;
-  bytes4 posthook_bytes;
   uint _gasprice = 50; // will cover for a gasprice of 50 gwei/gas uint
   uint weiBalMaker;
   bool willFail = false;
@@ -25,16 +24,6 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     uint takerWants,
     uint takerGives
   );
-
-  receive() external payable {}
-
-  function tradeRevert(bytes32 data) internal pure {
-    bytes memory revData = new bytes(32);
-    assembly {
-      mstore(add(revData, 32), data)
-      revert(add(revData, 32), 32)
-    }
-  }
 
   function makerExecute(MgvLib.SingleOrder calldata trade)
     external
@@ -59,8 +48,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function renew_offer_at_posthook(
     MgvLib.SingleOrder calldata order,
     MgvLib.OrderResult calldata
-  ) external {
-    require(msg.sender == $this);
+  ) internal {
     called = true;
     mgv.updateOffer(
       order.outbound_tkn,
@@ -77,8 +65,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function update_gas_offer_at_posthook(
     MgvLib.SingleOrder calldata order,
     MgvLib.OrderResult calldata
-  ) external {
-    require(msg.sender == $this);
+  ) internal {
     called = true;
     mgv.updateOffer(
       order.outbound_tkn,
@@ -95,8 +82,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function failer_posthook(
     MgvLib.SingleOrder calldata,
     MgvLib.OrderResult calldata
-  ) external {
-    require(msg.sender == $this);
+  ) internal {
     called = true;
     fail("Posthook should not be called");
   }
@@ -104,8 +90,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function retractOffer_posthook(
     MgvLib.SingleOrder calldata,
     MgvLib.OrderResult calldata
-  ) external {
-    require(msg.sender == $this);
+  ) internal {
     called = true;
     uint bal = mgv.balanceOf($this);
     mgv.retractOffer($base, $quote, ofr, true);
@@ -117,6 +102,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
       );
     }
   }
+
+  function(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) _posthook;
 
   function makerPosthook(
     MgvLib.SingleOrder calldata order,
@@ -144,10 +131,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
       ),
       "Offer was not removed after take"
     );
-    bool noRevert;
-    (noRevert, ) = $this.call(
-      abi.encodeWithSelector(posthook_bytes, order, result)
-    );
+    _posthook(order, result);
   }
 
   function setUp() public override {
@@ -165,7 +149,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
   function test_renew_offer_after_partial_fill() public {
     uint mkr_provision = getProvision($base, $quote, gasreq, _gasprice);
-    posthook_bytes = this.renew_offer_at_posthook.selector;
+    _posthook = renew_offer_at_posthook;
 
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     assertEq(
@@ -204,7 +188,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
   function test_renew_offer_after_complete_fill() public {
     uint mkr_provision = getProvision($base, $quote, gasreq, _gasprice);
-    posthook_bytes = this.renew_offer_at_posthook.selector;
+    _posthook = renew_offer_at_posthook;
 
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
 
@@ -243,7 +227,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_renew_offer_after_failed_execution() public {
-    posthook_bytes = this.renew_offer_at_posthook.selector;
+    _posthook = renew_offer_at_posthook;
 
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     makerRevert = true;
@@ -274,7 +258,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function treat_fail_at_posthook(
     MgvLib.SingleOrder calldata,
     MgvLib.OrderResult calldata res
-  ) external {
+  ) internal {
     bool success = (res.mgvData == "mgv/tradeSuccess");
     assertTrue(!success, "Offer should be marked as failed");
     assertTrue(res.makerData == bExecuteRevertData, "Incorrect maker data");
@@ -312,7 +296,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_failed_offer_is_not_executed() public {
-    posthook_bytes = this.treat_fail_at_posthook.selector;
+    _posthook = treat_fail_at_posthook;
     uint balMaker = base.balanceOf($this);
     uint balTaker = quote.balanceOf(address(tkr));
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
@@ -345,7 +329,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_update_offer_with_more_gasprice() public {
     uint mkr_provision = getProvision($base, $quote, gasreq, _gasprice);
     uint standard_provision = getProvision($base, $quote, gasreq);
-    posthook_bytes = this.update_gas_offer_at_posthook.selector;
+    _posthook = update_gas_offer_at_posthook;
     // provision for mgv.global.gasprice
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, 0, 0);
 
@@ -386,7 +370,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_posthook_of_skipped_offer_wrong_gas_should_not_be_called()
     public
   {
-    posthook_bytes = this.failer_posthook.selector;
+    _posthook = failer_posthook;
 
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
 
@@ -406,7 +390,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_posthook_of_skipped_offer_wrong_price_should_not_be_called()
     public
   {
-    posthook_bytes = this.failer_posthook.selector;
+    _posthook = failer_posthook;
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     bool success = tkr.snipe(
       mgv,
@@ -423,7 +407,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
   function test_retract_offer_in_posthook() public {
     uint mkr_provision = getProvision($base, $quote, gasreq, _gasprice);
-    posthook_bytes = this.retractOffer_posthook.selector;
+    _posthook = retractOffer_posthook;
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     assertEq(
       mgv.balanceOf($this),
@@ -450,7 +434,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_balance_after_fail_and_retract() public {
     uint mkr_provision = getProvision($base, $quote, gasreq, _gasprice);
     uint tkr_weis = address(tkr).balance;
-    posthook_bytes = this.retractOffer_posthook.selector;
+    _posthook = retractOffer_posthook;
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     assertEq(
       mgv.balanceOf($this),
@@ -487,7 +471,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_update_offer_after_deprovision_in_posthook_succeeds() public {
-    posthook_bytes = this.retractOffer_posthook.selector;
+    _posthook = retractOffer_posthook;
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     expectFrom($mgv);
     emit OfferSuccess($base, $quote, ofr, address(tkr), 1 ether, 1 ether);
@@ -503,7 +487,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function check_best_in_posthook(
     MgvLib.SingleOrder calldata order,
     MgvLib.OrderResult calldata
-  ) external {
+  ) internal {
     called = true;
     (, P.Local.t cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
     assertEq(cfg.best(), ofr, "Incorrect best offer id in posthook");
@@ -521,7 +505,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
       _gasprice,
       0
     );
-    posthook_bytes = this.check_best_in_posthook.selector;
+    _posthook = check_best_in_posthook;
     bool success = tkr.take(best, 1 ether);
     assertTrue(called, "PostHook not called");
     assertTrue(success, "Snipe should succeed");
@@ -530,7 +514,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function check_offer_in_posthook(
     MgvLib.SingleOrder calldata order,
     MgvLib.OrderResult calldata
-  ) external {
+  ) internal {
     called = true;
     uint __wants = order.offer.wants();
     uint __gives = order.offer.gives();
@@ -546,7 +530,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
   function test_check_offer_in_posthook() public {
     ofr = mgv.newOffer($base, $quote, 1 ether, 2 ether, gasreq, 500, 0);
-    posthook_bytes = this.check_offer_in_posthook.selector;
+    _posthook = check_offer_in_posthook;
     bool success = tkr.take(ofr, 2 ether);
     assertTrue(called, "PostHook not called");
     assertTrue(success, "Snipe should succeed");
@@ -555,7 +539,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function check_lastId_in_posthook(
     MgvLib.SingleOrder calldata order,
     MgvLib.OrderResult calldata
-  ) external {
+  ) internal {
     called = true;
     (, P.Local.t cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
     assertEq(cfg.last(), ofr, "Incorrect last offer id in posthook");
@@ -564,7 +548,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_lastId_in_posthook_is_correct() public {
     mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     ofr = mgv.newOffer($base, $quote, 0.5 ether, 1 ether, gasreq, _gasprice, 0);
-    posthook_bytes = this.check_lastId_in_posthook.selector;
+    _posthook = check_lastId_in_posthook;
     bool success = tkr.take(ofr, 1 ether);
     assertTrue(called, "PostHook not called");
     assertTrue(success, "Snipe should succeed");
@@ -572,7 +556,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
   function test_retract_offer_after_fail_in_posthook() public {
     uint mkr_provision = getProvision($base, $quote, gasreq, _gasprice);
-    posthook_bytes = this.retractOffer_posthook.selector;
+    _posthook = retractOffer_posthook;
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     assertEq(
       mgv.balanceOf($this),
@@ -632,7 +616,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function reverting_posthook(
     MgvLib.SingleOrder calldata,
     MgvLib.OrderResult calldata
-  ) external pure {
+  ) internal pure {
     assert(false);
   }
 
@@ -640,7 +624,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     getProvision($base, $quote, gasreq, _gasprice);
     uint balMaker = base.balanceOf($this);
     uint balTaker = quote.balanceOf(address(tkr));
-    posthook_bytes = this.reverting_posthook.selector;
+    _posthook = reverting_posthook;
 
     ofr = mgv.newOffer($base, $quote, 1 ether, 1 ether, gasreq, _gasprice, 0);
     bool success = tkr.take(ofr, 1 ether);

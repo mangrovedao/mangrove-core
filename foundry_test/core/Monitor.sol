@@ -79,11 +79,8 @@ contract MonitorTest is MangroveTest {
     mgv.setMonitor(monitor);
     mgv.setUseOracle(true);
     vm.expectCall(monitor, monitor_read_cd);
-    try mgv.config($base, $quote) {
-      fail("Call to invalid oracle address should throw");
-    } catch {
-      succeed();
-    }
+    vm.expectRevert(bytes(""));
+    mgv.config($base, $quote);
   }
 
   function test_notify_works_on_success_when_set() public {

@@ -139,7 +139,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
       );
     }
     assertTrue(
-      !hasOffer(order.outbound_tkn, order.inbound_tkn, order.offerId),
+      !mgv.isLive(
+        mgv.offers(order.outbound_tkn, order.inbound_tkn, order.offerId)
+      ),
       "Offer was not removed after take"
     );
     bool noRevert;

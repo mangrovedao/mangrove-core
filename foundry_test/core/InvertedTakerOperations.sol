@@ -102,8 +102,14 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
       fail("Market order should have reverted");
     } catch Error(string memory reason) {
       assertEq("TradeFail", reason, "Unexpected throw");
-      assertTrue(hasOffer($base, $quote, ofr), "Offer 1 should be present");
-      assertTrue(hasOffer($base, $quote, _ofr), "Offer 2 should be present");
+      assertTrue(
+        mgv.isLive(mgv.offers($base, $quote, ofr)),
+        "Offer 1 should be present"
+      );
+      assertTrue(
+        mgv.isLive(mgv.offers($base, $quote, _ofr)),
+        "Offer 2 should be present"
+      );
     }
   }
 

@@ -203,7 +203,10 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_snipe_fillWants_zero() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
-    assertTrue(hasOffer($base, $quote, ofr), "Offer should be in the book");
+    assertTrue(
+      mgv.isLive(mgv.offers($base, $quote, ofr)),
+      "Offer should be in the book"
+    );
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 1 ether);
 
@@ -224,7 +227,7 @@ contract TakerOperationsTest is MangroveTest {
       assertEq(got, 0 ether, "Taker had too much");
       assertEq(gave, 0 ether, "Taker gave too much");
       assertTrue(
-        !hasOffer($base, $quote, ofr),
+        !mgv.isLive(mgv.offers($base, $quote, ofr)),
         "Offer should not be in the book"
       );
     } catch {
@@ -234,7 +237,10 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_snipe_free_offer_fillWants_respects_spec() public {
     uint ofr = mkr.newOffer(0, 1 ether, 100_000, 0);
-    assertTrue(hasOffer($base, $quote, ofr), "Offer should be in the book");
+    assertTrue(
+      mgv.isLive(mgv.offers($base, $quote, ofr)),
+      "Offer should be in the book"
+    );
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 1 ether);
 
@@ -255,7 +261,7 @@ contract TakerOperationsTest is MangroveTest {
       assertEq(got, 0.1 ether, "Wrong got value");
       assertEq(gave, 0 ether, "Wrong gave value");
       assertTrue(
-        !hasOffer($base, $quote, ofr),
+        !mgv.isLive(mgv.offers($base, $quote, ofr)),
         "Offer should not be in the book"
       );
     } catch {
@@ -265,7 +271,10 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_snipe_free_offer_fillGives_respects_spec() public {
     uint ofr = mkr.newOffer(0, 1 ether, 100_000, 0);
-    assertTrue(hasOffer($base, $quote, ofr), "Offer should be in the book");
+    assertTrue(
+      mgv.isLive(mgv.offers($base, $quote, ofr)),
+      "Offer should be in the book"
+    );
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 1 ether);
 
@@ -286,7 +295,7 @@ contract TakerOperationsTest is MangroveTest {
       assertEq(got, 1 ether, "Wrong got value");
       assertEq(gave, 0 ether, "Wrong gave value");
       assertTrue(
-        !hasOffer($base, $quote, ofr),
+        !mgv.isLive(mgv.offers($base, $quote, ofr)),
         "Offer should not be in the book"
       );
     } catch {
@@ -296,7 +305,10 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_snipe_fillGives_zero() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
-    assertTrue(hasOffer($base, $quote, ofr), "Offer should be in the book");
+    assertTrue(
+      mgv.isLive(mgv.offers($base, $quote, ofr)),
+      "Offer should be in the book"
+    );
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 1 ether);
 
@@ -313,7 +325,7 @@ contract TakerOperationsTest is MangroveTest {
       assertEq(got, 0 ether, "Taker had too much");
       assertEq(gave, 0 ether, "Taker gave too much");
       assertTrue(
-        !hasOffer($base, $quote, ofr),
+        !mgv.isLive(mgv.offers($base, $quote, ofr)),
         "Offer should not be in the book"
       );
     } catch {

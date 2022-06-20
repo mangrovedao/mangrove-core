@@ -233,14 +233,6 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
     return ((gasreq + loc_cfg.offer_gasbase()) * _gp * 10**9);
   }
 
-  function hasOffer(
-    address $out,
-    address $in,
-    uint offerId
-  ) internal view returns (bool) {
-    return mgv.offers($out, $in, offerId).gives() > 0;
-  }
-
   // Deploy mangrove
   function setupMangrove() public returns (AbstractMangrove) {
     return setupMangrove(false);

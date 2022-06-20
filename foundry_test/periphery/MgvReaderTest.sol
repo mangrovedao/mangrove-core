@@ -6,27 +6,16 @@ import "mgv_test/lib/MangroveTest.sol";
 
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 
-contract Oracle {
-  function read(
-    address, /*base*/
-    address /*quote*/
-  ) external pure returns (uint, uint) {
-    return (23, 2);
-  }
-}
-
 // In these tests, the testing contract is the market maker.
 contract MgvReaderTest is MangroveTest {
-  //receive() external payable {}
-
   TestMaker mkr;
   MgvReader reader;
-  Oracle oracle;
+  address oracle;
 
   function setUp() public override {
     super.setUp();
-    oracle = new Oracle();
-    vm.label(address(oracle), "oracle");
+    oracle = freshAddress("oracle");
+    vm.mockCall(oracle, bytes(""), abi.encode(0, 0));
 
     mkr = setupMaker($base, $quote, "maker");
     reader = new MgvReader($mgv);
@@ -191,7 +180,7 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_provision_oracle() public {
-    mgv.setMonitor(address(oracle));
+    mgv.setMonitor(oracle);
     mgv.setUseOracle(true);
     try_provision();
   }

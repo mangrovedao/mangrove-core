@@ -73,15 +73,9 @@ contract MgvCleanerTest is MangroveTest {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];
-    try cleaner.collect($base, $quote, targets, true) {
-      fail("collect should fail since offer succeeded");
-    } catch Error(string memory reason) {
-      assertEq(
-        "mgvCleaner/anOfferDidNotFail",
-        reason,
-        "fail should be due to offer execution succeeding"
-      );
-    }
+
+    vm.expectRevert("mgvCleaner/anOfferDidNotFail");
+    cleaner.collect($base, $quote, targets, true);
 
     uint newBal = $this.balance;
 

@@ -48,15 +48,6 @@ contract TakerOperationsTest is MangroveTest {
 
     quote.mint($this, 5 ether);
     quote.mint($this, 5 ether);
-
-    // vm.label(msg.sender, "Test Runner");
-    // vm.label($this, "taker");
-    // vm.label(base, "$A");
-    // vm.label(quote, "$B");
-    // vm.label($mgv, "mgv");
-    // vm.label(address(mkr), "maker");
-    // vm.label(address(failmkr), "reverting maker");
-    // vm.label(address(refusemkr), "refusing maker");
   }
 
   function test_snipe_reverts_if_taker_is_blacklisted_for_quote() public {
@@ -68,16 +59,13 @@ contract TakerOperationsTest is MangroveTest {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 100_000];
-    try mgv.snipes($base, $quote, targets, true) {
-      fail("Snipe should fail");
-    } catch Error(string memory errorMsg) {
-      assertEq(errorMsg, "mgv/takerTransferFail", "Unexpected revert reason");
-      assertEq(
-        weiBalanceBefore,
-        mgv.balanceOf($this),
-        "Taker should not take bounty"
-      );
-    }
+    vm.expectRevert("mgv/takerTransferFail");
+    mgv.snipes($base, $quote, targets, true);
+    assertEq(
+      weiBalanceBefore,
+      mgv.balanceOf($this),
+      "Taker should not take bounty"
+    );
   }
 
   function test_snipe_reverts_if_taker_is_blacklisted_for_base() public {
@@ -89,16 +77,13 @@ contract TakerOperationsTest is MangroveTest {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 100_000];
-    try mgv.snipes($base, $quote, targets, true) {
-      fail("Snipe should fail");
-    } catch Error(string memory errorMsg) {
-      assertEq(errorMsg, "mgv/MgvFailToPayTaker", "Unexpected revert reason");
-      assertEq(
-        weiBalanceBefore,
-        mgv.balanceOf($this),
-        "Taker should not take bounty"
-      );
-    }
+    vm.expectRevert("mgv/MgvFailToPayTaker");
+    mgv.snipes($base, $quote, targets, true);
+    assertEq(
+      weiBalanceBefore,
+      mgv.balanceOf($this),
+      "Taker should not take bounty"
+    );
   }
 
   function test_snipe_fails_if_price_has_changed() public {
@@ -108,26 +93,22 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($mgv, 1 ether);
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 0.5 ether, 100_000];
-    try mgv.snipes($base, $quote, targets, false) returns (
-      uint successes,
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertTrue(successes == 0, "Snipe should fail");
-      assertEq(
-        weiBalanceBefore,
-        mgv.balanceOf($this),
-        "Taker should not take bounty"
-      );
-      assertTrue(
-        (got == gave && gave == 0),
-        "Taker should not give or take anything"
-      );
-    } catch {
-      fail("Transaction should not revert");
-    }
+    (uint successes, uint got, uint gave, , ) = mgv.snipes(
+      $base,
+      $quote,
+      targets,
+      false
+    );
+    assertTrue(successes == 0, "Snipe should fail");
+    assertEq(
+      weiBalanceBefore,
+      mgv.balanceOf($this),
+      "Taker should not take bounty"
+    );
+    assertTrue(
+      (got == gave && gave == 0),
+      "Taker should not give or take anything"
+    );
   }
 
   function test_taker_cannot_drain_maker() public {
@@ -148,19 +129,15 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($mgv, 1 ether);
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 0.5 ether, 1 ether, 100_000];
-    try mgv.snipes($base, $quote, targets, true) returns (
-      uint successes,
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertTrue(successes == 1, "Snipe should not fail");
-      assertEq(got, 0.5 ether, "Taker did not get enough");
-      assertEq(gave, 0.5 ether, "Taker did not give enough");
-    } catch {
-      fail("Transaction should not revert");
-    }
+    (uint successes, uint got, uint gave, , ) = mgv.snipes(
+      $base,
+      $quote,
+      targets,
+      true
+    );
+    assertTrue(successes == 1, "Snipe should not fail");
+    assertEq(got, 0.5 ether, "Taker did not get enough");
+    assertEq(gave, 0.5 ether, "Taker did not give enough");
   }
 
   function test_multiple_snipes_fillWants() public {
@@ -184,19 +161,16 @@ contract TakerOperationsTest is MangroveTest {
     emit OrderStart();
     expectFrom($mgv);
     emit OrderComplete($base, $quote, $this, 2.3 ether, 2.3 ether, 0, 0);
-    try mgv.snipes($base, $quote, targets, true) returns (
-      uint successes,
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertTrue(successes == 3, "Snipes should not fail");
-      assertEq(got, 2.3 ether, "Taker did not get enough");
-      assertEq(gave, 2.3 ether, "Taker did not give enough");
-    } catch {
-      fail("Transaction should not revert");
-    }
+
+    (uint successes, uint got, uint gave, , ) = mgv.snipes(
+      $base,
+      $quote,
+      targets,
+      true
+    );
+    assertTrue(successes == 3, "Snipes should not fail");
+    assertEq(got, 2.3 ether, "Taker did not get enough");
+    assertEq(gave, 2.3 ether, "Taker did not give enough");
   }
 
   event Transfer(address indexed from, address indexed to, uint value);
@@ -216,23 +190,20 @@ contract TakerOperationsTest is MangroveTest {
     emit Transfer($this, address(mgv), 0);
     expectFrom($quote);
     emit Transfer($mgv, address(mkr), 0);
-    try mgv.snipes($base, $quote, targets, true) returns (
-      uint successes,
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertTrue(successes == 1, "Snipe should not fail");
-      assertEq(got, 0 ether, "Taker had too much");
-      assertEq(gave, 0 ether, "Taker gave too much");
-      assertTrue(
-        !mgv.isLive(mgv.offers($base, $quote, ofr)),
-        "Offer should not be in the book"
-      );
-    } catch {
-      fail("Transaction should not revert");
-    }
+
+    (uint successes, uint got, uint gave, , ) = mgv.snipes(
+      $base,
+      $quote,
+      targets,
+      true
+    );
+    assertTrue(successes == 1, "Snipe should not fail");
+    assertEq(got, 0 ether, "Taker had too much");
+    assertEq(gave, 0 ether, "Taker gave too much");
+    assertTrue(
+      !mgv.isLive(mgv.offers($base, $quote, ofr)),
+      "Offer should not be in the book"
+    );
   }
 
   function test_snipe_free_offer_fillWants_respects_spec() public {
@@ -250,23 +221,20 @@ contract TakerOperationsTest is MangroveTest {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 0.1 ether, 0, 100_000];
-    try mgv.snipes($base, $quote, targets, true) returns (
-      uint successes,
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertTrue(successes == 1, "Snipe should not fail");
-      assertEq(got, 0.1 ether, "Wrong got value");
-      assertEq(gave, 0 ether, "Wrong gave value");
-      assertTrue(
-        !mgv.isLive(mgv.offers($base, $quote, ofr)),
-        "Offer should not be in the book"
-      );
-    } catch {
-      fail("Transaction should not revert");
-    }
+
+    (uint successes, uint got, uint gave, , ) = mgv.snipes(
+      $base,
+      $quote,
+      targets,
+      true
+    );
+    assertTrue(successes == 1, "Snipe should not fail");
+    assertEq(got, 0.1 ether, "Wrong got value");
+    assertEq(gave, 0 ether, "Wrong gave value");
+    assertTrue(
+      !mgv.isLive(mgv.offers($base, $quote, ofr)),
+      "Offer should not be in the book"
+    );
   }
 
   function test_snipe_free_offer_fillGives_respects_spec() public {
@@ -284,23 +252,19 @@ contract TakerOperationsTest is MangroveTest {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 0.1 ether, 0, 100_000];
-    try mgv.snipes($base, $quote, targets, false) returns (
-      uint successes,
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertTrue(successes == 1, "Snipe should not fail");
-      assertEq(got, 1 ether, "Wrong got value");
-      assertEq(gave, 0 ether, "Wrong gave value");
-      assertTrue(
-        !mgv.isLive(mgv.offers($base, $quote, ofr)),
-        "Offer should not be in the book"
-      );
-    } catch {
-      fail("Transaction should not revert");
-    }
+    (uint successes, uint got, uint gave, , ) = mgv.snipes(
+      $base,
+      $quote,
+      targets,
+      false
+    );
+    assertTrue(successes == 1, "Snipe should not fail");
+    assertEq(got, 1 ether, "Wrong got value");
+    assertEq(gave, 0 ether, "Wrong gave value");
+    assertTrue(
+      !mgv.isLive(mgv.offers($base, $quote, ofr)),
+      "Offer should not be in the book"
+    );
   }
 
   function test_snipe_fillGives_zero() public {
@@ -314,23 +278,19 @@ contract TakerOperationsTest is MangroveTest {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 0, 0, 100_000];
-    try mgv.snipes($base, $quote, targets, false) returns (
-      uint successes,
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertTrue(successes == 1, "Snipe should not fail");
-      assertEq(got, 0 ether, "Taker had too much");
-      assertEq(gave, 0 ether, "Taker gave too much");
-      assertTrue(
-        !mgv.isLive(mgv.offers($base, $quote, ofr)),
-        "Offer should not be in the book"
-      );
-    } catch {
-      fail("Transaction should not revert");
-    }
+    (uint successes, uint got, uint gave, , ) = mgv.snipes(
+      $base,
+      $quote,
+      targets,
+      false
+    );
+    assertTrue(successes == 1, "Snipe should not fail");
+    assertEq(got, 0 ether, "Taker had too much");
+    assertEq(gave, 0 ether, "Taker gave too much");
+    assertTrue(
+      !mgv.isLive(mgv.offers($base, $quote, ofr)),
+      "Offer should not be in the book"
+    );
   }
 
   function test_snipe_fillGives() public {
@@ -340,19 +300,15 @@ contract TakerOperationsTest is MangroveTest {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 0.5 ether, 1 ether, 100_000];
-    try mgv.snipes($base, $quote, targets, false) returns (
-      uint successes,
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertTrue(successes == 1, "Snipe should not fail");
-      assertEq(got, 1 ether, "Taker did not get enough");
-      assertEq(gave, 1 ether, "Taker did not get enough");
-    } catch {
-      fail("Transaction should not revert");
-    }
+    (uint successes, uint got, uint gave, , ) = mgv.snipes(
+      $base,
+      $quote,
+      targets,
+      false
+    );
+    assertTrue(successes == 1, "Snipe should not fail");
+    assertEq(got, 1 ether, "Taker did not get enough");
+    assertEq(gave, 1 ether, "Taker did not get enough");
   }
 
   function test_mo_fillWants() public {
@@ -360,17 +316,15 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 2 ether);
-    try mgv.marketOrder($base, $quote, 1.1 ether, 2 ether, true) returns (
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertEq(got, 1.1 ether, "Taker did not get enough");
-      assertEq(gave, 1.1 ether, "Taker did not get enough");
-    } catch {
-      fail("Transaction should not revert");
-    }
+    (uint got, uint gave, , ) = mgv.marketOrder(
+      $base,
+      $quote,
+      1.1 ether,
+      2 ether,
+      true
+    );
+    assertEq(got, 1.1 ether, "Taker did not get enough");
+    assertEq(gave, 1.1 ether, "Taker did not get enough");
   }
 
   function test_mo_fillGives() public {
@@ -378,17 +332,15 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 2 ether);
-    try mgv.marketOrder($base, $quote, 1.1 ether, 2 ether, false) returns (
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertEq(got, 2 ether, "Taker did not get enough");
-      assertEq(gave, 2 ether, "Taker did not get enough");
-    } catch {
-      fail("Transaction should not revert");
-    }
+    (uint got, uint gave, , ) = mgv.marketOrder(
+      $base,
+      $quote,
+      1.1 ether,
+      2 ether,
+      false
+    );
+    assertEq(got, 2 ether, "Taker did not get enough");
+    assertEq(gave, 2 ether, "Taker did not get enough");
   }
 
   function test_mo_fillGivesAll_no_approved_fails() public {
@@ -397,11 +349,8 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 2 ether);
-    try mgv.marketOrder($base, $quote, 0 ether, 3 ether, false) {} catch Error(
-      string memory errorMsg
-    ) {
-      assertEq(errorMsg, "mgv/takerTransferFail", "Invalid revert message");
-    }
+    vm.expectRevert("mgv/takerTransferFail");
+    mgv.marketOrder($base, $quote, 0 ether, 3 ether, false);
   }
 
   function test_mo_fillGivesAll_succeeds() public {
@@ -410,17 +359,15 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 3 ether);
-    try mgv.marketOrder($base, $quote, 0 ether, 3 ether, false) returns (
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertEq(got, 3 ether, "Taker did not get enough");
-      assertEq(gave, 3 ether, "Taker did not get enough");
-    } catch {
-      fail("Transaction should not revert");
-    }
+    (uint got, uint gave, , ) = mgv.marketOrder(
+      $base,
+      $quote,
+      0 ether,
+      3 ether,
+      false
+    );
+    assertEq(got, 3 ether, "Taker did not get enough");
+    assertEq(gave, 3 ether, "Taker did not get enough");
   }
 
   function test_taker_reimbursed_if_maker_doesnt_pay() public {
@@ -470,11 +417,8 @@ contract TakerOperationsTest is MangroveTest {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 100_000];
-    try mgv.snipes($base, $quote, targets, true) {
-      fail("Snipe should fail because taker has reverted on penalty send.");
-    } catch Error(string memory r) {
-      assertEq(r, "mgv/sendPenaltyReverted", "wrong revert reason");
-    }
+    vm.expectRevert("mgv/sendPenaltyReverted");
+    mgv.snipes($base, $quote, targets, true);
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_base() public {
@@ -630,15 +574,12 @@ contract TakerOperationsTest is MangroveTest {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 50_000];
-    try mgv.snipes($base, $quote, targets, true) {
-      assertEq(
-        base.balanceOf($this) - balTaker,
-        1 ether,
-        "Incorrect delivered amount"
-      );
-    } catch {
-      fail("Snipe should succeed");
-    }
+    mgv.snipes($base, $quote, targets, true);
+    assertEq(
+      base.balanceOf($this) - balTaker,
+      1 ether,
+      "Incorrect delivered amount"
+    );
   }
 
   function test_taker_hasnt_approved_base_succeeds_order_wo_fee() public {
@@ -647,15 +588,12 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($mgv, 1 ether);
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 50_000];
-    try mgv.snipes($base, $quote, targets, true) {
-      assertEq(
-        base.balanceOf($this) - balTaker,
-        1 ether,
-        "Incorrect delivered amount"
-      );
-    } catch {
-      fail("Snipe should succeed");
-    }
+    mgv.snipes($base, $quote, targets, true);
+    assertEq(
+      base.balanceOf($this) - balTaker,
+      1 ether,
+      "Incorrect delivered amount"
+    );
   }
 
   function test_taker_hasnt_approved_quote_fails_order() public {
@@ -664,11 +602,8 @@ contract TakerOperationsTest is MangroveTest {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 50_000];
-    try mgv.snipes($base, $quote, targets, true) {
-      fail("Order should fail when base is not mgv approved");
-    } catch Error(string memory r) {
-      assertEq(r, "mgv/takerTransferFail", "wrong revert reason");
-    }
+    vm.expectRevert("mgv/takerTransferFail");
+    mgv.snipes($base, $quote, targets, true);
   }
 
   function test_simple_snipe() public {
@@ -682,29 +617,25 @@ contract TakerOperationsTest is MangroveTest {
     targets[0] = [ofr, 1 ether, 1.1 ether, 50_000];
     expectFrom($mgv);
     emit OfferSuccess($base, $quote, ofr, $this, 1 ether, 1.1 ether);
-    try mgv.snipes($base, $quote, targets, true) returns (
-      uint successes,
-      uint takerGot,
-      uint takerGave,
-      uint,
-      uint
-    ) {
-      assertTrue(successes == 1, "Snipe should succeed");
-      assertEq(
-        base.balanceOf($this) - balTaker,
-        1 ether,
-        "Incorrect delivered amount (taker)"
-      );
-      assertEq(
-        quote.balanceOf(address(mkr)) - balMaker,
-        1.1 ether,
-        "Incorrect delivered amount (maker)"
-      );
-      assertEq(takerGot, 1 ether, "Incorrect transaction information");
-      assertEq(takerGave, 1.1 ether, "Incorrect transaction information");
-    } catch {
-      fail("Snipe should succeed");
-    }
+    (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
+      $base,
+      $quote,
+      targets,
+      true
+    );
+    assertTrue(successes == 1, "Snipe should succeed");
+    assertEq(
+      base.balanceOf($this) - balTaker,
+      1 ether,
+      "Incorrect delivered amount (taker)"
+    );
+    assertEq(
+      quote.balanceOf(address(mkr)) - balMaker,
+      1.1 ether,
+      "Incorrect delivered amount (maker)"
+    );
+    assertEq(takerGot, 1 ether, "Incorrect transaction information");
+    assertEq(takerGave, 1.1 ether, "Incorrect transaction information");
   }
 
   function test_simple_marketOrder() public {
@@ -717,35 +648,29 @@ contract TakerOperationsTest is MangroveTest {
     uint balTaker = base.balanceOf($this);
     uint balMaker = quote.balanceOf(address(mkr));
 
-    try mgv.marketOrder($base, $quote, 2 ether, 4 ether, true) returns (
-      uint takerGot,
-      uint takerGave,
-      uint,
-      uint
-    ) {
-      assertEq(
-        takerGot,
-        2 ether,
-        "Incorrect declared delivered amount (taker)"
-      );
-      assertEq(
-        takerGave,
-        2.3 ether,
-        "Incorrect declared delivered amount (maker)"
-      );
-      assertEq(
-        base.balanceOf($this) - balTaker,
-        2 ether,
-        "Incorrect delivered amount (taker)"
-      );
-      assertEq(
-        quote.balanceOf(address(mkr)) - balMaker,
-        2.3 ether,
-        "Incorrect delivered amount (maker)"
-      );
-    } catch {
-      fail("Market order should succeed");
-    }
+    (uint takerGot, uint takerGave, , ) = mgv.marketOrder(
+      $base,
+      $quote,
+      2 ether,
+      4 ether,
+      true
+    );
+    assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
+    assertEq(
+      takerGave,
+      2.3 ether,
+      "Incorrect declared delivered amount (maker)"
+    );
+    assertEq(
+      base.balanceOf($this) - balTaker,
+      2 ether,
+      "Incorrect delivered amount (taker)"
+    );
+    assertEq(
+      quote.balanceOf(address(mkr)) - balMaker,
+      2.3 ether,
+      "Incorrect delivered amount (maker)"
+    );
   }
 
   function test_simple_fillWants() public {
@@ -839,11 +764,8 @@ contract TakerOperationsTest is MangroveTest {
 
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 2 ether, 100 ether, 100_000];
-    try mgv.snipes($base, $quote, targets, true) {
-      fail("Taker does not have enough quote tokens, order should fail");
-    } catch Error(string memory r) {
-      assertEq(r, "mgv/takerTransferFail", "wrong revert reason");
-    }
+    vm.expectRevert("mgv/takerTransferFail");
+    mgv.snipes($base, $quote, targets, true);
   }
 
   function maker_has_not_enough_base_fails_order_test() public {
@@ -1029,11 +951,8 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function takerWants_wider_than_160_bits_fails_marketOrder_test() public {
-    try mgv.marketOrder($base, $quote, 2**160, 1, true) {
-      fail("TakerWants > 160bits, order should fail");
-    } catch Error(string memory r) {
-      assertEq(r, "mgv/mOrder/takerWants/160bits", "wrong revert reason");
-    }
+    vm.expectRevert("mgv/mOrder/takerWants/160bits");
+    mgv.marketOrder($base, $quote, 2**160, 1, true);
   }
 
   function snipe_with_0_wants_ejects_offer_test() public {
@@ -1059,19 +978,13 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 120_000, 0);
     uint[4][] memory targets = new uint[4][](1);
     targets[0] = [ofr, 1 ether, 1 ether, 120_000];
-    try mgv.snipes{gas: 120_000}($base, $quote, targets, true) {
-      fail("unsafe gas amount, order should fail");
-    } catch Error(string memory r) {
-      assertEq(r, "mgv/notEnoughGasForMakerTrade", "wrong revert reason");
-    }
+    vm.expectRevert("mgv/notEnoughGasForMakerTrade");
+    mgv.snipes{gas: 120_000}($base, $quote, targets, true);
   }
 
   function marketOrder_on_empty_book_returns_test() public {
-    try mgv.marketOrder($base, $quote, 1 ether, 1 ether, true) {
-      succeed();
-    } catch Error(string memory) {
-      fail("market order on empty book should not fail");
-    }
+    vm.expectRevert("order on empty book should not fail");
+    mgv.marketOrder($base, $quote, 1 ether, 1 ether, true);
   }
 
   function marketOrder_on_empty_book_does_not_leave_lock_on_test() public {
@@ -1083,30 +996,26 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function takerWants_is_zero_succeeds_test() public {
-    try mgv.marketOrder($base, $quote, 0, 1 ether, true) returns (
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertEq(got, 0, "Taker got too much");
-      assertEq(gave, 0 ether, "Taker gave too much");
-    } catch {
-      fail("Unexpected revert");
-    }
+    (uint got, uint gave, , ) = mgv.marketOrder(
+      $base,
+      $quote,
+      0,
+      1 ether,
+      true
+    );
+    assertEq(got, 0, "Taker got too much");
+    assertEq(gave, 0 ether, "Taker gave too much");
   }
 
   function takerGives_is_zero_succeeds_test() public {
-    try mgv.marketOrder($base, $quote, 1 ether, 0, true) returns (
-      uint got,
-      uint gave,
-      uint,
-      uint
-    ) {
-      assertEq(got, 0, "Taker got too much");
-      assertEq(gave, 0 ether, "Taker gave too much");
-    } catch {
-      fail("Unexpected revert");
-    }
+    (uint got, uint gave, , ) = mgv.marketOrder(
+      $base,
+      $quote,
+      1 ether,
+      0,
+      true
+    );
+    assertEq(got, 0, "Taker got too much");
+    assertEq(gave, 0 ether, "Taker gave too much");
   }
 }

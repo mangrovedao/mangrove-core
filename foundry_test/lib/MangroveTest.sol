@@ -25,6 +25,8 @@ import {console2 as csl} from "forge-std/console2.sol";
  */
 
 contract MangroveTest is Utilities, Test2, HasMgvEvents {
+  // Configure the initial setup.
+  // Add fields here to make MangroveTest more configurable.
   struct MangroveTestOptions {
     bool invertedMangrove;
   }

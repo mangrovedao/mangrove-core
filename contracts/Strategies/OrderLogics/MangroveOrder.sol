@@ -13,7 +13,6 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "contracts/Strategies/utils/TransferLib.sol";
-
 import "../OfferLogics/MultiUsers/Persistent.sol";
 import "../interfaces/IOrderLogic.sol";
 

@@ -1,9 +1,10 @@
 const hre = require("hardhat");
 const chalk = require("chalk");
+const { getProvider } = require("../helper.js");
 const { Mangrove } = require("../../../mangrove.js");
 
 async function main() {
-  const provider = ethers.getDefaultProvider(hre.network.config.url);
+  const provider = getProvider();
   if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
     console.error(
       "No deployer account defined, make sure MUMBAI_DEPLOYER_PRIVATE_KEY is set"

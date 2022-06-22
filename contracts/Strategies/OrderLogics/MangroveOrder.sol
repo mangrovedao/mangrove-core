@@ -12,8 +12,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "contracts/strategies/utils/TransferLib.sol";
-
+import "contracts/Strategies/utils/TransferLib.sol";
 import "../OfferLogics/MultiUsers/Persistent.sol";
 import "../interfaces/IOrderLogic.sol";
 
@@ -45,9 +44,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     // revert if sell is partial and `partialFillNotAllowed` and not posting residual
     if (tko.selling) {
       return res.takerGave >= tko.gives;
-    }
-    // revert if buy is partial and `partialFillNotAllowed` and not posting residual
-    else {
+    } else {
       return res.takerGot + res.fee >= tko.wants;
     }
   }
@@ -113,9 +110,10 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     }
 
     // at this points the following invariants hold:
-    // taker received `takerGot` outbound tokens
-    // `this` contract inbound token balance is credited of `tko.gives - takerGave`. NB this amount cannot be redeemed by taker yet since `creditToken` was not called
-    // `this` contract's WEI balance is credited of `msg.value + bounty`
+    // 1. taker received `takerGot` outbound tokens
+    // 2. `this` contract inbound token balance is now equal to `tko.gives - takerGave`.
+    // NB: this amount cannot be redeemed by taker since `creditToken` was not called
+    // 3. `this` contract's WEI balance is credited of `msg.value + bounty`
 
     if (tko.restingOrder && !isComplete) {
       // resting limit order for the residual of the taker order
@@ -179,7 +177,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       } else {
         // offer was successfully posted
         // crediting offer owner's balance with amount of offered tokens (transfered from caller at the begining of this function)
-        // NB `inb` is the outbound token for the resting order
+        // NB `inbount_tkn` should now be outbound token for the resting order
         creditToken(inbound_tkn, msg.sender, tko.gives - res.takerGave);
 
         // setting a time to live for the resting order

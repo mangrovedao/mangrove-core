@@ -13,8 +13,9 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MangoStorage.sol";
 import "../../../Persistent.sol";
-import "contracts/strategies/utils/TransferLib.sol";
-import "contracts/strategies/interfaces/ISourcer.sol";
+import "contracts/Strategies/utils/TransferLib.sol";
+
+//import "../Routers/AbstractRouter.sol";
 
 /** Discrete automated market making strat */
 /** This AMM is headless (no price model) and market makes on `NSLOTS` price ranges*/
@@ -31,6 +32,11 @@ contract MangoImplementation is Persistent {
   // emitted when strat has reached max amount of Asks and needs rebalancing (should shift of x<0 positions in order to have ask prices that are better for the taker)
   event AskAtMinPosition();
 
+  modifier delegated() {
+    require(address(this) == PROXY, "MangoImplementation/invalidCall");
+    _;
+  }
+
   // total number of Asks (resp. Bids)
   uint immutable NSLOTS;
   // initial min price given by `QUOTE_0/BASE_0`
@@ -39,6 +45,8 @@ contract MangoImplementation is Persistent {
   // Market on which Mango will be acting
   IEIP20 immutable BASE;
   IEIP20 immutable QUOTE;
+
+  address immutable PROXY;
 
   constructor(
     IMangrove mgv,
@@ -54,18 +62,25 @@ contract MangoImplementation is Persistent {
     NSLOTS = nslots;
     BASE_0 = base_0;
     QUOTE_0 = quote_0;
+    PROXY = msg.sender;
   }
 
   // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
   // tokenAmounts are always expressed `gives`units, i.e in BASE when asking and in QUOTE when bidding
   function $initialize(
+    bool reset,
     uint lastBidPosition, // if `lastBidPosition` is in R, then all offers before `lastBidPosition` (included) will be bids, offers strictly after will be asks.
     uint from, // first price position to be populated
     uint to, // last price position to be populated
     uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
     uint[] calldata tokenAmounts // `tokenAmounts[i]` is the amount of `BASE` or `QUOTE` tokens (dePENDING on `withBase` flag) that is used to fixed one parameter of the price at position `from+i`.
-  ) external {
+  ) external delegated {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+    // making sure a router has been defined between deployment and initialization
+    require(
+      address(mStr.liquidity_router) != address(0),
+      "Mango/initialize/0xRouter"
+    );
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
     /** NB cannot post newOffer with infinite gasreq since fallback OFR_GASREQ is not defined yet (and default is likely wrong) */
@@ -92,7 +107,7 @@ contract MangoImplementation is Persistent {
           : 0; // otherwise getting last inserted offer as pivot
         updateBid({
           index: i,
-          reset: true, // overwrites old value
+          reset: reset, // overwrites old value
           amount: tokenAmounts[pos],
           pivotId: bidPivot
         });
@@ -110,7 +125,7 @@ contract MangoImplementation is Persistent {
           : 0; // otherwise getting last inserted offer as pivot
         updateAsk({
           index: i,
-          reset: true,
+          reset: reset,
           amount: tokenAmounts[pos],
           pivotId: askPivot
         });
@@ -128,7 +143,7 @@ contract MangoImplementation is Persistent {
     uint ba,
     uint from,
     uint to
-  ) external returns (uint collected) {
+  ) external delegated returns (uint collected) {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     for (uint i = from; i < to; i++) {
       if (ba > 0) {
@@ -153,7 +168,7 @@ contract MangoImplementation is Persistent {
     int s,
     bool withBase,
     uint[] calldata amounts
-  ) external {
+  ) external delegated {
     require(
       amounts.length == (s < 0 ? uint(-s) : uint(s)),
       "Mango/set_shift/notEnoughAmounts"
@@ -583,6 +598,7 @@ contract MangoImplementation is Persistent {
   // TODO add LogIncident and Bid/AskatMax logs
   function $posthookSuccess(ML.SingleOrder calldata order)
     external
+    delegated
     returns (bool success)
   {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
@@ -592,9 +608,9 @@ contract MangoImplementation is Persistent {
     tokens[0] = BASE;
     tokens[1] = QUOTE;
 
-    // tells liquidity sourcer to handle locally stored liquidity (liquidity from the taker and possibly liquidity brought locally during `__get__` function).
-    // this will throw if sourcer is 0x
-    mStr.liquidity_sourcer.flush(tokens);
+    // tells liquidity router to handle locally stored liquidity (liquidity from the taker and possibly liquidity brought locally during `__get__` function).
+    // this will throw if router is 0x
+    mStr.liquidity_router.flush(tokens);
 
     // reposting residual of offer using override `__newWants__` and `__newGives__` for new price
     if (order.outbound_tkn == $(BASE)) {

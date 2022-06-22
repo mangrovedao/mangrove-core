@@ -14,7 +14,7 @@ pragma abicoder v2;
 import "./MangoStorage.sol";
 import "./MangoImplementation.sol";
 import "../../../Persistent.sol";
-import "../Sourcers/Sourcer.sol";
+import "../Routers/AbstractRouter.sol";
 
 /** Discrete automated market making strat */
 /** This AMM is headless (no price model) and market makes on `NSLOTS` price ranges*/
@@ -29,7 +29,7 @@ import "../Sourcers/Sourcer.sol";
 contract Mango is Persistent {
   // emitted when init function has been called and AMM becomes active
   event Initialized(uint from, uint to);
-  event SetLiquiditySourcer(Sourcer);
+  event SetLiquidityRouter(AbstractRouter);
 
   address private immutable IMPLEMENTATION;
 
@@ -60,7 +60,7 @@ contract Mango is Persistent {
       "Mango/constructor/invalidArguments"
     );
     // require(
-    //   address(liquidity_sourcer) != address(0),
+    //   address(liquidity_router) != address(0),
     //   "Mango/constructor/0xLiquiditySource"
     // );
     NSLOTS = nslots;
@@ -122,20 +122,20 @@ contract Mango is Persistent {
 
   /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
   /** */
-  /** NB Sourcer might need further approval to work as intended*/
-  function set_liquidity_sourcer(Sourcer sourcer, uint gasreq)
+  /** NB Router might need further approval to work as intended*/
+  function set_liquidity_router(AbstractRouter router, uint gasreq)
     external
     onlyAdmin
   {
-    MangoStorage.get_storage().liquidity_sourcer = sourcer;
-    BASE.approve(address(sourcer), type(uint).max);
-    QUOTE.approve(address(sourcer), type(uint).max);
+    MangoStorage.get_storage().liquidity_router = router;
+    BASE.approve(address(router), type(uint).max);
+    QUOTE.approve(address(router), type(uint).max);
     setGasreq(gasreq);
-    emit SetLiquiditySourcer(sourcer);
+    emit SetLiquidityRouter(router);
   }
 
-  function liquidity_sourcer() public view returns (Sourcer) {
-    return MangoStorage.get_storage().liquidity_sourcer;
+  function liquidity_router() public view returns (AbstractRouter) {
+    return MangoStorage.get_storage().liquidity_router;
   }
 
   function reset_pending() external onlyAdmin {
@@ -172,7 +172,7 @@ contract Mango is Persistent {
     returns (uint)
   {
     // pulled might be lower or higher than amount
-    uint pulled = MangoStorage.get_storage().liquidity_sourcer.pull(
+    uint pulled = MangoStorage.get_storage().liquidity_router.pull(
       IEIP20(order.outbound_tkn),
       amount
     );

@@ -38,7 +38,7 @@ describe("Running tests...", function () {
   let maker = null;
   let taker = null;
   let makerContract = null;
-  let sourcer = null;
+  let router = null;
 
   const NSLOTS = 20;
   // price increase is delta/BASE_0
@@ -97,11 +97,9 @@ describe("Running tests...", function () {
     await lc.fund([["WETH", "17.0", makerContract.address]]);
   });
 
-  it("Deploy buffered AAVE sourcer", async function () {
-    const SourcerFactory = await ethers.getContractFactory(
-      "BufferedAaveSourcer"
-    );
-    sourcer = await SourcerFactory.deploy(
+  it("Deploy buffered AAVE router", async function () {
+    const RouterFactory = await ethers.getContractFactory("BufferedAaveRouter");
+    router = await RouterFactory.deploy(
       (
         await lc.getContract("AAVE")
       ).address,
@@ -109,48 +107,45 @@ describe("Running tests...", function () {
       1, // interest rate mode -stable-
       maker.address
     );
-    // liquidity sourcer will pull funds from AAVE
+    // liquidity router will pull funds from AAVE
 
     let txs = [];
     let i = 0;
-    txs[i++] = await makerContract.set_liquidity_sourcer(
-      sourcer.address,
-      800000
-    );
-    txs[i++] = await sourcer.bind(makerContract.address); // allowing makerContract to pull from sourcer
+    txs[i++] = await makerContract.set_liquidity_router(router.address, 800000);
+    txs[i++] = await router.bind(makerContract.address); // allowing makerContract to pull from router
 
-    txs[i++] = await sourcer.approveLender(wEth.address); // to mint awETH
-    txs[i++] = await sourcer.approveLender(usdc.address); // to mint aUSDC
+    txs[i++] = await router.approveLender(wEth.address); // to mint awETH
+    txs[i++] = await router.approveLender(usdc.address); // to mint aUSDC
 
     // putting ETH as collateral on AAVE
-    txs[i++] = await sourcer.supply(
+    txs[i++] = await router.supply(
       wEth.address, //asset
       ethers.utils.parseEther("17"), //amount
       makerContract.address // from
     );
 
     // borrowing USDC on collateral
-    txs[i++] = await sourcer.borrow(
+    txs[i++] = await router.borrow(
       usdc.address,
       ethers.utils.parseUnits("2000", 6),
       makerContract.address // to
     );
     // setting buffer to be twice the promised volume of an offer
-    // txs[i++] = await sourcer.set_buffer(
+    // txs[i++] = await router.set_buffer(
     //   wEth.address,
     //   ethers.utils.parseEther("3")
     // );
-    // txs[i++] = await sourcer.set_buffer(
+    // txs[i++] = await router.set_buffer(
     //   usdc.address,
     //   ethers.utils.parseUnits("2000", 6)
     // );
 
     await lc.synch(txs);
     await lc.logLenderStatus(
-      sourcer,
+      router,
       "aave",
       ["WETH", "USDC"],
-      sourcer.address,
+      router.address,
       makerContract.address
     );
   });
@@ -177,7 +172,7 @@ describe("Running tests...", function () {
     await wEth.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
     await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
 
-    const awETHBalance = await sourcer.balance(wEth.address);
+    const awETHBalance = await router.balance(wEth.address);
 
     const receipt = await (
       await mgv.connect(taker).marketOrder(
@@ -190,15 +185,15 @@ describe("Running tests...", function () {
     ).wait();
     console.log(`Market order passed for ${receipt.gasUsed} gas units`);
     await lc.logLenderStatus(
-      sourcer,
+      router,
       "aave",
       ["WETH", "USDC"],
-      sourcer.address,
+      router.address,
       makerContract.address
     );
     lc.assertAlmost(
       awETHBalance.sub(takerWants), //maker pays before Mangrove fees
-      await sourcer.balance(wEth.address),
+      await router.balance(wEth.address),
       18,
       9, // decimals of precision
       "incorrect WETH balance on aave"

@@ -30,7 +30,7 @@ async function main() {
     ["DAI", "USDC"],
   ];
 
-  let sourcer = null;
+  let router = null;
 
   for (const [baseName, quoteName] of markets) {
     let tx = null;
@@ -46,9 +46,9 @@ async function main() {
     let MangoRaw = (
       await hre.ethers.getContract(`Mango_${baseName}_${quoteName}`)
     ).connect(deployer);
-    // in case deployment was interupted after the liquidity sourcer was deployed
-    if (!sourcer) {
-      sourcer = await MangoRaw.liquidity_sourcer();
+    // in case deployment was interupted after the liquidity router was deployed
+    if (!router) {
+      router = await MangoRaw.liquidity_router();
     }
 
     if ((await MangoRaw.admin()) === deployer.address) {
@@ -66,56 +66,54 @@ async function main() {
       tx = await MangoRaw.reset_pending();
       await tx.wait();
     }
-    const SourcerFactory = await ethers.getContractFactory("EOASourcer");
-    if (sourcer === ethers.constants.AddressZero) {
-      console.log(`* Deploying a new liquidity sourcer`);
-      const sourcerContract = await SourcerFactory.connect(tester).deploy(
+    const RouterFactory = await ethers.getContractFactory("EOARouter");
+    if (router === ethers.constants.AddressZero) {
+      console.log(`* Deploying a new liquidity router`);
+      const routerContract = await RouterFactory.connect(tester).deploy(
         tester.address
       );
-      await sourcerContract.deployed();
+      await routerContract.deployed();
 
-      console.log(
-        `* Binding sourcer (${sourcerContract.address}) to this Mango`
-      );
-      tx = await sourcerContract.bind(MangoRaw.address);
+      console.log(`* Binding router (${routerContract.address}) to this Mango`);
+      tx = await routerContract.bind(MangoRaw.address);
       await tx.wait();
-      sourcer = sourcerContract.address;
+      router = routerContract.address;
 
-      console.log(`* Setting Mango to use sourcer (${sourcer})`);
-      tx = await MangoRaw.set_liquidity_sourcer(
-        sourcer,
+      console.log(`* Setting Mango to use router (${router})`);
+      tx = await MangoRaw.set_liquidity_router(
+        router,
         await MangoRaw.OFR_GASREQ()
       );
       await tx.wait();
     } else {
-      console.log(`* Reusing already deployed sourcer ${sourcer}`);
-      tx = await MangoRaw.set_liquidity_sourcer(
-        sourcer,
+      console.log(`* Reusing already deployed router ${router}`);
+      tx = await MangoRaw.set_liquidity_router(
+        router,
         await MangoRaw.OFR_GASREQ()
       );
       await tx.wait();
-      const sourcerContract = SourcerFactory.connect(tester).attach(sourcer);
-      tx = await sourcerContract.bind(MangoRaw.address);
+      const routerContract = RouterFactory.connect(tester).attach(router);
+      tx = await routerContract.bind(MangoRaw.address);
       await tx.wait();
     }
 
-    if ((await MgvAPI.token(baseName).allowance({ spender: sourcer })).eq(0)) {
-      // maker has to approve liquidity sourcer of Mango for base and quote transfer
+    if ((await MgvAPI.token(baseName).allowance({ spender: router })).eq(0)) {
+      // maker has to approve liquidity router of Mango for base and quote transfer
       console.log(
-        `* Approving sourcer to transfer ${baseName} from tester wallet`
+        `* Approving router to transfer ${baseName} from tester wallet`
       );
       tx = await MgvAPI.token(baseName).approve(
-        sourcer,
+        router,
         ethers.constants.MaxUint256
       );
       await tx.wait();
     }
-    if ((await MgvAPI.token(quoteName).allowance({ spender: sourcer })).eq(0)) {
+    if ((await MgvAPI.token(quoteName).allowance({ spender: router })).eq(0)) {
       console.log(
-        `* Approving sourcer to transfer ${quoteName} from tester wallet`
+        `* Approving router to transfer ${quoteName} from tester wallet`
       );
       tx = await MgvAPI.token(quoteName).approve(
-        sourcer,
+        router,
         ethers.constants.MaxUint256
       );
       await tx.wait();

@@ -15,7 +15,7 @@ import "./MangoStorage.sol";
 import "../../../Persistent.sol";
 import "contracts/Strategies/utils/TransferLib.sol";
 
-//import "../Sourcers/Sourcer.sol";
+//import "../Routers/AbstractRouter.sol";
 
 /** Discrete automated market making strat */
 /** This AMM is headless (no price model) and market makes on `NSLOTS` price ranges*/
@@ -76,10 +76,10 @@ contract MangoImplementation is Persistent {
     uint[] calldata tokenAmounts // `tokenAmounts[i]` is the amount of `BASE` or `QUOTE` tokens (dePENDING on `withBase` flag) that is used to fixed one parameter of the price at position `from+i`.
   ) external delegated {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    // making sure a sourcer has been defined between deployment and initialization
+    // making sure a router has been defined between deployment and initialization
     require(
-      address(mStr.liquidity_sourcer) != address(0),
-      "Mango/initialize/0xSourcer"
+      address(mStr.liquidity_router) != address(0),
+      "Mango/initialize/0xRouter"
     );
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
@@ -608,9 +608,9 @@ contract MangoImplementation is Persistent {
     tokens[0] = BASE;
     tokens[1] = QUOTE;
 
-    // tells liquidity sourcer to handle locally stored liquidity (liquidity from the taker and possibly liquidity brought locally during `__get__` function).
-    // this will throw if sourcer is 0x
-    mStr.liquidity_sourcer.flush(tokens);
+    // tells liquidity router to handle locally stored liquidity (liquidity from the taker and possibly liquidity brought locally during `__get__` function).
+    // this will throw if router is 0x
+    mStr.liquidity_router.flush(tokens);
 
     // reposting residual of offer using override `__newWants__` and `__newGives__` for new price
     if (order.outbound_tkn == $(BASE)) {

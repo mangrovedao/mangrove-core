@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//BufferedAaveSourcer.sol
+//BufferedAaveRouter.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -13,12 +13,12 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "./EOAAaveSourcer.sol";
+import "./EOAAaveRouter.sol";
 
 // BUFFER on maker contract
 // overlying on SOURCE
 // underlying on AAVE
-contract EOABufferedAaveSourcer is EOAAaveSourcer {
+contract EOABufferedAaveRouter is EOAAaveRouter {
   mapping(IEIP20 => uint) public liquidity_buffer_size;
 
   constructor(
@@ -27,7 +27,12 @@ contract EOABufferedAaveSourcer is EOAAaveSourcer {
     uint _interestRateMode,
     address deployer // initial admin
   )
-    AaveSourcer(_addressesProvider, _referralCode, _interestRateMode, deployer)
+    EOAAaveRouter(
+      _addressesProvider,
+      _referralCode,
+      _interestRateMode,
+      deployer
+    )
   {}
 
   // Liquidity : SOURCE --> MAKER
@@ -70,7 +75,7 @@ contract EOABufferedAaveSourcer is EOAAaveSourcer {
               address(this),
               amount
             ),
-            "AaveSourcer/flush/transferFail"
+            "AaveRouter/flush/transferFail"
           );
           // repaying potential debt of SOURCE and supplying the rest on its behalf
           repayThenDeposit(tokens[i], SOURCE, amount);
@@ -80,7 +85,7 @@ contract EOABufferedAaveSourcer is EOAAaveSourcer {
   }
 
   // returns total amount of `token` owned by MAKER
-  // if sourcer has a borrowing position, then this total amount may not be entirely redeemable
+  // if router has a borrowing position, then this total amount may not be entirely redeemable
   function balance(IEIP20 token) public view override returns (uint available) {
     unchecked {
       available = overlying(token).balanceOf(address(this));

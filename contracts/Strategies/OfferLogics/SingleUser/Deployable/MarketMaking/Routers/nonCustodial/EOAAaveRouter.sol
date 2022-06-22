@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveSourcer.sol
+//AaveRouter.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -16,7 +16,7 @@ pragma abicoder v2;
 import "contracts/Strategies/Modules/aave/v3/AaveModule.sol";
 import "contracts/Strategies/utils/AccessControlled.sol";
 import "contracts/Strategies/utils/TransferLib.sol";
-import "../Sourcer.sol";
+import "../AbstractRouter.sol";
 
 // Underlying on AAVE
 // Overlying on SOURCE
@@ -25,8 +25,8 @@ import "../Sourcer.sol";
 // `this` must be approved by SOURCE for *overlying* of inbound token transfer
 // `this` must be approved by maker contract for outbound token transfer
 
-contract EOAAaveSourcer is Sourcer, AaveV3Module {
-  address immutable SOURCE;
+contract EOAAaveRouter is AbstractRouter, AaveV3Module {
+  address public immutable SOURCE;
 
   constructor(
     address _addressesProvider,
@@ -34,7 +34,7 @@ contract EOAAaveSourcer is Sourcer, AaveV3Module {
     uint _interestRateMode,
     address deployer
   )
-    Sourcer(deployer)
+    AbstractRouter(deployer)
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
   {
     SOURCE = deployer;
@@ -71,7 +71,7 @@ contract EOAAaveSourcer is Sourcer, AaveV3Module {
           address(this),
           amount
         ),
-        "AaveSourcer/flush/transferFail"
+        "AaveRouter/flush/transferFail"
       );
       // repay and supply for SOURCE
       repayThenDeposit(tokens[i], SOURCE, amount);
@@ -99,7 +99,7 @@ contract EOAAaveSourcer is Sourcer, AaveV3Module {
   ) external onlyAdmin {
     require(
       TransferLib.transferToken(token, to, amount),
-      "AaveSourcer/transferTokenFail"
+      "AaveRouter/transferTokenFail"
     );
   }
 }

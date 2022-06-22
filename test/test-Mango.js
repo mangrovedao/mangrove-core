@@ -33,6 +33,7 @@ async function init(NSLOTS, makerContract, bidAmount, askAmount) {
 
   for (let i = 0; i < 2; i++) {
     const receipt = await makerContract.initialize(
+      true, // overrides existing offer if any
       4,
       slice * i, // from
       slice * (i + 1), // to
@@ -93,36 +94,36 @@ describe("Running tests...", function () {
         maker.address // admin
       )
     ).connect(maker);
-    const SourcerFactory = await ethers.getContractFactory("EOASourcer");
-    const sourcer = await SourcerFactory.deploy(maker.address);
-    await sourcer.deployed();
-    tx = await sourcer.bind(makerContract.address);
+    const RouterFactory = await ethers.getContractFactory("EOARouter");
+    const router = await RouterFactory.deploy(maker.address);
+    await router.deployed();
+    tx = await router.bind(makerContract.address);
     await tx.wait();
-    tx = await makerContract.set_liquidity_sourcer(
-      sourcer.address,
+    tx = await makerContract.set_liquidity_router(
+      router.address,
       await makerContract.OFR_GASREQ()
     );
     await tx.wait();
 
     let txs = [];
     let i = 0;
-    // maker has to approve liquidity sourcer of Mango for ETH and USDC transfer
+    // maker has to approve liquidity router of Mango for ETH and USDC transfer
     txs[i++] = await wEth
       .connect(maker)
       .approve(
-        await makerContract.liquidity_sourcer(),
+        await makerContract.liquidity_router(),
         ethers.constants.MaxUint256
       );
     txs[i++] = await usdc
       .connect(maker)
       .approve(
-        await makerContract.liquidity_sourcer(),
+        await makerContract.liquidity_router(),
         ethers.constants.MaxUint256
       );
     await lc.synch(txs);
 
     // funds come from maker's wallet by default
-    // liquidity sourcer will pull the funds from the wallet when needed
+    // liquidity router will pull the funds from the wallet when needed
     await lc.fund([
       ["WETH", "17.0", maker.address],
       ["USDC", "50000", maker.address],

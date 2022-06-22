@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveSourcer.sol
+//AaveRouter.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -16,22 +16,22 @@ pragma abicoder v2;
 import "contracts/Strategies/Modules/aave/v3/AaveModule.sol";
 import "contracts/Strategies/utils/AccessControlled.sol";
 import "contracts/Strategies/utils/TransferLib.sol";
-import "../Sourcer.sol";
+import "../AbstractRouter.sol";
 
 // Underlying on AAVE
-// Overlying on sourcer contract
+// Overlying on router contract
 // `this` must approve Lender for outbound token transfer (redeem)
 // `this` must approve Lender for inbound token transfer (repay/supply)
 // `this` must be approved by maker contract for inbound token transfer
 
-contract AaveSourcer is Sourcer, AaveV3Module {
+contract AaveRouter is AbstractRouter, AaveV3Module {
   constructor(
     address _addressesProvider,
     uint _referralCode,
     uint _interestRateMode,
     address deployer
   )
-    Sourcer(deployer)
+    AbstractRouter(deployer) // admin is deployer, main source of liquidity is `this` contract
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
   {}
 
@@ -59,7 +59,7 @@ contract AaveSourcer is Sourcer, AaveV3Module {
           address(this),
           amount
         ),
-        "AaveSourcer/flush/transferFail"
+        "AaveRouter/flush/transferFail"
       );
       repayThenDeposit(tokens[i], address(this), amount);
     }
@@ -83,7 +83,7 @@ contract AaveSourcer is Sourcer, AaveV3Module {
     _borrow(token, amount, address(this));
     require(
       TransferLib.transferToken(token, to, amount),
-      "AaveSourcer/borrow/transferFail"
+      "AaveRouter/borrow/transferFail"
     );
   }
 
@@ -94,7 +94,7 @@ contract AaveSourcer is Sourcer, AaveV3Module {
   ) external onlyAdmin {
     require(
       TransferLib.transferTokenFrom(token, from, address(this), amount),
-      "AaveSourcer/repay/transferFromFail"
+      "AaveRouter/repay/transferFromFail"
     );
     _repay(token, amount, address(this));
   }
@@ -106,7 +106,7 @@ contract AaveSourcer is Sourcer, AaveV3Module {
   ) external onlyAdmin {
     require(
       TransferLib.transferTokenFrom(token, from, address(this), amount),
-      "AaveSourcer/supply/transferFromFail"
+      "AaveRouter/supply/transferFromFail"
     );
     _supply(token, amount, address(this));
   }
@@ -143,7 +143,7 @@ contract AaveSourcer is Sourcer, AaveV3Module {
   ) external onlyAdmin {
     require(
       TransferLib.transferToken(token, to, amount),
-      "AaveSourcer/transferTokenFail"
+      "AaveRouter/transferTokenFail"
     );
   }
 }

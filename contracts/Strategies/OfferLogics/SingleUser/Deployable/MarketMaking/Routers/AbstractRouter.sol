@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//EOASourcer.sol
+//ITreasury.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -13,47 +13,41 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
+import "contracts/Strategies/interfaces/IEIP20.sol";
 import "contracts/Strategies/utils/AccessControlled.sol";
-import "contracts/Strategies/utils/TransferLib.sol";
-import "contracts/Strategies/interfaces/ISourcer.sol";
 
-contract EOASourcer is ISourcer, AccessControlled {
-  address public immutable SOURCE;
-  address public immutable MAKER;
-
-  constructor(address spenderContract, address deployer)
-    AccessControlled(deployer)
-  {
-    MAKER = spenderContract;
-    SOURCE = deployer;
+abstract contract AbstractRouter is AccessControlled {
+  mapping(address => bool) public makers;
+  modifier onlyMakers() {
+    require(makers[msg.sender], "Router/unauthorized");
+    _;
   }
 
-  // requires approval of contract deployer
-  function pull(IEIP20 token, uint amount)
-    external
-    override
-    onlyCaller(MAKER)
-    returns (uint missing)
-  {
-    if (TransferLib.transferTokenFrom(token, SOURCE, MAKER, amount)) {
-      return 0;
-    } else {
-      return amount;
-    }
+  constructor(address deployer) AccessControlled(deployer) {}
+
+  // gets `amount` of `token`s from liquidity source
+  function pull(IEIP20 token, uint amount) external onlyMakers returns (uint) {
+    return __pull__(token, amount);
   }
 
-  // requires approval of Maker
-  function flush(IEIP20[] calldata tokens) external override onlyCaller(MAKER) {
-    for (uint i = 0; i < tokens.length; i++) {
-      uint amount = tokens[i].balanceOf(MAKER);
-      require(
-        TransferLib.transferTokenFrom(tokens[i], MAKER, SOURCE, amount),
-        "EOASourcer/flush/transferFail"
-      );
-    }
+  function __pull__(IEIP20 token, uint amount) internal virtual returns (uint);
+
+  // deposits `amount` of `token`s into liquidity source
+  function flush(IEIP20[] calldata tokens) external onlyMakers {
+    __flush__(tokens);
   }
 
-  function balance(IEIP20 token) external view override returns (uint) {
-    return token.balanceOf(SOURCE);
+  function __flush__(IEIP20[] calldata tokens) internal virtual;
+
+  // checks amount of `token`s available in the liquidity source
+  function balance(IEIP20 token) external view virtual returns (uint);
+
+  // connect a maker contract to this router
+  function bind(address maker) external onlyAdmin {
+    makers[maker] = true;
+  }
+
+  function unbind(address maker) external onlyAdmin {
+    makers[maker] = false;
   }
 }

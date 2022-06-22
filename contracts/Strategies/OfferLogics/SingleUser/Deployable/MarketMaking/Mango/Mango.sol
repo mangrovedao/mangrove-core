@@ -14,7 +14,7 @@ pragma abicoder v2;
 import "./MangoStorage.sol";
 import "./MangoImplementation.sol";
 import "../../../Persistent.sol";
-import "../Sourcers/EOASourcer.sol";
+import "../Routers/AbstractRouter.sol";
 
 /** Discrete automated market making strat */
 /** This AMM is headless (no price model) and market makes on `NSLOTS` price ranges*/
@@ -27,10 +27,9 @@ import "../Sourcers/EOASourcer.sol";
 /** In case of a partial fill of an offer at position i, the offer residual is reposted (see `Persistent` strat class)*/
 
 contract Mango is Persistent {
-
   // emitted when init function has been called and AMM becomes active
   event Initialized(uint from, uint to);
-  event SetLiquiditySourcer(ISourcer);
+  event SetLiquidityRouter(AbstractRouter);
 
   address private immutable IMPLEMENTATION;
 
@@ -61,7 +60,7 @@ contract Mango is Persistent {
       "Mango/constructor/invalidArguments"
     );
     // require(
-    //   address(liquidity_sourcer) != address(0),
+    //   address(liquidity_router) != address(0),
     //   "Mango/constructor/0xLiquiditySource"
     // );
     NSLOTS = nslots;
@@ -96,6 +95,7 @@ contract Mango is Persistent {
   // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
   // tokenAmounts are always expressed `gives`units, i.e in BASE when asking and in QUOTE when bidding
   function initialize(
+    bool reset,
     uint lastBidPosition, // if `lastBidPosition` is in R, then all offers before `lastBidPosition` (included) will be bids, offers strictly after will be asks.
     uint from, // first price position to be populated
     uint to, // last price position to be populated
@@ -105,6 +105,7 @@ contract Mango is Persistent {
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
         MangoImplementation.$initialize.selector,
+        reset,
         lastBidPosition,
         from,
         to,
@@ -121,28 +122,20 @@ contract Mango is Persistent {
 
   /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
   /** */
-  /** NB Sourcer might need further approval to work as intended*/
-  function set_liquidity_sourcer(ISourcer sourcer, uint gasreq)
+  /** NB Router might need further approval to work as intended*/
+  function set_liquidity_router(AbstractRouter router, uint gasreq)
     external
     onlyAdmin
   {
-    MangoStorage.get_storage().liquidity_sourcer = sourcer;
-    BASE.approve(address(sourcer), type(uint).max);
-    QUOTE.approve(address(sourcer), type(uint).max);
+    MangoStorage.get_storage().liquidity_router = router;
+    BASE.approve(address(router), type(uint).max);
+    QUOTE.approve(address(router), type(uint).max);
     setGasreq(gasreq);
-    emit SetLiquiditySourcer(sourcer);
+    emit SetLiquidityRouter(router);
   }
 
-  function set_EOA_sourcer() external onlyAdmin {
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    mStr.liquidity_sourcer = new EOASourcer(address(this), admin());
-    BASE.approve(address(mStr.liquidity_sourcer), type(uint).max);
-    QUOTE.approve(address(mStr.liquidity_sourcer), type(uint).max);
-    emit SetLiquiditySourcer(mStr.liquidity_sourcer);
-  }
-
-  function liquidity_sourcer() public view returns (ISourcer) {
-    return MangoStorage.get_storage().liquidity_sourcer;
+  function liquidity_router() public view returns (AbstractRouter) {
+    return MangoStorage.get_storage().liquidity_router;
   }
 
   function reset_pending() external onlyAdmin {
@@ -179,7 +172,7 @@ contract Mango is Persistent {
     returns (uint)
   {
     // pulled might be lower or higher than amount
-    uint pulled = MangoStorage.get_storage().liquidity_sourcer.pull(
+    uint pulled = MangoStorage.get_storage().liquidity_router.pull(
       IEIP20(order.outbound_tkn),
       amount
     );

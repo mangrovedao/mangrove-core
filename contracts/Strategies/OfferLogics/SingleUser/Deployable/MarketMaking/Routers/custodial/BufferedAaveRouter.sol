@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//BufferedAaveSourcer.sol
+//BufferedAaveRouter.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -13,38 +13,42 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "./AaveSourcer.sol";
+import "./AaveRouter.sol";
 
-contract BufferedAaveSourcer is AaveSourcer {
+// Underlying on AAVE and a buffer on maker contract
+// Overlying on router contract
+// `this` must approve Lender for outbound token transfer (pull)
+// `this` must approve Lender for inbound token transfer (flush)
+// `this` must be approved by maker contract for outbound token transfer (flush/pull buffer)
+// `this` must be approved by maker contract for inbound token transfer (flush)
+
+contract BufferedAaveRouter is AaveRouter {
   mapping(IEIP20 => uint) public liquidity_buffer_size;
 
   constructor(
     address _addressesProvider,
     uint _referralCode,
     uint _interestRateMode,
-    address spenderContract, // maker contract the liquidity sourcer of which is `this` contract
     address deployer // initial admin
   )
-    AaveSourcer(
-      _addressesProvider,
-      _referralCode,
-      _interestRateMode,
-      spenderContract,
-      deployer
-    )
+    AaveRouter(_addressesProvider, _referralCode, _interestRateMode, deployer)
   {}
 
   // Liquidity : SOURCE --> MAKER
-  function pull(IEIP20 token, uint amount)
-    external
+  function __pull__(IEIP20 token, uint amount)
+    internal
+    virtual
     override
-    onlyCaller(MAKER)
     returns (uint pulled)
   {
-    if (token.balanceOf(MAKER) < amount) {
+    if (token.balanceOf(msg.sender) < amount) {
       // transfer *all* aTokens from AAVE account
-      (uint _amount, ) = maxGettableUnderlying(token, false, address(this));
-      return _redeem(token, _amount, MAKER);
+      (uint amount_, ) = maxGettableUnderlying(token, false, address(this));
+      if (amount_ == 0) {
+        return 0;
+      } else {
+        return _redeem(token, amount_, msg.sender);
+      }
     } else {
       // there is enough liquidity on `MAKER`, nothing to do
       return 0;
@@ -52,9 +56,9 @@ contract BufferedAaveSourcer is AaveSourcer {
   }
 
   // Liquidity : MAKER --> SOURCE
-  function flush(IEIP20[] calldata tokens) external override onlyCaller(MAKER) {
+  function __flush__(IEIP20[] calldata tokens) internal virtual override {
     for (uint i = 0; i < tokens.length; i++) {
-      uint buffer = tokens[i].balanceOf(MAKER);
+      uint buffer = tokens[i].balanceOf(msg.sender);
       uint target = liquidity_buffer_size[tokens[i]];
       if (buffer > target) {
         unchecked {
@@ -62,24 +66,24 @@ contract BufferedAaveSourcer is AaveSourcer {
           require(
             TransferLib.transferTokenFrom(
               tokens[i],
-              MAKER,
+              msg.sender,
               address(this),
               amount
             ),
-            "AaveSourcer/flush/transferFail"
+            "AaveRouter/flush/transferFail"
           );
-          repayThenDeposit(tokens[i], amount);
+          repayThenDeposit(tokens[i], address(this), amount);
         }
       }
     }
   }
 
   // returns total amount of `token` owned by MAKER
-  // if sourcer has a borrowing position, then this total amount may not be entirely redeemable
+  // if router has a borrowing position, then this total amount may not be entirely redeemable
   function balance(IEIP20 token) public view override returns (uint available) {
     unchecked {
       available = overlying(token).balanceOf(address(this));
-      available += token.balanceOf(MAKER);
+      available += token.balanceOf(msg.sender);
     }
   }
 

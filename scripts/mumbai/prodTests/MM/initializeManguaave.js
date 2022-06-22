@@ -1,4 +1,4 @@
-const { ethers, network } = require("hardhat");
+const { ethers } = require("hardhat");
 const { Mangrove } = require("../../../../../mangrove.js");
 const { getProvider } = require("scripts/helper.js");
 
@@ -66,15 +66,19 @@ async function main() {
       tx = await MangoRaw.reset_pending();
       await tx.wait();
     }
-    const RouterFactory = await ethers.getContractFactory("EOARouter");
+    const RouterFactory = await ethers.getContractFactory("BufferedAaveRouter");
     if (router === ethers.constants.AddressZero) {
       console.log(`* Deploying a new liquidity router`);
       const routerContract = await RouterFactory.connect(tester).deploy(
+        MgvAPI.getAddress("AaveProvider"),
+        0, // referralCode
+        1, //stable interest rate mode
         tester.address
       );
       await routerContract.deployed();
 
       console.log(`* Binding router (${routerContract.address}) to this Mango`);
+
       tx = await routerContract.bind(MangoRaw.address);
       await tx.wait();
       router = routerContract.address;
@@ -97,27 +101,27 @@ async function main() {
       await tx.wait();
     }
 
-    if ((await MgvAPI.token(baseName).allowance({ spender: router })).eq(0)) {
-      // maker has to approve liquidity router of Mango for base and quote transfer
-      console.log(
-        `* Approving router to transfer ${baseName} from tester wallet`
-      );
-      tx = await MgvAPI.token(baseName).approve(
-        router,
-        ethers.constants.MaxUint256
-      );
-      await tx.wait();
-    }
-    if ((await MgvAPI.token(quoteName).allowance({ spender: router })).eq(0)) {
-      console.log(
-        `* Approving router to transfer ${quoteName} from tester wallet`
-      );
-      tx = await MgvAPI.token(quoteName).approve(
-        router,
-        ethers.constants.MaxUint256
-      );
-      await tx.wait();
-    }
+    // if ((await MgvAPI.token(baseName).allowance({ spender: router })).eq(0)) {
+    //   // maker has to approve liquidity router of Mango for base and quote transfer
+    //   console.log(
+    //     `* Approving router to transfer ${baseName} from tester wallet`
+    //   );
+    //   tx = await MgvAPI.token(baseName).approve(
+    //     router,
+    //     ethers.constants.MaxUint256
+    //   );
+    //   await tx.wait();
+    // }
+    // if ((await MgvAPI.token(quoteName).allowance({ spender: router })).eq(0)) {
+    //   console.log(
+    //     `* Approving router to transfer ${quoteName} from tester wallet`
+    //   );
+    //   tx = await MgvAPI.token(quoteName).approve(
+    //     router,
+    //     ethers.constants.MaxUint256
+    //   );
+    //   await tx.wait();
+    // }
 
     const NSLOTS = (await MangoRaw.NSLOTS()).toNumber();
     const market = await MgvAPI.market({ base: baseName, quote: quoteName });

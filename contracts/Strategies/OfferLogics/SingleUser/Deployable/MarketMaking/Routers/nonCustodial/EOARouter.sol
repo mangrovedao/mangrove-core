@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//ITreasury.sol
+//EOARouter.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -13,15 +13,43 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "./IEIP20.sol";
+import "contracts/Strategies/utils/AccessControlled.sol";
+import "contracts/Strategies/utils/TransferLib.sol";
+import "../AbstractRouter.sol";
 
-interface ISourcer {
-  // gets `amount` of `token`s from liquidity source
-  function pull(IEIP20 token, uint amount) external returns (uint);
+contract EOARouter is AbstractRouter {
+  address public immutable SOURCE;
 
-  // deposits `amount` of `token`s into liquidity source
-  function flush(IEIP20[] calldata tokens) external;
+  constructor(address deployer) AbstractRouter(deployer) {
+    SOURCE = deployer;
+  }
 
-  // checks amount of `token`s available in the liquidity source
-  function balance(IEIP20 token) external view returns (uint);
+  // requires approval of SOURCE deployer
+  function __pull__(IEIP20 token, uint amount)
+    internal
+    virtual
+    override
+    returns (uint missing)
+  {
+    if (TransferLib.transferTokenFrom(token, SOURCE, msg.sender, amount)) {
+      return 0;
+    } else {
+      return amount;
+    }
+  }
+
+  // requires approval of Maker
+  function __flush__(IEIP20[] calldata tokens) internal virtual override {
+    for (uint i = 0; i < tokens.length; i++) {
+      uint amount = tokens[i].balanceOf(msg.sender);
+      require(
+        TransferLib.transferTokenFrom(tokens[i], msg.sender, SOURCE, amount),
+        "EOARouter/flush/transferFail"
+      );
+    }
+  }
+
+  function balance(IEIP20 token) external view override returns (uint) {
+    return token.balanceOf(SOURCE);
+  }
 }

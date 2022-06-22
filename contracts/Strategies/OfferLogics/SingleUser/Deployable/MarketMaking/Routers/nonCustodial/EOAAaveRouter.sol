@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveSourcer.sol
+//AaveRouter.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -16,50 +16,65 @@ pragma abicoder v2;
 import "contracts/Strategies/Modules/aave/v3/AaveModule.sol";
 import "contracts/Strategies/utils/AccessControlled.sol";
 import "contracts/Strategies/utils/TransferLib.sol";
-import "contracts/Strategies/interfaces/ISourcer.sol";
+import "../AbstractRouter.sol";
 
-contract AaveSourcer is ISourcer, AaveV3Module, AccessControlled {
-  address immutable MAKER;
+// Underlying on AAVE
+// Overlying on SOURCE
+// `this` must approve Lender for outbound token transfer (pull)
+// `this` must approve Lender for inbound token transfer (flush)
+// `this` must be approved by SOURCE for *overlying* of inbound token transfer
+// `this` must be approved by maker contract for outbound token transfer
+
+contract EOAAaveRouter is AbstractRouter, AaveV3Module {
+  address public immutable SOURCE;
 
   constructor(
     address _addressesProvider,
     uint _referralCode,
     uint _interestRateMode,
-    address spenderContract,
     address deployer
   )
+    AbstractRouter(deployer)
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
-    AccessControlled(deployer)
   {
-    MAKER = spenderContract;
+    SOURCE = deployer;
   }
 
-  // Liquidity : SOURCE --> MAKER
-  function pull(IEIP20 token, uint amount)
-    external
+  // 1. pulls aTokens from EOA
+  // 2. redeems underlying on AAVE to calling maker contract
+  function __pull__(IEIP20 token, uint amount)
+    internal
     virtual
     override
-    onlyCaller(MAKER)
     returns (uint pulled)
   {
-    return _redeem(token, amount, MAKER);
+    (uint amount_, ) = maxGettableUnderlying(token, false, SOURCE);
+    amount_ = amount < amount_ ? amount : amount_;
+    TransferLib.transferTokenFrom(
+      overlying(token),
+      SOURCE,
+      address(this),
+      amount_
+    );
+    return _redeem(token, amount_, msg.sender);
   }
 
   // Liquidity : MAKER --> SOURCE
-  function flush(IEIP20[] calldata tokens)
-    external
-    virtual
-    override
-    onlyCaller(MAKER)
-  {
+  function __flush__(IEIP20[] calldata tokens) internal virtual override {
     for (uint i = 0; i < tokens.length; i++) {
       // checking how much tokens are stored on MAKER's balance as a consequence of __put__
-      uint amount = tokens[i].balanceOf(MAKER);
+      uint amount = tokens[i].balanceOf(msg.sender);
       require(
-        TransferLib.transferTokenFrom(tokens[i], MAKER, address(this), amount),
-        "AaveSourcer/flush/transferFail"
+        TransferLib.transferTokenFrom(
+          tokens[i],
+          msg.sender,
+          address(this),
+          amount
+        ),
+        "AaveRouter/flush/transferFail"
       );
-      repayThenDeposit(tokens[i], amount);
+      // repay and supply for SOURCE
+      repayThenDeposit(tokens[i], SOURCE, amount);
     }
   }
 
@@ -70,62 +85,21 @@ contract AaveSourcer is ISourcer, AaveV3Module, AccessControlled {
     override
     returns (uint available)
   {
-    return overlying(token).balanceOf(address(this));
-  }
-
-  function borrow(IEIP20 token, uint amount) external onlyAdmin {
-    _borrow(token, amount, address(this));
-    require(
-      TransferLib.transferToken(token, MAKER, amount),
-      "AaveSourcer/borrow/transferFail"
-    );
-  }
-
-  function repay(IEIP20 token, uint amount) external onlyAdmin {
-    require(
-      TransferLib.transferTokenFrom(token, MAKER, address(this), amount),
-      "AaveSourcer/repay/transferFromFail"
-    );
-    _repay(token, amount, address(this));
-  }
-
-  function supply(IEIP20 token, uint amount) external onlyAdmin {
-    require(
-      TransferLib.transferTokenFrom(token, MAKER, address(this), amount),
-      "AaveSourcer/supply/transferFromFail"
-    );
-    _supply(token, amount, address(this));
-  }
-
-  // returns 0 if redeem failed (amount > balance).
-  // Redeems user balance is amount == type(uint).max
-  function withdraw(IEIP20 token, uint amount)
-    external
-    onlyAdmin
-    returns (uint)
-  {
-    return _redeem(token, amount, MAKER);
-  }
-
-  function claimRewards(
-    IRewardsControllerIsh rewardsController,
-    address[] calldata assets
-  )
-    external
-    onlyAdmin
-    returns (address[] memory rewardsList, uint[] memory claimedAmounts)
-  {
-    return _claimRewards(rewardsController, assets);
+    return overlying(token).balanceOf(SOURCE);
   }
 
   function approveLender(IEIP20 token) external onlyAdmin {
     _approveLender(token, type(uint).max);
   }
 
-  function transferToken(IEIP20 token, uint amount) external onlyAdmin {
+  function transferToken(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) external onlyAdmin {
     require(
-      TransferLib.transferToken(token, msg.sender, amount),
-      "AaveSourcer/transferTokenFail"
+      TransferLib.transferToken(token, to, amount),
+      "AaveRouter/transferTokenFail"
     );
   }
 }

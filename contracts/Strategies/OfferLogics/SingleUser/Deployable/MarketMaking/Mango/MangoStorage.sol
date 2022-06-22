@@ -12,7 +12,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "contracts/Strategies/interfaces/ISourcer.sol";
+import "../Routers/AbstractRouter.sol";
 
 library MangoStorage {
   /** Strat specific events */
@@ -38,7 +38,7 @@ library MangoStorage {
     // NB reneged offers are removed from Mangrove's OB
     bool paused;
     // Base and quote token treasuries
-    ISourcer liquidity_sourcer;
+    AbstractRouter liquidity_router;
   }
 
   function get_storage() internal pure returns (Layout storage st) {

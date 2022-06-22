@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MangoStorage.sol";
 import "../../../Persistent.sol";
-import "contracts/Strategies/utils/TransferLib.sol";
+import "contracts/strategies/utils/TransferLib.sol";
 
 //import "../Routers/AbstractRouter.sol";
 

@@ -1693,7 +1693,7 @@ __metadata:
     finalhandler: ^1.2.0
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
-    hardhat-deploy-ethers: ^0.3.0-beta.11
+    hardhat-deploy-ethers: ^0.3.0-beta.13
     lint-staged: ^13.0.2
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
@@ -1746,7 +1746,7 @@ __metadata:
     finalhandler: ^1.2.0
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
-    hardhat-deploy-ethers: ^0.3.0-beta.11
+    hardhat-deploy-ethers: ^0.3.0-beta.13
     lint-staged: ^13.0.2
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
@@ -1799,7 +1799,7 @@ __metadata:
     finalhandler: ^1.2.0
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
-    hardhat-deploy-ethers: ^0.3.0-beta.11
+    hardhat-deploy-ethers: ^0.3.0-beta.13
     lint-staged: ^13.0.2
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
@@ -1853,7 +1853,7 @@ __metadata:
     finalhandler: ^1.2.0
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
-    hardhat-deploy-ethers: ^0.3.0-beta.11
+    hardhat-deploy-ethers: ^0.3.0-beta.13
     lint-staged: ^13.0.2
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
@@ -1906,7 +1906,7 @@ __metadata:
     finalhandler: ^1.2.0
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
-    hardhat-deploy-ethers: ^0.3.0-beta.11
+    hardhat-deploy-ethers: ^0.3.0-beta.13
     lint-staged: ^13.0.2
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
@@ -1973,7 +1973,7 @@ __metadata:
     hardhat: ^2.9.9
     hardhat-abi-exporter: ^2.9.0
     hardhat-deploy: ^0.11.10
-    hardhat-deploy-ethers: ^0.3.0-beta.10
+    hardhat-deploy-ethers: ^0.3.0-beta.13
     lint-staged: ^13.0.2
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
@@ -2039,7 +2039,7 @@ __metadata:
     hardhat-abi-exporter: ^2.9.0
     hardhat-contract-sizer: ^2.5.1
     hardhat-deploy: ^0.11.10
-    hardhat-deploy-ethers: ^0.3.0-beta.10
+    hardhat-deploy-ethers: ^0.3.0-beta.13
     hardhat-storage-layout: ^0.1.6
     lint-staged: ^13.0.2
     mocha: ^10.0.0
@@ -2096,7 +2096,7 @@ __metadata:
     ethers: ^5.6.4
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
-    hardhat-deploy-ethers: ^0.3.0-beta.10
+    hardhat-deploy-ethers: ^0.3.0-beta.13
     lint-staged: ^13.0.2
     minimist: ^1.2.6
     mocha: ^10.0.0
@@ -5780,13 +5780,13 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"hardhat-deploy-ethers@npm:^0.3.0-beta.10, hardhat-deploy-ethers@npm:^0.3.0-beta.11":
-  version: 0.3.0-beta.11
-  resolution: "hardhat-deploy-ethers@npm:0.3.0-beta.11"
+"hardhat-deploy-ethers@npm:^0.3.0-beta.13":
+  version: 0.3.0-beta.13
+  resolution: "hardhat-deploy-ethers@npm:0.3.0-beta.13"
   peerDependencies:
     ethers: ^5.0.0
     hardhat: ^2.0.0
-  checksum: 0becd3dc7b1b447127cf74ef1018589b8d6d3c73bbeb893e3c27fe7e412aabb3a6d11aec1169fef427d85a6c2c512f1f99017ab1a928cdaab5960b74e445625a
+  checksum: 45206bf8d088cda08822ecf79d73e4027d8a4777cc23c3ef94568e316c45b8597130d72826fb2417edd32fe4b3dc54097161bef577663769b5c47b8262b983bb
   languageName: node
   linkType: hard
 

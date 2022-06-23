@@ -37,9 +37,12 @@ contract MgvCleanerTest is MangroveTest {
 
     uint oldBal = $this.balance;
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];
-    cleaner.collect($base, $quote, targets, true);
+    cleaner.collect(
+      $base,
+      $quote,
+      inDyn([ofr, 1 ether, 1 ether, type(uint).max]),
+      true
+    );
 
     uint newBal = $this.balance;
 
@@ -71,8 +74,7 @@ contract MgvCleanerTest is MangroveTest {
 
     uint oldBal = $this.balance;
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];
+    uint[4][] memory targets = inDyn([ofr, 1 ether, 1 ether, type(uint).max]);
 
     vm.expectRevert("mgvCleaner/anOfferDidNotFail");
     cleaner.collect($base, $quote, targets, true);

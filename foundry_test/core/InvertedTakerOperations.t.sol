@@ -150,10 +150,12 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     mgv.setVault(vault);
     uint vaultBal = quote.balanceOf(vault);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 50_000];
-
-    (uint successes, , , , ) = mgv.snipes($base, $quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(
+      $base,
+      $quote,
+      inDyn([ofr, 1 ether, 1 ether, 50_000]),
+      true
+    );
     assertTrue(successes == 1, "Trade should succeed");
     assertEq(
       quote.balanceOf(vault) - vaultBal,
@@ -175,12 +177,10 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   ) internal {
     _takerTrade = noop;
     skipCheck = true;
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [uint(2), 0.1 ether, 0.1 ether, 100_000];
     (uint successes, uint totalGot, uint totalGave, , ) = mgv.snipes(
       _base,
       _quote,
-      targets,
+      inDyn([uint(2), 0.1 ether, 0.1 ether, 100_000]),
       true
     );
     assertTrue(successes == 1, "Snipe on reentrancy should succeed");
@@ -219,9 +219,12 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     uint bal = quote.balanceOf($this);
     _takerTrade = noop;
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 0.05 ether, 0.05 ether, 100_000];
-    mgv.snipes($base, $quote, targets, true);
+    mgv.snipes(
+      $base,
+      $quote,
+      inDyn([ofr, 0.05 ether, 0.05 ether, 100_000]),
+      true
+    );
     assertEq(quote.balanceOf($this), bal - 0.05 ether, "wrong taker balance");
   }
 
@@ -229,9 +232,12 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     uint bal = quote.balanceOf($this);
     _takerTrade = noop;
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 0.02 ether, 0.02 ether, 100_000];
-    mgv.snipes($base, $quote, targets, true);
+    mgv.snipes(
+      $base,
+      $quote,
+      inDyn([ofr, 0.02 ether, 0.02 ether, 100_000]),
+      true
+    );
     assertEq(quote.balanceOf($this), bal - 0.02 ether, "wrong taker balance");
   }
 }

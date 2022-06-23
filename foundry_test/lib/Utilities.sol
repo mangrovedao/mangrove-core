@@ -99,4 +99,92 @@ contract Utilities {
     }
     reason = abi.decode(pointer, (string));
   }
+
+  /* ARRAY UTILITIES
+
+     inDyn(x) wraps x in a size-1 dynamic array
+
+     asDyn(uint[n] a) turns a into a dynamic array of size n
+  */
+
+  function inDyn(uint a) internal pure returns (uint[] memory) {
+    uint[] memory ret = new uint[](1);
+    ret[0] = a;
+    return ret;
+  }
+
+  function inDyn(uint[1] memory a) internal pure returns (uint[1][] memory) {
+    uint[1][] memory ret = new uint[1][](1);
+    ret[0] = a;
+    return ret;
+  }
+
+  function inDyn(uint[2] memory a) internal pure returns (uint[2][] memory) {
+    uint[2][] memory ret = new uint[2][](1);
+    ret[0] = a;
+    return ret;
+  }
+
+  function inDyn(uint[3] memory a) internal pure returns (uint[3][] memory) {
+    uint[3][] memory ret = new uint[3][](1);
+    ret[0] = a;
+    return ret;
+  }
+
+  function inDyn(uint[4] memory a) internal pure returns (uint[4][] memory) {
+    uint[4][] memory ret = new uint[4][](1);
+    ret[0] = a;
+    return ret;
+  }
+
+  function asDyn(uint[1] memory a) internal pure returns (uint[] memory) {
+    uint[] memory ret = new uint[](1);
+    ret[0] = a[0];
+    return ret;
+  }
+
+  function asDyn(uint[2] memory a) internal pure returns (uint[] memory) {
+    uint[] memory ret = new uint[](2);
+    ret[0] = a[0];
+    ret[1] = a[1];
+    return ret;
+  }
+
+  function asDyn(uint[3] memory a) internal pure returns (uint[] memory) {
+    uint[] memory ret = new uint[](3);
+    ret[0] = a[0];
+    ret[1] = a[1];
+    ret[2] = a[2];
+    return ret;
+  }
+
+  function asDyn(uint[4] memory a) internal pure returns (uint[] memory) {
+    uint[] memory ret = new uint[](4);
+    ret[0] = a[0];
+    ret[1] = a[1];
+    ret[2] = a[2];
+    ret[3] = a[3];
+    return ret;
+  }
+
+  function asDyn(uint[5] memory a) internal pure returns (uint[] memory) {
+    uint[] memory ret = new uint[](5);
+    ret[0] = a[0];
+    ret[1] = a[1];
+    ret[2] = a[2];
+    ret[3] = a[3];
+    ret[4] = a[4];
+    return ret;
+  }
+
+  // function dynArray(uint[1] memory a) internal pure returns (uint[] memory) {
+  //   uint[] memory b = new uint[](1);
+  //   b[0] = a[0];
+  //   return b;
+  // }
+  // function dynArray(uint[1] memory a) internal pure returns (uint[] memory) {
+  //   uint[] memory b = new uint[](1);
+  //   b[0] = a[0];
+  //   return b;
+  // }
 }

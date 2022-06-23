@@ -91,9 +91,14 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
       uint
     )
   {
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [uint(1), value, value, 300_000];
-    return mgv.snipesFor($base, $quote, targets, true, who);
+    return
+      mgv.snipesFor(
+        $base,
+        $quote,
+        inDyn([uint(1), value, value, 300_000]),
+        true,
+        who
+      );
   }
 
   function newOffer(uint amount) internal {

@@ -57,10 +57,8 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($mgv, 1 ether);
     quote.blacklists($this);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 100_000];
     vm.expectRevert("mgv/takerTransferFail");
-    mgv.snipes($base, $quote, targets, true);
+    mgv.snipes($base, $quote, inDyn([ofr, 1 ether, 1 ether, 100_000]), true);
     assertEq(
       weiBalanceBefore,
       mgv.balanceOf($this),
@@ -75,10 +73,8 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($mgv, 1 ether);
     base.blacklists($this);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 100_000];
     vm.expectRevert("mgv/MgvFailToPayTaker");
-    mgv.snipes($base, $quote, targets, true);
+    mgv.snipes($base, $quote, inDyn([ofr, 1 ether, 1 ether, 100_000]), true);
     assertEq(
       weiBalanceBefore,
       mgv.balanceOf($this),
@@ -91,12 +87,10 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 1 ether);
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 0.5 ether, 100_000];
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 1 ether, 0.5 ether, 100_000]),
       false
     );
     assertTrue(successes == 0, "Snipe should fail");
@@ -115,10 +109,8 @@ contract TakerOperationsTest is MangroveTest {
     mgv.setDensity($base, $quote, 0);
     quote.approve($mgv, 1 ether);
     uint ofr = mkr.newOffer(9, 10, 100_000, 0);
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1, 15 ether, 100_000];
     uint oldBal = quote.balanceOf($this);
-    mgv.snipes($base, $quote, targets, true);
+    mgv.snipes($base, $quote, inDyn([ofr, 1, 15 ether, 100_000]), true);
     uint newBal = quote.balanceOf($this);
     assertGt(oldBal, newBal, "oldBal should be strictly higher");
   }
@@ -127,12 +119,10 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 1 ether);
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 0.5 ether, 1 ether, 100_000];
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 0.5 ether, 1 ether, 100_000]),
       true
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -184,8 +174,6 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 1 ether);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 0, 0, 100_000];
     expectFrom($quote);
     emit Transfer($this, address(mgv), 0);
     expectFrom($quote);
@@ -194,7 +182,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 0, 0, 100_000]),
       true
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -219,13 +207,10 @@ contract TakerOperationsTest is MangroveTest {
        Here we are asking for 0.1 eth to an offer that gives 1eth for nothing.
        We should still only receive 0.1 eth */
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 0.1 ether, 0, 100_000];
-
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 0.1 ether, 0, 100_000]),
       true
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -250,12 +235,10 @@ contract TakerOperationsTest is MangroveTest {
        as much as possible.
        Here despite asking for .1eth the offer gives 1eth for 0 so we should receive 1eth. */
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 0.1 ether, 0, 100_000];
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 0.1 ether, 0, 100_000]),
       false
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -276,12 +259,10 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 1 ether);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 0, 0, 100_000];
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 0, 0, 100_000]),
       false
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -298,12 +279,10 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($mgv, 1 ether);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 0.5 ether, 1 ether, 100_000];
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 0.5 ether, 1 ether, 100_000]),
       false
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -378,8 +357,6 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeQuote = quote.balanceOf($this);
     uint beforeWei = $this.balance;
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 100_000];
     expectFrom($mgv);
     emit OfferFail(
       $base,
@@ -393,7 +370,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
     uint penalty = $this.balance - beforeWei;
@@ -415,10 +392,8 @@ contract TakerOperationsTest is MangroveTest {
     refuseReceive = true;
     quote.approve($mgv, 1 ether);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 100_000];
     vm.expectRevert("mgv/sendPenaltyReverted");
-    mgv.snipes($base, $quote, targets, true);
+    mgv.snipes($base, $quote, inDyn([ofr, 1 ether, 1 ether, 100_000]), true);
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_base() public {
@@ -431,8 +406,6 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeQuote = quote.balanceOf($this);
     uint beforeWei = $this.balance;
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 100_000];
     expectFrom($mgv);
     emit OfferFail(
       $base,
@@ -446,7 +419,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
     uint penalty = $this.balance - beforeWei;
@@ -473,8 +446,6 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeQuote = quote.balanceOf($this);
     uint beforeWei = $this.balance;
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 100_000];
     expectFrom($mgv);
 
     emit OfferFail(
@@ -489,7 +460,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
     uint penalty = $this.balance - beforeWei;
@@ -511,12 +482,10 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = failmkr.newOffer(1 ether, 1 ether, 50_000, 0);
     uint beforeWei = $this.balance;
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 0, 0, 100_000];
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 0, 0, 100_000]),
       true
     );
     assertTrue(successes == 0, "Snipe should fail");
@@ -534,8 +503,6 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeQuote = quote.balanceOf($this);
     uint beforeWei = $this.balance;
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 100_000];
     expectFrom($mgv);
     emit OfferFail(
       $base,
@@ -549,7 +516,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
     uint penalty = $this.balance - beforeWei;
@@ -572,9 +539,7 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
     quote.approve($mgv, 1 ether);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 50_000];
-    mgv.snipes($base, $quote, targets, true);
+    mgv.snipes($base, $quote, inDyn([ofr, 1 ether, 1 ether, 50_000]), true);
     assertEq(
       base.balanceOf($this) - balTaker,
       1 ether,
@@ -586,9 +551,7 @@ contract TakerOperationsTest is MangroveTest {
     uint balTaker = base.balanceOf($this);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
     quote.approve($mgv, 1 ether);
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 50_000];
-    mgv.snipes($base, $quote, targets, true);
+    mgv.snipes($base, $quote, inDyn([ofr, 1 ether, 1 ether, 50_000]), true);
     assertEq(
       base.balanceOf($this) - balTaker,
       1 ether,
@@ -600,10 +563,8 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
     base.approve($mgv, 1 ether);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 50_000];
     vm.expectRevert("mgv/takerTransferFail");
-    mgv.snipes($base, $quote, targets, true);
+    mgv.snipes($base, $quote, inDyn([ofr, 1 ether, 1 ether, 50_000]), true);
   }
 
   function test_simple_snipe() public {
@@ -613,14 +574,12 @@ contract TakerOperationsTest is MangroveTest {
     uint balTaker = base.balanceOf($this);
     uint balMaker = quote.balanceOf(address(mkr));
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1.1 ether, 50_000];
     expectFrom($mgv);
     emit OfferSuccess($base, $quote, ofr, $this, 1 ether, 1.1 ether);
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 1 ether, 1.1 ether, 50_000]),
       true
     );
     assertTrue(successes == 1, "Snipe should succeed");
@@ -710,13 +669,10 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess");
     quote.approve($mgv, 10 ether);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 2 ether, 0 ether, 300_000];
-
     (, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 2 ether, 0 ether, 300_000]),
       false
     );
     assertEq(takerGave, 0 ether, "Incorrect declared delivered amount (maker)");
@@ -762,10 +718,8 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($mgv, 100 ether);
     base.approve($mgv, 1 ether); // not necessary since no fee
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 2 ether, 100 ether, 100_000];
     vm.expectRevert("mgv/takerTransferFail");
-    mgv.snipes($base, $quote, targets, true);
+    mgv.snipes($base, $quote, inDyn([ofr, 2 ether, 100 ether, 100_000]), true);
   }
 
   function maker_has_not_enough_base_fails_order_test() public {
@@ -775,8 +729,6 @@ contract TakerOperationsTest is MangroveTest {
     //mkr.transferToken(base,$this,5 ether);
     quote.approve($mgv, 0.5 ether);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 50 ether, 0.5 ether, 100_000];
     expectFrom($mgv);
     emit OfferFail(
       $base,
@@ -787,7 +739,12 @@ contract TakerOperationsTest is MangroveTest {
       0.5 ether,
       "mgv/makerTransferFail"
     );
-    (uint successes, , , , ) = mgv.snipes($base, $quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(
+      $base,
+      $quote,
+      inDyn([ofr, 50 ether, 0.5 ether, 100_000]),
+      true
+    );
     assertTrue(successes == 0, "order should fail");
   }
 
@@ -796,8 +753,6 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/makerRevert");
     mkr.shouldRevert(true);
     quote.approve($mgv, 1 ether);
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 50_000];
     expectFrom($mgv);
     emit OfferFail(
       $base,
@@ -808,16 +763,19 @@ contract TakerOperationsTest is MangroveTest {
       1 ether,
       "mgv/makerRevert"
     );
-    mgv.snipes($base, $quote, targets, true);
+    mgv.snipes($base, $quote, inDyn([ofr, 1 ether, 1 ether, 50_000]), true);
   }
 
   function snipe_on_higher_price_fails_test() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     quote.approve($mgv, 0.5 ether);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 0.5 ether, 100_000];
-    (uint successes, , , , ) = mgv.snipes($base, $quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(
+      $base,
+      $quote,
+      inDyn([ofr, 1 ether, 0.5 ether, 100_000]),
+      true
+    );
     assertTrue(
       successes == 0,
       "Order should fail when order price is higher than offer"
@@ -828,9 +786,12 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     quote.approve($mgv, 1 ether);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 50_000];
-    (uint successes, , , , ) = mgv.snipes($base, $quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(
+      $base,
+      $quote,
+      inDyn([ofr, 1 ether, 1 ether, 50_000]),
+      true
+    );
     assertTrue(
       successes == 0,
       "Order should fail when order gas is higher than offer"
@@ -841,13 +802,11 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     quote.approve($mgv, 100 ether);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 100_000];
     bytes memory cd = abi.encodeWithSelector(
       mgv.snipes.selector,
       $base,
       $quote,
-      targets,
+      inDyn([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
 
@@ -865,9 +824,12 @@ contract TakerOperationsTest is MangroveTest {
     uint balTaker = base.balanceOf($this);
     uint balMaker = quote.balanceOf(address(mkr));
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 2 ether, 100_000];
-    (uint successes, , , , ) = mgv.snipes($base, $quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(
+      $base,
+      $quote,
+      inDyn([ofr, 1 ether, 2 ether, 100_000]),
+      true
+    );
     assertTrue(
       successes == 1,
       "Order should succeed when order price is lower than offer"
@@ -960,9 +922,12 @@ contract TakerOperationsTest is MangroveTest {
     uint mkrBal = base.balanceOf(address(mkr));
     uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 50_000, 0);
 
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 0, 1 ether, 50_000];
-    (uint successes, , , , ) = mgv.snipes($base, $quote, targets, true);
+    (uint successes, , , , ) = mgv.snipes(
+      $base,
+      $quote,
+      inDyn([ofr, 0, 1 ether, 50_000]),
+      true
+    );
     assertTrue(successes == 1, "snipe should succeed");
     assertEq(mgv.best($base, $quote), 0, "offer should be gone");
     assertEq(
@@ -976,10 +941,13 @@ contract TakerOperationsTest is MangroveTest {
     mgv.setGasbase($base, $quote, 1);
     quote.approve($mgv, 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 120_000, 0);
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [ofr, 1 ether, 1 ether, 120_000];
     vm.expectRevert("mgv/notEnoughGasForMakerTrade");
-    mgv.snipes{gas: 120_000}($base, $quote, targets, true);
+    mgv.snipes{gas: 120_000}(
+      $base,
+      $quote,
+      inDyn([ofr, 1 ether, 1 ether, 120_000]),
+      true
+    );
   }
 
   function marketOrder_on_empty_book_returns_test() public {

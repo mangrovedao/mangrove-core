@@ -5,8 +5,9 @@ pragma abicoder v2;
 
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {IERC20, ITaker} from "mgv_src/MgvLib.sol";
+import {Utilities} from "mgv_test/lib/Utilities.sol";
 
-contract TestTaker is ITaker {
+contract TestTaker is ITaker, Utilities {
   AbstractMangrove _mgv;
   address _base;
   address _quote;
@@ -53,8 +54,9 @@ contract TestTaker is ITaker {
       uint
     )
   {
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [offerId, takerWants, type(uint96).max, type(uint48).max];
+    uint[4][] memory targets = inDyn(
+      [offerId, takerWants, type(uint96).max, type(uint48).max]
+    );
     (
       uint successes,
       uint got,
@@ -75,8 +77,7 @@ contract TestTaker is ITaker {
     uint takerGives,
     uint gasreq
   ) external returns (bool) {
-    uint[4][] memory targets = new uint[4][](1);
-    targets[0] = [offerId, takerWants, takerGives, gasreq];
+    uint[4][] memory targets = inDyn([offerId, takerWants, takerGives, gasreq]);
     (uint successes, , , , ) = __mgv.snipes(__base, __quote, targets, true);
     return successes == 1;
   }

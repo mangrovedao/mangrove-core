@@ -273,10 +273,22 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
     bool inverted
   ) public returns (AbstractMangrove _mgv) {
     _mgv = setupMangrove(inverted);
-    not0x(address(outbound_tkn));
-    not0x(address(outbound_tkn));
-    _mgv.activate(address(outbound_tkn), address(inbound_tkn), 0, 0, 20_000);
-    _mgv.activate(address(inbound_tkn), address(outbound_tkn), 0, 0, 20_000);
+    setupMarket(address(outbound_tkn), address(inbound_tkn), _mgv);
+  }
+
+  function setupMarket(
+    address $a,
+    address $b,
+    AbstractMangrove _mgv
+  ) internal {
+    not0x($a);
+    not0x($b);
+    _mgv.activate($a, $b, 0, 0, 20_000);
+    _mgv.activate($b, $a, 0, 0, 20_000);
+  }
+
+  function setupMarket(address $a, address $b) internal {
+    setupMarket($a, $b, mgv);
   }
 
   function setupMaker(

@@ -32,67 +32,16 @@ contract Utilities {
     }
   }
 
-  /* Concatenate 2 strings */
-  function append(string memory a, string memory b)
-    internal
-    pure
-    returns (string memory)
-  {
-    return string(abi.encodePacked(a, b));
-  }
-
-  /* Concatenate 3 strings */
-  function append(
-    string memory a,
-    string memory b,
-    string memory c
-  ) internal pure returns (string memory) {
-    return string(abi.encodePacked(a, b, c));
-  }
-
-  /* Concatenate 4 strings */
-  function append(
-    string memory a,
-    string memory b,
-    string memory c,
-    string memory d
-  ) internal pure returns (string memory) {
-    return string(abi.encodePacked(a, b, c, d));
-  }
-
-  /* Concatenate 5 strings */
-  function append(
-    string memory a,
-    string memory b,
-    string memory c,
-    string memory d,
-    string memory e
-  ) internal pure returns (string memory) {
-    return string(abi.encodePacked(a, b, c, d, e));
-  }
-
-  /* Concatenate 6 strings */
-  function append(
-    string memory a,
-    string memory b,
-    string memory c,
-    string memory d,
-    string memory e,
-    string memory f
-  ) internal pure returns (string memory) {
-    return string(abi.encodePacked(a, b, c, d, e, f));
-  }
-
   /* units to e-18 units */
   function toEthUnits(uint w, string memory units)
     internal
     pure
     returns (string memory eth)
   {
-    string memory suffix = append(" ", units);
+    string memory suffix = string.concat(" ", units);
 
     if (w == 0) {
-      return (append("0", suffix));
+      return (string.concat("0", suffix));
     }
     uint i = 0;
     while (w % 10 == 0) {
@@ -101,15 +50,15 @@ contract Utilities {
     }
     if (i >= 18) {
       w = w * (10**(i - 18));
-      return append(uint2str(w), suffix);
+      return string.concat(uint2str(w), suffix);
     } else {
       uint zeroBefore = 18 - i;
       string memory zeros = "";
       while (zeroBefore > 1) {
-        zeros = append(zeros, "0");
+        zeros = string.concat(zeros, "0");
         zeroBefore--;
       }
-      return (append("0.", zeros, uint2str(w), suffix));
+      return (string.concat("0.", zeros, uint2str(w), suffix));
     }
   }
 

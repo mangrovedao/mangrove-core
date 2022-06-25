@@ -32,12 +32,12 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
   }
 
   AbstractMangrove mgv;
-  address $mgv;
-  address $base;
-  address $quote;
+  address payable $mgv;
+  address payable $base;
+  address payable $quote;
+  address payable $this;
   TestToken base;
   TestToken quote;
-  address $this;
   MangroveTestOptions options = MangroveTestOptions({invertedMangrove: false});
 
   /* Defaults:
@@ -50,16 +50,16 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
   */
   function setUp() public virtual {
     // shortcuts
-    $this = address(this);
+    $this = payable(address(this));
     // tokens
     base = new TestToken($this, "A", "$A");
     quote = new TestToken($this, "B", "$B");
     // mangrove deploy
     mgv = setupMangrove(base, quote, options.invertedMangrove);
     // shortcuts
-    $base = address(base);
-    $quote = address(quote);
-    $mgv = address(mgv);
+    $base = payable(address(base));
+    $quote = payable(address(quote));
+    $mgv = payable(mgv);
     // start with mgvBalance on mangrove
     mgv.fund{value: 10 ether}();
     // approve mgv

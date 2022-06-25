@@ -24,9 +24,9 @@ contract Test2 is Test {
   uint keyIterator = 1;
 
   // create addr/key pairs, with/without label
-  function freshAccount() internal returns (uint, address) {
+  function freshAccount() internal returns (uint, address payable) {
     uint key = keyIterator++;
-    address addr = vm.addr(key);
+    address payable addr = payable(vm.addr(key));
     // set code to nonzero so solidity-inserted extcodesize checks don't fail
     vm.etch(addr, bytes("not zero"));
     return (key, addr);
@@ -34,7 +34,7 @@ contract Test2 is Test {
 
   function freshAccount(string memory label)
     internal
-    returns (uint key, address addr)
+    returns (uint key, address payable addr)
   {
     (key, addr) = freshAccount();
     vm.label(addr, label);
@@ -44,11 +44,14 @@ contract Test2 is Test {
     (key, ) = freshAccount();
   }
 
-  function freshAddress() internal returns (address addr) {
+  function freshAddress() internal returns (address payable addr) {
     (, addr) = freshAccount();
   }
 
-  function freshAddress(string memory label) internal returns (address addr) {
+  function freshAddress(string memory label)
+    internal
+    returns (address payable addr)
+  {
     (, addr) = freshAccount(label);
   }
 

@@ -20,7 +20,11 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
   // `blockToLive[token1][token2][offerId]` gives block number beyond which the offer should renege on trade.
   mapping(IEIP20 => mapping(IEIP20 => mapping(uint => uint))) public expiring;
 
-  constructor(IMangrove _MGV, address admin) MangroveOffer(_MGV, admin) {}
+  constructor(IMangrove _MGV, address deployer) MangroveOffer(_MGV) {
+    if (deployer != msg.sender) {
+      setAdmin(deployer);
+    }
+  }
 
   // transfer with no revert
 

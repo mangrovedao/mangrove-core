@@ -44,9 +44,9 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
   - testing contract has
     - 10 ETH funded in mangrove
   - new makers
-    - have 10 ETH
+    - have 100 ETH
   - new takers
-    - have 10 ETH
+    - have 100 ETH
   */
   function setUp() public virtual {
     // shortcuts
@@ -297,7 +297,7 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
     string memory label
   ) public returns (TestMaker) {
     TestMaker tm = new TestMaker(mgv, IERC20($out), IERC20($in));
-    vm.deal(address(tm), 10 ether);
+    vm.deal(address(tm), 100 ether);
     vm.label(address(tm), label);
     return tm;
   }
@@ -316,7 +316,7 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
     string memory label
   ) public returns (TestTaker) {
     TestTaker tt = new TestTaker(mgv, IERC20($out), IERC20($in));
-    vm.deal(address(tt), 10 ether);
+    vm.deal(address(tt), 100 ether);
     vm.label(address(tt), label);
     return tt;
   }

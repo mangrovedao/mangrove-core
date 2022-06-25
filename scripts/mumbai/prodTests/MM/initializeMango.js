@@ -66,7 +66,7 @@ async function main() {
       tx = await MangoRaw.reset_pending();
       await tx.wait();
     }
-    const RouterFactory = await ethers.getContractFactory("EOARouter");
+    const RouterFactory = await ethers.getContractFactory("SimpleRouter");
     if (router === ethers.constants.AddressZero) {
       console.log(`* Deploying a new liquidity router`);
       const routerContract = await RouterFactory.connect(tester).deploy(
@@ -78,13 +78,6 @@ async function main() {
       tx = await routerContract.bind(MangoRaw.address);
       await tx.wait();
       router = routerContract.address;
-
-      console.log(`* Setting Mango to use router (${router})`);
-      tx = await MangoRaw.set_liquidity_router(
-        router,
-        await MangoRaw.OFR_GASREQ()
-      );
-      await tx.wait();
     } else {
       console.log(`* Reusing already deployed router ${router}`);
       tx = await MangoRaw.set_liquidity_router(
@@ -96,6 +89,13 @@ async function main() {
       tx = await routerContract.bind(MangoRaw.address);
       await tx.wait();
     }
+    console.log(`* Telling Mango to route liquidity from tester's wallet`);
+    tx = await MangoRaw.set_liquidity_router(
+      router,
+      tester.address, // using tester's wallet
+      await MangoRaw.OFR_GASREQ()
+    );
+    await tx.wait();
 
     if ((await MgvAPI.token(baseName).allowance({ spender: router })).eq(0)) {
       // maker has to approve liquidity router of Mango for base and quote transfer

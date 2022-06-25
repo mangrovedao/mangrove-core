@@ -1,8 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 import "./Test2.sol";
-import {Utilities} from "./Utilities.sol";
-
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
 import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {MakerDeployer} from "mgv_test/lib/agents/MakerDeployer.sol";
@@ -24,7 +22,7 @@ import {console2 as csl} from "forge-std/console2.sol";
  * inherit the standard forge-std/test.sol contract augmented with utilities & mangrove-specific functions
  */
 
-contract MangroveTest is Utilities, Test2, HasMgvEvents {
+contract MangroveTest is Test2, HasMgvEvents {
   // Configure the initial setup.
   // Add fields here to make MangroveTest more configurable.
   struct TokenOptions {

@@ -2,11 +2,11 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
+import {Utilities} from "./Utilities.sol";
 
 /* Some ease-of-life additions to forge-std/Test.sol */
 /* You mostly want to inherit `MangroveTest` (which inherits `Test2`) rather than inherit `Test2` directly */
-
-contract Test2 is Test {
+contract Test2 is Test, Utilities {
   function succeed() internal {
     assertTrue(true);
   }
@@ -96,5 +96,29 @@ contract Test2 is Test {
     uint gasDelta = checkpointGasLeft - checkpointGasLeft2 - 100;
 
     emit log_named_uint("Gas used", gasDelta);
+  }
+
+  /* Logging is put here since solidity libraries cannot be extended. */
+
+  function logary(uint[] memory uints) public view {
+    string memory s = "";
+    for (uint i = 0; i < uints.length; i++) {
+      s = string.concat(s, uint2str(uints[i]));
+      if (i < uints.length - 1) {
+        s = string.concat(s, ", ");
+      }
+    }
+    console2.log(s);
+  }
+
+  function logary(int[] memory ints) public view {
+    string memory s = "";
+    for (uint i = 0; i < ints.length; i++) {
+      s = string.concat(s, uint2str(uint(ints[i])));
+      if (i < ints.length - 1) {
+        s = string.concat(s, ", ");
+      }
+    }
+    console2.log(s);
   }
 }

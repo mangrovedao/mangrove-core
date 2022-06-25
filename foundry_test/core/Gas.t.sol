@@ -17,6 +17,8 @@ contract GasTest is MangroveTest, IMaker {
     deal($quote, address(_tkr), 2 ether);
     _tkr.approveMgv(quote, 2 ether);
 
+    deal($base, $this, 100 ether);
+
     /* set lock to 1 to avoid spurious 15k gas cost */
     uint ofr = mgv.newOffer($base, $quote, 0.1 ether, 0.1 ether, 100_000, 0, 0);
     _tkr.take(ofr, 0.1 ether);

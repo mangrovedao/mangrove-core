@@ -3,10 +3,8 @@ pragma solidity ^0.8.13;
 import {console2 as console} from "forge-std/console2.sol";
 
 /* Some general utility methods.
-/* You mostly want to inherit `MangroveTest` (which inherits `Utilities`) rather than inherit `Utilities` directly */
-
+/* You mostly want to inherit `MangroveTest` (which inherits Test2` which inherits `Utilities`) rather than inherit `Utilities` directly */
 contract Utilities {
-  /* Convert a uint to its string representation */
   function uint2str(uint _i)
     internal
     pure
@@ -100,11 +98,10 @@ contract Utilities {
     reason = abi.decode(pointer, (string));
   }
 
-  /* ARRAY UTILITIES
+  /* *********  ARRAY UTILITIES */
 
+  /* *******
      inDyn(x) wraps x in a size-1 dynamic array
-
-     asDyn(uint[n] a) turns a into a dynamic array of size n
   */
 
   function inDyn(uint a) internal pure returns (uint[] memory) {
@@ -137,54 +134,255 @@ contract Utilities {
     return ret;
   }
 
-  function asDyn(uint[1] memory a) internal pure returns (uint[] memory) {
-    uint[] memory ret = new uint[](1);
-    ret[0] = a[0];
-    return ret;
+  /* *****
+  Internal utility: copy `words` words from `i_ptr` to `o_ptr`
+  */
+  function memcpy(
+    uint i_ptr,
+    uint words,
+    uint o_ptr
+  ) internal pure {
+    while (words > 0) {
+      assembly {
+        function loc(i, w) -> o {
+          o := add(i, mul(sub(w, 1), 32))
+        }
+        mstore(loc(o_ptr, words), mload(loc(i_ptr, words)))
+      }
+      words--;
+    }
   }
 
-  function asDyn(uint[2] memory a) internal pure returns (uint[] memory) {
-    uint[] memory ret = new uint[](2);
-    ret[0] = a[0];
-    ret[1] = a[1];
-    return ret;
+  /* *******
+     asDyn(uint[n] a) turns a into a dynamic array of size n
+  */
+
+  function asDyn(uint[1] memory a) internal pure returns (uint[] memory ret) {
+    ret = new uint[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[3] memory a) internal pure returns (uint[] memory) {
-    uint[] memory ret = new uint[](3);
-    ret[0] = a[0];
-    ret[1] = a[1];
-    ret[2] = a[2];
-    return ret;
+  function asDyn(uint[2] memory a) internal pure returns (uint[] memory ret) {
+    ret = new uint[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[4] memory a) internal pure returns (uint[] memory) {
-    uint[] memory ret = new uint[](4);
-    ret[0] = a[0];
-    ret[1] = a[1];
-    ret[2] = a[2];
-    ret[3] = a[3];
-    return ret;
+  function asDyn(uint[3] memory a) internal pure returns (uint[] memory ret) {
+    ret = new uint[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[5] memory a) internal pure returns (uint[] memory) {
-    uint[] memory ret = new uint[](5);
-    ret[0] = a[0];
-    ret[1] = a[1];
-    ret[2] = a[2];
-    ret[3] = a[3];
-    ret[4] = a[4];
-    return ret;
+  function asDyn(uint[4] memory a) internal pure returns (uint[] memory ret) {
+    ret = new uint[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
   }
 
-  // function dynArray(uint[1] memory a) internal pure returns (uint[] memory) {
-  //   uint[] memory b = new uint[](1);
-  //   b[0] = a[0];
-  //   return b;
-  // }
-  // function dynArray(uint[1] memory a) internal pure returns (uint[] memory) {
-  //   uint[] memory b = new uint[](1);
-  //   b[0] = a[0];
-  //   return b;
-  // }
+  function asDyn(uint[5] memory a) internal pure returns (uint[] memory ret) {
+    ret = new uint[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(uint[6] memory a) internal pure returns (uint[] memory ret) {
+    ret = new uint[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(uint[7] memory a) internal pure returns (uint[] memory ret) {
+    ret = new uint[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(uint[8] memory a) internal pure returns (uint[] memory ret) {
+    ret = new uint[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(uint[9] memory a) internal pure returns (uint[] memory ret) {
+    ret = new uint[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(uint[10] memory a) internal pure returns (uint[] memory ret) {
+    ret = new uint[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(int[1] memory a) internal pure returns (int[] memory ret) {
+    ret = new int[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(int[2] memory a) internal pure returns (int[] memory ret) {
+    ret = new int[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(int[3] memory a) internal pure returns (int[] memory ret) {
+    ret = new int[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(int[4] memory a) internal pure returns (int[] memory ret) {
+    ret = new int[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(int[5] memory a) internal pure returns (int[] memory ret) {
+    ret = new int[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(int[6] memory a) internal pure returns (int[] memory ret) {
+    ret = new int[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(int[7] memory a) internal pure returns (int[] memory ret) {
+    ret = new int[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(int[8] memory a) internal pure returns (int[] memory ret) {
+    ret = new int[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(int[9] memory a) internal pure returns (int[] memory ret) {
+    ret = new int[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function asDyn(int[10] memory a) internal pure returns (int[] memory ret) {
+    ret = new int[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  /* Math abs */
+  function abs(int i) internal pure returns (uint) {
+    if (i < 0) {
+      return uint(-i);
+    } else {
+      return uint(i);
+    }
+  }
 }

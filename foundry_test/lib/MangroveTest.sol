@@ -27,8 +27,15 @@ import {console2 as csl} from "forge-std/console2.sol";
 contract MangroveTest is Utilities, Test2, HasMgvEvents {
   // Configure the initial setup.
   // Add fields here to make MangroveTest more configurable.
+  struct TokenOptions {
+    string name;
+    string symbol;
+    uint8 decimals;
+  }
   struct MangroveTestOptions {
     bool invertedMangrove;
+    TokenOptions base;
+    TokenOptions quote;
   }
 
   AbstractMangrove mgv;
@@ -38,7 +45,13 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
   address payable $this;
   TestToken base;
   TestToken quote;
-  MangroveTestOptions options = MangroveTestOptions({invertedMangrove: false});
+
+  MangroveTestOptions options =
+    MangroveTestOptions({
+      invertedMangrove: false,
+      base: TokenOptions({name: "Base Token", symbol: "$A", decimals: 18}),
+      quote: TokenOptions({name: "Quote Token", symbol: "$B", decimals: 18})
+    });
 
   /* Defaults:
   - testing contract has
@@ -52,8 +65,10 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
     // shortcuts
     $this = payable(address(this));
     // tokens
-    base = new TestToken($this, "A", "$A");
-    quote = new TestToken($this, "B", "$B");
+    base = new TestToken($this, options.base.name, options.base.symbol);
+    base.setDecimals(options.base.decimals);
+    quote = new TestToken($this, options.quote.name, options.quote.symbol);
+    quote.setDecimals(options.quote.decimals);
     // mangrove deploy
     mgv = setupMangrove(base, quote, options.invertedMangrove);
     // shortcuts
@@ -68,8 +83,8 @@ contract MangroveTest is Utilities, Test2, HasMgvEvents {
     // logging
     vm.label(tx.origin, "tx.origin");
     vm.label($this, "Test runner");
-    vm.label($base, "$A");
-    vm.label($quote, "$B");
+    vm.label($base, base.symbol());
+    vm.label($quote, quote.symbol());
     vm.label($mgv, "mgv");
   }
 

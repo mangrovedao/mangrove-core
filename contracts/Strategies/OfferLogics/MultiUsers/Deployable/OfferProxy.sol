@@ -18,16 +18,19 @@ contract OfferProxy is MultiUserAaveV3Lender, MultiUserPersistent {
   constructor(
     address _addressesProvider,
     IMangrove _MGV,
-    address admin
+    address deployer
   )
     AaveV3Module(
       _addressesProvider,
       0,
       0 /* Not borrowing */
     )
-    MangroveOffer(_MGV, admin)
+    MangroveOffer(_MGV)
   {
     setGasreq(800_000); // Offer proxy requires AAVE interactions
+    if (deployer != msg.sender) {
+      setAdmin(deployer);
+    }
   }
 
   function __put__(uint amount, ML.SingleOrder calldata order)

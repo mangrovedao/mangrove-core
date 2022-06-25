@@ -55,7 +55,7 @@ contract MangoImplementation is Persistent {
     uint96 base_0,
     uint96 quote_0,
     uint nslots
-  ) MangroveOffer(mgv, address(this)) {
+  ) MangroveOffer(mgv) {
     // setting immutable fields to match those of `Mango`
     BASE = base;
     QUOTE = quote;
@@ -201,6 +201,26 @@ contract MangoImplementation is Persistent {
         !liveOnly)
         ? mStr.asks[index_of_position(i)]
         : 0;
+    }
+  }
+
+  function $__get__(uint amount, ML.SingleOrder calldata order)
+    external
+    delegated
+    returns (uint)
+  {
+    // pulled might be lower or higher than amount
+    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+    uint pulled = mStr.liquidity_router.pull(
+      IEIP20(order.outbound_tkn),
+      amount,
+      mStr.reserve
+    );
+    if (pulled > amount) {
+      return 0; //nothing is missing
+    } else {
+      // still needs to get liquidity using `SingleUser.__get__()`
+      return super.__get__(amount - pulled, order);
     }
   }
 
@@ -610,7 +630,7 @@ contract MangoImplementation is Persistent {
 
     // tells liquidity router to handle locally stored liquidity (liquidity from the taker and possibly liquidity brought locally during `__get__` function).
     // this will throw if router is 0x
-    mStr.liquidity_router.flush(tokens);
+    mStr.liquidity_router.flush(tokens, mStr.reserve);
 
     // reposting residual of offer using override `__newWants__` and `__newGives__` for new price
     if (order.outbound_tkn == $(BASE)) {

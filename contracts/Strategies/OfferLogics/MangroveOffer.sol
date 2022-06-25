@@ -25,7 +25,6 @@ import "../interfaces/IEIP20.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract MangroveOffer is AccessControlled, IOfferLogic {
-
   // immutable does not impact storage layout
   IMangrove public immutable MGV;
   // `this` contract entypoint is `makerExecute` or `makerPosthook` if `msg.sender == address(MGV)`
@@ -42,7 +41,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   // necessary function to withdraw funds from Mangrove
   receive() external payable virtual {}
 
-  constructor(IMangrove _mgv, address deployer) AccessControlled(deployer) {
+  constructor(IMangrove _mgv) AccessControlled(msg.sender) {
     MGV = _mgv;
     MOS.get_storage().OFR_GASREQ = 80_000;
   }

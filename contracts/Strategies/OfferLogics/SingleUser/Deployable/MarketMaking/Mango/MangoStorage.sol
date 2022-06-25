@@ -37,8 +37,11 @@ library MangoStorage {
     // puts the strat into a (cancellable) state where it reneges on all incoming taker orders.
     // NB reneged offers are removed from Mangrove's OB
     bool paused;
-    // Base and quote token treasuries
+    // Base and quote router contract
     AbstractRouter liquidity_router;
+    // reserve address for the router (external treasury -e.g EOA-, Mango or the router itself)
+    // if the router is lender based, this is the location of the overlying
+    address reserve;
   }
 
   function get_storage() internal pure returns (Layout storage st) {

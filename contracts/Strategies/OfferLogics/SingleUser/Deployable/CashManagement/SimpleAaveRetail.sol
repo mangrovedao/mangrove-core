@@ -17,16 +17,19 @@ contract SimpleAaveRetail is AaveV3Lender {
   constructor(
     address _addressesProvider,
     IMangrove _MGV,
-    address admin
+    address deployer
   )
     AaveV3Module(
       _addressesProvider,
       0,
       1 /* Interest rate mode */
     )
-    MangroveOffer(_MGV, admin)
+    MangroveOffer(_MGV)
   {
     setGasreq(1_000_000);
+    if (deployer != msg.sender) {
+      setAdmin(deployer);
+    }
   }
 
   // Tries to take base directly from `this` balance. Fetches the remainder on Aave.

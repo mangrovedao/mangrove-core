@@ -111,8 +111,13 @@ describe("Running tests...", function () {
 
     let txs = [];
     let i = 0;
-    txs[i++] = await makerContract.set_liquidity_router(router.address, 800000);
-    txs[i++] = await router.bind(makerContract.address); // allowing makerContract to pull from router
+    txs[i++] = await makerContract.set_liquidity_router(
+      router.address, // telling Mango which router it should call
+      router.address, // telling Mango to use the router itself as reserve
+      800000
+    );
+    // adding makerContract to allowed pullers of router's liquidity
+    txs[i++] = await router.bind(makerContract.address);
 
     txs[i++] = await router.approveLender(wEth.address); // to mint awETH
     txs[i++] = await router.approveLender(usdc.address); // to mint aUSDC
@@ -172,7 +177,9 @@ describe("Running tests...", function () {
     await wEth.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
     await usdc.connect(taker).approve(mgv.address, ethers.constants.MaxUint256);
 
-    const awETHBalance = await router.balance(wEth.address);
+    const awETHBalance = await (
+      await lc.getContract("AWETH")
+    ).balanceOf(router.address);
 
     const receipt = await (
       await mgv.connect(taker).marketOrder(
@@ -193,7 +200,7 @@ describe("Running tests...", function () {
     );
     lc.assertAlmost(
       awETHBalance.sub(takerWants), //maker pays before Mangrove fees
-      await router.balance(wEth.address),
+      await (await lc.getContract("AWETH")).balanceOf(router.address),
       18,
       9, // decimals of precision
       "incorrect WETH balance on aave"

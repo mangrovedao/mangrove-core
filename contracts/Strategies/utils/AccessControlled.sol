@@ -36,7 +36,8 @@ contract AccessControlled {
     _;
   }
 
-  function setAdmin(address _admin) external onlyAdmin {
+  function setAdmin(address _admin) public onlyAdmin {
+    require(_admin != address(0), "AccessControlled/0xAdmin");
     ACS.get_storage().admin = _admin;
   }
 }

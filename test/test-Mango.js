@@ -94,13 +94,14 @@ describe("Running tests...", function () {
         maker.address // admin
       )
     ).connect(maker);
-    const RouterFactory = await ethers.getContractFactory("EOARouter");
+    const RouterFactory = await ethers.getContractFactory("SimpleRouter");
     const router = await RouterFactory.deploy(maker.address);
     await router.deployed();
     tx = await router.bind(makerContract.address);
     await tx.wait();
     tx = await makerContract.set_liquidity_router(
       router.address,
+      maker.address, // reserve is maker EOA
       await makerContract.OFR_GASREQ()
     );
     await tx.wait();

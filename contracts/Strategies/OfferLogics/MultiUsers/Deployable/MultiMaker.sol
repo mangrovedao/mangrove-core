@@ -14,5 +14,9 @@ pragma abicoder v2;
 import "../MultiUser.sol";
 
 contract MultiMaker is MultiUser {
-  constructor(IMangrove _MGV, address admin) MangroveOffer(_MGV, admin) {}
+  constructor(IMangrove _MGV, address deployer) MangroveOffer(_MGV) {
+    if (deployer != msg.sender) {
+      setAdmin(deployer);
+    }
+  }
 }

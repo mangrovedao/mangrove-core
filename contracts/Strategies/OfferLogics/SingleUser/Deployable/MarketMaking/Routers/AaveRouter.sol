@@ -16,18 +16,16 @@ pragma abicoder v2;
 import "contracts/Strategies/Modules/aave/v3/AaveModule.sol";
 import "contracts/Strategies/utils/AccessControlled.sol";
 import "contracts/Strategies/utils/TransferLib.sol";
-import "../AbstractRouter.sol";
+import "./AbstractRouter.sol";
 
 // Underlying on AAVE
-// Overlying on SOURCE
+// Overlying on reserve
 // `this` must approve Lender for outbound token transfer (pull)
 // `this` must approve Lender for inbound token transfer (flush)
-// `this` must be approved by SOURCE for *overlying* of inbound token transfer
+// `this` must be approved by reserve for *overlying* of inbound token transfer
 // `this` must be approved by maker contract for outbound token transfer
 
-contract EOAAaveRouter is AbstractRouter, AaveV3Module {
-  address public immutable SOURCE;
-
+contract AaveRouter is AbstractRouter, AaveV3Module {
   constructor(
     address _addressesProvider,
     uint _referralCode,
@@ -36,31 +34,34 @@ contract EOAAaveRouter is AbstractRouter, AaveV3Module {
   )
     AbstractRouter(deployer)
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
-  {
-    SOURCE = deployer;
-  }
+  {}
 
-  // 1. pulls aTokens from EOA
+  // 1. pulls aTokens from reserve
   // 2. redeems underlying on AAVE to calling maker contract
-  function __pull__(IEIP20 token, uint amount)
-    internal
-    virtual
-    override
-    returns (uint pulled)
-  {
-    (uint amount_, ) = maxGettableUnderlying(token, false, SOURCE);
+  function __pull__(
+    IEIP20 token,
+    uint amount,
+    address reserve
+  ) internal virtual override returns (uint pulled) {
+    uint amount_ = balance(token, reserve);
     amount_ = amount < amount_ ? amount : amount_;
+    // transfer below is a noop (almost 0 gas) if reserve == address(this)
     TransferLib.transferTokenFrom(
       overlying(token),
-      SOURCE,
+      reserve,
       address(this),
       amount_
     );
+    // redeem below is a noop if amount_ == 0
     return _redeem(token, amount_, msg.sender);
   }
 
-  // Liquidity : MAKER --> SOURCE
-  function __flush__(IEIP20[] calldata tokens) internal virtual override {
+  // Liquidity : MAKER --> `onBehalf`
+  function __flush__(IEIP20[] calldata tokens, address reserve)
+    internal
+    virtual
+    override
+  {
     for (uint i = 0; i < tokens.length; i++) {
       // checking how much tokens are stored on MAKER's balance as a consequence of __put__
       uint amount = tokens[i].balanceOf(msg.sender);
@@ -73,19 +74,77 @@ contract EOAAaveRouter is AbstractRouter, AaveV3Module {
         ),
         "AaveRouter/flush/transferFail"
       );
-      // repay and supply for SOURCE
-      repayThenDeposit(tokens[i], SOURCE, amount);
+      // repay and supply `onBehalf`
+      repayThenDeposit(tokens[i], reserve, amount);
     }
   }
 
-  function balance(IEIP20 token)
+  // Admin function to manage position on AAVE
+  function borrow(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) external onlyAdmin {
+    _borrow(token, amount, address(this));
+    require(
+      TransferLib.transferToken(token, to, amount),
+      "AaveRouter/borrow/transferFail"
+    );
+  }
+
+  function repay(
+    IEIP20 token,
+    uint amount,
+    address from
+  ) external onlyAdmin {
+    require(
+      TransferLib.transferTokenFrom(token, from, address(this), amount),
+      "AaveRouter/repay/transferFromFail"
+    );
+    _repay(token, amount, address(this));
+  }
+
+  function supply(
+    IEIP20 token,
+    uint amount,
+    address from
+  ) external onlyAdmin {
+    require(
+      TransferLib.transferTokenFrom(token, from, address(this), amount),
+      "AaveRouter/supply/transferFromFail"
+    );
+    _supply(token, amount, address(this));
+  }
+
+  // returns 0 if redeem failed (amount > balance).
+  // Redeems user balance is amount == type(uint).max
+  function withdraw(
+    IEIP20 token,
+    uint amount,
+    address to
+  ) external onlyAdmin returns (uint) {
+    return _redeem(token, amount, to);
+  }
+
+  function claimRewards(
+    IRewardsControllerIsh rewardsController,
+    address[] calldata assets
+  )
+    external
+    onlyAdmin
+    returns (address[] memory rewardsList, uint[] memory claimedAmounts)
+  {
+    return _claimRewards(rewardsController, assets);
+  }
+
+  function balance(IEIP20 token, address reserve)
     public
     view
     virtual
     override
     returns (uint available)
   {
-    return overlying(token).balanceOf(SOURCE);
+    (available, ) = maxGettableUnderlying(token, false, reserve);
   }
 
   function approveLender(IEIP20 token) external onlyAdmin {

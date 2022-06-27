@@ -61,10 +61,11 @@ contract MangoTest is MangroveTest {
   }
 
   /* combine all tests wince they rely on non-zero state */
-
   function test_all() public {
     part_deploy_strat();
     part_market_order();
+    part_negative_shift();
+    part_positive_shift();
   }
 
   function part_deploy_strat() public {
@@ -113,7 +114,7 @@ contract MangoTest is MangroveTest {
     usdc.approve($(mgv), type(uint).max);
 
     vm.prank(taker);
-    (uint got, uint gave, uint bounty, uint _fee) = mgv.marketOrder(
+    (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
       $(weth),
       $(usdc),
       (5 * WETH_DECS) / 10,
@@ -124,7 +125,7 @@ contract MangoTest is MangroveTest {
     Book memory book = get_offers(false);
     assertEq(
       got,
-      0.5 ether - ((0.5 ether * 30) / 10000),
+      0.5 ether - getFee($(weth), $(usdc), 0.5 ether),
       "incorrect received amount"
     );
     assertEq(bounty, 0, "taker should not receive bounty");
@@ -140,15 +141,98 @@ contract MangoTest is MangroveTest {
       book.asks,
       asDyn([int(0), 0, 0, 0, 0, -1, 2, 3, 4, 5])
     );
+
+    vm.prank(taker);
+    (got, gave, bounty, ) = mgv.marketOrder(
+      $(usdc),
+      $(weth),
+      3500 * USDC_DECS,
+      (15 * WETH_DECS) / 10,
+      true
+    );
+
+    assertEq(
+      got,
+      3500 * USDC_DECS - getFee($(usdc), $(weth), 3500 * USDC_DECS),
+      "incorrect received amount"
+    );
+
+    assertEq(bounty, 0, "taker should not receive bounty");
+
+    book = get_offers(false);
+
+    checkOB(
+      $(usdc),
+      $(weth),
+      book.bids,
+      asDyn([int(1), 2, 3, 4, -5, -6, 0, 0, 0, 0])
+    );
+
+    checkOB(
+      $(weth),
+      $(usdc),
+      book.asks,
+      asDyn([int(0), 0, 0, 0, 6, 1, 2, 3, 4, 5])
+    );
+  }
+
+  function part_negative_shift() public {
+    vm.prank(maker);
+    mgo.set_shift({
+      s: -2,
+      withBase: false,
+      amounts: asDyn([uint(1000 * USDC_DECS), 1000 * USDC_DECS])
+    });
+
+    Book memory book = get_offers(false);
+
+    checkOB(
+      $(usdc),
+      $(weth),
+      book.bids,
+      asDyn([int(8), 7, 1, 2, 3, 4, -5, -6, 0, 0])
+    );
+
+    checkOB(
+      $(weth),
+      $(usdc),
+      book.asks,
+      asDyn([int(-4), -5, 0, 0, 0, 0, 6, 1, 2, 3])
+    );
+  }
+
+  function part_positive_shift() public {
+    vm.prank(maker);
+    mgo.set_shift({
+      s: 3,
+      withBase: true,
+      amounts: asDyn(
+        [uint((3 * WETH_DECS) / 10), (3 * WETH_DECS) / 10, (3 * WETH_DECS) / 10]
+      )
+    });
+
+    Book memory book = get_offers(false);
+
+    checkOB(
+      $(usdc),
+      $(weth),
+      book.bids,
+      asDyn([int(2), 3, 4, -5, -6, 0, 0, -8, -7, -1])
+    );
+
+    checkOB(
+      $(weth),
+      $(usdc),
+      book.asks,
+      asDyn([int(0), 0, 0, 6, 1, 2, 3, 4, 5, 7])
+    );
   }
 
   /* ********* Utility methods ************ */
 
   // get internal view of mango's offers
-  function get_offers(bool liveOnly) internal returns (Book memory) {
+  function get_offers(bool liveOnly) internal view returns (Book memory) {
     uint[][2] memory res = mgo.get_offers(liveOnly);
-    uint[] memory bids = res[0];
-    uint[] memory asks = res[1];
     return Book({bids: res[0], asks: res[1]});
   }
 

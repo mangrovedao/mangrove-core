@@ -398,7 +398,7 @@ contract MangoTest is MangroveTest {
     P.Offer.t old_offer2 = mgv.offers($(usdc), $(weth), 2);
 
     vm.startPrank(taker);
-    (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
+    (, uint gave, , ) = mgv.marketOrder(
       $(usdc),
       $(weth),
       usdc.cash(100),
@@ -449,7 +449,7 @@ contract MangoTest is MangroveTest {
     mgo.pause();
 
     vm.startPrank(taker);
-    (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
+    (uint got, uint gave, , ) = mgv.marketOrder(
       $(usdc),
       $(weth),
       usdc.cash(2500),

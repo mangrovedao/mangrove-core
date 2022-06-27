@@ -10,7 +10,7 @@ contract VaultTest is MangroveTest {
   }
 
   function test_initial_vault_value() public {
-    assertEq(mgv.vault(), $this, "initial vault value should be mgv creator");
+    assertEq(mgv.vault(), $(this), "initial vault value should be mgv creator");
   }
 
   function test_gov_can_set_vault() public {

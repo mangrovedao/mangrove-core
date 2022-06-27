@@ -16,10 +16,10 @@ contract ScenariiTest is MangroveTest {
   //receive() external payable {}
 
   function saveOffers() internal {
-    uint offerId = mgv.best($base, $quote);
+    uint offerId = mgv.best($(base), $(quote));
     while (offerId != 0) {
       (P.OfferStruct memory offer, P.OfferDetailStruct memory offerDetail) = mgv
-        .offerInfo($base, $quote, offerId);
+        .offerInfo($(base), $(quote), offerId);
       offers[offerId][Info.makerWants] = offer.wants;
       offers[offerId][Info.makerGives] = offer.gives;
       offers[offerId][Info.gasreq] = offerDetail.gasreq;
@@ -37,7 +37,7 @@ contract ScenariiTest is MangroveTest {
       balWei[i] = mgv.balanceOf(address(makers.getMaker(i)));
     }
     balances = Balances({
-      mgvBalanceWei: $mgv.balance,
+      mgvBalanceWei: $(mgv).balance,
       mgvBalanceFees: base.balanceOf(mgv.governance()),
       takerBalanceA: base.balanceOf(address(taker)),
       takerBalanceB: quote.balanceOf(address(taker)),
@@ -51,9 +51,9 @@ contract ScenariiTest is MangroveTest {
   function setUp() public override {
     super.setUp();
 
-    mgv.setFee($base, $quote, testFee);
+    mgv.setFee($(base), $(quote), testFee);
 
-    makers = setupMakerDeployer($base, $quote);
+    makers = setupMakerDeployer($(base), $(quote));
     makers.deploy(4);
     for (uint i = 1; i < makers.length(); i++) {
       vm.label(
@@ -62,7 +62,7 @@ contract ScenariiTest is MangroveTest {
       );
     }
     vm.label(address(makers.getMaker(0)), "failer");
-    taker = setupTaker($base, $quote, "taker");
+    taker = setupTaker($(base), $(quote), "taker");
 
     deal(address(makers), 80 ether);
     makers.dispatch();
@@ -70,7 +70,7 @@ contract ScenariiTest is MangroveTest {
     for (uint i = 0; i < makers.length(); i++) {
       TestMaker maker = makers.getMaker(i);
       maker.provisionMgv(10 ether);
-      deal($base, address(maker), 5 ether);
+      deal($(base), address(maker), 5 ether);
     }
 
     quote.mint(address(taker), 5 ether);
@@ -81,17 +81,17 @@ contract ScenariiTest is MangroveTest {
 
   function test_snipe_insert_and_fail() public {
     offerOf = insert();
-    printOfferBook($base, $quote);
-    logOfferBook($base, $quote, 4);
+    printOfferBook($(base), $(quote));
+    logOfferBook($(base), $(quote), 4);
 
     saveBalances();
     saveOffers();
-    expectFrom($mgv);
+    expectFrom($(mgv));
     emit OrderStart();
-    expectFrom($mgv);
+    expectFrom($(mgv));
     emit OrderComplete(
-      $base,
-      $quote,
+      $(base),
+      $(quote),
       address(taker),
       0.291 ether, // should not be hardcoded
       0.375 ether, // should not be hardcoded
@@ -100,7 +100,7 @@ contract ScenariiTest is MangroveTest {
     );
 
     snipe();
-    logOfferBook($base, $quote, 4);
+    logOfferBook($(base), $(quote), 4);
 
     // restore offer that was deleted after partial fill, minus taken amount
     makers.getMaker(2).updateOffer(
@@ -111,17 +111,17 @@ contract ScenariiTest is MangroveTest {
       2
     );
 
-    logOfferBook($base, $quote, 4);
+    logOfferBook($(base), $(quote), 4);
 
     saveBalances();
     saveOffers();
     mo();
-    logOfferBook($base, $quote, 4);
+    logOfferBook($(base), $(quote), 4);
 
     saveBalances();
     saveOffers();
     collectFailingOffer(offerOf[0]);
-    logOfferBook($base, $quote, 4);
+    logOfferBook($(base), $(quote), 4);
     saveBalances();
     saveOffers();
   }
@@ -144,19 +144,19 @@ contract ScenariiTest is MangroveTest {
       // failingOffer should have been removed from Mgv
       {
         assertTrue(
-          !mgv.isLive(mgv.offers($base, $quote, failingOfferId)),
+          !mgv.isLive(mgv.offers($(base), $(quote), failingOfferId)),
           "Failing offer should have been removed from Mgv"
         );
       }
       uint provision = getProvision(
-        $base,
-        $quote,
+        $(base),
+        $(quote),
         offers[failingOfferId][Info.gasreq]
       );
       uint returned = mgv.balanceOf(address(makers.getMaker(0))) -
         balances.makersBalanceWei[0];
       assertEq(
-        $mgv.balance,
+        $(mgv).balance,
         balances.mgvBalanceWei - (provision - returned),
         "Mangrove has not send the correct amount to taker"
       );
@@ -187,7 +187,7 @@ contract ScenariiTest is MangroveTest {
       gasreq: 90_000,
       pivotId: 72
     });
-    (P.Global.t cfg, ) = mgv.config($base, $quote);
+    (P.Global.t cfg, ) = mgv.config($(base), $(quote));
     _offerOf[0] = makers.getMaker(0).newOffer({ //failer offer 4
       wants: 20 ether,
       gives: 10 ether,
@@ -196,8 +196,8 @@ contract ScenariiTest is MangroveTest {
     });
     //Checking makers have correctly provisoned their offers
     for (uint i = 0; i < makers.length(); i++) {
-      uint gasreq_i = mgv.offerDetails($base, $quote, _offerOf[i]).gasreq();
-      uint provision_i = getProvision($base, $quote, gasreq_i);
+      uint gasreq_i = mgv.offerDetails($(base), $(quote), _offerOf[i]).gasreq();
+      uint provision_i = getProvision($(base), $(quote), gasreq_i);
       assertEq(
         mgv.balanceOf(address(makers.getMaker(i))),
         balances.makersBalanceWei[i] - provision_i,
@@ -205,11 +205,11 @@ contract ScenariiTest is MangroveTest {
       );
     }
     //Checking offers are correctly positioned (3 > 2 > 1 > 0)
-    uint offerId = mgv.best($base, $quote);
+    uint offerId = mgv.best($(base), $(quote));
     uint expected_maker = 3;
     while (offerId != 0) {
       (P.OfferStruct memory offer, P.OfferDetailStruct memory od) = mgv
-        .offerInfo($base, $quote, offerId);
+        .offerInfo($(base), $(quote), offerId);
       assertEq(
         od.maker,
         address(makers.getMaker(expected_maker)),
@@ -269,13 +269,15 @@ contract ScenariiTest is MangroveTest {
     // Checking taker balance
     assertEq(
       base.balanceOf(address(taker)), // actual
-      balances.takerBalanceA + takerWants - getFee($base, $quote, takerWants), // expected
+      balances.takerBalanceA +
+        takerWants -
+        getFee($(base), $(quote), takerWants), // expected
       "incorrect taker A balance"
     );
 
     assertEq(
       takerGot,
-      takerWants - getFee($base, $quote, takerWants),
+      takerWants - getFee($(base), $(quote), takerWants),
       "Incorrect declared takerGot"
     );
 
@@ -293,7 +295,7 @@ contract ScenariiTest is MangroveTest {
     // Checking DEX Fee Balance
     assertEq(
       base.balanceOf(mgv.governance()), //actual
-      balances.mgvBalanceFees + getFee($base, $quote, takerWants), //expected
+      balances.mgvBalanceFees + getFee($(base), $(quote), takerWants), //expected
       "incorrect Mangrove balances"
     );
   }
@@ -317,7 +319,7 @@ contract ScenariiTest is MangroveTest {
     bag.snipedId = 2;
     // uint orderAmount = 0.3 ether;
     // uint snipedId = 2;
-    expectedFee = getFee($base, $quote, bag.orderAmount);
+    expectedFee = getFee($(base), $(quote), bag.orderAmount);
     TestMaker maker = makers.getMaker(bag.snipedId); // maker whose offer will be sniped
 
     //(uint init_mkr_wants, uint init_mkr_gives,,,,,)=mgv.getOfferInfo(2);
@@ -370,7 +372,11 @@ contract ScenariiTest is MangroveTest {
       "incorrect maker B balance"
     );
     // Testing residual offer
-    (P.OfferStruct memory ofr, ) = mgv.offerInfo($base, $quote, bag.snipedId);
+    (P.OfferStruct memory ofr, ) = mgv.offerInfo(
+      $(base),
+      $(quote),
+      bag.snipedId
+    );
     assertTrue(ofr.gives == 0, "Offer should not have a residual");
   }
 }
@@ -383,17 +389,17 @@ contract DeepCollectTest is MangroveTest {
 
   function setUp() public override {
     super.setUp();
-    tkr = setupTaker($base, $quote, "taker");
+    tkr = setupTaker($(base), $(quote), "taker");
 
-    deal($quote, address(tkr), 5 ether);
+    deal($(quote), address(tkr), 5 ether);
     tkr.approveMgv(quote, 20 ether);
     tkr.approveMgv(base, 20 ether);
 
-    evil = new TestMoriartyMaker(mgv, $base, $quote);
+    evil = new TestMoriartyMaker(mgv, $(base), $(quote));
     vm.label(address(evil), "Moriarty");
     deal(address(evil), 20 ether);
     evil.provisionMgv(10 ether);
-    deal($base, address(evil), 5 ether);
+    deal($(base), address(evil), 5 ether);
     evil.approveMgv(base, 5 ether);
 
     evil.newOffer({
@@ -410,6 +416,6 @@ contract DeepCollectTest is MangroveTest {
 
   function moWithFailures() internal {
     tkr.marketOrderWithFail({wants: 10 ether, gives: 30 ether});
-    assertTrue(isEmptyOB($base, $quote), "Offer book should be empty");
+    assertTrue(isEmptyOB($(base), $(quote)), "Offer book should be empty");
   }
 }

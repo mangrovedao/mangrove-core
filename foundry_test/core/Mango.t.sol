@@ -21,12 +21,9 @@ contract MangoTest is MangroveTest {
 
   TestToken weth;
   TestToken usdc;
-  address payable $weth;
-  address payable $usdc;
   address payable maker;
   address payable taker;
   Mango mgo;
-  address payable $mgo;
   EOARouter eoa_router;
 
   function setUp() public override {
@@ -37,31 +34,28 @@ contract MangoTest is MangroveTest {
     super.setUp();
     // rename for convenience
     weth = base;
-    $weth = $base;
     usdc = quote;
-    $usdc = $quote;
 
-    mgv.setFee($weth, $usdc, 30);
+    mgv.setFee($(weth), $(usdc), 30);
 
     maker = freshAddress("maker");
     taker = freshAddress("taker");
-    deal($weth, taker, 50 * WETH_DECS);
-    deal($usdc, taker, 100000 * USDC_DECS);
+    deal($(weth), taker, 50 * WETH_DECS);
+    deal($(usdc), taker, 100000 * USDC_DECS);
 
     vm.startPrank(maker);
     mgo = new Mango({
-      mgv: IMangrove($mgv), // TODO: remove IMangrove dependency?
-      base: IEIP20($weth),
-      quote: IEIP20($usdc),
+      mgv: IMangrove($(mgv)), // TODO: remove IMangrove dependency?
+      base: IEIP20($(weth)),
+      quote: IEIP20($(usdc)),
       base_0: (34 * WETH_DECS) / 100,
       quote_0: 1000 * USDC_DECS,
       nslots: NSLOTS,
       price_incr: DELTA,
       deployer: maker
     });
-    $mgo = payable(address(mgo));
     eoa_router = new EOARouter({deployer: maker});
-    eoa_router.bind($mgo);
+    eoa_router.bind($(mgo));
     mgo.set_liquidity_router(eoa_router, mgo.OFR_GASREQ());
     vm.stopPrank();
   }
@@ -76,19 +70,19 @@ contract MangoTest is MangroveTest {
     weth.approve(address(mgo.liquidity_router()), type(uint).max);
     usdc.approve(address(mgo.liquidity_router()), type(uint).max);
 
-    deal($weth, maker, 17 * WETH_DECS);
-    deal($usdc, maker, 50000 * USDC_DECS);
+    deal($(weth), maker, 17 * WETH_DECS);
+    deal($(usdc), maker, 50000 * USDC_DECS);
 
     uint prov = mgo.getMissingProvision({
-      outbound_tkn: IEIP20($weth),
-      inbound_tkn: IEIP20($usdc),
+      outbound_tkn: IEIP20($(weth)),
+      inbound_tkn: IEIP20($(usdc)),
       gasreq: mgo.OFR_GASREQ(),
       gasprice: 0,
       offerId: 0
     });
     vm.stopPrank();
 
-    mgv.fund{value: prov * 20}($mgo);
+    mgv.fund{value: prov * 20}($(mgo));
 
     vm.startPrank(maker); // prank all calls in init
     init(1000 * USDC_DECS, (3 * WETH_DECS) / 10);
@@ -97,14 +91,14 @@ contract MangoTest is MangroveTest {
     Book memory book = get_offers(false);
 
     checkOB(
-      $usdc,
-      $weth,
+      $(usdc),
+      $(weth),
       book.bids,
       asDyn([int(1), 2, 3, 4, 5, 0, 0, 0, 0, 0])
     );
     checkOB(
-      $weth,
-      $usdc,
+      $(weth),
+      $(usdc),
       book.asks,
       asDyn([int(0), 0, 0, 0, 0, 1, 2, 3, 4, 5])
     );
@@ -112,22 +106,22 @@ contract MangoTest is MangroveTest {
 
   function part_market_order() public {
     vm.prank(taker);
-    weth.approve($mgv, type(uint).max);
+    weth.approve($(mgv), type(uint).max);
     vm.prank(taker);
-    usdc.approve($mgv, type(uint).max);
+    usdc.approve($(mgv), type(uint).max);
 
-    printOfferBook($weth, $usdc);
+    printOfferBook($(weth), $(usdc));
     vm.prank(taker);
     (uint got, uint gave, uint bounty, uint _fee) = mgv.marketOrder(
-      $weth,
-      $usdc,
+      $(weth),
+      $(usdc),
       (5 * WETH_DECS) / 10,
       3000 * USDC_DECS,
       true
     );
 
     Book memory book = get_offers(false);
-    printOfferBook($usdc, $weth);
+    printOfferBook($(usdc), $(weth));
     // logary(book.bids);
     assertEq(
       got,
@@ -136,14 +130,14 @@ contract MangoTest is MangroveTest {
     );
     assertEq(bounty, 0, "taker should not receive bounty");
     checkOB(
-      $usdc,
-      $weth,
+      $(usdc),
+      $(weth),
       book.bids,
       asDyn([int(1), 2, 3, 4, 5, 6, 0, 0, 0, 0])
     );
     checkOB(
-      $weth,
-      $usdc,
+      $(weth),
+      $(usdc),
       book.asks,
       asDyn([int(0), 0, 0, 0, 0, -1, 2, 3, 4, 5])
     );

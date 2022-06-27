@@ -11,16 +11,24 @@ contract GasTest is MangroveTest, IMaker {
   function setUp() public override {
     super.setUp();
 
-    mgv.newOffer($base, $quote, 1 ether, 1 ether, 100_000, 0, 0);
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 100_000, 0, 0);
 
-    _tkr = setupTaker($base, $quote, "Taker");
-    deal($quote, address(_tkr), 2 ether);
+    _tkr = setupTaker($(base), $(quote), "Taker");
+    deal($(quote), address(_tkr), 2 ether);
     _tkr.approveMgv(quote, 2 ether);
 
-    deal($base, $this, 100 ether);
+    deal($(base), $(this), 100 ether);
 
     /* set lock to 1 to avoid spurious 15k gas cost */
-    uint ofr = mgv.newOffer($base, $quote, 0.1 ether, 0.1 ether, 100_000, 0, 0);
+    uint ofr = mgv.newOffer(
+      $(base),
+      $(quote),
+      0.1 ether,
+      0.1 ether,
+      100_000,
+      0,
+      0
+    );
     _tkr.take(ofr, 0.1 ether);
   }
 
@@ -35,7 +43,7 @@ contract GasTest is MangroveTest, IMaker {
       address
     )
   {
-    return (mgv, _tkr, $base, $quote);
+    return (mgv, _tkr, $(base), $(quote));
   }
 
   function makerExecute(MgvLib.SingleOrder calldata)

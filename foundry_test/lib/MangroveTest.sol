@@ -13,6 +13,9 @@ import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
 import {IERC20, MgvLib, P, HasMgvEvents, IMaker, ITaker, IMgvMonitor} from "mgv_src/MgvLib.sol";
 import {console2 as csl} from "forge-std/console2.sol";
 
+// below imports are for the \$( function)
+import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
+
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 
    *************************************************************** */
@@ -37,18 +40,14 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   AbstractMangrove mgv;
-  address payable $mgv;
-  address payable $base;
-  address payable $quote;
-  address payable $this;
   TestToken base;
   TestToken quote;
 
   MangroveTestOptions options =
     MangroveTestOptions({
       invertedMangrove: false,
-      base: TokenOptions({name: "Base Token", symbol: "$A", decimals: 18}),
-      quote: TokenOptions({name: "Quote Token", symbol: "$B", decimals: 18})
+      base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
+      quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18})
     });
 
   /* Defaults:
@@ -60,30 +59,24 @@ contract MangroveTest is Test2, HasMgvEvents {
     - have 100 ETH
   */
   function setUp() public virtual {
-    // shortcuts
-    $this = payable(address(this));
     // tokens
-    base = new TestToken($this, options.base.name, options.base.symbol);
+    base = new TestToken($(this), options.base.name, options.base.symbol);
     base.setDecimals(options.base.decimals);
-    quote = new TestToken($this, options.quote.name, options.quote.symbol);
+    quote = new TestToken($(this), options.quote.name, options.quote.symbol);
     quote.setDecimals(options.quote.decimals);
     // mangrove deploy
     mgv = setupMangrove(base, quote, options.invertedMangrove);
-    // shortcuts
-    $base = payable(address(base));
-    $quote = payable(address(quote));
-    $mgv = payable(mgv);
     // start with mgvBalance on mangrove
     mgv.fund{value: 10 ether}();
     // approve mgv
-    base.approve($mgv, type(uint).max);
-    quote.approve($mgv, type(uint).max);
+    base.approve($(mgv), type(uint).max);
+    quote.approve($(mgv), type(uint).max);
     // logging
     vm.label(tx.origin, "tx.origin");
-    vm.label($this, "Test runner");
-    vm.label($base, base.symbol());
-    vm.label($quote, quote.symbol());
-    vm.label($mgv, "mgv");
+    vm.label($(this), "Test runner");
+    vm.label($(base), base.symbol());
+    vm.label($(quote), quote.symbol());
+    vm.label($(mgv), "mgv");
   }
 
   /* Log offer book */
@@ -262,12 +255,13 @@ contract MangroveTest is Test2, HasMgvEvents {
     if (inverted) {
       return
         new InvertedMangrove({
-          governance: $this,
+          governance: $(this),
           gasprice: 40,
           gasmax: 1_000_000
         });
     } else {
-      return new Mangrove({governance: $this, gasprice: 40, gasmax: 1_000_000});
+      return
+        new Mangrove({governance: $(this), gasprice: 40, gasmax: 1_000_000});
     }
   }
 
@@ -319,7 +313,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     public
     returns (MakerDeployer)
   {
-    not0x($mgv);
+    not0x($(mgv));
     return (new MakerDeployer(mgv, $out, $in));
   }
 
@@ -332,5 +326,22 @@ contract MangroveTest is Test2, HasMgvEvents {
     vm.deal(address(tt), 100 ether);
     vm.label(address(tt), label);
     return tt;
+  }
+
+  /* **** Sugar for address conversion */
+  function $(TestToken t) internal pure returns (address payable) {
+    return payable(address(t));
+  }
+
+  function $(AbstractMangrove t) internal pure returns (address payable) {
+    return payable(address(t));
+  }
+
+  function $(MangroveTest t) internal pure returns (address payable) {
+    return payable(address(t));
+  }
+
+  function $(AccessControlled t) internal pure returns (address payable) {
+    return payable(address(t));
   }
 }

@@ -13,26 +13,26 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function setUp() public override {
     super.setUp();
 
-    mkr = setupMaker($base, $quote, "maker");
-    mkr2 = setupMaker($base, $quote, "maker2");
-    tkr = setupTaker($base, $quote, "taker");
+    mkr = setupMaker($(base), $(quote), "maker");
+    mkr2 = setupMaker($(base), $(quote), "maker2");
+    tkr = setupTaker($(base), $(quote), "taker");
 
     mkr.approveMgv(base, 10 ether);
     mkr2.approveMgv(base, 10 ether);
 
-    deal($quote, address(tkr), 1 ether);
+    deal($(quote), address(tkr), 1 ether);
     tkr.approveMgv(quote, 1 ether);
   }
 
   function test_provision_adds_mgv_balance_and_ethers() public {
-    uint mgv_bal = $mgv.balance;
+    uint mgv_bal = $(mgv).balance;
     uint amt1 = 235;
     uint amt2 = 1.3 ether;
 
     mkr.provisionMgv(amt1);
 
     assertEq(mkr.mgvBalance(), amt1, "incorrect mkr mgvBalance amount (1)");
-    assertEq($mgv.balance, mgv_bal + amt1, "incorrect mgv ETH balance (1)");
+    assertEq($(mgv).balance, mgv_bal + amt1, "incorrect mgv ETH balance (1)");
 
     mkr.provisionMgv(amt2);
 
@@ -42,7 +42,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       "incorrect mkr mgvBalance amount (2)"
     );
     assertEq(
-      $mgv.balance,
+      $(mgv).balance,
       mgv_bal + amt1 + amt2,
       "incorrect mgv ETH balance (2)"
     );
@@ -63,8 +63,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       "calldata length in execute is incorrect"
     );
 
-    assertEq(order.outbound_tkn, $base, "wrong base");
-    assertEq(order.inbound_tkn, $quote, "wrong quote");
+    assertEq(order.outbound_tkn, $(base), "wrong base");
+    assertEq(order.inbound_tkn, $(quote), "wrong quote");
     assertEq(order.wants, 0.05 ether, "wrong takerWants");
     assertEq(order.gives, 0.05 ether, "wrong takerGives");
     assertEq(order.offerDetail.gasreq(), 200_000, "wrong gasreq");
@@ -72,8 +72,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(order.offer.wants(), 0.05 ether, "wrong offerWants");
     assertEq(order.offer.gives(), 0.05 ether, "wrong offerGives");
     // test flashloan
-    assertEq(quote.balanceOf($this), 0.05 ether, "wrong quote balance");
-    csl.log("a", base.allowance($this, $mgv));
+    assertEq(quote.balanceOf($(this)), 0.05 ether, "wrong quote balance");
+    csl.log("a", base.allowance($(this), $(mgv)));
     return "";
   }
 
@@ -84,11 +84,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_calldata_and_balance_in_makerExecute_are_correct() public {
     bool funded;
-    (funded, ) = $mgv.call{value: 1 ether}("");
-    deal($base, $this, 1 ether);
+    (funded, ) = $(mgv).call{value: 1 ether}("");
+    deal($(base), $(this), 1 ether);
     uint ofr = mgv.newOffer(
-      $base,
-      $quote,
+      $(base),
+      $(quote),
       0.05 ether,
       0.05 ether,
       200_000,
@@ -99,7 +99,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   }
 
   function test_withdraw_removes_mgv_balance_and_ethers() public {
-    uint mgv_bal = $mgv.balance;
+    uint mgv_bal = $(mgv).balance;
     uint amt1 = 0.86 ether;
     uint amt2 = 0.12 ether;
 
@@ -107,7 +107,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     bool success = mkr.withdrawMgv(amt2);
     assertTrue(success, "mkr was not able to withdraw from mgv");
     assertEq(mkr.mgvBalance(), amt1 - amt2, "incorrect mkr mgvBalance amount");
-    assertEq($mgv.balance, mgv_bal + amt1 - amt2, "incorrect mgv ETH balance");
+    assertEq(
+      $(mgv).balance,
+      mgv_bal + amt1 - amt2,
+      "incorrect mgv ETH balance"
+    );
   }
 
   function test_withdraw_too_much_fails() public {
@@ -124,7 +128,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_fund_newOffer() public {
     uint oldBal = mgv.balanceOf(address(mkr));
-    expectFrom($mgv);
+    expectFrom($(mgv));
     emit Credit(address(mkr), 1 ether);
     mkr.newOfferWithFunding(1 ether, 1 ether, 50000, 0, 1 ether);
     assertGt(
@@ -137,7 +141,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_fund_updateOffer() public {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50000, 0);
-    expectFrom($mgv);
+    expectFrom($(mgv));
     emit Credit(address(mkr), 0.9 ether);
     mkr.updateOfferWithFunding(1 ether, 1 ether, 50000, 0, ofr, 0.9 ether);
   }
@@ -147,14 +151,14 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50000, 0);
 
     mkr.setShouldFailHook(true);
-    expectFrom($mgv);
-    emit PosthookFail($base, $quote, ofr, "posthookFail");
+    expectFrom($(mgv));
+    emit PosthookFail($(base), $(quote), ofr, "posthookFail");
     tkr.take(ofr, 0.1 ether); // fails but we don't care
   }
 
   function test_badReturn_succeeds() public {
     mkr.provisionMgv(1 ether);
-    deal($base, address(mkr), 1 ether);
+    deal($(base), address(mkr), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50000, 0);
 
     mkr.shouldAbort(true);
@@ -175,8 +179,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_delete_offer_log() public {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 2300, 0);
-    expectFrom($mgv);
-    emit OfferRetract($base, $quote, ofr);
+    expectFrom($(mgv));
+    emit OfferRetract($(base), $(quote), ofr);
     mkr.retractOfferWithDeprovision(ofr);
   }
 
@@ -200,7 +204,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_retract_taken_does_not_drain() public {
     mkr.provisionMgv(1 ether);
-    deal($base, address(mkr), 1 ether);
+    deal($(base), address(mkr), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
 
     bool success = tkr.take(ofr, 0.1 ether);
@@ -220,15 +224,15 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_retract_offer_log() public {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOffer(0.9 ether, 1 ether, 2300, 100);
-    expectFrom($mgv);
-    emit OfferRetract($base, $quote, ofr);
+    expectFrom($(mgv));
+    emit OfferRetract($(base), $(quote), ofr);
     mkr.retractOffer(ofr);
   }
 
   function test_retract_offer_maintains_balance() public {
     mkr.provisionMgv(1 ether);
     uint bal = mkr.mgvBalance();
-    uint prov = getProvision($base, $quote, 2300);
+    uint prov = getProvision($(base), $(quote), 2300);
     mkr.retractOffer(mkr.newOffer(1 ether, 1 ether, 2300, 0));
     assertEq(mkr.mgvBalance(), bal - prov, "unexpected maker balance");
   }
@@ -247,26 +251,26 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     mkr.retractOffer(ofr);
     assertTrue(
-      !mgv.isLive(mgv.offers($base, $quote, ofr)),
+      !mgv.isLive(mgv.offers($(base), $(quote), ofr)),
       "Offer was not removed from OB"
     );
-    P.Offer.t offer = mgv.offers($base, $quote, ofr);
-    P.OfferDetail.t detail = mgv.offerDetails($base, $quote, ofr);
+    P.Offer.t offer = mgv.offers($(base), $(quote), ofr);
+    P.OfferDetail.t detail = mgv.offerDetails($(base), $(quote), ofr);
     assertEq(offer.prev(), ofr0, "Invalid prev");
     assertEq(offer.next(), ofr1, "Invalid next");
     assertEq(offer.gives(), 0, "offer gives was not set to 0");
     assertEq(detail.gasprice(), 100, "offer gasprice is incorrect");
 
     assertTrue(
-      mgv.isLive(mgv.offers($base, $quote, offer.prev())),
+      mgv.isLive(mgv.offers($(base), $(quote), offer.prev())),
       "Invalid OB"
     );
     assertTrue(
-      mgv.isLive(mgv.offers($base, $quote, offer.next())),
+      mgv.isLive(mgv.offers($(base), $(quote), offer.next())),
       "Invalid OB"
     );
-    P.Offer.t offer0 = mgv.offers($base, $quote, offer.prev());
-    P.Offer.t offer1 = mgv.offers($base, $quote, offer.next());
+    P.Offer.t offer0 = mgv.offers($(base), $(quote), offer.prev());
+    P.Offer.t offer1 = mgv.offers($(base), $(quote), offer.next());
 
     assertEq(offer1.prev(), ofr0, "Invalid snitching for ofr1");
     assertEq(offer0.next(), ofr1, "Invalid snitching for ofr0");
@@ -284,23 +288,23 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr1 = mkr.newOffer(1.1 ether, 1 ether, 2300, 100);
     mkr.retractOffer(ofr);
     assertTrue(
-      !mgv.isLive(mgv.offers($base, $quote, ofr)),
+      !mgv.isLive(mgv.offers($(base), $(quote), ofr)),
       "Offer was not removed from OB"
     );
-    P.Offer.t offer = mgv.offers($base, $quote, ofr);
-    P.OfferDetail.t detail = mgv.offerDetails($base, $quote, ofr);
+    P.Offer.t offer = mgv.offers($(base), $(quote), ofr);
+    P.OfferDetail.t detail = mgv.offerDetails($(base), $(quote), ofr);
     assertEq(offer.prev(), 0, "Invalid prev");
     assertEq(offer.next(), ofr1, "Invalid next");
     assertEq(offer.gives(), 0, "offer gives was not set to 0");
     assertEq(detail.gasprice(), 100, "offer gasprice is incorrect");
 
     assertTrue(
-      mgv.isLive(mgv.offers($base, $quote, offer.next())),
+      mgv.isLive(mgv.offers($(base), $(quote), offer.next())),
       "Invalid OB"
     );
-    P.Offer.t offer1 = mgv.offers($base, $quote, offer.next());
+    P.Offer.t offer1 = mgv.offers($(base), $(quote), offer.next());
     assertEq(offer1.prev(), 0, "Invalid snitching for ofr1");
-    (, P.Local.t cfg) = mgv.config($base, $quote);
+    (, P.Local.t cfg) = mgv.config($(base), $(quote));
     assertEq(cfg.best(), ofr1, "Invalid best after retract");
   }
 
@@ -315,24 +319,24 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     });
     uint ofr0 = mkr.newOffer(0.9 ether, 1 ether, 2300, 100);
     assertTrue(
-      mgv.isLive(mgv.offers($base, $quote, ofr)),
+      mgv.isLive(mgv.offers($(base), $(quote), ofr)),
       "Offer was not removed from OB"
     );
     mkr.retractOffer(ofr);
-    P.Offer.t offer = mgv.offers($base, $quote, ofr);
-    P.OfferDetail.t detail = mgv.offerDetails($base, $quote, ofr);
+    P.Offer.t offer = mgv.offers($(base), $(quote), ofr);
+    P.OfferDetail.t detail = mgv.offerDetails($(base), $(quote), ofr);
     assertEq(offer.prev(), ofr0, "Invalid prev");
     assertEq(offer.next(), 0, "Invalid next");
     assertEq(offer.gives(), 0, "offer gives was not set to 0");
     assertEq(detail.gasprice(), 100, "offer gasprice is incorrect");
 
     assertTrue(
-      mgv.isLive(mgv.offers($base, $quote, offer.prev())),
+      mgv.isLive(mgv.offers($(base), $(quote), offer.prev())),
       "Invalid OB"
     );
-    P.Offer.t offer0 = mgv.offers($base, $quote, offer.prev());
+    P.Offer.t offer0 = mgv.offers($(base), $(quote), offer.prev());
     assertEq(offer0.next(), 0, "Invalid snitching for ofr0");
-    (, P.Local.t cfg) = mgv.config($base, $quote);
+    (, P.Local.t cfg) = mgv.config($(base), $(quote));
     assertEq(cfg.best(), ofr0, "Invalid best after retract");
   }
 
@@ -367,22 +371,22 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_min_density_with_newOffer_ok() public {
     mkr.provisionMgv(1 ether);
     uint density = 10**7;
-    mgv.setGasbase($base, $quote, 1);
-    mgv.setDensity($base, $quote, density);
+    mgv.setGasbase($(base), $(quote), 1);
+    mgv.setDensity($(base), $(quote), density);
     mkr.newOffer(1 ether, density, 0, 0);
   }
 
   function test_low_density_fails_newOffer() public {
     uint density = 10**7;
-    mgv.setGasbase($base, $quote, 1);
-    mgv.setDensity($base, $quote, density);
+    mgv.setGasbase($(base), $(quote), 1);
+    mgv.setDensity($(base), $(quote), density);
     vm.expectRevert("mgv/writeOffer/density/tooLow");
     mkr.newOffer(1 ether, density - 1, 0, 0);
   }
 
   function test_maker_gets_no_mgv_balance_on_partial_fill() public {
     mkr.provisionMgv(1 ether);
-    deal($base, address(mkr), 1 ether);
+    deal($(base), address(mkr), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     uint oldBalance = mgv.balanceOf(address(mkr));
     bool success = tkr.take(ofr, 0.1 ether);
@@ -396,7 +400,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_maker_gets_no_mgv_balance_on_full_fill() public {
     mkr.provisionMgv(1 ether);
-    deal($base, address(mkr), 1 ether);
+    deal($(base), address(mkr), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     uint oldBalance = mgv.balanceOf(address(mkr));
     bool success = tkr.take(ofr, 1 ether);
@@ -414,34 +418,34 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.1 ether, 1 ether, 50_000, 0);
     uint ofr01 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, P.Local.t loc_cfg) = mgv.config($base, $quote);
+    (, P.Local.t loc_cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, loc_cfg.best(), "Wrong best offer");
     assertTrue(
-      mgv.isLive(mgv.offers($base, $quote, ofr0)),
+      mgv.isLive(mgv.offers($(base), $(quote), ofr0)),
       "Oldest equivalent offer should be first"
     );
-    P.Offer.t offer = mgv.offers($base, $quote, ofr0);
+    P.Offer.t offer = mgv.offers($(base), $(quote), ofr0);
     uint _ofr01 = offer.next();
     assertEq(_ofr01, ofr01, "Wrong 2nd offer");
     assertTrue(
-      mgv.isLive(mgv.offers($base, $quote, _ofr01)),
+      mgv.isLive(mgv.offers($(base), $(quote), _ofr01)),
       "Oldest equivalent offer should be first"
     );
-    offer = mgv.offers($base, $quote, _ofr01);
+    offer = mgv.offers($(base), $(quote), _ofr01);
     uint _ofr1 = offer.next();
     assertEq(_ofr1, ofr1, "Wrong 3rd offer");
     assertTrue(
-      mgv.isLive(mgv.offers($base, $quote, _ofr1)),
+      mgv.isLive(mgv.offers($(base), $(quote), _ofr1)),
       "Oldest equivalent offer should be first"
     );
-    offer = mgv.offers($base, $quote, _ofr1);
+    offer = mgv.offers($(base), $(quote), _ofr1);
     uint _ofr2 = offer.next();
     assertEq(_ofr2, ofr2, "Wrong 4th offer");
     assertTrue(
-      mgv.isLive(mgv.offers($base, $quote, _ofr2)),
+      mgv.isLive(mgv.offers($(base), $(quote), _ofr2)),
       "Oldest equivalent offer should be first"
     );
-    offer = mgv.offers($base, $quote, _ofr2);
+    offer = mgv.offers($(base), $(quote), _ofr2);
     assertEq(offer.next(), 0, "Invalid OB");
   }
 
@@ -455,10 +459,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, P.Local.t cfg) = mgv.config($base, $quote);
+    (, P.Local.t cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_000, ofr0, ofr0);
-    (, cfg) = mgv.config($base, $quote);
+    (, cfg) = mgv.config($(base), $(quote));
     assertEq(ofr1, cfg.best(), "Best offer should have changed");
   }
 
@@ -466,10 +470,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, P.Local.t cfg) = mgv.config($base, $quote);
+    (, P.Local.t cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether + 1, 1.0 ether, 100_000, ofr0, ofr0);
-    (, cfg) = mgv.config($base, $quote);
+    (, cfg) = mgv.config($(base), $(quote));
     assertEq(ofr1, cfg.best(), "Best offer should have changed");
   }
 
@@ -477,10 +481,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, P.Local.t cfg) = mgv.config($base, $quote);
+    (, P.Local.t cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr0, ofr0);
-    (, cfg) = mgv.config($base, $quote);
+    (, cfg) = mgv.config($(base), $(quote));
     assertEq(ofr1, cfg.best(), "Best offer should have changed");
   }
 
@@ -488,10 +492,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, P.Local.t cfg) = mgv.config($base, $quote);
+    (, P.Local.t cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether + 1, 100_000, ofr1, ofr1);
-    (, cfg) = mgv.config($base, $quote);
+    (, cfg) = mgv.config($(base), $(quote));
     assertEq(ofr1, cfg.best(), "Best offer should have changed");
   }
 
@@ -499,11 +503,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1.0 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1.0 ether, 100_000, 0);
-    (, P.Local.t cfg) = mgv.config($base, $quote);
+    (, P.Local.t cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 99_999, ofr1, ofr1);
-    (, cfg) = mgv.config($base, $quote);
-    logOfferBook($base, $quote, 2);
+    (, cfg) = mgv.config($(base), $(quote));
+    logOfferBook($(base), $(quote), 2);
     assertEq(cfg.best(), ofr1, "Best offer should have changed");
   }
 
@@ -511,10 +515,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, P.Local.t cfg) = mgv.config($base, $quote);
+    (, P.Local.t cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether + 1, 100_000, ofr0, ofr1);
-    (, cfg) = mgv.config($base, $quote);
+    (, cfg) = mgv.config($(base), $(quote));
     assertEq(ofr1, cfg.best(), "Best offer should have changed");
   }
 
@@ -522,11 +526,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1.0 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1.0 ether, 100_000, 0);
-    (, P.Local.t cfg) = mgv.config($base, $quote);
+    (, P.Local.t cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 99_999, ofr0, ofr1);
-    (, cfg) = mgv.config($base, $quote);
-    logOfferBook($base, $quote, 2);
+    (, cfg) = mgv.config($(base), $(quote));
+    logOfferBook($(base), $(quote), 2);
     assertEq(cfg.best(), ofr1, "Best offer should have changed");
   }
 
@@ -540,13 +544,19 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr2 = mkr.newOffer(1.1 ether, 1 ether, 100_000, 0);
     uint ofr3 = mkr.newOffer(1.2 ether, 1 ether, 100_000, 0);
 
-    assertTrue(mgv.isLive(mgv.offers($base, $quote, ofr)), "Insertion error");
-    P.Offer.t offer = mgv.offers($base, $quote, ofr);
+    assertTrue(
+      mgv.isLive(mgv.offers($(base), $(quote), ofr)),
+      "Insertion error"
+    );
+    P.Offer.t offer = mgv.offers($(base), $(quote), ofr);
     assertEq(offer.prev(), ofr0, "Wrong prev offer");
     assertEq(offer.next(), ofr1, "Wrong next offer");
     mkr.updateOffer(1.1 ether, 1.0 ether, 100_000, ofr0, ofr);
-    assertTrue(mgv.isLive(mgv.offers($base, $quote, ofr)), "Insertion error");
-    offer = mgv.offers($base, $quote, ofr);
+    assertTrue(
+      mgv.isLive(mgv.offers($(base), $(quote), ofr)),
+      "Insertion error"
+    );
+    offer = mgv.offers($(base), $(quote), ofr);
     assertEq(offer.prev(), ofr2, "Wrong prev offer after update");
     assertEq(offer.next(), ofr3, "Wrong next offer after update");
   }
@@ -561,13 +571,19 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr2 = mkr.newOffer(1.1 ether, 1 ether, 100_000, 0);
     uint ofr3 = mkr.newOffer(1.2 ether, 1 ether, 100_000, 0);
 
-    assertTrue(mgv.isLive(mgv.offers($base, $quote, ofr)), "Insertion error");
-    P.Offer.t offer = mgv.offers($base, $quote, ofr);
+    assertTrue(
+      mgv.isLive(mgv.offers($(base), $(quote), ofr)),
+      "Insertion error"
+    );
+    P.Offer.t offer = mgv.offers($(base), $(quote), ofr);
     assertEq(offer.prev(), ofr0, "Wrong prev offer");
     assertEq(offer.next(), ofr1, "Wrong next offer");
     mkr.updateOffer(1.1 ether, 1.0 ether, 100_000, ofr, ofr);
-    assertTrue(mgv.isLive(mgv.offers($base, $quote, ofr)), "Insertion error");
-    offer = mgv.offers($base, $quote, ofr);
+    assertTrue(
+      mgv.isLive(mgv.offers($(base), $(quote), ofr)),
+      "Insertion error"
+    );
+    offer = mgv.offers($(base), $(quote), ofr);
     assertEq(offer.prev(), ofr2, "Wrong prev offer after update");
     assertEq(offer.next(), ofr3, "Wrong next offer after update");
   }
@@ -582,13 +598,16 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr2 = mkr.newOffer(1.0 ether, 1 ether, 100_001, 0);
     uint ofr3 = mkr.newOffer(1.0 ether, 1 ether, 100_002, 0);
 
-    assertTrue(mgv.isLive(mgv.offers($base, $quote, ofr)), "Insertion error");
-    P.Offer.t offer = mgv.offers($base, $quote, ofr);
+    assertTrue(
+      mgv.isLive(mgv.offers($(base), $(quote), ofr)),
+      "Insertion error"
+    );
+    P.Offer.t offer = mgv.offers($(base), $(quote), ofr);
     assertEq(offer.prev(), ofr0, "Wrong prev offer");
     assertEq(offer.next(), ofr1, "Wrong next offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr0, ofr);
-    assertTrue(mgv.isLive(mgv.offers($base, $quote, ofr)), "Update error");
-    offer = mgv.offers($base, $quote, ofr);
+    assertTrue(mgv.isLive(mgv.offers($(base), $(quote), ofr)), "Update error");
+    offer = mgv.offers($(base), $(quote), ofr);
     assertEq(offer.prev(), ofr2, "Wrong prev offer after update");
     assertEq(offer.next(), ofr3, "Wrong next offer after update");
   }
@@ -603,22 +622,28 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr2 = mkr.newOffer(1.0 ether, 1 ether, 100_001, 0);
     uint ofr3 = mkr.newOffer(1.0 ether, 1 ether, 100_002, 0);
 
-    assertTrue(mgv.isLive(mgv.offers($base, $quote, ofr)), "Insertion error");
-    P.Offer.t offer = mgv.offers($base, $quote, ofr);
+    assertTrue(
+      mgv.isLive(mgv.offers($(base), $(quote), ofr)),
+      "Insertion error"
+    );
+    P.Offer.t offer = mgv.offers($(base), $(quote), ofr);
     assertEq(offer.prev(), ofr0, "Wrong prev offer");
     assertEq(offer.next(), ofr1, "Wrong next offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr, ofr);
-    assertTrue(mgv.isLive(mgv.offers($base, $quote, ofr)), "Insertion error");
-    offer = mgv.offers($base, $quote, ofr);
+    assertTrue(
+      mgv.isLive(mgv.offers($(base), $(quote), ofr)),
+      "Insertion error"
+    );
+    offer = mgv.offers($(base), $(quote), ofr);
     assertEq(offer.prev(), ofr2, "Wrong prev offer after update");
     assertEq(offer.next(), ofr3, "Wrong next offer after update");
   }
 
   function test_update_offer_after_higher_gasprice_change_fails() public {
-    uint provision = getProvision($base, $quote, 100_000);
+    uint provision = getProvision($(base), $(quote), 100_000);
     mkr.provisionMgv(provision);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (P.Global.t cfg, ) = mgv.config($base, $quote);
+    (P.Global.t cfg, ) = mgv.config($(base), $(quote));
     mgv.setGasprice(cfg.gasprice() + 1); //gasprice goes up
     vm.expectRevert("mgv/insufficientProvision");
     mkr.updateOffer(1.0 ether + 2, 1.0 ether, 100_000, ofr0, ofr0);
@@ -627,16 +652,16 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_update_offer_after_higher_gasprice_change_succeeds_when_over_provisioned()
     public
   {
-    (P.Global.t cfg, ) = mgv.config($base, $quote);
+    (P.Global.t cfg, ) = mgv.config($(base), $(quote));
     uint gasprice = cfg.gasprice();
-    uint provision = getProvision($base, $quote, 100_000, gasprice);
-    expectFrom($mgv);
+    uint provision = getProvision($(base), $(quote), 100_000, gasprice);
+    expectFrom($(mgv));
     emit Credit(address(mkr), provision * 2);
     mkr.provisionMgv(provision * 2); // provisionning twice the required amount
-    expectFrom($mgv);
+    expectFrom($(mgv));
     emit OfferWrite(
-      $base,
-      $quote,
+      $(base),
+      $(quote),
       address(mkr),
       1.0 ether,
       1.0 ether,
@@ -645,16 +670,16 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       1,
       0
     );
-    expectFrom($mgv);
+    expectFrom($(mgv));
     emit Debit(address(mkr), provision); // transfering missing provision into offer bounty
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0); // locking exact bounty
     mgv.setGasprice(gasprice + 1); //gasprice goes up
-    uint provision_ = getProvision($base, $quote, 100_000, gasprice + 1); // new theoretical provision
-    (cfg, ) = mgv.config($base, $quote);
-    expectFrom($mgv);
+    uint provision_ = getProvision($(base), $(quote), 100_000, gasprice + 1); // new theoretical provision
+    (cfg, ) = mgv.config($(base), $(quote));
+    expectFrom($(mgv));
     emit OfferWrite(
-      $base,
-      $quote,
+      $(base),
+      $(quote),
       address(mkr),
       1.0 ether + 2,
       1.0 ether,
@@ -663,19 +688,19 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       ofr0,
       0
     );
-    expectFrom($mgv);
+    expectFrom($(mgv));
     emit Debit(address(mkr), provision_ - provision); // transfering missing provision into offer bounty
     mkr.updateOffer(1.0 ether + 2, 1.0 ether, 100_000, ofr0, ofr0);
   }
 
   function test_update_offer_after_lower_gasprice_change_succeeds() public {
-    uint provision = getProvision($base, $quote, 100_000);
+    uint provision = getProvision($(base), $(quote), 100_000);
     mkr.provisionMgv(provision);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (P.Global.t cfg, ) = mgv.config($base, $quote);
+    (P.Global.t cfg, ) = mgv.config($(base), $(quote));
     mgv.setGasprice(cfg.gasprice() - 1); //gasprice goes down
-    uint _provision = getProvision($base, $quote, 100_000);
-    expectFrom($mgv);
+    uint _provision = getProvision($(base), $(quote), 100_000);
+    expectFrom($(mgv));
     emit Credit(address(mkr), provision - _provision);
     mkr.updateOffer(1.0 ether + 2, 1.0 ether, 100_000, ofr0, ofr0);
     assertEq(
@@ -691,13 +716,13 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint right = mkr.newOffer(1 ether + 3, 1 ether, 100_000, 0);
     uint center = mkr.newOffer(1 ether + 1, 1 ether, 100_000, 0);
     mkr.updateOffer(1 ether + 2, 1 ether, 100_000, center, center);
-    P.Offer.t ofr = mgv.offers($base, $quote, center);
+    P.Offer.t ofr = mgv.offers($(base), $(quote), center);
     assertEq(ofr.prev(), left, "ofr.prev should be unchanged");
     assertEq(ofr.next(), right, "ofr.next should be unchanged");
   }
 
   function test_update_on_retracted_offer() public {
-    uint provision = getProvision($base, $quote, 100_000);
+    uint provision = getProvision($(base), $(quote), 100_000);
     mkr.provisionMgv(provision);
     uint offerId = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.retractOfferWithDeprovision(offerId);
@@ -707,33 +732,33 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       0,
       "Maker should have no more provision on Mangrove"
     );
-    P.Offer.t ofr = mgv.offers($base, $quote, offerId);
-    P.OfferDetail.t dtl = mgv.offerDetails($base, $quote, offerId);
+    P.Offer.t ofr = mgv.offers($(base), $(quote), offerId);
+    P.OfferDetail.t dtl = mgv.offerDetails($(base), $(quote), offerId);
     assertEq(ofr.gives(), 0, "Retracted offer should have 0 gives");
     assertEq(dtl.gasprice(), 0, "Deprovisioned offer should have 0 gasprice");
     vm.expectRevert("mgv/insufficientProvision");
     mkr.updateOffer(1 ether + 2, 1 ether, 100_000, offerId, offerId);
     mkr.provisionMgv(provision);
     mkr.updateOffer(1 ether + 2, 1 ether, 100_000, offerId, offerId);
-    ofr = mgv.offers($base, $quote, offerId);
+    ofr = mgv.offers($(base), $(quote), offerId);
     assertEq(ofr.gives(), 1 ether, "Offer not correctly updated");
   }
 
   function testOBBest(uint id) internal {
-    P.Offer.t ofr = mgv.offers($base, $quote, id);
-    assertEq(mgv.best($base, $quote), id, "testOBBest: not best");
+    P.Offer.t ofr = mgv.offers($(base), $(quote), id);
+    assertEq(mgv.best($(base), $(quote)), id, "testOBBest: not best");
     assertEq(ofr.prev(), 0, "testOBBest: prev not 0");
   }
 
   function testOBWorst(uint id) internal {
-    P.Offer.t ofr = mgv.offers($base, $quote, id);
+    P.Offer.t ofr = mgv.offers($(base), $(quote), id);
     assertEq(ofr.next(), 0, "testOBWorst fail");
   }
 
   function testOBLink(uint left, uint right) internal {
-    P.Offer.t ofr = mgv.offers($base, $quote, left);
+    P.Offer.t ofr = mgv.offers($(base), $(quote), left);
     assertEq(ofr.next(), right, "testOBLink: wrong ofr.next");
-    ofr = mgv.offers($base, $quote, right);
+    ofr = mgv.offers($(base), $(quote), right);
     assertEq(ofr.prev(), left, "testOBLink: wrong ofr.prev");
   }
 
@@ -861,7 +886,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint right = mkr.newOffer(1 ether + 3, 1 ether, 100_000, 0);
     uint center = mkr.newOffer(1 ether + 2, 1 ether, 100_000, 0);
     mkr.updateOffer(1 ether + 1, 1 ether, 100_000, center, center);
-    P.Offer.t ofr = mgv.offers($base, $quote, center);
+    P.Offer.t ofr = mgv.offers($(base), $(quote), center);
     assertEq(ofr.prev(), left, "ofr.prev should be unchanged");
     assertEq(ofr.next(), right, "ofr.next should be unchanged");
   }
@@ -870,10 +895,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     mkr.newOffer(1.0 ether + 2, 1 ether, 100_000, 0);
-    (, P.Local.t cfg) = mgv.config($base, $quote);
+    (, P.Local.t cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether + 1, 1.0 ether, 100_000, ofr0, ofr0);
-    (, cfg) = mgv.config($base, $quote);
+    (, cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, cfg.best(), "Best offer should not have changed");
   }
 
@@ -881,19 +906,19 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     mkr.newOffer(1.0 ether, 1 ether, 100_002, 0);
-    (, P.Local.t cfg) = mgv.config($base, $quote);
+    (, P.Local.t cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, cfg.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr0, ofr0);
-    (, cfg) = mgv.config($base, $quote);
+    (, cfg) = mgv.config($(base), $(quote));
     assertEq(ofr0, cfg.best(), "Best offer should not have changed");
   }
 
   function test_gasbase_is_deducted_1() public {
     uint offer_gasbase = 20_000;
     mkr.provisionMgv(1 ether);
-    mgv.setGasbase($base, $quote, offer_gasbase);
+    mgv.setGasbase($(base), $(quote), offer_gasbase);
     mgv.setGasprice(1);
-    mgv.setDensity($base, $quote, 0);
+    mgv.setDensity($(base), $(quote), 0);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 0, 0);
     tkr.take(ofr, 0.1 ether);
     assertEq(
@@ -906,9 +931,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_gasbase_is_deducted_2() public {
     uint offer_gasbase = 20_000;
     mkr.provisionMgv(1 ether);
-    mgv.setGasbase($base, $quote, offer_gasbase);
+    mgv.setGasbase($(base), $(quote), offer_gasbase);
     mgv.setGasprice(1);
-    mgv.setDensity($base, $quote, 0);
+    mgv.setDensity($(base), $(quote), 0);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 0, 0);
     tkr.take(ofr, 0.1 ether);
     assertEq(

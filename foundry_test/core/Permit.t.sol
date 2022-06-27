@@ -63,14 +63,14 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     (good_owner_key, good_owner) = freshAccount("good owner");
 
     vm.prank(good_owner);
-    quote.approve($mgv, type(uint).max);
-    deal($quote, good_owner, 2 ether);
+    quote.approve($(mgv), type(uint).max);
+    deal($(quote), good_owner, 2 ether);
 
     permit_data = mgvPermitData.t({
-      outbound_tkn: $base,
-      inbound_tkn: $quote,
+      outbound_tkn: $(base),
+      inbound_tkn: $(quote),
       owner: good_owner,
-      spender: $this,
+      spender: $(this),
       value: 1 ether,
       nonce: 0,
       deadline: block.timestamp + 1,
@@ -93,8 +93,8 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   {
     return
       mgv.snipesFor(
-        $base,
-        $quote,
+        $(base),
+        $(quote),
         inDyn([uint(1), value, value, 300_000]),
         true,
         who
@@ -102,14 +102,14 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   }
 
   function newOffer(uint amount) internal {
-    mgv.newOffer($base, $quote, amount, amount, 100_000, 0, 0);
+    mgv.newOffer($(base), $(quote), amount, amount, 100_000, 0, 0);
   }
 
   function test_no_allowance(uint96 value) external {
     /* You can use 0 from someone who gave you an allowance of 0. */
     vm.assume(value > 0); //can't create a 0 offer
-    deal($base, $this, value);
-    deal($quote, good_owner, value);
+    deal($(base), $(this), value);
+    deal($(quote), good_owner, value);
     newOffer(value);
     vm.expectRevert("mgv/lowAllowance");
     snipeFor(value, good_owner);
@@ -135,7 +135,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
 
   function test_early_nonce() public {
     stdstore
-      .target($mgv)
+      .target($(mgv))
       .sig(mgv.nonces.selector)
       .with_key(good_owner)
       .checked_write(1);
@@ -148,7 +148,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     permit_data.outbound_tkn = address(1);
     permit_data.submit();
     assertEq(
-      mgv.allowances($base, $quote, good_owner, $this),
+      mgv.allowances($(base), $(quote), good_owner, $(this)),
       0,
       "Allowance should be 0"
     );
@@ -158,7 +158,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     permit_data.inbound_tkn = address(1);
     permit_data.submit();
     assertEq(
-      mgv.allowances($base, $quote, good_owner, $this),
+      mgv.allowances($(base), $(quote), good_owner, $(this)),
       0,
       "Allowance should be 0"
     );
@@ -168,7 +168,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     permit_data.spender = address(1);
     permit_data.submit();
     assertEq(
-      mgv.allowances($base, $quote, good_owner, $this),
+      mgv.allowances($(base), $(quote), good_owner, $(this)),
       0,
       "Allowance should be 0"
     );
@@ -179,7 +179,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     permit_data.submit();
 
     assertEq(
-      mgv.allowances($base, $quote, good_owner, $this),
+      mgv.allowances($(base), $(quote), good_owner, $(this)),
       value,
       "Allowance not set"
     );
@@ -189,16 +189,16 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     uint value = 1 ether;
     // set allowance manually
     stdstore
-      .target($mgv)
+      .target($(mgv))
       .sig(mgv.allowances.selector)
-      .with_key($base)
-      .with_key($quote)
+      .with_key($(base))
+      .with_key($(quote))
       .with_key(good_owner)
-      .with_key($this)
+      .with_key($(this))
       .checked_write(value);
 
-    deal($base, $this, value);
-    deal($quote, good_owner, value);
+    deal($(base), $(this), value);
+    deal($(quote), good_owner, value);
     newOffer(value);
     (uint successes, uint takerGot, uint takerGave, , ) = snipeFor(
       value / 2,
@@ -209,7 +209,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     assertEq(takerGave, value / 2, "takerGot should be 1 ether");
 
     assertEq(
-      mgv.allowances($base, $quote, good_owner, $this),
+      mgv.allowances($(base), $(quote), good_owner, $(this)),
       value / 2 + (value % 2),
       "Allowance incorrectly decreased"
     );

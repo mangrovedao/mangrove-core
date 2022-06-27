@@ -60,6 +60,8 @@ contract MangoTest is MangroveTest {
     vm.stopPrank();
   }
 
+  /* combine all tests wince they rely on non-zero state */
+
   function test_all() public {
     part_deploy_strat();
     part_market_order();
@@ -110,7 +112,6 @@ contract MangoTest is MangroveTest {
     vm.prank(taker);
     usdc.approve($(mgv), type(uint).max);
 
-    printOfferBook($(weth), $(usdc));
     vm.prank(taker);
     (uint got, uint gave, uint bounty, uint _fee) = mgv.marketOrder(
       $(weth),
@@ -121,8 +122,6 @@ contract MangoTest is MangroveTest {
     );
 
     Book memory book = get_offers(false);
-    printOfferBook($(usdc), $(weth));
-    // logary(book.bids);
     assertEq(
       got,
       0.5 ether - ((0.5 ether * 30) / 10000),
@@ -143,7 +142,9 @@ contract MangoTest is MangroveTest {
     );
   }
 
-  /* check ... */
+  /* ********* Utility methods ************ */
+
+  // get internal view of mango's offers
   function get_offers(bool liveOnly) internal returns (Book memory) {
     uint[][2] memory res = mgo.get_offers(liveOnly);
     uint[] memory bids = res[0];
@@ -151,39 +152,30 @@ contract MangoTest is MangroveTest {
     return Book({bids: res[0], asks: res[1]});
   }
 
+  // given offerIds and offerStatuses, for id in offerStatuses,
+  // * check that offers[abs(id)] is live iff id > 0
+  // * check that abs(id)==offerIds[i]
   function checkOB(
     address $out,
     address $in,
     uint[] memory offerIds,
     int[] memory offerStatuses
   ) internal {
-    uint id;
-
-    // logary(offerIds);
-    // logary(offerStatuses);
+    int sid;
 
     for (uint i = 0; i < offerStatuses.length; i++) {
-      id = abs(offerStatuses[i]);
-      console.log("offer", mgv.offers($out, $in, id).gives());
-      if (offerStatuses[i] <= 0) {
-        assertEq(
-          mgv.offers($out, $in, id).gives(),
-          0,
-          "Offer should not be on the book"
-        );
-      } else {
-        assertGt(
-          mgv.offers($out, $in, id).gives(),
-          0,
-          "Offer should be on the book"
-        );
-      }
-
-      assertEq(offerIds[i], id, "Offer misplaced");
+      sid = offerStatuses[i];
+      assertEq(
+        mgv.offers($out, $in, abs(sid)).gives() > 0,
+        sid > 0,
+        string.concat("wrong offer status", int2str(sid))
+      );
+      assertEq(offerIds[i], abs(sid), "Offer misplaced");
     }
   }
 
-  /* init procedure */
+  // init procedure
+  // TODO explain
   function init(uint bidAmount, uint askAmount) internal {
     uint slice = NSLOTS / 2; // require(NSLOTS%2==0)?
     uint[] memory pivotIds = new uint[](NSLOTS);

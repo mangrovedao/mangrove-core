@@ -30,6 +30,10 @@ contract Utilities {
     }
   }
 
+  function int2str(int _i) internal pure returns (string memory) {
+    return uint2str(uint(_i));
+  }
+
   /* units to e-18 units */
   function toEthUnits(uint w, string memory units)
     internal

@@ -14,6 +14,7 @@ contract MangoTest is MangroveTest {
   uint constant BASE0 = 0.34 ether;
   uint constant BASE1 = 1000 * 10**6; //because usdc decimals?
   uint constant NSLOTS = 10;
+  // price increase is delta/BASE_0
   uint constant DELTA = 34 * 10**6; // because usdc decimals?
 
   TestToken weth;
@@ -28,6 +29,7 @@ contract MangoTest is MangroveTest {
     options.quote.symbol = "USDC";
     options.quote.decimals = 6;
 
+    // deploying mangrove and opening WETH/USDC market.
     super.setUp();
     // rename for convenience
     weth = base;
@@ -61,15 +63,23 @@ contract MangoTest is MangroveTest {
   function test_all() public {
     part_deploy_strat();
     part_market_order();
-    // part_negative_shift();
-    // part_positive_shift();
+    part_negative_shift();
+    part_positive_shift();
+    part_partial_fill();
+    part_text_residual_1();
+    part_text_residual_2();
+    part_kill();
+    part_restart_fixed_shift();
   }
 
   function part_deploy_strat() public {
     vm.startPrank(maker);
+    // maker has to approve liquidity router of Mango for ETH and USDC transfer
     weth.approve(address(mgo.liquidity_router()), type(uint).max);
     usdc.approve(address(mgo.liquidity_router()), type(uint).max);
 
+    // funds come from maker's wallet by default
+    // liquidity router will pull the funds from the wallet when needed
     deal($(weth), maker, weth.cash(17));
     deal($(usdc), maker, usdc.cash(50000));
 
@@ -176,12 +186,13 @@ contract MangoTest is MangroveTest {
   }
 
   function part_negative_shift() public {
-    vm.prank(maker);
+    vm.startPrank(maker);
     mgo.set_shift({
       s: -2,
       withBase: false,
       amounts: asDyn([usdc.cash(1000), usdc.cash(1000)])
     });
+    vm.stopPrank();
 
     Book memory book = get_offers(false);
 
@@ -201,12 +212,13 @@ contract MangoTest is MangroveTest {
   }
 
   function part_positive_shift() public {
-    vm.prank(maker);
+    vm.startPrank(maker);
     mgo.set_shift({
       s: 3,
       withBase: true,
       amounts: asDyn([weth.cash(3, 1), weth.cash(3, 1), weth.cash(3, 1)])
     });
+    vm.stopPrank();
 
     Book memory book = get_offers(false);
 
@@ -222,6 +234,265 @@ contract MangoTest is MangroveTest {
       $(usdc),
       book.asks,
       asDyn([int(0), 0, 0, 6, 1, 2, 3, 4, 5, 7])
+    );
+  }
+
+  function part_partial_fill() public {
+    // scenario:
+    // - set density so high that offer can no longer be updated
+    // - run a market order and check that bid is not updated after ask is being consumed
+    // - verify takerGave is pending
+    // - put back the density and run another market order
+    mgv.setDensity($(weth), $(usdc), weth.cash(1));
+    vm.startPrank(taker);
+    (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
+      $(usdc),
+      $(weth),
+      usdc.cash(1, 2),
+      weth.cash(1),
+      true
+    );
+    vm.stopPrank();
+
+    uint best_id = mgv.best($(weth), $(usdc));
+    P.Offer.t best_offer = mgv.offers($(weth), $(usdc), best_id);
+    uint old_gives = best_offer.gives();
+
+    vm.prank(maker);
+    uint pendingBase = mgo.pending()[0];
+
+    assertEq(pendingBase, gave, "Taker liquidity should be pending");
+
+    vm.startPrank(taker);
+    (got, gave, bounty, ) = mgv.marketOrder(
+      $(usdc),
+      $(weth),
+      usdc.cash(1, 2),
+      weth.cash(1),
+      true
+    );
+    vm.stopPrank();
+
+    vm.prank(maker);
+    uint pendingBase_ = mgo.pending()[0];
+
+    assertEq(pendingBase_, pendingBase + gave, "Missing pending base");
+
+    mgv.setDensity($(weth), $(usdc), 100);
+
+    vm.startPrank(taker);
+    mgv.marketOrder($(usdc), $(weth), usdc.cash(1, 2), weth.cash(1), true);
+    vm.stopPrank();
+
+    vm.prank(maker);
+    uint pendingBase__ = mgo.pending()[0];
+
+    assertEq(pendingBase__, 0, "There should be no more pending base");
+
+    best_id = mgv.best($(weth), $(usdc));
+    best_offer = mgv.offers($(weth), $(usdc), best_id);
+
+    assertEq(
+      best_offer.gives(),
+      old_gives + pendingBase_ + gave,
+      "Incorrect given amount"
+    );
+  }
+
+  function part_text_residual_1() public {
+    mgv.setDensity($(usdc), $(weth), usdc.cash(1));
+    mgv.setDensity($(weth), $(usdc), weth.cash(1));
+
+    // market order will take the following best offer
+    uint best_id = mgv.best($(usdc), $(weth));
+    P.Offer.t best_offer = mgv.offers($(usdc), $(weth), best_id);
+
+    vm.startPrank(taker);
+    (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
+      $(usdc),
+      $(weth),
+      usdc.cash(100),
+      weth.cash(1),
+      true
+    );
+    vm.stopPrank();
+
+    // because density reqs are so high on both semi order book, best will not be able to self repost
+    // and residual will be added to USDC (quote) pending pool
+    // and what taker gave will not be added in the dual offer and added to the WETH (base) pending pool
+
+    vm.startPrank(maker);
+    uint pendingBase = mgo.pending()[0];
+    uint pendingQuote = mgo.pending()[1];
+    vm.stopPrank();
+    assertEq(gave, pendingBase, "gave was not added to pending base pool");
+
+    assertEq(
+      best_offer.gives() - usdc.cash(100),
+      pendingQuote,
+      "Residual was not added to pending quote pool"
+    );
+
+    // second market order should produce the same effect (best has changed because old best was not able to repost)
+    best_id = mgv.best($(usdc), $(weth));
+    best_offer = mgv.offers($(usdc), $(weth), best_id);
+
+    vm.startPrank(taker);
+    (got, gave, bounty, ) = mgv.marketOrder(
+      $(usdc),
+      $(weth),
+      usdc.cash(100),
+      weth.cash(1),
+      true
+    );
+    vm.stopPrank();
+
+    vm.startPrank(maker);
+    uint pendingBase_ = mgo.pending()[0];
+    uint pendingQuote_ = mgo.pending()[1];
+    vm.stopPrank();
+
+    assertEq(
+      pendingBase + gave,
+      pendingBase_,
+      "gave was not added to pending base pool"
+    );
+    assertEq(
+      best_offer.gives() - usdc.cash(100) + pendingQuote,
+      pendingQuote_,
+      "Residual was not added to pending quote pool"
+    );
+
+    // putting density back to normal
+    mgv.setDensity($(usdc), $(weth), 100);
+    mgv.setDensity($(weth), $(usdc), 100);
+
+    // Offer 3 and 4 were unable to repost so they should be out of the book
+
+    Book memory book = get_offers(false);
+    checkOB(
+      $(usdc),
+      $(weth),
+      book.bids,
+      asDyn([int(2), -3, -4, -5, -6, 0, 0, -8, -7, -1])
+    );
+    checkOB(
+      $(weth),
+      $(usdc),
+      book.asks,
+      asDyn([int(0), 0, 0, 6, 1, 2, 3, 4, 5, 7])
+    );
+  }
+
+  function part_text_residual_2() public {
+    vm.startPrank(maker);
+    uint pendingBase_ = mgo.pending()[0];
+    uint pendingQuote_ = mgo.pending()[1];
+    vm.stopPrank();
+
+    // this market order should produce the following observables:
+    // - offer 2 is now going to repost its residual which will be augmented with the content of the USDC pending pool
+    // - the dual offer of offer 2 will be created with id 8 and will offer takerGave + the content of the WETH pending pool
+    // - both pending pools should be empty
+
+    P.Offer.t old_offer2 = mgv.offers($(usdc), $(weth), 2);
+
+    vm.startPrank(taker);
+    (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
+      $(usdc),
+      $(weth),
+      usdc.cash(100),
+      weth.cash(1),
+      true
+    );
+    vm.stopPrank();
+
+    Book memory book = get_offers(false);
+    checkOB(
+      $(usdc),
+      $(weth),
+      book.bids,
+      asDyn([int(2), -3, -4, -5, -6, 0, 0, -8, -7, -1])
+    );
+    checkOB(
+      $(weth),
+      $(usdc),
+      book.asks,
+      asDyn([int(0), 8, 0, 6, 1, 2, 3, 4, 5, 7])
+    );
+
+    vm.startPrank(maker);
+    uint pendingBase__ = mgo.pending()[0];
+    uint pendingQuote__ = mgo.pending()[1];
+    vm.stopPrank();
+
+    assertEq(pendingBase__, 0, "Pending base pool should be empty");
+    assertEq(pendingQuote__, 0, "Pending quote pool should be empty");
+
+    uint best_id = mgv.best($(weth), $(usdc));
+    P.Offer.t offer8 = mgv.offers($(weth), $(usdc), best_id);
+    assertEq(best_id, 8, "Best offer on WETH,USDC offer list should be #8");
+
+    assertEq(offer8.gives(), gave + pendingBase_, "Incorrect offer gives");
+
+    P.Offer.t offer2 = mgv.offers($(usdc), $(weth), 2);
+
+    assertEq(
+      offer2.gives(),
+      pendingQuote_ + old_offer2.gives() - usdc.cash(100),
+      "Incorrect offer gives"
+    );
+  }
+
+  function part_kill() public {
+    vm.prank(maker);
+    mgo.pause();
+
+    vm.startPrank(taker);
+    (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
+      $(usdc),
+      $(weth),
+      usdc.cash(2500),
+      weth.cash(15, 1),
+      true
+    );
+    vm.stopPrank();
+    assertEq(got, 0, "got should be 0");
+    assertEq(gave, 0, "gave should be 0");
+
+    Book memory book = get_offers(false);
+    checkOB(
+      $(usdc),
+      $(weth),
+      book.bids,
+      asDyn([int(-2), -3, -4, -5, -6, 0, 0, -8, -7, -1])
+    );
+    checkOB(
+      $(weth),
+      $(usdc),
+      book.asks,
+      asDyn([int(0), 8, 0, 6, 1, 2, 3, 4, 5, 7])
+    );
+  }
+
+  function part_restart_fixed_shift() public {
+    vm.startPrank(maker);
+    mgo.restart();
+    init(usdc.cash(500), weth.cash(15, 2));
+    vm.stopPrank();
+
+    Book memory book = get_offers(false);
+    checkOB(
+      $(usdc),
+      $(weth),
+      book.bids,
+      asDyn([int(2), 3, 4, 5, 6, 0, 0, -8, -7, -1])
+    );
+    checkOB(
+      $(weth),
+      $(usdc),
+      book.asks,
+      asDyn([int(0), -8, 0, -6, -1, 2, 3, 4, 5, 7])
     );
   }
 

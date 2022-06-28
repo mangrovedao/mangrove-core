@@ -16,5 +16,10 @@ import "../SingleUser.sol";
 
 /* Simply inherits SingleUser and is deployable. No internal logic. */
 contract SimpleMaker is SingleUser {
-  constructor(IMangrove _MGV) MangroveOffer(_MGV, tx.origin) {}
+  constructor(IMangrove _MGV, address deployer) MangroveOffer(_MGV) {
+    // if contract is deployed with static address, then one must set admin to something else than msg.sender
+    if (deployer != msg.sender) {
+      setAdmin(deployer);
+    }
+  }
 }

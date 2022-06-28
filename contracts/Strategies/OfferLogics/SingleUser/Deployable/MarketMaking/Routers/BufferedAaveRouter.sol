@@ -15,13 +15,9 @@ pragma abicoder v2;
 
 import "./AaveRouter.sol";
 
-// Underlying on AAVE and a buffer on maker contract
-// Overlying on router contract
-// `this` must approve Lender for outbound token transfer (pull)
-// `this` must approve Lender for inbound token transfer (flush)
-// `this` must be approved by maker contract for outbound token transfer (flush/pull buffer)
-// `this` must be approved by maker contract for inbound token transfer (flush)
-
+// BUFFER on maker contract
+// overlying on `reserve`
+// underlying on AAVE
 contract BufferedAaveRouter is AaveRouter {
   mapping(IEIP20 => uint) public liquidity_buffer_size;
 
@@ -34,35 +30,43 @@ contract BufferedAaveRouter is AaveRouter {
     AaveRouter(_addressesProvider, _referralCode, _interestRateMode, deployer)
   {}
 
-  // Liquidity : SOURCE --> MAKER
-  function __pull__(IEIP20 token, uint amount)
-    internal
-    virtual
-    override
-    returns (uint pulled)
-  {
+  // Liquidity : reserve --> MAKER
+  function __pull__(
+    IEIP20 token,
+    uint amount,
+    address reserve
+  ) internal virtual override returns (uint pulled) {
+    // checks if maker contract has enough buffer
     if (token.balanceOf(msg.sender) < amount) {
       // transfer *all* aTokens from AAVE account
-      (uint amount_, ) = maxGettableUnderlying(token, false, address(this));
-      if (amount_ == 0) {
-        return 0;
-      } else {
-        return _redeem(token, amount_, msg.sender);
-      }
+      (uint amount_, ) = maxGettableUnderlying(token, false, reserve);
+      // transfer below is a noop (almost 0 gas) if reserve == address(this)
+      TransferLib.transferTokenFrom(
+        overlying(token),
+        reserve,
+        address(this),
+        amount_
+      );
+      return _redeem(token, amount_, msg.sender);
     } else {
       // there is enough liquidity on `MAKER`, nothing to do
       return 0;
     }
   }
 
-  // Liquidity : MAKER --> SOURCE
-  function __flush__(IEIP20[] calldata tokens) internal virtual override {
+  // Liquidity : MAKER --> reserve
+  function __flush__(IEIP20[] calldata tokens, address reserve)
+    internal
+    virtual
+    override
+  {
     for (uint i = 0; i < tokens.length; i++) {
       uint buffer = tokens[i].balanceOf(msg.sender);
       uint target = liquidity_buffer_size[tokens[i]];
       if (buffer > target) {
         unchecked {
           uint amount = buffer - target;
+          // pulling whatever remains on maker contract to `this`
           require(
             TransferLib.transferTokenFrom(
               tokens[i],
@@ -70,19 +74,24 @@ contract BufferedAaveRouter is AaveRouter {
               address(this),
               amount
             ),
-            "AaveRouter/flush/transferFail"
+            "BufferedAaveRouter/flush/transferFail"
           );
-          repayThenDeposit(tokens[i], address(this), amount);
+          // repaying potential debt of reserve and supplying the rest on its behalf
+          repayThenDeposit(tokens[i], reserve, amount);
         }
       }
     }
   }
 
-  // returns total amount of `token` owned by MAKER
-  // if router has a borrowing position, then this total amount may not be entirely redeemable
-  function balance(IEIP20 token) public view override returns (uint available) {
+  // returns total amount of `token` available to MAKER which is the sum of available underlying to the `reserve` and the buffer
+  function balance(IEIP20 token, address reserve)
+    public
+    view
+    override
+    returns (uint available)
+  {
+    available = super.balance(token, reserve);
     unchecked {
-      available = overlying(token).balanceOf(address(this));
       available += token.balanceOf(msg.sender);
     }
   }

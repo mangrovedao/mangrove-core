@@ -48,7 +48,7 @@ contract Mango is Persistent {
     uint nslots,
     uint price_incr,
     address deployer
-  ) MangroveOffer(mgv, deployer) {
+  ) MangroveOffer(mgv) {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     // sanity check
     require(
@@ -90,6 +90,11 @@ contract Mango is Persistent {
     // approve Mangrove to pull funds during trade in order to pay takers
     approveMangrove(quote, type(uint).max);
     approveMangrove(base, type(uint).max);
+
+    // setting admin of contract if a static address deployment was used
+    if (deployer != msg.sender) {
+      setAdmin(deployer);
+    }
   }
 
   // populate mangrove order book with bids or/and asks in the price range R = [`from`, `to`[
@@ -123,11 +128,13 @@ contract Mango is Persistent {
   /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
   /** */
   /** NB Router might need further approval to work as intended*/
-  function set_liquidity_router(AbstractRouter router, uint gasreq)
-    external
-    onlyAdmin
-  {
+  function set_liquidity_router(
+    AbstractRouter router,
+    address reserve,
+    uint gasreq
+  ) external onlyAdmin {
     MangoStorage.get_storage().liquidity_router = router;
+    MangoStorage.get_storage().reserve = reserve;
     BASE.approve(address(router), type(uint).max);
     QUOTE.approve(address(router), type(uint).max);
     setGasreq(gasreq);
@@ -171,16 +178,17 @@ contract Mango is Persistent {
     override
     returns (uint)
   {
-    // pulled might be lower or higher than amount
-    uint pulled = MangoStorage.get_storage().liquidity_router.pull(
-      IEIP20(order.outbound_tkn),
-      amount
+    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
+      abi.encodeWithSelector(
+        MangoImplementation.$__get__.selector,
+        amount,
+        order
+      )
     );
-    if (pulled > amount) {
-      return 0; //nothing is missing
+    if (!success) {
+      MangoStorage.revertWithData(retdata);
     } else {
-      // still needs to get liquidity using `SingleUser.__get__()`
-      return super.__get__(amount - pulled, order);
+      return abi.decode(retdata, (uint));
     }
   }
 

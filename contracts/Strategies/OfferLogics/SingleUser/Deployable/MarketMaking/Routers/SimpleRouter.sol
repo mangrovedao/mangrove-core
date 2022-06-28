@@ -15,41 +15,45 @@ pragma abicoder v2;
 
 import "contracts/strategies/utils/AccessControlled.sol";
 import "contracts/strategies/utils/TransferLib.sol";
-import "../AbstractRouter.sol";
+import "./AbstractRouter.sol";
 
-contract EOARouter is AbstractRouter {
-  address public immutable SOURCE;
+contract SimpleRouter is AbstractRouter {
+  constructor(address deployer) AbstractRouter(deployer) {}
 
-  constructor(address deployer) AbstractRouter(deployer) {
-    SOURCE = deployer;
-  }
-
-  // requires approval of SOURCE deployer
-  function __pull__(IEIP20 token, uint amount)
-    internal
-    virtual
-    override
-    returns (uint missing)
-  {
-    if (TransferLib.transferTokenFrom(token, SOURCE, msg.sender, amount)) {
-      return 0;
-    } else {
+  // requires approval of `reserve`
+  function __pull__(
+    IEIP20 token,
+    uint amount,
+    address reserve
+  ) internal virtual override returns (uint pulled) {
+    if (TransferLib.transferTokenFrom(token, reserve, msg.sender, amount)) {
       return amount;
+    } else {
+      return 0;
     }
   }
 
   // requires approval of Maker
-  function __flush__(IEIP20[] calldata tokens) internal virtual override {
+  function __flush__(IEIP20[] calldata tokens, address reserve)
+    internal
+    virtual
+    override
+  {
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);
       require(
-        TransferLib.transferTokenFrom(tokens[i], msg.sender, SOURCE, amount),
-        "EOARouter/flush/transferFail"
+        TransferLib.transferTokenFrom(tokens[i], msg.sender, reserve, amount),
+        "SimpleRouter/flush/transferFail"
       );
     }
   }
 
-  function balance(IEIP20 token) external view override returns (uint) {
-    return token.balanceOf(SOURCE);
+  function balance(IEIP20 token, address reserve)
+    external
+    view
+    override
+    returns (uint)
+  {
+    return token.balanceOf(reserve);
   }
 }

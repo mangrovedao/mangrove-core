@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/strategies/OfferLogics/SingleUser/Deployable/MarketMaking/Mango/Mango.sol";
-import "mgv_src/strategies/OfferLogics/SingleUser/Deployable/MarketMaking/Routers/nonCustodial/EOARouter.sol";
+import "mgv_src/strategies/OfferLogics/SingleUser/Deployable/MarketMaking/Routers/SimpleRouter.sol";
 
 contract MangoTest is MangroveTest {
   struct Book {
@@ -22,7 +22,7 @@ contract MangoTest is MangroveTest {
   address payable maker;
   address payable taker;
   Mango mgo;
-  EOARouter eoa_router;
+  SimpleRouter router;
 
   function setUp() public override {
     options.base.symbol = "WETH";
@@ -53,9 +53,9 @@ contract MangoTest is MangroveTest {
       price_incr: DELTA,
       deployer: maker
     });
-    eoa_router = new EOARouter({deployer: maker});
-    eoa_router.bind($(mgo));
-    mgo.set_liquidity_router(eoa_router, mgo.OFR_GASREQ());
+    router = new SimpleRouter({deployer: maker});
+    router.bind($(mgo));
+    mgo.set_liquidity_router(router, maker, mgo.OFR_GASREQ());
     vm.stopPrank();
   }
 

@@ -20,15 +20,17 @@ contract PriceFed is Defensive, AaveV3Lender {
     address _oracle,
     address _addressesProvider,
     IMangrove _MGV,
-    address admin
+    address deployer
   )
     Defensive(_oracle)
     AaveV3Module(_addressesProvider, 0, 0)
-    MangroveOffer(_MGV, admin)
+    MangroveOffer(_MGV)
   {
     setGasreq(800_000);
+    if (deployer != msg.sender) {
+      setAdmin(deployer);
+    }
   }
-
 
   event Slippage(uint indexed offerId, uint old_wants, uint new_wants);
 

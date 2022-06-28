@@ -26,6 +26,7 @@ import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
  */
 
 contract MangroveTest is Test2, HasMgvEvents {
+  using stdStorage for StdStorage;
   // Configure the initial setup.
   // Add fields here to make MangroveTest more configurable.
   struct TokenOptions {
@@ -326,6 +327,23 @@ contract MangroveTest is Test2, HasMgvEvents {
     vm.deal(address(tt), 100 ether);
     vm.label(address(tt), label);
     return tt;
+  }
+
+  /* **** Token conversion */
+  /* return underlying amount with correct number of decimals */
+  function cash(TestToken t, uint amount) public returns (uint) {
+    // don't use an ongoing vm.prank here
+    uint decimals = stdstore.target(address(t)).sig("__decimals()").read_uint();
+    return amount * 10**decimals;
+  }
+
+  /* return underlying amount divided by 10**power */
+  function cash(
+    TestToken t,
+    uint amount,
+    uint power
+  ) public returns (uint) {
+    return cash(t, amount) / 10**power;
   }
 
   /* **** Sugar for address conversion */

@@ -39,16 +39,16 @@ contract MangoTest is MangroveTest {
 
     maker = freshAddress("maker");
     taker = freshAddress("taker");
-    deal($(weth), taker, weth.cash(50));
-    deal($(usdc), taker, usdc.cash(100_000));
+    deal($(weth), taker, cash(weth, 50));
+    deal($(usdc), taker, cash(usdc, 100_000));
 
     vm.startPrank(maker);
     mgo = new Mango({
       mgv: IMangrove($(mgv)), // TODO: remove IMangrove dependency?
       base: IEIP20($(weth)),
       quote: IEIP20($(usdc)),
-      base_0: weth.cash(34, 2),
-      quote_0: usdc.cash(1000),
+      base_0: cash(weth, 34, 2),
+      quote_0: cash(usdc, 1000),
       nslots: NSLOTS,
       price_incr: DELTA,
       deployer: maker
@@ -77,11 +77,12 @@ contract MangoTest is MangroveTest {
     // maker has to approve liquidity router of Mango for ETH and USDC transfer
     weth.approve(address(mgo.liquidity_router()), type(uint).max);
     usdc.approve(address(mgo.liquidity_router()), type(uint).max);
+    vm.stopPrank();
 
     // funds come from maker's wallet by default
     // liquidity router will pull the funds from the wallet when needed
-    deal($(weth), maker, weth.cash(17));
-    deal($(usdc), maker, usdc.cash(50000));
+    deal($(weth), maker, cash(weth, 17));
+    deal($(usdc), maker, cash(usdc, 50000));
 
     uint prov = mgo.getMissingProvision({
       outbound_tkn: IEIP20($(weth)),
@@ -90,12 +91,11 @@ contract MangoTest is MangroveTest {
       gasprice: 0,
       offerId: 0
     });
-    vm.stopPrank();
 
     mgv.fund{value: prov * 20}($(mgo));
 
-    vm.startPrank(maker); // prank all calls in init
-    init(usdc.cash(1000), weth.cash(3, 1));
+    vm.startPrank(maker);
+    init(cash(usdc, 1000), cash(weth, 3, 1));
     vm.stopPrank();
 
     Book memory book = get_offers(false);
@@ -120,15 +120,14 @@ contract MangoTest is MangroveTest {
     vm.prank(taker);
     usdc.approve($(mgv), type(uint).max);
 
-    vm.startPrank(taker);
+    vm.prank(taker);
     (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
       $(weth),
       $(usdc),
-      weth.cash(5, 1),
-      usdc.cash(3000),
+      cash(weth, 5, 1),
+      cash(usdc, 3000),
       true
     );
-    vm.stopPrank();
 
     Book memory book = get_offers(false);
     assertEq(
@@ -150,19 +149,18 @@ contract MangoTest is MangroveTest {
       asDyn([int(0), 0, 0, 0, 0, -1, 2, 3, 4, 5])
     );
 
-    vm.startPrank(taker);
+    vm.prank(taker);
     (got, gave, bounty, ) = mgv.marketOrder(
       $(usdc),
       $(weth),
-      usdc.cash(3500),
-      weth.cash(15, 1),
+      cash(usdc, 3500),
+      cash(weth, 15, 1),
       true
     );
-    vm.stopPrank();
 
     assertEq(
       got,
-      usdc.cash(3500) - getFee($(usdc), $(weth), usdc.cash(3500)),
+      cash(usdc, 3500) - getFee($(usdc), $(weth), cash(usdc, 3500)),
       "incorrect received amount"
     );
 
@@ -186,13 +184,12 @@ contract MangoTest is MangroveTest {
   }
 
   function part_negative_shift() public {
-    vm.startPrank(maker);
+    vm.prank(maker);
     mgo.set_shift({
       s: -2,
       withBase: false,
-      amounts: asDyn([usdc.cash(1000), usdc.cash(1000)])
+      amounts: asDyn([cash(usdc, 1000), cash(usdc, 1000)])
     });
-    vm.stopPrank();
 
     Book memory book = get_offers(false);
 
@@ -212,13 +209,12 @@ contract MangoTest is MangroveTest {
   }
 
   function part_positive_shift() public {
-    vm.startPrank(maker);
+    vm.prank(maker);
     mgo.set_shift({
       s: 3,
       withBase: true,
-      amounts: asDyn([weth.cash(3, 1), weth.cash(3, 1), weth.cash(3, 1)])
+      amounts: asDyn([cash(weth, 3, 1), cash(weth, 3, 1), cash(weth, 3, 1)])
     });
-    vm.stopPrank();
 
     Book memory book = get_offers(false);
 
@@ -243,16 +239,15 @@ contract MangoTest is MangroveTest {
     // - run a market order and check that bid is not updated after ask is being consumed
     // - verify takerGave is pending
     // - put back the density and run another market order
-    mgv.setDensity($(weth), $(usdc), weth.cash(1));
-    vm.startPrank(taker);
+    mgv.setDensity($(weth), $(usdc), cash(weth, 1));
+    vm.prank(taker);
     (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
       $(usdc),
       $(weth),
-      usdc.cash(1, 2),
-      weth.cash(1),
+      cash(usdc, 1, 2),
+      cash(weth, 1),
       true
     );
-    vm.stopPrank();
 
     uint best_id = mgv.best($(weth), $(usdc));
     P.Offer.t best_offer = mgv.offers($(weth), $(usdc), best_id);
@@ -263,15 +258,14 @@ contract MangoTest is MangroveTest {
 
     assertEq(pendingBase, gave, "Taker liquidity should be pending");
 
-    vm.startPrank(taker);
+    vm.prank(taker);
     (got, gave, bounty, ) = mgv.marketOrder(
       $(usdc),
       $(weth),
-      usdc.cash(1, 2),
-      weth.cash(1),
+      cash(usdc, 1, 2),
+      cash(weth, 1),
       true
     );
-    vm.stopPrank();
 
     vm.prank(maker);
     uint pendingBase_ = mgo.pending()[0];
@@ -280,9 +274,8 @@ contract MangoTest is MangroveTest {
 
     mgv.setDensity($(weth), $(usdc), 100);
 
-    vm.startPrank(taker);
-    mgv.marketOrder($(usdc), $(weth), usdc.cash(1, 2), weth.cash(1), true);
-    vm.stopPrank();
+    vm.prank(taker);
+    mgv.marketOrder($(usdc), $(weth), cash(usdc, 1, 2), cash(weth, 1), true);
 
     vm.prank(maker);
     uint pendingBase__ = mgo.pending()[0];
@@ -300,22 +293,21 @@ contract MangoTest is MangroveTest {
   }
 
   function part_text_residual_1() public {
-    mgv.setDensity($(usdc), $(weth), usdc.cash(1));
-    mgv.setDensity($(weth), $(usdc), weth.cash(1));
+    mgv.setDensity($(usdc), $(weth), cash(usdc, 1));
+    mgv.setDensity($(weth), $(usdc), cash(weth, 1));
 
     // market order will take the following best offer
     uint best_id = mgv.best($(usdc), $(weth));
     P.Offer.t best_offer = mgv.offers($(usdc), $(weth), best_id);
 
-    vm.startPrank(taker);
+    vm.prank(taker);
     (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
       $(usdc),
       $(weth),
-      usdc.cash(100),
-      weth.cash(1),
+      cash(usdc, 100),
+      cash(weth, 1),
       true
     );
-    vm.stopPrank();
 
     // because density reqs are so high on both semi order book, best will not be able to self repost
     // and residual will be added to USDC (quote) pending pool
@@ -325,10 +317,11 @@ contract MangoTest is MangroveTest {
     uint pendingBase = mgo.pending()[0];
     uint pendingQuote = mgo.pending()[1];
     vm.stopPrank();
+
     assertEq(gave, pendingBase, "gave was not added to pending base pool");
 
     assertEq(
-      best_offer.gives() - usdc.cash(100),
+      best_offer.gives() - cash(usdc, 100),
       pendingQuote,
       "Residual was not added to pending quote pool"
     );
@@ -337,15 +330,14 @@ contract MangoTest is MangroveTest {
     best_id = mgv.best($(usdc), $(weth));
     best_offer = mgv.offers($(usdc), $(weth), best_id);
 
-    vm.startPrank(taker);
+    vm.prank(taker);
     (got, gave, bounty, ) = mgv.marketOrder(
       $(usdc),
       $(weth),
-      usdc.cash(100),
-      weth.cash(1),
+      cash(usdc, 100),
+      cash(weth, 1),
       true
     );
-    vm.stopPrank();
 
     vm.startPrank(maker);
     uint pendingBase_ = mgo.pending()[0];
@@ -358,7 +350,7 @@ contract MangoTest is MangroveTest {
       "gave was not added to pending base pool"
     );
     assertEq(
-      best_offer.gives() - usdc.cash(100) + pendingQuote,
+      best_offer.gives() - cash(usdc, 100) + pendingQuote,
       pendingQuote_,
       "Residual was not added to pending quote pool"
     );
@@ -397,15 +389,14 @@ contract MangoTest is MangroveTest {
 
     P.Offer.t old_offer2 = mgv.offers($(usdc), $(weth), 2);
 
-    vm.startPrank(taker);
+    vm.prank(taker);
     (, uint gave, , ) = mgv.marketOrder(
       $(usdc),
       $(weth),
-      usdc.cash(100),
-      weth.cash(1),
+      cash(usdc, 100),
+      cash(weth, 1),
       true
     );
-    vm.stopPrank();
 
     Book memory book = get_offers(false);
     checkOB(
@@ -439,7 +430,7 @@ contract MangoTest is MangroveTest {
 
     assertEq(
       offer2.gives(),
-      pendingQuote_ + old_offer2.gives() - usdc.cash(100),
+      pendingQuote_ + old_offer2.gives() - cash(usdc, 100),
       "Incorrect offer gives"
     );
   }
@@ -448,15 +439,15 @@ contract MangoTest is MangroveTest {
     vm.prank(maker);
     mgo.pause();
 
-    vm.startPrank(taker);
+    vm.prank(taker);
     (uint got, uint gave, , ) = mgv.marketOrder(
       $(usdc),
       $(weth),
-      usdc.cash(2500),
-      weth.cash(15, 1),
+      cash(usdc, 2500),
+      cash(weth, 15, 1),
       true
     );
-    vm.stopPrank();
+
     assertEq(got, 0, "got should be 0");
     assertEq(gave, 0, "gave should be 0");
 
@@ -478,7 +469,7 @@ contract MangoTest is MangroveTest {
   function part_restart_fixed_shift() public {
     vm.startPrank(maker);
     mgo.restart();
-    init(usdc.cash(500), weth.cash(15, 2));
+    init(cash(usdc, 500), cash(weth, 15, 2));
     vm.stopPrank();
 
     Book memory book = get_offers(false);
@@ -520,7 +511,7 @@ contract MangoTest is MangroveTest {
       assertEq(
         mgv.offers($out, $in, abs(sid)).gives() > 0,
         sid > 0,
-        string.concat("wrong offer status", int2str(sid))
+        string.concat("wrong offer status ", int2str(sid))
       );
       assertEq(offerIds[i], abs(sid), "Offer misplaced");
     }
@@ -533,11 +524,7 @@ contract MangoTest is MangroveTest {
     uint[] memory pivotIds = new uint[](NSLOTS);
     uint[] memory amounts = new uint[](NSLOTS);
     for (uint i = 0; i < NSLOTS; i++) {
-      if (i < NSLOTS / 2) {
-        amounts[i] = bidAmount;
-      } else {
-        amounts[i] = askAmount;
-      }
+      amounts[i] = i < NSLOTS / 2 ? bidAmount : askAmount;
     }
 
     for (uint i = 0; i < 2; i++) {

@@ -5,7 +5,7 @@ import "mgv_test/lib/Test2.sol";
 
 contract TestToken is ERC20BL, Test2 {
   mapping(address => bool) admins;
-  uint8 __decimals;
+  uint public __decimals; // full uint to help forge-std's stdstore
 
   constructor(
     address admin,
@@ -20,7 +20,7 @@ contract TestToken is ERC20BL, Test2 {
   }
 
   function decimals() public view override returns (uint8) {
-    return __decimals;
+    return uint8(__decimals);
   }
 
   function setDecimals(uint8 _decimals) public {
@@ -60,15 +60,5 @@ contract TestToken is ERC20BL, Test2 {
   function whitelists(address account) external {
     requireAdmin();
     _whitelists(account);
-  }
-
-  /* return underlying amount with correct number of decimals */
-  function cash(uint amt) public view returns (uint) {
-    return amt * 10**this.decimals();
-  }
-
-  /* return underlying amount divided by 10**power */
-  function cash(uint amt, uint power) public view returns (uint) {
-    return cash(amt) / 10**power;
   }
 }

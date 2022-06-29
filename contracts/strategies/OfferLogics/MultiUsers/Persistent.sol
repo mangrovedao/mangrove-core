@@ -15,7 +15,6 @@ import "./MultiUser.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract MultiUserPersistent is MultiUser {
-
   function __residualWants__(ML.SingleOrder calldata order)
     internal
     virtual

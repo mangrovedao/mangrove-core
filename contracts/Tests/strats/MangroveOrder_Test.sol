@@ -24,6 +24,7 @@ contract MangroveOrder_Test is HasMgvEvents {
 
   // to check incident logging
   event LogIncident(
+    IMangrove mangrove,
     IEIP20 indexed outbound_tkn,
     IEIP20 indexed inbound_tkn,
     uint indexed offerId,
@@ -31,6 +32,7 @@ contract MangroveOrder_Test is HasMgvEvents {
   );
 
   event OrderSummary(
+    IMangrove mangrove,
     IEIP20 indexed base,
     IEIP20 indexed quote,
     address indexed taker,
@@ -395,6 +397,7 @@ contract MangroveOrder_Test is HasMgvEvents {
     );
     TestEvents.expectFrom(address(mgvOrder));
     emit OrderSummary(
+      IMangrove(payable(mgv)),
       base,
       quote,
       address(this),
@@ -595,6 +598,7 @@ contract MangroveOrder_Test is HasMgvEvents {
     );
     TestEvents.expectFrom(address(mgvOrder));
     emit OrderSummary(
+      IMangrove(payable(mgv)),
       base,
       quote,
       address(this),
@@ -628,8 +632,28 @@ contract MangroveOrder_Test is HasMgvEvents {
       buyOrder
     );
     TestEvents.expectFrom(address(mgvOrder));
-    emit OrderSummary(base, quote, address(this), false, 0, 0, 0, res.offerId);
-    emit OrderSummary(base, quote, address(this), false, 0, 0, 0, res_.offerId);
+    emit OrderSummary(
+      IMangrove(payable(mgv)),
+      base,
+      quote,
+      address(this),
+      false,
+      0,
+      0,
+      0,
+      res.offerId
+    );
+    emit OrderSummary(
+      IMangrove(payable(mgv)),
+      base,
+      quote,
+      address(this),
+      false,
+      0,
+      0,
+      0,
+      res_.offerId
+    );
     (uint[] memory live, uint[] memory dead) = mgvOrder.offersOfOwner(
       address(this),
       quote,

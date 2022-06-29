@@ -53,13 +53,13 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
 
   function creditOnMgv(address owner, uint balance) internal {
     mgvBalance[owner] += balance;
-    emit CreditMgvUser(owner, balance);
+    emit CreditMgvUser(MGV, owner, balance);
   }
 
   function debitOnMgv(address owner, uint amount) internal {
     require(mgvBalance[owner] >= amount, "Multi/debitOnMgv/insufficient");
     mgvBalance[owner] -= amount;
-    emit DebitMgvUser(owner, amount);
+    emit DebitMgvUser(MGV, owner, amount);
   }
 
   function creditToken(
@@ -120,7 +120,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     address owner
   ) internal {
     _offerOwners[outbound_tkn][inbound_tkn][offerId] = owner;
-    emit NewOwnedOffer(outbound_tkn, inbound_tkn, offerId, owner);
+    emit NewOwnedOffer(MGV, outbound_tkn, inbound_tkn, offerId, owner);
   }
 
   function ownerOf(

@@ -40,6 +40,7 @@ interface IOrderLogic {
   }
 
   event OrderSummary(
+    IMangrove mangrove,
     IEIP20 indexed base,
     IEIP20 indexed quote,
     address indexed taker,

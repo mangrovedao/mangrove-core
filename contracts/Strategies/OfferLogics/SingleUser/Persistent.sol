@@ -17,7 +17,6 @@ import "./SingleUser.sol";
 /** (Single user variant) */
 
 abstract contract Persistent is SingleUser {
-
   /** Persistent class specific hooks. */
 
   // Hook that defines how much inbound tokens the residual offer should ask for when repositing itself on the Offer List.
@@ -74,6 +73,7 @@ abstract contract Persistent is SingleUser {
       // Log incident only if under provisioned
       if (keccak256(reason) == keccak256("mgv/insufficientProvision")) {
         emit LogIncident(
+          MGV,
           IEIP20(order.outbound_tkn),
           IEIP20(order.inbound_tkn),
           order.offerId,

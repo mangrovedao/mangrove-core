@@ -19,6 +19,7 @@ interface IOfferLogicMulti is IOfferLogic {
   /** Multi offer specific Events */
   // Offer management
   event NewOwnedOffer(
+    IMangrove mangrove,
     IEIP20 indexed outbound_tkn,
     IEIP20 indexed inbound_tkn,
     uint indexed offerId,
@@ -26,10 +27,18 @@ interface IOfferLogicMulti is IOfferLogic {
   );
 
   // user provision on Mangrove has increased
-  event CreditMgvUser(address indexed user, uint amount);
+  event CreditMgvUser(
+    IMangrove indexed mangrove,
+    address indexed user,
+    uint amount
+  );
 
   // user provision on Mangrove has decreased
-  event DebitMgvUser(address indexed user, uint amount);
+  event DebitMgvUser(
+    IMangrove indexed mangrove,
+    address indexed user,
+    uint amount
+  );
 
   // user token balance on contract has increased
   event CreditUserTokenBalance(

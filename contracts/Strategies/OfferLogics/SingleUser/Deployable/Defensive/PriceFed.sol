@@ -32,7 +32,14 @@ contract PriceFed is Defensive, AaveV3Lender {
     }
   }
 
-  event Slippage(uint indexed offerId, uint old_wants, uint new_wants);
+  event Slippage(
+    IMangrove mangrove,
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed offerId,
+    uint old_wants,
+    uint new_wants
+  );
 
   function __posthookFallback__(
     ML.SingleOrder calldata order,
@@ -44,7 +51,14 @@ contract PriceFed is Defensive, AaveV3Lender {
       uint price_base = oracle.getPrice(order.outbound_tkn);
 
       uint new_offer_wants = (order.offer.gives() * price_base) / price_quote;
-      emit Slippage(order.offerId, order.offer.wants(), new_offer_wants);
+      emit Slippage(
+        MGV,
+        order.outbound_tkn,
+        order.inbound_tkn,
+        order.offerId,
+        order.offer.wants(),
+        new_offer_wants
+      );
       // since offer is persistent it will auto refill if contract does not have enough provision on the Mangrove
       try
         MGV.updateOffer(

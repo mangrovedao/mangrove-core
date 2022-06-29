@@ -91,6 +91,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       __posthookSuccess__(order);
     } else {
       emit LogIncident(
+        MGV,
         IEIP20(order.outbound_tkn),
         IEIP20(order.inbound_tkn),
         order.offerId,

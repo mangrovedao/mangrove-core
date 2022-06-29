@@ -1,5 +1,6 @@
 // Config file with defaults
 var config = {};
+const fs = require("fs");
 
 var defer = require("config/defer").deferConfig;
 
@@ -13,6 +14,17 @@ var defer = require("config/defer").deferConfig;
       accounts: [{privateKey: process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"] || "", balance: "10000000000000000000000"}]
    }
 */
+
+/* forge compatibility, see
+https://book.getfoundry.sh/config/hardhat.html
+*/
+const getRemappings = () => {
+  return fs
+    .readFileSync("hardhat-remappings.txt", "utf8")
+    .split("\n")
+    .filter(Boolean) // remove empty lines
+    .map((line) => line.trim().split("="));
+};
 
 let mumbaiExtraConfig = {
   accounts: [],
@@ -78,15 +90,28 @@ config.hardhat = {
       ":MgvCleaner$",
       ":MgvOracle$",
       ":TestMaker$",
-      ":TestTokenWithDecimals$",
+      ":TestToken$",
       ":IERC20$",
-      ":MintableERC20BLWithDecimals$",
     ],
     spacing: 2,
     pretty: false,
   },
   testSolidity: {
     logFormatters: require("lib/log_formatters"),
+  },
+  preprocess: {
+    eachLine: (hre) => ({
+      transform: (line) => {
+        if (line.match(/^\s*import /i)) {
+          getRemappings().forEach(([find, replace]) => {
+            if (line.match(find)) {
+              line = line.replace(find, replace);
+            }
+          });
+        }
+        return line;
+      },
+    }),
   },
   // see github.com/wighawag/hardhat-deploy#1-namedaccounts-ability-to-name-addresses
   namedAccounts: {

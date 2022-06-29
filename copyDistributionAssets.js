@@ -18,8 +18,3 @@ shell.cd(
   "artifacts/contracts/Strategies/OfferLogics/MultiUsers/Deployable/MultiMaker.sol"
 );
 shell.cp("./MultiMaker.json", distAbiDir);
-shell.cd(here);
-shell.cd(
-  "artifacts/contracts/Strategies/OrderLogics/MangroveOrderEnriched.sol"
-);
-shell.cp("./MangroveOrderEnriched.json", distAbiDir);

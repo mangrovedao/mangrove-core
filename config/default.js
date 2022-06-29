@@ -77,6 +77,8 @@ config.hardhat = {
       ":MgvReader$",
       ":MgvCleaner$",
       ":MgvOracle$",
+      ":MangroveOrder$",
+      ":MangroveOrderEnriched$",
       ":TestMaker$",
       ":TestTokenWithDecimals$",
       ":IERC20$",

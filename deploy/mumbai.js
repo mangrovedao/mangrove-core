@@ -44,7 +44,15 @@ module.exports = async (hre) => {
     skipIfAlreadyDeployed: true,
   });
 
-  await runDeploy("MangroveOrder", {
+  // We're currently using MangroveOrderEnriched instead of MangroveOrder, see https://github.com/mangrovedao/mangrove/issues/535
+  // await runDeploy("MangroveOrder", {
+  //   from: deployer,
+  //   contract: "MangroveOrder",
+  //   args: [mangroveResult.address, deployer],
+  //   skipIfAlreadyDeployed: true,
+  // });
+
+  await runDeploy("MangroveOrderEnriched", {
     from: deployer,
     contract: "MangroveOrderEnriched",
     args: [mangroveResult.address, deployer],

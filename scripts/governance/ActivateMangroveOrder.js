@@ -3,6 +3,8 @@ const chalk = require("chalk");
 const { getProvider } = require("../helper.js");
 const { Mangrove } = require("../../../mangrove.js");
 
+// NB: We currently use MangroveOrderEnriched instead of MangroveOrder, see https://github.com/mangrovedao/mangrove/issues/535
+//     This script approves the contract pointed to by Mangrove.orderContract
 async function main() {
   const provider = getProvider();
   if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
@@ -28,7 +30,7 @@ async function main() {
       (await MgvAPI.token(tokenName).allowance({ owner: logic.address })).eq(0)
     ) {
       console.log(
-        `* Approving Mangrove for transfering ${tokenName} from MangroveOrder (${chalk.grey(
+        `* Approving Mangrove for transferring ${tokenName} from MangroveOrder (${chalk.grey(
           logic.address
         )})`
       );

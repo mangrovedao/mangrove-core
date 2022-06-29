@@ -10,9 +10,11 @@ contract TestToken is ERC20BL, Test2 {
   constructor(
     address admin,
     string memory name,
-    string memory symbol
+    string memory symbol,
+    uint8 _decimals
   ) ERC20BL(name, symbol) {
     admins[admin] = true;
+    __decimals = _decimals;
   }
 
   function $(uint amount) public view returns (uint) {
@@ -21,11 +23,6 @@ contract TestToken is ERC20BL, Test2 {
 
   function decimals() public view override returns (uint8) {
     return uint8(__decimals);
-  }
-
-  function setDecimals(uint8 _decimals) public {
-    requireAdmin();
-    __decimals = _decimals;
   }
 
   function requireAdmin() internal view {

@@ -61,10 +61,18 @@ contract MangroveTest is Test2, HasMgvEvents {
   */
   function setUp() public virtual {
     // tokens
-    base = new TestToken($(this), options.base.name, options.base.symbol);
-    base.setDecimals(options.base.decimals);
-    quote = new TestToken($(this), options.quote.name, options.quote.symbol);
-    quote.setDecimals(options.quote.decimals);
+    base = new TestToken(
+      $(this),
+      options.base.name,
+      options.base.symbol,
+      options.base.decimals
+    );
+    quote = new TestToken(
+      $(this),
+      options.quote.name,
+      options.quote.symbol,
+      options.quote.decimals
+    );
     // mangrove deploy
     mgv = setupMangrove(base, quote, options.invertedMangrove);
     // start with mgvBalance on mangrove

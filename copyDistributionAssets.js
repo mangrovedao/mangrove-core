@@ -11,8 +11,6 @@ Example user names:
 
 MyContract MyFile.sol/MyContract2
 
-You can run the script with `--noop` as 1st argument to see its intended
-effects.
 
 */
 
@@ -22,10 +20,19 @@ const fs = require("fs");
 const path = require("path");
 const config = require("./config.js");
 const cwd = process.cwd();
+
+const argv = require("yargs")
+  .usage("$0")
+  .version(false)
+  .option("noop", {
+    describe: "Dry run copy, do not modify files",
+    type: "boolean",
+  })
+  .help().argv;
+
 // set abi export directory (create if necessary), clear it
 const distAbiDir = cwd + "/dist/mangrove-abis/";
-const noop = process.argv[2] === "--noop";
-if (!noop) {
+if (!argv.noop) {
   console.log("Copying distribution assets...");
   shell.rm("-rf", distAbiDir);
   shell.mkdir("-p", distAbiDir);
@@ -104,7 +111,7 @@ for (const { name, match, basename, data } of export_queue) {
   }
   written.push(basename);
   const export_file = `${distAbiDir}/${basename}`;
-  if (!noop) {
+  if (!argv.noop) {
     fs.writeFileSync(export_file, JSON.stringify(data, null, 2));
   } else {
     console.log(`Matched ${name} with ${path.relative(cwd, match)}`);
@@ -114,6 +121,6 @@ for (const { name, match, basename, data } of export_queue) {
     console.log();
   }
 }
-if (!noop) {
+if (!argv.noop) {
   console.log("...Done copying distribution assets");
 }

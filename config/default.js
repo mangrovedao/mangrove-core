@@ -79,23 +79,6 @@ config.hardhat = {
     cache: "./cache",
     artifacts: "./artifacts",
   },
-  abiExporter: {
-    path: "./exported-abis",
-    runOnCompile: true,
-    clear: true,
-    flat: true,
-    only: [
-      ":Mangrove$",
-      ":MgvReader$",
-      ":MgvCleaner$",
-      ":MgvOracle$",
-      ":TestMaker$",
-      ":TestToken$",
-      ":IERC20$",
-    ],
-    spacing: 2,
-    pretty: false,
-  },
   testSolidity: {
     logFormatters: require("lib/log_formatters"),
   },

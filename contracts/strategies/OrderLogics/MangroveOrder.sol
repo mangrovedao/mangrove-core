@@ -12,7 +12,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "contracts/strategies/utils/TransferLib.sol";
+import "../utils/TransferLib.sol";
 import "../OfferLogics/MultiUsers/Persistent.sol";
 import "../interfaces/IOrderLogic.sol";
 
@@ -147,6 +147,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       });
 
       emit OrderSummary({
+        mangrove: MGV,
         base: tko.base,
         quote: tko.quote,
         selling: tko.selling,
@@ -209,6 +210,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
         require(noRevert, "mgvOrder/mo/refundFail");
       }
       emit OrderSummary({
+        mangrove: MGV,
         base: tko.base,
         quote: tko.quote,
         selling: tko.selling,
@@ -258,6 +260,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     uint balOut = tokenBalanceOf[outTkn][owner];
     if (!TransferLib.transferToken(outTkn, owner, balOut)) {
       emit LogIncident(
+        MGV,
         outTkn,
         inTkn,
         order.offerId,
@@ -272,6 +275,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     uint balIn = tokenBalanceOf[inTkn][owner];
     if (!TransferLib.transferToken(inTkn, owner, balIn)) {
       emit LogIncident(
+        MGV,
         outTkn,
         inTkn,
         order.offerId,
@@ -313,6 +317,7 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       // this code might be reached if `owner` is not an EOA and has no `receive` or `fallback` payable method.
       // in this case the provision is lost and one should not revert, to the risk of being unable to recover in/out tokens transfered earlier
       emit LogIncident(
+        MGV,
         outTkn,
         inTkn,
         order.offerId,

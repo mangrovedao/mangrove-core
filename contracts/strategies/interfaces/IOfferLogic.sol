@@ -24,6 +24,7 @@ interface IOfferLogic is IMaker {
 
   // Log incident (during post trade execution)
   event LogIncident(
+    IMangrove mangrove,
     IEIP20 indexed outbound_tkn,
     IEIP20 indexed inbound_tkn,
     uint indexed offerId,

@@ -1,17 +1,18 @@
-/* ***** Mangrove tooling script *********
-  This script copies subsets of compiled artifacts to the distribution
-  directory.
+/* ***** Mangrove tooling script ********* *
+This script copies subsets of compiled artifacts to the distribution directory.
 
-  There are two possible subsets: just the abi, or abi+bytecode.
+There are two possible subsets: just the abi, or abi+bytecode.
 
-  Note that the script only outputs contract names, not solidity files. It will throw if you don't give it enough information to disambiguate. It will also throw if you give it the same name in both exports lists.
+Note that the script only outputs contract names, not solidity files. It will
+throw if you don't give it enough information to disambiguate. It will also
+throw if you give it the same name in both exports lists.
 
-  Example user names:
+Example user names:
 
-   MyContract
-   MyFile.sol/MyContract2
+MyContract MyFile.sol/MyContract2
 
-  You can run the script with `--noop` as 1st argument to see its intended effects.
+You can run the script with `--noop` as 1st argument to see its intended
+effects.
 
 */
 
@@ -94,8 +95,14 @@ for (const { name, export_type } of all_exports) {
   export_queue.push({ name, match, basename, data });
 }
 
+// array of files written so far
+const written = [];
 // write each queued artifact subset
 for (const { name, match, basename, data } of export_queue) {
+  if (written.includes(basename)) {
+    throw new Error(`Duplicate asset name: ${basename}`);
+  }
+  written.push(basename);
   const export_file = `${distAbiDir}/${basename}`;
   if (!noop) {
     fs.writeFileSync(export_file, JSON.stringify(data, null, 2));

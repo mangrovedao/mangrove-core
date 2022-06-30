@@ -6,6 +6,8 @@ exports.abi_exports = [
   "TestMaker",
   "TestToken",
   "IERC20",
+  "MangroveOrder",
+  "MangroveOrderEnriched",
 ];
 
-exports.full_exports = ["SimpleMaker", "MultiMaker", "MangroveOrderEnriched"];
+exports.full_exports = ["SimpleMaker", "MultiMaker"];

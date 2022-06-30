@@ -355,19 +355,19 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   /* **** Sugar for address conversion */
-  function $(TestToken t) internal pure returns (address payable) {
-    return payable(address(t));
-  }
-
   function $(AbstractMangrove t) internal pure returns (address payable) {
     return payable(address(t));
   }
 
-  function $(MangroveTest t) internal pure returns (address payable) {
+  function $(AccessControlled t) internal pure returns (address payable) {
     return payable(address(t));
   }
 
-  function $(AccessControlled t) internal pure returns (address payable) {
+  function $(TestTaker t) internal pure returns (address payable) {
+    return payable(address(t));
+  }
+
+  function $(Test t) internal pure returns (address payable) {
     return payable(address(t));
   }
 }

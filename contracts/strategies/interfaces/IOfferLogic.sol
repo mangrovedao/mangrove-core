@@ -12,8 +12,8 @@
 
 pragma solidity >=0.8.0;
 pragma abicoder v2;
-import "./IMangrove.sol";
-import "./IEIP20.sol";
+import "mgv_src/IMangrove.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
 
 interface IOfferLogic is IMaker {
   ///////////////////
@@ -25,8 +25,8 @@ interface IOfferLogic is IMaker {
   // Log incident (during post trade execution)
   event LogIncident(
     IMangrove mangrove,
-    IEIP20 indexed outbound_tkn,
-    IEIP20 indexed inbound_tkn,
+    IERC20 indexed outbound_tkn,
+    IERC20 indexed inbound_tkn,
     uint indexed offerId,
     bytes32 reason
   );
@@ -37,8 +37,8 @@ interface IOfferLogic is IMaker {
   // returns missing provision on Mangrove, should `offerId` be reposted using `gasreq` and `gasprice` parameters
   // if `offerId` is not in the `outbound_tkn,inbound_tkn` offer list, the totality of the necessary provision is returned
   function getMissingProvision(
-    IEIP20 outbound_tkn,
-    IEIP20 inbound_tkn,
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
     uint gasreq,
     uint gasprice,
     uint offerId
@@ -48,20 +48,20 @@ interface IOfferLogic is IMaker {
   function setGasreq(uint gasreq) external;
 
   function withdrawToken(
-    IEIP20 token,
+    IERC20 token,
     address receiver,
     uint amount
   ) external returns (bool success);
 
-  function approveMangrove(IEIP20 outbound_tkn, uint amount) external;
+  function approveMangrove(IERC20 outbound_tkn, uint amount) external;
 
   function withdrawFromMangrove(address payable receiver, uint amount)
     external
     returns (bool noRevert);
 
   struct MakerOrder {
-    IEIP20 outbound_tkn; // address of the ERC20 contract managing outbound tokens
-    IEIP20 inbound_tkn; // address of the ERC20 contract managing outbound tokens
+    IERC20 outbound_tkn; // address of the ERC20 contract managing outbound tokens
+    IERC20 inbound_tkn; // address of the ERC20 contract managing outbound tokens
     uint wants; // amount of `inbound_tkn` required for full delivery
     uint gives; // max amount of `outbound_tkn` promised by the offer
     uint gasreq; // max gas required by the offer when called. If maxUint256 is used here, default `OFR_GASREQ` will be considered instead
@@ -78,8 +78,8 @@ interface IOfferLogic is IMaker {
   function updateOffer(MakerOrder calldata mko, uint offerId) external payable;
 
   function retractOffer(
-    IEIP20 outbound_tkn,
-    IEIP20 inbound_tkn,
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
   ) external returns (uint received);

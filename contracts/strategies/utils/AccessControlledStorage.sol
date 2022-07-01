@@ -12,6 +12,8 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
+// TODO-foundry-merge explain what this contract does
+
 library AccessControlledStorage {
   struct Layout {
     address admin;

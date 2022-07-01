@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AccessedControlled.sol
+// SimpleCompoundRetail.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -11,35 +11,34 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {AccessControlledStorage as ACS} from "./AccessControlledStorage.sol";
+import "contracts/toy_strategies/single_user/abstract/CompoundLender.sol";
 
-// TODO-foundry-merge explain what this contract does
+//import "hardhat/console.sol";
 
-contract AccessControlled {
-  constructor(address admin_) {
-    require(admin_ != address(0), "accessControlled/0xAdmin");
-    ACS.get_storage().admin = admin_;
+contract SimpleCompoundRetail is CompoundLender {
+  constructor(
+    address _unitroller,
+    IMangrove _MGV,
+    address wethAddress,
+    address deployer
+  ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {
+    setGasreq(1_000_000);
+    if (deployer != msg.sender) {
+      setAdmin(deployer);
+    }
   }
 
-  modifier onlyCaller(address caller) {
-    require(
-      caller == address(0) || msg.sender == caller,
-      "AccessControlled/Invalid"
-    );
-    _;
-  }
-
-  function admin() public view returns (address) {
-    return ACS.get_storage().admin;
-  }
-
-  modifier onlyAdmin() {
-    require(msg.sender == admin(), "AccessControlled/Invalid");
-    _;
-  }
-
-  function setAdmin(address _admin) public onlyAdmin {
-    require(_admin != address(0), "AccessControlled/0xAdmin");
-    ACS.get_storage().admin = _admin;
+  // Tries to take base directly from `this` balance. Fetches the remainder on Compound.
+  function __get__(uint amount, ML.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
+    uint missing = SingleUser.__get__(amount, order);
+    if (missing > 0) {
+      return super.__get__(missing, order);
+    }
+    return 0;
   }
 }

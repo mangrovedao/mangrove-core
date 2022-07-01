@@ -12,13 +12,13 @@
 
 pragma solidity >=0.8.0;
 pragma abicoder v2;
-import "./IMangrove.sol";
-import "./IEIP20.sol";
+import "mgv_src/IMangrove.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
 
 interface IOrderLogic {
   struct TakerOrder {
-    IEIP20 base; //identifying Mangrove market
-    IEIP20 quote;
+    IERC20 base; //identifying Mangrove market
+    IERC20 quote;
     bool partialFillNotAllowed; //revert if taker order cannot be filled and resting order failed or is not enabled
     bool selling; // whether this is a selling order (otherwise a buy order)
     uint wants; // if `selling` amount of quote tokens, otherwise amount of base tokens
@@ -41,8 +41,8 @@ interface IOrderLogic {
 
   event OrderSummary(
     IMangrove mangrove,
-    IEIP20 indexed base,
-    IEIP20 indexed quote,
+    IERC20 indexed base,
+    IERC20 indexed quote,
     address indexed taker,
     bool selling,
     uint takerGot,
@@ -52,8 +52,8 @@ interface IOrderLogic {
   );
 
   function expiring(
-    IEIP20,
-    IEIP20,
+    IERC20,
+    IERC20,
     uint
   ) external returns (uint);
 

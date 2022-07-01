@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AccessedControlled.sol
+// SimpleOrale.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -11,35 +11,46 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {AccessControlledStorage as ACS} from "./AccessControlledStorage.sol";
 
-// TODO-foundry-merge explain what this contract does
+import "../interfaces/IOracle.sol";
+import "mgv_src/strategies/utils/AccessControlled.sol";
+import {IERC20} from "../../MgvLib.sol";
 
-contract AccessControlled {
-  constructor(address admin_) {
-    require(admin_ != address(0), "accessControlled/0xAdmin");
-    ACS.get_storage().admin = admin_;
+contract SimpleOracle is IOracle, AccessControlled {
+  address reader; // if unset, anyone can read price
+  IERC20 public immutable base_token;
+  mapping(address => uint96) internal priceData;
+
+  constructor(address _base, address admin) AccessControlled(admin) {
+    try IERC20(_base).decimals() returns (uint8 d) {
+      require(d != 0, "Invalid decimals number for Oracle base");
+      base_token = IERC20(_base);
+    } catch {
+      revert("Invalid Oracle base address");
+    }
   }
 
-  modifier onlyCaller(address caller) {
-    require(
-      caller == address(0) || msg.sender == caller,
-      "AccessControlled/Invalid"
-    );
-    _;
+  function decimals() external view override returns (uint8) {
+    return base_token.decimals();
   }
 
-  function admin() public view returns (address) {
-    return ACS.get_storage().admin;
+  function setReader(address _reader) external onlyAdmin {
+    reader = _reader;
   }
 
-  modifier onlyAdmin() {
-    require(msg.sender == admin(), "AccessControlled/Invalid");
-    _;
+  function setPrice(address token, uint price) external override onlyAdmin {
+    require(uint96(price) == price, "price overflow");
+    priceData[token] = uint96(price);
   }
 
-  function setAdmin(address _admin) public onlyAdmin {
-    require(_admin != address(0), "AccessControlled/0xAdmin");
-    ACS.get_storage().admin = _admin;
+  function getPrice(address token)
+    external
+    view
+    override
+    onlyCaller(reader)
+    returns (uint96 price)
+  {
+    price = priceData[token];
+    require(price != 0, "missing price data");
   }
 }

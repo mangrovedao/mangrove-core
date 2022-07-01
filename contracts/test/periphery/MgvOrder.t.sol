@@ -6,10 +6,8 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 // import "../../AbstractMangrove.sol";
-import "mgv_src/strategies/interfaces/IEIP20.sol";
-// import "contracts/Strategies/interfaces/IMangrove.sol";
 import {MgvLib as ML, P, IMaker} from "mgv_src/MgvLib.sol";
-import {IMangrove} from "mgv_src/strategies/interfaces/IMangrove.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 
 // import "hardhat/console.sol";
 
@@ -18,7 +16,7 @@ import {IMangrove} from "mgv_src/strategies/interfaces/IMangrove.sol";
 // import "../Agents/TestToken.sol";
 // import "../Agents/TestMaker.sol";
 
-import {MangroveOrderEnriched as MgvOrder} from "mgv_src/strategies/OrderLogics/MangroveOrderEnriched.sol";
+import {MangroveOrderEnriched as MgvOrder} from "mgv_src/periphery/MangroveOrderEnriched.sol";
 import "mgv_src/strategies/interfaces/IOrderLogic.sol";
 
 contract MangroveOrder_Test is MangroveTest {
@@ -28,16 +26,16 @@ contract MangroveOrder_Test is MangroveTest {
   // to check incident logging
   event LogIncident(
     IMangrove mangrove,
-    IEIP20 indexed outbound_tkn,
-    IEIP20 indexed inbound_tkn,
+    IERC20 indexed outbound_tkn,
+    IERC20 indexed inbound_tkn,
     uint indexed offerId,
     bytes32 reason
   );
 
   event OrderSummary(
     IMangrove mangrove,
-    IEIP20 indexed base,
-    IEIP20 indexed quote,
+    IERC20 indexed base,
+    IERC20 indexed quote,
     address indexed taker,
     bool selling,
     uint takerGot,
@@ -70,8 +68,8 @@ contract MangroveOrder_Test is MangroveTest {
 
     mgo = new MgvOrder(IMangrove(payable(mgv)), $(this));
     // mgo needs to approve mangrove for outbound token transfer
-    mgo.approveMangrove(IEIP20($(base)), type(uint).max);
-    mgo.approveMangrove(IEIP20($(quote)), type(uint).max);
+    mgo.approveMangrove(IERC20($(base)), type(uint).max);
+    mgo.approveMangrove(IERC20($(quote)), type(uint).max);
 
     //adding provision on Mangrove for `mgo` in order to fake having already multiple users
     mgv.fund{value: 1 ether}($(mgo));
@@ -133,8 +131,8 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_partial_filled_buy_order_returns_residual() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
@@ -167,8 +165,8 @@ contract MangroveOrder_Test is MangroveTest {
     public
   {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: true,
       selling: false, //i.e buying
       wants: 2 ether,
@@ -187,8 +185,8 @@ contract MangroveOrder_Test is MangroveTest {
   function test_partial_filled_buy_order_returns_provision() public {
     uint balBefore = $(this).balance;
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
@@ -212,8 +210,8 @@ contract MangroveOrder_Test is MangroveTest {
     ask_maker.shouldRevert(true);
 
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
@@ -238,8 +236,8 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_resting_buy_order_reverts_when_unprovisioned() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
@@ -260,8 +258,8 @@ contract MangroveOrder_Test is MangroveTest {
     uint balBaseBefore = base.balanceOf($(this));
 
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 1 ether,
@@ -290,8 +288,8 @@ contract MangroveOrder_Test is MangroveTest {
     uint balWeiBefore = $(this).balance;
 
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 1 ether,
@@ -310,8 +308,8 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_resting_buy_order_is_successfully_posted() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
@@ -326,8 +324,8 @@ contract MangroveOrder_Test is MangroveTest {
     expectFrom($(mgo));
     emit OrderSummary(
       IMangrove(payable(mgv)),
-      IEIP20($(base)),
-      IEIP20($(quote)),
+      IERC20($(base)),
+      IERC20($(quote)),
       $(this),
       false, //buying
       netBuy(1 ether),
@@ -358,8 +356,8 @@ contract MangroveOrder_Test is MangroveTest {
 
     // checking `mgo` mappings
     uint prov = mgo.getMissingProvision(
-      IEIP20($(quote)),
-      IEIP20($(base)),
+      IERC20($(quote)),
+      IERC20($(base)),
       mgo.OFR_GASREQ(),
       0,
       0
@@ -370,12 +368,12 @@ contract MangroveOrder_Test is MangroveTest {
       "Incorrect user balance on mangrove"
     );
     assertEq(
-      mgo.ownerOf(IEIP20($(quote)), IEIP20($(base)), res.offerId),
+      mgo.ownerOf(IERC20($(quote)), IERC20($(base)), res.offerId),
       $(this),
       "Invalid offer owner"
     );
     assertEq(
-      mgo.tokenBalance(IEIP20($(quote)), $(this)),
+      mgo.tokenBalance(IERC20($(quote)), $(this)),
       0.13 ether,
       "Invalid offer owner"
     );
@@ -384,8 +382,8 @@ contract MangroveOrder_Test is MangroveTest {
   function test_resting_buy_order_can_be_partially_filled() public {
     //mgv.setFee($(quote), $(base), 0);
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
@@ -401,7 +399,7 @@ contract MangroveOrder_Test is MangroveTest {
       buyOrder
     );
     uint oldLocalBaseBal = base.balanceOf($(this));
-    uint oldRemoteQuoteBal = mgo.tokenBalance(IEIP20($(quote)), $(this)); // quote balance of test runner
+    uint oldRemoteQuoteBal = mgo.tokenBalance(IERC20($(quote)), $(this)); // quote balance of test runner
 
     // logOfferBook(mgv,$(base),$(quote),4);
     // logOfferBook(mgv,$(quote),$(base),4);
@@ -429,7 +427,7 @@ contract MangroveOrder_Test is MangroveTest {
     );
 
     assertEq(
-      mgo.tokenBalance(IEIP20($(quote)), $(this)),
+      mgo.tokenBalance(IERC20($(quote)), $(this)),
       oldRemoteQuoteBal - (sell_takerGot + fee),
       "Incorrect token balance on mgo"
     );
@@ -446,8 +444,8 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_resting_offer_deprovisions_when_unable_to_repost() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
@@ -463,7 +461,7 @@ contract MangroveOrder_Test is MangroveTest {
       buyOrder
     );
     // test runner quote balance on the gateway
-    uint balQuoteRemote = mgo.tokenBalance(IEIP20($(quote)), $(this));
+    uint balQuoteRemote = mgo.tokenBalance(IERC20($(quote)), $(this));
     uint balQuoteLocal = quote.balanceOf($(this));
 
     // increasing density on mangrove so that resting offer can no longer repost
@@ -481,7 +479,7 @@ contract MangroveOrder_Test is MangroveTest {
       "Quote was not transfered to user"
     );
     assertTrue(
-      mgo.tokenBalance(IEIP20($(quote)), $(this)) == 0,
+      mgo.tokenBalance(IERC20($(quote)), $(this)) == 0,
       "Inconsistent token balance"
     );
     assertTrue(mgo.balanceOnMangrove($(this)) == 0, "Inconsistent wei balance");
@@ -489,8 +487,8 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_user_can_retract_resting_offer() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
@@ -508,8 +506,8 @@ contract MangroveOrder_Test is MangroveTest {
     uint userWeiOnMangroveOld = mgo.balanceOnMangrove($(this));
     uint userWeiBalanceLocalOld = $(this).balance;
     uint credited = mgo.retractOffer(
-      IEIP20($(quote)),
-      IEIP20($(base)),
+      IERC20($(quote)),
+      IERC20($(base)),
       res.offerId,
       true
     );
@@ -554,8 +552,8 @@ contract MangroveOrder_Test is MangroveTest {
     expectFrom($(mgo));
     emit OrderSummary(
       IMangrove(payable(mgv)),
-      IEIP20($(base)),
-      IEIP20($(quote)),
+      IERC20($(base)),
+      IERC20($(quote)),
       $(this),
       false,
       netBuy(2 ether),
@@ -564,8 +562,8 @@ contract MangroveOrder_Test is MangroveTest {
       0
     );
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false, //i.e buying
       wants: 2 ether,
@@ -589,8 +587,8 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_ownership_relation() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: IEIP20($(base)),
-      quote: IEIP20($(quote)),
+      base: IERC20($(base)),
+      quote: IERC20($(quote)),
       partialFillNotAllowed: false,
       selling: false,
       wants: 2 ether,
@@ -605,8 +603,8 @@ contract MangroveOrder_Test is MangroveTest {
     expectFrom($(mgo));
     emit OrderSummary(
       IMangrove(payable(mgv)),
-      IEIP20($(base)),
-      IEIP20($(quote)),
+      IERC20($(base)),
+      IERC20($(quote)),
       $(this),
       false,
       0,
@@ -618,8 +616,8 @@ contract MangroveOrder_Test is MangroveTest {
     expectFrom($(mgo));
     emit OrderSummary(
       IMangrove(payable(mgv)),
-      IEIP20($(base)),
-      IEIP20($(quote)),
+      IERC20($(base)),
+      IERC20($(quote)),
       $(this),
       false,
       0,
@@ -630,15 +628,15 @@ contract MangroveOrder_Test is MangroveTest {
     mgo.take{value: 0.1 ether}(buyOrder);
     (uint[] memory live, uint[] memory dead) = mgo.offersOfOwner(
       $(this),
-      IEIP20($(quote)),
-      IEIP20($(base))
+      IERC20($(quote)),
+      IERC20($(base))
     );
     assertTrue(live.length == 2 && dead.length == 0, "Incorrect offer list");
-    mgo.retractOffer(IEIP20($(quote)), IEIP20($(base)), live[0], false);
+    mgo.retractOffer(IERC20($(quote)), IERC20($(base)), live[0], false);
     (live, dead) = mgo.offersOfOwner(
       $(this),
-      IEIP20($(quote)),
-      IEIP20($(base))
+      IERC20($(quote)),
+      IERC20($(base))
     );
     assertTrue(
       live.length == 1 && dead.length == 1,

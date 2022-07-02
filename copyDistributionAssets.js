@@ -7,10 +7,10 @@ Note that the script only outputs contract names, not solidity files. It will
 throw if you don't give it enough information to disambiguate. It will also
 throw if you give it the same name in both exports lists.
 
-Example user names:
+Example contract names:
 
-MyContract MyFile.sol/MyContract2
-
+MyContract # naked contract name
+MyFile.sol/MyContract2 # contract name qualified by file name
 
 */
 

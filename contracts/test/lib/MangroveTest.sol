@@ -370,4 +370,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   function $(Test t) internal pure returns (address payable) {
     return payable(address(t));
   }
+
+  function $(TestToken t) internal pure returns (address payable) {
+    return payable(address(t));
+  }
 }

@@ -1,9 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 import "./ERC20BL.sol";
-import "mgv_test/lib/Test2.sol";
 
-contract TestToken is ERC20BL, Test2 {
+contract TestToken is ERC20BL {
   mapping(address => bool) admins;
   uint public __decimals; // full uint to help forge-std's stdstore
 

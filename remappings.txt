@@ -1,4 +1,3 @@
-@mangrovedao/hardhat-test-solidity/=node_modules/@mangrovedao/hardhat-test-solidity/
 hardhat/=foundry_lib/forge-std/src/
 mgv_src/=contracts/
 mgv_test/=contracts/test/

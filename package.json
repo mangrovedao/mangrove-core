@@ -18,7 +18,8 @@
     "test:solidity": "forge test -vvv",
     "notUsed-test:ethereum-mainnet": "yarn run testSuites --network ethereum",
     "test:polygon-mainnet": "yarn run testSuites --network polygon",
-    "testSuites": "cross-env NODE_ENV=test node lib/test-suite-runner.js"
+    "testSuites": "cross-env NODE_ENV=test node lib/test-suite-runner.js",
+    "mt": "NODE_ENV=test node lib/test-suite-runner.js --network polygon Guaave"
   },
   "lint-staged": {
     "*.{js,css,md,sol,json}": "prettier --write --ignore-unknown"
@@ -27,7 +28,6 @@
     "@espendk/json-file-reporter": "^1.4.1",
     "@ethersproject/experimental": "^5.6.1",
     "@ethersproject/hardware-wallets": "^5.6.0",
-    "@mangrovedao/hardhat-test-solidity": "^0.0.17",
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-solpp": "^2.0.1",
     "app-module-path": "^2.2.0",

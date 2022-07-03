@@ -107,7 +107,7 @@ contract MangroveTest is Test2, HasMgvEvents {
    *  `printOfferBook` will be easy to read in the console.logs section
    */
 
-  /* Log OB with events and hardhat-test-solidity */
+  /* Log OB with events */
   event offers_head(address outbound, address inbound);
   event offers_line(
     uint id,

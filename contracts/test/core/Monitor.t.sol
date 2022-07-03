@@ -85,7 +85,7 @@ contract MonitorTest is MangroveTest {
 
   function test_notify_works_on_success_when_set() public {
     deal($(quote), $(this), 10 ether);
-    mkr.approveMgv(IERC20($(base)), 1 ether);
+    mkr.approveMgv(base, 1 ether);
     mgv.setMonitor(monitor);
     mgv.setNotify(true);
     uint ofrId = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);

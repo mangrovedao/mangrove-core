@@ -45,8 +45,8 @@ contract MangoTest is MangroveTest {
     vm.startPrank(maker);
     mgo = new Mango({
       mgv: IMangrove($(mgv)), // TODO: remove IMangrove dependency?
-      base: IERC20($(weth)),
-      quote: IERC20($(usdc)),
+      base: weth,
+      quote: usdc,
       base_0: cash(weth, 34, 2),
       quote_0: cash(usdc, 1000),
       nslots: NSLOTS,
@@ -85,8 +85,8 @@ contract MangoTest is MangroveTest {
     deal($(usdc), maker, cash(usdc, 50000));
 
     uint prov = mgo.getMissingProvision({
-      outbound_tkn: IERC20($(weth)),
-      inbound_tkn: IERC20($(usdc)),
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
       gasreq: mgo.OFR_GASREQ(),
       gasprice: 0,
       offerId: 0

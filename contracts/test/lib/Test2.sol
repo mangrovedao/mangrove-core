@@ -83,12 +83,14 @@ contract Test2 is Test, Utilities {
   uint private checkpointGasLeft = 1; // Start the slot non0.
   string checkpointLabel;
 
+  /* start measuring gas */
   function _gas() internal virtual {
     // checkpointLabel = label;
 
     checkpointGasLeft = gasleft();
   }
 
+  /* stop measuring gas and report */
   function gas_() internal virtual {
     uint checkpointGasLeft2 = gasleft();
 

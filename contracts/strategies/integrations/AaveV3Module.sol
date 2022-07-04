@@ -82,8 +82,13 @@ contract AaveV3Module {
     }
   }
 
-  /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
-  /// returns (R, B|R)
+  /// @param asset the underlying asset to redeem and borrow
+  /// @param tryBorrow compute borrow capacity (costs extra gas)
+  /// @param onBehalf user for whom max redeem/borrow is computed
+  /// @return maxRedeemableUnderlying how much `onBehalf` can redeem of `asset`
+  /// @return maxBorrowAfterRedeemInUnderlying how much `onBehalf` could borrow in `asset` after redeeming `maxRedeemableUnderlying` if `tryBorrow` is `true`, 0 otherwise.
+  /// @dev Return max redeem and borrow capacity conditional on a potential redeem
+  /// @dev Using those values will might make you liquidatable at the next block
   function maxGettableUnderlying(
     IERC20 asset,
     bool tryBorrow,

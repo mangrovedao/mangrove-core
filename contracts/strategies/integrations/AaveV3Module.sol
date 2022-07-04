@@ -218,4 +218,16 @@ contract AaveV3Module {
       assets
     );
   }
+
+  // @dev user can only borrow underlying in variable of stable, not both
+  function borrowed(address underlying, address account)
+    public
+    view
+    returns (uint)
+  {
+    DataTypes.ReserveData memory rd = POOL.getReserveData(underlying);
+    uint vborrow = IERC20(rd.variableDebtTokenAddress).balanceOf(account);
+    uint sborrow = IERC20(rd.stableDebtTokenAddress).balanceOf(account);
+    return sborrow >= vborrow ? sborrow : vborrow;
+  }
 }

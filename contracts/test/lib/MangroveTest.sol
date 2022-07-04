@@ -275,7 +275,7 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   // Deploy mangrove with a pair
-  function setupMangrove(TestToken outbound_tkn, TestToken inbound_tkn)
+  function setupMangrove(IERC20 outbound_tkn, IERC20 inbound_tkn)
     public
     returns (AbstractMangrove)
   {
@@ -284,8 +284,8 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   // Deploy mangrove with a pair, inverted or not
   function setupMangrove(
-    TestToken outbound_tkn,
-    TestToken inbound_tkn,
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
     bool inverted
   ) public returns (AbstractMangrove _mgv) {
     _mgv = setupMangrove(inverted);
@@ -371,7 +371,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     return payable(address(t));
   }
 
-  function $(TestToken t) internal pure returns (address payable) {
+  function $(IERC20 t) internal pure returns (address payable) {
     return payable(address(t));
   }
 }

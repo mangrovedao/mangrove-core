@@ -79,25 +79,6 @@ contract Test2 is Test, Utilities {
     return (a != address(0));
   }
 
-  // from solmate's DSTestPlus
-  // https://github.com/Rari-Capital/solmate/blob/19a4f345970ed39ee6369f343d145e0d4071c18a/src/test/utils/DSTestPlus.sol#L10
-  function assertApproxEq(
-    uint a,
-    uint b,
-    uint maxDelta
-  ) internal virtual {
-    uint delta = a > b ? a - b : b - a;
-
-    if (delta > maxDelta) {
-      emit log("Error: a ~= b not satisfied [uint]");
-      emit log_named_uint("  Expected", b);
-      emit log_named_uint("    Actual", a);
-      emit log_named_uint(" Max Delta", maxDelta);
-      emit log_named_uint("     Delta", delta);
-      fail();
-    }
-  }
-
   /* inline gas measures */
   uint private checkpointGasLeft = 1; // Start the slot non0.
   string checkpointLabel;

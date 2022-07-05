@@ -12,7 +12,6 @@ contract AaveLenderTest is MangroveTest {
   IERC20 dai;
   // BufferedAaveRouter router;
   AdvancedAaveRetail strat;
-  address payable maker;
 
   receive() external payable {}
 
@@ -30,12 +29,9 @@ contract AaveLenderTest is MangroveTest {
     vm.label($(this), "Test runner");
     vm.label($(mgv), "mgv");
 
-    // sets fee to 30 so redirecting fees to mgv itself to avoid crediting maker
     mgv.setFee($(weth), $(dai), 30);
     mgv.setFee($(dai), $(weth), 30);
     mgv.setVault($(mgv));
-
-    maker = freshAddress("maker");
 
     deal($(weth), $(this), 10 ether);
     deal($(dai), $(this), 10_000 ether);
@@ -98,8 +94,6 @@ contract AaveLenderTest is MangroveTest {
       })
     );
 
-    uint balanceBefore = strat.overlying(weth).balanceOf($(strat));
-    // console.log("balanceBefore",balanceBefore);
     (, , uint gave, , ) = mgv.snipes({
       outbound_tkn: $(dai),
       inbound_tkn: $(weth),
@@ -126,14 +120,13 @@ contract AaveLenderTest is MangroveTest {
     );
 
     vm.warp(block.timestamp + 10);
-    (, uint got2, uint gave2, , ) = mgv.snipes({
+    (uint successes, , , , ) = mgv.snipes({
       outbound_tkn: $(weth),
       inbound_tkn: $(dai),
       targets: inDyn([offerId, 0.2 ether, 380 ether, type(uint).max]),
       fillWants: true
     });
-    // console.log("got2",got2);
-    // console.log("gave2",gave2);
+    assertEq(successes, 1, "snipes should succeed");
 
     // // TODO logLenderStatus
 
@@ -163,42 +156,6 @@ contract AaveLenderTest is MangroveTest {
     // TODO check borrowing DAIs and not borrowing WETHs anymore
   }
 
-  /// start with 900 DAIs on lender and 100 DAIs locally
-  /// newOffer: wants 0.15 ETHs for 300 DAIs
-  /// taker snipes (full)
-  /// now 700 DAIs on lender, 0 locally and 0.15 ETHs
-  /// newOffer: wants 380 DAIs for 0.2 ETHs
-  /// borrows 0.05 ETHs using 1080 DAIs of collateral
-  /// now 1080 DAIs - locked DAI and 0 ETHs (borrower of 0.05 ETHs)
-  /// newOffer: wants 0.63 ETHs for 1500 DAIs
-  /// repays the full debt and borrows the missing part in DAI
-  function execLenderStrat() public {
-    // TODO logLenderStatus
-
-    // posting new offer on Mangrove via the MakerContract `newOffer` external function
-    uint offerId = strat.newOffer(
-      IOfferLogic.MakerOrder({
-        outbound_tkn: dai,
-        inbound_tkn: weth,
-        wants: 0.5 ether,
-        gives: 1000 ether,
-        gasreq: strat.OFR_GASREQ(),
-        gasprice: 0,
-        pivotId: 0
-      })
-    );
-
-    mgv.snipes({
-      outbound_tkn: $(dai),
-      inbound_tkn: $(weth),
-      targets: inDyn([offerId, 800 ether, 0.5 ether, type(uint).max]),
-      fillWants: true
-    });
-
-    expectAmountOnLender(dai, 200 ether, 0, $(strat));
-    expectAmountOnLender(weth, 0.4 ether, 0, $(strat));
-  }
-
   function expectAmountOnLender(
     IERC20 underlying,
     uint expected_balance,
@@ -214,7 +171,7 @@ contract AaveLenderTest is MangroveTest {
     // console.log("         balance",balance);
     // console.log("expected borrow", expected_borrow);
     // console.log("         borrow", borrow);
-    assertApproxEq(balance, expected_balance, (10**14) / 2);
-    assertApproxEq(borrow, expected_borrow, (10**14) / 2);
+    assertApproxEqAbs(balance, expected_balance, (10**14) / 2);
+    assertApproxEqAbs(borrow, expected_borrow, (10**14) / 2);
   }
 }

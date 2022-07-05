@@ -135,7 +135,7 @@ contract GuaaveTest is MangroveTest {
     vm.stopPrank();
     uint expected = awETHBalance - takerWants; //maker pays before Mangrove fees
     uint actual = aweth.balanceOf($(router));
-    assertApproxEq(expected, actual, 10**9);
+    assertApproxEqAbs(expected, actual, 10**9, "wrong final balance");
   }
 
   // init procedure

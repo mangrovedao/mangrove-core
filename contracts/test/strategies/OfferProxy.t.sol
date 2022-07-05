@@ -1,0 +1,230 @@
+// SPDX-License-Identifier:	AGPL-3.0
+pragma solidity ^0.8.10;
+
+import "mgv_test/lib/MangroveTest.sol";
+import "mgv_test/lib/Fork.sol";
+import "mgv_src/toy_strategies/multi_user/OfferProxy.sol";
+
+contract OfferProxyTest is MangroveTest {
+  IERC20 weth;
+  IERC20 dai;
+  IERC20 adai;
+  // BufferedAaveRouter router;
+  OfferProxy offerProxy;
+  address payable maker;
+  address payable taker;
+  MgvReader reader;
+
+  receive() external payable {}
+
+  function setUp() public override {
+    Fork.setUp();
+    dai = IERC20(Fork.DAI);
+    adai = IERC20(Fork.ADAI);
+    weth = IERC20(Fork.WETH);
+    mgv = setupMangrove(dai, weth);
+    mgv.setFee($(weth), $(dai), 30);
+    mgv.setFee($(dai), $(weth), 30);
+    reader = new MgvReader($(mgv));
+
+    weth.approve($(mgv), type(uint).max);
+    dai.approve($(mgv), type(uint).max);
+    // logging
+    vm.label(tx.origin, "tx.origin");
+    vm.label($(this), "Test runner");
+    vm.label($(mgv), "mgv");
+
+    maker = freshAddress("maker");
+    taker = freshAddress("taker");
+    deal($(weth), taker, 1 ether);
+    deal($(dai), maker, 1000 ether);
+  }
+
+  function test_all() public {
+    part_offer_proxy_on_aave();
+    part_clean_revert();
+  }
+
+  function part_offer_proxy_on_aave() public {
+    deployStrat();
+    execLenderStrat();
+    (, uint[] memory offerIds, , ) = reader.offerList($(dai), $(weth), 0, 2);
+    address[] memory offerOwners = offerProxy.offerOwners(dai, weth, offerIds);
+    for (uint i = 0; i < offerIds.length; i++) {
+      assertEq(offerOwners[i], maker, "wrong offer owner");
+    }
+  }
+
+  /* redefining IOfferLogic's LogIncident */
+  event LogIncident(
+    IMangrove mangrove,
+    IERC20 indexed outbound_tkn,
+    IERC20 indexed inbound_tkn,
+    uint indexed offerId,
+    bytes32 reason
+  );
+
+  function part_clean_revert() public {
+    //cancelling maker approval for aDai transfer to makerContract
+    vm.startPrank(maker);
+    adai.approve($(offerProxy), 0);
+
+    // posting new offer on Mangrove via the MakerContract `newOffer` external function
+    uint offerId = offerProxy.newOffer(
+      IOfferLogic.MakerOrder({
+        outbound_tkn: dai,
+        inbound_tkn: weth,
+        wants: 0.5 ether,
+        gives: 1000 ether,
+        gasreq: offerProxy.OFR_GASREQ(),
+        gasprice: 0,
+        pivotId: 0
+      })
+    );
+    vm.stopPrank();
+
+    // check that getFail is emitted during offer logic posthook
+    // cannot test than an inner call reverts
+    // vm.expectRevert("mgvOffer/abort/getFailed");
+    expectFrom($(offerProxy));
+    emit LogIncident(
+      IMangrove($(mgv)),
+      dai,
+      weth,
+      offerId,
+      "mgvOffer/abort/getFailed"
+    );
+
+    vm.startPrank(taker);
+    (uint successes, , , uint bounty, ) = mgv.snipes({
+      outbound_tkn: $(dai),
+      inbound_tkn: $(weth),
+      targets: inDyn([offerId, 800 ether, 0.5 ether, type(uint).max]),
+      fillWants: true
+    });
+    vm.stopPrank();
+
+    assertEq(successes, 0, "snipe should fail");
+    assertGt(bounty, 0, "bounty should be nonzero");
+  }
+
+  /// start with 900 DAIs on lender and 100 DAIs locally
+  /// newOffer: wants 0.15 ETHs for 300 DAIs
+  /// taker snipes (full)
+  /// now 700 DAIs on lender, 0 locally and 0.15 ETHs
+  /// newOffer: wants 380 DAIs for 0.2 ETHs
+  /// borrows 0.05 ETHs using 1080 DAIs of collateral
+  /// now 1080 DAIs - locked DAI and 0 ETHs (borrower of 0.05 ETHs)
+  /// newOffer: wants 0.63 ETHs for 1500 DAIs
+  /// repays the full debt and borrows the missing part in DAI
+  function execLenderStrat() public {
+    // TODO logLenderStatus
+
+    // posting new offer on Mangrove via the MakerContract `newOffer` external function
+    vm.startPrank(maker);
+    uint offerId = offerProxy.newOffer(
+      IOfferLogic.MakerOrder({
+        outbound_tkn: dai,
+        inbound_tkn: weth,
+        wants: 0.5 ether,
+        gives: 1000 ether,
+        gasreq: offerProxy.OFR_GASREQ(),
+        gasprice: 0,
+        pivotId: 0
+      })
+    );
+    vm.stopPrank();
+
+    vm.startPrank(taker);
+    (uint successes, uint got, uint gave, , ) = mgv.snipes({
+      outbound_tkn: $(dai),
+      inbound_tkn: $(weth),
+      targets: inDyn([offerId, 800 ether, 0.5 ether, type(uint).max]),
+      fillWants: true
+    });
+    vm.stopPrank();
+    assertEq(successes, 1, "snipe should succeed");
+    assertEq(got, minusFee($(dai), $(weth), 800 ether), "wrong got");
+    assertEq(gave, 0.4 ether, "wrong gave");
+
+    expectAmountOnLender(dai, 200 ether, 0, maker);
+    expectAmountOnLender(weth, 0.4 ether, 0, maker);
+    // TODO logLenderStatus
+  }
+
+  function deployStrat() public {
+    // admin side premices
+    offerProxy = new OfferProxy({
+      _addressesProvider: Fork.AAVE,
+      _MGV: IMangrove($(mgv)),
+      deployer: $(this)
+    });
+
+    // offerProxy needs to let aave pool pull inbound tokens from it in order to mint
+    offerProxy.approveLender(weth, type(uint).max);
+
+    // Taker side premises
+
+    // taker approves Mangrove for WETH (inbound) before trying to take offers
+    vm.prank(taker);
+    weth.approve($(mgv), type(uint).max);
+
+    // Maker side premises
+
+    // provisioning Mangrove in case offer fails
+    // NB: for multi user offers this has to be done via the contract and not direclty
+    startHoax(maker, 2 ether);
+    offerProxy.fundMangrove{value: 2 ether}();
+
+    // maker approves aDai (Dai is outbound) transfer so that offerProxy can pull them on demand
+    adai.approve($(offerProxy), type(uint).max);
+
+    // Maker mints 1000 aDai on AAVE
+    dai.approve(Fork.APOOL, type(uint).max);
+    IPool(Fork.APOOL).deposit($(dai), 1000 ether, maker, 0);
+    vm.stopPrank();
+
+    assertEq(
+      mgv.balanceOf($(offerProxy)),
+      2 ether,
+      "wrong offerProxy balance on mangrove"
+    );
+    assertEq(
+      offerProxy.balanceOnMangrove(maker),
+      2 ether,
+      "wrong maker balance on mangrove through offerproxy"
+    );
+
+    // deployer side premises
+    offerProxy.approveMangrove(dai, type(uint).max);
+  }
+
+  function expectAmountOnLender(
+    IERC20 underlying,
+    uint expected_balance,
+    uint expected_borrow,
+    address account
+  ) public {
+    // nb for later: compound
+    //   balance = overlyings(underlying).balanceOfUnderlying(account);
+    //   borrow = overlyings(underlying).borrowBalanceCurrent(account);
+    uint balance = offerProxy.overlying(underlying).balanceOf(account);
+    uint borrow = offerProxy.borrowed($(underlying), account);
+    // console.log("expected balance",expected_balance);
+    // console.log("         balance",balance);
+    // console.log("expected borrow", expected_borrow);
+    // console.log("         borrow", borrow);
+    assertApproxEqAbs(
+      balance,
+      expected_balance,
+      (10**14) / 2,
+      "wrong balance on lender"
+    );
+    assertApproxEqAbs(
+      borrow,
+      expected_borrow,
+      (10**14) / 2,
+      "wrong borrow on lender"
+    );
+  }
+}

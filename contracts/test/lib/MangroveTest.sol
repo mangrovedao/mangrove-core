@@ -227,6 +227,15 @@ contract MangroveTest is Test2, HasMgvEvents {
     return ((price * local.fee()) / 10000);
   }
 
+  function minusFee(
+    address $out,
+    address $in,
+    uint price
+  ) internal view returns (uint) {
+    (, P.Local.t local) = mgv.config($out, $in);
+    return (price * (10_000 - local.fee())) / 10000;
+  }
+
   function getProvision(
     address $out,
     address $in,

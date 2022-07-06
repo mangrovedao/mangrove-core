@@ -73,7 +73,6 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(order.offer.gives(), 0.05 ether, "wrong offerGives");
     // test flashloan
     assertEq(quote.balanceOf($(this)), 0.05 ether, "wrong quote balance");
-    csl.log("a", base.allowance($(this), $(mgv)));
     return "";
   }
 

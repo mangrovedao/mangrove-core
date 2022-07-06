@@ -81,8 +81,6 @@ contract ScenariiTest is MangroveTest {
 
   function test_snipe_insert_and_fail() public {
     offerOf = insert();
-    printOfferBook($(base), $(quote));
-    logOfferBook($(base), $(quote), 4);
 
     saveBalances();
     saveOffers();

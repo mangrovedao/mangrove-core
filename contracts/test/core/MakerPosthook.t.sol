@@ -705,8 +705,6 @@ contract MakerPosthookTest is MangroveTest, IMaker {
       weiBalMaker,
       "Maker balance after take should be less than original balance"
     );
-    uint refund = mgv.balanceOf($(this)) + mkr_provision - weiBalMaker;
-    console.log(refund);
   }
 
   function test_makerRevert_is_logged() public {

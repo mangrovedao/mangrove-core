@@ -275,7 +275,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_takerWants_above_96bits_fails_snipes() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
-    uint[4][] memory targets = inDyn(
+    uint[4][] memory targets = wrap_dynamic(
       [ofr, uint(type(uint96).max) + 1, type(uint96).max, type(uint).max]
     );
     vm.expectRevert("mgv/snipes/takerWants/96bits");
@@ -284,7 +284,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_takerGives_above_96bits_fails_snipes() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
-    uint[4][] memory targets = inDyn(
+    uint[4][] memory targets = wrap_dynamic(
       [ofr, type(uint96).max, uint(type(uint96).max) + 1, type(uint).max]
     );
     vm.expectRevert("mgv/snipes/takerGives/96bits");
@@ -308,7 +308,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.snipesFor(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 300_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 300_000]),
       true,
       address(tkr)
     );
@@ -613,7 +613,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* Snipe failure */
 
   function snipesKO(uint id) external {
-    uint[4][] memory targets = inDyn(
+    uint[4][] memory targets = wrap_dynamic(
       [id, 1 ether, type(uint96).max, type(uint48).max]
     );
     vm.expectRevert("mgv/reentrancyLocked");
@@ -633,7 +633,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     address _quote,
     uint id
   ) external {
-    uint[4][] memory targets = inDyn(
+    uint[4][] memory targets = wrap_dynamic(
       [id, 1 ether, type(uint96).max, type(uint48).max]
     );
     mgv.snipes(_base, _quote, targets, true);

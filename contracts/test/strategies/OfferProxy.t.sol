@@ -97,7 +97,7 @@ contract OfferProxyTest is MangroveTest {
     (uint successes, , , uint bounty, ) = mgv.snipes({
       outbound_tkn: $(dai),
       inbound_tkn: $(weth),
-      targets: inDyn([offerId, 800 ether, 0.5 ether, type(uint).max]),
+      targets: wrap_dynamic([offerId, 800 ether, 0.5 ether, type(uint).max]),
       fillWants: true
     });
     vm.stopPrank();
@@ -137,7 +137,7 @@ contract OfferProxyTest is MangroveTest {
     (uint successes, uint got, uint gave, , ) = mgv.snipes({
       outbound_tkn: $(dai),
       inbound_tkn: $(weth),
-      targets: inDyn([offerId, 800 ether, 0.5 ether, type(uint).max]),
+      targets: wrap_dynamic([offerId, 800 ether, 0.5 ether, type(uint).max]),
       fillWants: true
     });
     vm.stopPrank();

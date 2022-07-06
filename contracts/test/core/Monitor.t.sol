@@ -91,7 +91,9 @@ contract MonitorTest is MangroveTest {
     uint ofrId = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     P.Offer.t offer = mgv.offers($(base), $(quote), ofrId);
 
-    uint[4][] memory targets = inDyn([ofrId, 0.04 ether, 0.05 ether, 100_000]);
+    uint[4][] memory targets = wrap_dynamic(
+      [ofrId, 0.04 ether, 0.05 ether, 100_000]
+    );
 
     (P.Global.t _global, P.Local.t _local) = mgv.config($(base), $(quote));
     _local = _local.best(1).lock(true);
@@ -126,7 +128,9 @@ contract MonitorTest is MangroveTest {
     P.Offer.t offer = mgv.offers($(base), $(quote), ofrId);
     P.OfferDetail.t offerDetail = mgv.offerDetails($(base), $(quote), ofrId);
 
-    uint[4][] memory targets = inDyn([ofrId, 0.04 ether, 0.05 ether, 100_000]);
+    uint[4][] memory targets = wrap_dynamic(
+      [ofrId, 0.04 ether, 0.05 ether, 100_000]
+    );
 
     (P.Global.t _global, P.Local.t _local) = mgv.config($(base), $(quote));
     // config sent during maker callback has stale best and, is locked

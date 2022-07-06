@@ -153,7 +153,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     (uint successes, , , , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 50_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]),
       true
     );
     assertTrue(successes == 1, "Trade should succeed");
@@ -180,7 +180,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     (uint successes, uint totalGot, uint totalGave, , ) = mgv.snipes(
       _base,
       _quote,
-      inDyn([uint(2), 0.1 ether, 0.1 ether, 100_000]),
+      wrap_dynamic([uint(2), 0.1 ether, 0.1 ether, 100_000]),
       true
     );
     assertTrue(successes == 1, "Snipe on reentrancy should succeed");
@@ -222,7 +222,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 0.05 ether, 0.05 ether, 100_000]),
+      wrap_dynamic([ofr, 0.05 ether, 0.05 ether, 100_000]),
       true
     );
     assertEq(quote.balanceOf($(this)), bal - 0.05 ether, "wrong taker balance");
@@ -235,7 +235,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 0.02 ether, 0.02 ether, 100_000]),
+      wrap_dynamic([ofr, 0.02 ether, 0.02 ether, 100_000]),
       true
     );
     assertEq(quote.balanceOf($(this)), bal - 0.02 ether, "wrong taker balance");

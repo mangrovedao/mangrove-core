@@ -93,7 +93,7 @@ contract AaveLenderTest is MangroveTest {
     (, , uint gave, , ) = mgv.snipes({
       outbound_tkn: $(dai),
       inbound_tkn: $(weth),
-      targets: inDyn([offerId, 300 ether, 0.15 ether, type(uint).max]),
+      targets: wrap_dynamic([offerId, 300 ether, 0.15 ether, type(uint).max]),
       fillWants: true
     });
 
@@ -119,7 +119,7 @@ contract AaveLenderTest is MangroveTest {
     (uint successes, , , , ) = mgv.snipes({
       outbound_tkn: $(weth),
       inbound_tkn: $(dai),
-      targets: inDyn([offerId, 0.2 ether, 380 ether, type(uint).max]),
+      targets: wrap_dynamic([offerId, 0.2 ether, 380 ether, type(uint).max]),
       fillWants: true
     });
     assertEq(successes, 1, "snipes should succeed");
@@ -143,7 +143,7 @@ contract AaveLenderTest is MangroveTest {
     mgv.snipes({
       outbound_tkn: $(dai),
       inbound_tkn: $(weth),
-      targets: inDyn([offerId, 1500 ether, 0.63 ether, type(uint).max]),
+      targets: wrap_dynamic([offerId, 1500 ether, 0.63 ether, type(uint).max]),
       fillWants: true
     });
 

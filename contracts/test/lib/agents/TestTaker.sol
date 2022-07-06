@@ -54,7 +54,7 @@ contract TestTaker is ITaker, Utilities {
       uint
     )
   {
-    uint[4][] memory targets = inDyn(
+    uint[4][] memory targets = wrap_dynamic(
       [offerId, takerWants, type(uint96).max, type(uint48).max]
     );
     (
@@ -77,7 +77,9 @@ contract TestTaker is ITaker, Utilities {
     uint takerGives,
     uint gasreq
   ) external returns (bool) {
-    uint[4][] memory targets = inDyn([offerId, takerWants, takerGives, gasreq]);
+    uint[4][] memory targets = wrap_dynamic(
+      [offerId, takerWants, takerGives, gasreq]
+    );
     (uint successes, , , , ) = __mgv.snipes(__base, __quote, targets, true);
     return successes == 1;
   }

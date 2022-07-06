@@ -103,13 +103,13 @@ contract MangoTest is MangroveTest {
       $(usdc),
       $(weth),
       book.bids,
-      asDyn([int(1), 2, 3, 4, 5, 0, 0, 0, 0, 0])
+      dynamic([int(1), 2, 3, 4, 5, 0, 0, 0, 0, 0])
     );
     checkOB(
       $(weth),
       $(usdc),
       book.asks,
-      asDyn([int(0), 0, 0, 0, 0, 1, 2, 3, 4, 5])
+      dynamic([int(0), 0, 0, 0, 0, 1, 2, 3, 4, 5])
     );
   }
 
@@ -139,13 +139,13 @@ contract MangoTest is MangroveTest {
       $(usdc),
       $(weth),
       book.bids,
-      asDyn([int(1), 2, 3, 4, 5, 6, 0, 0, 0, 0])
+      dynamic([int(1), 2, 3, 4, 5, 6, 0, 0, 0, 0])
     );
     checkOB(
       $(weth),
       $(usdc),
       book.asks,
-      asDyn([int(0), 0, 0, 0, 0, -1, 2, 3, 4, 5])
+      dynamic([int(0), 0, 0, 0, 0, -1, 2, 3, 4, 5])
     );
 
     vm.prank(taker);
@@ -171,14 +171,14 @@ contract MangoTest is MangroveTest {
       $(usdc),
       $(weth),
       book.bids,
-      asDyn([int(1), 2, 3, 4, -5, -6, 0, 0, 0, 0])
+      dynamic([int(1), 2, 3, 4, -5, -6, 0, 0, 0, 0])
     );
 
     checkOB(
       $(weth),
       $(usdc),
       book.asks,
-      asDyn([int(0), 0, 0, 0, 6, 1, 2, 3, 4, 5])
+      dynamic([int(0), 0, 0, 0, 6, 1, 2, 3, 4, 5])
     );
   }
 
@@ -187,7 +187,7 @@ contract MangoTest is MangroveTest {
     mgo.set_shift({
       s: -2,
       withBase: false,
-      amounts: asDyn([cash(usdc, 1000), cash(usdc, 1000)])
+      amounts: dynamic([cash(usdc, 1000), cash(usdc, 1000)])
     });
 
     Book memory book = get_offers(false);
@@ -196,14 +196,14 @@ contract MangoTest is MangroveTest {
       $(usdc),
       $(weth),
       book.bids,
-      asDyn([int(8), 7, 1, 2, 3, 4, -5, -6, 0, 0])
+      dynamic([int(8), 7, 1, 2, 3, 4, -5, -6, 0, 0])
     );
 
     checkOB(
       $(weth),
       $(usdc),
       book.asks,
-      asDyn([int(-4), -5, 0, 0, 0, 0, 6, 1, 2, 3])
+      dynamic([int(-4), -5, 0, 0, 0, 0, 6, 1, 2, 3])
     );
   }
 
@@ -212,7 +212,7 @@ contract MangoTest is MangroveTest {
     mgo.set_shift({
       s: 3,
       withBase: true,
-      amounts: asDyn([cash(weth, 3, 1), cash(weth, 3, 1), cash(weth, 3, 1)])
+      amounts: dynamic([cash(weth, 3, 1), cash(weth, 3, 1), cash(weth, 3, 1)])
     });
 
     Book memory book = get_offers(false);
@@ -221,14 +221,14 @@ contract MangoTest is MangroveTest {
       $(usdc),
       $(weth),
       book.bids,
-      asDyn([int(2), 3, 4, -5, -6, 0, 0, -8, -7, -1])
+      dynamic([int(2), 3, 4, -5, -6, 0, 0, -8, -7, -1])
     );
 
     checkOB(
       $(weth),
       $(usdc),
       book.asks,
-      asDyn([int(0), 0, 0, 6, 1, 2, 3, 4, 5, 7])
+      dynamic([int(0), 0, 0, 6, 1, 2, 3, 4, 5, 7])
     );
   }
 
@@ -365,13 +365,13 @@ contract MangoTest is MangroveTest {
       $(usdc),
       $(weth),
       book.bids,
-      asDyn([int(2), -3, -4, -5, -6, 0, 0, -8, -7, -1])
+      dynamic([int(2), -3, -4, -5, -6, 0, 0, -8, -7, -1])
     );
     checkOB(
       $(weth),
       $(usdc),
       book.asks,
-      asDyn([int(0), 0, 0, 6, 1, 2, 3, 4, 5, 7])
+      dynamic([int(0), 0, 0, 6, 1, 2, 3, 4, 5, 7])
     );
   }
 
@@ -402,13 +402,13 @@ contract MangoTest is MangroveTest {
       $(usdc),
       $(weth),
       book.bids,
-      asDyn([int(2), -3, -4, -5, -6, 0, 0, -8, -7, -1])
+      dynamic([int(2), -3, -4, -5, -6, 0, 0, -8, -7, -1])
     );
     checkOB(
       $(weth),
       $(usdc),
       book.asks,
-      asDyn([int(0), 8, 0, 6, 1, 2, 3, 4, 5, 7])
+      dynamic([int(0), 8, 0, 6, 1, 2, 3, 4, 5, 7])
     );
 
     vm.startPrank(maker);
@@ -455,13 +455,13 @@ contract MangoTest is MangroveTest {
       $(usdc),
       $(weth),
       book.bids,
-      asDyn([int(-2), -3, -4, -5, -6, 0, 0, -8, -7, -1])
+      dynamic([int(-2), -3, -4, -5, -6, 0, 0, -8, -7, -1])
     );
     checkOB(
       $(weth),
       $(usdc),
       book.asks,
-      asDyn([int(0), 8, 0, 6, 1, 2, 3, 4, 5, 7])
+      dynamic([int(0), 8, 0, 6, 1, 2, 3, 4, 5, 7])
     );
   }
 
@@ -476,13 +476,13 @@ contract MangoTest is MangroveTest {
       $(usdc),
       $(weth),
       book.bids,
-      asDyn([int(2), 3, 4, 5, 6, 0, 0, -8, -7, -1])
+      dynamic([int(2), 3, 4, 5, 6, 0, 0, -8, -7, -1])
     );
     checkOB(
       $(weth),
       $(usdc),
       book.asks,
-      asDyn([int(0), -8, 0, -6, -1, 2, 3, 4, 5, 7])
+      dynamic([int(0), -8, 0, -6, -1, 2, 3, 4, 5, 7])
     );
   }
 

@@ -61,7 +61,7 @@ contract TakerOperationsTest is MangroveTest {
     mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 100_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
     assertEq(
@@ -82,7 +82,7 @@ contract TakerOperationsTest is MangroveTest {
     mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 100_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
     assertEq(
@@ -100,7 +100,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 0.5 ether, 100_000]),
+      wrap_dynamic([ofr, 1 ether, 0.5 ether, 100_000]),
       false
     );
     assertTrue(successes == 0, "Snipe should fail");
@@ -120,7 +120,12 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOffer(9, 10, 100_000, 0);
     uint oldBal = quote.balanceOf($(this));
-    mgv.snipes($(base), $(quote), inDyn([ofr, 1, 15 ether, 100_000]), true);
+    mgv.snipes(
+      $(base),
+      $(quote),
+      wrap_dynamic([ofr, 1, 15 ether, 100_000]),
+      true
+    );
     uint newBal = quote.balanceOf($(this));
     assertGt(oldBal, newBal, "oldBal should be strictly higher");
   }
@@ -132,7 +137,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 0.5 ether, 1 ether, 100_000]),
+      wrap_dynamic([ofr, 0.5 ether, 1 ether, 100_000]),
       true
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -192,7 +197,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 0, 0, 100_000]),
+      wrap_dynamic([ofr, 0, 0, 100_000]),
       true
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -220,7 +225,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 0.1 ether, 0, 100_000]),
+      wrap_dynamic([ofr, 0.1 ether, 0, 100_000]),
       true
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -248,7 +253,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 0.1 ether, 0, 100_000]),
+      wrap_dynamic([ofr, 0.1 ether, 0, 100_000]),
       false
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -272,7 +277,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 0, 0, 100_000]),
+      wrap_dynamic([ofr, 0, 0, 100_000]),
       false
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -292,7 +297,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 0.5 ether, 1 ether, 100_000]),
+      wrap_dynamic([ofr, 0.5 ether, 1 ether, 100_000]),
       false
     );
     assertTrue(successes == 1, "Snipe should not fail");
@@ -380,7 +385,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 100_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
     uint penalty = $(this).balance - beforeWei;
@@ -406,7 +411,7 @@ contract TakerOperationsTest is MangroveTest {
     mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 100_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
   }
@@ -434,7 +439,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 100_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
     uint penalty = $(this).balance - beforeWei;
@@ -475,7 +480,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 100_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
     uint penalty = $(this).balance - beforeWei;
@@ -500,7 +505,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 0, 0, 100_000]),
+      wrap_dynamic([ofr, 0, 0, 100_000]),
       true
     );
     assertTrue(successes == 0, "Snipe should fail");
@@ -531,7 +536,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 100_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
     uint penalty = $(this).balance - beforeWei;
@@ -554,7 +559,12 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
     quote.approve($(mgv), 1 ether);
 
-    mgv.snipes($(base), $(quote), inDyn([ofr, 1 ether, 1 ether, 50_000]), true);
+    mgv.snipes(
+      $(base),
+      $(quote),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]),
+      true
+    );
     assertEq(
       base.balanceOf($(this)) - balTaker,
       1 ether,
@@ -566,7 +576,12 @@ contract TakerOperationsTest is MangroveTest {
     uint balTaker = base.balanceOf($(this));
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
     quote.approve($(mgv), 1 ether);
-    mgv.snipes($(base), $(quote), inDyn([ofr, 1 ether, 1 ether, 50_000]), true);
+    mgv.snipes(
+      $(base),
+      $(quote),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]),
+      true
+    );
     assertEq(
       base.balanceOf($(this)) - balTaker,
       1 ether,
@@ -579,7 +594,12 @@ contract TakerOperationsTest is MangroveTest {
     base.approve($(mgv), 1 ether);
 
     vm.expectRevert("mgv/takerTransferFail");
-    mgv.snipes($(base), $(quote), inDyn([ofr, 1 ether, 1 ether, 50_000]), true);
+    mgv.snipes(
+      $(base),
+      $(quote),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]),
+      true
+    );
   }
 
   function test_simple_snipe() public {
@@ -594,7 +614,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1.1 ether, 50_000]),
+      wrap_dynamic([ofr, 1 ether, 1.1 ether, 50_000]),
       true
     );
     assertTrue(successes == 1, "Snipe should succeed");
@@ -687,7 +707,7 @@ contract TakerOperationsTest is MangroveTest {
     (, uint takerGot, uint takerGave, , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 2 ether, 0 ether, 300_000]),
+      wrap_dynamic([ofr, 2 ether, 0 ether, 300_000]),
       false
     );
     assertEq(takerGave, 0 ether, "Incorrect declared delivered amount (maker)");
@@ -737,7 +757,7 @@ contract TakerOperationsTest is MangroveTest {
     mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 2 ether, 100 ether, 100_000]),
+      wrap_dynamic([ofr, 2 ether, 100 ether, 100_000]),
       true
     );
   }
@@ -762,7 +782,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, , , , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 50 ether, 0.5 ether, 100_000]),
+      wrap_dynamic([ofr, 50 ether, 0.5 ether, 100_000]),
       true
     );
     assertTrue(successes == 0, "order should fail");
@@ -783,7 +803,12 @@ contract TakerOperationsTest is MangroveTest {
       1 ether,
       "mgv/makerRevert"
     );
-    mgv.snipes($(base), $(quote), inDyn([ofr, 1 ether, 1 ether, 50_000]), true);
+    mgv.snipes(
+      $(base),
+      $(quote),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]),
+      true
+    );
   }
 
   function test_snipe_on_higher_price_fails() public {
@@ -793,7 +818,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, , , , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 0.5 ether, 100_000]),
+      wrap_dynamic([ofr, 1 ether, 0.5 ether, 100_000]),
       true
     );
     assertTrue(
@@ -809,7 +834,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, , , , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 50_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]),
       true
     );
     assertTrue(
@@ -826,7 +851,7 @@ contract TakerOperationsTest is MangroveTest {
       mgv.snipes.selector,
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 100_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 100_000]),
       true
     );
 
@@ -847,7 +872,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, , , , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 2 ether, 100_000]),
+      wrap_dynamic([ofr, 1 ether, 2 ether, 100_000]),
       true
     );
     assertTrue(
@@ -963,7 +988,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, , , , ) = mgv.snipes(
       $(base),
       $(quote),
-      inDyn([ofr, 0, 1 ether, 50_000]),
+      wrap_dynamic([ofr, 0, 1 ether, 50_000]),
       true
     );
     assertTrue(successes == 1, "snipe should succeed");
@@ -983,7 +1008,7 @@ contract TakerOperationsTest is MangroveTest {
     mgv.snipes{gas: 120_000}(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, 120_000]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, 120_000]),
       true
     );
   }

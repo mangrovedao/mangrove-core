@@ -105,34 +105,50 @@ contract Utilities {
   /* *********  ARRAY UTILITIES */
 
   /* *******
-     inDyn(x) wraps x in a size-1 dynamic array
+     wrap_dynamic(x) wraps x in a size-1 dynamic array
   */
 
-  function inDyn(uint a) internal pure returns (uint[] memory) {
+  function wrap_dynamic(uint a) internal pure returns (uint[] memory) {
     uint[] memory ret = new uint[](1);
     ret[0] = a;
     return ret;
   }
 
-  function inDyn(uint[1] memory a) internal pure returns (uint[1][] memory) {
+  function wrap_dynamic(uint[1] memory a)
+    internal
+    pure
+    returns (uint[1][] memory)
+  {
     uint[1][] memory ret = new uint[1][](1);
     ret[0] = a;
     return ret;
   }
 
-  function inDyn(uint[2] memory a) internal pure returns (uint[2][] memory) {
+  function wrap_dynamic(uint[2] memory a)
+    internal
+    pure
+    returns (uint[2][] memory)
+  {
     uint[2][] memory ret = new uint[2][](1);
     ret[0] = a;
     return ret;
   }
 
-  function inDyn(uint[3] memory a) internal pure returns (uint[3][] memory) {
+  function wrap_dynamic(uint[3] memory a)
+    internal
+    pure
+    returns (uint[3][] memory)
+  {
     uint[3][] memory ret = new uint[3][](1);
     ret[0] = a;
     return ret;
   }
 
-  function inDyn(uint[4] memory a) internal pure returns (uint[4][] memory) {
+  function wrap_dynamic(uint[4] memory a)
+    internal
+    pure
+    returns (uint[4][] memory)
+  {
     uint[4][] memory ret = new uint[4][](1);
     ret[0] = a;
     return ret;
@@ -158,10 +174,10 @@ contract Utilities {
   }
 
   /* *******
-     asDyn(uint[n] a) turns a into a dynamic array of size n
+     dynamic(uint[n] a) turns a into a dynamic array of size n
   */
 
-  function asDyn(uint[1] memory a) internal pure returns (uint[] memory ret) {
+  function dynamic(uint[1] memory a) internal pure returns (uint[] memory ret) {
     ret = new uint[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -172,7 +188,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[2] memory a) internal pure returns (uint[] memory ret) {
+  function dynamic(uint[2] memory a) internal pure returns (uint[] memory ret) {
     ret = new uint[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -183,7 +199,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[3] memory a) internal pure returns (uint[] memory ret) {
+  function dynamic(uint[3] memory a) internal pure returns (uint[] memory ret) {
     ret = new uint[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -194,7 +210,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[4] memory a) internal pure returns (uint[] memory ret) {
+  function dynamic(uint[4] memory a) internal pure returns (uint[] memory ret) {
     ret = new uint[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -205,7 +221,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[5] memory a) internal pure returns (uint[] memory ret) {
+  function dynamic(uint[5] memory a) internal pure returns (uint[] memory ret) {
     ret = new uint[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -216,7 +232,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[6] memory a) internal pure returns (uint[] memory ret) {
+  function dynamic(uint[6] memory a) internal pure returns (uint[] memory ret) {
     ret = new uint[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -227,7 +243,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[7] memory a) internal pure returns (uint[] memory ret) {
+  function dynamic(uint[7] memory a) internal pure returns (uint[] memory ret) {
     ret = new uint[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -238,7 +254,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[8] memory a) internal pure returns (uint[] memory ret) {
+  function dynamic(uint[8] memory a) internal pure returns (uint[] memory ret) {
     ret = new uint[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -249,7 +265,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[9] memory a) internal pure returns (uint[] memory ret) {
+  function dynamic(uint[9] memory a) internal pure returns (uint[] memory ret) {
     ret = new uint[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -260,7 +276,11 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(uint[10] memory a) internal pure returns (uint[] memory ret) {
+  function dynamic(uint[10] memory a)
+    internal
+    pure
+    returns (uint[] memory ret)
+  {
     ret = new uint[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -271,7 +291,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(int[1] memory a) internal pure returns (int[] memory ret) {
+  function dynamic(int[1] memory a) internal pure returns (int[] memory ret) {
     ret = new int[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -282,7 +302,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(int[2] memory a) internal pure returns (int[] memory ret) {
+  function dynamic(int[2] memory a) internal pure returns (int[] memory ret) {
     ret = new int[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -293,7 +313,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(int[3] memory a) internal pure returns (int[] memory ret) {
+  function dynamic(int[3] memory a) internal pure returns (int[] memory ret) {
     ret = new int[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -304,7 +324,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(int[4] memory a) internal pure returns (int[] memory ret) {
+  function dynamic(int[4] memory a) internal pure returns (int[] memory ret) {
     ret = new int[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -315,7 +335,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(int[5] memory a) internal pure returns (int[] memory ret) {
+  function dynamic(int[5] memory a) internal pure returns (int[] memory ret) {
     ret = new int[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -326,7 +346,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(int[6] memory a) internal pure returns (int[] memory ret) {
+  function dynamic(int[6] memory a) internal pure returns (int[] memory ret) {
     ret = new int[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -337,7 +357,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(int[7] memory a) internal pure returns (int[] memory ret) {
+  function dynamic(int[7] memory a) internal pure returns (int[] memory ret) {
     ret = new int[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -348,7 +368,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(int[8] memory a) internal pure returns (int[] memory ret) {
+  function dynamic(int[8] memory a) internal pure returns (int[] memory ret) {
     ret = new int[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -359,7 +379,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(int[9] memory a) internal pure returns (int[] memory ret) {
+  function dynamic(int[9] memory a) internal pure returns (int[] memory ret) {
     ret = new int[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -370,7 +390,7 @@ contract Utilities {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function asDyn(int[10] memory a) internal pure returns (int[] memory ret) {
+  function dynamic(int[10] memory a) internal pure returns (int[] memory ret) {
     ret = new int[](a.length);
     uint i_ptr;
     uint o_ptr;

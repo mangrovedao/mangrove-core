@@ -95,7 +95,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
       mgv.snipesFor(
         $(base),
         $(quote),
-        inDyn([uint(1), value, value, 300_000]),
+        wrap_dynamic([uint(1), value, value, 300_000]),
         true,
         who
       );

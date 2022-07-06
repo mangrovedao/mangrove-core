@@ -40,7 +40,7 @@ contract MgvCleanerTest is MangroveTest {
     cleaner.collect(
       $(base),
       $(quote),
-      inDyn([ofr, 1 ether, 1 ether, type(uint).max]),
+      wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]),
       true
     );
 
@@ -74,7 +74,9 @@ contract MgvCleanerTest is MangroveTest {
 
     uint oldBal = $(this).balance;
 
-    uint[4][] memory targets = inDyn([ofr, 1 ether, 1 ether, type(uint).max]);
+    uint[4][] memory targets = wrap_dynamic(
+      [ofr, 1 ether, 1 ether, type(uint).max]
+    );
 
     vm.expectRevert("mgvCleaner/anOfferDidNotFail");
     cleaner.collect($(base), $(quote), targets, true);

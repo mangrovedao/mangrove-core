@@ -742,7 +742,7 @@ contract TakerOperationsTest is MangroveTest {
     );
   }
 
-  function maker_has_not_enough_base_fails_order_test() public {
+  function test_maker_has_not_enough_base_fails_order() public {
     uint ofr = mkr.newOffer(1 ether, 100 ether, 100_000, 0);
     mkr.expect("mgv/makerTransferFail");
     // getting rid of base tokens
@@ -768,7 +768,7 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(successes == 0, "order should fail");
   }
 
-  function maker_revert_is_logged_test() public {
+  function test_maker_revert_is_logged() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
     mkr.expect("mgv/makerRevert");
     mkr.shouldRevert(true);
@@ -786,7 +786,7 @@ contract TakerOperationsTest is MangroveTest {
     mgv.snipes($(base), $(quote), inDyn([ofr, 1 ether, 1 ether, 50_000]), true);
   }
 
-  function snipe_on_higher_price_fails_test() public {
+  function test_snipe_on_higher_price_fails() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     quote.approve($(mgv), 0.5 ether);
 
@@ -802,7 +802,7 @@ contract TakerOperationsTest is MangroveTest {
     );
   }
 
-  function snipe_on_higher_gas_fails_test() public {
+  function test_snipe_on_higher_gas_fails() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     quote.approve($(mgv), 1 ether);
 
@@ -818,7 +818,7 @@ contract TakerOperationsTest is MangroveTest {
     );
   }
 
-  function detect_lowgas_test() public {
+  function test_detect_lowgas() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     quote.approve($(mgv), 100 ether);
 
@@ -838,7 +838,7 @@ contract TakerOperationsTest is MangroveTest {
     }
   }
 
-  function snipe_on_lower_price_succeeds_test() public {
+  function test_snipe_on_lower_price_succeeds() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     quote.approve($(mgv), 2 ether);
     uint balTaker = base.balanceOf($(this));
@@ -868,7 +868,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   /* Note as for jan 5 2020: by locally pushing the block gas limit to 38M, you can go up to 162 levels of recursion before hitting "revert for an unknown reason" -- I'm assuming that's the stack limit. */
-  function recursion_depth_is_acceptable_test() public {
+  function test_recursion_depth_is_acceptable() public {
     for (uint i = 0; i < 50; i++) {
       mkr.newOffer(0.001 ether, 0.001 ether, 50_000, i);
     }
@@ -878,7 +878,7 @@ contract TakerOperationsTest is MangroveTest {
     //console.log("gas used per offer: ",(g-gasleft())/50);
   }
 
-  function partial_fill_test() public {
+  function test_partial_fill() public {
     quote.approve($(mgv), 1 ether);
     mkr.newOffer(0.1 ether, 0.1 ether, 50_000, 0);
     mkr.newOffer(0.1 ether, 0.1 ether, 50_000, 1);
@@ -895,7 +895,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   // ! unreliable test, depends on gas use
-  function market_order_stops_for_high_price_test() public {
+  function test_market_order_stops_for_high_price() public {
     quote.approve($(mgv), 1 ether);
     for (uint i = 0; i < 10; i++) {
       mkr.newOffer((i + 1) * (0.1 ether), 0.1 ether, 50_000, i);
@@ -914,7 +914,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   // ! unreliable test, depends on gas use
-  function market_order_stops_for_filled_mid_offer_test() public {
+  function test_market_order_stops_for_filled_mid_offer() public {
     quote.approve($(mgv), 1 ether);
     for (uint i = 0; i < 10; i++) {
       mkr.newOffer(i * (0.1 ether), 0.1 ether, 50_000, i);
@@ -932,7 +932,7 @@ contract TakerOperationsTest is MangroveTest {
     );
   }
 
-  function market_order_stops_for_filled_after_offer_test() public {
+  function test_market_order_stops_for_filled_after_offer() public {
     quote.approve($(mgv), 1 ether);
     for (uint i = 0; i < 10; i++) {
       mkr.newOffer(i * (0.1 ether), 0.1 ether, 50_000, i);
@@ -950,12 +950,12 @@ contract TakerOperationsTest is MangroveTest {
     );
   }
 
-  function takerWants_wider_than_160_bits_fails_marketOrder_test() public {
+  function test_takerWants_wider_than_160_bits_fails_marketOrder() public {
     vm.expectRevert("mgv/mOrder/takerWants/160bits");
     mgv.marketOrder($(base), $(quote), 2**160, 1, true);
   }
 
-  function snipe_with_0_wants_ejects_offer_test() public {
+  function test_snipe_with_0_wants_ejects_offer() public {
     quote.approve($(mgv), 1 ether);
     uint mkrBal = base.balanceOf(address(mkr));
     uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 50_000, 0);
@@ -975,7 +975,7 @@ contract TakerOperationsTest is MangroveTest {
     );
   }
 
-  function unsafe_gas_left_fails_order_test() public {
+  function test_unsafe_gas_left_fails_order() public {
     mgv.setGasbase($(base), $(quote), 1);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 120_000, 0);
@@ -988,12 +988,11 @@ contract TakerOperationsTest is MangroveTest {
     );
   }
 
-  function marketOrder_on_empty_book_returns_test() public {
-    vm.expectRevert("order on empty book should not fail");
+  function test_marketOrder_on_empty_book_does_not_revert() public {
     mgv.marketOrder($(base), $(quote), 1 ether, 1 ether, true);
   }
 
-  function marketOrder_on_empty_book_does_not_leave_lock_on_test() public {
+  function test_marketOrder_on_empty_book_does_not_leave_lock_on() public {
     mgv.marketOrder($(base), $(quote), 1 ether, 1 ether, true);
     assertTrue(
       !mgv.locked($(base), $(quote)),
@@ -1001,7 +1000,7 @@ contract TakerOperationsTest is MangroveTest {
     );
   }
 
-  function takerWants_is_zero_succeeds_test() public {
+  function test_takerWants_is_zero_succeeds() public {
     (uint got, uint gave, , ) = mgv.marketOrder(
       $(base),
       $(quote),
@@ -1013,7 +1012,7 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(gave, 0 ether, "Taker gave too much");
   }
 
-  function takerGives_is_zero_succeeds_test() public {
+  function test_takerGives_is_zero_succeeds() public {
     (uint got, uint gave, , ) = mgv.marketOrder(
       $(base),
       $(quote),

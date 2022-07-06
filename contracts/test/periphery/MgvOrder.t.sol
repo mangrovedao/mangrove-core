@@ -51,14 +51,6 @@ contract MangroveOrder_Test is MangroveTest {
 
   receive() external payable {}
 
-  function netBuy(uint price) internal view returns (uint) {
-    return price - getFee($(base), $(quote), price);
-  }
-
-  function netSell(uint price) internal view returns (uint) {
-    return price - getFee($(quote), $(base), price);
-  }
-
   function setUp() public override {
     super.setUp();
     mgv.setFee($(base), $(quote), 30);
@@ -151,7 +143,7 @@ contract MangroveOrder_Test is MangroveTest {
     IOrderLogic.TakerOrderResult memory res = mgo.take(buyOrder);
     assertEq(
       res.takerGot,
-      netBuy(1 ether),
+      minusFee($(base), $(quote), 1 ether),
       "Incorrect partial fill of taker order"
     );
     assertEq(
@@ -201,7 +193,11 @@ contract MangroveOrder_Test is MangroveTest {
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
       buyOrder
     );
-    assertEq(res.takerGot, netBuy(1 ether), "Incorrect taker got");
+    assertEq(
+      res.takerGot,
+      minusFee($(base), $(quote), 1 ether),
+      "Incorrect taker got"
+    );
     assertEq(balBefore, $(this).balance, "Take function did not return funds");
   }
 
@@ -328,7 +324,7 @@ contract MangroveOrder_Test is MangroveTest {
       quote,
       $(this),
       false, //buying
-      netBuy(1 ether),
+      minusFee($(base), $(quote), 1 ether),
       0.13 ether,
       0,
       4 // TODO when checkEmit is available, get offer id after post
@@ -410,7 +406,7 @@ contract MangroveOrder_Test is MangroveTest {
     // offer delivers
     assertEq(
       sell_takerGot,
-      netSell(0.1 ether),
+      minusFee($(quote), $(base), 0.1 ether),
       "Incorrect received amount for seller taker"
     );
     // inbound token forwarded to test runner
@@ -523,7 +519,7 @@ contract MangroveOrder_Test is MangroveTest {
       $(base),
       $(quote),
       $(mgo),
-      netBuy(1 ether),
+      minusFee($(base), $(quote), 1 ether),
       0.13 ether,
       0,
       getFee($(base), $(quote), 1 ether)
@@ -533,7 +529,7 @@ contract MangroveOrder_Test is MangroveTest {
       $(base),
       $(quote),
       $(mgo),
-      netBuy(1 ether),
+      minusFee($(base), $(quote), 1 ether),
       0.13 ether,
       0,
       getFee($(base), $(quote), 1 ether)
@@ -545,7 +541,7 @@ contract MangroveOrder_Test is MangroveTest {
       quote,
       $(this),
       false,
-      netBuy(2 ether),
+      minusFee($(base), $(quote), 2 ether),
       0.26 ether,
       0,
       0
@@ -569,7 +565,7 @@ contract MangroveOrder_Test is MangroveTest {
     );
     assertEq(
       res.takerGot,
-      netBuy(2 ether),
+      minusFee($(base), $(quote), 2 ether),
       "Iterative market order was not complete"
     );
   }

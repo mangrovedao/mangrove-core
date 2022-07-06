@@ -131,7 +131,7 @@ contract MangoTest is MangroveTest {
     Book memory book = get_offers(false);
     assertEq(
       got,
-      0.5 ether - getFee($(weth), $(usdc), 0.5 ether),
+      minusFee($(weth), $(usdc), 0.5 ether),
       "incorrect received amount"
     );
     assertEq(bounty, 0, "taker should not receive bounty");
@@ -159,7 +159,7 @@ contract MangoTest is MangroveTest {
 
     assertEq(
       got,
-      cash(usdc, 3500) - getFee($(usdc), $(weth), cash(usdc, 3500)),
+      minusFee($(usdc), $(weth), cash(usdc, 3500)),
       "incorrect received amount"
     );
 

@@ -267,15 +267,13 @@ contract ScenariiTest is MangroveTest {
     // Checking taker balance
     assertEq(
       base.balanceOf(address(taker)), // actual
-      balances.takerBalanceA +
-        takerWants -
-        getFee($(base), $(quote), takerWants), // expected
+      balances.takerBalanceA + minusFee($(base), $(quote), takerWants), // expected
       "incorrect taker A balance"
     );
 
     assertEq(
       takerGot,
-      takerWants - getFee($(base), $(quote), takerWants),
+      minusFee($(base), $(quote), takerWants),
       "Incorrect declared takerGot"
     );
 

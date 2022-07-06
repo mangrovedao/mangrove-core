@@ -15,7 +15,7 @@
     "preproc": "node preprocessing/run.js",
     "test-with-dependencies": "yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run test",
     "test": "npm-run-all \"test:*\"",
-    "test:solidity": "yarn run test:solidity:local; yarn run test:solidity:polygon",
+    "test:solidity": "npm-run-all --continue-on-error \"test:solidity:*\"",
     "test:solidity:local": "bash -c 'source .env; forge test -vvv --no-match-contract \\'^(Guaave|AaveLender|OfferProxy|OasisLike)Test$\\''",
     "test:solidity:polygon": "bash -c 'source .env; forge test -vvv --fork-url $POLYGON_NODE_URL --fork-block-number 26416000 --match-contract \\'^(Guaave|AaveLender|OfferProxy|OasisLike)Test$\\''"
   },

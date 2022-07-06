@@ -38,6 +38,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     bool invertedMangrove;
     TokenOptions base;
     TokenOptions quote;
+    uint defaultFee;
   }
 
   AbstractMangrove mgv;
@@ -48,8 +49,15 @@ contract MangroveTest is Test2, HasMgvEvents {
     MangroveTestOptions({
       invertedMangrove: false,
       base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
-      quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18})
+      quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
+      defaultFee: 0
     });
+
+  constructor() {
+    // generic trace labeling
+    vm.label(tx.origin, "tx.origin");
+    vm.label($(this), "Test runner");
+  }
 
   /* Defaults:
   - testing contract has
@@ -80,12 +88,6 @@ contract MangroveTest is Test2, HasMgvEvents {
     // approve mgv
     base.approve($(mgv), type(uint).max);
     quote.approve($(mgv), type(uint).max);
-    // logging
-    vm.label(tx.origin, "tx.origin");
-    vm.label($(this), "Test runner");
-    vm.label($(base), base.symbol());
-    vm.label($(quote), quote.symbol());
-    vm.label($(mgv), "mgv");
   }
 
   /* Log offer book */
@@ -269,18 +271,22 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   // Deploy mangrove, inverted or not
-  function setupMangrove(bool inverted) public returns (AbstractMangrove) {
+  function setupMangrove(bool inverted) public returns (AbstractMangrove _mgv) {
     if (inverted) {
-      return
-        new InvertedMangrove({
-          governance: $(this),
-          gasprice: 40,
-          gasmax: 1_000_000
-        });
+      _mgv = new InvertedMangrove({
+        governance: $(this),
+        gasprice: 40,
+        gasmax: 1_000_000
+      });
     } else {
-      return
-        new Mangrove({governance: $(this), gasprice: 40, gasmax: 1_000_000});
+      _mgv = new Mangrove({
+        governance: $(this),
+        gasprice: 40,
+        gasmax: 1_000_000
+      });
     }
+    vm.label($(_mgv), "Mangrove");
+    return _mgv;
   }
 
   // Deploy mangrove with a pair
@@ -308,12 +314,19 @@ contract MangroveTest is Test2, HasMgvEvents {
   ) internal {
     not0x($a);
     not0x($b);
-    _mgv.activate($a, $b, 0, 0, 20_000);
-    _mgv.activate($b, $a, 0, 0, 20_000);
+    _mgv.activate($a, $b, options.defaultFee, 0, 20_000);
+    _mgv.activate($b, $a, options.defaultFee, 0, 20_000);
+    // logging
+    vm.label($a, IERC20($a).symbol());
+    vm.label($b, IERC20($b).symbol());
   }
 
   function setupMarket(address $a, address $b) internal {
     setupMarket($a, $b, mgv);
+  }
+
+  function setupMarket(IERC20 a, IERC20 b) internal {
+    setupMarket(address(a), address(b), mgv);
   }
 
   function setupMaker(

@@ -17,21 +17,17 @@ contract AaveLenderTest is MangroveTest {
 
   function setUp() public override {
     Fork.setUp();
+
+    mgv = setupMangrove();
+    mgv.setVault($(mgv));
+
     dai = IERC20(Fork.DAI);
     weth = IERC20(Fork.WETH);
-    mgv = setupMangrove(dai, weth);
-    mgv.fund{value: 10 ether}();
+    options.defaultFee = 30;
+    setupMarket(dai, weth);
 
     weth.approve($(mgv), type(uint).max);
     dai.approve($(mgv), type(uint).max);
-    // logging
-    vm.label(tx.origin, "tx.origin");
-    vm.label($(this), "Test runner");
-    vm.label($(mgv), "mgv");
-
-    mgv.setFee($(weth), $(dai), 30);
-    mgv.setFee($(dai), $(weth), 30);
-    mgv.setVault($(mgv));
 
     deal($(weth), $(this), 10 ether);
     deal($(dai), $(this), 10_000 ether);

@@ -28,14 +28,13 @@ contract MangoTest is MangroveTest {
     options.base.symbol = "WETH";
     options.quote.symbol = "USDC";
     options.quote.decimals = 6;
+    options.defaultFee = 30;
 
     // deploying mangrove and opening WETH/USDC market.
     super.setUp();
     // rename for convenience
     weth = base;
     usdc = quote;
-
-    mgv.setFee($(weth), $(usdc), 30);
 
     maker = freshAddress("maker");
     taker = freshAddress("taker");

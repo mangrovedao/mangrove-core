@@ -22,17 +22,15 @@ contract OfferProxyTest is MangroveTest {
     dai = IERC20(Fork.DAI);
     adai = IERC20(Fork.ADAI);
     weth = IERC20(Fork.WETH);
-    mgv = setupMangrove(dai, weth);
-    mgv.setFee($(weth), $(dai), 30);
-    mgv.setFee($(dai), $(weth), 30);
+
+    mgv = setupMangrove();
+
+    options.defaultFee = 30;
+    setupMarket(dai, weth);
     reader = new MgvReader($(mgv));
 
     weth.approve($(mgv), type(uint).max);
     dai.approve($(mgv), type(uint).max);
-    // logging
-    vm.label(tx.origin, "tx.origin");
-    vm.label($(this), "Test runner");
-    vm.label($(mgv), "mgv");
 
     maker = freshAddress("maker");
     taker = freshAddress("taker");

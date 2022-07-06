@@ -24,22 +24,17 @@ contract GuaaveTest is MangroveTest {
 
   function setUp() public override {
     Fork.setUp();
+
+    mgv = setupMangrove();
+    mgv.setVault($(mgv));
+
     weth = IERC20(Fork.WETH);
     usdc = IERC20(Fork.USDC);
+    options.defaultFee = 30;
+    setupMarket(weth, usdc);
 
-    mgv = setupMangrove(weth, usdc, false);
-    mgv.fund{value: 10 ether}();
     weth.approve($(mgv), type(uint).max);
     usdc.approve($(mgv), type(uint).max);
-    // logging
-    vm.label(tx.origin, "tx.origin");
-    vm.label($(this), "Test runner");
-    vm.label($(mgv), "mgv");
-
-    // sets fee to 30 so redirecting fees to mgv itself to avoid crediting maker
-    mgv.setFee($(weth), $(usdc), 30);
-    mgv.setFee($(usdc), $(weth), 30);
-    mgv.setVault($(mgv));
 
     maker = freshAddress("maker");
     taker = freshAddress("taker");

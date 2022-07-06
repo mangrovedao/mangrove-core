@@ -14,6 +14,7 @@ contract OasisLikeTest is MangroveTest {
     options.quote.decimals = 6;
     super.setUp();
     taker = freshAddress("taker");
+    // rename for convenience
     weth = base;
     usdc = quote;
     deal($(usdc), taker, 10_000 ether);

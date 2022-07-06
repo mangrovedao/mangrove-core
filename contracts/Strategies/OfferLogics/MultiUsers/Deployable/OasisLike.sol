@@ -12,74 +12,15 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../Persistent.sol";
+import "contracts/Strategies/Routers/SimpleRouter.sol";
 
 contract OasisLike is MultiUserPersistent {
-  constructor(IMangrove _MGV, address deployer) MangroveOffer(_MGV) {
+  constructor(IMangrove _MGV, address deployer)
+    MultiUserPersistent(_MGV, new SimpleRouter(), 30_000)
+  {
     if (deployer != msg.sender) {
       setAdmin(deployer);
+      router().setAdmin(deployer);
     }
-  }
-
-  // overrides MultiUser.__put__ in order to transfer all inbound tokens to owner
-  function __put__(uint amount, ML.SingleOrder calldata order)
-    internal
-    override
-    returns (uint missing)
-  {
-    // transfers the deposited tokens to owner
-    address owner = ownerOf(
-      IEIP20(order.outbound_tkn),
-      IEIP20(order.inbound_tkn),
-      order.offerId
-    );
-    if (IEIP20(order.inbound_tkn).transfer(owner, amount)) {
-      return 0;
-    } else {
-      return amount;
-    }
-  }
-
-  function __get__(uint amount, ML.SingleOrder calldata order)
-    internal
-    override
-    returns (uint)
-  {
-    // tries to fetch missing amount into owner's wallet
-    address owner = ownerOf(
-      IEIP20(order.outbound_tkn),
-      IEIP20(order.inbound_tkn),
-      order.offerId
-    );
-    try
-      IEIP20(order.outbound_tkn).transferFrom(owner, address(this), amount)
-    returns (bool success) {
-      if (success) {
-        return 0;
-      } else {
-        return amount;
-      }
-    } catch {
-      return amount;
-    }
-  }
-
-  // if offer failed to execute or reneged it should deprovision since owner might not keep track of offers out of the book
-  // note this doesn't work currently since Mangrove deprovisions failed offers
-  function __posthookFallback__(
-    ML.SingleOrder calldata order,
-    ML.OrderResult calldata result
-  ) internal virtual override returns (bool) {
-    retractOfferInternal(
-      IEIP20(order.outbound_tkn),
-      IEIP20(order.inbound_tkn),
-      order.offerId,
-      true,
-      ownerOf(
-        IEIP20(order.outbound_tkn),
-        IEIP20(order.inbound_tkn),
-        order.offerId
-      )
-    );
-    return super.__posthookFallback__(order, result);
   }
 }

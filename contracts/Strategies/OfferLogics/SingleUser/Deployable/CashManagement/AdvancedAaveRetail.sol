@@ -11,38 +11,31 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "../../AaveV3Trader.sol";
+import "../../Persistent.sol";
+import "contracts/Strategies/Routers/AaveDeepRouter.sol";
 
-contract AdvancedAaveRetail is AaveV3Trader {
+contract AdvancedAaveRetail is Persistent {
   constructor(
-    address addressesProvider,
-    IMangrove _MGV,
+    IMangrove _mgv,
+    address _addressesProvider,
     address deployer
-  )
-    AaveV3Module(
-      addressesProvider,
-      0,
-      1 /* Interest rate mode */
-    )
-    MangroveOffer(_MGV)
-  {
-    setGasreq(1_000_000);
+  ) Persistent(_mgv, 30_000, new AaveDeepRouter(_addressesProvider, 0, 2)) {
+    // Router reserve is by default `router.address`
+    // use `set_reserve(addr)` to change this
+    router().setAdmin(deployer);
     if (deployer != msg.sender) {
       setAdmin(deployer);
     }
   }
 
-  // Tries to take base directly from `this` balance. Fetches the remainder on Aave.
-  function __get__(uint amount, ML.SingleOrder calldata order)
+  // overriding put to leverage taker's liquidity on aave
+  // this function will deposit incoming liquidity to increase borrow power during trade
+  function __put__(uint amount, ML.SingleOrder calldata order)
     internal
-    virtual
     override
-    returns (uint)
+    returns (uint missingPut)
   {
-    uint missing = SingleUser.__get__(amount, order);
-    if (missing > 0) {
-      return super.__get__(missing, order);
-    }
+    push(IEIP20(order.inbound_tkn), amount);
     return 0;
   }
 }

@@ -13,8 +13,6 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../../CompoundLender.sol";
 
-//import "hardhat/console.sol";
-
 contract SimpleCompoundRetail is CompoundLender {
   constructor(
     address _unitroller,
@@ -22,7 +20,7 @@ contract SimpleCompoundRetail is CompoundLender {
     address wethAddress,
     address deployer
   ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {
-    setGasreq(1_000_000);
+    set_gasreq(1_000_000);
     if (deployer != msg.sender) {
       setAdmin(deployer);
     }

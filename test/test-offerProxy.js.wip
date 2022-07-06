@@ -27,17 +27,29 @@ async function deployStrat(mgv, reader, players) {
     mgv.address,
     players.deployer.address
   );
-
   await offerProxy.deployed();
-  // offerProxy needs to let lendingPool pull inbound tokens from it in order to mint
+
+  const router_address = await offerProxy.router();
+  const RouterFactory = await ethers.getContractFactory("AaveDeepRouter");
+  const router = RouterFactory.attach(router_address);
+
+  // offerProxy needs to let router pull tokens from it
   let tx = await offerProxy
     .connect(players.deployer.signer)
-    .approveLender(wEth.address, ethers.constants.MaxUint256);
+    .approveRouter(wEth.address);
+  await tx.wait();
+  tx = await offerProxy
+    .connect(players.deployer.signer)
+    .approveRouter(dai.address);
   await tx.wait();
 
   // Taker side premises
-  // taker approves Mangrove for WETH (inbound) before trying to take offers
-  const tkrTx = await wEth
+  // taker approves Mangrove before trying to take offers
+  let tkrTx = await wEth
+    .connect(players.taker.signer)
+    .approve(mgv.address, ethers.constants.MaxUint256);
+  await tkrTx.wait();
+  tkrTx = await dai
     .connect(players.taker.signer)
     .approve(mgv.address, ethers.constants.MaxUint256);
   await tkrTx.wait();
@@ -45,16 +57,10 @@ async function deployStrat(mgv, reader, players) {
   // Maker side premises
   let mkrTxs = [];
   let i;
-  // provisioning Mangrove in case offer fails
-  // NB: for multi user offers this has to be done via the contract and not direclty
-  let overrides = { value: lc.parseToken("2.0", 18) };
-  mkrTxs[i++] = await offerProxy
-    .connect(players.maker.signer)
-    .fundMangrove(overrides);
-  // maker approves aDai (Dai is outbound) transfer so that offerProxy can pull them on demand
+  // maker approves aDai (Dai is outbound) transfer so that offerProxy's router can pull them on demand
   mkrTxs[i++] = await aDai
     .connect(players.maker.signer)
-    .approve(offerProxy.address, ethers.constants.MaxUint256);
+    .approve(router.address, ethers.constants.MaxUint256);
 
   // Maker mints 1000 aDai on AAVE
   mkrTxs[i++] = await dai
@@ -62,23 +68,9 @@ async function deployStrat(mgv, reader, players) {
     .approve(lendingPool.address, ethers.constants.MaxUint256);
   mkrTxs[i++] = await lendingPool
     .connect(players.maker.signer)
-    .deposit(dai.address, lc.parseToken("1000", 18), players.maker.address, 0);
+    .supply(dai.address, lc.parseToken("1000", 18), players.maker.address, 0);
 
   await lc.synch(mkrTxs);
-
-  // sanity check
-  lc.assertEqualBN(
-    await mgv.balanceOf(offerProxy.address),
-    lc.parseToken("2.0", 18),
-    "Failed to fund the Mangrove"
-  );
-  lc.assertEqualBN(
-    await offerProxy
-      .connect(players.maker.signer)
-      .balanceOnMangrove(players.maker.address),
-    lc.parseToken("2.0", 18),
-    "Failed to fund the user account"
-  );
 
   /*********************** DEPLOYER SIDE PREMISES **************************/
   offerProxy = offerProxy.connect(players.deployer.signer);
@@ -87,25 +79,11 @@ async function deployStrat(mgv, reader, players) {
 
   // admin of makerContract
   // deployer asks MakerContract to approve Mangrove for DAI --here the outbound token
-  depTxs[j++] = await offerProxy.approveMangrove(
-    dai.address,
-    ethers.constants.MaxUint256
-  );
-  // depTxs[j++] = await offerProxy.approveMangrove(
-  //   wEth.address,
-  //   ethers.constants.MaxUint256
-  // );
-  // maker contract need to approve lender for dai and weth transfer to be able to mint (not used for now in put)
-  // depTxs[j++] = await offerProxy.approveLender(
-  //   dai.address,
-  //   ethers.constants.MaxUint256
-  // );
-  // depTxs[j++] = await offerProxy.approveLender(
-  //   wEth.address,
-  //   ethers.constants.MaxUint256
-  // );
+  depTxs[j++] = await offerProxy
+    .connect(players.deployer.signer)
+    .approveMangrove(dai.address, ethers.constants.MaxUint256);
   await lc.synch(depTxs);
-  return offerProxy;
+  return [offerProxy, router];
 }
 
 describe("Deploy offerProxy", function () {
@@ -114,6 +92,7 @@ describe("Deploy offerProxy", function () {
   let reader;
   let players;
   let offerProxy;
+  let router;
 
   before(async function () {
     // 1. mint (1000 dai, 1000 eth, 1000 weth) for testSigner
@@ -155,8 +134,8 @@ describe("Deploy offerProxy", function () {
   it("Offer proxy on aave", async function () {
     const dai = await lc.getContract("DAI");
     const wEth = await lc.getContract("WETH");
-    offerProxy = await deployStrat(mgv, reader, players);
-    await execLenderStrat(offerProxy, mgv, reader, "aave", players);
+    [offerProxy, router] = await deployStrat(mgv, reader, players);
+    await execLenderStrat(offerProxy, router, mgv, reader, "aave", players);
     // checking offer owner of offerId 1 (residual)
     const [, ofrIds, ,] = await reader.offerList(
       dai.address,
@@ -189,15 +168,19 @@ describe("Deploy offerProxy", function () {
 
     //cancelling maker approval for aDai transfer to makerContract
     await aDai.connect(players.maker.signer).approve(offerProxy.address, 0);
-
-    let offerId = await lc.newOffer(
-      mgv,
-      reader,
-      offerProxy.connect(players.maker.signer),
-      "DAI", // outbound
-      "WETH", // inbound
-      lc.parseToken("0.5", await lc.getDecimals("WETH")), // required WETH
-      lc.parseToken("1000.0", await lc.getDecimals("DAI")) // promised DAI
+    let overrides = { value: ethers.utils.parseEther("0.1") };
+    let offerId = await offerProxy.connect(players.maker.signer).newOffer(
+      {
+        outbound_tkn: dai.address,
+        inbound_tkn: wEth.address,
+        wants: lc.parseToken("0.5", await lc.getDecimals("WETH")),
+        gives: lc.parseToken("1000.0", await lc.getDecimals("DAI")),
+        gasreq: ethers.constants.MaxUint256,
+        gasprice: 0, // will be overriden
+        pivotId: 0,
+        offerId: 0,
+      },
+      overrides
     );
 
     let [offer] = await mgv.offerInfo(dai.address, wEth.address, offerId);

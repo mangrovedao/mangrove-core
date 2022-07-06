@@ -15,6 +15,7 @@ pragma abicoder v2;
 import "./IPool.sol";
 import {IPoolAddressesProvider} from "./IPoolAddressesProvider.sol";
 import {IRewardsControllerIsh} from "./IRewardsControllerIsh.sol";
+import {ICreditDelegationToken} from "./ICreditDelegationToken.sol";
 
 import "./IPriceOracleGetter.sol";
 import {ReserveConfiguration as RC} from "./ReserveConfiguration.sol";

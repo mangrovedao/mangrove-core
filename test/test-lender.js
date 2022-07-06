@@ -1,4 +1,5 @@
 const { assert } = require("chai");
+const { lstat } = require("fs");
 const { ethers } = require("hardhat");
 const lc = require("lib/libcommon.js");
 const { listenMgv, parseToken, listenERC20 } = require("../lib/libcommon");
@@ -18,6 +19,7 @@ async function deployStrat(strategy, mgv) {
   let makerContract = null;
   let market = [null, null]; // market pair for lender
   let enterMarkets = true;
+  let router = null;
   switch (strategy) {
     case "SimpleCompoundRetail":
     case "AdvancedCompoundRetail":
@@ -33,14 +35,17 @@ async function deployStrat(strategy, mgv) {
     case "SimpleAaveRetail":
     case "AdvancedAaveRetail":
       makerContract = await Strat.deploy(
-        aave.address,
         mgv.address,
+        aave.address,
         testSigner.address
       );
       makerContract = makerContract.connect(testSigner);
       market = [wEth.address, dai.address];
       // aave rejects market entering if underlying balance is 0 (will self enter at first deposit)
       enterMarkets = false;
+      let router_address = await makerContract.router();
+      const RouterFactory = await ethers.getContractFactory("AaveDeepRouter");
+      router = RouterFactory.attach(router_address);
       break;
     default:
       console.warn("Undefined strategy " + strategy);
@@ -87,31 +92,30 @@ async function deployStrat(strategy, mgv) {
     wEth.address,
     ethers.constants.MaxUint256
   );
-  // One sends 1000 DAI to MakerContract
+  mkrTxs[i++] = await makerContract.approveRouter(dai.address);
+  mkrTxs[i++] = await makerContract.approveRouter(wEth.address);
+  // One sends 1000 DAI to makerContract
   mkrTxs[i++] = await dai.transfer(
     makerContract.address,
     parseToken("1000.0", await lc.getDecimals("DAI"))
   );
   // testSigner asks makerContract to approve lender to be able to mint [c/a]Token
-  mkrTxs[i++] = await makerContract.approveLender(
-    market[0],
-    ethers.constants.MaxUint256
-  );
+  mkrTxs[i++] = await router.approveLender(market[0]);
   // NB in the special case of cEth this is only necessary to repay debt
-  mkrTxs[i++] = await makerContract.approveLender(
-    market[1],
-    ethers.constants.MaxUint256
-  );
+  mkrTxs[i++] = await router.approveLender(market[1]);
   // makerContract deposits some DAI on Lender (remains 100 DAIs on the contract)
-  mkrTxs[i++] = await makerContract.mint(
-    market[1],
-    parseToken("900.0", await lc.getDecimals("DAI")),
-    makerContract.address
-  );
-
+  // overlyings are placed into reserve
   await lc.synch(mkrTxs);
 
-  return makerContract;
+  const supplyTx = await router.supply(
+    market[1],
+    await makerContract.reserve(),
+    parseToken("900.0", await lc.getDecimals("DAI")),
+    makerContract.address // from
+  );
+  const receipt = await supplyTx.wait();
+  console.log("Supply cost", receipt.gasUsed.toNumber());
+  return [makerContract, router];
 }
 
 /// start with 900 DAIs on lender and 100 DAIs locally
@@ -164,22 +168,22 @@ describe("Deploy strategies", function () {
     assert(local.active, "Market is inactive");
   });
 
-  it("Lender/borrower strat on compound", async function () {
-    const makerContract = await deployStrat(
-      "AdvancedCompoundRetail",
-      mgv,
-      testSigner.address
-    );
-    await execTraderStrat(makerContract, mgv, reader, "compound");
-  });
+  // it("Lender/borrower strat on compound", async function () {
+  //   const makerContract = await deployStrat(
+  //     "AdvancedCompoundRetail",
+  //     mgv,
+  //     testSigner.address
+  //   );
+  //   await execTraderStrat(makerContract, mgv, reader, "compound");
+  // });
 
   it("Lender/borrower strat on aave", async function () {
-    const makerContract = await deployStrat(
+    const [makerContract, router] = await deployStrat(
       "AdvancedAaveRetail",
       mgv,
       testSigner.address
     );
-    await execTraderStrat(makerContract, mgv, reader, "aave");
+    await execTraderStrat(makerContract, router, mgv, reader, "aave");
     // lc.stopListeners([mgv]);
   });
 });

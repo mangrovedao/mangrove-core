@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// MangroveOffer.sol
+// SingleUser.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -14,10 +14,33 @@ pragma abicoder v2;
 
 import "../MangroveOffer.sol";
 import "../../utils/TransferLib.sol";
+import {SingleUserStorage as SUS} from "./SingleUserStorage.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract SingleUser is MangroveOffer {
-  /// transfers token stored in `this` contract to some recipient address
+  constructor(
+    IMangrove _mgv,
+    uint strat_gasreq,
+    AbstractRouter _router
+  ) MangroveOffer(_mgv, strat_gasreq) {
+    // default reserve is router's address if router is defined
+    // if not then default reserve is `this` contract
+    if (address(_router) == address(0)) {
+      set_reserve(address(this));
+    } else {
+      set_reserve(address(_router));
+      set_router(_router);
+    }
+  }
+
+  function reserve() public view returns (address) {
+    return SUS.get_storage().reserve;
+  }
+
+  function set_reserve(address _reserve) public mgvOrAdmin {
+    require(_reserve != address(0), "SingleUser/0xReserve");
+    SUS.get_storage().reserve = _reserve;
+  }
 
   function withdrawToken(
     IEIP20 token,
@@ -25,19 +48,53 @@ abstract contract SingleUser is MangroveOffer {
     uint amount
   ) external override onlyAdmin returns (bool success) {
     require(receiver != address(0), "SingleUser/withdrawToken/0xReceiver");
-    return TransferLib.transferToken(IEIP20(token), receiver, amount);
+    if (!has_router()) {
+      return TransferLib.transferToken(IEIP20(token), receiver, amount);
+    } else {
+      router().withdrawToken(token, reserve(), receiver, amount);
+    }
   }
 
-  /// withdraws ETH from the bounty vault of the Mangrove.
-  /// ETH are sent to `receiver`
-  function withdrawFromMangrove(address payable receiver, uint amount)
-    external
-    override
-    onlyAdmin
-    returns (bool)
-  {
-    require(receiver != address(0), "SingleUser/withdrawMGV/0xReceiver");
-    return _withdrawFromMangrove(receiver, amount);
+  function pull(
+    IEIP20 outbound_tkn,
+    uint amount,
+    bool strict
+  ) internal returns (uint) {
+    AbstractRouter _router = MOS.get_storage().router;
+    if (address(_router) == address(0)) {
+      return 0; // nothing to do
+    } else {
+      // letting specific router pull the funds from reserve
+      return _router.pull(outbound_tkn, reserve(), amount, strict);
+    }
+  }
+
+  function push(IEIP20 token, uint amount) internal {
+    AbstractRouter _router = MOS.get_storage().router;
+    if (address(_router) == address(0)) {
+      return; // nothing to do
+    } else {
+      // noop if reserve == address(this)
+      _router.push(token, reserve(), amount);
+    }
+  }
+
+  function tokenBalance(IEIP20 token) external view override returns (uint) {
+    AbstractRouter _router = MOS.get_storage().router;
+    uint balance = token.balanceOf(reserve());
+    return
+      address(_router) == address(0)
+        ? balance
+        : balance + _router.reserveBalance(token, reserve());
+  }
+
+  function flush(IEIP20[] memory tokens) internal {
+    AbstractRouter _router = MOS.get_storage().router;
+    if (address(_router) == address(0)) {
+      return; // nothing to do
+    } else {
+      _router.flush(tokens, reserve());
+    }
   }
 
   // Posting a new offer on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
@@ -46,23 +103,23 @@ abstract contract SingleUser is MangroveOffer {
   // * Make sure that `this` contract has enough WEI provision on Mangrove to cover for the new offer bounty (function is payable so that caller can increase provision prior to posting the new offer)
   // * Make sure that `gasreq` and `gives` yield a sufficient offer density
   // NB #2: This function will revert when the above points are not met
-  function newOffer(MakerOrder calldata mko)
+  function newOffer(MakerOrder memory mko)
     external
     payable
     override
     onlyAdmin
-    returns (uint offerId)
+    returns (uint)
   {
-    return
-      MGV.newOffer{value: msg.value}(
-        address(mko.outbound_tkn),
-        address(mko.inbound_tkn),
-        mko.wants,
-        mko.gives,
-        mko.gasreq,
-        mko.gasprice,
-        mko.pivotId
-      );
+    mko.offerId = MGV.newOffer{value: msg.value}(
+      address(mko.outbound_tkn),
+      address(mko.inbound_tkn),
+      mko.wants,
+      mko.gives,
+      mko.gasreq >= type(uint24).max ? ofr_gasreq() : mko.gasreq,
+      mko.gasprice,
+      mko.pivotId
+    );
+    return mko.offerId;
   }
 
   // Updates offer `offerId` on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
@@ -70,7 +127,7 @@ abstract contract SingleUser is MangroveOffer {
   // * Make sure that offer maker has enough WEI provision on Mangrove to cover for the new offer bounty in case Mangrove gasprice has increased (function is payable so that caller can increase provision prior to updating the offer)
   // * Make sure that `gasreq` and `gives` yield a sufficient offer density
   // NB #2: This function will revert when the above points are not met
-  function updateOffer(MakerOrder calldata mko, uint offerId)
+  function updateOffer(MakerOrder memory mko)
     external
     payable
     override
@@ -82,10 +139,10 @@ abstract contract SingleUser is MangroveOffer {
         address(mko.inbound_tkn),
         mko.wants,
         mko.gives,
-        mko.gasreq,
+        mko.gasreq > type(uint24).max ? ofr_gasreq() : mko.gasreq,
         mko.gasprice,
         mko.pivotId,
-        offerId
+        mko.offerId
       );
   }
 
@@ -108,44 +165,49 @@ abstract contract SingleUser is MangroveOffer {
       );
   }
 
-  function getMissingProvision(
-    IEIP20 outbound_tkn,
-    IEIP20 inbound_tkn,
-    uint gasreq,
-    uint gasprice,
-    uint offerId
-  ) public view override returns (uint) {
-    return
-      _getMissingProvision(
-        MGV.balanceOf(address(this)), // current provision of offer maker is simply the current provision of `this` contract on Mangrove
-        outbound_tkn,
-        inbound_tkn,
-        gasreq,
-        gasprice,
-        offerId
-      );
-  }
-
-  // default `__put__` hook for `SingleUser` strats: received tokens are juste stored in `this` contract balance of `inbound` tokens.
   function __put__(
     uint, /*amount*/
     ML.SingleOrder calldata
-  ) internal virtual override returns (uint) {
+  ) internal virtual override returns (uint missing) {
+    // singleUser contract do not need to do anything specific with incoming funds during trade
     return 0;
   }
 
-  // default `__get__` hook for `SingleUser` strats: promised liquidity is obtained from `this` contract balance of `outbound` tokens
+  // default `__get__` hook for `SingleUser` is to pull liquidity from immutable `reserve()`
+  // letting router handle the specifics if any
   function __get__(uint amount, ML.SingleOrder calldata order)
     internal
     virtual
     override
-    returns (uint)
+    returns (uint missing)
   {
-    uint balance = IEIP20(order.outbound_tkn).balanceOf(address(this));
-    if (balance >= amount) {
+    // pulling liquidity from reserve
+    // depending on the router, this may result in pulling more/less liquidity than required
+    // so one should check local balance to compute missing liquidity
+    uint pulled = pull(IEIP20(order.outbound_tkn), amount, false);
+    if (pulled >= amount) {
       return 0;
     } else {
-      return (amount - balance);
+      uint local_balance = IEIP20(order.outbound_tkn).balanceOf(address(this));
+      return local_balance >= amount ? 0 : amount - local_balance;
     }
+  }
+
+  ////// Customizable post-hooks.
+
+  // Override this post-hook to implement what `this` contract should do when called back after a successfully executed order.
+  // In this posthook, contract will flush its liquidity towards the reserve (noop if reserve is this contract)
+  function __posthookSuccess__(ML.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (bool success)
+  {
+    IEIP20[] memory tokens = new IEIP20[](2);
+    tokens[0] = IEIP20(order.outbound_tkn); // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
+    tokens[1] = IEIP20(order.inbound_tkn); // flushing liquidity brought by taker
+    // sends all tokens to the reserve (noop if reserve() == address(this))
+    flush(tokens);
+    success = true;
   }
 }

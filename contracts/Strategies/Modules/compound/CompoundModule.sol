@@ -15,8 +15,6 @@ import "./ICompound.sol";
 import "../../utils/Exponential.sol";
 import "../../interfaces/IMangrove.sol";
 
-//import "hardhat/console.sol";
-
 contract CompoundModule is Exponential {
   event ErrorOnRedeem(
     address indexed outbound_tkn,

@@ -23,6 +23,7 @@ library TestCollectFailingOffer {
       bool success,
       uint takerGot,
       uint takerGave,
+      uint,
       uint
     ) {
       // take should return false not throw

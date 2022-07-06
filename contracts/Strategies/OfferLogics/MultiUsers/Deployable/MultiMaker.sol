@@ -12,11 +12,15 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../MultiUser.sol";
+import "contracts/Strategies/Routers/SimpleRouter.sol";
 
 contract MultiMaker is MultiUser {
-  constructor(IMangrove _MGV, address deployer) MangroveOffer(_MGV) {
+  constructor(IMangrove _MGV, address deployer)
+    MultiUser(_MGV, new SimpleRouter(), 30_000)
+  {
     if (deployer != msg.sender) {
       setAdmin(deployer);
+      router().setAdmin(deployer);
     }
   }
 }

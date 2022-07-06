@@ -12,8 +12,8 @@
 
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {AaveV3ModuleStorage as AMS, IEIP20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, IPriceOracleGetter, DataTypes, RC} from "./AaveModuleStorage.sol";
-import "hardhat/console.sol";
+import {AaveV3ModuleStorage as AMS, IEIP20, IRewardsControllerIsh, IPoolAddressesProvider, ICreditDelegationToken, IPool, IPriceOracleGetter, DataTypes, RC} from "./AaveModuleStorage.sol";
+import "contracts/Strategies/utils/TransferLib.sol";
 
 contract AaveV3ModuleImplementation {
   IPool public immutable POOL;
@@ -142,62 +142,78 @@ contract AaveV3ModuleImplementation {
           address(this)
         );
     }
-    uint toMint;
+    uint toMint = amount;
     if (debtOfUnderlying == 0) {
       toMint = amount;
     } else {
-      uint repaid = POOL.repay(
-        address(token),
-        amount,
-        interestRateMode,
-        onBehalf
-      );
-      toMint = amount - repaid;
-      if (toMint == 0) {
-        return;
+      try
+        POOL.repay(address(token), amount, interestRateMode, onBehalf)
+      returns (uint repaid) {
+        toMint -= repaid;
+        if (toMint == 0) {
+          return;
+        }
+      } catch {
+        // this may happen in aave v3 (as of July 2022) when trying to repay debt in the block of the borrow
+        // toMint == amount
       }
     }
     POOL.supply(address(token), toMint, onBehalf, uint16(referralCode));
   }
 
-  function $exactRedeemThenBorrow(
+  function $redeemThenBorrow(
     uint interestRateMode,
     uint referralCode,
     IEIP20 token,
     address onBehalfOf,
-    uint amount
+    uint amount,
+    bool strict,
+    address recipient
   ) external returns (uint) {
-    (uint redeemable, uint liquidity_after_redeem) = $maxGettableUnderlying(
+    (uint redeemable, uint borrowable_after_redeem) = $maxGettableUnderlying(
       address(token),
       true, // compute borrow power after redeem
-      address(this) // assuming aTokens are on `this` contract's balance
-    );
-
-    if (redeemable + liquidity_after_redeem < amount) {
-      return amount; // give up early if not possible to fetch amount of underlying
-    }
-    // 2. trying to redeem liquidity from Compound
-    uint toRedeem = (redeemable < amount) ? redeemable : amount;
-
-    uint redeemed = POOL.withdraw(address(token), toRedeem, onBehalfOf);
-    // `toRedeem` was computed such that lender should allow this contract to withdraw all of it
-    // if this should fail it must be because the lender is running out of cash
-    require(redeemed == toRedeem, "AaveModule/lenderOutOfCash");
-
-    amount = amount - toRedeem;
-
-    if (amount == 0) {
-      return 0;
-    }
-    // 3. trying to borrow missing liquidity
-    // NB `to` must have approved `this` contract for delegation unless `to == address(this)`
-    POOL.borrow(
-      address(token),
-      amount,
-      interestRateMode,
-      uint16(referralCode),
       onBehalfOf
     );
-    return 0;
+    if (strict) {
+      redeemable = (redeemable < amount) ? redeemable : amount;
+    }
+    // `this` contract must have the aToken to withdraw on AAVE
+    require(
+      TransferLib.transferTokenFrom(
+        IEIP20(POOL.getReserveData(address(token)).aTokenAddress),
+        onBehalfOf,
+        address(this),
+        redeemable
+      ),
+      "AaveModule/redeemThenBorrow/aTknTransferFail"
+    );
+    // redeemed tokens are direclty transfered to `recipient`
+    if (redeemable > 0) {
+      POOL.withdraw(address(token), redeemable, recipient);
+    }
+
+    if (redeemable >= amount || borrowable_after_redeem == 0) {
+      return redeemable;
+    } else {
+      amount -= redeemable;
+      // still missing liquidity to reach target amount
+      borrowable_after_redeem = borrowable_after_redeem > amount
+        ? amount
+        : borrowable_after_redeem;
+      POOL.borrow(
+        address(token),
+        borrowable_after_redeem,
+        interestRateMode,
+        uint16(referralCode),
+        onBehalfOf
+      );
+      // sending borrowed tokens to `recipient`
+      require(
+        TransferLib.transferToken(token, recipient, borrowable_after_redeem),
+        "AaveModule/redeemThenBorrow/TknTransferFail"
+      );
+      return redeemable + borrowable_after_redeem;
+    }
   }
 }

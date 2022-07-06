@@ -26,11 +26,14 @@ contract SwingingMarketMaker is CompoundTrader {
     IMangrove _MGV,
     address wethAddress,
     address deployer
-  ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {
+  ) 
+  CompoundModule(_unitroller, wethAddress) 
+  // note this is bad, one should be using AaaveRouters to do this
+  SingleUser(_MGV, new SimpleRouter(deployer), address(this)) {
     if (deployer != msg.sender) {
       setAdmin(deployer);
     }
-    setGasreq(1_000_000);
+    set_gasreq(1_000_000);
   }
 
   // sets P(tk0|tk1)
@@ -80,7 +83,7 @@ contract SwingingMarketMaker is CompoundTrader {
           inbound_tkn,
           wants,
           gives,
-          OFR_GASREQ(),
+          ofr_gasreq(),
           0,
           0
         )
@@ -102,7 +105,7 @@ contract SwingingMarketMaker is CompoundTrader {
           wants,
           gives,
           // offerId is already on the book so a good pivot
-          OFR_GASREQ(), // default value
+          ofr_gasreq(), // default value
           0, // default value
           offerId,
           offerId

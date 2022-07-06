@@ -1,6 +1,3 @@
-const { assert } = require("chai");
-const { existsSync } = require("fs");
-//const { parseToken } = require("ethers/lib/utils");
 const { ethers } = require("hardhat");
 const lc = require("../lib/libcommon.js");
 
@@ -38,7 +35,7 @@ describe("Running tests...", function () {
   let maker = null;
   let taker = null;
   let makerContract = null;
-  let router = null;
+  let aave_router = null;
 
   const NSLOTS = 20;
   // price increase is delta/BASE_0
@@ -78,15 +75,40 @@ describe("Running tests...", function () {
         ethers.utils.parseUnits("1000", 6), // QUOTE0
         NSLOTS, // price slots
         delta, //quote progression
-        maker.address // admin
+        maker.address // reserve address is maker's wallet
       )
     ).connect(maker);
+  });
 
-    //await makerContract.setGasreq(ethers.BigNumber.from(500000));
+  it("Deploy buffered AAVE router", async function () {
+    // default router for Mango is `SimpleRouter` that uses `reserve` to pull and push liquidity
+    // here we want to use aave for (il)liquidity and store liquid overlying at reserve
+    // router will redeem and deposit funds that are mobilized during trade execution
+    const RouterFactory = await ethers.getContractFactory("AaveRouter");
+    aave_router = await RouterFactory.deploy(
+      (
+        await lc.getContract("AAVE")
+      ).address,
+      0, // referral code
+      1 // interest rate mode -stable-
+    );
+    await aave_router.deployed();
+
+    // liquidity router will pull funds from AAVE
+    const bindTx = await aave_router.bind(makerContract.address);
+    await bindTx.wait();
+
+    let txs = [];
+    let i = 0;
+
+    txs[i++] = await makerContract.set_router(aave_router.address);
+    txs[i++] = await makerContract.set_reserve(aave_router.address);
+    await lc.synch(txs);
+    // computing necessary provision (which has changed because of new router GAS_OVERHEAD)
     const prov = await makerContract.getMissingProvision(
       wEth.address,
       usdc.address,
-      await makerContract.OFR_GASREQ(),
+      await makerContract.ofr_gasreq(),
       0,
       0
     );
@@ -95,62 +117,39 @@ describe("Running tests...", function () {
     });
     await fundTx.wait();
     await lc.fund([["WETH", "17.0", makerContract.address]]);
-  });
 
-  it("Deploy buffered AAVE router", async function () {
-    const RouterFactory = await ethers.getContractFactory("BufferedAaveRouter");
-    router = await RouterFactory.deploy(
-      (
-        await lc.getContract("AAVE")
-      ).address,
-      0, // referral code
-      1, // interest rate mode -stable-
-      maker.address
-    );
-    // liquidity router will pull funds from AAVE
+    txs = [];
+    i = 0;
+    txs[i++] = await aave_router.approveLender(wEth.address); // to mint awETH
+    txs[i++] = await aave_router.approveLender(usdc.address); // to mint aUSDC
 
-    let txs = [];
-    let i = 0;
-    txs[i++] = await makerContract.set_liquidity_router(
-      router.address, // telling Mango which router it should call
-      router.address, // telling Mango to use the router itself as reserve
-      800000
-    );
-    // adding makerContract to allowed pullers of router's liquidity
-    txs[i++] = await router.bind(makerContract.address);
-
-    txs[i++] = await router.approveLender(wEth.address); // to mint awETH
-    txs[i++] = await router.approveLender(usdc.address); // to mint aUSDC
-
+    txs[i++] = await makerContract.approveRouter(wEth.address); // to allow router to pull/push from Mango
+    txs[i++] = await makerContract.approveRouter(usdc.address);
     // putting ETH as collateral on AAVE
-    txs[i++] = await router.supply(
+    txs[i++] = await aave_router.supply(
       wEth.address, //asset
+      await makerContract.reserve(), // reserve
       ethers.utils.parseEther("17"), //amount
-      makerContract.address // from
+      makerContract.address // from (makerContract was funded above)
     );
+    await lc.synch(txs);
 
     // borrowing USDC on collateral
-    txs[i++] = await router.borrow(
-      usdc.address,
+    const borrowTx = await aave_router.borrow(
+      usdc.address, // asset
+      await makerContract.reserve(),
       ethers.utils.parseUnits("2000", 6),
-      makerContract.address // to
+      makerContract.address // (maker contract is buffer)
     );
-    // setting buffer to be twice the promised volume of an offer
-    // txs[i++] = await router.set_buffer(
-    //   wEth.address,
-    //   ethers.utils.parseEther("3")
-    // );
-    // txs[i++] = await router.set_buffer(
-    //   usdc.address,
-    //   ethers.utils.parseUnits("2000", 6)
-    // );
 
-    await lc.synch(txs);
+    const receipt = await borrowTx.wait();
+    console.log("Borrow gas cost", receipt.gasUsed.toNumber());
+
     await lc.logLenderStatus(
-      router,
+      aave_router,
       "aave",
       ["WETH", "USDC"],
-      router.address,
+      aave_router.address,
       makerContract.address
     );
   });
@@ -179,7 +178,7 @@ describe("Running tests...", function () {
 
     const awETHBalance = await (
       await lc.getContract("AWETH")
-    ).balanceOf(router.address);
+    ).balanceOf(aave_router.address);
 
     const receipt = await (
       await mgv.connect(taker).marketOrder(
@@ -192,15 +191,15 @@ describe("Running tests...", function () {
     ).wait();
     console.log(`Market order passed for ${receipt.gasUsed} gas units`);
     await lc.logLenderStatus(
-      router,
+      aave_router,
       "aave",
       ["WETH", "USDC"],
-      router.address,
+      aave_router.address,
       makerContract.address
     );
     lc.assertAlmost(
       awETHBalance.sub(takerWants), //maker pays before Mangrove fees
-      await (await lc.getContract("AWETH")).balanceOf(router.address),
+      await (await lc.getContract("AWETH")).balanceOf(aave_router.address),
       18,
       9, // decimals of precision
       "incorrect WETH balance on aave"

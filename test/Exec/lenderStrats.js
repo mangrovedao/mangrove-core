@@ -4,6 +4,7 @@ const { stopListeners } = require("../../lib/libcommon");
 
 async function execLenderStrat(
   makerContract,
+  router,
   mgv,
   reader,
   lenderName,
@@ -12,7 +13,7 @@ async function execLenderStrat(
   const zero = ethers.BigNumber.from(0);
 
   await lc.logLenderStatus(
-    makerContract,
+    router,
     lenderName,
     ["DAI", "WETH"],
     players.maker.address
@@ -21,7 +22,6 @@ async function execLenderStrat(
   // // posting new offer on Mangrove via the MakerContract `newOffer` external function
   let offerId = await lc.newOffer(
     mgv,
-    reader,
     makerContract.connect(players.maker.signer),
     "DAI", // outbound
     "WETH", // inbound
@@ -51,33 +51,33 @@ async function execLenderStrat(
     "Incorrect given amount"
   );
 
-  await lc.expectAmountOnLender(players.maker.address, lenderName, [
-    ["DAI", lc.parseToken("200", await lc.getDecimals("DAI")), zero, 4],
-    ["WETH", lc.parseToken("0.4", await lc.getDecimals("WETH")), zero, 8],
-  ]);
   await lc.logLenderStatus(
-    makerContract,
+    router,
     lenderName,
     ["DAI", "WETH"],
     players.maker.address
   );
+
+  await lc.expectAmountOnLender(players.maker.address, lenderName, [
+    ["DAI", lc.parseToken("200", await lc.getDecimals("DAI")), zero, 4],
+    ["WETH", lc.parseToken("0.4", await lc.getDecimals("WETH")), zero, 8],
+  ]);
 }
 
-async function execTraderStrat(makerContract, mgv, reader, lenderName) {
-  const wEth = await lc.getContract("WETH");
+async function execTraderStrat(makerContract, router, mgv, reader, lenderName) {
   const zero = ethers.BigNumber.from(0);
 
   await lc.logLenderStatus(
-    makerContract,
+    router,
     lenderName,
     ["DAI", "WETH"],
+    router.address,
     makerContract.address
   );
 
-  // // posting new offer on Mangrove via the MakerContract `post` method
+  // posting new offer on Mangrove via the MakerContract
   let offerId = await lc.newOffer(
     mgv,
-    reader,
     makerContract,
     "DAI", //base
     "WETH", //quote
@@ -107,25 +107,19 @@ async function execTraderStrat(makerContract, mgv, reader, lenderName) {
   lc.assertEqualBN(bounty, 0, "Snipe should not fail on the maker side");
 
   await lc.logLenderStatus(
-    makerContract,
+    router,
     lenderName,
     ["DAI", "WETH"],
+    router.address,
     makerContract.address
   );
-  await lc.expectAmountOnLender(makerContract.address, lenderName, [
+  await lc.expectAmountOnLender(router.address, lenderName, [
     ["DAI", lc.parseToken("700", await lc.getDecimals("DAI")), zero, 4],
     ["WETH", takerGave, zero, 8],
   ]);
-  // testSigner asks MakerContract to approve Mangrove for base (weth)
-  mkrTx2 = await makerContract.approveMangrove(
-    wEth.address,
-    ethers.constants.MaxUint256
-  );
-  await mkrTx2.wait();
 
   offerId = await lc.newOffer(
     mgv,
-    reader,
     makerContract,
     "WETH", // base
     "DAI", //quote
@@ -154,31 +148,27 @@ async function execTraderStrat(makerContract, mgv, reader, lenderName) {
     "Incorrect given amount"
   );
 
+  await lc.expectAmountOnLender(router.address, lenderName, [
+    // dai_on_lender = (1080 * CF_DAI * price_DAI - 0.05 * price_ETH)/price_DAI
+    ["WETH", zero, lc.parseToken("0.05", await lc.getDecimals("WETH")), 9],
+  ]);
   await lc.logLenderStatus(
-    makerContract,
+    router,
     lenderName,
     ["DAI", "WETH"],
-    makerContract.address
-  );
-  await lc.expectAmountOnLender(
-    makerContract.address,
-    lenderName,
-    [
-      // dai_on_lender = (1080 * CF_DAI * price_DAI - 0.05 * price_ETH)/price_DAI
-      ["WETH", zero, lc.parseToken("0.05", await lc.getDecimals("WETH")), 9],
-    ],
+    router.address,
     makerContract.address
   );
 
   offerId = await lc.newOffer(
     mgv,
-    reader,
     makerContract,
     "DAI", //base
     "WETH", //quote
     lc.parseToken("0.63", await lc.getDecimals("WETH")), // wants ETH
     lc.parseToken("1500", await lc.getDecimals("DAI")) // gives DAI
   );
+
   [takerGot, takerGave] = await lc.snipeSuccess(
     mgv,
     reader,
@@ -199,11 +189,16 @@ async function execTraderStrat(makerContract, mgv, reader, lenderName) {
     "Incorrect given amount"
   );
   await lc.logLenderStatus(
-    makerContract,
+    router,
     lenderName,
     ["DAI", "WETH"],
+    router.address,
     makerContract.address
   );
+  // expecting ~ 0.63 (received) - 0.05 (debt) as aWeth balance
+  await lc.expectAmountOnLender(router.address, lenderName, [
+    ["WETH", lc.parseToken("0.58", await lc.getDecimals("WETH")), zero, 9],
+  ]);
   //TODO check borrowing DAIs and not borrowing WETHs anymore
 }
 

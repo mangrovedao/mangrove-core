@@ -19,8 +19,6 @@ import "../../../utils/Exponential.sol";
 import "../../../interfaces/IMangrove.sol";
 import "../../../interfaces/IEIP20.sol";
 
-//import "hardhat/console.sol";
-
 contract AaveModule is Exponential {
   event ErrorOnRedeem(
     address indexed outbound_tkn,

@@ -25,67 +25,117 @@ import "./AbstractRouter.sol";
 // `this` must be approved by reserve for *overlying* of inbound token transfer
 // `this` must be approved by maker contract for outbound token transfer
 
+// gas overhead:
+// - supply ~ 250K
+// - borrow ~ 360K
 contract AaveRouter is AbstractRouter, AaveV3Module {
   constructor(
     address _addressesProvider,
     uint _referralCode,
-    uint _interestRateMode,
-    address deployer
+    uint _interestRateMode
   )
-    AbstractRouter(deployer)
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
+    AbstractRouter(700_000)
   {}
 
   // 1. pulls aTokens from reserve
   // 2. redeems underlying on AAVE to calling maker contract
   function __pull__(
     IEIP20 token,
+    address reserve,
+    address maker,
     uint amount,
-    address reserve
+    bool strict
   ) internal virtual override returns (uint pulled) {
-    uint amount_ = balance(token, reserve);
-    amount_ = amount < amount_ ? amount : amount_;
+    uint available = reserveBalance(token, reserve);
+    // if strict enable one should pull at most `amount` from reserve
+    if (strict) {
+      amount = amount < available ? amount : available;
+    } else {
+      // one is pulling all availble funds from reserve
+      amount = available;
+    }
     // transfer below is a noop (almost 0 gas) if reserve == address(this)
+    // needs to temporarily deposit tokens to `this` in order to be able to redeem to maker contract
     TransferLib.transferTokenFrom(
       overlying(token),
       reserve,
       address(this),
-      amount_
+      amount
     );
     // redeem below is a noop if amount_ == 0
-    return _redeem(token, amount_, msg.sender);
+    return _redeem(token, amount, maker);
   }
 
   // Liquidity : MAKER --> `onBehalf`
-  function __flush__(IEIP20[] calldata tokens, address reserve)
+  function __push__(
+    IEIP20 token,
+    address reserve,
+    address maker,
+    uint amount
+  ) internal virtual override {
+    require(
+      TransferLib.transferTokenFrom(token, maker, address(this), amount),
+      "AaveRouter/push/transferFail"
+    );
+    // repay and supply on behalf of `reserve`
+    repayThenDeposit(token, reserve, amount);
+  }
+
+  // this fonction is called immediately after a payable function has received funds
+  function __push_native__(address reserve, uint amount)
     internal
     virtual
     override
+    returns (bool success)
   {
-    for (uint i = 0; i < tokens.length; i++) {
-      // checking how much tokens are stored on MAKER's balance as a consequence of __put__
-      uint amount = tokens[i].balanceOf(msg.sender);
-      require(
-        TransferLib.transferTokenFrom(
-          tokens[i],
-          msg.sender,
-          address(this),
-          amount
-        ),
-        "AaveRouter/flush/transferFail"
-      );
-      // repay and supply `onBehalf`
-      repayThenDeposit(tokens[i], reserve, amount);
-    }
+    (success, ) = reserve.call{value: amount}("");
+    require(success, "mgvOrder/mo/refundFail");
+  }
+
+  function reserveNativeBalance(address reserve)
+    public
+    view
+    override
+    returns (uint)
+  {
+    return reserve.balance;
+  }
+
+  // returns 0 if redeem failed (amount > balance).
+  // Redeems user balance if amount == type(uint).max
+  function __withdrawToken__(
+    IEIP20 token,
+    address reserve,
+    address to,
+    uint amount
+  ) internal override returns (bool) {
+    // note there is no possible redeem on behalf
+    require(
+      TransferLib.transferTokenFrom(
+        overlying(token),
+        reserve,
+        address(this),
+        amount
+      ),
+      "AaveRouter/supply/transferFromFail"
+    );
+    require(
+      _redeem(token, amount, to) == amount,
+      "AaveRouter/withdrawToken/Fail"
+    );
+    return true;
   }
 
   // Admin function to manage position on AAVE
   function borrow(
     IEIP20 token,
+    address reserve,
     uint amount,
     address to
   ) external onlyAdmin {
-    _borrow(token, amount, address(this));
+    // NB if `reserve` != this, it must approve this router for increasing overlying debt token
+    _borrow(token, amount, reserve);
     require(
       TransferLib.transferToken(token, to, amount),
       "AaveRouter/borrow/transferFail"
@@ -94,36 +144,28 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
 
   function repay(
     IEIP20 token,
+    address reserve,
     uint amount,
     address from
   ) external onlyAdmin {
     require(
-      TransferLib.transferTokenFrom(token, from, address(this), amount),
+      TransferLib.transferTokenFrom(token, from, reserve, amount),
       "AaveRouter/repay/transferFromFail"
     );
-    _repay(token, amount, address(this));
+    _repay(token, amount, reserve);
   }
 
   function supply(
     IEIP20 token,
+    address reserve,
     uint amount,
     address from
   ) external onlyAdmin {
     require(
-      TransferLib.transferTokenFrom(token, from, address(this), amount),
+      TransferLib.transferTokenFrom(token, from, reserve, amount),
       "AaveRouter/supply/transferFromFail"
     );
-    _supply(token, amount, address(this));
-  }
-
-  // returns 0 if redeem failed (amount > balance).
-  // Redeems user balance is amount == type(uint).max
-  function withdraw(
-    IEIP20 token,
-    uint amount,
-    address to
-  ) external onlyAdmin returns (uint) {
-    return _redeem(token, amount, to);
+    _supply(token, amount, reserve);
   }
 
   function claimRewards(
@@ -137,7 +179,7 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
     return _claimRewards(rewardsController, assets);
   }
 
-  function balance(IEIP20 token, address reserve)
+  function reserveBalance(IEIP20 token, address reserve)
     public
     view
     virtual
@@ -147,18 +189,7 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
     (available, ) = maxGettableUnderlying(token, false, reserve);
   }
 
-  function approveLender(IEIP20 token) external onlyAdmin {
+  function approveLender(IEIP20 token) external {
     _approveLender(token, type(uint).max);
-  }
-
-  function transferToken(
-    IEIP20 token,
-    uint amount,
-    address to
-  ) external onlyAdmin {
-    require(
-      TransferLib.transferToken(token, to, amount),
-      "AaveRouter/transferTokenFail"
-    );
   }
 }

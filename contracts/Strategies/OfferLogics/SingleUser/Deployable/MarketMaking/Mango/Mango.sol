@@ -13,8 +13,9 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MangoStorage.sol";
 import "./MangoImplementation.sol";
-import "../../../Persistent.sol";
-import "../Routers/AbstractRouter.sol";
+import "contracts/Strategies/OfferLogics/SingleUser/Persistent.sol";
+import "contracts/Strategies/Routers/AbstractRouter.sol";
+import "contracts/Strategies/Routers/SimpleRouter.sol";
 
 /** Discrete automated market making strat */
 /** This AMM is headless (no price model) and market makes on `NSLOTS` price ranges*/
@@ -29,7 +30,6 @@ import "../Routers/AbstractRouter.sol";
 contract Mango is Persistent {
   // emitted when init function has been called and AMM becomes active
   event Initialized(uint from, uint to);
-  event SetLiquidityRouter(AbstractRouter);
 
   address private immutable IMPLEMENTATION;
 
@@ -48,7 +48,13 @@ contract Mango is Persistent {
     uint nslots,
     uint price_incr,
     address deployer
-  ) MangroveOffer(mgv) {
+  )
+    Persistent(
+      mgv,
+      250_000, // gas cost for trade execution (w/o taking routing specific gas cost)
+      new SimpleRouter() // routes liqudity from (to) reserve to (from) this contract
+    )
+  {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     // sanity check
     require(
@@ -59,10 +65,7 @@ contract Mango is Persistent {
         uint96(quote_0) == quote_0,
       "Mango/constructor/invalidArguments"
     );
-    // require(
-    //   address(liquidity_router) != address(0),
-    //   "Mango/constructor/0xLiquiditySource"
-    // );
+
     NSLOTS = nslots;
 
     // implementation should have correct immutables
@@ -85,11 +88,17 @@ contract Mango is Persistent {
     // logs `BID/ASKatMin/MaxPosition` events when only 1 slot remains
     mStr.min_buffer = 1;
 
-    // setting inherited storage
-    setGasreq(400_000); // dry run OK with 200_000
     // approve Mangrove to pull funds during trade in order to pay takers
     approveMangrove(quote, type(uint).max);
     approveMangrove(base, type(uint).max);
+    approveRouter(quote);
+    approveRouter(base);
+
+    // in order to let deployer's EOA have control over liquidity
+    set_reserve(deployer);
+
+    // `this` deployed the router, letting admin take control over it.
+    router().setAdmin(deployer);
 
     // setting admin of contract if a static address deployment was used
     if (deployer != msg.sender) {
@@ -125,26 +134,6 @@ contract Mango is Persistent {
     }
   }
 
-  /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
-  /** */
-  /** NB Router might need further approval to work as intended*/
-  function set_liquidity_router(
-    AbstractRouter router,
-    address reserve,
-    uint gasreq
-  ) external onlyAdmin {
-    MangoStorage.get_storage().liquidity_router = router;
-    MangoStorage.get_storage().reserve = reserve;
-    BASE.approve(address(router), type(uint).max);
-    QUOTE.approve(address(router), type(uint).max);
-    setGasreq(gasreq);
-    emit SetLiquidityRouter(router);
-  }
-
-  function liquidity_router() public view returns (AbstractRouter) {
-    return MangoStorage.get_storage().liquidity_router;
-  }
-
   function reset_pending() external onlyAdmin {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     mStr.pending_base = 0;
@@ -167,29 +156,6 @@ contract Mango is Persistent {
   function pending() external view onlyAdmin returns (uint[2] memory) {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     return [mStr.pending_base, mStr.pending_quote];
-  }
-
-  /** __put__ is default SingleUser.__put__*/
-
-  /** Fetches required tokens from the corresponding source*/
-  function __get__(uint amount, ML.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
-    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
-      abi.encodeWithSelector(
-        MangoImplementation.$__get__.selector,
-        amount,
-        order
-      )
-    );
-    if (!success) {
-      MangoStorage.revertWithData(retdata);
-    } else {
-      return abi.decode(retdata, (uint));
-    }
   }
 
   // with ba=0:bids only, ba=1: asks only ba>1 all

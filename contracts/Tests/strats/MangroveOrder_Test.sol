@@ -17,6 +17,7 @@ import "../Agents/TestMaker.sol";
 
 import {MangroveOrderEnriched as MgvOrder} from "../../Strategies/OrderLogics/MangroveOrderEnriched.sol";
 import "../../Strategies/interfaces/IOrderLogic.sol";
+import "../../Strategies/interfaces/IOfferLogic.sol";
 
 contract MangroveOrder_Test is HasMgvEvents {
   // to check ERC20 logging
@@ -78,22 +79,24 @@ contract MangroveOrder_Test is HasMgvEvents {
     // to prevent test runner (taker) from receiving fees!
     mgv.setVault(address(mgv));
 
-    mgvOrder = new MgvOrder(IMangrove(payable(mgv)), address(this));
+    mgvOrder = new MgvOrder(IMangrove(payable(mgv)), address(this)); // this contract is admin of MgvOrder and its router
 
-    // mgvOrder needs to approve mangrove for outbound token transfer
+    // mgvOrder needs to approve mangrove for inbound & outbound token transfer (inbound when acting as a taker, outbound when matched as a maker)
     mgvOrder.approveMangrove(base, type(uint).max);
     mgvOrder.approveMangrove(quote, type(uint).max);
 
-    //adding provision on Mangrove for `mgvOrder` in order to fake having already multiple users
-    mgv.fund{value: 1 ether}(address(mgvOrder));
+    // mgvOrder needs to approve its router for inbound & outbound token transfer (push and pull from reserve)
+    mgvOrder.approveRouter(base);
+    mgvOrder.approveRouter(quote);
 
     // `this` contract will act as `MgvOrder` user
     tkb.mint(address(this), 10 ether);
     tka.mint(address(this), 10 ether);
 
-    // user approves `mgvOrder` to pull quote or base when doing a market order
-    quote.approve(address(mgvOrder), 10 ether);
-    base.approve(address(mgvOrder), 10 ether);
+    // user approves `mgvOrder.router()` in order to be able to pull quote or base when doing a market order and when executing a resting order
+    address liquidity_router = address(mgvOrder.router());
+    quote.approve(liquidity_router, 10 ether);
+    base.approve(liquidity_router, 10 ether);
 
     // `sellTkr` will take resting offer
     sellTkr = TakerSetup.setup(mgv, $quote, $base);
@@ -156,7 +159,9 @@ contract MangroveOrder_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    IOrderLogic.TakerOrderResult memory res = mgvOrder.take(buyOrder);
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
+      buyOrder
+    );
     TestEvents.eq(
       res.takerGot,
       netBuy(1 ether),
@@ -190,7 +195,7 @@ contract MangroveOrder_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    try mgvOrder.take(buyOrder) {
+    try mgvOrder.take{value: 0.1 ether}(buyOrder) {
       TestEvents.fail("Partial fill should revert");
     } catch Error(string memory reason) {
       TestEvents.eq(
@@ -272,12 +277,12 @@ contract MangroveOrder_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    try mgvOrder.take(buyOrder) {
+    try mgvOrder.take{value: 0.0001 ether}(buyOrder) {
       TestEvents.fail("Maker order should have failed.");
     } catch Error(string memory reason) {
       TestEvents.eq(
         reason,
-        "Multi/debitOnMgv/insufficient",
+        "MultiUser/derive_gasprice/NotEnoughProvision",
         "Unexpected revert reason"
       );
     }
@@ -301,7 +306,9 @@ contract MangroveOrder_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    IOrderLogic.TakerOrderResult memory res = mgvOrder.take(buyOrder);
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
+      buyOrder
+    );
     TestEvents.eq(
       quote.balanceOf(address(this)),
       balQuoteBefore - res.takerGave,
@@ -331,7 +338,9 @@ contract MangroveOrder_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    IOrderLogic.TakerOrderResult memory res = mgvOrder.take(buyOrder);
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
+      buyOrder
+    );
     res; // ssh
     TestEvents.eq(address(this).balance, balWeiBefore, "incorrect wei balance");
   }
@@ -345,12 +354,22 @@ contract MangroveOrder_Test is HasMgvEvents {
       wants: 2 ether,
       gives: 0.26 ether, // with 2% slippage
       makerWants: 2 ether,
-      makerGives: 0.2548 ether, //without 2% slippage
+      makerGives: 0.2548 ether, // without 2% slippage
       restingOrder: true,
       retryNumber: 0,
       gasForMarketOrder: 6_500_000,
-      blocksToLiveForRestingOrder: 0 //NA
+      blocksToLiveForRestingOrder: 0 // NA
     });
+    uint balquoteBefore = mgvOrder.router().reserveBalance(
+      quote,
+      address(this)
+    );
+    uint balbaseBefore = mgvOrder.router().reserveBalance(quote, address(this));
+    TestEvents.check(
+      mgv.balanceOf(address(mgvOrder)) == 0,
+      "Invalid balance on Mangrove"
+    );
+
     IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
       buyOrder
     );
@@ -372,28 +391,20 @@ contract MangroveOrder_Test is HasMgvEvents {
       "Incorrect gives for bid resting order"
     );
 
-    // checking `mgvOrder` mappings
-    uint prov = mgvOrder.getMissingProvision(
-      quote,
-      base,
-      mgvOrder.OFR_GASREQ(),
-      0,
-      0
-    );
-    TestEvents.eq(
-      mgvOrder.balanceOnMangrove(address(this)),
-      0.1 ether - prov,
-      "Incorrect user balance on mangrove"
-    );
     TestEvents.eq(
       mgvOrder.ownerOf(quote, base, res.offerId),
       address(this),
       "Invalid offer owner"
     );
     TestEvents.eq(
-      mgvOrder.tokenBalance(quote, address(this)),
-      0.13 ether,
-      "Invalid offer owner"
+      mgvOrder.router().reserveBalance(quote, address(this)),
+      balquoteBefore - res.takerGave,
+      "Invalid quote balance"
+    );
+    TestEvents.eq(
+      mgvOrder.router().reserveBalance(base, address(this)),
+      balbaseBefore + res.takerGot,
+      "Invalid quote balance"
     );
     TestEvents.expectFrom(address(mgvOrder));
     emit OrderSummary(
@@ -429,12 +440,14 @@ contract MangroveOrder_Test is HasMgvEvents {
       buyOrder
     );
     uint oldLocalBaseBal = base.balanceOf(address(this));
-    uint oldRemoteQuoteBal = mgvOrder.tokenBalance(quote, address(this)); // quote balance of test runner
+    uint oldRemoteQuoteBal = mgvOrder.router().reserveBalance(
+      quote,
+      address(this)
+    ); // quote balance of test runner
 
-    // TestUtils.logOfferBook(mgv,$base,$quote,4);
-    // TestUtils.logOfferBook(mgv,$quote,$base,4);
-
-    (bool success, uint sellTkrGot, uint sellTkrGave, uint fee) = sellTkr
+    TestUtils.logOfferBook(mgv, $base, $quote, 4);
+    TestUtils.logOfferBook(mgv, $quote, $base, 4);
+    (bool success, uint sellTkrGot, uint sellTkrGave, , uint fee) = sellTkr
       .takeWithInfo({offerId: res.offerId, takerWants: 0.1 ether});
 
     TestEvents.check(success, "Resting order failed");
@@ -452,7 +465,7 @@ contract MangroveOrder_Test is HasMgvEvents {
     );
 
     TestEvents.eq(
-      mgvOrder.tokenBalance(quote, address(this)),
+      mgvOrder.router().reserveBalance(quote, address(this)),
       oldRemoteQuoteBal - (sellTkrGot + fee),
       "Incorrect token balance on mgvOrder"
     );
@@ -467,7 +480,7 @@ contract MangroveOrder_Test is HasMgvEvents {
     );
   }
 
-  function resting_offer_deprovisions_when_unable_to_repost_test() public {
+  function resting_offer_retracts_when_unable_to_repost_test() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: base,
       quote: quote,
@@ -482,32 +495,22 @@ contract MangroveOrder_Test is HasMgvEvents {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
+
     IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
       buyOrder
     );
-    // test runner quote balance on the gateway
-    uint balQuoteRemote = mgvOrder.tokenBalance(quote, address(this));
-    uint balQuoteLocal = quote.balanceOf(address(this));
-
+    uint OldWeiBalance = mgvOrder.router().reserveNativeBalance(address(this));
     // increasing density on mangrove so that resting offer can no longer repost
     mgv.setDensity($quote, $base, 1 ether);
-    (bool success, , , ) = sellTkr.takeWithInfo({
+    (bool success, , , , ) = sellTkr.takeWithInfo({
       offerId: res.offerId,
       takerWants: 0
     });
     TestEvents.check(success, "snipe failed");
     TestEvents.eq(
-      quote.balanceOf(address(this)),
-      balQuoteLocal + balQuoteRemote,
-      "Quote was not transfered to user"
-    );
-    TestEvents.check(
-      mgvOrder.tokenBalance(quote, address(this)) == 0,
-      "Inconsistent token balance"
-    );
-    TestEvents.check(
-      mgvOrder.balanceOnMangrove(address(this)) == 0,
-      "Inconsistent wei balance"
+      mgvOrder.router().reserveNativeBalance(address(this)),
+      OldWeiBalance,
+      "retract should not deprovision"
     );
     TestEvents.expectFrom(address(mgv));
     emit OfferRetract($quote, $base, res.offerId);
@@ -531,25 +534,63 @@ contract MangroveOrder_Test is HasMgvEvents {
     IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: 0.1 ether}(
       buyOrder
     );
-    uint userWeiOnMangroveOld = mgvOrder.balanceOnMangrove(address(this));
-    uint userWeiBalanceLocalOld = address(this).balance;
+    uint userWeiBalanceOld = mgvOrder.router().reserveNativeBalance(
+      address(this)
+    );
     uint credited = mgvOrder.retractOffer(quote, base, res.offerId, true);
+
     TestEvents.eq(
-      mgvOrder.balanceOnMangrove(address(this)),
-      userWeiOnMangroveOld + credited,
-      "Incorrect wei balance after retract"
-    );
-    TestEvents.check(
-      mgvOrder.withdrawFromMangrove(
-        payable(this),
-        mgvOrder.balanceOnMangrove(address(this))
-      ),
-      "Withdraw failed"
-    );
-    TestEvents.eq(
-      address(this).balance,
-      userWeiBalanceLocalOld + userWeiOnMangroveOld + credited,
+      mgvOrder.router().reserveNativeBalance(address(this)),
+      userWeiBalanceOld + credited,
       "Incorrect provision received"
+    );
+  }
+
+  function failing_resting_offer_releases_uncollected_provision_test() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      base: base,
+      quote: quote,
+      partialFillNotAllowed: false,
+      selling: false, //i.e buying
+      wants: 2 ether,
+      gives: 0.26 ether,
+      makerWants: 2 ether,
+      makerGives: 0.26 ether,
+      restingOrder: true,
+      retryNumber: 0,
+      gasForMarketOrder: 6_500_000,
+      blocksToLiveForRestingOrder: 0 //NA
+    });
+    uint provision = 5 ether;
+    IOrderLogic.TakerOrderResult memory res = mgvOrder.take{value: provision}(
+      buyOrder
+    );
+    // native token reserve for user
+    uint native_reserve_before = mgvOrder.router().reserveNativeBalance(
+      address(this)
+    );
+
+    // removing base/quote approval to make resting offer fail when matched
+    quote.approve(address(mgvOrder.router()), 0);
+    base.approve(address(mgvOrder.router()), 0);
+
+    (, , , uint bounty, ) = sellTkr.takeWithInfo({
+      offerId: res.offerId,
+      takerWants: 1
+    });
+    TestEvents.check(bounty > 0, "snipe should have failed");
+    // collecting released provision
+    mgvOrder.retractOffer(quote, base, res.offerId, true);
+    uint native_reserve_after = mgvOrder.router().reserveNativeBalance(
+      address(this)
+    );
+    uint UserReleasedProvision = native_reserve_after - native_reserve_before;
+    TestEvents.check(UserReleasedProvision > 0, "No released provision");
+    // making sure approx is not too bad (UserreleasedProvision in O(provision - res.bounty))
+    TestEvents.eq(
+      (provision - res.bounty) / UserReleasedProvision,
+      1,
+      "invalid amount of released provision"
     );
   }
 

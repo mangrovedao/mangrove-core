@@ -5,7 +5,33 @@ import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/Fork.sol";
 import "mgv_src/toy_strategies/multi_user/OfferProxy.sol";
 
-contract OfferProxyTest is MangroveTest {
+abstract contract AaveV3ModuleTest is MangroveTest {
+  /* aave expectations */
+  function assertApproxBalanceAndBorrow(
+    AaveV3Module op,
+    IERC20 underlying,
+    uint expected_balance,
+    uint expected_borrow,
+    address account
+  ) public {
+    uint balance = op.overlying(underlying).balanceOf(account);
+    uint borrow = op.borrowed($(underlying), account);
+    assertApproxEqAbs(
+      balance,
+      expected_balance,
+      (10**14) / 2,
+      "wrong balance on lender"
+    );
+    assertApproxEqAbs(
+      borrow,
+      expected_borrow,
+      (10**14) / 2,
+      "wrong borrow on lender"
+    );
+  }
+}
+
+contract OfferProxyTest is AaveV3ModuleTest {
   IERC20 weth;
   IERC20 dai;
   IERC20 adai;
@@ -145,8 +171,8 @@ contract OfferProxyTest is MangroveTest {
     assertEq(got, minusFee($(dai), $(weth), 800 ether), "wrong got");
     assertEq(gave, 0.4 ether, "wrong gave");
 
-    expectAmountOnLender(dai, 200 ether, 0, maker);
-    expectAmountOnLender(weth, 0.4 ether, 0, maker);
+    assertApproxBalanceAndBorrow(offerProxy, dai, 200 ether, 0, maker);
+    assertApproxBalanceAndBorrow(offerProxy, weth, 0.4 ether, 0, maker);
     // TODO logLenderStatus
   }
 
@@ -195,34 +221,5 @@ contract OfferProxyTest is MangroveTest {
 
     // deployer side premises
     offerProxy.approveMangrove(dai, type(uint).max);
-  }
-
-  function expectAmountOnLender(
-    IERC20 underlying,
-    uint expected_balance,
-    uint expected_borrow,
-    address account
-  ) public {
-    // nb for later: compound
-    //   balance = overlyings(underlying).balanceOfUnderlying(account);
-    //   borrow = overlyings(underlying).borrowBalanceCurrent(account);
-    uint balance = offerProxy.overlying(underlying).balanceOf(account);
-    uint borrow = offerProxy.borrowed($(underlying), account);
-    // console.log("expected balance",expected_balance);
-    // console.log("         balance",balance);
-    // console.log("expected borrow", expected_borrow);
-    // console.log("         borrow", borrow);
-    assertApproxEqAbs(
-      balance,
-      expected_balance,
-      (10**14) / 2,
-      "wrong balance on lender"
-    );
-    assertApproxEqAbs(
-      borrow,
-      expected_borrow,
-      (10**14) / 2,
-      "wrong borrow on lender"
-    );
   }
 }

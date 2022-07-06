@@ -80,7 +80,7 @@ contract OasisLikeTest is MangroveTest {
     assertGt(prov, 0, "offer provision should be > 0, is mangrove gasprice 0?");
 
     vm.prank(taker);
-    (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
+    (uint got, , uint bounty, ) = mgv.marketOrder(
       $(weth),
       $(usdc),
       0.49999999999 ether,

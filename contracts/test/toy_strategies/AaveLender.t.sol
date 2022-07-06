@@ -4,10 +4,11 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/Fork.sol";
 import "mgv_src/toy_strategies/single_user/cash_management/AdvancedAaveRetail.sol";
+import "mgv_test/toy_strategies/OfferProxy.t.sol";
 
 // warning! currently only known to work on Polygon, block 26416000
 // at a later point, Aave disables stable dai borrowing which those tests need
-contract AaveLenderTest is MangroveTest {
+contract AaveLenderTest is AaveV3ModuleTest {
   IERC20 weth;
   IERC20 dai;
   // BufferedAaveRouter router;
@@ -98,8 +99,8 @@ contract AaveLenderTest is MangroveTest {
     });
 
     // TODO logLenderStatus
-    expectAmountOnLender(dai, 700 ether, 0, $(strat));
-    expectAmountOnLender(weth, gave, 0, $(strat));
+    assertApproxBalanceAndBorrow(strat, dai, 700 ether, 0, $(strat));
+    assertApproxBalanceAndBorrow(strat, weth, gave, 0, $(strat));
 
     strat.approveMangrove(weth, type(uint).max);
 
@@ -124,9 +125,9 @@ contract AaveLenderTest is MangroveTest {
     });
     assertEq(successes, 1, "snipes should succeed");
 
-    // // TODO logLenderStatus
+    // TODO logLenderStatus
 
-    expectAmountOnLender(weth, 0, 0.05 ether, $(strat));
+    assertApproxBalanceAndBorrow(strat, weth, 0, 0.05 ether, $(strat));
 
     offerId = strat.newOffer(
       IOfferLogic.MakerOrder({
@@ -150,24 +151,5 @@ contract AaveLenderTest is MangroveTest {
     // TODO logLenderStatus
 
     // TODO check borrowing DAIs and not borrowing WETHs anymore
-  }
-
-  function expectAmountOnLender(
-    IERC20 underlying,
-    uint expected_balance,
-    uint expected_borrow,
-    address account
-  ) public {
-    // nb for later: compound
-    //   balance = overlyings(underlying).balanceOfUnderlying(account);
-    //   borrow = overlyings(underlying).borrowBalanceCurrent(account);
-    uint balance = strat.overlying(underlying).balanceOf(account);
-    uint borrow = strat.borrowed($(underlying), account);
-    // console.log("expected balance",expected_balance);
-    // console.log("         balance",balance);
-    // console.log("expected borrow", expected_borrow);
-    // console.log("         borrow", borrow);
-    assertApproxEqAbs(balance, expected_balance, (10**14) / 2);
-    assertApproxEqAbs(borrow, expected_borrow, (10**14) / 2);
   }
 }

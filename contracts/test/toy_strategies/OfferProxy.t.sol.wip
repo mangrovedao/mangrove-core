@@ -5,31 +5,7 @@ import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/Fork.sol";
 import "mgv_src/toy_strategies/multi_user/OfferProxy.sol";
 
-abstract contract AaveV3ModuleTest is MangroveTest {
-  /* aave expectations */
-  function assertApproxBalanceAndBorrow(
-    AaveV3Module op,
-    IERC20 underlying,
-    uint expected_balance,
-    uint expected_borrow,
-    address account
-  ) public {
-    uint balance = op.overlying(underlying).balanceOf(account);
-    uint borrow = op.borrowed($(underlying), account);
-    assertApproxEqAbs(
-      balance,
-      expected_balance,
-      (10**14) / 2,
-      "wrong balance on lender"
-    );
-    assertApproxEqAbs(
-      borrow,
-      expected_borrow,
-      (10**14) / 2,
-      "wrong borrow on lender"
-    );
-  }
-}
+import {AaveV3ModuleTest} from "mgv_test/toy_strategies/AaveLender.t.sol";
 
 contract OfferProxyTest is AaveV3ModuleTest {
   IERC20 weth;
@@ -100,7 +76,7 @@ contract OfferProxyTest is AaveV3ModuleTest {
         inbound_tkn: weth,
         wants: 0.5 ether,
         gives: 1000 ether,
-        gasreq: offerProxy.OFR_GASREQ(),
+        gasreq: offerProxy.ofr_gasreq(),
         gasprice: 0,
         pivotId: 0
       })
@@ -152,7 +128,7 @@ contract OfferProxyTest is AaveV3ModuleTest {
         inbound_tkn: weth,
         wants: 0.5 ether,
         gives: 1000 ether,
-        gasreq: offerProxy.OFR_GASREQ(),
+        gasreq: offerProxy.ofr_gasreq(),
         gasprice: 0,
         pivotId: 0
       })

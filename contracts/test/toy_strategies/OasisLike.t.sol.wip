@@ -28,7 +28,7 @@ contract OasisLikeTest is MangroveTest {
     strat = new OasisLike(IMangrove($(mgv)), $(this));
     strat.setGasreq(100_000);
     deal($(weth), $(this), 10 ether);
-    uint prov = strat.getMissingProvision(weth, usdc, strat.OFR_GASREQ(), 0, 0);
+    uint prov = strat.getMissingProvision(weth, usdc, strat.ofr_gasreq(), 0, 0);
     strat.fundMangrove{value: prov * 10}();
     strat.approveMangrove(weth, type(uint).max);
     weth.approve($(strat), type(uint).max);
@@ -44,7 +44,7 @@ contract OasisLikeTest is MangroveTest {
         inbound_tkn: usdc,
         wants: 3000 * 10**6,
         gives: 0.5 ether,
-        gasreq: strat.OFR_GASREQ(),
+        gasreq: strat.ofr_gasreq(),
         gasprice: 0,
         pivotId: 0
       })
@@ -71,7 +71,7 @@ contract OasisLikeTest is MangroveTest {
         inbound_tkn: usdc,
         wants: 3000 * 10**6,
         gives: 0.5 ether,
-        gasreq: strat.OFR_GASREQ(),
+        gasreq: strat.ofr_gasreq(),
         gasprice: 0,
         pivotId: 0
       })

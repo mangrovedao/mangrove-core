@@ -48,7 +48,7 @@ async function main() {
     ).connect(deployer);
     // in case deployment was interupted after the liquidity router was deployed
     if (!router) {
-      router = await MangoRaw.liquidity_router();
+      router = await MangoRaw.router();
     }
 
     if ((await MangoRaw.admin()) === deployer.address) {
@@ -80,20 +80,17 @@ async function main() {
       router = routerContract.address;
     } else {
       console.log(`* Reusing already deployed router ${router}`);
-      tx = await MangoRaw.set_liquidity_router(
-        router,
-        await MangoRaw.OFR_GASREQ()
-      );
+      tx = await MangoRaw.set_router(router, await MangoRaw.ofr_gasreq());
       await tx.wait();
       const routerContract = RouterFactory.connect(tester).attach(router);
       tx = await routerContract.bind(MangoRaw.address);
       await tx.wait();
     }
     console.log(`* Telling Mango to route liquidity from tester's wallet`);
-    tx = await MangoRaw.set_liquidity_router(
+    tx = await MangoRaw.set_router(
       router,
       tester.address, // using tester's wallet
-      await MangoRaw.OFR_GASREQ()
+      await MangoRaw.ofr_gasreq()
     );
     await tx.wait();
 

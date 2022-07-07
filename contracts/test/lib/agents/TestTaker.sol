@@ -41,6 +41,7 @@ contract TestTaker is ITaker, Utilities {
   }
 
   function take(uint offerId, uint takerWants) external returns (bool success) {
+    //uint taken = TestEvents.min(makerGives, takerWants);
     (success, , , , ) = this.takeWithInfo(offerId, takerWants);
   }
 

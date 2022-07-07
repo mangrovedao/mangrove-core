@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/strategies/single_user/market_making/mango/Mango.sol";
-import "mgv_src/strategies/single_user/market_making/router/SimpleRouter.sol";
+import "mgv_src/strategies/routers/SimpleRouter.sol";
 
 contract MangoTest is MangroveTest {
   struct Book {
@@ -22,7 +22,6 @@ contract MangoTest is MangroveTest {
   address payable maker;
   address payable taker;
   Mango mgo;
-  SimpleRouter router;
 
   function setUp() public override {
     options.base.symbol = "WETH";
@@ -52,9 +51,6 @@ contract MangoTest is MangroveTest {
       price_incr: DELTA,
       deployer: maker
     });
-    router = new SimpleRouter({deployer: maker});
-    router.bind($(mgo));
-    mgo.set_liquidity_router(router, maker, mgo.OFR_GASREQ());
     vm.stopPrank();
   }
 
@@ -73,9 +69,10 @@ contract MangoTest is MangroveTest {
 
   function part_deploy_strat() public {
     vm.startPrank(maker);
-    // maker has to approve liquidity router of Mango for ETH and USDC transfer
-    weth.approve(address(mgo.liquidity_router()), type(uint).max);
-    usdc.approve(address(mgo.liquidity_router()), type(uint).max);
+    // reserve has to approve liquidity router of Mango for ETH and USDC transfer
+    // since reserve here is an EOA we do it direclty
+    usdc.approve($(mgo.router()), type(uint).max);
+    weth.approve($(mgo.router()), type(uint).max);
     vm.stopPrank();
 
     // funds come from maker's wallet by default
@@ -86,7 +83,7 @@ contract MangoTest is MangroveTest {
     uint prov = mgo.getMissingProvision({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      gasreq: mgo.OFR_GASREQ(),
+      gasreq: mgo.ofr_gasreq(),
       gasprice: 0,
       offerId: 0
     });

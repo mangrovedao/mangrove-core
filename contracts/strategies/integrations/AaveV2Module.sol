@@ -19,8 +19,6 @@ import "mgv_src/strategies/vendor/compound/Exponential.sol";
 import "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 
-//import "hardhat/console.sol";
-
 contract AaveModule is Exponential {
   event ErrorOnRedeem(
     address indexed outbound_tkn,

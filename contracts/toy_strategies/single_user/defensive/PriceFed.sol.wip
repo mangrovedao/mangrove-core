@@ -26,7 +26,7 @@ contract PriceFed is Defensive, AaveV3Lender {
     AaveV3Module(_addressesProvider, 0, 0)
     MangroveOffer(_MGV)
   {
-    setGasreq(800_000);
+    set_gasreq(800_000);
     if (deployer != msg.sender) {
       setAdmin(deployer);
     }
@@ -66,7 +66,7 @@ contract PriceFed is Defensive, AaveV3Lender {
           order.inbound_tkn,
           new_offer_wants,
           order.offer.gives(),
-          OFR_GASREQ(),
+          ofr_gasreq(),
           0,
           0,
           order.offerId

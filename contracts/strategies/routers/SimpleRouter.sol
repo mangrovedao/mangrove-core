@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//EOARouter.sol
+//SimpleRouter.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -13,20 +13,21 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "contracts/strategies/utils/AccessControlled.sol";
-import "contracts/strategies/utils/TransferLib.sol";
+import "mgv_src/strategies/utils/AccessControlled.sol";
+import "mgv_src/strategies/utils/TransferLib.sol";
 import "./AbstractRouter.sol";
 
-contract SimpleRouter is AbstractRouter {
-  constructor(address deployer) AbstractRouter(deployer) {}
-
+contract SimpleRouter is AbstractRouter(50_000) {
   // requires approval of `reserve`
   function __pull__(
     IERC20 token,
+    address reserve,
+    address maker,
     uint amount,
-    address reserve
+    bool strict
   ) internal virtual override returns (uint pulled) {
-    if (TransferLib.transferTokenFrom(token, reserve, msg.sender, amount)) {
+    strict; // this pull strategy is only strict
+    if (TransferLib.transferTokenFrom(token, reserve, maker, amount)) {
       return amount;
     } else {
       return 0;
@@ -34,21 +35,50 @@ contract SimpleRouter is AbstractRouter {
   }
 
   // requires approval of Maker
-  function __flush__(IERC20[] calldata tokens, address reserve)
+  function __push__(
+    IERC20 token,
+    address reserve,
+    address maker,
+    uint amount
+  ) internal virtual override {
+    require(
+      TransferLib.transferTokenFrom(token, maker, reserve, amount),
+      "SimpleRouter/push/transferFail"
+    );
+  }
+
+  /// this fonction is called immediately after a payable function has received funds
+  /// NB this function should not be called when `reserve` is not tx.origin as this would give the possibility to an arbitrary
+  /// contract to make the tx fail (in addition to potential reentrancy risks)
+  function __push_native__(address reserve, uint amount)
     internal
     virtual
     override
+    returns (bool success)
   {
-    for (uint i = 0; i < tokens.length; i++) {
-      uint amount = tokens[i].balanceOf(msg.sender);
-      require(
-        TransferLib.transferTokenFrom(tokens[i], msg.sender, reserve, amount),
-        "SimpleRouter/flush/transferFail"
-      );
-    }
+    (success, ) = reserve.call{value: amount}("");
+    require(success, "mgvOrder/mo/refundFail");
   }
 
-  function balance(IERC20 token, address reserve)
+  function reserveNativeBalance(address reserve)
+    public
+    view
+    override
+    returns (uint)
+  {
+    return reserve.balance;
+  }
+
+  function __withdrawToken__(
+    IERC20 token,
+    address reserve,
+    address to,
+    uint amount
+  ) internal virtual override returns (bool) {
+    return TransferLib.transferTokenFrom(token, reserve, to, amount);
+  }
+
+  function reserveBalance(IERC20 token, address reserve)
     external
     view
     override

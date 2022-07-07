@@ -13,7 +13,6 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "contracts/strategies/interfaces/IOfferLogic.sol";
-import "mgv_src/IMangrove.sol";
 
 // Naming scheme:
 // `f() public`: can be used as is in all descendants of `this` contract
@@ -24,7 +23,8 @@ import "mgv_src/IMangrove.sol";
 library MangroveOfferStorage {
   struct Layout {
     // default values
-    uint OFR_GASREQ;
+    uint ofr_gasreq;
+    AbstractRouter router;
   }
 
   function get_storage() internal pure returns (Layout storage st) {

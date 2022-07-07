@@ -276,13 +276,13 @@ contract MangroveTest is Test2, HasMgvEvents {
       _mgv = new InvertedMangrove({
         governance: $(this),
         gasprice: 40,
-        gasmax: 1_000_000
+        gasmax: 2_000_000
       });
     } else {
       _mgv = new Mangrove({
         governance: $(this),
         gasprice: 40,
-        gasmax: 1_000_000
+        gasmax: 2_000_000
       });
     }
     vm.label($(_mgv), "Mangrove");

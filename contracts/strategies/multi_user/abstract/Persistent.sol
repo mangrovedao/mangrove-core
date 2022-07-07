@@ -15,6 +15,12 @@ import "./MultiUser.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract MultiUserPersistent is MultiUser {
+  constructor(
+    IMangrove _mgv,
+    AbstractRouter _router,
+    uint gasreq
+  ) MultiUser(_mgv, _router, gasreq) {}
+
   function __residualWants__(ML.SingleOrder calldata order)
     internal
     virtual
@@ -31,6 +37,8 @@ abstract contract MultiUserPersistent is MultiUser {
     return order.offer.gives() - order.wants;
   }
 
+  ///@dev posthook takes care of reposting offer residual
+  ///@param order is a reminder of the taker order that was processed during `makerExecute`
   function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     virtual
@@ -43,33 +51,20 @@ abstract contract MultiUserPersistent is MultiUser {
       // gas saving
       return true;
     }
-    try
-      MGV.updateOffer(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        new_wants,
-        new_gives,
-        order.offerDetail.gasreq(),
-        order.offerDetail.gasprice(),
-        order.offer.next(),
-        order.offerId
-      )
-    {
-      return true;
-    } catch {
-      // density could be too low, or offer provision be insufficient
-      retractOfferInternal(
-        IERC20(order.outbound_tkn),
-        IERC20(order.inbound_tkn),
-        order.offerId,
-        true,
-        ownerOf(
-          IERC20(order.outbound_tkn),
-          IERC20(order.inbound_tkn),
-          order.offerId
-        )
+    // if updateOffer fails offer will be retracted
+    return
+      updateOfferInternal(
+        MakerOrder({
+          outbound_tkn: IERC20(order.outbound_tkn),
+          inbound_tkn: IERC20(order.inbound_tkn),
+          wants: new_wants,
+          gives: new_gives,
+          gasreq: order.offerDetail.gasreq(), // keeping the same gasreq
+          gasprice: order.offerDetail.gasprice(), // keeping the same gasprice
+          pivotId: order.offer.next(), // best guess for pivotId
+          offerId: order.offerId
+        }),
+        0 // no value
       );
-      return false;
-    }
   }
 }

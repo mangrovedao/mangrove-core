@@ -11,72 +11,20 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "./abstract/AaveV3Lender.sol";
 import "mgv_src/strategies/multi_user/abstract/Persistent.sol";
+import "mgv_src/strategies/routers/AaveRouter.sol";
 
-contract OfferProxy is MultiUserAaveV3Lender, MultiUserPersistent {
+contract OfferProxy is MultiUserPersistent {
   constructor(
     address _addressesProvider,
     IMangrove _MGV,
     address deployer
   )
-    AaveV3Module(
-      _addressesProvider,
-      0,
-      0 /* Not borrowing */
-    )
-    MangroveOffer(_MGV)
+    MultiUserPersistent(_MGV, new AaveRouter(_addressesProvider, 0, 0), 50_000)
   {
-    setGasreq(800_000); // Offer proxy requires AAVE interactions
+    router().setAdmin(deployer);
     if (deployer != msg.sender) {
       setAdmin(deployer);
     }
-  }
-
-  function __put__(uint amount, ML.SingleOrder calldata order)
-    internal
-    override(MultiUser, MultiUserAaveV3Lender)
-    returns (uint missing)
-  {
-    // puts amount inbound_tkn on AAVE
-    missing = MultiUserAaveV3Lender.__put__(amount, order);
-  }
-
-  function __get__(uint amount, ML.SingleOrder calldata order)
-    internal
-    override(MultiUser, MultiUserAaveV3Lender)
-    returns (uint)
-  {
-    // gets tokens from AAVE's owner deposit -- will transfer aTokens from owner first
-    return MultiUserAaveV3Lender.__get__(amount, order);
-  }
-
-  function __posthookSuccess__(ML.SingleOrder calldata order)
-    internal
-    override(MangroveOffer, MultiUserPersistent)
-    returns (bool)
-  {
-    // reposting residual if possible
-    return MultiUserPersistent.__posthookSuccess__(order);
-  }
-
-  // if offer failed to execute or reneged it should deprovision since owner might not keep track of offers out of the book
-  // Note this has currently no effect since Mangrove is deprovisioning failed offers by default
-  function __posthookFallback__(
-    ML.SingleOrder calldata order,
-    ML.OrderResult calldata result
-  ) internal virtual override returns (bool) {
-    retractOfferInternal(
-      IERC20(order.outbound_tkn),
-      IERC20(order.inbound_tkn),
-      order.offerId,
-      true,
-      ownerOf(
-        IERC20(order.outbound_tkn),
-        IERC20(order.inbound_tkn),
-        order.offerId
-      )
-    );
-    return super.__posthookFallback__(order, result);
   }
 }

@@ -40,27 +40,6 @@ interface IOfferLogicMulti is IOfferLogic {
     uint amount
   );
 
-  // user token balance on contract has increased
-  event CreditUserTokenBalance(
-    address indexed user,
-    IERC20 indexed token,
-    uint amount
-  );
-
-  // user token balance on contract has decreased
-  event DebitUserTokenBalance(
-    address indexed user,
-    IERC20 indexed token,
-    uint amount
-  );
-
-  function tokenBalance(IERC20 token, address owner)
-    external
-    view
-    returns (uint);
-
-  function balanceOnMangrove(address owner) external view returns (uint);
-
   function offerOwners(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
@@ -72,13 +51,4 @@ interface IOfferLogicMulti is IOfferLogic {
     IERC20 inbound_tkn,
     uint offerId
   ) external view returns (address owner);
-
-  function depositToken(IERC20 token, uint amount)
-    external
-    returns (
-      //override
-      bool success
-    );
-
-  function fundMangrove() external payable;
 }

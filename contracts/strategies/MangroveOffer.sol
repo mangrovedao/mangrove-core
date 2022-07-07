@@ -40,13 +40,21 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   // necessary function to withdraw funds from Mangrove
   receive() external payable virtual {}
 
-  constructor(IMangrove _mgv) AccessControlled(msg.sender) {
+  constructor(IMangrove _mgv, uint strat_gasreq) AccessControlled(msg.sender) {
+    require(
+      strat_gasreq == uint24(strat_gasreq),
+      "MangroveOffer/gasreqTooHigh"
+    );
     MGV = _mgv;
-    MOS.get_storage().OFR_GASREQ = 80_000;
+    MOS.get_storage().ofr_gasreq = strat_gasreq;
   }
 
-  function OFR_GASREQ() public view returns (uint) {
-    return MOS.get_storage().OFR_GASREQ;
+  function ofr_gasreq() public view returns (uint) {
+    if (has_router()) {
+      return MOS.get_storage().ofr_gasreq + router().gas_overhead();
+    } else {
+      return MOS.get_storage().ofr_gasreq;
+    }
   }
 
   /////// Mandatory callback functions
@@ -79,14 +87,14 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   // `makerPosthook` is the callback function that is called by Mangrove *after* the offer execution.
-  // It may not be overriden although it can be customized via the post-hooks `__posthookSuccess__`, `__posthookGetFailure__`, `__posthookReneged__` and `__posthookFallback__` (see below).
+  // It may not be overriden although it can be customized via the post-hooks `__posthookSuccess__` and `__posthookFallback__` (see below).
   // Offer Maker SHOULD make sure the overriden posthooks do not revert in order to be able to post logs in case of bad executions.
   function makerPosthook(
     ML.SingleOrder calldata order,
     ML.OrderResult calldata result
   ) external override onlyCaller(address(MGV)) {
     if (result.mgvData == "mgv/tradeSuccess") {
-      // toplevel posthook may ignore returned value which is only usefull for compositionality
+      // toplevel posthook may ignore returned value which is only usefull for (vertical) compositionality
       __posthookSuccess__(order);
     } else {
       emit LogIncident(
@@ -101,9 +109,38 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   // sets default gasreq for `new/updateOffer`
-  function setGasreq(uint gasreq) public override mgvOrAdmin {
+  function set_gasreq(uint gasreq) public override mgvOrAdmin {
     require(uint24(gasreq) == gasreq, "mgvOffer/gasreq/overflow");
-    MOS.get_storage().OFR_GASREQ = gasreq;
+    MOS.get_storage().ofr_gasreq = gasreq;
+    emit SetGasreq(gasreq);
+  }
+
+  /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
+  /** */
+  /** NB Router might need further approval to work as intended*/
+  function set_router(AbstractRouter router_) public override mgvOrAdmin {
+    require(address(router_) != address(0), "mgvOffer/set_router/0xRouter");
+    MOS.get_storage().router = router_;
+    router_.bind(address(this));
+    emit SetRouter(router_);
+  }
+
+  // maker contract need to approve router for reserve push and pull
+  function approveRouter(IERC20 token) public mgvOrAdmin {
+    require(
+      token.approve(address(router()), type(uint).max),
+      "mgvOffer/approveRouter/Fail"
+    );
+  }
+
+  function has_router() public view returns (bool) {
+    return address(MOS.get_storage().router) != address(0);
+  }
+
+  function router() public view returns (AbstractRouter) {
+    AbstractRouter router_ = MOS.get_storage().router;
+    require(address(router_) != address(0), "mgvOffer/0xRouter");
+    return router_;
   }
 
   /// `this` contract needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
@@ -111,20 +148,28 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   function approveMangrove(IERC20 outbound_tkn, uint amount) public mgvOrAdmin {
     require(
       outbound_tkn.approve(address(MGV), amount),
-      "mgvOffer/approve/Fail"
+      "mgvOffer/approveMangrove/Fail"
     );
   }
 
-  /// withdraws ETH from the bounty vault of the Mangrove.
-  function _withdrawFromMangrove(address payable receiver, uint amount)
-    internal
-    returns (bool noRevert)
+  /// withdraws ETH from the bounty vault of the Mangrove and adds it to `this` balance
+  /// NB the bounty vault on Mangrove is pooled amongst offer owners in the case of a multiUser strat
+  function withdrawFromMangrove(uint amount, address receiver)
+    public
+    mgvOrAdmin
   {
-    require(MGV.withdraw(amount), "mgvOffer/withdraw/transferFail");
-    if (receiver != address(this)) {
-      (noRevert, ) = receiver.call{value: amount}("");
+    if (amount == type(uint).max) {
+      amount = MGV.balanceOf(address(this));
+      if (amount == 0) {
+        return; // optim
+      }
+    }
+    require(MGV.withdraw(amount), "mgvOffer/withdrawFromMgv/withdrawFail");
+    if (has_router()) {
+      router().push_native{value: amount}(receiver);
     } else {
-      noRevert = true;
+      (bool success, ) = receiver.call{value: amount}("");
+      require(success, "mgvOffer/withdrawFromMgv/payableCallFail");
     }
   }
 
@@ -164,16 +209,9 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     proceed = true;
   }
 
-  ////// Customizable post-hooks.
-
-  // Override this post-hook to implement what `this` contract should do when called back after a successfully executed order.
-  function __posthookSuccess__(ML.SingleOrder calldata order)
-    internal
-    virtual
-    returns (bool success)
-  {
-    order; // shh
-    success = true;
+  //utils
+  function $(IERC20 token) internal pure returns (address) {
+    return address(token);
   }
 
   // Override this post-hook to implement fallback behavior when Taker Order's execution failed unexpectedly. Information from Mangrove is accessible in `result.mgvData` for logging purpose.
@@ -186,21 +224,25 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     return true;
   }
 
-  //utils
-  function $(IERC20 token) internal pure returns (address) {
-    return address(token);
+  function __posthookSuccess__(ML.SingleOrder calldata order)
+    internal
+    virtual
+    returns (bool)
+  {
+    order;
+    return true;
   }
 
   // returns missing provision to repost `offerId` at given `gasreq` and `gasprice`
   // if `offerId` is not in the Order Book, will simply return how much is needed to post
-  function _getMissingProvision(
-    uint balance, // offer owner balance on Mangrove
+  // NB in the case of a multi user contract, this function does not take into account a potential partition of the provision of `this` amongst offer owners
+  function getMissingProvision(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
-    uint gasreq, // give > type(uint24).max to use `this.OFR_GASREQ()`
+    uint gasreq, // give > type(uint24).max to use `this.ofr_gasreq()`
     uint gasprice, // give 0 to use Mangrove's gasprice
     uint offerId // set this to 0 if one is not reposting an offer
-  ) internal view returns (uint) {
+  ) public view returns (uint) {
     (P.Global.t globalData, P.Local.t localData) = MGV.config(
       $(outbound_tkn),
       $(inbound_tkn)
@@ -216,8 +258,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     } else {
       _gp = gasprice;
     }
-    if (gasreq > type(uint24).max) {
-      gasreq = OFR_GASREQ();
+    if (gasreq >= type(uint24).max) {
+      gasreq = ofr_gasreq(); // this includes overhead of router if any
     }
     uint bounty = (gasreq + localData.offer_gasbase()) * _gp * 10**9; // in WEI
     // if `offerId` is not in the OfferList, all returned values will be 0
@@ -225,7 +267,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       offerDetailData.offer_gasbase()) *
       offerDetailData.gasprice() *
       10**9;
-    uint currentProvision = currentProvisionLocked + balance;
+    uint currentProvision = currentProvisionLocked +
+      MGV.balanceOf(address(this));
     return (currentProvision >= bounty ? 0 : bounty - currentProvision);
   }
 }

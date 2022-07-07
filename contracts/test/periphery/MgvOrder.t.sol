@@ -58,13 +58,15 @@ contract MangroveOrder_Test is MangroveTest {
     // to prevent test runner (taker) from receiving fees!
     mgv.setVault($(mgv));
 
+    // this contract is admin of MgvOrder and its router
     mgo = new MgvOrder(IMangrove(payable(mgv)), $(this));
-    // mgo needs to approve mangrove for outbound token transfer
+    // mgvOrder needs to approve mangrove for inbound & outbound token transfer (inbound when acting as a taker, outbound when matched as a maker)
     mgo.approveMangrove(base, type(uint).max);
     mgo.approveMangrove(quote, type(uint).max);
 
-    //adding provision on Mangrove for `mgo` in order to fake having already multiple users
-    mgv.fund{value: 1 ether}($(mgo));
+    // mgvOrder needs to approve its router for inbound & outbound token transfer (push and pull from reserve)
+    mgo.approveRouter(base);
+    mgo.approveRouter(quote);
 
     // `this` contract will act as `MgvOrder` user
     deal($(base), $(this), 10 ether);
@@ -73,8 +75,8 @@ contract MangroveOrder_Test is MangroveTest {
     // quote.mint($(this), 10 ether);
 
     // user approves `mgo` to pull quote or base when doing a market order
-    quote.approve($(mgo), 10 ether);
-    base.approve($(mgo), 10 ether);
+    quote.approve($(mgo.router()), 10 ether);
+    base.approve($(mgo.router()), 10 ether);
 
     // `sell_taker` will take resting offer
     sell_taker = setupTaker($(quote), $(base), "sell-taker");
@@ -140,7 +142,9 @@ contract MangroveOrder_Test is MangroveTest {
     emit Transfer($(this), $(mgo), 0.26 ether);
     expectFrom($(quote)); // checking quote is sent to mgv and remainder is sent back to taker
     emit Transfer($(mgo), $(this), 0.13 ether);
-    IOrderLogic.TakerOrderResult memory res = mgo.take(buyOrder);
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
+      buyOrder
+    );
     assertEq(
       res.takerGot,
       minusFee($(base), $(quote), 1 ether),
@@ -171,7 +175,7 @@ contract MangroveOrder_Test is MangroveTest {
       blocksToLiveForRestingOrder: 0 //NA
     });
     vm.expectRevert("mgvOrder/mo/noPartialFill");
-    mgo.take(buyOrder);
+    mgo.take{value: 0.1 ether}(buyOrder);
   }
 
   function test_partial_filled_buy_order_returns_provision() public {
@@ -245,8 +249,8 @@ contract MangroveOrder_Test is MangroveTest {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    vm.expectRevert("Multi/debitOnMgv/insufficient");
-    mgo.take(buyOrder);
+    vm.expectRevert("MultiUser/derive_gasprice/NotEnoughProvision");
+    mgo.take{value: 0.0001 ether}(buyOrder);
   }
 
   function test_filled_resting_buy_order_ignores_resting_option() public {
@@ -267,7 +271,9 @@ contract MangroveOrder_Test is MangroveTest {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
-    IOrderLogic.TakerOrderResult memory res = mgo.take(buyOrder);
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
+      buyOrder
+    );
     assertEq(
       quote.balanceOf($(this)),
       balQuoteBefore - res.takerGave,
@@ -317,6 +323,10 @@ contract MangroveOrder_Test is MangroveTest {
       gasForMarketOrder: 6_500_000,
       blocksToLiveForRestingOrder: 0 //NA
     });
+    uint bal_quote_before = mgo.router().reserveBalance(quote, $(this));
+    uint bal_base_before = mgo.router().reserveBalance(quote, $(this));
+    assertEq(mgv.balanceOf($(mgo)), 0, "Invalid balance on Mangrove");
+
     expectFrom($(mgo));
     emit OrderSummary(
       IMangrove(payable(mgv)),
@@ -351,21 +361,20 @@ contract MangroveOrder_Test is MangroveTest {
     );
 
     // checking `mgo` mappings
-    uint prov = mgo.getMissingProvision(quote, base, mgo.OFR_GASREQ(), 0, 0);
-    assertEq(
-      mgo.balanceOnMangrove($(this)),
-      0.1 ether - prov,
-      "Incorrect user balance on mangrove"
-    );
     assertEq(
       mgo.ownerOf(quote, base, res.offerId),
       $(this),
       "Invalid offer owner"
     );
     assertEq(
-      mgo.tokenBalance(quote, $(this)),
-      0.13 ether,
-      "Invalid offer owner"
+      mgo.router().reserveBalance(quote, $(this)),
+      bal_quote_before - res.takerGave,
+      "Invalid quote balance"
+    );
+    assertEq(
+      mgo.router().reserveBalance(base, $(this)),
+      bal_base_before + res.takerGot,
+      "Invalid quote balance"
     );
   }
 
@@ -389,7 +398,7 @@ contract MangroveOrder_Test is MangroveTest {
       buyOrder
     );
     uint oldLocalBaseBal = base.balanceOf($(this));
-    uint oldRemoteQuoteBal = mgo.tokenBalance(quote, $(this)); // quote balance of test runner
+    uint oldRemoteQuoteBal = mgo.router().reserveBalance(quote, $(this)); // quote balance of test runner
 
     // logOfferBook(mgv,$(base),$(quote),4);
     // logOfferBook(mgv,$(quote),$(base),4);
@@ -417,7 +426,7 @@ contract MangroveOrder_Test is MangroveTest {
     );
 
     assertEq(
-      mgo.tokenBalance(quote, $(this)),
+      mgo.router().reserveBalance(quote, $(this)),
       oldRemoteQuoteBal - (sell_takerGot + fee),
       "Incorrect token balance on mgo"
     );
@@ -432,7 +441,7 @@ contract MangroveOrder_Test is MangroveTest {
     );
   }
 
-  function test_resting_offer_deprovisions_when_unable_to_repost() public {
+  function test_resting_offer_retracts_when_unable_to_repost() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       base: base,
       quote: quote,
@@ -451,8 +460,7 @@ contract MangroveOrder_Test is MangroveTest {
       buyOrder
     );
     // test runner quote balance on the gateway
-    uint balQuoteRemote = mgo.tokenBalance(quote, $(this));
-    uint balQuoteLocal = quote.balanceOf($(this));
+    uint oldWeiBalance = mgo.router().reserveNativeBalance($(this));
 
     // increasing density on mangrove so that resting offer can no longer repost
     mgv.setDensity($(quote), $(base), 1 ether);
@@ -464,15 +472,10 @@ contract MangroveOrder_Test is MangroveTest {
     });
     assertTrue(success, "snipe failed");
     assertEq(
-      quote.balanceOf($(this)),
-      balQuoteLocal + balQuoteRemote,
-      "Quote was not transfered to user"
+      mgo.router().reserveNativeBalance($(this)),
+      oldWeiBalance,
+      "retract should not deprovision"
     );
-    assertTrue(
-      mgo.tokenBalance(quote, $(this)) == 0,
-      "Inconsistent token balance"
-    );
-    assertTrue(mgo.balanceOnMangrove($(this)) == 0, "Inconsistent wei balance");
   }
 
   function test_user_can_retract_resting_offer() public {
@@ -493,22 +496,57 @@ contract MangroveOrder_Test is MangroveTest {
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
       buyOrder
     );
-    uint userWeiOnMangroveOld = mgo.balanceOnMangrove($(this));
-    uint userWeiBalanceLocalOld = $(this).balance;
+    uint userWeiBalanceOld = mgo.router().reserveNativeBalance($(this));
     uint credited = mgo.retractOffer(quote, base, res.offerId, true);
     assertEq(
-      mgo.balanceOnMangrove($(this)),
-      userWeiOnMangroveOld + credited,
-      "Incorrect wei balance after retract"
-    );
-    assertTrue(
-      mgo.withdrawFromMangrove($(this), mgo.balanceOnMangrove($(this))),
-      "Withdraw failed"
-    );
-    assertEq(
-      $(this).balance,
-      userWeiBalanceLocalOld + userWeiOnMangroveOld + credited,
+      mgo.router().reserveNativeBalance($(this)),
+      userWeiBalanceOld + credited,
       "Incorrect provision received"
+    );
+  }
+
+  function test_failing_resting_offer_releases_uncollected_provision() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      base: base,
+      quote: quote,
+      partialFillNotAllowed: false,
+      selling: false, //i.e buying
+      wants: 2 ether,
+      gives: 0.26 ether,
+      makerWants: 2 ether,
+      makerGives: 0.26 ether,
+      restingOrder: true,
+      retryNumber: 0,
+      gasForMarketOrder: 6_500_000,
+      blocksToLiveForRestingOrder: 0 //NA
+    });
+
+    uint provision = 5 ether;
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: provision}(
+      buyOrder
+    );
+    // native token reserve for user
+    uint native_reserve_before = mgo.router().reserveNativeBalance($(this));
+
+    // removing base/quote approval to make resting offer fail when matched
+    quote.approve($(mgo.router()), 0);
+    base.approve($(mgo.router()), 0);
+
+    (, , , uint bounty, ) = sell_taker.takeWithInfo({
+      offerId: res.offerId,
+      takerWants: 1
+    });
+    assertTrue(bounty > 0, "snipe should have failed");
+    // collecting released provision
+    mgo.retractOffer(quote, base, res.offerId, true);
+    uint native_reserve_after = mgo.router().reserveNativeBalance($(this));
+    uint userReleasedProvision = native_reserve_after - native_reserve_before;
+    assertTrue(userReleasedProvision > 0, "No released provision");
+    // making sure approx is not too bad (UserreleasedProvision in O(provision - res.bounty))
+    assertEq(
+      (provision - res.bounty) / userReleasedProvision,
+      1,
+      "invalid amount of released provision"
     );
   }
 

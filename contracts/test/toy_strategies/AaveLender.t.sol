@@ -4,14 +4,40 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/Fork.sol";
 import "mgv_src/toy_strategies/single_user/cash_management/AdvancedAaveRetail.sol";
-import "mgv_test/toy_strategies/OfferProxy.t.sol";
+
+abstract contract AaveV3ModuleTest is MangroveTest {
+  /* aave expectations */
+  function assertApproxBalanceAndBorrow(
+    AaveV3Module op,
+    IERC20 underlying,
+    uint expected_balance,
+    uint expected_borrow,
+    address account
+  ) public {
+    uint balance = op.overlying(underlying).balanceOf(account);
+    uint borrow = op.borrowed($(underlying), account);
+    console2.log("borrow is", borrow);
+    assertApproxEqAbs(
+      balance,
+      expected_balance,
+      (10**14) / 2,
+      "wrong balance on lender"
+    );
+    assertApproxEqAbs(
+      borrow,
+      expected_borrow,
+      (10**14) / 2,
+      "wrong borrow on lender"
+    );
+  }
+}
 
 // warning! currently only known to work on Polygon, block 26416000
 // at a later point, Aave disables stable dai borrowing which those tests need
 contract AaveLenderTest is AaveV3ModuleTest {
   IERC20 weth;
   IERC20 dai;
-  // BufferedAaveRouter router;
+  AaveDeepRouter router;
   AdvancedAaveRetail strat;
 
   receive() external payable {}
@@ -42,10 +68,12 @@ contract AaveLenderTest is AaveV3ModuleTest {
 
   function deployStrat() public {
     strat = new AdvancedAaveRetail({
-      addressesProvider: Fork.AAVE,
-      _MGV: IMangrove($(mgv)),
+      _mgv: IMangrove($(mgv)),
+      _addressesProvider: Fork.AAVE,
       deployer: $(this)
     });
+
+    router = AaveDeepRouter($(strat.router()));
     // note for later: compound is
     //   simple/advanced compoudn= Contract.deploy(Fork.COMP,IMangrove($(mgv)),Fork.WETH,$(this));
     //   market = [Fork.CWETH,Fork.CDAI];
@@ -64,17 +92,24 @@ contract AaveLenderTest is AaveV3ModuleTest {
 
     strat.approveMangrove(dai, type(uint).max);
     strat.approveMangrove(weth, type(uint).max);
+    strat.approveRouter(dai);
+    strat.approveRouter(weth);
 
     // One sends 1000 DAI to MakerContract
     dai.transfer($(strat), 1000 ether);
 
     // testSigner asks makerContract to approve lender to be able to mint [c/a]Token
-    strat.approveLender(weth, type(uint).max);
+    router.approveLender(weth);
     // NB in the special case of cEth this is only necessary to repay debt
-    strat.approveLender(dai, type(uint).max);
+    router.approveLender(dai);
 
     // makerContract deposits some DAI on Lender (remains 100 DAIs on the contract)
-    strat.mint(dai, 900 ether, $(strat));
+    router.supply(
+      dai,
+      strat.reserve(),
+      900 ether,
+      $(strat) /* from */
+    );
   }
 
   function execTraderStrat() public {
@@ -85,24 +120,24 @@ contract AaveLenderTest is AaveV3ModuleTest {
         inbound_tkn: weth,
         wants: 0.15 ether,
         gives: 300 ether,
-        gasreq: strat.OFR_GASREQ(),
+        gasreq: strat.ofr_gasreq(),
         gasprice: 0,
-        pivotId: 0
+        pivotId: 0,
+        offerId: 0
       })
     );
 
-    (, , uint gave, , ) = mgv.snipes({
+    (, uint got, uint gave, , ) = mgv.snipes({
       outbound_tkn: $(dai),
       inbound_tkn: $(weth),
       targets: wrap_dynamic([offerId, 300 ether, 0.15 ether, type(uint).max]),
       fillWants: true
     });
+    assertEq(got, minusFee($(dai), $(weth), 300 ether), "wrong got amount");
 
     // TODO logLenderStatus
-    assertApproxBalanceAndBorrow(strat, dai, 700 ether, 0, $(strat));
-    assertApproxBalanceAndBorrow(strat, weth, gave, 0, $(strat));
-
-    strat.approveMangrove(weth, type(uint).max);
+    assertApproxBalanceAndBorrow(router, dai, 700 ether, 0, $(router));
+    assertApproxBalanceAndBorrow(router, weth, gave, 0, $(router));
 
     offerId = strat.newOffer(
       IOfferLogic.MakerOrder({
@@ -110,9 +145,10 @@ contract AaveLenderTest is AaveV3ModuleTest {
         inbound_tkn: dai,
         wants: 380 ether,
         gives: 0.2 ether,
-        gasreq: strat.OFR_GASREQ(),
+        gasreq: strat.ofr_gasreq(),
         gasprice: 0,
-        pivotId: 0
+        pivotId: 0,
+        offerId: 0
       })
     );
 
@@ -127,7 +163,7 @@ contract AaveLenderTest is AaveV3ModuleTest {
 
     // TODO logLenderStatus
 
-    assertApproxBalanceAndBorrow(strat, weth, 0, 0.05 ether, $(strat));
+    assertApproxBalanceAndBorrow(router, weth, 0, 0.05 ether, $(router));
 
     offerId = strat.newOffer(
       IOfferLogic.MakerOrder({
@@ -135,21 +171,30 @@ contract AaveLenderTest is AaveV3ModuleTest {
         inbound_tkn: weth,
         wants: 0.63 ether,
         gives: 1500 ether,
-        gasreq: strat.OFR_GASREQ(),
+        gasreq: strat.ofr_gasreq(),
         gasprice: 0,
-        pivotId: 0
+        pivotId: 0,
+        offerId: 0
       })
     );
 
-    mgv.snipes({
+    // cannot borrowrepay in same block
+    vm.warp(block.timestamp + 1);
+
+    (, got, , , ) = mgv.snipes({
       outbound_tkn: $(dai),
       inbound_tkn: $(weth),
       targets: wrap_dynamic([offerId, 1500 ether, 0.63 ether, type(uint).max]),
       fillWants: true
     });
+    assertEq(
+      got,
+      minusFee($(dai), $(weth), 1500 ether),
+      "wrong received amount"
+    );
 
     // TODO logLenderStatus
-
+    assertApproxBalanceAndBorrow(router, weth, 0.58 ether, 0, $(router));
     // TODO check borrowing DAIs and not borrowing WETHs anymore
   }
 }

@@ -12,7 +12,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "../router/AbstractRouter.sol";
+import "mgv_src/strategies/routers/AbstractRouter.sol";
 
 library MangoStorage {
   /** Strat specific events */
@@ -38,7 +38,7 @@ library MangoStorage {
     // NB reneged offers are removed from Mangrove's OB
     bool paused;
     // Base and quote router contract
-    AbstractRouter liquidity_router;
+    AbstractRouter router;
     // reserve address for the router (external treasury -e.g EOA-, Mango or the router itself)
     // if the router is lender based, this is the location of the overlying
     address reserve;

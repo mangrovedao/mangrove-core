@@ -16,7 +16,7 @@ pragma abicoder v2;
 // TODO-foundry-merge explain what this contract does
 
 import {AaveV3ModuleStorage as AMS} from "./AaveModuleStorage.sol";
-import {AaveV3ModuleImplementation as AMI, IERC20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, IPriceOracleGetter, DataTypes} from "./AaveModuleImplementation.sol";
+import {AaveV3ModuleImplementation as AMI, IERC20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, ICreditDelegationToken, IPool, IPriceOracleGetter, DataTypes} from "./AaveModuleImplementation.sol";
 
 contract AaveV3Module {
   address private immutable IMPLEMENTATION;
@@ -69,6 +69,20 @@ contract AaveV3Module {
 
   function overlying(IERC20 asset) public view returns (IERC20 aToken) {
     aToken = IERC20(POOL.getReserveData(address(asset)).aTokenAddress);
+  }
+
+  function debtToken(IERC20 asset)
+    public
+    view
+    returns (ICreditDelegationToken debtTkn)
+  {
+    debtTkn = INTEREST_RATE_MODE == 1
+      ? ICreditDelegationToken(
+        POOL.getReserveData(address(asset)).stableDebtTokenAddress
+      )
+      : ICreditDelegationToken(
+        POOL.getReserveData(address(asset)).variableDebtTokenAddress
+      );
   }
 
   function _staticdelegatecall(bytes calldata data) external {
@@ -139,19 +153,32 @@ contract AaveV3Module {
     }
   }
 
-  function exactRedeemThenBorrow(
+  ///@notice redeems liquidity on aave, if not enough liquidity is redeemed, tries to borrow what's missing.
+  ///@param token the asset that needs to be redeemed
+  ///@param onBehalf the account whose collateral is beeing redeemed and borrowed upon.
+  ///@dev if `onBehalf != address(this)` then `this` needs to be approved by `onBehalf` using `ICreditDelegationToken.approveDelegation`
+  ///@param amount the target amount of `token` one needs to redeem
+  ///@param strict whether call allows contract to redeem more than amount (for gas optimization).
+  ///@dev function will only try to borrow if less than `amount` was redeemed and will not try to borrow more than what is missing, even if `strict` is not required.
+  ///@dev this is forced by aave v3 currently not allowing to repay a debt that was incurred on the same block (so no gas optim can be used). Repaying on the next block would be dangerous as `onBehalf` position could possibly be liquidated
+  ///@param recipient the target address to which redeemed and borrowed tokens should be sent
+  function redeemThenBorrow(
     IERC20 token,
-    address to,
-    uint amount
+    address onBehalf,
+    uint amount,
+    bool strict,
+    address recipient
   ) internal returns (uint got) {
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        AMI.$exactRedeemThenBorrow.selector,
+        AMI.$redeemThenBorrow.selector,
         INTEREST_RATE_MODE,
         REFERRAL_CODE,
         token,
-        to,
-        amount
+        onBehalf,
+        amount,
+        strict,
+        recipient
       )
     );
     if (success) {

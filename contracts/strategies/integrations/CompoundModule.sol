@@ -22,7 +22,6 @@ interface WETH is IERC20 {
   function withdraw(uint) external;
 }
 
-//import "hardhat/console.sol";
 // TODO-foundry-merge explain what this contract does
 
 contract CompoundModule is Exponential {

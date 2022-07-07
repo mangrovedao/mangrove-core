@@ -13,12 +13,16 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "contracts/strategies/single_user/abstract/Persistent.sol";
+import "contracts/strategies/routers/SimpleRouter.sol";
 
 /* Simply inherits Persistent and is deployable. No additional internal logic. */
 contract Reposting is Persistent {
-  constructor(IMangrove _MGV, address deployer) MangroveOffer(_MGV) {
+  constructor(IMangrove _MGV, address deployer)
+    Persistent(_MGV, 50_000, new SimpleRouter())
+  {
     if (deployer != msg.sender) {
       setAdmin(deployer);
+      router().setAdmin(deployer);
     }
   }
 }

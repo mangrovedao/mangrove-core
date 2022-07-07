@@ -17,6 +17,12 @@ import "./SingleUser.sol";
 /** (Single user variant) */
 
 abstract contract Persistent is SingleUser {
+  constructor(
+    IMangrove _mgv,
+    uint strat_gasreq,
+    AbstractRouter _router
+  ) SingleUser(_mgv, strat_gasreq, _router) {}
+
   /** Persistent class specific hooks. */
 
   // Hook that defines how much inbound tokens the residual offer should ask for when repositing itself on the Offer List.
@@ -47,6 +53,10 @@ abstract contract Persistent is SingleUser {
     override
     returns (bool)
   {
+    // flushing inbound and remaining outbound tokens to reserve
+    super.__posthookSuccess__(order);
+
+    // now trying to repost residual
     uint new_gives = __residualGives__(order);
     // Density check would be too gas costly.
     // We only treat the special case of `gives==0` (total fill).

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// SimpleCompoundRetail.sol
+//AaveDeepRouter.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -9,36 +9,37 @@
 // 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "contracts/toy_strategies/single_user/abstract/CompoundLender.sol";
 
-//import "hardhat/console.sol";
+import "./AaveRouter.sol";
 
-contract SimpleCompoundRetail is CompoundLender {
+// Underlying on AAVE
+// Overlying on reserve
+// `this` must approve Lender for outbound token transfer (pull)
+// `this` must approve Lender for inbound token transfer (flush)
+// `this` must be approved by reserve for *overlying* of inbound token transfer
+// `this` must be approved by maker contract for outbound token transfer
+
+contract AaveDeepRouter is AaveRouter {
   constructor(
-    address _unitroller,
-    IMangrove _MGV,
-    address wethAddress,
-    address deployer
-  ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {
-    setGasreq(1_000_000);
-    if (deployer != msg.sender) {
-      setAdmin(deployer);
-    }
+    address _addressesProvider,
+    uint _referralCode,
+    uint _interestRateMode
+  ) AaveRouter(_addressesProvider, _referralCode, _interestRateMode) {
+    gas_overhead += 350_000; // additional borrow
   }
 
-  // Tries to take base directly from `this` balance. Fetches the remainder on Compound.
-  function __get__(uint amount, ML.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
-    uint missing = SingleUser.__get__(amount, order);
-    if (missing > 0) {
-      return super.__get__(missing, order);
-    }
-    return 0;
+  // 1. pulls aTokens from aToken reserve. Borrows if necessary
+  // 2. redeems underlying on AAVE and forwards received tokens to maker contract
+  function __pull__(
+    IERC20 token,
+    address reserve,
+    address maker,
+    uint amount,
+    bool strict
+  ) internal virtual override returns (uint pulled) {
+    return redeemThenBorrow(token, reserve, amount, strict, maker);
   }
 }

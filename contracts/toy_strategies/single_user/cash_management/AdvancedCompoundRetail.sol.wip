@@ -20,7 +20,7 @@ contract AdvancedCompoundRetail is CompoundTrader {
     address wethAddress,
     address deployer
   ) CompoundModule(_unitroller, wethAddress) MangroveOffer(_MGV) {
-    setGasreq(1_000_000);
+    set_gasreq(1_000_000);
     if (deployer != msg.sender) {
       setAdmin(deployer);
     }

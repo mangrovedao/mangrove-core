@@ -3,8 +3,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/strategies/single_user/market_making/mango/Mango.sol";
-import "mgv_src/strategies/single_user/market_making/router/SimpleRouter.sol";
-import "mgv_src/strategies/single_user/market_making/router/BufferedAaveRouter.sol";
+import "mgv_src/strategies/routers/AaveRouter.sol";
 import "mgv_test/lib/Fork.sol";
 
 // note: this is a forking test
@@ -20,7 +19,7 @@ contract GuaaveTest is MangroveTest {
   address payable maker;
   address payable taker;
   Mango mgo;
-  BufferedAaveRouter router;
+  AaveRouter router;
 
   function setUp() public override {
     Fork.setUp();
@@ -50,7 +49,7 @@ contract GuaaveTest is MangroveTest {
       quote_0: 1000 * 10**6,
       nslots: NSLOTS,
       price_incr: DELTA,
-      deployer: maker
+      deployer: maker // reserve address is maker's wallet
     });
     vm.stopPrank();
   }
@@ -63,49 +62,62 @@ contract GuaaveTest is MangroveTest {
     part_market_order_with_buffer();
   }
 
-  function part_deploy_strat() public {
-    vm.startPrank(maker);
-
-    uint prov = mgo.getMissingProvision({
-      outbound_tkn: weth,
-      inbound_tkn: usdc,
-      gasreq: mgo.OFR_GASREQ(),
-      gasprice: 0,
-      offerId: 0
-    });
-    vm.stopPrank();
-
-    mgv.fund{value: prov * (NSLOTS * 2)}($(mgo));
-    deal($(weth), $(mgo), 17 ether + weth.balanceOf($(mgo)), true);
-  }
+  function part_deploy_strat() public {}
 
   function part_deploy_buffered_router() public {
+    // default router for Mango is `SimpleRouter` that uses `reserve` to pull and push liquidity
+    // here we want to use aave for (il)liquidity and store liquid overlying at reserve
+    // router will redeem and deposit funds that are mobilized during trade execution
     vm.startPrank(maker);
-    router = new BufferedAaveRouter({
+    router = new AaveRouter({
       _addressesProvider: Fork.AAVE,
       _referralCode: 0,
-      _interestRateMode: 1, // stable rate
-      deployer: maker // initial admin
-    });
-
-    // liquidity router will pull funds from AAVE
-    mgo.set_liquidity_router({
-      router: router, // telling Mango which router it should call
-      reserve: $(router), // telling Mango to use the router itself as reserve
-      gasreq: 800_000
+      _interestRateMode: 1 // stable rate
     });
     // adding makerContract to allowed pullers of router's liquidity
     router.bind($(mgo));
+
+    // liquidity router will pull funds from AAVE
+    mgo.set_router(router);
+    mgo.set_reserve($(router));
+
+    // computing necessary provision (which has changed because of new router GAS_OVERHEAD)
+    uint prov = mgo.getMissingProvision({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      gasreq: mgo.ofr_gasreq(),
+      gasprice: 0,
+      offerId: 0
+    });
+
+    vm.stopPrank();
+    mgv.fund{value: prov * (NSLOTS * 2)}($(mgo));
+    vm.startPrank(maker);
+    deal($(weth), $(mgo), 17 ether + weth.balanceOf($(mgo)), true);
+
     // to mint awETH
     router.approveLender(weth);
     // to mint aUSDC
     router.approveLender(usdc);
+    // to allow router to pull/push from Mango
+    mgo.approveRouter(weth);
+    mgo.approveRouter(usdc);
 
     // putting ETH as collateral on AAVE
-    router.supply(weth, 17 ether, $(mgo));
-    router.borrow(usdc, 2000 * 10**6, $(mgo));
-
+    router.supply(
+      weth,
+      mgo.reserve(),
+      17 ether,
+      $(mgo) /* maker contract was funded above */
+    );
+    router.borrow(
+      usdc,
+      mgo.reserve(),
+      2000 * 10**6,
+      $(mgo) /* maker contract is buffer */
+    );
     vm.stopPrank();
+
     // TODO-foundry-merge: implement logLenderStatus in solidity
   }
 

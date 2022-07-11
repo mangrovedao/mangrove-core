@@ -94,6 +94,7 @@ config.hardhat = {
         }
         return line;
       },
+      settings: { do_not_recompile: true },
     }),
   },
   // see github.com/wighawag/hardhat-deploy#1-namedaccounts-ability-to-name-addresses

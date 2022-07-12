@@ -13,7 +13,7 @@ module.exports = async (hre) => {
   const offerProxy = await hre.deployments.deploy("OfferProxy", {
     from: deployer,
     args: [
-      MgvAPI.getAddress("addressProvider"),
+      MgvAPI.getAddress("AaveProvider"),
       MgvAPI.contract.address,
       deployer,
     ],

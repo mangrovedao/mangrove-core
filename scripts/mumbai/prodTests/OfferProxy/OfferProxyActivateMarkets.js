@@ -22,13 +22,14 @@ async function main() {
 
   for (const tokenName of ["WETH", "USDC", "DAI"]) {
     console.log(`* Approving Lender for minting ${tokenName}`);
+    // this approves router of offerProxy for minting overlying (redeem)
     const txLender = await rawLogic.approveLender(
-      MgvAPI.token(tokenName).address,
-      hre.ethers.constants.MaxUint256
+      MgvAPI.token(tokenName).address
     );
     await txLender.wait();
-    const approval = await logic.mangroveAllowance(tokenName);
-    if (approval.eq(0)) {
+
+    const mgvApproval = await logic.mangroveAllowance(tokenName);
+    if (mgvApproval.eq(0)) {
       const tx = await logic.approveMangrove(tokenName);
       console.log(
         `* OfferProxy contract (${logic.address}) approved Mangrove (${MgvAPI.contract.address}) for ${tokenName} transfer`
@@ -38,6 +39,16 @@ async function main() {
       console.log(
         `* OfferProxy already approved Mangrove for ${tokenName} transfer`
       );
+    }
+    const routerApproval = await logic.routerAllowance(tokenName);
+    if (routerApproval.eq(0)) {
+      const tx = await logic.approveRouter(tokenName);
+      console.log(
+        `* OfferProxy contract (${logic.address}) approved router (${
+          (await logic.router()).address
+        }) for ${tokenName} transfer`
+      );
+      await tx.wait();
     }
   }
 }

@@ -12,7 +12,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "mgv_src/strategies/multi_user/abstract/Persistent.sol";
-import "mgv_src/strategies/routers/AaveRouter.sol";
+import "mgv_src/strategies/routers/AaveDeepRouter.sol";
 
 contract OfferProxy is MultiUserPersistent {
   constructor(
@@ -36,7 +36,7 @@ contract OfferProxy is MultiUserPersistent {
     return AaveDeepRouter(address(router()));
   }
 
-  function approveLender(IEIP20 token) external {
+  function approveLender(IERC20 token) external {
     aaveRouter().approveLender(token);
   }
 }

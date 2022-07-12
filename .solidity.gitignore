@@ -7,3 +7,5 @@ doc/MgvDoc.html
 doc/specs.txt
 foundry_out
 foundry_cache
+.env*
+

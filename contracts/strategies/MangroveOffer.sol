@@ -126,7 +126,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   // maker contract need to approve router for reserve push and pull
-  function approveRouter(IEIP20 token) public {
+  function approveRouter(IERC20 token) public {
     require(
       token.approve(address(router()), type(uint).max),
       "mgvOffer/approveRouter/Fail"
@@ -145,7 +145,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   /// `this` contract needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
   /// NB if anyone can call this function someone could reset it to 0 for griefing
-  function approveMangrove(IEIP20 outbound_tkn) public {
+  function approveMangrove(IERC20 outbound_tkn) public {
     require(
       outbound_tkn.approve(address(MGV), type(uint).max),
       "mgvOffer/approveMangrove/Fail"

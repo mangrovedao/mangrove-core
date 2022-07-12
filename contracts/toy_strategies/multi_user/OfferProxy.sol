@@ -20,11 +20,23 @@ contract OfferProxy is MultiUserPersistent {
     IMangrove _MGV,
     address deployer
   )
-    MultiUserPersistent(_MGV, new AaveRouter(_addressesProvider, 0, 0), 50_000)
+    MultiUserPersistent(
+      _MGV,
+      new AaveDeepRouter(_addressesProvider, 0, 2),
+      50_000
+    )
   {
     router().setAdmin(deployer);
     if (deployer != msg.sender) {
       setAdmin(deployer);
     }
+  }
+
+  function aaveRouter() internal view returns (AaveDeepRouter) {
+    return AaveDeepRouter(address(router()));
+  }
+
+  function approveLender(IEIP20 token) external {
+    aaveRouter().approveLender(token);
   }
 }

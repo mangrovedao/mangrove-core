@@ -205,6 +205,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
           wei_balance: 0
         });
       }
+      // gasprice for this offer will be computed using msg.value and available funds on Mangrove attributed to `offerId`'s owner
       mko.gasprice = derive_gasprice(
         mko.gasreq,
         upd.provision,
@@ -264,6 +265,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     );
     if (od.wei_balance > 0) {
       // offer was already retracted and deprovisioned by Mangrove after a trade failure
+      // wei_balance is part of this contract's pooled free wei and can be redeemed by offer owner
       free_wei = deprovision ? od.wei_balance : 0;
     } else {
       free_wei = MGV.retractOffer(
@@ -282,7 +284,8 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
         wei_balance: 0
       });
       // letting router decide what it should do with owner's free wei
-      router().push_native{value: free_wei}(msg.sender);
+      (bool noRevert, ) = msg.sender.call{value: free_wei}("");
+      require(noRevert, "MultiUser/weiTransferFail");
     }
   }
 
@@ -346,15 +349,9 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     OfferData memory od = offerData[outTkn][inTkn][order.offerId];
-    // first one withdraws all free weis from Mangrove
-    // NB if several offers of `this` contract have failed during the market order, the balance will contain cumulated free provision
-    // noop if the balance of `this` is empty on Mangrove so will perform this call only once per market order
-    require(
-      MGV.withdraw(MGV.balanceOf(address(this))),
-      "MultiUser/posthookFallback/withdrawFail"
-    );
+    // NB if several offers of `this` contract have failed during the market order, the balance of this contract on Mangrove will contain cumulated free provision
 
-    // computing an under approximation of returned provision
+    // computing an under approximation of returned provision because of this offer's failure
     (P.Global.t global, P.Local.t local) = MGV.config(
       order.outbound_tkn,
       order.inbound_tkn
@@ -374,6 +371,8 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
       ? 0
       : provision - approxBounty;
 
+    // storing the portion of this contract's balance on Mangrove that should be attributed back to the failing offer's owner
+    // those free WEIs can be retrieved by offer owner, by calling `retractOffer` with the `deprovision` flag.
     offerData[outTkn][inTkn][order.offerId] = OfferData({
       owner: od.owner,
       wei_balance: uint96(approxReturnedProvision) // previous wei_balance is always 0 here: if offer failed in the past, `updateOffer` did reuse it

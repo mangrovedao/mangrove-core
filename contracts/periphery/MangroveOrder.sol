@@ -196,10 +196,8 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
       // transfering potential bounty and msg.value back to the taker
       if (msg.value + res.bounty > 0) {
         // NB this calls gives reentrancy power to caller
-        require(
-          router().push_native{value: msg.value + res.bounty}(msg.sender),
-          "mgvOrder/mo/refundFail"
-        );
+        (bool noRevert, ) = msg.sender.call{value: msg.value + res.bounty}("");
+        require(noRevert, "mgvOrder/mo/refundFail");
       }
       emit OrderSummary({
         mangrove: MGV,

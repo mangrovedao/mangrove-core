@@ -126,7 +126,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   // maker contract need to approve router for reserve push and pull
-  function approveRouter(IERC20 token) public mgvOrAdmin {
+  function approveRouter(IEIP20 token) public {
     require(
       token.approve(address(router()), type(uint).max),
       "mgvOffer/approveRouter/Fail"
@@ -145,18 +145,21 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   /// `this` contract needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
   /// NB if anyone can call this function someone could reset it to 0 for griefing
-  function approveMangrove(IERC20 outbound_tkn, uint amount) public mgvOrAdmin {
+  function approveMangrove(IEIP20 outbound_tkn) public {
     require(
-      outbound_tkn.approve(address(MGV), amount),
+      outbound_tkn.approve(address(MGV), type(uint).max),
       "mgvOffer/approveMangrove/Fail"
     );
   }
 
-  /// withdraws ETH from the bounty vault of the Mangrove and adds it to `this` balance
-  /// NB the bounty vault on Mangrove is pooled amongst offer owners in the case of a multiUser strat
-  function withdrawFromMangrove(uint amount, address receiver)
-    public
-    mgvOrAdmin
+  ///@notice withdraws ETH from the provision account on Mangrove and sends collected WEIs to `receiver`
+  ///@dev for multi user strats, the contract provision account on Mangrove is pooled amongst offer owners so admin should only call this function to recover WEIs (e.g. that were erroneously transferred to Mangrove using `MGV.fund()`)
+  /// This contract's balance on Mangrove may contain deprovisioned WEIs after an offer has failed (complement between provision and the bounty that was sent to taker)
+  /// those free WEIs can be retrieved by offer owners by calling `retractOffer` with the `deprovsion` flag. Not by calling this function which is admin only.
+
+  function withdrawFromMangrove(uint amount, address payable receiver)
+    external
+    onlyAdmin
   {
     if (amount == type(uint).max) {
       amount = MGV.balanceOf(address(this));
@@ -165,12 +168,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       }
     }
     require(MGV.withdraw(amount), "mgvOffer/withdrawFromMgv/withdrawFail");
-    if (has_router()) {
-      router().push_native{value: amount}(receiver);
-    } else {
-      (bool success, ) = receiver.call{value: amount}("");
-      require(success, "mgvOffer/withdrawFromMgv/payableCallFail");
-    }
+    (bool noRevert, ) = receiver.call{value: amount}("");
+    require(noRevert, "mgvOffer/withdrawFromMgv/payableCallFail");
   }
 
   ////// Default Customizable hooks for Taker Order'execution

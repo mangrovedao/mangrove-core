@@ -9,12 +9,11 @@ const config = require("config"); // Reads configuration files from /config/
 
 require("hardhat-deploy");
 require("hardhat-deploy-ethers");
-require("hardhat-abi-exporter");
 
 require("./lib/hardhat-mainnet-env.js"); // Adds Ethereum/polygon environment to Hardhat Runtime Envrionment
 
-require("@mangrovedao/hardhat-test-solidity");
 require("hardhat-contract-sizer");
+require("hardhat-preprocessor");
 // Use Hardhat configuration from loaded configuration files
 
 module.exports = config.hardhat;

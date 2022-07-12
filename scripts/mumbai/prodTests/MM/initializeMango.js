@@ -80,10 +80,7 @@ async function main() {
       router = routerContract.address;
     } else {
       console.log(`* Reusing already deployed router ${router}`);
-      tx = await MangoRaw.set_router(
-        router,
-        await MangoRaw.ofr_gasreq()
-      );
+      tx = await MangoRaw.set_router(router, await MangoRaw.ofr_gasreq());
       await tx.wait();
       const routerContract = RouterFactory.connect(tester).attach(router);
       tx = await routerContract.bind(MangoRaw.address);

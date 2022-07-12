@@ -1,0 +1,15 @@
+# Note: remember to `git submodule update --recursive` to pull in dependencies
+[default]
+src='contracts'
+test='foundry_test'
+out='foundry_out'
+libs=['foundry_lib']
+cache_path='foundry_cache'
+solc_version="0.8.14"
+[polygon]
+eth_rpc_url="https://polygon-rpc.com"
+fork_block_number=26416000
+# The remappings are in remappings.txt so vscode solidity ext. can read them
+# The first lines are the manual remappings
+# The other lines are a copy/paste of the inferred mappings shown by `forge config` (inferred from imported libs)
+# You should update remappings.txt whenever a lib change impacts remappings

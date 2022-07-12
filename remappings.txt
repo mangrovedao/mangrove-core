@@ -1,0 +1,6 @@
+hardhat/=foundry_lib/forge-std/src/
+mgv_src/=contracts/
+mgv_test/=contracts/test/
+
+ds-test/=foundry_lib/forge-std/lib/ds-test/src/
+forge-std/=foundry_lib/forge-std/src/

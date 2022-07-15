@@ -19,7 +19,7 @@ import {AaveV3ModuleStorage as AMS} from "./AaveModuleStorage.sol";
 import {AaveV3ModuleImplementation as AMI, IERC20, IRewardsControllerIsh, IPoolAddressesProvider, IPool, ICreditDelegationToken, IPool, IPriceOracleGetter, DataTypes} from "./AaveModuleImplementation.sol";
 
 contract AaveV3Module {
-  address private immutable IMPLEMENTATION;
+  address public immutable IMPLEMENTATION;
   IPool public immutable POOL;
   IPriceOracleGetter public immutable ORACLE;
   uint public immutable INTEREST_RATE_MODE;
@@ -246,7 +246,7 @@ contract AaveV3Module {
     );
   }
 
-  // @dev user can only borrow underlying in variable of stable, not both
+  // @dev user can only borrow underlying in variable or stable, not both
   function borrowed(address underlying, address account)
     public
     view

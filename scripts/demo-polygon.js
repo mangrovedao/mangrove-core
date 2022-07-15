@@ -9,7 +9,7 @@ const ethers = require("ethers");
 // otherwise ethers.js gives 1.5 gwei which is way too low
 const overrides = { gasPrice: ethers.utils.parseUnits("60", "gwei") };
 
-const provider = new ethers.providers.WebSocketProvider(
+const provider = new ethers.providers.JsonRpcProvider(
   env.parsed.MUMBAI_NODE_URL
 );
 
@@ -17,7 +17,7 @@ let wallet = new ethers.Wallet(env.parsed.MUMBAI_TESTER_PRIVATE_KEY, provider);
 
 //connecting the API to Mangrove
 let mgv = await Mangrove.connect({ signer: wallet });
-// BUG: this doesn't work if running a local node forking mumbai
+// BUG: this doesn't work if running a local node forking mumbai with localhost instead of 127.0.0.1
 // Uncaught:
 // Error: missing response (requestBody="{\"method\":\"net_version\",\"id\":46,\"jsonrpc\":\"2.0\"}", requestMethod="POST", serverError={"errno":-61,"code":"ECONNREFUSED","syscall":"connect","address":"::1","port":8545}, url="http://localhost:8545", code=SERVER_ERROR, version=web/5.6.1)
 // at Logger.makeError (/Users/jeankrivine/Documents/sandbox/node_modules/@ethersproject/logger/lib/index.js:233:21)
@@ -39,31 +39,57 @@ let market = await mgv.market({ base: "DAI", quote: "USDC" });
 market.consoleAsks(["id", "price", "volume"]);
 
 /// connecting to offerProxy's onchain logic
-const myLogic = mgv.offerLogic("0x8f251D2789c3AE3054C24B4319e357C8AB45697a");
-const maker = await myLogic.liquidityProvider(market);
+/// logic has already approved Mangrove for DAI, WETH transfer
+/// it has also alreadt approved router to manage its funds
+const logic = mgv.offerLogic("0x6210d78652D5c419e530076f1337889D322F4f84");
+const maker = await logic.liquidityProvider(market);
 
 // allowing logic to pull my overlying to finance my offers
-tx = await myLogic.approveToken("aDAI", overrides);
+tx = await logic.approveToken("aDAI", overrides);
 await tx.wait();
 
-tx = await myLogic.approveToken("aUSDC", overrides);
+tx = await logic.approveToken("aUSDC", overrides);
 await tx.wait();
 
 // checking needed provision
-prov = await maker.computeAskProvision();
+// prov = await maker.computeAskProvision();
 // BUG: this currenlty returns zero because API is not up to date with Multi Maker way of funding offers
 
-router_address = await maker.logic.router();
-aaveMod = myLogic.aaveModule(router_address);
-await routerRaw.debtToken(mgv.token("DAI").address);
+router = await logic.router();
+aaveMod = logic.aaveModule(router.address);
 
-const { id: ofr_id } = await maker.newAsk({
-  wants: 1000,
-  gives: 1000,
-  fund: ethers.utils.parseEther("0.1"),
+await aaveMod.logStatus(["WETH", "DAI", "USDC"]);
+
+// allowing router to borrow DAI on behalf of signer's address
+tx = await aaveMod.approveDelegation("DAI", router.address, overrides);
+await tx.wait();
+
+const { id: id } = await maker.newAsk({
+  volume: 5000,
+  price: 1.01,
+  fund: 0.1,
   overrides,
 });
-// BUG: this results in a throw of the API:
+// BUG: this results in a throw of the API when mangrove is not active on this market
 // Uncaught { revert: false, exception: 'tx mined but filter never returned true' }
 
-const result = await market.buy({ volume: 1000, price: 1 }, overrides);
+tx = await mgv.approveMangrove("USDC"); // approve payment ERC
+await tx.wait();
+// buying DAIs with USDC
+const buyResult = await market.buy({ volume: 5000, price: 1.03 }, overrides);
+
+await aaveMod.logStatus(["WETH", "DAI", "USDC"]);
+
+const { id: id_ } = await maker.newBid({
+  volume: 5000,
+  price: 0.99,
+  fund: 0.1,
+  overrides,
+});
+
+tx = await mgv.approveMangrove("DAI"); // approve payment ERC
+await tx.wait();
+// buying DAIs with USDC
+const sellResult = await market.sell({ volume: 5000, price: 0.9 }, overrides);
+
+await aaveMod.logStatus(["WETH", "DAI", "USDC"]);

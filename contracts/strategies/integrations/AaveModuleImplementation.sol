@@ -130,34 +130,20 @@ contract AaveV3ModuleImplementation {
     if (amount == 0) {
       return;
     }
-    uint debtOfUnderlying;
-    DataTypes.ReserveData memory reserveData = POOL.getReserveData(
-      address(token)
-    );
-    if (interestRateMode == 1) {
-      debtOfUnderlying = IERC20(reserveData.stableDebtTokenAddress).balanceOf(
-        address(this)
-      );
-    } else {
-      debtOfUnderlying = IERC20(reserveData.variableDebtTokenAddress).balanceOf(
-          address(this)
-        );
-    }
     uint toMint = amount;
-    if (debtOfUnderlying == 0) {
-      toMint = amount;
-    } else {
-      try
-        POOL.repay(address(token), amount, interestRateMode, onBehalf)
-      returns (uint repaid) {
-        toMint -= repaid;
-        if (toMint == 0) {
-          return;
-        }
-      } catch {
-        // this may happen in aave v3 (as of July 2022) when trying to repay debt in the block of the borrow
-        // toMint == amount
+    try
+      // there are several reasons a repay may fail:
+      // * trying to repay more than debt is OK provided debt is not 0 (AAVE throws is debt is 0)
+      // * repaying maxUint will not work when repaying on behalf !
+      // * cannot repay a borrow that has the same block stamp
+      POOL.repay(address(token), amount, interestRateMode, onBehalf)
+    returns (uint repaid) {
+      toMint -= repaid;
+      if (toMint == 0) {
+        return;
       }
+    } catch {
+      /** Recovering from one of the above 3 cases */
     }
     POOL.supply(address(token), toMint, onBehalf, uint16(referralCode));
   }
@@ -180,6 +166,7 @@ contract AaveV3ModuleImplementation {
       redeemable = (redeemable < amount) ? redeemable : amount;
     }
     // `this` contract must have the aToken to withdraw on AAVE
+    // there is no `withdraw` on behalf as of July 2022
     require(
       TransferLib.transferTokenFrom(
         IERC20(POOL.getReserveData(address(token)).aTokenAddress),

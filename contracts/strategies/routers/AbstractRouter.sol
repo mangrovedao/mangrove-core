@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//ITreasury.sol
+//AbstractRouter.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -14,24 +14,30 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "mgv_src/strategies/utils/AccessControlled.sol";
+import {AbstractRouterStorage as ARSt} from "./AbstractRouterStorage.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 
 abstract contract AbstractRouter is AccessControlled {
-  mapping(address => bool) public makers;
-  uint public gas_overhead;
+  function makers(address mkr) public view returns (bool) {
+    return ARSt.get_storage().makers[mkr];
+  }
+
+  function gas_overhead() public view returns (uint) {
+    return ARSt.get_storage().gas_overhead;
+  }
 
   modifier onlyMakers() {
-    require(makers[msg.sender], "Router/unauthorized");
+    require(makers(msg.sender), "Router/unauthorized");
     _;
   }
   modifier makersOrAdmin() {
-    require(msg.sender == admin() || makers[msg.sender], "Router/unauthorized");
+    require(msg.sender == admin() || makers(msg.sender), "Router/unauthorized");
     _;
   }
 
   constructor(uint overhead) AccessControlled(msg.sender) {
     require(uint24(overhead) == overhead, "AbstractRouter/overheadTooHigh");
-    gas_overhead = overhead;
+    ARSt.get_storage().gas_overhead = overhead;
   }
 
   // pulls `amount` of `token`s from reserve to maker contract's balance if necessary
@@ -126,10 +132,10 @@ abstract contract AbstractRouter is AccessControlled {
   // if maker contract is `this` router's deployer, it will do so using admin privilege
   // if `this` router was deployed independently of maker contract, binding must be done by router's deployer
   function bind(address maker) public makersOrAdmin {
-    makers[maker] = true;
+    ARSt.get_storage().makers[maker] = true;
   }
 
   function unbind(address maker) public makersOrAdmin {
-    makers[maker] = false;
+    ARSt.get_storage().makers[maker] = false;
   }
 }

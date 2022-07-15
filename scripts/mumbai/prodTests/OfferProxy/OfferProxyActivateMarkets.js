@@ -14,6 +14,7 @@ async function main() {
   const MgvAPI = await Mangrove.connect({
     signer: wallet,
   });
+  const overrides = { gasPrice: ethers.utils.parseUnits("60", "gwei") };
 
   const rawLogic = (await hre.ethers.getContract("OfferProxy")).connect(wallet);
 
@@ -24,13 +25,14 @@ async function main() {
     console.log(`* Approving Lender for minting ${tokenName}`);
     // this approves router of offerProxy for minting overlying (redeem)
     const txLender = await rawLogic.approveLender(
-      MgvAPI.token(tokenName).address
+      MgvAPI.token(tokenName).address,
+      overrides
     );
     await txLender.wait();
 
     const mgvApproval = await logic.mangroveAllowance(tokenName);
     if (mgvApproval.eq(0)) {
-      const tx = await logic.approveMangrove(tokenName);
+      const tx = await logic.approveMangrove(tokenName, overrides);
       console.log(
         `* OfferProxy contract (${logic.address}) approved Mangrove (${MgvAPI.contract.address}) for ${tokenName} transfer`
       );
@@ -42,7 +44,7 @@ async function main() {
     }
     const routerApproval = await logic.routerAllowance(tokenName);
     if (routerApproval.eq(0)) {
-      const tx = await logic.approveRouter(tokenName);
+      const tx = await logic.approveRouter(tokenName, overrides);
       console.log(
         `* OfferProxy contract (${logic.address}) approved router (${
           (await logic.router()).address

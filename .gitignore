@@ -13,6 +13,7 @@ doc/specs.txt
 **/.sethrc
 .DS_Store
 .vscode/settings.json
+.env
 .env.local
 .env.*.local
 *test-report.json

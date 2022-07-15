@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveDeepRouter.sol
+//AbstractRouterStorage.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -13,33 +13,18 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "./AaveRouter.sol";
-
-// Underlying on AAVE
-// Overlying on reserve
-// `this` must approve Lender for outbound token transfer (pull)
-// `this` must approve Lender for inbound token transfer (flush)
-// `this` must be approved by reserve for *overlying* of inbound token transfer
-// `this` must be approved by maker contract for outbound token transfer
-
-contract AaveDeepRouter is AaveRouter {
-  constructor(
-    address _addressesProvider,
-    uint _referralCode,
-    uint _interestRateMode
-  ) AaveRouter(_addressesProvider, _referralCode, _interestRateMode) {
-    ARSt.get_storage().gas_overhead += 350_000; // additional borrow
+library AbstractRouterStorage {
+  struct Layout {
+    mapping(address => bool) makers;
+    uint gas_overhead;
   }
 
-  // 1. pulls aTokens from aToken reserve. Borrows if necessary
-  // 2. redeems underlying on AAVE and forwards received tokens to maker contract
-  function __pull__(
-    IERC20 token,
-    address reserve,
-    address maker,
-    uint amount,
-    bool strict
-  ) internal virtual override returns (uint pulled) {
-    return redeemThenBorrow(token, reserve, amount, strict, maker);
+  function get_storage() internal pure returns (Layout storage st) {
+    bytes32 storagePosition = keccak256(
+      "Mangrove.AbstractRouterStorageLib.Layout"
+    );
+    assembly {
+      st.slot := storagePosition
+    }
   }
 }

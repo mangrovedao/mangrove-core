@@ -90,8 +90,8 @@ contract AaveLenderTest is AaveV3ModuleTest {
     // offer should get/put base/quote tokens on lender contract (OK since sender is MakerContract admin)
     // strat.enterMarkets(market); // not on aave
 
-    strat.approveMangrove(dai, type(uint).max);
-    strat.approveMangrove(weth, type(uint).max);
+    strat.approveMangrove(dai);
+    strat.approveMangrove(weth);
     strat.approveRouter(dai);
     strat.approveRouter(weth);
 

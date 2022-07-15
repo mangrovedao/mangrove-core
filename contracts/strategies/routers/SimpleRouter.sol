@@ -47,28 +47,6 @@ contract SimpleRouter is AbstractRouter(50_000) {
     );
   }
 
-  /// this fonction is called immediately after a payable function has received funds
-  /// NB this function should not be called when `reserve` is not tx.origin as this would give the possibility to an arbitrary
-  /// contract to make the tx fail (in addition to potential reentrancy risks)
-  function __push_native__(address reserve, uint amount)
-    internal
-    virtual
-    override
-    returns (bool success)
-  {
-    (success, ) = reserve.call{value: amount}("");
-    require(success, "mgvOrder/mo/refundFail");
-  }
-
-  function reserveNativeBalance(address reserve)
-    public
-    view
-    override
-    returns (uint)
-  {
-    return reserve.balance;
-  }
-
   function __withdrawToken__(
     IERC20 token,
     address reserve,

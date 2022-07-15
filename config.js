@@ -8,6 +8,10 @@ exports.abi_exports = [
   "IERC20",
   "MangroveOrder",
   "MangroveOrderEnriched",
+  "AbstractRouter",
+  "AaveDeepRouter",
+  "AaveV3Module",
+  "ICreditDelegationToken",
 ];
 
 exports.full_exports = ["SimpleMaker", "MultiMaker"];

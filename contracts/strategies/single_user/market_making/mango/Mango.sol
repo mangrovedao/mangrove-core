@@ -89,8 +89,8 @@ contract Mango is Persistent {
     mStr.min_buffer = 1;
 
     // approve Mangrove to pull funds during trade in order to pay takers
-    approveMangrove(quote, type(uint).max);
-    approveMangrove(base, type(uint).max);
+    approveMangrove(quote);
+    approveMangrove(base);
     approveRouter(quote);
     approveRouter(base);
 

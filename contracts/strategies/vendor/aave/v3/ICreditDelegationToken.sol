@@ -60,4 +60,7 @@ interface ICreditDelegationToken {
     bytes32 r,
     bytes32 s
   ) external;
+
+  // debtTokens are non transferable ERC20, adding this to get the borrow balance
+  function balanceOf(address account) external view returns (uint);
 }

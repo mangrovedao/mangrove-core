@@ -155,14 +155,16 @@ abstract contract SingleUser is MangroveOffer {
     IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) public override mgvOrAdmin returns (uint) {
-    return
-      MGV.retractOffer(
-        address(outbound_tkn),
-        address(inbound_tkn),
-        offerId,
-        deprovision
-      );
+  ) public override mgvOrAdmin returns (uint free_wei) {
+    free_wei = MGV.retractOffer(
+      address(outbound_tkn),
+      address(inbound_tkn),
+      offerId,
+      deprovision
+    );
+    require(MGV.withdraw(free_wei), "SingleUser/withdrawFromMgv/withdrawFail");
+    (bool noRevert, ) = msg.sender.call{value: free_wei}("");
+    require(noRevert, "SingleUser/weiTransferFail");
   }
 
   function __put__(

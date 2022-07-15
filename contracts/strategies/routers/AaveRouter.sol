@@ -82,26 +82,6 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
     repayThenDeposit(token, reserve, amount);
   }
 
-  // this fonction is called immediately after a payable function has received funds
-  function __push_native__(address reserve, uint amount)
-    internal
-    virtual
-    override
-    returns (bool success)
-  {
-    (success, ) = reserve.call{value: amount}("");
-    require(success, "mgvOrder/mo/refundFail");
-  }
-
-  function reserveNativeBalance(address reserve)
-    public
-    view
-    override
-    returns (uint)
-  {
-    return reserve.balance;
-  }
-
   // returns 0 if redeem failed (amount > balance).
   // Redeems user balance if amount == type(uint).max
   function __withdrawToken__(

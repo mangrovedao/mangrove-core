@@ -12,6 +12,7 @@ module.exports = async (hre) => {
 
   const offerProxy = await hre.deployments.deploy("OfferProxy", {
     from: deployer,
+    gasPrice: ethers.utils.parseUnits("30", "gwei"),
     args: [
       MgvAPI.getAddress("AaveProvider"),
       MgvAPI.contract.address,

@@ -14,7 +14,7 @@ async function main() {
   const MgvAPI = await Mangrove.connect({
     signer: wallet,
   });
-  const overrides = { gasPrice: ethers.utils.parseUnits("60", "gwei") };
+  const overrides = { gasPrice: ethers.utils.parseUnits("30", "gwei") };
 
   const rawLogic = (await hre.ethers.getContract("OfferProxy")).connect(wallet);
 

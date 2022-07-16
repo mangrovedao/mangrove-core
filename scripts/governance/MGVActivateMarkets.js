@@ -3,6 +3,8 @@ const chalk = require("chalk");
 const { Mangrove } = require("../../../mangrove.js");
 
 async function main() {
+  const overrides = { gasPrice: ethers.utils.parseUnits("60", "gwei") };
+
   const provider = ethers.getDefaultProvider(hre.network.config.url);
   if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
     console.error(
@@ -49,7 +51,8 @@ async function main() {
     const overheadTx = await MgvAPI.contract.setGasbase(
       outbound_tkn.address,
       inbound_tkn.address,
-      offer_gasbase
+      offer_gasbase,
+      overrides
     );
     await overheadTx.wait();
 
@@ -82,7 +85,8 @@ async function main() {
       inbound_tkn.address,
       ethers.BigNumber.from(getMangroveIntParam("defaultFee")),
       density_outIn,
-      offer_gasbase
+      offer_gasbase,
+      overrides
     );
     await txActivate.wait();
     console.log(
@@ -116,7 +120,8 @@ async function main() {
 
   if (process.env["SET_GAS"]) {
     const gaspriceTx = await MgvAPI.contract.setGasprice(
-      ethers.BigNumber.from(oracle_gasprice)
+      ethers.BigNumber.from(oracle_gasprice),
+      overrides
     );
     await gaspriceTx.wait();
     console.log(
@@ -124,7 +129,8 @@ async function main() {
       `Setting mangrove gasprice to ${oracle_gasprice} GWEI`
     );
     const gasmaxTx = await MgvAPI.contract.setGasmax(
-      ethers.BigNumber.from(1500000)
+      ethers.BigNumber.from(1500000),
+      overrides
     );
     await gasmaxTx.wait();
     console.log(chalk.yellow("*"), `Setting mangrove gasmax to 1.5M`);
@@ -132,9 +138,6 @@ async function main() {
   const mgv_gasprice = ethers.utils.parseUnits("1", 9).mul(oracle_gasprice); //GWEI
   let market = await MgvAPI.market({ base: base, quote: quote });
 
-  if (await market.isActive()) {
-    throw Error(`Market (${base},${quote}) is already active on Mangrove`);
-  }
   console.log(`Activating market (${base},${quote}) on Mangrove...`);
   await activateOfferList(base, basePrice, quote, mgv_gasprice);
   await activateOfferList(quote, quotePrice, base, mgv_gasprice);

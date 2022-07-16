@@ -17,20 +17,6 @@ let wallet = new ethers.Wallet(env.parsed.MUMBAI_TESTER_PRIVATE_KEY, provider);
 
 //connecting the API to Mangrove
 let mgv = await Mangrove.connect({ signer: wallet });
-// BUG: this doesn't work if running a local node forking mumbai with localhost instead of 127.0.0.1
-// Uncaught:
-// Error: missing response (requestBody="{\"method\":\"net_version\",\"id\":46,\"jsonrpc\":\"2.0\"}", requestMethod="POST", serverError={"errno":-61,"code":"ECONNREFUSED","syscall":"connect","address":"::1","port":8545}, url="http://localhost:8545", code=SERVER_ERROR, version=web/5.6.1)
-// at Logger.makeError (/Users/jeankrivine/Documents/sandbox/node_modules/@ethersproject/logger/lib/index.js:233:21)
-// at Logger.throwError (/Users/jeankrivine/Documents/sandbox/node_modules/@ethersproject/logger/lib/index.js:242:20)
-// at /Users/jeankrivine/Documents/sandbox/node_modules/@ethersproject/web/lib/index.js:252:36
-// at step (/Users/jeankrivine/Documents/sandbox/node_modules/@ethersproject/web/lib/index.js:33:23) {
-// reason: 'missing response',
-// code: 'SERVER_ERROR',
-// requestBody: '{"method":"net_version","id":46,"jsonrpc":"2.0"}',
-// requestMethod: 'POST',
-// serverError: [Error],
-// url: 'http://localhost:8545'
-// }
 
 //connecting mgv to a market
 let market = await mgv.market({ base: "DAI", quote: "USDC" });
@@ -40,8 +26,8 @@ market.consoleAsks(["id", "price", "volume"]);
 
 /// connecting to offerProxy's onchain logic
 /// logic has already approved Mangrove for DAI, WETH transfer
-/// it has also alreadt approved router to manage its funds
-const logic = mgv.offerLogic("0x6210d78652D5c419e530076f1337889D322F4f84");
+/// it has also already approved router to manage its funds
+const logic = mgv.offerLogic("OfferProxy");
 const maker = await logic.liquidityProvider(market);
 
 // allowing logic to pull my overlying to finance my offers
@@ -64,30 +50,34 @@ await aaveMod.logStatus(["WETH", "DAI", "USDC"]);
 tx = await aaveMod.approveDelegation("DAI", router.address, overrides);
 await tx.wait();
 
-const { id: id } = await maker.newAsk({
-  volume: 5000,
-  price: 1.01,
-  fund: 0.1,
-  overrides,
-});
+const { id: id } = await maker.newAsk(
+  {
+    volume: 5000,
+    price: 1.01,
+    fund: 0.1,
+  },
+  overrides
+);
 // BUG: this results in a throw of the API when mangrove is not active on this market
 // Uncaught { revert: false, exception: 'tx mined but filter never returned true' }
 
-tx = await mgv.approveMangrove("USDC"); // approve payment ERC
+tx = await mgv.approveMangrove("USDC", overrides); // approve payment ERC
 await tx.wait();
 // buying DAIs with USDC
 const buyResult = await market.buy({ volume: 5000, price: 1.03 }, overrides);
 
 await aaveMod.logStatus(["WETH", "DAI", "USDC"]);
 
-const { id: id_ } = await maker.newBid({
-  volume: 5000,
-  price: 0.99,
-  fund: 0.1,
-  overrides,
-});
+const { id: id_ } = await maker.newBid(
+  {
+    volume: 5000,
+    price: 0.99,
+    fund: 0.1,
+  },
+  overrides
+);
 
-tx = await mgv.approveMangrove("DAI"); // approve payment ERC
+tx = await mgv.approveMangrove("DAI", overrides); // approve payment ERC
 await tx.wait();
 // buying DAIs with USDC
 const sellResult = await market.sell({ volume: 5000, price: 0.9 }, overrides);

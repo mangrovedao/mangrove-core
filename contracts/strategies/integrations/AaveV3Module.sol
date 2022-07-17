@@ -50,7 +50,7 @@ contract AaveV3Module {
   ///@notice Required functions to let `this` contract interact with Aave
   /**************************************************************************/
 
-  ///@notice approval of overlying contract by the underlying is necessary for minting and repaying borrow
+  ///@notice approval the POOL contract by the underlying is necessary for supplying and repaying debt
   ///@notice user must use this function to do so.
   function _approveLender(IERC20 token, uint amount) internal {
     token.approve(address(POOL), amount);

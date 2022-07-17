@@ -141,6 +141,7 @@ contract SimpleTestMaker is TrivialTestMaker {
     ML.OrderResult calldata result
   ) public virtual override {
     order; //shh
+    result; //shh
     if (_shouldFailHook) {
       revert("posthookFail");
     }

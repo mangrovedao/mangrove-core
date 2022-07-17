@@ -89,11 +89,10 @@ contract AaveLenderTest is AaveV3ModuleTest {
 
     // offer should get/put base/quote tokens on lender contract (OK since sender is MakerContract admin)
     // strat.enterMarkets(market); // not on aave
-
-    strat.approveMangrove(dai);
-    strat.approveMangrove(weth);
-    strat.approveRouter(dai);
-    strat.approveRouter(weth);
+    IERC20[] memory tokens = new IERC20[](2);
+    tokens[0] = dai;
+    tokens[1] = weth;
+    strat.activate(tokens);
 
     // One sends 1000 DAI to MakerContract
     dai.transfer($(strat), 1000 ether);

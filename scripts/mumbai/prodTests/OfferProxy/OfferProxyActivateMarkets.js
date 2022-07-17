@@ -21,38 +21,41 @@ async function main() {
   // just manually getting the address of OfferProxy would suffice here
   const logic = MgvAPI.offerLogic(rawLogic.address);
 
-  for (const tokenName of ["WETH", "USDC", "DAI"]) {
-    console.log(`* Approving Lender for minting ${tokenName}`);
-    // this approves router of offerProxy for minting overlying (redeem)
-    const txLender = await rawLogic.approveLender(
-      MgvAPI.token(tokenName).address,
-      overrides
-    );
-    await txLender.wait();
+  const tx = await logic.activate(["WETH", "USDC", "DAI"], overrides);
+  await tx.wait();
 
-    const mgvApproval = await logic.mangroveAllowance(tokenName);
-    if (mgvApproval.eq(0)) {
-      const tx = await logic.approveMangrove(tokenName, overrides);
-      console.log(
-        `* OfferProxy contract (${logic.address}) approved Mangrove (${MgvAPI.contract.address}) for ${tokenName} transfer`
-      );
-      await tx.wait();
-    } else {
-      console.log(
-        `* OfferProxy already approved Mangrove for ${tokenName} transfer`
-      );
-    }
-    const routerApproval = await logic.routerAllowance(tokenName);
-    if (routerApproval.eq(0)) {
-      const tx = await logic.approveRouter(tokenName, overrides);
-      console.log(
-        `* OfferProxy contract (${logic.address}) approved router (${
-          (await logic.router()).address
-        }) for ${tokenName} transfer`
-      );
-      await tx.wait();
-    }
-  }
+  // for (const tokenName of ["WETH", "USDC", "DAI"]) {
+  //   console.log(`* Approving Lender for minting ${tokenName}`);
+  //   // this approves router of offerProxy for minting overlying (redeem)
+  //   const txLender = await rawLogic.approveLender(
+  //     MgvAPI.token(tokenName).address,
+  //     overrides
+  //   );
+  //   await txLender.wait();
+
+  //   const mgvApproval = await logic.mangroveAllowance(tokenName);
+  //   if (mgvApproval.eq(0)) {
+  //     const tx = await logic.approveMangrove(tokenName, overrides);
+  //     console.log(
+  //       `* OfferProxy contract (${logic.address}) approved Mangrove (${MgvAPI.contract.address}) for ${tokenName} transfer`
+  //     );
+  //     await tx.wait();
+  //   } else {
+  //     console.log(
+  //       `* OfferProxy already approved Mangrove for ${tokenName} transfer`
+  //     );
+  //   }
+  //   const routerApproval = await logic.routerAllowance(tokenName);
+  //   if (routerApproval.eq(0)) {
+  //     const tx = await logic.approveRouter(tokenName, overrides);
+  //     console.log(
+  //       `* OfferProxy contract (${logic.address}) approved router (${
+  //         (await logic.router()).address
+  //       }) for ${tokenName} transfer`
+  //     );
+  //     await tx.wait();
+  //   }
+  // }
 }
 main()
   .then(() => process.exit(0))

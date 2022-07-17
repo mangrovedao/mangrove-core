@@ -18,6 +18,10 @@ let wallet = new ethers.Wallet(env.parsed.MUMBAI_TESTER_PRIVATE_KEY, provider);
 //connecting the API to Mangrove
 let mgv = await Mangrove.connect({ signer: wallet });
 
+mgv.setAddress("aaveMaker", "0x0A2aC9AbA0dbDd1F097Ba8b8a27589720B6A4acA");
+// aaveMaker needs to be activated if freshly deployed
+// if freshly deployed verify that old json file was deleted beforehand
+
 //connecting mgv to a market
 let market = await mgv.market({ base: "DAI", quote: "USDC" });
 
@@ -27,10 +31,10 @@ market.consoleAsks(["id", "price", "volume"]);
 /// connecting to offerProxy's onchain logic
 /// logic has already approved Mangrove for DAI, WETH transfer
 /// it has also already approved router to manage its funds
-const logic = mgv.offerLogic("OfferProxy");
+const logic = mgv.offerLogic("aaveMaker");
 const maker = await logic.liquidityProvider(market);
 
-// allowing logic to pull my overlying to finance my offers
+// allowing logic to pull my overlying to be able to `withdraw` my funds (cannot withdraw on behalf)
 tx = await logic.approveToken("aDAI", overrides);
 await tx.wait();
 
@@ -50,7 +54,7 @@ await aaveMod.logStatus(["WETH", "DAI", "USDC"]);
 tx = await aaveMod.approveDelegation("DAI", router.address, overrides);
 await tx.wait();
 
-const { id: id } = await maker.newAsk(
+await maker.newAsk(
   {
     volume: 5000,
     price: 1.01,
@@ -68,7 +72,7 @@ const buyResult = await market.buy({ volume: 5000, price: 1.03 }, overrides);
 
 await aaveMod.logStatus(["WETH", "DAI", "USDC"]);
 
-const { id: id_ } = await maker.newBid(
+await maker.newBid(
   {
     volume: 5000,
     price: 0.99,

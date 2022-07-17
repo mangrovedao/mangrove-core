@@ -61,12 +61,10 @@ contract MangroveOrder_Test is MangroveTest {
     // this contract is admin of MgvOrder and its router
     mgo = new MgvOrder(IMangrove(payable(mgv)), $(this));
     // mgvOrder needs to approve mangrove for inbound & outbound token transfer (inbound when acting as a taker, outbound when matched as a maker)
-    mgo.approveMangrove(base);
-    mgo.approveMangrove(quote);
-
-    // mgvOrder needs to approve its router for inbound & outbound token transfer (push and pull from reserve)
-    mgo.approveRouter(base);
-    mgo.approveRouter(quote);
+    IERC20[] memory tokens = new IERC20[](2);
+    tokens[0] = base;
+    tokens[1] = quote;
+    mgo.activate(tokens);
 
     // `this` contract will act as `MgvOrder` user
     deal($(base), $(this), 10 ether);

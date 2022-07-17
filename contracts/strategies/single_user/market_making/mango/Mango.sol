@@ -88,11 +88,9 @@ contract Mango is Persistent {
     // logs `BID/ASKatMin/MaxPosition` events when only 1 slot remains
     mStr.min_buffer = 1;
 
-    // approve Mangrove to pull funds during trade in order to pay takers
-    approveMangrove(quote);
-    approveMangrove(base);
-    approveRouter(quote);
-    approveRouter(base);
+    // activates Mango on `quote` and `base`
+    __activate__(base);
+    __activate__(quote);
 
     // in order to let deployer's EOA have control over liquidity
     set_reserve(deployer);

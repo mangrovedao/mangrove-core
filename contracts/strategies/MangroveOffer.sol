@@ -152,6 +152,24 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     );
   }
 
+  ///@notice activation sequence for allowing this contract to be a `token` provider
+  ///@dev this function is public and unrestricted. It should only approve trusted contracts and give infinite approval to avoid griefing
+  ///@param tokens the ERC20s one wishes this contract to be a provider of
+  function activate(IERC20[] memory tokens) public override {
+    for (uint i = 0; i < tokens.length; i++) {
+      __activate__(tokens[i]);
+    }
+  }
+
+  function __activate__(IERC20 token) internal virtual {
+    // allowing Mangrove to pull `token` from this contract (for trade execution)
+    approveMangrove(token);
+    if (has_router()) {
+      // allowing router to pull `token` from this contract (for the `push` function of the router)
+      approveRouter(token);
+    }
+  }
+
   ///@notice withdraws ETH from the provision account on Mangrove and sends collected WEIs to `receiver`
   ///@dev for multi user strats, the contract provision account on Mangrove is pooled amongst offer owners so admin should only call this function to recover WEIs (e.g. that were erroneously transferred to Mangrove using `MGV.fund()`)
   /// This contract's balance on Mangrove may contain deprovisioned WEIs after an offer has failed (complement between provision and the bounty that was sent to taker)

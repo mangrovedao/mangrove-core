@@ -24,26 +24,8 @@ async function main() {
 
   const ercs = ["WETH", "DAI", "USDC"];
   const logic = MgvAPI.offerLogic(MgvAPI.orderContract.address);
-
-  for (tokenName of ercs) {
-    if (
-      (await MgvAPI.token(tokenName).allowance({ owner: logic.address })).eq(0)
-    ) {
-      console.log(
-        `* Approving Mangrove for transferring ${tokenName} from MangroveOrder (${chalk.grey(
-          logic.address
-        )})`
-      );
-      const tx = await logic.approveMangrove(tokenName);
-      await tx.wait();
-    } else {
-      console.log(
-        `* ${tokenName} already approved MangroveOrder (${chalk.grey(
-          logic.address
-        )}) for transferring ${tokenName}`
-      );
-    }
-  }
+  const tx = await logic.activate(ercs);
+  await tx.wait();
 }
 main()
   .then(() => process.exit(0))

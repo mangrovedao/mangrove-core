@@ -18,14 +18,6 @@ import {AbstractRouterStorage as ARSt} from "./AbstractRouterStorage.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 
 abstract contract AbstractRouter is AccessControlled {
-  function makers(address mkr) public view returns (bool) {
-    return ARSt.get_storage().makers[mkr];
-  }
-
-  function gas_overhead() public view returns (uint) {
-    return ARSt.get_storage().gas_overhead;
-  }
-
   modifier onlyMakers() {
     require(makers(msg.sender), "Router/unauthorized");
     _;
@@ -40,9 +32,23 @@ abstract contract AbstractRouter is AccessControlled {
     ARSt.get_storage().gas_overhead = overhead;
   }
 
-  // pulls `amount` of `token`s from reserve to maker contract's balance if necessary
-  // `reserve` is typically an EOA (for nice UX), the router contract itself (to minimize fragmentation when router is bound to several makers)
-  // or the Maker contract (to minimize transfer costs)
+  ///@notice getter for the `makers: addr => bool` mapping
+  ///@param mkr the address of a maker
+  ///@return true is `mkr` is bound to this router
+  function makers(address mkr) public view returns (bool) {
+    return ARSt.get_storage().makers[mkr];
+  }
+
+  ///@notice the amount of gas that will be added to `gasreq` of any maker contract using this router
+  function gas_overhead() public view returns (uint) {
+    return ARSt.get_storage().gas_overhead;
+  }
+
+  ///@notice pulls `amount` of `token`s from reserve to calling maker contract's balance
+  ///@param token is the ERC20 managing the pulled asset
+  ///@param reserve is the address identifying where `amount` of `token` should be pulled from
+  ///@param amount of token the maker contract wishes to get
+  ///@param strict when the calling maker contract accepts to receive more `token` than required (this may happen for gas optimization)
   function pull(
     IERC20 token,
     address reserve,
@@ -63,6 +69,7 @@ abstract contract AbstractRouter is AccessControlled {
     }
   }
 
+  ///@notice router-dependant implementation of the `pull` function
   function __pull__(
     IERC20 token,
     address reserve,
@@ -71,7 +78,10 @@ abstract contract AbstractRouter is AccessControlled {
     bool strict
   ) internal virtual returns (uint);
 
-  // pushes `amount` of `token`s from maker contract to reserve
+  ///@notice pushes assets from maker contract's balance to the specified reserve
+  ///@param token is the asset the maker is pushing
+  ///@param reserve is the address identifying where the transfered assets should be placed to
+  ///@param amount is the amount of asset that should be transfered from the calling maker contract
   function push(
     IERC20 token,
     address reserve,
@@ -85,6 +95,7 @@ abstract contract AbstractRouter is AccessControlled {
     });
   }
 
+  ///@notice router-dependant implementation of the `push` function
   function __push__(
     IERC20 token,
     address reserve,
@@ -92,6 +103,7 @@ abstract contract AbstractRouter is AccessControlled {
     uint amount
   ) internal virtual;
 
+  ///@notice gas saving implementation of an iterative `push`
   function flush(IERC20[] calldata tokens, address reserve)
     external
     onlyMakers
@@ -104,14 +116,19 @@ abstract contract AbstractRouter is AccessControlled {
     }
   }
 
-  // checks amount of `token`s available in the liquidity source
+  ///@notice returns the amount of `token`s that can be made available for pulling by the maker contract
+  ///@dev when this router is pulling from a lender, this must return the amount of asset that can be withdrawn from reserve
+  ///@param token is the asset one wishes to know the balance of
+  ///@param reserve is the address identifying the location of the assets
   function reserveBalance(IERC20 token, address reserve)
     external
     view
     virtual
     returns (uint);
 
-  // withdraws `amount` of reserve tokens and sends them to `recipient`
+  ///@notice withdraws `amount` of reserve tokens and sends them to `recipient`
+  ///@dev this is called by maker's contract when originator wishes to withdraw funds from it.
+  /// this function is necessary because the maker contract is agnostic w.r.t reserve management
   function withdrawToken(
     IERC20 token,
     address reserve,
@@ -121,6 +138,7 @@ abstract contract AbstractRouter is AccessControlled {
     return __withdrawToken__(token, reserve, recipient, amount);
   }
 
+  ///@notice router-dependant implementation of the `withdrawToken` function
   function __withdrawToken__(
     IERC20 token,
     address reserve,
@@ -128,13 +146,14 @@ abstract contract AbstractRouter is AccessControlled {
     uint amount
   ) internal virtual returns (bool);
 
-  // connect a maker contract to this router
-  // if maker contract is `this` router's deployer, it will do so using admin privilege
+  ///@notice adds a maker contract address to the allowed callers of this router
+  ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address
   // if `this` router was deployed independently of maker contract, binding must be done by router's deployer
   function bind(address maker) public makersOrAdmin {
     ARSt.get_storage().makers[maker] = true;
   }
 
+  ///@notice removes a maker contract address from the allowed callers of this router
   function unbind(address maker) public makersOrAdmin {
     ARSt.get_storage().makers[maker] = false;
   }

@@ -7,6 +7,7 @@
     "precommit": "lint-staged",
     "prepack": "yarn build",
     "build-this-package": "hardhat compile && forge build && yarn run copy-distribution-assets",
+    "heroku-build-this-package": "echo No build of contracts needed for Heroku as ABIs are committed to mangrove.js",
     "build": "yarn install && yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run build-this-package",
     "copy-distribution-assets": "node copyDistributionAssets.js",
     "clean-this-package": "rimraf deployments/hardhat deployments/localhost artifacts cache dist exported-abis foundry_out",

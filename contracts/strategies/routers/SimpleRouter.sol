@@ -17,6 +17,12 @@ import "mgv_src/strategies/utils/AccessControlled.sol";
 import "mgv_src/strategies/utils/TransferLib.sol";
 import "./AbstractRouter.sol";
 
+///@notice `SimpleRouter` instances pull (push) liquidity direclty from (to) the reserve
+/// If called by a `SingleUser` contract instance this will be the vault of the contract
+/// If called by a `MultiUser` instance, this will be the address of a contract user (typically an EOA)
+///@dev Maker contracts using this router must make sur that reserve approves the router for all asset that will be pulled (outbound tokens)
+/// Thus contract using a vault that is not an EOA must make sure this vault has approval capacities.
+
 contract SimpleRouter is AbstractRouter(50_000) {
   // requires approval of `reserve`
   function __pull__(
@@ -63,5 +69,18 @@ contract SimpleRouter is AbstractRouter(50_000) {
     returns (uint)
   {
     return token.balanceOf(reserve);
+  }
+
+  function __checkList__(IERC20 token, address reserve)
+    internal
+    view
+    virtual
+    override
+  {
+    // verifying that `this` router can withdraw tokens from reserve (required for `withdrawToken` and `pull`)
+    require(
+      token.allowance(reserve, address(this)) > 0,
+      "SimpleRouter/NotApprovedByReserve"
+    );
   }
 }

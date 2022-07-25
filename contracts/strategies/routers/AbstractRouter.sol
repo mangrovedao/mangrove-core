@@ -28,7 +28,7 @@ abstract contract AbstractRouter is AccessControlled {
   }
 
   constructor(uint overhead) AccessControlled(msg.sender) {
-    require(uint24(overhead) == overhead, "AbstractRouter/overheadTooHigh");
+    require(uint24(overhead) == overhead, "Router/overheadTooHigh");
     ARSt.get_storage().gas_overhead = overhead;
   }
 
@@ -148,7 +148,6 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice adds a maker contract address to the allowed callers of this router
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address
-  // if `this` router was deployed independently of maker contract, binding must be done by router's deployer
   function bind(address maker) public makersOrAdmin {
     ARSt.get_storage().makers[maker] = true;
   }
@@ -156,5 +155,32 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice removes a maker contract address from the allowed callers of this router
   function unbind(address maker) public makersOrAdmin {
     ARSt.get_storage().makers[maker] = false;
+  }
+
+  ///@notice verifies all required approval involving `this` router (either as a spender or owner)
+  ///@dev `checkList` returns normally if all needed approval are strictly positive. It reverts otherwise with a reason.
+  ///@param token is the asset (and possibly its overlyings) whose approval must be checked
+  ///@param reserve the reserve that requires asset pulling/pushing
+  function checkList(IERC20 token, address reserve) external view {
+    // checking basic requirement
+    require(
+      token.allowance(msg.sender, address(this)) > 0,
+      "Router/NotApprovedByMakerContract"
+    );
+    __checkList__(token, reserve);
+  }
+
+  ///@notice router-dependent implementation of the `checkList` function
+  function __checkList__(IERC20 token, address reserve) internal view virtual;
+
+  ///@notice performs necessary approval to activate router function on a particular asset
+  ///@param token the asset one wishes to use the router for
+  function activate(IERC20 token) external makersOrAdmin {
+    __activate__(token);
+  }
+
+  ///@notice router-dependent implementation of the `activate` function
+  function __activate__(IERC20 token) internal virtual {
+    token; //ssh
   }
 }

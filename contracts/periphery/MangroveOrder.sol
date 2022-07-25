@@ -28,8 +28,6 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     }
   }
 
-  // transfer with no revert
-
   function __lastLook__(ML.SingleOrder calldata order)
     internal
     virtual

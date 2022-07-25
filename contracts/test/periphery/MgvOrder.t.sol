@@ -398,9 +398,6 @@ contract MangroveOrder_Test is MangroveTest {
     uint oldLocalBaseBal = base.balanceOf($(this));
     uint oldRemoteQuoteBal = mgo.router().reserveBalance(quote, $(this)); // quote balance of test runner
 
-    // logOfferBook(mgv,$(base),$(quote),4);
-    // logOfferBook(mgv,$(quote),$(base),4);
-
     (
       bool success,
       uint sell_takerGot,

@@ -42,4 +42,20 @@ contract AaveDeepRouter is AaveRouter {
   ) internal virtual override returns (uint pulled) {
     return redeemThenBorrow(token, reserve, amount, strict, maker);
   }
+
+  function __checkList__(IERC20 token, address reserve)
+    internal
+    view
+    virtual
+    override
+  {
+    // additional allowance for `pull` in case of `borrow`
+    ICreditDelegationToken dTkn = debtToken(token);
+    require(
+      reserve == address(this) ||
+        dTkn.borrowAllowance(reserve, address(this)) > 0,
+      "AaveDeepRouter/NotDelegatedByReserve"
+    );
+    super.__checkList__(token, reserve);
+  }
 }

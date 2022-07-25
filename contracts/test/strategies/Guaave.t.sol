@@ -95,13 +95,18 @@ contract GuaaveTest is MangroveTest {
     vm.startPrank(maker);
     deal($(weth), $(mgo), 17 ether + weth.balanceOf($(mgo)), true);
 
-    // to mint awETH
-    router.approveLender(weth);
-    // to mint aUSDC
-    router.approveLender(usdc);
-    // to allow router to pull/push from Mango
-    mgo.approveRouter(weth);
-    mgo.approveRouter(usdc);
+    IERC20[] memory tokens = new IERC20[](2);
+    tokens[0] = weth;
+    tokens[1] = usdc;
+
+    vm.expectRevert("Router/NotApprovedByMakerContract");
+    mgo.checkList(tokens);
+
+    // no need to approve for overlying transfer because router is the reserve
+    mgo.activate(tokens);
+    try mgo.checkList(tokens) {} catch Error(string memory reason) {
+      fail(reason);
+    }
 
     // putting ETH as collateral on AAVE
     router.supply(

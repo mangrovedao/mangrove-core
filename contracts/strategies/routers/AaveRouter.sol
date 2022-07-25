@@ -20,8 +20,6 @@ import "./AbstractRouter.sol";
 
 // Underlying on AAVE
 // Overlying on reserve
-// `this` must approve Lender for outbound token transfer (pull)
-// `this` must approve Lender for inbound token transfer (flush)
 // `this` must be approved by reserve for *overlying* of inbound token transfer
 // `this` must be approved by maker contract for outbound token transfer
 
@@ -170,6 +168,29 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
   }
 
   function approveLender(IERC20 token) external {
+    _approveLender(token, type(uint).max);
+  }
+
+  function __checkList__(IERC20 token, address reserve)
+    internal
+    view
+    virtual
+    override
+  {
+    // allowance for `withdrawToken` and `pull`
+    require( // required prior to withdraw from POOL
+      reserve == address(this) ||
+        overlying(token).allowance(reserve, address(this)) > 0,
+      "aaveRouter/NotApprovedByReserveForOverlying"
+    );
+    // allowance for `push`
+    require( // required to supply or repay
+      token.allowance(address(this), address(POOL)) > 0,
+      "aaveRouter/hasNotApprovedPool"
+    );
+  }
+
+  function __activate__(IERC20 token) internal virtual override {
     _approveLender(token, type(uint).max);
   }
 }

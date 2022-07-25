@@ -12,8 +12,8 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "contracts/strategies/single_user/abstract/Persistent.sol";
-import "contracts/strategies/routers/SimpleRouter.sol";
+import "contracts/Strategies/single_user/abstract/Persistent.sol";
+import "contracts/Strategies/routers/SimpleRouter.sol";
 
 /* Simply inherits Persistent and is deployable. No additional internal logic. */
 contract Reposting is Persistent {

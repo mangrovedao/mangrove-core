@@ -13,9 +13,9 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "mgv_src/strategies/integrations/AaveV3Module.sol";
-import "mgv_src/strategies/utils/AccessControlled.sol";
-import "mgv_src/strategies/utils/TransferLib.sol";
+import "mgv_src/Strategies/integrations/AaveV3Module.sol";
+import "mgv_src/Strategies/utils/AccessControlled.sol";
+import "mgv_src/Strategies/utils/TransferLib.sol";
 import "./AbstractRouter.sol";
 
 // Underlying on AAVE

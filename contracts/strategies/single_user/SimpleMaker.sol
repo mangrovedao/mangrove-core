@@ -12,8 +12,8 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "mgv_src/strategies/single_user/abstract/SingleUser.sol";
-import "mgv_src/strategies/routers/AbstractRouter.sol";
+import "mgv_src/Strategies/single_user/abstract/SingleUser.sol";
+import "mgv_src/Strategies/routers/AbstractRouter.sol";
 
 /* Simply inherits SingleUser and is deployable. No internal logic. */
 contract SimpleMaker is SingleUser {

@@ -12,10 +12,10 @@
 
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "mgv_src/strategies/vendor/aave/v2/ILendingPool.sol";
-import "mgv_src/strategies/vendor/aave/v2/ILendingPoolAddressesProvider.sol";
-import "mgv_src/strategies/vendor/aave/v2/IPriceOracleGetter.sol";
-import "mgv_src/strategies/vendor/compound/Exponential.sol";
+import "mgv_src/Strategies/vendor/aave/v2/ILendingPool.sol";
+import "mgv_src/Strategies/vendor/aave/v2/ILendingPoolAddressesProvider.sol";
+import "mgv_src/Strategies/vendor/aave/v2/IPriceOracleGetter.sol";
+import "mgv_src/Strategies/vendor/compound/Exponential.sol";
 import "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 

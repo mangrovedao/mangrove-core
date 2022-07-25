@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../../MangroveOffer.sol";
-import "mgv_src/strategies/utils/TransferLib.sol";
+import "mgv_src/Strategies/utils/TransferLib.sol";
 import {SingleUserStorage as SUS} from "./SingleUserStorage.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove

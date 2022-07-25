@@ -2,8 +2,8 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/strategies/single_user/market_making/mango/Mango.sol";
-import "mgv_src/strategies/routers/AaveRouter.sol";
+import "mgv_src/Strategies/single_user/market_making/mango/Mango.sol";
+import "mgv_src/Strategies/routers/AaveRouter.sol";
 import "mgv_test/lib/Fork.sol";
 
 // note: this is a forking test

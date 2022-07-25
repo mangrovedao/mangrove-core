@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "../../MangroveOffer.sol";
 import "mgv_src/periphery/MgvReader.sol";
-import "mgv_src/strategies/interfaces/IOfferLogicMulti.sol";
+import "mgv_src/Strategies/interfaces/IOfferLogicMulti.sol";
 
 abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   struct OfferData {

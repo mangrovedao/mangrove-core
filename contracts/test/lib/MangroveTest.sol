@@ -14,7 +14,7 @@ import {IERC20, MgvLib, P, HasMgvEvents, IMaker, ITaker, IMgvMonitor} from "mgv_
 import {console2 as csl} from "forge-std/console2.sol";
 
 // below imports are for the \$( function)
-import {AccessControlled} from "mgv_src/Strategies/utils/AccessControlled.sol";
+import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
 
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 

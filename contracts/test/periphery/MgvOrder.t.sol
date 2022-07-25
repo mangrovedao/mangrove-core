@@ -17,7 +17,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 // import "../Agents/TestMaker.sol";
 
 import {MangroveOrderEnriched as MgvOrder} from "mgv_src/periphery/MangroveOrderEnriched.sol";
-import "mgv_src/Strategies/interfaces/IOrderLogic.sol";
+import "mgv_src/strategies/interfaces/IOrderLogic.sol";
 
 contract MangroveOrder_Test is MangroveTest {
   // to check ERC20 logging

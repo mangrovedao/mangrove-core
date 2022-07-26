@@ -26,9 +26,9 @@ contract OfferProxy is MultiUserPersistent {
       50_000
     )
   {
-    router().setAdmin(deployer);
+    router().set_admin(deployer);
     if (deployer != msg.sender) {
-      setAdmin(deployer);
+      set_admin(deployer);
     }
   }
 }

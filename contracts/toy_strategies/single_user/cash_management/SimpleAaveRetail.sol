@@ -22,9 +22,9 @@ contract SimpleAaveRetail is Persistent {
   ) Persistent(_mgv, 30_000, new AaveRouter(_addressesProvider, 0, 2)) {
     // Router reserve is by default `router.address`
     // use `set_reserve(addr)` to change this
-    router().setAdmin(deployer);
+    router().set_admin(deployer);
     if (deployer != msg.sender) {
-      setAdmin(deployer);
+      set_admin(deployer);
     }
   }
 }

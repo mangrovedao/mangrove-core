@@ -96,11 +96,11 @@ contract Mango is Persistent {
     set_reserve(deployer);
 
     // `this` deployed the router, letting admin take control over it.
-    router().setAdmin(deployer);
+    router().set_admin(deployer);
 
     // setting admin of contract if a static address deployment was used
     if (deployer != msg.sender) {
-      setAdmin(deployer);
+      set_admin(deployer);
     }
   }
 

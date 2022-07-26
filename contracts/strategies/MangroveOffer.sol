@@ -118,6 +118,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
   /** */
   /** NB Router might need further approval to work as intended*/
+  /** `this` contract must be admin of router to do this */
   function set_router(AbstractRouter router_) public override mgvOrAdmin {
     require(address(router_) != address(0), "mgvOffer/set_router/0xRouter");
     MOS.get_storage().router = router_;

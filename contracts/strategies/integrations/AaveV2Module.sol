@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveLender.sol
+// AaveV2Module.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 

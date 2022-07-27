@@ -15,18 +15,20 @@ const provider = new ethers.providers.JsonRpcProvider(
 
 let wallet = new ethers.Wallet(env.parsed.MUMBAI_TESTER_PRIVATE_KEY, provider);
 
+///////// DEMO starts here /////////
+
 //connecting the API to Mangrove
 let mgv = await Mangrove.connect({ signer: wallet });
-
-mgv.setAddress("aaveMaker", "0x0A2aC9AbA0dbDd1F097Ba8b8a27589720B6A4acA");
-// aaveMaker needs to be activated if freshly deployed
-// if freshly deployed verify that old json file was deleted beforehand
 
 //connecting mgv to a market
 let market = await mgv.market({ base: "DAI", quote: "USDC" });
 
 // check its live
 market.consoleAsks(["id", "price", "volume"]);
+
+mgv.setAddress("aaveMaker", "0x0A2aC9AbA0dbDd1F097Ba8b8a27589720B6A4acA");
+// aaveMaker needs to be activated if freshly deployed
+// if freshly deployed verify that old json file was deleted beforehand
 
 /// connecting to offerProxy's onchain logic
 /// logic has already approved Mangrove for DAI, WETH transfer
@@ -35,15 +37,10 @@ const logic = mgv.offerLogic("aaveMaker");
 const maker = await logic.liquidityProvider(market);
 
 // allowing logic to pull my overlying to be able to `withdraw` my funds (cannot withdraw on behalf)
-tx = await logic.approveToken("aDAI", overrides);
+tx = await logic.approveToken("aDAI", {}, overrides);
 await tx.wait();
-
-tx = await logic.approveToken("aUSDC", overrides);
+tx = await logic.approveToken("aUSDC", {}, overrides);
 await tx.wait();
-
-// checking needed provision
-// prov = await maker.computeAskProvision();
-// BUG: this currenlty returns zero because API is not up to date with Multi Maker way of funding offers
 
 router = await logic.router();
 aaveMod = logic.aaveModule(router.address);
@@ -65,7 +62,7 @@ await maker.newAsk(
 // BUG: this results in a throw of the API when mangrove is not active on this market
 // Uncaught { revert: false, exception: 'tx mined but filter never returned true' }
 
-tx = await mgv.approveMangrove("USDC", overrides); // approve payment ERC
+tx = await mgv.approveMangrove("USDC", {}, overrides); // approve payment ERC
 await tx.wait();
 // buying DAIs with USDC
 const buyResult = await market.buy({ volume: 5000, price: 1.03 }, overrides);
@@ -81,7 +78,7 @@ await maker.newBid(
   overrides
 );
 
-tx = await mgv.approveMangrove("DAI", overrides); // approve payment ERC
+tx = await mgv.approveMangrove("DAI", {}, overrides); // approve payment ERC
 await tx.wait();
 // buying DAIs with USDC
 const sellResult = await market.sell({ volume: 5000, price: 0.9 }, overrides);

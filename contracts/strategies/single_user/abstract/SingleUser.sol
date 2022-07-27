@@ -172,6 +172,7 @@ abstract contract SingleUser is MangroveOffer {
     ML.SingleOrder calldata
   ) internal virtual override returns (uint missing) {
     // singleUser contract do not need to do anything specific with incoming funds during trade
+    // one should overrides this function if one wishes to leverage taker's fund during trade execution
     return 0;
   }
 
@@ -211,5 +212,12 @@ abstract contract SingleUser is MangroveOffer {
     // sends all tokens to the reserve (noop if reserve() == address(this))
     flush(tokens);
     success = true;
+  }
+
+  function __checkList__(IERC20 token) internal view virtual override {
+    if (has_router()) {
+      router().checkList(token, reserve());
+    }
+    super.__checkList__(token);
   }
 }

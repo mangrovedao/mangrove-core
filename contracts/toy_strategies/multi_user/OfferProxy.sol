@@ -26,46 +26,9 @@ contract OfferProxy is MultiUserPersistent {
       50_000
     )
   {
-    router().setAdmin(deployer);
+    router().set_admin(deployer);
     if (deployer != msg.sender) {
-      setAdmin(deployer);
+      set_admin(deployer);
     }
-  }
-
-  function aaveRouter() internal view returns (AaveDeepRouter) {
-    return AaveDeepRouter(address(router()));
-  }
-
-  function __activate__(IERC20 token) internal virtual override {
-    aaveRouter().approveLender(token);
-    super.__activate__(token);
-  }
-
-  function checkList(IERC20 token, uint amount) external view returns (bool) {
-    AaveDeepRouter aaveDR = aaveRouter();
-
-    // checks that `this` contract is active
-    require(
-      token.allowance(address(this), address(MGV)) == type(uint).max,
-      "OfferProxy/MangroveNotApprovedByContract"
-    );
-    require(
-      token.allowance(address(this), address(aaveDR)) == type(uint).max,
-      "OfferProxy/RouterNotApprovedByContract"
-    );
-
-    // checks that router can supply and repay on behalf of user
-    require(
-      token.allowance(msg.sender, address(aaveDR.POOL())) >= amount,
-      "OfferProxy/PoolNotApprovedByMaker"
-    );
-
-    // checks that router can borrow on behalf of user
-    ICreditDelegationToken dTkn = aaveDR.debtToken(token);
-    require(
-      dTkn.borrowAllowance(msg.sender, address(aaveDR)) >= amount,
-      "OfferProxy/RouterNotDelegatedByMaker"
-    );
-    return true;
   }
 }

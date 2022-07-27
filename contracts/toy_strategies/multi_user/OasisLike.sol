@@ -19,8 +19,8 @@ contract OasisLike is MultiUserPersistent {
     MultiUserPersistent(_MGV, new SimpleRouter(), 30_000)
   {
     if (deployer != msg.sender) {
-      setAdmin(deployer);
-      router().setAdmin(deployer);
+      set_admin(deployer);
+      router().set_admin(deployer);
     }
   }
 }

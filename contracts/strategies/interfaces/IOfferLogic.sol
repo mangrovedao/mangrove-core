@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// SwingingMarketMaker.sol
+// IOfferLogic.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -66,6 +66,10 @@ interface IOfferLogic is IMaker {
     uint amount
   ) external returns (bool success);
 
+  ///@notice throws if this maker contract is missing approval to be used by caller to trade on the given asset
+  ///@param tokens the assets the caller wishes to trade
+  function checkList(IERC20[] calldata tokens) external view;
+
   ///@return balance the  `token` amount that `msg.sender` has in the contract's reserve
   function tokenBalance(IERC20 token) external returns (uint balance);
 
@@ -73,7 +77,7 @@ interface IOfferLogic is IMaker {
   function approveMangrove(IERC20 outbound_tkn) external;
 
   // contract's activation sequence for a specific ERC
-  function activate(IERC20[] memory tokens) external;
+  function activate(IERC20[] calldata tokens) external;
 
   // pulls available free wei from Mangrove balance to `this`
   function withdrawFromMangrove(uint amount, address payable receiver) external;

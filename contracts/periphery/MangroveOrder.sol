@@ -23,12 +23,10 @@ contract MangroveOrder is MultiUserPersistent, IOrderLogic {
     MultiUserPersistent(_MGV, new SimpleRouter(), 90_000)
   {
     if (deployer != msg.sender) {
-      setAdmin(deployer);
-      router().setAdmin(deployer);
+      set_admin(deployer);
+      router().set_admin(deployer);
     }
   }
-
-  // transfer with no revert
 
   function __lastLook__(ML.SingleOrder calldata order)
     internal

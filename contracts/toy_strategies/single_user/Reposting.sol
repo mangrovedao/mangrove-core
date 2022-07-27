@@ -21,8 +21,8 @@ contract Reposting is Persistent {
     Persistent(_MGV, 50_000, new SimpleRouter())
   {
     if (deployer != msg.sender) {
-      setAdmin(deployer);
-      router().setAdmin(deployer);
+      set_admin(deployer);
+      router().set_admin(deployer);
     }
   }
 }

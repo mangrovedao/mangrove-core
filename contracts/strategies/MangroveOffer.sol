@@ -118,6 +118,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /** Sets the account from which base (resp. quote) tokens need to be fetched or put during trade execution*/
   /** */
   /** NB Router might need further approval to work as intended*/
+  /** `this` contract must be admin of router to do this */
   function set_router(AbstractRouter router_) public override mgvOrAdmin {
     require(address(router_) != address(0), "mgvOffer/set_router/0xRouter");
     MOS.get_storage().router = router_;
@@ -152,22 +153,39 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     );
   }
 
-  ///@notice activation sequence for allowing this contract to be a `token` provider
-  ///@dev this function is public and unrestricted. It should only approve trusted contracts and give infinite approval to avoid griefing
-  ///@param tokens the ERC20s one wishes this contract to be a provider of
-  function activate(IERC20[] memory tokens) public override {
+  ///@notice gas efficient external call to activate several tokens in a single transaction
+  function activate(IERC20[] calldata tokens) external override onlyAdmin {
     for (uint i = 0; i < tokens.length; i++) {
       __activate__(tokens[i]);
     }
   }
 
+  ///@notice allows this contract to be a liquidity provider for a particular asset by performing the necessary approvals
+  ///@param token the ERC20 one wishes this contract to be a provider of
   function __activate__(IERC20 token) internal virtual {
-    // allowing Mangrove to pull `token` from this contract (for trade execution)
+    // approves Mangrove for pulling funds at the end of `makerExecute`
     approveMangrove(token);
     if (has_router()) {
       // allowing router to pull `token` from this contract (for the `push` function of the router)
       approveRouter(token);
+      // letting router performs additional necessary approvals (if any)
+      router().activate(token);
     }
+  }
+
+  ///@notice verifies that this contract's current state is ready to be used by msg.sender to post offers on Mangrove
+  ///@dev throws with a reason when there is a missing approval
+  function checkList(IERC20[] calldata tokens) external view override {
+    for (uint i = 0; i < tokens.length; i++) {
+      __checkList__(tokens[i]);
+    }
+  }
+
+  function __checkList__(IERC20 token) internal view virtual {
+    require(
+      token.allowance(address(this), address(MGV)) > 0,
+      "MangroveOffer/AdminMustApproveMangrove"
+    );
   }
 
   ///@notice withdraws ETH from the provision account on Mangrove and sends collected WEIs to `receiver`

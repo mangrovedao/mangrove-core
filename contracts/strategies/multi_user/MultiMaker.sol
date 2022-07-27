@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AdvancedCompoundRetail.sol
+// MultiMaker.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -19,8 +19,8 @@ contract MultiMaker is MultiUser {
     MultiUser(_MGV, new SimpleRouter(), 30_000)
   {
     if (deployer != msg.sender) {
-      setAdmin(deployer);
-      router().setAdmin(deployer);
+      set_admin(deployer);
+      router().set_admin(deployer);
     }
   }
 }

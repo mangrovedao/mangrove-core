@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// MangroveOffer.sol
+// MultiUser.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -378,5 +378,10 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
       wei_balance: uint96(approxReturnedProvision) // previous wei_balance is always 0 here: if offer failed in the past, `updateOffer` did reuse it
     });
     success = true;
+  }
+
+  function __checkList__(IERC20 token) internal view virtual override {
+    router().checkList(token, msg.sender);
+    super.__checkList__(token);
   }
 }

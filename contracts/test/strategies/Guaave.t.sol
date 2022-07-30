@@ -37,8 +37,8 @@ contract GuaaveTest is MangroveTest {
 
     maker = freshAddress("maker");
     taker = freshAddress("taker");
-    deal($(weth), taker, 50 ether + weth.balanceOf(taker), true);
-    deal($(usdc), taker, 100_000 * 10**6 + usdc.balanceOf(taker), true);
+    deal($(weth), taker, cash(weth, 50) + weth.balanceOf(taker), true);
+    deal($(usdc), taker, cash(usdc, 100_000) + usdc.balanceOf(taker), true);
 
     vm.startPrank(maker);
     mgo = new Mango({
@@ -93,7 +93,7 @@ contract GuaaveTest is MangroveTest {
     vm.stopPrank();
     mgv.fund{value: prov * (NSLOTS * 2)}($(mgo));
     vm.startPrank(maker);
-    deal($(weth), $(mgo), 17 ether + weth.balanceOf($(mgo)), true);
+    deal($(weth), $(mgo), cash(weth, 17) + weth.balanceOf($(mgo)), true);
 
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = weth;

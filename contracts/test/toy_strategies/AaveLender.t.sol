@@ -56,8 +56,8 @@ contract AaveLenderTest is AaveV3ModuleTest {
     weth.approve($(mgv), type(uint).max);
     dai.approve($(mgv), type(uint).max);
 
-    deal($(weth), $(this), 10 ether);
-    deal($(dai), $(this), 10_000 ether);
+    deal($(weth), $(this), cash(weth, 10));
+    deal($(dai), $(this), cash(dai, 10_000));
   }
 
   function test_run() public {

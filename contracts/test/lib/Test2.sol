@@ -7,6 +7,59 @@ import {Utilities} from "./Utilities.sol";
 /* Some ease-of-life additions to forge-std/Test.sol */
 /* You mostly want to inherit `MangroveTest` (which inherits `Test2`) rather than inherit `Test2` directly */
 contract Test2 is Test, Utilities {
+  /* *** Pranking suspend/restore ***
+
+    Does not support nesting.
+
+    Returns msg.sender, used to capture the current prank value.
+    The recipe is: save prank address, do a call, reprank.
+    except if prank address is current address. Then just don't reprank and the result will be the same
+  */
+  struct SavedPrank {
+    uint mode; // 0 is do nothing, 1 is do prank, 2 is do startPrank
+    address addr;
+  }
+
+  SavedPrank savedPrank;
+
+  function echoSender() external view returns (address) {
+    return msg.sender;
+  }
+
+  /* savePrank saves current prank address, possibly interrupts it */
+  function savePrank(bool interruptCurrentPrank) internal {
+    savedPrank.mode = 0;
+    savedPrank.addr = this.echoSender();
+    address pranked2 = this.echoSender();
+    if (savedPrank.addr == address(this)) {
+      // no pranking, or pranking current address
+    } else if (savedPrank.addr == pranked2) {
+      // no pranking, or inside a startPrank
+      if (interruptCurrentPrank) {
+        savedPrank.mode = 2;
+        vm.stopPrank();
+      }
+    } else {
+      // in a vm.prank
+      savedPrank.mode = 1;
+    }
+  }
+
+  // sugar for simple save
+  function savePrank() internal {
+    savePrank(false);
+  }
+
+  /* restorePrank works to restore prank from a suspend or a save */
+  function restorePrank() internal {
+    if (savedPrank.mode == 1) {
+      vm.prank(savedPrank.addr);
+    } else if (savedPrank.mode == 2) {
+      vm.startPrank(savedPrank.addr);
+    }
+  }
+
+  /* sugar for successful test */
   function succeed() internal {
     assertTrue(true);
   }

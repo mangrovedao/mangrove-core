@@ -17,8 +17,8 @@
     "test-with-dependencies": "yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run test",
     "test": "npm-run-all \"test:*\"",
     "test:solidity": "npm-run-all --continue-on-error \"test:solidity:*\"",
-    "test:solidity:local": "bash -c 'source .env; forge test -vvv --no-match-contract \\'^(Guaave|AaveLender|OfferProxy|OasisLike)Test$\\''",
-    "test:solidity:polygon": "bash -c 'source .env; forge test -vvv --fork-url $POLYGON_NODE_URL --fork-block-number 26416000 --match-contract \\'^(Guaave|AaveLender|OfferProxy|OasisLike)Test$\\''"
+    "test:solidity:local": "dotenv -e .env.test.local -- bash -c 'forge test -vvv --no-match-contract \\'^(Guaave|AaveLender|OfferProxy|OasisLike)Test$\\''",
+    "test:solidity:polygon": "dotenv -e .env.test.local -- bash -c 'forge test -vvv --fork-url $POLYGON_NODE_URL --fork-block-number 26416000 --match-contract \\'^(Guaave|AaveLender|OfferProxy|OasisLike)Test$\\''"
   },
   "lint-staged": {
     "*.{js,css,md,sol,json}": "prettier --write --ignore-unknown"
@@ -34,6 +34,7 @@
     "chai-events": "^0.0.3",
     "config": "^3.3.7",
     "cross-env": "^7.0.3",
+    "dotenv-cli": "^6.0.0",
     "dotenv-flow": "^3.2.0",
     "ethers": "^5.6.4",
     "fs": "^0.0.1-security",

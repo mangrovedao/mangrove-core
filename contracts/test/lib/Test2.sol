@@ -7,7 +7,7 @@ import {Utilities} from "./Utilities.sol";
 /* Some ease-of-life additions to forge-std/Test.sol */
 /* You mostly want to inherit `MangroveTest` (which inherits `Test2`) rather than inherit `Test2` directly */
 contract Test2 is Test, Utilities {
-  /* *** Pranking suspend/restore ***
+  /* *** Pranking save/restore ***
 
     Does not support nesting.
 
@@ -26,22 +26,21 @@ contract Test2 is Test, Utilities {
     return msg.sender;
   }
 
-  /* savePrank saves current prank address, possibly interrupts it */
-  function savePrank(bool interruptCurrentPrank) internal {
+  /* save current prank address if any
+     inside a `startPrank`, can `suspend` pranking */
+  function savePrank(bool suspend) internal {
     savedPrank.mode = 0;
     savedPrank.addr = this.echoSender();
-    address pranked2 = this.echoSender();
-    if (savedPrank.addr == address(this)) {
-      // no pranking, or pranking current address
-    } else if (savedPrank.addr == pranked2) {
-      // no pranking, or inside a startPrank
-      if (interruptCurrentPrank) {
+    if (savedPrank.addr != address(this)) {
+      // pranking a different address
+      if (savedPrank.addr != this.echoSender()) {
+        // in a onetime vm.prank
+        savedPrank.mode = 1;
+      } else if (suspend) {
+        // in vm.startPrank, will suspend
         savedPrank.mode = 2;
         vm.stopPrank();
       }
-    } else {
-      // in a vm.prank
-      savedPrank.mode = 1;
     }
   }
 
@@ -50,7 +49,7 @@ contract Test2 is Test, Utilities {
     savePrank(false);
   }
 
-  /* restorePrank works to restore prank from a suspend or a save */
+  /* restore prank */
   function restorePrank() internal {
     if (savedPrank.mode == 1) {
       vm.prank(savedPrank.addr);

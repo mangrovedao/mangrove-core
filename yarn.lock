@@ -2115,6 +2115,7 @@ __metadata:
     shelljs: ^0.8.4
     shx: ^0.3.4
     ts-essentials: ^9.1.2
+    ts-mockito: ^2.0.0
     ts-node: ^10.7.0
     typechain: ^8.1.0
     typedoc: ^0.22.17
@@ -7225,7 +7226,7 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"lodash@npm:^4.17.11, lodash@npm:^4.17.14, lodash@npm:^4.17.15, lodash@npm:^4.17.20, lodash@npm:^4.17.21":
+"lodash@npm:^4.17.11, lodash@npm:^4.17.14, lodash@npm:^4.17.15, lodash@npm:^4.17.20, lodash@npm:^4.17.21, lodash@npm:^4.17.5":
   version: 4.17.21
   resolution: "lodash@npm:4.17.21"
   checksum: eb835a2e51d381e561e508ce932ea50a8e5a68f4ebdd771ea240d3048244a8d13658acbd502cd4829768c56f2e16bdd4340b9ea141297d472517b83868e677f7
@@ -10480,6 +10481,15 @@ resolve@1.17.0:
   peerDependencies:
     typescript: ">=4.1.0"
   checksum: 3b14d8511557bd1bdec068505074ee41d3b1cdb052d3c66a5046f00b483bd4722d529b32a99cca424a9d7db9caff7ba108acbf344a5477a741e0616af5649b47
+  languageName: node
+  linkType: hard
+
+"ts-mockito@npm:^2.0.0":
+  version: 2.6.1
+  resolution: "ts-mockito@npm:2.6.1"
+  dependencies:
+    lodash: ^4.17.5
+  checksum: c793da0e801565c7488501e3f5c0fe17879a04a62073b137d4c4b87161b4249aebdf35e905a372a6e06f39ba434f092325f4af6ce6339e71cdaa26f98f9d5fed
   languageName: node
   linkType: hard
 

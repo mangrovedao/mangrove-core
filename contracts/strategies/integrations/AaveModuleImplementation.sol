@@ -14,7 +14,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import {AaveV3ModuleStorage as AMS, IRewardsControllerIsh, IPoolAddressesProvider, ICreditDelegationToken, IPool, IPriceOracleGetter, DataTypes, RC} from "./AaveModuleStorage.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
-import "contracts/strategies/utils/TransferLib.sol";
+import "mgv_src/strategies/utils/TransferLib.sol";
 
 contract AaveV3ModuleImplementation {
   IPool public immutable POOL;

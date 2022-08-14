@@ -12,7 +12,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "contracts/strategies/interfaces/IOfferLogic.sol";
+import "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
 // Naming scheme:
 // `f() public`: can be used as is in all descendants of `this` contract

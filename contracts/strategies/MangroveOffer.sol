@@ -12,9 +12,9 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "contracts/strategies/utils/AccessControlled.sol";
+import "mgv_src/strategies/utils/AccessControlled.sol";
 import {MangroveOfferStorage as MOS} from "./MangroveOfferStorage.sol";
-import "contracts/strategies/interfaces/IOfferLogic.sol";
+import "mgv_src/strategies/interfaces/IOfferLogic.sol";
 import "mgv_src/IMangrove.sol";
 
 // Naming scheme:

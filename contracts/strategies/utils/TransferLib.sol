@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// SimpleOrale.sol
+// TransferLib.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -40,6 +40,10 @@ library TransferLib {
   ) internal returns (bool) {
     if (amount == 0 || spender == recipient) {
       return true;
+    }
+    // optim to avoid requiring contract to approve itself
+    if (spender == address(this)) {
+      return transferToken(token, recipient, amount);
     }
     (bool success, bytes memory data) = address(token).call(
       abi.encodeWithSelector(

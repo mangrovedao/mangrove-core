@@ -36,9 +36,17 @@ contract MangoTest is MangroveTest {
     usdc = quote;
 
     maker = freshAddress("maker");
+    vm.deal(maker, 10 ether); // to provision Mango
+
     taker = freshAddress("taker");
     deal($(weth), taker, cash(weth, 50));
     deal($(usdc), taker, cash(usdc, 100_000));
+
+    // taker approves mangrove to be able to take offers
+    vm.startPrank(taker);
+    weth.approve($(mgv), type(uint).max);
+    usdc.approve($(mgv), type(uint).max);
+    vm.stopPrank();
 
     vm.startPrank(maker);
     mgo = new Mango({
@@ -67,13 +75,11 @@ contract MangoTest is MangroveTest {
     part_restart_fixed_shift();
   }
 
-  function part_deploy_strat() public {
-    vm.startPrank(maker);
+  function part_deploy_strat() public prank(maker) {
     // reserve has to approve liquidity router of Mango for ETH and USDC transfer
     // since reserve here is an EOA we do it direclty
     usdc.approve($(mgo.router()), type(uint).max);
     weth.approve($(mgo.router()), type(uint).max);
-    vm.stopPrank();
 
     // funds come from maker's wallet by default
     // liquidity router will pull the funds from the wallet when needed
@@ -90,9 +96,7 @@ contract MangoTest is MangroveTest {
 
     mgv.fund{value: prov * 20}($(mgo));
 
-    vm.startPrank(maker);
     init(cash(usdc, 1000), cash(weth, 3, 1));
-    vm.stopPrank();
 
     Book memory book = get_offers(false);
 
@@ -110,13 +114,7 @@ contract MangoTest is MangroveTest {
     );
   }
 
-  function part_market_order() public {
-    vm.prank(taker);
-    weth.approve($(mgv), type(uint).max);
-    vm.prank(taker);
-    usdc.approve($(mgv), type(uint).max);
-
-    vm.prank(taker);
+  function part_market_order() public prank(taker) {
     (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
       $(weth),
       $(usdc),
@@ -145,7 +143,6 @@ contract MangoTest is MangroveTest {
       dynamic([int(0), 0, 0, 0, 0, -1, 2, 3, 4, 5])
     );
 
-    vm.prank(taker);
     (got, gave, bounty, ) = mgv.marketOrder(
       $(usdc),
       $(weth),
@@ -179,8 +176,7 @@ contract MangoTest is MangroveTest {
     );
   }
 
-  function part_negative_shift() public {
-    vm.prank(maker);
+  function part_negative_shift() public prank(maker) {
     mgo.set_shift({
       s: -2,
       withBase: false,
@@ -204,8 +200,7 @@ contract MangoTest is MangroveTest {
     );
   }
 
-  function part_positive_shift() public {
-    vm.prank(maker);
+  function part_positive_shift() public prank(maker) {
     mgo.set_shift({
       s: 3,
       withBase: true,
@@ -236,6 +231,7 @@ contract MangoTest is MangroveTest {
     // - verify takerGave is pending
     // - put back the density and run another market order
     mgv.setDensity($(weth), $(usdc), cash(weth, 1));
+
     vm.prank(taker);
     (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
       $(usdc),

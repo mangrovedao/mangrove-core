@@ -23,6 +23,7 @@ library Fork {
   address constant WETH = 0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619;
   address constant USDC = 0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
   address constant AWETH = 0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8;
+  address constant AUSDC = 0x625E7708f30cA75bfd92586e17077590C60eb4cD;
   address constant DAI = 0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063;
   address constant ADAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
   address constant CDAI = 0x4eCEDdF62277eD78623f9A94995c680f8fd6C00e;

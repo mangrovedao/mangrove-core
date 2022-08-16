@@ -7,7 +7,7 @@ import "mgv_src/strategies/routers/AaveRouter.sol";
 import "mgv_test/lib/Fork.sol";
 
 // note: this is a forking test
-contract GuaaveTest is MangroveTest {
+contract GuaaveForkedTest is MangroveTest {
   uint constant BASE0 = 0.34 ether;
   uint constant BASE1 = 1000 * 10**6; //because usdc decimals?
   uint constant NSLOTS = 20;

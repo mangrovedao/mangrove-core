@@ -34,7 +34,7 @@ abstract contract AaveV3ModuleTest is MangroveTest {
 
 // warning! currently only known to work on Polygon, block 26416000
 // at a later point, Aave disables stable dai borrowing which those tests need
-contract AaveLenderTest is AaveV3ModuleTest {
+contract AaveLenderForkedTest is AaveV3ModuleTest {
   IERC20 weth;
   IERC20 dai;
   AaveDeepRouter router;

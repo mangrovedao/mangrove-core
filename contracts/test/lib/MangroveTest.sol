@@ -41,6 +41,12 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint defaultFee;
   }
 
+  modifier prank(address a) {
+    vm.startPrank(a);
+    _;
+    vm.stopPrank();
+  }
+
   AbstractMangrove mgv;
   TestToken base;
   TestToken quote;
@@ -83,9 +89,12 @@ contract MangroveTest is Test2, HasMgvEvents {
     );
     // mangrove deploy
     mgv = setupMangrove(base, quote, options.invertedMangrove);
-    // start with mgvBalance on mangrove
+
+    // below are necessary operations because testRunner acts as a taker/maker in some core protocol tests
+    // TODO this should be done somewhere else
+    //provision mangrove so that testRunner can post offers
     mgv.fund{value: 10 ether}();
-    // approve mgv
+    // approve mangrove so that testRunner can take offers on Mangrove
     base.approve($(mgv), type(uint).max);
     quote.approve($(mgv), type(uint).max);
   }
@@ -396,5 +405,15 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   function $(IERC20 t) internal pure returns (address payable) {
     return payable(address(t));
+  }
+
+  function tkn_pair(IERC20 t, IERC20 s)
+    internal
+    pure
+    returns (IERC20[] memory ret)
+  {
+    ret = new IERC20[](2);
+    ret[0] = t;
+    ret[1] = s;
   }
 }

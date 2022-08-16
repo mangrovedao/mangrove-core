@@ -79,7 +79,7 @@ contract SimpleRouter is AbstractRouter(50_000) {
   {
     // verifying that `this` router can withdraw tokens from reserve (required for `withdrawToken` and `pull`)
     require(
-      token.allowance(reserve, address(this)) > 0,
+      reserve == address(this) || token.allowance(reserve, address(this)) > 0,
       "SimpleRouter/NotApprovedByReserve"
     );
   }

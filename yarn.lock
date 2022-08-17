@@ -1737,7 +1737,7 @@ __metadata:
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.11
-    lint-staged: ^13.0.2
+    lint-staged: ^13.0.3
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
@@ -1790,7 +1790,7 @@ __metadata:
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.11
-    lint-staged: ^13.0.2
+    lint-staged: ^13.0.3
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
@@ -1843,7 +1843,7 @@ __metadata:
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.11
-    lint-staged: ^13.0.2
+    lint-staged: ^13.0.3
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
@@ -1897,7 +1897,7 @@ __metadata:
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.11
-    lint-staged: ^13.0.2
+    lint-staged: ^13.0.3
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
@@ -1951,7 +1951,7 @@ __metadata:
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.11
-    lint-staged: ^13.0.2
+    lint-staged: ^13.0.3
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
@@ -1986,7 +1986,7 @@ __metadata:
     eslint-config-prettier: ^8.5.0
     fast-safe-stringify: ^2.1.1
     json-truncate: ^3.0.0
-    lint-staged: ^13.0.2
+    lint-staged: ^13.0.3
     logform: ^2.4.1
     loglevel: ^1.8.0
     mocha: ^10.0.0
@@ -2020,7 +2020,7 @@ __metadata:
     hardhat-abi-exporter: ^2.9.0
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.10
-    lint-staged: ^13.0.2
+    lint-staged: ^13.0.3
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
@@ -2056,7 +2056,7 @@ __metadata:
     eslint-config-prettier: ^8.5.0
     ethers: ^5.6.4
     hardhat: ^2.9.9
-    lint-staged: ^13.0.2
+    lint-staged: ^13.0.3
     mocha: ^10.0.0
     prettier: 2.7.1
     prettier-eslint: ^15.0.1
@@ -2087,7 +2087,7 @@ __metadata:
     hardhat-deploy-ethers: ^0.3.0-beta.10
     hardhat-preprocessor: ^0.1.4
     hardhat-storage-layout: ^0.1.6
-    lint-staged: ^13.0.2
+    lint-staged: ^13.0.3
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
@@ -2143,7 +2143,7 @@ __metadata:
     hardhat: ^2.9.9
     hardhat-deploy: ^0.11.10
     hardhat-deploy-ethers: ^0.3.0-beta.10
-    lint-staged: ^13.0.2
+    lint-staged: ^13.0.3
     minimist: ^1.2.6
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
@@ -7081,9 +7081,9 @@ fsevents@~2.3.2:
   languageName: node
   linkType: hard
 
-"lint-staged@npm:^13.0.2":
-  version: 13.0.2
-  resolution: "lint-staged@npm:13.0.2"
+"lint-staged@npm:^13.0.3":
+  version: 13.0.3
+  resolution: "lint-staged@npm:13.0.3"
   dependencies:
     cli-truncate: ^3.1.0
     colorette: ^2.0.17
@@ -7100,7 +7100,7 @@ fsevents@~2.3.2:
     yaml: ^2.1.1
   bin:
     lint-staged: bin/lint-staged.js
-  checksum: b5ccf8e11b69f6fd8b79b629580c1463524aeca069a8f97a28291de2fafa474c28871428b56f251cf95a02d84e7b0fc0dfd6443532e16fdac3f9cba9228cfc9e
+  checksum: 53d585007df06e162febab6b0836b55016d902586a267823c8a1158529d8c742dc7297e523f7023dff02250bef3eb0d6934f4ec4f9961adfc2ebbed5f54162d0
   languageName: node
   linkType: hard
 

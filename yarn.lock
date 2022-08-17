@@ -1714,7 +1714,7 @@ __metadata:
     "@types/big.js": ^6.1.3
     "@types/chai": ^4.3.1
     "@types/chai-as-promised": ^7.1.5
-    "@types/config": ^0.0.41
+    "@types/config": ^3.3.0
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
@@ -1767,7 +1767,7 @@ __metadata:
     "@types/big.js": ^6.1.3
     "@types/chai": ^4.3.1
     "@types/chai-as-promised": ^7.1.5
-    "@types/config": ^0.0.41
+    "@types/config": ^3.3.0
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
@@ -1820,7 +1820,7 @@ __metadata:
     "@types/big.js": ^6.1.3
     "@types/chai": ^4.3.1
     "@types/chai-as-promised": ^7.1.5
-    "@types/config": ^0.0.41
+    "@types/config": ^3.3.0
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
@@ -1874,7 +1874,7 @@ __metadata:
     "@types/big.js": ^6.1.3
     "@types/chai": ^4.3.1
     "@types/chai-as-promised": ^7.1.5
-    "@types/config": ^0.0.41
+    "@types/config": ^3.3.0
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
@@ -1927,7 +1927,7 @@ __metadata:
     "@types/big.js": ^6.1.3
     "@types/chai": ^4.3.1
     "@types/chai-as-promised": ^7.1.5
-    "@types/config": ^0.0.41
+    "@types/config": ^3.3.0
     "@types/dotenv-flow": ^3.2.0
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
@@ -1973,7 +1973,7 @@ __metadata:
   resolution: "@mangrovedao/commonlib.js@workspace:packages/commonlib.js"
   dependencies:
     "@espendk/json-file-reporter": ^1.4.2
-    "@types/config": ^0.0.41
+    "@types/config": ^3.3.0
     "@types/dotenv-flow": ^3.2.0
     "@types/mocha": ^9.0.0
     "@types/node": ^18.0.0
@@ -2516,10 +2516,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/config@npm:^0.0.41":
-  version: 0.0.41
-  resolution: "@types/config@npm:0.0.41"
-  checksum: 528eb5e5d60c48cf82a2b0988ee1e5e088472698ad25944131b0ba87b2e3bb0989f3b4d45edb9d49eefcc8bf158c267905c386aaec15857b9fb24be449c3f27c
+"@types/config@npm:^3.3.0":
+  version: 3.3.0
+  resolution: "@types/config@npm:3.3.0"
+  checksum: d9485041cfa05864d3b8095cf7b44fae910887f6782dc43ab1ba4ea78d9cdf4a8c9d697557318ede2b4b63a05b7f91e8571b8dbe048ad024e709d9e51e0487d8
   languageName: node
   linkType: hard
 

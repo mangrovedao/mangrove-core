@@ -1719,7 +1719,7 @@ __metadata:
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
     "@types/node": ^18.0.0
-    "@types/serve-static": ^1.13.10
+    "@types/serve-static": ^1.15.0
     "@types/shelljs": ^0.8.11
     "@typescript-eslint/eslint-plugin": ^5.29.0
     "@typescript-eslint/parser": ^5.22.0
@@ -1772,7 +1772,7 @@ __metadata:
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
     "@types/node": ^18.0.0
-    "@types/serve-static": ^1.13.10
+    "@types/serve-static": ^1.15.0
     "@types/shelljs": ^0.8.11
     "@typescript-eslint/eslint-plugin": ^5.29.0
     "@typescript-eslint/parser": ^5.22.0
@@ -1825,7 +1825,7 @@ __metadata:
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
     "@types/node": ^18.0.0
-    "@types/serve-static": ^1.13.10
+    "@types/serve-static": ^1.15.0
     "@types/shelljs": ^0.8.11
     "@typescript-eslint/eslint-plugin": ^5.29.0
     "@typescript-eslint/parser": ^5.22.0
@@ -1879,7 +1879,7 @@ __metadata:
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
     "@types/node": ^18.0.0
-    "@types/serve-static": ^1.13.10
+    "@types/serve-static": ^1.15.0
     "@types/shelljs": ^0.8.11
     "@typescript-eslint/eslint-plugin": ^5.29.0
     "@typescript-eslint/parser": ^5.22.0
@@ -1932,7 +1932,7 @@ __metadata:
     "@types/finalhandler": ^1.1.1
     "@types/mocha": ^9.0.0
     "@types/node": ^18.0.0
-    "@types/serve-static": ^1.13.10
+    "@types/serve-static": ^1.15.0
     "@types/shelljs": ^0.8.11
     "@typescript-eslint/eslint-plugin": ^5.29.0
     "@typescript-eslint/parser": ^5.22.0
@@ -2605,10 +2605,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/mime@npm:^1":
-  version: 1.3.2
-  resolution: "@types/mime@npm:1.3.2"
-  checksum: 0493368244cced1a69cb791b485a260a422e6fcc857782e1178d1e6f219f1b161793e9f87f5fae1b219af0f50bee24fcbe733a18b4be8fdd07a38a8fb91146fd
+"@types/mime@npm:*":
+  version: 3.0.1
+  resolution: "@types/mime@npm:3.0.1"
+  checksum: 4040fac73fd0cea2460e29b348c1a6173da747f3a87da0dbce80dd7a9355a3d0e51d6d9a401654f3e5550620e3718b5a899b2ec1debf18424e298a2c605346e7
   languageName: node
   linkType: hard
 
@@ -2709,13 +2709,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/serve-static@npm:^1.13.10":
-  version: 1.13.10
-  resolution: "@types/serve-static@npm:1.13.10"
+"@types/serve-static@npm:^1.15.0":
+  version: 1.15.0
+  resolution: "@types/serve-static@npm:1.15.0"
   dependencies:
-    "@types/mime": ^1
+    "@types/mime": "*"
     "@types/node": "*"
-  checksum: eaca858739483e3ded254cad7d7a679dc2c8b3f52c8bb0cd845b3b7eb1984bde0371fdcb0a5c83aa12e6daf61b6beb762545021f520f08a1fe882a3fa4ea5554
+  checksum: b6ac93d471fb0f53ddcac1f9b67572a09cd62806f7db5855244b28f6f421139626f24799392566e97d1ffc61b12f9de7f30380c39fcae3c8a161fe161d44edf2
   languageName: node
   linkType: hard
 

@@ -17,8 +17,8 @@
     "test-with-dependencies": "yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run test",
     "test": "npm-run-all \"test:*\"",
     "test:solidity": "npm-run-all --continue-on-error \"test:solidity:*\"",
-    "test:solidity:local": "bash -c 'source .env; forge test -vvv --no-match-contract \\'ForkedTest$\\''",
-    "test:solidity:polygon": "bash -c 'source .env; forge test -vvv --fork-url $POLYGON_NODE_URL --fork-block-number 26416000 --match-contract \\'ForkedTest$\\''"
+    "test:solidity:local": "dotenv -c test -- bash -c 'forge test -vvv --no-match-contract \\'ForkedTest$\\''",
+    "test:solidity:polygon": "dotenv -c test -- bash -c 'forge test -vvv --fork-url $POLYGON_NODE_URL --fork-block-number 26416000 --match-contract \\'ForkedTest$\\''"
   },
   "lint-staged": {
     "*.{js,css,md,sol,json}": "prettier --write --ignore-unknown"

@@ -10,7 +10,7 @@
     "heroku-build-this-package": "echo No build of contracts needed for Heroku as ABIs are committed to mangrove.js",
     "build": "yarn install && yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run build-this-package",
     "copy-distribution-assets": "node copyDistributionAssets.js",
-    "clean-this-package": "rimraf deployments/hardhat deployments/localhost artifacts cache dist exported-abis foundry_out",
+    "clean-this-package": "rimraf deployments/hardhat deployments/localhost artifacts cache dist exported-abis foundry_out tsconfig.tsbuildinfo",
     "clean": "yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run clean-this-package",
     "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.js contracts/MgvLib.sol contracts/MgvRoot.sol contracts/MgvHasOffers.sol contracts/MgvOfferMaking.sol contracts/MgvOfferTaking.sol contracts/MgvOfferTakingWithPermit.sol contracts/MgvGovernable.sol contracts/AbstractMangrove.sol contracts/Mangrove.sol contracts/InvertedMangrove.sol",
     "preproc": "node preprocessing/run.js",

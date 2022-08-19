@@ -1741,6 +1741,7 @@ __metadata:
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
+    nyc: ^15.1.0
     prettier: 2.7.1
     prettier-eslint: ^15.0.1
     rimraf: ^3.0.2
@@ -1794,6 +1795,7 @@ __metadata:
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
+    nyc: ^15.1.0
     prettier: 2.7.1
     prettier-eslint: ^15.0.1
     random: ^3.0.6
@@ -1847,6 +1849,7 @@ __metadata:
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
+    nyc: ^15.1.0
     prettier: 2.7.1
     prettier-eslint: ^15.0.1
     random: ^3.0.6
@@ -1901,6 +1904,7 @@ __metadata:
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
+    nyc: ^15.1.0
     prettier: 2.7.1
     prettier-eslint: ^15.0.1
     rimraf: ^3.0.2
@@ -1955,6 +1959,7 @@ __metadata:
     mocha: ^10.0.0
     mocha-multi-reporters: ^1.5.1
     npm-run-all: ^4.1.5
+    nyc: ^15.1.0
     prettier: 2.7.1
     prettier-eslint: ^15.0.1
     rimraf: ^3.0.2

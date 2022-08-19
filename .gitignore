@@ -29,3 +29,4 @@ doc/specs.txt
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+merged.info

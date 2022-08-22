@@ -1,3 +1,4 @@
+// Contracts that should export their ABI only
 exports.abi_exports = [
   "Mangrove",
   "MgvReader",
@@ -14,4 +15,11 @@ exports.abi_exports = [
   "ICreditDelegationToken",
 ];
 
+// Contracts that should export their ABI + bytecode
 exports.full_exports = ["SimpleMaker", "MultiMaker"];
+
+// Deployment files that should be distributed, this object is a mapping
+// from broadcast directory to the dist/broadcast directory
+exports.dist_broadcast_files = {
+  "Mumbai.s.sol/80001": "maticmum",
+};

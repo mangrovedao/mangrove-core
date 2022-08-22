@@ -4,8 +4,6 @@ cache
 ignore
 modd.conf
 out.html
-deployments/hardhat
-deployments/localhost
 doc/MgvDoc.html
 doc/specs.txt
 *-mumbai.sh
@@ -29,4 +27,7 @@ doc/specs.txt
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+
+# js tests state dumps
+**/mangroveJsTestServerState.dump
 merged.info

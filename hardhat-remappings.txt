@@ -1,4 +1,0 @@
-mgv_src/=contracts/
-mgv_test/=contracts/test/
-ds-test/=../lib/ds-test/src/
-forge-std/=foundry_lib/forge-std-vendored/src/

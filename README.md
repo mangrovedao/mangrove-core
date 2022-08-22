@@ -14,14 +14,14 @@ $ yarn build     # Compiles Mangrove and offer logics
 
 After the initial installation, it is sufficient to run `yarn build` after updating the clone - this will also run `yarn install`.
 
-# Hardhat and its use in this package
+# Foundry and its use in this package
 
-This package relies heavily on the [Hardhat](https://hardhat.org) development framework for Ethereum. It includes an [EVM interpreter](https://hardhat.org/hardhat-network/) with special hooks for
+This package relies heavily on the [Foundry](https://book.getfoundry.sh/) development framework for Ethereum. It includes an [EVM interpreter](https://github.com/gakonst/ethers-rs) with special hooks for
 
 - interpreting `console.log`-type statements
 - displaying Solidity stack traces on reverts.
 
-For example, you can use Hardhat's `console.log` in contracts for debugging; those logs survive transaction revert. More in [Hardhat's documentation](https://hardhat.org/hardhat-network/#console-log). Example:
+For example, you can use `console.log` in contracts for debugging; those logs survive transaction revert. More in [Foundry's](https://book.getfoundry.sh/reference/forge-std/console-log?highlight=console#console-logging). Example:
 
 ```
 string memory s = "Hello";
@@ -88,10 +88,9 @@ To run specific test suites, use the `testSuites` package script:
 
 # Deployment
 
-The folder [./deploy](./deploy) contains [hardhat-deploy](https://github.com/wighawag/hardhat-deploy) deployment scripts that can be used to deploy Mangrove on various networks:
+## FIXME
 
-- [./deploy/mangrove.js](./deploy/mangrove.js): Can be used for test network deployments and includes some IERC20 test tokens. This is particularly useful for setting up local (Hardhat) networks for integration tests against Mangrove.
-- [./deploy/mumbai.js](./deploy/mumbai.js): Deployment script for the Polygon Mumbai testnet.
+No deployment story with foundry yet -- but foundry has the features, we just need to write the deployments and the tooling around it.
 
 # Generate documentation
 

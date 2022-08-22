@@ -1,11 +1,13 @@
 dist
-deployments/hardhat
 deployments/localhost
 artifacts/*
 exported-abis/*
 doc/MgvDoc.html
 doc/specs.txt
-foundry_out
-foundry_cache
+out
+cache
 .env*
 
+
+# broadcast files, ignore local deploys
+broadcast/*/31337

@@ -6,6 +6,10 @@
     "price": "0.71",
     "transferCost": "52000"
   },
+  "USDT": {
+    "price": "0.71",
+    "transferCost": "52000"
+  },
   "DAI": {
     "price": "0.71",
     "transferCost": "52000"

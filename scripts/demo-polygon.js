@@ -2,8 +2,7 @@
 // and you have MUMBAI_NODE_URL and MUMBAI_TESTER_PRIVATE_KEY in your .env file
 util.inspect.replDefaults.depth = 0;
 const env = require("dotenv").config();
-const { Mangrove } = require("../git/mangrove/packages/mangrove.js");
-const ethers = require("ethers");
+const { Mangrove, ethers } = require("@mangrovedao/mangrove.js");
 
 // BUG: needs to override gasPrice for all signed tx
 // otherwise ethers.js gives 1.5 gwei which is way too low

@@ -24,7 +24,6 @@ import {AbstractMangrove} from "./AbstractMangrove.sol";
 
 /* <a id="Mangrove"></a> The `Mangrove` contract implements the "normal" version of Mangrove, where the taker flashloans the desired amount to each maker. Each time, makers are called after the loan. When the order is complete, each maker is called once again (with the orderbook unlocked). */
 contract Mangrove is AbstractMangrove {
-
   constructor(
     address governance,
     uint gasprice,
@@ -56,7 +55,7 @@ contract Mangrove is AbstractMangrove {
       /* The transfer taker -> maker is in 2 steps. First, taker->mgv. Then
        mgv->maker. With a direct taker->maker transfer, if one of taker/maker
        is blacklisted, we can't tell which one. We need to know which one:
-       if we incorrectly blame the taker, a blacklisted maker can block a pair forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume the Mangrove is not blacklisted. Also note that this setup doesn't not work well with tokens that take fees or recompute balances at transfer time. */
+       if we incorrectly blame the taker, a blacklisted maker can block a pair forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume that Mangrove is not blacklisted. This 2-step transfer is incompatible with tokens that have transfer fees (more accurately, it uselessly incurs fees twice). */
       if (transferTokenFrom(sor.inbound_tkn, taker, address(this), sor.gives)) {
         if (
           transferToken(sor.inbound_tkn, sor.offerDetail.maker(), sor.gives)

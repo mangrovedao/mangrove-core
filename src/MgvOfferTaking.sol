@@ -706,7 +706,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Post execute */
   /* At this point, we know `mgvData != "mgv/notExecuted"`. After executing an offer (whether in a market order or in snipes), we
      1. Call the maker's posthook and sum the total gas used.
-     2. If offer failed: sum total penalty due to taker and give remainder to maker.
+     2. If offer failed: sum total penalty due to msg.sender and give remainder to maker.
    */
   function postExecute(
     MultiOrder memory mor,

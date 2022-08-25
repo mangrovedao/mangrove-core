@@ -22,7 +22,7 @@
   "devDependencies": {
     "lint-staged": "^13.0.3",
     "prettier": "^2.4.1",
-    "prettier-plugin-solidity": "^1.0.0-dev.23",
+    "prettier-plugin-solidity": "1.0.0-beta.18",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.4",
     "solcco": ">=1.0.11",

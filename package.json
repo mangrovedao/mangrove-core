@@ -6,11 +6,9 @@
   "scripts": {
     "precommit": "lint-staged",
     "prepack": "yarn build",
-    "build-this-package": "forge build && yarn run copy-artifacts && yarn run copy-broadcasts",
+    "build-this-package": "forge build && node copyArtifacts && node copyBroadcasts",
     "heroku-build-this-package": "echo No build of contracts needed for Heroku as ABIs are committed to mangrove.js",
     "build": "yarn install && yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run build-this-package",
-    "copy-artifacts": "node copyArtifacts.js",
-    "copy-broadcasts": "node copyBroadcasts.js",
     "clean-this-package": "rimraf artifacts cache dist exported-abis out tsconfig.tsbuildinfo",
     "clean": "yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run clean-this-package",
     "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.js src/MgvLib.sol src/MgvRoot.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/AbstractMangrove.sol src/Mangrove.sol src/InvertedMangrove.sol",

@@ -690,7 +690,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
       fail("receive() should fail on closed market");
     } else {
       string memory r = getReason(retdata);
-      revertEq(r, "mgv/dead");
+      assertEq(r, "mgv/dead", "wrong revert reason");
     }
   }
 

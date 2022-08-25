@@ -60,7 +60,7 @@ contract MangroveOfferTest is MangroveTest {
   }
 
   function test_CheckList() public {
-    IERC20[] memory tokens = tkn_pair(weth, usdc);
+    IERC20[] memory tokens = dynamic([weth, usdc]);
     vm.expectRevert("MangroveOffer/AdminMustApproveMangrove");
     makerContract.checkList(tokens);
     vm.prank(maker);
@@ -72,11 +72,11 @@ contract MangroveOfferTest is MangroveTest {
 
   function testCannot_ActivateIfNotAdmin() public {
     vm.expectRevert("AccessControlled/Invalid");
-    makerContract.activate(tkn_pair(weth, usdc));
+    makerContract.activate(dynamic([weth, usdc]));
   }
 
   function test_ActivatePassesCheckList() public {
-    IERC20[] memory tokens = tkn_pair(weth, usdc);
+    IERC20[] memory tokens = dynamic([weth, usdc]);
     vm.prank(maker);
     makerContract.activate(tokens);
     makerContract.checkList(tokens);
@@ -182,7 +182,7 @@ contract MangroveOfferTest is MangroveTest {
     router.set_admin(address(makerContract));
     makerContract.set_router(router);
 
-    IERC20[] memory tokens = tkn_pair(weth, usdc);
+    IERC20[] memory tokens = dynamic([weth, usdc]);
     vm.expectRevert("Router/NotApprovedByMakerContract");
     makerContract.checkList(tokens);
 

@@ -26,7 +26,6 @@ import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
  */
 
 contract MangroveTest is Test2, HasMgvEvents {
-  using stdStorage for StdStorage;
   // Configure the initial setup.
   // Add fields here to make MangroveTest more configurable.
   struct TokenOptions {
@@ -321,8 +320,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     address $b,
     AbstractMangrove _mgv
   ) internal {
-    not0x($a);
-    not0x($b);
+    assertNot0x($a);
+    assertNot0x($b);
     _mgv.activate($a, $b, options.defaultFee, 0, 20_000);
     _mgv.activate($b, $a, options.defaultFee, 0, 20_000);
     // logging
@@ -353,7 +352,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     public
     returns (MakerDeployer)
   {
-    not0x($(mgv));
+    assertNot0x($(mgv));
     return (new MakerDeployer(mgv, $out, $in));
   }
 
@@ -405,15 +404,5 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   function $(IERC20 t) internal pure returns (address payable) {
     return payable(address(t));
-  }
-
-  function tkn_pair(IERC20 t, IERC20 s)
-    internal
-    pure
-    returns (IERC20[] memory ret)
-  {
-    ret = new IERC20[](2);
-    ret[0] = t;
-    ret[1] = s;
   }
 }

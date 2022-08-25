@@ -859,7 +859,11 @@ contract TakerOperationsTest is MangroveTest {
     if (noRevert) {
       fail("take should fail due to low gas");
     } else {
-      revertEq(getReason(data), "mgv/notEnoughGasForMakerTrade");
+      assertEq(
+        getReason(data),
+        "mgv/notEnoughGasForMakerTrade",
+        "wrong revert reason"
+      );
     }
   }
 

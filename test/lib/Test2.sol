@@ -82,34 +82,33 @@ contract Test2 is Test, Utilities {
      does not have to be unique.
 
      Variants:
-     freshAccount()     :         key,address
      freshAccount(label): labeled key,address
+     freshAccount()     :         key,address
      freshKey()         :         key
-     freshAddress()     :         address
      freshAddress(label): labeled address
+     freshAddress()     :         address
   */
-  function freshAccount() internal returns (uint, address payable) {
-    uint key = keyIterator++;
-    address payable addr = payable(vm.addr(key));
-    // set code to nonzero so solidity-inserted extcodesize checks don't fail
-    vm.etch(addr, bytes("not zero"));
-    return (key, addr);
-  }
-
   function freshAccount(string memory label)
     internal
     returns (uint key, address payable addr)
   {
-    (key, addr) = freshAccount();
+    unchecked {
+      key = (keyIterator++) + uint(keccak256(bytes(label)));
+    }
+    addr = payable(vm.addr(key));
+
+    // set code to nonzero so solidity-inserted extcodesize checks don't fail
+    vm.etch(addr, bytes("not zero"));
     vm.label(addr, label);
+    return (key, addr);
+  }
+
+  function freshAccount() internal returns (uint, address payable) {
+    return freshAccount("");
   }
 
   function freshKey() internal returns (uint key) {
     (key, ) = freshAccount();
-  }
-
-  function freshAddress() internal returns (address payable addr) {
-    (, addr) = freshAccount();
   }
 
   function freshAddress(string memory label)
@@ -119,22 +118,17 @@ contract Test2 is Test, Utilities {
     (, addr) = freshAccount(label);
   }
 
+  function freshAddress() internal returns (address payable addr) {
+    (, addr) = freshAccount();
+  }
+
   /* expect exact log from address */
   function expectFrom(address addr) internal {
     vm.expectEmit(true, true, true, true, addr);
   }
 
-  /* expect a revert reason */
-  function revertEq(string memory actual_reason, string memory expected_reason)
-    internal
-    returns (bool)
-  {
-    assertEq(actual_reason, expected_reason, "wrong revert reason");
-    return true;
-  }
-
   /* assert address is not 0 */
-  function not0x(address a) internal returns (bool) {
+  function assertNot0x(address a) internal returns (bool) {
     if (a == address(0)) {
       emit log("Error: address should not be 0");
       emit log_named_address("Address", a);

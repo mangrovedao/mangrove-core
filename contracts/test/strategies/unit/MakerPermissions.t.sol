@@ -42,7 +42,7 @@ contract MakerPermissionTest is MangroveTest {
       deployer: maker
     });
     vm.prank(maker);
-    makerContract.activate(tkn_pair(weth, usdc));
+    makerContract.activate(dynamic([weth, usdc]));
   }
 
   function testCannot_setAdmin() public {

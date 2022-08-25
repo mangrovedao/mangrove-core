@@ -76,7 +76,7 @@ contract OfferLogicTest is MangroveTest {
     deal($(usdc), makerContract.reserve(), cash(usdc, 2000));
 
     vm.prank(maker);
-    makerContract.activate(tkn_pair(weth, usdc));
+    makerContract.activate(dynamic([weth, usdc]));
   }
 
   function setupMakerContract() internal virtual prank(maker) {
@@ -89,7 +89,7 @@ contract OfferLogicTest is MangroveTest {
   function setupRouter() internal virtual {}
 
   function test_checkList() public view {
-    makerContract.checkList(tkn_pair(weth, usdc));
+    makerContract.checkList(dynamic([weth, usdc]));
   }
 
   function test_AdminCanSetReserve() public {

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 import {console2 as console} from "forge-std/console2.sol";
 import {Script} from "forge-std/Script.sol";
+import {ERC20} from "./tokens/ERC20.sol";
 
 /* Some general utility methods.
 /* You mostly want to inherit `MangroveTest` (which inherits Test2` which inherits `Utilities`) rather than inherit `Utilities` directly */
@@ -364,6 +365,156 @@ contract Utilities is Script {
 
   function dynamic(int[10] memory a) internal pure returns (int[] memory ret) {
     ret = new int[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(ERC20[1] memory a)
+    internal
+    pure
+    returns (ERC20[] memory ret)
+  {
+    ret = new ERC20[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(ERC20[2] memory a)
+    internal
+    pure
+    returns (ERC20[] memory ret)
+  {
+    ret = new ERC20[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(ERC20[3] memory a)
+    internal
+    pure
+    returns (ERC20[] memory ret)
+  {
+    ret = new ERC20[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(ERC20[4] memory a)
+    internal
+    pure
+    returns (ERC20[] memory ret)
+  {
+    ret = new ERC20[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(ERC20[5] memory a)
+    internal
+    pure
+    returns (ERC20[] memory ret)
+  {
+    ret = new ERC20[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(ERC20[6] memory a)
+    internal
+    pure
+    returns (ERC20[] memory ret)
+  {
+    ret = new ERC20[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(ERC20[7] memory a)
+    internal
+    pure
+    returns (ERC20[] memory ret)
+  {
+    ret = new ERC20[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(ERC20[8] memory a)
+    internal
+    pure
+    returns (ERC20[] memory ret)
+  {
+    ret = new ERC20[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(ERC20[9] memory a)
+    internal
+    pure
+    returns (ERC20[] memory ret)
+  {
+    ret = new ERC20[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(ERC20[10] memory a)
+    internal
+    pure
+    returns (ERC20[] memory ret)
+  {
+    ret = new ERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
     assembly {

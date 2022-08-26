@@ -36,11 +36,7 @@ abstract contract GuaaveAbstractTest is MangroveTest {
   address payable taker;
   Mango mgo;
   AaveRouter router;
-  GenericFork fork;
-
-  constructor() {
-    fork = new GenericFork();
-  }
+  GenericFork fork = new GenericFork();
 
   function setUp() public override {
     fork.setUp();

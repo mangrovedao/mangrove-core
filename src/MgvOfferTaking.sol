@@ -631,7 +631,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         }
       }
 
-      /* Delete the offer. The last argument indicates whether the offer should be stripped of its provision (yes if execution failed, no otherwise). We delete offers whether the amount remaining on offer is > density or not for the sake of uniformity (code is much simpler). We also expect prices to move often enough that the maker will want to update their price anyway. To simulate leaving the remaining volume in the offer, the maker can program their `makerPosthook` to `updateOffer` and put the remaining volume back in. */
+      /* Delete the offer. The last argument indicates whether the offer should be stripped of its provision (yes if execution failed, no otherwise). We cannot partially strip an offer provision (for instance, remove only the penalty from a failing offer and leave the rest) since the provision associated with an offer is always deduced from the (gasprice,gasbase,gasreq) parameters and not stored independently. We delete offers whether the amount remaining on offer is > density or not for the sake of uniformity (code is much simpler). We also expect prices to move often enough that the maker will want to update their price anyway. To simulate leaving the remaining volume in the offer, the maker can program their `makerPosthook` to `updateOffer` and put the remaining volume back in. */
       dirtyDeleteOffer(
         sor.outbound_tkn,
         sor.inbound_tkn,

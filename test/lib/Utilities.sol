@@ -7,7 +7,33 @@ import {ERC20} from "./tokens/ERC20.sol";
 /* Some general utility methods.
 /* You mostly want to inherit `MangroveTest` (which inherits Test2` which inherits `Utilities`) rather than inherit `Utilities` directly */
 contract Utilities is Script {
-  /* units to e-18 units */
+  /* *** Logging *** */
+  /* Log arrays */
+
+  function logary(uint[] memory uints) public view {
+    string memory s = "";
+    for (uint i = 0; i < uints.length; i++) {
+      s = string.concat(s, vm.toString(uints[i]));
+      if (i < uints.length - 1) {
+        s = string.concat(s, ", ");
+      }
+    }
+    console.log(s);
+  }
+
+  function logary(int[] memory ints) public view {
+    string memory s = "";
+    for (uint i = 0; i < ints.length; i++) {
+      s = string.concat(s, vm.toString(uint(ints[i])));
+      if (i < ints.length - 1) {
+        s = string.concat(s, ", ");
+      }
+    }
+    console.log(s);
+  }
+
+  /* *** Unit conversion *** */
+
   function toEthUnits(uint w, string memory units)
     internal
     pure

@@ -58,6 +58,14 @@ contract Test2 is Test, Utilities {
     }
   }
 
+  /* *** Test & cheatcode helpers **** */
+
+  modifier prank(address a) {
+    vm.startPrank(a);
+    _;
+    vm.stopPrank();
+  }
+
   /* sugar for successful test */
   function succeed() internal {
     assertTrue(true);
@@ -137,7 +145,8 @@ contract Test2 is Test, Utilities {
     return (a != address(0));
   }
 
-  /* inline gas measures */
+  /* *** Gas Metering *** */
+
   uint private checkpointGasLeft = 1; // Start the slot non0.
   string checkpointLabel;
 
@@ -156,29 +165,5 @@ contract Test2 is Test, Utilities {
     uint gasDelta = checkpointGasLeft - checkpointGasLeft2 - 100;
 
     emit log_named_uint("Gas used", gasDelta);
-  }
-
-  /* Logging is put here since solidity libraries cannot be extended. */
-
-  function logary(uint[] memory uints) public view {
-    string memory s = "";
-    for (uint i = 0; i < uints.length; i++) {
-      s = string.concat(s, vm.toString(uints[i]));
-      if (i < uints.length - 1) {
-        s = string.concat(s, ", ");
-      }
-    }
-    console2.log(s);
-  }
-
-  function logary(int[] memory ints) public view {
-    string memory s = "";
-    for (uint i = 0; i < ints.length; i++) {
-      s = string.concat(s, vm.toString(uint(ints[i])));
-      if (i < ints.length - 1) {
-        s = string.concat(s, ", ");
-      }
-    }
-    console2.log(s);
   }
 }

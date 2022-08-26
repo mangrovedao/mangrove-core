@@ -22,6 +22,14 @@ contract GenericFork is Script {
   address public CUSDC;
   address public CWETH;
 
+  function roll() public {
+    vm.rollFork(INTERNAL_FORK_ID);
+  }
+
+  function roll(uint blockNumber) public {
+    vm.rollFork(INTERNAL_FORK_ID, blockNumber);
+  }
+
   function setUp() public virtual {
     vm.label(AAVE, "Aave");
     vm.label(APOOL, "Aave Pool");

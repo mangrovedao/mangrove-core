@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_test/lib/Fork.sol";
+// import "mgv_test/lib/Fork.sol";
 
 import "mgv_src/strategies/single_user/SimpleMaker.sol";
 import "mgv_src/strategies/routers/AbstractRouter.sol";
@@ -13,6 +13,8 @@ contract MakerPermissionTest is MangroveTest {
   address payable maker;
   SimpleMaker makerContract;
   IOfferLogic.MakerOrder mko;
+
+  // PolygonFork fork = new PolygonFork();
 
   function setUp() public virtual override {
     options.base.symbol = "WETH";
@@ -42,7 +44,7 @@ contract MakerPermissionTest is MangroveTest {
       deployer: maker
     });
     vm.prank(maker);
-    makerContract.activate(dynamic([weth, usdc]));
+    makerContract.activate(dynamic([IERC20(weth), usdc]));
   }
 
   function testCannot_setAdmin() public {

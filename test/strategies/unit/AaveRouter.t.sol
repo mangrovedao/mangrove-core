@@ -3,11 +3,12 @@ pragma solidity ^0.8.10;
 
 import "./OfferLogic.t.sol";
 import "mgv_src/strategies/routers/AaveRouter.sol";
+import {PolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 
 contract AaveRouterForkedTest is OfferLogicTest {
   function setUp() public override {
     // deploying mangrove and opening WETH/USDC market.
-    forked = true;
+    fork = new PolygonFork();
     super.setUp();
 
     //at the end of super.setUp reserve has 1 ether and 2000 USDC
@@ -31,7 +32,7 @@ contract AaveRouterForkedTest is OfferLogicTest {
   function setupRouter() internal override {
     vm.startPrank(maker);
     AaveRouter router = new AaveRouter({
-      _addressesProvider: Fork.AAVE,
+      _addressesProvider: fork.AAVE(),
       _referralCode: 0,
       _interestRateMode: 1 // stable rate
     });

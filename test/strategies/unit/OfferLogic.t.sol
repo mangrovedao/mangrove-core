@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_test/lib/Fork.sol";
+import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 
 import "mgv_src/strategies/single_user/SimpleMaker.sol";
 
@@ -14,7 +14,7 @@ contract OfferLogicTest is MangroveTest {
   address reserve;
   SimpleMaker makerContract;
   IOfferLogic.MakerOrder mko;
-  bool forked;
+  GenericFork fork;
 
   // tracking IOfferLogic logs
   event LogIncident(
@@ -31,13 +31,15 @@ contract OfferLogicTest is MangroveTest {
     options.quote.decimals = 6;
     options.defaultFee = 30;
 
-    if (forked) {
-      Fork.setUp();
+    // if a fork is initialized, we set it up and do a manual testing setup
+    if (address(fork) != address(0)) {
+      fork.setUp();
       mgv = setupMangrove();
       mgv.setVault($(mgv));
-      weth = TestToken(Fork.WETH);
-      usdc = TestToken(Fork.USDC);
+      weth = TestToken(fork.WETH());
+      usdc = TestToken(fork.USDC());
       setupMarket(weth, usdc);
+      // otherwise, a generic local setup works
     } else {
       // deploying mangrove and opening WETH/USDC market.
       super.setUp();
@@ -76,7 +78,7 @@ contract OfferLogicTest is MangroveTest {
     deal($(usdc), makerContract.reserve(), cash(usdc, 2000));
 
     vm.prank(maker);
-    makerContract.activate(dynamic([weth, usdc]));
+    makerContract.activate(dynamic([IERC20(weth), usdc]));
   }
 
   function setupMakerContract() internal virtual prank(maker) {
@@ -89,7 +91,7 @@ contract OfferLogicTest is MangroveTest {
   function setupRouter() internal virtual {}
 
   function test_checkList() public view {
-    makerContract.checkList(dynamic([weth, usdc]));
+    makerContract.checkList(dynamic([IERC20(weth), usdc]));
   }
 
   function test_AdminCanSetReserve() public {

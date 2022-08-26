@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 import {console2 as console} from "forge-std/console2.sol";
 import {Script} from "forge-std/Script.sol";
-import {ERC20} from "./tokens/ERC20.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
 
 /* Some general utility methods.
 /* You mostly want to inherit `MangroveTest` (which inherits Test2` which inherits `Utilities`) rather than inherit `Utilities` directly */
@@ -400,12 +400,12 @@ contract Utilities is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(ERC20[1] memory a)
+  function dynamic(IERC20[1] memory a)
     internal
     pure
-    returns (ERC20[] memory ret)
+    returns (IERC20[] memory ret)
   {
-    ret = new ERC20[](a.length);
+    ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
     assembly {
@@ -415,12 +415,12 @@ contract Utilities is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(ERC20[2] memory a)
+  function dynamic(IERC20[2] memory a)
     internal
     pure
-    returns (ERC20[] memory ret)
+    returns (IERC20[] memory ret)
   {
-    ret = new ERC20[](a.length);
+    ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
     assembly {
@@ -430,12 +430,12 @@ contract Utilities is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(ERC20[3] memory a)
+  function dynamic(IERC20[3] memory a)
     internal
     pure
-    returns (ERC20[] memory ret)
+    returns (IERC20[] memory ret)
   {
-    ret = new ERC20[](a.length);
+    ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
     assembly {
@@ -445,12 +445,12 @@ contract Utilities is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(ERC20[4] memory a)
+  function dynamic(IERC20[4] memory a)
     internal
     pure
-    returns (ERC20[] memory ret)
+    returns (IERC20[] memory ret)
   {
-    ret = new ERC20[](a.length);
+    ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
     assembly {
@@ -460,12 +460,12 @@ contract Utilities is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(ERC20[5] memory a)
+  function dynamic(IERC20[5] memory a)
     internal
     pure
-    returns (ERC20[] memory ret)
+    returns (IERC20[] memory ret)
   {
-    ret = new ERC20[](a.length);
+    ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
     assembly {
@@ -475,12 +475,12 @@ contract Utilities is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(ERC20[6] memory a)
+  function dynamic(IERC20[6] memory a)
     internal
     pure
-    returns (ERC20[] memory ret)
+    returns (IERC20[] memory ret)
   {
-    ret = new ERC20[](a.length);
+    ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
     assembly {
@@ -490,12 +490,12 @@ contract Utilities is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(ERC20[7] memory a)
+  function dynamic(IERC20[7] memory a)
     internal
     pure
-    returns (ERC20[] memory ret)
+    returns (IERC20[] memory ret)
   {
-    ret = new ERC20[](a.length);
+    ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
     assembly {
@@ -505,12 +505,12 @@ contract Utilities is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(ERC20[8] memory a)
+  function dynamic(IERC20[8] memory a)
     internal
     pure
-    returns (ERC20[] memory ret)
+    returns (IERC20[] memory ret)
   {
-    ret = new ERC20[](a.length);
+    ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
     assembly {
@@ -520,12 +520,12 @@ contract Utilities is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(ERC20[9] memory a)
+  function dynamic(IERC20[9] memory a)
     internal
     pure
-    returns (ERC20[] memory ret)
+    returns (IERC20[] memory ret)
   {
-    ret = new ERC20[](a.length);
+    ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
     assembly {
@@ -535,12 +535,12 @@ contract Utilities is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(ERC20[10] memory a)
+  function dynamic(IERC20[10] memory a)
     internal
     pure
-    returns (ERC20[] memory ret)
+    returns (IERC20[] memory ret)
   {
-    ret = new ERC20[](a.length);
+    ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
     assembly {

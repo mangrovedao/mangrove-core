@@ -90,11 +90,11 @@ contract Test2 is Test, Utilities {
      does not have to be unique.
 
      Variants:
-     freshAccount(label): labeled key,address
-     freshAccount()     :         key,address
-     freshKey()         :         key
-     freshAddress(label): labeled address
-     freshAddress()     :         address
+     freshAccount(label)       labeled key,address
+     freshAccount()            key,address
+     freshKey()                key
+     freshAddress(label)       labeled address
+     freshAddress()            address
   */
   function freshAccount(string memory label)
     internal
@@ -112,7 +112,7 @@ contract Test2 is Test, Utilities {
   }
 
   function freshAccount() internal returns (uint, address payable) {
-    return freshAccount("");
+    return freshAccount(vm.toString(keyIterator));
   }
 
   function freshKey() internal returns (uint key) {

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import "mgv_test/lib/MangroveTest.sol";
-import "forge-std/Vm.sol";
+import {Script} from "forge-std/Script.sol";
 
 contract GenericFork is Script {
   uint public INTERNAL_FORK_ID;

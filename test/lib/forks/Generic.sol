@@ -30,6 +30,10 @@ contract GenericFork is Script {
     vm.rollFork(INTERNAL_FORK_ID, blockNumber);
   }
 
+  function select() public {
+    vm.selectFork(INTERNAL_FORK_ID);
+  }
+
   function setUp() public virtual {
     vm.label(AAVE, "Aave");
     vm.label(APOOL, "Aave Pool");

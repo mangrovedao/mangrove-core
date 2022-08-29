@@ -134,7 +134,7 @@ They have the following fields: */
     The gas considered 'used' by an offer is the sum of
     * gas consumed during the call to the offer
     * `offer_gasbase`
-    * 
+     
    (There is an inefficiency here. The overhead could be split into an "offer-local overhead" and a "general overhead". That general overhead gas penalty could be spread between all offers executed during an order, or all failing offers. It would still be possible for a cleaner to execute a failing offer alone and make them pay the entire general gas overhead. For the sake of simplicity we keep only one "offer overhead" value.)
 
    If an offer fails, `gasprice` wei is taken from the

@@ -7,7 +7,7 @@ import "forge-std/Vm.sol";
 contract GenericFork is Script {
   uint public INTERNAL_FORK_ID;
   uint public CHAIN_ID;
-  string public NAME;
+  string public NAME = "generic";
   uint public BLOCK_NUMBER;
 
   address public AAVE;
@@ -41,17 +41,17 @@ contract GenericFork is Script {
       );
     }
 
-    vm.label(AAVE, "Aave");
-    vm.label(APOOL, "Aave Pool");
-    vm.label(WETH, "WETH");
-    vm.label(AUSDC, "AUSDC");
-    vm.label(USDC, "USDC");
-    vm.label(AWETH, "AWETH");
-    vm.label(DAI, "DAI");
-    vm.label(ADAI, "ADAI");
-    vm.label(CDAI, "CDAI");
-    vm.label(CUSDC, "CUSDC");
-    vm.label(CWETH, "CWETH");
+    label(AAVE, "Aave");
+    label(APOOL, "Aave Pool");
+    label(WETH, "WETH");
+    label(AUSDC, "AUSDC");
+    label(USDC, "USDC");
+    label(AWETH, "AWETH");
+    label(DAI, "DAI");
+    label(ADAI, "ADAI");
+    label(CDAI, "CDAI");
+    label(CUSDC, "CUSDC");
+    label(CWETH, "CWETH");
 
     vm.makePersistent(address(this));
 
@@ -76,5 +76,9 @@ contract GenericFork is Script {
         )
       );
     }
+  }
+
+  function label(address addr, string memory str) internal {
+    vm.label(addr, string.concat(str, "(", NAME, ")"));
   }
 }

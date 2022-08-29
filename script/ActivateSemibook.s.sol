@@ -8,15 +8,14 @@ import {ERC20} from "mgv_test/lib/tokens/ERC20.sol";
 
 uint constant COVER_FACTOR = 100;
 
-/* Activates a semibook on mangrove.
-   mgv: mangrove address
-   outbound: outbound token
-   inbound: inbound token,
-   outbound_in_gwei: price of one outbound token (display units) in gwei
-   fee: fee in per 10_000
-*/
-
 /* 
+  Activates a semibook on mangrove.
+    mgv: mangrove address
+    outbound: outbound token
+    inbound: inbound token,
+    outbound_in_gwei: price of one outbound token (display units) in gwei
+    fee: fee in per 10_000
+
   outbound_in_gwei should be obtained like this:
   1. Get the price of one outbound token display unit in ETH
   2. Multiply by 10^9
@@ -31,14 +30,17 @@ contract ActivateSemibook is Test2 {
     uint outbound_in_gwei,
     uint fee
   ) public {
+    /*
+
+    The gasbase is the gas spent by Mangrove to manage one order execution.  We
+    approximate it to twice a taker->mgv->maker,maker->mgv->tkr transfer
+    sequence.
+
+    */
     uint outbound_gas = measureTransferGas(outbound_tkn);
     uint inbound_gas = measureTransferGas(inbound_tkn);
-
     uint gasbase = 2 * (outbound_gas + inbound_gas);
 
-    uint outbound_dec = ERC20(outbound_tkn).decimals();
-
-    (P.Global.t global, ) = mgv.config(address(0), address(0));
     /* 
 
     The density is the minimal amount of tokens bought per unit of gas spent.
@@ -52,9 +54,11 @@ contract ActivateSemibook is Test2 {
        - COVER_FACTOR is unitless
        - decN is in (base token units)/(display token units)
        - global.gasprice() is in gwei/gas
-       - so densityN is in (base token units token)/gas
+       - so density is in (base token units token)/gas
     */
-    uint density = (COVER_FACTOR * global.gasprice() * 10**outbound_dec) /
+    (P.Global.t global, ) = mgv.config(address(0), address(0));
+    uint outbound_decimals = ERC20(outbound_tkn).decimals();
+    uint density = (COVER_FACTOR * global.gasprice() * 10**outbound_decimals) /
       outbound_in_gwei;
 
     vm.startBroadcast();

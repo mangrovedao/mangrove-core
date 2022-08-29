@@ -35,6 +35,12 @@ contract GenericFork is Script {
   }
 
   function setUp() public virtual {
+    if (CHAIN_ID == 0) {
+      revert(
+        "No fork selected: you should pick a subclass of GenericFork with a nonzero CHAIN_ID."
+      );
+    }
+
     vm.label(AAVE, "Aave");
     vm.label(APOOL, "Aave Pool");
     vm.label(WETH, "WETH");
@@ -57,12 +63,6 @@ contract GenericFork is Script {
     }
 
     vm.selectFork(INTERNAL_FORK_ID);
-
-    if (CHAIN_ID == 0) {
-      revert(
-        "No fork selected: you should pick a subclass of GenericFork with a nonzero CHAIN_ID."
-      );
-    }
 
     if (block.chainid != CHAIN_ID) {
       revert(

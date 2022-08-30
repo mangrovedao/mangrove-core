@@ -24,6 +24,7 @@ for (const [din, dout] of Object.entries(config.dist_broadcast_files)) {
     if (fs.opendirSync(Din).readSync() !== null) {
       // check for empty dir
       shell.cd(Din);
+      shell.mkdir("-p", Dout);
       shell.cp("*", Dout);
       shell.cd("../");
     }

@@ -114,6 +114,9 @@ contract Mango is Persistent {
     uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
     uint[] calldata tokenAmounts // `tokenAmounts[i]` is the amount of `BASE` or `QUOTE` tokens (dePENDING on `withBase` flag) that is used to fixed one parameter of the price at position `from+i`.
   ) public mgvOrAdmin {
+    // making sure a router has been defined between deployment and initialization
+    require(address(router()) != address(0), "Mango/initialize/0xRouter");
+
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
         MangoImplementation.$initialize.selector,
@@ -122,7 +125,8 @@ contract Mango is Persistent {
         from,
         to,
         pivotIds,
-        tokenAmounts
+        tokenAmounts,
+        ofr_gasreq()
       )
     );
     if (!success) {
@@ -162,18 +166,21 @@ contract Mango is Persistent {
     uint from,
     uint to
   ) external onlyAdmin returns (uint collected) {
-    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
-      abi.encodeWithSelector(
-        MangoImplementation.$retractOffers.selector,
-        ba,
-        from,
-        to
-      )
-    );
-    if (!success) {
-      MangoStorage.revertWithData(retdata);
-    } else {
-      return abi.decode(retdata, (uint));
+    // with ba=0:bids only, ba=1: asks only ba>1 all
+    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+    for (uint i = from; i < to; i++) {
+      if (ba > 0) {
+        // asks or bids+asks
+        collected += mStr.asks[i] > 0
+          ? retractOffer(BASE, QUOTE, mStr.asks[i], true)
+          : 0;
+      }
+      if (ba == 0 || ba > 1) {
+        // bids or bids + asks
+        collected += mStr.bids[i] > 0
+          ? retractOffer(QUOTE, BASE, mStr.bids[i], true)
+          : 0;
+      }
     }
   }
 
@@ -190,7 +197,8 @@ contract Mango is Persistent {
         MangoImplementation.$set_shift.selector,
         s,
         withBase,
-        amounts
+        amounts,
+        ofr_gasreq()
       )
     );
     if (!success) {
@@ -262,16 +270,81 @@ contract Mango is Persistent {
     proceed = !MangoStorage.get_storage().paused;
   }
 
+  // residual gives is default (i.e offer.gives - order.wants) + PENDING
+  // this overrides the corresponding function in `Persistent`
+  function __residualGives__(ML.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
+    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+    if (order.outbound_tkn == address(BASE)) {
+      // Ask offer
+      return super.__residualGives__(order) + mStr.pending_base;
+    } else {
+      // Bid offer
+      return super.__residualGives__(order) + mStr.pending_quote;
+    }
+  }
+
+  // for reposting partial filled offers one always gives the residual (default behavior)
+  // and adapts wants to the new price (if different).
+  // this overrides the corresponding function in `Persistent`
+  function __residualWants__(ML.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (uint)
+  {
+    uint residual = __residualGives__(order);
+    if (residual == 0) {
+      return 0;
+    }
+    (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
+      abi.encodeWithSelector(
+        MangoImplementation.$residualWants.selector,
+        order,
+        residual
+      )
+    );
+    if (!success) {
+      MangoStorage.revertWithData(retdata);
+    } else {
+      return abi.decode(retdata, (uint));
+    }
+  }
+
   function __posthookSuccess__(ML.SingleOrder calldata order)
     internal
     virtual
     override
     returns (bool)
   {
+    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+    bool reposted = super.__posthookSuccess__(order);
+
+    if (order.outbound_tkn == address(BASE)) {
+      if (!reposted) {
+        // residual could not be reposted --either below density or Mango went out of provision on Mangrove
+        mStr.pending_base = __residualGives__(order); // this includes previous `pending_base`
+      } else {
+        mStr.pending_base = 0;
+      }
+    } else {
+      if (!reposted) {
+        // residual could not be reposted --either below density or Mango went out of provision on Mangrove
+        mStr.pending_quote = __residualGives__(order); // this includes previous `pending_base`
+      } else {
+        mStr.pending_quote = 0;
+      }
+    }
+
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        MangoImplementation.$posthookSuccess.selector,
-        order
+        MangoImplementation.$postDualOffer.selector,
+        order,
+        ofr_gasreq()
       )
     );
     if (!success) {

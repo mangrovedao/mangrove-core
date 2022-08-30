@@ -14,7 +14,6 @@ pragma abicoder v2;
 
 import "../../MangroveOffer.sol";
 import "mgv_src/strategies/utils/TransferLib.sol";
-import {SingleUserStorage as SUS} from "./SingleUserStorage.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract SingleUser is MangroveOffer {
@@ -33,13 +32,12 @@ abstract contract SingleUser is MangroveOffer {
     }
   }
 
-  function reserve() public view returns (address) {
-    return SUS.get_storage().reserve;
+  function reserve() public view override returns (address) {
+    return _reserve(address(this));
   }
 
-  function set_reserve(address _reserve) public mgvOrAdmin {
-    require(_reserve != address(0), "SingleUser/0xReserve");
-    SUS.get_storage().reserve = _reserve;
+  function set_reserve(address __reserve) public override onlyAdmin {
+    _set_reserve(address(this), __reserve);
   }
 
   function withdrawToken(

@@ -144,6 +144,15 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     return router_;
   }
 
+  function _reserve(address maker) internal view returns (address) {
+    return MOS.get_storage().reserves[maker];
+  }
+
+  function _set_reserve(address maker, address __reserve) internal {
+    require(__reserve != address(0), "SingleUser/0xReserve");
+    MOS.get_storage().reserves[maker] = __reserve;
+  }
+
   /// `this` contract needs to approve Mangrove to let it perform outbound token transfer at the end of the `makerExecute` function
   /// NB if anyone can call this function someone could reset it to 0 for griefing
   function approveMangrove(IERC20 outbound_tkn) public {

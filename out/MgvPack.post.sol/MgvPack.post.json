@@ -1,0 +1,98 @@
+{
+  "abi": [],
+  "bytecode": {
+    "object": "0x",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x",
+    "linkReferences": {}
+  },
+  "ast": {
+    "absolutePath": "src/preprocessed/MgvPack.post.sol",
+    "id": 32679,
+    "exportedSymbols": {
+      "Global": [32677],
+      "GlobalStruct": [32720],
+      "Local": [32678],
+      "LocalStruct": [32735],
+      "Offer": [32675],
+      "OfferDetail": [32676],
+      "OfferDetailStruct": [32707],
+      "OfferStruct": [32698],
+      "uint_of_bool": [32689]
+    },
+    "nodeType": "SourceUnit",
+    "src": "0:1666:30",
+    "nodes": [
+      {
+        "id": 32673,
+        "nodeType": "PragmaDirective",
+        "src": "0:24:30",
+        "literals": ["solidity", "^", "0.8", ".13"]
+      },
+      {
+        "id": 32674,
+        "nodeType": "ImportDirective",
+        "src": "1464:31:30",
+        "absolutePath": "src/preprocessed/MgvStructs.post.sol",
+        "file": "./MgvStructs.post.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 32679,
+        "sourceUnit": 32736,
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "id": 32675,
+        "nodeType": "ImportDirective",
+        "src": "1497:38:30",
+        "absolutePath": "src/preprocessed/MgvOffer.post.sol",
+        "file": "./MgvOffer.post.sol",
+        "nameLocation": "1529:5:30",
+        "scope": 32679,
+        "sourceUnit": 32089,
+        "symbolAliases": [],
+        "unitAlias": "Offer"
+      },
+      {
+        "id": 32676,
+        "nodeType": "ImportDirective",
+        "src": "1536:50:30",
+        "absolutePath": "src/preprocessed/MgvOfferDetail.post.sol",
+        "file": "./MgvOfferDetail.post.sol",
+        "nameLocation": "1574:11:30",
+        "scope": 32679,
+        "sourceUnit": 32672,
+        "symbolAliases": [],
+        "unitAlias": "OfferDetail"
+      },
+      {
+        "id": 32677,
+        "nodeType": "ImportDirective",
+        "src": "1587:40:30",
+        "absolutePath": "src/preprocessed/MgvGlobal.post.sol",
+        "file": "./MgvGlobal.post.sol",
+        "nameLocation": "1620:6:30",
+        "scope": 32679,
+        "sourceUnit": 30594,
+        "symbolAliases": [],
+        "unitAlias": "Global"
+      },
+      {
+        "id": 32678,
+        "nodeType": "ImportDirective",
+        "src": "1628:38:30",
+        "absolutePath": "src/preprocessed/MgvLocal.post.sol",
+        "file": "./MgvLocal.post.sol",
+        "nameLocation": "1660:5:30",
+        "scope": 32679,
+        "sourceUnit": 31536,
+        "symbolAliases": [],
+        "unitAlias": "Local"
+      }
+    ],
+    "license": "Unlicense"
+  },
+  "id": 30
+}

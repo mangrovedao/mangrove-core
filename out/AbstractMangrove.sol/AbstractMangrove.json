@@ -1,0 +1,2237 @@
+{
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "spender",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "Approval",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "maker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Credit",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "maker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Debit",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [],
+      "name": "Kill",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [],
+      "name": "NewMgv",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "taker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "takerWants",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "takerGives",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "mgvData",
+          "type": "bytes32"
+        }
+      ],
+      "name": "OfferFail",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        }
+      ],
+      "name": "OfferRetract",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "taker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "takerWants",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "takerGives",
+          "type": "uint256"
+        }
+      ],
+      "name": "OfferSuccess",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "maker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "wants",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "gives",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "gasprice",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "gasreq",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "prev",
+          "type": "uint256"
+        }
+      ],
+      "name": "OfferWrite",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "taker",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "takerGot",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "takerGave",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "penalty",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "feePaid",
+          "type": "uint256"
+        }
+      ],
+      "name": "OrderComplete",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [],
+      "name": "OrderStart",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "offerId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "posthookData",
+          "type": "bytes32"
+        }
+      ],
+      "name": "PosthookFail",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "value",
+          "type": "bool"
+        }
+      ],
+      "name": "SetActive",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "SetDensity",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "SetFee",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "offer_gasbase",
+          "type": "uint256"
+        }
+      ],
+      "name": "SetGasbase",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "SetGasmax",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "SetGasprice",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "value",
+          "type": "address"
+        }
+      ],
+      "name": "SetGovernance",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "value",
+          "type": "address"
+        }
+      ],
+      "name": "SetMonitor",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "value",
+          "type": "bool"
+        }
+      ],
+      "name": "SetNotify",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "value",
+          "type": "bool"
+        }
+      ],
+      "name": "SetUseOracle",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "value",
+          "type": "address"
+        }
+      ],
+      "name": "SetVault",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "DOMAIN_SEPARATOR",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "PERMIT_TYPEHASH",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fee",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "density",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "offer_gasbase",
+          "type": "uint256"
+        }
+      ],
+      "name": "activate",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "allowances",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "spender",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "approve",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "balanceOf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        }
+      ],
+      "name": "best",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        }
+      ],
+      "name": "config",
+      "outputs": [
+        {
+          "internalType": "t",
+          "name": "_global",
+          "type": "uint256"
+        },
+        {
+          "internalType": "t",
+          "name": "_local",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        }
+      ],
+      "name": "configInfo",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "monitor",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "useOracle",
+              "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "notify",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "gasprice",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "gasmax",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "dead",
+              "type": "bool"
+            }
+          ],
+          "internalType": "struct GlobalStruct",
+          "name": "global",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "bool",
+              "name": "active",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "fee",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "density",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "offer_gasbase",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "lock",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "best",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "last",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct LocalStruct",
+          "name": "local",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        }
+      ],
+      "name": "deactivate",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "outbound_tkn",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "inbound_tkn",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "offerId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "t",
+              "name": "offer",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "wants",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "gives",
+              "type": "uint256"
+            },
+            {
+              "internalType": "t",
+              "name": "offerDetail",
+              "type": "uint256"
+            },
+            {
+              "internalType": "t",
+              "name": "global",
+              "type": "uint256"
+            },
+            {
+              "internalType": "t",
+              "name": "local",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct MgvLib.SingleOrder",
+          "name": "sor",
+          "type": "tuple"
+        },
+        {
+          "internalType": "address",
+          "name": "taker",
+          "type": "address"
+        }
+      ],
+      "name": "flashloan",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "gasused",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "maker",
+          "type": "address"
+        }
+      ],
+      "name": "fund",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "fund",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "governance",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "t",
+          "name": "offer",
+          "type": "uint256"
+        }
+      ],
+      "name": "isLive",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "kill",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        }
+      ],
+      "name": "locked",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "takerWants",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "takerGives",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "fillWants",
+          "type": "bool"
+        }
+      ],
+      "name": "marketOrder",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "takerWants",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "takerGives",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "fillWants",
+          "type": "bool"
+        },
+        {
+          "internalType": "address",
+          "name": "taker",
+          "type": "address"
+        }
+      ],
+      "name": "marketOrderFor",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "takerGot",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "takerGave",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "bounty",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "feePaid",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "wants",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gives",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gasreq",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gasprice",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "pivotId",
+          "type": "uint256"
+        }
+      ],
+      "name": "newOffer",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "nonces",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "offerDetails",
+      "outputs": [
+        {
+          "internalType": "t",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "offerId",
+          "type": "uint256"
+        }
+      ],
+      "name": "offerInfo",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "prev",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "next",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "wants",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "gives",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct OfferStruct",
+          "name": "offer",
+          "type": "tuple"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "maker",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "gasreq",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "offer_gasbase",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "gasprice",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct OfferDetailStruct",
+          "name": "offerDetail",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "offers",
+      "outputs": [
+        {
+          "internalType": "t",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "spender",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "deadline",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint8",
+          "name": "v",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "r",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "s",
+          "type": "bytes32"
+        }
+      ],
+      "name": "permit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "offerId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "deprovision",
+          "type": "bool"
+        }
+      ],
+      "name": "retractOffer",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "provision",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "density",
+          "type": "uint256"
+        }
+      ],
+      "name": "setDensity",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "fee",
+          "type": "uint256"
+        }
+      ],
+      "name": "setFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "offer_gasbase",
+          "type": "uint256"
+        }
+      ],
+      "name": "setGasbase",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "gasmax",
+          "type": "uint256"
+        }
+      ],
+      "name": "setGasmax",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "gasprice",
+          "type": "uint256"
+        }
+      ],
+      "name": "setGasprice",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "governanceAddress",
+          "type": "address"
+        }
+      ],
+      "name": "setGovernance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "monitor",
+          "type": "address"
+        }
+      ],
+      "name": "setMonitor",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "notify",
+          "type": "bool"
+        }
+      ],
+      "name": "setNotify",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "useOracle",
+          "type": "bool"
+        }
+      ],
+      "name": "setUseOracle",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "vaultAddress",
+          "type": "address"
+        }
+      ],
+      "name": "setVault",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256[4][]",
+          "name": "targets",
+          "type": "uint256[4][]"
+        },
+        {
+          "internalType": "bool",
+          "name": "fillWants",
+          "type": "bool"
+        }
+      ],
+      "name": "snipes",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256[4][]",
+          "name": "targets",
+          "type": "uint256[4][]"
+        },
+        {
+          "internalType": "bool",
+          "name": "fillWants",
+          "type": "bool"
+        },
+        {
+          "internalType": "address",
+          "name": "taker",
+          "type": "address"
+        }
+      ],
+      "name": "snipesFor",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "successes",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "takerGot",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "takerGave",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "bounty",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "feePaid",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "outbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "inbound_tkn",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "wants",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gives",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gasreq",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "gasprice",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "pivotId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "offerId",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateOffer",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "vault",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdraw",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "noRevert",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "receive"
+    }
+  ],
+  "bytecode": {
+    "object": "0x",
+    "sourceMap": "",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x",
+    "sourceMap": "",
+    "linkReferences": {}
+  },
+  "methodIdentifiers": {
+    "DOMAIN_SEPARATOR()": "3644e515",
+    "PERMIT_TYPEHASH()": "30adf81f",
+    "activate(address,address,uint256,uint256,uint256)": "0b73a18f",
+    "allowances(address,address,address,address)": "c7bb25d0",
+    "approve(address,address,address,uint256)": "59eba454",
+    "balanceOf(address)": "70a08231",
+    "best(address,address)": "def5ddaa",
+    "config(address,address)": "cbf75c9a",
+    "configInfo(address,address)": "644e6703",
+    "deactivate(address,address)": "d0ee5099",
+    "flashloan((address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256),address)": "aa4dd282",
+    "fund()": "b60d4288",
+    "fund(address)": "23024408",
+    "governance()": "5aa6e675",
+    "isLive(uint256)": "27507458",
+    "kill()": "41c0e1b5",
+    "locked(address,address)": "db20266f",
+    "marketOrder(address,address,uint256,uint256,bool)": "fbffe5fd",
+    "marketOrderFor(address,address,uint256,uint256,bool,address)": "6d27de67",
+    "newOffer(address,address,uint256,uint256,uint256,uint256,uint256)": "49f6d2dc",
+    "nonces(address)": "7ecebe00",
+    "offerDetails(address,address,uint256)": "5722647b",
+    "offerInfo(address,address,uint256)": "8c66715c",
+    "offers(address,address,uint256)": "68c13d6b",
+    "permit(address,address,address,address,uint256,uint256,uint8,bytes32,bytes32)": "b09d2a16",
+    "retractOffer(address,address,uint256,bool)": "ad97db1b",
+    "setDensity(address,address,uint256)": "fbb66910",
+    "setFee(address,address,uint256)": "dc7e98df",
+    "setGasbase(address,address,uint256)": "27d097c6",
+    "setGasmax(uint256)": "95999ee3",
+    "setGasprice(uint256)": "fcaa7e2e",
+    "setGovernance(address)": "ab033ea9",
+    "setMonitor(address)": "5cd82390",
+    "setNotify(bool)": "5a611f4e",
+    "setUseOracle(bool)": "6804f613",
+    "setVault(address)": "6817031b",
+    "snipes(address,address,uint256[4][],bool)": "46e142fa",
+    "snipesFor(address,address,uint256[4][],bool,address)": "b2b12057",
+    "updateOffer(address,address,uint256,uint256,uint256,uint256,uint256,uint256)": "6a4f7691",
+    "vault()": "fbfa77cf",
+    "withdraw(uint256)": "2e1a7d4d"
+  },
+  "ast": {
+    "absolutePath": "src/AbstractMangrove.sol",
+    "id": 22212,
+    "exportedSymbols": {
+      "AbstractMangrove": [22211],
+      "ML": [23913],
+      "MgvGovernable": [23557],
+      "MgvOfferMaking": [25545],
+      "MgvOfferTakingWithPermit": [27849]
+    },
+    "nodeType": "SourceUnit",
+    "src": "766:790:10",
+    "nodes": [
+      {
+        "id": 22175,
+        "nodeType": "PragmaDirective",
+        "src": "766:24:10",
+        "literals": ["solidity", "^", "0.8", ".10"]
+      },
+      {
+        "id": 22176,
+        "nodeType": "PragmaDirective",
+        "src": "791:19:10",
+        "literals": ["abicoder", "v2"]
+      },
+      {
+        "id": 22178,
+        "nodeType": "ImportDirective",
+        "src": "811:42:10",
+        "absolutePath": "src/MgvLib.sol",
+        "file": "./MgvLib.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 22212,
+        "sourceUnit": 24225,
+        "symbolAliases": [
+          {
+            "foreign": {
+              "id": 22177,
+              "name": "MgvLib",
+              "nodeType": "Identifier",
+              "overloadedDeclarations": [],
+              "referencedDeclaration": 23913,
+              "src": "819:6:10",
+              "typeDescriptions": {}
+            },
+            "local": "ML",
+            "nameLocation": "-1:-1:-1"
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "id": 22180,
+        "nodeType": "ImportDirective",
+        "src": "855:52:10",
+        "absolutePath": "src/MgvOfferMaking.sol",
+        "file": "./MgvOfferMaking.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 22212,
+        "sourceUnit": 25546,
+        "symbolAliases": [
+          {
+            "foreign": {
+              "id": 22179,
+              "name": "MgvOfferMaking",
+              "nodeType": "Identifier",
+              "overloadedDeclarations": [],
+              "referencedDeclaration": 25545,
+              "src": "863:14:10",
+              "typeDescriptions": {}
+            },
+            "nameLocation": "-1:-1:-1"
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "id": 22182,
+        "nodeType": "ImportDirective",
+        "src": "908:72:10",
+        "absolutePath": "src/MgvOfferTakingWithPermit.sol",
+        "file": "./MgvOfferTakingWithPermit.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 22212,
+        "sourceUnit": 27850,
+        "symbolAliases": [
+          {
+            "foreign": {
+              "id": 22181,
+              "name": "MgvOfferTakingWithPermit",
+              "nodeType": "Identifier",
+              "overloadedDeclarations": [],
+              "referencedDeclaration": 27849,
+              "src": "916:24:10",
+              "typeDescriptions": {}
+            },
+            "nameLocation": "-1:-1:-1"
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "id": 22184,
+        "nodeType": "ImportDirective",
+        "src": "981:50:10",
+        "absolutePath": "src/MgvGovernable.sol",
+        "file": "./MgvGovernable.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 22212,
+        "sourceUnit": 23558,
+        "symbolAliases": [
+          {
+            "foreign": {
+              "id": 22183,
+              "name": "MgvGovernable",
+              "nodeType": "Identifier",
+              "overloadedDeclarations": [],
+              "referencedDeclaration": 23557,
+              "src": "989:13:10",
+              "typeDescriptions": {}
+            },
+            "nameLocation": "-1:-1:-1"
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "id": 22211,
+        "nodeType": "ContractDefinition",
+        "src": "1246:309:10",
+        "nodes": [
+          {
+            "id": 22210,
+            "nodeType": "FunctionDefinition",
+            "src": "1350:203:10",
+            "body": {
+              "id": 22209,
+              "nodeType": "Block",
+              "src": "1551:2:10",
+              "statements": []
+            },
+            "implemented": true,
+            "kind": "constructor",
+            "modifiers": [
+              {
+                "arguments": [
+                  {
+                    "id": 22201,
+                    "name": "contractName",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 22198,
+                    "src": "1487:12:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_string_memory_ptr",
+                      "typeString": "string memory"
+                    }
+                  }
+                ],
+                "id": 22202,
+                "kind": "baseConstructorSpecifier",
+                "modifierName": {
+                  "id": 22200,
+                  "name": "MgvOfferTakingWithPermit",
+                  "nodeType": "IdentifierPath",
+                  "referencedDeclaration": 27849,
+                  "src": "1462:24:10"
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "1462:38:10"
+              },
+              {
+                "arguments": [
+                  {
+                    "id": 22204,
+                    "name": "governance",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 22192,
+                    "src": "1519:10:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  {
+                    "id": 22205,
+                    "name": "gasprice",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 22194,
+                    "src": "1531:8:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  {
+                    "id": 22206,
+                    "name": "gasmax",
+                    "nodeType": "Identifier",
+                    "overloadedDeclarations": [],
+                    "referencedDeclaration": 22196,
+                    "src": "1541:6:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  }
+                ],
+                "id": 22207,
+                "kind": "baseConstructorSpecifier",
+                "modifierName": {
+                  "id": 22203,
+                  "name": "MgvGovernable",
+                  "nodeType": "IdentifierPath",
+                  "referencedDeclaration": 23557,
+                  "src": "1505:13:10"
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "1505:43:10"
+              }
+            ],
+            "name": "",
+            "nameLocation": "-1:-1:-1",
+            "parameters": {
+              "id": 22199,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 22192,
+                  "mutability": "mutable",
+                  "name": "governance",
+                  "nameLocation": "1375:10:10",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 22210,
+                  "src": "1367:18:10",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 22191,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1367:7:10",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 22194,
+                  "mutability": "mutable",
+                  "name": "gasprice",
+                  "nameLocation": "1396:8:10",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 22210,
+                  "src": "1391:13:10",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 22193,
+                    "name": "uint",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1391:4:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 22196,
+                  "mutability": "mutable",
+                  "name": "gasmax",
+                  "nameLocation": "1415:6:10",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 22210,
+                  "src": "1410:11:10",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 22195,
+                    "name": "uint",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1410:4:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 22198,
+                  "mutability": "mutable",
+                  "name": "contractName",
+                  "nameLocation": "1441:12:10",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 22210,
+                  "src": "1427:26:10",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_string_memory_ptr",
+                    "typeString": "string"
+                  },
+                  "typeName": {
+                    "id": 22197,
+                    "name": "string",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "1427:6:10",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_string_storage_ptr",
+                      "typeString": "string"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "1361:96:10"
+            },
+            "returnParameters": {
+              "id": 22208,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1551:0:10"
+            },
+            "scope": 22211,
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "internal"
+          }
+        ],
+        "abstract": true,
+        "baseContracts": [
+          {
+            "baseName": {
+              "id": 22185,
+              "name": "MgvGovernable",
+              "nodeType": "IdentifierPath",
+              "referencedDeclaration": 23557,
+              "src": "1286:13:10"
+            },
+            "id": 22186,
+            "nodeType": "InheritanceSpecifier",
+            "src": "1286:13:10"
+          },
+          {
+            "baseName": {
+              "id": 22187,
+              "name": "MgvOfferTakingWithPermit",
+              "nodeType": "IdentifierPath",
+              "referencedDeclaration": 27849,
+              "src": "1303:24:10"
+            },
+            "id": 22188,
+            "nodeType": "InheritanceSpecifier",
+            "src": "1303:24:10"
+          },
+          {
+            "baseName": {
+              "id": 22189,
+              "name": "MgvOfferMaking",
+              "nodeType": "IdentifierPath",
+              "referencedDeclaration": 25545,
+              "src": "1331:14:10"
+            },
+            "id": 22190,
+            "nodeType": "InheritanceSpecifier",
+            "src": "1331:14:10"
+          }
+        ],
+        "canonicalName": "AbstractMangrove",
+        "contractDependencies": [],
+        "contractKind": "contract",
+        "fullyImplemented": false,
+        "linearizedBaseContracts": [
+          22211, 25545, 27849, 27486, 23880, 23557, 28092, 24088
+        ],
+        "name": "AbstractMangrove",
+        "nameLocation": "1264:16:10",
+        "scope": 22212,
+        "usedErrors": []
+      }
+    ],
+    "license": "AGPL-3.0"
+  },
+  "id": 10
+}

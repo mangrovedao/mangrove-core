@@ -25,6 +25,7 @@ library MangroveOfferStorage {
     // default values
     uint ofr_gasreq;
     AbstractRouter router;
+    mapping(address => address) reserves;
   }
 
   function get_storage() internal pure returns (Layout storage st) {

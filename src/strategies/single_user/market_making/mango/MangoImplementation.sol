@@ -27,7 +27,7 @@ import "mgv_src/strategies/utils/TransferLib.sol";
 /** Each time this strat receives q `QUOTE` tokens (ask was taken) at price position i, it increases the offered (`QUOTE`) volume of the bid at position i-1 of 'q'*/
 /** In case of a partial fill of an offer at position i, the offer residual is reposted (see `Persistent` strat class)*/
 
-contract MangoImplementation is Persistent {
+contract MangoImplementation {
   event BidAtMaxPosition();
   // emitted when strat has reached max amount of Asks and needs rebalancing (should shift of x<0 positions in order to have ask prices that are better for the taker)
   event AskAtMinPosition();
@@ -47,6 +47,7 @@ contract MangoImplementation is Persistent {
   IERC20 immutable QUOTE;
 
   address immutable PROXY;
+  IMangrove immutable MGV;
 
   constructor(
     IMangrove mgv,
@@ -55,14 +56,9 @@ contract MangoImplementation is Persistent {
     uint96 base_0,
     uint96 quote_0,
     uint nslots
-  )
-    Persistent(
-      mgv,
-      0,
-      AbstractRouter(address(0)) /* router*/
-    )
-  {
+  ) {
     // setting immutable fields to match those of `Mango`
+    MGV = mgv;
     BASE = base;
     QUOTE = quote;
     NSLOTS = nslots;
@@ -79,11 +75,10 @@ contract MangoImplementation is Persistent {
     uint from, // first price position to be populated
     uint to, // last price position to be populated
     uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
-    uint[] calldata tokenAmounts // `tokenAmounts[i]` is the amount of `BASE` or `QUOTE` tokens (dePENDING on `withBase` flag) that is used to fixed one parameter of the price at position `from+i`.
+    uint[] calldata tokenAmounts, // `tokenAmounts[i]` is the amount of `BASE` or `QUOTE` tokens (dePENDING on `withBase` flag) that is used to fixed one parameter of the price at position `from+i`.
+    uint gasreq // gas required for new offers
   ) external delegated {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    // making sure a router has been defined between deployment and initialization
-    require(address(router()) != address(0), "Mango/initialize/0xRouter");
     /** Initializing Asks and Bids */
     /** NB we assume Mangrove is already provisioned for posting NSLOTS asks and NSLOTS bids*/
     /** NB cannot post newOffer with infinite gasreq since fallback ofr_gasreq is not defined yet (and default is likely wrong) */
@@ -112,12 +107,13 @@ contract MangoImplementation is Persistent {
           index: i,
           reset: reset, // overwrites old value
           amount: tokenAmounts[pos],
-          pivotId: bidPivot
+          pivotId: bidPivot,
+          gasreq: gasreq
         });
         if (mStr.asks[i] > 0) {
           // if an ASK is also positioned, remove it to prevent spread crossing
           // (should not happen if this is the first initialization of the strat)
-          retractOffer(BASE, QUOTE, mStr.asks[i], false);
+          MGV.retractOffer(address(BASE), address(QUOTE), mStr.asks[i], false);
         }
       } else {
         uint askPivot = pivotIds[1][pos];
@@ -130,36 +126,14 @@ contract MangoImplementation is Persistent {
           index: i,
           reset: reset,
           amount: tokenAmounts[pos],
-          pivotId: askPivot
+          pivotId: askPivot,
+          gasreq: gasreq
         });
         if (mStr.bids[i] > 0) {
           // if a BID is also positioned, remove it to prevent spread crossing
           // (should not happen if this is the first initialization of the strat)
-          retractOffer(QUOTE, BASE, mStr.bids[i], false);
+          MGV.retractOffer(address(QUOTE), address(BASE), mStr.bids[i], false);
         }
-      }
-    }
-  }
-
-  // with ba=0:bids only, ba=1: asks only ba>1 all
-  function $retractOffers(
-    uint ba,
-    uint from,
-    uint to
-  ) external delegated returns (uint collected) {
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    for (uint i = from; i < to; i++) {
-      if (ba > 0) {
-        // asks or bids+asks
-        collected += mStr.asks[i] > 0
-          ? retractOffer(BASE, QUOTE, mStr.asks[i], true)
-          : 0;
-      }
-      if (ba == 0 || ba > 1) {
-        // bids or bids + asks
-        collected += mStr.bids[i] > 0
-          ? retractOffer(QUOTE, BASE, mStr.bids[i], true)
-          : 0;
       }
     }
   }
@@ -170,16 +144,17 @@ contract MangoImplementation is Persistent {
   function $set_shift(
     int s,
     bool withBase,
-    uint[] calldata amounts
+    uint[] calldata amounts,
+    uint gasreq
   ) external delegated {
     require(
       amounts.length == (s < 0 ? uint(-s) : uint(s)),
       "Mango/set_shift/notEnoughAmounts"
     );
     if (s < 0) {
-      negative_shift(uint(-s), withBase, amounts);
+      negative_shift(uint(-s), withBase, amounts, gasreq);
     } else {
-      positive_shift(uint(s), withBase, amounts);
+      positive_shift(uint(s), withBase, amounts, gasreq);
     }
   }
 
@@ -196,143 +171,123 @@ contract MangoImplementation is Persistent {
       uint askId = mStr.asks[index_of_position(i)];
       uint bidId = mStr.bids[index_of_position(i)];
 
-      offers[0][i] = (MGV.offers($(QUOTE), $(BASE), bidId).gives() > 0 ||
+      offers[0][i] = (MGV.offers(address(QUOTE), address(BASE), bidId).gives() >
+        0 ||
         !liveOnly)
         ? mStr.bids[index_of_position(i)]
         : 0;
-      offers[1][i] = (MGV.offers($(BASE), $(QUOTE), askId).gives() > 0 ||
+      offers[1][i] = (MGV.offers(address(BASE), address(QUOTE), askId).gives() >
+        0 ||
         !liveOnly)
         ? mStr.asks[index_of_position(i)]
         : 0;
     }
   }
 
+  struct WriteData {
+    uint index;
+    uint wants;
+    uint gives;
+    uint ofr_gr;
+    uint pivotId;
+  }
+
   // posts or updates ask at position of `index`
   // returns the amount of `BASE` tokens that failed to be published at that position
   // `writeOffer` is split into `writeAsk` and `writeBid` to avoid stack too deep exception
-  function writeAsk(
-    uint index,
-    uint wants,
-    uint gives,
-    uint pivotId
-  ) internal returns (uint) {
+  function writeAsk(WriteData memory wd) internal returns (uint) {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    if (mStr.asks[index] == 0) {
+    if (mStr.asks[wd.index] == 0) {
       // offer slot not initialized yet
       try
         MGV.newOffer({
-          outbound_tkn: $(BASE),
-          inbound_tkn: $(QUOTE),
-          wants: wants,
-          gives: gives,
-          gasreq: ofr_gasreq(),
+          outbound_tkn: address(BASE),
+          inbound_tkn: address(QUOTE),
+          wants: wd.wants,
+          gives: wd.gives,
+          gasreq: wd.ofr_gr,
           gasprice: 0,
-          pivotId: pivotId
+          pivotId: wd.pivotId
         })
       returns (uint offerId) {
-        mStr.asks[index] = offerId;
-        mStr.index_of_ask[mStr.asks[index]] = index;
+        mStr.asks[wd.index] = offerId;
+        mStr.index_of_ask[mStr.asks[wd.index]] = wd.index;
         return 0;
-      } catch (bytes memory reason) {
+      } catch {
         // `newOffer` can fail when Mango is underprovisioned or if `offer.gives` is below density
-        if (keccak256(reason) == keccak256("mgv/insufficientProvision")) {
-          emit LogIncident(MGV, BASE, QUOTE, 0, "Mango/newAsk/outOfProvision");
-        }
-        return gives;
+        return wd.gives;
       }
     } else {
       try
         MGV.updateOffer({
-          outbound_tkn: $(BASE),
-          inbound_tkn: $(QUOTE),
-          wants: wants,
-          gives: gives,
-          gasreq: ofr_gasreq(),
+          outbound_tkn: address(BASE),
+          inbound_tkn: address(QUOTE),
+          wants: wd.wants,
+          gives: wd.gives,
+          gasreq: wd.ofr_gr,
           gasprice: 0,
-          pivotId: pivotId,
-          offerId: mStr.asks[index]
+          pivotId: wd.pivotId,
+          offerId: mStr.asks[wd.index]
         })
       {
         // updateOffer succeeded
         return 0;
-      } catch (bytes memory reason) {
+      } catch {
         // update offer might fail because residual is below density (this is OK)
         // it may also fail because there is not enough provision on Mangrove (this is Not OK so we log)
-        if (keccak256(reason) == keccak256("mgv/insufficientProvision")) {
-          emit LogIncident(
-            MGV,
-            BASE,
-            QUOTE,
-            mStr.asks[index],
-            "Mango/updateAsk/outOfProvision"
-          );
-        }
         // updateOffer failed but `offer` might still be live (i.e with `offer.gives>0`)
-        uint oldGives = MGV.offers($(BASE), $(QUOTE), mStr.asks[index]).gives();
+        uint oldGives = MGV
+          .offers(address(BASE), address(QUOTE), mStr.asks[wd.index])
+          .gives();
         // if not during initialize we necessarily have gives > oldGives
         // otherwise we are trying to reset the offer and oldGives is irrelevant
-        return (gives > oldGives) ? gives - oldGives : gives;
+        return (wd.gives > oldGives) ? wd.gives - oldGives : wd.gives;
       }
     }
   }
 
-  function writeBid(
-    uint index,
-    uint wants,
-    uint gives,
-    uint pivotId
-  ) internal returns (uint) {
+  function writeBid(WriteData memory wd) internal returns (uint) {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    if (mStr.bids[index] == 0) {
+    if (mStr.bids[wd.index] == 0) {
       try
         MGV.newOffer({
-          outbound_tkn: $(QUOTE),
-          inbound_tkn: $(BASE),
-          wants: wants,
-          gives: gives,
-          gasreq: ofr_gasreq(),
+          outbound_tkn: address(QUOTE),
+          inbound_tkn: address(BASE),
+          wants: wd.wants,
+          gives: wd.gives,
+          gasreq: wd.ofr_gr,
           gasprice: 0,
-          pivotId: pivotId
+          pivotId: wd.pivotId
         })
       returns (uint offerId) {
-        mStr.bids[index] = offerId;
-        mStr.index_of_bid[mStr.bids[index]] = index;
+        mStr.bids[wd.index] = offerId;
+        mStr.index_of_bid[mStr.bids[wd.index]] = wd.index;
         return 0;
-      } catch (bytes memory reason) {
-        if (keccak256(reason) == keccak256("mgv/insufficientProvision")) {
-          emit LogIncident(MGV, QUOTE, BASE, 0, "Mango/newBid/outOfProvision");
-        }
-        return gives;
+      } catch {
+        return wd.gives;
       }
     } else {
       try
         MGV.updateOffer({
-          outbound_tkn: $(QUOTE),
-          inbound_tkn: $(BASE),
-          wants: wants,
-          gives: gives,
-          gasreq: ofr_gasreq(),
+          outbound_tkn: address(QUOTE),
+          inbound_tkn: address(BASE),
+          wants: wd.wants,
+          gives: wd.gives,
+          gasreq: wd.ofr_gr,
           gasprice: 0,
-          pivotId: pivotId,
-          offerId: mStr.bids[index]
+          pivotId: wd.pivotId,
+          offerId: mStr.bids[wd.index]
         })
       {
         return 0;
-      } catch (bytes memory reason) {
-        if (keccak256(reason) == keccak256("mgv/insufficientProvision")) {
-          emit LogIncident(
-            MGV,
-            QUOTE,
-            BASE,
-            mStr.bids[index],
-            "Mango/writeBid/updateOfferFail"
-          );
-        }
+      } catch {
         // updateOffer failed but `offer` might still be live (i.e with `offer.gives>0`)
-        uint oldGives = MGV.offers($(QUOTE), $(BASE), mStr.bids[index]).gives();
+        uint oldGives = MGV
+          .offers(address(QUOTE), address(BASE), mStr.bids[wd.index])
+          .gives();
         // if not during initialize we necessarily have gives > oldGives
         // otherwise we are trying to reset the offer and oldGives is irrelevant
-        return (gives > oldGives) ? gives - oldGives : gives;
+        return (wd.gives > oldGives) ? wd.gives - oldGives : wd.gives;
       }
     }
   }
@@ -343,12 +298,21 @@ contract MangoImplementation is Persistent {
     IERC20 outbound_tkn,
     uint wants,
     uint gives,
+    uint ofr_gr,
     bool withPending, // whether `gives` amount includes current pending tokens
     uint pivotId
   ) internal {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     if (outbound_tkn == BASE) {
-      uint not_published = writeAsk(index, wants, gives, pivotId);
+      uint not_published = writeAsk(
+        WriteData({
+          index: index,
+          wants: wants,
+          gives: gives,
+          ofr_gr: ofr_gr,
+          pivotId: pivotId
+        })
+      );
       if (not_published > 0) {
         // Ask could not be written on the book (density or provision issue)
         mStr.pending_base = withPending
@@ -360,7 +324,15 @@ contract MangoImplementation is Persistent {
         }
       }
     } else {
-      uint not_published = writeBid(index, wants, gives, pivotId);
+      uint not_published = writeBid(
+        WriteData({
+          index: index,
+          wants: wants,
+          gives: gives,
+          ofr_gr: ofr_gr,
+          pivotId: pivotId
+        })
+      );
       if (not_published > 0) {
         mStr.pending_quote = withPending
           ? not_published
@@ -449,7 +421,8 @@ contract MangoImplementation is Persistent {
   function positive_shift(
     uint s,
     bool withBase,
-    uint[] calldata amounts
+    uint[] calldata amounts,
+    uint gasreq
   ) internal {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     require(s < NSLOTS, "Mango/shift/positiveShiftTooLarge");
@@ -461,9 +434,9 @@ contract MangoImplementation is Persistent {
     while (cpt < s) {
       // slots occupied by [Bids[index],..,Bids[index+`s` % N]] are retracted
       if (mStr.bids[index] != 0) {
-        retractOffer({
-          outbound_tkn: QUOTE,
-          inbound_tkn: BASE,
+        MGV.retractOffer({
+          outbound_tkn: address(QUOTE),
+          inbound_tkn: address(BASE),
           offerId: mStr.bids[index],
           deprovision: false
         });
@@ -491,6 +464,7 @@ contract MangoImplementation is Persistent {
         outbound_tkn: BASE,
         wants: new_wants,
         gives: new_gives,
+        ofr_gr: gasreq,
         withPending: false, // don't add pending liqudity in new offers (they are far from mid price)
         pivotId: pos > 0 ? mStr.asks[index_of_position(pos - 1)] : 0
       });
@@ -504,7 +478,8 @@ contract MangoImplementation is Persistent {
   function negative_shift(
     uint s,
     bool withBase,
-    uint[] calldata amounts
+    uint[] calldata amounts,
+    uint gasreq
   ) internal {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     require(s < NSLOTS, "Mango/shift/NegativeShiftTooLarge");
@@ -516,9 +491,9 @@ contract MangoImplementation is Persistent {
     while (cpt < s) {
       // slots occupied by [Asks[index-`s` % N],..,Asks[index]] are retracted
       if (mStr.asks[index] != 0) {
-        retractOffer({
-          outbound_tkn: BASE,
-          inbound_tkn: QUOTE,
+        MGV.retractOffer({
+          outbound_tkn: address(BASE),
+          inbound_tkn: address(QUOTE),
           offerId: mStr.asks[index],
           deprovision: false
         });
@@ -545,6 +520,7 @@ contract MangoImplementation is Persistent {
         outbound_tkn: QUOTE,
         wants: new_wants,
         gives: new_gives,
+        ofr_gr: gasreq,
         withPending: false,
         pivotId: pos < NSLOTS - 1 ? mStr.bids[index_of_position(pos + 1)] : 0
       });
@@ -553,76 +529,33 @@ contract MangoImplementation is Persistent {
     }
   }
 
-  // residual gives is default (i.e offer.gives - order.wants) + PENDING
-  // this overrides the corresponding function in `Persistent`
-  function __residualGives__(ML.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    if (order.outbound_tkn == $(BASE)) {
-      // Ask offer
-      return super.__residualGives__(order) + mStr.pending_base;
-    } else {
-      // Bid offer
-      return super.__residualGives__(order) + mStr.pending_quote;
-    }
-  }
-
-  // for reposting partial filled offers one always gives the residual (default behavior)
-  // and adapts wants to the new price (if different).
-  // this overrides the corresponding function in `Persistent`
-  function __residualWants__(ML.SingleOrder calldata order)
-    internal
-    virtual
-    override
+  function $residualWants(ML.SingleOrder calldata order, uint residual)
+    external
+    view
     returns (uint)
   {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     if (order.outbound_tkn == address(BASE)) {
       // Ask offer (wants QUOTE)
       uint index = mStr.index_of_ask[order.offerId];
-      uint residual_base = __residualGives__(order); // default
-      if (residual_base == 0) {
-        return 0;
-      }
-      return quotes_of_position(position_of_index(index), residual_base);
+      return quotes_of_position(position_of_index(index), residual);
     } else {
       // Bid order (wants BASE)
       uint index = mStr.index_of_bid[order.offerId];
-      uint residual_quote = __residualGives__(order); // default
-      if (residual_quote == 0) {
-        return 0;
-      }
-      return bases_of_position(position_of_index(index), residual_quote);
+      return bases_of_position(position_of_index(index), residual);
     }
   }
 
   // TODO add LogIncident and Bid/AskatMax logs
-  function $posthookSuccess(ML.SingleOrder calldata order)
+  function $postDualOffer(ML.SingleOrder calldata order, uint gasreq)
     external
     delegated
     returns (bool success)
   {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
 
-    // manage source of BASE and QUOTE whose reserve may have changed during the trade execution
-    IERC20[] memory tokens = new IERC20[](2);
-    tokens[0] = BASE;
-    tokens[1] = QUOTE;
-
     // reposting residual of offer using override `__newWants__` and `__newGives__` for new price
-    if (order.outbound_tkn == $(BASE)) {
-      // order is an Ask
-      //// Reposting Offer residual
-      if (!super.__posthookSuccess__(order)) {
-        // residual could not be reposted --either below density or Mango went out of provision on Mangrove
-        mStr.pending_base = __residualGives__(order); // this includes previous `pending_base`
-      } else {
-        mStr.pending_base = 0;
-      }
+    if (order.outbound_tkn == address(BASE)) {
       //// Posting dual bid offer
       uint index = mStr.index_of_ask[order.offerId];
 
@@ -634,7 +567,8 @@ contract MangoImplementation is Persistent {
           index: index_of_position(pos - 1),
           reset: false, // top up old value with received amount
           amount: order.gives, // in QUOTES
-          pivotId: 0
+          pivotId: 0,
+          gasreq: gasreq
         });
         if (pos - 1 <= mStr.min_buffer) {
           emit BidAtMaxPosition();
@@ -647,13 +581,6 @@ contract MangoImplementation is Persistent {
     } else {
       // Bid offer (`this` contract just bought some BASE)
 
-      if (!super.__posthookSuccess__(order)) {
-        // residual could not be reposted --either below density or Mango went out of provision on Mangrove
-        mStr.pending_quote = __residualGives__(order); // this includes previous `PENDING_QUOTE`
-      } else {
-        mStr.pending_quote = 0;
-      }
-
       uint index = mStr.index_of_bid[order.offerId];
       // offer was not posted using newOffer
       uint pos = position_of_index(index);
@@ -664,7 +591,8 @@ contract MangoImplementation is Persistent {
           index: index_of_position(pos + 1),
           reset: false, // top up old value with received amount
           amount: order.gives, // in BASE
-          pivotId: 0
+          pivotId: 0,
+          gasreq: gasreq
         });
         if (pos + 1 >= NSLOTS - mStr.min_buffer) {
           emit AskAtMinPosition();
@@ -680,11 +608,16 @@ contract MangoImplementation is Persistent {
     uint index,
     bool reset, // whether this call is part of an `initialize` procedure
     uint amount, // in QUOTE tokens
-    uint pivotId
+    uint pivotId,
+    uint gasreq
   ) internal {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     // outbound : QUOTE, inbound: BASE
-    P.Offer.t offer = MGV.offers($(QUOTE), $(BASE), mStr.bids[index]);
+    P.Offer.t offer = MGV.offers(
+      address(QUOTE),
+      address(BASE),
+      mStr.bids[index]
+    );
 
     uint position = position_of_index(index);
 
@@ -714,6 +647,7 @@ contract MangoImplementation is Persistent {
       outbound_tkn: QUOTE,
       wants: new_wants,
       gives: new_gives,
+      ofr_gr: gasreq,
       withPending: !reset,
       pivotId: pivot
     });
@@ -723,11 +657,16 @@ contract MangoImplementation is Persistent {
     uint index,
     bool reset, // whether this call is part of an `initialize` procedure
     uint amount, // in BASE tokens
-    uint pivotId
+    uint pivotId,
+    uint gasreq
   ) internal {
     MangoStorage.Layout storage mStr = MangoStorage.get_storage();
     // outbound : BASE, inbound: QUOTE
-    P.Offer.t offer = MGV.offers($(BASE), $(QUOTE), mStr.asks[index]);
+    P.Offer.t offer = MGV.offers(
+      address(BASE),
+      address(QUOTE),
+      mStr.asks[index]
+    );
     uint position = position_of_index(index);
 
     uint new_gives = reset
@@ -756,6 +695,7 @@ contract MangoImplementation is Persistent {
       outbound_tkn: BASE,
       wants: new_wants,
       gives: new_gives,
+      ofr_gr: gasreq,
       withPending: !reset,
       pivotId: pivot
     });

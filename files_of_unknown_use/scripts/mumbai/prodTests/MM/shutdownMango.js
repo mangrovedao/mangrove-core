@@ -39,41 +39,40 @@ async function main() {
     // const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
     //   market
     // );
-    if ((await MangoRaw.admin()) === deployer.address) {
-      const tx = await MangoRaw.connect(deployer).setAdmin(tester.address);
-      await tx.wait();
-    }
-    const N = await MangoRaw.NSLOTS();
-    console.log("Retracting offers...");
-    const tx1 = await MangoRaw.retractOffers(
-      2, // both bids and asks
-      0, // from
-      Math.floor(N / 3) // to
-    );
-    await tx1.wait();
-    const tx2 = await MangoRaw.retractOffers(
-      2, // both bids and asks
-      Math.floor(N / 3), // from
-      Math.floor((2 * N) / 3) // to
-    );
-    await tx2.wait();
-    const tx3 = await MangoRaw.retractOffers(
-      2, // both bids and asks
-      Math.floor((2 * N) / 3), // from
-      N // to
-    );
-    await tx3.wait();
-    //await Promise.all([tx1, tx2, tx3]);
-    console.log(`Offers retracted on (${baseName},${quoteName}) market`);
-    const tx4 = await MangoRaw.pause();
-    await tx4.wait();
-    console.log(`Mango (${baseName},${quoteName}) is now set on reneging mode`);
+    // if ((await MangoRaw.admin()) === deployer.address) {
+    //   const tx = await MangoRaw.connect(deployer).set_admin(tester.address);
+    //   await tx.wait();
+    // }
+    // const N = await MangoRaw.NSLOTS();
+    // console.log("Retracting offers...");
+    // const tx1 = await MangoRaw.retractOffers(
+    //   2, // both bids and asks
+    //   0, // from
+    //   Math.floor(N / 3) // to
+    // );
+    // await tx1.wait();
+    // const tx2 = await MangoRaw.retractOffers(
+    //   2, // both bids and asks
+    //   Math.floor(N / 3), // from
+    //   Math.floor((2 * N) / 3) // to
+    // );
+    // await tx2.wait();
+    // const tx3 = await MangoRaw.retractOffers(
+    //   2, // both bids and asks
+    //   Math.floor((2 * N) / 3), // from
+    //   N // to
+    // );
+    // await tx3.wait();
+    // //await Promise.all([tx1, tx2, tx3]);
+    // console.log(`Offers retracted on (${baseName},${quoteName}) market`);
+    // const tx4 = await MangoRaw.pause();
+    // await tx4.wait();
+    // console.log(`Mango (${baseName},${quoteName}) is now set on reneging mode`);
     const MangoLogic = MgvAPI.offerLogic(MangoRaw.address);
-
-    const bal = await MangoLogic.balanceOnMangrove();
-    const txWithdraw = await MangoLogic.withdrawFromMangrove(bal);
-    await txWithdraw.wait();
-    console.log(`${bal} MATICS recovered from provisions on Mangrove`);
+    tx = await MangoLogic.withdrawFromMangrove(
+      await MgvAPI.balanceOf(MangoLogic.address)
+    );
+    await tx.wait();
   }
 }
 main()

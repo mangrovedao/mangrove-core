@@ -107,4 +107,14 @@ interface IOfferLogic is IMaker {
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
   ) external returns (uint received);
+
+  // returns the address of the vault holding maker's liquidity
+  // for single user maker is simply `this` contract
+  // for multi users, the maker is `msg.sender`
+  function reserve() external view returns (address);
+
+  // allow one to change the reserve holding maker's liquidity
+  function set_reserve(address reserve) external;
+
+  function router() external view returns (AbstractRouter);
 }

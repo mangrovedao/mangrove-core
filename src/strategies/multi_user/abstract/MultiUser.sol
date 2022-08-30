@@ -92,6 +92,15 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     require(owner != address(0), "multiUser/unkownOffer");
   }
 
+  function reserve() public view override returns (address) {
+    address mkr_reserve = _reserve(msg.sender);
+    return mkr_reserve == address(0) ? msg.sender : mkr_reserve;
+  }
+
+  function set_reserve(address __reserve) public override {
+    _set_reserve(msg.sender, __reserve);
+  }
+
   // splitting newOffer into external/internal in order to let internal calls specify who the owner of the newly created offer should be.
   // in case `newOffer` is being called during `makerExecute` or `posthook` calls.
   function newOffer(MakerOrder calldata mko)
@@ -283,7 +292,6 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
         owner: od.owner,
         wei_balance: 0
       });
-      // letting router decide what it should do with owner's free wei
       (bool noRevert, ) = msg.sender.call{value: free_wei}("");
       require(noRevert, "MultiUser/weiTransferFail");
     }
@@ -296,11 +304,11 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     uint amount
   ) external override returns (bool success) {
     require(receiver != address(0), "MultiUser/withdrawToken/0xReceiver");
-    return router().withdrawToken(token, msg.sender, receiver, amount);
+    return router().withdrawToken(token, reserve(), receiver, amount);
   }
 
   function tokenBalance(IERC20 token) external view override returns (uint) {
-    return router().reserveBalance(token, msg.sender);
+    return router().reserveBalance(token, reserve());
   }
 
   // put received inbound tokens on offer owner reserve
@@ -333,7 +341,13 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
     // telling router one is requiring `amount` of `outTkn` for `owner`.
     // because `pull` is strict, `pulled <= amount` (cannot be greater)
     // we do not check local balance here because multi user contracts do not keep more balance than what has been pulled
-    uint pulled = router().pull(outTkn, owner, amount, true);
+    address source = _reserve(owner);
+    uint pulled = router().pull(
+      outTkn,
+      source == address(0) ? owner : source,
+      amount,
+      true
+    );
     return amount - pulled;
   }
 
@@ -381,7 +395,7 @@ abstract contract MultiUser is IOfferLogicMulti, MangroveOffer {
   }
 
   function __checkList__(IERC20 token) internal view virtual override {
-    router().checkList(token, msg.sender);
+    router().checkList(token, reserve());
     super.__checkList__(token);
   }
 }

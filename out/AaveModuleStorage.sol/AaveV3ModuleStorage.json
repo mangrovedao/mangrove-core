@@ -1,0 +1,477 @@
+{
+  "abi": [],
+  "bytecode": {
+    "object": "0x60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea26469706673582212207f78ea3c19d238b019e499f40713e9d4191b805484fd2c5be80c97e0a92437e064736f6c634300080e0033",
+    "sourceMap": "1878:562:35:-:0;;;;;;;;;;;;;;;-1:-1:-1;;;1878:562:35;;;;;;;;;;;;;;;;;",
+    "linkReferences": {}
+  },
+  "deployedBytecode": {
+    "object": "0x73000000000000000000000000000000000000000030146080604052600080fdfea26469706673582212207f78ea3c19d238b019e499f40713e9d4191b805484fd2c5be80c97e0a92437e064736f6c634300080e0033",
+    "sourceMap": "1878:562:35:-:0;;;;;;;;",
+    "linkReferences": {}
+  },
+  "methodIdentifiers": {},
+  "ast": {
+    "absolutePath": "src/strategies/integrations/AaveModuleStorage.sol",
+    "id": 34035,
+    "exportedSymbols": {
+      "AaveV3ModuleStorage": [34034],
+      "DataTypes": [43933],
+      "ICreditDelegationToken": [44265],
+      "IMaker": [24106],
+      "IMangrove": [22819],
+      "IPool": [44902],
+      "IPoolAddressesProvider": [45111],
+      "IPriceOracleGetter": [45135],
+      "IRewardsControllerIsh": [45229],
+      "ML": [23913],
+      "P": [23884],
+      "RC": [46458]
+    },
+    "nodeType": "SourceUnit",
+    "src": "1369:1072:35",
+    "nodes": [
+      {
+        "id": 34004,
+        "nodeType": "PragmaDirective",
+        "src": "1369:24:35",
+        "literals": ["solidity", "^", "0.8", ".10"]
+      },
+      {
+        "id": 34005,
+        "nodeType": "PragmaDirective",
+        "src": "1394:19:35",
+        "literals": ["abicoder", "v2"]
+      },
+      {
+        "id": 34006,
+        "nodeType": "ImportDirective",
+        "src": "1414:37:35",
+        "absolutePath": "src/strategies/vendor/aave/v3/IPool.sol",
+        "file": "../vendor/aave/v3/IPool.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 34035,
+        "sourceUnit": 44903,
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "id": 34008,
+        "nodeType": "ImportDirective",
+        "src": "1452:84:35",
+        "absolutePath": "src/strategies/vendor/aave/v3/IPoolAddressesProvider.sol",
+        "file": "../vendor/aave/v3/IPoolAddressesProvider.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 34035,
+        "sourceUnit": 45112,
+        "symbolAliases": [
+          {
+            "foreign": {
+              "id": 34007,
+              "name": "IPoolAddressesProvider",
+              "nodeType": "Identifier",
+              "overloadedDeclarations": [],
+              "referencedDeclaration": 45111,
+              "src": "1460:22:35",
+              "typeDescriptions": {}
+            },
+            "nameLocation": "-1:-1:-1"
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "id": 34010,
+        "nodeType": "ImportDirective",
+        "src": "1537:82:35",
+        "absolutePath": "src/strategies/vendor/aave/v3/IRewardsControllerIsh.sol",
+        "file": "../vendor/aave/v3/IRewardsControllerIsh.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 34035,
+        "sourceUnit": 45230,
+        "symbolAliases": [
+          {
+            "foreign": {
+              "id": 34009,
+              "name": "IRewardsControllerIsh",
+              "nodeType": "Identifier",
+              "overloadedDeclarations": [],
+              "referencedDeclaration": 45229,
+              "src": "1545:21:35",
+              "typeDescriptions": {}
+            },
+            "nameLocation": "-1:-1:-1"
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "id": 34012,
+        "nodeType": "ImportDirective",
+        "src": "1620:84:35",
+        "absolutePath": "src/strategies/vendor/aave/v3/ICreditDelegationToken.sol",
+        "file": "../vendor/aave/v3/ICreditDelegationToken.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 34035,
+        "sourceUnit": 44266,
+        "symbolAliases": [
+          {
+            "foreign": {
+              "id": 34011,
+              "name": "ICreditDelegationToken",
+              "nodeType": "Identifier",
+              "overloadedDeclarations": [],
+              "referencedDeclaration": 44265,
+              "src": "1628:22:35",
+              "typeDescriptions": {}
+            },
+            "nameLocation": "-1:-1:-1"
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "id": 34013,
+        "nodeType": "ImportDirective",
+        "src": "1706:50:35",
+        "absolutePath": "src/strategies/vendor/aave/v3/IPriceOracleGetter.sol",
+        "file": "../vendor/aave/v3/IPriceOracleGetter.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 34035,
+        "sourceUnit": 45136,
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "id": 34015,
+        "nodeType": "ImportDirective",
+        "src": "1757:86:35",
+        "absolutePath": "src/strategies/vendor/aave/v3/ReserveConfiguration.sol",
+        "file": "../vendor/aave/v3/ReserveConfiguration.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 34035,
+        "sourceUnit": 46459,
+        "symbolAliases": [
+          {
+            "foreign": {
+              "id": 34014,
+              "name": "ReserveConfiguration",
+              "nodeType": "Identifier",
+              "overloadedDeclarations": [],
+              "referencedDeclaration": 46458,
+              "src": "1765:20:35",
+              "typeDescriptions": {}
+            },
+            "local": "RC",
+            "nameLocation": "-1:-1:-1"
+          }
+        ],
+        "unitAlias": ""
+      },
+      {
+        "id": 34016,
+        "nodeType": "ImportDirective",
+        "src": "1845:31:35",
+        "absolutePath": "src/IMangrove.sol",
+        "file": "mgv_src/IMangrove.sol",
+        "nameLocation": "-1:-1:-1",
+        "scope": 34035,
+        "sourceUnit": 22820,
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "id": 34034,
+        "nodeType": "ContractDefinition",
+        "src": "1878:562:35",
+        "nodes": [
+          {
+            "id": 34033,
+            "nodeType": "FunctionDefinition",
+            "src": "2218:220:35",
+            "body": {
+              "id": 34032,
+              "nodeType": "Block",
+              "src": "2278:160:35",
+              "statements": [
+                {
+                  "condition": {
+                    "commonType": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    },
+                    "id": 34024,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftExpression": {
+                      "expression": {
+                        "id": 34021,
+                        "name": "retdata",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 34018,
+                        "src": "2288:7:35",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_bytes_memory_ptr",
+                          "typeString": "bytes memory"
+                        }
+                      },
+                      "id": 34022,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "length",
+                      "nodeType": "MemberAccess",
+                      "src": "2288:14:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "nodeType": "BinaryOperation",
+                    "operator": "==",
+                    "rightExpression": {
+                      "hexValue": "30",
+                      "id": 34023,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "number",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "2306:1:35",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_rational_0_by_1",
+                        "typeString": "int_const 0"
+                      },
+                      "value": "0"
+                    },
+                    "src": "2288:19:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "id": 34030,
+                  "nodeType": "IfStatement",
+                  "src": "2284:82:35",
+                  "trueBody": {
+                    "id": 34029,
+                    "nodeType": "Block",
+                    "src": "2309:57:35",
+                    "statements": [
+                      {
+                        "expression": {
+                          "arguments": [
+                            {
+                              "hexValue": "416176654d6f64756c6553746f726167652f7265766572744e6f526561736f6e",
+                              "id": 34026,
+                              "isConstant": false,
+                              "isLValue": false,
+                              "isPure": true,
+                              "kind": "string",
+                              "lValueRequested": false,
+                              "nodeType": "Literal",
+                              "src": "2324:34:35",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_stringliteral_8fe5b77dfc63da336bd3b23c31bebf974aa68cfcf5fe82f460ae8e220f5a8d25",
+                                "typeString": "literal_string \"AaveModuleStorage/revertNoReason\""
+                              },
+                              "value": "AaveModuleStorage/revertNoReason"
+                            }
+                          ],
+                          "expression": {
+                            "argumentTypes": [
+                              {
+                                "typeIdentifier": "t_stringliteral_8fe5b77dfc63da336bd3b23c31bebf974aa68cfcf5fe82f460ae8e220f5a8d25",
+                                "typeString": "literal_string \"AaveModuleStorage/revertNoReason\""
+                              }
+                            ],
+                            "id": 34025,
+                            "name": "revert",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [-19, -19],
+                            "referencedDeclaration": -19,
+                            "src": "2317:6:35",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_function_revert_pure$_t_string_memory_ptr_$returns$__$",
+                              "typeString": "function (string memory) pure"
+                            }
+                          },
+                          "id": 34027,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "kind": "functionCall",
+                          "lValueRequested": false,
+                          "names": [],
+                          "nodeType": "FunctionCall",
+                          "src": "2317:42:35",
+                          "tryCall": false,
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_tuple$__$",
+                            "typeString": "tuple()"
+                          }
+                        },
+                        "id": 34028,
+                        "nodeType": "ExpressionStatement",
+                        "src": "2317:42:35"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "AST": {
+                    "nodeType": "YulBlock",
+                    "src": "2380:54:35",
+                    "statements": [
+                      {
+                        "expression": {
+                          "arguments": [
+                            {
+                              "arguments": [
+                                {
+                                  "name": "retdata",
+                                  "nodeType": "YulIdentifier",
+                                  "src": "2399:7:35"
+                                },
+                                {
+                                  "kind": "number",
+                                  "nodeType": "YulLiteral",
+                                  "src": "2408:2:35",
+                                  "type": "",
+                                  "value": "32"
+                                }
+                              ],
+                              "functionName": {
+                                "name": "add",
+                                "nodeType": "YulIdentifier",
+                                "src": "2395:3:35"
+                              },
+                              "nodeType": "YulFunctionCall",
+                              "src": "2395:16:35"
+                            },
+                            {
+                              "arguments": [
+                                {
+                                  "name": "retdata",
+                                  "nodeType": "YulIdentifier",
+                                  "src": "2419:7:35"
+                                }
+                              ],
+                              "functionName": {
+                                "name": "mload",
+                                "nodeType": "YulIdentifier",
+                                "src": "2413:5:35"
+                              },
+                              "nodeType": "YulFunctionCall",
+                              "src": "2413:14:35"
+                            }
+                          ],
+                          "functionName": {
+                            "name": "revert",
+                            "nodeType": "YulIdentifier",
+                            "src": "2388:6:35"
+                          },
+                          "nodeType": "YulFunctionCall",
+                          "src": "2388:40:35"
+                        },
+                        "nodeType": "YulExpressionStatement",
+                        "src": "2388:40:35"
+                      }
+                    ]
+                  },
+                  "evmVersion": "london",
+                  "externalReferences": [
+                    {
+                      "declaration": 34018,
+                      "isOffset": false,
+                      "isSlot": false,
+                      "src": "2399:7:35",
+                      "valueSize": 1
+                    },
+                    {
+                      "declaration": 34018,
+                      "isOffset": false,
+                      "isSlot": false,
+                      "src": "2419:7:35",
+                      "valueSize": 1
+                    }
+                  ],
+                  "id": 34031,
+                  "nodeType": "InlineAssembly",
+                  "src": "2371:63:35"
+                }
+              ]
+            },
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "revertWithData",
+            "nameLocation": "2227:14:35",
+            "parameters": {
+              "id": 34019,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 34018,
+                  "mutability": "mutable",
+                  "name": "retdata",
+                  "nameLocation": "2255:7:35",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 34033,
+                  "src": "2242:20:35",
+                  "stateVariable": false,
+                  "storageLocation": "memory",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_bytes_memory_ptr",
+                    "typeString": "bytes"
+                  },
+                  "typeName": {
+                    "id": 34017,
+                    "name": "bytes",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "2242:5:35",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bytes_storage_ptr",
+                      "typeString": "bytes"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "2241:22:35"
+            },
+            "returnParameters": {
+              "id": 34020,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "2278:0:35"
+            },
+            "scope": 34034,
+            "stateMutability": "pure",
+            "virtual": false,
+            "visibility": "internal"
+          }
+        ],
+        "abstract": false,
+        "baseContracts": [],
+        "canonicalName": "AaveV3ModuleStorage",
+        "contractDependencies": [],
+        "contractKind": "library",
+        "fullyImplemented": true,
+        "linearizedBaseContracts": [34034],
+        "name": "AaveV3ModuleStorage",
+        "nameLocation": "1886:19:35",
+        "scope": 34035,
+        "usedErrors": []
+      }
+    ],
+    "license": "BSD-2-Clause"
+  },
+  "id": 35
+}

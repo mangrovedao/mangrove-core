@@ -4,6 +4,7 @@ const { getProvider } = require("scripts/helper.js");
 
 async function main() {
   const provider = getProvider();
+  const overrides = { gasPrice: ethers.utils.parseUnits("60", "gwei") };
 
   if (!process.env["MUMBAI_DEPLOYER_PRIVATE_KEY"]) {
     console.error("No deployer account defined");
@@ -30,8 +31,6 @@ async function main() {
     ["DAI", "USDC"],
   ];
 
-  let router = null;
-
   for (const [baseName, quoteName] of markets) {
     let tx = null;
     // bids give quote, asks give base
@@ -46,73 +45,22 @@ async function main() {
     let MangoRaw = (
       await hre.ethers.getContract(`Mango_${baseName}_${quoteName}`)
     ).connect(deployer);
-    // in case deployment was interupted after the liquidity router was deployed
-    if (!router) {
-      router = await MangoRaw.router();
-    }
 
     if ((await MangoRaw.admin()) === deployer.address) {
-      tx = await MangoRaw.setAdmin(tester.address);
+      tx = await MangoRaw.set_admin(tester.address, overrides);
       await tx.wait();
     }
 
     MangoRaw = MangoRaw.connect(tester);
+    tx = await MangoRaw.set_reserve(tester.address, overrides);
+    await tx.wait();
 
     let [pendingBase, pendingQuote] = await MangoRaw.pending();
     if (pendingBase.gt(0) || pendingQuote.gt(0)) {
       console.log(
         `* Current deployment of Mango has pending liquidity, resetting.`
       );
-      tx = await MangoRaw.reset_pending();
-      await tx.wait();
-    }
-    const RouterFactory = await ethers.getContractFactory("SimpleRouter");
-    if (router === ethers.constants.AddressZero) {
-      console.log(`* Deploying a new liquidity router`);
-      const routerContract = await RouterFactory.connect(tester).deploy(
-        tester.address
-      );
-      await routerContract.deployed();
-
-      console.log(`* Binding router (${routerContract.address}) to this Mango`);
-      tx = await routerContract.bind(MangoRaw.address);
-      await tx.wait();
-      router = routerContract.address;
-    } else {
-      console.log(`* Reusing already deployed router ${router}`);
-      tx = await MangoRaw.set_router(router, await MangoRaw.ofr_gasreq());
-      await tx.wait();
-      const routerContract = RouterFactory.connect(tester).attach(router);
-      tx = await routerContract.bind(MangoRaw.address);
-      await tx.wait();
-    }
-    console.log(`* Telling Mango to route liquidity from tester's wallet`);
-    tx = await MangoRaw.set_router(
-      router,
-      tester.address, // using tester's wallet
-      await MangoRaw.ofr_gasreq()
-    );
-    await tx.wait();
-
-    if ((await MgvAPI.token(baseName).allowance({ spender: router })).eq(0)) {
-      // maker has to approve liquidity router of Mango for base and quote transfer
-      console.log(
-        `* Approving router to transfer ${baseName} from tester wallet`
-      );
-      tx = await MgvAPI.token(baseName).approve(
-        router,
-        ethers.constants.MaxUint256
-      );
-      await tx.wait();
-    }
-    if ((await MgvAPI.token(quoteName).allowance({ spender: router })).eq(0)) {
-      console.log(
-        `* Approving router to transfer ${quoteName} from tester wallet`
-      );
-      tx = await MgvAPI.token(quoteName).approve(
-        router,
-        ethers.constants.MaxUint256
-      );
+      tx = await MangoRaw.reset_pending(overrides);
       await tx.wait();
     }
 
@@ -121,6 +69,37 @@ async function main() {
     const Mango = await MgvAPI.offerLogic(MangoRaw.address).liquidityProvider(
       market
     );
+
+    // activating Mango for BASE and QUOTE trading is already done at deploy time
+    // admin still needs to approve router for pulling its funds
+    const router = await Mango.logic.router();
+    if (
+      (
+        await MgvAPI.token(baseName).allowance({
+          owner: MgvAPI._signer.address,
+          spender: router.address,
+        })
+      ).eq(0)
+    ) {
+      // maker has to approve liquidity router of Mango for base and quote transfer
+      console.log(
+        `* Approving router to transfer ${baseName} from tester wallet`
+      );
+      tx = await MgvAPI.token(baseName).approve(router.address, {}, overrides);
+      await tx.wait();
+    }
+    if (
+      (await MgvAPI.token(quoteName).allowance({ spender: router.address })).eq(
+        0
+      )
+    ) {
+      console.log(
+        `* Approving router to transfer ${quoteName} from tester wallet`
+      );
+      tx = await MgvAPI.token(quoteName).approve(router.address, {}, overrides);
+      await tx.wait();
+    }
+
     const provBid = await Mango.computeBidProvision();
     console.log(
       `Actual provision needed for a Bid on (${baseName},${quoteName}) Market is ${provBid}`
@@ -133,13 +112,13 @@ async function main() {
 
     if (totalFund.gt(0)) {
       console.log(`* Funding mangrove (${totalFund} MATIC for Mango)`);
-      tx = await Mango.fundMangrove(totalFund);
+      tx = await Mango.fundMangrove(totalFund, overrides);
       await tx.wait();
     }
 
     if (await MangoRaw.is_paused()) {
       console.log("* Mango was previously paused. Restarting now...");
-      tx = await MangoRaw.restart();
+      tx = await MangoRaw.restart(overrides);
       await tx.wait();
     }
 
@@ -165,11 +144,12 @@ async function main() {
     for (let i = 0; i < slices; i++) {
       const receipt = await MangoRaw.initialize(
         true,
-        NSLOTS / 2 - 1,
+        NSLOTS / 2 - 1, // last bid position
         offers_per_slice * i, // from
         offers_per_slice * (i + 1), // to
         [pivotIds, pivotIds],
-        amounts
+        amounts,
+        overrides
       );
       console.log(
         `Slice [${offers_per_slice * i},${
@@ -188,6 +168,11 @@ async function main() {
         )} pending quotes)`
       );
     }
+    // this will throw if something is missing to market make on (base,quote) market
+    await Mango.logic.contract.checkList([
+      MgvAPI.token(baseName).address,
+      MgvAPI.token(quoteName).address,
+    ]);
   }
 }
 

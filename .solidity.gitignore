@@ -10,4 +10,4 @@ cache
 
 
 # broadcast files, ignore local deploys
-broadcast/*/31337
+broadcast/*

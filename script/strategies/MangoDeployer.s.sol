@@ -6,22 +6,35 @@ import {Mango, IERC20, IMangrove} from "mgv_src/strategies/single_user/market_ma
 import {Deployer} from "../lib/Deployer.sol";
 
 /** @notice deploys a Mango instance on a given market */
-/** */
+/** e.g deploy mango on WETH USDC market: */
 // forge script --fork-url $MUMBAI_NODE_URL \
 // --private-key $MUMBAI_DEPLOYER_PRIVATE_KEY \
-// --sig "run(string, address, address, address, uint, uint, uint, uint)" \
+// --sig "run(address, address, address, uint, uint, uint, uint, address)" \
 // --etherscan-api-key $POLYGONSCAN_API \
+// --broadcast \
 // --verify \
 // MangoDeployer \
-// 0xF3e339d8a0B989114412fa157Cc846ebaf4BCbd8 \
-// 0x63e537a69b3f5b03f4f46c5765c82861bd874b6e \
-// 0xc87385b5e62099f92d490750fcd6c901a524bbca \
+// $MANGROVE \
+// $WETH \
+// $USDC \
 // $(cast ff 18 1) \
-// $(cast ff 18 200) \
+// $(cast ff 6 200) \
 // 100 \
-// 36
+// $(cast ff 6 30) \
+// $MUMBAI_TESTER_ADDRESS
 
 contract MangoDeployer is Deployer {
+  /**
+  @param mgv Address of Mangrove contract 
+  @param base Address of the base currency of the market Mango will act upon
+  @param quote Addres of the quote of Mango's market
+  @param base_0 in units of base. Amounts of initial `makerGives` for Mango's asks
+  @param quote_0 in units of quote. Amounts of initial `makerGives` for Mango's bids
+  @notice min price of Mango is determined by `quote_0/base_0`
+  @param nslots the number of price slots of the Mango strat
+  @param price_incr in units of quote. Price(i+1) = price(i) + price_incr
+  @param admin address of the adim on Mango after deployment 
+  */
   function run(
     address payable mgv,
     address base,
@@ -29,7 +42,8 @@ contract MangoDeployer is Deployer {
     uint base_0,
     uint quote_0,
     uint nslots,
-    uint price_incr
+    uint price_incr,
+    address admin
   ) public {
     console.log(
       "Deploying Mango on market",
@@ -45,7 +59,7 @@ contract MangoDeployer is Deployer {
       quote_0,
       nslots,
       price_incr,
-      msg.sender
+      admin
     );
     outputDeployment();
     console.log("Mango deployed", address(mgo));

@@ -6,7 +6,7 @@
   "scripts": {
     "precommit": "lint-staged",
     "prepack": "yarn build",
-    "build-this-package": "forge build && node copyArtifacts && node copyBroadcasts",
+    "build-this-package": "forge build && node copyArtifacts && node copyAddresses",
     "heroku-build-this-package": "echo No build of contracts needed for Heroku as ABIs are committed to mangrove.js",
     "build": "yarn install && yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run build-this-package",
     "clean-this-package": "rimraf artifacts cache dist exported-abis out tsconfig.tsbuildinfo",

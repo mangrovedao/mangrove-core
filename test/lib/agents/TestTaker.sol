@@ -5,9 +5,9 @@ pragma abicoder v2;
 
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {IERC20, ITaker} from "mgv_src/MgvLib.sol";
-import {Utilities} from "mgv_test/lib/Utilities.sol";
+import {Script2} from "mgv_test/lib/Script2.sol";
 
-contract TestTaker is ITaker, Utilities {
+contract TestTaker is ITaker, Script2 {
   AbstractMangrove _mgv;
   address _base;
   address _quote;

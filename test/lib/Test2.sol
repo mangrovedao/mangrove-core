@@ -2,11 +2,11 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import {Utilities} from "./Utilities.sol";
+import {Script2} from "./Script2.sol";
 
 /* Some ease-of-life additions to forge-std/Test.sol */
-/* You mostly want to inherit `MangroveTest` (which inherits `Test2`) rather than inherit `Test2` directly */
-contract Test2 is Test, Utilities {
+/* You may want to inherit `MangroveTest` (which inherits `Test2`) rather than inherit `Test2` directly */
+contract Test2 is Test, Script2 {
   /* *** Pranking save/restore ***
 
     Does not support nesting.

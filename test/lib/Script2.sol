@@ -1,12 +1,12 @@
-// SPDX-License-Identifier:	AGPL-3.0
+// SPDX-License-Identifier:	AGPL-2.0
 pragma solidity ^0.8.13;
 import {console2 as console} from "forge-std/console2.sol";
 import {Script} from "forge-std/Script.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 
 /* Some general utility methods.
-/* You mostly want to inherit `MangroveTest` (which inherits Test2` which inherits `Utilities`) rather than inherit `Utilities` directly */
-contract Utilities is Script {
+/* You may want to inherit `MangroveTest` (which inherits Test2` which inherits `Script2`) rather than inherit `Script2` directly */
+contract Script2 is Script {
   /* *** Logging *** */
   /* Log arrays */
 
@@ -550,6 +550,266 @@ contract Utilities is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
+  function dynamic(bytes32[1] memory a)
+    internal
+    pure
+    returns (bytes32[] memory ret)
+  {
+    ret = new bytes32[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(bytes32[2] memory a)
+    internal
+    pure
+    returns (bytes32[] memory ret)
+  {
+    ret = new bytes32[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(bytes32[3] memory a)
+    internal
+    pure
+    returns (bytes32[] memory ret)
+  {
+    ret = new bytes32[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(bytes32[4] memory a)
+    internal
+    pure
+    returns (bytes32[] memory ret)
+  {
+    ret = new bytes32[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(bytes32[5] memory a)
+    internal
+    pure
+    returns (bytes32[] memory ret)
+  {
+    ret = new bytes32[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(bytes32[6] memory a)
+    internal
+    pure
+    returns (bytes32[] memory ret)
+  {
+    ret = new bytes32[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(bytes32[7] memory a)
+    internal
+    pure
+    returns (bytes32[] memory ret)
+  {
+    ret = new bytes32[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(bytes32[8] memory a)
+    internal
+    pure
+    returns (bytes32[] memory ret)
+  {
+    ret = new bytes32[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(bytes32[9] memory a)
+    internal
+    pure
+    returns (bytes32[] memory ret)
+  {
+    ret = new bytes32[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(bytes32[10] memory a)
+    internal
+    pure
+    returns (bytes32[] memory ret)
+  {
+    ret = new bytes32[](a.length);
+    uint i_ptr;
+    uint o_ptr;
+    assembly {
+      i_ptr := a
+      o_ptr := add(ret, 32)
+    }
+    memcpy(i_ptr, a.length, o_ptr);
+  }
+
+  function dynamic(string[1] memory a)
+    internal
+    pure
+    returns (string[] memory ret)
+  {
+    ret = new string[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(string[2] memory a)
+    internal
+    pure
+    returns (string[] memory ret)
+  {
+    ret = new string[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(string[3] memory a)
+    internal
+    pure
+    returns (string[] memory ret)
+  {
+    ret = new string[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(string[4] memory a)
+    internal
+    pure
+    returns (string[] memory ret)
+  {
+    ret = new string[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(string[5] memory a)
+    internal
+    pure
+    returns (string[] memory ret)
+  {
+    ret = new string[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(string[6] memory a)
+    internal
+    pure
+    returns (string[] memory ret)
+  {
+    ret = new string[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(string[7] memory a)
+    internal
+    pure
+    returns (string[] memory ret)
+  {
+    ret = new string[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(string[8] memory a)
+    internal
+    pure
+    returns (string[] memory ret)
+  {
+    ret = new string[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(string[9] memory a)
+    internal
+    pure
+    returns (string[] memory ret)
+  {
+    ret = new string[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(string[10] memory a)
+    internal
+    pure
+    returns (string[] memory ret)
+  {
+    ret = new string[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
   /* Math abs */
   function abs(int i) internal pure returns (uint) {
     if (i < 0) {
@@ -557,5 +817,31 @@ contract Utilities is Script {
     } else {
       return uint(i);
     }
+  }
+
+  /// @notice Convert a bytes32 array to a string array
+  /// @param bs an array of bytes32
+  /// @return ss an array of strings
+  function strings(bytes32[] memory bs)
+    internal
+    pure
+    returns (string[] memory)
+  {
+    string[] memory ss = new string[](bs.length);
+    for (uint i = 0; i < bs.length; i++) {
+      ss[i] = string(bytes.concat(bs[i]));
+    }
+    return ss;
+  }
+
+  /// @notice Convert a strings array to a bytes32 array
+  /// @param ss an array of strings
+  /// @return bs an array of bytes32
+  function b32s(string[] memory ss) internal pure returns (bytes32[] memory) {
+    bytes32[] memory bs = new bytes32[](ss.length);
+    for (uint i = 0; i < ss.length; i++) {
+      bs[i] = bytes32(bytes(ss[i]));
+    }
+    return bs;
   }
 }

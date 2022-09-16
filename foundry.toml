@@ -7,6 +7,7 @@ test='test'
 out='out'
 libs=['lib']
 cache_path='cache'
+fs_permissions = [{ access = "read-write", path = "./addresses/"}]
 solc_version="0.8.14"
 # optimizer=true
 # optimizer_runs=20000

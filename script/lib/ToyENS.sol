@@ -24,8 +24,12 @@ contract ToyENS {
     address addr,
     bool isToken
   ) public {
+    // 0 is a strong absence marker, can't lose that invariant
+    require(addr != address(0), "ToyENS: cannot record a name as 0x0");
+    if (_addrs[name] != address(0)) {
+      _names.push(name);
+    }
     _addrs[name] = addr;
-    _names.push(name);
     _isToken[name] = isToken;
   }
 

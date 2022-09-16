@@ -1,22 +1,27 @@
 [
   {
-    "address": "0xF3e339d8a0B989114412fa157Cc846ebaf4BCbd8",
+    "address": "0x61f197C305d74561D18c35b4Bef8eFbB755a7511",
+    "isToken": false
     "name": "Mangrove"
   },
   {
-    "address": "0xfAB31d37f8DF5bff07Bb3c16B33416eCd4Aab76F",
+    "address": "0x1b9765bB6dCdA0079643060D67Bf1d7C97350F24",
+    "isToken": false
     "name": "MgvReader"
   },
   {
-    "address": "0xEb05Ace3574B0a6f4696c5CcD09e730d6d5ED3b0",
+    "address": "0x6129f87d7c926b85126b046a18cB0FaFbf6E6BbF",
+    "isToken": false
     "name": "MgvCleaner"
   },
   {
-    "address": "0xd38c02425da847584eeDA72387DAAA2E8f3b90c8",
+    "address": "0x1A70eB5aE85cB62770d4e501117E07f22EbcfB3E",
+    "isToken": false
     "name": "MgvOracle"
   },
   {
-    "address": "0xE84519D38bAaD858d827B7F27A936c8447eDDD20",
+    "address": "0x99b5285bb2263a839D10C05CaBb3893c32Db7662",
+    "isToken": false
     "name": "MangroveOrderEnriched"
   }
 ]

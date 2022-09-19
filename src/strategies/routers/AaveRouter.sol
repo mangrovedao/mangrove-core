@@ -77,7 +77,7 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
       "AaveRouter/push/transferFail"
     );
     // repay and supply on behalf of `reserve`
-    repayThenDeposit(token, reserve, amount);
+    _repayThenDeposit(token, reserve, amount);
   }
 
   // returns 0 if redeem failed (amount > balance).

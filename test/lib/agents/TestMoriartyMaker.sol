@@ -2,7 +2,8 @@
 pragma solidity ^0.8.10;
 
 import "mgv_src/AbstractMangrove.sol";
-import {IERC20, MgvLib as ML, P, IMaker} from "mgv_src/MgvLib.sol";
+import {IERC20, MgvLib , IMaker} from "mgv_src/MgvLib.sol";
+import { Local } from "mgv_src/preprocessed/MgvPack.post.sol";
 
 contract TestMoriartyMaker is IMaker {
   AbstractMangrove mgv;
@@ -22,7 +23,7 @@ contract TestMoriartyMaker is IMaker {
     succeed = true;
   }
 
-  function makerExecute(ML.SingleOrder calldata order)
+  function makerExecute(MgvLib.SingleOrder calldata order)
     public
     override
     returns (bytes32 ret)
@@ -39,8 +40,8 @@ contract TestMoriartyMaker is IMaker {
   }
 
   function makerPosthook(
-    ML.SingleOrder calldata order,
-    ML.OrderResult calldata result
+    MgvLib.SingleOrder calldata order,
+    MgvLib.OrderResult calldata result
   ) external override {}
 
   function newOffer(
@@ -53,7 +54,7 @@ contract TestMoriartyMaker is IMaker {
     mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
     mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
     mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
-    (, P.Local.t cfg) = mgv.config(base, quote);
+    (, Local.t cfg) = mgv.config(base, quote);
     uint density = cfg.density();
     uint offer_gasbase = cfg.offer_gasbase();
     dummy = mgv.newOffer({

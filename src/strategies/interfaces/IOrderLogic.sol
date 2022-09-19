@@ -28,7 +28,7 @@ interface IOrderLogic {
     bool restingOrder; // whether the complement of the partial fill (if any) should be posted as a resting limit order
     uint retryNumber; // number of times filling the taker order should be retried (0 means 1 attempt).
     uint gasForMarketOrder; // gas limit per market order attempt
-    uint blocksToLiveForRestingOrder; // number of blocks the resting order should be allowed to live, 0 means forever
+    uint timeToLiveForRestingOrder; // number of seconds the resting order should be allowed to live, 0 means forever
   }
 
   struct TakerOrderResult {

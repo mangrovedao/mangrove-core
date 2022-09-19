@@ -14,55 +14,82 @@ pragma abicoder v2;
 
 import "./MangroveOrder.sol";
 
+/**
+@title This contract is a `MangroveOrder` enriched with the ability to retrieve all offers for each owner. 
+*/
 contract MangroveOrderEnriched is MangroveOrder {
-  // `next[out_tkn][in_tkn][owner][id] = id'` with `next[out_tkn][in_tkn][owner][0]==0` iff owner has now offers on the semi book (out,in)
+  /// @notice This maintains a mapping of owners to offers via linked offerIds.
+  /// @dev `next[outbound_tkn][inbound_tkn][owner][id] = id'` with `next[outbound_tkn][inbound_tkn][owner][0]==0` iff owner has no offers on the semi book (out,in)
   mapping(IERC20 => mapping(IERC20 => mapping(address => mapping(uint => uint)))) next;
 
-  constructor(IMangrove _MGV, address deployer) MangroveOrder(_MGV, deployer) {}
+  /**
+  @notice `MangroveOrderEnriched`'s constructor
+  @param mgv The Mangrove deployment that is allowed to call `this` contract for trade execution and posthook and on which `this` contract will post offers.
+  @param deployer The address of the deployer will be set as admin for both this contract and the router, which are both `AccessControlled` contracts.
+  */
+  constructor(IMangrove mgv, address deployer) MangroveOrder(mgv, deployer) {}
 
-  function __logOwnerShipRelation__(
+  /**
+  @notice Overridden to keep track of all offers for all owners.
+  @inheritdoc MangroveOrder
+  */
+  function __logOwnershipRelation__(
     address owner,
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
     uint offerId
   ) internal virtual override {
-    uint head = next[outbound_tkn][inbound_tkn][owner][0];
-    next[outbound_tkn][inbound_tkn][owner][0] = offerId;
+    //TODO: [lnist] Nothing trims the list, so it just grows indefinitely for each owner.
+    // Push new offerId as the new head
+    mapping(uint => uint) storage offers = next[outbound_tkn][inbound_tkn][owner];
+    uint head = offers[0];
+    offers[0] = offerId;
     if (head != 0) {
-      next[outbound_tkn][inbound_tkn][owner][offerId] = head;
+      offers[offerId] = head;
     }
   }
 
-  // we let the following view function consume loads of gas units in exchange of a rather minimalistic state bookeeping
+  /**
+  @notice Retrieves all offers for owner. We let this view function consume loads of gas units in exchange of a rather minimalistic state bookkeeping.
+  @param owner the owner to get all offers for
+  @param outbound_tkn the outbound token used to identify the order book
+  @param inbound_tkn the inbound token used to identify the order book
+  @return live ids of offers which are in the order book (see `Mangrove.isLive`)
+  @return dead ids of offers which are not in the order book
+  */
   function offersOfOwner(
     address owner,
     IERC20 outbound_tkn,
     IERC20 inbound_tkn
   ) external view returns (uint[] memory live, uint[] memory dead) {
-    uint head = next[outbound_tkn][inbound_tkn][owner][0];
+    // Iterate all offers for owner twice since we cannot use array.push on memory arrays.
+    // First to get number of live and dead to allocate arrays.
+    mapping(uint => uint) storage offers = next[outbound_tkn][inbound_tkn][owner];
+    uint head = offers[0];
     uint id = head;
-    uint n_live = 0;
-    uint n_dead = 0;
+    uint nLive = 0;
+    uint nDead = 0;
     while (id != 0) {
-      if (MGV.isLive(MGV.offers($(outbound_tkn), $(inbound_tkn), id))) {
-        n_live++;
+      if (MGV.isLive(MGV.offers(address(outbound_tkn), address(inbound_tkn), id))) {
+        nLive++;
       } else {
-        n_dead++;
+        nDead++;
       }
-      id = next[outbound_tkn][inbound_tkn][owner][id];
+      id = offers[id];
     }
-    live = new uint[](n_live);
-    dead = new uint[](n_dead);
+    // Repeat the loop with same logic, but now populate live and dead arrays.
+    live = new uint[](nLive);
+    dead = new uint[](nDead);
     id = head;
-    n_live = 0;
-    n_dead = 0;
+    nLive = 0;
+    nDead = 0;
     while (id != 0) {
-      if (MGV.isLive(MGV.offers($(outbound_tkn), $(inbound_tkn), id))) {
-        live[n_live++] = id;
+      if (MGV.isLive(MGV.offers(address(outbound_tkn), address(inbound_tkn), id))) {
+        live[nLive++] = id;
       } else {
-        dead[n_dead++] = id;
+        dead[nDead++] = id;
       }
-      id = next[outbound_tkn][inbound_tkn][owner][id];
+      id = offers[id];
     }
     return (live, dead);
   }

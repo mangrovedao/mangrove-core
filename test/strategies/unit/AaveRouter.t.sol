@@ -37,8 +37,8 @@ contract AaveRouterForkedTest is OfferLogicTest {
       _interestRateMode: 1 // stable rate
     });
     router.bind(address(makerContract));
-    makerContract.set_reserve(address(router));
-    makerContract.set_router(router);
+    makerContract.setReserve(address(router));
+    makerContract.setRouter(router);
     vm.stopPrank();
   }
 }

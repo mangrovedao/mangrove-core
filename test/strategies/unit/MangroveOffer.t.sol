@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/strategies/single_user/SimpleMaker.sol";
+import "mgv_src/strategies/offer_maker/OfferMaker.sol";
 import "mgv_src/strategies/routers/SimpleRouter.sol";
 
 contract MangroveOfferTest is MangroveTest {
@@ -10,7 +10,7 @@ contract MangroveOfferTest is MangroveTest {
   TestToken usdc;
   address payable maker;
   address payable taker;
-  SimpleMaker makerContract;
+  OfferMaker makerContract;
 
   // tracking IOfferLogic logs
   event LogIncident(
@@ -40,34 +40,15 @@ contract MangroveOfferTest is MangroveTest {
     deal($(weth), taker, cash(weth, 50));
     deal($(usdc), taker, cash(usdc, 100_000));
 
-    vm.prank(maker);
-    makerContract = new SimpleMaker({
-      _MGV: IMangrove($(mgv)), // TODO: remove IMangrove dependency?
+    makerContract = new OfferMaker({
+      mgv: IMangrove($(mgv)),
+      router_: SimpleRouter(address(0)), // no router
       deployer: maker
     });
   }
 
   function test_AdminIsDeployer() public {
     assertEq(makerContract.admin(), maker, "Incorrect admin");
-  }
-
-  function test_DefaultGasReq() public {
-    assertEq(
-      makerContract.ofr_gasreq(),
-      50_000,
-      "Incorrect default gasreq for simple maker"
-    );
-  }
-
-  function test_CheckList() public {
-    IERC20[] memory tokens = dynamic([IERC20(weth), usdc]);
-    vm.expectRevert("MangroveOffer/AdminMustApproveMangrove");
-    makerContract.checkList(tokens);
-    vm.prank(maker);
-    makerContract.approveMangrove(weth);
-    makerContract.approveMangrove(usdc);
-    // after approval, checkList should no longer revert
-    makerContract.checkList(tokens);
   }
 
   function testCannot_ActivateIfNotAdmin() public {
@@ -83,10 +64,7 @@ contract MangroveOfferTest is MangroveTest {
   }
 
   function test_HasNoRouter() public {
-    assertTrue(!makerContract.has_router());
-    vm.expectRevert("mgvOffer/0xRouter");
-    // accessing router throws if no router is defined for makerContract
-    makerContract.router();
+    assertTrue(makerContract.router() == makerContract.NO_ROUTER());
   }
 
   function testCannot_callMakerExecuteIfNotMangrove() public {
@@ -141,33 +119,14 @@ contract MangroveOfferTest is MangroveTest {
     assertEq(maker.balance, balMaker + 0.5 ether, "incorrect balance");
   }
 
-  function test_GetMissingProvisionTakesBalanceIntoAccount() public {
-    uint missing = makerContract.getMissingProvision(
-      weth,
-      usdc,
-      type(uint).max,
-      0,
-      0
-    );
-    mgv.fund{value: missing - 1}(address(makerContract));
-    uint missing_ = makerContract.getMissingProvision(
-      weth,
-      usdc,
-      type(uint).max,
-      0,
-      0
-    );
-    assertEq(missing_, 1, "incorrect missing provision");
-  }
-
   function test_AdminCanSetRouter() public {
     vm.expectRevert("AccessControlled/Invalid");
-    makerContract.set_router(SimpleRouter(freshAddress()));
+    makerContract.setRouter(SimpleRouter(freshAddress()));
 
     vm.startPrank(maker);
     SimpleRouter router = new SimpleRouter();
-    router.set_admin(address(makerContract));
-    makerContract.set_router(router);
+    router.setAdmin(address(makerContract));
+    makerContract.setRouter(router);
     assertEq(
       address(makerContract.router()),
       address(router),
@@ -179,11 +138,11 @@ contract MangroveOfferTest is MangroveTest {
   function test_CheckListTakesNewRouterIntoAccount() public {
     vm.startPrank(maker);
     SimpleRouter router = new SimpleRouter();
-    router.set_admin(address(makerContract));
-    makerContract.set_router(router);
+    router.setAdmin(address(makerContract));
+    makerContract.setRouter(router);
 
     IERC20[] memory tokens = dynamic([IERC20(weth), usdc]);
-    vm.expectRevert("Router/NotApprovedByMakerContract");
+    vm.expectRevert("MangroveOffer/LogicMustApproveMangrove");
     makerContract.checkList(tokens);
 
     makerContract.activate(tokens);
@@ -191,14 +150,14 @@ contract MangroveOfferTest is MangroveTest {
   }
 
   function test_GasReqTakesNewRouterIntoAccount() public {
-    uint gasreq = makerContract.ofr_gasreq();
+    uint gasreq = makerContract.offerGasreq();
     vm.startPrank(maker);
     SimpleRouter router = new SimpleRouter();
-    router.set_admin(address(makerContract));
-    makerContract.set_router(router);
+    router.setAdmin(address(makerContract));
+    makerContract.setRouter(router);
     assertEq(
-      makerContract.ofr_gasreq(),
-      gasreq + router.gas_overhead(),
+      makerContract.offerGasreq(),
+      gasreq + router.gasOverhead(),
       "incorrect gasreq"
     );
   }

@@ -28,7 +28,7 @@ contract AaveDeepRouter is AaveRouter {
     uint _referralCode,
     uint _interestRateMode
   ) AaveRouter(_addressesProvider, _referralCode, _interestRateMode) {
-    ARSt.get_storage().gas_overhead += 350_000; // additional borrow
+    ARSt.getStorage().gas_overhead += 350_000; // additional borrow
   }
 
   // 1. pulls aTokens from aToken reserve. Borrows if necessary
@@ -40,7 +40,7 @@ contract AaveDeepRouter is AaveRouter {
     uint amount,
     bool strict
   ) internal virtual override returns (uint pulled) {
-    return redeemThenBorrow(token, reserve, amount, strict, maker);
+    return _redeemThenBorrow(token, reserve, amount, strict, maker);
   }
 
   function __checkList__(IERC20 token, address reserve)

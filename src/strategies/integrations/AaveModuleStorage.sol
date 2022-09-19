@@ -27,7 +27,7 @@ library AaveV3ModuleStorage {
   // struct Layout {
   // }
 
-  // function get_storage() internal pure returns (Layout storage st) {
+  // function getStorage() internal pure returns (Layout storage st) {
   //   bytes32 storagePosition = keccak256(
   //     "Mangrove.AaveV3ModuleStorageLib.Layout"
   //   );

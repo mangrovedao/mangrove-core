@@ -16,4 +16,4 @@ exports.abi_exports = [
 ];
 
 // Contracts that should export their ABI + bytecode
-exports.full_exports = ["SimpleMaker", "MultiMaker"];
+exports.full_exports = ["OfferMaker", "OfferForwarder"];

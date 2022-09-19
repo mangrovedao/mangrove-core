@@ -33,11 +33,11 @@ contract MangroveDeployer is Deployer {
     ens.set("Mangrove", address(mgv));
 
     vm.broadcast();
-    reader = new MgvReader({_mgv: payable(mgv)});
+    reader = new MgvReader({mgv: payable(mgv)});
     ens.set("MgvReader", address(reader));
 
     vm.broadcast();
-    cleaner = new MgvCleaner({_MGV: address(mgv)});
+    cleaner = new MgvCleaner({mgv: address(mgv)});
     ens.set("MgvCleaner", address(cleaner));
 
     vm.broadcast();
@@ -46,7 +46,7 @@ contract MangroveDeployer is Deployer {
 
     vm.broadcast();
     mgoe = new MangroveOrderEnriched({
-      _MGV: IMangrove(payable(mgv)),
+      mgv: IMangrove(payable(mgv)),
       deployer: chief
     });
     ens.set("MangroveOrderEnriched", address(mgoe));

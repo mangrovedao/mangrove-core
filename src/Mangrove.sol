@@ -18,7 +18,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {MgvLib as ML, P} from "./MgvLib.sol";
+import { MgvLib } from "./MgvLib.sol";
 
 import {AbstractMangrove} from "./AbstractMangrove.sol";
 
@@ -30,12 +30,12 @@ contract Mangrove is AbstractMangrove {
     uint gasmax
   ) AbstractMangrove(governance, gasprice, gasmax, "Mangrove") {}
 
-  function executeEnd(MultiOrder memory mor, ML.SingleOrder memory sor)
+  function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor)
     internal
     override
   {}
 
-  function beforePosthook(ML.SingleOrder memory sor) internal override {}
+  function beforePosthook(MgvLib.SingleOrder memory sor) internal override {}
 
   /* ## Flashloan */
   /*
@@ -44,7 +44,7 @@ contract Mangrove is AbstractMangrove {
      2. Runs `offerDetail.maker`'s `execute` function.
      3. Returns the result of the operations, with optional makerData to help the maker debug.
    */
-  function flashloan(ML.SingleOrder calldata sor, address taker)
+  function flashloan(MgvLib.SingleOrder calldata sor, address taker)
     external
     override
     returns (uint gasused)

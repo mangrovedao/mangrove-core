@@ -63,13 +63,10 @@ contract AaveV3ModuleImplementation {
     (
       underlying.ltv, // collateral factor for lending
       underlying.liquidationThreshold, // collateral factor for borrowing
-      ,
-      /*liquidationBonus*/
+      /*liquidationBonus*/,
       underlying.decimals,
-      /*reserveFactor*/
+      /*reserveFactor*/,
       /*emode_category*/
-      ,
-
     ) = RC.getParams(reserveData.configuration);
     account.balanceOfUnderlying = IERC20(reserveData.aTokenAddress).balanceOf(
       onBehalf

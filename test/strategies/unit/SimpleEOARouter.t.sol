@@ -6,12 +6,13 @@ import "mgv_src/strategies/routers/SimpleRouter.sol";
 
 contract SimpleEOARouterTest is OfferLogicTest {
   function setupRouter() internal override {
-    vm.startPrank(maker);
+    // OfferMaker has no router, replacing 0x router by a SimpleRouter
     SimpleRouter router = new SimpleRouter();
     router.bind(address(makerContract));
-    makerContract.set_reserve(maker);
-    makerContract.set_router(router);
     // maker must approve router
+    vm.startPrank(maker);
+    makerContract.setRouter(router);
+    makerContract.setReserve(maker);
     weth.approve(address(router), type(uint).max);
     usdc.approve(address(router), type(uint).max);
     vm.stopPrank();

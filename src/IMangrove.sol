@@ -6,7 +6,9 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 pragma experimental ABIEncoderV2;
-import {MgvLib as ML, P, IMaker} from "./MgvLib.sol";
+import { MgvLib, IMaker } from "./MgvLib.sol";
+import { Offer, OfferDetail, Global, Local } from "mgv_src/preprocessed/MgvPack.post.sol";
+import { OfferStruct, OfferDetailStruct, GlobalStruct, LocalStruct } from "mgv_src/preprocessed/MgvStructs.post.sol";
 
 interface IMangrove {
   event Approval(
@@ -131,16 +133,16 @@ interface IMangrove {
   function config(address outbound_tkn, address inbound_tkn)
     external
     view
-    returns (P.Global.t, P.Local.t);
+    returns (Global.t, Local.t);
 
   function configInfo(address outbound_tkn, address inbound_tkn)
     external
     view
-    returns (P.GlobalStruct memory global, P.LocalStruct memory local);
+    returns (GlobalStruct memory global, LocalStruct memory local);
 
   function deactivate(address outbound_tkn, address inbound_tkn) external;
 
-  function flashloan(ML.SingleOrder memory sor, address taker)
+  function flashloan(MgvLib.SingleOrder memory sor, address taker)
     external
     returns (uint gasused);
 
@@ -150,7 +152,7 @@ interface IMangrove {
 
   function governance() external view returns (address);
 
-  function isLive(P.Offer.t offer) external pure returns (bool);
+  function isLive(Offer.t offer) external pure returns (bool);
 
   function kill() external;
 
@@ -206,7 +208,7 @@ interface IMangrove {
     address,
     address,
     uint
-  ) external view returns (P.OfferDetail.t);
+  ) external view returns (OfferDetail.t);
 
   function offerInfo(
     address outbound_tkn,
@@ -216,15 +218,15 @@ interface IMangrove {
     external
     view
     returns (
-      P.OfferStruct memory offer,
-      P.OfferDetailStruct memory offerDetail
+      OfferStruct memory offer,
+      OfferDetailStruct memory offerDetail
     );
 
   function offers(
     address,
     address,
     uint
-  ) external view returns (P.Offer.t);
+  ) external view returns (Offer.t);
 
   function permit(
     address outbound_tkn,

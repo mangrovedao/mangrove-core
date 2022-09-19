@@ -1,5 +1,5 @@
 /* # Mangrove Summary
-   * The Mangrove holds offer books for `outbound_tkn`,`inbound_tkn` pairs.
+   * The Mangrove holds order books for `outbound_tkn`,`inbound_tkn` pairs.
    * Offers are sorted in a doubly linked list.
    * Each offer promises `outbound_tkn` and requests `inbound_tkn`.
    * Each offer has an attached `maker` address.

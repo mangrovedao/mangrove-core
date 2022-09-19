@@ -2,6 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
+import { Local } from "mgv_src/preprocessed/MgvPack.post.sol";
 
 contract MakerPosthookTest is MangroveTest, IMaker {
   TestTaker tkr;
@@ -578,7 +579,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     MgvLib.OrderResult calldata
   ) internal {
     called = true;
-    (, P.Local.t cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
+    (, Local.t cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
     assertEq(cfg.best(), ofr, "Incorrect best offer id in posthook");
   }
 
@@ -638,7 +639,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     MgvLib.OrderResult calldata
   ) internal {
     called = true;
-    (, P.Local.t cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
+    (, Local.t cfg) = mgv.config(order.outbound_tkn, order.inbound_tkn);
     assertEq(cfg.last(), ofr, "Incorrect last offer id in posthook");
   }
 

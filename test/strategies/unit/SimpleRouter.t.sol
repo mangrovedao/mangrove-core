@@ -9,8 +9,8 @@ contract SimpleRouterTest is OfferLogicTest {
     vm.startPrank(maker);
     SimpleRouter router = new SimpleRouter();
     router.bind(address(makerContract));
-    makerContract.set_reserve(address(router));
-    makerContract.set_router(router);
+    makerContract.setReserve(address(router));
+    makerContract.setRouter(router);
     vm.stopPrank();
   }
 }

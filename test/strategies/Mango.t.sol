@@ -2,8 +2,9 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/strategies/single_user/market_making/mango/Mango.sol";
+import "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
 import "mgv_src/strategies/routers/SimpleRouter.sol";
+import { Offer } from "mgv_src/preprocessed/MgvPack.post.sol";
 
 contract MangoTest is MangroveTest {
   struct Book {
@@ -65,14 +66,23 @@ contract MangoTest is MangroveTest {
   /* combine all tests wince they rely on non-zero state */
   function test_all() public {
     part_deploy_strat();
+    console.log("* deploy test");
     part_market_order();
+    console.log("* market order test");
     part_negative_shift();
+    console.log("* negative shift test");
     part_positive_shift();
+    console.log("* positive shift test");
     part_partial_fill();
+    console.log("* partial fill test");
     part_text_residual_1();
+    console.log("* residual 1 test");
     part_text_residual_2();
+    console.log("* residual 2 test");
     part_kill();
+    console.log("* kill test");
     part_restart_fixed_shift();
+    console.log("* restart test");
   }
 
   function part_deploy_strat() public prank(maker) {
@@ -89,7 +99,7 @@ contract MangoTest is MangroveTest {
     uint prov = mgo.getMissingProvision({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      gasreq: mgo.ofr_gasreq(),
+      gasreq: mgo.offerGasreq(),
       gasprice: 0,
       offerId: 0
     });
@@ -98,7 +108,7 @@ contract MangoTest is MangroveTest {
 
     init(cash(usdc, 1000), cash(weth, 3, 1));
 
-    Book memory book = get_offers(false);
+    Book memory book = getOffers(false);
 
     checkOB(
       $(usdc),
@@ -123,7 +133,7 @@ contract MangoTest is MangroveTest {
       true
     );
 
-    Book memory book = get_offers(false);
+    Book memory book = getOffers(false);
     assertEq(
       got,
       minusFee($(weth), $(usdc), 0.5 ether),
@@ -159,7 +169,7 @@ contract MangoTest is MangroveTest {
 
     assertEq(bounty, 0, "taker should not receive bounty");
 
-    book = get_offers(false);
+    book = getOffers(false);
 
     checkOB(
       $(usdc),
@@ -177,13 +187,13 @@ contract MangoTest is MangroveTest {
   }
 
   function part_negative_shift() public prank(maker) {
-    mgo.set_shift({
+    mgo.setShift({
       s: -2,
       withBase: false,
       amounts: dynamic([cash(usdc, 1000), cash(usdc, 1000)])
     });
 
-    Book memory book = get_offers(false);
+    Book memory book = getOffers(false);
 
     checkOB(
       $(usdc),
@@ -201,13 +211,13 @@ contract MangoTest is MangroveTest {
   }
 
   function part_positive_shift() public prank(maker) {
-    mgo.set_shift({
+    mgo.setShift({
       s: 3,
       withBase: true,
       amounts: dynamic([cash(weth, 3, 1), cash(weth, 3, 1), cash(weth, 3, 1)])
     });
 
-    Book memory book = get_offers(false);
+    Book memory book = getOffers(false);
 
     checkOB(
       $(usdc),
@@ -242,7 +252,7 @@ contract MangoTest is MangroveTest {
     );
 
     uint best_id = mgv.best($(weth), $(usdc));
-    P.Offer.t best_offer = mgv.offers($(weth), $(usdc), best_id);
+    Offer.t best_offer = mgv.offers($(weth), $(usdc), best_id);
     uint old_gives = best_offer.gives();
 
     vm.prank(maker);
@@ -290,7 +300,7 @@ contract MangoTest is MangroveTest {
 
     // market order will take the following best offer
     uint best_id = mgv.best($(usdc), $(weth));
-    P.Offer.t best_offer = mgv.offers($(usdc), $(weth), best_id);
+    Offer.t best_offer = mgv.offers($(usdc), $(weth), best_id);
 
     vm.prank(taker);
     (uint got, uint gave, uint bounty, ) = mgv.marketOrder(
@@ -353,7 +363,7 @@ contract MangoTest is MangroveTest {
 
     // Offer 3 and 4 were unable to repost so they should be out of the book
 
-    Book memory book = get_offers(false);
+    Book memory book = getOffers(false);
     checkOB(
       $(usdc),
       $(weth),
@@ -379,7 +389,7 @@ contract MangoTest is MangroveTest {
     // - the dual offer of offer 2 will be created with id 8 and will offer takerGave + the content of the WETH pending pool
     // - both pending pools should be empty
 
-    P.Offer.t old_offer2 = mgv.offers($(usdc), $(weth), 2);
+    Offer.t old_offer2 = mgv.offers($(usdc), $(weth), 2);
 
     vm.prank(taker);
     (, uint gave, , ) = mgv.marketOrder(
@@ -390,7 +400,7 @@ contract MangoTest is MangroveTest {
       true
     );
 
-    Book memory book = get_offers(false);
+    Book memory book = getOffers(false);
     checkOB(
       $(usdc),
       $(weth),
@@ -413,12 +423,12 @@ contract MangoTest is MangroveTest {
     assertEq(pendingQuote__, 0, "Pending quote pool should be empty");
 
     uint best_id = mgv.best($(weth), $(usdc));
-    P.Offer.t offer8 = mgv.offers($(weth), $(usdc), best_id);
+    Offer.t offer8 = mgv.offers($(weth), $(usdc), best_id);
     assertEq(best_id, 8, "Best offer on WETH,USDC offer list should be #8");
 
     assertEq(offer8.gives(), gave + pendingBase_, "Incorrect offer gives");
 
-    P.Offer.t offer2 = mgv.offers($(usdc), $(weth), 2);
+    Offer.t offer2 = mgv.offers($(usdc), $(weth), 2);
 
     assertEq(
       offer2.gives(),
@@ -443,7 +453,7 @@ contract MangoTest is MangroveTest {
     assertEq(got, 0, "got should be 0");
     assertEq(gave, 0, "gave should be 0");
 
-    Book memory book = get_offers(false);
+    Book memory book = getOffers(false);
     checkOB(
       $(usdc),
       $(weth),
@@ -464,7 +474,7 @@ contract MangoTest is MangroveTest {
     init(cash(usdc, 500), cash(weth, 15, 2));
     vm.stopPrank();
 
-    Book memory book = get_offers(false);
+    Book memory book = getOffers(false);
     checkOB(
       $(usdc),
       $(weth),
@@ -482,8 +492,8 @@ contract MangoTest is MangroveTest {
   /* ********* Utility methods ************ */
 
   // get internal view of mango's offers
-  function get_offers(bool liveOnly) internal view returns (Book memory) {
-    uint[][2] memory res = mgo.get_offers(liveOnly);
+  function getOffers(bool liveOnly) internal view returns (Book memory) {
+    uint[][2] memory res = mgo.getOffers(liveOnly);
     return Book({bids: res[0], asks: res[1]});
   }
 

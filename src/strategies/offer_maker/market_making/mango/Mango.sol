@@ -13,9 +13,10 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "./MangoStorage.sol";
 import "./MangoImplementation.sol";
-import "../../abstract/Persistent.sol";
+import "../../abstract/Direct.sol";
 import "../../../routers/AbstractRouter.sol";
 import "../../../routers/SimpleRouter.sol";
+import { MgvLib } from "mgv_src/MgvLib.sol";
 
 /** Discrete automated market making strat */
 /** This AMM is headless (no price model) and market makes on `NSLOTS` price ranges*/
@@ -27,7 +28,7 @@ import "../../../routers/SimpleRouter.sol";
 /** Each time this strat receives q `QUOTE` tokens (ask was taken) at price position i, it increases the offered (`QUOTE`) volume of the bid at position i-1 of 'q'*/
 /** In case of a partial fill of an offer at position i, the offer residual is reposted (see `Persistent` strat class)*/
 
-contract Mango is Persistent {
+contract Mango is Direct {
   // emitted when init function has been called and AMM becomes active
   event Initialized(uint from, uint to);
 
@@ -49,13 +50,14 @@ contract Mango is Persistent {
     uint price_incr,
     address deployer
   )
-    Persistent(
+    Direct(
       mgv,
-      250_000, // gas cost for trade execution (w/o taking routing specific gas cost)
       new SimpleRouter() // routes liqudity from (to) reserve to (from) this contract
     )
   {
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+    MangoStorage.Layout storage mStr = MangoStorage.getStorage();
+    AbstractRouter router_ = router();
+    
     // sanity check
     require(
       nslots > 0 &&
@@ -93,14 +95,19 @@ contract Mango is Persistent {
     __activate__(quote);
 
     // in order to let deployer's EOA have control over liquidity
-    set_reserve(deployer);
+    setReserve(deployer);
 
+    // adding `this` to the authorized makers of the router.
+    router_.bind(address(this));
     // `this` deployed the router, letting admin take control over it.
-    router().set_admin(deployer);
+    router_.setAdmin(deployer);
+
+    // should cover cost of reposting the offer + dual offer
+    setGasreq(150_000);
 
     // setting admin of contract if a static address deployment was used
     if (deployer != msg.sender) {
-      set_admin(deployer);
+      setAdmin(deployer);
     }
   }
 
@@ -126,7 +133,7 @@ contract Mango is Persistent {
         to,
         pivotIds,
         tokenAmounts,
-        ofr_gasreq()
+        offerGasreq()
       )
     );
     if (!success) {
@@ -136,27 +143,27 @@ contract Mango is Persistent {
     }
   }
 
-  function reset_pending() external onlyAdmin {
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+  function resetPending() external onlyAdmin {
+    MangoStorage.Layout storage mStr = MangoStorage.getStorage();
     mStr.pending_base = 0;
     mStr.pending_quote = 0;
   }
 
   /** Setters and getters */
   function delta() external view onlyAdmin returns (uint) {
-    return MangoStorage.get_storage().delta;
+    return MangoStorage.getStorage().delta;
   }
 
-  function set_delta(uint _delta) public mgvOrAdmin {
-    MangoStorage.get_storage().delta = _delta;
+  function setDelta(uint _delta) public mgvOrAdmin {
+    MangoStorage.getStorage().delta = _delta;
   }
 
   function shift() external view onlyAdmin returns (int) {
-    return MangoStorage.get_storage().shift;
+    return MangoStorage.getStorage().shift;
   }
 
   function pending() external view onlyAdmin returns (uint[2] memory) {
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+    MangoStorage.Layout storage mStr = MangoStorage.getStorage();
     return [mStr.pending_base, mStr.pending_quote];
   }
 
@@ -167,7 +174,7 @@ contract Mango is Persistent {
     uint to
   ) external onlyAdmin returns (uint collected) {
     // with ba=0:bids only, ba=1: asks only ba>1 all
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+    MangoStorage.Layout storage mStr = MangoStorage.getStorage();
     for (uint i = from; i < to; i++) {
       if (ba > 0) {
         // asks or bids+asks
@@ -187,18 +194,18 @@ contract Mango is Persistent {
   /** Shift the price (induced by quote amount) of n slots down or up */
   /** price at position i will be shifted (up or down dePENDING on the sign of `shift`) */
   /** New positions 0<= i < s are initialized with amount[i] in base tokens if `withBase`. In quote tokens otherwise*/
-  function set_shift(
+  function setShift(
     int s,
     bool withBase,
     uint[] calldata amounts
   ) public mgvOrAdmin {
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(
-        MangoImplementation.$set_shift.selector,
+        MangoImplementation.$setShift.selector,
         s,
         withBase,
         amounts,
-        ofr_gasreq()
+        offerGasreq()
       )
     );
     if (!success) {
@@ -206,8 +213,8 @@ contract Mango is Persistent {
     }
   }
 
-  function set_min_offer_type(uint m) external mgvOrAdmin {
-    MangoStorage.get_storage().min_buffer = m;
+  function setMinOfferType(uint m) external mgvOrAdmin {
+    MangoStorage.getStorage().min_buffer = m;
   }
 
   function _staticdelegatecall(bytes calldata data)
@@ -224,7 +231,7 @@ contract Mango is Persistent {
   }
 
   // return Mango offer Ids on Mangrove. If `liveOnly` will only return offer Ids that are live (0 otherwise).
-  function get_offers(bool liveOnly)
+  function getOffers(bool liveOnly)
     external
     view
     returns (uint[][2] memory offers)
@@ -233,7 +240,7 @@ contract Mango is Persistent {
       abi.encodeWithSelector(
         this._staticdelegatecall.selector,
         abi.encodeWithSelector(
-          MangoImplementation.$get_offers.selector,
+          MangoImplementation.$getOffers.selector,
           liveOnly
         )
       )
@@ -248,37 +255,38 @@ contract Mango is Persistent {
   // starts reneging all offers
   // NB reneged offers will not be reposted
   function pause() public mgvOrAdmin {
-    MangoStorage.get_storage().paused = true;
+    MangoStorage.getStorage().paused = true;
   }
 
   function restart() external onlyAdmin {
-    MangoStorage.get_storage().paused = false;
+    MangoStorage.getStorage().paused = false;
   }
 
-  function is_paused() external view returns (bool) {
-    return MangoStorage.get_storage().paused;
+  function isPaused() external view returns (bool) {
+    return MangoStorage.getStorage().paused;
   }
 
   // this overrides is read during `makerExecute` call (see `MangroveOffer`)
-  function __lastLook__(ML.SingleOrder calldata order)
+  function __lastLook__(MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
-    returns (bool proceed)
+    returns (bytes32)
   {
     order; //shh
-    proceed = !MangoStorage.get_storage().paused;
+    require(!MangoStorage.getStorage().paused, "Mango/paused");
+    return "";
   }
 
   // residual gives is default (i.e offer.gives - order.wants) + PENDING
   // this overrides the corresponding function in `Persistent`
-  function __residualGives__(ML.SingleOrder calldata order)
+  function __residualGives__(MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
     returns (uint)
   {
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
+    MangoStorage.Layout storage mStr = MangoStorage.getStorage();
     if (order.outbound_tkn == address(BASE)) {
       // Ask offer
       return super.__residualGives__(order) + mStr.pending_base;
@@ -291,7 +299,7 @@ contract Mango is Persistent {
   // for reposting partial filled offers one always gives the residual (default behavior)
   // and adapts wants to the new price (if different).
   // this overrides the corresponding function in `Persistent`
-  function __residualWants__(ML.SingleOrder calldata order)
+  function __residualWants__(MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
@@ -315,24 +323,24 @@ contract Mango is Persistent {
     }
   }
 
-  function __posthookSuccess__(ML.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (bool)
-  {
-    MangoStorage.Layout storage mStr = MangoStorage.get_storage();
-    bool reposted = super.__posthookSuccess__(order);
-
+  function __posthookSuccess__(
+    MgvLib.SingleOrder calldata order,
+    bytes32 maker_data
+  ) internal virtual override returns (bytes32) {
+    MangoStorage.Layout storage mStr = MangoStorage.getStorage();
+    bytes32 posthook_data = super.__posthookSuccess__(order, maker_data);
+    // checking whether repost failed
+    bool repost_success = (posthook_data == "posthook/reposted" ||
+      posthook_data == "posthook/completeFill");
     if (order.outbound_tkn == address(BASE)) {
-      if (!reposted) {
+      if (!repost_success) {
         // residual could not be reposted --either below density or Mango went out of provision on Mangrove
         mStr.pending_base = __residualGives__(order); // this includes previous `pending_base`
       } else {
         mStr.pending_base = 0;
       }
     } else {
-      if (!reposted) {
+      if (!repost_success) {
         // residual could not be reposted --either below density or Mango went out of provision on Mangrove
         mStr.pending_quote = __residualGives__(order); // this includes previous `pending_base`
       } else {
@@ -344,13 +352,13 @@ contract Mango is Persistent {
       abi.encodeWithSelector(
         MangoImplementation.$postDualOffer.selector,
         order,
-        ofr_gasreq()
+        offerGasreq()
       )
     );
     if (!success) {
       MangoStorage.revertWithData(retdata);
     } else {
-      return abi.decode(retdata, (bool));
+      return abi.decode(retdata, (bytes32));
     }
   }
 }

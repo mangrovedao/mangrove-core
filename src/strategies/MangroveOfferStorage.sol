@@ -28,7 +28,7 @@ library MangroveOfferStorage {
     mapping(address => address) reserves;
   }
 
-  function get_storage() internal pure returns (Layout storage st) {
+  function getStorage() internal pure returns (Layout storage st) {
     bytes32 storagePosition = keccak256("Mangrove.MangroveOfferStorage");
     assembly {
       st.slot := storagePosition

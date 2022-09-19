@@ -5,6 +5,7 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import { OfferStruct, OfferDetailStruct } from "mgv_src/preprocessed/MgvStructs.post.sol";
 
 // In these tests, the testing contract is the market maker.
 contract MgvReaderTest is MangroveTest {
@@ -28,8 +29,8 @@ contract MgvReaderTest is MangroveTest {
     (
       uint currentId,
       uint[] memory offerIds,
-      P.OfferStruct[] memory offers,
-      P.OfferDetailStruct[] memory details
+      OfferStruct[] memory offers,
+      OfferDetailStruct[] memory details
     ) = reader.offerList($(base), $(quote), 0, 50);
 
     assertEq(offerIds.length, 0, "ids: wrong length on 2elem");

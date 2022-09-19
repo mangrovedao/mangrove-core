@@ -18,7 +18,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {MgvLib as ML, P} from "../MgvLib.sol";
+import {MgvLib} from "../MgvLib.sol";
+import { OfferStruct, OfferDetailStruct } from "mgv_src/preprocessed/MgvStructs.post.sol";
 
 interface MangroveLike {
   function snipesFor(
@@ -40,7 +41,7 @@ interface MangroveLike {
     address outbound_tkn,
     address inbound_tkn,
     uint offerId
-  ) external view returns (P.OfferStruct memory, P.OfferStruct memory);
+  ) external view returns (OfferStruct memory, OfferStruct memory);
 }
 
 /* The purpose of the Cleaner contract is to execute failing offers and collect
@@ -59,8 +60,8 @@ interface MangroveLike {
 contract MgvCleaner {
   MangroveLike immutable MGV;
 
-  constructor(address _MGV) {
-    MGV = MangroveLike(_MGV);
+  constructor(address mgv) {
+    MGV = MangroveLike(mgv);
   }
 
   receive() external payable {}

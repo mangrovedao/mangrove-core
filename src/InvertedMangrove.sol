@@ -18,7 +18,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {ITaker, MgvLib as ML, P} from "./MgvLib.sol";
+import {ITaker, MgvLib } from "./MgvLib.sol";
 
 import {AbstractMangrove} from "./AbstractMangrove.sol";
 
@@ -32,7 +32,7 @@ contract InvertedMangrove is AbstractMangrove {
   ) AbstractMangrove(governance, gasprice, gasmax, "InvertedMangrove") {}
 
   // execute taker trade
-  function executeEnd(MultiOrder memory mor, ML.SingleOrder memory sor)
+  function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor)
     internal
     override
   {
@@ -63,7 +63,7 @@ So :
    2. Is OK, but has an extra CALL cost on top of the token transfer, one for each maker. This is unavoidable anyway when calling makerExecute (since the maker must be able to execute arbitrary code at that moment), but we can skip it here.
    3. Is the cheapest, but it has the drawbacks of `transferFrom`: money must end up owned by the taker, and taker needs to `approve` Mangrove
    */
-  function beforePosthook(ML.SingleOrder memory sor) internal override {
+  function beforePosthook(MgvLib.SingleOrder memory sor) internal override {
     unchecked {
       /* If `transferToken` returns false here, we're in a special (and bad) situation. The taker is returning part of their total loan to a maker, but the maker can't receive the tokens. Only case we can see: maker is blacklisted. In that case, we send the tokens to the vault, so things have a chance of getting sorted out later (Mangrove is a token black hole). */
       if (!transferToken(sor.inbound_tkn, sor.offerDetail.maker(), sor.gives)) {
@@ -97,7 +97,7 @@ So :
     We choose `transferFrom`.
     */
 
-  function flashloan(ML.SingleOrder calldata sor, address)
+  function flashloan(MgvLib.SingleOrder calldata sor, address)
     external
     override
     returns (uint gasused)

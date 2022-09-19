@@ -18,7 +18,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import {MgvLib as ML, P} from "../MgvLib.sol";
+import { MgvLib } from "mgv_src/MgvLib.sol";
+import { Offer, OfferDetail, Global, Local } from "mgv_src/preprocessed/MgvPack.post.sol";
+import { OfferStruct, OfferDetailStruct, GlobalStruct, LocalStruct } from "mgv_src/preprocessed/MgvStructs.post.sol";
 
 interface MangroveLike {
   function best(address, address) external view returns (uint);
@@ -27,31 +29,31 @@ interface MangroveLike {
     address,
     address,
     uint
-  ) external view returns (P.Offer.t);
+  ) external view returns (Offer.t);
 
   function offerDetails(
     address,
     address,
     uint
-  ) external view returns (P.OfferDetail.t);
+  ) external view returns (OfferDetail.t);
 
   function offerInfo(
     address,
     address,
     uint
-  ) external view returns (P.OfferStruct memory, P.OfferDetailStruct memory);
+  ) external view returns (OfferStruct memory, OfferDetailStruct memory);
 
   function config(address, address)
     external
     view
-    returns (P.Global.t, P.Local.t);
+    returns (Global.t, Local.t);
 }
 
 contract MgvReader {
-  MangroveLike immutable mgv;
+  MangroveLike immutable MGV;
 
-  constructor(address _mgv) {
-    mgv = MangroveLike(payable(_mgv));
+  constructor(address mgv) {
+    MGV = MangroveLike(payable(mgv));
   }
 
   /*
@@ -71,9 +73,9 @@ contract MgvReader {
   ) public view returns (uint startId, uint length) {
     unchecked {
       if (fromId == 0) {
-        startId = mgv.best(outbound_tkn, inbound_tkn);
+        startId = MGV.best(outbound_tkn, inbound_tkn);
       } else {
-        startId = mgv.offers(outbound_tkn, inbound_tkn, fromId).gives() > 0
+        startId = MGV.offers(outbound_tkn, inbound_tkn, fromId).gives() > 0
           ? fromId
           : 0;
       }
@@ -81,7 +83,7 @@ contract MgvReader {
       uint currentId = startId;
 
       while (currentId != 0 && length < maxOffers) {
-        currentId = mgv.offers(outbound_tkn, inbound_tkn, currentId).next();
+        currentId = MGV.offers(outbound_tkn, inbound_tkn, currentId).next();
         length = length + 1;
       }
 
@@ -101,8 +103,8 @@ contract MgvReader {
     returns (
       uint,
       uint[] memory,
-      P.Offer.t[] memory,
-      P.OfferDetail.t[] memory
+      Offer.t[] memory,
+      OfferDetail.t[] memory
     )
   {
     unchecked {
@@ -114,15 +116,15 @@ contract MgvReader {
       );
 
       uint[] memory offerIds = new uint[](length);
-      P.Offer.t[] memory offers = new P.Offer.t[](length);
-      P.OfferDetail.t[] memory details = new P.OfferDetail.t[](length);
+      Offer.t[] memory offers = new Offer.t[](length);
+      OfferDetail.t[] memory details = new OfferDetail.t[](length);
 
       uint i = 0;
 
       while (currentId != 0 && i < length) {
         offerIds[i] = currentId;
-        offers[i] = mgv.offers(outbound_tkn, inbound_tkn, currentId);
-        details[i] = mgv.offerDetails(outbound_tkn, inbound_tkn, currentId);
+        offers[i] = MGV.offers(outbound_tkn, inbound_tkn, currentId);
+        details[i] = MGV.offerDetails(outbound_tkn, inbound_tkn, currentId);
         currentId = offers[i].next();
         i = i + 1;
       }
@@ -143,8 +145,8 @@ contract MgvReader {
     returns (
       uint,
       uint[] memory,
-      P.OfferStruct[] memory,
-      P.OfferDetailStruct[] memory
+      OfferStruct[] memory,
+      OfferDetailStruct[] memory
     )
   {
     unchecked {
@@ -156,13 +158,13 @@ contract MgvReader {
       );
 
       uint[] memory offerIds = new uint[](length);
-      P.OfferStruct[] memory offers = new P.OfferStruct[](length);
-      P.OfferDetailStruct[] memory details = new P.OfferDetailStruct[](length);
+      OfferStruct[] memory offers = new OfferStruct[](length);
+      OfferDetailStruct[] memory details = new OfferDetailStruct[](length);
 
       uint i = 0;
       while (currentId != 0 && i < length) {
         offerIds[i] = currentId;
-        (offers[i], details[i]) = mgv.offerInfo(
+        (offers[i], details[i]) = MGV.offerInfo(
           outbound_tkn,
           inbound_tkn,
           currentId
@@ -182,7 +184,7 @@ contract MgvReader {
     uint ofr_gasprice
   ) external view returns (uint) {
     unchecked {
-      (P.Global.t global, P.Local.t local) = mgv.config(
+      (Global.t global, Local.t local) = MGV.config(
         outbound_tkn,
         inbound_tkn
       );

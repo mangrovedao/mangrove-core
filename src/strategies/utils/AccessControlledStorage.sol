@@ -19,7 +19,7 @@ library AccessControlledStorage {
     address admin;
   }
 
-  function get_storage() internal pure returns (Layout storage st) {
+  function getStorage() internal pure returns (Layout storage st) {
     bytes32 storagePosition = keccak256("Mangrove.AccessControlledStorage");
     assembly {
       st.slot := storagePosition

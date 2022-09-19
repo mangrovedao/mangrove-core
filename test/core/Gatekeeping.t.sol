@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "mgv_test/lib/MangroveTest.sol";
+import { Global, Local } from "mgv_src/preprocessed/MgvPack.post.sol";
 
 // In these tests, the testing contract is the market maker.
 contract GatekeepingTest is IMaker, MangroveTest {
@@ -85,7 +86,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_killing_updates_config() public {
-    (P.Global.t global, ) = mgv.config(address(0), address(0));
+    (Global.t global, ) = mgv.config(address(0), address(0));
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
@@ -95,7 +96,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_kill_is_idempotent() public {
-    (P.Global.t global, ) = mgv.config(address(0), address(0));
+    (Global.t global, ) = mgv.config(address(0), address(0));
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
@@ -127,19 +128,19 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.activate($(quote), $(base), 0, 100, 0);
   }
 
-  function test_only_gov_can_set_gasprice() public {
+  function test_only_gov_can_setGasprice() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
     mgv.setGasprice(0);
   }
 
-  function test_only_gov_can_set_gasmax() public {
+  function test_only_gov_can_setGasmax() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
     mgv.setGasmax(0);
   }
 
-  function test_only_gov_can_set_gasbase() public {
+  function test_only_gov_can_setGasbase() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
     mgv.setGasbase($(base), $(quote), 0);
@@ -159,7 +160,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.setDensity($(base), $(quote), uint(type(uint112).max) + 1);
   }
 
-  function test_set_gasprice_ceiling() public {
+  function test_setGasprice_ceiling() public {
     vm.expectRevert("mgv/config/gasprice/16bits");
     mgv.setGasprice(uint(type(uint16).max) + 1);
   }
@@ -168,12 +169,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.setGasbase($(base), $(quote), 0);
   }
 
-  function test_set_gasbase_ceiling() public {
+  function test_setGasbase_ceiling() public {
     vm.expectRevert("mgv/config/offer_gasbase/24bits");
     mgv.setGasbase($(base), $(quote), uint(type(uint24).max) + 1);
   }
 
-  function test_set_gasmax_ceiling() public {
+  function test_setGasmax_ceiling() public {
     vm.expectRevert("mgv/config/gasmax/24bits");
     mgv.setGasmax(uint(type(uint24).max) + 1);
   }
@@ -200,13 +201,13 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_makerGasreq_bigger_than_gasmax_fails_newOffer() public {
-    (P.Global.t cfg, ) = mgv.config($(base), $(quote));
+    (Global.t cfg, ) = mgv.config($(base), $(quote));
     vm.expectRevert("mgv/writeOffer/gasreq/tooHigh");
     mkr.newOffer(1, 1, cfg.gasmax() + 1, 0);
   }
 
   function test_makerGasreq_at_gasmax_succeeds_newOffer() public {
-    (P.Global.t cfg, ) = mgv.config($(base), $(quote));
+    (Global.t cfg, ) = mgv.config($(base), $(quote));
     // Logging tests
     expectFrom($(mgv));
     emit OfferWrite(
@@ -231,7 +232,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_makerGasreq_lower_than_density_fails_newOffer() public {
     mgv.setDensity($(base), $(quote), 100);
-    (, P.Local.t cfg) = mgv.config($(base), $(quote));
+    (, Local.t cfg) = mgv.config($(base), $(quote));
     uint amount = (1 + cfg.offer_gasbase()) * cfg.density();
     vm.expectRevert("mgv/writeOffer/density/tooLow");
     mkr.newOffer(amount - 1, amount - 1, 1, 0);
@@ -239,7 +240,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_makerGasreq_at_density_suceeds() public {
     mgv.setDensity($(base), $(quote), 100);
-    (P.Global.t glob, P.Local.t cfg) = mgv.config($(base), $(quote));
+    (Global.t glob, Local.t cfg) = mgv.config($(base), $(quote));
     uint amount = (1 + cfg.offer_gasbase()) * cfg.density();
     // Logging tests
     expectFrom($(mgv));

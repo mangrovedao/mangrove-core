@@ -13,14 +13,25 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import {AccessControlledStorage as ACS} from "./AccessControlledStorage.sol";
 
-// TODO-foundry-merge explain what this contract does
-
+/// @title This contract is used to restrict access to privileged functions of inheriting contracts through modifiers.
+/// @notice The contract stores an admin address which is checked against `msg.sender` in the `onlyAdmin` modifier.
+/// @notice Additionally, a specific `msg.sender` can be verified with the `onlyCaller` modifier.
 contract AccessControlled {
-  constructor(address admin_) {
-    require(admin_ != address(0), "accessControlled/0xAdmin");
-    ACS.get_storage().admin = admin_;
+
+  /**
+  @notice `AccessControlled`'s constructor
+  @param _admin The address of the admin that can access privileged functions and also allowed to change the admin. Cannot be `address(0)`.
+  */
+  constructor(address _admin) {
+    require(_admin != address(0), "accessControlled/0xAdmin");
+    ACS.getStorage().admin = _admin;
   }
 
+  //TODO [lnist] It does not seem like onlyCaller is used with caller being address(0). To avoid accidents, it seems safer to remove the option.
+  /**
+  @notice This modifier verifies that if the `caller` parameter is not `address(0)`, then `msg.sender` is the caller.
+  @param caller The address of the caller (or address(0)) that can access the modified function.
+  */
   modifier onlyCaller(address caller) {
     require(
       caller == address(0) || msg.sender == caller,
@@ -29,17 +40,27 @@ contract AccessControlled {
     _;
   }
 
+  /**
+  @notice Retrieves the current admin.
+  */
   function admin() public view returns (address) {
-    return ACS.get_storage().admin;
+    return ACS.getStorage().admin;
   }
 
+  /**
+  @notice This modifier verifies that `msg.sender` is the admin.
+  */
   modifier onlyAdmin() {
     require(msg.sender == admin(), "AccessControlled/Invalid");
     _;
   }
 
-  function set_admin(address _admin) public onlyAdmin {
+  /**
+  @notice This sets the admin. Only the current admin can change the admin.
+  @param _admin The new admin. Cannot be `address(0)`.
+  */
+  function setAdmin(address _admin) public onlyAdmin {
     require(_admin != address(0), "AccessControlled/0xAdmin");
-    ACS.get_storage().admin = _admin;
+    ACS.getStorage().admin = _admin;
   }
 }

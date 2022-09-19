@@ -13,7 +13,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "mgv_src/strategies/utils/AccessControlled.sol";
+import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
 import {AbstractRouterStorage as ARSt} from "./AbstractRouterStorage.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 
@@ -27,21 +27,21 @@ abstract contract AbstractRouter is AccessControlled {
     _;
   }
 
-  constructor(uint overhead) AccessControlled(msg.sender) {
-    require(uint24(overhead) == overhead, "Router/overheadTooHigh");
-    ARSt.get_storage().gas_overhead = overhead;
+  constructor(uint gas_overhead) AccessControlled(msg.sender) {
+    require(uint24(gas_overhead) == gas_overhead, "Router/overheadTooHigh");
+    ARSt.getStorage().gas_overhead = gas_overhead;
   }
 
   ///@notice getter for the `makers: addr => bool` mapping
   ///@param mkr the address of a maker
   ///@return true is `mkr` is bound to this router
   function makers(address mkr) public view returns (bool) {
-    return ARSt.get_storage().makers[mkr];
+    return ARSt.getStorage().makers[mkr];
   }
 
   ///@notice the amount of gas that will be added to `gasreq` of any maker contract using this router
-  function gas_overhead() public view returns (uint) {
-    return ARSt.get_storage().gas_overhead;
+  function gasOverhead() public view returns (uint) {
+    return ARSt.getStorage().gas_overhead;
   }
 
   ///@notice pulls `amount` of `token`s from reserve to calling maker contract's balance
@@ -128,6 +128,10 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice withdraws `amount` of reserve tokens and sends them to `recipient`
   ///@dev this is called by maker's contract when originator wishes to withdraw funds from it.
+  ///@param token is the asset one wishes to withdraw
+  ///@param reserve is the address identifying the location of the assets
+  ///@param recipient is the address identifying the location of the recipient
+  ///@param amount is the amount of asset that should be withdrawn
   /// this function is necessary because the maker contract is agnostic w.r.t reserve management
   function withdrawToken(
     IERC20 token,
@@ -148,13 +152,18 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice adds a maker contract address to the allowed callers of this router
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address
-  function bind(address maker) public makersOrAdmin {
-    ARSt.get_storage().makers[maker] = true;
+  function bind(address maker) public onlyAdmin {
+    ARSt.getStorage().makers[maker] = true;
   }
 
   ///@notice removes a maker contract address from the allowed callers of this router
-  function unbind(address maker) public makersOrAdmin {
-    ARSt.get_storage().makers[maker] = false;
+  function unbind(address maker) public onlyAdmin {
+    ARSt.getStorage().makers[maker] = false;
+  }
+
+  ///@notice removes a maker contract address from the allowed callers of this router
+  function unbind() external onlyMakers {
+    ARSt.getStorage().makers[msg.sender] = false;
   }
 
   ///@notice verifies all required approval involving `this` router (either as a spender or owner)

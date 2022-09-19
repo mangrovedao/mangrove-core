@@ -17,7 +17,7 @@ import "mgv_src/strategies/vendor/aave/v2/ILendingPoolAddressesProvider.sol";
 import "mgv_src/strategies/vendor/aave/v2/IPriceOracleGetter.sol";
 import "mgv_src/strategies/vendor/compound/Exponential.sol";
 import "mgv_src/IMangrove.sol";
-import {IERC20} from "mgv_src/MgvLib.sol";
+import {IERC20, MgvLib } from "mgv_src/MgvLib.sol";
 
 contract AaveModule is Exponential {
   event ErrorOnRedeem(
@@ -185,7 +185,7 @@ contract AaveModule is Exponential {
   function aaveRedeem(
     uint amountToRedeem,
     address onBehalf,
-    ML.SingleOrder calldata order
+    MgvLib.SingleOrder calldata order
   ) internal returns (uint) {
     try
       lendingPool.withdraw(order.outbound_tkn, amountToRedeem, onBehalf)
@@ -223,7 +223,7 @@ contract AaveModule is Exponential {
   function aaveMint(
     uint amount,
     address onBehalf,
-    ML.SingleOrder calldata order
+    MgvLib.SingleOrder calldata order
   ) internal returns (uint) {
     // contract must haveallowance()to spend funds on behalf ofmsg.sender for at-leastamount for the asset being deposited. This can be done via the standard ERC20 approve() method.
     try lendingPool.deposit(order.inbound_tkn, amount, onBehalf, referralCode) {

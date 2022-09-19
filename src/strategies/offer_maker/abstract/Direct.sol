@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// SingleUser.sol
+// Direct.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -12,23 +12,23 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import "../../MangroveOffer.sol";
+import "mgv_src/strategies/MangroveOffer.sol";
+import { MgvLib  } from "mgv_src/MgvLib.sol";
 import "mgv_src/strategies/utils/TransferLib.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
-abstract contract SingleUser is MangroveOffer {
+abstract contract Direct is MangroveOffer {
   constructor(
-    IMangrove _mgv,
-    uint strat_gasreq,
-    AbstractRouter _router
-  ) MangroveOffer(_mgv, strat_gasreq) {
+    IMangrove mgv,
+    AbstractRouter router_
+  ) MangroveOffer(mgv) {
     // default reserve is router's address if router is defined
     // if not then default reserve is `this` contract
-    if (address(_router) == address(0)) {
-      set_reserve(address(this));
+    if (router_ == NO_ROUTER) {
+      setReserve(address(this));
     } else {
-      set_reserve(address(_router));
-      set_router(_router);
+      setReserve(address(router_));
+      setRouter(router_);
     }
   }
 
@@ -36,8 +36,8 @@ abstract contract SingleUser is MangroveOffer {
     return _reserve(address(this));
   }
 
-  function set_reserve(address __reserve) public override onlyAdmin {
-    _set_reserve(address(this), __reserve);
+  function setReserve(address reserve_) public override onlyAdmin {
+    _setReserve(address(this), reserve_);
   }
 
   function withdrawToken(
@@ -45,11 +45,12 @@ abstract contract SingleUser is MangroveOffer {
     address receiver,
     uint amount
   ) external override onlyAdmin returns (bool success) {
-    require(receiver != address(0), "SingleUser/withdrawToken/0xReceiver");
-    if (!has_router()) {
+    require(receiver != address(0), "Direct/withdrawToken/0xReceiver");
+    AbstractRouter router_ = router();
+    if (router_ == NO_ROUTER) {
       return TransferLib.transferToken(IERC20(token), receiver, amount);
     } else {
-      return router().withdrawToken(token, reserve(), receiver, amount);
+      return router_.withdrawToken(token, reserve(), receiver, amount);
     }
   }
 
@@ -58,35 +59,35 @@ abstract contract SingleUser is MangroveOffer {
     uint amount,
     bool strict
   ) internal returns (uint) {
-    AbstractRouter _router = MOS.get_storage().router;
-    if (address(_router) == address(0)) {
+    AbstractRouter router_ = router();
+    if (router_ == NO_ROUTER) {
       return 0; // nothing to do
     } else {
       // letting specific router pull the funds from reserve
-      return _router.pull(outbound_tkn, reserve(), amount, strict);
+      return router_.pull(outbound_tkn, reserve(), amount, strict);
     }
   }
 
   function push(IERC20 token, uint amount) internal {
-    AbstractRouter _router = MOS.get_storage().router;
-    if (address(_router) == address(0)) {
+    AbstractRouter router_ = router();
+    if (router_ == NO_ROUTER) {
       return; // nothing to do
     } else {
       // noop if reserve == address(this)
-      _router.push(token, reserve(), amount);
+      router_.push(token, reserve(), amount);
     }
   }
 
   function tokenBalance(IERC20 token) external view override returns (uint) {
-    AbstractRouter _router = MOS.get_storage().router;
+    AbstractRouter router_ = router();
     return
-      address(_router) == address(0)
+      router_ == NO_ROUTER
         ? token.balanceOf(reserve())
-        : _router.reserveBalance(token, reserve());
+        : router_.reserveBalance(token, reserve());
   }
 
   function flush(IERC20[] memory tokens) internal {
-    AbstractRouter _router = MOS.get_storage().router;
+    AbstractRouter _router = MOS.getStorage().router;
     if (address(_router) == address(0)) {
       return; // nothing to do
     } else {
@@ -94,53 +95,31 @@ abstract contract SingleUser is MangroveOffer {
     }
   }
 
-  // Posting a new offer on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
-  // NB #1: Offer maker maker MUST:
-  // * Approve Mangrove for at least `gives` amount of `outbound_tkn`.
-  // * Make sure that `this` contract has enough WEI provision on Mangrove to cover for the new offer bounty (function is payable so that caller can increase provision prior to posting the new offer)
-  // * Make sure that `gasreq` and `gives` yield a sufficient offer density
-  // NB #2: This function will revert when the above points are not met
-  function newOffer(MakerOrder memory mko)
-    external
-    payable
-    override
-    onlyAdmin
-    returns (uint)
-  {
-    mko.offerId = MGV.newOffer{value: msg.value}(
-      address(mko.outbound_tkn),
-      address(mko.inbound_tkn),
-      mko.wants,
-      mko.gives,
-      mko.gasreq >= type(uint24).max ? ofr_gasreq() : mko.gasreq,
-      mko.gasprice,
-      mko.pivotId
-    );
-    return mko.offerId;
-  }
-
   // Updates offer `offerId` on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
   // NB #1: Offer maker MUST:
   // * Make sure that offer maker has enough WEI provision on Mangrove to cover for the new offer bounty in case Mangrove gasprice has increased (function is payable so that caller can increase provision prior to updating the offer)
   // * Make sure that `gasreq` and `gives` yield a sufficient offer density
   // NB #2: This function will revert when the above points are not met
-  function updateOffer(MakerOrder memory mko)
-    external
-    payable
-    override
-    onlyAdmin
-  {
-    return
-      MGV.updateOffer{value: msg.value}(
-        address(mko.outbound_tkn),
-        address(mko.inbound_tkn),
-        mko.wants,
-        mko.gives,
-        mko.gasreq > type(uint24).max ? ofr_gasreq() : mko.gasreq,
-        mko.gasprice,
-        mko.pivotId,
-        mko.offerId
-      );
+  function updateOffer(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint pivotId,
+    uint offerId
+  ) public payable override mgvOrAdmin {
+    MGV.updateOffer{value: msg.value}(
+      address(outbound_tkn),
+      address(inbound_tkn),
+      wants,
+      gives,
+      gasreq > type(uint24).max ? offerGasreq() : gasreq,
+      gasprice,
+      pivotId,
+      offerId
+    );
   }
 
   // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove.
@@ -160,27 +139,26 @@ abstract contract SingleUser is MangroveOffer {
       deprovision
     );
     if (free_wei > 0) {
-      require(
-        MGV.withdraw(free_wei),
-        "SingleUser/withdrawFromMgv/withdrawFail"
-      );
+      require(MGV.withdraw(free_wei), "Direct/withdrawFromMgv/withdrawFail");
+      // sending native tokens to msg.sender prevents reentrancy issues
+      // (the context call of `retractOffer` could be coming from `makerExecute` and recipient of transfer could use this call to make offer fail)
       (bool noRevert, ) = msg.sender.call{value: free_wei}("");
-      require(noRevert, "SingleUser/weiTransferFail");
+      require(noRevert, "Direct/weiTransferFail");
     }
   }
 
   function __put__(
     uint, /*amount*/
-    ML.SingleOrder calldata
+    MgvLib.SingleOrder calldata
   ) internal virtual override returns (uint missing) {
     // singleUser contract do not need to do anything specific with incoming funds during trade
     // one should overrides this function if one wishes to leverage taker's fund during trade execution
     return 0;
   }
 
-  // default `__get__` hook for `SingleUser` is to pull liquidity from immutable `reserve()`
+  // default `__get__` hook for `Direct` is to pull liquidity from `reserve()`
   // letting router handle the specifics if any
-  function __get__(uint amount, ML.SingleOrder calldata order)
+  function __get__(uint amount, MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
@@ -198,26 +176,24 @@ abstract contract SingleUser is MangroveOffer {
     }
   }
 
-  ////// Customizable post-hooks.
-
-  // Override this post-hook to implement what `this` contract should do when called back after a successfully executed order.
-  // In this posthook, contract will flush its liquidity towards the reserve (noop if reserve is this contract)
-  function __posthookSuccess__(ML.SingleOrder calldata order)
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal
     virtual
     override
-    returns (bool success)
+    returns (bytes32)
   {
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = IERC20(order.outbound_tkn); // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
     tokens[1] = IERC20(order.inbound_tkn); // flushing liquidity brought by taker
     // sends all tokens to the reserve (noop if reserve() == address(this))
     flush(tokens);
-    success = true;
+    // reposting offer residual if any
+    return super.__posthookSuccess__(order, makerData);
   }
 
   function __checkList__(IERC20 token) internal view virtual override {
-    if (has_router()) {
+    AbstractRouter router_ = router();
+    if (router_ != NO_ROUTER) {
       router().checkList(token, reserve());
     }
     super.__checkList__(token);

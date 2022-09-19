@@ -3,11 +3,11 @@ pragma solidity ^0.8.13;
 pragma abicoder v2;
 
 import "mgv_src/AbstractMangrove.sol";
-import {IERC20, MgvLib as ML, P, IMaker} from "mgv_src/MgvLib.sol";
+import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract TrivialTestMaker is IMaker {
-  function makerExecute(ML.SingleOrder calldata)
+  function makerExecute(MgvLib.SingleOrder calldata)
     external
     virtual
     returns (bytes32)
@@ -15,30 +15,30 @@ contract TrivialTestMaker is IMaker {
     return "";
   }
 
-  function makerPosthook(ML.SingleOrder calldata, ML.OrderResult calldata)
+  function makerPosthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata)
     external
     virtual
   {}
 }
 
 contract SimpleTestMaker is TrivialTestMaker {
-  AbstractMangrove _mgv;
-  address _base;
-  address _quote;
-  bool _shouldFail; // will set mgv allowance to 0
-  bool _shouldAbort; // will not return bytes32("")
-  bool _shouldRevert; // will revert
-  bool _shouldRepost; // will try to repost offer with identical parameters
-  bytes32 _expectedStatus;
+  AbstractMangrove mgv;
+  address base;
+  address quote;
+  bool shouldFail_; // will set mgv allowance to 0
+  bool shouldAbort_; // will not return bytes32("")
+  bool shouldRevert_; // will revert
+  bool shouldRepost_; // will try to repost offer with identical parameters
+  bytes32 expectedStatus;
 
   constructor(
-    AbstractMangrove mgv,
-    IERC20 base,
-    IERC20 quote
+    AbstractMangrove _mgv,
+    IERC20 _base,
+    IERC20 _quote
   ) {
-    _mgv = mgv;
-    _base = address(base);
-    _quote = address(quote);
+    mgv = _mgv;
+    base = address(_base);
+    quote = address(_quote);
   }
 
   receive() external payable {}
@@ -53,38 +53,38 @@ contract SimpleTestMaker is TrivialTestMaker {
   );
 
   function logExecute(
-    address mgv,
-    address base,
-    address quote,
+    address _mgv,
+    address _base,
+    address _quote,
     uint offerId,
     uint takerWants,
     uint takerGives
   ) external {
-    emit Execute(mgv, base, quote, offerId, takerWants, takerGives);
+    emit Execute(_mgv, _base, _quote, offerId, takerWants, takerGives);
   }
 
   function shouldRevert(bool should) external {
-    _shouldRevert = should;
+    shouldRevert_ = should;
   }
 
   function shouldFail(bool should) external {
-    _shouldFail = should;
+    shouldFail_ = should;
   }
 
   function shouldAbort(bool should) external {
-    _shouldAbort = should;
+    shouldAbort_ = should;
   }
 
   function shouldRepost(bool should) external {
-    _shouldRepost = should;
+    shouldRepost_ = should;
   }
 
   function approveMgv(IERC20 token, uint amount) public {
-    token.approve(address(_mgv), amount);
+    token.approve(address(mgv), amount);
   }
 
   function expect(bytes32 mgvData) external {
-    _expectedStatus = mgvData;
+    expectedStatus = mgvData;
   }
 
   function transferToken(
@@ -95,13 +95,13 @@ contract SimpleTestMaker is TrivialTestMaker {
     token.transfer(to, amount);
   }
 
-  function makerExecute(ML.SingleOrder calldata order)
+  function makerExecute(MgvLib.SingleOrder calldata order)
     public
     virtual
     override
     returns (bytes32)
   {
-    if (_shouldRevert) {
+    if (shouldRevert_) {
       bytes32[1] memory revert_msg = [bytes32("testMaker/revert")];
       assembly {
         revert(revert_msg, 32)
@@ -115,15 +115,15 @@ contract SimpleTestMaker is TrivialTestMaker {
       order.wants,
       order.gives
     );
-    if (_shouldFail) {
-      IERC20(order.outbound_tkn).approve(address(_mgv), 0);
+    if (shouldFail_) {
+      IERC20(order.outbound_tkn).approve(address(mgv), 0);
       // bytes32[1] memory refuse_msg = [bytes32("testMaker/transferFail")];
       // assembly {
       //   return(refuse_msg, 32)
       // }
       //revert("testMaker/fail");
     }
-    if (_shouldAbort) {
+    if (shouldAbort_) {
       return "abort";
     } else {
       return "";
@@ -137,8 +137,8 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function makerPosthook(
-    ML.SingleOrder calldata order,
-    ML.OrderResult calldata result
+    MgvLib.SingleOrder calldata order,
+    MgvLib.OrderResult calldata result
   ) public virtual override {
     order; //shh
     result; //shh
@@ -146,8 +146,8 @@ contract SimpleTestMaker is TrivialTestMaker {
       revert("posthookFail");
     }
 
-    if (_shouldRepost) {
-      _mgv.updateOffer(
+    if (shouldRepost_) {
+      mgv.updateOffer(
         order.outbound_tkn,
         order.inbound_tkn,
         order.offer.wants(),
@@ -166,7 +166,7 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint gasreq,
     uint pivotId
   ) public returns (uint) {
-    return (_mgv.newOffer(_base, _quote, wants, gives, gasreq, 0, pivotId));
+    return (mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId));
   }
 
   function newOfferWithFunding(
@@ -177,7 +177,32 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount
   ) public returns (uint) {
     return (
-      _mgv.newOffer{value: amount}(
+      mgv.newOffer{value: amount}(base, quote, wants, gives, gasreq, 0, pivotId)
+    );
+  }
+
+  function newOffer(
+    address _base,
+    address _quote,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint pivotId
+  ) public returns (uint) {
+    return (mgv.newOffer(_base, _quote, wants, gives, gasreq, 0, pivotId));
+  }
+
+  function newOfferWithFunding(
+    address _base,
+    address _quote,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint pivotId,
+    uint amount
+  ) public returns (uint) {
+    return (
+      mgv.newOffer{value: amount}(
         _base,
         _quote,
         wants,
@@ -190,62 +215,27 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function newOffer(
-    address base,
-    address quote,
     uint wants,
     uint gives,
     uint gasreq,
+    uint gasprice,
     uint pivotId
   ) public returns (uint) {
-    return (_mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId));
+    return (mgv.newOffer(base, quote, wants, gives, gasreq, gasprice, pivotId));
   }
 
   function newOfferWithFunding(
-    address base,
-    address quote,
     uint wants,
     uint gives,
     uint gasreq,
+    uint gasprice,
     uint pivotId,
     uint amount
   ) public returns (uint) {
     return (
-      _mgv.newOffer{value: amount}(
+      mgv.newOffer{value: amount}(
         base,
         quote,
-        wants,
-        gives,
-        gasreq,
-        0,
-        pivotId
-      )
-    );
-  }
-
-  function newOffer(
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId
-  ) public returns (uint) {
-    return (
-      _mgv.newOffer(_base, _quote, wants, gives, gasreq, gasprice, pivotId)
-    );
-  }
-
-  function newOfferWithFunding(
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId,
-    uint amount
-  ) public returns (uint) {
-    return (
-      _mgv.newOffer{value: amount}(
-        _base,
-        _quote,
         wants,
         gives,
         gasreq,
@@ -262,7 +252,7 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint pivotId,
     uint offerId
   ) public {
-    _mgv.updateOffer(_base, _quote, wants, gives, gasreq, 0, pivotId, offerId);
+    mgv.updateOffer(base, quote, wants, gives, gasreq, 0, pivotId, offerId);
   }
 
   function updateOfferWithFunding(
@@ -273,9 +263,9 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint offerId,
     uint amount
   ) public {
-    _mgv.updateOffer{value: amount}(
-      _base,
-      _quote,
+    mgv.updateOffer{value: amount}(
+      base,
+      quote,
       wants,
       gives,
       gasreq,
@@ -286,23 +276,23 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function retractOffer(uint offerId) public returns (uint) {
-    return _mgv.retractOffer(_base, _quote, offerId, false);
+    return mgv.retractOffer(base, quote, offerId, false);
   }
 
   function retractOfferWithDeprovision(uint offerId) public returns (uint) {
-    return _mgv.retractOffer(_base, _quote, offerId, true);
+    return mgv.retractOffer(base, quote, offerId, true);
   }
 
   function provisionMgv(uint amount) public {
-    _mgv.fund{value: amount}(address(this));
+    mgv.fund{value: amount}(address(this));
   }
 
   function withdrawMgv(uint amount) public returns (bool) {
-    return _mgv.withdraw(amount);
+    return mgv.withdraw(amount);
   }
 
   function mgvBalance() public view returns (uint) {
-    return _mgv.balanceOf(address(this));
+    return mgv.balanceOf(address(this));
   }
 }
 
@@ -314,11 +304,11 @@ contract TestMaker is SimpleTestMaker, Test {
   ) SimpleTestMaker(mgv, base, quote) {}
 
   function makerPosthook(
-    ML.SingleOrder calldata order,
-    ML.OrderResult calldata result
+    MgvLib.SingleOrder calldata order,
+    MgvLib.OrderResult calldata result
   ) public virtual override {
-    if (_expectedStatus != bytes32("")) {
-      assertEq(result.mgvData, _expectedStatus, "Incorrect status message");
+    if (expectedStatus != bytes32("")) {
+      assertEq(result.mgvData, expectedStatus, "Incorrect status message");
     }
     super.makerPosthook(order, result);
   }

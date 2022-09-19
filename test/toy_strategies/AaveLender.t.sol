@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/forks/Polygon.sol";
-import "mgv_src/toy_strategies/single_user/cash_management/AdvancedAaveRetail.sol";
+import "mgv_src/toy_strategies/offer_maker/cash_management/AdvancedAaveRetail.sol";
 
 abstract contract AaveV3ModuleTest is MangroveTest {
   /* aave expectations */
@@ -70,7 +70,7 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
 
   function deployStrat() public {
     strat = new AdvancedAaveRetail({
-      _mgv: IMangrove($(mgv)),
+      mgv: IMangrove($(mgv)),
       _addressesProvider: fork.AAVE(),
       deployer: $(this)
     });
@@ -115,18 +115,15 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
 
   function execTraderStrat() public {
     // TODO logLenderStatus
-    uint offerId = strat.newOffer(
-      IOfferLogic.MakerOrder({
-        outbound_tkn: dai,
-        inbound_tkn: weth,
-        wants: 0.15 ether,
-        gives: 300 ether,
-        gasreq: strat.ofr_gasreq(),
-        gasprice: 0,
-        pivotId: 0,
-        offerId: 0
-      })
-    );
+    uint offerId = strat.newOffer({
+      outbound_tkn: dai,
+      inbound_tkn: weth,
+      wants: 0.15 ether,
+      gives: 300 ether,
+      gasreq: strat.offerGasreq(),
+      gasprice: 0,
+      pivotId: 0
+    });
 
     (, uint got, uint gave, , ) = mgv.snipes({
       outbound_tkn: $(dai),
@@ -140,18 +137,15 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
     assertApproxBalanceAndBorrow(router, dai, 700 ether, 0, $(router));
     assertApproxBalanceAndBorrow(router, weth, gave, 0, $(router));
 
-    offerId = strat.newOffer(
-      IOfferLogic.MakerOrder({
-        outbound_tkn: weth,
-        inbound_tkn: dai,
-        wants: 380 ether,
-        gives: 0.2 ether,
-        gasreq: strat.ofr_gasreq(),
-        gasprice: 0,
-        pivotId: 0,
-        offerId: 0
-      })
-    );
+    offerId = strat.newOffer({
+      outbound_tkn: weth,
+      inbound_tkn: dai,
+      wants: 380 ether,
+      gives: 0.2 ether,
+      gasreq: strat.offerGasreq(),
+      gasprice: 0,
+      pivotId: 0
+    });
 
     vm.warp(block.timestamp + 10);
     (uint successes, , , , ) = mgv.snipes({
@@ -166,18 +160,15 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
 
     assertApproxBalanceAndBorrow(router, weth, 0, 0.05 ether, $(router));
 
-    offerId = strat.newOffer(
-      IOfferLogic.MakerOrder({
-        outbound_tkn: dai,
-        inbound_tkn: weth,
-        wants: 0.63 ether,
-        gives: 1500 ether,
-        gasreq: strat.ofr_gasreq(),
-        gasprice: 0,
-        pivotId: 0,
-        offerId: 0
-      })
-    );
+    offerId = strat.newOffer({
+      outbound_tkn: dai,
+      inbound_tkn: weth,
+      wants: 0.63 ether,
+      gives: 1500 ether,
+      gasreq: strat.offerGasreq(),
+      gasprice: 0,
+      pivotId: 0
+    });
 
     // cannot borrowrepay in same block
     vm.warp(block.timestamp + 1);

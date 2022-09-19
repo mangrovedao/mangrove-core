@@ -23,13 +23,13 @@ contract SwingingMarketMaker is CompoundTrader {
 
   constructor(
     address _unitroller,
-    IMangrove _MGV,
+    IMangrove mgv,
     address wethAddress,
     address deployer
   ) 
   CompoundModule(_unitroller, wethAddress) 
   // note this is bad, one should be using AaaveRouters to do this
-  SingleUser(_MGV, new SimpleRouter(deployer), address(this)) {
+  SingleUser(mgv, new SimpleRouter(deployer), address(this)) {
     if (deployer != msg.sender) {
       setAdmin(deployer);
     }

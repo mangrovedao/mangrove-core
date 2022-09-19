@@ -23,7 +23,9 @@ import "./AbstractRouter.sol";
 ///@dev Maker contracts using this router must make sur that reserve approves the router for all asset that will be pulled (outbound tokens)
 /// Thus contract using a vault that is not an EOA must make sure this vault has approval capacities.
 
-contract SimpleRouter is AbstractRouter(50_000) {
+contract SimpleRouter is
+  AbstractRouter(70_000) // fails for < 70K with Direct strat
+{
   // requires approval of `reserve`
   function __pull__(
     IERC20 token,

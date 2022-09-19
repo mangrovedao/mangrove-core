@@ -2,7 +2,7 @@
 pragma solidity ^0.8.14;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/strategies/single_user/market_making/mango/Mango.sol";
+import "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
 import "mgv_src/strategies/routers/AaveRouter.sol";
 import "mgv_test/lib/forks/Polygon.sol";
 
@@ -94,14 +94,14 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     router.bind($(mgo));
 
     // liquidity router will pull funds from AAVE
-    mgo.set_router(router);
-    mgo.set_reserve($(router));
+    mgo.setRouter(router);
+    mgo.setReserve($(router));
 
     // computing necessary provision (which has changed because of new router GAS_OVERHEAD)
     uint prov = mgo.getMissingProvision({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      gasreq: mgo.ofr_gasreq(),
+      gasreq: mgo.offerGasreq(),
       gasprice: 0,
       offerId: 0
     });
@@ -115,7 +115,7 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     tokens[0] = weth;
     tokens[1] = usdc;
 
-    vm.expectRevert("Router/NotApprovedByMakerContract");
+    vm.expectRevert("MangroveOffer/LogicMustApproveRouter");
     mgo.checkList(tokens);
 
     // no need to approve for overlying transfer because router is the reserve

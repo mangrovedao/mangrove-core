@@ -11,24 +11,31 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "mgv_src/strategies/multi_user/abstract/Persistent.sol";
+import "mgv_src/strategies/offer_forwarder/OfferForwarder.sol";
 import "mgv_src/strategies/routers/AaveDeepRouter.sol";
 
-contract OfferProxy is MultiUserPersistent {
+contract OfferProxy is OfferForwarder {
   constructor(
     address _addressesProvider,
-    IMangrove _MGV,
+    IMangrove mgv,
     address deployer
   )
-    MultiUserPersistent(
-      _MGV,
-      new AaveDeepRouter(_addressesProvider, 0, 2),
-      50_000
+    OfferForwarder(
+      mgv,
+      msg.sender
     )
   {
-    router().set_admin(deployer);
+    // OfferForwarder has a SimpleRouter by default
+    // replacing this router with an Aave one
+    AaveDeepRouter _router = new AaveDeepRouter(_addressesProvider, 0, 2);
+    // adding `this` contract to the authorized makers of this router (this will work because `this` contract is the admin/deployer of `router_`)
+    _router.bind(address(this));
+    // setting aave router to be the router of this contract (allowed since this contract is admin of the router)
+    setRouter(_router);
+    // changing router admin for further modification
+    _router.setAdmin(deployer);
     if (deployer != msg.sender) {
-      set_admin(deployer);
+      setAdmin(deployer);
     }
   }
 }

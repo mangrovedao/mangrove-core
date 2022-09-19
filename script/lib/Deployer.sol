@@ -114,7 +114,7 @@ abstract contract Deployer is Script2 {
         bool end = i + 1 == names.length;
         line("  {");
         line(string.concat('    "address": "', vm.toString(addrs[i]), '",'));
-        line(string.concat('    "isToken": ', vm.toString(isToken[i]), ""));
+        line(string.concat('    "isToken": ', vm.toString(isToken[i]), ","));
         line(string.concat('    "name": "', names[i], '"'));
         line(string.concat("  }", end ? "" : ","));
       }

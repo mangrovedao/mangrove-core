@@ -430,9 +430,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     MgvLib.OrderResult calldata result
   ) internal virtual override returns (bytes32) {
     result; // ssh
-    IERC20 outTkn = IERC20(order.outbound_tkn);
-    IERC20 inTkn = IERC20(order.inbound_tkn);
-    mapping(uint => OwnerData) storage semiBookOwnerData = ownerData[outTkn][inTkn];
+    mapping(uint => OwnerData) storage semiBookOwnerData = ownerData[IERC20(order.outbound_tkn)][IERC20(order.inbound_tkn)];
     OwnerData memory od = semiBookOwnerData[order.offerId];
     // NB if several offers of `this` contract have failed during the market order, the balance of this contract on Mangrove will contain cumulated free provision
 

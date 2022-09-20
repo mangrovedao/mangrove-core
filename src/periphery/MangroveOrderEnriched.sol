@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// Persistent.sol
+// MangroveOrder.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -41,7 +41,9 @@ contract MangroveOrderEnriched is MangroveOrder {
   ) internal virtual override {
     //TODO: [lnist] Nothing trims the list, so it just grows indefinitely for each owner.
     // Push new offerId as the new head
-    mapping(uint => uint) storage offers = next[outbound_tkn][inbound_tkn][owner];
+    mapping(uint => uint) storage offers = next[outbound_tkn][inbound_tkn][
+      owner
+    ];
     uint head = offers[0];
     offers[0] = offerId;
     if (head != 0) {
@@ -64,13 +66,17 @@ contract MangroveOrderEnriched is MangroveOrder {
   ) external view returns (uint[] memory live, uint[] memory dead) {
     // Iterate all offers for owner twice since we cannot use array.push on memory arrays.
     // First to get number of live and dead to allocate arrays.
-    mapping(uint => uint) storage offers = next[outbound_tkn][inbound_tkn][owner];
+    mapping(uint => uint) storage offers = next[outbound_tkn][inbound_tkn][
+      owner
+    ];
     uint head = offers[0];
     uint id = head;
     uint nLive = 0;
     uint nDead = 0;
     while (id != 0) {
-      if (MGV.isLive(MGV.offers(address(outbound_tkn), address(inbound_tkn), id))) {
+      if (
+        MGV.isLive(MGV.offers(address(outbound_tkn), address(inbound_tkn), id))
+      ) {
         nLive++;
       } else {
         nDead++;
@@ -84,7 +90,9 @@ contract MangroveOrderEnriched is MangroveOrder {
     nLive = 0;
     nDead = 0;
     while (id != 0) {
-      if (MGV.isLive(MGV.offers(address(outbound_tkn), address(inbound_tkn), id))) {
+      if (
+        MGV.isLive(MGV.offers(address(outbound_tkn), address(inbound_tkn), id))
+      ) {
         live[nLive++] = id;
       } else {
         dead[nDead++] = id;

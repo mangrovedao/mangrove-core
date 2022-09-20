@@ -819,6 +819,18 @@ contract Script2 is Script {
     }
   }
 
+  function iercs(address[] memory addresses)
+    internal
+    pure
+    returns (IERC20[] memory)
+  {
+    IERC20[] memory ierc20_array = new IERC20[](addresses.length);
+    for (uint i = 0; i < addresses.length; i++) {
+      ierc20_array[i] = IERC20(addresses[i]);
+    }
+    return ierc20_array;
+  }
+
   /// @notice Convert a bytes32 array to a string array
   /// @param bs an array of bytes32
   /// @return ss an array of strings

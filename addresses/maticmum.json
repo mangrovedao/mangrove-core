@@ -1,21 +1,21 @@
 [
   {
-    "address": "0x61f197C305d74561D18c35b4Bef8eFbB755a7511",
+    "address": "0xF3e339d8a0B989114412fa157Cc846ebaf4BCbd8",
     "isToken": false,
     "name": "Mangrove"
   },
   {
-    "address": "0x1b9765bB6dCdA0079643060D67Bf1d7C97350F24",
+    "address": "0xfAB31d37f8DF5bff07Bb3c16B33416eCd4Aab76F",
     "isToken": false,
     "name": "MgvReader"
   },
   {
-    "address": "0x6129f87d7c926b85126b046a18cB0FaFbf6E6BbF",
+    "address": "0xEb05Ace3574B0a6f4696c5CcD09e730d6d5ED3b0",
     "isToken": false,
     "name": "MgvCleaner"
   },
   {
-    "address": "0x1A70eB5aE85cB62770d4e501117E07f22EbcfB3E",
+    "address": "0xd38c02425da847584eeDA72387DAAA2E8f3b90c8",
     "isToken": false,
     "name": "MgvOracle"
   },

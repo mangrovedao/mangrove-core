@@ -13,8 +13,8 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 import "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import "mgv_src/strategies/routers/SimpleRouter.sol";
-import {MgvLib } from "mgv_src/MgvLib.sol";
-import { Offer } from "mgv_src/preprocessed/MgvPack.post.sol";
+import {MgvLib} from "mgv_src/MgvLib.sol";
+import {Offer} from "mgv_src/preprocessed/MgvPack.post.sol";
 
 contract Ghost is Direct {
   IERC20 public immutable STABLE1;
@@ -27,7 +27,7 @@ contract Ghost is Direct {
 
   //           MangroveOffer <-- makerExecute
   //                  /\
-  //                 / \   
+  //                 / \
   //        Forwarder  Direct <-- offer management (our entry point)
   //    OfferForwarder  OfferMaker <-- new offer posting
 
@@ -35,7 +35,8 @@ contract Ghost is Direct {
     IMangrove mgv,
     IERC20 stable1,
     IERC20 stable2
-  ) Direct (mgv, new SimpleRouter()) { // SimpleRouter takes promised liquidity from admin's address (wallet)
+  ) Direct(mgv, new SimpleRouter()) {
+    // SimpleRouter takes promised liquidity from admin's address (wallet)
     STABLE1 = stable1;
     STABLE2 = stable2;
   }
@@ -46,7 +47,8 @@ contract Ghost is Direct {
     @notice these offer's provision must be in msg.value
     @notice admin must have approved base for MGV transfer prior to calling this function
      */
-  function newGhostOffers( // this function posts two asks 
+  function newGhostOffers(
+    // this function posts two asks
     IERC20 base,
     uint gives,
     uint wants1,
@@ -70,7 +72,7 @@ contract Ghost is Direct {
       !MGV.isLive(MGV.offers(address(base), address(STABLE2), offerId2)),
       "Ghost/offer2AlreadyActive"
     );
-    // FIXME the above requirements are not enough because offerId might be live on another base, stable market 
+    // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
     offerId1 = MGV.newOffer{value: msg.value}({
       outbound_tkn: address(base),
@@ -95,13 +97,12 @@ contract Ghost is Direct {
   }
 
   ///FIXME a possibility is to update the alt offer during makerExecute
-  /// to do this we can override `__lastLook__` which is a hook called at the beginning of `makerExecute` 
+  /// to do this we can override `__lastLook__` which is a hook called at the beginning of `makerExecute`
 
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
-    internal
-    override
-    returns (bytes32)
-  {
+  function __posthookSuccess__(
+    MgvLib.SingleOrder calldata order,
+    bytes32 makerData
+  ) internal override returns (bytes32) {
     // reposts residual if any (conservative hook)
     bytes32 repost_status = super.__posthookSuccess__(order, makerData);
     // write here what you want to do if not `reposted`
@@ -141,7 +142,8 @@ contract Ghost is Direct {
         gasprice: 0
       });
       return "posthook/bothOfferReposted";
-    } else { // repost failed or offer was entirely taken
+    } else {
+      // repost failed or offer was entirely taken
       MGV.retractOffer({
         outbound_tkn: address(order.outbound_tkn),
         inbound_tkn: address(order.inbound_tkn),
@@ -160,7 +162,7 @@ contract Ghost is Direct {
 
   function __posthookFallback__(
     MgvLib.SingleOrder calldata order,
-    MgvLib.OrderResult calldata result
+    MgvLib.OrderResult calldata
   ) internal override returns (bytes32) {
     // if we reach this code, trade has failed for lack of base token
     (IERC20 alt_stable, uint alt_offerId) = IERC20(order.inbound_tkn) == STABLE1

@@ -1,17 +1,38 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.13;
 
+/* Onchain contract registry with the following features:
+ * stores whether an address is a token or not through the _isToken mapping
+ * stores the list of mapped names
+ */
+
 contract ToyENS {
-  mapping(string => address) _addrs;
+  mapping(string => address) public _addrs;
   mapping(string => bool) _isToken;
   string[] _names;
 
+  /* ! Warning ! */
+  /* ToyENS should not have any constructor code because its deployed code is sometimes directly written to addresses, either using vm.etch or using anvil_setCode. */
+
+
   function get(string calldata name)
+    public
+    view
+    returns (address payable addr)
+  {
+    addr = payable(_addrs[name]);
+    require(
+      addr != address(0),
+      string.concat("ToyENS: address not found for ", name)
+    );
+  }
+
+  function entry(string calldata name)
     external
     view
-    returns (address addr, bool isToken)
+    returns (address payable addr, bool isToken)
   {
-    addr = _addrs[name];
+    addr = get(name);
     isToken = _isToken[name];
   }
 

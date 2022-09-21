@@ -36,8 +36,8 @@ contract OfferLogicTest is MangroveTest {
       fork.setUp();
       mgv = setupMangrove();
       mgv.setVault($(mgv));
-      weth = TestToken(fork.WETH());
-      usdc = TestToken(fork.USDC());
+      weth = TestToken(fork.get("WETH"));
+      usdc = TestToken(fork.get("USDC"));
       setupMarket(weth, usdc);
       // otherwise, a generic local setup works
     } else {

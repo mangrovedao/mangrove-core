@@ -8,17 +8,27 @@ import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_ma
  * Retracts all Mango offers, and recovers funds.
  */
 
-/** Usage example (retracting 100 bids and asks from MANGO_WETH_USDC) */
+/** Usage example (retracting 100 bids and asks from MANGO_WETH_USDC)
 
-// forge script --fork-url $MUMBAI_NODE_URL \
-// --private-key $MUMBAI_TESTER_PRIVATE_KEY \
-// --sig "run(address, uint, uint)" \
-// --broadcast \
-// StopMango \
-// 0x1C9f224c402233006C438Ae081Ed35697b2A4919 0 100
+    MANGO=0x1C9f224c402233006C438Ae081Ed35697b2A4919 \
+    FROM=0 \
+    TO=100 \
+    forge script --fork-url $MUMBAI_NODE_URL \
+    --private-key $MUMBAI_TESTER_PRIVATE_KEY \
+    --broadcast \
+    StopMango
+*/
 
 contract StopMango is Script {
-  function run(
+  function run() public {
+    innerRun({
+      $mgo: payable(vm.envAddress("MANGO")),
+      from: vm.envUint("FROM"),
+      to: vm.envUint("TO")
+    });
+  }
+
+  function innerRun(
     address payable $mgo,
     uint from,
     uint to

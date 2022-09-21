@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Script, console} from "forge-std/Script.sol";
+import {Script} from "forge-std/Script.sol";
 
 import "mgv_src/Mangrove.sol";
 import "mgv_src/periphery/MgvReader.sol";
@@ -30,25 +30,25 @@ contract MangroveDeployer is Deployer {
   ) public {
     vm.broadcast();
     mgv = new Mangrove({governance: chief, gasprice: gasprice, gasmax: gasmax});
-    ens.set("Mangrove", address(mgv));
+    fork.set("Mangrove", address(mgv));
 
     vm.broadcast();
     reader = new MgvReader({mgv: payable(mgv)});
-    ens.set("MgvReader", address(reader));
+    fork.set("MgvReader", address(reader));
 
     vm.broadcast();
     cleaner = new MgvCleaner({mgv: address(mgv)});
-    ens.set("MgvCleaner", address(cleaner));
+    fork.set("MgvCleaner", address(cleaner));
 
     vm.broadcast();
     oracle = new MgvOracle({_governance: chief, _initialMutator: chief});
-    ens.set("MgvOracle", address(oracle));
+    fork.set("MgvOracle", address(oracle));
 
     vm.broadcast();
     mgoe = new MangroveOrderEnriched({
       mgv: IMangrove(payable(mgv)),
       deployer: chief
     });
-    ens.set("MangroveOrderEnriched", address(mgoe));
+    fork.set("MangroveOrderEnriched", address(mgoe));
   }
 }

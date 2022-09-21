@@ -1,83 +1,235 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {Script} from "forge-std/Script.sol";
+import {Script, console} from "forge-std/Script.sol";
+import {ToyENS} from "mgv_script/lib/ToyENS.sol";
 
+/* A record entry in an addresses JSON file */
+struct Record {
+  address addr;
+  bool isToken;
+  string name;
+}
+
+/* 
+Note: when you add a *Fork contract, to have it available in deployment scripts,
+remember to add it to the initialized forks in Deployer.sol.
+*/
 contract GenericFork is Script {
   uint public INTERNAL_FORK_ID;
   uint public CHAIN_ID;
-  string public NAME = "generic";
+  string public NAME = "genericName";
+  string public NETWORK = "genericNetwork"; // common network name, used as <NETWORK>.json filename
   uint public BLOCK_NUMBER;
 
-  address public AAVE;
-  address public APOOL;
-  address public WETH;
-  address public AUSDC;
-  address public USDC;
-  address public AWETH;
-  address public DAI;
-  address public ADAI;
-  address public CDAI;
-  address public CUSDC;
-  address public CWETH;
+  // context addresses (aave, gas update bot, etc)
+  ToyENS context;
+  // addresses we deploy
+  ToyENS deployed;
+
+  constructor() {
+    context = new ToyENS();
+    vm.makePersistent(address(context));
+    deployed = new ToyENS();
+    vm.makePersistent(address(deployed));
+  }
+
+  // this contract can be used in an already-forked environment, in which case
+  // methods such as roll(), select() are unusable (since we don't have a handle on the current fork).
+  bool readonly = false;
+
+  /* get/set addresses, passthrough to context/deployed ToyENS instances */
+
+  function set(
+    string memory name,
+    address addr,
+    bool isToken
+  ) public {
+    require(
+      context._addrs(name) == address(0),
+      "Fork: context addresses cannot be changed."
+    );
+    deployed.set(name, addr, isToken);
+    label(addr, name);
+  }
+
+  function set(string memory name, address addr) public {
+    set(name, addr, false);
+  }
+
+  function get(string memory name) public view returns (address payable) {
+    try context.get(name) returns (address payable addr) {
+      return addr;
+    } catch {
+      return deployed.get(name);
+    }
+  }
+
+  function allDeployed()
+    public
+    view
+    returns (
+      string[] memory,
+      address[] memory,
+      bool[] memory
+    )
+  {
+    return deployed.all();
+  }
+
+  /* Read addresses from JSON files */
+
+  function addressesFile(string memory category, string memory suffix)
+    public
+    view
+    returns (string memory)
+  {
+    return
+      string.concat(
+        vm.projectRoot(),
+        "/addresses/",
+        category,
+        "/",
+        NETWORK,
+        suffix,
+        ".json"
+      );
+  }
+
+  function addressesFile(string memory category)
+    public
+    view
+    returns (string memory)
+  {
+    return addressesFile(category, "");
+  }
+
+  function readAddresses(string memory category)
+    internal
+    returns (Record[] memory)
+  {
+    string memory fileName = addressesFile(category);
+    try vm.readFile(fileName) returns (string memory addressesRaw) {
+      if (bytes(addressesRaw).length == 0) {
+        return (new Record[](0));
+      }
+      try vm.parseJson(addressesRaw) returns (bytes memory jsonBytes) {
+        try (new Parser()).parseJsonBytes(jsonBytes) returns (
+          Record[] memory records
+        ) {
+          return records;
+        } catch {
+          revert(
+            string.concat(
+              "Fork: error parsing JSON as Record[]. File: ",
+              fileName
+            )
+          );
+        }
+      } catch {
+        revert(
+          string.concat("Fork: error parsing file as JSON. File: ", fileName)
+        );
+      }
+    } catch {
+      console.log("Fork: cannot read file. Ignoring. File: %s", fileName);
+    }
+
+    // return empty record array by default
+    return (new Record[](0));
+  }
+
+  /* Select/modify current fork
+     ! Does not impact context/deployed mappings !
+  */
+
+  function checkCanWrite() internal view {
+    require(!readonly, "Cannot manipulate current fork");
+  }
 
   function roll() public {
+    checkCanWrite();
     vm.rollFork(INTERNAL_FORK_ID);
   }
 
   function roll(uint blockNumber) public {
+    checkCanWrite();
     vm.rollFork(INTERNAL_FORK_ID, blockNumber);
   }
 
   function select() public {
+    checkCanWrite();
     vm.selectFork(INTERNAL_FORK_ID);
   }
 
   function setUp() public virtual {
+    // label ToyENS instances
+    label(address(context), "Context ENS");
+    label(address(deployed), "Deployed ENS");
+
+    // check that we are not a GenericFork instance
     if (CHAIN_ID == 0) {
       revert(
         "No fork selected: you should pick a subclass of GenericFork with a nonzero CHAIN_ID."
       );
     }
 
-    label(AAVE, "Aave");
-    label(APOOL, "Aave Pool");
-    label(WETH, "WETH");
-    label(AUSDC, "AUSDC");
-    label(USDC, "USDC");
-    label(AWETH, "AWETH");
-    label(DAI, "DAI");
-    label(ADAI, "ADAI");
-    label(CDAI, "CDAI");
-    label(CUSDC, "CUSDC");
-    label(CWETH, "CWETH");
-
+    // survive all fork operations
     vm.makePersistent(address(this));
 
-    if (BLOCK_NUMBER == 0) {
-      // 0 means latest
-      INTERNAL_FORK_ID = vm.createFork(vm.rpcUrl(NAME));
-    } else {
-      INTERNAL_FORK_ID = vm.createFork(vm.rpcUrl(NAME), BLOCK_NUMBER);
+    // read addresses from JSON files
+    Record[] memory records = readAddresses("context");
+    for (uint i = 0; i < records.length; i++) {
+      context.set(records[i].name, records[i].addr, records[i].isToken);
+      label(records[i].addr, records[i].name);
+    }
+    records = readAddresses("deployed");
+    for (uint i = 0; i < records.length; i++) {
+      set(records[i].name, records[i].addr, records[i].isToken);
     }
 
-    vm.selectFork(INTERNAL_FORK_ID);
-
+    // if already forked, ignore BLOCK_NUMBER & don't re-fork
     if (block.chainid != CHAIN_ID) {
-      revert(
-        string.concat(
-          "Chain id should be ",
-          vm.toString(CHAIN_ID),
-          " (",
-          NAME,
-          "), is ",
-          vm.toString(block.chainid)
-        )
-      );
+      if (BLOCK_NUMBER == 0) {
+        // 0 means latest
+        INTERNAL_FORK_ID = vm.createFork(vm.rpcUrl(NAME));
+      } else {
+        INTERNAL_FORK_ID = vm.createFork(vm.rpcUrl(NAME), BLOCK_NUMBER);
+      }
+
+      vm.selectFork(INTERNAL_FORK_ID);
+
+      if (block.chainid != CHAIN_ID) {
+        revert(
+          string.concat(
+            "Chain id should be ",
+            vm.toString(CHAIN_ID),
+            " (",
+            NAME,
+            "), is ",
+            vm.toString(block.chainid)
+          )
+        );
+      }
+    } else {
+      readonly = true;
     }
   }
 
+  // append current fork name to address & label it
   function label(address addr, string memory str) internal {
-    vm.label(addr, string.concat(str, "(", NAME, ")"));
+    vm.label(addr, string.concat(str, " (", NAME, ")"));
+  }
+}
+
+/* Gadget contract which parses given bytes as Record[]. 
+   Useful for catching abi.decode errors. */
+contract Parser {
+  function parseJsonBytes(bytes memory jsonBytes)
+    external
+    pure
+    returns (Record[] memory)
+  {
+    return abi.decode(jsonBytes, (Record[]));
   }
 }

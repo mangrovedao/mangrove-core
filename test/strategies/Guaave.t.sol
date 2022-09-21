@@ -43,8 +43,8 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     mgv = setupMangrove();
     mgv.setVault($(mgv));
 
-    weth = IERC20(fork.WETH());
-    usdc = IERC20(fork.USDC());
+    weth = IERC20(fork.get("WETH"));
+    usdc = IERC20(fork.get("USDC"));
     options.defaultFee = 30;
     setupMarket(weth, usdc);
 
@@ -86,7 +86,7 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     // router will redeem and deposit funds that are mobilized during trade execution
     vm.startPrank(maker);
     router = new AaveRouter({
-      _addressesProvider: fork.AAVE(),
+      _addressesProvider: fork.get("Aave"),
       _referralCode: 0,
       _interestRateMode: 1 // stable rate
     });
@@ -150,7 +150,7 @@ abstract contract GuaaveAbstractTest is MangroveTest {
   }
 
   function part_market_order_with_buffer() public {
-    IERC20 aweth = IERC20(fork.AWETH());
+    IERC20 aweth = IERC20(fork.get("AWETH"));
     uint takerWants = 3 ether;
     vm.startPrank(taker);
     weth.approve($(mgv), type(uint).max);
@@ -193,6 +193,6 @@ abstract contract GuaaveAbstractTest is MangroveTest {
 
 contract GuaavePolygonTest is GuaaveAbstractTest {
   constructor() {
-    fork = new PolygonFork();
+    fork = new PinnedPolygonFork();
   }
 }

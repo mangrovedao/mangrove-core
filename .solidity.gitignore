@@ -12,3 +12,6 @@ cache
 # broadcast files, ignore local deploys
 broadcast/*
 addresses/local.json
+# ignore versioned deployment files
+addresses/**/*.backup.json
+# 

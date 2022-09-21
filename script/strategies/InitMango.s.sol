@@ -5,21 +5,32 @@ import {Script, console} from "forge-std/Script.sol";
 import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
 
 /** @notice Initialize Mango offers on a given market */
-/** Usage example: initialize MANGO_WETH_USDC */
+/** Usage example: initialize MANGO_WETH_USDC
 
-// forge script --fork-url $MUMBAI_NODE_URL \
-// --private-key $MUMBAI_TESTER_PRIVATE_KEY \
-// --sig "run(address, uint, uint, uint, uint, uint)" \
-// InitMango \
-// 0x7D63939ce0Fa80cC69C129D337a978D0E1F354A1 \
-// $(cast ff 18 0.25) \
-// $(cast ff 6 1000) \
-// 50 \
-// 10 \
-// 2
+    MANGO=0x7D63939ce0Fa80cC69C129D337a978D0E1F354A1 \
+    DEFAULT_BASE_AMOUNT=$(cast ff 18 0.25) \
+    DEFAULT_QUOTE=_AMOUNT=$(cast ff 6 1000) \
+    LAST_BID_INDEX=50 \
+    BATCH_SIZE=10 \
+    COVER_FACTOR=2 \
+    forge script --fork-url $MUMBAI_NODE_URL \
+    --private-key $MUMBAI_TESTER_PRIVATE_KEY \
+    InitMango
+*/
 
 contract InitMango is Script {
-  function run(
+  function run() public {
+    innerRun({
+      $mgo: payable(vm.envAddress("MANGO")),
+      default_base_amount: vm.envUint("DEFAULT_BASE_AMOUNT"),
+      default_quote_amount: vm.envUint("DEFAULT_QUOTE_AMOUNT"),
+      lastBidIndex: vm.envUint("LAST_BID_INDEX"),
+      batch_size: vm.envUint("BATCH_SIZE"),
+      cover_factor: vm.envUint("COVER_FACTOR")
+    });
+  }
+
+  function innerRun(
     address payable $mgo,
     uint default_base_amount, // for asks
     uint default_quote_amount, // for bids

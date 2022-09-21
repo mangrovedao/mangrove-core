@@ -1,0 +1,57 @@
+[
+  {
+    "address": "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
+    "isToken": false,
+    "name": "Aave"
+  },
+  {
+    "address": "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
+    "isToken": false,
+    "name": "Aave Pool"
+  },
+  {
+    "address": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+    "isToken": false,
+    "name": "WETH"
+  },
+  {
+    "address": "0x625E7708f30cA75bfd92586e17077590C60eb4cD",
+    "isToken": false,
+    "name": "AUSDC"
+  },
+  {
+    "address": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+    "isToken": false,
+    "name": "USDC"
+  },
+  {
+    "address": "0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8",
+    "isToken": false,
+    "name": "AWETH"
+  },
+  {
+    "address": "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
+    "isToken": false,
+    "name": "DAI"
+  },
+  {
+    "address": "0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE",
+    "isToken": false,
+    "name": "ADAI"
+  },
+  {
+    "address": "0x4eCEDdF62277eD78623f9A94995c680f8fd6C00e",
+    "isToken": false,
+    "name": "CDAI"
+  },
+  {
+    "address": "0x73CF8c5D14Aa0EbC89f18272A568319F5BAB6cBD",
+    "isToken": false,
+    "name": "CUSDC"
+  },
+  {
+    "address": "0x7ef18d0a9C3Fb1A716FF6c3ED0Edf52a2427F716",
+    "isToken": false,
+    "name": "CWETH"
+  }
+]

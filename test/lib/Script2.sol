@@ -3,10 +3,30 @@ pragma solidity ^0.8.13;
 import {console2 as console} from "forge-std/console2.sol";
 import {Script} from "forge-std/Script.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
+import {ToyENS} from "mgv_script/lib/ToyENS.sol";
 
 /* Some general utility methods.
 /* You may want to inherit `MangroveTest` (which inherits Test2` which inherits `Script2`) rather than inherit `Script2` directly */
 contract Script2 is Script {
+  /* *** Singleton ***
+    Shared global refs for multiple contracts. Better than `vm.etch(hash(name),address(new Contract()).code)`, which does *not* carry over state modification caused by the constructor.
+  */
+    
+  ToyENS _singletons;
+  function singleton(string memory name) public returns (address) {
+    if (address(_singletons).code.length == 0) {
+      vm.etch(address(_singletons),address(new ToyENS()).code);
+      return address(0);
+    } else {
+      return _singletons._addrs(name);
+    }
+  }
+
+  function singleton(string memory name,address addr) public {
+    require(singleton(name) == address(0),"Script2: cannot update existing singleton");
+    _singletons.set(name,addr);
+  }
+
   /* *** Logging *** */
   /* Log arrays */
 
@@ -102,6 +122,19 @@ contract Script2 is Script {
   }
 
   /* *********  ARRAY UTILITIES */
+
+  /* *******
+     Convert T[] arrays to U[] arrays
+  */
+  function toIERC20(address[] memory addrs)
+    internal
+    pure
+    returns (IERC20[] memory ierc20s)
+  {
+    assembly {
+      ierc20s := addrs
+    }
+  }
 
   /* *******
      wrap_dynamic(x) wraps x in a size-1 dynamic array
@@ -817,18 +850,6 @@ contract Script2 is Script {
     } else {
       return uint(i);
     }
-  }
-
-  function iercs(address[] memory addresses)
-    internal
-    pure
-    returns (IERC20[] memory)
-  {
-    IERC20[] memory ierc20_array = new IERC20[](addresses.length);
-    for (uint i = 0; i < addresses.length; i++) {
-      ierc20_array[i] = IERC20(addresses[i]);
-    }
-    return ierc20_array;
   }
 
   /// @notice Convert a bytes32 array to a string array

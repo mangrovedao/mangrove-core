@@ -1,26 +1,40 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Deployer, console} from "./lib/Deployer.sol";
-import {MangroveOrderEnriched} from "mgv_src/periphery/MangroveOrderEnriched.sol";
+import {console} from "forge-std/console.sol";
+import {Script2} from "mgv_test/lib/Script2.sol";
+import {MangroveOrder} from "mgv_src/periphery/MangroveOrder.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
+import {Deployer} from "mgv_script/lib/Deployer.sol";
 
-/** @notice Allows MangroveOrder to trade on the tokens given in argument.  */
-// TOKENS="$WETH,$DAI,$USDC" forge script --fork-url $MUMBAI_NODE_URL \
-// --private-key $MUMBAI_DEPLOYER_PRIVATE_KEY \
-// --sig "run()" \
-// --etherscan-api-key $POLYGONSCAN_API \
-// --verify \
-// ActivateMangroveOrder
-contract ActivateMangroveOrder is Deployer {
+/*  Allows MangroveOrder to trade on the tokens given in argument.
+
+    mgvOrder: address of MangroveOrder(Enriched) contract
+    tkns: array of token addresses to activate
+   
+    The TKNS env variable should be given as a comma-separated list of addresses.
+    For instance, if you have the DAI and USDC env vars set:
+
+      TKNS="$DAI,$USDC" forge script ...
+
+*/
+
+
+
+contract ActivateMangroveOrder is Script2, Deployer {
   function run() public {
-    (address $mgo, ) = ens.get("MangroveOrderEnriched");
-    address[] memory tokens = vm.envAddress("TOKENS", ",");
-    console.log("Will activate MangroveOrder", $mgo);
-    for (uint i = 0; i < tokens.length; i++) {
-      console.log(IERC20(tokens[i]).symbol(), "...");
+    innerRun({
+      mgvOrder: MangroveOrder(fork.get("MangroveOrderEnriched")),
+      tkns: toIERC20(vm.envAddress("TKNS",","))
+    });
+  }
+
+  function innerRun(MangroveOrder mgvOrder, IERC20[] memory tkns) public {
+    console.log("Activating the following tokens:");
+    for (uint i = 0; i < tkns.length; i++) {
+      console.log("%s (%s)",IERC20(tkns[i]).symbol(), address(tkns[i]));
     }
     vm.broadcast();
-    MangroveOrderEnriched(payable($mgo)).activate(iercs(tokens));
+    MangroveOrder(payable(mgvOrder)).activate(tkns);
   }
 }

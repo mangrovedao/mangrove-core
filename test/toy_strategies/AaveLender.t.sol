@@ -44,14 +44,14 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
   receive() external payable {}
 
   function setUp() public override {
-    fork = new PolygonFork();
+    fork = new PinnedPolygonFork();
     fork.setUp();
 
     mgv = setupMangrove();
     mgv.setVault($(mgv));
 
-    dai = IERC20(fork.DAI());
-    weth = IERC20(fork.WETH());
+    dai = IERC20(fork.get("DAI"));
+    weth = IERC20(fork.get("WETH"));
     options.defaultFee = 30;
     setupMarket(dai, weth);
 
@@ -71,7 +71,7 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
   function deployStrat() public {
     strat = new AdvancedAaveRetail({
       mgv: IMangrove($(mgv)),
-      _addressesProvider: fork.AAVE(),
+      _addressesProvider: fork.get("Aave"),
       deployer: $(this)
     });
 

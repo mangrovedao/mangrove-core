@@ -5,14 +5,16 @@ import {Script, console} from "forge-std/Script.sol";
 import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
 
 /** @notice Shifts Mango down or up to reequilibrate the OB */
-/** Usage example (shifting MANGO_WETH_USDC of `shift` positions*/
+/** Usage example (shifting MANGO_WETH_USDC of `shift` positions
 
-// forge script --fork-url $MUMBAI_NODE_URL \
-// --private-key $MUMBAI_TESTER_PRIVATE_KEY \
-// --sig "run(address, int, uint)" \
-// --broadcast \
-// ShiftMango \
-// 0x62EaBFE2e66dd9421b06042A0F10167BF62C97A3 5 $(cast ff 6 1000)
+    MANGO=0x62EaBFE2e66dd9421b06042A0F10167BF62C97A3 \
+    SHIFT=5 \
+    DEFAULT_GIVES_AMOUNT=$(cast ff 6 1000) \
+    forge script --fork-url $MUMBAI_NODE_URL \
+    --private-key $MUMBAI_TESTER_PRIVATE_KEY \
+    --broadcast \
+    ShiftMango
+*/
 
 contract ShiftMango is Script {
   Mango MGO;
@@ -21,7 +23,15 @@ contract ShiftMango is Script {
   uint NSLOTS;
   uint absShift;
 
-  function run(
+  function run() public {
+    innerRun({
+      mgo: payable(vm.envAddress("MANGO")),
+      shift: vm.envInt("SHIFT"),
+      default_gives_amount: vm.envUint("DEFAULT_GIVES_AMOUNT")
+    });
+  }
+
+  function innerRun(
     address payable mgo,
     int shift,
     uint default_gives_amount // in base amount if shift < 0, in quote amount otherwise

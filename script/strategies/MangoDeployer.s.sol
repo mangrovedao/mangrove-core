@@ -6,26 +6,39 @@ import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_ma
 import {Deployer} from "../lib/Deployer.sol";
 
 /** @notice deploys a Mango instance on a given market */
-/** e.g deploy mango on WETH USDC market: */
-// forge script --fork-url $MUMBAI_NODE_URL \
-// --private-key $MUMBAI_DEPLOYER_PRIVATE_KEY \
-// --sig "run(address, address, address, uint, uint, uint, uint, address)" \
-// --etherscan-api-key $POLYGONSCAN_API \
-// --broadcast \
-// --verify \
-// MangoDeployer \
-// $MANGROVE \
-// $WETH \
-// $USDC \
-// $(cast ff 18 1) \
-// $(cast ff 6 200) \
-// 100 \
-// $(cast ff 6 30) \
-// $MUMBAI_TESTER_ADDRESS
+/** e.g deploy mango on WETH USDC market:
+
+    BASE=$WETH \
+    QUOTE=$USDC \
+    BASE_0=$(cast ff 18 1) \
+    QUOTE_0=$(cast ff 6 200) \
+    NSLOTS=100 \
+    PRICE_INCR=$(cast ff 6 30) \
+    ADMIN=$MUMBAI_TESTER_ADDRESS \
+    forge script --fork-url $MUMBAI_NODE_URL \
+    --private-key $MUMBAI_DEPLOYER_PRIVATE_KEY \
+    --etherscan-api-key $POLYGONSCAN_API \
+    --broadcast \
+    --verify \
+    MangoDeployer
+
+*/
 
 contract MangoDeployer is Deployer {
+
+  function run() public {
+    innerRun({
+      base: vm.envAddress("BASE"),
+      quote: vm.envAddress("QUOTE"),
+      base_0: vm.envUint("BASE_0"),
+      quote_0: vm.envUint("QUOTE_0"),
+      nslots: vm.envUint("NSLOTS"),
+      price_incr: vm.envUint("PRICE_INCR"),
+      admin: vm.envAddress("ADMIN")
+    });
+  }
+
   /**
-  @param mgv Address of Mangrove contract 
   @param base Address of the base currency of the market Mango will act upon
   @param quote Addres of the quote of Mango's market
   @param base_0 in units of base. Amounts of initial `makerGives` for Mango's asks
@@ -35,8 +48,7 @@ contract MangoDeployer is Deployer {
   @param price_incr in units of quote. Price(i+1) = price(i) + price_incr
   @param admin address of the adim on Mango after deployment 
   */
-  function run(
-    address payable mgv,
+  function innerRun(
     address base,
     address quote,
     uint base_0,
@@ -45,6 +57,8 @@ contract MangoDeployer is Deployer {
     uint price_incr,
     address admin
   ) public {
+    IMangrove mgv = IMangrove(fork.get("Mangrove"));
+
     console.log(
       "Deploying Mango on market",
       IERC20(base).symbol(),
@@ -52,7 +66,7 @@ contract MangoDeployer is Deployer {
     );
     vm.broadcast();
     Mango mgo = new Mango(
-      IMangrove(mgv),
+      mgv,
       IERC20(base),
       IERC20(quote),
       base_0,

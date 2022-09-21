@@ -7,5 +7,6 @@ contract LocalFork is GenericFork {
   constructor() {
     CHAIN_ID = 31337;
     NAME = "local";
+    NETWORK = "local";
   }
 }

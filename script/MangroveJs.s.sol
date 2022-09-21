@@ -53,7 +53,7 @@ contract MangroveJsDeploy is Deployer {
       symbol: "TokenA",
       _decimals: 18
     });
-    fork.set("TokenA", address(tokenA), true);
+    fork.set("TokenA", address(tokenA));
 
     vm.broadcast();
     tokenB = new TestToken({
@@ -62,7 +62,7 @@ contract MangroveJsDeploy is Deployer {
       symbol: "TokenB",
       _decimals: 18
     });
-    fork.set("TokenB", address(tokenB), true);
+    fork.set("TokenB", address(tokenB));
 
     vm.broadcast();
     dai = new TestToken({
@@ -71,7 +71,7 @@ contract MangroveJsDeploy is Deployer {
       symbol: "DAI",
       _decimals: 18
     });
-    fork.set("DAI", address(dai), true);
+    fork.set("DAI", address(dai));
 
     vm.broadcast();
     usdc = new TestToken({
@@ -80,7 +80,7 @@ contract MangroveJsDeploy is Deployer {
       symbol: "USDC",
       _decimals: 6
     });
-    fork.set("USDC", address(usdc), true);
+    fork.set("USDC", address(usdc));
 
     vm.broadcast();
     weth = new TestToken({
@@ -89,7 +89,7 @@ contract MangroveJsDeploy is Deployer {
       symbol: "WETH",
       _decimals: 18
     });
-    fork.set("WETH", address(weth), true);
+    fork.set("WETH", address(weth));
 
     vm.broadcast();
     simpleTestMaker = new SimpleTestMaker({

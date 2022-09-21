@@ -65,13 +65,12 @@ abstract contract Deployer is Script2 {
   function outputDeployment() internal {
     (
       string[] memory names,
-      address[] memory addrs,
-      bool[] memory isToken
+      address[] memory addrs
     ) = fork.allDeployed();
 
     if (address(remoteEns).code.length > 0) {
       vm.broadcast();
-      remoteEns.set(names, addrs, isToken);
+      remoteEns.set(names, addrs);
     }
 
     if (createFile) {
@@ -81,7 +80,6 @@ abstract contract Deployer is Script2 {
         bool end = i + 1 == names.length;
         line("  {");
         line(string.concat('    "address": "', vm.toString(addrs[i]), '",'));
-        line(string.concat('    "isToken": ', vm.toString(isToken[i]), ","));
         line(string.concat('    "name": "', names[i], '"'));
         line(end ? "  }" : "  },");
       }

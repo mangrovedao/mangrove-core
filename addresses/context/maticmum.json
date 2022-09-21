@@ -1,47 +1,38 @@
 [
   {
     "address": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",
-    "isToken": false,
     "name": "Gasbot"
   },
   {
     "address": "0x5343b5bA672Ae99d627A1C87866b8E53F47Db2E6",
-    "isToken": false,
     "name": "Aave"
   },
   {
     "address": "0x6C9fB0D5bD9429eb9Cd96B85B81d872281771E6B",
-    "isToken": false,
     "name": "Aave Pool"
   },
   {
     "address": "0x63E537A69b3f5B03F4f46c5765c82861BD874b6e",
-    "isToken": false,
     "name": "WETH"
   },
   {
     "address": "0xCdc2854e97798AfDC74BC420BD5060e022D14607",
-    "isToken": false,
     "name": "AUSDC"
   },
   {
     "address": "0xF61Cffd6071a8DB7cD5E8DF1D3A5450D9903cF1c",
-    "isToken": false,
     "name": "USDC"
   },
   {
     "address": "0x685bF4eab23993E94b4CFb9383599c926B66cF57",
-    "isToken": false,
     "name": "AWETH"
   },
   {
     "address": "0xC87385b5E62099f92d490750Fcd6C901a524BBcA",
-    "isToken": false,
     "name": "DAI"
   },
   {
     "address": "0xDD4f3Ee61466C4158D394d57f3D4C397E91fBc51",
-    "isToken": false,
     "name": "ADAI"
   }
 ]

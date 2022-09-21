@@ -7,7 +7,6 @@ import {ToyENS} from "mgv_script/lib/ToyENS.sol";
 /* A record entry in an addresses JSON file */
 struct Record {
   address addr;
-  bool isToken;
   string name;
 }
 
@@ -40,21 +39,13 @@ contract GenericFork is Script {
 
   /* get/set addresses, passthrough to context/deployed ToyENS instances */
 
-  function set(
-    string memory name,
-    address addr,
-    bool isToken
-  ) public {
+  function set(string memory name, address addr) public {
     require(
       context._addrs(name) == address(0),
       "Fork: context addresses cannot be changed."
     );
-    deployed.set(name, addr, isToken);
+    deployed.set(name, addr);
     label(addr, name);
-  }
-
-  function set(string memory name, address addr) public {
-    set(name, addr, false);
   }
 
   function get(string memory name) public view returns (address payable) {
@@ -68,11 +59,7 @@ contract GenericFork is Script {
   function allDeployed()
     public
     view
-    returns (
-      string[] memory,
-      address[] memory,
-      bool[] memory
-    )
+    returns (string[] memory, address[] memory)
   {
     return deployed.all();
   }
@@ -180,12 +167,12 @@ contract GenericFork is Script {
     // read addresses from JSON files
     Record[] memory records = readAddresses("context");
     for (uint i = 0; i < records.length; i++) {
-      context.set(records[i].name, records[i].addr, records[i].isToken);
+      context.set(records[i].name, records[i].addr);
       label(records[i].addr, records[i].name);
     }
     records = readAddresses("deployed");
     for (uint i = 0; i < records.length; i++) {
-      set(records[i].name, records[i].addr, records[i].isToken);
+      set(records[i].name, records[i].addr);
     }
 
     // if already forked, ignore BLOCK_NUMBER & don't re-fork

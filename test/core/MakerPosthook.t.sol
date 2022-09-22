@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import { Local } from "mgv_src/preprocessed/MgvPack.post.sol";
+import {Local} from "mgv_src/preprocessed/MgvPack.post.sol";
 
 contract MakerPosthookTest is MangroveTest, IMaker {
   TestTaker tkr;
@@ -292,6 +292,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_failed_offer_truncates() public {
     sExecuteRevertData = "abcdefghijklmnopqrstuvwxyz1234567";
     bExecuteRevertData = "abcdefghijklmnopqrstuvwxyz123456";
+    _posthook = treat_fail_at_posthook;
     uint balMaker = base.balanceOf($(this));
     uint balTaker = quote.balanceOf(address(tkr));
     ofr = mgv.newOffer(

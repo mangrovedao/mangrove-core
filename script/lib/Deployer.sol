@@ -17,11 +17,11 @@ import {LocalFork} from "mgv_test/lib/forks/Local.sol";
 
    How to use:
    1. Inherit Deployer.
-   2. Write a deploy() function that does all the deployment and can be called by other deployers.
+   2. Write a innerRun() function that does all the work and can be called by other scripts.
    3. Write a standalone run() function that will be called by forge script. Call outputDeployment() at the end of run() if you deployed any contract.
 
    Do not inherit other deployer scripts! Just instantiate them and call their
-   .deploy() function;
+   .innerRun() function;
 */
 abstract contract Deployer is Script2 {
   // singleton Fork so all deploy scripts talk to the same backend

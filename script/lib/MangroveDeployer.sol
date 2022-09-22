@@ -19,11 +19,11 @@ contract MangroveDeployer is Deployer {
   MangroveOrderEnriched public mgoe;
 
   function run() public {
-    deploy({chief: msg.sender, gasprice: 1, gasmax: 2_000_000});
+    innerRun({chief: msg.sender, gasprice: 1, gasmax: 2_000_000});
     outputDeployment();
   }
 
-  function deploy(
+  function innerRun(
     address chief,
     uint gasprice,
     uint gasmax

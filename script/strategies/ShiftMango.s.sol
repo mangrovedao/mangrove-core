@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
+import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /** @notice Shifts Mango down or up to reequilibrate the OB */
 /** Usage example (shifting MANGO_WETH_USDC of `shift` positions
@@ -16,7 +17,7 @@ import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_ma
     ShiftMango
 */
 
-contract ShiftMango is Script {
+contract ShiftMango is Deployer {
   Mango MGO;
   IERC20 BASE;
   IERC20 QUOTE;
@@ -56,7 +57,7 @@ contract ShiftMango is Script {
       "positions",
       shift < 0 ? "down..." : "up..."
     );
-    vm.broadcast();
+    broadcast();
     MGO.setShift(shift, shift < 0, amounts);
   }
 }

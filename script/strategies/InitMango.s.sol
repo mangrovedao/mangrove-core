@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
+import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
 
 /** @notice Initialize Mango offers on a given market */
@@ -18,7 +19,7 @@ import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_ma
     InitMango
 */
 
-contract InitMango is Script {
+contract InitMango is Deployer {
   function run() public {
     innerRun({
       $mgo: payable(vm.envAddress("MANGO")),
@@ -65,7 +66,7 @@ contract InitMango is Script {
         (provAsk + provBid) * n * cover_factor,
         "WEIs"
       );
-      vm.broadcast();
+      broadcast();
       mgv.fund{value: (provAsk + provBid) * n * cover_factor}($mgo);
     }
 
@@ -80,7 +81,7 @@ contract InitMango is Script {
     }
     uint remainder = n;
     for (uint i = 0; i < n / batch_size; i++) {
-      vm.broadcast();
+      broadcast();
       Mango($mgo).initialize(
         true, // reset offers
         (n / 2) - 1, // last bid position
@@ -92,7 +93,7 @@ contract InitMango is Script {
       remainder -= batch_size;
     }
     if (remainder > 0) {
-      vm.broadcast();
+      broadcast();
       Mango($mgo).initialize(
         true, // reset offers
         (n / 2) - 1, // last bid position

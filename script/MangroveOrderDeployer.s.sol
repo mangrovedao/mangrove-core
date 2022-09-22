@@ -22,7 +22,7 @@ contract MangroveOrderDeployer is Deployer {
   */
   function run(address payable mgv, address admin) public {
     console.log("Deploying Mangrove Order...");
-    vm.broadcast();
+    broadcast();
     MangroveOrderEnriched mgv_order = new MangroveOrderEnriched(
       IMangrove(mgv),
       admin

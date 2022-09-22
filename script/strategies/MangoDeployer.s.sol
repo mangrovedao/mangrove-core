@@ -25,7 +25,6 @@ import {Deployer} from "../lib/Deployer.sol";
 */
 
 contract MangoDeployer is Deployer {
-
   function run() public {
     innerRun({
       base: vm.envAddress("BASE"),
@@ -64,7 +63,7 @@ contract MangoDeployer is Deployer {
       IERC20(base).symbol(),
       IERC20(quote).symbol()
     );
-    vm.broadcast();
+    broadcast();
     Mango mgo = new Mango(
       mgv,
       IERC20(base),

@@ -11,20 +11,24 @@ contract Script2 is Script {
   /* *** Singleton ***
     Shared global refs for multiple contracts. Better than `vm.etch(hash(name),address(new Contract()).code)`, which does *not* carry over state modification caused by the constructor.
   */
-    
+
   ToyENS _singletons;
+
   function singleton(string memory name) public returns (address) {
     if (address(_singletons).code.length == 0) {
-      vm.etch(address(_singletons),address(new ToyENS()).code);
+      vm.etch(address(_singletons), address(new ToyENS()).code);
       return address(0);
     } else {
       return _singletons._addrs(name);
     }
   }
 
-  function singleton(string memory name,address addr) public {
-    require(singleton(name) == address(0),"Script2: cannot update existing singleton");
-    _singletons.set(name,addr);
+  function singleton(string memory name, address addr) public {
+    require(
+      singleton(name) == address(0),
+      "Script2: cannot update existing singleton"
+    );
+    _singletons.set(name, addr);
   }
 
   /* *** Logging *** */
@@ -876,5 +880,29 @@ contract Script2 is Script {
       bs[i] = bytes32(bytes(ss[i]));
     }
     return bs;
+  }
+
+  /* String stuff */
+  // @notice Uppercase any string that only contains ascii lower/uppercase and underscores
+  /// @param s a string
+  /// @return ss s, uppercased
+  function simpleCapitalize(string memory s)
+    internal
+    pure
+    returns (string memory ss)
+  {
+    bytes memory b = bytes(s);
+    ss = new string(b.length);
+    unchecked {
+      for (uint i = 0; i < b.length; i++) {
+        bytes1 bb = b[i];
+        bool lowercase = bb >= "a" && bb <= "z";
+        require(
+          lowercase || bb == "_" || (bb >= "A" && bb <= "Z"),
+          "simpleCapitalize input out of range"
+        );
+        bytes(ss)[i] = lowercase ? bytes1(uint8(bb) - 32) : bb;
+      }
+    }
   }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// Direct.sol
+// MangroveOrder.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -11,10 +11,12 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 pragma abicoder v2;
-import "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
-import "mgv_src/strategies/interfaces/IOrderLogic.sol";
-import "mgv_src/strategies/routers/SimpleRouter.sol";
-import {MgvLib} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {Forwarder} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
+import {IOrderLogic} from "mgv_src/strategies/interfaces/IOrderLogic.sol";
+import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
+import {MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 
 contract MangroveOrder is Forwarder, IOrderLogic {
   // `expiring[outbound_tkn][inbound_tkn][offerId]` gives timestamp beyond which the offer should renege on trade.
@@ -23,7 +25,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   constructor(IMangrove mgv, address deployer)
     Forwarder(mgv, new SimpleRouter())
   {
-    setGasreq(30000); // fails < 20K
+    setGasreq(30000); // fails < 20K. Use 30K to be on the safe side
     // adding `this` contract to authorized makers of the router before setting admin rights of the router to deployer
     router().bind(address(this));
     if (deployer != msg.sender) {
@@ -45,23 +47,25 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     return "";
   }
 
-  // revert when order was partially filled and it is not allowed
+  ///@notice checks whether the order is completely filled
   function checkCompleteness(
     TakerOrder calldata tko,
     TakerOrderResult memory res
-  ) internal pure returns (bool isPartial) {
-    // revert if sell is partial and `partialFillNotAllowed` and not posting residual
-    if (tko.selling) {
-      return res.takerGave >= tko.gives;
+  ) internal pure returns (bool) {
+    // The order can be incomplete if the price becomes too high or the end of the book is reached.
+    if (tko.fillWants) {
+      // when fillWants is true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained;
+      return res.takerGot + res.fee >= tko.takerWants;
     } else {
-      return res.takerGot + res.fee >= tko.wants;
+      // otherwise, the market order stops when `takerGives` units of `inbound_tkn` have been sold.
+      return res.takerGave >= tko.takerGives;
     }
   }
 
   // `this` contract MUST have approved Mangrove for inbound token transfer
   // `msg.sender` MUST have approved `this` contract for at least the same amount
-  // provision for posting a resting order MAY be sent when calling this function
-  // gasLimit of this `tx` MUST be at least `(retryNumber+1)*gasForMarketOrder`
+  // provision for posting a resting order MUST be sent when calling this function
+  // gasLimit of this `tx` MUST at cover filling the market order and a new offer for resting orders.
   // msg.value SHOULD contain enough native token to cover for the resting order provision
   // msg.value MUST be 0 if `!restingOrder` otherwise transferred WEIs are burnt.
 
@@ -70,34 +74,24 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     payable
     returns (TakerOrderResult memory res)
   {
-    (IERC20 outbound_tkn, IERC20 inbound_tkn) = tko.selling
-      ? (tko.quote, tko.base)
-      : (tko.base, tko.quote);
     // pulling directly from msg.sender would require caller to approve `this` in addition to the `this.router()`
     // so pulling funds from taker's reserve (note this can be the taker's wallet depending on the router)
-    uint pulled = router().pull(inbound_tkn, msg.sender, tko.gives, true);
-    require(pulled == tko.gives, "mgvOrder/mo/transferInFail");
-    // passing an iterated market order with the transferred funds
-    for (uint i = 0; i < tko.retryNumber + 1; i++) {
-      if (tko.gasForMarketOrder != 0 && gasleft() < tko.gasForMarketOrder) {
-        break;
-      }
-      (uint takerGot_, uint takerGave_, uint bounty_, uint fee_) = MGV
-        .marketOrder({
-          outbound_tkn: address(outbound_tkn),
-          inbound_tkn: address(inbound_tkn),
-          takerWants: tko.wants, // `tko.wants` includes user defined slippage
-          takerGives: tko.gives,
-          fillWants: tko.selling ? false : true // only buy order should try to fill takerWants
-        });
-      res.takerGot += takerGot_;
-      res.takerGave += takerGave_;
-      res.bounty += bounty_;
-      res.fee += fee_;
-      if (takerGot_ == 0 && bounty_ == 0) {
-        break;
-      }
-    }
+    uint pulled = router().pull(
+      tko.inbound_tkn,
+      msg.sender,
+      tko.takerGives,
+      true
+    );
+    require(pulled == tko.takerGives, "mgvOrder/mo/transferInFail");
+
+    (res.takerGot, res.takerGave, res.bounty, res.fee) = MGV.marketOrder({
+      outbound_tkn: address(tko.outbound_tkn),
+      inbound_tkn: address(tko.inbound_tkn),
+      takerWants: tko.takerWants, // `tko.takerWants` includes user defined slippage
+      takerGives: tko.takerGives,
+      fillWants: tko.fillWants
+    });
+
     bool isComplete = checkCompleteness(tko, res);
     // requiring `partialFillNotAllowed` => `isComplete \/ restingOrder`
     require(
@@ -107,7 +101,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
     // sending received tokens to taker's reserve
     if (res.takerGot > 0) {
-      router().push(outbound_tkn, msg.sender, res.takerGot);
+      router().push(tko.outbound_tkn, msg.sender, res.takerGot);
     }
 
     // at this points the following invariants hold:
@@ -121,14 +115,20 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       // receives these when the offer is taken, and the offer's `outbound_tkn` becomes `inbound_tkn`.
       postRestingOrder({
         tko: tko,
-        outbound_tkn: inbound_tkn,
-        inbound_tkn: outbound_tkn,
+        outbound_tkn: tko.inbound_tkn,
+        inbound_tkn: tko.outbound_tkn,
         res: res
       });
     } else {
       // either fill was complete or taker does not want to post residual as a resting order
-      // transferring remaining inbound tokens to msg.sender
-      router().push(inbound_tkn, msg.sender, tko.gives - res.takerGave);
+      // transferring remaining inbound tokens to msg.sender, if any - avoid external call if possible.
+      if (tko.takerGives - res.takerGave > 0) {
+        router().push(
+          tko.inbound_tkn,
+          msg.sender,
+          tko.takerGives - res.takerGave
+        );
+      }
 
       // transferring potential bounty and msg.value back to the taker
       if (msg.value + res.bounty > 0) {
@@ -138,9 +138,9 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       }
       emit OrderSummary({
         mangrove: MGV,
-        base: tko.base,
-        quote: tko.quote,
-        selling: tko.selling,
+        outbound_tkn: tko.outbound_tkn,
+        inbound_tkn: tko.inbound_tkn,
+        fillWants: tko.fillWants,
         taker: msg.sender,
         takerGot: res.takerGot,
         takerGave: res.takerGave,
@@ -162,7 +162,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // `offerId_==0` if mangrove rejects the update because of low density.
     // call may not revert because of insufficient funds
     res.offerId = _newOffer(
-      NewOfferData({
+      NewOfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: tko.makerWants - (res.takerGot + res.fee), // tko.makerWants is before slippage
@@ -177,9 +177,9 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // we summarize the market order (if offerId == 0 no resting order was posted).
     emit OrderSummary({
       mangrove: MGV,
-      base: tko.base,
-      quote: tko.quote,
-      selling: tko.selling,
+      outbound_tkn: tko.outbound_tkn,
+      inbound_tkn: tko.inbound_tkn,
+      fillWants: tko.fillWants,
       taker: msg.sender,
       takerGot: res.takerGot,
       takerGave: res.takerGave,
@@ -196,7 +196,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
         TransferLib.transferToken(
           outbound_tkn,
           msg.sender,
-          tko.gives - res.takerGave
+          tko.takerGives - res.takerGave
         ),
         "mgvOrder/mo/transferInFail"
       );
@@ -217,7 +217,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
       // crediting caller's balance with amount of offered tokens (transferred from caller at the beginning of this function)
       // so that the offered tokens can be transferred when the offer is taken.
-      router().push(outbound_tkn, msg.sender, tko.gives - res.takerGave);
+      router().push(outbound_tkn, msg.sender, tko.takerGives - res.takerGave);
 
       // setting a time to live for the resting order
       if (tko.timeToLiveForRestingOrder > 0) {

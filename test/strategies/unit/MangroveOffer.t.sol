@@ -18,7 +18,8 @@ contract MangroveOfferTest is MangroveTest {
     IERC20 indexed outbound_tkn,
     IERC20 indexed inbound_tkn,
     uint indexed offerId,
-    bytes32 reason
+    bytes32 makerData,
+    bytes32 mgvData
   );
 
   function setUp() public override {
@@ -73,7 +74,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.makerExecute(order);
     vm.prank(address(mgv));
     bytes32 ret = makerContract.makerExecute(order);
-    assertEq(ret, "", "Incorrect returned data");
+    assertEq(ret, "mgvOffer/tradeSuccess", "Incorrect returned data");
   }
 
   function testCannot_callMakerPosthookIfNotMangrove() public {
@@ -97,7 +98,8 @@ contract MangroveOfferTest is MangroveTest {
       IERC20(address(0)),
       IERC20(address(0)),
       0,
-      "failReason"
+      result.makerData,
+      result.mgvData
     );
     vm.prank(address(mgv));
     makerContract.makerPosthook(order, result);

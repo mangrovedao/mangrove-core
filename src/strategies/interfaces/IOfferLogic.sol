@@ -26,7 +26,8 @@ interface IOfferLogic is IMaker {
     IERC20 indexed outbound_tkn,
     IERC20 indexed inbound_tkn,
     uint indexed offerId,
-    bytes32 reason
+    bytes32 makerData,
+    bytes32 mgvData
   );
 
   ///@notice Logging change of router address
@@ -59,12 +60,34 @@ interface IOfferLogic is IMaker {
   ///@dev new router needs to be approved by `this` contract to push funds to reserve (see `activate` function). It also needs to be approved by reserve to pull from it.
   function setRouter(AbstractRouter router_) external;
 
+  ///@notice Approves a spender to transfer a certain amount of tokens on behalf of `this` contract.
+  ///@param token the ERC20 token contract
+  ///@param spender the approved spender
+  ///@param amount the spending amount
+  ///@dev admin may use this function to revoke approvals of `this` contract that are set after a call to `activate`.
+  function approve(
+    IERC20 token,
+    address spender,
+    uint amount
+  ) external returns (bool);
+
   // withdraw `amount` `token` form the contract's (owner) reserve and sends them to `receiver`'s balance
   function withdrawToken(
     IERC20 token,
     address receiver,
     uint amount
   ) external returns (bool success);
+
+  ///@notice computes the provision that can be redeemed when deprovisioning a certain offer.
+  ///@param outbound_tkn the outbound token of the offer list
+  ///@param inbound_tkn the inbound token of the offer list
+  ///@param offerId the identifier of the offer in the offer list
+  ///@return provision the amount of native tokens that can be redeemed when deprovisioning the offer
+  function provisionOf(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint offerId
+  ) external view returns (uint provision);
 
   ///@notice verifies that this contract's current state is ready to be used by msg.sender to post offers on Mangrove
   ///@dev throws with a reason when there is a missing approval
@@ -83,15 +106,24 @@ interface IOfferLogic is IMaker {
   /// those free WEIs can be retrieved by offer owners by calling `retractOffer` with the `deprovision` flag. Not by calling this function which is admin only.
   function withdrawFromMangrove(uint amount, address payable receiver) external;
 
+  ///@notice updates an offer existing on Mangrove (not necessarily live).
+  ///@param outbound_tkn the outbound token of the offer list of the offer
+  ///@param inbound_tkn the outbound token of the offer list of the offer
+  ///@param wants the new amount of outbound tokens the offer maker requires for a complete fill
+  ///@param gives the new amount of inbound tokens the offer maker gives for a complete fill
+  ///@param gasreq the new amount of gas units that are required to execute the trade (use type(uint).max for using `this.offerGasReq()`)
+  ///@param gasprice the new gasprice used to compute offer's provision (use 0 to use Mangrove's gasprice)
+  ///@param pivotId the pivot to use for re-inserting the offer in the list (use `offerId` if updated offer is live)
+  ///@param offerId the id of the offer in the offer list.
   function updateOffer(
-    IERC20 outbound_tkn, // address of the ERC20 contract managing outbound tokens
-    IERC20 inbound_tkn, // address of the ERC20 contract managing outbound tokens
-    uint wants, // amount of `inbound_tkn` required for full delivery
-    uint gives, // max amount of `outbound_tkn` promised by the offer
-    uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `ofr_gasreq` will be considered instead
-    uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
     uint pivotId,
-    uint offerId // 0 if new offer order
+    uint offerId
   ) external payable;
 
   function retractOffer(

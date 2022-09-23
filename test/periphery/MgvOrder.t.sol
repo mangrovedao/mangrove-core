@@ -21,7 +21,8 @@ contract MangroveOrder_Test is MangroveTest {
     IERC20 indexed outbound_tkn,
     IERC20 indexed inbound_tkn,
     uint indexed offerId,
-    bytes32 reason
+    bytes32 makerData,
+    bytes32 mgvData
   );
 
   event OrderSummary(
@@ -29,7 +30,7 @@ contract MangroveOrder_Test is MangroveTest {
     IERC20 indexed base,
     IERC20 indexed quote,
     address indexed taker,
-    bool selling,
+    bool fillWants,
     uint takerGot,
     uint takerGave,
     uint penalty,
@@ -115,17 +116,15 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_partial_filled_buy_order_returns_residual() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 2 ether,
+      fillWants: true,
+      takerWants: 2 ether,
       makerWants: 2 ether,
-      gives: 0.26 ether,
+      takerGives: 0.26 ether,
       makerGives: 0.26 ether,
       restingOrder: false,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     expectFrom($(quote)); // checking quote is sent to mgv and remainder is sent back to taker
@@ -151,17 +150,15 @@ contract MangroveOrder_Test is MangroveTest {
     public
   {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: true,
-      selling: false, //i.e buying
-      wants: 2 ether,
+      fillWants: true,
+      takerWants: 2 ether,
       makerWants: 2 ether,
-      gives: 0.26 ether,
+      takerGives: 0.26 ether,
       makerGives: 0.26 ether,
       restingOrder: false,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     vm.expectRevert("mgvOrder/mo/noPartialFill");
@@ -171,17 +168,15 @@ contract MangroveOrder_Test is MangroveTest {
   function test_partial_filled_buy_order_returns_provision() public {
     uint balBefore = $(this).balance;
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 2 ether,
+      fillWants: true,
+      takerWants: 2 ether,
       makerWants: 2 ether,
-      gives: 0.26 ether,
+      takerGives: 0.26 ether,
       makerGives: 0.26 ether,
       restingOrder: false,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
@@ -200,17 +195,15 @@ contract MangroveOrder_Test is MangroveTest {
     ask_maker.shouldRevert(true);
 
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 2 ether,
-      gives: 0.26 ether,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether,
       makerWants: 2 ether,
       makerGives: 0.26 ether,
       restingOrder: false,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
@@ -226,17 +219,15 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_resting_buy_order_reverts_when_unprovisioned() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 2 ether,
-      gives: 0.26 ether,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether,
       makerWants: 2 ether,
       makerGives: 0.26 ether,
       restingOrder: true,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     vm.expectRevert("mgv/insufficientProvision");
@@ -248,17 +239,15 @@ contract MangroveOrder_Test is MangroveTest {
     uint balBaseBefore = base.balanceOf($(this));
 
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 1 ether,
-      gives: 0.13 ether,
+      fillWants: true,
+      takerWants: 1 ether,
+      takerGives: 0.13 ether,
       makerWants: 1 ether,
       makerGives: 0.13 ether,
       restingOrder: true,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
@@ -280,17 +269,15 @@ contract MangroveOrder_Test is MangroveTest {
     uint balWeiBefore = $(this).balance;
 
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 1 ether,
-      gives: 0.13 ether,
+      fillWants: true,
+      takerWants: 1 ether,
+      takerGives: 0.13 ether,
       makerWants: 1 ether,
       makerGives: 0.13 ether,
       restingOrder: true,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take(buyOrder);
@@ -300,17 +287,15 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_resting_buy_order_is_successfully_posted() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 2 ether,
-      gives: 0.26 ether, // with 2% slippage
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether, // with 2% slippage
       makerWants: 2 ether,
       makerGives: 0.2548 ether, //without 2% slippage
       restingOrder: true,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     uint bal_quote_before = mgo.router().reserveBalance(quote, $(this));
@@ -323,7 +308,7 @@ contract MangroveOrder_Test is MangroveTest {
       base,
       quote,
       $(this),
-      false, //buying
+      true,
       minusFee($(base), $(quote), 1 ether),
       0.13 ether,
       0,
@@ -371,17 +356,15 @@ contract MangroveOrder_Test is MangroveTest {
   function test_resting_buy_order_can_be_partially_filled() public {
     //mgv.setFee($(quote), $(base), 0);
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 2 ether,
-      gives: 0.26 ether,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether,
       makerWants: 2 ether,
       makerGives: 0.26 ether,
       restingOrder: true,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
@@ -423,24 +406,22 @@ contract MangroveOrder_Test is MangroveTest {
 
     assertEq(
       offer.gives(),
-      buyOrder.gives - res.takerGave - 0.1 ether,
+      buyOrder.takerGives - res.takerGave - 0.1 ether,
       "Incorrect gives for bid resting order"
     );
   }
 
   function test_resting_offer_retracts_when_unable_to_repost() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 2 ether,
-      gives: 0.26 ether,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether,
       makerWants: 2 ether,
       makerGives: 0.26 ether,
       restingOrder: true,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 1 ether}(
@@ -464,17 +445,15 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_user_can_retract_resting_offer() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 2 ether,
-      gives: 0.26 ether,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether,
       makerWants: 2 ether,
       makerGives: 0.26 ether,
       restingOrder: true,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
@@ -491,17 +470,15 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_failing_resting_offer_releases_uncollected_provision() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 2 ether,
-      gives: 0.26 ether,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether,
       makerWants: 2 ether,
       makerGives: 0.26 ether,
       restingOrder: true,
-      retryNumber: 0,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
 
@@ -534,77 +511,17 @@ contract MangroveOrder_Test is MangroveTest {
     );
   }
 
-  function test_iterative_market_order_completes() public {
-    ask_maker.shouldRepost(true);
-    expectFrom($(mgv));
-    emit OrderComplete(
-      $(base),
-      $(quote),
-      $(mgo),
-      minusFee($(base), $(quote), 1 ether),
-      0.13 ether,
-      0,
-      getFee($(base), $(quote), 1 ether)
-    );
-    expectFrom($(mgv));
-    emit OrderComplete(
-      $(base),
-      $(quote),
-      $(mgo),
-      minusFee($(base), $(quote), 1 ether),
-      0.13 ether,
-      0,
-      getFee($(base), $(quote), 1 ether)
-    );
-    expectFrom($(mgo));
-    emit OrderSummary(
-      IMangrove(payable(mgv)),
-      base,
-      quote,
-      $(this),
-      false,
-      minusFee($(base), $(quote), 2 ether),
-      0.26 ether,
-      0,
-      0
-    );
-    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
-      partialFillNotAllowed: false,
-      selling: false, //i.e buying
-      wants: 2 ether,
-      gives: 0.26 ether,
-      makerWants: 2 ether,
-      makerGives: 0.26 ether,
-      restingOrder: true,
-      retryNumber: 1,
-      gasForMarketOrder: 6_500_000,
-      timeToLiveForRestingOrder: 0 //NA
-    });
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
-      buyOrder
-    );
-    assertEq(
-      res.takerGot,
-      minusFee($(base), $(quote), 2 ether),
-      "Iterative market order was not complete"
-    );
-  }
-
   function test_ownership_relation() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      base: base,
-      quote: quote,
+      outbound_tkn: base,
+      inbound_tkn: quote,
       partialFillNotAllowed: false,
-      selling: false,
-      wants: 2 ether,
-      gives: 0.1 ether,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.1 ether,
       makerWants: 2 ether,
       makerGives: 0.1 ether,
       restingOrder: true,
-      retryNumber: 1,
-      gasForMarketOrder: 6_500_000,
       timeToLiveForRestingOrder: 0 //NA
     });
     expectFrom($(mgo));
@@ -613,7 +530,7 @@ contract MangroveOrder_Test is MangroveTest {
       base,
       quote,
       $(this),
-      false,
+      true,
       0,
       0,
       0,
@@ -626,7 +543,7 @@ contract MangroveOrder_Test is MangroveTest {
       base,
       quote,
       $(this),
-      false,
+      true,
       0,
       0,
       0,

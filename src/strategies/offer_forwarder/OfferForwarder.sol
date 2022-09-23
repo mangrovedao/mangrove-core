@@ -19,7 +19,7 @@ contract OfferForwarder is IMakerLogic, Forwarder {
   constructor(IMangrove mgv, address deployer)
     Forwarder(mgv, new SimpleRouter())
   {
-    setGasreq(0);
+    setGasreq(30_000);
     AbstractRouter router_ = router();
     router_.bind(address(this));
     if (deployer != msg.sender) {
@@ -40,7 +40,7 @@ contract OfferForwarder is IMakerLogic, Forwarder {
   ) external payable returns (uint offerId) {
     gasprice; // ignoring gasprice that will be derived based on msg.value.
     offerId = _newOffer(
-      NewOfferData({
+      NewOfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: wants,

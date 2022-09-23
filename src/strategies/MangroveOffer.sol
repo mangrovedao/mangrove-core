@@ -12,13 +12,13 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import { AccessControlled } from "mgv_src/strategies/utils/AccessControlled.sol";
-import { MangroveOfferStorage as MOS } from "./MangroveOfferStorage.sol";
-import { IOfferLogic } from "mgv_src/strategies/interfaces/IOfferLogic.sol";
-import { Offer, OfferDetail, Global, Local } from "mgv_src/preprocessed/MgvPack.post.sol";
-import { MgvLib, IERC20 } from "mgv_src/MgvLib.sol";
-import { IMangrove } from "mgv_src/IMangrove.sol";
-import { AbstractRouter } from "mgv_src/strategies/routers/AbstractRouter.sol";
+import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
+import {MangroveOfferStorage as MOS} from "./MangroveOfferStorage.sol";
+import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
+import {Offer, OfferDetail, Global, Local} from "mgv_src/preprocessed/MgvPack.post.sol";
+import {MgvLib, IERC20} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 
 /// @title This contract is the basic building block for Mangrove strats.
 /// @notice It contains the mandatory interface expected by Mangrove (`IOfferLogic` is `IMaker`) and enforces additional functions implementations (via `IOfferLogic`).
@@ -91,7 +91,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     if (__get__(order.wants, order) > 0) {
       revert("mgvOffer/abort/getFailed");
     }
-    return ret;
   }
 
   /// @notice `makerPosthook` is the callback function that is called by Mangrove *after* the offer execution.
@@ -113,7 +112,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
         IERC20(order.outbound_tkn),
         IERC20(order.inbound_tkn),
         order.offerId,
-        result.makerData
+        result.makerData,
+        result.mgvData
       );
       __posthookFallback__(order, result);
     }
@@ -135,6 +135,15 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /// @inheritdoc IOfferLogic
   function router() public view returns (AbstractRouter) {
     return MOS.getStorage().router;
+  }
+
+  /// @inheritdoc IOfferLogic
+  function approve(
+    IERC20 token,
+    address spender,
+    uint amount
+  ) public override onlyAdmin returns (bool) {
+    return token.approve(spender, amount);
   }
 
   /// @notice getter of the address where offer maker is storing its liquidity
@@ -266,7 +275,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     returns (bytes32 data)
   {
     order; //shh
-    return "";
+    return "mgvOffer/tradeSuccess";
   }
 
   ///@notice Post-hook that implements fallback behavior when Taker Order's execution failed unexpectedly.
@@ -354,8 +363,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   ///@inheritdoc IOfferLogic
-  ///@param outbound_tkn the outbound token used to identify the offer book
-  ///@param inbound_tkn the inbound token used to identify the offer book
+  ///@param outbound_tkn the outbound token used to identify the order book
+  ///@param inbound_tkn the inbound token used to identify the order book
   ///@param gasreq the gas required by the offer. Give > type(uint24).max to use `this.offerGasreq()`
   ///@param gasprice the upper bound on gas price. Give 0 to use Mangrove's gasprice
   ///@param offerId the offer id. Set this to 0 if one is not reposting an offer

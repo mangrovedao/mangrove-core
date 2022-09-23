@@ -147,6 +147,23 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
+  ///@inheritdoc IOfferLogic
+  function provisionOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) 
+  external view override returns (uint provision) {
+    OfferDetail.t offer_detail = MGV.offerDetails(
+      address(outbound_tkn),
+      address(inbound_tkn),
+      offerId
+    ); 
+    (, Local.t local) = MGV.config(
+      address(outbound_tkn),
+      address(inbound_tkn)
+    );
+    unchecked{
+      provision = offer_detail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offer_detail.gasreq());
+    }
+  }
+
   function __put__(
     uint, /*amount*/
     MgvLib.SingleOrder calldata

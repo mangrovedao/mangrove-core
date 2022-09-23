@@ -22,7 +22,8 @@ contract OfferLogicTest is MangroveTest {
     IERC20 indexed outbound_tkn,
     IERC20 indexed inbound_tkn,
     uint indexed offerId,
-    bytes32 reason
+    bytes32 makerData,
+    bytes32 mgvData
   );
 
   function setUp() public virtual override {
@@ -171,13 +172,17 @@ contract OfferLogicTest is MangroveTest {
       pivotId: 0
     });
     uint makerBalWei = maker.balance;
+    uint locked = makerContract.provisionOf(weth, usdc, offerId);
     vm.prank(maker);
     uint deprovisioned = makerContract.retractOffer(weth, usdc, offerId, true);
+    // checking WEIs are returned to maker's account
     assertEq(
       maker.balance,
       makerBalWei + deprovisioned,
       "Incorrect WEI balance"
     );
+    // checking that the totality of the provisions is returned
+    assertEq(deprovisioned, locked, "Deprovision was incomplete");
   }
 
   function test_makerCanUpdateOffer() public {
@@ -200,12 +205,12 @@ contract OfferLogicTest is MangroveTest {
       gives: 1 * 10**18,
       gasreq: type(uint).max,
       gasprice: 0,
-      pivotId: 0,
+      pivotId: offerId,
       offerId: offerId
     });
   }
 
-  function performTrade()
+  function performTrade(bool success)
     internal
     returns (
       uint takergot,
@@ -236,7 +241,10 @@ contract OfferLogicTest is MangroveTest {
       fillWants: true
     });
     vm.stopPrank();
-    assertTrue(bounty == 0 && takergot > 0, "trade failed");
+    assertTrue(
+      !success || (bounty == 0 && takergot > 0),
+      "unexpected trade result"
+    );
   }
 
   function test_reserveUpdatedWhenTradeSucceeds() public {
@@ -247,7 +255,7 @@ contract OfferLogicTest is MangroveTest {
     uint balIn = makerContract.tokenBalance(usdc);
     vm.stopPrank();
 
-    (uint takergot, uint takergave, uint bounty, uint fee) = performTrade();
+    (uint takergot, uint takergave, uint bounty, uint fee) = performTrade(true);
     assertTrue(bounty == 0 && takergot > 0, "trade failed");
 
     vm.startPrank(maker);
@@ -269,10 +277,28 @@ contract OfferLogicTest is MangroveTest {
     // for aave routers reserve will hold overlying while for simple router reserve will hold the asset
     uint balusdc = usdc.balanceOf(maker);
 
-    (, uint takergave, , ) = performTrade();
+    (, uint takergave, , ) = performTrade(true);
     vm.prank(maker);
     // this will be a noop when maker == reserve
     makerContract.withdrawToken(usdc, maker, takergave);
     assertEq(usdc.balanceOf(maker), balusdc + takergave, "withdraw failed");
+  }
+
+  function test_failingOfferLogsIncident() public {
+    // making offer fail for lack of approval
+    (, Local.t local) = mgv.config($(weth), $(usdc));
+    uint next_id = local.last() + 1;
+    vm.expectEmit(true, true, true, false, address(makerContract));
+    emit LogIncident(
+      IMangrove($(mgv)),
+      weth,
+      usdc,
+      next_id,
+      "mgvOffer/tradeSuccess",
+      "mgv/makerTransferFail"
+    );
+    vm.prank(maker);
+    makerContract.approve(weth, $(mgv), 0);
+    performTrade({success: false});
   }
 }

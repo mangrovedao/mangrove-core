@@ -24,3 +24,7 @@ mumbai={key="${POLYGON_API_KEY}"}
 # The first lines are the manual remappings
 # The other lines are a copy/paste of the inferred mappings shown by `forge config` (inferred from imported libs)
 # You should update remappings.txt whenever a lib change impacts remappings
+[fmt]
+tab_width=2
+int_types="short"
+number_underscores="thousands"

@@ -8,7 +8,7 @@ const shell = require("shelljs");
 shell.config.fatal = true; // throw if a command errors
 
 const sourceDir = path.resolve("./addresses/deployed");
-const outDir = path.resolve("./dist/addresses");
+const outDir = path.resolve("./dist/addresses/deployed");
 
 shell.cd(sourceDir);
 shell.mkdir("-p", outDir);

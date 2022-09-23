@@ -1,7 +1,11 @@
 [
   {
     "address": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",
-    "name": "Gasbot"
+    "name": "Deployer"
+  },
+  {
+    "address": "0x5a6272e5d8690ad47Df72BBf7Fb08cE1851b8f54",
+    "name": "Tester"
   },
   {
     "address": "0x5343b5bA672Ae99d627A1C87866b8E53F47Db2E6",
@@ -16,23 +20,39 @@
     "name": "WETH"
   },
   {
-    "address": "0xCdc2854e97798AfDC74BC420BD5060e022D14607",
-    "name": "AUSDC"
-  },
-  {
     "address": "0xF61Cffd6071a8DB7cD5E8DF1D3A5450D9903cF1c",
     "name": "USDC"
-  },
-  {
-    "address": "0x685bF4eab23993E94b4CFb9383599c926B66cF57",
-    "name": "AWETH"
   },
   {
     "address": "0xC87385b5E62099f92d490750Fcd6C901a524BBcA",
     "name": "DAI"
   },
+  { 
+    "name": "DAI_AAVE",
+    "address": "0x9A753f0F7886C9fbF63cF59D0D4423C5eFaCE95B"
+  },
   {
     "address": "0xDD4f3Ee61466C4158D394d57f3D4C397E91fBc51",
     "name": "ADAI"
+  },
+  { 
+    "name": "USDC_AAVE",
+    "address" : "0x9aa7fEc87CA69695Dd1f879567CcF49F3ba417E2"
+  },
+  {
+    "address": "0xCdc2854e97798AfDC74BC420BD5060e022D14607",
+    "name": "AUSDC"
+  },
+  { 
+    "name": "USDT_AAVE",
+    "address": "0x21c561e551638401b937b03fe5a0a0652b99b7dd"
+  },
+  { 
+    "name":"WETH_AAVE",
+    "address": "0xd575d4047f8c667e064a4ad433d04e25187f40bb"
+  },
+  {
+    "address": "0x685bF4eab23993E94b4CFb9383599c926B66cF57",
+    "name": "AWETH"
   }
 ]

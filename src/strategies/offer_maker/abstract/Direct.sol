@@ -10,18 +10,16 @@
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
 
 import "mgv_src/strategies/MangroveOffer.sol";
-import { MgvLib  } from "mgv_src/MgvLib.sol";
+import {MgvLib} from "mgv_src/MgvLib.sol";
 import "mgv_src/strategies/utils/TransferLib.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract Direct is MangroveOffer {
-  constructor(
-    IMangrove mgv,
-    AbstractRouter router_
-  ) MangroveOffer(mgv) {
+  constructor(IMangrove mgv, AbstractRouter router_) MangroveOffer(mgv) {
     // default reserve is router's address if router is defined
     // if not then default reserve is `this` contract
     if (router_ == NO_ROUTER) {
@@ -40,11 +38,12 @@ abstract contract Direct is MangroveOffer {
     _setReserve(address(this), reserve_);
   }
 
-  function withdrawToken(
-    IERC20 token,
-    address receiver,
-    uint amount
-  ) external override onlyAdmin returns (bool success) {
+  function withdrawToken(IERC20 token, address receiver, uint amount)
+    external
+    override
+    onlyAdmin
+    returns (bool success)
+  {
     require(receiver != address(0), "Direct/withdrawToken/0xReceiver");
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
@@ -54,11 +53,7 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
-  function pull(
-    IERC20 outbound_tkn,
-    uint amount,
-    bool strict
-  ) internal returns (uint) {
+  function pull(IERC20 outbound_tkn, uint amount, bool strict) internal returns (uint) {
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
       return 0; // nothing to do
@@ -80,10 +75,7 @@ abstract contract Direct is MangroveOffer {
 
   function tokenBalance(IERC20 token) external view override returns (uint) {
     AbstractRouter router_ = router();
-    return
-      router_ == NO_ROUTER
-        ? token.balanceOf(reserve())
-        : router_.reserveBalance(token, reserve());
+    return router_ == NO_ROUTER ? token.balanceOf(reserve()) : router_.reserveBalance(token, reserve());
   }
 
   function flush(IERC20[] memory tokens) internal {
@@ -132,42 +124,31 @@ abstract contract Direct is MangroveOffer {
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
   ) public override mgvOrAdmin returns (uint free_wei) {
-    free_wei = MGV.retractOffer(
-      address(outbound_tkn),
-      address(inbound_tkn),
-      offerId,
-      deprovision
-    );
+    free_wei = MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
     if (free_wei > 0) {
       require(MGV.withdraw(free_wei), "Direct/withdrawFromMgv/withdrawFail");
       // sending native tokens to msg.sender prevents reentrancy issues
       // (the context call of `retractOffer` could be coming from `makerExecute` and recipient of transfer could use this call to make offer fail)
-      (bool noRevert, ) = msg.sender.call{value: free_wei}("");
+      (bool noRevert,) = msg.sender.call{value: free_wei}("");
       require(noRevert, "Direct/weiTransferFail");
     }
   }
 
   ///@inheritdoc IOfferLogic
-  function provisionOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) 
-  external view override returns (uint provision) {
-    OfferDetail.t offer_detail = MGV.offerDetails(
-      address(outbound_tkn),
-      address(inbound_tkn),
-      offerId
-    ); 
-    (, Local.t local) = MGV.config(
-      address(outbound_tkn),
-      address(inbound_tkn)
-    );
-    unchecked{
+  function provisionOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId)
+    external
+    view
+    override
+    returns (uint provision)
+  {
+    OfferDetail.t offer_detail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
+    (, Local.t local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
+    unchecked {
       provision = offer_detail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offer_detail.gasreq());
     }
   }
 
-  function __put__(
-    uint, /*amount*/
-    MgvLib.SingleOrder calldata
-  ) internal virtual override returns (uint missing) {
+  function __put__(uint, /*amount*/ MgvLib.SingleOrder calldata) internal virtual override returns (uint missing) {
     // singleUser contract do not need to do anything specific with incoming funds during trade
     // one should overrides this function if one wishes to leverage taker's fund during trade execution
     return 0;
@@ -175,12 +156,7 @@ abstract contract Direct is MangroveOffer {
 
   // default `__get__` hook for `Direct` is to pull liquidity from `reserve()`
   // letting router handle the specifics if any
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint missing)
-  {
+  function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint missing) {
     // pulling liquidity from reserve
     // depending on the router, this may result in pulling more/less liquidity than required
     // so one should check local balance to compute missing liquidity

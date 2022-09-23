@@ -112,8 +112,8 @@ contract OfferLogicTest is MangroveTest {
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      wants: 2000 * 10**6,
-      gives: 1 * 10**18,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
       gasreq: type(uint).max,
       gasprice: 0,
       pivotId: 0
@@ -123,13 +123,11 @@ contract OfferLogicTest is MangroveTest {
 
   function test_getMissingProvisionIsEnoughToPostNewOffer() public {
     vm.startPrank(maker);
-    uint offerId = makerContract.newOffer{
-      value: makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0)
-    }({
+    uint offerId = makerContract.newOffer{value: makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0)}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      wants: 2000 * 10**6,
-      gives: 1 * 10**18,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
       gasreq: type(uint).max,
       gasprice: 0,
       pivotId: 0
@@ -139,19 +137,13 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function test_getMissingProvisionIsMinimal() public {
-    uint prov = makerContract.getMissingProvision(
-      weth,
-      usdc,
-      type(uint).max,
-      0,
-      0
-    );
+    uint prov = makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
     vm.startPrank(maker);
     vm.expectRevert("mgv/insufficientProvision");
     makerContract.newOffer{value: prov - 1}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      wants: 2000 * 10**6,
+      wants: 2000 * 10 ** 6,
       gives: 1 ether,
       gasreq: type(uint).max,
       gasprice: 0,
@@ -165,8 +157,8 @@ contract OfferLogicTest is MangroveTest {
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      wants: 2000 * 10**6,
-      gives: 1 * 10**18,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
       gasreq: type(uint).max,
       gasprice: 0,
       pivotId: 0
@@ -176,11 +168,7 @@ contract OfferLogicTest is MangroveTest {
     vm.prank(maker);
     uint deprovisioned = makerContract.retractOffer(weth, usdc, offerId, true);
     // checking WEIs are returned to maker's account
-    assertEq(
-      maker.balance,
-      makerBalWei + deprovisioned,
-      "Incorrect WEI balance"
-    );
+    assertEq(maker.balance, makerBalWei + deprovisioned, "Incorrect WEI balance");
     // checking that the totality of the provisions is returned
     assertEq(deprovisioned, locked, "Deprovision was incomplete");
   }
@@ -190,8 +178,8 @@ contract OfferLogicTest is MangroveTest {
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      wants: 2000 * 10**6,
-      gives: 1 * 10**18,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
       gasreq: type(uint).max,
       gasprice: 0,
       pivotId: 0
@@ -201,8 +189,8 @@ contract OfferLogicTest is MangroveTest {
     makerContract.updateOffer({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      wants: 2000 * 10**6,
-      gives: 1 * 10**18,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
       gasreq: type(uint).max,
       gasprice: 0,
       pivotId: offerId,
@@ -210,22 +198,14 @@ contract OfferLogicTest is MangroveTest {
     });
   }
 
-  function performTrade(bool success)
-    internal
-    returns (
-      uint takergot,
-      uint takergave,
-      uint bounty,
-      uint fee
-    )
-  {
+  function performTrade(bool success) internal returns (uint takergot, uint takergave, uint bounty, uint fee) {
     vm.prank(maker);
     // ask 2000 USDC for 1 weth
     makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      wants: 2000 * 10**6,
-      gives: 1 * 10**18,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
       gasreq: type(uint).max,
       gasprice: 0,
       pivotId: 0
@@ -241,10 +221,7 @@ contract OfferLogicTest is MangroveTest {
       fillWants: true
     });
     vm.stopPrank();
-    assertTrue(
-      !success || (bounty == 0 && takergot > 0),
-      "unexpected trade result"
-    );
+    assertTrue(!success || (bounty == 0 && takergot > 0), "unexpected trade result");
   }
 
   function test_reserveUpdatedWhenTradeSucceeds() public {
@@ -259,16 +236,8 @@ contract OfferLogicTest is MangroveTest {
     assertTrue(bounty == 0 && takergot > 0, "trade failed");
 
     vm.startPrank(maker);
-    assertEq(
-      makerContract.tokenBalance(weth),
-      balOut - (takergot + fee),
-      "incorrect out balance"
-    );
-    assertEq(
-      makerContract.tokenBalance(usdc),
-      balIn + takergave,
-      "incorrect in balance"
-    );
+    assertEq(makerContract.tokenBalance(weth), balOut - (takergot + fee), "incorrect out balance");
+    assertEq(makerContract.tokenBalance(usdc), balIn + takergave, "incorrect in balance");
     vm.stopPrank();
   }
 
@@ -277,7 +246,7 @@ contract OfferLogicTest is MangroveTest {
     // for aave routers reserve will hold overlying while for simple router reserve will hold the asset
     uint balusdc = usdc.balanceOf(maker);
 
-    (, uint takergave, , ) = performTrade(true);
+    (, uint takergave,,) = performTrade(true);
     vm.prank(maker);
     // this will be a noop when maker == reserve
     makerContract.withdrawToken(usdc, maker, takergave);
@@ -289,14 +258,7 @@ contract OfferLogicTest is MangroveTest {
     (, Local.t local) = mgv.config($(weth), $(usdc));
     uint next_id = local.last() + 1;
     vm.expectEmit(true, true, true, false, address(makerContract));
-    emit LogIncident(
-      IMangrove($(mgv)),
-      weth,
-      usdc,
-      next_id,
-      "mgvOffer/tradeSuccess",
-      "mgv/makerTransferFail"
-    );
+    emit LogIncident(IMangrove($(mgv)), weth, usdc, next_id, "mgvOffer/tradeSuccess", "mgv/makerTransferFail");
     vm.prank(maker);
     makerContract.approve(weth, $(mgv), 0);
     performTrade({success: false});

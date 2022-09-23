@@ -15,10 +15,10 @@
 /* `MgvLib` contains data structures returned by external calls to Mangrove and the interfaces it uses for its own external calls. */
 
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
 
-
-import { Offer, OfferDetail, Global, Local } from "mgv_src/preprocessed/MgvPack.post.sol";
+import {Offer, OfferDetail, Global, Local} from "mgv_src/preprocessed/MgvPack.post.sol";
 
 /* # Structs
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */
@@ -66,32 +66,16 @@ contract HasMgvEvents {
   event Debit(address indexed maker, uint amount);
 
   /* * Mangrove reconfiguration */
-  event SetActive(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    bool value
-  );
-  event SetFee(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint value
-  );
-  event SetGasbase(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offer_gasbase
-  );
+  event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);
+  event SetFee(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
+  event SetGasbase(address indexed outbound_tkn, address indexed inbound_tkn, uint offer_gasbase);
   event SetGovernance(address value);
   event SetMonitor(address value);
   event SetVault(address value);
   event SetUseOracle(bool value);
   event SetNotify(bool value);
   event SetGasmax(uint value);
-  event SetDensity(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint value
-  );
+  event SetDensity(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
   event SetGasprice(uint value);
 
   /* Market order execution */
@@ -131,21 +115,10 @@ contract HasMgvEvents {
   );
 
   /* Log information when a posthook reverts */
-  event PosthookFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId,
-    bytes32 posthookData
-  );
+  event PosthookFail(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, bytes32 posthookData);
 
   /* * After `permit` and `approve` */
-  event Approval(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    address owner,
-    address spender,
-    uint value
-  );
+  event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
 
   /* * Mangrove closure */
   event Kill();
@@ -179,11 +152,7 @@ contract HasMgvEvents {
   );
 
   /* * `offerId` was present and is now removed from the book. */
-  event OfferRetract(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint id
-  );
+  event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id);
 }
 
 /* # IMaker interface */
@@ -203,15 +172,10 @@ interface IMaker {
      }
      ```
      */
-  function makerExecute(MgvLib.SingleOrder calldata order)
-    external
-    returns (bytes32);
+  function makerExecute(MgvLib.SingleOrder calldata order) external returns (bytes32);
 
   /* Called after all offers of an order have been executed. Posthook of the last executed order is called first and full reentrancy into the Mangrove is enabled at this time. `order` recalls key arguments of the order that was processed and `result` recalls important information for updating the current offer. (see [above](#MgvLib/OrderResult))*/
-  function makerPosthook(
-    MgvLib.SingleOrder calldata order,
-    MgvLib.OrderResult calldata result
-  ) external;
+  function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) external;
 }
 
 /* # ITaker interface */
@@ -230,15 +194,11 @@ interface ITaker {
 /* # Monitor interface
 If enabled, the monitor receives notification after each offer execution and is read for each pair's `gasprice` and `density`. */
 interface IMgvMonitor {
-  function notifySuccess(MgvLib.SingleOrder calldata sor, address taker)
-    external;
+  function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external;
 
   function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external;
 
-  function read(address outbound_tkn, address inbound_tkn)
-    external
-    view
-    returns (uint gasprice, uint density);
+  function read(address outbound_tkn, address inbound_tkn) external view returns (uint gasprice, uint density);
 }
 
 interface IERC20 {
@@ -248,18 +208,11 @@ interface IERC20 {
 
   function transfer(address recipient, uint amount) external returns (bool);
 
-  function allowance(address owner, address spender)
-    external
-    view
-    returns (uint);
+  function allowance(address owner, address spender) external view returns (uint);
 
   function approve(address spender, uint amount) external returns (bool);
 
-  function transferFrom(
-    address sender,
-    address recipient,
-    uint amount
-  ) external returns (bool);
+  function transferFrom(address sender, address recipient, uint amount) external returns (bool);
 
   function symbol() external view returns (string memory);
 

@@ -11,7 +11,9 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 pragma solidity >=0.8.0;
+
 pragma abicoder v2;
+
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20, IMaker} from "mgv_src/MgvLib.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
@@ -42,13 +44,10 @@ interface IOfferLogic is IMaker {
 
   ///@notice Computes missing provision to repost `offerId` at given `gasreq` and `gasprice` ignoring current contract's balance on Mangrove.
   ///@return missingProvision to repost `offerId`.
-  function getMissingProvision(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint gasreq,
-    uint gasprice,
-    uint offerId
-  ) external view returns (uint missingProvision);
+  function getMissingProvision(IERC20 outbound_tkn, IERC20 inbound_tkn, uint gasreq, uint gasprice, uint offerId)
+    external
+    view
+    returns (uint missingProvision);
 
   ///@notice sets `this` contract's default gasreq for `new/updateOffer`.
   ///@param gasreq an overapproximation of the gas required to handle trade and posthook without considering liquidity routing specific costs.
@@ -65,29 +64,17 @@ interface IOfferLogic is IMaker {
   ///@param spender the approved spender
   ///@param amount the spending amount
   ///@dev admin may use this function to revoke approvals of `this` contract that are set after a call to `activate`.
-  function approve(
-    IERC20 token,
-    address spender,
-    uint amount
-  ) external returns (bool);
+  function approve(IERC20 token, address spender, uint amount) external returns (bool);
 
   // withdraw `amount` `token` form the contract's (owner) reserve and sends them to `receiver`'s balance
-  function withdrawToken(
-    IERC20 token,
-    address receiver,
-    uint amount
-  ) external returns (bool success);
+  function withdrawToken(IERC20 token, address receiver, uint amount) external returns (bool success);
 
   ///@notice computes the provision that can be redeemed when deprovisioning a certain offer.
   ///@param outbound_tkn the outbound token of the offer list
   ///@param inbound_tkn the inbound token of the offer list
   ///@param offerId the identifier of the offer in the offer list
   ///@return provision the amount of native tokens that can be redeemed when deprovisioning the offer
-  function provisionOf(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint offerId
-  ) external view returns (uint provision);
+  function provisionOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) external view returns (uint provision);
 
   ///@notice verifies that this contract's current state is ready to be used by msg.sender to post offers on Mangrove
   ///@dev throws with a reason when there is a missing approval
@@ -138,8 +125,10 @@ interface IOfferLogic is IMaker {
   // for multi users, the maker is `msg.sender`
   function reserve() external view returns (address);
 
-  /** @notice sets the address of the reserve of maker(s). 
-  If `this` contract is a forwarder the call sets the reserve for `msg.sender`. Otherwise it sets the reserve for `address(this)`.*/
+  /**
+   * @notice sets the address of the reserve of maker(s).
+   * If `this` contract is a forwarder the call sets the reserve for `msg.sender`. Otherwise it sets the reserve for `address(this)`.
+   */
   /// @param reserve the address of maker's reserve
   function setReserve(address reserve) external;
 

@@ -17,7 +17,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
+
 import {HasMgvEvents} from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
 
@@ -25,11 +27,7 @@ contract MgvGovernable is MgvRoot {
   /* The `governance` address. Governance is the only address that can configure parameters. */
   address public governance;
 
-  constructor(
-    address _governance,
-    uint _gasprice,
-    uint gasmax
-  ) MgvRoot() {
+  constructor(address _governance, uint _gasprice, uint gasmax) MgvRoot() {
     unchecked {
       emit NewMgv();
 
@@ -48,12 +46,7 @@ contract MgvGovernable is MgvRoot {
 
   function authOnly() internal view {
     unchecked {
-      require(
-        msg.sender == governance ||
-          msg.sender == address(this) ||
-          governance == address(0),
-        "mgv/unauthorized"
-      );
+      require(msg.sender == governance || msg.sender == address(this) || governance == address(0), "mgv/unauthorized");
     }
   }
 
@@ -61,17 +54,10 @@ contract MgvGovernable is MgvRoot {
 
   /* ## Locals */
   /* ### `active` */
-  function activate(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint fee,
-    uint density,
-    uint offer_gasbase
-  ) public {
+  function activate(address outbound_tkn, address inbound_tkn, uint fee, uint density, uint offer_gasbase) public {
     unchecked {
       authOnly();
-      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn]
-        .active(true);
+      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].active(true);
       emit SetActive(outbound_tkn, inbound_tkn, true);
       setFee(outbound_tkn, inbound_tkn, fee);
       setDensity(outbound_tkn, inbound_tkn, density);
@@ -81,62 +67,42 @@ contract MgvGovernable is MgvRoot {
 
   function deactivate(address outbound_tkn, address inbound_tkn) public {
     authOnly();
-    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn]
-      .active(false);
+    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].active(false);
     emit SetActive(outbound_tkn, inbound_tkn, false);
   }
 
   /* ### `fee` */
-  function setFee(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint fee
-  ) public {
+  function setFee(address outbound_tkn, address inbound_tkn, uint fee) public {
     unchecked {
       authOnly();
       /* `fee` is in basis points, i.e. in percents of a percent. */
       require(fee <= 500, "mgv/config/fee/<=500"); // at most 5%
-      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].fee(
-        fee
-      );
+      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].fee(fee);
       emit SetFee(outbound_tkn, inbound_tkn, fee);
     }
   }
 
   /* ### `density` */
   /* Useless if `global.useOracle != 0` */
-  function setDensity(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint density
-  ) public {
+  function setDensity(address outbound_tkn, address inbound_tkn, uint density) public {
     unchecked {
       authOnly();
 
       require(checkDensity(density), "mgv/config/density/112bits");
       //+clear+
-      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn]
-        .density(density);
+      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].density(density);
       emit SetDensity(outbound_tkn, inbound_tkn, density);
     }
   }
 
   /* ### `gasbase` */
-  function setGasbase(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint offer_gasbase
-  ) public {
+  function setGasbase(address outbound_tkn, address inbound_tkn, uint offer_gasbase) public {
     unchecked {
       authOnly();
       /* Checking the size of `offer_gasbase` is necessary to prevent a) data loss when copied to an `OfferDetail` struct, and b) overflow when used in calculations. */
-      require(
-        uint24(offer_gasbase) == offer_gasbase,
-        "mgv/config/offer_gasbase/24bits"
-      );
+      require(uint24(offer_gasbase) == offer_gasbase, "mgv/config/offer_gasbase/24bits");
       //+clear+
-      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn]
-        .offer_gasbase(offer_gasbase);
+      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].offer_gasbase(offer_gasbase);
       emit SetGasbase(outbound_tkn, inbound_tkn, offer_gasbase);
     }
   }

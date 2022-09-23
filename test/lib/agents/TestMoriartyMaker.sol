@@ -2,8 +2,8 @@
 pragma solidity ^0.8.10;
 
 import "mgv_src/AbstractMangrove.sol";
-import {IERC20, MgvLib , IMaker} from "mgv_src/MgvLib.sol";
-import { Local } from "mgv_src/preprocessed/MgvPack.post.sol";
+import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
+import {Local} from "mgv_src/preprocessed/MgvPack.post.sol";
 
 contract TestMoriartyMaker is IMaker {
   AbstractMangrove mgv;
@@ -12,22 +12,14 @@ contract TestMoriartyMaker is IMaker {
   bool succeed;
   uint dummy;
 
-  constructor(
-    AbstractMangrove _mgv,
-    address _base,
-    address _quote
-  ) {
+  constructor(AbstractMangrove _mgv, address _base, address _quote) {
     mgv = _mgv;
     base = _base;
     quote = _quote;
     succeed = true;
   }
 
-  function makerExecute(MgvLib.SingleOrder calldata order)
-    public
-    override
-    returns (bytes32 ret)
-  {
+  function makerExecute(MgvLib.SingleOrder calldata order) public override returns (bytes32 ret) {
     bool _succeed = succeed;
     if (order.offerId == dummy) {
       succeed = false;
@@ -39,17 +31,9 @@ contract TestMoriartyMaker is IMaker {
     }
   }
 
-  function makerPosthook(
-    MgvLib.SingleOrder calldata order,
-    MgvLib.OrderResult calldata result
-  ) external override {}
+  function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) external override {}
 
-  function newOffer(
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint pivotId
-  ) public {
+  function newOffer(uint wants, uint gives, uint gasreq, uint pivotId) public {
     mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
     mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
     mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
@@ -69,7 +53,7 @@ contract TestMoriartyMaker is IMaker {
   }
 
   function provisionMgv(uint amount) public {
-    (bool success, ) = address(mgv).call{value: amount}("");
+    (bool success,) = address(mgv).call{value: amount}("");
     require(success);
   }
 

@@ -10,7 +10,9 @@
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
+
 import "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import "mgv_src/strategies/routers/SimpleRouter.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
@@ -31,22 +33,18 @@ contract Ghost is Direct {
   //        Forwarder  Direct <-- offer management (our entry point)
   //    OfferForwarder  OfferMaker <-- new offer posting
 
-  constructor(
-    IMangrove mgv,
-    IERC20 stable1,
-    IERC20 stable2
-  ) Direct(mgv, new SimpleRouter()) {
+  constructor(IMangrove mgv, IERC20 stable1, IERC20 stable2) Direct(mgv, new SimpleRouter()) {
     // SimpleRouter takes promised liquidity from admin's address (wallet)
     STABLE1 = stable1;
     STABLE2 = stable2;
   }
 
   /**
-    @param wants1 in STABLE1 decimals
-    @param wants2 in STABLE2 decimals
-    @notice these offer's provision must be in msg.value
-    @notice admin must have approved base for MGV transfer prior to calling this function
-     */
+   * @param wants1 in STABLE1 decimals
+   * @param wants2 in STABLE2 decimals
+   * @notice these offer's provision must be in msg.value
+   * @notice admin must have approved base for MGV transfer prior to calling this function
+   */
   function newGhostOffers(
     // this function posts two asks
     IERC20 base,
@@ -64,14 +62,8 @@ contract Ghost is Direct {
     // MGV.retractOffer(..., deprovision:bool)
     // deprovisioning an offer (via MGV.retractOffer) credits maker balance on Mangrove (no native token transfer)
     // if maker wishes to retrieve native tokens it should call MGV.withdraw (and have a positive balance)
-    require(
-      !MGV.isLive(MGV.offers(address(base), address(STABLE1), offerId1)),
-      "Ghost/offer1AlreadyActive"
-    );
-    require(
-      !MGV.isLive(MGV.offers(address(base), address(STABLE2), offerId2)),
-      "Ghost/offer2AlreadyActive"
-    );
+    require(!MGV.isLive(MGV.offers(address(base), address(STABLE1), offerId1)), "Ghost/offer1AlreadyActive");
+    require(!MGV.isLive(MGV.offers(address(base), address(STABLE2), offerId2)), "Ghost/offer2AlreadyActive");
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
     offerId1 = MGV.newOffer{value: msg.value}({
@@ -99,10 +91,11 @@ contract Ghost is Direct {
   ///FIXME a possibility is to update the alt offer during makerExecute
   /// to do this we can override `__lastLook__` which is a hook called at the beginning of `makerExecute`
 
-  function __posthookSuccess__(
-    MgvLib.SingleOrder calldata order,
-    bytes32 makerData
-  ) internal override returns (bytes32) {
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
+    internal
+    override
+    returns (bytes32)
+  {
     // reposts residual if any (conservative hook)
     bytes32 repost_status = super.__posthookSuccess__(order, makerData);
     // write here what you want to do if not `reposted`
@@ -110,17 +103,12 @@ contract Ghost is Direct {
     // - residual below density (dust)
     // - not enough provision
     // - offer list is closed (governance call)
-    (IERC20 alt_stable, uint alt_offerId) = IERC20(order.inbound_tkn) == STABLE1
-      ? (STABLE2, offerId2)
-      : (STABLE1, offerId1);
+    (IERC20 alt_stable, uint alt_offerId) =
+      IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerId2) : (STABLE1, offerId1);
 
     if (repost_status == "posthook/reposted") {
       uint new_alt_gives = __residualGives__(order); // in base units
-      Offer.t alt_offer = MGV.offers(
-        order.outbound_tkn,
-        address(alt_stable),
-        alt_offerId
-      );
+      Offer.t alt_offer = MGV.offers(order.outbound_tkn, address(alt_stable), alt_offerId);
       uint old_alt_wants = alt_offer.wants();
       // old_alt_gives is also old_gives
       uint old_alt_gives = order.offer.gives();
@@ -160,14 +148,14 @@ contract Ghost is Direct {
     }
   }
 
-  function __posthookFallback__(
-    MgvLib.SingleOrder calldata order,
-    MgvLib.OrderResult calldata
-  ) internal override returns (bytes32) {
+  function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)
+    internal
+    override
+    returns (bytes32)
+  {
     // if we reach this code, trade has failed for lack of base token
-    (IERC20 alt_stable, uint alt_offerId) = IERC20(order.inbound_tkn) == STABLE1
-      ? (STABLE2, offerId2)
-      : (STABLE1, offerId1);
+    (IERC20 alt_stable, uint alt_offerId) =
+      IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerId2) : (STABLE1, offerId1);
     MGV.retractOffer({
       outbound_tkn: address(order.outbound_tkn),
       inbound_tkn: address(alt_stable),

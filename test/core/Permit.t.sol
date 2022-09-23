@@ -81,24 +81,8 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     });
   }
 
-  function snipeFor(uint value, address who)
-    internal
-    returns (
-      uint,
-      uint,
-      uint,
-      uint,
-      uint
-    )
-  {
-    return
-      mgv.snipesFor(
-        $(base),
-        $(quote),
-        wrap_dynamic([uint(1), value, value, 300_000]),
-        true,
-        who
-      );
+  function snipeFor(uint value, address who) internal returns (uint, uint, uint, uint, uint) {
+    return mgv.snipesFor($(base), $(quote), wrap_dynamic([uint(1), value, value, 300_000]), true, who);
   }
 
   function newOffer(uint amount) internal {
@@ -134,11 +118,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   }
 
   function test_early_nonce() public {
-    stdstore
-      .target($(mgv))
-      .sig(mgv.nonces.selector)
-      .with_key(good_owner)
-      .checked_write(1);
+    stdstore.target($(mgv)).sig(mgv.nonces.selector).with_key(good_owner).checked_write(1);
 
     vm.expectRevert("mgv/permit/invalidSignature");
     permit_data.submit();
@@ -147,71 +127,44 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   function test_wrong_outbound() public {
     permit_data.outbound_tkn = address(1);
     permit_data.submit();
-    assertEq(
-      mgv.allowances($(base), $(quote), good_owner, $(this)),
-      0,
-      "Allowance should be 0"
-    );
+    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
   }
 
   function test_wrong_inbound() public {
     permit_data.inbound_tkn = address(1);
     permit_data.submit();
-    assertEq(
-      mgv.allowances($(base), $(quote), good_owner, $(this)),
-      0,
-      "Allowance should be 0"
-    );
+    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
   }
 
   function test_wrong_spender() public {
     permit_data.spender = address(1);
     permit_data.submit();
-    assertEq(
-      mgv.allowances($(base), $(quote), good_owner, $(this)),
-      0,
-      "Allowance should be 0"
-    );
+    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), 0, "Allowance should be 0");
   }
 
   function test_good_permit(uint96 value) public {
     permit_data.value = value;
     permit_data.submit();
 
-    assertEq(
-      mgv.allowances($(base), $(quote), good_owner, $(this)),
-      value,
-      "Allowance not set"
-    );
+    assertEq(mgv.allowances($(base), $(quote), good_owner, $(this)), value, "Allowance not set");
   }
 
   function test_allowance_works() public {
     uint value = 1 ether;
     // set allowance manually
-    stdstore
-      .target($(mgv))
-      .sig(mgv.allowances.selector)
-      .with_key($(base))
-      .with_key($(quote))
-      .with_key(good_owner)
-      .with_key($(this))
-      .checked_write(value);
+    stdstore.target($(mgv)).sig(mgv.allowances.selector).with_key($(base)).with_key($(quote)).with_key(good_owner)
+      .with_key($(this)).checked_write(value);
 
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
     newOffer(value);
-    (uint successes, uint takerGot, uint takerGave, , ) = snipeFor(
-      value / 2,
-      good_owner
-    );
+    (uint successes, uint takerGot, uint takerGave,,) = snipeFor(value / 2, good_owner);
     assertEq(successes, 1, "Snipe should succeed");
     assertEq(takerGot, value / 2, "takerGot should be 1 ether");
     assertEq(takerGave, value / 2, "takerGot should be 1 ether");
 
     assertEq(
-      mgv.allowances($(base), $(quote), good_owner, $(this)),
-      value / 2 + (value % 2),
-      "Allowance incorrectly decreased"
+      mgv.allowances($(base), $(quote), good_owner, $(this)), value / 2 + (value % 2), "Allowance incorrectly decreased"
     );
   }
 }
@@ -219,8 +172,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
 /* Permit utilities */
 
 library mgvPermitData {
-  Vm private constant vm =
-    Vm(address(uint160(uint(keccak256("hevm cheat code")))));
+  Vm private constant vm = Vm(address(uint160(uint(keccak256("hevm cheat code")))));
 
   struct t {
     address outbound_tkn;
@@ -246,29 +198,13 @@ library mgvPermitData {
     return p;
   }
 
-  function sign(t storage p)
-    internal
-    returns (
-      uint8 v,
-      bytes32 r,
-      bytes32 s
-    )
-  {
+  function sign(t storage p) internal returns (uint8 v, bytes32 r, bytes32 s) {
     bytes32 digest = keccak256(
       abi.encodePacked(
         "\x19\x01",
         p.domain_separator,
         keccak256(
-          abi.encode(
-            p.permit_typehash,
-            p.outbound_tkn,
-            p.inbound_tkn,
-            p.owner,
-            p.spender,
-            p.value,
-            p.nonce,
-            p.deadline
-          )
+          abi.encode(p.permit_typehash, p.outbound_tkn, p.inbound_tkn, p.owner, p.spender, p.value, p.nonce, p.deadline)
         )
       )
     );

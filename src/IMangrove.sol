@@ -5,19 +5,15 @@
 // interface lost in the abi generation.
 
 pragma solidity >=0.7.0 <0.9.0;
+
 pragma experimental ABIEncoderV2;
-import { MgvLib, IMaker } from "./MgvLib.sol";
-import { Offer, OfferDetail, Global, Local } from "mgv_src/preprocessed/MgvPack.post.sol";
-import { OfferStruct, OfferDetailStruct, GlobalStruct, LocalStruct } from "mgv_src/preprocessed/MgvStructs.post.sol";
+
+import {MgvLib, IMaker} from "./MgvLib.sol";
+import {Offer, OfferDetail, Global, Local} from "mgv_src/preprocessed/MgvPack.post.sol";
+import {OfferStruct, OfferDetailStruct, GlobalStruct, LocalStruct} from "mgv_src/preprocessed/MgvStructs.post.sol";
 
 interface IMangrove {
-  event Approval(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    address owner,
-    address spender,
-    uint value
-  );
+  event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
   event Credit(address indexed maker, uint amount);
   event Debit(address indexed maker, uint amount);
   event Kill();
@@ -31,18 +27,9 @@ interface IMangrove {
     uint takerGives,
     bytes32 mgvData
   );
-  event OfferRetract(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint id
-  );
+  event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id);
   event OfferSuccess(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint id,
-    address taker,
-    uint takerWants,
-    uint takerGives
+    address indexed outbound_tkn, address indexed inbound_tkn, uint id, address taker, uint takerWants, uint takerGives
   );
   event OfferWrite(
     address indexed outbound_tkn,
@@ -64,31 +51,11 @@ interface IMangrove {
     uint penalty
   );
   event OrderStart();
-  event PosthookFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offerId
-  );
-  event SetActive(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    bool value
-  );
-  event SetDensity(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint value
-  );
-  event SetFee(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint value
-  );
-  event SetGasbase(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint offer_gasbase
-  );
+  event PosthookFail(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId);
+  event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);
+  event SetDensity(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
+  event SetFee(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
+  event SetGasbase(address indexed outbound_tkn, address indexed inbound_tkn, uint offer_gasbase);
   event SetGasmax(uint value);
   event SetGasprice(uint value);
   event SetGovernance(address value);
@@ -101,39 +68,17 @@ interface IMangrove {
 
   function PERMIT_TYPEHASH() external view returns (bytes32);
 
-  function activate(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint fee,
-    uint density,
-    uint offer_gasbase
-  ) external;
+  function activate(address outbound_tkn, address inbound_tkn, uint fee, uint density, uint offer_gasbase) external;
 
-  function allowances(
-    address,
-    address,
-    address,
-    address
-  ) external view returns (uint);
+  function allowances(address, address, address, address) external view returns (uint);
 
-  function approve(
-    address outbound_tkn,
-    address inbound_tkn,
-    address spender,
-    uint value
-  ) external returns (bool);
+  function approve(address outbound_tkn, address inbound_tkn, address spender, uint value) external returns (bool);
 
   function balanceOf(address) external view returns (uint);
 
-  function best(address outbound_tkn, address inbound_tkn)
-    external
-    view
-    returns (uint);
+  function best(address outbound_tkn, address inbound_tkn) external view returns (uint);
 
-  function config(address outbound_tkn, address inbound_tkn)
-    external
-    view
-    returns (Global.t, Local.t);
+  function config(address outbound_tkn, address inbound_tkn) external view returns (Global.t, Local.t);
 
   function configInfo(address outbound_tkn, address inbound_tkn)
     external
@@ -142,9 +87,7 @@ interface IMangrove {
 
   function deactivate(address outbound_tkn, address inbound_tkn) external;
 
-  function flashloan(MgvLib.SingleOrder memory sor, address taker)
-    external
-    returns (uint gasused);
+  function flashloan(MgvLib.SingleOrder memory sor, address taker) external returns (uint gasused);
 
   function fund(address maker) external payable;
 
@@ -156,25 +99,11 @@ interface IMangrove {
 
   function kill() external;
 
-  function locked(address outbound_tkn, address inbound_tkn)
-    external
-    view
-    returns (bool);
+  function locked(address outbound_tkn, address inbound_tkn) external view returns (bool);
 
-  function marketOrder(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint takerWants,
-    uint takerGives,
-    bool fillWants
-  )
+  function marketOrder(address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants)
     external
-    returns (
-      uint takerGot,
-      uint takerGave,
-      uint bounty,
-      uint fee
-    );
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function marketOrderFor(
     address outbound_tkn,
@@ -183,14 +112,7 @@ interface IMangrove {
     uint takerGives,
     bool fillWants,
     address taker
-  )
-    external
-    returns (
-      uint takerGot,
-      uint takerGave,
-      uint bounty,
-      uint fee
-    );
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function newOffer(
     address outbound_tkn,
@@ -204,29 +126,14 @@ interface IMangrove {
 
   function nonces(address) external view returns (uint);
 
-  function offerDetails(
-    address,
-    address,
-    uint
-  ) external view returns (OfferDetail.t);
+  function offerDetails(address, address, uint) external view returns (OfferDetail.t);
 
-  function offerInfo(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint offerId
-  )
+  function offerInfo(address outbound_tkn, address inbound_tkn, uint offerId)
     external
     view
-    returns (
-      OfferStruct memory offer,
-      OfferDetailStruct memory offerDetail
-    );
+    returns (OfferStruct memory offer, OfferDetailStruct memory offerDetail);
 
-  function offers(
-    address,
-    address,
-    uint
-  ) external view returns (Offer.t);
+  function offers(address, address, uint) external view returns (Offer.t);
 
   function permit(
     address outbound_tkn,
@@ -240,30 +147,15 @@ interface IMangrove {
     bytes32 s
   ) external;
 
-  function retractOffer(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint offerId,
-    bool deprovision
-  ) external returns (uint provision);
+  function retractOffer(address outbound_tkn, address inbound_tkn, uint offerId, bool deprovision)
+    external
+    returns (uint provision);
 
-  function setDensity(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint density
-  ) external;
+  function setDensity(address outbound_tkn, address inbound_tkn, uint density) external;
 
-  function setFee(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint fee
-  ) external;
+  function setFee(address outbound_tkn, address inbound_tkn, uint fee) external;
 
-  function setGasbase(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint offer_gasbase
-  ) external;
+  function setGasbase(address outbound_tkn, address inbound_tkn, uint offer_gasbase) external;
 
   function setGasmax(uint gasmax) external;
 
@@ -279,36 +171,13 @@ interface IMangrove {
 
   function setVault(address vaultAddress) external;
 
-  function snipes(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint[4][] memory targets,
-    bool fillWants
-  )
+  function snipes(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants)
     external
-    returns (
-      uint successes,
-      uint takerGot,
-      uint takerGave,
-      uint bounty,
-      uint fee
-    );
+    returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function snipesFor(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint[4][] memory targets,
-    bool fillWants,
-    address taker
-  )
+  function snipesFor(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants, address taker)
     external
-    returns (
-      uint successes,
-      uint takerGot,
-      uint takerGave,
-      uint bounty,
-      uint fee
-    );
+    returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function updateOffer(
     address outbound_tkn,

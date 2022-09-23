@@ -1,5 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
+
 import "./Test2.sol";
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
 import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
@@ -12,8 +13,8 @@ import {Mangrove} from "mgv_src/Mangrove.sol";
 import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
 import {IERC20, MgvLib, HasMgvEvents, IMaker, ITaker, IMgvMonitor} from "mgv_src/MgvLib.sol";
 import {console2 as csl} from "forge-std/console2.sol";
-import { Offer, OfferDetail, Global, Local } from "mgv_src/preprocessed/MgvPack.post.sol";
-import { OfferStruct } from "mgv_src/preprocessed/MgvStructs.post.sol";
+import {Offer, OfferDetail, Global, Local} from "mgv_src/preprocessed/MgvPack.post.sol";
+import {OfferStruct} from "mgv_src/preprocessed/MgvStructs.post.sol";
 
 // below imports are for the \$( function)
 import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
@@ -35,6 +36,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     string symbol;
     uint8 decimals;
   }
+
   struct MangroveTestOptions {
     bool invertedMangrove;
     TokenOptions base;
@@ -46,13 +48,12 @@ contract MangroveTest is Test2, HasMgvEvents {
   TestToken base;
   TestToken quote;
 
-  MangroveTestOptions options =
-    MangroveTestOptions({
-      invertedMangrove: false,
-      base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
-      quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
-      defaultFee: 0
-    });
+  MangroveTestOptions options = MangroveTestOptions({
+    invertedMangrove: false,
+    base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
+    quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
+    defaultFee: 0
+  });
 
   constructor() {
     // generic trace labeling
@@ -97,16 +98,11 @@ contract MangroveTest is Test2, HasMgvEvents {
   /* Log order book */
 
   event OBState(
-    address base,
-    address quote,
-    uint[] offerIds,
-    uint[] wants,
-    uint[] gives,
-    address[] makerAddr,
-    uint[] gasreqs
+    address base, address quote, uint[] offerIds, uint[] wants, uint[] gives, address[] makerAddr, uint[] gasreqs
   );
 
-  /** Two different OB logging methods.
+  /**
+   * Two different OB logging methods.
    *
    *  `logOrderBook` will be easy to read in traces
    *
@@ -115,19 +111,9 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   /* Log OB with events */
   event offers_head(address outbound, address inbound);
-  event offers_line(
-    uint id,
-    uint wants,
-    uint gives,
-    address maker,
-    uint gasreq
-  );
+  event offers_line(uint id, uint wants, uint gives, address maker, uint gasreq);
 
-  function logOrderBook(
-    address $out,
-    address $in,
-    uint size
-  ) internal {
+  function logOrderBook(address $out, address $in, uint size) internal {
     uint offerId = mgv.best($out, $in);
 
     // save call results so logs are easier to read
@@ -145,13 +131,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     c = 0;
     emit offers_head($out, $in);
     while (c < size) {
-      emit offers_line(
-        ids[c],
-        offers[c].wants(),
-        offers[c].gives(),
-        details[c].maker(),
-        details[c].gasreq()
-      );
+      emit offers_line(ids[c], offers[c].wants(), offers[c].gives(), details[c].maker(), details[c].gasreq());
       c++;
     }
     // emit OBState($out, $in, offerIds, wants, gives, makerAddr, gasreqs);
@@ -164,14 +144,10 @@ contract MangroveTest is Test2, HasMgvEvents {
     TestToken ofr_tk = TestToken($out);
 
     console.log(
-      string.concat(
-        unicode"┌────┬──Best offer: ",
-        vm.toString(offerId),
-        unicode"──────"
-      )
+      string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────")
     );
     while (offerId != 0) {
-      (OfferStruct memory ofr, ) = mgv.offerInfo($out, $in, offerId);
+      (OfferStruct memory ofr,) = mgv.offerInfo($out, $in, offerId);
       console.log(
         string.concat(
           unicode"│ ",
@@ -197,6 +173,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint[] makersBalanceB;
     uint[] makersBalanceWei;
   }
+
   enum Info {
     makerWants,
     makerGives,
@@ -210,41 +187,22 @@ contract MangroveTest is Test2, HasMgvEvents {
     return mgv.best($out, $in) == 0;
   }
 
-  function getFee(
-    address $out,
-    address $in,
-    uint price
-  ) internal view returns (uint) {
+  function getFee(address $out, address $in, uint price) internal view returns (uint) {
     (, Local.t local) = mgv.config($out, $in);
     return ((price * local.fee()) / 10000);
   }
 
-  function minusFee(
-    address $out,
-    address $in,
-    uint price
-  ) internal view returns (uint) {
+  function minusFee(address $out, address $in, uint price) internal view returns (uint) {
     (, Local.t local) = mgv.config($out, $in);
     return (price * (10_000 - local.fee())) / 10000;
   }
 
-  function getProvision(
-    address $out,
-    address $in,
-    uint gasreq
-  ) internal view returns (uint) {
+  function getProvision(address $out, address $in, uint gasreq) internal view returns (uint) {
     (Global.t glo_cfg, Local.t loc_cfg) = mgv.config($out, $in);
-    return ((gasreq + loc_cfg.offer_gasbase()) *
-      uint(glo_cfg.gasprice()) *
-      10**9);
+    return ((gasreq + loc_cfg.offer_gasbase()) * uint(glo_cfg.gasprice()) * 10 ** 9);
   }
 
-  function getProvision(
-    address $out,
-    address $in,
-    uint gasreq,
-    uint gasprice
-  ) internal view returns (uint) {
+  function getProvision(address $out, address $in, uint gasreq, uint gasprice) internal view returns (uint) {
     (Global.t glo_cfg, Local.t loc_cfg) = mgv.config($out, $in);
     uint _gp;
     if (glo_cfg.gasprice() > gasprice) {
@@ -252,7 +210,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     } else {
       _gp = gasprice;
     }
-    return ((gasreq + loc_cfg.offer_gasbase()) * _gp * 10**9);
+    return ((gasreq + loc_cfg.offer_gasbase()) * _gp * 10 ** 9);
   }
 
   // Deploy mangrove
@@ -280,28 +238,17 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   // Deploy mangrove with a pair
-  function setupMangrove(IERC20 outbound_tkn, IERC20 inbound_tkn)
-    public
-    returns (AbstractMangrove)
-  {
+  function setupMangrove(IERC20 outbound_tkn, IERC20 inbound_tkn) public returns (AbstractMangrove) {
     return setupMangrove(outbound_tkn, inbound_tkn, false);
   }
 
   // Deploy mangrove with a pair, inverted or not
-  function setupMangrove(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    bool inverted
-  ) public returns (AbstractMangrove _mgv) {
+  function setupMangrove(IERC20 outbound_tkn, IERC20 inbound_tkn, bool inverted) public returns (AbstractMangrove _mgv) {
     _mgv = setupMangrove(inverted);
     setupMarket(address(outbound_tkn), address(inbound_tkn), _mgv);
   }
 
-  function setupMarket(
-    address $a,
-    address $b,
-    AbstractMangrove _mgv
-  ) internal {
+  function setupMarket(address $a, address $b, AbstractMangrove _mgv) internal {
     assertNot0x($a);
     assertNot0x($b);
     _mgv.activate($a, $b, options.defaultFee, 0, 20_000);
@@ -319,30 +266,19 @@ contract MangroveTest is Test2, HasMgvEvents {
     setupMarket(address(a), address(b), mgv);
   }
 
-  function setupMaker(
-    address $out,
-    address $in,
-    string memory label
-  ) public returns (TestMaker) {
+  function setupMaker(address $out, address $in, string memory label) public returns (TestMaker) {
     TestMaker tm = new TestMaker(mgv, IERC20($out), IERC20($in));
     vm.deal(address(tm), 100 ether);
     vm.label(address(tm), label);
     return tm;
   }
 
-  function setupMakerDeployer(address $out, address $in)
-    public
-    returns (MakerDeployer)
-  {
+  function setupMakerDeployer(address $out, address $in) public returns (MakerDeployer) {
     assertNot0x($(mgv));
     return (new MakerDeployer(mgv, $out, $in));
   }
 
-  function setupTaker(
-    address $out,
-    address $in,
-    string memory label
-  ) public returns (TestTaker) {
+  function setupTaker(address $out, address $in, string memory label) public returns (TestTaker) {
     TestTaker tt = new TestTaker(mgv, IERC20($out), IERC20($in));
     vm.deal(address(tt), 100 ether);
     vm.label(address(tt), label);
@@ -360,18 +296,14 @@ contract MangroveTest is Test2, HasMgvEvents {
     savePrank();
     uint decimals = t.decimals();
     restorePrank();
-    return amount * 10**decimals;
+    return amount * 10 ** decimals;
   }
 
   /* Same as earlier, but divide result by 10**power */
   /* Useful to convert noninteger amounts, e.g.
      to convert 3.15 USDC, use cash(usdc,315,2) */
-  function cash(
-    IERC20 t,
-    uint amount,
-    uint power
-  ) public returns (uint) {
-    return cash(t, amount) / 10**power;
+  function cash(IERC20 t, uint amount, uint power) public returns (uint) {
+    return cash(t, amount) / 10 ** power;
   }
 
   /* **** Sugar for address conversion */

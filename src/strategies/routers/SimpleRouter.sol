@@ -11,6 +11,7 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
 
 import "mgv_src/strategies/utils/AccessControlled.sol";
@@ -27,13 +28,12 @@ contract SimpleRouter is
   AbstractRouter(70_000) // fails for < 70K with Direct strat
 {
   // requires approval of `reserve`
-  function __pull__(
-    IERC20 token,
-    address reserve,
-    address maker,
-    uint amount,
-    bool strict
-  ) internal virtual override returns (uint pulled) {
+  function __pull__(IERC20 token, address reserve, address maker, uint amount, bool strict)
+    internal
+    virtual
+    override
+    returns (uint pulled)
+  {
     strict; // this pull strategy is only strict
     if (TransferLib.transferTokenFrom(token, reserve, maker, amount)) {
       return amount;
@@ -43,46 +43,27 @@ contract SimpleRouter is
   }
 
   // requires approval of Maker
-  function __push__(
-    IERC20 token,
-    address reserve,
-    address maker,
-    uint amount
-  ) internal virtual override {
-    require(
-      TransferLib.transferTokenFrom(token, maker, reserve, amount),
-      "SimpleRouter/push/transferFail"
-    );
+  function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual override {
+    require(TransferLib.transferTokenFrom(token, maker, reserve, amount), "SimpleRouter/push/transferFail");
   }
 
-  function __withdrawToken__(
-    IERC20 token,
-    address reserve,
-    address to,
-    uint amount
-  ) internal virtual override returns (bool) {
+  function __withdrawToken__(IERC20 token, address reserve, address to, uint amount)
+    internal
+    virtual
+    override
+    returns (bool)
+  {
     return TransferLib.transferTokenFrom(token, reserve, to, amount);
   }
 
-  function reserveBalance(IERC20 token, address reserve)
-    external
-    view
-    override
-    returns (uint)
-  {
+  function reserveBalance(IERC20 token, address reserve) external view override returns (uint) {
     return token.balanceOf(reserve);
   }
 
-  function __checkList__(IERC20 token, address reserve)
-    internal
-    view
-    virtual
-    override
-  {
+  function __checkList__(IERC20 token, address reserve) internal view virtual override {
     // verifying that `this` router can withdraw tokens from reserve (required for `withdrawToken` and `pull`)
     require(
-      reserve == address(this) || token.allowance(reserve, address(this)) > 0,
-      "SimpleRouter/NotApprovedByReserve"
+      reserve == address(this) || token.allowance(reserve, address(this)) > 0, "SimpleRouter/NotApprovedByReserve"
     );
   }
 }

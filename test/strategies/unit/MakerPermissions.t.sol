@@ -12,7 +12,7 @@ contract MakerPermissionTest is MangroveTest {
   TestToken usdc;
   address payable maker;
   OfferMaker makerContract;
-  
+
   // PolygonFork fork = new PolygonFork();
 
   function setUp() public virtual override {
@@ -25,7 +25,7 @@ contract MakerPermissionTest is MangroveTest {
     // rename for convenience
     weth = base;
     usdc = quote;
-    
+
     maker = freshAddress("maker");
     deal(maker, 1 ether);
     makerContract = new OfferMaker({
@@ -57,8 +57,8 @@ contract MakerPermissionTest is MangroveTest {
     makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      wants: 2000 * 10**6,
-      gives: 1 * 10**18,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
       gasreq: type(uint).max,
       gasprice: 0,
       pivotId: 0
@@ -70,19 +70,14 @@ contract MakerPermissionTest is MangroveTest {
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      wants: 2000 * 10**6,
-      gives: 1 * 10**18,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
       gasreq: type(uint).max,
       gasprice: 0,
       pivotId: 0
     });
     vm.expectRevert("AccessControlled/Invalid");
-    makerContract.retractOffer(
-      weth,
-      usdc,
-      offerId,
-      true
-    );
+    makerContract.retractOffer(weth, usdc, offerId, true);
   }
 
   function testCannot_UpdateOffer() public {
@@ -90,8 +85,8 @@ contract MakerPermissionTest is MangroveTest {
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      wants: 2000 * 10**6,
-      gives: 1 * 10**18,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
       gasreq: type(uint).max,
       gasprice: 0,
       pivotId: 0
@@ -100,8 +95,8 @@ contract MakerPermissionTest is MangroveTest {
     makerContract.updateOffer({
       outbound_tkn: weth,
       inbound_tkn: usdc,
-      wants: 2000 * 10**6,
-      gives: 1 * 10**18,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
       gasreq: type(uint).max,
       gasprice: 0,
       pivotId: 0,

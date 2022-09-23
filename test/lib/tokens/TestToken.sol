@@ -1,23 +1,19 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
+
 import "./ERC20BL.sol";
 
 contract TestToken is ERC20BL {
   mapping(address => bool) admins;
   uint public __decimals; // full uint to help forge-std's stdstore
 
-  constructor(
-    address admin,
-    string memory name,
-    string memory symbol,
-    uint8 _decimals
-  ) ERC20BL(name, symbol) {
+  constructor(address admin, string memory name, string memory symbol, uint8 _decimals) ERC20BL(name, symbol) {
     admins[admin] = true;
     __decimals = _decimals;
   }
 
   function $(uint amount) public view returns (uint) {
-    return amount * 10**decimals();
+    return amount * 10 ** decimals();
   }
 
   function decimals() public view override returns (uint8) {

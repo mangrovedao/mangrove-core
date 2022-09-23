@@ -1,8 +1,10 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
+
 import "mgv_test/lib/MangroveTest.sol";
 
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
 
 import {IMangrove} from "mgv_src/IMangrove.sol";
@@ -130,24 +132,12 @@ contract MangroveOrder_Test is MangroveTest {
     emit Transfer($(this), $(mgo), 0.26 ether);
     expectFrom($(quote)); // checking quote is sent to mgv and remainder is sent back to taker
     emit Transfer($(mgo), $(this), 0.13 ether);
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
-      buyOrder
-    );
-    assertEq(
-      res.takerGot,
-      minusFee($(base), $(quote), 1 ether),
-      "Incorrect partial fill of taker order"
-    );
-    assertEq(
-      res.takerGave,
-      0.13 ether,
-      "Incorrect partial fill of taker order"
-    );
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertEq(res.takerGot, minusFee($(base), $(quote), 1 ether), "Incorrect partial fill of taker order");
+    assertEq(res.takerGave, 0.13 ether, "Incorrect partial fill of taker order");
   }
 
-  function test_partial_filled_buy_order_reverts_when_noPartialFill_enabled()
-    public
-  {
+  function test_partial_filled_buy_order_reverts_when_noPartialFill_enabled() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       outbound_tkn: base,
       inbound_tkn: quote,
@@ -178,14 +168,8 @@ contract MangroveOrder_Test is MangroveTest {
       restingOrder: false,
       timeToLiveForRestingOrder: 0 //NA
     });
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
-      buyOrder
-    );
-    assertEq(
-      res.takerGot,
-      minusFee($(base), $(quote), 1 ether),
-      "Incorrect taker got"
-    );
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertEq(res.takerGot, minusFee($(base), $(quote), 1 ether), "Incorrect taker got");
     assertEq(balBefore, $(this).balance, "Take function did not return funds");
   }
 
@@ -205,15 +189,9 @@ contract MangroveOrder_Test is MangroveTest {
       restingOrder: false,
       timeToLiveForRestingOrder: 0 //NA
     });
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
-      buyOrder
-    );
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.bounty > 0, "Bounty should not be zero");
-    assertEq(
-      balBefore + res.bounty,
-      $(this).balance,
-      "Take function did not return bounty"
-    );
+    assertEq(balBefore + res.bounty, $(this).balance, "Take function did not return bounty");
   }
 
   function test_resting_buy_order_reverts_when_unprovisioned() public {
@@ -249,19 +227,9 @@ contract MangroveOrder_Test is MangroveTest {
       restingOrder: true,
       timeToLiveForRestingOrder: 0 //NA
     });
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
-      buyOrder
-    );
-    assertEq(
-      quote.balanceOf($(this)),
-      balQuoteBefore - res.takerGave,
-      "incorrect quote balance"
-    );
-    assertEq(
-      base.balanceOf($(this)),
-      balBaseBefore + res.takerGot,
-      "incorrect base balance"
-    );
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertEq(quote.balanceOf($(this)), balQuoteBefore - res.takerGave, "incorrect quote balance");
+    assertEq(base.balanceOf($(this)), balBaseBefore + res.takerGot, "incorrect base balance");
   }
 
   function test_filled_resting_buy_order_returns_provision() public {
@@ -303,53 +271,21 @@ contract MangroveOrder_Test is MangroveTest {
 
     expectFrom($(mgo));
     emit OrderSummary(
-      IMangrove(payable(mgv)),
-      base,
-      quote,
-      $(this),
-      true,
-      minusFee($(base), $(quote), 1 ether),
-      0.13 ether,
-      0
-    );
+      IMangrove(payable(mgv)), base, quote, $(this), true, minusFee($(base), $(quote), 1 ether), 0.13 ether, 0
+      );
     // TODO when checkEmit is available, get offer id after post
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
-      buyOrder
-    );
-    assertTrue(
-      res.offerId > 0,
-      "Resting offer failed to be published on mangrove"
-    );
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
 
     // checking resting order parameters
     Offer.t offer = mgv.offers($(quote), $(base), res.offerId);
-    assertEq(
-      offer.wants(),
-      buyOrder.makerWants - (res.takerGot + res.fee),
-      "Incorrect wants for bid resting order"
-    );
-    assertEq(
-      offer.gives(),
-      buyOrder.makerGives - res.takerGave,
-      "Incorrect gives for bid resting order"
-    );
+    assertEq(offer.wants(), buyOrder.makerWants - (res.takerGot + res.fee), "Incorrect wants for bid resting order");
+    assertEq(offer.gives(), buyOrder.makerGives - res.takerGave, "Incorrect gives for bid resting order");
 
     // checking `mgo` mappings
-    assertEq(
-      mgo.ownerOf(quote, base, res.offerId),
-      $(this),
-      "Invalid offer owner"
-    );
-    assertEq(
-      mgo.router().reserveBalance(quote, $(this)),
-      bal_quote_before - res.takerGave,
-      "Invalid quote balance"
-    );
-    assertEq(
-      mgo.router().reserveBalance(base, $(this)),
-      bal_base_before + res.takerGot,
-      "Invalid quote balance"
-    );
+    assertEq(mgo.ownerOf(quote, base, res.offerId), $(this), "Invalid offer owner");
+    assertEq(mgo.router().reserveBalance(quote, $(this)), bal_quote_before - res.takerGave, "Invalid quote balance");
+    assertEq(mgo.router().reserveBalance(base, $(this)), bal_base_before + res.takerGot, "Invalid quote balance");
   }
 
   function test_resting_buy_order_can_be_partially_filled() public {
@@ -366,33 +302,18 @@ contract MangroveOrder_Test is MangroveTest {
       restingOrder: true,
       timeToLiveForRestingOrder: 0 //NA
     });
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
-      buyOrder
-    );
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     uint oldLocalBaseBal = base.balanceOf($(this));
     uint oldRemoteQuoteBal = mgo.router().reserveBalance(quote, $(this)); // quote balance of test runner
 
-    (
-      bool success,
-      uint sell_takerGot,
-      uint sell_takerGave,
-      ,
-      uint fee
-    ) = sell_taker.takeWithInfo({offerId: res.offerId, takerWants: 0.1 ether});
+    (bool success, uint sell_takerGot, uint sell_takerGave,, uint fee) =
+      sell_taker.takeWithInfo({offerId: res.offerId, takerWants: 0.1 ether});
 
     assertTrue(success, "Resting order failed");
     // offer delivers
-    assertEq(
-      sell_takerGot,
-      minusFee($(quote), $(base), 0.1 ether),
-      "Incorrect received amount for seller taker"
-    );
+    assertEq(sell_takerGot, minusFee($(quote), $(base), 0.1 ether), "Incorrect received amount for seller taker");
     // inbound token forwarded to test runner
-    assertEq(
-      base.balanceOf($(this)),
-      oldLocalBaseBal + sell_takerGave,
-      "Incorrect forwarded amount to initial taker"
-    );
+    assertEq(base.balanceOf($(this)), oldLocalBaseBal + sell_takerGave, "Incorrect forwarded amount to initial taker");
 
     assertEq(
       mgo.router().reserveBalance(quote, $(this)),
@@ -403,11 +324,7 @@ contract MangroveOrder_Test is MangroveTest {
     // checking resting order residual
     Offer.t offer = mgv.offers($(quote), $(base), res.offerId);
 
-    assertEq(
-      offer.gives(),
-      buyOrder.takerGives - res.takerGave - 0.1 ether,
-      "Incorrect gives for bid resting order"
-    );
+    assertEq(offer.gives(), buyOrder.takerGives - res.takerGave - 0.1 ether, "Incorrect gives for bid resting order");
   }
 
   function test_resting_offer_retracts_when_unable_to_repost() public {
@@ -423,9 +340,7 @@ contract MangroveOrder_Test is MangroveTest {
       restingOrder: true,
       timeToLiveForRestingOrder: 0 //NA
     });
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 1 ether}(
-      buyOrder
-    );
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 1 ether}(buyOrder);
     // test runner native balance
     uint oldWeiBalance = $(this).balance;
 
@@ -433,10 +348,7 @@ contract MangroveOrder_Test is MangroveTest {
     mgv.setDensity($(quote), $(base), 1 ether);
     expectFrom($(mgv));
     emit OfferRetract($(quote), $(base), res.offerId);
-    (bool success, , , , ) = sell_taker.takeWithInfo({
-      offerId: res.offerId,
-      takerWants: 0
-    });
+    (bool success,,,,) = sell_taker.takeWithInfo({offerId: res.offerId, takerWants: 0});
     assertTrue(success, "snipe failed");
     // one cannot require this.balance == oldWeiBalance because of the rounding error in the computation of offer's gasprice
     assertTrue($(this).balance > oldWeiBalance, "retract did not deprovision");
@@ -455,16 +367,10 @@ contract MangroveOrder_Test is MangroveTest {
       restingOrder: true,
       timeToLiveForRestingOrder: 0 //NA
     });
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
-      buyOrder
-    );
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     uint userWeiBalanceOld = $(this).balance;
     uint credited = mgo.retractOffer(quote, base, res.offerId, true);
-    assertEq(
-      $(this).balance,
-      userWeiBalanceOld + credited,
-      "Incorrect provision received"
-    );
+    assertEq($(this).balance, userWeiBalanceOld + credited, "Incorrect provision received");
   }
 
   function test_failing_resting_offer_releases_uncollected_provision() public {
@@ -482,9 +388,7 @@ contract MangroveOrder_Test is MangroveTest {
     });
 
     uint provision = 5 ether;
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: provision}(
-      buyOrder
-    );
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: provision}(buyOrder);
     // native token reserve for user
     uint native_reserve_before = $(this).balance;
 
@@ -492,10 +396,7 @@ contract MangroveOrder_Test is MangroveTest {
     quote.approve($(mgo.router()), 0);
     base.approve($(mgo.router()), 0);
 
-    (, , , uint bounty, ) = sell_taker.takeWithInfo({
-      offerId: res.offerId,
-      takerWants: 1
-    });
+    (,,, uint bounty,) = sell_taker.takeWithInfo({offerId: res.offerId, takerWants: 1});
     assertTrue(bounty > 0, "snipe should have failed");
     // collecting released provision
     mgo.retractOffer(quote, base, res.offerId, true);
@@ -503,11 +404,7 @@ contract MangroveOrder_Test is MangroveTest {
     uint userReleasedProvision = native_reserve_after - native_reserve_before;
     assertTrue(userReleasedProvision > 0, "No released provision");
     // making sure approx is not too bad (UserreleasedProvision in O(provision - res.bounty))
-    assertEq(
-      (provision - res.bounty) / userReleasedProvision,
-      1,
-      "invalid amount of released provision"
-    );
+    assertEq((provision - res.bounty) / userReleasedProvision, 1, "invalid amount of released provision");
   }
 
   function test_ownership_relation() public {
@@ -524,42 +421,17 @@ contract MangroveOrder_Test is MangroveTest {
       timeToLiveForRestingOrder: 0 //NA
     });
     expectFrom($(mgo));
-    emit OrderSummary(
-      IMangrove(payable(mgv)),
-      base,
-      quote,
-      $(this),
-      true,
-      0,
-      0,
-      0
-    );
+    emit OrderSummary(IMangrove(payable(mgv)), base, quote, $(this), true, 0, 0, 0);
     // TODO when checkEmit is available, get offer id after post
     mgo.take{value: 0.1 ether}(buyOrder);
     expectFrom($(mgo));
-    emit OrderSummary(
-      IMangrove(payable(mgv)),
-      base,
-      quote,
-      $(this),
-      true,
-      0,
-      0,
-      0
-    );
+    emit OrderSummary(IMangrove(payable(mgv)), base, quote, $(this), true, 0, 0, 0);
     // TODO when checkEmit is available, get offer id after post
     mgo.take{value: 0.1 ether}(buyOrder);
-    (uint[] memory live, uint[] memory dead) = mgo.offersOfOwner(
-      $(this),
-      quote,
-      base
-    );
+    (uint[] memory live, uint[] memory dead) = mgo.offersOfOwner($(this), quote, base);
     assertTrue(live.length == 2 && dead.length == 0, "Incorrect offer list");
     mgo.retractOffer(quote, base, live[0], false);
     (live, dead) = mgo.offersOfOwner($(this), quote, base);
-    assertTrue(
-      live.length == 1 && dead.length == 1,
-      "Incorrect offer list after retract"
-    );
+    assertTrue(live.length == 1 && dead.length == 1, "Incorrect offer list after retract");
   }
 }

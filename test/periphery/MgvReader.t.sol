@@ -5,7 +5,7 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
-import { OfferStruct, OfferDetailStruct } from "mgv_src/preprocessed/MgvStructs.post.sol";
+import {OfferStruct, OfferDetailStruct} from "mgv_src/preprocessed/MgvStructs.post.sol";
 
 // In these tests, the testing contract is the market maker.
 contract MgvReaderTest is MangroveTest {
@@ -26,12 +26,8 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_read_packed() public {
-    (
-      uint currentId,
-      uint[] memory offerIds,
-      OfferStruct[] memory offers,
-      OfferDetailStruct[] memory details
-    ) = reader.offerList($(base), $(quote), 0, 50);
+    (uint currentId, uint[] memory offerIds, OfferStruct[] memory offers, OfferDetailStruct[] memory details) =
+      reader.offerList($(base), $(quote), 0, 50);
 
     assertEq(offerIds.length, 0, "ids: wrong length on 2elem");
     assertEq(offers.length, 0, "offers: wrong length on 1elem");
@@ -39,12 +35,7 @@ contract MgvReaderTest is MangroveTest {
     // test 1 elem
     mkr.newOffer(1 ether, 1 ether, 10_000, 0);
 
-    (currentId, offerIds, offers, details) = reader.offerList(
-      $(base),
-      $(quote),
-      0,
-      50
-    );
+    (currentId, offerIds, offers, details) = reader.offerList($(base), $(quote), 0, 50);
 
     assertEq(offerIds.length, 1, "ids: wrong length on 1elem");
     assertEq(offers.length, 1, "offers: wrong length on 1elem");
@@ -53,47 +44,27 @@ contract MgvReaderTest is MangroveTest {
     // test 2 elem
     mkr.newOffer(0.9 ether, 1 ether, 10_000, 0);
 
-    (currentId, offerIds, offers, details) = reader.offerList(
-      $(base),
-      $(quote),
-      0,
-      50
-    );
+    (currentId, offerIds, offers, details) = reader.offerList($(base), $(quote), 0, 50);
 
     assertEq(offerIds.length, 2, "ids: wrong length on 2elem");
     assertEq(offers.length, 2, "offers: wrong length on 1elem");
     assertEq(details.length, 2, "details: wrong length on 1elem");
 
     // test 2 elem read from elem 1
-    (currentId, offerIds, offers, details) = reader.offerList(
-      $(base),
-      $(quote),
-      1,
-      50
-    );
+    (currentId, offerIds, offers, details) = reader.offerList($(base), $(quote), 1, 50);
     assertEq(offerIds.length, 1, "ids: wrong length 2elem start from id 1");
     assertEq(offers.length, 1, "offers: wrong length on 1elem");
     assertEq(details.length, 1, "details: wrong length on 1elem");
 
     // test 3 elem read in chunks of 2
     mkr.newOffer(0.8 ether, 1 ether, 10_000, 0);
-    (currentId, offerIds, offers, details) = reader.offerList(
-      $(base),
-      $(quote),
-      0,
-      2
-    );
+    (currentId, offerIds, offers, details) = reader.offerList($(base), $(quote), 0, 2);
     assertEq(offerIds.length, 2, "ids: wrong length on 3elem chunk size 2");
     assertEq(offers.length, 2, "offers: wrong length on 1elem");
     assertEq(details.length, 2, "details: wrong length on 1elem");
 
     // test offer order
-    (currentId, offerIds, offers, details) = reader.offerList(
-      $(base),
-      $(quote),
-      0,
-      50
-    );
+    (currentId, offerIds, offers, details) = reader.offerList($(base), $(quote), 0, 50);
     assertEq(offers[0].wants, 0.8 ether, "wrong wants for offers[0]");
     assertEq(offers[1].wants, 0.9 ether, "wrong wants for offers[0]");
     assertEq(offers[2].wants, 1 ether, "wrong wants for offers[0]");
@@ -102,17 +73,8 @@ contract MgvReaderTest is MangroveTest {
   function test_returns_zero_on_nonexisting_offer() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 10_000, 0);
     mkr.retractOffer(ofr);
-    (, uint[] memory offerIds, , ) = reader.offerList(
-      $(base),
-      $(quote),
-      ofr,
-      50
-    );
-    assertEq(
-      offerIds.length,
-      0,
-      "should have 0 offers since starting point is out of the book"
-    );
+    (, uint[] memory offerIds,,) = reader.offerList($(base), $(quote), ofr, 50);
+    assertEq(offerIds.length, 0, "should have 0 offers since starting point is out of the book");
   }
 
   function test_no_wasted_time() public {
@@ -126,11 +88,7 @@ contract MgvReaderTest is MangroveTest {
     reader.offerList($(base), $(quote), 0, 50000000);
     uint used2 = g - gasleft();
 
-    assertEq(
-      used1,
-      used2,
-      "gas spent should not depend on maxOffers when offers length < maxOffers"
-    );
+    assertEq(used1, used2, "gas spent should not depend on maxOffers when offers length < maxOffers");
   }
 
   function test_correct_endpoints_0() public {
@@ -140,12 +98,7 @@ contract MgvReaderTest is MangroveTest {
     assertEq(startId, 0, "0.0 wrong startId");
     assertEq(length, 0, "0.0 wrong length");
 
-    (startId, length) = reader.offerListEndPoints(
-      $(base),
-      $(quote),
-      32,
-      100000
-    );
+    (startId, length) = reader.offerListEndPoints($(base), $(quote), 32, 100000);
     assertEq(startId, 0, "0.1 wrong startId");
     assertEq(length, 0, "0.1 wrong length");
   }

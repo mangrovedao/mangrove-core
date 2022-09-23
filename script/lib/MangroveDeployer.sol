@@ -23,11 +23,7 @@ contract MangroveDeployer is Deployer {
     outputDeployment();
   }
 
-  function innerRun(
-    address chief,
-    uint gasprice,
-    uint gasmax
-  ) public {
+  function innerRun(address chief, uint gasprice, uint gasmax) public {
     broadcast();
     mgv = new Mangrove({governance: chief, gasprice: gasprice, gasmax: gasmax});
     fork.set("Mangrove", address(mgv));

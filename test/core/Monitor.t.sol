@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import { Offer, OfferDetail, Global, Local } from "mgv_src/preprocessed/MgvPack.post.sol";
+import {Offer, OfferDetail, Global, Local} from "mgv_src/preprocessed/MgvPack.post.sol";
 
 contract MonitorTest is MangroveTest {
   TestMaker mkr;
@@ -27,7 +27,7 @@ contract MonitorTest is MangroveTest {
   }
 
   function test_initial_monitor_values() public {
-    (Global.t config, ) = mgv.config($(base), $(quote));
+    (Global.t config,) = mgv.config($(base), $(quote));
     assertTrue(!config.useOracle(), "initial useOracle should be false");
     assertTrue(!config.notify(), "initial notify should be false");
   }
@@ -37,7 +37,7 @@ contract MonitorTest is MangroveTest {
     mgv.setUseOracle(true);
     mgv.setNotify(true);
     expectToMockCall(monitor, monitor_read_cd, abi.encode(0, 0));
-    (Global.t config, ) = mgv.config($(base), $(quote));
+    (Global.t config,) = mgv.config($(base), $(quote));
     assertEq(config.monitor(), monitor, "monitor should be set");
     assertTrue(config.useOracle(), "useOracle should be set");
     assertTrue(config.notify(), "notify should be set");
@@ -65,14 +65,14 @@ contract MonitorTest is MangroveTest {
     mgv.setUseOracle(true);
     mgv.setGasprice(900);
     expectToMockCall(monitor, monitor_read_cd, abi.encode(1, 0));
-    (Global.t config, ) = mgv.config($(base), $(quote));
+    (Global.t config,) = mgv.config($(base), $(quote));
     assertEq(config.gasprice(), 1, "gasprice should be set by oracle");
   }
 
   function test_set_oracle_gasprice_without_useOracle_fails() public {
     mgv.setMonitor(monitor);
     mgv.setGasprice(900);
-    (Global.t config, ) = mgv.config($(base), $(quote));
+    (Global.t config,) = mgv.config($(base), $(quote));
     assertEq(config.gasprice(), 900, "gasprice should be set by mgv");
   }
 
@@ -92,9 +92,7 @@ contract MonitorTest is MangroveTest {
     uint ofrId = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     Offer.t offer = mgv.offers($(base), $(quote), ofrId);
 
-    uint[4][] memory targets = wrap_dynamic(
-      [ofrId, 0.04 ether, 0.05 ether, 100_000]
-    );
+    uint[4][] memory targets = wrap_dynamic([ofrId, 0.04 ether, 0.05 ether, 100_000]);
 
     (Global.t _global, Local.t _local) = mgv.config($(base), $(quote));
     _local = _local.best(1).lock(true);
@@ -111,13 +109,9 @@ contract MonitorTest is MangroveTest {
       local: _local
     });
 
-    expectToMockCall(
-      monitor,
-      abi.encodeCall(IMgvMonitor.notifySuccess, (order, $(this))),
-      bytes("")
-    );
+    expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifySuccess, (order, $(this))), bytes(""));
 
-    (uint successes, , , , ) = mgv.snipes($(base), $(quote), targets, true);
+    (uint successes,,,,) = mgv.snipes($(base), $(quote), targets, true);
     assertTrue(successes == 1, "snipe should succeed");
   }
 
@@ -129,9 +123,7 @@ contract MonitorTest is MangroveTest {
     Offer.t offer = mgv.offers($(base), $(quote), ofrId);
     OfferDetail.t offerDetail = mgv.offerDetails($(base), $(quote), ofrId);
 
-    uint[4][] memory targets = wrap_dynamic(
-      [ofrId, 0.04 ether, 0.05 ether, 100_000]
-    );
+    uint[4][] memory targets = wrap_dynamic([ofrId, 0.04 ether, 0.05 ether, 100_000]);
 
     (Global.t _global, Local.t _local) = mgv.config($(base), $(quote));
     // config sent during maker callback has stale best and, is locked
@@ -149,13 +141,9 @@ contract MonitorTest is MangroveTest {
       local: _local
     });
 
-    expectToMockCall(
-      monitor,
-      abi.encodeCall(IMgvMonitor.notifyFail, (order, $(this))),
-      bytes("")
-    );
+    expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifyFail, (order, $(this))), bytes(""));
 
-    (uint successes, , , , ) = mgv.snipes($(base), $(quote), targets, true);
+    (uint successes,,,,) = mgv.snipes($(base), $(quote), targets, true);
     assertTrue(successes == 0, "snipe should fail");
   }
 }

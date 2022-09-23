@@ -17,9 +17,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
+
 import {MgvLib} from "../MgvLib.sol";
-import { OfferStruct, OfferDetailStruct } from "mgv_src/preprocessed/MgvStructs.post.sol";
+import {OfferStruct, OfferDetailStruct} from "mgv_src/preprocessed/MgvStructs.post.sol";
 
 interface MangroveLike {
   function snipesFor(
@@ -28,20 +30,12 @@ interface MangroveLike {
     uint[4][] calldata targets,
     bool fillWants,
     address taker
-  )
-    external
-    returns (
-      uint successes,
-      uint takerGot,
-      uint takerGave,
-      uint bounty
-    );
+  ) external returns (uint successes, uint takerGot, uint takerGave, uint bounty);
 
-  function offerInfo(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint offerId
-  ) external view returns (OfferStruct memory, OfferStruct memory);
+  function offerInfo(address outbound_tkn, address inbound_tkn, uint offerId)
+    external
+    view
+    returns (OfferStruct memory, OfferStruct memory);
 }
 
 /* The purpose of the Cleaner contract is to execute failing offers and collect
@@ -67,24 +61,16 @@ contract MgvCleaner {
   receive() external payable {}
 
   /* Returns the entire balance, not just the bounty collected */
-  function collect(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint[4][] calldata targets,
-    bool fillWants
-  ) external returns (uint bal) {
+  function collect(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants)
+    external
+    returns (uint bal)
+  {
     unchecked {
-      (uint successes, , , ) = MGV.snipesFor(
-        outbound_tkn,
-        inbound_tkn,
-        targets,
-        fillWants,
-        msg.sender
-      );
+      (uint successes,,,) = MGV.snipesFor(outbound_tkn, inbound_tkn, targets, fillWants, msg.sender);
       require(successes == 0, "mgvCleaner/anOfferDidNotFail");
       bal = address(this).balance;
       bool noRevert;
-      (noRevert, ) = msg.sender.call{value: bal}("");
+      (noRevert,) = msg.sender.call{value: bal}("");
     }
   }
 }

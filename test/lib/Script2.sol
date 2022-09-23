@@ -1,5 +1,6 @@
 // SPDX-License-Identifier:	AGPL-2.0
 pragma solidity ^0.8.13;
+
 import {console2 as console} from "forge-std/console2.sol";
 import {Script} from "forge-std/Script.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
@@ -24,10 +25,7 @@ contract Script2 is Script {
   }
 
   function singleton(string memory name, address addr) public {
-    require(
-      singleton(name) == address(0),
-      "Script2: cannot update existing singleton"
-    );
+    require(singleton(name) == address(0), "Script2: cannot update existing singleton");
     _singletons.set(name, addr);
   }
 
@@ -58,11 +56,7 @@ contract Script2 is Script {
 
   /* *** Unit conversion *** */
 
-  function toEthUnits(uint w, string memory units)
-    internal
-    pure
-    returns (string memory eth)
-  {
+  function toEthUnits(uint w, string memory units) internal pure returns (string memory eth) {
     string memory suffix = string.concat(" ", units);
 
     if (w == 0) {
@@ -74,7 +68,7 @@ contract Script2 is Script {
       i += 1;
     }
     if (i >= 18) {
-      w = w * (10**(i - 18));
+      w = w * (10 ** (i - 18));
       return string.concat(vm.toString(w), suffix);
     } else {
       uint zeroBefore = 18 - i;
@@ -105,11 +99,7 @@ contract Script2 is Script {
     console.log(s32(b));
   }
 
-  function getReason(bytes memory returnData)
-    internal
-    pure
-    returns (string memory reason)
-  {
+  function getReason(bytes memory returnData) internal pure returns (string memory reason) {
     /* returnData for a revert(reason) is the result of
        abi.encodeWithSignature("Error(string)",reason)
        but abi.decode assumes the first 4 bytes are padded to 32
@@ -130,11 +120,7 @@ contract Script2 is Script {
   /* *******
      Convert T[] arrays to U[] arrays
   */
-  function toIERC20(address[] memory addrs)
-    internal
-    pure
-    returns (IERC20[] memory ierc20s)
-  {
+  function toIERC20(address[] memory addrs) internal pure returns (IERC20[] memory ierc20s) {
     assembly {
       ierc20s := addrs
     }
@@ -150,41 +136,25 @@ contract Script2 is Script {
     return ret;
   }
 
-  function wrap_dynamic(uint[1] memory a)
-    internal
-    pure
-    returns (uint[1][] memory)
-  {
+  function wrap_dynamic(uint[1] memory a) internal pure returns (uint[1][] memory) {
     uint[1][] memory ret = new uint[1][](1);
     ret[0] = a;
     return ret;
   }
 
-  function wrap_dynamic(uint[2] memory a)
-    internal
-    pure
-    returns (uint[2][] memory)
-  {
+  function wrap_dynamic(uint[2] memory a) internal pure returns (uint[2][] memory) {
     uint[2][] memory ret = new uint[2][](1);
     ret[0] = a;
     return ret;
   }
 
-  function wrap_dynamic(uint[3] memory a)
-    internal
-    pure
-    returns (uint[3][] memory)
-  {
+  function wrap_dynamic(uint[3] memory a) internal pure returns (uint[3][] memory) {
     uint[3][] memory ret = new uint[3][](1);
     ret[0] = a;
     return ret;
   }
 
-  function wrap_dynamic(uint[4] memory a)
-    internal
-    pure
-    returns (uint[4][] memory)
-  {
+  function wrap_dynamic(uint[4] memory a) internal pure returns (uint[4][] memory) {
     uint[4][] memory ret = new uint[4][](1);
     ret[0] = a;
     return ret;
@@ -193,11 +163,7 @@ contract Script2 is Script {
   /* *****
   Internal utility: copy `words` words from `i_ptr` to `o_ptr`
   */
-  function memcpy(
-    uint i_ptr,
-    uint words,
-    uint o_ptr
-  ) internal pure {
+  function memcpy(uint i_ptr, uint words, uint o_ptr) internal pure {
     while (words > 0) {
       assembly {
         function loc(i, w) -> o {
@@ -312,11 +278,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(uint[10] memory a)
-    internal
-    pure
-    returns (uint[] memory ret)
-  {
+  function dynamic(uint[10] memory a) internal pure returns (uint[] memory ret) {
     ret = new uint[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -437,11 +399,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(IERC20[1] memory a)
-    internal
-    pure
-    returns (IERC20[] memory ret)
-  {
+  function dynamic(IERC20[1] memory a) internal pure returns (IERC20[] memory ret) {
     ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -452,11 +410,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(IERC20[2] memory a)
-    internal
-    pure
-    returns (IERC20[] memory ret)
-  {
+  function dynamic(IERC20[2] memory a) internal pure returns (IERC20[] memory ret) {
     ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -467,11 +421,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(IERC20[3] memory a)
-    internal
-    pure
-    returns (IERC20[] memory ret)
-  {
+  function dynamic(IERC20[3] memory a) internal pure returns (IERC20[] memory ret) {
     ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -482,11 +432,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(IERC20[4] memory a)
-    internal
-    pure
-    returns (IERC20[] memory ret)
-  {
+  function dynamic(IERC20[4] memory a) internal pure returns (IERC20[] memory ret) {
     ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -497,11 +443,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(IERC20[5] memory a)
-    internal
-    pure
-    returns (IERC20[] memory ret)
-  {
+  function dynamic(IERC20[5] memory a) internal pure returns (IERC20[] memory ret) {
     ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -512,11 +454,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(IERC20[6] memory a)
-    internal
-    pure
-    returns (IERC20[] memory ret)
-  {
+  function dynamic(IERC20[6] memory a) internal pure returns (IERC20[] memory ret) {
     ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -527,11 +465,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(IERC20[7] memory a)
-    internal
-    pure
-    returns (IERC20[] memory ret)
-  {
+  function dynamic(IERC20[7] memory a) internal pure returns (IERC20[] memory ret) {
     ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -542,11 +476,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(IERC20[8] memory a)
-    internal
-    pure
-    returns (IERC20[] memory ret)
-  {
+  function dynamic(IERC20[8] memory a) internal pure returns (IERC20[] memory ret) {
     ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -557,11 +487,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(IERC20[9] memory a)
-    internal
-    pure
-    returns (IERC20[] memory ret)
-  {
+  function dynamic(IERC20[9] memory a) internal pure returns (IERC20[] memory ret) {
     ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -572,11 +498,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(IERC20[10] memory a)
-    internal
-    pure
-    returns (IERC20[] memory ret)
-  {
+  function dynamic(IERC20[10] memory a) internal pure returns (IERC20[] memory ret) {
     ret = new IERC20[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -587,11 +509,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(bytes32[1] memory a)
-    internal
-    pure
-    returns (bytes32[] memory ret)
-  {
+  function dynamic(bytes32[1] memory a) internal pure returns (bytes32[] memory ret) {
     ret = new bytes32[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -602,11 +520,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(bytes32[2] memory a)
-    internal
-    pure
-    returns (bytes32[] memory ret)
-  {
+  function dynamic(bytes32[2] memory a) internal pure returns (bytes32[] memory ret) {
     ret = new bytes32[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -617,11 +531,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(bytes32[3] memory a)
-    internal
-    pure
-    returns (bytes32[] memory ret)
-  {
+  function dynamic(bytes32[3] memory a) internal pure returns (bytes32[] memory ret) {
     ret = new bytes32[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -632,11 +542,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(bytes32[4] memory a)
-    internal
-    pure
-    returns (bytes32[] memory ret)
-  {
+  function dynamic(bytes32[4] memory a) internal pure returns (bytes32[] memory ret) {
     ret = new bytes32[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -647,11 +553,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(bytes32[5] memory a)
-    internal
-    pure
-    returns (bytes32[] memory ret)
-  {
+  function dynamic(bytes32[5] memory a) internal pure returns (bytes32[] memory ret) {
     ret = new bytes32[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -662,11 +564,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(bytes32[6] memory a)
-    internal
-    pure
-    returns (bytes32[] memory ret)
-  {
+  function dynamic(bytes32[6] memory a) internal pure returns (bytes32[] memory ret) {
     ret = new bytes32[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -677,11 +575,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(bytes32[7] memory a)
-    internal
-    pure
-    returns (bytes32[] memory ret)
-  {
+  function dynamic(bytes32[7] memory a) internal pure returns (bytes32[] memory ret) {
     ret = new bytes32[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -692,11 +586,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(bytes32[8] memory a)
-    internal
-    pure
-    returns (bytes32[] memory ret)
-  {
+  function dynamic(bytes32[8] memory a) internal pure returns (bytes32[] memory ret) {
     ret = new bytes32[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -707,11 +597,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(bytes32[9] memory a)
-    internal
-    pure
-    returns (bytes32[] memory ret)
-  {
+  function dynamic(bytes32[9] memory a) internal pure returns (bytes32[] memory ret) {
     ret = new bytes32[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -722,11 +608,7 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(bytes32[10] memory a)
-    internal
-    pure
-    returns (bytes32[] memory ret)
-  {
+  function dynamic(bytes32[10] memory a) internal pure returns (bytes32[] memory ret) {
     ret = new bytes32[](a.length);
     uint i_ptr;
     uint o_ptr;
@@ -737,110 +619,70 @@ contract Script2 is Script {
     memcpy(i_ptr, a.length, o_ptr);
   }
 
-  function dynamic(string[1] memory a)
-    internal
-    pure
-    returns (string[] memory ret)
-  {
+  function dynamic(string[1] memory a) internal pure returns (string[] memory ret) {
     ret = new string[](a.length);
     for (uint i = 0; i < a.length; i++) {
       ret[i] = a[i];
     }
   }
 
-  function dynamic(string[2] memory a)
-    internal
-    pure
-    returns (string[] memory ret)
-  {
+  function dynamic(string[2] memory a) internal pure returns (string[] memory ret) {
     ret = new string[](a.length);
     for (uint i = 0; i < a.length; i++) {
       ret[i] = a[i];
     }
   }
 
-  function dynamic(string[3] memory a)
-    internal
-    pure
-    returns (string[] memory ret)
-  {
+  function dynamic(string[3] memory a) internal pure returns (string[] memory ret) {
     ret = new string[](a.length);
     for (uint i = 0; i < a.length; i++) {
       ret[i] = a[i];
     }
   }
 
-  function dynamic(string[4] memory a)
-    internal
-    pure
-    returns (string[] memory ret)
-  {
+  function dynamic(string[4] memory a) internal pure returns (string[] memory ret) {
     ret = new string[](a.length);
     for (uint i = 0; i < a.length; i++) {
       ret[i] = a[i];
     }
   }
 
-  function dynamic(string[5] memory a)
-    internal
-    pure
-    returns (string[] memory ret)
-  {
+  function dynamic(string[5] memory a) internal pure returns (string[] memory ret) {
     ret = new string[](a.length);
     for (uint i = 0; i < a.length; i++) {
       ret[i] = a[i];
     }
   }
 
-  function dynamic(string[6] memory a)
-    internal
-    pure
-    returns (string[] memory ret)
-  {
+  function dynamic(string[6] memory a) internal pure returns (string[] memory ret) {
     ret = new string[](a.length);
     for (uint i = 0; i < a.length; i++) {
       ret[i] = a[i];
     }
   }
 
-  function dynamic(string[7] memory a)
-    internal
-    pure
-    returns (string[] memory ret)
-  {
+  function dynamic(string[7] memory a) internal pure returns (string[] memory ret) {
     ret = new string[](a.length);
     for (uint i = 0; i < a.length; i++) {
       ret[i] = a[i];
     }
   }
 
-  function dynamic(string[8] memory a)
-    internal
-    pure
-    returns (string[] memory ret)
-  {
+  function dynamic(string[8] memory a) internal pure returns (string[] memory ret) {
     ret = new string[](a.length);
     for (uint i = 0; i < a.length; i++) {
       ret[i] = a[i];
     }
   }
 
-  function dynamic(string[9] memory a)
-    internal
-    pure
-    returns (string[] memory ret)
-  {
+  function dynamic(string[9] memory a) internal pure returns (string[] memory ret) {
     ret = new string[](a.length);
     for (uint i = 0; i < a.length; i++) {
       ret[i] = a[i];
     }
   }
 
-  function dynamic(string[10] memory a)
-    internal
-    pure
-    returns (string[] memory ret)
-  {
+  function dynamic(string[10] memory a) internal pure returns (string[] memory ret) {
     ret = new string[](a.length);
     for (uint i = 0; i < a.length; i++) {
       ret[i] = a[i];
@@ -859,11 +701,7 @@ contract Script2 is Script {
   /// @notice Convert a bytes32 array to a string array
   /// @param bs an array of bytes32
   /// @return ss an array of strings
-  function strings(bytes32[] memory bs)
-    internal
-    pure
-    returns (string[] memory)
-  {
+  function strings(bytes32[] memory bs) internal pure returns (string[] memory) {
     string[] memory ss = new string[](bs.length);
     for (uint i = 0; i < bs.length; i++) {
       ss[i] = string(bytes.concat(bs[i]));
@@ -886,21 +724,14 @@ contract Script2 is Script {
   // @notice Uppercase any string that only contains ascii lower/uppercase and underscores
   /// @param s a string
   /// @return ss s, uppercased
-  function simpleCapitalize(string memory s)
-    internal
-    pure
-    returns (string memory ss)
-  {
+  function simpleCapitalize(string memory s) internal pure returns (string memory ss) {
     bytes memory b = bytes(s);
     ss = new string(b.length);
     unchecked {
       for (uint i = 0; i < b.length; i++) {
         bytes1 bb = b[i];
         bool lowercase = bb >= "a" && bb <= "z";
-        require(
-          lowercase || bb == "_" || (bb >= "A" && bb <= "Z"),
-          "simpleCapitalize input out of range"
-        );
+        require(lowercase || bb == "_" || (bb >= "A" && bb <= "Z"), "simpleCapitalize input out of range");
         bytes(ss)[i] = lowercase ? bytes1(uint8(bb) - 32) : bb;
       }
     }

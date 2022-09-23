@@ -25,10 +25,10 @@ import "mgv_test/lib/forks/Polygon.sol";
 
 abstract contract GuaaveAbstractTest is MangroveTest {
   uint constant BASE0 = 0.34 ether;
-  uint constant BASE1 = 1000 * 10**6; //because usdc decimals?
+  uint constant BASE1 = 1000 * 10 ** 6; //because usdc decimals?
   uint constant NSLOTS = 20;
   // price increase is delta/BASE_0
-  uint constant DELTA = 34 * 10**6; // because usdc decimals?
+  uint constant DELTA = 34 * 10 ** 6; // because usdc decimals?
 
   IERC20 weth;
   IERC20 usdc;
@@ -120,23 +120,14 @@ abstract contract GuaaveAbstractTest is MangroveTest {
 
     // no need to approve for overlying transfer because router is the reserve
     mgo.activate(tokens);
-    try mgo.checkList(tokens) {} catch Error(string memory reason) {
+    try mgo.checkList(tokens) {}
+    catch Error(string memory reason) {
       fail(reason);
     }
 
     // putting ETH as collateral on AAVE
-    router.supply(
-      weth,
-      mgo.reserve(),
-      17 ether,
-      $(mgo) /* maker contract was funded above */
-    );
-    router.borrow(
-      usdc,
-      mgo.reserve(),
-      2000 * 10**6,
-      $(mgo) /* maker contract is buffer */
-    );
+    router.supply(weth, mgo.reserve(), 17 ether, $(mgo) /* maker contract was funded above */ );
+    router.borrow(usdc, mgo.reserve(), 2000 * 10 ** 6, $(mgo) /* maker contract is buffer */ );
     vm.stopPrank();
 
     // TODO-foundry-merge: implement logLenderStatus in solidity
@@ -144,7 +135,7 @@ abstract contract GuaaveAbstractTest is MangroveTest {
 
   function part_initialize() public {
     vm.startPrank(maker);
-    init(1000 * 10**6, 0.3 ether);
+    init(1000 * 10 ** 6, 0.3 ether);
     vm.stopPrank();
     // note: js tests would log the usdc/weth and weth/usdc OBs at this point
   }
@@ -158,12 +149,12 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     uint awETHBalance = aweth.balanceOf($(router));
     // if we don't move timestamp forward, final balance is 6 times lower than it should, not sure exactly why. theories: interest rate? aave borrow/repay blocker?
     vm.warp(block.timestamp + 1);
-    mgv.marketOrder($(weth), $(usdc), takerWants, 100_000 * 10**6, true);
+    mgv.marketOrder($(weth), $(usdc), takerWants, 100_000 * 10 ** 6, true);
     // note: js tests would logLenderStatus at this point
     vm.stopPrank();
     uint expected = awETHBalance - takerWants; //maker pays before Mangrove fees
     uint actual = aweth.balanceOf($(router));
-    assertApproxEqAbs(expected, actual, 10**9, "wrong final balance");
+    assertApproxEqAbs(expected, actual, 10 ** 9, "wrong final balance");
   }
 
   // init procedure

@@ -5,17 +5,20 @@ import {Script, console} from "forge-std/Script.sol";
 import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
-/** @notice Shifts Mango down or up to reequilibrate the OB */
-/** Usage example (shifting MANGO_WETH_USDC of `shift` positions
-
-    MANGO=0x62EaBFE2e66dd9421b06042A0F10167BF62C97A3 \
-    SHIFT=5 \
-    DEFAULT_GIVES_AMOUNT=$(cast ff 6 1000) \
-    forge script --fork-url $MUMBAI_NODE_URL \
-    --private-key $MUMBAI_TESTER_PRIVATE_KEY \
-    --broadcast \
-    ShiftMango
-*/
+/**
+ * @notice Shifts Mango down or up to reequilibrate the OB
+ */
+/**
+ * Usage example (shifting MANGO_WETH_USDC of `shift` positions
+ *
+ * MANGO=0x62EaBFE2e66dd9421b06042A0F10167BF62C97A3 \
+ * SHIFT=5 \
+ * DEFAULT_GIVES_AMOUNT=$(cast ff 6 1000) \
+ * forge script --fork-url $MUMBAI_NODE_URL \
+ * --private-key $MUMBAI_TESTER_PRIVATE_KEY \
+ * --broadcast \
+ * ShiftMango
+ */
 
 contract ShiftMango is Deployer {
   Mango MGO;
@@ -51,12 +54,7 @@ contract ShiftMango is Deployer {
     for (uint i = 0; i < amounts.length; i++) {
       amounts[i] = default_gives_amount;
     }
-    console.log(
-      "Shifting of",
-      absShift,
-      "positions",
-      shift < 0 ? "down..." : "up..."
-    );
+    console.log("Shifting of", absShift, "positions", shift < 0 ? "down..." : "up...");
     broadcast();
     MGO.setShift(shift, shift < 0, amounts);
   }

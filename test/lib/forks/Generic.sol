@@ -40,10 +40,7 @@ contract GenericFork is Script {
   /* get/set addresses, passthrough to context/deployed ToyENS instances */
 
   function set(string memory name, address addr) public {
-    require(
-      context._addrs(name) == address(0),
-      "Fork: context addresses cannot be changed."
-    );
+    require(context._addrs(name) == address(0), "Fork: context addresses cannot be changed.");
     deployed.set(name, addr);
     label(addr, name);
   }
@@ -55,67 +52,36 @@ contract GenericFork is Script {
     }
   }
 
-  function allDeployed()
-    public
-    view
-    returns (string[] memory, address[] memory)
-  {
+  function allDeployed() public view returns (string[] memory, address[] memory) {
     return deployed.all();
   }
 
   /* Read addresses from JSON files */
 
-  function addressesFile(string memory category, string memory suffix)
-    public
-    view
-    returns (string memory)
-  {
-    return
-      string.concat(
-        vm.projectRoot(),
-        "/addresses/",
-        category,
-        "/",
-        NETWORK,
-        suffix,
-        ".json"
-      );
+  function addressesFile(string memory category, string memory suffix) public view returns (string memory) {
+    return string.concat(
+      vm.projectRoot(), "/addresses/", category, "/", NETWORK, suffix, ".json"
+    );
   }
 
-  function addressesFile(string memory category)
-    public
-    view
-    returns (string memory)
-  {
+  function addressesFile(string memory category) public view returns (string memory) {
     return addressesFile(category, "");
   }
 
-  function readAddresses(string memory category)
-    internal
-    returns (Record[] memory)
-  {
+  function readAddresses(string memory category) internal returns (Record[] memory) {
     string memory fileName = addressesFile(category);
     try vm.readFile(fileName) returns (string memory addressesRaw) {
       if (bytes(addressesRaw).length == 0) {
         return (new Record[](0));
       }
       try vm.parseJson(addressesRaw) returns (bytes memory jsonBytes) {
-        try (new Parser()).parseJsonBytes(jsonBytes) returns (
-          Record[] memory records
-        ) {
+        try (new Parser()).parseJsonBytes(jsonBytes) returns (Record[] memory records) {
           return records;
         } catch {
-          revert(
-            string.concat(
-              "Fork: error parsing JSON as Record[]. File: ",
-              fileName
-            )
-          );
+          revert(string.concat("Fork: error parsing JSON as Record[]. File: ", fileName));
         }
       } catch {
-        revert(
-          string.concat("Fork: error parsing file as JSON. File: ", fileName)
-        );
+        revert(string.concat("Fork: error parsing file as JSON. File: ", fileName));
       }
     } catch {
       console.log("Fork: cannot read file. Ignoring. File: %s", fileName);
@@ -155,9 +121,7 @@ contract GenericFork is Script {
 
     // check that we are not a GenericFork instance
     if (CHAIN_ID == 0) {
-      revert(
-        "No fork selected: you should pick a subclass of GenericFork with a nonzero CHAIN_ID."
-      );
+      revert("No fork selected: you should pick a subclass of GenericFork with a nonzero CHAIN_ID.");
     }
 
     // survive all fork operations
@@ -187,14 +151,7 @@ contract GenericFork is Script {
 
       if (block.chainid != CHAIN_ID) {
         revert(
-          string.concat(
-            "Chain id should be ",
-            vm.toString(CHAIN_ID),
-            " (",
-            NAME,
-            "), is ",
-            vm.toString(block.chainid)
-          )
+          string.concat("Chain id should be ", vm.toString(CHAIN_ID), " (", NAME, "), is ", vm.toString(block.chainid))
         );
       }
     } else {
@@ -211,11 +168,7 @@ contract GenericFork is Script {
 /* Gadget contract which parses given bytes as Record[]. 
    Useful for catching abi.decode errors. */
 contract Parser {
-  function parseJsonBytes(bytes memory jsonBytes)
-    external
-    pure
-    returns (Record[] memory)
-  {
+  function parseJsonBytes(bytes memory jsonBytes) external pure returns (Record[] memory) {
     return abi.decode(jsonBytes, (Record[]));
   }
 }

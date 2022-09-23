@@ -17,10 +17,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
+
 import {IMaker, HasMgvEvents} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import { Offer, OfferDetail, Global, Local } from "mgv_src/preprocessed/MgvPack.post.sol";
+import {Offer, OfferDetail, Global, Local} from "mgv_src/preprocessed/MgvPack.post.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
 contract MgvOfferMaking is MgvHasOffers {
@@ -159,55 +161,33 @@ contract MgvOfferMaking is MgvHasOffers {
   /* ## Retract Offer */
   //+clear+
   /* `retractOffer` takes the offer `offerId` out of the book. However, `deprovision == true` also refunds the provision associated with the offer. */
-  function retractOffer(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint offerId,
-    bool deprovision
-  ) external returns (uint provision) {
+  function retractOffer(address outbound_tkn, address inbound_tkn, uint offerId, bool deprovision)
+    external
+    returns (uint provision)
+  {
     unchecked {
       (, Local.t local) = config(outbound_tkn, inbound_tkn);
       unlockedMarketOnly(local);
       Offer.t offer = offers[outbound_tkn][inbound_tkn][offerId];
-      OfferDetail.t offerDetail = offerDetails[outbound_tkn][inbound_tkn][
-        offerId
-      ];
-      require(
-        msg.sender == offerDetail.maker(),
-        "mgv/retractOffer/unauthorized"
-      );
+      OfferDetail.t offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
+      require(msg.sender == offerDetail.maker(), "mgv/retractOffer/unauthorized");
 
       /* Here, we are about to un-live an offer, so we start by taking it out of the book by stitching together its previous and next offers. Note that unconditionally calling `stitchOffers` would break the book since it would connect offers that may have since moved. */
       if (isLive(offer)) {
         Local.t oldLocal = local;
-        local = stitchOffers(
-          outbound_tkn,
-          inbound_tkn,
-          offer.prev(),
-          offer.next(),
-          local
-        );
+        local = stitchOffers(outbound_tkn, inbound_tkn, offer.prev(), offer.next(), local);
         /* If calling `stitchOffers` has changed the current `best` offer, we update the storage. */
         if (!oldLocal.eq(local)) {
           locals[outbound_tkn][inbound_tkn] = local;
         }
       }
       /* Set `gives` to 0. Moreover, the last argument depends on whether the user wishes to get their provision back (if true, `gasprice` will be set to 0 as well). */
-      dirtyDeleteOffer(
-        outbound_tkn,
-        inbound_tkn,
-        offerId,
-        offer,
-        offerDetail,
-        deprovision
-      );
+      dirtyDeleteOffer(outbound_tkn, inbound_tkn, offerId, offer, offerDetail, deprovision);
 
       /* If the user wants to get their provision back, we compute its provision from the offer's `gasprice`, `offer_gasbase` and `gasreq`. */
       if (deprovision) {
-        provision =
-          10**9 *
-          offerDetail.gasprice() * //gasprice is 0 if offer was deprovisioned
-          (offerDetail.gasreq() + offerDetail.offer_gasbase());
+        provision = 10 ** 9 * offerDetail.gasprice() //gasprice is 0 if offer was deprovisioned
+          * (offerDetail.gasreq() + offerDetail.offer_gasbase());
         // credit `balanceOf` and log transfer
         creditWei(msg.sender, provision);
       }
@@ -226,7 +206,7 @@ contract MgvOfferMaking is MgvHasOffers {
   /* Fund should be called with a nonzero value (hence the `payable` modifier). The provision will be given to `maker`, not `msg.sender`. */
   function fund(address maker) public payable {
     unchecked {
-      (Global.t _global, ) = config(address(0), address(0));
+      (Global.t _global,) = config(address(0), address(0));
       liveMgvOnly(_global);
       creditWei(maker, msg.value);
     }
@@ -250,7 +230,7 @@ contract MgvOfferMaking is MgvHasOffers {
     unchecked {
       /* Since we only ever send money to the caller, we do not need to provide any particular amount of gas, the caller should manage this herself. */
       debitWei(msg.sender, amount);
-      (noRevert, ) = msg.sender.call{value: amount}("");
+      (noRevert,) = msg.sender.call{value: amount}("");
     }
   }
 
@@ -268,17 +248,12 @@ contract MgvOfferMaking is MgvHasOffers {
       }
 
       /* * Check `gasreq` below limit. Implies `gasreq` at most 24 bits wide, which ensures no overflow in computation of `provision` (see below). */
-      require(
-        ofp.gasreq <= ofp.global.gasmax(),
-        "mgv/writeOffer/gasreq/tooHigh"
-      );
+      require(ofp.gasreq <= ofp.global.gasmax(), "mgv/writeOffer/gasreq/tooHigh");
       /* * Make sure `gives > 0` -- division by 0 would throw in several places otherwise, and `isLive` relies on it. */
       require(ofp.gives > 0, "mgv/writeOffer/gives/tooLow");
       /* * Make sure that the maker is posting a 'dense enough' offer: the ratio of `outbound_tkn` offered per gas consumed must be high enough. The actual gas cost paid by the taker is overapproximated by adding `offer_gasbase` to `gasreq`. */
       require(
-        ofp.gives >=
-          (ofp.gasreq + ofp.local.offer_gasbase()) * ofp.local.density(),
-        "mgv/writeOffer/density/tooLow"
+        ofp.gives >= (ofp.gasreq + ofp.local.offer_gasbase()) * ofp.local.density(), "mgv/writeOffer/density/tooLow"
       );
 
       /* The following checks are for the maker's convenience only. */
@@ -294,58 +269,36 @@ contract MgvOfferMaking is MgvHasOffers {
 
       /* Log the write offer event. */
       emit OfferWrite(
-        ofp.outbound_tkn,
-        ofp.inbound_tkn,
-        msg.sender,
-        ofp.wants,
-        ofp.gives,
-        ofp.gasprice,
-        ofp.gasreq,
-        ofp.id,
-        prev
-      );
+        ofp.outbound_tkn, ofp.inbound_tkn, msg.sender, ofp.wants, ofp.gives, ofp.gasprice, ofp.gasreq, ofp.id, prev
+        );
 
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
       uint oldProvision;
       {
-        OfferDetail.t offerDetail = offerDetails[ofp.outbound_tkn][
-          ofp.inbound_tkn
-        ][ofp.id];
+        OfferDetail.t offerDetail = offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id];
         if (update) {
-          require(
-            msg.sender == offerDetail.maker(),
-            "mgv/updateOffer/unauthorized"
-          );
-          oldProvision =
-            10**9 *
-            offerDetail.gasprice() *
-            (offerDetail.gasreq() + offerDetail.offer_gasbase());
+          require(msg.sender == offerDetail.maker(), "mgv/updateOffer/unauthorized");
+          oldProvision = 10 ** 9 * offerDetail.gasprice() * (offerDetail.gasreq() + offerDetail.offer_gasbase());
         }
 
         /* If the offer is new, has a new `gasprice`, `gasreq`, or if the Mangrove's `offer_gasbase` configuration parameter has changed, we also update `offerDetails`. */
         if (
-          !update ||
-          offerDetail.gasreq() != ofp.gasreq ||
-          offerDetail.gasprice() != ofp.gasprice ||
-          offerDetail.offer_gasbase() != ofp.local.offer_gasbase()
+          !update || offerDetail.gasreq() != ofp.gasreq || offerDetail.gasprice() != ofp.gasprice
+            || offerDetail.offer_gasbase() != ofp.local.offer_gasbase()
         ) {
           uint offer_gasbase = ofp.local.offer_gasbase();
-          offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id] = 
-            OfferDetail
-            .pack({
-              __maker: msg.sender,
-              __gasreq: ofp.gasreq,
-              __offer_gasbase: offer_gasbase,
-              __gasprice: ofp.gasprice
-            });
+          offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id] = OfferDetail.pack({
+            __maker: msg.sender,
+            __gasreq: ofp.gasreq,
+            __offer_gasbase: offer_gasbase,
+            __gasprice: ofp.gasprice
+          });
         }
       }
 
       /* With every change to an offer, a maker may deduct provisions from its `balanceOf` balance. It may also get provisions back if the updated offer requires fewer provisions than before. */
       {
-        uint provision = (ofp.gasreq + ofp.local.offer_gasbase()) *
-          ofp.gasprice *
-          10**9;
+        uint provision = (ofp.gasreq + ofp.local.offer_gasbase()) * ofp.gasprice * 10 ** 9;
         if (provision > oldProvision) {
           debitWei(msg.sender, provision - oldProvision);
         } else if (provision < oldProvision) {
@@ -360,39 +313,25 @@ contract MgvOfferMaking is MgvHasOffers {
       if (!isLive(ofp.oldOffer) || prev != ofp.oldOffer.prev()) {
         /* * If the offer is not the best one, we update its predecessor; otherwise we update the `best` value. */
         if (prev != 0) {
-          offers[ofp.outbound_tkn][ofp.inbound_tkn][prev] = offers[
-            ofp.outbound_tkn
-          ][ofp.inbound_tkn][prev].next(ofp.id);
+          offers[ofp.outbound_tkn][ofp.inbound_tkn][prev] = offers[ofp.outbound_tkn][ofp.inbound_tkn][prev].next(ofp.id);
         } else {
           ofp.local = ofp.local.best(ofp.id);
         }
 
         /* * If the offer is not the last one, we update its successor. */
         if (next != 0) {
-          offers[ofp.outbound_tkn][ofp.inbound_tkn][next] = offers[
-            ofp.outbound_tkn
-          ][ofp.inbound_tkn][next].prev(ofp.id);
+          offers[ofp.outbound_tkn][ofp.inbound_tkn][next] = offers[ofp.outbound_tkn][ofp.inbound_tkn][next].prev(ofp.id);
         }
 
         /* * Recall that in this branch, the offer has changed location, or is not currently in the book. If the offer is not new and already in the book, we must remove it from its previous location by stitching its previous prev/next. */
         if (update && isLive(ofp.oldOffer)) {
-          ofp.local = stitchOffers(
-            ofp.outbound_tkn,
-            ofp.inbound_tkn,
-            ofp.oldOffer.prev(),
-            ofp.oldOffer.next(),
-            ofp.local
-          );
+          ofp.local =
+            stitchOffers(ofp.outbound_tkn, ofp.inbound_tkn, ofp.oldOffer.prev(), ofp.oldOffer.next(), ofp.local);
         }
       }
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
-      Offer.t ofr = Offer.pack({
-        __prev: prev,
-        __next: next,
-        __wants: ofp.wants,
-        __gives: ofp.gives
-      });
+      Offer.t ofr = Offer.pack({__prev: prev, __next: next, __wants: ofp.wants, __gives: ofp.gives});
       offers[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id] = ofr;
     }
   }
@@ -401,19 +340,13 @@ contract MgvOfferMaking is MgvHasOffers {
   /* `findPosition` takes a price in the form of a (`ofp.wants`,`ofp.gives`) pair, an offer id (`ofp.pivotId`) and walks the book from that offer (backward or forward) until the right position for the price is found. The position is returned as a `(prev,next)` pair, with `prev` or `next` at 0 to mark the beginning/end of the book (no offer ever has id 0).
 
   If prices are equal, `findPosition` will put the newest offer last. */
-  function findPosition(OfferPack memory ofp)
-    internal
-    view
-    returns (uint, uint)
-  {
+  function findPosition(OfferPack memory ofp) internal view returns (uint, uint) {
     unchecked {
       uint prevId;
       uint nextId;
       uint pivotId = ofp.pivotId;
       /* Get `pivot`, optimizing for the case where pivot info is already known */
-      Offer.t pivot = pivotId == ofp.id
-        ? ofp.oldOffer
-        : offers[ofp.outbound_tkn][ofp.inbound_tkn][pivotId];
+      Offer.t pivot = pivotId == ofp.id ? ofp.oldOffer : offers[ofp.outbound_tkn][ofp.inbound_tkn][pivotId];
 
       /* In case pivotId is not an active offer, it is unusable (since it is out of the book). We default to the current best offer. If the book is empty pivot will be 0. That is handled through a test in the `better` comparison function. */
       if (!isLive(pivot)) {
@@ -454,10 +387,7 @@ contract MgvOfferMaking is MgvHasOffers {
         (prevId, nextId) = (pivot.prev(), pivotId);
       }
 
-      return (
-        prevId == ofp.id ? ofp.oldOffer.prev() : prevId,
-        nextId == ofp.id ? ofp.oldOffer.next() : nextId
-      );
+      return (prevId == ofp.id ? ofp.oldOffer.prev() : prevId, nextId == ofp.id ? ofp.oldOffer.next() : nextId);
     }
   }
 
@@ -466,11 +396,7 @@ contract MgvOfferMaking is MgvHasOffers {
     "better" is defined on the lexicographic order $\textrm{price} \times_{\textrm{lex}} \textrm{density}^{-1}$. This means that for the same price, offers that deliver more volume per gas are taken first.
 
       In addition to `offer1`, we also provide its id, `offerId1` in order to save gas. If necessary (ie. if the prices `wants1/gives1` and `wants2/gives2` are the same), we read storage to get `gasreq1` at `offerDetails[...][offerId1]. */
-  function better(
-    OfferPack memory ofp,
-    Offer.t offer1,
-    uint offerId1
-  ) internal view returns (bool) {
+  function better(OfferPack memory ofp, Offer.t offer1, uint offerId1) internal view returns (bool) {
     unchecked {
       if (offerId1 == 0) {
         /* Happens on empty book. Returning `false` would work as well due to specifics of `findPosition` but true is more consistent. Here we just want to avoid reading `offerDetail[...][0]` for nothing. */
@@ -483,8 +409,7 @@ contract MgvOfferMaking is MgvHasOffers {
       uint weight1 = wants1 * gives2;
       uint weight2 = wants2 * gives1;
       if (weight1 == weight2) {
-        uint gasreq1 = offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][offerId1]
-          .gasreq();
+        uint gasreq1 = offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][offerId1].gasreq();
         uint gasreq2 = ofp.gasreq;
         return (gives1 * gasreq2 >= gives2 * gasreq1);
       } else {

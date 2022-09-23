@@ -7,13 +7,12 @@ import {Mangrove} from "../src/Mangrove.sol";
 
 contract ConfigureMgvOracle is Deployer {
   function run() public {
-
     MgvOracle oracle = MgvOracle(fork.get("MgvOracle"));
     address bot;
     // optionally read gasbot from environment
     try vm.envAddress("GASBOT") returns (address gasbot) {
       bot = gasbot;
-    } catch(bytes memory) {
+    } catch (bytes memory) {
       bot = fork.get("Gasbot");
     }
     Mangrove mgv = Mangrove(fork.get("Mangrove"));

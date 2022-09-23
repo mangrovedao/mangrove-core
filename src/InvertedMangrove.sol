@@ -17,38 +17,24 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
-import {ITaker, MgvLib } from "./MgvLib.sol";
+
+import {ITaker, MgvLib} from "./MgvLib.sol";
 
 import {AbstractMangrove} from "./AbstractMangrove.sol";
 
 /* <a id="InvertedMangrove"></a> The `InvertedMangrove` contract implements the "inverted" version of Mangrove, where each maker loans money to the taker. The taker is then called, and finally each maker is sent its payment and called again (with the orderbook unlocked). */
 contract InvertedMangrove is AbstractMangrove {
-
-  constructor(
-    address governance,
-    uint gasprice,
-    uint gasmax
-  ) AbstractMangrove(governance, gasprice, gasmax, "InvertedMangrove") {}
+  constructor(address governance, uint gasprice, uint gasmax)
+    AbstractMangrove(governance, gasprice, gasmax, "InvertedMangrove")
+  {}
 
   // execute taker trade
-  function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor)
-    internal
-    override
-  {
+  function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal override {
     unchecked {
-      ITaker(mor.taker).takerTrade(
-        sor.outbound_tkn,
-        sor.inbound_tkn,
-        mor.totalGot,
-        mor.totalGave
-      );
-      bool success = transferTokenFrom(
-        sor.inbound_tkn,
-        mor.taker,
-        address(this),
-        mor.totalGave
-      );
+      ITaker(mor.taker).takerTrade(sor.outbound_tkn, sor.inbound_tkn, mor.totalGot, mor.totalGave);
+      bool success = transferTokenFrom(sor.inbound_tkn, mor.taker, address(this), mor.totalGave);
       require(success, "mgv/takerFailToPayTotal");
     }
   }
@@ -97,11 +83,7 @@ So :
     We choose `transferFrom`.
     */
 
-  function flashloan(MgvLib.SingleOrder calldata sor, address)
-    external
-    override
-    returns (uint gasused)
-  {
+  function flashloan(MgvLib.SingleOrder calldata sor, address) external override returns (uint gasused) {
     unchecked {
       /* `invertedFlashloan` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would be fatal. */
       require(msg.sender == address(this), "mgv/invertedFlashloan/protected");

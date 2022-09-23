@@ -10,11 +10,13 @@
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
+
 import "mgv_src/strategies/vendor/compound/ICompound.sol";
 import "mgv_src/strategies/vendor/compound/Exponential.sol";
 import "mgv_src/IMangrove.sol";
-import {IERC20, MgvLib } from "mgv_src/MgvLib.sol";
+import {IERC20, MgvLib} from "mgv_src/MgvLib.sol";
 
 interface WETH is IERC20 {
   function deposit() external payable;
@@ -26,18 +28,10 @@ interface WETH is IERC20 {
 
 contract CompoundModule is Exponential {
   event ErrorOnRedeem(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed offerId,
-    uint amount,
-    uint errorCode
+    address indexed outbound_tkn, address indexed inbound_tkn, uint indexed offerId, uint amount, uint errorCode
   );
   event ErrorOnMint(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed offerId,
-    uint amount,
-    uint errorCode
+    address indexed outbound_tkn, address indexed inbound_tkn, uint indexed offerId, uint amount, uint errorCode
   );
 
   event ComptrollerError(address comp, uint errorCode);
@@ -63,8 +57,7 @@ contract CompoundModule is Exponential {
   }
 
   function isCeth(IcERC20 ctoken) internal view returns (bool) {
-    return (keccak256(abi.encodePacked(ctoken.symbol())) ==
-      keccak256(abi.encodePacked("cETH")));
+    return (keccak256(abi.encodePacked(ctoken.symbol())) == keccak256(abi.encodePacked("cETH")));
   }
 
   //dealing with cEth special case
@@ -94,10 +87,7 @@ contract CompoundModule is Exponential {
   }
 
   function _exitMarket(IcERC20 ctoken) internal {
-    require(
-      comptroller.exitMarket(address(ctoken)) == 0,
-      "failed to exit marker"
-    );
+    require(comptroller.exitMarket(address(ctoken)) == 0, "failed to exit marker");
   }
 
   function _claimComp() internal {
@@ -131,16 +121,11 @@ contract CompoundModule is Exponential {
 
   /// @notice Computes maximal maximal redeem capacity (R) and max borrow capacity (B|R) after R has been redeemed
   /// returns (R, B|R)
-  function maxGettableUnderlying(address _ctoken, address account)
-    public
-    view
-    returns (uint, uint)
-  {
+  function maxGettableUnderlying(address _ctoken, address account) public view returns (uint, uint) {
     IcERC20 ctoken = IcERC20(_ctoken);
     Heap memory heap;
     // NB balance below is underestimated unless accrue interest was triggered earlier in the transaction
-    (heap.errCode, heap.ctokenBalance, , heap.exchangeRateMantissa) = ctoken
-      .getAccountSnapshot(address(this)); // underapprox
+    (heap.errCode, heap.ctokenBalance,, heap.exchangeRateMantissa) = ctoken.getAccountSnapshot(address(this)); // underapprox
     heap.priceMantissa = oracle.getUnderlyingPrice(ctoken); //18 decimals
 
     // balanceOfUnderlying(A) : cA.balance * exchange_rate(cA,A)
@@ -158,36 +143,25 @@ contract CompoundModule is Exponential {
     (
       heap.errCode,
       heap.liquidity, // is USD:18 decimals
-      /*shortFall*/
-
+        /*shortFall*/
     ) = comptroller.getAccountLiquidity(account); // underapprox
 
     // to get liquidity expressed in outbound_Tkn token instead of USD
-    (heap.mErr, heap.underlyingLiquidity) = divScalarByExpTruncate(
-      heap.liquidity,
-      Exp({mantissa: heap.priceMantissa})
-    );
+    (heap.mErr, heap.underlyingLiquidity) = divScalarByExpTruncate(heap.liquidity, Exp({mantissa: heap.priceMantissa}));
     if (heapError(heap)) {
       return (0, 0);
     }
-    (, heap.collateralFactorMantissa, ) = comptroller.markets(address(ctoken));
+    (, heap.collateralFactorMantissa,) = comptroller.markets(address(ctoken));
 
     // if collateral factor is 0 then any token can be redeemed from the pool w/o impacting borrow power
     // also true if market is not entered
-    if (
-      heap.collateralFactorMantissa == 0 ||
-      !comptroller.checkMembership(account, ctoken)
-    ) {
+    if (heap.collateralFactorMantissa == 0 || !comptroller.checkMembership(account, ctoken)) {
       return (heap.balanceOfUnderlying, heap.underlyingLiquidity);
     }
 
     // maxRedeem:[underlying] = liquidity:[USD / 18 decimals ] / (price(outbound_tkn):[USD.underlying^-1 / 18 decimals] * collateralFactor(outbound_tkn): [0-1] 18 decimals)
     (heap.mErr, heap.maxRedeemable) = divScalarByExpTruncate(
-      heap.liquidity,
-      mul_(
-        Exp({mantissa: heap.collateralFactorMantissa}),
-        Exp({mantissa: heap.priceMantissa})
-      )
+      heap.liquidity, mul_(Exp({mantissa: heap.collateralFactorMantissa}), Exp({mantissa: heap.priceMantissa}))
     );
     if (heapError(heap)) {
       return (0, 0);
@@ -198,18 +172,12 @@ contract CompoundModule is Exponential {
       heap.maxRedeemable,
       sub_(
         heap.underlyingLiquidity, //borrow power
-        mul_ScalarTruncate(
-          Exp({mantissa: heap.collateralFactorMantissa}),
-          heap.maxRedeemable
+        mul_ScalarTruncate(Exp({mantissa: heap.collateralFactorMantissa}), heap.maxRedeemable)
         )
-      )
     );
   }
 
-  function compoundRedeem(uint amountToRedeem, MgvLib.SingleOrder calldata order)
-    internal
-    returns (uint)
-  {
+  function compoundRedeem(uint amountToRedeem, MgvLib.SingleOrder calldata order) internal returns (uint) {
     IcERC20 outbound_cTkn = overlyings[IERC20(order.outbound_tkn)]; // this is 0x0 if outbound_tkn is not compound sourced.
     if (address(outbound_cTkn) == address(0)) {
       return amountToRedeem;
@@ -224,13 +192,7 @@ contract CompoundModule is Exponential {
       return 0;
     } else {
       //compound redeem failed
-      emit ErrorOnRedeem(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        amountToRedeem,
-        errorCode
-      );
+      emit ErrorOnRedeem(order.outbound_tkn, order.inbound_tkn, order.offerId, amountToRedeem, errorCode);
       return amountToRedeem;
     }
   }
@@ -254,21 +216,12 @@ contract CompoundModule is Exponential {
 
   // adapted from https://medium.com/compound-finance/supplying-assets-to-the-compound-protocol-ec2cf5df5aa#afff
   // utility to supply erc20 to compound
-  function compoundMint(uint amount, MgvLib.SingleOrder calldata order)
-    internal
-    returns (uint missing)
-  {
+  function compoundMint(uint amount, MgvLib.SingleOrder calldata order) internal returns (uint missing) {
     IcERC20 ctoken = overlyings[IERC20(order.inbound_tkn)];
     uint errCode = _mint(amount, ctoken);
     // Mint ctokens
     if (errCode != 0) {
-      emit ErrorOnMint(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.offerId,
-        amount,
-        errCode
-      );
+      emit ErrorOnMint(order.outbound_tkn, order.inbound_tkn, order.offerId, amount, errCode);
       missing = amount;
     }
   }

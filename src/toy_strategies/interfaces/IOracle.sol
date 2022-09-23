@@ -12,6 +12,7 @@
 
 // For more information, please refer to <https://unlicense.org/>
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
 
 interface IOracle {

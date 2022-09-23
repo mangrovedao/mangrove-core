@@ -5,35 +5,29 @@ import {Script, console} from "forge-std/Script.sol";
 import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
-/** @notice Shuts down a Mango instance on a given market
+/**
+ * @notice Shuts down a Mango instance on a given market
  * Retracts all Mango offers, and recovers funds.
  */
 
-/** Usage example (retracting 100 bids and asks from MANGO_WETH_USDC)
-
-    MANGO=0x1C9f224c402233006C438Ae081Ed35697b2A4919 \
-    FROM=0 \
-    TO=100 \
-    forge script --fork-url $MUMBAI_NODE_URL \
-    --private-key $MUMBAI_TESTER_PRIVATE_KEY \
-    --broadcast \
-    StopMango
-*/
+/**
+ * Usage example (retracting 100 bids and asks from MANGO_WETH_USDC)
+ *
+ * MANGO=0x1C9f224c402233006C438Ae081Ed35697b2A4919 \
+ * FROM=0 \
+ * TO=100 \
+ * forge script --fork-url $MUMBAI_NODE_URL \
+ * --private-key $MUMBAI_TESTER_PRIVATE_KEY \
+ * --broadcast \
+ * StopMango
+ */
 
 contract StopMango is Deployer {
   function run() public {
-    innerRun({
-      $mgo: payable(vm.envAddress("MANGO")),
-      from: vm.envUint("FROM"),
-      to: vm.envUint("TO")
-    });
+    innerRun({$mgo: payable(vm.envAddress("MANGO")), from: vm.envUint("FROM"), to: vm.envUint("TO")});
   }
 
-  function innerRun(
-    address payable $mgo,
-    uint from,
-    uint to
-  ) public {
+  function innerRun(address payable $mgo, uint from, uint to) public {
     Mango mgo = Mango($mgo);
     uint n = mgo.NSLOTS();
     require(mgo.admin() == msg.sender, "This script requires admin rights");

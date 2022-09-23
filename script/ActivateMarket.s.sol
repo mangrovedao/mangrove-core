@@ -35,13 +35,7 @@ contract ActivateMarket is Script {
     });
   }
 
-  function innerRun(
-    address tkn1,
-    address tkn2,
-    uint tkn1_in_gwei,
-    uint tkn2_in_gwei,
-    uint fee
-  ) public {
+  function innerRun(address tkn1, address tkn2, uint tkn1_in_gwei, uint tkn2_in_gwei, uint fee) public {
     new ActivateSemibook().innerRun({
       outbound_tkn: tkn1,
       inbound_tkn: tkn2,

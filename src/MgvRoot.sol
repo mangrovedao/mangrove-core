@@ -36,14 +36,15 @@
  */
 
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
+
 import {MgvLib, HasMgvEvents, IMgvMonitor} from "./MgvLib.sol";
-import { Offer, OfferDetail, Global, Local } from "mgv_src/preprocessed/MgvPack.post.sol";
-import { OfferStruct, OfferDetailStruct, GlobalStruct, LocalStruct } from "mgv_src/preprocessed/MgvStructs.post.sol";
+import {Offer, OfferDetail, Global, Local} from "mgv_src/preprocessed/MgvPack.post.sol";
+import {OfferStruct, OfferDetailStruct, GlobalStruct, LocalStruct} from "mgv_src/preprocessed/MgvStructs.post.sol";
 
 /* `MgvRoot` contains state variables used everywhere in the operation of the Mangrove and their related function. */
 contract MgvRoot is HasMgvEvents {
-
   /* # State variables */
   //+clear+
   /* The `vault` address. If a pair has fees >0, those fees are sent to the vault. */
@@ -70,19 +71,12 @@ contract MgvRoot is HasMgvEvents {
 
   /* # Configuration Reads */
   /* Reading the configuration for a pair involves reading the config global to all pairs and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
-  function config(address outbound_tkn, address inbound_tkn)
-    public
-    view
-    returns (Global.t _global, Local.t _local)
-  {
+  function config(address outbound_tkn, address inbound_tkn) public view returns (Global.t _global, Local.t _local) {
     unchecked {
       _global = internal_global;
       _local = locals[outbound_tkn][inbound_tkn];
       if (_global.useOracle()) {
-        (uint gasprice, uint density) = IMgvMonitor(_global.monitor()).read(
-          outbound_tkn,
-          inbound_tkn
-        );
+        (uint gasprice, uint density) = IMgvMonitor(_global.monitor()).read(outbound_tkn, inbound_tkn);
         if (checkGasprice(gasprice)) {
           _global = _global.gasprice(gasprice);
         }
@@ -100,21 +94,14 @@ contract MgvRoot is HasMgvEvents {
     returns (GlobalStruct memory global, LocalStruct memory local)
   {
     unchecked {
-      (Global.t _global, Local.t _local) = config(
-        outbound_tkn,
-        inbound_tkn
-      );
+      (Global.t _global, Local.t _local) = config(outbound_tkn, inbound_tkn);
       global = _global.to_struct();
       local = _local.to_struct();
     }
   }
 
   /* Convenience function to check whether given pair is locked */
-  function locked(address outbound_tkn, address inbound_tkn)
-    external
-    view
-    returns (bool)
-  {
+  function locked(address outbound_tkn, address inbound_tkn) external view returns (bool) {
     Local.t local = locals[outbound_tkn][inbound_tkn];
     return local.lock();
   }
@@ -141,10 +128,7 @@ contract MgvRoot is HasMgvEvents {
   }
 
   /* When the Mangrove is deployed, all pairs are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive pairs cannot be taken or created. They can be updated and retracted. */
-  function activeMarketOnly(Global.t _global, Local.t _local)
-    internal
-    pure
-  {
+  function activeMarketOnly(Global.t _global, Local.t _local) internal pure {
     liveMgvOnly(_global);
     require(_local.active(), "mgv/inactive");
   }

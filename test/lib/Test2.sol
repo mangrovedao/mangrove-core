@@ -72,11 +72,7 @@ contract Test2 is Test, Script2 {
   }
 
   // both mock a call and expect the call to happen
-  function expectToMockCall(
-    address addr,
-    bytes memory req,
-    bytes memory res
-  ) internal {
+  function expectToMockCall(address addr, bytes memory req, bytes memory res) internal {
     vm.mockCall(addr, req, res);
     vm.expectCall(addr, req);
   }
@@ -96,10 +92,7 @@ contract Test2 is Test, Script2 {
      freshAddress(label)       labeled address
      freshAddress()            address
   */
-  function freshAccount(string memory label)
-    internal
-    returns (uint key, address payable addr)
-  {
+  function freshAccount(string memory label) internal returns (uint key, address payable addr) {
     unchecked {
       key = (keyIterator++) + uint(keccak256(bytes(label)));
     }
@@ -116,13 +109,10 @@ contract Test2 is Test, Script2 {
   }
 
   function freshKey() internal returns (uint key) {
-    (key, ) = freshAccount();
+    (key,) = freshAccount();
   }
 
-  function freshAddress(string memory label)
-    internal
-    returns (address payable addr)
-  {
+  function freshAddress(string memory label) internal returns (address payable addr) {
     (, addr) = freshAccount(label);
   }
 

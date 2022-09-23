@@ -1,5 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
+
 import "mgv_test/lib/MangroveTest.sol";
 // pragma experimental ABIEncoderV2;
 
@@ -37,12 +38,7 @@ contract MgvCleanerTest is MangroveTest {
 
     uint oldBal = $(this).balance;
 
-    cleaner.collect(
-      $(base),
-      $(quote),
-      wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]),
-      true
-    );
+    cleaner.collect($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]), true);
 
     uint newBal = $(this).balance;
 
@@ -74,9 +70,7 @@ contract MgvCleanerTest is MangroveTest {
 
     uint oldBal = $(this).balance;
 
-    uint[4][] memory targets = wrap_dynamic(
-      [ofr, 1 ether, 1 ether, type(uint).max]
-    );
+    uint[4][] memory targets = wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]);
 
     vm.expectRevert("mgvCleaner/anOfferDidNotFail");
     cleaner.collect($(base), $(quote), targets, true);

@@ -17,7 +17,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
+
 import "../MgvLib.sol";
 
 /* The purpose of the Oracle contract is to act as a gas price and density
@@ -49,24 +51,15 @@ contract MgvOracle is IMgvMonitor {
 
   function authOnly() internal view {
     require(
-      msg.sender == governance ||
-        msg.sender == address(this) ||
-        governance == address(0),
-      "MgvOracle/unauthorized"
+      msg.sender == governance || msg.sender == address(this) || governance == address(0), "MgvOracle/unauthorized"
     );
   }
 
-  function notifySuccess(MgvLib.SingleOrder calldata sor, address taker)
-    external
-    override
-  {
+  function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external override {
     // Do nothing
   }
 
-  function notifyFail(MgvLib.SingleOrder calldata sor, address taker)
-    external
-    override
-  {
+  function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external override {
     // Do nothing
   }
 
@@ -78,10 +71,7 @@ contract MgvOracle is IMgvMonitor {
 
   function setGasPrice(uint gasPrice) external {
     // governance or mutator are allowed to update the gasprice
-    require(
-      msg.sender == governance || msg.sender == mutator,
-      "MgvOracle/unauthorized"
-    );
+    require(msg.sender == governance || msg.sender == mutator, "MgvOracle/unauthorized");
 
     lastReceivedGasPrice = gasPrice;
     emit SetGasprice(gasPrice);
@@ -89,19 +79,18 @@ contract MgvOracle is IMgvMonitor {
 
   function setDensity(uint density) external {
     // governance or mutator are allowed to update the density
-    require(
-      msg.sender == governance || msg.sender == mutator,
-      "MgvOracle/unauthorized"
-    );
+    require(msg.sender == governance || msg.sender == mutator, "MgvOracle/unauthorized");
 
     lastReceivedDensity = density;
     emit SetDensity(density);
   }
 
-  function read(
-    address, /*outbound_tkn*/
-    address /*inbound_tkn*/
-  ) external view override returns (uint gasprice, uint density) {
+  function read(address, /*outbound_tkn*/ address /*inbound_tkn*/ )
+    external
+    view
+    override
+    returns (uint gasprice, uint density)
+  {
     return (lastReceivedGasPrice, lastReceivedDensity);
   }
 }

@@ -5,19 +5,22 @@ import {Script, console} from "forge-std/Script.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
 
-/** @notice Initialize Mango offers on a given market */
-/** Usage example: initialize MANGO_WETH_USDC
-
-    MANGO=0x7D63939ce0Fa80cC69C129D337a978D0E1F354A1 \
-    DEFAULT_BASE_AMOUNT=$(cast ff 18 0.25) \
-    DEFAULT_QUOTE=_AMOUNT=$(cast ff 6 1000) \
-    LAST_BID_INDEX=50 \
-    BATCH_SIZE=10 \
-    COVER_FACTOR=2 \
-    forge script --fork-url $MUMBAI_NODE_URL \
-    --private-key $MUMBAI_TESTER_PRIVATE_KEY \
-    InitMango
-*/
+/**
+ * @notice Initialize Mango offers on a given market
+ */
+/**
+ * Usage example: initialize MANGO_WETH_USDC
+ *
+ * MANGO=0x7D63939ce0Fa80cC69C129D337a978D0E1F354A1 \
+ * DEFAULT_BASE_AMOUNT=$(cast ff 18 0.25) \
+ * DEFAULT_QUOTE=_AMOUNT=$(cast ff 6 1000) \
+ * LAST_BID_INDEX=50 \
+ * BATCH_SIZE=10 \
+ * COVER_FACTOR=2 \
+ * forge script --fork-url $MUMBAI_NODE_URL \
+ * --private-key $MUMBAI_TESTER_PRIVATE_KEY \
+ * InitMango
+ */
 
 contract InitMango is Deployer {
   function run() public {
@@ -61,11 +64,7 @@ contract InitMango is Deployer {
       // funding Mangrove
       IMangrove mgv = Mango($mgo).MGV();
 
-      console.log(
-        "Funding mangrove with",
-        (provAsk + provBid) * n * cover_factor,
-        "WEIs"
-      );
+      console.log("Funding mangrove with", (provAsk + provBid) * n * cover_factor, "WEIs");
       broadcast();
       mgv.fund{value: (provAsk + provBid) * n * cover_factor}($mgo);
     }

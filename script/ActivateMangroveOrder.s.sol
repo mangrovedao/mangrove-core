@@ -24,10 +24,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 contract ActivateMangroveOrder is Deployer {
   function run() public {
-    innerRun({
-      mgvOrder: MangroveOrder(fork.get("MangroveOrderEnriched")),
-      tkns: vm.envString("TKNS", ",")
-    });
+    innerRun({mgvOrder: MangroveOrder(fork.get("MangroveOrderEnriched")), tkns: vm.envString("TKNS", ",")});
   }
 
   function innerRun(MangroveOrder mgvOrder, string[] memory tkns) public {

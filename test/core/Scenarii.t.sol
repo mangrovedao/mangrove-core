@@ -3,8 +3,8 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import { OfferStruct, OfferDetailStruct, GlobalStruct, LocalStruct } from "mgv_src/preprocessed/MgvStructs.post.sol";
-import { Global } from "mgv_src/preprocessed/MgvPack.post.sol";
+import {OfferStruct, OfferDetailStruct, GlobalStruct, LocalStruct} from "mgv_src/preprocessed/MgvStructs.post.sol";
+import {Global} from "mgv_src/preprocessed/MgvPack.post.sol";
 
 contract ScenariiTest is MangroveTest {
   TestTaker taker;
@@ -20,8 +20,7 @@ contract ScenariiTest is MangroveTest {
   function saveOffers() internal {
     uint offerId = mgv.best($(base), $(quote));
     while (offerId != 0) {
-      (OfferStruct memory offer, OfferDetailStruct memory offerDetail) = mgv
-        .offerInfo($(base), $(quote), offerId);
+      (OfferStruct memory offer, OfferDetailStruct memory offerDetail) = mgv.offerInfo($(base), $(quote), offerId);
       offers[offerId][Info.makerWants] = offer.wants;
       offers[offerId][Info.makerGives] = offer.gives;
       offers[offerId][Info.gasreq] = offerDetail.gasreq;
@@ -58,10 +57,7 @@ contract ScenariiTest is MangroveTest {
     makers = setupMakerDeployer($(base), $(quote));
     makers.deploy(4);
     for (uint i = 1; i < makers.length(); i++) {
-      vm.label(
-        address(makers.getMaker(i)),
-        string.concat("maker-", vm.toString(i))
-      );
+      vm.label(address(makers.getMaker(i)), string.concat("maker-", vm.toString(i)));
     }
     vm.label(address(makers.getMaker(0)), "failer");
     taker = setupTaker($(base), $(quote), "taker");
@@ -103,13 +99,7 @@ contract ScenariiTest is MangroveTest {
     logOrderBook($(base), $(quote), 4);
 
     // restore offer that was deleted after partial fill, minus taken amount
-    makers.getMaker(2).updateOffer(
-      1 ether - 0.375 ether,
-      0.8 ether - 0.3 ether,
-      80_000,
-      0,
-      2
-    );
+    makers.getMaker(2).updateOffer(1 ether - 0.375 ether, 0.8 ether - 0.3 ether, 80_000, 0, 2);
 
     logOrderBook($(base), $(quote), 4);
 
@@ -130,13 +120,8 @@ contract ScenariiTest is MangroveTest {
 
   function collectFailingOffer(uint failingOfferId) internal {
     // executing failing offer
-    try taker.takeWithInfo(failingOfferId, 0.5 ether) returns (
-      bool success,
-      uint takerGot,
-      uint takerGave,
-      uint,
-      uint
-    ) {
+    try taker.takeWithInfo(failingOfferId, 0.5 ether) returns (bool success, uint takerGot, uint takerGave, uint, uint)
+    {
       // take should return false not throw
       assertTrue(!success, "Failer should fail");
       assertEq(takerGot, 0, "Failed offer should declare 0 takerGot");
@@ -144,17 +129,11 @@ contract ScenariiTest is MangroveTest {
       // failingOffer should have been removed from Mgv
       {
         assertTrue(
-          !mgv.isLive(mgv.offers($(base), $(quote), failingOfferId)),
-          "Failing offer should have been removed from Mgv"
+          !mgv.isLive(mgv.offers($(base), $(quote), failingOfferId)), "Failing offer should have been removed from Mgv"
         );
       }
-      uint provision = getProvision(
-        $(base),
-        $(quote),
-        offers[failingOfferId][Info.gasreq]
-      );
-      uint returned = mgv.balanceOf(address(makers.getMaker(0))) -
-        balances.makersBalanceWei[0];
+      uint provision = getProvision($(base), $(quote), offers[failingOfferId][Info.gasreq]);
+      uint returned = mgv.balanceOf(address(makers.getMaker(0))) - balances.makersBalanceWei[0];
       assertEq(
         $(mgv).balance,
         balances.mgvBalanceWei - (provision - returned),
@@ -187,7 +166,7 @@ contract ScenariiTest is MangroveTest {
       gasreq: 90_000,
       pivotId: 72
     });
-    (Global.t cfg, ) = mgv.config($(base), $(quote));
+    (Global.t cfg,) = mgv.config($(base), $(quote));
     _offerOf[0] = makers.getMaker(0).newOffer({ //failer offer 4
       wants: 20 ether,
       gives: 10 ether,
@@ -208,8 +187,7 @@ contract ScenariiTest is MangroveTest {
     uint offerId = mgv.best($(base), $(quote));
     uint expected_maker = 3;
     while (offerId != 0) {
-      (OfferStruct memory offer, OfferDetailStruct memory od) = mgv
-        .offerInfo($(base), $(quote), offerId);
+      (OfferStruct memory offer, OfferDetailStruct memory od) = mgv.offerInfo($(base), $(quote), offerId);
       assertEq(
         od.maker,
         address(makers.getMaker(expected_maker)),
@@ -246,12 +224,9 @@ contract ScenariiTest is MangroveTest {
     }
     uint leftMkrWants;
     {
-      uint leftTkrWants = takerWants -
-        (offers[2][Info.makerGives] + offers[3][Info.makerGives]);
+      uint leftTkrWants = takerWants - (offers[2][Info.makerGives] + offers[3][Info.makerGives]);
 
-      leftMkrWants =
-        (offers[1][Info.makerWants] * leftTkrWants) /
-        offers[1][Info.makerGives];
+      leftMkrWants = (offers[1][Info.makerWants] * leftTkrWants) / offers[1][Info.makerGives];
 
       assertEq(
         base.balanceOf(address(makers.getMaker(1))),
@@ -273,15 +248,9 @@ contract ScenariiTest is MangroveTest {
       "incorrect taker A balance"
     );
 
-    assertEq(
-      takerGot,
-      minusFee($(base), $(quote), takerWants),
-      "Incorrect declared takerGot"
-    );
+    assertEq(takerGot, minusFee($(base), $(quote), takerWants), "Incorrect declared takerGot");
 
-    uint shouldGive = (offers[3][Info.makerWants] +
-      offers[2][Info.makerWants] +
-      leftMkrWants);
+    uint shouldGive = (offers[3][Info.makerWants] + offers[2][Info.makerWants] + leftMkrWants);
     assertEq(
       quote.balanceOf(address(taker)), // actual
       balances.takerBalanceB - shouldGive, // expected
@@ -304,14 +273,7 @@ contract ScenariiTest is MangroveTest {
     uint expectedFee;
   }
 
-  function snipe()
-    internal
-    returns (
-      uint takerGot,
-      uint takerGave,
-      uint expectedFee
-    )
-  {
+  function snipe() internal returns (uint takerGot, uint takerGave, uint expectedFee) {
     Bag memory bag;
     bag.orderAmount = 0.3 ether;
     bag.snipedId = 2;
@@ -324,10 +286,7 @@ contract ScenariiTest is MangroveTest {
     //---------------SNIPE------------------//
     {
       bool takeSuccess;
-      (takeSuccess, takerGot, takerGave, , ) = taker.takeWithInfo(
-        bag.snipedId,
-        bag.orderAmount
-      );
+      (takeSuccess, takerGot, takerGave,,) = taker.takeWithInfo(bag.snipedId, bag.orderAmount);
 
       assertTrue(takeSuccess, "snipe should be a success");
     }
@@ -347,14 +306,9 @@ contract ScenariiTest is MangroveTest {
       "Incorrect takerGot"
     );
     {
-      uint shouldGive = (bag.orderAmount *
-        offers[bag.snipedId][Info.makerWants]) /
-        offers[bag.snipedId][Info.makerGives];
-      assertEq(
-        quote.balanceOf(address(taker)),
-        balances.takerBalanceB - shouldGive,
-        "incorrect taker B balance"
-      );
+      uint shouldGive =
+        (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives];
+      assertEq(quote.balanceOf(address(taker)), balances.takerBalanceB - shouldGive, "incorrect taker B balance");
       assertEq(takerGave, shouldGive, "Incorrect takerGave");
     }
     assertEq(
@@ -364,17 +318,12 @@ contract ScenariiTest is MangroveTest {
     );
     assertEq(
       quote.balanceOf(address(maker)),
-      balances.makersBalanceB[bag.snipedId] +
-        (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) /
-        offers[bag.snipedId][Info.makerGives],
+      balances.makersBalanceB[bag.snipedId]
+        + (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives],
       "incorrect maker B balance"
     );
     // Testing residual offer
-    (OfferStruct memory ofr, ) = mgv.offerInfo(
-      $(base),
-      $(quote),
-      bag.snipedId
-    );
+    (OfferStruct memory ofr,) = mgv.offerInfo($(base), $(quote), bag.snipedId);
     assertTrue(ofr.gives == 0, "Offer should not have a residual");
   }
 }
@@ -400,12 +349,7 @@ contract DeepCollectTest is MangroveTest {
     deal($(base), address(evil), 5 ether);
     evil.approveMgv(base, 5 ether);
 
-    evil.newOffer({
-      wants: 1 ether,
-      gives: 0.5 ether,
-      gasreq: 100000,
-      pivotId: 0
-    });
+    evil.newOffer({wants: 1 ether, gives: 0.5 ether, gasreq: 100000, pivotId: 0});
   }
 
   function test_market_with_failures() public {

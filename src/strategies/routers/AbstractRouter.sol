@@ -11,6 +11,7 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
 
 import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
@@ -22,6 +23,7 @@ abstract contract AbstractRouter is AccessControlled {
     require(makers(msg.sender), "Router/unauthorized");
     _;
   }
+
   modifier makersOrAdmin() {
     require(msg.sender == admin() || makers(msg.sender), "Router/unauthorized");
     _;
@@ -49,65 +51,34 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param reserve is the address identifying where `amount` of `token` should be pulled from
   ///@param amount of token the maker contract wishes to get
   ///@param strict when the calling maker contract accepts to receive more `token` than required (this may happen for gas optimization)
-  function pull(
-    IERC20 token,
-    address reserve,
-    uint amount,
-    bool strict
-  ) external onlyMakers returns (uint pulled) {
+  function pull(IERC20 token, address reserve, uint amount, bool strict) external onlyMakers returns (uint pulled) {
     uint buffer = token.balanceOf(msg.sender);
     if (buffer >= amount) {
       return 0;
     } else {
-      pulled = __pull__({
-        token: token,
-        reserve: reserve,
-        maker: msg.sender,
-        amount: amount,
-        strict: strict
-      });
+      pulled = __pull__({token: token, reserve: reserve, maker: msg.sender, amount: amount, strict: strict});
     }
   }
 
   ///@notice router-dependant implementation of the `pull` function
-  function __pull__(
-    IERC20 token,
-    address reserve,
-    address maker,
-    uint amount,
-    bool strict
-  ) internal virtual returns (uint);
+  function __pull__(IERC20 token, address reserve, address maker, uint amount, bool strict)
+    internal
+    virtual
+    returns (uint);
 
   ///@notice pushes assets from maker contract's balance to the specified reserve
   ///@param token is the asset the maker is pushing
   ///@param reserve is the address identifying where the transfered assets should be placed to
   ///@param amount is the amount of asset that should be transfered from the calling maker contract
-  function push(
-    IERC20 token,
-    address reserve,
-    uint amount
-  ) external onlyMakers {
-    __push__({
-      token: token,
-      reserve: reserve,
-      maker: msg.sender,
-      amount: amount
-    });
+  function push(IERC20 token, address reserve, uint amount) external onlyMakers {
+    __push__({token: token, reserve: reserve, maker: msg.sender, amount: amount});
   }
 
   ///@notice router-dependant implementation of the `push` function
-  function __push__(
-    IERC20 token,
-    address reserve,
-    address maker,
-    uint amount
-  ) internal virtual;
+  function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual;
 
   ///@notice gas saving implementation of an iterative `push`
-  function flush(IERC20[] calldata tokens, address reserve)
-    external
-    onlyMakers
-  {
+  function flush(IERC20[] calldata tokens, address reserve) external onlyMakers {
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);
       if (amount > 0) {
@@ -120,11 +91,7 @@ abstract contract AbstractRouter is AccessControlled {
   ///@dev when this router is pulling from a lender, this must return the amount of asset that can be withdrawn from reserve
   ///@param token is the asset one wishes to know the balance of
   ///@param reserve is the address identifying the location of the assets
-  function reserveBalance(IERC20 token, address reserve)
-    external
-    view
-    virtual
-    returns (uint);
+  function reserveBalance(IERC20 token, address reserve) external view virtual returns (uint);
 
   ///@notice withdraws `amount` of reserve tokens and sends them to `recipient`
   ///@dev this is called by maker's contract when originator wishes to withdraw funds from it.
@@ -133,22 +100,16 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param recipient is the address identifying the location of the recipient
   ///@param amount is the amount of asset that should be withdrawn
   /// this function is necessary because the maker contract is agnostic w.r.t reserve management
-  function withdrawToken(
-    IERC20 token,
-    address reserve,
-    address recipient,
-    uint amount
-  ) public onlyMakers returns (bool) {
+  function withdrawToken(IERC20 token, address reserve, address recipient, uint amount)
+    public
+    onlyMakers
+    returns (bool)
+  {
     return __withdrawToken__(token, reserve, recipient, amount);
   }
 
   ///@notice router-dependant implementation of the `withdrawToken` function
-  function __withdrawToken__(
-    IERC20 token,
-    address reserve,
-    address to,
-    uint amount
-  ) internal virtual returns (bool);
+  function __withdrawToken__(IERC20 token, address reserve, address to, uint amount) internal virtual returns (bool);
 
   ///@notice adds a maker contract address to the allowed callers of this router
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address
@@ -172,10 +133,7 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param reserve the reserve that requires asset pulling/pushing
   function checkList(IERC20 token, address reserve) external view {
     // checking basic requirement
-    require(
-      token.allowance(msg.sender, address(this)) > 0,
-      "Router/NotApprovedByMakerContract"
-    );
+    require(token.allowance(msg.sender, address(this)) > 0, "Router/NotApprovedByMakerContract");
     __checkList__(token, reserve);
   }
 

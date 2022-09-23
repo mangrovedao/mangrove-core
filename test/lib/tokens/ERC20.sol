@@ -95,13 +95,7 @@ contract ERC20Base is Context, IERC20 {
   /**
    * @dev See {IERC20-balanceOf}.
    */
-  function balanceOf(address account)
-    public
-    view
-    virtual
-    override
-    returns (uint)
-  {
+  function balanceOf(address account) public view virtual override returns (uint) {
     return _balances[account];
   }
 
@@ -113,12 +107,7 @@ contract ERC20Base is Context, IERC20 {
    * - `to` cannot be the zero address.
    * - the caller must have a balance of at least `amount`.
    */
-  function transfer(address to, uint amount)
-    public
-    virtual
-    override
-    returns (bool)
-  {
+  function transfer(address to, uint amount) public virtual override returns (bool) {
     address owner = _msgSender();
     _transfer(owner, to, amount);
     return true;
@@ -127,13 +116,7 @@ contract ERC20Base is Context, IERC20 {
   /**
    * @dev See {IERC20-allowance}.
    */
-  function allowance(address owner, address spender)
-    public
-    view
-    virtual
-    override
-    returns (uint)
-  {
+  function allowance(address owner, address spender) public view virtual override returns (uint) {
     return _allowances[owner][spender];
   }
 
@@ -147,12 +130,7 @@ contract ERC20Base is Context, IERC20 {
    *
    * - `spender` cannot be the zero address.
    */
-  function approve(address spender, uint amount)
-    public
-    virtual
-    override
-    returns (bool)
-  {
+  function approve(address spender, uint amount) public virtual override returns (bool) {
     address owner = _msgSender();
     _approve(owner, spender, amount);
     return true;
@@ -174,11 +152,7 @@ contract ERC20Base is Context, IERC20 {
    * - the caller must have allowance for ``from``'s tokens of at least
    * `amount`.
    */
-  function transferFrom(
-    address from,
-    address to,
-    uint amount
-  ) public virtual override returns (bool) {
+  function transferFrom(address from, address to, uint amount) public virtual override returns (bool) {
     address spender = _msgSender();
     _spendAllowance(from, spender, amount);
     _transfer(from, to, amount);
@@ -197,11 +171,7 @@ contract ERC20Base is Context, IERC20 {
    *
    * - `spender` cannot be the zero address.
    */
-  function increaseAllowance(address spender, uint addedValue)
-    public
-    virtual
-    returns (bool)
-  {
+  function increaseAllowance(address spender, uint addedValue) public virtual returns (bool) {
     address owner = _msgSender();
     _approve(owner, spender, allowance(owner, spender) + addedValue);
     return true;
@@ -221,17 +191,10 @@ contract ERC20Base is Context, IERC20 {
    * - `spender` must have allowance for the caller of at least
    * `subtractedValue`.
    */
-  function decreaseAllowance(address spender, uint subtractedValue)
-    public
-    virtual
-    returns (bool)
-  {
+  function decreaseAllowance(address spender, uint subtractedValue) public virtual returns (bool) {
     address owner = _msgSender();
     uint currentAllowance = allowance(owner, spender);
-    require(
-      currentAllowance >= subtractedValue,
-      "ERC20: decreased allowance below zero"
-    );
+    require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
     unchecked {
       _approve(owner, spender, currentAllowance - subtractedValue);
     }
@@ -253,11 +216,7 @@ contract ERC20Base is Context, IERC20 {
    * - `to` cannot be the zero address.
    * - `from` must have a balance of at least `amount`.
    */
-  function _transfer(
-    address from,
-    address to,
-    uint amount
-  ) internal virtual {
+  function _transfer(address from, address to, uint amount) internal virtual {
     require(from != address(0), "ERC20: transfer from the zero address");
     require(to != address(0), "ERC20: transfer to the zero address");
 
@@ -275,7 +234,8 @@ contract ERC20Base is Context, IERC20 {
     _afterTokenTransfer(from, to, amount);
   }
 
-  /** @dev Creates `amount` tokens and assigns them to `account`, increasing
+  /**
+   * @dev Creates `amount` tokens and assigns them to `account`, increasing
    * the total supply.
    *
    * Emits a {Transfer} event with `from` set to the zero address.
@@ -337,11 +297,7 @@ contract ERC20Base is Context, IERC20 {
    * - `owner` cannot be the zero address.
    * - `spender` cannot be the zero address.
    */
-  function _approve(
-    address owner,
-    address spender,
-    uint amount
-  ) internal virtual {
+  function _approve(address owner, address spender, uint amount) internal virtual {
     require(owner != address(0), "ERC20: approve from the zero address");
     require(spender != address(0), "ERC20: approve to the zero address");
 
@@ -357,11 +313,7 @@ contract ERC20Base is Context, IERC20 {
    *
    * Might emit an {Approval} event.
    */
-  function _spendAllowance(
-    address owner,
-    address spender,
-    uint amount
-  ) internal virtual {
+  function _spendAllowance(address owner, address spender, uint amount) internal virtual {
     uint currentAllowance = allowance(owner, spender);
     if (currentAllowance != type(uint).max) {
       require(currentAllowance >= amount, "ERC20: insufficient allowance");
@@ -385,11 +337,7 @@ contract ERC20Base is Context, IERC20 {
    *
    * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
    */
-  function _beforeTokenTransfer(
-    address from,
-    address to,
-    uint amount
-  ) internal virtual {}
+  function _beforeTokenTransfer(address from, address to, uint amount) internal virtual {}
 
   /**
    * @dev Hook that is called after any transfer of tokens. This includes
@@ -405,11 +353,7 @@ contract ERC20Base is Context, IERC20 {
    *
    * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
    */
-  function _afterTokenTransfer(
-    address from,
-    address to,
-    uint amount
-  ) internal virtual {}
+  function _afterTokenTransfer(address from, address to, uint amount) internal virtual {}
 }
 
 /**
@@ -429,9 +373,7 @@ abstract contract ERC20 is ERC20Base, EIP712 {
 
   // solhint-disable-next-line var-name-mixedcase
   bytes32 private constant _PERMIT_TYPEHASH =
-    keccak256(
-      "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-    );
+    keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
   /**
    * @dev In previous versions `_PERMIT_TYPEHASH` was declared as `immutable`.
    * However, to ensure consistency with the upgradeable transpiler, we will continue
@@ -451,27 +393,13 @@ abstract contract ERC20 is ERC20Base, EIP712 {
   /**
    * @dev See {IERC20Permit-permit}.
    */
-  function permit(
-    address owner,
-    address spender,
-    uint value,
-    uint deadline,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) public virtual {
+  function permit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s)
+    public
+    virtual
+  {
     require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
 
-    bytes32 structHash = keccak256(
-      abi.encode(
-        _PERMIT_TYPEHASH,
-        owner,
-        spender,
-        value,
-        _useNonce(owner),
-        deadline
-      )
-    );
+    bytes32 structHash = keccak256(abi.encode(_PERMIT_TYPEHASH, owner, spender, value, _useNonce(owner), deadline));
 
     bytes32 hash = _hashTypedDataV4(structHash);
 

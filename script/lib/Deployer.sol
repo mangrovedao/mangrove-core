@@ -47,13 +47,7 @@ abstract contract Deployer is Script2 {
       } else if (block.chainid == 31337) {
         fork = new LocalFork();
       } else {
-        revert(
-          string.concat(
-            "Unknown chain id ",
-            vm.toString(block.chainid),
-            ", cannot deploy."
-          )
-        );
+        revert(string.concat("Unknown chain id ", vm.toString(block.chainid), ", cannot deploy."));
       }
 
       singleton("Deployer:Fork", address(fork));
@@ -79,10 +73,7 @@ abstract contract Deployer is Script2 {
       // If sender is not forge's default sender, ignore env var config
       // Otherwise, load <NETWORK>_PRIVATE_KEY (if it exists)
       if (broadcaster == 0x00a329c0648769A73afAc7F9381E08FB43dBEA72) {
-        string memory envVar = string.concat(
-          simpleCapitalize(fork.NAME()),
-          "_PRIVATE_KEY"
-        );
+        string memory envVar = string.concat(simpleCapitalize(fork.NAME()), "_PRIVATE_KEY");
         try vm.envUint(envVar) returns (uint key) {
           broadcaster = vm.rememberKey(key);
         } catch {}
@@ -112,13 +103,7 @@ abstract contract Deployer is Script2 {
       line(end ? "  }" : "  },");
     }
     line("]");
-    vm.writeFile(
-      fork.addressesFile(
-        "deployed",
-        string.concat("-", vm.toString(block.timestamp), ".backup")
-      ),
-      out
-    );
+    vm.writeFile(fork.addressesFile("deployed", string.concat("-", vm.toString(block.timestamp), ".backup")), out);
     if (writeDeploy) {
       vm.writeFile(fork.addressesFile("deployed"), out);
     }

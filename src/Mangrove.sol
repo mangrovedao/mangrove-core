@@ -17,23 +17,20 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
+
 pragma abicoder v2;
-import { MgvLib } from "./MgvLib.sol";
+
+import {MgvLib} from "./MgvLib.sol";
 
 import {AbstractMangrove} from "./AbstractMangrove.sol";
 
 /* <a id="Mangrove"></a> The `Mangrove` contract implements the "normal" version of Mangrove, where the taker flashloans the desired amount to each maker. Each time, makers are called after the loan. When the order is complete, each maker is called once again (with the orderbook unlocked). */
 contract Mangrove is AbstractMangrove {
-  constructor(
-    address governance,
-    uint gasprice,
-    uint gasmax
-  ) AbstractMangrove(governance, gasprice, gasmax, "Mangrove") {}
-
-  function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor)
-    internal
-    override
+  constructor(address governance, uint gasprice, uint gasmax)
+    AbstractMangrove(governance, gasprice, gasmax, "Mangrove")
   {}
+
+  function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal override {}
 
   function beforePosthook(MgvLib.SingleOrder memory sor) internal override {}
 
@@ -44,11 +41,7 @@ contract Mangrove is AbstractMangrove {
      2. Runs `offerDetail.maker`'s `execute` function.
      3. Returns the result of the operations, with optional makerData to help the maker debug.
    */
-  function flashloan(MgvLib.SingleOrder calldata sor, address taker)
-    external
-    override
-    returns (uint gasused)
-  {
+  function flashloan(MgvLib.SingleOrder calldata sor, address taker) external override returns (uint gasused) {
     unchecked {
       /* `flashloan` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would be fatal. */
       require(msg.sender == address(this), "mgv/flashloan/protected");
@@ -57,9 +50,7 @@ contract Mangrove is AbstractMangrove {
        is blacklisted, we can't tell which one. We need to know which one:
        if we incorrectly blame the taker, a blacklisted maker can block a pair forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume that Mangrove is not blacklisted. This 2-step transfer is incompatible with tokens that have transfer fees (more accurately, it uselessly incurs fees twice). */
       if (transferTokenFrom(sor.inbound_tkn, taker, address(this), sor.gives)) {
-        if (
-          transferToken(sor.inbound_tkn, sor.offerDetail.maker(), sor.gives)
-        ) {
+        if (transferToken(sor.inbound_tkn, sor.offerDetail.maker(), sor.gives)) {
           gasused = makerExecute(sor);
         } else {
           innerRevert([bytes32("mgv/makerReceiveFail"), bytes32(0), ""]);

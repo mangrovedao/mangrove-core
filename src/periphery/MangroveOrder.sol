@@ -144,8 +144,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
         taker: msg.sender,
         takerGot: res.takerGot,
         takerGave: res.takerGave,
-        penalty: res.bounty,
-        restingOrderId: 0
+        penalty: res.bounty
       });
       return res;
     }
@@ -183,8 +182,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       taker: msg.sender,
       takerGot: res.takerGot,
       takerGave: res.takerGave,
-      penalty: res.bounty,
-      restingOrderId: res.offerId
+      penalty: res.bounty
     });
 
     if (res.offerId == 0) {

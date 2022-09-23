@@ -64,7 +64,6 @@ interface IOrderLogic {
   ///@param takerGot How much the taker got
   ///@param takerGave How much the taker gave
   ///@param penalty How much penalty was given
-  ///@param restingOrderId The Id of the resting order
   event OrderSummary(
     IMangrove mangrove,
     IERC20 indexed outbound_tkn,
@@ -73,8 +72,7 @@ interface IOrderLogic {
     bool fillWants,
     uint takerGot,
     uint takerGave,
-    uint penalty,
-    uint restingOrderId
+    uint penalty
   );
 
   function expiring(

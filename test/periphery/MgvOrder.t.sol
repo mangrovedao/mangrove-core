@@ -33,8 +33,7 @@ contract MangroveOrder_Test is MangroveTest {
     bool fillWants,
     uint takerGot,
     uint takerGave,
-    uint penalty,
-    uint restingOrderId
+    uint penalty
   );
 
   MgvOrder mgo;
@@ -311,9 +310,9 @@ contract MangroveOrder_Test is MangroveTest {
       true,
       minusFee($(base), $(quote), 1 ether),
       0.13 ether,
-      0,
-      4 // TODO when checkEmit is available, get offer id after post
+      0
     );
+    // TODO when checkEmit is available, get offer id after post
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(
       buyOrder
     );
@@ -533,9 +532,9 @@ contract MangroveOrder_Test is MangroveTest {
       true,
       0,
       0,
-      0,
-      4 // TODO when checkEmit is available, get offer id after post
+      0
     );
+    // TODO when checkEmit is available, get offer id after post
     mgo.take{value: 0.1 ether}(buyOrder);
     expectFrom($(mgo));
     emit OrderSummary(
@@ -546,9 +545,9 @@ contract MangroveOrder_Test is MangroveTest {
       true,
       0,
       0,
-      0,
-      5 // TODO when checkEmit is available, get offer id after post
+      0
     );
+    // TODO when checkEmit is available, get offer id after post
     mgo.take{value: 0.1 ether}(buyOrder);
     (uint[] memory live, uint[] memory dead) = mgo.offersOfOwner(
       $(this),

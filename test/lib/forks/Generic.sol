@@ -48,11 +48,10 @@ contract GenericFork is Script {
     label(addr, name);
   }
 
-  function get(string memory name) public view returns (address payable) {
-    try context.get(name) returns (address payable addr) {
-      return addr;
-    } catch {
-      return deployed.get(name);
+  function get(string memory name) public view returns (address payable addr) {
+    addr = payable(context._addrs(name));
+    if (addr == address(0)) {
+      addr = deployed.get(name);
     }
   }
 

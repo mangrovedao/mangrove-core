@@ -61,17 +61,13 @@ abstract contract Deployer is Script2 {
     } catch {}
   }
 
-  // broadcast using a broadcasting address in the descending prio order:
-  // * <NETWORK>_PRIVATE_KEY env var's associated address
-  // * --sender
-  // * --private-key (or 1st of --private-keys)'s associated address
-  // * forge default sending address
+  // broadcast using forge-provided tx.origin; or if default try to use <NETWORK>_PRIVATE_KEY env var's associated address.
+  // In practice, this means you can set your deployer key MUMBAI_PRIVATE_KEY in your .env, and you can override that using --private-key <pk>
   function broadcast() public {
-    /* Memoize broadcaster. Cannot just do it in constructor because tx.origin for script constructors is not the same as for function calls */
+    /* Memoize broadcaster. Cannot just do it in constructor because tx.origin for script constructors does not depend on additional CLI args */
     if (broadcaster == address(0)) {
       broadcaster = tx.origin;
-      // If sender is not forge's default sender, ignore env var config
-      // Otherwise, load <NETWORK>_PRIVATE_KEY (if it exists)
+      // 0x00a3... is the default tx.origin
       if (broadcaster == 0x00a329c0648769A73afAc7F9381E08FB43dBEA72) {
         string memory envVar = string.concat(simpleCapitalize(fork.NAME()), "_PRIVATE_KEY");
         try vm.envUint(envVar) returns (uint key) {

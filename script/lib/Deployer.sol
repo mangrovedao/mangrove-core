@@ -7,6 +7,7 @@ import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import {PolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {MumbaiFork} from "mgv_test/lib/forks/Mumbai.sol";
 import {LocalFork} from "mgv_test/lib/forks/Local.sol";
+import {console2 as console} from "forge-std/console2.sol";
 
 /* Writes deployments in 2 ways:
    1. In a json file. Easier to write one directly than to parse&transform
@@ -72,9 +73,12 @@ abstract contract Deployer is Script2 {
         string memory envVar = string.concat(simpleCapitalize(fork.NAME()), "_PRIVATE_KEY");
         try vm.envUint(envVar) returns (uint key) {
           broadcaster = vm.rememberKey(key);
-        } catch {}
+        } catch {
+          console.log("%s not found or not parseable as uint, using default broadcast sender", envVar);
+        }
       }
     }
+    console.log(broadcaster);
     vm.broadcast(broadcaster);
   }
 

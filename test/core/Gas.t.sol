@@ -100,9 +100,8 @@ contract GasTest is MangroveTest, IMaker {
   function test_market_order_1() public {
     (AbstractMangrove mgv, TestTaker tkr, address base, address quote) = getStored();
     _gas();
-    (uint got, uint gave) = tkr.marketOrder(mgv, base, quote, 1 ether, 1 ether);
+    tkr.marketOrder(mgv, base, quote, 1 ether, 1 ether);
     gas_();
-    console.log(got, gave);
   }
 
   function test_market_order_8() public {
@@ -115,8 +114,7 @@ contract GasTest is MangroveTest, IMaker {
     mgv.newOffer(base, quote, 0.1 ether, 0.1 ether, 100_000, 0, 0);
     mgv.newOffer(base, quote, 0.1 ether, 0.1 ether, 100_000, 0, 0);
     _gas();
-    (uint got, uint gave) = tkr.marketOrder(mgv, base, quote, 2 ether, 2 ether);
+    tkr.marketOrder(mgv, base, quote, 2 ether, 2 ether);
     gas_();
-    console.log(got, gave);
   }
 }

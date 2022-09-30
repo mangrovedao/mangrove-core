@@ -20,8 +20,7 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {MgvLib} from "../MgvLib.sol";
-import {OfferStruct, OfferDetailStruct} from "mgv_src/preprocessed/MgvStructs.post.sol";
+import {MgvLib, MgvStructs} from "../MgvLib.sol";
 
 interface MangroveLike {
   function snipesFor(
@@ -35,7 +34,7 @@ interface MangroveLike {
   function offerInfo(address outbound_tkn, address inbound_tkn, uint offerId)
     external
     view
-    returns (OfferStruct memory, OfferStruct memory);
+    returns (MgvStructs.OfferUnpacked memory, MgvStructs.OfferUnpacked memory);
 }
 
 /* The purpose of the Cleaner contract is to execute failing offers and collect

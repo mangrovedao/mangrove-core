@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_src/AbstractMangrove.sol";
 import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
-import {Local} from "mgv_src/preprocessed/MgvPack.post.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 contract TestMoriartyMaker is IMaker {
   AbstractMangrove mgv;
@@ -38,7 +38,7 @@ contract TestMoriartyMaker is IMaker {
     mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
     mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
     mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
-    (, Local.t cfg) = mgv.config(base, quote);
+    (, MgvStructs.LocalPacked cfg) = mgv.config(base, quote);
     uint density = cfg.density();
     uint offer_gasbase = cfg.offer_gasbase();
     dummy = mgv.newOffer({

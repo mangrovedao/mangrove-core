@@ -255,7 +255,7 @@ contract OfferLogicTest is MangroveTest {
 
   function test_failingOfferLogsIncident() public {
     // making offer fail for lack of approval
-    (, Local.t local) = mgv.config($(weth), $(usdc));
+    (, MgvStructs.LocalPacked local) = mgv.config($(weth), $(usdc));
     uint next_id = local.last() + 1;
     vm.expectEmit(true, true, true, false, address(makerContract));
     emit LogIncident(IMangrove($(mgv)), weth, usdc, next_id, "mgvOffer/tradeSuccess", "mgv/makerTransferFail");

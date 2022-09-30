@@ -18,7 +18,7 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {Offer, OfferDetail, Global, Local} from "mgv_src/preprocessed/MgvPack.post.sol";
+import "./preprocessed/MgvStructs.post.sol" as MgvStructs;
 
 /* # Structs
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */
@@ -33,14 +33,14 @@ library MgvLib {
     address outbound_tkn;
     address inbound_tkn;
     uint offerId;
-    Offer.t offer;
+    MgvStructs.OfferPacked offer;
     /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
     uint wants;
     uint gives;
     /* `offerDetail` is only populated when necessary. */
-    OfferDetail.t offerDetail;
-    Global.t global;
-    Local.t local;
+    MgvStructs.OfferDetailPacked offerDetail;
+    MgvStructs.GlobalPacked global;
+    MgvStructs.LocalPacked local;
   }
 
   /* <a id="MgvLib/OrderResult"></a> `OrderResult` holds additional data for the maker and is given to them _after_ they fulfilled an offer. It gives them their own returned data from the previous call, and an `mgvData` specifying whether the Mangrove encountered an error. */

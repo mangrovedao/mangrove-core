@@ -17,8 +17,7 @@ import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
 import {IForwarder} from "mgv_src/strategies/interfaces/IForwarder.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
-import {Offer, OfferDetail, Local, Global} from "mgv_src/preprocessed/MgvPack.post.sol";
-import {MgvLib, IERC20} from "mgv_src/MgvLib.sol";
+import {MgvLib, IERC20, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 
 ///@title Class for maker contracts that forward external offer makers instructions to Mangrove in a permissionless fashion.
@@ -141,7 +140,8 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// Because of rounding errors in `deriveGasprice` a small amount of WEIs will accumulate in mangrove's balance of `this` contract
   /// We assign this dust to the corresponding `wei_balance` of `OwnerData`.
   function _newOffer(NewOfferArgs memory offData) internal returns (uint offerId) {
-    (Global.t global, Local.t local) = MGV.config(address(offData.outbound_tkn), address(offData.inbound_tkn));
+    (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) =
+      MGV.config(address(offData.outbound_tkn), address(offData.inbound_tkn));
     // convention for default gasreq value
     offData.gasreq = (offData.gasreq > type(uint24).max) ? offerGasreq() : offData.gasreq;
     // computing max `gasprice` such that `offData.fund` covers `offData.gasreq` at `gasprice`
@@ -218,9 +218,9 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@param pivotId a best pivot estimate for cheap offer insertion in the offer list
   ///@param offerId the id of the offer to be updated
   struct UpdateOfferArgs {
-    Global.t global;
-    Local.t local;
-    OfferDetail.t offer_detail;
+    MgvStructs.GlobalPacked global;
+    MgvStructs.LocalPacked local;
+    MgvStructs.OfferDetailPacked offer_detail;
     uint fund;
     IERC20 outbound_tkn;
     IERC20 inbound_tkn;
@@ -270,8 +270,8 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     override
     returns (uint provision)
   {
-    OfferDetail.t offer_detail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
-    (, Local.t local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
+    MgvStructs.OfferDetailPacked offer_detail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
+    (, MgvStructs.LocalPacked local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
     unchecked {
       provision = offer_detail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offer_detail.gasreq());
       provision += ownerData[outbound_tkn][inbound_tkn][offerId].wei_balance;
@@ -354,7 +354,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // NB if several offers of `this` contract have failed during the market order, the balance of this contract on Mangrove will contain cumulated free provision
 
     // computing an under approximation of returned provision because of this offer's failure
-    (Global.t global, Local.t local) = MGV.config(order.outbound_tkn, order.inbound_tkn);
+    (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) = MGV.config(order.outbound_tkn, order.inbound_tkn);
     uint provision =
       10 ** 9 * order.offerDetail.gasprice() * (order.offerDetail.gasreq() + order.offerDetail.offer_gasbase());
 

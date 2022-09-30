@@ -15,8 +15,7 @@ pragma abicoder v2;
 
 import "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import "mgv_src/strategies/routers/SimpleRouter.sol";
-import {MgvLib} from "mgv_src/MgvLib.sol";
-import {Offer} from "mgv_src/preprocessed/MgvPack.post.sol";
+import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 
 contract Ghost is Direct {
   IERC20 public immutable STABLE1;
@@ -108,7 +107,7 @@ contract Ghost is Direct {
 
     if (repost_status == "posthook/reposted") {
       uint new_alt_gives = __residualGives__(order); // in base units
-      Offer.t alt_offer = MGV.offers(order.outbound_tkn, address(alt_stable), alt_offerId);
+      MgvStructs.OfferPacked alt_offer = MGV.offers(order.outbound_tkn, address(alt_stable), alt_offerId);
       uint old_alt_wants = alt_offer.wants();
       // old_alt_gives is also old_gives
       uint old_alt_gives = order.offer.gives();

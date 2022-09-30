@@ -14,17 +14,29 @@ pragma solidity ^0.8.13;
 
 // fields are of the form [name,bits,type]
 
-import "./MgvStructs.post.sol";
-
 // struct_defs are of the form [name,obj]
 
 /* ************************************************** *
             GENERATED FILE. DO NOT EDIT.
  * ************************************************** */
 
+/* since you can't convert bool to uint in an expression without conditionals,
+ * we add a file-level function and rely on compiler optimization
+ */
+function uint_of_bool(bool b) pure returns (uint u) {
+  assembly { u := b }
+}
+
+struct OfferUnpacked {
+  uint prev;
+  uint next;
+  uint wants;
+  uint gives;
+}
+
 //some type safety for each struct
-type t is uint;
-using Library for t global;
+type OfferPacked is uint;
+using Library for OfferPacked global;
 
 uint constant prev_bits  = 32;
 uint constant next_bits  = 32;
@@ -42,62 +54,62 @@ uint constant wants_mask = 0xffffffffffffffff000000000000000000000000fffffffffff
 uint constant gives_mask = 0xffffffffffffffffffffffffffffffffffffffff000000000000000000000000;
 
 library Library {
-  function to_struct(t __packed) internal pure returns (OfferStruct memory __s) { unchecked {
-    __s.prev = (t.unwrap(__packed) << prev_before) >> (256-prev_bits);
-    __s.next = (t.unwrap(__packed) << next_before) >> (256-next_bits);
-    __s.wants = (t.unwrap(__packed) << wants_before) >> (256-wants_bits);
-    __s.gives = (t.unwrap(__packed) << gives_before) >> (256-gives_bits);
+  function to_struct(OfferPacked __packed) internal pure returns (OfferUnpacked memory __s) { unchecked {
+    __s.prev = (OfferPacked.unwrap(__packed) << prev_before) >> (256-prev_bits);
+    __s.next = (OfferPacked.unwrap(__packed) << next_before) >> (256-next_bits);
+    __s.wants = (OfferPacked.unwrap(__packed) << wants_before) >> (256-wants_bits);
+    __s.gives = (OfferPacked.unwrap(__packed) << gives_before) >> (256-gives_bits);
   }}
 
-  function eq(t __packed1, t __packed2) internal pure returns (bool) { unchecked {
-    return t.unwrap(__packed1) == t.unwrap(__packed2);
+  function eq(OfferPacked __packed1, OfferPacked __packed2) internal pure returns (bool) { unchecked {
+    return OfferPacked.unwrap(__packed1) == OfferPacked.unwrap(__packed2);
   }}
 
-  function unpack(t __packed) internal pure returns (uint __prev, uint __next, uint __wants, uint __gives) { unchecked {
-    __prev = (t.unwrap(__packed) << prev_before) >> (256-prev_bits);
-    __next = (t.unwrap(__packed) << next_before) >> (256-next_bits);
-    __wants = (t.unwrap(__packed) << wants_before) >> (256-wants_bits);
-    __gives = (t.unwrap(__packed) << gives_before) >> (256-gives_bits);
+  function unpack(OfferPacked __packed) internal pure returns (uint __prev, uint __next, uint __wants, uint __gives) { unchecked {
+    __prev = (OfferPacked.unwrap(__packed) << prev_before) >> (256-prev_bits);
+    __next = (OfferPacked.unwrap(__packed) << next_before) >> (256-next_bits);
+    __wants = (OfferPacked.unwrap(__packed) << wants_before) >> (256-wants_bits);
+    __gives = (OfferPacked.unwrap(__packed) << gives_before) >> (256-gives_bits);
   }}
 
-  function prev(t __packed) internal pure returns(uint) { unchecked {
-    return (t.unwrap(__packed) << prev_before) >> (256-prev_bits);
+  function prev(OfferPacked __packed) internal pure returns(uint) { unchecked {
+    return (OfferPacked.unwrap(__packed) << prev_before) >> (256-prev_bits);
   }}
-  function prev(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & prev_mask)
-                  | ((val << (256-prev_bits) >> prev_before)));
+  function prev(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {
+    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & prev_mask)
+                                | ((val << (256-prev_bits) >> prev_before)));
   }}
-  function next(t __packed) internal pure returns(uint) { unchecked {
-    return (t.unwrap(__packed) << next_before) >> (256-next_bits);
+  function next(OfferPacked __packed) internal pure returns(uint) { unchecked {
+    return (OfferPacked.unwrap(__packed) << next_before) >> (256-next_bits);
   }}
-  function next(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & next_mask)
-                  | ((val << (256-next_bits) >> next_before)));
+  function next(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {
+    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & next_mask)
+                                | ((val << (256-next_bits) >> next_before)));
   }}
-  function wants(t __packed) internal pure returns(uint) { unchecked {
-    return (t.unwrap(__packed) << wants_before) >> (256-wants_bits);
+  function wants(OfferPacked __packed) internal pure returns(uint) { unchecked {
+    return (OfferPacked.unwrap(__packed) << wants_before) >> (256-wants_bits);
   }}
-  function wants(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & wants_mask)
-                  | ((val << (256-wants_bits) >> wants_before)));
+  function wants(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {
+    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & wants_mask)
+                                | ((val << (256-wants_bits) >> wants_before)));
   }}
-  function gives(t __packed) internal pure returns(uint) { unchecked {
-    return (t.unwrap(__packed) << gives_before) >> (256-gives_bits);
+  function gives(OfferPacked __packed) internal pure returns(uint) { unchecked {
+    return (OfferPacked.unwrap(__packed) << gives_before) >> (256-gives_bits);
   }}
-  function gives(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & gives_mask)
-                  | ((val << (256-gives_bits) >> gives_before)));
+  function gives(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {
+    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & gives_mask)
+                                | ((val << (256-gives_bits) >> gives_before)));
   }}
 }
 
-function t_of_struct(OfferStruct memory __s) pure returns (t) { unchecked {
+function t_of_struct(OfferUnpacked memory __s) pure returns (OfferPacked) { unchecked {
   return pack(__s.prev, __s.next, __s.wants, __s.gives);
 }}
 
-function pack(uint __prev, uint __next, uint __wants, uint __gives) pure returns (t) { unchecked {
-  return t.wrap(((((0
-                | ((__prev << (256-prev_bits)) >> prev_before))
-                | ((__next << (256-next_bits)) >> next_before))
-                | ((__wants << (256-wants_bits)) >> wants_before))
-                | ((__gives << (256-gives_bits)) >> gives_before)));
+function pack(uint __prev, uint __next, uint __wants, uint __gives) pure returns (OfferPacked) { unchecked {
+  return OfferPacked.wrap(((((0
+                              | ((__prev << (256-prev_bits)) >> prev_before))
+                              | ((__next << (256-next_bits)) >> next_before))
+                              | ((__wants << (256-wants_bits)) >> wants_before))
+                              | ((__gives << (256-gives_bits)) >> gives_before)));
 }}

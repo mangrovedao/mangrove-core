@@ -20,9 +20,8 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {IERC20, HasMgvEvents, IMaker, IMgvMonitor, MgvLib} from "./MgvLib.sol";
+import {IERC20, HasMgvEvents, IMaker, IMgvMonitor, MgvLib, MgvStructs} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import {Offer, OfferDetail, Global, Local} from "mgv_src/preprocessed/MgvPack.post.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
   /* # MultiOrder struct */
@@ -161,8 +160,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         uint takerWants = sor.wants;
         uint takerGives = sor.gives;
         uint offerId = sor.offerId;
-        Offer.t offer = sor.offer;
-        OfferDetail.t offerDetail = sor.offerDetail;
+        MgvStructs.OfferPacked offer = sor.offer;
+        MgvStructs.OfferDetailPacked offerDetail = sor.offerDetail;
 
         /* If an execution was attempted, we move `sor` to the next offer. Note that the current state is inconsistent, since we have not yet updated `sor.offerDetails`. */
         if (mgvData != "mgv/notExecuted") {

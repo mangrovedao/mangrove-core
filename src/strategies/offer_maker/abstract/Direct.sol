@@ -141,8 +141,8 @@ abstract contract Direct is MangroveOffer {
     override
     returns (uint provision)
   {
-    OfferDetail.t offer_detail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
-    (, Local.t local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
+    MgvStructs.OfferDetailPacked offer_detail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
+    (, MgvStructs.LocalPacked local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
     unchecked {
       provision = offer_detail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offer_detail.gasreq());
     }

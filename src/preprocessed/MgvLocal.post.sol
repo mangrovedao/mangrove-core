@@ -14,17 +14,32 @@ pragma solidity ^0.8.13;
 
 // fields are of the form [name,bits,type]
 
-import "./MgvStructs.post.sol";
-
 // struct_defs are of the form [name,obj]
 
 /* ************************************************** *
             GENERATED FILE. DO NOT EDIT.
  * ************************************************** */
 
+/* since you can't convert bool to uint in an expression without conditionals,
+ * we add a file-level function and rely on compiler optimization
+ */
+function uint_of_bool(bool b) pure returns (uint u) {
+  assembly { u := b }
+}
+
+struct LocalUnpacked {
+  bool active;
+  uint fee;
+  uint density;
+  uint offer_gasbase;
+  bool lock;
+  uint best;
+  uint last;
+}
+
 //some type safety for each struct
-type t is uint;
-using Library for t global;
+type LocalPacked is uint;
+using Library for LocalPacked global;
 
 uint constant active_bits        = 8;
 uint constant fee_bits           = 16;
@@ -51,92 +66,92 @@ uint constant best_mask          = 0xffffffffffffffffffffffffffffffffffffffffff0
 uint constant last_mask          = 0xffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff;
 
 library Library {
-  function to_struct(t __packed) internal pure returns (LocalStruct memory __s) { unchecked {
-    __s.active = (((t.unwrap(__packed) << active_before) >> (256-active_bits)) > 0);
-    __s.fee = (t.unwrap(__packed) << fee_before) >> (256-fee_bits);
-    __s.density = (t.unwrap(__packed) << density_before) >> (256-density_bits);
-    __s.offer_gasbase = (t.unwrap(__packed) << offer_gasbase_before) >> (256-offer_gasbase_bits);
-    __s.lock = (((t.unwrap(__packed) << lock_before) >> (256-lock_bits)) > 0);
-    __s.best = (t.unwrap(__packed) << best_before) >> (256-best_bits);
-    __s.last = (t.unwrap(__packed) << last_before) >> (256-last_bits);
+  function to_struct(LocalPacked __packed) internal pure returns (LocalUnpacked memory __s) { unchecked {
+    __s.active = (((LocalPacked.unwrap(__packed) << active_before) >> (256-active_bits)) > 0);
+    __s.fee = (LocalPacked.unwrap(__packed) << fee_before) >> (256-fee_bits);
+    __s.density = (LocalPacked.unwrap(__packed) << density_before) >> (256-density_bits);
+    __s.offer_gasbase = (LocalPacked.unwrap(__packed) << offer_gasbase_before) >> (256-offer_gasbase_bits);
+    __s.lock = (((LocalPacked.unwrap(__packed) << lock_before) >> (256-lock_bits)) > 0);
+    __s.best = (LocalPacked.unwrap(__packed) << best_before) >> (256-best_bits);
+    __s.last = (LocalPacked.unwrap(__packed) << last_before) >> (256-last_bits);
   }}
 
-  function eq(t __packed1, t __packed2) internal pure returns (bool) { unchecked {
-    return t.unwrap(__packed1) == t.unwrap(__packed2);
+  function eq(LocalPacked __packed1, LocalPacked __packed2) internal pure returns (bool) { unchecked {
+    return LocalPacked.unwrap(__packed1) == LocalPacked.unwrap(__packed2);
   }}
 
-  function unpack(t __packed) internal pure returns (bool __active, uint __fee, uint __density, uint __offer_gasbase, bool __lock, uint __best, uint __last) { unchecked {
-    __active = (((t.unwrap(__packed) << active_before) >> (256-active_bits)) > 0);
-    __fee = (t.unwrap(__packed) << fee_before) >> (256-fee_bits);
-    __density = (t.unwrap(__packed) << density_before) >> (256-density_bits);
-    __offer_gasbase = (t.unwrap(__packed) << offer_gasbase_before) >> (256-offer_gasbase_bits);
-    __lock = (((t.unwrap(__packed) << lock_before) >> (256-lock_bits)) > 0);
-    __best = (t.unwrap(__packed) << best_before) >> (256-best_bits);
-    __last = (t.unwrap(__packed) << last_before) >> (256-last_bits);
+  function unpack(LocalPacked __packed) internal pure returns (bool __active, uint __fee, uint __density, uint __offer_gasbase, bool __lock, uint __best, uint __last) { unchecked {
+    __active = (((LocalPacked.unwrap(__packed) << active_before) >> (256-active_bits)) > 0);
+    __fee = (LocalPacked.unwrap(__packed) << fee_before) >> (256-fee_bits);
+    __density = (LocalPacked.unwrap(__packed) << density_before) >> (256-density_bits);
+    __offer_gasbase = (LocalPacked.unwrap(__packed) << offer_gasbase_before) >> (256-offer_gasbase_bits);
+    __lock = (((LocalPacked.unwrap(__packed) << lock_before) >> (256-lock_bits)) > 0);
+    __best = (LocalPacked.unwrap(__packed) << best_before) >> (256-best_bits);
+    __last = (LocalPacked.unwrap(__packed) << last_before) >> (256-last_bits);
   }}
 
-  function active(t __packed) internal pure returns(bool) { unchecked {
-    return (((t.unwrap(__packed) << active_before) >> (256-active_bits)) > 0);
+  function active(LocalPacked __packed) internal pure returns(bool) { unchecked {
+    return (((LocalPacked.unwrap(__packed) << active_before) >> (256-active_bits)) > 0);
   }}
-  function active(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & active_mask)
-                  | ((uint_of_bool(val) << (256-active_bits) >> active_before)));
+  function active(LocalPacked __packed,bool val) internal pure returns(LocalPacked) { unchecked {
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & active_mask)
+                                | ((uint_of_bool(val) << (256-active_bits) >> active_before)));
   }}
-  function fee(t __packed) internal pure returns(uint) { unchecked {
-    return (t.unwrap(__packed) << fee_before) >> (256-fee_bits);
+  function fee(LocalPacked __packed) internal pure returns(uint) { unchecked {
+    return (LocalPacked.unwrap(__packed) << fee_before) >> (256-fee_bits);
   }}
-  function fee(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & fee_mask)
-                  | ((val << (256-fee_bits) >> fee_before)));
+  function fee(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & fee_mask)
+                                | ((val << (256-fee_bits) >> fee_before)));
   }}
-  function density(t __packed) internal pure returns(uint) { unchecked {
-    return (t.unwrap(__packed) << density_before) >> (256-density_bits);
+  function density(LocalPacked __packed) internal pure returns(uint) { unchecked {
+    return (LocalPacked.unwrap(__packed) << density_before) >> (256-density_bits);
   }}
-  function density(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & density_mask)
-                  | ((val << (256-density_bits) >> density_before)));
+  function density(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & density_mask)
+                                | ((val << (256-density_bits) >> density_before)));
   }}
-  function offer_gasbase(t __packed) internal pure returns(uint) { unchecked {
-    return (t.unwrap(__packed) << offer_gasbase_before) >> (256-offer_gasbase_bits);
+  function offer_gasbase(LocalPacked __packed) internal pure returns(uint) { unchecked {
+    return (LocalPacked.unwrap(__packed) << offer_gasbase_before) >> (256-offer_gasbase_bits);
   }}
-  function offer_gasbase(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & offer_gasbase_mask)
-                  | ((val << (256-offer_gasbase_bits) >> offer_gasbase_before)));
+  function offer_gasbase(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & offer_gasbase_mask)
+                                | ((val << (256-offer_gasbase_bits) >> offer_gasbase_before)));
   }}
-  function lock(t __packed) internal pure returns(bool) { unchecked {
-    return (((t.unwrap(__packed) << lock_before) >> (256-lock_bits)) > 0);
+  function lock(LocalPacked __packed) internal pure returns(bool) { unchecked {
+    return (((LocalPacked.unwrap(__packed) << lock_before) >> (256-lock_bits)) > 0);
   }}
-  function lock(t __packed,bool val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & lock_mask)
-                  | ((uint_of_bool(val) << (256-lock_bits) >> lock_before)));
+  function lock(LocalPacked __packed,bool val) internal pure returns(LocalPacked) { unchecked {
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & lock_mask)
+                                | ((uint_of_bool(val) << (256-lock_bits) >> lock_before)));
   }}
-  function best(t __packed) internal pure returns(uint) { unchecked {
-    return (t.unwrap(__packed) << best_before) >> (256-best_bits);
+  function best(LocalPacked __packed) internal pure returns(uint) { unchecked {
+    return (LocalPacked.unwrap(__packed) << best_before) >> (256-best_bits);
   }}
-  function best(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & best_mask)
-                  | ((val << (256-best_bits) >> best_before)));
+  function best(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & best_mask)
+                                | ((val << (256-best_bits) >> best_before)));
   }}
-  function last(t __packed) internal pure returns(uint) { unchecked {
-    return (t.unwrap(__packed) << last_before) >> (256-last_bits);
+  function last(LocalPacked __packed) internal pure returns(uint) { unchecked {
+    return (LocalPacked.unwrap(__packed) << last_before) >> (256-last_bits);
   }}
-  function last(t __packed,uint val) internal pure returns(t) { unchecked {
-    return t.wrap((t.unwrap(__packed) & last_mask)
-                  | ((val << (256-last_bits) >> last_before)));
+  function last(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & last_mask)
+                                | ((val << (256-last_bits) >> last_before)));
   }}
 }
 
-function t_of_struct(LocalStruct memory __s) pure returns (t) { unchecked {
+function t_of_struct(LocalUnpacked memory __s) pure returns (LocalPacked) { unchecked {
   return pack(__s.active, __s.fee, __s.density, __s.offer_gasbase, __s.lock, __s.best, __s.last);
 }}
 
-function pack(bool __active, uint __fee, uint __density, uint __offer_gasbase, bool __lock, uint __best, uint __last) pure returns (t) { unchecked {
-  return t.wrap((((((((0
-                | ((uint_of_bool(__active) << (256-active_bits)) >> active_before))
-                | ((__fee << (256-fee_bits)) >> fee_before))
-                | ((__density << (256-density_bits)) >> density_before))
-                | ((__offer_gasbase << (256-offer_gasbase_bits)) >> offer_gasbase_before))
-                | ((uint_of_bool(__lock) << (256-lock_bits)) >> lock_before))
-                | ((__best << (256-best_bits)) >> best_before))
-                | ((__last << (256-last_bits)) >> last_before)));
+function pack(bool __active, uint __fee, uint __density, uint __offer_gasbase, bool __lock, uint __best, uint __last) pure returns (LocalPacked) { unchecked {
+  return LocalPacked.wrap((((((((0
+                              | ((uint_of_bool(__active) << (256-active_bits)) >> active_before))
+                              | ((__fee << (256-fee_bits)) >> fee_before))
+                              | ((__density << (256-density_bits)) >> density_before))
+                              | ((__offer_gasbase << (256-offer_gasbase_bits)) >> offer_gasbase_before))
+                              | ((uint_of_bool(__lock) << (256-lock_bits)) >> lock_before))
+                              | ((__best << (256-best_bits)) >> best_before))
+                              | ((__last << (256-last_bits)) >> last_before)));
 }}

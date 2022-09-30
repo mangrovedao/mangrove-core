@@ -20,9 +20,8 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {IMaker, HasMgvEvents} from "./MgvLib.sol";
+import {IMaker, HasMgvEvents, MgvStructs} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import {Offer, OfferDetail, Global, Local} from "mgv_src/preprocessed/MgvPack.post.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
 contract MgvOfferMaking is MgvHasOffers {
@@ -43,10 +42,10 @@ contract MgvOfferMaking is MgvHasOffers {
     uint gasreq;
     uint gasprice;
     uint pivotId;
-    Global.t global;
-    Local.t local;
+    MgvStructs.GlobalPacked global;
+    MgvStructs.LocalPacked local;
     // used on update only
-    Offer.t oldOffer;
+    MgvStructs.OfferPacked oldOffer;
   }
 
   /* The function `newOffer` is for market makers only; no match with the existing book is done. A maker specifies how much `inbound_tkn` it `wants` and how much `outbound_tkn` it `gives`.
@@ -148,7 +147,7 @@ contract MgvOfferMaking is MgvHasOffers {
       ofp.pivotId = pivotId;
       ofp.oldOffer = offers[outbound_tkn][inbound_tkn][offerId];
       // Save local config
-      Local.t oldLocal = ofp.local;
+      MgvStructs.LocalPacked oldLocal = ofp.local;
       /* The second argument indicates that we are updating an existing offer, not creating a new one. */
       writeOffer(ofp, true);
       /* We saved the current pair's configuration before calling `writeOffer`, since that function may update the current `best` offer. We now check for any change to the configuration and update it if needed. */
@@ -166,15 +165,15 @@ contract MgvOfferMaking is MgvHasOffers {
     returns (uint provision)
   {
     unchecked {
-      (, Local.t local) = config(outbound_tkn, inbound_tkn);
+      (, MgvStructs.LocalPacked local) = config(outbound_tkn, inbound_tkn);
       unlockedMarketOnly(local);
-      Offer.t offer = offers[outbound_tkn][inbound_tkn][offerId];
-      OfferDetail.t offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
+      MgvStructs.OfferPacked offer = offers[outbound_tkn][inbound_tkn][offerId];
+      MgvStructs.OfferDetailPacked offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
       require(msg.sender == offerDetail.maker(), "mgv/retractOffer/unauthorized");
 
       /* Here, we are about to un-live an offer, so we start by taking it out of the book by stitching together its previous and next offers. Note that unconditionally calling `stitchOffers` would break the book since it would connect offers that may have since moved. */
       if (isLive(offer)) {
-        Local.t oldLocal = local;
+        MgvStructs.LocalPacked oldLocal = local;
         local = stitchOffers(outbound_tkn, inbound_tkn, offer.prev(), offer.next(), local);
         /* If calling `stitchOffers` has changed the current `best` offer, we update the storage. */
         if (!oldLocal.eq(local)) {
@@ -206,7 +205,7 @@ contract MgvOfferMaking is MgvHasOffers {
   /* Fund should be called with a nonzero value (hence the `payable` modifier). The provision will be given to `maker`, not `msg.sender`. */
   function fund(address maker) public payable {
     unchecked {
-      (Global.t _global,) = config(address(0), address(0));
+      (MgvStructs.GlobalPacked _global,) = config(address(0), address(0));
       liveMgvOnly(_global);
       creditWei(maker, msg.value);
     }
@@ -275,7 +274,7 @@ contract MgvOfferMaking is MgvHasOffers {
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
       uint oldProvision;
       {
-        OfferDetail.t offerDetail = offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id];
+        MgvStructs.OfferDetailPacked offerDetail = offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id];
         if (update) {
           require(msg.sender == offerDetail.maker(), "mgv/updateOffer/unauthorized");
           oldProvision = 10 ** 9 * offerDetail.gasprice() * (offerDetail.gasreq() + offerDetail.offer_gasbase());
@@ -287,7 +286,7 @@ contract MgvOfferMaking is MgvHasOffers {
             || offerDetail.offer_gasbase() != ofp.local.offer_gasbase()
         ) {
           uint offer_gasbase = ofp.local.offer_gasbase();
-          offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id] = OfferDetail.pack({
+          offerDetails[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id] = MgvStructs.OfferDetail.pack({
             __maker: msg.sender,
             __gasreq: ofp.gasreq,
             __offer_gasbase: offer_gasbase,
@@ -331,7 +330,8 @@ contract MgvOfferMaking is MgvHasOffers {
       }
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
-      Offer.t ofr = Offer.pack({__prev: prev, __next: next, __wants: ofp.wants, __gives: ofp.gives});
+      MgvStructs.OfferPacked ofr =
+        MgvStructs.Offer.pack({__prev: prev, __next: next, __wants: ofp.wants, __gives: ofp.gives});
       offers[ofp.outbound_tkn][ofp.inbound_tkn][ofp.id] = ofr;
     }
   }
@@ -346,7 +346,8 @@ contract MgvOfferMaking is MgvHasOffers {
       uint nextId;
       uint pivotId = ofp.pivotId;
       /* Get `pivot`, optimizing for the case where pivot info is already known */
-      Offer.t pivot = pivotId == ofp.id ? ofp.oldOffer : offers[ofp.outbound_tkn][ofp.inbound_tkn][pivotId];
+      MgvStructs.OfferPacked pivot =
+        pivotId == ofp.id ? ofp.oldOffer : offers[ofp.outbound_tkn][ofp.inbound_tkn][pivotId];
 
       /* In case pivotId is not an active offer, it is unusable (since it is out of the book). We default to the current best offer. If the book is empty pivot will be 0. That is handled through a test in the `better` comparison function. */
       if (!isLive(pivot)) {
@@ -356,7 +357,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
       /* * Pivot is better than `wants/gives`, we follow `next`. */
       if (better(ofp, pivot, pivotId)) {
-        Offer.t pivotNext;
+        MgvStructs.OfferPacked pivotNext;
         while (pivot.next() != 0) {
           uint pivotNextId = pivot.next();
           pivotNext = offers[ofp.outbound_tkn][ofp.inbound_tkn][pivotNextId];
@@ -372,7 +373,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
         /* * Pivot is strictly worse than `wants/gives`, we follow `prev`. */
       } else {
-        Offer.t pivotPrev;
+        MgvStructs.OfferPacked pivotPrev;
         while (pivot.prev() != 0) {
           uint pivotPrevId = pivot.prev();
           pivotPrev = offers[ofp.outbound_tkn][ofp.inbound_tkn][pivotPrevId];
@@ -396,7 +397,7 @@ contract MgvOfferMaking is MgvHasOffers {
     "better" is defined on the lexicographic order $\textrm{price} \times_{\textrm{lex}} \textrm{density}^{-1}$. This means that for the same price, offers that deliver more volume per gas are taken first.
 
       In addition to `offer1`, we also provide its id, `offerId1` in order to save gas. If necessary (ie. if the prices `wants1/gives1` and `wants2/gives2` are the same), we read storage to get `gasreq1` at `offerDetails[...][offerId1]. */
-  function better(OfferPack memory ofp, Offer.t offer1, uint offerId1) internal view returns (bool) {
+  function better(OfferPack memory ofp, MgvStructs.OfferPacked offer1, uint offerId1) internal view returns (bool) {
     unchecked {
       if (offerId1 == 0) {
         /* Happens on empty book. Returning `false` would work as well due to specifics of `findPosition` but true is more consistent. Here we just want to avoid reading `offerDetail[...][0]` for nothing. */

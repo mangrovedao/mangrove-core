@@ -5,7 +5,7 @@ const path = require('path');
 const defs = require('./structs.js');
 
 const PRE = (name) => `./preprocessing/${name}`;
-const POST = (name) => `./contracts/preprocessed/${name}`;
+const POST = (name) => `./src/preprocessed/${name}`;
 
 const opts_for = (ns) => {
   return {
@@ -20,12 +20,6 @@ const run_process = async (pre_file, post_file, ns) => {
 }
 
 const main = async () => {
-
-  await run_process(
-    PRE('MgvPack.pre.sol'),
-    POST('MgvPack.post.sol'),
-    undefined
-  );
 
   await run_process(
     PRE('MgvStructs.pre.sol'),

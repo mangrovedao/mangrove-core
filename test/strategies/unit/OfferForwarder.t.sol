@@ -5,7 +5,7 @@ pragma solidity ^0.8.10;
 
 import "./OfferLogic.t.sol";
 import "mgv_src/strategies/offer_forwarder/OfferForwarder.sol";
-import {Global} from "mgv_src/preprocessed/MgvPack.post.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 contract OfferForwarderTest is OfferLogicTest {
   function setupMakerContract() internal virtual override prank(maker) {

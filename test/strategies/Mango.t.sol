@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
 import "mgv_src/strategies/routers/SimpleRouter.sol";
-import {Offer} from "mgv_src/preprocessed/MgvPack.post.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 contract MangoTest is MangroveTest {
   struct Book {
@@ -168,7 +168,7 @@ contract MangoTest is MangroveTest {
     (uint got, uint gave, uint bounty,) = mgv.marketOrder($(usdc), $(weth), cash(usdc, 1, 2), cash(weth, 1), true);
 
     uint best_id = mgv.best($(weth), $(usdc));
-    Offer.t best_offer = mgv.offers($(weth), $(usdc), best_id);
+    MgvStructs.OfferPacked best_offer = mgv.offers($(weth), $(usdc), best_id);
     uint old_gives = best_offer.gives();
 
     vm.prank(maker);
@@ -206,7 +206,7 @@ contract MangoTest is MangroveTest {
 
     // market order will take the following best offer
     uint best_id = mgv.best($(usdc), $(weth));
-    Offer.t best_offer = mgv.offers($(usdc), $(weth), best_id);
+    MgvStructs.OfferPacked best_offer = mgv.offers($(usdc), $(weth), best_id);
 
     vm.prank(taker);
     (uint got, uint gave, uint bounty,) = mgv.marketOrder($(usdc), $(weth), cash(usdc, 100), cash(weth, 1), true);
@@ -263,7 +263,7 @@ contract MangoTest is MangroveTest {
     // - the dual offer of offer 2 will be created with id 8 and will offer takerGave + the content of the WETH pending pool
     // - both pending pools should be empty
 
-    Offer.t old_offer2 = mgv.offers($(usdc), $(weth), 2);
+    MgvStructs.OfferPacked old_offer2 = mgv.offers($(usdc), $(weth), 2);
 
     vm.prank(taker);
     (, uint gave,,) = mgv.marketOrder($(usdc), $(weth), cash(usdc, 100), cash(weth, 1), true);
@@ -281,12 +281,12 @@ contract MangoTest is MangroveTest {
     assertEq(pendingQuote__, 0, "Pending quote pool should be empty");
 
     uint best_id = mgv.best($(weth), $(usdc));
-    Offer.t offer8 = mgv.offers($(weth), $(usdc), best_id);
+    MgvStructs.OfferPacked offer8 = mgv.offers($(weth), $(usdc), best_id);
     assertEq(best_id, 8, "Best offer on WETH,USDC offer list should be #8");
 
     assertEq(offer8.gives(), gave + pendingBase_, "Incorrect offer gives");
 
-    Offer.t offer2 = mgv.offers($(usdc), $(weth), 2);
+    MgvStructs.OfferPacked offer2 = mgv.offers($(usdc), $(weth), 2);
 
     assertEq(offer2.gives(), pendingQuote_ + old_offer2.gives() - cash(usdc, 100), "Incorrect offer gives");
   }

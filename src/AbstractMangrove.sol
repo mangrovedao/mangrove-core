@@ -20,7 +20,7 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {MgvLib as ML} from "./MgvLib.sol";
+import {MgvLib} from "./MgvLib.sol";
 
 import {MgvOfferMaking} from "./MgvOfferMaking.sol";
 import {MgvOfferTakingWithPermit} from "./MgvOfferTakingWithPermit.sol";

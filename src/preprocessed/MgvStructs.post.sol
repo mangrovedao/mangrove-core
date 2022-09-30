@@ -18,56 +18,13 @@ pragma solidity ^0.8.13;
             GENERATED FILE. DO NOT EDIT.
  * ************************************************** */
 
-/* since you can't convert bool to uint in an expression without conditionals,
- * we add a file-level function and rely on compiler optimization
- */
-function uint_of_bool(bool b) pure returns (uint u) {
-  assembly { u := b }
-}
+// Note: can't do Type.Unpacked because typechain mixes up multiple 'Unpacked' structs under different namespaces. So for consistency we don't do Type.Packed either. We do TypeUnpacked and TypePacked.
 
-// struct_defs are of the form [name,obj]
-
-// before: Can't put all structs under a 'Structs' library due to bad variable shadowing rules in Solidity
-// (would generate lots of spurious warnings about a nameclash between Structs.Offer and library Offer for instance)
-// now: Won't put all structs under a 'Structs' namespace because Mangrove & peripheral code now uses the current namespacing.
-struct OfferStruct {
-  uint prev;
-  uint next;
-  uint wants;
-  uint gives;
-}
-
-// before: Can't put all structs under a 'Structs' library due to bad variable shadowing rules in Solidity
-// (would generate lots of spurious warnings about a nameclash between Structs.Offer and library Offer for instance)
-// now: Won't put all structs under a 'Structs' namespace because Mangrove & peripheral code now uses the current namespacing.
-struct OfferDetailStruct {
-  address maker;
-  uint gasreq;
-  uint offer_gasbase;
-  uint gasprice;
-}
-
-// before: Can't put all structs under a 'Structs' library due to bad variable shadowing rules in Solidity
-// (would generate lots of spurious warnings about a nameclash between Structs.Offer and library Offer for instance)
-// now: Won't put all structs under a 'Structs' namespace because Mangrove & peripheral code now uses the current namespacing.
-struct GlobalStruct {
-  address monitor;
-  bool useOracle;
-  bool notify;
-  uint gasprice;
-  uint gasmax;
-  bool dead;
-}
-
-// before: Can't put all structs under a 'Structs' library due to bad variable shadowing rules in Solidity
-// (would generate lots of spurious warnings about a nameclash between Structs.Offer and library Offer for instance)
-// now: Won't put all structs under a 'Structs' namespace because Mangrove & peripheral code now uses the current namespacing.
-struct LocalStruct {
-  bool active;
-  uint fee;
-  uint density;
-  uint offer_gasbase;
-  bool lock;
-  uint best;
-  uint last;
-}
+import {OfferPacked, OfferUnpacked} from "./MgvOffer.post.sol";
+import "./MgvOffer.post.sol" as Offer;
+import {OfferDetailPacked, OfferDetailUnpacked} from "./MgvOfferDetail.post.sol";
+import "./MgvOfferDetail.post.sol" as OfferDetail;
+import {GlobalPacked, GlobalUnpacked} from "./MgvGlobal.post.sol";
+import "./MgvGlobal.post.sol" as Global;
+import {LocalPacked, LocalUnpacked} from "./MgvLocal.post.sol";
+import "./MgvLocal.post.sol" as Local;

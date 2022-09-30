@@ -20,7 +20,7 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {MgvLib} from "./MgvLib.sol";
+import {MgvLib, MgvStructs} from "./MgvLib.sol";
 
 import {AbstractMangrove} from "./AbstractMangrove.sol";
 

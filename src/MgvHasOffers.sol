@@ -20,20 +20,18 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {MgvLib, HasMgvEvents, IMgvMonitor} from "./MgvLib.sol";
+import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs} from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
-import {Offer, OfferDetail, Global, Local} from "mgv_src/preprocessed/MgvPack.post.sol";
-import {OfferStruct, OfferDetailStruct, GlobalStruct, LocalStruct} from "mgv_src/preprocessed/MgvStructs.post.sol";
 
 /* `MgvHasOffers` contains the state variables and functions common to both market-maker operations and market-taker operations. Mostly: storing offers, removing them, updating market makers' provisions. */
 contract MgvHasOffers is MgvRoot {
   /* # State variables */
   /* Given a `outbound_tkn`,`inbound_tkn` pair, the mappings `offers` and `offerDetails` associate two 256 bits words to each offer id. Those words encode information detailed in [`structs.js`](#structs.js).
 
-     The mappings are `outbound_tkn => inbound_tkn => offerId => Offer.t|OfferDetail.t`.
+     The mappings are `outbound_tkn => inbound_tkn => offerId => MgvStructs.OfferPacked|MgvStructs.OfferDetailPacked`.
    */
-  mapping(address => mapping(address => mapping(uint => Offer.t))) public offers;
-  mapping(address => mapping(address => mapping(uint => OfferDetail.t))) public offerDetails;
+  mapping(address => mapping(address => mapping(uint => MgvStructs.OfferPacked))) public offers;
+  mapping(address => mapping(address => mapping(uint => MgvStructs.OfferDetailPacked))) public offerDetails;
 
   /* Makers provision their possible penalties in the `balanceOf` mapping.
 
@@ -47,7 +45,7 @@ contract MgvHasOffers is MgvRoot {
   /* Convenience function to get best offer of the given pair */
   function best(address outbound_tkn, address inbound_tkn) external view returns (uint) {
     unchecked {
-      Local.t local = locals[outbound_tkn][inbound_tkn];
+      MgvStructs.LocalPacked local = locals[outbound_tkn][inbound_tkn];
       return local.best();
     }
   }
@@ -56,13 +54,13 @@ contract MgvHasOffers is MgvRoot {
   function offerInfo(address outbound_tkn, address inbound_tkn, uint offerId)
     external
     view
-    returns (OfferStruct memory offer, OfferDetailStruct memory offerDetail)
+    returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
   {
     unchecked {
-      Offer.t _offer = offers[outbound_tkn][inbound_tkn][offerId];
+      MgvStructs.OfferPacked _offer = offers[outbound_tkn][inbound_tkn][offerId];
       offer = _offer.to_struct();
 
-      OfferDetail.t _offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
+      MgvStructs.OfferDetailPacked _offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
       offerDetail = _offerDetail.to_struct();
     }
   }
@@ -96,8 +94,8 @@ contract MgvHasOffers is MgvRoot {
     address outbound_tkn,
     address inbound_tkn,
     uint offerId,
-    Offer.t offer,
-    OfferDetail.t offerDetail,
+    MgvStructs.OfferPacked offer,
+    MgvStructs.OfferDetailPacked offerDetail,
     bool deprovision
   ) internal {
     unchecked {
@@ -117,12 +115,15 @@ contract MgvHasOffers is MgvRoot {
   **Warning**: calling with `betterId = 0` will set `worseId` as the best. So with `betterId = 0` and `worseId = 0`, it sets the book to empty and loses track of existing offers.
 
   **Warning**: may make memory copy of `local.best` stale. Returns new `local`. */
-  function stitchOffers(address outbound_tkn, address inbound_tkn, uint betterId, uint worseId, Local.t local)
-    internal
-    returns (Local.t)
-  {
+  function stitchOffers(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint betterId,
+    uint worseId,
+    MgvStructs.LocalPacked local
+  ) internal returns (MgvStructs.LocalPacked) {
     unchecked {
-      mapping(uint => Offer.t) storage semiBook = offers[outbound_tkn][inbound_tkn];
+      mapping(uint => MgvStructs.OfferPacked) storage semiBook = offers[outbound_tkn][inbound_tkn];
       if (betterId != 0) {
         semiBook[betterId] = semiBook[betterId].next(worseId);
       } else {
@@ -138,8 +139,8 @@ contract MgvHasOffers is MgvRoot {
   }
 
   /* ## Check offer is live */
-  /* Check whether an offer is 'live', that is: inserted in the order book. The Mangrove holds a `outbound_tkn => inbound_tkn => id => Offer.t` mapping in storage. Offer ids that are not yet assigned or that point to since-deleted offer will point to an offer with `gives` field at 0. */
-  function isLive(Offer.t offer) public pure returns (bool) {
+  /* Check whether an offer is 'live', that is: inserted in the order book. The Mangrove holds a `outbound_tkn => inbound_tkn => id => MgvStructs.OfferPacked` mapping in storage. Offer ids that are not yet assigned or that point to since-deleted offer will point to an offer with `gives` field at 0. */
+  function isLive(MgvStructs.OfferPacked offer) public pure returns (bool) {
     unchecked {
       return offer.gives() > 0;
     }

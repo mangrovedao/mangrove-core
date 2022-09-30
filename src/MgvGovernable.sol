@@ -20,7 +20,7 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {HasMgvEvents} from "./MgvLib.sol";
+import {HasMgvEvents, MgvStructs} from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
 
 contract MgvGovernable is MgvRoot {

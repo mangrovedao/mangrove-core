@@ -5,7 +5,7 @@ import {Deployer} from "./lib/Deployer.sol";
 import "mgv_test/lib/Test2.sol";
 import "mgv_src/Mangrove.sol";
 import {ERC20} from "mgv_test/lib/tokens/ERC20.sol";
-import {Global} from "mgv_src/preprocessed/MgvPack.post.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 uint constant COVER_FACTOR = 100;
 
@@ -61,7 +61,7 @@ contract ActivateSemibook is Test2, Deployer {
        - global.gasprice() is in gwei/gas
        - so density is in (base token units token)/gas
     */
-    (Global.t global,) = mgv.config(address(0), address(0));
+    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
     uint outbound_decimals = ERC20(outbound_tkn).decimals();
     uint density = (COVER_FACTOR * global.gasprice() * 10 ** outbound_decimals) / outbound_in_gwei;
 

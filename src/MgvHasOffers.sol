@@ -123,15 +123,14 @@ contract MgvHasOffers is MgvRoot {
     MgvStructs.LocalPacked local
   ) internal returns (MgvStructs.LocalPacked) {
     unchecked {
-      mapping(uint => MgvStructs.OfferPacked) storage semiBook = offers[outbound_tkn][inbound_tkn];
       if (betterId != 0) {
-        semiBook[betterId] = semiBook[betterId].next(worseId);
+        offers[outbound_tkn][inbound_tkn][betterId] = offers[outbound_tkn][inbound_tkn][betterId].next(worseId);
       } else {
         local = local.best(worseId);
       }
 
       if (worseId != 0) {
-        semiBook[worseId] = semiBook[worseId].prev(betterId);
+        offers[outbound_tkn][inbound_tkn][worseId] = offers[outbound_tkn][inbound_tkn][worseId].prev(betterId);
       }
 
       return local;

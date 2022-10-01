@@ -23,7 +23,7 @@
 
 /* # Preprocessing
 
-The current file (`structs.js`) is used in `MgvPack.pre.sol` (not shown here) to generate the libraries in `MgvPack.sol`. Here is an example of js struct specification and of a generated library:
+The current file (`structs.js`) is used in `MgvStructs.pre.sol` (not shown here) to generate the libraries in `MgvType.pre.sol`. Here is an example of js struct specification and of a generated library:
 ```
 structs = {
   universe: [
@@ -33,42 +33,42 @@ structs = {
 }
 ```
 
-The generated file will store all data in a single EVM stack slot (seen as an abstract type `t` by Solidity); here is a simplified version:
+The generated file will store all data in a single EVM stack slot (seen as an abstract type `<TypeName>Packed` by Solidity); here is a simplified version:
 
 ```
-struct UniverseStruct {
+struct UniverseUnpacked {
   uint serialnumber;
   bool hospitable;
 }
 
-library Universe {
+library Library {
   // use Solidity 0.8* custom types
-  type t is uint;
+  type UniversePacked is uint;
 
   // test word equality
-  function eq(t,t) returns (bool);
+  function eq(UniversePacked,UniversePacked) returns (bool);
 
   // word <-> struct conversion
-  function to_struct(t) returns (UniverseStruct memory);
-  function t_of_struct(UniverseStruct memory) returns (t);
+  function to_struct(UniversePacked) returns (UniverseUnpacked memory);
+  function t_of_struct(UniverseUnpacked memory) returns (UniversePacked);
 
   // arguments <-> word conversion
-  function unpack(t) returns (uint serialnumber, bool hospitable);
-  function pack(uint serialnumber, bool hospitable) returns(t);
+  function unpack(UniversePacked) returns (uint serialnumber, bool hospitable);
+  function pack(uint serialnumber, bool hospitable) returns(UniversePacked);
 
   // read and write first property
-  function serialnumber(t) returns (uint);
-  function serialnumber(t,uint) returns (t);
+  function serialnumber(UniversePacked) returns (uint);
+  function serialnumber(UniversePacked,uint) returns (UniversePacked);
 
   // read and write second property
-  function hospitable(t) returns (bool);
-  function hospitable(t,bool) returns (t);
+  function hospitable(UniversePacked) returns (bool);
+  function hospitable(UniversePacked,bool) returns (UniversePacked);
 }
 ```
 Then, in Solidity code, one can write:
 ```
-using Universe for Universe.t
-Universe.t uni = Universe.pack(32,false);
+using Universe for Universe.UniversePacked
+UniversePacked uni = Universe.pack(32,false);
 uint num = uni.serialnumber();
 uni.hospitable(true);
 ```

@@ -223,7 +223,11 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     uint gasprice, // value ignored but kept to satisfy `Forwarder is IOfferLogic`
     uint pivotId,
     uint offerId
-  ) external payable override {
+  )
+    external
+    payable
+    override
+  {
     OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
     require(msg.sender == od.owner, "Forwarder/updateOffer/unauthorized");
     gasprice; // ssh
@@ -277,15 +281,15 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     address owner;
   }
 
-  ///@notice Memory allocation of `_updateOffer` variables
-  ///@param gasprice the gas price that is derived from the amount of funds available to re-provision the offer
-  ///@param leftover the portion of the available funds that cannot be used to cover for the offer's bounty
+  ///@notice memory allocation for `_updateOffer` variables
+  ///@param gasprice derived gasprice of the offer
+  ///@param leftover portion of `msg.value` that are not allocated to offer's provision
   struct UpdateOfferVars {
     uint gasprice;
     uint leftover;
   }
 
-  ///@notice Implementation body of `updateOffer`, using variables on memory to avoid stack too deep.
+  ///@notice Implementation body of `updateOffer`, using arguments and variables on memory to avoid stack too deep.
   function _updateOffer(UpdateOfferArgs memory args) private {
     UpdateOfferVars memory vars;
     // adding current locked provision to funds (0 if offer is deprovisioned)
@@ -341,12 +345,11 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   ///@inheritdoc IOfferLogic
-  function retractOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint offerId,
-    bool deprovision 
-  ) public override returns (uint free_wei) {
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    public
+    override
+    returns (uint free_wei)
+  {
     OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
     require(
       od.owner == msg.sender || address(MGV) == msg.sender,
@@ -372,8 +375,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   ///@inheritdoc IOfferLogic
-  function withdrawToken(IERC20 token, address receiver, uint amount) 
-  external override returns (bool success) {
+  function withdrawToken(IERC20 token, address receiver, uint amount) external override returns (bool success) {
     require(receiver != address(0), "Forwarder/withdrawToken/0xReceiver");
     if (amount == 0) {
       success = true;

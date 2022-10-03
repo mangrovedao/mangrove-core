@@ -70,12 +70,11 @@ interface IOfferLogic is IMaker {
   ///@param token the type of asset one is willing to retrieve
   ///@param receiver the address of the reciver of the tokens (must not be `address(0)`)
   ///@param amount the quantity of tokens to withdraw from reserve (in WEI units).
-  ///@return success whether funds were successfully transferred to `receiver` 
+  ///@return success whether funds were successfully transferred to `receiver`
   ///@dev notice anyone can call but only `msg.sender` can withdraw from its reserve
-  function withdrawToken(IERC20 token, address receiver, uint amount) 
-  external returns (bool success);
+  function withdrawToken(IERC20 token, address receiver, uint amount) external returns (bool success);
 
-  ///@notice computes the provision that can be redeemed when deprovisioning a certain offer.
+  ///@notice computes the amount of native tokens that can be redeemed when deprovisioning a certain offer.
   ///@param outbound_tkn the outbound token of the offer list
   ///@param inbound_tkn the inbound token of the offer list
   ///@param offerId the identifier of the offer in the offer list
@@ -119,10 +118,11 @@ interface IOfferLogic is IMaker {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external
+  )
+    external
     payable;
 
-  ///@notice Retracts an offer from an Offer List of Mangrove. 
+  ///@notice Retracts an offer from an Offer List of Mangrove.
   ///@param outbound_tkn the outbound token of the offer list.
   ///@param inbound_tkn the inbound token of the offer list.
   ///@param offerId the identifier of the offer in the (`outbound_tkn`,`inbound_tkn`) offer list
@@ -136,23 +136,24 @@ interface IOfferLogic is IMaker {
     IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) external
+  )
+    external
     returns (uint received);
 
-  ///@notice returns the address of the vault holding offer maker's liquidity
-  /// for `Direct` logics, this corresponds to the reserve of `this` contract
-  /// for `Forwarder` logics, the returned reserve is the one of `msg.sender`
-  ///@return reserve_ the address of the reserve of offer Maker.
-  function reserve() external view returns (address reserve_);
+  ///@notice view of offer maker's reserve
+  ///@dev if offer maker is `this` (`Direct` logics) then it returns the liquidity reserve of `address(this)`
+  /// otherwise (`Forwarder` logics) it returns the reserve of `msg.sender`.
+  function reserve() external view returns (address);
 
   /**
-   * @notice sets the address of the reserve of maker(s).
-   * If `this` contract is a forwarder the call sets the reserve for `msg.sender`. Otherwise it sets the reserve for `address(this)`.
+   * @notice sets the address of the reserve of an offer maker.
+   * @dev If offer maker is `this` (`Direct` logics) it sets the reserve for `address(this)`.
+   * @dev Otherwise (`Forwarder` logics) it sets the reserve for `msg.sender`.
+   * @param reserve the address of offer maker's reserve
    */
-  /// @param reserve the new address of offer maker's reserve
   function setReserve(address reserve) external;
 
   /// @notice Contract's router getter.
-  /// @dev contract has a router if `this.router() != this.NO_ROUTER()`
+  /// @dev if contract has a no router, function returns `NO_ROUTER`.
   function router() external view returns (AbstractRouter);
 }

@@ -4,7 +4,7 @@ const micromatch = require("micromatch");
 module.exports = {
   "*.sol": (files) => {
     // from `files` filter those _NOT_ matching `*test.js`
-    const match = micromatch.not(files, "**/mangrove-solidity/lib/**");
+    const match = micromatch.not(files, "lib/**");
     const match1 = micromatch.not(match, "**/vendor/**");
     const match2 = micromatch.not(match1, "**/preprocessed/**");
     return `forge fmt ${match2.join(" ")}`;

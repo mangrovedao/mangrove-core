@@ -1,0 +1,31 @@
+name: Setup Foundry
+description: Install Foundry, load RPC cache, load compilation cache
+runs:
+  using: composite
+  steps:
+  - name: Install Foundry
+    uses: foundry-rs/foundry-toolchain@v1
+    with:
+      version: nightly
+    
+  - name: Show Foundry version
+    shell: bash
+    run: forge --version
+
+  - name: Get Foundry RPC cache
+    uses: actions/cache@v3
+    with:
+      path: "~/.foundry/cache"
+      key: foundry-rpc-cache-${{ hashFiles('foundry.toml','test/') }}
+      restore-keys: |
+        foundry-rpc-cache-
+
+  - name: Get Foundry build cache
+    uses: actions/cache@v3
+    with:
+      path: |
+        cache
+        out
+      key: foundry-build-cache-${{ hashFiles('foundry.toml','lib/','script/','src/','test/') }}
+      restore-keys: |
+        foundry-build-cache-

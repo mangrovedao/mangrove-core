@@ -1,21 +1,26 @@
-node_modules
-build
-cache
+# Local ignores
 ignore
 modd.conf
-out.html
-doc/MgvDoc.html
-doc/specs.txt
-*-mumbai.sh
 
-**/.sethrc
+# OS/build/test generated 
 .DS_Store
-.vscode/settings.json
-.env
-.env.local
-.env.*.local
 *test-report.json
 *tests-report.json
+node_modules
+dist
+out
+cache
+doc/MgvDoc.html
+# broadcast files, ignore local deploys
+broadcast/*
+# ignore versioned deployment files
+addresses/**/*.backup.json
+
+# Personal
+.env
+.env.local
+.vscode/settings.json
+.env.*.local
 *.code-workspace
 .vscode
 
@@ -28,6 +33,11 @@ doc/specs.txt
 !.yarn/versions
 .pnp.*
 
-# js tests state dumps
-**/mangroveJsTestServerState.dump
-merged.info
+# Stil useful?
+out.html
+**/.sethrc
+*-mumbai.sh
+doc/specs.txt
+artifacts/*
+exported-abis/*
+deployments/localhost

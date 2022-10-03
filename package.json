@@ -1,28 +1,28 @@
 {
-  "name": "@mangrovedao/mangrove-solidity",
+  "name": "mangrove-core",
   "version": "1.0.0",
   "author": "Mangrove DAO",
   "license": "(AGPL-3.0-only OR BSD-2-Clause)",
   "scripts": {
+    "postinstall": "husky install",
     "precommit": "lint-staged",
     "prepack": "yarn build",
-    "build-this-package": "forge build && node copyArtifacts && node copyAddresses",
-    "heroku-build-this-package": "echo No build of contracts needed for Heroku as ABIs are committed to mangrove.js",
-    "build": "yarn install && yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run build-this-package",
-    "clean-this-package": "rimraf artifacts cache dist exported-abis out tsconfig.tsbuildinfo",
-    "clean": "yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run clean-this-package",
+    "build": "forge build && node copyArtifacts && node copyAddresses",
+    "clean": "rimraf artifacts cache dist exported-abis out tsconfig.tsbuildinfo",
     "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.js src/MgvLib.sol src/MgvRoot.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/AbstractMangrove.sol src/Mangrove.sol src/InvertedMangrove.sol",
     "preproc": "node preprocessing/run.js",
-    "test-with-dependencies": "yarn workspaces foreach -vpiR --topological-dev --from $npm_package_name run test",
     "test": "forge test -vvv"
   },
   "devDependencies": {
+    "husky": "^7.0.2",
     "lint-staged": "^13.0.3",
+    "pinst": "^2.1.6",
     "prettier": "^2.4.1",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.4",
     "solcco": ">=1.0.11",
     "solpp": "^0.11.5",
     "yargs": "^17.1.1"
-  }
+  },
+  "packageManager": "yarn@3.2.3"
 }

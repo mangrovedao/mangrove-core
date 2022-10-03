@@ -1,0 +1,249 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: 
+      - master
+      - 'run-ci/**'
+    paths-ignore: 
+      - '**.md'
+  pull_request_target:
+    branches: [ master, test-pr ]
+    types: [opened, synchronize, reopened, labeled]
+    paths-ignore: 
+      - '**.md'
+
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  NODE_ENV: test
+  # Ternary-esque expression hack: The first line is the condition,
+  # the 2nd line is the value if `true`, the 3rd line is the value if `false`.
+  GIT_REF_TO_TEST: >
+                   ${{  (   github.event_name != 'pull_request_target'
+                         && github.ref )
+                      || format('refs/pull/{0}/merge', github.event.number) }}
+  NOTIFY_SLACK_FOR_THIS_WORKFLOW_RUN: ${{ github.ref_name == 'master' && github.event_name != 'pull_request_target' }}
+jobs:
+  # ==== Job: Security guard ====
+  # The security guard job only allows workflows triggered by external PR's to continue
+  # if they are labelled 'safe to test'.
+  security-guard:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Comment external PR's with first time (before being labelled 'external PR')
+      if: >
+          !(   github.event_name != 'pull_request_target'
+            || github.event.pull_request.head.repo.full_name == github.repository
+            || contains(github.event.pull_request.labels.*.name, 'external PR') )
+      uses: peter-evans/create-or-update-comment@v2
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        body: >
+              Pull requests from forks must be reviewed before build and tests are run.
+
+              A maintainer will review and add the 'safe to test' label if everything looks good.
+
+    - name: Label external PR's with 'external PR'
+      if: >
+          !(   github.event_name != 'pull_request_target'
+            || github.event.pull_request.head.repo.full_name == github.repository
+            || contains(github.event.pull_request.labels.*.name, 'external PR') )
+      uses: actions-ecosystem/action-add-labels@v1
+      with:
+        labels: external PR
+
+  # ==== End job: Security guard ====
+  file-guard:
+    needs: [security-guard]
+    runs-on: ubuntu-latest
+    steps:
+    # == Git checkout ==
+    - name: Checkout
+      uses: actions/checkout@v3
+      # Workaround for https://github.com/npm/cli/issues/2610
+      with:
+        persist-credentials: false
+        ref: ${{ env.GIT_REF_TO_TEST }}
+        submodules: recursive
+
+    - uses: dorny/paths-filter@v2
+      id: changes
+      with:
+        filters: |
+          addresses:
+            - 'addresses/deployed/*.json'
+
+    - name: Fail if addresses changed unless PR has 'update address' label
+      if: >
+          (    github.event_name == 'pull_request_target'
+           &&  !contains(github.event.pull_request.labels.*.name,'update address') 
+           &&  steps.changes.outputs.addresses == 'true')
+      uses: actions/github-script@v6
+      with:
+        script: core.setFailed('You have changed an address in mangrove-core (deployed/*.json). PR must be marked \'update address\' for CI to run')
+
+  # ==== Job: Build and test mangrove-core
+  mangrove-core:
+    needs: [security-guard]
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+
+    # == Git checkout ==
+    - name: Checkout
+      uses: actions/checkout@v3
+      # Workaround for https://github.com/npm/cli/issues/2610
+      with:
+        persist-credentials: false
+        ref: ${{ env.GIT_REF_TO_TEST }}
+        submodules: recursive
+
+    - name: Reconfigure git to use HTTP authentication
+      # Workaround for https://github.com/npm/cli/issues/2610    
+      run: >
+        git config --global url."https://github.com/".insteadOf
+        ssh://git@github.com/
+
+    # == yarn setup ==
+    - name: Yarn setup (caching yarn dependencies)
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'yarn'
+        
+    - run: yarn install --immutable
+      working-directory: . # Yarn must run in root to ensure monorepo setup
+
+    - name: Foundry Setup
+      uses: ./.github/actions/foundry-setup
+
+    # == build ==
+    - name: Solidity Compile
+      run: yarn run build
+
+    - name: Save status of build
+      # So we can fail-fast and drop the X Test Report steps, if build fails
+      # A tiny bit hacky, but it's simple and works
+      run: echo "mangrove_built=true" >> $GITHUB_ENV
+
+    # Run local Solidity tests
+    - name: Mangrove Solidity Tests
+      run: yarn run test
+      env:
+        POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
+
+    # NOTE: uncomment once you can manage forge test 
+    # outputs in gh actions
+    # - name: Mangrove Solidity Test Report
+    #   uses: dorny/test-reporter@v1
+    #   if: ${{ env.mangrove_built && (success() || failure()) }}
+    #   with:
+    #     name: Solidity Tests                  # Name of the check run which will be created
+    #     path: ${{env.working-directory}}/solidity-mocha-test-report.json # Path to test results
+    #     reporter: mocha-json                  # Format of test results
+
+    # save artifacts for later stages
+    - name: Zip output
+      uses: montudor/action-zip@v1
+      with: 
+        args: zip -qq -r mangrove-core-out.zip addresses dist
+
+    - name: Cache mangrove-core output as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: mangrove-core-out.zip
+        path: mangrove-core-out.zip
+
+    - name: Report Failure to Slack
+      if: ${{ failure() && fromJSON(env.NOTIFY_SLACK_FOR_THIS_WORKFLOW_RUN) }}
+      uses: ravsamhq/notify-slack-action@v1
+      with:
+        status: ${{ job.status }}
+        message_format: '{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}> at {job}'
+        footer: '<{run_url}|View Run>'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.ACTION_MONITORING_SLACK }}
+  # ==== End job mangrove-core ====
+
+  # ==== Job: Build Mangrove documentation ====
+  mangrove-core-doc:
+    needs: [security-guard, mangrove-core]
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    # == Git checkout ==
+    - name: Checkout
+      uses: actions/checkout@v3
+      # Workaround for https://github.com/npm/cli/issues/2610
+      with:
+        persist-credentials: false
+        ref: ${{ env.GIT_REF_TO_TEST }}
+        submodules: recursive
+
+    - name: Reconfigure git to use HTTP authentication
+      # Workaround for https://github.com/npm/cli/issues/2610    
+      run: >
+        git config --global url."https://github.com/".insteadOf
+        ssh://git@github.com/
+
+    # == yarn setup ==
+    - name: Yarn setup (caching yarn dependencies)
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'yarn'
+        
+    - run: yarn install --immutable
+      working-directory: . # Yarn must run in root to ensure monorepo setup
+
+    # == create and upload docs ==
+    - run: yarn run doc
+
+    - name: Archive documentation
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: doc/
+
+    - name: Report Failure to Slack
+      if: ${{ failure() && fromJSON(env.NOTIFY_SLACK_FOR_THIS_WORKFLOW_RUN) }}
+      uses: ravsamhq/notify-slack-action@v1
+      with:
+        status: ${{ job.status }}
+        message_format: '{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}> at {job}'
+        footer: '<{run_url}|View Run>'
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.ACTION_MONITORING_SLACK }}
+  # ==== End job mangrove-core-doc ====
+
+  # ==== final "check" job, using alls-green to have one single job to check for green workflow ====
+  # see https://github.com/re-actors/alls-green
+
+  check:
+    if: always()
+
+    needs:
+    - security-guard
+    - file-guard
+    - mangrove-core
+    - mangrove-core-doc
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@release/v1
+      with:
+        jobs: ${{ toJSON(needs) }}

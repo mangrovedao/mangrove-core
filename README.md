@@ -7,7 +7,6 @@ First, clone the repo and install the prerequisites for the monorepo described i
 Next, run the following commands:
 
 ```shell
-$ cd <Mangrove monorepo>/packages/mangrove-solidity
 $ yarn install   # Sets up the Mangrove monorepo and install dependencies
 $ yarn build     # Compiles Mangrove and offer logics
 ```

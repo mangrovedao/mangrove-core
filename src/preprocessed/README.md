@@ -1,6 +1,6 @@
 # Preprocessed Mangrove files
 
-For more on the processing setuyp, see `mangrove-solidity/preprocessing`.
+For more on the processing setuyp, see `preprocessing/`.
 
 Processed file organisation is a little complicated due to the following constraints: 
 

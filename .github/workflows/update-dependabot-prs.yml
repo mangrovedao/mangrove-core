@@ -1,0 +1,57 @@
+# Inspired by https://blog.alphasmanifesto.com/2021/11/07/yarn-2-dependabot/
+
+name: Update yarn.lock in Dependabot PRs
+on:
+  pull_request_target:
+    branches:
+      - 'dependabot/**'
+
+jobs:
+  fix-lockfile:
+    runs-on: ubuntu-latest
+    if: |
+      github.actor == 'dependabot[bot]' &&
+      contains(github.event.pull_request.head.ref, 'dependabot/npm_and_yarn/')
+
+    # IMPORTANT: setting YARN_ENABLE_SCRIPTS=false is critical to ensure that untrusted
+    # PRs can't add an npm package and then use that to execute untrusted code in
+    # a trusted context. See links at the top of this workflow for further details.
+    # See also: https://github.com/yarnpkg/berry/issues/1679#issuecomment-669937860
+    env:
+      YARN_ENABLE_SCRIPTS: false
+      YARN_ENABLE_IMMUTABLE_INSTALLS: false
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          # Using a Personal Access Token here is required to trigger workflows on our new commit.
+          # The default GitHub token doesn't trigger any workflows.
+          # See: https://github.community/t/push-from-action-does-not-trigger-subsequent-action/16854/2
+          token: ${{ secrets.REPO_PUBLIC_ACCESS_TOKEN }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}          
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 2
+
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14.x
+          cache: 'yarn'
+
+      - name: Run yarn install to update lockfile
+        run: yarn install --mode=update-lockfile
+
+      - name: Commit and push yarn.lock
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: dontrolle
+          author_email: troels@mangrove.exchange
+          committer_name: github-actions[bot]
+          committer_email: github-actions@github.com
+          # [dependabot skip] ensures that any rebases made by dependabot will be 
+          # force-pushed ignoring this commit
+          message: | 
+            build(deps): Update yarn.lock
+            [dependabot skip]
+          push: true
+          add: 'yarn.lock'

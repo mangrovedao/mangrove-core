@@ -18,6 +18,9 @@ import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
 import {AbstractRouterStorage as ARSt} from "./AbstractRouterStorage.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 
+/// @title AbstractRouter
+/// @notice Partial implementation and requirements for liquidity routers.
+
 abstract contract AbstractRouter is AccessControlled {
   modifier onlyMakers() {
     require(makers(msg.sender), "Router/unauthorized");
@@ -29,6 +32,8 @@ abstract contract AbstractRouter is AccessControlled {
     _;
   }
 
+  ///@notice constructor for abstract routers.
+  ///@param gas_overhead is the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
   constructor(uint gas_overhead) AccessControlled(msg.sender) {
     require(uint24(gas_overhead) == gas_overhead, "Router/overheadTooHigh");
     ARSt.getStorage().gas_overhead = gas_overhead;
@@ -36,28 +41,24 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice getter for the `makers: addr => bool` mapping
   ///@param mkr the address of a maker
-  ///@return true is `mkr` is bound to this router
+  ///@return true if `mkr` is authorized to call this router.
   function makers(address mkr) public view returns (bool) {
     return ARSt.getStorage().makers[mkr];
   }
 
-  ///@notice the amount of gas that will be added to `gasreq` of any maker contract using this router
-  function gasOverhead() public view returns (uint) {
+  ///@notice view for gas overhead of this router.
+  ///@return overhead the added (overapproximated) gas cost of `push` and `pull`.
+  function gasOverhead() public view returns (uint overhead) {
     return ARSt.getStorage().gas_overhead;
   }
 
-  ///@notice pulls `amount` of `token`s from reserve to calling maker contract's balance
+  ///@notice pulls liquidity from an offer maker's reserve to `msg.sender`'s balance
   ///@param token is the ERC20 managing the pulled asset
   ///@param reserve is the address identifying where `amount` of `token` should be pulled from
-  ///@param amount of token the maker contract wishes to get
+  ///@param amount of `token` the maker contract wishes to get
   ///@param strict when the calling maker contract accepts to receive more `token` than required (this may happen for gas optimization)
   function pull(IERC20 token, address reserve, uint amount, bool strict) external onlyMakers returns (uint pulled) {
-    uint buffer = token.balanceOf(msg.sender);
-    if (buffer >= amount) {
-      return 0;
-    } else {
-      pulled = __pull__({token: token, reserve: reserve, maker: msg.sender, amount: amount, strict: strict});
-    }
+    pulled = __pull__({token: token, reserve: reserve, maker: msg.sender, amount: amount, strict: strict});
   }
 
   ///@notice router-dependant implementation of the `pull` function
@@ -68,8 +69,8 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice pushes assets from maker contract's balance to the specified reserve
   ///@param token is the asset the maker is pushing
-  ///@param reserve is the address identifying where the transfered assets should be placed to
-  ///@param amount is the amount of asset that should be transfered from the calling maker contract
+  ///@param reserve is the address identifying where the transferred assets should be placed to
+  ///@param amount is the amount of asset that should be transferred from the calling maker contract
   function push(IERC20 token, address reserve, uint amount) external onlyMakers {
     __push__({token: token, reserve: reserve, maker: msg.sender, amount: amount});
   }

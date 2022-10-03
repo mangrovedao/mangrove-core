@@ -66,7 +66,10 @@ interface IOfferLogic is IMaker {
   ///@dev admin may use this function to revoke approvals of `this` contract that are set after a call to `activate`.
   function approve(IERC20 token, address spender, uint amount) external returns (bool);
 
-  // withdraw `amount` `token` form the contract's (owner) reserve and sends them to `receiver`'s balance
+  ///@notice  withdraw ERC20 tokens from `reserve()`
+  ///@param token the ERC20 token one wishes to withdraw.
+  ///@param receiver the address of the receiver of the withdrawn tokens.
+  ///@param amount the amount of tokens one wishes to withdraw.
   function withdrawToken(IERC20 token, address receiver, uint amount) external returns (bool success);
 
   ///@notice computes the provision that can be redeemed when deprovisioning a certain offer.
@@ -87,10 +90,10 @@ interface IOfferLogic is IMaker {
   /// @param tokens the ERC20 `this` contract will approve to be able to trade on Mangrove's corresponding markets.
   function activate(IERC20[] calldata tokens) external;
 
-  ///@notice withdraws ETH from the provision account on Mangrove and sends collected WEIs to `receiver`
-  ///@dev for multi user strats, the contract provision account on Mangrove is pooled amongst offer owners so admin should only call this function to recover WEIs (e.g. that were erroneously transferred to Mangrove using `MGV.fund()`)
-  /// This contract's balance on Mangrove may contain deprovisioned WEIs after an offer has failed (complement between provision and the bounty that was sent to taker)
-  /// those free WEIs can be retrieved by offer owners by calling `retractOffer` with the `deprovision` flag. Not by calling this function which is admin only.
+  ///@notice withdraws ETH from the `this` contract's balance on Mangrove.
+  ///@param amount the amount of WEI one wishes to withdraw.
+  ///@param receiver the address of the receiver of the funds.
+  ///@dev Since a call is made to the `receiver`, this function is subject to reentrancy.
   function withdrawFromMangrove(uint amount, address payable receiver) external;
 
   ///@notice updates an offer existing on Mangrove (not necessarily live).
@@ -111,25 +114,31 @@ interface IOfferLogic is IMaker {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external payable;
+  ) external
+    payable;
 
+  ///@notice Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove. Function call will throw if `this` contract is not the owner of `offerId`.
+  ///@param deprovision is true if offer owner wishes to have the offer's provision pushed to its reserve
+  ///@return received the amount of WEI thar are returned to `msg.sender` if `deprovision` is positioned.
   function retractOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) external returns (uint received);
+  ) external
+    returns (uint received);
 
-  // returns the address of the vault holding maker's liquidity
-  // for single user maker is simply `this` contract
-  // for multi users, the maker is `msg.sender`
-  function reserve() external view returns (address);
+  ///@notice returns the address of the vault holding offer maker's liquidity
+  /// for `Direct` logics, this corresponds to the reserve of `this` contract
+  /// for `Forwarder` logics, the returned reserve is the one of `msg.sender`
+  ///@return reserve_ the address of the reserve of offer Maker.
+  function reserve() external view returns (address reserve_);
 
   /**
    * @notice sets the address of the reserve of maker(s).
    * If `this` contract is a forwarder the call sets the reserve for `msg.sender`. Otherwise it sets the reserve for `address(this)`.
    */
-  /// @param reserve the address of maker's reserve
+  /// @param reserve the new address of offer maker's reserve
   function setReserve(address reserve) external;
 
   /// @notice Contract's router getter.

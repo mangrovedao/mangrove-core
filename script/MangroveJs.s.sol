@@ -96,7 +96,7 @@ contract MangroveJsDeploy is Deployer {
     fork.set("SimpleTestMaker", address(simpleTestMaker));
 
     broadcast();
-    mgo = new MangroveOrder({mgv: IMangrove(payable(mgv)), deployer: chief});
+    mgo = new MangroveOrder({mgv: IMangrove(payable(mgv)), deployer: chief, gasreq:30_000});
     fork.set("MangroveOrder", address(mgo));
   }
 }

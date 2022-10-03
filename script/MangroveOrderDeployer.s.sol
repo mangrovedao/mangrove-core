@@ -37,6 +37,7 @@ contract MangroveOrderDeployer is Deployer {
     vm.broadcast();
     MangroveOrderEnriched mgv_order = new MangroveOrderEnriched(mgv, admin);
     fork.set("MangroveOrderEnriched", address(mgv_order));
+    require(mgv_order.MGV() == mgv, "Smoke test failed.");
     outputDeployment();
     console.log("Deployed!", address(mgv_order));
   }

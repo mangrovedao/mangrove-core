@@ -17,7 +17,17 @@ import "mgv_src/strategies/offer_forwarder/OfferForwarder.sol";
 import "mgv_src/strategies/routers/AaveDeepRouter.sol";
 
 contract OfferProxy is OfferForwarder {
-  constructor(address _addressesProvider, IMangrove mgv, address deployer) OfferForwarder(mgv, msg.sender) {
+  bytes32 constant public NAME = "OfferProxy";
+  constructor(
+    address _addressesProvider,
+    IMangrove mgv,
+    address deployer
+  )
+    OfferForwarder(
+      mgv,
+      msg.sender
+    )
+  {
     // OfferForwarder has a SimpleRouter by default
     // replacing this router with an Aave one
     AaveDeepRouter _router = new AaveDeepRouter(_addressesProvider, 0, 2);

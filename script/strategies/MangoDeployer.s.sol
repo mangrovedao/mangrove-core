@@ -11,8 +11,8 @@ import {Deployer} from "../lib/Deployer.sol";
 /**
  * e.g deploy mango on WETH USDC market:
  *
- * BASE=$WETH \
- * QUOTE=$USDC \
+ * BASE=WETH \
+ * QUOTE=USDC \
  * BASE_0=$(cast ff 18 1) \
  * QUOTE_0=$(cast ff 6 200) \
  * NSLOTS=100 \
@@ -29,8 +29,8 @@ import {Deployer} from "../lib/Deployer.sol";
 contract MangoDeployer is Deployer {
   function run() public {
     innerRun({
-      base: vm.envAddress("BASE"),
-      quote: vm.envAddress("QUOTE"),
+      base: fork.get(vm.envString("BASE")),
+      quote: fork.get(vm.envString("QUOTE")),
       base_0: vm.envUint("BASE_0"),
       quote_0: vm.envUint("QUOTE_0"),
       nslots: vm.envUint("NSLOTS"),
@@ -66,6 +66,8 @@ contract MangoDeployer is Deployer {
       price_incr,
       admin
     );
+    // smoke test
+    require(mgo.MGV() == mgv, "Smoke test failed");
     outputDeployment();
     console.log("Mango deployed", address(mgo));
   }

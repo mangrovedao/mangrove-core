@@ -1,7 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import "./Test2.sol";
+import {Test2} from "./Test2.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
 import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {MakerDeployer} from "mgv_test/lib/agents/MakerDeployer.sol";

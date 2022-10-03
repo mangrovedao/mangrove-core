@@ -167,7 +167,7 @@ contract AaveV3ModuleImplementation {
       ),
       "AaveModule/redeemThenBorrow/aTknTransferFail"
     );
-    // redeemed tokens are direclty transfered to `recipient`
+    // redeemed tokens are direclty transferred to `recipient`
     if (redeemable > 0) {
       POOL.withdraw(address(token), redeemable, recipient);
     }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {Script2} from "./Script2.sol";
 
 /* Some ease-of-life additions to forge-std/Test.sol */

@@ -8,14 +8,30 @@ import "mgv_src/strategies/offer_forwarder/OfferForwarder.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 contract OfferForwarderTest is OfferLogicTest {
-  function setupMakerContract() internal virtual override prank(maker) {
-    makerContract = new OfferForwarder({
+  IForwarder forwarder;
+
+  function setUp() public virtual override {
+    deployer = freshAddress("deployer");
+    vm.deal(deployer, 10 ether);
+    super.setUp();
+  }
+
+  event NewOwnedOffer(
+    IMangrove mangrove, IERC20 indexed outbound_tkn, IERC20 indexed inbound_tkn, uint indexed offerId, address owner
+  );
+
+  function setupMakerContract() internal virtual override {
+    vm.prank(deployer);
+    forwarder = new OfferForwarder({
       mgv: IMangrove($(mgv)),
-      deployer: maker
+      deployer: deployer
     });
+    makerContract = IMakerLogic(address(forwarder)); // to use for all non `IForwarder` specific tests.
     // reserve (which is maker here) approves contract's router
+    vm.startPrank(maker);
     usdc.approve(address(makerContract.router()), type(uint).max);
     weth.approve(address(makerContract.router()), type(uint).max);
+    vm.stopPrank();
   }
 
   function test_derivedGaspriceIsAccurateEnough(uint fund) public {
@@ -74,7 +90,7 @@ contract OfferForwarderTest is OfferLogicTest {
   function test_failedOfferCreditsOwner(uint fund) public {
     vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0));
     vm.assume(fund < 5 ether);
-    vm.startPrank(maker);
+    vm.prank(maker);
     uint offerId = makerContract.newOffer{value: fund}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -85,8 +101,8 @@ contract OfferForwarderTest is OfferLogicTest {
       pivotId: 0
     });
     // revoking Mangrove's approvals to make `offerId` fail
+    vm.prank(deployer);
     makerContract.approve(weth, address(mgv), 0);
-    vm.stopPrank();
     uint provision = makerContract.provisionOf(weth, usdc, offerId);
     console.log("provision before fail:", provision);
 
@@ -107,5 +123,53 @@ contract OfferForwarderTest is OfferLogicTest {
     // checking that approx is small in front a storage write (approx < write_cost / 10)
     uint approx_bounty = provision - provision_after_fail;
     assertTrue((approx_bounty * 10000) / bounty > 9990, "Approximation of offer owner's credit is too coarse");
+  }
+
+  function test_ownership() public {
+    vm.startPrank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    assertEq(forwarder.ownerOf(weth, usdc, offerId), address(maker), "Invalid ownership relation");
+  }
+
+  function test_logging() public {
+    (, MgvStructs.LocalPacked local) = mgv.config($(weth), $(usdc));
+    uint next_id = local.last() + 1;
+    vm.expectEmit(true, true, true, false, address(forwarder));
+    emit NewOwnedOffer(IMangrove($(mgv)), weth, usdc, next_id, maker);
+
+    vm.startPrank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    assertEq(next_id, offerId, "Unexpected offer id");
+  }
+
+  function test_provisionTooHighReverts() public {
+    vm.expectRevert("Forwarder/provisionTooHigh");
+
+    vm.startPrank(maker);
+    makerContract.newOffer{value: 10 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
   }
 }

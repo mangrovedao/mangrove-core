@@ -56,7 +56,11 @@ abstract contract Direct is MangroveOffer {
   function pull(IERC20 outbound_tkn, uint amount, bool strict) internal returns (uint) {
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
-      return 0; // nothing to do
+      require(
+        TransferLib.transferTokenFrom(outbound_tkn, reserve(), address(this), amount), //noop if reserve is `this`
+        "Direct/pull/transferFail"
+      );
+      return amount;
     } else {
       // letting specific router pull the funds from reserve
       return router_.pull(outbound_tkn, reserve(), amount, strict);
@@ -80,8 +84,14 @@ abstract contract Direct is MangroveOffer {
 
   function flush(IERC20[] memory tokens) internal {
     AbstractRouter _router = MOS.getStorage().router;
-    if (address(_router) == address(0)) {
-      return; // nothing to do
+    if (_router == NO_ROUTER) {
+      for (uint i = 0; i < tokens.length; i++) {
+        require(
+          TransferLib.transferToken(tokens[i], reserve(), tokens[i].balanceOf(address(this))),
+          "Direct/flush/transferFail"
+        );
+      }
+      return;
     } else {
       _router.flush(tokens, reserve());
     }
@@ -101,7 +111,12 @@ abstract contract Direct is MangroveOffer {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) public payable override mgvOrAdmin {
+  )
+    public
+    payable
+    override
+    mgvOrAdmin
+  {
     MGV.updateOffer{value: msg.value}(
       address(outbound_tkn),
       address(inbound_tkn),
@@ -117,18 +132,23 @@ abstract contract Direct is MangroveOffer {
   // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove.
   // Function call will throw if `this` contract is not the owner of `offerId`.
   // Returned value is the amount of ethers that have been credited to `this` contract balance on Mangrove (always 0 if `deprovision=false`)
-  // NB `mgvOrAdmin` modifier guarantees that this function is either called by contract admin or during trade execution by Mangrove
+  // NB `mgvOrAdmin` modifier guarantees that this function is either called by contract admin or (indirectly) during trade execution by Mangrove
   function retractOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) public override mgvOrAdmin returns (uint free_wei) {
+  )
+    public
+    override
+    mgvOrAdmin
+    returns (uint free_wei)
+  {
     free_wei = MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
     if (free_wei > 0) {
       require(MGV.withdraw(free_wei), "Direct/withdrawFromMgv/withdrawFail");
-      // sending native tokens to msg.sender prevents reentrancy issues
-      // (the context call of `retractOffer` could be coming from `makerExecute` and recipient of transfer could use this call to make offer fail)
+      // sending native tokens to `msg.sender` prevents reentrancy issues
+      // (the context call of `retractOffer` could be coming from `makerExecute` and a different recipient of transfer than `msg.sender` could use this call to make offer fail)
       (bool noRevert,) = msg.sender.call{value: free_wei}("");
       require(noRevert, "Direct/weiTransferFail");
     }
@@ -160,13 +180,12 @@ abstract contract Direct is MangroveOffer {
     // pulling liquidity from reserve
     // depending on the router, this may result in pulling more/less liquidity than required
     // so one should check local balance to compute missing liquidity
-    uint pulled = pull(IERC20(order.outbound_tkn), amount, false);
-    if (pulled >= amount) {
+    uint local_balance = IERC20(order.outbound_tkn).balanceOf(address(this));
+    if (local_balance >= amount) {
       return 0;
-    } else {
-      uint local_balance = IERC20(order.outbound_tkn).balanceOf(address(this));
-      return local_balance >= amount ? 0 : amount - local_balance;
     }
+    uint pulled = pull(IERC20(order.outbound_tkn), amount - local_balance, false);
+    missing = pulled >= amount - local_balance ? 0 : amount - local_balance - pulled;
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)

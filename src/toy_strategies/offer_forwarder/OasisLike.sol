@@ -17,5 +17,7 @@ import "mgv_src/strategies/offer_forwarder/OfferForwarder.sol";
 import "mgv_src/strategies/routers/SimpleRouter.sol";
 
 contract OasisLike is OfferForwarder {
+  bytes32 constant public NAME = "OasisLike";
+
   constructor(IMangrove mgv, address deployer) OfferForwarder(mgv, deployer) {}
 }

@@ -12,6 +12,7 @@ contract OfferLogicTest is MangroveTest {
   TestToken usdc;
   address payable maker;
   address payable taker;
+  address payable deployer;
   address reserve;
   IMakerLogic makerContract; // can be either OfferMaker or OfferForwarder
   GenericFork fork;
@@ -36,7 +37,6 @@ contract OfferLogicTest is MangroveTest {
     if (address(fork) != address(0)) {
       fork.setUp();
       mgv = setupMangrove();
-      mgv.setVault($(mgv));
       weth = TestToken(fork.get("WETH"));
       usdc = TestToken(fork.get("USDC"));
       setupMarket(weth, usdc);
@@ -48,8 +48,11 @@ contract OfferLogicTest is MangroveTest {
       weth = base;
       usdc = quote;
     }
+    mgv.setVault(freshAddress("MgvTreasury"));
     maker = freshAddress("maker");
     vm.deal(maker, 10 ether);
+    // for Direct strats, maker is deployer
+    deployer = deployer == address(0) ? maker : deployer;
 
     taker = freshAddress("taker");
     vm.deal(taker, 1 ether);
@@ -64,19 +67,21 @@ contract OfferLogicTest is MangroveTest {
     // instanciates makerContract
     setupMakerContract();
     setupRouter();
+    // dealing 1 eth and 2000$ to maker's reserve on contract
     vm.startPrank(maker);
     deal($(weth), makerContract.reserve(), 1 ether);
     deal($(usdc), makerContract.reserve(), cash(usdc, 2000));
-    makerContract.activate(dynamic([IERC20(weth), usdc]));
     vm.stopPrank();
+    vm.prank(deployer);
+    makerContract.activate(dynamic([IERC20(weth), usdc]));
   }
 
-  // override this to use MultiUser strats
-  function setupMakerContract() internal virtual prank(maker) {
+  // override this to use Forwarder strats
+  function setupMakerContract() internal virtual prank(deployer) {
     makerContract = new OfferMaker({
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)),
-      deployer: maker
+      deployer: deployer
     });
   }
 
@@ -89,22 +94,12 @@ contract OfferLogicTest is MangroveTest {
     vm.stopPrank();
   }
 
-  function test_makerCanSetReserve() public {
+  function test_makerCanSetItsReserve() public {
     address new_reserve = freshAddress();
     vm.startPrank(maker);
     makerContract.setReserve(new_reserve);
     assertEq(makerContract.reserve(), new_reserve, "Incorrect reserve");
     vm.stopPrank();
-  }
-
-  function test_changingReserveWithNoRouterMakesChecklistFail() public {
-    address new_reserve = freshAddress();
-    vm.startPrank(maker);
-    makerContract.setReserve(new_reserve);
-    makerContract.setRouter(AbstractRouter(address(0)));
-    vm.stopPrank();
-    vm.expectRevert("MangroveOffer/LogicHasNoRouter");
-    makerContract.checkList(dynamic([IERC20(weth), usdc]));
   }
 
   function test_makerCanPostNewOffer() public {
@@ -152,7 +147,7 @@ contract OfferLogicTest is MangroveTest {
     vm.stopPrank();
   }
 
-  function test_makerCanRetractOffer() public {
+  function test_makerCanDeprovisionOffer() public {
     vm.prank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
@@ -259,8 +254,45 @@ contract OfferLogicTest is MangroveTest {
     uint next_id = local.last() + 1;
     vm.expectEmit(true, true, true, false, address(makerContract));
     emit LogIncident(IMangrove($(mgv)), weth, usdc, next_id, "mgvOffer/tradeSuccess", "mgv/makerTransferFail");
-    vm.prank(maker);
+    vm.prank(deployer);
     makerContract.approve(weth, $(mgv), 0);
     performTrade({success: false});
   }
+
+  function test_trade_succeeds_with_new_reserve() public {
+    address new_reserve = freshAddress("new_reserve");
+
+    vm.prank(maker);
+    makerContract.setReserve(new_reserve);
+
+    vm.startPrank(deployer);
+    makerContract.setGasreq(makerContract.offerGasreq()+70_000);
+    vm.stopPrank();
+
+    deal($(weth), new_reserve, 0.5 ether);
+    deal($(weth), address(makerContract), 0);
+    deal($(usdc), address(makerContract), 0);
+    
+    address toApprove = address(makerContract.router());
+    toApprove = toApprove == address(0) ? address(makerContract) : toApprove; 
+    vm.startPrank(new_reserve);
+    usdc.approve(toApprove, type(uint).max); // to push
+    weth.approve(toApprove, type(uint).max); // to pull
+    vm.stopPrank();
+    (, uint takerGave,,) = performTrade(true);
+    vm.startPrank(maker);
+    assertEq(
+      takerGave,
+      makerContract.tokenBalance(usdc),
+      "Incorrect reserve usdc balance"
+    );
+    assertEq(
+      makerContract.tokenBalance(weth),
+      0,
+      "Incorrect reserve weth balance"
+    );
+    vm.stopPrank();
+  }
+
+
 }

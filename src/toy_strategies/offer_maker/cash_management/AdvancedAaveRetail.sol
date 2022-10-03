@@ -18,6 +18,8 @@ import "mgv_src/strategies/routers/AaveDeepRouter.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 
 contract AdvancedAaveRetail is OfferMaker {
+  bytes32 constant public NAME = "AdvancedAaveRetail";
+  
   constructor(IMangrove mgv, address _addressesProvider, address deployer)
     OfferMaker(mgv, new AaveDeepRouter(_addressesProvider, 0, 2), deployer)
   {

@@ -18,6 +18,7 @@ import "mgv_src/strategies/routers/SimpleRouter.sol";
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 
 contract Ghost is Direct {
+  IERC20 public immutable BASE;
   IERC20 public immutable STABLE1;
   IERC20 public immutable STABLE2;
 
@@ -32,27 +33,38 @@ contract Ghost is Direct {
   //        Forwarder  Direct <-- offer management (our entry point)
   //    OfferForwarder  OfferMaker <-- new offer posting
 
-  constructor(IMangrove mgv, IERC20 stable1, IERC20 stable2) Direct(mgv, new SimpleRouter()) {
+  constructor(IMangrove mgv, IERC20 base, IERC20 stable1, IERC20 stable2, address admin) Direct(mgv, NO_ROUTER) {
     // SimpleRouter takes promised liquidity from admin's address (wallet)
     STABLE1 = stable1;
     STABLE2 = stable2;
+    BASE = base;
+    AbstractRouter router_ = new SimpleRouter();
+    setRouter(router_);
+    // adding `this` to the allowed makers of `router_` to pull/push liquidity
+    router_.bind(address(this));
+    // Note: `reserve()` needs to approve `this.router()` for base token transfer
+    router_.setAdmin(admin);
+    setReserve(admin);
   }
 
   /**
+   * @param gives in BASE decimals
    * @param wants1 in STABLE1 decimals
    * @param wants2 in STABLE2 decimals
-   * @notice these offer's provision must be in msg.value
-   * @notice admin must have approved base for MGV transfer prior to calling this function
+   * @param pivot1 pivot for STABLE1
+   * @param pivot2 pivot for STABLE2
+   * @return (offerid for STABLE1, offerid for STABLE2)
+   * @dev these offer's provision must be in msg.value
+   * @dev `reserve()` must have approved base for `this` contract transfer prior to calling this function
    */
   function newGhostOffers(
     // this function posts two asks
-    IERC20 base,
     uint gives,
     uint wants1,
     uint wants2,
     uint pivot1,
     uint pivot2
-  ) external payable onlyAdmin {
+  ) external payable onlyAdmin returns (uint, uint) {
     // there is a cost of being paternalistic here, we read MGV storage
     // an offer can be in 4 states:
     // - not on mangrove (never has been)
@@ -61,12 +73,12 @@ contract Ghost is Direct {
     // MGV.retractOffer(..., deprovision:bool)
     // deprovisioning an offer (via MGV.retractOffer) credits maker balance on Mangrove (no native token transfer)
     // if maker wishes to retrieve native tokens it should call MGV.withdraw (and have a positive balance)
-    require(!MGV.isLive(MGV.offers(address(base), address(STABLE1), offerId1)), "Ghost/offer1AlreadyActive");
-    require(!MGV.isLive(MGV.offers(address(base), address(STABLE2), offerId2)), "Ghost/offer2AlreadyActive");
+    require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE1), offerId1)), "Ghost/offer1AlreadyActive");
+    require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerId2)), "Ghost/offer2AlreadyActive");
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
     offerId1 = MGV.newOffer{value: msg.value}({
-      outbound_tkn: address(base),
+      outbound_tkn: address(BASE),
       inbound_tkn: address(STABLE1),
       wants: wants1,
       gives: gives,
@@ -77,7 +89,7 @@ contract Ghost is Direct {
     // no need to fund this second call for provision
     // since the above call should be enough
     offerId2 = MGV.newOffer({
-      outbound_tkn: address(base),
+      outbound_tkn: address(BASE),
       inbound_tkn: address(STABLE2),
       wants: wants2,
       gives: gives,
@@ -85,6 +97,8 @@ contract Ghost is Direct {
       gasprice: 0,
       pivotId: pivot2
     });
+
+    return (offerId1, offerId2);
   }
 
   ///FIXME a possibility is to update the alt offer during makerExecute

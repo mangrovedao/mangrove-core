@@ -14,33 +14,51 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {Forwarder} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
+import {Forwarder, MangroveOffer} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import {IOrderLogic} from "mgv_src/strategies/interfaces/IOrderLogic.sol";
 import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 
+///@title MangroveOrder. A periphery contract to Mangrove protocol that implements resting limit orders.
+///@notice A resting limit order is a taker order (offer taking) followed by a maker order (offer posting) when the taker order was partially filled.
+/// E.g `msg.sender` wishes to buy 1 ETH at a limit average price of 1500 USD/ETH. After a market order:
+/// 1. `msg.sender` gets a partial fill of 0.582 ETH (0.6 ETH - 3% fee) for 850 USD (thus at a price of ~1417 USD/ETH).
+/// 2. This contract will then post a resting order to complement the market order as a bid for 0.4 ETH for 650 USD (thus at a price of 1625 USD)
+/// 3. If the resting order is fully taken, the global average price for `msg.sender` will indeed be 1500 USD/ETH.
+/// Note that if `msg.sender` allows for some slippage in its market order, the price of the resting order is computed taking the original price only (i.e without slippage).
+/// Resting order may be posted with a time to leave, implemented in the form of a `__lastLook__` override that reneges on trade passed a certain timestamp.
+
 contract MangroveOrder is Forwarder, IOrderLogic {
-  // `expiring[outbound_tkn][inbound_tkn][offerId]` gives timestamp beyond which the offer should renege on trade.
+  ///@notice `expiring[outbound_tkn][inbound_tkn][offerId]` gives timestamp beyond which `offerId` on the (outbound_tkn, inbound_tkn)` offer list should renege on trade.
   mapping(IERC20 => mapping(IERC20 => mapping(uint => uint))) public expiring;
 
-  constructor(IMangrove mgv, address deployer) Forwarder(mgv, new SimpleRouter()) {
-    setGasreq(30000); // fails < 20K. Use 30K to be on the safe side
+  ///@notice MangroveOrder constructor extends Forwarder with a simple router.
+  constructor(IMangrove mgv, address deployer, uint gasreq) Forwarder(mgv, new SimpleRouter()) {
+    // we start by setting gasreq for this logic to execute a trade in the worst case scenario.
+    // gas requirements implied by router are taken into account separately.
+    setGasreq(gasreq); // for fixed simple router overhead, this logic fails when `offer_gasreq` < 20K in prod.
     // adding `this` contract to authorized makers of the router before setting admin rights of the router to deployer
     router().bind(address(this));
-    if (deployer != msg.sender) {
+    router().setAdmin(deployer);
+    // if `msg.sender` is not `deployer`, setting admin of `this` to `deployer`.
+    // `deployer` will thus be able to call `activate` on `this` to enable trading on particular assets.
+    if (msg.sender != deployer) {
       setAdmin(deployer);
-      router().setAdmin(deployer);
     }
   }
 
+  ///Checks the current timestamps are reneges on trade (by reverting) if the offer has expired.
+  ///@inheritdoc MangroveOffer
   function __lastLook__(MgvLib.SingleOrder calldata order) internal virtual override returns (bytes32) {
     uint exp = expiring[IERC20(order.outbound_tkn)][IERC20(order.inbound_tkn)][order.offerId];
     require(exp == 0 || block.timestamp <= exp, "mgvOrder/expired");
-    return "";
+    return super.__lastLook__(order);
   }
 
-  ///@notice checks whether the order is completely filled
+  ///@notice compares a taker order with a market order results and checks whether the order was entirely filled
+  ///@param tko the taker order
+  ///@param res the market order result
   function checkCompleteness(TakerOrder calldata tko, TakerOrderResult memory res) internal pure returns (bool) {
     // The order can be incomplete if the price becomes too high or the end of the book is reached.
     if (tko.fillWants) {
@@ -52,19 +70,19 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     }
   }
 
-  // `this` contract MUST have approved Mangrove for inbound token transfer
-  // `msg.sender` MUST have approved `this` contract for at least the same amount
-  // provision for posting a resting order MUST be sent when calling this function
-  // gasLimit of this `tx` MUST at cover filling the market order and a new offer for resting orders.
-  // msg.value SHOULD contain enough native token to cover for the resting order provision
-  // msg.value MUST be 0 if `!restingOrder` otherwise transferred WEIs are burnt.
-
+  ///@inheritdoc IOrderLogic
   function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory res) {
-    // pulling directly from msg.sender would require caller to approve `this` in addition to the `this.router()`
-    // so pulling funds from taker's reserve (note this can be the taker's wallet depending on the router)
-    uint pulled = router().pull(tko.inbound_tkn, msg.sender, tko.takerGives, true);
+    // ASSUME 
+    // `msg.sender` and `msg.sender`'s reserve added balances are (NAT_USER-`msg.value`, OUT_USER, IN_USER) for native, `tko.outbound_tkn` and `tko.inbound_tkn` balances.
+    // `this` balances are (NAT_THIS+`msg.value`, OUT_THIS, IN_THIS)
+    
+    // Pulling funds from `msg.sender`'s reserve
+    uint pulled = router().pull(tko.inbound_tkn, msg.sender, tko.takerGives, true);    
     require(pulled == tko.takerGives, "mgvOrder/mo/transferInFail");
-
+    // STATE
+    // [`msg.sender'] (NAT_USER-`msg.value`, OUT_USER, IN_USER-`tko.takerGives`)
+    // [`this`] (NAT_THIS+`msg.value`, OUT_THIS, IN_THIS+`tko.takerGives`)
+   
     (res.takerGot, res.takerGave, res.bounty, res.fee) = MGV.marketOrder({
       outbound_tkn: address(tko.outbound_tkn),
       inbound_tkn: address(tko.inbound_tkn),
@@ -73,76 +91,62 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       fillWants: tko.fillWants
     });
 
+    // STATE
+    // [`msg.sender'] (NAT_USER-`msg.value`, OUT_USER, IN_USER-`tko.takerGives`)
+    // [`this`] (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS+`res.takerGot`, IN_THIS+`tko.takerGives`-`res.takerGave`)
+    
     bool isComplete = checkCompleteness(tko, res);
-    // requiring `partialFillNotAllowed` => `isComplete \/ restingOrder`
+    // requiring `partialFillNotAllowed => (isComplete \/ restingOrder)`
     require(!tko.partialFillNotAllowed || isComplete || tko.restingOrder, "mgvOrder/mo/noPartialFill");
 
-    // sending received tokens to taker's reserve
+    // sending inbound tokens to `msg.sender`'s reserve and sending back remaining outbound tokens
     if (res.takerGot > 0) {
       router().push(tko.outbound_tkn, msg.sender, res.takerGot);
     }
-
-    // at this points the following invariants hold:
-    // 1. taker received `takerGot` outbound tokens
-    // 2. `this` contract inbound token balance is now equal to `tko.gives - takerGave`.
-    // 3. `this` contract's WEI balance is credited of `msg.value + bounty`
-
-    if (tko.restingOrder && !isComplete) {
-      // When posting a resting order the taker becomes a maker, and `inbound_tkn` for an offer is what the maker receives,
-      // so the offer for this resting order must have `inbound_tkn` set to `outbound_tkn` such that the taker
-      // receives these when the offer is taken, and the offer's `outbound_tkn` becomes `inbound_tkn`.
-      postRestingOrder({tko: tko, outbound_tkn: tko.inbound_tkn, inbound_tkn: tko.outbound_tkn, res: res});
-    } else {
-      // either fill was complete or taker does not want to post residual as a resting order
-      // transferring remaining inbound tokens to msg.sender, if any - avoid external call if possible.
-      if (tko.takerGives - res.takerGave > 0) {
-        router().push(tko.inbound_tkn, msg.sender, tko.takerGives - res.takerGave);
-      }
-
-      // transferring potential bounty and msg.value back to the taker
-      if (msg.value + res.bounty > 0) {
-        // NB this calls gives reentrancy power to caller
-        (bool noRevert,) = msg.sender.call{value: msg.value + res.bounty}("");
-        require(noRevert, "mgvOrder/mo/refundFail");
-      }
-      emit OrderSummary({
-        mangrove: MGV,
-        outbound_tkn: tko.outbound_tkn,
-        inbound_tkn: tko.inbound_tkn,
-        fillWants: tko.fillWants,
-        taker: msg.sender,
-        takerGot: res.takerGot,
-        takerGave: res.takerGave,
-        penalty: res.bounty
-      });
-      return res;
+    if (!isComplete) {
+      router().push(tko.inbound_tkn, msg.sender, tko.takerGives - res.takerGave);
     }
-  }
+    // STATE
+    // [`msg.sender'] (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
+    // [`this`] (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS, IN_THIS)
+    
+    uint fund = msg.value + res.bounty; // using bounty as additional funds to provision the resting order
+    if (tko.restingOrder && !isComplete) {
+      // When posting a resting order `msg.sender` becomes a maker. 
+      // For maker orders outbound tokens are what makers send. Here `msg.sender` wants to send `tko.inbound`.
+      // The offer list on which this contract must post `msg.sender`'s resting order is thus `(tko.inbound_tkn, tko.outbound_tkn)` 
+      // the call below will fill the memory data `res`.
+      fund = postRestingOrder({
+        tko: tko, 
+        outbound_tkn: tko.inbound_tkn, 
+        inbound_tkn: tko.outbound_tkn, 
+        res: res, 
+        fund: fund  
+      }); 
+      // STATE (`postRestingOrder` succeeded)
+      // [`msg.sender'] (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
+      // [`this`] (NAT_THIS, OUT_THIS, IN_THIS)
+      // `fund == 0`
+      // `ownerData[tko.inbound_tkn][tko.outbound_tkn][res.offerId]=={owner:msg.sender, wei_balance:rounding_error(fund,offerGasReq())}`
+      // Mangrove emitted a unique `OfferWrite` log whose `maker` field is `address(this)` and `offerId` is `res.offerId`.
 
-  function postRestingOrder(
-    TakerOrder calldata tko,
-    IERC20 inbound_tkn,
-    IERC20 outbound_tkn,
-    TakerOrderResult memory res
-  ) internal {
-    // resting limit order for the residual of the taker order
-    // this call will credit offer owner virtual account on Mangrove with msg.value before trying to post the offer
-    // `offerId_==0` if mangrove rejects the update because of low density.
-    // call may not revert because of insufficient funds
-    res.offerId = _newOffer(
-      NewOfferArgs({
-        outbound_tkn: outbound_tkn,
-        inbound_tkn: inbound_tkn,
-        wants: tko.makerWants - (res.takerGot + res.fee), // tko.makerWants is before slippage
-        gives: tko.makerGives - res.takerGave,
-        gasreq: offerGasreq(),
-        pivotId: 0,
-        fund: msg.value,
-        caller: msg.sender,
-        noRevert: true // returns 0 when MGV reverts
-      })
-    );
-    // we summarize the market order (if offerId == 0 no resting order was posted).
+      // STATE (`postRestingOrder` failed)
+      // [`msg.sender'] (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
+      // [`this`] (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS, IN_THIS)
+      // `fund == msg.value + res.bounty`.
+      // `res.offerId == 0`
+    }
+    
+    if (fund > 0) {
+      // NB this calls gives reentrancy power to callee, but OK since:
+      // 1. callee is `msg.sender` so no grieffing risk of making this call fail for out of gas
+      // 2. no function allows fund retrieval from `this` balance by `msg.sender`
+      (bool noRevert,) = msg.sender.call{value: fund}("");
+      require(noRevert, "mgvOrder/mo/refundFail");
+      // STATE (`postRestingOrder` failed)
+      // [`msg.sender'] (NAT_USER+`res.bounty`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
+      // [`this`] (NAT_THIS, OUT_THIS, IN_THIS)
+    }
     emit OrderSummary({
       mangrove: MGV,
       outbound_tkn: tko.outbound_tkn,
@@ -153,21 +157,44 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       takerGave: res.takerGave,
       penalty: res.bounty
     });
+    return res;
+  }
+
+  ///@notice posts a maker order on the (`outbound_tkn`, `inbound_tkn`) offer list.
+  ///@param fund amount of WEIs used to cover for the offer bounty (covered gasprice is derived from `fund`).
+  function postRestingOrder(
+    TakerOrder calldata tko,
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    TakerOrderResult memory res,
+    uint fund
+  )
+    internal returns (uint refund)
+  {
+    res.offerId = _newOffer(
+      NewOfferArgs({
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        wants: tko.makerWants - (res.takerGot + res.fee), // tko.makerWants is before slippage
+        gives: tko.makerGives - res.takerGave,
+        gasreq: offerGasreq(),
+        pivotId: tko.pivotId,
+        fund: fund,
+        caller: msg.sender,
+        noRevert: true // returns 0 when MGV reverts
+      })
+    );
 
     if (res.offerId == 0) {
-      // unable to post resting order
+      // either:
+      // - residual gives is below current density
+      // - `fund` is too low and would yield a gasprice that is lower than Mangrove's
+      // - `fund` is too high and would yield a gasprice overflow
+      // - offer list is not active (Mangrove is not dead otherwise market order would have reverted)
       // reverting when partial fill is not an option
       require(!tko.partialFillNotAllowed, "mgvOrder/mo/noPartialFill");
-      // sending remaining pulled funds back to taker --when partial fill is allowed
-      require(
-        TransferLib.transferToken(outbound_tkn, msg.sender, tko.takerGives - res.takerGave),
-        "mgvOrder/mo/transferInFail"
-      );
-      // msg.value is no longer needed so sending it back to msg.sender along with possible collected bounty
-      if (msg.value + res.bounty > 0) {
-        (bool noRevert,) = msg.sender.call{value: msg.value + res.bounty}("");
-        require(noRevert, "mgvOrder/mo/refundProvisionFail");
-      }
+      // `fund` is no longer needed so sending it back to `msg.sender`
+      refund = fund;
     } else {
       // offer was successfully posted
       // if one wants to maintain an inverse mapping owner => offerIds
@@ -177,31 +204,11 @@ contract MangroveOrder is Forwarder, IOrderLogic {
         inbound_tkn: inbound_tkn,
         offerId: res.offerId
       });
-
-      // crediting caller's balance with amount of offered tokens (transferred from caller at the beginning of this function)
-      // so that the offered tokens can be transferred when the offer is taken.
-      router().push(outbound_tkn, msg.sender, tko.takerGives - res.takerGave);
-
       // setting a time to live for the resting order
       if (tko.timeToLiveForRestingOrder > 0) {
         expiring[outbound_tkn][inbound_tkn][res.offerId] = block.timestamp + tko.timeToLiveForRestingOrder;
       }
     }
-  }
-
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
-    internal
-    virtual
-    override
-    returns (bytes32)
-  {
-    bytes32 repostData = super.__posthookSuccess__(order, makerData);
-    if (repostData != "posthook/reposted") {
-      // if offer was not to reposted, if is now off the book but provision is still locked
-      // calling retract offer will recover the provision and transfer them to offer owner
-      retractOffer(IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId, true);
-    }
-    return "";
   }
 
   /**

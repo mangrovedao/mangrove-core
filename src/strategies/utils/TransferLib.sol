@@ -19,6 +19,10 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 
 library TransferLib {
   // utils
+  ///@notice This transfer amount of token to recipient address
+  ///@param token Token to be transferred
+  ///@param recipient Address of the recipient the tokens will be transferred to
+  ///@param amount The amount of tokens to be transferred
   function transferToken(IERC20 token, address recipient, uint amount) internal returns (bool) {
     if (amount == 0 || recipient == address(this)) {
       return true;
@@ -28,6 +32,11 @@ library TransferLib {
     return (success && (data.length == 0 || abi.decode(data, (bool))));
   }
 
+  ///@notice This transfer amount of token to recipient address from spender address
+  ///@param token Token to be transferred
+  ///@param spender Address of the spender, where the tokens will be transferred from
+  ///@param recipient Address of the recipient, where the tokens will be transferred to
+  ///@param amount The amount of tokens to be transferred
   function transferTokenFrom(IERC20 token, address spender, address recipient, uint amount) internal returns (bool) {
     if (amount == 0 || spender == recipient) {
       return true;

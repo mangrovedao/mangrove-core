@@ -13,7 +13,9 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "./MangroveOrder.sol";
+import {MangroveOrder} from "mgv_src/periphery/MangroveOrder.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 
 /**
  * @title This contract is a `MangroveOrder` enriched with the ability to retrieve all offers for each owner.
@@ -28,7 +30,7 @@ contract MangroveOrderEnriched is MangroveOrder {
    * @param mgv The Mangrove deployment that is allowed to call `this` contract for trade execution and posthook and on which `this` contract will post offers.
    * @param deployer The address of the deployer will be set as admin for both this contract and the router, which are both `AccessControlled` contracts.
    */
-  constructor(IMangrove mgv, address deployer) MangroveOrder(mgv, deployer) {}
+  constructor(IMangrove mgv, address deployer) MangroveOrder(mgv, deployer, 30_000) {}
 
   /**
    * @notice Overridden to keep track of all offers for all owners.

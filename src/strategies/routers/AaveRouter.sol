@@ -41,7 +41,15 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
     override
     returns (uint pulled)
   {
-    uint available = reserveBalance(token, reserve);
+    // if reserve has the underlying, we transfer it.
+    uint available = token.balanceOf(reserve);
+    if (available >= amount) {
+      amount = strict ? amount : available;
+      require(TransferLib.transferTokenFrom(token, reserve, maker, amount), "AaveRouter/pull/transferFail");
+      return amount;
+    }
+    // else we need to go to aave to obtain funds
+    available = reserveBalance(token, reserve);
     // if strict enable one should pull at most `amount` from reserve
     if (strict) {
       amount = amount < available ? amount : available;

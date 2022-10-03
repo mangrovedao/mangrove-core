@@ -416,14 +416,19 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     return amount - pulled; // this will make trade fail if `amount != pulled`
   }
 
-  // if offer failed to execute or reneged Mangrove has deprovisioned it
-  // the wei balance of `this` contract on Mangrove is now positive
-  // this fallback returns an under approx of the provision that has been returned to this contract
-  // being under approx implies `this` contract might accumulate a small amount of wei over time
-  function __posthookFallback__(
-    MgvLib.SingleOrder calldata order,
-    MgvLib.OrderResult calldata result
-  ) internal virtual override returns (bytes32) {
+  ///@dev if offer failed to execute, Mangrove retracts and deprovisions it after the posthook call.
+  /// As a consequence if `__posthookFallback__` is reached, `this` balance on Mangrove *will* increase, after the posthook,
+  /// of some amount $n$ of native tokens. We evaluate here an underapproximation $~n$ in order to credit the offer maker in a pull based manner:
+  /// failed offer owner can retrieve $~n$ by calling `retractOffer` on the failed offer.
+  /// because $~n<n$ a small amount of WEIs will accumulate on the balance of `this` on Mangrove over time.
+  /// Note that these WEIs are not burnt since they can be admin retrieved using `withdrawFromMangrove`.
+  /// @inheritdoc MangroveOffer
+  function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result)
+    internal
+    virtual
+    override
+    returns (bytes32)
+  {
     result; // ssh
     mapping(uint => OwnerData) storage semiBookOwnerData = ownerData[
       IERC20(order.outbound_tkn)

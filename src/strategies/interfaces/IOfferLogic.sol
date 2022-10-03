@@ -66,11 +66,14 @@ interface IOfferLogic is IMaker {
   ///@dev admin may use this function to revoke approvals of `this` contract that are set after a call to `activate`.
   function approve(IERC20 token, address spender, uint amount) external returns (bool);
 
-  ///@notice  withdraw ERC20 tokens from `reserve()`
-  ///@param token the ERC20 token one wishes to withdraw.
-  ///@param receiver the address of the receiver of the withdrawn tokens.
-  ///@param amount the amount of tokens one wishes to withdraw.
-  function withdrawToken(IERC20 token, address receiver, uint amount) external returns (bool success);
+  ///@notice Withdraws tokens from offer maker's reserve
+  ///@param token the type of asset one is willing to retrieve
+  ///@param receiver the address of the reciver of the tokens (must not be `address(0)`)
+  ///@param amount the quantity of tokens to withdraw from reserve (in WEI units).
+  ///@return success whether funds were successfully transferred to `receiver` 
+  ///@dev notice anyone can call but only `msg.sender` can withdraw from its reserve
+  function withdrawToken(IERC20 token, address receiver, uint amount) 
+  external returns (bool success);
 
   ///@notice computes the provision that can be redeemed when deprovisioning a certain offer.
   ///@param outbound_tkn the outbound token of the offer list
@@ -83,7 +86,9 @@ interface IOfferLogic is IMaker {
   ///@dev throws with a reason when there is a missing approval
   function checkList(IERC20[] calldata tokens) external view;
 
-  ///@return balance the `token` amount that `msg.sender` has in the contract's reserve
+  ///@notice View of offer maker's reserve balance for a particular asset.
+  ///@param token the asset type one wishes to know the reserve balance of
+  ///@return balance the `token` amount in offer maker's reserve
   function tokenBalance(IERC20 token) external view returns (uint balance);
 
   /// @notice allows `this` contract to be a liquidity provider for a particular asset by performing the necessary approvals
@@ -117,9 +122,15 @@ interface IOfferLogic is IMaker {
   ) external
     payable;
 
-  ///@notice Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove. Function call will throw if `this` contract is not the owner of `offerId`.
-  ///@param deprovision is true if offer owner wishes to have the offer's provision pushed to its reserve
-  ///@return received the amount of WEI thar are returned to `msg.sender` if `deprovision` is positioned.
+  ///@notice Retracts an offer from an Offer List of Mangrove. 
+  ///@param outbound_tkn the outbound token of the offer list.
+  ///@param inbound_tkn the inbound token of the offer list.
+  ///@param offerId the identifier of the offer in the (`outbound_tkn`,`inbound_tkn`) offer list
+  ///@param deprovision positioned if `msg.sender` wishes to redeem the offer's provision.
+  ///@return received the amount of native tokens (in WEI) that have been retrieved by retracting the offer.
+  ///@dev Function's authorized caller is offer owner or Mangrove in order to let `makerExecute/Posthook` retract an offer.
+  /// An offer that is retracted without `deprovision` is off the offer list but still has its provisions locked.
+  /// Calling this function, with the `deprovision` flag, on an offer that is already off the offer list can be used to retrieve the locked provisions.
   function retractOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,

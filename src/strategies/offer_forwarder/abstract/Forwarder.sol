@@ -345,7 +345,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
     uint offerId,
-    bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
+    bool deprovision 
   ) public override returns (uint free_wei) {
     OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
     require(
@@ -371,30 +371,29 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     }
   }
 
-  // NB anyone can call but msg.sender will only be able to withdraw from its reserve
-  function withdrawToken(
-    IERC20 token,
-    address receiver,
-    uint amount
-  ) external override returns (bool success) {
+  ///@inheritdoc IOfferLogic
+  function withdrawToken(IERC20 token, address receiver, uint amount) 
+  external override returns (bool success) {
     require(receiver != address(0), "Forwarder/withdrawToken/0xReceiver");
-    return router().withdrawToken(token, reserve(), receiver, amount);
+    if (amount == 0) {
+      success = true;
+    }
+    success = router().withdrawToken(token, reserve(), receiver, amount);
   }
 
+  ///@inheritdoc IOfferLogic
   function tokenBalance(IERC20 token) external view override returns (uint) {
     return router().reserveBalance(token, reserve());
   }
 
-  // put received inbound tokens on offer owner reserve
-  // if nothing is done at that stage then it could still be done in the posthook but it cannot be a flush
-  // since `this` contract balance would have the accumulated takers inbound tokens
-  // here we make sure nothing remains unassigned after a trade
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
+  ///@dev put received inbound tokens on offer maker's reserve during `makerExecute`
+  /// if nothing is done at that stage then it could still be done during `makerPosthook`.
+  /// However one would then need to pay attention to the following fact:
+  /// if `order.inbound_tkn` is not pushed to reserve during `makerExecute`, in the posthook of this offer execution, the `order.inbound_tkn` balance of this contract would then contain
+  /// the sum of all payments of offers managed by `this` that are in a better position in the offer list (because posthook is called in the call stack order).
+  /// here we maintain an invariant that `this` balance is empty (both for `order.inbound_tkn` and `order.outbound_tkn`) at the end of `makerExecute`.
+  ///@inheritdoc MangroveOffer
+  function __put__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
@@ -403,13 +402,9 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     return 0;
   }
 
-  // get outbound tokens from offer owner reserve
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
+  ///@dev get outbound tokens from offer owner reserve
+  ///@inheritdoc MangroveOffer
+  function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
@@ -417,13 +412,8 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // because `pull` is strict, `pulled <= amount` (cannot be greater)
     // we do not check local balance here because multi user contracts do not keep more balance than what has been pulled
     address source = _reserve(owner);
-    uint pulled = router().pull(
-      outTkn,
-      source == address(0) ? owner : source,
-      amount,
-      true
-    );
-    return amount - pulled;
+    uint pulled = router().pull(outTkn, source == address(0) ? owner : source, amount, true);
+    return amount - pulled; // this will make trade fail if `amount != pulled`
   }
 
   // if offer failed to execute or reneged Mangrove has deprovisioned it

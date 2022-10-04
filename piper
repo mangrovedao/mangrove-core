@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+git --git-dir=../mgvbla/.git \
+format-patch -k -1 --stdout $1 | \
+git am -3 -k

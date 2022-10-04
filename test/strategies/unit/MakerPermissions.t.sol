@@ -13,8 +13,6 @@ contract MakerPermissionTest is MangroveTest {
   address payable maker;
   OfferMaker makerContract;
 
-  // PolygonFork fork = new PolygonFork();
-
   function setUp() public virtual override {
     options.base.symbol = "WETH";
     options.quote.symbol = "USDC";

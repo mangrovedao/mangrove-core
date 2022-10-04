@@ -15,10 +15,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
     The TKNS env variable should be given as a comma-separated list of names (known by ens).
     For instance:
 
-  TKNS="DAI,USDC,WETH,DAI_AAVE,USDC_AAVE,WETH_AAVE" ADMIN=$MUMBAI_DEPLOYER_ADDRESS forge script \
-  --fork-url $MUMBAI_NODE_URL \
-  --private-key $MUMBAI_DEPLOYER_PRIVATE_KEY \
-  ActivateMangroveOrder
+  TKNS="DAI,USDC,WETH,DAI_AAVE,USDC_AAVE,WETH_AAVE" forge script --fork-url mumbai ActivateMangroveOrder
 
 */
 

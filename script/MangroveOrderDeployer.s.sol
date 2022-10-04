@@ -5,13 +5,13 @@ import {Script, console} from "forge-std/Script.sol";
 import {MangroveOrderEnriched, IERC20, IMangrove} from "mgv_src/periphery/MangroveOrderEnriched.sol";
 import {Deployer} from "./lib/Deployer.sol";
 
-/**
- * @notice deploys a MangroveOrder instance
- * @notice First test:
- * ADMIN=$MUMBAI_PRIVATE_ADDRESS forge script --fork-url mumbai MumbaiDeploy -vvv MangroveOrderDeployer
- * @notice Then broadcast and verify:
- * ADMIN=$MUMBAI_PRIVATE_ADDRESS WRITE_DEPLOY=true forge script --fork-url mumbai MangroveOrderDeployer -vvv --broadcast --verify
- */
+/*  Deploys a MangroveOrder instance
+    First test:
+ ADMIN=$MUMBAI_PRIVATE_ADDRESS forge script --fork-url mumbai MumbaiDeploy -vvv MangroveOrderDeployer
+    Then broadcast and verify:
+ ADMIN=$MUMBAI_PRIVATE_ADDRESS WRITE_DEPLOY=true forge script --fork-url mumbai MangroveOrderDeployer -vvv --broadcast --verify
+    Remember to activate it using ActivateMangroveOrder
+*/
 contract MangroveOrderDeployer is Deployer {
   function run() public {
     innerRun({admin: vm.envAddress("ADMIN")});

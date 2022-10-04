@@ -34,10 +34,4 @@ addresses/**/*.backup.json
 .pnp.*
 
 # Stil useful?
-out.html
-**/.sethrc
 *-mumbai.sh
-doc/specs.txt
-artifacts/*
-exported-abis/*
-deployments/localhost

@@ -61,6 +61,7 @@ __metadata:
   dependencies:
     husky: ^7.0.2
     lint-staged: ^13.0.3
+    micromatch: ^4.0.5
     pinst: ^2.1.6
     prettier: ^2.4.1
     rimraf: ^3.0.2

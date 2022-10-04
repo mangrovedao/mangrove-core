@@ -31,5 +31,8 @@
     "solpp": "^0.11.5",
     "yargs": "^17.1.1"
   },
-  "packageManager": "yarn@3.2.3"
+  "packageManager": "yarn@3.2.3",
+  "dependencies": {
+    "micromatch": "^4.0.5"
+  }
 }

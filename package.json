@@ -8,7 +8,7 @@
     "precommit": "lint-staged",
     "prepack": "pinst --disable && yarn build",
     "postpack": "pinst --enable",
-    "_postinstall": "husky install",
+    "postinstall": "husky install",
     "build": "forge build && node copyArtifacts && node copyAddresses && node buildIndex",
     "clean": "forge clean; rimraf dist",
     "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.js src/MgvLib.sol src/MgvRoot.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/AbstractMangrove.sol src/Mangrove.sol src/InvertedMangrove.sol",

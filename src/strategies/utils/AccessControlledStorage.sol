@@ -13,14 +13,17 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-// TODO-foundry-merge explain what this contract does
-
+/// @title This is the storage part of a diamond storage scheme for `AccessControlled` to reduce size of contracts.
 library AccessControlledStorage {
+  /// @notice The layout of the storage.
+  /// @param admin the admin of the access controlled contract.
   struct Layout {
     address admin;
   }
 
+  /// @notice Gets the `AccessControlled` storage from a fixed slot.
   function getStorage() internal pure returns (Layout storage st) {
+    // Unique slot within the contract
     bytes32 storagePosition = keccak256("Mangrove.AccessControlledStorage");
     assembly {
       st.slot := storagePosition

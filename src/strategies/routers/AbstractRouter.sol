@@ -33,10 +33,10 @@ abstract contract AbstractRouter is AccessControlled {
   }
 
   ///@notice constructor for abstract routers.
-  ///@param gas_overhead is the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
-  constructor(uint gas_overhead) AccessControlled(msg.sender) {
-    require(uint24(gas_overhead) == gas_overhead, "Router/overheadTooHigh");
-    ARSt.getStorage().gas_overhead = gas_overhead;
+  ///@param gasOverhead_ is the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
+  constructor(uint gasOverhead_) AccessControlled(msg.sender) {
+    require(uint24(gasOverhead_) == gasOverhead_, "Router/overheadTooHigh");
+    ARSt.getStorage().gasOverhead = gasOverhead_;
   }
 
   ///@notice getter for the `makers: addr => bool` mapping
@@ -49,7 +49,7 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice view for gas overhead of this router.
   ///@return overhead the added (overapproximated) gas cost of `push` and `pull`.
   function gasOverhead() public view returns (uint overhead) {
-    return ARSt.getStorage().gas_overhead;
+    return ARSt.getStorage().gasOverhead;
   }
 
   ///@notice pulls liquidity from an offer maker's reserve to `msg.sender`'s balance

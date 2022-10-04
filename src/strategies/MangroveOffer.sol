@@ -56,9 +56,9 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   function offerGasreq() public view returns (uint) {
     AbstractRouter router_ = router();
     if (router_ != NO_ROUTER) {
-      return MOS.getStorage().ofr_gasreq + router_.gasOverhead();
+      return MOS.getStorage().offerGasreq + router_.gasOverhead();
     } else {
-      return MOS.getStorage().ofr_gasreq;
+      return MOS.getStorage().offerGasreq;
     }
   }
 
@@ -115,7 +115,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /// @inheritdoc IOfferLogic
   function setGasreq(uint gasreq) public override onlyAdmin {
     require(uint24(gasreq) == gasreq, "mgvOffer/gasreq/overflow");
-    MOS.getStorage().ofr_gasreq = gasreq;
+    MOS.getStorage().offerGasreq = gasreq;
     emit SetGasreq(gasreq);
   }
 

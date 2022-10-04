@@ -27,7 +27,7 @@ contract AaveDeepRouter is AaveRouter {
   constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode)
     AaveRouter(_addressesProvider, _referralCode, _interestRateMode)
   {
-    ARSt.getStorage().gas_overhead += 350_000; // additional borrow
+    ARSt.getStorage().gasOverhead += 350_000; // additional borrow
   }
 
   // 1. pulls aTokens from aToken reserve. Borrows if necessary

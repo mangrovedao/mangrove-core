@@ -15,21 +15,21 @@ pragma abicoder v2;
 
 import "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
-// Naming scheme:
-// `f() public`: can be used as is in all descendants of `this` contract
-// `_f() internal`: descendant of this contract should provide a public wrapper of this function
-// `__f__() virtual internal`: descendant of this contract may override this function to specialize the strat
-
-/// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
+/// @title This is the storage part of a diamond storage scheme for `MangroveOffer` to reduce size of contracts.
 library MangroveOfferStorage {
+  /// @notice The layout of the storage.
+  /// @param offerGasreq total gas cost including router specific costs (if any) when posting offers via `this` strategy.
+  /// @param router the router to pull outbound tokens from contract's reserve to `this` and push inbound tokens to reserve.
+  /// @param reserves the addresses where offer makers are storing their liquidity.
   struct Layout {
-    // default values
-    uint ofr_gasreq;
+    uint offerGasreq;
     AbstractRouter router;
     mapping(address => address) reserves;
   }
 
+  /// @notice Gets the `MangroveOffer` storage from a fixed slot.
   function getStorage() internal pure returns (Layout storage st) {
+    // Unique slot within the contract
     bytes32 storagePosition = keccak256("Mangrove.MangroveOfferStorage");
     assembly {
       st.slot := storagePosition

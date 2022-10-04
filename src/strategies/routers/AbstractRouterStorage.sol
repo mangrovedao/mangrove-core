@@ -14,14 +14,21 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
+
+/// @title This is the storage part of a diamond storage scheme for `AbstractRouter` to reduce size of contracts.
 library AbstractRouterStorage {
+  /// @notice The layout of the storage.
+  /// @param makers maker contract addresses allowed to call this router.
+  /// @param gasOverhead the gas overhead of this router.
   struct Layout {
     mapping(address => bool) makers;
-    uint gas_overhead;
+    uint gasOverhead;
   }
 
+  /// @notice Gets the `AbstractRouter` storage from a fixed slot.
   function getStorage() internal pure returns (Layout storage st) {
-    bytes32 storagePosition = keccak256("Mangrove.AbstractRouterStorageLib.Layout");
+    // Unique slot within the contract
+    bytes32 storagePosition = keccak256("Mangrove.AbstractRouterStorage");
     assembly {
       st.slot := storagePosition
     }

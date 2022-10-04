@@ -55,6 +55,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mangrovedao/mangrove-core@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "@mangrovedao/mangrove-core@workspace:."
+  dependencies:
+    husky: ^7.0.2
+    lint-staged: ^13.0.3
+    pinst: ^2.1.6
+    prettier: ^2.4.1
+    rimraf: ^3.0.2
+    shelljs: ^0.8.4
+    solcco: ">=1.0.11"
+    solpp: ^0.11.5
+    yargs: ^17.1.1
+  languageName: unknown
+  linkType: soft
+
 "@npmcli/fs@npm:^2.1.0":
   version: 2.1.2
   resolution: "@npmcli/fs@npm:2.1.2"
@@ -1430,22 +1446,6 @@ __metadata:
   checksum: 2332eb9a8ec96f1ffeeea56ccefabcb4193693597b132cd110734d50f2928842e22b84cfa1508e921b8385cdfd06dda9ad68645fed62b50fff629a580f5fb72c
   languageName: node
   linkType: hard
-
-"mangrove-core@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "mangrove-core@workspace:."
-  dependencies:
-    husky: ^7.0.2
-    lint-staged: ^13.0.3
-    pinst: ^2.1.6
-    prettier: ^2.4.1
-    rimraf: ^3.0.2
-    shelljs: ^0.8.4
-    solcco: ">=1.0.11"
-    solpp: ^0.11.5
-    yargs: ^17.1.1
-  languageName: unknown
-  linkType: soft
 
 "map-obj@npm:^1.0.0":
   version: 1.0.1

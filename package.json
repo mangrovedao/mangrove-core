@@ -1,18 +1,25 @@
 {
-  "name": "mangrove-core",
+  "name": "@mangrovedao/mangrove-core",
   "version": "1.0.0",
   "author": "Mangrove DAO",
   "license": "(AGPL-3.0-only OR BSD-2-Clause)",
+  "main": "dist/index.js",
   "scripts": {
-    "postinstall": "husky install",
     "precommit": "lint-staged",
-    "prepack": "yarn build",
-    "build": "forge build && node copyArtifacts && node copyAddresses",
-    "clean": "rimraf artifacts cache dist exported-abis out tsconfig.tsbuildinfo",
+    "prepack": "pinst --disable && yarn build",
+    "postpack": "pinst --enable",
+    "_postinstall": "husky install",
+    "build": "forge build && node copyArtifacts && node copyAddresses && node buildIndex",
+    "clean": "forge clean; rimraf dist",
     "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.js src/MgvLib.sol src/MgvRoot.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/AbstractMangrove.sol src/Mangrove.sol src/InvertedMangrove.sol",
     "preproc": "node preprocessing/run.js",
     "test": "forge test -vvv"
   },
+  "files": [
+    "/dist/",
+    "/LICENSE",
+    "/README.md"
+  ],
   "devDependencies": {
     "husky": "^7.0.2",
     "lint-staged": "^13.0.3",

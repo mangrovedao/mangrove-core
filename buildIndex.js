@@ -11,21 +11,25 @@ For instance, if the `dist/mangrove-abis` directory contains `Mangrove.json` and
 */
 
 const fs = require("fs");
+const path = require("path");
 
-const exportAllIn = (exportName,dir) => {
+const exportAllIn = (exportName, dir) => {
   const lines = [];
   lines.push(`exports.${exportName} = {};`);
 
   for (const fileName of fs.readdirSync(`dist/${dir}`)) {
-    lines.push(`exports.${exportName} = require("./${dir}/${fileName}");`);
+    const parsed = path.parse(fileName);
+    lines.push(
+      `exports.${exportName}['${parsed.name}'] = require("./${dir}/${fileName}");`
+    );
   }
-  return lines.join('\n');
-}
+  return lines.join("\n");
+};
 
 const indexLines = [];
-indexLines.push(exportAllIn('abis','mangrove-abis'));
-indexLines.push(exportAllIn('addresses','addresses/deployed'));
+indexLines.push(exportAllIn("abis", "mangrove-abis"));
+indexLines.push(exportAllIn("addresses", "addresses/deployed"));
 
-fs.writeFileSync('dist/index.js',indexLines.join('\n'));
+fs.writeFileSync("dist/index.js", indexLines.join("\n"));
 
 console.log("Wrote index.js");

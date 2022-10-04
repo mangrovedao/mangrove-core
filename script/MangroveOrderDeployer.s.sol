@@ -7,11 +7,10 @@ import {Deployer} from "./lib/Deployer.sol";
 
 /**
  * @notice deploys a MangroveOrder instance
- * ADMIN=$MUMBAI_DEPLOYER_ADDRESS forge script --fork-url $MUMBAI_NODE_URL \
- * --private-key $MUMBAI_DEPLOYER_PRIVATE_KEY \
- * --etherscan-api-key $POLYGONSCAN_API \
- * --verify \
- * MangroveOrderDeployer
+ * @notice First test:
+ * ADMIN=$MUMBAI_PRIVATE_ADDRESS forge script --fork-url mumbai MumbaiDeploy -vvv MangroveOrderDeployer
+ * @notice Then broadcast and verify:
+ * ADMIN=$MUMBAI_PRIVATE_ADDRESS WRITE_DEPLOY=true forge script --fork-url mumbai MangroveOrderDeployer -vvv --broadcast --verify
  */
 contract MangroveOrderDeployer is Deployer {
   function run() public {
@@ -27,14 +26,14 @@ contract MangroveOrderDeployer is Deployer {
     if (address(old_mgo) != address(0)) {
       uint bal = mgv.balanceOf(address(old_mgo));
       if (bal > 0) {
-        vm.broadcast();
+        broadcast();
         old_mgo.withdrawFromMangrove(bal, payable(admin));
-        console.log("Retrieved ", bal, "WEIs from old deployement", address(old_mgo));
+        console.log("Retrieved ", bal, "WEIs from old deployment", address(old_mgo));
       }
     }
     console.log("Deploying Mangrove Order...");
 
-    vm.broadcast();
+    broadcast();
     MangroveOrderEnriched mgv_order = new MangroveOrderEnriched(mgv, admin);
     fork.set("MangroveOrderEnriched", address(mgv_order));
     require(mgv_order.MGV() == mgv, "Smoke test failed.");

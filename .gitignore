@@ -9,6 +9,7 @@ modd.conf
 node_modules
 dist
 out
+index.js
 cache
 doc/MgvDoc.html
 # broadcast files, ignore local deploys

@@ -27,7 +27,7 @@
     "address": "0xC87385b5E62099f92d490750Fcd6C901a524BBcA",
     "name": "DAI"
   },
-  { 
+  {
     "name": "DAI_AAVE",
     "address": "0x9A753f0F7886C9fbF63cF59D0D4423C5eFaCE95B"
   },
@@ -35,24 +35,28 @@
     "address": "0xDD4f3Ee61466C4158D394d57f3D4C397E91fBc51",
     "name": "ADAI"
   },
-  { 
+  {
     "name": "USDC_AAVE",
-    "address" : "0x9aa7fEc87CA69695Dd1f879567CcF49F3ba417E2"
+    "address": "0x9aa7fEc87CA69695Dd1f879567CcF49F3ba417E2"
   },
   {
     "address": "0xCdc2854e97798AfDC74BC420BD5060e022D14607",
     "name": "AUSDC"
   },
-  { 
+  {
     "name": "USDT_AAVE",
     "address": "0x21c561e551638401b937b03fe5a0a0652b99b7dd"
   },
-  { 
-    "name":"WETH_AAVE",
+  {
+    "name": "WETH_AAVE",
     "address": "0xd575d4047f8c667e064a4ad433d04e25187f40bb"
   },
   {
     "address": "0x685bF4eab23993E94b4CFb9383599c926B66cF57",
     "name": "AWETH"
+  },
+  {
+    "address": "0x11942A6952324f7Fc63Dc57Ed6Ec767b5fc263D6",
+    "name": "tGNT"
   }
 ]

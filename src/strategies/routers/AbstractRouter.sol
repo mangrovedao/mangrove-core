@@ -22,11 +22,13 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 /// @notice Partial implementation and requirements for liquidity routers.
 
 abstract contract AbstractRouter is AccessControlled {
+  ///@notice This modifier verifies that `msg.sender` an allowed caller of this router.
   modifier onlyMakers() {
     require(makers(msg.sender), "Router/unauthorized");
     _;
   }
 
+  ///@notice This modifier verifies that `msg.sender` is the admin or an allowed caller of this router.
   modifier makersOrAdmin() {
     require(msg.sender == admin() || makers(msg.sender), "Router/unauthorized");
     _;

@@ -302,7 +302,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       new_gives,
       order.offerDetail.gasreq(),
       order.offerDetail.gasprice(),
-      order.offer.next(),
+      order.offer.next(), // using next as pivot since this offer is off the book
       order.offerId
     ) {
       return "posthook/reposted";

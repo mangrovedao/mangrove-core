@@ -177,5 +177,68 @@ contract OfferForwarderTest is OfferLogicTest {
       gasprice: 0,
       pivotId: 0
     });
+    vm.stopPrank();
+  }
+
+  function test_updateOfferWithNoFundsPreservesGasprice() public {
+    vm.startPrank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    vm.stopPrank();
+    MgvStructs.OfferDetailPacked detail = mgv.offerDetails($(weth), $(usdc), offerId);
+    uint old_gasprice = detail.gasprice();
+
+    vm.startPrank(maker);
+    makerContract.updateOffer({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1.1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0,
+      offerId: offerId
+    });
+    vm.stopPrank();
+    detail = mgv.offerDetails($(weth), $(usdc), offerId);
+    assertEq(old_gasprice, detail.gasprice(), "Gas price was changed");
+  }
+
+  function test_updateOfferWithFundsIncreasesGasprice() public {
+    vm.startPrank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    vm.stopPrank();
+    MgvStructs.OfferDetailPacked detail = mgv.offerDetails($(weth), $(usdc), offerId);
+    uint old_gasprice = detail.gasprice();
+
+    vm.startPrank(maker);
+    makerContract.updateOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1.1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0,
+      offerId: offerId
+    });
+    vm.stopPrank();
+    detail = mgv.offerDetails($(weth), $(usdc), offerId);
+    assertTrue(old_gasprice < detail.gasprice(), "Gas price was not increased");
   }
 }

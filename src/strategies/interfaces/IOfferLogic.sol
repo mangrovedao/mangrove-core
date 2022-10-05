@@ -68,7 +68,7 @@ interface IOfferLogic is IMaker {
 
   ///@notice Withdraws tokens from offer maker's reserve
   ///@param token the type of asset one is willing to retrieve
-  ///@param receiver the address of the reciver of the tokens (must not be `address(0)`)
+  ///@param receiver the address of the receiver of the tokens (must not be `address(0)`)
   ///@param amount the quantity of tokens to withdraw from reserve (in WEI units).
   ///@return success whether funds were successfully transferred to `receiver`
   ///@dev notice anyone can call but only `msg.sender` can withdraw from its reserve
@@ -118,9 +118,7 @@ interface IOfferLogic is IMaker {
     uint gasprice,
     uint pivotId,
     uint offerId
-  )
-    external
-    payable;
+  ) external payable;
 
   ///@notice Retracts an offer from an Offer List of Mangrove.
   ///@param outbound_tkn the outbound token of the offer list.
@@ -136,9 +134,7 @@ interface IOfferLogic is IMaker {
     IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  )
-    external
-    returns (uint received);
+  ) external returns (uint received);
 
   ///@notice view of offer maker's reserve
   ///@dev if offer maker is `this` (`Direct` logics) then it returns the liquidity reserve of `address(this)`

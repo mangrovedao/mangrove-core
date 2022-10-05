@@ -49,7 +49,7 @@ interface IOrderLogic {
   ///@param takerGot How much the taker got
   ///@param takerGave How much the taker gave
   ///@param bounty How much bounty was givin to the taker
-  ///@param fee The fee paided by the taker
+  ///@param fee The fee paid by the taker
   ///@param offerId The id of the offer that was taken
   struct TakerOrderResult {
     uint takerGot;
@@ -64,7 +64,7 @@ interface IOrderLogic {
   ///@param outbound_tkn The outbound token of the order.
   ///@param inbound_tkn The inbound token of the order.
   ///@param taker The address of the taker
-  ///@param fillWants If true, the market order stoped when `takerWants` units of `outbound_tkn` had been obtained; otherwise, the market order stoped when `takerGives` units of `inbound_tkn` had been sold.
+  ///@param fillWants If true, the market order stopped when `takerWants` units of `outbound_tkn` had been obtained; otherwise, the market order stopped when `takerGives` units of `inbound_tkn` had been sold.
   ///@param takerGot How much the taker got
   ///@param takerGave How much the taker gave
   ///@param penalty How much penalty was given
@@ -86,6 +86,5 @@ interface IOrderLogic {
   ///@return tkor the result of the resting order. If `offerId==0`, no resting order was posted on `msg.sender`'s behalf.
   ///@dev as an extension of a `Forwarder` logic, this function is the only one able to call `MGV.newOffer`
   /// It is `payable` in order to attach native tokens to cover for the potential resting order provision.
-  function take(TakerOrder memory tko) external payable 
-  returns (TakerOrderResult memory tkor);
+  function take(TakerOrder memory tko) external payable returns (TakerOrderResult memory tkor);
 }

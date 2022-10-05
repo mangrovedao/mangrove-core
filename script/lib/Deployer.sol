@@ -12,7 +12,7 @@ import {console2 as console} from "forge-std/console2.sol";
 /* Writes deployments in 2 ways:
    1. In a json file. Easier to write one directly than to parse&transform
    foundry broadcast log files.
-   2. In a toy ENS instance. Useful for testing when the server & testingbi script
+   2. In a toy Ethereum Name Service (ENS) instance. Useful for testing when the server & testing script
    are both spawned in-process. Holds additional info on the contracts (whether
    it's a token). In the future, could be either removed (in favor of a
    file-based solution), or expanded (if an onchain addressProvider appears).

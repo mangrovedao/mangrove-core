@@ -223,7 +223,11 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     uint gasprice, // value ignored but kept to satisfy `Forwarder is IOfferLogic`
     uint pivotId,
     uint offerId
-  ) external payable override {
+  )
+    external
+    payable
+    override
+  {
     OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
     require(msg.sender == od.owner, "Forwarder/updateOffer/unauthorized");
     gasprice; // ssh
@@ -277,15 +281,15 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     address owner;
   }
 
-  ///@notice Memory allocation of `_updateOffer` variables
-  ///@param gasprice the gas price that is derived from the amount of funds available to re-provision the offer
-  ///@param leftover the portion of the available funds that cannot be used to cover for the offer's bounty
+  ///@notice memory allocation for `_updateOffer` variables
+  ///@param gasprice derived gasprice of the offer
+  ///@param leftover portion of `msg.value` that are not allocated to offer's provision
   struct UpdateOfferVars {
     uint gasprice;
     uint leftover;
   }
 
-  ///@notice Implementation body of `updateOffer`, using variables on memory to avoid stack too deep.
+  ///@notice Implementation body of `updateOffer`, using arguments and variables on memory to avoid stack too deep.
   function _updateOffer(UpdateOfferArgs memory args) private {
     UpdateOfferVars memory vars;
     // adding current locked provision to funds (0 if offer is deprovisioned)
@@ -341,12 +345,11 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   ///@inheritdoc IOfferLogic
-  function retractOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint offerId,
-    bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) public override returns (uint free_wei) {
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    public
+    override
+    returns (uint free_wei)
+  {
     OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
     require(
       od.owner == msg.sender || address(MGV) == msg.sender,
@@ -371,30 +374,28 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     }
   }
 
-  // NB anyone can call but msg.sender will only be able to withdraw from its reserve
-  function withdrawToken(
-    IERC20 token,
-    address receiver,
-    uint amount
-  ) external override returns (bool success) {
+  ///@inheritdoc IOfferLogic
+  function withdrawToken(IERC20 token, address receiver, uint amount) external override returns (bool success) {
     require(receiver != address(0), "Forwarder/withdrawToken/0xReceiver");
-    return router().withdrawToken(token, reserve(), receiver, amount);
+    if (amount == 0) {
+      success = true;
+    }
+    success = router().withdrawToken(token, reserve(), receiver, amount);
   }
 
+  ///@inheritdoc IOfferLogic
   function tokenBalance(IERC20 token) external view override returns (uint) {
     return router().reserveBalance(token, reserve());
   }
 
-  // put received inbound tokens on offer owner reserve
-  // if nothing is done at that stage then it could still be done in the posthook but it cannot be a flush
-  // since `this` contract balance would have the accumulated takers inbound tokens
-  // here we make sure nothing remains unassigned after a trade
-  function __put__(uint amount, MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
+  ///@dev put received inbound tokens on offer maker's reserve during `makerExecute`
+  /// if nothing is done at that stage then it could still be done during `makerPosthook`.
+  /// However one would then need to pay attention to the following fact:
+  /// if `order.inbound_tkn` is not pushed to reserve during `makerExecute`, in the posthook of this offer execution, the `order.inbound_tkn` balance of this contract would then contain
+  /// the sum of all payments of offers managed by `this` that are in a better position in the offer list (because posthook is called in the call stack order).
+  /// here we maintain an invariant that `this` balance is empty (both for `order.inbound_tkn` and `order.outbound_tkn`) at the end of `makerExecute`.
+  ///@inheritdoc MangroveOffer
+  function __put__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
@@ -403,13 +404,9 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     return 0;
   }
 
-  // get outbound tokens from offer owner reserve
-  function __get__(uint amount, MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (uint)
-  {
+  ///@dev get outbound tokens from offer owner reserve
+  ///@inheritdoc MangroveOffer
+  function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
@@ -417,23 +414,23 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // because `pull` is strict, `pulled <= amount` (cannot be greater)
     // we do not check local balance here because multi user contracts do not keep more balance than what has been pulled
     address source = _reserve(owner);
-    uint pulled = router().pull(
-      outTkn,
-      source == address(0) ? owner : source,
-      amount,
-      true
-    );
-    return amount - pulled;
+    uint pulled = router().pull(outTkn, source == address(0) ? owner : source, amount, true);
+    return amount - pulled; // this will make trade fail if `amount != pulled`
   }
 
-  // if offer failed to execute or reneged Mangrove has deprovisioned it
-  // the wei balance of `this` contract on Mangrove is now positive
-  // this fallback returns an under approx of the provision that has been returned to this contract
-  // being under approx implies `this` contract might accumulate a small amount of wei over time
-  function __posthookFallback__(
-    MgvLib.SingleOrder calldata order,
-    MgvLib.OrderResult calldata result
-  ) internal virtual override returns (bytes32) {
+  ///@dev if offer failed to execute, Mangrove retracts and deprovisions it after the posthook call.
+  /// As a consequence if `__posthookFallback__` is reached, `this` balance on Mangrove *will* increase, after the posthook,
+  /// of some amount $n$ of native tokens. We evaluate here an underapproximation $~n$ in order to credit the offer maker in a pull based manner:
+  /// failed offer owner can retrieve $~n$ by calling `retractOffer` on the failed offer.
+  /// because $~n<n$ a small amount of WEIs will accumulate on the balance of `this` on Mangrove over time.
+  /// Note that these WEIs are not burnt since they can be admin retrieved using `withdrawFromMangrove`.
+  /// @inheritdoc MangroveOffer
+  function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result)
+    internal
+    virtual
+    override
+    returns (bytes32)
+  {
     result; // ssh
     mapping(uint => OwnerData) storage semiBookOwnerData = ownerData[
       IERC20(order.outbound_tkn)

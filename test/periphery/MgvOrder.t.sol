@@ -59,8 +59,6 @@ contract MangroveOrder_Test is MangroveTest {
     // `this` contract will act as `MgvOrder` user
     deal($(base), $(this), 10 ether);
     deal($(quote), $(this), 10 ether);
-    // base.mint($(this), 10 ether);
-    // quote.mint($(this), 10 ether);
 
     // user approves `mgo` to pull quote or base when doing a market order
     quote.approve($(mgo.router()), 10 ether);
@@ -69,14 +67,11 @@ contract MangroveOrder_Test is MangroveTest {
     // `sell_taker` will take resting offer
     sell_taker = setupTaker($(quote), $(base), "sell-taker");
     deal($(base), $(sell_taker), 10 ether);
-    // tka.mint($(sell_taker), 10 ether);
 
-    // if seller wants to sell direclty on mangrove
+    // if seller wants to sell directly on mangrove
     vm.prank($(sell_taker));
     base.approve($(mgv), 10 ether);
-    // sell_taker.approve(tka, $(mgv), 10 ether);
     // if seller wants to sell via mgo
-    // sell_taker.approve(tka, $(mgo), 10 ether);
     vm.prank($(sell_taker));
     quote.approve($(mgv), 10 ether);
 
@@ -88,15 +83,11 @@ contract MangroveOrder_Test is MangroveTest {
 
     vm.prank($(bid_maker));
     quote.approve($(mgv), 10 ether);
-    // bid_maker.approveMgv(tkb, 10 ether);
     deal($(quote), $(bid_maker), 10 ether);
-    // tkb.mint($(bid_maker), 10 ether);
 
     deal($(base), $(ask_maker), 10 ether);
-    // tka.mint($(ask_maker), 10 ether);
     vm.prank($(ask_maker));
     base.approve($(mgv), 10 ether);
-    // ask_maker.approveMgv(tka, 10 ether);
 
     bid_maker.newOfferWithFunding(1 ether, 0.1 ether, 50_000, 0, 0, 0.1 ether);
     bid_maker.newOfferWithFunding(1 ether, 0.11 ether, 50_000, 0, 0, 0.1 ether);
@@ -275,7 +266,6 @@ contract MangroveOrder_Test is MangroveTest {
   }
 
   function test_resting_buy_order_can_be_partially_filled() public {
-    //mgv.setFee($(quote), $(base), 0);
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       outbound_tkn: base,
       inbound_tkn: quote,

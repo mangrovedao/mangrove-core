@@ -123,6 +123,10 @@ contract OfferForwarderTest is OfferLogicTest {
     // checking that approx is small in front a storage write (approx < write_cost / 10)
     uint approx_bounty = provision - provision_after_fail;
     assertTrue((approx_bounty * 10000) / bounty > 9990, "Approximation of offer owner's credit is too coarse");
+    assertTrue(
+      provision_after_fail < mgv.balanceOf(address(makerContract)),
+      "Incorrect approx"
+    );
   }
 
   function test_ownership() public {

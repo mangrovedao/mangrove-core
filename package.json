@@ -23,6 +23,7 @@
   "devDependencies": {
     "husky": "^7.0.2",
     "lint-staged": "^13.0.3",
+    "micromatch": "^4.0.5",
     "pinst": "^2.1.6",
     "prettier": "^2.4.1",
     "rimraf": "^3.0.2",
@@ -31,8 +32,5 @@
     "solpp": "^0.11.5",
     "yargs": "^17.1.1"
   },
-  "packageManager": "yarn@3.2.3",
-  "dependencies": {
-    "micromatch": "^4.0.5"
-  }
+  "packageManager": "yarn@3.2.3"
 }

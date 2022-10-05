@@ -275,6 +275,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   ///@notice Post-hook that implements default behavior when Taker Order's execution succeeded.
   ///@param order is a recall of the taker order that is at the origin of the current trade.
   ///@param maker_data is the returned value of the `__lastLook__` hook, triggered during trade execution. The special value `"lastLook/retract"` should be treated as an instruction not to repost the offer on the book.
+  ///@return data can be:
+  /// * `"posthook/filled"` when offer was completely filled
+  /// * `"posthook/reposted"` when offer was partially filled and successfully reposted
+  /// * `"posthook/dustRemainder"` when offer was partially filled but residual was below density (and thus not reposted)
   /// @custom:hook overrides of this hook should be conservative and call `super.__posthookSuccess__(order, maker_data)`
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)
     internal

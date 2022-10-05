@@ -1,10 +1,15 @@
-import "mgv_src/strategies/routers/SimpleRouter.sol";
-
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import "./OfferLogic.t.sol";
-import "mgv_src/strategies/offer_forwarder/OfferForwarder.sol";
+import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
+import {OfferLogicTest, console} from "mgv_test/strategies/unit/OfferLogic.t.sol";
+import {
+  OfferForwarder,
+  IForwarder,
+  IMangrove,
+  IERC20,
+  IMakerLogic
+} from "mgv_src/strategies/offer_forwarder/OfferForwarder.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 contract OfferForwarderTest is OfferLogicTest {
@@ -123,10 +128,7 @@ contract OfferForwarderTest is OfferLogicTest {
     // checking that approx is small in front a storage write (approx < write_cost / 10)
     uint approx_bounty = provision - provision_after_fail;
     assertTrue((approx_bounty * 10000) / bounty > 9990, "Approximation of offer owner's credit is too coarse");
-    assertTrue(
-      provision_after_fail < mgv.balanceOf(address(makerContract)),
-      "Incorrect approx"
-    );
+    assertTrue(provision_after_fail < mgv.balanceOf(address(makerContract)), "Incorrect approx");
   }
 
   function test_ownership() public {

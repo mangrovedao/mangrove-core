@@ -13,9 +13,13 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/MangroveOffer.sol";
-import {MgvLib} from "mgv_src/MgvLib.sol";
+import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
+import {MgvLib, IERC20, MgvStructs} from "mgv_src/MgvLib.sol";
+import {MangroveOfferStorage as MOS} from "mgv_src/strategies/MangroveOfferStorage.sol";
 import "mgv_src/strategies/utils/TransferLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
+import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract Direct is MangroveOffer {
@@ -111,12 +115,7 @@ abstract contract Direct is MangroveOffer {
     uint gasprice,
     uint pivotId,
     uint offerId
-  )
-    public
-    payable
-    override
-    mgvOrAdmin
-  {
+  ) public payable override mgvOrAdmin {
     MGV.updateOffer{value: msg.value}(
       address(outbound_tkn),
       address(inbound_tkn),
@@ -138,12 +137,7 @@ abstract contract Direct is MangroveOffer {
     IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  )
-    public
-    override
-    mgvOrAdmin
-    returns (uint free_wei)
-  {
+  ) public override mgvOrAdmin returns (uint free_wei) {
     free_wei = MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
     if (free_wei > 0) {
       require(MGV.withdraw(free_wei), "Direct/withdrawFromMgv/withdrawFail");

@@ -1,5 +1,8 @@
 # next version
 
+# 1.0.3
+- Fix 1.0.2 bad index.js
+ 
 # 1.0.2
 - Export all solidity files
 - Change dist/export layout

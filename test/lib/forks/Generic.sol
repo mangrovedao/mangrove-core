@@ -59,9 +59,7 @@ contract GenericFork is Script {
   /* Read addresses from JSON files */
 
   function addressesFile(string memory category, string memory suffix) public view returns (string memory) {
-    return string.concat(
-      vm.projectRoot(), "/addresses/", category, "/", NETWORK, suffix, ".json"
-    );
+    return string.concat(vm.projectRoot(), "/addresses/", category, "/", NETWORK, suffix, ".json");
   }
 
   function addressesFile(string memory category) public view returns (string memory) {

@@ -24,9 +24,9 @@ interface IOrderLogic {
   ///@param inbound_tkn the inbound token used to identify the order book
   ///@param partialFillNotAllowed true to revert if market order cannot be filled and resting order failed or is not enabled; otherwise, false
   ///@param takerWants desired total amount of `outbound_tkn`
-  ///@param makerWants taker wants before slippage (`makerWants == wants` when `fillWants`)
+  ///@param makerWants taker wants before slippage (`makerWants == takerWants` when `fillWants`)
   ///@param takerGives available total amount of `inbound_tkn`
-  ///@param makerGives taker gives before slippage (`makerGives == gives` when `!fillWants`)
+  ///@param makerGives taker gives before slippage (`makerGives == takerGives` when `!fillWants`)
   ///@param fillWants if true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained; otherwise, the market order stops when `takerGives` units of `inbound_tkn` have been sold.
   ///@param restingOrder whether the complement of the partial fill (if any) should be posted as a resting limit order.
   ///@param pivotId in case a resting order is required, the best pivot estimation of its position in the offer list (if the market order led to a non empty partial fill, then `pivotId` should be 0 unless the order book is crossed).

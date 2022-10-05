@@ -35,7 +35,6 @@ contract MangroveOrder_Test is MangroveTest {
   );
 
   MgvOrder mgo;
-  TestMaker bid_maker;
   TestMaker ask_maker;
   TestTaker sell_taker;
 
@@ -76,23 +75,12 @@ contract MangroveOrder_Test is MangroveTest {
     quote.approve($(mgv), 10 ether);
 
     // populating order book with offers
-    bid_maker = setupMaker($(quote), $(base), "bid-maker");
-    vm.deal($(bid_maker), 10 ether);
     ask_maker = setupMaker($(base), $(quote), "ask-maker");
     vm.deal($(ask_maker), 10 ether);
-
-    vm.prank($(bid_maker));
-    quote.approve($(mgv), 10 ether);
-    deal($(quote), $(bid_maker), 10 ether);
 
     deal($(base), $(ask_maker), 10 ether);
     vm.prank($(ask_maker));
     base.approve($(mgv), 10 ether);
-
-    bid_maker.newOfferWithFunding(1 ether, 0.1 ether, 50_000, 0, 0, 0.1 ether);
-    bid_maker.newOfferWithFunding(1 ether, 0.11 ether, 50_000, 0, 0, 0.1 ether);
-    bid_maker.newOfferWithFunding(1 ether, 0.12 ether, 50_000, 0, 0, 0.1 ether);
-
     ask_maker.newOfferWithFunding(0.13 ether, 1 ether, 50_000, 0, 0, 0.1 ether);
     ask_maker.newOfferWithFunding(0.14 ether, 1 ether, 50_000, 0, 0, 0.1 ether);
     ask_maker.newOfferWithFunding(0.15 ether, 1 ether, 50_000, 0, 0, 0.1 ether);
@@ -130,17 +118,39 @@ contract MangroveOrder_Test is MangroveTest {
       outbound_tkn: base,
       inbound_tkn: quote,
       partialFillNotAllowed: true,
+      // There are enough offers to absorb all the takerGives, but not enough to fill wants, so it becomes incomplete
+      // since fillWants is true
       fillWants: true,
-      takerWants: 2 ether,
-      makerWants: 2 ether,
-      takerGives: 0.26 ether,
-      makerGives: 0.26 ether,
+      takerWants: 3000000000000000001,
+      makerWants: 3000000000000000001,
+      takerGives: 420000000000000001,
+      makerGives: 0 ether,
       restingOrder: false,
       pivotId: 0,
       timeToLiveForRestingOrder: 0 //NA
     });
     vm.expectRevert("mgvOrder/mo/noPartialFill");
     mgo.take{value: 0.1 ether}(buyOrder);
+  }
+
+  function test_partial_filled_sell_order_reverts_when_noPartialFill_enabled() public {
+    IOrderLogic.TakerOrder memory sellOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      partialFillNotAllowed: true,
+      // takerWants can be filled, but there are not enough orders to absorb all takerGives, so it becomes incomplete
+      // since fillWants is false
+      fillWants: false,
+      takerWants: 2.1 ether,
+      makerWants: 0 ether,
+      takerGives: 0.5 ether,
+      makerGives: 0.5 ether,
+      restingOrder: false,
+      pivotId: 0,
+      timeToLiveForRestingOrder: 0 //NA
+    });
+    vm.expectRevert("mgvOrder/mo/noPartialFill");
+    mgo.take{value: 0.1 ether}(sellOrder);
   }
 
   function test_partial_filled_with_no_resting_order_returns_provision() public {

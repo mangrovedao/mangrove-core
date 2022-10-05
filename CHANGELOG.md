@@ -1,5 +1,8 @@
 # next version
+
+# 1.0.2
 - Export all solidity files
+- Change dist/export layout
 
 # 1.0.1 (October 2022)
 - Correctly export files in `dist/index.js`.

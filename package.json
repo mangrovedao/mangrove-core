@@ -1,6 +1,6 @@
 {
   "name": "@mangrovedao/mangrove-core",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "Mangrove DAO",
   "license": "(AGPL-3.0-only OR BSD-2-Clause)",
   "main": "index.js",
@@ -20,7 +20,7 @@
     "/src",
     "/script",
     "/test/lib/**/*",
-    "/addresses/deployed/**/!(*.backup.json)",
+    "/addresses/**/!(*.backup.json)",
     "foundry.toml",
     "remappings.txt",
     "/lib",

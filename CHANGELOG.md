@@ -1,9 +1,12 @@
 # next version
 
-# 1.0.3
-- Fix 1.0.2 bad index.js
+# 1.0.4 (October 2022)
+- Fix 1.0.3 bad package.json (was not exporting enough)
+
+# 1.0.3 (October 2022)
+- Fix 1.0.2 bad index.js (was referencing absent files)
  
-# 1.0.2
+# 1.0.2 (October 2022)
 - Export all solidity files
 - Change dist/export layout
 

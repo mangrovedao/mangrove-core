@@ -196,15 +196,18 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     uint gasprice, // value ignored but kept to satisfy `Forwarder is IOfferLogic`
     uint pivotId,
     uint offerId
-  ) external payable override {
+  ) public payable override {
     OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
-    require(msg.sender == od.owner, "Forwarder/updateOffer/unauthorized");
+    require(msg.sender == od.owner || msg.sender == address(MGV), "Forwarder/updateOffer/unauthorized");
     gasprice; // ssh
     UpdateOfferArgs memory upd;
+
     upd.offer_detail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
     (upd.global, upd.local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
-    // funds to compute new gasprice is msg.value + WEIs belonging to offer owner in `this` contract's balance on Mangrove
-    upd.fund = msg.value + od.wei_balance;
+    // funds to compute new gasprice is msg.value. Will use old gasprice if no funds are given
+    // it might be tempting to include `od.wei_balance` here but this will trigger a recomputation of the `gasprice`
+    // each time a offer is updated.
+    upd.fund = msg.value; // if called by Mangrove this will be 0
     upd.outbound_tkn = outbound_tkn;
     upd.inbound_tkn = inbound_tkn;
     upd.wants = wants;
@@ -254,18 +257,26 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@notice Implementation body of `updateOffer`, using arguments and variables on memory to avoid stack too deep.
   function _updateOffer(UpdateOfferArgs memory args) private {
     UpdateOfferVars memory vars;
-    // adding current locked provision to funds (0 if offer is deprovisioned)
-    args.fund += args.offer_detail.gasprice() * 10 ** 9 * (args.offer_detail.gasreq() + args.local.offer_gasbase());
-
-    (vars.gasprice, vars.leftover) = deriveGasprice(args.gasreq, args.fund, args.local.offer_gasbase());
-    // leftover can be safely cast to uint96 since it a rounding error
-    // overriding previous value since it was included in args.fund
-    ownerData[args.outbound_tkn][args.inbound_tkn][args.offerId].wei_balance = uint96(vars.leftover);
+    // re-deriving gasprice if necessary
+    if (args.fund != 0) {
+      // adding current locked provision to funds (0 if offer is deprovisioned)
+      (vars.gasprice, vars.leftover) = deriveGasprice(
+        args.gasreq,
+        args.fund + args.offer_detail.gasprice() * 10 ** 9 * (args.offer_detail.gasreq() + args.local.offer_gasbase()),
+        args.local.offer_gasbase()
+      );
+      // leftover can be safely cast to uint96 since it a rounding error
+      // adding `leftover` to potential previous value since it was not included in args.fund
+      ownerData[args.outbound_tkn][args.inbound_tkn][args.offerId].wei_balance += uint96(vars.leftover);
+    } else {
+      // no funds are added so we keep old gasprice
+      vars.gasprice = args.offer_detail.gasprice();
+    }
 
     // if `args.fund` is too low, offer gasprice might be below mangrove's gasprice
     // Mangrove will then take its own gasprice for the offer and would possibly tap into `this` contract's pool to cover for the missing provision
     require(vars.gasprice >= args.global.gasprice(), "mgv/insufficientProvision");
-    MGV.updateOffer{value: msg.value}(
+    MGV.updateOffer{value: args.fund}(
       address(args.outbound_tkn),
       address(args.inbound_tkn),
       args.wants,

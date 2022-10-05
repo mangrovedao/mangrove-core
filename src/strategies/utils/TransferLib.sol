@@ -42,7 +42,7 @@ library TransferLib {
     if (amount == 0 || spender == recipient) {
       return true;
     }
-    // optim to avoid requiring contract to approve itself
+    // optimization to avoid requiring contract to approve itself
     if (spender == address(this)) {
       return transferToken(token, recipient, amount);
     }

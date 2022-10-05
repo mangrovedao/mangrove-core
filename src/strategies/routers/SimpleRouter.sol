@@ -23,10 +23,10 @@ import {AbstractRouter} from "./AbstractRouter.sol";
 /// If called by a `Forwarder` contract instance, the reserve will be the address of a contract user (typically an EOA)
 ///@dev Maker contracts using this router must make sure that the reserve approves the router for all asset that will be pulled (outbound tokens)
 /// Thus a contract using a vault that is not an EOA must make sure this vault has approval capacities.
-
 contract SimpleRouter is
   AbstractRouter(70_000) // fails for < 70K with Direct strat
 {
+  /// @notice router-dependent implementation of the `pull` function
   /// @notice transfers an amount of tokens from the reserve to the maker.
   /// @param token Token to be transferred
   /// @param reserve The address of the reserve, where the tokens will be transferred from
@@ -34,14 +34,14 @@ contract SimpleRouter is
   /// @param amount The amount of tokens to be transferred
   /// @param strict Ignored since this router always transfers the exact amount
   /// @return pulled The amount pulled if successful (will be equal to `amount`); otherwise, 0.
-  /// @dev requires approval from `reserve` for `this` to transfer tokens.
+  /// @dev requires approval from `reserve` for `this` to transfer `token`.
   function __pull__(IERC20 token, address reserve, address maker, uint amount, bool strict)
     internal
     virtual
     override
     returns (uint pulled)
   {
-    strict; // this pull strategy is only strict
+    strict; // ignore flag - this pull strategy is only strict
     if (TransferLib.transferTokenFrom(token, reserve, maker, amount)) {
       return amount;
     } else {
@@ -49,24 +49,45 @@ contract SimpleRouter is
     }
   }
 
-  // requires approval of Maker
+  /// @notice router-dependent implementation of the `push` function
+  /// @notice transfers an amount of tokens from the maker to the reserve.
+  /// @param token Token to be transferred
+  /// @param reserve The address of the reserve, where the tokens will be transferred to
+  /// @param maker Address of the maker, where the tokens will be transferred from
+  /// @param amount The amount of tokens to be transferred
+  /// @dev requires approval from `maker` for `this` to transfer `token`.
+  /// @dev will revert if transfer fails
   function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual override {
     require(TransferLib.transferTokenFrom(token, maker, reserve, amount), "SimpleRouter/push/transferFail");
   }
 
-  function __withdrawToken__(IERC20 token, address reserve, address to, uint amount)
+  ///@notice router-dependent implementation of the `withdrawToken` function
+  ///@notice withdraws `amount` of reserve tokens and sends them to `recipient`
+  ///@dev this is called by maker's contract when originator wishes to withdraw funds from it.
+  ///@param token is the asset one wishes to withdraw
+  ///@param reserve is the address identifying the location of the assets
+  ///@param recipient is the address identifying the location of the recipient
+  ///@param amount is the amount of asset that should be withdrawn
+  ///@return true if transfer was successful; otherwise, false.
+  function __withdrawToken__(IERC20 token, address reserve, address recipient, uint amount)
     internal
     virtual
     override
     returns (bool)
   {
-    return TransferLib.transferTokenFrom(token, reserve, to, amount);
+    return TransferLib.transferTokenFrom(token, reserve, recipient, amount);
   }
 
+  ///@inheritdoc AbstractRouter
   function reserveBalance(IERC20 token, address reserve) external view override returns (uint) {
     return token.balanceOf(reserve);
   }
 
+  ///@notice router-dependent implementation of the `checkList` function
+  ///@notice verifies all required approval involving `this` router (either as a spender or owner)
+  ///@dev `checkList` returns normally if all needed approval are strictly positive. It reverts otherwise with a reason.
+  ///@param token is the asset (and possibly its overlyings) whose approval must be checked
+  ///@param reserve the reserve that requires asset pulling/pushing
   function __checkList__(IERC20 token, address reserve) internal view virtual override {
     // verifying that `this` router can withdraw tokens from reserve (required for `withdrawToken` and `pull`)
     require(

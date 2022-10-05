@@ -110,7 +110,7 @@ abstract contract AbstractRouter is AccessControlled {
   }
 
   ///@notice router-dependant implementation of the `withdrawToken` function
-  function __withdrawToken__(IERC20 token, address reserve, address to, uint amount) internal virtual returns (bool);
+  function __withdrawToken__(IERC20 token, address reserve, address recipient, uint amount) internal virtual returns (bool);
 
   ///@notice adds a maker contract address to the allowed callers of this router
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address

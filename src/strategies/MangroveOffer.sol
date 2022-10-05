@@ -27,7 +27,7 @@ import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 /// @dev Naming scheme:
 /// `f() public`: can be used, as is, in all descendants of `this` contract
 /// `_f() internal`: descendant of this contract should provide a public wrapper of this function
-/// `__f__() virtual internal`: descendant of this contract may override this function to specialize behaviour of `makerExecute` or `makerPosthook`
+/// `__f__() virtual internal`: descendant of this contract may override this function to specialize behavior of `makerExecute` or `makerPosthook`
 
 abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   IMangrove public immutable MGV;
@@ -102,7 +102,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     onlyCaller(address(MGV))
   {
     if (result.mgvData == "mgv/tradeSuccess") {
-      // toplevel posthook may ignore returned value which is only usefull for (vertical) compositionality
+      // top-level posthook may ignore returned value which is only useful for (vertical) compositionality
       __posthookSuccess__(order, result.makerData);
     } else {
       emit LogIncident(

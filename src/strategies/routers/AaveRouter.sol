@@ -73,13 +73,13 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
 
   // returns 0 if redeem failed (amount > balance).
   // Redeems user balance if amount == type(uint).max
-  function __withdrawToken__(IERC20 token, address reserve, address to, uint amount) internal override returns (bool) {
+  function __withdrawToken__(IERC20 token, address reserve, address recipient, uint amount) internal override returns (bool) {
     // note there is no possible redeem on behalf
     require(
       TransferLib.transferTokenFrom(overlying(token), reserve, address(this), amount),
       "AaveRouter/supply/transferFromFail"
     );
-    require(_redeem(token, amount, to) == amount, "AaveRouter/withdrawToken/Fail");
+    require(_redeem(token, amount, recipient) == amount, "AaveRouter/withdrawToken/Fail");
     return true;
   }
 

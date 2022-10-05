@@ -37,6 +37,7 @@ library TransferLib {
   ///@param spender Address of the spender, where the tokens will be transferred from
   ///@param recipient Address of the recipient, where the tokens will be transferred to
   ///@param amount The amount of tokens to be transferred
+  ///@return true if transfer was successful; otherwise, false.
   function transferTokenFrom(IERC20 token, address spender, address recipient, uint amount) internal returns (bool) {
     if (amount == 0 || spender == recipient) {
       return true;

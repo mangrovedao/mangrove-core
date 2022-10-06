@@ -392,4 +392,23 @@ contract MangroveOrder_Test is MangroveTest {
     assertEq(res.offerId, 0, "Resting order should not be posted");
     assertEq($(this).balance, native_reserve_before, "Provision not released");
   }
+
+  function test_restingOrder_that_fail_to_post_revert_if_no_partialFill() public {
+    mgv.setDensity($(quote), $(base), 0.1 ether);
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      partialFillNotAllowed: true,
+      fillWants: true,
+      takerWants: 1.000001 ether, // residual will be below density
+      takerGives: 0.13000013 ether,
+      makerWants: 1.000001 ether,
+      makerGives: 0.13000013 ether,
+      restingOrder: true,
+      pivotId: 0,
+      timeToLiveForRestingOrder: 0 //NA
+    });
+    vm.expectRevert("mgvOrder/mo/noPartialFill");
+    mgo.take{value: 2 ether}(buyOrder);
+  }
 }

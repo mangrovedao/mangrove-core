@@ -168,6 +168,21 @@ contract OfferLogicTest is MangroveTest {
     assertEq(deprovisioned, locked, "Deprovision was incomplete");
   }
 
+  function test_mangroveCanRetractOffer() public {
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    vm.prank(address(mgv));
+    makerContract.retractOffer(weth, usdc, offerId, false);
+  }
+
   function test_makerCanUpdateOffer() public {
     vm.prank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
@@ -181,6 +196,31 @@ contract OfferLogicTest is MangroveTest {
     });
 
     vm.prank(maker);
+    makerContract.updateOffer({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: offerId,
+      offerId: offerId
+    });
+  }
+
+  function test_mangroveCanUpdateOffer() public {
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+
+    vm.prank(address(mgv));
     makerContract.updateOffer({
       outbound_tkn: weth,
       inbound_tkn: usdc,

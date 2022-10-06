@@ -41,7 +41,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@dev outbound_tkn => inbound_tkn => offerId => OwnerData
   mapping(IERC20 => mapping(IERC20 => mapping(uint => OwnerData))) internal ownerData;
 
-  ///@notice function caller must be either Mangrove or offer owner
+  ///@notice modifier to enforce function caller to be either Mangrove or offer owner
   modifier mgvOrOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
     if (msg.sender != address(MGV)) {
       OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];

@@ -15,6 +15,10 @@
     "preproc": "node preprocessing/run.js",
     "test": "forge test -vvv"
   },
+  "lint-staged": {
+    "*.sol": "forge fmt",
+    "*.{js,css,md,json}": "prettier --write --ignore-unknown"
+  },
   "files": [
     "/dist",
     "/src",

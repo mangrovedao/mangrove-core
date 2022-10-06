@@ -378,7 +378,7 @@ contract MangroveOrder_Test is MangroveTest {
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 2 ether}(buyOrder);
     assertEq(res.takerGot + res.fee, 1 ether, "Market order failed");
-    assertEq(res.offerId, 0 , "Resting order should not be posted");
+    assertEq(res.offerId, 0, "Resting order should not be posted");
     assertEq($(this).balance, native_reserve_before, "Provision not released");
   }
 }

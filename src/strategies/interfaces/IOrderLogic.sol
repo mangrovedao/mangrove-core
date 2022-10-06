@@ -86,6 +86,5 @@ interface IOrderLogic {
   ///@return tkor the result of the resting order. If `offerId==0`, no resting order was posted on `msg.sender`'s behalf.
   ///@dev as an extension of a `Forwarder` logic, this function is the only one able to call `MGV.newOffer`
   /// It is `payable` in order to attach native tokens to cover for the potential resting order provision.
-  function take(TakerOrder memory tko) external payable 
-  returns (TakerOrderResult memory tkor);
+  function take(TakerOrder memory tko) external payable returns (TakerOrderResult memory tkor);
 }

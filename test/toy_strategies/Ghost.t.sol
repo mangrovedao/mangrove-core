@@ -48,16 +48,16 @@ contract GhostTest is MangroveTest {
     vm.stopPrank();
   }
 
-  function test_succes_fill() public {
+  function test_success_fill() public {
     deployStrat();
 
-    execTraderStratWithFillSucces();
+    execTraderStratWithFillSuccess();
   }
 
-  function test_succes_partialFill() public {
+  function test_success_partialFill() public {
     deployStrat();
 
-    execTraderStratWithPartialFillSucces();
+    execTraderStratWithPartialFillSuccess();
   }
 
   function test_fallback() public {
@@ -86,7 +86,7 @@ contract GhostTest is MangroveTest {
 
     // NOTE:
     // For this test, we're locking base, ie WETH, in the vault of the contract
-    // - so Ghost is not really used for ghost liqudity, in this example.
+    // - so Ghost is not really used for ghost liquidity, in this example.
     // However, to employ actual ghost liquidity it is simply a matter of
     // setting up a more refined router.
     // check that we actually need to activate for the two 'wants' tokens
@@ -129,7 +129,7 @@ contract GhostTest is MangroveTest {
     vm.stopPrank();
   }
 
-  function execTraderStratWithPartialFillSucces() public {
+  function execTraderStratWithPartialFillSuccess() public {
     uint makerGivesAmount = 0.15 ether;
     uint makerWantsAmountDAI = cash(dai, 300);
     uint makerWantsAmountUSDC = cash(usdc, 300);
@@ -153,7 +153,7 @@ contract GhostTest is MangroveTest {
     assertTrue(mgv.isLive(offer_on_usdc), "weth->usdc offer should not have been retracted");
   }
 
-  function execTraderStratWithFillSucces() public {
+  function execTraderStratWithFillSuccess() public {
     uint makerGivesAmount = 0.15 ether;
     uint makerWantsAmountDAI = cash(dai, 300);
     uint makerWantsAmountUSDC = cash(usdc, 300);

@@ -366,7 +366,7 @@ contract MangroveOrder_Test is MangroveTest {
     uint native_reserve_after = $(this).balance;
     uint userReleasedProvision = native_reserve_after - native_reserve_before;
     assertTrue(userReleasedProvision > 0, "No released provision");
-    // making sure approx is not too bad (UserreleasedProvision in O(provision - res.bounty))
+    // making sure approx is not too bad (UserReleasedProvision in O(provision - res.bounty))
     assertEq((provision - res.bounty) / userReleasedProvision, 1, "invalid amount of released provision");
   }
 

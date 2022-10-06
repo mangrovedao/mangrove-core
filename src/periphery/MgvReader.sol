@@ -21,27 +21,13 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
-
-interface MangroveLike {
-  function best(address, address) external view returns (uint);
-
-  function offers(address, address, uint) external view returns (MgvStructs.OfferPacked);
-
-  function offerDetails(address, address, uint) external view returns (MgvStructs.OfferDetailPacked);
-
-  function offerInfo(address, address, uint)
-    external
-    view
-    returns (MgvStructs.OfferUnpacked memory, MgvStructs.OfferDetailUnpacked memory);
-
-  function config(address, address) external view returns (MgvStructs.GlobalPacked, MgvStructs.LocalPacked);
-}
+import {IMangrove} from "mgv_src/IMangrove.sol";
 
 contract MgvReader {
-  MangroveLike immutable MGV;
+  IMangrove immutable MGV;
 
   constructor(address mgv) {
-    MGV = MangroveLike(payable(mgv));
+    MGV = IMangrove(payable(mgv));
   }
 
   /*

@@ -28,3 +28,4 @@ mumbai={key="${POLYGON_API_KEY}"}
 tab_width=2
 int_types="short"
 number_underscores="thousands"
+ignore = ['lib/**/*.sol','**/vendor/**/*.sol','**/preprocessed/**/*.sol']

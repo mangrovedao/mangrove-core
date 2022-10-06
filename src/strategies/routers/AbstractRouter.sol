@@ -117,18 +117,18 @@ abstract contract AbstractRouter is AccessControlled {
     virtual
     returns (bool);
 
-  ///@notice adds a maker contract address to the allowed callers of this router
+  ///@notice adds a maker contract address to the allowed makers of this router
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address
   function bind(address maker) public onlyAdmin {
     ARSt.getStorage().makers[maker] = true;
   }
 
-  ///@notice removes a maker contract address from the allowed callers of this router
+  ///@notice removes a maker contract address from the allowed makers of this router
   function unbind(address maker) public onlyAdmin {
     ARSt.getStorage().makers[maker] = false;
   }
 
-  ///@notice removes a maker contract address from the allowed callers of this router
+  ///@notice removes `msg.sender` from the allowed makers of this router
   function unbind() external onlyMakers {
     ARSt.getStorage().makers[msg.sender] = false;
   }

@@ -81,10 +81,8 @@ interface IOrderLogic {
 
   function expiring(IERC20, IERC20, uint) external returns (uint);
 
-  ///@notice Executes a resting (limit market) order on a given offer list.
-  ///@param tko the arguments in memory of the resting order
-  ///@return tkor the result of the resting order. If `offerId==0`, no resting order was posted on `msg.sender`'s behalf.
-  ///@dev as an extension of a `Forwarder` logic, this function is the only one able to call `MGV.newOffer`
-  /// It is `payable` in order to attach native tokens to cover for the potential resting order provision.
+  ///@notice Implements "Fill or Kill" or "Good till cancelled" orders on a given offer list.
+  ///@param tko the arguments in memory of the taker order
+  ///@return tkor the result of the taker order. If `offerId==0`, no resting order was posted on `msg.sender`'s behalf.
   function take(TakerOrder memory tko) external payable returns (TakerOrderResult memory tkor);
 }

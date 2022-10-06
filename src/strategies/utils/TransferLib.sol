@@ -29,7 +29,7 @@ library TransferLib {
     }
     // This low level call will not revert but instead return success=false if callee reverts, so we
     // verify that it does not revert by checking success, but we also have to check
-    // the returned data if there since some ERC20 tokens to not strictly follow the standard of reverting
+    // the returned data if any since some ERC20 tokens to not strictly follow the standard of reverting
     // but instead return false.
     (bool success, bytes memory data) =
       address(token).call(abi.encodeWithSelector(token.transfer.selector, recipient, amount));

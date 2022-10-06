@@ -114,8 +114,7 @@ interface IOfferLogic is IMaker {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) external
-    payable;
+  ) external payable;
 
   ///@notice Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove. Function call will throw if `this` contract is not the owner of `offerId`.
   ///@param deprovision is true if offer owner wishes to have the offer's provision pushed to its reserve
@@ -125,8 +124,7 @@ interface IOfferLogic is IMaker {
     IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) external
-    returns (uint received);
+  ) external returns (uint received);
 
   ///@notice returns the address of the vault holding offer maker's liquidity
   /// for `Direct` logics, this corresponds to the reserve of `this` contract

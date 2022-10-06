@@ -44,7 +44,7 @@ contract GhostTest is MangroveTest {
     // approve DAI and USDC on Mangrove for taker
     vm.startPrank(taker);
     dai.approve($(mgv), type(uint).max);
-    usdc.approve($(mgv), type(uint).max); 
+    usdc.approve($(mgv), type(uint).max);
     vm.stopPrank();
   }
 
@@ -89,7 +89,7 @@ contract GhostTest is MangroveTest {
     // - so Ghost is not really used for ghost liqudity, in this example.
     // However, to employ actual ghost liquidity it is simply a matter of
     // setting up a more refined router.
-        // check that we actually need to activate for the two 'wants' tokens
+    // check that we actually need to activate for the two 'wants' tokens
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = dai;
     tokens[1] = usdc;
@@ -101,13 +101,11 @@ contract GhostTest is MangroveTest {
     strat.activate(tokens);
   }
 
-  function postAndFundOffers(
-    uint makerGivesAmount,
-    uint makerWantsAmountDAI,
-    uint makerWantsAmountUSDC
-    ) public
-    returns (uint offerId1, uint offerId2){
-      (offerId1, offerId2) = strat.newGhostOffers{value: 2 ether}({
+  function postAndFundOffers(uint makerGivesAmount, uint makerWantsAmountDAI, uint makerWantsAmountUSDC)
+    public
+    returns (uint offerId1, uint offerId2)
+  {
+    (offerId1, offerId2) = strat.newGhostOffers{value: 2 ether}({
       gives: makerGivesAmount, // WETH
       wants1: makerWantsAmountUSDC, // USDC
       wants2: makerWantsAmountDAI, // DAI
@@ -116,18 +114,16 @@ contract GhostTest is MangroveTest {
     });
   }
 
-  function takeOffer(
-    uint makerGivesAmount,
-    uint makerWantsAmount,
-    IERC20 makerWantsToken,
-    uint offerId
-  ) public returns (uint takerGot, uint takerGave, uint bounty) {
+  function takeOffer(uint makerGivesAmount, uint makerWantsAmount, IERC20 makerWantsToken, uint offerId)
+    public
+    returns (uint takerGot, uint takerGave, uint bounty)
+  {
     // try to snipe one of the offers (using the separate taker account)
     vm.startPrank(taker);
-    ( ,  takerGot,  takerGave,  bounty, ) = mgv.snipes({
+    (, takerGot, takerGave, bounty,) = mgv.snipes({
       outbound_tkn: $(weth),
       inbound_tkn: $(makerWantsToken),
-      targets: wrap_dynamic([ offerId, makerGivesAmount, makerWantsAmount, type(uint).max]),
+      targets: wrap_dynamic([offerId, makerGivesAmount, makerWantsAmount, type(uint).max]),
       fillWants: true
     });
     vm.stopPrank();
@@ -144,11 +140,11 @@ contract GhostTest is MangroveTest {
     (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 
     //only take half of the offer
-    ( uint takerGot, uint takerGave, ) = takeOffer(makerGivesAmount/2, makerWantsAmountDAI/2, dai, offerId1);
+    (uint takerGot, uint takerGave,) = takeOffer(makerGivesAmount / 2, makerWantsAmountDAI / 2, dai, offerId1);
 
     // assert that
-    assertEq(takerGot, minusFee($(dai), $(weth), makerGivesAmount/2), "taker got wrong amount");
-    assertEq(takerGave, makerWantsAmountDAI/2, "taker gave wrong amount");
+    assertEq(takerGot, minusFee($(dai), $(weth), makerGivesAmount / 2), "taker got wrong amount");
+    assertEq(takerGave, makerWantsAmountDAI / 2, "taker gave wrong amount");
 
     // assert that neither offer posted by Ghost are live (= have been retracted)
     MgvStructs.OfferPacked offer_on_dai = mgv.offers($(weth), $(dai), offerId1);
@@ -166,7 +162,7 @@ contract GhostTest is MangroveTest {
 
     (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 
-    ( uint takerGot, uint takerGave, ) = takeOffer(makerGivesAmount, makerWantsAmountDAI, dai, offerId1);
+    (uint takerGot, uint takerGave,) = takeOffer(makerGivesAmount, makerWantsAmountDAI, dai, offerId1);
 
     // assert that
     assertEq(takerGot, minusFee($(dai), $(weth), makerGivesAmount), "taker got wrong amount");
@@ -187,12 +183,12 @@ contract GhostTest is MangroveTest {
     // not giving the start any WETH, the offer will therefor fail when taken
     (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 
-    ( uint takerGot, uint takerGave, uint bounty ) = takeOffer(makerGivesAmount, makerWantsAmountUSDC, usdc, offerId2);
+    (uint takerGot, uint takerGave, uint bounty) = takeOffer(makerGivesAmount, makerWantsAmountUSDC, usdc, offerId2);
 
     // assert that
     assertEq(takerGot, 0, "taker got wrong amount");
     assertEq(takerGave, 0, "taker gave wrong amount");
-    assertTrue( bounty > 0, "taker did not get any bounty");
+    assertTrue(bounty > 0, "taker did not get any bounty");
 
     // assert that neither offer posted by Ghost are live (= have been retracted)
     MgvStructs.OfferPacked offer_on_dai = mgv.offers($(weth), $(dai), offerId1);

@@ -111,12 +111,7 @@ abstract contract Direct is MangroveOffer {
     uint gasprice,
     uint pivotId,
     uint offerId
-  )
-    public
-    payable
-    override
-    mgvOrAdmin
-  {
+  ) public payable override mgvOrAdmin {
     MGV.updateOffer{value: msg.value}(
       address(outbound_tkn),
       address(inbound_tkn),
@@ -138,12 +133,7 @@ abstract contract Direct is MangroveOffer {
     IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  )
-    public
-    override
-    mgvOrAdmin
-    returns (uint free_wei)
-  {
+  ) public override mgvOrAdmin returns (uint free_wei) {
     free_wei = MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
     if (free_wei > 0) {
       require(MGV.withdraw(free_wei), "Direct/withdrawFromMgv/withdrawFail");

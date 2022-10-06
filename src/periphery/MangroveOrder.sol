@@ -72,17 +72,17 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
   ///@inheritdoc IOrderLogic
   function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory res) {
-    // ASSUME 
+    // ASSUME
     // `msg.sender` and `msg.sender`'s reserve added balances are (NAT_USER-`msg.value`, OUT_USER, IN_USER) for native, `tko.outbound_tkn` and `tko.inbound_tkn` balances.
     // `this` balances are (NAT_THIS+`msg.value`, OUT_THIS, IN_THIS)
-    
+
     // Pulling funds from `msg.sender`'s reserve
-    uint pulled = router().pull(tko.inbound_tkn, msg.sender, tko.takerGives, true);    
+    uint pulled = router().pull(tko.inbound_tkn, msg.sender, tko.takerGives, true);
     require(pulled == tko.takerGives, "mgvOrder/mo/transferInFail");
     // STATE
     // [`msg.sender'] (NAT_USER-`msg.value`, OUT_USER, IN_USER-`tko.takerGives`)
     // [`this`] (NAT_THIS+`msg.value`, OUT_THIS, IN_THIS+`tko.takerGives`)
-   
+
     (res.takerGot, res.takerGave, res.bounty, res.fee) = MGV.marketOrder({
       outbound_tkn: address(tko.outbound_tkn),
       inbound_tkn: address(tko.inbound_tkn),
@@ -94,7 +94,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // STATE
     // [`msg.sender'] (NAT_USER-`msg.value`, OUT_USER, IN_USER-`tko.takerGives`)
     // [`this`] (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS+`res.takerGot`, IN_THIS+`tko.takerGives`-`res.takerGave`)
-    
+
     bool isComplete = checkCompleteness(tko, res);
     // requiring `partialFillNotAllowed => (isComplete \/ restingOrder)`
     require(!tko.partialFillNotAllowed || isComplete || tko.restingOrder, "mgvOrder/mo/noPartialFill");
@@ -109,20 +109,15 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // STATE
     // [`msg.sender'] (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
     // [`this`] (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS, IN_THIS)
-    
+
     uint fund = msg.value + res.bounty; // using bounty as additional funds to provision the resting order
     if (tko.restingOrder && !isComplete) {
-      // When posting a resting order `msg.sender` becomes a maker. 
+      // When posting a resting order `msg.sender` becomes a maker.
       // For maker orders outbound tokens are what makers send. Here `msg.sender` wants to send `tko.inbound`.
-      // The offer list on which this contract must post `msg.sender`'s resting order is thus `(tko.inbound_tkn, tko.outbound_tkn)` 
+      // The offer list on which this contract must post `msg.sender`'s resting order is thus `(tko.inbound_tkn, tko.outbound_tkn)`
       // the call below will fill the memory data `res`.
-      fund = postRestingOrder({
-        tko: tko, 
-        outbound_tkn: tko.inbound_tkn, 
-        inbound_tkn: tko.outbound_tkn, 
-        res: res, 
-        fund: fund  
-      }); 
+      fund =
+        postRestingOrder({tko: tko, outbound_tkn: tko.inbound_tkn, inbound_tkn: tko.outbound_tkn, res: res, fund: fund});
       // STATE (`postRestingOrder` succeeded)
       // [`msg.sender'] (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
       // [`this`] (NAT_THIS, OUT_THIS, IN_THIS)
@@ -136,7 +131,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       // `fund == msg.value + res.bounty`.
       // `res.offerId == 0`
     }
-    
+
     if (fund > 0) {
       // NB this calls gives reentrancy power to callee, but OK since:
       // 1. callee is `msg.sender` so no grieffing risk of making this call fail for out of gas
@@ -168,9 +163,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     IERC20 inbound_tkn,
     TakerOrderResult memory res,
     uint fund
-  )
-    internal returns (uint refund)
-  {
+  ) internal returns (uint refund) {
     res.offerId = _newOffer(
       NewOfferArgs({
         outbound_tkn: outbound_tkn,

@@ -119,14 +119,13 @@ contract GhostTest is MangroveTest {
     returns (uint takerGot, uint takerGave, uint bounty)
   {
     // try to snipe one of the offers (using the separate taker account)
-    vm.startPrank(taker);
+    vm.prank(taker);
     (, takerGot, takerGave, bounty,) = mgv.snipes({
       outbound_tkn: $(weth),
       inbound_tkn: $(makerWantsToken),
       targets: wrap_dynamic([offerId, makerGivesAmount, makerWantsAmount, type(uint).max]),
       fillWants: true
     });
-    vm.stopPrank();
   }
 
   function execTraderStratWithPartialFillSucces() public {

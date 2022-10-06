@@ -15,10 +15,10 @@ pragma abicoder v2;
 
 import {IERC20} from "mgv_src/MgvLib.sol";
 
-// TODO-foundry-merge explain what this contract does
-
+///@title This library helps with safely interacting with ERC20 tokens
+///@notice Transferring 0 or to self will be skipped.
+///@notice ERC20 tokens returning bool instead of reverting are handled.
 library TransferLib {
-  // utils
   ///@notice This transfer amount of token to recipient address
   ///@param token Token to be transferred
   ///@param recipient Address of the recipient the tokens will be transferred to
@@ -27,6 +27,10 @@ library TransferLib {
     if (amount == 0 || recipient == address(this)) {
       return true;
     }
+    // This low level call will not revert but instead return success=false if callee reverts, so we
+    // verify that it does not revert by checking success, but we also have to check
+    // the returned data if any since some ERC20 tokens to not strictly follow the standard of reverting
+    // but instead return false.
     (bool success, bytes memory data) =
       address(token).call(abi.encodeWithSelector(token.transfer.selector, recipient, amount));
     return (success && (data.length == 0 || abi.decode(data, (bool))));
@@ -46,6 +50,10 @@ library TransferLib {
     if (spender == address(this)) {
       return transferToken(token, recipient, amount);
     }
+    // This low level call will not revert but instead return success=false if callee reverts, so we
+    // verify that it does not revert by checking success, but we also have to check
+    // the returned data if there since some ERC20 tokens to not strictly follow the standard of reverting
+    // but instead return false.
     (bool success, bytes memory data) =
       address(token).call(abi.encodeWithSelector(token.transferFrom.selector, spender, recipient, amount));
     return (success && (data.length == 0 || abi.decode(data, (bool))));

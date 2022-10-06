@@ -118,8 +118,9 @@ contract MangroveOrder_Test is MangroveTest {
       outbound_tkn: base,
       inbound_tkn: quote,
       partialFillNotAllowed: true,
-      // There are enough offers to absorb all the takerGives, but not enough to fill wants, so it becomes incomplete
-      // since fillWants is true
+      // The highest price taker wants to pay is takerGives/takerWants. We want takerWants to not be completely filled, so it is larger than 3 ether
+      // this then requires takerGives to be larger than 0.42 ether for all orders to be picked.
+      // Therefore takerGives is also not completely filled so fillWants: false will also not be completely filled here.
       fillWants: true,
       takerWants: 3000000000000000001,
       makerWants: 3000000000000000001,

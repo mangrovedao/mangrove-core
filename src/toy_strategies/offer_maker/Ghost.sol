@@ -42,9 +42,11 @@ contract Ghost is Direct {
     setRouter(router_);
     // adding `this` to the allowed makers of `router_` to pull/push liquidity
     router_.bind(address(this));
-    // Note: `reserve()` needs to approve `this.router()` for base token transfer
-    router_.setAdmin(admin);
-    setReserve(admin);
+    if (admin == msg.sender) {
+      // Note: `reserve()` needs to approve `this.router()` for base token transfer
+      router_.setAdmin(admin);
+      setReserve(admin);
+    }
   }
 
   /**

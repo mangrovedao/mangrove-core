@@ -41,6 +41,15 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@dev outbound_tkn => inbound_tkn => offerId => OwnerData
   mapping(IERC20 => mapping(IERC20 => mapping(uint => OwnerData))) internal ownerData;
 
+  ///@notice function caller must be either Mangrove or offer owner
+  modifier mgvOrOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
+    if (msg.sender != address(MGV)) {
+      OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
+      require(od.owner == msg.sender, "Forwarder/retractOffer/unauthorized");
+    }
+    _;
+  }
+
   ///@notice Forwarder constructor
   ///@param mgv the deployed Mangrove contract on which `this` contract will post offers.
   ///@param router_ the router that `this` contract will use to pull/push liquidity from offer maker's reserve. This cannot be `NO_ROUTER`.
@@ -139,18 +148,20 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   /// @notice Inserts a new offer on a Mangrove Offer List.
+  /// @dev If inside a hook, one should call `_newOffer` to create a new offer and not directly `MGV.newOffer` to make sure one is correclty dealing with:
+  /// * offer ownership
+  /// * offer provisions and gasprice
   /// @param offData memory location of the function's arguments
   /// @return offerId the identifier of the new offer on the offer list
-  /// @dev Forwarder logic does not manage user funds on Mangrove, as a consequence:
+  /// Forwarder logic does not manage user funds on Mangrove, as a consequence:
   /// An offer maker's redeemable provisions on Mangrove is just the sum $S_locked(maker)$ of locked provision in all live offers it owns
   /// plus the sum $S_free(maker)$ of `wei_balance`'s in all dead offers it owns (see `OwnerData.wei_balance`).
-  /// Notice that $S_locked(maker)$ is not part of `this` contract's balance on Mangrove.
-  /// However $\sum_i S_free(maker_i)$ <= MGV.balanceOf(address(this))`.
+  /// Notice $\sum_i S_free(maker_i)$ <= MGV.balanceOf(address(this))`.
   /// Any fund of an offer maker on Mangrove that is either not locked on Mangrove or stored in the `OwnerData` free wei's is thus not recoverable by the offer maker.
-  /// Therefore we need to make sure that all `msg.value` is used to provision the offer at `gasprice`.
+  /// Therefore we need to make sure that all `msg.value` is either used to provision the offer at `gasprice` or stored in the offer data under `wei_balance`.
   /// To do so, we do not let offer maker fix a gasprice. Rather we derive the gasprice based on `msg.value`.
   /// Because of rounding errors in `deriveGasprice` a small amount of WEIs will accumulate in mangrove's balance of `this` contract
-  /// We assign this dust to the corresponding `wei_balance` of `OwnerData`.
+  /// We assign this leftover to the corresponding `wei_balance` of `OwnerData`.
   function _newOffer(NewOfferArgs memory offData) internal returns (uint offerId) {
     (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) =
       MGV.config(address(offData.outbound_tkn), address(offData.inbound_tkn));
@@ -196,9 +207,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     uint gasprice, // value ignored but kept to satisfy `Forwarder is IOfferLogic`
     uint pivotId,
     uint offerId
-  ) public payable override {
-    OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
-    require(msg.sender == od.owner || msg.sender == address(MGV), "Forwarder/updateOffer/unauthorized");
+  ) public payable override mgvOrOwner(outbound_tkn, inbound_tkn, offerId) {
     gasprice; // ssh
     UpdateOfferArgs memory upd;
 
@@ -257,7 +266,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@notice Implementation body of `updateOffer`, using arguments and variables on memory to avoid stack too deep.
   function _updateOffer(UpdateOfferArgs memory args) private {
     UpdateOfferVars memory vars;
-    // re-deriving gasprice if necessary
+    // re-deriving gasprice only if necessary
     if (args.fund != 0) {
       // adding current locked provision to funds (0 if offer is deprovisioned)
       (vars.gasprice, vars.leftover) = deriveGasprice(
@@ -307,10 +316,10 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
     public
     override
+    mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
     returns (uint free_wei)
   {
     OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
-    require(od.owner == msg.sender || address(MGV) == msg.sender, "Forwarder/retractOffer/unauthorized");
     free_wei = deprovision ? od.wei_balance : 0;
     free_wei += MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
     if (free_wei > 0) {
@@ -404,6 +413,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     return "";
   }
 
+  ///@notice Verifying that this contract has a router and that its checklist does not revert.
   function __checkList__(IERC20 token) internal view virtual override {
     AbstractRouter router_ = router();
     require(router_ != NO_ROUTER, "Forwarder/MissingRouter");

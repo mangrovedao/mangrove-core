@@ -23,7 +23,7 @@ import {console2} from "forge-std/console2.sol";
 
 ///@title Class for maker contracts that forward external offer makers instructions to Mangrove in a permissionless fashion.
 ///@notice Each offer posted via this contract are managed by their offer maker, not by this contract's admin.
-///@notice This class implements IForwarder, which contains specific Forwarder logic functions in additions to IOfferlogic interface.
+///@notice This class implements IForwarder, which contains specific Forwarder logic functions in additions to IOfferLogic interface.
 
 abstract contract Forwarder is IForwarder, MangroveOffer {
   // approx of amount of gas units required to complete `__posthookFallback__` when evaluating penalty.
@@ -126,7 +126,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   ///@notice Memory allocation for `_newOffer`'s arguments.
-  ///@param outbound_tkn outoubd token of the offer list.
+  ///@param outbound_tkn outbound token of the offer list.
   ///@param inbound_tkn inbound token of the offer list.
   ///@param wants the amount of inbound tokens the maker wants for a complete fill.
   ///@param gives the amount of outbound tokens the maker gives for a complete fill.
@@ -148,7 +148,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   /// @notice Inserts a new offer on a Mangrove Offer List.
-  /// @dev If inside a hook, one should call `_newOffer` to create a new offer and not directly `MGV.newOffer` to make sure one is correclty dealing with:
+  /// @dev If inside a hook, one should call `_newOffer` to create a new offer and not directly `MGV.newOffer` to make sure one is correctly dealing with:
   /// * offer ownership
   /// * offer provisions and gasprice
   /// @param offData memory location of the function's arguments

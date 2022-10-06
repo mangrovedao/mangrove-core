@@ -83,6 +83,6 @@ interface IOrderLogic {
 
   ///@notice Implements "Fill or Kill" or "Good till cancelled" orders on a given offer list.
   ///@param tko the arguments in memory of the taker order
-  ///@return tkor the result of the taker order. If `offerId==0`, no resting order was posted on `msg.sender`'s behalf.
-  function take(TakerOrder memory tko) external payable returns (TakerOrderResult memory tkor);
+  ///@return res the result of the taker order. If `offerId==0`, no resting order was posted on `msg.sender`'s behalf.
+  function take(TakerOrder memory tko) external payable returns (TakerOrderResult memory res);
 }

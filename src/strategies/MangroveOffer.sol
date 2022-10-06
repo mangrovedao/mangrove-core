@@ -54,8 +54,13 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   /// @inheritdoc IOfferLogic
   function offerGasreq() public view returns (uint) {
+    return detailedOfferGasreq(false);
+  }
+
+  /// @inheritdoc IOfferLogic
+  function detailedOfferGasreq(bool constantPartOnly) public view returns (uint) {
     AbstractRouter router_ = router();
-    if (router_ != NO_ROUTER) {
+    if (router_ != NO_ROUTER && !constantPartOnly) {
       return MOS.getStorage().offerGasreq + router_.gasOverhead();
     } else {
       return MOS.getStorage().offerGasreq;

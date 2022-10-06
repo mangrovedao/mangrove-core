@@ -59,9 +59,7 @@ contract GenericFork is Script {
   /* Read addresses from JSON files */
 
   function addressesFile(string memory category, string memory suffix) public view returns (string memory) {
-    return string.concat(
-      vm.projectRoot(), "/addresses/", category, "/", NETWORK, suffix, ".json"
-    );
+    return string.concat(vm.projectRoot(), "/addresses/", category, "/", NETWORK, suffix, ".json");
   }
 
   function addressesFile(string memory category) public view returns (string memory) {
@@ -78,13 +76,13 @@ contract GenericFork is Script {
         try (new Parser()).parseJsonBytes(jsonBytes) returns (Record[] memory records) {
           return records;
         } catch {
-          revert(string.concat("Fork: error parsing JSON as Record[]. File: ", fileName));
+          revert(string.concat("Fork: JSON to Record[] parsing error on file ", fileName));
         }
       } catch {
-        revert(string.concat("Fork: error parsing file as JSON. File: ", fileName));
+        revert(string.concat("Fork: JSON parsing error on file ", fileName));
       }
     } catch {
-      console.log("Fork: cannot read file. Ignoring. File: %s", fileName);
+      console.log("Fork: cannot read deployment file %s. Ignoring.", fileName);
     }
 
     // return empty record array by default

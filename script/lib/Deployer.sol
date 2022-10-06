@@ -78,7 +78,6 @@ abstract contract Deployer is Script2 {
         }
       }
     }
-    console.log(broadcaster);
     vm.broadcast(broadcaster);
   }
 
@@ -103,9 +102,18 @@ abstract contract Deployer is Script2 {
       line(end ? "  }" : "  },");
     }
     line("]");
-    vm.writeFile(fork.addressesFile("deployed.backup", string.concat("-", vm.toString(block.timestamp), ".backup")), out);
+    string memory backupFile =
+      fork.addressesFile("deployed.backup", string.concat("-", vm.toString(block.timestamp), ".backup"));
+    string memory mainFile = fork.addressesFile("deployed");
+    vm.writeFile(backupFile, out);
     if (writeDeploy) {
-      vm.writeFile(fork.addressesFile("deployed"), out);
+      vm.writeFile(mainFile, out);
+    } else {
+      console.log(
+        "You have not set WRITE_DEPLOY=true. The main deployment file will not be updated. To update it after running this script, copy %s to %s",
+        backupFile,
+        mainFile
+      );
     }
   }
 

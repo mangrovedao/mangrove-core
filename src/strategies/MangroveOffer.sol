@@ -324,13 +324,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     }
   }
 
-  ///@inheritdoc IOfferLogic
-  ///@param outbound_tkn the outbound token used to identify the order book
-  ///@param inbound_tkn the inbound token used to identify the order book
-  ///@param gasreq the gas required by the offer. Give > type(uint24).max to use `this.offerGasreq()`
-  ///@param gasprice the upper bound on gas price. Give 0 to use Mangrove's gasprice
-  ///@param offerId the offer id. Set this to 0 if one is not reposting an offer
-  ///@dev if `offerId` is not in the Order Book, will simply return how much is needed to post
+  /// @inheritdoc IOfferLogic
   function getMissingProvision(IERC20 outbound_tkn, IERC20 inbound_tkn, uint gasreq, uint gasprice, uint offerId)
     public
     view

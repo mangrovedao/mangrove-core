@@ -31,7 +31,7 @@ import {MgvLib, IERC20} from "src/MgvLib.sol";
 /// A FOK is a taker order that is either completely filled or cancelled.
 
 contract MangroveOrder is Forwarder, IOrderLogic {
-  ///@notice `expiring[outbound_tkn][inbound_tkn][offerId]` gives timestamp beyond which `offerId` on the (outbound_tkn, inbound_tkn)` offer list should renege on trade.
+  ///@notice `expiring[outbound_tkn][inbound_tkn][offerId]` gives timestamp beyond which `offerId` on the `(outbound_tkn, inbound_tkn)` offer list should renege on trade.
   mapping(IERC20 => mapping(IERC20 => mapping(uint => uint))) public expiring;
 
   ///@notice MangroveOrder constructor extends Forwarder with a simple router.

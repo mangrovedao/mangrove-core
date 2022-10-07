@@ -79,6 +79,11 @@ interface IOrderLogic {
     uint penalty
   );
 
+  ///@notice Timestamp beyond which the given `offerId` should renege on trade.
+  ///@param outbound_tkn The outbound token of the order.
+  ///@param inbound_tkn The inbound token of the order.
+  ///@param offerId The id of the offer to query for expiry for.
+  ///@return res The timestamp beyond which `offerId` on the `(outbound_tkn, inbound_tkn)` offer list should renege on trade.
   function expiring(IERC20, IERC20, uint) external returns (uint);
 
   ///@notice Implements "Fill or Kill" or "Good till cancelled" orders on a given offer list.

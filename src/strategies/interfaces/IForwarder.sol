@@ -44,6 +44,7 @@ interface IForwarder {
   /// @param outbound_tkn the outbound token of the offer list.
   /// @param inbound_tkn the inbound token of the offer list.
   /// @param offerId the offer identifier on the offer list.
+  /// @return owner the offer maker that can manage the offer.
   /// @dev `ownerOf(in,out,id)` is equivalent to `offerOwners(in, out, [id])` but more gas efficient.
   function ownerOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) external view returns (address owner);
 }

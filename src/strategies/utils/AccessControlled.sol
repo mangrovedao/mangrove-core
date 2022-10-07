@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AccessedControlled.sol
+// AccessControlled.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 

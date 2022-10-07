@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// SimpleOrale.sol
+// SimpleOracle.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 

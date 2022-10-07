@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AdvancedCompoundRetail.sol
+// OfferProxy.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 

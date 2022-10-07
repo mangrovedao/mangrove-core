@@ -21,21 +21,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import {MgvLib, MgvStructs} from "../MgvLib.sol";
-
-interface MangroveLike {
-  function snipesFor(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint[4][] calldata targets,
-    bool fillWants,
-    address taker
-  ) external returns (uint successes, uint takerGot, uint takerGave, uint bounty);
-
-  function offerInfo(address outbound_tkn, address inbound_tkn, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferUnpacked memory, MgvStructs.OfferUnpacked memory);
-}
+import {IMangrove} from "mgv_src/IMangrove.sol";
 
 /* The purpose of the Cleaner contract is to execute failing offers and collect
  * their associated bounty. It takes an array of offers with same definition as
@@ -51,10 +37,10 @@ interface MangroveLike {
    TODO: add `collectWith` with an additional `taker` argument.
 */
 contract MgvCleaner {
-  MangroveLike immutable MGV;
+  IMangrove immutable MGV;
 
   constructor(address mgv) {
-    MGV = MangroveLike(mgv);
+    MGV = IMangrove(payable(mgv));
   }
 
   receive() external payable {}
@@ -65,7 +51,7 @@ contract MgvCleaner {
     returns (uint bal)
   {
     unchecked {
-      (uint successes,,,) = MGV.snipesFor(outbound_tkn, inbound_tkn, targets, fillWants, msg.sender);
+      (uint successes,,,,) = MGV.snipesFor(outbound_tkn, inbound_tkn, targets, fillWants, msg.sender);
       require(successes == 0, "mgvCleaner/anOfferDidNotFail");
       bal = address(this).balance;
       bool noRevert;

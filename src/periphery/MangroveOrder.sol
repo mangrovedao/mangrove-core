@@ -125,7 +125,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       // * (NAT_THIS, OUT_THIS, IN_THIS)
       // * `fund == 0`
       // * `ownerData[tko.inbound_tkn][tko.outbound_tkn][res.offerId]=={owner:msg.sender, wei_balance:rounding_error(fund,offerGasReq())}`
-      // * Mangrove emitted a unique `OfferWrite` log whose `maker` field is `address(this)` and `offerId` is `res.offerId`.
+      // * Mangrove emitted an `OfferWrite` log whose `maker` field is `address(this)` and `offerId` is `res.offerId`.
 
       // STATE (`postRestingOrder` failed)
       // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
@@ -141,8 +141,8 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       (bool noRevert,) = msg.sender.call{value: fund}("");
       require(noRevert, "mgvOrder/mo/refundFail");
       // STATE (`postRestingOrder` failed)
-      // [`msg.sender'] (NAT_USER+`res.bounty`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
-      // [`this`] (NAT_THIS, OUT_THIS, IN_THIS)
+      // * (NAT_USER+`res.bounty`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
+      // * (NAT_THIS, OUT_THIS, IN_THIS)
     }
     emit OrderSummary({
       mangrove: MGV,

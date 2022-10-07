@@ -21,11 +21,11 @@ import {AccessControlledStorage as ACS} from "./AccessControlledStorage.sol";
 contract AccessControlled {
   /**
    * @notice `AccessControlled`'s constructor
-   * @param _admin The address of the admin that can access privileged functions and also allowed to change the admin. Cannot be `address(0)`.
+   * @param admin_ The address of the admin that can access privileged functions and also allowed to change the admin. Cannot be `address(0)`.
    */
-  constructor(address _admin) {
-    require(_admin != address(0), "accessControlled/0xAdmin");
-    ACS.getStorage().admin = _admin;
+  constructor(address admin_) {
+    require(admin_ != address(0), "accessControlled/0xAdmin");
+    ACS.getStorage().admin = admin_;
   }
 
   //TODO [lnist] It does not seem like onlyCaller is used with caller being address(0). To avoid accidents, it seems safer to remove the option.
@@ -55,10 +55,10 @@ contract AccessControlled {
 
   /**
    * @notice This sets the admin. Only the current admin can change the admin.
-   * @param _admin The new admin. Cannot be `address(0)`.
+   * @param admin_ The new admin. Cannot be `address(0)`.
    */
-  function setAdmin(address _admin) public onlyAdmin {
-    require(_admin != address(0), "AccessControlled/0xAdmin");
-    ACS.getStorage().admin = _admin;
+  function setAdmin(address admin_) public onlyAdmin {
+    require(admin_ != address(0), "AccessControlled/0xAdmin");
+    ACS.getStorage().admin = admin_;
   }
 }

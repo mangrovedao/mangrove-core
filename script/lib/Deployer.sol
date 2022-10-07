@@ -57,8 +57,8 @@ abstract contract Deployer is Script2 {
       fork = GenericFork(singleton("Deployer:Fork"));
     }
 
-    try vm.envBool("WRITE_DEPLOY") returns (bool _writeDeploy) {
-      writeDeploy = _writeDeploy;
+    try vm.envBool("WRITE_DEPLOY") returns (bool writeDeploy_) {
+      writeDeploy = writeDeploy_;
     } catch {}
   }
 

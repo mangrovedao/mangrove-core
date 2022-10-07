@@ -173,8 +173,8 @@ contract Mango is Direct {
     return MangoStorage.getStorage().delta;
   }
 
-  function setDelta(uint _delta) public mgvOrAdmin {
-    MangoStorage.getStorage().delta = _delta;
+  function setDelta(uint delta_) public mgvOrAdmin {
+    MangoStorage.getStorage().delta = delta_;
   }
 
   function shift() external view onlyAdmin returns (int) {

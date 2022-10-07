@@ -36,9 +36,9 @@ contract MgvOracle is IMgvMonitor {
   uint lastReceivedGasPrice;
   uint lastReceivedDensity;
 
-  constructor(address _governance, address _initialMutator) {
-    governance = _governance;
-    mutator = _initialMutator;
+  constructor(address governance_, address initialMutator_) {
+    governance = governance_;
+    mutator = initialMutator_;
 
     /* Set initial density from the MgvOracle to let Mangrove use its internal density by default.
 
@@ -63,10 +63,10 @@ contract MgvOracle is IMgvMonitor {
     // Do nothing
   }
 
-  function setMutator(address _mutator) external {
+  function setMutator(address mutator_) external {
     authOnly();
 
-    mutator = _mutator;
+    mutator = mutator_;
   }
 
   function setGasPrice(uint gasPrice) external {

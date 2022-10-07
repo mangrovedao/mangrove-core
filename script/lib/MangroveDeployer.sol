@@ -37,7 +37,7 @@ contract MangroveDeployer is Deployer {
     fork.set("MgvCleaner", address(cleaner));
 
     broadcast();
-    oracle = new MgvOracle({_governance: chief, _initialMutator: chief});
+    oracle = new MgvOracle({governance_: chief, initialMutator_: chief});
     fork.set("MgvOracle", address(oracle));
 
     broadcast();

@@ -121,14 +121,14 @@ contract MgvReader {
   {
     unchecked {
       (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) = MGV.config(outbound_tkn, inbound_tkn);
-      uint _gp;
+      uint gp;
       uint global_gasprice = global.gasprice();
       if (global_gasprice > ofr_gasprice) {
-        _gp = global_gasprice;
+        gp = global_gasprice;
       } else {
-        _gp = ofr_gasprice;
+        gp = ofr_gasprice;
       }
-      return (ofr_gasreq + local.offer_gasbase()) * _gp * 10 ** 9;
+      return (ofr_gasreq + local.offer_gasbase()) * gp * 10 ** 9;
     }
   }
 }

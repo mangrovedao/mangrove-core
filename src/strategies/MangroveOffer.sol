@@ -22,12 +22,10 @@ import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
 
 /// @title This contract is the basic building block for Mangrove strats.
 /// @notice It contains the mandatory interface expected by Mangrove (`IOfferLogic` is `IMaker`) and enforces additional functions implementations (via `IOfferLogic`).
-/// In the comments we use the term "offer maker" to designate the address that controls updates of an offer on mangrove.
-/// In `Direct` strategies, `this` contract is the offer maker, in `Forwarder` strategies, the offer maker should be `msg.sender` of the annotated function.
 /// @dev Naming scheme:
 /// `f() public`: can be used, as is, in all descendants of `this` contract
-/// `_f() internal`: descendant of this contract should provide a public wrapper for this function
-/// `__f__() virtual internal`: descendant of this contract may override this function to specialize behavior of `makerExecute` or `makerPosthook`
+/// `_f() internal`: descendant of this contract should provide a public wrapper for this function, with necessary guards.
+/// `__f__() virtual internal`: descendant of this contract should override this function to specialize it to the needs of the strat.
 
 abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   IMangrove public immutable MGV;
@@ -35,18 +33,19 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   bytes32 constant OUT_OF_FUNDS = keccak256("mgv/insufficientProvision");
   bytes32 constant BELOW_DENSITY = keccak256("mgv/writeOffer/density/tooLow");
 
+  ///@notice guards for restricting a function call to either `MGV` or `admin()`.
   modifier mgvOrAdmin() {
     require(msg.sender == admin() || msg.sender == address(MGV), "AccessControlled/Invalid");
     _;
   }
 
-  ///@notice Mandatory function to allow `this` contract to receive native tokens from Mangrove after a call to `MGV.withdraw()`
+  ///@notice Mandatory function to allow `this` to receive native tokens from Mangrove after a call to `MGV.withdraw(...,deprovision:true)`
   ///@dev override this function if `this` contract needs to handle local accounting of user funds.
   receive() external payable virtual {}
 
   /**
    * @notice `MangroveOffer`'s constructor
-   * @param mgv The Mangrove deployment that is allowed to call `this` contract for trade execution and posthook and on which `this` contract will post offers.
+   * @param mgv The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
    */
   constructor(IMangrove mgv) AccessControlled(msg.sender) {
     MGV = mgv;

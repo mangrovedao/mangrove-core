@@ -66,6 +66,12 @@ contract GhostTest is MangroveTest {
     execTraderStratWithFallback();
   }
 
+  function test_offerAlreadyLive() public {
+    deployStrat();
+
+    execTraderStratWithOfferAlreadyLive();
+  }
+
   function deployStrat() public {
     strat = new Ghost({
       mgv: IMangrove($(mgv)),
@@ -172,6 +178,30 @@ contract GhostTest is MangroveTest {
     MgvStructs.OfferPacked offer_on_dai = mgv.offers($(weth), $(dai), offerId1);
     MgvStructs.OfferPacked offer_on_usdc = mgv.offers($(weth), $(usdc), offerId2);
     assertTrue(!mgv.isLive(offer_on_dai), "weth->dai offer should have been retracted");
+    assertTrue(!mgv.isLive(offer_on_usdc), "weth->usdc offer should have been retracted");
+  }
+
+  function execTraderStratWithOfferAlreadyLive() public {
+    uint makerGivesAmount = 0.15 ether;
+    uint makerWantsAmountDAI = cash(dai, 300);
+    uint makerWantsAmountUSDC = cash(usdc, 300);
+
+    deal($(weth), $(strat), cash(weth, 10));
+
+    (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
+
+    vm.expectRevert("Ghost/offer1AlreadyActive");
+    postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
+
+    strat.retractOffer(weth, usdc, offerId1, false);
+
+    vm.expectRevert("Ghost/offer2AlreadyActive");
+    postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
+
+    // assert that neither offer posted by Ghost are live (= have been retracted)
+    MgvStructs.OfferPacked offer_on_dai = mgv.offers($(weth), $(dai), offerId1);
+    MgvStructs.OfferPacked offer_on_usdc = mgv.offers($(weth), $(usdc), offerId2);
+    assertTrue(mgv.isLive(offer_on_dai), "weth->dai offer should not have been retracted");
     assertTrue(!mgv.isLive(offer_on_usdc), "weth->usdc offer should have been retracted");
   }
 

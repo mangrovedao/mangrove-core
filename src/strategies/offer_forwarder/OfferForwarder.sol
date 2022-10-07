@@ -13,9 +13,9 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
-import "mgv_src/strategies/interfaces/IMakerLogic.sol";
-import "mgv_src/strategies/routers/SimpleRouter.sol";
+import "src/strategies/offer_forwarder/abstract/Forwarder.sol";
+import "src/strategies/interfaces/IMakerLogic.sol";
+import "src/strategies/routers/SimpleRouter.sol";
 
 contract OfferForwarder is IMakerLogic, Forwarder {
   constructor(IMangrove mgv, address deployer) Forwarder(mgv, new SimpleRouter()) {

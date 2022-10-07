@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/routers/AbstractRouter.sol";
+import "src/strategies/routers/AbstractRouter.sol";
 
 library MangoStorage {
   /**

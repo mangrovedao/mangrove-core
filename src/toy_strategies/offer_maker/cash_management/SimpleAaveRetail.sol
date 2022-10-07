@@ -13,8 +13,8 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/offer_maker/OfferMaker.sol";
-import "mgv_src/strategies/routers/AaveRouter.sol";
+import "src/strategies/offer_maker/OfferMaker.sol";
+import "src/strategies/routers/AaveRouter.sol";
 
 contract SimpleAaveRetail is OfferMaker {
   bytes32 public constant NAME = "SimpleAaveRetail";

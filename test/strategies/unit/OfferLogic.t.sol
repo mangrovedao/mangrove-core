@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
-import "mgv_src/strategies/offer_maker/OfferMaker.sol";
+import "src/strategies/offer_maker/OfferMaker.sol";
 
 // unit tests for (single /\ multi) user strats (i.e unit tests that are non specific to either single or multi user feature)
 

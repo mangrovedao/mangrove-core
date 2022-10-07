@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 // pragma experimental ABIEncoderV2;
 
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
-import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
+import {MgvOracle} from "src/periphery/MgvOracle.sol";
 
 import {Test2} from "mgv_test/lib/Test2.sol";
 

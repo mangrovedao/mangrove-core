@@ -18,7 +18,7 @@ import "./MangoImplementation.sol";
 import "../../abstract/Direct.sol";
 import "../../../routers/AbstractRouter.sol";
 import "../../../routers/SimpleRouter.sol";
-import {MgvLib} from "mgv_src/MgvLib.sol";
+import {MgvLib} from "src/MgvLib.sol";
 
 /**
  * Discrete automated market making strat

@@ -13,12 +13,12 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
-import {IForwarder} from "mgv_src/strategies/interfaces/IForwarder.sol";
-import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
-import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
-import {MgvLib, IERC20, MgvStructs} from "mgv_src/MgvLib.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
+import {MangroveOffer} from "src/strategies/MangroveOffer.sol";
+import {IForwarder} from "src/strategies/interfaces/IForwarder.sol";
+import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
+import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
+import {MgvLib, IERC20, MgvStructs} from "src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
 import {console2} from "forge-std/console2.sol";
 
 ///@title Class for maker contracts that forward external offer makers instructions to Mangrove in a permissionless fashion.

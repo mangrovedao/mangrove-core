@@ -13,9 +13,9 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import "mgv_src/strategies/routers/AbstractRouter.sol";
-import "mgv_src/strategies/interfaces/IMakerLogic.sol";
+import "src/strategies/offer_maker/abstract/Direct.sol";
+import "src/strategies/routers/AbstractRouter.sol";
+import "src/strategies/interfaces/IMakerLogic.sol";
 
 contract OfferMaker is IMakerLogic, Direct {
   constructor(IMangrove mgv, AbstractRouter router_, address deployer) Direct(mgv, router_) {

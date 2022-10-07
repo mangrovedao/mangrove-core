@@ -13,12 +13,12 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {Forwarder, MangroveOffer} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
-import {IOrderLogic} from "mgv_src/strategies/interfaces/IOrderLogic.sol";
-import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
-import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
-import {MgvLib, IERC20} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
+import {Forwarder, MangroveOffer} from "src/strategies/offer_forwarder/abstract/Forwarder.sol";
+import {IOrderLogic} from "src/strategies/interfaces/IOrderLogic.sol";
+import {SimpleRouter} from "src/strategies/routers/SimpleRouter.sol";
+import {TransferLib} from "src/strategies/utils/TransferLib.sol";
+import {MgvLib, IERC20} from "src/MgvLib.sol";
 
 ///@title MangroveOrder. A periphery contract to Mangrove protocol that implements "Good till cancelled" (GTC) orders as well as "fill or kill" (FOK) orders.
 ///@notice A GTC is a taker order (offer taking) followed by a maker order (offer posting) when the taker order was partially filled.

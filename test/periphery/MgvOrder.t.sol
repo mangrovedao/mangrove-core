@@ -4,10 +4,10 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {MangroveOrderEnriched as MgvOrder} from "mgv_src/periphery/MangroveOrderEnriched.sol";
-import "mgv_src/strategies/interfaces/IOrderLogic.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
+import {MangroveOrderEnriched as MgvOrder} from "src/periphery/MangroveOrderEnriched.sol";
+import "src/strategies/interfaces/IOrderLogic.sol";
+import {MgvStructs} from "src/MgvLib.sol";
 
 contract MangroveOrder_Test is MangroveTest {
   // to check ERC20 logging

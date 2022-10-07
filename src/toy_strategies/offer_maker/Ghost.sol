@@ -13,9 +13,9 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import "mgv_src/strategies/routers/SimpleRouter.sol";
-import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
+import "src/strategies/offer_maker/abstract/Direct.sol";
+import "src/strategies/routers/SimpleRouter.sol";
+import {MgvLib, MgvStructs} from "src/MgvLib.sol";
 
 contract Ghost is Direct {
   IERC20 public immutable BASE;

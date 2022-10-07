@@ -4,8 +4,8 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 // import "mgv_test/lib/Fork.sol";
 
-import "mgv_src/strategies/offer_maker/OfferMaker.sol";
-import "mgv_src/strategies/routers/AbstractRouter.sol";
+import "src/strategies/offer_maker/OfferMaker.sol";
+import "src/strategies/routers/AbstractRouter.sol";
 
 contract MakerPermissionTest is MangroveTest {
   TestToken weth;

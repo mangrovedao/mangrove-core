@@ -14,8 +14,8 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {IERC20} from "mgv_src/MgvLib.sol";
-import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
+import {IERC20} from "src/MgvLib.sol";
+import {TransferLib} from "src/strategies/utils/TransferLib.sol";
 import {AbstractRouter} from "./AbstractRouter.sol";
 
 ///@notice `SimpleRouter` instances pull (push) liquidity directly from (to) the reserve

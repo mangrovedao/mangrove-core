@@ -14,9 +14,9 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
+import {AccessControlled} from "src/strategies/utils/AccessControlled.sol";
 import {AbstractRouterStorage as ARSt} from "./AbstractRouterStorage.sol";
-import {IERC20} from "mgv_src/MgvLib.sol";
+import {IERC20} from "src/MgvLib.sol";
 
 /// @title AbstractRouter
 /// @notice Partial implementation and requirements for liquidity routers.

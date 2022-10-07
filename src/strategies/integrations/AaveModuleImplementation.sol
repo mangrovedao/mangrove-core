@@ -24,8 +24,8 @@ import {
   DataTypes,
   RC
 } from "./AaveModuleStorage.sol";
-import {IERC20} from "mgv_src/MgvLib.sol";
-import "mgv_src/strategies/utils/TransferLib.sol";
+import {IERC20} from "src/MgvLib.sol";
+import "src/strategies/utils/TransferLib.sol";
 
 contract AaveV3ModuleImplementation {
   IPool public immutable POOL;

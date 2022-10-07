@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "./OfferLogic.t.sol";
-import "mgv_src/strategies/routers/AaveRouter.sol";
+import "src/strategies/routers/AaveRouter.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 
 contract AaveRouterForkedTest is OfferLogicTest {

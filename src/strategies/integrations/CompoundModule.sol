@@ -13,10 +13,10 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/vendor/compound/ICompound.sol";
-import "mgv_src/strategies/vendor/compound/Exponential.sol";
-import "mgv_src/IMangrove.sol";
-import {IERC20, MgvLib} from "mgv_src/MgvLib.sol";
+import "src/strategies/vendor/compound/ICompound.sol";
+import "src/strategies/vendor/compound/Exponential.sol";
+import "src/IMangrove.sol";
+import {IERC20, MgvLib} from "src/MgvLib.sol";
 
 interface WETH is IERC20 {
   function deposit() external payable;

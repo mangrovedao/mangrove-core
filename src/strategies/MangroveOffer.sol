@@ -13,12 +13,12 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
+import {AccessControlled} from "src/strategies/utils/AccessControlled.sol";
 import {MangroveOfferStorage as MOS} from "./MangroveOfferStorage.sol";
-import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
-import {MgvLib, IERC20, MgvStructs} from "mgv_src/MgvLib.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
+import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
+import {MgvLib, IERC20, MgvStructs} from "src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
+import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
 
 /// @title This contract is the basic building block for Mangrove strats.
 /// @notice It contains the mandatory interface expected by Mangrove (`IOfferLogic` is `IMaker`) and enforces additional functions implementations (via `IOfferLogic`).
@@ -26,7 +26,7 @@ import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 /// In `Direct` strategies, `this` contract is the offer maker, in `Forwarder` strategies, the offer maker should be `msg.sender` of the annotated function.
 /// @dev Naming scheme:
 /// `f() public`: can be used, as is, in all descendants of `this` contract
-/// `_f() internal`: descendant of this contract should provide a public wrapper of this function
+/// `_f() internal`: descendant of this contract should provide a public wrapper for this function
 /// `__f__() virtual internal`: descendant of this contract may override this function to specialize behavior of `makerExecute` or `makerPosthook`
 
 abstract contract MangroveOffer is AccessControlled, IOfferLogic {
@@ -208,7 +208,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     }
   }
 
-  ///@notice strat-specific additional activation check list
+  ///@notice strat-specific additional check list
   ///@param token the ERC20 one wishes this contract to trade on.
   ///@custom:hook overrides of this hook should be conservative and call `super.__checkList__(token)`
   function __checkList__(IERC20 token) internal view virtual {

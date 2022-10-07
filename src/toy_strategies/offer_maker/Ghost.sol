@@ -147,12 +147,14 @@ contract Ghost is Direct {
       return "posthook/bothOfferReposted";
     } else {
       // repost failed or offer was entirely taken
-      retractOffer({
-        outbound_tkn: IERC20(order.outbound_tkn),
-        inbound_tkn: IERC20(order.inbound_tkn),
-        offerId: order.offerId,
-        deprovision: false
-      });
+      if (repost_status != "posthook/filled") {
+        retractOffer({
+          outbound_tkn: IERC20(order.outbound_tkn),
+          inbound_tkn: IERC20(order.inbound_tkn),
+          offerId: order.offerId,
+          deprovision: false
+        });
+      }
       retractOffer({
         outbound_tkn: IERC20(order.outbound_tkn),
         inbound_tkn: IERC20(alt_stable),

@@ -21,14 +21,17 @@ import {TransferLib} from "src/strategies/utils/TransferLib.sol";
 import {MgvLib, IERC20} from "src/MgvLib.sol";
 
 ///@title MangroveOrder. A periphery contract to Mangrove protocol that implements "Good till cancelled" (GTC) orders as well as "fill or kill" (FOK) orders.
-///@notice A GTC is a taker order (offer taking) followed by a maker order (offer posting) when the taker order was partially filled.
-/// E.g `msg.sender` wishes to buy 1 ETH at a limit average price of 1500 USD/ETH. After a market order:
+///@notice A GTC is a taker order, followed by a maker order (called resting order) when the taker order was partially filled.
+/// * If the GTC is at a price $p$ and the market order was partially filled at a price $p_synch$, the resting order should be posted at a price $p_asynch$ such that $(p_synch+p_asynch)/2 = p_0$.
+/// * If the taker tolerates some slippage $p+slippage$, the price of the resting order is computed considering $p$ only (i.e without slippage).
+/// * The resting order comes with a "time to leave" after which the corresponding offer is no longer valid.
+/// * The resting order can be cancelled by its owner at any time, and its provisions retrieved.
+/// E.g `msg.sender` wishes to buy 1 ETH at a limit average price of 1500 USD/ETH + 1% slippage tolerance. After a market order:
 /// 1. `msg.sender` gets a partial fill of 0.582 ETH (0.6 ETH - 3% fee) for 850 USD (thus at a price of ~1417 USD/ETH).
 /// 2. This contract will then post a resting order to complement the market order as a bid for 0.4 ETH for 650 USD (thus at a price of 1625 USD)
 /// 3. If the resting order is fully taken, the global average price for `msg.sender` will indeed be 1500 USD/ETH.
-/// Note that if `msg.sender` allows for some slippage in its market order, the price of the resting order is computed taking the original price only (i.e without slippage).
-/// Resting order may be posted with a time to leave, implemented in the form of a `__lastLook__` override that reneges on trade passed a certain timestamp.
-/// A FOK is a taker order that is either completely filled or cancelled.
+/// A FOK is a taker order that is either completely filled or cancelled. No resting order is posted.
+///@dev requiring no partial fill *and* a resting order is interpreted as an instruction to revert if the resting order fails to be posted (for instance if below density).
 
 contract MangroveOrder is Forwarder, IOrderLogic {
   ///@notice `expiring[outbound_tkn][inbound_tkn][offerId]` gives timestamp beyond which `offerId` on the `(outbound_tkn, inbound_tkn)` offer list should renege on trade.
@@ -73,14 +76,21 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
   ///@inheritdoc IOrderLogic
   function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory res) {
-    // ASSUME
-    // * `msg.sender` and `msg.sender`'s reserve balances are (NAT_USER-`msg.value`, OUT_USER, IN_USER) for native, `tko.outbound_tkn` and `tko.inbound_tkn` balances.
-    // * `this` balances are (NAT_THIS+`msg.value`, OUT_THIS, IN_THIS)
+    // Notations:
+    // NAT_USER: `msg.sender.balance`
+    // OUT/IN_USER: `tko.[out|in]bound_tkn.balanceOf(reserve())`
+    // NAT_THIS: `address(this).balance`
+    // OUT/IN_THIS: `tko.[out|in]bound_tkn.balanceOf(address(this))`
+
+    // ASSUME STATE
+    // * (NAT_USER-`msg.value`, OUT_USER, IN_USER)
+    // * (NAT_THIS+`msg.value`, OUT_THIS, IN_THIS)
 
     // Pulling funds from `msg.sender`'s reserve
-    uint pulled = router().pull(tko.inbound_tkn, msg.sender, tko.takerGives, true);
+    uint pulled = router().pull(tko.inbound_tkn, reserve(), tko.takerGives, true);
     require(pulled == tko.takerGives, "mgvOrder/mo/transferInFail");
-    // STATE
+
+    // STATE UPDATE
     // * (NAT_USER-`msg.value`, OUT_USER, IN_USER-`tko.takerGives`)
     // * (NAT_THIS+`msg.value`, OUT_THIS, IN_THIS+`tko.takerGives`)
 
@@ -92,23 +102,23 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       fillWants: tko.fillWants
     });
 
-    // STATE
+    // STATE UPDATE
     // * (NAT_USER-`msg.value`, OUT_USER, IN_USER-`tko.takerGives`)
     // * (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS+`res.takerGot`, IN_THIS+`tko.takerGives`-`res.takerGave`)
 
     bool isComplete = checkCompleteness(tko, res);
-    // requiring `partialFillNotAllowed => (isComplete \/ restingOrder)`
     // when `!restingOrder` this implements FOK. When `restingOrder` is positioned this reverts only if resting order fails to be posted.
+    // therefore we require `partialFillNotAllowed => (isComplete \/ restingOrder)`
     require(!tko.partialFillNotAllowed || isComplete || tko.restingOrder, "mgvOrder/mo/noPartialFill");
 
     // sending inbound tokens to `msg.sender`'s reserve and sending back remaining outbound tokens
     if (res.takerGot > 0) {
-      router().push(tko.outbound_tkn, msg.sender, res.takerGot);
+      router().push(tko.outbound_tkn, reserve(), res.takerGot);
     }
     if (!isComplete) {
-      router().push(tko.inbound_tkn, msg.sender, tko.takerGives - res.takerGave);
+      router().push(tko.inbound_tkn, reserve(), tko.takerGives - res.takerGave);
     }
-    // STATE
+    // STATE UPDATE
     // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
     // * (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS, IN_THIS)
 
@@ -120,14 +130,14 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       // the call below will fill the memory data `res`.
       fund =
         postRestingOrder({tko: tko, outbound_tkn: tko.inbound_tkn, inbound_tkn: tko.outbound_tkn, res: res, fund: fund});
-      // STATE (`postRestingOrder` succeeded)
+      // STATE UPDATE (`postRestingOrder` succeeded)
       // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
       // * (NAT_THIS, OUT_THIS, IN_THIS)
       // * `fund == 0`
       // * `ownerData[tko.inbound_tkn][tko.outbound_tkn][res.offerId]=={owner:msg.sender, wei_balance:rounding_error(fund,offerGasReq())}`
       // * Mangrove emitted an `OfferWrite` log whose `maker` field is `address(this)` and `offerId` is `res.offerId`.
 
-      // STATE (`postRestingOrder` failed)
+      // STATE UPDATE (`postRestingOrder` failed)
       // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
       // * (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS, IN_THIS)
       // * `fund == msg.value + res.bounty`.
@@ -140,7 +150,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       // 2. no function allows fund retrieval from `this` balance by `msg.sender`
       (bool noRevert,) = msg.sender.call{value: fund}("");
       require(noRevert, "mgvOrder/mo/refundFail");
-      // STATE (`postRestingOrder` failed)
+      // STATE UPDATE (`postRestingOrder` failed)
       // * (NAT_USER+`res.bounty`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
       // * (NAT_THIS, OUT_THIS, IN_THIS)
     }

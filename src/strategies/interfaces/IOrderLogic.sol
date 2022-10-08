@@ -19,7 +19,7 @@ import {IERC20} from "src/MgvLib.sol";
 
 ///@title Interface for resting orders functionality.
 interface IOrderLogic {
-  ///@notice Information for creating a market order and possibly a resting order (offer).
+  ///@notice Information for creating a market order with a GTC or FOK semantics.
   ///@param outbound_tkn outbound token used to identify the order book
   ///@param inbound_tkn the inbound token used to identify the order book
   ///@param partialFillNotAllowed true to revert if market order cannot be filled and resting order failed or is not enabled; otherwise, false

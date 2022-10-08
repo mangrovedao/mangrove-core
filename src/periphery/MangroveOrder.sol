@@ -77,20 +77,20 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@inheritdoc IOrderLogic
   function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory res) {
     // Notations:
-    // NAT_USER: `msg.sender.balance`
-    // OUT/IN_USER: `tko.[out|in]bound_tkn.balanceOf(reserve())`
-    // NAT_THIS: `address(this).balance`
-    // OUT/IN_THIS: `tko.[out|in]bound_tkn.balanceOf(address(this))`
+    // NAT_USER: initial value of `msg.sender.balance` (native balance of user)
+    // OUT/IN_USER: initial value of `tko.[out|in]bound_tkn.balanceOf(reserve())` (user's reserve balance of tokens)
+    // NAT_THIS: initial value of `address(this).balance` (native balance of `this`)
+    // OUT/IN_THIS: initial value of `tko.[out|in]bound_tkn.balanceOf(address(this))` (`this` balance of tokens)
 
-    // ASSUME STATE
-    // * (NAT_USER-`msg.value`, OUT_USER, IN_USER)
-    // * (NAT_THIS+`msg.value`, OUT_THIS, IN_THIS)
+    // PRE:
+    // * User balances: (NAT_USER -`msg.value`, OUT_USER, IN_USER)
+    // * `this` balances: (NAT_THIS +`msg.value`, OUT_THIS, IN_THIS)
 
     // Pulling funds from `msg.sender`'s reserve
     uint pulled = router().pull(tko.inbound_tkn, reserve(), tko.takerGives, true);
     require(pulled == tko.takerGives, "mgvOrder/mo/transferInFail");
 
-    // STATE UPDATE
+    // POST:
     // * (NAT_USER-`msg.value`, OUT_USER, IN_USER-`tko.takerGives`)
     // * (NAT_THIS+`msg.value`, OUT_THIS, IN_THIS+`tko.takerGives`)
 
@@ -102,7 +102,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       fillWants: tko.fillWants
     });
 
-    // STATE UPDATE
+    // POST:
     // * (NAT_USER-`msg.value`, OUT_USER, IN_USER-`tko.takerGives`)
     // * (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS+`res.takerGot`, IN_THIS+`tko.takerGives`-`res.takerGave`)
 
@@ -118,26 +118,29 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     if (!isComplete) {
       router().push(tko.inbound_tkn, reserve(), tko.takerGives - res.takerGave);
     }
-    // STATE UPDATE
+    // POST:
     // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
     // * (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS, IN_THIS)
 
-    uint fund = msg.value + res.bounty; // using bounty as additional funds to provision the resting order
+    // collected bounty compensates gas consumption for the failed offer but could be lower than the cost of an additional native token transfer
+    // instead of sending the bounty back to `msg.sender` we recycle it into the resting order's provision (so `msg.sendder` can retreive it when deprovisionning).
+    uint fund = msg.value + res.bounty;
+
     if (tko.restingOrder && !isComplete) {
       // When posting a resting order `msg.sender` becomes a maker.
-      // For maker orders outbound tokens are what makers send. Here `msg.sender` wants to send `tko.inbound`.
+      // For maker orders, outbound tokens are what makers send. Here `msg.sender` sends `tko.inbound`.
       // The offer list on which this contract must post `msg.sender`'s resting order is thus `(tko.inbound_tkn, tko.outbound_tkn)`
       // the call below will fill the memory data `res`.
       fund =
         postRestingOrder({tko: tko, outbound_tkn: tko.inbound_tkn, inbound_tkn: tko.outbound_tkn, res: res, fund: fund});
-      // STATE UPDATE (`postRestingOrder` succeeded)
+      // POST (case `postRestingOrder` succeeded):
       // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
       // * (NAT_THIS, OUT_THIS, IN_THIS)
       // * `fund == 0`
-      // * `ownerData[tko.inbound_tkn][tko.outbound_tkn][res.offerId]=={owner:msg.sender, wei_balance:rounding_error(fund,offerGasReq())}`
+      // * `ownerData[tko.inbound_tkn][tko.outbound_tkn][res.offerId].owner == msg.sender`.
       // * Mangrove emitted an `OfferWrite` log whose `maker` field is `address(this)` and `offerId` is `res.offerId`.
 
-      // STATE UPDATE (`postRestingOrder` failed)
+      // POST (case `postRestingOrder` failed):
       // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
       // * (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS, IN_THIS)
       // * `fund == msg.value + res.bounty`.
@@ -150,7 +153,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       // 2. no function allows fund retrieval from `this` balance by `msg.sender`
       (bool noRevert,) = msg.sender.call{value: fund}("");
       require(noRevert, "mgvOrder/mo/refundFail");
-      // STATE UPDATE (`postRestingOrder` failed)
+      // POST (`postRestingOrder` failed)
       // * (NAT_USER+`res.bounty`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
       // * (NAT_THIS, OUT_THIS, IN_THIS)
     }

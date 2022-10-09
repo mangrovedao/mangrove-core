@@ -19,20 +19,16 @@ import {TransferLib} from "src/strategies/utils/TransferLib.sol";
 import {AbstractRouter} from "./AbstractRouter.sol";
 
 ///@notice `SimpleRouter` instances pull (push) liquidity directly from (to) the reserve
-/// If called by a `Direct` contract instance the reserve will be the vault of the contract
-/// If called by a `Forwarder` contract instance, the reserve will be the address of a contract user (typically an EOA)
 ///@dev Maker contracts using this router must make sure that the reserve approves the router for all asset that will be pulled (outbound tokens)
-/// Thus a contract using a vault that is not an EOA must make sure this vault has approval capacities.
+/// Thus a maker contract using a vault that is not an EOA must make sure this vault has approval capacities.
 contract SimpleRouter is
   AbstractRouter(70_000) // fails for < 70K with Direct strat
 {
-  /// @notice router-dependent implementation of the `pull` function
   /// @notice transfers an amount of tokens from the reserve to the maker.
   /// @param token Token to be transferred
   /// @param reserve The address of the reserve, where the tokens will be transferred from
   /// @param maker Address of the maker, where the tokens will be transferred to
   /// @param amount The amount of tokens to be transferred
-  /// @param strict Ignored since this router always transfers the exact amount
   /// @return pulled The amount pulled if successful (will be equal to `amount`); otherwise, 0.
   /// @dev requires approval from `reserve` for `this` to transfer `token`.
   function __pull__(IERC20 token, address reserve, address maker, uint amount, bool strict)
@@ -41,7 +37,8 @@ contract SimpleRouter is
     override
     returns (uint pulled)
   {
-    strict; // ignore flag - this pull strategy is only strict
+    // if not strict, pulling all available tokens from reserve
+    amount = strict ? amount : token.balanceOf(reserve);
     if (TransferLib.transferTokenFrom(token, reserve, maker, amount)) {
       return amount;
     } else {

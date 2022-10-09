@@ -56,7 +56,7 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice pulls liquidity from an offer maker's reserve to `msg.sender`'s balance
   ///@param token is the ERC20 managing the pulled asset
-  ///@param reserve is the address identifying where `amount` of `token` should be pulled from
+  ///@param reserve where `amount` of `token` should be pulled from
   ///@param amount of `token` the maker contract wishes to get
   ///@param strict when the calling maker contract accepts to receive more `token` than required (this may happen for gas optimization)
   function pull(IERC20 token, address reserve, uint amount, bool strict) external onlyMakers returns (uint pulled) {
@@ -96,13 +96,12 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param reserve is the address identifying the location of the assets
   function reserveBalance(IERC20 token, address reserve) external view virtual returns (uint);
 
-  ///@notice withdraws `amount` of reserve tokens and sends them to `recipient`
-  ///@dev this is called by maker's contract when originator wishes to withdraw funds from it.
+  ///@notice withdraws `amount` of tokens from `reserve` and sends them to `recipient`
+  ///@dev this is called by maker's contract when offer maker wishes to withdraw funds from it.
   ///@param token is the asset one wishes to withdraw
-  ///@param reserve is the address identifying the location of the assets
-  ///@param recipient is the address identifying the location of the recipient
+  ///@param reserve is the location of the assets
+  ///@param recipient is address receiving the tokens
   ///@param amount is the amount of asset that should be withdrawn
-  /// this function is necessary because the maker contract is agnostic w.r.t reserve management
   function withdrawToken(IERC20 token, address reserve, address recipient, uint amount)
     public
     onlyMakers
@@ -138,8 +137,9 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param token is the asset (and possibly its overlyings) whose approval must be checked
   ///@param reserve the reserve that requires asset pulling/pushing
   function checkList(IERC20 token, address reserve) external view {
-    // checking basic requirement
+    // checking maker contract has approved this for token transfer (in order to push to reserve)
     require(token.allowance(msg.sender, address(this)) > 0, "Router/NotApprovedByMakerContract");
+    // pulling from reserve might require a special approval if `reserve` is some account in a protocol (e.g a lender).
     __checkList__(token, reserve);
   }
 

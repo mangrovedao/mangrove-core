@@ -162,10 +162,13 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       // 2. no function allows fund retrieval from `this` balance by `msg.sender`
       (bool noRevert,) = msg.sender.call{value: fund}("");
       require(noRevert, "mgvOrder/mo/refundFail");
-      // POST (`postRestingOrder` failed)
-      // * (NAT_USER+`res.bounty`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
-      // * (NAT_THIS, OUT_THIS, IN_THIS)
     }
+    // POST (case `postRestingOrder` succeeded)
+    // * (NAT_USER, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
+    // * (NAT_THIS, OUT_THIS, IN_THIS)
+    // POST (else)
+    // * (NAT_USER+`res.bounty`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
+    // * (NAT_THIS, OUT_THIS, IN_THIS)
     emit OrderSummary({
       mangrove: MGV,
       outbound_tkn: tko.outbound_tkn,

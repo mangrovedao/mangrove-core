@@ -123,7 +123,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // * (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS, IN_THIS)
 
     ///@dev collected bounty compensates gas consumption for the failed offer but could be lower than the cost of an additional native token transfer
-    /// instead of sending the bounty back to `msg.sender` we recycle it into the resting order's provision (so `msg.sendder` can retreive it when deprovisionning).
+    /// instead of sending the bounty back to `msg.sender` we recycle it into the resting order's provision (so `msg.sender` can retrieve it when deprovisioning).
     /// corner case: if the bounty is large enough, this will make posting of the resting order fail because of `gasprice` overflow. The funds will then be sent back to `msg.sender` (see below).
     uint fund = msg.value + res.bounty;
 

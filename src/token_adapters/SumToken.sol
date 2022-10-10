@@ -44,6 +44,8 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 //   Mangrove:
 //     - approve (A+B) for A and B
 
+// TODO:
+// - add unchecked in the places where overflow/underflow is guaranteed not to happen
 contract SumToken is IERC20 {
   // REQUIRED in ERC20 std:
   // Functions:
@@ -98,14 +100,24 @@ contract SumToken is IERC20 {
     return _decimals;
   }
 
+  // Returns type(uint).max if the total supply is greater than type(uint).max
   function totalSupply() external view returns (uint) {
-    // FIXME: how to deal with overflow?
-    return TOKEN_A.totalSupply() + TOKEN_B.totalSupply();
+    unchecked {
+      uint totalSupplyA = TOKEN_A.totalSupply();
+      uint result = totalSupplyA + TOKEN_B.totalSupply();
+      if (result < totalSupplyA) return type(uint).max;
+      return result;
+    }
   }
 
+  // Returns type(uint).max if the total supply is greater than type(uint).max
   function balanceOf(address account) external view returns (uint) {
-    // FIXME: how to deal with overflow?
-    return TOKEN_A.balanceOf(account) + TOKEN_B.balanceOf(account);
+    unchecked {
+      uint balanceOfA = TOKEN_A.balanceOf(account);
+      uint result = balanceOfA + TOKEN_B.balanceOf(account);
+      if (result < balanceOfA) return type(uint).max;
+      return result;
+    }
   }
 
   function transfer(address recipient, uint amount) external returns (bool) {

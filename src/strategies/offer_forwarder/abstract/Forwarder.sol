@@ -315,19 +315,19 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     public
     override
     mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
-    returns (uint free_wei)
+    returns (uint freeWei)
   {
     OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
-    free_wei = deprovision ? od.weiBalance : 0;
-    free_wei += MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
-    if (free_wei > 0) {
+    freeWei = deprovision ? od.weiBalance : 0;
+    freeWei += MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
+    if (freeWei > 0) {
       // pulling free wei from Mangrove to `this`
-      require(MGV.withdraw(free_wei), "Forwarder/withdrawFail");
+      require(MGV.withdraw(freeWei), "Forwarder/withdrawFail");
       // resetting pending returned provision
       ownerData[outbound_tkn][inbound_tkn][offerId].weiBalance = 0;
       // sending WEI's to offer owner. Note that this call could occur nested inside a call to `makerExecute` originating from Mangrove
       // this is still safe because WEI's are being sent to offer owner who has no incentive to make current trade fail or waste gas.
-      (bool noRevert,) = od.owner.call{value: free_wei}("");
+      (bool noRevert,) = od.owner.call{value: freeWei}("");
       require(noRevert, "Forwarder/weiTransferFail");
     }
   }

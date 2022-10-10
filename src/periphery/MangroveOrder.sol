@@ -21,7 +21,7 @@ import {TransferLib} from "src/strategies/utils/TransferLib.sol";
 import {MgvLib, IERC20} from "src/MgvLib.sol";
 
 ///@title MangroveOrder. A periphery contract to Mangrove protocol that implements "Good till cancelled" (GTC) orders as well as "fill or kill" (FOK) orders.
-///@notice A GTC order is a market buy (sell) order completemented by a bid (ask) order, called a resting order, that occurs when the buy (sell) order was partially filled.
+///@notice A GTC order is a market buy (sell) order complemented by a bid (ask) order, called a resting order, that occurs when the buy (sell) order was partially filled.
 /// * If the GTC is at a price $p$ and the market order was partially filled at a price $p_synch$, the resting order should be posted at a price $p_async$ such that $(p_synch+p_async)/2 = p$.
 /// * If the taker tolerates some slippage, i.e $p=p_0+slippage$, the price of the resting order is computed considering $p_0$ only ($p_synch+p_async/2=p_0$).
 /// * The resting order comes with a "time to leave" after which the corresponding offer is no longer valid.
@@ -123,7 +123,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // * (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS, IN_THIS)
 
     // collected bounty compensates gas consumption for the failed offer but could be lower than the cost of an additional native token transfer
-    // instead of sending the bounty back to `msg.sender` we recycle it into the resting order's provision (so `msg.sendder` can retreive it when deprovisionning).
+    // instead of sending the bounty back to `msg.sender` we recycle it into the resting order's provision (so `msg.sender` can retrieve it when deprovisioning).
     uint fund = msg.value + res.bounty;
 
     if (tko.restingOrder && !isComplete) {

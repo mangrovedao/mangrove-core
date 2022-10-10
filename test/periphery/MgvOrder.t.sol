@@ -411,4 +411,40 @@ contract MangroveOrder_Test is MangroveTest {
     vm.expectRevert("mgvOrder/mo/noPartialFill");
     mgo.take{value: 2 ether}(buyOrder);
   }
+
+  function test_restingOrder_offerOwners_with_order() public {
+    // post an order that will result in a resting order on the book
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      partialFillNotAllowed: false,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether, // with 2% slippage
+      makerWants: 2 ether,
+      makerGives: 0.2548 ether, //without 2% slippage
+      restingOrder: true,
+      pivotId: 0,
+      timeToLiveForRestingOrder: 0 //NA
+    });
+
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
+
+    uint[] memory offerIds = new uint[](1);
+    offerIds[0] = 1;
+
+    address[] memory offerOwners = mgo.offerOwners(quote, base, offerIds);
+    assertEq(offerOwners.length, 1);
+    assertEq(offerOwners[0], $(this), "Invalid offer owner");
+  }
+
+  function test_restingOrder_offerOwners_without_orders() public {
+    uint[] memory offerIds = new uint[](1);
+    offerIds[0] = 1;
+
+    vm.expectRevert("Forwarder/unknownOffer");
+    address[] memory offerOwners = mgo.offerOwners(quote, base, offerIds);
+    assertEq(offerOwners.length, 0, "Offer owners should be empty after revert");
+  }
 }

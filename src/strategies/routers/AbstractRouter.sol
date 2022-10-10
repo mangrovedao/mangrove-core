@@ -80,7 +80,7 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice router-dependant implementation of the `push` function
   function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual;
 
-  ///@notice gas saving implementation of an iterative `push`
+  ///@notice iterative `push`
   function flush(IERC20[] calldata tokens, address reserve) external onlyMakers {
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);
@@ -139,7 +139,7 @@ abstract contract AbstractRouter is AccessControlled {
   function checkList(IERC20 token, address reserve) external view {
     // checking maker contract has approved this for token transfer (in order to push to reserve)
     require(token.allowance(msg.sender, address(this)) > 0, "Router/NotApprovedByMakerContract");
-    // pulling from reserve might require a special approval if `reserve` is some account in a protocol (e.g a lender).
+    // pulling from reserve might require a special approval if `reserve` is some account on a protocol (e.g a lender) which requires a custom redeem call.
     __checkList__(token, reserve);
   }
 

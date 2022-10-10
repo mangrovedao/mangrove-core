@@ -28,7 +28,7 @@ import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
 /// `__f__() virtual internal`: descendant of this contract should override this function to specialize it to the needs of the strat.
 
 abstract contract MangroveOffer is AccessControlled, IOfferLogic {
-  uint24 public immutable OFFER_GASREQ;
+  uint public immutable OFFER_GASREQ;
   IMangrove public immutable MGV;
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
   bytes32 constant OUT_OF_FUNDS = keccak256("mgv/insufficientProvision");
@@ -51,7 +51,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   constructor(IMangrove mgv, uint gasreq) AccessControlled(msg.sender) {
     require(uint24(gasreq) == gasreq, "MgvOffer/gasreqOverflow");
     MGV = mgv;
-    OFFER_GASREQ = uint24(gasreq);
+    OFFER_GASREQ = gasreq;
   }
 
   /// @inheritdoc IOfferLogic

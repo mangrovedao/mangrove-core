@@ -83,10 +83,10 @@ interface IOrderLogic {
   ///@param outbound_tkn The outbound token of the order.
   ///@param inbound_tkn The inbound token of the order.
   ///@param offerId The id of the offer to query for expiry for.
-  ///@return res The timestamp beyond which `offerId` on the `(outbound_tkn, inbound_tkn)` offer list should renege on trade.
+  ///@return res The timestamp beyond which `offerId` on the `(outbound_tkn, inbound_tkn)` offer list should renege on trade. 0 means no expiry.
   function expiring(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) external returns (uint);
 
-  ///@notice Implements "Fill or Kill" or "Good till cancelled" orders on a given offer list.
+  ///@notice Implements "Fill or kill" or "Good till cancelled" orders on a given offer list.
   ///@param tko the arguments in memory of the taker order
   ///@return res the result of the taker order. If `offerId==0`, no resting order was posted on `msg.sender`'s behalf.
   function take(TakerOrder memory tko) external payable returns (TakerOrderResult memory res);

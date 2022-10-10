@@ -103,8 +103,8 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave,,) =
       mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 0.5 ether, 1 ether, 100_000]), true);
     assertTrue(successes == 1, "Snipe should not fail");
-    assertEq(got, 0.5 ether, "Taker did not get enough");
-    assertEq(gave, 0.5 ether, "Taker did not give enough");
+    assertEq(got, 0.5 ether, "Taker did not get correct amount");
+    assertEq(gave, 0.5 ether, "Taker did not give correct amount");
   }
 
   function test_multiple_snipes_fillWants() public {
@@ -131,8 +131,8 @@ contract TakerOperationsTest is MangroveTest {
 
     (uint successes, uint got, uint gave,,) = mgv.snipes($(base), $(quote), targets, true);
     assertTrue(successes == 3, "Snipes should not fail");
-    assertEq(got, 2.3 ether, "Taker did not get enough");
-    assertEq(gave, 2.3 ether, "Taker did not give enough");
+    assertEq(got, 2.3 ether, "Taker did not get correct amount");
+    assertEq(gave, 2.3 ether, "Taker did not give correct amount");
   }
 
   event Transfer(address indexed from, address indexed to, uint value);
@@ -212,8 +212,8 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave,,) =
       mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 0.5 ether, 1 ether, 100_000]), false);
     assertTrue(successes == 1, "Snipe should not fail");
-    assertEq(got, 1 ether, "Taker did not get enough");
-    assertEq(gave, 1 ether, "Taker did not get enough");
+    assertEq(got, 1 ether, "Taker did not get correct amount");
+    assertEq(gave, 1 ether, "Taker did not get correct amount");
   }
 
   function test_mo_fillWants() public {
@@ -222,8 +222,8 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
     (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1.1 ether, 2 ether, true);
-    assertEq(got, 1.1 ether, "Taker did not get enough");
-    assertEq(gave, 1.1 ether, "Taker did not get enough");
+    assertEq(got, 1.1 ether, "Taker did not get correct amount");
+    assertEq(gave, 1.1 ether, "Taker did not get correct amount");
   }
 
   function test_mo_fillGives() public {
@@ -232,8 +232,8 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
     (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1.1 ether, 2 ether, false);
-    assertEq(got, 2 ether, "Taker did not get enough");
-    assertEq(gave, 2 ether, "Taker did not get enough");
+    assertEq(got, 2 ether, "Taker did not get correct amount");
+    assertEq(gave, 2 ether, "Taker did not give correct amount");
   }
 
   function test_mo_fillGivesAll_no_approved_fails() public {
@@ -253,8 +253,8 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 3 ether);
     (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 0 ether, 3 ether, false);
-    assertEq(got, 3 ether, "Taker did not get enough");
-    assertEq(gave, 3 ether, "Taker did not get enough");
+    assertEq(got, 3 ether, "Taker did not get correct amount");
+    assertEq(gave, 3 ether, "Taker did not get correct amount");
   }
 
   function test_taker_reimbursed_if_maker_doesnt_pay() public {

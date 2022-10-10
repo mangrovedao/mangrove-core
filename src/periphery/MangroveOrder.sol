@@ -25,7 +25,7 @@ import {MgvLib, IERC20} from "src/MgvLib.sol";
 /// * If the GTC is for $amount$ at a price $p$ and the market order was partially filled for $got$ at a price $p_synch$, the resting order should be for $will_get$ at $p_async$ such that
 //// $(got * p_synch + will_get * p_async) = amount * p$.
 /// * If the taker tolerates some slippage, i.e., $p=p_0+slippage$, the price of the resting order is computed considering $p_0$.
-/// * The resting order comes with a "time to leave" after which the corresponding offer is no longer valid.
+/// * The resting order comes with a "time to live" after which the corresponding offer is no longer valid.
 /// * The resting order can be cancelled or updated by its owner at any time.
 /// E.g., `msg.sender` wishes to buy 1 ETH at a limit average price of 1500 USD/ETH + 1% slippage tolerance. After a market buy order:
 /// 1. `msg.sender` gets a partial fill of 0.582 ETH (0.6 ETH - 3% fee) for 850 USD (thus at a price of $850/0.6 =~ 1417$ USD/ETH).

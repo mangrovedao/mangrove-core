@@ -206,7 +206,7 @@ contract MangroveOrder_Test is MangroveTest {
       partialFillNotAllowed: false,
       fillWants: true,
       takerWants: 1 ether,
-      takerGives: 0.13 ether,
+      takerGives: 0.26 ether,
       makerWants: 1 ether,
       makerGives: 0.13 ether,
       restingOrder: true,

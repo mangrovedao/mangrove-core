@@ -46,7 +46,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   modifier mgvOrOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
     if (msg.sender != address(MGV)) {
       OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
-      require(od.owner == msg.sender, "Forwarder/retractOffer/unauthorized");
+      require(od.owner == msg.sender, "Forwarder/unauthorized");
     }
     _;
   }

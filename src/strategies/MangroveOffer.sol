@@ -36,7 +36,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   ///@notice guards for restricting a function call to either `MGV` or `admin()`.
   modifier mgvOrAdmin() {
-    require(msg.sender == admin() || msg.sender == address(MGV), "AccessControlled/Invalid");
+    require(msg.sender == admin() || msg.sender == address(MGV), "mgvOffer/unauthorized");
     _;
   }
 
@@ -49,7 +49,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
    * @param mgv The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
    */
   constructor(IMangrove mgv, uint gasreq) AccessControlled(msg.sender) {
-    require(uint24(gasreq) == gasreq, "MgvOffer/gasreqOverflow");
+    require(uint24(gasreq) == gasreq, "mgvOffer/gasreqOverflow");
     MGV = mgv;
     OFFER_GASREQ = gasreq;
   }
@@ -142,7 +142,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /// @param maker the address of the offer maker
   /// @param reserve_ the address of the offer maker's reserve of liquidity.
   function _setReserve(address maker, address reserve_) internal {
-    require(reserve_ != address(0), "SingleUser/0xReserve");
+    require(reserve_ != address(0), "mgvOffer/0xReserve");
     MOS.getStorage().reserves[maker] = reserve_;
   }
 
@@ -158,10 +158,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     AbstractRouter router_ = router();
     for (uint i = 0; i < tokens.length; i++) {
       // checking `this` contract's approval
-      require(tokens[i].allowance(address(this), address(MGV)) > 0, "MangroveOffer/LogicMustApproveMangrove");
+      require(tokens[i].allowance(address(this), address(MGV)) > 0, "mgvOffer/LogicMustApproveMangrove");
       // if contract has a router, checking router is allowed
       if (router_ != NO_ROUTER) {
-        require(tokens[i].allowance(address(this), address(router_)) > 0, "MangroveOffer/LogicMustApproveRouter");
+        require(tokens[i].allowance(address(this), address(router_)) > 0, "mgvOffer/LogicMustApproveRouter");
       }
       __checkList__(tokens[i]);
     }

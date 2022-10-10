@@ -24,7 +24,7 @@ contract AccessControlled {
    * @param admin_ The address of the admin that can access privileged functions and also allowed to change the admin. Cannot be `address(0)`.
    */
   constructor(address admin_) {
-    require(admin_ != address(0), "accessControlled/0xAdmin");
+    require(admin_ != address(0), "AccessControlled/0xAdmin");
     ACS.getStorage().admin = admin_;
   }
 

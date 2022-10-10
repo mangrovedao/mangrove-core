@@ -116,7 +116,7 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     tokens[0] = weth;
     tokens[1] = usdc;
 
-    vm.expectRevert("MangroveOffer/LogicMustApproveRouter");
+    vm.expectRevert("mgvOffer/LogicMustApproveRouter");
     mgo.checkList(tokens);
 
     // no need to approve for overlying transfer because router is the reserve

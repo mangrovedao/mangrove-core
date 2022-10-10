@@ -142,6 +142,32 @@ jobs:
       env:
         POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
 
+    # For push runs we also create a coverage report
+    - name: Create coverage report for mangrove-solidity
+      if: github.event_name != 'pull_request_target' 
+      run: forge coverage --report lcov
+      working-directory: . # coverage cannot find contracts if executed inside mangrove-solidity
+      env:
+        POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
+
+     # == Send coverage report to Coveralls == 
+     # Coverallsapp by default uses GITHUB_SHA but that does not necessarily correspond
+     # to HEAD because a branch is checked out. We here find the actual SHA for HEAD.
+    - name: Set Coveralls vars
+      id: coveralls_vars
+      if: github.event_name != 'pull_request_target' 
+      run: echo "::set-output name=sha_for_head::$(git rev-parse HEAD)"
+
+    - name: Upload to Coveralls for mangrove-solidity
+      uses: coverallsapp/github-action@master
+      if: github.event_name != 'pull_request_target' 
+      with:
+        git-commit: ${{ steps.coveralls_vars.outputs.sha_for_head }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: lcov.info
+        base-path	: .
+        flag-name: solidity
+
     # NOTE: uncomment once you can manage forge test 
     # outputs in gh actions
     # - name: Mangrove Solidity Test Report

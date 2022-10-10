@@ -179,8 +179,14 @@ contract OfferLogicTest is MangroveTest {
       gasprice: 0,
       pivotId: 0
     });
+    uint makerBalWei = maker.balance;
+    uint locked = makerContract.provisionOf(weth, usdc, offerId);
     vm.prank(address(mgv));
-    makerContract.retractOffer(weth, usdc, offerId, false);
+    uint deprovisioned = makerContract.retractOffer(weth, usdc, offerId, true);
+    // checking WEIs are returned to maker's account
+    assertEq(maker.balance, makerBalWei + deprovisioned, "Incorrect WEI balance");
+    // checking that the totality of the provisions is returned
+    assertEq(deprovisioned, locked, "Deprovision was incomplete");
   }
 
   function test_makerCanUpdateOffer() public {

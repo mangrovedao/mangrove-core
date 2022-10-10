@@ -2,7 +2,7 @@
 
 // OfferForwarder.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -13,13 +13,12 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
-import "mgv_src/strategies/interfaces/IMakerLogic.sol";
-import "mgv_src/strategies/routers/SimpleRouter.sol";
+import "src/strategies/offer_forwarder/abstract/Forwarder.sol";
+import "src/strategies/interfaces/IMakerLogic.sol";
+import "src/strategies/routers/SimpleRouter.sol";
 
 contract OfferForwarder is IMakerLogic, Forwarder {
-  constructor(IMangrove mgv, address deployer) Forwarder(mgv, new SimpleRouter()) {
-    setGasreq(30_000);
+  constructor(IMangrove mgv, address deployer) Forwarder(mgv, new SimpleRouter(), 30_000) {
     AbstractRouter router_ = router();
     router_.bind(address(this));
     if (deployer != msg.sender) {

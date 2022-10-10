@@ -2,7 +2,7 @@
 
 // Ghost.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -13,9 +13,9 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import "mgv_src/strategies/routers/SimpleRouter.sol";
-import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
+import "src/strategies/offer_maker/abstract/Direct.sol";
+import "src/strategies/routers/SimpleRouter.sol";
+import {MgvLib, MgvStructs} from "src/MgvLib.sol";
 
 contract Ghost is Direct {
   IERC20 public immutable BASE;
@@ -33,7 +33,9 @@ contract Ghost is Direct {
   //        Forwarder  Direct <-- offer management (our entry point)
   //    OfferForwarder  OfferMaker <-- new offer posting
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 stable1, IERC20 stable2, address admin) Direct(mgv, NO_ROUTER) {
+  constructor(IMangrove mgv, IERC20 base, IERC20 stable1, IERC20 stable2, address admin)
+    Direct(mgv, NO_ROUTER, 100_000)
+  {
     // SimpleRouter takes promised liquidity from admin's address (wallet)
     STABLE1 = stable1;
     STABLE2 = stable2;
@@ -122,6 +124,8 @@ contract Ghost is Direct {
     if (repost_status == "posthook/reposted") {
       uint new_alt_gives = __residualGives__(order); // in base units
       MgvStructs.OfferPacked alt_offer = MGV.offers(order.outbound_tkn, address(alt_stable), alt_offerId);
+      MgvStructs.OfferDetailPacked alt_detail = MGV.offerDetails(order.outbound_tkn, address(alt_stable), alt_offerId);
+
       uint old_alt_wants = alt_offer.wants();
       // old_alt_gives is also old_gives
       uint old_alt_gives = order.offer.gives();
@@ -138,7 +142,7 @@ contract Ghost is Direct {
         gives: new_alt_gives,
         wants: new_alt_wants,
         offerId: alt_offerId,
-        gasreq: offerGasreq(),
+        gasreq: alt_detail.gasreq(),
         pivotId: alt_offer.next(),
         gasprice: 0
       });

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.14;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
-import "mgv_src/strategies/routers/AaveRouter.sol";
+import "src/strategies/offer_maker/market_making/mango/Mango.sol";
+import "src/strategies/routers/AaveRouter.sol";
 import "mgv_test/lib/forks/Polygon.sol";
 
 /* This test works as an example of how to run the same test on multiple forks. 
@@ -88,7 +88,8 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     router = new AaveRouter({
       _addressesProvider: fork.get("Aave"),
       _referralCode: 0,
-      _interestRateMode: 1 // stable rate
+      _interestRateMode: 1, // stable rate
+      overhead: 700_000
     });
     // adding makerContract to allowed pullers of router's liquidity
     router.bind($(mgo));

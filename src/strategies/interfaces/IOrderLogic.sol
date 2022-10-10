@@ -2,7 +2,7 @@
 
 // IOrderLogic.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -14,19 +14,19 @@ pragma solidity >=0.8.0;
 
 pragma abicoder v2;
 
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {IERC20} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
+import {IERC20} from "src/MgvLib.sol";
 
 ///@title Interface for resting orders functionality.
 interface IOrderLogic {
-  ///@notice Information for creating a market order and possibly a resting order (offer).
+  ///@notice Information for creating a market order with a GTC or FOK semantics.
   ///@param outbound_tkn outbound token used to identify the order book
   ///@param inbound_tkn the inbound token used to identify the order book
   ///@param partialFillNotAllowed true to revert if market order cannot be filled and resting order failed or is not enabled; otherwise, false
   ///@param takerWants desired total amount of `outbound_tkn`
-  ///@param makerWants taker wants before slippage (`makerWants == wants` when `fillWants`)
+  ///@param makerWants taker wants before slippage (`makerWants == takerWants` when `fillWants`)
   ///@param takerGives available total amount of `inbound_tkn`
-  ///@param makerGives taker gives before slippage (`makerGives == gives` when `!fillWants`)
+  ///@param makerGives taker gives before slippage (`makerGives == takerGives` when `!fillWants`)
   ///@param fillWants if true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained; otherwise, the market order stops when `takerGives` units of `inbound_tkn` have been sold.
   ///@param restingOrder whether the complement of the partial fill (if any) should be posted as a resting limit order.
   ///@param pivotId in case a resting order is required, the best pivot estimation of its position in the offer list (if the market order led to a non empty partial fill, then `pivotId` should be 0 unless the order book is crossed).
@@ -49,7 +49,7 @@ interface IOrderLogic {
   ///@param takerGot How much the taker got
   ///@param takerGave How much the taker gave
   ///@param bounty How much bounty was givin to the taker
-  ///@param fee The fee paided by the taker
+  ///@param fee The fee paid by the taker
   ///@param offerId The id of the offer that was taken
   struct TakerOrderResult {
     uint takerGot;
@@ -64,7 +64,7 @@ interface IOrderLogic {
   ///@param outbound_tkn The outbound token of the order.
   ///@param inbound_tkn The inbound token of the order.
   ///@param taker The address of the taker
-  ///@param fillWants If true, the market order stoped when `takerWants` units of `outbound_tkn` had been obtained; otherwise, the market order stoped when `takerGives` units of `inbound_tkn` had been sold.
+  ///@param fillWants If true, the market order stopped when `takerWants` units of `outbound_tkn` had been obtained; otherwise, the market order stopped when `takerGives` units of `inbound_tkn` had been sold.
   ///@param takerGot How much the taker got
   ///@param takerGave How much the taker gave
   ///@param penalty How much penalty was given
@@ -79,12 +79,19 @@ interface IOrderLogic {
     uint penalty
   );
 
-  function expiring(IERC20, IERC20, uint) external returns (uint);
+  ///@notice Timestamp beyond which the given `offerId` should renege on trade.
+  ///@param outbound_tkn The outbound token of the order.
+  ///@param inbound_tkn The inbound token of the order.
+  ///@param offerId The id of the offer to query for expiry for.
+  ///@return res The timestamp beyond which `offerId` on the `(outbound_tkn, inbound_tkn)` offer list should renege on trade. 0 means no expiry.
+  function expiring(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) external returns (uint);
 
-  ///@notice Executes a resting (limit market) order on a given offer list.
-  ///@param tko the arguments in memory of the resting order
-  ///@return tkor the result of the resting order. If `offerId==0`, no resting order was posted on `msg.sender`'s behalf.
-  ///@dev as an extension of a `Forwarder` logic, this function is the only one able to call `MGV.newOffer`
-  /// It is `payable` in order to attach native tokens to cover for the potential resting order provision.
-  function take(TakerOrder memory tko) external payable returns (TakerOrderResult memory tkor);
+  ///@notice Implements "Fill or kill" or "Good till cancelled" orders on a given offer list.
+  ///@param tko the arguments in memory of the taker order
+  ///@return res the result of the taker order. If `offerId==0`, no resting order was posted on `msg.sender`'s behalf.
+  function take(TakerOrder memory tko) external payable returns (TakerOrderResult memory res);
+
+  ///@notice Increase gas requirement for all new offers.
+  ///@param additionalGasreq_ additional gas requirement
+  function setAdditionalGasreq(uint additionalGasreq_) external;
 }

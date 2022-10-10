@@ -2,7 +2,7 @@
 
 // SimpleAaveRetail.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -13,13 +13,13 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/offer_maker/OfferMaker.sol";
-import "mgv_src/strategies/routers/AaveRouter.sol";
+import "src/strategies/offer_maker/OfferMaker.sol";
+import "src/strategies/routers/AaveRouter.sol";
 
 contract SimpleAaveRetail is OfferMaker {
   bytes32 public constant NAME = "SimpleAaveRetail";
 
   constructor(IMangrove mgv, address _addressesProvider, address deployer)
-    OfferMaker(mgv, new AaveRouter(_addressesProvider, 0, 2), deployer)
+    OfferMaker(mgv, new AaveRouter(_addressesProvider, 0, 2, 700_000), deployer)
   {}
 }

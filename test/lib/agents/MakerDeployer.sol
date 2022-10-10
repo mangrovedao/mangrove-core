@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.10;
 
-import "mgv_src/Mangrove.sol";
+import "src/Mangrove.sol";
 import "./TestMaker.sol";
 import "mgv_test/lib/tokens/TestToken.sol";
 

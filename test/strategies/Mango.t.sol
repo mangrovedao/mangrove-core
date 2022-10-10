@@ -2,9 +2,9 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
-import "mgv_src/strategies/routers/SimpleRouter.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import "src/strategies/offer_maker/market_making/mango/Mango.sol";
+import "src/strategies/routers/SimpleRouter.sol";
+import {MgvStructs} from "src/MgvLib.sol";
 
 contract MangoTest is MangroveTest {
   struct Book {

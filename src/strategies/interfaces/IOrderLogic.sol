@@ -92,6 +92,6 @@ interface IOrderLogic {
   function take(TakerOrder memory tko) external payable returns (TakerOrderResult memory res);
 
   ///@notice Increase gas requirement for all new offers.
-  ///@param add_gasreq additional gas requirement
-  function setAdditionalGasreq(uint add_gasreq) external;
+  ///@param additionalGasreq_ additional gas requirement
+  function setAdditionalGasreq(uint additionalGasreq_) external;
 }

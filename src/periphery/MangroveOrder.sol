@@ -54,8 +54,8 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   }
 
   ///@inheritdoc IOrderLogic
-  function setAdditionalGasreq(uint add_gasreq) external onlyAdmin {
-    additionalGasreq = add_gasreq;
+  function setAdditionalGasreq(uint additionalGasreq_) external onlyAdmin {
+    additionalGasreq = additionalGasreq_;
   }
 
   ///Checks the current timestamps and reneges on trade (by reverting) if the offer has expired.

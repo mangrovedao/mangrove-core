@@ -53,8 +53,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     }
   }
 
-  ///@notice Increase gas requirement for all new offers.
-  ///@param add_gasreq additional gas requirement
+  ///@inheritdoc IOrderLogic
   function setAdditionalGasreq(uint add_gasreq) external onlyAdmin {
     additionalGasreq = add_gasreq;
   }
@@ -122,8 +121,9 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     if (res.takerGot > 0) {
       router().push(tko.outbound_tkn, reserve(), res.takerGot);
     }
-    if (!isComplete) {
-      router().push(tko.inbound_tkn, reserve(), tko.takerGives - res.takerGave);
+    uint inbound_left = tko.takerGives - res.takerGave;
+    if (inbound_left > 0) {
+      router().push(tko.inbound_tkn, reserve(), inbound_left);
     }
     // POST:
     // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)

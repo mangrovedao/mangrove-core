@@ -39,7 +39,7 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice constructor for abstract routers.
   ///@param routerGasreq_ is the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
   constructor(uint routerGasreq_) AccessControlled(msg.sender) {
-    require(uint24(routerGasreq_) == routerGasreq_, "Router/overheadTooHigh");
+    require(uint24(routerGasreq_) == routerGasreq_, "Router/gasreqTooHigh");
     ROUTER_GASREQ = uint24(routerGasreq_);
   }
 

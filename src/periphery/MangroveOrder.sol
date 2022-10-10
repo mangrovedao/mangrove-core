@@ -206,6 +206,12 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       refund = fund;
     } else {
       // offer was successfully posted
+      // `fund` was used and we leave `refund` at 0.
+
+      // setting a time to live for the resting order
+      if (tko.timeToLiveForRestingOrder > 0) {
+        expiring[outbound_tkn][inbound_tkn][res.offerId] = block.timestamp + tko.timeToLiveForRestingOrder;
+      }
       // if one wants to maintain an inverse mapping owner => offerIds
       __logOwnershipRelation__({
         owner: msg.sender,
@@ -213,10 +219,6 @@ contract MangroveOrder is Forwarder, IOrderLogic {
         inbound_tkn: inbound_tkn,
         offerId: res.offerId
       });
-      // setting a time to live for the resting order
-      if (tko.timeToLiveForRestingOrder > 0) {
-        expiring[outbound_tkn][inbound_tkn][res.offerId] = block.timestamp + tko.timeToLiveForRestingOrder;
-      }
     }
   }
 

@@ -28,13 +28,12 @@ contract AccessControlled {
     ACS.getStorage().admin = admin_;
   }
 
-  //TODO [lnist] It does not seem like onlyCaller is used with caller being address(0). To avoid accidents, it seems safer to remove the option.
   /**
-   * @notice This modifier verifies that if the `caller` parameter is not `address(0)`, then `msg.sender` is the caller.
-   * @param caller The address of the caller (or address(0)) that can access the modified function.
+   * @notice This modifier verifies that `msg.sender` is the caller.
+   * @param caller The address of the caller that can access the modified function.
    */
   modifier onlyCaller(address caller) {
-    require(caller == address(0) || msg.sender == caller, "AccessControlled/Invalid");
+    require(msg.sender == caller, "AccessControlled/Invalid");
     _;
   }
 

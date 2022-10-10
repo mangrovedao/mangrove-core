@@ -41,7 +41,6 @@ contract MangroveOrderEnriched is MangroveOrder {
     virtual
     override
   {
-    //TODO: [lnist] Nothing trims the list, so it just grows indefinitely for each owner.
     // Push new offerId as the new head
     mapping(uint => uint) storage offers = next[outbound_tkn][inbound_tkn][owner];
     uint head = offers[0];

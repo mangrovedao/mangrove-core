@@ -77,7 +77,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// @param inbound_tkn the inbound token coordinate of the offer list.
   /// @param offerId the offer identifier in the offer list.
   /// @param owner the address of the offer maker.
-  /// @param leftover the fraction of msg.value that is not locked in the offer provision due to rounding error (see `_newOffer`).
+  /// @param leftover the fraction of `msg.value` that is not locked in the offer provision due to rounding error (see `_newOffer`).
   function addOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, address owner, uint leftover) internal {
     ownerData[outbound_tkn][inbound_tkn][offerId] = OwnerData({owner: owner, wei_balance: uint96(leftover)});
     emit NewOwnedOffer(MGV, outbound_tkn, inbound_tkn, offerId, owner);

@@ -47,6 +47,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /**
    * @notice `MangroveOffer`'s constructor
    * @param mgv The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
+   * @param gasreq Gas requirement when posting offers via this strategy, excluding router requirement.
    */
   constructor(IMangrove mgv, uint gasreq) AccessControlled(msg.sender) {
     require(uint24(gasreq) == gasreq, "mgvOffer/gasreqOverflow");
@@ -83,11 +84,16 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     onlyCaller(address(MGV))
     returns (bytes32 ret)
   {
+    // Invoke hook that implements a last look check during execution - it reneges by reverting.
     ret = __lastLook__(order);
+    // Invoke hook to put the inbound token, which are brought by the taker.
     if (__put__(order.gives, order) > 0) {
+      // all must be able to be put, or we revert.
       revert("mgvOffer/abort/putFailed");
     }
+    // Invoke hook to fetch the outbound token, which are promised to the taker.
     if (__get__(order.wants, order) > 0) {
+      // all must be able to fetched, or we revert.
       revert("mgvOffer/abort/getFailed");
     }
   }
@@ -225,7 +231,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /// @dev __lastLook__ should revert if trade is to be reneged on. If not, returned `bytes32` are passed to `makerPosthook` in the `makerData` field.
   // @custom:hook overrides of this hook should be conservative and call `super.__lastLook__(order)`.
   // Special bytes32 word can be used to switch a particular behavior of `__posthookSuccess__`, e.g not to repost offer in case of a partial fill. */
-
   function __lastLook__(MgvLib.SingleOrder calldata order) internal virtual returns (bytes32 data) {
     order; //shh
     return "mgvOffer/proceed";

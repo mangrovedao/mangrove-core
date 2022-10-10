@@ -26,6 +26,11 @@ contract SumTokenTest is Test2 {
     new SumToken(tokenC, tokenA);
   }
 
+  function testDecimalsAreSameAsConstituents() public {
+    assertEq(sumToken.decimals(), tokenA.decimals());
+    assertEq(sumToken.decimals(), tokenB.decimals());
+  }
+
   function testSymbolsAreCombined() public {
     assertEq(sumToken.symbol(), "A+B");
   }
@@ -33,7 +38,7 @@ contract SumTokenTest is Test2 {
   function testTotalSupplyIsSum() public {
     assertEq(sumToken.totalSupply(), 0);
     assertEq(tokenA.totalSupply(), 0);
-    assertEq(tokenA.totalSupply(), 0);
+    assertEq(tokenB.totalSupply(), 0);
 
     tokenA.mint(address(this), 2);
     assertEq(sumToken.totalSupply(), 2);
@@ -56,7 +61,7 @@ contract SumTokenTest is Test2 {
   function testBalanceOfIsSum() public {
     assertEq(sumToken.balanceOf(address(this)), 0);
     assertEq(tokenA.balanceOf(address(this)), 0);
-    assertEq(tokenA.balanceOf(address(this)), 0);
+    assertEq(tokenB.balanceOf(address(this)), 0);
 
     tokenA.mint(address(this), 2);
     assertEq(sumToken.balanceOf(address(this)), 2);
@@ -74,5 +79,123 @@ contract SumTokenTest is Test2 {
 
     tokenB.mint(address(this), type(uint).max);
     assertEq(sumToken.balanceOf(address(this)), type(uint).max);
+  }
+
+  function testFailTransferWithoutApprovalOfSumToken() public {
+    tokenA.mint(address(this), 3);
+    tokenB.mint(address(this), 3);
+
+    address other = freshAddress("other");
+
+    sumToken.transfer(other, 3);
+  }
+
+  function testTransferWithAApprovalOfSumToken() public {
+    tokenA.approve(address(sumToken), type(uint).max);
+    tokenA.mint(address(this), 3);
+
+    address other = freshAddress("other");
+
+    sumToken.transfer(other, 3);
+
+    assertEq(sumToken.balanceOf(address(this)), 0);
+    assertEq(tokenA.balanceOf(address(this)), 0);
+    assertEq(tokenB.balanceOf(address(this)), 0);
+
+    assertEq(sumToken.balanceOf(other), 3);
+    assertEq(tokenA.balanceOf(other), 3);
+    assertEq(tokenB.balanceOf(other), 0);
+  }
+
+  function testTransferWithBApprovalOfSumToken() public {
+    tokenB.approve(address(sumToken), type(uint).max);
+    tokenB.mint(address(this), 3);
+
+    address other = freshAddress("other");
+
+    sumToken.transfer(other, 3);
+
+    assertEq(sumToken.balanceOf(address(this)), 0);
+    assertEq(tokenA.balanceOf(address(this)), 0);
+    assertEq(tokenB.balanceOf(address(this)), 0);
+
+    assertEq(sumToken.balanceOf(other), 3);
+    assertEq(tokenA.balanceOf(other), 0);
+    assertEq(tokenB.balanceOf(other), 3);
+  }
+
+  function testTransferAOverB() public {
+    tokenA.approve(address(sumToken), type(uint).max);
+    tokenB.approve(address(sumToken), type(uint).max);
+
+    tokenA.mint(address(this), 3);
+    tokenB.mint(address(this), 2);
+
+    address other = freshAddress("other");
+
+    sumToken.transfer(other, 4);
+
+    assertEq(sumToken.balanceOf(address(this)), 1);
+    assertEq(tokenA.balanceOf(address(this)), 0);
+    assertEq(tokenB.balanceOf(address(this)), 1);
+
+    assertEq(sumToken.balanceOf(other), 4);
+    assertEq(tokenA.balanceOf(other), 3);
+    assertEq(tokenB.balanceOf(other), 1);
+  }
+
+  function testApproveIsReflectedInAllowance() public {
+    address other = freshAddress("other");
+
+    sumToken.approve(other, 1);
+
+    assertEq(sumToken.allowance(address(this), other), 1);
+  }
+
+  function testFailTransferFromWithoutApproval() public {
+    address owner = freshAddress("owner");
+    address recipient = freshAddress("recipient");
+
+    vm.startPrank(owner);
+    tokenA.approve(address(sumToken), type(uint).max);
+    vm.stopPrank();
+
+    tokenA.mint(owner, 1);
+
+    sumToken.transferFrom(owner, recipient, 1);
+  }
+
+  function testTransferFromWithApproval() public {
+    address owner = freshAddress("owner");
+    address recipient = freshAddress("recipient");
+
+    vm.startPrank(owner);
+    tokenA.approve(address(sumToken), type(uint).max);
+    sumToken.approve(address(this), 6);
+    vm.stopPrank();
+
+    tokenA.mint(owner, 3);
+
+    sumToken.transferFrom(owner, recipient, 2);
+
+    assertEq(sumToken.allowance(owner, address(this)), 4);
+    assertEq(sumToken.balanceOf(owner), 1);
+    assertEq(sumToken.balanceOf(recipient), 2);
+  }
+
+  function testTransferFromWithInfiniteApproval() public {
+    address owner = freshAddress("owner");
+    address recipient = freshAddress("recipient");
+
+    vm.startPrank(owner);
+    tokenA.approve(address(sumToken), type(uint).max);
+    sumToken.approve(address(this), type(uint).max);
+    vm.stopPrank();
+
+    tokenA.mint(owner, 1);
+
+    sumToken.transferFrom(owner, recipient, 1);
+
+    assertEq(sumToken.allowance(owner, address(this)), type(uint).max);
   }
 }

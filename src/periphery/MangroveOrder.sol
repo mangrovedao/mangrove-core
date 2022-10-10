@@ -22,8 +22,9 @@ import {MgvLib, IERC20} from "src/MgvLib.sol";
 
 ///@title MangroveOrder. A periphery contract to Mangrove protocol that implements "Good till cancelled" (GTC) orders as well as "Fill or kill" (FOK) orders.
 ///@notice A GTC order is a market buy (sell) order complemented by a bid (ask) order, called a resting order, that occurs when the buy (sell) order was partially filled.
-/// * If the GTC is for $amount$ at a price $p$ and the market order was partially filled for $got$ at a price $p_synch$, the resting order should be for $will_get$ at $p_async$ such that
-//// $(got * p_synch + will_get * p_async) = amount * p$.
+/// * If the GTC is for some amount $a_goal$ at a price $p$, and the corresponding market order was partially filled for $a_now < a_goal$ at a price $p_synch <= p$,
+/// the resting order should be posted for an amount $a_later$ at price $p_async$ such that:
+//// $$ (a_now * p_synch + a_later * p_async) = a_goal * p $$ (modulo rounding error).
 /// * If the taker tolerates some slippage, i.e., $p=p_0+slippage$, the price of the resting order is computed considering $p_0$.
 /// * The resting order comes with a "time to live" after which the corresponding offer is no longer valid.
 /// * The resting order can be cancelled or updated by its owner at any time.
@@ -35,13 +36,18 @@ import {MgvLib, IERC20} from "src/MgvLib.sol";
 ///@dev requiring no partial fill *and* a resting order is interpreted here as an instruction to revert if the resting order fails to be posted (e.g., if below density).
 
 contract MangroveOrder is Forwarder, IOrderLogic {
-  ///@notice `expiring[outbound_tkn][inbound_tkn][offerId]` gives timestamp beyond which `offerId` on the `(outbound_tkn, inbound_tkn)` offer list should renege on trade. 0 means no expiry.
+  ///@notice `expiring[outbound_tkn][inbound_tkn][offerId]` gives timestamp beyond which `offerId` on the `(outbound_tkn, inbound_tkn)` offer list should renege on trade.
+  ///@dev 0 means no expiry.
   mapping(IERC20 => mapping(IERC20 => mapping(uint => uint))) public expiring;
 
-  ///@notice if evm gas cost is updated, one may need to increase gas requirements for new offers to avoid failing
+  ///@notice if evm gas cost is updated, one may need to increase gas requirements for new offers to avoid failing.
+  /// Setting `additionalGasreq` is an alternative to redeployment.
   uint public additionalGasreq;
 
-  ///@notice MangroveOrder constructor extends Forwarder with a simple router.
+  ///@notice MangroveOrder is a Forwarder logic with a simple router.
+  ///@param mgv The mangrove contract on which this logic will run taker and maker orders.
+  ///@param deployer The address of the admin of `this` at the end of deployment
+  ///@param gasreq The gas required for `this` to execute `makerExecute` and `makerPosthoook` when called by mangrove for a resting order.
   constructor(IMangrove mgv, address deployer, uint gasreq) Forwarder(mgv, new SimpleRouter(), gasreq) {
     // adding `this` contract to authorized makers of the router before setting admin rights of the router to deployer
     router().bind(address(this));
@@ -103,7 +109,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     (res.takerGot, res.takerGave, res.bounty, res.fee) = MGV.marketOrder({
       outbound_tkn: address(tko.outbound_tkn),
       inbound_tkn: address(tko.inbound_tkn),
-      takerWants: tko.takerWants, // `tko.takerWants` includes user defined slippage
+      takerWants: tko.takerWants, // we use `tko.takerWants` since it includes user slippage tolerance
       takerGives: tko.takerGives,
       fillWants: tko.fillWants
     });
@@ -197,7 +203,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
         inbound_tkn: inbound_tkn,
         wants: tko.makerWants - (res.takerGot + res.fee), // tko.makerWants is before slippage
         gives: tko.makerGives - res.takerGave,
-        gasreq: offerGasreq() + additionalGasreq, // using default gasreq of the strat + potential local increase
+        gasreq: offerGasreq() + additionalGasreq, // using default gasreq of the strat + potential admin defined increase
         pivotId: tko.pivotId,
         fund: fund,
         caller: msg.sender,

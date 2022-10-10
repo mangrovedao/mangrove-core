@@ -27,7 +27,7 @@ import {MgvLib, IERC20} from "src/MgvLib.sol";
 /// * The resting order comes with a "time to leave" after which the corresponding offer is no longer valid.
 /// * The resting order can be cancelled or updated by its owner at any time.
 /// E.g., `msg.sender` wishes to buy 1 ETH at a limit average price of 1500 USD/ETH + 1% slippage tolerance. After a market buy order:
-/// 1. `msg.sender` gets a partial fill of 0.582 ETH (0.6 ETH - 3% fee) for 850 USD (thus at a price of ~1417 USD/ETH).
+/// 1. `msg.sender` gets a partial fill of 0.582 ETH (0.6 ETH - 3% fee) for 850 USD (thus at a price of $850/0.6 =~ 1417$ USD/ETH).
 /// 2. This contract will then post a resting bid of 0.4 ETH for 650 USD (thus at a price of 1625 USD)
 /// 3. If the resting order is fully taken, the global average price for `msg.sender` will indeed be 1500 USD/ETH.
 /// A FOK order is simply a buy or sell order that is either completely filled or cancelled. No resting order is posted.

@@ -82,7 +82,7 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice router-dependant implementation of the `push` function
   function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual;
 
-  ///@notice iterative `push`
+  ///@notice iterative `push` in a single call
   function flush(IERC20[] calldata tokens, address reserve) external onlyMakers {
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);

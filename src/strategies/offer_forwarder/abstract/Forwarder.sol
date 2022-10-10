@@ -21,7 +21,7 @@ import {MgvLib, IERC20, MgvStructs} from "src/MgvLib.sol";
 import {IMangrove} from "src/IMangrove.sol";
 import {console2} from "forge-std/console2.sol";
 
-///@title Class for maker contracts that forward external offer makers instructions to Mangrove in a permissionless fashion.
+///@title Class for maker contracts that forward offer makers instructions to Mangrove in a permissionless fashion.
 ///@notice Each offer posted via this contract are managed by their offer maker, not by this contract's admin.
 ///@notice This class implements IForwarder, which contains specific Forwarder logic functions in additions to IOfferLogic interface.
 
@@ -29,9 +29,10 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   // approx of amount of gas units required to complete `__posthookFallback__` when evaluating penalty.
   uint constant GAS_APPROX = 2000;
 
-  ///@notice data associated to each offer published on Mangrove by `this` contract.
+  ///@notice data associated to each offer published on Mangrove by this contract.
   ///@param owner address of the account that can manage (update or retract) the offer
-  ///@param wei_balance fraction of `this` contract's balance on Mangrove that can be retrieved by offer owner.
+  ///@param wei_balance fraction of `this` balance on Mangrove that can be retrieved by offer owner.
+  ///@dev `OwnerData` packs into one word.
   struct OwnerData {
     address owner;
     uint96 wei_balance;
@@ -51,8 +52,8 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   ///@notice Forwarder constructor
-  ///@param mgv the deployed Mangrove contract on which `this` contract will post offers.
-  ///@param router_ the router that `this` contract will use to pull/push liquidity from offer maker's reserve. This cannot be `NO_ROUTER`.
+  ///@param mgv the deployed Mangrove contract on which this contract will post offers.
+  ///@param router_ the router that this contract will use to pull/push liquidity from offer maker's reserve. This must not be `NO_ROUTER`.
   constructor(IMangrove mgv, AbstractRouter router_, uint gasreq) MangroveOffer(mgv, gasreq) {
     require(router_ != NO_ROUTER, "Forwarder logics must have a router");
     setRouter(router_);
@@ -259,36 +260,38 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
 
   ///@notice Implementation body of `updateOffer`, using arguments and variables on memory to avoid stack too deep.
   function _updateOffer(UpdateOfferArgs memory args) private {
-    UpdateOfferVars memory vars;
-    // re-deriving gasprice only if necessary
-    if (args.fund != 0) {
-      // adding current locked provision to funds (0 if offer is deprovisioned)
-      (vars.gasprice, vars.leftover) = deriveGasprice(
-        args.gasreq,
-        args.fund + args.offer_detail.gasprice() * 10 ** 9 * (args.offer_detail.gasreq() + args.local.offer_gasbase()),
-        args.local.offer_gasbase()
-      );
-      // leftover can be safely cast to uint96 since it a rounding error
-      // adding `leftover` to potential previous value since it was not included in args.fund
-      ownerData[args.outbound_tkn][args.inbound_tkn][args.offerId].wei_balance += uint96(vars.leftover);
-    } else {
-      // no funds are added so we keep old gasprice
-      vars.gasprice = args.offer_detail.gasprice();
-    }
+    unchecked {
+      UpdateOfferVars memory vars;
+      // re-deriving gasprice only if necessary
+      if (args.fund != 0) {
+        // adding current locked provision to funds (0 if offer is deprovisioned)
+        (vars.gasprice, vars.leftover) = deriveGasprice(
+          args.gasreq,
+          args.fund + args.offer_detail.gasprice() * 10 ** 9 * (args.offer_detail.gasreq() + args.local.offer_gasbase()),
+          args.local.offer_gasbase()
+        );
+        // leftover can be safely cast to uint96 since it's a rounding error
+        // adding `leftover` to potential previous value since it was not included in args.fund
+        ownerData[args.outbound_tkn][args.inbound_tkn][args.offerId].wei_balance += uint96(vars.leftover);
+      } else {
+        // no funds are added so we keep old gasprice
+        vars.gasprice = args.offer_detail.gasprice();
+      }
 
-    // if `args.fund` is too low, offer gasprice might be below mangrove's gasprice
-    // Mangrove will then take its own gasprice for the offer and would possibly tap into `this` contract's pool to cover for the missing provision
-    require(vars.gasprice >= args.global.gasprice(), "mgv/insufficientProvision");
-    MGV.updateOffer{value: args.fund}(
-      address(args.outbound_tkn),
-      address(args.inbound_tkn),
-      args.wants,
-      args.gives,
-      args.gasreq,
-      vars.gasprice,
-      args.pivotId,
-      args.offerId
-    );
+      // if `args.fund` is too low, offer gasprice might be below mangrove's gasprice
+      // Mangrove will then take its own gasprice for the offer and would possibly tap into `this` contract's pool to cover for the missing provision
+      require(vars.gasprice >= args.global.gasprice(), "mgv/insufficientProvision");
+      MGV.updateOffer{value: args.fund}(
+        address(args.outbound_tkn),
+        address(args.inbound_tkn),
+        args.wants,
+        args.gives,
+        args.gasreq,
+        vars.gasprice,
+        args.pivotId,
+        args.offerId
+      );
+    }
   }
 
   ///@inheritdoc IOfferLogic

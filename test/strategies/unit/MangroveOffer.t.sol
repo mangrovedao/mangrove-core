@@ -76,7 +76,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.makerExecute(order);
     vm.prank(address(mgv));
     bytes32 ret = makerContract.makerExecute(order);
-    assertEq(ret, "mgvOffer/tradeSuccess", "Incorrect returned data");
+    assertEq(ret, "mgvOffer/proceed", "Incorrect returned data");
   }
 
   function testCannot_callMakerPosthookIfNotMangrove() public {
@@ -108,7 +108,7 @@ contract MangroveOfferTest is MangroveTest {
     order.inbound_tkn = $(usdc);
     vm.prank(address(mgv));
     bytes32 data = makerContract.makerExecute(order);
-    assertEq(data, "mgvOffer/tradeSuccess");
+    assertEq(data, "mgvOffer/proceed");
   }
 
   function test_AdminCanWithdrawFunds() public {

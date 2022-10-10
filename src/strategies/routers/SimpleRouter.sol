@@ -83,7 +83,7 @@ contract SimpleRouter is
   ///@notice router-dependent implementation of the `checkList` function
   ///@notice verifies all required approval involving `this` router (either as a spender or owner)
   ///@dev `checkList` returns normally if all needed approval are strictly positive. It reverts otherwise with a reason.
-  ///@param token is the asset (and possibly its overlyings) whose approval must be checked
+  ///@param token is the asset whose approval must be checked
   ///@param reserve the reserve that requires asset pulling/pushing
   function __checkList__(IERC20 token, address reserve) internal view virtual override {
     // verifying that `this` router can withdraw tokens from reserve (required for `withdrawToken` and `pull`)

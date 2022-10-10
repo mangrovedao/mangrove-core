@@ -134,15 +134,13 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /// @param maker the address of the offer maker one wishes to know the reserve of.
   /// @return reserve_ the address of the offer maker's reserve of liquidity.
   /// @dev if `this` contract is not acting of behalf of some user, `_reserve(address(this))` must be defined at all time.
-  /// for `Direct` strategies, if  `_reserve(address(this)) != address(this)` then `this` contract must use a router to pull/push liquidity to its reserve.
   function _reserve(address maker) internal view returns (address reserve_) {
     reserve_ = MOS.getStorage().reserves[maker];
   }
 
   /// @notice sets reserve of an offer maker.
   /// @param maker the address of the offer maker
-  /// @param reserve_ the address of the offer maker's reserve of liquidity
-  /// @dev use `_setReserve(address(this), '0x...')` when `this` contract is the offer maker (`Direct` strats)
+  /// @param reserve_ the address of the offer maker's reserve of liquidity.
   function _setReserve(address maker, address reserve_) internal {
     require(reserve_ != address(0), "SingleUser/0xReserve");
     MOS.getStorage().reserves[maker] = reserve_;
@@ -230,7 +228,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   function __lastLook__(MgvLib.SingleOrder calldata order) internal virtual returns (bytes32 data) {
     order; //shh
-    return "mgvOffer/tradeSuccess";
+    return "mgvOffer/proceed";
   }
 
   ///@notice Post-hook that implements fallback behavior when Taker Order's execution failed unexpectedly.
@@ -263,7 +261,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   ///@param order is a recall of the taker order that is being treated.
   ///@return new_gives the new volume of `outbound_tkn` the offer will give if fully taken.
   ///@dev default is to require the original amount of tokens minus those that have been sent to the taker during trade execution.
-  function __residualGives__(MgvLib.SingleOrder calldata order) internal virtual returns (uint) {
+  function __residualGives__(MgvLib.SingleOrder calldata order) internal virtual returns (uint new_gives) {
     return order.offer.gives() - order.wants;
   }
 
@@ -302,14 +300,12 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     ) {
       return "posthook/reposted";
     } catch Error(string memory reason) {
-      // `updateOffer` can fail when this contract is under provisioned
-      // or if `offer.gives` is below density
-      // Log incident only if under provisioned
+      // `updateOffer` can fail if `offer.gives` is below density
+      // Log incident only for other reasons (Mangrove logs if posthook reverts)
       bytes32 reason_hsh = keccak256(bytes(reason));
       if (reason_hsh == BELOW_DENSITY) {
         return "posthook/dustRemainder"; // offer not reposted
       } else {
-        // for all other reason we let the revert propagate (Mangrove logs revert reason in the `PosthookFail` event).
         revert(reason);
       }
     }

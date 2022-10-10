@@ -18,7 +18,6 @@ import "src/strategies/interfaces/IOfferLogic.sol";
 /// @title This is the storage part of a diamond storage scheme for `MangroveOffer` to reduce size of contracts.
 library MangroveOfferStorage {
   /// @notice The layout of the storage.
-  /// @param offerGasreq total gas cost including router specific costs (if any) when posting offers via `this` strategy.
   /// @param router the router to pull outbound tokens from contract's reserve to `this` and push inbound tokens to reserve.
   /// @param reserves the addresses where offer makers are storing their liquidity.
   struct Layout {

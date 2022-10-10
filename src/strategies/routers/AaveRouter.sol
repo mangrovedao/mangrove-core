@@ -28,9 +28,9 @@ import "./AbstractRouter.sol";
 // - supply ~ 250K
 // - borrow ~ 360K
 contract AaveRouter is AbstractRouter, AaveV3Module {
-  constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode)
+  constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode, uint overhead)
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
-    AbstractRouter(700_000)
+    AbstractRouter(overhead)
   {}
 
   // 1. pulls aTokens from reserve

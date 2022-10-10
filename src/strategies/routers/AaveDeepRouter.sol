@@ -25,10 +25,8 @@ import "./AaveRouter.sol";
 
 contract AaveDeepRouter is AaveRouter {
   constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode)
-    AaveRouter(_addressesProvider, _referralCode, _interestRateMode)
-  {
-    ARSt.getStorage().gasOverhead += 350_000; // additional borrow
-  }
+    AaveRouter(_addressesProvider, _referralCode, _interestRateMode, 700_000)
+  {}
 
   // 1. pulls aTokens from aToken reserve. Borrows if necessary
   // 2. redeems underlying on AAVE and forwards received tokens to maker contract

@@ -87,6 +87,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// @notice computes the maximum `gasprice` that can be covered by the amount of provision given in argument.
   /// @param gasreq the gas required by the offer
   /// @param provision the amount of native token one wishes to use, to provision the offer on Mangrove.
+  /// @param offerGasbase the Mangrove's offer_gasbase.
   /// @return gasprice the gas price that is covered by `provision` - `leftover`.
   /// @return leftover the sub amount of `provision` that is not used to provision the offer.
   /// @dev the returned gasprice is slightly lower than the real gasprice that the provision can cover because of the rounding error due to division
@@ -134,7 +135,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@param gives the amount of outbound tokens the maker gives for a complete fill.
   ///@param gasreq gas required for trade execution.
   ///@param pivotId a best pivot estimate for cheap offer insertion in the offer list.
-  ///@param caller msg.sender of the calling external function.
+  ///@param caller `msg.sender` of the calling external function.
   ///@param fund WEIs in `this` contract's balance that are used to provision the offer.
   ///@param noRevert is set to true if calling function does not wish `_newOffer` to revert on error. Out of gas exception is always possible though.
   struct NewOfferArgs {
@@ -407,7 +408,6 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // storing the portion of this contract's balance on Mangrove that should be attributed back to the failing offer's owner
     // those free WEIs can be retrieved by offer owner, by calling `retractOffer` with the `deprovision` flag.
     semiBookOwnerData[order.offerId].weiBalance += uint96(approxReturnedProvision);
-    // console2.log(gas - gasleft());
     return "";
   }
 

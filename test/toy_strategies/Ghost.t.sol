@@ -140,7 +140,9 @@ contract GhostTest is MangroveTest {
     uint makerWantsAmountDAI = cash(dai, 300);
     uint makerWantsAmountUSDC = cash(usdc, 300);
 
-    deal($(weth), $(strat), cash(weth, 5));
+    weth.approve($(strat.router()), type(uint).max);
+
+    deal($(weth), $(this), cash(weth, 5));
 
     // post offers with Ghost liquidity
     (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
@@ -164,7 +166,9 @@ contract GhostTest is MangroveTest {
     uint makerWantsAmountDAI = cash(dai, 300);
     uint makerWantsAmountUSDC = cash(usdc, 300);
 
-    deal($(weth), $(strat), cash(weth, 10));
+    weth.approve($(strat.router()), type(uint).max);
+
+    deal($(weth), $(this), cash(weth, 10));
 
     (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 
@@ -186,7 +190,9 @@ contract GhostTest is MangroveTest {
     uint makerWantsAmountDAI = cash(dai, 300);
     uint makerWantsAmountUSDC = cash(usdc, 300);
 
-    deal($(weth), $(strat), cash(weth, 10));
+    weth.approve($(strat.router()), type(uint).max);
+
+    deal($(weth), $(this), cash(weth, 10));
 
     (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 

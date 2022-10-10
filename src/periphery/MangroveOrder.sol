@@ -114,7 +114,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // * (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS+`res.takerGot`, IN_THIS+`tko.takerGives`-`res.takerGave`)
 
     bool isComplete = checkCompleteness(tko, res);
-    // when `!restingOrder` this implements FOK. When `restingOrder` is positioned this reverts only if resting order fails to be posted.
+    // when `!restingOrder` this implements FOK. When `restingOrder` the `postRestingOrder` function reverts if resting order fails to be posted amd `partialFillNotAllowed`.
     // therefore we require `partialFillNotAllowed => (isComplete \/ restingOrder)`
     require(!tko.partialFillNotAllowed || isComplete || tko.restingOrder, "mgvOrder/mo/noPartialFill");
 

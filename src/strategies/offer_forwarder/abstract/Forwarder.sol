@@ -207,7 +207,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     gasprice; // ssh
     UpdateOfferArgs memory upd;
 
-    upd.offer_detail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
+    upd.offerDetail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
     (upd.global, upd.local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
     // funds to compute new gasprice is msg.value. Will use old gasprice if no funds are given
     // it might be tempting to include `od.weiBalance` here but this will trigger a recomputation of the `gasprice`
@@ -217,7 +217,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     upd.inbound_tkn = inbound_tkn;
     upd.wants = wants;
     upd.gives = gives;
-    upd.gasreq = gasreq > type(uint24).max ? upd.offer_detail.gasreq() : gasreq;
+    upd.gasreq = gasreq > type(uint24).max ? upd.offerDetail.gasreq() : gasreq;
     upd.pivotId = pivotId;
     upd.offerId = offerId;
     // weiBalance is used to provision offer
@@ -227,7 +227,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@notice Memory allocation of `_updateOffer` arguments
   ///@param global current block's global configuration variables of Mangrove
   ///@param local current block's configuration variables of the (outbound token, inbound token) offer list
-  ///@param offer_detail a recap of the current block's offer details.
+  ///@param offerDetail a recap of the current block's offer details.
   ///@param fund available funds for provisioning the offer
   ///@param outbound_tkn token contract
   ///@param inbound_tkn token contract
@@ -239,7 +239,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   struct UpdateOfferArgs {
     MgvStructs.GlobalPacked global;
     MgvStructs.LocalPacked local;
-    MgvStructs.OfferDetailPacked offer_detail;
+    MgvStructs.OfferDetailPacked offerDetail;
     uint fund;
     IERC20 outbound_tkn;
     IERC20 inbound_tkn;
@@ -268,7 +268,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
         // adding current locked provision to funds (0 if offer is deprovisioned)
         (vars.gasprice, vars.leftover) = deriveGasprice(
           args.gasreq,
-          args.fund + args.offer_detail.gasprice() * 10 ** 9 * (args.offer_detail.gasreq() + args.local.offer_gasbase()),
+          args.fund + args.offerDetail.gasprice() * 10 ** 9 * (args.offerDetail.gasreq() + args.local.offer_gasbase()),
           args.local.offer_gasbase()
         );
         // leftover can be safely cast to uint96 since it's a rounding error
@@ -276,7 +276,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
         ownerData[args.outbound_tkn][args.inbound_tkn][args.offerId].weiBalance += uint96(vars.leftover);
       } else {
         // no funds are added so we keep old gasprice
-        vars.gasprice = args.offer_detail.gasprice();
+        vars.gasprice = args.offerDetail.gasprice();
       }
 
       // if `args.fund` is too low, offer gasprice might be below mangrove's gasprice
@@ -302,10 +302,10 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     override
     returns (uint provision)
   {
-    MgvStructs.OfferDetailPacked offer_detail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
+    MgvStructs.OfferDetailPacked offerDetail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
     (, MgvStructs.LocalPacked local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
     unchecked {
-      provision = offer_detail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offer_detail.gasreq());
+      provision = offerDetail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offerDetail.gasreq());
       provision += ownerData[outbound_tkn][inbound_tkn][offerId].weiBalance;
     }
   }

@@ -22,6 +22,8 @@ import {IERC20} from "src/MgvLib.sol";
 /// @notice Partial implementation and requirements for liquidity routers.
 
 abstract contract AbstractRouter is AccessControlled {
+  uint24 immutable ROUTER_GASREQ;
+
   ///@notice This modifier verifies that `msg.sender` an allowed caller of this router.
   modifier onlyMakers() {
     require(makers(msg.sender), "Router/unauthorized");
@@ -35,10 +37,10 @@ abstract contract AbstractRouter is AccessControlled {
   }
 
   ///@notice constructor for abstract routers.
-  ///@param gasOverhead_ is the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
-  constructor(uint gasOverhead_) AccessControlled(msg.sender) {
-    require(uint24(gasOverhead_) == gasOverhead_, "Router/overheadTooHigh");
-    ARSt.getStorage().gasOverhead = gasOverhead_;
+  ///@param gas_overhead is the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
+  constructor(uint gas_overhead) AccessControlled(msg.sender) {
+    require(uint24(gas_overhead) == gas_overhead, "Router/overheadTooHigh");
+    ROUTER_GASREQ = uint24(gas_overhead);
   }
 
   ///@notice getter for the `makers: addr => bool` mapping
@@ -50,8 +52,8 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice view for gas overhead of this router.
   ///@return overhead the added (overapproximated) gas cost of `push` and `pull`.
-  function gasOverhead() public view returns (uint overhead) {
-    return ARSt.getStorage().gasOverhead;
+  function routerGasreq() public view returns (uint overhead) {
+    return ROUTER_GASREQ;
   }
 
   ///@notice pulls liquidity from an offer maker's reserve to `msg.sender`'s balance

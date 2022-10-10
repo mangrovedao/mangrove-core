@@ -21,7 +21,6 @@ library AbstractRouterStorage {
   /// @param gasOverhead the gas overhead of this router.
   struct Layout {
     mapping(address => bool) makers;
-    uint gasOverhead;
   }
 
   /// @notice Gets the `AbstractRouter` storage from a fixed slot.

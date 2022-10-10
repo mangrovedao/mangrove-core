@@ -86,9 +86,6 @@ contract GhostTest is MangroveTest {
 
     // allow (the router to) pull of WETH from Ghost (i.e., strat) to Mangrove
     strat.approve(weth, $(mgv), type(uint).max);
-    // allow the router to push the WETH from Ghost (i.e., strat) to $(this) contract
-    // (this will happen in the posthook)
-    strat.approve(weth, $(strat.router()), type(uint).max);
 
     // NOTE:
     // For this test, we're locking base, ie WETH, in the vault of the contract

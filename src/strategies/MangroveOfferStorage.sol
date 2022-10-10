@@ -22,7 +22,6 @@ library MangroveOfferStorage {
   /// @param router the router to pull outbound tokens from contract's reserve to `this` and push inbound tokens to reserve.
   /// @param reserves the addresses where offer makers are storing their liquidity.
   struct Layout {
-    uint offerGasreq;
     AbstractRouter router;
     mapping(address => address) reserves;
   }

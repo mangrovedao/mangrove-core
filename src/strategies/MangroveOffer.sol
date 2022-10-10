@@ -28,6 +28,7 @@ import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
 /// `__f__() virtual internal`: descendant of this contract should override this function to specialize it to the needs of the strat.
 
 abstract contract MangroveOffer is AccessControlled, IOfferLogic {
+  uint24 public immutable OFFER_GASREQ;
   IMangrove public immutable MGV;
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
   bytes32 constant OUT_OF_FUNDS = keccak256("mgv/insufficientProvision");
@@ -47,22 +48,19 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
    * @notice `MangroveOffer`'s constructor
    * @param mgv The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
    */
-  constructor(IMangrove mgv) AccessControlled(msg.sender) {
+  constructor(IMangrove mgv, uint gasreq) AccessControlled(msg.sender) {
+    require(uint24(gasreq) == gasreq, "MgvOffer/gasreqOverflow");
     MGV = mgv;
+    OFFER_GASREQ = uint24(gasreq);
   }
 
   /// @inheritdoc IOfferLogic
   function offerGasreq() public view returns (uint) {
-    return detailedOfferGasreq(false);
-  }
-
-  /// @inheritdoc IOfferLogic
-  function detailedOfferGasreq(bool constantPartOnly) public view returns (uint) {
     AbstractRouter router_ = router();
-    if (router_ != NO_ROUTER && !constantPartOnly) {
-      return MOS.getStorage().offerGasreq + router_.gasOverhead();
+    if (router_ != NO_ROUTER) {
+      return OFFER_GASREQ + router_.routerGasreq();
     } else {
-      return MOS.getStorage().offerGasreq;
+      return OFFER_GASREQ;
     }
   }
 
@@ -114,13 +112,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
         );
       __posthookFallback__(order, result);
     }
-  }
-
-  /// @inheritdoc IOfferLogic
-  function setGasreq(uint gasreq) public override onlyAdmin {
-    require(uint24(gasreq) == gasreq, "mgvOffer/gasreq/overflow");
-    MOS.getStorage().offerGasreq = gasreq;
-    emit SetGasreq(gasreq);
   }
 
   /// @inheritdoc IOfferLogic

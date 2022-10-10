@@ -37,11 +37,11 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@notice `expiring[outbound_tkn][inbound_tkn][offerId]` gives timestamp beyond which `offerId` on the `(outbound_tkn, inbound_tkn)` offer list should renege on trade. 0 means no expiry.
   mapping(IERC20 => mapping(IERC20 => mapping(uint => uint))) public expiring;
 
+  ///@notice if evm gas cost is updated, one may need to increase gas requirements for new offers to avoid failing
+  uint public additionalGasreq;
+
   ///@notice MangroveOrder constructor extends Forwarder with a simple router.
-  constructor(IMangrove mgv, address deployer, uint gasreq) Forwarder(mgv, new SimpleRouter()) {
-    // we start by setting gasreq for this logic to execute a trade in the worst case scenario.
-    // gas requirements implied by router are taken into account separately.
-    setGasreq(gasreq); // for fixed simple router overhead, this logic fails when `offer_gasreq` < 20K in prod.
+  constructor(IMangrove mgv, address deployer, uint gasreq) Forwarder(mgv, new SimpleRouter(), gasreq) {
     // adding `this` contract to authorized makers of the router before setting admin rights of the router to deployer
     router().bind(address(this));
     router().setAdmin(deployer);
@@ -50,6 +50,12 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     if (msg.sender != deployer) {
       setAdmin(deployer);
     }
+  }
+
+  ///@notice Increase gas requirement for all new offers.
+  ///@param add_gasreq additional gas requirement
+  function setAdditionalGasreq(uint add_gasreq) external onlyAdmin {
+    additionalGasreq = add_gasreq;
   }
 
   ///Checks the current timestamps and reneges on trade (by reverting) if the offer has expired.
@@ -123,8 +129,9 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // * (NAT_THIS+`msg.value`+`res.bounty`, OUT_THIS, IN_THIS)
 
     ///@dev collected bounty compensates gas consumption for the failed offer but could be lower than the cost of an additional native token transfer
-    /// instead of sending the bounty back to `msg.sender` we recycle it into the resting order's provision (so `msg.sender` can retrieve it when deprovisioning).
-    /// corner case: if the bounty is large enough, this will make posting of the resting order fail because of `gasprice` overflow. The funds will then be sent back to `msg.sender` (see below).
+    /// instead of sending the bounty back to `msg.sender` we recycle it into the resting order's provision (so `msg.sender` can retrieve it when deprovisionning).
+    /// corner case: if the bounty is large enough, this will make posting of the resting order fail because of `gasprice` overflow.
+    /// The funds will then be sent back to `msg.sender` (see below).
     uint fund = msg.value + res.bounty;
 
     if (tko.restingOrder && !isComplete) {
@@ -186,7 +193,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
         inbound_tkn: inbound_tkn,
         wants: tko.makerWants - (res.takerGot + res.fee), // tko.makerWants is before slippage
         gives: tko.makerGives - res.takerGave,
-        gasreq: offerGasreq(),
+        gasreq: offerGasreq() + additionalGasreq, // using default gasreq of the strat + potential local increase
         pivotId: tko.pivotId,
         fund: fund,
         caller: msg.sender,

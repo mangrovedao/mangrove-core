@@ -75,9 +75,6 @@ contract GhostTest is MangroveTest {
       admin: $(this) // for ease, set this contract (will be Test runner) as admin for the strat
       });
 
-    // set offerGasReq to overapproximate the gas required to handle trade and posthook
-    strat.setGasreq(250_000);
-
     // allow (the router to) pull of WETH from Ghost (i.e., strat) to Mangrove
     strat.approve(weth, $(mgv), type(uint).max);
     // allow the router to push the WETH from Ghost (i.e., strat) to $(this) contract

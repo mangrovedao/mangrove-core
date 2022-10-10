@@ -26,7 +26,8 @@ contract AaveRouterForkedTest is OfferLogicTest {
     AaveRouter router = new AaveRouter({
       _addressesProvider: fork.get("Aave"),
       _referralCode: 0,
-      _interestRateMode: 1 // stable rate
+      _interestRateMode: 1, // stable rate
+      overhead: 700_000
     });
     router.bind(address(makerContract));
     makerContract.setReserve(address(router));

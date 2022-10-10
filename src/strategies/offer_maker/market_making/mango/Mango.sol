@@ -72,7 +72,8 @@ contract Mango is Direct {
   )
     Direct(
       mgv,
-      new SimpleRouter() // routes liqudity from (to) reserve to (from) this contract
+      new SimpleRouter(), // routes liqudity from (to) reserve to (from) this contract,
+      150_000
     )
   {
     MangoStorage.Layout storage mStr = MangoStorage.getStorage();
@@ -118,9 +119,6 @@ contract Mango is Direct {
     router_.bind(address(this));
     // `this` deployed the router, letting admin take control over it.
     router_.setAdmin(deployer);
-
-    // should cover cost of reposting the offer + dual offer
-    setGasreq(150_000);
 
     // setting admin of contract if a static address deployment was used
     if (deployer != msg.sender) {

@@ -18,8 +18,7 @@ import "src/strategies/routers/AbstractRouter.sol";
 import "src/strategies/interfaces/IMakerLogic.sol";
 
 contract OfferMaker is IMakerLogic, Direct {
-  constructor(IMangrove mgv, AbstractRouter router_, address deployer) Direct(mgv, router_) {
-    setGasreq(30_000);
+  constructor(IMangrove mgv, AbstractRouter router_, address deployer) Direct(mgv, router_, 30_000) {
     if (router_ != NO_ROUTER) {
       router_.bind(address(this));
     }

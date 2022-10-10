@@ -18,8 +18,7 @@ import "src/strategies/interfaces/IMakerLogic.sol";
 import "src/strategies/routers/SimpleRouter.sol";
 
 contract OfferForwarder is IMakerLogic, Forwarder {
-  constructor(IMangrove mgv, address deployer) Forwarder(mgv, new SimpleRouter()) {
-    setGasreq(30_000);
+  constructor(IMangrove mgv, address deployer) Forwarder(mgv, new SimpleRouter(), 30_000) {
     AbstractRouter router_ = router();
     router_.bind(address(this));
     if (deployer != msg.sender) {

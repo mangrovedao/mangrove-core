@@ -53,7 +53,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@notice Forwarder constructor
   ///@param mgv the deployed Mangrove contract on which `this` contract will post offers.
   ///@param router_ the router that `this` contract will use to pull/push liquidity from offer maker's reserve. This cannot be `NO_ROUTER`.
-  constructor(IMangrove mgv, AbstractRouter router_) MangroveOffer(mgv) {
+  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq) MangroveOffer(mgv, gasreq) {
     require(router_ != NO_ROUTER, "Forwarder logics must have a router");
     setRouter(router_);
   }
@@ -221,7 +221,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     upd.inbound_tkn = inbound_tkn;
     upd.wants = wants;
     upd.gives = gives;
-    upd.gasreq = gasreq > type(uint24).max ? upd.offer_detail.gasreq() : gasreq; // not using offerGasReq() to save a storage read.
+    upd.gasreq = gasreq > type(uint24).max ? upd.offer_detail.gasreq() : gasreq;
     upd.pivotId = pivotId;
     upd.offerId = offerId;
     // wei_balance is used to provision offer

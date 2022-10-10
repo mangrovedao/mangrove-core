@@ -88,7 +88,8 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     router = new AaveRouter({
       _addressesProvider: fork.get("Aave"),
       _referralCode: 0,
-      _interestRateMode: 1 // stable rate
+      _interestRateMode: 1, // stable rate
+      overhead: 700_000
     });
     // adding makerContract to allowed pullers of router's liquidity
     router.bind($(mgo));

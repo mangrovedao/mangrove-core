@@ -239,18 +239,26 @@ contract OfferLogicTest is MangroveTest {
     });
   }
 
-  function performTrade(bool success) internal returns (uint takergot, uint takergave, uint bounty, uint fee) {
-    vm.prank(maker);
+  function performTrade(bool success) internal returns (uint, uint, uint, uint) {
+    return performTrade(success, 0);
+  }
+
+  function performTrade(bool success, uint add_gasreq)
+    internal
+    returns (uint takergot, uint takergave, uint bounty, uint fee)
+  {
+    vm.startPrank(maker);
     // ask 2000 USDC for 1 weth
     makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
+      gasreq: makerContract.offerGasreq() + add_gasreq,
       gasprice: 0,
       pivotId: 0
     });
+    vm.stopPrank();
 
     // taker has approved mangrove in the setUp
     vm.startPrank(taker);
@@ -311,10 +319,6 @@ contract OfferLogicTest is MangroveTest {
     vm.prank(maker);
     makerContract.setReserve(new_reserve);
 
-    vm.startPrank(deployer);
-    makerContract.setGasreq(makerContract.offerGasreq() + 70_000);
-    vm.stopPrank();
-
     deal($(weth), new_reserve, 0.5 ether);
     deal($(weth), address(makerContract), 0);
     deal($(usdc), address(makerContract), 0);
@@ -325,7 +329,7 @@ contract OfferLogicTest is MangroveTest {
     usdc.approve(toApprove, type(uint).max); // to push
     weth.approve(toApprove, type(uint).max); // to pull
     vm.stopPrank();
-    (, uint takerGave,,) = performTrade(true);
+    (, uint takerGave,,) = performTrade(true, 70_000);
     vm.startPrank(maker);
     assertEq(takerGave, makerContract.tokenBalance(usdc), "Incorrect reserve usdc balance");
     assertEq(makerContract.tokenBalance(weth), 0, "Incorrect reserve weth balance");

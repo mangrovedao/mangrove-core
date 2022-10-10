@@ -20,6 +20,6 @@ contract SimpleAaveRetail is OfferMaker {
   bytes32 public constant NAME = "SimpleAaveRetail";
 
   constructor(IMangrove mgv, address _addressesProvider, address deployer)
-    OfferMaker(mgv, new AaveRouter(_addressesProvider, 0, 2), deployer)
+    OfferMaker(mgv, new AaveRouter(_addressesProvider, 0, 2, 700_000), deployer)
   {}
 }

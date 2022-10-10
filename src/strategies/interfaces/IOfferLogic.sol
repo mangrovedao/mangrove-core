@@ -43,10 +43,6 @@ interface IOfferLogic is IMaker {
   ///@return total gas cost including router specific costs (if any).
   function offerGasreq() external view returns (uint total);
 
-  ///@notice returns offer gas requirements, possibly disregarding router dependant cost.
-  ///@param constantPartOnly whether one wishes to know the gas requirement w/o the router cost
-  function detailedOfferGasreq(bool constantPartOnly) external view returns (uint);
-
   ///@notice Computes missing provision to repost `offerId` at given `gasreq` and `gasprice` ignoring current contract's balance on Mangrove.
   ///@param outbound_tkn the outbound token used to identify the order book
   ///@param inbound_tkn the inbound token used to identify the order book
@@ -59,11 +55,6 @@ interface IOfferLogic is IMaker {
     external
     view
     returns (uint missingProvision);
-
-  ///@notice sets this contract's constant `gasreq` for `new/updateOffer`.
-  ///@param gasreq an overapproximation of the gas required to handle trade and posthook without considering liquidity routing specific costs.
-  ///@dev this should only take into account the gas cost of managing offer posting/updating during trade execution. Router specific gas cost are taken into account in the getter `offerGasreq()`
-  function setGasreq(uint gasreq) external;
 
   ///@notice sets a new router to pull outbound tokens from contract's reserve to `this` and push inbound tokens to reserve.
   ///@param router_ the new router contract that this contract should use. Use `NO_ROUTER` for no router.

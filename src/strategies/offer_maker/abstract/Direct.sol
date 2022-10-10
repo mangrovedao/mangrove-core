@@ -23,7 +23,7 @@ import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract Direct is MangroveOffer {
-  constructor(IMangrove mgv, AbstractRouter router_) MangroveOffer(mgv) {
+  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq) MangroveOffer(mgv, gasreq) {
     // default reserve is router's address if router is defined
     // if not then default reserve is `this` contract
     if (router_ == NO_ROUTER) {

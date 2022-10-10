@@ -20,10 +20,10 @@ import {SimpleRouter} from "src/strategies/routers/SimpleRouter.sol";
 import {TransferLib} from "src/strategies/utils/TransferLib.sol";
 import {MgvLib, IERC20} from "src/MgvLib.sol";
 
-///@title MangroveOrder. A periphery contract to Mangrove protocol that implements "Good till cancelled" (GTC) orders as well as "fill or kill" (FOK) orders.
+///@title MangroveOrder. A periphery contract to Mangrove protocol that implements "Good till cancelled" (GTC) orders as well as "Fill or kill" (FOK) orders.
 ///@notice A GTC order is a market buy (sell) order complemented by a bid (ask) order, called a resting order, that occurs when the buy (sell) order was partially filled.
 /// * If the GTC is at a price $p$ and the market order was partially filled at a price $p_synch$, the resting order should be posted at a price $p_async$ such that $(p_synch+p_async)/2 = p$.
-/// * If the taker tolerates some slippage, i.e., $p=p_0+slippage$, the price of the resting order is computed considering $p_0$ only ($p_synch+p_async/2=p_0$).
+/// * If the taker tolerates some slippage, i.e., $p=p_0+slippage$, the price of the resting order is computed considering $p_0$ only (($p_synch+p_async)/2=p_0$).
 /// * The resting order comes with a "time to leave" after which the corresponding offer is no longer valid.
 /// * The resting order can be cancelled or updated by its owner at any time.
 /// E.g., `msg.sender` wishes to buy 1 ETH at a limit average price of 1500 USD/ETH + 1% slippage tolerance. After a market buy order:

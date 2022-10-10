@@ -54,6 +54,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@notice Forwarder constructor
   ///@param mgv the deployed Mangrove contract on which this contract will post offers.
   ///@param router the router that this contract will use to pull/push liquidity from offer maker's reserve. This must not be `NO_ROUTER`.
+  ///@param gasreq Gas requirement when posting offers via this strategy, excluding router requirement.
   constructor(IMangrove mgv, AbstractRouter router, uint gasreq) MangroveOffer(mgv, gasreq) {
     require(router != NO_ROUTER, "Forwarder logics must have a router");
     setRouter(router);

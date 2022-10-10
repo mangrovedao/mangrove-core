@@ -86,7 +86,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
 
   /// @notice computes the maximum `gasprice` that can be covered by the amount of provision given in argument.
   /// @param gasreq the gas required by the offer
-  /// @param provision the amount of native token one is wishes to use, to provision the offer on Mangrove.
+  /// @param provision the amount of native token one wishes to use, to provision the offer on Mangrove.
   /// @return gasprice the gas price that is covered by `provision` - `leftover`.
   /// @return leftover the sub amount of `provision` that is not used to provision the offer.
   /// @dev the returned gasprice is slightly lower than the real gasprice that the provision can cover because of the rounding error due to division
@@ -97,14 +97,14 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   {
     unchecked {
       uint num = (offerGasbase + gasreq) * 10 ** 9;
-      // pre-check to avoid underflow since 0 is interpreted as "use mangrove's gasprice"
+      // pre-check to avoid underflow since 0 is interpreted as "use Mangrove's gasprice"
       require(provision >= num, "mgv/insufficientProvision");
       // Gasprice is eventually a uint16, so too much provision would yield a gasprice overflow
       // Reverting here with a clearer reason
       require(provision < type(uint16).max * num, "Forwarder/provisionTooHigh");
       gasprice = provision / num;
 
-      // computing amount of native tokens that are not going to be locked on mangrove
+      // computing amount of native tokens that are not going to be locked on Mangrove
       // this amount should still be recoverable by offer maker when retracting the offer
       leftover = provision - (gasprice * 10 ** 9 * (offerGasbase + gasreq));
     }

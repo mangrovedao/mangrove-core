@@ -36,7 +36,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   ///@notice guards for restricting a function call to either `MGV` or `admin()`.
   modifier mgvOrAdmin() {
-    require(msg.sender == admin() || msg.sender == address(MGV), "AccessControlled/Invalid");
+    require(msg.sender == admin() || msg.sender == address(MGV), "mgvOffer/unauthorized");
     _;
   }
 
@@ -47,9 +47,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /**
    * @notice `MangroveOffer`'s constructor
    * @param mgv The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
+   * @param gasreq Gas requirement when posting offers via this strategy, excluding router requirement.
    */
   constructor(IMangrove mgv, uint gasreq) AccessControlled(msg.sender) {
-    require(uint24(gasreq) == gasreq, "MgvOffer/gasreqOverflow");
+    require(uint24(gasreq) == gasreq, "mgvOffer/gasreqOverflow");
     MGV = mgv;
     OFFER_GASREQ = gasreq;
   }
@@ -83,11 +84,16 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     onlyCaller(address(MGV))
     returns (bytes32 ret)
   {
+    // Invoke hook that implements a last look check during execution - it reneges by reverting.
     ret = __lastLook__(order);
+    // Invoke hook to put the inbound token, which are brought by the taker.
     if (__put__(order.gives, order) > 0) {
+      // all must be able to be put, or we revert.
       revert("mgvOffer/abort/putFailed");
     }
+    // Invoke hook to fetch the outbound token, which are promised to the taker.
     if (__get__(order.wants, order) > 0) {
+      // all must be able to fetched, or we revert.
       revert("mgvOffer/abort/getFailed");
     }
   }
@@ -142,7 +148,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /// @param maker the address of the offer maker
   /// @param reserve_ the address of the offer maker's reserve of liquidity.
   function _setReserve(address maker, address reserve_) internal {
-    require(reserve_ != address(0), "SingleUser/0xReserve");
+    require(reserve_ != address(0), "mgvOffer/0xReserve");
     MOS.getStorage().reserves[maker] = reserve_;
   }
 
@@ -158,10 +164,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     AbstractRouter router_ = router();
     for (uint i = 0; i < tokens.length; i++) {
       // checking `this` contract's approval
-      require(tokens[i].allowance(address(this), address(MGV)) > 0, "MangroveOffer/LogicMustApproveMangrove");
+      require(tokens[i].allowance(address(this), address(MGV)) > 0, "mgvOffer/LogicMustApproveMangrove");
       // if contract has a router, checking router is allowed
       if (router_ != NO_ROUTER) {
-        require(tokens[i].allowance(address(this), address(router_)) > 0, "MangroveOffer/LogicMustApproveRouter");
+        require(tokens[i].allowance(address(this), address(router_)) > 0, "mgvOffer/LogicMustApproveRouter");
       }
       __checkList__(tokens[i]);
     }
@@ -225,7 +231,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /// @dev __lastLook__ should revert if trade is to be reneged on. If not, returned `bytes32` are passed to `makerPosthook` in the `makerData` field.
   // @custom:hook overrides of this hook should be conservative and call `super.__lastLook__(order)`.
   // Special bytes32 word can be used to switch a particular behavior of `__posthookSuccess__`, e.g not to repost offer in case of a partial fill. */
-
   function __lastLook__(MgvLib.SingleOrder calldata order) internal virtual returns (bytes32 data) {
     order; //shh
     return "mgvOffer/proceed";

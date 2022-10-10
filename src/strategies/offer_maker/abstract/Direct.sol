@@ -23,14 +23,14 @@ import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract Direct is MangroveOffer {
-  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq) MangroveOffer(mgv, gasreq) {
+  constructor(IMangrove mgv, AbstractRouter router, uint gasreq) MangroveOffer(mgv, gasreq) {
     // default reserve is router's address if router is defined
     // if not then default reserve is `this` contract
-    if (router_ == NO_ROUTER) {
+    if (router == NO_ROUTER) {
       setReserve(address(this));
     } else {
-      setReserve(address(router_));
-      setRouter(router_);
+      setReserve(address(router));
+      setRouter(router);
     }
   }
 
@@ -155,18 +155,18 @@ abstract contract Direct is MangroveOffer {
     override
     returns (uint provision)
   {
-    MgvStructs.OfferDetailPacked offer_detail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
+    MgvStructs.OfferDetailPacked offerDetail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
     (, MgvStructs.LocalPacked local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
     unchecked {
-      provision = offer_detail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offer_detail.gasreq());
+      provision = offerDetail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offerDetail.gasreq());
     }
   }
 
   function __put__(uint, /*amount*/ MgvLib.SingleOrder calldata) internal virtual override returns (uint missing) {
     // singleUser contract do not need to do anything specific with incoming funds during trade
     // one should override this function if one wishes to leverage taker's fund during trade execution
-    // be aware that the incoming funds will be transfered back to the reserve in posthookSuccess using flush.
-    // this is done in posthook, to accumalate all taken offers and transfer everything in one transfer.
+    // be aware that the incoming funds will be transferred back to the reserve in posthookSuccess using flush.
+    // this is done in posthook, to accumulate all taken offers and transfer everything in one transfer.
     return 0;
   }
 

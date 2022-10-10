@@ -142,7 +142,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.setRouter(router);
 
     IERC20[] memory tokens = dynamic([IERC20(weth), usdc]);
-    vm.expectRevert("MangroveOffer/LogicMustApproveMangrove");
+    vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
     makerContract.checkList(tokens);
 
     makerContract.activate(tokens);

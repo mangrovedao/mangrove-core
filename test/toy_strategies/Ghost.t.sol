@@ -91,7 +91,7 @@ contract GhostTest is MangroveTest {
     tokens[0] = dai;
     tokens[1] = usdc;
 
-    vm.expectRevert("MangroveOffer/LogicMustApproveMangrove");
+    vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
     strat.checkList(tokens);
 
     // and now activate them

@@ -151,7 +151,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// @dev If inside a hook, one should call `_newOffer` to create a new offer and not directly `MGV.newOffer` to make sure one is correctly dealing with:
   /// * offer ownership
   /// * offer provisions and gasprice
-  /// @param offData memory location of the function's arguments
+  /// @param args memory location of the function's arguments
   /// @return offerId the identifier of the new offer on the offer list
   /// Forwarder logic does not manage user funds on Mangrove, as a consequence:
   /// An offer maker's redeemable provisions on Mangrove is just the sum $S_locked(maker)$ of locked provision in all live offers it owns
@@ -162,13 +162,13 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// To do so, we do not let offer maker fix a gasprice. Rather we derive the gasprice based on `msg.value`.
   /// Because of rounding errors in `deriveGasprice` a small amount of WEIs will accumulate in mangrove's balance of `this` contract
   /// We assign this leftover to the corresponding `wei_balance` of `OwnerData`.
-  function _newOffer(NewOfferArgs memory offData) internal returns (uint offerId) {
+  function _newOffer(NewOfferArgs memory args) internal returns (uint offerId) {
     (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) =
-      MGV.config(address(offData.outbound_tkn), address(offData.inbound_tkn));
+      MGV.config(address(args.outbound_tkn), address(args.inbound_tkn));
     // convention for default gasreq value
-    offData.gasreq = (offData.gasreq > type(uint24).max) ? offerGasreq() : offData.gasreq;
+    args.gasreq = (args.gasreq > type(uint24).max) ? offerGasreq() : args.gasreq;
     // computing max `gasprice` such that `offData.fund` covers `offData.gasreq` at `gasprice`
-    (uint gasprice, uint leftover) = deriveGasprice(offData.gasreq, offData.fund, local.offer_gasbase());
+    (uint gasprice, uint leftover) = deriveGasprice(args.gasreq, args.fund, local.offer_gasbase());
     // mangrove will take max(`mko.gasprice`, `global.gasprice`)
     // if `mko.gasprice < global.gasprice` Mangrove will use available provision of this contract to provision the offer
     // this would potentially take native tokens that have been released after some offer managed by this contract have failed
@@ -177,21 +177,15 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // the call below cannot revert for lack of provision (by design)
     // it may still revert if `offData.fund` yields a gasprice that is too high (mangrove's gasprice is uint16)
     // or if `offData.gives` is below density (dust)
-    try MGV.newOffer{value: offData.fund}(
-      address(offData.outbound_tkn),
-      address(offData.inbound_tkn),
-      offData.wants,
-      offData.gives,
-      offData.gasreq,
-      gasprice,
-      offData.pivotId
+    try MGV.newOffer{value: args.fund}(
+      address(args.outbound_tkn), address(args.inbound_tkn), args.wants, args.gives, args.gasreq, gasprice, args.pivotId
     ) returns (uint offerId_) {
       // assign `offerId_` to caller
-      addOwner(offData.outbound_tkn, offData.inbound_tkn, offerId_, offData.caller, leftover);
+      addOwner(args.outbound_tkn, args.inbound_tkn, offerId_, args.caller, leftover);
       offerId = offerId_;
     } catch Error(string memory reason) {
       /// letting revert bubble up unless `noRevert` is positioned.
-      require(offData.noRevert, reason);
+      require(args.noRevert, reason);
       offerId = 0;
     }
   }

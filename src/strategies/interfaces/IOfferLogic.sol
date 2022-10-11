@@ -101,6 +101,27 @@ interface IOfferLogic is IMaker {
   ///@dev Since a call is made to the `receiver`, this function is subject to reentrancy.
   function withdrawFromMangrove(uint amount, address payable receiver) external;
 
+  ///@notice Memory allocation for `_new/updateOffer`'s arguments.
+  ///@param outbound_tkn outbound token of the offer list.
+  ///@param inbound_tkn inbound token of the offer list.
+  ///@param wants the amount of inbound tokens the maker wants for a complete fill.
+  ///@param gives the amount of outbound tokens the maker gives for a complete fill.
+  ///@param gasreq gas required for trade execution.
+  ///@param pivotId a best pivot estimate for cheap offer insertion in the offer list.
+  ///@param fund WEIs in `this` contract's balance that are used to provision the offer.
+  ///@param noRevert is set to true if calling function does not wish `_newOffer` to revert on error.
+  struct OfferArgs {
+    IERC20 outbound_tkn;
+    IERC20 inbound_tkn;
+    uint wants;
+    uint gives;
+    uint gasreq;
+    uint gasprice;
+    uint pivotId;
+    uint fund;
+    bool noRevert;
+  }
+
   ///@notice updates an offer existing on Mangrove (not necessarily live).
   ///@param outbound_tkn the outbound token of the offer list of the offer
   ///@param inbound_tkn the outbound token of the offer list of the offer

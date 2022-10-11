@@ -43,15 +43,19 @@ contract OfferMaker is IMakerLogic, Direct {
     uint gasreq,
     uint gasprice,
     uint pivotId
-  ) external payable override onlyAdmin returns (uint offerId) {
-    offerId = MGV.newOffer{value: msg.value}(
-      address(outbound_tkn),
-      address(inbound_tkn),
-      wants,
-      gives,
-      gasreq >= type(uint24).max ? offerGasreq() : gasreq,
-      gasprice,
-      pivotId
+  ) public payable override mgvOrAdmin returns (uint offerId) {
+    offerId = _newOffer(
+      OfferArgs({
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        wants: wants,
+        gives: gives,
+        gasreq: gasreq,
+        gasprice: gasprice,
+        pivotId: pivotId,
+        fund: msg.value,
+        noRevert: false
+      })
     );
   }
 }

@@ -43,7 +43,7 @@ contract OfferMaker is IMakerLogic, Direct {
     uint gasreq,
     uint gasprice,
     uint pivotId
-  ) external payable override onlyAdmin returns (uint offerId) {
+  ) public payable override mgvOrAdmin returns (uint offerId) {
     offerId = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,

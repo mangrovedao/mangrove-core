@@ -36,7 +36,7 @@ contract OfferForwarder is IMakerLogic, Forwarder {
     uint gasreq,
     uint gasprice, // keeping gasprice here in order to expose the same interface as `OfferMaker` contracts.
     uint pivotId
-  ) external payable returns (uint offerId) {
+  ) public payable returns (uint offerId) {
     gasprice; // ignoring gasprice that will be derived based on msg.value.
     offerId = _newOffer(
       OfferArgs({

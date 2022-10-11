@@ -51,7 +51,7 @@ contract MakerPermissionTest is MangroveTest {
   }
 
   function testCannot_PostNewOffer() public {
-    vm.expectRevert("AccessControlled/Invalid");
+    vm.expectRevert("mgvOffer/unauthorized");
     makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,

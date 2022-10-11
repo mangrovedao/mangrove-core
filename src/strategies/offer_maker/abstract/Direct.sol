@@ -101,6 +101,23 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
+  function _newOffer(OfferArgs memory args) internal returns (uint) {
+    try MGV.newOffer{value: args.fund}(
+      address(args.outbound_tkn),
+      address(args.inbound_tkn),
+      args.wants,
+      args.gives,
+      args.gasreq >= type(uint24).max ? offerGasreq() : args.gasreq,
+      args.gasprice,
+      args.pivotId
+    ) returns (uint offerId) {
+      return offerId;
+    } catch Error(string memory reason) {
+      require(args.noRevert, reason);
+      return 0;
+    }
+  }
+
   // Updates offer `offerId` on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
   // NB #1: Offer maker MUST:
   // * Make sure that offer maker has enough WEI provision on Mangrove to cover for the new offer bounty in case Mangrove gasprice has increased (function is payable so that caller can increase provision prior to updating the offer)
@@ -111,21 +128,48 @@ abstract contract Direct is MangroveOffer {
     IERC20 inbound_tkn,
     uint wants,
     uint gives,
-    uint gasreq,
+    uint gasreq, // give `type(uint).max` to use previous value
     uint gasprice,
     uint pivotId,
     uint offerId
   ) public payable override mgvOrAdmin {
-    MGV.updateOffer{value: msg.value}(
-      address(outbound_tkn),
-      address(inbound_tkn),
-      wants,
-      gives,
-      gasreq > type(uint24).max ? offerGasreq() : gasreq,
-      gasprice,
-      pivotId,
+    _updateOffer(
+      OfferArgs({
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        wants: wants,
+        gives: gives,
+        gasreq: gasreq,
+        gasprice: gasprice,
+        pivotId: pivotId,
+        fund: msg.value,
+        noRevert: false
+      }),
       offerId
     );
+  }
+
+  function _updateOffer(OfferArgs memory args, uint offerId) internal returns (uint) {
+    if (args.gasreq >= type(uint24).max) {
+      MgvStructs.OfferDetailPacked detail =
+        MGV.offerDetails(address(args.outbound_tkn), address(args.inbound_tkn), offerId);
+      args.gasreq = detail.gasreq();
+    }
+    try MGV.updateOffer{value: args.fund}(
+      address(args.outbound_tkn),
+      address(args.inbound_tkn),
+      args.wants,
+      args.gives,
+      args.gasreq,
+      args.gasprice,
+      args.pivotId,
+      offerId
+    ) {
+      return offerId;
+    } catch Error(string memory reason) {
+      require(args.noRevert, reason);
+      return 0;
+    }
   }
 
   // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove.

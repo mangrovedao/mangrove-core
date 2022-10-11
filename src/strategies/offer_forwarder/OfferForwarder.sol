@@ -51,6 +51,5 @@ contract OfferForwarder is IMakerLogic, Forwarder {
         noRevert: false // propagates Mangrove's revert data in case of newOffer failure
       })
     );
-    require(offerId != 0, "OfferForwarder/newOfferFailed");
   }
 }

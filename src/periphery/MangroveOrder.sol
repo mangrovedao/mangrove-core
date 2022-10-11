@@ -198,15 +198,15 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     uint fund
   ) internal returns (uint refund) {
     res.offerId = _newOffer(
-      NewOfferArgs({
+      OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: tko.makerWants - (res.takerGot + res.fee), // tko.makerWants is before slippage
         gives: tko.makerGives - res.takerGave,
         gasreq: offerGasreq() + additionalGasreq, // using default gasreq of the strat + potential admin defined increase
+        gasprice: 0, // ignored
         pivotId: tko.pivotId,
         fund: fund,
-        caller: msg.sender,
         noRevert: true // returns 0 when MGV reverts
       })
     );

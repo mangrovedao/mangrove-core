@@ -39,14 +39,14 @@ contract OfferForwarder is IMakerLogic, Forwarder {
   ) external payable returns (uint offerId) {
     gasprice; // ignoring gasprice that will be derived based on msg.value.
     offerId = _newOffer(
-      NewOfferArgs({
+      OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
         gasreq: gasreq,
+        gasprice: 0,
         pivotId: pivotId,
-        caller: msg.sender,
         fund: msg.value,
         noRevert: false // propagates Mangrove's revert data in case of newOffer failure
       })

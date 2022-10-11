@@ -133,7 +133,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// * offer ownership
   /// * offer provisions and gasprice
   /// @param args memory location of the function's arguments
-  /// @return offerId the identifier of the new offer on the offer list
+  /// @return offerId the identifier of the new offer on the offer list. Can be 0 if posting was rejected by Mangrove and `args.noRevert` is `true`.
   /// Forwarder logic does not manage user funds on Mangrove, as a consequence:
   /// An offer maker's redeemable provisions on Mangrove is just the sum $S_locked(maker)$ of locked provision in all live offers it owns
   /// plus the sum $S_free(maker)$ of `weiBalance`'s in all dead offers it owns (see `OwnerData.weiBalance`).
@@ -189,7 +189,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // funds to compute new gasprice is msg.value. Will use old gasprice if no funds are given
     // it might be tempting to include `od.weiBalance` here but this will trigger a recomputation of the `gasprice`
     // each time a offer is updated.
-    args.fund = msg.value; // if called by Mangrove this will be 0
+    args.fund = msg.value; // if inside a hook (Mangrove is `msg.sender`) this will be 0
     args.outbound_tkn = outbound_tkn;
     args.inbound_tkn = inbound_tkn;
     args.wants = wants;
@@ -212,6 +212,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   ///@notice Internal `updateOffer`, using arguments and variables on memory to avoid stack too deep.
+  ///@return 0 if update was rejected by Mangrove and `args.noRevert` is `true`. Returns `args.offerId` otherwise
   function _updateOffer(OfferArgs memory args, uint offerId) internal returns (uint) {
     unchecked {
       UpdateOfferVars memory vars;

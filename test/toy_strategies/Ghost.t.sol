@@ -18,9 +18,11 @@ contract GhostTest is MangroveTest {
   address payable taker;
   Ghost strat;
 
+  receive() external payable virtual {}
+
   function setUp() public override {
     // use the pinned Polygon fork
-    fork = new PinnedPolygonFork();
+    fork = new PinnedPolygonFork(); // use polygon fork to use dai, usdc and weth addresses
     fork.setUp();
 
     // use convenience helpers to setup Mangrove
@@ -191,9 +193,9 @@ contract GhostTest is MangroveTest {
 
     deal($(weth), $(this), cash(weth, 10));
 
-    (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
+    (uint offerId1,) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 
-    (uint takerGot, uint takerGave,) = takeOffer(makerGivesAmount, makerWantsAmountDAI, dai, offerId1);
+    takeOffer(makerGivesAmount, makerWantsAmountDAI, dai, offerId1);
 
     // check native balance before deprovision
     uint nativeBalanceBeforeRetract = $(this).balance;

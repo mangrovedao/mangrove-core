@@ -2,7 +2,7 @@
 
 // Direct.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -13,20 +13,24 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/MangroveOffer.sol";
-import {MgvLib} from "mgv_src/MgvLib.sol";
-import "mgv_src/strategies/utils/TransferLib.sol";
+import {MangroveOffer} from "src/strategies/MangroveOffer.sol";
+import {MgvLib, IERC20, MgvStructs} from "src/MgvLib.sol";
+import {MangroveOfferStorage as MOS} from "src/strategies/MangroveOfferStorage.sol";
+import "src/strategies/utils/TransferLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
+import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
+import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
 
 /// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
 abstract contract Direct is MangroveOffer {
-  constructor(IMangrove mgv, AbstractRouter router_) MangroveOffer(mgv) {
+  constructor(IMangrove mgv, AbstractRouter router, uint gasreq) MangroveOffer(mgv, gasreq) {
     // default reserve is router's address if router is defined
     // if not then default reserve is `this` contract
-    if (router_ == NO_ROUTER) {
+    if (router == NO_ROUTER) {
       setReserve(address(this));
     } else {
-      setReserve(address(router_));
-      setRouter(router_);
+      setReserve(address(router));
+      setRouter(router);
     }
   }
 
@@ -83,8 +87,8 @@ abstract contract Direct is MangroveOffer {
   }
 
   function flush(IERC20[] memory tokens) internal {
-    AbstractRouter _router = MOS.getStorage().router;
-    if (_router == NO_ROUTER) {
+    AbstractRouter router_ = MOS.getStorage().router;
+    if (router_ == NO_ROUTER) {
       for (uint i = 0; i < tokens.length; i++) {
         require(
           TransferLib.transferToken(tokens[i], reserve(), tokens[i].balanceOf(address(this))),
@@ -93,7 +97,24 @@ abstract contract Direct is MangroveOffer {
       }
       return;
     } else {
-      _router.flush(tokens, reserve());
+      router_.flush(tokens, reserve());
+    }
+  }
+
+  function _newOffer(OfferArgs memory args) internal returns (uint) {
+    try MGV.newOffer{value: args.fund}(
+      address(args.outbound_tkn),
+      address(args.inbound_tkn),
+      args.wants,
+      args.gives,
+      args.gasreq >= type(uint24).max ? offerGasreq() : args.gasreq,
+      args.gasprice,
+      args.pivotId
+    ) returns (uint offerId) {
+      return offerId;
+    } catch Error(string memory reason) {
+      require(args.noRevert, reason);
+      return 0;
     }
   }
 
@@ -107,21 +128,48 @@ abstract contract Direct is MangroveOffer {
     IERC20 inbound_tkn,
     uint wants,
     uint gives,
-    uint gasreq,
+    uint gasreq, // give `type(uint).max` to use previous value
     uint gasprice,
     uint pivotId,
     uint offerId
   ) public payable override mgvOrAdmin {
-    MGV.updateOffer{value: msg.value}(
-      address(outbound_tkn),
-      address(inbound_tkn),
-      wants,
-      gives,
-      gasreq > type(uint24).max ? offerGasreq() : gasreq,
-      gasprice,
-      pivotId,
+    _updateOffer(
+      OfferArgs({
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        wants: wants,
+        gives: gives,
+        gasreq: gasreq,
+        gasprice: gasprice,
+        pivotId: pivotId,
+        fund: msg.value,
+        noRevert: false
+      }),
       offerId
     );
+  }
+
+  function _updateOffer(OfferArgs memory args, uint offerId) internal returns (uint) {
+    if (args.gasreq >= type(uint24).max) {
+      MgvStructs.OfferDetailPacked detail =
+        MGV.offerDetails(address(args.outbound_tkn), address(args.inbound_tkn), offerId);
+      args.gasreq = detail.gasreq();
+    }
+    try MGV.updateOffer{value: args.fund}(
+      address(args.outbound_tkn),
+      address(args.inbound_tkn),
+      args.wants,
+      args.gives,
+      args.gasreq,
+      args.gasprice,
+      args.pivotId,
+      offerId
+    ) {
+      return offerId;
+    } catch Error(string memory reason) {
+      require(args.noRevert, reason);
+      return 0;
+    }
   }
 
   // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove.
@@ -139,7 +187,7 @@ abstract contract Direct is MangroveOffer {
       require(MGV.withdraw(free_wei), "Direct/withdrawFromMgv/withdrawFail");
       // sending native tokens to `msg.sender` prevents reentrancy issues
       // (the context call of `retractOffer` could be coming from `makerExecute` and a different recipient of transfer than `msg.sender` could use this call to make offer fail)
-      (bool noRevert,) = msg.sender.call{value: free_wei}("");
+      (bool noRevert,) = admin().call{value: free_wei}("");
       require(noRevert, "Direct/weiTransferFail");
     }
   }
@@ -151,16 +199,18 @@ abstract contract Direct is MangroveOffer {
     override
     returns (uint provision)
   {
-    MgvStructs.OfferDetailPacked offer_detail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
+    MgvStructs.OfferDetailPacked offerDetail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
     (, MgvStructs.LocalPacked local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
     unchecked {
-      provision = offer_detail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offer_detail.gasreq());
+      provision = offerDetail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offerDetail.gasreq());
     }
   }
 
   function __put__(uint, /*amount*/ MgvLib.SingleOrder calldata) internal virtual override returns (uint missing) {
     // singleUser contract do not need to do anything specific with incoming funds during trade
-    // one should overrides this function if one wishes to leverage taker's fund during trade execution
+    // one should override this function if one wishes to leverage taker's fund during trade execution
+    // be aware that the incoming funds will be transferred back to the reserve in posthookSuccess using flush.
+    // this is done in posthook, to accumulate all taken offers and transfer everything in one transfer.
     return 0;
   }
 

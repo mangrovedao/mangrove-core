@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "./OfferLogic.t.sol";
-import "mgv_src/strategies/routers/AaveRouter.sol";
+import "src/strategies/routers/AaveRouter.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 
 contract AaveRouterForkedTest is OfferLogicTest {
@@ -26,7 +26,8 @@ contract AaveRouterForkedTest is OfferLogicTest {
     AaveRouter router = new AaveRouter({
       _addressesProvider: fork.get("Aave"),
       _referralCode: 0,
-      _interestRateMode: 1 // stable rate
+      _interestRateMode: 1, // stable rate
+      overhead: 700_000
     });
     router.bind(address(makerContract));
     makerContract.setReserve(address(router));

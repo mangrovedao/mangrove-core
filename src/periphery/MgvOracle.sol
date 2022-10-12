@@ -2,7 +2,7 @@
 
 // MgvOracle.sol
 
-// Copyright (C) 2021 Giry SAS.
+// Copyright (C) 2021 ADDMA.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published
@@ -20,7 +20,7 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "../MgvLib.sol";
+import "src/MgvLib.sol";
 
 /* The purpose of the Oracle contract is to act as a gas price and density
  * oracle for the Mangrove. It bridges to an external oracle, and allows
@@ -36,9 +36,9 @@ contract MgvOracle is IMgvMonitor {
   uint lastReceivedGasPrice;
   uint lastReceivedDensity;
 
-  constructor(address _governance, address _initialMutator) {
-    governance = _governance;
-    mutator = _initialMutator;
+  constructor(address governance_, address initialMutator_) {
+    governance = governance_;
+    mutator = initialMutator_;
 
     /* Set initial density from the MgvOracle to let Mangrove use its internal density by default.
 
@@ -63,10 +63,10 @@ contract MgvOracle is IMgvMonitor {
     // Do nothing
   }
 
-  function setMutator(address _mutator) external {
+  function setMutator(address mutator_) external {
     authOnly();
 
-    mutator = _mutator;
+    mutator = mutator_;
   }
 
   function setGasPrice(uint gasPrice) external {

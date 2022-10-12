@@ -4,8 +4,8 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 // import "mgv_test/lib/Fork.sol";
 
-import "mgv_src/strategies/offer_maker/OfferMaker.sol";
-import "mgv_src/strategies/routers/AbstractRouter.sol";
+import "src/strategies/offer_maker/OfferMaker.sol";
+import "src/strategies/routers/AbstractRouter.sol";
 
 contract MakerPermissionTest is MangroveTest {
   TestToken weth;
@@ -51,7 +51,7 @@ contract MakerPermissionTest is MangroveTest {
   }
 
   function testCannot_PostNewOffer() public {
-    vm.expectRevert("AccessControlled/Invalid");
+    vm.expectRevert("mgvOffer/unauthorized");
     makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -74,7 +74,7 @@ contract MakerPermissionTest is MangroveTest {
       gasprice: 0,
       pivotId: 0
     });
-    vm.expectRevert("AccessControlled/Invalid");
+    vm.expectRevert("mgvOffer/unauthorized");
     makerContract.retractOffer(weth, usdc, offerId, true);
   }
 
@@ -89,7 +89,7 @@ contract MakerPermissionTest is MangroveTest {
       gasprice: 0,
       pivotId: 0
     });
-    vm.expectRevert("AccessControlled/Invalid");
+    vm.expectRevert("mgvOffer/unauthorized");
     makerContract.updateOffer({
       outbound_tkn: weth,
       inbound_tkn: usdc,

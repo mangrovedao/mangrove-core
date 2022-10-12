@@ -2,7 +2,7 @@
 
 // MgvReader.sol
 
-// Copyright (C) 2021 Giry SAS.
+// Copyright (C) 2021 ADDMA.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published
@@ -20,28 +20,14 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
-
-interface MangroveLike {
-  function best(address, address) external view returns (uint);
-
-  function offers(address, address, uint) external view returns (MgvStructs.OfferPacked);
-
-  function offerDetails(address, address, uint) external view returns (MgvStructs.OfferDetailPacked);
-
-  function offerInfo(address, address, uint)
-    external
-    view
-    returns (MgvStructs.OfferUnpacked memory, MgvStructs.OfferDetailUnpacked memory);
-
-  function config(address, address) external view returns (MgvStructs.GlobalPacked, MgvStructs.LocalPacked);
-}
+import {MgvLib, MgvStructs} from "src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
 
 contract MgvReader {
-  MangroveLike immutable MGV;
+  IMangrove immutable MGV;
 
   constructor(address mgv) {
-    MGV = MangroveLike(payable(mgv));
+    MGV = IMangrove(payable(mgv));
   }
 
   /*
@@ -135,14 +121,14 @@ contract MgvReader {
   {
     unchecked {
       (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) = MGV.config(outbound_tkn, inbound_tkn);
-      uint _gp;
+      uint gp;
       uint global_gasprice = global.gasprice();
       if (global_gasprice > ofr_gasprice) {
-        _gp = global_gasprice;
+        gp = global_gasprice;
       } else {
-        _gp = ofr_gasprice;
+        gp = ofr_gasprice;
       }
-      return (ofr_gasreq + local.offer_gasbase()) * _gp * 10 ** 9;
+      return (ofr_gasreq + local.offer_gasbase()) * gp * 10 ** 9;
     }
   }
 }

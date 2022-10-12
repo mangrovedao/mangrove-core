@@ -3,12 +3,12 @@ pragma solidity ^0.8.13;
 
 import {MangroveDeployer} from "./lib/MangroveDeployer.sol";
 
-import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
-import {IERC20} from "mgv_src/MgvLib.sol";
+import {AbstractMangrove} from "src/AbstractMangrove.sol";
+import {IERC20} from "src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {MangroveOrder} from "mgv_src/periphery/MangroveOrderEnriched.sol";
+import {MangroveOrder} from "src/periphery/MangroveOrderEnriched.sol";
 import {SimpleTestMaker} from "mgv_test/lib/agents/TestMaker.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
+import {IMangrove} from "src/IMangrove.sol";
 import {Deployer} from "./lib/Deployer.sol";
 
 /* 

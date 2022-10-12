@@ -2,7 +2,7 @@
 
 //AaveDeepRouter.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -25,10 +25,8 @@ import "./AaveRouter.sol";
 
 contract AaveDeepRouter is AaveRouter {
   constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode)
-    AaveRouter(_addressesProvider, _referralCode, _interestRateMode)
-  {
-    ARSt.getStorage().gas_overhead += 350_000; // additional borrow
-  }
+    AaveRouter(_addressesProvider, _referralCode, _interestRateMode, 700_000)
+  {}
 
   // 1. pulls aTokens from aToken reserve. Borrows if necessary
   // 2. redeems underlying on AAVE and forwards received tokens to maker contract

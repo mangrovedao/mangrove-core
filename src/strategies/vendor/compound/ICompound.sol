@@ -15,7 +15,7 @@
 pragma solidity ^0.8.10;
 pragma abicoder v2;
 
-import {IERC20} from "mgv_src/MgvLib.sol";
+import {IERC20} from "src/MgvLib.sol";
 
 interface ICompoundPriceOracle {
   function getUnderlyingPrice(IcERC20 cToken) external view returns (uint);

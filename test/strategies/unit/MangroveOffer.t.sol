@@ -2,8 +2,8 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/strategies/offer_maker/OfferMaker.sol";
-import "mgv_src/strategies/routers/SimpleRouter.sol";
+import "src/strategies/offer_maker/OfferMaker.sol";
+import "src/strategies/routers/SimpleRouter.sol";
 
 contract MangroveOfferTest is MangroveTest {
   TestToken weth;
@@ -76,7 +76,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.makerExecute(order);
     vm.prank(address(mgv));
     bytes32 ret = makerContract.makerExecute(order);
-    assertEq(ret, "mgvOffer/tradeSuccess", "Incorrect returned data");
+    assertEq(ret, "mgvOffer/proceed", "Incorrect returned data");
   }
 
   function testCannot_callMakerPosthookIfNotMangrove() public {
@@ -108,7 +108,7 @@ contract MangroveOfferTest is MangroveTest {
     order.inbound_tkn = $(usdc);
     vm.prank(address(mgv));
     bytes32 data = makerContract.makerExecute(order);
-    assertEq(data, "mgvOffer/tradeSuccess");
+    assertEq(data, "mgvOffer/proceed");
   }
 
   function test_AdminCanWithdrawFunds() public {
@@ -142,7 +142,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.setRouter(router);
 
     IERC20[] memory tokens = dynamic([IERC20(weth), usdc]);
-    vm.expectRevert("MangroveOffer/LogicMustApproveMangrove");
+    vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
     makerContract.checkList(tokens);
 
     makerContract.activate(tokens);
@@ -156,7 +156,7 @@ contract MangroveOfferTest is MangroveTest {
     SimpleRouter router = new SimpleRouter();
     router.setAdmin(address(makerContract));
     makerContract.setRouter(router);
-    assertEq(makerContract.offerGasreq(), gasreq + router.gasOverhead(), "incorrect gasreq");
+    assertEq(makerContract.offerGasreq(), gasreq + router.routerGasreq(), "incorrect gasreq");
     vm.stopPrank();
   }
 }

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Script} from "forge-std/Script.sol";
-import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
-import "mgv_src/Mangrove.sol";
+import {MgvOracle} from "src/periphery/MgvOracle.sol";
+import "src/Mangrove.sol";
 import {ERC20} from "../test/lib/tokens/ERC20.sol";
 
 import {ActivateSemibook} from "./ActivateSemibook.s.sol";

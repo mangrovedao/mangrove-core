@@ -1,8 +1,8 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// SimpleOrale.sol
+// SimpleOracle.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -14,7 +14,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../interfaces/IOracle.sol";
-import "mgv_src/strategies/utils/AccessControlled.sol";
+import "src/strategies/utils/AccessControlled.sol";
 import {IERC20} from "../../MgvLib.sol";
 
 contract SimpleOracle is IOracle, AccessControlled {
@@ -22,10 +22,10 @@ contract SimpleOracle is IOracle, AccessControlled {
   IERC20 public immutable base_token;
   mapping(address => uint96) internal priceData;
 
-  constructor(address _base, address admin) AccessControlled(admin) {
-    try IERC20(_base).decimals() returns (uint8 d) {
+  constructor(address base_, address admin) AccessControlled(admin) {
+    try IERC20(base_).decimals() returns (uint8 d) {
       require(d != 0, "Invalid decimals number for Oracle base");
-      base_token = IERC20(_base);
+      base_token = IERC20(base_);
     } catch {
       revert("Invalid Oracle base address");
     }
@@ -35,8 +35,8 @@ contract SimpleOracle is IOracle, AccessControlled {
     return base_token.decimals();
   }
 
-  function setReader(address _reader) external onlyAdmin {
-    reader = _reader;
+  function setReader(address reader_) external onlyAdmin {
+    reader = reader_;
   }
 
   function setPrice(address token, uint price) external override onlyAdmin {

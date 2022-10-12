@@ -3,8 +3,8 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/forks/Polygon.sol";
-import "mgv_src/toy_strategies/offer_maker/Ghost.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import "src/toy_strategies/offer_maker/Ghost.sol";
+import {MgvStructs} from "src/MgvLib.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -81,9 +81,6 @@ contract GhostTest is MangroveTest {
       admin: $(this) // for ease, set this contract (will be Test runner) as admin for the strat
       });
 
-    // set offerGasReq to overapproximate the gas required to handle trade and posthook
-    strat.setGasreq(250_000);
-
     // allow (the router to) pull of WETH from Ghost (i.e., strat) to Mangrove
     strat.approve(weth, $(mgv), type(uint).max);
 
@@ -97,7 +94,7 @@ contract GhostTest is MangroveTest {
     tokens[0] = dai;
     tokens[1] = usdc;
 
-    vm.expectRevert("MangroveOffer/LogicMustApproveMangrove");
+    vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
     strat.checkList(tokens);
 
     // and now activate them
@@ -122,14 +119,13 @@ contract GhostTest is MangroveTest {
     returns (uint takerGot, uint takerGave, uint bounty)
   {
     // try to snipe one of the offers (using the separate taker account)
-    vm.startPrank(taker);
+    vm.prank(taker);
     (, takerGot, takerGave, bounty,) = mgv.snipes({
       outbound_tkn: $(weth),
       inbound_tkn: $(makerWantsToken),
       targets: wrap_dynamic([offerId, makerGivesAmount, makerWantsAmount, type(uint).max]),
       fillWants: true
     });
-    vm.stopPrank();
   }
 
   function execTraderStratWithPartialFillSuccess() public {

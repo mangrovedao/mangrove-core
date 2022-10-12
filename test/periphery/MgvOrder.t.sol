@@ -372,7 +372,7 @@ contract MangroveOrder_Test is MangroveTest {
 
   function test_restingOrder_that_fail_to_post_release_provisions() public {
     vm.deal(address(this), 2 ether);
-    uint native_reserve_before = $(this).balance;
+    uint native_balance_before = $(this).balance;
     mgv.setDensity($(quote), $(base), 0.1 ether);
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       outbound_tkn: base,
@@ -390,7 +390,7 @@ contract MangroveOrder_Test is MangroveTest {
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 2 ether}(buyOrder);
     assertEq(res.takerGot + res.fee, 1 ether, "Market order failed");
     assertEq(res.offerId, 0, "Resting order should not be posted");
-    assertEq($(this).balance, native_reserve_before, "Provision not released");
+    assertEq($(this).balance, native_balance_before, "Provision not released");
   }
 
   function test_restingOrder_that_fail_to_post_revert_if_no_partialFill() public {
@@ -446,5 +446,80 @@ contract MangroveOrder_Test is MangroveTest {
     vm.expectRevert("Forwarder/unknownOffer");
     address[] memory offerOwners = mgo.offerOwners(quote, base, offerIds);
     assertEq(offerOwners.length, 0, "Offer owners should be empty after revert");
+  }
+
+  function test_offer_succeeds_when_ttl_is_not_expired() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      partialFillNotAllowed: false,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether, // with 2% slippage
+      makerWants: 2 ether,
+      makerGives: 0.2548 ether, //without 2% slippage
+      restingOrder: true,
+      pivotId: 0,
+      timeToLiveForRestingOrder: block.timestamp + 60 //NA
+    });
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertTrue(res.offerId > 0, "resting order not posted");
+
+    MgvLib.SingleOrder memory order;
+    order.outbound_tkn = address(quote);
+    order.inbound_tkn = address(base);
+    order.offerId = res.offerId;
+
+    vm.prank($(mgv));
+    bytes32 ret = mgo.makerExecute(order);
+    assertEq(ret, "mgvOffer/proceed", "logic should accept trade");
+  }
+
+  function test_offer_reneges_when_ttl_is_expired() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      partialFillNotAllowed: false,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether, // with 2% slippage
+      makerWants: 2 ether,
+      makerGives: 0.2548 ether, //without 2% slippage
+      restingOrder: true,
+      pivotId: 0,
+      timeToLiveForRestingOrder: block.timestamp + 60 //NA
+    });
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertTrue(res.offerId > 0, "resting order not posted");
+
+    MgvLib.SingleOrder memory order;
+    order.outbound_tkn = address(quote);
+    order.inbound_tkn = address(base);
+    order.offerId = res.offerId;
+
+    vm.warp(block.timestamp + 62);
+    vm.expectRevert("mgvOrder/expired");
+    vm.prank($(mgv));
+    mgo.makerExecute(order);
+  }
+
+  function test_additional_gasreq_is_used_for_new_resting_orders() public {
+    mgo.setAdditionalGasreq(10_000);
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      partialFillNotAllowed: false,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether, // with 2% slippage
+      makerWants: 2 ether,
+      makerGives: 0.2548 ether, //without 2% slippage
+      restingOrder: true,
+      pivotId: 0,
+      timeToLiveForRestingOrder: block.timestamp + 60 //NA
+    });
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    MgvStructs.OfferDetailPacked offer_detail = mgv.offerDetails($(quote), $(base), res.offerId);
+    assertEq(offer_detail.gasreq(), mgo.offerGasreq() + 10_000, "wrong offer gasreq");
   }
 }

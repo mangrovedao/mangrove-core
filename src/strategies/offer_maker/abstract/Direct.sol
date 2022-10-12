@@ -48,6 +48,9 @@ abstract contract Direct is MangroveOffer {
     onlyAdmin
     returns (bool success)
   {
+    if (amount == 0) {
+      return true;
+    }
     require(receiver != address(0), "Direct/withdrawToken/0xReceiver");
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {

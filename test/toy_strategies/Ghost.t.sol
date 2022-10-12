@@ -81,18 +81,16 @@ contract GhostTest is MangroveTest {
       admin: $(this) // for ease, set this contract (will be Test runner) as admin for the strat
       });
 
-    // allow (the router to) pull of WETH from Ghost (i.e., strat) to Mangrove
-    strat.approve(weth, $(mgv), type(uint).max);
-
     // NOTE:
     // For this test, we're locking base, ie WETH, in the vault of the contract
     // - so Ghost is not really used for ghost liquidity, in this example.
     // However, to employ actual ghost liquidity it is simply a matter of
     // setting up a more refined router.
     // check that we actually need to activate for the two 'wants' tokens
-    IERC20[] memory tokens = new IERC20[](2);
+    IERC20[] memory tokens = new IERC20[](3);
     tokens[0] = dai;
     tokens[1] = usdc;
+    tokens[2] = weth;
 
     vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
     strat.checkList(tokens);

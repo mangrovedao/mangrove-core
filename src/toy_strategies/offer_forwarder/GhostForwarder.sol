@@ -22,8 +22,12 @@ contract GhostForwarder is Forwarder {
   IERC20 public immutable STABLE1;
   IERC20 public immutable STABLE2;
 
-  mapping(address => uint) offerId1; // mapping from maker address to id of the offer on stable 1
-  mapping(address => uint) offerId2; // mapping from maker address to id of the offer on stable 2
+  struct OfferPair {
+    uint id1;
+    uint id2;
+  }
+
+  mapping(address => OfferPair) offers; // mapping from maker address to id of the offers
 
   constructor(IMangrove mgv, IERC20 base, IERC20 stable1, IERC20 stable2, address deployer)
     Forwarder(mgv, new SimpleRouter())
@@ -69,13 +73,13 @@ contract GhostForwarder is Forwarder {
     // MGV.retractOffer(..., deprovision:bool)
     // deprovisioning an offer (via MGV.retractOffer) credits maker balance on Mangrove (no native token transfer)
     // if maker wishes to retrieve native tokens it should call MGV.withdraw (and have a positive balance)
+    OfferPair memory offerPair = offers[msg.sender];
+
     require(
-      !MGV.isLive(MGV.offers(address(BASE), address(STABLE1), offerId1[msg.sender])),
-      "GhostForwarder/offer1AlreadyActive"
+      !MGV.isLive(MGV.offers(address(BASE), address(STABLE1), offerPair.id1)), "GhostForwarder/offer1AlreadyActive"
     );
     require(
-      !MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerId2[msg.sender])),
-      "GhostForwarder/offer2AlreadyActive"
+      !MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerPair.id2)), "GhostForwarder/offer2AlreadyActive"
     );
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
@@ -93,7 +97,7 @@ contract GhostForwarder is Forwarder {
       })
     );
 
-    offerId1[msg.sender] = _offerId1;
+    offers[msg.sender].id1 = _offerId1;
     // no need to fund this second call for provision
     // since the above call should be enough
     uint _offerId2 = _newOffer(
@@ -109,7 +113,7 @@ contract GhostForwarder is Forwarder {
         noRevert: false
       })
     );
-    offerId2[msg.sender] = _offerId2;
+    offers[msg.sender].id2 = _offerId2;
 
     require(_offerId1 != 0, "GhostForwarder/newOffer1Failed");
     require(_offerId2 != 0, "GhostForwarder/newOffer2Failed");
@@ -131,8 +135,9 @@ contract GhostForwarder is Forwarder {
     // - offer list is closed (governance call)
     // Get the owner of the order. That is the same owner as the alt offer
     address owner = ownerOf(IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId);
+    OfferPair memory offerPair = offers[owner];
     (IERC20 alt_stable, uint alt_offerId) =
-      IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerId2[owner]) : (STABLE1, offerId1[owner]);
+      IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerPair.id2) : (STABLE1, offerPair.id1);
 
     if (repost_status == "posthook/reposted") {
       uint new_alt_gives = __residualGives__(order); // in base units
@@ -163,12 +168,14 @@ contract GhostForwarder is Forwarder {
       return "posthook/bothOfferReposted";
     } else {
       // repost failed or offer was entirely taken
-      retractOffer({
-        outbound_tkn: IERC20(order.outbound_tkn),
-        inbound_tkn: IERC20(order.inbound_tkn),
-        offerId: order.offerId,
-        deprovision: false
-      });
+      if (repost_status != "posthook/filled") {
+        retractOffer({
+          outbound_tkn: IERC20(order.outbound_tkn),
+          inbound_tkn: IERC20(order.inbound_tkn),
+          offerId: order.offerId,
+          deprovision: false
+        });
+      }
       retractOffer({
         outbound_tkn: IERC20(order.outbound_tkn),
         inbound_tkn: IERC20(alt_stable),
@@ -179,6 +186,12 @@ contract GhostForwarder is Forwarder {
     }
   }
 
+  function retractOffers(bool deprovision) public {
+    OfferPair memory offerPair = offers[msg.sender];
+    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerPair.id1, deprovision: deprovision});
+    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerPair.id2, deprovision: deprovision});
+  }
+
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)
     internal
     override
@@ -187,8 +200,9 @@ contract GhostForwarder is Forwarder {
     // Get the owner of the order. That is the same owner as the alt offer
     address owner = ownerOf(IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId);
     // if we reach this code, trade has failed for lack of base token
+    OfferPair memory offerPair = offers[owner];
     (IERC20 alt_stable, uint alt_offerId) =
-      IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerId2[owner]) : (STABLE1, offerId1[owner]);
+      IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerPair.id2) : (STABLE1, offerPair.id1);
     retractOffer({
       outbound_tkn: IERC20(order.outbound_tkn),
       inbound_tkn: IERC20(alt_stable),

@@ -22,7 +22,7 @@ contract GhostForwarderTest is MangroveTest {
 
   function setUp() public override {
     // use the pinned Polygon fork
-    fork = new PinnedPolygonFork();
+    fork = new PinnedPolygonFork(); // use polygon fork, to use dai, usdc, weth addresses
     fork.setUp();
 
     // use convenience helpers to setup Mangrove
@@ -49,7 +49,6 @@ contract GhostForwarderTest is MangroveTest {
     // approve DAI and USDC on Mangrove for taker
     vm.startPrank(taker);
     dai.approve($(mgv), type(uint).max);
-    usdc.approve($(mgv), type(uint).max);
     vm.stopPrank();
   }
 
@@ -67,13 +66,8 @@ contract GhostForwarderTest is MangroveTest {
 
     // allow (the router to) pull of WETH from Ghost (i.e., strat) to Mangrove
     strat.approve(weth, $(mgv), type(uint).max);
-    // allow the router to push the WETH from Ghost (i.e., strat) to $(this) contract
-    // (this will happen in the posthook)
-    strat.approve(weth, $(strat.router()), type(uint).max);
 
-    // The test address need to approve the routher to use the tokens
-    dai.approve($(strat.router()), type(uint).max);
-    usdc.approve($(strat.router()), type(uint).max);
+    // The test address need to approve the router to use the base token
     weth.approve($(strat.router()), type(uint).max);
 
     // NOTE:
@@ -139,7 +133,7 @@ contract GhostForwarderTest is MangroveTest {
   }
 
   function execTraderStratWithPartialFillSuccess() public {
-    uint makerGivesAmount = 0.15 ether;
+    uint makerGivesAmount = cash(weth, 15, 2); //WETH has same decimal as native token
     uint makerWantsAmountDAI = cash(dai, 300);
     uint makerWantsAmountUSDC = cash(usdc, 300);
 
@@ -192,7 +186,7 @@ contract GhostForwarderTest is MangroveTest {
   }
 
   function execTraderStratWithSuccess() public {
-    uint makerGivesAmount = 0.15 ether;
+    uint makerGivesAmount = cash(weth, 15, 2); //WETH has same decimal as native token
     uint makerWantsAmountDAI = cash(dai, 300);
     uint makerWantsAmountUSDC = cash(usdc, 300);
 
@@ -246,7 +240,7 @@ contract GhostForwarderTest is MangroveTest {
   }
 
   function execTraderStratWithFallback() public {
-    uint makerGivesAmount = 0.15 ether;
+    uint makerGivesAmount = cash(weth, 15, 2); //WETH has same decimal as native token
     uint makerWantsAmountDAI = cash(dai, 300);
     uint makerWantsAmountUSDC = cash(usdc, 300);
 
@@ -293,7 +287,7 @@ contract GhostForwarderTest is MangroveTest {
   }
 
   function execTraderStratOfferAlreadyActive() public {
-    uint makerGivesAmount = 0.15 ether;
+    uint makerGivesAmount = cash(weth, 15, 2); //WETH has same decimal as native token
     uint makerWantsAmountDAI = cash(dai, 300);
     uint makerWantsAmountUSDC = cash(usdc, 300);
 
@@ -356,6 +350,50 @@ contract GhostForwarderTest is MangroveTest {
     assertTrue(!mgv.isLive(offer_on_usdc2), "weth->usdc offer should have been retracted: makerOffer.usdcOffer");
   }
 
+  function execTraderStratDeprovisionDeadOffers() public {
+    uint makerGivesAmount = cash(weth, 15, 2); //WETH has same decimal as native token
+    uint makerWantsAmountDAI = cash(dai, 300);
+    uint makerWantsAmountUSDC = cash(usdc, 300);
+
+    deal($(weth), $(this), cash(weth, 5));
+    deal($(weth), maker, cash(weth, 5));
+
+    // post offers with Ghost liquidity with test account
+    offerPair memory testOffer;
+    (testOffer.daiOffer, testOffer.usdcOffer) =
+      postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
+
+    // post offers with Ghost liquidity with test account
+    vm.startPrank(maker);
+    weth.approve($(strat.router()), type(uint).max);
+    offerPair memory makerOffer;
+    (makerOffer.daiOffer, makerOffer.usdcOffer) =
+      postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
+    vm.stopPrank();
+
+    //only take half of the tester offer
+    gotGaveBounty memory takerFromTester;
+    (takerFromTester.got, takerFromTester.gave,) =
+      takeOffer(makerGivesAmount, makerWantsAmountDAI, dai, testOffer.daiOffer);
+
+    // take the full offer from maker
+    gotGaveBounty memory takerFromMaker;
+    (takerFromMaker.got, takerFromMaker.gave,) =
+      takeOffer(makerGivesAmount, makerWantsAmountDAI, dai, makerOffer.daiOffer);
+
+    // check native balance before retracting offers
+    uint nativeBalanceBeforeRetract1 = $(this).balance;
+    uint nativeBalanceBeforeRetract2 = maker.balance;
+
+    strat.retractOffers(true);
+
+    vm.prank(maker);
+    strat.retractOffers(true);
+
+    assertTrue(nativeBalanceBeforeRetract1 < $(this).balance, "provison for this was not returned");
+    assertTrue(nativeBalanceBeforeRetract2 < maker.balance, "provison for maker was not returned");
+  }
+
   function test_success_partialFill() public {
     deployStrat();
 
@@ -375,6 +413,12 @@ contract GhostForwarderTest is MangroveTest {
   }
 
   function test_offerAlreadyActive() public {
+    deployStrat();
+
+    execTraderStratOfferAlreadyActive();
+  }
+
+  function test_deprovisionDeadOffers() public {
     deployStrat();
 
     execTraderStratOfferAlreadyActive();

@@ -20,6 +20,8 @@ contract GhostForwarderTest is MangroveTest {
   address payable maker;
   GhostForwarder strat;
 
+  receive() external payable virtual {}
+
   function setUp() public override {
     // use the pinned Polygon fork
     fork = new PinnedPolygonFork(); // use polygon fork, to use dai, usdc, weth addresses
@@ -383,9 +385,9 @@ contract GhostForwarderTest is MangroveTest {
     uint nativeBalanceBeforeRetract1 = $(this).balance;
     uint nativeBalanceBeforeRetract2 = maker.balance;
 
+    vm.prank(maker);
     strat.retractOffers(true);
 
-    vm.prank(maker);
     strat.retractOffers(true);
 
     assertTrue(nativeBalanceBeforeRetract1 < $(this).balance, "provison for this was not returned");
@@ -419,6 +421,6 @@ contract GhostForwarderTest is MangroveTest {
   function test_deprovisionDeadOffers() public {
     deployStrat();
 
-    execTraderStratOfferAlreadyActive();
+    execTraderStratDeprovisionDeadOffers();
   }
 }

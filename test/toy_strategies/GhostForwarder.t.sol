@@ -58,11 +58,9 @@ contract GhostForwarderTest is MangroveTest {
       base: weth,
       stable1: usdc, 
       stable2: dai,
-      deployer: $(this)
+      deployer: $(this),
+      gasreq: 250000
       });
-
-    // set offerGasReq to overapproximate the gas required to handle trade and posthook
-    strat.setGasreq(250_000);
 
     // allow (the router to) pull of WETH from Ghost (i.e., strat) to Mangrove
     strat.approve(weth, $(mgv), type(uint).max);
@@ -80,7 +78,7 @@ contract GhostForwarderTest is MangroveTest {
     tokens[0] = dai;
     tokens[1] = usdc;
 
-    vm.expectRevert("MangroveOffer/LogicMustApproveMangrove");
+    vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
     strat.checkList(tokens);
 
     // and now activate them

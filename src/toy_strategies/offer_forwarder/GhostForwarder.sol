@@ -29,8 +29,8 @@ contract GhostForwarder is Forwarder {
 
   mapping(address => OfferPair) offers; // mapping from maker address to id of the offers
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 stable1, IERC20 stable2, address deployer)
-    Forwarder(mgv, new SimpleRouter())
+  constructor(IMangrove mgv, IERC20 base, IERC20 stable1, IERC20 stable2, address deployer, uint gasreq)
+    Forwarder(mgv, new SimpleRouter(), gasreq)
   {
     // SimpleRouter takes promised liquidity from admin's address (wallet)
     STABLE1 = stable1;
@@ -84,14 +84,14 @@ contract GhostForwarder is Forwarder {
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
     uint _offerId1 = _newOffer(
-      NewOfferArgs({
+      OfferArgs({
         outbound_tkn: BASE,
         inbound_tkn: STABLE1,
         wants: wants1,
         gives: gives,
         gasreq: offerGasreq(),
+        gasprice: 0, // ignored
         pivotId: pivot1,
-        caller: msg.sender,
         fund: fund1,
         noRevert: false
       })
@@ -101,14 +101,14 @@ contract GhostForwarder is Forwarder {
     // no need to fund this second call for provision
     // since the above call should be enough
     uint _offerId2 = _newOffer(
-      NewOfferArgs({
+      OfferArgs({
         outbound_tkn: BASE,
         inbound_tkn: STABLE2,
         wants: wants2,
         gives: gives,
         gasreq: offerGasreq(),
+        gasprice: 0, // ignored
         pivotId: pivot2,
-        caller: msg.sender,
         fund: fund2,
         noRevert: false
       })

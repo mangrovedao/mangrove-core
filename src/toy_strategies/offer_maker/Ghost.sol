@@ -169,6 +169,11 @@ contract Ghost is Direct {
     }
   }
 
+  function retractOffers(bool deprovision) public {
+    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerId1, deprovision: deprovision});
+    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerId2, deprovision: deprovision});
+  }
+
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)
     internal
     override

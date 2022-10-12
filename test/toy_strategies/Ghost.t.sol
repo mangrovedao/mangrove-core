@@ -54,6 +54,12 @@ contract GhostTest is MangroveTest {
     execTraderStratWithFillSuccess();
   }
 
+  function test_deprovisionDeadOffers() public {
+    deployStrat();
+
+    execTraderStratDeprovisionDeadOffers();
+  }
+
   function test_success_partialFill() public {
     deployStrat();
 
@@ -174,6 +180,27 @@ contract GhostTest is MangroveTest {
     MgvStructs.OfferPacked offer_on_usdc = mgv.offers($(weth), $(usdc), offerId2);
     assertTrue(!mgv.isLive(offer_on_dai), "weth->dai offer should have been retracted");
     assertTrue(!mgv.isLive(offer_on_usdc), "weth->usdc offer should have been retracted");
+  }
+
+  function execTraderStratDeprovisionDeadOffers() public {
+    uint makerGivesAmount = 0.15 ether;
+    uint makerWantsAmountDAI = cash(dai, 300);
+    uint makerWantsAmountUSDC = cash(usdc, 300);
+
+    weth.approve($(strat.router()), type(uint).max);
+
+    deal($(weth), $(this), cash(weth, 10));
+
+    (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
+
+    (uint takerGot, uint takerGave,) = takeOffer(makerGivesAmount, makerWantsAmountDAI, dai, offerId1);
+
+    // check native balance before deprovision
+    uint nativeBalanceBeforeRetract = $(this).balance;
+    strat.retractOffers(true);
+
+    // assert that
+    assertTrue(nativeBalanceBeforeRetract < $(this).balance, "offers was not deprovisioned");
   }
 
   function execTraderStratWithOfferAlreadyLive() public {

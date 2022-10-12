@@ -78,7 +78,7 @@ contract ActivateSemibook is Test2, Deployer {
     vm.stopBroadcast();
   }
 
-  function measureTransferGas(address tkn) internal returns (uint) {
+  function measureTransferGas(address tkn) internal virtual returns (uint) {
     address someone = freshAddress();
     vm.prank(someone);
     ERC20(tkn).approve(address(this), type(uint).max);

@@ -116,8 +116,8 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
     (available,) = maxGettableUnderlying(token, false, reserve);
   }
 
-  function approveLender(IERC20 token) external {
-    _approveLender(token, type(uint).max);
+  function approveLender(IERC20 token, uint amount) external onlyAdmin {
+    _approveLender(token, amount);
   }
 
   function __checkList__(IERC20 token, address reserve) internal view virtual override {

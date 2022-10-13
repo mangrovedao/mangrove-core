@@ -123,6 +123,14 @@ contract MangroveOfferTest is MangroveTest {
     assertEq(maker.balance, balMaker + 0.5 ether, "incorrect balance");
   }
 
+  function test_AdminCanWithdrawAllFunds() public {
+    mgv.fund{value: 1 ether}(address(makerContract));
+    vm.prank(maker);
+    makerContract.withdrawFromMangrove(type(uint).max, maker);
+    assertEq(mgv.balanceOf(address(makerContract)), 0 ether, "incorrect balance");
+    assertEq(maker.balance, 1 ether, "incorrect balance");
+  }
+
   function test_AdminCanSetRouter() public {
     vm.expectRevert("AccessControlled/Invalid");
     makerContract.setRouter(SimpleRouter(freshAddress()));

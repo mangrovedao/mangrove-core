@@ -13,16 +13,6 @@ contract MangroveOrder_Test is MangroveTest {
   // to check ERC20 logging
   event Transfer(address indexed from, address indexed to, uint value);
 
-  // to check incident logging
-  event LogIncident(
-    IMangrove mangrove,
-    IERC20 indexed outbound_tkn,
-    IERC20 indexed inbound_tkn,
-    uint indexed offerId,
-    bytes32 makerData,
-    bytes32 mgvData
-  );
-
   event OrderSummary(
     IMangrove mangrove,
     IERC20 indexed base,
@@ -521,5 +511,53 @@ contract MangroveOrder_Test is MangroveTest {
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     MgvStructs.OfferDetailPacked offer_detail = mgv.offerDetails($(quote), $(base), res.offerId);
     assertEq(offer_detail.gasreq(), mgo.offerGasreq() + 10_000, "wrong offer gasreq");
+  }
+
+  function test_underprovisioned_order_logs_properly() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      partialFillNotAllowed: false,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether,
+      makerWants: 2 ether,
+      makerGives: 0.26 ether,
+      restingOrder: true,
+      pivotId: 0,
+      timeToLiveForRestingOrder: 0
+    });
+    deal($(quote), $(this), 0.25 ether);
+    vm.expectRevert("mgvOrder/mo/transferInFail");
+    mgo.take{value: 0.1 ether}(buyOrder);
+  }
+
+  function test_caller_unable_to_receive_eth_makes_failing_resting_order_throw() public {
+    TestTaker buy_taker = setupTaker($(base), $(quote), "buy-taker");
+    deal($(quote), $(buy_taker), 10 ether);
+    buy_taker.refuseNative();
+
+    vm.startPrank($(buy_taker));
+    quote.approve($(mgo.router()), type(uint).max);
+    vm.stopPrank();
+
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      partialFillNotAllowed: false,
+      fillWants: true,
+      takerWants: 1 ether,
+      takerGives: 0.13 ether,
+      makerWants: 1 ether,
+      makerGives: 0.13 ether,
+      restingOrder: true,
+      pivotId: 0,
+      timeToLiveForRestingOrder: 0
+    });
+    /// since `buy_taker` throws on `receive()`, this should fail.
+    vm.expectRevert("mgvOrder/mo/refundFail");
+    vm.prank($(buy_taker));
+    // complete fill will not lead to a resting order
+    mgo.take{value: 0.1 ether}(buyOrder);
   }
 }

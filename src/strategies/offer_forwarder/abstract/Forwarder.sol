@@ -296,7 +296,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
 
   ///@inheritdoc IOfferLogic
   function withdrawToken(IERC20 token, address receiver, uint amount) external override returns (bool success) {
-    require(receiver != address(0), "Forwarder/withdrawToken/0xReceiver");
+    require(receiver != address(0), "mgvOffer/withdrawToken/0xReceiver");
     if (amount == 0) {
       success = true;
     }

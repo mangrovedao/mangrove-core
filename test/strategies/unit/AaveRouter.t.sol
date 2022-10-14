@@ -14,14 +14,16 @@ contract AaveRouterForkedTest is OfferLogicTest {
     //at the end of super.setUp reserve has 1 ether and 2000 USDC
     //one needs to tell router to deposit them on AAVE
     vm.startPrank(maker);
-    AaveRouter(address(makerContract.router())).supply(weth, makerContract.reserve(), 1 ether, makerContract.reserve());
     AaveRouter(address(makerContract.router())).supply(
-      usdc, makerContract.reserve(), cash(usdc, 2000), makerContract.reserve()
+      weth, makerContract.reserve(maker), 1 ether, makerContract.reserve(maker)
+    );
+    AaveRouter(address(makerContract.router())).supply(
+      usdc, makerContract.reserve(maker), cash(usdc, 2000), makerContract.reserve(maker)
     );
     vm.stopPrank();
   }
 
-  function setupRouter() internal override {
+  function setupLiquidityRouting() internal override {
     vm.startPrank(maker);
     AaveRouter router = new AaveRouter({
       _addressesProvider: fork.get("Aave"),
@@ -30,7 +32,7 @@ contract AaveRouterForkedTest is OfferLogicTest {
       overhead: 700_000
     });
     router.bind(address(makerContract));
-    makerContract.setReserve(address(router));
+    makerContract.setReserve(maker, address(router));
     makerContract.setRouter(router);
     vm.stopPrank();
   }

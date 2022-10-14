@@ -66,27 +66,30 @@ contract OfferLogicTest is MangroveTest {
 
     // instanciates makerContract
     setupMakerContract();
-    setupRouter();
+    setupLiquidityRouting();
     // dealing 1 eth and 2000$ to maker's reserve on contract
     vm.startPrank(maker);
-    deal($(weth), makerContract.reserve(), 1 ether);
-    deal($(usdc), makerContract.reserve(), cash(usdc, 2000));
+    deal($(weth), makerContract.reserve(maker), 1 ether);
+    deal($(usdc), makerContract.reserve(maker), cash(usdc, 2000));
     vm.stopPrank();
     vm.prank(deployer);
     makerContract.activate(dynamic([IERC20(weth), usdc]));
   }
 
   // override this to use Forwarder strats
-  function setupMakerContract() internal virtual prank(deployer) {
+  function setupMakerContract() internal virtual {
+    vm.prank(deployer);
     makerContract = new OfferMaker({
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)),
       deployer: deployer
     });
+    vm.prank(maker);
+    makerContract.setReserve(maker, address(makerContract));
   }
 
   // override this function to use a specific router for the strat
-  function setupRouter() internal virtual {}
+  function setupLiquidityRouting() internal virtual {}
 
   function test_checkList() public {
     vm.startPrank(maker);
@@ -97,8 +100,8 @@ contract OfferLogicTest is MangroveTest {
   function test_makerCanSetItsReserve() public {
     address new_reserve = freshAddress();
     vm.startPrank(maker);
-    makerContract.setReserve(new_reserve);
-    assertEq(makerContract.reserve(), new_reserve, "Incorrect reserve");
+    makerContract.setReserve(maker, new_reserve);
+    assertEq(makerContract.reserve(maker), new_reserve, "Incorrect reserve");
     vm.stopPrank();
   }
 
@@ -349,16 +352,16 @@ contract OfferLogicTest is MangroveTest {
     // for multi user contract `tokenBalance` returns the balance of msg.sender's reserve
     // so one needs to impersonate maker to obtain the correct balance
     vm.startPrank(maker);
-    uint balOut = makerContract.tokenBalance(weth);
-    uint balIn = makerContract.tokenBalance(usdc);
+    uint balOut = makerContract.tokenBalance(weth, maker);
+    uint balIn = makerContract.tokenBalance(usdc, maker);
     vm.stopPrank();
 
     (uint takergot, uint takergave, uint bounty, uint fee) = performTrade(true);
     assertTrue(bounty == 0 && takergot > 0, "trade failed");
 
     vm.startPrank(maker);
-    assertEq(makerContract.tokenBalance(weth), balOut - (takergot + fee), "incorrect out balance");
-    assertEq(makerContract.tokenBalance(usdc), balIn + takergave, "incorrect in balance");
+    assertEq(makerContract.tokenBalance(weth, maker), balOut - (takergot + fee), "incorrect out balance");
+    assertEq(makerContract.tokenBalance(usdc, maker), balIn + takergave, "incorrect in balance");
     vm.stopPrank();
   }
 
@@ -400,7 +403,7 @@ contract OfferLogicTest is MangroveTest {
     address new_reserve = freshAddress("new_reserve");
 
     vm.prank(maker);
-    makerContract.setReserve(new_reserve);
+    makerContract.setReserve(maker, new_reserve);
 
     deal($(weth), new_reserve, 0.5 ether);
     deal($(weth), address(makerContract), 0);
@@ -414,8 +417,8 @@ contract OfferLogicTest is MangroveTest {
     vm.stopPrank();
     (, uint takerGave,,) = performTrade(true, 70_000);
     vm.startPrank(maker);
-    assertEq(takerGave, makerContract.tokenBalance(usdc), "Incorrect reserve usdc balance");
-    assertEq(makerContract.tokenBalance(weth), 0, "Incorrect reserve weth balance");
+    assertEq(takerGave, makerContract.tokenBalance(usdc, maker), "Incorrect reserve usdc balance");
+    assertEq(makerContract.tokenBalance(weth, maker), 0, "Incorrect reserve weth balance");
     vm.stopPrank();
   }
 }

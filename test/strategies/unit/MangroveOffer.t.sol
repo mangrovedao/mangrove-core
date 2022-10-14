@@ -43,7 +43,7 @@ contract MangroveOfferTest is MangroveTest {
 
     makerContract = new OfferMaker({
       mgv: IMangrove($(mgv)),
-      router_: SimpleRouter(address(0)), // no router
+      router_: AbstractRouter(address(0)), // no router
       deployer: maker
     });
   }
@@ -137,24 +137,30 @@ contract MangroveOfferTest is MangroveTest {
 
     vm.startPrank(maker);
     SimpleRouter router = new SimpleRouter();
-    router.setAdmin(address(makerContract));
+    router.setAdmin($(makerContract));
     makerContract.setRouter(router);
-    assertEq(address(makerContract.router()), address(router), "Router was not set");
+    assertEq($(makerContract.router()), $(router), "Router was not set");
     vm.stopPrank();
   }
 
   function test_CheckListTakesNewRouterIntoAccount() public {
     vm.startPrank(maker);
     SimpleRouter router = new SimpleRouter();
-    router.setAdmin(address(makerContract));
     makerContract.setRouter(router);
+    router.bind($(makerContract));
 
     IERC20[] memory tokens = dynamic([IERC20(weth), usdc]);
     vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
     makerContract.checkList(tokens);
 
     makerContract.activate(tokens);
+    vm.expectRevert("SimpleRouter/NotApprovedByReserve");
     makerContract.checkList(tokens);
+
+    weth.approve($(router), type(uint).max);
+    usdc.approve($(router), type(uint).max);
+    makerContract.checkList(tokens);
+
     vm.stopPrank();
   }
 
@@ -170,8 +176,7 @@ contract MangroveOfferTest is MangroveTest {
 
   function test_getFailReverts() public {
     MgvLib.SingleOrder memory order;
-    deal($(usdc), makerContract.reserve(), 0);
-    console.log("reserve:", usdc.balanceOf(makerContract.reserve()));
+    deal($(usdc), makerContract.reserve($(this)), 0);
     order.outbound_tkn = address(usdc);
     order.wants = 10 ** 6;
     console.log(order.wants);

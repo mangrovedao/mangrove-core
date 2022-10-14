@@ -42,7 +42,7 @@ contract MakerPermissionTest is MangroveTest {
 
   function testCannot_setReserve() public {
     vm.expectRevert("AccessControlled/Invalid");
-    makerContract.setReserve(freshAddress());
+    makerContract.setReserve(freshAddress(), freshAddress());
   }
 
   function testCannot_setRouter() public {
@@ -104,7 +104,7 @@ contract MakerPermissionTest is MangroveTest {
 
   function testCannot_WithdrawTokens() public {
     // mockup of trade success
-    deal($(weth), makerContract.reserve(), 1 ether);
+    deal($(weth), makerContract.reserve($(this)), 1 ether);
 
     vm.expectRevert("AccessControlled/Invalid");
     makerContract.withdrawToken(weth, maker, 1 ether);

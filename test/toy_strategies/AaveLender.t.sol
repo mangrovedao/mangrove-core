@@ -71,10 +71,13 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
       _addressesProvider: fork.get("Aave"),
       deployer: $(this)
     });
-
     router = AaveDeepRouter($(strat.router()));
+    router.bind($(strat));
+    // storing funds on router
+    strat.setReserve($(this), $(router));
+
     // note for later: compound is
-    //   simple/advanced compoudn= Contract.deploy(Fork.COMP,IMangrove($(mgv)),Fork.WETH,$(this));
+    //   simple/advanced compound= Contract.deploy(Fork.COMP,IMangrove($(mgv)),Fork.WETH,$(this));
     //   market = [Fork.CWETH,Fork.CDAI];
 
     // aave rejects market entering if underlying balance is 0 (will self enter at first deposit)
@@ -102,7 +105,7 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
     router.approveLender(dai, type(uint).max);
 
     // makerContract deposits some DAI on Lender (remains 100 DAIs on the contract)
-    router.supply(dai, strat.reserve(), 900 ether, $(strat) /* from */ );
+    router.supply(dai, strat.reserve($(this)), 900 ether, $(strat) /* from */ );
   }
 
   function execTraderStrat() public {

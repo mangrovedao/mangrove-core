@@ -44,9 +44,11 @@ contract Ghost is Direct {
     setRouter(router_);
     // adding `this` to the allowed makers of `router_` to pull/push liquidity
     router_.bind(address(this));
-    // Note: `reserve()` needs to approve `this.router()` for base token transfer
-    router_.setAdmin(admin);
-    setReserve(admin);
+    if (admin == msg.sender) {
+      // Note: `reserve()` needs to approve `this.router()` for base token transfer
+      router_.setAdmin(admin);
+      setReserve(admin);
+    }
   }
 
   /**
@@ -136,9 +138,9 @@ contract Ghost is Direct {
         new_alt_wants = (old_alt_wants * new_alt_gives) / old_alt_gives;
       }
       // the call below might throw
-      MGV.updateOffer({
-        outbound_tkn: address(order.outbound_tkn),
-        inbound_tkn: address(alt_stable),
+      updateOffer({
+        outbound_tkn: IERC20(order.outbound_tkn),
+        inbound_tkn: IERC20(alt_stable),
         gives: new_alt_gives,
         wants: new_alt_wants,
         offerId: alt_offerId,
@@ -149,20 +151,27 @@ contract Ghost is Direct {
       return "posthook/bothOfferReposted";
     } else {
       // repost failed or offer was entirely taken
-      MGV.retractOffer({
-        outbound_tkn: address(order.outbound_tkn),
-        inbound_tkn: address(order.inbound_tkn),
-        offerId: order.offerId,
-        deprovision: true
-      });
-      MGV.retractOffer({
-        outbound_tkn: address(order.outbound_tkn),
-        inbound_tkn: address(alt_stable),
+      if (repost_status != "posthook/filled") {
+        retractOffer({
+          outbound_tkn: IERC20(order.outbound_tkn),
+          inbound_tkn: IERC20(order.inbound_tkn),
+          offerId: order.offerId,
+          deprovision: false
+        });
+      }
+      retractOffer({
+        outbound_tkn: IERC20(order.outbound_tkn),
+        inbound_tkn: IERC20(alt_stable),
         offerId: alt_offerId,
-        deprovision: true
+        deprovision: false
       });
       return "posthook/bothRetracted";
     }
+  }
+
+  function retractOffers(bool deprovision) public {
+    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerId1, deprovision: deprovision});
+    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerId2, deprovision: deprovision});
   }
 
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)
@@ -173,11 +182,11 @@ contract Ghost is Direct {
     // if we reach this code, trade has failed for lack of base token
     (IERC20 alt_stable, uint alt_offerId) =
       IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerId2) : (STABLE1, offerId1);
-    MGV.retractOffer({
-      outbound_tkn: address(order.outbound_tkn),
-      inbound_tkn: address(alt_stable),
+    retractOffer({
+      outbound_tkn: IERC20(order.outbound_tkn),
+      inbound_tkn: IERC20(alt_stable),
       offerId: alt_offerId,
-      deprovision: true
+      deprovision: false
     });
     return "posthook/bothFailing";
   }

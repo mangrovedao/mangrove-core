@@ -171,7 +171,6 @@ contract MangroveOfferTest is MangroveTest {
   function test_getFailReverts() public {
     MgvLib.SingleOrder memory order;
     deal($(usdc), makerContract.reserve(), 0);
-    console.log("reserve:", usdc.balanceOf(makerContract.reserve()));
     order.outbound_tkn = address(usdc);
     order.wants = 10 ** 6;
     console.log(order.wants);

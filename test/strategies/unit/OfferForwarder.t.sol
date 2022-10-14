@@ -6,7 +6,7 @@ import {OfferLogicTest, console} from "mgv_test/strategies/unit/OfferLogic.t.sol
 import {
   OfferForwarder, IForwarder, IMangrove, IERC20, IMakerLogic
 } from "src/strategies/offer_forwarder/OfferForwarder.sol";
-import {MgvStructs} from "src/MgvLib.sol";
+import {MgvStructs, MgvLib} from "src/MgvLib.sol";
 
 contract OfferForwarderTest is OfferLogicTest {
   IForwarder forwarder;

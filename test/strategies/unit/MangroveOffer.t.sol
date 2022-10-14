@@ -167,4 +167,16 @@ contract MangroveOfferTest is MangroveTest {
     assertEq(makerContract.offerGasreq(), gasreq + router.routerGasreq(), "incorrect gasreq");
     vm.stopPrank();
   }
+
+  function test_getFailReverts() public {
+    MgvLib.SingleOrder memory order;
+    deal($(usdc), makerContract.reserve(), 0);
+    console.log("reserve:", usdc.balanceOf(makerContract.reserve()));
+    order.outbound_tkn = address(usdc);
+    order.wants = 10 ** 6;
+    console.log(order.wants);
+    vm.expectRevert("mgvOffer/abort/getFailed");
+    vm.prank($(mgv));
+    makerContract.makerExecute(order);
+  }
 }

@@ -218,6 +218,23 @@ contract OfferLogicTest is MangroveTest {
     assertEq(deprovisioned, locked, "Deprovision was incomplete");
   }
 
+  function test_deprovisionWithouthFreeWeiReturnsNoFund() public {
+    vm.startPrank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    makerContract.retractOffer(weth, usdc, offerId, true);
+    uint received_wei = makerContract.retractOffer(weth, usdc, offerId, true);
+    vm.stopPrank();
+    assertEq(received_wei, 0, "Unexpected received weis");
+  }
+
   function test_makerCanUpdateOffer() public {
     vm.prank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({

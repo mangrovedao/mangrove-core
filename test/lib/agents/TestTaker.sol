@@ -12,6 +12,7 @@ contract TestTaker is ITaker, Script2 {
   AbstractMangrove _mgv;
   address _base;
   address _quote;
+  bool acceptNative = true;
 
   constructor(AbstractMangrove mgv, IERC20 base, IERC20 quote) {
     _mgv = mgv;
@@ -19,7 +20,13 @@ contract TestTaker is ITaker, Script2 {
     _quote = address(quote);
   }
 
-  receive() external payable {}
+  receive() external payable {
+    require(acceptNative, "TestTaker/refusesNative");
+  }
+
+  function refuseNative() external {
+    acceptNative = false;
+  }
 
   function approveMgv(IERC20 token, uint amount) external {
     token.approve(address(_mgv), amount);

@@ -131,6 +131,35 @@ contract OfferLogicTest is MangroveTest {
     assertTrue(offerId != 0);
   }
 
+  function test_newOfferFailsWhenProvisionIsBelowMissingProvision() public {
+    uint minProv = makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
+    vm.expectRevert("mgv/insufficientProvision");
+    vm.prank(maker);
+    makerContract.newOffer{value: minProv - 1}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+  }
+
+  function test_newOfferFailsWhenProvisionIsZero() public {
+    vm.expectRevert("mgv/insufficientProvision");
+    vm.prank(maker);
+    makerContract.newOffer{value: 0}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+  }
+
   function test_getMissingProvisionIsMinimal() public {
     uint prov = makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
     vm.startPrank(maker);
@@ -189,6 +218,23 @@ contract OfferLogicTest is MangroveTest {
     assertEq(deprovisioned, locked, "Deprovision was incomplete");
   }
 
+  function test_deprovisionWithouthFreeWeiReturnsNoFund() public {
+    vm.startPrank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    makerContract.retractOffer(weth, usdc, offerId, true);
+    uint received_wei = makerContract.retractOffer(weth, usdc, offerId, true);
+    vm.stopPrank();
+    assertEq(received_wei, 0, "Unexpected received weis");
+  }
+
   function test_makerCanUpdateOffer() public {
     vm.prank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
@@ -227,6 +273,32 @@ contract OfferLogicTest is MangroveTest {
     });
 
     vm.prank(address(mgv));
+    makerContract.updateOffer({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: offerId,
+      offerId: offerId
+    });
+  }
+
+  function test_updateOfferFailsWhenProvisionisTooLow() public {
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    mgv.setGasprice(type(uint16).max);
+    vm.expectRevert("mgv/insufficientProvision");
+    vm.prank(maker);
     makerContract.updateOffer({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -300,6 +372,17 @@ contract OfferLogicTest is MangroveTest {
     // this will be a noop when maker == reserve
     makerContract.withdrawToken(usdc, maker, takergave);
     assertEq(usdc.balanceOf(maker), balusdc + takergave, "withdraw failed");
+  }
+
+  function test_withdraw0TokenSkipsTransfer() public {
+    vm.prank(maker);
+    require(makerContract.withdrawToken(usdc, maker, 0), "unexpected fail");
+  }
+
+  function test_withdrawTokenTo0xReceiverFails() public {
+    vm.expectRevert("mgvOffer/withdrawToken/0xReceiver");
+    vm.prank(maker);
+    makerContract.withdrawToken(usdc, address(0), 1);
   }
 
   function test_failingOfferLogsIncident() public {

@@ -34,4 +34,18 @@ contract AaveRouterForkedTest is OfferLogicTest {
     makerContract.setRouter(router);
     vm.stopPrank();
   }
+
+  function test_push_fail_is_recoverable() public {
+    uint old_bal = usdc.balanceOf(address(makerContract));
+    AaveRouter router_ = AaveRouter(address(makerContract.router()));
+    // router will fail to get liquidity
+    vm.prank(deployer);
+    router_.approveLender(usdc, 0);
+    (, uint takerGave,,) = performTrade(true);
+    assertEq(usdc.balanceOf(address(makerContract)) - old_bal, takerGave, "Inccorect usdc balance");
+    vm.startPrank(deployer);
+    makerContract.setRouter(OfferMaker(payable(address(makerContract))).NO_ROUTER());
+    assertTrue(makerContract.withdrawToken(usdc, deployer, takerGave), "could not recover funds");
+    vm.stopPrank();
+  }
 }

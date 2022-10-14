@@ -19,7 +19,6 @@ import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
 import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
 import {MgvLib, IERC20, MgvStructs} from "src/MgvLib.sol";
 import {IMangrove} from "src/IMangrove.sol";
-import {console2} from "forge-std/console2.sol";
 
 ///@title Class for maker contracts that forward offer makers instructions to Mangrove in a permissionless fashion.
 ///@notice Each offer posted via this contract are managed by their offer maker, not by this contract's admin.
@@ -45,8 +44,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@notice modifier to enforce function caller to be either Mangrove or offer owner
   modifier mgvOrOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
     if (msg.sender != address(MGV)) {
-      OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
-      require(od.owner == msg.sender, "Forwarder/unauthorized");
+      require(ownerData[outbound_tkn][inbound_tkn][offerId].owner == msg.sender, "Forwarder/unauthorized");
     }
     _;
   }
@@ -279,14 +277,14 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
     returns (uint freeWei)
   {
-    OwnerData memory od = ownerData[outbound_tkn][inbound_tkn][offerId];
+    OwnerData storage od = ownerData[outbound_tkn][inbound_tkn][offerId];
     freeWei = deprovision ? od.weiBalance : 0;
     freeWei += MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
     if (freeWei > 0) {
       // pulling free wei from Mangrove to `this`
       require(MGV.withdraw(freeWei), "Forwarder/withdrawFail");
       // resetting pending returned provision
-      ownerData[outbound_tkn][inbound_tkn][offerId].weiBalance = 0;
+      od.weiBalance = 0;
       // sending WEI's to offer owner. Note that this call could occur nested inside a call to `makerExecute` originating from Mangrove
       // this is still safe because WEI's are being sent to offer owner who has no incentive to make current trade fail or waste gas.
       (bool noRevert,) = od.owner.call{value: freeWei}("");
@@ -296,7 +294,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
 
   ///@inheritdoc IOfferLogic
   function withdrawToken(IERC20 token, address receiver, uint amount) external override returns (bool success) {
-    require(receiver != address(0), "Forwarder/withdrawToken/0xReceiver");
+    require(receiver != address(0), "mgvOffer/withdrawToken/0xReceiver");
     if (amount == 0) {
       success = true;
     }

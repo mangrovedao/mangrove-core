@@ -123,6 +123,14 @@ contract MangroveOfferTest is MangroveTest {
     assertEq(maker.balance, balMaker + 0.5 ether, "incorrect balance");
   }
 
+  function test_AdminCanWithdrawAllFunds() public {
+    mgv.fund{value: 1 ether}(address(makerContract));
+    vm.prank(maker);
+    makerContract.withdrawFromMangrove(type(uint).max, maker);
+    assertEq(mgv.balanceOf(address(makerContract)), 0 ether, "incorrect balance");
+    assertEq(maker.balance, 1 ether, "incorrect balance");
+  }
+
   function test_AdminCanSetRouter() public {
     vm.expectRevert("AccessControlled/Invalid");
     makerContract.setRouter(SimpleRouter(freshAddress()));
@@ -158,5 +166,17 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.setRouter(router);
     assertEq(makerContract.offerGasreq(), gasreq + router.routerGasreq(), "incorrect gasreq");
     vm.stopPrank();
+  }
+
+  function test_getFailReverts() public {
+    MgvLib.SingleOrder memory order;
+    deal($(usdc), makerContract.reserve(), 0);
+    console.log("reserve:", usdc.balanceOf(makerContract.reserve()));
+    order.outbound_tkn = address(usdc);
+    order.wants = 10 ** 6;
+    console.log(order.wants);
+    vm.expectRevert("mgvOffer/abort/getFailed");
+    vm.prank($(mgv));
+    makerContract.makerExecute(order);
   }
 }

@@ -97,9 +97,9 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
     dai.transfer($(strat), 1000 ether);
 
     // testSigner asks makerContract to approve lender to be able to mint [c/a]Token
-    router.approveLender(weth);
+    router.approveLender(weth, type(uint).max);
     // NB in the special case of cEth this is only necessary to repay debt
-    router.approveLender(dai);
+    router.approveLender(dai, type(uint).max);
 
     // makerContract deposits some DAI on Lender (remains 100 DAIs on the contract)
     router.supply(dai, strat.reserve(), 900 ether, $(strat) /* from */ );

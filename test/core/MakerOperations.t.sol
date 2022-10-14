@@ -26,6 +26,20 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     tkr.approveMgv(quote, 1 ether);
   }
 
+  function test_fund_maker_fn(address anyone, uint64 amount) public {
+    uint oldBal = mgv.balanceOf(address(anyone));
+    mgv.fund{value: amount}(anyone);
+    uint newBal = mgv.balanceOf(address(anyone));
+    assertEq(newBal, oldBal + amount);
+  }
+
+  function test_fund_fn(uint64 amount) public {
+    uint oldBal = mgv.balanceOf(address(this));
+    mgv.fund{value: amount}();
+    uint newBal = mgv.balanceOf(address(this));
+    assertEq(newBal, oldBal + amount);
+  }
+
   function test_provision_adds_mgv_balance_and_ethers() public {
     uint mgv_bal = $(mgv).balance;
     uint amt1 = 235;
@@ -815,5 +829,49 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertTrue(gave == got && got == 0, "market Order should be noop");
     uint gotBack = mgv.balanceOf(address(mkr)) - oldProvision;
     assertEq(gotBack, 0, "Should not have gotten any provision back");
+  }
+
+  function test_gives_0_rejected() public {
+    vm.expectRevert("mgv/writeOffer/gives/tooLow");
+    mkr.newOffer(1 ether, 0 ether, 100_000, 0);
+  }
+
+  function test_offer_only_updateable_by_creator(address badGuy) public {
+    vm.assume(badGuy != address(mkr));
+    mkr.provisionMgv(1 ether);
+    uint id = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
+    (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory detail) =
+      mgv.offerInfo($(base), $(quote), id);
+    vm.prank(badGuy);
+    vm.expectRevert("mgv/updateOffer/unauthorized");
+    mgv.updateOffer($(base), $(quote), offer.wants, offer.gives, detail.gasreq, detail.gasprice, id, id);
+  }
+
+  function test_idOverflow_reverts(address tout, address tin) public {
+    mgv.activate(tout, tin, 0, 0, 0);
+
+    // To test overflow, we surgically set 'last offer id' in mangrove storage
+    // to uint32.max.
+    //
+    // We use locked(out,in) as a proxy for getting the storage slot of
+    // locals[out][in]
+    vm.record();
+    mgv.locked(tout, tin);
+    (bytes32[] memory reads,) = vm.accesses(address(mgv));
+    bytes32 slot = reads[0];
+    bytes32 data = vm.load(address(mgv), slot);
+    MgvStructs.LocalPacked local = MgvStructs.LocalPacked.wrap(uint(data));
+    local = local.last(type(uint32).max);
+    unchecked {
+      console.log("last", local.last());
+      console.log("last+1", 1 + local.last());
+      uint upd = 1 + local.last();
+      console.log("last+1", uint32(upd) == upd);
+    }
+    vm.store(address(mgv), slot, bytes32(MgvStructs.LocalPacked.unwrap(local)));
+
+    // try new offer now that we set the last id to uint32.max
+    vm.expectRevert("mgv/offerIdOverflow");
+    mgv.newOffer(tout, tin, 1 ether, 1 ether, 0, 0, 0);
   }
 }

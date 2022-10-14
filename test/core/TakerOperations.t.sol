@@ -221,7 +221,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
-    (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1.1 ether, 2 ether, true);
+    (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1.1 ether, 1.9 ether, true);
     assertEq(got, 1.1 ether, "Taker did not get correct amount");
     assertEq(gave, 1.1 ether, "Taker did not get correct amount");
   }
@@ -231,9 +231,9 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
-    (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1.1 ether, 2 ether, false);
-    assertEq(got, 2 ether, "Taker did not get correct amount");
-    assertEq(gave, 2 ether, "Taker did not give correct amount");
+    (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1.1 ether, 1.9 ether, false);
+    assertEq(got, 1.9 ether, "Taker did not get correct amount");
+    assertEq(gave, 1.9 ether, "Taker did not give correct amount");
   }
 
   function test_mo_fillGivesAll_no_approved_fails() public {
@@ -655,5 +655,35 @@ contract TakerOperationsTest is MangroveTest {
     (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1 ether, 0, true);
     assertEq(got, 0, "Taker got too much");
     assertEq(gave, 0 ether, "Taker gave too much");
+  }
+
+  /* When Mangrove gets a revert from `flashloan` that doesn't match known revert cases, it returns `mgv/swapError`. This can happen if the flashloan runs out of gas, but should never happen in another case. I (adhusson) did not manage to trigger the 'flash loan is OOG' condition because flashloan itself uses very little gas. If you make it OOG, then its caller will OOG too before reaching the `revert("mgv/swapError")` statement. To trigger that error, I make a BadMangrove contract with a misbehaving `flashloan` function. */
+  function test_unreachable_swapError() public {
+    BadMangrove badMgv = new BadMangrove({
+      governance: $(this),
+      gasprice: 40,
+      gasmax: 2_000_000
+    });
+    badMgv.activate($(base), $(quote), 0, 0, 0);
+
+    TestMaker mkr2 = new TestMaker(badMgv,base,quote);
+    badMgv.fund{value: 10 ether}($(mkr2));
+    mkr2.newOffer(1 ether, 1 ether, 1, 0);
+    vm.expectRevert("mgv/swapError");
+    badMgv.marketOrder{gas: 150000}($(base), $(quote), 1 ether, 1 ether, true);
+  }
+}
+
+contract BadMangrove is AbstractMangrove {
+  constructor(address governance, uint gasprice, uint gasmax)
+    AbstractMangrove(governance, gasprice, gasmax, "BadMangrove")
+  {}
+
+  function executeEnd(MultiOrder memory, MgvLib.SingleOrder memory) internal override {}
+
+  function beforePosthook(MgvLib.SingleOrder memory) internal override {}
+
+  function flashloan(MgvLib.SingleOrder calldata, address) external pure override returns (uint) {
+    revert("badRevert");
   }
 }

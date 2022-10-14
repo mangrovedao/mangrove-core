@@ -479,7 +479,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         } else if (mgvData == "mgv/takerTransferFail") {
           revert("mgv/takerTransferFail");
         } else {
-          /* This code must be unreachable. **Danger**: if a well-crafted offer/maker pair can force a revert of `flashloan`, the Mangrove will be stuck. */
+          /* This code must be unreachable except if the call to flashloan went OOG and there is enough gas to revert here. **Danger**: if a well-crafted offer/maker pair can force a revert of `flashloan`, the Mangrove will be stuck. */
           revert("mgv/swapError");
         }
       }

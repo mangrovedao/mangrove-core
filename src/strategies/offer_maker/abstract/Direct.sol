@@ -63,11 +63,8 @@ abstract contract Direct is MangroveOffer {
   function pull(IERC20 outbound_tkn, uint amount, bool strict) internal returns (uint) {
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
-      require(
-        TransferLib.transferTokenFrom(outbound_tkn, reserve(), address(this), amount), //noop if reserve is `this`
-        "Direct/pull/transferFail"
-      );
-      return amount;
+      bool success = TransferLib.transferTokenFrom(outbound_tkn, reserve(), address(this), amount);
+      return success ? amount : 0;
     } else {
       // letting specific router pull the funds from reserve
       return router_.pull(outbound_tkn, reserve(), amount, strict);

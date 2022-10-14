@@ -48,7 +48,8 @@ contract OfferForwarder is IMakerLogic, Forwarder {
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false // propagates Mangrove's revert data in case of newOffer failure
+        noRevert: false, // propagates Mangrove's revert data in case of newOffer failure
+        caller: msg.sender
       })
     );
   }

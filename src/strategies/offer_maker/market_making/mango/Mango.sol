@@ -112,9 +112,6 @@ contract Mango is Direct {
     __activate__(base);
     __activate__(quote);
 
-    // in order to let deployer's EOA have control over liquidity
-    setReserve(deployer);
-
     // adding `this` to the authorized makers of the router.
     router_.bind(address(this));
     // `this` deployed the router, letting admin take control over it.

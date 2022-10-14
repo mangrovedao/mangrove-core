@@ -88,8 +88,9 @@ interface IOfferLogic is IMaker {
 
   ///@notice View of offer maker's reserve balance for a particular asset.
   ///@param token the asset type one wishes to know the reserve balance of
+  ///@param maker the offer maker one wishes to know the balance of.
   ///@return balance the `token` amount in offer maker's reserve
-  function tokenBalance(IERC20 token) external view returns (uint balance);
+  function tokenBalance(IERC20 token, address maker) external view returns (uint balance);
 
   /// @notice performs the required approvals so as to allow `this` to interact with Mangrove on a set of assets.
   /// @param tokens the ERC20 `this` will approve to be able to trade on Mangrove's corresponding markets.
@@ -120,6 +121,7 @@ interface IOfferLogic is IMaker {
     uint pivotId;
     uint fund;
     bool noRevert;
+    address caller;
   }
 
   ///@notice updates an offer existing on Mangrove (not necessarily live).
@@ -158,18 +160,17 @@ interface IOfferLogic is IMaker {
     bool deprovision // if set to `true`, `this` will receive the remaining provision (in WEI) associated to `offerId`.
   ) external returns (uint received);
 
-  ///@notice view of offer maker's reserve
-  ///@dev if offer maker is `this` (`Direct` logics) then it returns the liquidity reserve of `address(this)`
-  /// otherwise (`Forwarder` logics) it returns the reserve of `msg.sender`.
-  function reserve() external view returns (address);
+  /// @notice getter of the address where offer maker is storing its liquidity
+  /// @param maker the address of the offer maker one wishes to know the reserve of.
+  /// @return reserve_ the address of the offer maker's reserve of liquidity.
+  /// @dev if no reserve is set for maker, default reserve is maker's address forge
+  function reserve(address maker) external view returns (address);
 
-  /**
-   * @notice sets the address of the reserve of an offer maker.
-   * @dev If offer maker is `this` (`Direct` logics) it sets the reserve for `address(this)`.
-   * @dev Otherwise (`Forwarder` logics) it sets the reserve for `msg.sender`.
-   * @param reserve the address of offer maker's reserve
-   */
-  function setReserve(address reserve) external;
+  /// @notice sets reserve of an offer maker.
+  /// @param maker the address of the offer maker
+  /// @param reserve_ the address of the offer maker's reserve of liquidity.
+  /// @dev `setReserve(maker, address(0))` has the same effect as `setReserve(maker, maker)`
+  function setReserve(address maker, address reserve_) external;
 
   /// @notice Contract's router getter.
   /// @dev if contract has a no router, function returns `NO_ROUTER`.

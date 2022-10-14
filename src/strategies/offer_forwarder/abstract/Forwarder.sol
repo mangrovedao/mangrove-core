@@ -115,17 +115,6 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     require(owner != address(0), "Forwarder/unknownOffer");
   }
 
-  ///@inheritdoc IOfferLogic
-  function reserve() public view override returns (address) {
-    address makerReserve = _reserve(msg.sender);
-    return makerReserve == address(0) ? msg.sender : makerReserve;
-  }
-
-  ///@inheritdoc IOfferLogic
-  function setReserve(address reserve_) external override {
-    _setReserve(msg.sender, reserve_);
-  }
-
   /// @notice Inserts a new offer on a Mangrove Offer List.
   /// @dev If inside a hook, one should call `_newOffer` to create a new offer and not directly `MGV.newOffer` to make sure one is correctly dealing with:
   /// * offer ownership
@@ -160,7 +149,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
       address(args.outbound_tkn), address(args.inbound_tkn), args.wants, args.gives, args.gasreq, gasprice, args.pivotId
     ) returns (uint offerId_) {
       // assign `offerId_` to caller
-      addOwner(args.outbound_tkn, args.inbound_tkn, offerId_, msg.sender, leftover);
+      addOwner(args.outbound_tkn, args.inbound_tkn, offerId_, args.caller, leftover);
       offerId = offerId_;
     } catch Error(string memory reason) {
       /// letting revert bubble up unless `noRevert` is positioned.
@@ -298,12 +287,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     if (amount == 0) {
       success = true;
     }
-    success = router().withdrawToken(token, reserve(), receiver, amount);
-  }
-
-  ///@inheritdoc IOfferLogic
-  function tokenBalance(IERC20 token) external view override returns (uint) {
-    return router().reserveBalance(token, reserve());
+    success = router().withdrawToken(token, reserve(msg.sender), receiver, amount);
   }
 
   ///@dev put received inbound tokens on offer maker's reserve during `makerExecute`
@@ -317,8 +301,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
-    address target = _reserve(owner);
-    router().push(inTkn, target == address(0) ? owner : target, amount);
+    router().push(inTkn, reserve(owner), amount);
     return 0;
   }
 
@@ -331,8 +314,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // telling router one is requiring `amount` of `outTkn` for `owner`.
     // because `pull` is strict, `pulled <= amount` (cannot be greater)
     // we do not check local balance here because multi user contracts do not keep more balance than what has been pulled
-    address source = _reserve(owner);
-    uint pulled = router().pull(outTkn, source == address(0) ? owner : source, amount, true);
+    uint pulled = router().pull(outTkn, reserve(owner), amount, true);
     return amount - pulled; // this will make trade fail if `amount != pulled`
   }
 
@@ -368,13 +350,5 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // those free WEIs can be retrieved by offer owner, by calling `retractOffer` with the `deprovision` flag.
     semiBookOwnerData[order.offerId].weiBalance += uint96(approxReturnedProvision);
     return "";
-  }
-
-  ///@notice Verifying that this contract has a router and that its checklist does not revert.
-  function __checkList__(IERC20 token) internal view virtual override {
-    AbstractRouter router_ = router();
-    require(router_ != NO_ROUTER, "Forwarder/MissingRouter");
-    router_.checkList(token, reserve());
-    super.__checkList__(token);
   }
 }

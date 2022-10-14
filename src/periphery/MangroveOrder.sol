@@ -90,7 +90,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory res) {
     // Notations:
     // NAT_USER: initial value of `msg.sender.balance` (native balance of user)
-    // OUT/IN_USER: initial value of `tko.[out|in]bound_tkn.balanceOf(reserve())` (user's reserve balance of tokens)
+    // OUT/IN_USER: initial value of `tko.[out|in]bound_tkn.balanceOf(reserve(msg.sender))` (user's reserve balance of tokens)
     // NAT_THIS: initial value of `address(this).balance` (native balance of `this`)
     // OUT/IN_THIS: initial value of `tko.[out|in]bound_tkn.balanceOf(address(this))` (`this` balance of tokens)
 
@@ -99,7 +99,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // * `this` balances: (NAT_THIS +`msg.value`, OUT_THIS, IN_THIS)
 
     // Pulling funds from `msg.sender`'s reserve
-    uint pulled = router().pull(tko.inbound_tkn, reserve(), tko.takerGives, true);
+    uint pulled = router().pull(tko.inbound_tkn, reserve(msg.sender), tko.takerGives, true);
     require(pulled == tko.takerGives, "mgvOrder/mo/transferInFail");
 
     // POST:
@@ -125,11 +125,11 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
     // sending inbound tokens to `msg.sender`'s reserve and sending back remaining outbound tokens
     if (res.takerGot > 0) {
-      router().push(tko.outbound_tkn, reserve(), res.takerGot);
+      router().push(tko.outbound_tkn, reserve(msg.sender), res.takerGot);
     }
     uint inbound_left = tko.takerGives - res.takerGave;
     if (inbound_left > 0) {
-      router().push(tko.inbound_tkn, reserve(), inbound_left);
+      router().push(tko.inbound_tkn, reserve(msg.sender), inbound_left);
     }
     // POST:
     // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
@@ -207,7 +207,8 @@ contract MangroveOrder is Forwarder, IOrderLogic {
         gasprice: 0, // ignored
         pivotId: tko.pivotId,
         fund: fund,
-        noRevert: true // returns 0 when MGV reverts
+        noRevert: true, // returns 0 when MGV reverts
+        caller: msg.sender
       })
     );
 

@@ -136,19 +136,14 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     return token.approve(spender, amount);
   }
 
-  /// @notice getter of the address where offer maker is storing its liquidity
-  /// @param maker the address of the offer maker one wishes to know the reserve of.
-  /// @return reserve_ the address of the offer maker's reserve of liquidity.
-  /// @dev if `this` contract is not acting of behalf of some user, `_reserve(address(this))` must be defined at all time.
-  function _reserve(address maker) internal view returns (address reserve_) {
-    reserve_ = MOS.getStorage().reserves[maker];
+  /// @inheritdoc IOfferLogic
+  function reserve(address maker) public view override returns (address) {
+    address reserve_ = MOS.getStorage().reserves[maker];
+    return reserve_ == address(0) ? maker : reserve_;
   }
 
-  /// @notice sets reserve of an offer maker.
-  /// @param maker the address of the offer maker
-  /// @param reserve_ the address of the offer maker's reserve of liquidity.
-  function _setReserve(address maker, address reserve_) internal {
-    require(reserve_ != address(0), "mgvOffer/0xReserve");
+  /// @inheritdoc IOfferLogic
+  function setReserve(address maker, address reserve_) public override onlyCaller(maker) {
     MOS.getStorage().reserves[maker] = reserve_;
   }
 
@@ -168,6 +163,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       // if contract has a router, checking router is allowed
       if (router_ != NO_ROUTER) {
         require(tokens[i].allowance(address(this), address(router_)) > 0, "mgvOffer/LogicMustApproveRouter");
+        router_.checkList(tokens[i], reserve(msg.sender));
       }
       __checkList__(tokens[i]);
     }
@@ -181,6 +177,13 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     require(MGV.withdraw(amount), "mgvOffer/withdrawFromMgv/withdrawFail");
     (bool noRevert,) = receiver.call{value: amount}("");
     require(noRevert, "mgvOffer/withdrawFromMgv/payableCallFail");
+  }
+
+  /// @inheritdoc IOfferLogic
+  function tokenBalance(IERC20 token, address maker) external view override returns (uint) {
+    AbstractRouter router_ = router();
+    address makerReserve = reserve(maker);
+    return router_ == NO_ROUTER ? token.balanceOf(makerReserve) : router_.reserveBalance(token, makerReserve);
   }
 
   ///@notice strat-specific additional activation steps (override if needed).

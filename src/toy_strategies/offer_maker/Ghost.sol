@@ -43,12 +43,9 @@ contract Ghost is Direct {
     AbstractRouter router_ = new SimpleRouter();
     setRouter(router_);
     // adding `this` to the allowed makers of `router_` to pull/push liquidity
+    // Note: `reserve(admin)` needs to approve `this.router()` for base token transfer
     router_.bind(address(this));
-    if (admin == msg.sender) {
-      // Note: `reserve()` needs to approve `this.router()` for base token transfer
-      router_.setAdmin(admin);
-      setReserve(admin);
-    }
+    router_.setAdmin(admin);
   }
 
   /**
@@ -59,7 +56,7 @@ contract Ghost is Direct {
    * @param pivot2 pivot for STABLE2
    * @return (offerid for STABLE1, offerid for STABLE2)
    * @dev these offer's provision must be in msg.value
-   * @dev `reserve()` must have approved base for `this` contract transfer prior to calling this function
+   * @dev `reserve(admin())` must have approved base for `this` contract transfer prior to calling this function
    */
   function newGhostOffers(
     // this function posts two asks

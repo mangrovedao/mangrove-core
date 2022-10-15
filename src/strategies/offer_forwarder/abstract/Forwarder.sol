@@ -267,15 +267,20 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     returns (uint freeWei)
   {
     OwnerData storage od = ownerData[outbound_tkn][inbound_tkn][offerId];
-    freeWei = deprovision ? od.weiBalance : 0;
-    freeWei += MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
+    freeWei = deprovision ? od.weiBalance : 0; // (a)
+    freeWei += MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision); // (b)
     if (freeWei > 0) {
       // pulling free wei from Mangrove to `this`
       require(MGV.withdraw(freeWei), "Forwarder/withdrawFail");
       // resetting pending returned provision
       od.weiBalance = 0;
-      // sending WEI's to offer owner. Note that this call could occur nested inside a call to `makerExecute` originating from Mangrove
+      // That the call below could occur nested inside a call to `makerExecute` originating from Mangrove
       // this is still safe because WEI's are being sent to offer owner who has no incentive to make current trade fail or waste gas.
+      // w.r.t reentrancy:
+      // * `od.weiBalance` is set to 0 (storage write) prior to this call, so a reentrant call to `retractOffer` would give `freeWei = 0` at (a)
+      // * further call to `MGV.retractOffer` will yield no more WEIs so `freeWei += 0` at (b)
+      // * (a /\ b) imply that the above call to `MGV.withdraw` will be done with `freeWeil == 0`.
+      // * `retractOffer` is the only function that allows non admin users to withdraw WEIs from Mangrove.
       (bool noRevert,) = od.owner.call{value: freeWei}("");
       require(noRevert, "Forwarder/weiTransferFail");
     }

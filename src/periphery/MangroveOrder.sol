@@ -165,7 +165,11 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     if (fund > 0) {
       // NB this calls gives reentrancy power to callee, but OK since:
       // 1. callee is `msg.sender` so no griefing risk of making this call fail for out of gas
-      // 2. no function allows fund retrieval from `this` balance by `msg.sender`
+      // 2. w.r.t reentrancy for profit:
+      // * from POST above a reentrant call would entail either:
+      //   - `fund == 0` (no additional funds transfered)
+      //   - or `fund == msg.value + res.bounty` with `msg.value` being from reentrant call and `res.bounty` from a second resting order.
+      // Thus no additional fund can be redeemed by caller using reentrancy.
       (bool noRevert,) = msg.sender.call{value: fund}("");
       require(noRevert, "mgvOrder/mo/refundFail");
     }

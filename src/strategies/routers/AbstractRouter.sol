@@ -75,19 +75,20 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param token is the asset the maker is pushing
   ///@param reserve is the address identifying where the transferred assets should be placed to
   ///@param amount is the amount of asset that should be transferred from the calling maker contract
-  function push(IERC20 token, address reserve, uint amount) external onlyMakers {
-    __push__({token: token, reserve: reserve, maker: msg.sender, amount: amount});
+  ///@return pushed fraction of `amount` that was successfully pushed to reserve.
+  function push(IERC20 token, address reserve, uint amount) external onlyMakers returns (uint pushed) {
+    return __push__({token: token, reserve: reserve, maker: msg.sender, amount: amount});
   }
 
   ///@notice router-dependant implementation of the `push` function
-  function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual;
+  function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual returns (uint);
 
   ///@notice iterative `push` in a single call
   function flush(IERC20[] calldata tokens, address reserve) external onlyMakers {
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);
       if (amount > 0) {
-        __push__(tokens[i], reserve, msg.sender, amount);
+        require(__push__(tokens[i], reserve, msg.sender, amount) == amount, "router/pushFailed");
       }
     }
   }

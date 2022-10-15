@@ -221,7 +221,6 @@ contract OfferForwarderTest is OfferLogicTest {
     vm.stopPrank();
     MgvStructs.OfferDetailPacked detail = mgv.offerDetails($(weth), $(usdc), offerId);
     uint old_gasprice = detail.gasprice();
-
     vm.startPrank(maker);
     makerContract.updateOffer{value: 0.1 ether}({
       outbound_tkn: weth,
@@ -268,5 +267,31 @@ contract OfferForwarderTest is OfferLogicTest {
 
   function test_default_reserve_for_maker_is_maker() public {
     assertEq(makerContract.reserve(maker), maker, "Incorrect default reserve");
+  }
+
+  function test_putFailRevertsWithExpectedReason() public {
+    MgvLib.SingleOrder memory order;
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+
+    vm.startPrank(maker);
+    usdc.approve($(makerContract.router()), 0);
+    vm.stopPrank();
+
+    order.inbound_tkn = address(usdc);
+    order.outbound_tkn = address(weth);
+    order.gives = 10 ** 6;
+    order.offerId = offerId;
+    vm.expectRevert("mgvOffer/abort/putFailed");
+    vm.prank($(mgv));
+    makerContract.makerExecute(order);
   }
 }

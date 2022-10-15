@@ -306,8 +306,8 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
-    router().push(inTkn, reserve(owner), amount);
-    return 0;
+    uint pushed = router().push(inTkn, reserve(owner), amount);
+    return amount - pushed;
   }
 
   ///@dev get outbound tokens from offer owner reserve

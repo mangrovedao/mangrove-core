@@ -184,4 +184,16 @@ contract MangroveOfferTest is MangroveTest {
     vm.prank($(mgv));
     makerContract.makerExecute(order);
   }
+
+  function test_withdrawFromMangroveRevertsIfCallerCannotReceive() public {
+    // getting a contract that reverts on `receive()` call
+    TestTaker maker_ = new TestTaker(mgv, weth, usdc);
+    maker_.refuseNative();
+    vm.prank(maker);
+    makerContract.setAdmin(address(maker_));
+    mgv.fund{value: 0.1 ether}(address(makerContract));
+    vm.expectRevert("mgvOffer/withdrawFromMgvFail");
+    vm.prank(address(maker_));
+    makerContract.withdrawFromMangrove(0.1 ether, $(this));
+  }
 }

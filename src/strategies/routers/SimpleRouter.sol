@@ -54,8 +54,9 @@ contract SimpleRouter is
   /// @param amount The amount of tokens to be transferred
   /// @dev requires approval from `maker` for `this` to transfer `token`.
   /// @dev will revert if transfer fails
-  function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual override {
-    require(TransferLib.transferTokenFrom(token, maker, reserve, amount), "SimpleRouter/push/transferFail");
+  function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual override returns (uint) {
+    bool success = TransferLib.transferTokenFrom(token, maker, reserve, amount);
+    return success ? amount : 0;
   }
 
   ///@notice router-dependent implementation of the `withdrawToken` function

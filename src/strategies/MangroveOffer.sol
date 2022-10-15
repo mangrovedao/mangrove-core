@@ -176,7 +176,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     }
     require(MGV.withdraw(amount), "mgvOffer/withdrawFromMgv/withdrawFail");
     (bool noRevert,) = receiver.call{value: amount}("");
-    require(noRevert, "mgvOffer/withdrawFromMgv/payableCallFail");
+    require(noRevert, "mgvOffer/withdrawFromMgvFail");
   }
 
   /// @inheritdoc IOfferLogic

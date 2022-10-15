@@ -84,18 +84,12 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     onlyCaller(address(MGV))
     returns (bytes32 ret)
   {
-    // Invoke hook that implements a last look check during execution - it reneges by reverting.
+    // Invoke hook that implements a last look check during execution - it may renege on trade by reverting.
     ret = __lastLook__(order);
     // Invoke hook to put the inbound token, which are brought by the taker.
-    if (__put__(order.gives, order) > 0) {
-      // all must be able to be put, or we revert.
-      revert("mgvOffer/abort/putFailed");
-    }
+    require(__put__(order.gives, order) == 0, "mgvOffer/abort/putFailed");
     // Invoke hook to fetch the outbound token, which are promised to the taker.
-    if (__get__(order.wants, order) > 0) {
-      // all must be able to fetched, or we revert.
-      revert("mgvOffer/abort/getFailed");
-    }
+    require(__get__(order.wants, order) == 0, "mgvOffer/abort/getFailed");
   }
 
   /// @notice `makerPosthook` is the callback function that is called by Mangrove *after* the offer execution.

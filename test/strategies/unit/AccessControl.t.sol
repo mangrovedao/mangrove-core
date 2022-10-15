@@ -62,7 +62,7 @@ contract AccessControlTest is MangroveTest {
     assertEq(address(makerContract.router()), newRouter, "Incorrect router");
   }
 
-  function testCannot_WithdrawTokens() public {
+  function testCannot_withdrawTokens() public {
     // mockup of trade success
     deal($(weth), makerContract.reserve(admin), 1 ether);
 

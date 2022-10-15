@@ -636,6 +636,34 @@ contract TakerOperationsTest is MangroveTest {
     mgv.snipes{gas: 120_000}($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 120_000]), true);
   }
 
+  function test_unsafe_gas_left_fails_posthook() public {
+    mgv.setGasbase($(base), $(quote), 1);
+    quote.approve($(mgv), 1 ether);
+    uint ofr = mkr.newOffer(1 ether, 1 ether, 120_000, 0);
+    vm.expectRevert("mgv/notEnoughGasForMakerPosthook");
+    mgv.snipes{gas: 240_000}($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 120_000]), true);
+  }
+
+  function test_fee_transfer_fail() public {
+    TestToken vaultBlacklister = new TestToken({
+      admin: $(this), 
+      name: "Vault Blacklister", 
+      symbol: "VBL", 
+      _decimals: 18
+    });
+    vm.label($(vaultBlacklister), "Vault Blacklister");
+    mgv.activate({outbound_tkn: $(vaultBlacklister), inbound_tkn: $(quote), fee: 10, density: 0, offer_gasbase: 0});
+    address vault = freshAddress();
+    quote.approve($(mgv), 1 ether);
+    mkr.approveMgv(vaultBlacklister, type(uint).max);
+    mgv.setVault(vault);
+    vaultBlacklister.blacklists(vault);
+    deal($(vaultBlacklister), $(mkr), 10 ether);
+    uint ofr = mkr.newOffer($(vaultBlacklister), $(quote), 1 ether, 1 ether, 420_000, 0);
+    vm.expectRevert("mgv/feeTransferFail");
+    mgv.marketOrder($(vaultBlacklister), $(quote), 1 ether, 1 ether, true);
+  }
+
   function test_marketOrder_on_empty_book_does_not_revert() public {
     mgv.marketOrder($(base), $(quote), 1 ether, 1 ether, true);
   }
@@ -664,6 +692,7 @@ contract TakerOperationsTest is MangroveTest {
       gasprice: 40,
       gasmax: 2_000_000
     });
+    vm.label($(badMgv), "Bad Mangrove");
     badMgv.activate($(base), $(quote), 0, 0, 0);
 
     TestMaker mkr2 = new TestMaker(badMgv,base,quote);

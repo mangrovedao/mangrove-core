@@ -9,6 +9,7 @@
     "prepack": "pinst --disable && yarn build",
     "postpack": "pinst --enable",
     "postinstall": "husky install",
+    "corecov": "forge coverage --match-path 'test/core/*'",
     "build": "forge build && node copyArtifacts && node buildIndex",
     "clean": "forge clean; rimraf index.js dist",
     "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.js src/MgvLib.sol src/MgvRoot.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/AbstractMangrove.sol src/Mangrove.sol src/InvertedMangrove.sol",

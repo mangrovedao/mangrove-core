@@ -237,4 +237,36 @@ contract OfferForwarderTest is OfferLogicTest {
     detail = mgv.offerDetails($(weth), $(usdc), offerId);
     assertTrue(old_gasprice < detail.gasprice(), "Gas price was not increased");
   }
+
+  function test_different_maker_can_post_offers() public {
+    vm.startPrank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    vm.stopPrank();
+    address new_maker = freshAddress("New maker");
+    vm.deal(new_maker, 1 ether);
+    vm.prank(new_maker);
+    uint offerId_ = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    assertEq(forwarder.ownerOf(weth, usdc, offerId_), new_maker, "Incorrect owner");
+    assertEq(forwarder.ownerOf(weth, usdc, offerId), maker, "Incorrect owner");
+  }
+
+  function test_default_reserve_for_maker_is_maker() public {
+    assertEq(makerContract.reserve(maker), maker, "Incorrect default reserve");
+  }
 }

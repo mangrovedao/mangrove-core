@@ -97,6 +97,11 @@ contract OfferLogicTest is MangroveTest {
     vm.stopPrank();
   }
 
+  function testCannot_setReserve() public {
+    vm.expectRevert("AccessControlled/Invalid");
+    makerContract.setReserve(freshAddress(), freshAddress());
+  }
+
   function test_makerCanSetItsReserve() public {
     address new_reserve = freshAddress();
     vm.startPrank(maker);

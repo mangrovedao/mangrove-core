@@ -42,11 +42,15 @@ contract AaveRouterForkedTest is OfferLogicTest {
     AaveRouter router_ = AaveRouter(address(makerContract.router()));
     // router will fail to get liquidity
     vm.prank(deployer);
+    // making push of usdc fail so usdc will stay on `makerContract` (and won't be turned into aUSDC)
     router_.approveLender(usdc, 0);
     (, uint takerGave,,) = performTrade(true);
     assertEq(usdc.balanceOf(address(makerContract)) - old_bal, takerGave, "Inccorect usdc balance");
     vm.startPrank(deployer);
-    makerContract.setRouter(OfferMaker(payable(address(makerContract))).NO_ROUTER());
+    // Stop using AAVE router
+    makerContract.setRouter(AbstractRouter(address(0)));
+    // Pointing admin reserve to `makerContract`
+    makerContract.setReserve(deployer, address(makerContract));
     assertTrue(makerContract.withdrawToken(usdc, deployer, takerGave), "could not recover funds");
     vm.stopPrank();
   }

@@ -41,7 +41,7 @@ abstract contract Direct is MangroveOffer {
     require(receiver != address(0), "mgvOffer/withdrawToken/0xReceiver");
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
-      return TransferLib.transferToken(IERC20(token), receiver, amount);
+      return TransferLib.transferTokenFrom(IERC20(token), reserve(msg.sender), receiver, amount);
     } else {
       return router_.withdrawToken(token, reserve(msg.sender), receiver, amount);
     }

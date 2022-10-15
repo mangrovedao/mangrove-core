@@ -685,7 +685,13 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(gave, 0 ether, "Taker gave too much");
   }
 
-  /* When Mangrove gets a revert from `flashloan` that doesn't match known revert cases, it returns `mgv/swapError`. This can happen if the flashloan runs out of gas, but should never happen in another case. I (adhusson) did not manage to trigger the 'flash loan is OOG' condition because flashloan itself uses very little gas. If you make it OOG, then its caller will OOG too before reaching the `revert("mgv/swapError")` statement. To trigger that error, I make a BadMangrove contract with a misbehaving `flashloan` function. */
+  /* When Mangrove gets a revert from `flashloan` that doesn't match known revert
+   * cases, it returns `mgv/swapError`. This can happen if the flashloan runs out
+   * of gas, but should never happen in another case. I (adhusson) did not manage
+   * to trigger the 'flash loan is OOG' condition because flashloan itself uses
+   * very little gas. If you make it OOG, then its caller will OOG too before
+   * reaching the `revert("mgv/swapError")` statement. To trigger that error, I
+   * make a BadMangrove contract with a misbehaving `flashloan` function. */
   function test_unreachable_swapError() public {
     BadMangrove badMgv = new BadMangrove({
       governance: $(this),

@@ -862,12 +862,6 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     bytes32 data = vm.load(address(mgv), slot);
     MgvStructs.LocalPacked local = MgvStructs.LocalPacked.wrap(uint(data));
     local = local.last(type(uint32).max);
-    unchecked {
-      console.log("last", local.last());
-      console.log("last+1", 1 + local.last());
-      uint upd = 1 + local.last();
-      console.log("last+1", uint32(upd) == upd);
-    }
     vm.store(address(mgv), slot, bytes32(MgvStructs.LocalPacked.unwrap(local)));
 
     // try new offer now that we set the last id to uint32.max

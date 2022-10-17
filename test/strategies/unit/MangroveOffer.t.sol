@@ -22,6 +22,10 @@ contract MangroveOfferTest is MangroveTest {
     bytes32 mgvData
   );
 
+  event SetAdmin(address);
+  event SetRouter(address);
+  event SetReserve(address, address);
+
   function setUp() public override {
     options.base.symbol = "WETH";
     options.quote.symbol = "USDC";
@@ -194,5 +198,26 @@ contract MangroveOfferTest is MangroveTest {
     vm.expectRevert("mgvOffer/withdrawFromMgvFail");
     vm.prank(address(maker_));
     makerContract.withdrawFromMangrove(0.1 ether, $(this));
+  }
+
+  function test_setRouter_logs_SetRouter() public {
+    vm.expectEmit(true, true, true, false, address(makerContract));
+    emit SetRouter(address(0));
+    vm.startPrank(deployer);
+    makerContract.setRouter(AbstractRouter(address(0)));
+  }
+
+  function test_setReserve_logs_SetReserve() public {
+    vm.expectEmit(true, true, true, false, address(makerContract));
+    emit SetReserve(deployer, address(0));
+    vm.startPrank(deployer);
+    makerContract.setReserve(deployer, address(0));
+  }
+
+  function test_setAdmin_logs_SetAdmin() public {
+    vm.expectEmit(true, true, true, false, address(makerContract));
+    emit SetAdmin(deployer);
+    vm.startPrank(deployer);
+    makerContract.setAdmin(deployer);
   }
 }

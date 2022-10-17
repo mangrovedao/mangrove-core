@@ -38,10 +38,13 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   ///@notice Owner data mapping.
-  ///@dev outbound_tkn => inbound_tkn => offerId => OwnerData
+  ///@dev mapping is outbound_tkn -> inbound_tkn -> offerId -> OwnerData
+  ///@dev 'ownerData[out][in][offerId].owner == maker` if `maker` is offer owner of `offerId` in the `(out, in)` offer list.
   mapping(IERC20 => mapping(IERC20 => mapping(uint => OwnerData))) internal ownerData;
 
-  // reserve => maker => isApproved
+  ///@notice Reserve approvals mapping.
+  ///@dev mapping is reserve -> maker -> isApproved.
+  ///@dev `reserveApprovals[reserve][maker] => setReserve(maker, reserve)` will not revert.
   mapping(address => mapping(address => bool)) public reserveApprovals;
 
   ///@notice modifier to enforce function caller to be either Mangrove or offer owner

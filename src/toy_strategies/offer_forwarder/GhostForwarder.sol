@@ -94,7 +94,7 @@ contract GhostForwarder is Forwarder {
         pivotId: pivot1,
         fund: fund1,
         noRevert: false,
-        caller: msg.sender
+        owner: msg.sender
       })
     );
 
@@ -112,7 +112,7 @@ contract GhostForwarder is Forwarder {
         pivotId: pivot2,
         fund: fund2,
         noRevert: false,
-        caller: msg.sender
+        owner: msg.sender
       })
     );
     offers[msg.sender].id2 = _offerId2;

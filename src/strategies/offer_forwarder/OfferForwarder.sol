@@ -49,7 +49,7 @@ contract OfferForwarder is IMakerLogic, Forwarder {
         pivotId: pivotId,
         fund: msg.value,
         noRevert: false, // propagates Mangrove's revert data in case of newOffer failure
-        caller: msg.sender
+        owner: msg.sender
       })
     );
   }

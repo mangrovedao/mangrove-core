@@ -54,7 +54,7 @@ contract OfferMaker is IMakerLogic, Direct {
         pivotId: pivotId,
         fund: msg.value,
         noRevert: false,
-        caller: msg.sender
+        owner: msg.sender
       })
     );
   }

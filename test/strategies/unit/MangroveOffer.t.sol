@@ -49,16 +49,16 @@ contract MangroveOfferTest is MangroveTest {
     });
   }
 
-  function test_AdminIsDeployer() public {
+  function test_Admin_is_deployer() public {
     assertEq(makerContract.admin(), deployer, "Incorrect admin");
   }
 
-  function testCannot_ActivateIfNotAdmin() public {
+  function testCannot_activate_if_not_admin() public {
     vm.expectRevert("AccessControlled/Invalid");
     makerContract.activate(dynamic([IERC20(weth), usdc]));
   }
 
-  function test_ActivatePassesCheckListForDeployer() public {
+  function test_activate_passes_checkList_for_deployer() public {
     IERC20[] memory tokens = dynamic([IERC20(weth), usdc]);
     vm.startPrank(deployer);
     makerContract.activate(tokens);
@@ -66,12 +66,12 @@ contract MangroveOfferTest is MangroveTest {
     vm.stopPrank();
   }
 
-  function test_offerGasreqWithNoRouterIsConstant() public {
+  function test_offerGasreq_with_no_router_is_constant() public {
     assertEq(makerContract.OFFER_GASREQ(), makerContract.offerGasreq(), "Incorrect gasreq for offer");
   }
 
   // makerExecute and makerPosthook guards
-  function testCannot_callMakerExecuteIfNotMangrove() public {
+  function testCannot_call_makerExecute_if_not_Mangrove() public {
     MgvLib.SingleOrder memory order;
     order.outbound_tkn = address(weth);
     order.inbound_tkn = address(usdc);
@@ -82,7 +82,7 @@ contract MangroveOfferTest is MangroveTest {
     assertEq(ret, "mgvOffer/proceed", "Incorrect returned data");
   }
 
-  function testCannot_callMakerPosthookIfNotMangrove() public {
+  function testCannot_call_makerPosthook_if_not_Mangrove() public {
     MgvLib.SingleOrder memory order;
     MgvLib.OrderResult memory result;
     vm.expectRevert("AccessControlled/Invalid");
@@ -91,7 +91,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.makerPosthook(order, result);
   }
 
-  function test_FailedTradeIsLogged() public {
+  function test_failed_trade_is_logged() public {
     MgvLib.SingleOrder memory order;
     MgvLib.OrderResult memory result;
     result.mgvData = "anythingButSuccess";
@@ -105,7 +105,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.makerPosthook(order, result);
   }
 
-  function test_lastLookReturnedValueIsPassed() public {
+  function test_lastLook_returned_value_is_passed() public {
     MgvLib.SingleOrder memory order;
     order.outbound_tkn = $(weth);
     order.inbound_tkn = $(usdc);
@@ -114,7 +114,7 @@ contract MangroveOfferTest is MangroveTest {
     assertEq(data, "mgvOffer/proceed");
   }
 
-  function test_AdminCanWithdrawFunds() public {
+  function test_admin_can_withdrawFromMangrove() public {
     assertEq(mgv.balanceOf(address(makerContract)), 0, "incorrect balance");
     mgv.fund{value: 1 ether}(address(makerContract));
     vm.expectRevert("AccessControlled/Invalid");
@@ -126,7 +126,7 @@ contract MangroveOfferTest is MangroveTest {
     assertEq(deployer.balance, balMaker + 0.5 ether, "incorrect balance");
   }
 
-  function test_AdminCanWithdrawAllFunds() public {
+  function test_admin_can_WithdrawAllFromMangrove() public {
     mgv.fund{value: 1 ether}(address(makerContract));
     vm.prank(deployer);
     makerContract.withdrawFromMangrove(type(uint).max, deployer);
@@ -134,19 +134,7 @@ contract MangroveOfferTest is MangroveTest {
     assertEq(deployer.balance, 1 ether, "incorrect balance");
   }
 
-  function test_AdminCanSetRouter() public {
-    vm.expectRevert("AccessControlled/Invalid");
-    makerContract.setRouter(SimpleRouter(freshAddress()));
-
-    vm.startPrank(deployer);
-    SimpleRouter router = new SimpleRouter();
-    router.setAdmin($(makerContract));
-    makerContract.setRouter(router);
-    assertEq($(makerContract.router()), $(router), "Router was not set");
-    vm.stopPrank();
-  }
-
-  function test_CheckListTakesNewRouterIntoAccount() public {
+  function test_checkList_takes_new_router_into_account() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
     makerContract.setRouter(router);
@@ -167,7 +155,7 @@ contract MangroveOfferTest is MangroveTest {
     vm.stopPrank();
   }
 
-  function test_GasReqTakesNewRouterIntoAccount() public {
+  function test_offerGasreq_takes_new_router_into_account() public {
     uint gasreq = makerContract.offerGasreq();
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
@@ -177,7 +165,7 @@ contract MangroveOfferTest is MangroveTest {
     vm.stopPrank();
   }
 
-  function test_getFailReverts() public {
+  function test_get_fail_reverts() public {
     MgvLib.SingleOrder memory order;
     deal($(usdc), makerContract.reserve($(this)), 0);
     order.outbound_tkn = address(usdc);
@@ -188,7 +176,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.makerExecute(order);
   }
 
-  function test_withdrawFromMangroveRevertsIfCallerCannotReceive() public {
+  function test_withdrawFromMangrove_reverts_with_good_reason_if_caller_cannot_receive() public {
     // getting a contract that reverts on `receive()` call
     TestTaker maker_ = new TestTaker(mgv, weth, usdc);
     maker_.refuseNative();

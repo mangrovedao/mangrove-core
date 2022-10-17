@@ -37,7 +37,7 @@ contract OfferForwarderTest is OfferLogicTest {
     vm.stopPrank();
   }
 
-  function test_derivedGaspriceIsAccurateEnough(uint fund) public {
+  function test_derived_gasprice_is_accurate_enough(uint fund) public {
     vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0));
     vm.assume(fund < 5 ether); // too high provision would yield a gasprice overflow
     uint contractOldBalance = mgv.balanceOf(address(makerContract));
@@ -61,7 +61,7 @@ contract OfferForwarderTest is OfferLogicTest {
     assertTrue((locked * 10) / fund >= 9, "rounding exceeds admissible error");
   }
 
-  function test_updateOfferWithFundsUpdatesGasprice() public {
+  function test_updateOffer_with_funds_updates_gasprice() public {
     vm.prank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
@@ -90,7 +90,7 @@ contract OfferForwarderTest is OfferLogicTest {
     );
   }
 
-  function test_failedOfferCreditsOwner(uint fund) public {
+  function test_failed_offer_credits_owner(uint fund) public {
     vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0));
     vm.assume(fund < 5 ether);
     vm.prank(maker);
@@ -162,7 +162,7 @@ contract OfferForwarderTest is OfferLogicTest {
     assertEq(next_id, offerId, "Unexpected offer id");
   }
 
-  function test_provisionTooHighReverts() public {
+  function test_provision_too_high_reverts() public {
     vm.expectRevert("Forwarder/provisionTooHigh");
 
     vm.startPrank(maker);
@@ -374,5 +374,10 @@ contract OfferForwarderTest is OfferLogicTest {
     assertEq(takerGave, makerContract.tokenBalance(usdc, maker), "Incorrect reserve usdc balance");
     assertEq(makerContract.tokenBalance(weth, maker), 0, "Incorrect reserve weth balance");
     vm.stopPrank();
+  }
+
+  function test_owner_is_unchanged_when_mangrove_does_updateOffer() public {
+    uint offerId = test_mangrove_can_updateOffer();
+    assertEq(forwarder.ownerOf(weth, usdc, offerId), maker, "Invalid offer owner");
   }
 }

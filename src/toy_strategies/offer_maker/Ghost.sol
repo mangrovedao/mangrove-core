@@ -89,7 +89,7 @@ contract Ghost is Direct {
         pivotId: pivot1,
         fund: msg.value,
         noRevert: false,
-        caller: msg.sender
+        owner: msg.sender
       })
     );
     // no need to fund this second call for provision
@@ -105,7 +105,7 @@ contract Ghost is Direct {
         pivotId: pivot2,
         fund: 0,
         noRevert: false,
-        caller: msg.sender
+        owner: msg.sender
       })
     );
 

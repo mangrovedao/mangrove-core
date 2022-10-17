@@ -36,6 +36,11 @@ abstract contract Direct is MangroveOffer {
     return msg.sender == admin();
   }
 
+  function __checkList__(IERC20 token) internal view virtual override {
+    require(msg.sender == admin(), "Direct/AdminOnlyContract");
+    super.__checkList__(token);
+  }
+
   function withdrawToken(IERC20 token, address receiver, uint amount)
     external
     override

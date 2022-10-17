@@ -6,10 +6,15 @@ import "./ERC20BL.sol";
 contract TestToken is ERC20BL {
   mapping(address => bool) admins;
   uint public __decimals; // full uint to help forge-std's stdstore
+  bool returnFalse;
 
   constructor(address admin, string memory name, string memory symbol, uint8 _decimals) ERC20BL(name, symbol) {
     admins[admin] = true;
     __decimals = _decimals;
+  }
+
+  function failSoftly(bool fail) public {
+    returnFalse = fail;
   }
 
   function $(uint amount) public view returns (uint) {
@@ -52,5 +57,32 @@ contract TestToken is ERC20BL {
   function whitelists(address account) external {
     requireAdmin();
     _whitelists(account);
+  }
+
+  function transfer(address to, uint amount) public override returns (bool) {
+    if (returnFalse) {
+      returnFalse = true;
+      return false;
+    } else {
+      return super.transfer(to, amount);
+    }
+  }
+
+  function transferFrom(address from, address to, uint amount) public override returns (bool) {
+    if (returnFalse) {
+      returnFalse = true;
+      return false;
+    } else {
+      return super.transferFrom(from, to, amount);
+    }
+  }
+
+  function approve(address spender, uint amount) public override returns (bool) {
+    if (returnFalse) {
+      returnFalse = true;
+      return false;
+    } else {
+      return super.approve(spender, amount);
+    }
   }
 }

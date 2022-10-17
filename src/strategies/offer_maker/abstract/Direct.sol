@@ -71,16 +71,17 @@ abstract contract Direct is MangroveOffer {
 
   function flush(IERC20[] memory tokens) internal {
     AbstractRouter router_ = MOS.getStorage().router;
+    address reserve_ = reserve(admin());
     if (router_ == NO_ROUTER) {
       for (uint i = 0; i < tokens.length; i++) {
         require(
-          TransferLib.transferToken(tokens[i], reserve(admin()), tokens[i].balanceOf(address(this))),
+          TransferLib.transferToken(tokens[i], reserve_, tokens[i].balanceOf(address(this))),
           "Direct/flush/transferFail"
         );
       }
       return;
     } else {
-      router_.flush(tokens, reserve(admin()));
+      router_.flush(tokens, reserve_);
     }
   }
 

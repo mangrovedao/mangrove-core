@@ -15,6 +15,7 @@ pragma abicoder v2;
 
 import "src/strategies/offer_maker/abstract/Direct.sol";
 import "src/strategies/routers/SimpleRouter.sol";
+import {t_of_struct as packOffer} from "src/preprocessed/MgvOffer.post.sol";
 import {MgvLib, MgvStructs} from "src/MgvLib.sol";
 
 contract Ghost is Direct {
@@ -74,42 +75,57 @@ contract Ghost is Direct {
     // MGV.retractOffer(..., deprovision:bool)
     // deprovisioning an offer (via MGV.retractOffer) credits maker balance on Mangrove (no native token transfer)
     // if maker wishes to retrieve native tokens it should call MGV.withdraw (and have a positive balance)
-    require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE1), offerId1)), "Ghost/offer1AlreadyActive");
-    require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerId2)), "Ghost/offer2AlreadyActive");
+
+    (MgvStructs.OfferUnpacked memory offer1, MgvStructs.OfferDetailUnpacked memory offerDetails1) =
+      MGV.offerInfo(address(BASE), address(STABLE1), offerId1);
+    (MgvStructs.OfferUnpacked memory offer2, MgvStructs.OfferDetailUnpacked memory offerDetails2) =
+      MGV.offerInfo(address(BASE), address(STABLE2), offerId2);
+
+    require(!MGV.isLive(packOffer(offer1)), "Ghost/offer1AlreadyActive");
+    require(!MGV.isLive(packOffer(offer2)), "Ghost/offer2AlreadyActive");
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
-    offerId1 = _newOffer(
-      OfferArgs({
-        outbound_tkn: BASE,
-        inbound_tkn: STABLE1,
-        wants: wants1,
-        gives: gives,
-        gasreq: offerGasreq(),
-        gasprice: 0,
-        pivotId: pivot1,
-        fund: msg.value,
-        noRevert: false,
-        owner: msg.sender
-      })
-    );
-    // no need to fund this second call for provision
-    // since the above call should be enough
-    offerId2 = _newOffer(
-      OfferArgs({
-        outbound_tkn: BASE,
-        inbound_tkn: STABLE2,
-        wants: wants2,
-        gives: gives,
-        gasreq: offerGasreq(),
-        gasprice: 0,
-        pivotId: pivot2,
-        fund: 0,
-        noRevert: false,
-        owner: msg.sender
-      })
-    );
+    OfferArgs memory offerArgs1 = OfferArgs({
+      outbound_tkn: BASE,
+      inbound_tkn: STABLE1,
+      wants: wants1,
+      gives: gives,
+      gasreq: offerGasreq(),
+      gasprice: 0,
+      pivotId: pivot1,
+      fund: msg.value,
+      noRevert: false,
+      owner: msg.sender
+    });
+    offerId1 = postOrUpdateOffer(offerArgs1, offerDetails1, offerId1);
 
+    OfferArgs memory offerArgs2 = OfferArgs({
+      outbound_tkn: BASE,
+      inbound_tkn: STABLE2,
+      wants: wants2,
+      gives: gives,
+      gasreq: offerGasreq(),
+      gasprice: 0,
+      pivotId: pivot2,
+      fund: 0, // no need to fund this second call for provision since the above call should be enough
+      noRevert: false,
+      owner: msg.sender
+    });
+    offerId2 = postOrUpdateOffer(offerArgs2, offerDetails2, offerId2);
     return (offerId1, offerId2);
+  }
+
+  function postOrUpdateOffer(
+    OfferArgs memory offerArgs,
+    MgvStructs.OfferDetailUnpacked memory offerDetails,
+    uint offerId
+  ) internal returns (uint) {
+    if (offerDetails.maker == address(0)) {
+      return _newOffer(offerArgs);
+    } else {
+      _updateOffer(offerArgs, offerId);
+      return offerId;
+    }
   }
 
   ///FIXME a possibility is to update the alt offer during makerExecute

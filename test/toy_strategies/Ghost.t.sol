@@ -80,6 +80,12 @@ contract GhostTest is MangroveTest {
     execTraderStratWithOfferAlreadyLive();
   }
 
+  function test_postOffersAgainAfterRetracted() public {
+    deployStrat();
+
+    postNewOfferWhenOffersRetracted();
+  }
+
   function deployStrat() public {
     strat = new Ghost({
       mgv: IMangrove($(mgv)),
@@ -111,7 +117,7 @@ contract GhostTest is MangroveTest {
     public
     returns (uint offerId1, uint offerId2)
   {
-    (offerId1, offerId2) = strat.newGhostOffers{value: 2 ether}({
+    (offerId1, offerId2) = strat.newGhostOffers{value: 1 ether}({
       gives: makerGivesAmount, // WETH
       wants1: makerWantsAmountUSDC, // USDC
       wants2: makerWantsAmountDAI, // DAI
@@ -245,6 +251,37 @@ contract GhostTest is MangroveTest {
     assertEq(takerGot, 0, "taker got wrong amount");
     assertEq(takerGave, 0, "taker gave wrong amount");
     assertTrue(bounty > 0, "taker did not get any bounty");
+
+    // assert that neither offer posted by Ghost are live (= have been retracted)
+    MgvStructs.OfferPacked offer_on_dai = mgv.offers($(weth), $(dai), offerId1);
+    MgvStructs.OfferPacked offer_on_usdc = mgv.offers($(weth), $(usdc), offerId2);
+    assertTrue(!mgv.isLive(offer_on_dai), "weth->dai offer should have been retracted");
+    assertTrue(!mgv.isLive(offer_on_usdc), "weth->usdc offer should have been retracted");
+  }
+
+  function postNewOfferWhenOffersRetracted() public {
+    uint makerGivesAmount = 0.15 ether;
+    uint makerWantsAmountDAI = cash(dai, 300);
+    uint makerWantsAmountUSDC = cash(usdc, 300);
+
+    weth.approve($(strat.router()), type(uint).max);
+
+    deal($(weth), $(this), cash(weth, 10));
+
+    (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
+
+    strat.retractOffers(false);
+
+    (uint updatedOfferId1, uint updatedOfferId2) =
+      postAndFundOffers(makerGivesAmount, makerWantsAmountDAI + 1, makerWantsAmountUSDC);
+
+    (uint takerGot, uint takerGave,) = takeOffer(makerGivesAmount, makerWantsAmountDAI + 1, dai, offerId2);
+
+    assertEq(offerId1, updatedOfferId1, "post again should keep same ids");
+    assertEq(offerId2, updatedOfferId2, "post again should keep same ids");
+
+    assertEq(takerGot, makerGivesAmount, "taker should get what the maker gave");
+    assertEq(takerGave, makerWantsAmountDAI + 1, "taker should give what the maker wanted");
 
     // assert that neither offer posted by Ghost are live (= have been retracted)
     MgvStructs.OfferPacked offer_on_dai = mgv.offers($(weth), $(dai), offerId1);

@@ -21,6 +21,8 @@ contract OfferForwarderTest is OfferLogicTest {
     IMangrove mangrove, IERC20 indexed outbound_tkn, IERC20 indexed inbound_tkn, uint indexed offerId, address owner
   );
 
+  event ReserveApproval(address indexed reserve_, address indexed maker, bool isApproved);
+
   function setupMakerContract() internal virtual override {
     vm.prank(deployer);
     forwarder = new OfferForwarder({
@@ -35,7 +37,7 @@ contract OfferForwarderTest is OfferLogicTest {
     vm.stopPrank();
   }
 
-  function test_derivedGaspriceIsAccurateEnough(uint fund) public {
+  function test_derived_gasprice_is_accurate_enough(uint fund) public {
     vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0));
     vm.assume(fund < 5 ether); // too high provision would yield a gasprice overflow
     uint contractOldBalance = mgv.balanceOf(address(makerContract));
@@ -59,7 +61,7 @@ contract OfferForwarderTest is OfferLogicTest {
     assertTrue((locked * 10) / fund >= 9, "rounding exceeds admissible error");
   }
 
-  function test_updateOfferWithFundsUpdatesGasprice() public {
+  function test_updateOffer_with_funds_updates_gasprice() public {
     vm.prank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
@@ -88,7 +90,7 @@ contract OfferForwarderTest is OfferLogicTest {
     );
   }
 
-  function test_failedOfferCreditsOwner(uint fund) public {
+  function test_failed_offer_credits_owner(uint fund) public {
     vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0));
     vm.assume(fund < 5 ether);
     vm.prank(maker);
@@ -141,7 +143,7 @@ contract OfferForwarderTest is OfferLogicTest {
     assertEq(forwarder.ownerOf(weth, usdc, offerId), address(maker), "Invalid ownership relation");
   }
 
-  function test_logging() public {
+  function test_NewOwnedOffer_logging() public {
     (, MgvStructs.LocalPacked local) = mgv.config($(weth), $(usdc));
     uint next_id = local.last() + 1;
     vm.expectEmit(true, true, true, false, address(forwarder));
@@ -160,7 +162,7 @@ contract OfferForwarderTest is OfferLogicTest {
     assertEq(next_id, offerId, "Unexpected offer id");
   }
 
-  function test_provisionTooHighReverts() public {
+  function test_provision_too_high_reverts() public {
     vm.expectRevert("Forwarder/provisionTooHigh");
 
     vm.startPrank(maker);
@@ -176,7 +178,7 @@ contract OfferForwarderTest is OfferLogicTest {
     vm.stopPrank();
   }
 
-  function test_updateOfferWithNoFundsPreservesGasprice() public {
+  function test_updateOffer_with_no_funds_preserves_gasprice() public {
     vm.startPrank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
@@ -207,7 +209,7 @@ contract OfferForwarderTest is OfferLogicTest {
     assertEq(old_gasprice, detail.gasprice(), "Gas price was changed");
   }
 
-  function test_updateOfferWithFundsIncreasesGasprice() public {
+  function test_updateOffer_with_funds_increases_gasprice() public {
     vm.startPrank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
@@ -221,7 +223,6 @@ contract OfferForwarderTest is OfferLogicTest {
     vm.stopPrank();
     MgvStructs.OfferDetailPacked detail = mgv.offerDetails($(weth), $(usdc), offerId);
     uint old_gasprice = detail.gasprice();
-
     vm.startPrank(maker);
     makerContract.updateOffer{value: 0.1 ether}({
       outbound_tkn: weth,
@@ -236,5 +237,147 @@ contract OfferForwarderTest is OfferLogicTest {
     vm.stopPrank();
     detail = mgv.offerDetails($(weth), $(usdc), offerId);
     assertTrue(old_gasprice < detail.gasprice(), "Gas price was not increased");
+  }
+
+  function test_different_maker_can_post_offers() public {
+    vm.startPrank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    vm.stopPrank();
+    address new_maker = freshAddress("New maker");
+    vm.deal(new_maker, 1 ether);
+    vm.prank(new_maker);
+    uint offerId_ = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    assertEq(forwarder.ownerOf(weth, usdc, offerId_), new_maker, "Incorrect owner");
+    assertEq(forwarder.ownerOf(weth, usdc, offerId), maker, "Incorrect owner");
+  }
+
+  function test_default_reserve_for_maker_is_maker() public {
+    assertEq(makerContract.reserve(maker), maker, "Incorrect default reserve");
+  }
+
+  function test_unnaproved_maker_cannot_set_non_0x_reserve() public {
+    address new_reserve = freshAddress();
+    vm.expectRevert("mgvOffer/makerNotApproved");
+    vm.prank(maker);
+    makerContract.setReserve(maker, new_reserve);
+  }
+
+  function test_maker_can_set_0x_reserve() public {
+    vm.prank(maker);
+    makerContract.setReserve(maker, address(0));
+    assertEq(makerContract.reserve(maker), maker, "Reserve was not set");
+  }
+
+  function test_reserve_can_approveMaker() public {
+    address new_reserve = freshAddress();
+    vm.prank(new_reserve);
+    forwarder.approvePooledMaker(maker);
+    assertTrue(forwarder.reserveApprovals(new_reserve, maker), "approval failed");
+  }
+
+  function test_approve_maker_logs_ReserveApproval() public {
+    address new_reserve = freshAddress();
+    vm.expectEmit(true, true, true, false, address(forwarder));
+    emit ReserveApproval(new_reserve, maker, true);
+    vm.prank(new_reserve);
+    forwarder.approvePooledMaker(maker);
+  }
+
+  function test_reserve_can_revoke_maker() public {
+    address new_reserve = freshAddress();
+    vm.startPrank(new_reserve);
+    forwarder.approvePooledMaker(maker);
+    forwarder.revokePooledMaker(maker);
+    vm.stopPrank();
+    assertTrue(!forwarder.reserveApprovals(new_reserve, maker), "revoke failed");
+  }
+
+  function test_revoke_maker_logs_ReserveApproval() public {
+    address new_reserve = freshAddress();
+    vm.expectEmit(true, true, true, false, address(forwarder));
+    emit ReserveApproval(new_reserve, maker, false);
+    vm.prank(new_reserve);
+    forwarder.revokePooledMaker(maker);
+  }
+
+  function test_approved_maker_can_set_reserve() public {
+    address new_reserve = freshAddress();
+    vm.prank(new_reserve);
+    forwarder.approvePooledMaker(maker);
+    vm.prank(maker);
+    makerContract.setReserve(maker, new_reserve);
+    assertEq(makerContract.reserve(maker), new_reserve, "Reserve was not set");
+  }
+
+  function test_put_fail_reverts_with_expected_reason() public {
+    MgvLib.SingleOrder memory order;
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+
+    vm.startPrank(maker);
+    usdc.approve($(makerContract.router()), 0);
+    vm.stopPrank();
+
+    order.inbound_tkn = address(usdc);
+    order.outbound_tkn = address(weth);
+    order.gives = 10 ** 6;
+    order.offerId = offerId;
+    vm.expectRevert("mgvOffer/abort/putFailed");
+    vm.prank($(mgv));
+    makerContract.makerExecute(order);
+  }
+
+  function test_trade_succeeds_with_new_reserve() public {
+    address new_reserve = freshAddress("new_reserve");
+    vm.prank(new_reserve);
+    forwarder.approvePooledMaker(maker);
+
+    vm.prank(maker);
+    makerContract.setReserve(maker, new_reserve);
+
+    deal($(weth), new_reserve, 0.5 ether);
+    deal($(weth), address(makerContract), 0);
+    deal($(usdc), address(makerContract), 0);
+
+    address toApprove = address(makerContract.router());
+    toApprove = toApprove == address(0) ? address(makerContract) : toApprove;
+    vm.startPrank(new_reserve);
+    usdc.approve(toApprove, type(uint).max); // to push
+    weth.approve(toApprove, type(uint).max); // to pull
+    vm.stopPrank();
+    (, uint takerGave,,) = performTrade(true, 70_000);
+    vm.startPrank(maker);
+    assertEq(takerGave, makerContract.tokenBalance(usdc, maker), "Incorrect reserve usdc balance");
+    assertEq(makerContract.tokenBalance(weth, maker), 0, "Incorrect reserve weth balance");
+    vm.stopPrank();
+  }
+
+  function test_owner_is_unchanged_when_mangrove_does_updateOffer() public {
+    uint offerId = test_mangrove_can_updateOffer();
+    assertEq(forwarder.ownerOf(weth, usdc, offerId), maker, "Invalid offer owner");
   }
 }

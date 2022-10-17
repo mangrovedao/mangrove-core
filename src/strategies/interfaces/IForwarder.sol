@@ -29,6 +29,18 @@ interface IForwarder {
     IMangrove mangrove, IERC20 indexed outbound_tkn, IERC20 indexed inbound_tkn, uint indexed offerId, address owner
   );
 
+  ///@notice Logging reserve approval
+  event ReserveApproval(address indexed reserve_, address indexed maker, bool isApproved);
+
+  ///@notice view for reserve approvals
+  function reserveApprovals(address reserve_, address maker) external view returns (bool);
+
+  ///@notice reserve (who must be `msg.sender`) approves `maker` for pooling.
+  function approvePooledMaker(address maker) external;
+
+  ///@notice reserve (who must be `msg.sender`) revokes `maker` from its approved poolers.
+  function revokePooledMaker(address maker) external;
+
   /// @notice view on offer owners.
   /// @param outbound_tkn the outbound token of the offer list.
   /// @param inbound_tkn the inbound token of the offer list.

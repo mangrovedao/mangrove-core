@@ -19,6 +19,9 @@ import {AccessControlledStorage as ACS} from "./AccessControlledStorage.sol";
 /// @notice The contract stores an admin address which is checked against `msg.sender` in the `onlyAdmin` modifier.
 /// @notice Additionally, a specific `msg.sender` can be verified with the `onlyCaller` modifier.
 contract AccessControlled {
+  /// @notice logs new `admin` of `this`
+  event SetAdmin(address admin);
+
   /**
    * @notice `AccessControlled`'s constructor
    * @param admin_ The address of the admin that can access privileged functions and also allowed to change the admin. Cannot be `address(0)`.
@@ -59,5 +62,6 @@ contract AccessControlled {
   function setAdmin(address admin_) public onlyAdmin {
     require(admin_ != address(0), "AccessControlled/0xAdmin");
     ACS.getStorage().admin = admin_;
+    emit SetAdmin(admin_);
   }
 }

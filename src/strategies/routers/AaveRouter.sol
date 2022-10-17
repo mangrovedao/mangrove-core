@@ -65,10 +65,15 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
   }
 
   // Liquidity : MAKER --> `onBehalf`
-  function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual override {
-    require(TransferLib.transferTokenFrom(token, maker, address(this), amount), "AaveRouter/push/transferFail");
+  function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual override returns (uint) {
+    bool success = TransferLib.transferTokenFrom(token, maker, address(this), amount);
     // repay and supply on behalf of `reserve`
-    _repayThenDeposit(token, reserve, amount);
+    if (success) {
+      _repayThenDeposit(token, reserve, amount);
+      return amount;
+    } else {
+      return 0;
+    }
   }
 
   // returns 0 if redeem failed (amount > balance).

@@ -43,12 +43,9 @@ contract Ghost is Direct {
     AbstractRouter router_ = new SimpleRouter();
     setRouter(router_);
     // adding `this` to the allowed makers of `router_` to pull/push liquidity
+    // Note: `reserve(admin)` needs to approve `this.router()` for base token transfer
     router_.bind(address(this));
-    if (admin == msg.sender) {
-      // Note: `reserve()` needs to approve `this.router()` for base token transfer
-      router_.setAdmin(admin);
-      setReserve(admin);
-    }
+    router_.setAdmin(admin);
   }
 
   /**
@@ -59,7 +56,7 @@ contract Ghost is Direct {
    * @param pivot2 pivot for STABLE2
    * @return (offerid for STABLE1, offerid for STABLE2)
    * @dev these offer's provision must be in msg.value
-   * @dev `reserve()` must have approved base for `this` contract transfer prior to calling this function
+   * @dev `reserve(admin())` must have approved base for `this` contract transfer prior to calling this function
    */
   function newGhostOffers(
     // this function posts two asks
@@ -81,26 +78,36 @@ contract Ghost is Direct {
     require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerId2)), "Ghost/offer2AlreadyActive");
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
-    offerId1 = MGV.newOffer{value: msg.value}({
-      outbound_tkn: address(BASE),
-      inbound_tkn: address(STABLE1),
-      wants: wants1,
-      gives: gives,
-      gasreq: offerGasreq(),
-      gasprice: 0,
-      pivotId: pivot1
-    });
+    offerId1 = _newOffer(
+      OfferArgs({
+        outbound_tkn: BASE,
+        inbound_tkn: STABLE1,
+        wants: wants1,
+        gives: gives,
+        gasreq: offerGasreq(),
+        gasprice: 0,
+        pivotId: pivot1,
+        fund: msg.value,
+        noRevert: false,
+        owner: msg.sender
+      })
+    );
     // no need to fund this second call for provision
     // since the above call should be enough
-    offerId2 = MGV.newOffer({
-      outbound_tkn: address(BASE),
-      inbound_tkn: address(STABLE2),
-      wants: wants2,
-      gives: gives,
-      gasreq: offerGasreq(),
-      gasprice: 0,
-      pivotId: pivot2
-    });
+    offerId2 = _newOffer(
+      OfferArgs({
+        outbound_tkn: BASE,
+        inbound_tkn: STABLE2,
+        wants: wants2,
+        gives: gives,
+        gasreq: offerGasreq(),
+        gasprice: 0,
+        pivotId: pivot2,
+        fund: 0,
+        noRevert: false,
+        owner: msg.sender
+      })
+    );
 
     return (offerId1, offerId2);
   }

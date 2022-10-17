@@ -4,12 +4,12 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import "src/strategies/offer_maker/OfferMaker.sol";
 import "src/strategies/routers/SimpleRouter.sol";
+import {t_of_struct as packOffer} from "src/preprocessed/MgvOffer.post.sol";
 
 contract MangroveOfferTest is MangroveTest {
   TestToken weth;
   TestToken usdc;
-  address payable maker;
-  address payable taker;
+  address payable deployer;
   OfferMaker makerContract;
 
   // tracking IOfferLogic logs
@@ -21,6 +21,10 @@ contract MangroveOfferTest is MangroveTest {
     bytes32 makerData,
     bytes32 mgvData
   );
+
+  event SetAdmin(address);
+  event SetRouter(address);
+  event SetReserve(address, address);
 
   function setUp() public override {
     options.base.symbol = "WETH";
@@ -36,39 +40,38 @@ contract MangroveOfferTest is MangroveTest {
     weth = base;
     usdc = quote;
 
-    maker = freshAddress("maker");
-    taker = freshAddress("taker");
-    deal($(weth), taker, cash(weth, 50));
-    deal($(usdc), taker, cash(usdc, 100_000));
-
+    deployer = freshAddress("deployer");
+    vm.prank(deployer);
     makerContract = new OfferMaker({
       mgv: IMangrove($(mgv)),
-      router_: SimpleRouter(address(0)), // no router
-      deployer: maker
+      router_: AbstractRouter(address(0)), // no router
+      deployer: deployer
     });
   }
 
-  function test_AdminIsDeployer() public {
-    assertEq(makerContract.admin(), maker, "Incorrect admin");
+  function test_Admin_is_deployer() public {
+    assertEq(makerContract.admin(), deployer, "Incorrect admin");
   }
 
-  function testCannot_ActivateIfNotAdmin() public {
+  function testCannot_activate_if_not_admin() public {
     vm.expectRevert("AccessControlled/Invalid");
     makerContract.activate(dynamic([IERC20(weth), usdc]));
   }
 
-  function test_ActivatePassesCheckList() public {
+  function test_activate_passes_checkList_for_deployer() public {
     IERC20[] memory tokens = dynamic([IERC20(weth), usdc]);
-    vm.prank(maker);
+    vm.startPrank(deployer);
     makerContract.activate(tokens);
     makerContract.checkList(tokens);
+    vm.stopPrank();
   }
 
-  function test_HasNoRouter() public {
-    assertTrue(makerContract.router() == makerContract.NO_ROUTER());
+  function test_offerGasreq_with_no_router_is_constant() public {
+    assertEq(makerContract.OFFER_GASREQ(), makerContract.offerGasreq(), "Incorrect gasreq for offer");
   }
 
-  function testCannot_callMakerExecuteIfNotMangrove() public {
+  // makerExecute and makerPosthook guards
+  function testCannot_call_makerExecute_if_not_Mangrove() public {
     MgvLib.SingleOrder memory order;
     order.outbound_tkn = address(weth);
     order.inbound_tkn = address(usdc);
@@ -79,7 +82,7 @@ contract MangroveOfferTest is MangroveTest {
     assertEq(ret, "mgvOffer/proceed", "Incorrect returned data");
   }
 
-  function testCannot_callMakerPosthookIfNotMangrove() public {
+  function testCannot_call_makerPosthook_if_not_Mangrove() public {
     MgvLib.SingleOrder memory order;
     MgvLib.OrderResult memory result;
     vm.expectRevert("AccessControlled/Invalid");
@@ -88,7 +91,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.makerPosthook(order, result);
   }
 
-  function test_FailedTradeIsLogged() public {
+  function test_failed_trade_is_logged() public {
     MgvLib.SingleOrder memory order;
     MgvLib.OrderResult memory result;
     result.mgvData = "anythingButSuccess";
@@ -102,7 +105,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.makerPosthook(order, result);
   }
 
-  function test_lastLookReturnedValueIsPassed() public {
+  function test_lastLook_returned_value_is_passed() public {
     MgvLib.SingleOrder memory order;
     order.outbound_tkn = $(weth);
     order.inbound_tkn = $(usdc);
@@ -111,56 +114,50 @@ contract MangroveOfferTest is MangroveTest {
     assertEq(data, "mgvOffer/proceed");
   }
 
-  function test_AdminCanWithdrawFunds() public {
+  function test_admin_can_withdrawFromMangrove() public {
     assertEq(mgv.balanceOf(address(makerContract)), 0, "incorrect balance");
     mgv.fund{value: 1 ether}(address(makerContract));
     vm.expectRevert("AccessControlled/Invalid");
-    makerContract.withdrawFromMangrove(0.5 ether, maker);
-    uint balMaker = maker.balance;
-    vm.prank(maker);
-    makerContract.withdrawFromMangrove(0.5 ether, maker);
+    makerContract.withdrawFromMangrove(0.5 ether, deployer);
+    uint balMaker = deployer.balance;
+    vm.prank(deployer);
+    makerContract.withdrawFromMangrove(0.5 ether, deployer);
     assertEq(mgv.balanceOf(address(makerContract)), 0.5 ether, "incorrect balance");
-    assertEq(maker.balance, balMaker + 0.5 ether, "incorrect balance");
+    assertEq(deployer.balance, balMaker + 0.5 ether, "incorrect balance");
   }
 
-  function test_AdminCanWithdrawAllFunds() public {
+  function test_admin_can_WithdrawAllFromMangrove() public {
     mgv.fund{value: 1 ether}(address(makerContract));
-    vm.prank(maker);
-    makerContract.withdrawFromMangrove(type(uint).max, maker);
+    vm.prank(deployer);
+    makerContract.withdrawFromMangrove(type(uint).max, deployer);
     assertEq(mgv.balanceOf(address(makerContract)), 0 ether, "incorrect balance");
-    assertEq(maker.balance, 1 ether, "incorrect balance");
+    assertEq(deployer.balance, 1 ether, "incorrect balance");
   }
 
-  function test_AdminCanSetRouter() public {
-    vm.expectRevert("AccessControlled/Invalid");
-    makerContract.setRouter(SimpleRouter(freshAddress()));
-
-    vm.startPrank(maker);
+  function test_checkList_takes_new_router_into_account() public {
+    vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
-    router.setAdmin(address(makerContract));
     makerContract.setRouter(router);
-    assertEq(address(makerContract.router()), address(router), "Router was not set");
-    vm.stopPrank();
-  }
-
-  function test_CheckListTakesNewRouterIntoAccount() public {
-    vm.startPrank(maker);
-    SimpleRouter router = new SimpleRouter();
-    router.setAdmin(address(makerContract));
-    makerContract.setRouter(router);
+    router.bind($(makerContract));
 
     IERC20[] memory tokens = dynamic([IERC20(weth), usdc]);
     vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
     makerContract.checkList(tokens);
 
     makerContract.activate(tokens);
+    vm.expectRevert("SimpleRouter/NotApprovedByReserve");
     makerContract.checkList(tokens);
+
+    weth.approve($(router), type(uint).max);
+    usdc.approve($(router), type(uint).max);
+    makerContract.checkList(tokens);
+
     vm.stopPrank();
   }
 
-  function test_GasReqTakesNewRouterIntoAccount() public {
+  function test_offerGasreq_takes_new_router_into_account() public {
     uint gasreq = makerContract.offerGasreq();
-    vm.startPrank(maker);
+    vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
     router.setAdmin(address(makerContract));
     makerContract.setRouter(router);
@@ -168,15 +165,47 @@ contract MangroveOfferTest is MangroveTest {
     vm.stopPrank();
   }
 
-  function test_getFailReverts() public {
+  function test_get_fail_reverts() public {
     MgvLib.SingleOrder memory order;
-    deal($(usdc), makerContract.reserve(), 0);
-    console.log("reserve:", usdc.balanceOf(makerContract.reserve()));
+    deal($(usdc), makerContract.reserve($(this)), 0);
     order.outbound_tkn = address(usdc);
     order.wants = 10 ** 6;
     console.log(order.wants);
     vm.expectRevert("mgvOffer/abort/getFailed");
     vm.prank($(mgv));
     makerContract.makerExecute(order);
+  }
+
+  function test_withdrawFromMangrove_reverts_with_good_reason_if_caller_cannot_receive() public {
+    // getting a contract that reverts on `receive()` call
+    TestTaker maker_ = new TestTaker(mgv, weth, usdc);
+    maker_.refuseNative();
+    vm.prank(deployer);
+    makerContract.setAdmin(address(maker_));
+    mgv.fund{value: 0.1 ether}(address(makerContract));
+    vm.expectRevert("mgvOffer/withdrawFromMgvFail");
+    vm.prank(address(maker_));
+    makerContract.withdrawFromMangrove(0.1 ether, $(this));
+  }
+
+  function test_setRouter_logs_SetRouter() public {
+    vm.expectEmit(true, true, true, false, address(makerContract));
+    emit SetRouter(address(0));
+    vm.startPrank(deployer);
+    makerContract.setRouter(AbstractRouter(address(0)));
+  }
+
+  function test_setReserve_logs_SetReserve() public {
+    vm.expectEmit(true, true, true, false, address(makerContract));
+    emit SetReserve(deployer, address(0));
+    vm.startPrank(deployer);
+    makerContract.setReserve(deployer, address(0));
+  }
+
+  function test_setAdmin_logs_SetAdmin() public {
+    vm.expectEmit(true, true, true, false, address(makerContract));
+    emit SetAdmin(deployer);
+    vm.startPrank(deployer);
+    makerContract.setAdmin(deployer);
   }
 }

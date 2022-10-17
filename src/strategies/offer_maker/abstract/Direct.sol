@@ -21,25 +21,19 @@ import {IMangrove} from "src/IMangrove.sol";
 import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
 import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
 
-/// MangroveOffer is the basic building block to implement a reactive offer that interfaces with the Mangrove
+/// `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
 abstract contract Direct is MangroveOffer {
-  constructor(IMangrove mgv, AbstractRouter router, uint gasreq) MangroveOffer(mgv, gasreq) {
-    // default reserve is router's address if router is defined
-    // if not then default reserve is `this` contract
-    if (router == NO_ROUTER) {
-      setReserve(address(this));
-    } else {
-      setReserve(address(router));
-      setRouter(router);
+  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq) MangroveOffer(mgv, gasreq) {
+    if (router_ != NO_ROUTER) {
+      setRouter(router_);
     }
   }
 
-  function reserve() public view override returns (address) {
-    return _reserve(address(this));
-  }
-
-  function setReserve(address reserve_) public override onlyAdmin {
-    _setReserve(address(this), reserve_);
+  /// @inheritdoc MangroveOffer
+  function __checkReserveApproval__(address reserve_, address maker) internal view override returns (bool) {
+    reserve_; //shh
+    maker; //shh
+    return msg.sender == admin();
   }
 
   function withdrawToken(IERC20 token, address receiver, uint amount)
@@ -54,20 +48,21 @@ abstract contract Direct is MangroveOffer {
     require(receiver != address(0), "mgvOffer/withdrawToken/0xReceiver");
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
-      return TransferLib.transferToken(IERC20(token), receiver, amount);
+      return TransferLib.transferTokenFrom(IERC20(token), reserve(msg.sender), receiver, amount);
     } else {
-      return router_.withdrawToken(token, reserve(), receiver, amount);
+      return router_.withdrawToken(token, reserve(msg.sender), receiver, amount);
     }
   }
 
   function pull(IERC20 outbound_tkn, uint amount, bool strict) internal returns (uint) {
     AbstractRouter router_ = router();
+    address adminReserve = reserve(admin());
     if (router_ == NO_ROUTER) {
-      bool success = TransferLib.transferTokenFrom(outbound_tkn, reserve(), address(this), amount);
+      bool success = TransferLib.transferTokenFrom(outbound_tkn, adminReserve, address(this), amount);
       return success ? amount : 0;
     } else {
       // letting specific router pull the funds from reserve
-      return router_.pull(outbound_tkn, reserve(), amount, strict);
+      return router_.pull(outbound_tkn, adminReserve, amount, strict);
     }
   }
 
@@ -77,27 +72,23 @@ abstract contract Direct is MangroveOffer {
       return; // nothing to do
     } else {
       // noop if reserve == address(this)
-      router_.push(token, reserve(), amount);
+      router_.push(token, reserve(admin()), amount);
     }
-  }
-
-  function tokenBalance(IERC20 token) external view override returns (uint) {
-    AbstractRouter router_ = router();
-    return router_ == NO_ROUTER ? token.balanceOf(reserve()) : router_.reserveBalance(token, reserve());
   }
 
   function flush(IERC20[] memory tokens) internal {
     AbstractRouter router_ = MOS.getStorage().router;
+    address reserve_ = reserve(admin());
     if (router_ == NO_ROUTER) {
       for (uint i = 0; i < tokens.length; i++) {
         require(
-          TransferLib.transferToken(tokens[i], reserve(), tokens[i].balanceOf(address(this))),
+          TransferLib.transferToken(tokens[i], reserve_, tokens[i].balanceOf(address(this))),
           "Direct/flush/transferFail"
         );
       }
       return;
     } else {
-      router_.flush(tokens, reserve());
+      router_.flush(tokens, reserve_);
     }
   }
 
@@ -143,7 +134,8 @@ abstract contract Direct is MangroveOffer {
         gasprice: gasprice,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false
+        noRevert: false,
+        owner: msg.sender
       }),
       offerId
     );
@@ -214,7 +206,7 @@ abstract contract Direct is MangroveOffer {
     return 0;
   }
 
-  // default `__get__` hook for `Direct` is to pull liquidity from `reserve()`
+  // default `__get__` hook for `Direct` is to pull liquidity from `reserve(admin())`
   // letting router handle the specifics if any
   function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint missing) {
     // pulling liquidity from reserve
@@ -237,17 +229,9 @@ abstract contract Direct is MangroveOffer {
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = IERC20(order.outbound_tkn); // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
     tokens[1] = IERC20(order.inbound_tkn); // flushing liquidity brought by taker
-    // sends all tokens to the reserve (noop if reserve() == address(this))
+    // sends all tokens to the reserve (noop if reserve(admin()) == address(this))
     flush(tokens);
     // reposting offer residual if any
     return super.__posthookSuccess__(order, makerData);
-  }
-
-  function __checkList__(IERC20 token) internal view virtual override {
-    AbstractRouter router_ = router();
-    if (router_ != NO_ROUTER) {
-      router().checkList(token, reserve());
-    }
-    super.__checkList__(token);
   }
 }

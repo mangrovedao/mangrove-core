@@ -29,6 +29,13 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
+  /// @inheritdoc MangroveOffer
+  function __checkReserveApproval__(address reserve_, address maker) internal view override returns (bool) {
+    reserve_; //shh
+    maker; //shh
+    return msg.sender == admin();
+  }
+
   function withdrawToken(IERC20 token, address receiver, uint amount)
     external
     override
@@ -128,7 +135,7 @@ abstract contract Direct is MangroveOffer {
         pivotId: pivotId,
         fund: msg.value,
         noRevert: false,
-        caller: msg.sender
+        owner: msg.sender
       }),
       offerId
     );

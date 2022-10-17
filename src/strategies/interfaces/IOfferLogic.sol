@@ -20,7 +20,6 @@ import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
 
 ///@title IOfferLogic interface for offer management
 ///@notice It is an IMaker for Mangrove.
-/// In the annotation we use the term "offer maker" to refer to either `msg.sender` in `Forwarder` strats or `this`, for `Direct` strats.
 
 interface IOfferLogic is IMaker {
   ///@notice Log incident (during post trade execution)
@@ -36,8 +35,8 @@ interface IOfferLogic is IMaker {
   ///@notice Logging change of router address
   event SetRouter(AbstractRouter);
 
-  ///@notice Logging change in default gasreq
-  event SetGasreq(uint);
+  ///@notice Logging change of router address
+  event SetReserve(address, address);
 
   ///@notice Actual gas requirement when posting offers via this strategy. Returned value may change if this contract's router is updated.
   ///@return total gas cost including router specific costs (if any).
@@ -65,10 +64,10 @@ interface IOfferLogic is IMaker {
   ///@param token the ERC20 token contract
   ///@param spender the approved spender
   ///@param amount the spending amount
-  ///@dev admin may use this function to revoke approvals of `this` that are set after a call to `activate`.
+  ///@dev admin may use this function to revoke specific approvals of `this` that are set after a call to `activate`.
   function approve(IERC20 token, address spender, uint amount) external returns (bool);
 
-  ///@notice Withdraws tokens from the offer maker's reserve
+  ///@notice Withdraws tokens from `msg.sender`'s reserve
   ///@param token the type of asset one is willing to retrieve
   ///@param receiver the address of the receiver of the tokens (must not be `address(0)`)
   ///@param amount the quantity of tokens to withdraw from reserve (in WEI units).
@@ -86,10 +85,11 @@ interface IOfferLogic is IMaker {
   ///@dev throws with a reason if something (e.g. an approval) is missing.
   function checkList(IERC20[] calldata tokens) external view;
 
-  ///@notice View of offer maker's reserve balance for a particular asset.
+  ///@notice View of the reserve's balance of a particular asset.
   ///@param token the asset type one wishes to know the reserve balance of
   ///@param maker the offer maker one wishes to know the balance of.
   ///@return balance the `token` amount in offer maker's reserve
+  ///@dev this call is not in general equivalent to `token.balanceOf(maker)` when the reserve is a specific contract on which router is redeeming liquidity (e.g. a lender).
   function tokenBalance(IERC20 token, address maker) external view returns (uint balance);
 
   /// @notice performs the required approvals so as to allow `this` to interact with Mangrove on a set of assets.
@@ -111,6 +111,8 @@ interface IOfferLogic is IMaker {
   ///@param pivotId a best pivot estimate for cheap offer insertion in the offer list.
   ///@param fund WEIs in `this` contract's balance that are used to provision the offer.
   ///@param noRevert is set to true if calling function does not wish `_newOffer` to revert on error.
+  ///@param owner the offer maker managing the offer.
+  ///@dev `owner` is required in `Forwarder` logics, when `_newOffer` or `_updateOffer` in called in a hook (`msg.sender==MGV`).
   struct OfferArgs {
     IERC20 outbound_tkn;
     IERC20 inbound_tkn;
@@ -121,7 +123,7 @@ interface IOfferLogic is IMaker {
     uint pivotId;
     uint fund;
     bool noRevert;
-    address caller;
+    address owner;
   }
 
   ///@notice updates an offer existing on Mangrove (not necessarily live).
@@ -150,9 +152,8 @@ interface IOfferLogic is IMaker {
   ///@param offerId the identifier of the offer in the (`outbound_tkn`,`inbound_tkn`) offer list
   ///@param deprovision positioned if `msg.sender` wishes to redeem the offer's provision.
   ///@return received the amount of native tokens (in WEI) that have been retrieved by retracting the offer.
-  ///@dev Function's authorized caller is offer owner or Mangrove in order to let `makerExecute/Posthook` retract an offer.
-  /// An offer that is retracted without `deprovision` is off the offer list but still has its provisions locked.
-  /// Calling this function, with the `deprovision` flag, on an offer that is already off the offer list can be used to retrieve the locked provisions.
+  ///@dev An offer that is retracted without `deprovision` is retracted from the offer list, but still has its provisions locked by Mangrove.
+  ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
   function retractOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
@@ -160,16 +161,17 @@ interface IOfferLogic is IMaker {
     bool deprovision // if set to `true`, `this` will receive the remaining provision (in WEI) associated to `offerId`.
   ) external returns (uint received);
 
-  /// @notice getter of the address where offer maker is storing its liquidity
+  /// @notice getter of the reserve address of `maker`.
   /// @param maker the address of the offer maker one wishes to know the reserve of.
   /// @return reserve_ the address of the offer maker's reserve of liquidity.
-  /// @dev if no reserve is set for maker, default reserve is maker's address forge
+  /// @dev if no reserve is set for maker, default reserve is maker's address. Thus this function never returns `address(0)`.
   function reserve(address maker) external view returns (address);
 
   /// @notice sets reserve of an offer maker.
   /// @param maker the address of the offer maker
   /// @param reserve_ the address of the offer maker's reserve of liquidity.
   /// @dev `setReserve(maker, address(0))` has the same effect as `setReserve(maker, maker)`
+  /// @dev admin restricted call. If two makers have the same reserve, they share liqudity.
   function setReserve(address maker, address reserve_) external;
 
   /// @notice Contract's router getter.

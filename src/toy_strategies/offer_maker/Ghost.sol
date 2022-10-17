@@ -78,26 +78,36 @@ contract Ghost is Direct {
     require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerId2)), "Ghost/offer2AlreadyActive");
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
-    offerId1 = MGV.newOffer{value: msg.value}({
-      outbound_tkn: address(BASE),
-      inbound_tkn: address(STABLE1),
-      wants: wants1,
-      gives: gives,
-      gasreq: offerGasreq(),
-      gasprice: 0,
-      pivotId: pivot1
-    });
+    offerId1 = _newOffer(
+      OfferArgs({
+        outbound_tkn: BASE,
+        inbound_tkn: STABLE1,
+        wants: wants1,
+        gives: gives,
+        gasreq: offerGasreq(),
+        gasprice: 0,
+        pivotId: pivot1,
+        fund: msg.value,
+        noRevert: false,
+        caller: msg.sender
+      })
+    );
     // no need to fund this second call for provision
     // since the above call should be enough
-    offerId2 = MGV.newOffer({
-      outbound_tkn: address(BASE),
-      inbound_tkn: address(STABLE2),
-      wants: wants2,
-      gives: gives,
-      gasreq: offerGasreq(),
-      gasprice: 0,
-      pivotId: pivot2
-    });
+    offerId2 = _newOffer(
+      OfferArgs({
+        outbound_tkn: BASE,
+        inbound_tkn: STABLE2,
+        wants: wants2,
+        gives: gives,
+        gasreq: offerGasreq(),
+        gasprice: 0,
+        pivotId: pivot2,
+        fund: 0,
+        noRevert: false,
+        caller: msg.sender
+      })
+    );
 
     return (offerId1, offerId2);
   }

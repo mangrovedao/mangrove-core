@@ -35,10 +35,10 @@ interface IForwarder {
   ///@notice view for reserve approvals
   function reserveApprovals(address reserve_, address maker) external view returns (bool);
 
-  ///@notice reserve `msg.sender` approves `maker` for pooling.
+  ///@notice reserve (who must be `msg.sender`) approves `maker` for pooling.
   function approvePooledMaker(address maker) external;
 
-  ///@notice reserve `msg.sender` revokes `maker` from its approved poolers.
+  ///@notice reserve (who must be `msg.sender`) revokes `maker` from its approved poolers.
   function revokePooledMaker(address maker) external;
 
   /// @notice view on offer owners.

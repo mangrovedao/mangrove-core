@@ -76,13 +76,14 @@ contract Ghost is Direct {
     // deprovisioning an offer (via MGV.retractOffer) credits maker balance on Mangrove (no native token transfer)
     // if maker wishes to retrieve native tokens it should call MGV.withdraw (and have a positive balance)
 
-    (MgvStructs.OfferUnpacked memory offer1, MgvStructs.OfferDetailUnpacked memory offerDetails1) =
-      MGV.offerInfo(address(BASE), address(STABLE1), offerId1);
-    (MgvStructs.OfferUnpacked memory offer2, MgvStructs.OfferDetailUnpacked memory offerDetails2) =
-      MGV.offerInfo(address(BASE), address(STABLE2), offerId2);
+    MgvStructs.OfferPacked offer1 = MGV.offers(address(BASE), address(STABLE1), offerId1);
+    MgvStructs.OfferDetailPacked offerDetails1 = MGV.offerDetails(address(BASE), address(STABLE1), offerId1);
 
-    require(!MGV.isLive(packOffer(offer1)), "Ghost/offer1AlreadyActive");
-    require(!MGV.isLive(packOffer(offer2)), "Ghost/offer2AlreadyActive");
+    MgvStructs.OfferPacked offer2 = MGV.offers(address(BASE), address(STABLE2), offerId2);
+    MgvStructs.OfferDetailPacked offerDetails2 = MGV.offerDetails(address(BASE), address(STABLE2), offerId2);
+
+    require(!MGV.isLive(offer1), "Ghost/offer1AlreadyActive");
+    require(!MGV.isLive(offer2), "Ghost/offer2AlreadyActive");
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
     OfferArgs memory offerArgs1 = OfferArgs({
@@ -115,12 +116,11 @@ contract Ghost is Direct {
     return (offerId1, offerId2);
   }
 
-  function postOrUpdateOffer(
-    OfferArgs memory offerArgs,
-    MgvStructs.OfferDetailUnpacked memory offerDetails,
-    uint offerId
-  ) internal returns (uint) {
-    if (offerDetails.maker == address(0)) {
+  function postOrUpdateOffer(OfferArgs memory offerArgs, MgvStructs.OfferDetailPacked offerDetails, uint offerId)
+    internal
+    returns (uint)
+  {
+    if (offerDetails.maker() == address(0)) {
       return _newOffer(offerArgs);
     } else {
       _updateOffer(offerArgs, offerId);

@@ -76,14 +76,14 @@ contract Ghost is Direct {
     // if maker wishes to retrieve native tokens it should call MGV.withdraw (and have a positive balance)
 
     MgvStructs.OfferPacked offer1 = MGV.offers(address(BASE), address(STABLE1), offerId1);
-    MgvStructs.OfferDetailPacked offerDetails1 = MGV.offerDetails(address(BASE), address(STABLE1), offerId1);
-
     MgvStructs.OfferPacked offer2 = MGV.offers(address(BASE), address(STABLE2), offerId2);
-    MgvStructs.OfferDetailPacked offerDetails2 = MGV.offerDetails(address(BASE), address(STABLE2), offerId2);
 
     require(!MGV.isLive(offer1), "Ghost/offer1AlreadyActive");
     require(!MGV.isLive(offer2), "Ghost/offer2AlreadyActive");
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
+
+    MgvStructs.OfferDetailPacked offerDetails1 = MGV.offerDetails(address(BASE), address(STABLE1), offerId1);
+    MgvStructs.OfferDetailPacked offerDetails2 = MGV.offerDetails(address(BASE), address(STABLE2), offerId2);
 
     OfferArgs memory offerArgs1 = OfferArgs({
       outbound_tkn: BASE,

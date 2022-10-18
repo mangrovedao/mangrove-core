@@ -15,7 +15,6 @@ pragma abicoder v2;
 
 import "src/strategies/offer_maker/abstract/Direct.sol";
 import "src/strategies/routers/SimpleRouter.sol";
-import {t_of_struct as packOffer} from "src/preprocessed/MgvOffer.post.sol";
 import {MgvLib, MgvStructs} from "src/MgvLib.sol";
 
 contract Ghost is Direct {

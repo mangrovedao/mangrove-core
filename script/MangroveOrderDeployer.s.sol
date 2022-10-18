@@ -7,7 +7,7 @@ import {Deployer} from "./lib/Deployer.sol";
 
 /*  Deploys a MangroveOrder instance
     First test:
- ADMIN=$MUMBAI_PRIVATE_ADDRESS forge script --fork-url mumbai MumbaiDeploy -vvv MangroveOrderDeployer
+ ADMIN=$MUMBAI_PRIVATE_ADDRESS forge script --fork-url mumbai MangroveOrderDeployer -vvv 
     Then broadcast and verify:
  ADMIN=$MUMBAI_PRIVATE_ADDRESS WRITE_DEPLOY=true forge script --fork-url mumbai MangroveOrderDeployer -vvv --broadcast --verify
     Remember to activate it using ActivateMangroveOrder
@@ -22,14 +22,16 @@ contract MangroveOrderDeployer is Deployer {
    */
   function innerRun(address admin) public {
     IMangrove mgv = IMangrove(fork.get("Mangrove"));
-    MangroveOrderEnriched old_mgo = MangroveOrderEnriched(fork.get("MangroveOrderEnriched"));
-    if (address(old_mgo) != address(0)) {
-      uint bal = mgv.balanceOf(address(old_mgo));
+    try fork.get("MangroveOrderEnriched") returns (address payable old_mgo_address) {
+      MangroveOrderEnriched old_mgo = MangroveOrderEnriched(old_mgo_address);
+      uint bal = mgv.balanceOf(old_mgo_address);
       if (bal > 0) {
         broadcast();
         old_mgo.withdrawFromMangrove(bal, payable(admin));
         console.log("Retrieved ", bal, "WEIs from old deployment", address(old_mgo));
       }
+    } catch {
+      console.log("No existing Mangrove Order in ToyENS");
     }
     console.log("Deploying Mangrove Order...");
 

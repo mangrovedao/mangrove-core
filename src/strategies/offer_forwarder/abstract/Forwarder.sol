@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {MangroveOffer} from "src/strategies/MangroveOffer.sol";
+import {MangroveOffer, MOS} from "src/strategies/MangroveOffer.sol";
 import {IForwarder} from "src/strategies/interfaces/IForwarder.sol";
 import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
 import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
@@ -73,6 +73,9 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// @inheritdoc IForwarder
   function revokePooledMaker(address maker) external override {
     reserveApprovals[msg.sender][maker] = false;
+    if (reserve(maker) == msg.sender) {
+      MOS.getStorage().reserves[maker] = address(0);
+    }
     emit ReserveApproval(msg.sender, maker, false);
   }
 

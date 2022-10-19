@@ -191,6 +191,39 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.retractOffer($(base), $(quote), ofr, false);
   }
 
+  function test_updateOffer_wrong_owner_fails() public {
+    uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
+    vm.expectRevert("mgv/updateOffer/unauthorized");
+    mgv.updateOffer($(base), $(quote), 1 ether, 1 ether, 0, 0, ofr, ofr);
+  }
+
+  function test_gives_0_rejected() public {
+    vm.expectRevert("mgv/writeOffer/gives/tooLow");
+    mkr.newOffer(1 ether, 0 ether, 100_000, 0);
+  }
+
+  function test_idOverflow_reverts(address tout, address tin) public {
+    mgv.activate(tout, tin, 0, 0, 0);
+
+    // To test overflow, we surgically set 'last offer id' in mangrove storage
+    // to uint32.max.
+    //
+    // We use locked(out,in) as a proxy for getting the storage slot of
+    // locals[out][in]
+    vm.record();
+    mgv.locked(tout, tin);
+    (bytes32[] memory reads,) = vm.accesses(address(mgv));
+    bytes32 slot = reads[0];
+    bytes32 data = vm.load(address(mgv), slot);
+    MgvStructs.LocalPacked local = MgvStructs.LocalPacked.wrap(uint(data));
+    local = local.last(type(uint32).max);
+    vm.store(address(mgv), slot, bytes32(MgvStructs.LocalPacked.unwrap(local)));
+
+    // try new offer now that we set the last id to uint32.max
+    vm.expectRevert("mgv/offerIdOverflow");
+    mgv.newOffer(tout, tin, 1 ether, 1 ether, 0, 0, 0);
+  }
+
   function test_makerGives_wider_than_96_bits_fails_newOffer() public {
     vm.expectRevert("mgv/writeOffer/gives/96bits");
     mkr.newOffer(1, 2 ** 96, 10_000, 0);

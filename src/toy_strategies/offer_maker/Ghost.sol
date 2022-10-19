@@ -46,6 +46,7 @@ contract Ghost is Direct {
     // Note: `reserve(admin)` needs to approve `this.router()` for base token transfer
     router_.bind(address(this));
     router_.setAdmin(admin);
+    setAdmin(admin);
   }
 
   /**

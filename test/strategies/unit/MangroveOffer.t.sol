@@ -40,7 +40,7 @@ contract MangroveOfferTest is MangroveTest {
     weth = base;
     usdc = quote;
 
-    deployer = freshAddress("deployer");
+    deployer = payable(new TestSender());
     vm.prank(deployer);
     makerContract = new OfferMaker({
       mgv: IMangrove($(mgv)),
@@ -244,14 +244,10 @@ contract MangroveOfferTest is MangroveTest {
   }
 
   function test_withdrawFromMangrove_reverts_with_good_reason_if_caller_cannot_receive() public {
-    // getting a contract that reverts on `receive()` call
-    TestTaker maker_ = new TestTaker(mgv, weth, usdc);
-    maker_.refuseNative();
-    vm.prank(deployer);
-    makerContract.setAdmin(address(maker_));
+    TestSender(deployer).refuseNative();
     mgv.fund{value: 0.1 ether}(address(makerContract));
-    vm.expectRevert("mgvOffer/withdrawFromMgvFail");
-    vm.prank(address(maker_));
+    vm.expectRevert("mgvOffer/weiTransferFail");
+    vm.prank(deployer);
     makerContract.withdrawFromMangrove(0.1 ether, $(this));
   }
 

@@ -305,7 +305,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
       // * (a /\ b) imply that the above call to `MGV.withdraw` will be done with `freeWeil == 0`.
       // * `retractOffer` is the only function that allows non admin users to withdraw WEIs from Mangrove.
       (bool noRevert,) = od.owner.call{value: freeWei}("");
-      require(noRevert, "Forwarder/weiTransferFail");
+      require(noRevert, "mgvOffer/weiTransferFail");
     }
   }
 

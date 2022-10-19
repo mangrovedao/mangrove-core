@@ -201,10 +201,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       amount = MGV.balanceOf(address(this));
     }
     // the require below is necessary if the `receive()` function is overriden
-    require(MGV.withdraw(amount), "mgvOffer/withdrawFromMgv/withdrawFail");
+    require(MGV.withdraw(amount), "mgvOffer/withdrawFail");
     (bool noRevert,) = receiver.call{value: amount}("");
     // if `receiver` is actually not payable
-    require(noRevert, "mgvOffer/withdrawFromMgvFail");
+    require(noRevert, "mgvOffer/weiTransferFail");
   }
 
   /// @inheritdoc IOfferLogic

@@ -181,11 +181,11 @@ abstract contract Direct is MangroveOffer {
   ) public override mgvOrAdmin returns (uint free_wei) {
     free_wei = MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
     if (free_wei > 0) {
-      require(MGV.withdraw(free_wei), "Direct/withdrawFromMgv/withdrawFail");
+      require(MGV.withdraw(free_wei), "Direct/withdrawFail");
       // sending native tokens to `msg.sender` prevents reentrancy issues
       // (the context call of `retractOffer` could be coming from `makerExecute` and a different recipient of transfer than `msg.sender` could use this call to make offer fail)
       (bool noRevert,) = admin().call{value: free_wei}("");
-      require(noRevert, "Direct/weiTransferFail");
+      require(noRevert, "mgvOffer/weiTransferFail");
     }
   }
 

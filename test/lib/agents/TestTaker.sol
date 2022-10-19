@@ -20,13 +20,7 @@ contract TestTaker is ITaker, Script2 {
     _quote = address(quote);
   }
 
-  receive() external payable {
-    require(acceptNative, "TestTaker/refusesNative");
-  }
-
-  function refuseNative() external {
-    acceptNative = false;
-  }
+  receive() external payable {}
 
   function approveMgv(IERC20 token, uint amount) external {
     token.approve(address(_mgv), amount);

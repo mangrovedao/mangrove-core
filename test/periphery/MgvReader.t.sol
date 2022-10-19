@@ -15,8 +15,6 @@ contract MgvReaderTest is MangroveTest {
 
   function setUp() public override {
     super.setUp();
-    oracle = freshAddress("oracle");
-    vm.mockCall(oracle, bytes(""), abi.encode(0, 0));
 
     mkr = setupMaker($(base), $(quote), "maker");
     reader = new MgvReader($(mgv));
@@ -148,6 +146,8 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_provision_oracle() public {
+    oracle = freshAddress("oracle");
+    vm.mockCall(oracle, bytes(""), abi.encode(0, 0));
     mgv.setMonitor(oracle);
     mgv.setUseOracle(true);
     try_provision();
@@ -228,17 +228,64 @@ contract MgvReaderTest is MangroveTest {
     assertEq(vd[0].totalGave, 0.3 ether, "bad totalGave");
   }
 
+  function prepareOffers(uint numOffers) internal returns (uint) {
+    uint unitVolume = 0.1 ether;
+    for (uint i = 0; i < numOffers; i++) {
+      mkr.newOffer(unitVolume, unitVolume, 200_000, 0);
+    }
+    return unitVolume * numOffers;
+  }
+
   function test_marketOrder_volumeData_length(uint8 numOffers) public {
     vm.assume(numOffers < 12);
-    for (uint i = 0; i < numOffers; i++) {
-      mkr.newOffer(0.1 ether, 0.1 ether, 0, 0);
-    }
+    prepareOffers(numOffers);
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), numOffers * 0.1 ether, numOffers * 0.1 ether, true);
     assertEq(vd.length, numOffers, "bad vd length");
     for (uint i = 0; i < numOffers; i++) {
       assertEq(vd[i].totalGot, (i + 1) * 0.1 ether, string.concat("bad totalGot ", vm.toString(i)));
       assertEq(vd[i].totalGave, (i + 1) * 0.1 ether, string.concat("bad totalGave", vm.toString(i)));
     }
+  }
+
+  function marketOrderMaybeSimThenReal(bool doSim, uint numOffers) internal {
+    uint sumGas;
+    deal($(base), address(mkr), 10 ether);
+    mkr.approveMgv(base, 10 ether);
+    deal($(quote), address(this), 10 ether);
+    uint volume = prepareOffers(numOffers);
+    if (doSim) {
+      _gas();
+      VolumeData[] memory vd = reader.marketOrder($(base), $(quote), volume, volume, true);
+      sumGas += gas_("simulation");
+    }
+    _gas();
+    mgv.marketOrder($(base), $(quote), volume, volume, true);
+    sumGas += gas_("real");
+    console.log("Total: %s", sumGas);
+  }
+
+  function test_marketOrder_gas_cost_1_with_sim() public {
+    marketOrderMaybeSimThenReal(true, 1);
+  }
+
+  function test_marketOrder_gas_cost_1_real() public {
+    marketOrderMaybeSimThenReal(false, 1);
+  }
+
+  function test_marketOrder_gas_cost_5_with_sim() public {
+    marketOrderMaybeSimThenReal(true, 5);
+  }
+
+  function test_marketOrder_gas_cost_5_real() public {
+    marketOrderMaybeSimThenReal(false, 5);
+  }
+
+  function test_marketOrder_gas_cost_15_with_sim() public {
+    marketOrderMaybeSimThenReal(true, 15);
+  }
+
+  function test_marketOrder_gas_cost_15_real() public {
+    marketOrderMaybeSimThenReal(false, 15);
   }
 }
 

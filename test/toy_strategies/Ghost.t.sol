@@ -95,11 +95,6 @@ contract GhostTest is MangroveTest {
       admin: $(this) // for ease, set this contract (will be Test runner) as admin for the strat
       });
 
-    // NOTE:
-    // For this test, we're locking base, ie WETH, in the vault of the contract
-    // - so Ghost is not really used for ghost liquidity, in this example.
-    // However, to employ actual ghost liquidity it is simply a matter of
-    // setting up a more refined router.
     // check that we actually need to activate for the two 'wants' tokens
     IERC20[] memory tokens = new IERC20[](3);
     tokens[0] = dai;

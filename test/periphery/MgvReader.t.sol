@@ -10,14 +10,12 @@ import {MgvStructs} from "src/MgvLib.sol";
 // In these tests, the testing contract is the market maker.
 contract MgvReaderTest is MangroveTest {
   TestMaker mkr;
-  MgvReader reader;
   address oracle;
 
   function setUp() public override {
     super.setUp();
 
     mkr = setupMaker($(base), $(quote), "maker");
-    reader = new MgvReader($(mgv));
     mkr.provisionMgv(5 ether);
 
     deal($(quote), address(mkr), 1 ether);
@@ -224,7 +222,7 @@ contract MgvReaderTest is MangroveTest {
     mkr.newOffer(0.3 ether, 0.3 ether, 0, 0);
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), 0.3 ether, 0.3 ether, true);
     assertEq(vd.length, 1, "bad vd length");
-    assertEq(vd[0].totalGot, minusFee($(base), $(quote), 0.3 ether), "bad totalGot");
+    assertEq(vd[0].totalGot, reader.minusFee($(base), $(quote), 0.3 ether), "bad totalGot");
     assertEq(vd[0].totalGave, 0.3 ether, "bad totalGave");
   }
 

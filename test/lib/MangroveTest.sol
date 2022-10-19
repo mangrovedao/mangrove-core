@@ -12,6 +12,7 @@ import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 
 import {AbstractMangrove} from "src/AbstractMangrove.sol";
 import {Mangrove} from "src/Mangrove.sol";
+import {MgvReader} from "src/periphery/MgvReader.sol";
 import {InvertedMangrove} from "src/InvertedMangrove.sol";
 import {IERC20, MgvLib, HasMgvEvents, IMaker, ITaker, IMgvMonitor, MgvStructs} from "src/MgvLib.sol";
 import {console2 as csl} from "forge-std/console2.sol";
@@ -45,6 +46,7 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   AbstractMangrove mgv;
+  MgvReader reader;
   TestToken base;
   TestToken quote;
 
@@ -85,6 +87,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     );
     // mangrove deploy
     mgv = setupMangrove(base, quote, options.invertedMangrove);
+    reader = new MgvReader($(mgv));
 
     // below are necessary operations because testRunner acts as a taker/maker in some core protocol tests
     // TODO this should be done somewhere else
@@ -181,36 +184,6 @@ contract MangroveTest is Test2, HasMgvEvents {
     gasreqreceive_on,
     gasprice,
     gasreq
-  }
-
-  function isEmptyOB(address $out, address $in) internal view returns (bool) {
-    return mgv.best($out, $in) == 0;
-  }
-
-  function getFee(address $out, address $in, uint price) internal view returns (uint) {
-    (, MgvStructs.LocalPacked local) = mgv.config($out, $in);
-    return ((price * local.fee()) / 10000);
-  }
-
-  function minusFee(address $out, address $in, uint price) internal view returns (uint) {
-    (, MgvStructs.LocalPacked local) = mgv.config($out, $in);
-    return (price * (10_000 - local.fee())) / 10000;
-  }
-
-  function getProvision(address $out, address $in, uint gasreq) internal view returns (uint) {
-    (MgvStructs.GlobalPacked glo_cfg, MgvStructs.LocalPacked loc_cfg) = mgv.config($out, $in);
-    return ((gasreq + loc_cfg.offer_gasbase()) * uint(glo_cfg.gasprice()) * 10 ** 9);
-  }
-
-  function getProvision(address $out, address $in, uint gasreq, uint gasprice) internal view returns (uint) {
-    (MgvStructs.GlobalPacked glo_cfg, MgvStructs.LocalPacked loc_cfg) = mgv.config($out, $in);
-    uint _gp;
-    if (glo_cfg.gasprice() > gasprice) {
-      _gp = uint(glo_cfg.gasprice());
-    } else {
-      _gp = gasprice;
-    }
-    return ((gasreq + loc_cfg.offer_gasbase()) * _gp * 10 ** 9);
   }
 
   // Deploy mangrove

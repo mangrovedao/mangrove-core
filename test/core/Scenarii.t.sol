@@ -132,7 +132,7 @@ contract ScenariiTest is MangroveTest {
           !mgv.isLive(mgv.offers($(base), $(quote), failingOfferId)), "Failing offer should have been removed from Mgv"
         );
       }
-      uint provision = getProvision($(base), $(quote), offers[failingOfferId][Info.gasreq]);
+      uint provision = reader.getProvision($(base), $(quote), offers[failingOfferId][Info.gasreq]);
       uint returned = mgv.balanceOf(address(makers.getMaker(0))) - balances.makersBalanceWei[0];
       assertEq(
         $(mgv).balance,
@@ -176,7 +176,7 @@ contract ScenariiTest is MangroveTest {
     //Checking makers have correctly provisoned their offers
     for (uint i = 0; i < makers.length(); i++) {
       uint gasreq_i = mgv.offerDetails($(base), $(quote), _offerOf[i]).gasreq();
-      uint provision_i = getProvision($(base), $(quote), gasreq_i);
+      uint provision_i = reader.getProvision($(base), $(quote), gasreq_i);
       assertEq(
         mgv.balanceOf(address(makers.getMaker(i))),
         balances.makersBalanceWei[i] - provision_i,
@@ -245,11 +245,11 @@ contract ScenariiTest is MangroveTest {
     // Checking taker balance
     assertEq(
       base.balanceOf(address(taker)), // actual
-      balances.takerBalanceA + minusFee($(base), $(quote), takerWants), // expected
+      balances.takerBalanceA + reader.minusFee($(base), $(quote), takerWants), // expected
       "incorrect taker A balance"
     );
 
-    assertEq(takerGot, minusFee($(base), $(quote), takerWants), "Incorrect declared takerGot");
+    assertEq(takerGot, reader.minusFee($(base), $(quote), takerWants), "Incorrect declared takerGot");
 
     uint shouldGive = (offers[3][Info.makerWants] + offers[2][Info.makerWants] + leftMkrWants);
     assertEq(
@@ -263,7 +263,7 @@ contract ScenariiTest is MangroveTest {
     // Checking DEX Fee Balance
     assertEq(
       base.balanceOf(mgv.governance()), //actual
-      balances.mgvBalanceFees + getFee($(base), $(quote), takerWants), //expected
+      balances.mgvBalanceFees + reader.getFee($(base), $(quote), takerWants), //expected
       "incorrect Mangrove balances"
     );
   }
@@ -280,7 +280,7 @@ contract ScenariiTest is MangroveTest {
     bag.snipedId = 2;
     // uint orderAmount = 0.3 ether;
     // uint snipedId = 2;
-    expectedFee = getFee($(base), $(quote), bag.orderAmount);
+    expectedFee = reader.getFee($(base), $(quote), bag.orderAmount);
     TestMaker maker = makers.getMaker(bag.snipedId); // maker whose offer will be sniped
 
     //(uint init_mkr_wants, uint init_mkr_gives,,,,,)=mgv.getOfferInfo(2);
@@ -359,6 +359,6 @@ contract DeepCollectTest is MangroveTest {
 
   function moWithFailures() internal {
     tkr.marketOrderWithFail({wants: 10 ether, gives: 30 ether});
-    assertTrue(isEmptyOB($(base), $(quote)), "Order book should be empty");
+    assertTrue(reader.isEmptyOB($(base), $(quote)), "Order book should be empty");
   }
 }

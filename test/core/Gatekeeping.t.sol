@@ -256,7 +256,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
       0 // prev
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), getProvision($(base), $(quote), cfg.gasmax(), 0));
+    emit Debit(address(mkr), reader.getProvision($(base), $(quote), cfg.gasmax(), 0));
     uint ofr = mkr.newOffer(1 ether, 1 ether, cfg.gasmax(), 0);
     assertTrue(mgv.isLive(mgv.offers($(base), $(quote), ofr)), "Offer should have been inserted");
   }
@@ -287,7 +287,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
       0 // prev
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), getProvision($(base), $(quote), 1, 0));
+    emit Debit(address(mkr), reader.getProvision($(base), $(quote), 1, 0));
     uint ofr = mkr.newOffer(amount, amount, 1, 0);
     assertTrue(mgv.isLive(mgv.offers($(base), $(quote), ofr)), "Offer should have been inserted");
   }

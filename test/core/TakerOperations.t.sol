@@ -258,7 +258,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_doesnt_pay() public {
-    uint mkr_provision = getProvision($(base), $(quote), 100_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = refusemkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/makerTransferFail"); // status visible in the posthook
@@ -287,7 +287,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_base() public {
-    uint mkr_provision = getProvision($(base), $(quote), 100_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/makerTransferFail"); // status visible in the posthook
@@ -309,7 +309,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_quote() public {
-    uint mkr_provision = getProvision($(base), $(quote), 100_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/makerReceiveFail"); // status visible in the posthook
@@ -344,7 +344,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_reverts() public {
-    uint mkr_provision = getProvision($(base), $(quote), 50_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 50_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = failmkr.newOffer(1 ether, 1 ether, 50_000, 0);
     uint beforeQuote = quote.balanceOf($(this));

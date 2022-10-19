@@ -90,6 +90,34 @@ contract OfferForwarderTest is OfferLogicTest {
     );
   }
 
+  function test_failed_offer_reaches_posthookFallback() public {
+    MgvLib.SingleOrder memory order;
+    MgvLib.OrderResult memory result;
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    result.mgvData = "anythingButSuccess";
+    result.makerData = "failReason";
+    order.offerId = offerId;
+    order.outbound_tkn = $(weth);
+    order.inbound_tkn = $(usdc);
+    order.offer = mgv.offers($(weth), $(usdc), offerId);
+    order.offerDetail = mgv.offerDetails($(weth), $(usdc), offerId);
+    // this should reach the posthookFallback and computes released provision, assuming offer has failed for half gasreq
+    // as a result the amount of provision that can be redeemed by retracting offerId should increase.
+    vm.startPrank($(mgv));
+    makerContract.makerPosthook{gas: makerContract.offerGasreq() / 2}(order, result);
+    vm.stopPrank();
+    assertTrue(makerContract.provisionOf(weth, usdc, offerId) > 1 ether, "fallback was not reached");
+  }
+
   function test_failed_offer_credits_owner(uint fund) public {
     vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0));
     vm.assume(fund < 5 ether);
@@ -323,6 +351,17 @@ contract OfferForwarderTest is OfferLogicTest {
     vm.prank(maker);
     makerContract.setReserve(maker, new_reserve);
     assertEq(makerContract.reserve(maker), new_reserve, "Reserve was not set");
+  }
+
+  function test_revokePooledMaker_sets_maker_reserve_to_0x() public {
+    address new_reserve = freshAddress();
+    vm.prank(new_reserve);
+    forwarder.approvePooledMaker(maker);
+    vm.prank(maker);
+    makerContract.setReserve(maker, new_reserve);
+    vm.prank(new_reserve);
+    forwarder.revokePooledMaker(maker);
+    assertEq(makerContract.reserve(maker), maker, "Reserve was not updated");
   }
 
   function test_put_fail_reverts_with_expected_reason() public {

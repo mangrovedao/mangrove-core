@@ -5,6 +5,7 @@ import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/forks/Polygon.sol";
 import "src/toy_strategies/offer_maker/Ghost.sol";
 import {MgvStructs} from "src/MgvLib.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -27,6 +28,7 @@ contract GhostTest is MangroveTest {
 
     // use convenience helpers to setup Mangrove
     mgv = setupMangrove();
+    reader = new MgvReader($(mgv));
 
     // setup tokens, markets and approve them
     dai = IERC20(fork.get("DAI"));
@@ -150,7 +152,7 @@ contract GhostTest is MangroveTest {
     (uint takerGot, uint takerGave,) = takeOffer(makerGivesAmount / 2, makerWantsAmountDAI / 2, dai, offerId1);
 
     // assert that
-    assertEq(takerGot, minusFee($(dai), $(weth), makerGivesAmount / 2), "taker got wrong amount");
+    assertEq(takerGot, reader.minusFee($(dai), $(weth), makerGivesAmount / 2), "taker got wrong amount");
     assertEq(takerGave, makerWantsAmountDAI / 2, "taker gave wrong amount");
 
     // assert that neither offer posted by Ghost are live (= have been retracted)
@@ -174,7 +176,7 @@ contract GhostTest is MangroveTest {
     (uint takerGot, uint takerGave,) = takeOffer(makerGivesAmount, makerWantsAmountDAI, dai, offerId1);
 
     // assert that
-    assertEq(takerGot, minusFee($(dai), $(weth), makerGivesAmount), "taker got wrong amount");
+    assertEq(takerGot, reader.minusFee($(dai), $(weth), makerGivesAmount), "taker got wrong amount");
     assertEq(takerGave, makerWantsAmountDAI, "taker gave wrong amount");
 
     // assert that neither offer posted by Ghost are live (= have been retracted)

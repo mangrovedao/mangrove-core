@@ -139,22 +139,56 @@ contract MgvReader {
     }
   }
 
+  /* Returns the provision necessary to post an offer on the outbound_tkn/inbound_tkn offer list. You can set gasprice=0 or use the overload to use Mangrove's internal gasprice estimate. */
   function getProvision(address outbound_tkn, address inbound_tkn, uint ofr_gasreq, uint ofr_gasprice)
-    external
+    public
     view
     returns (uint)
   {
     unchecked {
-      (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) = MGV.config(outbound_tkn, inbound_tkn);
+      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(outbound_tkn, inbound_tkn);
       uint gp;
-      uint global_gasprice = global.gasprice();
+      uint global_gasprice = _global.gasprice();
       if (global_gasprice > ofr_gasprice) {
         gp = global_gasprice;
       } else {
         gp = ofr_gasprice;
       }
-      return (ofr_gasreq + local.offer_gasbase()) * gp * 10 ** 9;
+      return (ofr_gasreq + _local.offer_gasbase()) * gp * 10 ** 9;
     }
+  }
+
+  function getProvision(address outbound_tkn, address inbound_tkn, uint gasreq) public view returns (uint) {
+    (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(outbound_tkn, inbound_tkn);
+    return ((gasreq + _local.offer_gasbase()) * uint(_global.gasprice()) * 10 ** 9);
+  }
+
+  /* Sugar for checking whether a offer list is empty. There is no offer with id 0, so if the id of the offer list's best offer is 0, it means the offer list is empty. */
+  function isEmptyOB(address outbound_tkn, address inbound_tkn) public view returns (bool) {
+    return MGV.best(outbound_tkn, inbound_tkn) == 0;
+  }
+
+  /* Returns the fee that would be extracted from the given volume of outbound_tkn tokens on Mangrove's outbound_tkn/inbound_tkn offer list. */
+  function getFee(address outbound_tkn, address inbound_tkn, uint outVolume) public view returns (uint) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(outbound_tkn, inbound_tkn);
+    return ((outVolume * _local.fee()) / 10000);
+  }
+
+  /* Returns the given amount of outbound_tkn tokens minus the fee on Mangrove's outbound_tkn/inbound_tkn offer list. */
+  function minusFee(address outbound_tkn, address inbound_tkn, uint outVolume) public view returns (uint) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(outbound_tkn, inbound_tkn);
+    return (outVolume * (10_000 - _local.fee())) / 10000;
+  }
+
+  /* Sugar for getting only global/local config */
+  function global() public view returns (MgvStructs.GlobalPacked) {
+    (MgvStructs.GlobalPacked _global,) = MGV.config(address(0), address(0));
+    return _global;
+  }
+
+  function local(address outbound_tkn, address inbound_tkn) public view returns (MgvStructs.LocalPacked) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(outbound_tkn, inbound_tkn);
+    return _local;
   }
 
   /* marketOrder, internalMarketOrder, and execute all together simulate a market order on mangrove and return the cumulative totalGot, totalGave and totalGasreq for each offer traversed. We assume offer execution is successful and uses exactly its gasreq. 

@@ -23,7 +23,32 @@ pragma abicoder v2;
 import {MgvLib, MgvStructs} from "src/MgvLib.sol";
 import {IMangrove} from "src/IMangrove.sol";
 
+struct VolumeData {
+  uint totalGot;
+  uint totalGave;
+  uint totalGasreq;
+}
+
 contract MgvReader {
+  struct MarketOrder {
+    address outbound_tkn;
+    address inbound_tkn;
+    uint initialWants;
+    uint initialGives;
+    uint totalGot;
+    uint totalGave;
+    uint totalGasreq;
+    uint currentWants;
+    uint currentGives;
+    bool fillWants;
+    uint offerId;
+    MgvStructs.OfferPacked offer;
+    MgvStructs.OfferDetailPacked offerDetail;
+    MgvStructs.LocalPacked local;
+    VolumeData[] volumeData;
+    uint numOffers;
+  }
+
   IMangrove immutable MGV;
 
   constructor(address mgv) {
@@ -129,6 +154,110 @@ contract MgvReader {
         gp = ofr_gasprice;
       }
       return (ofr_gasreq + local.offer_gasbase()) * gp * 10 ** 9;
+    }
+  }
+
+  /* marketOrder, internalMarketOrder, and execute all together simulate a market order on mangrove and return the cumulative totalGot, totalGave and totalGasreq for each offer traversed. We assume offer execution is successful and uses exactly its gasreq. 
+  We do not account for gasbase.
+  * Calling this from an EOA will give you an estimate of the volumes you will receive, but you may as well `eth_call` Mangrove.
+  * Calling this from a contract will let the contract choose what to do after receiving a response.
+  */
+  function marketOrder(address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants)
+    external
+    view
+    returns (VolumeData[] memory)
+  {
+    MarketOrder memory mr;
+    mr.outbound_tkn = outbound_tkn;
+    mr.inbound_tkn = inbound_tkn;
+    (, mr.local) = MGV.config(outbound_tkn, inbound_tkn);
+    mr.offerId = mr.local.best();
+    mr.offer = MGV.offers(outbound_tkn, inbound_tkn, mr.offerId);
+    mr.currentWants = takerWants;
+    mr.currentGives = takerGives;
+    mr.initialWants = takerWants;
+    mr.initialGives = takerGives;
+    mr.fillWants = fillWants;
+
+    internalMarketOrder(mr, true);
+
+    return mr.volumeData;
+  }
+
+  function internalMarketOrder(MarketOrder memory mr, bool proceed) internal view {
+    unchecked {
+      if (proceed && (mr.fillWants ? mr.currentWants > 0 : mr.currentGives > 0) && mr.offerId > 0) {
+        uint currentIndex = mr.numOffers;
+
+        mr.offerDetail = MGV.offerDetails(mr.outbound_tkn, mr.inbound_tkn, mr.offerId);
+
+        bool executed = execute(mr);
+
+        uint totalGot = mr.totalGot;
+        uint totalGave = mr.totalGave;
+        uint totalGasreq = mr.totalGasreq;
+
+        if (executed) {
+          mr.numOffers++;
+          mr.currentWants = mr.initialWants > mr.totalGot ? mr.initialWants - mr.totalGot : 0;
+          mr.currentGives = mr.initialGives - mr.totalGave;
+          mr.offerId = mr.offer.next();
+          mr.offer = MGV.offers(mr.outbound_tkn, mr.inbound_tkn, mr.offerId);
+        }
+
+        internalMarketOrder(mr, executed);
+
+        if (executed) {
+          uint concreteFee = (mr.totalGot * mr.local.fee()) / 10_000;
+          mr.volumeData[currentIndex] =
+            VolumeData({totalGot: totalGot - concreteFee, totalGave: totalGave, totalGasreq: totalGasreq});
+        }
+      } else {
+        mr.volumeData = new VolumeData[](mr.numOffers);
+      }
+    }
+  }
+
+  function execute(MarketOrder memory mr) internal pure returns (bool) {
+    unchecked {
+      {
+        // caching
+        uint offerWants = mr.offer.wants();
+        uint offerGives = mr.offer.gives();
+        uint takerWants = mr.currentWants;
+        uint takerGives = mr.currentGives;
+
+        if (offerWants * takerWants > offerGives * takerGives) {
+          return false;
+        }
+
+        if ((mr.fillWants && offerGives < takerWants) || (!mr.fillWants && offerWants < takerGives)) {
+          mr.currentWants = offerGives;
+          mr.currentGives = offerWants;
+        } else {
+          if (mr.fillWants) {
+            uint product = offerWants * takerWants;
+            mr.currentGives = product / offerGives + (product % offerGives == 0 ? 0 : 1);
+          } else {
+            if (offerWants == 0) {
+              mr.currentWants = offerGives;
+            } else {
+              mr.currentWants = (offerGives * takerGives) / offerWants;
+            }
+          }
+        }
+      }
+
+      // flashloan would normally be called here
+
+      /**
+       * if success branch of original mangrove code, assumed to be true
+       */
+      mr.totalGot += mr.currentWants;
+      mr.totalGave += mr.currentGives;
+      mr.totalGasreq += mr.offerDetail.gasreq();
+      return true;
+      /* end if success branch **/
     }
   }
 }

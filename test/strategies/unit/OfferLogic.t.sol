@@ -5,7 +5,7 @@ import "mgv_test/lib/MangroveTest.sol";
 import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import "src/strategies/offer_maker/OfferMaker.sol";
 
-// unit tests for (single /\ multi) user strats (i.e unit tests that are non specific to either single or multi user feature)
+// unit tests for (single /\ multi) user strats (i.e unit tests that are non specific to either single or multi user feature
 
 contract OfferLogicTest is MangroveTest {
   TestToken weth;
@@ -49,12 +49,12 @@ contract OfferLogicTest is MangroveTest {
       usdc = quote;
     }
     mgv.setVault(freshAddress("MgvTreasury"));
-    maker = freshAddress("maker");
+    maker = payable(new TestSender());
     vm.deal(maker, 10 ether);
     // for Direct strats, maker is deployer
     deployer = deployer == address(0) ? maker : deployer;
 
-    taker = freshAddress("taker");
+    taker = payable(new TestSender());
     vm.deal(taker, 1 ether);
     deal($(weth), taker, cash(weth, 50));
     deal($(usdc), taker, cash(usdc, 100_000));
@@ -218,6 +218,23 @@ contract OfferLogicTest is MangroveTest {
     uint received_wei = makerContract.retractOffer(weth, usdc, offerId, true);
     vm.stopPrank();
     assertEq(received_wei, 0, "Unexpected received weis");
+  }
+
+  function test_deprovisionOffer_throws_if_wei_transfer_fails() public {
+    TestSender(maker).refuseNative();
+    vm.startPrank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      gasreq: type(uint).max,
+      gasprice: 0,
+      pivotId: 0
+    });
+    vm.expectRevert("mgvOffer/weiTransferFail");
+    makerContract.retractOffer(weth, usdc, offerId, true);
+    vm.stopPrank();
   }
 
   function test_maker_can_updateOffer() public {

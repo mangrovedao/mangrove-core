@@ -7,7 +7,7 @@ import "mgv_src/toy_strategies/offer_forwarder/GhostForwarder.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
-import {console} from "forge-std/console.sol";
+//import {console} from "forge-std/console.sol";
 
 contract GhostForwarderTest is MangroveTest {
   IERC20 weth;

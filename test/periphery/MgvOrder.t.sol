@@ -533,7 +533,9 @@ contract MangroveOrder_Test is MangroveTest {
   }
 
   function test_caller_unable_to_receive_eth_makes_failing_resting_order_throw() public {
-    TestTaker buy_taker = setupTaker($(base), $(quote), "buy-taker");
+    TestSender buy_taker = new TestSender();
+    vm.deal($(buy_taker), 1 ether);
+
     deal($(quote), $(buy_taker), 10 ether);
     buy_taker.refuseNative();
 

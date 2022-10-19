@@ -29,8 +29,8 @@ import {Deployer} from "../lib/Deployer.sol";
 contract MangoDeployer is Deployer {
   function run() public {
     innerRun({
-      base: fork.get(vm.envString("BASE")),
-      quote: fork.get(vm.envString("QUOTE")),
+      base: getRawAddressOrName("BASE"),
+      quote: getRawAddressOrName("QUOTE"),
       base_0: vm.envUint("BASE_0"),
       quote_0: vm.envUint("QUOTE_0"),
       nslots: vm.envUint("NSLOTS"),

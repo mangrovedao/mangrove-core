@@ -155,12 +155,12 @@ contract Test2 is Test, Script2 {
     return gasDelta;
   }
 
-  function gas_(string memory msg) internal virtual returns (uint) {
+  function gas_(string memory gasLabel) internal virtual returns (uint) {
     uint checkpointGasLeft2 = gasleft();
 
     uint gasDelta = checkpointGasLeft - checkpointGasLeft2;
 
-    console2.log("Gas used in: %s: %s", msg, gasDelta);
+    console2.log("Gas used in: %s: %s", gasLabel, gasDelta);
     // emit log_named_uint(string.concat("Gas used in: ",msg), gasDelta);
     return gasDelta;
   }

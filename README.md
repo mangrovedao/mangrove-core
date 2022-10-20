@@ -105,7 +105,7 @@ To do the above, Mangrove adds a layer to `forge script` deployment.
 
 - Deployment scripts should inherit the `Deployer` contract.
 - You should call `outputDeployment()` at the end of your scripts.
-  - When `outputDeployment()` gets called, a file all known deployed contracts are written to `addresses/deployed.backup/<network>-latest.json`
+  - When `outputDeployment()` gets called, a file with all known deployed contracts are written to `addresses/deployed.backup/<network>-latest.json`
 - You should set `WRITE_DEPLOY=true` when running scripts that you want to broadcast.
   - When `WRITE_DEPLOY=true`, the contract set is also written to `addresses/deployed/<network>.json`.
 
@@ -124,7 +124,7 @@ The `vm.broadcast()` cheatcode implicitly selects a sender for the broadcast tra
 It is tiring to always add `--private-key 0x..` to scripts, especially since the key may be different for each network. The `Deployer` contract has a `broadcast()` function that reads the `<NAME>_PRIVATE_KEY` var off the environment, where `NAME` is the name of the chain you're talking to.
 
 - You should have vars such as `MUMBAI_PRIVATE_KEY` , `POLYGON_PRIVATE_KEY` in your `.env` file
-- You should use `broadcast()` instead of `vm.broadcast()`. The deployer contract will look for the correct private key, and fallback to the CLI-provided key if none was found.
+- You should use `broadcast()` instead of `vm.broadcast()` in scripts. The deployer contract will look for the correct private key, and fallback to the CLI-provided key if none was found.
 
 (Note that for Mumbai, `name=”mumbai”`)
 

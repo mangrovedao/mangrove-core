@@ -253,7 +253,7 @@ contract MgvReaderTest is MangroveTest {
     uint volume = prepareOffers(numOffers);
     if (doSim) {
       _gas();
-      reader.marketOrder($(base), $(quote), volume, volume, true);
+      reader.marketOrder($(base), $(quote), volume, volume, true, true);
       sumGas += gas_("simulation");
     }
     _gas();

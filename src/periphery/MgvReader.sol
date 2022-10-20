@@ -47,6 +47,7 @@ contract MgvReader {
     MgvStructs.LocalPacked local;
     VolumeData[] volumeData;
     uint numOffers;
+    bool accumulate;
   }
 
   IMangrove immutable MGV;
@@ -195,12 +196,16 @@ contract MgvReader {
   We do not account for gasbase.
   * Calling this from an EOA will give you an estimate of the volumes you will receive, but you may as well `eth_call` Mangrove.
   * Calling this from a contract will let the contract choose what to do after receiving a response.
+  * If `!accumulate`, only return the total cumulative volume.
   */
-  function marketOrder(address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants)
-    external
-    view
-    returns (VolumeData[] memory)
-  {
+  function marketOrder(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint takerWants,
+    uint takerGives,
+    bool fillWants,
+    bool accumulate
+  ) public view returns (VolumeData[] memory) {
     MarketOrder memory mr;
     mr.outbound_tkn = outbound_tkn;
     mr.inbound_tkn = inbound_tkn;
@@ -212,10 +217,19 @@ contract MgvReader {
     mr.initialWants = takerWants;
     mr.initialGives = takerGives;
     mr.fillWants = fillWants;
+    mr.accumulate = accumulate;
 
     internalMarketOrder(mr, true);
 
     return mr.volumeData;
+  }
+
+  function marketOrder(address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants)
+    external
+    view
+    returns (VolumeData[] memory)
+  {
+    return marketOrder(outbound_tkn, inbound_tkn, takerWants, takerGives, fillWants, true);
   }
 
   function internalMarketOrder(MarketOrder memory mr, bool proceed) internal view {
@@ -241,13 +255,17 @@ contract MgvReader {
 
         internalMarketOrder(mr, executed);
 
-        if (executed) {
+        if (executed && (mr.accumulate || currentIndex == 0)) {
           uint concreteFee = (mr.totalGot * mr.local.fee()) / 10_000;
           mr.volumeData[currentIndex] =
             VolumeData({totalGot: totalGot - concreteFee, totalGave: totalGave, totalGasreq: totalGasreq});
         }
       } else {
-        mr.volumeData = new VolumeData[](mr.numOffers);
+        if (mr.accumulate) {
+          mr.volumeData = new VolumeData[](mr.numOffers);
+        } else {
+          mr.volumeData = new VolumeData[](1);
+        }
       }
     }
   }

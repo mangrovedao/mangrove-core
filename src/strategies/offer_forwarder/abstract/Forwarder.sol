@@ -73,6 +73,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// @inheritdoc IForwarder
   function revokePooledMaker(address maker) external override {
     reserveApprovals[msg.sender][maker] = false;
+    // is reserve is revoked and maker is currently using it, folding back maker to being its own reserve
     if (reserve(maker) == msg.sender) {
       MOS.getStorage().reserves[maker] = address(0);
     }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Deployer} from "./lib/Deployer.sol";
+import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MgvOracle} from "src/periphery/MgvOracle.sol";
 import "src/Mangrove.sol";
 import {ERC20} from "../test/lib/tokens/ERC20.sol";

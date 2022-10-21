@@ -112,7 +112,7 @@ abstract contract Deployer is Script2 {
       vm.writeFile(mainFile, out);
     } else {
       console.log(
-        "You have not set WRITE_DEPLOY=true. The main deployment file will not be updated. To update it after running this script, copy %s to %s",
+        "\u001b[33m Warning \u001b[0m You have not set WRITE_DEPLOY=true. \n The main deployment file will not be updated. To update it after running this script, copy %s to %s",
         latestBackupFile,
         mainFile
       );

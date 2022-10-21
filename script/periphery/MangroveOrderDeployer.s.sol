@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {MangroveOrderEnriched, IERC20, IMangrove} from "src/periphery/MangroveOrderEnriched.sol";
-import {Deployer} from "./lib/Deployer.sol";
+import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /*  Deploys a MangroveOrder instance
     First test:

@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Ghost, AbstractRouter, IERC20, IMangrove} from "mgv_src/toy_strategies/offer_maker/Ghost.sol";
-import {Deployer} from "./lib/Deployer.sol";
+import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /*  Deploys a Ghost instance
     First test:

@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {Deployer} from "./lib/Deployer.sol";
+import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /* 
 This script deploys a testToken ERC20. Grants admin rights to `msg.sender`

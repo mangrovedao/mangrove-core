@@ -1,9 +1,9 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Deployer} from "./lib/Deployer.sol";
-import {MgvOracle} from "../src/periphery/MgvOracle.sol";
-import {Mangrove} from "../src/Mangrove.sol";
+import {Deployer} from "mgv_script/lib/Deployer.sol";
+import {MgvOracle} from "src/periphery/MgvOracle.sol";
+import {Mangrove} from "src/Mangrove.sol";
 
 contract ConfigureMgvOracle is Deployer {
   function run() public {

@@ -33,5 +33,6 @@ contract ActivateMangroveOrder is Deployer {
     }
     broadcast();
     MangroveOrder(payable(mgvOrder)).activate(iercs);
+    console.log("done!");
   }
 }

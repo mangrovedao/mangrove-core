@@ -7,14 +7,14 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /*  Deploys a MangroveOrder instance
     First test:
- ADMIN=$MUMBAI_PRIVATE_ADDRESS forge script --fork-url mumbai MangroveOrderDeployer -vvv 
+ forge script --fork-url mumbai MangroveOrderDeployer -vvv 
     Then broadcast and verify:
- ADMIN=$MUMBAI_PRIVATE_ADDRESS WRITE_DEPLOY=true forge script --fork-url mumbai MangroveOrderDeployer -vvv --broadcast --verify
+ WRITE_DEPLOY=true forge script --fork-url mumbai MangroveOrderDeployer -vvv --broadcast --verify
     Remember to activate it using ActivateMangroveOrder
 */
 contract MangroveOrderDeployer is Deployer {
   function run() public {
-    innerRun({admin: vm.envAddress("ADMIN")});
+    innerRun({admin: fork.get("Deployer")});
   }
 
   /**

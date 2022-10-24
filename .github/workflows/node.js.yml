@@ -6,13 +6,9 @@ on:
     branches: 
       - master
       - 'run-ci/**'
-    paths-ignore: 
-      - '**.md'
   pull_request_target:
     branches: [ master, test-pr ]
     types: [opened, synchronize, reopened, labeled]
-    paths-ignore: 
-      - '**.md'
 
 concurrency: 
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}

@@ -2,7 +2,7 @@
 
 //AaveRouter.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -14,9 +14,9 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/integrations/AaveV3Module.sol";
-import "mgv_src/strategies/utils/AccessControlled.sol";
-import "mgv_src/strategies/utils/TransferLib.sol";
+import "src/strategies/integrations/AaveV3Module.sol";
+import "src/strategies/utils/AccessControlled.sol";
+import "src/strategies/utils/TransferLib.sol";
 import "./AbstractRouter.sol";
 
 // Underlying on AAVE
@@ -28,9 +28,9 @@ import "./AbstractRouter.sol";
 // - supply ~ 250K
 // - borrow ~ 360K
 contract AaveRouter is AbstractRouter, AaveV3Module {
-  constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode)
+  constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode, uint overhead)
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
-    AbstractRouter(700_000)
+    AbstractRouter(overhead)
   {}
 
   // 1. pulls aTokens from reserve
@@ -65,21 +65,30 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
   }
 
   // Liquidity : MAKER --> `onBehalf`
-  function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual override {
-    require(TransferLib.transferTokenFrom(token, maker, address(this), amount), "AaveRouter/push/transferFail");
+  function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual override returns (uint) {
+    bool success = TransferLib.transferTokenFrom(token, maker, address(this), amount);
     // repay and supply on behalf of `reserve`
-    _repayThenDeposit(token, reserve, amount);
+    if (success) {
+      _repayThenDeposit(token, reserve, amount);
+      return amount;
+    } else {
+      return 0;
+    }
   }
 
   // returns 0 if redeem failed (amount > balance).
   // Redeems user balance if amount == type(uint).max
-  function __withdrawToken__(IERC20 token, address reserve, address to, uint amount) internal override returns (bool) {
+  function __withdrawToken__(IERC20 token, address reserve, address recipient, uint amount)
+    internal
+    override
+    returns (bool)
+  {
     // note there is no possible redeem on behalf
     require(
       TransferLib.transferTokenFrom(overlying(token), reserve, address(this), amount),
       "AaveRouter/supply/transferFromFail"
     );
-    require(_redeem(token, amount, to) == amount, "AaveRouter/withdrawToken/Fail");
+    require(_redeem(token, amount, recipient) == amount, "AaveRouter/withdrawToken/Fail");
     return true;
   }
 
@@ -112,8 +121,8 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
     (available,) = maxGettableUnderlying(token, false, reserve);
   }
 
-  function approveLender(IERC20 token) external {
-    _approveLender(token, type(uint).max);
+  function approveLender(IERC20 token, uint amount) external onlyAdmin {
+    _approveLender(token, amount);
   }
 
   function __checkList__(IERC20 token, address reserve) internal view virtual override {

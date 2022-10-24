@@ -2,7 +2,7 @@ pragma solidity ^0.8.13;
 
 // SPDX-License-Identifier: Unlicense
 
-// MgvPack.sol
+// MgvStructs.post.sol
 
 // This is free and unencumbered software released into the public domain.
 

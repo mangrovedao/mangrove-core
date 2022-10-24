@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
+import {Mango, IERC20, IMangrove} from "src/strategies/offer_maker/market_making/mango/Mango.sol";
 import {Deployer} from "../lib/Deployer.sol";
 
 /**
@@ -29,8 +29,8 @@ import {Deployer} from "../lib/Deployer.sol";
 contract MangoDeployer is Deployer {
   function run() public {
     innerRun({
-      base: fork.get(vm.envString("BASE")),
-      quote: fork.get(vm.envString("QUOTE")),
+      base: getRawAddressOrName("BASE"),
+      quote: getRawAddressOrName("QUOTE"),
       base_0: vm.envUint("BASE_0"),
       quote_0: vm.envUint("QUOTE_0"),
       nslots: vm.envUint("NSLOTS"),

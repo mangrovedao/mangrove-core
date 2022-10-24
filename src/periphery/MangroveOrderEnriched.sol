@@ -1,8 +1,8 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// MangroveOrder.sol
+// MangroveOrderEnriched.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -13,9 +13,9 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {MangroveOrder} from "mgv_src/periphery/MangroveOrder.sol";
-import {IERC20} from "mgv_src/MgvLib.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
+import {MangroveOrder} from "src/periphery/MangroveOrder.sol";
+import {IERC20} from "src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
 
 /**
  * @title This contract is a `MangroveOrder` enriched with the ability to retrieve all offers for each owner.
@@ -41,7 +41,6 @@ contract MangroveOrderEnriched is MangroveOrder {
     virtual
     override
   {
-    //TODO: [lnist] Nothing trims the list, so it just grows indefinitely for each owner.
     // Push new offerId as the new head
     mapping(uint => uint) storage offers = next[outbound_tkn][inbound_tkn][owner];
     uint head = offers[0];

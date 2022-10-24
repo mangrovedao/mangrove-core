@@ -2,7 +2,7 @@
 
 // MgvReader.sol
 
-// Copyright (C) 2021 Giry SAS.
+// Copyright (C) 2021 ADDMA.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published
@@ -20,28 +20,40 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvLib, MgvStructs} from "src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
 
-interface MangroveLike {
-  function best(address, address) external view returns (uint);
-
-  function offers(address, address, uint) external view returns (MgvStructs.OfferPacked);
-
-  function offerDetails(address, address, uint) external view returns (MgvStructs.OfferDetailPacked);
-
-  function offerInfo(address, address, uint)
-    external
-    view
-    returns (MgvStructs.OfferUnpacked memory, MgvStructs.OfferDetailUnpacked memory);
-
-  function config(address, address) external view returns (MgvStructs.GlobalPacked, MgvStructs.LocalPacked);
+struct VolumeData {
+  uint totalGot;
+  uint totalGave;
+  uint totalGasreq;
 }
 
 contract MgvReader {
-  MangroveLike immutable MGV;
+  struct MarketOrder {
+    address outbound_tkn;
+    address inbound_tkn;
+    uint initialWants;
+    uint initialGives;
+    uint totalGot;
+    uint totalGave;
+    uint totalGasreq;
+    uint currentWants;
+    uint currentGives;
+    bool fillWants;
+    uint offerId;
+    MgvStructs.OfferPacked offer;
+    MgvStructs.OfferDetailPacked offerDetail;
+    MgvStructs.LocalPacked local;
+    VolumeData[] volumeData;
+    uint numOffers;
+    bool accumulate;
+  }
+
+  IMangrove immutable MGV;
 
   constructor(address mgv) {
-    MGV = MangroveLike(payable(mgv));
+    MGV = IMangrove(payable(mgv));
   }
 
   /*
@@ -128,21 +140,182 @@ contract MgvReader {
     }
   }
 
+  /* Returns the minimum outbound_tkn volume to give on the outbound_tkn/inbound_tkn offer list for an offer that requires gasreq gas. */
+  function minVolume(address outbound_tkn, address inbound_tkn, uint gasreq) public view returns (uint) {
+    MgvStructs.LocalPacked _local = local(outbound_tkn, inbound_tkn);
+    return (gasreq + _local.offer_gasbase()) * _local.density();
+  }
+
+  /* Returns the provision necessary to post an offer on the outbound_tkn/inbound_tkn offer list. You can set gasprice=0 or use the overload to use Mangrove's internal gasprice estimate. */
   function getProvision(address outbound_tkn, address inbound_tkn, uint ofr_gasreq, uint ofr_gasprice)
-    external
+    public
     view
     returns (uint)
   {
     unchecked {
-      (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) = MGV.config(outbound_tkn, inbound_tkn);
-      uint _gp;
-      uint global_gasprice = global.gasprice();
+      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(outbound_tkn, inbound_tkn);
+      uint gp;
+      uint global_gasprice = _global.gasprice();
       if (global_gasprice > ofr_gasprice) {
-        _gp = global_gasprice;
+        gp = global_gasprice;
       } else {
-        _gp = ofr_gasprice;
+        gp = ofr_gasprice;
       }
-      return (ofr_gasreq + local.offer_gasbase()) * _gp * 10 ** 9;
+      return (ofr_gasreq + _local.offer_gasbase()) * gp * 10 ** 9;
+    }
+  }
+
+  function getProvision(address outbound_tkn, address inbound_tkn, uint gasreq) public view returns (uint) {
+    (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(outbound_tkn, inbound_tkn);
+    return ((gasreq + _local.offer_gasbase()) * uint(_global.gasprice()) * 10 ** 9);
+  }
+
+  /* Sugar for checking whether a offer list is empty. There is no offer with id 0, so if the id of the offer list's best offer is 0, it means the offer list is empty. */
+  function isEmptyOB(address outbound_tkn, address inbound_tkn) public view returns (bool) {
+    return MGV.best(outbound_tkn, inbound_tkn) == 0;
+  }
+
+  /* Returns the fee that would be extracted from the given volume of outbound_tkn tokens on Mangrove's outbound_tkn/inbound_tkn offer list. */
+  function getFee(address outbound_tkn, address inbound_tkn, uint outVolume) public view returns (uint) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(outbound_tkn, inbound_tkn);
+    return ((outVolume * _local.fee()) / 10000);
+  }
+
+  /* Returns the given amount of outbound_tkn tokens minus the fee on Mangrove's outbound_tkn/inbound_tkn offer list. */
+  function minusFee(address outbound_tkn, address inbound_tkn, uint outVolume) public view returns (uint) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(outbound_tkn, inbound_tkn);
+    return (outVolume * (10_000 - _local.fee())) / 10000;
+  }
+
+  /* Sugar for getting only global/local config */
+  function global() public view returns (MgvStructs.GlobalPacked) {
+    (MgvStructs.GlobalPacked _global,) = MGV.config(address(0), address(0));
+    return _global;
+  }
+
+  function local(address outbound_tkn, address inbound_tkn) public view returns (MgvStructs.LocalPacked) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(outbound_tkn, inbound_tkn);
+    return _local;
+  }
+
+  /* marketOrder, internalMarketOrder, and execute all together simulate a market order on mangrove and return the cumulative totalGot, totalGave and totalGasreq for each offer traversed. We assume offer execution is successful and uses exactly its gasreq. 
+  We do not account for gasbase.
+  * Calling this from an EOA will give you an estimate of the volumes you will receive, but you may as well `eth_call` Mangrove.
+  * Calling this from a contract will let the contract choose what to do after receiving a response.
+  * If `!accumulate`, only return the total cumulative volume.
+  */
+  function marketOrder(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint takerWants,
+    uint takerGives,
+    bool fillWants,
+    bool accumulate
+  ) public view returns (VolumeData[] memory) {
+    MarketOrder memory mr;
+    mr.outbound_tkn = outbound_tkn;
+    mr.inbound_tkn = inbound_tkn;
+    (, mr.local) = MGV.config(outbound_tkn, inbound_tkn);
+    mr.offerId = mr.local.best();
+    mr.offer = MGV.offers(outbound_tkn, inbound_tkn, mr.offerId);
+    mr.currentWants = takerWants;
+    mr.currentGives = takerGives;
+    mr.initialWants = takerWants;
+    mr.initialGives = takerGives;
+    mr.fillWants = fillWants;
+    mr.accumulate = accumulate;
+
+    internalMarketOrder(mr, true);
+
+    return mr.volumeData;
+  }
+
+  function marketOrder(address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants)
+    external
+    view
+    returns (VolumeData[] memory)
+  {
+    return marketOrder(outbound_tkn, inbound_tkn, takerWants, takerGives, fillWants, true);
+  }
+
+  function internalMarketOrder(MarketOrder memory mr, bool proceed) internal view {
+    unchecked {
+      if (proceed && (mr.fillWants ? mr.currentWants > 0 : mr.currentGives > 0) && mr.offerId > 0) {
+        uint currentIndex = mr.numOffers;
+
+        mr.offerDetail = MGV.offerDetails(mr.outbound_tkn, mr.inbound_tkn, mr.offerId);
+
+        bool executed = execute(mr);
+
+        uint totalGot = mr.totalGot;
+        uint totalGave = mr.totalGave;
+        uint totalGasreq = mr.totalGasreq;
+
+        if (executed) {
+          mr.numOffers++;
+          mr.currentWants = mr.initialWants > mr.totalGot ? mr.initialWants - mr.totalGot : 0;
+          mr.currentGives = mr.initialGives - mr.totalGave;
+          mr.offerId = mr.offer.next();
+          mr.offer = MGV.offers(mr.outbound_tkn, mr.inbound_tkn, mr.offerId);
+        }
+
+        internalMarketOrder(mr, executed);
+
+        if (executed && (mr.accumulate || currentIndex == 0)) {
+          uint concreteFee = (mr.totalGot * mr.local.fee()) / 10_000;
+          mr.volumeData[currentIndex] =
+            VolumeData({totalGot: totalGot - concreteFee, totalGave: totalGave, totalGasreq: totalGasreq});
+        }
+      } else {
+        if (mr.accumulate) {
+          mr.volumeData = new VolumeData[](mr.numOffers);
+        } else {
+          mr.volumeData = new VolumeData[](1);
+        }
+      }
+    }
+  }
+
+  function execute(MarketOrder memory mr) internal pure returns (bool) {
+    unchecked {
+      {
+        // caching
+        uint offerWants = mr.offer.wants();
+        uint offerGives = mr.offer.gives();
+        uint takerWants = mr.currentWants;
+        uint takerGives = mr.currentGives;
+
+        if (offerWants * takerWants > offerGives * takerGives) {
+          return false;
+        }
+
+        if ((mr.fillWants && offerGives < takerWants) || (!mr.fillWants && offerWants < takerGives)) {
+          mr.currentWants = offerGives;
+          mr.currentGives = offerWants;
+        } else {
+          if (mr.fillWants) {
+            uint product = offerWants * takerWants;
+            mr.currentGives = product / offerGives + (product % offerGives == 0 ? 0 : 1);
+          } else {
+            if (offerWants == 0) {
+              mr.currentWants = offerGives;
+            } else {
+              mr.currentWants = (offerGives * takerGives) / offerWants;
+            }
+          }
+        }
+      }
+
+      // flashloan would normally be called here
+
+      /**
+       * if success branch of original mangrove code, assumed to be true
+       */
+      mr.totalGot += mr.currentWants;
+      mr.totalGave += mr.currentGives;
+      mr.totalGasreq += mr.offerDetail.gasreq();
+      return true;
+      /* end if success branch **/
     }
   }
 }

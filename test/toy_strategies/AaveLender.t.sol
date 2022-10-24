@@ -7,10 +7,11 @@ import {
   AdvancedAaveRetail,
   AaveV3Module,
   AaveDeepRouter
-} from "mgv_src/toy_strategies/offer_maker/cash_management/AdvancedAaveRetail.sol";
-import {IERC20} from "mgv_src/MgvLib.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
+} from "src/toy_strategies/offer_maker/cash_management/AdvancedAaveRetail.sol";
+import {IERC20} from "src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
 import {console2} from "forge-std/Test.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 
 abstract contract AaveV3ModuleTest is MangroveTest {
   /* aave expectations */
@@ -46,6 +47,7 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
 
     mgv = setupMangrove();
     mgv.setVault($(mgv));
+    reader = new MgvReader($(mgv));
 
     dai = IERC20(fork.get("DAI"));
     weth = IERC20(fork.get("WETH"));
@@ -71,10 +73,13 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
       _addressesProvider: fork.get("Aave"),
       deployer: $(this)
     });
-
     router = AaveDeepRouter($(strat.router()));
+    router.bind($(strat));
+    // storing funds on router
+    strat.setReserve($(this), $(router));
+
     // note for later: compound is
-    //   simple/advanced compoudn= Contract.deploy(Fork.COMP,IMangrove($(mgv)),Fork.WETH,$(this));
+    //   simple/advanced compound= Contract.deploy(Fork.COMP,IMangrove($(mgv)),Fork.WETH,$(this));
     //   market = [Fork.CWETH,Fork.CDAI];
 
     // aave rejects market entering if underlying balance is 0 (will self enter at first deposit)
@@ -97,12 +102,12 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
     dai.transfer($(strat), 1000 ether);
 
     // testSigner asks makerContract to approve lender to be able to mint [c/a]Token
-    router.approveLender(weth);
+    router.approveLender(weth, type(uint).max);
     // NB in the special case of cEth this is only necessary to repay debt
-    router.approveLender(dai);
+    router.approveLender(dai, type(uint).max);
 
     // makerContract deposits some DAI on Lender (remains 100 DAIs on the contract)
-    router.supply(dai, strat.reserve(), 900 ether, $(strat) /* from */ );
+    router.supply(dai, strat.reserve($(this)), 900 ether, $(strat) /* from */ );
   }
 
   function execTraderStrat() public {
@@ -123,7 +128,7 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
       targets: wrap_dynamic([offerId, 300 ether, 0.15 ether, type(uint).max]),
       fillWants: true
     });
-    assertEq(got, minusFee($(dai), $(weth), 300 ether), "wrong got amount");
+    assertEq(got, reader.minusFee($(dai), $(weth), 300 ether), "wrong got amount");
 
     // TODO logLenderStatus
     assertApproxBalanceAndBorrow(router, dai, 700 ether, 0, $(router));
@@ -171,7 +176,7 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
       targets: wrap_dynamic([offerId, 1500 ether, 0.63 ether, type(uint).max]),
       fillWants: true
     });
-    assertEq(got, minusFee($(dai), $(weth), 1500 ether), "wrong received amount");
+    assertEq(got, reader.minusFee($(dai), $(weth), 1500 ether), "wrong received amount");
 
     // TODO logLenderStatus
     assertApproxBalanceAndBorrow(router, weth, 0.58 ether, 0, $(router));

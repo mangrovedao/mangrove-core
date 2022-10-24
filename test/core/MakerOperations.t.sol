@@ -5,7 +5,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvStructs} from "src/MgvLib.sol";
 
 contract MakerOperationsTest is MangroveTest, IMaker {
   TestMaker mkr;
@@ -24,6 +24,20 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     deal($(quote), address(tkr), 1 ether);
     tkr.approveMgv(quote, 1 ether);
+  }
+
+  function test_fund_maker_fn(address anyone, uint64 amount) public {
+    uint oldBal = mgv.balanceOf(address(anyone));
+    mgv.fund{value: amount}(anyone);
+    uint newBal = mgv.balanceOf(address(anyone));
+    assertEq(newBal, oldBal + amount);
+  }
+
+  function test_fund_fn(uint64 amount) public {
+    uint oldBal = mgv.balanceOf(address(this));
+    mgv.fund{value: amount}();
+    uint newBal = mgv.balanceOf(address(this));
+    assertEq(newBal, oldBal + amount);
   }
 
   function test_provision_adds_mgv_balance_and_ethers() public {
@@ -199,7 +213,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_retract_offer_maintains_balance() public {
     mkr.provisionMgv(1 ether);
     uint bal = mkr.mgvBalance();
-    uint prov = getProvision($(base), $(quote), 2300);
+    uint prov = reader.getProvision($(base), $(quote), 2300);
     mkr.retractOffer(mkr.newOffer(1 ether, 1 ether, 2300, 0));
     assertEq(mkr.mgvBalance(), bal - prov, "unexpected maker balance");
   }
@@ -519,7 +533,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   }
 
   function test_update_offer_after_higher_gasprice_change_fails() public {
-    uint provision = getProvision($(base), $(quote), 100_000);
+    uint provision = reader.getProvision($(base), $(quote), 100_000);
     mkr.provisionMgv(provision);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     (MgvStructs.GlobalPacked cfg,) = mgv.config($(base), $(quote));
@@ -531,7 +545,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_update_offer_after_higher_gasprice_change_succeeds_when_over_provisioned() public {
     (MgvStructs.GlobalPacked cfg,) = mgv.config($(base), $(quote));
     uint gasprice = cfg.gasprice();
-    uint provision = getProvision($(base), $(quote), 100_000, gasprice);
+    uint provision = reader.getProvision($(base), $(quote), 100_000, gasprice);
     expectFrom($(mgv));
     emit Credit(address(mkr), provision * 2);
     mkr.provisionMgv(provision * 2); // provisionning twice the required amount
@@ -551,7 +565,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     emit Debit(address(mkr), provision); // transfering missing provision into offer bounty
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0); // locking exact bounty
     mgv.setGasprice(gasprice + 1); //gasprice goes up
-    uint provision_ = getProvision($(base), $(quote), 100_000, gasprice + 1); // new theoretical provision
+    uint provision_ = reader.getProvision($(base), $(quote), 100_000, gasprice + 1); // new theoretical provision
     (cfg,) = mgv.config($(base), $(quote));
     expectFrom($(mgv));
     emit OfferWrite(
@@ -571,12 +585,12 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   }
 
   function test_update_offer_after_lower_gasprice_change_succeeds() public {
-    uint provision = getProvision($(base), $(quote), 100_000);
+    uint provision = reader.getProvision($(base), $(quote), 100_000);
     mkr.provisionMgv(provision);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     (MgvStructs.GlobalPacked cfg,) = mgv.config($(base), $(quote));
     mgv.setGasprice(cfg.gasprice() - 1); //gasprice goes down
-    uint _provision = getProvision($(base), $(quote), 100_000);
+    uint _provision = reader.getProvision($(base), $(quote), 100_000);
     expectFrom($(mgv));
     emit Credit(address(mkr), provision - _provision);
     mkr.updateOffer(1.0 ether + 2, 1.0 ether, 100_000, ofr0, ofr0);
@@ -595,7 +609,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   }
 
   function test_update_on_retracted_offer() public {
-    uint provision = getProvision($(base), $(quote), 100_000);
+    uint provision = reader.getProvision($(base), $(quote), 100_000);
     mkr.provisionMgv(provision);
     uint offerId = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.retractOfferWithDeprovision(offerId);

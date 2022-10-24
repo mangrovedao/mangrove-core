@@ -57,8 +57,8 @@ abstract contract Deployer is Script2 {
       fork = GenericFork(singleton("Deployer:Fork"));
     }
 
-    try vm.envBool("WRITE_DEPLOY") returns (bool _writeDeploy) {
-      writeDeploy = _writeDeploy;
+    try vm.envBool("WRITE_DEPLOY") returns (bool writeDeploy_) {
+      writeDeploy = writeDeploy_;
     } catch {}
   }
 
@@ -102,16 +102,18 @@ abstract contract Deployer is Script2 {
       line(end ? "  }" : "  },");
     }
     line("]");
-    string memory backupFile =
+    string memory latestBackupFile = fork.addressesFile("deployed.backup", "-latest");
+    string memory timestampedBackupFile =
       fork.addressesFile("deployed.backup", string.concat("-", vm.toString(block.timestamp), ".backup"));
     string memory mainFile = fork.addressesFile("deployed");
-    vm.writeFile(backupFile, out);
+    vm.writeFile(latestBackupFile, out);
+    vm.writeFile(timestampedBackupFile, out);
     if (writeDeploy) {
       vm.writeFile(mainFile, out);
     } else {
       console.log(
-        "You have not set WRITE_DEPLOY=true. The main deployment file will not be updated. To update it after running this script, copy %s to %s",
-        backupFile,
+        "\u001b[33m Warning \u001b[0m You have not set WRITE_DEPLOY=true. \n The main deployment file will not be updated. To update it after running this script, copy %s to %s",
+        latestBackupFile,
         mainFile
       );
     }
@@ -119,5 +121,14 @@ abstract contract Deployer is Script2 {
 
   function line(string memory s) internal {
     out = string.concat(out, s, "\n");
+  }
+
+  // Tries to interpret `envVar`'s value as an address; otherwise look it up in the current fork.
+  function getRawAddressOrName(string memory envVar) internal returns (address payable) {
+    try vm.envAddress(envVar) returns (address addr) {
+      return payable(addr);
+    } catch {
+      return fork.get(vm.envString(envVar));
+    }
   }
 }

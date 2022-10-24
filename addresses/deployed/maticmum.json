@@ -4,7 +4,7 @@
     "name": "Mangrove"
   },
   {
-    "address": "0xfAB31d37f8DF5bff07Bb3c16B33416eCd4Aab76F",
+    "address": "0xD59A51bE32eA35Db72De6A3Eb88bf2C56811f57c",
     "name": "MgvReader"
   },
   {
@@ -16,7 +16,7 @@
     "name": "MgvOracle"
   },
   {
-    "address": "0x9A643978A0A50459d6159bc87f97B309E539083b",
+    "address": "0x2a4b3282E45f3f9C6e151Ec2D69fcE5E32410D14",
     "name": "MangroveOrderEnriched"
   },
   {

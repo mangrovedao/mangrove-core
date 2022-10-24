@@ -5,7 +5,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvStructs} from "src/MgvLib.sol";
 
 // In these tests, the testing contract is the market maker.
 contract GatekeepingTest is IMaker, MangroveTest {
@@ -191,6 +191,39 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.retractOffer($(base), $(quote), ofr, false);
   }
 
+  function test_updateOffer_wrong_owner_fails() public {
+    uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
+    vm.expectRevert("mgv/updateOffer/unauthorized");
+    mgv.updateOffer($(base), $(quote), 1 ether, 1 ether, 0, 0, ofr, ofr);
+  }
+
+  function test_gives_0_rejected() public {
+    vm.expectRevert("mgv/writeOffer/gives/tooLow");
+    mkr.newOffer(1 ether, 0 ether, 100_000, 0);
+  }
+
+  function test_idOverflow_reverts(address tout, address tin) public {
+    mgv.activate(tout, tin, 0, 0, 0);
+
+    // To test overflow, we surgically set 'last offer id' in mangrove storage
+    // to uint32.max.
+    //
+    // We use locked(out,in) as a proxy for getting the storage slot of
+    // locals[out][in]
+    vm.record();
+    mgv.locked(tout, tin);
+    (bytes32[] memory reads,) = vm.accesses(address(mgv));
+    bytes32 slot = reads[0];
+    bytes32 data = vm.load(address(mgv), slot);
+    MgvStructs.LocalPacked local = MgvStructs.LocalPacked.wrap(uint(data));
+    local = local.last(type(uint32).max);
+    vm.store(address(mgv), slot, bytes32(MgvStructs.LocalPacked.unwrap(local)));
+
+    // try new offer now that we set the last id to uint32.max
+    vm.expectRevert("mgv/offerIdOverflow");
+    mgv.newOffer(tout, tin, 1 ether, 1 ether, 0, 0, 0);
+  }
+
   function test_makerGives_wider_than_96_bits_fails_newOffer() public {
     vm.expectRevert("mgv/writeOffer/gives/96bits");
     mkr.newOffer(1, 2 ** 96, 10_000, 0);
@@ -223,7 +256,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
       0 // prev
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), getProvision($(base), $(quote), cfg.gasmax(), 0));
+    emit Debit(address(mkr), reader.getProvision($(base), $(quote), cfg.gasmax(), 0));
     uint ofr = mkr.newOffer(1 ether, 1 ether, cfg.gasmax(), 0);
     assertTrue(mgv.isLive(mgv.offers($(base), $(quote), ofr)), "Offer should have been inserted");
   }
@@ -254,7 +287,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
       0 // prev
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), getProvision($(base), $(quote), 1, 0));
+    emit Debit(address(mkr), reader.getProvision($(base), $(quote), 1, 0));
     uint ofr = mkr.newOffer(amount, amount, 1, 0);
     assertTrue(mgv.isLive(mgv.offers($(base), $(quote), ofr)), "Offer should have been inserted");
   }
@@ -267,6 +300,11 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_takerWants_wider_than_160_bits_fails_marketOrder() public {
     vm.expectRevert("mgv/mOrder/takerWants/160bits");
     tkr.marketOrder(2 ** 160, 0);
+  }
+
+  function test_takerGives_wider_than_160_bits_fails_marketOrder() public {
+    vm.expectRevert("mgv/mOrder/takerGives/160bits");
+    tkr.marketOrder(0, 2 ** 160);
   }
 
   function test_takerWants_above_96bits_fails_snipes() public {
@@ -612,5 +650,30 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.deactivate($(base), $(quote));
     vm.expectRevert("mgv/inactive");
     mgv.updateOffer($(base), $(quote), 1 ether, 1 ether, 0, 0, 0, ofr);
+  }
+
+  function test_inverted_mangrove_flashloan_fail_if_not_self(address caller) public {
+    InvertedMangrove imgv = new InvertedMangrove(address(this),0,0);
+    vm.assume(caller != address(imgv));
+    MgvLib.SingleOrder memory sor;
+    vm.prank(caller);
+    vm.expectRevert("mgv/invertedFlashloan/protected");
+    imgv.flashloan(sor, address(0));
+  }
+
+  function test_mangrove_flashloan_fail_if_not_self(address caller) public {
+    vm.assume(caller != address(mgv));
+    MgvLib.SingleOrder memory sor;
+    vm.prank(caller);
+    vm.expectRevert("mgv/flashloan/protected");
+    mgv.flashloan(sor, address(0));
+  }
+
+  function test_configInfo(address tout, address tin, address monitor, uint112 density) public {
+    mgv.activate(tout, tin, 0, density, 0);
+    mgv.setMonitor(monitor);
+    (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = mgv.configInfo(tout, tin);
+    assertEq(g.monitor, monitor, "wrong monitor");
+    assertEq(l.density, density, "wrong density");
   }
 }

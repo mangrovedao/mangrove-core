@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvStructs} from "src/MgvLib.sol";
 
 contract MakerPosthookTest is MangroveTest, IMaker {
   TestTaker tkr;
@@ -87,7 +87,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_renew_offer_after_partial_fill() public {
-    uint mkr_provision = getProvision($(base), $(quote), gasreq, _gasprice);
+    uint mkr_provision = reader.getProvision($(base), $(quote), gasreq, _gasprice);
     _posthook = renew_offer_at_posthook;
 
     ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice, 0);
@@ -112,7 +112,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_renew_offer_after_complete_fill() public {
-    uint mkr_provision = getProvision($(base), $(quote), gasreq, _gasprice);
+    uint mkr_provision = reader.getProvision($(base), $(quote), gasreq, _gasprice);
     _posthook = renew_offer_at_posthook;
 
     ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice, 0);
@@ -190,8 +190,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_update_offer_with_more_gasprice() public {
-    uint mkr_provision = getProvision($(base), $(quote), gasreq, _gasprice);
-    uint standard_provision = getProvision($(base), $(quote), gasreq);
+    uint mkr_provision = reader.getProvision($(base), $(quote), gasreq, _gasprice);
+    uint standard_provision = reader.getProvision($(base), $(quote), gasreq);
     _posthook = update_gas_offer_at_posthook;
     // provision for mgv.global.gasprice
     ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, gasreq, 0, 0);
@@ -235,7 +235,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_retract_offer_in_posthook() public {
-    uint mkr_provision = getProvision($(base), $(quote), gasreq, _gasprice);
+    uint mkr_provision = reader.getProvision($(base), $(quote), gasreq, _gasprice);
     _posthook = retractOffer_posthook;
     ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice, 0);
     assertEq(
@@ -261,7 +261,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_balance_after_fail_and_retract() public {
-    uint mkr_provision = getProvision($(base), $(quote), gasreq, _gasprice);
+    uint mkr_provision = reader.getProvision($(base), $(quote), gasreq, _gasprice);
     uint tkr_weis = address(tkr).balance;
     _posthook = retractOffer_posthook;
     ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice, 0);
@@ -352,7 +352,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_retract_offer_after_fail_in_posthook() public {
-    uint mkr_provision = getProvision($(base), $(quote), gasreq, _gasprice);
+    uint mkr_provision = reader.getProvision($(base), $(quote), gasreq, _gasprice);
     _posthook = retractOffer_posthook;
     ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice, 0);
     assertEq(
@@ -390,7 +390,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_reverting_posthook_does_not_revert_offer() public {
-    getProvision($(base), $(quote), gasreq, _gasprice);
+    reader.getProvision($(base), $(quote), gasreq, _gasprice);
     uint balMaker = base.balanceOf($(this));
     uint balTaker = quote.balanceOf(address(tkr));
     _posthook = reverting_posthook;

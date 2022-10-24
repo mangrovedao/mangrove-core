@@ -2,8 +2,8 @@
 pragma solidity ^0.8.14;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
-import "mgv_src/strategies/routers/AaveRouter.sol";
+import "src/strategies/offer_maker/market_making/mango/Mango.sol";
+import "src/strategies/routers/AaveRouter.sol";
 import "mgv_test/lib/forks/Polygon.sol";
 
 /* This test works as an example of how to run the same test on multiple forks. 
@@ -88,14 +88,15 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     router = new AaveRouter({
       _addressesProvider: fork.get("Aave"),
       _referralCode: 0,
-      _interestRateMode: 1 // stable rate
+      _interestRateMode: 1, // stable rate
+      overhead: 700_000
     });
     // adding makerContract to allowed pullers of router's liquidity
     router.bind($(mgo));
 
     // liquidity router will pull funds from AAVE
     mgo.setRouter(router);
-    mgo.setReserve($(router));
+    mgo.setReserve(maker, $(router));
 
     // computing necessary provision (which has changed because of new router GAS_OVERHEAD)
     uint prov = mgo.getMissingProvision({
@@ -115,7 +116,7 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     tokens[0] = weth;
     tokens[1] = usdc;
 
-    vm.expectRevert("MangroveOffer/LogicMustApproveRouter");
+    vm.expectRevert("mgvOffer/LogicMustApproveRouter");
     mgo.checkList(tokens);
 
     // no need to approve for overlying transfer because router is the reserve
@@ -126,8 +127,8 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     }
 
     // putting ETH as collateral on AAVE
-    router.supply(weth, mgo.reserve(), 17 ether, $(mgo) /* maker contract was funded above */ );
-    router.borrow(usdc, mgo.reserve(), 2000 * 10 ** 6, $(mgo) /* maker contract is buffer */ );
+    router.supply(weth, mgo.reserve(maker), 17 ether, $(mgo) /* maker contract was funded above */ );
+    router.borrow(usdc, mgo.reserve(maker), 2000 * 10 ** 6, $(mgo) /* maker contract is buffer */ );
     vm.stopPrank();
 
     // TODO-foundry-merge: implement logLenderStatus in solidity

@@ -2,7 +2,7 @@
 
 // OfferMaker.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -13,16 +13,14 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import "mgv_src/strategies/routers/AbstractRouter.sol";
-import "mgv_src/strategies/interfaces/IMakerLogic.sol";
+import "src/strategies/offer_maker/abstract/Direct.sol";
+import "src/strategies/routers/AbstractRouter.sol";
+import "src/strategies/interfaces/IMakerLogic.sol";
 
 contract OfferMaker is IMakerLogic, Direct {
-  constructor(IMangrove mgv, AbstractRouter router_, address deployer) Direct(mgv, router_) {
-    setGasreq(16_000); // fails at <= 15K
-    if (router_ != NO_ROUTER) {
-      router_.bind(address(this));
-    }
+  // router_ needs to bind to this contract
+  // since one cannot assume `this` is admin of router, one cannot do this here in general
+  constructor(IMangrove mgv, AbstractRouter router_, address deployer) Direct(mgv, router_, 30_000) {
     // stores total gas requirement of this strat (depends on router gas requirements)
     // if contract is deployed with static address, then one must set admin to something else than msg.sender
     if (deployer != msg.sender) {
@@ -44,15 +42,20 @@ contract OfferMaker is IMakerLogic, Direct {
     uint gasreq,
     uint gasprice,
     uint pivotId
-  ) external payable override onlyAdmin returns (uint offerId) {
-    offerId = MGV.newOffer{value: msg.value}(
-      address(outbound_tkn),
-      address(inbound_tkn),
-      wants,
-      gives,
-      gasreq >= type(uint24).max ? offerGasreq() : gasreq,
-      gasprice,
-      pivotId
+  ) public payable override mgvOrAdmin returns (uint offerId) {
+    offerId = _newOffer(
+      OfferArgs({
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        wants: wants,
+        gives: gives,
+        gasreq: gasreq,
+        gasprice: gasprice,
+        pivotId: pivotId,
+        fund: msg.value,
+        noRevert: false,
+        owner: msg.sender
+      })
     );
   }
 }

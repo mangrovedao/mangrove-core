@@ -2,9 +2,9 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
-import "mgv_src/strategies/routers/SimpleRouter.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import "src/strategies/offer_maker/market_making/mango/Mango.sol";
+import "src/strategies/routers/SimpleRouter.sol";
+import {MgvStructs} from "src/MgvLib.sol";
 
 contract MangoTest is MangroveTest {
   struct Book {
@@ -118,14 +118,14 @@ contract MangoTest is MangroveTest {
     (uint got, uint gave, uint bounty,) = mgv.marketOrder($(weth), $(usdc), cash(weth, 5, 1), cash(usdc, 3000), true);
 
     Book memory book = getOffers(false);
-    assertEq(got, minusFee($(weth), $(usdc), 0.5 ether), "incorrect received amount");
+    assertEq(got, reader.minusFee($(weth), $(usdc), 0.5 ether), "incorrect received amount");
     assertEq(bounty, 0, "taker should not receive bounty");
     checkOB($(usdc), $(weth), book.bids, dynamic([int(1), 2, 3, 4, 5, 6, 0, 0, 0, 0]));
     checkOB($(weth), $(usdc), book.asks, dynamic([int(0), 0, 0, 0, 0, -1, 2, 3, 4, 5]));
 
     (got, gave, bounty,) = mgv.marketOrder($(usdc), $(weth), cash(usdc, 3500), cash(weth, 15, 1), true);
 
-    assertEq(got, minusFee($(usdc), $(weth), cash(usdc, 3500)), "incorrect received amount");
+    assertEq(got, reader.minusFee($(usdc), $(weth), cash(usdc, 3500)), "incorrect received amount");
 
     assertEq(bounty, 0, "taker should not receive bounty");
 

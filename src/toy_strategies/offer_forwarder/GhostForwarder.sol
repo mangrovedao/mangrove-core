@@ -2,7 +2,7 @@
 
 // Ghost.sol
 
-// Copyright (c) 2022 ADDMA. All rights reserved.
+// Copyright (c) 2021 Giry SAS. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -13,40 +13,36 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "src/strategies/offer_maker/abstract/Direct.sol";
-import "src/strategies/routers/SimpleRouter.sol";
-import {MgvLib, MgvStructs} from "src/MgvLib.sol";
+import "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
+import "mgv_src/strategies/routers/SimpleRouter.sol";
+import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 
-contract Ghost is Direct {
+contract GhostForwarder is Forwarder {
   IERC20 public immutable BASE;
   IERC20 public immutable STABLE1;
   IERC20 public immutable STABLE2;
 
-  ///mapping(IERC20 => mapping(IERC20 => uint)) // base -> stable -> offerid
+  struct OfferPair {
+    uint id1;
+    uint id2;
+  }
 
-  uint offerId1; // id of the offer on stable 1
-  uint offerId2; // id of the offer on stable 2
+  mapping(address => OfferPair) offers; // mapping from maker address to id of the offers
 
-  //           MangroveOffer <-- makerExecute
-  //                  /\
-  //                 / \
-  //        Forwarder  Direct <-- offer management (our entry point)
-  //    OfferForwarder  OfferMaker <-- new offer posting
-
-  constructor(IMangrove mgv, IERC20 base, IERC20 stable1, IERC20 stable2, address admin)
-    Direct(mgv, NO_ROUTER, 100_000)
+  constructor(IMangrove mgv, IERC20 base, IERC20 stable1, IERC20 stable2, address deployer, uint gasreq)
+    Forwarder(mgv, new SimpleRouter(), gasreq)
   {
     // SimpleRouter takes promised liquidity from admin's address (wallet)
     STABLE1 = stable1;
     STABLE2 = stable2;
     BASE = base;
-    AbstractRouter router_ = new SimpleRouter();
-    setRouter(router_);
-    // adding `this` to the allowed makers of `router_` to pull/push liquidity
-    // Note: `reserve(admin)` needs to approve `this.router()` for base token transfer
+
+    AbstractRouter router_ = router();
     router_.bind(address(this));
-    router_.setAdmin(admin);
-    setAdmin(admin);
+    if (deployer != msg.sender) {
+      setAdmin(deployer);
+      router_.setAdmin(deployer);
+    }
   }
 
   /**
@@ -57,7 +53,7 @@ contract Ghost is Direct {
    * @param pivot2 pivot for STABLE2
    * @return (offerid for STABLE1, offerid for STABLE2)
    * @dev these offer's provision must be in msg.value
-   * @dev `reserve(admin())` must have approved base for `this` contract transfer prior to calling this function
+   * @dev `reserve()` must have approved base for `this` contract transfer prior to calling this function
    */
   function newGhostOffers(
     // this function posts two asks
@@ -65,8 +61,10 @@ contract Ghost is Direct {
     uint wants1,
     uint wants2,
     uint pivot1,
-    uint pivot2
-  ) external payable onlyAdmin returns (uint, uint) {
+    uint pivot2,
+    uint fund1,
+    uint fund2
+  ) external payable returns (uint, uint) {
     // there is a cost of being paternalistic here, we read MGV storage
     // an offer can be in 4 states:
     // - not on mangrove (never has been)
@@ -75,46 +73,55 @@ contract Ghost is Direct {
     // MGV.retractOffer(..., deprovision:bool)
     // deprovisioning an offer (via MGV.retractOffer) credits maker balance on Mangrove (no native token transfer)
     // if maker wishes to retrieve native tokens it should call MGV.withdraw (and have a positive balance)
-    require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE1), offerId1)), "Ghost/offer1AlreadyActive");
-    require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerId2)), "Ghost/offer2AlreadyActive");
+    OfferPair memory offerPair = offers[msg.sender];
+
+    require(
+      !MGV.isLive(MGV.offers(address(BASE), address(STABLE1), offerPair.id1)), "GhostForwarder/offer1AlreadyActive"
+    );
+    require(
+      !MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerPair.id2)), "GhostForwarder/offer2AlreadyActive"
+    );
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
-    offerId1 = _newOffer(
+    uint _offerId1 = _newOffer(
       OfferArgs({
         outbound_tkn: BASE,
         inbound_tkn: STABLE1,
         wants: wants1,
         gives: gives,
         gasreq: offerGasreq(),
-        gasprice: 0,
+        gasprice: 0, // ignored
         pivotId: pivot1,
-        fund: msg.value,
+        fund: fund1,
         noRevert: false,
         owner: msg.sender
       })
     );
+
+    offers[msg.sender].id1 = _offerId1;
     // no need to fund this second call for provision
     // since the above call should be enough
-    offerId2 = _newOffer(
+    uint _offerId2 = _newOffer(
       OfferArgs({
         outbound_tkn: BASE,
         inbound_tkn: STABLE2,
         wants: wants2,
         gives: gives,
         gasreq: offerGasreq(),
-        gasprice: 0,
+        gasprice: 0, // ignored
         pivotId: pivot2,
-        fund: 0,
+        fund: fund2,
         noRevert: false,
         owner: msg.sender
       })
     );
+    offers[msg.sender].id2 = _offerId2;
 
-    return (offerId1, offerId2);
+    require(_offerId1 != 0, "GhostForwarder/newOffer1Failed");
+    require(_offerId2 != 0, "GhostForwarder/newOffer2Failed");
+
+    return (_offerId1, _offerId2);
   }
-
-  ///FIXME a possibility is to update the alt offer during makerExecute
-  /// to do this we can override `__lastLook__` which is a hook called at the beginning of `makerExecute`
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal
@@ -128,14 +135,15 @@ contract Ghost is Direct {
     // - residual below density (dust)
     // - not enough provision
     // - offer list is closed (governance call)
+    // Get the owner of the order. That is the same owner as the alt offer
+    address owner = ownerOf(IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId);
+    OfferPair memory offerPair = offers[owner];
     (IERC20 alt_stable, uint alt_offerId) =
-      IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerId2) : (STABLE1, offerId1);
+      IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerPair.id2) : (STABLE1, offerPair.id1);
 
     if (repost_status == "posthook/reposted") {
       uint new_alt_gives = __residualGives__(order); // in base units
       MgvStructs.OfferPacked alt_offer = MGV.offers(order.outbound_tkn, address(alt_stable), alt_offerId);
-      MgvStructs.OfferDetailPacked alt_detail = MGV.offerDetails(order.outbound_tkn, address(alt_stable), alt_offerId);
-
       uint old_alt_wants = alt_offer.wants();
       // old_alt_gives is also old_gives
       uint old_alt_gives = order.offer.gives();
@@ -145,16 +153,19 @@ contract Ghost is Direct {
       unchecked {
         new_alt_wants = (old_alt_wants * new_alt_gives) / old_alt_gives;
       }
+
+      //uint prov = getMissingProvision(IERC20(order.outbound_tkn), IERC20(alt_stable), type(uint).max, 0, 0);
+
       // the call below might throw
       updateOffer({
         outbound_tkn: IERC20(order.outbound_tkn),
         inbound_tkn: IERC20(alt_stable),
-        gives: new_alt_gives,
         wants: new_alt_wants,
-        offerId: alt_offerId,
-        gasreq: alt_detail.gasreq(),
+        gives: new_alt_gives,
+        gasreq: offerGasreq(),
+        gasprice: 0,
         pivotId: alt_offer.next(),
-        gasprice: 0
+        offerId: alt_offerId
       });
       return "posthook/bothOfferReposted";
     } else {
@@ -178,8 +189,9 @@ contract Ghost is Direct {
   }
 
   function retractOffers(bool deprovision) public {
-    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerId1, deprovision: deprovision});
-    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerId2, deprovision: deprovision});
+    OfferPair memory offerPair = offers[msg.sender];
+    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerPair.id1, deprovision: deprovision});
+    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerPair.id2, deprovision: deprovision});
   }
 
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)
@@ -187,9 +199,12 @@ contract Ghost is Direct {
     override
     returns (bytes32)
   {
+    // Get the owner of the order. That is the same owner as the alt offer
+    address owner = ownerOf(IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId);
     // if we reach this code, trade has failed for lack of base token
+    OfferPair memory offerPair = offers[owner];
     (IERC20 alt_stable, uint alt_offerId) =
-      IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerId2) : (STABLE1, offerId1);
+      IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerPair.id2) : (STABLE1, offerPair.id1);
     retractOffer({
       outbound_tkn: IERC20(order.outbound_tkn),
       inbound_tkn: IERC20(alt_stable),

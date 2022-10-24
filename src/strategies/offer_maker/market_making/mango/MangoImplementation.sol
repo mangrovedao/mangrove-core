@@ -2,7 +2,7 @@
 
 // MangoImplementation.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -13,10 +13,10 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/IMangrove.sol";
+import "src/IMangrove.sol";
 import "./MangoStorage.sol";
-import "mgv_src/strategies/utils/TransferLib.sol";
-import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
+import "src/strategies/utils/TransferLib.sol";
+import {MgvLib, MgvStructs} from "src/MgvLib.sol";
 
 //import "../routers/AbstractRouter.sol";
 

@@ -1,22 +1,24 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Test2} from "./Test2.sol";
+import {Test2} from "mgv_test/lib/Test2.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
+import {TestSender} from "mgv_test/lib/agents/TestSender.sol";
 import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {MakerDeployer} from "mgv_test/lib/agents/MakerDeployer.sol";
 import {TestMoriartyMaker} from "mgv_test/lib/agents/TestMoriartyMaker.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 
-import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
-import {Mangrove} from "mgv_src/Mangrove.sol";
-import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
-import {IERC20, MgvLib, HasMgvEvents, IMaker, ITaker, IMgvMonitor, MgvStructs} from "mgv_src/MgvLib.sol";
+import {AbstractMangrove} from "src/AbstractMangrove.sol";
+import {Mangrove} from "src/Mangrove.sol";
+import {MgvReader} from "src/periphery/MgvReader.sol";
+import {InvertedMangrove} from "src/InvertedMangrove.sol";
+import {IERC20, MgvLib, HasMgvEvents, IMaker, ITaker, IMgvMonitor, MgvStructs} from "src/MgvLib.sol";
 import {console2 as csl} from "forge-std/console2.sol";
 
 // below imports are for the \$( function)
-import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
+import {AccessControlled} from "src/strategies/utils/AccessControlled.sol";
 
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 
@@ -44,6 +46,7 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   AbstractMangrove mgv;
+  MgvReader reader;
   TestToken base;
   TestToken quote;
 
@@ -84,6 +87,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     );
     // mangrove deploy
     mgv = setupMangrove(base, quote, options.invertedMangrove);
+    reader = new MgvReader($(mgv));
 
     // below are necessary operations because testRunner acts as a taker/maker in some core protocol tests
     // TODO this should be done somewhere else
@@ -180,36 +184,6 @@ contract MangroveTest is Test2, HasMgvEvents {
     gasreqreceive_on,
     gasprice,
     gasreq
-  }
-
-  function isEmptyOB(address $out, address $in) internal view returns (bool) {
-    return mgv.best($out, $in) == 0;
-  }
-
-  function getFee(address $out, address $in, uint price) internal view returns (uint) {
-    (, MgvStructs.LocalPacked local) = mgv.config($out, $in);
-    return ((price * local.fee()) / 10000);
-  }
-
-  function minusFee(address $out, address $in, uint price) internal view returns (uint) {
-    (, MgvStructs.LocalPacked local) = mgv.config($out, $in);
-    return (price * (10_000 - local.fee())) / 10000;
-  }
-
-  function getProvision(address $out, address $in, uint gasreq) internal view returns (uint) {
-    (MgvStructs.GlobalPacked glo_cfg, MgvStructs.LocalPacked loc_cfg) = mgv.config($out, $in);
-    return ((gasreq + loc_cfg.offer_gasbase()) * uint(glo_cfg.gasprice()) * 10 ** 9);
-  }
-
-  function getProvision(address $out, address $in, uint gasreq, uint gasprice) internal view returns (uint) {
-    (MgvStructs.GlobalPacked glo_cfg, MgvStructs.LocalPacked loc_cfg) = mgv.config($out, $in);
-    uint _gp;
-    if (glo_cfg.gasprice() > gasprice) {
-      _gp = uint(glo_cfg.gasprice());
-    } else {
-      _gp = gasprice;
-    }
-    return ((gasreq + loc_cfg.offer_gasbase()) * _gp * 10 ** 9);
   }
 
   // Deploy mangrove
@@ -323,6 +297,10 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function $(IERC20 t) internal pure returns (address payable) {
+    return payable(address(t));
+  }
+
+  function $(TestSender t) internal pure returns (address payable) {
     return payable(address(t));
   }
 }

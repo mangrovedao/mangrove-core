@@ -2,7 +2,7 @@
 
 // MangroveOffer.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -13,52 +13,56 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
+import {AccessControlled} from "src/strategies/utils/AccessControlled.sol";
 import {MangroveOfferStorage as MOS} from "./MangroveOfferStorage.sol";
-import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
-import {MgvLib, IERC20, MgvStructs} from "mgv_src/MgvLib.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
+import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
+import {MgvLib, IERC20, MgvStructs} from "src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
+import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
 
 /// @title This contract is the basic building block for Mangrove strats.
 /// @notice It contains the mandatory interface expected by Mangrove (`IOfferLogic` is `IMaker`) and enforces additional functions implementations (via `IOfferLogic`).
-/// In the comments we use the term "offer maker" to designate the address that controls updates of an offer on mangrove.
-/// In `Direct` strategies, `this` contract is the offer maker, in `Forwarder` strategies, the offer maker should be `msg.sender` of the annotated function.
 /// @dev Naming scheme:
 /// `f() public`: can be used, as is, in all descendants of `this` contract
-/// `_f() internal`: descendant of this contract should provide a public wrapper of this function
-/// `__f__() virtual internal`: descendant of this contract may override this function to specialize behaviour of `makerExecute` or `makerPosthook`
+/// `_f() internal`: descendant of this contract should provide a public wrapper for this function, with necessary guards.
+/// `__f__() virtual internal`: descendant of this contract should override this function to specialize it to the needs of the strat.
 
 abstract contract MangroveOffer is AccessControlled, IOfferLogic {
+  uint public immutable OFFER_GASREQ;
   IMangrove public immutable MGV;
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
   bytes32 constant OUT_OF_FUNDS = keccak256("mgv/insufficientProvision");
   bytes32 constant BELOW_DENSITY = keccak256("mgv/writeOffer/density/tooLow");
 
+  ///@notice guards for restricting a function call to either `MGV` or `admin()`.
+  ///@dev When `msg.sender` is `MGV`, the function is being called either via `makerExecute` or `makerPosthook`.
   modifier mgvOrAdmin() {
-    require(msg.sender == admin() || msg.sender == address(MGV), "AccessControlled/Invalid");
+    require(msg.sender == admin() || msg.sender == address(MGV), "mgvOffer/unauthorized");
     _;
   }
 
-  ///@notice Mandatory function to allow `this` contract to receive native tokens from Mangrove after a call to `MGV.withdraw()`
+  ///@notice Mandatory function to allow `this` to receive native tokens from Mangrove after a call to `MGV.withdraw(...,deprovision:true)`
   ///@dev override this function if `this` contract needs to handle local accounting of user funds.
   receive() external payable virtual {}
 
   /**
    * @notice `MangroveOffer`'s constructor
-   * @param mgv The Mangrove deployment that is allowed to call `this` contract for trade execution and posthook and on which `this` contract will post offers.
+   * @param mgv The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
+   * @param gasreq Gas requirement when posting offers via this strategy, excluding router requirement.
    */
-  constructor(IMangrove mgv) AccessControlled(msg.sender) {
+  constructor(IMangrove mgv, uint gasreq) AccessControlled(msg.sender) {
+    require(uint24(gasreq) == gasreq, "mgvOffer/gasreqOverflow");
     MGV = mgv;
+    OFFER_GASREQ = gasreq;
   }
 
   /// @inheritdoc IOfferLogic
   function offerGasreq() public view returns (uint) {
     AbstractRouter router_ = router();
     if (router_ != NO_ROUTER) {
-      return MOS.getStorage().ofr_gasreq + router_.gasOverhead();
+      return OFFER_GASREQ + router_.routerGasreq();
     } else {
-      return MOS.getStorage().ofr_gasreq;
+      return OFFER_GASREQ;
     }
   }
 
@@ -81,42 +85,35 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     onlyCaller(address(MGV))
     returns (bytes32 ret)
   {
+    // Invoke hook that implements a last look check during execution - it may renege on trade by reverting.
     ret = __lastLook__(order);
-    if (__put__(order.gives, order) > 0) {
-      revert("mgvOffer/abort/putFailed");
-    }
-    if (__get__(order.wants, order) > 0) {
-      revert("mgvOffer/abort/getFailed");
-    }
+    // Invoke hook to put the inbound token, which are brought by the taker, into a specific reserve.
+    require(__put__(order.gives, order) == 0, "mgvOffer/abort/putFailed");
+    // Invoke hook to fetch the outbound token, which are promised to the taker, from a specific reserve.
+    require(__get__(order.wants, order) == 0, "mgvOffer/abort/getFailed");
   }
 
   /// @notice `makerPosthook` is the callback function that is called by Mangrove *after* the offer execution.
+  /// @notice reverting during its execution will not renege on trade. Revert reason (casted to 32 bytes) is then logged by Mangrove in event `PosthookFail`.
   /// @param order a data structure that recapitulates the taker order and the offer as it was posted on mangrove
   /// @param result a data structure that gathers information about trade execution
-  /// @dev It may not be overridden although it can be customized via the post-hooks `__posthookSuccess__` and `__posthookFallback__` (see below).
-  /// NB: If `makerPosthook` reverts, mangrove will log the first 32 bytes of the revert reason in the `PosthookFail` log.
-  /// NB: Reverting posthook does not revert trade execution
+  /// @dev It cannot be overridden but can be customized via the hooks `__posthookSuccess__` and `__posthookFallback__` (see below).
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result)
     external
     override
     onlyCaller(address(MGV))
   {
     if (result.mgvData == "mgv/tradeSuccess") {
-      // toplevel posthook may ignore returned value which is only usefull for (vertical) compositionality
+      // top-level `__posthookSuccess__`'s return value is ignored.
       __posthookSuccess__(order, result.makerData);
     } else {
+      // logging what went wrong during `makerExecute`
       emit LogIncident(
         MGV, IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId, result.makerData, result.mgvData
         );
+      // calling strat specific todos in case of failure
       __posthookFallback__(order, result);
     }
-  }
-
-  /// @inheritdoc IOfferLogic
-  function setGasreq(uint gasreq) public override onlyAdmin {
-    require(uint24(gasreq) == gasreq, "mgvOffer/gasreq/overflow");
-    MOS.getStorage().ofr_gasreq = gasreq;
-    emit SetGasreq(gasreq);
   }
 
   /// @inheritdoc IOfferLogic
@@ -135,23 +132,24 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     return token.approve(spender, amount);
   }
 
-  /// @notice getter of the address where offer maker is storing its liquidity
-  /// @param maker the address of the offer maker one wishes to know the reserve of.
-  /// @return reserve_ the address of the offer maker's reserve of liquidity.
-  /// @dev if `this` contract is not acting of behalf of some user, `_reserve(address(this))` must be defined at all time.
-  /// for `Direct` strategies, if  `_reserve(address(this)) != address(this)` then `this` contract must use a router to pull/push liquidity to its reserve.
-  function _reserve(address maker) internal view returns (address reserve_) {
-    reserve_ = MOS.getStorage().reserves[maker];
+  /// @inheritdoc IOfferLogic
+  function reserve(address maker) public view override returns (address) {
+    address reserve_ = MOS.getStorage().reserves[maker];
+    return reserve_ == address(0) ? maker : reserve_;
   }
 
-  /// @notice sets reserve of an offer maker.
-  /// @param maker the address of the offer maker
-  /// @param reserve_ the address of the offer maker's reserve of liquidity
-  /// @dev use `_setReserve(address(this), '0x...')` when `this` contract is the offer maker (`Direct` strats)
-  function _setReserve(address maker, address reserve_) internal {
-    require(reserve_ != address(0), "SingleUser/0xReserve");
+  /// @inheritdoc IOfferLogic
+  function setReserve(address maker, address reserve_) public override onlyCaller(maker) {
+    require(__checkReserveApproval__(reserve_, maker), "mgvOffer/makerNotApproved");
     MOS.getStorage().reserves[maker] = reserve_;
+    emit SetReserve(maker, reserve_);
   }
+
+  /// @notice verifies that maker is allowed to use a reserve for pooling funds
+  /// @param reserve_ the reserve on which one is pooling funds
+  /// @param maker the pooler of the reserve
+  /// @dev function throws if `reserve_` has not approved `maker`
+  function __checkReserveApproval__(address reserve_, address maker) internal virtual returns (bool);
 
   /// @inheritdoc IOfferLogic
   function activate(IERC20[] calldata tokens) external override onlyAdmin {
@@ -162,15 +160,38 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   /// @inheritdoc IOfferLogic
   function checkList(IERC20[] calldata tokens) external view override {
-    AbstractRouter router_ = router();
     for (uint i = 0; i < tokens.length; i++) {
-      // checking `this` contract's approval
-      require(tokens[i].allowance(address(this), address(MGV)) > 0, "MangroveOffer/LogicMustApproveMangrove");
-      // if contract has a router, checking router is allowed
-      if (router_ != NO_ROUTER) {
-        require(tokens[i].allowance(address(this), address(router_)) > 0, "MangroveOffer/LogicMustApproveRouter");
-      }
       __checkList__(tokens[i]);
+    }
+  }
+
+  ///@dev override conservatively to define strat-specific additional activation steps.
+  ///@param token the ERC20 one wishes this contract to trade on.
+  ///@custom:hook overrides of this hook should be conservative and call `super.__activate__(token)`
+  function __activate__(IERC20 token) internal virtual {
+    AbstractRouter router_ = router();
+    // all strat require `this` to approve Mangrove for pulling `token` at the end of `makerExecute`
+    require(token.approve(address(MGV), type(uint).max), "mgvOffer/approveMangrove/Fail");
+    if (router_ != NO_ROUTER) {
+      // allowing router to pull `token` from this contract (for the `push` function of the router)
+      require(token.approve(address(router_), type(uint).max), "mgvOffer/approveRouterFail");
+      // letting router performs additional necessary approvals (if any)
+      // this will only work if `this` is an authorized maker of the router (i.e. `router.bind(address(this))` has been called by router's admin).
+      router_.activate(token);
+    }
+  }
+
+  ///@dev override conservatively to define strat-specific additional check list
+  ///@param token the ERC20 one wishes this contract to trade on.
+  ///@custom:hook overrides of this hook should be conservative and call `super.__checkList__(token)`
+  function __checkList__(IERC20 token) internal view virtual {
+    AbstractRouter router_ = router();
+    // checking `this` contract's approval
+    require(token.allowance(address(this), address(MGV)) > 0, "mgvOffer/LogicMustApproveMangrove");
+    // if contract has a router, checking router is allowed
+    if (router_ != NO_ROUTER) {
+      require(token.allowance(address(this), address(router_)) > 0, "mgvOffer/LogicMustApproveRouter");
+      router_.checkList(token, reserve(msg.sender));
     }
   }
 
@@ -178,36 +199,19 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   function withdrawFromMangrove(uint amount, address payable receiver) external onlyAdmin {
     if (amount == type(uint).max) {
       amount = MGV.balanceOf(address(this));
-      if (amount == 0) {
-        return; // optimization
-      }
     }
-    require(MGV.withdraw(amount), "mgvOffer/withdrawFromMgv/withdrawFail");
+    // the require below is necessary if the `receive()` function is overriden
+    require(MGV.withdraw(amount), "mgvOffer/withdrawFail");
     (bool noRevert,) = receiver.call{value: amount}("");
-    require(noRevert, "mgvOffer/withdrawFromMgv/payableCallFail");
+    // if `receiver` is actually not payable
+    require(noRevert, "mgvOffer/weiTransferFail");
   }
 
-  ///@notice strat-specific additional activation steps (override if needed).
-  ///@param token the ERC20 one wishes this contract to trade on.
-  ///@custom:hook overrides of this hook should be conservative and call `super.__activate__(token)`
-  function __activate__(IERC20 token) internal virtual {
+  /// @inheritdoc IOfferLogic
+  function tokenBalance(IERC20 token, address maker) external view override returns (uint) {
     AbstractRouter router_ = router();
-    // any strat requires `this` contract to approve Mangrove for pulling funds at the end of `makerExecute`
-    require(token.approve(address(MGV), type(uint).max), "mgvOffer/approveMangrove/Fail");
-    if (router_ != NO_ROUTER) {
-      // allowing router to pull `token` from this contract (for the `push` function of the router)
-      require(token.approve(address(router_), type(uint).max), "mgvOffer/activate/approveRouterFail");
-      // letting router performs additional necessary approvals (if any)
-      // this will only work is `this` contract is an authorized maker of the router (`router.bind(address(this))` has been called).
-      router_.activate(token);
-    }
-  }
-
-  ///@notice strat-specific additional activation check list
-  ///@param token the ERC20 one wishes this contract to trade on.
-  ///@custom:hook overrides of this hook should be conservative and call `super.__checkList__(token)`
-  function __checkList__(IERC20 token) internal view virtual {
-    token; //ssh
+    address makerReserve = reserve(maker);
+    return router_ == NO_ROUTER ? token.balanceOf(makerReserve) : router_.reserveBalance(token, makerReserve);
   }
 
   ///@notice Hook that implements where the inbound token, which are brought by the Offer Taker, should go during Taker Order's execution.
@@ -230,12 +234,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /// @param order is a recall of the taker order that is at the origin of the current trade.
   /// @return data is a message that will be passed to posthook provided `makerExecute` does not revert.
   /// @dev __lastLook__ should revert if trade is to be reneged on. If not, returned `bytes32` are passed to `makerPosthook` in the `makerData` field.
-  // @custom:hook overrides of this hook should be conservative and call `super.__lastLook__(order)`.
-  // Special bytes32 word can be used to switch a particular behavior of `__posthookSuccess__`, e.g not to repost offer in case of a partial fill. */
-
+  /// @custom:hook overrides of this hook should be conservative and call `super.__lastLook__(order)`.
   function __lastLook__(MgvLib.SingleOrder calldata order) internal virtual returns (bytes32 data) {
     order; //shh
-    return "mgvOffer/tradeSuccess";
+    return "mgvOffer/proceed";
   }
 
   ///@notice Post-hook that implements fallback behavior when Taker Order's execution failed unexpectedly.
@@ -243,7 +245,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   ///@param result contains information about trade.
   /**
    * @dev `result.mgvData` is Mangrove's verdict about trade success
-   * `result.makerData` either contains the first 32 bytes of revert reason if `makerExecute` reverted
+   * `result.makerData` either contains the first 32 bytes of revert reason if `makerExecute` reverted or the returned `bytes32`.
    */
   /// @custom:hook overrides of this hook should be conservative and call `super.__posthookFallback__(order, result)`
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result)
@@ -268,13 +270,17 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   ///@param order is a recall of the taker order that is being treated.
   ///@return new_gives the new volume of `outbound_tkn` the offer will give if fully taken.
   ///@dev default is to require the original amount of tokens minus those that have been sent to the taker during trade execution.
-  function __residualGives__(MgvLib.SingleOrder calldata order) internal virtual returns (uint) {
+  function __residualGives__(MgvLib.SingleOrder calldata order) internal virtual returns (uint new_gives) {
     return order.offer.gives() - order.wants;
   }
 
   ///@notice Post-hook that implements default behavior when Taker Order's execution succeeded.
   ///@param order is a recall of the taker order that is at the origin of the current trade.
   ///@param maker_data is the returned value of the `__lastLook__` hook, triggered during trade execution. The special value `"lastLook/retract"` should be treated as an instruction not to repost the offer on the book.
+  ///@return data can be:
+  /// * `"posthook/filled"` when offer was completely filled
+  /// * `"posthook/reposted"` when offer was partially filled and successfully reposted
+  /// * `"posthook/dustRemainder"` when offer was partially filled but residual was below density (and thus not reposted)
   /// @custom:hook overrides of this hook should be conservative and call `super.__posthookSuccess__(order, maker_data)`
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)
     internal
@@ -298,31 +304,23 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       new_gives,
       order.offerDetail.gasreq(),
       order.offerDetail.gasprice(),
-      order.offer.next(),
+      order.offer.next(), // using next as pivot since this offer is off the book
       order.offerId
     ) {
       return "posthook/reposted";
     } catch Error(string memory reason) {
-      // `updateOffer` can fail when this contract is under provisioned
-      // or if `offer.gives` is below density
-      // Log incident only if under provisioned
+      // `updateOffer` can fail if `offer.gives` is below density. This is not to be considered as a failure.
+      // We let the revert bubble up to Mangrove for all other reasons.
       bytes32 reason_hsh = keccak256(bytes(reason));
       if (reason_hsh == BELOW_DENSITY) {
         return "posthook/dustRemainder"; // offer not reposted
       } else {
-        // for all other reason we let the revert propagate (Mangrove logs revert reason in the `PosthookFail` event).
         revert(reason);
       }
     }
   }
 
-  ///@inheritdoc IOfferLogic
-  ///@param outbound_tkn the outbound token used to identify the order book
-  ///@param inbound_tkn the inbound token used to identify the order book
-  ///@param gasreq the gas required by the offer. Give > type(uint24).max to use `this.offerGasreq()`
-  ///@param gasprice the upper bound on gas price. Give 0 to use Mangrove's gasprice
-  ///@param offerId the offer id. Set this to 0 if one is not reposting an offer
-  ///@dev if `offerId` is not in the Order Book, will simply return how much is needed to post
+  /// @inheritdoc IOfferLogic
   function getMissingProvision(IERC20 outbound_tkn, IERC20 inbound_tkn, uint gasreq, uint gasprice, uint offerId)
     public
     view
@@ -332,16 +330,16 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       MGV.config(address(outbound_tkn), address(inbound_tkn));
     MgvStructs.OfferDetailPacked offerDetailData =
       MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
-    uint _gp;
+    uint gp;
     if (globalData.gasprice() > gasprice) {
-      _gp = globalData.gasprice();
+      gp = globalData.gasprice();
     } else {
-      _gp = gasprice;
+      gp = gasprice;
     }
     if (gasreq >= type(uint24).max) {
       gasreq = offerGasreq(); // this includes overhead of router if any
     }
-    uint bounty = (gasreq + localData.offer_gasbase()) * _gp * 10 ** 9; // in WEI
+    uint bounty = (gasreq + localData.offer_gasbase()) * gp * 10 ** 9; // in WEI
     // if `offerId` is not in the OfferList or deprovisioned, computed value below will be 0
     uint currentProvisionLocked =
       (offerDetailData.gasreq() + offerDetailData.offer_gasbase()) * offerDetailData.gasprice() * 10 ** 9;

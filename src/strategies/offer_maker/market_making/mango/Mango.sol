@@ -2,7 +2,7 @@
 
 // Mango.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -18,7 +18,7 @@ import "./MangoImplementation.sol";
 import "../../abstract/Direct.sol";
 import "../../../routers/AbstractRouter.sol";
 import "../../../routers/SimpleRouter.sol";
-import {MgvLib} from "mgv_src/MgvLib.sol";
+import {MgvLib} from "src/MgvLib.sol";
 
 /**
  * Discrete automated market making strat
@@ -72,7 +72,8 @@ contract Mango is Direct {
   )
     Direct(
       mgv,
-      new SimpleRouter() // routes liqudity from (to) reserve to (from) this contract
+      new SimpleRouter(), // routes liqudity from (to) reserve to (from) this contract,
+      150_000
     )
   {
     MangoStorage.Layout storage mStr = MangoStorage.getStorage();
@@ -111,16 +112,10 @@ contract Mango is Direct {
     __activate__(base);
     __activate__(quote);
 
-    // in order to let deployer's EOA have control over liquidity
-    setReserve(deployer);
-
     // adding `this` to the authorized makers of the router.
     router_.bind(address(this));
     // `this` deployed the router, letting admin take control over it.
     router_.setAdmin(deployer);
-
-    // should cover cost of reposting the offer + dual offer
-    setGasreq(150_000);
 
     // setting admin of contract if a static address deployment was used
     if (deployer != msg.sender) {
@@ -173,8 +168,8 @@ contract Mango is Direct {
     return MangoStorage.getStorage().delta;
   }
 
-  function setDelta(uint _delta) public mgvOrAdmin {
-    MangoStorage.getStorage().delta = _delta;
+  function setDelta(uint delta_) public mgvOrAdmin {
+    MangoStorage.getStorage().delta = delta_;
   }
 
   function shift() external view onlyAdmin returns (int) {

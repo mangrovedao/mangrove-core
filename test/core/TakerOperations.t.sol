@@ -103,8 +103,8 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave,,) =
       mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 0.5 ether, 1 ether, 100_000]), true);
     assertTrue(successes == 1, "Snipe should not fail");
-    assertEq(got, 0.5 ether, "Taker did not get enough");
-    assertEq(gave, 0.5 ether, "Taker did not give enough");
+    assertEq(got, 0.5 ether, "Taker did not get correct amount");
+    assertEq(gave, 0.5 ether, "Taker did not give correct amount");
   }
 
   function test_multiple_snipes_fillWants() public {
@@ -131,8 +131,8 @@ contract TakerOperationsTest is MangroveTest {
 
     (uint successes, uint got, uint gave,,) = mgv.snipes($(base), $(quote), targets, true);
     assertTrue(successes == 3, "Snipes should not fail");
-    assertEq(got, 2.3 ether, "Taker did not get enough");
-    assertEq(gave, 2.3 ether, "Taker did not give enough");
+    assertEq(got, 2.3 ether, "Taker did not get correct amount");
+    assertEq(gave, 2.3 ether, "Taker did not give correct amount");
   }
 
   event Transfer(address indexed from, address indexed to, uint value);
@@ -212,8 +212,8 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes, uint got, uint gave,,) =
       mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 0.5 ether, 1 ether, 100_000]), false);
     assertTrue(successes == 1, "Snipe should not fail");
-    assertEq(got, 1 ether, "Taker did not get enough");
-    assertEq(gave, 1 ether, "Taker did not get enough");
+    assertEq(got, 1 ether, "Taker did not get correct amount");
+    assertEq(gave, 1 ether, "Taker did not get correct amount");
   }
 
   function test_mo_fillWants() public {
@@ -221,9 +221,9 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
-    (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1.1 ether, 2 ether, true);
-    assertEq(got, 1.1 ether, "Taker did not get enough");
-    assertEq(gave, 1.1 ether, "Taker did not get enough");
+    (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1.1 ether, 1.9 ether, true);
+    assertEq(got, 1.1 ether, "Taker did not get correct amount");
+    assertEq(gave, 1.1 ether, "Taker did not get correct amount");
   }
 
   function test_mo_fillGives() public {
@@ -231,9 +231,9 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
-    (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1.1 ether, 2 ether, false);
-    assertEq(got, 2 ether, "Taker did not get enough");
-    assertEq(gave, 2 ether, "Taker did not get enough");
+    (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1.1 ether, 1.9 ether, false);
+    assertEq(got, 1.9 ether, "Taker did not get correct amount");
+    assertEq(gave, 1.9 ether, "Taker did not give correct amount");
   }
 
   function test_mo_fillGivesAll_no_approved_fails() public {
@@ -253,12 +253,12 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 3 ether);
     (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 0 ether, 3 ether, false);
-    assertEq(got, 3 ether, "Taker did not get enough");
-    assertEq(gave, 3 ether, "Taker did not get enough");
+    assertEq(got, 3 ether, "Taker did not get correct amount");
+    assertEq(gave, 3 ether, "Taker did not get correct amount");
   }
 
   function test_taker_reimbursed_if_maker_doesnt_pay() public {
-    uint mkr_provision = getProvision($(base), $(quote), 100_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = refusemkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/makerTransferFail"); // status visible in the posthook
@@ -287,7 +287,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_base() public {
-    uint mkr_provision = getProvision($(base), $(quote), 100_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/makerTransferFail"); // status visible in the posthook
@@ -309,7 +309,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_quote() public {
-    uint mkr_provision = getProvision($(base), $(quote), 100_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/makerReceiveFail"); // status visible in the posthook
@@ -344,7 +344,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_reverts() public {
-    uint mkr_provision = getProvision($(base), $(quote), 50_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 50_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = failmkr.newOffer(1 ether, 1 ether, 50_000, 0);
     uint beforeQuote = quote.balanceOf($(this));
@@ -636,6 +636,34 @@ contract TakerOperationsTest is MangroveTest {
     mgv.snipes{gas: 120_000}($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 120_000]), true);
   }
 
+  function test_unsafe_gas_left_fails_posthook() public {
+    mgv.setGasbase($(base), $(quote), 1);
+    quote.approve($(mgv), 1 ether);
+    uint ofr = mkr.newOffer(1 ether, 1 ether, 120_000, 0);
+    vm.expectRevert("mgv/notEnoughGasForMakerPosthook");
+    mgv.snipes{gas: 240_000}($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 120_000]), true);
+  }
+
+  function test_fee_transfer_fail() public {
+    TestToken vaultBlacklister = new TestToken({
+      admin: $(this), 
+      name: "Vault Blacklister", 
+      symbol: "VBL", 
+      _decimals: 18
+    });
+    vm.label($(vaultBlacklister), "Vault Blacklister");
+    mgv.activate({outbound_tkn: $(vaultBlacklister), inbound_tkn: $(quote), fee: 10, density: 0, offer_gasbase: 0});
+    address vault = freshAddress();
+    quote.approve($(mgv), 1 ether);
+    mkr.approveMgv(vaultBlacklister, type(uint).max);
+    mgv.setVault(vault);
+    vaultBlacklister.blacklists(vault);
+    deal($(vaultBlacklister), $(mkr), 10 ether);
+    mkr.newOffer($(vaultBlacklister), $(quote), 1 ether, 1 ether, 420_000, 0);
+    vm.expectRevert("mgv/feeTransferFail");
+    mgv.marketOrder($(vaultBlacklister), $(quote), 1 ether, 1 ether, true);
+  }
+
   function test_marketOrder_on_empty_book_does_not_revert() public {
     mgv.marketOrder($(base), $(quote), 1 ether, 1 ether, true);
   }
@@ -655,5 +683,49 @@ contract TakerOperationsTest is MangroveTest {
     (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1 ether, 0, true);
     assertEq(got, 0, "Taker got too much");
     assertEq(gave, 0 ether, "Taker gave too much");
+  }
+
+  // function test_reverting_monitor_on_notify() public {
+  //   BadMonitor badMonitor = new BadMonitor({revertNotify:true,revertRead:false});
+  //   mgv.setMonitor(badMonitor);
+  //   mkr.newOffer(1 ether, 1 ether, 100_000, 0);
+  //   quote.approve($(mgv), 2 ether);
+  //   (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1 ether, 1 ether, true);
+
+  /* When Mangrove gets a revert from `flashloan` that doesn't match known revert
+   * cases, it returns `mgv/swapError`. This can happen if the flashloan runs out
+   * of gas, but should never happen in another case. I (adhusson) did not manage
+   * to trigger the 'flash loan is OOG' condition because flashloan itself uses
+   * very little gas. If you make it OOG, then its caller will OOG too before
+   * reaching the `revert("mgv/swapError")` statement. To trigger that error, I
+   * make a BadMangrove contract with a misbehaving `flashloan` function. */
+  function test_unreachable_swapError() public {
+    BadMangrove badMgv = new BadMangrove({
+      governance: $(this),
+      gasprice: 40,
+      gasmax: 2_000_000
+    });
+    vm.label($(badMgv), "Bad Mangrove");
+    badMgv.activate($(base), $(quote), 0, 0, 0);
+
+    TestMaker mkr2 = new TestMaker(badMgv,base,quote);
+    badMgv.fund{value: 10 ether}($(mkr2));
+    mkr2.newOffer(1 ether, 1 ether, 1, 0);
+    vm.expectRevert("mgv/swapError");
+    badMgv.marketOrder{gas: 150000}($(base), $(quote), 1 ether, 1 ether, true);
+  }
+}
+
+contract BadMangrove is AbstractMangrove {
+  constructor(address governance, uint gasprice, uint gasmax)
+    AbstractMangrove(governance, gasprice, gasmax, "BadMangrove")
+  {}
+
+  function executeEnd(MultiOrder memory, MgvLib.SingleOrder memory) internal override {}
+
+  function beforePosthook(MgvLib.SingleOrder memory) internal override {}
+
+  function flashloan(MgvLib.SingleOrder calldata, address) external pure override returns (uint) {
+    revert("badRevert");
   }
 }

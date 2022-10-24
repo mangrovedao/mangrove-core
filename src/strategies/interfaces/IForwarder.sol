@@ -2,7 +2,7 @@
 
 // IForwarder.sol
 
-// Copyright (c) 2021 Giry SAS. All rights reserved.
+// Copyright (c) 2022 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -14,8 +14,8 @@ pragma solidity >=0.7.0;
 
 pragma abicoder v2;
 
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {IERC20} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
+import {IERC20} from "src/MgvLib.sol";
 
 ///@title IForwarder
 ///@notice Interface for contracts that manage liquidity on Mangrove on behalf of multiple offer makers
@@ -28,6 +28,18 @@ interface IForwarder {
   event NewOwnedOffer(
     IMangrove mangrove, IERC20 indexed outbound_tkn, IERC20 indexed inbound_tkn, uint indexed offerId, address owner
   );
+
+  ///@notice Logging reserve approval
+  event ReserveApproval(address indexed reserve_, address indexed maker, bool isApproved);
+
+  ///@notice view for reserve approvals
+  function reserveApprovals(address reserve_, address maker) external view returns (bool);
+
+  ///@notice reserve (who must be `msg.sender`) approves `maker` for pooling.
+  function approvePooledMaker(address maker) external;
+
+  ///@notice reserve (who must be `msg.sender`) revokes `maker` from its approved poolers.
+  function revokePooledMaker(address maker) external;
 
   /// @notice view on offer owners.
   /// @param outbound_tkn the outbound token of the offer list.
@@ -44,6 +56,7 @@ interface IForwarder {
   /// @param outbound_tkn the outbound token of the offer list.
   /// @param inbound_tkn the inbound token of the offer list.
   /// @param offerId the offer identifier on the offer list.
+  /// @return owner the offer maker that can manage the offer.
   /// @dev `ownerOf(in,out,id)` is equivalent to `offerOwners(in, out, [id])` but more gas efficient.
   function ownerOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) external view returns (address owner);
 }

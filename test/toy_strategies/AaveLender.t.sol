@@ -11,6 +11,7 @@ import {
 import {IERC20} from "src/MgvLib.sol";
 import {IMangrove} from "src/IMangrove.sol";
 import {console2} from "forge-std/Test.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 
 abstract contract AaveV3ModuleTest is MangroveTest {
   /* aave expectations */
@@ -46,6 +47,7 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
 
     mgv = setupMangrove();
     mgv.setVault($(mgv));
+    reader = new MgvReader($(mgv));
 
     dai = IERC20(fork.get("DAI"));
     weth = IERC20(fork.get("WETH"));
@@ -126,7 +128,7 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
       targets: wrap_dynamic([offerId, 300 ether, 0.15 ether, type(uint).max]),
       fillWants: true
     });
-    assertEq(got, minusFee($(dai), $(weth), 300 ether), "wrong got amount");
+    assertEq(got, reader.minusFee($(dai), $(weth), 300 ether), "wrong got amount");
 
     // TODO logLenderStatus
     assertApproxBalanceAndBorrow(router, dai, 700 ether, 0, $(router));
@@ -174,7 +176,7 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
       targets: wrap_dynamic([offerId, 1500 ether, 0.63 ether, type(uint).max]),
       fillWants: true
     });
-    assertEq(got, minusFee($(dai), $(weth), 1500 ether), "wrong received amount");
+    assertEq(got, reader.minusFee($(dai), $(weth), 1500 ether), "wrong received amount");
 
     // TODO logLenderStatus
     assertApproxBalanceAndBorrow(router, weth, 0.58 ether, 0, $(router));

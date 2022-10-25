@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console2} from "forge-std/Test.sol";
 import {Script2} from "./Script2.sol";
 
 /* Some ease-of-life additions to forge-std/Test.sol */
@@ -137,23 +137,31 @@ contract Test2 is Test, Script2 {
 
   /* *** Gas Metering *** */
 
-  uint private checkpointGasLeft = 1; // Start the slot non0.
-  string checkpointLabel;
-
+  uint private checkpointGasLeft;
   /* start measuring gas */
-  function _gas() internal virtual {
-    // checkpointLabel = label;
 
+  function _gas() internal virtual {
     checkpointGasLeft = gasleft();
   }
 
   /* stop measuring gas and report */
-  function gas_() internal virtual {
+  function gas_() internal virtual returns (uint) {
     uint checkpointGasLeft2 = gasleft();
 
-    // Subtract 100 to account for the warm SLOAD in startMeasuringGas.
-    uint gasDelta = checkpointGasLeft - checkpointGasLeft2 - 100;
+    uint gasDelta = checkpointGasLeft - checkpointGasLeft2;
 
-    emit log_named_uint("Gas used", gasDelta);
+    // emit log_named_uint("Gas used", gasDelta);
+    console2.log("Gas used: %s", gasDelta);
+    return gasDelta;
+  }
+
+  function gas_(string memory gasLabel) internal virtual returns (uint) {
+    uint checkpointGasLeft2 = gasleft();
+
+    uint gasDelta = checkpointGasLeft - checkpointGasLeft2;
+
+    console2.log("Gas used in: %s: %s", gasLabel, gasDelta);
+    // emit log_named_uint(string.concat("Gas used in: ",msg), gasDelta);
+    return gasDelta;
   }
 }

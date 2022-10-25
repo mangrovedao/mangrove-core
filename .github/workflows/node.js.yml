@@ -6,13 +6,9 @@ on:
     branches: 
       - master
       - 'run-ci/**'
-    paths-ignore: 
-      - '**.md'
   pull_request_target:
     branches: [ master, test-pr ]
     types: [opened, synchronize, reopened, labeled]
-    paths-ignore: 
-      - '**.md'
 
 concurrency: 
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -272,4 +268,5 @@ jobs:
     - name: Decide whether the needed jobs succeeded or failed
       uses: re-actors/alls-green@release/v1
       with:
+        allowed-skips: security-guard, file-guard, mangrove-core, mangrove-core-doc
         jobs: ${{ toJSON(needs) }}

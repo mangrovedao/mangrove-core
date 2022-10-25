@@ -258,7 +258,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_doesnt_pay() public {
-    uint mkr_provision = getProvision($(base), $(quote), 100_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = refusemkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/makerTransferFail"); // status visible in the posthook
@@ -287,7 +287,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_base() public {
-    uint mkr_provision = getProvision($(base), $(quote), 100_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/makerTransferFail"); // status visible in the posthook
@@ -309,7 +309,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_quote() public {
-    uint mkr_provision = getProvision($(base), $(quote), 100_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/makerReceiveFail"); // status visible in the posthook
@@ -344,7 +344,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_reverts() public {
-    uint mkr_provision = getProvision($(base), $(quote), 50_000);
+    uint mkr_provision = reader.getProvision($(base), $(quote), 50_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = failmkr.newOffer(1 ether, 1 ether, 50_000, 0);
     uint beforeQuote = quote.balanceOf($(this));
@@ -659,7 +659,7 @@ contract TakerOperationsTest is MangroveTest {
     mgv.setVault(vault);
     vaultBlacklister.blacklists(vault);
     deal($(vaultBlacklister), $(mkr), 10 ether);
-    uint ofr = mkr.newOffer($(vaultBlacklister), $(quote), 1 ether, 1 ether, 420_000, 0);
+    mkr.newOffer($(vaultBlacklister), $(quote), 1 ether, 1 ether, 420_000, 0);
     vm.expectRevert("mgv/feeTransferFail");
     mgv.marketOrder($(vaultBlacklister), $(quote), 1 ether, 1 ether, true);
   }
@@ -684,6 +684,13 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(got, 0, "Taker got too much");
     assertEq(gave, 0 ether, "Taker gave too much");
   }
+
+  // function test_reverting_monitor_on_notify() public {
+  //   BadMonitor badMonitor = new BadMonitor({revertNotify:true,revertRead:false});
+  //   mgv.setMonitor(badMonitor);
+  //   mkr.newOffer(1 ether, 1 ether, 100_000, 0);
+  //   quote.approve($(mgv), 2 ether);
+  //   (uint got, uint gave,,) = mgv.marketOrder($(base), $(quote), 1 ether, 1 ether, true);
 
   /* When Mangrove gets a revert from `flashloan` that doesn't match known revert
    * cases, it returns `mgv/swapError`. This can happen if the flashloan runs out

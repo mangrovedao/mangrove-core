@@ -99,7 +99,7 @@ contract MangroveOrder_Test is MangroveTest {
     expectFrom($(quote)); // checking quote is sent to mgv and remainder is sent back to taker
     emit Transfer($(mgo), $(this), 0.13 ether);
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
-    assertEq(res.takerGot, minusFee($(base), $(quote), 1 ether), "Incorrect partial fill of taker order");
+    assertEq(res.takerGot, reader.minusFee($(base), $(quote), 1 ether), "Incorrect partial fill of taker order");
     assertEq(res.takerGave, 0.13 ether, "Incorrect partial fill of taker order");
   }
 
@@ -160,7 +160,7 @@ contract MangroveOrder_Test is MangroveTest {
       timeToLiveForRestingOrder: 0 //NA
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
-    assertEq(res.takerGot, minusFee($(base), $(quote), 1 ether), "Incorrect taker got");
+    assertEq(res.takerGot, reader.minusFee($(base), $(quote), 1 ether), "Incorrect taker got");
     assertEq(balBefore, $(this).balance, "Take function did not return funds");
   }
 
@@ -249,7 +249,7 @@ contract MangroveOrder_Test is MangroveTest {
 
     expectFrom($(mgo));
     emit OrderSummary(
-      IMangrove(payable(mgv)), base, quote, $(this), true, minusFee($(base), $(quote), 1 ether), 0.13 ether, 0
+      IMangrove(payable(mgv)), base, quote, $(this), true, reader.minusFee($(base), $(quote), 1 ether), 0.13 ether, 0
       );
     // TODO when checkEmit is available, get offer id after post
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
@@ -289,7 +289,7 @@ contract MangroveOrder_Test is MangroveTest {
 
     assertTrue(success, "Resting order failed");
     // offer delivers
-    assertEq(sell_takerGot, minusFee($(quote), $(base), 0.1 ether), "Incorrect received amount for seller taker");
+    assertEq(sell_takerGot, reader.minusFee($(quote), $(base), 0.1 ether), "Incorrect received amount for seller taker");
     // inbound token forwarded to test runner
     assertEq(base.balanceOf($(this)), oldLocalBaseBal + sell_takerGave, "Incorrect forwarded amount to initial taker");
 
@@ -533,7 +533,9 @@ contract MangroveOrder_Test is MangroveTest {
   }
 
   function test_caller_unable_to_receive_eth_makes_failing_resting_order_throw() public {
-    TestTaker buy_taker = setupTaker($(base), $(quote), "buy-taker");
+    TestSender buy_taker = new TestSender();
+    vm.deal($(buy_taker), 1 ether);
+
     deal($(quote), $(buy_taker), 10 ether);
     buy_taker.refuseNative();
 

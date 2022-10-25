@@ -6,8 +6,9 @@ import "mgv_test/lib/forks/Polygon.sol";
 import "mgv_src/toy_strategies/offer_forwarder/GhostForwarder.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 
-import {console} from "forge-std/console.sol";
+//import {console} from "forge-std/console.sol";
 
 contract GhostForwarderTest is MangroveTest {
   IERC20 weth;
@@ -29,6 +30,7 @@ contract GhostForwarderTest is MangroveTest {
 
     // use convenience helpers to setup Mangrove
     mgv = setupMangrove();
+    reader = new MgvReader($(mgv));
 
     // setup tokens, markets and approve them
     dai = IERC20(fork.get("DAI"));
@@ -164,13 +166,17 @@ contract GhostForwarderTest is MangroveTest {
 
     // assert that
     assertEq(
-      takerFromTester.got, minusFee($(dai), $(weth), makerGivesAmount / 2), "taker got wrong amount: testOffer.daiOffer"
+      takerFromTester.got,
+      reader.minusFee($(dai), $(weth), makerGivesAmount / 2),
+      "taker got wrong amount: testOffer.daiOffer"
     );
     assertEq(takerFromTester.gave, makerWantsAmountDAI / 2, "taker gave wrong amount: testOffer.daiOffer");
 
     // assert that
     assertEq(
-      takerFromMaker.got, minusFee($(dai), $(weth), makerGivesAmount), "taker got wrong amount: makerOffer.daiOffer"
+      takerFromMaker.got,
+      reader.minusFee($(dai), $(weth), makerGivesAmount),
+      "taker got wrong amount: makerOffer.daiOffer"
     );
     assertEq(takerFromMaker.gave, makerWantsAmountDAI, "taker gave wrong amount: makerOffer.daiOffer");
 
@@ -218,13 +224,17 @@ contract GhostForwarderTest is MangroveTest {
 
     // assert that
     assertEq(
-      takerFromTester.got, minusFee($(dai), $(weth), makerGivesAmount), "taker got wrong amount: testOffer.daiOffer"
+      takerFromTester.got,
+      reader.minusFee($(dai), $(weth), makerGivesAmount),
+      "taker got wrong amount: testOffer.daiOffer"
     );
     assertEq(takerFromTester.gave, makerWantsAmountDAI, "taker gave wrong amount: testOffer.daiOffer");
 
     // assert that
     assertEq(
-      takerFromMaker.got, minusFee($(dai), $(weth), makerGivesAmount), "taker got wrong amount: makerOffer.daiOffer"
+      takerFromMaker.got,
+      reader.minusFee($(dai), $(weth), makerGivesAmount),
+      "taker got wrong amount: makerOffer.daiOffer"
     );
     assertEq(takerFromMaker.gave, makerWantsAmountDAI, "taker gave wrong amount: makerOffer.daiOffer");
 

@@ -213,7 +213,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_retract_offer_maintains_balance() public {
     mkr.provisionMgv(1 ether);
     uint bal = mkr.mgvBalance();
-    uint prov = getProvision($(base), $(quote), 2300);
+    uint prov = reader.getProvision($(base), $(quote), 2300);
     mkr.retractOffer(mkr.newOffer(1 ether, 1 ether, 2300, 0));
     assertEq(mkr.mgvBalance(), bal - prov, "unexpected maker balance");
   }
@@ -533,7 +533,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   }
 
   function test_update_offer_after_higher_gasprice_change_fails() public {
-    uint provision = getProvision($(base), $(quote), 100_000);
+    uint provision = reader.getProvision($(base), $(quote), 100_000);
     mkr.provisionMgv(provision);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     (MgvStructs.GlobalPacked cfg,) = mgv.config($(base), $(quote));
@@ -545,7 +545,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_update_offer_after_higher_gasprice_change_succeeds_when_over_provisioned() public {
     (MgvStructs.GlobalPacked cfg,) = mgv.config($(base), $(quote));
     uint gasprice = cfg.gasprice();
-    uint provision = getProvision($(base), $(quote), 100_000, gasprice);
+    uint provision = reader.getProvision($(base), $(quote), 100_000, gasprice);
     expectFrom($(mgv));
     emit Credit(address(mkr), provision * 2);
     mkr.provisionMgv(provision * 2); // provisionning twice the required amount
@@ -565,7 +565,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     emit Debit(address(mkr), provision); // transfering missing provision into offer bounty
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0); // locking exact bounty
     mgv.setGasprice(gasprice + 1); //gasprice goes up
-    uint provision_ = getProvision($(base), $(quote), 100_000, gasprice + 1); // new theoretical provision
+    uint provision_ = reader.getProvision($(base), $(quote), 100_000, gasprice + 1); // new theoretical provision
     (cfg,) = mgv.config($(base), $(quote));
     expectFrom($(mgv));
     emit OfferWrite(
@@ -585,12 +585,12 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   }
 
   function test_update_offer_after_lower_gasprice_change_succeeds() public {
-    uint provision = getProvision($(base), $(quote), 100_000);
+    uint provision = reader.getProvision($(base), $(quote), 100_000);
     mkr.provisionMgv(provision);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     (MgvStructs.GlobalPacked cfg,) = mgv.config($(base), $(quote));
     mgv.setGasprice(cfg.gasprice() - 1); //gasprice goes down
-    uint _provision = getProvision($(base), $(quote), 100_000);
+    uint _provision = reader.getProvision($(base), $(quote), 100_000);
     expectFrom($(mgv));
     emit Credit(address(mkr), provision - _provision);
     mkr.updateOffer(1.0 ether + 2, 1.0 ether, 100_000, ofr0, ofr0);
@@ -609,7 +609,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   }
 
   function test_update_on_retracted_offer() public {
-    uint provision = getProvision($(base), $(quote), 100_000);
+    uint provision = reader.getProvision($(base), $(quote), 100_000);
     mkr.provisionMgv(provision);
     uint offerId = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
     mkr.retractOfferWithDeprovision(offerId);
@@ -829,43 +829,5 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertTrue(gave == got && got == 0, "market Order should be noop");
     uint gotBack = mgv.balanceOf(address(mkr)) - oldProvision;
     assertEq(gotBack, 0, "Should not have gotten any provision back");
-  }
-
-  function test_gives_0_rejected() public {
-    vm.expectRevert("mgv/writeOffer/gives/tooLow");
-    mkr.newOffer(1 ether, 0 ether, 100_000, 0);
-  }
-
-  function test_offer_only_updateable_by_creator(address badGuy) public {
-    vm.assume(badGuy != address(mkr));
-    mkr.provisionMgv(1 ether);
-    uint id = mkr.newOffer(1 ether, 1 ether, 100_000, 0);
-    (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory detail) =
-      mgv.offerInfo($(base), $(quote), id);
-    vm.prank(badGuy);
-    vm.expectRevert("mgv/updateOffer/unauthorized");
-    mgv.updateOffer($(base), $(quote), offer.wants, offer.gives, detail.gasreq, detail.gasprice, id, id);
-  }
-
-  function test_idOverflow_reverts(address tout, address tin) public {
-    mgv.activate(tout, tin, 0, 0, 0);
-
-    // To test overflow, we surgically set 'last offer id' in mangrove storage
-    // to uint32.max.
-    //
-    // We use locked(out,in) as a proxy for getting the storage slot of
-    // locals[out][in]
-    vm.record();
-    mgv.locked(tout, tin);
-    (bytes32[] memory reads,) = vm.accesses(address(mgv));
-    bytes32 slot = reads[0];
-    bytes32 data = vm.load(address(mgv), slot);
-    MgvStructs.LocalPacked local = MgvStructs.LocalPacked.wrap(uint(data));
-    local = local.last(type(uint32).max);
-    vm.store(address(mgv), slot, bytes32(MgvStructs.LocalPacked.unwrap(local)));
-
-    // try new offer now that we set the last id to uint32.max
-    vm.expectRevert("mgv/offerIdOverflow");
-    mgv.newOffer(tout, tin, 1 ether, 1 ether, 0, 0, 0);
   }
 }

@@ -174,7 +174,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     require(token.approve(address(MGV), type(uint).max), "mgvOffer/approveMangrove/Fail");
     if (router_ != NO_ROUTER) {
       // allowing router to pull `token` from this contract (for the `push` function of the router)
-      require(token.approve(address(router_), type(uint).max), "mgvOffer/activate/approveRouterFail");
+      require(token.approve(address(router_), type(uint).max), "mgvOffer/approveRouterFail");
       // letting router performs additional necessary approvals (if any)
       // this will only work if `this` is an authorized maker of the router (i.e. `router.bind(address(this))` has been called by router's admin).
       router_.activate(token);
@@ -201,10 +201,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       amount = MGV.balanceOf(address(this));
     }
     // the require below is necessary if the `receive()` function is overriden
-    require(MGV.withdraw(amount), "mgvOffer/withdrawFromMgv/withdrawFail");
+    require(MGV.withdraw(amount), "mgvOffer/withdrawFail");
     (bool noRevert,) = receiver.call{value: amount}("");
     // if `receiver` is actually not payable
-    require(noRevert, "mgvOffer/withdrawFromMgvFail");
+    require(noRevert, "mgvOffer/weiTransferFail");
   }
 
   /// @inheritdoc IOfferLogic

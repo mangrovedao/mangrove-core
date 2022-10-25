@@ -112,7 +112,7 @@ abstract contract Deployer is Script2 {
       vm.writeFile(mainFile, out);
     } else {
       console.log(
-        "You have not set WRITE_DEPLOY=true. The main deployment file will not be updated. To update it after running this script, copy %s to %s",
+        "\u001b[33m Warning \u001b[0m You have not set WRITE_DEPLOY=true. \n The main deployment file will not be updated. To update it after running this script, copy %s to %s",
         latestBackupFile,
         mainFile
       );
@@ -121,5 +121,14 @@ abstract contract Deployer is Script2 {
 
   function line(string memory s) internal {
     out = string.concat(out, s, "\n");
+  }
+
+  // Tries to interpret `envVar`'s value as an address; otherwise look it up in the current fork.
+  function getRawAddressOrName(string memory envVar) internal returns (address payable) {
+    try vm.envAddress(envVar) returns (address addr) {
+      return payable(addr);
+    } catch {
+      return fork.get(vm.envString(envVar));
+    }
   }
 }

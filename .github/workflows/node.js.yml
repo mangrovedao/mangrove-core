@@ -6,13 +6,9 @@ on:
     branches: 
       - master
       - 'run-ci/**'
-    paths-ignore: 
-      - '**.md'
   pull_request_target:
     branches: [ master, test-pr ]
     types: [opened, synchronize, reopened, labeled]
-    paths-ignore: 
-      - '**.md'
 
 concurrency: 
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -192,7 +188,7 @@ jobs:
 
     - name: Report Failure to Slack
       if: ${{ failure() && fromJSON(env.NOTIFY_SLACK_FOR_THIS_WORKFLOW_RUN) }}
-      uses: ravsamhq/notify-slack-action@v1
+      uses: ravsamhq/notify-slack-action@v2
       with:
         status: ${{ job.status }}
         message_format: '{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}> at {job}'
@@ -245,7 +241,7 @@ jobs:
 
     - name: Report Failure to Slack
       if: ${{ failure() && fromJSON(env.NOTIFY_SLACK_FOR_THIS_WORKFLOW_RUN) }}
-      uses: ravsamhq/notify-slack-action@v1
+      uses: ravsamhq/notify-slack-action@v2
       with:
         status: ${{ job.status }}
         message_format: '{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}> at {job}'

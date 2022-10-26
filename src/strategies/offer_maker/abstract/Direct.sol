@@ -16,7 +16,7 @@ pragma abicoder v2;
 import {MangroveOffer} from "src/strategies/MangroveOffer.sol";
 import {MgvLib, IERC20, MgvStructs} from "src/MgvLib.sol";
 import {MangroveOfferStorage as MOS} from "src/strategies/MangroveOfferStorage.sol";
-import "src/strategies/utils/TransferLib.sol";
+import {TransferLib} from "src/strategies/utils/TransferLib.sol";
 import {IMangrove} from "src/IMangrove.sol";
 import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
 import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
@@ -77,7 +77,7 @@ abstract contract Direct is MangroveOffer {
       return; // nothing to do
     } else {
       // noop if reserve == address(this)
-      router_.push(token, reserve(admin()), amount);
+      require(router_.push(token, reserve(admin()), amount) == amount, "Direct/pushFailed");
     }
   }
 

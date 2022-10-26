@@ -3,11 +3,11 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_test/lib/MangroveTest.sol";
+import {MangroveTest, TestMaker, TestTaker, TestSender} from "mgv_test/lib/MangroveTest.sol";
 import {IMangrove} from "src/IMangrove.sol";
 import {MangroveOrderEnriched as MgvOrder} from "src/periphery/MangroveOrderEnriched.sol";
-import "src/strategies/interfaces/IOrderLogic.sol";
-import {MgvStructs} from "src/MgvLib.sol";
+import {IOrderLogic} from "src/strategies/interfaces/IOrderLogic.sol";
+import {MgvStructs, MgvLib, IERC20} from "src/MgvLib.sol";
 
 contract MangroveOrder_Test is MangroveTest {
   // to check ERC20 logging
@@ -264,6 +264,39 @@ contract MangroveOrder_Test is MangroveTest {
     assertEq(mgo.ownerOf(quote, base, res.offerId), $(this), "Invalid offer owner");
     assertEq(mgo.router().reserveBalance(quote, $(this)), bal_quote_before - res.takerGave, "Invalid quote balance");
     assertEq(mgo.router().reserveBalance(base, $(this)), bal_base_before + res.takerGot, "Invalid quote balance");
+  }
+
+  function resting_buy_order_for_blacklisted_reserve_reverts() private {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      partialFillNotAllowed: false,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether,
+      makerWants: 2 ether,
+      makerGives: 0.2548 ether,
+      restingOrder: true,
+      pivotId: 0,
+      timeToLiveForRestingOrder: 0 //NA
+    });
+
+    vm.expectRevert("mgvOrder/pushFailed");
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+  }
+
+  function test_resting_buy_order_for_blacklisted_reserve_for_outbound_reverts() public {
+    base.blacklists($(this));
+    resting_buy_order_for_blacklisted_reserve_reverts();
+  }
+
+  function test_resting_buy_order_for_blacklisted_reserve_for_inbound_reverts() public {
+    // We cannot blacklist in quote as take will fail too early, use mocking instead
+    // quote.blacklists($(this));
+    vm.mockCall(
+      address(quote), abi.encodeWithSelector(base.transferFrom.selector, $(mgo), $(this), 0.13 ether), abi.encode(false)
+    );
+    resting_buy_order_for_blacklisted_reserve_reverts();
   }
 
   function test_resting_buy_order_can_be_partially_filled() public {

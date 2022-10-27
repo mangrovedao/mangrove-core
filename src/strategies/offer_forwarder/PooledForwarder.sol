@@ -15,11 +15,11 @@ pragma abicoder v2;
 
 import "src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import "src/strategies/interfaces/IMakerLogic.sol";
-import "src/strategies/routers/AavePoolRouter.sol";
+import "src/strategies/routers/PooledAaveRouter.sol";
 
 contract PooledForwarder is IMakerLogic, Forwarder {
   constructor(IMangrove mgv, address deployer, address aaveAddresProvider)
-    Forwarder(mgv, new AavePoolRouter( aaveAddresProvider, 0, 1 ), 30_000)
+    Forwarder(mgv, new PooledAaveRouter( aaveAddresProvider, 0, 1 ), 30_000)
   {
     AbstractRouter router_ = router();
     router_.bind(address(this));
@@ -59,7 +59,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
-    AavePoolRouter aRouter = AavePoolRouter(address(router()));
+    PooledAaveRouter aRouter = PooledAaveRouter(address(router()));
     aRouter.increaseBalance(inTkn, owner, amount);
     // uint pushed = aRouter.push(inTkn, reserve(owner), amount); // wait until posthook to push everything
     return 0;
@@ -73,7 +73,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
-    AavePoolRouter aRouter = AavePoolRouter(address(router()));
+    PooledAaveRouter aRouter = PooledAaveRouter(address(router()));
     uint balance = aRouter.getBalance(outTkn, owner);
     // Someone elses offer could have been taken and their posthook fails, then the contract holds funds, these funds are not owned by the owner of this offer.
     // Should we have bookkeeping on the contracts funds and the funds on Aave?
@@ -94,7 +94,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
   }
 
   function deposit(IERC20 token, uint amount) public returns (uint) {
-    AavePoolRouter aRouter = AavePoolRouter(address(router()));
+    PooledAaveRouter aRouter = PooledAaveRouter(address(router()));
     aRouter.increaseBalance(token, msg.sender, amount);
     bool succes = TransferLib.transferTokenFrom(token, reserve(msg.sender), address(this), amount);
     // Should we push to Aave?
@@ -106,7 +106,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
   }
 
   function withdraw(IERC20 token, uint amount) public returns (bool) {
-    AavePoolRouter aRouter = AavePoolRouter(address(router()));
+    PooledAaveRouter aRouter = PooledAaveRouter(address(router()));
     uint balance = aRouter.getBalance(token, msg.sender);
     require(balance >= amount, "withdraw/notEnoughBalance");
 
@@ -147,7 +147,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
   }
 
   function pushRemainderToAave(MgvLib.SingleOrder calldata order) internal returns (bytes32) {
-    AavePoolRouter aRouter = AavePoolRouter(address(router()));
+    PooledAaveRouter aRouter = PooledAaveRouter(address(router()));
     IERC20 outTk = IERC20(order.outbound_tkn);
     IERC20 inTk = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTk, inTk, order.offerId);

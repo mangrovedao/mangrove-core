@@ -204,7 +204,7 @@ abstract contract Direct is MangroveOffer {
   }
 
   function __put__(uint, /*amount*/ MgvLib.SingleOrder calldata) internal virtual override returns (uint missing) {
-    // singleUser contract do not need to do anything specific with incoming funds during trade
+    // direct contract do not need to do anything specific with incoming funds during trade
     // one should override this function if one wishes to leverage taker's fund during trade execution
     // be aware that the incoming funds will be transferred back to the reserve in posthookSuccess using flush.
     // this is done in posthook, to accumulate all taken offers and transfer everything in one transfer.

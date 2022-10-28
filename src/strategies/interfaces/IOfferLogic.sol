@@ -171,7 +171,7 @@ interface IOfferLogic is IMaker {
   /// @param maker the address of the offer maker
   /// @param reserve_ the address of the offer maker's reserve of liquidity.
   /// @dev `setReserve(maker, address(0))` has the same effect as `setReserve(maker, maker)`
-  /// @dev admin restricted call. If two makers have the same reserve, they share liqudity.
+  /// @dev admin restricted call. If two makers have the same reserve, they share liquidity.
   function setReserve(address maker, address reserve_) external;
 
   /// @notice Contract's router getter.

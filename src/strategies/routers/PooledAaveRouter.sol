@@ -26,8 +26,8 @@ contract PooledAaveRouter is AaveDeepRouter {
   // balance of token for an owner
   mapping(IERC20 => mapping(address => uint)) internal ownerBalance;
 
-  constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode)
-    AaveDeepRouter(_addressesProvider, _referralCode, _interestRateMode)
+  constructor(address addressesProvider_, uint referralCode_, uint interestRateMode_)
+    AaveDeepRouter(addressesProvider_, referralCode_, interestRateMode_)
   {}
 
   // Increases balance of token for owner.
@@ -42,8 +42,8 @@ contract PooledAaveRouter is AaveDeepRouter {
   // should have some accessControl
   function decreaseBalance(IERC20 token, address owner, uint amount) external returns (uint) {
     uint currentBalance = ownerBalance[token][owner];
-    require(currentBalance >= amount, "AavePoolRouter/decreaseBalance/amountMoreThanBalance");
-    uint newBalance = ownerBalance[token][owner] - amount;
+    require(currentBalance >= amount, "PooledAaveRouter/decreaseBalance/amountMoreThanBalance");
+    uint newBalance = currentBalance - amount;
     ownerBalance[token][owner] = newBalance;
     return newBalance;
   }

@@ -13,13 +13,13 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "src/strategies/offer_forwarder/abstract/Forwarder.sol";
-import "src/strategies/interfaces/IMakerLogic.sol";
-import "src/strategies/routers/PooledAaveRouter.sol";
+import {Forwarder} from "src/strategies/offer_forwarder/abstract/Forwarder.sol";
+import {IMakerLogic} from "src/strategies/interfaces/IMakerLogic.sol";
+import {PooledAaveRouter} from "src/strategies/routers/PooledAaveRouter.sol";
 
 contract PooledForwarder is IMakerLogic, Forwarder {
-  constructor(IMangrove mgv, address deployer, address aaveAddresProvider)
-    Forwarder(mgv, new PooledAaveRouter( aaveAddresProvider, 0, 1 ), 30_000)
+  constructor(IMangrove mgv, address deployer, address aaveAddressProvider)
+    Forwarder(mgv, new PooledAaveRouter( aaveAddressProvider, 0, 1 ), 30_000)
   {
     AbstractRouter router_ = router();
     router_.bind(address(this));
@@ -66,7 +66,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
   }
 
   // When pulling from Aave, take everything the maker can get
-  // This way, we dont have to pull from Aave everytime an offer is taken
+  // This way, we don't have to pull from Aave every time an offer is taken
   // If posthook fails, tokens are left on the contract and not pushed to Aave
   // Is this okay, since the router keeps track of balances?
   function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
@@ -96,9 +96,9 @@ contract PooledForwarder is IMakerLogic, Forwarder {
   function deposit(IERC20 token, uint amount) public returns (uint) {
     PooledAaveRouter aRouter = PooledAaveRouter(address(router()));
     aRouter.increaseBalance(token, msg.sender, amount);
-    bool succes = TransferLib.transferTokenFrom(token, reserve(msg.sender), address(this), amount);
+    bool success = TransferLib.transferTokenFrom(token, reserve(msg.sender), address(this), amount);
     // Should we push to Aave?
-    if (succes) {
+    if (success) {
       uint pushed = aRouter.push(token, reserve(msg.sender), amount);
       return pushed;
     }
@@ -111,20 +111,20 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     require(balance >= amount, "withdraw/notEnoughBalance");
 
     if (token.balanceOf(address(this)) >= amount) {
-      bool succes = TransferLib.transferToken(token, reserve(msg.sender), amount);
-      if (succes) {
+      bool success = TransferLib.transferToken(token, reserve(msg.sender), amount);
+      if (success) {
         aRouter.decreaseBalance(token, msg.sender, amount);
       }
-      return succes;
+      return success;
     }
 
     uint pulled = aRouter.pull(token, reserve(msg.sender), amount, true);
     require(pulled == amount, "withdraw/aavePulledWrongAmount");
-    bool succes = TransferLib.transferToken(token, reserve(msg.sender), pulled);
-    if (succes) {
+    bool success = TransferLib.transferToken(token, reserve(msg.sender), pulled);
+    if (success) {
       aRouter.decreaseBalance(token, msg.sender, pulled);
     }
-    return succes;
+    return success;
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)

@@ -16,6 +16,12 @@ pragma abicoder v2;
 import {Forwarder} from "src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import {IMakerLogic} from "src/strategies/interfaces/IMakerLogic.sol";
 import {PooledAaveRouter} from "src/strategies/routers/PooledAaveRouter.sol";
+import {Forwarder} from "src/strategies/offer_forwarder/abstract/Forwarder.sol";
+import {IMakerLogic} from "src/strategies/interfaces/IMakerLogic.sol";
+import {IERC20, MgvLib} from "src/MgvLib.sol";
+import {IMangrove} from "src/IMangrove.sol";
+import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
+import {TransferLib} from "src/strategies/utils/TransferLib.sol";
 
 contract PooledForwarder is IMakerLogic, Forwarder {
   constructor(IMangrove mgv, address deployer, address aaveAddressProvider)
@@ -120,11 +126,11 @@ contract PooledForwarder is IMakerLogic, Forwarder {
 
     uint pulled = aRouter.pull(token, reserve(msg.sender), amount, true);
     require(pulled == amount, "withdraw/aavePulledWrongAmount");
-    bool success = TransferLib.transferToken(token, reserve(msg.sender), pulled);
-    if (success) {
+    bool success2 = TransferLib.transferToken(token, reserve(msg.sender), pulled);
+    if (success2) {
       aRouter.decreaseBalance(token, msg.sender, pulled);
     }
-    return success;
+    return success2;
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)

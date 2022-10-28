@@ -49,7 +49,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
   // Decrease balance of token for owner.
   function decreaseBalance(IERC20 token, address owner, uint amount) private returns (uint) {
     uint currentBalance = ownerBalance[token][owner];
-    require(currentBalance >= amount, "PooledAaveRouter/decreaseBalance/amountMoreThanBalance");
+    require(currentBalance >= amount, "PooledForwarder/decreaseBalance/amountMoreThanBalance");
     unchecked {
       uint newBalance = currentBalance - amount;
       ownerBalance[token][owner] = newBalance;
@@ -72,6 +72,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     uint pivotId
   ) public payable returns (uint offerId) {
     gasprice; // ignoring gasprice that will be derived based on msg.value.
+    // we post the offer without any checks - it is up to the owner to have deposited enough.
     offerId = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
@@ -88,7 +89,6 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     );
   }
 
-  // only increase balance for owner, do not transfer any tokens. This is done in posthook.
   function __put__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
@@ -96,67 +96,74 @@ contract PooledForwarder is IMakerLogic, Forwarder {
 
     // only increase balance for owner, do not transfer any tokens. This is done in posthook.
     increaseBalance(inTkn, owner, amount);
-    // uint pushed = aRouter.push(inTkn, reserve(owner), amount); // wait until posthook to push everything
     return 0;
   }
 
   // When pulling from Aave, take everything the maker can get
   // This way, we don't have to pull from Aave every time an offer is taken
   // If posthook fails, tokens are left on the contract and not pushed to Aave
-  // Is this okay, since the router keeps track of balances?
   function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
+    // Do not call super as it will route to reserve.
+    // TODO consider decoupling from normal Forwarder router handling - split Forwarder in two?
+
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
     uint balance = this.getBalance(outTkn, owner);
-    // Someone elses offer could have been taken and their posthook fails, then the contract holds funds, these funds are not owned by the owner of this offer.
-    // Should we have bookkeeping on the contracts funds and the funds on Aave?
-    if (balance >= amount && outTkn.balanceOf(address(this)) >= amount) {
-      decreaseBalance(outTkn, owner, amount);
-      return 0;
+    // First we decrease balance - will revert if owner does not have enough.
+    decreaseBalance(outTkn, owner, amount);
+
+    // check if `this` has enough to satisfy order, otherwise pull _everything_ from aave.
+    if (outTkn.balanceOf(address(this)) < amount) {
+      // we do not verify result - we assume there is now enough, otherwise the order will fail.
+      router().pull(outTkn, address(this), balance, false);
+
+      //TODO are there situations where we have to push to aave before we can pull?. i.e. is the following needed?
+      // if (outTkn.balanceOf(address(this)) < amount) {
+      //   uint inBalance = inTkn.balanceOf(address(this));
+      //   inPushed = inBalance > 0 ? router().push(inTkn, address(this), inBalance) : 0;
+      //   if (inPushed > 0) {
+      //     router().pull(outTkn, this, balance, false);
+      //   }
+      // }
+
+      // if we still don't have enough the offer will fail and balance change will be reverted.
     }
 
-    if (balance >= amount) {
-      uint pulled = router().pull(outTkn, reserve(owner), balance, true);
-      decreaseBalance(outTkn, owner, amount); // decrease with pulled amount
-      return balance - pulled;
-    } else {
-      uint pulled = router().pull(outTkn, reserve(owner), amount, true);
-      decreaseBalance(outTkn, owner, amount);
-      return amount - pulled;
-    }
+    // we have decreased owner's balance with the exact amount, so nothing more needed.
+    return 0;
   }
 
   function deposit(IERC20 token, uint amount) public returns (uint) {
-    increaseBalance(token, msg.sender, amount);
     bool success = TransferLib.transferTokenFrom(token, reserve(msg.sender), address(this), amount);
-    // Should we push to Aave?
+    // funds are now in local pool
+    // TODO: Should we push to Aave or wait for next order?
     if (success) {
-      uint pushed = router().push(token, reserve(msg.sender), amount);
-      return pushed;
+      increaseBalance(token, msg.sender, amount);
+      // push all we have - we do not care if it succeeds.
+      router().push(token, address(this), token.balanceOf(address(this)));
+      return amount;
     }
     return 0;
   }
 
   function withdraw(IERC20 token, uint amount) public returns (bool) {
-    uint balance = this.getBalance(token, msg.sender);
-    require(balance >= amount, "withdraw/notEnoughBalance");
+    uint ownersBalance = this.getBalance(token, msg.sender);
+    require(ownersBalance >= amount, "withdraw/notEnoughBalance");
+    // update state before calling contracts
+    decreaseBalance(token, msg.sender, amount);
 
-    if (token.balanceOf(address(this)) >= amount) {
-      bool success = TransferLib.transferToken(token, reserve(msg.sender), amount);
-      if (success) {
-        decreaseBalance(token, msg.sender, amount);
-      }
-      return success;
+    uint thisBalance = token.balanceOf(address(this));
+
+    // pull missing from aave into local pool
+    if (thisBalance < amount) {
+      uint pulled = router().pull(token, address(this), amount - thisBalance, true);
+      require(pulled + thisBalance == amount, "withdraw/aavePulledWrongAmount");
     }
 
-    uint pulled = router().pull(token, reserve(msg.sender), amount, true);
-    require(pulled == amount, "withdraw/aavePulledWrongAmount");
-    bool success2 = TransferLib.transferToken(token, reserve(msg.sender), pulled);
-    if (success2) {
-      decreaseBalance(token, msg.sender, pulled);
-    }
-    return success2;
+    // transfer to owner
+    bool success = TransferLib.transferToken(token, reserve(msg.sender), amount);
+    return success;
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
@@ -167,7 +174,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     // reposts residual if any (conservative hook)
     bytes32 repost_status = super.__posthookSuccess__(order, makerData);
 
-    return pushRemainderToAave(order);
+    return pushAllToAave(order);
   }
 
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)
@@ -175,19 +182,19 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     override
     returns (bytes32)
   {
-    return pushRemainderToAave(order);
+    return pushAllToAave(order);
   }
 
-  function pushRemainderToAave(MgvLib.SingleOrder calldata order) internal returns (bytes32) {
+  function pushAllToAave(MgvLib.SingleOrder calldata order) internal returns (bytes32) {
     AbstractRouter router_ = router();
     IERC20 outTk = IERC20(order.outbound_tkn);
     IERC20 inTk = IERC20(order.inbound_tkn);
-    address owner = ownerOf(outTk, inTk, order.offerId);
     uint outBalance = outTk.balanceOf(address(this));
-    uint outPushed = outBalance > 0 ? router_.push(outTk, address(this), outBalance) : 0; // should this be reserve(owner)?
+    uint outPushed = outBalance > 0 ? router_.push(outTk, address(this), outBalance) : 0;
     uint inBalance = inTk.balanceOf(address(this));
     uint inPushed = inBalance > 0 ? router_.push(inTk, address(this), inBalance) : 0;
 
+    //TODO I am not sure why we need all this reporting?
     if (outBalance == 0 && inBalance > 0) {
       if (inBalance - inPushed > 0) {
         return "posthook/inNotFullyPushed";

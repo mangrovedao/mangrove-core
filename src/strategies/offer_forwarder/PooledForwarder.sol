@@ -15,7 +15,7 @@ pragma abicoder v2;
 
 import {Forwarder} from "src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import {IMakerLogic} from "src/strategies/interfaces/IMakerLogic.sol";
-import {AaveDeepRouter} from "src/strategies/routers/AaveDeepRouter.sol";
+import {AaveRouter} from "src/strategies/routers/AaveRouter.sol";
 import {IERC20, MgvLib} from "src/MgvLib.sol";
 import {IMangrove} from "src/IMangrove.sol";
 import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
@@ -31,7 +31,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
   mapping(IERC20 => mapping(address => uint)) internal ownerBalance;
 
   constructor(IMangrove mgv, address deployer, address aaveAddressProvider)
-    Forwarder(mgv, new AaveDeepRouter(aaveAddressProvider, 0, 1 ), 30_000)
+    Forwarder(mgv, new AaveRouter(aaveAddressProvider, 0, 1 , 700_000), 30_000)
   {
     AbstractRouter router_ = router();
     router_.bind(address(this));
@@ -57,7 +57,8 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     }
   }
 
-  function getBalance(IERC20 token, address owner) external view returns (uint) {
+  // TODO will this be inlined?
+  function getBalance(IERC20 token, address owner) public view returns (uint) {
     return ownerBalance[token][owner];
   }
 
@@ -109,7 +110,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
-    uint balance = this.getBalance(outTkn, owner);
+    uint balance = getBalance(outTkn, owner);
     // First we decrease balance - will revert if owner does not have enough.
     decreaseBalance(outTkn, owner, amount);
 
@@ -148,7 +149,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
   }
 
   function withdraw(IERC20 token, uint amount) public returns (bool) {
-    uint ownersBalance = this.getBalance(token, msg.sender);
+    uint ownersBalance = getBalance(token, msg.sender);
     require(ownersBalance >= amount, "withdraw/notEnoughBalance");
     // update state before calling contracts
     decreaseBalance(token, msg.sender, amount);

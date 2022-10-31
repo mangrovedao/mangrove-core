@@ -13,9 +13,8 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "src/strategies/offer_maker/abstract/Direct.sol";
-import "src/strategies/routers/AbstractRouter.sol";
-import "src/strategies/interfaces/IMakerLogic.sol";
+import {Direct, AbstractRouter, IMangrove, IERC20} from "src/strategies/offer_maker/abstract/Direct.sol";
+import {IMakerLogic} from "src/strategies/interfaces/IMakerLogic.sol";
 
 contract OfferMaker is IMakerLogic, Direct {
   // router_ needs to bind to this contract

@@ -5,6 +5,7 @@
   "license": "(AGPL-3.0-only OR BSD-2-Clause)",
   "main": "index.js",
   "scripts": {
+    "package-version": "echo $npm_package_version",
     "precommit": "lint-staged",
     "prepack": "pinst --disable && yarn build",
     "postpack": "pinst --enable",

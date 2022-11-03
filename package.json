@@ -37,7 +37,7 @@
     "husky": "^8.0.1",
     "lint-staged": "^13.0.3",
     "micromatch": "^4.0.5",
-    "pinst": "^2.1.6",
+    "pinst": "^3.0.0",
     "prettier": "^2.4.1",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.4",

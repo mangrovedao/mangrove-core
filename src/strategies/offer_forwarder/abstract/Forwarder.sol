@@ -234,15 +234,19 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
       (vars.global, vars.local) = MGV.config(address(args.outbound_tkn), address(args.inbound_tkn));
       vars.offerDetail = MGV.offerDetails(address(args.outbound_tkn), address(args.inbound_tkn), offerId);
 
-      args.gasreq = args.gasreq >= type(uint24).max ? vars.offerDetail.gasreq() : args.gasreq;
-      // re-deriving gasprice only if necessary
-      if (args.fund != 0) {
+      uint old_gasreq = vars.offerDetail.gasreq();
+      args.gasreq = args.gasreq >= type(uint24).max ? old_gasreq : args.gasreq;
+      // re-deriving gasprice only if necessary, i.e if user puts more funds or changes `gasreq`
+      if (args.fund > 0 || args.gasreq != old_gasreq) {
         // adding current locked provision to funds (0 if offer is deprovisioned)
+        uint locked_funds = vars.offerDetail.gasprice() * 10 ** 9 * (old_gasreq + vars.offerDetail.offer_gasbase());
+        // note that if `args.gasreq < old_gasreq` then offer gasprice will increase (even if `args.fund == 0`) to match the incurred excess of locked provision  
         (args.gasprice, vars.leftover) = deriveGasprice(
           args.gasreq,
-          args.fund + vars.offerDetail.gasprice() * 10 ** 9 * args.gasreq + vars.local.offer_gasbase(),
+          args.fund + locked_funds,
           vars.local.offer_gasbase()
         );
+
         // leftover can be safely cast to uint96 since it's a rounding error
         // adding `leftover` to potential previous value since it was not included in args.fund
         ownerData[args.outbound_tkn][args.inbound_tkn][offerId].weiBalance += uint96(vars.leftover);

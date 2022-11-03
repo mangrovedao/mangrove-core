@@ -126,11 +126,11 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
     // sending inbound tokens to `msg.sender`'s reserve and sending back remaining outbound tokens
     if (res.takerGot > 0) {
-      router().push(tko.outbound_tkn, callerReserve, res.takerGot);
+      require(router().push(tko.outbound_tkn, callerReserve, res.takerGot) == res.takerGot, "mgvOrder/pushFailed");
     }
-    uint inbound_left = tko.takerGives - res.takerGave;
-    if (inbound_left > 0) {
-      router().push(tko.inbound_tkn, callerReserve, inbound_left);
+    uint inboundLeft = tko.takerGives - res.takerGave;
+    if (inboundLeft > 0) {
+      require(router().push(tko.inbound_tkn, callerReserve, inboundLeft) == inboundLeft, "mgvOrder/pushFailed");
     }
     // POST:
     // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
@@ -168,7 +168,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       // 1. callee is `msg.sender` so no griefing risk of making this call fail for out of gas
       // 2. w.r.t reentrancy for profit:
       // * from POST above a reentrant call would entail either:
-      //   - `fund == 0` (no additional funds transfered)
+      //   - `fund == 0` (no additional funds transferred)
       //   - or `fund == msg.value + res.bounty` with `msg.value` being from reentrant call and `res.bounty` from a second resting order.
       // Thus no additional fund can be redeemed by caller using reentrancy.
       (bool noRevert,) = msg.sender.call{value: fund}("");

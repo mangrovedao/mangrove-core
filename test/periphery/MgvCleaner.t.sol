@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 // pragma experimental ABIEncoderV2;
 
-import {MgvCleaner} from "src/periphery/MgvCleaner.sol";
+import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 
 // In these tests, the testing contract is the market maker.
 contract MgvCleanerTest is MangroveTest {

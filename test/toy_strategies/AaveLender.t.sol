@@ -8,8 +8,8 @@ import {
   AaveV3Module,
   AaveDeepRouter
 } from "src/toy_strategies/offer_maker/cash_management/AdvancedAaveRetail.sol";
-import {IERC20} from "src/MgvLib.sol";
-import {IMangrove} from "src/IMangrove.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 import {console2} from "forge-std/Test.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 

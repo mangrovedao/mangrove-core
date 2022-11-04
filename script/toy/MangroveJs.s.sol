@@ -3,12 +3,12 @@ pragma solidity ^0.8.13;
 
 import {MangroveDeployer} from "mgv_script/lib/MangroveDeployer.sol";
 
-import {AbstractMangrove} from "src/AbstractMangrove.sol";
-import {IERC20} from "src/MgvLib.sol";
+import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {MangroveOrder} from "src/periphery/MangroveOrderEnriched.sol";
+import {MangroveOrder} from "mgv_src/periphery/MangroveOrderEnriched.sol";
 import {SimpleTestMaker} from "mgv_test/lib/agents/TestMaker.sol";
-import {IMangrove} from "src/IMangrove.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /* 
@@ -17,9 +17,7 @@ This script prepares a local server for testing by mangrove.js.
 In the future it should a) Use mostly the normal deploy file, so there is as
 little discrepancy between real deploys and deploys that mangrove.js tests
 interact with.  b) For any additional deployments needed, those files should be
-hosted in mangrove.js.
-
-*/
+hosted in mangrove.js.*/
 
 contract MangroveJsDeploy is Deployer {
   IERC20 tokenA;

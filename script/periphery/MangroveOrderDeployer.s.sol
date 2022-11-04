@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MangroveOrderEnriched, IERC20, IMangrove} from "src/periphery/MangroveOrderEnriched.sol";
+import {MangroveOrderEnriched, IERC20, IMangrove} from "mgv_src/periphery/MangroveOrderEnriched.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /*  Deploys a MangroveOrder instance
@@ -10,8 +10,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
  forge script --fork-url mumbai MangroveOrderDeployer -vvv 
     Then broadcast and verify:
  WRITE_DEPLOY=true forge script --fork-url mumbai MangroveOrderDeployer -vvv --broadcast --verify
-    Remember to activate it using ActivateMangroveOrder
-*/
+    Remember to activate it using ActivateMangroveOrder*/
 contract MangroveOrderDeployer is Deployer {
   function run() public {
     innerRun({admin: fork.get("Deployer")});

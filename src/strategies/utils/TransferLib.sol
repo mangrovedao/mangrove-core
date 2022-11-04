@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {IERC20} from "src/MgvLib.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
 
 ///@title This library helps with safely interacting with ERC20 tokens
 ///@notice Transferring 0 or to self will be skipped.

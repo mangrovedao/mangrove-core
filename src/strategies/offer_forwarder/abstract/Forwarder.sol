@@ -306,7 +306,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
       // w.r.t reentrancy:
       // * `od.weiBalance` is set to 0 (storage write) prior to this call, so a reentrant call to `retractOffer` would give `freeWei = 0` at (a)
       // * further call to `MGV.retractOffer` will yield no more WEIs so `freeWei += 0` at (b)
-      // * (a /\ b) imply that the above call to `MGV.withdraw` will be done with `freeWeil == 0`.
+      // * (a /\ b) imply that the above call to `MGV.withdraw` will be done with `freeWei == 0`.
       // * `retractOffer` is the only function that allows non admin users to withdraw WEIs from Mangrove.
       (bool noRevert,) = od.owner.call{value: freeWei}("");
       require(noRevert, "mgvOffer/weiTransferFail");

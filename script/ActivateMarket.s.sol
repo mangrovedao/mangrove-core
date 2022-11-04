@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
+import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import "mgv_src/Mangrove.sol";
 import {ERC20} from "../test/lib/tokens/ERC20.sol";
 

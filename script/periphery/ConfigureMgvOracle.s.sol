@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MgvOracle} from "src/periphery/MgvOracle.sol";
-import {Mangrove} from "src/Mangrove.sol";
+import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
+import {Mangrove} from "mgv_src/Mangrove.sol";
 
 contract ConfigureMgvOracle is Deployer {
   function run() public {

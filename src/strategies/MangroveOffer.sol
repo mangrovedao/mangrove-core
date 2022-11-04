@@ -13,12 +13,12 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {AccessControlled} from "src/strategies/utils/AccessControlled.sol";
+import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
 import {MangroveOfferStorage as MOS} from "./MangroveOfferStorage.sol";
-import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
-import {MgvLib, IERC20, MgvStructs} from "src/MgvLib.sol";
-import {IMangrove} from "src/IMangrove.sol";
-import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
+import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
+import {MgvLib, IERC20, MgvStructs} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 
 /// @title This contract is the basic building block for Mangrove strats.
 /// @notice It contains the mandatory interface expected by Mangrove (`IOfferLogic` is `IMaker`) and enforces additional functions implementations (via `IOfferLogic`).

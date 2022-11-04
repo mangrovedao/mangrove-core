@@ -3,8 +3,8 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/forks/Polygon.sol";
-import "src/toy_strategies/offer_maker/Ghost.sol";
-import {MgvStructs} from "src/MgvLib.sol";
+import "mgv_src/toy_strategies/offer_maker/Ghost.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 
 import {console} from "forge-std/console.sol";

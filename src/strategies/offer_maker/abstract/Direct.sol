@@ -13,13 +13,13 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {MangroveOffer} from "src/strategies/MangroveOffer.sol";
-import {MgvLib, IERC20, MgvStructs} from "src/MgvLib.sol";
-import {MangroveOfferStorage as MOS} from "src/strategies/MangroveOfferStorage.sol";
-import {TransferLib} from "src/strategies/utils/TransferLib.sol";
-import {IMangrove} from "src/IMangrove.sol";
-import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
-import {IOfferLogic} from "src/strategies/interfaces/IOfferLogic.sol";
+import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
+import {MgvLib, IERC20, MgvStructs} from "mgv_src/MgvLib.sol";
+import {MangroveOfferStorage as MOS} from "mgv_src/strategies/MangroveOfferStorage.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
+import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
 /// `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
 abstract contract Direct is MangroveOffer {

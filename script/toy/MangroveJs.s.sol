@@ -17,7 +17,9 @@ This script prepares a local server for testing by mangrove.js.
 In the future it should a) Use mostly the normal deploy file, so there is as
 little discrepancy between real deploys and deploys that mangrove.js tests
 interact with.  b) For any additional deployments needed, those files should be
-hosted in mangrove.js.*/
+hosted in mangrove.js.
+
+*/
 
 contract MangroveJsDeploy is Deployer {
   IERC20 tokenA;

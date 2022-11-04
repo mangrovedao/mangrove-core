@@ -19,7 +19,8 @@ uint constant COVER_FACTOR = 100;
   outbound_in_gwei should be obtained like this:
   1. Get the price of one outbound token display unit in ETH
   2. Multiply by 10^9
-  3. Round to nearest integer*/
+  3. Round to nearest integer
+*/
 
 contract ActivateSemibook is Test2, Deployer {
   function run() public {

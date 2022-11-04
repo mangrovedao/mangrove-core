@@ -34,7 +34,8 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
    You can adjust takerWants/takerGives and gasreq as needed.
 
    Note: in the current version you do not need to set MgvCleaner's allowance in Mangrove.
-   TODO: add `collectWith` with an additional `taker` argument.*/
+   TODO: add `collectWith` with an additional `taker` argument.
+*/
 contract MgvCleaner {
   IMangrove immutable MGV;
 

@@ -10,7 +10,8 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
  forge script --fork-url mumbai MangroveOrderDeployer -vvv 
     Then broadcast and verify:
  WRITE_DEPLOY=true forge script --fork-url mumbai MangroveOrderDeployer -vvv --broadcast --verify
-    Remember to activate it using ActivateMangroveOrder*/
+    Remember to activate it using ActivateMangroveOrder
+*/
 contract MangroveOrderDeployer is Deployer {
   function run() public {
     innerRun({admin: fork.get("Deployer")});

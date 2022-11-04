@@ -4,8 +4,8 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import {AbstractMangrove} from "src/AbstractMangrove.sol";
-import {IERC20, ITaker} from "src/MgvLib.sol";
+import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+import {IERC20, ITaker} from "mgv_src/MgvLib.sol";
 import {Script2} from "mgv_lib/Script2.sol";
 
 contract TestTaker is ITaker, Script2 {

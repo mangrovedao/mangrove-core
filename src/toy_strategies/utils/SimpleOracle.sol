@@ -14,7 +14,7 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import "../interfaces/IOracle.sol";
-import "src/strategies/utils/AccessControlled.sol";
+import "mgv_src/strategies/utils/AccessControlled.sol";
 import {IERC20} from "../../MgvLib.sol";
 
 contract SimpleOracle is IOracle, AccessControlled {

@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 
 import {console} from "forge-std/console.sol";
 import {Script2} from "mgv_lib/Script2.sol";
-import {MangroveOrder} from "src/periphery/MangroveOrder.sol";
-import {IERC20} from "src/MgvLib.sol";
+import {MangroveOrder} from "mgv_src/strategies/MangroveOrder.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /*  Allows MangroveOrder to trade on the tokens given in argument.
@@ -16,7 +16,6 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
     For instance:
 
   TKNS="DAI,USDC,WETH,DAI_AAVE,USDC_AAVE,WETH_AAVE" forge script --fork-url mumbai ActivateMangroveOrder
-
 */
 
 contract ActivateMangroveOrder is Deployer {

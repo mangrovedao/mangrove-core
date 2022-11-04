@@ -4,8 +4,8 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 
-import {MgvReader, VolumeData} from "src/periphery/MgvReader.sol";
-import {MgvStructs} from "src/MgvLib.sol";
+import {MgvReader, VolumeData} from "mgv_src/periphery/MgvReader.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 // In these tests, the testing contract is the market maker.
 contract MgvReaderTest is MangroveTest {

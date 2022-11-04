@@ -2,8 +2,8 @@
 pragma solidity ^0.8.14;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "src/strategies/offer_maker/market_making/mango/Mango.sol";
-import "src/strategies/routers/AaveRouter.sol";
+import "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
+import "mgv_src/strategies/routers/AaveRouter.sol";
 import "mgv_test/lib/forks/Polygon.sol";
 
 /* This test works as an example of how to run the same test on multiple forks. 
@@ -20,7 +20,6 @@ import "mgv_test/lib/forks/Polygon.sol";
         fork = new MumbaiFork();
       }
     }
-
 */
 
 abstract contract GuaaveAbstractTest is MangroveTest {

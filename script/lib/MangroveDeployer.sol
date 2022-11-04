@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Script} from "forge-std/Script.sol";
-
-import "src/Mangrove.sol";
-import "src/periphery/MgvReader.sol";
-import {MangroveOrderEnriched} from "src/periphery/MangroveOrderEnriched.sol";
-import {MgvCleaner} from "src/periphery/MgvCleaner.sol";
-import {MgvOracle} from "src/periphery/MgvOracle.sol";
-import {IMangrove} from "src/IMangrove.sol";
+import "mgv_src/Mangrove.sol";
+import "mgv_src/periphery/MgvReader.sol";
+// import {MangroveOrderEnriched} from "mgv_src/periphery/MangroveOrderEnriched.sol";
+import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
+import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Deployer} from "./Deployer.sol";
 
 contract MangroveDeployer is Deployer {
@@ -16,7 +14,7 @@ contract MangroveDeployer is Deployer {
   MgvReader public reader;
   MgvCleaner public cleaner;
   MgvOracle public oracle;
-  MangroveOrderEnriched public mgoe;
+  // MangroveOrderEnriched public mgoe;
 
   function run() public {
     innerRun({chief: msg.sender, gasprice: 1, gasmax: 2_000_000});
@@ -40,11 +38,11 @@ contract MangroveDeployer is Deployer {
     oracle = new MgvOracle({governance_: chief, initialMutator_: chief});
     fork.set("MgvOracle", address(oracle));
 
-    broadcast();
-    mgoe = new MangroveOrderEnriched({
-      mgv: IMangrove(payable(mgv)),
-      deployer: chief
-    });
-    fork.set("MangroveOrderEnriched", address(mgoe));
+    // broadcast();
+    // mgoe = new MangroveOrderEnriched({
+    //   mgv: IMangrove(payable(mgv)),
+    //   deployer: chief
+    // });
+    // fork.set("MangroveOrderEnriched", address(mgoe));
   }
 }

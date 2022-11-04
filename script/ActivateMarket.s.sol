@@ -2,8 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MgvOracle} from "src/periphery/MgvOracle.sol";
-import "src/Mangrove.sol";
+import "mgv_src/Mangrove.sol";
 import {ERC20} from "../test/lib/tokens/ERC20.sol";
 
 import {ActivateSemibook} from "./ActivateSemibook.s.sol";
@@ -13,8 +12,7 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
  TKN1_IN_GWEI=$(cast tun 7.5ether gwei) \
  TKN2_IN_GWEI=$(cast tun 7.1 eth gwei) \
  FEE=30 \
- forge script --fork-url mumbai ActivateMarket
-*/
+ forge script --fork-url mumbai ActivateMarket*/
 
 contract ActivateMarket is Deployer {
   function run() public {

@@ -13,9 +13,9 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "src/strategies/offer_maker/OfferMaker.sol";
-import "src/strategies/routers/AaveDeepRouter.sol";
-import {MgvLib} from "src/MgvLib.sol";
+import "mgv_src/strategies/offer_maker/OfferMaker.sol";
+import "mgv_src/strategies/routers/AaveDeepRouter.sol";
+import {MgvLib} from "mgv_src/MgvLib.sol";
 
 contract AdvancedAaveRetail is OfferMaker {
   bytes32 public constant NAME = "AdvancedAaveRetail";

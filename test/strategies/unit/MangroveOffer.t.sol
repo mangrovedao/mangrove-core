@@ -2,9 +2,9 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "src/strategies/offer_maker/OfferMaker.sol";
-import "src/strategies/routers/SimpleRouter.sol";
-import {t_of_struct as packOffer} from "src/preprocessed/MgvOffer.post.sol";
+import "mgv_src/strategies/offer_maker/OfferMaker.sol";
+import "mgv_src/strategies/routers/SimpleRouter.sol";
+import {t_of_struct as packOffer} from "mgv_src/preprocessed/MgvOffer.post.sol";
 
 contract MangroveOfferTest is MangroveTest {
   TestToken weth;

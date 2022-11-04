@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {Script, console} from "forge-std/Script.sol";
-import {ToyENS} from "mgv_script/lib/ToyENS.sol";
+import {ToyENS} from "mgv_lib/ToyENS.sol";
 
 /* A record entry in an addresses JSON file */
 struct Record {

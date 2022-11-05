@@ -13,10 +13,10 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "src/IMangrove.sol";
+import "mgv_src/IMangrove.sol";
 import "./MangoStorage.sol";
-import "src/strategies/utils/TransferLib.sol";
-import {MgvLib, MgvStructs} from "src/MgvLib.sol";
+import "mgv_src/strategies/utils/TransferLib.sol";
+import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 
 //import "../routers/AbstractRouter.sol";
 

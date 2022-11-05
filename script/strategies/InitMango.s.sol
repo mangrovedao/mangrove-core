@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {Mango, IERC20, IMangrove} from "src/strategies/offer_maker/market_making/mango/Mango.sol";
+import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
 
 /**
  * @notice Initialize Mango offers on a given market

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MgvReader, IMangrove} from "src/periphery/MgvReader.sol";
+import {MgvReader, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /*  Deploys a MangroveOrder instance

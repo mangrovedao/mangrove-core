@@ -22,7 +22,7 @@ import {ICreditDelegationToken} from "../vendor/aave/v3/ICreditDelegationToken.s
 import "../vendor/aave/v3/IPriceOracleGetter.sol";
 import {ReserveConfiguration as RC} from "../vendor/aave/v3/ReserveConfiguration.sol";
 
-import "src/IMangrove.sol";
+import "mgv_src/IMangrove.sol";
 
 library AaveV3ModuleStorage {
   // address of the lendingPool

@@ -13,8 +13,8 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "src/strategies/offer_forwarder/OfferForwarder.sol";
-import "src/strategies/routers/AaveDeepRouter.sol";
+import "mgv_src/strategies/offer_forwarder/OfferForwarder.sol";
+import "mgv_src/strategies/routers/AaveDeepRouter.sol";
 
 contract OfferProxy is OfferForwarder {
   bytes32 public constant NAME = "OfferProxy";

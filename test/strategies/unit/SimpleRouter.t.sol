@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "./OfferLogic.t.sol";
-import "src/strategies/routers/SimpleRouter.sol";
+import "mgv_src/strategies/routers/SimpleRouter.sol";
 
 contract SimpleRouterTest is OfferLogicTest {
   SimpleRouter router;

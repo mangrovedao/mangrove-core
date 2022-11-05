@@ -10,15 +10,15 @@ import {MakerDeployer} from "mgv_test/lib/agents/MakerDeployer.sol";
 import {TestMoriartyMaker} from "mgv_test/lib/agents/TestMoriartyMaker.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 
-import {AbstractMangrove} from "src/AbstractMangrove.sol";
-import {Mangrove} from "src/Mangrove.sol";
-import {MgvReader} from "src/periphery/MgvReader.sol";
-import {InvertedMangrove} from "src/InvertedMangrove.sol";
-import {IERC20, MgvLib, HasMgvEvents, IMaker, ITaker, IMgvMonitor, MgvStructs} from "src/MgvLib.sol";
+import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+import {Mangrove} from "mgv_src/Mangrove.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
+import {IERC20, MgvLib, HasMgvEvents, IMaker, ITaker, IMgvMonitor, MgvStructs} from "mgv_src/MgvLib.sol";
 import {console2 as csl} from "forge-std/console2.sol";
 
 // below imports are for the \$( function)
-import {AccessControlled} from "src/strategies/utils/AccessControlled.sol";
+import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
 
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 

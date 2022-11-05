@@ -6,14 +6,14 @@ import {MangroveDeployer} from "mgv_script/lib/MangroveDeployer.sol";
 
 import {Test2, Test} from "mgv_test/lib/Test2.sol";
 
-import {MgvStructs} from "src/MgvLib.sol";
-import {Mangrove} from "src/Mangrove.sol";
-import {MgvReader} from "src/periphery/MgvReader.sol";
-import {MangroveOrderEnriched} from "src/periphery/MangroveOrderEnriched.sol";
-import {MgvCleaner} from "src/periphery/MgvCleaner.sol";
-import {MgvOracle} from "src/periphery/MgvOracle.sol";
-import {IMangrove} from "src/IMangrove.sol";
-import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {Mangrove} from "mgv_src/Mangrove.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {MangroveOrderEnriched} from "mgv_src/periphery/MangroveOrderEnriched.sol";
+import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
+import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 
 contract MangroveDeployerTest is Deployer, Test2 {
   MangroveDeployer mgvDeployer;

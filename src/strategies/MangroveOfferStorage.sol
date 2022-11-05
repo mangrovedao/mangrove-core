@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "src/strategies/interfaces/IOfferLogic.sol";
+import "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
 /// @title This is the storage part of a diamond storage scheme for `MangroveOffer` to reduce size of contracts.
 library MangroveOfferStorage {

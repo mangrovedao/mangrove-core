@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 
 pragma abicoder v2;
 
-import "src/AbstractMangrove.sol";
-import {IERC20, MgvLib, IMaker} from "src/MgvLib.sol";
+import "mgv_src/AbstractMangrove.sol";
+import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract TrivialTestMaker is IMaker {

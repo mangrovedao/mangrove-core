@@ -32,8 +32,20 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 //   5/ Mangrove calls (A+B).transfer(taker, 1)
 //      5a/ (A+B) calls A.transferFrom(Mangrove, taker, 1)
 
-// Invariants:
+// Requirements:
 //   1/ decimals for the underlying tokens must be the same
+//      We could relax this by restricting the range to the lowest common denominator:
+//         decimals = min(A.decimals, B.decimals)
+//         max HR value = 2^(256) - 1
+
+
+// Thus we simply restrict the range of the sum token to a range supported by all the underlying tokens.
+
+
+// For USDC and DAI this would give:
+
+// decimals = 6
+// max value = 2^(256 - 12) - 1 = 2^244 - 1
 
 // Approvals:
 //   Maker:
@@ -162,6 +174,7 @@ contract SumToken is IERC20 {
     uint amountA = amount > balanceA ? balanceA : amount;
     uint amountB = amount - amountA;
 
+    // FIXME: Only transfer if amount > 0
     TOKEN_A.transferFrom(owner, recipient, amountA);
     TOKEN_B.transferFrom(owner, recipient, amountB);
 

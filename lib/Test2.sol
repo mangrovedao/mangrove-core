@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {Script2} from "./Script2.sol";
+import {Script2} from "mgv_lib/Script2.sol";
 
 /* Some ease-of-life additions to forge-std/Test.sol */
 /* You may want to inherit `MangroveTest` (which inherits `Test2`) rather than inherit `Test2` directly */

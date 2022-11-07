@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import "mgv_test/lib/Test2.sol";
+import "mgv_lib/Test2.sol";
 import "mgv_src/Mangrove.sol";
 import {ERC20} from "mgv_test/lib/tokens/ERC20.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
@@ -19,8 +19,7 @@ uint constant COVER_FACTOR = 100;
   outbound_in_gwei should be obtained like this:
   1. Get the price of one outbound token display unit in ETH
   2. Multiply by 10^9
-  3. Round to nearest integer
-*/
+  3. Round to nearest integer*/
 
 contract ActivateSemibook is Test2, Deployer {
   function run() public {

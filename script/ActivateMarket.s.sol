@@ -13,8 +13,7 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
  TKN1_IN_GWEI=$(cast tun 7.5ether gwei) \
  TKN2_IN_GWEI=$(cast tun 7.1 eth gwei) \
  FEE=30 \
- forge script --fork-url mumbai ActivateMarket
-*/
+ forge script --fork-url mumbai ActivateMarket*/
 
 contract ActivateMarket is Deployer {
   function run() public {

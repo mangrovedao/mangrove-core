@@ -258,7 +258,11 @@ contract MangroveOrder_Test is MangroveTest {
     // checking resting order parameters
     MgvStructs.OfferPacked offer = mgv.offers($(quote), $(base), res.offerId);
     assertEq(offer.wants(), buyOrder.makerWants - (res.takerGot + res.fee), "Incorrect wants for bid resting order");
-    assertEq(offer.gives(), buyOrder.makerGives - res.takerGave, "Incorrect gives for bid resting order");
+    assertEq(
+      offer.gives(),
+      (offer.wants() * buyOrder.makerGives) / buyOrder.makerWants,
+      "Incorrect gives for bid resting order"
+    );
 
     // checking `mgo` mappings
     assertEq(mgo.ownerOf(quote, base, res.offerId), $(this), "Invalid offer owner");
@@ -534,11 +538,7 @@ contract MangroveOrder_Test is MangroveTest {
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.offerId > 0, "resting order not posted");
     mgo.setExpiry(quote, base, res.offerId, block.timestamp + 70);
-    assertEq(
-      mgo.expiring(quote, base, res.offerId),
-      block.timestamp + 70,
-      "Incorrect timestamp"
-    );
+    assertEq(mgo.expiring(quote, base, res.offerId), block.timestamp + 70, "Incorrect timestamp");
   }
 
   function test_offer_only_owner_can_set_expiry() public {
@@ -561,7 +561,6 @@ contract MangroveOrder_Test is MangroveTest {
     vm.prank(freshAddress());
     mgo.setExpiry(quote, base, res.offerId, block.timestamp + 70);
   }
-
 
   function test_order_fails_when_time_is_expired() public {
     IOrderLogic.TakerOrder memory buyOrder;

@@ -22,8 +22,8 @@ import {MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 
 ///@title MangroveOrder. A periphery contract to Mangrove protocol that implements "Good till cancelled" (GTC) orders as well as "Fill or kill" (FOK) orders.
 ///@notice A GTC order is a market buy (sell) order complemented by a bid (ask) order, called a resting order, that occurs when the buy (sell) order was partially filled.
-/// If the GTC is for some amount $a_goal$ at a price $p$ with slippage $s$ (in percent), and the corresponding market order was partially filled for $a_now < a_goal$ at a price $p_synch <= p$,
-/// the resting order should be posted for an amount $a_later$ at price $p$ (without $s$).
+/// If the GTC is for some amount $a_goal$ at a price $(1+s)*p$ with slippage $s$, and the corresponding market order was partially filled for $a_now < a_goal$,
+/// the resting order should be posted for an amount $a_later = a_goal - a_now$ at price $p$ (slippage is discarded).
 ///@notice A FOK order is simply a buy or sell order that is either completely filled or cancelled. No resting order is posted.
 ///@dev requiring no partial fill *and* a resting order is interpreted here as an instruction to revert if the resting order fails to be posted (e.g., if below density).
 

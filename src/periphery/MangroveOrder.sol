@@ -60,8 +60,10 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   }
 
   ///@inheritdoc IOrderLogic
-  function setExpiry(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, uint date) 
-  public mgvOrOwner(outbound_tkn, inbound_tkn, offerId) {
+  function setExpiry(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, uint date)
+    public
+    mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
+  {
     expiring[outbound_tkn][inbound_tkn][offerId] = date;
   }
 
@@ -152,20 +154,15 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     uint fund = msg.value + res.bounty;
 
     if ( // resting order is:
-      tko.restingOrder  // required
-      && !isComplete      // needed
+      tko.restingOrder // required
+        && !isComplete // needed
     ) {
       // When posting a resting order `msg.sender` becomes a maker.
       // For maker orders, outbound tokens are what makers send. Here `msg.sender` sends `tko.inbound_tkn`.
       // The offer list on which this contract must post `msg.sender`'s resting order is thus `(tko.inbound_tkn, tko.outbound_tkn)`
       // the call below will fill the memory data `res`.
-      fund = postRestingOrder({
-        tko: tko, 
-        outbound_tkn: tko.inbound_tkn, 
-        inbound_tkn: tko.outbound_tkn, 
-        res: res,
-        fund: fund
-      });
+      fund =
+        postRestingOrder({tko: tko, outbound_tkn: tko.inbound_tkn, inbound_tkn: tko.outbound_tkn, res: res, fund: fund});
       // POST (case `postRestingOrder` succeeded):
       // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
       // * (NAT_THIS, OUT_THIS, IN_THIS)
@@ -219,23 +216,31 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     TakerOrderResult memory res,
     uint fund
   ) internal returns (uint refund) {
-    res.offerId = _newOffer(
-      OfferArgs({
-        outbound_tkn: outbound_tkn,
-        inbound_tkn: inbound_tkn,
-        wants: tko.makerWants - (res.takerGot + res.fee), // tko.makerWants is before slippage
-        gives: tko.makerGives - res.takerGave,
-        gasreq: offerGasreq() + additionalGasreq, // using default gasreq of the strat + potential admin defined increase
-        gasprice: 0, // ignored
-        pivotId: tko.pivotId,
-        fund: fund,
-        noRevert: true, // returns 0 when MGV reverts
-        owner: msg.sender
-      })
-    );
+    if (res.takerGot + res.fee < tko.makerWants) {
+      // this may only be false if `fillWants == false` and:
+      // 1. a some offers at an excellent price partially filled the order
+      // 2. no more offer exist on the list (any offer would fill the order)
+      // Posting an order to match the limit average price would entail setting `wants=0`
+      // so we default to not posting a resting order
+      res.offerId = _newOffer(
+        OfferArgs({
+          outbound_tkn: outbound_tkn,
+          inbound_tkn: inbound_tkn,
+          wants: tko.makerWants - (res.takerGot + res.fee), // tko.makerWants is before slippage
+          gives: tko.makerGives - res.takerGave,
+          gasreq: offerGasreq() + additionalGasreq, // using default gasreq of the strat + potential admin defined increase
+          gasprice: 0, // ignored
+          pivotId: tko.pivotId,
+          fund: fund,
+          noRevert: true, // returns 0 when MGV reverts
+          owner: msg.sender
+        })
+      );
+    }
 
     if (res.offerId == 0) {
       // either:
+      // - residual `wants` would be 0 to match average price
       // - residual gives is below current density
       // - `fund` is too low and would yield a gasprice that is lower than Mangrove's
       // - `fund` is too high and would yield a gasprice overflow

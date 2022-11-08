@@ -18,6 +18,7 @@ const shell = require("shelljs");
 shell.config.fatal = true; // throw if a command errors
 const fs = require("fs");
 const path = require("path");
+const script = path.basename(__filename);
 const config = require("./config.js");
 const cwd = process.cwd();
 
@@ -33,7 +34,7 @@ const argv = require("yargs")
 // set abi export directory (create if necessary), clear it
 const distAbiDir = cwd + "/dist/mangrove-abis/";
 if (!argv.noop) {
-  console.log("Copying distribution assets...");
+  console.log(`${script}: Copying distribution assets...`);
   shell.rm("-rf", distAbiDir);
   shell.mkdir("-p", distAbiDir);
 }
@@ -64,11 +65,11 @@ const match_path = (artifacts, name) => {
   const filtered = artifacts.filter((p) => p.endsWith(`/${name}.json`));
   if (filtered.length > 1) {
     throw new Error(
-      `Ambiguous export name: ${name}, matched: ${filtered.toString()}`
+      `${script}: Ambiguous export name: ${name}, matched: ${filtered.toString()}`
     );
   }
   if (filtered.length === 0) {
-    throw new Error(`Could not find a match for export ${name}`);
+    throw new Error(`${script}: Could not find a match for export ${name}`);
   }
   return filtered[0];
 };
@@ -95,7 +96,7 @@ for (const { name, export_type } of all_exports) {
   } else if (export_type === "full") {
     data = { abi: artifact.abi, bytecode: artifact.bytecode };
   } else {
-    throw new Error(`Unknown export_type: ${export_type}`);
+    throw new Error(`${script}: Unknown export_type: ${export_type}`);
   }
   const basename = path.basename(match);
   export_queue.push({ name, match, basename, data });
@@ -106,7 +107,7 @@ const written = [];
 // write each queued artifact subset
 for (const { name, match, basename, data } of export_queue) {
   if (written.includes(basename)) {
-    throw new Error(`Duplicate asset name: ${basename}`);
+    throw new Error(`${script}: Duplicate asset name: ${basename}`);
   }
   written.push(basename);
   const export_file = `${distAbiDir}/${basename}`;
@@ -115,13 +116,16 @@ for (const { name, match, basename, data } of export_queue) {
     // not having one here means repeatedly seeing stripped newlines in git changes
     fs.writeFileSync(export_file, JSON.stringify(data, null, 2) + "\n");
   } else {
-    console.log(`Matched ${name} with ${path.relative(cwd, match)}`);
+    console.log(`${script}: Matched ${name} with ${path.relative(cwd, match)}`);
     console.log(
-      `Will export ${Object.keys(data)} to ${path.relative(cwd, export_file)}`
+      `${script}: Will export ${Object.keys(data)} to ${path.relative(
+        cwd,
+        export_file
+      )}`
     );
     console.log();
   }
 }
 if (!argv.noop) {
-  console.log("...Done copying distribution assets");
+  console.log(`${script}: ...Done copying distribution assets`);
 }

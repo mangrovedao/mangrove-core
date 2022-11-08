@@ -25,6 +25,31 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 // - web app
 //   - what is needed to add support for UsUSD and Meta-PLUsDAO tokens?
 //   - will the web app blow up when there are no bids? (not a problem for this demo)
+// 
+// - approvals/whitelisting
+//   - PLUsDAO needed approvals/whitelisting:
+//     - LUsDAO:
+//       - whitelisted to allow taking/releasing custody of LUsDAO tokens
+//       - approved to allow transfers from: seller
+//   - Meta-PLUsDAO needed approvals/whitelisting:
+//     - PLUsDAO:
+//       - whitelisted to allow transfers and unlocks
+//       - approved to allow transfers from: PLUsMgvStrat, Mangrove
+//   - Price-Locking dApp approvals/whitelisting:
+//     - PLUsDAO:
+//       - whitelisted to allow locking
+//     - PLUsMgvStrat:
+//       - whitelisted to allow posting offers
+//   - PLUsMgvStrat needed approvals/whitelisting:
+//     - PLUsDAO:
+//       - whitelisted to allow transfers
+//       - approved to allow transfers from: seller
+//   - Mangrove needed approvals/whitelisting:
+//     - UsUSD:
+//       - approved to allow transfers from: proxy/taker
+//     - Meta-PLUsDAO:
+//       - approved to allow transfers from: PLUsMgvStrat
+//       
 
 // DONE:
 // - implement LUsDAO, PLUsDAO, Meta-PLUsDAO
@@ -32,7 +57,8 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 //   - for a demo, it shouldn't be needed and it makes mangrove.js less useful
 
 // DEMO INSTRUCTIONS
-// All terminals are in mangrove-core on the demo/usual branch
+// The contract terminals are in mangrove-core on the demo/usual branch
+// The mangrove.js terminal is in mangrove-ts/packages/mangrove.js on the demo/usual branch
 // All contracts are deployed and owned by LOCALHOST_DEPLOYER_PRIVATE_KEY
 
 /* Terminal 1 - local chain
@@ -50,18 +76,59 @@ WRITE_DEPLOY=true forge script --fork-url $LOCALHOST_URL --private-key $LOCALHOS
 WRITE_DEPLOY=true forge script --fork-url $LOCALHOST_URL --private-key $LOCALHOST_DEPLOYER_PRIVATE_KEY --broadcast UsualDemoDeployer
 
 # Configure Meta-PLUsDAO/UsDAO market
-# FIXME: Hoping that we don't need to specify addresses
-# TKN1=0x63E537A69b3f5B03F4f46c5765c82861BD874b6e \
-# TKN2=0xD59A51bE32eA35Db72De6A3Eb88bf2C56811f57c \
+# NB: Standard ActivateMarket doesn't work for meta-tokens, so we'll use a temp meta-token alternative instead
 TKN1=Meta-PLUsDAO \
 TKN2=UsUSD \
-# The following params are used to infer density parameters. The values are the price of the two tokens in native gwei.
 TKN1_IN_GWEI=$(cast ff 9 1) TKN2_IN_GWEI=$(cast ff 9 1) \
 FEE=0 forge script \
   --fork-url $LOCALHOST_URL \
   --private-key $LOCALHOST_DEPLOYER_PRIVATE_KEY \
   --broadcast \
-  ActivateMarket
+  ActivateMarketMetaToken
+*/
+
+/* Terminal 3 - mangrove.js
+source .env
+node
+
+// Limit the output to the given depth when printing results.
+// We typically set this to 0 or 1.
+//
+// If you don't set this, the REPL will print A LOT of information after each command.
+//
+// It's typically better to assign results to a variable and then selectively
+// print the parts of the result object that are relevant.
+util.inspect.replDefaults.depth = 0;
+
+// Load the .env file into process.env
+// Any environment variables that were already set are not overriden.
+var parsed = require("dotenv").config();
+
+// Load the mangrove.js API
+const { Mangrove, MgvToken, ethers } = require("@mangrovedao/mangrove.js");
+
+// This 'overrides' object specifies a high=fast gas price and can be passed
+// to mangrove.js API function that send tx's.
+// This can speed up demos against a real chain.
+// For local chains/forks, this can be omitted.
+const overrides = { gasPrice: ethers.utils.parseUnits("60", "gwei") };
+
+// Connect to the chosen node provider
+const provider = new ethers.providers.WebSocketProvider(
+  // Change this to the appropriate env var for the chain you want to connect to
+  process.env.LOCALHOST_URL
+);
+
+// Set up a wallet that will be used to sign tx's in the demo
+let taker = new ethers.Wallet(process.env.LOCALHOST_TAKER_PRIVATE_KEY, provider);
+
+// Connect the API to Mangrove
+let mgv = await Mangrove.connect({ signer: taker });
+
+// Connect to a specific market
+let market = await mgv.market({base: 'Meta-PLUsDAO', quote:'UsUSD'});
+market.consoleAsks();
+market.consoleBids();
 */
 
 // This script deploys the Usual demo contracts

@@ -26,6 +26,8 @@ contract MangroveOrder_Test is MangroveTest {
 
   MgvOrder mgo;
   TestMaker ask_maker;
+  TestMaker bid_maker;
+
   TestTaker sell_taker;
 
   receive() external payable {}
@@ -53,7 +55,7 @@ contract MangroveOrder_Test is MangroveTest {
     quote.approve($(mgo.router()), 10 ether);
     base.approve($(mgo.router()), 10 ether);
 
-    // `sell_taker` will take resting offer
+    // `sell_taker` will take resting bid
     sell_taker = setupTaker($(quote), $(base), "sell-taker");
     deal($(base), $(sell_taker), 10 ether);
 
@@ -68,12 +70,21 @@ contract MangroveOrder_Test is MangroveTest {
     ask_maker = setupMaker($(base), $(quote), "ask-maker");
     vm.deal($(ask_maker), 10 ether);
 
+    bid_maker = setupMaker($(quote), $(base), "bid-maker");
+    vm.deal($(bid_maker), 10 ether);
+
     deal($(base), $(ask_maker), 10 ether);
-    vm.prank($(ask_maker));
-    base.approve($(mgv), 10 ether);
-    ask_maker.newOfferWithFunding(0.13 ether, 1 ether, 50_000, 0, 0, 0.1 ether);
+    deal($(quote), $(bid_maker), 10 ether);
+
+    ask_maker.approveMgv(base, 10 ether);
+    ask_maker.newOfferWithFunding( /*wants quote*/ 0.13 ether, /*gives base*/ 1 ether, 50_000, 0, 0, 0.1 ether);
     ask_maker.newOfferWithFunding(0.14 ether, 1 ether, 50_000, 0, 0, 0.1 ether);
     ask_maker.newOfferWithFunding(0.15 ether, 1 ether, 50_000, 0, 0, 0.1 ether);
+
+    bid_maker.approveMgv(quote, 10 ether);
+    bid_maker.newOfferWithFunding(1 ether, 0.12 ether, 50_000, 0, 0, 0.1 ether);
+    bid_maker.newOfferWithFunding(1 ether, 0.11 ether, 50_000, 0, 0, 0.1 ether);
+    bid_maker.newOfferWithFunding( /*wants base*/ 1 ether, /*gives quote*/ 0.1 ether, 50_000, 0, 0, 0.1 ether);
   }
 
   function test_admin() public {
@@ -122,26 +133,6 @@ contract MangroveOrder_Test is MangroveTest {
     });
     vm.expectRevert("mgvOrder/partialFill");
     mgo.take{value: 0.1 ether}(buyOrder);
-  }
-
-  function test_partial_filled_sell_order_reverts_when_noPartialFill_enabled() public {
-    IOrderLogic.TakerOrder memory sellOrder = IOrderLogic.TakerOrder({
-      outbound_tkn: base,
-      inbound_tkn: quote,
-      fillOrKill: true,
-      // takerWants can be filled, but there are not enough orders to absorb all takerGives, so it becomes incomplete
-      // since fillWants is false
-      fillWants: false,
-      takerWants: 2.1 ether,
-      makerWants: 0 ether,
-      takerGives: 0.5 ether,
-      makerGives: 0.5 ether,
-      restingOrder: false,
-      pivotId: 0,
-      expiryDate: 0 //NA
-    });
-    vm.expectRevert("mgvOrder/partialFill");
-    mgo.take{value: 0.1 ether}(sellOrder);
   }
 
   function test_partial_filled_with_no_resting_order_returns_provision() public {
@@ -267,7 +258,48 @@ contract MangroveOrder_Test is MangroveTest {
     // checking `mgo` mappings
     assertEq(mgo.ownerOf(quote, base, res.offerId), $(this), "Invalid offer owner");
     assertEq(mgo.router().reserveBalance(quote, $(this)), bal_quote_before - res.takerGave, "Invalid quote balance");
-    assertEq(mgo.router().reserveBalance(base, $(this)), bal_base_before + res.takerGot, "Invalid quote balance");
+    assertEq(mgo.router().reserveBalance(base, $(this)), bal_base_before + res.takerGot, "Invalid base balance");
+  }
+
+  function test_resting_sell_order_is_successfully_posted() public {
+    IOrderLogic.TakerOrder memory sellOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: quote,
+      inbound_tkn: base,
+      fillOrKill: false,
+      fillWants: false, // sell order
+      takerWants: 0.2352 ether, // wants 0.24 quotes for 2 bases with 2% slippage
+      takerGives: 2 ether, // sells 2 base
+      makerWants: 0.24 ether,
+      makerGives: 2 ether, //without 2% slippage
+      restingOrder: true,
+      pivotId: 0,
+      expiryDate: 0 //NA
+    });
+    uint bal_quote_before = mgo.router().reserveBalance(quote, $(this));
+    uint bal_base_before = mgo.router().reserveBalance(quote, $(this));
+    assertEq(mgv.balanceOf($(mgo)), 0, "Invalid balance on Mangrove");
+
+    expectFrom($(mgo));
+    emit OrderSummary(
+      IMangrove(payable(mgv)), quote, base, $(this), false, reader.minusFee($(quote), $(base), 0.12 ether), 1 ether, 0
+      );
+    // TODO when checkEmit is available, get offer id after post
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(sellOrder);
+    assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
+
+    // checking resting order parameters
+    MgvStructs.OfferPacked offer = mgv.offers($(base), $(quote), res.offerId);
+    assertEq(offer.gives(), sellOrder.makerGives - res.takerGave, "Incorrect gives for ask resting order");
+    assertEq(
+      offer.wants(),
+      (offer.gives() * sellOrder.makerWants) / sellOrder.makerGives,
+      "Incorrect wants for ask resting order"
+    );
+
+    // checking `mgo` mappings
+    assertEq(mgo.ownerOf(base, quote, res.offerId), $(this), "Invalid offer owner");
+    assertEq(mgo.router().reserveBalance(quote, $(this)), bal_quote_before + res.takerGot, "Invalid quote balance");
+    assertEq(mgo.router().reserveBalance(base, $(this)), bal_base_before - res.takerGave, "Invalid base balance");
   }
 
   function resting_buy_order_for_blacklisted_reserve_reverts() private {
@@ -459,7 +491,7 @@ contract MangroveOrder_Test is MangroveTest {
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
 
     uint[] memory offerIds = new uint[](1);
-    offerIds[0] = 1;
+    offerIds[0] = res.offerId;
 
     address[] memory offerOwners = mgo.offerOwners(quote, base, offerIds);
     assertEq(offerOwners.length, 1);

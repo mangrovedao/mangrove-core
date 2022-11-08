@@ -9,7 +9,7 @@ import {IERC20, MgvLib} from "mgv_src/MgvLib.sol";
 
 //----------------
 
-contract OfferMaker is Direct {
+contract OfferMakerTutorial is Direct {
   constructor(IMangrove mgv, address deployer)
     // Pass on the reference to the core mangrove contract
     Direct(

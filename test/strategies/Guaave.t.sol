@@ -19,8 +19,7 @@ import "mgv_test/lib/forks/Polygon.sol";
       constructor() {
         fork = new MumbaiFork();
       }
-    }
-*/
+    }*/
 
 abstract contract GuaaveAbstractTest is MangroveTest {
   uint constant BASE0 = 0.34 ether;
@@ -40,7 +39,6 @@ abstract contract GuaaveAbstractTest is MangroveTest {
   function setUp() public override {
     fork.setUp();
     mgv = setupMangrove();
-    mgv.setVault($(mgv));
 
     weth = IERC20(fork.get("WETH"));
     usdc = IERC20(fork.get("USDC"));

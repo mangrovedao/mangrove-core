@@ -46,7 +46,6 @@ contract AaveLenderForkedTest is AaveV3ModuleTest {
     fork.setUp();
 
     mgv = setupMangrove();
-    mgv.setVault($(mgv));
     reader = new MgvReader($(mgv));
 
     dai = IERC20(fork.get("DAI"));

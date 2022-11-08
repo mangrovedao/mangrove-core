@@ -79,7 +79,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   function checkCompleteness(TakerOrder calldata tko, TakerOrderResult memory res) internal pure returns (bool) {
     // The order can be incomplete if the price becomes too high or the end of the book is reached.
     if (tko.fillWants) {
-      // when fillWants is true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained;
+      // when fillWants is true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained (minus potential fees);
       return res.takerGot + res.fee >= tko.takerWants;
     } else {
       // otherwise, the market order stops when `takerGives` units of `inbound_tkn` have been sold.

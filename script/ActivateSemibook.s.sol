@@ -25,8 +25,8 @@ uint constant COVER_FACTOR = 100;
 contract ActivateSemibook is Test2, Deployer {
   function run() public {
     innerRun({
-      outbound_tkn: vm.envAddress("OUTBOUND_TKN"),
-      inbound_tkn: vm.envAddress("INBOUND_TKN"),
+      outbound_tkn: getRawAddressOrName("OUTBOUND_TKN"),
+      inbound_tkn: getRawAddressOrName("INBOUND_TKN"),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
       fee: vm.envUint("FEE")
     });
@@ -78,7 +78,7 @@ contract ActivateSemibook is Test2, Deployer {
     vm.stopBroadcast();
   }
 
-  function measureTransferGas(address tkn) internal returns (uint) {
+  function measureTransferGas(address tkn) internal virtual returns (uint) {
     address someone = freshAddress();
     vm.prank(someone);
     ERC20(tkn).approve(address(this), type(uint).max);

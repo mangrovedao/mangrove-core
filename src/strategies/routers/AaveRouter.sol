@@ -54,7 +54,7 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
     if (strict) {
       amount = amount < available ? amount : available;
     } else {
-      // one is pulling all availble funds from reserve
+      // one is pulling all available funds from reserve
       amount = available;
     }
     // transfer below is a noop (almost 0 gas) if reserve == address(this)

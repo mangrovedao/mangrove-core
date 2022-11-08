@@ -39,8 +39,13 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     router_.setAdmin(deployer); // consider if admin should be this contract?
   }
 
+  event CreditUserBalance(IERC20 indexed token, address indexed owner, uint amount);
+  event DebitUserBalance(IERC20 indexed token, address indexed owner, uint amount);
+
   // Increases balance of token for owner.
   function increaseBalance(IERC20 token, address owner, uint amount) private returns (uint) {
+    emit CreditUserBalance(token, owner, amount);
+    // log balance modification to event
     uint newBalance = ownerBalance[token][owner] + amount;
     ownerBalance[token][owner] = newBalance;
     return newBalance;
@@ -50,6 +55,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
   function decreaseBalance(IERC20 token, address owner, uint amount) private returns (uint) {
     uint currentBalance = ownerBalance[token][owner];
     require(currentBalance >= amount, "PooledForwarder/decreaseBalance/amountMoreThanBalance");
+    emit DebitUserBalance(token, owner, amount);
     unchecked {
       uint newBalance = currentBalance - amount;
       ownerBalance[token][owner] = newBalance;
@@ -57,7 +63,6 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     }
   }
 
-  // TODO will this be inlined?
   function getBalance(IERC20 token, address owner) public view returns (uint) {
     return ownerBalance[token][owner];
   }
@@ -96,6 +101,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     address owner = ownerOf(outTkn, inTkn, order.offerId);
 
     // only increase balance for owner, do not transfer any tokens. This is done in posthook.
+    // TODO: comment on overflow punishes maker
     increaseBalance(inTkn, owner, amount);
     return 0;
   }
@@ -117,18 +123,11 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     // check if `this` has enough to satisfy order, otherwise pull _everything_ from aave.
     if (outTkn.balanceOf(address(this)) < amount) {
       // we do not verify result - we assume there is now enough, otherwise the order will fail.
-      router().pull(outTkn, address(this), balance, false);
-
-      //TODO are there situations where we have to push to aave before we can pull?. i.e. is the following needed?
-      // if (outTkn.balanceOf(address(this)) < amount) {
-      //   uint inBalance = inTkn.balanceOf(address(this));
-      //   inPushed = inBalance > 0 ? router().push(inTkn, address(this), inBalance) : 0;
-      //   if (inPushed > 0) {
-      //     router().pull(outTkn, this, balance, false);
-      //   }
-      // }
-
-      // if we still don't have enough the offer will fail and balance change will be reverted.
+      //TODO aave could be out of funds.
+      AbstractRouter router_ = router();
+      uint pulled = router_.pull(outTkn, address(router_), amount, false /* pull everything */ );
+      // return whether some is still missing.
+      return pulled >= amount ? 0 : amount - pulled;
     }
 
     // we have decreased owner's balance with the exact amount, so nothing more needed.
@@ -190,10 +189,13 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     AbstractRouter router_ = router();
     IERC20 outTk = IERC20(order.outbound_tkn);
     IERC20 inTk = IERC20(order.inbound_tkn);
-    uint outBalance = outTk.balanceOf(address(this));
-    uint outPushed = outBalance > 0 ? router_.push(outTk, address(this), outBalance) : 0;
-    uint inBalance = inTk.balanceOf(address(this));
-    uint inPushed = inBalance > 0 ? router_.push(inTk, address(this), inBalance) : 0;
+    // Could be cheaper to check balance first
+    // uint outBalance = outTk.balanceOf(address(this));
+    // uint inBalance = inTk.balanceOf(address(this));
+    IERC20[] memory tokens = new IERC20[](2);
+    tokens[0] = outTk;
+    tokens[1] = inTk;
+    router_.flush(tokens, address(router_));
 
     //TODO I am not sure why we need all this reporting?
     if (outBalance == 0 && inBalance > 0) {

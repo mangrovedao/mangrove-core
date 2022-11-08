@@ -6,7 +6,7 @@ pragma solidity ^0.8.10;
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 
-import {Test2} from "mgv_test/lib/Test2.sol";
+import {Test2} from "mgv_lib/Test2.sol";
 
 contract MgvOracleForInternal is MgvOracle {
   constructor(address _governance, address _initialMutator) MgvOracle(_governance, _initialMutator) {}

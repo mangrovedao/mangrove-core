@@ -1,4 +1,5 @@
 mgv_src/=src/
+mgv_lib/=lib/
 mgv_test/=test/
 mgv_script/=script/
 src/=src/

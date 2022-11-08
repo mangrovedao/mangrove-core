@@ -1,8 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Script2} from "mgv_test/lib/Script2.sol";
-import {ToyENS} from "./ToyENS.sol";
+import {Script2} from "mgv_lib/Script2.sol";
+import {ToyENS} from "mgv_lib/ToyENS.sol";
 import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import {PolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {MumbaiFork} from "mgv_test/lib/forks/Mumbai.sol";

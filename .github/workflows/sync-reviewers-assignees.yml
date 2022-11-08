@@ -5,6 +5,11 @@ on:
   pull_request:
     types: [review_requested,review_request_removed,assigned,unassigned]
 
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
 jobs:
   sync_reviewers_assignees:
     runs-on: ubuntu-latest

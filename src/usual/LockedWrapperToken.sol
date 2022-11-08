@@ -46,8 +46,28 @@ contract LockedWrapperToken is ERC20 {
   /**
    * @dev Allow a user to deposit underlying tokens and mint the corresponding number of wrapped tokens.
    */
-  function depositFor(address account, uint amount) public returns (bool) {
+  function depositFor(address account, uint amount)
+    public
+    onlyWhitelisted(_msgSender())
+    onlyWhitelisted(account)
+    returns (bool)
+  {
     underlying.transferFrom(_msgSender(), address(this), amount);
+    _mint(account, amount);
+    return true;
+  }
+
+  /**
+   * @dev Allow a user to deposit underlying tokens fron another owner and mint the corresponding number of wrapped tokens.
+   */
+  function depositFrom(address owner, address account, uint amount)
+    public
+    onlyWhitelisted(_msgSender())
+    onlyWhitelisted(owner)
+    onlyWhitelisted(account)
+    returns (bool)
+  {
+    underlying.transferFrom(owner, address(this), amount);
     _mint(account, amount);
     return true;
   }
@@ -55,7 +75,12 @@ contract LockedWrapperToken is ERC20 {
   /**
    * @dev Allow a user to burn a number of wrapped tokens and withdraw the corresponding number of underlying tokens.
    */
-  function withdrawTo(address account, uint amount) public virtual returns (bool) {
+  function withdrawTo(address account, uint amount)
+    public virtual
+    onlyWhitelisted(_msgSender())
+    onlyWhitelisted(account)
+    returns (bool)
+  {
     _burn(_msgSender(), amount);
     underlying.transfer(account, amount);
     return true;

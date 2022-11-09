@@ -39,9 +39,10 @@ contract TestToken is ERC20BL {
     admins[admin] = false;
   }
 
-  function mint(address to, uint amount) external {
+  function mint(address to, uint amount) external override returns (bool) {
     requireAdmin();
     _mint(to, amount);
+    return true;
   }
 
   function burn(address from, uint amount) external {

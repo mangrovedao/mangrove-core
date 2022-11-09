@@ -43,6 +43,16 @@ contract LockedWrapperToken is ERC20 {
     whitelisted[account] = false;
   }
 
+  function mint(address account, uint amount)
+    public override
+    onlyAdmin
+    returns (bool)
+  {
+    underlying.mint(address(this), amount);
+    _mint(account, amount);
+    return true;
+  }
+
   /**
    * @dev Allow a user to deposit underlying tokens and mint the corresponding number of wrapped tokens.
    */

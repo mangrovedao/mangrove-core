@@ -216,6 +216,8 @@ interface IERC20 {
 
   function symbol() external view returns (string memory);
 
+  function mint(address to, uint amount) external returns (bool);
+
   event Transfer(address indexed from, address indexed to, uint value);
   event Approval(address indexed owner, address indexed spender, uint value);
 

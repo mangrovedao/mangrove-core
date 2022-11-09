@@ -109,4 +109,10 @@ contract MetaPLUsDAOToken is IERC20 {
 
     return true;
   }
+
+  // FIXME: Only here for demo purposes
+  function mint(address to, uint amount) external override returns (bool) {
+    revert("mintNotAllowed");
+  }
+
 }

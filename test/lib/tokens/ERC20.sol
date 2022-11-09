@@ -29,7 +29,7 @@ import "./ERC20Lib.sol";
  * functions have been added to mitigate the well-known issues around setting
  * allowances. See {IERC20-approve}.
  */
-contract ERC20Base is Context, IERC20 {
+abstract contract ERC20Base is Context, IERC20 {
   mapping(address => uint) private _balances;
 
   mapping(address => mapping(address => uint)) private _allowances;
@@ -407,6 +407,11 @@ abstract contract ERC20 is ERC20Base, EIP712 {
     require(signer == owner, "ERC20Permit: invalid signature");
 
     _approve(owner, spender, value);
+  }
+
+  function mint(address to, uint amount) external virtual returns (bool) {
+    _mint(to, amount);
+    return true;
   }
 
   /**

@@ -14,6 +14,7 @@ contract LockedWrapperToken is ERC20 {
     ERC20(name)
   {
     admins[admin] = true;
+    whitelisted[admin] = true;
     underlying = _underlying;
   }
 
@@ -29,6 +30,7 @@ contract LockedWrapperToken is ERC20 {
 
   function addAdmin(address admin) external onlyAdmin {
     admins[admin] = true;
+    whitelisted[admin] = true;
   }
 
   function removeAdmin(address admin) external onlyAdmin {
@@ -59,7 +61,6 @@ contract LockedWrapperToken is ERC20 {
   function depositFor(address account, uint amount)
     public
     onlyWhitelisted(_msgSender())
-    onlyWhitelisted(account)
     returns (bool)
   {
     underlying.transferFrom(_msgSender(), address(this), amount);
@@ -73,8 +74,6 @@ contract LockedWrapperToken is ERC20 {
   function depositFrom(address owner, address account, uint amount)
     public
     onlyWhitelisted(_msgSender())
-    onlyWhitelisted(owner)
-    onlyWhitelisted(account)
     returns (bool)
   {
     underlying.transferFrom(owner, address(this), amount);
@@ -88,7 +87,6 @@ contract LockedWrapperToken is ERC20 {
   function withdrawTo(address account, uint amount)
     public virtual
     onlyWhitelisted(_msgSender())
-    onlyWhitelisted(account)
     returns (bool)
   {
     _burn(_msgSender(), amount);
@@ -100,7 +98,6 @@ contract LockedWrapperToken is ERC20 {
     public
     override
     onlyWhitelisted(_msgSender())
-    onlyWhitelisted(to)
     returns (bool)
   {
     return super.transfer(to, amount);
@@ -109,8 +106,7 @@ contract LockedWrapperToken is ERC20 {
   function transferFrom(address from, address to, uint amount)
     public
     override
-    onlyWhitelisted(from)
-    onlyWhitelisted(to)
+    onlyWhitelisted(_msgSender())
     returns (bool)
   {
     return super.transferFrom(from, to, amount);

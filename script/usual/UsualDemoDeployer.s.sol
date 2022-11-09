@@ -34,9 +34,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 //   - Meta-PLUsDAO needed approvals/whitelisting:
 //     - PLUsDAO:
 //       + whitelisted to allow transfers and unlocks                      <-- achieved in deployment script
-//       - approved to allow transfers from:
-//         + PLUsMgvStrat                                                  <-- achieved in PLUsMgvStrat constructor
-//         - Mangrove                                                      <-- FIXME I don't see a way to get Mangrove to approve these transfers... Maybe the meta-token should take custody instead, then this isn't needed
+//       + approved to allow transfers from: PLUsMgvStrat                  <-- achieved in PLUsMgvStrat constructor
 //   + Price-Locking dApp approvals/whitelisting:                          <-- N/A in this demo
 //     + PLUsDAO:
 //       + whitelisted to allow locking
@@ -47,11 +45,13 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 //       + whitelisted to allow transfers/locking                          <-- achieved in deployment script
 //       + approved to allow transfers from: seller                        <-- N/A in this demo
 //     + Meta-PLUsDAO:
+//       + whitelisted to allow transfers/locking                          <-- achieved in deployment script
 //       + approved to allow transfers from: seller                        <-- achieved in mangrove.js via LiquidityProvider
 //   + Mangrove needed approvals/whitelisting:
 //     + UsUSD:
 //       + approved to allow transfers from: proxy/taker                   <-- achieved in mangrove.js
 //     + Meta-PLUsDAO:
+//       + whitelisted to allow transfers/locking                          <-- achieved in deployment script
 //       + approved to allow transfers from: PLUsMgvStrat                  <-- achieved in deployment script via activation
 //       
 
@@ -242,6 +242,8 @@ await tx.wait(); 0;
 // Buy LUsDAO tokens
 let orderResult = await market.buy({volume:2, price:2});
 orderResult.summary
+
+await printBalances(taker.address);
 */
 
 // This script deploys the Usual demo contracts
@@ -277,7 +279,7 @@ contract UsualDemoDeployer is Deployer {
 
     broadcast();
     MetaPLUsDAOToken metaPLUsDAOToken =
-      new MetaPLUsDAOToken({ admin: msg.sender, _name: "Meta Price-locked Usual governance token", _symbol: "Meta-PLUsDAO", pLUsDAOToken: pLUsDAOToken, mangrove: address(mgv) });
+      new MetaPLUsDAOToken({ admin: msg.sender, _name: "Meta Price-locked Usual governance token", _symbol: "Meta-PLUsDAO", lUsDAOToken: lUsDAOToken, pLUsDAOToken: pLUsDAOToken, mangrove: address(mgv) });
     fork.set("Meta-PLUsDAO", address(metaPLUsDAOToken));
 
     broadcast();
@@ -320,6 +322,12 @@ contract UsualDemoDeployer is Deployer {
     //   PLUsMgvStrat for PLUsDAO
     broadcast();
     pLUsDAOToken.addToWhitelist(address(pLUsMgvStrat));
+    //   PLUsMgvStrat for Meta-PLUsDAO
+    broadcast();
+    metaPLUsDAOToken.addToWhitelist(address(pLUsMgvStrat));
+    //   Mangrove for Meta-PLUsDAO
+    broadcast();
+    metaPLUsDAOToken.addToWhitelist(address(mgv));
 
     outputDeployment();
   }

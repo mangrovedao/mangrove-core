@@ -16,6 +16,7 @@ contract LockedWrapperToken is ERC20 {
     admins[admin] = true;
     whitelisted[admin] = true;
     underlying = _underlying;
+    _underlying.approve(address(this), type(uint).max);
   }
 
   modifier onlyAdmin() {
@@ -76,7 +77,8 @@ contract LockedWrapperToken is ERC20 {
     onlyWhitelisted(_msgSender())
     returns (bool)
   {
-    underlying.transferFrom(owner, address(this), amount);
+    bool result = underlying.transferFrom(owner, address(this), amount);
+    require(result, "LockedWrapperToken/underlyingTransferFailed");
     _mint(account, amount);
     return true;
   }
@@ -91,6 +93,23 @@ contract LockedWrapperToken is ERC20 {
   {
     _burn(_msgSender(), amount);
     underlying.transfer(account, amount);
+    return true;
+  }
+
+  function unlockFor(address account, uint amount)
+    public virtual
+    onlyWhitelisted(_msgSender())
+    returns (bool)
+  {
+    return _unlockFor(account, amount);
+  }
+
+  function _unlockFor(address account, uint amount)
+    internal virtual
+    returns (bool)
+  {
+    _burn(account, amount);
+    underlying.transferFrom(address(this), account, amount);
     return true;
   }
 

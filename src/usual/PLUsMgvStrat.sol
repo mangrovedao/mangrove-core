@@ -4,6 +4,7 @@ import {Direct, IMangrove, IERC20} from "mgv_src/strategies/offer_maker/abstract
 import {IMakerLogic} from "mgv_src/strategies/interfaces/IMakerLogic.sol";
 import {LockedWrapperToken} from "mgv_src/usual/LockedWrapperToken.sol";
 import {MetaPLUsDAOToken} from "mgv_src/usual/MetaPLUsDAOToken.sol";
+import {MgvLib} from "mgv_src/MgvLib.sol";
 
 // This is a simple strat for demo purposes.
 // FIXME: This strat should handle the MetaPLUsDAO -> PLUsDAO token mapping, but for now it just relies on a workaround in MetaPLUsDAO token that allows it to be used directly.
@@ -30,8 +31,6 @@ contract PLUsMgvStrat is IMakerLogic, Direct {
     _pLUsDAOToken.approve(address(_metaPLUsDAOToken), type(uint).max);
   }
 
-
-
   // FIXME: For now, we use the IMakerLogic signature of newOffer which mangrove.js supports directly
   function newOffer(
     IERC20 outbound_tkn,
@@ -57,5 +56,11 @@ contract PLUsMgvStrat is IMakerLogic, Direct {
         owner: msg.sender
       })
     );
+  }
+
+  // deposit from PLUsDAO to Meta-PLUsDAO
+  function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint missing) {
+    _metaPLUsDAOToken.depositFrom(admin(), address(this), amount);
+    return super.__get__(amount, order);
   }
 }

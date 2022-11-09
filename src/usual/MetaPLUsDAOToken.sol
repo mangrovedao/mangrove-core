@@ -13,27 +13,29 @@ contract MetaPLUsDAOToken is IERC20 {
 
   LockedWrapperToken public immutable _pLUsDAOToken;
   address public immutable _mangrove;
-  address public immutable _pLUsMgvStrat;
+  address public _pLUsMgvStrat;
 
   constructor(
     address admin,
     string memory _name,
     string memory _symbol,
     LockedWrapperToken pLUsDAOToken,
-    address mangrove,
-    address pLUsMgvStrat
+    address mangrove
   ) {
     admins[admin] = true;
     __symbol = _symbol;
     __name = _name;
     _pLUsDAOToken = pLUsDAOToken;
     _mangrove = mangrove;
-    _pLUsMgvStrat = pLUsMgvStrat;
   }
 
   modifier onlyAdmin() {
     require(admins[msg.sender], "MetaPLUsDAOToken/adminOnly");
     _;
+  }
+
+  function setPLUsMgvStrat(address pLUsMgvStrat) external onlyAdmin {
+    _pLUsMgvStrat = pLUsMgvStrat;
   }
 
   function addAdmin(address admin) external onlyAdmin {
@@ -89,12 +91,15 @@ contract MetaPLUsDAOToken is IERC20 {
   }
 
   // Only allow the following transfers:
-  // - PLUsMgvStrat -> Mangrove
-  // - Mangrove     -> any address
+  //   any address  -> PLUsMgvStrat     <-- This is just for the demo to avoid having to make a router that translates transfers of Meta-PLUsDAO tokens to transfers of PLUsDAO tokens
+  //   PLUsMgvStrat -> Mangrove
+  //   Mangrove     -> any address
   // When owner = Mangrove  =>  transfer & unlock
   function _transfer(address owner, address recipient, uint amount) internal returns (bool) {
     require(
-      (owner == _pLUsMgvStrat && recipient == _mangrove) || owner == _mangrove, "MetaPLUsDAOToken/nonMangroveTransfer"
+      (  recipient == _pLUsMgvStrat
+      || owner == _pLUsMgvStrat && recipient == _mangrove)
+      || owner == _mangrove, "MetaPLUsDAOToken/nonMangroveTransfer"
     );
     bool result = _pLUsDAOToken.transferFrom(owner, recipient, amount);
     if (!result) {

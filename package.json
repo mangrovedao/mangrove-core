@@ -7,6 +7,8 @@
   "scripts": {
     "package-version": "echo $npm_package_version",
     "precommit": "lint-staged",
+    "prepack": "pinst --disable && yarn build",
+    "postpack": "pinst --enable",
     "postinstall": "husky install",
     "corecov": "forge coverage --match-path 'test/core/*'",
     "build": "forge build && node copyArtifacts && node buildIndex",
@@ -35,6 +37,7 @@
     "husky": "^8.0.1",
     "lint-staged": "^13.0.3",
     "micromatch": "^4.0.5",
+    "pinst": "^3.0.0",
     "prettier": "^2.4.1",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.4",

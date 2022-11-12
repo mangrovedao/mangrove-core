@@ -23,11 +23,10 @@ interface IOrderLogic {
   ///@param outbound_tkn outbound token used to identify the order book
   ///@param inbound_tkn the inbound token used to identify the order book
   ///@param fillOrKill true to revert if market order cannot be filled and resting order failed or is not enabled; otherwise, false
-  ///@param takerWants desired total amount of `outbound_tkn`
-  ///@param makerWants taker wants before slippage (`makerWants == takerWants` when `fillWants`)
-  ///@param takerGives available total amount of `inbound_tkn`
-  ///@param makerGives taker gives before slippage (`makerGives == takerGives` when `!fillWants`)
-  ///@param fillWants if true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained; otherwise, the market order stops when `takerGives` units of `inbound_tkn` have been sold.
+  ///@param takerWants desired total amount of `outbound_tkn` (slippage included)
+  ///@param takerGives available total amount of `inbound_tkn` (slippage included)
+  ///@param slippageAmount if `fillWants` (buying) this is the amount of inbound tokens that must be substracted from `takerGives` to obtain the taker price before slippage. Else this is the amount of outbound tokens that must be added to `takerWants`
+  ///@param fillWants if true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained (fee included); otherwise, the market order stops when `takerGives` units of `inbound_tkn` have been sold.
   ///@param restingOrder whether the complement of the partial fill (if any) should be posted as a resting limit order.
   ///@param pivotId in case a resting order is required, the best pivot estimation of its position in the offer list (if the market order led to a non empty partial fill, then `pivotId` should be 0 unless the order book is crossed).
   ///@param expiryDate timestamp (expressed in seconds since unix epoch) beyond which the order is no longer valid, 0 means forever
@@ -36,9 +35,8 @@ interface IOrderLogic {
     IERC20 inbound_tkn;
     bool fillOrKill;
     uint takerWants;
-    uint makerWants;
     uint takerGives;
-    uint makerGives;
+    uint slippageAmount;
     bool fillWants;
     bool restingOrder;
     uint pivotId;
@@ -89,9 +87,9 @@ interface IOrderLogic {
   ///@notice Updates the expiry date for a specific offer.
   ///@param outbound_tkn The outbound token of the order.
   ///@param inbound_tkn The inbound token of the order.
-  ///@param offerId The offer id whose expiry date is to be set. 
+  ///@param offerId The offer id whose expiry date is to be set.
   ///@param date in seconds since unix epoch
-  ///@dev If new date is in the past of the current block's timestamp, offer will renege on trade. 
+  ///@dev If new date is in the past of the current block's timestamp, offer will renege on trade.
   function setExpiry(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, uint date) external;
 
   ///@notice Implements "Fill or kill" or "Good till cancelled" orders on a given offer list.

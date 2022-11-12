@@ -91,7 +91,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@inheritdoc IOrderLogic
   function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory res) {
     // Checking whether order is expired
-    require(tko.expiryDate == 0 ||  block.timestamp <= tko.expiryDate, "mgvOrder/expired");
+    require(tko.expiryDate == 0 || block.timestamp <= tko.expiryDate, "mgvOrder/expired");
 
     address callerReserve = reserve(msg.sender);
     // Notations:
@@ -209,64 +209,62 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     IERC20 inbound_tkn,
     TakerOrderResult memory res,
     uint fund
-  ) internal returns (uint refund) { 
-    // buy: wants x gives y, fillWants and makerGives >= gives
-    // sell: wants x gives y, !fillWants and makerWants <= wants
-    unchecked {
-      uint residualWants;
-      uint residualGives;
-      if (tko.fillWants) {
-        // partialFill => tko.makerWants < res.takerGot + res.fee
-        residualWants = tko.makerWants - (res.takerGot + res.fee);
-        // adapting residualGives to match initial price (before slippage)
-        // residualWants:96 and tko.makerGives:96 so no overflow
-        residualGives = (residualWants * tko.makerGives) / tko.makerWants;
-      } else {
-        // partialFill => tko.makerGives > res.takerGave
-        residualGives = tko.makerGives - res.takerGave;
-        // adapting residualGives to match initial price (before slippage)
-        residualWants = (residualGives * tko.makerWants) / tko.makerGives;
-      }
-      res.offerId = _newOffer(
-        OfferArgs({
-          outbound_tkn: outbound_tkn,
-          inbound_tkn: inbound_tkn,
-          wants: residualWants,
-          gives: residualGives,
-          gasreq: offerGasreq() + additionalGasreq, // using default gasreq of the strat + potential admin defined increase
-          gasprice: 0, // ignored
-          pivotId: tko.pivotId,
-          fund: fund,
-          noRevert: true, // returns 0 when MGV reverts
-          owner: msg.sender
-        })
-      );
-      if (res.offerId == 0) {
-        // either:
-        // - residualGives is below current density
-        // - `fund` is too low and would yield a gasprice that is lower than Mangrove's
-        // - `fund` is too high and would yield a gasprice overflow
-        // - offer list is not active (Mangrove is not dead otherwise market order would have reverted)
-        // reverting when partial fill is not an option
-        require(!tko.fillOrKill, "mgvOrder/partialFill");
-        // `fund` is no longer needed so sending it back to `msg.sender`
-        refund = fund;
-      } else {
-        // offer was successfully posted
-        // `fund` was used and we leave `refund` at 0.
+  ) internal returns (uint refund) {
+    uint residualWants;
+    uint residualGives;
+    if (tko.fillWants) {
+      uint makerGives = tko.takerGives - tko.slippageAmount;
+      // partialFill => tko.makerWants < res.takerGot + res.fee
+      residualWants = tko.takerWants - (res.takerGot + res.fee);
+      // adapting residualGives to match initial price (before slippage)
+      // residualWants:96 and tko.makerGives:96 so no overflow
+      residualGives = (residualWants * makerGives) / tko.takerWants;
+    } else {
+      uint makerWants = tko.takerWants + tko.slippageAmount;
+      // partialFill => tko.makerGives > res.takerGave
+      residualGives = tko.takerGives - res.takerGave;
+      // adapting residualGives to match initial price (before slippage)
+      residualWants = (residualGives * makerWants) / tko.takerGives;
+    }
+    res.offerId = _newOffer(
+      OfferArgs({
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        wants: residualWants,
+        gives: residualGives,
+        gasreq: offerGasreq() + additionalGasreq, // using default gasreq of the strat + potential admin defined increase
+        gasprice: 0, // ignored
+        pivotId: tko.pivotId,
+        fund: fund,
+        noRevert: true, // returns 0 when MGV reverts
+        owner: msg.sender
+      })
+    );
+    if (res.offerId == 0) {
+      // either:
+      // - residualGives is below current density
+      // - `fund` is too low and would yield a gasprice that is lower than Mangrove's
+      // - `fund` is too high and would yield a gasprice overflow
+      // - offer list is not active (Mangrove is not dead otherwise market order would have reverted)
+      // reverting when partial fill is not an option
+      require(!tko.fillOrKill, "mgvOrder/partialFill");
+      // `fund` is no longer needed so sending it back to `msg.sender`
+      refund = fund;
+    } else {
+      // offer was successfully posted
+      // `fund` was used and we leave `refund` at 0.
 
-        // setting expiry date for the resting order
-        if (tko.expiryDate > 0) {
-          expiring[outbound_tkn][inbound_tkn][res.offerId] = tko.expiryDate;
-        }
-        // if one wants to maintain an inverse mapping owner => offerIds
-        __logOwnershipRelation__({
-          owner: msg.sender,
-          outbound_tkn: outbound_tkn,
-          inbound_tkn: inbound_tkn,
-          offerId: res.offerId
-        });
+      // setting expiry date for the resting order
+      if (tko.expiryDate > 0) {
+        expiring[outbound_tkn][inbound_tkn][res.offerId] = tko.expiryDate;
       }
+      // if one wants to maintain an inverse mapping owner => offerIds
+      __logOwnershipRelation__({
+        owner: msg.sender,
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        offerId: res.offerId
+      });
     }
   }
 

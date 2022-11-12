@@ -86,12 +86,12 @@ interface IOrderLogic {
   ///@return res The timestamp beyond which `offerId` on the `(outbound_tkn, inbound_tkn)` offer list should renege on trade. 0 means no expiry.
   function expiring(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) external returns (uint);
 
-  ///@notice Updates the time to live for a specific offer.
+  ///@notice Updates the expiry date for a specific offer.
   ///@param outbound_tkn The outbound token of the order.
   ///@param inbound_tkn The inbound token of the order.
   ///@param offerId The offer id whose expiry date is to be set. 
   ///@param date in seconds since unix epoch
-  ///@dev If new ttl is in the past of the current block, offer will renege on trade. 
+  ///@dev If new date is in the past of the current block's timestamp, offer will renege on trade. 
   function setExpiry(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, uint date) external;
 
   ///@notice Implements "Fill or kill" or "Good till cancelled" orders on a given offer list.

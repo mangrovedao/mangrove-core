@@ -53,6 +53,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   }
 
   ///@inheritdoc IOrderLogic
+  ///@dev We also allow Mangrove to call this so that it can part of an offer logic.
   function setExpiry(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, uint date)
     public
     mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
@@ -90,7 +91,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@inheritdoc IOrderLogic
   function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory res) {
     // Checking whether order is expired
-    require(tko.expiryDate == 0 || tko.expiryDate >= block.timestamp, "mgvOrder/expired");
+    require(tko.expiryDate == 0 ||  block.timestamp <= tko.expiryDate, "mgvOrder/expired");
 
     address callerReserve = reserve(msg.sender);
     // Notations:
@@ -208,7 +209,9 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     IERC20 inbound_tkn,
     TakerOrderResult memory res,
     uint fund
-  ) internal returns (uint refund) {
+  ) internal returns (uint refund) { 
+    // buy: wants x gives y, fillWants and makerGives >= gives
+    // sell: wants x gives y, !fillWants and makerWants <= wants
     unchecked {
       uint residualWants;
       uint residualGives;

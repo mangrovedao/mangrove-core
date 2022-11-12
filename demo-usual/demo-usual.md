@@ -215,20 +215,14 @@ let plusMgvStrat = mgv.offerLogic("0x610178dA211FEF7D417bC0e6FeD39F05609AD788");
 let liquidityProvider = await plusMgvStrat.liquidityProvider(market);
 
 // Approve PLUsMgvStrat to transfer Meta-PLUsDAO tokens on seller's behalf
-let tx = await liquidityProvider.approveAsks();
-0;
-let txReceipt = await tx.wait();
-0;
+let tx = await liquidityProvider.approveAsks(); 0;
+let txReceipt = await tx.wait(); 0;
 // Approve Meta-PLUsDAO to transfer PLUsDAO tokens on seller's behalf
-tx = await PLUsDAO.approve(MetaPLUsDAO.address);
-0;
-txReceipt = await tx.wait();
-0;
+tx = await PLUsDAO.approve(MetaPLUsDAO.address); 0;
+txReceipt = await tx.wait(); 0;
 // Approve PLUsDAO to transfer LUsDAO tokens on seller's behalf
-tx = await LUsDAO.approve(PLUsDAO.address);
-0;
-txReceipt = await tx.wait();
-0;
+tx = await LUsDAO.approve(PLUsDAO.address); 0;
+txReceipt = await tx.wait(); 0;
 
 // Post offer
 let provision = await liquidityProvider.computeAskProvision();
@@ -343,10 +337,8 @@ market.consoleAsks();
 
 // Taker approves Mangrove for transfers of quote token
 // This is required before buying
-tx = await market.quote.approveMangrove();
-0;
-await tx.wait();
-0;
+tx = await market.quote.approveMangrove(); 0;
+await tx.wait(); 0;
 
 // Buy LUsDAO tokens
 let orderResult = await market.buy({ volume: 2, price: 2 });

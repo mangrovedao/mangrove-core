@@ -203,6 +203,12 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
   ///@notice posts a maker order on the (`outbound_tkn`, `inbound_tkn`) offer list.
   ///@param fund amount of WEIs used to cover for the offer bounty (covered gasprice is derived from `fund`).
+  ///@dev entailed price of the (instant) market order includes taker's slippage tolerance. It is given by:
+  /// * `tko.takerGives/tko.takerWants` for buy orders (i.e `fillWants==true`)
+  /// * `tko.takerWants/tko.takerGives` for sell orders (i.e `fillWants==false`)
+  /// Price w/o slippage for potential resting order is thus:
+  /// * `(tko.takerGives - tko.slippageAmount)/tko.takerWants` for the resting bid
+  /// * `(tko.takerWants + tko.slippageAmount)/tko.takerGives` for the resting ask.
   function postRestingOrder(
     TakerOrder calldata tko,
     IERC20 outbound_tkn,
@@ -213,15 +219,16 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     uint residualWants;
     uint residualGives;
     if (tko.fillWants) {
+      // if `slippageAmount` is ill defined the call below can underflow
       uint makerGives = tko.takerGives - tko.slippageAmount;
-      // partialFill => tko.makerWants < res.takerGot + res.fee
+      // partialFill => tko.takerWants < res.takerGot + res.fee
       residualWants = tko.takerWants - (res.takerGot + res.fee);
       // adapting residualGives to match initial price (before slippage)
-      // residualWants:96 and tko.makerGives:96 so no overflow
       residualGives = (residualWants * makerGives) / tko.takerWants;
     } else {
+      // if `slippageAmount` is ill defined the call below could overflow or have `makerWants` not castable to uint96.
       uint makerWants = tko.takerWants + tko.slippageAmount;
-      // partialFill => tko.makerGives > res.takerGave
+      // partialFill => tko.takerGives > res.takerGave
       residualGives = tko.takerGives - res.takerGave;
       // adapting residualGives to match initial price (before slippage)
       residualWants = (residualGives * makerWants) / tko.takerGives;

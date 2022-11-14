@@ -7,7 +7,7 @@
   "scripts": {
     "package-version": "echo $npm_package_version",
     "precommit": "lint-staged",
-    "prepack": "pinst --disable && yarn build",
+    "prepack": "pinst --disable && yarn build && yarn doc",
     "postpack": "pinst --enable",
     "postinstall": "husky install",
     "corecov": "forge coverage --match-path 'test/core/*'",
@@ -31,7 +31,8 @@
     "remappings.txt",
     "/lib",
     "/LICENSE",
-    "/README.md"
+    "/README.md",
+    "/doc"
   ],
   "devDependencies": {
     "husky": "^8.0.1",

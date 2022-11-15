@@ -23,8 +23,7 @@ import {console2 as console} from "forge-std/console2.sol";
    3. Write a standalone run() function that will be called by forge script. Call outputDeployment() at the end of run() if you deployed any contract.
 
    Do not inherit other deployer scripts! Just instantiate them and call their
-   .innerRun() function;
-*/
+   .innerRun() function;*/
 abstract contract Deployer is Script2 {
   // singleton Fork so all deploy scripts talk to the same backend
   // singleton method used for fork, so constructor-modified state is kept (just doing vm.etch forgets that state diff)
@@ -124,7 +123,7 @@ abstract contract Deployer is Script2 {
   }
 
   // Tries to interpret `envVar`'s value as an address; otherwise look it up in the current fork.
-  function getRawAddressOrName(string memory envVar) internal returns (address payable) {
+  function getRawAddressOrName(string memory envVar) internal view returns (address payable) {
     try vm.envAddress(envVar) returns (address addr) {
       return payable(addr);
     } catch {

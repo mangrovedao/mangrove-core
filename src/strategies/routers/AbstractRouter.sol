@@ -121,11 +121,13 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice adds a maker contract address to the allowed makers of this router
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address
+  ///@param maker the maker contract address
   function bind(address maker) public onlyAdmin {
     ARSt.getStorage().makers[maker] = true;
   }
 
   ///@notice removes a maker contract address from the allowed makers of this router
+  ///@param maker the maker contract address
   function unbind(address maker) public onlyAdmin {
     ARSt.getStorage().makers[maker] = false;
   }

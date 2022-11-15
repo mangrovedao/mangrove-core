@@ -58,7 +58,7 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice pulls liquidity from an offer maker's reserve to `msg.sender`'s balance
   ///@param token is the ERC20 managing the pulled asset
-  ///@param reserve where `amount` of `token` should be pulled from
+  ///@param reserve where `amount` of `token` should be pulled from (TODO:the reserve may hold a different token which is converted)
   ///@param amount of `token` the maker contract wishes to get
   ///@param strict when the calling maker contract accepts to receive more `token` than required (this may happen for gas optimization)
   function pull(IERC20 token, address reserve, uint amount, bool strict) external onlyMakers returns (uint pulled) {

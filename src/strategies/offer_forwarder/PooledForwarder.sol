@@ -125,7 +125,8 @@ contract PooledForwarder is IMakerLogic, Forwarder {
       // we do not verify result - we assume there is now enough, otherwise the order will fail.
       //TODO aave could be out of funds.
       AbstractRouter router_ = router();
-      uint pulled = router_.pull(outTkn, address(router_), amount, false /* pull everything */ );
+      uint pulled =
+        router_.pull({token: outTkn, reserve: address(router_), amount: amount, strict: false /* pull everything */});
       // return whether some is still missing.
       return pulled >= amount ? 0 : amount - pulled;
     }
@@ -134,9 +135,14 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     return 0;
   }
 
-  function deposit(IERC20 token, uint amount) public returns (uint) {
-    bool success = TransferLib.transferTokenFrom(token, reserve(msg.sender), address(this), amount);
-    // funds are now in local pool
+  function deposit(IERC20 token, uint amount) external returns (uint) {
+    bool success = TransferLib.transferTokenFrom({
+      token: token,
+      spender: reserve(msg.sender),
+      recipient: address(this),
+      amount: amount
+    });
+    // tokens are now on _this_ and can be pushed to router.
     // TODO: Should we push to Aave or wait for next order?
     if (success) {
       increaseBalance(token, msg.sender, amount);
@@ -147,22 +153,28 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     return 0;
   }
 
-  function withdraw(IERC20 token, uint amount) public returns (bool) {
+  function withdraw(IERC20 token, uint amount) external returns (bool) {
+    // Check msg.sender's balance
     uint ownersBalance = getBalance(token, msg.sender);
     require(ownersBalance >= amount, "withdraw/notEnoughBalance");
     // update state before calling contracts
     decreaseBalance(token, msg.sender, amount);
 
+    // Check local pool first before calling aave
     uint thisBalance = token.balanceOf(address(this));
 
-    // pull missing from aave into local pool
+    // pull missing from aave into local pool - but only enough - the rest should still generate yield on aave
     if (thisBalance < amount) {
       uint pulled = router().pull(token, address(this), amount - thisBalance, true);
+      // this should only happen i Aave is out of liquidity
       require(pulled + thisBalance == amount, "withdraw/aavePulledWrongAmount");
     }
 
     // transfer to owner
-    bool success = TransferLib.transferToken(token, reserve(msg.sender), amount);
+    bool success = TransferLib.transferToken({token: token, recipient: reserve(msg.sender), amount: amount});
+    //TODO either revert or increase balance here - otherwise msg.sender lost their tokens.
+    require(success, "withdraw/transferFailed");
+    //TODO what about this.withdrawToken ?
     return success;
   }
 

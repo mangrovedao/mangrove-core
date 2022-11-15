@@ -282,7 +282,7 @@ contract MangroveOrder_Test is MangroveTest {
     });
 
     vm.expectRevert("mgvOrder/pushFailed");
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    mgo.take{value: 0.1 ether}(buyOrder);
   }
 
   function test_resting_buy_order_for_blacklisted_reserve_for_outbound_reverts() public {

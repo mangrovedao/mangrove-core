@@ -39,8 +39,7 @@ pragma solidity ^0.8.10;
     deadline: deadline,
   };
 
-  owner._signTypedData(domain, types, data);
-*/
+  owner._signTypedData(domain, types, data);*/
 
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
@@ -200,7 +199,7 @@ library mgvPermitData {
     return p;
   }
 
-  function sign(t storage p) internal returns (uint8 v, bytes32 r, bytes32 s) {
+  function sign(t storage p) internal view returns (uint8 v, bytes32 r, bytes32 s) {
     bytes32 digest = keccak256(
       abi.encodePacked(
         "\x19\x01",

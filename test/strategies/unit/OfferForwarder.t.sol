@@ -89,6 +89,70 @@ contract OfferForwarderTest is OfferLogicTest {
     );
   }
 
+  function test_updateOffer_with_more_gasreq_reduces_gasprice_when_no_fund_is_added() public {
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: makerContract.offerGasreq(),
+      gasprice: 0,
+      pivotId: 0
+    });
+    uint old_gasprice = mgv.offerDetails(address(weth), address(usdc), offerId).gasprice();
+    vm.prank(maker);
+    makerContract.updateOffer({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: makerContract.offerGasreq()*2,
+      gasprice: 0,
+      pivotId: 0,
+      offerId: offerId
+    });
+    assertTrue(
+      old_gasprice > mgv.offerDetails(address(weth), address(usdc), offerId).gasprice(),
+      "Gasprice not updated as expected"
+    );
+  }
+
+  function test_updateOffer_with_less_gasreq_increases_gasprice() public {
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: makerContract.offerGasreq(),
+      gasprice: 0,
+      pivotId: 0
+    });
+    uint old_gasprice = mgv.offerDetails(address(weth), address(usdc), offerId).gasprice();
+    uint old_makerBalance = mgv.balanceOf(address(makerContract));
+    vm.prank(maker);
+    makerContract.updateOffer({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 ether,
+      gasreq: makerContract.offerGasreq()/2,
+      gasprice: 0,
+      pivotId: 0,
+      offerId: offerId
+    });
+    assertTrue(
+      old_gasprice < mgv.offerDetails(address(weth), address(usdc), offerId).gasprice(),
+      "Gasprice not updated as expected"
+    );
+    assertEq(
+      old_makerBalance,
+      mgv.balanceOf(address(makerContract)),
+      "Maker balance should not increase"
+    );
+  }
+
   function test_failed_offer_reaches_posthookFallback() public {
     MgvLib.SingleOrder memory order;
     MgvLib.OrderResult memory result;

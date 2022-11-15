@@ -158,20 +158,9 @@ contract HasMgvEvents {
 /* # IMaker interface */
 interface IMaker {
   /* Called upon offer execution. 
-  - If the call fails, Mangrove will not try to transfer funds.
-  - If the call succeeds but returndata's first 32 bytes are not 0, Mangrove will not try to transfer funds either.
-  - If the call succeeds and returndata's first 32 bytes are 0, Mangrove will try to transfer funds.
-  In other words, you may declare failure by reverting or by returning nonzero data. In both cases, those 32 first bytes will be passed back to you during the call to `makerPosthook` in the `result.mgvData` field.
-     ```
-     function tradeRevert(bytes32 data) internal pure {
-       bytes memory revData = new bytes(32);
-         assembly {
-           mstore(add(revData, 32), data)
-           revert(add(revData, 32), 32)
-         }
-     }
-     ```
-     */
+  - If the call throws, Mangrove will not try to transfer funds and the first 32 bytes of revert reason are passed to `makerPosthook` as `makerData`
+  - If the call returns normally, returndata is passed to `makerPosthook` as `makerData` and Mangrove will attempt to transfer the funds.
+  */
   function makerExecute(MgvLib.SingleOrder calldata order) external returns (bytes32);
 
   /* Called after all offers of an order have been executed. Posthook of the last executed order is called first and full reentrancy into the Mangrove is enabled at this time. `order` recalls key arguments of the order that was processed and `result` recalls important information for updating the current offer. (see [above](#MgvLib/OrderResult))*/

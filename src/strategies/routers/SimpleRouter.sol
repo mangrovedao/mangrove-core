@@ -12,8 +12,6 @@
 
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 import {IERC20} from "mgv_src/MgvLib.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {AbstractRouter} from "./AbstractRouter.sol";
@@ -29,6 +27,7 @@ contract SimpleRouter is
   /// @param reserve The address of the reserve, where the tokens will be transferred from
   /// @param maker Address of the maker, where the tokens will be transferred to
   /// @param amount The amount of tokens to be transferred
+  /// @param strict wether the caller maker contract wishes to pull at most `amount`.
   /// @return pulled The amount pulled if successful (will be equal to `amount`); otherwise, 0.
   /// @dev requires approval from `reserve` for `this` to transfer `token`.
   function __pull__(IERC20 token, address reserve, address maker, uint amount, bool strict)

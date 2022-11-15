@@ -3,5 +3,5 @@ mgv_lib/=lib/
 mgv_test/=test/
 mgv_script/=script/
 src/=src/
-ds-test/=lib/forge-std-vendored/lib/ds-test/src/
-forge-std/=lib/forge-std-vendored/src/
+ds-test/=lib/forge-std/lib/ds-test/src/
+forge-std/=lib/forge-std/src/

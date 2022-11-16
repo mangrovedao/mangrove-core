@@ -57,17 +57,9 @@ contract OfferMakerTutorial is Direct {
   event OfferTakenSuccessfully(uint);
 
   ///@notice Post-hook that is invoked when the offer is taken successfully.
-  ///@param order is a recall of the taker order that is at the origin of the current trade.
-  ///@param makerData is the returned value of the `__lastLook__` hook.
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
-    internal
-    virtual
-    override
-    returns (bytes32)
-  {
+  function __posthookSuccess__(MgvLib.SingleOrder calldata, bytes32) internal virtual override returns (bytes32) {
     emit OfferTakenSuccessfully(42);
-    // repost offer residual if any
-    return super.__posthookSuccess__(order, makerData);
+    return 0;
   }
 }
 

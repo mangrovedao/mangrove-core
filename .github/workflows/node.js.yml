@@ -137,6 +137,7 @@ jobs:
       run: yarn run test
       env:
         POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
+        MUMBAI_NODE_URL: ${{ secrets.MUMBAI_NODE_URL }}
 
     # For push runs we also create a coverage report
     - name: Create coverage report for mangrove-solidity
@@ -145,6 +146,7 @@ jobs:
       working-directory: . # coverage cannot find contracts if executed inside mangrove-solidity
       env:
         POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
+        MUMBAI_NODE_URL: ${{ secrets.MUMBAI_NODE_URL }}
 
      # == Send coverage report to Coveralls == 
      # Coverallsapp by default uses GITHUB_SHA but that does not necessarily correspond

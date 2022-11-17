@@ -1,5 +1,9 @@
 # next version
 
+# 1.1.1 (Nov 2022)
+
+- Updating `MangroveOrder` deployment address
+
 # 1.1.0 (November 2022)
 
 - ABI change to `MangroveOrder` after various fixes (code audit)

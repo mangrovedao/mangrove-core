@@ -1,8 +1,12 @@
 # next version
 
-# 1.1.2 (Nov 2022)
+# 1.1.3 (nov 2022)
 
-- Updating `MangroveOrder` deployment address
+- updating test deployment script
+
+# 1.1.2 (nov 2022)
+
+- updating `mangroveorder` deployment address
 
 # 1.1.1 (Nov 2022)
 

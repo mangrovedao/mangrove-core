@@ -8,7 +8,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 contract MumbaiDeploy is Deployer {
   function run() public {
     new MangroveDeployer().innerRun({
-      chief: msg.sender,
+      chief: broadcaster(),
       gasprice: 50,
       gasmax: 1_000_000
     });

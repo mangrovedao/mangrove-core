@@ -30,7 +30,7 @@ contract MangroveJsDeploy is Deployer {
   MangroveOrder mgo;
 
   function run() public {
-    innerRun({chief: msg.sender, gasprice: 1, gasmax: 2_000_000});
+    innerRun({chief: broadcaster(), gasprice: 1, gasmax: 2_000_000});
     outputDeployment();
   }
 

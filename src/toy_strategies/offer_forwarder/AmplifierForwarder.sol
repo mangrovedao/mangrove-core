@@ -55,7 +55,7 @@ contract AmplifierForwarder is Forwarder {
    * @dev these offer's provision must be in msg.value
    * @dev `reserve()` must have approved base for `this` contract transfer prior to calling this function
    */
-  function newAmplifierOffers(
+  function newAmplifiedOffers(
     // this function posts two asks
     uint gives,
     uint wants1,

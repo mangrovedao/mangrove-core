@@ -93,8 +93,8 @@ contract AmplifierTest is MangroveTest {
 
     // NOTE:
     // For this test, we're locking base, ie WETH, in the vault of the contract
-    // - so Amplifier is not really used for amplifier liquidity, in this example.
-    // However, to employ actual amplifier liquidity it is simply a matter of
+    // - so Amplifier is not really used for amplified liquidity, in this example.
+    // However, to employ actual amplified liquidity it is simply a matter of
     // setting up a more refined router.
     // check that we actually need to activate for the two 'wants' tokens
     IERC20[] memory tokens = new IERC20[](3);
@@ -113,7 +113,7 @@ contract AmplifierTest is MangroveTest {
     public
     returns (uint offerId1, uint offerId2)
   {
-    (offerId1, offerId2) = strat.newAmplifierOffers{value: 2 ether}({
+    (offerId1, offerId2) = strat.newAmplifiedOffers{value: 2 ether}({
       gives: makerGivesAmount, // WETH
       wants1: makerWantsAmountUSDC, // USDC
       wants2: makerWantsAmountDAI, // DAI

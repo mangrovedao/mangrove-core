@@ -74,8 +74,8 @@ contract AmplifierForwarderTest is MangroveTest {
 
     // NOTE:
     // For this test, we're locking base, ie WETH, in the vault of the contract
-    // - so Amplifier is not really used for amplifier liquidity, in this example.
-    // However, to employ actual amplifier liquidity it is simply a matter of
+    // - so Amplifier is not really used for amplified liquidity, in this example.
+    // However, to employ actual amplified liquidity it is simply a matter of
     // setting up a more refined router.
     // check that we actually need to activate for the two 'wants' tokens
     IERC20[] memory tokens = new IERC20[](2);
@@ -97,7 +97,7 @@ contract AmplifierForwarderTest is MangroveTest {
     uint prov1 = strat.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
     uint prov2 = strat.getMissingProvision(weth, dai, type(uint).max, 0, 0);
 
-    (offerId1, offerId2) = strat.newAmplifierOffers{value: prov1 + prov2}({
+    (offerId1, offerId2) = strat.newAmplifiedOffers{value: prov1 + prov2}({
       gives: makerGivesAmount, // WETH
       wants1: makerWantsAmountUSDC, // USDC
       wants2: makerWantsAmountDAI, // DAI
@@ -314,7 +314,7 @@ contract AmplifierForwarderTest is MangroveTest {
 
     vm.expectRevert("AmplifierForwarder/offer1AlreadyActive");
 
-    strat.newAmplifierOffers{value: prov1Tester + prov2Tester}({
+    strat.newAmplifiedOffers{value: prov1Tester + prov2Tester}({
       gives: makerGivesAmount, // WETH
       wants1: makerWantsAmountUSDC, // USDC
       wants2: makerWantsAmountDAI, // DAI
@@ -338,7 +338,7 @@ contract AmplifierForwarderTest is MangroveTest {
 
     vm.expectRevert("AmplifierForwarder/offer2AlreadyActive");
 
-    strat.newAmplifierOffers{value: prov1Maker + prov2Maker}({
+    strat.newAmplifiedOffers{value: prov1Maker + prov2Maker}({
       gives: makerGivesAmount, // WETH
       wants1: makerWantsAmountUSDC, // USDC
       wants2: makerWantsAmountDAI, // DAI

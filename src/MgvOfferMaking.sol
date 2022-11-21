@@ -28,7 +28,7 @@ contract MgvOfferMaking is MgvHasOffers {
   /* # Public Maker operations
      ## New Offer */
   //+clear+
-  /* In the Mangrove, makers and takers call separate functions. Market makers call `newOffer` to fill the book, and takers call functions such as `marketOrder` to consume it.  */
+  /* In Mangrove, makers and takers call separate functions. Market makers call `newOffer` to fill the book, and takers call functions such as `marketOrder` to consume it.  */
 
   //+clear+
 
@@ -52,9 +52,9 @@ contract MgvOfferMaking is MgvHasOffers {
 
      It also specify with `gasreq` how much gas should be given when executing their offer.
 
-     `gasprice` indicates an upper bound on the gasprice at which the maker is ready to be penalised if their offer fails. Any value below the Mangrove's internal `gasprice` configuration value will be ignored.
+     `gasprice` indicates an upper bound on the gasprice at which the maker is ready to be penalised if their offer fails. Any value below Mangrove's internal `gasprice` configuration value will be ignored.
 
-    `gasreq`, together with `gasprice`, will contribute to determining the penalty provision set aside by the Mangrove from the market maker's `balanceOf` balance.
+    `gasreq`, together with `gasprice`, will contribute to determining the penalty provision set aside by Mangrove from the market maker's `balanceOf` balance.
 
   Offers are always inserted at the correct place in the book. This requires walking through offers to find the correct insertion point. As in [Oasis](https://github.com/daifoundation/maker-otc/blob/f2060c5fe12fe3da71ac98e8f6acc06bca3698f5/src/matching_market.sol#L493), the maker should find the id of an offer close to its own and provide it as `pivotId`.
 
@@ -117,7 +117,7 @@ contract MgvOfferMaking is MgvHasOffers {
      2. The offer does not change its `gasreq`
      3. The (`outbound_tkn`,`inbound_tkn`)'s `offer_gasbase` has not changed since the offer was last written
      4. `gasprice` has not changed since the offer was last written
-     5. `gasprice` is greater than the Mangrove's gasprice estimation
+     5. `gasprice` is greater than Mangrove's gasprice estimation
   */
   function updateOffer(
     address outbound_tkn,
@@ -217,7 +217,7 @@ contract MgvOfferMaking is MgvHasOffers {
     }
   }
 
-  /* A transfer with enough gas to the Mangrove will increase the caller's available `balanceOf` balance. _You should send enough gas to execute this function when sending money to the Mangrove._  */
+  /* A transfer with enough gas to Mangrove will increase the caller's available `balanceOf` balance. _You should send enough gas to execute this function when sending money to Mangrove._  */
   receive() external payable {
     unchecked {
       fund(msg.sender);
@@ -280,7 +280,7 @@ contract MgvOfferMaking is MgvHasOffers {
           oldProvision = 10 ** 9 * offerDetail.gasprice() * (offerDetail.gasreq() + offerDetail.offer_gasbase());
         }
 
-        /* If the offer is new, has a new `gasprice`, `gasreq`, or if the Mangrove's `offer_gasbase` configuration parameter has changed, we also update `offerDetails`. */
+        /* If the offer is new, has a new `gasprice`, `gasreq`, or if Mangrove's `offer_gasbase` configuration parameter has changed, we also update `offerDetails`. */
         if (
           !update || offerDetail.gasreq() != ofp.gasreq || offerDetail.gasprice() != ofp.gasprice
             || offerDetail.offer_gasbase() != ofp.local.offer_gasbase()

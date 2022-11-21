@@ -113,7 +113,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// @notice computes the maximum `gasprice` that can be covered by the amount of provision given in argument.
   /// @param gasreq the gas required by the offer
   /// @param provision the amount of native token one wishes to use, to provision the offer on Mangrove.
-  /// @param offerGasbase the Mangrove's offer_gasbase.
+  /// @param offerGasbase Mangrove's offer_gasbase.
   /// @return gasprice the gas price that is covered by `provision` - `leftover`.
   /// @return leftover the sub amount of `provision` that is not used to provision the offer.
   /// @dev the returned gasprice is slightly lower than the real gasprice that the provision can cover because of the rounding error due to division
@@ -240,12 +240,9 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
       if (args.fund > 0 || args.gasreq != old_gasreq) {
         // adding current locked provision to funds (0 if offer is deprovisioned)
         uint locked_funds = vars.offerDetail.gasprice() * 10 ** 9 * (old_gasreq + vars.offerDetail.offer_gasbase());
-        // note that if `args.gasreq < old_gasreq` then offer gasprice will increase (even if `args.fund == 0`) to match the incurred excess of locked provision  
-        (args.gasprice, vars.leftover) = deriveGasprice(
-          args.gasreq,
-          args.fund + locked_funds,
-          vars.local.offer_gasbase()
-        );
+        // note that if `args.gasreq < old_gasreq` then offer gasprice will increase (even if `args.fund == 0`) to match the incurred excess of locked provision
+        (args.gasprice, vars.leftover) =
+          deriveGasprice(args.gasreq, args.fund + locked_funds, vars.local.offer_gasbase());
 
         // leftover can be safely cast to uint96 since it's a rounding error
         // adding `leftover` to potential previous value since it was not included in args.fund

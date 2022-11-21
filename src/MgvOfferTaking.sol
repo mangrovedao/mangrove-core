@@ -113,7 +113,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Call recursive `internalMarketOrder` function.*/
       internalMarketOrder(mor, sor, true);
 
-      /* Over the course of the market order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by the Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
+      /* Over the course of the market order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
 
       emit OrderComplete(outbound_tkn, inbound_tkn, taker, mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid);
@@ -269,7 +269,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Call `internalSnipes` function. */
       (successCount, snipesGot, snipesGave) = internalSnipes(mor, sor, targets);
 
-      /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by the Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
+      /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
       //+clear+
 
@@ -439,7 +439,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         }
       }
       /* The flashloan is executed by call to `flashloan`. If the call reverts, it means the maker failed to send back `sor.wants` `outbound_tkn` to the taker. Notes :
-       * `msg.sender` is the Mangrove itself in those calls -- all operations related to the actual caller should be done outside of this call.
+       * `msg.sender` is Mangrove itself in those calls -- all operations related to the actual caller should be done outside of this call.
        * any spurious exception due to an error in Mangrove code will be falsely blamed on the Maker, and its provision for the offer will be unfairly taken away.
        */
       (bool success, bytes memory retdata) =
@@ -453,7 +453,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mgvData = bytes32("mgv/tradeSuccess");
         emit OfferSuccess(sor.outbound_tkn, sor.inbound_tkn, sor.offerId, mor.taker, sor.wants, sor.gives);
 
-        /* If configured to do so, the Mangrove notifies an external contract that a successful trade has taken place. */
+        /* If configured to do so, Mangrove notifies an external contract that a successful trade has taken place. */
         if (sor.global.notify()) {
           IMgvMonitor(sor.global.monitor()).notifySuccess(sor, mor.taker);
         }
@@ -469,7 +469,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {
           emit OfferFail(sor.outbound_tkn, sor.inbound_tkn, sor.offerId, mor.taker, sor.wants, sor.gives, mgvData);
 
-          /* If configured to do so, the Mangrove notifies an external contract that a failed trade has taken place. */
+          /* If configured to do so, Mangrove notifies an external contract that a failed trade has taken place. */
           if (sor.global.notify()) {
             IMgvMonitor(sor.global.monitor()).notifyFail(sor, mor.taker);
           }
@@ -479,7 +479,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         } else if (mgvData == "mgv/takerTransferFail") {
           revert("mgv/takerTransferFail");
         } else {
-          /* This code must be unreachable except if the call to flashloan went OOG and there is enough gas to revert here. **Danger**: if a well-crafted offer/maker pair can force a revert of `flashloan`, the Mangrove will be stuck. */
+          /* This code must be unreachable except if the call to flashloan went OOG and there is enough gas to revert here. **Danger**: if a well-crafted offer/maker pair can force a revert of `flashloan`, Mangrove will be stuck. */
           revert("mgv/swapError");
         }
       }
@@ -620,8 +620,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
      **Incentive issue**: if the gas price increases enough after an offer has been created, there may not be an immediately profitable way to remove the fake offers. In that case, we count on 3 factors to keep the book clean:
      1. Gas price eventually comes down.
-     2. Other market makers want to keep the Mangrove attractive and maintain their offer flow.
-     3. Mangrove governance (who may collect a fee) wants to keep the Mangrove attractive and maximize exchange volume. */
+     2. Other market makers want to keep Mangrove attractive and maintain their offer flow.
+     3. Mangrove governance (who may collect a fee) wants to keep Mangrove attractive and maximize exchange volume. */
 
   //+clear+
   /* After an offer failed, part of its provision is given back to the maker and the rest is stored to be sent to the taker after the entire order completes. In `applyPenalty`, we _only_ credit the maker with its excess provision. So it looks like the maker is gaining something. In fact they're just getting back a fraction of what they provisioned earlier. */
@@ -632,7 +632,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
    * Otherwise, the maker loses the cost of `gasused + offer_gasbase` gas. The gas price is estimated by `gasprice`.
    * To create the offer, the maker had to provision for `gasreq + offer_gasbase` gas at a price of `offerDetail.gasprice`.
    * We do not consider the tx.gasprice.
-   * `offerDetail.gasbase` and `offerDetail.gasprice` are the values of the Mangrove parameters `config.offer_gasbase` and `config.gasprice` when the offer was created. Without caching those values, the provision set aside could end up insufficient to reimburse the maker (or to retribute the taker).
+   * `offerDetail.gasbase` and `offerDetail.gasprice` are the values of Mangrove parameters `config.offer_gasbase` and `config.gasprice` when the offer was created. Without caching those values, the provision set aside could end up insufficient to reimburse the maker (or to retribute the taker).
    */
   function applyPenalty(MgvLib.SingleOrder memory sor, uint gasused) internal returns (uint) {
     unchecked {
@@ -668,7 +668,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     }
   }
 
-  /* Post-trade, `payTakerMinusFees` sends what's due to the taker and the rest (the fees) to the vault. Routing through the Mangrove like that also deals with blacklisting issues (separates the maker-blacklisted and the taker-blacklisted cases). */
+  /* Post-trade, `payTakerMinusFees` sends what's due to the taker and the rest (the fees) to the vault. Routing through Mangrove like that also deals with blacklisting issues (separates the maker-blacklisted and the taker-blacklisted cases). */
   function payTakerMinusFees(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal {
     unchecked {
       /* Should be statically provable that the 2 transfers below cannot return false under well-behaved ERC20s and a non-blacklisted, non-0 target. */

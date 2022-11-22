@@ -13,6 +13,60 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
+/*
+
+// THE BIG TODO: Manage yield.
+
+taker->mangrove: marketOrder(...)
+mangrove->pooledForwarder: makerExecute(order)
+pooledForwarder->pooledForwarder: __put__(amount: order.gives, order)
+pooledForwarder->pooledForwarder: increaseBalance(DAI, owner[order], amount)
+note over pooledForwarder,WETH:makerBalance: +1 DAI, 10 WETH<br>maker: -1 WETH
+
+pooledForwarder->pooledForwarder: __get__(amount: order.gives, order)
+pooledForwarder->pooledForwarder: decreaseBalance(WETH, owner[order], amount)
+pooledForwarder->WETH: balanceOf(pooledForwarder)
+pooledForwarder->aaveRouter: pull(WETH, ???, amount)
+
+
+
+https://mermaid.live/
+
+
+
+title WETH/DAI
+
+sequenceDiagram
+
+
+maker->>pooledForwarder: deposit(WETH, 1)
+pooledForwarder->>WETH: transferFrom(maker, pooledForwarder, 1)
+note over pooledForwarder,WETH:pooledForwarder: +1 WETH<br>maker: -1 WETH
+
+pooledForwarder->>pooledForwarder: increaseBalance(WETH, maker, 1)
+
+pooledForwarder->>aaveRouter: push(WETH, aaveRouter, 1)
+aaveRouter->>WETH: transferFrom(pooledforwarder, aaveRouter, 1)
+note over aaveRouter,WETH:pooledForwarder: +1-1 WETH<br>maker: -1 WETH<br>aaveRouter: +1 WETH
+
+aaveRouter->>aaveRouter: repayThenDeposit(WETH, pooledForwarder, 1)
+
+aaveRouter->>aavePool: supply(WETH, 1, aaveRouter)
+
+aavePool->>WETH: transferFrom(aaveRouter?, aavePool, 1)
+note over aavePool,WETH:pooledForwarder: +1-1 WETH<br>maker: -1 WETH<br>aaveRouter: +1-1 WETH<br>aavePool: +1 WETH
+
+aavePool->>aWETH: mint(aaveRouter, 1)
+
+note over aavePool,aWETH:pooledForwarder: +1-1 WETH<br>maker: -1 WETH<br>aaveRouter: +1-1 WETH<br>aavePool: +1 WETH<br>aaveRouter: +1 aWETH
+
+
+
+{
+  "theme": "dark",
+  "noteAlign": "left"
+}*/
+
 import {Forwarder} from "src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import {IMakerLogic} from "src/strategies/interfaces/IMakerLogic.sol";
 import {AaveRouter} from "src/strategies/routers/AaveRouter.sol";
@@ -54,6 +108,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
   // Decrease balance of token for owner.
   function decreaseBalance(IERC20 token, address owner, uint amount) private returns (uint) {
     uint currentBalance = ownerBalance[token][owner];
+    //TODO msg probably too long
     require(currentBalance >= amount, "PooledForwarder/decreaseBalance/amountMoreThanBalance");
     emit DebitUserBalance(token, owner, amount);
     unchecked {
@@ -73,7 +128,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     IERC20 inbound_tkn,
     uint wants,
     uint gives,
-    uint gasreq,
+    uint gasreq, // TODO remove this? or ignore it
     uint gasprice, // keeping gasprice here in order to expose the same interface as `OfferMaker` contracts.
     uint pivotId
   ) public payable returns (uint offerId) {
@@ -125,8 +180,12 @@ contract PooledForwarder is IMakerLogic, Forwarder {
       // we do not verify result - we assume there is now enough, otherwise the order will fail.
       //TODO aave could be out of funds.
       AbstractRouter router_ = router();
+
+      //TODO call super instead.
+
       uint pulled =
-        router_.pull({token: outTkn, reserve: address(router_), amount: amount, strict: false /* pull everything */});
+      //reserve should be router because aave does not allow redeeming on behalf of
+       router_.pull({token: outTkn, reserve: address(router_), amount: amount, strict: false /* pull everything */});
       // return whether some is still missing.
       return pulled >= amount ? 0 : amount - pulled;
     }
@@ -135,29 +194,28 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     return 0;
   }
 
-  function deposit(IERC20 token, uint amount) external returns (uint) {
-    bool success = TransferLib.transferTokenFrom({
-      token: token,
-      spender: reserve(msg.sender),
-      recipient: address(this),
-      amount: amount
-    });
+  function deposit(IERC20 token, uint amount) external {
+    require(
+      TransferLib.transferTokenFrom({
+        token: token,
+        spender: msg.sender, // TODO revisit reserve vs msg.sender - also on Forwarder...
+        recipient: address(this), // TODO consider changing to a direct transfer to router, but would require a deposit function on router, and thus not AbstractRouter
+        amount: amount
+      }),
+      "pooledForwarder/makerTransferFail"
+    );
     // tokens are now on _this_ and can be pushed to router.
     // TODO: Should we push to Aave or wait for next order?
-    if (success) {
-      increaseBalance(token, msg.sender, amount);
-      // push all we have - we do not care if it succeeds.
-      router().push(token, address(this), token.balanceOf(address(this)));
-      return amount;
-    }
-    return 0;
+    increaseBalance(token, msg.sender, amount);
+    //TODO: repayThenDeposit is invoked and can pay back debt - consider having the strat be the admin
+    uint pushed = router().push(token, address(router_), amount);
+    require(pushed == amount, "pooledForwarder/pushedWrongAmount");
   }
 
-  function withdraw(IERC20 token, uint amount) external returns (bool) {
-    // Check msg.sender's balance
-    uint ownersBalance = getBalance(token, msg.sender);
-    require(ownersBalance >= amount, "withdraw/notEnoughBalance");
+  //TODO make it into a hook - change Forwarder.
+  function __withdrawToken__(IERC20 token, address receiver, uint amount) internal override returns (bool success) {
     // update state before calling contracts
+    // if user doesn't have the funds, decreaseBalance will throw
     decreaseBalance(token, msg.sender, amount);
 
     // Check local pool first before calling aave
@@ -166,16 +224,13 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     // pull missing from aave into local pool - but only enough - the rest should still generate yield on aave
     if (thisBalance < amount) {
       uint pulled = router().pull(token, address(this), amount - thisBalance, true);
-      // this should only happen i Aave is out of liquidity
+      // this should only happen if Aave is out of liquidity
       require(pulled + thisBalance == amount, "withdraw/aavePulledWrongAmount");
     }
+    // Here token.balanceOf(address(this)) >= amount
 
     // transfer to owner
-    bool success = TransferLib.transferToken({token: token, recipient: reserve(msg.sender), amount: amount});
-    //TODO either revert or increase balance here - otherwise msg.sender lost their tokens.
-    require(success, "withdraw/transferFailed");
-    //TODO what about this.withdrawToken ?
-    return success;
+    require(TransferLib.transferToken({token: token, recipient: msg.sender, amount: amount}), "withdraw/transferFailed");
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)

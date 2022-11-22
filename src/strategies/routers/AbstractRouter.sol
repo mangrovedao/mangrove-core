@@ -99,26 +99,6 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param reserve is the address identifying the location of the assets
   function reserveBalance(IERC20 token, address reserve) external view virtual returns (uint);
 
-  ///@notice withdraws `amount` of tokens from `reserve` and sends them to `recipient`
-  ///@dev this is called by maker's contract when offer maker wishes to withdraw funds from it.
-  ///@param token is the asset one wishes to withdraw
-  ///@param reserve is the location of the assets
-  ///@param recipient is address receiving the tokens
-  ///@param amount is the amount of asset that should be withdrawn
-  function withdrawToken(IERC20 token, address reserve, address recipient, uint amount)
-    public
-    onlyMakers
-    returns (bool)
-  {
-    return __withdrawToken__(token, reserve, recipient, amount);
-  }
-
-  ///@notice router-dependant implementation of the `withdrawToken` function
-  function __withdrawToken__(IERC20 token, address reserve, address recipient, uint amount)
-    internal
-    virtual
-    returns (bool);
-
   ///@notice adds a maker contract address to the allowed makers of this router
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address
   ///@param maker the maker contract address

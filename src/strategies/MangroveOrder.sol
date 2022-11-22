@@ -66,6 +66,28 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     additionalGasreq = additionalGasreq_;
   }
 
+  ///@notice updates an offer on Mangrove
+  ///@dev if caller is admin, this is used to update offer gasreq if need be
+  ///@dev otherwise this can be used to update price of the resting order
+  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+    external
+    payable
+    adminOrOwner(outbound_tkn, inbound_tkn, offerId)
+  {
+    OfferArgs memory args;
+
+    // funds to compute new gasprice is msg.value. Will use old gasprice if no funds are given
+    args.fund = msg.value; // if inside a hook (Mangrove is `msg.sender`) this will be 0
+    args.outbound_tkn = outbound_tkn;
+    args.inbound_tkn = inbound_tkn;
+    args.wants = wants;
+    args.gives = gives;
+    args.gasreq = offerGasreq() + additionalGasreq;
+    args.pivotId = pivotId;
+    args.noRevert = false; // will throw if Mangrove reverts
+    _updateOffer(args, offerId);
+  }
+
   ///Checks the current timestamps and reneges on trade (by reverting) if the offer has expired.
   ///@inheritdoc MangroveOffer
   function __lastLook__(MgvLib.SingleOrder calldata order) internal virtual override returns (bytes32) {

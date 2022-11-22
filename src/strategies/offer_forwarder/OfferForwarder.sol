@@ -61,8 +61,8 @@ contract OfferForwarder is LP, Forwarder {
     IERC20 inbound_tkn,
     uint wants,
     uint gives,
-    uint gasreq, // value ignored but kept to satisfy `OfferForwarder is IMakerLogic`
-    uint gasprice, // value ignored but kept to satisfy `OfferForwarder is IMakerLogic`
+    uint gasreq, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider_SDK`
+    uint gasprice, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider_SDK`
     uint pivotId,
     uint offerId
   ) external payable override onlyOwner(outbound_tkn, inbound_tkn, offerId) {

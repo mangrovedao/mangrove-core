@@ -14,7 +14,7 @@ contract OfferLogicTest is MangroveTest {
   address payable taker;
   address payable deployer;
   address reserve;
-  IMakerLogic makerContract; // can be either OfferMaker or OfferForwarder
+  LP makerContract; // can be either OfferMaker or OfferForwarder
   GenericFork fork;
 
   // tracking IOfferLogic logs
@@ -363,28 +363,5 @@ contract OfferLogicTest is MangroveTest {
     assertEq(makerContract.tokenBalance(weth, maker), balOut - (takergot + fee), "incorrect out balance");
     assertEq(makerContract.tokenBalance(usdc, maker), balIn + takergave, "incorrect in balance");
     vm.stopPrank();
-  }
-
-  function test_maker_can_withdrawTokens() public {
-    // note in order to be routing strategy agnostic one cannot easily mockup a trade
-    // for aave routers reserve will hold overlying while for simple router reserve will hold the asset
-    uint balusdc = usdc.balanceOf(maker);
-
-    (, uint takergave,,) = performTrade(true);
-    vm.prank(maker);
-    // this will be a noop when maker == reserve
-    makerContract.withdrawToken(usdc, maker, takergave);
-    assertEq(usdc.balanceOf(maker), balusdc + takergave, "withdraw failed");
-  }
-
-  function test_withdraw_0_token_skips_transfer() public {
-    vm.prank(maker);
-    require(makerContract.withdrawToken(usdc, maker, 0), "unexpected fail");
-  }
-
-  function test_withdrawToken_to_0x_fails() public {
-    vm.expectRevert("mgvOffer/withdrawToken/0xReceiver");
-    vm.prank(maker);
-    makerContract.withdrawToken(usdc, address(0), 1);
   }
 }

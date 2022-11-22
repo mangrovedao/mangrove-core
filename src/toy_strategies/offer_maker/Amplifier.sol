@@ -146,17 +146,26 @@ contract Amplifier is Direct {
         new_alt_wants = (old_alt_wants * new_alt_gives) / old_alt_gives;
       }
       // the call below might throw
-      updateOffer({
-        outbound_tkn: IERC20(order.outbound_tkn),
-        inbound_tkn: IERC20(alt_stable),
-        gives: new_alt_gives,
-        wants: new_alt_wants,
-        offerId: alt_offerId,
-        gasreq: alt_detail.gasreq(),
-        pivotId: alt_offer.next(),
-        gasprice: 0
-      });
-      return "posthook/bothOfferReposted";
+      uint id = _updateOffer(
+        OfferArgs({
+          outbound_tkn: IERC20(order.outbound_tkn),
+          inbound_tkn: IERC20(alt_stable),
+          gives: new_alt_gives,
+          wants: new_alt_wants,
+          gasreq: alt_detail.gasreq(),
+          pivotId: alt_offer.next(),
+          gasprice: 0,
+          owner: admin(), // ignored
+          fund: 0,
+          noRevert: true
+        }),
+        alt_offerId
+      );
+      if (id == 0) {
+        return "posthook/altOfferRepostFail";
+      } else {
+        return "posthook/bothOfferReposted";
+      }
     } else {
       // repost failed or offer was entirely taken
       retractOffer({

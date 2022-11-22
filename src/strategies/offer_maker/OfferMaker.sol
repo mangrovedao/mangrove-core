@@ -14,9 +14,9 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import {Direct, AbstractRouter, IMangrove, IERC20} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import {IMakerLogic} from "mgv_src/strategies/interfaces/IMakerLogic.sol";
+import {ILiquidityProvider_SDK as LP} from "mgv_src/strategies/interfaces/ILiquidityProvider_SDK.sol";
 
-contract OfferMaker is IMakerLogic, Direct {
+contract OfferMaker is LP, Direct {
   // router_ needs to bind to this contract
   // since one cannot assume `this` is admin of router, one cannot do this here in general
   constructor(IMangrove mgv, AbstractRouter router_, address deployer) Direct(mgv, router_, 30_000) {
@@ -55,6 +55,38 @@ contract OfferMaker is IMakerLogic, Direct {
         noRevert: false,
         owner: msg.sender
       })
+    );
+  }
+
+  // Updates offer `offerId` on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
+  // NB #1: Offer maker MUST:
+  // * Make sure that offer maker has enough WEI provision on Mangrove to cover for the new offer bounty in case Mangrove gasprice has increased (function is payable so that caller can increase provision prior to updating the offer)
+  // * Make sure that `gasreq` and `gives` yield a sufficient offer density
+  // NB #2: This function will revert when the above points are not met
+  function updateOffer(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq, // give `type(uint).max` to use previous value
+    uint gasprice,
+    uint pivotId,
+    uint offerId
+  ) public payable override mgvOrAdmin {
+    _updateOffer(
+      OfferArgs({
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        wants: wants,
+        gives: gives,
+        gasreq: gasreq,
+        gasprice: gasprice,
+        pivotId: pivotId,
+        fund: msg.value,
+        noRevert: false,
+        owner: msg.sender
+      }),
+      offerId
     );
   }
 }

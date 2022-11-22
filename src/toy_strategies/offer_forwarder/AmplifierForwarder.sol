@@ -144,30 +144,35 @@ contract AmplifierForwarder is Forwarder {
     if (repost_status == "posthook/reposted") {
       uint new_alt_gives = __residualGives__(order); // in base units
       MgvStructs.OfferPacked alt_offer = MGV.offers(order.outbound_tkn, address(alt_stable), alt_offerId);
-      uint old_alt_wants = alt_offer.wants();
-      // old_alt_gives is also old_gives
-      uint old_alt_gives = order.offer.gives();
-      // we want new_alt_wants == (old_alt_wants:96 * new_alt_gives:96)/old_alt_gives:96
-      // so no overflow to be expected :)
+
       uint new_alt_wants;
       unchecked {
-        new_alt_wants = (old_alt_wants * new_alt_gives) / old_alt_gives;
+        new_alt_wants = (alt_offer.wants() * new_alt_gives) / order.offer.gives();
       }
 
       //uint prov = getMissingProvision(IERC20(order.outbound_tkn), IERC20(alt_stable), type(uint).max, 0, 0);
 
-      // the call below might throw
-      updateOffer({
-        outbound_tkn: IERC20(order.outbound_tkn),
-        inbound_tkn: IERC20(alt_stable),
-        wants: new_alt_wants,
-        gives: new_alt_gives,
-        gasreq: offerGasreq(),
-        gasprice: 0,
-        pivotId: alt_offer.next(),
-        offerId: alt_offerId
-      });
-      return "posthook/bothOfferReposted";
+      uint id = _updateOffer(
+        OfferArgs({
+          outbound_tkn: IERC20(order.outbound_tkn),
+          inbound_tkn: IERC20(alt_stable),
+          wants: new_alt_wants,
+          gives: new_alt_gives,
+          gasreq: type(uint).max, // to use alt_offer's old gasreq
+          gasprice: 0, // ignored
+          pivotId: alt_offer.next(),
+          noRevert: true,
+          fund: 0,
+          owner: owner
+        }),
+        alt_offerId
+      );
+      if (id == 0) {
+        // might want to Log an incident here because this should not be reachable
+        return "posthook/altRepostFail";
+      } else {
+        return "posthook/bothOfferReposted";
+      }
     } else {
       // repost failed or offer was entirely taken
       if (repost_status != "posthook/filled") {

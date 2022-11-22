@@ -59,7 +59,7 @@ contract MangroveOfferTest is MangroveTest {
   }
 
   function test_checkList_fails_if_caller_is_not_admin() public {
-    vm.expectRevert("Direct/AdminOnlyContract");
+    vm.expectRevert("Direct/onlyAdminCanOwnOffers");
     makerContract.checkList(dynamic([IERC20(weth)]));
   }
 

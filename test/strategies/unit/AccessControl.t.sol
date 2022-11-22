@@ -62,20 +62,16 @@ contract AccessControlTest is MangroveTest {
     assertEq(address(makerContract.router()), newRouter, "Incorrect router");
   }
 
-  function testCannot_withdrawTokens() public {
-    // mockup of trade success
-    deal($(weth), makerContract.reserve(admin), 1 ether);
-
+  function testCannot_setReserve() public {
     vm.expectRevert("AccessControlled/Invalid");
-    makerContract.withdrawToken(weth, $(this), 1 ether);
+    makerContract.setReserve(freshAddress(), freshAddress());
   }
 
-  function test_admin_can_withdrawTokens() public {
-    // mockup of trade success
-    deal($(weth), makerContract.reserve(admin), 1 ether);
-    uint oldBal = weth.balanceOf($(this));
+  function test_admin_can_set_reserve() public {
+    address reserve = freshAddress();
+    address maker = freshAddress();
     vm.prank(admin);
-    makerContract.withdrawToken(weth, $(this), 1 ether);
-    assertEq(weth.balanceOf($(this)), oldBal + 1 ether, "incorrect balance");
+    makerContract.setReserve(maker, reserve);
+    assertEq(makerContract.reserve(maker), reserve, "Incorrect reserve");
   }
 }

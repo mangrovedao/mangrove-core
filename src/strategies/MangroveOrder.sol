@@ -33,10 +33,6 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@dev 0 means no expiry.
   mapping(IERC20 => mapping(IERC20 => mapping(uint => uint))) public expiring;
 
-  ///@notice if evm gas cost is updated, one may need to increase gas requirements for new offers to avoid failing.
-  /// Setting `additionalGasreq` is an alternative to redeployment.
-  uint public additionalGasreq;
-
   ///@notice MangroveOrder is a Forwarder logic with a simple router.
   ///@param mgv The mangrove contract on which this logic will run taker and maker orders.
   ///@param deployer The address of the admin of `this` at the end of deployment
@@ -61,18 +57,13 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     expiring[outbound_tkn][inbound_tkn][offerId] = date;
   }
 
-  ///@inheritdoc IOrderLogic
-  function setAdditionalGasreq(uint additionalGasreq_) external onlyAdmin {
-    additionalGasreq = additionalGasreq_;
-  }
-
   ///@notice updates an offer on Mangrove
   ///@dev if caller is admin, this is used to update offer gasreq if need be
   ///@dev otherwise this can be used to update price of the resting order
   function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
     external
     payable
-    adminOrOwner(outbound_tkn, inbound_tkn, offerId)
+    onlyOwner(outbound_tkn, inbound_tkn, offerId)
   {
     OfferArgs memory args;
 
@@ -82,7 +73,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     args.inbound_tkn = inbound_tkn;
     args.wants = wants;
     args.gives = gives;
-    args.gasreq = offerGasreq() + additionalGasreq;
+    args.gasreq = offerGasreq();
     args.pivotId = pivotId;
     args.noRevert = false; // will throw if Mangrove reverts
     _updateOffer(args, offerId);

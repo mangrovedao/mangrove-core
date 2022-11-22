@@ -21,10 +21,10 @@ import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 
 ///@title MangroveOrder. A periphery contract to Mangrove protocol that implements "Good till cancelled" (GTC) orders as well as "Fill or kill" (FOK) orders.
-///@notice A GTC order is a market buy (sell) order complemented by a bid (ask) order, called a resting order, that occurs when the buy (sell) order was partially filled.
-/// If the GTC is for some amount $a_goal$ at a price $(1+s)*p$ with slippage $s$, and the corresponding market order was partially filled for $a_now < a_goal$,
-/// the resting order should be posted for an amount $a_later = a_goal - a_now$ at price $p$ (slippage is discarded).
-///@notice A FOK order is simply a buy or sell order that is either completely filled or cancelled. No resting order is posted.
+///@notice A GTC order is a buy (sell) limit order complemented by a bid (ask) limit order, called a resting order, that occurs when the buy (sell) order was partially filled.
+/// If the GTC is for some amount $a_goal$ at a price $p$, and the corresponding limit order was partially filled for $a_now < a_goal$,
+/// the resting order should be posted for an amount $a_later = a_goal - a_now$ at price $p$.
+///@notice A FOK order is simply a buy or sell limit order that is either completely filled or cancelled. No resting order is posted.
 ///@dev requiring no partial fill *and* a resting order is interpreted here as an instruction to revert if the resting order fails to be posted (e.g., if below density).
 
 contract MangroveOrder is Forwarder, IOrderLogic {
@@ -115,7 +115,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     (res.takerGot, res.takerGave, res.bounty, res.fee) = MGV.marketOrder({
       outbound_tkn: address(tko.outbound_tkn),
       inbound_tkn: address(tko.inbound_tkn),
-      takerWants: tko.takerWants, // we use `tko.takerWants` since it includes user slippage tolerance
+      takerWants: tko.takerWants,
       takerGives: tko.takerGives,
       fillWants: tko.fillWants
     });
@@ -203,12 +203,12 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
   ///@notice posts a maker order on the (`outbound_tkn`, `inbound_tkn`) offer list.
   ///@param fund amount of WEIs used to cover for the offer bounty (covered gasprice is derived from `fund`).
-  ///@dev entailed price of the (instant) market order includes taker's slippage tolerance. It is given by:
+  ///@dev entailed price of the (instant) limit order is given by:
   /// * `tko.takerGives/tko.takerWants` for buy orders (i.e `fillWants==true`)
   /// * `tko.takerWants/tko.takerGives` for sell orders (i.e `fillWants==false`)
-  /// Price w/o slippage for potential resting order is thus:
-  /// * `(tko.takerGives - tko.slippageAmount)/tko.takerWants` for the resting bid
-  /// * `(tko.takerWants + tko.slippageAmount)/tko.takerGives` for the resting ask.
+  /// Price for potential resting order is thus:
+  /// * `tko.takerGives/tko.takerWants` for the resting bid
+  /// * `tko.takerWants/tko.takerGives` for the resting ask.
   function postRestingOrder(
     TakerOrder calldata tko,
     IERC20 outbound_tkn,
@@ -219,18 +219,16 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     uint residualWants;
     uint residualGives;
     if (tko.fillWants) {
-      // if `slippageAmount` is ill defined the call below can underflow
-      uint makerGives = tko.takerGives - tko.slippageAmount;
+      uint makerGives = tko.takerGives;
       // partialFill => tko.takerWants < res.takerGot + res.fee
       residualWants = tko.takerWants - (res.takerGot + res.fee);
-      // adapting residualGives to match initial price (before slippage)
+      // adapting residualGives to match initial price
       residualGives = (residualWants * makerGives) / tko.takerWants;
     } else {
-      // if `slippageAmount` is ill defined the call below could overflow or have `makerWants` not castable to uint96.
-      uint makerWants = tko.takerWants + tko.slippageAmount;
+      uint makerWants = tko.takerWants;
       // partialFill => tko.takerGives > res.takerGave
       residualGives = tko.takerGives - res.takerGave;
-      // adapting residualGives to match initial price (before slippage)
+      // adapting residualGives to match initial price
       residualWants = (residualGives * makerWants) / tko.takerGives;
     }
     res.offerId = _newOffer(

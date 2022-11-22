@@ -252,7 +252,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
         inbound_tkn: inbound_tkn,
         wants: residualWants,
         gives: residualGives,
-        gasreq: offerGasreq() + additionalGasreq, // using default gasreq of the strat + potential admin defined increase
+        gasreq: offerGasreq(), // using default gasreq of the strat + potential admin defined increase
         gasprice: 0, // ignored
         pivotId: tko.pivotId,
         fund: fund,

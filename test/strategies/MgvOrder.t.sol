@@ -635,25 +635,6 @@ contract MangroveOrder_Test is MangroveTest {
     mgo.take{value: 0.1 ether}(buyOrder);
   }
 
-  function test_additional_gasreq_is_used_for_new_resting_orders() public {
-    mgo.setAdditionalGasreq(10_000);
-    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      outbound_tkn: base,
-      inbound_tkn: quote,
-      fillOrKill: false,
-      fillWants: true,
-      takerWants: 2 ether,
-      takerGives: 0.26 ether,
-      slippageAmount: 0,
-      restingOrder: true,
-      pivotId: 0,
-      expiryDate: 0
-    });
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
-    MgvStructs.OfferDetailPacked offer_detail = mgv.offerDetails($(quote), $(base), res.offerId);
-    assertEq(offer_detail.gasreq(), mgo.offerGasreq() + 10_000, "wrong offer gasreq");
-  }
-
   function test_underprovisioned_order_logs_properly() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       outbound_tkn: base,

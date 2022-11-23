@@ -122,6 +122,7 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param token is the asset (and possibly its overlyings) whose approval must be checked
   ///@param reserve the reserve that requires asset pulling/pushing
   function checkList(IERC20 token, address reserve) external view {
+    require(ARSt.getStorage().makers[msg.sender], "Router/CallerIsNotAnApprovedMakerContract");
     // checking maker contract has approved this for token transfer (in order to push to reserve)
     require(token.allowance(msg.sender, address(this)) > 0, "Router/NotApprovedByMakerContract");
     // pulling from reserve might require a special approval if `reserve` is some account on a protocol (e.g a lender) which requires a custom redeem call.

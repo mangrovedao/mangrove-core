@@ -70,19 +70,37 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.checkList(dynamic([IERC20(weth)]));
   }
 
+  function test_checkList_takes_router_binding_into_account() public {
+    vm.startPrank(deployer);
+    SimpleRouter router = new SimpleRouter();
+    makerContract.setRouter(router);
+    vm.stopPrank();
+
+    IERC20[] memory tokens = dynamic([IERC20(weth)]);
+    vm.prank(deployer);
+    makerContract.approve(weth, $(mgv), type(uint).max);
+
+    vm.startPrank($(makerContract));
+    weth.approve(address(makerContract.router()), type(uint).max);
+    vm.stopPrank();
+
+    vm.expectRevert("Router/CallerIsNotAnApprovedMakerContract");
+    vm.prank(deployer);
+    makerContract.checkList(tokens);
+  }
+
   function test_checkList_takes_router_approval_into_account() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
     makerContract.setRouter(router);
-    router.bind($(makerContract));
     vm.stopPrank();
 
     IERC20[] memory tokens = dynamic([IERC20(weth)]);
 
     vm.prank(deployer);
     makerContract.approve(weth, $(mgv), type(uint).max);
-    vm.expectRevert("mgvOffer/LogicMustApproveRouter");
 
+    vm.expectRevert("mgvOffer/LogicMustApproveRouter");
     vm.prank(deployer);
     makerContract.checkList(tokens);
   }

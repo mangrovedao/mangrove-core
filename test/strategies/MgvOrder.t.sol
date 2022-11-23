@@ -91,6 +91,45 @@ contract MangroveOrder_Test is MangroveTest {
     assertEq(mgv.governance(), mgo.admin(), "Invalid admin address");
   }
 
+  function test_only_owner_can_update_offer() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      fillOrKill: false,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether, // with 2% slippage
+      slippageAmount: 0.0052 ether, // 2% slippage
+      restingOrder: true,
+      pivotId: 0,
+      expiryDate: 0 //NA
+    });
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
+    vm.expectRevert("Forwarder/unauthorized");
+    vm.prank(freshAddress());
+    mgo.updateOffer(quote, base, 1, 1, 0, res.offerId);
+  }
+
+  function test_owner_can_update_offer() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      fillOrKill: false,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether, // with 2% slippage
+      slippageAmount: 0.0052 ether, // 2% slippage
+      restingOrder: true,
+      pivotId: 0,
+      expiryDate: 0 //NA
+    });
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
+    mgo.updateOffer(quote, base, 1, 1, 0, res.offerId);
+    assertEq(mgv.offers($(quote), $(base), res.offerId).gives(), 1, "Offer incorrectly updated");
+  }
+
   function test_partial_filled_buy_order_returns_residual() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       outbound_tkn: base,

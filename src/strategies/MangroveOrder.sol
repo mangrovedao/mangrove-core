@@ -60,6 +60,12 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@notice updates an offer on Mangrove
   ///@dev if caller is admin, this is used to update offer gasreq if need be
   ///@dev otherwise this can be used to update price of the resting order
+  ///@param outbound_tkn outbound token of the offer list
+  ///@param inbound_tkn inbound token of the offer list
+  ///@param wants new amount of `inbound_tkn` offer owner wants
+  ///@param gives new amount of `outbound_tkn` offer owner gives
+  ///@param pivotId pivot for the new rank of the offer
+  ///@param offerId the id of the offer to be updated
   function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
     external
     payable

@@ -37,7 +37,7 @@ contract MangroveDeployerTest is Deployer, Test2 {
     mgoDeployer.run();
     MangroveOrderEnriched mgoe = MangroveOrderEnriched(fork.get("MangroveOrderEnriched"));
 
-    assertEq(mgoe.admin(), address(this));
+    assertEq(mgoe.admin(), broadcaster());
     assertEq(address(mgoe.MGV()), mgv);
   }
 

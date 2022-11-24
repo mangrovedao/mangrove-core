@@ -7,9 +7,11 @@ import {IMakerLogic} from "mgv_src/strategies/interfaces/IMakerLogic.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20, MgvLib} from "mgv_src/MgvLib.sol";
 
+/* Note this is a copy of OfferMakerTutorial.sol with a changed __posthookSuccess__ */
+
 //----------------
 
-contract OfferMakerTutorial is Direct {
+contract OfferMakerTutorialResidual is Direct {
   constructor(IMangrove mgv, address deployer)
     // Pass on the reference to the core mangrove contract
     Direct(
@@ -52,14 +54,30 @@ contract OfferMakerTutorial is Direct {
     );
   }
 
+  //-------------
+
+  function __lastLook__(MgvLib.SingleOrder calldata order) internal override returns (bytes32 data) {
+    data = super.__lastLook__(order);
+    require(order.wants == order.offer.gives(), "tutorial/mustBeFullyTaken");
+    return "mgvOffer/proceed";
+  }
+
   //----------------
 
   event OfferTakenSuccessfully(uint);
 
   ///@notice Post-hook that is invoked when the offer is taken successfully.
-  function __posthookSuccess__(MgvLib.SingleOrder calldata, bytes32) internal virtual override returns (bytes32) {
+  ///@param order is a recall of the taker order that is at the origin of the current trade.
+  ///@param makerData is the returned value of the `__lastLook__` hook.
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
+    internal
+    virtual
+    override
+    returns (bytes32)
+  {
     emit OfferTakenSuccessfully(42);
-    return 0;
+    // repost offer residual if any
+    return super.__posthookSuccess__(order, makerData);
   }
 }
 

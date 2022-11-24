@@ -21,7 +21,7 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 ///@notice Interface for contracts that manage liquidity on Mangrove on behalf of multiple offer makers
 interface IForwarder {
   ///@notice Logging new offer owner
-  ///@param mangrove the Mangrove contract on which the offer is posted
+  ///@param mangrove Mangrove contract on which the offer is posted
   ///@param outbound_tkn the outbound token of the offer list.
   ///@param inbound_tkn the inbound token of the offer list.
   ///@param owner the offer maker that can manage the offer.

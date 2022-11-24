@@ -81,24 +81,6 @@ contract Script2 is Script {
     }
   }
 
-  /* return bytes32 as string */
-  function s32(bytes32 b) internal pure returns (string memory) {
-    string memory s = new string(32);
-    assembly {
-      mstore(add(s, 32), b)
-    }
-    return s;
-  }
-
-  /* log bytes32 as string */
-  function logString32(bytes32 b) internal view {
-    string memory s = new string(32);
-    assembly {
-      mstore(add(s, 32), b)
-    }
-    console.log(s32(b));
-  }
-
   function getReason(bytes memory returnData) internal pure returns (string memory reason) {
     /* returnData for a revert(reason) is the result of
        abi.encodeWithSignature("Error(string)",reason)

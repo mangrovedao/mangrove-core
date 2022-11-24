@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// Ghost.sol
+// Amplifier.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -17,7 +17,7 @@ import "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import "mgv_src/strategies/routers/SimpleRouter.sol";
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 
-contract Ghost is Direct {
+contract Amplifier is Direct {
   IERC20 public immutable BASE;
   IERC20 public immutable STABLE1;
   IERC20 public immutable STABLE2;
@@ -59,7 +59,7 @@ contract Ghost is Direct {
    * @dev these offer's provision must be in msg.value
    * @dev `reserve(admin())` must have approved base for `this` contract transfer prior to calling this function
    */
-  function newGhostOffers(
+  function newAmplifiedOffers(
     // this function posts two asks
     uint gives,
     uint wants1,
@@ -75,8 +75,8 @@ contract Ghost is Direct {
     // MGV.retractOffer(..., deprovision:bool)
     // deprovisioning an offer (via MGV.retractOffer) credits maker balance on Mangrove (no native token transfer)
     // if maker wishes to retrieve native tokens it should call MGV.withdraw (and have a positive balance)
-    require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE1), offerId1)), "Ghost/offer1AlreadyActive");
-    require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerId2)), "Ghost/offer2AlreadyActive");
+    require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE1), offerId1)), "Amplifier/offer1AlreadyActive");
+    require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerId2)), "Amplifier/offer2AlreadyActive");
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
     offerId1 = _newOffer(
@@ -159,14 +159,6 @@ contract Ghost is Direct {
       return "posthook/bothOfferReposted";
     } else {
       // repost failed or offer was entirely taken
-      if (repost_status != "posthook/filled") {
-        retractOffer({
-          outbound_tkn: IERC20(order.outbound_tkn),
-          inbound_tkn: IERC20(order.inbound_tkn),
-          offerId: order.offerId,
-          deprovision: false
-        });
-      }
       retractOffer({
         outbound_tkn: IERC20(order.outbound_tkn),
         inbound_tkn: IERC20(alt_stable),

@@ -23,7 +23,7 @@ pragma abicoder v2;
 import "mgv_src/MgvLib.sol";
 
 /* The purpose of the Oracle contract is to act as a gas price and density
- * oracle for the Mangrove. It bridges to an external oracle, and allows
+ * oracle for Mangrove. It bridges to an external oracle, and allows
  * a given sender to update the gas price and density which the oracle
  * reports to Mangrove. */
 contract MgvOracle is IMgvMonitor {

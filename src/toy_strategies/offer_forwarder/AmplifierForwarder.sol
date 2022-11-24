@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// Ghost.sol
+// Amplifier.sol
 
 // Copyright (c) 2021 Giry SAS. All rights reserved.
 
@@ -17,7 +17,7 @@ import "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import "mgv_src/strategies/routers/SimpleRouter.sol";
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 
-contract GhostForwarder is Forwarder {
+contract AmplifierForwarder is Forwarder {
   IERC20 public immutable BASE;
   IERC20 public immutable STABLE1;
   IERC20 public immutable STABLE2;
@@ -55,7 +55,7 @@ contract GhostForwarder is Forwarder {
    * @dev these offer's provision must be in msg.value
    * @dev `reserve()` must have approved base for `this` contract transfer prior to calling this function
    */
-  function newGhostOffers(
+  function newAmplifiedOffers(
     // this function posts two asks
     uint gives,
     uint wants1,
@@ -76,10 +76,10 @@ contract GhostForwarder is Forwarder {
     OfferPair memory offerPair = offers[msg.sender];
 
     require(
-      !MGV.isLive(MGV.offers(address(BASE), address(STABLE1), offerPair.id1)), "GhostForwarder/offer1AlreadyActive"
+      !MGV.isLive(MGV.offers(address(BASE), address(STABLE1), offerPair.id1)), "AmplifierForwarder/offer1AlreadyActive"
     );
     require(
-      !MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerPair.id2)), "GhostForwarder/offer2AlreadyActive"
+      !MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerPair.id2)), "AmplifierForwarder/offer2AlreadyActive"
     );
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
@@ -117,8 +117,8 @@ contract GhostForwarder is Forwarder {
     );
     offers[msg.sender].id2 = _offerId2;
 
-    require(_offerId1 != 0, "GhostForwarder/newOffer1Failed");
-    require(_offerId2 != 0, "GhostForwarder/newOffer2Failed");
+    require(_offerId1 != 0, "AmplifierForwarder/newOffer1Failed");
+    require(_offerId2 != 0, "AmplifierForwarder/newOffer2Failed");
 
     return (_offerId1, _offerId2);
   }

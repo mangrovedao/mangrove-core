@@ -42,24 +42,14 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@dev 'ownerData[out][in][offerId].owner == maker` if `maker` is offer owner of `offerId` in the `(out, in)` offer list.
   mapping(IERC20 => mapping(IERC20 => mapping(uint => OwnerData))) internal ownerData;
 
-  ///@notice modifier to enforce function caller to be either Mangrove or offer owner
-  modifier mgvOrOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
-    if (msg.sender != address(MGV)) {
-      require(ownerData[outbound_tkn][inbound_tkn][offerId].owner == msg.sender, "Forwarder/unauthorized");
-    }
-    _;
-  }
-
-  ///@notice modifier to enforce function caller to be either admin or offer owner
-  modifier adminOrOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
-    if (msg.sender != admin()) {
-      require(ownerData[outbound_tkn][inbound_tkn][offerId].owner == msg.sender, "Forwarder/unauthorized");
-    }
-    _;
-  }
-
   ///@notice modifier to enforce function caller to be offer owner
   modifier onlyOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
+    require(ownerData[outbound_tkn][inbound_tkn][offerId].owner == msg.sender, "Forwarder/unauthorized");
+    _;
+  }
+
+  ///@notice modifier to enforce function caller to be offer owner or MGV (for use in the offer logic)
+  modifier mgvOrOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
     if (msg.sender != address(MGV)) {
       require(ownerData[outbound_tkn][inbound_tkn][offerId].owner == msg.sender, "Forwarder/unauthorized");
     }

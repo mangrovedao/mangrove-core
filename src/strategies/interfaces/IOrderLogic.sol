@@ -23,11 +23,8 @@ interface IOrderLogic {
   ///@param outbound_tkn outbound token used to identify the order book
   ///@param inbound_tkn the inbound token used to identify the order book
   ///@param fillOrKill true to revert if market order cannot be filled and resting order failed or is not enabled; otherwise, false
-  ///@param takerWants desired total amount of `outbound_tkn` (slippage included)
-  ///@param takerGives available total amount of `inbound_tkn` (slippage included)
-  ///@param slippageAmount if `fillWants` (buying) this is the amount of inbound tokens that must be substracted from `takerGives` to obtain the taker price before slippage. Else this is the amount of outbound tokens that must be added to `takerWants`
-  ///@dev e.g for a `fillWants` order at price  `(gives/takerWants) * (1+slippage) `, one should set `takerGives = gives + slippageAmount` with `slippageAmount = (gives * slippage) / 100` for a slippage expressed in percent.
-  ///@dev e.g for `!fillWants` order at price `(wants/takerGives) * (1+slippage)`, one should set `takerWants = wants + slippageAmount` with `slippageAmount = (wants * slippage) / 100` for a slippage expressed in percent.
+  ///@param takerWants desired total amount of `outbound_tkn`
+  ///@param takerGives available total amount of `inbound_tkn`
   ///@param fillWants if true (buying), the market order stops when `takerWants` units of `outbound_tkn` have been obtained (fee included); otherwise (selling), the market order stops when `takerGives` units of `inbound_tkn` have been sold.
   ///@param restingOrder whether the complement of the partial fill (if any) should be posted as a resting limit order.
   ///@param pivotId in case a resting order is required, the best pivot estimation of its position in the offer list (if the market order led to a non empty partial fill, then `pivotId` should be 0 unless the order book is crossed).
@@ -38,7 +35,6 @@ interface IOrderLogic {
     bool fillOrKill;
     uint takerWants;
     uint takerGives;
-    uint slippageAmount;
     bool fillWants;
     bool restingOrder;
     uint pivotId;

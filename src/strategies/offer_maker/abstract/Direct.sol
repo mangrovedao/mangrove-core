@@ -31,6 +31,11 @@ abstract contract Direct is MangroveOffer {
 
   function __checkList__(IERC20 token) internal view virtual override {
     require(msg.sender == admin(), "Direct/onlyAdminCanOwnOffers");
+    address adminReserve = reserve(admin());
+    // if this contract does the routing by itself, it must be approved by the reserve to do so.
+    if (router() == NO_ROUTER && adminReserve != address(this)) {
+      require(token.allowance(adminReserve, address(this)) > 0, "Direct/reserveMustApproveMakerContract");
+    }
     super.__checkList__(token);
   }
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// ILiquidityProvider_SDK.sol
+// ILiquidityProvider.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -16,15 +16,16 @@ pragma abicoder v2;
 
 import "./IOfferLogic.sol";
 
-// Completes IOfferLogic to provide an ABI for LiquidityProvider class of Mangrove's SDK
-interface ILiquidityProvider_SDK is IOfferLogic {
+///@title Completes IOfferLogic to provide an ABI for LiquidityProvider class of Mangrove's SDK
+
+interface ILiquidityProvider is IOfferLogic {
   ///@notice creates a new offer on Mangrove.
   ///@param outbound_tkn the outbound token of the offer list of the offer
   ///@param inbound_tkn the outbound token of the offer list of the offer
-  ///@param wants the new amount of outbound tokens the offer maker requires for a complete fill
-  ///@param gives the new amount of inbound tokens the offer maker gives for a complete fill
-  ///@param gasreq the new amount of gas units that are required to execute the trade (use type(uint).max for using `this.offerGasreq()`)
-  ///@param gasprice the new gasprice used to compute offer's provision (use 0 to use Mangrove's gasprice)
+  ///@param wants the amount of outbound tokens the offer maker requires for a complete fill
+  ///@param gives the amount of inbound tokens the offer maker gives for a complete fill
+  ///@param gasreq the amount of gas units that are required to execute the trade (use type(uint).max for using `this.offerGasreq()`)
+  ///@param gasprice the gasprice used to compute offer's provision (use 0 to use Mangrove's gasprice)
   ///@param pivotId the pivot to use for inserting the offer in the list
   function newOffer(
     IERC20 outbound_tkn,

@@ -14,10 +14,10 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import {Forwarder, IMangrove, IERC20} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
-import {ILiquidityProvider_SDK as LP} from "mgv_src/strategies/interfaces/ILiquidityProvider_SDK.sol";
+import {ILiquidityProvider} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
 import {SimpleRouter, AbstractRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
 
-contract OfferForwarder is LP, Forwarder {
+contract OfferForwarder is ILiquidityProvider, Forwarder {
   constructor(IMangrove mgv, address deployer) Forwarder(mgv, new SimpleRouter(), 30_000) {
     AbstractRouter router_ = router();
     router_.bind(address(this));
@@ -27,7 +27,7 @@ contract OfferForwarder is LP, Forwarder {
     }
   }
 
-  /// @inheritdoc LP
+  /// @inheritdoc ILiquidityProvider
   function newOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
@@ -36,7 +36,7 @@ contract OfferForwarder is LP, Forwarder {
     uint gasreq,
     uint gasprice, // keeping gasprice here in order to expose the same interface as `OfferMaker` contracts.
     uint pivotId
-  ) public payable returns (uint offerId) {
+  ) external payable returns (uint offerId) {
     gasprice; // ignoring gasprice that will be derived based on msg.value.
     offerId = _newOffer(
       OfferArgs({
@@ -54,15 +54,15 @@ contract OfferForwarder is LP, Forwarder {
     );
   }
 
-  ///@inheritdoc LP
+  ///@inheritdoc ILiquidityProvider
   ///@dev the `gasprice` argument is always ignored in `Forwarder` logic, since it has to be derived from `msg.value` of the call (see `_newOffer`).
   function updateOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
     uint wants,
     uint gives,
-    uint gasreq, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider_SDK`
-    uint gasprice, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider_SDK`
+    uint gasreq, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider`
+    uint gasprice, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider`
     uint pivotId,
     uint offerId
   ) external payable override onlyOwner(outbound_tkn, inbound_tkn, offerId) {

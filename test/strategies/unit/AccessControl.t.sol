@@ -4,14 +4,15 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 // import "mgv_test/lib/Fork.sol";
 
-import "mgv_src/strategies/offer_maker/OfferMaker.sol";
-import "mgv_src/strategies/routers/AbstractRouter.sol";
+import {
+  DirectTester, AbstractRouter, IERC20, IMangrove, IERC20
+} from "mgv_src/strategies/offer_maker/DirectTester.sol";
 
 contract AccessControlTest is MangroveTest {
   TestToken weth;
   TestToken usdc;
   address payable admin;
-  OfferMaker makerContract;
+  DirectTester makerContract;
 
   function setUp() public virtual override {
     options.base.symbol = "WETH";
@@ -26,7 +27,7 @@ contract AccessControlTest is MangroveTest {
 
     admin = freshAddress("admin");
     deal(admin, 1 ether);
-    makerContract = new OfferMaker({
+    makerContract = new DirectTester({
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)),
       deployer: admin

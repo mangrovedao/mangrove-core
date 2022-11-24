@@ -2,15 +2,15 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import "mgv_src/strategies/offer_maker/OfferMaker.sol";
-import "mgv_src/strategies/routers/SimpleRouter.sol";
+import {DirectTester, IMangrove, IERC20} from "mgv_src/strategies/offer_maker/DirectTester.sol";
+import {SimpleRouter, AbstractRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
 import {t_of_struct as packOffer} from "mgv_src/preprocessed/MgvOffer.post.sol";
 
 contract MangroveOfferTest is MangroveTest {
   TestToken weth;
   TestToken usdc;
   address payable deployer;
-  OfferMaker makerContract;
+  DirectTester makerContract;
 
   // tracking IOfferLogic logs
   event LogIncident(
@@ -24,7 +24,6 @@ contract MangroveOfferTest is MangroveTest {
 
   event SetAdmin(address);
   event SetRouter(address);
-  event SetReserve(address, address);
 
   function setUp() public override {
     options.base.symbol = "WETH";
@@ -42,7 +41,7 @@ contract MangroveOfferTest is MangroveTest {
 
     deployer = payable(new TestSender());
     vm.prank(deployer);
-    makerContract = new OfferMaker({
+    makerContract = new DirectTester({
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)), // no router
       deployer: deployer
@@ -63,9 +62,22 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.checkList(dynamic([IERC20(weth)]));
   }
 
-  function test_checkList_throws_if_Mangrove_is_not_approved() public {
-    vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
+  function test_checkList_throws_if_reserve_approval_is_missing() public {
+    vm.expectRevert("Direct/reserveMustApproveMakerContract");
+    vm.prank(deployer);
+    makerContract.checkList(dynamic([IERC20(weth)]));
+  }
 
+  function test_checkList_throws_if_Mangrove_is_not_approved() public {
+    address toApprove =
+      makerContract.router() == makerContract.NO_ROUTER() ? address(makerContract) : address(makerContract.router());
+
+    vm.startPrank(makerContract.reserve(deployer));
+    weth.approve(toApprove, type(uint).max);
+    usdc.approve(toApprove, type(uint).max);
+    vm.stopPrank();
+
+    vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
     vm.prank(deployer);
     makerContract.checkList(dynamic([IERC20(weth)]));
   }
@@ -158,6 +170,15 @@ contract MangroveOfferTest is MangroveTest {
 
   function test_activate_completes_checkList_for_deployer() public {
     IERC20[] memory tokens = dynamic([IERC20(weth), usdc]);
+    // reserve approves router for weth transfer
+    address toApprove =
+      makerContract.router() == makerContract.NO_ROUTER() ? address(makerContract) : address(makerContract.router());
+
+    vm.startPrank(makerContract.reserve(deployer));
+    weth.approve(toApprove, type(uint).max);
+    usdc.approve(toApprove, type(uint).max);
+    vm.stopPrank();
+
     vm.startPrank(deployer);
     makerContract.activate(tokens);
     makerContract.checkList(tokens);
@@ -274,13 +295,6 @@ contract MangroveOfferTest is MangroveTest {
     emit SetRouter(address(0));
     vm.startPrank(deployer);
     makerContract.setRouter(AbstractRouter(address(0)));
-  }
-
-  function test_setReserve_logs_SetReserve() public {
-    vm.expectEmit(true, true, true, false, address(makerContract));
-    emit SetReserve(deployer, address(0));
-    vm.startPrank(deployer);
-    makerContract.setReserve(deployer, address(0));
   }
 
   function test_setAdmin_logs_SetAdmin() public {

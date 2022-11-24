@@ -3,7 +3,13 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
-import "mgv_src/strategies/offer_maker/OfferMaker.sol";
+import {
+  ITesterContract as ITester,
+  DirectTester,
+  IMangrove,
+  IERC20,
+  AbstractRouter
+} from "mgv_src/strategies/offer_maker/DirectTester.sol";
 
 // unit tests for (single /\ multi) user strats (i.e unit tests that are non specific to either single or multi user feature
 
@@ -14,7 +20,7 @@ contract OfferLogicTest is MangroveTest {
   address payable taker;
   address payable deployer;
   address reserve;
-  LP makerContract; // can be either OfferMaker or OfferForwarder
+  ITester makerContract; // can be either OfferMaker or OfferForwarder
   GenericFork fork;
 
   // tracking IOfferLogic logs
@@ -79,7 +85,7 @@ contract OfferLogicTest is MangroveTest {
   // override this to use Forwarder strats
   function setupMakerContract() internal virtual {
     vm.prank(deployer);
-    makerContract = new OfferMaker({
+    makerContract = new DirectTester({
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)),
       deployer: deployer
@@ -262,32 +268,6 @@ contract OfferLogicTest is MangroveTest {
     });
   }
 
-  function test_mangrove_can_updateOffer() public returns (uint) {
-    vm.prank(maker);
-    uint offerId = makerContract.newOffer{value: 0.1 ether}({
-      outbound_tkn: weth,
-      inbound_tkn: usdc,
-      wants: 2000 * 10 ** 6,
-      gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
-      pivotId: 0
-    });
-
-    vm.prank(address(mgv));
-    makerContract.updateOffer({
-      outbound_tkn: weth,
-      inbound_tkn: usdc,
-      wants: 2000 * 10 ** 6,
-      gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
-      pivotId: offerId,
-      offerId: offerId
-    });
-    return offerId;
-  }
-
   function test_updateOffer_fails_when_provision_is_too_low() public {
     vm.prank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
@@ -349,8 +329,6 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function test_reserve_balance_is_updated_when_trade_succeeds() public {
-    // for multi user contract `tokenBalance` returns the balance of msg.sender's reserve
-    // so one needs to impersonate maker to obtain the correct balance
     vm.startPrank(maker);
     uint balOut = makerContract.tokenBalance(weth, maker);
     uint balIn = makerContract.tokenBalance(usdc, maker);

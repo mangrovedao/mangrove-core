@@ -14,9 +14,9 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import {Direct, AbstractRouter, IMangrove, IERC20} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import {ILiquidityProvider_SDK as LP} from "mgv_src/strategies/interfaces/ILiquidityProvider_SDK.sol";
+import {ILiquidityProvider} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
 
-contract OfferMaker is LP, Direct {
+contract OfferMaker is ILiquidityProvider, Direct {
   // router_ needs to bind to this contract
   // since one cannot assume `this` is admin of router, one cannot do this here in general
   constructor(IMangrove mgv, AbstractRouter router_, address deployer) Direct(mgv, router_, 30_000) {
@@ -27,12 +27,7 @@ contract OfferMaker is LP, Direct {
     }
   }
 
-  // Posting a new offer on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
-  // NB #1: Offer maker maker MUST:
-  // * Approve Mangrove for at least `gives` amount of `outbound_tkn`.
-  // * Make sure that `this` contract has enough WEI provision on Mangrove to cover for the new offer bounty (function is payable so that caller can increase provision prior to posting the new offer)
-  // * Make sure that `gasreq` and `gives` yield a sufficient offer density
-  // NB #2: This function will revert when the above points are not met
+  ///@inheritdoc ILiquidityProvider
   function newOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
@@ -41,7 +36,7 @@ contract OfferMaker is LP, Direct {
     uint gasreq,
     uint gasprice,
     uint pivotId
-  ) public payable override mgvOrAdmin returns (uint offerId) {
+  ) external payable override onlyAdmin returns (uint offerId) {
     offerId = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
@@ -58,11 +53,7 @@ contract OfferMaker is LP, Direct {
     );
   }
 
-  // Updates offer `offerId` on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
-  // NB #1: Offer maker MUST:
-  // * Make sure that offer maker has enough WEI provision on Mangrove to cover for the new offer bounty in case Mangrove gasprice has increased (function is payable so that caller can increase provision prior to updating the offer)
-  // * Make sure that `gasreq` and `gives` yield a sufficient offer density
-  // NB #2: This function will revert when the above points are not met
+  ///@inheritdoc ILiquidityProvider
   function updateOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
@@ -72,7 +63,7 @@ contract OfferMaker is LP, Direct {
     uint gasprice,
     uint pivotId,
     uint offerId
-  ) public payable override mgvOrAdmin {
+  ) external payable override onlyAdmin {
     _updateOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,

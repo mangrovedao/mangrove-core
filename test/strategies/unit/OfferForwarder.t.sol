@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
 import {OfferLogicTest, console} from "mgv_test/strategies/unit/OfferLogic.t.sol";
-import {OfferForwarder, LP} from "mgv_src/strategies/offer_forwarder/OfferForwarder.sol";
+import {ForwarderTester, ITesterContract as ITester} from "mgv_src/strategies/offer_forwarder/ForwarderTester.sol";
 import {IForwarder, IMangrove, IERC20} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
 
@@ -20,15 +20,13 @@ contract OfferForwarderTest is OfferLogicTest {
     IMangrove mangrove, IERC20 indexed outbound_tkn, IERC20 indexed inbound_tkn, uint indexed offerId, address owner
   );
 
-  event ReserveApproval(address indexed reserve_, address indexed maker, bool isApproved);
-
   function setupMakerContract() internal virtual override {
     vm.prank(deployer);
-    forwarder = new OfferForwarder({
+    forwarder = new ForwarderTester({
       mgv: IMangrove($(mgv)),
       deployer: deployer
     });
-    makerContract = LP(address(forwarder)); // to use for all non `IForwarder` specific tests.
+    makerContract = ITester(address(forwarder)); // to use for all non `IForwarder` specific tests.
     // reserve (which is maker here) approves contract's router
     vm.startPrank(maker);
     usdc.approve(address(makerContract.router()), type(uint).max);
@@ -376,10 +374,5 @@ contract OfferForwarderTest is OfferLogicTest {
     assertEq(takerGave, makerContract.tokenBalance(usdc, maker), "Incorrect reserve usdc balance");
     assertEq(makerContract.tokenBalance(weth, maker), 0, "Incorrect reserve weth balance");
     vm.stopPrank();
-  }
-
-  function test_owner_is_unchanged_when_mangrove_does_updateOffer() public {
-    uint offerId = test_mangrove_can_updateOffer();
-    assertEq(forwarder.ownerOf(weth, usdc, offerId), maker, "Invalid offer owner");
   }
 }

@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 // Import the types we will be using below
 import {Direct} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import {ILiquidityProvider_SDK as ISDK} from "mgv_src/strategies/interfaces/ILiquidityProvider_SDK.sol";
+import {ILiquidityProvider as ISDK} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20, MgvLib} from "mgv_src/MgvLib.sol";
 

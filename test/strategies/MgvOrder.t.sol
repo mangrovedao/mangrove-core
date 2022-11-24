@@ -99,7 +99,6 @@ contract MangroveOrder_Test is MangroveTest {
       fillWants: true,
       takerWants: 2 ether,
       takerGives: 0.26 ether, // with 2% slippage
-      slippageAmount: 0.0052 ether, // 2% slippage
       restingOrder: true,
       pivotId: 0,
       expiryDate: 0 //NA
@@ -119,7 +118,6 @@ contract MangroveOrder_Test is MangroveTest {
       fillWants: true,
       takerWants: 2 ether,
       takerGives: 0.26 ether, // with 2% slippage
-      slippageAmount: 0.0052 ether, // 2% slippage
       restingOrder: true,
       pivotId: 0,
       expiryDate: 0 //NA

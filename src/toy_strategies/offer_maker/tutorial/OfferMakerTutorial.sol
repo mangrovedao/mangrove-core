@@ -3,13 +3,13 @@ pragma solidity ^0.8.10;
 
 // Import the types we will be using below
 import {Direct} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import {ILiquidityProvider as ISDK} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
+import {ILiquidityProvider} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20, MgvLib} from "mgv_src/MgvLib.sol";
 
 //----------------
 
-contract OfferMakerTutorial is Direct, ISDK {
+contract OfferMakerTutorial is Direct, ILiquidityProvider {
   constructor(IMangrove mgv, address deployer)
     // Pass on the reference to the core mangrove contract
     Direct(
@@ -23,7 +23,7 @@ contract OfferMakerTutorial is Direct, ISDK {
 
   //--------------
 
-  ///@inheritdoc ISDK
+  ///@inheritdoc ILiquidityProvider
   function newOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
@@ -56,7 +56,7 @@ contract OfferMakerTutorial is Direct, ISDK {
     );
   }
 
-  ///@inheritdoc ISDK
+  ///@inheritdoc ILiquidityProvider
   function updateOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,

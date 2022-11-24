@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// MangroveOfferStorage.sol
+// DirectTester.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -13,22 +13,28 @@ pragma solidity ^0.8.10;
 
 pragma abicoder v2;
 
-import "mgv_src/strategies/interfaces/IOfferLogic.sol";
+import {IMangrove, AbstractRouter, OfferMaker, IERC20} from "./OfferMaker.sol";
+import {ITesterContract} from "mgv_src/strategies/interfaces/ITesterContract.sol";
 
-/// @title This is the storage part of a diamond storage scheme for `MangroveOffer` to reduce size of contracts.
-library MangroveOfferStorage {
-  /// @notice The layout of the storage.
-  /// @param router the router to pull outbound tokens from contract's reserve to `this` and push inbound tokens to reserve.
-  struct Layout {
-    AbstractRouter router;
+contract DirectTester is ITesterContract, OfferMaker {
+  mapping(address => address) public reserves;
+
+  // router_ needs to bind to this contract
+  // since one cannot assume `this` is admin of router, one cannot do this here in general
+  constructor(IMangrove mgv, AbstractRouter router_, address deployer) OfferMaker(mgv, router_, deployer) {}
+
+  // giving mutable reserve power to test contract with different kinds of reserve
+  function setReserve(address maker, address reserve) external onlyAdmin {
+    reserves[maker] = reserve;
   }
 
-  /// @notice Gets the `MangroveOffer` storage from a fixed slot.
-  function getStorage() internal pure returns (Layout storage st) {
-    // Unique slot within the contract
-    bytes32 storagePosition = keccak256("Mangrove.MangroveOfferStorage");
-    assembly {
-      st.slot := storagePosition
-    }
+  function __reserve__(address maker) internal view virtual override returns (address) {
+    return reserves[maker] == address(0) ? maker : reserves[maker];
+  }
+
+  function tokenBalance(IERC20 token, address maker) external view override returns (uint) {
+    AbstractRouter router_ = router();
+    address makerReserve = reserve(maker);
+    return router_ == NO_ROUTER ? token.balanceOf(makerReserve) : router_.reserveBalance(token, makerReserve);
   }
 }

@@ -35,9 +35,6 @@ interface IOfferLogic is IMaker {
   ///@notice Logging change of router address
   event SetRouter(AbstractRouter);
 
-  ///@notice Logging change of router address
-  event SetReserve(address, address);
-
   ///@notice Actual gas requirement when posting offers via this strategy. Returned value may change if this contract's router is updated.
   ///@return total gas cost including router specific costs (if any).
   function offerGasreq() external view returns (uint total);
@@ -77,13 +74,6 @@ interface IOfferLogic is IMaker {
   ///@notice verifies that this contract's current state is ready to be used by `msg.sender` to post offers on Mangrove
   ///@dev throws with a reason if something (e.g. an approval) is missing.
   function checkList(IERC20[] calldata tokens) external view;
-
-  ///@notice View of the maker's balance of a particular asset.
-  ///@param token the asset type one wishes to know the reserve balance of
-  ///@param maker the offer maker one wishes to know the balance of.
-  ///@return balance the `token` amount in offer maker's reserve
-  ///@dev this call is not in general equivalent to `token.balanceOf(maker)` when the reserve is a specific contract on which router is redeeming liquidity (e.g. a lender).
-  function tokenBalance(IERC20 token, address maker) external view returns (uint balance);
 
   /// @notice performs the required approvals so as to allow `this` to interact with Mangrove on a set of assets.
   /// @param tokens the ERC20 `this` will approve to be able to trade on Mangrove's corresponding markets.
@@ -140,13 +130,6 @@ interface IOfferLogic is IMaker {
   /// @return reserve_ the address of the offer maker's reserve of liquidity.
   /// @dev if no reserve is set for maker, default reserve is maker's address. Thus this function never returns `address(0)`.
   function reserve(address maker) external view returns (address);
-
-  /// @notice sets reserve of an offer maker.
-  /// @param maker the address of the offer maker
-  /// @param reserve_ the address of the offer maker's reserve of liquidity.
-  /// @dev `setReserve(maker, address(0))` has the same effect as `setReserve(maker, maker)`
-  /// @dev admin restricted call. If two makers have the same reserve, they share liquidity.
-  function setReserve(address maker, address reserve_) external;
 
   /// @notice Contract's router getter.
   /// @dev if contract has a no router, function returns `NO_ROUTER`.

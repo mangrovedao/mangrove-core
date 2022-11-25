@@ -219,12 +219,9 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
   ///@notice posts a maker order on the (`outbound_tkn`, `inbound_tkn`) offer list.
   ///@param fund amount of WEIs used to cover for the offer bounty (covered gasprice is derived from `fund`).
-  ///@dev entailed price of the (instant) limit order is given by:
+  ///@dev entailed price that should be preserved for the maker order are:
   /// * `tko.takerGives/tko.takerWants` for buy orders (i.e `fillWants==true`)
   /// * `tko.takerWants/tko.takerGives` for sell orders (i.e `fillWants==false`)
-  /// Price for potential resting order is thus:
-  /// * `tko.takerGives/tko.takerWants` for the resting bid
-  /// * `tko.takerWants/tko.takerGives` for the resting ask.
   function postRestingOrder(
     TakerOrder calldata tko,
     IERC20 outbound_tkn,
@@ -235,17 +232,15 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     uint residualWants;
     uint residualGives;
     if (tko.fillWants) {
-      uint makerGives = tko.takerGives;
-      // partialFill => tko.takerWants < res.takerGot + res.fee
+      // partialFill => tko.takerWants > res.takerGot + res.fee
       residualWants = tko.takerWants - (res.takerGot + res.fee);
       // adapting residualGives to match initial price
-      residualGives = (residualWants * makerGives) / tko.takerWants;
+      residualGives = (residualWants * tko.takerGives) / tko.takerWants;
     } else {
-      uint makerWants = tko.takerWants;
       // partialFill => tko.takerGives > res.takerGave
       residualGives = tko.takerGives - res.takerGave;
       // adapting residualGives to match initial price
-      residualWants = (residualGives * makerWants) / tko.takerGives;
+      residualWants = (residualGives * tko.takerWants) / tko.takerGives;
     }
     res.offerId = _newOffer(
       OfferArgs({

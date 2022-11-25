@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveRouter.sol
+//AavePoolManager.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -25,7 +25,8 @@ contract AavePoolManager is AaveRouter {
   function redeem(IERC20 token, address reserve, uint amount, address to) external onlyAdmin {
     // NB if `reserve` != this, it must approve this router for increasing overlying debt token
     require(
-      TransferLib.transferTokenFrom(overlying(token), reserve, address(this), amount), "AaveRouter/borrow/transferFail"
+      TransferLib.transferTokenFrom(overlying(token), reserve, address(this), amount),
+      "AavePoolManager/borrow/transferFail"
     );
     _redeem(token, amount, to);
   }
@@ -34,16 +35,16 @@ contract AavePoolManager is AaveRouter {
   function borrow(IERC20 token, address reserve, uint amount, address to) external onlyAdmin {
     // NB if `reserve` != this, it must approve this router for increasing overlying debt token
     _borrow(token, amount, reserve);
-    require(TransferLib.transferToken(token, to, amount), "AaveRouter/borrow/transferFail");
+    require(TransferLib.transferToken(token, to, amount), "AavePoolManager/borrow/transferFail");
   }
 
   function repay(IERC20 token, address reserve, uint amount, address from) external onlyAdmin {
-    require(TransferLib.transferTokenFrom(token, from, reserve, amount), "AaveRouter/repay/transferFromFail");
+    require(TransferLib.transferTokenFrom(token, from, reserve, amount), "AavePoolManager/repay/transferFromFail");
     _repay(token, amount, reserve);
   }
 
   function supply(IERC20 token, address reserve, uint amount, address from) external onlyAdmin {
-    require(TransferLib.transferTokenFrom(token, from, reserve, amount), "AaveRouter/supply/transferFromFail");
+    require(TransferLib.transferTokenFrom(token, from, reserve, amount), "AavePoolManager/supply/transferFromFail");
     _supply(token, amount, reserve);
   }
 

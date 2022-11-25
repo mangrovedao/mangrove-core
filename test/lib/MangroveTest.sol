@@ -168,7 +168,7 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   struct Balances {
     uint mgvBalanceWei;
-    uint mgvBalanceFees;
+    uint mgvBalanceBase;
     uint takerBalanceA;
     uint takerBalanceB;
     uint takerBalanceWei;

@@ -54,7 +54,6 @@ contract OfferLogicTest is MangroveTest {
       weth = base;
       usdc = quote;
     }
-    mgv.setVault(freshAddress("MgvTreasury"));
     maker = payable(new TestSender());
     vm.deal(maker, 10 ether);
     // for Direct strats, maker is deployer

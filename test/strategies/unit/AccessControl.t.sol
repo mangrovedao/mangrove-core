@@ -4,14 +4,15 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 // import "mgv_test/lib/Fork.sol";
 
-import "mgv_src/strategies/offer_maker/OfferMaker.sol";
-import "mgv_src/strategies/routers/AbstractRouter.sol";
+import {
+  DirectTester, AbstractRouter, IERC20, IMangrove, IERC20
+} from "mgv_src/strategies/offer_maker/DirectTester.sol";
 
 contract AccessControlTest is MangroveTest {
   TestToken weth;
   TestToken usdc;
   address payable admin;
-  OfferMaker makerContract;
+  DirectTester makerContract;
 
   function setUp() public virtual override {
     options.base.symbol = "WETH";
@@ -26,7 +27,7 @@ contract AccessControlTest is MangroveTest {
 
     admin = freshAddress("admin");
     deal(admin, 1 ether);
-    makerContract = new OfferMaker({
+    makerContract = new DirectTester({
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)),
       deployer: admin
@@ -62,20 +63,16 @@ contract AccessControlTest is MangroveTest {
     assertEq(address(makerContract.router()), newRouter, "Incorrect router");
   }
 
-  function testCannot_withdrawTokens() public {
-    // mockup of trade success
-    deal($(weth), makerContract.reserve(admin), 1 ether);
-
+  function testCannot_setReserve() public {
     vm.expectRevert("AccessControlled/Invalid");
-    makerContract.withdrawToken(weth, $(this), 1 ether);
+    makerContract.setReserve(freshAddress(), freshAddress());
   }
 
-  function test_admin_can_withdrawTokens() public {
-    // mockup of trade success
-    deal($(weth), makerContract.reserve(admin), 1 ether);
-    uint oldBal = weth.balanceOf($(this));
+  function test_admin_can_set_reserve() public {
+    address reserve = freshAddress();
+    address maker = freshAddress();
     vm.prank(admin);
-    makerContract.withdrawToken(weth, $(this), 1 ether);
-    assertEq(weth.balanceOf($(this)), oldBal + 1 ether, "incorrect balance");
+    makerContract.setReserve(maker, reserve);
+    assertEq(makerContract.reserve(maker), reserve, "Incorrect reserve");
   }
 }

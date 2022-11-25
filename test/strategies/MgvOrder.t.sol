@@ -91,6 +91,43 @@ contract MangroveOrder_Test is MangroveTest {
     assertEq(mgv.governance(), mgo.admin(), "Invalid admin address");
   }
 
+  function test_only_owner_can_update_offer() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      fillOrKill: false,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether, // with 2% slippage
+      restingOrder: true,
+      pivotId: 0,
+      expiryDate: 0 //NA
+    });
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
+    vm.expectRevert("Forwarder/unauthorized");
+    vm.prank(freshAddress());
+    mgo.updateOffer(quote, base, 1, 1, 0, res.offerId);
+  }
+
+  function test_owner_can_update_offer() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      fillOrKill: false,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether, // with 2% slippage
+      restingOrder: true,
+      pivotId: 0,
+      expiryDate: 0 //NA
+    });
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
+    mgo.updateOffer(quote, base, 1, 1, 0, res.offerId);
+    assertEq(mgv.offers($(quote), $(base), res.offerId).gives(), 1, "Offer incorrectly updated");
+  }
+
   function test_partial_filled_buy_order_returns_residual() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       outbound_tkn: base,
@@ -612,24 +649,6 @@ contract MangroveOrder_Test is MangroveTest {
     vm.warp(2);
     vm.expectRevert("mgvOrder/expired");
     mgo.take{value: 0.1 ether}(buyOrder);
-  }
-
-  function test_additional_gasreq_is_used_for_new_resting_orders() public {
-    mgo.setAdditionalGasreq(10_000);
-    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      outbound_tkn: base,
-      inbound_tkn: quote,
-      fillOrKill: false,
-      fillWants: true,
-      takerWants: 2 ether,
-      takerGives: 0.26 ether,
-      restingOrder: true,
-      pivotId: 0,
-      expiryDate: 0
-    });
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
-    MgvStructs.OfferDetailPacked offer_detail = mgv.offerDetails($(quote), $(base), res.offerId);
-    assertEq(offer_detail.gasreq(), mgo.offerGasreq() + 10_000, "wrong offer gasreq");
   }
 
   function test_underprovisioned_order_logs_properly() public {

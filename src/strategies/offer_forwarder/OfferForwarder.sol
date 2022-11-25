@@ -14,10 +14,10 @@ pragma solidity ^0.8.10;
 pragma abicoder v2;
 
 import {Forwarder, IMangrove, IERC20} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
-import {IMakerLogic} from "mgv_src/strategies/interfaces/IMakerLogic.sol";
+import {ILiquidityProvider} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
 import {SimpleRouter, AbstractRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
 
-contract OfferForwarder is IMakerLogic, Forwarder {
+contract OfferForwarder is ILiquidityProvider, Forwarder {
   constructor(IMangrove mgv, address deployer) Forwarder(mgv, new SimpleRouter(), 30_000) {
     AbstractRouter router_ = router();
     router_.bind(address(this));
@@ -27,7 +27,7 @@ contract OfferForwarder is IMakerLogic, Forwarder {
     }
   }
 
-  // As imposed by IMakerLogic we provide an implementation of newOffer for this contract
+  /// @inheritdoc ILiquidityProvider
   function newOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
@@ -36,7 +36,7 @@ contract OfferForwarder is IMakerLogic, Forwarder {
     uint gasreq,
     uint gasprice, // keeping gasprice here in order to expose the same interface as `OfferMaker` contracts.
     uint pivotId
-  ) public payable returns (uint offerId) {
+  ) external payable returns (uint offerId) {
     gasprice; // ignoring gasprice that will be derived based on msg.value.
     offerId = _newOffer(
       OfferArgs({
@@ -52,5 +52,36 @@ contract OfferForwarder is IMakerLogic, Forwarder {
         owner: msg.sender
       })
     );
+  }
+
+  ///@inheritdoc ILiquidityProvider
+  ///@dev the `gasprice` argument is always ignored in `Forwarder` logic, since it has to be derived from `msg.value` of the call (see `_newOffer`).
+  function updateOffer(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider`
+    uint gasprice, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider`
+    uint pivotId,
+    uint offerId
+  ) external payable override onlyOwner(outbound_tkn, inbound_tkn, offerId) {
+    gasprice; // ssh
+    gasreq; // ssh
+    OfferArgs memory args;
+
+    // funds to compute new gasprice is msg.value. Will use old gasprice if no funds are given
+    // it might be tempting to include `od.weiBalance` here but this will trigger a recomputation of the `gasprice`
+    // each time a offer is updated.
+    args.fund = msg.value; // if inside a hook (Mangrove is `msg.sender`) this will be 0
+    args.outbound_tkn = outbound_tkn;
+    args.inbound_tkn = inbound_tkn;
+    args.wants = wants;
+    args.gives = gives;
+    args.gasreq = type(uint).max; // this will force _updateOffer to use old gasreq of offer
+    args.pivotId = pivotId;
+    args.noRevert = false; // will throw if Mangrove reverts
+    // weiBalance is used to provision offer
+    _updateOffer(args, offerId);
   }
 }

@@ -3,13 +3,13 @@ pragma solidity ^0.8.10;
 
 // Import the types we will be using below
 import {Direct} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import {IMakerLogic} from "mgv_src/strategies/interfaces/IMakerLogic.sol";
+import {ILiquidityProvider} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20, MgvLib} from "mgv_src/MgvLib.sol";
 
 //----------------
 
-contract OfferMakerTutorial is Direct {
+contract OfferMakerTutorial is Direct, ILiquidityProvider {
   constructor(IMangrove mgv, address deployer)
     // Pass on the reference to the core mangrove contract
     Direct(
@@ -23,12 +23,16 @@ contract OfferMakerTutorial is Direct {
 
   //--------------
 
-  ///@notice Post a new offer on Mangrove owned by this contract
-  ///@param outbound_tkn the maker's outbound token of the offer list - the token you give
-  ///@param inbound_tkn the maker's inbound token of the offer list - the token you want
-  ///@param gives the amount of outbound tokens you give
-  ///@param wants the amount of inbound tokens you want
-  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint gives, uint wants)
+  ///@inheritdoc ILiquidityProvider
+  function newOffer(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint pivotId
+  )
     public
     // the function is payable to allow us to provision an offer
     payable
@@ -42,13 +46,41 @@ contract OfferMakerTutorial is Direct {
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: type(uint24).max, //  the new amount of gas units that are required to execute the trade (use type(uint).max for using `this.offerGasReq()`)
-        gasprice: 0, // the gasprice used to compute offer's provision (we use 0 to use Mangrove's gasprice)
-        pivotId: 0, // a best pivot estimate for cheap offer insertion in the offer list - this should be a parameter computed off-chain for cheaper insertion
+        gasreq: gasreq,
+        gasprice: gasprice,
+        pivotId: pivotId, // a best pivot estimate for cheap offer insertion in the offer list - this should be a parameter computed off-chain for cheaper insertion
         fund: msg.value, // WEIs in that are used to provision the offer.
         noRevert: false, // we want to revert on error
         owner: msg.sender // The sender is the owner
       })
+    );
+  }
+
+  ///@inheritdoc ILiquidityProvider
+  function updateOffer(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq, // give `type(uint).max` to use previous value
+    uint gasprice,
+    uint pivotId,
+    uint offerId
+  ) public payable override mgvOrAdmin {
+    _updateOffer(
+      OfferArgs({
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        wants: wants,
+        gives: gives,
+        gasreq: gasreq,
+        gasprice: gasprice,
+        pivotId: pivotId,
+        fund: msg.value,
+        noRevert: false,
+        owner: msg.sender
+      }),
+      offerId
     );
   }
 

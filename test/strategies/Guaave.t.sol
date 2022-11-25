@@ -3,7 +3,7 @@ pragma solidity ^0.8.14;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
-import "mgv_src/strategies/routers/AaveRouter.sol";
+import "mgv_src/strategies/routers/AavePoolManager.sol";
 import "mgv_test/lib/forks/Polygon.sol";
 
 /* This test works as an example of how to run the same test on multiple forks. 
@@ -19,8 +19,7 @@ import "mgv_test/lib/forks/Polygon.sol";
       constructor() {
         fork = new MumbaiFork();
       }
-    }
-*/
+    }*/
 
 abstract contract GuaaveAbstractTest is MangroveTest {
   uint constant BASE0 = 0.34 ether;
@@ -34,7 +33,7 @@ abstract contract GuaaveAbstractTest is MangroveTest {
   address payable maker;
   address payable taker;
   Mango mgo;
-  AaveRouter router;
+  AavePoolManager router;
   GenericFork fork = new GenericFork();
 
   function setUp() public override {
@@ -84,7 +83,7 @@ abstract contract GuaaveAbstractTest is MangroveTest {
     // here we want to use aave for (il)liquidity and store liquid overlying at reserve
     // router will redeem and deposit funds that are mobilized during trade execution
     vm.startPrank(maker);
-    router = new AaveRouter({
+    router = new AavePoolManager({
       _addressesProvider: fork.get("Aave"),
       _referralCode: 0,
       _interestRateMode: 1, // stable rate
@@ -95,7 +94,7 @@ abstract contract GuaaveAbstractTest is MangroveTest {
 
     // liquidity router will pull funds from AAVE
     mgo.setRouter(router);
-    mgo.setReserve(maker, $(router));
+    mgo.setReserve($(router));
 
     // computing necessary provision (which has changed because of new router GAS_OVERHEAD)
     uint prov = mgo.getMissingProvision({

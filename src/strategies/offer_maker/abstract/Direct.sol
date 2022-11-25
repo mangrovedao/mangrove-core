@@ -29,34 +29,14 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
-  /// @inheritdoc MangroveOffer
-  function __checkReserveApproval__(address reserve_, address maker) internal view override returns (bool) {
-    reserve_; //shh
-    maker; //shh
-    return msg.sender == admin();
-  }
-
   function __checkList__(IERC20 token) internal view virtual override {
-    require(msg.sender == admin(), "Direct/AdminOnlyContract");
+    require(msg.sender == admin(), "Direct/onlyAdminCanOwnOffers");
+    address adminReserve = reserve(admin());
+    // if this contract does the routing by itself, it must be approved by the reserve to do so.
+    if (router() == NO_ROUTER && adminReserve != address(this)) {
+      require(token.allowance(adminReserve, address(this)) > 0, "Direct/reserveMustApproveMakerContract");
+    }
     super.__checkList__(token);
-  }
-
-  function withdrawToken(IERC20 token, address receiver, uint amount)
-    external
-    override
-    onlyAdmin
-    returns (bool success)
-  {
-    if (amount == 0) {
-      return true;
-    }
-    require(receiver != address(0), "mgvOffer/withdrawToken/0xReceiver");
-    AbstractRouter router_ = router();
-    if (router_ == NO_ROUTER) {
-      return TransferLib.transferTokenFrom(IERC20(token), reserve(msg.sender), receiver, amount);
-    } else {
-      return router_.withdrawToken(token, reserve(msg.sender), receiver, amount);
-    }
   }
 
   function pull(IERC20 outbound_tkn, uint amount, bool strict) internal returns (uint) {
@@ -112,38 +92,6 @@ abstract contract Direct is MangroveOffer {
       require(args.noRevert, reason);
       return 0;
     }
-  }
-
-  // Updates offer `offerId` on the (`outbound_tkn,inbound_tkn`) Offer List of Mangrove.
-  // NB #1: Offer maker MUST:
-  // * Make sure that offer maker has enough WEI provision on Mangrove to cover for the new offer bounty in case Mangrove gasprice has increased (function is payable so that caller can increase provision prior to updating the offer)
-  // * Make sure that `gasreq` and `gives` yield a sufficient offer density
-  // NB #2: This function will revert when the above points are not met
-  function updateOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq, // give `type(uint).max` to use previous value
-    uint gasprice,
-    uint pivotId,
-    uint offerId
-  ) public payable override mgvOrAdmin {
-    _updateOffer(
-      OfferArgs({
-        outbound_tkn: outbound_tkn,
-        inbound_tkn: inbound_tkn,
-        wants: wants,
-        gives: gives,
-        gasreq: gasreq,
-        gasprice: gasprice,
-        pivotId: pivotId,
-        fund: msg.value,
-        noRevert: false,
-        owner: msg.sender
-      }),
-      offerId
-    );
   }
 
   function _updateOffer(OfferArgs memory args, uint offerId) internal returns (uint) {

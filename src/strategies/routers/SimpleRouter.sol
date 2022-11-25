@@ -58,23 +58,6 @@ contract SimpleRouter is
     return success ? amount : 0;
   }
 
-  ///@notice router-dependent implementation of the `withdrawToken` function
-  ///@notice withdraws `amount` of reserve tokens and sends them to `recipient`
-  ///@dev this is called by maker's contract when originator wishes to withdraw funds from it.
-  ///@param token is the asset one wishes to withdraw
-  ///@param reserve is the address identifying the location of the assets
-  ///@param recipient is the address identifying the location of the recipient
-  ///@param amount is the amount of asset that should be withdrawn
-  ///@return true if transfer was successful; otherwise, false.
-  function __withdrawToken__(IERC20 token, address reserve, address recipient, uint amount)
-    internal
-    virtual
-    override
-    returns (bool)
-  {
-    return TransferLib.transferTokenFrom(token, reserve, recipient, amount);
-  }
-
   ///@inheritdoc AbstractRouter
   function reserveBalance(IERC20 token, address reserve) external view override returns (uint) {
     return token.balanceOf(reserve);

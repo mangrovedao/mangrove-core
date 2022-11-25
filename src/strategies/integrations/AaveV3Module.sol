@@ -228,7 +228,6 @@ contract AaveV3Module {
   }
 
   // rewards claiming.
-  // may use `SingleUser.withdrawToken` to move collected tokens afterwards
   function _claimRewards(IRewardsControllerIsh rewardsController, address[] calldata assets)
     internal
     returns (address[] memory rewardsList, uint[] memory claimedAmounts)

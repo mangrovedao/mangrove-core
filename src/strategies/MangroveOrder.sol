@@ -33,10 +33,6 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@dev 0 means no expiry.
   mapping(IERC20 => mapping(IERC20 => mapping(uint => uint))) public expiring;
 
-  ///@notice if evm gas cost is updated, one may need to increase gas requirements for new offers to avoid failing.
-  /// Setting `additionalGasreq` is an alternative to redeployment.
-  uint public additionalGasreq;
-
   ///@notice MangroveOrder is a Forwarder logic with a simple router.
   ///@param mgv The mangrove contract on which this logic will run taker and maker orders.
   ///@param deployer The address of the admin of `this` at the end of deployment
@@ -61,9 +57,31 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     expiring[outbound_tkn][inbound_tkn][offerId] = date;
   }
 
-  ///@inheritdoc IOrderLogic
-  function setAdditionalGasreq(uint additionalGasreq_) external onlyAdmin {
-    additionalGasreq = additionalGasreq_;
+  ///@notice updates an offer on Mangrove
+  ///@dev this can be used to update price of the resting order
+  ///@param outbound_tkn outbound token of the offer list
+  ///@param inbound_tkn inbound token of the offer list
+  ///@param wants new amount of `inbound_tkn` offer owner wants
+  ///@param gives new amount of `outbound_tkn` offer owner gives
+  ///@param pivotId pivot for the new rank of the offer
+  ///@param offerId the id of the offer to be updated
+  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+    external
+    payable
+    onlyOwner(outbound_tkn, inbound_tkn, offerId)
+  {
+    OfferArgs memory args;
+
+    // funds to compute new gasprice is msg.value. Will use old gasprice if no funds are given
+    args.fund = msg.value; // if inside a hook (Mangrove is `msg.sender`) this will be 0
+    args.outbound_tkn = outbound_tkn;
+    args.inbound_tkn = inbound_tkn;
+    args.wants = wants;
+    args.gives = gives;
+    args.gasreq = offerGasreq();
+    args.pivotId = pivotId;
+    args.noRevert = false; // will throw if Mangrove reverts
+    _updateOffer(args, offerId);
   }
 
   ///Checks the current timestamps and reneges on trade (by reverting) if the offer has expired.
@@ -237,7 +255,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
         inbound_tkn: inbound_tkn,
         wants: residualWants,
         gives: residualGives,
-        gasreq: offerGasreq() + additionalGasreq, // using default gasreq of the strat + potential admin defined increase
+        gasreq: offerGasreq(), // using default gasreq of the strat
         gasprice: 0, // ignored
         pivotId: tko.pivotId,
         fund: fund,

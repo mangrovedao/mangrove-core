@@ -94,8 +94,4 @@ interface IOrderLogic {
   ///@param tko the arguments in memory of the taker order
   ///@return res the result of the taker order. If `offerId==0`, no resting order was posted on `msg.sender`'s behalf.
   function take(TakerOrder memory tko) external payable returns (TakerOrderResult memory res);
-
-  ///@notice Increase gas requirement for all new offers.
-  ///@param additionalGasreq_ additional gas requirement
-  function setAdditionalGasreq(uint additionalGasreq_) external;
 }

@@ -42,12 +42,13 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@dev 'ownerData[out][in][offerId].owner == maker` if `maker` is offer owner of `offerId` in the `(out, in)` offer list.
   mapping(IERC20 => mapping(IERC20 => mapping(uint => OwnerData))) internal ownerData;
 
-  ///@notice Reserve approvals mapping.
-  ///@dev mapping is reserve -> maker -> isApproved.
-  ///@dev `reserveApprovals[reserve][maker] => setReserve(maker, reserve)` will not revert.
-  mapping(address => mapping(address => bool)) public reserveApprovals;
+  ///@notice modifier to enforce function caller to be offer owner
+  modifier onlyOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
+    require(ownerData[outbound_tkn][inbound_tkn][offerId].owner == msg.sender, "Forwarder/unauthorized");
+    _;
+  }
 
-  ///@notice modifier to enforce function caller to be either Mangrove or offer owner
+  ///@notice modifier to enforce function caller to be offer owner or MGV (for use in the offer logic)
   modifier mgvOrOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
     if (msg.sender != address(MGV)) {
       require(ownerData[outbound_tkn][inbound_tkn][offerId].owner == msg.sender, "Forwarder/unauthorized");
@@ -62,28 +63,6 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   constructor(IMangrove mgv, AbstractRouter router, uint gasreq) MangroveOffer(mgv, gasreq) {
     require(router != NO_ROUTER, "Forwarder logics must have a router");
     setRouter(router);
-  }
-
-  /// @inheritdoc IForwarder
-  function approvePooledMaker(address maker) external override {
-    reserveApprovals[msg.sender][maker] = true;
-    emit ReserveApproval(msg.sender, maker, true);
-  }
-
-  /// @inheritdoc IForwarder
-  function revokePooledMaker(address maker) external override {
-    reserveApprovals[msg.sender][maker] = false;
-    // is reserve is revoked and maker is currently using it, folding back maker to being its own reserve
-    if (reserve(maker) == msg.sender) {
-      MOS.getStorage().reserves[maker] = address(0);
-    }
-    emit ReserveApproval(msg.sender, maker, false);
-  }
-
-  /// @inheritdoc MangroveOffer
-  /// @dev setting reserve(maker) to address(0) is always permitted since `reserve(maker)` is then `maker` itself.
-  function __checkReserveApproval__(address reserve_, address maker) internal view override returns (bool) {
-    return (reserve_ == address(0) || reserveApprovals[reserve_][maker]);
   }
 
   ///@inheritdoc IForwarder
@@ -186,36 +165,6 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     }
   }
 
-  ///@dev the `gasprice` argument is always ignored in `Forwarder` logic, since it has to be derived from `msg.value` of the call (see `_newOffer`).
-  ///@inheritdoc IOfferLogic
-  function updateOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice, // value ignored but kept to satisfy `Forwarder is IOfferLogic`
-    uint pivotId,
-    uint offerId
-  ) public payable override mgvOrOwner(outbound_tkn, inbound_tkn, offerId) {
-    gasprice; // ssh
-    OfferArgs memory args;
-
-    // funds to compute new gasprice is msg.value. Will use old gasprice if no funds are given
-    // it might be tempting to include `od.weiBalance` here but this will trigger a recomputation of the `gasprice`
-    // each time a offer is updated.
-    args.fund = msg.value; // if inside a hook (Mangrove is `msg.sender`) this will be 0
-    args.outbound_tkn = outbound_tkn;
-    args.inbound_tkn = inbound_tkn;
-    args.wants = wants;
-    args.gives = gives;
-    args.gasreq = gasreq;
-    args.pivotId = pivotId;
-    args.noRevert = false; // will throw if Mangrove reverts
-    // weiBalance is used to provision offer
-    _updateOffer(args, offerId);
-  }
-
   ///@notice memory allocation for `_updateOffer` variables
   ///@param gasprice derived gasprice of the offer
   ///@param leftover portion of `msg.value` that are not allocated to offer's provision
@@ -237,6 +186,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
       uint old_gasreq = vars.offerDetail.gasreq();
       args.gasreq = args.gasreq >= type(uint24).max ? old_gasreq : args.gasreq;
       // re-deriving gasprice only if necessary, i.e if user puts more funds or changes `gasreq`
+      // note that user cannot change gasreq using external `updateOffer`. But a custom call to internal `_updateOffer` might.
       if (args.fund > 0 || args.gasreq != old_gasreq) {
         // adding current locked provision to funds (0 if offer is deprovisioned)
         uint locked_funds = vars.offerDetail.gasprice() * 10 ** 9 * (old_gasreq + vars.offerDetail.offer_gasbase());
@@ -312,16 +262,6 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
       (bool noRevert,) = od.owner.call{value: freeWei}("");
       require(noRevert, "mgvOffer/weiTransferFail");
     }
-  }
-
-  ///@inheritdoc IOfferLogic
-  ///@dev function is not guarded but only `msg.sender`'s reserve can be reached.
-  function withdrawToken(IERC20 token, address receiver, uint amount) external override returns (bool success) {
-    require(receiver != address(0), "mgvOffer/withdrawToken/0xReceiver");
-    if (amount == 0) {
-      success = true;
-    }
-    success = router().withdrawToken(token, reserve(msg.sender), receiver, amount);
   }
 
   ///@dev put received inbound tokens on offer maker's reserve during `makerExecute`

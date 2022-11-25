@@ -134,22 +134,14 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   /// @inheritdoc IOfferLogic
   function reserve(address maker) public view override returns (address) {
-    address reserve_ = MOS.getStorage().reserves[maker];
-    return reserve_ == address(0) ? maker : reserve_;
+    return __reserve__(maker);
   }
 
-  /// @inheritdoc IOfferLogic
-  function setReserve(address maker, address reserve_) public override onlyCaller(maker) {
-    require(__checkReserveApproval__(reserve_, maker), "mgvOffer/makerNotApproved");
-    MOS.getStorage().reserves[maker] = reserve_;
-    emit SetReserve(maker, reserve_);
+  /// @notice hook to customize offer owner's reserve for the offer logic
+  /// @param maker the offer owner's address whose address is being queried
+  function __reserve__(address maker) internal view virtual returns (address) {
+    return maker;
   }
-
-  /// @notice verifies that maker is allowed to use a reserve for pooling funds
-  /// @param reserve_ the reserve on which one is pooling funds
-  /// @param maker the pooler of the reserve
-  /// @dev function throws if `reserve_` has not approved `maker`
-  function __checkReserveApproval__(address reserve_, address maker) internal virtual returns (bool);
 
   /// @inheritdoc IOfferLogic
   function activate(IERC20[] calldata tokens) external override onlyAdmin {
@@ -205,13 +197,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     (bool noRevert,) = receiver.call{value: amount}("");
     // if `receiver` is actually not payable
     require(noRevert, "mgvOffer/weiTransferFail");
-  }
-
-  /// @inheritdoc IOfferLogic
-  function tokenBalance(IERC20 token, address maker) external view override returns (uint) {
-    AbstractRouter router_ = router();
-    address makerReserve = reserve(maker);
-    return router_ == NO_ROUTER ? token.balanceOf(makerReserve) : router_.reserveBalance(token, makerReserve);
   }
 
   ///@notice Hook that implements where the inbound token, which are brought by the Offer Taker, should go during Taker Order's execution.

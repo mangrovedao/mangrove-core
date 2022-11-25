@@ -76,47 +76,6 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
     }
   }
 
-  // returns 0 if redeem failed (amount > balance).
-  // Redeems user balance if amount == type(uint).max
-  function __withdrawToken__(IERC20 token, address reserve, address recipient, uint amount)
-    internal
-    override
-    returns (bool)
-  {
-    // note there is no possible redeem on behalf
-    require(
-      TransferLib.transferTokenFrom(overlying(token), reserve, address(this), amount),
-      "AaveRouter/supply/transferFromFail"
-    );
-    require(_redeem(token, amount, recipient) == amount, "AaveRouter/withdrawToken/Fail");
-    return true;
-  }
-
-  // Admin function to manage position on AAVE
-  function borrow(IERC20 token, address reserve, uint amount, address to) external onlyAdmin {
-    // NB if `reserve` != this, it must approve this router for increasing overlying debt token
-    _borrow(token, amount, reserve);
-    require(TransferLib.transferToken(token, to, amount), "AaveRouter/borrow/transferFail");
-  }
-
-  function repay(IERC20 token, address reserve, uint amount, address from) external onlyAdmin {
-    require(TransferLib.transferTokenFrom(token, from, reserve, amount), "AaveRouter/repay/transferFromFail");
-    _repay(token, amount, reserve);
-  }
-
-  function supply(IERC20 token, address reserve, uint amount, address from) external onlyAdmin {
-    require(TransferLib.transferTokenFrom(token, from, reserve, amount), "AaveRouter/supply/transferFromFail");
-    _supply(token, amount, reserve);
-  }
-
-  function claimRewards(IRewardsControllerIsh rewardsController, address[] calldata assets)
-    external
-    onlyAdmin
-    returns (address[] memory rewardsList, uint[] memory claimedAmounts)
-  {
-    return _claimRewards(rewardsController, assets);
-  }
-
   function reserveBalance(IERC20 token, address reserve) public view virtual override returns (uint available) {
     (available,) = maxGettableUnderlying(token, false, reserve);
   }

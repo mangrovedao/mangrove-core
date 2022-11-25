@@ -37,14 +37,12 @@
 
 pragma solidity ^0.8.10;
 
-import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs} from "./MgvLib.sol";
+import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs, IERC20} from "./MgvLib.sol";
 
 /* `MgvRoot` contains state variables used everywhere in the operation of Mangrove and their related function. */
 contract MgvRoot is HasMgvEvents {
   /* # State variables */
   //+clear+
-  /* The `vault` address. If a pair has fees >0, those fees are sent to the vault. */
-  address public vault;
 
   /* Global mgv configuration, encoded in a 256 bits word. The information encoded is detailed in [`structs.js`](#structs.js). */
   MgvStructs.GlobalPacked internal internal_global;
@@ -131,5 +129,27 @@ contract MgvRoot is HasMgvEvents {
   function activeMarketOnly(MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) internal pure {
     liveMgvOnly(_global);
     require(_local.active(), "mgv/inactive");
+  }
+
+  /* # Token transfer functions */
+  /* `transferTokenFrom` is adapted from [existing code](https://soliditydeveloper.com/safe-erc20) and in particular avoids the
+  "no return value" bug. It never throws and returns true iff the transfer was successful according to `tokenAddress`.
+
+    Note that any spurious exception due to an error in Mangrove code will be falsely blamed on `from`.
+  */
+  function transferTokenFrom(address tokenAddress, address from, address to, uint value) internal returns (bool) {
+    unchecked {
+      bytes memory cd = abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, value);
+      (bool noRevert, bytes memory data) = tokenAddress.call(cd);
+      return (noRevert && (data.length == 0 || abi.decode(data, (bool))));
+    }
+  }
+
+  function transferToken(address tokenAddress, address to, uint value) internal returns (bool) {
+    unchecked {
+      bytes memory cd = abi.encodeWithSelector(IERC20.transfer.selector, to, value);
+      (bool noRevert, bytes memory data) = tokenAddress.call(cd);
+      return (noRevert && (data.length == 0 || abi.decode(data, (bool))));
+    }
   }
 }

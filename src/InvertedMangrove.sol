@@ -49,11 +49,8 @@ contract InvertedMangrove is AbstractMangrove {
    */
   function beforePosthook(MgvLib.SingleOrder memory sor) internal override {
     unchecked {
-      /* If `transferToken` returns false here, we're in a special (and bad) situation. The taker is returning part of their total loan to a maker, but the maker can't receive the tokens. Only case we can see: maker is blacklisted. In that case, we send the tokens to the vault, so things have a chance of getting sorted out later (Mangrove is a token black hole). */
-      if (!transferToken(sor.inbound_tkn, sor.offerDetail.maker(), sor.gives)) {
-        /* If that transfer fails there's nothing we can do -- reverting would punish the taker for the maker's blacklisting. */
-        transferToken(sor.inbound_tkn, vault, sor.gives);
-      }
+      /* If `transferToken` returns false here, we're in a special (and bad) situation. The taker is returning part of their total loan to a maker, but the maker can't receive the tokens. Only case we can see: maker is blacklisted. In that case, we keep the tokens, so things have a chance of getting sorted out later. If that transfer fails there's nothing we can do -- reverting would punish the taker for the maker's blacklisting. */
+      transferToken(sor.inbound_tkn, sor.offerDetail.maker(), sor.gives);
     }
   }
 

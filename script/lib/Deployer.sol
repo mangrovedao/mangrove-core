@@ -38,8 +38,9 @@ abstract contract Deployer is Script2 {
     vm.label(address(fork), "Deployer:Fork");
     vm.label(address(remoteEns), "Remote ENS");
 
-    // depending on which fork the script is running on, choose whether to write the addresses to a file, get the right fork contract, and name the current network.
+    // detect if we've already created a fork -- the singleton method works as an inter-contract storage used for communication
     if (singleton("Deployer:Fork") == address(0)) {
+      // depending on which fork the script is running on, choose whether to write the addresses to a file, get the right fork contract, and name the current network.
       if (block.chainid == 80001) {
         fork = new MumbaiFork();
       } else if (block.chainid == 127) {

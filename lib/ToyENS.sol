@@ -6,6 +6,11 @@ pragma solidity ^0.8.13;
  */
 
 contract ToyENS {
+  event Set(
+    string name,
+    address addr
+  );
+
   mapping(string => address) public _addrs;
   string[] _names;
 
@@ -24,6 +29,7 @@ contract ToyENS {
       _names.push(name);
     }
     _addrs[name] = addr;
+    emit Set(name,addr);
   }
 
   function set(string[] calldata names, address[] calldata addrs) external {

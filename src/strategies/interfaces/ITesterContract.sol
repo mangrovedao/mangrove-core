@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// IMakerLogic.sol
+// ITesterContract.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -12,19 +12,10 @@
 
 pragma solidity >=0.8.0;
 
-pragma abicoder v2;
+import {ILiquidityProvider, IMangrove, IERC20} from "./ILiquidityProvider.sol";
 
-import "./IOfferLogic.sol";
-
-// Completes IOfferLogic with the ability to post new offer in a minimalistic way.
-interface IMakerLogic is IOfferLogic {
-  function newOffer(
-    IERC20 outbound_tkn, // address of the ERC20 contract managing outbound tokens
-    IERC20 inbound_tkn, // address of the ERC20 contract managing outbound tokens
-    uint wants, // amount of `inbound_tkn` required for full delivery
-    uint gives, // max amount of `outbound_tkn` promised by the offer
-    uint gasreq, // max gas required by the offer when called. If maxUint256 is used here, default `ofr_gasreq` will be considered instead
-    uint gasprice, // gasprice that should be consider to compute the bounty (Mangrove's gasprice will be used if this value is lower)
-    uint pivotId
-  ) external payable returns (uint);
+///@title Interface for testing Forwarder and Direct maker contracts with reserve setters.
+interface ITesterContract is ILiquidityProvider {
+  function setReserve(address maker, address reserve) external;
+  function tokenBalance(IERC20 token, address maker) external view returns (uint);
 }

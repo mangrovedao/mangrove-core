@@ -3,14 +3,14 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/forks/Polygon.sol";
-import "mgv_src/toy_strategies/offer_forwarder/GhostForwarder.sol";
+import "mgv_src/toy_strategies/offer_forwarder/AmplifierForwarder.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 
 //import {console} from "forge-std/console.sol";
 
-contract GhostForwarderTest is MangroveTest {
+contract AmplifierForwarderTest is MangroveTest {
   IERC20 weth;
   IERC20 dai;
   IERC20 usdc;
@@ -19,7 +19,7 @@ contract GhostForwarderTest is MangroveTest {
 
   address payable taker;
   address payable maker;
-  GhostForwarder strat;
+  AmplifierForwarder strat;
 
   receive() external payable virtual {}
 
@@ -57,7 +57,7 @@ contract GhostForwarderTest is MangroveTest {
   }
 
   function deployStrat() public {
-    strat = new GhostForwarder({
+    strat = new AmplifierForwarder({
       mgv: IMangrove($(mgv)),
       base: weth,
       stable1: usdc, 
@@ -66,7 +66,7 @@ contract GhostForwarderTest is MangroveTest {
       gasreq: 250000
       });
 
-    // allow (the router to) pull of WETH from Ghost (i.e., strat) to Mangrove
+    // allow (the router to) pull of WETH from Amplifier (i.e., strat) to Mangrove
     strat.approve(weth, $(mgv), type(uint).max);
 
     // The test address need to approve the router to use the base token
@@ -74,8 +74,8 @@ contract GhostForwarderTest is MangroveTest {
 
     // NOTE:
     // For this test, we're locking base, ie WETH, in the vault of the contract
-    // - so Ghost is not really used for ghost liquidity, in this example.
-    // However, to employ actual ghost liquidity it is simply a matter of
+    // - so Amplifier is not really used for amplified liquidity, in this example.
+    // However, to employ actual amplified liquidity it is simply a matter of
     // setting up a more refined router.
     // check that we actually need to activate for the two 'wants' tokens
     IERC20[] memory tokens = new IERC20[](2);
@@ -97,7 +97,7 @@ contract GhostForwarderTest is MangroveTest {
     uint prov1 = strat.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
     uint prov2 = strat.getMissingProvision(weth, dai, type(uint).max, 0, 0);
 
-    (offerId1, offerId2) = strat.newGhostOffers{value: prov1 + prov2}({
+    (offerId1, offerId2) = strat.newAmplifiedOffers{value: prov1 + prov2}({
       gives: makerGivesAmount, // WETH
       wants1: makerWantsAmountUSDC, // USDC
       wants2: makerWantsAmountDAI, // DAI
@@ -142,7 +142,7 @@ contract GhostForwarderTest is MangroveTest {
     deal($(weth), $(this), cash(weth, 5));
     deal($(weth), maker, cash(weth, 5));
 
-    // post offers with Ghost liquidity with test account
+    // post offers with Amplifier liquidity with test account
     offerPair memory testOffer;
     (testOffer.daiOffer, testOffer.usdcOffer) =
       postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
@@ -180,7 +180,7 @@ contract GhostForwarderTest is MangroveTest {
     );
     assertEq(takerFromMaker.gave, makerWantsAmountDAI, "taker gave wrong amount: makerOffer.daiOffer");
 
-    // assert that neither offer posted by Ghost are live (= have been retracted)
+    // assert that neither offer posted by Amplifier are live (= have been retracted)
     MgvStructs.OfferPacked offer_on_dai1 = mgv.offers($(weth), $(dai), testOffer.daiOffer);
     MgvStructs.OfferPacked offer_on_usdc1 = mgv.offers($(weth), $(usdc), testOffer.usdcOffer);
     MgvStructs.OfferPacked offer_on_dai2 = mgv.offers($(weth), $(dai), makerOffer.daiOffer);
@@ -199,12 +199,12 @@ contract GhostForwarderTest is MangroveTest {
     deal($(weth), $(this), cash(weth, 5));
     deal($(weth), maker, cash(weth, 5));
 
-    // post offers with Ghost liquidity with test account
+    // post offers with Amplifier liquidity with test account
     offerPair memory testOffer;
     (testOffer.daiOffer, testOffer.usdcOffer) =
       postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 
-    // post offers with Ghost liquidity with test account
+    // post offers with Amplifier liquidity with test account
     vm.startPrank(maker);
     weth.approve($(strat.router()), type(uint).max);
     offerPair memory makerOffer;
@@ -238,7 +238,7 @@ contract GhostForwarderTest is MangroveTest {
     );
     assertEq(takerFromMaker.gave, makerWantsAmountDAI, "taker gave wrong amount: makerOffer.daiOffer");
 
-    // assert that neither offer posted by Ghost are live (= have been retracted)
+    // assert that neither offer posted by Amplifier are live (= have been retracted)
     MgvStructs.OfferPacked offer_on_dai1 = mgv.offers($(weth), $(dai), testOffer.daiOffer);
     MgvStructs.OfferPacked offer_on_usdc1 = mgv.offers($(weth), $(usdc), testOffer.usdcOffer);
     MgvStructs.OfferPacked offer_on_dai2 = mgv.offers($(weth), $(dai), makerOffer.daiOffer);
@@ -254,7 +254,7 @@ contract GhostForwarderTest is MangroveTest {
     uint makerWantsAmountDAI = cash(dai, 300);
     uint makerWantsAmountUSDC = cash(usdc, 300);
 
-    // post offers with Ghost liquidity with test account
+    // post offers with Amplifier liquidity with test account
     offerPair memory testOffer;
     (testOffer.daiOffer, testOffer.usdcOffer) =
       postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
@@ -285,7 +285,7 @@ contract GhostForwarderTest is MangroveTest {
     assertEq(takerFromMaker.gave, 0, "taker gave wrong amount: makerOffer.daiOffer");
     assertTrue(takerFromMaker.bounty > 0, "taker should get bounty for failing offer: makerOffer.daiOffer");
 
-    // assert that neither offer posted by Ghost are live (= have been retracted)
+    // assert that neither offer posted by Amplifier are live (= have been retracted)
     MgvStructs.OfferPacked offer_on_dai1 = mgv.offers($(weth), $(dai), testOffer.daiOffer);
     MgvStructs.OfferPacked offer_on_usdc1 = mgv.offers($(weth), $(usdc), testOffer.usdcOffer);
     MgvStructs.OfferPacked offer_on_dai2 = mgv.offers($(weth), $(dai), makerOffer.daiOffer);
@@ -304,7 +304,7 @@ contract GhostForwarderTest is MangroveTest {
     deal($(weth), $(this), cash(weth, 5));
     deal($(weth), maker, cash(weth, 5));
 
-    // post offers with Ghost liquidity with test account
+    // post offers with Amplifier liquidity with test account
     offerPair memory testOffer;
     (testOffer.daiOffer, testOffer.usdcOffer) =
       postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
@@ -312,9 +312,9 @@ contract GhostForwarderTest is MangroveTest {
     uint prov1Tester = strat.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
     uint prov2Tester = strat.getMissingProvision(weth, dai, type(uint).max, 0, 0);
 
-    vm.expectRevert("GhostForwarder/offer1AlreadyActive");
+    vm.expectRevert("AmplifierForwarder/offer1AlreadyActive");
 
-    strat.newGhostOffers{value: prov1Tester + prov2Tester}({
+    strat.newAmplifiedOffers{value: prov1Tester + prov2Tester}({
       gives: makerGivesAmount, // WETH
       wants1: makerWantsAmountUSDC, // USDC
       wants2: makerWantsAmountDAI, // DAI
@@ -324,7 +324,7 @@ contract GhostForwarderTest is MangroveTest {
       fund2: prov2Tester
     });
 
-    // post offers with Ghost liquidity with test account
+    // post offers with Amplifier liquidity with test account
     vm.startPrank(maker);
     weth.approve($(strat.router()), type(uint).max);
     offerPair memory makerOffer;
@@ -336,9 +336,9 @@ contract GhostForwarderTest is MangroveTest {
     uint prov1Maker = strat.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
     uint prov2Maker = strat.getMissingProvision(weth, dai, type(uint).max, 0, 0);
 
-    vm.expectRevert("GhostForwarder/offer2AlreadyActive");
+    vm.expectRevert("AmplifierForwarder/offer2AlreadyActive");
 
-    strat.newGhostOffers{value: prov1Maker + prov2Maker}({
+    strat.newAmplifiedOffers{value: prov1Maker + prov2Maker}({
       gives: makerGivesAmount, // WETH
       wants1: makerWantsAmountUSDC, // USDC
       wants2: makerWantsAmountDAI, // DAI
@@ -349,7 +349,7 @@ contract GhostForwarderTest is MangroveTest {
     });
     vm.stopPrank();
 
-    // assert that neither offer posted by Ghost are live (= have been retracted)
+    // assert that neither offer posted by Amplifier are live (= have been retracted)
     MgvStructs.OfferPacked offer_on_dai1 = mgv.offers($(weth), $(dai), testOffer.daiOffer);
     MgvStructs.OfferPacked offer_on_usdc1 = mgv.offers($(weth), $(usdc), testOffer.usdcOffer);
     MgvStructs.OfferPacked offer_on_dai2 = mgv.offers($(weth), $(dai), makerOffer.daiOffer);
@@ -368,12 +368,12 @@ contract GhostForwarderTest is MangroveTest {
     deal($(weth), $(this), cash(weth, 5));
     deal($(weth), maker, cash(weth, 5));
 
-    // post offers with Ghost liquidity with test account
+    // post offers with Amplifier liquidity with test account
     offerPair memory testOffer;
     (testOffer.daiOffer, testOffer.usdcOffer) =
       postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 
-    // post offers with Ghost liquidity with test account
+    // post offers with Amplifier liquidity with test account
     vm.startPrank(maker);
     weth.approve($(strat.router()), type(uint).max);
     offerPair memory makerOffer;

@@ -3,13 +3,13 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/forks/Polygon.sol";
-import "mgv_src/toy_strategies/offer_maker/Ghost.sol";
+import "mgv_src/toy_strategies/offer_maker/Amplifier.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 
 import {console} from "forge-std/console.sol";
 
-contract GhostTest is MangroveTest {
+contract AmplifierTest is MangroveTest {
   IERC20 weth;
   IERC20 dai;
   IERC20 usdc;
@@ -17,7 +17,7 @@ contract GhostTest is MangroveTest {
   PolygonFork fork;
 
   address payable taker;
-  Ghost strat;
+  Amplifier strat;
 
   receive() external payable virtual {}
 
@@ -83,7 +83,7 @@ contract GhostTest is MangroveTest {
   }
 
   function deployStrat() public {
-    strat = new Ghost({
+    strat = new Amplifier({
       mgv: IMangrove($(mgv)),
       base: weth,
       stable1: usdc, 
@@ -93,8 +93,8 @@ contract GhostTest is MangroveTest {
 
     // NOTE:
     // For this test, we're locking base, ie WETH, in the vault of the contract
-    // - so Ghost is not really used for ghost liquidity, in this example.
-    // However, to employ actual ghost liquidity it is simply a matter of
+    // - so Amplifier is not really used for amplified liquidity, in this example.
+    // However, to employ actual amplified liquidity it is simply a matter of
     // setting up a more refined router.
     // check that we actually need to activate for the two 'wants' tokens
     IERC20[] memory tokens = new IERC20[](3);
@@ -113,7 +113,7 @@ contract GhostTest is MangroveTest {
     public
     returns (uint offerId1, uint offerId2)
   {
-    (offerId1, offerId2) = strat.newGhostOffers{value: 2 ether}({
+    (offerId1, offerId2) = strat.newAmplifiedOffers{value: 2 ether}({
       gives: makerGivesAmount, // WETH
       wants1: makerWantsAmountUSDC, // USDC
       wants2: makerWantsAmountDAI, // DAI
@@ -145,7 +145,7 @@ contract GhostTest is MangroveTest {
 
     deal($(weth), $(this), cash(weth, 5));
 
-    // post offers with Ghost liquidity
+    // post offers with Amplifier liquidity
     (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 
     //only take half of the offer
@@ -155,7 +155,7 @@ contract GhostTest is MangroveTest {
     assertEq(takerGot, reader.minusFee($(dai), $(weth), makerGivesAmount / 2), "taker got wrong amount");
     assertEq(takerGave, makerWantsAmountDAI / 2, "taker gave wrong amount");
 
-    // assert that neither offer posted by Ghost are live (= have been retracted)
+    // assert that neither offer posted by Amplifier are live (= have been retracted)
     MgvStructs.OfferPacked offer_on_dai = mgv.offers($(weth), $(dai), offerId1);
     MgvStructs.OfferPacked offer_on_usdc = mgv.offers($(weth), $(usdc), offerId2);
     assertTrue(mgv.isLive(offer_on_dai), "weth->dai offer should not have been retracted");
@@ -179,7 +179,7 @@ contract GhostTest is MangroveTest {
     assertEq(takerGot, reader.minusFee($(dai), $(weth), makerGivesAmount), "taker got wrong amount");
     assertEq(takerGave, makerWantsAmountDAI, "taker gave wrong amount");
 
-    // assert that neither offer posted by Ghost are live (= have been retracted)
+    // assert that neither offer posted by Amplifier are live (= have been retracted)
     MgvStructs.OfferPacked offer_on_dai = mgv.offers($(weth), $(dai), offerId1);
     MgvStructs.OfferPacked offer_on_usdc = mgv.offers($(weth), $(usdc), offerId2);
     assertTrue(!mgv.isLive(offer_on_dai), "weth->dai offer should have been retracted");
@@ -218,15 +218,15 @@ contract GhostTest is MangroveTest {
 
     (uint offerId1, uint offerId2) = postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 
-    vm.expectRevert("Ghost/offer1AlreadyActive");
+    vm.expectRevert("Amplifier/offer1AlreadyActive");
     postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 
     strat.retractOffer(weth, usdc, offerId1, false);
 
-    vm.expectRevert("Ghost/offer2AlreadyActive");
+    vm.expectRevert("Amplifier/offer2AlreadyActive");
     postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
 
-    // assert that neither offer posted by Ghost are live (= have been retracted)
+    // assert that neither offer posted by Amplifier are live (= have been retracted)
     MgvStructs.OfferPacked offer_on_dai = mgv.offers($(weth), $(dai), offerId1);
     MgvStructs.OfferPacked offer_on_usdc = mgv.offers($(weth), $(usdc), offerId2);
     assertTrue(mgv.isLive(offer_on_dai), "weth->dai offer should not have been retracted");
@@ -248,7 +248,7 @@ contract GhostTest is MangroveTest {
     assertEq(takerGave, 0, "taker gave wrong amount");
     assertTrue(bounty > 0, "taker did not get any bounty");
 
-    // assert that neither offer posted by Ghost are live (= have been retracted)
+    // assert that neither offer posted by Amplifier are live (= have been retracted)
     MgvStructs.OfferPacked offer_on_dai = mgv.offers($(weth), $(dai), offerId1);
     MgvStructs.OfferPacked offer_on_usdc = mgv.offers($(weth), $(usdc), offerId2);
     assertTrue(!mgv.isLive(offer_on_dai), "weth->dai offer should have been retracted");

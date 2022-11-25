@@ -12,8 +12,6 @@
 
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 import "mgv_src/strategies/vendor/aave/v2/ILendingPool.sol";
 import "mgv_src/strategies/vendor/aave/v2/ILendingPoolAddressesProvider.sol";
 import "mgv_src/strategies/vendor/aave/v2/IPriceOracleGetter.sol";

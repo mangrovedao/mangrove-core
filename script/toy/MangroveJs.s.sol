@@ -6,6 +6,7 @@ import {MangroveDeployer} from "mgv_script/lib/MangroveDeployer.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
+import {MangroveOrderDeployer} from "mgv_script/strategies/MangroveOrderDeployer.s.sol";
 import {MangroveOrder} from "mgv_src/strategies/MangroveOrderEnriched.sol";
 import {SimpleTestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
@@ -17,8 +18,7 @@ This script prepares a local server for testing by mangrove.js.
 In the future it should a) Use mostly the normal deploy file, so there is as
 little discrepancy between real deploys and deploys that mangrove.js tests
 interact with.  b) For any additional deployments needed, those files should be
-hosted in mangrove.js.
-*/
+hosted in mangrove.js.*/
 
 contract MangroveJsDeploy is Deployer {
   IERC20 tokenA;
@@ -30,7 +30,7 @@ contract MangroveJsDeploy is Deployer {
   MangroveOrder mgo;
 
   function run() public {
-    innerRun({chief: msg.sender, gasprice: 1, gasmax: 2_000_000});
+    innerRun({chief: broadcaster(), gasprice: 1, gasmax: 2_000_000});
     outputDeployment();
   }
 
@@ -93,6 +93,9 @@ contract MangroveJsDeploy is Deployer {
       _quote: tokenB
     });
     fork.set("SimpleTestMaker", address(simpleTestMaker));
+
+    MangroveOrderDeployer mgoeDeployer = new MangroveOrderDeployer();
+    mgoeDeployer.innerRun({admin: chief, mangrove: mgv});
 
     broadcast();
     mgo = new MangroveOrder({mgv: IMangrove(payable(mgv)), deployer: chief, gasreq:30_000});

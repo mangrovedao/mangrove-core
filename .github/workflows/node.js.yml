@@ -137,6 +137,7 @@ jobs:
       run: yarn run test
       env:
         POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
+        MUMBAI_NODE_URL: ${{ secrets.MUMBAI_NODE_URL }}
 
     # For push runs we also create a coverage report
     - name: Create coverage report for mangrove-solidity
@@ -145,6 +146,7 @@ jobs:
       working-directory: . # coverage cannot find contracts if executed inside mangrove-solidity
       env:
         POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL }}
+        MUMBAI_NODE_URL: ${{ secrets.MUMBAI_NODE_URL }}
 
      # == Send coverage report to Coveralls == 
      # Coverallsapp by default uses GITHUB_SHA but that does not necessarily correspond
@@ -174,17 +176,8 @@ jobs:
     #     path: ${{env.working-directory}}/solidity-mocha-test-report.json # Path to test results
     #     reporter: mocha-json                  # Format of test results
 
-    # save artifacts for later stages
-    - name: Zip output
-      uses: montudor/action-zip@v1
-      with: 
-        args: zip -qq -r mangrove-core-out.zip addresses dist
-
-    - name: Cache mangrove-core output as artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: mangrove-core-out.zip
-        path: mangrove-core-out.zip
+    # == check docs can be created ==
+    - run: yarn run doc
 
     - name: Report Failure to Slack
       if: ${{ failure() && fromJSON(env.NOTIFY_SLACK_FOR_THIS_WORKFLOW_RUN) }}
@@ -197,59 +190,6 @@ jobs:
         SLACK_WEBHOOK_URL: ${{ secrets.ACTION_MONITORING_SLACK }}
   # ==== End job mangrove-core ====
 
-  # ==== Job: Build Mangrove documentation ====
-  mangrove-core-doc:
-    needs: [security-guard, mangrove-core]
-
-    runs-on: ubuntu-latest
-
-    steps:
-
-    # == Git checkout ==
-    - name: Checkout
-      uses: actions/checkout@v3
-      # Workaround for https://github.com/npm/cli/issues/2610
-      with:
-        persist-credentials: false
-        ref: ${{ env.GIT_REF_TO_TEST }}
-        submodules: recursive
-
-    - name: Reconfigure git to use HTTP authentication
-      # Workaround for https://github.com/npm/cli/issues/2610    
-      run: >
-        git config --global url."https://github.com/".insteadOf
-        ssh://git@github.com/
-
-    # == yarn setup ==
-    - name: Yarn setup (caching yarn dependencies)
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'yarn'
-        
-    - run: yarn install --immutable
-      working-directory: . # Yarn must run in root to ensure monorepo setup
-
-    # == create and upload docs ==
-    - run: yarn run doc
-
-    - name: Archive documentation
-      uses: actions/upload-artifact@v3
-      with:
-        name: documentation
-        path: doc/
-
-    - name: Report Failure to Slack
-      if: ${{ failure() && fromJSON(env.NOTIFY_SLACK_FOR_THIS_WORKFLOW_RUN) }}
-      uses: ravsamhq/notify-slack-action@v2
-      with:
-        status: ${{ job.status }}
-        message_format: '{emoji} *{workflow}* {status_message} in <{repo_url}|{repo}@{branch}> on <{commit_url}|{commit_sha}> at {job}'
-        footer: '<{run_url}|View Run>'
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.ACTION_MONITORING_SLACK }}
-  # ==== End job mangrove-core-doc ====
-
   # ==== final "check" job, using alls-green to have one single job to check for green workflow ====
   # see https://github.com/re-actors/alls-green
 
@@ -260,7 +200,6 @@ jobs:
     - security-guard
     - file-guard
     - mangrove-core
-    - mangrove-core-doc
 
     runs-on: ubuntu-latest
 
@@ -268,5 +207,5 @@ jobs:
     - name: Decide whether the needed jobs succeeded or failed
       uses: re-actors/alls-green@release/v1
       with:
-        allowed-skips: security-guard, file-guard, mangrove-core, mangrove-core-doc
+        allowed-skips: security-guard, file-guard, mangrove-core
         jobs: ${{ toJSON(needs) }}

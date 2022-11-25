@@ -11,8 +11,6 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 import "./MangoStorage.sol";
 import "./MangoImplementation.sol";
 import "../../abstract/Direct.sol";
@@ -78,6 +76,7 @@ contract Mango is Direct {
   {
     MangoStorage.Layout storage mStr = MangoStorage.getStorage();
     AbstractRouter router_ = router();
+    mStr.reserve = deployer;
 
     // sanity check
     require(
@@ -153,6 +152,15 @@ contract Mango is Direct {
     } else {
       emit Initialized({from: from, to: to});
     }
+  }
+
+  function setReserve(address reserve_) external onlyAdmin {
+    MangoStorage.getStorage().reserve = reserve_;
+  }
+
+  function __reserve__(address maker) internal view override returns (address reserve_) {
+    maker; //maker is always admin
+    reserve_ = MangoStorage.getStorage().reserve;
   }
 
   function resetPending() external onlyAdmin {

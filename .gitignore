@@ -17,6 +17,7 @@ lcov.info
 broadcast/*
 # ignore versioned deployment files
 addresses/**/*.backup.json
+addresses/deployed/local.json
 
 # Personal
 .env

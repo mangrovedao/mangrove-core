@@ -12,8 +12,6 @@
 
 pragma solidity >=0.8.0;
 
-pragma abicoder v2;
-
 import "./IOfferLogic.sol";
 
 ///@title Completes IOfferLogic to provide an ABI for LiquidityProvider class of Mangrove's SDK

@@ -12,8 +12,6 @@
 
 pragma solidity >=0.8.0;
 
-pragma abicoder v2;
-
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20, IMaker} from "mgv_src/MgvLib.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";

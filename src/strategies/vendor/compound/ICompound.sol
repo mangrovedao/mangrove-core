@@ -13,7 +13,7 @@
 // For more information, please refer to <https://unlicense.org/>
 
 pragma solidity ^0.8.10;
-pragma abicoder v2;
+
 
 import {IERC20} from "mgv_src/MgvLib.sol";
 

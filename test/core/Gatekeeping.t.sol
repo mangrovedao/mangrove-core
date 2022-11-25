@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 import "mgv_test/lib/MangroveTest.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 

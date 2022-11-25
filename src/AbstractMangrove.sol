@@ -18,8 +18,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 import {MgvLib} from "./MgvLib.sol";
 
 import {MgvOfferMaking} from "./MgvOfferMaking.sol";

@@ -12,8 +12,6 @@
 
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 /**
  * @notice This contract provides a collection of interactions capabilities with AAVE-v3 to whichever contract inherits it
  */

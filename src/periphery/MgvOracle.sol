@@ -18,8 +18,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 import "mgv_src/MgvLib.sol";
 
 /* The purpose of the Oracle contract is to act as a gas price and density

@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 /// Replaces EOA in tests (use prank to approve tokens)
 /// Allows testing of native token transfer fail
 

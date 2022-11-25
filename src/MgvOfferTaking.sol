@@ -18,8 +18,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 import {IERC20, HasMgvEvents, IMaker, IMgvMonitor, MgvLib, MgvStructs} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 

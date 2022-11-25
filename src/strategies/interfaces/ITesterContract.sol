@@ -12,8 +12,6 @@
 
 pragma solidity >=0.8.0;
 
-pragma abicoder v2;
-
 import {ILiquidityProvider, IMangrove, IERC20} from "./ILiquidityProvider.sol";
 
 ///@title Interface for testing Forwarder and Direct maker contracts with reserve setters.

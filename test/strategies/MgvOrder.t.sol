@@ -1,8 +1,6 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 import {MangroveTest, TestMaker, TestTaker, TestSender, console} from "mgv_test/lib/MangroveTest.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MangroveOrderEnriched as MgvOrder} from "mgv_src/strategies/MangroveOrderEnriched.sol";

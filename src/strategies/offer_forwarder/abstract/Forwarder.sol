@@ -230,9 +230,10 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
       (vars.global, vars.local) = MGV.config(address(args.outbound_tkn), address(args.inbound_tkn));
       vars.offerDetail = MGV.offerDetails(address(args.outbound_tkn), address(args.inbound_tkn), offerId);
 
-      args.gasreq = args.gasreq >= type(uint24).max ? vars.offerDetail.gasreq() : args.gasreq;
-      // re-deriving gasprice only if necessary
-      if (args.fund != 0) {
+      uint old_gasreq = vars.offerDetail.gasreq();
+      args.gasreq = args.gasreq >= type(uint24).max ? old_gasreq : args.gasreq;
+      // re-deriving gasprice only if necessary, i.e if user puts more funds or changes `gasreq`
+      if (args.fund > 0 || args.gasreq != old_gasreq) {
         // adding current locked provision to funds (0 if offer is deprovisioned)
         (args.gasprice, vars.leftover) = deriveGasprice(
           args.gasreq,

@@ -184,7 +184,6 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
       uint old_gasreq = vars.offerDetail.gasreq();
       args.gasreq = args.gasreq >= type(uint24).max ? old_gasreq : args.gasreq;
       // re-deriving gasprice only if necessary, i.e if user puts more funds or changes `gasreq`
-      // note that user cannot change gasreq using external `updateOffer`. But a custom call to internal `_updateOffer` might.
       if (args.fund > 0 || args.gasreq != old_gasreq) {
         // adding current locked provision to funds (0 if offer is deprovisioned)
         uint locked_funds = vars.offerDetail.gasprice() * 10 ** 9 * (old_gasreq + vars.offerDetail.offer_gasbase());

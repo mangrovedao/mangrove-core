@@ -12,8 +12,7 @@ struct Record {
 
 /* 
 Note: when you add a *Fork contract, to have it available in deployment scripts,
-remember to add it to the initialized forks in Deployer.sol.
-*/
+remember to add it to the initialized forks in Deployer.sol.*/
 contract GenericFork is Script {
   uint public INTERNAL_FORK_ID;
   uint public CHAIN_ID;
@@ -134,6 +133,15 @@ contract GenericFork is Script {
     records = readAddresses("deployed");
     for (uint i = 0; i < records.length; i++) {
       set(records[i].name, records[i].addr);
+    }
+
+    // If a remote ToyENS is found, import its records.
+    ToyENS remoteEns = ToyENS(address(bytes20(hex"decaf0")));
+    if (address(remoteEns).code.length > 0) {
+      (string[] memory names, address[] memory addrs) = remoteEns.all();
+      for (uint i = 0; i < names.length; i++) {
+        set(names[i], addrs[i]);
+      }
     }
 
     // if already forked, ignore BLOCK_NUMBER & don't re-fork

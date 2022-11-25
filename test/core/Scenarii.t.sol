@@ -39,7 +39,7 @@ contract ScenariiTest is MangroveTest {
     }
     balances = Balances({
       mgvBalanceWei: $(mgv).balance,
-      mgvBalanceFees: base.balanceOf(mgv.governance()),
+      mgvBalanceBase: base.balanceOf(address(mgv)),
       takerBalanceA: base.balanceOf(address(taker)),
       takerBalanceB: quote.balanceOf(address(taker)),
       takerBalanceWei: mgv.balanceOf(address(taker)),
@@ -262,8 +262,8 @@ contract ScenariiTest is MangroveTest {
 
     // Checking DEX Fee Balance
     assertEq(
-      base.balanceOf(mgv.governance()), //actual
-      balances.mgvBalanceFees + reader.getFee($(base), $(quote), takerWants), //expected
+      base.balanceOf(address(mgv)), //actual
+      balances.mgvBalanceBase + reader.getFee($(base), $(quote), takerWants), //expected
       "incorrect Mangrove balances"
     );
   }
@@ -292,8 +292,8 @@ contract ScenariiTest is MangroveTest {
       assertTrue(takeSuccess, "snipe should be a success");
     }
     assertEq(
-      base.balanceOf(mgv.governance()), //actual
-      balances.mgvBalanceFees + expectedFee, // expected
+      base.balanceOf(address(mgv)), //actual
+      balances.mgvBalanceBase + expectedFee, // expected
       "incorrect Mangrove A balance"
     );
     assertEq(

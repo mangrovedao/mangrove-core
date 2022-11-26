@@ -9,6 +9,8 @@ import {MumbaiFork} from "mgv_test/lib/forks/Mumbai.sol";
 import {LocalFork} from "mgv_test/lib/forks/Local.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
+address constant ANVIL_DEFAULT_FIRST_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+
 /* Writes deployments in 2 ways:
    1. In a json file. Easier to write one directly than to parse&transform
    foundry broadcast log files.
@@ -49,6 +51,10 @@ abstract contract Deployer is Script2 {
         fork = new LocalFork();
       } else {
         revert(string.concat("Unknown chain id ", vm.toString(block.chainid), ", cannot deploy."));
+      }
+
+      if (ANVIL_DEFAULT_FIRST_ACCOUNT.balance > 0) {
+        deployRemoteToyENS();
       }
 
       singleton("Deployer:Fork", address(fork));
@@ -141,5 +147,21 @@ abstract contract Deployer is Script2 {
     } catch {
       return fork.get(vm.envString(envVar));
     }
+  }
+
+  // FFI to `cast rpc setCode` in order to setup a ToyENS at a known address
+  function deployRemoteToyENS() internal {
+    string[] memory inputs = new string[](5);
+    inputs[0] = "cast";
+    inputs[1] = "rpc";
+    inputs[2] = "hardhat_setCode";
+    inputs[3] = vm.toString(address(remoteEns));
+    inputs[4] = vm.toString(address(new ToyENS()).code);
+    bytes memory resp = vm.ffi(inputs);
+    if (keccak256(resp) != keccak256("null")) {
+      console.log(string(resp));
+      revert("Unexpected response from `cast rpc hardhat_setCode`");
+    }
+    console.log("Deployed remote ToyENS");
   }
 }

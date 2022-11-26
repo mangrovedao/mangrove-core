@@ -9,6 +9,7 @@ libs=['lib']
 cache_path='cache'
 fs_permissions = [{ access = "read-write", path = "./addresses/"}]
 solc_version="0.8.14"
+ffi=true
 # optimizer=true
 # optimizer_runs=20000
 

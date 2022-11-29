@@ -671,7 +671,6 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_nonadmin_cannot_withdrawERC20(address from, address token, uint amount) public {
     vm.assume(from != mgv.governance());
-    vm.assume(from != address(mgv));
     vm.expectRevert("mgv/unauthorized");
     vm.prank(from);
     mgv.withdrawERC20(token, amount);

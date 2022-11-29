@@ -89,8 +89,8 @@ contract MgvHasOffers is MgvRoot {
 
      Now, when an offer is deleted, the offer can stay provisioned, or be `deprovision`ed. In the latter case, we set `gasprice` to 0, which induces a provision of 0. All code calling `dirtyDeleteOffer` with `deprovision` set to `true` must be careful to correctly account for where that provision is going (back to the maker's `balanceOf`, or sent to a taker as compensation). */
   function dirtyDeleteOffer(
-    address outbound_tkn,
-    address inbound_tkn,
+    mapping(uint => MgvStructs.OfferPacked) storage semibook,
+    mapping(uint => MgvStructs.OfferDetailPacked) storage semibookDetails,
     uint offerId,
     MgvStructs.OfferPacked offer,
     MgvStructs.OfferDetailPacked offerDetail,
@@ -101,8 +101,8 @@ contract MgvHasOffers is MgvRoot {
       if (deprovision) {
         offerDetail = offerDetail.gasprice(0);
       }
-      offers[outbound_tkn][inbound_tkn][offerId] = offer;
-      offerDetails[outbound_tkn][inbound_tkn][offerId] = offerDetail;
+      semibook[offerId] = offer;
+      semibookDetails[offerId] = offerDetail;
     }
   }
 
@@ -114,21 +114,20 @@ contract MgvHasOffers is MgvRoot {
 
   **Warning**: may make memory copy of `local.best` stale. Returns new `local`. */
   function stitchOffers(
-    address outbound_tkn,
-    address inbound_tkn,
+    mapping(uint => MgvStructs.OfferPacked) storage semibook,
     uint betterId,
     uint worseId,
     MgvStructs.LocalPacked local
   ) internal returns (MgvStructs.LocalPacked) {
     unchecked {
       if (betterId != 0) {
-        offers[outbound_tkn][inbound_tkn][betterId] = offers[outbound_tkn][inbound_tkn][betterId].next(worseId);
+        semibook[betterId] = semibook[betterId].next(worseId);
       } else {
         local = local.best(worseId);
       }
 
       if (worseId != 0) {
-        offers[outbound_tkn][inbound_tkn][worseId] = offers[outbound_tkn][inbound_tkn][worseId].prev(betterId);
+        semibook[worseId] = semibook[worseId].prev(betterId);
       }
 
       return local;
@@ -140,6 +139,46 @@ contract MgvHasOffers is MgvRoot {
   function isLive(MgvStructs.OfferPacked offer) public pure returns (bool) {
     unchecked {
       return offer.gives() > 0;
+    }
+  }
+
+  /* ## Pointers to partially evaluated mappings
+    Reminder: deep mappings are accessed by composing the hash of each successive key. For the mapping at `map` at slot `slot`, `map[key1][key2]` points to keccak256(bytes.concat(key2, keccak256(bytes.concat(key1, uint(slot))))).
+
+    To save gas, we save the partial evaluation of offerDetail and offer when it makes sense. Since memory structs cannot contain storage mappings, we convert to/from bytes32.
+  */
+
+  /* Return the storage pointer given by a partially evaluated mapping (`Offer` or `OfferDetail`), cast to a bytes32 */
+  function tob32(mapping(uint => MgvStructs.OfferPacked) storage sb) internal pure returns (bytes32 val) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      val := sb.slot
+    }
+  }
+
+  function tob32(mapping(uint => MgvStructs.OfferDetailPacked) storage sbd) internal pure returns (bytes32 val) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      val := sbd.slot
+    }
+  }
+
+  /* Return given bytes32 cat to a partially evaluated mapping (`Offer` or `OfferDetail`) */
+  function toSemibook(bytes32 val) internal pure returns (mapping(uint => MgvStructs.OfferPacked) storage sb) {
+    /// @solidity memory-safe-assembly
+    assembly {
+      sb.slot := val
+    }
+  }
+
+  function toSemibookDetails(bytes32 val)
+    internal
+    pure
+    returns (mapping(uint => MgvStructs.OfferDetailPacked) storage sbd)
+  {
+    /// @solidity memory-safe-assembly
+    assembly {
+      sbd.slot := val
     }
   }
 }

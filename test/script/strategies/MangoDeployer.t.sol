@@ -23,8 +23,8 @@ contract MangoDeployerTest is Deployer, Test2 {
 
   function setUp() public {
     mgoDeployer = new MangoDeployer();
-    base = IERC20(getRawAddressOrName("BASE"));
-    quote = IERC20(getRawAddressOrName("QUOTE"));
+    base = IERC20(getRawAddressOrName("WETH"));
+    quote = IERC20(getRawAddressOrName("USDC"));
     mangoName = mgoDeployer.getName(base, quote);
     try fork.get(mangoName) returns (address payable mgo) {
       csl.log("A mango instance is already deployed under the name", mangoName, "at address", mgo);

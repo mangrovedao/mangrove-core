@@ -39,6 +39,7 @@ abstract contract GuaaveAbstractTest is MangroveTest {
   function setUp() public override {
     fork.setUp();
     mgv = setupMangrove();
+    mgv.setVault($(mgv));
 
     weth = IERC20(fork.get("WETH"));
     usdc = IERC20(fork.get("USDC"));

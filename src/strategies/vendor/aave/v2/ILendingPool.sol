@@ -11,7 +11,7 @@
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // [GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.en.html)
 pragma solidity >=0.6.12;
-pragma abicoder v2;
+
 
 import {ILendingPoolAddressesProvider} from "./ILendingPoolAddressesProvider.sol";
 import {DataTypes} from "./DataTypes.sol";

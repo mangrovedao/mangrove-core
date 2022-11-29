@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Test2} from "mgv_test/lib/Test2.sol";
+import {Test2} from "mgv_lib/Test2.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
 import {TestSender} from "mgv_test/lib/agents/TestSender.sol";
@@ -168,7 +168,7 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   struct Balances {
     uint mgvBalanceWei;
-    uint mgvBalanceFees;
+    uint mgvBalanceBase;
     uint takerBalanceA;
     uint takerBalanceB;
     uint takerBalanceWei;

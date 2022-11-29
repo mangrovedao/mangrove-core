@@ -30,7 +30,7 @@ contract StopMango is Deployer {
   function innerRun(address payable $mgo, uint from, uint to) public {
     Mango mgo = Mango($mgo);
     uint n = mgo.NSLOTS();
-    require(mgo.admin() == msg.sender, "This script requires admin rights");
+    require(mgo.admin() == broadcaster(), "This script requires admin rights");
     require(from < n, "invalid start index");
     to = to >= n ? n - 1 : to;
     broadcast();
@@ -43,7 +43,7 @@ contract StopMango is Deployer {
     if (bal > 0) {
       collected += bal;
       broadcast();
-      mgo.withdrawFromMangrove(bal, payable(msg.sender));
+      mgo.withdrawFromMangrove(bal, payable(broadcaster()));
     }
     console.log("Retracted", to - from, "offers");
     console.log("Recoverd", collected, "WEIs in doing so");

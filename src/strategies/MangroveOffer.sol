@@ -11,8 +11,6 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
 import {MangroveOfferStorage as MOS} from "./MangroveOfferStorage.sol";
 import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
@@ -134,22 +132,14 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   /// @inheritdoc IOfferLogic
   function reserve(address maker) public view override returns (address) {
-    address reserve_ = MOS.getStorage().reserves[maker];
-    return reserve_ == address(0) ? maker : reserve_;
+    return __reserve__(maker);
   }
 
-  /// @inheritdoc IOfferLogic
-  function setReserve(address maker, address reserve_) public override onlyCaller(maker) {
-    require(__checkReserveApproval__(reserve_, maker), "mgvOffer/makerNotApproved");
-    MOS.getStorage().reserves[maker] = reserve_;
-    emit SetReserve(maker, reserve_);
+  /// @notice hook to customize offer owner's reserve for the offer logic
+  /// @param maker the offer owner's address whose address is being queried
+  function __reserve__(address maker) internal view virtual returns (address) {
+    return maker;
   }
-
-  /// @notice verifies that maker is allowed to use a reserve for pooling funds
-  /// @param reserve_ the reserve on which one is pooling funds
-  /// @param maker the pooler of the reserve
-  /// @dev function throws if `reserve_` has not approved `maker`
-  function __checkReserveApproval__(address reserve_, address maker) internal virtual returns (bool);
 
   /// @inheritdoc IOfferLogic
   function activate(IERC20[] calldata tokens) external override onlyAdmin {
@@ -205,13 +195,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     (bool noRevert,) = receiver.call{value: amount}("");
     // if `receiver` is actually not payable
     require(noRevert, "mgvOffer/weiTransferFail");
-  }
-
-  /// @inheritdoc IOfferLogic
-  function tokenBalance(IERC20 token, address maker) external view override returns (uint) {
-    AbstractRouter router_ = router();
-    address makerReserve = reserve(maker);
-    return router_ == NO_ROUTER ? token.balanceOf(makerReserve) : router_.reserveBalance(token, makerReserve);
   }
 
   ///@notice Hook that implements where the inbound token, which are brought by the Offer Taker, should go during Taker Order's execution.

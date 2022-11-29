@@ -7,14 +7,13 @@ import "mgv_src/Mangrove.sol";
 import {ERC20} from "../test/lib/tokens/ERC20.sol";
 
 import {ActivateSemibook} from "./ActivateSemibook.s.sol";
-/* Example: activate (USDC,WETH) offer lists
+/* Example: activate (USDC,WETH) offer lists. Assume $ETH_IN_USDC is the price of ETH in USDC.
  TKN1=USDC \
  TKN2=WETH \
- TKN1_IN_GWEI=$(cast tun 7.5ether gwei) \
- TKN2_IN_GWEI=$(cast tun 7.1 eth gwei) \
+ TKN1_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$ETH_IN_USDC) gwei) \
+ TKN2_IN_GWEI=$(cast --to-unit 1 eth gwei) \
  FEE=30 \
- forge script --fork-url mumbai ActivateMarket
-*/
+ forge script --fork-url mumbai ActivateMarket*/
 
 contract ActivateMarket is Deployer {
   function run() public {

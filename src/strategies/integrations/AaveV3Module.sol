@@ -12,8 +12,6 @@
 
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 /**
  * @notice This contract provides a collection of interactions capabilities with AAVE-v3 to whichever contract inherits it
  */
@@ -228,7 +226,6 @@ contract AaveV3Module {
   }
 
   // rewards claiming.
-  // may use `SingleUser.withdrawToken` to move collected tokens afterwards
   function _claimRewards(IRewardsControllerIsh rewardsController, address[] calldata assets)
     internal
     returns (address[] memory rewardsList, uint[] memory claimedAmounts)

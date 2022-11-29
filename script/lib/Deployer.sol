@@ -1,13 +1,15 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Script2} from "mgv_test/lib/Script2.sol";
-import {ToyENS} from "./ToyENS.sol";
+import {Script2} from "mgv_lib/Script2.sol";
+import {ToyENS} from "mgv_lib/ToyENS.sol";
 import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import {PolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {MumbaiFork} from "mgv_test/lib/forks/Mumbai.sol";
 import {LocalFork} from "mgv_test/lib/forks/Local.sol";
 import {console2 as console} from "forge-std/console2.sol";
+
+address constant ANVIL_DEFAULT_FIRST_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
 /* Writes deployments in 2 ways:
    1. In a json file. Easier to write one directly than to parse&transform
@@ -23,8 +25,7 @@ import {console2 as console} from "forge-std/console2.sol";
    3. Write a standalone run() function that will be called by forge script. Call outputDeployment() at the end of run() if you deployed any contract.
 
    Do not inherit other deployer scripts! Just instantiate them and call their
-   .innerRun() function;
-*/
+   .innerRun() function;*/
 abstract contract Deployer is Script2 {
   // singleton Fork so all deploy scripts talk to the same backend
   // singleton method used for fork, so constructor-modified state is kept (just doing vm.etch forgets that state diff)
@@ -33,14 +34,15 @@ abstract contract Deployer is Script2 {
   ToyENS remoteEns = ToyENS(address(bytes20(hex"decaf0")));
 
   bool writeDeploy; // whether to write a .json file with updated addresses
-  address broadcaster; // who will broadcast
+  address _broadcaster; // who will broadcast
 
   constructor() {
     vm.label(address(fork), "Deployer:Fork");
     vm.label(address(remoteEns), "Remote ENS");
 
-    // depending on which fork the script is running on, choose whether to write the addresses to a file, get the right fork contract, and name the current network.
+    // detect if we've already created a fork -- the singleton method works as an inter-contract storage used for communication
     if (singleton("Deployer:Fork") == address(0)) {
+      // depending on which fork the script is running on, choose whether to write the addresses to a file, get the right fork contract, and name the current network.
       if (block.chainid == 80001) {
         fork = new MumbaiFork();
       } else if (block.chainid == 127) {
@@ -49,6 +51,10 @@ abstract contract Deployer is Script2 {
         fork = new LocalFork();
       } else {
         revert(string.concat("Unknown chain id ", vm.toString(block.chainid), ", cannot deploy."));
+      }
+
+      if (ANVIL_DEFAULT_FIRST_ACCOUNT.balance > 0) {
+        deployRemoteToyENS();
       }
 
       singleton("Deployer:Fork", address(fork));
@@ -65,20 +71,31 @@ abstract contract Deployer is Script2 {
   // broadcast using forge-provided tx.origin; or if default try to use <NETWORK>_PRIVATE_KEY env var's associated address.
   // In practice, this means you can set your deployer key MUMBAI_PRIVATE_KEY in your .env, and you can override that using --private-key <pk>
   function broadcast() public {
-    /* Memoize broadcaster. Cannot just do it in constructor because tx.origin for script constructors does not depend on additional CLI args */
-    if (broadcaster == address(0)) {
-      broadcaster = tx.origin;
+    vm.broadcast(broadcaster());
+  }
+
+  // compute & memoize the current broadcaster address
+  function broadcaster() public returns (address) {
+    /* Memoize _broadcaster. Cannot just do it in constructor because tx.origin for script constructors does not depend on additional CLI args */
+    if (_broadcaster == address(0)) {
+      // In the default case, forge sets the broadcaster to be tx.origin.
+      // Using msg.sender would not work since we don't know how deep in the callstack we are.
+      _broadcaster = tx.origin;
       // 0x00a3... is the default tx.origin
-      if (broadcaster == 0x00a329c0648769A73afAc7F9381E08FB43dBEA72) {
+      console.log(_broadcaster);
+      if (
+        _broadcaster == 0x00a329c0648769A73afAc7F9381E08FB43dBEA72
+          || _broadcaster == 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38
+      ) {
         string memory envVar = string.concat(simpleCapitalize(fork.NAME()), "_PRIVATE_KEY");
         try vm.envUint(envVar) returns (uint key) {
-          broadcaster = vm.rememberKey(key);
+          _broadcaster = vm.rememberKey(key);
         } catch {
           console.log("%s not found or not parseable as uint, using default broadcast sender", envVar);
         }
       }
     }
-    vm.broadcast(broadcaster);
+    return _broadcaster;
   }
 
   // buffer for output file
@@ -124,11 +141,27 @@ abstract contract Deployer is Script2 {
   }
 
   // Tries to interpret `envVar`'s value as an address; otherwise look it up in the current fork.
-  function getRawAddressOrName(string memory envVar) internal returns (address payable) {
+  function getRawAddressOrName(string memory envVar) internal view returns (address payable) {
     try vm.envAddress(envVar) returns (address addr) {
       return payable(addr);
     } catch {
       return fork.get(vm.envString(envVar));
     }
+  }
+
+  // FFI to `cast rpc setCode` in order to setup a ToyENS at a known address
+  function deployRemoteToyENS() internal {
+    string[] memory inputs = new string[](5);
+    inputs[0] = "cast";
+    inputs[1] = "rpc";
+    inputs[2] = "hardhat_setCode";
+    inputs[3] = vm.toString(address(remoteEns));
+    inputs[4] = vm.toString(address(new ToyENS()).code);
+    bytes memory resp = vm.ffi(inputs);
+    if (keccak256(resp) != keccak256("null")) {
+      console.log(string(resp));
+      revert("Unexpected response from `cast rpc hardhat_setCode`");
+    }
+    console.log("Deployed remote ToyENS");
   }
 }

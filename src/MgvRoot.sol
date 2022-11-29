@@ -17,7 +17,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-/* `MgvRoot` and its descendants describe an orderbook-based exchange ("the Mangrove") where market makers *do not have to provision their offer*. See `structs.js` for a longer introduction. In a nutshell: each offer created by a maker specifies an address (`maker`) to call upon offer execution by a taker. In the normal mode of operation, the Mangrove transfers the amount to be paid by the taker to the maker, calls the maker, attempts to transfer the amount promised by the maker to the taker, and reverts if it cannot.
+/* `MgvRoot` and its descendants describe an orderbook-based exchange ("Mangrove") where market makers *do not have to provision their offer*. See `structs.js` for a longer introduction. In a nutshell: each offer created by a maker specifies an address (`maker`) to call upon offer execution by a taker. In the normal mode of operation, Mangrove transfers the amount to be paid by the taker to the maker, calls the maker, attempts to transfer the amount promised by the maker to the taker, and reverts if it cannot.
 
    There is one Mangrove contract that manages all tradeable pairs. This reduces deployment costs for new pairs and lets market makers have all their provision for all pairs in the same place.
 
@@ -37,16 +37,12 @@
 
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
+import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs, IERC20} from "./MgvLib.sol";
 
-import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs} from "./MgvLib.sol";
-
-/* `MgvRoot` contains state variables used everywhere in the operation of the Mangrove and their related function. */
+/* `MgvRoot` contains state variables used everywhere in the operation of Mangrove and their related function. */
 contract MgvRoot is HasMgvEvents {
   /* # State variables */
   //+clear+
-  /* The `vault` address. If a pair has fees >0, those fees are sent to the vault. */
-  address public vault;
 
   /* Global mgv configuration, encoded in a 256 bits word. The information encoded is detailed in [`structs.js`](#structs.js). */
   MgvStructs.GlobalPacked internal internal_global;
@@ -120,18 +116,40 @@ contract MgvRoot is HasMgvEvents {
   }
 
   /* <a id="Mangrove/definition/liveMgvOnly"></a>
-     In case of emergency, the Mangrove can be `kill`ed. It cannot be resurrected. When a Mangrove is dead, the following operations are disabled :
+     In case of emergency, Mangrove can be `kill`ed. It cannot be resurrected. When a Mangrove is dead, the following operations are disabled :
        * Executing an offer
-       * Sending ETH to the Mangrove the normal way. Usual [shenanigans](https://medium.com/@alexsherbuck/two-ways-to-force-ether-into-a-contract-1543c1311c56) are possible.
+       * Sending ETH to Mangrove the normal way. Usual [shenanigans](https://medium.com/@alexsherbuck/two-ways-to-force-ether-into-a-contract-1543c1311c56) are possible.
        * Creating a new offer
    */
   function liveMgvOnly(MgvStructs.GlobalPacked _global) internal pure {
     require(!_global.dead(), "mgv/dead");
   }
 
-  /* When the Mangrove is deployed, all pairs are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive pairs cannot be taken or created. They can be updated and retracted. */
+  /* When Mangrove is deployed, all pairs are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive pairs cannot be taken or created. They can be updated and retracted. */
   function activeMarketOnly(MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) internal pure {
     liveMgvOnly(_global);
     require(_local.active(), "mgv/inactive");
+  }
+
+  /* # Token transfer functions */
+  /* `transferTokenFrom` is adapted from [existing code](https://soliditydeveloper.com/safe-erc20) and in particular avoids the
+  "no return value" bug. It never throws and returns true iff the transfer was successful according to `tokenAddress`.
+
+    Note that any spurious exception due to an error in Mangrove code will be falsely blamed on `from`.
+  */
+  function transferTokenFrom(address tokenAddress, address from, address to, uint value) internal returns (bool) {
+    unchecked {
+      bytes memory cd = abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, value);
+      (bool noRevert, bytes memory data) = tokenAddress.call(cd);
+      return (noRevert && (data.length == 0 || abi.decode(data, (bool))));
+    }
+  }
+
+  function transferToken(address tokenAddress, address to, uint value) internal returns (bool) {
+    unchecked {
+      bytes memory cd = abi.encodeWithSelector(IERC20.transfer.selector, to, value);
+      (bool noRevert, bytes memory data) = tokenAddress.call(cd);
+      return (noRevert && (data.length == 0 || abi.decode(data, (bool))));
+    }
   }
 }

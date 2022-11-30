@@ -81,8 +81,7 @@ abstract contract Deployer is Script2 {
       // In the default case, forge sets the broadcaster to be tx.origin.
       // Using msg.sender would not work since we don't know how deep in the callstack we are.
       _broadcaster = tx.origin;
-      // 0x00a3... is the default tx.origin
-      console.log(_broadcaster);
+      // there are two possible default tx.origin depending on foundry version
       if (
         _broadcaster == 0x00a329c0648769A73afAc7F9381E08FB43dBEA72
           || _broadcaster == 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38

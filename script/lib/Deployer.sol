@@ -147,6 +147,14 @@ abstract contract Deployer is Script2 {
     }
   }
 
+  function envHas(string memory envVar) internal view returns (bool) {
+    try vm.envString(envVar) {
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // FFI to `cast rpc setCode` in order to setup a ToyENS at a known address
   function deployRemoteToyENS() internal {
     string[] memory inputs = new string[](5);

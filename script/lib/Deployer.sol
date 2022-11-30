@@ -45,7 +45,7 @@ abstract contract Deployer is Script2 {
       // depending on which fork the script is running on, choose whether to write the addresses to a file, get the right fork contract, and name the current network.
       if (block.chainid == 80001) {
         fork = new MumbaiFork();
-      } else if (block.chainid == 127) {
+      } else if (block.chainid == 137) {
         fork = new PolygonFork();
       } else if (block.chainid == 31337) {
         fork = new LocalFork();

@@ -2,6 +2,10 @@
 
 This package contains the Solidity implementation of Mangrove as well as deployment scripts and example Solidity offer logics.
 
+# Documentation
+
+If you are looking for the Mangrove developer documentation, the site to go to is [docs.mangrove.exchange](https://docs.mangrove.exchange).
+
 # Installation
 
 First, clone the repo and install the prerequisites for the monorepo described in the root [README.md](../../README.md).

@@ -9,33 +9,41 @@ import {Deployer} from "../lib/Deployer.sol";
  * @notice deploys a Mango instance on a given market
  */
 /**
- * e.g deploy mango on WETH USDC market:
+ * First test:
+ *  forge script
+ *  NAME=<optional name in case symbols are ambiguous>
+ *  BASE=WETH \
+ *  QUOTE=0x<quote_address> \
+ *  --fork-url mumbai MangoDeployer -vvv
  *
- * BASE=WETH \
- * QUOTE=USDC \
- * BASE_0=$(cast ff 18 1) \
- * QUOTE_0=$(cast ff 6 200) \
- * NSLOTS=100 \
- * PRICE_INCR=$(cast ff 6 30) \
- * ADMIN=$MUMBAI_TESTER_ADDRESS \
- * forge script --fork-url $MUMBAI_NODE_URL \
- * --private-key $MUMBAI_DEPLOYER_PRIVATE_KEY \
- * --etherscan-api-key $POLYGONSCAN_API \
- * --broadcast \
- * --verify \
- * MangoDeployer
+ * e.g deploy mango on WETH <quote> market:
+ *
+ *  WRITE_DEPLOY=true \
+ *  NAME=<optional name in case symbols are ambiguous>
+ *  BASE=WETH \
+ *  QUOTE=0x<quote_address> \
+ *  BASE_0=$(cast ff 18 1) \
+ *  QUOTE_0=$(cast ff <quote_decimals> <quote_0 (in quote units)>) \
+ *  NSLOTS=100 \
+ *  PRICE_INCR=$(cast ff <quote_decimals> <quote_increase (in quote units)>) \
+ *  forge script --fork-url $MUMBAI_NODE_URL \
+ *  --broadcast \
+ *  --verify \
+ *  MangoDeployer
  */
 
 contract MangoDeployer is Deployer {
+  Mango public current;
+
   function run() public {
     innerRun({
-      base: getRawAddressOrName("BASE"),
-      quote: getRawAddressOrName("QUOTE"),
+      base: envAddressOrName("BASE"),
+      quote: envAddressOrName("QUOTE"),
       base_0: vm.envUint("BASE_0"),
       quote_0: vm.envUint("QUOTE_0"),
       nslots: vm.envUint("NSLOTS"),
       price_incr: vm.envUint("PRICE_INCR"),
-      admin: vm.envAddress("ADMIN")
+      admin: broadcaster()
     });
   }
 
@@ -53,10 +61,8 @@ contract MangoDeployer is Deployer {
     public
   {
     IMangrove mgv = IMangrove(fork.get("Mangrove"));
-
-    console.log("Deploying Mango on market", IERC20(base).symbol(), IERC20(quote).symbol());
     broadcast();
-    Mango mgo = new Mango(
+    current = new Mango(
       mgv,
       IERC20(base),
       IERC20(quote),
@@ -66,9 +72,16 @@ contract MangoDeployer is Deployer {
       price_incr,
       admin
     );
-    // smoke test
-    require(mgo.MGV() == mgv, "Smoke test failed");
+    string memory mangoName = getName(IERC20(base), IERC20(quote));
+    fork.set(mangoName, address(current));
     outputDeployment();
-    console.log("Mango deployed", address(mgo));
+  }
+
+  function getName(IERC20 base, IERC20 quote) public view returns (string memory) {
+    try vm.envString("NAME") returns (string memory mangoName) {
+      return mangoName;
+    } catch {
+      return string.concat("Mango_", base.symbol(), "_", quote.symbol());
+    }
   }
 }

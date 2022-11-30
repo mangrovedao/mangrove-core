@@ -15,7 +15,11 @@ contract MangroveDeployer is Deployer {
   MgvOracle public oracle;
 
   function run() public {
-    innerRun({chief: msg.sender, gasprice: 1, gasmax: 2_000_000});
+    innerRun({
+      chief: envHas("CHIEF") ? vm.envAddress("CHIEF") : msg.sender,
+      gasprice: envHas("GASPRICE") ? vm.envUint("GASPRICE") : 1,
+      gasmax: envHas("GASMAX") ? vm.envUint("GASMAX") : 2_000_000
+    });
     outputDeployment();
   }
 

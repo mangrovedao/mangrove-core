@@ -31,7 +31,8 @@ contract MgvGovernable is MgvRoot {
 
       /* Initially, governance is open to anyone. */
 
-      /* Set initial gasprice and gasmax. */
+      /* Initialize vault to governance address, and set initial gasprice and gasmax. */
+      setVault(_governance);
       setGasprice(_gasprice);
       setGasmax(gasmax);
       /* Initialize governance to `_governance` after parameter setting. */
@@ -45,15 +46,6 @@ contract MgvGovernable is MgvRoot {
     unchecked {
       require(msg.sender == governance || msg.sender == address(this) || governance == address(0), "mgv/unauthorized");
     }
-  }
-
-  /* ## Transfer ERC20 tokens to governance.
-
-    If this function is called while an order is executing, the reentrancy may prevent a party (taker in normal Mangrove, maker in inverted Mangrove) from receiving their tokens. This is fine as the order execution will then fail, and the tx will revert. So the most a malicious governance can do is render Mangrove unusable.
-  */
-  function withdrawERC20(address tokenAddress, uint value) external {
-    authOnly();
-    require(transferToken(tokenAddress, governance, value), "mgv/withdrawERC20Fail");
   }
 
   /* # Set configuration and Mangrove state */
@@ -156,6 +148,15 @@ contract MgvGovernable is MgvRoot {
       require(governanceAddress != address(0), "mgv/config/gov/not0");
       governance = governanceAddress;
       emit SetGovernance(governanceAddress);
+    }
+  }
+
+  /* ### `vault` */
+  function setVault(address vaultAddress) public {
+    unchecked {
+      authOnly();
+      vault = vaultAddress;
+      emit SetVault(vaultAddress);
     }
   }
 

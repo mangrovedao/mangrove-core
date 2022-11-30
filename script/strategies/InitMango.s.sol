@@ -11,7 +11,6 @@ import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_ma
 /**
  * Usage example: initialize MANGO_WETH_USDC
  *
- * MANGO=0x7D63939ce0Fa80cC69C129D337a978D0E1F354A1 \
  * DEFAULT_BASE_AMOUNT=$(cast ff 18 0.25) \
  * DEFAULT_QUOTE=_AMOUNT=$(cast ff 6 1000) \
  * LAST_BID_INDEX=50 \
@@ -25,7 +24,7 @@ import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_ma
 contract InitMango is Deployer {
   function run() public {
     innerRun({
-      $mgo: payable(vm.envAddress("MANGO")),
+      $mgo: payable(envAddressOrName("MANGO")),
       default_base_amount: vm.envUint("DEFAULT_BASE_AMOUNT"),
       default_quote_amount: vm.envUint("DEFAULT_QUOTE_AMOUNT"),
       lastBidIndex: vm.envUint("LAST_BID_INDEX"),

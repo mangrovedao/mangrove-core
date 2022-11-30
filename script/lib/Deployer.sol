@@ -53,7 +53,7 @@ abstract contract Deployer is Script2 {
         revert(string.concat("Unknown chain id ", vm.toString(block.chainid), ", cannot deploy."));
       }
 
-      if (ANVIL_DEFAULT_FIRST_ACCOUNT.balance > 0) {
+      if (ANVIL_DEFAULT_FIRST_ACCOUNT.balance >= 1000 ether) {
         deployRemoteToyENS();
       }
 

@@ -129,33 +129,6 @@ util.inspect.replDefaults.depth = 0;
 // Load the mangrove.js API
 const { Mangrove, MgvToken, ethers } = require("@mangrovedao/mangrove.js");
 
-// Set addresses for local deployment of Mangrove
-Mangrove.setAddress(
-  "Mangrove",
-  "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-  "local"
-);
-Mangrove.setAddress(
-  "MgvReader",
-  "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-  "local"
-);
-Mangrove.setAddress(
-  "MgvCleaner",
-  "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-  "local"
-);
-Mangrove.setAddress(
-  "MgvOracle",
-  "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-  "local"
-);
-Mangrove.setAddress(
-  "MangroveOrderEnriched",
-  "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-  "local"
-);
-
 // Connect to the chosen node provider
 const provider = new ethers.providers.WebSocketProvider(
   // Change this to the appropriate env var for the chain you want to connect to
@@ -172,26 +145,11 @@ let seller = new ethers.Wallet(
 let mgv = await Mangrove.connect({ signer: seller });
 
 // Connect to tokens
-let UsUSD = mgv.token("UsUSD", {
-  address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
-  decimals: 18,
-});
-let UsDAO = mgv.token("UsDAO", {
-  address: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
-  decimals: 18,
-});
-let LUsDAO = mgv.token("LUsDAO", {
-  address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
-  decimals: 18,
-});
-let PLUsDAO = mgv.token("PLUsDAO", {
-  address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-  decimals: 18,
-});
-let MetaPLUsDAO = mgv.token("Meta-PLUsDAO", {
-  address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
-  decimals: 18,
-});
+let UsUSD = mgv.token("UsUSD");
+let UsDAO = mgv.token("UsDAO");
+let LUsDAO = mgv.token("LUsDAO");
+let PLUsDAO = mgv.token("PLUsDAO");
+let MetaPLUsDAO = mgv.token("Meta-PLUsDAO");
 
 // Util for printing relevant balances
 async function printBalances(address) {
@@ -215,14 +173,20 @@ let plusMgvStrat = mgv.offerLogic("0x610178dA211FEF7D417bC0e6FeD39F05609AD788");
 let liquidityProvider = await plusMgvStrat.liquidityProvider(market);
 
 // Approve PLUsMgvStrat to transfer Meta-PLUsDAO tokens on seller's behalf
-let tx = await liquidityProvider.approveAsks(); 0;
-let txReceipt = await tx.wait(); 0;
+let tx = await liquidityProvider.approveAsks();
+0;
+let txReceipt = await tx.wait();
+0;
 // Approve Meta-PLUsDAO to transfer PLUsDAO tokens on seller's behalf
-tx = await PLUsDAO.approve(MetaPLUsDAO.address); 0;
-txReceipt = await tx.wait(); 0;
+tx = await PLUsDAO.approve(MetaPLUsDAO.address);
+0;
+txReceipt = await tx.wait();
+0;
 // Approve PLUsDAO to transfer LUsDAO tokens on seller's behalf
-tx = await LUsDAO.approve(PLUsDAO.address); 0;
-txReceipt = await tx.wait(); 0;
+tx = await LUsDAO.approve(PLUsDAO.address);
+0;
+txReceipt = await tx.wait();
+0;
 
 // Post offer
 let provision = await liquidityProvider.computeAskProvision();
@@ -255,33 +219,6 @@ util.inspect.replDefaults.depth = 0;
 // Load the mangrove.js API
 const { Mangrove, MgvToken, ethers } = require("@mangrovedao/mangrove.js");
 
-// Set addresses for local deployment of Mangrove
-Mangrove.setAddress(
-  "Mangrove",
-  "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-  "local"
-);
-Mangrove.setAddress(
-  "MgvReader",
-  "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-  "local"
-);
-Mangrove.setAddress(
-  "MgvCleaner",
-  "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-  "local"
-);
-Mangrove.setAddress(
-  "MgvOracle",
-  "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-  "local"
-);
-Mangrove.setAddress(
-  "MangroveOrderEnriched",
-  "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-  "local"
-);
-
 // Connect to the chosen node provider
 const provider = new ethers.providers.WebSocketProvider(
   // Change this to the appropriate env var for the chain you want to connect to
@@ -298,26 +235,11 @@ let taker = new ethers.Wallet(
 let mgv = await Mangrove.connect({ signer: taker });
 
 // Connect to tokens
-let UsUSD = mgv.token("UsUSD", {
-  address: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
-  decimals: 18,
-});
-let UsDAO = mgv.token("UsDAO", {
-  address: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
-  decimals: 18,
-});
-let LUsDAO = mgv.token("LUsDAO", {
-  address: "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
-  decimals: 18,
-});
-let PLUsDAO = mgv.token("PLUsDAO", {
-  address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-  decimals: 18,
-});
-let MetaPLUsDAO = mgv.token("Meta-PLUsDAO", {
-  address: "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
-  decimals: 18,
-});
+let UsUSD = mgv.token("UsUSD");
+let UsDAO = mgv.token("UsDAO");
+let LUsDAO = mgv.token("LUsDAO");
+let PLUsDAO = mgv.token("PLUsDAO");
+let MetaPLUsDAO = mgv.token("Meta-PLUsDAO");
 
 // Util for printing relevant balances
 async function printBalances(address) {
@@ -337,8 +259,10 @@ market.consoleAsks();
 
 // Taker approves Mangrove for transfers of quote token
 // This is required before buying
-tx = await market.quote.approveMangrove(); 0;
-await tx.wait(); 0;
+tx = await market.quote.approveMangrove();
+0;
+await tx.wait();
+0;
 
 // Buy LUsDAO tokens
 let orderResult = await market.buy({ volume: 2, price: 2 });

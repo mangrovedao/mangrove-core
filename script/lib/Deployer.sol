@@ -140,8 +140,7 @@ abstract contract Deployer is Script2 {
     out = string.concat(out, s, "\n");
   }
 
-  // Tries to interpret `envVar`'s value as an address; otherwise look it up in the current fork.
-  function getRawAddressOrName(string memory envVar) internal view returns (address payable) {
+  function envAddressOrName(string memory envVar) internal view returns (address payable) {
     try vm.envAddress(envVar) returns (address addr) {
       return payable(addr);
     } catch {

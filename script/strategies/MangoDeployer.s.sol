@@ -10,12 +10,12 @@ import {Deployer} from "../lib/Deployer.sol";
  */
 /**
  * First test:
- *  forge script 
+ *  forge script
  *  NAME=<optional name in case symbols are ambiguous>
  *  BASE=WETH \
  *  QUOTE=0x<quote_address> \
- *  --fork-url mumbai MangoDeployer -vvv 
- * 
+ *  --fork-url mumbai MangoDeployer -vvv
+ *
  * e.g deploy mango on WETH <quote> market:
  *
  *  WRITE_DEPLOY=true \
@@ -37,8 +37,8 @@ contract MangoDeployer is Deployer {
 
   function run() public {
     innerRun({
-      base: getRawAddressOrName("BASE"),
-      quote: getRawAddressOrName("QUOTE"),
+      base: envAddressOrName("BASE"),
+      quote: envAddressOrName("QUOTE"),
       base_0: vm.envUint("BASE_0"),
       quote_0: vm.envUint("QUOTE_0"),
       nslots: vm.envUint("NSLOTS"),

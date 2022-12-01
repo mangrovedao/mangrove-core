@@ -8,11 +8,23 @@
     "name": "MgvOracle"
   },
   {
-    "address": "0x106b805d76ea65f8af0bb4e9499a2cb69162c75a",
+    "address": "0x106b805d76Ea65F8aF0Bb4E9499a2CB69162C75A",
     "name": "MgvReader"
   },
   {
     "address": "0xf6509A77281018544eD3Ba4E0c605ea9aAe07819",
     "name": "MgvCleaner"
+  },
+  {
+    "address": "0x4869505f0E97c54d3954C4Ac2b65E32aB0110234",
+    "name": "MgvGovernance"
+  },
+  {
+    "address": "0xE07622Ed153abdd91Fb9b7c9CDbd69f3F98203a1",
+    "name": "PxUSDC"
+  },
+  {
+    "address": "0x10c1425b9458d8BB85301C3E90847208370aC2A3",
+    "name": "PxMATIC"
   }
 ]

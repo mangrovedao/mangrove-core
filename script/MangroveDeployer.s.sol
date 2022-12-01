@@ -31,8 +31,10 @@ contract MangroveDeployer is Deployer {
     fork.set("Mangrove", address(mgv));
 
     (new MgvReaderDeployer()).innerRun(address(mgv));
+    reader = MgvReader(fork.get("MgvReader"));
 
     (new MgvCleanerDeployer()).innerRun(address(mgv));
+    cleaner = MgvCleaner(fork.get("MgvCleaner"));
 
     broadcast();
     oracle = new MgvOracle({governance_: chief, initialMutator_: chief});

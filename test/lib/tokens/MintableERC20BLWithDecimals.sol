@@ -26,7 +26,7 @@ contract MintableERC20BLWithDecimals is
   }
 
   function mint(address to, uint amount) external {
-    uint limit = 1000;
+    uint limit = 100_000;
     require(
       amount <= limit * pow(10, decimals()), // was limit.mul(...)
       "MintableERC20BLWithDecimals/mintLimitExceeded"

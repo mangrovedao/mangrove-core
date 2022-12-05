@@ -14,7 +14,8 @@ exports.abi_exports = [
   "ICreditDelegationToken",
   "ILiquidityProvider",
   "AccessControlled",
+  "SimpleTestMaker",
 ];
 
 // Contracts that should export their ABI + bytecode
-exports.full_exports = ["OfferForwarder", "OfferMaker", "SimpleTestMaker"];
+exports.full_exports = ["OfferMaker"];

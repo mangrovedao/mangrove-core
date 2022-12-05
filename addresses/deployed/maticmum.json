@@ -16,11 +16,7 @@
     "name": "MgvOracle"
   },
   {
-    "address": "0x2a4b3282E45f3f9C6e151Ec2D69fcE5E32410D14",
+    "address": "0x2dB249612f45580f8288DD75cd9264270f9B6726",
     "name": "MangroveOrderEnriched"
-  },
-  {
-    "address": "0x35D9e8381dac7d192dA3D4310c6671030B3dbfBa",
-    "name": "Mango_tGNT_USDC"
   }
 ]

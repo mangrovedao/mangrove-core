@@ -2,18 +2,16 @@
 pragma solidity ^0.8.10;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MangroveDeployer} from "mgv_script/lib/MangroveDeployer.sol";
+import {MangroveDeployer} from "mgv_script/MangroveDeployer.s.sol";
 
-import {Test2, Test} from "mgv_test/lib/Test2.sol";
+import {Test2, Test} from "mgv_lib/Test2.sol";
 
-import {MgvStructs} from "src/MgvLib.sol";
-import {Mangrove} from "src/Mangrove.sol";
-import {MgvReader} from "src/periphery/MgvReader.sol";
-import {MangroveOrderEnriched} from "src/periphery/MangroveOrderEnriched.sol";
-import {MgvCleaner} from "src/periphery/MgvCleaner.sol";
-import {MgvOracle} from "src/periphery/MgvOracle.sol";
-import {IMangrove} from "src/IMangrove.sol";
-import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {Mangrove} from "mgv_src/Mangrove.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
+import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 
 contract MangroveDeployerTest is Deployer, Test2 {
   MangroveDeployer mgvDeployer;
@@ -35,7 +33,6 @@ contract MangroveDeployerTest is Deployer, Test2 {
     assertEq(fork.get("MgvReader"), address(mgvDeployer.reader()));
     assertEq(fork.get("MgvCleaner"), address(mgvDeployer.cleaner()));
     assertEq(fork.get("MgvOracle"), address(mgvDeployer.oracle()));
-    assertEq(fork.get("MangroveOrderEnriched"), address(mgvDeployer.mgoe()));
   }
 
   function test_contracts_instantiated_correctly() public {
@@ -69,10 +66,5 @@ contract MangroveDeployerTest is Deployer, Test2 {
     assertEq(chief, address(uint160(uint(oracleGovernance))));
     bytes32 oracleMutator = vm.load(address(oracle), bytes32(uint(1)));
     assertEq(chief, address(uint160(uint(oracleMutator))));
-
-    // MangroveOrderEnriched - verify mgv is used and admin is chief
-    MangroveOrderEnriched mgoe = mgvDeployer.mgoe();
-    assertEq(mgoe.admin(), chief);
-    assertEq(address(mgoe.MGV()), address(mgv));
   }
 }

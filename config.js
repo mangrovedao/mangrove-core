@@ -13,7 +13,9 @@ exports.abi_exports = [
   "AaveDeepRouter",
   "AaveV3Module",
   "ICreditDelegationToken",
+  "ILiquidityProvider",
+  "AccessControlled",
 ];
 
 // Contracts that should export their ABI + bytecode
-exports.full_exports = ["OfferMaker", "OfferForwarder"];
+exports.full_exports = ["OfferForwarder", "OfferMaker"];

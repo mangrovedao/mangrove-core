@@ -12,8 +12,6 @@
 
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 /// @title This is the storage part of a diamond storage scheme for `AbstractRouter` to reduce size of contracts.
 library AbstractRouterStorage {
   /// @notice The layout of the storage.

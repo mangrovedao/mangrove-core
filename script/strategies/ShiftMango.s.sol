@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Mango, IERC20, IMangrove} from "src/strategies/offer_maker/market_making/mango/Mango.sol";
+import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_making/mango/Mango.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /**
@@ -41,7 +41,7 @@ contract ShiftMango is Deployer {
     uint default_gives_amount // in base amount if shift < 0, in quote amount otherwise
   ) public {
     MGO = Mango(mgo);
-    require(MGO.admin() == msg.sender, "This script requires admin rights");
+    require(MGO.admin() == broadcaster(), "This script requires admin rights");
     BASE = MGO.BASE();
     console.log("This mango uses", BASE.symbol(), "as base");
     QUOTE = MGO.QUOTE();

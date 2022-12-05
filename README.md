@@ -2,6 +2,10 @@
 
 This package contains the Solidity implementation of Mangrove as well as deployment scripts and example Solidity offer logics.
 
+# Documentation
+
+If you are looking for the Mangrove developer documentation, the site to go to is [docs.mangrove.exchange](https://docs.mangrove.exchange).
+
 # Installation
 
 First, clone the repo and install the prerequisites for the monorepo described in the root [README.md](../../README.md).
@@ -9,7 +13,7 @@ First, clone the repo and install the prerequisites for the monorepo described i
 Next, run the following commands:
 
 ```shell
-$ yarn install   # Sets up the Mangrove monorepo and install dependencies
+$ yarn install   # Sets up Mangrove monorepo and install dependencies
 $ yarn build     # Compiles Mangrove and offer logics
 ```
 
@@ -34,58 +38,11 @@ console.log("Message %s number %d",s,d);
 
 To run all tests in the package, just run `yarn test`.
 
-To run specific tests or test suites, see the instructions in the following sectins.
-
-## How to run Solidity tests for Mangrove
-
 This package contains a comprehensive test suite for Mangrove, implemented in Solidity using [foundry](https://book.getfoundry.sh/index.html).
 
-This test suite can be run with:
-
-```bash
-$ yarn test:solidity
-```
-
-The tests are located in [./contracts/Tests](./contracts/Tests).
+The tests are located in [./test](./test).
 
 Refer to the documentation of [foundry](https://book.getfoundry.sh/index.html) for details on how tests are structured and options for running it.
-
-## How to run offer logic tests
-
-Tests for the example offer logics are implemented in JavaScript and are located here: [./test](./test).
-
-The tests run a on a local fork of either Ethereum or Polygon mainnet. This ensures that the offer logics use the actual mainnet versions of the DeFi bricks they use, e.g. Aave and Compound.
-
-In order to run the tests, you must provide URLs for mainnet endpoints in the following environment variables:
-
-```bash
-# URL for an Ethereum endpoint
-ETHEREUM_NODE_URL=https://eth-mainnet.alchemyapi.io/v2/<API key>
-# URL for a Polygon endpoint
-POLYGON_NODE_URL=https://polygon-mainnet.g.alchemy.com/v2/<API key>
-```
-
-You can set up free accounts with any endpoint provider, e.g. Infura or Alchemy.
-
-For convencience, you can store the environment variables in `./.env.test.local`. You can use [.env.local.example](.env.local.example) as a template.
-
-The full test suite can be run with:
-
-```bash
-# Run offer logic tests against fork of Ethereum mainnet:
-$ yarn test:ethereum-mainnet
-
-# Run offer logic tests against fork of Polygon mainnet:
-$ yarn test:polygon-mainnet
-```
-
-To run specific test suites, use the `testSuites` package script:
-
-```bash
- yarn run testSuites -n/--network <network> [testSuite1 ...]
- # Example running the basic test suite (test-basic.js) on a Polygon mainnet fork:
- yarn run testSuites -n polygon basic
-```
 
 # Deploying on Mangrove
 
@@ -125,7 +82,7 @@ The `vm.broadcast()` cheatcode implicitly selects a sender for the broadcast tra
 
 It is tiring to always add `--private-key 0x..` to scripts, especially since the key may be different for each network. The `Deployer` contract has a `broadcast()` function that reads the `<NAME>_PRIVATE_KEY` var off the environment, where `NAME` is the name of the chain you're talking to.
 
-- You should have vars such as `MUMBAI_PRIVATE_KEY` , `POLYGON_PRIVATE_KEY` in your `.env` file
+- You should have vars such as `MUMBAI_PRIVATE_KEY` , `POLYGON_PRIVATE_KEY` in your `.env` file. You can use [.env.example](.env.example) as a template.
 - You should use `broadcast()` instead of `vm.broadcast()` in scripts. The deployer contract will look for the correct private key, and fallback to the CLI-provided key if none was found.
 
 (Note that for Mumbai, `name=”mumbai”`)

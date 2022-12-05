@@ -12,11 +12,9 @@
 
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
-import {AccessControlled} from "src/strategies/utils/AccessControlled.sol";
+import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
 import {AbstractRouterStorage as ARSt} from "./AbstractRouterStorage.sol";
-import {IERC20} from "src/MgvLib.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
 
 /// @title AbstractRouter
 /// @notice Partial implementation and requirements for liquidity routers.
@@ -99,33 +97,15 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param reserve is the address identifying the location of the assets
   function reserveBalance(IERC20 token, address reserve) external view virtual returns (uint);
 
-  ///@notice withdraws `amount` of tokens from `reserve` and sends them to `recipient`
-  ///@dev this is called by maker's contract when offer maker wishes to withdraw funds from it.
-  ///@param token is the asset one wishes to withdraw
-  ///@param reserve is the location of the assets
-  ///@param recipient is address receiving the tokens
-  ///@param amount is the amount of asset that should be withdrawn
-  function withdrawToken(IERC20 token, address reserve, address recipient, uint amount)
-    public
-    onlyMakers
-    returns (bool)
-  {
-    return __withdrawToken__(token, reserve, recipient, amount);
-  }
-
-  ///@notice router-dependant implementation of the `withdrawToken` function
-  function __withdrawToken__(IERC20 token, address reserve, address recipient, uint amount)
-    internal
-    virtual
-    returns (bool);
-
   ///@notice adds a maker contract address to the allowed makers of this router
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address
+  ///@param maker the maker contract address
   function bind(address maker) public onlyAdmin {
     ARSt.getStorage().makers[maker] = true;
   }
 
   ///@notice removes a maker contract address from the allowed makers of this router
+  ///@param maker the maker contract address
   function unbind(address maker) public onlyAdmin {
     ARSt.getStorage().makers[maker] = false;
   }
@@ -140,6 +120,7 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param token is the asset (and possibly its overlyings) whose approval must be checked
   ///@param reserve the reserve that requires asset pulling/pushing
   function checkList(IERC20 token, address reserve) external view {
+    require(ARSt.getStorage().makers[msg.sender], "Router/CallerIsNotAnApprovedMakerContract");
     // checking maker contract has approved this for token transfer (in order to push to reserve)
     require(token.allowance(msg.sender, address(this)) > 0, "Router/NotApprovedByMakerContract");
     // pulling from reserve might require a special approval if `reserve` is some account on a protocol (e.g a lender) which requires a custom redeem call.

@@ -19,8 +19,6 @@
 
 pragma solidity ^0.8.10;
 
-pragma abicoder v2;
-
 import {HasMgvEvents} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";

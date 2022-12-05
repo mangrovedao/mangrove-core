@@ -12,34 +12,20 @@
 
 pragma solidity >=0.7.0;
 
-pragma abicoder v2;
-
-import {IMangrove} from "src/IMangrove.sol";
-import {IERC20} from "src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {IERC20} from "mgv_src/MgvLib.sol";
 
 ///@title IForwarder
 ///@notice Interface for contracts that manage liquidity on Mangrove on behalf of multiple offer makers
 interface IForwarder {
   ///@notice Logging new offer owner
-  ///@param mangrove the Mangrove contract on which the offer is posted
+  ///@param mangrove Mangrove contract on which the offer is posted
   ///@param outbound_tkn the outbound token of the offer list.
   ///@param inbound_tkn the inbound token of the offer list.
   ///@param owner the offer maker that can manage the offer.
   event NewOwnedOffer(
     IMangrove mangrove, IERC20 indexed outbound_tkn, IERC20 indexed inbound_tkn, uint indexed offerId, address owner
   );
-
-  ///@notice Logging reserve approval
-  event ReserveApproval(address indexed reserve_, address indexed maker, bool isApproved);
-
-  ///@notice view for reserve approvals
-  function reserveApprovals(address reserve_, address maker) external view returns (bool);
-
-  ///@notice reserve (who must be `msg.sender`) approves `maker` for pooling.
-  function approvePooledMaker(address maker) external;
-
-  ///@notice reserve (who must be `msg.sender`) revokes `maker` from its approved poolers.
-  function revokePooledMaker(address maker) external;
 
   /// @notice view on offer owners.
   /// @param outbound_tkn the outbound token of the offer list.

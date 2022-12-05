@@ -4,7 +4,6 @@ exports.abi_exports = [
   "MgvReader",
   "MgvCleaner",
   "MgvOracle",
-  "SimpleTestMaker",
   "TestToken",
   "IERC20",
   "MangroveOrder",

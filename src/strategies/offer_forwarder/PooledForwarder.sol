@@ -67,12 +67,8 @@ note over aavePool,aWETH:pooledForwarder: +1-1 WETH<br>maker: -1 WETH<br>aaveRou
   "noteAlign": "left"
 }*/
 
-import {Forwarder} from "src/strategies/offer_forwarder/abstract/Forwarder.sol";
-import {IMakerLogic} from "src/strategies/interfaces/IMakerLogic.sol";
-import {AaveRouter} from "src/strategies/routers/AaveRouter.sol";
-import {IERC20, MgvLib} from "src/MgvLib.sol";
-import {IMangrove} from "src/IMangrove.sol";
-import {AbstractRouter} from "src/strategies/routers/AbstractRouter.sol";
+import {Forwarder, IMangrove, IERC20, MgvLib} from "src/strategies/offer_forwarder/abstract/Forwarder.sol";
+import {AbstractRouter, AaveRouter} from "src/strategies/routers/AaveRouter.sol";
 import {TransferLib} from "src/strategies/utils/TransferLib.sol";
 
 //Using a AaveDeepRouter, it will borrow and deposit on behalf of the reserve - but as a pool, and keep a contract-local balance to avoid spending gas
@@ -80,7 +76,7 @@ import {TransferLib} from "src/strategies/utils/TransferLib.sol";
 // - supply ~ 250K
 // - borrow ~ 360K
 //This means that yield and interest should be handled for the reserve here, somehow.
-contract PooledForwarder is IMakerLogic, Forwarder {
+contract PooledForwarder is Forwarder {
   // balance of token for an owner - the pool has a balance in aave and on `this`.
   mapping(IERC20 => mapping(address => uint)) internal ownerBalance;
 
@@ -122,17 +118,12 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     return ownerBalance[token][owner];
   }
 
-  // As imposed by IMakerLogic we provide an implementation of newOffer for this contract
-  function newOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq, // TODO remove this? or ignore it
-    uint gasprice, // keeping gasprice here in order to expose the same interface as `OfferMaker` contracts.
-    uint pivotId
-  ) public payable returns (uint offerId) {
-    gasprice; // ignoring gasprice that will be derived based on msg.value.
+  // As imposed by ILiquidityProvider we provide an implementation of newOffer and updateOffer for this contract
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
+    external
+    payable
+    returns (uint offerId)
+  {
     // we post the offer without any checks - it is up to the owner to have deposited enough.
     offerId = _newOffer(
       OfferArgs({
@@ -140,13 +131,34 @@ contract PooledForwarder is IMakerLogic, Forwarder {
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: gasreq,
+        gasreq: offerGasreq(),
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
         noRevert: false, // propagates Mangrove's revert data in case of newOffer failure
         owner: msg.sender
       })
+    );
+  }
+
+  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+    external
+    payable
+  {
+    _updateOffer(
+      OfferArgs({
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        wants: wants,
+        gives: gives,
+        gasreq: offerGasreq(),
+        gasprice: 0,
+        pivotId: pivotId,
+        fund: msg.value,
+        noRevert: false, // propagates Mangrove's revert data in case of newOffer failure
+        owner: msg.sender
+      }),
+      offerId
     );
   }
 
@@ -171,7 +183,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
-    uint balance = getBalance(outTkn, owner);
+
     // First we decrease balance - will revert if owner does not have enough.
     decreaseBalance(outTkn, owner, amount);
 
@@ -208,12 +220,11 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     // TODO: Should we push to Aave or wait for next order?
     increaseBalance(token, msg.sender, amount);
     //TODO: repayThenDeposit is invoked and can pay back debt - consider having the strat be the admin
-    uint pushed = router().push(token, address(router_), amount);
+    uint pushed = router().push(token, address(router()), amount);
     require(pushed == amount, "pooledForwarder/pushedWrongAmount");
   }
 
-  //TODO make it into a hook - change Forwarder.
-  function __withdrawToken__(IERC20 token, address receiver, uint amount) internal override returns (bool success) {
+  function withdrawToken(IERC20 token, address receiver, uint amount) external returns (bool success) {
     // update state before calling contracts
     // if user doesn't have the funds, decreaseBalance will throw
     decreaseBalance(token, msg.sender, amount);
@@ -230,7 +241,8 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     // Here token.balanceOf(address(this)) >= amount
 
     // transfer to owner
-    require(TransferLib.transferToken({token: token, recipient: msg.sender, amount: amount}), "withdraw/transferFailed");
+    require(TransferLib.transferToken({token: token, recipient: receiver, amount: amount}), "withdraw/transferFailed");
+    return true;
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
@@ -240,6 +252,7 @@ contract PooledForwarder is IMakerLogic, Forwarder {
   {
     // reposts residual if any (conservative hook)
     bytes32 repost_status = super.__posthookSuccess__(order, makerData);
+    repost_status; // we can ignore this
 
     return pushAllToAave(order);
   }
@@ -263,34 +276,5 @@ contract PooledForwarder is IMakerLogic, Forwarder {
     tokens[0] = outTk;
     tokens[1] = inTk;
     router_.flush(tokens, address(router_));
-
-    //TODO I am not sure why we need all this reporting?
-    if (outBalance == 0 && inBalance > 0) {
-      if (inBalance - inPushed > 0) {
-        return "posthook/inNotFullyPushed";
-      } else {
-        return "posthook/inPushed";
-      }
-    }
-
-    if (outBalance > 0 && inBalance == 0) {
-      if (outBalance - outPushed > 0) {
-        return "posthook/outNotFullyPushed";
-      } else {
-        return "posthook/outPushed";
-      }
-    }
-    if (outBalance == 0 && inBalance == 0) {
-      return "posthook/nothingPushed";
-    }
-
-    if (outBalance - outPushed > 0 && inBalance - inPushed > 0) {
-      return "posthook/outAndInNotFullyPushed";
-    } else if (outBalance - outPushed > 0) {
-      return "posthook/outNotFullyPushed";
-    } else if (inBalance - inPushed > 0) {
-      return "posthook/inNotFullyPushed";
-    }
-    return "posthook/bothPushed";
   }
 }

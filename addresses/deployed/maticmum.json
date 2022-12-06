@@ -1,22 +1,22 @@
 [
   {
-    "address": "0xF3e339d8a0B989114412fa157Cc846ebaf4BCbd8",
+    "address": "0xcE4Ef2aC701618Af95e0465314c5ae47C948f453",
     "name": "Mangrove"
   },
   {
-    "address": "0xD59A51bE32eA35Db72De6A3Eb88bf2C56811f57c",
+    "address": "0x750E689760083B8f89872D68122deBb931fEfE96",
     "name": "MgvReader"
   },
   {
-    "address": "0xEb05Ace3574B0a6f4696c5CcD09e730d6d5ED3b0",
+    "address": "0x0CF9c30625EB3765ec39C29949BA70f4785d6353",
     "name": "MgvCleaner"
   },
   {
-    "address": "0xd38c02425da847584eeDA72387DAAA2E8f3b90c8",
+    "address": "0x1bCdF3F766290023Bf79bD7554361eDcc9888b0C",
     "name": "MgvOracle"
   },
   {
-    "address": "0x11803CbEEDC348c182adB97dD57e209F00960891",
+    "address": "0xB588f4E59cfa47cC35F6570BEC157a00D7e6A4BC",
     "name": "MangroveOrderEnriched"
   }
 ]

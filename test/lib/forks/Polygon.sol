@@ -7,7 +7,7 @@ contract PolygonFork is GenericFork {
   constructor() {
     CHAIN_ID = 137;
     NAME = "polygon"; // must be id used in foundry.toml for rpc_endpoint & etherscan
-    NETWORK = "polygon"; // must be network name inferred by ethers.js
+    NETWORK = "matic"; // must be network name inferred by ethers.js
   }
 }
 

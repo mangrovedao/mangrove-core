@@ -4,7 +4,6 @@ exports.abi_exports = [
   "MgvReader",
   "MgvCleaner",
   "MgvOracle",
-  "SimpleTestMaker",
   "TestToken",
   "IERC20",
   "MangroveOrder",
@@ -15,7 +14,8 @@ exports.abi_exports = [
   "ICreditDelegationToken",
   "ILiquidityProvider",
   "AccessControlled",
+  "SimpleTestMaker",
 ];
 
 // Contracts that should export their ABI + bytecode
-exports.full_exports = ["OfferForwarder", "OfferMaker"];
+exports.full_exports = ["OfferMaker"];

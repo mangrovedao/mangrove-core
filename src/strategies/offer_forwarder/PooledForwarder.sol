@@ -192,9 +192,6 @@ contract PooledForwarder is Forwarder {
       // we do not verify result - we assume there is now enough, otherwise the order will fail.
       //TODO aave could be out of funds.
       AbstractRouter router_ = router();
-
-      //TODO call super instead.
-
       uint pulled =
       //reserve should be router because aave does not allow redeeming on behalf of
        router_.pull({token: outTkn, reserve: address(router_), amount: amount, strict: false /* pull everything */});
@@ -219,8 +216,9 @@ contract PooledForwarder is Forwarder {
     // tokens are now on _this_ and can be pushed to router.
     // TODO: Should we push to Aave or wait for next order?
     increaseBalance(token, msg.sender, amount);
+    AbstractRouter router_ = router();
     //TODO: repayThenDeposit is invoked and can pay back debt - consider having the strat be the admin
-    uint pushed = router().push(token, address(router()), amount);
+    uint pushed = router_.push(token, address(router_), amount);
     require(pushed == amount, "pooledForwarder/pushedWrongAmount");
   }
 
@@ -234,7 +232,8 @@ contract PooledForwarder is Forwarder {
 
     // pull missing from aave into local pool - but only enough - the rest should still generate yield on aave
     if (thisBalance < amount) {
-      uint pulled = router().pull(token, address(this), amount - thisBalance, true);
+      AbstractRouter router_ = router();
+      uint pulled = router_.pull(token, address(router_), amount - thisBalance, true);
       // this should only happen if Aave is out of liquidity
       require(pulled + thisBalance == amount, "withdraw/aavePulledWrongAmount");
     }
@@ -248,13 +247,11 @@ contract PooledForwarder is Forwarder {
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal
     override
-    returns (bytes32)
+    returns (bytes32 repost_status)
   {
     // reposts residual if any (conservative hook)
-    bytes32 repost_status = super.__posthookSuccess__(order, makerData);
-    repost_status; // we can ignore this
-
-    return pushAllToAave(order);
+    repost_status = super.__posthookSuccess__(order, makerData);
+    pushAllToAave(order);
   }
 
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)
@@ -262,10 +259,11 @@ contract PooledForwarder is Forwarder {
     override
     returns (bytes32)
   {
-    return pushAllToAave(order);
+    pushAllToAave(order);
+    return "";
   }
 
-  function pushAllToAave(MgvLib.SingleOrder calldata order) internal returns (bytes32) {
+  function pushAllToAave(MgvLib.SingleOrder calldata order) internal {
     AbstractRouter router_ = router();
     IERC20 outTk = IERC20(order.outbound_tkn);
     IERC20 inTk = IERC20(order.inbound_tkn);

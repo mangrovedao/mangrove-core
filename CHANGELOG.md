@@ -1,11 +1,13 @@
 # next version
 
+# 1.2.0 (December 2022)
+
 - Added Polygon mainnet deployment addresses
 - Remove slippage from MangroveOrder - resting order now posted at same price
 - Introduce **reserve** hook on MangroveOffer which replaces other reserve logic
 - Add collectByImpersonation to MgvCleaner
 
-# 1.1.3 (nov 2022)
+# 1.1.3 (Nov 2022)
 
 - updating test deployment script
 

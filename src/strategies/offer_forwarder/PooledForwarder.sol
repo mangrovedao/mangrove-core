@@ -118,7 +118,7 @@ contract PooledForwarder is Forwarder {
     return ownerBalance[token][owner];
   }
 
-  // As imposed by ILiquidityProvider we provide an implementation of newOffer and updateOffer for this contract
+  // We expose a newOffer and updateOffer for this contract
   function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
     external
     payable

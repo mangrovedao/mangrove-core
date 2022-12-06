@@ -115,8 +115,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: 0
     });
     assertTrue(offerId != 0);
@@ -129,8 +127,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: 0
     });
     vm.stopPrank();
@@ -146,8 +142,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: 0
     });
   }
@@ -160,8 +154,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: 0
     });
   }
@@ -173,8 +165,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: 0
     });
     uint makerBalWei = maker.balance;
@@ -194,8 +184,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: 0
     });
     uint makerBalWei = maker.balance;
@@ -216,8 +204,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: 0
     });
     makerContract.retractOffer(weth, usdc, offerId, true);
@@ -234,8 +220,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: 0
     });
     vm.expectRevert("mgvOffer/weiTransferFail");
@@ -250,8 +234,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: 0
     });
 
@@ -261,8 +243,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: offerId,
       offerId: offerId
     });
@@ -275,8 +255,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: 0
     });
     mgv.setGasprice(type(uint16).max);
@@ -287,21 +265,12 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: type(uint).max,
-      gasprice: 0,
       pivotId: offerId,
       offerId: offerId
     });
   }
 
-  function performTrade(bool success) internal returns (uint, uint, uint, uint) {
-    return performTrade(success, 0);
-  }
-
-  function performTrade(bool success, uint add_gasreq)
-    internal
-    returns (uint takergot, uint takergave, uint bounty, uint fee)
-  {
+  function performTrade(bool success) internal returns (uint takergot, uint takergave, uint bounty, uint fee) {
     vm.startPrank(maker);
     // ask 2000 USDC for 1 weth
     makerContract.newOffer{value: 0.1 ether}({
@@ -309,8 +278,6 @@ contract OfferLogicTest is MangroveTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 * 10 ** 18,
-      gasreq: makerContract.offerGasreq() + add_gasreq,
-      gasprice: 0,
       pivotId: 0
     });
     vm.stopPrank();

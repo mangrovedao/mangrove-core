@@ -6,6 +6,7 @@
 - Remove slippage from MangroveOrder - resting order now posted at same price
 - Introduce **reserve** hook on MangroveOffer which replaces other reserve logic
 - Add collectByImpersonation to MgvCleaner
+- `ILiquidityProvider` provide simple `updateOffer` and `newOffer` public functions, using default values for `gasprice` and `gasreq`. This unifies interface between Forwarder and Direct strats. Strat builders can still implement a public offer management that lets offer owners set gasreq and gasprice
 
 # 1.1.3 (Nov 2022)
 

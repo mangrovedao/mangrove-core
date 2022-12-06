@@ -33,7 +33,7 @@ contract SimpleEOARouterTest is OfferLogicTest {
     usdc.approve(toApprove, type(uint).max); // to push
     weth.approve(toApprove, type(uint).max); // to pull
     vm.stopPrank();
-    (, uint takerGave,,) = performTrade(true, 70_000);
+    (, uint takerGave,,) = performTrade(true);
     vm.startPrank(maker);
     assertEq(takerGave, makerContract.tokenBalance(usdc, maker), "Incorrect reserve usdc balance");
     assertEq(makerContract.tokenBalance(weth, maker), 0, "Incorrect reserve weth balance");

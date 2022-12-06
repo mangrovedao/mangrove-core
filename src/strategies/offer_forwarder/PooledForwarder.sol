@@ -228,12 +228,13 @@ contract PooledForwarder is Forwarder {
     decreaseBalance(token, msg.sender, amount);
 
     // Check local pool first before calling aave
+    // FIXME since funds should not be on this contract (unless posthoook failed), we may want to get rid of this
     uint thisBalance = token.balanceOf(address(this));
 
     // pull missing from aave into local pool - but only enough - the rest should still generate yield on aave
     if (thisBalance < amount) {
       AbstractRouter router_ = router();
-      uint pulled = router_.pull(token, address(router_), amount - thisBalance, true);
+      uint pulled = router_.pull(token, reserve(msg.sender), amount - thisBalance, true);
       // this should only happen if Aave is out of liquidity
       require(pulled + thisBalance == amount, "withdraw/aavePulledWrongAmount");
     }
@@ -254,13 +255,19 @@ contract PooledForwarder is Forwarder {
     pushAllToAave(order);
   }
 
-  function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)
+  function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result)
     internal
     override
-    returns (bytes32)
+    returns (bytes32 retdata)
   {
     pushAllToAave(order);
-    return "";
+    // super fallback credits owner of ~ (provision - bounty)
+    retdata = super.__posthookFallback__(order, result);
+  }
+
+  function __reserve__(address maker) internal override returns (address) {
+    maker;
+    return address(router());
   }
 
   function pushAllToAave(MgvLib.SingleOrder calldata order) internal {

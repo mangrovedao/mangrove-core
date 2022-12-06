@@ -296,6 +296,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// because $~n<n$ a small amount of WEIs will accumulate on the balance of `this` on Mangrove over time.
   /// Note that these WEIs are not burnt since they can be admin retrieved using `withdrawFromMangrove`.
   /// @inheritdoc MangroveOffer
+
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result)
     internal
     virtual
@@ -309,12 +310,12 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
 
     // computing an under approximation of returned provision because of this offer's failure
     (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) = MGV.config(order.outbound_tkn, order.inbound_tkn);
-    uint provision =
-      10 ** 9 * order.offerDetail.gasprice() * (order.offerDetail.gasreq() + order.offerDetail.offer_gasbase());
+
+    uint offer_gasreq = order.offerDetail.gasreq();
+    uint provision = 10 ** 9 * order.offerDetail.gasprice() * (offer_gasreq + order.offerDetail.offer_gasbase());
 
     // gasUsed estimate to complete posthook and penalize this offer is ~1750 (empirical estimate)
-    uint approxBounty =
-      (order.offerDetail.gasreq() - (gasleft() - GAS_APPROX) + local.offer_gasbase()) * global.gasprice() * 10 ** 9;
+    uint approxBounty = (offer_gasreq - (gasleft() - GAS_APPROX) + local.offer_gasbase()) * global.gasprice() * 10 ** 9;
     uint approxReturnedProvision = approxBounty >= provision ? 0 : provision - approxBounty;
 
     // storing the portion of this contract's balance on Mangrove that should be attributed back to the failing offer's owner

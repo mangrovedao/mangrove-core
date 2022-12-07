@@ -46,8 +46,8 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     }
   }
 
-  //  added this event to keep track of what the expiry date is. Can't call the event "setExpriy" because of the method of the same name
-  event expiryWrite(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, uint date);
+  //  added this event to keep track of what the expiry date is.
+  event SetExpiry(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, uint date);
 
   ///@inheritdoc IOrderLogic
   ///@dev We also allow Mangrove to call this so that it can part of an offer logic.
@@ -57,7 +57,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   {
     // What if you try and set the expiry date to before now? We revert in take because of this?
     expiring[outbound_tkn][inbound_tkn][offerId] = date;
-    emit expiryWrite(address(outbound_tkn), address(inbound_tkn), offerId, date);
+    emit SetExpiry(address(outbound_tkn), address(inbound_tkn), offerId, date);
   }
 
   ///@notice updates an offer on Mangrove
@@ -111,6 +111,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
   ///@inheritdoc IOrderLogic
   function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory res) {
+    // Checking whether order is expired
     require(tko.expiryDate == 0 || block.timestamp <= tko.expiryDate, "mgvOrder/expired");
 
     address callerReserve = reserve(msg.sender);

@@ -50,7 +50,7 @@ interface IMangrove {
     uint takerGot,
     uint takerGave,
     bool fillWants,
-    uint penalty,
+    uint bounty,
     uint feePaid
   );
   // added this event, because we used the OrderComplete event before, but this did not makes sense for Snipes, when we now also have takerWants and takerGives in OrderComplete
@@ -66,7 +66,7 @@ interface IMangrove {
     uint takerGot,
     uint takerGave,
     bool fillWants,
-    uint penalty,
+    uint bounty,
     uint feePaid
   );
   event OrderStart(); // OrderStart does not need an info, we emit all relevant data in OrderComplete or SnipesComplete

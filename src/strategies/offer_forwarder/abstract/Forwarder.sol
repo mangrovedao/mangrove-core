@@ -308,7 +308,8 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // NB if several offers of `this` contract have failed during the market order, the balance of this contract on Mangrove will contain cumulated free provision
 
     // computing an under approximation of returned provision because of this offer's failure
-    (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) = MGV.config(order.outbound_tkn, order.inbound_tkn);
+    MgvStructs.GlobalPacked global = order.global;
+    MgvStructs.LocalPacked local = order.local;
     uint provision =
       10 ** 9 * order.offerDetail.gasprice() * (order.offerDetail.gasreq() + order.offerDetail.offer_gasbase());
 

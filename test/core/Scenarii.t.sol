@@ -89,8 +89,11 @@ contract ScenariiTest is MangroveTest {
       $(base),
       $(quote),
       address(taker),
+      0.291 ether, // not sure what wants and gives is
+      0.375 ether,
       0.291 ether, // should not be hardcoded
       0.375 ether, // should not be hardcoded
+      true, // not sure what fillwants is here
       0,
       0.009 ether // should not be hardcoded
     );

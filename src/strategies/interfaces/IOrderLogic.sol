@@ -55,25 +55,18 @@ interface IOrderLogic {
 
   ///@notice Information about the order.
   ///@param mangrove The Mangrove contract on which the offer was posted
-  ///@param outbound_tkn The outbound token of the order.
-  ///@param inbound_tkn The inbound token of the order.
+  //@param outbound_tkn The outbound token of the order.
+  //@param inbound_tkn The inbound token of the order.
   ///@param taker The address of the taker
-  ///@param fillWants If true, the market order stopped when `takerWants` units of `outbound_tkn` had been obtained; otherwise, the market order stopped when `takerGives` units of `inbound_tkn` had been sold.
-  ///@param takerGot How much the taker got
-  ///@param takerGave How much the taker gave
-  ///@param penalty How much penalty was given
-// FIXME: There's redundancy here wrt OrderComplete in IMangrove.
-// We could remove the info here that's also on OrderComplete + the MangroveOrder specific parameters
-  event OrderSummary(
-    IMangrove mangrove,
-    IERC20 indexed outbound_tkn,
-    IERC20 indexed inbound_tkn,
-    address indexed taker,
-    bool fillOrKill,
-    bool restingOrder,
-    uint pivotId,
-    uint expiryDate
-  );
+  //@param fillWants If true, the market order stopped when `takerWants` units of `outbound_tkn` had been obtained; otherwise, the market order stopped when `takerGives` units of `inbound_tkn` had been sold.
+  //@param takerGot How much the taker got
+  //@param takerGave How much the taker gave
+  //@param penalty How much penalty was given
+
+  // FIXME: the params need to be described
+
+  event OrderSummary( // it might be to specific to use takerOrder, but it does keep the event pretty clean, in the sence of what we use to start the order and what the result was.
+  IMangrove mangrove, address taker, TakerOrder tko, TakerOrderResult res);
 
   ///@notice Timestamp beyond which the given `offerId` should renege on trade.
   ///@param outbound_tkn The outbound token of the order.

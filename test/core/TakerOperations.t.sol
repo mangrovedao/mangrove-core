@@ -6,8 +6,7 @@ import "mgv_test/lib/MangroveTest.sol";
 
 /* The following constructs an ERC20 with a transferFrom callback method,
    and a TestTaker which throws away any funds received upon getting
-   a callback.
-*/
+   a callback.*/
 contract TakerOperationsTest is MangroveTest {
   TestMaker mkr;
   TestMaker refusemkr;
@@ -127,7 +126,7 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(mgv));
     emit OrderStart();
     expectFrom($(mgv));
-    emit OrderComplete($(base), $(quote), $(this), 2.3 ether, 2.3 ether, 0, 0);
+    emit OrderComplete($(base), $(quote), $(this), 2.3 ether, 2.3 ether, 2.3 ether, 2.3 ether, true, 0, 0); // not sure what wants and gives are?
 
     (uint successes, uint got, uint gave,,) = mgv.snipes($(base), $(quote), targets, true);
     assertTrue(successes == 3, "Snipes should not fail");

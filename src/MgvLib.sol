@@ -89,7 +89,7 @@ contract HasMgvEvents {
     uint takerGot,
     uint takerGave,
     bool fillWants,
-    uint penalty,
+    uint bounty,
     uint feePaid
   );
   // added this event, because we used the OrderComplete event before, but this did not makes sense for Snipes, when we now also have takerWants and takerGives in OrderComplete
@@ -105,7 +105,7 @@ contract HasMgvEvents {
     uint takerGot,
     uint takerGave,
     bool fillWants,
-    uint penalty,
+    uint bounty,
     uint feePaid
   );
 

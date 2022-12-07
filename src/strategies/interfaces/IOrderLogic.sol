@@ -65,8 +65,23 @@ interface IOrderLogic {
 
   // FIXME: the params need to be described
 
-  event OrderSummary( // it might be to specific to use takerOrder, but it does keep the event pretty clean, in the sence of what we use to start the order and what the result was.
-  IMangrove mangrove, address taker, TakerOrder tko, TakerOrderResult res);
+  event OrderSummary(
+    IMangrove mangrove,
+    IERC20 indexed outbound_tkn,
+    IERC20 indexed inbound_tkn,
+    address indexed taker,
+    bool fillOrKill,
+    uint takerWants,
+    uint takerGives,
+    bool fillWants,
+    bool restingOrder,
+    uint expiryDate,
+    uint takerGot,
+    uint takerGave,
+    uint bounty,
+    uint fee,
+    uint restingOrderId
+  );
 
   ///@notice Timestamp beyond which the given `offerId` should renege on trade.
   ///@param outbound_tkn The outbound token of the order.

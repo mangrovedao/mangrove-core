@@ -209,13 +209,28 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // POST (else)
     // * (NAT_USER+`res.bounty`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
     // * (NAT_THIS, OUT_THIS, IN_THIS)
+    logOrderData(tko, res);
+    return res;
+  }
+
+  function logOrderData(TakerOrder memory tko, TakerOrderResult memory res) internal {
     emit OrderSummary(
       MGV,
+      tko.outbound_tkn,
+      tko.inbound_tkn,
       msg.sender,
-      tko, // using tko and res, because it basically holds all the info we want. And if we instead try and explicitly use the parameters we want to emit, we get a stack too deep
-      res
+      tko.fillOrKill,
+      tko.takerWants,
+      tko.takerGives,
+      tko.fillWants,
+      tko.restingOrder,
+      tko.expiryDate,
+      res.takerGot,
+      res.takerGave,
+      res.bounty,
+      res.fee,
+      res.offerId
       );
-    return res;
   }
 
   ///@notice posts a maker order on the (`outbound_tkn`, `inbound_tkn`) offer list.

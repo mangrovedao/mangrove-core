@@ -126,7 +126,7 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(mgv));
     emit OrderStart();
     expectFrom($(mgv));
-    emit OrderComplete($(base), $(quote), $(this), 2.3 ether, 2.3 ether, 2.3 ether, 2.3 ether, true, 0, 0); // not sure what wants and gives are?
+    emit SnipesComplete($(base), $(quote), $(this), targets, 3, 2.3 ether, 2.3 ether, true, 0, 0); // not sure what wants and gives are?
 
     (uint successes, uint got, uint gave,,) = mgv.snipes($(base), $(quote), targets, true);
     assertTrue(successes == 3, "Snipes should not fail");

@@ -11,16 +11,7 @@ contract MangroveOrder_Test is MangroveTest {
   // to check ERC20 logging
   event Transfer(address indexed from, address indexed to, uint value);
 
-  event OrderSummary(
-    IMangrove mangrove,
-    IERC20 indexed base,
-    IERC20 indexed quote,
-    address indexed taker,
-    bool fillWants,
-    uint takerGot,
-    uint takerGave,
-    uint penalty
-  );
+  event OrderSummary(IMangrove mangrove, address taker, IOrderLogic.TakerOrder tko, IOrderLogic.TakerOrderResult res);
 
   MgvOrder mgo;
   TestMaker ask_maker;
@@ -259,10 +250,16 @@ contract MangroveOrder_Test is MangroveTest {
     uint bal_base_before = mgo.router().reserveBalance(quote, $(this));
     assertEq(mgv.balanceOf($(mgo)), 0, "Invalid balance on Mangrove");
 
+    IOrderLogic.TakerOrderResult memory expectedRes = IOrderLogic.TakerOrderResult({
+      takerGot: 997000000000000000,
+      takerGave: 130000000000000000,
+      bounty: 0,
+      fee: 3000000000000000,
+      offerId: 4
+    });
+
     expectFrom($(mgo));
-    emit OrderSummary(
-      IMangrove(payable(mgv)), base, quote, $(this), true, reader.minusFee($(base), $(quote), 1 ether), 0.13 ether, 0
-      );
+    emit OrderSummary(IMangrove(payable(mgv)), $(this), buyOrder, expectedRes);
     // TODO when checkEmit is available, get offer id after post
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
@@ -295,8 +292,11 @@ contract MangroveOrder_Test is MangroveTest {
       expiryDate: 0 //NA
     });
 
+    IOrderLogic.TakerOrderResult memory expectedRes =
+      IOrderLogic.TakerOrderResult({takerGot: 0, takerGave: 0, bounty: 0, fee: 0, offerId: 4});
+
     expectFrom($(mgo));
-    emit OrderSummary(IMangrove(payable(mgv)), base, quote, $(this), true, 0, 0, 0);
+    emit OrderSummary(IMangrove(payable(mgv)), $(this), buyOrder, expectedRes);
     // TODO when checkEmit is available, get offer id after post
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
@@ -323,10 +323,16 @@ contract MangroveOrder_Test is MangroveTest {
     uint bal_base_before = mgo.router().reserveBalance(quote, $(this));
     assertEq(mgv.balanceOf($(mgo)), 0, "Invalid balance on Mangrove");
 
+    IOrderLogic.TakerOrderResult memory expectedRes = IOrderLogic.TakerOrderResult({
+      takerGot: 119640000000000000,
+      takerGave: 1000000000000000000,
+      bounty: 0,
+      fee: 360000000000000,
+      offerId: 4
+    });
+
     expectFrom($(mgo));
-    emit OrderSummary(
-      IMangrove(payable(mgv)), quote, base, $(this), false, reader.minusFee($(quote), $(base), 0.12 ether), 1 ether, 0
-      );
+    emit OrderSummary(IMangrove(payable(mgv)), $(this), sellOrder, expectedRes);
     // TODO when checkEmit is available, get offer id after post
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(sellOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
@@ -359,10 +365,13 @@ contract MangroveOrder_Test is MangroveTest {
       expiryDate: 0 //NA
     });
 
+    IOrderLogic.TakerOrderResult memory expectedRes =
+      IOrderLogic.TakerOrderResult({takerGot: 0, takerGave: 0, bounty: 0, fee: 0, offerId: 4});
+
     expectFrom($(mgo));
-    emit OrderSummary(IMangrove(payable(mgv)), quote, base, $(this), false, 0, 0, 0);
-    // TODO when checkEmit is available, get offer id after post
+    emit OrderSummary(IMangrove(payable(mgv)), $(this), sellOrder, expectedRes);
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(sellOrder);
+    // TODO when checkEmit is available, get offer id after post
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
 
     // checking resting order parameters

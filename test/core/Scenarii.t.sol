@@ -80,20 +80,22 @@ contract ScenariiTest is MangroveTest {
   function test_snipe_insert_and_fail() public {
     offerOf = insert();
 
+    uint[4][] memory targets = wrap_dynamic([2, 0.3 ether, uint(79228162514264337593543950335), 281474976710655]);
     saveBalances();
     saveOffers();
     expectFrom($(mgv));
     emit OrderStart();
     expectFrom($(mgv));
-    emit OrderComplete(
+
+    emit SnipesComplete(
       $(base),
       $(quote),
       address(taker),
-      0.291 ether, // not sure what wants and gives is
-      0.375 ether,
+      targets,
+      1,
       0.291 ether, // should not be hardcoded
       0.375 ether, // should not be hardcoded
-      true, // not sure what fillwants is here
+      true,
       0,
       0.009 ether // should not be hardcoded
     );

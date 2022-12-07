@@ -26,5 +26,9 @@
   {
     "address": "0x10c1425b9458d8BB85301C3E90847208370aC2A3",
     "name": "PxMATIC"
+  },
+  {
+    "address": "0xF30f4d2EE2a79810dFE865595a12fC980AdA9dDd",
+    "name": "MangroveOrderEnriched"
   }
 ]

@@ -26,23 +26,18 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
   }
 
   /// @inheritdoc ILiquidityProvider
-  function newOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice, // keeping gasprice here in order to expose the same interface as `OfferMaker` contracts.
-    uint pivotId
-  ) external payable returns (uint offerId) {
-    gasprice; // ignoring gasprice that will be derived based on msg.value.
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
+    external
+    payable
+    returns (uint offerId)
+  {
     offerId = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: gasreq,
+        gasreq: offerGasreq(),
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
@@ -54,18 +49,12 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
 
   ///@inheritdoc ILiquidityProvider
   ///@dev the `gasprice` argument is always ignored in `Forwarder` logic, since it has to be derived from `msg.value` of the call (see `_newOffer`).
-  function updateOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider`
-    uint gasprice, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider`
-    uint pivotId,
-    uint offerId
-  ) external payable override onlyOwner(outbound_tkn, inbound_tkn, offerId) {
-    gasprice; // ssh
-    gasreq; // ssh
+  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+    external
+    payable
+    override
+    onlyOwner(outbound_tkn, inbound_tkn, offerId)
+  {
     OfferArgs memory args;
 
     // funds to compute new gasprice is msg.value. Will use old gasprice if no funds are given

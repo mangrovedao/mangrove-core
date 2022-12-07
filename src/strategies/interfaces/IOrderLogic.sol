@@ -62,15 +62,17 @@ interface IOrderLogic {
   ///@param takerGot How much the taker got
   ///@param takerGave How much the taker gave
   ///@param penalty How much penalty was given
+// FIXME: There's redundancy here wrt OrderComplete in IMangrove.
+// We could remove the info here that's also on OrderComplete + the MangroveOrder specific parameters
   event OrderSummary(
     IMangrove mangrove,
     IERC20 indexed outbound_tkn,
     IERC20 indexed inbound_tkn,
     address indexed taker,
-    bool fillWants,
-    uint takerGot,
-    uint takerGave,
-    uint penalty
+    bool fillOrKill,
+    bool restingOrder,
+    uint pivotId,
+    uint expiryDate
   );
 
   ///@notice Timestamp beyond which the given `offerId` should renege on trade.

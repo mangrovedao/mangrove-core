@@ -107,6 +107,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@inheritdoc IOrderLogic
   function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory res) {
     // Checking whether order is expired
+    // FIXME: call setExpiryDate which should log the new expiry date
     require(tko.expiryDate == 0 || block.timestamp <= tko.expiryDate, "mgvOrder/expired");
 
     address callerReserve = reserve(msg.sender);
@@ -205,14 +206,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // * (NAT_USER+`res.bounty`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
     // * (NAT_THIS, OUT_THIS, IN_THIS)
     emit OrderSummary({
-      mangrove: MGV,
-      outbound_tkn: tko.outbound_tkn,
-      inbound_tkn: tko.inbound_tkn,
-      fillWants: tko.fillWants,
-      taker: msg.sender,
-      takerGot: res.takerGot,
-      takerGave: res.takerGave,
-      penalty: res.bounty
+      fok, restingOrder, expiryDate, pivotId?
     });
     return res;
   }

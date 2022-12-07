@@ -49,7 +49,7 @@ interface IMangrove {
     uint penalty,
     uint feePaid
   );
-  event OrderStart();
+  event OrderStart(address indexed outbound_tkn, address indexed inbound_tkn, uint takerWants, uint takerGives, bool fillWants);
   event PosthookFail(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, bytes32 posthookData);
   event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);
   event SetDensity(address indexed outbound_tkn, address indexed inbound_tkn, uint value);

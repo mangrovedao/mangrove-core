@@ -69,7 +69,6 @@ interface IOrderLogic {
   ///@param bounty How much bounty was given
   ///@param fee How much fee was paid for the order
   ///@param restingOrderId If a restingOrder was posted, then this holds the offerId for the restingOrder
-
   event OrderSummary(
     IMangrove mangrove,
     IERC20 indexed outbound_tkn,

@@ -26,8 +26,14 @@ interface IMangrove {
     bytes32 mgvData
   );
   event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id);
-  event OfferSuccess( // This should be takerGot and TakerGave, not TakerWants and TakerGives, since this is when the offer has been successfully taken.
-  address indexed outbound_tkn, address indexed inbound_tkn, uint id, address taker, uint takerGot, uint takerGave);
+  event OfferSuccess(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint id,
+    address indexed taker,
+    uint takerGot,
+    uint takerGave
+  );
   event OfferWrite(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
@@ -39,9 +45,8 @@ interface IMangrove {
     uint id,
     uint prev
   );
-  // tried to add all relevant data for an order.
-  // same
-  event OrderComplete( // this could be deduced from the OfferSuccess events emtitted from "execute" in Mangrove
+
+  event OrderComplete(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     address indexed taker,
@@ -53,11 +58,7 @@ interface IMangrove {
     uint bounty,
     uint feePaid
   );
-  // added this event, because we used the OrderComplete event before, but this did not makes sense for Snipes, when we now also have takerWants and takerGives in OrderComplete
-  // snipes does not have 1 wants and gives, but an array of them.
-  // this could be deduced from the OfferSuccess events emtitted from "execute" in Mangrove
-  // same
-  event SnipesComplete( // this might be to much to add in the event
+  event SnipesComplete(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     address indexed taker,

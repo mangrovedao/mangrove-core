@@ -46,7 +46,6 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     }
   }
 
-  //  added this event to keep track of what the expiry date is.
   event SetExpiry(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, uint date);
 
   ///@inheritdoc IOrderLogic
@@ -55,7 +54,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     public
     mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
   {
-    // What if you try and set the expiry date to before now? We revert in take because of this?
+    // FIXME: What if you try and set the expiry date to before now? We revert in take because of this?
     expiring[outbound_tkn][inbound_tkn][offerId] = date;
     emit SetExpiry(address(outbound_tkn), address(inbound_tkn), offerId, date);
   }
@@ -214,23 +213,23 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   }
 
   function logOrderData(TakerOrder memory tko, TakerOrderResult memory res) internal {
-    emit OrderSummary(
-      MGV,
-      tko.outbound_tkn,
-      tko.inbound_tkn,
-      msg.sender,
-      tko.fillOrKill,
-      tko.takerWants,
-      tko.takerGives,
-      tko.fillWants,
-      tko.restingOrder,
-      tko.expiryDate,
-      res.takerGot,
-      res.takerGave,
-      res.bounty,
-      res.fee,
-      res.offerId
-      );
+    emit OrderSummary({
+      mangrove: MGV,
+      outbound_tkn: tko.outbound_tkn,
+      inbound_tkn: tko.inbound_tkn,
+      taker: msg.sender,
+      fillOrKill: tko.fillOrKill,
+      takerWants: tko.takerWants,
+      takerGives: tko.takerGives,
+      fillWants: tko.fillWants,
+      restingOrder: tko.restingOrder,
+      expiryDate: tko.expiryDate,
+      takerGot: res.takerGot,
+      takerGave: res.takerGave,
+      bounty: res.bounty,
+      fee: res.fee,
+      restingOrderId: res.offerId
+    });
   }
 
   ///@notice posts a maker order on the (`outbound_tkn`, `inbound_tkn`) offer list.
@@ -288,7 +287,6 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
       // setting expiry date for the resting order
       if (tko.expiryDate > 0) {
-        // be calling this method instead of setting the expiry date directly, we emit the new expiry event.
         setExpiry(outbound_tkn, inbound_tkn, res.offerId, tko.expiryDate);
       }
       // if one wants to maintain an inverse mapping owner => offerIds

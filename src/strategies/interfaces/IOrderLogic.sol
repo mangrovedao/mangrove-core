@@ -55,15 +55,20 @@ interface IOrderLogic {
 
   ///@notice Information about the order.
   ///@param mangrove The Mangrove contract on which the offer was posted
-  //@param outbound_tkn The outbound token of the order.
-  //@param inbound_tkn The inbound token of the order.
+  ///@param outbound_tkn The outbound token of the order.
+  ///@param inbound_tkn The inbound token of the order.
   ///@param taker The address of the taker
-  //@param fillWants If true, the market order stopped when `takerWants` units of `outbound_tkn` had been obtained; otherwise, the market order stopped when `takerGives` units of `inbound_tkn` had been sold.
-  //@param takerGot How much the taker got
-  //@param takerGave How much the taker gave
-  //@param penalty How much penalty was given
-
-  // FIXME: the params need to be described
+  ///@param fillOrKill The fillOrKill that take was call with
+  ///@param takerWants How much the taker wanted
+  ///@param takerGives How much the taker would give
+  ///@param fillWants If true, the market order stopped when `takerWants` units of `outbound_tkn` had been obtained; otherwise, the market order stopped when `takerGives` units of `inbound_tkn` had been sold.
+  ///@param restingOrder The restingOrder boolean used to call take
+  ///@param expiryDate The expiry date take was call with
+  ///@param takerGot How much the taker got
+  ///@param takerGave How much the taker gave
+  ///@param bounty How much bounty was given
+  ///@param fee How much fee was paid for the order
+  ///@param restingOrderId If a restingOrder was posted, then this holds the offerId for the restingOrder
 
   event OrderSummary(
     IMangrove mangrove,

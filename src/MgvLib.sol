@@ -77,10 +77,8 @@ contract HasMgvEvents {
   event SetGasprice(uint value);
 
   /* Market order execution */
-  event OrderStart(); // OrderStart does not need any info, we emit all relevant data in OrderComplete or SnipesComplete
-    // tried to add all relevant data for an order.
-  // same
-  event OrderComplete( // this could be deduced from the OfferSuccess events emtitted from "execute" in Mangrove
+  event OrderStart();
+  event OrderComplete(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     address indexed taker,
@@ -92,11 +90,7 @@ contract HasMgvEvents {
     uint bounty,
     uint feePaid
   );
-  // added this event, because we used the OrderComplete event before, but this did not makes sense for Snipes, when we now also have takerWants and takerGives in OrderComplete
-  // snipes does not have 1 wants and gives, but an array of them.
-  // this could be deduced from the OfferSuccess events emtitted form "execute" in Mangrove
-  // same
-  event SnipesComplete( // this might be to much to add in the event
+  event SnipesComplete(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     address indexed taker,
@@ -110,12 +104,12 @@ contract HasMgvEvents {
   );
 
   /* * Offer execution */
-  event OfferSuccess( // This should be takerGot and TakerGave, not TakerWants and TakerGives, since this is when the offer has been successfully taken.
+  event OfferSuccess(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     uint id,
     // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
-    address taker,
+    address indexed taker,
     uint takerGot,
     uint takerGave
   );

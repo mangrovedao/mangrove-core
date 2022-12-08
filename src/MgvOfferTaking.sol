@@ -114,18 +114,18 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Over the course of the market order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
 
-      emit OrderComplete(
-        outbound_tkn,
-        inbound_tkn,
-        taker,
-        takerWants,
-        takerGives,
-        mor.totalGot,
-        mor.totalGave,
-        fillWants,
-        mor.totalPenalty,
-        mor.feePaid
-        );
+      emit OrderComplete({
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        taker: taker,
+        takerWants: takerWants,
+        takerGives: takerGives,
+        takerGot: mor.totalGot,
+        takerGave: mor.totalGave,
+        fillWants: fillWants,
+        bounty: mor.totalPenalty,
+        feePaid: mor.feePaid
+      });
 
       //+clear+
       return (mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid);
@@ -282,18 +282,18 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sendPenalty(mor.totalPenalty);
       //+clear+
 
-      emit SnipesComplete(
-        sor.outbound_tkn,
-        sor.inbound_tkn,
-        taker,
-        targets,
-        successCount,
-        snipesGot,
-        snipesGave,
-        mor.fillWants,
-        mor.totalPenalty,
-        mor.feePaid
-        );
+      emit SnipesComplete({
+        outbound_tkn: sor.outbound_tkn,
+        inbound_tkn: sor.inbound_tkn,
+        taker: taker,
+        targets: targets,
+        successCount: successCount,
+        takerGot: snipesGot,
+        takerGave: snipesGave,
+        fillWants: mor.fillWants,
+        bounty: mor.totalPenalty,
+        feePaid: mor.feePaid
+      });
 
       totalPenalty = mor.totalPenalty;
       feePaid = mor.feePaid;

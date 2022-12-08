@@ -411,8 +411,8 @@ contract MangroveOrder_Test is MangroveTest {
 
     expectFrom($(mgo));
     logOrderData(IMangrove(payable(mgv)), $(this), sellOrder, expectedRes);
-    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(sellOrder);
     // TODO when checkEmit is available, get offer id after post
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(sellOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
 
     // checking resting order parameters

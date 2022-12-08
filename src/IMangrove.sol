@@ -70,7 +70,7 @@ interface IMangrove {
     uint bounty,
     uint feePaid
   );
-  event OrderStart(); // OrderStart does not need an info, we emit all relevant data in OrderComplete or SnipesComplete
+  event OrderStart();
   event PosthookFail(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, bytes32 posthookData);
   event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);
   event SetDensity(address indexed outbound_tkn, address indexed inbound_tkn, uint value);

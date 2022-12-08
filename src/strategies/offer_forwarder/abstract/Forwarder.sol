@@ -290,7 +290,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   ///@dev if offer failed to execute, Mangrove retracts and deprovisions it after the posthook call.
-  /// As a consequence if `__posthookFallback__` is reached, `this` balance on Mangrove *will* increase, after the posthook,
+  /// As a consequence if this hook is reached, `this` balance on Mangrove *will* increase, after the posthook,
   /// of some amount $n$ of native tokens. We evaluate here an underapproximation $~n$ in order to credit the offer maker in a pull based manner:
   /// failed offer owner can retrieve $~n$ by calling `retractOffer` on the failed offer.
   /// because $~n<n$ a small amount of WEIs will accumulate on the balance of `this` on Mangrove over time.

@@ -296,13 +296,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// because $~n<n$ a small amount of WEIs will accumulate on the balance of `this` on Mangrove over time.
   /// Note that these WEIs are not burnt since they can be admin retrieved using `withdrawFromMangrove`.
   /// @inheritdoc MangroveOffer
-  function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result)
-    internal
-    virtual
-    override
-    returns (bytes32)
-  {
-    result; // ssh
+  function __handleResidualProvision__(MgvLib.SingleOrder calldata order) internal virtual override {
     mapping(uint => OwnerData) storage semiBookOwnerData =
       ownerData[IERC20(order.outbound_tkn)][IERC20(order.inbound_tkn)];
     // NB if several offers of `this` contract have failed during the market order, the balance of this contract on Mangrove will contain cumulated free provision
@@ -320,6 +314,5 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // storing the portion of this contract's balance on Mangrove that should be attributed back to the failing offer's owner
     // those free WEIs can be retrieved by offer owner, by calling `retractOffer` with the `deprovision` flag.
     semiBookOwnerData[order.offerId].weiBalance += uint96(approxReturnedProvision);
-    return "";
   }
 }

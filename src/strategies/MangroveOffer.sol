@@ -111,6 +111,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
         );
       // calling strat specific todos in case of failure
       __posthookFallback__(order, result);
+      __handleResidualProvision__(order);
     }
   }
 
@@ -255,6 +256,12 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   ///@dev default is to require the original amount of tokens minus those that have been sent to the taker during trade execution.
   function __residualGives__(MgvLib.SingleOrder calldata order) internal virtual returns (uint new_gives) {
     return order.offer.gives() - order.wants;
+  }
+
+  ///@notice Hook that defines what needs to be done to the part of an offer provision that was added to the balance of `this` on Mangrove after and offer has failed.
+  ///@param order is a recal of the taker order that failed
+  function __handleResidualProvision__(MgvLib.SingleOrder calldata order) internal virtual {
+    order; //ssh
   }
 
   ///@notice Post-hook that implements default behavior when Taker Order's execution succeeded.

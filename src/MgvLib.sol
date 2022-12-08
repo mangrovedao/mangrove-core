@@ -82,9 +82,24 @@ contract HasMgvEvents {
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     address indexed taker,
+    uint takerWants,
+    uint takerGives,
     uint takerGot,
     uint takerGave,
-    uint penalty,
+    bool fillWants,
+    uint bounty,
+    uint feePaid
+  );
+  event SnipesComplete(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    address indexed taker,
+    uint[4][] targets,
+    uint successCount,
+    uint takerGot,
+    uint takerGave,
+    bool fillWants,
+    uint bounty,
     uint feePaid
   );
 
@@ -94,9 +109,9 @@ contract HasMgvEvents {
     address indexed inbound_tkn,
     uint id,
     // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
-    address taker,
-    uint takerWants,
-    uint takerGives
+    address indexed taker,
+    uint takerGot,
+    uint takerGave
   );
 
   /* Log information when a trade execution reverts or returns a non empty bytes32 word */

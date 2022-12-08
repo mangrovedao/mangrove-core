@@ -46,13 +46,17 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     }
   }
 
+  event SetExpiry(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, uint date);
+
   ///@inheritdoc IOrderLogic
   ///@dev We also allow Mangrove to call this so that it can part of an offer logic.
   function setExpiry(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, uint date)
     public
     mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
   {
+    // FIXME: What if you try and set the expiry date to before now? We revert in take because of this?
     expiring[outbound_tkn][inbound_tkn][offerId] = date;
+    emit SetExpiry(address(outbound_tkn), address(inbound_tkn), offerId, date);
   }
 
   ///@notice updates an offer on Mangrove
@@ -204,17 +208,28 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // POST (else)
     // * (NAT_USER+`res.bounty`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
     // * (NAT_THIS, OUT_THIS, IN_THIS)
+    logOrderData(tko, res);
+    return res;
+  }
+
+  function logOrderData(TakerOrder memory tko, TakerOrderResult memory res) internal {
     emit OrderSummary({
       mangrove: MGV,
       outbound_tkn: tko.outbound_tkn,
       inbound_tkn: tko.inbound_tkn,
-      fillWants: tko.fillWants,
       taker: msg.sender,
+      fillOrKill: tko.fillOrKill,
+      takerWants: tko.takerWants,
+      takerGives: tko.takerGives,
+      fillWants: tko.fillWants,
+      restingOrder: tko.restingOrder,
+      expiryDate: tko.expiryDate,
       takerGot: res.takerGot,
       takerGave: res.takerGave,
-      penalty: res.bounty
+      bounty: res.bounty,
+      fee: res.fee,
+      restingOrderId: res.offerId
     });
-    return res;
   }
 
   ///@notice posts a maker order on the (`outbound_tkn`, `inbound_tkn`) offer list.
@@ -272,7 +287,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
       // setting expiry date for the resting order
       if (tko.expiryDate > 0) {
-        expiring[outbound_tkn][inbound_tkn][res.offerId] = tko.expiryDate;
+        setExpiry(outbound_tkn, inbound_tkn, res.offerId, tko.expiryDate);
       }
       // if one wants to maintain an inverse mapping owner => offerIds
       __logOwnershipRelation__({

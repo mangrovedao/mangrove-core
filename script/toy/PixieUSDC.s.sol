@@ -3,14 +3,10 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Deployer} from "../lib/Deployer.sol";
+import {PixieUSDC} from "mgv_src/toy/PixieUSDC.sol";
 
-import {MintableERC20BLWithDecimals} from "mgv_test/lib/tokens/MintableERC20BLWithDecimals.sol";
-
-contract PixieUSDC is MintableERC20BLWithDecimals {
-  constructor(address admin) MintableERC20BLWithDecimals(admin, "Pixie USDC", "PxUSDC", 6) {}
-}
 /**
- * @notice deploys a MgvReader instance
+ * @notice deploys a PixieUSDC instance
  */
 
 contract PixieUSDCDeployer is Deployer {

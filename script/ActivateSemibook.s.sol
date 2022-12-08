@@ -64,8 +64,7 @@ contract ActivateSemibook is Test2, Deployer {
     uint outbound_decimals = ERC20(outbound_tkn).decimals();
     uint density = (COVER_FACTOR * global.gasprice() * 10 ** outbound_decimals) / outbound_in_gwei;
 
-    vm.startBroadcast();
-
+    broadcast();
     mgv.activate({
       outbound_tkn: outbound_tkn,
       inbound_tkn: inbound_tkn,
@@ -73,8 +72,6 @@ contract ActivateSemibook is Test2, Deployer {
       density: density,
       offer_gasbase: gasbase
     });
-
-    vm.stopBroadcast();
   }
 
   function measureTransferGas(address tkn) internal returns (uint) {

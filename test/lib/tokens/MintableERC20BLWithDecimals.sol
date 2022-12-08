@@ -9,11 +9,15 @@ contract MintableERC20BLWithDecimals is
   // This version does not have any "failSoftly" as the TestToken has
 
   mapping(address => bool) admins;
-  uint public __decimals; // full uint to help forge-std's stdstore
+  uint public _decimals; // full uint to help forge-std's stdstore
 
   constructor(address admin, string memory name, string memory symbol, uint8 decimals) ERC20BL(name, symbol) {
     admins[admin] = true;
-    __decimals = decimals; // Old version didn't have decimal in this class, but was defined in the ERC20BL class
+    _decimals = decimals;
+  }
+
+  function decimals() public view virtual override returns (uint8) {
+    return uint8(_decimals);
   }
 
   function requireAdmin() internal view {

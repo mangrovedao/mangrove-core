@@ -30,6 +30,14 @@ contract MintableERC20BLWithDecimals is
   }
 
   function mint(address to, uint amount) external {
+    mintRestricted(to, amount);
+  }
+
+  function mint(uint amount) external {
+    mintRestricted(_msgSender(), amount);
+  }
+
+  function mintRestricted(address to, uint amount) internal {
     uint limit = 100_000;
     require(
       amount <= limit * pow(10, decimals()), // was limit.mul(...)

@@ -17,6 +17,7 @@
 pragma solidity ^0.8.10;
 
 import "./preprocessed/MgvStructs.post.sol" as MgvStructs;
+import {IERC20} from "./IERC20.sol";
 
 /* # Structs
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */
@@ -186,26 +187,4 @@ interface IMgvMonitor {
   function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external;
 
   function read(address outbound_tkn, address inbound_tkn) external view returns (uint gasprice, uint density);
-}
-
-interface IERC20 {
-  function totalSupply() external view returns (uint);
-
-  function balanceOf(address account) external view returns (uint);
-
-  function transfer(address recipient, uint amount) external returns (bool);
-
-  function allowance(address owner, address spender) external view returns (uint);
-
-  function approve(address spender, uint amount) external returns (bool);
-
-  function transferFrom(address sender, address recipient, uint amount) external returns (bool);
-
-  function symbol() external view returns (string memory);
-
-  event Transfer(address indexed from, address indexed to, uint value);
-  event Approval(address indexed owner, address indexed spender, uint value);
-
-  /// for wETH contract
-  function decimals() external view returns (uint8);
 }

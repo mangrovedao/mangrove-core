@@ -158,6 +158,10 @@ contract OfferLogicTest is MangroveTest {
     });
   }
 
+  function test_provisionOf_returns_zero_if_offer_does_not_exist() public {
+    assertEq(makerContract.provisionOf(weth, usdc, 0), 0, "Invalid returned provision");
+  }
+
   function test_maker_can_deprovision_Offer() public {
     vm.prank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({

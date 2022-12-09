@@ -303,6 +303,18 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     }
   }
 
+  ///@notice computes the provision that can be redeemed if deprovisioning a certain offer
+  ///@param outbound_tkn the outbound token of the offer list
+  ///@param inbound_tkn the inbound otken of the offer list
+  ///@param offerId the id of the offer
+  ///@return provision the provision that can be redeemed
+  function _provisionOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) internal view returns (uint provision) {
+    MgvStructs.OfferDetailPacked offerDetail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
+    unchecked {
+      provision = offerDetail.gasprice() * 10 ** 9 * (offerDetail.offer_gasbase() + offerDetail.gasreq());
+    }
+  }
+
   /// @inheritdoc IOfferLogic
   function getMissingProvision(IERC20 outbound_tkn, IERC20 inbound_tkn, uint gasreq, uint gasprice, uint offerId)
     public

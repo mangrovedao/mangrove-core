@@ -11,9 +11,9 @@ contract MintableERC20BLWithDecimals is
   mapping(address => bool) admins;
   uint public _decimals; // full uint to help forge-std's stdstore
 
-  constructor(address admin, string memory name, string memory symbol, uint8 decimals) ERC20BL(name, symbol) {
+  constructor(address admin, string memory name, string memory symbol, uint8 __decimals) ERC20BL(name, symbol) {
     admins[admin] = true;
-    _decimals = decimals;
+    _decimals = __decimals;
   }
 
   function decimals() public view virtual override returns (uint8) {

@@ -183,8 +183,12 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
 
       uint old_gasreq = vars.offerDetail.gasreq();
       args.gasreq = args.gasreq >= type(uint24).max ? old_gasreq : args.gasreq;
-      // re-deriving gasprice only if necessary, i.e if user puts more funds or changes `gasreq`
-      if (args.fund > 0 || args.gasreq != old_gasreq) {
+      // re-deriving gasprice only if necessary
+      if (
+        args.fund > 0 // user adds more provision
+          || args.gasreq != old_gasreq // offer's `gasreq` is modified
+          || vars.offerDetail.offer_gasbase() != vars.local.offer_gasbase() // governance has updated `offer_gasbase`
+      ) {
         // adding current locked provision to funds (0 if offer is deprovisioned)
         uint locked_funds = vars.offerDetail.gasprice() * 10 ** 9 * (old_gasreq + vars.offerDetail.offer_gasbase());
         // note that if `args.gasreq < old_gasreq` then offer gasprice will increase (even if `args.fund == 0`) to match the incurred excess of locked provision
@@ -226,10 +230,8 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     override
     returns (uint provision)
   {
-    MgvStructs.OfferDetailPacked offerDetail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
-    (, MgvStructs.LocalPacked local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
+    provision = _provisionOf(outbound_tkn, inbound_tkn, offerId);
     unchecked {
-      provision = offerDetail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offerDetail.gasreq());
       provision += ownerData[outbound_tkn][inbound_tkn][offerId].weiBalance;
     }
   }

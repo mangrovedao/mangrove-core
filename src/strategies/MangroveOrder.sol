@@ -211,12 +211,13 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     return res;
   }
 
+  ///@notice logs `OrderSummary`
+  ///@dev this function avoids loading too many variables on the stack
   function logOrderData(TakerOrder memory tko, TakerOrderResult memory res) internal {
     emit OrderSummary({
       mangrove: MGV,
       outbound_tkn: tko.outbound_tkn,
       inbound_tkn: tko.inbound_tkn,
-      taker: msg.sender,
       fillOrKill: tko.fillOrKill,
       takerWants: tko.takerWants,
       takerGives: tko.takerGives,
@@ -227,7 +228,8 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       takerGave: res.takerGave,
       bounty: res.bounty,
       fee: res.fee,
-      restingOrderId: res.offerId
+      restingOrderId: res.offerId,
+      taker: msg.sender
     });
   }
 

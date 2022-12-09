@@ -310,13 +310,13 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // NB if several offers of `this` contract have failed during the market order, the balance of this contract on Mangrove will contain cumulated free provision
 
     // computing an under approximation of returned provision because of this offer's failure
-    (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) = MGV.config(order.outbound_tkn, order.inbound_tkn);
-    uint provision =
-      10 ** 9 * order.offerDetail.gasprice() * (order.offerDetail.gasreq() + order.offerDetail.offer_gasbase());
+    uint gasreq = order.offerDetail.gasreq();
+    uint provision = 10 ** 9 * order.offerDetail.gasprice() * (gasreq + order.offerDetail.offer_gasbase());
 
     // gasUsed estimate to complete posthook and penalize this offer is ~1750 (empirical estimate)
-    uint approxBounty =
-      (order.offerDetail.gasreq() - (gasleft() - GAS_APPROX) + local.offer_gasbase()) * global.gasprice() * 10 ** 9;
+    uint gasprice = order.global.gasprice() * 10 ** 9;
+    uint approxGasConsumption = gasreq + GAS_APPROX + order.local.offer_gasbase();
+    uint approxBounty = (approxGasConsumption - gasleft()) * gasprice;
     uint approxReturnedProvision = approxBounty >= provision ? 0 : provision - approxBounty;
 
     // storing the portion of this contract's balance on Mangrove that should be attributed back to the failing offer's owner

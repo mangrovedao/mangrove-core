@@ -581,7 +581,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       gasused = gasused + makerPosthook(sor, gasreq - gasused, makerData, mgvData);
 
       if (mgvData != "mgv/tradeSuccess") {
-        mor.totalPenalty += applyPenalty(sor, gasused);
+        mor.totalPenalty += applyPenalty(sor, gasused); // we are not emitting the applied penalty. We can therefor not back track and see what offers gave what penalty/bounty
       }
     }
   }

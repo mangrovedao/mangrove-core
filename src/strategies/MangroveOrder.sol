@@ -268,9 +268,9 @@ contract MangroveOrder is Forwarder, IOrderLogic {
         gasprice: 0, // ignored
         pivotId: tko.pivotId,
         fund: fund,
-        noRevert: true, // returns 0 when MGV reverts
-        owner: msg.sender
-      })
+        noRevert: true // returns 0 when MGV reverts
+      }),
+      msg.sender
     );
     if (res.offerId == 0) {
       // either:

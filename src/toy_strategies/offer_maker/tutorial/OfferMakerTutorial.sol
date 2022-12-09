@@ -42,8 +42,7 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
         gasprice: 0,
         pivotId: pivotId, // a best pivot estimate for cheap offer insertion in the offer list - this should be a parameter computed off-chain for cheaper insertion
         fund: msg.value, // WEIs in that are used to provision the offer.
-        noRevert: false, // we want to revert on error
-        owner: msg.sender // The sender is the owner
+        noRevert: false // we want to revert on error
       })
     );
   }
@@ -65,8 +64,7 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false,
-        owner: msg.sender
+        noRevert: false
       }),
       offerId
     );

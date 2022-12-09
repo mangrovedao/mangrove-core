@@ -125,6 +125,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// * offer ownership
   /// * offer provisions and gasprice
   /// @param args memory location of the function's arguments
+  /// @param owner the address of the offer owner
   /// @return offerId the identifier of the new offer on the offer list. Can be 0 if posting was rejected by Mangrove and `args.noRevert` is `true`.
   /// Forwarder logic does not manage user funds on Mangrove, as a consequence:
   /// An offer maker's redeemable provisions on Mangrove is just the sum $S_locked(maker)$ of locked provision in all live offers it owns
@@ -135,7 +136,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// To do so, we do not let offer maker fix a gasprice. Rather we derive the gasprice based on `msg.value`.
   /// Because of rounding errors in `deriveGasprice` a small amount of WEIs will accumulate in mangrove's balance of `this` contract
   /// We assign this leftover to the corresponding `weiBalance` of `OwnerData`.
-  function _newOffer(OfferArgs memory args) internal returns (uint offerId) {
+  function _newOffer(OfferArgs memory args, address owner) internal returns (uint offerId) {
     (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) =
       MGV.config(address(args.outbound_tkn), address(args.inbound_tkn));
     // convention for default gasreq value
@@ -154,7 +155,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
       address(args.outbound_tkn), address(args.inbound_tkn), args.wants, args.gives, args.gasreq, gasprice, args.pivotId
     ) returns (uint offerId_) {
       // assign `offerId_` to caller
-      addOwner(args.outbound_tkn, args.inbound_tkn, offerId_, args.owner, leftover);
+      addOwner(args.outbound_tkn, args.inbound_tkn, offerId_, owner, leftover);
       offerId = offerId_;
     } catch Error(string memory reason) {
       /// letting revert bubble up unless `noRevert` is positioned.
@@ -174,8 +175,8 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   ///@notice Internal `updateOffer`, using arguments and variables on memory to avoid stack too deep.
-  ///@return 0 if update was rejected by Mangrove and `args.noRevert` is `true`. Returns `args.offerId` otherwise
-  function _updateOffer(OfferArgs memory args, uint offerId) internal returns (uint) {
+  ///@return reason in {REPOST_FAILED_DUST, REPOST_FAILED} if update was rejected by Mangrove and `args.noRevert` is `true` or REPOST_SUCCESS otherwise
+  function _updateOffer(OfferArgs memory args, uint offerId) internal override returns (bytes32) {
     unchecked {
       UpdateOfferVars memory vars;
       (vars.global, vars.local) = MGV.config(address(args.outbound_tkn), address(args.inbound_tkn));
@@ -215,10 +216,15 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
         args.pivotId,
         offerId
       ) {
-        return offerId;
+        return REPOST_SUCCESS;
       } catch Error(string memory reason) {
         require(args.noRevert, reason);
-        return 0;
+        bytes32 reason_hsh = keccak256(bytes(reason));
+        if (reason_hsh == BELOW_DENSITY) {
+          return REPOST_FAILED_DUST; // offer not reposted because residual is below density
+        } else {
+          return REPOST_FAILED; // offer not reposted for other reasons (i.e lack of provision)
+        }
       }
     }
   }

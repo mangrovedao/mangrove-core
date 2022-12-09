@@ -41,9 +41,9 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false, // propagates Mangrove's revert data in case of newOffer failure
-        owner: msg.sender
-      })
+        noRevert: false // propagates Mangrove's revert data in case of newOffer failure
+      }),
+      msg.sender
     );
   }
 

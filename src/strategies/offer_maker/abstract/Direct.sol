@@ -92,7 +92,7 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
-  function _updateOffer(OfferArgs memory args, uint offerId) internal returns (uint) {
+  function _updateOffer(OfferArgs memory args, uint offerId) internal override returns (bytes32) {
     if (args.gasreq >= type(uint24).max) {
       MgvStructs.OfferDetailPacked detail =
         MGV.offerDetails(address(args.outbound_tkn), address(args.inbound_tkn), offerId);
@@ -108,10 +108,15 @@ abstract contract Direct is MangroveOffer {
       args.pivotId,
       offerId
     ) {
-      return offerId;
+      return REPOST_SUCCESS;
     } catch Error(string memory reason) {
       require(args.noRevert, reason);
-      return 0;
+      bytes32 reason_hsh = keccak256(bytes(reason));
+      if (reason_hsh == BELOW_DENSITY) {
+        return REPOST_FAILED_DUST; // offer not reposted because residual is below density
+      } else {
+        return REPOST_FAILED; // offer not reposted for other reasons (i.e lack of provision)
+      }
     }
   }
 

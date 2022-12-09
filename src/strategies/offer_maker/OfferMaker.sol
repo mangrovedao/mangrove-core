@@ -43,8 +43,7 @@ contract OfferMaker is ILiquidityProvider, Direct {
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false,
-        owner: msg.sender
+        noRevert: false
       })
     );
   }
@@ -66,8 +65,7 @@ contract OfferMaker is ILiquidityProvider, Direct {
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false,
-        owner: msg.sender
+        noRevert: false
       }),
       offerId
     );

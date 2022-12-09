@@ -31,6 +31,9 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
   bytes32 constant OUT_OF_FUNDS = keccak256("mgv/insufficientProvision");
   bytes32 constant BELOW_DENSITY = keccak256("mgv/writeOffer/density/tooLow");
+  bytes32 constant REPOST_FAILED_DUST = "posthook/dustRemainder";
+  bytes32 constant REPOST_FAILED = "posthook/repostFailed";
+  bytes32 constant REPOST_SUCCESS = "posthook/reposted";
 
   ///@notice guards for restricting a function call to either `MGV` or `admin()`.
   ///@dev When `msg.sender` is `MGV`, the function is being called either via `makerExecute` or `makerPosthook`.
@@ -280,28 +283,24 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       return "posthook/filled";
     }
     uint new_wants = __residualWants__(order);
-    try MGV.updateOffer(
-      order.outbound_tkn,
-      order.inbound_tkn,
-      new_wants,
-      new_gives,
-      order.offerDetail.gasreq(),
-      order.offerDetail.gasprice(),
-      order.offer.next(), // using next as pivot since this offer is off the book
+    return _updateOffer(
+      OfferArgs({
+        outbound_tkn: IERC20(order.outbound_tkn),
+        inbound_tkn: IERC20(order.inbound_tkn),
+        wants: new_wants,
+        gives: new_gives,
+        gasreq: order.offerDetail.gasreq(),
+        gasprice: order.offerDetail.gasprice(),
+        pivotId: order.offer.next(), // using next as pivot since this offer is off the book
+        noRevert: true,
+        fund: 0
+      }),
       order.offerId
-    ) {
-      return "posthook/reposted";
-    } catch Error(string memory reason) {
-      // `updateOffer` can fail if `offer.gives` is below density. This is not to be considered as a failure.
-      // We let the revert bubble up to Mangrove for all other reasons.
-      bytes32 reason_hsh = keccak256(bytes(reason));
-      if (reason_hsh == BELOW_DENSITY) {
-        return "posthook/dustRemainder"; // offer not reposted
-      } else {
-        revert(reason);
-      }
-    }
+    );
   }
+
+  ///@notice template for start specific update offer function
+  function _updateOffer(OfferArgs memory, uint) internal virtual returns (bytes32);
 
   ///@notice computes the provision that can be redeemed if deprovisioning a certain offer
   ///@param outbound_tkn the outbound token of the offer list

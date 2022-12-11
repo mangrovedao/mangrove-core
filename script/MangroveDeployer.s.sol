@@ -6,7 +6,9 @@ import "mgv_src/periphery/MgvReader.sol";
 import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {Deployer} from "./Deployer.sol";
+import {Deployer} from "./lib/Deployer.sol";
+import {MgvCleanerDeployer} from "./periphery/MgvCleaner.s.sol";
+import {MgvReaderDeployer} from "./periphery/MgvReader.s.sol";
 
 contract MangroveDeployer is Deployer {
   Mangrove public mgv;
@@ -15,7 +17,11 @@ contract MangroveDeployer is Deployer {
   MgvOracle public oracle;
 
   function run() public {
-    innerRun({chief: msg.sender, gasprice: 1, gasmax: 2_000_000});
+    innerRun({
+      chief: envHas("CHIEF") ? vm.envAddress("CHIEF") : msg.sender,
+      gasprice: envHas("GASPRICE") ? vm.envUint("GASPRICE") : 1,
+      gasmax: envHas("GASMAX") ? vm.envUint("GASMAX") : 2_000_000
+    });
     outputDeployment();
   }
 
@@ -24,13 +30,11 @@ contract MangroveDeployer is Deployer {
     mgv = new Mangrove({governance: chief, gasprice: gasprice, gasmax: gasmax});
     fork.set("Mangrove", address(mgv));
 
-    broadcast();
-    reader = new MgvReader({mgv: payable(mgv)});
-    fork.set("MgvReader", address(reader));
+    (new MgvReaderDeployer()).innerRun(address(mgv));
+    reader = MgvReader(fork.get("MgvReader"));
 
-    broadcast();
-    cleaner = new MgvCleaner({mgv: address(mgv)});
-    fork.set("MgvCleaner", address(cleaner));
+    (new MgvCleanerDeployer()).innerRun(address(mgv));
+    cleaner = MgvCleaner(fork.get("MgvCleaner"));
 
     broadcast();
     oracle = new MgvOracle({governance_: chief, initialMutator_: chief});

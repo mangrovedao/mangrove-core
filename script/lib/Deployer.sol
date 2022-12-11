@@ -45,7 +45,7 @@ abstract contract Deployer is Script2 {
       // depending on which fork the script is running on, choose whether to write the addresses to a file, get the right fork contract, and name the current network.
       if (block.chainid == 80001) {
         fork = new MumbaiFork();
-      } else if (block.chainid == 127) {
+      } else if (block.chainid == 137) {
         fork = new PolygonFork();
       } else if (block.chainid == 31337) {
         fork = new LocalFork();
@@ -53,7 +53,7 @@ abstract contract Deployer is Script2 {
         revert(string.concat("Unknown chain id ", vm.toString(block.chainid), ", cannot deploy."));
       }
 
-      if (ANVIL_DEFAULT_FIRST_ACCOUNT.balance > 0) {
+      if (address(remoteEns).code.length == 0 && ANVIL_DEFAULT_FIRST_ACCOUNT.balance >= 1000 ether) {
         deployRemoteToyENS();
       }
 
@@ -81,8 +81,7 @@ abstract contract Deployer is Script2 {
       // In the default case, forge sets the broadcaster to be tx.origin.
       // Using msg.sender would not work since we don't know how deep in the callstack we are.
       _broadcaster = tx.origin;
-      // 0x00a3... is the default tx.origin
-      console.log(_broadcaster);
+      // there are two possible default tx.origin depending on foundry version
       if (
         _broadcaster == 0x00a329c0648769A73afAc7F9381E08FB43dBEA72
           || _broadcaster == 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38
@@ -140,12 +139,19 @@ abstract contract Deployer is Script2 {
     out = string.concat(out, s, "\n");
   }
 
-  // Tries to interpret `envVar`'s value as an address; otherwise look it up in the current fork.
-  function getRawAddressOrName(string memory envVar) internal view returns (address payable) {
+  function envAddressOrName(string memory envVar) internal view returns (address payable) {
     try vm.envAddress(envVar) returns (address addr) {
       return payable(addr);
     } catch {
       return fork.get(vm.envString(envVar));
+    }
+  }
+
+  function envHas(string memory envVar) internal view returns (bool) {
+    try vm.envString(envVar) {
+      return true;
+    } catch {
+      return false;
     }
   }
 

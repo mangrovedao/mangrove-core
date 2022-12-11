@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MangroveDeployer} from "mgv_script/lib/MangroveDeployer.sol";
+import {MangroveDeployer} from "mgv_script/MangroveDeployer.s.sol";
 
 import {Test2, Test} from "mgv_lib/Test2.sol";
 
@@ -15,7 +15,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 import {MangroveOrderDeployer, MangroveOrderEnriched} from "mgv_script/strategies/MangroveOrderDeployer.s.sol";
 
-contract MangroveDeployerTest is Deployer, Test2 {
+contract MangroveOrderDeployerTest is Deployer, Test2 {
   MangroveOrderDeployer mgoDeployer;
   address chief;
   uint gasprice;

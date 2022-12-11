@@ -24,7 +24,7 @@ import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_ma
 contract InitMango is Deployer {
   function run() public {
     innerRun({
-      $mgo: payable(vm.envAddress("MANGO")),
+      $mgo: payable(envAddressOrName("MANGO")),
       default_base_amount: vm.envUint("DEFAULT_BASE_AMOUNT"),
       default_quote_amount: vm.envUint("DEFAULT_QUOTE_AMOUNT"),
       lastBidIndex: vm.envUint("LAST_BID_INDEX"),

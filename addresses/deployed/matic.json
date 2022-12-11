@@ -1,0 +1,34 @@
+[
+  {
+    "address": "0xe5d708eb7b377F0db822D64d138AE29747D43369",
+    "name": "Mangrove"
+  },
+  {
+    "address": "0xb43B23e87e045e196e839880F8C2806fCccE4221",
+    "name": "MgvOracle"
+  },
+  {
+    "address": "0x106b805d76Ea65F8aF0Bb4E9499a2CB69162C75A",
+    "name": "MgvReader"
+  },
+  {
+    "address": "0xf6509A77281018544eD3Ba4E0c605ea9aAe07819",
+    "name": "MgvCleaner"
+  },
+  {
+    "address": "0x4869505f0E97c54d3954C4Ac2b65E32aB0110234",
+    "name": "MgvGovernance"
+  },
+  {
+    "address": "0xE07622Ed153abdd91Fb9b7c9CDbd69f3F98203a1",
+    "name": "PxUSDC"
+  },
+  {
+    "address": "0x10c1425b9458d8BB85301C3E90847208370aC2A3",
+    "name": "PxMATIC"
+  },
+  {
+    "address": "0xF30f4d2EE2a79810dFE865595a12fC980AdA9dDd",
+    "name": "MangroveOrderEnriched"
+  }
+]

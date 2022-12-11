@@ -18,8 +18,8 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 contract ActivateMarket is Deployer {
   function run() public {
     innerRun({
-      tkn1: getRawAddressOrName("TKN1"),
-      tkn2: getRawAddressOrName("TKN2"),
+      tkn1: envAddressOrName("TKN1"),
+      tkn2: envAddressOrName("TKN2"),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
       fee: vm.envUint("FEE")

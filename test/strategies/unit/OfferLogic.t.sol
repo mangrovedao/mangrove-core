@@ -158,6 +158,10 @@ contract OfferLogicTest is MangroveTest {
     });
   }
 
+  function test_provisionOf_returns_zero_if_offer_does_not_exist() public {
+    assertEq(makerContract.provisionOf(weth, usdc, 0), 0, "Invalid returned provision");
+  }
+
   function test_maker_can_deprovision_Offer() public {
     vm.prank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
@@ -248,6 +252,27 @@ contract OfferLogicTest is MangroveTest {
     });
   }
 
+  function test_only_maker_can_updateOffer() public {
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      pivotId: 0
+    });
+    vm.expectRevert("AccessControlled/Invalid");
+    vm.prank(freshAddress());
+    makerContract.updateOffer({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      pivotId: offerId,
+      offerId: offerId
+    });
+  }
+
   function test_updateOffer_fails_when_provision_is_too_low() public {
     vm.prank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
@@ -308,5 +333,89 @@ contract OfferLogicTest is MangroveTest {
     assertEq(makerContract.tokenBalance(weth, maker), balOut - (takergot + fee), "incorrect out balance");
     assertEq(makerContract.tokenBalance(usdc, maker), balIn + takergave, "incorrect in balance");
     vm.stopPrank();
+  }
+
+  function test_reposting_fails_with_expected_reason_when_below_density() public {
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      pivotId: 0
+    });
+    MgvLib.OrderResult memory result;
+    result.mgvData = "mgv/tradeSuccess";
+    MgvLib.SingleOrder memory order;
+    order.outbound_tkn = $(weth);
+    order.inbound_tkn = $(usdc);
+    order.offerId = offerId;
+    order.wants = 0.999999999999999 ether;
+    order.gives = cash(usdc, 2000) - 1;
+    /* `offerDetail` is only populated when necessary. */
+    order.offerDetail = mgv.offerDetails($(weth), $(usdc), offerId);
+    order.offer = mgv.offers($(weth), $(usdc), offerId);
+    (order.global, order.local) = mgv.config($(weth), $(usdc));
+    vm.expectRevert("mgv/writeOffer/density/tooLow");
+    vm.prank($(mgv));
+    makerContract.makerPosthook(order, result);
+  }
+
+  function test_reposting_fails_with_expected_reason_when_underprovisioned() public {
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      pivotId: 0
+    });
+    mgv.setGasprice(1000);
+    vm.startPrank(deployer);
+    makerContract.withdrawFromMangrove(mgv.balanceOf(address(makerContract)), payable(deployer));
+    vm.stopPrank();
+
+    MgvLib.OrderResult memory result;
+    result.mgvData = "mgv/tradeSuccess";
+    MgvLib.SingleOrder memory order;
+    order.outbound_tkn = $(weth);
+    order.inbound_tkn = $(usdc);
+    order.offerId = offerId;
+    order.wants = 0.5 ether;
+    order.gives = cash(usdc, 1000);
+    /* `offerDetail` is only populated when necessary. */
+    order.offerDetail = mgv.offerDetails($(weth), $(usdc), offerId);
+    order.offer = mgv.offers($(weth), $(usdc), offerId);
+    (order.global, order.local) = mgv.config($(weth), $(usdc));
+    vm.expectRevert("mgv/insufficientProvision");
+    vm.prank($(mgv));
+    makerContract.makerPosthook(order, result);
+  }
+
+  function test_reposting_fails_with_expected_reason_when_innactive() public {
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      pivotId: 0
+    });
+    mgv.deactivate($(weth), $(usdc));
+    MgvLib.OrderResult memory result;
+    result.mgvData = "mgv/tradeSuccess";
+    MgvLib.SingleOrder memory order;
+    order.outbound_tkn = $(weth);
+    order.inbound_tkn = $(usdc);
+    order.offerId = offerId;
+    order.wants = 0.5 ether;
+    order.gives = cash(usdc, 1000);
+    /* `offerDetail` is only populated when necessary. */
+    order.offerDetail = mgv.offerDetails($(weth), $(usdc), offerId);
+    order.offer = mgv.offers($(weth), $(usdc), offerId);
+    (order.global, order.local) = mgv.config($(weth), $(usdc));
+    vm.expectRevert("posthook/failed");
+    vm.prank($(mgv));
+    makerContract.makerPosthook(order, result);
   }
 }

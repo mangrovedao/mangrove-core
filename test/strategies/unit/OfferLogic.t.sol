@@ -334,4 +334,30 @@ contract OfferLogicTest is MangroveTest {
     assertEq(makerContract.tokenBalance(usdc, maker), balIn + takergave, "incorrect in balance");
     vm.stopPrank();
   }
+
+  function test_reposting_fails_with_expected_reason_when_below_density() public {
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      pivotId: 0
+    });
+    MgvLib.OrderResult memory result;
+    result.mgvData = "mgv/tradeSuccess";
+    MgvLib.SingleOrder memory order;
+    order.outbound_tkn = $(weth);
+    order.inbound_tkn = $(usdc);
+    order.offerId = offerId;
+    order.wants = 0.999999999999999 ether;
+    order.gives = cash(usdc, 2000) - 1;
+    /* `offerDetail` is only populated when necessary. */
+    order.offerDetail = mgv.offerDetails($(weth), $(usdc), offerId);
+    order.offer = mgv.offers($(weth), $(usdc), offerId);
+    (order.global, order.local) = mgv.config($(weth), $(usdc));
+    vm.expectRevert("mgv/writeOffer/density/tooLow");
+    vm.prank($(mgv));
+    makerContract.makerPosthook(order, result);
+  }
 }

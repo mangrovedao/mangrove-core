@@ -44,7 +44,7 @@ pragma solidity ^0.8.10;
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {StdStorage, stdStorage} from "forge-std/Test.sol";
+import {console2, StdStorage, stdStorage} from "forge-std/Test.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 
 contract PermitTest is MangroveTest, TrivialTestMaker {
@@ -92,7 +92,8 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
 
   function test_no_allowance(uint96 value) external {
     /* You can use 0 from someone who gave you an allowance of 0. */
-    vm.assume(value > 0); //can't create a 0 offer
+    vm.assume(value > 10); //can't create an offer below density
+    console2.log(value);
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
     newOffer(value);

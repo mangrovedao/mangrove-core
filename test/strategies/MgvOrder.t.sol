@@ -112,7 +112,7 @@ contract MangroveOrder_Test is MangroveTest {
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
     vm.expectRevert("AccessControlled/Invalid");
     vm.prank(freshAddress());
-    mgo.updateOffer(quote, base, 1, 1, 0, res.offerId);
+    mgo.updateOffer(quote, base, 10, 10, 0, res.offerId);
   }
 
   function test_owner_can_update_offer() public {
@@ -129,8 +129,8 @@ contract MangroveOrder_Test is MangroveTest {
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
-    mgo.updateOffer(quote, base, 1, 1, 0, res.offerId);
-    assertEq(mgv.offers($(quote), $(base), res.offerId).gives(), 1, "Offer incorrectly updated");
+    mgo.updateOffer(quote, base, 1 ether, 1 ether, 0, res.offerId);
+    assertEq(mgv.offers($(quote), $(base), res.offerId).gives(), 1 ether, "Offer incorrectly updated");
   }
 
   function test_partial_filled_buy_order_returns_residual() public {

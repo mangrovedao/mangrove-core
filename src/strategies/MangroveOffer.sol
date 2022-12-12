@@ -113,6 +113,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
         );
       // calling strat specific todos in case of failure
       __posthookFallback__(order, result);
+      __handleResidualProvision__(order);
     }
   }
 
@@ -274,6 +275,12 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     }
   }
 
+  ///@notice Hook that defines what needs to be done to the part of an offer provision that was added to the balance of `this` on Mangrove after an offer has failed.
+  ///@param order is a recal of the taker order that failed
+  function __handleResidualProvision__(MgvLib.SingleOrder calldata order) internal virtual {
+    order; //ssh
+  }
+
   ///@notice Post-hook that implements default behavior when Taker Order's execution succeeded.
   ///@param order is a recall of the taker order that is at the origin of the current trade.
   ///@param maker_data is the returned value of the `__lastLook__` hook, triggered during trade execution. The special value `"lastLook/retract"` should be treated as an instruction not to repost the offer on the book.
@@ -290,14 +297,14 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     maker_data; // maker_data can be used in overrides to skip reposting for instance. It is ignored in the default behavior.
     // now trying to repost residual
     uint new_gives = __residualGives__(order);
+    uint new_wants = __residualWants__(order);
     // Density check at each repost would be too gas costly.
-    // We only treat the special case of `gives==0` (total fill).
+    // We only treat the special case of `gives==0` or `wants==0` (total fill).
     // Offer below the density will cause Mangrove to throw so we encapsulate the call to `updateOffer` in order not to revert posthook for posting at dust level.
-    if (new_gives == 0) {
+    if (new_gives == 0 || new_wants == 0) {
       return "posthook/filled";
     }
-    uint new_wants = __residualWants__(order);
-    return _updateOffer(
+    data = _updateOffer(
       OfferArgs({
         outbound_tkn: IERC20(order.outbound_tkn),
         inbound_tkn: IERC20(order.inbound_tkn),

@@ -440,8 +440,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
        * `msg.sender` is Mangrove itself in those calls -- all operations related to the actual caller should be done outside of this call.
        * any spurious exception due to an error in Mangrove code will be falsely blamed on the Maker, and its provision for the offer will be unfairly taken away.
        */
-      (bool success, bytes memory retdata) =
-        address(this).call(abi.encodeWithSelector(this.flashloan.selector, sor, mor.taker));
+      (bool success, bytes memory retdata) = address(this).call(abi.encodeCall(this.flashloan, (sor, mor.taker)));
 
       /* `success` is true: trade is complete */
       if (success) {
@@ -500,7 +499,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   function makerExecute(MgvLib.SingleOrder calldata sor) internal returns (uint gasused) {
     unchecked {
-      bytes memory cd = abi.encodeWithSelector(IMaker.makerExecute.selector, sor);
+      bytes memory cd = abi.encodeCall(IMaker.makerExecute, (sor));
 
       uint gasreq = sor.offerDetail.gasreq();
       address maker = sor.offerDetail.maker();
@@ -575,9 +574,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   {
     unchecked {
       /* At this point, mgvData can only be `"mgv/tradeSuccess"`, `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"` */
-      bytes memory cd = abi.encodeWithSelector(
-        IMaker.makerPosthook.selector, sor, MgvLib.OrderResult({makerData: makerData, mgvData: mgvData})
-      );
+      bytes memory cd =
+        abi.encodeCall(IMaker.makerPosthook, (sor, MgvLib.OrderResult({makerData: makerData, mgvData: mgvData})));
 
       address maker = sor.offerDetail.maker();
 

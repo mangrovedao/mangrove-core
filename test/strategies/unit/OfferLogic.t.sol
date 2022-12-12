@@ -252,6 +252,27 @@ contract OfferLogicTest is MangroveTest {
     });
   }
 
+  function test_only_maker_can_updateOffer() public {
+    vm.prank(maker);
+    uint offerId = makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      pivotId: 0
+    });
+    vm.expectRevert("AccessControlled/Invalid");
+    vm.prank(freshAddress());
+    makerContract.updateOffer({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      pivotId: offerId,
+      offerId: offerId
+    });
+  }
+
   function test_updateOffer_fails_when_provision_is_too_low() public {
     vm.prank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({

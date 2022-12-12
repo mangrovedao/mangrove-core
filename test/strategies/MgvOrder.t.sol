@@ -110,7 +110,7 @@ contract MangroveOrder_Test is MangroveTest {
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
-    vm.expectRevert("Forwarder/unauthorized");
+    vm.expectRevert("AccessControlled/Invalid");
     vm.prank(freshAddress());
     mgo.updateOffer(quote, base, 1, 1, 0, res.offerId);
   }
@@ -686,7 +686,7 @@ contract MangroveOrder_Test is MangroveTest {
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.offerId > 0, "resting order not posted");
-    vm.expectRevert("Forwarder/unauthorized");
+    vm.expectRevert("AccessControlled/Invalid");
     vm.prank(freshAddress());
     mgo.setExpiry(quote, base, res.offerId, block.timestamp + 70);
   }

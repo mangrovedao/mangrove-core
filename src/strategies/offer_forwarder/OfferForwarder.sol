@@ -83,7 +83,7 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
       data == "posthook/reposted" || data == "posthook/filled",
       data == "mgv/insufficientProvision"
         ? "mgv/insufficientProvision"
-        : (data == "mgv/writeOffer/density/tooLow" ? "mgv/writeOffer/density/tooLow" : "posthookFailed")
+        : (data == "mgv/writeOffer/density/tooLow" ? "mgv/writeOffer/density/tooLow" : "posthook/failed")
     );
   }
 }

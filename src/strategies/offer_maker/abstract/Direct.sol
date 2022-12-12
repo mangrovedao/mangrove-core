@@ -111,12 +111,7 @@ abstract contract Direct is MangroveOffer {
       return REPOST_SUCCESS;
     } catch Error(string memory reason) {
       require(args.noRevert, reason);
-      bytes32 reason_hsh = keccak256(bytes(reason));
-      if (reason_hsh == BELOW_DENSITY) {
-        return REPOST_FAILED_DUST; // offer not reposted because residual is below density
-      } else {
-        return REPOST_FAILED; // offer not reposted for other reasons (i.e lack of provision)
-      }
+      return _repostStatus(reason);
     }
   }
 

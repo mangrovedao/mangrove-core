@@ -31,9 +31,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
   bytes32 constant OUT_OF_FUNDS = keccak256("mgv/insufficientProvision");
   bytes32 constant BELOW_DENSITY = keccak256("mgv/writeOffer/density/tooLow");
-  bytes32 constant REPOST_FAILED_DUST = "posthook/dustRemainder";
-  bytes32 constant REPOST_FAILED = "posthook/repostFailed";
   bytes32 constant REPOST_SUCCESS = "posthook/reposted";
+  bytes32 constant REPOST_FAILED = "posthook/repostFailed";
 
   ///@notice guards for restricting a function call to either `MGV` or `admin()`.
   ///@dev When `msg.sender` is `MGV`, the function is being called either via `makerExecute` or `makerPosthook`.
@@ -260,13 +259,28 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     return order.offer.gives() - order.wants;
   }
 
+  ///@notice converts Mangrove's error message string back into its original bytes32 type
+  ///@param reason the revert reason
+  function _repostStatus(string memory reason) internal pure returns (bytes32) {
+    bytes32 reason_hsh = keccak256(bytes(reason));
+    if (reason_hsh == BELOW_DENSITY) {
+      return "mgv/writeOffer/density/tooLow"; // offer not reposted because residual is below density
+    } else {
+      if (reason_hsh == OUT_OF_FUNDS) {
+        return "mgv/insufficientProvision"; // offer not reposted for other reasons (i.e lack of provision)
+      } else {
+        return REPOST_FAILED;
+      }
+    }
+  }
+
   ///@notice Post-hook that implements default behavior when Taker Order's execution succeeded.
   ///@param order is a recall of the taker order that is at the origin of the current trade.
   ///@param maker_data is the returned value of the `__lastLook__` hook, triggered during trade execution. The special value `"lastLook/retract"` should be treated as an instruction not to repost the offer on the book.
   ///@return data can be:
   /// * `"posthook/filled"` when offer was completely filled
   /// * `"posthook/reposted"` when offer was partially filled and successfully reposted
-  /// * `"posthook/dustRemainder"` when offer was partially filled but residual was below density (and thus not reposted)
+  /// * Mangrove's revert reason (cast to a bytes32) when residual is below density or `this` balance on Mangrove is too low (and thus not reposted)
   /// @custom:hook overrides of this hook should be conservative and call `super.__posthookSuccess__(order, maker_data)`
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)
     internal

@@ -42,14 +42,14 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
 
   ///@notice modifier to enforce function caller to be offer owner
   modifier onlyOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
-    require(ownerData[outbound_tkn][inbound_tkn][offerId].owner == msg.sender, "Forwarder/unauthorized");
+    require(ownerData[outbound_tkn][inbound_tkn][offerId].owner == msg.sender, "AccessControlled/Invalid");
     _;
   }
 
   ///@notice modifier to enforce function caller to be offer owner or MGV (for use in the offer logic)
   modifier mgvOrOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) {
     if (msg.sender != address(MGV)) {
-      require(ownerData[outbound_tkn][inbound_tkn][offerId].owner == msg.sender, "Forwarder/unauthorized");
+      require(ownerData[outbound_tkn][inbound_tkn][offerId].owner == msg.sender, "AccessControlled/Invalid");
     }
     _;
   }
@@ -219,12 +219,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
         return REPOST_SUCCESS;
       } catch Error(string memory reason) {
         require(args.noRevert, reason);
-        bytes32 reason_hsh = keccak256(bytes(reason));
-        if (reason_hsh == BELOW_DENSITY) {
-          return REPOST_FAILED_DUST; // offer not reposted because residual is below density
-        } else {
-          return REPOST_FAILED; // offer not reposted for other reasons (i.e lack of provision)
-        }
+        return _repostStatus(reason);
       }
     }
   }

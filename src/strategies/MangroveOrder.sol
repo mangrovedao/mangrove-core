@@ -218,6 +218,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       mangrove: MGV,
       outbound_tkn: tko.outbound_tkn,
       inbound_tkn: tko.inbound_tkn,
+      taker: msg.sender,
       fillOrKill: tko.fillOrKill,
       takerWants: tko.takerWants,
       takerGives: tko.takerGives,
@@ -228,8 +229,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       takerGave: res.takerGave,
       bounty: res.bounty,
       fee: res.fee,
-      restingOrderId: res.offerId,
-      taker: msg.sender
+      restingOrderId: res.offerId
     });
   }
 

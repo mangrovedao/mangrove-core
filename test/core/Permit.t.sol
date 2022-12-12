@@ -92,8 +92,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
 
   function test_no_allowance(uint96 value) external {
     /* You can use 0 from someone who gave you an allowance of 0. */
-    vm.assume(value > 10); //can't create an offer below density
-    console2.log(value);
+    vm.assume(value > 1_000_000); //can't create an offer below density
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
     newOffer(value);

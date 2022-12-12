@@ -260,21 +260,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     return order.offer.gives() - order.wants;
   }
 
-  ///@notice converts Mangrove's error message string back into its original bytes32 type
-  ///@param reason the revert reason
-  function _repostStatus(string memory reason) internal pure returns (bytes32) {
-    bytes32 reason_hsh = keccak256(bytes(reason));
-    if (reason_hsh == BELOW_DENSITY) {
-      return "mgv/writeOffer/density/tooLow"; // offer not reposted because residual is below density
-    } else {
-      if (reason_hsh == OUT_OF_FUNDS) {
-        return "mgv/insufficientProvision"; // offer not reposted for other reasons (i.e lack of provision)
-      } else {
-        return REPOST_FAILED;
-      }
-    }
-  }
-
   ///@notice Hook that defines what needs to be done to the part of an offer provision that was added to the balance of `this` on Mangrove after an offer has failed.
   ///@param order is a recal of the taker order that failed
   function __handleResidualProvision__(MgvLib.SingleOrder calldata order) internal virtual {

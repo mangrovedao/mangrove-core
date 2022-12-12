@@ -111,7 +111,7 @@ abstract contract Direct is MangroveOffer {
       return REPOST_SUCCESS;
     } catch Error(string memory reason) {
       require(args.noRevert, reason);
-      return _repostStatus(reason);
+      return bytes32(bytes(reason));
     }
   }
 

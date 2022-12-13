@@ -70,13 +70,14 @@ note over aavePool,aWETH:pooledForwarder: +1-1 WETH<br>maker: -1 WETH<br>aaveRou
 import {Forwarder, IMangrove, IERC20, MgvLib} from "src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import {AbstractRouter, AaveRouter} from "src/strategies/routers/AaveRouter.sol";
 import {TransferLib} from "src/strategies/utils/TransferLib.sol";
+import {ILiquidityProvider} from "src/strategies/interfaces/ILiquidityProvider.sol";
 
 //Using a AaveDeepRouter, it will borrow and deposit on behalf of the reserve - but as a pool, and keep a contract-local balance to avoid spending gas
 // gas overhead of the router for each order:
 // - supply ~ 250K
 // - borrow ~ 360K
 //This means that yield and interest should be handled for the reserve here, somehow.
-contract PooledForwarder is Forwarder {
+contract PooledForwarder is Forwarder, ILiquidityProvider {
   // balance of token for an owner - the pool has a balance in aave and on `this`.
   mapping(IERC20 => mapping(address => uint)) internal ownerBalance;
 
@@ -143,6 +144,7 @@ contract PooledForwarder is Forwarder {
   function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
     external
     payable
+    onlyOwner
   {
     _updateOffer(
       OfferArgs({
@@ -259,8 +261,6 @@ contract PooledForwarder is Forwarder {
     returns (bytes32 retdata)
   {
     pushAllToAave(order);
-    // super fallback credits owner of ~ (provision - bounty)
-    retdata = super.__posthookFallback__(order, result);
   }
 
   function __reserve__(address maker) internal view override returns (address) {

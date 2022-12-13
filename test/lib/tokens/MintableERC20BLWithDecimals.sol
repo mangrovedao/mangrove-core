@@ -11,9 +11,13 @@ contract MintableERC20BLWithDecimals is
   mapping(address => bool) admins;
   uint public __decimals; // full uint to help forge-std's stdstore
 
-  constructor(address admin, string memory name, string memory symbol, uint8 decimals) ERC20BL(name, symbol) {
+  constructor(address admin, string memory name, string memory symbol, uint8 _decimals) ERC20BL(name, symbol) {
     admins[admin] = true;
-    __decimals = decimals; // Old version didn't have decimal in this class, but was defined in the ERC20BL class
+    __decimals = _decimals;
+  }
+
+  function decimals() public view virtual override returns (uint8) {
+    return uint8(__decimals);
   }
 
   function requireAdmin() internal view {
@@ -26,6 +30,14 @@ contract MintableERC20BLWithDecimals is
   }
 
   function mint(address to, uint amount) external {
+    mintRestricted(to, amount);
+  }
+
+  function mint(uint amount) external {
+    mintRestricted(_msgSender(), amount);
+  }
+
+  function mintRestricted(address to, uint amount) internal {
     uint limit = 100_000;
     require(
       amount <= limit * pow(10, decimals()), // was limit.mul(...)

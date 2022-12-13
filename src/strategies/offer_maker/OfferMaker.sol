@@ -26,54 +26,46 @@ contract OfferMaker is ILiquidityProvider, Direct {
   }
 
   ///@inheritdoc ILiquidityProvider
-  function newOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId
-  ) external payable override onlyAdmin returns (uint offerId) {
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
+    external
+    payable
+    override
+    onlyAdmin
+    returns (uint offerId)
+  {
     offerId = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: gasreq,
-        gasprice: gasprice,
+        gasreq: offerGasreq(),
+        gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false,
-        owner: msg.sender
+        noRevert: false
       })
     );
   }
 
   ///@inheritdoc ILiquidityProvider
-  function updateOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq, // give `type(uint).max` to use previous value
-    uint gasprice,
-    uint pivotId,
-    uint offerId
-  ) external payable override onlyAdmin {
+  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+    external
+    payable
+    override
+    onlyAdmin
+  {
     _updateOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: gasreq,
-        gasprice: gasprice,
+        gasreq: offerGasreq(),
+        gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false,
-        owner: msg.sender
+        noRevert: false
       }),
       offerId
     );

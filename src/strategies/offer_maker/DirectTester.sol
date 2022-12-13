@@ -13,6 +13,8 @@ pragma solidity ^0.8.10;
 
 import {IMangrove, AbstractRouter, OfferMaker, IERC20} from "./OfferMaker.sol";
 import {ITesterContract} from "mgv_src/strategies/interfaces/ITesterContract.sol";
+import {MgvLib} from "mgv_src/MgvLib.sol";
+import {console2} from "forge-std/Test.sol";
 
 contract DirectTester is ITesterContract, OfferMaker {
   mapping(address => address) public reserves;
@@ -34,5 +36,19 @@ contract DirectTester is ITesterContract, OfferMaker {
     AbstractRouter router_ = router();
     address makerReserve = reserve(maker);
     return router_ == NO_ROUTER ? token.balanceOf(makerReserve) : router_.reserveBalance(token, makerReserve);
+  }
+
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)
+    internal
+    override
+    returns (bytes32 data)
+  {
+    data = super.__posthookSuccess__(order, maker_data);
+    require(
+      data == "posthook/reposted" || data == "posthook/filled",
+      (data == "mgv/insufficientProvision")
+        ? "mgv/insufficientProvision"
+        : (data == "mgv/writeOffer/density/tooLow" ? "mgv/writeOffer/density/tooLow" : "posthook/failed")
+    );
   }
 }

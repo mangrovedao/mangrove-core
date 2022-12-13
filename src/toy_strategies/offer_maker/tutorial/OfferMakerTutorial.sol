@@ -24,15 +24,7 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
   //--------------
 
   ///@inheritdoc ILiquidityProvider
-  function newOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId
-  )
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
     public
     // the function is payable to allow us to provision an offer
     payable
@@ -46,39 +38,33 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: gasreq,
-        gasprice: gasprice,
+        gasreq: offerGasreq(),
+        gasprice: 0,
         pivotId: pivotId, // a best pivot estimate for cheap offer insertion in the offer list - this should be a parameter computed off-chain for cheaper insertion
         fund: msg.value, // WEIs in that are used to provision the offer.
-        noRevert: false, // we want to revert on error
-        owner: msg.sender // The sender is the owner
+        noRevert: false // we want to revert on error
       })
     );
   }
 
   ///@inheritdoc ILiquidityProvider
-  function updateOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq, // give `type(uint).max` to use previous value
-    uint gasprice,
-    uint pivotId,
-    uint offerId
-  ) public payable override mgvOrAdmin {
+  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+    public
+    payable
+    override
+    mgvOrAdmin
+  {
     _updateOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: gasreq,
-        gasprice: gasprice,
+        gasreq: offerGasreq(),
+        gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false,
-        owner: msg.sender
+        noRevert: false
       }),
       offerId
     );

@@ -58,19 +58,33 @@ interface IOrderLogic {
   ///@param outbound_tkn The outbound token of the order.
   ///@param inbound_tkn The inbound token of the order.
   ///@param taker The address of the taker
+  ///@param fillOrKill The fillOrKill that take was called with
+  ///@param takerWants How much the taker wanted
+  ///@param takerGives How much the taker would give
   ///@param fillWants If true, the market order stopped when `takerWants` units of `outbound_tkn` had been obtained; otherwise, the market order stopped when `takerGives` units of `inbound_tkn` had been sold.
+  ///@param restingOrder The restingOrder boolean take was called with
+  ///@param expiryDate The expiry date take was called with
   ///@param takerGot How much the taker got
   ///@param takerGave How much the taker gave
-  ///@param penalty How much penalty was given
+  ///@param bounty How much bounty was given
+  ///@param fee How much fee was paid for the order
+  ///@param restingOrderId If a restingOrder was posted, then this holds the offerId for the restingOrder
   event OrderSummary(
     IMangrove mangrove,
     IERC20 indexed outbound_tkn,
     IERC20 indexed inbound_tkn,
     address indexed taker,
+    bool fillOrKill,
+    uint takerWants,
+    uint takerGives,
     bool fillWants,
+    bool restingOrder,
+    uint expiryDate,
     uint takerGot,
     uint takerGave,
-    uint penalty
+    uint bounty,
+    uint fee,
+    uint restingOrderId
   );
 
   ///@notice Timestamp beyond which the given `offerId` should renege on trade.

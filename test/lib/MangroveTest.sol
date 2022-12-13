@@ -224,8 +224,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   function setupMarket(address $a, address $b, AbstractMangrove _mgv) internal {
     assertNot0x($a);
     assertNot0x($b);
-    _mgv.activate($a, $b, options.defaultFee, 0, 20_000);
-    _mgv.activate($b, $a, options.defaultFee, 0, 20_000);
+    _mgv.activate($a, $b, options.defaultFee, 10, 20_000);
+    _mgv.activate($b, $a, options.defaultFee, 10, 20_000);
     // logging
     vm.label($a, IERC20($a).symbol());
     vm.label($b, IERC20($b).symbol());

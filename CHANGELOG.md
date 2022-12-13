@@ -1,5 +1,12 @@
 # next version
 
+# 1.3.0 (December 2022)
+
+- Fix issue in provision calculations in stratlib
+- Some gas optimizations in the stratlib
+- Update mumbai deployment addresses
+- Update PxUSDC and PxMATIC Polugon mainnet addresses
+
 # 1.2.0 (December 2022)
 
 - Added Polygon mainnet deployment addresses

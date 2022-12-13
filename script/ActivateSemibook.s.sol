@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import "mgv_lib/Test2.sol";
-import "mgv_src/Mangrove.sol";
-import {ERC20} from "mgv_test/lib/tokens/ERC20.sol";
+import {Test2} from "mgv_lib/Test2.sol";
+import {Mangrove} from "mgv_src/Mangrove.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 uint constant COVER_FACTOR = 100;
@@ -61,7 +61,7 @@ contract ActivateSemibook is Test2, Deployer {
        - so density is in (base token units token)/gas
     */
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    uint outbound_decimals = ERC20(outbound_tkn).decimals();
+    uint outbound_decimals = IERC20(outbound_tkn).decimals();
     uint density = (COVER_FACTOR * global.gasprice() * 10 ** outbound_decimals) / outbound_in_gwei;
 
     broadcast();
@@ -77,13 +77,13 @@ contract ActivateSemibook is Test2, Deployer {
   function measureTransferGas(address tkn) internal returns (uint) {
     address someone = freshAddress();
     vm.prank(someone);
-    ERC20(tkn).approve(address(this), type(uint).max);
+    IERC20(tkn).approve(address(this), type(uint).max);
     deal(tkn, someone, 10);
     /* WARNING: gas metering is done by local execution, which means that on
      * networks that have different EIPs activated, there will be discrepancies. */
     uint post;
     uint pre = gasleft();
-    ERC20(tkn).transferFrom(someone, address(this), 1);
+    IERC20(tkn).transferFrom(someone, address(this), 1);
     post = gasleft();
     return pre - post;
   }

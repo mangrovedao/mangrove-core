@@ -5,7 +5,7 @@
 - Fix issue in provision calculations in stratlib
 - Some gas optimizations in the stratlib
 - Update mumbai deployment addresses
-- Update PxUSDC and PxMATIC Polugon mainnet addresses
+- Update PxUSDC and PxMATIC Polygon mainnet addresses
 
 # 1.2.0 (December 2022)
 

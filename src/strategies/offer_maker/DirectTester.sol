@@ -14,7 +14,6 @@ pragma solidity ^0.8.10;
 import {IMangrove, AbstractRouter, OfferMaker, IERC20} from "./OfferMaker.sol";
 import {ITesterContract} from "mgv_src/strategies/interfaces/ITesterContract.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
-import {console2} from "forge-std/Test.sol";
 
 contract DirectTester is ITesterContract, OfferMaker {
   mapping(address => address) public reserves;

@@ -203,7 +203,24 @@ contract PooledForwarder is Forwarder, ILiquidityProvider {
     return 0;
   }
 
+  // mapping (address /*token*/ => uint /* ious */) ious;
+  // mapping (address /*user*/ => address /* token */ => uint /* ious */) userIous;
   function deposit(IERC20 token, uint amount) external {
+    // IOU-based method
+    //   uint totalDepositedTokens = router.totalBalance(token);
+    //   uint userIous = amount * ious[token] / totalDepositedTokens;
+    //   totalDepositedTokens += amount;
+    //   ious[token] += userIous;
+    //   userIous[msg.sender][token] += userIous;
+    // }
+
+    // index-based method, I don't think it's needed
+    // currentIndex // total accumulated interest since beginning of time
+    // userIndex = currentIndex
+    // userDeposit = amount
+
+    // amount * (1 + (currentIndex / userIndex))
+
     require(
       TransferLib.transferTokenFrom({
         token: token,

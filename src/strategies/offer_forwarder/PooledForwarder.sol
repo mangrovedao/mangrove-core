@@ -104,8 +104,7 @@ contract PooledForwarder is Forwarder {
   // Decrease balance of token for owner.
   function decreaseBalance(IERC20 token, address owner, uint amount) private returns (uint) {
     uint currentBalance = ownerBalance[token][owner];
-    //TODO msg probably too long
-    require(currentBalance >= amount, "PooledForwarder/decreaseBalance/amountMoreThanBalance");
+    require(currentBalance >= amount, "PooledForwarder/NotEnoughFunds");
     emit DebitUserBalance(token, owner, amount);
     unchecked {
       uint newBalance = currentBalance - amount;
@@ -135,9 +134,9 @@ contract PooledForwarder is Forwarder {
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false, // propagates Mangrove's revert data in case of newOffer failure
-        owner: msg.sender
-      })
+        noRevert: false // propagates Mangrove's revert data in case of newOffer failure
+      }),
+      msg.sender
     );
   }
 
@@ -155,8 +154,7 @@ contract PooledForwarder is Forwarder {
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false, // propagates Mangrove's revert data in case of newOffer failure
-        owner: msg.sender
+        noRevert: false // propagates Mangrove's revert data in case of newOffer failure
       }),
       offerId
     );
@@ -265,7 +263,7 @@ contract PooledForwarder is Forwarder {
     retdata = super.__posthookFallback__(order, result);
   }
 
-  function __reserve__(address maker) internal override returns (address) {
+  function __reserve__(address maker) internal view override returns (address) {
     maker;
     return address(router());
   }

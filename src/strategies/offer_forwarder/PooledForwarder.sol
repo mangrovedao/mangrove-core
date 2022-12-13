@@ -81,8 +81,13 @@ contract PooledForwarder is Forwarder, ILiquidityProvider {
   // balance of token for an owner - the pool has a balance in aave and on `this`.
   mapping(IERC20 => mapping(address => uint)) internal ownerBalance;
 
+  // token => totalIous
+  mapping(address => uint) public ious;
+  // iou user balance
+  mapping(address => mapping(address => uint)) public iousBalanceOf;
+
   constructor(IMangrove mgv, address deployer, address aaveAddressProvider)
-    Forwarder(mgv, new AaveRouter(aaveAddressProvider, 0, 1 , 700_000), 30_000)
+    Forwarder(mgv, new AaveReserve(aaveAddressProvider, 0, 1 , 700_000), 30_000)
   {
     AbstractRouter router_ = router();
     router_.bind(address(this));
@@ -230,6 +235,12 @@ contract PooledForwarder is Forwarder, ILiquidityProvider {
       }),
       "pooledForwarder/makerTransferFail"
     );
+    // if someone sends tokens directly to the router, it is possible that totalIous is 0 and totalDepositedTokens != 0
+    // ious[token] == 0 => totalDepositedTokens == 0
+    uint totalDepositedTokens = router.totalBalance(token);
+
+    uint userIous = ious[token] == 0 ? amount : amount * ious[token] / totalDepositedTokens;
+
     // tokens are now on _this_ and can be pushed to router.
     // TODO: Should we push to Aave or wait for next order?
     increaseBalance(token, msg.sender, amount);

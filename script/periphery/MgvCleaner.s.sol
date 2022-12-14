@@ -17,7 +17,12 @@ contract MgvCleanerDeployer is Deployer {
 
   function innerRun(address mgv) public {
     broadcast();
-    MgvCleaner cleaner = new MgvCleaner({mgv: payable(mgv)});
+    MgvCleaner cleaner;
+    if (forMultisig) {
+      cleaner = new MgvCleaner{salt:salt}({mgv: payable(mgv)});
+    } else {
+      cleaner = new MgvCleaner({mgv: payable(mgv)});
+    }
     fork.set("MgvCleaner", address(cleaner));
   }
 }

@@ -35,6 +35,8 @@ abstract contract Deployer is Script2 {
 
   bool writeDeploy; // whether to write a .json file with updated addresses
   address _broadcaster; // who will broadcast
+  bool forMultisig; // whether the deployment is intended to be broadcast or given to a multisig.
+  bytes32 salt; // salt used for create2 deployments
 
   constructor() {
     vm.label(address(fork), "Deployer:Fork");
@@ -66,6 +68,17 @@ abstract contract Deployer is Script2 {
     try vm.envBool("WRITE_DEPLOY") returns (bool writeDeploy_) {
       writeDeploy = writeDeploy_;
     } catch {}
+
+    forMultisig = vm.envOr("FOR_MULTISIG", false);
+
+    // use the given SALT's bytes as salt
+    // prevent truncation
+    bytes memory saltBytes = bytes(vm.envOr("SALT", string("")));
+    if (saltBytes.length > 32) {
+      revert("SALT env var length must be =< 32 bytes");
+    }
+
+    salt = bytes32(saltBytes);
   }
 
   // broadcast using forge-provided tx.origin; or if default try to use <NETWORK>_PRIVATE_KEY env var's associated address.

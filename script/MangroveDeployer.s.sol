@@ -27,7 +27,11 @@ contract MangroveDeployer is Deployer {
 
   function innerRun(address chief, uint gasprice, uint gasmax) public {
     broadcast();
-    mgv = new Mangrove({governance: chief, gasprice: gasprice, gasmax: gasmax});
+    if (forMultisig) {
+      mgv = new Mangrove{salt:salt}({governance: chief, gasprice: gasprice, gasmax: gasmax});
+    } else {
+      mgv = new Mangrove({governance: chief, gasprice: gasprice, gasmax: gasmax});
+    }
     fork.set("Mangrove", address(mgv));
 
     (new MgvReaderDeployer()).innerRun(address(mgv));
@@ -37,7 +41,11 @@ contract MangroveDeployer is Deployer {
     cleaner = MgvCleaner(fork.get("MgvCleaner"));
 
     broadcast();
-    oracle = new MgvOracle({governance_: chief, initialMutator_: chief});
+    if (forMultisig) {
+      oracle = new MgvOracle{salt: salt}({governance_: chief, initialMutator_: chief});
+    } else {
+      oracle = new MgvOracle({governance_: chief, initialMutator_: chief});
+    }
     fork.set("MgvOracle", address(oracle));
   }
 }

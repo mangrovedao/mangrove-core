@@ -54,7 +54,9 @@ contract GenericFork is Script {
   function get(string memory name) public view returns (address payable addr) {
     addr = getNoRevert(name);
     if (addr == address(0)) {
-      revert("Fork::get(string name): no contract found for name argument");
+      revert(
+        "Fork::get(string name): no contract found for name argument, either in context nor in deployed addresses. Check the appropriate context/<chain>.json and deployed/<chain>.json, and make sure you are doing fork.set(name,address) for all your deployed contracts."
+      );
     }
   }
 

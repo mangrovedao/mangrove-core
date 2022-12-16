@@ -325,7 +325,7 @@ contract MgvReader {
 
   /* Open markets tracking */
 
-  // MgvMarketTracker lets anyone query for a market state (open or not), and
+  // Lets anyone query for a market state (open or not), and
   // gets the list of open markets.
 
   // Anyone can permisionlessly refresh the state of a market with updateMarket(tkn0,tkn1)

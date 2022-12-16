@@ -50,6 +50,12 @@ contract MgvReader {
 
   IMangrove immutable MGV;
 
+  /* Open markets tracking */
+  // array of ordered [tkn0,tkn1] pairs lists the open markets
+  address[2][] internal _openMarkets;
+  //  market array position (= index+1); 0 means not in array
+  mapping(address => mapping(address => uint)) internal marketPositions;
+
   constructor(address mgv) {
     MGV = IMangrove(payable(mgv));
   }
@@ -314,6 +320,76 @@ contract MgvReader {
       mr.totalGasreq += mr.offerDetail.gasreq();
       return true;
       /* end if success branch **/
+    }
+  }
+
+  /* Open markets tracking */
+
+  // MgvMarketTracker lets anyone query for a market state (open or not), and
+  // gets the list of open markets.
+
+  // Anyone can permisionlessly refresh the state of a market with updateMarket(tkn0,tkn1)
+
+  // Note that **no check on the actual Mangrove market state is performed at read time**. It
+  // is the DAO's responsibility to accurately reflect the state of Mangrove
+  // markets.
+
+  // array of all open markets
+  function openMarkets() external view returns (address[2][] memory) {
+    return _openMarkets;
+  }
+
+  function numOpenMarkets() external view returns (uint) {
+    return _openMarkets.length;
+  }
+
+  // slice of open markets, starting at `from`, of length `maxLen` or shorter if overflow
+  // revert if `from > numMarkets`
+  function openMarkets(uint from, uint maxLen) external view returns (address[2][] memory) {
+    uint numMarkets = _openMarkets.length;
+    if (from + maxLen > numMarkets) {
+      maxLen = numMarkets - from;
+    }
+    address[2][] memory openMarketsSlice = new address[2][](maxLen);
+    unchecked {
+      for (uint i = 0; i < maxLen; i++) {
+        openMarketsSlice[i] = _openMarkets[from + i];
+      }
+    }
+    return openMarketsSlice;
+  }
+
+  // canonicalize ordering
+  function order(address tkn0, address tkn1) public pure returns (address, address) {
+    return uint160(tkn0) < uint160(tkn1) ? (tkn0, tkn1) : (tkn1, tkn0);
+  }
+
+  function isMarketOpen(address tkn0, address tkn1) external view returns (bool) {
+    (tkn0, tkn1) = order(tkn0, tkn1);
+    return marketPositions[tkn0][tkn1] > 0;
+  }
+
+  // Will consider a market open iff both the offer lists tkn0/tkn1 and
+  // tkn1/tkn0 are open on Mangrove.
+  function updateMarket(address tkn0, address tkn1) external {
+    bool openOnMangrove = local(tkn0, tkn1).active() && local(tkn1, tkn0).active();
+    (tkn0, tkn1) = order(tkn0, tkn1);
+    uint position = marketPositions[tkn0][tkn1];
+
+    if (openOnMangrove && position == 0) {
+      _openMarkets.push([tkn0, tkn1]);
+      marketPositions[tkn0][tkn1] = _openMarkets.length;
+    } else if (!openOnMangrove && position > 0) {
+      uint numMarkets = _openMarkets.length;
+      if (numMarkets > 1) {
+        // avoid array holes
+        address[2] memory lastMarket = _openMarkets[numMarkets - 1];
+
+        _openMarkets[position - 1] = lastMarket;
+        marketPositions[lastMarket[0]][lastMarket[1]] = position;
+      }
+      _openMarkets.pop();
+      marketPositions[tkn0][tkn1] = 0;
     }
   }
 }

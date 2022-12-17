@@ -20,6 +20,7 @@ pragma solidity ^0.8.10;
 
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
+import "forge-std/console.sol";
 
 struct VolumeData {
   uint totalGot;
@@ -48,13 +49,23 @@ contract MgvReader {
     bool accumulate;
   }
 
-  IMangrove immutable MGV;
-
   /* Open markets tracking */
-  // array of ordered [tkn0,tkn1] pairs lists the open markets
+  // Information about a market: tokens, and open state.
+  // array of ordered [tknA,tknB] pairs lists the open markets
   address[2][] internal _openMarkets;
   //  market array position (= index+1); 0 means not in array
   mapping(address => mapping(address => uint)) internal marketPositions;
+  // Information about a market:
+  // * tkn0, tkn1 (no particular meaning to the orientation but canonical)
+  // * config01 is the local config for the outbound=tkn0, inbound=tkn1 offer list
+  // * config10 is the local config for the outbound=tkn1, inbound=tkn0 offer list
+
+  struct MarketConfig {
+    MgvStructs.LocalUnpacked config01;
+    MgvStructs.LocalUnpacked config10;
+  }
+
+  IMangrove immutable MGV;
 
   constructor(address mgv) {
     MGV = IMangrove(payable(mgv));
@@ -202,6 +213,18 @@ contract MgvReader {
     return _local;
   }
 
+  function globalUnpacked() public view returns (MgvStructs.GlobalUnpacked memory) {
+    return global().to_struct();
+  }
+
+  function localUnpacked(address outbound_tkn, address inbound_tkn)
+    public
+    view
+    returns (MgvStructs.LocalUnpacked memory)
+  {
+    return local(outbound_tkn, inbound_tkn).to_struct();
+  }
+
   /* marketOrder, internalMarketOrder, and execute all together simulate a market order on mangrove and return the cumulative totalGot, totalGave and totalGasreq for each offer traversed. We assume offer execution is successful and uses exactly its gasreq. 
   We do not account for gasbase.
   * Calling this from an EOA will give you an estimate of the volumes you will receive, but you may as well `eth_call` Mangrove.
@@ -334,29 +357,55 @@ contract MgvReader {
   // is the DAO's responsibility to accurately reflect the state of Mangrove
   // markets.
 
-  // array of all open markets
-  function openMarkets() external view returns (address[2][] memory) {
-    return _openMarkets;
-  }
-
   function numOpenMarkets() external view returns (uint) {
     return _openMarkets.length;
   }
 
-  // slice of open markets, starting at `from`, of length `maxLen` or shorter if overflow
-  // revert if `from > numMarkets`
-  function openMarkets(uint from, uint maxLen) external view returns (address[2][] memory) {
+  // array of all open markets, with config
+  function openMarkets() external view returns (address[2][] memory, MarketConfig[] memory) {
+    return openMarkets(0, _openMarkets.length, true);
+  }
+
+  // array of all open markets, possibly with extra info, see below
+  function openMarkets(bool withConfig) external view returns (address[2][] memory, MarketConfig[] memory) {
+    return openMarkets(0, _openMarkets.length, withConfig);
+  }
+
+  // slice of open markets, with config
+  function openMarkets(uint from, uint maxLen) external view returns (address[2][] memory markets) {
+    (markets,) = openMarkets(from, maxLen, true);
+  }
+
+  // * return all known open markets in the _openMarkets array with indices `[from...min(length,from+maxLen)]`
+  // * if `withConfig` is false, config will be the empty array. Otherwise it will contain the configuration of the markets
+  // * `config[i].config01` contains the local config of the `tkn0/tkn1` offer list
+  // * `config[i].config10` contains the local config of the `tkn1/tkn0` offer list
+  // * config01/10 are ground truth so despite a market being marked open in MgvReader,
+  // it is possible that both `config01.active` and `config10.active` are false
+  // * throws if `from > length`
+  function openMarkets(uint from, uint maxLen, bool withConfig)
+    public
+    view
+    returns (address[2][] memory markets, MarketConfig[] memory config)
+  {
     uint numMarkets = _openMarkets.length;
     if (from + maxLen > numMarkets) {
       maxLen = numMarkets - from;
     }
-    address[2][] memory openMarketsSlice = new address[2][](maxLen);
+    markets = new address[2][](maxLen);
+    config = new MarketConfig[](withConfig ? maxLen : 0);
     unchecked {
       for (uint i = 0; i < maxLen; i++) {
-        openMarketsSlice[i] = _openMarkets[from + i];
+        address tkn0 = _openMarkets[from + i][0];
+        address tkn1 = _openMarkets[from + i][1];
+        markets[i] = [tkn0, tkn1];
+
+        if (withConfig) {
+          config[i].config01 = localUnpacked(tkn0, tkn1);
+          config[i].config10 = localUnpacked(tkn1, tkn0);
+        }
       }
     }
-    return openMarketsSlice;
   }
 
   // canonicalize ordering
@@ -369,10 +418,19 @@ contract MgvReader {
     return marketPositions[tkn0][tkn1] > 0;
   }
 
-  // Will consider a market open iff both the offer lists tkn0/tkn1 and
+  // return the configuration for the given market
+  // config01 and config10 follow the order given in arguments, not the canonical order
+  // they are ground truth so it is not the case that for all (tkn0,tkn1) we have:
+  // isMarketOpen(tkn0,tkn1) iff (marketConfig(tkn0,tkn1) returns at least one active config)
+  function marketConfig(address tkn0, address tkn1) external view returns (MarketConfig memory config) {
+    config.config01 = localUnpacked(tkn0, tkn1);
+    config.config10 = localUnpacked(tkn1, tkn0);
+  }
+
+  // Will consider a market open iff either the offer lists tkn0/tkn1 and
   // tkn1/tkn0 are open on Mangrove.
   function updateMarket(address tkn0, address tkn1) external {
-    bool openOnMangrove = local(tkn0, tkn1).active() && local(tkn1, tkn0).active();
+    bool openOnMangrove = local(tkn0, tkn1).active() || local(tkn1, tkn0).active();
     (tkn0, tkn1) = order(tkn0, tkn1);
     uint position = marketPositions[tkn0][tkn1];
 

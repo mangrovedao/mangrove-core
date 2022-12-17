@@ -290,39 +290,45 @@ contract MgvReaderTest is MangroveTest {
   /* Market tracking test */
   /* Utility stuff */
   address[2][] expectedMarkets;
+  bool[2][] expectedActives;
 
   function resetExpectedMarkets() internal {
     expectedMarkets = new address[2][](0);
+    expectedActives = new bool[2][](0);
   }
 
-  function pushExpectedMarket(address tkn0, address tkn1) internal {
-    (tkn0, tkn1) = reader.order(tkn0, tkn1);
+  function pushExpectedMarket(address tknA, address tknB, bool activeAB, bool activeBA) internal {
+    (address tkn0, address tkn1) = reader.order(tknA, tknB);
     expectedMarkets.push([tkn0, tkn1]);
+    expectedActives.push(tkn0 == tknA ? [activeAB, activeBA] : [activeBA, activeAB]);
   }
 
   function checkMarkets() internal {
-    address[2][] memory actualMarkets = reader.openMarkets();
+    (address[2][] memory actualMarkets, MgvReader.MarketConfig[] memory config) = reader.openMarkets();
     assertEq(actualMarkets.length, expectedMarkets.length, "markets lengths differ");
     for (uint i = 0; i < actualMarkets.length; i++) {
-      assertEq(
-        actualMarkets[i][0], expectedMarkets[i][0], string.concat("unexpected 1st token for market", vm.toString(i))
-      );
-      assertEq(
-        actualMarkets[i][1], expectedMarkets[i][1], string.concat("unexpected 2nd token for market", vm.toString(i))
-      );
+      string memory suffix = string.concat(": unexpected for market ", vm.toString(i));
+      assertEq(actualMarkets[i][0], expectedMarkets[i][0], string.concat("token 0", suffix));
+      assertEq(config[i].config01.active, expectedActives[i][0], string.concat("active 01", suffix));
+      assertEq(actualMarkets[i][1], expectedMarkets[i][1], string.concat("token 1", suffix));
+      assertEq(config[i].config10.active, expectedActives[i][1], string.concat("active 10", suffix));
     }
   }
 
-  function assumeDifferentPairs(address tknA, address tknB, address tkn0, address tkn1) internal {
+  function assumeDifferentPairs(address tknA, address tknB, address tkn0, address tkn1) internal view {
     (tknA, tknB) = reader.order(tknA, tknB);
     (tkn0, tkn1) = reader.order(tkn0, tkn1);
     vm.assume(tknA != tkn0 || tknB != tkn1);
   }
 
   // low-level market activation
-  function activateMarket(address tkn0, address tkn1) internal {
+  function activateOfferList(address tkn0, address tkn1) internal {
     mgv.activate(tkn0, tkn1, 0, 0, 0);
-    mgv.activate(tkn1, tkn0, 0, 0, 0);
+  }
+
+  function activateMarket(address tkn0, address tkn1) internal {
+    activateOfferList(tkn0, tkn1);
+    activateOfferList(tkn1, tkn0);
   }
 
   /* Tests */
@@ -340,7 +346,7 @@ contract MgvReaderTest is MangroveTest {
     reader.updateMarket(tkn0, tkn1);
     assertEq(reader.numOpenMarkets(), 1, "initial length wrong");
     assertEq(reader.isMarketOpen(tkn0, tkn1), true, "open failed");
-    pushExpectedMarket(tkn0, tkn1);
+    pushExpectedMarket(tkn0, tkn1, true, true);
     checkMarkets();
   }
 
@@ -352,8 +358,8 @@ contract MgvReaderTest is MangroveTest {
     assertEq(reader.numOpenMarkets(), 2, "length wrong");
     assertEq(reader.isMarketOpen(tkn0, tkn1), true, "open failed for tkn0,tkn1");
     assertEq(reader.isMarketOpen(tknA, tknB), true, "open failed for tkn0,tkn1");
-    pushExpectedMarket(tkn0, tkn1);
-    pushExpectedMarket(tknA, tknB);
+    pushExpectedMarket(tkn0, tkn1, true, true);
+    pushExpectedMarket(tknA, tknB, true, true);
     checkMarkets();
   }
 
@@ -365,8 +371,8 @@ contract MgvReaderTest is MangroveTest {
     assertEq(reader.numOpenMarkets(), 2, "length wrong");
     assertEq(reader.isMarketOpen(tkn0, tkn1), true, "open failed for tkn0,tkn1");
     assertEq(reader.isMarketOpen(tknA, tknB), true, "open failed for tkn0,tkn1");
-    pushExpectedMarket(tknA, tknB);
-    pushExpectedMarket(tkn0, tkn1);
+    pushExpectedMarket(tknA, tknB, true, true);
+    pushExpectedMarket(tkn0, tkn1, true, true);
     checkMarkets();
   }
 
@@ -377,13 +383,16 @@ contract MgvReaderTest is MangroveTest {
     reader.updateMarket(tkn0, tkn2);
     reader.updateMarket(tkn0, tkn1);
     reader.updateMarket(tkn1, tkn2);
-    assertEq(reader.numOpenMarkets(), 3, "length wrong");
     assertEq(reader.isMarketOpen(tkn0, tkn1), true, "open failed for tkn0,tkn1");
     assertEq(reader.isMarketOpen(tkn2, tkn1), true, "open failed for tkn0,tkn1");
     assertEq(reader.isMarketOpen(tkn0, tkn2), true, "open failed for tkn0,tkn1");
-    pushExpectedMarket(tkn2, tkn0);
-    pushExpectedMarket(tkn0, tkn1);
-    pushExpectedMarket(tkn2, tkn1);
+    pushExpectedMarket(tkn2, tkn0, true, true);
+    if (tkn1 != tkn2) {
+      pushExpectedMarket(tkn0, tkn1, true, true);
+    }
+    if (tkn1 != tkn0 && tkn2 != tkn0) {
+      pushExpectedMarket(tkn2, tkn1, true, true);
+    }
     checkMarkets();
   }
 
@@ -393,7 +402,7 @@ contract MgvReaderTest is MangroveTest {
     reader.updateMarket(tkn0, tkn1);
     assertEq(reader.numOpenMarkets(), 1, "length should not have changed");
     assertEq(reader.isMarketOpen(tkn0, tkn1), true, "open status should not have changed");
-    pushExpectedMarket(tkn0, tkn1);
+    pushExpectedMarket(tkn0, tkn1, true, true);
     checkMarkets();
   }
 
@@ -403,7 +412,7 @@ contract MgvReaderTest is MangroveTest {
     reader.updateMarket(tkn1, tkn0);
     assertEq(reader.numOpenMarkets(), 1, "length should not have changed");
     assertEq(reader.isMarketOpen(tkn0, tkn1), true, "open status should not have changed");
-    pushExpectedMarket(tkn0, tkn1);
+    pushExpectedMarket(tkn0, tkn1, true, true);
     checkMarkets();
   }
 
@@ -413,8 +422,17 @@ contract MgvReaderTest is MangroveTest {
     mgv.deactivate(tkn0, tkn1);
     mgv.deactivate(tkn1, tkn0);
     reader.updateMarket(tkn0, tkn1);
-    assertEq(reader.numOpenMarkets(), 0, "length should be 0");
+    assertEq(reader.numOpenMarkets(), 0, "wrong length");
     assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should be closed");
+    checkMarkets();
+  }
+
+  function test_add_partial(address tkn0, address tkn1) public {
+    activateOfferList(tkn0, tkn1);
+    reader.updateMarket(tkn0, tkn1);
+    assertEq(reader.numOpenMarkets(), 1, "wrong length");
+    assertEq(reader.isMarketOpen(tkn0, tkn1), true, "status should be closed");
+    pushExpectedMarket(tkn0, tkn1, true, tkn0 == tkn1);
     checkMarkets();
   }
 
@@ -423,8 +441,14 @@ contract MgvReaderTest is MangroveTest {
     reader.updateMarket(tkn0, tkn1);
     mgv.deactivate(tkn1, tkn0);
     reader.updateMarket(tkn0, tkn1);
-    assertEq(reader.numOpenMarkets(), 0, "length should be 0");
-    assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should be closed");
+    if (tkn0 == tkn1) {
+      assertEq(reader.numOpenMarkets(), 0, "wrong length");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should be closed");
+    } else {
+      assertEq(reader.numOpenMarkets(), 1, "wrong length");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), true, "status should be closed");
+      pushExpectedMarket(tkn0, tkn1, true, false);
+    }
     checkMarkets();
   }
 
@@ -433,19 +457,31 @@ contract MgvReaderTest is MangroveTest {
     reader.updateMarket(tkn0, tkn1);
     mgv.deactivate(tkn1, tkn0);
     reader.updateMarket(tkn1, tkn0);
-    assertEq(reader.numOpenMarkets(), 0, "length should be 0");
-    assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should be closed");
+    if (tkn0 == tkn1) {
+      assertEq(reader.numOpenMarkets(), 0, "wrong length");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should be closed");
+    } else {
+      assertEq(reader.numOpenMarkets(), 1, "wrong length");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), true, "status should be closed");
+      pushExpectedMarket(tkn0, tkn1, true, false);
+    }
     checkMarkets();
   }
 
   function test_no_double_remove(address tkn0, address tkn1) public {
     activateMarket(tkn0, tkn1);
     reader.updateMarket(tkn0, tkn1);
-    mgv.deactivate(tkn0, tkn1);
+    mgv.deactivate(tkn1, tkn0);
     reader.updateMarket(tkn0, tkn1);
     reader.updateMarket(tkn0, tkn1);
-    assertEq(reader.numOpenMarkets(), 0, "length should still be 0");
-    assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should still be closed");
+    if (tkn0 == tkn1) {
+      assertEq(reader.numOpenMarkets(), 0, "length should still be 0");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should still be closed");
+    } else {
+      assertEq(reader.numOpenMarkets(), 1, "length should still be 0");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), true, "status should still be closed");
+      pushExpectedMarket(tkn0, tkn1, true, false);
+    }
     checkMarkets();
   }
 
@@ -458,9 +494,17 @@ contract MgvReaderTest is MangroveTest {
     mgv.deactivate(tkn0, tkn1);
     reader.updateMarket(tkn0, tkn1);
     reader.updateMarket(tkn0, tkn1);
-    assertEq(reader.numOpenMarkets(), 1, "length should be 1");
-    assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should still be closed");
-    pushExpectedMarket(tknA, tknB);
+    pushExpectedMarket(tknA, tknB, true, true);
+
+    if (tkn0 == tkn1) {
+      assertEq(reader.numOpenMarkets(), 1, "wrong length");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should still be closed");
+    } else {
+      assertEq(reader.numOpenMarkets(), 2, "wrong length");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), true, "status should still be closed");
+      pushExpectedMarket(tkn0, tkn1, false, true);
+    }
+
     checkMarkets();
   }
 
@@ -470,9 +514,60 @@ contract MgvReaderTest is MangroveTest {
     mgv.deactivate(tkn0, tkn1);
     reader.updateMarket(tkn0, tkn1);
     reader.updateMarket(tkn1, tkn0);
-    assertEq(reader.numOpenMarkets(), 0, "length should still be 0");
-    assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should still be closed");
+
+    if (tkn0 == tkn1) {
+      assertEq(reader.numOpenMarkets(), 0, "length should still be 0");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should still be closed");
+    } else {
+      assertEq(reader.numOpenMarkets(), 1, "length should still be 0");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), true, "status should still be closed");
+      pushExpectedMarket(tkn0, tkn1, false, true);
+    }
+
     checkMarkets();
+  }
+
+  function test_openMarkets_overloads(address tknA, address tknB, address tkn0, address tkn1) public {
+    assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
+    activateMarket(tkn0, tkn1);
+    reader.updateMarket(tkn0, tkn1);
+    activateMarket(tknA, tknB);
+    reader.updateMarket(tknA, tknB);
+    MgvReader.MarketConfig[] memory configs;
+    (, configs) = reader.openMarkets(true);
+    assertEq(configs.length, 2, "full: wrong config length");
+    (, configs) = reader.openMarkets(false);
+    assertEq(configs.length, 0, "none: wrong config length");
+    (, configs) = reader.openMarkets(0, 1, true);
+    assertEq(configs.length, 1, "slice0_full: wrong config length");
+    (, configs) = reader.openMarkets(0, 1, false);
+    assertEq(configs.length, 0, "slice0_none: wrong config length");
+    (, configs) = reader.openMarkets(1, 1, true);
+    assertEq(configs.length, 1, "slice1_full: wrong config length");
+    (, configs) = reader.openMarkets(1, 1, false);
+    assertEq(configs.length, 0, "slice1_none: wrong config length");
+    (, configs) = reader.openMarkets(1, 10, true);
+    assertEq(configs.length, 1, "sliceN_full: wrong config length");
+    (, configs) = reader.openMarkets(1, 10, false);
+    assertEq(configs.length, 0, "sliceN_none: wrong config length");
+    (, configs) = reader.openMarkets(2, 10, true);
+    assertEq(configs.length, 0, "sliceX_full: wrong config length");
+    (, configs) = reader.openMarkets(2, 10, false);
+    assertEq(configs.length, 0, "sliceX_none: wrong config length");
+  }
+
+  function test_marketConfig(address tkn0, address tkn1) public {
+    activateOfferList(tkn0, tkn1);
+    MgvReader.MarketConfig memory config = reader.marketConfig(tkn0, tkn1);
+    assertEq(config.config01.active, true, "01-config01 wrong");
+    if (tkn0 != tkn1) {
+      assertEq(config.config10.active, false, "01-config10 wrong");
+    }
+    config = reader.marketConfig(tkn1, tkn0);
+    if (tkn0 != tkn1) {
+      assertEq(config.config01.active, false, "10-config01 wrong");
+    }
+    assertEq(config.config10.active, true, "10-config10 wrong");
   }
 
   function test_no_double_remove_long_swap(address tknA, address tknB, address tkn0, address tkn1) public {
@@ -484,9 +579,17 @@ contract MgvReaderTest is MangroveTest {
     mgv.deactivate(tkn0, tkn1);
     reader.updateMarket(tkn0, tkn1);
     reader.updateMarket(tkn1, tkn0);
-    assertEq(reader.numOpenMarkets(), 1, "length should be 1");
-    assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should still be closed");
-    pushExpectedMarket(tknA, tknB);
+    pushExpectedMarket(tknA, tknB, true, true);
+
+    if (tkn0 == tkn1) {
+      assertEq(reader.numOpenMarkets(), 1, "wrong length");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), false, "status should still be closed");
+    } else {
+      assertEq(reader.numOpenMarkets(), 2, "wrong length");
+      assertEq(reader.isMarketOpen(tkn0, tkn1), true, "status should still be closed");
+      pushExpectedMarket(tkn0, tkn1, false, true);
+    }
+
     checkMarkets();
   }
 
@@ -540,6 +643,48 @@ contract MgvReaderTest is MangroveTest {
     reader.updateMarket(tkn0, tkn1);
     vm.expectRevert(stdError.arithmeticError);
     reader.openMarkets(3, 0);
+  }
+
+  function test_remove_2nd_to_last(address tknA, address tknB, address tkn0, address tkn1) public {
+    assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
+    activateOfferList(tknA, tknB);
+    activateOfferList(tkn0, tkn1);
+    // remove 2nd-to-last
+    reader.updateMarket(tknA, tknB);
+    reader.updateMarket(tkn0, tkn1);
+    mgv.deactivate(tknA, tknB);
+    reader.updateMarket(tknA, tknB);
+    pushExpectedMarket(tkn0, tkn1, true, tkn0 == tkn1);
+    checkMarkets();
+  }
+
+  function test_remove_last_and_only(address tkn0, address tkn1) public {
+    activateOfferList(tkn0, tkn1);
+    // remove 2nd-to-last
+    reader.updateMarket(tkn0, tkn1);
+    mgv.deactivate(tkn0, tkn1);
+    reader.updateMarket(tkn0, tkn1);
+    checkMarkets();
+  }
+
+  function test_remove_last_not_only(address tknA, address tknB, address tkn0, address tkn1) public {
+    activateOfferList(tknA, tknB);
+    activateOfferList(tkn0, tkn1);
+    // remove 2nd-to-last
+    reader.updateMarket(tknA, tknB);
+    reader.updateMarket(tkn0, tkn1);
+    mgv.deactivate(tkn0, tkn1);
+    reader.updateMarket(tkn0, tkn1);
+    pushExpectedMarket(tknA, tknB, true, tknA == tknB);
+    checkMarkets();
+  }
+
+  function test_update_already_absent(address tknA, address tknB, address tkn0, address tkn1) public {
+    activateOfferList(tknA, tknB);
+    reader.updateMarket(tknA, tknB);
+    reader.updateMarket(tkn0, tkn1);
+    pushExpectedMarket(tknA, tknB, true, tknA == tknB);
+    checkMarkets();
   }
 }
 

@@ -49,17 +49,18 @@ contract MgvReader {
     bool accumulate;
   }
 
-  /* Open markets tracking */
-  // Information about a market: tokens, and open state.
-  // array of ordered [tknA,tknB] pairs lists the open markets
+  /**
+   * @notice Open markets tracking (below) provides information about which markets on Mangrove are open. Anyone can update a market status by calling `updateMarket`. 
+   * @notice The array of pairs `_openMarkets` is the array of all currently open markets (up to a delay in calling `updateMarkets`). A market is a pair of tokens `[tkn0,tkn1]`. The orientation is non-meaningful but canonical (see `order`).
+   * @notice In this contract, 'markets' are defined by non-oriented pairs. Usually markets come with a base/quote orientation. Please keep that in mind.
+   * @notice A market {tkn0,tkn1} is open if either the tkn0/tkn1 offer list is active or the tkn1/tkn0 offer list is active.
+   */
   address[2][] internal _openMarkets;
-  //  market array position (= index+1); 0 means not in array
-  mapping(address => mapping(address => uint)) internal marketPositions;
-  // Information about a market:
-  // * tkn0, tkn1 (no particular meaning to the orientation but canonical)
-  // * config01 is the local config for the outbound=tkn0, inbound=tkn1 offer list
-  // * config10 is the local config for the outbound=tkn1, inbound=tkn0 offer list
 
+  /// @notice Markets can be added or removed from `_openMarkets` array. To remove a market, we must remember its position in the array. The `marketPositions` mapping does that.
+  mapping(address => mapping(address => uint)) internal marketPositions;
+
+  /// @notice Config of a market. Assumes a context where `tkn0` and `tkn1` are defined. `config01` is the local config of the `tkn0/tkn1` offer list. `config10` is the config of the `tkn1/tkn0` offer list.
   struct MarketConfig {
     MgvStructs.LocalUnpacked config01;
     MgvStructs.LocalUnpacked config10;
@@ -346,47 +347,44 @@ contract MgvReader {
     }
   }
 
-  /* Open markets tracking */
-
-  // Lets anyone query for a market state (open or not), and
-  // gets the list of open markets.
-
-  // Anyone can permisionlessly refresh the state of a market with updateMarket(tkn0,tkn1)
-
-  // Note that **no check on the actual Mangrove market state is performed at read time**. It
-  // is the DAO's responsibility to accurately reflect the state of Mangrove
-  // markets.
-
+  /// @return uint The number of open markets.
   function numOpenMarkets() external view returns (uint) {
     return _openMarkets.length;
   }
 
-  // array of all open markets, with config
+  /// @return markets all open markets
+  /// @return configs the configs of each markets
+  /// @notice If the ith market is [tkn0,tkn1], then the ith config will be a MarketConfig where config01 is the config for the tkn0/tkn1 offer list, and config10 is the config for the tkn1/tkn0 offer list.
   function openMarkets() external view returns (address[2][] memory, MarketConfig[] memory) {
     return openMarkets(0, _openMarkets.length, true);
   }
 
-  // array of all open markets, possibly with extra info, see below
+  /// @notice List open markets, and optionally skip querying Mangrove for all the market configurations.
+  /// @param withConfig if false, the second return value will be the empty array.
+  /// @return address[2][] all open markets
+  /// @return MarketConfig[] corresponding configs, or the empty array if withConfig is false.
   function openMarkets(bool withConfig) external view returns (address[2][] memory, MarketConfig[] memory) {
     return openMarkets(0, _openMarkets.length, withConfig);
   }
 
-  // slice of open markets, with config
+  /// @notice Get a slice of open markets, with accompanying market configs
+  /// @return markets The following slice of _openMarkets: [from..min(_openMarkets.length,from+maxLen)]
+  /// @return configs corresponding configs
+  /// @dev throws if `from > _openMarkets.length`
   function openMarkets(uint from, uint maxLen)
     external
     view
-    returns (address[2][] memory markets, MarketConfig[] memory)
+    returns (address[2][] memory markets, MarketConfig[] memory configs)
   {
     return openMarkets(from, maxLen, true);
   }
 
-  // * return all known open markets in the _openMarkets array with indices `[from...min(length,from+maxLen)]`
-  // * if `withConfig` is false, config will be the empty array. Otherwise it will contain the configuration of the markets
-  // * `config[i].config01` contains the local config of the `tkn0/tkn1` offer list
-  // * `config[i].config10` contains the local config of the `tkn1/tkn0` offer list
-  // * config01/10 are ground truth so despite a market being marked open in MgvReader,
-  // it is possible that both `config01.active` and `config10.active` are false
-  // * throws if `from > length`
+  /// @notice Get a slice of open markets, with accompanying market configs or not.
+  /// @param withConfig if false, the second return value will be the empty array.
+  /// @return markets The following slice of _openMarkets: [from..min(_openMarkets.length,from+maxLen)]
+  /// @return configs corresponding configs, or the empty array if withConfig is false.
+  /// @dev if there is a delay in updating a market, it is possible that an 'open market' (according to this contract) is not in fact open and that config01.active and config10.active are both false.
+  /// @dev throws if `from > _openMarkets.length`
   function openMarkets(uint from, uint maxLen, bool withConfig)
     public
     view
@@ -412,27 +410,34 @@ contract MgvReader {
     }
   }
 
-  // canonicalize ordering
+  /// @notice We choose a canonical orientation for all markets based on the numerical values of their token addresses. That way we can uniquely identify a market with two addresses given in any order.
+  /// @return address the lowest of the given arguments (numerically)
+  /// @return address the highest of the given arguments (numerically)
   function order(address tkn0, address tkn1) public pure returns (address, address) {
     return uint160(tkn0) < uint160(tkn1) ? (tkn0, tkn1) : (tkn1, tkn0);
   }
 
+  /// @param tkn0 one token of the market
+  /// @param tkn1 another token of the market
+  /// @return bool Whether the {tkn0,tkn1} market is open.
+  /// @dev May not reflect the true state of the market on Mangrove if `updateMarket` was not called recently enough.
   function isMarketOpen(address tkn0, address tkn1) external view returns (bool) {
     (tkn0, tkn1) = order(tkn0, tkn1);
     return marketPositions[tkn0][tkn1] > 0;
   }
 
-  // return the configuration for the given market
-  // config01 and config10 follow the order given in arguments, not the canonical order
-  // they are ground truth so it is not the case that for all (tkn0,tkn1) we have:
-  // isMarketOpen(tkn0,tkn1) iff (marketConfig(tkn0,tkn1) returns at least one active config)
+  /// @notice return the configuration for the given market
+  /// @param tkn0 one token of the market
+  /// @param tkn1 another token of the market
+  /// @return config The market configuration. config01 and config10 follow the order given in arguments, not the canonical order
+  /// @dev This function queries Mangrove so all the returned info is up-to-date.
   function marketConfig(address tkn0, address tkn1) external view returns (MarketConfig memory config) {
     config.config01 = localUnpacked(tkn0, tkn1);
     config.config10 = localUnpacked(tkn1, tkn0);
   }
 
-  // Will consider a market open iff either the offer lists tkn0/tkn1 and
-  // tkn1/tkn0 are open on Mangrove.
+  /// @notice Permisionless update of _openMarkets array.
+  /// @notice Will consider a market open iff either the offer lists tkn0/tkn1 or tkn1/tkn0 are open on Mangrove.
   function updateMarket(address tkn0, address tkn1) external {
     bool openOnMangrove = local(tkn0, tkn1).active() || local(tkn1, tkn0).active();
     (tkn0, tkn1) = order(tkn0, tkn1);

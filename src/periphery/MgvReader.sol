@@ -20,7 +20,6 @@ pragma solidity ^0.8.10;
 
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import "forge-std/console.sol";
 
 struct VolumeData {
   uint totalGot;
@@ -50,7 +49,7 @@ contract MgvReader {
   }
 
   /**
-   * @notice Open markets tracking (below) provides information about which markets on Mangrove are open. Anyone can update a market status by calling `updateMarket`. 
+   * @notice Open markets tracking (below) provides information about which markets on Mangrove are open. Anyone can update a market status by calling `updateMarket`.
    * @notice The array of pairs `_openMarkets` is the array of all currently open markets (up to a delay in calling `updateMarkets`). A market is a pair of tokens `[tkn0,tkn1]`. The orientation is non-meaningful but canonical (see `order`).
    * @notice In this contract, 'markets' are defined by non-oriented pairs. Usually markets come with a base/quote orientation. Please keep that in mind.
    * @notice A market {tkn0,tkn1} is open if either the tkn0/tkn1 offer list is active or the tkn1/tkn0 offer list is active.

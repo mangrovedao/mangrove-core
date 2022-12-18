@@ -598,7 +598,7 @@ contract MgvReaderTest is MangroveTest {
     activateMarket(tkn0, tkn1);
     reader.updateMarket(tknA, tknB);
     reader.updateMarket(tkn0, tkn1);
-    address[2][] memory slice = reader.openMarkets(0, 0);
+    (address[2][] memory slice,) = reader.openMarkets(0, 0);
     assertEq(slice.length, 0);
   }
 
@@ -609,26 +609,26 @@ contract MgvReaderTest is MangroveTest {
     reader.updateMarket(tkn0, tkn1);
     address[2][] memory slice;
     // first
-    slice = reader.openMarkets(0, 1);
+    (slice,) = reader.openMarkets(0, 1);
     assertEq(slice.length, 1, "first: wrong slice length");
     (tknA, tknB) = reader.order(tknA, tknB);
     assertEq(slice[0][0], tknA, "first: wrong tkn0");
     assertEq(slice[0][1], tknB, "first: wrong tkn1");
     // last
-    slice = reader.openMarkets(1, 1);
+    (slice,) = reader.openMarkets(1, 1);
     assertEq(slice.length, 1, "last: wrong slice length");
     (tkn0, tkn1) = reader.order(tkn0, tkn1);
     assertEq(slice[0][0], tkn0, "last: wrong tkn0");
     assertEq(slice[0][1], tkn1, "last: wrong tkn1");
     // full
-    slice = reader.openMarkets(0, 2);
+    (slice,) = reader.openMarkets(0, 2);
     assertEq(slice.length, 2, "full: wrong slice length");
     assertEq(slice[0][0], tknA, "full 1: wrong tkn0");
     assertEq(slice[0][1], tknB, "full 1: wrong tkn1");
     assertEq(slice[1][0], tkn0, "full 2: wrong tkn0");
     assertEq(slice[1][1], tkn1, "full 2: wrong tkn1");
     // overflow
-    slice = reader.openMarkets(0, 3);
+    (slice,) = reader.openMarkets(0, 3);
     assertEq(slice.length, 2, "overflow: wrong slice length");
     assertEq(slice[0][0], tknA, "overflow 1: wrong tkn0");
     assertEq(slice[0][1], tknB, "overflow 1: wrong tkn1");

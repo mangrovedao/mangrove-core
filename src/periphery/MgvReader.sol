@@ -372,8 +372,12 @@ contract MgvReader {
   }
 
   // slice of open markets, with config
-  function openMarkets(uint from, uint maxLen) external view returns (address[2][] memory markets) {
-    (markets,) = openMarkets(from, maxLen, true);
+  function openMarkets(uint from, uint maxLen)
+    external
+    view
+    returns (address[2][] memory markets, MarketConfig[] memory)
+  {
+    return openMarkets(from, maxLen, true);
   }
 
   // * return all known open markets in the _openMarkets array with indices `[from...min(length,from+maxLen)]`
@@ -386,14 +390,14 @@ contract MgvReader {
   function openMarkets(uint from, uint maxLen, bool withConfig)
     public
     view
-    returns (address[2][] memory markets, MarketConfig[] memory config)
+    returns (address[2][] memory markets, MarketConfig[] memory configs)
   {
     uint numMarkets = _openMarkets.length;
     if (from + maxLen > numMarkets) {
       maxLen = numMarkets - from;
     }
     markets = new address[2][](maxLen);
-    config = new MarketConfig[](withConfig ? maxLen : 0);
+    configs = new MarketConfig[](withConfig ? maxLen : 0);
     unchecked {
       for (uint i = 0; i < maxLen; i++) {
         address tkn0 = _openMarkets[from + i][0];
@@ -401,8 +405,8 @@ contract MgvReader {
         markets[i] = [tkn0, tkn1];
 
         if (withConfig) {
-          config[i].config01 = localUnpacked(tkn0, tkn1);
-          config[i].config10 = localUnpacked(tkn1, tkn0);
+          configs[i].config01 = localUnpacked(tkn0, tkn1);
+          configs[i].config10 = localUnpacked(tkn1, tkn0);
         }
       }
     }

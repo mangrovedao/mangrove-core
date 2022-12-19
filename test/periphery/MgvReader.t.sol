@@ -235,8 +235,8 @@ contract MgvReaderTest is MangroveTest {
     return unitVolume * numOffers;
   }
 
-  function test_marketOrder_volumeData_length(uint8 numOffers) public {
-    vm.assume(numOffers < 12);
+  function test_marketOrder_volumeData_length(uint numOffers) public {
+    numOffers = bound(numOffers, 0, 11);
     prepareOffers(numOffers);
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), numOffers * 0.1 ether, numOffers * 0.1 ether, true);
     assertEq(vd.length, numOffers, "bad vd length");

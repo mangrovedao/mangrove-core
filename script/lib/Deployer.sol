@@ -102,7 +102,6 @@ abstract contract Deployer is Script2 {
           _broadcaster = envAddressOrName("BROADCASTER");
         } else {
           string memory pkEnvVar = string.concat(simpleCapitalize(fork.NAME()), "_PRIVATE_KEY");
-          // if (envHas(pkvEnvVar) && envHas(BROADCASTER)) {
           try vm.envUint(pkEnvVar) returns (uint key) {
             _broadcaster = vm.rememberKey(key);
           } catch {

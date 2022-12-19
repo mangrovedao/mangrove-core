@@ -10,6 +10,8 @@ import {MangroveOrderEnriched, IERC20, IMangrove} from "mgv_src/strategies/Mangr
  */
 
 contract MangroveOrderEnrichedDeployer is Deployer {
+  MangroveOrderEnriched mgvOrder;
+
   function run() public {
     address mgv = envHas("MANGROVE") ? vm.envAddress("MANGROVE") : fork.get("Mangrove");
     address governance = fork.get("MgvGovernance");
@@ -19,7 +21,11 @@ contract MangroveOrderEnrichedDeployer is Deployer {
 
   function innerRun(address mgv, address admin) public {
     broadcast();
-    MangroveOrderEnriched mgvOrder = new MangroveOrderEnriched(IMangrove(payable(mgv)), admin);
+    if (forMultisig) {
+      mgvOrder = new MangroveOrderEnriched{salt:salt}(IMangrove(payable(mgv)), admin);
+    } else {
+      mgvOrder = new MangroveOrderEnriched(IMangrove(payable(mgv)), admin);
+    }
     fork.set("MangroveOrderEnriched", address(mgvOrder));
   }
 }

@@ -96,11 +96,17 @@ abstract contract Deployer is Script2 {
       _broadcaster = tx.origin;
       // there are two possible default tx.origin depending on foundry version
       if (_broadcaster == 0x00a329c0648769A73afAc7F9381E08FB43dBEA72 || _broadcaster == DEFAULT_SENDER) {
-        string memory envVar = string.concat(simpleCapitalize(fork.NAME()), "_PRIVATE_KEY");
-        try vm.envUint(envVar) returns (uint key) {
-          _broadcaster = vm.rememberKey(key);
-        } catch {
-          console.log("%s not found or not parseable as uint, using default broadcast sender", envVar);
+        // we interpret the BROADCASTER variable because --sender fails immediately if it is a contract
+        // has precedence over *_PRIVATE_KEY
+        if (envHas("BROADCASTER")) {
+          _broadcaster = envAddressOrName("BROADCASTER");
+        } else {
+          string memory pkEnvVar = string.concat(simpleCapitalize(fork.NAME()), "_PRIVATE_KEY");
+          try vm.envUint(pkEnvVar) returns (uint key) {
+            _broadcaster = vm.rememberKey(key);
+          } catch {
+            console.log("%s not found or not parseable as uint, using default broadcast sender", pkEnvVar);
+          }
         }
       }
     }

@@ -131,8 +131,8 @@ contract Kandel is Direct {
       OfferArgs memory args;
       OrderType ba = index <= lastBidIndex ? OrderType.Bid : OrderType.Ask;
       (args.outbound_tkn, args.inbound_tkn) = _tokenPairOfOrderType(ba);
-      (args.gives, args.wants) =
-        ba == OrderType.Bid ? (quoteOfIndex[index], baseOfIndex[index]) : (baseOfIndex[index], quoteOfIndex[index]);
+      args.gives = _givesOfIndex(ba, index);
+      args.wants = _wantsOfIndex(ba, index);
       args.fund = 0;
       args.noRevert = true;
       args.gasreq = offerGasreq();

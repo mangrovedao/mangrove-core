@@ -8,7 +8,7 @@
     "name": "MgvOracle"
   },
   {
-    "address": "0xe71f73C7C0cfb02Cfa3F9810659CD23cE88FFB28",
+    "address": "0xb2C51219745BDA3c812A6A144c8F78699d278810",
     "name": "MgvReader"
   },
   {
@@ -28,7 +28,7 @@
     "name": "PxMATIC"
   },
   {
-    "address": "0xF30f4d2EE2a79810dFE865595a12fC980AdA9dDd",
+    "address": "0x61e4e74ab24D7e136E375C8DDD9758F0793076E5",
     "name": "MangroveOrderEnriched"
   }
 ]

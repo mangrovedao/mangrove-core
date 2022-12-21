@@ -1,5 +1,10 @@
 # next version
 
+# 1.4.0 (December 2022)
+
+- Added Polygon mainnet deployment addresses
+- Added permissionless open markets tracking to MgvReader
+
 # 1.3.0 (December 2022)
 
 - Fix issue in provision calculations in stratlib

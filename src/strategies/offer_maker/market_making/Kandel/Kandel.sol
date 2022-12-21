@@ -50,28 +50,46 @@ contract Kandel is Direct {
     QUOTE = quote;
   }
 
-  ///@notice sets the base/quote distribution that Kandel should follow
-  ///@param inQuotes whether this call is setting quote distribution
+  ///@notice sets the base/quote distribution that Kandel should follow using continuous slices
   ///@param from start index (included). Must be less than `to`.
   ///@param to end index (excluded). Must be less than `NSLOT`.
-  ///@param slice the distribution of base/quote in the interval [from, to[
-  function setDistribution(bool inQuotes, uint from, uint to, uint[] calldata slice) external onlyAdmin {
-    uint[] storage dist = inQuotes ? quoteOfIndex : baseOfIndex;
-    uint cpt = 0;
+  ///@param slice slice[i][0/1] is the distribution of base/quote at index i.
+  /// `slice[i][0/1] = 0` is interpreted as keep old distribution
+  function setDistribution(uint from, uint to, uint[2][] calldata slice) external onlyAdmin {
     for (uint i = from; i < to; i++) {
-      dist[i] = slice[cpt];
+      if (slice[i][0] > 0) {
+        baseOfIndex[i] = slice[i][0];
+      }
+      if (slice[i][1] > 0) {
+        quoteOfIndex[i] = slice[i][1];
+      }
+    }
+  }
+
+  ///@notice sets the base/quote distribution that Kandel should follow at specified indexes
+  ///@param indexes the indexes of the distribution one wishes to set
+  ///@param newDistrib `newDistrib[i][0/1]` is the new base/quote distribution at index `indexes[i]`
+  function setDistribution(uint[] calldata indexes, uint[2][] calldata newDistrib) external onlyAdmin {
+    uint cpt = 0;
+    for (uint i = 0; i < indexes.length; i++) {
+      if (newDistrib[cpt][0] > 0) {
+        baseOfIndex[indexes[i]] = newDistrib[cpt][0];
+      }
+      if (newDistrib[cpt][1] > 1) {
+        quoteOfIndex[indexes[i]] = newDistrib[cpt][1];
+      }
       cpt++;
     }
   }
 
-  ///@notice how much price and volume distribution says Kandel should give at given index
+  ///@notice how much price and volume distribution Kandel should give at given index
   ///@param ba whether Kandel is asking or bidding at this index
   ///@param index the distribution index
   function _givesOfIndex(OrderType ba, uint index) internal view returns (uint) {
     return ba == OrderType.Ask ? quoteOfIndex[index] : baseOfIndex[index];
   }
 
-  ///@notice how much price and volume distribution says Kandel should want at given index
+  ///@notice how much price and volume distribution Kandel should want at given index
   ///@param ba whether Kandel is asking or bidding at this index
   ///@param index the distribution index
   function _wantsOfIndex(OrderType ba, uint index) internal view returns (uint) {
@@ -126,7 +144,14 @@ contract Kandel is Direct {
     }
   }
 
-  function populate(uint from, uint to, uint lastBidIndex, uint gasprice) external payable onlyAdmin {
+  ///@notice publishes bids/asks in the distribution interval `[to,from[`
+  ///@param from start index
+  ///@param to end index
+  ///@param lastBidIndex the index after which offer should be an Ask
+  ///@param gasprice that should be used to compute the offer's provision
+  ///@dev function is not to be called directly by offer logic. Use _populateIndex instead
+  ///@dev it is public rather than external in order to be able to use it conjunctly with `setDistribution`
+  function populate(uint from, uint to, uint lastBidIndex, uint gasprice) public payable onlyAdmin {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
@@ -141,6 +166,23 @@ contract Kandel is Direct {
       args.gasreq = offerGasreq();
       args.gasprice = gasprice;
       _populateIndex(ba, index, args);
+    }
+  }
+
+  ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`
+  ///@param from the start index
+  ///@param to the end index
+  ///@dev this simply provisions this contract's balance on Mangrove.
+  ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs
+  function retractOffers(uint from, uint to) external onlyAdmin {
+    uint collected;
+    for (uint index = from; index < to; index++) {
+      (IERC20 outbound_tkn, IERC20 inbound_tkn) = _tokenPairOfOrderType(OrderType.Ask);
+      collected +=
+        MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerIdOfIndex[OrderType.Ask][index], true);
+      (outbound_tkn, inbound_tkn) = _tokenPairOfOrderType(OrderType.Bid);
+      collected +=
+        MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerIdOfIndex[OrderType.Bid][index], true);
     }
   }
 
@@ -166,7 +208,7 @@ contract Kandel is Direct {
 
     (dualIndex, dualBa) = ba == OrderType.Ask ? (index - 1, OrderType.Bid) : (index + 1, OrderType.Ask);
 
-    // can repost what the current taker order gives + what the dual offer already gives.
+    // can repost (at max) what the current taker order gave (depending on compounding rate)
     uint maxDualGives = dualBa == OrderType.Ask
       ? dualOffer.gives() + order.gives + pendingBase
       : dualOffer.gives() + order.gives + pendingQuote;

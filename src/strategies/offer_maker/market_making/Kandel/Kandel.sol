@@ -15,22 +15,24 @@ import {Direct, IMangrove, AbstractRouter, IERC20} from "mgv_src/strategies/offe
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 
 contract Kandel is Direct {
-  ///@notice number of price offers managed by this strat
+  ///@notice number of offers managed by this strat
   uint16 immutable NSLOTS;
   ///@notice base of the market Kandel is making
   IERC20 immutable BASE;
   ///@notice quote of the market Kandel is making
   IERC20 immutable QUOTE;
-  ///@notice quote distribution: `quoteOfIndex[i]` is the amount of quote tokens Kandel must give or want at index i
-  uint[] quoteOfIndex;
   ///@notice quote distribution: `baseOfIndex[i]` is the amount of base tokens Kandel must give or want at index i
   uint[] baseOfIndex;
-  ///@notice `pendingBase/Quote` that failed to be published and must be recycled when possible
+  ///@notice quote distribution: `quoteOfIndex[i]` is the amount of quote tokens Kandel must give or want at index i
+  uint[] quoteOfIndex;
+  ///@notice `pendingBase` is the amount of base tokens that failed to be published and must be recycled when possible
   uint pendingBase;
+  ///@notice `pendingQuote` is the amount of quote tokens that failed to be published and must be recycled when possible
   uint pendingQuote;
 
-  ///@notice signals that the price has move beyond Kandel's current price range
+  ///@notice signals that the price has moved above Kandel's current price range
   event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
+  ///@notice signals that the price has moved below Kandel's current price range
   event AllBids(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
 
   ///@notice a bid or an ask
@@ -52,7 +54,7 @@ contract Kandel is Direct {
   ///@param inQuotes whether this call is setting quote distribution
   ///@param from start index (included). Must be less than `to`.
   ///@param to end index (excluded). Must be less than `NSLOT`.
-  ///@param slice the distrbution of base/quote in the interval [from, to[
+  ///@param slice the distribution of base/quote in the interval [from, to[
   function setDistribution(bool inQuotes, uint from, uint to, uint[] calldata slice) external onlyAdmin {
     uint[] storage dist = inQuotes ? quoteOfIndex : baseOfIndex;
     uint cpt = 0;
@@ -77,7 +79,7 @@ contract Kandel is Direct {
   }
 
   ///@notice turns an order type into an (outbound, inbound) pair identifying an offer list
-  ///@param ba whether one wishes to acces the offer lists where asks or bids are posted
+  ///@param ba whether one wishes to access the offer lists where asks or bids are posted
   function _tokenPairOfOrderType(OrderType ba) internal view returns (IERC20, IERC20) {
     return ba == OrderType.Bid ? (QUOTE, BASE) : (BASE, QUOTE);
   }
@@ -97,9 +99,10 @@ contract Kandel is Direct {
     returns (MgvStructs.OfferPacked, MgvStructs.OfferDetailPacked)
   {
     (IERC20 outbound_tkn, IERC20 inbound_tkn) = _tokenPairOfOrderType(ba);
+    uint offerId = offerIdOfIndex[ba][index];
     return (
-      MGV.offers(address(outbound_tkn), address(inbound_tkn), offerIdOfIndex[ba][index]),
-      MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerIdOfIndex[ba][index])
+      MGV.offers(address(outbound_tkn), address(inbound_tkn), offerId),
+      MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId)
     );
   }
 
@@ -141,7 +144,7 @@ contract Kandel is Direct {
     }
   }
 
-  ///@notice hooks that implements transport logic
+  ///@notice hook that implements transport logic
   ///@param ba whether the offer that was executed is a bid or an ask
   ///@param order a recap of the taker order (order.offer is the executed offer)
   ///@return dualBa the type of order implementing the transport
@@ -175,7 +178,7 @@ contract Kandel is Direct {
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);
     args.gives = shouldGive > maxDualGives ? maxDualGives : shouldGive;
-    // if giving less volume than distribution, one must adapts wants to match distribution price
+    // if giving less volume than distribution, one must adapt wants to match distribution price
     args.wants = args.gives == shouldGive ? shouldWant : (maxDualGives * shouldWant) / shouldGive;
     args.fund = 0;
     args.noRevert = true;
@@ -214,7 +217,7 @@ contract Kandel is Direct {
     OrderType ba = _orderTypeOfOutbound(IERC20(order.outbound_tkn));
     _handleResidual(order, makerData, ba);
     // preparing arguments for the dual maker order
-    (OrderType ba_, uint index_, OfferArgs memory args) = __transportLogic__(ba, order);
-    return _populateIndex(ba_, index_, args);
+    (OrderType dualBa, uint dualIndex, OfferArgs memory args) = __transportLogic__(ba, order);
+    return _populateIndex(dualBa, dualIndex, args);
   }
 }

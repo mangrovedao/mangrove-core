@@ -156,9 +156,9 @@ contract MangroveTest is Test2, HasMgvEvents {
           unicode"│ ",
           string.concat(offerId < 9 ? " " : "", vm.toString(offerId)), // breaks on id>99
           unicode" ┆ ",
-          toEthUnits(ofr.wants, req_tk.symbol()),
+          toUnits(ofr.wants, req_tk.symbol(), req_tk.decimals()),
           "  /  ",
-          toEthUnits(ofr.gives, ofr_tk.symbol())
+          toUnits(ofr.gives, ofr_tk.symbol(), ofr_tk.decimals())
         )
       );
       offerId = ofr.next;

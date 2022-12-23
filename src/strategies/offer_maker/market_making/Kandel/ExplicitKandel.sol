@@ -21,37 +21,28 @@ contract ExplicitKandel is CoreKandel {
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint16 nslots)
     CoreKandel(mgv, base, quote, gasreq, nslots)
-  {}
+  {
+    baseOfIndex = new uint[](nslots);
+    quoteOfIndex = new uint[](nslots);
+  }
+
+  function __reserve__(address) internal view override returns (address) {
+    return address(this);
+  }
 
   ///@notice sets the base/quote distribution that Kandel should follow using continuous slices
   ///@param from start index (included). Must be less than `to`.
   ///@param to end index (excluded). Must be less than `NSLOT`.
   ///@param slice slice[i][0/1] is the distribution of base/quote at index i.
   /// `slice[i][0/1] = 0` is interpreted as keep old distribution
-  function setDistribution(uint from, uint to, uint[2][] calldata slice) external onlyAdmin {
+  function setDistribution(uint from, uint to, uint[][2] calldata slice) external onlyAdmin {
     for (uint i = from; i < to; i++) {
-      if (slice[i][0] > 0) {
-        baseOfIndex[i] = slice[i][0];
+      if (slice[0][i] > 0) {
+        baseOfIndex[i] = slice[0][i];
       }
-      if (slice[i][1] > 0) {
-        quoteOfIndex[i] = slice[i][1];
+      if (slice[1][i] > 0) {
+        quoteOfIndex[i] = slice[1][i];
       }
-    }
-  }
-
-  ///@notice sets the base/quote distribution that Kandel should follow at specified indexes
-  ///@param indexes the indexes of the distribution one wishes to set
-  ///@param newDistrib `newDistrib[i][0/1]` is the new base/quote distribution at index `indexes[i]`
-  function setDistribution(uint[] calldata indexes, uint[2][] calldata newDistrib) external onlyAdmin {
-    uint cpt = 0;
-    for (uint i = 0; i < indexes.length; i++) {
-      if (newDistrib[cpt][0] > 0) {
-        baseOfIndex[indexes[i]] = newDistrib[cpt][0];
-      }
-      if (newDistrib[cpt][1] > 1) {
-        quoteOfIndex[indexes[i]] = newDistrib[cpt][1];
-      }
-      cpt++;
     }
   }
 
@@ -72,7 +63,8 @@ contract ExplicitKandel is CoreKandel {
     override
     returns (OrderType dualBa, uint dualIndex, OfferArgs memory args)
   {
-    uint index = offerIdOfIndex[ba][order.offerId];
+    uint index = _indexOfOfferId(ba, order.offerId);
+
     if (index == 0) {
       emit AllAsks(MGV, BASE, QUOTE);
     }
@@ -84,9 +76,7 @@ contract ExplicitKandel is CoreKandel {
     (dualIndex, dualBa) = ba == OrderType.Ask ? (index - 1, OrderType.Bid) : (index + 1, OrderType.Ask);
 
     // can repost (at max) what the current taker order gave (depending on compounding rate)
-    uint maxDualGives = dualBa == OrderType.Ask
-      ? dualOffer.gives() + order.gives + pendingBase
-      : dualOffer.gives() + order.gives + pendingQuote;
+    uint maxDualGives = dualOffer.gives() + order.gives;
 
     // what the distribution says the dual order should ask/bid
     uint shouldGive = _givesOfIndex(dualBa, dualIndex);
@@ -94,7 +84,21 @@ contract ExplicitKandel is CoreKandel {
 
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);
-    args.gives = shouldGive > maxDualGives ? maxDualGives : shouldGive;
+    uint pending = dualBa == OrderType.Ask ? pendingQuote : pendingBase;
+    if (shouldGive >= maxDualGives + pending) {
+      //maxDualGives + epsilon <= shouldGive
+      if (dualBa == OrderType.Ask) {
+        pendingBase = 0;
+      } else {
+        pendingQuote = 0;
+      }
+      args.gives = maxDualGives + pending;
+    } else {
+      //maxDualGives + epsilon > shouldGive
+      // one could take only a portion of pending, but this would be gas costly
+      args.gives = maxDualGives > shouldGive ? shouldGive : maxDualGives;
+    }
+
     // note at this stage, maker's profit is `maxDualGives - args.gives`
     // those additional funds are just left on reserve, w/o being published.
     // if giving less volume than distribution, one must adapt wants to match distribution price

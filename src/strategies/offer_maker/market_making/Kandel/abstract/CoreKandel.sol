@@ -27,26 +27,37 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   uint pendingQuote;
 
   ///@notice maps index to offer id on Mangrove
-  mapping(OrderType => mapping(uint => uint)) offerIdOfIndex;
+  uint[][2] public offerIdOfIndex;
+  mapping(OrderType => mapping(uint => uint)) public indexOfOfferId;
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint16 nslots) Direct(mgv, NO_ROUTER, gasreq) {
     NSLOTS = nslots;
     BASE = base;
     QUOTE = quote;
+    offerIdOfIndex[uint(OrderType.Bid)] = new uint[](NSLOTS);
+    offerIdOfIndex[uint(OrderType.Ask)] = new uint[](NSLOTS);
+  }
+
+  function _offerIdOfIndex(OrderType ba, uint index) internal view returns (uint) {
+    return offerIdOfIndex[uint(ba)][index];
+  }
+
+  function _indexOfOfferId(OrderType ba, uint offerId) internal view returns (uint) {
+    return indexOfOfferId[ba][offerId];
   }
 
   ///@notice how much price and volume distribution Kandel should give at given index
   ///@param ba whether Kandel is asking or bidding at this index
   ///@param index the distribution index
   function _givesOfIndex(OrderType ba, uint index) internal view returns (uint) {
-    return ba == OrderType.Ask ? _quoteOfIndex(index) : _baseOfIndex(index);
+    return ba == OrderType.Bid ? _quoteOfIndex(index) : _baseOfIndex(index);
   }
 
   ///@notice how much price and volume distribution Kandel should want at given index
   ///@param ba whether Kandel is asking or bidding at this index
   ///@param index the distribution index
   function _wantsOfIndex(OrderType ba, uint index) internal view returns (uint) {
-    return ba == OrderType.Ask ? _baseOfIndex(index) : _quoteOfIndex(index);
+    return ba == OrderType.Bid ? _baseOfIndex(index) : _quoteOfIndex(index);
   }
 
   ///@notice turns an order type into an (outbound, inbound) pair identifying an offer list
@@ -70,7 +81,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     returns (MgvStructs.OfferPacked, MgvStructs.OfferDetailPacked)
   {
     (IERC20 outbound_tkn, IERC20 inbound_tkn) = _tokenPairOfOrderType(ba);
-    uint offerId = offerIdOfIndex[ba][index];
+    uint offerId = _offerIdOfIndex(ba, index);
     return (
       MGV.offers(address(outbound_tkn), address(inbound_tkn), offerId),
       MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId)
@@ -83,14 +94,15 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param args the argument of the offer.
   ///@dev args.wants/gives must match the distribution at index
   function _populateIndex(OrderType ba, uint index, OfferArgs memory args) internal returns (bytes32) {
-    uint offerId = offerIdOfIndex[ba][index];
+    uint offerId = _offerIdOfIndex(ba, index);
     if (offerId == 0) {
       offerId = _newOffer(args);
       if (offerId == 0) {
         //FIXME `_newOffer` should return Mangrove's error message if `noRevert` is set
         return "newOffer/Failed";
       } else {
-        offerIdOfIndex[ba][index] = offerId;
+        offerIdOfIndex[uint(ba)][index] = offerId;
+        indexOfOfferId[ba][offerId] = index;
         return REPOST_SUCCESS;
       }
     } else {
@@ -138,10 +150,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     for (uint index = from; index < to; index++) {
       (IERC20 outbound_tkn, IERC20 inbound_tkn) = _tokenPairOfOrderType(OrderType.Ask);
       collected +=
-        MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerIdOfIndex[OrderType.Ask][index], true);
+        MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), _offerIdOfIndex(OrderType.Ask, index), true);
       (outbound_tkn, inbound_tkn) = _tokenPairOfOrderType(OrderType.Bid);
       collected +=
-        MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerIdOfIndex[OrderType.Bid][index], true);
+        MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), _offerIdOfIndex(OrderType.Bid, index), true);
     }
   }
 

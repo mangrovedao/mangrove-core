@@ -7,9 +7,14 @@ import "mgv_test/lib/MangroveTest.sol";
 import "forge-std/console.sol";
 
 contract Script2Test is Test2 {
+  function aeq(uint amt, uint unit, uint dp, string memory expected) internal {
+    assertEq(toUnit(amt, unit, dp), expected);
+    console.log("%s | %s", toUnit(amt, unit, dp), expected);
+  }
+
   function aeq(uint amt, uint unit, string memory expected) internal {
     assertEq(toUnit(amt, unit), expected);
-    // console.log("%s | %s",al(amt,unit),expected);
+    console.log("%s | %s", toUnit(amt, unit), expected);
   }
 
   function test_basic() public {
@@ -24,5 +29,16 @@ contract Script2Test is Test2 {
     aeq(6.35 * 10 ** 5 + 1, 5, "6.35001");
     aeq(6035, 3, "6.035");
     aeq(1000, 2, "10");
+  }
+
+  function test_dp() public {
+    aeq(1, 0, 0, "1");
+    aeq(1, 1, 0, "0.(...)");
+    aeq(1, 1, 1, "0.1");
+    aeq(12, 2, 1, "0.1(...)");
+    aeq(12, 3, 1, "0.0(...)");
+    aeq(12, 3, 2, "0.01(...)");
+    aeq(12, 3, 3, "0.012");
+    aeq(1, 0, 0, "1");
   }
 }

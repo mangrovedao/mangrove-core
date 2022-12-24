@@ -61,20 +61,28 @@ contract Script2 is Script {
 
   /* *** Unit conversion *** */
 
-  /* Return amt as a fractional representation of amt/10^unit
+  /* Return amt as a fractional representation of amt/10^unit, with dp decimal points
   */
-  function toUnit(uint amt, uint unit) internal pure returns (string memory str) {
+  function toUnit(uint amt, uint unit) internal pure returns (string memory) {
+    return toUnit(amt,unit,78/*max num of digits*/);
+  }
+  function toUnit(uint amt, uint unit, uint dp) internal pure returns (string memory str) {
     uint power;
     uint digit;
-    bool hasFrac;
+    bool elided;
+    bool nonNull;
     while (power < unit || amt > 0) {
       digit = amt % 10;
-      hasFrac = hasFrac || digit != 0;
-      if (hasFrac || power >= unit) {
-        str = string.concat(vm.toString(digit), str);
+      nonNull = nonNull || digit != 0;
+      if (nonNull || power >= unit) {
+        if (dp + power >= unit) {
+          str = string.concat(vm.toString(digit), str);
+        } else {
+          elided = true;
+        }
       }
 
-      if (hasFrac && power + 1 == unit) {
+      if (nonNull && power + 1 == unit) {
         str = string.concat(".", str);
       }
       power++;
@@ -82,6 +90,9 @@ contract Script2 is Script {
     }
     if (unit >= power) {
       str = string.concat("0", str);
+    }
+    if (elided) {
+      str = string.concat(str,"(...)");
     }
   }
 

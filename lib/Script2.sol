@@ -69,7 +69,7 @@ contract Script2 is Script {
   function toUnit(uint amt, uint unit, uint dp) internal pure returns (string memory str) {
     uint power;
     uint digit;
-    bool elided;
+    bool truncated;
     bool nonNull;
     while (power < unit || amt > 0) {
       digit = amt % 10;
@@ -78,7 +78,7 @@ contract Script2 is Script {
         if (dp + power >= unit) {
           str = string.concat(vm.toString(digit), str);
         } else {
-          elided = true;
+          truncated = true;
         }
       }
 
@@ -91,7 +91,7 @@ contract Script2 is Script {
     if (unit >= power) {
       str = string.concat("0", str);
     }
-    if (elided) {
+    if (truncated) {
       str = string.concat(str,"(...)");
     }
   }

@@ -61,28 +61,27 @@ contract Script2 is Script {
 
   /* *** Unit conversion *** */
 
-  function toEthUnits(uint w, string memory units) internal pure returns (string memory eth) {
-    string memory suffix = string.concat(" ", units);
-
-    if (w == 0) {
-      return (string.concat("0", suffix));
-    }
-    uint i = 0;
-    while (w % 10 == 0) {
-      w = w / 10;
-      i += 1;
-    }
-    if (i >= 18) {
-      w = w * (10 ** (i - 18));
-      return string.concat(vm.toString(w), suffix);
-    } else {
-      uint zeroBefore = 18 - i;
-      string memory zeros = "";
-      while (zeroBefore > 1) {
-        zeros = string.concat(zeros, "0");
-        zeroBefore--;
+  /* Return amt as a fractional representation of amt/10^unit
+  */
+  function toUnit(uint amt, uint unit) internal pure returns (string memory str) {
+    uint power;
+    uint digit;
+    bool hasFrac;
+    while (power < unit || amt > 0) {
+      digit = amt % 10;
+      hasFrac = hasFrac || digit != 0;
+      if (hasFrac || power >= unit) {
+        str = string.concat(vm.toString(digit), str);
       }
-      return (string.concat("0.", zeros, vm.toString(w), suffix));
+
+      if (hasFrac && power + 1 == unit) {
+        str = string.concat(".", str);
+      }
+      power++;
+      amt = amt / 10;
+    }
+    if (unit >= power) {
+      str = string.concat("0", str);
     }
   }
 

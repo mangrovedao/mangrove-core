@@ -66,15 +66,19 @@ contract Script2 is Script {
   function toUnit(uint amt, uint unit) internal pure returns (string memory) {
     return toUnit(amt,unit,78/*max num of digits*/);
   }
+  /* This full version will show at most dp digits in the fractional part. */
   function toUnit(uint amt, uint unit, uint dp) internal pure returns (string memory str) {
-    uint power;
-    uint digit;
-    bool truncated;
-    bool nonNull;
+    uint power; // current power of ten of amt being looked at
+    uint digit; // factor of the current power of ten
+    bool truncated; // whether we had to truncate due to dp
+    bool nonNull; // have we seen a nonzero factor so far
+    // prepend at least `unit` digits or until amt has been exhausted
     while (power < unit || amt > 0) {
       digit = amt % 10;
       nonNull = nonNull || digit != 0;
+      // if still in the frac part and still 0 so far, don't write
       if (nonNull || power >= unit) {
+        // write if shifting dp to the left puts us out of the fractional part
         if (dp + power >= unit) {
           str = string.concat(vm.toString(digit), str);
         } else {
@@ -82,15 +86,18 @@ contract Script2 is Script {
         }
       }
 
+      // if frac part is nonzero, mark it as we move to integral
       if (nonNull && power + 1 == unit) {
         str = string.concat(".", str);
       }
       power++;
       amt = amt / 10;
     }
+    // prepend with 0 if integral part empty
     if (unit >= power) {
       str = string.concat("0", str);
     }
+    // if number was truncated, mark it
     if (truncated) {
       str = string.concat(str,"(...)");
     }

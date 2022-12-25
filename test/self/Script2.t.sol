@@ -9,12 +9,12 @@ import "forge-std/console.sol";
 contract Script2Test is Test2 {
   function aeq(uint amt, uint unit, uint dp, string memory expected) internal {
     assertEq(toUnit(amt, unit, dp), expected);
-    console.log("%s | %s", toUnit(amt, unit, dp), expected);
+    // console.log("%s | %s", toUnit(amt, unit, dp), expected);
   }
 
   function aeq(uint amt, uint unit, string memory expected) internal {
     assertEq(toUnit(amt, unit), expected);
-    console.log("%s | %s", toUnit(amt, unit), expected);
+    // console.log("%s | %s", toUnit(amt, unit), expected);
   }
 
   function test_basic() public {

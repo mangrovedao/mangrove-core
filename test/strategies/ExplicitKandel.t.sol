@@ -18,7 +18,11 @@ contract ExplicitKandelTest is MangroveTest {
   uint[] baseDist = new uint[](10);
   uint[] quoteDist = new uint[](10);
 
-  uint constant GASREQ = 200_000;
+  uint constant GASREQ = 150_000;
+
+  event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
+  ///@notice signals that the price has moved below Kandel's current price range
+  event AllBids(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
 
   function fillGeometricDist(uint startValue, uint ratio, uint from, uint to, uint[] storage dist) internal {
     dist[from] = startValue;
@@ -135,6 +139,18 @@ contract ExplicitKandelTest is MangroveTest {
     assertStatus([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]);
   }
 
+  function test_bid_partial_fill() public {
+    (uint successes, uint takerGot,,,) = sellToBestAs(taker, 0.01 ether);
+    assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
+    assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
+  }
+
+  function test_ask_complete_fill() public {
+    (uint successes, uint takerGot,,,) = buyFromBestAs(taker, 1 ether);
+    assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
+    assertStatus([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]);
+  }
+
   function test_bid_produces_an_ask() public {
     sellToBestAs(taker, 1 ether);
     (uint successes, uint takerGot,,,) = sellToBestAs(taker, 1 ether);
@@ -147,5 +163,27 @@ contract ExplicitKandelTest is MangroveTest {
     (uint successes, uint takerGot,,,) = buyFromBestAs(taker, 1 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
     assertStatus([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]);
+  }
+
+  function test_logs_all_asks() public {
+    sellToBestAs(taker, 1 ether);
+    sellToBestAs(taker, 1 ether);
+    sellToBestAs(taker, 1 ether);
+    sellToBestAs(taker, 1 ether);
+    expectFrom(address(kdl));
+    emit AllAsks(IMangrove($(mgv)), weth, usdc);
+    sellToBestAs(taker, 1 ether);
+    assertStatus([uint(0), 2, 2, 2, 2, 2, 2, 2, 2, 2]);
+  }
+
+  function test_logs_all_bids() public {
+    buyFromBestAs(taker, 1 ether);
+    buyFromBestAs(taker, 1 ether);
+    buyFromBestAs(taker, 1 ether);
+    buyFromBestAs(taker, 1 ether);
+    expectFrom(address(kdl));
+    emit AllBids(IMangrove($(mgv)), weth, usdc);
+    buyFromBestAs(taker, 1 ether);
+    assertStatus([uint(1), 1, 1, 1, 1, 1, 1, 1, 1, 0]);
   }
 }

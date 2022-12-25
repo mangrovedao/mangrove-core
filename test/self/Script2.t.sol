@@ -33,11 +33,11 @@ contract Script2Test is Test2 {
 
   function test_dp() public {
     aeq(1, 0, 0, "1");
-    aeq(1, 1, 0, "0.(...)");
+    aeq(1, 1, 0, unicode"0.…");
     aeq(1, 1, 1, "0.1");
-    aeq(12, 2, 1, "0.1(...)");
-    aeq(12, 3, 1, "0.0(...)");
-    aeq(12, 3, 2, "0.01(...)");
+    aeq(12, 2, 1, unicode"0.1…");
+    aeq(12, 3, 1, unicode"0.0…");
+    aeq(12, 3, 2, unicode"0.01…");
     aeq(12, 3, 3, "0.012");
     aeq(1, 0, 0, "1");
   }

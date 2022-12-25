@@ -99,7 +99,7 @@ contract Script2 is Script {
     }
     // if number was truncated, mark it
     if (truncated) {
-      str = string.concat(str,"(...)");
+      str = string.concat(str,unicode"…");
     }
   }
 

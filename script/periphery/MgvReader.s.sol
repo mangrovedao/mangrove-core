@@ -17,8 +17,13 @@ contract MgvReaderDeployer is Deployer {
   }
 
   function innerRun(address mgv) public {
+    MgvReader reader;
     broadcast();
-    MgvReader reader = new MgvReader({mgv: payable(mgv)});
+    if (forMultisig) {
+      reader = new MgvReader{salt:salt}({mgv: payable(mgv)});
+    } else {
+      reader = new MgvReader({mgv: payable(mgv)});
+    }
     fork.set("MgvReader", address(reader));
   }
 }

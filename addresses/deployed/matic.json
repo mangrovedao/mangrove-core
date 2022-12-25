@@ -1,22 +1,22 @@
 [
   {
-    "address": "0xe5d708eb7b377F0db822D64d138AE29747D43369",
+    "address": "0x2f5a51B09044754C7C8b1A9deE29E046b5432038",
     "name": "Mangrove"
   },
   {
-    "address": "0xb43B23e87e045e196e839880F8C2806fCccE4221",
+    "address": "0x09f8b6E32DB426aa477ad815544d0573FeFdBeEF",
     "name": "MgvOracle"
   },
   {
-    "address": "0x106b805d76Ea65F8aF0Bb4E9499a2CB69162C75A",
+    "address": "0xb2C51219745BDA3c812A6A144c8F78699d278810",
     "name": "MgvReader"
   },
   {
-    "address": "0xf6509A77281018544eD3Ba4E0c605ea9aAe07819",
+    "address": "0x673b35A107a1299D0CaC48b9b25Ba1E3e9f9B54f",
     "name": "MgvCleaner"
   },
   {
-    "address": "0x4869505f0E97c54d3954C4Ac2b65E32aB0110234",
+    "address": "0x0813Ec5f3b54003197d8B40A36Ed570E803cfBF7",
     "name": "MgvGovernance"
   },
   {
@@ -28,7 +28,7 @@
     "name": "PxMATIC"
   },
   {
-    "address": "0xF30f4d2EE2a79810dFE865595a12fC980AdA9dDd",
+    "address": "0x61e4e74ab24D7e136E375C8DDD9758F0793076E5",
     "name": "MangroveOrderEnriched"
   }
 ]

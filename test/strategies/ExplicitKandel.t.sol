@@ -130,6 +130,8 @@ contract ExplicitKandelTest is MangroveTest {
   }
 
   function test_populates_order_book_correctly() public {
+    printOrderBook($(weth), $(usdc));
+    printOrderBook($(usdc), $(weth));
     assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
   }
 

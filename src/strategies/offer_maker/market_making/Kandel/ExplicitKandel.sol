@@ -75,7 +75,7 @@ contract ExplicitKandel is CoreKandel {
 
     (dualIndex, dualBa) = ba == OrderType.Ask ? (index - 1, OrderType.Bid) : (index + 1, OrderType.Ask);
 
-    // can repost (at max) what the current taker order gave (depending on compounding rate)
+    // can repost (at max) what the current taker order gave
     uint maxDualGives = dualOffer.gives() + order.gives;
 
     // what the distribution says the dual order should ask/bid

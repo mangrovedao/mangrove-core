@@ -11,8 +11,9 @@ import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_ma
 /**
  * Usage example: initialize MANGO_WETH_USDC
  *
+ * MANGO=Mango_WETH_USDC \
  * DEFAULT_BASE_AMOUNT=$(cast ff 18 0.25) \
- * DEFAULT_QUOTE=_AMOUNT=$(cast ff 6 1000) \
+ * DEFAULT_QUOTE_AMOUNT=$(cast ff 6 1000) \
  * LAST_BID_INDEX=50 \
  * BATCH_SIZE=10 \
  * COVER_FACTOR=2 \

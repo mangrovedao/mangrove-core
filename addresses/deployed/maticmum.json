@@ -18,5 +18,9 @@
   {
     "address": "0x046963623BDB092A406ed051222e769D214bd107",
     "name": "MangroveOrderEnriched"
+  },
+  {
+    "address": "0x75C19ecd2F817A173Ef8196D8CE8a219ee14a0fe",
+    "name": "Mango_WETH_USDC"
   }
 ]

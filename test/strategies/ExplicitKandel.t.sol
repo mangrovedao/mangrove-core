@@ -135,10 +135,12 @@ contract ExplicitKandelTest is MangroveTest {
     assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
   }
 
-  function test_bid_complete_fill() public {
-    (uint successes, uint takerGot,,,) = sellToBestAs(taker, 1 ether);
+  function test_first_bid_complete_fill() public {
+    (uint successes, uint takerGot, uint takerGave,,) = sellToBestAs(taker, 1 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
     assertStatus([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]);
+    // since ask[5] is already there (at the correct volume) all the base brought by taker become pending
+    assertEq(kdl.pendingBase(), takerGave, "Incorrect pending");
   }
 
   function test_bid_partial_fill() public {
@@ -147,10 +149,12 @@ contract ExplicitKandelTest is MangroveTest {
     assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
   }
 
-  function test_ask_complete_fill() public {
-    (uint successes, uint takerGot,,,) = buyFromBestAs(taker, 1 ether);
+  function test_first_ask_complete_fill() public {
+    (uint successes, uint takerGot, uint takerGave,,) = buyFromBestAs(taker, 1 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
     assertStatus([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]);
+    // since bid[4] is already there (at the correct volume) all the quote brought by taker become pending
+    assertEq(kdl.pendingQuote(), takerGave, "Incorrect pending");
   }
 
   function test_bid_produces_an_ask() public {
@@ -160,11 +164,27 @@ contract ExplicitKandelTest is MangroveTest {
     assertStatus([uint(1), 1, 1, 0, 2, 2, 2, 2, 2, 2]);
   }
 
-  function test_ask_produces_a_bid() public {
+  function test_pendingBase_is_used_for_asks() public {
     sellToBestAs(taker, 1 ether);
+    // this generates pendingBase because the dual of the first bid is already posted
+    uint pending = kdl.pendingBase();
+    sellToBestAs(taker, 1 ether);
+    // this second offer should tap into pending to post the ask
+    assertTrue(pending > kdl.pendingBase(), "Incorrect pending");
+  }
+
+  function test_ask_produces_a_bid() public {
+    buyFromBestAs(taker, 1 ether);
     (uint successes, uint takerGot,,,) = buyFromBestAs(taker, 1 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]);
+    assertStatus([uint(1), 1, 1, 1, 1, 1, 0, 2, 2, 2]);
+  }
+
+  function test_pendingQuote_is_used_for_bids() public {
+    buyFromBestAs(taker, 1 ether);
+    uint pending = kdl.pendingQuote();
+    buyFromBestAs(taker, 1 ether);
+    assertTrue(pending > kdl.pendingQuote(), "Incorrect pending");
   }
 
   function test_logs_all_asks() public {

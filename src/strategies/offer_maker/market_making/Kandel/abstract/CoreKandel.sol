@@ -21,10 +21,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   IERC20 immutable BASE;
   ///@notice quote of the market Kandel is making
   IERC20 immutable QUOTE;
-  ///@notice `pendingBase` is the amount of base tokens that failed to be published and must be recycled when possible
-  uint pendingBase;
-  ///@notice `pendingQuote` is the amount of quote tokens that failed to be published and must be recycled when possible
-  uint pendingQuote;
+  ///@notice `pendingBase` is the amount of free base tokens
+  uint public pendingBase;
+  ///@notice `pendingQuote` is the amount of free quote tokens
+  uint public pendingQuote;
 
   ///@notice maps index to offer id on Mangrove
   uint[][2] public offerIdOfIndex;
@@ -36,6 +36,18 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     QUOTE = quote;
     offerIdOfIndex[uint(OrderType.Bid)] = new uint[](NSLOTS);
     offerIdOfIndex[uint(OrderType.Ask)] = new uint[](NSLOTS);
+  }
+
+  function _getPending(OrderType ba) internal view returns (uint pending) {
+    pending = ba == OrderType.Ask ? pendingBase : pendingQuote;
+  }
+
+  function _setPending(OrderType ba, uint amount) internal {
+    if (ba == OrderType.Ask) {
+      pendingBase = amount;
+    } else {
+      pendingQuote = amount;
+    }
   }
 
   function _offerIdOfIndex(OrderType ba, uint index) internal view returns (uint) {
@@ -168,11 +180,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
     if (repostStatus == "mgv/writeOffer/density/tooLow") {
       uint givesBelowDensity = __residualGives__(order);
-      if (ba == OrderType.Ask) {
-        pendingBase += givesBelowDensity;
-      } else {
-        pendingQuote += givesBelowDensity;
-      }
+      _setPending(ba, givesBelowDensity);
     } else {
       emit LogIncident(
         MGV, IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId, makerData, repostStatus

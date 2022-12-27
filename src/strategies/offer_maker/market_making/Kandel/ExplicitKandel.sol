@@ -12,6 +12,7 @@
 pragma solidity ^0.8.10;
 
 import {CoreKandel, IMangrove, IERC20, AbstractKandel, MgvLib, MgvStructs} from "./abstract/CoreKandel.sol";
+// import {console} from "forge-std/console.sol";
 
 contract ExplicitKandel is CoreKandel {
   ///@notice quote distribution: `baseOfIndex[i]` is the amount of base tokens Kandel must give or want at index i
@@ -71,9 +72,8 @@ contract ExplicitKandel is CoreKandel {
     if (index == NSLOTS - 1) {
       emit AllBids(MGV, BASE, QUOTE);
     }
-    (MgvStructs.OfferPacked dualOffer, MgvStructs.OfferDetailPacked dualOfferDetails) = getOffer(dualBa, dualIndex);
-
     (dualIndex, dualBa) = ba == OrderType.Ask ? (index - 1, OrderType.Bid) : (index + 1, OrderType.Ask);
+    (MgvStructs.OfferPacked dualOffer, MgvStructs.OfferDetailPacked dualOfferDetails) = getOffer(dualBa, dualIndex);
 
     // can repost (at max) what the current taker order gave
     uint maxDualGives = dualOffer.gives() + order.gives;
@@ -84,9 +84,9 @@ contract ExplicitKandel is CoreKandel {
 
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);
-    uint pending = dualBa == OrderType.Ask ? pendingQuote : pendingBase;
+
+    uint pending = _getPending(dualBa);
     if (shouldGive >= maxDualGives + pending) {
-      //maxDualGives + epsilon <= shouldGive
       if (dualBa == OrderType.Ask) {
         pendingBase = 0;
       } else {
@@ -94,9 +94,9 @@ contract ExplicitKandel is CoreKandel {
       }
       args.gives = maxDualGives + pending;
     } else {
-      //maxDualGives + epsilon > shouldGive
-      // one could take only a portion of pending, but this would be gas costly
-      args.gives = maxDualGives > shouldGive ? shouldGive : maxDualGives;
+      // maxDualGives + pending > shouldGive
+      args.gives = shouldGive;
+      _setPending(dualBa, maxDualGives + pending - shouldGive);
     }
 
     // note at this stage, maker's profit is `maxDualGives - args.gives`

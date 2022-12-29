@@ -103,6 +103,6 @@ contract ExplicitKandel is CoreKandel {
     args.noRevert = true;
     args.gasreq = dualOfferDetails.gasreq();
     args.gasprice = dualOfferDetails.gasprice();
-    args.pivotId = dualOffer.next();
+    args.pivotId = dualOffer.gives() > 0 ? offerIdOfIndex(dualBa, dualIndex) : dualOffer.next();
   }
 }

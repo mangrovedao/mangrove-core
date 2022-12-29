@@ -107,7 +107,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@dev args.wants/gives must match the distribution at index
   function _populateIndex(OrderType ba, uint index, OfferArgs memory args) internal returns (bytes32) {
     uint offerId = offerIdOfIndex(ba, index);
-    if (offerId == 0) {
+    if (offerId == 0 && args.gives > 0) {
       offerId = _newOffer(args);
       if (offerId == 0) {
         //FIXME `_newOffer` should return Mangrove's error message if `noRevert` is set
@@ -118,7 +118,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
         return REPOST_SUCCESS;
       }
     } else {
-      return _updateOffer(args, offerId);
+      if (args.gives == 0) {
+        retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
+        return "populateIndex/retracted";
+      } else {
+        return _updateOffer(args, offerId);
+      }
     }
   }
 
@@ -136,7 +141,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
-    uint cpt;
     for (uint index = from; index < to; index++) {
       OfferArgs memory args;
       OrderType ba = index <= lastBidIndex ? OrderType.Bid : OrderType.Ask;
@@ -147,7 +151,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       args.noRevert = false;
       args.gasreq = offerGasreq();
       args.gasprice = gasprice;
-      args.pivotId = pivotIds[cpt++];
+      args.pivotId = pivotIds[index - from];
       _populateIndex(ba, index, args);
     }
   }

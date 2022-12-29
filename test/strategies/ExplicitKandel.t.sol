@@ -15,8 +15,8 @@ contract ExplicitKandelTest is MangroveTest {
   address payable maker;
   address payable taker;
   ExplicitKandel kdl;
-  uint[] baseDist = new uint[](10);
-  uint[] quoteDist = new uint[](10);
+  uint[] baseDist = new uint[](12);
+  uint[] quoteDist = new uint[](12);
 
   uint constant GASREQ = 150_000;
 
@@ -60,7 +60,7 @@ contract ExplicitKandelTest is MangroveTest {
       mgv: IMangrove($(mgv)), 
       base: weth,
       quote: usdc,
-      nslots: 10,
+      nslots: 12,
       gasreq: GASREQ
     });
     kdl.activate(dynamic([IERC20(weth), usdc]));
@@ -70,28 +70,30 @@ contract ExplicitKandelTest is MangroveTest {
     deal($(weth), $(kdl), cash(weth, 10));
     deal($(usdc), $(kdl), cash(usdc, 12_000));
 
-    // funding Kandel on Mangrove
-    uint provAsk = kdl.getMissingProvision(weth, usdc, 0, kdl.offerGasreq(), 0);
-    uint provBid = kdl.getMissingProvision(usdc, weth, 0, kdl.offerGasreq(), 0);
-    mgv.fund{value: (provAsk + provBid) * 10}(address(kdl));
-
     // volume distribution between index [0,5[ and [5,10[ are geometric progression with ratio 1.1 and 1/1.1 respectively
-    fillGeometricDist(0.1 ether, 110, 0, 5, baseDist);
-    fillGeometricDist(baseDist[4], 91, 5, 10, baseDist);
+    fillGeometricDist(0.1 ether, 110, 0, 6, baseDist);
+    fillGeometricDist(baseDist[4], 91, 6, 12, baseDist);
     // pmin = 800 USDC/ETH ; pmax = 1600 USDC/ETH
     // qmin/bmin = 800 --> qmin = 800*0.1 = 80
     // pmax = 1600 = pmin*r**9 --> r**9 = 2 --> r = e^log(2)/9 ~ 1.08
-    fillGeometricDist(cash(usdc, 800), 108, 0, 10, quoteDist);
+    fillGeometricDist(cash(usdc, 800), 108, 0, 12, quoteDist);
     //turning price distribution into quote volumes
-    for (uint i = 0; i < 10; i++) {
+    for (uint i = 0; i < 12; i++) {
       quoteDist[i] = (quoteDist[i] * baseDist[i]) / (10 ** 18);
     }
     uint[][2] memory dist;
     dist[0] = baseDist;
     dist[1] = quoteDist;
+
+    // funding Kandel on Mangrove
+    uint provAsk = kdl.getMissingProvision(weth, usdc, 0, kdl.offerGasreq(), 0);
+    uint provBid = kdl.getMissingProvision(usdc, weth, 0, kdl.offerGasreq(), 0);
+    deal(maker, (provAsk + provBid) * 12 ether);
+
     vm.startPrank(maker);
-    kdl.setDistribution(0, 10, dist);
-    kdl.populate(0, 10, 4, 0, dynamic([uint(0), 1, 2, 3, 4, 0, 1, 2, 3, 4]));
+    kdl.setDistribution(0, 12, dist);
+    // leaving first and last price slot unpopulated
+    kdl.populate{value: (provAsk + provBid) * 12}(1, 11, 5, 0, dynamic([uint(0), 1, 2, 3, 4, 0, 1, 2, 3, 4]));
     vm.stopPrank();
   }
 
@@ -108,9 +110,9 @@ contract ExplicitKandelTest is MangroveTest {
   }
 
   function assertStatus(
-    uint[10] memory offerStatuses // 1:bid 2:ask 3:crossed 0:dead
+    uint[12] memory offerStatuses // 1:bid 2:ask 3:crossed 0:dead
   ) internal {
-    for (uint i = 0; i < 10; i++) {
+    for (uint i = 0; i < 12; i++) {
       (MgvStructs.OfferPacked bid,) = kdl.getOffer(AbstractKandel.OrderType.Bid, i);
       (MgvStructs.OfferPacked ask,) = kdl.getOffer(AbstractKandel.OrderType.Ask, i);
       if (offerStatuses[i] == 0) {
@@ -137,13 +139,13 @@ contract ExplicitKandelTest is MangroveTest {
 
   function test_populates_order_book_correctly() public {
     printOB();
-    assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
+    assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
   }
 
   function test_first_bid_complete_fill() public {
     (uint successes, uint takerGot, uint takerGave,,) = sellToBestAs(taker, 1 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]);
+    assertStatus([uint(0), 1, 1, 1, 1, 0, 2, 2, 2, 2, 2, 0]);
     // since ask[5] is already there (at the correct volume) all the base brought by taker become pending
     assertEq(kdl.pendingBase(), takerGave, "Incorrect pending");
   }
@@ -151,13 +153,13 @@ contract ExplicitKandelTest is MangroveTest {
   function test_bid_partial_fill() public {
     (uint successes, uint takerGot,,,) = sellToBestAs(taker, 0.01 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
+    assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
   }
 
   function test_first_ask_complete_fill() public {
     (uint successes, uint takerGot, uint takerGave,,) = buyFromBestAs(taker, 1 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]);
+    assertStatus([uint(0), 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 0]);
     // since bid[4] is already there (at the correct volume) all the quote brought by taker become pending
     assertEq(kdl.pendingQuote(), takerGave, "Incorrect pending");
   }
@@ -166,7 +168,7 @@ contract ExplicitKandelTest is MangroveTest {
     sellToBestAs(taker, 1 ether);
     (uint successes, uint takerGot,,,) = sellToBestAs(taker, 1 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 0, 2, 2, 2, 2, 2, 2]);
+    assertStatus([uint(0), 1, 1, 1, 0, 2, 2, 2, 2, 2, 2, 0]);
   }
 
   function test_pendingBase_is_used_for_asks() public {
@@ -182,7 +184,7 @@ contract ExplicitKandelTest is MangroveTest {
     buyFromBestAs(taker, 1 ether);
     (uint successes, uint takerGot,,,) = buyFromBestAs(taker, 1 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 1, 1, 1, 0, 2, 2, 2]);
+    assertStatus([uint(0), 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 0]);
   }
 
   function test_pendingQuote_is_used_for_bids() public {
@@ -193,6 +195,12 @@ contract ExplicitKandelTest is MangroveTest {
   }
 
   function test_logs_all_asks() public {
+    // filling first price slot
+    vm.startPrank(maker);
+    kdl.populate(0, 1, 5, 0, dynamic([kdl.offerIdOfIndex(AbstractKandel.OrderType.Bid, 1)]));
+    vm.stopPrank();
+    // taking all bids
+    sellToBestAs(taker, 1 ether);
     sellToBestAs(taker, 1 ether);
     sellToBestAs(taker, 1 ether);
     sellToBestAs(taker, 1 ether);
@@ -200,10 +208,15 @@ contract ExplicitKandelTest is MangroveTest {
     expectFrom(address(kdl));
     emit AllAsks(IMangrove($(mgv)), weth, usdc);
     sellToBestAs(taker, 1 ether);
-    assertStatus([uint(0), 2, 2, 2, 2, 2, 2, 2, 2, 2]);
+    assertStatus([uint(0), 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0]);
   }
 
   function test_logs_all_bids() public {
+    // filling last price slot
+    vm.startPrank(maker);
+    kdl.populate(11, 12, 5, 0, dynamic([kdl.offerIdOfIndex(AbstractKandel.OrderType.Ask, 10)]));
+    vm.stopPrank();
+    buyFromBestAs(taker, 1 ether);
     buyFromBestAs(taker, 1 ether);
     buyFromBestAs(taker, 1 ether);
     buyFromBestAs(taker, 1 ether);
@@ -211,7 +224,7 @@ contract ExplicitKandelTest is MangroveTest {
     expectFrom(address(kdl));
     emit AllBids(IMangrove($(mgv)), weth, usdc);
     buyFromBestAs(taker, 1 ether);
-    assertStatus([uint(1), 1, 1, 1, 1, 1, 1, 1, 1, 0]);
+    assertStatus([uint(0), 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]);
   }
 
   function multiplyVolumeAtIndex(uint index, uint factor) internal view returns (uint[][2] memory dist) {
@@ -234,17 +247,17 @@ contract ExplicitKandelTest is MangroveTest {
   function test_change_and_lazy_populate_dist_index() public {
     sellToBestAs(taker, 1 ether);
     // MM state:
-    // [1, 1, 1, 1, 0, 2, 2, 2, 2, 2]);
+    // [0, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2,0]);
     // pendingBase = dist[0][4]
-    (uint old_base, uint old_quote) = (kdl.baseOfIndex(4), kdl.quoteOfIndex(4));
-    uint[][2] memory dist = multiplyVolumeAtIndex(4, 200);
+    (uint old_base, uint old_quote) = (kdl.baseOfIndex(5), kdl.quoteOfIndex(5));
+    uint[][2] memory dist = multiplyVolumeAtIndex(5, 200);
     vm.startPrank(maker);
-    kdl.setDistribution(4, 5, dist);
+    kdl.setDistribution(5, 6, dist);
     // putting 1000$ in pendingQuote so that Kandel auto updates volume
     kdl.setPending(AbstractKandel.OrderType.Bid, 1000 * 10 ** 6);
     vm.stopPrank();
     buyFromBestAs(taker, 1 ether);
-    (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Bid, 4);
+    (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Bid, 5);
     assertEq(offer.gives(), old_quote * 2, "Incorrect gives");
     assertEq(offer.wants(), old_base * 2, "incorrect wants");
   }

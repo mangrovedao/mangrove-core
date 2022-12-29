@@ -12,19 +12,19 @@
 pragma solidity ^0.8.10;
 
 import {CoreKandel, IMangrove, IERC20, AbstractKandel, MgvLib, MgvStructs} from "./abstract/CoreKandel.sol";
-// import {console} from "forge-std/console.sol";
+//import {console} from "forge-std/console.sol";
 
 contract ExplicitKandel is CoreKandel {
   ///@notice quote distribution: `baseOfIndex[i]` is the amount of base tokens Kandel must give or want at index i
-  uint[] baseOfIndex;
+  uint[] _baseOfIndex;
   ///@notice quote distribution: `quoteOfIndex[i]` is the amount of quote tokens Kandel must give or want at index i
-  uint[] quoteOfIndex;
+  uint[] _quoteOfIndex;
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint16 nslots)
     CoreKandel(mgv, base, quote, gasreq, nslots)
   {
-    baseOfIndex = new uint[](nslots);
-    quoteOfIndex = new uint[](nslots);
+    _baseOfIndex = new uint[](nslots);
+    _quoteOfIndex = new uint[](nslots);
   }
 
   function __reserve__(address) internal view override returns (address) {
@@ -35,26 +35,22 @@ contract ExplicitKandel is CoreKandel {
   ///@param from start index (included). Must be less than `to`.
   ///@param to end index (excluded). Must be less than `NSLOT`.
   ///@param slice slice[i][0/1] is the distribution of base/quote at index i.
-  /// `slice[i][0/1] = 0` is interpreted as keep old distribution
   function setDistribution(uint from, uint to, uint[][2] calldata slice) external onlyAdmin {
     for (uint i = from; i < to; i++) {
-      if (slice[0][i] > 0) {
-        baseOfIndex[i] = slice[0][i];
-      }
-      if (slice[1][i] > 0) {
-        quoteOfIndex[i] = slice[1][i];
-      }
+      uint sliceIndex = i - from;
+      _baseOfIndex[i] = slice[0][sliceIndex];
+      _quoteOfIndex[i] = slice[1][sliceIndex];
     }
   }
 
   ///@inheritdoc AbstractKandel
-  function _baseOfIndex(uint index) internal view override returns (uint) {
-    return baseOfIndex[index];
+  function baseOfIndex(uint index) public view override returns (uint) {
+    return _baseOfIndex[index];
   }
 
   ///@inheritdoc AbstractKandel
-  function _quoteOfIndex(uint index) internal view override returns (uint) {
-    return quoteOfIndex[index];
+  function quoteOfIndex(uint index) public view override returns (uint) {
+    return _quoteOfIndex[index];
   }
 
   ///@inheritdoc AbstractKandel
@@ -64,7 +60,7 @@ contract ExplicitKandel is CoreKandel {
     override
     returns (OrderType dualBa, uint dualIndex, OfferArgs memory args)
   {
-    uint index = _indexOfOfferId(ba, order.offerId);
+    uint index = indexOfOfferId(ba, order.offerId);
 
     if (index == 0) {
       emit AllAsks(MGV, BASE, QUOTE);
@@ -85,7 +81,7 @@ contract ExplicitKandel is CoreKandel {
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);
 
-    uint pending = _getPending(dualBa);
+    uint pending = getPending(dualBa);
     if (shouldGive >= maxDualGives + pending) {
       if (dualBa == OrderType.Ask) {
         pendingBase = 0;
@@ -96,7 +92,7 @@ contract ExplicitKandel is CoreKandel {
     } else {
       // maxDualGives + pending > shouldGive
       args.gives = shouldGive;
-      _setPending(dualBa, maxDualGives + pending - shouldGive);
+      setPending(dualBa, maxDualGives + pending - shouldGive);
     }
 
     // note at this stage, maker's profit is `maxDualGives - args.gives`

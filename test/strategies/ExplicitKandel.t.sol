@@ -129,9 +129,14 @@ contract ExplicitKandelTest is MangroveTest {
     }
   }
 
-  function test_populates_order_book_correctly() public {
+  function printOB() internal view {
     printOrderBook($(weth), $(usdc));
     printOrderBook($(usdc), $(weth));
+    console.log("-------", toUnit(kdl.pendingBase(), 18), toUnit(kdl.pendingQuote(), 6), "-------");
+  }
+
+  function test_populates_order_book_correctly() public {
+    printOB();
     assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
   }
 
@@ -207,5 +212,40 @@ contract ExplicitKandelTest is MangroveTest {
     emit AllBids(IMangrove($(mgv)), weth, usdc);
     buyFromBestAs(taker, 1 ether);
     assertStatus([uint(1), 1, 1, 1, 1, 1, 1, 1, 1, 0]);
+  }
+
+  function multiplyVolumeAtIndex(uint index, uint factor) internal view returns (uint[][2] memory dist) {
+    dist[1] = dynamic([(kdl.quoteOfIndex(index) * factor) / 100]);
+    dist[0] = dynamic([(kdl.baseOfIndex(index) * factor) / 100]);
+  }
+
+  function test_change_and_populate_dist_index() public {
+    (uint old_base, uint old_quote) = (kdl.baseOfIndex(4), kdl.quoteOfIndex(4));
+    uint[][2] memory dist = multiplyVolumeAtIndex(4, 200);
+    vm.startPrank(maker);
+    kdl.setDistribution(4, 5, dist);
+    kdl.populate(4, 5, 4, 0, dynamic([kdl.offerIdOfIndex(AbstractKandel.OrderType.Bid, 4)]));
+    vm.stopPrank();
+    (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Bid, 4);
+    assertEq(offer.gives(), old_quote * 2, "Incorrect gives");
+    assertEq(offer.wants(), old_base * 2, "incorrect wants");
+  }
+
+  function test_change_and_lazy_populate_dist_index() public {
+    sellToBestAs(taker, 1 ether);
+    // MM state:
+    // [1, 1, 1, 1, 0, 2, 2, 2, 2, 2]);
+    // pendingBase = dist[0][4]
+    (uint old_base, uint old_quote) = (kdl.baseOfIndex(4), kdl.quoteOfIndex(4));
+    uint[][2] memory dist = multiplyVolumeAtIndex(4, 200);
+    vm.startPrank(maker);
+    kdl.setDistribution(4, 5, dist);
+    // putting 1000$ in pendingQuote so that Kandel auto updates volume
+    kdl.setPending(AbstractKandel.OrderType.Bid, 1000 * 10 ** 6);
+    vm.stopPrank();
+    buyFromBestAs(taker, 1 ether);
+    (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Bid, 4);
+    assertEq(offer.gives(), old_quote * 2, "Incorrect gives");
+    assertEq(offer.wants(), old_base * 2, "incorrect wants");
   }
 }

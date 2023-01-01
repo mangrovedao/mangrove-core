@@ -45,4 +45,14 @@ abstract contract AbstractKandel {
     internal
     virtual
     returns (OrderType dualBa, uint dualIndex, Direct.OfferArgs memory args);
+
+  ///@notice adds funds to the strat
+  ///@param ba specifies whether amount in is base `(ba == OrderType.Ask)` or quote `(ba == OrderType.Bid)` tokens
+  ///@param amount of tokens deposited
+  function depositFunds(OrderType ba, uint amount) external virtual;
+
+  ///@notice removes funds from the strat
+  ///@param ba specifies whether amount in is base `(ba == OrderType.Ask)` or quote `(ba == OrderType.Bid)` tokens
+  ///@param amount of tokens withdrawn
+  function withdrawFunds(OrderType ba, uint amount) external virtual;
 }

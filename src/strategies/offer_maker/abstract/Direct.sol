@@ -49,13 +49,13 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
-  function push(IERC20 token, uint amount) internal {
+  function push(IERC20 token, uint amount) internal returns (uint) {
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
-      return; // nothing to do
+      return amount; // nothing to do
     } else {
       // noop if reserve == address(this)
-      require(router_.push(token, reserve(admin()), amount) == amount, "Direct/pushFailed");
+      return router_.push(token, reserve(admin()), amount);
     }
   }
 

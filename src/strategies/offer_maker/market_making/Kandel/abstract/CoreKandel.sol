@@ -21,9 +21,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   IERC20 immutable BASE;
   ///@notice quote of the market Kandel is making
   IERC20 immutable QUOTE;
-  ///@notice `pendingBase` is the amount of free base tokens
+  ///@notice `pendingBase` is the amount of free (not promised) base tokens in reserve
   uint public pendingBase;
-  ///@notice `pendingQuote` is the amount of free quote tokens
+  ///@notice `pendingQuote` is the amount of free quote tokens in reserve
   uint public pendingQuote;
 
   ///@notice maps index to offer id on Mangrove
@@ -175,20 +175,21 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   ///@notice takes care of reposting residual offer in case of a partial fill and logging potential issues.
   ///@param order a recap of the taker order
-  ///@param ba whether the executer offer (order.offer) is a bid or an ask
-  function _handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData, OrderType ba) internal {
+  ///@param makerData generated during `makerExecute` so as to log it if necessary
+  ///@return notPublished the amount of liquidity that failed to be published on mangrove
+  function _handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData) internal returns (uint notPublished) {
     bytes32 repostStatus = super.__posthookSuccess__(order, makerData);
     // Offer failed to repost for bad reason, logging the incident
     if (repostStatus == "posthook/filled" || repostStatus == REPOST_SUCCESS) {
-      return;
+      return 0;
     }
     if (repostStatus == "mgv/writeOffer/density/tooLow") {
-      uint givesBelowDensity = __residualGives__(order);
-      setPending(ba, givesBelowDensity);
+      return __residualGives__(order);
     } else {
       emit LogIncident(
         MGV, IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId, makerData, repostStatus
         );
+      return __residualGives__(order);
     }
   }
 
@@ -198,7 +199,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     returns (bytes32)
   {
     OrderType ba = _orderTypeOfOutbound(IERC20(order.outbound_tkn));
-    _handleResidual(order, makerData, ba);
+    // adds any unpublished liquidity to pending[Base/Quote]
+    setPending(ba, _handleResidual(order, makerData));
     // preparing arguments for the dual maker order
     (OrderType dualBa, uint dualIndex, OfferArgs memory args) = _transportLogic(ba, order);
     return _populateIndex(dualBa, dualIndex, args);

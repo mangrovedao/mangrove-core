@@ -12,6 +12,7 @@
 pragma solidity ^0.8.10;
 
 import {CoreKandel, IMangrove, IERC20, AbstractKandel, MgvLib, MgvStructs} from "./abstract/CoreKandel.sol";
+import "mgv_src/strategies/utils/TransferLib.sol";
 //import {console} from "forge-std/console.sol";
 
 contract ExplicitKandel is CoreKandel {
@@ -104,5 +105,24 @@ contract ExplicitKandel is CoreKandel {
     args.gasreq = dualOfferDetails.gasreq();
     args.gasprice = dualOfferDetails.gasprice();
     args.pivotId = dualOffer.gives() > 0 ? offerIdOfIndex(dualBa, dualIndex) : dualOffer.next();
+  }
+
+  function depositFunds(OrderType ba, uint amount) external override {
+    require(push({token: ba == OrderType.Ask ? BASE : QUOTE, amount: amount}) == amount, "Kandel/depositFailed");
+    setPending(ba, getPending(ba) + amount);
+  }
+
+  function withdrawFunds(OrderType ba, uint amount) external override onlyAdmin {
+    // will throw in case of underflow
+    setPending(ba, getPending(ba) - amount);
+    require(
+      TransferLib.transferTokenFrom({
+        token: ba == OrderType.Ask ? BASE : QUOTE,
+        spender: reserve(msg.sender),
+        recipient: msg.sender,
+        amount: amount
+      }),
+      "Kandel/withdrawFailed"
+    );
   }
 }

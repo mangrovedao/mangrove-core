@@ -7,13 +7,14 @@ import {
   IERC20,
   IMangrove
 } from "mgv_src/strategies/offer_maker/market_making/kandel/ExplicitKandel.sol";
-import {Deployer} from "../lib/Deployer.sol";
+import {Deployer} from "mgv_script/lib/Deployer.sol";
+import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
 
 /**
  * @notice deploys a Kandel instance on a given market
  */
 
-contract KandelDeployer is Deployer {
+contract KandelDeployer is Deployer, MangroveTest {
   Kandel public current;
 
   function run() public {
@@ -21,7 +22,7 @@ contract KandelDeployer is Deployer {
       base: envAddressOrName("BASE"),
       quote: envAddressOrName("QUOTE"),
       nslots: vm.envUint("NSLOTS"),
-      gasreq: 100_000
+      gasreq: 160_000
     });
   }
 
@@ -43,6 +44,7 @@ contract KandelDeployer is Deployer {
     string memory kandelName = getName(IERC20(base), IERC20(quote));
     fork.set(kandelName, address(current));
     outputDeployment();
+    smokeTest();
   }
 
   function getName(IERC20 base, IERC20 quote) public view returns (string memory) {
@@ -51,5 +53,11 @@ contract KandelDeployer is Deployer {
     } catch {
       return string.concat("Kandel_", base.symbol(), "_", quote.symbol());
     }
+  }
+
+  function smokeTest() internal {
+    IMangrove mgv = IMangrove(fork.get("Mangrove"));
+    assertNot0x(address(current));
+    assertEq(address(current.MGV()), address(mgv));
   }
 }

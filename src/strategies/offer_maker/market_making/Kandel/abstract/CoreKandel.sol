@@ -16,11 +16,11 @@ import {AbstractKandel} from "./AbstractKandel.sol";
 
 abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice number of offers managed by this strat
-  uint16 immutable NSLOTS;
+  uint16 public immutable NSLOTS;
   ///@notice base of the market Kandel is making
-  IERC20 immutable BASE;
+  IERC20 public immutable BASE;
   ///@notice quote of the market Kandel is making
-  IERC20 immutable QUOTE;
+  IERC20 public immutable QUOTE;
   ///@notice `pendingBase` is the amount of free (not promised) base tokens in reserve
   uint public pendingBase;
   ///@notice `pendingQuote` is the amount of free quote tokens in reserve

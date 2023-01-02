@@ -18,7 +18,7 @@ contract ExplicitKandelTest is MangroveTest {
   uint[] baseDist = new uint[](12);
   uint[] quoteDist = new uint[](12);
 
-  uint constant GASREQ = 150_000;
+  uint constant GASREQ = 160_000;
 
   event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
   ///@notice signals that the price has moved below Kandel's current price range
@@ -107,6 +107,18 @@ contract ExplicitKandelTest is MangroveTest {
     uint bestBid = mgv.best($(usdc), $(weth));
     vm.prank(taker_);
     return mgv.snipes($(usdc), $(weth), wrap_dynamic([bestBid, 0, amount, type(uint).max]), false);
+  }
+
+  function snipeBuyAs(address taker_, uint amount, uint index) internal returns (uint, uint, uint, uint, uint) {
+    uint offerId = kdl.offerIdOfIndex(AbstractKandel.OrderType.Ask, index);
+    vm.prank(taker_);
+    return mgv.snipes($(weth), $(usdc), wrap_dynamic([offerId, amount, type(uint96).max, type(uint).max]), true);
+  }
+
+  function snipeSellAs(address taker_, uint amount, uint index) internal returns (uint, uint, uint, uint, uint) {
+    uint offerId = kdl.offerIdOfIndex(AbstractKandel.OrderType.Bid, index);
+    vm.prank(taker_);
+    return mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
   }
 
   function assertStatus(
@@ -248,7 +260,7 @@ contract ExplicitKandelTest is MangroveTest {
     sellToBestAs(taker, 1 ether);
     // MM state:
     // [0, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2,0]);
-    // pendingBase = dist[0][4]
+    // pendingBase > 0
     (uint old_base, uint old_quote) = (kdl.baseOfIndex(5), kdl.quoteOfIndex(5));
     uint[][2] memory dist = multiplyVolumeAtIndex(5, 200);
     vm.startPrank(maker);
@@ -260,5 +272,27 @@ contract ExplicitKandelTest is MangroveTest {
     (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Bid, 5);
     assertEq(offer.gives(), old_quote * 2, "Incorrect gives");
     assertEq(offer.wants(), old_base * 2, "incorrect wants");
+  }
+
+  function test_snipeSell_does_not_use_pending() public {
+    vm.prank(maker);
+    kdl.setPending(AbstractKandel.OrderType.Ask, 1 ether);
+    (uint successes,, uint takerGave,,) = snipeSellAs(taker, 1 ether, 1);
+    assertTrue(successes == 1, "snipe failed");
+    assertStatus([uint(0), 0, 3, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
+    (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Ask, 2);
+    assertEq(offer.gives(), takerGave, "wrong gives");
+    assertEq(1 ether, kdl.pendingBase(), "incorrect pending");
+  }
+
+  function test_snipeBuy_does_not_use_pending() public {
+    vm.prank(maker);
+    kdl.setPending(AbstractKandel.OrderType.Bid, 1000 * 10 ** 6);
+    (uint successes,, uint takerGave,,) = snipeBuyAs(taker, 1 ether, 10);
+    assertTrue(successes == 1, "snipe failed");
+    assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 2, 2, 3, 0, 0]);
+    (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Bid, 9);
+    assertEq(offer.gives(), takerGave, "wrong gives");
+    assertEq(1000 * 10 ** 6, kdl.pendingQuote(), "incorrect pending");
   }
 }

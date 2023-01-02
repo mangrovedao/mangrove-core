@@ -184,12 +184,11 @@ contract ExplicitKandelTest is MangroveTest {
   }
 
   function test_pendingBase_is_used_for_asks() public {
-    sellToBestAs(taker, 1 ether);
-    // this generates pendingBase because the dual of the first bid is already posted
-    uint pending = kdl.pendingBase();
+    vm.prank(maker);
+    kdl.setPending(AbstractKandel.OrderType.Ask, 0.5 ether);
     sellToBestAs(taker, 1 ether);
     // this second offer should tap into pending to post the ask
-    assertTrue(pending > kdl.pendingBase(), "Incorrect pending");
+    assertTrue(0.5 ether > kdl.pendingBase(), "Incorrect pending");
   }
 
   function test_ask_produces_a_bid() public {
@@ -200,10 +199,10 @@ contract ExplicitKandelTest is MangroveTest {
   }
 
   function test_pendingQuote_is_used_for_bids() public {
+    vm.prank(maker);
+    kdl.setPending(AbstractKandel.OrderType.Bid, 10 ** 6);
     buyFromBestAs(taker, 1 ether);
-    uint pending = kdl.pendingQuote();
-    buyFromBestAs(taker, 1 ether);
-    assertTrue(pending > kdl.pendingQuote(), "Incorrect pending");
+    assertTrue(10 ** 6 > kdl.pendingQuote(), "Incorrect pending");
   }
 
   function test_logs_all_asks() public {

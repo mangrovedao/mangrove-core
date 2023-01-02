@@ -86,8 +86,8 @@ contract ExplicitKandelTest is MangroveTest {
     dist[1] = quoteDist;
 
     // funding Kandel on Mangrove
-    uint provAsk = kdl.getMissingProvision(weth, usdc, 0, kdl.offerGasreq(), 0);
-    uint provBid = kdl.getMissingProvision(usdc, weth, 0, kdl.offerGasreq(), 0);
+    uint provAsk = kdl.getMissingProvision(weth, usdc, kdl.offerGasreq(), 0, 0);
+    uint provBid = kdl.getMissingProvision(usdc, weth, kdl.offerGasreq(), 0, 0);
     deal(maker, (provAsk + provBid) * 12 ether);
 
     vm.startPrank(maker);

@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 
 import {CoreKandel, IMangrove, IERC20, AbstractKandel, MgvLib, MgvStructs} from "./abstract/CoreKandel.sol";
 import "mgv_src/strategies/utils/TransferLib.sol";
-//import {console} from "forge-std/console.sol";
+// import {console} from "forge-std/console.sol";
 
 contract ExplicitKandel is CoreKandel {
   ///@notice quote distribution: `baseOfIndex[i]` is the amount of base tokens Kandel must give or want at index i
@@ -54,6 +54,13 @@ contract ExplicitKandel is CoreKandel {
     return _quoteOfIndex[index];
   }
 
+  ///@notice checks whether offer whose logic is being executed is currently the best on Mangove
+  ///@param order the taker order that is being executed
+  ///@dev `isBest` => `order.offer` is the best bid/ask of this strat (but the converse is not true in general).
+  function _isBest(MgvLib.SingleOrder calldata order) internal view returns (bool) {
+    return MGV.best(order.outbound_tkn, order.inbound_tkn) == order.offerId;
+  }
+
   ///@inheritdoc AbstractKandel
   function _transportLogic(OrderType ba, MgvLib.SingleOrder calldata order)
     internal
@@ -82,12 +89,16 @@ contract ExplicitKandel is CoreKandel {
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);
 
-    uint pending = getPending(dualBa);
+    // letting dual offer complements taker's liquidity with pending when current offer is not sniped.
+    // Adding pending to compute dual offer's volume would allow taker to drain liquidity
+    // by sniping an offer far from the mid price for a low quantity, dual offer would then only be posted for a
+    // proportionally low volume if not complemented with pending.
+    uint pending = _isBest(order) ? getPending(dualBa) : 0;
     if (shouldGive >= maxDualGives + pending) {
       if (dualBa == OrderType.Ask) {
-        pendingBase = 0;
+        pendingBase -= pending;
       } else {
-        pendingQuote = 0;
+        pendingQuote -= pending;
       }
       args.gives = maxDualGives + pending;
     } else {

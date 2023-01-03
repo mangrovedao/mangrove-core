@@ -1,24 +1,25 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Script, console} from "forge-std/Script.sol";
+import {Script, console2 as console} from "forge-std/Script.sol";
 import {
   ExplicitKandel as Kandel,
   IERC20,
   IMangrove
 } from "mgv_src/strategies/offer_maker/market_making/kandel/ExplicitKandel.sol";
-
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /**
- * @notice deploys a Kandel instance on a given market
+ * @notice Populate Kandel's distribution on Mangrove
  */
 
-contract KandelStart is Deployer {
+contract KdlPopulates is Deployer {
   Kandel public kdl;
   IMangrove MGV;
   IERC20 BASE;
   IERC20 QUOTE;
+  MgvReader MGVR;
 
   function run() public {
     kdl = Kandel(envAddressOrName("KANDEL"));
@@ -35,25 +36,29 @@ contract KandelStart is Deployer {
   function innerRun(
     uint[] memory baseDist,
     uint[] memory quoteDist,
-    uint startPopulate,
+    uint startPopulate, // start index for the first element of the distribution
     uint endPopulate,
     uint lastBidIndex,
     uint gasprice
   ) public {
     MGV = kdl.MGV();
+    MGVR = MgvReader(fork.get("MgvReader"));
     BASE = kdl.BASE();
     QUOTE = kdl.QUOTE();
 
-    vm.broadcast();
-    kdl.activate(dynamic([BASE, QUOTE]));
+    require(baseDist.length == quoteDist.length, "Distribution must have same length");
+    require(startPopulate <= endPopulate, "start must be lower than end");
+    require(baseDist.length == kdl.NSLOTS(), "Distribution length must match Kandel's size");
 
-    uint provAsk = kdl.getMissingProvision(BASE, QUOTE, kdl.offerGasreq(), gasprice, 0);
-    uint provBid = kdl.getMissingProvision(QUOTE, BASE, kdl.offerGasreq(), gasprice, 0);
+    uint gasreq = kdl.offerGasreq();
+    uint provAsk = MGVR.getProvision(address(BASE), address(QUOTE), gasreq, gasprice);
+    uint provBid = MGVR.getProvision(address(QUOTE), address(BASE), gasreq, gasprice);
 
-    // assuming base and quote distributions have the same length <= kdl.NSLOTS()
+    prettyLog("Setting distribution on Kandel...");
     vm.broadcast();
     kdl.setDistribution(0, baseDist.length, [baseDist, quoteDist]);
 
+    prettyLog("Evaluating pivots");
     uint[] memory pivotIds = evaluatePivots(
       HeapArgs({
         baseDist: baseDist,
@@ -64,6 +69,7 @@ contract KandelStart is Deployer {
       })
     );
 
+    prettyLog("Populating Mangrove...");
     vm.broadcast();
     kdl.populate{value: (provAsk + provBid) * (endPopulate - startPopulate)}(
       startPopulate, endPopulate, lastBidIndex, gasprice, pivotIds
@@ -97,6 +103,7 @@ contract KandelStart is Deployer {
         pivotId: lastOfferId
       });
       pivotIds[i] = MGV.offers(outbound, inbound, lastOfferId).next();
+      console.log(bidding ? "bid" : "ask", i, pivotIds[i], lastOfferId);
     }
   }
 }

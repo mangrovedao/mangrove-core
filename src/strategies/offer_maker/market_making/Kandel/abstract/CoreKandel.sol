@@ -30,9 +30,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice quote of the market Kandel is making
   IERC20 public immutable QUOTE;
   ///@notice `pendingBase` is the amount of free (not promised) base tokens in reserve
-  uint public pendingBase;
+  uint128 public pendingBase;
   ///@notice `pendingQuote` is the amount of free quote tokens in reserve
-  uint public pendingQuote;
+  uint128 public pendingQuote;
 
   ///@notice maps index to offer id on Mangrove
   uint[][2] public _offerIdOfIndex;
@@ -51,10 +51,11 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   }
 
   function setPending(OrderType ba, uint amount) public mgvOrAdmin {
+    require(uint128(amount) == amount, "Kandel/pendingOverflow");
     if (ba == OrderType.Ask) {
-      pendingBase = amount;
+      pendingBase = uint128(amount);
     } else {
-      pendingQuote = amount;
+      pendingQuote = uint128(amount);
     }
   }
 
@@ -92,6 +93,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     return outbound_tkn == BASE ? OrderType.Ask : OrderType.Bid;
   }
 
+  ///@notice retracts the order at given index from Mangrove
+  ///@param ba the order type
+  ///@param index the index of the order
+  ///@param deprovision whether one wishes to be credited free wei's on Mangrove's balance
   function retractOffer(OrderType ba, uint index, bool deprovision) public mgvOrAdmin returns (uint) {
     (IERC20 outbound_tkn, IERC20 inbound_tkn) = _tokenPairOfOrderType(ba);
     uint offerId = offerIdOfIndex(ba, index);
@@ -99,7 +104,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   }
 
   ///@notice retrieve offer data on Mangrove
-  ///@param ba whether the offer is a Bid or an Ask
+  ///@param ba the order type
   ///@param index the distribution index of the offer
   function getOffer(OrderType ba, uint index)
     public
@@ -114,14 +119,30 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     );
   }
 
-  function isLive(OrderType ba, uint index) public view returns (bool) {
+  ///@notice check whether given order is live on Mangrove
+  ///@param ba the order type
+  ///@param index the price index of the order
+  ///@return live is true if the order is live on Mangrove
+  function isLive(OrderType ba, uint index) public view returns (bool live) {
     (IERC20 outbound_tkn, IERC20 inbound_tkn) = _tokenPairOfOrderType(ba);
     uint offerId = offerIdOfIndex(ba, index);
     return offerId > 0 && MGV.isLive(MGV.offers(address(outbound_tkn), address(inbound_tkn), offerId));
   }
 
-  function dual(OrderType ba) public pure returns (OrderType) {
+  ///@notice returns the dual order type
+  ///@param ba whether the order is an ask or a bid
+  ///@return dualBa is the dual order type (ask for bid and conversely)
+  function dual(OrderType ba) public pure returns (OrderType dualBa) {
     return OrderType((uint(ba) + 1) % 2);
+  }
+
+  ///@notice returns next index if order is an ask, and previous price index if order is a bid
+  ///@param ba whether the order is an ask or a bid
+  ///@param index the price index of the order
+  ///@return dualIndex the index of the dual order
+  ///@dev `ba == Ask => index > 0` and `ba == Bid => index < NSLOT-1`
+  function dual(OrderType ba, uint index) public pure returns (uint dualIndex) {
+    return ba == OrderType.Ask ? index - 1 : index + 1;
   }
 
   ///@notice publishes (by either creating or updating) a bid/ask at a given price index

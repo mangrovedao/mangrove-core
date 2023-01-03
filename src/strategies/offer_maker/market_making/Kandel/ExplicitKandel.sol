@@ -17,15 +17,15 @@ import {console} from "forge-std/console.sol";
 
 contract ExplicitKandel is CoreKandel {
   ///@notice quote distribution: `baseOfIndex[i]` is the amount of base tokens Kandel must give or want at index i
-  uint[] _baseOfIndex;
+  uint96[] _baseOfIndex;
   ///@notice quote distribution: `quoteOfIndex[i]` is the amount of quote tokens Kandel must give or want at index i
-  uint[] _quoteOfIndex;
+  uint96[] _quoteOfIndex;
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint16 nslots)
     CoreKandel(mgv, base, quote, gasreq, nslots)
   {
-    _baseOfIndex = new uint[](nslots);
-    _quoteOfIndex = new uint[](nslots);
+    _baseOfIndex = new uint96[](nslots);
+    _quoteOfIndex = new uint96[](nslots);
   }
 
   function __reserve__(address) internal view override returns (address) {
@@ -39,19 +39,29 @@ contract ExplicitKandel is CoreKandel {
   function setDistribution(uint from, uint to, uint[][2] calldata slice) external onlyAdmin {
     for (uint i = from; i < to; i++) {
       uint sliceIndex = i - from;
-      _baseOfIndex[i] = slice[0][sliceIndex];
-      _quoteOfIndex[i] = slice[1][sliceIndex];
+      require(uint96(slice[0][sliceIndex]) == slice[0][sliceIndex], "Kandel/baseOverflow");
+      require(uint96(slice[1][sliceIndex]) == slice[1][sliceIndex], "Kandel/quoteOverflow");
+      _baseOfIndex[i] = uint96(slice[0][sliceIndex]);
+      _quoteOfIndex[i] = uint96(slice[1][sliceIndex]);
     }
   }
 
   ///@inheritdoc AbstractKandel
-  function baseOfIndex(uint index) public view override returns (uint) {
+  function baseOfIndex(uint index) public view override returns (uint96) {
     return _baseOfIndex[index];
   }
 
   ///@inheritdoc AbstractKandel
-  function quoteOfIndex(uint index) public view override returns (uint) {
+  function quoteOfIndex(uint index) public view override returns (uint96) {
     return _quoteOfIndex[index];
+  }
+
+  function baseDist() external view onlyAdmin returns (uint96[] memory) {
+    return _baseOfIndex;
+  }
+
+  function quoteDist() external view onlyAdmin returns (uint96[] memory) {
+    return _quoteOfIndex;
   }
 
   ///@notice checks whether offer whose logic is being executed is currently the best on Mangove
@@ -77,7 +87,7 @@ contract ExplicitKandel is CoreKandel {
     if (index == NSLOTS - 1) {
       emit AllBids(MGV, BASE, QUOTE);
     }
-    dualIndex = ba == OrderType.Ask ? index - 1 : index + 1;
+    dualIndex = dual(ba, index);
     dualBa = dual(ba);
 
     (MgvStructs.OfferPacked dualOffer, MgvStructs.OfferDetailPacked dualOfferDetails) = getOffer(dualBa, dualIndex);
@@ -100,9 +110,9 @@ contract ExplicitKandel is CoreKandel {
 
     if (shouldGive >= maxDualGives + pending) {
       if (dualBa == OrderType.Ask) {
-        pendingBase -= pending;
+        pendingBase -= uint128(pending);
       } else {
-        pendingQuote -= pending;
+        pendingQuote -= uint128(pending);
       }
       args.gives = maxDualGives + pending;
     } else {

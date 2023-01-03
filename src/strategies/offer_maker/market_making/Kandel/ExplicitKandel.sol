@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 
 import {CoreKandel, IMangrove, IERC20, AbstractKandel, MgvLib, MgvStructs} from "./abstract/CoreKandel.sol";
 import "mgv_src/strategies/utils/TransferLib.sol";
-// import {console} from "forge-std/console.sol";
+import {console} from "forge-std/console.sol";
 
 contract ExplicitKandel is CoreKandel {
   ///@notice quote distribution: `baseOfIndex[i]` is the amount of base tokens Kandel must give or want at index i
@@ -58,7 +58,8 @@ contract ExplicitKandel is CoreKandel {
   ///@param order the taker order that is being executed
   ///@dev `isBest` => `order.offer` is the best bid/ask of this strat (but the converse is not true in general).
   function _isBest(MgvLib.SingleOrder calldata order) internal view returns (bool) {
-    return MGV.best(order.outbound_tkn, order.inbound_tkn) == order.offerId;
+    uint lookup = MGV.offers(order.outbound_tkn, order.inbound_tkn, order.offerId).prev();
+    return lookup == 0 || MGV.offers(order.outbound_tkn, order.inbound_tkn, lookup).gives() == 0;
   }
 
   ///@inheritdoc AbstractKandel
@@ -76,7 +77,9 @@ contract ExplicitKandel is CoreKandel {
     if (index == NSLOTS - 1) {
       emit AllBids(MGV, BASE, QUOTE);
     }
-    (dualIndex, dualBa) = ba == OrderType.Ask ? (index - 1, OrderType.Bid) : (index + 1, OrderType.Ask);
+    dualIndex = ba == OrderType.Ask ? index - 1 : index + 1;
+    dualBa = dual(ba);
+
     (MgvStructs.OfferPacked dualOffer, MgvStructs.OfferDetailPacked dualOfferDetails) = getOffer(dualBa, dualIndex);
 
     // can repost (at max) what the current taker order gave
@@ -94,6 +97,7 @@ contract ExplicitKandel is CoreKandel {
     // by sniping an offer far from the mid price for a low quantity, dual offer would then only be posted for a
     // proportionally low volume if not complemented with pending.
     uint pending = _isBest(order) ? getPending(dualBa) : 0;
+
     if (shouldGive >= maxDualGives + pending) {
       if (dualBa == OrderType.Ask) {
         pendingBase -= pending;

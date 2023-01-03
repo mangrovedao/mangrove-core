@@ -3,8 +3,8 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import {
-  ExplicitKandel,
   AbstractKandel,
+  ExplicitKandel,
   MgvStructs,
   IMangrove
 } from "mgv_src/strategies/offer_maker/market_making/kandel/ExplicitKandel.sol";
@@ -18,7 +18,7 @@ contract ExplicitKandelTest is MangroveTest {
   uint[] baseDist = new uint[](12);
   uint[] quoteDist = new uint[](12);
 
-  uint constant GASREQ = 160_000;
+  uint constant GASREQ = 180_000;
 
   event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
   ///@notice signals that the price has moved below Kandel's current price range
@@ -184,11 +184,17 @@ contract ExplicitKandelTest is MangroveTest {
   }
 
   function test_pendingBase_is_used_for_asks() public {
-    vm.prank(maker);
+    printOB();
+    //assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
+    vm.startPrank(maker);
     kdl.setPending(AbstractKandel.OrderType.Ask, 0.5 ether);
+    kdl.setDistribution(6, 7, [dynamic([uint(3 ether)]), dynamic([uint(cash(usdc, 1000))])]);
+    vm.stopPrank();
+
     sellToBestAs(taker, 1 ether);
     // this second offer should tap into pending to post the ask
-    assertTrue(0.5 ether > kdl.pendingBase(), "Incorrect pending");
+    printOB();
+    assertEq(kdl.pendingBase(), 0, "Incorrect pending");
   }
 
   function test_ask_produces_a_bid() public {
@@ -199,10 +205,14 @@ contract ExplicitKandelTest is MangroveTest {
   }
 
   function test_pendingQuote_is_used_for_bids() public {
-    vm.prank(maker);
+    //assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
+    vm.startPrank(maker);
     kdl.setPending(AbstractKandel.OrderType.Bid, 10 ** 6);
+    kdl.setDistribution(5, 6, [dynamic([uint(2 ether)]), dynamic([uint(cash(usdc, 10000))])]);
+    vm.stopPrank();
+
     buyFromBestAs(taker, 1 ether);
-    assertTrue(10 ** 6 > kdl.pendingQuote(), "Incorrect pending");
+    assertEq(kdl.pendingQuote(), 0, "Incorrect pending");
   }
 
   function test_logs_all_asks() public {
@@ -274,23 +284,44 @@ contract ExplicitKandelTest is MangroveTest {
   }
 
   function test_snipeSell_does_not_use_pending() public {
-    vm.prank(maker);
+    vm.startPrank(maker);
     kdl.setPending(AbstractKandel.OrderType.Ask, 1 ether);
+    kdl.retractOffer(AbstractKandel.OrderType.Bid, 2, false);
+    vm.stopPrank();
+
+    assertStatus([uint(0), 1, 0, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
+
     (uint successes,, uint takerGave,,) = snipeSellAs(taker, 1 ether, 1);
     assertTrue(successes == 1, "snipe failed");
-    assertStatus([uint(0), 0, 3, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
+    assertStatus([uint(0), 0, 2, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
     (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Ask, 2);
     assertEq(offer.gives(), takerGave, "wrong gives");
     assertEq(1 ether, kdl.pendingBase(), "incorrect pending");
   }
 
-  function test_snipeBuy_does_not_use_pending() public {
+  function test_populate_at_zero_retracts_offer() public {
     vm.prank(maker);
+    kdl.setDistribution(7, 8, [dynamic([uint(0)]), dynamic([uint(0)])]);
+
+    vm.prank(maker);
+    kdl.populate(7, 8, 5, 0, dynamic([uint(0)]));
+    assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 0, 2, 2, 2, 0]);
+  }
+
+  function test_snipeBuy_does_not_use_pending() public {
+    // [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2,0]);
+    vm.startPrank(maker);
     kdl.setPending(AbstractKandel.OrderType.Bid, 1000 * 10 ** 6);
-    (uint successes,, uint takerGave,,) = snipeBuyAs(taker, 1 ether, 10);
+    kdl.retractOffer(AbstractKandel.OrderType.Ask, 7, false);
+    vm.stopPrank();
+
+    assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 0, 2, 2, 2, 0]);
+
+    // call below posts a (dual) bid at index 7
+    (uint successes,, uint takerGave,,) = snipeBuyAs(taker, 1 ether, 8);
     assertTrue(successes == 1, "snipe failed");
-    assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 2, 2, 3, 0, 0]);
-    (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Bid, 9);
+    assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 1, 0, 2, 2, 0]);
+    (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Bid, 7);
     assertEq(offer.gives(), takerGave, "wrong gives");
     assertEq(1000 * 10 ** 6, kdl.pendingQuote(), "incorrect pending");
   }

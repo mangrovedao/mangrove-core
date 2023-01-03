@@ -24,20 +24,16 @@ contract KdlPopulates is Deployer {
   function run() public {
     kdl = Kandel(envAddressOrName("KANDEL"));
     innerRun({
-      baseDist: vm.envUint("BASEDIST", ","),
-      quoteDist: vm.envUint("QUOTEDIST", ","),
-      startPopulate: vm.envUint("START"),
-      endPopulate: vm.envUint("END"),
+      from: vm.envUint("FROM"),
+      to: vm.envUint("to"),
       lastBidIndex: vm.envUint("LASTBID"),
       gasprice: vm.envUint("GASPRICE")
     });
   }
 
   function innerRun(
-    uint[] memory baseDist,
-    uint[] memory quoteDist,
-    uint startPopulate, // start index for the first element of the distribution
-    uint endPopulate,
+    uint from, // start index for the first element of the distribution
+    uint to,
     uint lastBidIndex,
     uint gasprice
   ) public {
@@ -46,24 +42,18 @@ contract KdlPopulates is Deployer {
     BASE = kdl.BASE();
     QUOTE = kdl.QUOTE();
 
-    require(baseDist.length == quoteDist.length, "Distribution must have same length");
-    require(startPopulate <= endPopulate, "start must be lower than end");
-    require(baseDist.length == kdl.NSLOTS(), "Distribution length must match Kandel's size");
+    require(from < to && to < kdl.NSLOTS(), "interval must be of the form [from,...,to[");
 
     uint gasreq = kdl.offerGasreq();
     uint provAsk = MGVR.getProvision(address(BASE), address(QUOTE), gasreq, gasprice);
     uint provBid = MGVR.getProvision(address(QUOTE), address(BASE), gasreq, gasprice);
 
-    prettyLog("Setting distribution on Kandel...");
-    vm.broadcast();
-    kdl.setDistribution(0, baseDist.length, [baseDist, quoteDist]);
-
     prettyLog("Evaluating pivots");
     uint[] memory pivotIds = evaluatePivots(
       HeapArgs({
-        baseDist: baseDist,
-        quoteDist: quoteDist,
-        lastBidIndex: int(lastBidIndex) - int(startPopulate),
+        baseDist: kdl.baseDist(),
+        quoteDist: kdl.quoteDist(),
+        lastBidIndex: int(lastBidIndex) - int(from),
         provBid: provBid,
         provAsk: provAsk
       })
@@ -71,14 +61,12 @@ contract KdlPopulates is Deployer {
 
     prettyLog("Populating Mangrove...");
     vm.broadcast();
-    kdl.populate{value: (provAsk + provBid) * (endPopulate - startPopulate)}(
-      startPopulate, endPopulate, lastBidIndex, gasprice, pivotIds
-    );
+    kdl.populate{value: (provAsk + provBid) * (to - from)}(from, to, lastBidIndex, gasprice, pivotIds);
   }
 
   struct HeapArgs {
-    uint[] baseDist;
-    uint[] quoteDist;
+    uint96[] baseDist;
+    uint96[] quoteDist;
     int lastBidIndex;
     uint provBid;
     uint provAsk;
@@ -103,7 +91,7 @@ contract KdlPopulates is Deployer {
         pivotId: lastOfferId
       });
       pivotIds[i] = MGV.offers(outbound, inbound, lastOfferId).next();
-      console.log(bidding ? "bid" : "ask", i, pivotIds[i], lastOfferId);
+      //console.log(bidding ? "bid" : "ask", i, pivotIds[i], lastOfferId);
     }
   }
 }

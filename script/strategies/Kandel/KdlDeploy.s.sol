@@ -14,7 +14,7 @@ import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
  * @notice deploys a Kandel instance on a given market
  */
 
-contract KdlDeployer is Deployer, MangroveTest {
+contract KdlDeploy is Deployer, MangroveTest {
   Kandel public current;
 
   function run() public {

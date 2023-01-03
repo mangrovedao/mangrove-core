@@ -11,8 +11,16 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-import {Direct, IMangrove, IERC20, MgvLib, MgvStructs} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
+import {
+  MangroveOffer,
+  Direct,
+  IMangrove,
+  IERC20,
+  MgvLib,
+  MgvStructs
+} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
+import {console} from "forge-std/console.sol";
 
 abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice number of offers managed by this strat
@@ -84,6 +92,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     return outbound_tkn == BASE ? OrderType.Ask : OrderType.Bid;
   }
 
+  function retractOffer(OrderType ba, uint index, bool deprovision) public mgvOrAdmin returns (uint) {
+    (IERC20 outbound_tkn, IERC20 inbound_tkn) = _tokenPairOfOrderType(ba);
+    uint offerId = offerIdOfIndex(ba, index);
+    return retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  }
+
   ///@notice retrieve offer data on Mangrove
   ///@param ba whether the offer is a Bid or an Ask
   ///@param index the distribution index of the offer
@@ -100,6 +114,16 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     );
   }
 
+  function isLive(OrderType ba, uint index) public view returns (bool) {
+    (IERC20 outbound_tkn, IERC20 inbound_tkn) = _tokenPairOfOrderType(ba);
+    uint offerId = offerIdOfIndex(ba, index);
+    return offerId > 0 && MGV.isLive(MGV.offers(address(outbound_tkn), address(inbound_tkn), offerId));
+  }
+
+  function dual(OrderType ba) public pure returns (OrderType) {
+    return OrderType((uint(ba) + 1) % 2);
+  }
+
   ///@notice publishes (by either creating or updating) a bid/ask at a given price index
   ///@param ba whether the offer is a bid or an ask
   ///@param index the index of the distribution
@@ -107,6 +131,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@dev args.wants/gives must match the distribution at index
   function _populateIndex(OrderType ba, uint index, OfferArgs memory args) internal returns (bytes32) {
     uint offerId = offerIdOfIndex(ba, index);
+    if (isLive(dual(ba), index)) {
+      // not populating index as this would cross the OB
+      // storing pending liquidity
+      setPending(ba, args.gives);
+      return "populate/crossed";
+    }
     if (offerId == 0 && args.gives > 0) {
       offerId = _newOffer(args);
       if (offerId == 0) {
@@ -120,7 +150,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     } else {
       if (args.gives == 0) {
         retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
-        return "populateIndex/retracted";
+        return "populate/retracted";
       } else {
         return _updateOffer(args, offerId);
       }
@@ -193,6 +223,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
   }
 
+  ///@notice repost residual offer and dual offer according to transport logic
+  ///@inheritdoc MangroveOffer
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal
     override
@@ -204,5 +236,17 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     // preparing arguments for the dual maker order
     (OrderType dualBa, uint dualIndex, OfferArgs memory args) = _transportLogic(ba, order);
     return _populateIndex(dualBa, dualIndex, args);
+  }
+
+  ///@notice In case an offer failed to deliver, promised liquidity becomes pending, but offer is not reposted.
+  ///@inheritdoc MangroveOffer
+  function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)
+    internal
+    override
+    returns (bytes32)
+  {
+    OrderType ba = _orderTypeOfOutbound(IERC20(order.outbound_tkn));
+    setPending(ba, order.offer.gives());
+    return "";
   }
 }

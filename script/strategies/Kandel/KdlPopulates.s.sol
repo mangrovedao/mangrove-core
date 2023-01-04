@@ -25,7 +25,7 @@ contract KdlPopulates is Deployer {
     kdl = Kandel(envAddressOrName("KANDEL"));
     innerRun({
       from: vm.envUint("FROM"),
-      to: vm.envUint("to"),
+      to: vm.envUint("TO"),
       lastBidIndex: vm.envUint("LASTBID"),
       gasprice: vm.envUint("GASPRICE")
     });
@@ -49,15 +49,17 @@ contract KdlPopulates is Deployer {
     uint provBid = MGVR.getProvision(address(QUOTE), address(BASE), gasreq, gasprice);
 
     prettyLog("Evaluating pivots");
+    vm.startPrank(broadcaster());
     uint[] memory pivotIds = evaluatePivots(
       HeapArgs({
         baseDist: kdl.baseDist(),
         quoteDist: kdl.quoteDist(),
-        lastBidIndex: int(lastBidIndex) - int(from),
+        lastBidIndex: lastBidIndex,
         provBid: provBid,
         provAsk: provAsk
       })
     );
+    vm.stopPrank();
 
     prettyLog("Populating Mangrove...");
     vm.broadcast();
@@ -67,7 +69,7 @@ contract KdlPopulates is Deployer {
   struct HeapArgs {
     uint96[] baseDist;
     uint96[] quoteDist;
-    int lastBidIndex;
+    uint lastBidIndex;
     uint provBid;
     uint provAsk;
   }
@@ -78,20 +80,22 @@ contract KdlPopulates is Deployer {
     uint lastOfferId;
 
     for (uint i = 0; i < pivotIds.length; i++) {
-      bool bidding = args.lastBidIndex >= 0 && i <= uint(args.lastBidIndex);
+      bool bidding = i <= args.lastBidIndex;
       (address outbound, address inbound) = bidding ? (address(QUOTE), address(BASE)) : (address(BASE), address(QUOTE));
-
-      lastOfferId = MGV.newOffer{value: bidding ? args.provBid : args.provAsk}({
-        outbound_tkn: outbound,
-        inbound_tkn: inbound,
-        wants: bidding ? args.baseDist[i] : args.quoteDist[i],
-        gives: bidding ? args.quoteDist[i] : args.baseDist[i],
-        gasreq: gasreq,
-        gasprice: 0,
-        pivotId: lastOfferId
-      });
-      pivotIds[i] = MGV.offers(outbound, inbound, lastOfferId).next();
-      //console.log(bidding ? "bid" : "ask", i, pivotIds[i], lastOfferId);
+      (uint wants, uint gives) = bidding ? (args.baseDist[i], args.quoteDist[i]) : (args.quoteDist[i], args.baseDist[i]);
+      if (gives > 0) {
+        lastOfferId = MGV.newOffer{value: bidding ? args.provBid : args.provAsk}({
+          outbound_tkn: outbound,
+          inbound_tkn: inbound,
+          wants: wants,
+          gives: gives,
+          gasreq: gasreq,
+          gasprice: 0,
+          pivotId: lastOfferId
+        });
+        pivotIds[i] = MGV.offers(outbound, inbound, lastOfferId).next();
+      }
+      console.log(bidding ? "bid" : "ask", i, pivotIds[i], lastOfferId);
     }
   }
 }

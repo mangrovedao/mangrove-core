@@ -49,13 +49,13 @@ contract KdlGeometricDist is Deployer {
     require(uint96(quoteFrom) == quoteFrom, "QUOTE0 is too high");
 
     prettyLog("Generating distributions...");
-    uint quoteDecimals = kdl.QUOTE().decimals();
-
+    uint baseDecimals = kdl.BASE().decimals();
     fillGeometricDist(baseFrom, /*0.1 ether*/ baseRatio, /*110*/ from, to, baseDist);
     fillGeometricDist(quoteFrom, /*cash(usdc, 800)*/ quoteRatio, from, to, quoteDist);
     //turning price distribution into quote volumes
     for (uint i = from; i < to; i++) {
-      quoteDist[i] = (quoteDist[i] * baseDist[i]) / (10 ** quoteDecimals);
+      quoteDist[i] = (quoteDist[i] * baseDist[i]) / (10 ** baseDecimals);
+      console.log(toUnit(quoteDist[i], 6), toUnit(baseDist[i], 18));
     }
 
     prettyLog("Setting distribution on Kandel...");

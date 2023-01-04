@@ -169,6 +169,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
         return REPOST_SUCCESS;
       }
     } else {
+      if (offerId == 0) {
+        //offerId && gives are 0
+        return "";
+      }
       if (args.gives == 0) {
         retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
         return "populate/retracted";

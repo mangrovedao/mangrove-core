@@ -14,7 +14,7 @@ import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
  * @notice deploys a Kandel instance on a given market
  */
 
-contract KdlDeploy is Deployer, MangroveTest {
+contract KdlDeployer is Deployer {
   Kandel public current;
 
   function run() public {
@@ -44,20 +44,13 @@ contract KdlDeploy is Deployer, MangroveTest {
     string memory kandelName = getName(IERC20(base), IERC20(quote));
     fork.set(kandelName, address(current));
     outputDeployment();
-    smokeTest();
   }
 
   function getName(IERC20 base, IERC20 quote) public view returns (string memory) {
-    try vm.envString("NAME") returns (string memory mangoName) {
-      return mangoName;
+    try vm.envString("NAME") returns (string memory name) {
+      return name;
     } catch {
       return string.concat("Kandel_", base.symbol(), "_", quote.symbol());
     }
-  }
-
-  function smokeTest() internal {
-    IMangrove mgv = IMangrove(fork.get("Mangrove"));
-    assertNot0x(address(current));
-    assertEq(address(current.MGV()), address(mgv));
   }
 }

@@ -14,7 +14,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
  * @notice Populate Kandel's distribution on Mangrove
  */
 
-contract KdlAnyDist is Deployer {
+contract KdlSetDist is Deployer {
   function run() public {
     innerRun({
       kdl: Kandel(envAddressOrName("KANDEL")),
@@ -31,7 +31,7 @@ contract KdlAnyDist is Deployer {
       from < to && to < kdl.NSLOTS() && baseDist.length == (to - from), "interval must be of the form [from,...,to["
     );
     prettyLog("Setting distribution on Kandel...");
-    vm.broadcast();
+    broadcast();
     kdl.setDistribution(from, to, [baseDist, quoteDist]);
   }
 }

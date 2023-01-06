@@ -44,18 +44,30 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     QUOTE = quote;
     _offerIdOfIndex[uint(OrderType.Bid)] = new uint[](NSLOTS);
     _offerIdOfIndex[uint(OrderType.Ask)] = new uint[](NSLOTS);
+    // approves Mangrove to pull base and quote token from this contract
+    __activate__(base);
+    __activate__(quote);
   }
 
   function getPending(OrderType ba) public view returns (uint pending) {
     pending = ba == OrderType.Ask ? pendingBase : pendingQuote;
   }
 
-  function setPending(OrderType ba, uint amount) public mgvOrAdmin {
+  function pushPending(OrderType ba, uint amount) public mgvOrAdmin {
     require(uint128(amount) == amount, "Kandel/pendingOverflow");
     if (ba == OrderType.Ask) {
-      pendingBase = uint128(amount);
+      pendingBase += uint128(amount);
     } else {
-      pendingQuote = uint128(amount);
+      pendingQuote += uint128(amount);
+    }
+  }
+
+  function popPending(OrderType ba, uint amount) public mgvOrAdmin {
+    require(uint128(amount) == amount, "Kandel/pendingOverflow");
+    if (ba == OrderType.Ask) {
+      pendingBase -= uint128(amount);
+    } else {
+      pendingQuote -= uint128(amount);
     }
   }
 
@@ -155,7 +167,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     if (isLive(dual(ba), index)) {
       // not populating index as this would cross the OB
       // storing pending liquidity
-      setPending(ba, args.gives);
+      pushPending(ba, args.gives);
       return "populate/crossed";
     }
     if (offerId == 0 && args.gives > 0) {
@@ -257,7 +269,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   {
     OrderType ba = _orderTypeOfOutbound(IERC20(order.outbound_tkn));
     // adds any unpublished liquidity to pending[Base/Quote]
-    setPending(ba, _handleResidual(order, makerData));
+    pushPending(ba, _handleResidual(order, makerData));
     // preparing arguments for the dual maker order
     (OrderType dualBa, uint dualIndex, OfferArgs memory args) = _transportLogic(ba, order);
     return _populateIndex(dualBa, dualIndex, args);
@@ -271,7 +283,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     returns (bytes32)
   {
     OrderType ba = _orderTypeOfOutbound(IERC20(order.outbound_tkn));
-    setPending(ba, order.offer.gives());
+    pushPending(ba, order.offer.gives());
     return "";
   }
 }

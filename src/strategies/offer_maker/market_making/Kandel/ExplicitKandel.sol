@@ -47,12 +47,12 @@ contract ExplicitKandel is CoreKandel {
   }
 
   ///@inheritdoc AbstractKandel
-  function baseOfIndex(uint index) public view override returns (uint96) {
+  function baseOfIndex(uint index) public view override mgvOrAdmin returns (uint96) {
     return _baseOfIndex[index];
   }
 
   ///@inheritdoc AbstractKandel
-  function quoteOfIndex(uint index) public view override returns (uint96) {
+  function quoteOfIndex(uint index) public view override mgvOrAdmin returns (uint96) {
     return _quoteOfIndex[index];
   }
 
@@ -94,11 +94,9 @@ contract ExplicitKandel is CoreKandel {
 
     // can repost (at max) what the current taker order gave
     uint maxDualGives = dualOffer.gives() + order.gives;
-
     // what the distribution says the dual order should ask/bid
     uint shouldGive = _givesOfIndex(dualBa, dualIndex);
     uint shouldWant = _wantsOfIndex(dualBa, dualIndex);
-
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);
 
@@ -109,16 +107,16 @@ contract ExplicitKandel is CoreKandel {
     uint pending = _isBest(order) ? getPending(dualBa) : 0;
 
     if (shouldGive >= maxDualGives + pending) {
-      if (dualBa == OrderType.Ask) {
-        pendingBase -= uint128(pending);
-      } else {
-        pendingQuote -= uint128(pending);
-      }
       args.gives = maxDualGives + pending;
+      popPending(dualBa, pending);
     } else {
-      // maxDualGives + pending > shouldGive
       args.gives = shouldGive;
-      setPending(dualBa, maxDualGives + pending - shouldGive);
+      uint leftover = (maxDualGives + pending - shouldGive);
+      if (leftover > pending) {
+        pushPending(dualBa, leftover - pending);
+      } else {
+        popPending(dualBa, pending - leftover);
+      }
     }
 
     // note at this stage, maker's profit is `maxDualGives - args.gives`
@@ -127,27 +125,26 @@ contract ExplicitKandel is CoreKandel {
     args.wants = args.gives == shouldGive ? shouldWant : (maxDualGives * shouldWant) / shouldGive;
     args.fund = 0;
     args.noRevert = true;
-    args.gasreq = dualOfferDetails.gasreq();
-    args.gasprice = dualOfferDetails.gasprice();
+    args.gasreq = dualOfferDetails.gasreq() == 0 ? offerGasreq() : dualOfferDetails.gasreq();
+    args.gasprice = dualOfferDetails.gasprice() == 0 ? 0 : dualOfferDetails.gasprice();
     args.pivotId = dualOffer.gives() > 0 ? offerIdOfIndex(dualBa, dualIndex) : dualOffer.next();
   }
 
-  function depositFunds(OrderType ba, uint amount) external override {
-    require(push({token: ba == OrderType.Ask ? BASE : QUOTE, amount: amount}) == amount, "Kandel/depositFailed");
-    setPending(ba, getPending(ba) + amount);
+  function depositFunds(OrderType ba, uint amount) external {
+    IERC20 token = ba == OrderType.Ask ? BASE : QUOTE;
+    require(
+      TransferLib.transferTokenFrom(token, msg.sender, address(this), amount)
+        && push({token: token, amount: amount}) == amount,
+      "Kandel/depositFailed"
+    );
   }
 
-  function withdrawFunds(OrderType ba, uint amount) external override onlyAdmin {
-    // will throw in case of underflow
-    setPending(ba, getPending(ba) - amount);
+  function withdrawFunds(OrderType ba, uint amount, address recipient) external onlyAdmin {
+    IERC20 token = ba == OrderType.Ask ? BASE : QUOTE;
     require(
-      TransferLib.transferTokenFrom({
-        token: ba == OrderType.Ask ? BASE : QUOTE,
-        spender: reserve(msg.sender),
-        recipient: msg.sender,
-        amount: amount
-      }),
-      "Kandel/withdrawFailed"
+      pull({token: token, amount: amount, strict: true}) == amount
+        && TransferLib.transferToken(token, recipient, amount),
+      "Kandel/NotEnoughFunds"
     );
   }
 }

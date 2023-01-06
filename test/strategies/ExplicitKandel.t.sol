@@ -18,7 +18,7 @@ contract ExplicitKandelTest is MangroveTest {
   uint[] baseDist = new uint[](12);
   uint[] quoteDist = new uint[](12);
 
-  uint constant GASREQ = 180_000;
+  uint constant GASREQ = 160_000;
 
   event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
   ///@notice signals that the price has moved below Kandel's current price range
@@ -187,7 +187,7 @@ contract ExplicitKandelTest is MangroveTest {
     printOB();
     //assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
     vm.startPrank(maker);
-    kdl.setPending(AbstractKandel.OrderType.Ask, 0.5 ether);
+    kdl.pushPending(AbstractKandel.OrderType.Ask, 0.5 ether);
     kdl.setDistribution(6, 7, [dynamic([uint(3 ether)]), dynamic([uint(cash(usdc, 1000))])]);
     vm.stopPrank();
 
@@ -207,7 +207,7 @@ contract ExplicitKandelTest is MangroveTest {
   function test_pendingQuote_is_used_for_bids() public {
     //assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
     vm.startPrank(maker);
-    kdl.setPending(AbstractKandel.OrderType.Bid, 10 ** 6);
+    kdl.pushPending(AbstractKandel.OrderType.Bid, 10 ** 6);
     kdl.setDistribution(5, 6, [dynamic([uint(2 ether)]), dynamic([uint(cash(usdc, 10000))])]);
     vm.stopPrank();
 
@@ -254,9 +254,9 @@ contract ExplicitKandelTest is MangroveTest {
   }
 
   function test_change_and_populate_dist_index() public {
+    vm.startPrank(maker);
     (uint old_base, uint old_quote) = (kdl.baseOfIndex(4), kdl.quoteOfIndex(4));
     uint[][2] memory dist = multiplyVolumeAtIndex(4, 200);
-    vm.startPrank(maker);
     kdl.setDistribution(4, 5, dist);
     kdl.populate(4, 5, 4, 0, dynamic([kdl.offerIdOfIndex(AbstractKandel.OrderType.Bid, 4)]));
     vm.stopPrank();
@@ -270,12 +270,12 @@ contract ExplicitKandelTest is MangroveTest {
     // MM state:
     // [0, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2,0]);
     // pendingBase > 0
+    vm.startPrank(maker);
     (uint old_base, uint old_quote) = (kdl.baseOfIndex(5), kdl.quoteOfIndex(5));
     uint[][2] memory dist = multiplyVolumeAtIndex(5, 200);
-    vm.startPrank(maker);
     kdl.setDistribution(5, 6, dist);
     // putting 1000$ in pendingQuote so that Kandel auto updates volume
-    kdl.setPending(AbstractKandel.OrderType.Bid, 1000 * 10 ** 6);
+    kdl.pushPending(AbstractKandel.OrderType.Bid, 1000 * 10 ** 6);
     vm.stopPrank();
     buyFromBestAs(taker, 1 ether);
     (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Bid, 5);
@@ -285,7 +285,7 @@ contract ExplicitKandelTest is MangroveTest {
 
   function test_snipeSell_does_not_use_pending() public {
     vm.startPrank(maker);
-    kdl.setPending(AbstractKandel.OrderType.Ask, 1 ether);
+    kdl.pushPending(AbstractKandel.OrderType.Ask, 1 ether);
     kdl.retractOffer(AbstractKandel.OrderType.Bid, 2, false);
     vm.stopPrank();
 
@@ -311,12 +311,10 @@ contract ExplicitKandelTest is MangroveTest {
   function test_snipeBuy_does_not_use_pending() public {
     // [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2,0]);
     vm.startPrank(maker);
-    kdl.setPending(AbstractKandel.OrderType.Bid, 1000 * 10 ** 6);
+    kdl.pushPending(AbstractKandel.OrderType.Bid, 1000 * 10 ** 6);
     kdl.retractOffer(AbstractKandel.OrderType.Ask, 7, false);
     vm.stopPrank();
-
     assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 0, 2, 2, 2, 0]);
-
     // call below posts a (dual) bid at index 7
     (uint successes,, uint takerGave,,) = snipeBuyAs(taker, 1 ether, 8);
     assertTrue(successes == 1, "snipe failed");
@@ -324,5 +322,14 @@ contract ExplicitKandelTest is MangroveTest {
     (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Bid, 7);
     assertEq(offer.gives(), takerGave, "wrong gives");
     assertEq(1000 * 10 ** 6, kdl.pendingQuote(), "incorrect pending");
+  }
+
+  function test_take_new_offer() public {
+    sellToBestAs(taker, 1 ether);
+    sellToBestAs(taker, 1 ether);
+    // MM state:
+    assertStatus([uint(0), 1, 1, 1, 0, 2, 2, 2, 2, 2, 2, 0]);
+    buyFromBestAs(taker, 1 ether);
+    assertStatus([uint(0), 1, 1, 1, 1, 0, 2, 2, 2, 2, 2, 0]);
   }
 }

@@ -31,7 +31,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   IERC20 public immutable QUOTE;
   ///@notice `pendingBase` is the amount of free (not promised) base tokens in reserve
   uint128 public pendingBase;
-  ///@notice `pendingQuote` is the amount of free quote tokens in reserve
+  ///@notice `pendingQuote` is the amount of free (not promised) quote tokens in reserve
   uint128 public pendingQuote;
 
   ///@notice maps index to offer id on Mangrove

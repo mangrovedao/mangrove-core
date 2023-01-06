@@ -64,7 +64,7 @@ contract ExplicitKandel is CoreKandel {
     return _quoteOfIndex;
   }
 
-  ///@notice checks whether offer whose logic is being executed is currently the best on Mangove
+  ///@notice checks whether offer whose logic is being executed is currently the best on Mangrove (may not be true during a snipe)
   ///@param order the taker order that is being executed
   ///@dev `isBest` => `order.offer` is the best bid/ask of this strat (but the converse is not true in general).
   function _isBest(MgvLib.SingleOrder calldata order) internal view returns (bool) {

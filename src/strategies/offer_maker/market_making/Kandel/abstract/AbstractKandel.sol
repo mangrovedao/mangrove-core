@@ -32,7 +32,7 @@ abstract contract AbstractKandel {
 
   ///@notice quote distribution at given index
   ///@param index of the distribution of quote tokens
-  ///@return amount of quote tokens that Kandel should give/want at `index`
+  ///@return amount of quote tokens that Kandel should give(bid)/want(ask) at `index`
   function quoteOfIndex(uint index) public view virtual returns (uint96 amount);
 
   ///@notice transport logic followed by Kandel

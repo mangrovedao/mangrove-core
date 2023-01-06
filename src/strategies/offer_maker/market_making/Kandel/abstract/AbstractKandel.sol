@@ -27,7 +27,7 @@ abstract contract AbstractKandel {
 
   ///@notice base distribution at given index
   ///@param index of the distribution of base tokens
-  ///@return amount of base tokens that Kandel should give/want at `index`
+  ///@return amount of base tokens that Kandel should give(ask)/want(bid) at `index`
   function baseOfIndex(uint index) public view virtual returns (uint96 amount);
 
   ///@notice quote distribution at given index

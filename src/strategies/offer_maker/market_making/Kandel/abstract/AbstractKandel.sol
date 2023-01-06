@@ -40,7 +40,7 @@ abstract contract AbstractKandel {
   ///@param order a recap of the taker order (order.offer is the executed offer)
   ///@return dualBa the type of order implementing the transport
   ///@return dualIndex the distribution index where liquidity is transported
-  ///@return args the argument for `populateIndex` specifying volume and price
+  ///@return args the argument for `populateIndex` specifying gives and wants
   function _transportLogic(OrderType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual

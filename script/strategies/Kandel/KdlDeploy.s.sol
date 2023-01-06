@@ -27,9 +27,9 @@ contract KdlDeploy is Deployer, MangroveTest {
   }
 
   /**
-   * @param base Address of the base currency of the market Mango will act upon
-   * @param quote Addres of the quote of Mango's market
-   * @param nslots the number of price slots of the Mango strat
+   * @param base Address of the base token of the market Kandel will act upon
+   * @param quote Address of the quote token of the market Kandel will act upon
+   * @param nslots the number of price slots of the Kandel strat
    */
   function innerRun(address base, address quote, uint nslots, uint gasreq) public {
     IMangrove mgv = IMangrove(fork.get("Mangrove"));

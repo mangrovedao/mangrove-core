@@ -46,7 +46,7 @@ contract KdlPopulate is Deployer {
 
     prettyLog("Evaluating pivots...");
     vm.startPrank(broadcaster());
-    HeapReturn memory ret = evaluatePivots(
+    HeapVars memory ret = evaluatePivots(
       HeapArgs({
         baseDist: kdl.baseDist(),
         quoteDist: kdl.quoteDist(),
@@ -96,40 +96,45 @@ contract KdlPopulate is Deployer {
     address quote;
   }
 
-  struct HeapReturn {
+  struct HeapVars {
     uint baseProvision;
     uint quoteProvision;
     uint[] pivotIds;
+    bool bidding;
+    uint snapshotId;
+    uint lastOfferId;
   }
 
-  function evaluatePivots(HeapArgs memory args) public returns (HeapReturn memory vars) {
+  function evaluatePivots(HeapArgs memory args) public returns (HeapVars memory vars) {
     vars.pivotIds = new uint[](args.baseDist.length);
 
     uint gasreq = args.kdl.offerGasreq();
-    uint lastOfferId;
 
+    // will revert all the insertion to avoid changing the state of mangrove on the local node (might mess up tests)
+    vars.snapshotId = vm.snapshot();
     for (uint i = 0; i < vars.pivotIds.length; i++) {
-      bool bidding = i <= args.lastBidIndex;
-      (address outbound, address inbound) = bidding ? (args.quote, args.base) : (args.base, args.quote);
-      (uint wants, uint gives) = bidding ? (args.baseDist[i], args.quoteDist[i]) : (args.quoteDist[i], args.baseDist[i]);
+      vars.bidding = i <= args.lastBidIndex;
+      (address outbound, address inbound) = vars.bidding ? (args.quote, args.base) : (args.base, args.quote);
+      (uint wants, uint gives) =
+        vars.bidding ? (args.baseDist[i], args.quoteDist[i]) : (args.quoteDist[i], args.baseDist[i]);
       if (gives > 0) {
-        lastOfferId = args.mgv.newOffer{value: bidding ? args.provBid : args.provAsk}({
+        vars.lastOfferId = args.mgv.newOffer{value: vars.bidding ? args.provBid : args.provAsk}({
           outbound_tkn: outbound,
           inbound_tkn: inbound,
           wants: wants,
           gives: gives,
           gasreq: gasreq,
           gasprice: 0,
-          pivotId: lastOfferId
+          pivotId: vars.lastOfferId
         });
-        vars.pivotIds[i] = args.mgv.offers(outbound, inbound, lastOfferId).next();
-        if (bidding) {
+        vars.pivotIds[i] = args.mgv.offers(outbound, inbound, vars.lastOfferId).next();
+        if (vars.bidding) {
           vars.quoteProvision += gives;
         } else {
           vars.baseProvision += gives;
         }
       }
-      //console.log(bidding ? "bid" : "ask", i, vars.pivotIds[i], lastOfferId);
     }
+    require(vm.revertTo(vars.snapshotId), "snapshot restore failed");
   }
 }

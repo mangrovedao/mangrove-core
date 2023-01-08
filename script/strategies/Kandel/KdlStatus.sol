@@ -41,7 +41,8 @@ contract KdlStatus is Deployer {
         ask.gives() > 0 ? (baseDist[i] == ask.gives() ? "\u001b[31ma\u001b[0m" : "\u001b[33ma\u001b[0m") : "\u2205";
       string memory s_bid =
         bid.gives() > 0 ? (quoteDist[i] == bid.gives() ? "\u001b[32mb\u001b[0m" : "\u001b[33mb\u001b[0m") : "\u2205";
-      console.log("%s%s @ %s", s_ask, s_bid, toUnit(p, quoteDecimals));
+      string memory s = ask.gives() > 0 ? s_ask : s_bid;
+      console.log("[%i] %s @ %s", i, s, toUnit(p, quoteDecimals));
     }
     console.log("{", toUnit(kdl.pendingBase(), baseDecimals), toUnit(kdl.pendingQuote(), quoteDecimals), "}");
   }

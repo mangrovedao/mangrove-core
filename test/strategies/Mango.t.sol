@@ -116,13 +116,12 @@ contract MangoTest is MangroveTest {
 
   function part_market_order() public prank(taker) {
     (uint got, uint gave, uint bounty,) = mgv.marketOrder($(weth), $(usdc), cash(weth, 5, 1), cash(usdc, 3000), true);
-
     Book memory book = getOffers(false);
     assertEq(got, reader.minusFee($(weth), $(usdc), 0.5 ether), "incorrect received amount");
     assertEq(bounty, 0, "taker should not receive bounty");
+
     checkOB($(usdc), $(weth), book.bids, dynamic([int(1), 2, 3, 4, 5, 6, 0, 0, 0, 0]));
     checkOB($(weth), $(usdc), book.asks, dynamic([int(0), 0, 0, 0, 0, -1, 2, 3, 4, 5]));
-
     (got, gave, bounty,) = mgv.marketOrder($(usdc), $(weth), cash(usdc, 3500), cash(weth, 15, 1), true);
 
     assertEq(got, reader.minusFee($(usdc), $(weth), cash(usdc, 3500)), "incorrect received amount");

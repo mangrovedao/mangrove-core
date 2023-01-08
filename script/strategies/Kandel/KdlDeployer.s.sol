@@ -12,6 +12,7 @@ import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
 
 /**
  * @notice deploys a Kandel instance on a given market
+ * @dev since the max number of price slot Kandel can use is an immutable, one should deploy Kandel on a large price range.
  */
 
 contract KdlDeployer is Deployer {
@@ -27,9 +28,10 @@ contract KdlDeployer is Deployer {
   }
 
   /**
-   * @param base Address of the base token of the market Kandel will act upon
-   * @param quote Address of the quote token of the market Kandel will act upon
+   * @param base Address of the base token of the market Kandel will act on
+   * @param quote Address of the quote token of the market Kandel will act on
    * @param nslots the number of price slots of the Kandel strat
+   * @param gasreq the gas required for the offer logic
    */
   function innerRun(address base, address quote, uint nslots, uint gasreq) public {
     IMangrove mgv = IMangrove(fork.get("Mangrove"));

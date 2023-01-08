@@ -12,7 +12,7 @@ import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /**
- * @notice Populate Kandel's distribution on Mangrove
+ * @notice Populates Kandel's distribution on Mangrove
  */
 
 contract KdlPopulate is Deployer {
@@ -26,13 +26,12 @@ contract KdlPopulate is Deployer {
     });
   }
 
-  function innerRun(
-    Kandel kdl,
-    uint from, // start index for the first element of the distribution
-    uint to,
-    uint lastBidIndex,
-    uint gasprice
-  ) public {
+  ///@notice This function posts offer on Mangrove according to Kandel's price distribution. It also transfers necessary funds to cover offer gives.
+  ///@param kdl the Kandel instance
+  ///@param from the start price slot index
+  ///@param to the end price slot index
+  ///@param lastBidIndex all price slots after `from` and before this index (included) will be populated as Bids. Price slots after this index and before `to` (excluded) will be populated as Asks.
+  function innerRun(Kandel kdl, uint from, uint to, uint lastBidIndex, uint gasprice) public {
     IMangrove MGV = kdl.MGV();
     MgvReader MGVR = MgvReader(fork.get("MgvReader"));
     IERC20 BASE = kdl.BASE();
@@ -84,6 +83,16 @@ contract KdlPopulate is Deployer {
     console.log("Interval:", from, lastBidIndex, to);
   }
 
+  ///@notice Arguments for the `evaluatePivots` function
+  ///@param baseDist the amount of base tokens that Kandel must want/give at each index
+  ///@param quoteDist the amount of quote tokens that Kandel must want/give at each index
+  ///@param lastBidIndex indexes before this (included) must bid when populated. Indexes after this must ask.
+  ///@param provBid the amount of provision (in native tokens) that are required to post a fresh bid
+  ///@param provAsk the amount of provision (in native tokens) that are required to post a fresh ask
+  ///@param kdl the Kandel instance
+  ///@param mgv is kdl.MGV()
+  ///@param base is kdl.BASE()
+  ///@param quote is kdl.QUOTE()
   struct HeapArgs {
     uint96[] baseDist;
     uint96[] quoteDist;
@@ -103,12 +112,15 @@ contract KdlPopulate is Deployer {
     bool bidding;
     uint snapshotId;
     uint lastOfferId;
+    uint gasreq;
   }
 
+  ///@notice evaluates Pivot ids for offers that need to be published on Mangrove
+  ///@dev we use foundry cheats to revert all changes to the local node in order to prevent inconsistent tests.
   function evaluatePivots(HeapArgs memory args) public returns (HeapVars memory vars) {
     vars.pivotIds = new uint[](args.baseDist.length);
 
-    uint gasreq = args.kdl.offerGasreq();
+    vars.gasreq = args.kdl.offerGasreq();
 
     // will revert all the insertion to avoid changing the state of mangrove on the local node (might mess up tests)
     vars.snapshotId = vm.snapshot();
@@ -123,7 +135,7 @@ contract KdlPopulate is Deployer {
           inbound_tkn: inbound,
           wants: wants,
           gives: gives,
-          gasreq: gasreq,
+          gasreq: vars.gasreq,
           gasprice: 0,
           pivotId: vars.lastOfferId
         });

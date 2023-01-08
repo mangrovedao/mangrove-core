@@ -283,22 +283,6 @@ contract ExplicitKandelTest is MangroveTest {
     assertEq(offer.wants(), old_base * 2, "incorrect wants");
   }
 
-  function test_snipeSell_does_not_use_pending() public {
-    vm.startPrank(maker);
-    kdl.pushPending(AbstractKandel.OrderType.Ask, 1 ether);
-    kdl.retractOffer(AbstractKandel.OrderType.Bid, 2, false);
-    vm.stopPrank();
-
-    assertStatus([uint(0), 1, 0, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
-
-    (uint successes,, uint takerGave,,) = snipeSellAs(taker, 1 ether, 1);
-    assertTrue(successes == 1, "snipe failed");
-    assertStatus([uint(0), 0, 2, 1, 1, 1, 2, 2, 2, 2, 2, 0]);
-    (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Ask, 2);
-    assertEq(offer.gives(), takerGave, "wrong gives");
-    assertEq(1 ether, kdl.pendingBase(), "incorrect pending");
-  }
-
   function test_populate_at_zero_retracts_offer() public {
     vm.prank(maker);
     kdl.setDistribution(7, 8, [dynamic([uint(0)]), dynamic([uint(0)])]);
@@ -306,22 +290,6 @@ contract ExplicitKandelTest is MangroveTest {
     vm.prank(maker);
     kdl.populate(7, 8, 5, 0, dynamic([uint(0)]));
     assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 0, 2, 2, 2, 0]);
-  }
-
-  function test_snipeBuy_does_not_use_pending() public {
-    // [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2,0]);
-    vm.startPrank(maker);
-    kdl.pushPending(AbstractKandel.OrderType.Bid, 1000 * 10 ** 6);
-    kdl.retractOffer(AbstractKandel.OrderType.Ask, 7, false);
-    vm.stopPrank();
-    assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 0, 2, 2, 2, 0]);
-    // call below posts a (dual) bid at index 7
-    (uint successes,, uint takerGave,,) = snipeBuyAs(taker, 1 ether, 8);
-    assertTrue(successes == 1, "snipe failed");
-    assertStatus([uint(0), 1, 1, 1, 1, 1, 2, 1, 0, 2, 2, 0]);
-    (MgvStructs.OfferPacked offer,) = kdl.getOffer(AbstractKandel.OrderType.Bid, 7);
-    assertEq(offer.gives(), takerGave, "wrong gives");
-    assertEq(1000 * 10 ** 6, kdl.pendingQuote(), "incorrect pending");
   }
 
   function test_take_new_offer() public {

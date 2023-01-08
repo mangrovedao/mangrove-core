@@ -41,7 +41,7 @@ abstract contract AbstractKandel {
   ///@return dualBa the type of order implementing the transport
   ///@return dualIndex the distribution index where liquidity is transported
   ///@return args the argument for `populateIndex` specifying gives and wants
-  function _transportLogic(OrderType ba, MgvLib.SingleOrder calldata order)
+  function _transportLogic(OrderType ba, MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal
     virtual
     returns (OrderType dualBa, uint dualIndex, Direct.OfferArgs memory args);

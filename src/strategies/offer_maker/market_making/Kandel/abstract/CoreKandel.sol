@@ -20,7 +20,6 @@ import {
   MgvStructs
 } from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
-import {console} from "forge-std/console.sol";
 
 abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice number of offers managed by this strat
@@ -34,7 +33,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice `pendingQuote` is the amount of free (not promised) quote tokens in reserve
   uint128 public pendingQuote;
 
-  ///@notice maps index to offer id on Mangrove
+  ///@notice maps index to offer id on Mangrove. We use an array to be able to iterate over indexes
   uint[][2] public _offerIdOfIndex;
   mapping(OrderType => mapping(uint => uint)) public _indexOfOfferId;
 
@@ -49,10 +48,16 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     __activate__(quote);
   }
 
+  ///@notice liquidity available for increasing volume distribution at the next populated index
+  ///@param ba whether populated index is bidding or asking
+  ///@return pending liquidity in quote (for bids) or base (for asks)
   function getPending(OrderType ba) public view returns (uint pending) {
     pending = ba == OrderType.Ask ? pendingBase : pendingQuote;
   }
 
+  ///@notice increments pending liquidity
+  ///@param ba whether liquidity is used for bids or asks
+  ///@param amount of liquidity in quote (for bids) or base (for asks)
   function pushPending(OrderType ba, uint amount) public mgvOrAdmin {
     require(uint128(amount) == amount, "Kandel/pendingOverflow");
     if (ba == OrderType.Ask) {
@@ -62,6 +67,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
   }
 
+  ///@notice decrements pending liquidity
+  ///@param ba whether liquidity is used for bids or asks
+  ///@param amount of liquidity in quote (for bids) or base (for asks)
   function popPending(OrderType ba, uint amount) public mgvOrAdmin {
     require(uint128(amount) == amount, "Kandel/pendingOverflow");
     if (ba == OrderType.Ask) {
@@ -112,7 +120,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   function retractOffer(OrderType ba, uint index, bool deprovision) public mgvOrAdmin returns (uint) {
     (IERC20 outbound_tkn, IERC20 inbound_tkn) = _tokenPairOfOrderType(ba);
     uint offerId = offerIdOfIndex(ba, index);
-    return retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+    return offerId == 0 ? 0 : retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
   ///@notice retrieve offer data on Mangrove
@@ -148,13 +156,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     return OrderType((uint(ba) + 1) % 2);
   }
 
-  ///@notice returns next index if order is an ask, and previous price index if order is a bid
-  ///@param ba whether the order is an ask or a bid
-  ///@param index the price index of the order
-  ///@return dualIndex the index of the dual order
-  ///@dev `ba == Ask => index > 0` and `ba == Bid => index < NSLOT-1`
-  function dual(OrderType ba, uint index) public pure returns (uint dualIndex) {
-    return ba == OrderType.Ask ? index - 1 : index + 1;
+  ///@notice returns a better (for Kandel) price index than the one given in argument
+  ///@param ba whether Kandel is bidding or asking
+  ///@param index the price index one is willing to improve
+  ///@param step the number of price steps improvements
+  function better(OrderType ba, uint index, uint step) public pure returns (uint) {
+    return ba == OrderType.Ask ? index + step : index - step;
   }
 
   ///@notice publishes (by either creating or updating) a bid/ask at a given price index
@@ -228,15 +235,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param to the end index
   ///@dev this simply provisions this contract's balance on Mangrove.
   ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs
-  function retractOffers(uint from, uint to) external onlyAdmin {
-    uint collected;
+  function retractOffers(uint from, uint to) external onlyAdmin returns (uint collected) {
     for (uint index = from; index < to; index++) {
-      (IERC20 outbound_tkn, IERC20 inbound_tkn) = _tokenPairOfOrderType(OrderType.Ask);
-      collected +=
-        MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerIdOfIndex(OrderType.Ask, index), true);
-      (outbound_tkn, inbound_tkn) = _tokenPairOfOrderType(OrderType.Bid);
-      collected +=
-        MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerIdOfIndex(OrderType.Bid, index), true);
+      collected += retractOffer(OrderType.Ask, index, true);
+      collected += retractOffer(OrderType.Bid, index, true);
     }
   }
 
@@ -246,13 +248,13 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@return notPublished the amount of liquidity that failed to be published on mangrove
   function _handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData) internal returns (uint notPublished) {
     bytes32 repostStatus = super.__posthookSuccess__(order, makerData);
-    // Offer failed to repost for bad reason, logging the incident
     if (repostStatus == "posthook/filled" || repostStatus == REPOST_SUCCESS) {
       return 0;
     }
     if (repostStatus == "mgv/writeOffer/density/tooLow") {
       return __residualGives__(order);
     } else {
+      // Offer failed to repost for bad reason, logging the incident
       emit LogIncident(
         MGV, IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId, makerData, repostStatus
         );
@@ -271,7 +273,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     // adds any unpublished liquidity to pending[Base/Quote]
     pushPending(ba, _handleResidual(order, makerData));
     // preparing arguments for the dual maker order
-    (OrderType dualBa, uint dualIndex, OfferArgs memory args) = _transportLogic(ba, order);
+    (OrderType dualBa, uint dualIndex, OfferArgs memory args) = _transportLogic(ba, order, makerData);
     return _populateIndex(dualBa, dualIndex, args);
   }
 

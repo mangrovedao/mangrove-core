@@ -13,7 +13,6 @@ pragma solidity ^0.8.10;
 
 import {CoreKandel, IMangrove, IERC20, AbstractKandel, MgvLib, MgvStructs} from "./abstract/CoreKandel.sol";
 import "mgv_src/strategies/utils/TransferLib.sol";
-import {console} from "forge-std/console.sol";
 
 contract ExplicitKandel is CoreKandel {
   ///@notice quote distribution: `baseOfIndex[i]` is the amount of base tokens Kandel must give or want at index i
@@ -64,16 +63,14 @@ contract ExplicitKandel is CoreKandel {
     return _quoteOfIndex;
   }
 
-  ///@notice checks whether offer whose logic is being executed is currently the best on Mangrove (may not be true during a snipe)
-  ///@param order the taker order that is being executed
-  ///@dev `isBest` => `order.offer` is the best bid/ask of this strat (but the converse is not true in general).
-  function _isBest(MgvLib.SingleOrder calldata order) internal view returns (bool) {
-    uint lookup = MGV.offers(order.outbound_tkn, order.inbound_tkn, order.offerId).prev();
-    return lookup == 0 || MGV.offers(order.outbound_tkn, order.inbound_tkn, lookup).gives() == 0;
+  function __put__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
+    OrderType ba = _orderTypeOfOutbound(IERC20(order.outbound_tkn));
+    pushPending(dual(ba), amount);
+    return super.__put__(amount, order);
   }
 
   ///@inheritdoc AbstractKandel
-  function _transportLogic(OrderType ba, MgvLib.SingleOrder calldata order)
+  function _transportLogic(OrderType ba, MgvLib.SingleOrder calldata order, bytes32)
     internal
     virtual
     override
@@ -87,47 +84,50 @@ contract ExplicitKandel is CoreKandel {
     if (index == NSLOTS - 1) {
       emit AllBids(MGV, BASE, QUOTE);
     }
-    dualIndex = dual(ba, index);
     dualBa = dual(ba);
+    dualIndex = better(dualBa, index, 1);
 
     (MgvStructs.OfferPacked dualOffer, MgvStructs.OfferDetailPacked dualOfferDetails) = getOffer(dualBa, dualIndex);
 
-    // can repost (at max) what the current taker order gave
-    uint maxDualGives = dualOffer.gives() + order.gives;
     // what the distribution says the dual order should ask/bid
     uint shouldGive = _givesOfIndex(dualBa, dualIndex);
     uint shouldWant = _wantsOfIndex(dualBa, dualIndex);
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);
 
-    // letting dual offer complements taker's liquidity with pending when current offer is not sniped.
-    // Adding pending to compute dual offer's volume would allow taker to drain liquidity
-    // by sniping an offer far from the mid price for a low quantity, dual offer would then only be posted for a
-    // proportionally low volume if not complemented with pending.
-    uint pending = _isBest(order) ? getPending(dualBa) : 0;
+    // letting dual offer complements taker's liquidity
+    uint pending = getPending(dualBa);
+    uint dualGives = dualOffer.gives();
 
-    if (shouldGive >= maxDualGives + pending) {
-      args.gives = maxDualGives + pending;
-      popPending(dualBa, pending);
-    } else {
+    // if in a market order, allow dual offer to compound all pending liquidity
+    // else compound only what taker gave
+    if (shouldGive <= pending + dualGives) {
       args.gives = shouldGive;
-      uint leftover = (maxDualGives + pending - shouldGive);
-      if (leftover > pending) {
-        pushPending(dualBa, leftover - pending);
+      if (dualGives < shouldGive) {
+        // if some pending was compounded in dual offer
+        popPending(dualBa, shouldGive - dualGives);
       } else {
-        popPending(dualBa, pending - leftover);
+        // if shouldGive < dualOffer.gives() some more liquidity becomes pending
+        pushPending(dualBa, dualGives - shouldGive);
       }
+    } else {
+      // the whole pending was used to complement dual offer
+      popPending(dualBa, pending);
+      args.gives = pending + dualGives;
     }
 
     // note at this stage, maker's profit is `maxDualGives - args.gives`
     // those additional funds are just left on reserve, w/o being published.
     // if giving less volume than distribution, one must adapt wants to match distribution price
-    args.wants = args.gives == shouldGive ? shouldWant : (maxDualGives * shouldWant) / shouldGive;
+    args.wants = args.gives == shouldGive ? shouldWant : (args.gives * shouldWant) / shouldGive;
     args.fund = 0;
     args.noRevert = true;
+    // FIXME one could use here max gasreq allowed by args.gives
     args.gasreq = dualOfferDetails.gasreq() == 0 ? offerGasreq() : dualOfferDetails.gasreq();
     args.gasprice = dualOfferDetails.gasprice() == 0 ? 0 : dualOfferDetails.gasprice();
-    args.pivotId = dualOffer.gives() > 0 ? offerIdOfIndex(dualBa, dualIndex) : dualOffer.next();
+    // if dual offer exists one should re-insert using itself as pivot
+    // if not, one uses best
+    args.pivotId = dualOffer.gives() > 0 ? offerIdOfIndex(dualBa, dualIndex) : 0;
   }
 
   function depositFunds(OrderType ba, uint amount) external {

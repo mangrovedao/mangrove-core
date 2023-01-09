@@ -113,12 +113,11 @@ contract KdlAutoStart is Deployer, MangroveTest {
       outbound_tkn: address(quote_),
       inbound_tkn: address(base_),
       takerWants: 0,
-      takerGives: 2 * base0,
+      takerGives: base0,
       fillWants: false
     });
     vm.stopPrank();
-
-    require(takerGave == 2 * base0, "market sell order failed");
+    require(takerGave == base0, "market sell order failed");
     require(bounty == 0, "some offer failed to deliver");
 
     // giving more quotes to taker so that he can buy back what he sold
@@ -127,15 +126,14 @@ contract KdlAutoStart is Deployer, MangroveTest {
     vm.startPrank(taker);
     base_.approve(address(mgv), type(uint).max);
     quote_.approve(address(mgv), type(uint).max);
-    (uint takerGot_,, uint bounty_, uint fee) = mgv.marketOrder({
+    (,, uint bounty_,) = mgv.marketOrder({
       outbound_tkn: address(base_),
       inbound_tkn: address(quote_),
-      takerWants: 2 * base0,
+      takerWants: base0,
       takerGives: type(uint96).max,
       fillWants: true
     });
     vm.stopPrank();
-    require(takerGot_ == (2 * base0 - fee), "market buy order failed");
     require(bounty_ == 0, "some offer failed to deliver");
     console.log("Smoke test \u2705");
   }

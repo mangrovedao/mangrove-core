@@ -16,9 +16,6 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
  */
 
 contract KdlSetGeometricDist is Deployer {
-  uint[] baseDist;
-  uint[] quoteDist;
-
   function run() public {
     Kandel kdl = Kandel(envAddressOrName("KANDEL"));
 
@@ -58,17 +55,17 @@ contract KdlSetGeometricDist is Deployer {
     require(from < to && to <= kdl.NSLOTS(), "interval must be of the form [from,...,to[");
     require(uint96(baseFrom) == baseFrom, "BASE0 is too high");
     require(uint96(quoteFrom) == quoteFrom, "QUOTE0 is too high");
-    baseDist = new uint[](kdl.NSLOTS());
-    quoteDist = new uint[](kdl.NSLOTS());
+    uint[] memory baseDist = new uint[](kdl.NSLOTS());
+    uint[] memory quoteDist = new uint[](kdl.NSLOTS());
 
     prettyLog("Generating distributions...");
     uint baseDecimals = kdl.BASE().decimals();
+    uint quoteDecimals = kdl.QUOTE().decimals();
     fillGeometricDist(baseFrom, baseRatio, from, to, baseDist);
     fillGeometricDist(quoteFrom, quoteRatio, from, to, quoteDist);
     //turning price distribution into quote volumes
     for (uint i = from; i < to; i++) {
       quoteDist[i] = (quoteDist[i] * baseDist[i]) / (10 ** baseDecimals);
-      //console.log(toUnit(quoteDist[i], 6), toUnit(baseDist[i], 18));
     }
 
     prettyLog("Setting distribution on Kandel...");

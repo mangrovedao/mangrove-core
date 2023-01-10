@@ -160,8 +160,13 @@ abstract contract Direct is MangroveOffer {
     // pulling liquidity from reserve
     // depending on the router, this may result in pulling more/less liquidity than required
     // so one should check local balance to compute missing liquidity
-    uint pulled = pull(IERC20(order.outbound_tkn), amount, false);
-    missing = pulled >= amount ? 0 : amount - pulled;
+    uint amount_ = IERC20(order.outbound_tkn).balanceOf(address(this));
+    if (amount_ >= amount) {
+      return 0;
+    }
+    amount_ = amount - amount_;
+    uint pulled = pull(IERC20(order.outbound_tkn), amount_, false);
+    missing = pulled >= amount_ ? 0 : amount_ - pulled;
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)

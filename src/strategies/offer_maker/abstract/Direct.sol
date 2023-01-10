@@ -37,25 +37,26 @@ abstract contract Direct is MangroveOffer {
     super.__checkList__(token);
   }
 
-  function pull(IERC20 outbound_tkn, uint amount, bool strict) internal returns (uint) {
+  function pull(IERC20 token, uint amount, bool strict) internal returns (uint) {
     AbstractRouter router_ = router();
     address adminReserve = reserve(admin());
     if (router_ == NO_ROUTER) {
-      bool success = TransferLib.transferTokenFrom(outbound_tkn, adminReserve, address(this), amount);
-      return success ? amount : 0;
+      // noop if reserve == this and local balance >= amount
+      bool success = TransferLib.transferTokenFrom(token, adminReserve, address(this), amount);
+      return success ? amount : (token.balanceOf(address(this)));
     } else {
       // letting specific router pull the funds from reserve
-      return router_.pull(outbound_tkn, adminReserve, amount, strict);
+      return router_.pull(token, adminReserve, amount, strict);
     }
   }
 
-  function push(IERC20 token, uint amount) internal {
+  function push(IERC20 token, uint amount) internal returns (uint) {
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
-      return; // nothing to do
+      return amount; // nothing to do
     } else {
       // noop if reserve == address(this)
-      require(router_.push(token, reserve(admin()), amount) == amount, "Direct/pushFailed");
+      return router_.push(token, reserve(admin()), amount);
     }
   }
 
@@ -159,12 +160,13 @@ abstract contract Direct is MangroveOffer {
     // pulling liquidity from reserve
     // depending on the router, this may result in pulling more/less liquidity than required
     // so one should check local balance to compute missing liquidity
-    uint local_balance = IERC20(order.outbound_tkn).balanceOf(address(this));
-    if (local_balance >= amount) {
+    uint amount_ = IERC20(order.outbound_tkn).balanceOf(address(this));
+    if (amount_ >= amount) {
       return 0;
     }
-    uint pulled = pull(IERC20(order.outbound_tkn), amount - local_balance, false);
-    missing = pulled >= amount - local_balance ? 0 : amount - local_balance - pulled;
+    amount_ = amount - amount_;
+    uint pulled = pull(IERC20(order.outbound_tkn), amount_, false);
+    missing = pulled >= amount_ ? 0 : amount_ - pulled;
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)

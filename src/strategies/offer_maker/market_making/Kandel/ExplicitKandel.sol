@@ -63,12 +63,6 @@ contract ExplicitKandel is CoreKandel {
     return _quoteOfIndex;
   }
 
-  function __put__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
-    OrderType ba = _orderTypeOfOutbound(IERC20(order.outbound_tkn));
-    pushPending(dual(ba), amount);
-    return super.__put__(amount, order);
-  }
-
   ///@inheritdoc AbstractKandel
   function _transportLogic(OrderType ba, MgvLib.SingleOrder calldata order, bytes32)
     internal
@@ -95,12 +89,9 @@ contract ExplicitKandel is CoreKandel {
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);
 
-    // letting dual offer complements taker's liquidity
     uint pending = getPending(dualBa);
-    uint dualGives = dualOffer.gives();
+    uint dualGives = dualOffer.gives() + order.gives;
 
-    // if in a market order, allow dual offer to compound all pending liquidity
-    // else compound only what taker gave
     if (shouldGive <= pending + dualGives) {
       args.gives = shouldGive;
       if (dualGives < shouldGive) {

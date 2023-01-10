@@ -60,7 +60,6 @@ contract KdlSetGeometricDist is Deployer {
 
     prettyLog("Generating distributions...");
     uint baseDecimals = kdl.BASE().decimals();
-    uint quoteDecimals = kdl.QUOTE().decimals();
     fillGeometricDist(baseFrom, baseRatio, from, to, baseDist);
     fillGeometricDist(quoteFrom, quoteRatio, from, to, quoteDist);
     //turning price distribution into quote volumes

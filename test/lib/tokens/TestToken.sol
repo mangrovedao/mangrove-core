@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import "./ERC20BL.sol";
+import "mgv_src/toy/ERC20BL.sol";
 
 contract TestToken is ERC20BL {
   mapping(address => bool) admins;

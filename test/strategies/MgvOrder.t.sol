@@ -13,13 +13,20 @@ contract MangroveOrder_Test is MangroveTest {
 
   event OrderSummary(
     IMangrove mangrove,
-    IERC20 indexed base,
-    IERC20 indexed quote,
+    IERC20 indexed outbound_tkn,
+    IERC20 indexed inbound_tkn,
     address indexed taker,
+    bool fillOrKill,
+    uint takerWants,
+    uint takerGives,
     bool fillWants,
+    bool restingOrder,
+    uint expiryDate,
     uint takerGot,
     uint takerGave,
-    uint penalty
+    uint bounty,
+    uint fee,
+    uint restingOrderId
   );
 
   MgvOrder mgo;
@@ -103,9 +110,9 @@ contract MangroveOrder_Test is MangroveTest {
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
-    vm.expectRevert("Forwarder/unauthorized");
+    vm.expectRevert("AccessControlled/Invalid");
     vm.prank(freshAddress());
-    mgo.updateOffer(quote, base, 1, 1, 0, res.offerId);
+    mgo.updateOffer(quote, base, 10, 10, 0, res.offerId);
   }
 
   function test_owner_can_update_offer() public {
@@ -122,8 +129,8 @@ contract MangroveOrder_Test is MangroveTest {
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
-    mgo.updateOffer(quote, base, 1, 1, 0, res.offerId);
-    assertEq(mgv.offers($(quote), $(base), res.offerId).gives(), 1, "Offer incorrectly updated");
+    mgo.updateOffer(quote, base, 1 ether, 1 ether, 0, res.offerId);
+    assertEq(mgv.offers($(quote), $(base), res.offerId).gives(), 1 ether, "Offer incorrectly updated");
   }
 
   function test_partial_filled_buy_order_returns_residual() public {
@@ -243,6 +250,31 @@ contract MangroveOrder_Test is MangroveTest {
     assertEq($(this).balance, balWeiBefore, "incorrect wei balance");
   }
 
+  function logOrderData(
+    IMangrove iMgv,
+    address taker,
+    IOrderLogic.TakerOrder memory tko,
+    IOrderLogic.TakerOrderResult memory res
+  ) internal {
+    emit OrderSummary(
+      iMgv,
+      tko.outbound_tkn,
+      tko.inbound_tkn,
+      taker,
+      tko.fillOrKill,
+      tko.takerWants,
+      tko.takerGives,
+      tko.fillWants,
+      tko.restingOrder,
+      tko.expiryDate,
+      res.takerGot,
+      res.takerGave,
+      res.bounty,
+      res.fee,
+      res.offerId
+      );
+  }
+
   function test_resting_buy_order_is_successfully_posted() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       outbound_tkn: base,
@@ -259,10 +291,16 @@ contract MangroveOrder_Test is MangroveTest {
     uint bal_base_before = mgo.router().reserveBalance(quote, $(this));
     assertEq(mgv.balanceOf($(mgo)), 0, "Invalid balance on Mangrove");
 
+    IOrderLogic.TakerOrderResult memory expectedRes = IOrderLogic.TakerOrderResult({
+      takerGot: 997000000000000000,
+      takerGave: 130000000000000000,
+      bounty: 0,
+      fee: 3000000000000000,
+      offerId: 4
+    });
+
     expectFrom($(mgo));
-    emit OrderSummary(
-      IMangrove(payable(mgv)), base, quote, $(this), true, reader.minusFee($(base), $(quote), 1 ether), 0.13 ether, 0
-      );
+    logOrderData(IMangrove(payable(mgv)), $(this), buyOrder, expectedRes);
     // TODO when checkEmit is available, get offer id after post
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
@@ -295,8 +333,11 @@ contract MangroveOrder_Test is MangroveTest {
       expiryDate: 0 //NA
     });
 
+    IOrderLogic.TakerOrderResult memory expectedRes =
+      IOrderLogic.TakerOrderResult({takerGot: 0, takerGave: 0, bounty: 0, fee: 0, offerId: 4});
+
     expectFrom($(mgo));
-    emit OrderSummary(IMangrove(payable(mgv)), base, quote, $(this), true, 0, 0, 0);
+    logOrderData(IMangrove(payable(mgv)), $(this), buyOrder, expectedRes);
     // TODO when checkEmit is available, get offer id after post
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
@@ -323,10 +364,16 @@ contract MangroveOrder_Test is MangroveTest {
     uint bal_base_before = mgo.router().reserveBalance(quote, $(this));
     assertEq(mgv.balanceOf($(mgo)), 0, "Invalid balance on Mangrove");
 
+    IOrderLogic.TakerOrderResult memory expectedRes = IOrderLogic.TakerOrderResult({
+      takerGot: 119640000000000000,
+      takerGave: 1000000000000000000,
+      bounty: 0,
+      fee: 360000000000000,
+      offerId: 4
+    });
+
     expectFrom($(mgo));
-    emit OrderSummary(
-      IMangrove(payable(mgv)), quote, base, $(this), false, reader.minusFee($(quote), $(base), 0.12 ether), 1 ether, 0
-      );
+    logOrderData(IMangrove(payable(mgv)), $(this), sellOrder, expectedRes);
     // TODO when checkEmit is available, get offer id after post
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(sellOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
@@ -359,8 +406,11 @@ contract MangroveOrder_Test is MangroveTest {
       expiryDate: 0 //NA
     });
 
+    IOrderLogic.TakerOrderResult memory expectedRes =
+      IOrderLogic.TakerOrderResult({takerGot: 0, takerGave: 0, bounty: 0, fee: 0, offerId: 4});
+
     expectFrom($(mgo));
-    emit OrderSummary(IMangrove(payable(mgv)), quote, base, $(this), false, 0, 0, 0);
+    logOrderData(IMangrove(payable(mgv)), $(this), sellOrder, expectedRes);
     // TODO when checkEmit is available, get offer id after post
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(sellOrder);
     assertTrue(res.offerId > 0, "Resting offer failed to be published on mangrove");
@@ -636,7 +686,7 @@ contract MangroveOrder_Test is MangroveTest {
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertTrue(res.offerId > 0, "resting order not posted");
-    vm.expectRevert("Forwarder/unauthorized");
+    vm.expectRevert("AccessControlled/Invalid");
     vm.prank(freshAddress());
     mgo.setExpiry(quote, base, res.offerId, block.timestamp + 70);
   }

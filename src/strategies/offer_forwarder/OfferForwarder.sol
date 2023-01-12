@@ -14,6 +14,7 @@ pragma solidity ^0.8.10;
 import {Forwarder, IMangrove, IERC20} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import {ILiquidityProvider} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
 import {SimpleRouter, AbstractRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
+import {MgvLib} from "mgv_src/MgvLib.sol";
 
 contract OfferForwarder is ILiquidityProvider, Forwarder {
   constructor(IMangrove mgv, address deployer) Forwarder(mgv, new SimpleRouter(), 30_000) {
@@ -26,46 +27,35 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
   }
 
   /// @inheritdoc ILiquidityProvider
-  function newOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice, // keeping gasprice here in order to expose the same interface as `OfferMaker` contracts.
-    uint pivotId
-  ) external payable returns (uint offerId) {
-    gasprice; // ignoring gasprice that will be derived based on msg.value.
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
+    external
+    payable
+    returns (uint offerId)
+  {
     offerId = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: gasreq,
+        gasreq: offerGasreq(),
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false, // propagates Mangrove's revert data in case of newOffer failure
-        owner: msg.sender
-      })
+        noRevert: false // propagates Mangrove's revert data in case of newOffer failure
+      }),
+      msg.sender
     );
   }
 
   ///@inheritdoc ILiquidityProvider
   ///@dev the `gasprice` argument is always ignored in `Forwarder` logic, since it has to be derived from `msg.value` of the call (see `_newOffer`).
-  function updateOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider`
-    uint gasprice, // value ignored but kept to satisfy `OfferForwarder is ILiquidityProvider`
-    uint pivotId,
-    uint offerId
-  ) external payable override onlyOwner(outbound_tkn, inbound_tkn, offerId) {
-    gasprice; // ssh
-    gasreq; // ssh
+  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+    external
+    payable
+    override
+    onlyOwner(outbound_tkn, inbound_tkn, offerId)
+  {
     OfferArgs memory args;
 
     // funds to compute new gasprice is msg.value. Will use old gasprice if no funds are given
@@ -81,5 +71,19 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
     args.noRevert = false; // will throw if Mangrove reverts
     // weiBalance is used to provision offer
     _updateOffer(args, offerId);
+  }
+
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)
+    internal
+    override
+    returns (bytes32 data)
+  {
+    data = super.__posthookSuccess__(order, maker_data);
+    require(
+      data == "posthook/reposted" || data == "posthook/filled",
+      data == "mgv/insufficientProvision"
+        ? "mgv/insufficientProvision"
+        : (data == "mgv/writeOffer/density/tooLow" ? "mgv/writeOffer/density/tooLow" : "posthook/failed")
+    );
   }
 }

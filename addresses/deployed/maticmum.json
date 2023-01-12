@@ -1,26 +1,26 @@
 [
   {
-    "address": "0xF3e339d8a0B989114412fa157Cc846ebaf4BCbd8",
+    "address": "0x823701dD29451766d5B9eF6b54ef42642F545cd7",
     "name": "Mangrove"
   },
   {
-    "address": "0xD59A51bE32eA35Db72De6A3Eb88bf2C56811f57c",
+    "address": "0x4aa55b5f46c42531ea4772ab8c808399d067BfF0",
     "name": "MgvReader"
   },
   {
-    "address": "0xEb05Ace3574B0a6f4696c5CcD09e730d6d5ED3b0",
+    "address": "0x028183b83d415f3EDfEc0163E5266Ac63Ad0FdE7",
     "name": "MgvCleaner"
   },
   {
-    "address": "0xd38c02425da847584eeDA72387DAAA2E8f3b90c8",
+    "address": "0xcf32089F029AF15b7f8C20c046B13859AcaD791E",
     "name": "MgvOracle"
   },
   {
-    "address": "0x2dB249612f45580f8288DD75cd9264270f9B6726",
+    "address": "0x046963623BDB092A406ed051222e769D214bd107",
     "name": "MangroveOrderEnriched"
   },
   {
-    "address": "0x35D9e8381dac7d192dA3D4310c6671030B3dbfBa",
-    "name": "Mango_tGNT_USDC"
+    "address": "0x75C19ecd2F817A173Ef8196D8CE8a219ee14a0fe",
+    "name": "Mango_WETH_USDC"
   }
 ]

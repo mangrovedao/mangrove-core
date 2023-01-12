@@ -4,14 +4,14 @@ pragma solidity ^0.8.13;
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import "mgv_src/Mangrove.sol";
-import {ERC20} from "../test/lib/tokens/ERC20.sol";
+import {ERC20} from "mgv_src/toy/ERC20.sol";
 
 import {ActivateSemibook} from "./ActivateSemibook.s.sol";
-/* Example: activate (USDC,WETH) offer lists. Assume $ETH_IN_USDC is the price of ETH in USDC.
+/* Example: activate (USDC,WETH) offer lists. Assume $NATIVE_IN_USDC is the price of ETH/MATIC/native token in USDC; same for $NATIVE_IN_ETH.
  TKN1=USDC \
  TKN2=WETH \
- TKN1_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$ETH_IN_USDC) gwei) \
- TKN2_IN_GWEI=$(cast --to-unit 1 eth gwei) \
+ TKN1_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_USDC) gwei) \
+ TKN2_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_ETH) gwei) \
  FEE=30 \
  forge script --fork-url mumbai ActivateMarket*/
 
@@ -37,7 +37,7 @@ contract ActivateMarket is Deployer {
 
   /* 
     tknX_in_gwei should be obtained like this:
-    1. Get the price of one tknX display unit in ETH, in display units
+    1. Get the price of one tknX display unit in native token, in display units
     2. Multiply by 10^9
     3. Round to nearest integer
   */

@@ -1,6 +1,26 @@
 # next version
 
-# 1.1.3 (nov 2022)
+# 1.4.0 (December 2022)
+
+- Added Polygon mainnet deployment addresses
+- Added permissionless open markets tracking to MgvReader
+
+# 1.3.0 (December 2022)
+
+- Fix issue in provision calculations in stratlib
+- Some gas optimizations in the stratlib
+- Update mumbai deployment addresses
+- Update PxUSDC and PxMATIC Polygon mainnet addresses
+
+# 1.2.0 (December 2022)
+
+- Added Polygon mainnet deployment addresses
+- Remove slippage from MangroveOrder - resting order now posted at same price
+- Introduce **reserve** hook on MangroveOffer which replaces other reserve logic
+- Add collectByImpersonation to MgvCleaner
+- `ILiquidityProvider` provide simple `updateOffer` and `newOffer` public functions, using default values for `gasprice` and `gasreq`. This unifies interface between Forwarder and Direct strats. Strat builders can still implement a public offer management that lets offer owners set gasreq and gasprice
+
+# 1.1.3 (Nov 2022)
 
 - updating test deployment script
 

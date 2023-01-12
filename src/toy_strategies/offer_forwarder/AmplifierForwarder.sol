@@ -91,9 +91,9 @@ contract AmplifierForwarder is Forwarder {
         gasprice: 0, // ignored
         pivotId: pivot1,
         fund: fund1,
-        noRevert: false,
-        owner: msg.sender
-      })
+        noRevert: false
+      }),
+      msg.sender
     );
 
     offers[msg.sender].id1 = _offerId1;
@@ -109,9 +109,9 @@ contract AmplifierForwarder is Forwarder {
         gasprice: 0, // ignored
         pivotId: pivot2,
         fund: fund2,
-        noRevert: false,
-        owner: msg.sender
-      })
+        noRevert: false
+      }),
+      msg.sender
     );
     offers[msg.sender].id2 = _offerId2;
 
@@ -150,7 +150,7 @@ contract AmplifierForwarder is Forwarder {
 
       //uint prov = getMissingProvision(IERC20(order.outbound_tkn), IERC20(alt_stable), type(uint).max, 0, 0);
 
-      uint id = _updateOffer(
+      bytes32 reason = _updateOffer(
         OfferArgs({
           outbound_tkn: IERC20(order.outbound_tkn),
           inbound_tkn: IERC20(alt_stable),
@@ -160,12 +160,11 @@ contract AmplifierForwarder is Forwarder {
           gasprice: 0, // ignored
           pivotId: alt_offer.next(),
           noRevert: true,
-          fund: 0,
-          owner: owner
+          fund: 0
         }),
         alt_offerId
       );
-      if (id == 0) {
+      if (reason != "posthook/reposted") {
         // might want to Log an incident here because this should not be reachable
         return "posthook/altRepostFail";
       } else {

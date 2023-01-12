@@ -87,8 +87,7 @@ contract Amplifier is Direct {
         gasprice: 0,
         pivotId: pivot1,
         fund: msg.value,
-        noRevert: false,
-        owner: msg.sender
+        noRevert: false
       })
     );
     // no need to fund this second call for provision
@@ -103,8 +102,7 @@ contract Amplifier is Direct {
         gasprice: 0,
         pivotId: pivot2,
         fund: 0,
-        noRevert: false,
-        owner: msg.sender
+        noRevert: false
       })
     );
 
@@ -144,7 +142,7 @@ contract Amplifier is Direct {
         new_alt_wants = (old_alt_wants * new_alt_gives) / old_alt_gives;
       }
       // the call below might throw
-      uint id = _updateOffer(
+      bytes32 reason = _updateOffer(
         OfferArgs({
           outbound_tkn: IERC20(order.outbound_tkn),
           inbound_tkn: IERC20(alt_stable),
@@ -153,13 +151,12 @@ contract Amplifier is Direct {
           gasreq: alt_detail.gasreq(),
           pivotId: alt_offer.next(),
           gasprice: 0,
-          owner: admin(), // ignored
           fund: 0,
           noRevert: true
         }),
         alt_offerId
       );
-      if (id == 0) {
+      if (reason != "posthook/reposted") {
         return "posthook/altOfferRepostFail";
       } else {
         return "posthook/bothOfferReposted";

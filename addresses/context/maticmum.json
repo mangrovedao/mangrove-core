@@ -58,5 +58,9 @@
   {
     "address": "0x11942A6952324f7Fc63Dc57Ed6Ec767b5fc263D6",
     "name": "tGNT"
+  },
+  {
+    "address": "0x4d184a4C8d79BbBdCC4E95A1AdEA2454c535280A",
+    "name": "Gasbot"
   }
 ]

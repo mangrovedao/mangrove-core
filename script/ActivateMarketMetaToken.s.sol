@@ -14,14 +14,13 @@ import {ActivateSemibookMetaToken} from "./ActivateSemibookMetaToken.s.sol";
  TKN1_IN_GWEI=$(cast tun 7.5ether gwei) \
  TKN2_IN_GWEI=$(cast tun 7.1 eth gwei) \
  FEE=30 \
- forge script --fork-url mumbai ActivateMarket
-*/
+ forge script --fork-url mumbai ActivateMarket*/
 
 contract ActivateMarketMetaToken is Deployer {
   function run() public {
     innerRun({
-      tkn1: getRawAddressOrName("TKN1"),
-      tkn2: getRawAddressOrName("TKN2"),
+      tkn1: envAddressOrName("TKN1"),
+      tkn2: envAddressOrName("TKN2"),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
       fee: vm.envUint("FEE")

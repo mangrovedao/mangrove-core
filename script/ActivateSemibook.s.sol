@@ -24,8 +24,8 @@ uint constant COVER_FACTOR = 100;
 contract ActivateSemibook is Test2, Deployer {
   function run() public {
     innerRun({
-      outbound_tkn: getRawAddressOrName("OUTBOUND_TKN"),
-      inbound_tkn: getRawAddressOrName("INBOUND_TKN"),
+      outbound_tkn: envAddressOrName("OUTBOUND_TKN"),
+      inbound_tkn: envAddressOrName("INBOUND_TKN"),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
       fee: vm.envUint("FEE")
     });

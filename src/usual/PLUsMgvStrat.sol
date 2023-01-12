@@ -1,7 +1,7 @@
 pragma solidity ^0.8.14;
 
 import {Direct, IMangrove, IERC20} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import {IMakerLogic} from "mgv_src/strategies/interfaces/IMakerLogic.sol";
+import {ILiquidityProvider} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
 import {LockedWrapperToken} from "mgv_src/usual/LockedWrapperToken.sol";
 import {MetaPLUsDAOToken} from "mgv_src/usual/MetaPLUsDAOToken.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
@@ -9,7 +9,7 @@ import {MgvLib} from "mgv_src/MgvLib.sol";
 // This is a simple strat for demo purposes.
 // FIXME: This strat should handle the MetaPLUsDAO -> PLUsDAO token mapping, but for now it just relies on a workaround in MetaPLUsDAO token that allows it to be used directly.
 //        Also, the posting of offers should be simpler (no specification of tokens needed for one market) but mangrove.js doesn't support that out-of-the-box
-contract PLUsMgvStrat is IMakerLogic, Direct {
+contract PLUsMgvStrat is ILiquidityProvider, Direct {
   LockedWrapperToken public immutable _pLUsDAOToken;
   MetaPLUsDAOToken public immutable _metaPLUsDAOToken;
   // IERC20 public immutable _usUSD;
@@ -63,4 +63,15 @@ contract PLUsMgvStrat is IMakerLogic, Direct {
     _metaPLUsDAOToken.depositFrom(admin(), address(this), amount);
     return super.__get__(amount, order);
   }
+
+  function updateOffer(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint pivotId,
+    uint offerId
+  ) public payable {}
 }

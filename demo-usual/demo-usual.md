@@ -54,7 +54,7 @@ Run the following commands to deploy Mangrove, the demo contracts, and open the 
 source .env
 
 # Deploy Mangrove and periphery contracts
-WRITE_DEPLOY=true forge script --fork-url $LOCALHOST_URL --private-key $LOCALHOST_DEPLOYER_PRIVATE_KEY --broadcast MangroveDeployer
+WRITE_DEPLOY=true forge script --fork-url $LOCALHOST_URL --private-key $LOCALHOST_DEPLOYER_PRIVATE_KEY --broadcast MangroveJsDeploy
 
 # Deploy Usual contracts and mint tokens
 SELLER_ADDRESS=$LOCALHOST_SELLER_ADDRESS \

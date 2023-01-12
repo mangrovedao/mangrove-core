@@ -32,15 +32,13 @@ contract PLUsMgvStrat is ILiquidityProvider, Direct {
   }
 
   // FIXME: For now, we use the IMakerLogic signature of newOffer which mangrove.js supports directly
-  function newOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId
-  ) public payable override mgvOrAdmin returns (uint offerId) {
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
+    public
+    payable
+    override
+    mgvOrAdmin
+    returns (uint offerId)
+  {
     _pLUsDAOToken.depositFrom(msg.sender, msg.sender, gives);
     offerId = _newOffer(
       OfferArgs({
@@ -48,12 +46,11 @@ contract PLUsMgvStrat is ILiquidityProvider, Direct {
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: gasreq,
-        gasprice: gasprice,
+        gasreq: offerGasreq(),
+        gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false,
-        owner: msg.sender
+        noRevert: false
       })
     );
   }
@@ -64,14 +61,8 @@ contract PLUsMgvStrat is ILiquidityProvider, Direct {
     return super.__get__(amount, order);
   }
 
-  function updateOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId,
-    uint offerId
-  ) public payable {}
+  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+    public
+    payable
+  {}
 }

@@ -29,8 +29,9 @@ contract MintableERC20BLWithDecimals is
     admins[admin] = true;
   }
 
-  function mint(address to, uint amount) external {
+  function mint(address to, uint amount) external override returns (bool) {
     mintRestricted(to, amount);
+    return true;
   }
 
   function mint(uint amount) external {

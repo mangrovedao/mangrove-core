@@ -32,7 +32,7 @@ contract OfferMakerTutorialResidual is Direct, ILiquidityProvider {
     onlyAdmin
     returns (uint offerId)
   {
-    offerId = _newOffer(
+    (offerId,) = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,

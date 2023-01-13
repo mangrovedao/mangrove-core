@@ -76,7 +76,7 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
-  function _newOffer(OfferArgs memory args) internal returns (uint) {
+  function _newOffer(OfferArgs memory args) internal returns (uint, bytes32) {
     try MGV.newOffer{value: args.fund}(
       address(args.outbound_tkn),
       address(args.inbound_tkn),
@@ -86,10 +86,10 @@ abstract contract Direct is MangroveOffer {
       args.gasprice,
       args.pivotId
     ) returns (uint offerId) {
-      return offerId;
+      return (offerId, "");
     } catch Error(string memory reason) {
       require(args.noRevert, reason);
-      return 0;
+      return (0, bytes32(bytes(reason)));
     }
   }
 

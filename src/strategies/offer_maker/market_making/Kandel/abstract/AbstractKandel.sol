@@ -11,7 +11,7 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-import {Direct, IMangrove, IERC20, MgvLib} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
+import {Direct, IMangrove, IERC20, MgvLib, MgvStructs} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 
 abstract contract AbstractKandel {
   ///@notice signals that the price has moved above Kandel's current price range
@@ -19,30 +19,62 @@ abstract contract AbstractKandel {
   ///@notice signals that the price has moved below Kandel's current price range
   event AllBids(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
 
+  uint16 public constant PRECISION = 4;
+
   ///@notice a bid or an ask
   enum OrderType {
     Bid,
     Ask
   }
 
-  ///@notice base distribution at given index
-  ///@param index of the distribution of base tokens
-  ///@return amount of base tokens that Kandel should give(ask)/want(bid) at `index`
-  function baseOfIndex(uint index) public view virtual returns (uint96 amount);
+  ///@notice Kandel Params
+  ///@param pendingBase is the amount of free (not promised) base tokens in reserve
+  ///@param pendingQuote is the amount of free (not promised) quote tokens in reserve
+  ///@param ratio of price progression (ratio >= 1) expressed with `PRECISION` decimals
+  ///@param compoundRate percentage of the spread that is to be compounded, expressed with `PRECISION` decimals
+  ///@param spread in amount of price slots for posting dual offer
+  ///@param precision number of decimals used for 'ratio' and `compoundRate`
+  struct Params {
+    uint128 pendingBase;
+    uint128 pendingQuote;
+    uint16 ratio;
+    uint16 compoundRate;
+    uint16 spread;
+  }
 
-  ///@notice quote distribution at given index
-  ///@param index of the distribution of quote tokens
-  ///@return amount of quote tokens that Kandel should give(bid)/want(ask) at `index`
-  function quoteOfIndex(uint index) public view virtual returns (uint96 amount);
+  ///@notice offerIdOfIndex maps index of bids (uint(OrderType.Bid)) or asks (uint(OrderType.Ask)) to offer id on Mangrove. e.g. `offerIdOfIndex[uint(OrderType.Bid)][42]` is the bid id on Mangrove that is stored at index #42 .
+  uint[][2] offerIdOfIndex_;
+
+  function offerIdOfIndex(OrderType ba, uint index) public view returns (uint) {
+    return offerIdOfIndex_[uint(ba)][index];
+  }
+
+  ///@notice indexOfOfferId inverse mapping of the above.  e.g. `indexOfOfferId[uint(OrderType.Ask)][12]` is the index at which ask of id #12 on Mangrove is stored
+  uint[][2] indexOfOfferId_;
+
+  function indexOfOfferId(OrderType ba, uint offerId) public view returns (uint) {
+    return indexOfOfferId_[uint(ba)][offerId];
+  }
+
+  struct SlotViewMonad {
+    bool index_;
+    uint index;
+    bool offerId_;
+    uint offerId;
+    bool offer_;
+    MgvStructs.OfferPacked offer;
+    bool offerDetail_;
+    MgvStructs.OfferDetailPacked offerDetail;
+  }
 
   ///@notice transport logic followed by Kandel
   ///@param ba whether the offer that was executed is a bid or an ask
   ///@param order a recap of the taker order (order.offer is the executed offer)
-  ///@return dualBa the type of order implementing the transport
-  ///@return dualIndex the distribution index where liquidity is transported
+  ///@return ba_dual the type of order that will re-invest inbound liquidity
+  ///@return v_dual the view Monad for the dual order
   ///@return args the argument for `populateIndex` specifying gives and wants
-  function _transportLogic(OrderType ba, MgvLib.SingleOrder calldata order, bytes32 makerData)
+  function _transportLogic(OrderType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (OrderType dualBa, uint dualIndex, Direct.OfferArgs memory args);
+    returns (OrderType ba_dual, SlotViewMonad memory v_dual, Direct.OfferArgs memory args);
 }

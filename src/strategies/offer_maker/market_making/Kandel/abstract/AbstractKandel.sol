@@ -19,6 +19,8 @@ abstract contract AbstractKandel {
   ///@notice signals that the price has moved below Kandel's current price range
   event AllBids(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
 
+  event SetCompoundRate(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote, uint compoundRate);
+
   uint16 public constant PRECISION = 4;
 
   ///@notice a bid or an ask

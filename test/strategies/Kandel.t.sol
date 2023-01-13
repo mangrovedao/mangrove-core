@@ -63,14 +63,24 @@ contract ExplicitKandelTest is MangroveTest {
     uint provBid = kdl.getMissingProvision(usdc, weth, kdl.offerGasreq(), 0, 0);
     deal(maker, (provAsk + provBid) * 10 ether);
 
+    deal($(weth), address(this), 1 ether);
+    deal($(usdc), address(this), cash(usdc, 10_000));
+
+    weth.approve(address(kdl), type(uint).max);
+    usdc.approve(address(kdl), type(uint).max);
+
+    kdl.depositFunds(AbstractKandel.OrderType.Ask, 1 ether);
+    kdl.depositFunds(AbstractKandel.OrderType.Bid, cash(usdc, 10_000));
+
     vm.startPrank(maker);
     kdl.populate{value: (provAsk + provBid) * 10}({
       from: 0,
       to: 10,
-      lastBidIndex: 5,
+      lastBidIndex: 4,
       ratio: uint16(108 * 10 ** kdl.PRECISION() / 100),
+      spread: 1,
       gasprice: 0,
-      initQuote: cash(usdc, 1000), // quote given/wanted at index from
+      initQuote: cash(usdc, 100), // quote given/wanted at index from
       baseDist: dynamic(
         [
           uint(0.1 ether),
@@ -144,9 +154,12 @@ contract ExplicitKandelTest is MangroveTest {
     console.log("-------", toUnit(pendingBase, 18), toUnit(pendingQuote, 6), "-------");
   }
 
+  AbstractKandel.OrderType constant Ask = AbstractKandel.OrderType.Ask;
+  AbstractKandel.OrderType constant Bid = AbstractKandel.OrderType.Bid;
+
   function pending(AbstractKandel.OrderType ba) internal view returns (uint) {
     (uint pendingBase, uint pendingQuote,,,) = kdl.params();
-    return ba == AbstractKandel.OrderType.Ask ? pendingBase : pendingQuote;
+    return ba == Ask ? pendingBase : pendingQuote;
   }
 
   function test_populates_order_book_correctly() public {
@@ -154,40 +167,51 @@ contract ExplicitKandelTest is MangroveTest {
     assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
   }
 
-  function test_first_bid_complete_fill() public {
+  function test_bid_complete_fill(uint16 c) public {
+    vm.assume(c <= 10_000);
+    vm.prank(maker);
+    kdl.setCompoundRate(c);
+
     (uint successes, uint takerGot, uint takerGave,,) = sellToBestAs(taker, 1 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
     assertStatus([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]);
-    // since ask[5] is already there (at the correct volume) all the base brought by taker become pending
-    assertEq(pending(AbstractKandel.OrderType.Ask), takerGave, "Incorrect pending");
+    (MgvStructs.OfferPacked offer,) = kdl.getOffer(Ask, 5);
+    if (c == 10_000) {
+      assertEq(pending(Ask), 0, "Full compounding should not yield pending");
+    } else {
+      if (c == 0) {
+        assertEq(offer.gives(), takerGave, "No compounding should give what taker gave");
+      }
+      assertTrue(pending(Ask) > 0, "Partial auto compounding should yield pending");
+      assertTrue(offer.gives() > takerGave, "Auto compounding should give more than what taker gave");
+    }
+  }
+
+  function test_ask_complete_fill(uint16 c) public {
+    vm.assume(c <= 10_000);
+    vm.prank(maker);
+    kdl.setCompoundRate(c);
+
+    (MgvStructs.OfferPacked oldBid,) = kdl.getOffer(Bid, 4);
+
+    (uint successes, uint takerGot, uint takerGave,, uint fee) = buyFromBestAs(taker, 1 ether);
+    assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
+    //assertStatus([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]);
+    (MgvStructs.OfferPacked newBid,) = kdl.getOffer(Bid, 4);
+    assertTrue(newBid.gives() <= takerGave + oldBid.gives(), "Cannot give more than what was received");
+    assertEq(pending(Bid) + newBid.gives(), oldBid.gives() + takerGave, "Incorrect net promised asset");
+    if (c == 10_000) {
+      assertEq(pending(Bid), 0, "Full compounding should not yield pending");
+    } else {
+      assertTrue(pending(Bid) > 0, "Partial auto compounding should yield pending");
+      assertTrue(newBid.wants() >= takerGot + fee, "Auto compounding should give more than what taker gave");
+    }
   }
 
   function test_bid_partial_fill() public {
     (uint successes, uint takerGot,,,) = sellToBestAs(taker, 0.01 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
     assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
-  }
-
-  function test_first_ask_complete_fill() public {
-    (uint successes, uint takerGot, uint takerGave,,) = buyFromBestAs(taker, 1 ether);
-    assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]);
-    // since bid[4] is already there (at the correct volume) all the quote brought by taker become pending
-    assertEq(pending(AbstractKandel.OrderType.Bid), takerGave, "Incorrect pending");
-  }
-
-  function test_bid_produces_an_ask() public {
-    sellToBestAs(taker, 1 ether);
-    (uint successes, uint takerGot,,,) = sellToBestAs(taker, 1 ether);
-    assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 0, 2, 2, 2, 2, 2, 2]);
-  }
-
-  function test_ask_produces_a_bid() public {
-    buyFromBestAs(taker, 1 ether);
-    (uint successes, uint takerGot,,,) = buyFromBestAs(taker, 1 ether);
-    assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 1, 1, 1, 0, 2, 2, 2]);
   }
 
   function test_logs_all_asks() public {

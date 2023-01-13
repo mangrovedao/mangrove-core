@@ -20,6 +20,7 @@ import {
   MgvStructs
 } from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
+import {console2 as console} from "forge-std/Test.sol";
 
 abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice number of offers managed by this strat
@@ -38,15 +39,23 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
     offerIdOfIndex_[uint(OrderType.Bid)] = new uint[](NSLOTS);
     offerIdOfIndex_[uint(OrderType.Ask)] = new uint[](NSLOTS);
+    indexOfOfferId_[uint(OrderType.Bid)] = new uint[](NSLOTS);
+    indexOfOfferId_[uint(OrderType.Ask)] = new uint[](NSLOTS);
+
     // approves Mangrove to pull base and quote token from this contract
     __activate__(base);
     __activate__(quote);
   }
 
+  function setCompoundRate(uint16 c) public mgvOrAdmin {
+    emit SetCompoundRate(MGV, BASE, QUOTE, c);
+    params.compoundRate = c;
+  }
+
   ///@notice increments pending liquidity
   ///@param ba whether liquidity is used for bids or asks
   ///@param amount of liquidity in quote (for bids) or base (for asks)
-  function pushPending(OrderType ba, uint amount) internal mgvOrAdmin {
+  function pushPending(OrderType ba, uint amount) internal {
     require(uint128(amount) == amount, "Kandel/pendingOverflow");
     if (amount == 0) return;
     if (ba == OrderType.Ask) {
@@ -114,7 +123,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   function dualWantsGivesOfOrder(OrderType ba_dual, SlotViewMonad memory v_dual, MgvLib.SingleOrder calldata order)
     internal
     view
-    returns (uint wants, uint gives)
+    returns (uint wants, uint gives, uint pending_)
   {
     // computing gives/wants for dual offer
     // for posting a bid after an ask:
@@ -122,24 +131,17 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     // for posting an Ask after a Bid:
     // gives = order.gives * (ratio ** spread) + (order.gives * ratio**spread - order.gives) * compoundRate
 
+    uint s = uint(params.spread);
     uint c = uint(params.compoundRate);
-    uint r = uint(params.ratio) ** uint(params.spread);
-    uint g = order.gives;
-    if (ba_dual == OrderType.Bid) {
-      gives = (10 ** (2 * PRECISION) + (r - 10 ** PRECISION) * c) * g / (r * 10 ** PRECISION);
-    } else {
-      gives = (r * 10 ** PRECISION + (10 ** PRECISION - r) * c) * g / 10 ** (2 * PRECISION);
-    }
+    uint r = uint(params.ratio) ** s;
+
+    gives = order.gives * (c * (r - 10 ** (s * PRECISION)) + 10 ** ((s + 1) * PRECISION)) / (r * 10 ** PRECISION);
+
+    pending_ = order.gives - gives;
     // adding to gives what the offer was already giving
     gives += _offer(ba_dual, v_dual).gives();
     // adjusting wants to price:
-    // wants/gives = (order.wants / order.gives) * (ratio * spread) for posting a bid after an ask
-    // wants/gives = (order.wants / order.gives) / (ratio * spread) for posting a ask after a bid
-    if (ba_dual == OrderType.Bid) {
-      wants = (order.wants * gives * 10 ** PRECISION) / (order.gives * r);
-    } else {
-      wants = (order.wants * gives * r) / (order.gives * 10 ** PRECISION);
-    }
+    wants = (gives * order.wants * r) / (10 ** (s * PRECISION) * order.gives);
   }
 
   ///@notice returns a better (for Kandel) price index than the one given in argument
@@ -304,6 +306,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint to,
     uint lastBidIndex,
     uint16 ratio,
+    uint16 spread,
     uint gasprice,
     uint initQuote, // quote given/wanted at index from
     uint[] calldata baseDist, // base distribution in [from, to[
@@ -315,6 +318,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     // storing ratio for offer logic
     if (from == 0) {
       params.ratio = ratio;
+      params.spread = spread;
     }
 
     HeapVarsPopulate memory vars = HeapVarsPopulate({
@@ -334,12 +338,14 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     if (vars.deltaBase > 0) {
       pushPending(OrderType.Ask, uint(vars.deltaBase));
     } else {
-      popPending(OrderType.Ask, uint(vars.deltaBase));
+      console.log("base needed:", uint(-vars.deltaBase));
+      popPending(OrderType.Ask, uint(-vars.deltaBase));
     }
     if (vars.deltaQuote > 0) {
       pushPending(OrderType.Bid, uint(vars.deltaQuote));
     } else {
-      popPending(OrderType.Bid, uint(vars.deltaQuote));
+      console.log("quote needed:", uint(-vars.deltaQuote));
+      popPending(OrderType.Bid, uint(-vars.deltaQuote));
     }
   }
 
@@ -385,6 +391,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     returns (bytes32)
   {
     OrderType ba = orderTypeOfOutbound(IERC20(order.outbound_tkn));
+    console.log("posthook of offer ", order.offerId, "reached");
     // adds any unpublished liquidity to pending[Base/Quote]
     pushPending(ba, _handleResidual(order, makerData));
     // preparing arguments for the dual maker order

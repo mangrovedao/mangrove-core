@@ -6,23 +6,21 @@ import {
   AbstractKandel, Kandel, MgvStructs, IMangrove
 } from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 
-contract ExplicitKandelTest is MangroveTest {
+contract KandelTest is MangroveTest {
   TestToken weth;
   TestToken usdc;
   address payable maker;
   address payable taker;
   Kandel kdl;
-  uint[] baseDist = new uint[](10);
-  uint[] quoteDist = new uint[](10);
 
   uint constant GASREQ = 100_000;
-  uint16 constant STEP = uint16(2);
+  uint16 constant STEP = uint16(1);
 
   event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
   ///@notice signals that the price has moved below Kandel's current price range
   event AllBids(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
 
-  function setUp() public override {
+  function setUp() public virtual override {
     options.base.symbol = "WETH";
     options.quote.symbol = "USDC";
     options.quote.decimals = 6;

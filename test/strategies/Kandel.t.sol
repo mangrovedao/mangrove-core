@@ -15,7 +15,7 @@ contract ExplicitKandelTest is MangroveTest {
   uint[] baseDist = new uint[](10);
   uint[] quoteDist = new uint[](10);
 
-  uint constant GASREQ = 160_000;
+  uint constant GASREQ = 100_000;
   uint16 constant STEP = uint16(2);
 
   event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);

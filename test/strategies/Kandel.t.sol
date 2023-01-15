@@ -13,7 +13,7 @@ contract KandelTest is MangroveTest {
   address payable taker;
   Kandel kdl;
 
-  uint constant GASREQ = 100_000;
+  uint constant GASREQ = 80_000;
   uint16 constant STEP = uint16(1);
 
   event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
@@ -35,7 +35,7 @@ contract KandelTest is MangroveTest {
     maker = freshAddress("maker");
     taker = freshAddress("taker");
     deal($(weth), taker, cash(weth, 50));
-    deal($(usdc), taker, cash(usdc, 100_000));
+    deal($(usdc), taker, cash(usdc, 70_000));
 
     // taker approves mangrove to be able to take offers
     vm.startPrank(taker);

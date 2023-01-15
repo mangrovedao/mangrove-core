@@ -37,8 +37,8 @@ abstract contract AbstractKandel {
   ///@param spread in amount of price slots for posting dual offer
   ///@param precision number of decimals used for 'ratio' and `compoundRate`
   struct Params {
-    uint128 pendingBase;
-    uint128 pendingQuote;
+    uint104 pendingBase;
+    uint104 pendingQuote;
     uint16 ratio;
     uint16 compoundRate;
     uint16 spread;

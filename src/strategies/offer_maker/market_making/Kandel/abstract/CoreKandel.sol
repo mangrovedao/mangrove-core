@@ -28,7 +28,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   IERC20 public immutable BASE;
   ///@notice quote of the market Kandel is making
   IERC20 public immutable QUOTE;
-
+  ///@notice gasprice for new offers (taking into account cover factor)
   uint public immutable GASPRICE;
 
   Params public params;
@@ -63,9 +63,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     require(uint128(amount) == amount, "Kandel/pendingOverflow");
     if (amount == 0) return;
     if (ba == OrderType.Ask) {
-      params.pendingBase += uint128(amount);
+      params.pendingBase += uint104(amount);
     } else {
-      params.pendingQuote += uint128(amount);
+      params.pendingQuote += uint104(amount);
     }
   }
 
@@ -73,12 +73,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param ba whether liquidity is used for bids or asks
   ///@param amount of liquidity in quote (for bids) or base (for asks)
   function popPending(OrderType ba, uint amount) internal mgvOrAdmin {
-    require(uint128(amount) == amount, "Kandel/pendingOverflow");
+    require(uint104(amount) == amount, "Kandel/pendingOverflow");
     if (amount == 0) return;
     if (ba == OrderType.Ask) {
-      params.pendingBase -= uint128(amount);
+      params.pendingBase -= uint104(amount);
     } else {
-      params.pendingQuote -= uint128(amount);
+      params.pendingQuote -= uint104(amount);
     }
   }
 

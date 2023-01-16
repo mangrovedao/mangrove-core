@@ -6,14 +6,12 @@ import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /* 
-This script deploys a testToken ERC20. Grants admin rights to `msg.sender`
-*/
+This script deploys a testToken ERC20. Grants admin rights to `msg.sender`*/
 /* Example:
 NAME="Mangrove Token" \
 SYMBOL=MGV \
 DECIMALS=18 \
-forge script --fork-url mumbai ERC20Deployer
-*/
+forge script --fork-url mumbai ERC20Deployer*/
 
 contract ERC20Deployer is Deployer {
   function run() public {

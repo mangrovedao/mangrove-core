@@ -6,8 +6,7 @@ import "mgv_test/lib/MangroveTest.sol";
 
 /* The following constructs an ERC20 with a transferFrom callback method,
    and a TestTaker which throws away any funds received upon getting
-   a callback.
-*/
+   a callback.*/
 contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   TestMaker mkr;
   uint baseBalance;

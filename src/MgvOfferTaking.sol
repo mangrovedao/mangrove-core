@@ -669,14 +669,13 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* Post-trade, `payTakerMinusFees` sends what's due to the taker and keeps the rest (the fees). Routing through the Mangrove like that also deals with blacklisting issues (separates the maker-blacklisted and the taker-blacklisted cases). */
   function payTakerMinusFees(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal {
     unchecked {
-      /* Should be statically provable that the 2 transfers below cannot return false under well-behaved ERC20s and a non-blacklisted, non-0 target. */
-
       uint concreteFee = (mor.totalGot * sor.local.fee()) / 10_000;
       if (concreteFee > 0) {
         mor.totalGot -= concreteFee;
         mor.feePaid = concreteFee;
       }
       if (mor.totalGot > 0) {
+        /* It should be statically provable that this transfer cannot return false under well-behaved ERC20s and a non-blacklisted, non-0 target, if governance does not call withdrawERC20 during order execution. */
         require(transferToken(sor.outbound_tkn, mor.taker, mor.totalGot), "mgv/MgvFailToPayTaker");
       }
     }

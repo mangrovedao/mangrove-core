@@ -92,7 +92,7 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
-  function _updateOffer(OfferArgs memory args, uint offerId) internal returns (uint) {
+  function _updateOffer(OfferArgs memory args, uint offerId) internal override returns (bytes32) {
     if (args.gasreq >= type(uint24).max) {
       MgvStructs.OfferDetailPacked detail =
         MGV.offerDetails(address(args.outbound_tkn), address(args.inbound_tkn), offerId);
@@ -108,10 +108,10 @@ abstract contract Direct is MangroveOffer {
       args.pivotId,
       offerId
     ) {
-      return offerId;
+      return REPOST_SUCCESS;
     } catch Error(string memory reason) {
       require(args.noRevert, reason);
-      return 0;
+      return bytes32(bytes(reason));
     }
   }
 
@@ -142,11 +142,7 @@ abstract contract Direct is MangroveOffer {
     override
     returns (uint provision)
   {
-    MgvStructs.OfferDetailPacked offerDetail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
-    (, MgvStructs.LocalPacked local) = MGV.config(address(outbound_tkn), address(inbound_tkn));
-    unchecked {
-      provision = offerDetail.gasprice() * 10 ** 9 * (local.offer_gasbase() + offerDetail.gasreq());
-    }
+    provision = _provisionOf(outbound_tkn, inbound_tkn, offerId);
   }
 
   function __put__(uint, /*amount*/ MgvLib.SingleOrder calldata) internal virtual override returns (uint missing) {

@@ -14,6 +14,7 @@ pragma solidity ^0.8.10;
 import {Forwarder, IMangrove, IERC20} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import {ILiquidityProvider} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
 import {SimpleRouter, AbstractRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
+import {MgvLib} from "mgv_src/MgvLib.sol";
 
 contract OfferForwarder is ILiquidityProvider, Forwarder {
   constructor(IMangrove mgv, address deployer) Forwarder(mgv, new SimpleRouter(), 30_000) {
@@ -41,9 +42,9 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
-        noRevert: false, // propagates Mangrove's revert data in case of newOffer failure
-        owner: msg.sender
-      })
+        noRevert: false // propagates Mangrove's revert data in case of newOffer failure
+      }),
+      msg.sender
     );
   }
 
@@ -70,5 +71,19 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
     args.noRevert = false; // will throw if Mangrove reverts
     // weiBalance is used to provision offer
     _updateOffer(args, offerId);
+  }
+
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)
+    internal
+    override
+    returns (bytes32 data)
+  {
+    data = super.__posthookSuccess__(order, maker_data);
+    require(
+      data == "posthook/reposted" || data == "posthook/filled",
+      data == "mgv/insufficientProvision"
+        ? "mgv/insufficientProvision"
+        : (data == "mgv/writeOffer/density/tooLow" ? "mgv/writeOffer/density/tooLow" : "posthook/failed")
+    );
   }
 }

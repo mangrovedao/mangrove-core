@@ -61,12 +61,12 @@ interface IMangrove {
   event SetMonitor(address value);
   event SetNotify(bool value);
   event SetUseOracle(bool value);
+  event SetVault(address value);
 
   function DOMAIN_SEPARATOR() external view returns (bytes32);
 
   function PERMIT_TYPEHASH() external view returns (bytes32);
 
-  function withdrawERC20(address tokenAddress, uint value) external;
   function activate(address outbound_tkn, address inbound_tkn, uint fee, uint density, uint offer_gasbase) external;
 
   function allowances(address, address, address, address) external view returns (uint);
@@ -171,6 +171,8 @@ interface IMangrove {
 
   function setUseOracle(bool useOracle) external;
 
+  function setVault(address vaultAddress) external;
+
   function snipes(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants)
     external
     returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
@@ -189,6 +191,8 @@ interface IMangrove {
     uint pivotId,
     uint offerId
   ) external payable;
+
+  function vault() external view returns (address);
 
   function withdraw(uint amount) external returns (bool noRevert);
 

@@ -94,15 +94,17 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     }
   }
 
-  function test_mgv_keeps_quote_tokens_if_maker_is_blacklisted_for_quote() public {
+  function test_vault_receives_quote_tokens_if_maker_is_blacklisted_for_quote() public {
     _takerTrade = noop;
     quote.blacklists(address(mkr));
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
-    uint mgvQuoteBal = quote.balanceOf(address(mgv));
+    address vault = address(1);
+    mgv.setVault(vault);
+    uint vaultBal = quote.balanceOf(vault);
 
     (uint successes,,,,) = mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]), true);
     assertTrue(successes == 1, "Trade should succeed");
-    assertEq(quote.balanceOf(address(mgv)) - mgvQuoteBal, 1 ether, "Mgv balance should have increased");
+    assertEq(quote.balanceOf(vault) - vaultBal, 1 ether, "Vault balance should have increased");
   }
 
   function noop(address, address, uint) internal {}

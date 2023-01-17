@@ -130,18 +130,33 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     returns (uint wants, uint gives, uint pending_)
   {
     // computing gives/wants for dual offer
-
-    uint s = uint(params.spread);
-    uint c = uint(params.compoundRate);
-    uint r = uint(params.ratio) ** s;
-
-    gives = (order.gives * ((10 ** PRECISION - c) * 10 ** (s * PRECISION) + c * r)) / (r * 10 ** PRECISION);
+    // we verify we cannot overflow if PRECISION < 6
+    // spread:8
+    uint spread = uint(params.spread);
+    // compoundRate:16
+    uint compoundRate = uint(params.compoundRate);
+    // params.ratio:16, spread:8 ==> r:128
+    uint r = uint(params.ratio) ** spread;
+    // log2(10) = 3.32 => p:PRECISION*3.32
+    uint p = 10 ** PRECISION;
+    // (p-compoundRate) * p**spread ~ p ** (spread + 1) : 9 * 3.32 * PRECISION
+    // compoundRate:16, r:128 => compoundRate * r : 144
+    // order.gives:96 => gives : max(9*3.32*PRECISION+96, 240) which will not overflow if PRECISION < 6
+    // r:128, p:PRECISION*3.32 => r*p:128+PRECISION*3.32 => gives:  max(9*3.32*PRECISION+96, 240) / (128+PRECISION*3.32)
+    // for PRECISION=4 we have gives ~ 240 - 142 => gives:98
+    gives = (order.gives * ((p - compoundRate) * p ** spread + compoundRate * r)) / (r * p);
 
     pending_ = order.gives - gives;
     // adding to gives what the offer was already giving
+    // gives:98 _offer(..).gives:96
+    // gives:99
     gives += _offer(ba_dual, v_dual).gives();
     // adjusting wants to price:
-    wants = (gives * order.wants * r) / (10 ** (s * PRECISION) * order.gives);
+    // gives: 99, r:128 => gives * r : 227
+    // order.gives * p**spread: 8*PRECISION*3.32 + 96 = 203 (for PRECISION = 4)
+    // (gives  * r) / (order.gives * (p ** spread)) : 24
+    // wants : 24 + 98 = 122
+    wants = order.wants * ((gives * r) / (order.gives * (p ** spread)));
   }
 
   ///@notice returns a better (for Kandel) price index than the one given in argument
@@ -307,7 +322,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint to,
     uint lastBidIndex,
     uint16 ratio,
-    uint16 spread,
+    uint8 spread,
     uint initQuote, // quote given/wanted at index from
     uint[] calldata baseDist, // base distribution in [from, to[
     uint[] calldata pivotIds // pivots for {offer[from],...,offer[to-1]}

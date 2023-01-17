@@ -21,9 +21,10 @@ abstract contract AbstractKandel {
 
   event SetCompoundRate(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote, uint compoundRate);
 
-  uint16 public constant PRECISION = 4;
-
+  // precision should be strictly less than 6 to avoid potential overflow
+  uint8 public constant PRECISION = 4;
   ///@notice a bid or an ask
+
   enum OrderType {
     Bid,
     Ask
@@ -32,16 +33,16 @@ abstract contract AbstractKandel {
   ///@notice Kandel Params
   ///@param pendingBase is the amount of free (not promised) base tokens in reserve
   ///@param pendingQuote is the amount of free (not promised) quote tokens in reserve
-  ///@param ratio of price progression (ratio >= 1) expressed with `PRECISION` decimals
-  ///@param compoundRate percentage of the spread that is to be compounded, expressed with `PRECISION` decimals
+  ///@param ratio of price progression (` 2**16 > ratio >= 10**PRECISION`) expressed with `PRECISION` decimals
+  ///@param compoundRate percentage of the spread that is to be compounded, expressed with `PRECISION` decimals (`compoundRate <= 10**PRECISION`)
   ///@param spread in amount of price slots for posting dual offer
   ///@param precision number of decimals used for 'ratio' and `compoundRate`
   struct Params {
     uint104 pendingBase;
     uint104 pendingQuote;
-    uint16 ratio;
-    uint16 compoundRate;
-    uint16 spread;
+    uint16 ratio; // geometric ratio is `ratio/10**PRECISION`
+    uint16 compoundRate; // compoundRate is `compoundRate/10**PRECISION`
+    uint8 spread;
   }
 
   ///@notice offerIdOfIndex maps index of bids (uint(OrderType.Bid)) or asks (uint(OrderType.Ask)) to offer id on Mangrove. e.g. `offerIdOfIndex[uint(OrderType.Bid)][42]` is the bid id on Mangrove that is stored at index #42 .

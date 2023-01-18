@@ -15,8 +15,8 @@ import {CoreKandel, IMangrove, IERC20, AbstractKandel, MgvLib, MgvStructs} from 
 import "mgv_src/strategies/utils/TransferLib.sol";
 
 contract Kandel is CoreKandel {
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, uint16 nslots)
-    CoreKandel(mgv, base, quote, gasreq, gasprice, nslots)
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice)
+    CoreKandel(mgv, base, quote, gasreq, gasprice)
   {}
 
   function __reserve__(address) internal view override returns (address) {
@@ -31,16 +31,17 @@ contract Kandel is CoreKandel {
     returns (OrderType ba_dual, SlotViewMonad memory v_dual, OfferArgs memory args)
   {
     uint index = indexOfOfferId(ba, order.offerId);
+    Params memory params_ = params;
 
     if (index == 0) {
       emit AllAsks(MGV, BASE, QUOTE);
     }
-    if (index == NSLOTS - 1) {
+    if (index == params_.length - 1) {
       emit AllBids(MGV, BASE, QUOTE);
     }
     ba_dual = dual(ba);
 
-    v_dual = _fresh(better(ba_dual, index, params.spread));
+    v_dual = _fresh(better(ba_dual, index, params_.spread, params_.length));
 
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);
@@ -49,7 +50,7 @@ contract Kandel is CoreKandel {
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
     uint pending;
-    (args.wants, args.gives, pending) = dualWantsGivesOfOrder(ba_dual, v_dual, order);
+    (args.wants, args.gives, pending) = dualWantsGivesOfOrder(ba_dual, v_dual, order, params_);
     pushPending(ba_dual, pending);
     args.gasprice = _offerDetail(ba_dual, v_dual).gasprice();
     args.gasreq = v_dual.offerDetail.gasreq() == 0 ? offerGasreq() : v_dual.offerDetail.gasreq();

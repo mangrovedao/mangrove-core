@@ -1,6 +1,16 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
+// FIXME outstanding missing feature/tests
+// * Populates:
+//   * by chunks
+//   * use pending and freed funds
+//   * throws if not enough collateral
+//   * throws if not enough provision
+// * Retract offers
+// * newOffer below density creates pending
+// * overflow in dual offer computation is correctly managed
+
 import "mgv_test/lib/MangroveTest.sol";
 import {
   AbstractKandel, Kandel, MgvStructs, IMangrove
@@ -13,8 +23,8 @@ contract KandelTest is MangroveTest {
   address payable taker;
   Kandel kdl;
 
-  uint constant GASREQ = 80_000;
-  uint16 constant STEP = uint16(1);
+  uint constant GASREQ = 77_000;
+  uint8 constant STEP = 1;
 
   event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
   ///@notice signals that the price has moved below Kandel's current price range
@@ -50,7 +60,6 @@ contract KandelTest is MangroveTest {
       mgv: IMangrove($(mgv)), 
       base: weth,
       quote: usdc,
-      nslots: 10,
       gasreq: GASREQ,
       gasprice: 10 * global.gasprice() // covering 10 times Mangrove's gasprice at deploy time
     });
@@ -78,6 +87,7 @@ contract KandelTest is MangroveTest {
       from: 0,
       to: 10,
       lastBidIndex: 4,
+      kandelSize: 10,
       ratio: uint16(108 * 10 ** kdl.PRECISION() / 100),
       spread: STEP,
       initQuote: cash(usdc, 100), // quote given/wanted at index from
@@ -152,7 +162,7 @@ contract KandelTest is MangroveTest {
   function printOB() internal view {
     printOrderBook($(weth), $(usdc));
     printOrderBook($(usdc), $(weth));
-    (uint pendingBase, uint pendingQuote,,,) = kdl.params();
+    (uint pendingBase, uint pendingQuote,,,,,) = kdl.params();
 
     console.log("-------", toUnit(pendingBase, 18), toUnit(pendingQuote, 6), "-------");
   }
@@ -161,7 +171,7 @@ contract KandelTest is MangroveTest {
   AbstractKandel.OrderType constant Bid = AbstractKandel.OrderType.Bid;
 
   function pending(AbstractKandel.OrderType ba) internal view returns (uint) {
-    (uint pendingBase, uint pendingQuote,,,) = kdl.params();
+    (uint pendingBase, uint pendingQuote,,,,,) = kdl.params();
     return ba == Ask ? pendingBase : pendingQuote;
   }
 

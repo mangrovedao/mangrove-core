@@ -38,11 +38,13 @@ abstract contract AbstractKandel {
   ///@param spread in amount of price slots for posting dual offer
   ///@param precision number of decimals used for 'ratio' and `compoundRate`
   struct Params {
-    uint104 pendingBase;
-    uint104 pendingQuote;
+    uint96 pendingBase;
+    uint96 pendingQuote;
+    uint16 gasprice;
     uint16 ratio; // geometric ratio is `ratio/10**PRECISION`
     uint16 compoundRate; // compoundRate is `compoundRate/10**PRECISION`
     uint8 spread;
+    uint8 length;
   }
 
   ///@notice offerIdOfIndex maps index of bids (uint(OrderType.Bid)) or asks (uint(OrderType.Ask)) to offer id on Mangrove. e.g. `offerIdOfIndex[uint(OrderType.Bid)][42]` is the bid id on Mangrove that is stored at index #42 .

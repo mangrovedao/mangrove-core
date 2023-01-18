@@ -22,29 +22,18 @@ import {
 import {AbstractKandel} from "./AbstractKandel.sol";
 
 abstract contract CoreKandel is Direct, AbstractKandel {
-  ///@notice number of offers managed by this strat
-  uint16 public immutable NSLOTS;
   ///@notice base of the market Kandel is making
   IERC20 public immutable BASE;
   ///@notice quote of the market Kandel is making
   IERC20 public immutable QUOTE;
-  ///@notice gasprice for new offers (taking into account cover factor)
-  uint public immutable GASPRICE;
 
   Params public params;
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, uint16 nslots)
-    Direct(mgv, NO_ROUTER, gasreq)
-  {
-    NSLOTS = nslots;
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice) Direct(mgv, NO_ROUTER, gasreq) {
     BASE = base;
     QUOTE = quote;
-    GASPRICE = gasprice;
-
-    offerIdOfIndex_[uint(OrderType.Bid)] = new uint[](NSLOTS);
-    offerIdOfIndex_[uint(OrderType.Ask)] = new uint[](NSLOTS);
-    indexOfOfferId_[uint(OrderType.Bid)] = new uint[](NSLOTS);
-    indexOfOfferId_[uint(OrderType.Ask)] = new uint[](NSLOTS);
+    require(uint16(gasprice) == gasprice, "Kandel/gaspriceTooHigh");
+    params.gasprice = uint16(gasprice);
 
     // approves Mangrove to pull base and quote token from this contract
     __activate__(base);
@@ -52,20 +41,25 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   }
 
   function setCompoundRate(uint16 c) public mgvOrAdmin {
+    require(c <= 10 ** PRECISION, "Kandel/invalidCompoundRate");
     emit SetCompoundRate(MGV, BASE, QUOTE, c);
     params.compoundRate = c;
+  }
+
+  function length() public view returns (uint) {
+    return params.length;
   }
 
   ///@notice increments pending liquidity
   ///@param ba whether liquidity is used for bids or asks
   ///@param amount of liquidity in quote (for bids) or base (for asks)
   function pushPending(OrderType ba, uint amount) internal {
-    require(uint128(amount) == amount, "Kandel/pendingOverflow");
+    require(uint96(amount) == amount, "Kandel/pendingOverflow");
     if (amount == 0) return;
     if (ba == OrderType.Ask) {
-      params.pendingBase += uint104(amount);
+      params.pendingBase += uint96(amount);
     } else {
-      params.pendingQuote += uint104(amount);
+      params.pendingQuote += uint96(amount);
     }
   }
 
@@ -73,12 +67,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param ba whether liquidity is used for bids or asks
   ///@param amount of liquidity in quote (for bids) or base (for asks)
   function popPending(OrderType ba, uint amount) internal mgvOrAdmin {
-    require(uint104(amount) == amount, "Kandel/pendingOverflow");
+    require(uint96(amount) == amount, "Kandel/pendingOverflow");
     if (amount == 0) return;
     if (ba == OrderType.Ask) {
-      params.pendingBase -= uint104(amount);
+      params.pendingBase -= uint96(amount);
     } else {
-      params.pendingQuote -= uint104(amount);
+      params.pendingQuote -= uint96(amount);
     }
   }
 
@@ -124,19 +118,20 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     return OrderType((uint(ba) + 1) % 2);
   }
 
-  function dualWantsGivesOfOrder(OrderType ba_dual, SlotViewMonad memory v_dual, MgvLib.SingleOrder calldata order)
-    internal
-    view
-    returns (uint wants, uint gives, uint pending_)
-  {
+  function dualWantsGivesOfOrder(
+    OrderType ba_dual,
+    SlotViewMonad memory v_dual,
+    MgvLib.SingleOrder calldata order,
+    Params memory params_
+  ) internal view returns (uint wants, uint gives, uint pending_) {
     // computing gives/wants for dual offer
     // we verify we cannot overflow if PRECISION < 6
     // spread:8
-    uint spread = uint(params.spread);
+    uint spread = uint(params_.spread);
     // compoundRate:16
-    uint compoundRate = uint(params.compoundRate);
+    uint compoundRate = uint(params_.compoundRate);
     // params.ratio:16, spread:8 ==> r:128
-    uint r = uint(params.ratio) ** spread;
+    uint r = uint(params_.ratio) ** spread;
     // log2(10) = 3.32 => p:PRECISION*3.32
     uint p = 10 ** PRECISION;
     // (p-compoundRate) * p**spread ~ p ** (spread + 1) : 9 * 3.32 * PRECISION
@@ -163,9 +158,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param ba whether Kandel is bidding or asking
   ///@param index the price index one is willing to improve
   ///@param step the number of price steps improvements
-  function better(OrderType ba, uint index, uint step) public view returns (uint) {
+  function better(OrderType ba, uint index, uint step, uint length) public view returns (uint) {
     return ba == OrderType.Ask
-      ? index + step >= NSLOTS ? NSLOTS - 1 : index + step
+      ? index + step >= length ? length - 1 : index + step
       : int(index) - int(step) < 0 ? 0 : index - step;
   }
 
@@ -232,7 +227,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     offerDetail = MGV.offerDetails(address(outbound), address(inbound), offerId);
   }
 
-  function pending(OrderType ba) internal view returns (uint) {
+  function pending(OrderType ba) public view returns (uint) {
     return ba == OrderType.Ask ? params.pendingBase : params.pendingQuote;
   }
 
@@ -247,7 +242,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       (uint offerId_, bytes32 result) = _newOffer(args);
       if (offerId_ == 0) {
         emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/newOfferFailed", result);
-        return int(args.gives);
+        return 0;
       } else {
         offerIdOfIndex_[uint(ba)][_index(ba, v)] = offerId_;
         indexOfOfferId_[uint(ba)][offerId_] = _index(ba, v);
@@ -256,7 +251,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     } else {
       if (offerId == 0) {
         //offerId && gives are 0
-        return int(0);
+        return 0;
       }
       // when gives is 0 we retract offer
       if (args.gives == 0) {
@@ -298,18 +293,17 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       args.gasprice = vars.gasprice;
       args.pivotId = pivotIds[index - vars.from];
 
-      vars.delta = populateIndex(ba, _fresh(index), args);
       if (ba == OrderType.Ask) {
-        vars.deltaBase += vars.delta;
+        vars.deltaBase += populateIndex(ba, _fresh(index), args);
       } else {
-        vars.deltaQuote += vars.delta;
+        vars.deltaQuote += populateIndex(ba, _fresh(index), args);
       }
       vars.quote_i = (vars.quote_i * uint(vars.ratio)) / 10 ** PRECISION;
     }
   }
 
   ///@notice publishes bids/asks in the distribution interval `[to,from[`
-  ///@param from start index
+  ///@param from start in dex
   ///@param to end index
   ///@param lastBidIndex the index after which offer should be an Ask
   ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
@@ -321,18 +315,33 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint from,
     uint to,
     uint lastBidIndex,
+    uint kandelSize,
     uint16 ratio,
     uint8 spread,
     uint initQuote, // quote given/wanted at index from
     uint[] calldata baseDist, // base distribution in [from, to[
     uint[] calldata pivotIds // pivots for {offer[from],...,offer[to-1]}
   ) external payable onlyAdmin {
+    Params memory params_ = params;
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
-    // storing ratio for offer logic
-    if (from == 0) {
+    require(from < to && to <= kandelSize, "Kandel/invalidInterval");
+    // Initializing arrays and parameters if needed
+    if (params_.length != kandelSize) {
+      require(kandelSize <= type(uint8).max, "Kandel/TooManyPricePoints");
+      offerIdOfIndex_[uint(OrderType.Bid)] = new uint[](kandelSize);
+      offerIdOfIndex_[uint(OrderType.Ask)] = new uint[](kandelSize);
+      indexOfOfferId_[uint(OrderType.Bid)] = new uint[](kandelSize);
+      indexOfOfferId_[uint(OrderType.Ask)] = new uint[](kandelSize);
+      params.length = uint8(kandelSize);
+    }
+    if (params_.ratio != ratio) {
+      require(ratio >= 10 ** PRECISION, "Kandel/invalidRatio");
       params.ratio = ratio;
+    }
+    if (params_.spread != spread) {
+      require(spread > 0, "Kandel/invalidSpread");
       params.spread = spread;
     }
 
@@ -341,8 +350,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       from: from,
       to: to,
       lastBidIndex: lastBidIndex,
-      ratio: ratio,
-      gasprice: GASPRICE,
+      ratio: params.ratio,
+      gasprice: params.gasprice,
       deltaQuote: int(0),
       deltaBase: int(0),
       delta: int(0)
@@ -350,6 +359,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
     iterPopulate(vars, baseDist, pivotIds);
 
+    // call below verify that Kandel has enough base/quote to fullfill the offer it has posted.
     if (vars.deltaBase > 0) {
       pushPending(OrderType.Ask, uint(vars.deltaBase));
     } else {
@@ -369,10 +379,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs
   function retractOffers(uint from, uint to) external onlyAdmin returns (uint collected) {
     for (uint index = from; index < to; index++) {
-      SlotViewMonad memory v_ask;
-      SlotViewMonad memory v_bid;
+      SlotViewMonad memory v_ask = _fresh(index);
+      SlotViewMonad memory v_bid = _fresh(index);
       collected += retractOffer(OrderType.Ask, v_ask, true);
       collected += retractOffer(OrderType.Bid, v_bid, true);
+      pushPending(OrderType.Ask, _offer(OrderType.Ask, v_ask).gives());
+      pushPending(OrderType.Bid, _offer(OrderType.Bid, v_bid).gives());
     }
   }
 

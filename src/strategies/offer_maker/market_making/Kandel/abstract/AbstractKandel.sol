@@ -54,11 +54,19 @@ abstract contract AbstractKandel {
     return offerIdOfIndex_[uint(ba)][index];
   }
 
+  function offerIdOfIndex(OrderType ba, uint index, uint offerId) internal {
+    offerIdOfIndex_[uint(ba)][index] = offerId;
+  }
+
   ///@notice indexOfOfferId inverse mapping of the above.  e.g. `indexOfOfferId[uint(OrderType.Ask)][12]` is the index at which ask of id #12 on Mangrove is stored
-  uint[][2] indexOfOfferId_;
+  mapping(OrderType => mapping(uint => uint)) indexOfOfferId_;
 
   function indexOfOfferId(OrderType ba, uint offerId) public view returns (uint) {
-    return indexOfOfferId_[uint(ba)][offerId];
+    return indexOfOfferId_[ba][offerId];
+  }
+
+  function indexOfOfferId(OrderType ba, uint offerId, uint index) internal {
+    indexOfOfferId_[ba][offerId] = index;
   }
 
   struct SlotViewMonad {

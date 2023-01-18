@@ -70,8 +70,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     require(uint96(amount) == amount, "Kandel/pendingOverflow");
     if (amount == 0) return;
     if (ba == OrderType.Ask) {
+      require(params.pendingBase >= amount, "Kandel/NotEnoughBase");
       params.pendingBase -= uint96(amount);
     } else {
+      require(params.pendingQuote >= amount, "Kandel/NotEnoughQuote");
       params.pendingQuote -= uint96(amount);
     }
   }
@@ -158,9 +160,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param ba whether Kandel is bidding or asking
   ///@param index the price index one is willing to improve
   ///@param step the number of price steps improvements
-  function better(OrderType ba, uint index, uint step, uint length) public view returns (uint) {
+  function better(OrderType ba, uint index, uint step, uint length_) public pure returns (uint) {
     return ba == OrderType.Ask
-      ? index + step >= length ? length - 1 : index + step
+      ? index + step >= length_ ? length_ - 1 : index + step
       : int(index) - int(step) < 0 ? 0 : index - step;
   }
 
@@ -244,8 +246,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
         emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/newOfferFailed", result);
         return 0;
       } else {
-        offerIdOfIndex_[uint(ba)][_index(ba, v)] = offerId_;
-        indexOfOfferId_[uint(ba)][offerId_] = _index(ba, v);
+        offerIdOfIndex(ba, _index(ba, v), offerId_);
+        indexOfOfferId(ba, offerId_, _index(ba, v));
         return -int(args.gives);
       }
     } else {
@@ -332,8 +334,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       require(kandelSize <= type(uint8).max, "Kandel/TooManyPricePoints");
       offerIdOfIndex_[uint(OrderType.Bid)] = new uint[](kandelSize);
       offerIdOfIndex_[uint(OrderType.Ask)] = new uint[](kandelSize);
-      indexOfOfferId_[uint(OrderType.Bid)] = new uint[](kandelSize);
-      indexOfOfferId_[uint(OrderType.Ask)] = new uint[](kandelSize);
       params.length = uint8(kandelSize);
     }
     if (params_.ratio != ratio) {

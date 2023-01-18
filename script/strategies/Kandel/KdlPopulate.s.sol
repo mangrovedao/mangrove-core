@@ -12,6 +12,11 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
  * @notice Populates Kandel's distribution on Mangrove
  */
 
+/*
+  FROM=0 TO=10 LAST_BID_INDEX=4 SIZE=10 RATIO=10100 SPREAD=1 INIT_QUOTE=$(cast ff 6 100) VOLUME=$(cast ff 18 0.1) \
+  KANDEL=Kandel_WETH_USDC forge script KdlPopulate --fork-url $LOCALHOST_URL \
+  --private-key $MUMBAI_TESTER_PRIVATE_KEY --broadcast*/
+
 contract KdlPopulate is Deployer {
   function run() public {
     innerRun(
@@ -121,7 +126,7 @@ contract KdlPopulate is Deployer {
     }
 
     prettyLog("Populating Mangrove...");
-    console.log(args.from, args.to, args.kandelSize);
+
     broadcast();
     args.kdl.populate{value: (vars.provAsk + vars.provBid) * (args.to - args.from)}({
       from: args.from,
@@ -135,7 +140,6 @@ contract KdlPopulate is Deployer {
       pivotIds: vars.pivotIds //
     });
     console.log(toUnit((vars.provAsk + vars.provBid) * (args.to - args.from), 18), "eth used as provision");
-    console.log("Interval:", args.from, args.lastBidIndex, args.to);
   }
 
   ///@notice evaluates Pivot ids for offers that need to be published on Mangrove
@@ -145,13 +149,14 @@ contract KdlPopulate is Deployer {
 
     // will revert all the insertion to avoid changing the state of mangrove on the local node (might mess up tests)
     vars.snapshotId = vm.snapshot();
+    uint quote_i = args.initQuote;
     for (uint i = 0; i < vars.pivotIds.length; i++) {
       vars.bidding = i <= args.lastBidIndex;
       (address outbound, address inbound) =
         vars.bidding ? (address(vars.QUOTE), address(vars.BASE)) : (address(vars.BASE), address(vars.QUOTE));
 
-      (uint wants, uint gives) = vars.bidding ? (args.volume, args.initQuote) : (args.initQuote, args.volume);
-      args.initQuote = args.initQuote * args.ratio / 10 ** 4;
+      (uint wants, uint gives) = vars.bidding ? (args.volume, quote_i) : (quote_i, args.volume);
+      quote_i = (quote_i * args.ratio) / 10 ** 4;
 
       if (gives > 0) {
         vars.lastOfferId = vars.MGV.newOffer{value: vars.bidding ? vars.provBid : vars.provAsk}({

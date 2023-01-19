@@ -103,7 +103,7 @@ contract LockedWrapperToken is ERC20 {
     return super.transferFrom(from, to, amount);
   }
 
-  function approve(address spender, uint amount) public override returns (bool) {
+  function approve(address spender, uint amount) public virtual override returns (bool) {
     return super.approve(spender, amount);
   }
 }

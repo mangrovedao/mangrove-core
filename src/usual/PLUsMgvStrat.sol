@@ -57,7 +57,7 @@ contract PLUsMgvStrat is ILiquidityProvider, Direct {
 
   // deposit from PLUsDAO to Meta-PLUsDAO
   function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint missing) {
-    _metaPLUsDAOToken.depositFrom(admin(), address(this), amount);
+    _pLUsDAOToken.transferFrom(admin(), address(this), amount);
     return super.__get__(amount, order);
   }
 

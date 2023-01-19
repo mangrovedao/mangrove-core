@@ -41,8 +41,6 @@ contract MangroveOrder_Test is MangroveTest {
     super.setUp();
     mgv.setFee($(base), $(quote), 30);
     mgv.setFee($(quote), $(base), 30);
-    // to prevent test runner (taker) from receiving fees!
-    mgv.setVault($(mgv));
 
     // this contract is admin of MgvOrder and its router
     mgo = new MgvOrder(IMangrove(payable(mgv)), $(this));

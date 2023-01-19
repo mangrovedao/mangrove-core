@@ -6,8 +6,7 @@ import "mgv_test/lib/MangroveTest.sol";
 
 /* The following constructs an ERC20 with a transferFrom callback method,
    and a TestTaker which throws away any funds received upon getting
-   a callback.
-*/
+   a callback.*/
 contract TakerOperationsTest is MangroveTest {
   TestMaker mkr;
   TestMaker refusemkr;
@@ -364,12 +363,13 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_taker_hasnt_approved_base_succeeds_order_with_fee() public {
     mgv.setFee($(base), $(quote), 3);
+
     uint balTaker = base.balanceOf($(this));
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
     quote.approve($(mgv), 1 ether);
-
+    uint shouldGet = reader.minusFee($(base), $(quote), 1 ether);
     mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]), true);
-    assertEq(base.balanceOf($(this)) - balTaker, 1 ether, "Incorrect delivered amount");
+    assertEq(base.balanceOf($(this)) - balTaker, shouldGet, "Incorrect delivered amount");
   }
 
   function test_taker_hasnt_approved_base_succeeds_order_wo_fee() public {
@@ -642,26 +642,6 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 120_000, 0);
     vm.expectRevert("mgv/notEnoughGasForMakerPosthook");
     mgv.snipes{gas: 240_000}($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 120_000]), true);
-  }
-
-  function test_fee_transfer_fail() public {
-    TestToken vaultBlacklister = new TestToken({
-      admin: $(this), 
-      name: "Vault Blacklister", 
-      symbol: "VBL", 
-      _decimals: 18
-    });
-    vm.label($(vaultBlacklister), "Vault Blacklister");
-    mgv.activate({outbound_tkn: $(vaultBlacklister), inbound_tkn: $(quote), fee: 10, density: 0, offer_gasbase: 0});
-    address vault = freshAddress();
-    quote.approve($(mgv), 1 ether);
-    mkr.approveMgv(vaultBlacklister, type(uint).max);
-    mgv.setVault(vault);
-    vaultBlacklister.blacklists(vault);
-    deal($(vaultBlacklister), $(mkr), 10 ether);
-    mkr.newOffer($(vaultBlacklister), $(quote), 1 ether, 1 ether, 420_000, 0);
-    vm.expectRevert("mgv/feeTransferFail");
-    mgv.marketOrder($(vaultBlacklister), $(quote), 1 ether, 1 ether, true);
   }
 
   function test_marketOrder_on_empty_book_does_not_revert() public {

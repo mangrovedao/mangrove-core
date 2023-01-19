@@ -59,10 +59,13 @@ contract MgvCleaner {
    * NB This impersonation trick only works for sniping of failing offers. Mangrove checks whether `msg.sender` is approved to send orders/snipes for the impersonated taker and reverts if it isn't the case. That check just happens `after` the order has completed and if all taken offers failed, no actual `inbound_tkn` funds were used and the check succeeds, because `msg.sender` is approved for 0 `inbound_tkn`s.
    * NB Returns the entire balance, not just the bounty collected
    */
-  function collectByImpersonation(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants, address takerToImpersonate)
-    external
-    returns (uint bal)
-  {
+  function collectByImpersonation(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint[4][] calldata targets,
+    bool fillWants,
+    address takerToImpersonate
+  ) external returns (uint bal) {
     unchecked {
       (uint successes,,,,) = MGV.snipesFor(outbound_tkn, inbound_tkn, targets, fillWants, takerToImpersonate);
       require(successes == 0, "mgvCleaner/anOfferDidNotFail");

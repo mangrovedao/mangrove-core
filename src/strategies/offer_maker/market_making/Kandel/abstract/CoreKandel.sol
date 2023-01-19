@@ -127,7 +127,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     Params memory params_
   ) internal view returns (uint wants, uint gives, uint pending_) {
     // computing gives/wants for dual offer
-    // we verify we cannot overflow if PRECISION < 6
+    // we verify we cannot overflow if PRECISION = 4
     // spread:8
     uint spread = uint(params_.spread);
     // compoundRate:16
@@ -136,24 +136,41 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint r = uint(params_.ratio) ** spread;
     // log2(10) = 3.32 => p:PRECISION*3.32
     uint p = 10 ** PRECISION;
-    // (p-compoundRate) * p**spread ~ p ** (spread + 1) : 9 * 3.32 * PRECISION
-    // compoundRate:16, r:128 => compoundRate * r : 144
-    // order.gives:96 => gives : max(9*3.32*PRECISION+96, 240) which will not overflow if PRECISION < 6
-    // r:128, p:PRECISION*3.32 => r*p:128+PRECISION*3.32 => gives:  max(9*3.32*PRECISION+96, 240) / (128+PRECISION*3.32)
-    // for PRECISION=4 we have gives ~ 240 - 142 => gives:98
+    // (a) max (p - compoundRate): 4*log2(10) (for compoundRate = 0)
+    // (b) p**spread: 8*4*log2(10) < 107
+    // (a) * (b) : 32*log2(10) + 4*log2(10) = 36*log2(10) < 120
+    // max (compoundRate * r) : 4*log2(10)+128 < 142 (for compoundRate = 10**4)
+    // max(numerator) : 96 + 142 = 238 (for compoundRate = 10**4)
+    // r:128*p:4*log2(10) : 128 + 4*log2(10) = 142 and gives:96 as it should
     gives = (order.gives * ((p - compoundRate) * p ** spread + compoundRate * r)) / (r * p);
 
     pending_ = order.gives - gives;
-    // adding to gives what the offer was already giving
-    // gives:98 _offer(..).gives:96
-    // gives:99
+    // adding to gives what the offer was already giving so gives could be greater than 2**96
+    // gives:98
     gives += _offer(ba_dual, v_dual).gives();
+    if (uint96(gives) != gives) {
+      // this should not be reached under normal circumstances unless strat is posting on top of an existing offer with an abnormal volume
+      // to prevent gives to be too high, we store the surplus in pending
+      pending_ += gives - type(uint96).max;
+      gives = type(uint96).max;
+    }
     // adjusting wants to price:
-    // gives: 99, r:128 => gives * r : 227
-    // order.gives * p**spread: 8*PRECISION*3.32 + 96 = 203 (for PRECISION = 4)
-    // (gives  * r) / (order.gives * (p ** spread)) : 24
-    // wants : 24 + 98 = 122
-    wants = order.wants * ((gives * r) / (order.gives * (p ** spread)));
+    // (a) gives * r : 96 + 128 = 224 so order.wants must be < 2**32 to avoid overflow
+    if (order.wants < 2 ** 32) {
+      // using max precision
+      wants = (order.wants * gives * r) / (order.gives * (p ** spread));
+    } else {
+      wants = order.wants * ((gives * r) / (order.gives * (p ** spread)));
+    }
+    // wants is higher than order.wants
+    // this may cause wants to be higher than 2**96 allowed by Mangrove (for instance if one needs many quotes to buy sell base tokens)
+    // so we adjust the price so as to want an amount of tokens that mangrove will accept.
+    if (uint96(wants) != wants) {
+      uint gives_ = (type(uint96).max * gives) / wants;
+      wants = type(uint96).max;
+      pending_ += gives - gives_;
+      gives = gives_;
+    }
   }
 
   ///@notice returns a better (for Kandel) price index than the one given in argument

@@ -21,7 +21,8 @@ abstract contract AbstractKandel {
 
   event SetCompoundRate(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote, uint compoundRate);
 
-  // precision should be strictly less than 6 to avoid potential overflow
+  // ratio and compoundRate have PRECISION decimals.
+  // setting PRECISION higher than 4 might produce overflow in limit cases.
   uint8 public constant PRECISION = 4;
   ///@notice a bid or an ask
 

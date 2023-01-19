@@ -146,7 +146,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
     pending_ = order.gives - gives;
     // adding to gives what the offer was already giving so gives could be greater than 2**96
-    // gives:98
+    // gives:97
     gives += _offer(ba_dual, v_dual).gives();
     if (uint96(gives) != gives) {
       // this should not be reached under normal circumstances unless strat is posting on top of an existing offer with an abnormal volume
@@ -272,17 +272,19 @@ abstract contract CoreKandel is Direct, AbstractKandel {
         //offerId && gives are 0
         return 0;
       }
+      uint old_gives = _offer(ba, v).gives();
       // when gives is 0 we retract offer
+      // note if gives is 0 then all gives in the range are 0, we may not want to allow for this.
       if (args.gives == 0) {
         retractOffer(ba, v, false);
-        return int(_offer(ba, v).gives());
+        return int(old_gives);
       } else {
         bytes32 result = _updateOffer(args, offerId);
         if (result != REPOST_SUCCESS) {
           emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/updateOfferFailed", result);
-          return int(_offer(ba, v).gives() + args.gives);
+          return int(old_gives + args.gives);
         }
-        return int(_offer(ba, v).gives()) - int(args.gives);
+        return int(old_gives) - int(args.gives);
       }
     }
   }
@@ -321,7 +323,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
   }
 
-  ///@notice publishes bids/asks in the distribution interval `[to,from[`
+  ///@notice publishes bids/asks in the distribution interval `[from, to[`
   ///@param from start in dex
   ///@param to end index
   ///@param lastBidIndex the index after which offer should be an Ask

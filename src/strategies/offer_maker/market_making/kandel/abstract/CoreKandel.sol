@@ -50,34 +50,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     return params.length;
   }
 
-  ///@notice increments pending liquidity
-  ///@param ba whether liquidity is used for bids or asks
-  ///@param amount of liquidity in quote (for bids) or base (for asks)
-  function pushPending(OrderType ba, uint amount) internal {
-    require(uint96(amount) == amount, "Kandel/pendingOverflow");
-    if (amount == 0) return;
-    if (ba == OrderType.Ask) {
-      params.pendingBase += uint96(amount);
-    } else {
-      params.pendingQuote += uint96(amount);
-    }
-  }
-
-  ///@notice decrements pending liquidity
-  ///@param ba whether liquidity is used for bids or asks
-  ///@param amount of liquidity in quote (for bids) or base (for asks)
-  function popPending(OrderType ba, uint amount) internal mgvOrAdmin {
-    require(uint96(amount) == amount, "Kandel/pendingOverflow");
-    if (amount == 0) return;
-    if (ba == OrderType.Ask) {
-      require(params.pendingBase >= amount, "Kandel/NotEnoughBase");
-      params.pendingBase -= uint96(amount);
-    } else {
-      require(params.pendingQuote >= amount, "Kandel/NotEnoughQuote");
-      params.pendingQuote -= uint96(amount);
-    }
-  }
-
   ///@notice turns an order type into an (outbound, inbound) pair identifying an offer list
   ///@param ba whether one wishes to access the offer lists where asks or bids are posted
   function tokenPairOfOrderType(OrderType ba) internal view returns (IERC20, IERC20) {
@@ -88,6 +60,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param outbound_tkn the outbound token of the offer list
   function orderTypeOfOutbound(IERC20 outbound_tkn) internal view returns (OrderType) {
     return outbound_tkn == BASE ? OrderType.Ask : OrderType.Bid;
+  }
+
+  ///@notice returns the outbound token for the order type
+  ///@param ba the order type
+  function outboundOfOrderType(OrderType ba) internal view returns (IERC20 token) {
+    token = ba == OrderType.Ask ? BASE : QUOTE;
   }
 
   function wantsGivesOfBaseQuote(OrderType ba, uint baseAmount, uint quoteAmount)
@@ -125,7 +103,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     SlotViewMonad memory v_dual,
     MgvLib.SingleOrder calldata order,
     Params memory params_
-  ) internal view returns (uint wants, uint gives, uint pending_) {
+  ) internal view returns (uint wants, uint gives) {
     // computing gives/wants for dual offer
     // we verify we cannot overflow if PRECISION = 4
     // spread:8
@@ -144,14 +122,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     // r:128*p:4*log2(10) : 128 + 4*log2(10) = 142 and gives:96 as it should
     gives = (order.gives * ((p - compoundRate) * p ** spread + compoundRate * r)) / (r * p);
 
-    pending_ = order.gives - gives;
     // adding to gives what the offer was already giving so gives could be greater than 2**96
     // gives:97
     gives += _offer(ba_dual, v_dual).gives();
     if (uint96(gives) != gives) {
       // this should not be reached under normal circumstances unless strat is posting on top of an existing offer with an abnormal volume
-      // to prevent gives to be too high, we store the surplus in pending
-      pending_ += gives - type(uint96).max;
+      // to prevent gives to be too high, we let the surplus be pending
       gives = type(uint96).max;
     }
     // adjusting wants to price:
@@ -166,10 +142,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     // this may cause wants to be higher than 2**96 allowed by Mangrove (for instance if one needs many quotes to buy sell base tokens)
     // so we adjust the price so as to want an amount of tokens that mangrove will accept.
     if (uint96(wants) != wants) {
-      uint gives_ = (type(uint96).max * gives) / wants;
+      gives = (type(uint96).max * gives) / wants;
       wants = type(uint96).max;
-      pending_ += gives - gives_;
-      gives = gives_;
     }
   }
 
@@ -246,54 +220,42 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     offerDetail = MGV.offerDetails(address(outbound), address(inbound), offerId);
   }
 
-  function pending(OrderType ba) public view returns (uint) {
-    return ba == OrderType.Ask ? params.pendingBase : params.pendingQuote;
-  }
-
   ///@notice publishes (by either creating or updating) a bid/ask at a given price index
   ///@param ba whether the offer is a bid or an ask
   ///@param v the view Monad for the offer to be published
   ///@param args the argument of the offer.
   ///@dev args.wants/gives must match the distribution at index
-  function populateIndex(OrderType ba, SlotViewMonad memory v, OfferArgs memory args) internal returns (int delta) {
+  function populateIndex(OrderType ba, SlotViewMonad memory v, OfferArgs memory args) internal {
     uint offerId = _offerId(ba, v);
     if (offerId == 0 && args.gives > 0) {
       (uint offerId_, bytes32 result) = _newOffer(args);
       if (offerId_ == 0) {
         emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/newOfferFailed", result);
-        return 0;
       } else {
         offerIdOfIndex(ba, _index(ba, v), offerId_);
         indexOfOfferId(ba, offerId_, _index(ba, v));
-        return -int(args.gives);
       }
     } else {
       if (offerId == 0) {
         //offerId && gives are 0
-        return 0;
       }
-      uint old_gives = _offer(ba, v).gives();
+      //uint old_gives = _offer(ba, v).gives();
       // when gives is 0 we retract offer
       // note if gives is 0 then all gives in the range are 0, we may not want to allow for this.
       if (args.gives == 0) {
         retractOffer(ba, v, false);
-        return int(old_gives);
       } else {
         bytes32 result = _updateOffer(args, offerId);
         if (result != REPOST_SUCCESS) {
           emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/updateOfferFailed", result);
-          return int(old_gives + args.gives);
+          //TODO emit residual ? return int(old_gives + args.gives);
         }
-        return int(old_gives) - int(args.gives);
       }
     }
   }
 
   struct HeapVarsPopulate {
     uint quote_i;
-    int deltaQuote;
-    int deltaBase;
-    int delta;
     uint from;
     uint to;
     uint lastBidIndex;
@@ -314,24 +276,19 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       args.gasprice = vars.gasprice;
       args.pivotId = pivotIds[index - vars.from];
 
-      if (ba == OrderType.Ask) {
-        vars.deltaBase += populateIndex(ba, _fresh(index), args);
-      } else {
-        vars.deltaQuote += populateIndex(ba, _fresh(index), args);
-      }
+      populateIndex(ba, _fresh(index), args);
       vars.quote_i = (vars.quote_i * uint(vars.ratio)) / 10 ** PRECISION;
     }
   }
 
   ///@notice publishes bids/asks in the distribution interval `[from, to[`
-  ///@param from start in dex
+  ///@param from start index
   ///@param to end index
   ///@param lastBidIndex the index after which offer should be an Ask
   ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
   ///@dev This function must be called w/o changing ratio
   ///@dev `from` > 0 must imply `initQuote` >= quote amount given/wanted at index from-1
   ///@dev msg.value must be enough to provision all posted offers
-  ///@dev pendingBase and pendingQuote must have enough funds to cover all delta in offer.gives
   function populate(
     uint from,
     uint to,
@@ -370,25 +327,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       to: to,
       lastBidIndex: lastBidIndex,
       ratio: params.ratio,
-      gasprice: params.gasprice,
-      deltaQuote: int(0),
-      deltaBase: int(0),
-      delta: int(0)
+      gasprice: params.gasprice
     });
 
     iterPopulate(vars, baseDist, pivotIds);
-
-    // call below verify that Kandel has enough base/quote to fullfill the offer it has posted.
-    if (vars.deltaBase > 0) {
-      pushPending(OrderType.Ask, uint(vars.deltaBase));
-    } else {
-      popPending(OrderType.Ask, uint(-vars.deltaBase));
-    }
-    if (vars.deltaQuote > 0) {
-      pushPending(OrderType.Bid, uint(vars.deltaQuote));
-    } else {
-      popPending(OrderType.Bid, uint(-vars.deltaQuote));
-    }
   }
 
   ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`
@@ -402,28 +344,26 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       SlotViewMonad memory v_bid = _fresh(index);
       collected += retractOffer(OrderType.Ask, v_ask, true);
       collected += retractOffer(OrderType.Bid, v_bid, true);
-      pushPending(OrderType.Ask, _offer(OrderType.Ask, v_ask).gives());
-      pushPending(OrderType.Bid, _offer(OrderType.Bid, v_bid).gives());
     }
   }
 
   ///@notice takes care of reposting residual offer in case of a partial fill and logging potential issues.
   ///@param order a recap of the taker order
   ///@param makerData generated during `makerExecute` so as to log it if necessary
-  ///@return notPublished the amount of liquidity that failed to be published on mangrove
-  function _handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData) internal returns (uint notPublished) {
+  function _handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData) internal {
     bytes32 repostStatus = super.__posthookSuccess__(order, makerData);
     if (repostStatus == "posthook/filled" || repostStatus == REPOST_SUCCESS) {
-      return 0;
+      return;
     }
     if (repostStatus == "mgv/writeOffer/density/tooLow") {
-      return __residualGives__(order);
+      // TODO log density too low
+      //return __residualGives__(order);
     } else {
       // Offer failed to repost for bad reason, logging the incident
       emit LogIncident(
         MGV, IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId, makerData, repostStatus
         );
-      return __residualGives__(order);
+      //return __residualGives__(order);
     }
   }
 
@@ -436,22 +376,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   {
     OrderType ba = orderTypeOfOutbound(IERC20(order.outbound_tkn));
     // adds any unpublished liquidity to pending[Base/Quote]
-    pushPending(ba, _handleResidual(order, makerData));
+    _handleResidual(order, makerData);
     // preparing arguments for the dual maker order
     (OrderType dualBa, SlotViewMonad memory v_dual, OfferArgs memory args) = _transportLogic(ba, order);
-    int delta = populateIndex(dualBa, v_dual, args);
-    return "";
-  }
-
-  ///@notice In case an offer failed to deliver, promised liquidity becomes pending, but offer is not reposted.
-  ///@inheritdoc MangroveOffer
-  function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)
-    internal
-    override
-    returns (bytes32)
-  {
-    OrderType ba = orderTypeOfOutbound(IERC20(order.outbound_tkn));
-    pushPending(ba, order.offer.gives());
+    populateIndex(dualBa, v_dual, args);
     return "";
   }
 }

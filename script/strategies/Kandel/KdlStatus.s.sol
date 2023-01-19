@@ -42,8 +42,8 @@ contract KdlStatus is Deployer {
     }
     console.log(
       "{",
-      toUnit(kdl.pending(AbstractKandel.OrderType.Ask), baseDecimals),
-      toUnit(kdl.pending(AbstractKandel.OrderType.Bid), quoteDecimals),
+      toUnit(uint(kdl.pending(AbstractKandel.OrderType.Ask)), baseDecimals),
+      toUnit(uint(kdl.pending(AbstractKandel.OrderType.Bid)), quoteDecimals),
       "}"
     );
   }

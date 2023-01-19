@@ -162,7 +162,8 @@ contract KandelTest is MangroveTest {
   function printOB() internal view {
     printOrderBook($(weth), $(usdc));
     printOrderBook($(usdc), $(weth));
-    (uint pendingBase, uint pendingQuote,,,,,) = kdl.params();
+    uint pendingBase = uint(kdl.pending(Ask));
+    uint pendingQuote = uint(kdl.pending(Bid));
 
     console.log("-------", toUnit(pendingBase, 18), toUnit(pendingQuote, 6), "-------");
   }
@@ -171,8 +172,7 @@ contract KandelTest is MangroveTest {
   AbstractKandel.OrderType constant Bid = AbstractKandel.OrderType.Bid;
 
   function pending(AbstractKandel.OrderType ba) internal view returns (uint) {
-    (uint pendingBase, uint pendingQuote,,,,,) = kdl.params();
-    return ba == Ask ? pendingBase : pendingQuote;
+    return uint(kdl.pending(ba));
   }
 
   function test_populates_order_book_correctly() public {

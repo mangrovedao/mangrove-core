@@ -32,15 +32,11 @@ abstract contract AbstractKandel {
   }
 
   ///@notice Kandel Params
-  ///@param pendingBase is the amount of free (not promised) base tokens in reserve
-  ///@param pendingQuote is the amount of free (not promised) quote tokens in reserve
   ///@param ratio of price progression (` 2**16 > ratio >= 10**PRECISION`) expressed with `PRECISION` decimals
   ///@param compoundRate percentage of the spread that is to be compounded, expressed with `PRECISION` decimals (`compoundRate <= 10**PRECISION`)
   ///@param spread in amount of price slots for posting dual offer
   ///@param precision number of decimals used for 'ratio' and `compoundRate`
   struct Params {
-    uint96 pendingBase;
-    uint96 pendingQuote;
     uint16 gasprice;
     uint16 ratio; // geometric ratio is `ratio/10**PRECISION`
     uint16 compoundRate; // compoundRate is `compoundRate/10**PRECISION`

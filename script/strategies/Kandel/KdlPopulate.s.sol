@@ -81,10 +81,7 @@ contract KdlPopulate is Deployer {
     vars.BASE = args.kdl.BASE();
     vars.QUOTE = args.kdl.QUOTE();
 
-    ( /*uint96 pendingBase*/
-      ,
-      /*uint96 pendingQuote*/
-      ,
+    (
       vars.gasprice,
       /*uint16 ratio*/
       ,

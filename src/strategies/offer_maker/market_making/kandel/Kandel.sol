@@ -49,9 +49,7 @@ contract Kandel is CoreKandel {
     // computing gives/wants for dual offer
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
-    uint pending;
-    (args.wants, args.gives, pending) = dualWantsGivesOfOrder(ba_dual, v_dual, order, params_);
-    pushPending(ba_dual, pending);
+    (args.wants, args.gives) = dualWantsGivesOfOrder(ba_dual, v_dual, order, params_);
     args.gasprice = _offerDetail(ba_dual, v_dual).gasprice();
     args.gasreq = v_dual.offerDetail.gasreq() == 0 ? offerGasreq() : v_dual.offerDetail.gasreq();
     args.pivotId = v_dual.offer.gives() > 0 ? v_dual.offer.next() : 0;
@@ -59,23 +57,37 @@ contract Kandel is CoreKandel {
   }
 
   function depositFunds(OrderType ba, uint amount) external {
-    IERC20 token = ba == OrderType.Ask ? BASE : QUOTE;
+    IERC20 token = outboundOfOrderType(ba);
     require(
       TransferLib.transferTokenFrom(token, msg.sender, address(this), amount)
         && push({token: token, amount: amount}) == amount,
       "Kandel/depositFailed"
     );
-    pushPending(ba, amount);
   }
 
+  /// @notice withdraw `amount` of funds from base (ask) or quote (bid) to `recipient`.
+  /// @param ba the order type.
+  /// @param amount to withdraw.
+  /// @param recipient who receives the tokens.
+  /// @dev it is up to the caller to make sure there are still enough funds for live offers.
   function withdrawFunds(OrderType ba, uint amount, address recipient) external onlyAdmin {
-    IERC20 token = ba == OrderType.Ask ? BASE : QUOTE;
-    // call below will throw if amount > pending
-    popPending(ba, amount);
+    IERC20 token = outboundOfOrderType(ba);
     require(
       pull({token: token, amount: amount, strict: true}) == amount
         && TransferLib.transferToken(token, recipient, amount),
       "Kandel/NotEnoughFunds"
     );
+  }
+
+  /// @notice get pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
+  /// @param ba order type.
+  function pending(OrderType ba) public view returns (int pending_) {
+    IERC20 token = outboundOfOrderType(ba);
+    pending_ = int(token.balanceOf(reserve(msg.sender)));
+
+    for (uint index = 0; index < params.length; index++) {
+      (MgvStructs.OfferPacked offer,) = this.getOffer(ba, index);
+      pending_ -= int(offer.gives());
+    }
   }
 }

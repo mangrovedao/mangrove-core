@@ -255,30 +255,89 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   }
 
   struct HeapVarsPopulate {
-    uint quote_i;
-    uint from;
-    uint to;
     uint lastBidIndex;
     uint gasprice;
     uint ratio;
   }
 
-  function iterPopulate(HeapVarsPopulate memory vars, uint[] calldata baseDist, uint[] calldata pivotIds) internal {
-    for (uint index = vars.from; index < vars.to; index++) {
+  function iterPopulate(
+    HeapVarsPopulate memory vars,
+    uint[] memory indices,
+    uint[] calldata baseDist,
+    uint[] memory quoteDist,
+    uint[] calldata pivotIds
+  ) internal {
+    for (uint i = 0; i < indices.length; i++) {
       OfferArgs memory args;
+      uint index = indices[i];
 
       OrderType ba = index <= vars.lastBidIndex ? OrderType.Bid : OrderType.Ask;
       (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOrderType(ba);
-      (args.wants, args.gives) = wantsGivesOfBaseQuote(ba, baseDist[index - vars.from], vars.quote_i);
+      (args.wants, args.gives) = wantsGivesOfBaseQuote(ba, baseDist[i], quoteDist[i]);
       args.fund = 0;
       args.noRevert = false;
       args.gasreq = offerGasreq();
       args.gasprice = vars.gasprice;
-      args.pivotId = pivotIds[index - vars.from];
+      args.pivotId = pivotIds[i];
 
       populateIndex(ba, _fresh(index), args);
-      vars.quote_i = (vars.quote_i * uint(vars.ratio)) / 10 ** PRECISION;
     }
+  }
+
+  function setParams(uint kandelSize, uint16 ratio, uint8 spread) private {
+    // Initializing arrays and parameters if needed
+    Params memory params_ = params;
+
+    if (params_.length != kandelSize) {
+      require(kandelSize <= type(uint8).max, "Kandel/TooManyPricePoints");
+      offerIdOfIndex_[uint(OrderType.Bid)] = new uint[](kandelSize);
+      offerIdOfIndex_[uint(OrderType.Ask)] = new uint[](kandelSize);
+      params.length = uint8(kandelSize);
+    }
+    if (params_.ratio != ratio) {
+      require(ratio >= 10 ** PRECISION, "Kandel/invalidRatio");
+      params.ratio = ratio;
+    }
+    if (params_.spread != spread) {
+      require(spread > 0, "Kandel/invalidSpread");
+      params.spread = spread;
+    }
+  }
+
+  ///@notice publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
+  ///@param indices the indices to populate
+  ///@param baseDist the distribution of base
+  ///@param quoteDist the distribution of quote
+  ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
+  ///@param lastBidIndex the index after which offer should be an Ask
+  ///@param kandelSize the number of price points
+  ///@param ratio the rate of the geometric distribution with PRECISION decimals.
+  ///@param spread the distance between a ask in the distribution and its corresponding bid.
+  ///@dev This function must be called w/o changing ratio, kandelSize, spread. To change them, first retract all offers.
+  ///@dev msg.value must be enough to provision all posted offers
+  function populate(
+    uint[] calldata indices,
+    uint[] calldata baseDist,
+    uint[] calldata quoteDist,
+    uint[] calldata pivotIds,
+    uint lastBidIndex,
+    uint kandelSize,
+    uint16 ratio,
+    uint8 spread
+  ) external payable onlyAdmin {
+    require(
+      indices.length == baseDist.length && indices.length == quoteDist.length && indices.length == pivotIds.length,
+      "Kandel/ArraysMustBeSameSize"
+    );
+    if (msg.value > 0) {
+      MGV.fund{value: msg.value}();
+    }
+    setParams(kandelSize, ratio, spread);
+
+    HeapVarsPopulate memory vars =
+      HeapVarsPopulate({lastBidIndex: lastBidIndex, ratio: params.ratio, gasprice: params.gasprice});
+
+    iterPopulate(vars, indices, baseDist, quoteDist, pivotIds);
   }
 
   ///@notice publishes bids/asks in the distribution interval `[from, to[`
@@ -300,37 +359,26 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint[] calldata baseDist, // base distribution in [from, to[
     uint[] calldata pivotIds // pivots for {offer[from],...,offer[to-1]}
   ) external payable onlyAdmin {
-    Params memory params_ = params;
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
-    require(from < to && to <= kandelSize, "Kandel/invalidInterval");
-    // Initializing arrays and parameters if needed
-    if (params_.length != kandelSize) {
-      require(kandelSize <= type(uint8).max, "Kandel/TooManyPricePoints");
-      offerIdOfIndex_[uint(OrderType.Bid)] = new uint[](kandelSize);
-      offerIdOfIndex_[uint(OrderType.Ask)] = new uint[](kandelSize);
-      params.length = uint8(kandelSize);
-    }
-    if (params_.ratio != ratio) {
-      require(ratio >= 10 ** PRECISION, "Kandel/invalidRatio");
-      params.ratio = ratio;
-    }
-    if (params_.spread != spread) {
-      require(spread > 0, "Kandel/invalidSpread");
-      params.spread = spread;
+
+    uint[] memory quoteDist = new uint[](baseDist.length);
+    uint[] memory indices = new uint[](baseDist.length);
+    uint i = 0;
+    for (uint index = from; index < to; index++) {
+      indices[i] = index;
+      quoteDist[i] = initQuote;
+      initQuote = (initQuote * uint(ratio)) / 10 ** PRECISION;
+      i++;
     }
 
-    HeapVarsPopulate memory vars = HeapVarsPopulate({
-      quote_i: initQuote,
-      from: from,
-      to: to,
-      lastBidIndex: lastBidIndex,
-      ratio: params.ratio,
-      gasprice: params.gasprice
-    });
+    setParams(kandelSize, ratio, spread);
 
-    iterPopulate(vars, baseDist, pivotIds);
+    HeapVarsPopulate memory vars =
+      HeapVarsPopulate({lastBidIndex: lastBidIndex, ratio: params.ratio, gasprice: params.gasprice});
+
+    iterPopulate(vars, indices, baseDist, quoteDist, pivotIds);
   }
 
   ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`

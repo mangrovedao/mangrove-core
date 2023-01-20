@@ -18,7 +18,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 
-import {IERC20, HasMgvEvents, IMaker, IMgvMonitor, MgvLib, MgvStructs} from "./MgvLib.sol";
+import {HasMgvEvents, IMaker, IMgvMonitor, MgvLib, MgvStructs} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
@@ -209,7 +209,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         sor.local = sor.local.lock(false);
         locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
 
-        /* `payTakerMinusFees` sends the fee to the vault, proportional to the amount purchased, and gives the rest to the taker */
+        /* `payTakerMinusFees` keeps the fee in Mangrove, proportional to the amount purchased, and gives the rest to the taker */
         payTakerMinusFees(mor, sor);
 
         /* In an inverted Mangrove, amounts have been lent by each offer's maker to the taker. We now call the taker. This is a noop in a normal Mangrove. */
@@ -331,7 +331,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           sor.local = sor.local.lock(false);
           locals[sor.outbound_tkn][sor.inbound_tkn] = sor.local;
 
-          /* `payTakerMinusFees` sends the fee to the vault, proportional to the amount purchased, and gives the rest to the taker */
+          /* `payTakerMinusFees` keeps the fee in Mangrove, proportional to the amount purchased, and gives the rest to the taker */
           payTakerMinusFees(mor, sor);
 
           /* In an inverted Mangrove, amounts have been lent by each offer's maker to the taker. We now call the taker. This is a noop in a normal Mangrove. */
@@ -666,18 +666,16 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     }
   }
 
-  /* Post-trade, `payTakerMinusFees` sends what's due to the taker and the rest (the fees) to the vault. Routing through Mangrove like that also deals with blacklisting issues (separates the maker-blacklisted and the taker-blacklisted cases). */
+  /* Post-trade, `payTakerMinusFees` sends what's due to the taker and keeps the rest (the fees). Routing through the Mangrove like that also deals with blacklisting issues (separates the maker-blacklisted and the taker-blacklisted cases). */
   function payTakerMinusFees(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal {
     unchecked {
-      /* Should be statically provable that the 2 transfers below cannot return false under well-behaved ERC20s and a non-blacklisted, non-0 target. */
-
       uint concreteFee = (mor.totalGot * sor.local.fee()) / 10_000;
       if (concreteFee > 0) {
         mor.totalGot -= concreteFee;
         mor.feePaid = concreteFee;
-        require(transferToken(sor.outbound_tkn, vault, concreteFee), "mgv/feeTransferFail");
       }
       if (mor.totalGot > 0) {
+        /* It should be statically provable that this transfer cannot return false under well-behaved ERC20s and a non-blacklisted, non-0 target, if governance does not call withdrawERC20 during order execution. */
         require(transferToken(sor.outbound_tkn, mor.taker, mor.totalGot), "mgv/MgvFailToPayTaker");
       }
     }
@@ -703,27 +701,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       assembly {
         revert(data, 96)
       }
-    }
-  }
-
-  /* `transferTokenFrom` is adapted from [existing code](https://soliditydeveloper.com/safe-erc20) and in particular avoids the
-  "no return value" bug. It never throws and returns true iff the transfer was successful according to `tokenAddress`.
-
-    Note that any spurious exception due to an error in Mangrove code will be falsely blamed on `from`.
-  */
-  function transferTokenFrom(address tokenAddress, address from, address to, uint value) internal returns (bool) {
-    unchecked {
-      bytes memory cd = abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, value);
-      (bool noRevert, bytes memory data) = tokenAddress.call(cd);
-      return (noRevert && (data.length == 0 || abi.decode(data, (bool))));
-    }
-  }
-
-  function transferToken(address tokenAddress, address to, uint value) internal returns (bool) {
-    unchecked {
-      bytes memory cd = abi.encodeWithSelector(IERC20.transfer.selector, to, value);
-      (bool noRevert, bytes memory data) = tokenAddress.call(cd);
-      return (noRevert && (data.length == 0 || abi.decode(data, (bool))));
     }
   }
 }

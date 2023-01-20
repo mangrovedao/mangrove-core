@@ -70,7 +70,6 @@ contract HasMgvEvents {
   event SetGasbase(address indexed outbound_tkn, address indexed inbound_tkn, uint offer_gasbase);
   event SetGovernance(address value);
   event SetMonitor(address value);
-  event SetVault(address value);
   event SetUseOracle(bool value);
   event SetNotify(bool value);
   event SetGasmax(uint value);

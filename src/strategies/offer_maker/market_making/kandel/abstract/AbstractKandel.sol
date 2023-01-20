@@ -19,10 +19,12 @@ abstract contract AbstractKandel {
   ///@notice signals that the price has moved below Kandel's current price range
   event AllBids(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
 
-  ///@notice the compound rate has been set to `compoundRate` which will take effect for future compounding.
-  event SetCompoundRate(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote, uint compoundRate);
+  ///@notice the compound rates have been set to `compoundRateBase` and `compoundRateQuote` which will take effect for future compounding.
+  event SetCompoundRates(
+    IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote, uint compoundRateBase, uint compoundRateQuote
+  );
 
-  // ratio and compoundRate have PRECISION decimals.
+  // `ratio`, `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals.
   // setting PRECISION higher than 4 might produce overflow in limit cases.
   uint8 public constant PRECISION = 4;
 
@@ -34,13 +36,15 @@ abstract contract AbstractKandel {
 
   ///@notice Kandel Params
   ///@param ratio of price progression (`2**16 > ratio >= 10**PRECISION`) expressed with `PRECISION` decimals
-  ///@param compoundRate percentage of the spread that is to be compounded, expressed with `PRECISION` decimals (`compoundRate <= 10**PRECISION`)
+  ///@param compoundRateBase percentage of the spread that is to be compounded for base, expressed with `PRECISION` decimals (`compoundRateBase <= 10**PRECISION`)
+  ///@param compoundRateQuote percentage of the spread that is to be compounded for quote, expressed with `PRECISION` decimals (`compoundRateQuote <= 10**PRECISION`)
   ///@param spread in amount of price slots for posting dual offer
-  ///@param precision number of decimals used for 'ratio' and `compoundRate`
+  ///@param precision number of decimals used for `ratio`, `compoundRateBase`, and `compoundRateQuote`.
   struct Params {
     uint16 gasprice;
     uint16 ratio; // geometric ratio is `ratio/10**PRECISION`
-    uint16 compoundRate; // compoundRate is `compoundRate/10**PRECISION`
+    uint16 compoundRateBase; // real compound rate for bids is `compoundRateBase/10**PRECISION`
+    uint16 compoundRateQuote; // real compound rate for asks is `compoundRateQuote/10**PRECISION`
     uint8 spread;
     uint8 length;
   }

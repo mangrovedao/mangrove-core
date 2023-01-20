@@ -40,11 +40,15 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     __activate__(quote);
   }
 
-  ///@notice set the compound rate. It will take effect for future compounding.
-  function setCompoundRate(uint16 c) public mgvOrAdmin {
-    require(c <= 10 ** PRECISION, "Kandel/invalidCompoundRate");
-    emit SetCompoundRate(MGV, BASE, QUOTE, c);
-    params.compoundRate = c;
+  ///@notice set the compound rates. It will take effect for future compounding.
+  ///@param compoundRateBase the compound rate for base.
+  ///@param compoundRateQuote the compound rate for quote.
+  function setCompoundRates(uint16 compoundRateBase, uint16 compoundRateQuote) public mgvOrAdmin {
+    require(compoundRateBase <= 10 ** PRECISION, "Kandel/invalidCompoundRateBase");
+    require(compoundRateQuote <= 10 ** PRECISION, "Kandel/invalidCompoundRateQuote");
+    emit SetCompoundRates(MGV, BASE, QUOTE, compoundRateBase, compoundRateQuote);
+    params.compoundRateBase = compoundRateBase;
+    params.compoundRateQuote = compoundRateQuote;
   }
 
   function length() public view returns (uint) {
@@ -100,6 +104,13 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     return OrderType((uint(ba) + 1) % 2);
   }
 
+  /// @param ba_dual the dual order type.
+  /// @param params_ the Kandel params.
+  /// @return compoundRate to use for the gives of the order type. Asks give base so this would be the `compoundRateBase`, and vice versa.
+  function compoundRateForDual(OrderType ba_dual, Params memory params_) private pure returns (uint compoundRate) {
+    compoundRate = uint(ba_dual == OrderType.Ask ? params_.compoundRateBase : params_.compoundRateQuote);
+  }
+
   function dualWantsGivesOfOrder(
     OrderType ba_dual,
     SlotViewMonad memory v_dual,
@@ -111,7 +122,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     // spread:8
     uint spread = uint(params_.spread);
     // compoundRate:16
-    uint compoundRate = uint(params_.compoundRate);
+    uint compoundRate = compoundRateForDual(ba_dual, params_);
     // params.ratio:16, spread:8 ==> r:128
     uint r = uint(params_.ratio) ** spread;
     // log2(10) = 3.32 => p:PRECISION*3.32

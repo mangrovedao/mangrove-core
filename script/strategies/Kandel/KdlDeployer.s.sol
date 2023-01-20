@@ -19,7 +19,8 @@ contract KdlDeployer is Deployer {
       base: envAddressOrName("BASE"),
       quote: envAddressOrName("QUOTE"),
       gaspriceFactor: vm.envUint("GASPRICE_FACTOR"),
-      compoundRate: 10 ** 4, // default is 100% compounding
+      compoundRateBase: 10 ** 4, // default is 100% compounding for base
+      compoundRateQuote: 10 ** 4, // default is 100% compounding for quote
       gasreq: 100_000
     });
   }
@@ -29,10 +30,19 @@ contract KdlDeployer is Deployer {
    * @param quote Address of the quote token of the market Kandel will act on
    * @param gasreq the gas required for the offer logic
    * @param gaspriceFactor multiplier of Mangrove's gasprice used to compute Kandel's provision
-   * @param compoundRate <= 10**4, the proportion of the spread Kandel will reinvests automatically
+   * @param compoundRateBase <= 10**4, the proportion of the spread Kandel will reinvest automatically for base
+   * @param compoundRateQuote <= 10**4, the proportion of the spread Kandel will reinvest automatically for quote
    */
-  function innerRun(address base, address quote, uint gasreq, uint gaspriceFactor, uint compoundRate) public {
-    require(uint16(compoundRate) == compoundRate, "compoundRate is too big");
+  function innerRun(
+    address base,
+    address quote,
+    uint gasreq,
+    uint gaspriceFactor,
+    uint compoundRateBase,
+    uint compoundRateQuote
+  ) public {
+    require(uint16(compoundRateBase) == compoundRateBase, "compoundRateBase is too big");
+    require(uint16(compoundRateQuote) == compoundRateQuote, "compoundRateQuote is too big");
     IMangrove mgv = IMangrove(fork.get("Mangrove"));
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
 
@@ -46,7 +56,7 @@ contract KdlDeployer is Deployer {
     );
 
     broadcast();
-    current.setCompoundRate(uint16(compoundRate));
+    current.setCompoundRates(uint16(compoundRateBase), uint16(compoundRateQuote));
 
     string memory kandelName = getName(IERC20(base), IERC20(quote));
     fork.set(kandelName, address(current));

@@ -135,7 +135,7 @@ contract KandelTest is MangroveTest {
     uint[10] memory offerStatuses // 1:bid 2:ask 3:crossed 0:dead
   ) internal {
     uint quote = initQuote;
-    (, uint16 ratio,,,) = kdl.params();
+    (, uint16 ratio,,,,) = kdl.params();
     for (uint i = 0; i < 10; i++) {
       uint price = quote / initBase;
       (MgvStructs.OfferPacked bid,) = kdl.getOffer(AbstractKandel.OrderType.Bid, i);
@@ -181,33 +181,34 @@ contract KandelTest is MangroveTest {
   }
 
   function test_bid_complete_fill_compound_1() public {
-    test_bid_complete_fill(10_000);
+    test_bid_complete_fill(10_000, 0);
   }
 
   function test_bid_complete_fill_compound_0() public {
-    test_bid_complete_fill(0);
+    test_bid_complete_fill(0, 10_000);
   }
 
   function test_bid_complete_fill_compound_half() public {
-    test_bid_complete_fill(5_000);
+    test_bid_complete_fill(5_000, 10_000);
   }
 
   function test_ask_complete_fill_compound_1() public {
-    test_ask_complete_fill(10_000);
+    test_ask_complete_fill(0, 10_000);
   }
 
   function test_ask_complete_fill_compound_0() public {
-    test_ask_complete_fill(0);
+    test_ask_complete_fill(10_000, 0);
   }
 
   function test_ask_complete_fill_compound_half() public {
-    test_ask_complete_fill(5_000);
+    test_ask_complete_fill(0, 5_000);
   }
 
-  function test_bid_complete_fill(uint16 c) private {
-    vm.assume(c <= 10_000);
+  function test_bid_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote) private {
+    vm.assume(compoundRateBase <= 10_000);
+    vm.assume(compoundRateQuote <= 10_000);
     vm.prank(maker);
-    kdl.setCompoundRate(c);
+    kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
     (MgvStructs.OfferPacked oldAsk,) = kdl.getOffer(Ask, 4 + STEP);
 
@@ -217,7 +218,7 @@ contract KandelTest is MangroveTest {
     (MgvStructs.OfferPacked newAsk,) = kdl.getOffer(Ask, 4 + STEP);
     assertTrue(newAsk.gives() <= takerGave + oldAsk.gives(), "Cannot give more than what was received");
     assertEq(pending(Ask) + newAsk.gives(), oldAsk.gives() + takerGave, "Incorrect net promised asset");
-    if (c == 10_000) {
+    if (compoundRateBase == 10_000) {
       assertEq(pending(Ask), 0, "Full compounding should not yield pending");
     } else {
       assertTrue(pending(Ask) > 0, "Partial auto compounding should yield pending");
@@ -225,10 +226,11 @@ contract KandelTest is MangroveTest {
     assertTrue(newAsk.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
   }
 
-  function test_ask_complete_fill(uint16 c) private {
-    vm.assume(c <= 10_000);
+  function test_ask_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote) private {
+    vm.assume(compoundRateBase <= 10_000);
+    vm.assume(compoundRateQuote <= 10_000);
     vm.prank(maker);
-    kdl.setCompoundRate(c);
+    kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
     (MgvStructs.OfferPacked oldBid,) = kdl.getOffer(Bid, 5 - STEP);
 
@@ -238,7 +240,7 @@ contract KandelTest is MangroveTest {
     (MgvStructs.OfferPacked newBid,) = kdl.getOffer(Bid, 5 - STEP);
     assertTrue(newBid.gives() <= takerGave + oldBid.gives(), "Cannot give more than what was received");
     assertEq(pending(Bid) + newBid.gives(), oldBid.gives() + takerGave, "Incorrect net promised asset");
-    if (c == 10_000) {
+    if (compoundRateQuote == 10_000) {
       assertEq(pending(Bid), 0, "Full compounding should not yield pending");
     } else {
       assertTrue(pending(Bid) > 0, "Partial auto compounding should yield pending");

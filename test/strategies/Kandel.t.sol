@@ -25,7 +25,10 @@ contract KandelTest is MangroveTest {
 
   uint constant GASREQ = 77_000;
   uint8 constant STEP = 1;
+  uint initQuote;
+  uint immutable initBase = uint(0.1 ether);
 
+  ///@notice signals that the price has moved above Kandel's current price range
   event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
   ///@notice signals that the price has moved below Kandel's current price range
   event AllBids(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
@@ -41,6 +44,8 @@ contract KandelTest is MangroveTest {
     // rename for convenience
     weth = base;
     usdc = quote;
+
+    initQuote = cash(usdc, 100); // quote given/wanted at index from
 
     maker = freshAddress("maker");
     taker = freshAddress("taker");
@@ -90,20 +95,9 @@ contract KandelTest is MangroveTest {
       kandelSize: 10,
       ratio: uint16(108 * 10 ** kdl.PRECISION() / 100),
       spread: STEP,
-      initQuote: cash(usdc, 100), // quote given/wanted at index from
+      initQuote: initQuote, // quote given/wanted at index from
       baseDist: dynamic(
-        [
-          uint(0.1 ether),
-          0.1 ether,
-          0.1 ether,
-          0.1 ether,
-          0.1 ether,
-          0.1 ether,
-          0.1 ether,
-          0.1 ether,
-          0.1 ether,
-          0.1 ether
-        ]
+        [initBase, initBase, initBase, initBase, initBase, initBase, initBase, initBase, initBase, initBase]
         ), // base distribution in [from, to[
       pivotIds: dynamic([uint(0), 1, 2, 3, 4, 0, 1, 2, 3, 4])
     });
@@ -140,7 +134,10 @@ contract KandelTest is MangroveTest {
   function assertStatus(
     uint[10] memory offerStatuses // 1:bid 2:ask 3:crossed 0:dead
   ) internal {
+    uint quote = initQuote;
+    (, uint16 ratio,,,) = kdl.params();
     for (uint i = 0; i < 10; i++) {
+      uint price = quote / initBase;
       (MgvStructs.OfferPacked bid,) = kdl.getOffer(AbstractKandel.OrderType.Bid, i);
       (MgvStructs.OfferPacked ask,) = kdl.getOffer(AbstractKandel.OrderType.Ask, i);
       if (offerStatuses[i] == 0) {
@@ -148,14 +145,17 @@ contract KandelTest is MangroveTest {
       } else {
         if (offerStatuses[i] == 1) {
           assertTrue(bid.gives() > 0 && ask.gives() == 0, "Kandel not bidding at index");
+          assertTrue(bid.gives() / bid.wants() == price, "Bid price does not follow distribution");
         } else {
           if (offerStatuses[i] == 2) {
             assertTrue(bid.gives() == 0 && ask.gives() > 0, "Kandel is not asking at index");
+            assertTrue(ask.wants() / ask.gives() == price, "Ask price does not follow distribution");
           } else {
             assertTrue(bid.gives() > 0 && ask.gives() > 0, "Kandel is not crossed at index");
           }
         }
       }
+      quote = (quote * uint(ratio)) / 10 ** kdl.PRECISION();
     }
   }
 
@@ -180,7 +180,31 @@ contract KandelTest is MangroveTest {
     assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
   }
 
-  function test_bid_complete_fill(uint16 c) public {
+  function test_bid_complete_fill_compound_1() public {
+    test_bid_complete_fill(10_000);
+  }
+
+  function test_bid_complete_fill_compound_0() public {
+    test_bid_complete_fill(0);
+  }
+
+  function test_bid_complete_fill_compound_half() public {
+    test_bid_complete_fill(5_000);
+  }
+
+  function test_ask_complete_fill_compound_1() public {
+    test_ask_complete_fill(10_000);
+  }
+
+  function test_ask_complete_fill_compound_0() public {
+    test_ask_complete_fill(0);
+  }
+
+  function test_ask_complete_fill_compound_half() public {
+    test_ask_complete_fill(5_000);
+  }
+
+  function test_bid_complete_fill(uint16 c) private {
     vm.assume(c <= 10_000);
     vm.prank(maker);
     kdl.setCompoundRate(c);
@@ -197,11 +221,11 @@ contract KandelTest is MangroveTest {
       assertEq(pending(Ask), 0, "Full compounding should not yield pending");
     } else {
       assertTrue(pending(Ask) > 0, "Partial auto compounding should yield pending");
-      assertTrue(newAsk.wants() >= takerGot + fee, "Auto compounding should give more than what taker gave");
     }
+    assertTrue(newAsk.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
   }
 
-  function test_ask_complete_fill(uint16 c) public {
+  function test_ask_complete_fill(uint16 c) private {
     vm.assume(c <= 10_000);
     vm.prank(maker);
     kdl.setCompoundRate(c);
@@ -218,8 +242,8 @@ contract KandelTest is MangroveTest {
       assertEq(pending(Bid), 0, "Full compounding should not yield pending");
     } else {
       assertTrue(pending(Bid) > 0, "Partial auto compounding should yield pending");
-      assertTrue(newBid.wants() >= takerGot + fee, "Auto compounding should give more than what taker gave");
     }
+    assertTrue(newBid.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
   }
 
   function test_bid_partial_fill() public {

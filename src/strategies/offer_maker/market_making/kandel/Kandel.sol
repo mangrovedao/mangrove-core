@@ -86,7 +86,7 @@ contract Kandel is CoreKandel {
     pending_ = int(token.balanceOf(reserve(msg.sender)));
 
     for (uint index = 0; index < params.length; index++) {
-      (MgvStructs.OfferPacked offer,) = this.getOffer(ba, index);
+      (MgvStructs.OfferPacked offer,) = getOffer(ba, index);
       pending_ -= int(offer.gives());
     }
   }

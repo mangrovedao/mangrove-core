@@ -210,7 +210,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   }
 
   function getOffer(OrderType ba, uint index)
-    external
+    public
     view
     returns (MgvStructs.OfferPacked offer, MgvStructs.OfferDetailPacked offerDetail)
   {

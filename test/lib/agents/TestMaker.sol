@@ -157,6 +157,13 @@ contract SimpleTestMaker is TrivialTestMaker {
     return newOfferWithFunding(base, quote, wants, gives, gasreq, 0, pivotId, amount, offerData);
   }
 
+  function newOfferWithFunding(uint wants, uint gives, uint gasreq, uint gasprice, uint pivotId, uint amount)
+    public
+    returns (uint)
+  {
+    return newOfferWithFunding(base, quote, wants, gives, gasreq, gasprice, pivotId, amount);
+  }
+
   function newOffer(address _base, address _quote, uint wants, uint gives, uint gasreq, uint pivotId)
     public
     returns (uint)
@@ -239,11 +246,12 @@ contract SimpleTestMaker is TrivialTestMaker {
   function updateOffer(uint wants, uint gives, uint gasreq, uint pivotId, uint offerId, OfferData memory offerData)
     public
   {
-    mgv.updateOffer(base, quote, wants, gives, gasreq, 0, pivotId, offerId);
+    updateOfferWithFunding(wants, gives, gasreq, pivotId, offerId, 0, offerData);
   }
 
   function updateOffer(uint wants, uint gives, uint gasreq, uint pivotId, uint offerId) public {
-    mgv.updateOffer(base, quote, wants, gives, gasreq, 0, pivotId, offerId);
+    OfferData memory offerData;
+    updateOfferWithFunding(wants, gives, gasreq, pivotId, offerId, 0, offerData);
   }
 
   function updateOfferWithFunding(uint wants, uint gives, uint gasreq, uint pivotId, uint offerId, uint amount) public {

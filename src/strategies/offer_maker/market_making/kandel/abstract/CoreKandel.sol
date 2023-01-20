@@ -391,14 +391,35 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`
   ///@param from the start index
   ///@param to the end index
+  ///@return collected the amount of deprovisioned native token
+  ///@return reusableBids offerIds which can be reused for bids (tail of array will be 0s)
+  ///@return reusableAsks offerIds which can be reused for asks (tail of array will be 0s).
   ///@dev this simply provisions this contract's balance on Mangrove.
   ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs
-  function retractOffers(uint from, uint to) external onlyAdmin returns (uint collected) {
+  function retractOffers(uint from, uint to)
+    external
+    onlyAdmin
+    returns (uint collected, uint[] memory reusableBids, uint[] memory reusableAsks)
+  {
+    uint asks = 0;
+    uint bids = 0;
+    reusableAsks = new uint[](to-from);
+    reusableBids = new uint[](to-from);
     for (uint index = from; index < to; index++) {
       SlotViewMonad memory v_ask = _fresh(index);
+      uint offerId = _offerId(OrderType.Ask, v_ask);
+      if (offerId != 0) {
+        reusableAsks[asks] = offerId;
+        collected += retractOffer(OrderType.Ask, v_ask, true);
+        asks++;
+      }
       SlotViewMonad memory v_bid = _fresh(index);
-      collected += retractOffer(OrderType.Ask, v_ask, true);
-      collected += retractOffer(OrderType.Bid, v_bid, true);
+      offerId = _offerId(OrderType.Bid, v_bid);
+      if (offerId != 0) {
+        reusableBids[bids] = offerId;
+        collected += retractOffer(OrderType.Bid, v_bid, true);
+        bids++;
+      }
     }
   }
 

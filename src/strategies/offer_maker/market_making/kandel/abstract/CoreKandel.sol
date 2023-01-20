@@ -134,11 +134,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
     // adjusting wants to price:
     // (a) gives * r : 96 + 128 = 224 so order.wants must be < 2**32 to avoid overflow
-    if (order.wants < 2 ** 32) {
+    uint givesR = gives * r;
+    if (uint160(givesR) == givesR) {
       // using max precision
-      wants = (order.wants * gives * r) / (order.gives * (p ** spread));
+      wants = (order.wants * givesR) / (order.gives * (p ** spread));
     } else {
-      wants = order.wants * ((gives * r) / (order.gives * (p ** spread)));
+      wants = order.wants * (givesR / (order.gives * (p ** spread)));
     }
     // wants is higher than order.wants
     // this may cause wants to be higher than 2**96 allowed by Mangrove (for instance if one needs many quotes to buy sell base tokens)

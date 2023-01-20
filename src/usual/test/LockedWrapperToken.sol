@@ -2,9 +2,10 @@ pragma solidity ^0.8.14;
 
 import {IERC20} from "mgv_src/IERC20.sol";
 import {ERC20Base, ERC20} from "mgv_src/toy/ERC20.sol";
+import {UsualTokenInterface} from "mgv_src/usual/UsualTokenInterface.sol";
 
 // Wrapper token that can only be transferred or unlocked by whitelisted accounts
-contract LockedWrapperToken is ERC20 {
+contract LockedWrapperToken is UsualTokenInterface {
   mapping(address => bool) public admins;
   mapping(address => bool) public whitelisted;
   ERC20 underlying;
@@ -80,7 +81,7 @@ contract LockedWrapperToken is ERC20 {
     return true;
   }
 
-  function unlockFor(address account, uint amount) public virtual onlyWhitelisted(_msgSender()) returns (bool) {
+  function unlockFor(address account, uint amount) public virtual override onlyWhitelisted(_msgSender()) returns (bool) {
     return _unlockFor(account, amount);
   }
 

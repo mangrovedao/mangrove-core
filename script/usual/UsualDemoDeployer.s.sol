@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {IERC20} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {LockedWrapperToken} from "mgv_src/usual/LockedWrapperToken.sol";
+import {LockedWrapperToken} from "mgv_src/usual/test/LockedWrapperToken.sol";
 import {MetaPLUsDAOToken} from "mgv_src/usual/MetaPLUsDAOToken.sol";
 import {PLUsMgvStrat} from "mgv_src/usual/PLUsMgvStrat.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
@@ -42,13 +42,13 @@ contract UsualDemoDeployer is Deployer {
 
     broadcast();
     MetaPLUsDAOToken metaPLUsDAOToken =
-    new MetaPLUsDAOToken({ admin: msg.sender, _name: "Meta Price-locked Usual governance token", _symbol: "Meta-PLUsDAO", lUsDAOToken: lUsDAOToken, pLUsDAOToken: pLUsDAOToken, mangrove: address(mgv) });
+    new MetaPLUsDAOToken({ admin: msg.sender, _name: "Meta Price-locked Usual governance token", _symbol: "Meta-PLUsDAO", pLUsDAOToken: pLUsDAOToken, mangrove: address(mgv) });
     fork.set("Meta-PLUsDAO", address(metaPLUsDAOToken));
 
     broadcast();
     PLUsMgvStrat pLUsMgvStrat =
-    // new PLUsMgvStrat({ admin: msg.sender, mgv: mgv, pLUsDAOToken: pLUsDAOToken, usUSD: usUSDToken });
-     new PLUsMgvStrat({mgv: mgv, pLUsDAOToken: pLUsDAOToken, metaPLUsDAOToken: metaPLUsDAOToken});
+    // FIXME: For demo purposes the seller is the admin
+    new PLUsMgvStrat({admin: seller, mgv: mgv, pLUsDAOToken: pLUsDAOToken, metaPLUsDAOToken: metaPLUsDAOToken, usUSD: usUSDToken});
     fork.set("PLUsMgvStrat", address(pLUsMgvStrat));
 
     // Setup tx's. Placed after deployments to keep addresses stable
@@ -58,9 +58,6 @@ contract UsualDemoDeployer is Deployer {
     tokens[1] = IERC20(usUSDToken);
     broadcast();
     pLUsMgvStrat.activate(tokens);
-    // FIXME: PLUsMgvStrat is single-user in this demo, so set seller to admin
-    broadcast();
-    pLUsMgvStrat.setAdmin(seller);
 
     // Tell Meta-PLUsDAO the address of PLUsMgvStrat
     broadcast();
@@ -84,12 +81,6 @@ contract UsualDemoDeployer is Deployer {
     //   PLUsMgvStrat for PLUsDAO
     broadcast();
     pLUsDAOToken.addToWhitelist(address(pLUsMgvStrat));
-    //   PLUsMgvStrat for Meta-PLUsDAO
-    broadcast();
-    metaPLUsDAOToken.addToWhitelist(address(pLUsMgvStrat));
-    //   Mangrove for Meta-PLUsDAO
-    broadcast();
-    metaPLUsDAOToken.addToWhitelist(address(mgv));
 
     outputDeployment();
   }

@@ -1,49 +1,62 @@
+// SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.14;
 
-import {Direct, IMangrove, IERC20} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {ILiquidityProvider} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
-import {LockedWrapperToken} from "mgv_src/usual/LockedWrapperToken.sol";
+import {UsualTokenInterface} from "mgv_src/usual/UsualTokenInterface.sol";
 import {MetaPLUsDAOToken} from "mgv_src/usual/MetaPLUsDAOToken.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {Forwarder} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
+import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
 
-// This is a simple strat for demo purposes.
-// FIXME: This strat should handle the MetaPLUsDAO -> PLUsDAO token mapping, but for now it just relies on a workaround in MetaPLUsDAO token that allows it to be used directly.
-//        Also, the posting of offers should be simpler (no specification of tokens needed for one market) but mangrove.js doesn't support that out-of-the-box
-contract PLUsMgvStrat is ILiquidityProvider, Direct {
-  LockedWrapperToken public immutable _pLUsDAOToken;
-  MetaPLUsDAOToken public immutable _metaPLUsDAOToken;
-  // IERC20 public immutable _usUSD;
+contract PLUsMgvStrat is Forwarder {
+  UsualTokenInterface public immutable _pLUsDAOToken;
+  MetaPLUsDAOToken public immutable _metaPLUsDAOToken; //FIXME: could this just be an address? would it cost less gas?
+  IERC20 public immutable _usUSD;
+  mapping(uint => address) offerIdToOwner; // keep track of who owns the offer
+  address public _usualDapp;
 
-  // FIXME: Use a simple constructor for now
-  // constructor(address admin, IMangrove mgv, LockedWrapperToken pLUsDAOToken, MetaPLUsDAOToken metaPLUsDAOToken, IERC20 usUSD)
-  //   Direct(mgv, NO_ROUTER, 40_000)
-  // {
-  //   _pLUsDAOToken = pLUsDAOToken;
-  //   _metaPLUsDAOToken = metaPLUsDAOToken;
-  //   _usUSD = usUSD;
-  // }
-
-  constructor(IMangrove mgv, LockedWrapperToken pLUsDAOToken, MetaPLUsDAOToken metaPLUsDAOToken)
-    Direct(mgv, NO_ROUTER, 1_000_000)
-  {
+  constructor(
+    address admin,
+    IMangrove mgv,
+    UsualTokenInterface pLUsDAOToken,
+    MetaPLUsDAOToken metaPLUsDAOToken,
+    IERC20 usUSD
+  ) Forwarder(mgv, new SimpleRouter(), 1_000_000) {
     _pLUsDAOToken = pLUsDAOToken;
     _metaPLUsDAOToken = metaPLUsDAOToken;
     _pLUsDAOToken.approve(address(_metaPLUsDAOToken), type(uint).max);
+    _usUSD = usUSD;
+    router().bind(address(this));
+    if (admin != address(this)) {
+      setAdmin(admin);
+      router().setAdmin(admin);
+    }
   }
 
-  // FIXME: For now, we use the IMakerLogic signature of newOffer which mangrove.js supports directly
-  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
+  modifier onlyUsualDappOrMgvOrAdmin() {
+    require(
+      msg.sender == _usualDapp || msg.sender == admin() || msg.sender == address(MGV),
+      "PLUsMgvStrat/onlyAdminOrMgvOrDapp"
+    );
+    _;
+  }
+
+  function setUsualDapp(address usualDapp) public onlyAdmin {
+    _usualDapp = usualDapp;
+  }
+
+  function newOffer(uint wants, uint gives, uint pivotId, address owner)
     public
     payable
-    override
-    mgvOrAdmin
+    onlyUsualDappOrMgvOrAdmin
     returns (uint offerId)
   {
-    _pLUsDAOToken.depositFrom(msg.sender, msg.sender, gives);
     offerId = _newOffer(
       OfferArgs({
-        outbound_tkn: outbound_tkn,
-        inbound_tkn: inbound_tkn,
+        outbound_tkn: _metaPLUsDAOToken,
+        inbound_tkn: _usUSD,
         wants: wants,
         gives: gives,
         gasreq: offerGasreq(),
@@ -51,18 +64,42 @@ contract PLUsMgvStrat is ILiquidityProvider, Direct {
         pivotId: pivotId,
         fund: msg.value,
         noRevert: false
-      })
+      }),
+      msg.sender
     );
+    offerIdToOwner[offerId] = owner;
   }
 
-  // deposit from PLUsDAO to Meta-PLUsDAO
+  function __put__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
+    uint pushed = router().push(_usUSD, reserve(offerIdToOwner[order.offerId]), amount);
+    return amount - pushed;
+  }
+
   function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint missing) {
-    _pLUsDAOToken.transferFrom(admin(), address(this), amount);
-    return super.__get__(amount, order);
+    _pLUsDAOToken.transferFrom(offerIdToOwner[order.offerId], address(this), amount);
+    return 0; // super.__get__(amount, order); //FIXME: This is not need, since we are transfering the token from the seller to this contract, in the lone before this one
   }
 
-  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+  function updateOffer(uint wants, uint gives, uint pivotId, uint offerId, address owner)
     public
     payable
-  {}
+    onlyUsualDappOrMgvOrAdmin
+    returns (bytes32)
+  {
+    require(offerIdToOwner[offerId] == owner, "PLUsMgvStrat/wrongOwner");
+    return _updateOffer(
+      OfferArgs({
+        outbound_tkn: _metaPLUsDAOToken,
+        inbound_tkn: _usUSD,
+        wants: wants,
+        gives: gives,
+        gasreq: type(uint).max, // uses the old gasreg
+        gasprice: 0, // igonred
+        pivotId: pivotId,
+        noRevert: true,
+        fund: msg.value
+      }),
+      offerId
+    );
+  }
 }

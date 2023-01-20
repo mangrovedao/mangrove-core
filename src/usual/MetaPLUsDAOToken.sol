@@ -1,27 +1,37 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.9;
 
-import {IERC20} from "mgv_src/MgvLib.sol";
-import {LockedWrapperToken} from "./LockedWrapperToken.sol";
+import {ERC20Base, ERC20} from "mgv_src/toy/ERC20.sol";
+import {UsualTokenInterface} from "mgv_src/usual/UsualTokenInterface.sol";
+import {PLUsTakerProxy} from "mgv_src/usual/PLUsTakerProxy.sol";
 
 // Meta-PLUsDAO token for use in demo
-contract MetaPLUsDAOToken is LockedWrapperToken {
-  LockedWrapperToken public immutable _lUsDAOToken;
-  LockedWrapperToken public immutable _pLUsDAOToken;
+contract MetaPLUsDAOToken is ERC20 {
+  UsualTokenInterface public immutable _pLUsDAOToken;
+  PLUsTakerProxy public _pLUsTakerProxy;
   address public immutable _mangrove;
   address public _pLUsMgvStrat;
+  address public _admin;
 
   constructor(
     address admin,
     string memory _name,
     string memory _symbol,
-    LockedWrapperToken lUsDAOToken,
-    LockedWrapperToken pLUsDAOToken,
+    UsualTokenInterface pLUsDAOToken,
     address mangrove
-  ) LockedWrapperToken(admin, _name, _symbol, pLUsDAOToken) {
-    _lUsDAOToken = lUsDAOToken;
+  ) ERC20Base(_name, _symbol) ERC20(_name) {
     _pLUsDAOToken = pLUsDAOToken;
     _mangrove = mangrove;
+    _admin = admin;
+  }
+
+  modifier onlyAdmin() {
+    require(msg.sender == _admin, "MetaPLUsDAOToken/adminOnly");
+    _;
+  }
+
+  function setPLUsTakerProxy(PLUsTakerProxy pLUsTakerProxy) external onlyAdmin {
+    _pLUsTakerProxy = pLUsTakerProxy;
   }
 
   function setPLUsMgvStrat(address pLUsMgvStrat) external onlyAdmin {
@@ -41,32 +51,22 @@ contract MetaPLUsDAOToken is LockedWrapperToken {
   }
 
   // Only allow the following transfers:
-  //   any address  -> PLUsMgvStrat
   //   PLUsMgvStrat -> Mangrove
   //   Mangrove     -> any address
   // When owner = Mangrove  =>  transfer & unlock
   function _transfer(address owner, address recipient, uint amount) internal override returns (bool) {
     require(
-      (
-        recipient == _pLUsMgvStrat // FIXME: When will the strat be the recipient?
-          || owner == _pLUsMgvStrat && recipient == _mangrove
-      ) || owner == _mangrove,
+      (recipient == _pLUsMgvStrat || owner == _pLUsMgvStrat && recipient == _mangrove)
+        || owner == _mangrove && recipient == address(_pLUsTakerProxy),
       "MetaPLUsDAOToken/nonMangroveTransfer"
     );
-
-    // if(owner == _pLUsMgvStrat && recipient == _mangrove ){
-    //   return true;
-    // }
-
-    // bool result = super._transfer(owner, recipient, amount);
-    // require(result, "MetaPLUsDAOToken/transferFailed");
+    // emit the empty transfer?
 
     if (owner == _mangrove) {
-      bool result = _pLUsDAOToken.transferFrom(_pLUsMgvStrat, recipient, amount);
+      address currentTaker = _pLUsTakerProxy.currentTaker();
+      bool result = _pLUsDAOToken.transferFrom(_pLUsMgvStrat, currentTaker, amount);
       require(result, "MetaPLUsDAOToken/transferFailed");
-      // _pLUsDAOToken.transferFrom(owner, recipient, amount);
-      // _unlockFor(recipient, amount);
-      result = _pLUsDAOToken.unlockFor(recipient, amount);
+      result = _pLUsDAOToken.unlockFor(currentTaker, amount);
       require(result, "MetaPLUsDAOToken/PLUsDAOUnlockFailed");
     }
 

@@ -36,10 +36,10 @@ contract Kandel is CoreKandel {
     Params memory params_ = params;
 
     if (index == 0) {
-      emit AllAsks(MGV, BASE, QUOTE);
+      emit AllAsks();
     }
     if (index == params_.length - 1) {
-      emit AllBids(MGV, BASE, QUOTE);
+      emit AllBids();
     }
     ba_dual = dual(ba);
 

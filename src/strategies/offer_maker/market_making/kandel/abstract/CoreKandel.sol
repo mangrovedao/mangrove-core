@@ -29,7 +29,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   Params public params;
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice) Direct(mgv, NO_ROUTER, gasreq) {
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice)
+    Direct(mgv, NO_ROUTER, gasreq)
+    AbstractKandel(mgv, base, quote)
+  {
     BASE = base;
     QUOTE = quote;
     require(uint16(gasprice) == gasprice, "Kandel/gaspriceTooHigh");
@@ -46,7 +49,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   function setCompoundRates(uint16 compoundRateBase, uint16 compoundRateQuote) public mgvOrAdmin {
     require(compoundRateBase <= 10 ** PRECISION, "Kandel/invalidCompoundRateBase");
     require(compoundRateQuote <= 10 ** PRECISION, "Kandel/invalidCompoundRateQuote");
-    emit SetCompoundRates(MGV, BASE, QUOTE, compoundRateBase, compoundRateQuote);
+    emit SetCompoundRates(compoundRateBase, compoundRateQuote);
     params.compoundRateBase = compoundRateBase;
     params.compoundRateQuote = compoundRateQuote;
   }

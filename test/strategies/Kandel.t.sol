@@ -28,10 +28,9 @@ contract KandelTest is MangroveTest {
   uint initQuote;
   uint immutable initBase = uint(0.1 ether);
 
-  ///@notice signals that the price has moved above Kandel's current price range
-  event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
-  ///@notice signals that the price has moved below Kandel's current price range
-  event AllBids(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
+  event AllAsks();
+  event AllBids();
+  event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
 
   function setUp() public virtual override {
     options.base.symbol = "WETH";
@@ -60,6 +59,8 @@ contract KandelTest is MangroveTest {
 
     // deploy and activate
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+    vm.expectEmit(true, true, true, true);
+    emit NewKandel(maker, IMangrove($(mgv)), weth, usdc);
     vm.prank(maker);
     kdl = new Kandel({
       mgv: IMangrove($(mgv)), 
@@ -264,7 +265,7 @@ contract KandelTest is MangroveTest {
     sellToBestAs(taker, 1 ether);
     sellToBestAs(taker, 1 ether);
     expectFrom(address(kdl));
-    emit AllAsks(IMangrove($(mgv)), weth, usdc);
+    emit AllAsks();
     sellToBestAs(taker, 1 ether);
     //assertStatus([uint(0), 2, 2, 2, 2, 2, 2, 2, 2, 2]);
   }
@@ -275,7 +276,7 @@ contract KandelTest is MangroveTest {
     buyFromBestAs(taker, 1 ether);
     buyFromBestAs(taker, 1 ether);
     expectFrom(address(kdl));
-    emit AllBids(IMangrove($(mgv)), weth, usdc);
+    emit AllBids();
     buyFromBestAs(taker, 1 ether);
     //assertStatus([uint(1), 1, 1, 1, 1, 1, 1, 1, 1, 0]);
   }

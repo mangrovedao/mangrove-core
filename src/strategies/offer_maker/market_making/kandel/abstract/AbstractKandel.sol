@@ -15,14 +15,15 @@ import {Direct, IMangrove, IERC20, MgvLib, MgvStructs} from "mgv_src/strategies/
 
 abstract contract AbstractKandel {
   ///@notice signals that the price has moved above Kandel's current price range
-  event AllAsks(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
+  event AllAsks();
   ///@notice signals that the price has moved below Kandel's current price range
-  event AllBids(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
+  event AllBids();
 
   ///@notice the compound rates have been set to `compoundRateBase` and `compoundRateQuote` which will take effect for future compounding.
-  event SetCompoundRates(
-    IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote, uint compoundRateBase, uint compoundRateQuote
-  );
+  event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
+
+  ///@notice signals a new Kandel instance for the owner on the mangrove, for base and quote.
+  event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
 
   // `ratio`, `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals.
   // setting PRECISION higher than 4 might produce overflow in limit cases.
@@ -32,6 +33,10 @@ abstract contract AbstractKandel {
   enum OrderType {
     Bid,
     Ask
+  }
+
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote) {
+    emit NewKandel(msg.sender, mgv, base, quote);
   }
 
   ///@notice Kandel Params

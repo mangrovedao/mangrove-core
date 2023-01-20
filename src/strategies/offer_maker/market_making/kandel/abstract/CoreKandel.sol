@@ -40,6 +40,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     __activate__(quote);
   }
 
+  ///@notice set the compound rate. It will take effect for future compounding.
   function setCompoundRate(uint16 c) public mgvOrAdmin {
     require(c <= 10 ** PRECISION, "Kandel/invalidCompoundRate");
     emit SetCompoundRate(MGV, BASE, QUOTE, c);
@@ -56,7 +57,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     return ba == OrderType.Bid ? (QUOTE, BASE) : (BASE, QUOTE);
   }
 
-  ///@notice returns the Kandel order type of the offer list whose outbound token is given in argument
+  ///@notice returns the Kandel order type of the offer list whose outbound token is given in the argument
   ///@param outbound_tkn the outbound token of the offer list
   function orderTypeOfOutbound(IERC20 outbound_tkn) internal view returns (OrderType) {
     return outbound_tkn == BASE ? OrderType.Ask : OrderType.Bid;
@@ -86,7 +87,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param ba the order type
   ///@param v view monad for `ba` at `index`
   ///@param deprovision whether one wishes to be credited free wei's on Mangrove's balance
-  function retractOffer(OrderType ba, SlotViewMonad memory v, bool deprovision) internal returns (uint) {
+  ///@return free_wei the amount free wei's returned to admin.
+  function retractOffer(OrderType ba, SlotViewMonad memory v, bool deprovision) internal returns (uint free_wei) {
     (IERC20 outbound_tkn, IERC20 inbound_tkn) = tokenPairOfOrderType(ba);
     return _offerId(ba, v) == 0 ? 0 : retractOffer(outbound_tkn, inbound_tkn, _offerId(ba, v), deprovision);
   }
@@ -152,9 +154,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param index the price index one is willing to improve
   ///@param step the number of price steps improvements
   function better(OrderType ba, uint index, uint step, uint length_) public pure returns (uint) {
-    return ba == OrderType.Ask
-      ? index + step >= length_ ? length_ - 1 : index + step
-      : int(index) - int(step) < 0 ? 0 : index - step;
+    return ba == OrderType.Ask ? index + step >= length_ ? length_ - 1 : index + step : index < step ? 0 : index - step;
   }
 
   function _fresh(uint index) internal pure returns (SlotViewMonad memory v) {
@@ -306,9 +306,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   ///@notice publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
   ///@param indices the indices to populate
-  ///@param baseDist the distribution of base
-  ///@param quoteDist the distribution of quote
-  ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
+  ///@param baseDist base distribution for the indices
+  ///@param quoteDist the distribution of quote for the indices
+  ///@param pivotIds the pivot to be used for the offer
   ///@param lastBidIndex the index after which offer should be an Ask
   ///@param kandelSize the number of price points
   ///@param ratio the rate of the geometric distribution with PRECISION decimals.
@@ -345,6 +345,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param to end index
   ///@param lastBidIndex the index after which offer should be an Ask
   ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
+  ///@param kandelSize the number of price points
+  ///@param ratio the rate of the geometric distribution with PRECISION decimals.
+  ///@param spread the distance between a ask in the distribution and its corresponding bid.
+  ///@param initQuote quote given/wanted at index from
+  ///@param baseDist base distribution in [from, to[
+  ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
   ///@dev This function must be called w/o changing ratio
   ///@dev `from` > 0 must imply `initQuote` >= quote amount given/wanted at index from-1
   ///@dev msg.value must be enough to provision all posted offers
@@ -355,9 +361,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint kandelSize,
     uint16 ratio,
     uint8 spread,
-    uint initQuote, // quote given/wanted at index from
-    uint[] calldata baseDist, // base distribution in [from, to[
-    uint[] calldata pivotIds // pivots for {offer[from],...,offer[to-1]}
+    uint initQuote,
+    uint[] calldata baseDist,
+    uint[] calldata pivotIds
   ) external payable onlyAdmin {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
@@ -398,8 +404,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice takes care of reposting residual offer in case of a partial fill and logging potential issues.
   ///@param order a recap of the taker order
   ///@param makerData generated during `makerExecute` so as to log it if necessary
-  function _handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData) internal {
-    bytes32 repostStatus = super.__posthookSuccess__(order, makerData);
+  ///@param repostStatus from the posthook
+  function _handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData, bytes32 repostStatus) internal {
     if (repostStatus == "posthook/filled" || repostStatus == REPOST_SUCCESS) {
       return;
     }
@@ -422,9 +428,11 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     override
     returns (bytes32)
   {
+    bytes32 repostStatus = super.__posthookSuccess__(order, makerData);
+    _handleResidual(order, makerData, repostStatus);
+
     OrderType ba = orderTypeOfOutbound(IERC20(order.outbound_tkn));
     // adds any unpublished liquidity to pending[Base/Quote]
-    _handleResidual(order, makerData);
     // preparing arguments for the dual maker order
     (OrderType dualBa, SlotViewMonad memory v_dual, OfferArgs memory args) = _transportLogic(ba, order);
     populateIndex(dualBa, v_dual, args);

@@ -19,20 +19,21 @@ abstract contract AbstractKandel {
   ///@notice signals that the price has moved below Kandel's current price range
   event AllBids(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote);
 
+  ///@notice the compound rate has been set to `compoundRate` which will take effect for future compounding.
   event SetCompoundRate(IMangrove indexed mgv, IERC20 indexed base, IERC20 indexed quote, uint compoundRate);
 
   // ratio and compoundRate have PRECISION decimals.
   // setting PRECISION higher than 4 might produce overflow in limit cases.
   uint8 public constant PRECISION = 4;
-  ///@notice a bid or an ask
 
+  ///@notice a bid or an ask
   enum OrderType {
     Bid,
     Ask
   }
 
   ///@notice Kandel Params
-  ///@param ratio of price progression (` 2**16 > ratio >= 10**PRECISION`) expressed with `PRECISION` decimals
+  ///@param ratio of price progression (`2**16 > ratio >= 10**PRECISION`) expressed with `PRECISION` decimals
   ///@param compoundRate percentage of the spread that is to be compounded, expressed with `PRECISION` decimals (`compoundRate <= 10**PRECISION`)
   ///@param spread in amount of price slots for posting dual offer
   ///@param precision number of decimals used for 'ratio' and `compoundRate`

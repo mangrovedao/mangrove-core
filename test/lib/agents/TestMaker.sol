@@ -16,7 +16,7 @@ contract TrivialTestMaker is IMaker {
 //TODO add posthookShouldRevert/posthookReturnData
 struct OfferData {
   bool shouldRevert;
-  string returnData;
+  string executeData;
 }
 
 contract SimpleTestMaker is TrivialTestMaker {
@@ -80,7 +80,7 @@ contract SimpleTestMaker is TrivialTestMaker {
     OfferData memory offerData = offerDatas[order.outbound_tkn][order.inbound_tkn][order.offerId];
 
     if (offerData.shouldRevert) {
-      revert(offerData.returnData);
+      revert(offerData.executeData);
     }
 
     if (shouldFail_) {
@@ -89,7 +89,7 @@ contract SimpleTestMaker is TrivialTestMaker {
 
     emit Execute(msg.sender, order.outbound_tkn, order.inbound_tkn, order.offerId, order.wants, order.gives);
 
-    return bytes32(bytes(offerData.returnData));
+    return bytes32(bytes(offerData.executeData));
   }
 
   bool _shouldFailHook;

@@ -13,19 +13,20 @@ contract TrivialTestMaker is IMaker {
   function makerPosthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) external virtual {}
 }
 
+//TODO add posthookShouldRevert/posthookReturnData
+struct OfferData {
+  bool shouldRevert;
+  string returnData;
+}
+
 contract SimpleTestMaker is TrivialTestMaker {
   AbstractMangrove mgv;
   address base;
   address quote;
   bool shouldFail_; // will set mgv allowance to 0
-  bool shouldReturnData_; // will not return bytes32("")
   bool shouldRevert_; // will revert
   bool shouldRepost_; // will try to repost offer with identical parameters
   bytes32 expectedStatus;
-
-  struct OfferData {
-    bool shouldRevert;
-  }
   ///@notice stores parameters for each posted offer
   ///@notice overrides global @shouldFail/shouldReturn if true
 
@@ -55,10 +56,6 @@ contract SimpleTestMaker is TrivialTestMaker {
     shouldFail_ = should;
   }
 
-  function shouldReturnData(bool should) external {
-    shouldReturnData_ = should;
-  }
-
   function shouldRepost(bool should) external {
     shouldRepost_ = should;
   }
@@ -83,25 +80,16 @@ contract SimpleTestMaker is TrivialTestMaker {
     OfferData memory offerData = offerDatas[order.outbound_tkn][order.inbound_tkn][order.offerId];
 
     if (offerData.shouldRevert) {
-      revert("testMaker/offerData/shouldRevert");
+      revert(offerData.returnData);
     }
 
     if (shouldFail_) {
       IERC20(order.outbound_tkn).approve(address(mgv), 0);
-      // bytes32[1] memory refuse_msg = [bytes32("testMaker/transferFail")];
-      // assembly {
-      //   return(refuse_msg, 32)
-      // }
-      //revert("testMaker/fail");
     }
 
     emit Execute(msg.sender, order.outbound_tkn, order.inbound_tkn, order.offerId, order.wants, order.gives);
 
-    if (shouldReturnData_) {
-      return "someData";
-    }
-
-    return "";
+    return bytes32(bytes(offerData.returnData));
   }
 
   bool _shouldFailHook;

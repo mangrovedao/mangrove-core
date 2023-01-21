@@ -5,7 +5,7 @@ import {Test2} from "mgv_lib/Test2.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
 import {TestSender} from "mgv_test/lib/agents/TestSender.sol";
-import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
+import {TrivialTestMaker, TestMaker, OfferData} from "mgv_test/lib/agents/TestMaker.sol";
 import {MakerDeployer} from "mgv_test/lib/agents/MakerDeployer.sol";
 import {TestMoriartyMaker} from "mgv_test/lib/agents/TestMoriartyMaker.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";

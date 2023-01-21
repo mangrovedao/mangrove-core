@@ -173,22 +173,35 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(maker2);
     pooledRouter.push(dai, $(pooledRouter), 2 * 10 ** 18);
 
-    assertEq(pooledRouter.sharesOf(dai, maker2), 2 * pooledRouter.sharesOf(dai, maker1), "Incorrect new minter shares");
+    assertEq(pooledRouter.sharesOf(dai, maker2), 2 * pooledRouter.sharesOf(dai, maker1), "Incorrect shares");
+  }
+
+  function test_pull_token_decreases_user_shares() public {
+    deal($(dai), maker1, 1 * 10 ** 18);
+    vm.prank(maker1);
+    pooledRouter.push(dai, $(pooledRouter), 1 * 10 ** 18);
+    deal($(dai), maker2, 2 * 10 ** 18);
+    vm.prank(maker2);
+    pooledRouter.push(dai, $(pooledRouter), 2 * 10 ** 18);
+    vm.prank(maker1);
+    pooledRouter.pull(dai, $(pooledRouter), 1 * 10 ** 18, true);
+
+    assertEq(pooledRouter.sharesOf(dai, maker1), 0, "Incorrect shares");
   }
 
   function test_push_token_increases_first_minter_shares() public {
     deal($(dai), maker1, 10 ** 18);
     vm.prank(maker1);
     pooledRouter.push(dai, $(pooledRouter), 10 ** 18);
-    assertEq(pooledRouter.sharesOf(dai, maker1), pooledRouter.INIT_SHARES(), "Incorrect first minter shares");
+    assertEq(pooledRouter.sharesOf(dai, maker1), pooledRouter.INIT_SHARES(), "Incorrect first shares");
   }
 
-  function test_pull_token_decreases_user_shares_as_last_minter() public {
+  function test_pull_token_decreases_sets_last_minter_shares_to_zero() public {
     deal($(dai), maker1, 10 ** 18);
     vm.startPrank(maker1);
     pooledRouter.push(dai, $(pooledRouter), 10 ** 18);
     pooledRouter.pull(dai, $(pooledRouter), 10 ** 18, true);
     vm.stopPrank();
-    assertEq(pooledRouter.sharesOf(dai, maker1), 0, "Incorrect last minter shares");
+    assertEq(pooledRouter.sharesOf(dai, maker1), 0, "Incorrect shares");
   }
 }

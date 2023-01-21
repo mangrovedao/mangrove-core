@@ -54,26 +54,40 @@ abstract contract AbstractKandel {
     uint8 length;
   }
 
-  ///@notice offerIdOfIndex maps index of bids (uint(OrderType.Bid)) or asks (uint(OrderType.Ask)) to offer id on Mangrove. e.g. `offerIdOfIndex[uint(OrderType.Bid)][42]` is the bid id on Mangrove that is stored at index #42 .
-  uint[][2] offerIdOfIndex_;
+  ///@notice Mangrove's offer id of an ask at a given price index.
+  uint[] askOfferIdOfIndex;
+  ///@notice Mangrove's offer id of a bid at a given price index.
+  uint[] bidOfferIdOfIndex;
 
+  ///@notice maps index of orders to offer id on Mangrove.
   function offerIdOfIndex(OrderType ba, uint index) public view returns (uint) {
-    return offerIdOfIndex_[uint(ba)][index];
+    return ba == OrderType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
   }
 
   function offerIdOfIndex(OrderType ba, uint index, uint offerId) internal {
-    offerIdOfIndex_[uint(ba)][index] = offerId;
+    if (ba == OrderType.Ask) {
+      askOfferIdOfIndex[index] = offerId;
+    } else {
+      bidOfferIdOfIndex[index] = offerId;
+    }
   }
 
-  ///@notice indexOfOfferId inverse mapping of the above.  e.g. `indexOfOfferId[uint(OrderType.Ask)][12]` is the index at which ask of id #12 on Mangrove is stored
-  mapping(OrderType => mapping(uint => uint)) indexOfOfferId_;
+  ///@notice An inverse mapping of askOfferIdOfIndex. E.g., indexOfAskOfferId[42] is the index in askOfferIdOfIndex at which ask of id #42 on Mangrove is stored.
+  mapping(uint => uint) indexOfAskOfferId;
+
+  ///@notice An inverse mapping of bidOfferIdOfIndex. E.g., indexOfBidOfferId[42] is the index in bidOfferIdOfIndex at which bid of id #42 on Mangrove is stored.
+  mapping(uint => uint) indexOfBidOfferId;
 
   function indexOfOfferId(OrderType ba, uint offerId) public view returns (uint) {
-    return indexOfOfferId_[ba][offerId];
+    return ba == OrderType.Ask ? indexOfAskOfferId[offerId] : indexOfBidOfferId[offerId];
   }
 
   function indexOfOfferId(OrderType ba, uint offerId, uint index) internal {
-    indexOfOfferId_[ba][offerId] = index;
+    if (ba == OrderType.Ask) {
+      indexOfAskOfferId[offerId] = index;
+    } else {
+      indexOfBidOfferId[offerId] = index;
+    }
   }
 
   struct SlotViewMonad {

@@ -305,8 +305,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
     if (params_.length != kandelSize) {
       require(kandelSize <= type(uint8).max, "Kandel/TooManyPricePoints");
-      offerIdOfIndex_[uint(OrderType.Bid)] = new uint[](kandelSize);
-      offerIdOfIndex_[uint(OrderType.Ask)] = new uint[](kandelSize);
+      askOfferIdOfIndex = new uint[](kandelSize);
+      bidOfferIdOfIndex = new uint[](kandelSize);
       params.length = uint8(kandelSize);
     }
     if (params_.ratio != ratio) {

@@ -15,15 +15,18 @@ pragma solidity ^0.8.10;
 import {AbstractRouter, IERC20} from "./AbstractRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {AaveV3Module, IRewardsControllerIsh} from "mgv_src/strategies/integrations/AaveV3Module.sol";
+//import {console2 as console} from "forge-std/Test.sol";
 
 contract AavePooledRouter is AaveV3Module, AbstractRouter {
+  event SetRewardsManager(address);
+
   mapping(IERC20 => uint) internal _totalShares;
   mapping(IERC20 => mapping(address => uint)) internal _sharesOf;
-  IERC20 _buffer;
-  address _rewardsManager;
+  IERC20 public _buffer;
+  address public _rewardsManager;
 
   // this should be enough so that INIT_SHARE * amount / reserveBalance does not underflow
-  uint constant INIT_SHARES = 10 ** 29;
+  uint public constant INIT_SHARES = 10 ** 29;
 
   modifier isThis(address reserve) {
     require(reserve == address(this), "AavePooledReserve/mustBeThis");
@@ -54,7 +57,8 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
 
   ///@inheritdoc AbstractRouter
   function reserveBalance(IERC20 token, address reserve) public view override isThis(reserve) returns (uint) {
-    return sharesOf(token, msg.sender) * totalBalance(token) / totalShares(token);
+    uint totalShares_ = totalShares(token);
+    return totalShares_ == 0 ? 0 : sharesOf(token, msg.sender) * totalBalance(token) / totalShares_;
   }
 
   function sharesOfamount(IERC20 token, uint amount) internal view returns (uint shares) {
@@ -82,16 +86,21 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     isThis(reserve)
     returns (uint)
   {
+    depositBuffer(token);
     _mintShares(token, maker, amount);
+
+    // Transfer must occur *after* _mintShares above
     require(TransferLib.transferTokenFrom(token, maker, reserve, amount), "AavePooledRouter/pushFailed");
+
     return amount;
   }
 
-  function flushBuffer(IERC20 token) internal returns (IERC20 token_) {
-    token_ = _buffer;
-    if (token_ != token && token_ != IERC20(address(0))) {
-      _repayThenDeposit(token_, address(this), token.balanceOf(address(this)));
+  function depositBuffer(IERC20 token) public makersOrAdmin {
+    IERC20 tokenInBuffer = _buffer;
+    if (tokenInBuffer != token && tokenInBuffer != IERC20(address(0))) {
+      _repayThenDeposit(tokenInBuffer, address(this), tokenInBuffer.balanceOf(address(this)));
     }
+    _buffer = token;
   }
 
   function __pull__(IERC20 token, address reserve, address maker, uint amount, bool strict)
@@ -101,7 +110,7 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     returns (uint)
   {
     // if there is any buffered liquidity (!= token), we push it back to AAVE
-    flushBuffer(token);
+    depositBuffer(token);
 
     uint amount_ = strict ? amount : reserveBalance(token, reserve);
     _burnShares(token, maker, amount_);
@@ -144,5 +153,6 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
   function setRewardsManager(address rewardsManager) external onlyAdmin {
     require(rewardsManager != address(0), "AavePooledReserve/0xrewardsManager");
     _rewardsManager = rewardsManager;
+    emit SetRewardsManager(rewardsManager);
   }
 }

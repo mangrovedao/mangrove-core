@@ -268,7 +268,7 @@ contract SimpleTestMaker is TrivialTestMaker {
     return mgv.retractOffer(base, quote, offerId, true);
   }
 
-  function provisionMgv(uint amount) public {
+  function provisionMgv(uint amount) public payable {
     mgv.fund{value: amount}(address(this));
   }
 

@@ -204,4 +204,24 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.stopPrank();
     assertEq(pooledRouter.sharesOf(dai, maker1), 0, "Incorrect shares");
   }
+
+  function test_donation_increases_user_shares(uint56 donation) public {
+    deal($(dai), maker1, 1 * 10 ** 18);
+    vm.prank(maker1);
+    pooledRouter.push(dai, $(pooledRouter), 1 * 10 ** 18);
+
+    deal($(dai), maker2, 4 * 10 ** 18);
+    vm.prank(maker2);
+    pooledRouter.push(dai, $(pooledRouter), 4 * 10 ** 18);
+
+    console.log("Donating", toUnit(donation, 18));
+    deal($(dai), $(this), donation);
+    dai.transfer($(pooledRouter), donation);
+
+    console.log("Done");
+    uint expectedBalance = (5 * 10 ** 18 + donation) / 5;
+    vm.prank(maker1);
+    uint reserveBalance = pooledRouter.reserveBalance(dai, $(pooledRouter));
+    assertEq(expectedBalance, reserveBalance, "Incorrect reserve for maker1");
+  }
 }

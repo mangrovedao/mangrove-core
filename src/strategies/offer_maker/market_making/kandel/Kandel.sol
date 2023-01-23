@@ -81,15 +81,20 @@ contract Kandel is CoreKandel {
     );
   }
 
-  /// @notice get pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
+  /// @notice gets the total gives of all offers of the order type
+  /// @param ba order type.
+  function offeredVolume(OrderType ba) public view returns (uint volume_) {
+    for (uint index = 0; index < params.length; index++) {
+      (MgvStructs.OfferPacked offer,) = getOffer(ba, index);
+      volume_ += offer.gives();
+    }
+  }
+
+  /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
   /// @param ba order type.
   function pending(OrderType ba) public view returns (int pending_) {
     IERC20 token = outboundOfOrderType(ba);
-    pending_ = int(token.balanceOf(reserve(msg.sender)));
-
-    for (uint index = 0; index < params.length; index++) {
-      (MgvStructs.OfferPacked offer,) = getOffer(ba, index);
-      pending_ -= int(offer.gives());
-    }
+    //TODO balanceOf of reserve is that right with a router?
+    pending_ = int(token.balanceOf(reserve(msg.sender))) - int(offeredVolume(ba));
   }
 }

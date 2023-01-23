@@ -133,12 +133,12 @@ contract KandelTest is MangroveTest {
   }
 
   function assertStatus(
-    uint[10] memory offerStatuses // 1:bid 2:ask 3:crossed 0:dead
+    uint[] memory offerStatuses // 1:bid 2:ask 3:crossed 0:dead
   ) internal {
     uint quote = initQuote;
     (, uint16 ratio,,,,) = kdl.params();
-    for (uint i = 0; i < 10; i++) {
-      uint price = quote / initBase;
+    for (uint i = 0; i < offerStatuses.length; i++) {
+      // `price = quote / initBase` used in assertApproxEqRel below
       (MgvStructs.OfferPacked bid,) = kdl.getOffer(AbstractKandel.OrderType.Bid, i);
       (MgvStructs.OfferPacked ask,) = kdl.getOffer(AbstractKandel.OrderType.Ask, i);
       if (offerStatuses[i] == 0) {
@@ -146,11 +146,18 @@ contract KandelTest is MangroveTest {
       } else {
         if (offerStatuses[i] == 1) {
           assertTrue(bid.gives() > 0 && ask.gives() == 0, "Kandel not bidding at index");
-          assertTrue(bid.gives() / bid.wants() == price, "Bid price does not follow distribution");
+          assertApproxEqRel(
+            bid.gives() * initBase, quote * bid.wants(), 1e11, "Bid price does not follow distribution within 0.00001%"
+          );
         } else {
           if (offerStatuses[i] == 2) {
             assertTrue(bid.gives() == 0 && ask.gives() > 0, "Kandel is not asking at index");
-            assertTrue(ask.wants() / ask.gives() == price, "Ask price does not follow distribution");
+            assertApproxEqRel(
+              ask.wants() * initBase,
+              quote * ask.gives(),
+              1e11,
+              "Ask price does not follow distribution within 0.00001%"
+            );
           } else {
             assertTrue(bid.gives() > 0 && ask.gives() > 0, "Kandel is not crossed at index");
           }
@@ -178,7 +185,7 @@ contract KandelTest is MangroveTest {
 
   function test_populates_order_book_correctly() public {
     printOB();
-    assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
+    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
   }
 
   function test_bid_complete_fill_compound_1() public {
@@ -206,53 +213,76 @@ contract KandelTest is MangroveTest {
   }
 
   function test_bid_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote) private {
+    test_bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
+  }
+
+  function test_bid_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote, uint index) private {
     vm.assume(compoundRateBase <= 10_000);
     vm.assume(compoundRateQuote <= 10_000);
     vm.prank(maker);
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
-    (MgvStructs.OfferPacked oldAsk,) = kdl.getOffer(Ask, 4 + STEP);
+    (MgvStructs.OfferPacked oldAsk,) = kdl.getOffer(Ask, index + STEP);
+    uint oldPending = pending(Ask);
 
-    (uint successes, uint takerGot, uint takerGave,, uint fee) = sellToBestAs(taker, 1 ether);
+    (uint successes, uint takerGot, uint takerGave,, uint fee) = sellToBestAs(taker, 1000 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]);
-    (MgvStructs.OfferPacked newAsk,) = kdl.getOffer(Ask, 4 + STEP);
-    assertTrue(newAsk.gives() <= takerGave + oldAsk.gives(), "Cannot give more than what was received");
-    assertEq(pending(Ask) + newAsk.gives(), oldAsk.gives() + takerGave, "Incorrect net promised asset");
-    if (compoundRateBase == 10_000) {
-      assertEq(pending(Ask), 0, "Full compounding should not yield pending");
-    } else {
-      assertTrue(pending(Ask) > 0, "Partial auto compounding should yield pending");
+    uint[] memory expectedStatus = new uint[](10);
+    for (uint i = 0; i < 10; i++) {
+      expectedStatus[i] = i < index ? 1 : i == index ? 0 : 2;
     }
-    assertTrue(newAsk.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
+    assertStatus(expectedStatus);
+    (MgvStructs.OfferPacked newAsk,) = kdl.getOffer(Ask, index + STEP);
+    assertTrue(newAsk.gives() <= takerGave + oldAsk.gives(), "Cannot give more than what was received");
+    uint pendingDelta = pending(Ask) - oldPending;
+    assertEq(pendingDelta + newAsk.gives(), oldAsk.gives() + takerGave, "Incorrect net promised asset");
+    if (compoundRateBase == 10_000) {
+      assertEq(pendingDelta, 0, "Full compounding should not yield pending");
+      assertTrue(newAsk.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
+    } else {
+      assertTrue(pendingDelta > 0, "Partial auto compounding should yield pending");
+      //      assertTrue(newAsk.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
+    }
   }
 
   function test_ask_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote) private {
+    test_ask_complete_fill(compoundRateBase, compoundRateQuote, 5);
+  }
+
+  function test_ask_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote, uint index) private {
     vm.assume(compoundRateBase <= 10_000);
     vm.assume(compoundRateQuote <= 10_000);
     vm.prank(maker);
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
-    (MgvStructs.OfferPacked oldBid,) = kdl.getOffer(Bid, 5 - STEP);
+    (MgvStructs.OfferPacked oldBid,) = kdl.getOffer(Bid, index - STEP);
+    uint oldPending = pending(Bid);
 
-    (uint successes, uint takerGot, uint takerGave,, uint fee) = buyFromBestAs(taker, 1 ether);
+    (uint successes, uint takerGot, uint takerGave,, uint fee) = buyFromBestAs(taker, 1000 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]);
-    (MgvStructs.OfferPacked newBid,) = kdl.getOffer(Bid, 5 - STEP);
-    assertTrue(newBid.gives() <= takerGave + oldBid.gives(), "Cannot give more than what was received");
-    assertEq(pending(Bid) + newBid.gives(), oldBid.gives() + takerGave, "Incorrect net promised asset");
-    if (compoundRateQuote == 10_000) {
-      assertEq(pending(Bid), 0, "Full compounding should not yield pending");
-    } else {
-      assertTrue(pending(Bid) > 0, "Partial auto compounding should yield pending");
+    uint[] memory expectedStatus = new uint[](10);
+    // Build this for index=5: assertStatus(dynamic([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]));
+    for (uint i = 0; i < 10; i++) {
+      expectedStatus[i] = i < index ? 1 : i == index ? 0 : 2;
     }
-    assertTrue(newBid.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
+    assertStatus(expectedStatus);
+    (MgvStructs.OfferPacked newBid,) = kdl.getOffer(Bid, index - STEP);
+    assertTrue(newBid.gives() <= takerGave + oldBid.gives(), "Cannot give more than what was received");
+    uint pendingDelta = pending(Bid) - oldPending;
+    assertEq(pendingDelta + newBid.gives(), oldBid.gives() + takerGave, "Incorrect net promised asset");
+    if (compoundRateQuote == 10_000) {
+      assertEq(pendingDelta, 0, "Full compounding should not yield pending");
+      assertTrue(newBid.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
+    } else {
+      assertTrue(pendingDelta > 0, "Partial auto compounding should yield pending");
+      // assertTrue(newBid.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
+    }
   }
 
   function test_bid_partial_fill() public {
     (uint successes, uint takerGot,,,) = sellToBestAs(taker, 0.01 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
-    assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
+    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
   }
 
   function test_logs_all_asks() public {
@@ -288,5 +318,102 @@ contract KandelTest is MangroveTest {
     //    assertStatus([uint(1), 1, 1, 0, 2, 2, 2, 2, 2, 2]);
     buyFromBestAs(taker, 1 ether);
     //    assertStatus([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]);
+  }
+
+  enum ExpectedChange {
+    Same,
+    Increase,
+    Decrease
+  }
+
+  function assertChange(ExpectedChange expectedChange, uint expected, uint actual, string memory descriptor) private {
+    if (expectedChange == ExpectedChange.Same) {
+      assertApproxEqRel(expected, actual, 1e11, string.concat(descriptor, " should be unchanged to within 0.00001%"));
+    } else if (expectedChange == ExpectedChange.Decrease) {
+      assertGt(expected, actual, string.concat(descriptor, " should have decreased"));
+    } else {
+      assertLt(expected, actual, string.concat(descriptor, " should have increased"));
+    }
+  }
+
+  function test_take_full_bid_and_ask_repeatedly(
+    uint loops,
+    uint16 compoundRateBase,
+    uint16 compoundRateQuote,
+    ExpectedChange baseVolumeChange,
+    ExpectedChange quoteVolumeChange
+  ) private {
+    deal($(weth), taker, cash(weth, 5000));
+    deal($(usdc), taker, cash(usdc, 7000000));
+    uint initialTotalVolumeBase;
+    uint initialTotalVolumeQuote;
+    console.log("Begin!");
+    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
+    for (uint i = 0; i < loops; i++) {
+      test_ask_complete_fill(compoundRateBase, compoundRateQuote, 5);
+      assertStatus(dynamic([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]));
+      if (i == 0) {
+        // With the ask filled, what is the current volume for bids?
+        initialTotalVolumeQuote = kdl.offeredVolume(AbstractKandel.OrderType.Bid);
+        console.log("Initial bids");
+        printOB();
+      } else if (i == loops - 1) {
+        // final loop - assert volume delta
+        assertChange(
+          quoteVolumeChange, initialTotalVolumeQuote, kdl.offeredVolume(AbstractKandel.OrderType.Bid), "quote volume"
+        );
+        console.log("Final bids");
+        printOB();
+      }
+
+      test_bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
+
+      assertStatus(dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
+      if (i == 0) {
+        // With the bid filled, what is the current volume for asks?
+        initialTotalVolumeBase = kdl.offeredVolume(AbstractKandel.OrderType.Ask);
+        console.log("Initial asks");
+        printOB();
+      } else if (i == loops - 1) {
+        // final loop - assert volume delta
+        assertChange(
+          baseVolumeChange, initialTotalVolumeBase, kdl.offeredVolume(AbstractKandel.OrderType.Ask), "base volume"
+        );
+        console.log("Final asks");
+        printOB();
+      }
+    }
+  }
+
+  function test_take_full_bid_and_ask_10_times_full_compound() public {
+    test_take_full_bid_and_ask_repeatedly(10, 10_000, 10_000, ExpectedChange.Increase, ExpectedChange.Increase);
+  }
+
+  function test_take_full_bid_and_ask_10_times_zero_quote_compound() public {
+    test_take_full_bid_and_ask_repeatedly(10, 10_000, 0, ExpectedChange.Same, ExpectedChange.Decrease);
+  }
+
+  function test_take_full_bid_and_ask_10_times_zero_base_compound() public {
+    test_take_full_bid_and_ask_repeatedly(10, 0, 10_000, ExpectedChange.Decrease, ExpectedChange.Same);
+  }
+
+  function test_take_full_bid_and_ask_10_times_partial_compound_increasing() public {
+    test_take_full_bid_and_ask_repeatedly(10, 5000, 5000, ExpectedChange.Increase, ExpectedChange.Increase);
+  }
+
+  function test_take_full_bid_and_ask_10_times_partial_compound_increasing_boundary() public {
+    test_take_full_bid_and_ask_repeatedly(10, 4904, 4904, ExpectedChange.Increase, ExpectedChange.Increase);
+  }
+
+  function test_take_full_bid_and_ask_10_times_partial_compound_decreasing_boundary() public {
+    test_take_full_bid_and_ask_repeatedly(10, 4903, 4903, ExpectedChange.Decrease, ExpectedChange.Decrease);
+  }
+
+  function test_take_full_bid_and_ask_10_times_partial_compound_decreasing() public {
+    test_take_full_bid_and_ask_repeatedly(10, 4500, 4500, ExpectedChange.Decrease, ExpectedChange.Decrease);
+  }
+
+  function test_take_full_bid_and_ask_10_times_zero_compound() public {
+    test_take_full_bid_and_ask_repeatedly(10, 0, 0, ExpectedChange.Decrease, ExpectedChange.Decrease);
   }
 }

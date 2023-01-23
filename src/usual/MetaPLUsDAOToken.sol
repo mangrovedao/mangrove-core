@@ -51,6 +51,7 @@ contract MetaPLUsDAOToken is ERC20 {
   }
 
   // Only allow the following transfers:
+  //   any address -> recipient
   //   PLUsMgvStrat -> Mangrove
   //   Mangrove     -> any address
   // When owner = Mangrove  =>  transfer & unlock
@@ -60,7 +61,6 @@ contract MetaPLUsDAOToken is ERC20 {
         || owner == _mangrove && recipient == address(_pLUsTakerProxy),
       "MetaPLUsDAOToken/nonMangroveTransfer"
     );
-    // emit the empty transfer?
 
     if (owner == _mangrove) {
       address currentTaker = _pLUsTakerProxy.currentTaker();

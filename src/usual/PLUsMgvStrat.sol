@@ -2,20 +2,23 @@
 pragma solidity ^0.8.14;
 
 import {ILiquidityProvider} from "mgv_src/strategies/interfaces/ILiquidityProvider.sol";
+import {IStratEvents} from "mgv_src/strategies/interfaces/IStratEvents.sol";
 import {UsualTokenInterface} from "mgv_src/usual/UsualTokenInterface.sol";
 import {MetaPLUsDAOToken} from "mgv_src/usual/MetaPLUsDAOToken.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {Forwarder} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
-import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
+import {Direct} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
+import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
 
-contract PLUsMgvStrat is Forwarder {
+contract PLUsMgvStrat is Direct, IStratEvents {
   UsualTokenInterface public immutable _pLUsDAOToken;
-  MetaPLUsDAOToken public immutable _metaPLUsDAOToken; //FIXME: could this just be an address? would it cost less gas?
+  MetaPLUsDAOToken public immutable _metaPLUsDAOToken;
   IERC20 public immutable _usUSD;
   mapping(uint => address) offerIdToOwner; // keep track of who owns the offer
   address public _usualDapp;
+  uint16 public _fee = 30; // Fee is in 10_000 = 100%
+  uint16 maxFee = 100;
 
   constructor(
     address admin,
@@ -23,34 +26,53 @@ contract PLUsMgvStrat is Forwarder {
     UsualTokenInterface pLUsDAOToken,
     MetaPLUsDAOToken metaPLUsDAOToken,
     IERC20 usUSD
-  ) Forwarder(mgv, new SimpleRouter(), 1_000_000) {
+  ) Direct(mgv, NO_ROUTER, 100_000) {
     _pLUsDAOToken = pLUsDAOToken;
     _metaPLUsDAOToken = metaPLUsDAOToken;
     _pLUsDAOToken.approve(address(_metaPLUsDAOToken), type(uint).max);
     _usUSD = usUSD;
-    router().bind(address(this));
     if (admin != address(this)) {
       setAdmin(admin);
-      router().setAdmin(admin);
     }
   }
 
-  modifier onlyUsualDappOrMgvOrAdmin() {
-    require(
-      msg.sender == _usualDapp || msg.sender == admin() || msg.sender == address(MGV),
-      "PLUsMgvStrat/onlyAdminOrMgvOrDapp"
-    );
+  modifier onlyDappOrAdmin() {
+    require(msg.sender == _usualDapp || msg.sender == admin(), "PLUsMgvStrat/onlyDappOrAdmin");
     _;
+  }
+
+  function setFee(uint16 fee) public onlyAdmin {
+    require(fee <= maxFee, "PLUsMgvStrat/maxFee");
+    _fee = fee;
+    emit SetFee(fee);
   }
 
   function setUsualDapp(address usualDapp) public onlyAdmin {
     _usualDapp = usualDapp;
   }
 
+  function withdrawFees(address to) public onlyAdmin {
+    uint fee = _usUSD.balanceOf(address(this));
+    _usUSD.transfer(to, fee);
+    emit FeeWithdrawn(fee);
+  }
+
+  function __put__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
+    uint fee = (amount * _fee) / 10_000;
+    _usUSD.transfer(offerIdToOwner[order.offerId], amount - fee);
+    emit FeePaid(fee);
+    return 0;
+  }
+
+  function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint missing) {
+    _pLUsDAOToken.transferFrom(offerIdToOwner[order.offerId], address(this), amount);
+    return 0;
+  }
+
   function newOffer(uint wants, uint gives, uint pivotId, address owner)
     public
     payable
-    onlyUsualDappOrMgvOrAdmin
+    onlyDappOrAdmin
     returns (uint offerId)
   {
     offerId = _newOffer(
@@ -64,26 +86,23 @@ contract PLUsMgvStrat is Forwarder {
         pivotId: pivotId,
         fund: msg.value,
         noRevert: false
-      }),
-      msg.sender
+      })
     );
     offerIdToOwner[offerId] = owner;
   }
 
-  function __put__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
-    uint pushed = router().push(_usUSD, reserve(offerIdToOwner[order.offerId]), amount);
-    return amount - pushed;
-  }
-
-  function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint missing) {
-    _pLUsDAOToken.transferFrom(offerIdToOwner[order.offerId], address(this), amount);
-    return 0; // super.__get__(amount, order); //FIXME: This is not need, since we are transfering the token from the seller to this contract, in the lone before this one
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
+    internal
+    override
+    returns (bytes32)
+  {
+    return MangroveOffer.__posthookSuccess__(order, makerData);
   }
 
   function updateOffer(uint wants, uint gives, uint pivotId, uint offerId, address owner)
     public
     payable
-    onlyUsualDappOrMgvOrAdmin
+    onlyDappOrAdmin
     returns (bytes32)
   {
     require(offerIdToOwner[offerId] == owner, "PLUsMgvStrat/wrongOwner");

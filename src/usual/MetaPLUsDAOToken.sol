@@ -51,14 +51,15 @@ contract MetaPLUsDAOToken is ERC20 {
   }
 
   // Only allow the following transfers:
-  //   any address -> recipient
   //   PLUsMgvStrat -> Mangrove
   //   Mangrove     -> any address
   // When owner = Mangrove  =>  transfer & unlock
   function _transfer(address owner, address recipient, uint amount) internal override returns (bool) {
     require(
-      (recipient == _pLUsMgvStrat || owner == _pLUsMgvStrat && recipient == _mangrove)
-        || owner == _mangrove && recipient == address(_pLUsTakerProxy),
+      (
+        (owner == address(_pLUsMgvStrat) && recipient == _mangrove)
+          || owner == _mangrove && recipient == address(_pLUsTakerProxy)
+      ) && msg.sender == _mangrove,
       "MetaPLUsDAOToken/nonMangroveTransfer"
     );
 

@@ -29,8 +29,12 @@ contract AavePooledRouterTest is OfferLogicTest {
     pooledRouter.bind(maker2);
     vm.stopPrank();
 
-    vm.prank(maker1);
+    vm.startPrank(maker1);
     dai.approve({spender: $(pooledRouter), amount: type(uint).max});
+    weth.approve({spender: $(pooledRouter), amount: type(uint).max});
+    usdc.approve({spender: $(pooledRouter), amount: type(uint).max});
+    vm.stopPrank();
+
     vm.prank(maker2);
     dai.approve({spender: $(pooledRouter), amount: type(uint).max});
   }
@@ -126,6 +130,24 @@ contract AavePooledRouterTest is OfferLogicTest {
     pooledRouter.depositBuffer(IERC20(address(0)));
   }
 
+  function test_deposit_on_aave_maintains_reserve_and_total_balance() public {
+    deal($(usdc), address(makerContract), 10 ** 6);
+    vm.prank(address(makerContract));
+    pooledRouter.push(usdc, $(pooledRouter), 10 ** 6);
+
+    uint reserveBalance = pooledRouter.reserveBalance(usdc, address(makerContract), $(pooledRouter));
+    uint totalBalance = pooledRouter.totalBalance(usdc);
+    vm.prank(maker1);
+    pooledRouter.depositBuffer(IERC20(address(0)));
+
+    assertEq(
+      reserveBalance,
+      pooledRouter.reserveBalance(usdc, address(makerContract), address(pooledRouter)),
+      "Incorrect reserve balance"
+    );
+    assertEq(totalBalance, pooledRouter.totalBalance(usdc), "Incorrect total balance");
+  }
+
   function test_push_token_when_buffer_has_another_token_triggers_deposit() public {
     uint oldOverlyingBalance = pooledRouter.overlying(usdc).balanceOf($(pooledRouter));
     deal($(usdc), address(makerContract), 10 ** 6);
@@ -196,7 +218,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     assertEq(pooledRouter.sharesOf(dai, maker1), pooledRouter.INIT_SHARES(), "Incorrect first shares");
   }
 
-  function test_pull_token_decreases_sets_last_minter_shares_to_zero() public {
+  function test_pull_token_decreases_last_minter_shares_to_zero() public {
     deal($(dai), maker1, 10 ** 18);
     vm.startPrank(maker1);
     pooledRouter.push(dai, $(pooledRouter), 10 ** 18);
@@ -226,5 +248,36 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(maker2);
     reserveBalance = pooledRouter.reserveBalance(dai, $(pooledRouter));
     assertEq(expectedBalance, reserveBalance, "Incorrect reserve for maker2");
+  }
+
+  function test_claim_rewards() public {
+    //// rewards not active on polygon, so we test only here call to INCENTIVE_CONTROLLER is OK
+    // deal($(dai), maker1, 10_000 * 10 ** 18);
+    // vm.prank(maker1);
+    // pooledRouter.push(dai, $(pooledRouter), 10_000 * 10 ** 18);
+
+    // deal($(weth), maker1, 10 * 10 ** 18);
+    // vm.prank(maker1);
+    // pooledRouter.push(weth, $(pooledRouter), 10 * 10 ** 18);
+
+    // deal($(usdc), maker1, 10_000 * 10 ** 6);
+    // vm.prank(maker1);
+    // pooledRouter.push(usdc, $(pooledRouter), 10_000 * 10 ** 6);
+
+    // vm.prank(maker1);
+    // pooledRouter.depositBuffer(IERC20(address(0)));
+
+    // // fast forwarding
+    // vm.warp(block.timestamp + 10**4);
+    address[] memory assets = new address[](3);
+    assets[0] = address(pooledRouter.overlying(usdc));
+    assets[1] = address(pooledRouter.overlying(weth));
+    assets[2] = address(pooledRouter.overlying(dai));
+    vm.prank(deployer);
+    (address[] memory rewardsList, uint[] memory claimedAmounts) = pooledRouter.claimRewards(assets);
+    for (uint i; i < rewardsList.length; i++) {
+      console.logAddress(rewardsList[i]);
+      console.log(claimedAmounts[i]);
+    }
   }
 }

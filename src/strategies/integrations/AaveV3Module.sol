@@ -51,6 +51,7 @@ contract AaveV3Module {
    * @dev price oracle and pool address can be obtained from AAVE's address provider contract
    */
   IPriceOracleGetter public immutable ORACLE;
+  IPoolAddressesProvider public immutable ADDRESS_PROVIDER;
   uint public immutable INTEREST_RATE_MODE;
   uint16 public immutable REFERRAL_CODE;
 
@@ -63,6 +64,7 @@ contract AaveV3Module {
   constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode) {
     REFERRAL_CODE = uint16(_referralCode);
     INTEREST_RATE_MODE = _interestRateMode;
+    ADDRESS_PROVIDER = IPoolAddressesProvider(_addressesProvider);
 
     address _priceOracle = IPoolAddressesProvider(_addressesProvider).getAddress("PRICE_ORACLE");
     address _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
@@ -167,7 +169,10 @@ contract AaveV3Module {
   }
 
   /**
-   * @notice
+   * @notice deposits assets on AAVE by first repaying debt if any and then supplying to the pool
+   * @param token the asset one is depositing
+   * @param onBehalf the account one is repaying and supplying for
+   * @param amount of asset one is repaying and supplying
    */
   function _repayThenDeposit(IERC20 token, address onBehalf, uint amount) internal {
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
@@ -188,6 +193,7 @@ contract AaveV3Module {
    * @dev function will only try to borrow if less than `amount` was redeemed and will not try to borrow more than what is missing, even if `strict` is not required.
    * @dev this is forced by aave v3 currently not allowing to repay a debt that was incurred on the same block (so no gas optim can be used). Repaying on the next block would be dangerous as `onBehalf` position could possibly be liquidated
    * @param recipient the target address to which redeemed and borrowed tokens should be sent
+   * @return got how much asset was transfered to caller
    */
   function _redeemThenBorrow(IERC20 token, address onBehalf, uint amount, bool strict, address recipient)
     internal
@@ -205,14 +211,26 @@ contract AaveV3Module {
     }
   }
 
+  ///@notice tries to borrow some assets from the pool
+  ///@param token the asset one is borrowing
+  ///@param onBehalf the account whose collateral is being used to borrow (caller must be approved using `approveDelegation`)
   function _borrow(IERC20 token, uint amount, address onBehalf) internal {
     POOL.borrow(address(token), amount, INTEREST_RATE_MODE, REFERRAL_CODE, onBehalf);
   }
 
+  ///@notice redeems funds from the pool
+  ///@param token the asset one is trying to redeem
+  ///@param amount of assets one wishes to redeem
+  ///@param to is the address where the redeemed assets should be transfered
+  ///@return redeemed the amount of asset that were transfered to `to`
   function _redeem(IERC20 token, uint amount, address to) internal returns (uint redeemed) {
     redeemed = (amount == 0) ? 0 : POOL.withdraw(address(token), amount, to);
   }
 
+  ///@notice supplies funds to the pool
+  ///@param token the asset one is supplying
+  ///@param amount of assets to be transfered to the pool
+  ///@param onBehalf address of the account whose collateral is being supplied to
   function _supply(IERC20 token, uint amount, address onBehalf) internal {
     if (amount == 0) {
       return;
@@ -221,20 +239,34 @@ contract AaveV3Module {
     }
   }
 
+  ///@notice repays debt to the pool
+  ///@param token the asset one is repaying
+  ///@param amount of assets one is repaying
+  ///@param onBehalf account whose debt is being repaid
   function _repay(IERC20 token, uint amount, address onBehalf) internal returns (uint repaid) {
     repaid = (amount == 0) ? 0 : POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf);
   }
 
-  // rewards claiming.
-  function _claimRewards(IRewardsControllerIsh rewardsController, address[] calldata assets)
+  ///@notice rewards claiming.
+  ///@param assets list of overlying for which one is claiming awards
+  ///@param to whom the rewards should be sent
+  ///@return rewardsList the address of assets that have been claimed
+  ///@return claimedAmounts the amount of assets that have been claimed
+  function _claimRewards(address[] calldata assets, address to)
     internal
     returns (address[] memory rewardsList, uint[] memory claimedAmounts)
   {
-    (rewardsList, claimedAmounts) = rewardsController.claimAllRewardsToSelf(assets);
+    IRewardsControllerIsh rewardsController =
+      IRewardsControllerIsh(ADDRESS_PROVIDER.getAddress(keccak256("INCENTIVES_CONTROLLER")));
+    (rewardsList, claimedAmounts) = rewardsController.claimAllRewards(assets, to);
   }
 
-  // @dev user can only borrow underlying in variable or stable, not both
-  function borrowed(address underlying, address account) public view returns (uint) {
+  ///@notice returns the debt of a user
+  ///@param underlying the asset whose debt balance is being viewed
+  ///@param account the account whose debt balance is being viewed
+  ///@return debt the amount of tokens (in units of `underlying`) that should be repaid to the pool
+  ///@dev user can only borrow underlying in variable or stable, not both
+  function borrowed(address underlying, address account) public view returns (uint debt) {
     DataTypes.ReserveData memory rd = POOL.getReserveData(underlying);
     return INTEREST_RATE_MODE == 1
       ? IERC20(rd.stableDebtTokenAddress).balanceOf(account)

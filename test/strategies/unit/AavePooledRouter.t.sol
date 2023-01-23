@@ -58,7 +58,7 @@ contract AavePooledRouterTest is OfferLogicTest {
 
     // force mint on AAVE
     vm.prank(deployer);
-    pooledRouter.depositBuffer(IERC20(address(0)));
+    pooledRouter.flushAndsetBuffer(IERC20(address(0)));
 
     vm.prank(address(makerContract));
     assertEq(pooledRouter.reserveBalance(weth, address(pooledRouter)), 1 ether, "Incorrect weth balance");
@@ -72,8 +72,8 @@ contract AavePooledRouterTest is OfferLogicTest {
     AavePooledRouter router = new AavePooledRouter({
       _addressesProvider: fork.get("Aave"),
       _referralCode: 0,
-      _interestRateMode: 1, // stable rate
-      overhead: 700_000
+      _interestRateMode: 2, // 1 stable rate, 2 variable
+      overhead: 480_000 // fails for 470K
     });
     router.bind(address(makerContract));
     makerContract.setReserve(maker, address(router));
@@ -119,15 +119,15 @@ contract AavePooledRouterTest is OfferLogicTest {
     assertEq(usdc.balanceOf($(pooledRouter)), 2 * 10 ** 6, "incorrect usdc balance after push #2");
   }
 
-  function test_only_makerContract_or_admin_can_depositBuffer() public {
+  function test_only_makerContract_or_admin_can_flushAndsetBuffer() public {
     vm.expectRevert("AccessControlled/Invalid");
-    pooledRouter.depositBuffer(IERC20(address(0)));
+    pooledRouter.flushAndsetBuffer(IERC20(address(0)));
 
     vm.prank(deployer);
-    pooledRouter.depositBuffer(IERC20(address(0)));
+    pooledRouter.flushAndsetBuffer(IERC20(address(0)));
 
     vm.prank(address(makerContract));
-    pooledRouter.depositBuffer(IERC20(address(0)));
+    pooledRouter.flushAndsetBuffer(IERC20(address(0)));
   }
 
   function test_deposit_on_aave_maintains_reserve_and_total_balance() public {
@@ -138,7 +138,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     uint reserveBalance = pooledRouter.reserveBalance(usdc, address(makerContract), $(pooledRouter));
     uint totalBalance = pooledRouter.totalBalance(usdc);
     vm.prank(maker1);
-    pooledRouter.depositBuffer(IERC20(address(0)));
+    pooledRouter.flushAndsetBuffer(IERC20(address(0)));
 
     assertEq(
       reserveBalance,
@@ -265,7 +265,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     // pooledRouter.push(usdc, $(pooledRouter), 10_000 * 10 ** 6);
 
     // vm.prank(maker1);
-    // pooledRouter.depositBuffer(IERC20(address(0)));
+    // pooledRouter.flushAndsetBuffer(IERC20(address(0)));
 
     // // fast forwarding
     // vm.warp(block.timestamp + 10**4);

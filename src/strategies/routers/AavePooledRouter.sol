@@ -37,14 +37,23 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
     AbstractRouter(overhead)
   {
-    _rewardsManager = msg.sender;
+    setRewardsManager(msg.sender);
   }
 
+  ///@notice returns the shares of this router's balance that a maker contract has
+  ///@param token the address of the asset
+  ///@param maker the address of the maker contract whose shares are requested
+  ///@return shares the amount of shares of the maker contract.
+  ///@dev `sharesOf(token,maker)/totalShares(token)` represent the portion of this contract's balance of `token`s that the maker can claim
   function sharesOf(IERC20 token, address maker) public view returns (uint) {
     return _sharesOf[token][maker];
   }
 
-  function totalShares(IERC20 token) public view returns (uint) {
+  ///@notice returns the total shares one needs to possess to claim all the tokens of this contract
+  ///@param token the address of the asset
+  ///@return total the total amount of shares
+  ///@dev `sharesOf(token,maker)/totalShares(token)` represent the portion of this contract's balance of `token`s that the maker can claim
+  function totalShares(IERC20 token) public view returns (uint total) {
     return _totalShares[token];
   }
 
@@ -67,11 +76,19 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     return totalShares_ == 0 ? 0 : sharesOf(token, maker) * totalBalance(token) / totalShares_;
   }
 
-  function sharesOfamount(IERC20 token, uint amount) internal view returns (uint shares) {
+  ///@notice computes how many shares should be minted if when some token balance of this router increases
+  ///@param token the address of the asset whose balance will increase
+  ///@param amount of the increase
+  ///@return newShares the shares that must be minted
+  function sharesOfamount(IERC20 token, uint amount) internal view returns (uint newShares) {
     uint totalShares_ = totalShares(token);
-    shares = totalShares_ == 0 ? INIT_SHARES : totalShares_ * amount / totalBalance(token);
+    newShares = totalShares_ == 0 ? INIT_SHARES : totalShares_ * amount / totalBalance(token);
   }
 
+  ///@notice mints a certain quantity of shares for a given asset and assigns them to a maker contract
+  ///@param token the address of the asset
+  ///@param maker the address of the maker contract who should have the assets assigned
+  ///@param amount the amount of assets added to maker's reserve
   function _mintShares(IERC20 token, address maker, uint amount) internal {
     // computing how many shares should be minted for maker contract
     uint sharesToMint = sharesOfamount(token, amount);
@@ -79,6 +96,10 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     _totalShares[token] += sharesToMint;
   }
 
+  ///@notice burns a certain quantity of maker shares for a given asset
+  ///@param token the address of the asset
+  ///@param maker the address of the maker contract whose shares are being burnt
+  ///@param amount the amount of assets withdrawn from maker's reserve
   function _burnShares(IERC20 token, address maker, uint amount) internal {
     // computing how many shares should be minted for maker contract
     uint sharesToBurn = sharesOfamount(token, amount);
@@ -86,13 +107,14 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     _totalShares[token] -= sharesToBurn;
   }
 
+  ///@inheritdoc AbstractRouter
   function __push__(IERC20 token, address reserve, address maker, uint amount)
     internal
     override
     isThis(reserve)
     returns (uint)
   {
-    depositBuffer(token);
+    flushAndsetBuffer(token);
     _mintShares(token, maker, amount);
 
     // Transfer must occur *after* _mintShares above
@@ -101,7 +123,10 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     return amount;
   }
 
-  function depositBuffer(IERC20 token) public makersOrAdmin {
+  ///@notice declares that an incoming asset should be buffered locally and not flushed to AAVE
+  ///@notice flushes previously buffered tokens to AAVE
+  ///@param token the address of the asset
+  function flushAndsetBuffer(IERC20 token) public makersOrAdmin {
     IERC20 tokenInBuffer = _buffer;
     if (tokenInBuffer != token && tokenInBuffer != IERC20(address(0))) {
       _repayThenDeposit(tokenInBuffer, address(this), tokenInBuffer.balanceOf(address(this)));
@@ -109,6 +134,7 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     _buffer = token;
   }
 
+  ///@inheritdoc AbstractRouter
   function __pull__(IERC20 token, address reserve, address maker, uint amount, bool strict)
     internal
     override
@@ -116,7 +142,7 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     returns (uint)
   {
     // if there is any buffered liquidity (!= token), we push it back to AAVE
-    depositBuffer(token);
+    flushAndsetBuffer(token);
 
     uint amount_ = strict ? amount : reserveBalance(token, maker, reserve);
     _burnShares(token, maker, amount_);
@@ -131,6 +157,7 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     return amount_;
   }
 
+  ///@inheritdoc AbstractRouter
   function __checkList__(IERC20 token, address reserve) internal view override {
     // allowance for `withdrawToken` and `pull`
     require( // required prior to withdraw from POOL
@@ -140,23 +167,33 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     token.allowance(address(this), address(POOL)) > 0, "AavePooledRouter/hasNotApprovedPool");
   }
 
+  ///@inheritdoc AbstractRouter
   function __activate__(IERC20 token) internal virtual override {
     _approveLender(token, type(uint).max);
   }
 
+  ///@notice revokes pool approval for a certain asset. This router will no longer be able to deposit on Pool
+  ///@param token the address of the asset whose approval must be revoked.
   function revokeLenderApproval(IERC20 token) external onlyAdmin {
     _approveLender(token, 0);
   }
 
+  ///@notice allows rewards manager to claim the rewards attributed to this router by AAVE
+  ///@param assets the list of overlyings (aToken, debtToken) whose rewards should be claimed
+  ///@dev if some rewards are elligible they are sent to `_rewardsManager`
+  ///@return rewardsList the addresses of the claimed rewards
+  ///@return claimedAmounts the amount of claimed rewards
   function claimRewards(address[] calldata assets)
     external
     onlyCaller(_rewardsManager)
     returns (address[] memory rewardsList, uint[] memory claimedAmounts)
   {
-    return _claimRewards(assets, _rewardsManager);
+    return _claimRewards(assets, msg.sender);
   }
 
-  function setRewardsManager(address rewardsManager) external onlyAdmin {
+  ///@notice sets a new rewards manager
+  ///@dev if any rewards is active for pure lenders, `_rewardsManager` will be able to claim them
+  function setRewardsManager(address rewardsManager) public onlyAdmin {
     require(rewardsManager != address(0), "AavePooledReserve/0xrewardsManager");
     _rewardsManager = rewardsManager;
     emit SetRewardsManager(rewardsManager);

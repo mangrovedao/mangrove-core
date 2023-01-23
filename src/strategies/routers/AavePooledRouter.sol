@@ -56,9 +56,15 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
   }
 
   ///@inheritdoc AbstractRouter
-  function reserveBalance(IERC20 token, address reserve) public view override isThis(reserve) returns (uint) {
+  function reserveBalance(IERC20 token, address maker, address reserve)
+    public
+    view
+    override
+    isThis(reserve)
+    returns (uint)
+  {
     uint totalShares_ = totalShares(token);
-    return totalShares_ == 0 ? 0 : sharesOf(token, msg.sender) * totalBalance(token) / totalShares_;
+    return totalShares_ == 0 ? 0 : sharesOf(token, maker) * totalBalance(token) / totalShares_;
   }
 
   function sharesOfamount(IERC20 token, uint amount) internal view returns (uint shares) {
@@ -112,7 +118,7 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     // if there is any buffered liquidity (!= token), we push it back to AAVE
     depositBuffer(token);
 
-    uint amount_ = strict ? amount : reserveBalance(token, reserve);
+    uint amount_ = strict ? amount : reserveBalance(token, maker, reserve);
     _burnShares(token, maker, amount_);
 
     // pulling all funds from AAVE to be ready to serve for the rest of the market order
@@ -142,12 +148,12 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     _approveLender(token, 0);
   }
 
-  function claimRewards(IRewardsControllerIsh rewardsController, address[] calldata assets)
+  function claimRewards(address[] calldata assets)
     external
     onlyCaller(_rewardsManager)
     returns (address[] memory rewardsList, uint[] memory claimedAmounts)
   {
-    return _claimRewards(rewardsController, assets);
+    return _claimRewards(assets, _rewardsManager);
   }
 
   function setRewardsManager(address rewardsManager) external onlyAdmin {

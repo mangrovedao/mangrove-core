@@ -94,8 +94,17 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice returns the amount of `token`s that can be made available for pulling by the maker contract
   ///@dev when this router is pulling from a lender, this must return the amount of asset that can be withdrawn from reserve
   ///@param token is the asset one wishes to know the balance of
-  ///@param reserve is the address identifying the location of the assets
-  function reserveBalance(IERC20 token, address reserve) external view virtual returns (uint);
+  ///@param reserve is the address of the reserve of `msg.sender`
+  function reserveBalance(IERC20 token, address reserve) external view returns (uint) {
+    return reserveBalance(token, msg.sender, reserve);
+  }
+
+  ///@notice returns the amount of `token`s that can be made available for pulling by the maker contract
+  ///@dev when this router is pulling from a lender, this must return the amount of asset that can be withdrawn from reserve
+  ///@param token is the asset one wishes to know the balance of
+  ///@param maker the address of the owner of the reserve
+  ///@param reserve is the address of the reserve
+  function reserveBalance(IERC20 token, address maker, address reserve) public view virtual returns (uint);
 
   ///@notice adds a maker contract address to the allowed makers of this router
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address

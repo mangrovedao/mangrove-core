@@ -59,7 +59,7 @@ contract SimpleRouter is
   }
 
   ///@inheritdoc AbstractRouter
-  function reserveBalance(IERC20 token, address reserve) external view override returns (uint) {
+  function reserveBalance(IERC20 token, address, address reserve) public view override returns (uint) {
     return token.balanceOf(reserve);
   }
 

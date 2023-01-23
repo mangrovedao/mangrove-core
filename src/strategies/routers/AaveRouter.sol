@@ -47,7 +47,7 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
       return amount;
     }
     // else we need to go to aave to obtain funds
-    available = reserveBalance(token, reserve);
+    available = reserveBalance(token, maker, reserve);
     // if strict enable one should pull at most `amount` from reserve
     if (strict) {
       amount = amount < available ? amount : available;
@@ -74,7 +74,7 @@ contract AaveRouter is AbstractRouter, AaveV3Module {
     }
   }
 
-  function reserveBalance(IERC20 token, address reserve) public view virtual override returns (uint available) {
+  function reserveBalance(IERC20 token, address, address reserve) public view virtual override returns (uint available) {
     (available,) = maxGettableUnderlying(token, false, reserve);
   }
 

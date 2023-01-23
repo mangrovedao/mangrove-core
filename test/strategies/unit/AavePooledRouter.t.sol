@@ -24,6 +24,9 @@ contract AavePooledRouterTest is OfferLogicTest {
     maker1 = freshAddress("maker1");
     maker2 = freshAddress("maker2");
 
+    vm.deal(maker1, 10 ether);
+    vm.deal(maker2, 10 ether);
+
     vm.startPrank(deployer);
     pooledRouter.bind(maker1);
     pooledRouter.bind(maker2);
@@ -35,8 +38,11 @@ contract AavePooledRouterTest is OfferLogicTest {
     usdc.approve({spender: $(pooledRouter), amount: type(uint).max});
     vm.stopPrank();
 
-    vm.prank(maker2);
+    vm.startPrank(maker2);
     dai.approve({spender: $(pooledRouter), amount: type(uint).max});
+    weth.approve({spender: $(pooledRouter), amount: type(uint).max});
+    usdc.approve({spender: $(pooledRouter), amount: type(uint).max});
+    vm.stopPrank();
   }
 
   function fundStrat() internal virtual override {
@@ -248,6 +254,50 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(maker2);
     reserveBalance = pooledRouter.reserveBalance(dai, $(pooledRouter));
     assertEq(expectedBalance, reserveBalance, "Incorrect reserve for maker2");
+  }
+
+  function test_at_most_3_calls_to_aave_per_market_order() public {
+    uint old_aWeth_bal = pooledRouter.overlying(weth).balanceOf($(pooledRouter));
+    uint old_aUsdc_bal = pooledRouter.overlying(usdc).balanceOf($(pooledRouter));
+
+    console.log("Initial weth balance on aave", toUnit(old_aWeth_bal, 18));
+    console.log("Initial weth balance on aave", toUnit(old_aUsdc_bal, 6));
+    for (uint i; i < 5; i++) {
+      vm.prank(maker);
+      makerContract.newOffer{value: 0.1 ether}({
+        outbound_tkn: weth,
+        inbound_tkn: usdc,
+        wants: 120 * 10 ** 6 + i,
+        gives: 0.1 * 10 ** 18,
+        pivotId: 0
+      });
+    }
+    reader = new MgvReader($(mgv));
+    (, uint[] memory ids, MgvStructs.OfferPacked[] memory offers,) = reader.packedOfferList($(weth), $(usdc), 0, 10);
+    for (uint i = 0; i < offers.length; i++) {
+      console.log(ids[i], toUnit(offers[i].wants(), 6), toUnit(offers[i].gives(), 18));
+    }
+    // at the end of this market order one must verify:
+    // * all inbound_tkn are on router
+    // * all outboun_tkn are on aave
+    vm.prank(taker);
+    (uint takerGot, uint takerGave, uint bounty, uint fee) = mgv.marketOrder({
+      outbound_tkn: $(weth),
+      inbound_tkn: $(usdc),
+      takerWants: 0.5 ether,
+      takerGives: 1_300 * 10 ** 6,
+      fillWants: true
+    });
+    assertTrue(bounty == 0, "Some offer failed");
+    assertEq(takerGot + fee, 0.5 ether, "unexpected partial fill");
+    assertEq(takerGave, usdc.balanceOf($(pooledRouter)), "Incorrect usdc balance on router");
+    assertEq(weth.balanceOf($(pooledRouter)), 0, "Incorrect weth balance on router");
+    assertEq(
+      pooledRouter.overlying(weth).balanceOf($(pooledRouter)),
+      old_aWeth_bal - (takerGot + fee),
+      "Incorrect aWeth balance on pool"
+    );
+    assertEq(pooledRouter.overlying(usdc).balanceOf($(pooledRouter)), old_aUsdc_bal, "Incorrect aUsdc balance on pool");
   }
 
   function test_claim_rewards() public {

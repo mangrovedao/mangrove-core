@@ -36,11 +36,11 @@ contract PLUsMgvStrat is Direct, IStratEvents {
   uint16 maxFee = 100;
 
   /// @notice PLUsMgvStrat constructor.
-  /// @param admin the admin address for the contract.
-  /// @param mgv the deployed Mangrove contract on which this contract will post offers.
-  /// @param pLUsDAOToken the PLUsDAO Token needed for approval.
-  /// @param metaPLUsDAOToken the MetaPLUsDAO Token used for making the offers.
-  /// @param usUSD the UsUSD Token used for making the offers and paying the fee.
+  /// @param admin The admin address for the contract.
+  /// @param mgv The deployed Mangrove contract on which this contract will post offers.
+  /// @param pLUsDAOToken The PLUsDAO Token needed for approval.
+  /// @param metaPLUsDAOToken The MetaPLUsDAO Token used for making the offers.
+  /// @param usUSD The UsUSD Token used for making the offers and paying the fee.
   constructor(address admin, IMangrove mgv, IERC20 pLUsDAOToken, MetaPLUsDAOToken metaPLUsDAOToken, IERC20 usUSD)
     Direct(mgv, NO_ROUTER, 100_000)
   {

@@ -46,6 +46,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice set the compound rates. It will take effect for future compounding.
   ///@param compoundRateBase the compound rate for base.
   ///@param compoundRateQuote the compound rate for quote.
+  ///@dev For low compound rates Kandel can end up with everything as pending and nothing offered.
+  ///@dev To avoid this, then for equal compound rates `C` then $C >= 1/(sqrt(ratio^spread)+1)$.
+  ///@dev With one rate being 0 and the other 1 the amount earned from the spread will accumulate as pending
+  ///@dev for the token at 0 compounding and the offered volume will stay roughly static (modulo rounding).
   function setCompoundRates(uint16 compoundRateBase, uint16 compoundRateQuote) public mgvOrAdmin {
     require(compoundRateBase <= 10 ** PRECISION, "Kandel/invalidCompoundRateBase");
     require(compoundRateQuote <= 10 ** PRECISION, "Kandel/invalidCompoundRateQuote");

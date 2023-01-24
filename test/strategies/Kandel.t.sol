@@ -390,15 +390,15 @@ contract KandelTest is MangroveTest {
   }
 
   function test_take_full_bid_and_ask_10_times_zero_quote_compound() public {
-    test_take_full_bid_and_ask_repeatedly(10, 10_000, 0, ExpectedChange.Same, ExpectedChange.Decrease);
+    test_take_full_bid_and_ask_repeatedly(10, 10_000, 0, ExpectedChange.Same, ExpectedChange.Same);
   }
 
   function test_take_full_bid_and_ask_10_times_zero_base_compound() public {
-    test_take_full_bid_and_ask_repeatedly(10, 0, 10_000, ExpectedChange.Decrease, ExpectedChange.Same);
+    test_take_full_bid_and_ask_repeatedly(10, 0, 10_000, ExpectedChange.Same, ExpectedChange.Same);
   }
 
-  function test_take_full_bid_and_ask_10_times_partial_compound_increasing() public {
-    test_take_full_bid_and_ask_repeatedly(10, 5000, 5000, ExpectedChange.Increase, ExpectedChange.Increase);
+  function test_take_full_bid_and_ask_10_times_close_to_zero_base_compound() public {
+    test_take_full_bid_and_ask_repeatedly(10, 1, 10_000, ExpectedChange.Increase, ExpectedChange.Increase);
   }
 
   function test_take_full_bid_and_ask_10_times_partial_compound_increasing_boundary() public {
@@ -407,10 +407,6 @@ contract KandelTest is MangroveTest {
 
   function test_take_full_bid_and_ask_10_times_partial_compound_decreasing_boundary() public {
     test_take_full_bid_and_ask_repeatedly(10, 4903, 4903, ExpectedChange.Decrease, ExpectedChange.Decrease);
-  }
-
-  function test_take_full_bid_and_ask_10_times_partial_compound_decreasing() public {
-    test_take_full_bid_and_ask_repeatedly(10, 4500, 4500, ExpectedChange.Decrease, ExpectedChange.Decrease);
   }
 
   function test_take_full_bid_and_ask_10_times_zero_compound() public {

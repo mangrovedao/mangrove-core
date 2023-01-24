@@ -20,9 +20,9 @@ struct OfferData {
 }
 
 contract SimpleTestMaker is TrivialTestMaker {
-  AbstractMangrove mgv;
-  address base;
-  address quote;
+  AbstractMangrove public mgv;
+  address public base;
+  address public quote;
   bool shouldFail_; // will set mgv allowance to 0
   bool shouldRevert_; // will revert
   bool shouldRepost_; // will try to repost offer with identical parameters

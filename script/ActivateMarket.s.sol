@@ -37,8 +37,9 @@ contract ActivateMarket is Deployer {
 
   /* 
     tknX_in_gwei should be obtained like this:
-    1. Get the price of one tknX display unit in native token, in display units
-    2. Multiply by 10^9
+    1. Get the price of one tknX display unit in native token, in display units.
+       For instance, on ethereum, the price of 1 WETH is 1e9 gwei
+    2. Multiply by 1e9
     3. Round to nearest integer
   */
   function innerRun(address tkn1, address tkn2, uint tkn1_in_gwei, uint tkn2_in_gwei, uint fee) public {

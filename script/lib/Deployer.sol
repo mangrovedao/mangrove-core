@@ -87,6 +87,15 @@ abstract contract Deployer is Script2 {
     vm.broadcast(broadcaster());
   }
 
+  function startBroadcast() public {
+    vm.startBroadcast(broadcaster());
+  }
+
+  function stopBroadcast() public {
+    // convenience
+    vm.stopBroadcast();
+  }
+
   // compute & memoize the current broadcaster address
   function broadcaster() public returns (address) {
     /* Memoize _broadcaster. Cannot just do it in constructor because tx.origin for script constructors does not depend on additional CLI args */

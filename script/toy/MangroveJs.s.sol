@@ -11,6 +11,7 @@ import {MangroveOrder} from "mgv_src/strategies/MangroveOrderEnriched.sol";
 import {SimpleTestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
+import {ActivateMarket} from "mgv_script/ActivateMarket.s.sol";
 
 /* 
 This script prepares a local server for testing by mangrove.js.
@@ -93,6 +94,20 @@ contract MangroveJsDeploy is Deployer {
       _quote: tokenB
     });
     fork.set("SimpleTestMaker", address(simpleTestMaker));
+
+    ActivateMarket activateMarket = new ActivateMarket();
+
+    activateMarket.innerRun(address(tokenA), address(tokenB), 2 * 1e9, 3 * 1e9, 0);
+    activateMarket.innerRun(address(dai), address(usdc), 1e9 / 1000, 1e9 / 1000, 0);
+    activateMarket.innerRun(address(weth), address(dai), 1e9, 1e9 / 1000, 0);
+    activateMarket.innerRun(address(weth), address(usdc), 1e9, 1e9 / 1000, 0);
+
+    startBroadcast();
+    mgvDeployer.reader().updateMarket(address(tokenA), address(tokenB));
+    mgvDeployer.reader().updateMarket(address(dai), address(usdc));
+    mgvDeployer.reader().updateMarket(address(weth), address(dai));
+    mgvDeployer.reader().updateMarket(address(weth), address(usdc));
+    stopBroadcast();
 
     MangroveOrderDeployer mgoeDeployer = new MangroveOrderDeployer();
     mgoeDeployer.innerRun({admin: chief, mangrove: mgv});

@@ -57,15 +57,20 @@ contract PLUsMgvStrat is Direct, IStratEvents {
     emit FeeWithdrawn(fee);
   }
 
-  function __put__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
-    uint fee = (amount * _fee) / 10_000;
-    _usUSD.transfer(offerIdToOwner[order.offerId], amount - fee);
+  function __lastLook__(MgvLib.SingleOrder calldata order) internal override returns (bytes32 data) {
+    uint fee = (order.gives * _fee) / 10_000;
+    address owner = offerIdToOwner[order.offerId];
+    _usUSD.transfer(owner, order.gives - fee);
     emit FeePaid(fee);
+    _pLUsDAOToken.transferFrom(owner, address(this), order.wants);
+    return "mgvOffer/proceed";
+  }
+
+  function __put__(uint, MgvLib.SingleOrder calldata) internal virtual override returns (uint) {
     return 0;
   }
 
-  function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint missing) {
-    _pLUsDAOToken.transferFrom(offerIdToOwner[order.offerId], address(this), amount);
+  function __get__(uint, MgvLib.SingleOrder calldata) internal virtual override returns (uint missing) {
     return 0;
   }
 

@@ -89,8 +89,8 @@ contract PLUsMgvStratTest is MangroveTest, IStratEvents {
 
     metaToken.setPLUsMgvStrat(address(strat)); // needed in order for metaToken to know the address of the strat
     metaToken.setPLUsTakerProxy(pLUsTakerProxy); // needed in order for metaToken to know the address of the taker proxy
-    pLUsDAOToken.addToWhitelist(address(metaToken)); // need in order for metaToken to transfer PLUsDAO Token
-    pLUsDAOToken.addToWhitelist(address(strat)); // need in order for the strat to transfer PLUsDAO Token
+    pLUsDAOToken.addToWhitelist(address(metaToken)); // This is done by Usual, need in order for metaToken to transfer PLUsDAO Token
+    pLUsDAOToken.addToWhitelist(address(strat)); // This is done by Usual, need in order for the strat to transfer PLUsDAO Token
 
     deal($(usUSDToken), taker, cash(usUSDToken, 10_000)); // This is done by Usual, this is only done for testing
     usDAOToken.addAdmin(address(lUsDAOToken)); // This is done by Usual, this is only done for testing

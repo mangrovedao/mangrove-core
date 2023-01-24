@@ -46,10 +46,6 @@ contract MetaPLUsDAOToken is ERC20 {
     return _pLUsDAOToken.balanceOf(account);
   }
 
-  function approve(address spender, uint amount) public override returns (bool) {
-    return _pLUsDAOToken.approve(spender, amount) && super.approve(spender, amount);
-  }
-
   // Only allow the following transfers:
   //   PLUsMgvStrat -> Mangrove
   //   Mangrove     -> any address

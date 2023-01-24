@@ -17,6 +17,8 @@ import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {AaveV3Module, IRewardsControllerIsh} from "mgv_src/strategies/integrations/AaveV3Module.sol";
 //import {console2 as console} from "forge-std/Test.sol";
 
+///@title Router acting as a liquidity reserve on AAVE for multiple maker contracts.
+
 contract AavePooledRouter is AaveV3Module, AbstractRouter {
   event SetRewardsManager(address);
 
@@ -25,7 +27,9 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
   IERC20 public _buffer;
   address public _rewardsManager;
 
-  // this should be enough so that INIT_SHARE * amount / reserveBalance does not underflow
+  ///@notice initial shares to be minted
+  ///@dev this amount must be big enough to avoid minting 0 shares via "donation"
+  ///see https://github.com/code-423n4/2022-09-y2k-finance-findings/issues/449
   uint public constant INIT_SHARES = 10 ** 29;
 
   modifier isThis(address reserve) {
@@ -35,7 +39,7 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
 
   constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode, uint overhead)
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
-    AbstractRouter(overhead)
+    AbstractRouter(overhead) // not permissioned
   {
     setRewardsManager(msg.sender);
   }

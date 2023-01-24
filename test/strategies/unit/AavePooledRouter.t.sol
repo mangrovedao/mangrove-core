@@ -330,4 +330,40 @@ contract AavePooledRouterTest is OfferLogicTest {
       console.log(claimedAmounts[i]);
     }
   }
+
+  function test_aave_generates_yield() public {
+    deal($(weth), maker1, 10 * 10 ** 18);
+    vm.prank(maker1);
+    pooledRouter.push(weth, $(pooledRouter), 10 * 10 ** 18);
+
+    deal($(usdc), maker1, 10_000 * 10 ** 6);
+    vm.prank(maker1);
+    pooledRouter.push(usdc, $(pooledRouter), 10_000 * 10 ** 6);
+
+    deal($(dai), maker1, 10_000 * 10 ** 18);
+    vm.prank(maker1);
+    pooledRouter.push(dai, $(pooledRouter), 10_000 * 10 ** 18);
+
+    vm.prank(deployer);
+    pooledRouter.flushAndsetBuffer(IERC20(address(0)));
+
+    uint old_reserve_weth = pooledRouter.reserveBalance(weth, maker1, $(pooledRouter));
+    uint old_reserve_usdc = pooledRouter.reserveBalance(usdc, maker1, $(pooledRouter));
+    uint old_reserve_dai = pooledRouter.reserveBalance(dai, maker1, $(pooledRouter));
+    // fast forwarding a year
+    vm.warp(block.timestamp + 31536000);
+    uint new_reserve_weth = pooledRouter.reserveBalance(weth, maker1, $(pooledRouter));
+    uint new_reserve_usdc = pooledRouter.reserveBalance(usdc, maker1, $(pooledRouter));
+    uint new_reserve_dai = pooledRouter.reserveBalance(dai, maker1, $(pooledRouter));
+    assertTrue(
+      old_reserve_weth < new_reserve_weth && old_reserve_usdc < new_reserve_usdc && old_reserve_dai < new_reserve_dai,
+      "No yield from AAVE"
+    );
+    console.log(
+      "WETH (+%s), USDC (+%s), DAI(+%s)",
+      toUnit(new_reserve_weth - old_reserve_weth, 18),
+      toUnit(new_reserve_usdc - old_reserve_usdc, 6),
+      toUnit(new_reserve_dai - old_reserve_dai, 18)
+    );
+  }
 }

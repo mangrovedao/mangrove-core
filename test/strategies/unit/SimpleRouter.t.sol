@@ -7,6 +7,9 @@ import "mgv_src/strategies/routers/SimpleRouter.sol";
 contract SimpleRouterTest is OfferLogicTest {
   SimpleRouter router;
 
+  event MakerBind(address indexed maker);
+  event MakerUnbind(address indexed maker);
+
   function setupLiquidityRouting() internal override {
     vm.startPrank(deployer);
     router = new SimpleRouter();
@@ -17,12 +20,18 @@ contract SimpleRouterTest is OfferLogicTest {
   }
 
   function test_admin_can_unbind_makerContract() public {
+    expectFrom(address(router));
+    emit MakerUnbind(address(makerContract));
+
     vm.prank(deployer);
     router.unbind(address(makerContract));
     assertTrue(!router.makers(address(makerContract)), "unbind failed");
   }
 
   function test_makerContract_can_unbind_makerContract() public {
+    expectFrom(address(router));
+    emit MakerUnbind(address(makerContract));
+
     vm.prank(address(makerContract));
     router.unbind();
     assertTrue(!router.makers(address(makerContract)), "unbind failed");

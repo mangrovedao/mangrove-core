@@ -34,6 +34,10 @@ abstract contract AbstractRouter is AccessControlled {
     _;
   }
 
+  ///@notice logging bound maker contracts
+  event MakerBind(address indexed maker);
+  event MakerUnbind(address indexed maker);
+
   ///@notice constructor for abstract routers.
   ///@param routerGasreq_ is the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
   constructor(uint routerGasreq_) AccessControlled(msg.sender) {
@@ -111,17 +115,24 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param maker the maker contract address
   function bind(address maker) public onlyAdmin {
     ARSt.getStorage().makers[maker] = true;
+    emit MakerBind(maker);
   }
 
   ///@notice removes a maker contract address from the allowed makers of this router
   ///@param maker the maker contract address
-  function unbind(address maker) public onlyAdmin {
+  function _unbind(address maker) internal {
     ARSt.getStorage().makers[maker] = false;
+    emit MakerUnbind(maker);
   }
 
   ///@notice removes `msg.sender` from the allowed makers of this router
   function unbind() external onlyMakers {
-    ARSt.getStorage().makers[msg.sender] = false;
+    _unbind(msg.sender);
+  }
+
+  ///@notice removes a makerContract from the allowed makers of this router
+  function unbind(address maker) external onlyAdmin {
+    _unbind(maker);
   }
 
   ///@notice verifies all required approval involving `this` router (either as a spender or owner)

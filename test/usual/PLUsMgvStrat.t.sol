@@ -521,4 +521,36 @@ contract PLUsMgvStratTest is MangroveTest, IStratEvents {
     assertTrue(bounty > 0, "bounty not should be zero");
     assertEq(taker.balance, oldBalance + bounty, "takers balance should increase the same amount as bounty");
   }
+
+  function test_postOfferRemoveTokensAndSnipeOffer() public {
+    deployStrat();
+    uint gives = cash(metaToken, 2);
+    uint wants = cash(usUSDToken, 4);
+    uint offerId = postAndFundOfferViaDapp(wants, gives, seller);
+    uint takerWants = gives;
+    uint takerGives = wants;
+    pLUsDAOToken.addToWhitelist(address(seller));
+    vm.startPrank(seller);
+    pLUsDAOToken.transfer(address(this), cash(pLUsDAOToken, 10));
+    vm.stopPrank();
+
+    address cleaner = freshAddress("cleaner");
+    deal($(usUSDToken), cleaner, cash(usUSDToken, 10_000)); // This is done by Usual, this is only done for testing
+    vm.startPrank(cleaner);
+    usUSDToken.approve(address(mgv), type(uint).max); // the taker always has to approve mgv for the inbound token
+    (, uint takerGot, uint takerGave, uint bounty,) = mgv.snipes({
+      outbound_tkn: $(metaToken),
+      inbound_tkn: $(usUSDToken),
+      targets: wrap_dynamic([offerId, takerWants, takerGives, type(uint).max]),
+      fillWants: true
+    });
+    vm.stopPrank();
+
+    assertEq(takerGot, 0, "taker got wrong amount");
+    assertEq(takerGave, 0, "taker gave wrong amount");
+    assertTrue(bounty > 0, "bounty should not be zero");
+    assertEq(cleaner.balance, bounty, "cleaners balance should increase the same amount as bounty");
+  }
+
+  // test snipe failing offer
 }

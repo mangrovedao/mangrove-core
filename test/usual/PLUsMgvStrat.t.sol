@@ -551,6 +551,4 @@ contract PLUsMgvStratTest is MangroveTest, IStratEvents {
     assertTrue(bounty > 0, "bounty should not be zero");
     assertEq(cleaner.balance, bounty, "cleaners balance should increase the same amount as bounty");
   }
-
-  // test snipe failing offer
 }

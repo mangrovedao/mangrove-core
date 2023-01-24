@@ -216,7 +216,7 @@ abstract contract ERC20Base is Context, IERC20 {
    * - `to` cannot be the zero address.
    * - `from` must have a balance of at least `amount`.
    */
-  function _transfer(address from, address to, uint amount) internal virtual returns (bool) {
+  function _transfer(address from, address to, uint amount) internal virtual {
     require(from != address(0), "ERC20: transfer from the zero address");
     require(to != address(0), "ERC20: transfer to the zero address");
 
@@ -232,8 +232,6 @@ abstract contract ERC20Base is Context, IERC20 {
     emit Transfer(from, to, amount);
 
     _afterTokenTransfer(from, to, amount);
-
-    return true;
   }
 
   /**

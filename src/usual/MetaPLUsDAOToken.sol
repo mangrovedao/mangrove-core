@@ -54,7 +54,7 @@ contract MetaPLUsDAOToken is ERC20 {
   //   PLUsMgvStrat -> Mangrove
   //   Mangrove     -> any address
   // When owner = Mangrove  =>  transfer & unlock
-  function _transfer(address owner, address recipient, uint amount) internal override returns (bool) {
+  function _transfer(address owner, address recipient, uint amount) internal override {
     require(
       (
         (owner == address(_pLUsMgvStrat) && recipient == _mangrove)
@@ -70,7 +70,5 @@ contract MetaPLUsDAOToken is ERC20 {
       result = _pLUsDAOToken.unlockFor(currentTaker, amount);
       require(result, "MetaPLUsDAOToken/PLUsDAOUnlockFailed");
     }
-
-    return true;
   }
 }

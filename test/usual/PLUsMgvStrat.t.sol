@@ -155,7 +155,7 @@ contract PLUsMgvStratTest is MangroveTest, IStratEvents {
     uint expectedFee = (wants * strat._fee()) / 10_000;
     vm.startPrank(taker);
     vm.expectEmit(true, false, false, true);
-    emit FeePaid(expectedFee);
+    emit CreditFee(expectedFee);
     (uint takerGot, uint takerGave, uint bounty) = takeOfferWithProxy(takerWants, takerGives);
     vm.stopPrank();
 
@@ -225,7 +225,7 @@ contract PLUsMgvStratTest is MangroveTest, IStratEvents {
     uint expectedFeeWithdrawn = (wants * strat._fee()) / 10_000;
     uint balanceBefore = usUSDToken.balanceOf(address(this));
     vm.expectEmit(true, false, false, true);
-    emit FeeWithdrawn(expectedFeeWithdrawn);
+    emit DebitFee(expectedFeeWithdrawn);
     strat.withdrawFees(address(this));
     assertEq(usUSDToken.balanceOf(address(this)) - balanceBefore, expectedFeeWithdrawn, "Wrong fee");
   }

@@ -54,14 +54,14 @@ contract PLUsMgvStrat is Direct, IStratEvents {
   function withdrawFees(address to) public onlyAdmin {
     uint fee = _usUSD.balanceOf(address(this));
     _usUSD.transfer(to, fee);
-    emit FeeWithdrawn(fee);
+    emit DebitFee(fee);
   }
 
   function __lastLook__(MgvLib.SingleOrder calldata order) internal override returns (bytes32 data) {
     uint fee = (order.gives * _fee) / 10_000;
     address owner = offerIdToOwner[order.offerId];
     _usUSD.transfer(owner, order.gives - fee);
-    emit FeePaid(fee);
+    emit CreditFee(fee);
     _pLUsDAOToken.transferFrom(owner, address(this), order.wants);
     return "mgvOffer/proceed";
   }

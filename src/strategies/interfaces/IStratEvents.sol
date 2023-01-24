@@ -13,9 +13,9 @@
 pragma solidity >=0.8.0;
 
 interface IStratEvents {
-  event FeePaid(uint fee);
+  event CreditFee(uint fee);
 
   event SetFee(uint fee);
 
-  event FeeWithdrawn(uint fee);
+  event DebitFee(uint fee);
 }

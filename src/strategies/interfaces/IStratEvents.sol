@@ -12,10 +12,18 @@
 
 pragma solidity >=0.8.0;
 
+/// @title Inteface for standard strat events
+/// @notice This is an interface for standard Strat events
 interface IStratEvents {
+  /// @notice This event is for when the fee is subtracted from what the maker gets.
+  /// @param fee The amount of fee subtracted
   event CreditFee(uint fee);
 
+  /// @notice This event is for when the Fee is changed
+  /// @param fee This is fee that is been set
   event SetFee(uint fee);
 
+  /// @notice This event is for when the fee is withdrawn from the contract
+  /// @param fee The fee amount withdrawn from the contract
   event DebitFee(uint fee);
 }

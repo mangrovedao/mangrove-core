@@ -26,11 +26,11 @@ contract Kandel is CoreKandel {
   }
 
   ///@inheritdoc AbstractKandel
-  function _transportLogic(OrderType ba, MgvLib.SingleOrder calldata order)
+  function _transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
-    returns (OrderType ba_dual, SlotViewMonad memory v_dual, OfferArgs memory args)
+    returns (OfferType ba_dual, SlotViewMonad memory v_dual, OfferArgs memory args)
   {
     uint index = indexOfOfferId(ba, order.offerId);
     Params memory params_ = params;
@@ -51,15 +51,15 @@ contract Kandel is CoreKandel {
     // computing gives/wants for dual offer
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
-    (args.wants, args.gives) = dualWantsGivesOfOrder(ba_dual, v_dual, order, params_);
+    (args.wants, args.gives) = dualWantsGivesOfOffer(ba_dual, v_dual, order, params_);
     args.gasprice = _offerDetail(ba_dual, v_dual).gasprice();
     args.gasreq = v_dual.offerDetail.gasreq() == 0 ? offerGasreq() : v_dual.offerDetail.gasreq();
     args.pivotId = v_dual.offer.gives() > 0 ? v_dual.offer.next() : 0;
     return (ba_dual, v_dual, args);
   }
 
-  function depositFunds(OrderType ba, uint amount) external {
-    IERC20 token = outboundOfOrderType(ba);
+  function depositFunds(OfferType ba, uint amount) external {
+    IERC20 token = outboundOfOfferType(ba);
     require(
       TransferLib.transferTokenFrom(token, msg.sender, address(this), amount)
         && push({token: token, amount: amount}) == amount,
@@ -68,12 +68,12 @@ contract Kandel is CoreKandel {
   }
 
   /// @notice withdraw `amount` of funds from base (ask) or quote (bid) to `recipient`.
-  /// @param ba the order type.
+  /// @param ba the offer type.
   /// @param amount to withdraw.
   /// @param recipient who receives the tokens.
   /// @dev it is up to the caller to make sure there are still enough funds for live offers.
-  function withdrawFunds(OrderType ba, uint amount, address recipient) external onlyAdmin {
-    IERC20 token = outboundOfOrderType(ba);
+  function withdrawFunds(OfferType ba, uint amount, address recipient) external onlyAdmin {
+    IERC20 token = outboundOfOfferType(ba);
     require(
       pull({token: token, amount: amount, strict: true}) == amount
         && TransferLib.transferToken(token, recipient, amount),
@@ -81,9 +81,9 @@ contract Kandel is CoreKandel {
     );
   }
 
-  /// @notice gets the total gives of all offers of the order type
-  /// @param ba order type.
-  function offeredVolume(OrderType ba) public view returns (uint volume_) {
+  /// @notice gets the total gives of all offers of the offer type
+  /// @param ba offer type.
+  function offeredVolume(OfferType ba) public view returns (uint volume_) {
     for (uint index = 0; index < params.length; index++) {
       (MgvStructs.OfferPacked offer,) = getOffer(ba, index);
       volume_ += offer.gives();
@@ -91,9 +91,9 @@ contract Kandel is CoreKandel {
   }
 
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
-  /// @param ba order type.
-  function pending(OrderType ba) public view returns (int pending_) {
-    IERC20 token = outboundOfOrderType(ba);
+  /// @param ba offer type.
+  function pending(OfferType ba) public view returns (int pending_) {
+    IERC20 token = outboundOfOfferType(ba);
     //TODO balanceOf of reserve is that right with a router?
     pending_ = int(token.balanceOf(reserve(msg.sender))) - int(offeredVolume(ba));
   }

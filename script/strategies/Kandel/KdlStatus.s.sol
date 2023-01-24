@@ -29,8 +29,8 @@ contract KdlStatus is Deployer {
     uint nslots = kdl.length();
 
     for (uint i; i < nslots; i++) {
-      (MgvStructs.OfferPacked ask,) = kdl.getOffer(AbstractKandel.OrderType.Ask, i);
-      (MgvStructs.OfferPacked bid,) = kdl.getOffer(AbstractKandel.OrderType.Bid, i);
+      (MgvStructs.OfferPacked ask,) = kdl.getOffer(AbstractKandel.OfferType.Ask, i);
+      (MgvStructs.OfferPacked bid,) = kdl.getOffer(AbstractKandel.OfferType.Bid, i);
 
       if (ask.gives() > 0) {
         uint p = ask.wants() /*quote*/ * 10 ** baseDecimals / ask.gives(); /*base */
@@ -42,8 +42,8 @@ contract KdlStatus is Deployer {
     }
     console.log(
       "{",
-      toUnit(uint(kdl.pending(AbstractKandel.OrderType.Ask)), baseDecimals),
-      toUnit(uint(kdl.pending(AbstractKandel.OrderType.Bid)), quoteDecimals),
+      toUnit(uint(kdl.pending(AbstractKandel.OfferType.Ask)), baseDecimals),
+      toUnit(uint(kdl.pending(AbstractKandel.OfferType.Bid)), quoteDecimals),
       "}"
     );
   }

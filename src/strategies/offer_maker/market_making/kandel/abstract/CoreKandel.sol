@@ -62,30 +62,30 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     return params.length;
   }
 
-  ///@notice turns an order type into an (outbound, inbound) pair identifying an offer list
+  ///@notice turns an offer type into an (outbound, inbound) pair identifying an offer list
   ///@param ba whether one wishes to access the offer lists where asks or bids are posted
-  function tokenPairOfOrderType(OrderType ba) internal view returns (IERC20, IERC20) {
-    return ba == OrderType.Bid ? (QUOTE, BASE) : (BASE, QUOTE);
+  function tokenPairOfOfferType(OfferType ba) internal view returns (IERC20, IERC20) {
+    return ba == OfferType.Bid ? (QUOTE, BASE) : (BASE, QUOTE);
   }
 
-  ///@notice returns the Kandel order type of the offer list whose outbound token is given in the argument
+  ///@notice returns the Kandel offer type of the offer list whose outbound token is given in the argument
   ///@param outbound_tkn the outbound token of the offer list
-  function orderTypeOfOutbound(IERC20 outbound_tkn) internal view returns (OrderType) {
-    return outbound_tkn == BASE ? OrderType.Ask : OrderType.Bid;
+  function OfferTypeOfOutbound(IERC20 outbound_tkn) internal view returns (OfferType) {
+    return outbound_tkn == BASE ? OfferType.Ask : OfferType.Bid;
   }
 
-  ///@notice returns the outbound token for the order type
-  ///@param ba the order type
-  function outboundOfOrderType(OrderType ba) internal view returns (IERC20 token) {
-    token = ba == OrderType.Ask ? BASE : QUOTE;
+  ///@notice returns the outbound token for the offer type
+  ///@param ba the offer type
+  function outboundOfOfferType(OfferType ba) internal view returns (IERC20 token) {
+    token = ba == OfferType.Ask ? BASE : QUOTE;
   }
 
-  function wantsGivesOfBaseQuote(OrderType ba, uint baseAmount, uint quoteAmount)
+  function wantsGivesOfBaseQuote(OfferType ba, uint baseAmount, uint quoteAmount)
     internal
     pure
     returns (uint wants, uint gives)
   {
-    if (ba == OrderType.Ask) {
+    if (ba == OfferType.Ask) {
       wants = quoteAmount;
       gives = baseAmount;
     } else {
@@ -94,32 +94,32 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
   }
 
-  ///@notice retracts the order at given index from Mangrove
-  ///@param ba the order type
+  ///@notice retracts the offer at given index from Mangrove
+  ///@param ba the offer type
   ///@param v view monad for `ba` at `index`
   ///@param deprovision whether one wishes to be credited free wei's on Mangrove's balance
   ///@return free_wei the amount free wei's returned to admin.
-  function retractOffer(OrderType ba, SlotViewMonad memory v, bool deprovision) internal returns (uint free_wei) {
-    (IERC20 outbound_tkn, IERC20 inbound_tkn) = tokenPairOfOrderType(ba);
+  function retractOffer(OfferType ba, SlotViewMonad memory v, bool deprovision) internal returns (uint free_wei) {
+    (IERC20 outbound_tkn, IERC20 inbound_tkn) = tokenPairOfOfferType(ba);
     return _offerId(ba, v) == 0 ? 0 : retractOffer(outbound_tkn, inbound_tkn, _offerId(ba, v), deprovision);
   }
 
-  ///@notice returns the dual order type
-  ///@param ba whether the order is an ask or a bid
-  ///@return dualBa is the dual order type (ask for bid and conversely)
-  function dual(OrderType ba) public pure returns (OrderType dualBa) {
-    return OrderType((uint(ba) + 1) % 2);
+  ///@notice returns the dual offer type
+  ///@param ba whether the offer is an ask or a bid
+  ///@return dualBa is the dual offer type (ask for bid and conversely)
+  function dual(OfferType ba) public pure returns (OfferType dualBa) {
+    return OfferType((uint(ba) + 1) % 2);
   }
 
-  /// @param ba_dual the dual order type.
+  /// @param ba_dual the dual offer type.
   /// @param params_ the Kandel params.
-  /// @return compoundRate to use for the gives of the order type. Asks give base so this would be the `compoundRateBase`, and vice versa.
-  function compoundRateForDual(OrderType ba_dual, Params memory params_) private pure returns (uint compoundRate) {
-    compoundRate = uint(ba_dual == OrderType.Ask ? params_.compoundRateBase : params_.compoundRateQuote);
+  /// @return compoundRate to use for the gives of the offer type. Asks give base so this would be the `compoundRateBase`, and vice versa.
+  function compoundRateForDual(OfferType ba_dual, Params memory params_) private pure returns (uint compoundRate) {
+    compoundRate = uint(ba_dual == OfferType.Ask ? params_.compoundRateBase : params_.compoundRateQuote);
   }
 
-  function dualWantsGivesOfOrder(
-    OrderType ba_dual,
+  function dualWantsGivesOfOffer(
+    OfferType ba_dual,
     SlotViewMonad memory v_dual,
     MgvLib.SingleOrder calldata order,
     Params memory params_
@@ -172,8 +172,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param ba whether Kandel is bidding or asking
   ///@param index the price index one is willing to improve
   ///@param step the number of price steps improvements
-  function better(OrderType ba, uint index, uint step, uint length_) public pure returns (uint) {
-    return ba == OrderType.Ask ? index + step >= length_ ? length_ - 1 : index + step : index < step ? 0 : index - step;
+  function better(OfferType ba, uint index, uint step, uint length_) public pure returns (uint) {
+    return ba == OfferType.Ask ? index + step >= length_ ? length_ - 1 : index + step : index < step ? 0 : index - step;
   }
 
   function _fresh(uint index) internal pure returns (SlotViewMonad memory v) {
@@ -182,7 +182,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     return v;
   }
 
-  function _offerId(OrderType ba, SlotViewMonad memory v) internal view returns (uint) {
+  function _offerId(OfferType ba, SlotViewMonad memory v) internal view returns (uint) {
     if (v.offerId_) {
       return v.offerId;
     } else {
@@ -193,7 +193,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
   }
 
-  function _index(OrderType ba, SlotViewMonad memory v) internal view returns (uint) {
+  function _index(OfferType ba, SlotViewMonad memory v) internal view returns (uint) {
     if (v.index_) {
       return v.index;
     } else {
@@ -204,37 +204,37 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
   }
 
-  function _offer(OrderType ba, SlotViewMonad memory v) internal view returns (MgvStructs.OfferPacked) {
+  function _offer(OfferType ba, SlotViewMonad memory v) internal view returns (MgvStructs.OfferPacked) {
     if (v.offer_) {
       return v.offer;
     } else {
       v.offer_ = true;
       uint id = _offerId(ba, v);
-      (IERC20 outbound, IERC20 inbound) = tokenPairOfOrderType(ba);
+      (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
       v.offer = MGV.offers(address(outbound), address(inbound), id);
       return v.offer;
     }
   }
 
-  function _offerDetail(OrderType ba, SlotViewMonad memory v) internal view returns (MgvStructs.OfferDetailPacked) {
+  function _offerDetail(OfferType ba, SlotViewMonad memory v) internal view returns (MgvStructs.OfferDetailPacked) {
     if (v.offerDetail_) {
       return v.offerDetail;
     } else {
       v.offerDetail_ = true;
       uint id = _offerId(ba, v);
-      (IERC20 outbound, IERC20 inbound) = tokenPairOfOrderType(ba);
+      (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
       v.offerDetail = MGV.offerDetails(address(outbound), address(inbound), id);
       return v.offerDetail;
     }
   }
 
-  function getOffer(OrderType ba, uint index)
+  function getOffer(OfferType ba, uint index)
     public
     view
     returns (MgvStructs.OfferPacked offer, MgvStructs.OfferDetailPacked offerDetail)
   {
     uint offerId = offerIdOfIndex(ba, index);
-    (IERC20 outbound, IERC20 inbound) = tokenPairOfOrderType(ba);
+    (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
     offer = MGV.offers(address(outbound), address(inbound), offerId);
     offerDetail = MGV.offerDetails(address(outbound), address(inbound), offerId);
   }
@@ -244,7 +244,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param v the view Monad for the offer to be published
   ///@param args the argument of the offer.
   ///@dev args.wants/gives must match the distribution at index
-  function populateIndex(OrderType ba, SlotViewMonad memory v, OfferArgs memory args) internal {
+  function populateIndex(OfferType ba, SlotViewMonad memory v, OfferArgs memory args) internal {
     uint offerId = _offerId(ba, v);
     if (offerId == 0 && args.gives > 0) {
       (uint offerId_, bytes32 result) = _newOffer(args);
@@ -290,8 +290,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       OfferArgs memory args;
       uint index = indices[i];
 
-      OrderType ba = index <= vars.lastBidIndex ? OrderType.Bid : OrderType.Ask;
-      (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOrderType(ba);
+      OfferType ba = index <= vars.lastBidIndex ? OfferType.Bid : OfferType.Ask;
+      (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(ba);
       (args.wants, args.gives) = wantsGivesOfBaseQuote(ba, baseDist[i], quoteDist[i]);
       args.fund = 0;
       args.noRevert = false;
@@ -425,17 +425,17 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     reusableBids = new uint[](to-from);
     for (uint index = from; index < to; index++) {
       SlotViewMonad memory v_ask = _fresh(index);
-      uint offerId = _offerId(OrderType.Ask, v_ask);
+      uint offerId = _offerId(OfferType.Ask, v_ask);
       if (offerId != 0) {
         reusableAsks[asks] = offerId;
-        collected += retractOffer(OrderType.Ask, v_ask, true);
+        collected += retractOffer(OfferType.Ask, v_ask, true);
         asks++;
       }
       SlotViewMonad memory v_bid = _fresh(index);
-      offerId = _offerId(OrderType.Bid, v_bid);
+      offerId = _offerId(OfferType.Bid, v_bid);
       if (offerId != 0) {
         reusableBids[bids] = offerId;
-        collected += retractOffer(OrderType.Bid, v_bid, true);
+        collected += retractOffer(OfferType.Bid, v_bid, true);
         bids++;
       }
     }
@@ -471,10 +471,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     bytes32 repostStatus = super.__posthookSuccess__(order, makerData);
     _handleResidual(order, makerData, repostStatus);
 
-    OrderType ba = orderTypeOfOutbound(IERC20(order.outbound_tkn));
+    OfferType ba = OfferTypeOfOutbound(IERC20(order.outbound_tkn));
     // adds any unpublished liquidity to pending[Base/Quote]
-    // preparing arguments for the dual maker order
-    (OrderType dualBa, SlotViewMonad memory v_dual, OfferArgs memory args) = _transportLogic(ba, order);
+    // preparing arguments for the dual offer
+    (OfferType dualBa, SlotViewMonad memory v_dual, OfferArgs memory args) = _transportLogic(ba, order);
     populateIndex(dualBa, v_dual, args);
     return "";
   }

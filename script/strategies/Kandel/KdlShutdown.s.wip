@@ -42,10 +42,10 @@ contract KdlShutDown is Deployer {
 
     prettyLog("Withdrawing funds from Kandel...");
     broadcast();
-    kdl.withdrawFunds(AbstractKandel.OrderType.Bid, quoteBalance, msg.sender);
+    kdl.withdrawFunds(AbstractKandel.OfferType.Bid, quoteBalance, msg.sender);
 
     broadcast();
-    kdl.withdrawFunds(AbstractKandel.OrderType.Ask, baseBalance, msg.sender);
+    kdl.withdrawFunds(AbstractKandel.OfferType.Ask, baseBalance, msg.sender);
 
     console.log(
       "Withdrawn %s base and %s quote tokens",

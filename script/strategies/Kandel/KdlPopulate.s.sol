@@ -110,12 +110,12 @@ contract KdlPopulate is Deployer {
 
     prettyLog("Funding asks...");
     broadcast();
-    args.kdl.depositFunds(AbstractKandel.OrderType.Ask, vars.baseAmountRequired);
+    args.kdl.depositFunds(AbstractKandel.OfferType.Ask, vars.baseAmountRequired);
     console.log(toUnit(vars.baseAmountRequired, vars.BASE.decimals()), vars.BASE.name(), "deposited");
 
     prettyLog("Funding bids...");
     broadcast();
-    args.kdl.depositFunds(AbstractKandel.OrderType.Bid, vars.quoteAmountRequired);
+    args.kdl.depositFunds(AbstractKandel.OfferType.Bid, vars.quoteAmountRequired);
     console.log(toUnit(vars.quoteAmountRequired, vars.QUOTE.decimals()), vars.QUOTE.name(), "deposited");
 
     // baseDist is just uniform distribution here:

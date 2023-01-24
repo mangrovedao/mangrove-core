@@ -30,7 +30,7 @@ abstract contract AbstractKandel {
   uint8 public constant PRECISION = 4;
 
   ///@notice a bid or an ask
-  enum OrderType {
+  enum OfferType {
     Bid,
     Ask
   }
@@ -59,13 +59,13 @@ abstract contract AbstractKandel {
   ///@notice Mangrove's offer id of a bid at a given price index.
   uint[] bidOfferIdOfIndex;
 
-  ///@notice maps index of orders to offer id on Mangrove.
-  function offerIdOfIndex(OrderType ba, uint index) public view returns (uint) {
-    return ba == OrderType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
+  ///@notice maps index of offers to offer id on Mangrove.
+  function offerIdOfIndex(OfferType ba, uint index) public view returns (uint) {
+    return ba == OfferType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
   }
 
-  function offerIdOfIndex(OrderType ba, uint index, uint offerId) internal {
-    if (ba == OrderType.Ask) {
+  function offerIdOfIndex(OfferType ba, uint index, uint offerId) internal {
+    if (ba == OfferType.Ask) {
       askOfferIdOfIndex[index] = offerId;
     } else {
       bidOfferIdOfIndex[index] = offerId;
@@ -78,12 +78,12 @@ abstract contract AbstractKandel {
   ///@notice An inverse mapping of bidOfferIdOfIndex. E.g., indexOfBidOfferId[42] is the index in bidOfferIdOfIndex at which bid of id #42 on Mangrove is stored.
   mapping(uint => uint) indexOfBidOfferId;
 
-  function indexOfOfferId(OrderType ba, uint offerId) public view returns (uint) {
-    return ba == OrderType.Ask ? indexOfAskOfferId[offerId] : indexOfBidOfferId[offerId];
+  function indexOfOfferId(OfferType ba, uint offerId) public view returns (uint) {
+    return ba == OfferType.Ask ? indexOfAskOfferId[offerId] : indexOfBidOfferId[offerId];
   }
 
-  function indexOfOfferId(OrderType ba, uint offerId, uint index) internal {
-    if (ba == OrderType.Ask) {
+  function indexOfOfferId(OfferType ba, uint offerId, uint index) internal {
+    if (ba == OfferType.Ask) {
       indexOfAskOfferId[offerId] = index;
     } else {
       indexOfBidOfferId[offerId] = index;
@@ -104,11 +104,11 @@ abstract contract AbstractKandel {
   ///@notice transport logic followed by Kandel
   ///@param ba whether the offer that was executed is a bid or an ask
   ///@param order a recap of the taker order (order.offer is the executed offer)
-  ///@return ba_dual the type of order that will re-invest inbound liquidity
-  ///@return v_dual the view Monad for the dual order
+  ///@return ba_dual the type of offer that will re-invest inbound liquidity
+  ///@return v_dual the view Monad for the dual offer
   ///@return args the argument for `populateIndex` specifying gives and wants
-  function _transportLogic(OrderType ba, MgvLib.SingleOrder calldata order)
+  function _transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (OrderType ba_dual, SlotViewMonad memory v_dual, Direct.OfferArgs memory args);
+    returns (OfferType ba_dual, SlotViewMonad memory v_dual, Direct.OfferArgs memory args);
 }

@@ -125,7 +125,7 @@ contract PLUsMgvStratTest is MangroveTest, IStratEvents {
     returns (uint offerId)
   {
     vm.startPrank(sender);
-    offerId = strat.newOffer{value: 2 ether}({wants: wants, gives: gives, pivotId: 0, owner: owner});
+    offerId = strat.newOffer{value: 2 ether}({wants: wants, gives: gives, pivotId: 0, maker: owner});
     vm.stopPrank();
   }
 
@@ -257,7 +257,7 @@ contract PLUsMgvStratTest is MangroveTest, IStratEvents {
     uint wants = cash(usUSDToken, 4);
     vm.startPrank(address(mgv));
     vm.expectRevert("PLUsMgvStrat/onlyDappOrAdmin");
-    strat.newOffer({wants: wants, gives: gives, pivotId: 0, owner: seller});
+    strat.newOffer({wants: wants, gives: gives, pivotId: 0, maker: seller});
     vm.stopPrank();
   }
 
@@ -267,7 +267,7 @@ contract PLUsMgvStratTest is MangroveTest, IStratEvents {
     uint gives = cash(metaToken, 2);
     uint wants = cash(usUSDToken, 4);
     vm.startPrank(address(this));
-    strat.newOffer{value: 2 ether}({wants: wants, gives: gives, pivotId: 0, owner: seller});
+    strat.newOffer{value: 2 ether}({wants: wants, gives: gives, pivotId: 0, maker: seller});
     vm.stopPrank();
 
     uint takerWants = gives;

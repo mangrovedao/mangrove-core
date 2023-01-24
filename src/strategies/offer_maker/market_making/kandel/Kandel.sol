@@ -90,11 +90,19 @@ contract Kandel is CoreKandel {
     }
   }
 
+  function reserveBalance(IERC20 token, address reserve_) private view returns (uint) {
+    AbstractRouter router_ = router();
+    if (router_ == NO_ROUTER) {
+      return token.balanceOf(reserve_);
+    } else {
+      return router_.reserveBalance(token, reserve_);
+    }
+  }
+
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
   /// @param ba offer type.
-  function pending(OfferType ba) public view returns (int pending_) {
+  function pending(OfferType ba) external view returns (int pending_) {
     IERC20 token = outboundOfOfferType(ba);
-    //TODO balanceOf of reserve is that right with a router?
-    pending_ = int(token.balanceOf(reserve(msg.sender))) - int(offeredVolume(ba));
+    pending_ = int(reserveBalance(token, reserve(msg.sender))) - int(offeredVolume(ba));
   }
 }

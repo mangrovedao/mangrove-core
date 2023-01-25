@@ -393,7 +393,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint i = 0;
     for (uint index = from; index < to; index++) {
       indices[i] = index;
-      quoteDist[i] = initQuote;
+      quoteDist[i] = initQuote; // TODO this is wrong due to baseDist[] not being taking into account, for this function to work initQuote should be considered initUnitPrice and baseDist[i] should be taken into account.
       initQuote = (initQuote * uint(ratio)) / 10 ** PRECISION;
       i++;
     }

@@ -1,5 +1,7 @@
 # next version
 
+# 1.4.1 (January 2022)
+
 - Export SimpleTestMaker bytecode
 - Open markets in MangoveJsDeploy script
 - TestMaker can revert individual offers

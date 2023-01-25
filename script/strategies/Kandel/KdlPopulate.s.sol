@@ -7,6 +7,7 @@ import {
 } from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
+import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 
 /**
  * @notice Populates Kandel's distribution on Mangrove
@@ -127,18 +128,21 @@ contract KdlPopulate is Deployer {
     prettyLog("Populating Mangrove...");
 
     broadcast();
-    args.kdl.populate{value: (vars.provAsk + vars.provBid) * (args.to - args.from)}({
+    uint funds = (vars.provAsk + vars.provBid) * (args.to - args.from);
+    KandelLib.populate({
+      kandel: args.kdl,
       from: args.from,
       to: args.to,
       lastBidIndex: args.lastBidIndex,
       kandelSize: args.kandelSize,
       ratio: uint16(args.ratio),
       spread: uint8(args.spread),
+      initBase: args.volume, // base distribution in [from, to[
       initQuote: args.initQuote, // quote given/wanted at index from
-      baseDist: baseDist, // base distribution in [from, to[
-      pivotIds: vars.pivotIds //
+      pivotIds: vars.pivotIds,
+      funds: funds
     });
-    console.log(toUnit((vars.provAsk + vars.provBid) * (args.to - args.from), 18), "eth used as provision");
+    console.log(toUnit(funds, 18), "eth used as provision");
   }
 
   ///@notice evaluates Pivot ids for offers that need to be published on Mangrove

@@ -15,6 +15,7 @@ import "mgv_test/lib/MangroveTest.sol";
 import {
   AbstractKandel, Kandel, MgvStructs, IMangrove
 } from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 
 contract KandelTest is MangroveTest {
   TestToken weth;
@@ -89,18 +90,18 @@ contract KandelTest is MangroveTest {
     kdl.depositFunds(AbstractKandel.OfferType.Bid, cash(usdc, 10_000));
 
     vm.startPrank(maker);
-    kdl.populate{value: (provAsk + provBid) * 10}({
+    KandelLib.populate({
+      kandel: kdl,
       from: 0,
       to: 10,
       lastBidIndex: 4,
       kandelSize: 10,
       ratio: uint16(108 * 10 ** kdl.PRECISION() / 100),
       spread: STEP,
-      initQuote: initQuote, // quote given/wanted at index from
-      baseDist: dynamic(
-        [initBase, initBase, initBase, initBase, initBase, initBase, initBase, initBase, initBase, initBase]
-        ), // base distribution in [from, to[
-      pivotIds: dynamic([uint(0), 1, 2, 3, 4, 0, 1, 2, 3, 4])
+      initBase: initBase,
+      initQuote: initQuote,
+      pivotIds: dynamic([uint(0), 1, 2, 3, 4, 0, 1, 2, 3, 4]),
+      funds: (provAsk + provBid) * 10
     });
     // call above is over provisioned. Withdrawing remainder to simplify tests below.
     kdl.withdrawFunds(Bid, pending(Bid), address(this));
@@ -347,7 +348,6 @@ contract KandelTest is MangroveTest {
     deal($(usdc), taker, cash(usdc, 7000000));
     uint initialTotalVolumeBase;
     uint initialTotalVolumeQuote;
-    console.log("Begin!");
     assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
     for (uint i = 0; i < loops; i++) {
       test_ask_complete_fill(compoundRateBase, compoundRateQuote, 5);

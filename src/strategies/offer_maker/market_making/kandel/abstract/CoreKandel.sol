@@ -281,9 +281,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   function iterPopulate(
     HeapVarsPopulate memory vars,
-    uint[] memory indices,
+    uint[] calldata indices,
     uint[] calldata baseDist,
-    uint[] memory quoteDist,
+    uint[] calldata quoteDist,
     uint[] calldata pivotIds
   ) internal {
     for (uint i = 0; i < indices.length; i++) {
@@ -351,53 +351,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
-    setParams(kandelSize, ratio, spread);
-
-    HeapVarsPopulate memory vars =
-      HeapVarsPopulate({lastBidIndex: lastBidIndex, ratio: params.ratio, gasprice: params.gasprice});
-
-    iterPopulate(vars, indices, baseDist, quoteDist, pivotIds);
-  }
-
-  ///@notice publishes bids/asks in the distribution interval `[from, to[`
-  ///@param from start index
-  ///@param to end index
-  ///@param lastBidIndex the index after which offer should be an Ask
-  ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
-  ///@param kandelSize the number of price points
-  ///@param ratio the rate of the geometric distribution with PRECISION decimals.
-  ///@param spread the distance between a ask in the distribution and its corresponding bid.
-  ///@param initQuote quote given/wanted at index from
-  ///@param baseDist base distribution in [from, to[
-  ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
-  ///@dev This function must be called w/o changing ratio
-  ///@dev `from` > 0 must imply `initQuote` >= quote amount given/wanted at index from-1
-  ///@dev msg.value must be enough to provision all posted offers
-  function populate(
-    uint from,
-    uint to,
-    uint lastBidIndex,
-    uint kandelSize,
-    uint16 ratio,
-    uint8 spread,
-    uint initQuote,
-    uint[] calldata baseDist,
-    uint[] calldata pivotIds
-  ) external payable onlyAdmin {
-    if (msg.value > 0) {
-      MGV.fund{value: msg.value}();
-    }
-
-    uint[] memory quoteDist = new uint[](baseDist.length);
-    uint[] memory indices = new uint[](baseDist.length);
-    uint i = 0;
-    for (uint index = from; index < to; index++) {
-      indices[i] = index;
-      quoteDist[i] = initQuote; // TODO this is wrong due to baseDist[] not being taking into account, for this function to work initQuote should be considered initUnitPrice and baseDist[i] should be taken into account.
-      initQuote = (initQuote * uint(ratio)) / 10 ** PRECISION;
-      i++;
-    }
-
     setParams(kandelSize, ratio, spread);
 
     HeapVarsPopulate memory vars =

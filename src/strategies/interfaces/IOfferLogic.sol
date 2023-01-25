@@ -107,21 +107,6 @@ interface IOfferLogic is IMaker {
     bool noRevert;
   }
 
-  ///@notice Retracts an offer from an Offer List of Mangrove.
-  ///@param outbound_tkn the outbound token of the offer list.
-  ///@param inbound_tkn the inbound token of the offer list.
-  ///@param offerId the identifier of the offer in the (`outbound_tkn`,`inbound_tkn`) offer list
-  ///@param deprovision positioned if `msg.sender` wishes to redeem the offer's provision.
-  ///@return received the amount of native tokens (in WEI) that have been retrieved by retracting the offer.
-  ///@dev An offer that is retracted without `deprovision` is retracted from the offer list, but still has its provisions locked by Mangrove.
-  ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
-  function retractOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint offerId,
-    bool deprovision // if set to `true`, `this` will receive the remaining provision (in WEI) associated to `offerId`.
-  ) external returns (uint received);
-
   /// @notice getter of the reserve address of `maker`.
   /// @param maker the address of the offer maker one wishes to know the reserve of.
   /// @return reserve_ the address of the offer maker's reserve of liquidity.

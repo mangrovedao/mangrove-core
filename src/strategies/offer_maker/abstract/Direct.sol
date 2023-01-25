@@ -116,22 +116,27 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
-  // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove.
-  // Function call will throw if `this` contract is not the owner of `offerId`.
-  // Returned value is the amount of ethers that have been credited to `this` contract balance on Mangrove (always 0 if `deprovision=false`)
-  // NB `mgvOrAdmin` modifier guarantees that this function is either called by contract admin or (indirectly) during trade execution by Mangrove
-  function retractOffer(
+  ///@notice Retracts an offer from an Offer List of Mangrove.
+  ///@param outbound_tkn the outbound token of the offer list.
+  ///@param inbound_tkn the inbound token of the offer list.
+  ///@param offerId the identifier of the offer in the (`outbound_tkn`,`inbound_tkn`) offer list
+  ///@param deprovision if set to `true` if offer owner wishes to redeem the offer's provision.
+  ///@return freeWei the amount of native tokens (in WEI) that have been retrieved by retracting the offer.
+  ///@dev An offer that is retracted without `deprovision` is retracted from the offer list, but still has its provisions locked by Mangrove.
+  ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
+  ///@dev `mgvOrAdmin` modifier guarantees that this function is either called by contract admin or (indirectly) during trade execution by Mangrove
+  function _retractOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) public override mgvOrAdmin returns (uint free_wei) {
-    free_wei = MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
-    if (free_wei > 0) {
-      require(MGV.withdraw(free_wei), "Direct/withdrawFail");
+  ) internal mgvOrAdmin returns (uint freeWei) {
+    freeWei = MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
+    if (freeWei > 0) {
+      require(MGV.withdraw(freeWei), "Direct/withdrawFail");
       // sending native tokens to `msg.sender` prevents reentrancy issues
       // (the context call of `retractOffer` could be coming from `makerExecute` and a different recipient of transfer than `msg.sender` could use this call to make offer fail)
-      (bool noRevert,) = admin().call{value: free_wei}("");
+      (bool noRevert,) = admin().call{value: freeWei}("");
       require(noRevert, "mgvOffer/weiTransferFail");
     }
   }

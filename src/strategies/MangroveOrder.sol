@@ -85,6 +85,21 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     _updateOffer(args, offerId);
   }
 
+  ///@notice Retracts an offer from an Offer List of Mangrove.
+  ///@param outbound_tkn the outbound token of the offer list.
+  ///@param inbound_tkn the inbound token of the offer list.
+  ///@param offerId the identifier of the offer in the (`outbound_tkn`,`inbound_tkn`) offer list
+  ///@param deprovision if set to `true` if offer owner wishes to redeem the offer's provision.
+  ///@return freeWei the amount of native tokens (in WEI) that have been retrieved by retracting the offer.
+  ///@dev An offer that is retracted without `deprovision` is retracted from the offer list, but still has its provisions locked by Mangrove.
+  ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    public
+    returns (uint freeWei)
+  {
+    return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  }
+
   ///Checks the current timestamps and reneges on trade (by reverting) if the offer has expired.
   ///@inheritdoc MangroveOffer
   function __lastLook__(MgvLib.SingleOrder calldata order) internal virtual override returns (bytes32) {

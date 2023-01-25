@@ -196,11 +196,11 @@ contract Mango is Direct {
     for (uint i = from; i < to; i++) {
       if (ba > 0) {
         // asks or bids+asks
-        collected += mStr.asks[i] > 0 ? retractOffer(BASE, QUOTE, mStr.asks[i], true) : 0;
+        collected += mStr.asks[i] > 0 ? _retractOffer(BASE, QUOTE, mStr.asks[i], true) : 0;
       }
       if (ba == 0 || ba > 1) {
         // bids or bids + asks
-        collected += mStr.bids[i] > 0 ? retractOffer(QUOTE, BASE, mStr.bids[i], true) : 0;
+        collected += mStr.bids[i] > 0 ? _retractOffer(QUOTE, BASE, mStr.bids[i], true) : 0;
       }
     }
   }

@@ -70,4 +70,12 @@ contract OfferMaker is ILiquidityProvider, Direct {
       offerId
     );
   }
+
+  ///@inheritdoc ILiquidityProvider
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    external
+    returns (uint freeWei)
+  {
+    return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  }
 }

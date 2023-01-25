@@ -101,7 +101,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@return free_wei the amount free wei's returned to admin.
   function retractOffer(OfferType ba, SlotViewMonad memory v, bool deprovision) internal returns (uint free_wei) {
     (IERC20 outbound_tkn, IERC20 inbound_tkn) = tokenPairOfOfferType(ba);
-    return _offerId(ba, v) == 0 ? 0 : retractOffer(outbound_tkn, inbound_tkn, _offerId(ba, v), deprovision);
+    return _offerId(ba, v) == 0 ? 0 : _retractOffer(outbound_tkn, inbound_tkn, _offerId(ba, v), deprovision);
   }
 
   ///@notice returns the dual offer type

@@ -13,15 +13,24 @@ contract TrivialTestMaker is IMaker {
   function makerPosthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) external virtual {}
 }
 
+//TODO add posthookShouldRevert/posthookReturnData
+struct OfferData {
+  bool shouldRevert;
+  string executeData;
+}
+
 contract SimpleTestMaker is TrivialTestMaker {
-  AbstractMangrove mgv;
-  address base;
-  address quote;
+  AbstractMangrove public mgv;
+  address public base;
+  address public quote;
   bool shouldFail_; // will set mgv allowance to 0
-  bool shouldAbort_; // will not return bytes32("")
   bool shouldRevert_; // will revert
   bool shouldRepost_; // will try to repost offer with identical parameters
   bytes32 expectedStatus;
+  ///@notice stores parameters for each posted offer
+  ///@notice overrides global @shouldFail/shouldReturn if true
+
+  mapping(address => mapping(address => mapping(uint => OfferData))) offerDatas;
 
   constructor(AbstractMangrove _mgv, IERC20 _base, IERC20 _quote) {
     mgv = _mgv;
@@ -47,10 +56,6 @@ contract SimpleTestMaker is TrivialTestMaker {
     shouldFail_ = should;
   }
 
-  function shouldAbort(bool should) external {
-    shouldAbort_ = should;
-  }
-
   function shouldRepost(bool should) external {
     shouldRepost_ = should;
   }
@@ -69,25 +74,22 @@ contract SimpleTestMaker is TrivialTestMaker {
 
   function makerExecute(MgvLib.SingleOrder calldata order) public virtual override returns (bytes32) {
     if (shouldRevert_) {
-      bytes32[1] memory revert_msg = [bytes32("testMaker/revert")];
-      assembly {
-        revert(revert_msg, 32)
-      }
+      revert("testMaker/shouldRevert");
     }
-    emit Execute(msg.sender, order.outbound_tkn, order.inbound_tkn, order.offerId, order.wants, order.gives);
+
+    OfferData memory offerData = offerDatas[order.outbound_tkn][order.inbound_tkn][order.offerId];
+
+    if (offerData.shouldRevert) {
+      revert(offerData.executeData);
+    }
+
     if (shouldFail_) {
       IERC20(order.outbound_tkn).approve(address(mgv), 0);
-      // bytes32[1] memory refuse_msg = [bytes32("testMaker/transferFail")];
-      // assembly {
-      //   return(refuse_msg, 32)
-      // }
-      //revert("testMaker/fail");
     }
-    if (shouldAbort_) {
-      return "abort";
-    } else {
-      return "";
-    }
+
+    emit Execute(msg.sender, order.outbound_tkn, order.inbound_tkn, order.offerId, order.wants, order.gives);
+
+    return bytes32(bytes(offerData.executeData));
   }
 
   bool _shouldFailHook;
@@ -118,18 +120,56 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function newOffer(uint wants, uint gives, uint gasreq, uint pivotId) public returns (uint) {
-    return (mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId));
+    return newOffer(base, quote, wants, gives, gasreq, pivotId);
+  }
+
+  function newOffer(uint wants, uint gives, uint gasreq, uint pivotId, OfferData memory offerData)
+    public
+    returns (uint)
+  {
+    return newOffer(base, quote, wants, gives, gasreq, pivotId, offerData);
   }
 
   function newOfferWithFunding(uint wants, uint gives, uint gasreq, uint pivotId, uint amount) public returns (uint) {
-    return (mgv.newOffer{value: amount}(base, quote, wants, gives, gasreq, 0, pivotId));
+    return newOfferWithFunding(base, quote, wants, gives, gasreq, 0, pivotId, amount);
+  }
+
+  function newOfferWithFunding(
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint pivotId,
+    uint amount,
+    OfferData memory offerData
+  ) public returns (uint) {
+    return newOfferWithFunding(base, quote, wants, gives, gasreq, 0, pivotId, amount, offerData);
+  }
+
+  function newOfferWithFunding(uint wants, uint gives, uint gasreq, uint gasprice, uint pivotId, uint amount)
+    public
+    returns (uint)
+  {
+    return newOfferWithFunding(base, quote, wants, gives, gasreq, gasprice, pivotId, amount);
   }
 
   function newOffer(address _base, address _quote, uint wants, uint gives, uint gasreq, uint pivotId)
     public
     returns (uint)
   {
-    return (mgv.newOffer(_base, _quote, wants, gives, gasreq, 0, pivotId));
+    OfferData memory offerData;
+    return newOffer(_base, _quote, wants, gives, gasreq, pivotId, offerData);
+  }
+
+  function newOffer(
+    address _base,
+    address _quote,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint pivotId,
+    OfferData memory offerData
+  ) public returns (uint) {
+    return newOfferWithFunding(_base, _quote, wants, gives, gasreq, 0, pivotId, 0, offerData);
   }
 
   function newOfferWithFunding(
@@ -141,26 +181,83 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint pivotId,
     uint amount
   ) public returns (uint) {
-    return (mgv.newOffer{value: amount}(_base, _quote, wants, gives, gasreq, 0, pivotId));
+    return newOfferWithFunding(_base, _quote, wants, gives, gasreq, 0, pivotId, amount);
+  }
+
+  function newOfferWithFunding(
+    address _base,
+    address _quote,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint pivotId,
+    uint amount,
+    OfferData memory offerData
+  ) public returns (uint) {
+    return newOfferWithFunding(_base, _quote, wants, gives, gasreq, 0, pivotId, amount, offerData);
   }
 
   function newOffer(uint wants, uint gives, uint gasreq, uint gasprice, uint pivotId) public returns (uint) {
-    return (mgv.newOffer(base, quote, wants, gives, gasreq, gasprice, pivotId));
+    return newOfferWithFunding(base, quote, wants, gives, gasreq, gasprice, pivotId, 0);
   }
 
-  function newOfferWithFunding(uint wants, uint gives, uint gasreq, uint gasprice, uint pivotId, uint amount)
+  function newOfferWithFunding(
+    address _base,
+    address _quote,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint pivotId,
+    uint amount
+  ) public returns (uint) {
+    OfferData memory offerData;
+    return newOfferWithFunding(_base, _quote, wants, gives, gasreq, gasprice, pivotId, amount, offerData);
+  }
+
+  function newOfferWithFunding(
+    address _base,
+    address _quote,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint pivotId,
+    uint amount,
+    OfferData memory offerData
+  ) public returns (uint) {
+    uint offerId = mgv.newOffer{value: amount}(_base, _quote, wants, gives, gasreq, gasprice, pivotId);
+    offerDatas[_base][_quote][offerId] = offerData;
+    return offerId;
+  }
+
+  function updateOffer(uint wants, uint gives, uint gasreq, uint pivotId, uint offerId, OfferData memory offerData)
     public
-    returns (uint)
   {
-    return (mgv.newOffer{value: amount}(base, quote, wants, gives, gasreq, gasprice, pivotId));
+    updateOfferWithFunding(wants, gives, gasreq, pivotId, offerId, 0, offerData);
   }
 
   function updateOffer(uint wants, uint gives, uint gasreq, uint pivotId, uint offerId) public {
-    mgv.updateOffer(base, quote, wants, gives, gasreq, 0, pivotId, offerId);
+    OfferData memory offerData;
+    updateOfferWithFunding(wants, gives, gasreq, pivotId, offerId, 0, offerData);
   }
 
   function updateOfferWithFunding(uint wants, uint gives, uint gasreq, uint pivotId, uint offerId, uint amount) public {
+    OfferData memory offerData;
+    updateOfferWithFunding(wants, gives, gasreq, pivotId, offerId, amount, offerData);
+  }
+
+  function updateOfferWithFunding(
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint pivotId,
+    uint offerId,
+    uint amount,
+    OfferData memory offerData
+  ) public {
     mgv.updateOffer{value: amount}(base, quote, wants, gives, gasreq, 0, pivotId, offerId);
+    offerDatas[base][quote][offerId] = offerData;
   }
 
   function retractOffer(uint offerId) public returns (uint) {
@@ -171,7 +268,7 @@ contract SimpleTestMaker is TrivialTestMaker {
     return mgv.retractOffer(base, quote, offerId, true);
   }
 
-  function provisionMgv(uint amount) public {
+  function provisionMgv(uint amount) public payable {
     mgv.fund{value: amount}(address(this));
   }
 

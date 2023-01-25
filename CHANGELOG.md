@@ -1,5 +1,9 @@
 # next version
 
+- Export SimpleTestMaker bytecode
+- Open markets in MangoveJsDeploy script
+- TestMaker can revert individual offers
+
 # 1.4.0 (December 2022)
 
 - Added Polygon mainnet deployment addresses

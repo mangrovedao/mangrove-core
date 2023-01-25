@@ -164,7 +164,7 @@ abstract contract Direct is MangroveOffer {
     if (local_balance >= amount) {
       return 0;
     }
-    uint pulled = pull(IERC20(order.outbound_tkn), amount - local_balance, false);
+    uint pulled = pull(IERC20(order.outbound_tkn), amount - local_balance, false /*not strict*/ );
     missing = pulled >= amount - local_balance ? 0 : amount - local_balance - pulled;
   }
 

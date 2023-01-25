@@ -15,22 +15,23 @@ pragma solidity ^0.8.10;
 import {AbstractRouter, IERC20} from "./AbstractRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {AaveV3Module, IRewardsControllerIsh} from "mgv_src/strategies/integrations/AaveV3Module.sol";
-//import {console2 as console} from "forge-std/Test.sol";
+//import {console} from "forge-std/Test.sol";
 
 ///@title Router acting as a liquidity reserve on AAVE for multiple maker contracts.
 
 contract AavePooledRouter is AaveV3Module, AbstractRouter {
+  // keep _rewardsManager on slot(0) to avoid breaking tests
+  address _rewardsManager;
+
   event SetRewardsManager(address);
 
   mapping(IERC20 => uint) internal _totalShares;
   mapping(IERC20 => mapping(address => uint)) internal _sharesOf;
-  IERC20 public _buffer;
-  address public _rewardsManager;
 
   ///@notice initial shares to be minted
   ///@dev this amount must be big enough to avoid minting 0 shares via "donation"
   ///see https://github.com/code-423n4/2022-09-y2k-finance-findings/issues/449
-  uint public constant INIT_SHARES = 10 ** 29;
+  uint constant INIT_SHARES = 10 ** 29;
 
   modifier isThis(address reserve) {
     require(reserve == address(this), "AavePooledReserve/mustBeThis");
@@ -39,7 +40,7 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
 
   constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode, uint overhead)
     AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
-    AbstractRouter(overhead) // not permissioned
+    AbstractRouter(overhead)
   {
     setRewardsManager(msg.sender);
   }
@@ -118,24 +119,34 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     isThis(reserve)
     returns (uint)
   {
-    flushAndsetBuffer(token);
     _mintShares(token, maker, amount);
-
     // Transfer must occur *after* _mintShares above
     require(TransferLib.transferTokenFrom(token, maker, reserve, amount), "AavePooledRouter/pushFailed");
-
     return amount;
   }
 
-  ///@notice declares that an incoming asset should be buffered locally and not flushed to AAVE
-  ///@notice flushes previously buffered tokens to AAVE
+  ///@notice deposit local balance of an asset on the pool
   ///@param token the address of the asset
-  function flushAndsetBuffer(IERC20 token) public makersOrAdmin {
-    IERC20 tokenInBuffer = _buffer;
-    if (tokenInBuffer != token && tokenInBuffer != IERC20(address(0))) {
-      _repayThenDeposit(tokenInBuffer, address(this), tokenInBuffer.balanceOf(address(this)));
+  function flushBuffer(IERC20 token) public makersOrAdmin {
+    _supply(token, token.balanceOf(address(this)), address(this));
+  }
+
+  ///@notice push each token given in argument and supply the whole local balance on AAVE
+  ///@param tokens the list of tokens that are being pushed to reserve
+  ///@param amounts the quantities of tokens one wishes to push
+  ///@return pushed the pushed quantities for each token
+  ///@dev an offer logic should call this instead of `flush` when it is the last posthook to be executed
+  ///@dev this can be determined by checking during __lastLook__ whether the logic will trigger a withdraw from aave (this is the case is router's balance of token is empty)
+  function pushAndSupply(IERC20[] calldata tokens, uint[] calldata amounts)
+    external
+    onlyMakers
+    returns (uint[] memory pushed)
+  {
+    pushed = new uint[](tokens.length);
+    for (uint i; i < tokens.length; i++) {
+      pushed[i] = __push__(tokens[i], address(this), msg.sender, amounts[i]);
+      flushBuffer(tokens[i]);
     }
-    _buffer = token;
   }
 
   ///@inheritdoc AbstractRouter
@@ -145,29 +156,32 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     isThis(reserve)
     returns (uint)
   {
-    // if there is any buffered liquidity (!= token), we push it back to AAVE
-    flushAndsetBuffer(token);
+    amount = strict ? amount : reserveBalance(token, maker, reserve);
+    _burnShares(token, maker, amount);
 
-    uint amount_ = strict ? amount : reserveBalance(token, maker, reserve);
-    _burnShares(token, maker, amount_);
-
-    // pulling all funds from AAVE to be ready to serve for the rest of the market order
-    (uint totalRedeemable,) = maxGettableUnderlying(token, false, address(this));
-    _redeem(token, totalRedeemable, address(this));
+    uint buffer = token.balanceOf(reserve);
+    if (buffer > 0) {
+      // this pull is not the first one and we are following a non strict routing policy
+      // at this point no tokens are on AAVE
+      amount = amount > buffer ? buffer : amount;
+    } else {
+      // this pull is either the first, or we follow a strict routing policy
+      (uint totalRedeemable,) = maxGettableUnderlying(token, false, /*not borrowing*/ reserve);
+      (totalRedeemable, amount) = strict
+        ? (totalRedeemable > amount ? (amount, amount) : (totalRedeemable, totalRedeemable))
+        : (totalRedeemable > amount ? (totalRedeemable, amount) : (totalRedeemable, totalRedeemable));
+      _redeem(token, totalRedeemable, reserve);
+    }
 
     // Transfering funds to the maker contract
-    amount_ = amount_ < totalRedeemable ? amount_ : totalRedeemable;
-    require(TransferLib.transferToken(token, maker, amount_), "AavePooledRouter/pullFailed");
-    return amount_;
+    require(TransferLib.transferToken(token, maker, amount), "AavePooledRouter/pullFailed");
+    return amount;
   }
 
   ///@inheritdoc AbstractRouter
   function __checkList__(IERC20 token, address reserve) internal view override {
-    // allowance for `withdrawToken` and `pull`
-    require( // required prior to withdraw from POOL
-    reserve == address(this), "AavePooledRouter/ReserveMustBeRouter");
-    // allowance for `push`
-    require( // required to supply or repay
+    require(reserve == address(this), "AavePooledRouter/ReserveMustBeRouter");
+    require( // required to supply or withdraw token on pool
     token.allowance(address(this), address(POOL)) > 0, "AavePooledRouter/hasNotApprovedPool");
   }
 

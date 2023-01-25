@@ -175,6 +175,11 @@ contract AaveV3Module {
    * @param amount of asset one is repaying and supplying
    */
   function _repayThenDeposit(IERC20 token, address onBehalf, uint amount) internal {
+    // AAVE repay/deposit throws if amount == 0
+    if (amount == 0) {
+      return;
+    }
+
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(AMI.$repayThenDeposit.selector, INTEREST_RATE_MODE, REFERRAL_CODE, token, onBehalf, amount)
     );

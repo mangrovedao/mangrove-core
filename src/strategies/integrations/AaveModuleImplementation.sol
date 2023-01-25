@@ -117,10 +117,6 @@ contract AaveV3ModuleImplementation {
   function $repayThenDeposit(uint interestRateMode, uint referralCode, IERC20 token, address onBehalf, uint amount)
     external
   {
-    // AAVE repay/deposit throws if amount == 0
-    if (amount == 0) {
-      return;
-    }
     uint toMint = amount;
     try POOL
       // there are several reasons a repay may fail:

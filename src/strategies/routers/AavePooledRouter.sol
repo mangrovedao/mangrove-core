@@ -19,16 +19,16 @@ import {AaveV3Module, IRewardsControllerIsh} from "mgv_src/strategies/integratio
 
 ///@title Router acting as a liquidity reserve on AAVE for multiple maker contracts.
 ///@notice this router has an optimal gas cost complexity when all maker contracts binding to it comply with the following offer logic:
-/// * __reserve__ of all makers is constant and must points to this router
-/// * __lastLook__ checks whether this router (`reserve(maker)`) has a non empty balance of outbound tokens.
-///   If so it signals to makerPosthook that it will be the last one called, using returned `makerData` (pick up a specific bytes32).
-/// * __get__ pulls funds from the router in a non strict fashion (router withdraws all its funds from aave and keep it locally, it then transfers maker contract's funds)
-/// * __put__ stores inbound tokens on the maker contract balance (and does not call this router)
-/// * __makerPosthook__ checks `makerData` to know whether it is the last offer (interacting with the router) of the market order
-///   If so it calls `pushAndSupply` to push all liquidity on AAVE, if not it simply flushes all its local balance on the router
-/// the above scheme then guarantees that the router will make exactly one `withdraw` and two `supply` to aave per market order
-/// hence indepentently of the market order size and the number of maker Contracts using this router.
-/// Maker contracts binding to this router that are not following the above requirement may experience bad gas cost complexity due to too frequent calls to aave pool.
+/// * on the offer logic side (Kandel's):
+///    * in `makerExecute`, check whether we are the first caller to the router. You can know this by checking whether the balance of outbound tokens of the router is 0. If so send a special IamLast:bytes32 to makerPosthook  (this is done in __lastLook__ )
+///    * in `__put__`  simply stores incoming liquidity on the strat (don't do anything de facto)
+///    * in `__get__` pull liquidity from the router in a non strict manner (i.e allow the router to send you more than what you need, in the limits of your shares of the reserve)
+///    * in __posthookSuccess|Fallback__ push both inbound and outbound tokens to the router. If message from makerExecute is IamLast , tell the router to flush all its buffer of outbound and inbound tokens to AAVE.
+/// * on the router side:
+///    * `__pull__`  checks whether local balance of token is 0. If so it pulls everything from AAVE and sends to caller all it's reserve (the part of the reserve that he is allowed to redeem). Decrease caller's shares accordingly (notice you cannot put the shares to 0 w/o verification since not all funds might be redeemable from aave)
+///    * `__push__` transfer the requested amount of tokens from the calling maker contract but does not supply on AAVE
+///       a special function `pushAndSupply` transfers the tokens from the caller and supplies the total balance of the router on AAVE
+///       both `__push__` and `pushAndSupply` assign new shares to the caller.
 
 contract AavePooledRouter is AaveV3Module, AbstractRouter {
   // keep _rewardsManager on slot(0) to avoid breaking tests

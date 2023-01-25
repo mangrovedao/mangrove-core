@@ -18,6 +18,17 @@ import {AaveV3Module, IRewardsControllerIsh} from "mgv_src/strategies/integratio
 //import {console} from "forge-std/Test.sol";
 
 ///@title Router acting as a liquidity reserve on AAVE for multiple maker contracts.
+///@notice this router has an optimal gas cost complexity when all maker contracts binding to it comply with the following offer logic:
+/// * __reserve__ of all makers is constant and must points to this router
+/// * __lastLook__ checks whether this router (`reserve(maker)`) has a non empty balance of outbound tokens.
+///   If so it signals to makerPosthook that it will be the last one called, using returned `makerData` (pick up a specific bytes32).
+/// * __get__ pulls funds from the router in a non strict fashion (router withdraws all its funds from aave and keep it locally, it then transfers maker contract's funds)
+/// * __put__ stores inbound tokens on the maker contract balance (and does not call this router)
+/// * __makerPosthook__ checks `makerData` to know whether it is the last offer (interacting with the router) of the market order
+///   If so it calls `pushAndSupply` to push all liquidity on AAVE, if not it simply flushes all its local balance on the router
+/// the above scheme then guarantees that the router will make exactly one `withdraw` and two `supply` to aave per market order
+/// hence indepentently of the market order size and the number of maker Contracts using this router.
+/// Maker contracts binding to this router that are not following the above requirement may experience bad gas cost complexity due to too frequent calls to aave pool.
 
 contract AavePooledRouter is AaveV3Module, AbstractRouter {
   // keep _rewardsManager on slot(0) to avoid breaking tests

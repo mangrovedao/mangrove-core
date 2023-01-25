@@ -8,6 +8,8 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 contract AavePooledRouterTest is OfferLogicTest {
   AavePooledRouter pooledRouter;
 
+  uint constant GASREQ = 367_000; // fails for 366K [7d99f7ede1f]
+
   event SetRewardsManager(address);
 
   IERC20 dai;
@@ -78,7 +80,7 @@ contract AavePooledRouterTest is OfferLogicTest {
       _addressesProvider: fork.get("Aave"),
       _referralCode: 0,
       _interestRateMode: 2, // 1 stable rate, 2 variable
-      overhead: 367_000 // fails for 366K 
+      overhead: GASREQ
     });
     router.bind(address(makerContract));
     makerContract.setReserve(maker, address(router));

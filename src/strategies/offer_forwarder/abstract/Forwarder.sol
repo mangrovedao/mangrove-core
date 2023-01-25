@@ -247,7 +247,6 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
   function _retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
     internal
-    mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
     returns (uint freeWei)
   {
     OwnerData storage od = ownerData[outbound_tkn][inbound_tkn][offerId];

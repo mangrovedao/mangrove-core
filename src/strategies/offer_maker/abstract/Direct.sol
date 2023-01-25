@@ -124,13 +124,12 @@ abstract contract Direct is MangroveOffer {
   ///@return freeWei the amount of native tokens (in WEI) that have been retrieved by retracting the offer.
   ///@dev An offer that is retracted without `deprovision` is retracted from the offer list, but still has its provisions locked by Mangrove.
   ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
-  ///@dev `mgvOrAdmin` modifier guarantees that this function is either called by contract admin or (indirectly) during trade execution by Mangrove
   function _retractOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) internal mgvOrAdmin returns (uint freeWei) {
+  ) internal returns (uint freeWei) {
     freeWei = MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
     if (freeWei > 0) {
       require(MGV.withdraw(freeWei), "Direct/withdrawFail");

@@ -192,12 +192,13 @@ contract AmplifierForwarder is Forwarder {
 
   function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
     public
+    onlyOwner(outbound_tkn, inbound_tkn, offerId)
     returns (uint freeWei)
   {
     return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
-  function retractOffers(bool deprovision) public {
+  function retractOffers(bool deprovision) external {
     OfferPair memory offerPair = offers[msg.sender];
     retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerPair.id1, deprovision: deprovision});
     retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerPair.id2, deprovision: deprovision});

@@ -175,12 +175,13 @@ contract Amplifier is Direct {
 
   function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
     public
+    onlyAdmin
     returns (uint freeWei)
   {
     return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
-  function retractOffers(bool deprovision) public {
+  function retractOffers(bool deprovision) external {
     retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerId1, deprovision: deprovision});
     retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerId2, deprovision: deprovision});
   }

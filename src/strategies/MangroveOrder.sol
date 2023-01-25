@@ -94,7 +94,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@dev An offer that is retracted without `deprovision` is retracted from the offer list, but still has its provisions locked by Mangrove.
   ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
   function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
-    external
+    public
     mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
     returns (uint freeWei)
   {

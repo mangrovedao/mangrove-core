@@ -72,7 +72,7 @@ contract OfferMakerTutorialResidual is Direct, ILiquidityProvider {
 
   ///@inheritdoc ILiquidityProvider
   function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
-    external
+    public
     mgvOrAdmin
     returns (uint freeWei)
   {

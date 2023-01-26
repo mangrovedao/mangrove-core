@@ -15,7 +15,7 @@ pragma solidity ^0.8.10;
 import {AbstractRouter, IERC20} from "./AbstractRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {AaveV3Module, IRewardsControllerIsh} from "mgv_src/strategies/integrations/AaveV3Module.sol";
-import {console} from "forge-std/Test.sol";
+//import {console} from "forge-std/Test.sol";
 
 ///@title Router acting as a liquidity reserve on AAVE for multiple maker contracts.
 ///@notice this router has an optimal gas cost complexity when all maker contracts binding to it comply with the following offer logic:
@@ -120,7 +120,7 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     // computing how many shares should be minted for maker contract
     uint sharesToBurn = sharesOfamount(token, amount);
     uint makerShares = _sharesOf[token][maker];
-    require(sharesToBurn < makerShares, "AavePooledRouter/insufficientFunds");
+    require(sharesToBurn <= makerShares, "AavePooledRouter/insufficientFunds");
     _sharesOf[token][maker] = makerShares - sharesToBurn;
     _totalShares[token] -= sharesToBurn;
   }
@@ -194,7 +194,6 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
       }
     }
     // now that we know how much we send to maker contract, we try to burn the corresponding shares, this will underflow if maker does not have enough shares
-    console.log("trying to pull", amount_);
     _burnShares(token, maker, amount_);
 
     // redeem does not change amount of shares. We do this after burning to avoid redeeming on AAVE if caller doesn't have the required funds.

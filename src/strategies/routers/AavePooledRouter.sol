@@ -14,8 +14,7 @@ pragma solidity ^0.8.10;
 
 import {AbstractRouter, IERC20} from "./AbstractRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
-import {AaveV3Module, IRewardsControllerIsh} from "mgv_src/strategies/integrations/AaveV3Module.sol";
-//import {console} from "forge-std/Test.sol";
+import {AaveV3Lender} from "mgv_src/strategies/integrations/AaveV3Lender.sol";
 
 ///@title Router acting as a liquidity reserve on AAVE for multiple maker contracts.
 ///@notice this router has an optimal gas cost complexity when all maker contracts binding to it comply with the following offer logic:
@@ -30,7 +29,7 @@ import {AaveV3Module, IRewardsControllerIsh} from "mgv_src/strategies/integratio
 ///       a special function `pushAndSupply` transfers the tokens from the caller and supplies the total balance of the router on AAVE
 ///       both `__push__` and `pushAndSupply` assign new shares to the caller.
 
-contract AavePooledRouter is AaveV3Module, AbstractRouter {
+contract AavePooledRouter is AaveV3Lender, AbstractRouter {
   // keep _rewardsManager on slot(0) to avoid breaking tests
   address _rewardsManager;
 
@@ -49,10 +48,7 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     _;
   }
 
-  constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode, uint overhead)
-    AaveV3Module(_addressesProvider, _referralCode, _interestRateMode)
-    AbstractRouter(overhead)
-  {
+  constructor(address _addressesProvider, uint overhead) AaveV3Lender(_addressesProvider) AbstractRouter(overhead) {
     setRewardsManager(msg.sender);
   }
 

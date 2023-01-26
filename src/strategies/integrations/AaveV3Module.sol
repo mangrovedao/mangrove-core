@@ -22,6 +22,7 @@ pragma solidity ^0.8.10;
  * @dev it is designed with a diamond storage scheme where core function implementations are delegated to an immutable `IMPLEMENTATION` address
  */
 
+import {AaveV3Lender} from "./AaveV3Lender.sol";
 import {AaveV3ModuleStorage as AMS} from "./AaveModuleStorage.sol";
 import {
   AaveV3ModuleImplementation as AMI,
@@ -35,15 +36,11 @@ import {
   DataTypes
 } from "./AaveModuleImplementation.sol";
 
-contract AaveV3Module {
+contract AaveV3Module is AaveV3Lender {
   /**
    * @notice address of the implementation contract
    */
   address public immutable IMPLEMENTATION;
-  /**
-   * @notice address of the AAVE pool
-   */
-  IPool public immutable POOL;
   /**
    * @notice address of AAVE price oracle (must be the price oracle used by the pool)
    */
@@ -51,7 +48,6 @@ contract AaveV3Module {
    * @dev price oracle and pool address can be obtained from AAVE's address provider contract
    */
   IPriceOracleGetter public immutable ORACLE;
-  IPoolAddressesProvider public immutable ADDRESS_PROVIDER;
   uint public immutable INTEREST_RATE_MODE;
   uint16 public immutable REFERRAL_CODE;
 
@@ -61,58 +57,15 @@ contract AaveV3Module {
    * @param _referralCode code used by aave to identify certain partners, this can be safely set to 0
    * @param _interestRateMode interest rate mode for borrowing assets. 0 for none, 1 for stable, 2 for variable
    */
-  constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode) {
+  constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode) AaveV3Lender(_addressesProvider) {
     REFERRAL_CODE = uint16(_referralCode);
     INTEREST_RATE_MODE = _interestRateMode;
-    ADDRESS_PROVIDER = IPoolAddressesProvider(_addressesProvider);
 
     address _priceOracle = IPoolAddressesProvider(_addressesProvider).getAddress("PRICE_ORACLE");
-    address _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
     require(_priceOracle != address(0), "AaveModule/0xPriceOracle");
-    require(_lendingPool != address(0), "AaveModule/0xPool");
 
-    POOL = IPool(_lendingPool);
     ORACLE = IPriceOracleGetter(_priceOracle);
-    IMPLEMENTATION = address(new AMI(IPool(_lendingPool), IPriceOracleGetter(_priceOracle)));
-  }
-
-  /**
-   * @notice allows this contract to approve the POOL to transfer some underlying asset on its behalf
-   * @dev this is a necessary step prio to supplying tokens to the POOL or to repay a debt
-   * @param token the underlying asset for which approval is required
-   * @param amount the approval amount
-   */
-  function _approveLender(IERC20 token, uint amount) internal {
-    token.approve(address(POOL), amount);
-  }
-
-  /**
-   * @notice prevents the POOL to use some underlying as collateral
-   * @dev this call will revert if removing the asset from collateral would put the account into a liquidation state
-   * @param underlying the token one wishes to remove collateral
-   */
-  function _exitMarket(IERC20 underlying) internal {
-    POOL.setUserUseReserveAsCollateral(address(underlying), false);
-  }
-
-  /**
-   * @notice allows the POOL to use some underlying tokens as collateral
-   * @dev when supplying a token for the first time, it is automatically set as possible collateral so there is no need to call this function for it.
-   * @param underlyings the token one wishes to add as collateral
-   */
-  function _enterMarkets(IERC20[] calldata underlyings) internal {
-    for (uint i = 0; i < underlyings.length; i++) {
-      POOL.setUserUseReserveAsCollateral(address(underlyings[i]), true);
-    }
-  }
-
-  /**
-   * @notice convenience function to obtain the overlying of a given asset
-   * @param asset the underlying asset
-   * @return aToken the overlying asset
-   */
-  function overlying(IERC20 asset) public view returns (IERC20 aToken) {
-    aToken = IERC20(POOL.getReserveData(address(asset)).aTokenAddress);
+    IMPLEMENTATION = address(new AMI(POOL, IPriceOracleGetter(_priceOracle)));
   }
 
   /**
@@ -223,47 +176,12 @@ contract AaveV3Module {
     POOL.borrow(address(token), amount, INTEREST_RATE_MODE, REFERRAL_CODE, onBehalf);
   }
 
-  ///@notice redeems funds from the pool
-  ///@param token the asset one is trying to redeem
-  ///@param amount of assets one wishes to redeem
-  ///@param to is the address where the redeemed assets should be transfered
-  ///@return redeemed the amount of asset that were transfered to `to`
-  function _redeem(IERC20 token, uint amount, address to) internal returns (uint redeemed) {
-    redeemed = (amount == 0) ? 0 : POOL.withdraw(address(token), amount, to);
-  }
-
-  ///@notice supplies funds to the pool
-  ///@param token the asset one is supplying
-  ///@param amount of assets to be transfered to the pool
-  ///@param onBehalf address of the account whose collateral is being supplied to
-  function _supply(IERC20 token, uint amount, address onBehalf) internal {
-    if (amount == 0) {
-      return;
-    } else {
-      POOL.supply(address(token), amount, onBehalf, REFERRAL_CODE);
-    }
-  }
-
   ///@notice repays debt to the pool
   ///@param token the asset one is repaying
   ///@param amount of assets one is repaying
   ///@param onBehalf account whose debt is being repaid
   function _repay(IERC20 token, uint amount, address onBehalf) internal returns (uint repaid) {
     repaid = (amount == 0) ? 0 : POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf);
-  }
-
-  ///@notice rewards claiming.
-  ///@param assets list of overlying for which one is claiming awards
-  ///@param to whom the rewards should be sent
-  ///@return rewardsList the address of assets that have been claimed
-  ///@return claimedAmounts the amount of assets that have been claimed
-  function _claimRewards(address[] calldata assets, address to)
-    internal
-    returns (address[] memory rewardsList, uint[] memory claimedAmounts)
-  {
-    IRewardsControllerIsh rewardsController =
-      IRewardsControllerIsh(ADDRESS_PROVIDER.getAddress(keccak256("INCENTIVES_CONTROLLER")));
-    (rewardsList, claimedAmounts) = rewardsController.claimAllRewards(assets, to);
   }
 
   ///@notice returns the debt of a user

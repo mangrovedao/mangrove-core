@@ -78,8 +78,6 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.startPrank(maker);
     AavePooledRouter router = new AavePooledRouter({
       _addressesProvider: fork.get("Aave"),
-      _referralCode: 0,
-      _interestRateMode: 2, // 1 stable rate, 2 variable
       overhead: GASREQ
     });
     router.bind(address(makerContract));

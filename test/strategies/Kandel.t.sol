@@ -16,6 +16,7 @@ import {
   AbstractKandel, Kandel, MgvStructs, IMangrove
 } from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
+import {console2} from "forge-std/Test.sol";
 
 contract KandelTest is MangroveTest {
   TestToken weth;
@@ -213,7 +214,7 @@ contract KandelTest is MangroveTest {
     test_ask_complete_fill(0, 5_000);
   }
 
-  function test_bid_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote) private {
+  function test_bid_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote) public {
     test_bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
   }
 
@@ -246,7 +247,7 @@ contract KandelTest is MangroveTest {
     }
   }
 
-  function test_ask_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote) private {
+  function test_ask_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote) public {
     test_ask_complete_fill(compoundRateBase, compoundRateQuote, 5);
   }
 
@@ -411,5 +412,150 @@ contract KandelTest is MangroveTest {
 
   function test_take_full_bid_and_ask_10_times_zero_compound() public {
     test_take_full_bid_and_ask_repeatedly(10, 0, 0, ExpectedChange.Decrease, ExpectedChange.Decrease);
+  }
+
+  function getBestOffers() private view returns (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) {
+    uint bestAskId = mgv.best($(weth), $(usdc));
+    uint bestBidId = mgv.best($(usdc), $(weth));
+    bestBid = mgv.offers($(usdc), $(weth), bestBidId);
+    bestAsk = mgv.offers($(weth), $(usdc), bestAskId);
+  }
+
+  function getMidPrice() private view returns (uint midWants, uint midGives) {
+    (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) = getBestOffers();
+
+    midWants = bestBid.wants() * bestAsk.wants() + bestBid.gives() * bestAsk.gives();
+    midGives = bestAsk.gives() * bestBid.wants() * 2;
+  }
+
+  function getDeadOffers(uint midGives, uint midWants)
+    private
+    view
+    returns (uint[] memory indices, uint[] memory quoteAtIndex, uint numBids)
+  {
+    (, uint16 ratio,,,, uint8 length) = kdl.params();
+
+    uint[] memory indicesPre = new uint[](length);
+    quoteAtIndex = new uint[](length);
+    numBids = 0;
+
+    uint quote = initQuote;
+
+    // find missing offers
+    uint numDead = 0;
+    for (uint i = 0; i < length; i++) {
+      AbstractKandel.OfferType ba = quote * midGives <= initBase * midWants ? Bid : Ask;
+      (MgvStructs.OfferPacked offer,) = kdl.getOffer(ba, i);
+      if (!mgv.isLive(offer)) {
+        if (ba == Bid) {
+          numBids++;
+        }
+        indicesPre[numDead] = i;
+        numDead++;
+      }
+      quoteAtIndex[i] = quote;
+      quote = (quote * uint(ratio)) / 10 ** kdl.PRECISION();
+    }
+
+    // truncate indices - cannot do push to memory array
+    indices = new uint[](numDead);
+    for (uint i = 0; i < numDead; i++) {
+      indices[i] = indicesPre[i];
+    }
+  }
+
+  function heal(uint midWants, uint midGives, uint densityBid, uint densityAsk) internal {
+    // user can adjust pending by withdrawFunds or transferring to Kandel, then invoke heal.
+    // heal fills up offers to some designated volume starting from mid-price.
+    // Designated volume should either be equally divided between holes, or be based on Kandel Density
+    // Here we assume its some constant.
+    uint baseDensity = densityBid;
+    uint quoteDensity = densityAsk;
+
+    (uint[] memory indices, uint[] memory quoteAtIndex, uint numBids) = getDeadOffers(midGives, midWants);
+
+    // build arrays for populate
+    uint[] memory quoteDist = new uint[](indices.length);
+    uint[] memory baseDist = new uint[](indices.length);
+
+    uint pendingQuote = uint(kdl.pending(Bid));
+    uint pendingBase = uint(kdl.pending(Ask));
+
+    if (numBids > 0 && baseDensity * numBids < pendingQuote) {
+      baseDensity = pendingQuote / numBids; // fill up (a tiny bit lost to rounding)
+    }
+    // fill up close to mid price first
+    for (int i = int(numBids) - 1; i >= 0; i--) {
+      uint d = pendingQuote < baseDensity ? pendingQuote : baseDensity;
+      pendingQuote -= d;
+      quoteDist[uint(i)] = d;
+      baseDist[uint(i)] = initBase * d / quoteAtIndex[indices[uint(i)]];
+    }
+
+    uint numAsks = indices.length - numBids;
+    if (numAsks > 0 && quoteDensity * numAsks < pendingBase) {
+      quoteDensity = pendingBase / numAsks; // fill up (a tiny bit lost to rounding)
+    }
+    // fill up close to mid price first
+    for (uint i = numBids; i < indices.length; i++) {
+      uint d = pendingBase < quoteDensity ? pendingBase : quoteDensity;
+      pendingBase -= d;
+      baseDist[uint(i)] = d;
+      quoteDist[uint(i)] = quoteAtIndex[indices[uint(i)]] * d / initBase;
+    }
+
+    //TODO does not support no bids
+    uint lastBidIndex = numBids > 0 ? indices[numBids - 1] : indices[0] - 1;
+    uint[] memory pivotIds = new uint[](indices.length);
+    (, uint16 ratio,,, uint8 spread, uint8 length) = kdl.params();
+    vm.prank(maker);
+    kdl.populate(indices, baseDist, quoteDist, pivotIds, lastBidIndex, length, ratio, spread);
+  }
+
+  function test_heal_ba(AbstractKandel.OfferType ba, uint failures, uint[] memory expectedMidStatus) private {
+    (uint midWants, uint midGives) = getMidPrice();
+    (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) = getBestOffers();
+    uint densityMidBid = bestBid.gives();
+    uint densityMidAsk = bestAsk.gives();
+    // make offer fail (too little balance)
+    uint offeredVolume = kdl.offeredVolume(ba);
+    vm.prank(maker);
+    kdl.withdrawFunds(ba, offeredVolume, address(this));
+
+    for (uint i = 0; i < failures; i++) {
+      (uint successes,,,,) = ba == Ask ? buyFromBestAs(taker, 1 ether) : sellToBestAs(taker, 1 ether);
+      assertTrue(successes == 0, "Snipe should fail");
+    }
+
+    // verify offers have gone
+    assertStatus(expectedMidStatus);
+
+    // send funds back
+    (ba == Ask ? base : quote).transfer(address(kdl), offeredVolume);
+    // Only allow filling up with half the volume.
+    vm.startPrank(maker);
+    kdl.withdrawFunds(ba, uint(kdl.pending(ba)) / 2, address(this));
+    vm.stopPrank();
+
+    heal(midWants, midGives, densityMidBid / 2, densityMidAsk / 2);
+
+    // verify status and prices
+    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
+  }
+
+  function test_heal_ask() public {
+    test_heal_ba(Ask, 1, dynamic([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]));
+  }
+
+  function test_heal_bid() public {
+    test_heal_ba(Bid, 1, dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
+  }
+
+  function test_heal_ask3() public {
+    test_heal_ba(Ask, 3, dynamic([uint(1), 1, 1, 1, 1, 0, 0, 0, 2, 2]));
+  }
+
+  function test_heal_bid3() public {
+    test_heal_ba(Bid, 3, dynamic([uint(1), 1, 0, 0, 0, 2, 2, 2, 2, 2]));
   }
 }

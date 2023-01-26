@@ -40,16 +40,16 @@ abstract contract AbstractKandel {
   }
 
   ///@notice Kandel Params
-  ///@param ratio of price progression (`2**16 > ratio >= 10**PRECISION`) expressed with `PRECISION` decimals
-  ///@param compoundRateBase percentage of the spread that is to be compounded for base, expressed with `PRECISION` decimals (`compoundRateBase <= 10**PRECISION`)
-  ///@param compoundRateQuote percentage of the spread that is to be compounded for quote, expressed with `PRECISION` decimals (`compoundRateQuote <= 10**PRECISION`)
+  ///@param ratio of price progression (`2**16 > ratio >= 10**PRECISION`) expressed with `PRECISION` decimals, so geometric ratio is `ratio/10**PRECISION`
+  ///@param compoundRateBase percentage of the spread that is to be compounded for base, expressed with `PRECISION` decimals (`compoundRateBase <= 10**PRECISION`). Real compound rate for base is `compoundRateBase/10**PRECISION`
+  ///@param compoundRateQuote percentage of the spread that is to be compounded for quote, expressed with `PRECISION` decimals (`compoundRateQuote <= 10**PRECISION`). Real compound rate for quote is `compoundRateQuote/10**PRECISION`
   ///@param spread in amount of price slots for posting dual offer
   ///@param precision number of decimals used for `ratio`, `compoundRateBase`, and `compoundRateQuote`.
   struct Params {
     uint16 gasprice;
-    uint16 ratio; // geometric ratio is `ratio/10**PRECISION`
-    uint16 compoundRateBase; // real compound rate for bids is `compoundRateBase/10**PRECISION`
-    uint16 compoundRateQuote; // real compound rate for asks is `compoundRateQuote/10**PRECISION`
+    uint16 ratio;
+    uint16 compoundRateBase;
+    uint16 compoundRateQuote;
     uint8 spread;
     uint8 length;
   }

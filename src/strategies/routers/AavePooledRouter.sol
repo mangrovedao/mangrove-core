@@ -119,7 +119,9 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
   function _burnShares(IERC20 token, address maker, uint amount) internal {
     // computing how many shares should be minted for maker contract
     uint sharesToBurn = sharesOfamount(token, amount);
-    _sharesOf[token][maker] -= sharesToBurn;
+    uint makerShares = _sharesOf[token][maker];
+    require(sharesToBurn < makerShares, "AavePooledRouter/insufficientFunds");
+    _sharesOf[token][maker] = makerShares - sharesToBurn;
     _totalShares[token] -= sharesToBurn;
   }
 
@@ -162,7 +164,9 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
   }
 
   ///@inheritdoc AbstractRouter
-  ///@dev if function returns less than `amount` this implies that either makerContract does not have enough reserve or AAVE is illiquid on the pulled asset
+  ///@dev outside a market order (i.e if pulled is not called during offer logic's execution) the `token` balance of this router should be empty.
+  /// This may not be the case when a "donation" occurred to this contract
+  /// If the donation is large enough to cover the pull request we use the donation funds
   function __pull__(IERC20 token, address reserve, address maker, uint amount, bool strict)
     internal
     override
@@ -173,33 +177,31 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
     uint amount_ = amount;
     uint buffer = token.balanceOf(reserve);
     if (strict) {
-      // maker contract is making a deposit (not a call of the offer logic)
+      // maker contract is making a deposit (not a call emanating from the offer logic)
       toRedeem = buffer > amount ? 0 : amount - buffer;
     } else {
       // we redeem all router's available balance from aave and transfer to maker all its balance
       amount_ = reserveBalance(token, maker, reserve); // max possible transfer to maker
       if (buffer < amount) {
-        // this pull is the first of the market order so we redeem all the reserve from AAVE
+        // this pull is the first of the market order (that requires funds from aave) so we redeem all the reserve from AAVE
         // note in theory we should check buffer == 0 but donation may have occurred.
-        // This check forces donation to be at least the amount of outbound tokens promised by caller.
-        (toRedeem,) = maxGettableUnderlying(token, false, /*not borrowing*/ reserve);
-        if (toRedeem < amount_) {
-          // AAVE has a liquidity crisis in `token` asset since redeemable is less than maker's reserve.
-          // we revert before withdrawing from AAVE to spare some of maker's bounty
-          require(toRedeem + buffer < amount, "AavePooledRouter/IlliquidPool");
-          amount_ = toRedeem;
-        }
+        // This check forces donation to be at least the amount of outbound tokens promised by caller to avoid grieffing (depositing a small donation to make offer fail).
+        toRedeem = overlying(token).balanceOf(address(this));
       } else {
         // since buffer > amount, this call is not the first pull of the market order (unless a big donation occurred) and we do not withdraw from AAVE
         amount_ = buffer > amount_ ? amount_ : buffer;
         // if buffer < amount_ we still have buffer > amount (maker initial quantity)
       }
     }
+    // now that we know how much we send to maker contract, we try to burn the corresponding shares, this will underflow if maker does not have enough shares
+    console.log("trying to pull", amount_);
+    _burnShares(token, maker, amount_);
+
+    // redeem does not change amount of shares. We do this after burning to avoid redeeming on AAVE if caller doesn't have the required funds.
     if (toRedeem > 0) {
+      // this call will throw if AAVE has a liquidity crisis
       _redeem(token, toRedeem, reserve);
     }
-    // now that we know how much we send to maker contract, we try to burn the corresponding shares, this will underflow if maker does not have enough shares
-    _burnShares(token, maker, amount_);
 
     // Transfering funds to the maker contract, at this point we must revert if things go wrong because shares have been burnt on the premise that `amount_` will be transferred.
     require(TransferLib.transferToken(token, maker, amount_), "AavePooledRouter/pullFailed");

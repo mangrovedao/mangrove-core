@@ -8,7 +8,7 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 contract AavePooledRouterTest is OfferLogicTest {
   AavePooledRouter pooledRouter;
 
-  uint constant GASREQ = 367_000; // fails for 366K [7d99f7ede1f]
+  uint constant GASREQ = 289 * 1000; // fails for 287K [7d99f7ede1f]
 
   event SetRewardsManager(address);
 
@@ -201,6 +201,99 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(maker2);
     reserveBalance = pooledRouter.reserveBalance(dai, $(pooledRouter));
     assertEq(expectedBalance, reserveBalance, "Incorrect reserve for maker2");
+  }
+
+  function test_strict_pull_with_insufficient_funds_throws_as_expected() public {
+    vm.expectRevert("AavePooledRouter/insufficientFunds");
+    vm.prank(maker1);
+    pooledRouter.pull(dai, $(pooledRouter), 1, true);
+  }
+
+  function test_non_strict_pull_with_insufficient_funds_throws_as_expected() public {
+    vm.expectRevert("AavePooledRouter/insufficientFunds");
+    vm.prank(maker1);
+    pooledRouter.pull(dai, $(pooledRouter), 1, false);
+  }
+
+  function test_strict_pull_transfers_only_amount() public {
+    deal($(weth), maker1, 1 ether);
+    vm.startPrank(maker1);
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
+    uint oldAWeth = pooledRouter.overlying(weth).balanceOf($(pooledRouter));
+    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, true);
+    vm.stopPrank();
+    assertEq(weth.balanceOf(maker1), pulled, "Incorrect balance");
+    assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), oldAWeth - pulled, "Incorrect balance");
+  }
+
+  function test_non_strict_pull_transfers_whole_balance() public {
+    deal($(weth), maker1, 1 ether);
+    vm.startPrank(maker1);
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
+    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, true);
+    vm.stopPrank();
+    assertEq(weth.balanceOf(maker1), pulled, "Incorrect balance");
+  }
+
+  function test_strict_pull_with_small_buffer_triggers_aave_withdraw() public {
+    deal($(weth), maker1, 1 ether);
+    vm.startPrank(maker1);
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
+    vm.stopPrank();
+    deal($(weth), $(pooledRouter), 10);
+
+    uint oldAWeth = pooledRouter.overlying(weth).balanceOf($(pooledRouter));
+    vm.prank(maker1);
+    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, true);
+
+    assertEq(weth.balanceOf(maker1), pulled, "Incorrect weth balance");
+    assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), oldAWeth - pulled + 10, "Incorrect aWeth balance");
+  }
+
+  function test_non_strict_pull_with_small_buffer_triggers_aave_withdraw() public {
+    deal($(weth), maker1, 1 ether);
+    vm.startPrank(maker1);
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
+    vm.stopPrank();
+    // donation
+    deal($(weth), $(pooledRouter), 10);
+
+    pooledRouter.overlying(weth).balanceOf($(pooledRouter));
+    vm.prank(maker1);
+    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, false);
+
+    assertEq(weth.balanceOf(maker1), pulled, "Incorrect weth balance");
+    assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), 0, "Incorrect aWeth balance");
+  }
+
+  function test_strict_pull_with_large_buffer_does_not_triggers_aave_withdraw() public {
+    deal($(weth), maker1, 1 ether);
+    vm.startPrank(maker1);
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
+    vm.stopPrank();
+    deal($(weth), $(pooledRouter), 1 ether);
+
+    uint oldAWeth = pooledRouter.overlying(weth).balanceOf($(pooledRouter));
+    vm.prank(maker1);
+    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, true);
+
+    assertEq(weth.balanceOf(maker1), pulled, "Incorrect weth balance");
+    assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), oldAWeth, "Incorrect aWeth balance");
+  }
+
+  function test_non_strict_pull_with_large_buffer_does_not_triggers_aave_withdraw() public {
+    deal($(weth), maker1, 1 ether);
+    vm.startPrank(maker1);
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
+    vm.stopPrank();
+    deal($(weth), $(pooledRouter), 1 ether);
+
+    uint oldAWeth = pooledRouter.overlying(weth).balanceOf($(pooledRouter));
+    vm.prank(maker1);
+    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, true);
+
+    assertEq(weth.balanceOf(maker1), pulled, "Incorrect weth balance");
+    assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), oldAWeth, "Incorrect aWeth balance");
   }
 
   function test_claim_rewards() public {

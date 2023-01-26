@@ -30,20 +30,20 @@ contract Kandel is CoreKandel {
     internal
     virtual
     override
-    returns (OfferType ba_dual, SlotViewMonad memory v_dual, OfferArgs memory args)
+    returns (OfferType baDual, SlotViewMonad memory viewDual, OfferArgs memory args)
   {
     uint index = indexOfOfferId(ba, order.offerId);
-    Params memory params_ = params;
+    Params memory memoryParams = params;
 
     if (index == 0) {
       emit AllAsks();
     }
-    if (index == params_.length - 1) {
+    if (index == memoryParams.length - 1) {
       emit AllBids();
     }
-    ba_dual = dual(ba);
+    baDual = dual(ba);
 
-    v_dual = _fresh(better(ba_dual, index, params_.spread, params_.length));
+    viewDual = _fresh(better(baDual, index, memoryParams.spread, memoryParams.length));
 
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);
@@ -51,11 +51,11 @@ contract Kandel is CoreKandel {
     // computing gives/wants for dual offer
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
-    (args.wants, args.gives) = dualWantsGivesOfOffer(ba_dual, v_dual, order, params_);
-    args.gasprice = _offerDetail(ba_dual, v_dual).gasprice();
-    args.gasreq = v_dual.offerDetail.gasreq() == 0 ? offerGasreq() : v_dual.offerDetail.gasreq();
-    args.pivotId = v_dual.offer.gives() > 0 ? v_dual.offer.next() : 0;
-    return (ba_dual, v_dual, args);
+    (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, viewDual, order, memoryParams);
+    args.gasprice = _offerDetail(baDual, viewDual).gasprice();
+    args.gasreq = viewDual.offerDetail.gasreq() == 0 ? offerGasreq() : viewDual.offerDetail.gasreq();
+    args.pivotId = viewDual.offer.gives() > 0 ? viewDual.offer.next() : 0;
+    return (baDual, viewDual, args);
   }
 
   function depositFunds(OfferType ba, uint amount) external {
@@ -83,10 +83,10 @@ contract Kandel is CoreKandel {
 
   /// @notice gets the total gives of all offers of the offer type
   /// @param ba offer type.
-  function offeredVolume(OfferType ba) public view returns (uint volume_) {
+  function offeredVolume(OfferType ba) public view returns (uint volume) {
     for (uint index = 0; index < params.length; index++) {
       (MgvStructs.OfferPacked offer,) = getOffer(ba, index);
-      volume_ += offer.gives();
+      volume += offer.gives();
     }
   }
 
@@ -101,6 +101,7 @@ contract Kandel is CoreKandel {
 
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
   /// @param ba offer type.
+  /// @return pending_ the pending amount
   function pending(OfferType ba) external view returns (int pending_) {
     IERC20 token = outboundOfOfferType(ba);
     pending_ = int(reserveBalance(token, reserve(msg.sender))) - int(offeredVolume(ba));

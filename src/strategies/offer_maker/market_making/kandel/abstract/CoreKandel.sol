@@ -111,27 +111,27 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     return OfferType((uint(ba) + 1) % 2);
   }
 
-  /// @param ba_dual the dual offer type.
-  /// @param params_ the Kandel params.
+  /// @param baDual the dual offer type.
+  /// @param memoryParams the Kandel params.
   /// @return compoundRate to use for the gives of the offer type. Asks give base so this would be the `compoundRateBase`, and vice versa.
-  function compoundRateForDual(OfferType ba_dual, Params memory params_) private pure returns (uint compoundRate) {
-    compoundRate = uint(ba_dual == OfferType.Ask ? params_.compoundRateBase : params_.compoundRateQuote);
+  function compoundRateForDual(OfferType baDual, Params memory memoryParams) private pure returns (uint compoundRate) {
+    compoundRate = uint(baDual == OfferType.Ask ? memoryParams.compoundRateBase : memoryParams.compoundRateQuote);
   }
 
   function dualWantsGivesOfOffer(
-    OfferType ba_dual,
-    SlotViewMonad memory v_dual,
+    OfferType baDual,
+    SlotViewMonad memory viewDual,
     MgvLib.SingleOrder calldata order,
-    Params memory params_
+    Params memory memoryParams
   ) internal view returns (uint wants, uint gives) {
     // computing gives/wants for dual offer
     // we verify we cannot overflow if PRECISION = 4
     // spread:8
-    uint spread = uint(params_.spread);
+    uint spread = uint(memoryParams.spread);
     // compoundRate:16
-    uint compoundRate = compoundRateForDual(ba_dual, params_);
+    uint compoundRate = compoundRateForDual(baDual, memoryParams);
     // params.ratio:16, spread:8 ==> r:128
-    uint r = uint(params_.ratio) ** spread;
+    uint r = uint(memoryParams.ratio) ** spread;
     // log2(10) = 3.32 => p:PRECISION*3.32
     uint p = 10 ** PRECISION;
     // (a) max (p - compoundRate): 4*log2(10) (for compoundRate = 0)
@@ -144,7 +144,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
     // adding to gives what the offer was already giving so gives could be greater than 2**96
     // gives:97
-    gives += _offer(ba_dual, v_dual).gives();
+    gives += _offer(baDual, viewDual).gives();
     if (uint96(gives) != gives) {
       // this should not be reached under normal circumstances unless strat is posting on top of an existing offer with an abnormal volume
       // to prevent gives to be too high, we let the surplus be pending
@@ -305,19 +305,19 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   function setParams(uint kandelSize, uint16 ratio, uint8 spread) private {
     // Initializing arrays and parameters if needed
-    Params memory params_ = params;
+    Params memory memoryParams = params;
 
-    if (params_.length != kandelSize) {
+    if (memoryParams.length != kandelSize) {
       require(kandelSize <= type(uint8).max, "Kandel/TooManyPricePoints");
       askOfferIdOfIndex = new uint[](kandelSize);
       bidOfferIdOfIndex = new uint[](kandelSize);
       params.length = uint8(kandelSize);
     }
-    if (params_.ratio != ratio) {
+    if (memoryParams.ratio != ratio) {
       require(ratio >= 10 ** PRECISION, "Kandel/invalidRatio");
       params.ratio = ratio;
     }
-    if (params_.spread != spread) {
+    if (memoryParams.spread != spread) {
       require(spread > 0, "Kandel/invalidSpread");
       params.spread = spread;
     }
@@ -377,18 +377,18 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     reusableAsks = new uint[](to-from);
     reusableBids = new uint[](to-from);
     for (uint index = from; index < to; index++) {
-      SlotViewMonad memory v_ask = _fresh(index);
-      uint offerId = _offerId(OfferType.Ask, v_ask);
+      SlotViewMonad memory viewAsk = _fresh(index);
+      uint offerId = _offerId(OfferType.Ask, viewAsk);
       if (offerId != 0) {
         reusableAsks[asks] = offerId;
-        collected += retractOffer(OfferType.Ask, v_ask, true);
+        collected += retractOffer(OfferType.Ask, viewAsk, true);
         asks++;
       }
-      SlotViewMonad memory v_bid = _fresh(index);
-      offerId = _offerId(OfferType.Bid, v_bid);
+      SlotViewMonad memory viewBid = _fresh(index);
+      offerId = _offerId(OfferType.Bid, viewBid);
       if (offerId != 0) {
         reusableBids[bids] = offerId;
-        collected += retractOffer(OfferType.Bid, v_bid, true);
+        collected += retractOffer(OfferType.Bid, viewBid, true);
         bids++;
       }
     }
@@ -398,7 +398,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param order a recap of the taker order
   ///@param makerData generated during `makerExecute` so as to log it if necessary
   ///@param repostStatus from the posthook
-  function _handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData, bytes32 repostStatus) internal {
+  function handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData, bytes32 repostStatus) internal {
     if (repostStatus == "posthook/filled" || repostStatus == REPOST_SUCCESS) {
       return;
     }
@@ -422,7 +422,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     returns (bytes32)
   {
     bytes32 repostStatus = super.__posthookSuccess__(order, makerData);
-    _handleResidual(order, makerData, repostStatus);
+    handleResidual(order, makerData, repostStatus);
 
     OfferType ba = OfferTypeOfOutbound(IERC20(order.outbound_tkn));
     // adds any unpublished liquidity to pending[Base/Quote]

@@ -15,7 +15,7 @@ pragma solidity ^0.8.10;
 import {AbstractRouter, IERC20} from "./AbstractRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {AaveV3Module, IRewardsControllerIsh} from "mgv_src/strategies/integrations/AaveV3Module.sol";
-//import {console} from "forge-std/Test.sol";
+import {console} from "forge-std/Test.sol";
 
 ///@title Router acting as a liquidity reserve on AAVE for multiple maker contracts.
 ///@notice this router has an optimal gas cost complexity when all maker contracts binding to it comply with the following offer logic:
@@ -147,6 +147,7 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
   ///@param amounts the quantities of tokens one wishes to push
   ///@return pushed the pushed quantities for each token
   ///@dev an offer logic should call this instead of `flush` when it is the last posthook to be executed
+  ///@dev this function is also to be used when user deposits funds on the maker contract
   ///@dev this can be determined by checking during __lastLook__ whether the logic will trigger a withdraw from aave (this is the case is router's balance of token is empty)
   function pushAndSupply(IERC20[] calldata tokens, uint[] calldata amounts)
     external
@@ -161,32 +162,48 @@ contract AavePooledRouter is AaveV3Module, AbstractRouter {
   }
 
   ///@inheritdoc AbstractRouter
+  ///@dev if function returns less than `amount` this implies that either makerContract does not have enough reserve or AAVE is illiquid on the pulled asset
   function __pull__(IERC20 token, address reserve, address maker, uint amount, bool strict)
     internal
     override
     isThis(reserve)
     returns (uint)
   {
-    amount = strict ? amount : reserveBalance(token, maker, reserve);
-    _burnShares(token, maker, amount);
-
+    uint toRedeem;
+    uint amount_ = amount;
     uint buffer = token.balanceOf(reserve);
-    if (buffer > 0) {
-      // this pull is not the first one and we are following a non strict routing policy
-      // at this point no tokens are on AAVE
-      amount = amount > buffer ? buffer : amount;
+    if (strict) {
+      // maker contract is making a deposit (not a call of the offer logic)
+      toRedeem = buffer > amount ? 0 : amount - buffer;
     } else {
-      // this pull is either the first, or we follow a strict routing policy
-      (uint totalRedeemable,) = maxGettableUnderlying(token, false, /*not borrowing*/ reserve);
-      (totalRedeemable, amount) = strict
-        ? (totalRedeemable > amount ? (amount, amount) : (totalRedeemable, totalRedeemable))
-        : (totalRedeemable > amount ? (totalRedeemable, amount) : (totalRedeemable, totalRedeemable));
-      _redeem(token, totalRedeemable, reserve);
+      // we redeem all router's available balance from aave and transfer to maker all its balance
+      amount_ = reserveBalance(token, maker, reserve); // max possible transfer to maker
+      if (buffer < amount) {
+        // this pull is the first of the market order so we redeem all the reserve from AAVE
+        // note in theory we should check buffer == 0 but donation may have occurred.
+        // This check forces donation to be at least the amount of outbound tokens promised by caller.
+        (toRedeem,) = maxGettableUnderlying(token, false, /*not borrowing*/ reserve);
+        if (toRedeem < amount_) {
+          // AAVE has a liquidity crisis in `token` asset since redeemable is less than maker's reserve.
+          // we revert before withdrawing from AAVE to spare some of maker's bounty
+          require(toRedeem + buffer < amount, "AavePooledRouter/IlliquidPool");
+          amount_ = toRedeem;
+        }
+      } else {
+        // since buffer > amount, this call is not the first pull of the market order (unless a big donation occurred) and we do not withdraw from AAVE
+        amount_ = buffer > amount_ ? amount_ : buffer;
+        // if buffer < amount_ we still have buffer > amount (maker initial quantity)
+      }
     }
+    if (toRedeem > 0) {
+      _redeem(token, toRedeem, reserve);
+    }
+    // now that we know how much we send to maker contract, we try to burn the corresponding shares, this will underflow if maker does not have enough shares
+    _burnShares(token, maker, amount_);
 
-    // Transfering funds to the maker contract
-    require(TransferLib.transferToken(token, maker, amount), "AavePooledRouter/pullFailed");
-    return amount;
+    // Transfering funds to the maker contract, at this point we must revert if things go wrong because shares have been burnt on the premise that `amount_` will be transferred.
+    require(TransferLib.transferToken(token, maker, amount_), "AavePooledRouter/pullFailed");
+    return amount_;
   }
 
   ///@inheritdoc AbstractRouter

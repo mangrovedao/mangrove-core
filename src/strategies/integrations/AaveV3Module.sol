@@ -142,9 +142,9 @@ contract AaveV3Module {
   }
 
   /**
-   * @notice Returns max redeem and borrow capacity conditional on a potential redeem.
-   * @param asset the underlying asset to redeem and potentially borrow
-   * @param tryBorrow also computes borrow capacity after all redeem is complete (costs extra gas)
+   * @notice Returns max redeem R and borrow capacity B|R, which would occur after the redeem.
+   * @param asset the underlying asset to withdraw and potentially borrow
+   * @param tryBorrow also computes borrow capacity after all redeem is complete (costs extra gas).
    * @param onBehalf user for whom max redeem/borrow is computed
    * @return maxRedeemableUnderlying maximum amount `onBehalf` can redeem of `asset`
    * @return maxBorrowAfterRedeemInUnderlying max amount `onBehalf` can borrow in `asset` ater redeeming of `maxRedeemableUnderlying`.
@@ -189,9 +189,9 @@ contract AaveV3Module {
   }
 
   /**
-   * @notice redeems liquidity on aave, if not enough liquidity is redeemed, tries to borrow what's missing.
+   * @notice withdraws liquidity on aave, if not enough liquidity is withdrawn, tries to borrow what's missing.
    * @param token the asset that needs to be redeemed
-   * @param onBehalf the account whose collateral is beeing redeemed and borrowed upon.
+   * @param onBehalf the account whose collateral is beeing withdrawn and borrowed upon.
    * @dev if `onBehalf != address(this)` then `this` needs to be approved by `onBehalf` using `approveDelegation` of the overlying debt token
    * @param amount the target amount of `token` one needs to redeem
    * @param strict whether call allows contract to redeem more than amount (for gas optimization).
@@ -218,7 +218,7 @@ contract AaveV3Module {
 
   ///@notice tries to borrow some assets from the pool
   ///@param token the asset one is borrowing
-  ///@param onBehalf the account whose collateral is being used to borrow (caller must be approved using `approveDelegation`)
+  ///@param onBehalf the account whose collateral is being used to borrow (caller must be approved by `onBehalf` -if different- using `approveDelegation` from the corresponding debt token (variable or stable))
   function _borrow(IERC20 token, uint amount, address onBehalf) internal {
     POOL.borrow(address(token), amount, INTEREST_RATE_MODE, REFERRAL_CODE, onBehalf);
   }

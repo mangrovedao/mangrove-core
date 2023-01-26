@@ -25,7 +25,7 @@ contract KandelTest is MangroveTest {
   address payable taker;
   Kandel kdl;
 
-  uint constant GASREQ = 77_000;
+  uint constant GASREQ = 138_000; // can be 77_000 when all offers are initialized.
   uint8 constant STEP = 1;
   uint initQuote;
   uint immutable initBase = uint(0.1 ether);
@@ -289,17 +289,15 @@ contract KandelTest is MangroveTest {
 
   function test_logs_all_asks() public {
     // taking all bids
-    // assertStatus([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]);
-    sellToBestAs(taker, 1 ether);
-    // assertStatus([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]);
-    sellToBestAs(taker, 1 ether);
-    // assertStatus([uint(1), 1, 1, 0, 0, 2, 2, 2, 2, 2]);
     sellToBestAs(taker, 1 ether);
     sellToBestAs(taker, 1 ether);
+    sellToBestAs(taker, 1 ether);
+    sellToBestAs(taker, 1 ether);
+    assertStatus(dynamic([uint(1), 0, 2, 2, 2, 2, 2, 2, 2, 2]));
     expectFrom(address(kdl));
     emit AllAsks();
     sellToBestAs(taker, 1 ether);
-    //assertStatus([uint(0), 2, 2, 2, 2, 2, 2, 2, 2, 2]);
+    assertStatus(dynamic([uint(0), 2, 2, 2, 2, 2, 2, 2, 2, 2]));
   }
 
   function test_logs_all_bids() public {
@@ -310,16 +308,29 @@ contract KandelTest is MangroveTest {
     expectFrom(address(kdl));
     emit AllBids();
     buyFromBestAs(taker, 1 ether);
-    //assertStatus([uint(1), 1, 1, 1, 1, 1, 1, 1, 1, 0]);
+    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 1, 1, 1, 1, 0]));
+  }
+
+  function test_all_bids_all_asks_and_back() public {
+    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
+    vm.startPrank(taker);
+    mgv.marketOrder($(base), $(quote), type(uint96).max, type(uint96).max, true);
+    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 1, 1, 1, 1, 0]));
+    mgv.marketOrder($(quote), $(base), 1 ether, type(uint96).max, false);
+    assertStatus(dynamic([uint(0), 2, 2, 2, 2, 2, 2, 2, 2, 2]));
+    uint askVol = kdl.offeredVolume(Ask);
+    mgv.marketOrder($(base), $(quote), askVol / 2, type(uint96).max, true);
+    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
+    vm.stopPrank();
   }
 
   function test_take_new_offer() public {
     sellToBestAs(taker, 1 ether);
     sellToBestAs(taker, 1 ether);
     // MM state:
-    //    assertStatus([uint(1), 1, 1, 0, 2, 2, 2, 2, 2, 2]);
+    assertStatus(dynamic([uint(1), 1, 1, 0, 2, 2, 2, 2, 2, 2]));
     buyFromBestAs(taker, 1 ether);
-    //    assertStatus([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]);
+    assertStatus(dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
   }
 
   enum ExpectedChange {

@@ -252,8 +252,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       if (offerId_ == 0) {
         emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/newOfferFailed", result);
       } else {
-        offerIdOfIndex(ba, _index(ba, v), offerId_);
-        indexOfOfferId(ba, offerId_, _index(ba, v));
+        setIndexMapping(ba, _index(ba, v), offerId_);
       }
     } else {
       if (offerId == 0) {

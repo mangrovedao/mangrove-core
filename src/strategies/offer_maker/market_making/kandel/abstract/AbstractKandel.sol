@@ -67,15 +67,6 @@ abstract contract AbstractKandel {
     return ba == OfferType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
   }
 
-  ///@notice sets the index of offer to offer id on Mangrove.
-  function offerIdOfIndex(OfferType ba, uint index, uint offerId) internal {
-    if (ba == OfferType.Ask) {
-      askOfferIdOfIndex[index] = offerId;
-    } else {
-      bidOfferIdOfIndex[index] = offerId;
-    }
-  }
-
   ///@notice An inverse mapping of askOfferIdOfIndex. E.g., indexOfAskOfferId[42] is the index in askOfferIdOfIndex at which ask of id #42 on Mangrove is stored.
   mapping(uint => uint) indexOfAskOfferId;
 
@@ -87,12 +78,14 @@ abstract contract AbstractKandel {
     return ba == OfferType.Ask ? indexOfAskOfferId[offerId] : indexOfBidOfferId[offerId];
   }
 
-  ///@notice Sets the Kandel index for a Mangrove offer id.
-  function indexOfOfferId(OfferType ba, uint offerId, uint index) internal {
+  ///@notice Sets the Mangrove offer id for a Kandel index and vice versa.
+  function setIndexMapping(OfferType ba, uint index, uint offerId) internal {
     if (ba == OfferType.Ask) {
       indexOfAskOfferId[offerId] = index;
+      askOfferIdOfIndex[index] = offerId;
     } else {
       indexOfBidOfferId[offerId] = index;
+      bidOfferIdOfIndex[index] = offerId;
     }
   }
 

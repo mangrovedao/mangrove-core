@@ -8,7 +8,7 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 contract AavePooledRouterTest is OfferLogicTest {
   AavePooledRouter pooledRouter;
 
-  uint constant GASREQ = 287 * 1000; // fails for 286K [992959c4229bd]
+  uint constant GASREQ = 494 * 1000;
 
   event SetRewardsManager(address);
 
@@ -159,6 +159,40 @@ contract AavePooledRouterTest is OfferLogicTest {
     pooledRouter.pull(dai, $(pooledRouter), 1 * 10 ** 18, true);
 
     assertEq(pooledRouter.sharesOf(dai, maker1), 0, "Incorrect shares");
+  }
+
+  function test_min_gas_req() public {
+    deal($(dai), maker1, 10 ** 18);
+
+    vm.startPrank(maker1);
+    uint gas = gasleft();
+    pooledRouter.push(dai, $(pooledRouter), 10 ** 18);
+    vm.stopPrank();
+
+    uint shallow_push_cost = gas - gasleft();
+
+    vm.prank(deployer);
+    pooledRouter.flushBuffer(dai);
+
+    vm.startPrank(maker1);
+    gas = gasleft();
+    /// this emulates a `get` from the offer logic
+    pooledRouter.pull(dai, $(pooledRouter), 0.5 ether, false);
+    vm.stopPrank();
+
+    uint deep_pull_cost = gas - gasleft();
+
+    deal($(usdc), maker1, 10 ** 6);
+
+    vm.startPrank(maker1);
+    gas = gasleft();
+    pooledRouter.pushAndSupply(dynamic([IERC20(usdc), dai]), dynamic([uint(10 ** 6), 1 ether]));
+    vm.stopPrank();
+
+    uint finalize_cost = gas - gasleft();
+    console.log("deep pull: %d, finalize: %d", deep_pull_cost, finalize_cost);
+    console.log("shallow push: %d", shallow_push_cost);
+    assertTrue(deep_pull_cost + finalize_cost <= GASREQ, "Strat is spending more gas");
   }
 
   function test_push_token_increases_first_minter_shares() public {

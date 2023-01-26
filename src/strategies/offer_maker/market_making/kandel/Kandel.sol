@@ -14,6 +14,7 @@ pragma solidity ^0.8.10;
 import {CoreKandel, IMangrove, IERC20, AbstractKandel, MgvLib, MgvStructs} from "./abstract/CoreKandel.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
+import {OfferType} from "./abstract/Trade.sol";
 
 contract Kandel is CoreKandel {
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice)

@@ -15,8 +15,10 @@ import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Direct} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
+import {HasKandelSlotViewMonad} from "./HasKandelSlotViewMonad.sol";
+import {OfferType} from "./Trade.sol";
 
-abstract contract AbstractKandel {
+abstract contract AbstractKandel is HasKandelSlotViewMonad {
   ///@notice signals that the price has moved above Kandel's current price range
   event AllAsks();
   ///@notice signals that the price has moved below Kandel's current price range
@@ -35,13 +37,7 @@ abstract contract AbstractKandel {
   // setting PRECISION higher than 4 might produce overflow in limit cases.
   uint8 public constant PRECISION = 4;
 
-  ///@notice a bid or an ask
-  enum OfferType {
-    Bid,
-    Ask
-  }
-
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote) {
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote) HasKandelSlotViewMonad(mgv) {
     emit NewKandel(msg.sender, mgv, base, quote);
   }
 
@@ -66,7 +62,7 @@ abstract contract AbstractKandel {
   uint[] bidOfferIdOfIndex;
 
   ///@notice maps index of offers to offer id on Mangrove.
-  function offerIdOfIndex(OfferType ba, uint index) public view returns (uint) {
+  function offerIdOfIndex(OfferType ba, uint index) public view override returns (uint) {
     return ba == OfferType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
   }
 
@@ -77,7 +73,7 @@ abstract contract AbstractKandel {
   mapping(uint => uint) indexOfBidOfferId;
 
   ///@notice Maps an offer type and Mangrove offer id to Kandel index.
-  function indexOfOfferId(OfferType ba, uint offerId) public view returns (uint) {
+  function indexOfOfferId(OfferType ba, uint offerId) public view override returns (uint) {
     return ba == OfferType.Ask ? indexOfAskOfferId[offerId] : indexOfBidOfferId[offerId];
   }
 
@@ -90,17 +86,6 @@ abstract contract AbstractKandel {
       indexOfBidOfferId[offerId] = index;
       bidOfferIdOfIndex[index] = offerId;
     }
-  }
-
-  struct SlotViewMonad {
-    bool index_;
-    uint index;
-    bool offerId_;
-    uint offerId;
-    bool offer_;
-    MgvStructs.OfferPacked offer;
-    bool offerDetail_;
-    MgvStructs.OfferDetailPacked offerDetail;
   }
 
   ///@notice transport logic followed by Kandel

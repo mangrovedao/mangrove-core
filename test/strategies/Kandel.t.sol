@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import {
-  AbstractKandel, Kandel, MgvStructs, IMangrove
+  Kandel, MgvStructs, IMangrove, OfferType
 } from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 import {console2} from "forge-std/Test.sol";
@@ -188,10 +188,10 @@ contract KandelTest is MangroveTest {
     console.log("-------", toUnit(pendingBase, 18), toUnit(pendingQuote, 6), "-------");
   }
 
-  AbstractKandel.OfferType constant Ask = AbstractKandel.OfferType.Ask;
-  AbstractKandel.OfferType constant Bid = AbstractKandel.OfferType.Bid;
+  OfferType constant Ask = OfferType.Ask;
+  OfferType constant Bid = OfferType.Bid;
 
-  function pending(AbstractKandel.OfferType ba) internal view returns (uint) {
+  function pending(OfferType ba) internal view returns (uint) {
     return uint(kdl.pending(ba));
   }
 
@@ -461,7 +461,7 @@ contract KandelTest is MangroveTest {
     // find missing offers
     uint numDead = 0;
     for (uint i = 0; i < length; i++) {
-      AbstractKandel.OfferType ba = quote * midGives <= initBase * midWants ? Bid : Ask;
+      OfferType ba = quote * midGives <= initBase * midWants ? Bid : Ask;
       (MgvStructs.OfferPacked offer,) = kdl.getOffer(ba, i);
       if (!mgv.isLive(offer)) {
         if (ba == Bid) {
@@ -532,7 +532,7 @@ contract KandelTest is MangroveTest {
     kdl.populate(indices, baseDist, quoteDist, pivotIds, lastBidIndex, length, ratio, spread);
   }
 
-  function test_heal_ba(AbstractKandel.OfferType ba, uint failures, uint[] memory expectedMidStatus) private {
+  function test_heal_ba(OfferType ba, uint failures, uint[] memory expectedMidStatus) private {
     (uint midWants, uint midGives) = getMidPrice();
     (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) = getBestOffers();
     uint densityMidBid = bestBid.gives();

@@ -20,6 +20,7 @@ import {
   MgvStructs
 } from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
+import {OfferType} from "./Trade.sol";
 
 abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice base of the market Kandel is making
@@ -64,7 +65,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   ///@notice turns an offer type into an (outbound, inbound) pair identifying an offer list
   ///@param ba whether one wishes to access the offer lists where asks or bids are posted
-  function tokenPairOfOfferType(OfferType ba) internal view returns (IERC20, IERC20) {
+  function tokenPairOfOfferType(OfferType ba) internal view override returns (IERC20, IERC20) {
     return ba == OfferType.Bid ? (QUOTE, BASE) : (BASE, QUOTE);
   }
 
@@ -166,58 +167,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param step the number of price steps improvements
   function better(OfferType ba, uint index, uint step, uint length_) public pure returns (uint) {
     return ba == OfferType.Ask ? index + step >= length_ ? length_ - 1 : index + step : index < step ? 0 : index - step;
-  }
-
-  function _fresh(uint index) internal pure returns (SlotViewMonad memory v) {
-    v.index_ = true;
-    v.index = index;
-    return v;
-  }
-
-  function _offerId(OfferType ba, SlotViewMonad memory v) internal view returns (uint) {
-    if (v.offerId_) {
-      return v.offerId;
-    } else {
-      require(v.index_, "Kandel/monad/UninitializedIndex");
-      v.offerId_ = true;
-      v.offerId = offerIdOfIndex(ba, v.index);
-      return v.offerId;
-    }
-  }
-
-  function _index(OfferType ba, SlotViewMonad memory v) internal view returns (uint) {
-    if (v.index_) {
-      return v.index;
-    } else {
-      require(v.offerId_, "Kandel/monad/UninitializedOfferId");
-      v.index_ = true;
-      v.index = indexOfOfferId(ba, v.offerId);
-      return v.index;
-    }
-  }
-
-  function _offer(OfferType ba, SlotViewMonad memory v) internal view returns (MgvStructs.OfferPacked) {
-    if (v.offer_) {
-      return v.offer;
-    } else {
-      v.offer_ = true;
-      uint id = _offerId(ba, v);
-      (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
-      v.offer = MGV.offers(address(outbound), address(inbound), id);
-      return v.offer;
-    }
-  }
-
-  function _offerDetail(OfferType ba, SlotViewMonad memory v) internal view returns (MgvStructs.OfferDetailPacked) {
-    if (v.offerDetail_) {
-      return v.offerDetail;
-    } else {
-      v.offerDetail_ = true;
-      uint id = _offerId(ba, v);
-      (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
-      v.offerDetail = MGV.offerDetails(address(outbound), address(inbound), id);
-      return v.offerDetail;
-    }
   }
 
   function getOffer(OfferType ba, uint index)

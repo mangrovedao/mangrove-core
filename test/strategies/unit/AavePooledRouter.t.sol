@@ -161,7 +161,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     assertEq(pooledRouter.sharesOf(dai, maker1), 0, "Incorrect shares");
   }
 
-  function test_min_gas_req() public {
+  function test_mockup_marketOrder_gas_cost() public {
     deal($(dai), maker1, 10 ** 18);
 
     vm.startPrank(maker1);
@@ -388,5 +388,20 @@ contract AavePooledRouterTest is OfferLogicTest {
       toUnit(new_reserve_usdc - old_reserve_usdc, 6),
       toUnit(new_reserve_dai - old_reserve_dai, 18)
     );
+  }
+
+  function test_checkList_throws_for_tokens_that_are_not_listed_on_aave() public {
+    TestToken tkn = new TestToken(
+      $(this),
+      "wen token",
+      "WEN",
+      42
+    );
+    vm.prank(maker1);
+    tkn.approve({spender: $(pooledRouter), amount: type(uint).max});
+
+    vm.expectRevert("AavePooledRouter/tokenNotLendableOnAave");
+    vm.prank(maker1);
+    pooledRouter.checkList(IERC20($(tkn)), $(pooledRouter));
   }
 }

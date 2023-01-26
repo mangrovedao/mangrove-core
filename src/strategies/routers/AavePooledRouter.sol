@@ -206,6 +206,7 @@ contract AavePooledRouter is AaveV3Lender, AbstractRouter {
   ///@inheritdoc AbstractRouter
   function __checkList__(IERC20 token, address reserve) internal view override {
     require(reserve == address(this), "AavePooledRouter/ReserveMustBeRouter");
+    require(checkAsset(token), "AavePooledRouter/tokenNotLendableOnAave");
     require( // required to supply or withdraw token on pool
     token.allowance(address(this), address(POOL)) > 0, "AavePooledRouter/hasNotApprovedPool");
   }

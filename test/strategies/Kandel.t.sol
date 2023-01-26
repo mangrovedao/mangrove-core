@@ -87,8 +87,8 @@ contract KandelTest is MangroveTest {
     weth.approve(address(kdl), type(uint).max);
     usdc.approve(address(kdl), type(uint).max);
 
-    kdl.depositFunds(AbstractKandel.OfferType.Ask, 1 ether);
-    kdl.depositFunds(AbstractKandel.OfferType.Bid, cash(usdc, 10_000));
+    kdl.depositFunds(Ask, 1 ether);
+    kdl.depositFunds(Bid, cash(usdc, 10_000));
 
     vm.startPrank(maker);
     KandelLib.populate({
@@ -123,13 +123,13 @@ contract KandelTest is MangroveTest {
   }
 
   function snipeBuyAs(address taker_, uint amount, uint index) internal returns (uint, uint, uint, uint, uint) {
-    uint offerId = kdl.offerIdOfIndex(AbstractKandel.OfferType.Ask, index);
+    uint offerId = kdl.offerIdOfIndex(Ask, index);
     vm.prank(taker_);
     return mgv.snipes($(weth), $(usdc), wrap_dynamic([offerId, amount, type(uint96).max, type(uint).max]), true);
   }
 
   function snipeSellAs(address taker_, uint amount, uint index) internal returns (uint, uint, uint, uint, uint) {
-    uint offerId = kdl.offerIdOfIndex(AbstractKandel.OfferType.Bid, index);
+    uint offerId = kdl.offerIdOfIndex(Bid, index);
     vm.prank(taker_);
     return mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
   }
@@ -141,8 +141,8 @@ contract KandelTest is MangroveTest {
     (, uint16 ratio,,,,) = kdl.params();
     for (uint i = 0; i < offerStatuses.length; i++) {
       // `price = quote / initBase` used in assertApproxEqRel below
-      (MgvStructs.OfferPacked bid,) = kdl.getOffer(AbstractKandel.OfferType.Bid, i);
-      (MgvStructs.OfferPacked ask,) = kdl.getOffer(AbstractKandel.OfferType.Ask, i);
+      (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, i);
+      (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, i);
       if (offerStatuses[i] == 0) {
         assertTrue(bid.gives() == 0 && ask.gives() == 0, "offer at index is live");
       } else {
@@ -355,14 +355,12 @@ contract KandelTest is MangroveTest {
       assertStatus(dynamic([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]));
       if (i == 0) {
         // With the ask filled, what is the current volume for bids?
-        initialTotalVolumeQuote = kdl.offeredVolume(AbstractKandel.OfferType.Bid);
+        initialTotalVolumeQuote = kdl.offeredVolume(Bid);
         console.log("Initial bids");
         printOB();
       } else if (i == loops - 1) {
         // final loop - assert volume delta
-        assertChange(
-          quoteVolumeChange, initialTotalVolumeQuote, kdl.offeredVolume(AbstractKandel.OfferType.Bid), "quote volume"
-        );
+        assertChange(quoteVolumeChange, initialTotalVolumeQuote, kdl.offeredVolume(Bid), "quote volume");
         console.log("Final bids");
         printOB();
       }
@@ -372,14 +370,12 @@ contract KandelTest is MangroveTest {
       assertStatus(dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
       if (i == 0) {
         // With the bid filled, what is the current volume for asks?
-        initialTotalVolumeBase = kdl.offeredVolume(AbstractKandel.OfferType.Ask);
+        initialTotalVolumeBase = kdl.offeredVolume(Ask);
         console.log("Initial asks");
         printOB();
       } else if (i == loops - 1) {
         // final loop - assert volume delta
-        assertChange(
-          baseVolumeChange, initialTotalVolumeBase, kdl.offeredVolume(AbstractKandel.OfferType.Ask), "base volume"
-        );
+        assertChange(baseVolumeChange, initialTotalVolumeBase, kdl.offeredVolume(Ask), "base volume");
         console.log("Final asks");
         printOB();
       }

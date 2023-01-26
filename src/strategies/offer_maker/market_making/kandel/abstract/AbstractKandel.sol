@@ -64,6 +64,7 @@ abstract contract AbstractKandel {
     return ba == OfferType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
   }
 
+  ///@notice sets the index of offer to offer id on Mangrove.
   function offerIdOfIndex(OfferType ba, uint index, uint offerId) internal {
     if (ba == OfferType.Ask) {
       askOfferIdOfIndex[index] = offerId;
@@ -78,10 +79,12 @@ abstract contract AbstractKandel {
   ///@notice An inverse mapping of bidOfferIdOfIndex. E.g., indexOfBidOfferId[42] is the index in bidOfferIdOfIndex at which bid of id #42 on Mangrove is stored.
   mapping(uint => uint) indexOfBidOfferId;
 
+  ///@notice Maps an offer type and Mangrove offer id to Kandel index.
   function indexOfOfferId(OfferType ba, uint offerId) public view returns (uint) {
     return ba == OfferType.Ask ? indexOfAskOfferId[offerId] : indexOfBidOfferId[offerId];
   }
 
+  ///@notice Sets the Kandel index for a Mangrove offer id.
   function indexOfOfferId(OfferType ba, uint offerId, uint index) internal {
     if (ba == OfferType.Ask) {
       indexOfAskOfferId[offerId] = index;
@@ -104,11 +107,11 @@ abstract contract AbstractKandel {
   ///@notice transport logic followed by Kandel
   ///@param ba whether the offer that was executed is a bid or an ask
   ///@param order a recap of the taker order (order.offer is the executed offer)
-  ///@return ba_dual the type of offer that will re-invest inbound liquidity
-  ///@return v_dual the view Monad for the dual offer
+  ///@return baDual the type of offer that will re-invest inbound liquidity
+  ///@return viewDual the view Monad for the dual offer
   ///@return args the argument for `populateIndex` specifying gives and wants
-  function _transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
+  function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (OfferType ba_dual, SlotViewMonad memory v_dual, Direct.OfferArgs memory args);
+    returns (OfferType baDual, SlotViewMonad memory viewDual, Direct.OfferArgs memory args);
 }

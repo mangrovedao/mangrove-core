@@ -469,6 +469,10 @@ contract KandelTest is MangroveTest {
     // heal fills up offers to some designated volume starting from mid-price.
     // Designated volume should either be equally divided between holes, or be based on Kandel Density
     // Here we assume its some constant.
+    //TODO does not support no bids
+    //TODO Uses initQuote/initBase as starting point - not available on-chain
+    //TODO assumes mid-price and bid/asks on the book are not crossed.
+
     uint baseDensity = densityBid;
     uint quoteDensity = densityAsk;
 
@@ -504,7 +508,6 @@ contract KandelTest is MangroveTest {
       quoteDist[uint(i)] = quoteAtIndex[indices[uint(i)]] * d / initBase;
     }
 
-    //TODO does not support no bids
     uint lastBidIndex = numBids > 0 ? indices[numBids - 1] : indices[0] - 1;
     uint[] memory pivotIds = new uint[](indices.length);
     (, uint16 ratio,,, uint8 spread, uint8 length) = kdl.params();

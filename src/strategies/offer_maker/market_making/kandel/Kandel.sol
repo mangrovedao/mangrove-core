@@ -26,7 +26,7 @@ contract Kandel is CoreKandel {
   }
 
   ///@inheritdoc AbstractKandel
-  function _transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
+  function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
     override

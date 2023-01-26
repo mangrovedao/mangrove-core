@@ -98,8 +98,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param ba the offer type
   ///@param v view monad for `ba` at `index`
   ///@param deprovision whether one wishes to be credited free wei's on Mangrove's balance
-  ///@return free_wei the amount free wei's returned to admin.
-  function retractOffer(OfferType ba, SlotViewMonad memory v, bool deprovision) internal returns (uint free_wei) {
+  ///@return freeWei the amount free wei's returned to admin.
+  function retractOffer(OfferType ba, SlotViewMonad memory v, bool deprovision) internal returns (uint freeWei) {
     (IERC20 outbound_tkn, IERC20 inbound_tkn) = tokenPairOfOfferType(ba);
     return _offerId(ba, v) == 0 ? 0 : _retractOffer(outbound_tkn, inbound_tkn, _offerId(ba, v), deprovision);
   }
@@ -427,8 +427,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     OfferType ba = OfferTypeOfOutbound(IERC20(order.outbound_tkn));
     // adds any unpublished liquidity to pending[Base/Quote]
     // preparing arguments for the dual offer
-    (OfferType dualBa, SlotViewMonad memory v_dual, OfferArgs memory args) = _transportLogic(ba, order);
-    populateIndex(dualBa, v_dual, args);
+    (OfferType dualBa, SlotViewMonad memory viewDual, OfferArgs memory args) = transportLogic(ba, order);
+    populateIndex(dualBa, viewDual, args);
     return "";
   }
 }

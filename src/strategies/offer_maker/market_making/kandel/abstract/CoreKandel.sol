@@ -101,7 +101,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@return freeWei the amount free wei's returned to admin.
   function retractOffer(OfferType ba, SlotViewMonad memory v, bool deprovision) internal returns (uint freeWei) {
     (IERC20 outbound_tkn, IERC20 inbound_tkn) = tokenPairOfOfferType(ba);
-    return _offerId(ba, v) == 0 ? 0 : _retractOffer(outbound_tkn, inbound_tkn, _offerId(ba, v), deprovision);
+    uint offerId = _offerId(ba, v);
+    return offerId == 0 ? 0 : _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
   ///@notice returns the dual offer type
@@ -365,8 +366,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@return collected the amount of deprovisioned native token
   ///@return reusableBids offerIds which can be reused for bids (tail of array will be 0s)
   ///@return reusableAsks offerIds which can be reused for asks (tail of array will be 0s).
-  ///@dev this simply provisions this contract's balance on Mangrove.
-  ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs
   function retractOffers(uint from, uint to)
     external
     onlyAdmin

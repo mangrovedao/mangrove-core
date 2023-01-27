@@ -390,7 +390,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       return;
     }
     if (repostStatus == "mgv/writeOffer/density/tooLow") {
-      // TODO log density too low
+      emit DensityTooLow(order.offerId, __residualGives__(order), __residualWants__(order));
     } else {
       // Offer failed to repost for bad reason, logging the incident
       emit LogIncident(

@@ -141,7 +141,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       gives = type(uint96).max;
     }
     // adjusting wants to price:
-    // (a) gives * r : 96 + 128 = 224 so order.wants must be < 2**32 to avoid overflow
+    // gives * r : 96 + 128 = 224 so order.wants must be < 2**32 to completely avoid overflow.
+    // However, order.wants is often larger, but gives * r often does not use that many bits.
+    // So we check whether the full precision can be used and only if not then we use less precision.
     uint givesR = gives * r;
     if (uint160(givesR) == givesR) {
       // using max precision

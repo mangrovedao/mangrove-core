@@ -64,8 +64,10 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     assertEq(success, !(makerRevert || willFail), "incorrect success flag");
     if (makerRevert) {
       assertEq(result.mgvData, "mgv/makerRevert", "mgvData should be makerRevert");
+      // testing reverted makerData happens in specific tests
     } else {
       assertEq(result.mgvData, bytes32("mgv/tradeSuccess"), "mgvData should be tradeSuccess");
+      assertEq(result.makerData, executeReturnData, "Incorrect returned makerData");
     }
     assertTrue(
       !mgv.isLive(mgv.offers(order.outbound_tkn, order.inbound_tkn, order.offerId)), "Offer was not removed after take"
@@ -222,6 +224,16 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice, 0);
 
     bool success = tkr.snipe(mgv, $(base), $(quote), ofr, 1 ether, 1 ether, gasreq - 1);
+    assertTrue(!called, "PostHook was called");
+    assertTrue(!success, "Snipe should fail");
+  }
+
+  function test_alter_revert_data() public {
+    executeReturnData = "NOK2";
+    ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice, 0);
+
+    bool success = tkr.snipe(mgv, $(base), $(quote), ofr, 1 ether, 1 ether, gasreq - 1);
+    // using asserts in makerPosthook here
     assertTrue(!called, "PostHook was called");
     assertTrue(!success, "Snipe should fail");
   }

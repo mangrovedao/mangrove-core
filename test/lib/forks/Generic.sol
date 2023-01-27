@@ -44,11 +44,24 @@ contract GenericFork is Script {
     label(addr, name);
   }
 
-  function get(string memory name) public view returns (address payable addr) {
+  function getNoRevert(string memory name) public view returns (address payable addr) {
     addr = payable(context._addrs(name));
     if (addr == address(0)) {
-      addr = deployed.get(name);
+      return payable(deployed._addrs(name));
     }
+  }
+
+  function get(string memory name) public view returns (address payable addr) {
+    addr = getNoRevert(name);
+    if (addr == address(0)) {
+      revert(
+        "Fork::get(string name): no contract found for name argument, either in context nor in deployed addresses. Check the appropriate context/<chain>.json and deployed/<chain>.json, and make sure you are doing fork.set(name,address) for all your deployed contracts."
+      );
+    }
+  }
+
+  function has(string memory name) public view returns (bool) {
+    return getNoRevert(name) != address(0);
   }
 
   function allDeployed() public view returns (string[] memory, address[] memory) {

@@ -105,7 +105,6 @@ interface IOfferLogic is IMaker {
     uint pivotId;
     uint fund;
     bool noRevert;
-    address owner;
   }
 
   ///@notice Retracts an offer from an Offer List of Mangrove.

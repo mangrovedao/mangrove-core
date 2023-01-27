@@ -31,6 +31,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
   bytes32 constant OUT_OF_FUNDS = keccak256("mgv/insufficientProvision");
   bytes32 constant BELOW_DENSITY = keccak256("mgv/writeOffer/density/tooLow");
+  bytes32 constant REPOST_SUCCESS = "posthook/reposted";
+  bytes32 constant REPOST_FAILED = "posthook/repostFailed";
 
   ///@notice guards for restricting a function call to either `MGV` or `admin()`.
   ///@dev When `msg.sender` is `MGV`, the function is being called either via `makerExecute` or `makerPosthook`.
@@ -111,6 +113,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
         );
       // calling strat specific todos in case of failure
       __posthookFallback__(order, result);
+      __handleResidualProvision__(order);
     }
   }
 
@@ -257,13 +260,19 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     return order.offer.gives() - order.wants;
   }
 
+  ///@notice Hook that defines what needs to be done to the part of an offer provision that was added to the balance of `this` on Mangrove after an offer has failed.
+  ///@param order is a recal of the taker order that failed
+  function __handleResidualProvision__(MgvLib.SingleOrder calldata order) internal virtual {
+    order; //ssh
+  }
+
   ///@notice Post-hook that implements default behavior when Taker Order's execution succeeded.
   ///@param order is a recall of the taker order that is at the origin of the current trade.
   ///@param maker_data is the returned value of the `__lastLook__` hook, triggered during trade execution. The special value `"lastLook/retract"` should be treated as an instruction not to repost the offer on the book.
   ///@return data can be:
   /// * `"posthook/filled"` when offer was completely filled
   /// * `"posthook/reposted"` when offer was partially filled and successfully reposted
-  /// * `"posthook/dustRemainder"` when offer was partially filled but residual was below density (and thus not reposted)
+  /// * Mangrove's revert reason (cast to a bytes32) when residual is below density or `this` balance on Mangrove is too low (and thus not reposted)
   /// @custom:hook overrides of this hook should be conservative and call `super.__posthookSuccess__(order, maker_data)`
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)
     internal
@@ -273,33 +282,41 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     maker_data; // maker_data can be used in overrides to skip reposting for instance. It is ignored in the default behavior.
     // now trying to repost residual
     uint new_gives = __residualGives__(order);
+    uint new_wants = __residualWants__(order);
     // Density check at each repost would be too gas costly.
-    // We only treat the special case of `gives==0` (total fill).
+    // We only treat the special case of `gives==0` or `wants==0` (total fill).
     // Offer below the density will cause Mangrove to throw so we encapsulate the call to `updateOffer` in order not to revert posthook for posting at dust level.
-    if (new_gives == 0) {
+    if (new_gives == 0 || new_wants == 0) {
       return "posthook/filled";
     }
-    uint new_wants = __residualWants__(order);
-    try MGV.updateOffer(
-      order.outbound_tkn,
-      order.inbound_tkn,
-      new_wants,
-      new_gives,
-      order.offerDetail.gasreq(),
-      order.offerDetail.gasprice(),
-      order.offer.next(), // using next as pivot since this offer is off the book
+    data = _updateOffer(
+      OfferArgs({
+        outbound_tkn: IERC20(order.outbound_tkn),
+        inbound_tkn: IERC20(order.inbound_tkn),
+        wants: new_wants,
+        gives: new_gives,
+        gasreq: order.offerDetail.gasreq(),
+        gasprice: order.offerDetail.gasprice(),
+        pivotId: order.offer.next(), // using next as pivot since this offer is off the book
+        noRevert: true,
+        fund: 0
+      }),
       order.offerId
-    ) {
-      return "posthook/reposted";
-    } catch Error(string memory reason) {
-      // `updateOffer` can fail if `offer.gives` is below density. This is not to be considered as a failure.
-      // We let the revert bubble up to Mangrove for all other reasons.
-      bytes32 reason_hsh = keccak256(bytes(reason));
-      if (reason_hsh == BELOW_DENSITY) {
-        return "posthook/dustRemainder"; // offer not reposted
-      } else {
-        revert(reason);
-      }
+    );
+  }
+
+  ///@notice template for start specific update offer function
+  function _updateOffer(OfferArgs memory, uint) internal virtual returns (bytes32);
+
+  ///@notice computes the provision that can be redeemed if deprovisioning a certain offer
+  ///@param outbound_tkn the outbound token of the offer list
+  ///@param inbound_tkn the inbound otken of the offer list
+  ///@param offerId the id of the offer
+  ///@return provision the provision that can be redeemed
+  function _provisionOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) internal view returns (uint provision) {
+    MgvStructs.OfferDetailPacked offerDetail = MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
+    unchecked {
+      provision = offerDetail.gasprice() * 10 ** 9 * (offerDetail.offer_gasbase() + offerDetail.gasreq());
     }
   }
 

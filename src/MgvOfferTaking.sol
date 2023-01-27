@@ -452,7 +452,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* `success` is true: trade is complete */
       if (success) {
-        /* In case of success, `retdata` encodes the gas used by the offer. */
+        /* In case of failure, `retdata` encodes the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
         (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
         mgvData = bytes32("mgv/tradeSuccess");

@@ -87,6 +87,10 @@ abstract contract Deployer is Script2 {
     vm.broadcast(broadcaster());
   }
 
+  function prettyLog(string memory log) internal view {
+    console.log("\u001b[33m*\u001b[0m", log);
+  }
+
   // compute & memoize the current broadcaster address
   function broadcaster() public returns (address) {
     /* Memoize _broadcaster. Cannot just do it in constructor because tx.origin for script constructors does not depend on additional CLI args */

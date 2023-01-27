@@ -77,7 +77,7 @@ contract Amplifier is Direct {
     require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerId2)), "Amplifier/offer2AlreadyActive");
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
-    offerId1 = _newOffer(
+    (offerId1,) = _newOffer(
       OfferArgs({
         outbound_tkn: BASE,
         inbound_tkn: STABLE1,
@@ -92,7 +92,7 @@ contract Amplifier is Direct {
     );
     // no need to fund this second call for provision
     // since the above call should be enough
-    offerId2 = _newOffer(
+    (offerId2,) = _newOffer(
       OfferArgs({
         outbound_tkn: BASE,
         inbound_tkn: STABLE2,
@@ -173,7 +173,15 @@ contract Amplifier is Direct {
     }
   }
 
-  function retractOffers(bool deprovision) public {
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    public
+    mgvOrAdmin
+    returns (uint freeWei)
+  {
+    return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  }
+
+  function retractOffers(bool deprovision) external {
     retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerId1, deprovision: deprovision});
     retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerId2, deprovision: deprovision});
   }

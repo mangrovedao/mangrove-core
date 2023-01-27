@@ -73,6 +73,15 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
     _updateOffer(args, offerId);
   }
 
+  ///@inheritdoc ILiquidityProvider
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    public
+    mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
+    returns (uint freeWei)
+  {
+    return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  }
+
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)
     internal
     override

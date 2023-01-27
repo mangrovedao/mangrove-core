@@ -33,7 +33,7 @@ contract OfferMaker is ILiquidityProvider, Direct {
     onlyAdmin
     returns (uint offerId)
   {
-    offerId = _newOffer(
+    (offerId,) = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
@@ -69,5 +69,14 @@ contract OfferMaker is ILiquidityProvider, Direct {
       }),
       offerId
     );
+  }
+
+  ///@inheritdoc ILiquidityProvider
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    public
+    mgvOrAdmin
+    returns (uint freeWei)
+  {
+    return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 }

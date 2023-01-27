@@ -37,23 +37,23 @@ abstract contract Direct is MangroveOffer {
     super.__checkList__(token);
   }
 
-  function pull(IERC20 outbound_tkn, uint amount, bool strict) internal returns (uint) {
+  function pull(IERC20 token, uint amount, bool strict) internal returns (uint) {
     AbstractRouter router_ = router();
     address adminReserve = reserve(admin());
     if (router_ == NO_ROUTER) {
-      bool success = TransferLib.transferTokenFrom(outbound_tkn, adminReserve, address(this), amount);
-      return success ? amount : 0;
+      // noop if reserve == this and local balance >= amount
+      bool success = TransferLib.transferTokenFrom(token, adminReserve, address(this), amount);
+      return success ? amount : (token.balanceOf(address(this)));
     } else {
       // letting specific router pull the funds from reserve
-      return router_.pull(outbound_tkn, adminReserve, amount, strict);
+      return router_.pull(token, adminReserve, amount, strict);
     }
   }
 
-  function push(IERC20 token, uint amount) internal returns (uint pushed) {
+  function push(IERC20 token, uint amount) internal returns (uint) {
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
-      require(TransferLib.transferToken(token, reserve(admin()), amount), "Direct/push/transferFail");
-      pushed = amount;
+      return amount; // nothing to do
     } else {
       // noop if reserve == address(this)
       return router_.push(token, reserve(admin()), amount);
@@ -76,7 +76,7 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
-  function _newOffer(OfferArgs memory args) internal returns (uint) {
+  function _newOffer(OfferArgs memory args) internal returns (uint, bytes32) {
     try MGV.newOffer{value: args.fund}(
       address(args.outbound_tkn),
       address(args.inbound_tkn),
@@ -86,10 +86,10 @@ abstract contract Direct is MangroveOffer {
       args.gasprice,
       args.pivotId
     ) returns (uint offerId) {
-      return offerId;
+      return (offerId, "");
     } catch Error(string memory reason) {
       require(args.noRevert, reason);
-      return 0;
+      return (0, bytes32(bytes(reason)));
     }
   }
 
@@ -116,22 +116,26 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
-  // Retracts `offerId` from the (`outbound_tkn`,`inbound_tkn`) Offer list of Mangrove.
-  // Function call will throw if `this` contract is not the owner of `offerId`.
-  // Returned value is the amount of ethers that have been credited to `this` contract balance on Mangrove (always 0 if `deprovision=false`)
-  // NB `mgvOrAdmin` modifier guarantees that this function is either called by contract admin or (indirectly) during trade execution by Mangrove
-  function retractOffer(
+  ///@notice Retracts an offer from an Offer List of Mangrove.
+  ///@param outbound_tkn the outbound token of the offer list.
+  ///@param inbound_tkn the inbound token of the offer list.
+  ///@param offerId the identifier of the offer in the (`outbound_tkn`,`inbound_tkn`) offer list
+  ///@param deprovision if set to `true` if offer owner wishes to redeem the offer's provision.
+  ///@return freeWei the amount of native tokens (in WEI) that have been retrieved by retracting the offer.
+  ///@dev An offer that is retracted without `deprovision` is retracted from the offer list, but still has its provisions locked by Mangrove.
+  ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
+  function _retractOffer(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
     uint offerId,
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
-  ) public override mgvOrAdmin returns (uint free_wei) {
-    free_wei = MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
-    if (free_wei > 0) {
-      require(MGV.withdraw(free_wei), "Direct/withdrawFail");
+  ) internal returns (uint freeWei) {
+    freeWei = MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
+    if (freeWei > 0) {
+      require(MGV.withdraw(freeWei), "Direct/withdrawFail");
       // sending native tokens to `msg.sender` prevents reentrancy issues
       // (the context call of `retractOffer` could be coming from `makerExecute` and a different recipient of transfer than `msg.sender` could use this call to make offer fail)
-      (bool noRevert,) = admin().call{value: free_wei}("");
+      (bool noRevert,) = admin().call{value: freeWei}("");
       require(noRevert, "mgvOffer/weiTransferFail");
     }
   }
@@ -160,12 +164,13 @@ abstract contract Direct is MangroveOffer {
     // pulling liquidity from reserve
     // depending on the router, this may result in pulling more/less liquidity than required
     // so one should check local balance to compute missing liquidity
-    uint local_balance = IERC20(order.outbound_tkn).balanceOf(address(this));
-    if (local_balance >= amount) {
+    uint amount_ = IERC20(order.outbound_tkn).balanceOf(address(this));
+    if (amount_ >= amount) {
       return 0;
     }
-    uint pulled = pull(IERC20(order.outbound_tkn), amount - local_balance, false /*not strict*/ );
-    missing = pulled >= amount - local_balance ? 0 : amount - local_balance - pulled;
+    amount_ = amount - amount_;
+    uint pulled = pull(IERC20(order.outbound_tkn), amount_, false);
+    missing = pulled >= amount_ ? 0 : amount_ - pulled;
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)

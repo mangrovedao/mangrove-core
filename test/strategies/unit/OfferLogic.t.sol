@@ -72,13 +72,16 @@ contract OfferLogicTest is MangroveTest {
     // instanciates makerContract
     setupMakerContract();
     setupLiquidityRouting();
-    // dealing 1 eth and 2000$ to maker's reserve on contract
+    vm.prank(deployer);
+    makerContract.activate(dynamic([IERC20(weth), usdc]));
+    fundStrat();
+  }
+
+  function fundStrat() internal virtual {
     vm.startPrank(maker);
     deal($(weth), makerContract.reserve(maker), 1 ether);
     deal($(usdc), makerContract.reserve(maker), cash(usdc, 2000));
     vm.stopPrank();
-    vm.prank(deployer);
-    makerContract.activate(dynamic([IERC20(weth), usdc]));
   }
 
   // override this to use Forwarder strats

@@ -24,15 +24,19 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice This modifier verifies that `msg.sender` an allowed caller of this router.
   modifier onlyMakers() {
-    require(makers(msg.sender), "Router/unauthorized");
+    require(makers(msg.sender), "AccessControlled/Invalid");
     _;
   }
 
   ///@notice This modifier verifies that `msg.sender` is the admin or an allowed caller of this router.
   modifier makersOrAdmin() {
-    require(msg.sender == admin() || makers(msg.sender), "Router/unauthorized");
+    require(msg.sender == admin() || makers(msg.sender), "AccessControlled/Invalid");
     _;
   }
+
+  ///@notice logging bound maker contracts
+  event MakerBind(address indexed maker);
+  event MakerUnbind(address indexed maker);
 
   ///@notice constructor for abstract routers.
   ///@param routerGasreq_ is the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
@@ -94,25 +98,41 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice returns the amount of `token`s that can be made available for pulling by the maker contract
   ///@dev when this router is pulling from a lender, this must return the amount of asset that can be withdrawn from reserve
   ///@param token is the asset one wishes to know the balance of
-  ///@param reserve is the address identifying the location of the assets
-  function reserveBalance(IERC20 token, address reserve) external view virtual returns (uint);
+  ///@param reserve is the address of the reserve of `msg.sender`
+  function reserveBalance(IERC20 token, address reserve) external view returns (uint) {
+    return reserveBalance(token, msg.sender, reserve);
+  }
+
+  ///@notice returns the amount of `token`s that can be made available for pulling by the maker contract
+  ///@dev when this router is pulling from a lender, this must return the amount of asset that can be withdrawn from reserve
+  ///@param token is the asset one wishes to know the balance of
+  ///@param maker the address of the owner of the reserve
+  ///@param reserve is the address of the reserve
+  function reserveBalance(IERC20 token, address maker, address reserve) public view virtual returns (uint);
 
   ///@notice adds a maker contract address to the allowed makers of this router
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address
   ///@param maker the maker contract address
   function bind(address maker) public onlyAdmin {
     ARSt.getStorage().makers[maker] = true;
+    emit MakerBind(maker);
   }
 
   ///@notice removes a maker contract address from the allowed makers of this router
   ///@param maker the maker contract address
-  function unbind(address maker) public onlyAdmin {
+  function _unbind(address maker) internal {
     ARSt.getStorage().makers[maker] = false;
+    emit MakerUnbind(maker);
   }
 
   ///@notice removes `msg.sender` from the allowed makers of this router
   function unbind() external onlyMakers {
-    ARSt.getStorage().makers[msg.sender] = false;
+    _unbind(msg.sender);
+  }
+
+  ///@notice removes a makerContract from the allowed makers of this router
+  function unbind(address maker) external onlyAdmin {
+    _unbind(maker);
   }
 
   ///@notice verifies all required approval involving `this` router (either as a spender or owner)

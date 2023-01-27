@@ -46,11 +46,11 @@ contract AavePoolManager is AaveRouter {
     _supply(token, amount, reserve);
   }
 
-  function claimRewards(IRewardsControllerIsh rewardsController, address[] calldata assets)
+  function claimRewards(address[] calldata assets)
     external
     onlyAdmin
     returns (address[] memory rewardsList, uint[] memory claimedAmounts)
   {
-    return _claimRewards(rewardsController, assets);
+    return _claimRewards(assets, address(this));
   }
 }

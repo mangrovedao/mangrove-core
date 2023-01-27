@@ -258,7 +258,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       if (offerId == 0) {
         //offerId && gives are 0
       }
-      //uint old_gives = _offer(ba, v).gives();
       // when gives is 0 we retract offer
       // note if gives is 0 then all gives in the range are 0, we may not want to allow for this.
       if (args.gives == 0) {
@@ -267,7 +266,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
         bytes32 result = _updateOffer(args, offerId);
         if (result != REPOST_SUCCESS) {
           emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/updateOfferFailed", result);
-          //TODO emit residual ? return int(old_gives + args.gives);
         }
       }
     }
@@ -402,13 +400,11 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
     if (repostStatus == "mgv/writeOffer/density/tooLow") {
       // TODO log density too low
-      //return __residualGives__(order);
     } else {
       // Offer failed to repost for bad reason, logging the incident
       emit LogIncident(
         MGV, IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId, makerData, repostStatus
         );
-      //return __residualGives__(order);
     }
   }
 

@@ -343,6 +343,23 @@ contract KandelTest is MangroveTest {
     assertStatus(dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
   }
 
+  function test_retractOffers() public {
+    uint preBalance = maker.balance;
+    uint preMgvBalance = mgv.balanceOf(address(kdl));
+    vm.startPrank(maker);
+    kdl.retractOffers(0, 5);
+    kdl.retractOffers(0, 10);
+
+    assertEq(0, kdl.offeredVolume(Ask), "All ask volume should be retracted");
+    assertEq(0, kdl.offeredVolume(Bid), "All bid volume should be retracted");
+    assertGt(mgv.balanceOf(address(kdl)), preMgvBalance, "Kandel should have balance on mgv after retract");
+    assertEq(maker.balance, preBalance, "maker should not be credited yet");
+
+    kdl.withdrawFromMangrove(type(uint).max, maker);
+    assertGt(maker.balance, preBalance, "maker should be credited");
+    vm.stopPrank();
+  }
+
   enum ExpectedChange {
     Same,
     Increase,

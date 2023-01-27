@@ -200,7 +200,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       } else if (args.gives == 0) {
         // when gives is 0 we retract offer
         // note if gives is 0 then all gives in the range are 0, we may not want to allow for this.
-        _retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
+        _retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, true);
       } else {
         bytes32 result = _updateOffer(args, offerId);
         if (result != REPOST_SUCCESS) {
@@ -299,35 +299,21 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`
   ///@param from the start index
   ///@param to the end index
-  ///@return reusableBids offerIds which can be reused for bids (tail of array will be 0s)
-  ///@return reusableAsks offerIds which can be reused for asks (tail of array will be 0s).
   ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs
-  function retractOffers(uint from, uint to)
-    external
-    onlyAdmin
-    returns (uint[] memory reusableBids, uint[] memory reusableAsks)
-  {
-    uint asks = 0;
-    uint bids = 0;
-    reusableAsks = new uint[](to-from);
-    reusableBids = new uint[](to-from);
+  function retractOffers(uint from, uint to) external onlyAdmin {
     (IERC20 outbound_tknAsk, IERC20 inbound_tknAsk) = tokenPairOfOfferType(OfferType.Ask);
     (IERC20 outbound_tknBid, IERC20 inbound_tknBid) = tokenPairOfOfferType(OfferType.Bid);
-
     for (uint index = from; index < to; index++) {
-      SlotViewMonad memory viewAsk = _fresh(index);
-      uint offerId = _offerId(OfferType.Ask, viewAsk);
+      // These offerIds could be recycled in a new populate
+      uint offerId = offerIdOfIndex(OfferType.Ask, index);
       if (offerId != 0) {
-        reusableAsks[asks] = offerId;
-        _retractOffer(outbound_tknAsk, inbound_tknAsk, offerId, false);
-        asks++;
+        MGV.retractOffer(address(outbound_tknAsk), address(inbound_tknAsk), offerId, true);
+        //_retractOffer(outbound_tknAsk, inbound_tknAsk, offerId, true);
       }
-      SlotViewMonad memory viewBid = _fresh(index);
-      offerId = _offerId(OfferType.Bid, viewBid);
+      offerId = offerIdOfIndex(OfferType.Bid, index);
       if (offerId != 0) {
-        reusableBids[bids] = offerId;
-        _retractOffer(outbound_tknBid, inbound_tknBid, offerId, false);
-        bids++;
+        MGV.retractOffer(address(outbound_tknBid), address(inbound_tknBid), offerId, true);
+        //_retractOffer(outbound_tknBid, inbound_tknBid, offerId, true);
       }
     }
   }

@@ -184,28 +184,51 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param ba whether the offer is a bid or an ask
   ///@param v the view Monad for the offer to be published
   ///@param args the argument of the offer.
+  ///@return result from Mangrove on error and `args.noRevert` is `true`.
   ///@dev args.wants/gives must match the distribution at index
-  function populateIndex(OfferType ba, SlotViewMonad memory v, OfferArgs memory args) internal {
+  function populateIndexCore(OfferType ba, SlotViewMonad memory v, OfferArgs memory args)
+    internal
+    returns (bytes32 result)
+  {
     uint offerId = _offerId(ba, v);
-    if (offerId == 0 && args.gives > 0) {
-      (uint offerId_, bytes32 result) = _newOffer(args);
-      if (offerId_ == 0) {
-        emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/newOfferFailed", result);
-      } else {
-        setIndexMapping(ba, _index(ba, v), offerId_);
-      }
-    } else {
-      if (offerId == 0) {
-        //offerId && gives are 0
-      } else if (args.gives == 0) {
-        // when gives is 0 we retract offer
-        // note if gives is 0 then all gives in the range are 0, we may not want to allow for this.
-        _retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, true);
-      } else {
-        bytes32 result = _updateOffer(args, offerId);
-        if (result != REPOST_SUCCESS) {
-          emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/updateOfferFailed", result);
+    // if offer does not exist on mangrove yet
+    if (offerId == 0) {
+      // and offer should exist
+      if (args.gives > 0) {
+        // create it
+        (offerId, result) = _newOffer(args);
+        if (offerId != 0) {
+          setIndexMapping(ba, _index(ba, v), offerId);
         }
+      }
+      // else offerId && gives are 0 and the offer is left not posted
+    }
+    // else offer exists
+    else {
+      // but the offer should be dead since gives is 0
+      if (args.gives == 0) {
+        // so we retract the offer
+        // note if gives is 0 then all gives in the range are 0, we may not want to allow for this.
+        _retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
+      } else {
+        // so the offer exists and it should, we simply update it with potentially new volume
+        result = _updateOffer(args, offerId);
+      }
+    }
+  }
+
+  ///@notice publishes (by either creating or updating) a bid/ask at a given price index and emits incidents on errors
+  ///@param ba whether the offer is a bid or an ask
+  ///@param v the view Monad for the offer to be published
+  ///@param args the argument of the offer.
+  ///@dev args.wants/gives must match the distribution at index
+  function populateIndex(OfferType ba, SlotViewMonad memory v, OfferArgs memory args) internal returns (bytes32 result) {
+    result = populateIndexCore(ba, v, args);
+    if (result != REPOST_SUCCESS && result != "") {
+      if (_offerId(ba, v) != 0) {
+        emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/updateOfferFailed", result);
+      } else {
+        emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/newOfferFailed", result);
       }
     }
   }
@@ -350,7 +373,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     // adds any unpublished liquidity to pending[Base/Quote]
     // preparing arguments for the dual offer
     (OfferType dualBa, SlotViewMonad memory viewDual, OfferArgs memory args) = transportLogic(ba, order);
-    populateIndex(dualBa, viewDual, args);
-    return "";
+    return populateIndex(dualBa, viewDual, args);
   }
 }

@@ -72,41 +72,51 @@ contract KandelTest is MangroveTest {
       gasprice: 10 * global.gasprice() // covering 10 times Mangrove's gasprice at deploy time
     });
 
-    // giving funds to Kandel strat
-    deal($(weth), $(kdl), cash(weth, 10));
-    deal($(usdc), $(kdl), cash(usdc, 12_000));
-
     // funding Kandel on Mangrove
     uint provAsk = kdl.getMissingProvision(weth, usdc, kdl.offerGasreq(), 10 * global.gasprice(), 0);
     uint provBid = kdl.getMissingProvision(usdc, weth, kdl.offerGasreq(), 10 * global.gasprice(), 0);
     deal(maker, (provAsk + provBid) * 10 ether);
 
-    deal($(weth), address(this), 1 ether);
-    deal($(usdc), address(this), cash(usdc, 10_000));
-
+    vm.startPrank(maker);
     weth.approve(address(kdl), type(uint).max);
     usdc.approve(address(kdl), type(uint).max);
 
-    kdl.depositFunds(Ask, 1 ether);
-    kdl.depositFunds(Bid, cash(usdc, 10_000));
-
-    vm.startPrank(maker);
+    uint16 ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
     KandelLib.populate({
       kandel: kdl,
       from: 0,
-      to: 10,
+      to: 5,
       lastBidIndex: 4,
       kandelSize: 10,
-      ratio: uint16(108 * 10 ** kdl.PRECISION() / 100),
+      ratio: ratio,
       spread: STEP,
       initBase: initBase,
       initQuote: initQuote,
-      pivotIds: dynamic([uint(0), 1, 2, 3, 4, 0, 1, 2, 3, 4]),
+      pivotIds: dynamic([uint(0), 1, 2, 3, 4]),
       funds: (provAsk + provBid) * 10
     });
-    // call above is over provisioned. Withdrawing remainder to simplify tests below.
-    kdl.withdrawFunds(Bid, pending(Bid), address(this));
-    kdl.withdrawFunds(Ask, pending(Ask), address(this));
+
+    uint initQuote5 = initQuote * uint(ratio) ** (STEP * 5) / 10 ** (kdl.PRECISION() * STEP * 5);
+    KandelLib.populate({
+      kandel: kdl,
+      from: 5,
+      to: 10,
+      lastBidIndex: 4,
+      kandelSize: 10,
+      ratio: ratio,
+      spread: STEP,
+      initBase: initBase,
+      initQuote: initQuote5,
+      pivotIds: dynamic([uint(0), 1, 2, 3, 4]),
+      funds: 0
+    });
+    uint pendingBase = uint(-kdl.pending(Ask));
+    uint pendingQuote = uint(-kdl.pending(Bid));
+    deal($(weth), maker, pendingBase);
+    deal($(usdc), maker, pendingQuote);
+    kdl.depositFunds(Ask, pendingBase);
+    kdl.depositFunds(Bid, pendingQuote);
+
     vm.stopPrank();
   }
 

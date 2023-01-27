@@ -350,6 +350,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param to the end index
   ///@return reusableBids offerIds which can be reused for bids (tail of array will be 0s)
   ///@return reusableAsks offerIds which can be reused for asks (tail of array will be 0s).
+  ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs
   function retractOffers(uint from, uint to)
     external
     onlyAdmin

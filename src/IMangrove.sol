@@ -89,7 +89,7 @@ interface IMangrove {
 
   function deactivate(address outbound_tkn, address inbound_tkn) external;
 
-  function flashloan(MgvLib.SingleOrder memory sor, address taker) external returns (uint gasused);
+  function flashloan(MgvLib.SingleOrder memory sor, address taker) external returns (uint gasused, bytes32 makerData);
 
   function fund(address maker) external payable;
 

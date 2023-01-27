@@ -452,8 +452,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* `success` is true: trade is complete */
       if (success) {
-        /* In case of success, `retdata` encodes the gas used by the offer. */
-        gasused = abi.decode(retdata, (uint));
+        /* In case of failure, `retdata` encodes the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
+        (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
         mgvData = bytes32("mgv/tradeSuccess");
         emit OfferSuccess(sor.outbound_tkn, sor.inbound_tkn, sor.offerId, mor.taker, sor.wants, sor.gives);
@@ -505,12 +505,15 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* Externally called by `execute`, flashloan lends money (from the taker to the maker, or from the maker to the taker, depending on the implementation) then calls `makerExecute` to run the maker liquidity fetching code. If `makerExecute` is unsuccessful, `flashloan` reverts (but the larger orderbook traversal will continue). 
 
   All `flashloan` implementations must `require(msg.sender) == address(this))`. */
-  function flashloan(MgvLib.SingleOrder calldata sor, address taker) external virtual returns (uint gasused);
+  function flashloan(MgvLib.SingleOrder calldata sor, address taker)
+    external
+    virtual
+    returns (uint gasused, bytes32 makerData);
 
   /* ## Maker Execute */
   /* Called by `flashloan`, `makerExecute` runs the maker code and checks that it can safely send the desired assets to the taker. */
 
-  function makerExecute(MgvLib.SingleOrder calldata sor) internal returns (uint gasused) {
+  function makerExecute(MgvLib.SingleOrder calldata sor) internal returns (uint gasused, bytes32 makerData) {
     unchecked {
       bytes memory cd = abi.encodeCall(IMaker.makerExecute, (sor));
 
@@ -523,7 +526,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         innerRevert([bytes32("mgv/notEnoughGasForMakerTrade"), "", ""]);
       }
 
-      (bool callSuccess, bytes32 makerData) = controlledCall(maker, gasreq, cd);
+      bool callSuccess;
+      (callSuccess, makerData) = controlledCall(maker, gasreq, cd);
 
       gasused = oldGas - gasleft();
 

@@ -705,7 +705,7 @@ contract BadMangrove is AbstractMangrove {
 
   function beforePosthook(MgvLib.SingleOrder memory) internal override {}
 
-  function flashloan(MgvLib.SingleOrder calldata, address) external pure override returns (uint) {
+  function flashloan(MgvLib.SingleOrder calldata, address) external pure override returns (uint, bytes32) {
     revert("badRevert");
   }
 }

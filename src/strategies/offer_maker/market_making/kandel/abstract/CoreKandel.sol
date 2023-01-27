@@ -94,17 +94,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
   }
 
-  ///@notice retracts the offer at given index from Mangrove
-  ///@param ba the offer type
-  ///@param v view monad for `ba` at `index`
-  ///@param deprovision whether one wishes to be credited free wei's on Mangrove's balance
-  ///@return freeWei the amount free wei's returned to admin.
-  function retractOffer(OfferType ba, SlotViewMonad memory v, bool deprovision) internal returns (uint freeWei) {
-    (IERC20 outbound_tkn, IERC20 inbound_tkn) = tokenPairOfOfferType(ba);
-    uint offerId = _offerId(ba, v);
-    return offerId == 0 ? 0 : _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
-  }
-
   ///@notice returns the dual offer type
   ///@param ba whether the offer is an ask or a bid
   ///@return dualBa is the dual offer type (ask for bid and conversely)
@@ -257,11 +246,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     } else {
       if (offerId == 0) {
         //offerId && gives are 0
-      }
-      // when gives is 0 we retract offer
-      // note if gives is 0 then all gives in the range are 0, we may not want to allow for this.
-      if (args.gives == 0) {
-        retractOffer(ba, v, false);
+      } else if (args.gives == 0) {
+        // when gives is 0 we retract offer
+        // note if gives is 0 then all gives in the range are 0, we may not want to allow for this.
+        _retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
       } else {
         bytes32 result = _updateOffer(args, offerId);
         if (result != REPOST_SUCCESS) {
@@ -326,12 +314,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param baseDist base distribution for the indices
   ///@param quoteDist the distribution of quote for the indices
   ///@param pivotIds the pivot to be used for the offer
-  ///@param lastBidIndex the index after which offer should be an Ask
+  ///@param lastBidIndex the index after which offer should be an Ask. First index will never be an ask, either a bid or not published.
   ///@param kandelSize the number of price points
   ///@param ratio the rate of the geometric distribution with PRECISION decimals.
   ///@param spread the distance between a ask in the distribution and its corresponding bid.
   ///@dev This function must be called w/o changing ratio, kandelSize, spread. To change them, first retract all offers.
-  ///@dev msg.value must be enough to provision all posted offers
+  ///@dev msg.value must be enough to provision all posted offers (for chunked initialization only one call needs to send native tokens).
   function populate(
     uint[] calldata indices,
     uint[] calldata baseDist,
@@ -360,31 +348,33 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`
   ///@param from the start index
   ///@param to the end index
-  ///@return collected the amount of deprovisioned native token
   ///@return reusableBids offerIds which can be reused for bids (tail of array will be 0s)
   ///@return reusableAsks offerIds which can be reused for asks (tail of array will be 0s).
   function retractOffers(uint from, uint to)
     external
     onlyAdmin
-    returns (uint collected, uint[] memory reusableBids, uint[] memory reusableAsks)
+    returns (uint[] memory reusableBids, uint[] memory reusableAsks)
   {
     uint asks = 0;
     uint bids = 0;
     reusableAsks = new uint[](to-from);
     reusableBids = new uint[](to-from);
+    (IERC20 outbound_tknAsk, IERC20 inbound_tknAsk) = tokenPairOfOfferType(OfferType.Ask);
+    (IERC20 outbound_tknBid, IERC20 inbound_tknBid) = tokenPairOfOfferType(OfferType.Bid);
+
     for (uint index = from; index < to; index++) {
       SlotViewMonad memory viewAsk = _fresh(index);
       uint offerId = _offerId(OfferType.Ask, viewAsk);
       if (offerId != 0) {
         reusableAsks[asks] = offerId;
-        collected += retractOffer(OfferType.Ask, viewAsk, true);
+        _retractOffer(outbound_tknAsk, inbound_tknAsk, offerId, false);
         asks++;
       }
       SlotViewMonad memory viewBid = _fresh(index);
       offerId = _offerId(OfferType.Bid, viewBid);
       if (offerId != 0) {
         reusableBids[bids] = offerId;
-        collected += retractOffer(OfferType.Bid, viewBid, true);
+        _retractOffer(outbound_tknBid, inbound_tknBid, offerId, false);
         bids++;
       }
     }

@@ -96,7 +96,7 @@ contract MangroveOfferTest is MangroveTest {
     weth.approve(address(makerContract.router()), type(uint).max);
     vm.stopPrank();
 
-    vm.expectRevert("Router/CallerIsNotAnApprovedMakerContract");
+    vm.expectRevert("AccessControlled/Invalid");
     vm.prank(deployer);
     makerContract.checkList(tokens);
   }

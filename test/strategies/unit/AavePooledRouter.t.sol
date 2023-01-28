@@ -65,13 +65,12 @@ contract AavePooledRouterTest is OfferLogicTest {
     deal($(usdc), address(makerContract), 2000 * 10 ** 6);
 
     vm.prank(address(makerContract));
-    pooledRouter.pushAndSupply(dynamic([IERC20(weth), usdc]), dynamic([uint(1 ether), 2000 * 10 ** 6]));
+    pooledRouter.pushAndSupply(
+      dynamic([IERC20(weth), usdc]), dynamic([uint(1 ether), 2000 * 10 ** 6]), address(makerContract)
+    );
 
-    vm.prank(address(makerContract));
-    assertEq(pooledRouter.reserveBalance(weth, address(pooledRouter)), 1 ether, "Incorrect weth balance");
-
-    vm.prank(address(makerContract));
-    assertEq(pooledRouter.reserveBalance(usdc, address(pooledRouter)), 2000 * 10 ** 6, "Incorrect usdc balance");
+    assertEq(pooledRouter.ownerBalance(weth, address(makerContract)), 1 ether, "Incorrect weth balance");
+    assertEq(pooledRouter.ownerBalance(usdc, address(makerContract)), 2000 * 10 ** 6, "Incorrect usdc balance");
   }
 
   function setupLiquidityRouting() internal override {
@@ -81,7 +80,7 @@ contract AavePooledRouterTest is OfferLogicTest {
       overhead: GASREQ
     });
     router.bind(address(makerContract));
-    makerContract.setReserve(maker, address(router));
+    makerContract.setReserve(maker, address(makerContract));
     makerContract.setRouter(router);
     vm.stopPrank();
   }
@@ -90,12 +89,12 @@ contract AavePooledRouterTest is OfferLogicTest {
     // so that push does not supply to the pool
     deal($(usdc), address(this), 10 ** 6);
     vm.expectRevert("AccessControlled/Invalid");
-    pooledRouter.push(usdc, address(pooledRouter), 10 ** 6);
+    pooledRouter.push(usdc, address(this), 10 ** 6);
 
     deal($(usdc), deployer, 10 ** 6);
     vm.expectRevert("AccessControlled/Invalid");
     vm.prank(deployer);
-    pooledRouter.push(usdc, address(pooledRouter), 10 ** 6);
+    pooledRouter.push(usdc, deployer, 10 ** 6);
   }
 
   function test_rewards_manager_is_deployer() public {
@@ -116,19 +115,15 @@ contract AavePooledRouterTest is OfferLogicTest {
   function test_deposit_on_aave_maintains_reserve_and_total_balance() public {
     deal($(usdc), address(makerContract), 10 ** 6);
     vm.prank(address(makerContract));
-    pooledRouter.push(usdc, $(pooledRouter), 10 ** 6);
+    pooledRouter.push(usdc, address(makerContract), 10 ** 6);
 
-    uint reserveBalance = pooledRouter.reserveBalance(usdc, address(makerContract), $(pooledRouter));
+    uint reserveBalance = pooledRouter.ownerBalance(usdc, address(makerContract));
     uint totalBalance = pooledRouter.totalBalance(usdc);
 
     vm.prank(deployer);
     pooledRouter.flushBuffer(usdc);
 
-    assertEq(
-      reserveBalance,
-      pooledRouter.reserveBalance(usdc, address(makerContract), address(pooledRouter)),
-      "Incorrect reserve balance"
-    );
+    assertEq(reserveBalance, pooledRouter.ownerBalance(usdc, address(makerContract)), "Incorrect reserve balance");
     assertEq(totalBalance, pooledRouter.totalBalance(usdc), "Incorrect total balance");
   }
 
@@ -139,10 +134,10 @@ contract AavePooledRouterTest is OfferLogicTest {
   function test_push_token_increases_user_shares() public {
     deal($(dai), maker1, 1 * 10 ** 18);
     vm.prank(maker1);
-    pooledRouter.push(dai, $(pooledRouter), 1 * 10 ** 18);
+    pooledRouter.push(dai, maker1, 1 * 10 ** 18);
     deal($(dai), maker2, 2 * 10 ** 18);
     vm.prank(maker2);
-    pooledRouter.push(dai, $(pooledRouter), 2 * 10 ** 18);
+    pooledRouter.push(dai, maker2, 2 * 10 ** 18);
 
     assertEq(pooledRouter.sharesOf(dai, maker2), 2 * pooledRouter.sharesOf(dai, maker1), "Incorrect shares");
   }
@@ -150,13 +145,13 @@ contract AavePooledRouterTest is OfferLogicTest {
   function test_pull_token_decreases_user_shares() public {
     deal($(dai), maker1, 1 * 10 ** 18);
     vm.prank(maker1);
-    pooledRouter.push(dai, $(pooledRouter), 1 * 10 ** 18);
+    pooledRouter.push(dai, maker1, 1 * 10 ** 18);
     deal($(dai), maker2, 2 * 10 ** 18);
     vm.prank(maker2);
-    pooledRouter.push(dai, $(pooledRouter), 2 * 10 ** 18);
+    pooledRouter.push(dai, maker2, 2 * 10 ** 18);
 
     vm.prank(maker1);
-    pooledRouter.pull(dai, $(pooledRouter), 1 * 10 ** 18, true);
+    pooledRouter.pull(dai, maker1, 1 * 10 ** 18, true);
 
     assertEq(pooledRouter.sharesOf(dai, maker1), 0, "Incorrect shares");
   }
@@ -166,7 +161,7 @@ contract AavePooledRouterTest is OfferLogicTest {
 
     vm.startPrank(maker1);
     uint gas = gasleft();
-    pooledRouter.push(dai, $(pooledRouter), 10 ** 18);
+    pooledRouter.push(dai, maker1, 10 ** 18);
     vm.stopPrank();
 
     uint shallow_push_cost = gas - gasleft();
@@ -177,7 +172,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.startPrank(maker1);
     gas = gasleft();
     /// this emulates a `get` from the offer logic
-    pooledRouter.pull(dai, $(pooledRouter), 0.5 ether, false);
+    pooledRouter.pull(dai, maker1, 0.5 ether, false);
     vm.stopPrank();
 
     uint deep_pull_cost = gas - gasleft();
@@ -186,7 +181,7 @@ contract AavePooledRouterTest is OfferLogicTest {
 
     vm.startPrank(maker1);
     gas = gasleft();
-    pooledRouter.pushAndSupply(dynamic([IERC20(usdc), dai]), dynamic([uint(10 ** 6), 1 ether]));
+    pooledRouter.pushAndSupply(dynamic([IERC20(usdc), dai]), dynamic([uint(10 ** 6), 1 ether]), maker1);
     vm.stopPrank();
 
     uint finalize_cost = gas - gasleft();
@@ -198,15 +193,15 @@ contract AavePooledRouterTest is OfferLogicTest {
   function test_push_token_increases_first_minter_shares() public {
     deal($(dai), maker1, 10 ** 18);
     vm.prank(maker1);
-    pooledRouter.push(dai, $(pooledRouter), 10 ** 18);
+    pooledRouter.push(dai, maker1, 10 ** 18);
     assertEq(pooledRouter.sharesOf(dai, maker1), 10 ** 29, "Incorrect first shares");
   }
 
   function test_pull_token_decreases_last_minter_shares_to_zero() public {
     deal($(dai), maker1, 10 ** 18);
     vm.startPrank(maker1);
-    pooledRouter.push(dai, $(pooledRouter), 10 ** 18);
-    pooledRouter.pull(dai, $(pooledRouter), 10 ** 18, true);
+    pooledRouter.push(dai, maker1, 10 ** 18);
+    pooledRouter.pull(dai, maker1, 10 ** 18, true);
     vm.stopPrank();
     assertEq(pooledRouter.sharesOf(dai, maker1), 0, "Incorrect shares");
   }
@@ -214,45 +209,44 @@ contract AavePooledRouterTest is OfferLogicTest {
   function test_donation_in_underlying_increases_user_shares(uint96 donation) public {
     deal($(dai), maker1, 1 * 10 ** 18);
     vm.prank(maker1);
-    pooledRouter.push(dai, $(pooledRouter), 1 * 10 ** 18);
+    pooledRouter.push(dai, maker1, 1 * 10 ** 18);
 
     deal($(dai), maker2, 4 * 10 ** 18);
     vm.prank(maker2);
-    pooledRouter.push(dai, $(pooledRouter), 4 * 10 ** 18);
+    pooledRouter.push(dai, maker2, 4 * 10 ** 18);
 
     deal($(dai), maker1, donation);
     vm.prank(maker1);
     dai.transfer($(pooledRouter), donation);
 
     uint expectedBalance = (uint(5) * 10 ** 18 + uint(donation)) / 5;
-    vm.prank(maker1);
-    uint reserveBalance = pooledRouter.reserveBalance(dai, $(pooledRouter));
+    uint reserveBalance = pooledRouter.ownerBalance(dai, maker1);
     assertEq(expectedBalance, reserveBalance, "Incorrect reserve for maker1");
 
     expectedBalance = uint(4) * (5 * 10 ** 18 + uint(donation)) / 5;
     vm.prank(maker2);
-    reserveBalance = pooledRouter.reserveBalance(dai, $(pooledRouter));
+    reserveBalance = pooledRouter.ownerBalance(dai, maker2);
     assertEq(expectedBalance, reserveBalance, "Incorrect reserve for maker2");
   }
 
   function test_strict_pull_with_insufficient_funds_throws_as_expected() public {
     vm.expectRevert("AavePooledRouter/insufficientFunds");
     vm.prank(maker1);
-    pooledRouter.pull(dai, $(pooledRouter), 1, true);
+    pooledRouter.pull(dai, maker1, 1, true);
   }
 
   function test_non_strict_pull_with_insufficient_funds_throws_as_expected() public {
     vm.expectRevert("AavePooledRouter/insufficientFunds");
     vm.prank(maker1);
-    pooledRouter.pull(dai, $(pooledRouter), 1, false);
+    pooledRouter.pull(dai, maker1, 1, false);
   }
 
   function test_strict_pull_transfers_only_amount() public {
     deal($(weth), maker1, 1 ether);
     vm.startPrank(maker1);
-    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]), maker1);
     uint oldAWeth = pooledRouter.overlying(weth).balanceOf($(pooledRouter));
-    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, true);
+    uint pulled = pooledRouter.pull(weth, maker1, 0.5 ether, true);
     vm.stopPrank();
     assertEq(weth.balanceOf(maker1), pulled, "Incorrect balance");
     assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), oldAWeth - pulled, "Incorrect balance");
@@ -261,8 +255,8 @@ contract AavePooledRouterTest is OfferLogicTest {
   function test_non_strict_pull_transfers_whole_balance() public {
     deal($(weth), maker1, 1 ether);
     vm.startPrank(maker1);
-    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
-    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, true);
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]), maker1);
+    uint pulled = pooledRouter.pull(weth, maker1, 0.5 ether, true);
     vm.stopPrank();
     assertEq(weth.balanceOf(maker1), pulled, "Incorrect balance");
   }
@@ -270,13 +264,13 @@ contract AavePooledRouterTest is OfferLogicTest {
   function test_strict_pull_with_small_buffer_triggers_aave_withdraw() public {
     deal($(weth), maker1, 1 ether);
     vm.startPrank(maker1);
-    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]), maker1);
     vm.stopPrank();
     deal($(weth), $(pooledRouter), 10);
 
     uint oldAWeth = pooledRouter.overlying(weth).balanceOf($(pooledRouter));
     vm.prank(maker1);
-    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, true);
+    uint pulled = pooledRouter.pull(weth, maker1, 0.5 ether, true);
 
     assertEq(weth.balanceOf(maker1), pulled, "Incorrect weth balance");
     assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), oldAWeth - pulled + 10, "Incorrect aWeth balance");
@@ -285,14 +279,14 @@ contract AavePooledRouterTest is OfferLogicTest {
   function test_non_strict_pull_with_small_buffer_triggers_aave_withdraw() public {
     deal($(weth), maker1, 1 ether);
     vm.startPrank(maker1);
-    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]), maker1);
     vm.stopPrank();
     // donation
     deal($(weth), $(pooledRouter), 10);
 
     pooledRouter.overlying(weth).balanceOf($(pooledRouter));
     vm.prank(maker1);
-    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, false);
+    uint pulled = pooledRouter.pull(weth, maker1, 0.5 ether, false);
 
     assertEq(weth.balanceOf(maker1), pulled, "Incorrect weth balance");
     assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), 0, "Incorrect aWeth balance");
@@ -301,13 +295,13 @@ contract AavePooledRouterTest is OfferLogicTest {
   function test_strict_pull_with_large_buffer_does_not_triggers_aave_withdraw() public {
     deal($(weth), maker1, 1 ether);
     vm.startPrank(maker1);
-    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]), maker1);
     vm.stopPrank();
     deal($(weth), $(pooledRouter), 1 ether);
 
     uint oldAWeth = pooledRouter.overlying(weth).balanceOf($(pooledRouter));
     vm.prank(maker1);
-    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, true);
+    uint pulled = pooledRouter.pull(weth, maker1, 0.5 ether, true);
 
     assertEq(weth.balanceOf(maker1), pulled, "Incorrect weth balance");
     assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), oldAWeth, "Incorrect aWeth balance");
@@ -316,13 +310,13 @@ contract AavePooledRouterTest is OfferLogicTest {
   function test_non_strict_pull_with_large_buffer_does_not_triggers_aave_withdraw() public {
     deal($(weth), maker1, 1 ether);
     vm.startPrank(maker1);
-    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]));
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]), maker1);
     vm.stopPrank();
     deal($(weth), $(pooledRouter), 1 ether);
 
     uint oldAWeth = pooledRouter.overlying(weth).balanceOf($(pooledRouter));
     vm.prank(maker1);
-    uint pulled = pooledRouter.pull(weth, $(pooledRouter), 0.5 ether, true);
+    uint pulled = pooledRouter.pull(weth, maker1, 0.5 ether, true);
 
     assertEq(weth.balanceOf(maker1), pulled, "Incorrect weth balance");
     assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), oldAWeth, "Incorrect aWeth balance");
@@ -332,18 +326,21 @@ contract AavePooledRouterTest is OfferLogicTest {
     //// rewards not active on polygon, so we test only here call to INCENTIVE_CONTROLLER is OK
     // deal($(dai), maker1, 10_000 * 10 ** 18);
     // vm.prank(maker1);
-    // pooledRouter.push(dai, $(pooledRouter), 10_000 * 10 ** 18);
+    // pooledRouter.push(dai, maker1, 10_000 * 10 ** 18);
 
     // deal($(weth), maker1, 10 * 10 ** 18);
     // vm.prank(maker1);
-    // pooledRouter.push(weth, $(pooledRouter), 10 * 10 ** 18);
+    // pooledRouter.push(weth, maker1, 10 * 10 ** 18);
 
     // deal($(usdc), maker1, 10_000 * 10 ** 6);
     // vm.prank(maker1);
-    // pooledRouter.push(usdc, $(pooledRouter), 10_000 * 10 ** 6);
+    // pooledRouter.push(usdc, maker1, 10_000 * 10 ** 6);
 
-    // vm.prank(maker1);
-    // pooledRouter.flushAndsetBuffer(IERC20(address(0)));
+    // vm.startPrank(maker1);
+    // pooledRouter.flushBuffer(usdc);
+    // pooledRouter.flushBuffer(dai);
+    // pooledRouter.flushBuffer(weth);
+    // vm.stopPrank();
 
     // // fast forwarding
     // vm.warp(block.timestamp + 10**4);
@@ -366,18 +363,18 @@ contract AavePooledRouterTest is OfferLogicTest {
 
     vm.startPrank(maker1);
     pooledRouter.pushAndSupply(
-      dynamic([IERC20(weth), usdc, dai]), dynamic([uint(10 * 10 ** 18), 10_000 * 10 ** 6, 10_000 * 10 ** 18])
+      dynamic([IERC20(weth), usdc, dai]), dynamic([uint(10 * 10 ** 18), 10_000 * 10 ** 6, 10_000 * 10 ** 18]), maker1
     );
     vm.stopPrank();
 
-    uint old_reserve_weth = pooledRouter.reserveBalance(weth, maker1, $(pooledRouter));
-    uint old_reserve_usdc = pooledRouter.reserveBalance(usdc, maker1, $(pooledRouter));
-    uint old_reserve_dai = pooledRouter.reserveBalance(dai, maker1, $(pooledRouter));
+    uint old_reserve_weth = pooledRouter.ownerBalance(weth, maker1);
+    uint old_reserve_usdc = pooledRouter.ownerBalance(usdc, maker1);
+    uint old_reserve_dai = pooledRouter.ownerBalance(dai, maker1);
     // // fast forwarding a year
     vm.warp(block.timestamp + 31536000);
-    uint new_reserve_weth = pooledRouter.reserveBalance(weth, maker1, $(pooledRouter));
-    uint new_reserve_usdc = pooledRouter.reserveBalance(usdc, maker1, $(pooledRouter));
-    uint new_reserve_dai = pooledRouter.reserveBalance(dai, maker1, $(pooledRouter));
+    uint new_reserve_weth = pooledRouter.ownerBalance(weth, maker1);
+    uint new_reserve_usdc = pooledRouter.ownerBalance(usdc, maker1);
+    uint new_reserve_dai = pooledRouter.ownerBalance(dai, maker1);
     assertTrue(
       old_reserve_weth < new_reserve_weth && old_reserve_usdc < new_reserve_usdc && old_reserve_dai < new_reserve_dai,
       "No yield from AAVE"
@@ -402,6 +399,6 @@ contract AavePooledRouterTest is OfferLogicTest {
 
     vm.expectRevert("AavePooledRouter/tokenNotLendableOnAave");
     vm.prank(maker1);
-    pooledRouter.checkList(IERC20($(tkn)), $(pooledRouter));
+    pooledRouter.checkList(IERC20($(tkn)), maker1);
   }
 }

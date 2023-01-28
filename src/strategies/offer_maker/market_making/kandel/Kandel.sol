@@ -91,12 +91,12 @@ contract Kandel is CoreKandel {
     }
   }
 
-  function reserveBalance(IERC20 token, address reserve_) private view returns (uint) {
+  function reserveBalance(IERC20 token) private view returns (uint) {
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
-      return token.balanceOf(reserve_);
+      return token.balanceOf(address(this));
     } else {
-      return router_.reserveBalance(token, reserve_);
+      return router_.ownerBalance(token, address(this));
     }
   }
 
@@ -105,6 +105,6 @@ contract Kandel is CoreKandel {
   /// @return pending_ the pending amount
   function pending(OfferType ba) external view returns (int pending_) {
     IERC20 token = outboundOfOfferType(ba);
-    pending_ = int(reserveBalance(token, reserve(msg.sender))) - int(offeredVolume(ba));
+    pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));
   }
 }

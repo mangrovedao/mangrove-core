@@ -17,5 +17,5 @@ import {ILiquidityProvider, IMangrove, IERC20} from "./ILiquidityProvider.sol";
 ///@title Interface for testing Forwarder and Direct maker contracts with reserve setters.
 interface ITesterContract is ILiquidityProvider {
   function setReserve(address maker, address reserve) external;
-  function tokenBalance(IERC20 token, address maker) external view returns (uint);
+  function tokenBalance(IERC20 token, address owner) external view returns (uint);
 }

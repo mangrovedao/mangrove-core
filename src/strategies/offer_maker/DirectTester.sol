@@ -23,18 +23,18 @@ contract DirectTester is ITesterContract, OfferMaker {
   constructor(IMangrove mgv, AbstractRouter router_, address deployer) OfferMaker(mgv, router_, deployer) {}
 
   // giving mutable reserve power to test contract with different kinds of reserve
-  function setReserve(address maker, address reserve) external onlyAdmin {
-    reserves[maker] = reserve;
+  function setReserve(address maker, address reserve_) external onlyAdmin {
+    reserves[maker] = reserve_;
   }
 
   function __reserve__(address maker) internal view virtual override returns (address) {
     return reserves[maker] == address(0) ? maker : reserves[maker];
   }
 
-  function tokenBalance(IERC20 token, address maker) external view override returns (uint) {
+  function tokenBalance(IERC20 token, address owner) external view override returns (uint) {
     AbstractRouter router_ = router();
-    address makerReserve = reserve(maker);
-    return router_ == NO_ROUTER ? token.balanceOf(makerReserve) : router_.reserveBalance(token, makerReserve);
+    address makerReserve = reserve(owner);
+    return router_ == NO_ROUTER ? token.balanceOf(makerReserve) : router_.ownerBalance(token, makerReserve);
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)

@@ -60,69 +60,51 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice pulls liquidity from an offer maker's reserve to `msg.sender`'s balance
   ///@param token is the ERC20 managing the pulled asset
-  ///@param reserve where `amount` of `token` should be pulled from
-  ///@param amount of `token` the maker contract wishes to get
-  ///@param strict when the calling maker contract accepts to receive more `token` than required (this may happen for gas optimization)
-  function pull(IERC20 token, address reserve, uint amount, bool strict) external onlyMakers returns (uint pulled) {
-    pulled = __pull__({token: token, reserve: reserve, maker: msg.sender, amount: amount, strict: strict});
+  ///@param owner of the tokens that are being pulled
+  ///@param amount of `token` the maker contract wishes to pull
+  ///@param strict when the calling maker contract accepts to receive more `token` of `owner` than required (this may happen for gas optimization)
+  function pull(IERC20 token, address owner, uint amount, bool strict) external onlyMakers returns (uint pulled) {
+    pulled = __pull__({token: token, owner: owner, amount: amount, strict: strict});
   }
 
   ///@notice router-dependant implementation of the `pull` function
-  function __pull__(IERC20 token, address reserve, address maker, uint amount, bool strict)
-    internal
-    virtual
-    returns (uint);
+  function __pull__(IERC20 token, address owner, uint amount, bool strict) internal virtual returns (uint);
 
   ///@notice pushes assets from maker contract's balance to the specified reserve
   ///@param token is the asset the maker is pushing
-  ///@param reserve is the address identifying where the transferred assets should be placed to
+  ///@param owner of the tokens that are being pulled
   ///@param amount is the amount of asset that should be transferred from the calling maker contract
   ///@return pushed fraction of `amount` that was successfully pushed to reserve.
-  function push(IERC20 token, address reserve, uint amount) external onlyMakers returns (uint pushed) {
-    return __push__({token: token, reserve: reserve, maker: msg.sender, amount: amount});
+  function push(IERC20 token, address owner, uint amount) external onlyMakers returns (uint pushed) {
+    return __push__({token: token, owner: owner, amount: amount});
   }
 
   ///@notice router-dependant implementation of the `push` function
-  function __push__(IERC20 token, address reserve, address maker, uint amount) internal virtual returns (uint);
+  function __push__(IERC20 token, address owner, uint amount) internal virtual returns (uint);
 
   ///@notice iterative `push` in a single call
-  function flush(IERC20[] calldata tokens, address reserve) external onlyMakers {
+  function flush(IERC20[] calldata tokens, address owner) external onlyMakers {
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);
       if (amount > 0) {
-        require(__push__(tokens[i], reserve, msg.sender, amount) == amount, "router/pushFailed");
+        require(__push__(tokens[i], owner, amount) == amount, "router/pushFailed");
       }
     }
   }
 
-  ///@notice returns the amount of `token`s that can be made available for pulling by the maker contract
-  ///@dev when this router is pulling from a lender, this must return the amount of asset that can be withdrawn from reserve
-  ///@param token is the asset one wishes to know the balance of
-  ///@param reserve is the address of the reserve of `msg.sender`
-  function reserveBalance(IERC20 token, address reserve) external view returns (uint) {
-    return reserveBalance(token, msg.sender, reserve);
-  }
-
-  ///@notice returns the amount of `token`s that can be made available for pulling by the maker contract
-  ///@dev when this router is pulling from a lender, this must return the amount of asset that can be withdrawn from reserve
-  ///@param token is the asset one wishes to know the balance of
-  ///@param maker the address of the owner of the reserve
-  ///@param reserve is the address of the reserve
-  function reserveBalance(IERC20 token, address maker, address reserve) public view virtual returns (uint);
-
   ///@notice adds a maker contract address to the allowed makers of this router
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address
-  ///@param maker the maker contract address
-  function bind(address maker) public onlyAdmin {
-    ARSt.getStorage().makers[maker] = true;
-    emit MakerBind(maker);
+  ///@param makerContract the maker contract address
+  function bind(address makerContract) public onlyAdmin {
+    ARSt.getStorage().makers[makerContract] = true;
+    emit MakerBind(makerContract);
   }
 
   ///@notice removes a maker contract address from the allowed makers of this router
-  ///@param maker the maker contract address
-  function _unbind(address maker) internal {
-    ARSt.getStorage().makers[maker] = false;
-    emit MakerUnbind(maker);
+  ///@param makerContract the maker contract address
+  function _unbind(address makerContract) internal {
+    ARSt.getStorage().makers[makerContract] = false;
+    emit MakerUnbind(makerContract);
   }
 
   ///@notice removes `msg.sender` from the allowed makers of this router
@@ -138,13 +120,12 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice verifies all required approval involving `this` router (either as a spender or owner)
   ///@dev `checkList` returns normally if all needed approval are strictly positive. It reverts otherwise with a reason.
   ///@param token is the asset (and possibly its overlyings) whose approval must be checked
-  ///@param reserve the reserve that requires asset pulling/pushing
-  function checkList(IERC20 token, address reserve) external view {
-    require(ARSt.getStorage().makers[msg.sender], "Router/CallerIsNotAnApprovedMakerContract");
+  ///@param owner of the tokens that are being pulled
+  function checkList(IERC20 token, address owner) external view onlyMakers {
     // checking maker contract has approved this for token transfer (in order to push to reserve)
     require(token.allowance(msg.sender, address(this)) > 0, "Router/NotApprovedByMakerContract");
-    // pulling from reserve might require a special approval if `reserve` is some account on a protocol (e.g a lender) which requires a custom redeem call.
-    __checkList__(token, reserve);
+    // pulling on behalf of `owner` might require a special approval (e.g if `owner` is some account on a protocol).
+    __checkList__(token, owner);
   }
 
   ///@notice router-dependent implementation of the `checkList` function
@@ -160,4 +141,9 @@ abstract contract AbstractRouter is AccessControlled {
   function __activate__(IERC20 token) internal virtual {
     token; //ssh
   }
+
+  ///@notice Balance of a maker (possibly an EOA)
+  ///@param token the asset one wishes to know the balance of
+  ///@param owner of the asset
+  function ownerBalance(IERC20 token, address owner) public view virtual returns (uint);
 }

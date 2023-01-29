@@ -21,7 +21,7 @@ import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
 /// `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
 abstract contract Direct is MangroveOffer {
-  ///@notice source of strat funds
+  ///@notice owner of strat funds
   address immutable RESERVE;
 
   constructor(IMangrove mgv, AbstractRouter router_, uint gasreq, address reserve) MangroveOffer(mgv, gasreq) {
@@ -181,9 +181,9 @@ abstract contract Direct is MangroveOffer {
     return super.__posthookSuccess__(order, makerData);
   }
 
-  function __checkList__(IERC20 token, address source) internal view virtual override {
-    // liquidity source is an immutable of Direct strats
-    require(source == RESERVE, "Direct/LiquiditySourceMismatch");
+  function __checkList__(IERC20 token, address owner) internal view virtual override {
+    // liquidity owner is an immutable of Direct strats
+    require(owner == RESERVE, "Direct/LiquiditySourceMismatch");
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
       // if not using a router, contract will transfer liquidity from reserve during pull
@@ -194,6 +194,6 @@ abstract contract Direct is MangroveOffer {
     }
     // if using a router, we let the router verifies whether reserve must approve the router
     // this may not be the case for instance if the router does not transfer funds from reserve but maintains shares attributes to the reserve
-    super.__checkList__(token, source);
+    super.__checkList__(token, owner);
   }
 }

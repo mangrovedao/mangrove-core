@@ -24,9 +24,9 @@ contract DirectTester is ITesterContract, OfferMaker {
     OfferMaker(mgv, router_, deployer, reserve, gasreq)
   {}
 
-  function tokenBalance(IERC20 token, address source) external view override returns (uint) {
+  function tokenBalance(IERC20 token, address owner) external view override returns (uint) {
     AbstractRouter router_ = router();
-    return router_ == NO_ROUTER ? token.balanceOf(source) : router_.sourceBalance(token, source);
+    return router_ == NO_ROUTER ? token.balanceOf(owner) : router_.ownerBalance(token, owner);
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)

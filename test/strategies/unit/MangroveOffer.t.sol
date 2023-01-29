@@ -127,7 +127,7 @@ contract MangroveOfferTest is MangroveTest {
     vm.stopPrank();
 
     IERC20[] memory tokens = dynamic([IERC20(weth)]);
-    vm.expectRevert("SimpleRouter/NotApprovedByReserve");
+    vm.expectRevert("SimpleRouter/NotApprovedByOwner");
     makerContract.checkList(tokens, deployer);
   }
 

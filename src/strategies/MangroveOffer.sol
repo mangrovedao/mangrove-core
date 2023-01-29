@@ -164,15 +164,14 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   ///@dev override conservatively to define strat-specific additional check list
-  ///@param token the ERC20 one wishes this contract to trade on.
   ///@custom:hook overrides of this hook should be conservative and call `super.__checkList__(token)`
-  function __checkList__(IERC20 token, address source) internal view virtual {
+  function __checkList__(IERC20 token, address owner) internal view virtual {
     AbstractRouter router_ = router();
     // checking `this` contract's approval
     require(token.allowance(address(this), address(MGV)) > 0, "mgvOffer/LogicMustApproveMangrove");
     // if contract has a router, checking router is allowed to source liquidity
     if (router_ != NO_ROUTER) {
-      router_.checkList(token, source);
+      router_.checkList(token, owner);
     }
   }
 

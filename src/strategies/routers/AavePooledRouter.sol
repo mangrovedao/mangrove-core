@@ -16,18 +16,18 @@ import {AbstractRouter, IERC20} from "./AbstractRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {AaveV3Lender} from "mgv_src/strategies/integrations/AaveV3Lender.sol";
 
-///@title Router acting as a liquidity reserve on AAVE for multiple maker contracts.
-///@notice this router has an optimal gas cost complexity when all maker contracts binding to it comply with the following offer logic:
-/// * on the offer logic side (Kandel's):
-///    * in `makerExecute`, check whether we are the first caller to the router. You can know this by checking whether the balance of outbound tokens of the router is 0. If so send a special IamLast:bytes32 to makerPosthook  (this is done in __lastLook__ )
-///    * in `__put__`  simply stores incoming liquidity on the strat (don't do anything de facto)
-///    * in `__get__` pull liquidity from the router in a non strict manner (i.e allow the router to send you more than what you need, in the limits of your shares of the reserve)
-///    * in __posthookSuccess|Fallback__ push both inbound and outbound tokens to the router. If message from makerExecute is IamLast , tell the router to flush all its buffer of outbound and inbound tokens to AAVE.
+///@title Router acting as a liquidity reserve on AAVE for multiple depositors (possibly coming from different maker contracts).
+///@notice maker contracts deposit/withdraw users funds on this router which maintains an accounting of shares attributed to each depositors.
+///@dev deposit is made via `pushAndSupply`, and withdraw is made via `pull` with `strict=true`.
+///@dev this router has an optimal gas cost complexity when all maker contracts binding to it comply with the following offer logic:
+/// * on the offer logic side:
+///    * in `makerExecute`, check whether logic is the first caller to the router. This is done by checking whether the balance of outbound tokens of the router is below the required amount. If so the logic should return a special bytes32 (say `"firstCaller"`) to makerPosthook.
+///    * in `__put__`  the logic stores incoming liquidity on the strat balance
+///    * in `__get__` the logic pulls liquidity from the router in a non strict manner
+///    * in __posthookSuccess|Fallback__ the logic pushes both inbound and outbound tokens to the router. If message from makerExecute is `"firstCaller"`, the logic additionally asks the router to supply all its outbound and inbound tokens to AAVE. This can be done is a single step by calling `pushAndSupply`
 /// * on the router side:
-///    * `__pull__`  checks whether local balance of token is 0. If so it pulls everything from AAVE and sends to caller all it's reserve (the part of the reserve that he is allowed to redeem). Decrease caller's shares accordingly (notice you cannot put the shares to 0 w/o verification since not all funds might be redeemable from aave)
-///    * `__push__` transfer the requested amount of tokens from the calling maker contract but does not supply on AAVE
-///       a special function `pushAndSupply` transfers the tokens from the caller and supplies the total balance of the router on AAVE
-///       both `__push__` and `pushAndSupply` assign new shares to the caller.
+///    * `__pull__`  checks whether local balance of token is below required amount. If so it pulls all its funds from AAVE (this includes funds that do not belong to the source of the calling contract) and sends to caller all the source's reserve (according to the shares attributed to the source). This router then decreases source's shares accordingly. (note that if AAVE has no liquidity crisis, then the source's shares will be temporarily 0)
+///    * `__push__` transfers the requested amount of tokens from the calling maker contract and increases source's shares, but does not supply on AAVE
 
 contract AavePooledRouter is AaveV3Lender, AbstractRouter {
   // keep _rewardsManager on slot(0) to avoid breaking tests
@@ -50,11 +50,11 @@ contract AavePooledRouter is AaveV3Lender, AbstractRouter {
 
   ///@notice returns the shares of this router's balance that a maker contract has
   ///@param token the address of the asset
-  ///@param owner the address of the owner whose shares are requested
-  ///@return shares the amount of shares of the owner.
-  ///@dev `sharesOf(token,owner)/totalShares(token)` represent the portion of this contract's balance of `token`s that the owner can claim
-  function sharesOf(IERC20 token, address owner) public view returns (uint shares) {
-    shares = _sharesOf[token][owner];
+  ///@param source the address of the source whose shares are requested
+  ///@return shares the amount of shares of the source.
+  ///@dev `sharesOf(token,source)/totalShares(token)` represent the portion of this contract's balance of `token`s that the source can claim
+  function sharesOf(IERC20 token, address source) public view returns (uint shares) {
+    shares = _sharesOf[token][source];
   }
 
   ///@notice returns the total shares one needs to possess to claim all the tokens of this contract
@@ -73,12 +73,12 @@ contract AavePooledRouter is AaveV3Lender, AbstractRouter {
     balance = overlying(token).balanceOf(address(this)) + token.balanceOf(address(this));
   }
 
-  ///@notice computes available funds (modulo available liquidity on aave) for a given owner
+  ///@notice computes available funds (modulo available liquidity on aave) for a given source
   ///@param token the asset one wants to know the balance of
-  ///@param owner the owner whose balance is queried
-  function ownerBalance(IERC20 token, address owner) public view override returns (uint) {
+  ///@param source the source whose balance is queried
+  function sourceBalance(IERC20 token, address source) public view override returns (uint) {
     uint totalShares_ = totalShares(token);
-    return totalShares_ == 0 ? 0 : sharesOf(token, owner) * totalBalance(token) / totalShares_;
+    return totalShares_ == 0 ? 0 : sharesOf(token, source) * totalBalance(token) / totalShares_;
   }
 
   ///@notice computes how many shares an amount of tokens represents
@@ -92,31 +92,31 @@ contract AavePooledRouter is AaveV3Lender, AbstractRouter {
 
   ///@notice mints a certain quantity of shares for a given asset and assigns them to a maker contract
   ///@param token the address of the asset
-  ///@param owner the address of owner for whom new shares will be assigned
+  ///@param source the address of source for whom new shares will be assigned
   ///@param amount the amount of assets added to maker's reserve
-  function _mintShares(IERC20 token, address owner, uint amount) internal {
+  function _mintShares(IERC20 token, address source, uint amount) internal {
     // computing how many shares should be minted for maker contract
     uint sharesToMint = _sharesOfamount(token, amount);
-    _sharesOf[token][owner] += sharesToMint;
+    _sharesOf[token][source] += sharesToMint;
     _totalShares[token] += sharesToMint;
   }
 
   ///@notice burns a certain quantity of maker shares for a given asset
   ///@param token the address of the asset
-  ///@param owner the address of the owner whose shares are being burnt
+  ///@param source the address of the source whose shares are being burnt
   ///@param amount the amount of assets withdrawn from maker's reserve
-  function _burnShares(IERC20 token, address owner, uint amount) internal {
+  function _burnShares(IERC20 token, address source, uint amount) internal {
     // computing how many shares should be minted for maker contract
     uint sharesToBurn = _sharesOfamount(token, amount);
-    uint ownerShares = _sharesOf[token][owner];
-    require(sharesToBurn <= ownerShares, "AavePooledRouter/insufficientFunds");
-    _sharesOf[token][owner] = ownerShares - sharesToBurn;
+    uint sourceShares = _sharesOf[token][source];
+    require(sharesToBurn <= sourceShares, "AavePooledRouter/insufficientFunds");
+    _sharesOf[token][source] = sourceShares - sharesToBurn;
     _totalShares[token] -= sharesToBurn;
   }
 
   ///@inheritdoc AbstractRouter
-  function __push__(IERC20 token, address owner, uint amount) internal override returns (uint) {
-    _mintShares(token, owner, amount);
+  function __push__(IERC20 token, address source, uint amount) internal override returns (uint) {
+    _mintShares(token, source, amount);
     // Transfer must occur *after* _mintShares above
     require(TransferLib.transferTokenFrom(token, msg.sender, address(this), amount), "AavePooledRouter/pushFailed");
     return amount;
@@ -135,14 +135,14 @@ contract AavePooledRouter is AaveV3Lender, AbstractRouter {
   ///@dev an offer logic should call this instead of `flush` when it is the last posthook to be executed
   ///@dev this function is also to be used when user deposits funds on the maker contract
   ///@dev this can be determined by checking during __lastLook__ whether the logic will trigger a withdraw from aave (this is the case is router's balance of token is empty)
-  function pushAndSupply(IERC20[] calldata tokens, uint[] calldata amounts, address owner)
+  function pushAndSupply(IERC20[] calldata tokens, uint[] calldata amounts, address source)
     external
     onlyMakers
     returns (uint[] memory pushed)
   {
     pushed = new uint[](tokens.length);
     for (uint i; i < tokens.length; i++) {
-      pushed[i] = __push__(tokens[i], owner, amounts[i]);
+      pushed[i] = __push__(tokens[i], source, amounts[i]);
       flushBuffer(tokens[i]);
     }
   }
@@ -151,7 +151,7 @@ contract AavePooledRouter is AaveV3Lender, AbstractRouter {
   ///@dev outside a market order (i.e if pulled is not called during offer logic's execution) the `token` balance of this router should be empty.
   /// This may not be the case when a "donation" occurred to this contract
   /// If the donation is large enough to cover the pull request we use the donation funds
-  function __pull__(IERC20 token, address owner, uint amount, bool strict) internal override returns (uint) {
+  function __pull__(IERC20 token, address source, uint amount, bool strict) internal override returns (uint) {
     uint toRedeem;
     uint amount_ = amount;
     uint buffer = token.balanceOf(address(this));
@@ -160,7 +160,7 @@ contract AavePooledRouter is AaveV3Lender, AbstractRouter {
       toRedeem = buffer > amount ? 0 : amount - buffer;
     } else {
       // we redeem all router's available balance from aave and transfer to maker all its balance
-      amount_ = ownerBalance(token, owner); // max possible transfer to maker
+      amount_ = sourceBalance(token, source); // max possible transfer to maker
       if (buffer < amount) {
         // this pull is the first of the market order (that requires funds from aave) so we redeem all the reserve from AAVE
         // note in theory we should check buffer == 0 but donation may have occurred.
@@ -172,8 +172,8 @@ contract AavePooledRouter is AaveV3Lender, AbstractRouter {
         // if buffer < amount_ we still have buffer > amount (maker initial quantity)
       }
     }
-    // now that we know how much we send to maker contract, we try to burn the corresponding shares, this will underflow if owner does not have enough shares
-    _burnShares(token, owner, amount_);
+    // now that we know how much we send to maker contract, we try to burn the corresponding shares, this will underflow if source does not have enough shares
+    _burnShares(token, source, amount_);
 
     // redeem does not change amount of shares. We do this after burning to avoid redeeming on AAVE if caller doesn't have the required funds.
     if (toRedeem > 0) {
@@ -182,17 +182,13 @@ contract AavePooledRouter is AaveV3Lender, AbstractRouter {
     }
 
     // Transfering funds to the maker contract, at this point we must revert if things go wrong because shares have been burnt on the premise that `amount_` will be transferred.
-    require(TransferLib.transferToken(token, owner, amount_), "AavePooledRouter/pullFailed");
+    require(TransferLib.transferToken(token, msg.sender, amount_), "AavePooledRouter/pullFailed");
     return amount_;
   }
 
   ///@inheritdoc AbstractRouter
-  function __checkList__(IERC20 token, address owner) internal view override {
-    // either owner of funds is calling maker contract, or owner must approve this router for pulling tokens
-    require(
-      owner == msg.sender || token.allowance({spender: address(this), owner: owner}) > 0,
-      "AavePooledRouter/ownerMustApproveRouter"
-    );
+  function __checkList__(IERC20 token, address source) internal view override {
+    source; // any source passes the checklist -provided it is a user of a contract bound to this router-
     // we check that `token` is listed on AAVE
     require(checkAsset(token), "AavePooledRouter/tokenNotLendableOnAave");
     require( // required to supply or withdraw token on pool

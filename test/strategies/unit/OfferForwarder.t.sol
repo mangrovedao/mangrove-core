@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
-import {OfferLogicTest, console} from "mgv_test/strategies/unit/OfferLogic.t.sol";
+import {OfferLogicTest, console, TestSender} from "mgv_test/strategies/unit/OfferLogic.t.sol";
 import {ForwarderTester, ITesterContract as ITester} from "mgv_src/strategies/offer_forwarder/ForwarderTester.sol";
 import {IForwarder, IMangrove, IERC20} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
@@ -17,21 +17,33 @@ contract OfferForwarderTest is OfferLogicTest {
   }
 
   event NewOwnedOffer(
-    IMangrove mangrove, IERC20 indexed outbound_tkn, IERC20 indexed inbound_tkn, uint indexed offerId, address owner
+    IMangrove mangrove, IERC20 indexed outbound_tkn, IERC20 indexed inbound_tkn, uint indexed offerId, address maker
   );
 
   function setupMakerContract() internal virtual override {
+    deployer = freshAddress("deployer");
+    vm.deal(deployer, 10 ether);
+
     vm.prank(deployer);
     forwarder = new ForwarderTester({
       mgv: IMangrove($(mgv)),
       deployer: deployer
     });
+    maker = payable(address(new TestSender()));
+    vm.deal(maker, 10 ether);
+    source = maker; // using maker's EOA as liquidity source
+
     makerContract = ITester(address(forwarder)); // to use for all non `IForwarder` specific tests.
     // reserve (which is maker here) approves contract's router
     vm.startPrank(maker);
     usdc.approve(address(makerContract.router()), type(uint).max);
     weth.approve(address(makerContract.router()), type(uint).max);
     vm.stopPrank();
+  }
+
+  function fundStrat() internal virtual override {
+    deal($(weth), maker, 1 ether);
+    deal($(usdc), maker, cash(usdc, 2000));
   }
 
   function test_derived_gasprice_is_accurate_enough(uint fund) public {
@@ -107,7 +119,7 @@ contract OfferForwarderTest is OfferLogicTest {
     assertTrue(makerContract.provisionOf(weth, usdc, offerId) > 1 ether, "fallback was not reached");
   }
 
-  function test_failed_offer_credits_owner(uint fund) public {
+  function test_failed_offer_credits_maker(uint fund) public {
     vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0));
     vm.assume(fund < 5 ether);
     vm.prank(maker);
@@ -140,11 +152,11 @@ contract OfferForwarderTest is OfferLogicTest {
     console.log("bounty", bounty);
     // checking that approx is small in front a storage write (approx < write_cost / 10)
     uint approx_bounty = provision - provision_after_fail;
-    assertTrue((approx_bounty * 10000) / bounty > 9990, "Approximation of offer owner's credit is too coarse");
+    assertTrue((approx_bounty * 10000) / bounty > 9990, "Approximation of offer maker's credit is too coarse");
     assertTrue(provision_after_fail < mgv.balanceOf(address(makerContract)), "Incorrect approx");
   }
 
-  function test_ownership() public {
+  function test_makership() public {
     vm.startPrank(maker);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
@@ -153,7 +165,7 @@ contract OfferForwarderTest is OfferLogicTest {
       gives: 1 ether,
       pivotId: 0
     });
-    assertEq(forwarder.ownerOf(weth, usdc, offerId), address(maker), "Invalid ownership relation");
+    assertEq(forwarder.ownerOf(weth, usdc, offerId), maker, "Invalid makership relation");
   }
 
   function test_NewOwnedOffer_logging() public {
@@ -260,12 +272,8 @@ contract OfferForwarderTest is OfferLogicTest {
       gives: 1 ether,
       pivotId: 0
     });
-    assertEq(forwarder.ownerOf(weth, usdc, offerId_), new_maker, "Incorrect owner");
-    assertEq(forwarder.ownerOf(weth, usdc, offerId), maker, "Incorrect owner");
-  }
-
-  function test_default_reserve_for_maker_is_maker() public {
-    assertEq(makerContract.reserve(maker), maker, "Incorrect default reserve");
+    assertEq(forwarder.ownerOf(weth, usdc, offerId_), new_maker, "Incorrect maker");
+    assertEq(forwarder.ownerOf(weth, usdc, offerId), maker, "Incorrect maker");
   }
 
   function test_put_fail_reverts_with_expected_reason() public {
@@ -290,28 +298,5 @@ contract OfferForwarderTest is OfferLogicTest {
     vm.expectRevert("mgvOffer/abort/putFailed");
     vm.prank($(mgv));
     makerContract.makerExecute(order);
-  }
-
-  function test_trade_succeeds_with_new_reserve() public {
-    address new_reserve = freshAddress("new_reserve");
-
-    vm.prank(deployer);
-    makerContract.setReserve(maker, new_reserve);
-
-    deal($(weth), new_reserve, 0.5 ether);
-    deal($(weth), address(makerContract), 0);
-    deal($(usdc), address(makerContract), 0);
-
-    address toApprove = address(makerContract.router());
-    toApprove = toApprove == address(0) ? address(makerContract) : toApprove;
-    vm.startPrank(new_reserve);
-    usdc.approve(toApprove, type(uint).max); // to push
-    weth.approve(toApprove, type(uint).max); // to pull
-    vm.stopPrank();
-    (, uint takerGave,,) = performTrade(true);
-    vm.startPrank(maker);
-    assertEq(takerGave, makerContract.tokenBalance(usdc, maker), "Incorrect reserve usdc balance");
-    assertEq(makerContract.tokenBalance(weth, maker), 0, "Incorrect reserve weth balance");
-    vm.stopPrank();
   }
 }

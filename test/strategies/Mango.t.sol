@@ -86,8 +86,7 @@ contract MangoTest is MangroveTest {
   }
 
   function part_deploy_strat() public prank(maker) {
-    // reserve has to approve liquidity router of Mango for ETH and USDC transfer
-    // since reserve here is an EOA we do it direclty
+    // admin (here maker) of Mango has to approve liquidity router of Mango for ETH and USDC transfer
     usdc.approve($(mgo.router()), type(uint).max);
     weth.approve($(mgo.router()), type(uint).max);
 

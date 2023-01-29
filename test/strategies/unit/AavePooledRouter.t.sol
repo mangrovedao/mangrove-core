@@ -57,32 +57,31 @@ contract AavePooledRouterTest is OfferLogicTest {
   function fundStrat() internal virtual override {
     //at the end of super.setUp reserve has 1 ether and 2000 USDC
     //one needs to tell router to deposit them on AAVE
-    vm.startPrank(maker);
+
     pooledRouter = AavePooledRouter(address(makerContract.router()));
-    vm.stopPrank();
 
     deal($(weth), address(makerContract), 1 ether);
     deal($(usdc), address(makerContract), 2000 * 10 ** 6);
 
     vm.prank(address(makerContract));
-    pooledRouter.pushAndSupply(
-      dynamic([IERC20(weth), usdc]), dynamic([uint(1 ether), 2000 * 10 ** 6]), address(makerContract)
-    );
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth), usdc]), dynamic([uint(1 ether), 2000 * 10 ** 6]), source);
 
-    assertEq(pooledRouter.ownerBalance(weth, address(makerContract)), 1 ether, "Incorrect weth balance");
-    assertEq(pooledRouter.ownerBalance(usdc, address(makerContract)), 2000 * 10 ** 6, "Incorrect usdc balance");
+    assertEq(pooledRouter.sourceBalance(weth, source), 1 ether, "Incorrect weth balance");
+    assertEq(pooledRouter.sourceBalance(usdc, source), 2000 * 10 ** 6, "Incorrect usdc balance");
   }
 
   function setupLiquidityRouting() internal override {
-    vm.startPrank(maker);
+    vm.startPrank(deployer);
     AavePooledRouter router = new AavePooledRouter({
       _addressesProvider: fork.get("Aave"),
       overhead: GASREQ
     });
     router.bind(address(makerContract));
-    makerContract.setReserve(maker, address(makerContract));
     makerContract.setRouter(router);
     vm.stopPrank();
+    // although reserve is set to deployer the source remains makerContract since pooledRouter is always the source of funds
+    // having reserve pointing to deployed allows deployer to have multiple strats with the same shares on the router
+    source = deployer;
   }
 
   function test_only_makerContract_can_push() public {
@@ -117,13 +116,13 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(address(makerContract));
     pooledRouter.push(usdc, address(makerContract), 10 ** 6);
 
-    uint reserveBalance = pooledRouter.ownerBalance(usdc, address(makerContract));
+    uint reserveBalance = pooledRouter.sourceBalance(usdc, address(makerContract));
     uint totalBalance = pooledRouter.totalBalance(usdc);
 
     vm.prank(deployer);
     pooledRouter.flushBuffer(usdc);
 
-    assertEq(reserveBalance, pooledRouter.ownerBalance(usdc, address(makerContract)), "Incorrect reserve balance");
+    assertEq(reserveBalance, pooledRouter.sourceBalance(usdc, address(makerContract)), "Incorrect reserve balance");
     assertEq(totalBalance, pooledRouter.totalBalance(usdc), "Incorrect total balance");
   }
 
@@ -220,12 +219,12 @@ contract AavePooledRouterTest is OfferLogicTest {
     dai.transfer($(pooledRouter), donation);
 
     uint expectedBalance = (uint(5) * 10 ** 18 + uint(donation)) / 5;
-    uint reserveBalance = pooledRouter.ownerBalance(dai, maker1);
+    uint reserveBalance = pooledRouter.sourceBalance(dai, maker1);
     assertEq(expectedBalance, reserveBalance, "Incorrect reserve for maker1");
 
     expectedBalance = uint(4) * (5 * 10 ** 18 + uint(donation)) / 5;
     vm.prank(maker2);
-    reserveBalance = pooledRouter.ownerBalance(dai, maker2);
+    reserveBalance = pooledRouter.sourceBalance(dai, maker2);
     assertEq(expectedBalance, reserveBalance, "Incorrect reserve for maker2");
   }
 
@@ -367,14 +366,14 @@ contract AavePooledRouterTest is OfferLogicTest {
     );
     vm.stopPrank();
 
-    uint old_reserve_weth = pooledRouter.ownerBalance(weth, maker1);
-    uint old_reserve_usdc = pooledRouter.ownerBalance(usdc, maker1);
-    uint old_reserve_dai = pooledRouter.ownerBalance(dai, maker1);
+    uint old_reserve_weth = pooledRouter.sourceBalance(weth, maker1);
+    uint old_reserve_usdc = pooledRouter.sourceBalance(usdc, maker1);
+    uint old_reserve_dai = pooledRouter.sourceBalance(dai, maker1);
     // // fast forwarding a year
     vm.warp(block.timestamp + 31536000);
-    uint new_reserve_weth = pooledRouter.ownerBalance(weth, maker1);
-    uint new_reserve_usdc = pooledRouter.ownerBalance(usdc, maker1);
-    uint new_reserve_dai = pooledRouter.ownerBalance(dai, maker1);
+    uint new_reserve_weth = pooledRouter.sourceBalance(weth, maker1);
+    uint new_reserve_usdc = pooledRouter.sourceBalance(usdc, maker1);
+    uint new_reserve_dai = pooledRouter.sourceBalance(dai, maker1);
     assertTrue(
       old_reserve_weth < new_reserve_weth && old_reserve_usdc < new_reserve_usdc && old_reserve_dai < new_reserve_dai,
       "No yield from AAVE"

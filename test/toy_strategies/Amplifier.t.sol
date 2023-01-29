@@ -103,7 +103,7 @@ contract AmplifierTest is MangroveTest {
     tokens[2] = weth;
 
     vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
-    strat.checkList(tokens);
+    strat.checkList(tokens, address(this));
 
     // and now activate them
     strat.activate(tokens);

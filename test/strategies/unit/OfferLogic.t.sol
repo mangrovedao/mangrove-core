@@ -16,11 +16,13 @@ import {
 contract OfferLogicTest is MangroveTest {
   TestToken weth;
   TestToken usdc;
-  address payable maker;
+  address payable maker; // user of makerContract
   address payable taker;
-  address payable deployer;
-  address reserve;
+  address payable deployer; // admin of makerContract
+  address payable source; // liquidity source (maker contract or EOA)
+
   ITester makerContract; // can be either OfferMaker or OfferForwarder
+
   GenericFork fork;
 
   // tracking IOfferLogic logs
@@ -54,11 +56,6 @@ contract OfferLogicTest is MangroveTest {
       weth = base;
       usdc = quote;
     }
-    maker = payable(new TestSender());
-    vm.deal(maker, 10 ether);
-    // for Direct strats, maker is deployer
-    deployer = deployer == address(0) ? maker : deployer;
-
     taker = payable(new TestSender());
     vm.deal(taker, 1 ether);
     deal($(weth), taker, cash(weth, 50));
@@ -78,36 +75,38 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function fundStrat() internal virtual {
-    vm.startPrank(maker);
-    deal($(weth), makerContract.reserve(maker), 1 ether);
-    deal($(usdc), makerContract.reserve(maker), cash(usdc, 2000));
-    vm.stopPrank();
+    deal($(weth), source, 1 ether);
+    deal($(usdc), source, cash(usdc, 2000));
   }
 
   // override this to use Forwarder strats
   function setupMakerContract() internal virtual {
+    deployer = payable(address(new TestSender()));
+    vm.deal(deployer, 10 ether);
+
     vm.prank(deployer);
     makerContract = new DirectTester({
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)),
-      deployer: deployer
+      deployer: deployer,
+      reserve: deployer,
+      gasreq: 80_000
     });
-    vm.prank(maker);
-    makerContract.setReserve(maker, address(makerContract));
+    // maker contract will transfer funds from deployer
+    vm.startPrank(deployer);
+    weth.approve(address(makerContract), type(uint).max);
+    usdc.approve(address(makerContract), type(uint).max);
+    vm.stopPrank();
+
+    maker = deployer; // direct strat
+    source = deployer;
   }
 
   // override this function to use a specific router for the strat
   function setupLiquidityRouting() internal virtual {}
 
-  function test_checkList() public {
-    vm.startPrank(maker);
-    makerContract.checkList(dynamic([IERC20(weth), usdc]));
-    vm.stopPrank();
-  }
-
-  function testCannot_setReserve() public {
-    vm.expectRevert("AccessControlled/Invalid");
-    makerContract.setReserve(freshAddress(), freshAddress());
+  function test_checkList() public view {
+    makerContract.checkList(dynamic([IERC20(weth), usdc]), source);
   }
 
   function test_maker_can_post_newOffer() public {
@@ -195,7 +194,7 @@ contract OfferLogicTest is MangroveTest {
     uint makerBalWei = maker.balance;
     uint locked = makerContract.provisionOf(weth, usdc, offerId);
     vm.prank(address(mgv));
-    // returned provision is sent to offer owner
+    // returned provision is sent to offer maker
     uint deprovisioned = makerContract.retractOffer(weth, usdc, offerId, true);
     // checking WEIs are returned to maker's account
     assertEq(maker.balance, makerBalWei + deprovisioned, "Incorrect WEI balance");
@@ -322,19 +321,14 @@ contract OfferLogicTest is MangroveTest {
     assertTrue(!success || (bounty == 0 && takergot > 0), "unexpected trade result");
   }
 
-  function test_reserve_balance_is_updated_when_trade_succeeds() public {
-    vm.startPrank(maker);
-    uint balOut = makerContract.tokenBalance(weth, maker);
-    uint balIn = makerContract.tokenBalance(usdc, maker);
-    vm.stopPrank();
-
+  function test_source_balance_is_updated_when_trade_succeeds() public {
+    uint balOut = makerContract.tokenBalance(weth, source);
+    uint balIn = makerContract.tokenBalance(usdc, source);
     (uint takergot, uint takergave, uint bounty, uint fee) = performTrade(true);
     assertTrue(bounty == 0 && takergot > 0, "trade failed");
 
-    vm.startPrank(maker);
-    assertEq(makerContract.tokenBalance(weth, maker), balOut - (takergot + fee), "incorrect out balance");
-    assertEq(makerContract.tokenBalance(usdc, maker), balIn + takergave, "incorrect in balance");
-    vm.stopPrank();
+    assertEq(makerContract.tokenBalance(weth, source), balOut - (takergot + fee), "incorrect out balance");
+    assertEq(makerContract.tokenBalance(usdc, source), balIn + takergave, "incorrect in balance");
   }
 
   function test_reposting_fails_with_expected_reason_when_below_density() public {

@@ -30,7 +30,9 @@ contract AccessControlTest is MangroveTest {
     makerContract = new DirectTester({
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)),
-      deployer: admin
+      deployer: admin,
+      reserve: address(0),
+      gasreq: 50_000
     });
     vm.startPrank(admin);
     makerContract.activate(dynamic([IERC20(weth), usdc]));
@@ -61,18 +63,5 @@ contract AccessControlTest is MangroveTest {
     vm.prank(admin);
     makerContract.setRouter(AbstractRouter(newRouter));
     assertEq(address(makerContract.router()), newRouter, "Incorrect router");
-  }
-
-  function testCannot_setReserve() public {
-    vm.expectRevert("AccessControlled/Invalid");
-    makerContract.setReserve(freshAddress(), freshAddress());
-  }
-
-  function test_admin_can_set_reserve() public {
-    address reserve = freshAddress();
-    address maker = freshAddress();
-    vm.prank(admin);
-    makerContract.setReserve(maker, reserve);
-    assertEq(makerContract.reserve(maker), reserve, "Incorrect reserve");
   }
 }

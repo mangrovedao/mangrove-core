@@ -83,7 +83,7 @@ contract AmplifierForwarderTest is MangroveTest {
     tokens[1] = usdc;
 
     vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
-    strat.checkList(tokens);
+    strat.checkList(tokens, address(this));
 
     // and now activate them
     strat.activate(tokens);

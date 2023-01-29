@@ -65,7 +65,7 @@ contract SimpleRouter is
   ///@param token is the asset whose approval must be checked
   ///@param source the account that requires asset pulling/pushing
   function __checkList__(IERC20 token, address source) internal view virtual override {
-    // verifying that `this` router can withdraw tokens from reserve (required for `withdrawToken` and `pull`)
-    require(source == address(this) || token.allowance(source, address(this)) > 0, "SimpleRouter/NotApprovedByReserve");
+    // verifying that `this` router can withdraw tokens from source (required for `withdrawToken` and `pull`)
+    require(source == address(this) || token.allowance(source, address(this)) > 0, "SimpleRouter/NotApprovedBySource");
   }
 }

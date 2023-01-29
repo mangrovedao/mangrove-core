@@ -280,7 +280,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     IERC20 outTkn = IERC20(order.outbound_tkn);
     IERC20 inTkn = IERC20(order.inbound_tkn);
     address owner = ownerOf(outTkn, inTkn, order.offerId);
-    uint pushed = router().push(inTkn, reserve(owner), amount);
+    uint pushed = router().push(inTkn, owner, amount);
     return amount - pushed;
   }
 
@@ -293,7 +293,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // telling router one is requiring `amount` of `outTkn` for `owner`.
     // because `pull` is strict, `pulled <= amount` (cannot be greater)
     // we do not check local balance here because multi user contracts do not keep more balance than what has been pulled
-    uint pulled = router().pull(outTkn, reserve(owner), amount, true);
+    uint pulled = router().pull(outTkn, owner, amount, true);
     return amount - pulled; // this will make trade fail if `amount != pulled`
   }
 

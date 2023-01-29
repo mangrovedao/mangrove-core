@@ -69,9 +69,9 @@ interface IOfferLogic is IMaker {
   ///@return provision the amount of native tokens that can be redeemed when deprovisioning the offer
   function provisionOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) external view returns (uint provision);
 
-  ///@notice verifies that this contract's current state is ready to be used by `msg.sender` to post offers on Mangrove
+  ///@notice verifies that this contract's current state is ready to be used by `owner` to post offers on Mangrove
   ///@dev throws with a reason if something (e.g. an approval) is missing.
-  function checkList(IERC20[] calldata tokens) external view;
+  function checkList(IERC20[] calldata tokens, address owner) external view;
 
   /// @notice performs the required approvals so as to allow `this` to interact with Mangrove on a set of assets.
   /// @param tokens the ERC20 `this` will approve to be able to trade on Mangrove's corresponding markets.
@@ -106,12 +106,6 @@ interface IOfferLogic is IMaker {
     uint fund;
     bool noRevert;
   }
-
-  /// @notice getter of the reserve address of `maker`.
-  /// @param maker the address of the offer maker one wishes to know the reserve of.
-  /// @return reserve_ the address of the offer maker's reserve of liquidity.
-  /// @dev if no reserve is set for maker, default reserve is maker's address. Thus this function never returns `address(0)`.
-  function reserve(address maker) external view returns (address);
 
   /// @notice Contract's router getter.
   /// @dev if contract has a no router, function returns `NO_ROUTER`.

@@ -134,17 +134,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   /// @inheritdoc IOfferLogic
-  function reserve(address maker) public view override returns (address) {
-    return __reserve__(maker);
-  }
-
-  /// @notice hook to customize offer owner's reserve for the offer logic
-  /// @param maker the offer owner's address whose address is being queried
-  function __reserve__(address maker) internal view virtual returns (address) {
-    return maker;
-  }
-
-  /// @inheritdoc IOfferLogic
   function activate(IERC20[] calldata tokens) external override onlyAdmin {
     for (uint i = 0; i < tokens.length; i++) {
       __activate__(tokens[i]);
@@ -152,9 +141,9 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   /// @inheritdoc IOfferLogic
-  function checkList(IERC20[] calldata tokens) external view override {
+  function checkList(IERC20[] calldata tokens, address owner) external view override {
     for (uint i = 0; i < tokens.length; i++) {
-      __checkList__(tokens[i]);
+      __checkList__(tokens[i], owner);
     }
   }
 
@@ -177,14 +166,13 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   ///@dev override conservatively to define strat-specific additional check list
   ///@param token the ERC20 one wishes this contract to trade on.
   ///@custom:hook overrides of this hook should be conservative and call `super.__checkList__(token)`
-  function __checkList__(IERC20 token) internal view virtual {
+  function __checkList__(IERC20 token, address source) internal view virtual {
     AbstractRouter router_ = router();
     // checking `this` contract's approval
     require(token.allowance(address(this), address(MGV)) > 0, "mgvOffer/LogicMustApproveMangrove");
-    // if contract has a router, checking router is allowed
+    // if contract has a router, checking router is allowed to source liquidity
     if (router_ != NO_ROUTER) {
-      require(token.allowance(address(this), address(router_)) > 0, "mgvOffer/LogicMustApproveRouter");
-      router_.checkList(token, reserve(msg.sender));
+      router_.checkList(token, source);
     }
   }
 

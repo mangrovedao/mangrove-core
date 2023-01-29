@@ -21,58 +21,51 @@ import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
 /// `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
 abstract contract Direct is MangroveOffer {
-  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq) MangroveOffer(mgv, gasreq) {
+  ///@notice source of strat funds
+  address immutable RESERVE;
+
+  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq, address reserve) MangroveOffer(mgv, gasreq) {
     if (router_ != NO_ROUTER) {
       setRouter(router_);
     }
+    RESERVE = reserve;
   }
 
-  function __checkList__(IERC20 token) internal view virtual override {
-    require(msg.sender == admin(), "Direct/onlyAdminCanOwnOffers");
-    address adminReserve = reserve(admin());
-    // if this contract does the routing by itself, it must be approved by the reserve to do so.
-    if (router() == NO_ROUTER && adminReserve != address(this)) {
-      require(token.allowance(adminReserve, address(this)) > 0, "Direct/reserveMustApproveMakerContract");
-    }
-    super.__checkList__(token);
-  }
-
-  function pull(IERC20 token, uint amount, bool strict) internal returns (uint) {
+  function pull(IERC20 token, uint amount, bool strict) internal virtual returns (uint) {
     AbstractRouter router_ = router();
-    address adminReserve = reserve(admin());
     if (router_ == NO_ROUTER) {
-      // noop if reserve == this and local balance >= amount
-      bool success = TransferLib.transferTokenFrom(token, adminReserve, address(this), amount);
-      return success ? amount : (token.balanceOf(address(this)));
+      uint reserveBalance = token.balanceOf(RESERVE);
+      amount = strict ? (reserveBalance > amount ? amount : reserveBalance) : reserveBalance;
+      require(
+        TransferLib.transferTokenFrom({token: token, spender: RESERVE, recipient: address(this), amount: amount}),
+        "Direct/pullFailed"
+      );
+      return amount;
     } else {
-      // letting specific router pull the funds from reserve
-      return router_.pull(token, adminReserve, amount, strict);
+      // letting specific router pull the funds from RESERVE
+      return router_.pull(token, RESERVE, amount, strict);
     }
   }
 
-  function push(IERC20 token, uint amount) internal returns (uint) {
+  function push(IERC20 token, uint amount) internal virtual returns (uint) {
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {
+      require(TransferLib.transferToken(token, RESERVE, amount), "Direct/pushFailed");
       return amount; // nothing to do
     } else {
       // noop if reserve == address(this)
-      return router_.push(token, reserve(admin()), amount);
+      return router_.push(token, RESERVE, amount);
     }
   }
 
   function flush(IERC20[] memory tokens) internal {
     AbstractRouter router_ = MOS.getStorage().router;
-    address reserve_ = reserve(admin());
-    if (router_ == NO_ROUTER) {
-      for (uint i = 0; i < tokens.length; i++) {
-        require(
-          TransferLib.transferToken(tokens[i], reserve_, tokens[i].balanceOf(address(this))),
-          "Direct/flush/transferFail"
-        );
-      }
-      return;
+    if (router_ != NO_ROUTER) {
+      router_.flush(tokens, RESERVE);
     } else {
-      router_.flush(tokens, reserve_);
+      for (uint i; i < tokens.length; i++) {
+        require(TransferLib.transferToken(tokens[i], RESERVE, tokens[i].balanceOf(address(this))), "Direct/flushFailed");
+      }
     }
   }
 
@@ -186,5 +179,20 @@ abstract contract Direct is MangroveOffer {
     flush(tokens);
     // reposting offer residual if any
     return super.__posthookSuccess__(order, makerData);
+  }
+
+  function __checkList__(IERC20 token, address source) internal view virtual override {
+    require(source == RESERVE, "Direct/LiquiditySourceMismatch");
+    AbstractRouter router_ = router();
+    if (router_ == NO_ROUTER) {
+      // if not using a router, contract will transfer liquidity from reserve during pull
+      require(
+        RESERVE == address(this) || token.allowance({owner: RESERVE, spender: address(this)}) > 0,
+        "Direct/reserveMustApproveMakerContract"
+      );
+    }
+    // if using a router, we let the router verifies whether reserve must approve the router
+    // this may not be the case for instance if the router does not transfer funds from reserve but maintains shares attributes to the reserve
+    super.__checkList__(token, source);
   }
 }

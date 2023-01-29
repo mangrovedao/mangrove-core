@@ -17,9 +17,9 @@ import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {AaveV3Lender} from "mgv_src/strategies/integrations/AaveV3Lender.sol";
 
 ///@title Router acting as a liquidity reserve on AAVE for multiple depositors (possibly coming from different maker contracts).
-///@notice maker contracts deposit/withdraw users funds on this router which maintains an accounting of shares attributed to each depositors.
+///@notice maker contracts deposit/withdraw their user(s) fund(s) on this router, which maintains an accounting of shares attributed to each depositors
 ///@dev deposit is made via `pushAndSupply`, and withdraw is made via `pull` with `strict=true`.
-///@dev this router has an optimal gas cost complexity when all maker contracts binding to it comply with the following offer logic:
+///@dev this router ensures an optimal gas cost complexity when the following strategy is used:
 /// * on the offer logic side:
 ///    * in `makerExecute`, check whether logic is the first caller to the router. This is done by checking whether the balance of outbound tokens of the router is below the required amount. If so the logic should return a special bytes32 (say `"firstCaller"`) to makerPosthook.
 ///    * in `__put__`  the logic stores incoming liquidity on the strat balance
@@ -188,7 +188,8 @@ contract AavePooledRouter is AaveV3Lender, AbstractRouter {
 
   ///@inheritdoc AbstractRouter
   function __checkList__(IERC20 token, address source) internal view override {
-    source; // any source passes the checklist -provided it is a user of a contract bound to this router-
+    // any source passes the checklist since this router does not pull or push liquidity to it
+    source;
     // we check that `token` is listed on AAVE
     require(checkAsset(token), "AavePooledRouter/tokenNotLendableOnAave");
     require( // required to supply or withdraw token on pool

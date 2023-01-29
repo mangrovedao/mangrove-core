@@ -58,7 +58,7 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
-  function flush(IERC20[] memory tokens) internal {
+  function flush(IERC20[] memory tokens) internal virtual {
     AbstractRouter router_ = MOS.getStorage().router;
     if (router_ != NO_ROUTER) {
       router_.flush(tokens, RESERVE);
@@ -182,6 +182,7 @@ abstract contract Direct is MangroveOffer {
   }
 
   function __checkList__(IERC20 token, address source) internal view virtual override {
+    // liquidity source is an immutable of Direct strats
     require(source == RESERVE, "Direct/LiquiditySourceMismatch");
     AbstractRouter router_ = router();
     if (router_ == NO_ROUTER) {

@@ -31,7 +31,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   Params public params;
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice)
-    Direct(mgv, NO_ROUTER, gasreq)
+    Direct(mgv, NO_ROUTER, gasreq, address(this))
     AbstractKandel(mgv, base, quote)
   {
     BASE = base;
@@ -339,6 +339,39 @@ abstract contract CoreKandel is Direct, AbstractKandel {
         //_retractOffer(outbound_tknBid, inbound_tknBid, offerId, true);
       }
     }
+  }
+
+  ///@inheritdoc AbstractKandel
+  function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
+    internal
+    virtual
+    override
+    returns (OfferType baDual, SlotViewMonad memory viewDual, OfferArgs memory args)
+  {
+    uint index = indexOfOfferId(ba, order.offerId);
+    Params memory memoryParams = params;
+
+    if (index == 0) {
+      emit AllAsks();
+    }
+    if (index == memoryParams.length - 1) {
+      emit AllBids();
+    }
+    baDual = dual(ba);
+
+    viewDual = _fresh(better(baDual, index, memoryParams.spread, memoryParams.length));
+
+    args.outbound_tkn = IERC20(order.inbound_tkn);
+    args.inbound_tkn = IERC20(order.outbound_tkn);
+
+    // computing gives/wants for dual offer
+    // At least: gives = order.gives/ratio and wants is then order.wants
+    // At most: gives = order.gives and wants is adapted to match the price
+    (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, viewDual, order, memoryParams);
+    args.gasprice = _offerDetail(baDual, viewDual).gasprice();
+    args.gasreq = viewDual.offerDetail.gasreq() == 0 ? offerGasreq() : viewDual.offerDetail.gasreq();
+    args.pivotId = viewDual.offer.gives() > 0 ? viewDual.offer.next() : 0;
+    return (baDual, viewDual, args);
   }
 
   ///@notice takes care of reposting residual offer in case of a partial fill and logging potential issues.

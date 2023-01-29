@@ -21,51 +21,9 @@ contract Kandel is CoreKandel {
     CoreKandel(mgv, base, quote, gasreq, gasprice)
   {}
 
-  function __reserve__(address) internal view override returns (address) {
-    AbstractRouter router_ = router();
-    return router_ == NO_ROUTER ? address(this) : address(router_);
-  }
-
-  ///@inheritdoc AbstractKandel
-  function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    override
-    returns (OfferType baDual, SlotViewMonad memory viewDual, OfferArgs memory args)
-  {
-    uint index = indexOfOfferId(ba, order.offerId);
-    Params memory memoryParams = params;
-
-    if (index == 0) {
-      emit AllAsks();
-    }
-    if (index == memoryParams.length - 1) {
-      emit AllBids();
-    }
-    baDual = dual(ba);
-
-    viewDual = _fresh(better(baDual, index, memoryParams.spread, memoryParams.length));
-
-    args.outbound_tkn = IERC20(order.inbound_tkn);
-    args.inbound_tkn = IERC20(order.outbound_tkn);
-
-    // computing gives/wants for dual offer
-    // At least: gives = order.gives/ratio and wants is then order.wants
-    // At most: gives = order.gives and wants is adapted to match the price
-    (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, viewDual, order, memoryParams);
-    args.gasprice = _offerDetail(baDual, viewDual).gasprice();
-    args.gasreq = viewDual.offerDetail.gasreq() == 0 ? offerGasreq() : viewDual.offerDetail.gasreq();
-    args.pivotId = viewDual.offer.gives() > 0 ? viewDual.offer.next() : 0;
-    return (baDual, viewDual, args);
-  }
-
   function depositFunds(OfferType ba, uint amount) external {
     IERC20 token = outboundOfOfferType(ba);
-    require(
-      TransferLib.transferTokenFrom(token, msg.sender, address(this), amount)
-        && push({token: token, amount: amount}) == amount,
-      "Kandel/depositFailed"
-    );
+    require(TransferLib.transferTokenFrom(token, msg.sender, address(this), amount), "Kandel/depositFailed");
   }
 
   /// @notice withdraw `amount` of funds from base (ask) or quote (bid) to `recipient`.
@@ -75,11 +33,7 @@ contract Kandel is CoreKandel {
   /// @dev it is up to the caller to make sure there are still enough funds for live offers.
   function withdrawFunds(OfferType ba, uint amount, address recipient) external onlyAdmin {
     IERC20 token = outboundOfOfferType(ba);
-    require(
-      pull({token: token, amount: amount, strict: true}) == amount
-        && TransferLib.transferToken(token, recipient, amount),
-      "Kandel/NotEnoughFunds"
-    );
+    require(TransferLib.transferToken(token, recipient, amount), "Kandel/NotEnoughFunds");
   }
 
   /// @notice gets the total gives of all offers of the offer type
@@ -92,12 +46,7 @@ contract Kandel is CoreKandel {
   }
 
   function reserveBalance(IERC20 token) private view returns (uint) {
-    AbstractRouter router_ = router();
-    if (router_ == NO_ROUTER) {
-      return token.balanceOf(address(this));
-    } else {
-      return router_.ownerBalance(token, address(this));
-    }
+    return token.balanceOf(address(this));
   }
 
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.

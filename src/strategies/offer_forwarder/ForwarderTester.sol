@@ -16,23 +16,11 @@ import {MgvLib} from "mgv_src/MgvLib.sol";
 import {ITesterContract} from "mgv_src/strategies/interfaces/ITesterContract.sol";
 
 contract ForwarderTester is OfferForwarder, ITesterContract {
-  mapping(address => address) public reserves;
-
   constructor(IMangrove mgv, address deployer) OfferForwarder(mgv, deployer) {}
-
-  // giving mutable reserve power to test contract with different kinds of reserve
-  function setReserve(address maker, address reserve) external onlyAdmin {
-    reserves[maker] = reserve;
-  }
-
-  function __reserve__(address maker) internal view virtual override returns (address) {
-    return reserves[maker] == address(0) ? maker : reserves[maker];
-  }
 
   function tokenBalance(IERC20 token, address owner) external view override returns (uint) {
     AbstractRouter router_ = router();
-    address ownerReserve = reserve(owner);
-    return router_.ownerBalance(token, ownerReserve);
+    return router_.sourceBalance(token, owner);
   }
 
   function internal_addOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, address owner, uint leftover)

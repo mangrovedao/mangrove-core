@@ -17,7 +17,9 @@ import {ILiquidityProvider} from "mgv_src/strategies/interfaces/ILiquidityProvid
 contract OfferMaker is ILiquidityProvider, Direct {
   // router_ needs to bind to this contract
   // since one cannot assume `this` is admin of router, one cannot do this here in general
-  constructor(IMangrove mgv, AbstractRouter router_, address deployer) Direct(mgv, router_, 30_000) {
+  constructor(IMangrove mgv, AbstractRouter router_, address deployer, address reserve, uint gasreq)
+    Direct(mgv, router_, gasreq, reserve == address(0) ? address(this) : reserve)
+  {
     // stores total gas requirement of this strat (depends on router gas requirements)
     // if contract is deployed with static address, then one must set admin to something else than msg.sender
     if (deployer != msg.sender) {

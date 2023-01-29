@@ -70,13 +70,13 @@ contract Mango is Direct {
   )
     Direct(
       mgv,
-      new SimpleRouter(), // routes liqudity from (to) reserve to (from) this contract,
-      150_000
+      new SimpleRouter(), // routes liqudity between admin's account and this contract,
+      150_000,
+      deployer // reserve is deployer's account
     )
   {
     MangoStorage.Layout storage mStr = MangoStorage.getStorage();
     AbstractRouter router_ = router();
-    mStr.reserve = deployer;
 
     // sanity check
     require(
@@ -152,15 +152,6 @@ contract Mango is Direct {
     } else {
       emit Initialized({from: from, to: to});
     }
-  }
-
-  function setReserve(address reserve_) external onlyAdmin {
-    MangoStorage.getStorage().reserve = reserve_;
-  }
-
-  function __reserve__(address maker) internal view override returns (address reserve_) {
-    maker; //maker is always admin
-    reserve_ = MangoStorage.getStorage().reserve;
   }
 
   function resetPending() external onlyAdmin {

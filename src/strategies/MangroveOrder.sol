@@ -128,7 +128,6 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // Checking whether order is expired
     require(tko.expiryDate == 0 || block.timestamp <= tko.expiryDate, "mgvOrder/expired");
 
-    address callerReserve = reserve(msg.sender);
     // Notations:
     // NAT_USER: initial value of `msg.sender.balance` (native balance of user)
     // OUT/IN_USER: initial value of `tko.[out|in]bound_tkn.balanceOf(reserve(msg.sender))` (user's reserve balance of tokens)
@@ -140,7 +139,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // * `this` balances: (NAT_THIS +`msg.value`, OUT_THIS, IN_THIS)
 
     // Pulling funds from `msg.sender`'s reserve
-    uint pulled = router().pull(tko.inbound_tkn, callerReserve, tko.takerGives, true);
+    uint pulled = router().pull(tko.inbound_tkn, msg.sender, tko.takerGives, true);
     require(pulled == tko.takerGives, "mgvOrder/transferInFail");
 
     // POST:
@@ -166,11 +165,11 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
     // sending inbound tokens to `msg.sender`'s reserve and sending back remaining outbound tokens
     if (res.takerGot > 0) {
-      require(router().push(tko.outbound_tkn, callerReserve, res.takerGot) == res.takerGot, "mgvOrder/pushFailed");
+      require(router().push(tko.outbound_tkn, msg.sender, res.takerGot) == res.takerGot, "mgvOrder/pushFailed");
     }
     uint inboundLeft = tko.takerGives - res.takerGave;
     if (inboundLeft > 0) {
-      require(router().push(tko.inbound_tkn, callerReserve, inboundLeft) == inboundLeft, "mgvOrder/pushFailed");
+      require(router().push(tko.inbound_tkn, msg.sender, inboundLeft) == inboundLeft, "mgvOrder/pushFailed");
     }
     // POST:
     // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)

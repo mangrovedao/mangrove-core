@@ -13,9 +13,14 @@ contract SimpleEOARouterTest is OfferLogicTest {
     vm.prank(deployer);
     makerContract.setRouter(router);
 
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     weth.approve(address(router), type(uint).max);
     usdc.approve(address(router), type(uint).max);
     vm.stopPrank();
+  }
+
+  function fundStrat() internal virtual override {
+    deal($(weth), owner, 1 ether);
+    deal($(usdc), owner, cash(usdc, 2000));
   }
 }

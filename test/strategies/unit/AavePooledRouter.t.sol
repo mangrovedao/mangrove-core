@@ -54,22 +54,6 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.stopPrank();
   }
 
-  function fundStrat() internal virtual override {
-    //at the end of super.setUp reserve has 1 ether and 2000 USDC
-    //one needs to tell router to deposit them on AAVE
-
-    pooledRouter = AavePooledRouter(address(makerContract.router()));
-
-    deal($(weth), address(makerContract), 1 ether);
-    deal($(usdc), address(makerContract), 2000 * 10 ** 6);
-
-    vm.prank(address(makerContract));
-    pooledRouter.pushAndSupply(dynamic([IERC20(weth), usdc]), dynamic([uint(1 ether), 2000 * 10 ** 6]), source);
-
-    assertEq(pooledRouter.ownerBalance(weth, source), 1 ether, "Incorrect weth balance");
-    assertEq(pooledRouter.ownerBalance(usdc, source), 2000 * 10 ** 6, "Incorrect usdc balance");
-  }
-
   function setupLiquidityRouting() internal override {
     vm.startPrank(deployer);
     AavePooledRouter router = new AavePooledRouter({
@@ -81,7 +65,23 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.stopPrank();
     // although reserve is set to deployer the source remains makerContract since pooledRouter is always the source of funds
     // having reserve pointing to deployed allows deployer to have multiple strats with the same shares on the router
-    source = deployer;
+    owner = deployer;
+  }
+
+  function fundStrat() internal virtual override {
+    //at the end of super.setUp reserve has 1 ether and 2000 USDC
+    //one needs to tell router to deposit them on AAVE
+
+    pooledRouter = AavePooledRouter(address(makerContract.router()));
+
+    deal($(weth), address(makerContract), 1 ether);
+    deal($(usdc), address(makerContract), 2000 * 10 ** 6);
+
+    vm.prank(address(makerContract));
+    pooledRouter.pushAndSupply(dynamic([IERC20(weth), usdc]), dynamic([uint(1 ether), 2000 * 10 ** 6]), owner);
+
+    assertEq(pooledRouter.ownerBalance(weth, owner), 1 ether, "Incorrect weth balance");
+    assertEq(pooledRouter.ownerBalance(usdc, owner), 2000 * 10 ** 6, "Incorrect usdc balance");
   }
 
   function test_only_makerContract_can_push() public {

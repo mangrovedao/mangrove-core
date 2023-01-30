@@ -69,6 +69,7 @@ contract AavePooledRouter is AaveV3Lender, AbstractRouter {
   ///@param token the asset whose balance one is querying
   ///@return balance of the asset
   ///@dev this function relies on the aave promise that aToken are in one-to-one correspondance with claimable underlying and use the same decimals
+  ///FIXME use viewMonad for the balances
   function totalBalance(IERC20 token) public view returns (uint balance) {
     balance = overlying(token).balanceOf(address(this)) + token.balanceOf(address(this));
   }

@@ -16,10 +16,9 @@ import {
 contract OfferLogicTest is MangroveTest {
   TestToken weth;
   TestToken usdc;
-  address payable maker; // user of makerContract
   address payable taker;
   address payable deployer; // admin of makerContract
-  address payable source; // liquidity source (maker contract or EOA)
+  address payable owner; // owner of the offers (==deployer for Direct strats)
 
   ITester makerContract; // can be either OfferMaker or OfferForwarder
 
@@ -74,43 +73,38 @@ contract OfferLogicTest is MangroveTest {
     fundStrat();
   }
 
-  function fundStrat() internal virtual {
-    deal($(weth), source, 1 ether);
-    deal($(usdc), source, cash(usdc, 2000));
-  }
-
   // override this to use Forwarder strats
   function setupMakerContract() internal virtual {
     deployer = payable(address(new TestSender()));
-    vm.deal(deployer, 10 ether);
+    vm.deal(deployer, 1 ether);
 
-    vm.prank(deployer);
+    vm.startPrank(deployer);
     makerContract = new DirectTester({
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)),
       deployer: deployer,
-      reserve: deployer,
       gasreq: 80_000
     });
-    // maker contract will transfer funds from deployer
-    vm.startPrank(deployer);
     weth.approve(address(makerContract), type(uint).max);
     usdc.approve(address(makerContract), type(uint).max);
     vm.stopPrank();
-
-    maker = deployer; // direct strat
-    source = deployer;
+    owner = deployer;
   }
 
   // override this function to use a specific router for the strat
   function setupLiquidityRouting() internal virtual {}
 
+  function fundStrat() internal virtual {
+    deal($(weth), address(makerContract), 1 ether);
+    deal($(usdc), address(makerContract), cash(usdc, 2000));
+  }
+
   function test_checkList() public view {
-    makerContract.checkList(dynamic([IERC20(weth), usdc]), source);
+    makerContract.checkList(dynamic([IERC20(weth), usdc]), owner);
   }
 
   function test_maker_can_post_newOffer() public {
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -122,7 +116,7 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function test_getMissingProvision_is_enough_to_post_newOffer() public {
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     uint offerId = makerContract.newOffer{value: makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0)}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -137,7 +131,7 @@ contract OfferLogicTest is MangroveTest {
   function test_getMissingProvision_is_strict() public {
     uint minProv = makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
     vm.expectRevert("mgv/insufficientProvision");
-    vm.prank(maker);
+    vm.prank(owner);
     makerContract.newOffer{value: minProv - 1}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -149,7 +143,7 @@ contract OfferLogicTest is MangroveTest {
 
   function test_newOffer_fails_when_provision_is_zero() public {
     vm.expectRevert("mgv/insufficientProvision");
-    vm.prank(maker);
+    vm.prank(owner);
     makerContract.newOffer{value: 0}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -164,7 +158,7 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function test_maker_can_deprovision_Offer() public {
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -172,18 +166,18 @@ contract OfferLogicTest is MangroveTest {
       gives: 1 * 10 ** 18,
       pivotId: 0
     });
-    uint makerBalWei = maker.balance;
+    uint makerBalWei = owner.balance;
     uint locked = makerContract.provisionOf(weth, usdc, offerId);
-    vm.prank(maker);
+    vm.prank(owner);
     uint deprovisioned = makerContract.retractOffer(weth, usdc, offerId, true);
     // checking WEIs are returned to maker's account
-    assertEq(maker.balance, makerBalWei + deprovisioned, "Incorrect WEI balance");
+    assertEq(owner.balance, makerBalWei + deprovisioned, "Incorrect WEI balance");
     // checking that the totality of the provisions is returned
     assertEq(deprovisioned, locked, "Deprovision was incomplete");
   }
 
   function test_mangrove_can_deprovision_offer() public {
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -191,19 +185,19 @@ contract OfferLogicTest is MangroveTest {
       gives: 1 * 10 ** 18,
       pivotId: 0
     });
-    uint makerBalWei = maker.balance;
+    uint makerBalWei = owner.balance;
     uint locked = makerContract.provisionOf(weth, usdc, offerId);
     vm.prank(address(mgv));
     // returned provision is sent to offer maker
     uint deprovisioned = makerContract.retractOffer(weth, usdc, offerId, true);
     // checking WEIs are returned to maker's account
-    assertEq(maker.balance, makerBalWei + deprovisioned, "Incorrect WEI balance");
+    assertEq(owner.balance, makerBalWei + deprovisioned, "Incorrect WEI balance");
     // checking that the totality of the provisions is returned
     assertEq(deprovisioned, locked, "Deprovision was incomplete");
   }
 
   function test_deprovision_twice_returns_no_fund() public {
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -218,8 +212,8 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function test_deprovisionOffer_throws_if_wei_transfer_fails() public {
-    TestSender(maker).refuseNative();
-    vm.startPrank(maker);
+    TestSender(owner).refuseNative();
+    vm.startPrank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -233,7 +227,7 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function test_maker_can_updateOffer() public {
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -242,7 +236,7 @@ contract OfferLogicTest is MangroveTest {
       pivotId: 0
     });
 
-    vm.prank(maker);
+    vm.prank(owner);
     makerContract.updateOffer({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -254,7 +248,7 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function test_only_maker_can_updateOffer() public {
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -275,7 +269,7 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function test_updateOffer_fails_when_provision_is_too_low() public {
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -285,7 +279,7 @@ contract OfferLogicTest is MangroveTest {
     });
     mgv.setGasprice(type(uint16).max);
     vm.expectRevert("mgv/insufficientProvision");
-    vm.prank(maker);
+    vm.prank(owner);
     makerContract.updateOffer({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -297,7 +291,7 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function performTrade(bool success) internal returns (uint takergot, uint takergave, uint bounty, uint fee) {
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     // ask 2000 USDC for 1 weth
     makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
@@ -321,18 +315,19 @@ contract OfferLogicTest is MangroveTest {
     assertTrue(!success || (bounty == 0 && takergot > 0), "unexpected trade result");
   }
 
-  function test_source_balance_is_updated_when_trade_succeeds() public {
-    uint balOut = makerContract.tokenBalance(weth, source);
-    uint balIn = makerContract.tokenBalance(usdc, source);
+  function test_owner_balance_is_updated_when_trade_succeeds() public {
+    uint balOut = makerContract.tokenBalance(weth, owner);
+    uint balIn = makerContract.tokenBalance(usdc, owner);
+
     (uint takergot, uint takergave, uint bounty, uint fee) = performTrade(true);
     assertTrue(bounty == 0 && takergot > 0, "trade failed");
 
-    assertEq(makerContract.tokenBalance(weth, source), balOut - (takergot + fee), "incorrect out balance");
-    assertEq(makerContract.tokenBalance(usdc, source), balIn + takergave, "incorrect in balance");
+    assertEq(makerContract.tokenBalance(weth, owner), balOut - (takergot + fee), "incorrect out balance");
+    assertEq(makerContract.tokenBalance(usdc, owner), balIn + takergave, "incorrect in balance");
   }
 
   function test_reposting_fails_with_expected_reason_when_below_density() public {
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -358,7 +353,7 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function test_reposting_fails_with_expected_reason_when_underprovisioned() public {
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -389,7 +384,7 @@ contract OfferLogicTest is MangroveTest {
   }
 
   function test_reposting_fails_with_expected_reason_when_innactive() public {
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,

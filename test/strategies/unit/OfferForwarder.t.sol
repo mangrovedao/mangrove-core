@@ -29,28 +29,27 @@ contract OfferForwarderTest is OfferLogicTest {
       mgv: IMangrove($(mgv)),
       deployer: deployer
     });
-    maker = payable(address(new TestSender()));
-    vm.deal(maker, 10 ether);
-    source = maker; // using maker's EOA as liquidity source
+    owner = payable(address(new TestSender()));
+    vm.deal(owner, 10 ether);
 
     makerContract = ITester(address(forwarder)); // to use for all non `IForwarder` specific tests.
     // reserve (which is maker here) approves contract's router
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     usdc.approve(address(makerContract.router()), type(uint).max);
     weth.approve(address(makerContract.router()), type(uint).max);
     vm.stopPrank();
   }
 
   function fundStrat() internal virtual override {
-    deal($(weth), maker, 1 ether);
-    deal($(usdc), maker, cash(usdc, 2000));
+    deal($(weth), owner, 1 ether);
+    deal($(usdc), owner, cash(usdc, 2000));
   }
 
   function test_derived_gasprice_is_accurate_enough(uint fund) public {
     vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0));
     vm.assume(fund < 5 ether); // too high provision would yield a gasprice overflow
     uint contractOldBalance = mgv.balanceOf(address(makerContract));
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: fund}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -69,7 +68,7 @@ contract OfferForwarderTest is OfferLogicTest {
   }
 
   function test_updateOffer_with_funds_updates_gasprice() public {
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -78,7 +77,7 @@ contract OfferForwarderTest is OfferLogicTest {
       pivotId: 0
     });
     uint old_gasprice = mgv.offerDetails(address(weth), address(usdc), offerId).gasprice();
-    vm.prank(maker);
+    vm.prank(owner);
     makerContract.updateOffer{value: 0.2 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -96,7 +95,7 @@ contract OfferForwarderTest is OfferLogicTest {
   function test_failed_offer_reaches_posthookFallback() public {
     MgvLib.SingleOrder memory order;
     MgvLib.OrderResult memory result;
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -122,7 +121,7 @@ contract OfferForwarderTest is OfferLogicTest {
   function test_failed_offer_credits_maker(uint fund) public {
     vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0));
     vm.assume(fund < 5 ether);
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: fund}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -157,7 +156,7 @@ contract OfferForwarderTest is OfferLogicTest {
   }
 
   function test_makership() public {
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -165,16 +164,16 @@ contract OfferForwarderTest is OfferLogicTest {
       gives: 1 ether,
       pivotId: 0
     });
-    assertEq(forwarder.ownerOf(weth, usdc, offerId), maker, "Invalid makership relation");
+    assertEq(forwarder.ownerOf(weth, usdc, offerId), owner, "Invalid makership relation");
   }
 
   function test_NewOwnedOffer_logging() public {
     (, MgvStructs.LocalPacked local) = mgv.config($(weth), $(usdc));
     uint next_id = local.last() + 1;
     vm.expectEmit(true, true, true, false, address(forwarder));
-    emit NewOwnedOffer(IMangrove($(mgv)), weth, usdc, next_id, maker);
+    emit NewOwnedOffer(IMangrove($(mgv)), weth, usdc, next_id, owner);
 
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -188,7 +187,7 @@ contract OfferForwarderTest is OfferLogicTest {
   function test_provision_too_high_reverts() public {
     vm.expectRevert("Forwarder/provisionTooHigh");
 
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     makerContract.newOffer{value: 10 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -200,7 +199,7 @@ contract OfferForwarderTest is OfferLogicTest {
   }
 
   function test_updateOffer_with_no_funds_preserves_gasprice() public {
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -212,7 +211,7 @@ contract OfferForwarderTest is OfferLogicTest {
     MgvStructs.OfferDetailPacked detail = mgv.offerDetails($(weth), $(usdc), offerId);
     uint old_gasprice = detail.gasprice();
 
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     makerContract.updateOffer({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -227,7 +226,7 @@ contract OfferForwarderTest is OfferLogicTest {
   }
 
   function test_updateOffer_with_funds_increases_gasprice() public {
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -238,7 +237,7 @@ contract OfferForwarderTest is OfferLogicTest {
     vm.stopPrank();
     MgvStructs.OfferDetailPacked detail = mgv.offerDetails($(weth), $(usdc), offerId);
     uint old_gasprice = detail.gasprice();
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     makerContract.updateOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -253,7 +252,7 @@ contract OfferForwarderTest is OfferLogicTest {
   }
 
   function test_different_maker_can_post_offers() public {
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -273,12 +272,12 @@ contract OfferForwarderTest is OfferLogicTest {
       pivotId: 0
     });
     assertEq(forwarder.ownerOf(weth, usdc, offerId_), new_maker, "Incorrect maker");
-    assertEq(forwarder.ownerOf(weth, usdc, offerId), maker, "Incorrect maker");
+    assertEq(forwarder.ownerOf(weth, usdc, offerId), owner, "Incorrect maker");
   }
 
   function test_put_fail_reverts_with_expected_reason() public {
     MgvLib.SingleOrder memory order;
-    vm.prank(maker);
+    vm.prank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
@@ -287,7 +286,7 @@ contract OfferForwarderTest is OfferLogicTest {
       pivotId: 0
     });
 
-    vm.startPrank(maker);
+    vm.startPrank(owner);
     usdc.approve($(makerContract.router()), 0);
     vm.stopPrank();
 

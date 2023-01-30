@@ -31,7 +31,6 @@ contract AccessControlTest is MangroveTest {
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)),
       deployer: admin,
-      reserve: address(0),
       gasreq: 50_000
     });
     vm.startPrank(admin);

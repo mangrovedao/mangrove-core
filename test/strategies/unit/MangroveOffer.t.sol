@@ -45,7 +45,6 @@ contract MangroveOfferTest is MangroveTest {
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)), // no router
       deployer: deployer,
-      reserve: deployer,
       gasreq: 50_000
     });
   }
@@ -59,23 +58,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.activate(dynamic([IERC20(weth), usdc]));
   }
 
-  function test_a_checkList_reserve_not_approved() public {
-    vm.expectRevert("Direct/reserveMustApproveMakerContract");
-    makerContract.checkList(dynamic([IERC20(weth)]), deployer);
-  }
-
-  // function test_a2_checkList_router_not_approved() public {
-  //   vm.startPrank(deployer);
-  //   SimpleRouter router = new SimpleRouter();
-  //   makerContract.setRouter(router);
-  //   vm.stopPrank();
-
-  //   IERC20[] memory tokens = dynamic([IERC20(weth)]);
-  //   vm.expectRevert("Direct/reserveMustApproveRouter");
-  //   makerContract.checkList(tokens, deployer);
-  // }
-
-  function test_b_checkList_with_router() public {
+  function test_a_checkList_with_router() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
     makerContract.setRouter(router);
@@ -86,11 +69,11 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.checkList(tokens, deployer);
   }
 
-  function test_c_checkList_router_not_bound() public {
+  function test_b_checkList_router_not_bound() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
     makerContract.setRouter(router);
-    // passes b
+    // passes a
     makerContract.approve(weth, $(mgv), type(uint).max);
     vm.stopPrank();
 
@@ -99,13 +82,13 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.checkList(tokens, deployer);
   }
 
-  function test_d_checkList_router_not_approved() public {
+  function test_c_checkList_router_not_approved() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
     makerContract.setRouter(router);
-    // passes b
+    // passes a
     makerContract.approve(weth, $(mgv), type(uint).max);
-    // passes c
+    // passes b
     router.bind(address(makerContract));
     vm.stopPrank();
 
@@ -114,15 +97,15 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.checkList(tokens, deployer);
   }
 
-  function test_e_checkList_router_not_approved_by_reserve() public {
+  function test_d_checkList_router_not_approved_by_reserve() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
     makerContract.setRouter(router);
-    // passes b
+    // passes a
     makerContract.approve(weth, $(mgv), type(uint).max);
-    // passes c
+    // passes b
     router.bind(address(makerContract));
-    // passes d
+    // passes c
     makerContract.approve(weth, address(makerContract.router()), type(uint).max);
     vm.stopPrank();
 
@@ -131,17 +114,17 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.checkList(tokens, deployer);
   }
 
-  function test_d_checkList_completes() public {
+  function test_e_checkList_completes() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
     makerContract.setRouter(router);
-    // passes b
+    // passes a
     makerContract.approve(weth, $(mgv), type(uint).max);
-    // passes c
+    // passes b
     router.bind(address(makerContract));
-    // passes d
+    // passes c
     makerContract.approve(weth, address(makerContract.router()), type(uint).max);
-    // passes e
+    // passes d
     weth.approve(address(makerContract.router()), type(uint).max);
     vm.stopPrank();
 

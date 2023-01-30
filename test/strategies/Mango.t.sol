@@ -51,7 +51,7 @@ contract MangoTest is MangroveTest {
 
     vm.startPrank(maker);
     mgo = new Mango({
-      mgv: IMangrove($(mgv)), // TODO: remove IMangrove dependency?
+      mgv: IMangrove($(mgv)),
       base: weth,
       quote: usdc,
       base_0: cash(weth, 34, 2),

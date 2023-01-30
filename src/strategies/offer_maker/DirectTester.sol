@@ -20,13 +20,14 @@ contract DirectTester is ITesterContract, OfferMaker {
 
   // router_ needs to bind to this contract
   // since one cannot assume `this` is admin of router, one cannot do this here in general
-  constructor(IMangrove mgv, AbstractRouter router_, address deployer, address reserve, uint gasreq)
-    OfferMaker(mgv, router_, deployer, reserve, gasreq)
+  constructor(IMangrove mgv, AbstractRouter router_, address deployer, uint gasreq)
+    OfferMaker(mgv, router_, deployer, gasreq)
   {}
 
   function tokenBalance(IERC20 token, address owner) external view override returns (uint) {
+    require(owner == admin());
     AbstractRouter router_ = router();
-    return router_ == NO_ROUTER ? token.balanceOf(owner) : router_.ownerBalance(token, owner);
+    return router_ == NO_ROUTER ? token.balanceOf(address(this)) : router_.ownerBalance(token, owner);
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)

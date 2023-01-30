@@ -41,17 +41,8 @@ contract AaveKandel is CoreKandel {
     _withdrawFunds(tokens, amounts, recipient);
   }
 
-  /// @notice gets the total gives of all offers of the offer type
-  /// @param ba offer type.
-  function offeredVolume(OfferType ba) public view returns (uint volume) {
-    for (uint index = 0; index < params.length; index++) {
-      (MgvStructs.OfferPacked offer,) = getOffer(ba, index);
-      volume += offer.gives();
-    }
-  }
-
   function reserveBalance(IERC20 token) private view returns (uint) {
-    return token.balanceOf(address(this));
+    return pooledRouter().ownerBalance(token, admin());
   }
 
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.

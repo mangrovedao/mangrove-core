@@ -444,4 +444,14 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
     handlePopulate(dualBa, viewDual, args, populateStatus);
   }
+
+  /// @notice gets the total gives of all offers of the offer type
+  /// @param ba offer type.
+  /// @dev function is very gas constly, for external calls only
+  function offeredVolume(OfferType ba) public view returns (uint volume) {
+    for (uint index = 0; index < params.length; index++) {
+      (MgvStructs.OfferPacked offer,) = getOffer(ba, index);
+      volume += offer.gives();
+    }
+  }
 }

@@ -19,25 +19,8 @@ contract Kandel is CoreKandel {
     CoreKandel(mgv, base, quote, gasreq, gasprice, NO_ROUTER)
   {}
 
-  /// @notice gets the total gives of all offers of the offer type
-  /// @param ba offer type.
-  function offeredVolume(OfferType ba) public view returns (uint volume) {
-    for (uint index = 0; index < params.length; index++) {
-      (MgvStructs.OfferPacked offer,) = getOffer(ba, index);
-      volume += offer.gives();
-    }
-  }
-
   function reserveBalance(IERC20 token) private view returns (uint) {
     return token.balanceOf(address(this));
-  }
-
-  /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
-  /// @param ba offer type.
-  /// @return pending_ the pending amount
-  function pending(OfferType ba) external view returns (int pending_) {
-    IERC20 token = outboundOfOfferType(ba);
-    pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));
   }
 
   function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) external {
@@ -46,5 +29,13 @@ contract Kandel is CoreKandel {
 
   function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) external onlyAdmin {
     _withdrawFunds(tokens, amounts, recipient);
+  }
+
+  /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
+  /// @param ba offer type.
+  /// @return pending_ the pending amount
+  function pending(OfferType ba) external view returns (int pending_) {
+    IERC20 token = outboundOfOfferType(ba);
+    pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));
   }
 }

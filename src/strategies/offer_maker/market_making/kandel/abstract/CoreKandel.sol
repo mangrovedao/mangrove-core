@@ -380,18 +380,16 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   }
 
   ///@notice takes care of status for reposting residual offer in case of a partial fill and logging of potential issues.
-  ///@param ba whether the offer is a bid or an ask.
   ///@param order a recap of the taker order
   ///@param makerData generated during `makerExecute` so as to log it if necessary
   ///@param repostStatus from the super posthook
-  function handleResidual(OfferType ba, MgvLib.SingleOrder calldata order, bytes32 makerData, bytes32 repostStatus)
-    internal
-  {
-    if (repostStatus == "posthook/filled" || repostStatus == REPOST_SUCCESS) {
+  function handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData, bytes32 repostStatus) internal {
+    if (
+      repostStatus == "posthook/filled" || repostStatus == REPOST_SUCCESS
+        || repostStatus == "mgv/writeOffer/density/tooLow"
+    ) {
+      // Low density will mean some amount is not posted and will be available for withdrawal or later posting via populate.
       return;
-    }
-    if (repostStatus == "mgv/writeOffer/density/tooLow") {
-      emit DensityTooLow(ba, order.offerId, __residualGives__(order), __residualWants__(order));
     } else {
       // Offer failed to repost for bad reason, logging the incident
       emit LogIncident(
@@ -410,18 +408,15 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     OfferArgs memory args,
     bytes32 populateStatus
   ) internal {
-    if (populateStatus == REPOST_SUCCESS || populateStatus == "") {
+    if (populateStatus == REPOST_SUCCESS || populateStatus == "" || populateStatus == "mgv/writeOffer/density/tooLow") {
+      // Low density will mean some amount is not posted and will be available for withdrawal or later posting via populate.
       return;
     }
     uint offerId = _offerId(dualBa, viewDual);
-    if (populateStatus == "mgv/writeOffer/density/tooLow") {
-      emit DensityTooLow(dualBa, offerId, args.gives, args.wants);
+    if (offerId != 0) {
+      emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, offerId, "Kandel/updateOfferFailed", populateStatus);
     } else {
-      if (offerId != 0) {
-        emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, offerId, "Kandel/updateOfferFailed", populateStatus);
-      } else {
-        emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/newOfferFailed", populateStatus);
-      }
+      emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, 0, "Kandel/newOfferFailed", populateStatus);
     }
   }
 
@@ -434,7 +429,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   {
     bytes32 repostStatus = super.__posthookSuccess__(order, makerData);
     OfferType ba = OfferTypeOfOutbound(IERC20(order.outbound_tkn));
-    handleResidual(ba, order, makerData, repostStatus);
+    handleResidual(order, makerData, repostStatus);
 
     // adds any unpublished liquidity to pending[Base/Quote]
     // preparing arguments for the dual offer

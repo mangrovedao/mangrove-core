@@ -30,9 +30,6 @@ abstract contract AbstractKandel is HasKandelSlotViewMonad {
   ///@notice signals a new Kandel instance for the owner on the mangrove, for base and quote.
   event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
 
-  ///@notice signals posthook could not repost due to too low density
-  event DensityTooLow(OfferType offerType, uint offerId, uint residualGives, uint residualWants);
-
   // `ratio`, `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals.
   // setting PRECISION higher than 4 might produce overflow in limit cases.
   uint8 public constant PRECISION = 4;

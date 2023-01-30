@@ -37,7 +37,6 @@ contract KandelTest is MangroveTest {
     bytes32 makerData,
     bytes32 mgvData
   );
-  event DensityTooLow(OfferType offerType, uint offerId, uint residualGives, uint residualWants);
 
   function setUp() public virtual override {
     options.base.symbol = "WETH";
@@ -717,17 +716,15 @@ contract KandelTest is MangroveTest {
     assertEq(bidPost.gives(), bid.gives() * 2, "gives should be changed");
   }
 
-  function test_posthook_density_too_low_is_emitted() public {
+  function test_posthook_density_too_low_still_posts_to_dual() public {
     uint index = 4;
     uint offerId = kdl.offerIdOfIndex(Bid, index);
 
     (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
     (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, index + STEP);
 
-    // Take almost all and expect too low density emitted
+    // Take almost all - offer will not be reposted due to density too low
     uint amount = bid.wants() - 1;
-    vm.expectEmit(true, true, true, true);
-    emit DensityTooLow(OfferType.Bid, offerId, 1, 1);
     vm.prank(taker);
     mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
 
@@ -736,7 +733,7 @@ contract KandelTest is MangroveTest {
     assertGt(askPost.gives(), ask.gives(), "Dual should offer more even though bid failed to post");
   }
 
-  function test_posthook_dual_density_too_low_is_emitted_newOffer() public {
+  function test_posthook_dual_density_too_low_not_posted_via_newOffer() public {
     //assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
     sellToBestAs(taker, 1000 ether);
     // assertStatus(dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
@@ -752,14 +749,14 @@ contract KandelTest is MangroveTest {
 
     // Take very little and expect dual posting to fail.
     uint amount = 10000;
-    vm.expectEmit(true, true, true, true);
-    // offerId is 0 since no old offer is reused
-    emit DensityTooLow(OfferType.Ask, 0, 9259, 0);
     vm.prank(taker);
-    mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
+    (uint successes,,,,) = mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
+    assertTrue(successes == 1, "Snipe failed");
+    (ask,) = kdl.getOffer(Ask, index + STEP);
+    assertTrue(!mgv.isLive(ask), "ask should still not be live");
   }
 
-  function test_posthook_dual_density_too_low_is_emitted_updateOffer() public {
+  function test_posthook_dual_density_too_low_not_posted_via_updateOffer() public {
     // make previous live ask dead
     buyFromBestAs(taker, 1000 ether);
 
@@ -774,11 +771,12 @@ contract KandelTest is MangroveTest {
 
     // Take very little and expect dual posting to fail.
     uint amount = 10000;
-    vm.expectEmit(true, true, true, true);
-    // offerId is 1 since old offer is reused
-    emit DensityTooLow(OfferType.Ask, 1, 9259, 0);
     vm.prank(taker);
-    mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
+    (uint successes,,,,) = mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
+    assertTrue(successes == 1, "Snipe failed");
+
+    (ask,) = kdl.getOffer(Ask, index + STEP);
+    assertTrue(!mgv.isLive(ask), "ask should still not be live");
   }
 
   function GetParams(Kandel aKandel) internal view returns (Kandel.Params memory params) {

@@ -22,50 +22,10 @@ import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 /// `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
 abstract contract Direct is MangroveOffer {
   ///@notice owner of strat funds
-  address immutable RESERVE;
 
-  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq, address reserve) MangroveOffer(mgv, gasreq) {
+  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq) MangroveOffer(mgv, gasreq) {
     if (router_ != NO_ROUTER) {
       setRouter(router_);
-    }
-    RESERVE = reserve;
-  }
-
-  function pull(IERC20 token, uint amount, bool strict) internal virtual returns (uint) {
-    AbstractRouter router_ = router();
-    if (router_ == NO_ROUTER) {
-      uint reserveBalance = token.balanceOf(RESERVE);
-      amount = strict ? (reserveBalance > amount ? amount : reserveBalance) : reserveBalance;
-      require(
-        TransferLib.transferTokenFrom({token: token, spender: RESERVE, recipient: address(this), amount: amount}),
-        "Direct/pullFailed"
-      );
-      return amount;
-    } else {
-      // letting specific router pull the funds from RESERVE
-      return router_.pull(token, RESERVE, amount, strict);
-    }
-  }
-
-  function push(IERC20 token, uint amount) internal virtual returns (uint) {
-    AbstractRouter router_ = router();
-    if (router_ == NO_ROUTER) {
-      require(TransferLib.transferToken(token, RESERVE, amount), "Direct/pushFailed");
-      return amount; // nothing to do
-    } else {
-      // noop if reserve == address(this)
-      return router_.push(token, RESERVE, amount);
-    }
-  }
-
-  function flush(IERC20[] memory tokens) internal virtual {
-    AbstractRouter router_ = MOS.getStorage().router;
-    if (router_ != NO_ROUTER) {
-      router_.flush(tokens, RESERVE);
-    } else {
-      for (uint i; i < tokens.length; i++) {
-        require(TransferLib.transferToken(tokens[i], RESERVE, tokens[i].balanceOf(address(this))), "Direct/flushFailed");
-      }
     }
   }
 
@@ -162,8 +122,13 @@ abstract contract Direct is MangroveOffer {
       return 0;
     }
     amount_ = amount - amount_;
-    uint pulled = pull(IERC20(order.outbound_tkn), amount_, false);
-    missing = pulled >= amount_ ? 0 : amount_ - pulled;
+    AbstractRouter router_ = router();
+    if (router_ == NO_ROUTER) {
+      return amount_;
+    } else {
+      uint pulled = router_.pull(IERC20(order.outbound_tkn), admin(), amount_, false);
+      return pulled >= amount_ ? 0 : amount_ - pulled;
+    }
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
@@ -176,24 +141,17 @@ abstract contract Direct is MangroveOffer {
     tokens[0] = IERC20(order.outbound_tkn); // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
     tokens[1] = IERC20(order.inbound_tkn); // flushing liquidity brought by taker
     // sends all tokens to the reserve (noop if reserve(admin()) == address(this))
-    flush(tokens);
+    AbstractRouter router_ = router();
+    if (router_ != NO_ROUTER) {
+      router_.flush(tokens, admin());
+    }
     // reposting offer residual if any
     return super.__posthookSuccess__(order, makerData);
   }
 
   function __checkList__(IERC20 token, address owner) internal view virtual override {
     // liquidity owner is an immutable of Direct strats
-    require(owner == RESERVE, "Direct/LiquiditySourceMismatch");
-    AbstractRouter router_ = router();
-    if (router_ == NO_ROUTER) {
-      // if not using a router, contract will transfer liquidity from reserve during pull
-      require(
-        RESERVE == address(this) || token.allowance({owner: RESERVE, spender: address(this)}) > 0,
-        "Direct/reserveMustApproveMakerContract"
-      );
-    }
-    // if using a router, we let the router verifies whether reserve must approve the router
-    // this may not be the case for instance if the router does not transfer funds from reserve but maintains shares attributes to the reserve
+    require(owner == admin(), "Direct/onlyAdminCanOwnOffers");
     super.__checkList__(token, owner);
   }
 }

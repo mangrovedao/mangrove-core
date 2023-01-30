@@ -59,7 +59,7 @@ library KandelLib {
       populateVars.indices[populateVars.i] = from;
       populateVars.baseDist[populateVars.i] = initBase;
       populateVars.quoteDist[populateVars.i] = initQuote;
-      initQuote = (initQuote * (uint(ratio) ** uint(spread))) / 10 ** kandel.PRECISION();
+      initQuote = (initQuote * (uint(ratio) ** uint(spread))) / ((10 ** kandel.PRECISION()) ** uint(spread));
       populateVars.i++;
     }
 

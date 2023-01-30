@@ -2,13 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Script, console2 as console} from "forge-std/Script.sol";
-import {
-  Kandel,
-  IERC20,
-  IMangrove,
-  AbstractKandel,
-  OfferType
-} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {Kandel, IERC20, IMangrove, OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {AbstractKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/AbstractKandel.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
@@ -115,12 +110,12 @@ contract KdlPopulate is Deployer {
 
     prettyLog("Funding asks...");
     broadcast();
-    args.kdl.depositFunds(OfferType.Ask, vars.baseAmountRequired);
+    args.kdl.depositFunds(dynamic([IERC20(vars.BASE)]), dynamic([uint(vars.baseAmountRequired)]));
     console.log(toUnit(vars.baseAmountRequired, vars.BASE.decimals()), vars.BASE.name(), "deposited");
 
     prettyLog("Funding bids...");
     broadcast();
-    args.kdl.depositFunds(OfferType.Bid, vars.quoteAmountRequired);
+    args.kdl.depositFunds(dynamic([IERC20(vars.QUOTE)]), dynamic([uint(vars.quoteAmountRequired)]));
     console.log(toUnit(vars.quoteAmountRequired, vars.QUOTE.decimals()), vars.QUOTE.name(), "deposited");
 
     // baseDist is just uniform distribution here:

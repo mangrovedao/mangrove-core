@@ -119,8 +119,7 @@ contract KandelTest is MangroveTest {
     uint pendingQuote = uint(-kdl.pending(Bid));
     deal($(weth), maker, pendingBase);
     deal($(usdc), maker, pendingQuote);
-    kdl.depositFunds(Ask, pendingBase);
-    kdl.depositFunds(Bid, pendingQuote);
+    kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([pendingBase, pendingQuote]));
 
     vm.stopPrank();
   }
@@ -587,6 +586,10 @@ contract KandelTest is MangroveTest {
     kdl.populate(indices, baseDist, quoteDist, pivotIds, lastBidIndex, params.length, params.ratio, params.spread);
   }
 
+  function withdrawFunds(IERC20 token, uint amount, address recipient) internal {
+    kdl.withdrawFunds(dynamic([token]), dynamic([amount]), recipient);
+  }
+
   function test_heal_ba(OfferType ba, uint failures, uint[] memory expectedMidStatus) private {
     (uint midWants, uint midGives) = getMidPrice();
     (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) = getBestOffers();
@@ -594,8 +597,9 @@ contract KandelTest is MangroveTest {
     uint densityMidAsk = bestAsk.gives();
     // make offer fail (too little balance)
     uint offeredVolume = kdl.offeredVolume(ba);
+    IERC20 outbound = ba == OfferType.Ask ? base : quote;
     vm.prank(maker);
-    kdl.withdrawFunds(ba, offeredVolume, address(this));
+    withdrawFunds(outbound, offeredVolume, address(this));
 
     for (uint i = 0; i < failures; i++) {
       (uint successes,,,,) = ba == Ask ? buyFromBestAs(taker, 1 ether) : sellToBestAs(taker, 1 ether);
@@ -606,10 +610,10 @@ contract KandelTest is MangroveTest {
     assertStatus(expectedMidStatus);
 
     // send funds back
-    (ba == Ask ? base : quote).transfer(address(kdl), offeredVolume);
+    outbound.transfer(address(kdl), offeredVolume);
     // Only allow filling up with half the volume.
     vm.startPrank(maker);
-    kdl.withdrawFunds(ba, uint(kdl.pending(ba)) / 2, address(this));
+    withdrawFunds(outbound, uint(kdl.pending(ba)) / 2, address(this));
     vm.stopPrank();
 
     heal(midWants, midGives, densityMidBid / 2, densityMidAsk / 2);

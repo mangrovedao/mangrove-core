@@ -7,9 +7,9 @@ import {
   IERC20,
   IMangrove,
   MgvStructs,
-  AbstractKandel,
   OfferType
 } from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {AbstractKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/AbstractKandel.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 

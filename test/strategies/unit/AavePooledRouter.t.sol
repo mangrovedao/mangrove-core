@@ -8,7 +8,7 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 contract AavePooledRouterTest is OfferLogicTest {
   AavePooledRouter pooledRouter;
 
-  uint constant GASREQ = 494 * 1000;
+  uint constant GASREQ = 474 * 1000; // fail for GASREQ < 474K
 
   event SetRewardsManager(address);
 
@@ -186,6 +186,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     uint finalize_cost = gas - gasleft();
     console.log("deep pull: %d, finalize: %d", deep_pull_cost, finalize_cost);
     console.log("shallow push: %d", shallow_push_cost);
+    console.log("Strat gasreq (%d), mockup (%d)", GASREQ, deep_pull_cost + finalize_cost);
     assertTrue(deep_pull_cost + finalize_cost <= GASREQ, "Strat is spending more gas");
   }
 

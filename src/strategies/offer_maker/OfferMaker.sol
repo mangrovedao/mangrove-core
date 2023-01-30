@@ -77,6 +77,13 @@ contract OfferMaker is ILiquidityProvider, Direct {
     mgvOrAdmin
     returns (uint freeWei)
   {
-    return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+    freeWei = _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+    if (freeWei > 0) {
+      require(MGV.withdraw(freeWei), "Direct/withdrawFail");
+      // sending native tokens to `msg.sender` prevents reentrancy issues
+      // (the context call of `retractOffer` could be coming from `makerExecute` and a different recipient of transfer than `msg.sender` could use this call to make offer fail)
+      (bool noRevert,) = admin().call{value: freeWei}("");
+      require(noRevert, "mgvOffer/weiTransferFail");
+    }
   }
 }

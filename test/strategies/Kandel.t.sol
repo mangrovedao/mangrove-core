@@ -278,7 +278,7 @@ contract KandelTest is MangroveTest {
     test_bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
   }
 
-  function test_bid_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote, uint index) private {
+  function test_bid_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote, uint index) internal {
     vm.assume(compoundRateBase <= 10_000);
     vm.assume(compoundRateQuote <= 10_000);
     vm.prank(maker);
@@ -311,7 +311,7 @@ contract KandelTest is MangroveTest {
     test_ask_complete_fill(compoundRateBase, compoundRateQuote, 5);
   }
 
-  function test_ask_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote, uint index) private {
+  function test_ask_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote, uint index) internal {
     vm.assume(compoundRateBase <= 10_000);
     vm.assume(compoundRateQuote <= 10_000);
     vm.prank(maker);
@@ -416,7 +416,7 @@ contract KandelTest is MangroveTest {
     Decrease
   }
 
-  function assertChange(ExpectedChange expectedChange, uint expected, uint actual, string memory descriptor) private {
+  function assertChange(ExpectedChange expectedChange, uint expected, uint actual, string memory descriptor) internal {
     if (expectedChange == ExpectedChange.Same) {
       assertApproxEqRel(expected, actual, 1e11, string.concat(descriptor, " should be unchanged to within 0.00001%"));
     } else if (expectedChange == ExpectedChange.Decrease) {
@@ -432,7 +432,7 @@ contract KandelTest is MangroveTest {
     uint16 compoundRateQuote,
     ExpectedChange baseVolumeChange,
     ExpectedChange quoteVolumeChange
-  ) private {
+  ) internal {
     deal($(weth), taker, cash(weth, 5000));
     deal($(usdc), taker, cash(usdc, 7000000));
     uint initialTotalVolumeBase;
@@ -498,14 +498,14 @@ contract KandelTest is MangroveTest {
     test_take_full_bid_and_ask_repeatedly(10, 0, 0, ExpectedChange.Decrease, ExpectedChange.Decrease);
   }
 
-  function getBestOffers() private view returns (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) {
+  function getBestOffers() internal view returns (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) {
     uint bestAskId = mgv.best($(weth), $(usdc));
     uint bestBidId = mgv.best($(usdc), $(weth));
     bestBid = mgv.offers($(usdc), $(weth), bestBidId);
     bestAsk = mgv.offers($(weth), $(usdc), bestAskId);
   }
 
-  function getMidPrice() private view returns (uint midWants, uint midGives) {
+  function getMidPrice() internal view returns (uint midWants, uint midGives) {
     (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) = getBestOffers();
 
     midWants = bestBid.wants() * bestAsk.wants() + bestBid.gives() * bestAsk.gives();
@@ -513,7 +513,7 @@ contract KandelTest is MangroveTest {
   }
 
   function getDeadOffers(uint midGives, uint midWants)
-    private
+    internal
     view
     returns (uint[] memory indices, uint[] memory quoteAtIndex, uint numBids)
   {
@@ -603,7 +603,7 @@ contract KandelTest is MangroveTest {
     kdl.withdrawFunds(dynamic([token]), dynamic([amount]), recipient);
   }
 
-  function test_heal_ba(OfferType ba, uint failures, uint[] memory expectedMidStatus) private {
+  function test_heal_ba(OfferType ba, uint failures, uint[] memory expectedMidStatus) internal {
     (uint midWants, uint midGives) = getMidPrice();
     (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) = getBestOffers();
     uint densityMidBid = bestBid.gives();
@@ -653,7 +653,7 @@ contract KandelTest is MangroveTest {
   }
 
   function populateSingle(uint index, uint base, uint quote, uint pivotId, uint lastBidIndex, bytes memory expectRevert)
-    private
+    internal
   {
     Kandel.Params memory params = GetParams(kdl);
     populateSingle(index, base, quote, pivotId, lastBidIndex, params.length, params.ratio, params.spread, expectRevert);
@@ -669,7 +669,7 @@ contract KandelTest is MangroveTest {
     uint ratio,
     uint spread,
     bytes memory expectRevert
-  ) private {
+  ) internal {
     uint[] memory indices = new uint[](1);
     uint[] memory bases = new uint[](1);
     uint[] memory quotes = new uint[](1);
@@ -852,17 +852,16 @@ contract KandelTest is MangroveTest {
   }
 
   function test_populate_can_repopulate_decreased_size_and_other_params_compoundRate0() public {
-    test_populate_can_repopulate_decreased_size_and_other_params(0, 0);
+    test_populate_can_repopulate_other_size_and_other_params(0, 0);
   }
 
   function test_populate_can_repopulate_decreased_size_and_other_params_compoundRate1() public {
-    test_populate_can_repopulate_decreased_size_and_other_params(10_000, 10_000);
+    test_populate_can_repopulate_other_size_and_other_params(10_000, 10_000);
   }
 
-  function test_populate_can_repopulate_decreased_size_and_other_params(
-    uint16 compoundRateBase,
-    uint16 compoundRateQuote
-  ) internal {
+  function test_populate_can_repopulate_other_size_and_other_params(uint16 compoundRateBase, uint16 compoundRateQuote)
+    internal
+  {
     vm.startPrank(maker);
     kdl.retractOffers(0, 10);
 

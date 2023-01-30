@@ -182,8 +182,15 @@ contract Amplifier is Direct {
   }
 
   function retractOffers(bool deprovision) external {
-    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerId1, deprovision: deprovision});
-    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerId2, deprovision: deprovision});
+    uint freeWei = retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerId1, deprovision: deprovision});
+    freeWei += retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerId2, deprovision: deprovision});
+    if (freeWei > 0) {
+      require(MGV.withdraw(freeWei), "Amplifier/withdrawFail");
+      // sending native tokens to `msg.sender` prevents reentrancy issues
+      // (the context call of `retractOffer` could be coming from `makerExecute` and a different recipient of transfer than `msg.sender` could use this call to make offer fail)
+      (bool noRevert,) = admin().call{value: freeWei}("");
+      require(noRevert, "Amplifier/weiTransferFail");
+    }
   }
 
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)

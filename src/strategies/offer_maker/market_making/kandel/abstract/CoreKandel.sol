@@ -226,8 +226,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     else {
       // but the offer should be dead since gives is 0
       if (args.gives == 0) {
-        // so we retract the offer
-        // note if gives is 0 then all gives in the range are 0, we may not want to allow for this.
+        // so we retract the offer. This does not happen when gives comes from dualWantsGivesOfOffer,
+        // but may happen from populate in case of re-population where the offers in the spread
+        // are then retracted by setting gives to 0.
         _retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
       } else {
         // so the offer exists and it should, we simply update it with potentially new volume
@@ -333,13 +334,11 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       // These offerIds could be recycled in a new populate
       uint offerId = offerIdOfIndex(OfferType.Ask, index);
       if (offerId != 0) {
-        MGV.retractOffer(address(outbound_tknAsk), address(inbound_tknAsk), offerId, true);
-        //_retractOffer(outbound_tknAsk, inbound_tknAsk, offerId, true);
+        _retractOffer(outbound_tknAsk, inbound_tknAsk, offerId, true);
       }
       offerId = offerIdOfIndex(OfferType.Bid, index);
       if (offerId != 0) {
-        MGV.retractOffer(address(outbound_tknBid), address(inbound_tknBid), offerId, true);
-        //_retractOffer(outbound_tknBid, inbound_tknBid, offerId, true);
+        _retractOffer(outbound_tknBid, inbound_tknBid, offerId, true);
       }
     }
   }

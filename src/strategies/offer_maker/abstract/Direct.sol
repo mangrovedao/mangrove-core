@@ -84,13 +84,6 @@ abstract contract Direct is MangroveOffer {
     bool deprovision // if set to `true`, `this` contract will receive the remaining provision (in WEI) associated to `offerId`.
   ) internal returns (uint freeWei) {
     freeWei = MGV.retractOffer(address(outbound_tkn), address(inbound_tkn), offerId, deprovision);
-    if (freeWei > 0) {
-      require(MGV.withdraw(freeWei), "Direct/withdrawFail");
-      // sending native tokens to `msg.sender` prevents reentrancy issues
-      // (the context call of `retractOffer` could be coming from `makerExecute` and a different recipient of transfer than `msg.sender` could use this call to make offer fail)
-      (bool noRevert,) = admin().call{value: freeWei}("");
-      require(noRevert, "mgvOffer/weiTransferFail");
-    }
   }
 
   ///@inheritdoc IOfferLogic

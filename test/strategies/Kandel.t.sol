@@ -3,11 +3,7 @@ pragma solidity ^0.8.10;
 
 // FIXME outstanding missing feature/tests
 // * Populates:
-//   * by chunks
-//   * use pending and freed funds
-//   * throws if not enough collateral
 //   * throws if not enough provision
-// * Retract offers
 // * newOffer below density creates pending
 // * overflow in dual offer computation is correctly managed
 
@@ -33,6 +29,15 @@ contract KandelTest is MangroveTest {
   event AllAsks();
   event AllBids();
   event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
+  event LogIncident(
+    IMangrove mangrove,
+    IERC20 indexed outbound_tkn,
+    IERC20 indexed inbound_tkn,
+    uint indexed offerId,
+    bytes32 makerData,
+    bytes32 mgvData
+  );
+  event DensityTooLow(OfferType offerType, uint offerId, uint residualGives, uint residualWants);
 
   function setUp() public virtual override {
     options.base.symbol = "WETH";
@@ -144,38 +149,71 @@ contract KandelTest is MangroveTest {
     return mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
   }
 
-  function assertStatus(
-    uint[] memory offerStatuses // 1:bid 2:ask 3:crossed 0:dead
-  ) internal {
-    uint quote = initQuote;
-    (, uint16 ratio,,,,) = kdl.params();
-    for (uint i = 0; i < offerStatuses.length; i++) {
-      // `price = quote / initBase` used in assertApproxEqRel below
-      (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, i);
-      (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, i);
-      if (offerStatuses[i] == 0) {
-        assertTrue(bid.gives() == 0 && ask.gives() == 0, "offer at index is live");
-      } else {
-        if (offerStatuses[i] == 1) {
-          assertTrue(bid.gives() > 0 && ask.gives() == 0, "Kandel not bidding at index");
+  enum OfferStatus {
+    Dead, // both dead
+    Bid, // live bid
+    Ask, // live ask
+    Crossed // both live
+  }
+
+  ///@notice asserts status of index.
+  function assertStatus(uint index, OfferStatus status) internal {
+    assertStatus(index, status, type(uint).max);
+  }
+
+  ///@notice asserts status of index and verifies price based on geometric progressing quote.
+  function assertStatus(uint index, OfferStatus status, uint quote) internal {
+    (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
+    (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, index);
+    bool bidLive = mgv.isLive(bid);
+    bool askLive = mgv.isLive(ask);
+
+    if (status == OfferStatus.Dead) {
+      assertTrue(!bidLive && !askLive, "offer at index is live");
+    } else {
+      if (status == OfferStatus.Bid) {
+        assertTrue(bidLive && !askLive, "Kandel not bidding at index");
+        if (quote != type(uint).max) {
           assertApproxEqRel(
             bid.gives() * initBase, quote * bid.wants(), 1e11, "Bid price does not follow distribution within 0.00001%"
           );
-        } else {
-          if (offerStatuses[i] == 2) {
-            assertTrue(bid.gives() == 0 && ask.gives() > 0, "Kandel is not asking at index");
+        }
+      } else {
+        if (status == OfferStatus.Ask) {
+          assertTrue(!bidLive && askLive, "Kandel is not asking at index");
+          if (quote != type(uint).max) {
             assertApproxEqRel(
               ask.wants() * initBase,
               quote * ask.gives(),
               1e11,
               "Ask price does not follow distribution within 0.00001%"
             );
-          } else {
-            assertTrue(bid.gives() > 0 && ask.gives() > 0, "Kandel is not crossed at index");
           }
+        } else {
+          assertTrue(bidLive && askLive, "Kandel is not crossed at index");
         }
       }
-      quote = (quote * uint(ratio)) / 10 ** kdl.PRECISION();
+    }
+  }
+
+  function assertStatus(
+    uint[] memory offerStatuses // 1:bid 2:ask 3:crossed 0:dead - see OfferStatus
+  ) internal {
+    assertStatus(offerStatuses, initQuote);
+  }
+
+  function assertStatus(
+    uint[] memory offerStatuses, // 1:bid 2:ask 3:crossed 0:dead - see OfferStatus
+    uint quote // initial quote at first price point, type(uint).max to ignore in verification
+  ) internal {
+    Kandel.Params memory params = GetParams(kdl);
+    assertEq(params.length, offerStatuses.length, "Unexpected number of price points");
+    for (uint i = 0; i < offerStatuses.length; i++) {
+      // `price = quote / initBase` used in assertApproxEqRel below
+      assertStatus(i, OfferStatus(offerStatuses[i]), quote);
+      if (quote != type(uint).max) {
+        quote = (quote * (uint(params.ratio) ** params.spread)) / ((10 ** kdl.PRECISION()) ** uint(params.spread));
+      }
     }
   }
 
@@ -467,17 +505,17 @@ contract KandelTest is MangroveTest {
     view
     returns (uint[] memory indices, uint[] memory quoteAtIndex, uint numBids)
   {
-    (, uint16 ratio,,,, uint8 length) = kdl.params();
+    Kandel.Params memory params = GetParams(kdl);
 
-    uint[] memory indicesPre = new uint[](length);
-    quoteAtIndex = new uint[](length);
+    uint[] memory indicesPre = new uint[](params.length);
+    quoteAtIndex = new uint[](params.length);
     numBids = 0;
 
     uint quote = initQuote;
 
     // find missing offers
     uint numDead = 0;
-    for (uint i = 0; i < length; i++) {
+    for (uint i = 0; i < params.length; i++) {
       OfferType ba = quote * midGives <= initBase * midWants ? Bid : Ask;
       (MgvStructs.OfferPacked offer,) = kdl.getOffer(ba, i);
       if (!mgv.isLive(offer)) {
@@ -488,7 +526,7 @@ contract KandelTest is MangroveTest {
         numDead++;
       }
       quoteAtIndex[i] = quote;
-      quote = (quote * uint(ratio)) / 10 ** kdl.PRECISION();
+      quote = (quote * uint(params.ratio)) / 10 ** kdl.PRECISION();
     }
 
     // truncate indices - cannot do push to memory array
@@ -544,9 +582,9 @@ contract KandelTest is MangroveTest {
 
     uint lastBidIndex = numBids > 0 ? indices[numBids - 1] : indices[0] - 1;
     uint[] memory pivotIds = new uint[](indices.length);
-    (, uint16 ratio,,, uint8 spread, uint8 length) = kdl.params();
+    Kandel.Params memory params = GetParams(kdl);
     vm.prank(maker);
-    kdl.populate(indices, baseDist, quoteDist, pivotIds, lastBidIndex, length, ratio, spread);
+    kdl.populate(indices, baseDist, quoteDist, pivotIds, lastBidIndex, params.length, params.ratio, params.spread);
   }
 
   function test_heal_ba(OfferType ba, uint failures, uint[] memory expectedMidStatus) private {
@@ -594,5 +632,204 @@ contract KandelTest is MangroveTest {
 
   function test_heal_bid3() public {
     test_heal_ba(Bid, 3, dynamic([uint(1), 1, 0, 0, 0, 2, 2, 2, 2, 2]));
+  }
+
+  function populateSingle(uint index, uint base, uint quote, uint pivotId, uint lastBidIndex, bytes memory expectRevert)
+    private
+  {
+    Kandel.Params memory params = GetParams(kdl);
+    populateSingle(index, base, quote, pivotId, lastBidIndex, params.length, params.ratio, params.spread, expectRevert);
+  }
+
+  function populateSingle(
+    uint index,
+    uint base,
+    uint quote,
+    uint pivotId,
+    uint lastBidIndex,
+    uint kandelSize,
+    uint ratio,
+    uint spread,
+    bytes memory expectRevert
+  ) private {
+    uint[] memory indices = new uint[](1);
+    uint[] memory bases = new uint[](1);
+    uint[] memory quotes = new uint[](1);
+    uint[] memory pivotIds = new uint[](1);
+
+    indices[0] = index;
+    bases[0] = base;
+    quotes[0] = quote;
+    pivotIds[0] = pivotId;
+    vm.prank(maker);
+    if (expectRevert.length > 0) {
+      vm.expectRevert(expectRevert);
+    }
+    kdl.populate{value: 0.1 ether}(
+      indices, bases, quotes, pivotIds, lastBidIndex, kandelSize, uint16(ratio), uint8(spread)
+    );
+  }
+
+  function test_populate_retracts_at_zero() public {
+    uint index = 3;
+    assertStatus(index, OfferStatus.Bid);
+
+    populateSingle(index, 123, 0, 0, 5, bytes(""));
+    // Bid should be retracted
+    assertStatus(index, OfferStatus.Dead);
+  }
+
+  function test_populate_density_too_low_reverted() public {
+    uint index = 3;
+    assertStatus(index, OfferStatus.Bid);
+    populateSingle(index, 1, 123, 0, 5, "mgv/writeOffer/density/tooLow");
+  }
+
+  function test_populate_existing_offer_is_updated() public {
+    uint index = 3;
+    assertStatus(index, OfferStatus.Bid);
+    uint offerId = kdl.offerIdOfIndex(Bid, index);
+    (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
+
+    populateSingle(index, bid.wants() * 2, bid.gives() * 2, 0, 5, "");
+
+    uint offerIdPost = kdl.offerIdOfIndex(Bid, index);
+    assertEq(offerIdPost, offerId, "offerId should be unchanged (offer updated)");
+    (MgvStructs.OfferPacked bidPost,) = kdl.getOffer(Bid, index);
+    assertEq(bidPost.gives(), bid.gives() * 2, "gives should be changed");
+  }
+
+  function test_posthook_density_too_low_is_emitted() public {
+    uint index = 4;
+    uint offerId = kdl.offerIdOfIndex(Bid, index);
+
+    (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
+    (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, index + STEP);
+
+    // Take almost all and expect too low density emitted
+    uint amount = bid.wants() - 1;
+    vm.expectEmit(true, true, true, true);
+    emit DensityTooLow(OfferType.Bid, offerId, 1, 1);
+    vm.prank(taker);
+    mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
+
+    // verify dual is increased
+    (MgvStructs.OfferPacked askPost,) = kdl.getOffer(Ask, index + STEP);
+    assertGt(askPost.gives(), ask.gives(), "Dual should offer more even though bid failed to post");
+  }
+
+  function test_posthook_dual_density_too_low_is_emitted_newOffer() public {
+    //assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
+    sellToBestAs(taker, 1000 ether);
+    // assertStatus(dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
+
+    uint index = 3;
+    uint offerId = kdl.offerIdOfIndex(Bid, index);
+
+    (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
+    (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, index + STEP);
+
+    assertTrue(mgv.isLive(bid), "bid should be live");
+    assertTrue(!mgv.isLive(ask), "ask should not be live");
+
+    // Take very little and expect dual posting to fail.
+    uint amount = 10000;
+    vm.expectEmit(true, true, true, true);
+    // offerId is 0 since no old offer is reused
+    emit DensityTooLow(OfferType.Ask, 0, 9259, 0);
+    vm.prank(taker);
+    mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
+  }
+
+  function test_posthook_dual_density_too_low_is_emitted_updateOffer() public {
+    // make previous live ask dead
+    buyFromBestAs(taker, 1000 ether);
+
+    uint index = 4;
+    uint offerId = kdl.offerIdOfIndex(Bid, index);
+
+    (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
+    (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, index + STEP);
+
+    assertTrue(mgv.isLive(bid), "bid should be live");
+    assertTrue(!mgv.isLive(ask), "ask should not be live");
+
+    // Take very little and expect dual posting to fail.
+    uint amount = 10000;
+    vm.expectEmit(true, true, true, true);
+    // offerId is 1 since old offer is reused
+    emit DensityTooLow(OfferType.Ask, 1, 9259, 0);
+    vm.prank(taker);
+    mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
+  }
+
+  function GetParams(Kandel aKandel) internal view returns (Kandel.Params memory params) {
+    (uint16 gasprice, uint16 ratio, uint16 compoundRateBase, uint16 compoundRateQuote, uint8 spread, uint8 length) =
+      aKandel.params();
+
+    params.gasprice = gasprice;
+    params.ratio = ratio;
+    params.compoundRateBase = compoundRateBase;
+    params.compoundRateQuote = compoundRateQuote;
+    params.spread = spread;
+    params.length = length;
+  }
+
+  function test_populate_can_get_set_params_keeps_offers() public {
+    Kandel.Params memory params = GetParams(kdl);
+
+    uint offeredVolumeBase = kdl.offeredVolume(Ask);
+    uint offeredVolumeQuote = kdl.offeredVolume(Bid);
+    uint[] memory empty = new uint[](0);
+    vm.startPrank(maker);
+    kdl.populate(empty, empty, empty, empty, 0, params.length, params.ratio + 1, params.spread + 1);
+    kdl.setCompoundRates(params.compoundRateBase + 1, params.compoundRateQuote + 1);
+    vm.stopPrank();
+
+    Kandel.Params memory params_ = GetParams(kdl);
+
+    assertEq(params_.gasprice, params.gasprice, "gasprice cannot be changed");
+    assertEq(params_.length, params.length, "length should not be changed");
+    assertEq(params_.ratio, params.ratio + 1, "ratio should be changed");
+    assertEq(params_.compoundRateBase, params.compoundRateBase + 1, "compoundRateBase should be changed");
+    assertEq(params_.compoundRateQuote, params.compoundRateQuote + 1, "compoundRateQuote should be changed");
+    assertEq(params_.spread, params.spread + 1, "spread should be changed");
+    assertEq(offeredVolumeBase, kdl.offeredVolume(Ask), "ask volume should be unchanged");
+    assertEq(offeredVolumeQuote, kdl.offeredVolume(Bid), "ask volume should be unchanged");
+    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]), type(uint).max);
+  }
+
+  function test_populate_throws_on_invalid_length() public {
+    uint[] memory empty = new uint[](0);
+    vm.prank(maker);
+    vm.expectRevert("Kandel/TooManyPricePoints");
+    kdl.populate(empty, empty, empty, empty, 0, 2 ** 9, 10800, 1);
+  }
+
+  function test_populate_throws_on_invalid_ratio() public {
+    uint[] memory empty = new uint[](0);
+    uint precision = kdl.PRECISION();
+    vm.prank(maker);
+    vm.expectRevert("Kandel/invalidRatio");
+    kdl.populate(empty, empty, empty, empty, 0, 10, uint16(10 ** precision - 1), 0);
+  }
+
+  function test_populate_throws_on_invalid_spread() public {
+    uint[] memory empty = new uint[](0);
+    vm.prank(maker);
+    vm.expectRevert("Kandel/invalidSpread");
+    kdl.populate(empty, empty, empty, empty, 0, 10, 10800, 0);
+  }
+
+  function test_setCompoundRatesBase_reverts() public {
+    vm.prank(maker);
+    vm.expectRevert("Kandel/invalidCompoundRateBase");
+    kdl.setCompoundRates(2 ** 16 - 1, 0);
+  }
+
+  function test_setCompoundRatesQuote_reverts() public {
+    vm.prank(maker);
+    vm.expectRevert("Kandel/invalidCompoundRateQuote");
+    kdl.setCompoundRates(0, 2 ** 16 - 1);
   }
 }

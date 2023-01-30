@@ -17,7 +17,9 @@ import {
   IMangrove,
   IERC20,
   MgvLib,
-  MgvStructs
+  MgvStructs,
+  AbstractRouter,
+  TransferLib
 } from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
 import {OfferType} from "./Trade.sol";
@@ -30,8 +32,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   Params public params;
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice)
-    Direct(mgv, NO_ROUTER, gasreq)
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, AbstractRouter router_)
+    Direct(mgv, router_, gasreq)
     AbstractKandel(mgv, base, quote)
   {
     BASE = base;
@@ -42,6 +44,26 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     // approves Mangrove to pull base and quote token from this contract
     __activate__(base);
     __activate__(quote);
+  }
+
+  /// @notice deposits funds on Kandel
+  /// @param amounts to withdraw.
+  /// @param tokens addresses of tokens to withdraw.
+  function _depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) internal {
+    for (uint i; i < tokens.length; i++) {
+      require(TransferLib.transferTokenFrom(tokens[i], msg.sender, address(this), amounts[i]), "Kandel/depositFailed");
+    }
+  }
+
+  /// @notice withdraw `amount` of funds to `recipient`.
+  /// @param amounts to withdraw.
+  /// @param tokens addresses of tokens to withdraw.
+  /// @param recipient who receives the tokens.
+  /// @dev it is up to the caller to make sure there are still enough funds for live offers.
+  function _withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) internal {
+    for (uint i; i < tokens.length; i++) {
+      require(TransferLib.transferToken(tokens[i], recipient, amounts[i]), "Kandel/NotEnoughFunds");
+    }
   }
 
   ///@notice set the compound rates. It will take effect for future compounding.

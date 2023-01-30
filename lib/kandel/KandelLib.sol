@@ -59,7 +59,8 @@ library KandelLib {
       populateVars.indices[populateVars.i] = from;
       populateVars.baseDist[populateVars.i] = initBase;
       populateVars.quoteDist[populateVars.i] = initQuote;
-      initQuote = (initQuote * (uint(ratio) ** uint(spread))) / ((10 ** kandel.PRECISION()) ** uint(spread));
+      // the ratio gives the price difference between two price points - the spread is involved when calculating the jump between a bid and its dual ask.
+      initQuote = (initQuote * uint(ratio)) / (10 ** kandel.PRECISION());
       populateVars.i++;
     }
 

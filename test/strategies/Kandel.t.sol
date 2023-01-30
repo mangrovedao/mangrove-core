@@ -212,7 +212,7 @@ contract KandelTest is MangroveTest {
       // `price = quote / initBase` used in assertApproxEqRel below
       assertStatus(i, OfferStatus(offerStatuses[i]), quote);
       if (quote != type(uint).max) {
-        quote = (quote * (uint(params.ratio) ** params.spread)) / ((10 ** kdl.PRECISION()) ** uint(params.spread));
+        quote = (quote * uint(params.ratio)) / (10 ** kdl.PRECISION());
       }
     }
   }
@@ -831,5 +831,41 @@ contract KandelTest is MangroveTest {
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidCompoundRateQuote");
     kdl.setCompoundRates(0, 2 ** 16 - 1);
+  }
+
+  function test_populate_can_repopulate_decreased_size_and_other_params_ask() public {
+    vm.startPrank(maker);
+    kdl.retractOffers(0, 10);
+
+    uint16 ratio = uint16(102 * 10 ** kdl.PRECISION() / 100);
+    KandelLib.populate({
+      kandel: kdl,
+      from: 0,
+      to: 5,
+      lastBidIndex: 2,
+      kandelSize: 5,
+      ratio: ratio,
+      spread: 2,
+      initBase: initBase,
+      initQuote: initQuote,
+      pivotIds: dynamic([uint(0), 1, 2, 3, 4]),
+      funds: 0
+    });
+    vm.stopPrank();
+    // This only verifies KandelLib
+    assertStatus(dynamic([uint(1), 1, 1, 2, 2]));
+
+    sellToBestAs(taker, 1 ether);
+
+    // This verifies dualWantsGivesOfOffer
+    assertStatus(dynamic([uint(1), 1, 0, 2, 2]));
+    sellToBestAs(taker, 1 ether);
+    assertStatus(dynamic([uint(1), 0, 0, 2, 2]));
+    sellToBestAs(taker, 1 ether);
+    assertStatus(dynamic([uint(0), 0, 2, 2, 2]));
+    buyFromBestAs(taker, 1 ether);
+    buyFromBestAs(taker, 1 ether);
+    buyFromBestAs(taker, 1 ether);
+    assertStatus(dynamic([uint(1), 1, 1, 0, 0]));
   }
 }

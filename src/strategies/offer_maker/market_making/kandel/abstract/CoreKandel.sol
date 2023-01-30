@@ -343,6 +343,9 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     viewDual = _fresh(better(baDual, index, memoryParams.spread, memoryParams.length));
 
     args.outbound_tkn = IERC20(order.inbound_tkn);
+    // posthook should not fail if unable to post offers, we capture the error as incidents
+    args.noRevert = true;
+
     args.inbound_tkn = IERC20(order.outbound_tkn);
 
     // computing gives/wants for dual offer

@@ -161,7 +161,7 @@ contract KandelTest is MangroveTest {
   }
 
   ///@notice asserts status of index and verifies price based on geometric progressing quote.
-  function assertStatus(uint index, OfferStatus status, uint quote) internal {
+  function assertStatus(uint index, OfferStatus status, uint q) internal {
     (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
     (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, index);
     bool bidLive = mgv.isLive(bid);
@@ -172,20 +172,17 @@ contract KandelTest is MangroveTest {
     } else {
       if (status == OfferStatus.Bid) {
         assertTrue(bidLive && !askLive, "Kandel not bidding at index");
-        if (quote != type(uint).max) {
+        if (q != type(uint).max) {
           assertApproxEqRel(
-            bid.gives() * initBase, quote * bid.wants(), 1e11, "Bid price does not follow distribution within 0.00001%"
+            bid.gives() * initBase, q * bid.wants(), 1e11, "Bid price does not follow distribution within 0.00001%"
           );
         }
       } else {
         if (status == OfferStatus.Ask) {
           assertTrue(!bidLive && askLive, "Kandel is not asking at index");
-          if (quote != type(uint).max) {
+          if (q != type(uint).max) {
             assertApproxEqRel(
-              ask.wants() * initBase,
-              quote * ask.gives(),
-              1e11,
-              "Ask price does not follow distribution within 0.00001%"
+              ask.wants() * initBase, q * ask.gives(), 1e11, "Ask price does not follow distribution within 0.00001%"
             );
           }
         } else {
@@ -203,17 +200,33 @@ contract KandelTest is MangroveTest {
 
   function assertStatus(
     uint[] memory offerStatuses, // 1:bid 2:ask 3:crossed 0:dead - see OfferStatus
-    uint quote // initial quote at first price point, type(uint).max to ignore in verification
+    uint q // initial quote at first price point, type(uint).max to ignore in verification
   ) internal {
+    uint expectedBids = 0;
+    uint expectedAsks = 0;
     Kandel.Params memory params = GetParams(kdl);
     assertEq(params.length, offerStatuses.length, "Unexpected number of price points");
     for (uint i = 0; i < offerStatuses.length; i++) {
       // `price = quote / initBase` used in assertApproxEqRel below
-      assertStatus(i, OfferStatus(offerStatuses[i]), quote);
-      if (quote != type(uint).max) {
-        quote = (quote * uint(params.ratio)) / (10 ** kdl.PRECISION());
+      OfferStatus offerStatus = OfferStatus(offerStatuses[i]);
+      assertStatus(i, offerStatus, q);
+      if (q != type(uint).max) {
+        q = (q * uint(params.ratio)) / (10 ** kdl.PRECISION());
+      }
+      if (offerStatus == OfferStatus.Ask) {
+        expectedAsks++;
+      } else if (offerStatus == OfferStatus.Bid) {
+        expectedBids++;
+      } else if (offerStatus == OfferStatus.Crossed) {
+        expectedAsks++;
+        expectedBids++;
       }
     }
+
+    (, uint[] memory bidIds,,) = reader.offerList(address(quote), address(base), 0, 1000);
+    (, uint[] memory askIds,,) = reader.offerList(address(base), address(quote), 0, 1000);
+    assertEq(expectedBids, bidIds.length, "Unexpected number of live bids on book");
+    assertEq(expectedAsks, askIds.length, "Unexpected number of live asks on book");
   }
 
   function printOB() internal view {
@@ -602,6 +615,7 @@ contract KandelTest is MangroveTest {
     withdrawFunds(outbound, offeredVolume, address(this));
 
     for (uint i = 0; i < failures; i++) {
+      // This will emit LogIncident and OfferFail
       (uint successes,,,,) = ba == Ask ? buyFromBestAs(taker, 1 ether) : sellToBestAs(taker, 1 ether);
       assertTrue(successes == 0, "Snipe should fail");
     }
@@ -837,7 +851,18 @@ contract KandelTest is MangroveTest {
     kdl.setCompoundRates(0, 2 ** 16 - 1);
   }
 
-  function test_populate_can_repopulate_decreased_size_and_other_params_ask() public {
+  function test_populate_can_repopulate_decreased_size_and_other_params_compoundRate0() public {
+    test_populate_can_repopulate_decreased_size_and_other_params(0, 0);
+  }
+
+  function test_populate_can_repopulate_decreased_size_and_other_params_compoundRate1() public {
+    test_populate_can_repopulate_decreased_size_and_other_params(10_000, 10_000);
+  }
+
+  function test_populate_can_repopulate_decreased_size_and_other_params(
+    uint16 compoundRateBase,
+    uint16 compoundRateQuote
+  ) internal {
     vm.startPrank(maker);
     kdl.retractOffers(0, 10);
 
@@ -855,6 +880,7 @@ contract KandelTest is MangroveTest {
       pivotIds: dynamic([uint(0), 1, 2, 3, 4]),
       funds: 0
     });
+    kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
     vm.stopPrank();
     // This only verifies KandelLib
     assertStatus(dynamic([uint(1), 1, 1, 2, 2]));

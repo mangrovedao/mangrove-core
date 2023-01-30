@@ -25,19 +25,20 @@ contract AaveKandel is CoreKandel {
     return AavePooledRouter(address(router()));
   }
 
+  ///@notice external wrapper for `_depositFunds`
   function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) external {
+    // transfer funds from caller to this
     _depositFunds(tokens, amounts);
+    // push funds on the router (and supply on AAVE)
     pooledRouter().pushAndSupply(tokens, amounts, admin());
   }
 
-  /// @notice withdraw `amount` of funds from base (ask) or quote (bid) to `recipient`.
-  /// @param ba the offer type.
-  /// @param amount to withdraw.
-  /// @param recipient who receives the tokens.
-  /// @dev it is up to the caller to make sure there are still enough funds for live offers.
-  function withdrawFunds(OfferType ba, uint amount, address recipient) external onlyAdmin {
-    IERC20 token = outboundOfOfferType(ba);
-    require(TransferLib.transferToken(token, recipient, amount), "Kandel/NotEnoughFunds");
+  ///@notice external wrapper for `_withdrawFunds`
+  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) external onlyAdmin {
+    for (uint i; i < tokens.length; i++) {
+      pooledRouter().pull(tokens[i], admin(), amounts[i], true);
+    }
+    _withdrawFunds(tokens, amounts, recipient);
   }
 
   /// @notice gets the total gives of all offers of the offer type

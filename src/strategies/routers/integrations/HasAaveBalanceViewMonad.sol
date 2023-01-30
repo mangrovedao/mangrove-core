@@ -12,7 +12,7 @@
 
 pragma solidity ^0.8.10;
 
-import {IERC20} from "./AbstractRouter.sol";
+import {IERC20} from "../AbstractRouter.sol";
 import {AaveV3Lender} from "mgv_src/strategies/integrations/AaveV3Lender.sol";
 
 contract HasAaveBalanceViewMonad is AaveV3Lender {

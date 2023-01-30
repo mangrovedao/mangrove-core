@@ -12,7 +12,7 @@
 
 pragma solidity ^0.8.10;
 
-import {AbstractRouter} from "./AbstractRouter.sol";
+import {AbstractRouter} from "../AbstractRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {HasAaveBalanceViewMonad, IERC20} from "./HasAaveBalanceViewMonad.sol";
 

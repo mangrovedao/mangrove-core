@@ -83,6 +83,8 @@ contract KdlPopulate is Deployer {
 
     (
       vars.gasprice,
+      /*uint24 gasreq*/
+      ,
       /*uint16 ratio*/
       ,
       /*uint16 compoundRateBase*/

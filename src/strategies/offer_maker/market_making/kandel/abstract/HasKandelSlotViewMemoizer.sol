@@ -30,8 +30,6 @@ abstract contract HasKandelSlotViewMemoizer {
     uint offerId;
     bool offerMemoized;
     MgvStructs.OfferPacked offer;
-    bool offerDetailMemoized;
-    MgvStructs.OfferDetailPacked offerDetail;
   }
 
   function offerIdOfIndex(OfferType ba, uint index) public view virtual returns (uint);
@@ -75,18 +73,6 @@ abstract contract HasKandelSlotViewMemoizer {
       (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
       v.offer = MGV.offers(address(outbound), address(inbound), id);
       return v.offer;
-    }
-  }
-
-  function _offerDetail(OfferType ba, SlotViewMemoizer memory v) internal view returns (MgvStructs.OfferDetailPacked) {
-    if (v.offerDetailMemoized) {
-      return v.offerDetail;
-    } else {
-      v.offerDetailMemoized = true;
-      uint id = _offerId(ba, v);
-      (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
-      v.offerDetail = MGV.offerDetails(address(outbound), address(inbound), id);
-      return v.offerDetail;
     }
   }
 }

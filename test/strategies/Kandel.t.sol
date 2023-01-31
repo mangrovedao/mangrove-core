@@ -13,6 +13,7 @@ import {
 } from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 import {console2} from "forge-std/Test.sol";
+import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
 
 contract KandelTest is MangroveTest {
   TestToken weth;
@@ -29,14 +30,8 @@ contract KandelTest is MangroveTest {
   event AllAsks();
   event AllBids();
   event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
-  event LogIncident(
-    IMangrove mangrove,
-    IERC20 indexed outbound_tkn,
-    IERC20 indexed inbound_tkn,
-    uint indexed offerId,
-    bytes32 makerData,
-    bytes32 mgvData
-  );
+  event SetParams(uint8 kandelSize, uint8 spread, uint16 ratio);
+  event SetGas(uint16 gasprice, uint24 gasreq);
 
   function setUp() public virtual override {
     options.base.symbol = "WETH";
@@ -67,6 +62,8 @@ contract KandelTest is MangroveTest {
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
     vm.expectEmit(true, true, true, true);
     emit NewKandel(maker, IMangrove($(mgv)), weth, usdc);
+    vm.expectEmit(true, true, true, true);
+    emit SetGas(uint16(10 * global.gasprice()), uint24(GASREQ));
     vm.prank(maker);
     kdl = new Kandel({
       mgv: IMangrove($(mgv)), 
@@ -776,10 +773,18 @@ contract KandelTest is MangroveTest {
   }
 
   function GetParams(Kandel aKandel) internal view returns (Kandel.Params memory params) {
-    (uint16 gasprice, uint16 ratio, uint16 compoundRateBase, uint16 compoundRateQuote, uint8 spread, uint8 length) =
-      aKandel.params();
+    (
+      uint16 gasprice,
+      uint24 gasreq,
+      uint16 ratio,
+      uint16 compoundRateBase,
+      uint16 compoundRateQuote,
+      uint8 spread,
+      uint8 length
+    ) = aKandel.params();
 
     params.gasprice = gasprice;
+    params.gasreq = gasreq;
     params.ratio = ratio;
     params.compoundRateBase = compoundRateBase;
     params.compoundRateQuote = compoundRateQuote;
@@ -794,6 +799,8 @@ contract KandelTest is MangroveTest {
     uint offeredVolumeQuote = kdl.offeredVolume(Bid);
     uint[] memory empty = new uint[](0);
     vm.startPrank(maker);
+    vm.expectEmit(true, true, true, true);
+    emit SetParams(params.length, params.spread + 1, params.ratio + 1);
     kdl.populate(empty, empty, empty, empty, 0, params.length, params.ratio + 1, params.spread + 1);
     kdl.setCompoundRates(params.compoundRateBase + 1, params.compoundRateQuote + 1);
     vm.stopPrank();
@@ -890,5 +897,15 @@ contract KandelTest is MangroveTest {
     buyFromBestAs(taker, 1 ether);
     buyFromBestAs(taker, 1 ether);
     assertStatus(dynamic([uint(1), 1, 1, 0, 0]));
+  }
+
+  function test_setGas() public {
+    SimpleRouter router = new SimpleRouter();
+    vm.prank(maker);
+    kdl.setRouter(router);
+    vm.expectEmit(true, true, true, true);
+    emit SetGas(42, uint24(GASREQ + router.routerGasreq()));
+    vm.prank(maker);
+    kdl.setGas(42);
   }
 }

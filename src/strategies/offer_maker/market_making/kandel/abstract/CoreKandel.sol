@@ -38,12 +38,24 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   {
     BASE = base;
     QUOTE = quote;
-    require(uint16(gasprice) == gasprice, "Kandel/gaspriceTooHigh");
-    params.gasprice = uint16(gasprice);
 
+    setGas(gasprice);
     // approves Mangrove to pull base and quote token from this contract
     __activate__(base);
     __activate__(quote);
+  }
+
+  /// @notice sets the gasprice and updates gasreq
+  function setGas(uint gasprice) public onlyAdmin {
+    uint16 gasprice_ = uint16(gasprice);
+    // includes router gasreq
+    uint gasreq = offerGasreq();
+    uint24 gasreq_ = uint24(offerGasreq());
+    require(gasreq_ == gasreq, "Kandel/gasreqTooHigh");
+    require(gasprice_ == gasprice, "Kandel/gaspriceTooHigh");
+    params.gasprice = gasprice_;
+    params.gasreq = gasreq_;
+    emit SetGas(gasprice_, gasreq_);
   }
 
   /// @notice deposits funds on Kandel
@@ -133,10 +145,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   function dualWantsGivesOfOffer(
     OfferType baDual,
-    SlotViewMemoizer memory viewDual,
+    uint offerGives,
     MgvLib.SingleOrder calldata order,
     Params memory memoryParams
-  ) internal view returns (uint wants, uint gives) {
+  ) internal pure returns (uint wants, uint gives) {
     // computing gives/wants for dual offer
     // we verify we cannot overflow if PRECISION = 4
     // spread:8
@@ -157,7 +169,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
     // adding to gives what the offer was already giving so gives could be greater than 2**96
     // gives:97
-    gives += _offer(baDual, viewDual).gives();
+    gives += offerGives;
     if (uint96(gives) != gives) {
       // this should not be reached under normal circumstances unless strat is posting on top of an existing offer with an abnormal volume
       // to prevent gives to be too high, we let the surplus be pending
@@ -261,7 +273,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     );
 
     uint i = 0;
-    uint gasreq = offerGasreq();
+    uint gasreq = params.gasreq;
     uint gasprice = params.gasprice;
 
     OfferArgs memory args;
@@ -314,6 +326,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       require(spread > 0, "Kandel/invalidSpread");
       params.spread = spread;
     }
+    emit SetParams(uint8(kandelSize), spread, ratio);
   }
 
   ///@notice publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
@@ -390,16 +403,17 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);
 
+    MgvStructs.OfferPacked offer = _offer(baDual, viewDual);
     // computing gives/wants for dual offer
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
-    (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, viewDual, order, memoryParams);
+    (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, offer.gives(), order, memoryParams);
     // args.fund = 0; the offers are already provisioned
     // posthook should not fail if unable to post offers, we capture the error as incidents
     args.noRevert = true;
-    args.gasprice = _offerDetail(baDual, viewDual).gasprice();
-    args.gasreq = viewDual.offerDetail.gasreq() == 0 ? offerGasreq() : viewDual.offerDetail.gasreq();
-    args.pivotId = viewDual.offer.gives() > 0 ? viewDual.offer.next() : 0;
+    args.gasprice = params.gasprice;
+    args.gasreq = params.gasreq;
+    args.pivotId = offer.gives() > 0 ? offer.next() : 0;
     return (baDual, viewDual, args);
   }
 

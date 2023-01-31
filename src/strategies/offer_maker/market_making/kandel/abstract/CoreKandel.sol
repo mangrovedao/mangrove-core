@@ -247,26 +247,45 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   }
 
   function iterPopulate(
-    HeapVarsPopulate memory vars,
+    uint lastBidIndex,
     uint[] calldata indices,
     uint[] calldata baseDist,
     uint[] calldata quoteDist,
     uint[] calldata pivotIds
   ) internal {
-    for (uint i = 0; i < indices.length; i++) {
-      OfferArgs memory args;
-      uint index = indices[i];
+    uint i = 0;
+    uint gasreq = offerGasreq();
+    uint gasprice = params.gasprice;
 
-      OfferType ba = index <= vars.lastBidIndex ? OfferType.Bid : OfferType.Ask;
-      (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(ba);
-      (args.wants, args.gives) = wantsGivesOfBaseQuote(ba, baseDist[i], quoteDist[i]);
-      // args.fund = 0; offers are already funded
-      // args.noRevert = false; we want revert in case of failure
-      args.gasreq = offerGasreq();
-      args.gasprice = vars.gasprice;
+    OfferArgs memory args;
+    // args.fund = 0; offers are already funded
+    // args.noRevert = false; we want revert in case of failure
+
+    (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(OfferType.Bid);
+    for (i = 0; i < indices.length; i++) {
+      uint index = indices[i];
+      if (index > lastBidIndex) {
+        break;
+      }
+      args.wants = baseDist[i];
+      args.gives = quoteDist[i];
+      args.gasreq = gasreq;
+      args.gasprice = gasprice;
       args.pivotId = pivotIds[i];
 
-      populateIndex(ba, _fresh(index), args);
+      populateIndex(OfferType.Bid, _fresh(index), args);
+    }
+    (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(OfferType.Ask);
+
+    for (; i < indices.length; i++) {
+      uint index = indices[i];
+      args.wants = quoteDist[i];
+      args.gives = baseDist[i];
+      args.gasreq = gasreq;
+      args.gasprice = gasprice;
+      args.pivotId = pivotIds[i];
+
+      populateIndex(OfferType.Ask, _fresh(index), args);
     }
   }
 
@@ -320,10 +339,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
     setParams(kandelSize, ratio, spread);
 
-    HeapVarsPopulate memory vars =
-      HeapVarsPopulate({lastBidIndex: lastBidIndex, ratio: params.ratio, gasprice: params.gasprice});
-
-    iterPopulate(vars, indices, baseDist, quoteDist, pivotIds);
+    iterPopulate(lastBidIndex, indices, baseDist, quoteDist, pivotIds);
   }
 
   ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`

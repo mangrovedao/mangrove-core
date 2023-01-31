@@ -294,6 +294,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
       populateIndex(OfferType.Bid, _fresh(index), args);
     }
+    if (i > 0) {
+      // At least one bid has been populated, emit it to make price derivable
+      emit BidNearMidPopulated(indices[i - 1], uint96(args.gives), uint96(args.wants));
+    }
     (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(OfferType.Ask);
 
     for (; i < indices.length; i++) {

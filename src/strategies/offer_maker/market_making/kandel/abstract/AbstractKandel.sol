@@ -36,6 +36,9 @@ abstract contract AbstractKandel is HasKandelSlotViewMemoizer {
   ///@notice the gasprice and gasreq have been set.
   event SetGas(uint16 gasprice, uint24 gasreq);
 
+  ///@notice a bid was populated near the mid (around lastBidIndex but not necessarily that one).
+  event BidNearMidPopulated(uint index, uint96 gives, uint96 wants);
+
   // `ratio`, `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals.
   // setting PRECISION higher than 4 might produce overflow in limit cases.
   uint8 public constant PRECISION = 4;

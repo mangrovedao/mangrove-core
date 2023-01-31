@@ -32,6 +32,7 @@ contract KandelTest is MangroveTest {
   event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
   event SetParams(uint8 kandelSize, uint8 spread, uint16 ratio);
   event SetGas(uint16 gasprice, uint24 gasreq);
+  event BidNearMidPopulated(uint index, uint96 gives, uint96 wants);
 
   function setUp() public virtual override {
     options.base.symbol = "WETH";
@@ -83,7 +84,9 @@ contract KandelTest is MangroveTest {
     usdc.approve(address(kdl), type(uint).max);
 
     uint16 ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
-    KandelLib.populate({
+    vm.expectEmit(true, true, true, true);
+    emit BidNearMidPopulated(4, uint96(initQuote * uint(ratio) ** 4 / ((10 ** kdl.PRECISION()) ** 4)), uint96(initBase));
+    KandelLib.populate({ //13604889600000000
       kandel: kdl,
       from: 0,
       to: 5,

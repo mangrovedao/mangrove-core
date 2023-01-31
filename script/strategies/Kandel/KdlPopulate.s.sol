@@ -135,7 +135,7 @@ contract KdlPopulate is Deployer {
       from: args.from,
       to: args.to,
       lastBidIndex: args.lastBidIndex,
-      kandelSize: args.kandelSize,
+      kandelSize: uint8(args.kandelSize),
       ratio: uint16(args.ratio),
       spread: uint8(args.spread),
       initBase: args.volume, // base distribution in [from, to[

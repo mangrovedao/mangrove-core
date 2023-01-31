@@ -86,7 +86,7 @@ contract KandelTest is MangroveTest {
     uint16 ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
     vm.expectEmit(true, true, true, true);
     emit BidNearMidPopulated(4, uint96(initQuote * uint(ratio) ** 4 / ((10 ** kdl.PRECISION()) ** 4)), uint96(initBase));
-    KandelLib.populate({ //13604889600000000
+    KandelLib.populate({
       kandel: kdl,
       from: 0,
       to: 5,
@@ -679,7 +679,7 @@ contract KandelTest is MangroveTest {
       vm.expectRevert(expectRevert);
     }
     kdl.populate{value: 0.1 ether}(
-      indices, bases, quotes, pivotIds, lastBidIndex, kandelSize, uint16(ratio), uint8(spread)
+      indices, bases, quotes, pivotIds, lastBidIndex, uint8(kandelSize), uint16(ratio), uint8(spread)
     );
   }
 
@@ -819,13 +819,6 @@ contract KandelTest is MangroveTest {
     assertEq(offeredVolumeBase, kdl.offeredVolume(Ask), "ask volume should be unchanged");
     assertEq(offeredVolumeQuote, kdl.offeredVolume(Bid), "ask volume should be unchanged");
     assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]), type(uint).max);
-  }
-
-  function test_populate_throws_on_invalid_length() public {
-    uint[] memory empty = new uint[](0);
-    vm.prank(maker);
-    vm.expectRevert("Kandel/TooManyPricePoints");
-    kdl.populate(empty, empty, empty, empty, 0, 2 ** 9, 10800, 1);
   }
 
   function test_populate_throws_on_invalid_ratio() public {

@@ -63,7 +63,7 @@ library KandelLib {
     uint from,
     uint to,
     uint lastBidIndex,
-    uint kandelSize,
+    uint8 kandelSize,
     uint16 ratio,
     uint8 spread,
     uint initBase,

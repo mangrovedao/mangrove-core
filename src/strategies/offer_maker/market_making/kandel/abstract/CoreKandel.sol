@@ -312,15 +312,14 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
   }
 
-  function setParams(uint kandelSize, uint16 ratio, uint8 spread) private {
+  function setParams(uint8 kandelSize, uint16 ratio, uint8 spread) private {
     // Initializing arrays and parameters if needed
     Params memory memoryParams = params;
 
     if (memoryParams.length != kandelSize) {
-      require(kandelSize <= type(uint8).max, "Kandel/TooManyPricePoints");
       askOfferIdOfIndex = new uint[](kandelSize);
       bidOfferIdOfIndex = new uint[](kandelSize);
-      params.length = uint8(kandelSize);
+      params.length = kandelSize;
     }
     if (memoryParams.ratio != ratio) {
       require(ratio >= 10 ** PRECISION, "Kandel/invalidRatio");
@@ -330,7 +329,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       require(spread > 0, "Kandel/invalidSpread");
       params.spread = spread;
     }
-    emit SetParams(uint8(kandelSize), spread, ratio);
+    emit SetParams(kandelSize, spread, ratio);
   }
 
   ///@notice publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
@@ -352,7 +351,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint[] calldata quoteDist,
     uint[] calldata pivotIds,
     uint lastBidIndex,
-    uint kandelSize,
+    uint8 kandelSize,
     uint16 ratio,
     uint8 spread
   ) external payable onlyAdmin {

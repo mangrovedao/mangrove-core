@@ -462,6 +462,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@inheritdoc MangroveOffer
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal
+    virtual
     override
     returns (bytes32 populateStatus)
   {

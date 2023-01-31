@@ -109,12 +109,6 @@ contract GatekeepingTest is IMaker, MangroveTest {
     assertTrue(global.dead(), "mgv should still be dead");
   }
 
-  function test_only_gov_can_set_vault() public {
-    vm.expectRevert("mgv/unauthorized");
-    vm.prank(notAdmin);
-    mgv.setVault($(this));
-  }
-
   function test_only_gov_can_set_monitor() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
@@ -673,5 +667,27 @@ contract GatekeepingTest is IMaker, MangroveTest {
     (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = mgv.configInfo(tout, tin);
     assertEq(g.monitor, monitor, "wrong monitor");
     assertEq(l.density, density, "wrong density");
+  }
+
+  function test_nonadmin_cannot_withdrawERC20(address from, address token, uint amount) public {
+    vm.assume(from != mgv.governance());
+    vm.assume(from != address(mgv));
+    vm.expectRevert("mgv/unauthorized");
+    vm.prank(from);
+    mgv.withdrawERC20(token, amount);
+  }
+
+  function test_admin_can_withdrawERC20(uint amount) public {
+    TestToken token = new TestToken(address(this),"Withdrawable","WDBL",18);
+    deal(address(token), address(mgv), amount);
+    mgv.withdrawERC20(address(token), amount);
+  }
+
+  function test_withdraw_failure_message(uint amount) public {
+    TestToken token = new TestToken(address(this),"Withdrawable","WDBL",18);
+    vm.assume(amount > 0);
+    deal(address(token), address(mgv), amount - 1);
+    vm.expectRevert("mgv/withdrawERC20Fail");
+    mgv.withdrawERC20(address(token), amount);
   }
 }

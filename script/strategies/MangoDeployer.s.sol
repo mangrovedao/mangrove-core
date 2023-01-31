@@ -18,18 +18,13 @@ import {Deployer} from "../lib/Deployer.sol";
  *
  * e.g deploy mango on WETH <quote> market:
  *
- *  WRITE_DEPLOY=true \
- *  NAME=<optional name in case symbols are ambiguous>
- *  BASE=WETH \
- *  QUOTE=0x<quote_address> \
- *  BASE_0=$(cast ff 18 1) \
- *  QUOTE_0=$(cast ff <quote_decimals> <quote_0 (in quote units)>) \
- *  NSLOTS=100 \
- *  PRICE_INCR=$(cast ff <quote_decimals> <quote_increase (in quote units)>) \
- *  forge script --fork-url $MUMBAI_NODE_URL \
- *  --broadcast \
- *  --verify \
- *  MangoDeployer
+ *   WRITE_DEPLOY=true \
+ *   BASE=WETH QUOTE=USDC BASE_0=$(cast ff 18 1) QUOTE_0=$(cast ff 6 800)\
+ *   NSLOTS=100 PRICE_INCR=$(cast ff 6 10)\
+ *   DEPLOYER=$MUMBAI_TESTER_ADDRESS\
+ *   forge script --fork-url $LOCALHOST_URL  MangoDeployer --broadcast\
+ *   --broadcast \
+ *   MangoDeployer
  */
 
 contract MangoDeployer is Deployer {
@@ -43,7 +38,7 @@ contract MangoDeployer is Deployer {
       quote_0: vm.envUint("QUOTE_0"),
       nslots: vm.envUint("NSLOTS"),
       price_incr: vm.envUint("PRICE_INCR"),
-      admin: broadcaster()
+      admin: vm.envAddress("DEPLOYER")
     });
   }
 
@@ -62,6 +57,7 @@ contract MangoDeployer is Deployer {
   {
     IMangrove mgv = IMangrove(fork.get("Mangrove"));
     broadcast();
+    console.log(broadcaster(), broadcaster().balance);
     current = new Mango(
       mgv,
       IERC20(base),

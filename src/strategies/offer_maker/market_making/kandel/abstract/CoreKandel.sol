@@ -133,7 +133,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   function dualWantsGivesOfOffer(
     OfferType baDual,
-    SlotViewMonad memory viewDual,
+    SlotViewMemoizer memory viewDual,
     MgvLib.SingleOrder calldata order,
     Params memory memoryParams
   ) internal view returns (uint wants, uint gives) {
@@ -204,11 +204,14 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   ///@notice publishes (by either creating or updating) a bid/ask at a given price index
   ///@param ba whether the offer is a bid or an ask
-  ///@param v the view Monad for the offer to be published
+  ///@param v the view Memoizer for the offer to be published
   ///@param args the argument of the offer.
   ///@return result from Mangrove on error and `args.noRevert` is `true`.
   ///@dev args.wants/gives must match the distribution at index
-  function populateIndex(OfferType ba, SlotViewMonad memory v, OfferArgs memory args) internal returns (bytes32 result) {
+  function populateIndex(OfferType ba, SlotViewMemoizer memory v, OfferArgs memory args)
+    internal
+    returns (bytes32 result)
+  {
     uint offerId = _offerId(ba, v);
     // if offer does not exist on mangrove yet
     if (offerId == 0) {
@@ -348,7 +351,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     internal
     virtual
     override
-    returns (OfferType baDual, SlotViewMonad memory viewDual, OfferArgs memory args)
+    returns (OfferType baDual, SlotViewMemoizer memory viewDual, OfferArgs memory args)
   {
     uint index = indexOfOfferId(ba, order.offerId);
     Params memory memoryParams = params;
@@ -400,11 +403,11 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   ///@notice takes care of status for populating dual and logging of potential issues.
   ///@param dualBa whether the offer is a bid or an ask
-  ///@param viewDual the view Monad for the offer.
+  ///@param viewDual the view Memoizer for the offer.
   ///@param args the argument of the offer.
   function handlePopulate(
     OfferType dualBa,
-    SlotViewMonad memory viewDual,
+    SlotViewMemoizer memory viewDual,
     OfferArgs memory args,
     bytes32 populateStatus
   ) internal {
@@ -433,7 +436,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
     // adds any unpublished liquidity to pending[Base/Quote]
     // preparing arguments for the dual offer
-    (OfferType dualBa, SlotViewMonad memory viewDual, OfferArgs memory args) = transportLogic(ba, order);
+    (OfferType dualBa, SlotViewMemoizer memory viewDual, OfferArgs memory args) = transportLogic(ba, order);
     populateStatus = populateIndex(dualBa, viewDual, args);
 
     handlePopulate(dualBa, viewDual, args, populateStatus);

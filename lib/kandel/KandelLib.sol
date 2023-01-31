@@ -20,7 +20,27 @@ library KandelLib {
     uint[] baseDist;
     uint[] quoteDist;
     uint[] indices;
-    uint i;
+  }
+
+  function populateVars(
+    Kandel kandel,
+    uint from,
+    uint to,
+    uint initBase,
+    uint initQuote,
+    uint ratio) internal view returns (PopulateVars memory vars) {
+    vars.indices = new uint[](to-from);
+    vars.baseDist = new uint[](to-from);
+    vars.quoteDist = new uint[](to-from);
+    uint i = 0;
+    for (; from < to; from++) {
+      vars.indices[i] = from;
+      vars.baseDist[i] = initBase;
+      vars.quoteDist[i] = initQuote;
+      // the ratio gives the price difference between two price points - the spread is involved when calculating the jump between a bid and its dual ask.
+      initQuote = (initQuote * uint(ratio)) / (10 ** kandel.PRECISION());
+      i++;
+    }
   }
 
   ///@notice publishes bids/asks in the distribution interval `[from, to[`
@@ -51,19 +71,33 @@ library KandelLib {
     uint[] memory pivotIds,
     uint funds
   ) internal {
-    PopulateVars memory populateVars;
-    populateVars.indices = new uint[](to-from);
-    populateVars.baseDist = new uint[](to-from);
-    populateVars.quoteDist = new uint[](to-from);
-    for (; from < to; from++) {
-      populateVars.indices[populateVars.i] = from;
-      populateVars.baseDist[populateVars.i] = initBase;
-      populateVars.quoteDist[populateVars.i] = initQuote;
-      // the ratio gives the price difference between two price points - the spread is involved when calculating the jump between a bid and its dual ask.
-      initQuote = (initQuote * uint(ratio)) / (10 ** kandel.PRECISION());
-      populateVars.i++;
-    }
-
-    kandel.populate{value: funds}(populateVars.indices, populateVars.baseDist, populateVars.quoteDist, pivotIds, lastBidIndex, kandelSize, ratio, spread);
+    PopulateVars memory vars = populateVars(kandel, from, to, initBase, initQuote, ratio);
+    kandel.populate{value: funds}(vars.indices, vars.baseDist, vars.quoteDist, pivotIds, lastBidIndex, kandelSize, ratio, spread);
   }
+
+  ///@notice publishes bids/asks in the distribution interval `[from, to[`
+  ///@param kandel the kandel instance
+  ///@param from start index
+  ///@param to end index
+  ///@param lastBidIndex the index after which offer should be an Ask
+  ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
+  ///@param initBase base given/wanted at index from
+  ///@param initQuote quote given/wanted at index from
+  ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
+  ///@dev This function must be called w/o changing ratio
+  ///@dev `from` > 0 must imply `initQuote` >= quote amount given/wanted at index from-1
+  ///@dev msg.value must be enough to provision all posted offers
+  function populate(
+    Kandel kandel,
+    uint from,
+    uint to,
+    uint lastBidIndex,
+    uint initBase,
+    uint initQuote,
+    uint ratio,
+    uint[] memory pivotIds
+  ) internal {
+    PopulateVars memory vars = populateVars(kandel, from, to, initBase, initQuote, ratio);
+    kandel.populateChunk(vars.indices, vars.baseDist, vars.quoteDist, pivotIds, lastBidIndex);
+  }  
 }

@@ -106,13 +106,10 @@ contract KandelTest is MangroveTest {
       from: 5,
       to: 10,
       lastBidIndex: 4,
-      kandelSize: 10,
       ratio: ratio,
-      spread: STEP,
       initBase: initBase,
       initQuote: initQuote5,
-      pivotIds: dynamic([uint(0), 1, 2, 3, 4]),
-      funds: 0
+      pivotIds: dynamic([uint(0), 1, 2, 3, 4])
     });
     uint pendingBase = uint(-kdl.pending(Ask));
     uint pendingQuote = uint(-kdl.pending(Bid));
@@ -593,9 +590,8 @@ contract KandelTest is MangroveTest {
 
     uint lastBidIndex = numBids > 0 ? indices[numBids - 1] : indices[0] - 1;
     uint[] memory pivotIds = new uint[](indices.length);
-    Kandel.Params memory params = GetParams(kdl);
     vm.prank(maker);
-    kdl.populate(indices, baseDist, quoteDist, pivotIds, lastBidIndex, params.length, params.ratio, params.spread);
+    kdl.populateChunk(indices, baseDist, quoteDist, pivotIds, lastBidIndex);
   }
 
   function withdrawFunds(IERC20 token, uint amount, address recipient) internal {

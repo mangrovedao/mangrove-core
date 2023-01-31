@@ -240,19 +240,26 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     }
   }
 
-  struct HeapVarsPopulate {
-    uint lastBidIndex;
-    uint gasprice;
-    uint ratio;
-  }
-
-  function iterPopulate(
-    uint lastBidIndex,
+  ///@notice Publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
+  ///@notice This function is used publicly after `populate` to reinitialize some indices or if multiple calls are needed for initialization.
+  ///@notice This function is not payable, use `populate` to fund along with populate.
+  ///@param indices the indices to populate, in ascending order
+  ///@param baseDist base distribution for the indices
+  ///@param quoteDist the distribution of quote for the indices
+  ///@param pivotIds the pivot to be used for the offer
+  ///@param lastBidIndex the index after which offer should be an ask. First index will never be an ask, either a bid or not published.
+  function populateChunk(
     uint[] calldata indices,
     uint[] calldata baseDist,
     uint[] calldata quoteDist,
-    uint[] calldata pivotIds
-  ) internal {
+    uint[] calldata pivotIds,
+    uint lastBidIndex
+  ) public onlyAdmin {
+    require(
+      indices.length == baseDist.length && indices.length == quoteDist.length && indices.length == pivotIds.length,
+      "Kandel/ArraysMustBeSameSize"
+    );
+
     uint i = 0;
     uint gasreq = offerGasreq();
     uint gasprice = params.gasprice;
@@ -314,11 +321,13 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param baseDist base distribution for the indices
   ///@param quoteDist the distribution of quote for the indices
   ///@param pivotIds the pivot to be used for the offer
-  ///@param lastBidIndex the index after which offer should be an Ask. First index will never be an ask, either a bid or not published.
+  ///@param lastBidIndex the index after which offer should be an ask. First index will never be an ask, either a bid or not published.
   ///@param kandelSize the number of price points
   ///@param ratio the rate of the geometric distribution with PRECISION decimals.
   ///@param spread the distance between a ask in the distribution and its corresponding bid.
-  ///@dev This function must be called w/o changing ratio, kandelSize, spread. To change them, first retract all offers.
+  ///@dev This function is used at initialization and can fund with provision for the offers.
+  ///@dev Use `populateChunk` to split up initialization or re-initialization with same parameters, as this function will emit.
+  ///@dev If this function is invoked with different ratio, kandelSize, spread, then first retract all offers.
   ///@dev msg.value must be enough to provision all posted offers (for chunked initialization only one call needs to send native tokens).
   function populate(
     uint[] calldata indices,
@@ -330,16 +339,12 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint16 ratio,
     uint8 spread
   ) external payable onlyAdmin {
-    require(
-      indices.length == baseDist.length && indices.length == quoteDist.length && indices.length == pivotIds.length,
-      "Kandel/ArraysMustBeSameSize"
-    );
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
     setParams(kandelSize, ratio, spread);
 
-    iterPopulate(lastBidIndex, indices, baseDist, quoteDist, pivotIds);
+    populateChunk(indices, baseDist, quoteDist, pivotIds, lastBidIndex);
   }
 
   ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`

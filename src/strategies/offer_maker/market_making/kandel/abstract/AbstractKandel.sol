@@ -15,10 +15,10 @@ import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Direct} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import {HasKandelSlotViewMonad} from "./HasKandelSlotViewMonad.sol";
+import {HasKandelSlotViewMemoizer} from "./HasKandelSlotViewMemoizer.sol";
 import {OfferType} from "./Trade.sol";
 
-abstract contract AbstractKandel is HasKandelSlotViewMonad {
+abstract contract AbstractKandel is HasKandelSlotViewMemoizer {
   ///@notice signals that the price has moved above Kandel's current price range
   event AllAsks();
   ///@notice signals that the price has moved below Kandel's current price range
@@ -34,7 +34,7 @@ abstract contract AbstractKandel is HasKandelSlotViewMonad {
   // setting PRECISION higher than 4 might produce overflow in limit cases.
   uint8 public constant PRECISION = 4;
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote) HasKandelSlotViewMonad(mgv) {
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote) HasKandelSlotViewMemoizer(mgv) {
     emit NewKandel(msg.sender, mgv, base, quote);
   }
 
@@ -89,10 +89,10 @@ abstract contract AbstractKandel is HasKandelSlotViewMonad {
   ///@param ba whether the offer that was executed is a bid or an ask
   ///@param order a recap of the taker order (order.offer is the executed offer)
   ///@return baDual the type of offer that will re-invest inbound liquidity
-  ///@return viewDual the view Monad for the dual offer
+  ///@return viewDual the view Memoizer for the dual offer
   ///@return args the argument for `populateIndex` specifying gives and wants
   function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (OfferType baDual, SlotViewMonad memory viewDual, Direct.OfferArgs memory args);
+    returns (OfferType baDual, SlotViewMemoizer memory viewDual, Direct.OfferArgs memory args);
 }

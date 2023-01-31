@@ -48,6 +48,7 @@ contract AaveKandel is CoreKandel {
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
   /// @param ba offer type.
   /// @return pending_ the pending amount
+  /// @dev Gas costly function, better suited for off chain calls.
   function pending(OfferType ba) external view returns (int pending_) {
     IERC20 token = outboundOfOfferType(ba);
     pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));

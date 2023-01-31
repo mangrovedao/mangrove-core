@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//HasAaveBalanceViewMonad.sol
+//HasAaveBalanceViewMemoizer.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -15,8 +15,8 @@ pragma solidity ^0.8.10;
 import {IERC20} from "../AbstractRouter.sol";
 import {AaveV3Lender} from "mgv_src/strategies/integrations/AaveV3Lender.sol";
 
-contract HasAaveBalanceViewMonad is AaveV3Lender {
-  struct BalanceViewMonad {
+contract HasAaveBalanceViewMemoizer is AaveV3Lender {
+  struct BalanceViewMemoizer {
     uint localBalance;
     bool localBalanceMemoized;
     uint aaveBalance;
@@ -27,7 +27,7 @@ contract HasAaveBalanceViewMonad is AaveV3Lender {
 
   constructor(address _addressesProvider) AaveV3Lender(_addressesProvider) {}
 
-  function _overlying(IERC20 token, BalanceViewMonad memory v_tkn) internal view returns (IERC20) {
+  function _overlying(IERC20 token, BalanceViewMemoizer memory v_tkn) internal view returns (IERC20) {
     if (v_tkn.overlyingMemoized) {
       return v_tkn.overlying;
     } else {
@@ -37,7 +37,11 @@ contract HasAaveBalanceViewMonad is AaveV3Lender {
     }
   }
 
-  function _balanceOfOverlying(IERC20 token, address owner, BalanceViewMonad memory v_tkn) internal view returns (uint) {
+  function _balanceOfOverlying(IERC20 token, address owner, BalanceViewMemoizer memory v_tkn)
+    internal
+    view
+    returns (uint)
+  {
     if (v_tkn.aaveBalanceMemoized) {
       return v_tkn.aaveBalance;
     } else {
@@ -47,7 +51,7 @@ contract HasAaveBalanceViewMonad is AaveV3Lender {
     }
   }
 
-  function _balanceOf(IERC20 token, address owner, BalanceViewMonad memory v_tkn) internal view returns (uint) {
+  function _balanceOf(IERC20 token, address owner, BalanceViewMemoizer memory v_tkn) internal view returns (uint) {
     if (v_tkn.localBalanceMemoized) {
       return v_tkn.localBalance;
     } else {

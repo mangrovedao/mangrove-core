@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// HasKandelSlotViewMonad.sol
+// HasKandelSlotViewMemoizer.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -16,14 +16,14 @@ import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {OfferType} from "./Trade.sol";
 
-abstract contract HasKandelSlotViewMonad {
+abstract contract HasKandelSlotViewMemoizer {
   IMangrove private immutable MGV;
 
   constructor(IMangrove mgv) {
     MGV = mgv;
   }
 
-  struct SlotViewMonad {
+  struct SlotViewMemoizer {
     bool indexMemoized;
     uint index;
     bool offerIdMemoized;
@@ -38,13 +38,13 @@ abstract contract HasKandelSlotViewMonad {
   function indexOfOfferId(OfferType ba, uint offerId) public view virtual returns (uint);
   function tokenPairOfOfferType(OfferType ba) internal view virtual returns (IERC20, IERC20);
 
-  function _fresh(uint index) internal pure returns (SlotViewMonad memory v) {
+  function _fresh(uint index) internal pure returns (SlotViewMemoizer memory v) {
     v.indexMemoized = true;
     v.index = index;
     return v;
   }
 
-  function _offerId(OfferType ba, SlotViewMonad memory v) internal view returns (uint) {
+  function _offerId(OfferType ba, SlotViewMemoizer memory v) internal view returns (uint) {
     if (v.offerIdMemoized) {
       return v.offerId;
     } else {
@@ -55,7 +55,7 @@ abstract contract HasKandelSlotViewMonad {
     }
   }
 
-  function _index(OfferType ba, SlotViewMonad memory v) internal view returns (uint) {
+  function _index(OfferType ba, SlotViewMemoizer memory v) internal view returns (uint) {
     if (v.indexMemoized) {
       return v.index;
     } else {
@@ -66,7 +66,7 @@ abstract contract HasKandelSlotViewMonad {
     }
   }
 
-  function _offer(OfferType ba, SlotViewMonad memory v) internal view returns (MgvStructs.OfferPacked) {
+  function _offer(OfferType ba, SlotViewMemoizer memory v) internal view returns (MgvStructs.OfferPacked) {
     if (v.offerMemoized) {
       return v.offer;
     } else {
@@ -78,7 +78,7 @@ abstract contract HasKandelSlotViewMonad {
     }
   }
 
-  function _offerDetail(OfferType ba, SlotViewMonad memory v) internal view returns (MgvStructs.OfferDetailPacked) {
+  function _offerDetail(OfferType ba, SlotViewMemoizer memory v) internal view returns (MgvStructs.OfferDetailPacked) {
     if (v.offerDetailMemoized) {
       return v.offerDetail;
     } else {

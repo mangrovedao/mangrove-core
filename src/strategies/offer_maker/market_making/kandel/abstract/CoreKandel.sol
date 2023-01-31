@@ -257,8 +257,8 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       OfferType ba = index <= vars.lastBidIndex ? OfferType.Bid : OfferType.Ask;
       (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(ba);
       (args.wants, args.gives) = wantsGivesOfBaseQuote(ba, baseDist[i], quoteDist[i]);
-      args.fund = 0;
-      args.noRevert = false;
+      // args.fund = 0; offers are already funded
+      // args.noRevert = false; we want revert in case of failure
       args.gasreq = offerGasreq();
       args.gasprice = vars.gasprice;
       args.pivotId = pivotIds[i];
@@ -288,7 +288,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   }
 
   ///@notice publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
-  ///@param indices the indices to populate
+  ///@param indices the indices to populate, in ascending order
   ///@param baseDist base distribution for the indices
   ///@param quoteDist the distribution of quote for the indices
   ///@param pivotIds the pivot to be used for the offer
@@ -364,15 +364,15 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     viewDual = _fresh(better(baDual, index, memoryParams.spread, memoryParams.length));
 
     args.outbound_tkn = IERC20(order.inbound_tkn);
-    // posthook should not fail if unable to post offers, we capture the error as incidents
-    args.noRevert = true;
-
     args.inbound_tkn = IERC20(order.outbound_tkn);
 
     // computing gives/wants for dual offer
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
     (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, viewDual, order, memoryParams);
+    // args.fund = 0; the offers are already provisioned
+    // posthook should not fail if unable to post offers, we capture the error as incidents
+    args.noRevert = true;
     args.gasprice = _offerDetail(baDual, viewDual).gasprice();
     args.gasreq = viewDual.offerDetail.gasreq() == 0 ? offerGasreq() : viewDual.offerDetail.gasreq();
     args.pivotId = viewDual.offer.gives() > 0 ? viewDual.offer.next() : 0;

@@ -153,11 +153,11 @@ contract KandelTest is MangroveTest {
 
   ///@notice asserts status of index.
   function assertStatus(uint index, OfferStatus status) internal {
-    assertStatus(index, status, type(uint).max);
+    assertStatus(index, status, type(uint).max, type(uint).max);
   }
 
   ///@notice asserts status of index and verifies price based on geometric progressing quote.
-  function assertStatus(uint index, OfferStatus status, uint q) internal {
+  function assertStatus(uint index, OfferStatus status, uint q, uint b) internal {
     (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
     (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, index);
     bool bidLive = mgv.isLive(bid);
@@ -170,7 +170,7 @@ contract KandelTest is MangroveTest {
         assertTrue(bidLive && !askLive, "Kandel not bidding at index");
         if (q != type(uint).max) {
           assertApproxEqRel(
-            bid.gives() * initBase, q * bid.wants(), 1e11, "Bid price does not follow distribution within 0.00001%"
+            bid.gives() * b, q * bid.wants(), 1e11, "Bid price does not follow distribution within 0.00001%"
           );
         }
       } else {
@@ -178,7 +178,7 @@ contract KandelTest is MangroveTest {
           assertTrue(!bidLive && askLive, "Kandel is not asking at index");
           if (q != type(uint).max) {
             assertApproxEqRel(
-              ask.wants() * initBase, q * ask.gives(), 1e11, "Ask price does not follow distribution within 0.00001%"
+              ask.wants() * b, q * ask.gives(), 1e11, "Ask price does not follow distribution within 0.00001%"
             );
           }
         } else {
@@ -191,21 +191,21 @@ contract KandelTest is MangroveTest {
   function assertStatus(
     uint[] memory offerStatuses // 1:bid 2:ask 3:crossed 0:dead - see OfferStatus
   ) internal {
-    assertStatus(offerStatuses, initQuote);
+    assertStatus(offerStatuses, initQuote, initBase);
   }
 
   function assertStatus(
     uint[] memory offerStatuses, // 1:bid 2:ask 3:crossed 0:dead - see OfferStatus
-    uint q // initial quote at first price point, type(uint).max to ignore in verification
+    uint q, // initial quote at first price point, type(uint).max to ignore in verification
+    uint b // initial base at first price point, type(uint).max to ignore in verification
   ) internal {
     uint expectedBids = 0;
     uint expectedAsks = 0;
     Kandel.Params memory params = GetParams(kdl);
-    assertEq(params.length, offerStatuses.length, "Unexpected number of price points");
     for (uint i = 0; i < offerStatuses.length; i++) {
       // `price = quote / initBase` used in assertApproxEqRel below
       OfferStatus offerStatus = OfferStatus(offerStatuses[i]);
-      assertStatus(i, offerStatus, q);
+      assertStatus(i, offerStatus, q, b);
       if (q != type(uint).max) {
         q = (q * uint(params.ratio)) / (10 ** kdl.PRECISION());
       }
@@ -818,7 +818,7 @@ contract KandelTest is MangroveTest {
     assertEq(params_.spread, params.spread + 1, "spread should be changed");
     assertEq(offeredVolumeBase, kdl.offeredVolume(Ask), "ask volume should be unchanged");
     assertEq(offeredVolumeQuote, kdl.offeredVolume(Bid), "ask volume should be unchanged");
-    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]), type(uint).max);
+    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]), type(uint).max, type(uint).max);
   }
 
   function test_populate_throws_on_invalid_ratio() public {
@@ -829,11 +829,18 @@ contract KandelTest is MangroveTest {
     kdl.populate(empty, empty, empty, empty, 0, 10, uint16(10 ** precision - 1), 0);
   }
 
-  function test_populate_throws_on_invalid_spread() public {
+  function test_populate_throws_on_invalid_spread_low() public {
     uint[] memory empty = new uint[](0);
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidSpread");
     kdl.populate(empty, empty, empty, empty, 0, 10, 10800, 0);
+  }
+
+  function test_populate_throws_on_invalid_spread_high() public {
+    uint[] memory empty = new uint[](0);
+    vm.prank(maker);
+    vm.expectRevert("Kandel/invalidSpread");
+    kdl.populate(empty, empty, empty, empty, 0, 10, 10800, 9);
   }
 
   function test_setCompoundRatesBase_reverts() public {
@@ -903,5 +910,71 @@ contract KandelTest is MangroveTest {
     emit SetGas(42, uint24(GASREQ + router.routerGasreq()));
     vm.prank(maker);
     kdl.setGas(42);
+  }
+
+  function test_dualWantsGivesOfOffer_max_bits_partial() public {
+    // this verifies uint160(givesR) != givesR in dualWantsGivesOfOffer
+    test_dualWantsGivesOfOffer_max_bits(true, 2);
+  }
+
+  function test_dualWantsGivesOfOffer_max_bits_full() public {
+    // this verifies the edge cases:
+    // uint160(givesR) != givesR
+    // uint96(wants) != wants
+    // uint96(gives) != gives
+    // in dualWantsGivesOfOffer
+    test_dualWantsGivesOfOffer_max_bits(false, 2);
+  }
+
+  function test_dualWantsGivesOfOffer_max_bits(bool partialTake, uint numTakes) internal {
+    uint8 spread = 8;
+    uint8 size = 2 ** 8 - 1;
+
+    uint96 base0 = 2 ** 96 - 1;
+    uint96 quote0 = 2 ** 96 - 1;
+    uint16 ratio = 2 ** 16 - 1;
+    uint16 compoundRate = uint16(10 ** kdl.PRECISION());
+
+    vm.prank(maker);
+    kdl.retractOffers(0, 10);
+
+    for (uint i = 0; i < numTakes; i++) {
+      populateSingle({
+        index: 0,
+        base: base0,
+        quote: quote0,
+        pivotId: 0,
+        lastBidIndex: 2,
+        kandelSize: size,
+        ratio: ratio,
+        spread: spread,
+        expectRevert: bytes("")
+      });
+
+      vm.prank(maker);
+      kdl.setCompoundRates(compoundRate, compoundRate);
+      // This only verifies KandelLib
+
+      (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, 0);
+
+      deal($(usdc), address(kdl), bid.gives());
+      deal($(weth), address(taker), bid.wants());
+
+      uint amount = partialTake ? 1 ether : bid.wants();
+
+      (uint successes,,,,) = sellToBestAs(taker, amount);
+      assertEq(successes, 1, "offer should be sniped");
+    }
+    uint askOfferId = mgv.best($(weth), $(usdc));
+    uint askIndex = kdl.indexOfOfferId(Ask, askOfferId);
+
+    uint[] memory statuses = new uint[](askIndex+2);
+    if (partialTake) {
+      (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, askIndex);
+      assertEq(1 ether * numTakes, ask.gives(), "ask should offer the provided 1 ether for each take");
+      statuses[0] = uint(OfferStatus.Bid);
+    }
+    statuses[askIndex] = uint(OfferStatus.Ask);
+    assertStatus(statuses, quote0, base0);
   }
 }

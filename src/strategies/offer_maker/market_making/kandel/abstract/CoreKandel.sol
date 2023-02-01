@@ -155,7 +155,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint spread = uint(memoryParams.spread);
     // compoundRate:16
     uint compoundRate = compoundRateForDual(baDual, memoryParams);
-    // params.ratio:16, spread:8 ==> r:128
+    // params.ratio:16, and we want r:128, so spread<=8. r:16*8:128
     uint r = uint(memoryParams.ratio) ** spread;
     // log2(10) = 3.32 => p:PRECISION*3.32
     uint p = 10 ** PRECISION;
@@ -326,7 +326,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
       params.ratio = ratio;
     }
     if (memoryParams.spread != spread) {
-      require(spread > 0, "Kandel/invalidSpread");
+      require(spread > 0 && spread <= 8, "Kandel/invalidSpread");
       params.spread = spread;
     }
     emit SetParams(kandelSize, spread, ratio);

@@ -21,7 +21,7 @@ contract DirectTester is ITesterContract, OfferMaker {
   // router_ needs to bind to this contract
   // since one cannot assume `this` is admin of router, one cannot do this here in general
   constructor(IMangrove mgv, AbstractRouter router_, address deployer, uint gasreq)
-    OfferMaker(mgv, router_, deployer, gasreq)
+    OfferMaker(mgv, router_, deployer, gasreq, deployer) // setting owner = deployer by default
   {}
 
   function tokenBalance(IERC20 token, address owner) external view override returns (uint) {

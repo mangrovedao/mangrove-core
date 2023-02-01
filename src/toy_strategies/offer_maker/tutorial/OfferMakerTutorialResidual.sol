@@ -19,7 +19,8 @@ contract OfferMakerTutorialResidual is Direct, ILiquidityProvider {
       // Do not use a router - i.e., transfer tokens directly to and from the maker's reserve
       NO_ROUTER,
       // Store total gas requirement of this strategy
-      100_000
+      100_000,
+      deployer
     )
   {}
 

@@ -32,7 +32,7 @@ contract Amplifier is Direct {
   //    OfferForwarder  OfferMaker <-- new offer posting
 
   constructor(IMangrove mgv, IERC20 base, IERC20 stable1, IERC20 stable2, address admin)
-    Direct(mgv, NO_ROUTER, 100_000)
+    Direct(mgv, NO_ROUTER, 100_000, admin)
   {
     // SimpleRouter takes promised liquidity from admin's address (wallet)
     STABLE1 = stable1;

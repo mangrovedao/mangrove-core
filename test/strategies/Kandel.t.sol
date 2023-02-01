@@ -71,7 +71,8 @@ contract KandelTest is MangroveTest {
       base: weth,
       quote: usdc,
       gasreq: GASREQ,
-      gasprice: 10 * global.gasprice() // covering 10 times Mangrove's gasprice at deploy time
+      gasprice: 10 * global.gasprice(), // covering 10 times Mangrove's gasprice at deploy time
+      owner: maker
     });
 
     // funding Kandel on Mangrove

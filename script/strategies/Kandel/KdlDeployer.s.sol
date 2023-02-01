@@ -52,7 +52,8 @@ contract KdlDeployer is Deployer {
       IERC20(base),
       IERC20(quote),
       gasreq,
-      global.gasprice() * gaspriceFactor
+      global.gasprice() * gaspriceFactor,
+      broadcaster()
     );
 
     broadcast();

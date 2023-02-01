@@ -12,23 +12,24 @@
 pragma solidity ^0.8.10;
 
 import {
-  Kandel
+  Kandel, OfferType
 } from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 library KandelLib {
-  struct PopulateVars {
+  struct Distribution {
     uint[] baseDist;
     uint[] quoteDist;
     uint[] indices;
   }
 
-  function populateVars(
-    Kandel kandel,
+  function calculateDistribution(
     uint from,
     uint to,
     uint initBase,
     uint initQuote,
-    uint ratio) internal view returns (PopulateVars memory vars) {
+    uint ratio,
+    uint precision) internal pure returns (Distribution memory vars, uint lastQuote) {
     vars.indices = new uint[](to-from);
     vars.baseDist = new uint[](to-from);
     vars.quoteDist = new uint[](to-from);
@@ -38,66 +39,34 @@ library KandelLib {
       vars.baseDist[i] = initBase;
       vars.quoteDist[i] = initQuote;
       // the ratio gives the price difference between two price points - the spread is involved when calculating the jump between a bid and its dual ask.
-      initQuote = (initQuote * uint(ratio)) / (10 ** kandel.PRECISION());
+      initQuote = (initQuote * uint(ratio)) / (10 ** precision);
       i++;
     }
+    return (vars, initQuote);
   }
 
-  ///@notice publishes bids/asks in the distribution interval `[from, to[`
-  ///@param kandel the kandel instance
-  ///@param from start index
-  ///@param to end index
-  ///@param lastBidIndex the index after which offer should be an Ask
-  ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
-  ///@param kandelSize the number of price points
-  ///@param ratio the rate of the geometric distribution with PRECISION decimals.
-  ///@param spread the distance between a ask in the distribution and its corresponding bid.
-  ///@param initBase base given/wanted at index from
-  ///@param initQuote quote given/wanted at index from
-  ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
-  ///@dev This function must be called w/o changing ratio
-  ///@dev `from` > 0 must imply `initQuote` >= quote amount given/wanted at index from-1
-  ///@dev msg.value must be enough to provision all posted offers
-  function populate(
+  /// @notice should be invoked as an rpc call or via snapshot-revert - populates and returns pivots and amounts.
+  function estimatePivotsAndRequiredAmount(
+    Distribution memory vars,
     Kandel kandel,
-    uint from,
-    uint to,
     uint lastBidIndex,
     uint8 kandelSize,
     uint16 ratio,
     uint8 spread,
-    uint initBase,
-    uint initQuote,
-    uint[] memory pivotIds,
     uint funds
-  ) internal {
-    PopulateVars memory vars = populateVars(kandel, from, to, initBase, initQuote, ratio);
+  ) internal returns (uint[] memory pivotIds, uint baseAmountRequired, uint quoteAmountRequired) {
+    pivotIds = new uint[](vars.indices.length);
     kandel.populate{value: funds}(vars.indices, vars.baseDist, vars.quoteDist, pivotIds, lastBidIndex, kandelSize, ratio, spread);
+    for(uint i = 0 ; i < pivotIds.length; i++) {
+      uint index = vars.indices[i];
+      OfferType ba = index <= lastBidIndex ? OfferType.Bid : OfferType.Ask;
+      MgvStructs.OfferPacked offer = kandel.getOffer(ba, index);
+      pivotIds[i] = offer.next();
+      if (ba == OfferType.Bid) {
+        quoteAmountRequired += offer.gives();
+      } else {
+        baseAmountRequired += offer.gives();
+      }
+    }
   }
-
-  ///@notice publishes bids/asks in the distribution interval `[from, to[`
-  ///@param kandel the kandel instance
-  ///@param from start index
-  ///@param to end index
-  ///@param lastBidIndex the index after which offer should be an Ask
-  ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
-  ///@param initBase base given/wanted at index from
-  ///@param initQuote quote given/wanted at index from
-  ///@param pivotIds `pivotIds[i]` is the pivot to be used for offer at index `from+i`.
-  ///@dev This function must be called w/o changing ratio
-  ///@dev `from` > 0 must imply `initQuote` >= quote amount given/wanted at index from-1
-  ///@dev msg.value must be enough to provision all posted offers
-  function populate(
-    Kandel kandel,
-    uint from,
-    uint to,
-    uint lastBidIndex,
-    uint initBase,
-    uint initQuote,
-    uint ratio,
-    uint[] memory pivotIds
-  ) internal {
-    PopulateVars memory vars = populateVars(kandel, from, to, initBase, initQuote, ratio);
-    kandel.populateChunk(vars.indices, vars.baseDist, vars.quoteDist, pivotIds, lastBidIndex);
-  }  
 }

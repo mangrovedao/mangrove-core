@@ -19,14 +19,21 @@ import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 
 contract KdlPopulate is Deployer {
   function run() public {
+    uint16 ratio = uint16(vm.envUint("RATIO"));
+    require(ratio == vm.envUint("RATIO"), "Invalid RATIO");
+    uint8 kandelSize = uint8(vm.envUint("SIZE"));
+    require(kandelSize == vm.envUint("SIZE"), "Invalid SIZE");
+    uint8 spread = uint8(vm.envUint("SPREAD"));
+    require(spread == vm.envUint("SPREAD"), "Invalid SPREAD");
+
     innerRun(
       HeapArgs({
         from: vm.envUint("FROM"),
         to: vm.envUint("TO"),
         lastBidIndex: vm.envUint("LAST_BID_INDEX"),
-        kandelSize: vm.envUint("SIZE"),
-        ratio: vm.envUint("RATIO"),
-        spread: vm.envUint("SPREAD"),
+        kandelSize: kandelSize,
+        ratio: ratio,
+        spread: spread,
         initQuote: vm.envUint("INIT_QUOTE"),
         volume: vm.envUint("VOLUME"),
         kdl: Kandel(envAddressOrName("KANDEL"))
@@ -48,9 +55,9 @@ contract KdlPopulate is Deployer {
     uint from;
     uint to;
     uint lastBidIndex;
-    uint kandelSize;
-    uint ratio;
-    uint spread;
+    uint8 kandelSize;
+    uint16 ratio;
+    uint8 spread;
     uint initQuote;
     uint volume;
     Kandel kdl;
@@ -65,8 +72,7 @@ contract KdlPopulate is Deployer {
     uint lastOfferId;
     uint gasreq;
     uint gasprice;
-    IMangrove MGV;
-    MgvReader MGVR;
+    MgvReader mgvReader;
     IERC20 BASE;
     IERC20 QUOTE;
     uint provAsk;
@@ -76,15 +82,13 @@ contract KdlPopulate is Deployer {
   function innerRun(HeapArgs memory args) public {
     HeapVars memory vars;
 
-    vars.MGV = IMangrove(fork.get("Mangrove"));
-    vars.MGVR = MgvReader(fork.get("MgvReader"));
+    vars.mgvReader = MgvReader(fork.get("MgvReader"));
     vars.BASE = args.kdl.BASE();
     vars.QUOTE = args.kdl.QUOTE();
 
     (
       vars.gasprice,
-      /*uint24 gasreq*/
-      ,
+      vars.gasreq,
       /*uint16 ratio*/
       ,
       /*uint16 compoundRateBase*/
@@ -96,12 +100,15 @@ contract KdlPopulate is Deployer {
       /*uint8 length*/
     ) = args.kdl.params();
 
-    vars.gasreq = args.kdl.offerGasreq();
-    vars.provAsk = vars.MGVR.getProvision(address(vars.BASE), address(vars.QUOTE), vars.gasreq, vars.gasprice);
-    vars.provBid = vars.MGVR.getProvision(address(vars.QUOTE), address(vars.BASE), vars.gasreq, vars.gasprice);
+    vars.provAsk = vars.mgvReader.getProvision(address(vars.BASE), address(vars.QUOTE), vars.gasreq, vars.gasprice);
+    vars.provBid = vars.mgvReader.getProvision(address(vars.QUOTE), address(vars.BASE), vars.gasreq, vars.gasprice);
+    uint funds = (vars.provAsk + vars.provBid) * (args.to - args.from);
+
+    prettyLog("Calculating base and quote...");
+    KandelLib.Distribution memory distribution = calculateBaseQuote(args);
 
     prettyLog("Evaluating pivots and required collateral...");
-    evaluatePivots(args, vars);
+    evaluatePivots(distribution, args, vars, funds);
     // after the above call, `vars.pivotIds` and `vars.base/quoteAmountRequired` are filled
 
     prettyLog("Approving base and quote...");
@@ -129,57 +136,36 @@ contract KdlPopulate is Deployer {
     prettyLog("Populating Mangrove...");
 
     broadcast();
-    uint funds = (vars.provAsk + vars.provBid) * (args.to - args.from);
-    KandelLib.populate({
-      kandel: args.kdl,
-      from: args.from,
-      to: args.to,
-      lastBidIndex: args.lastBidIndex,
-      kandelSize: uint8(args.kandelSize),
-      ratio: uint16(args.ratio),
-      spread: uint8(args.spread),
-      initBase: args.volume, // base distribution in [from, to[
-      initQuote: args.initQuote, // quote given/wanted at index from
-      pivotIds: vars.pivotIds,
-      funds: funds
-    });
+    args.kdl.populate{value: funds}(
+      distribution.indices,
+      distribution.baseDist,
+      distribution.quoteDist,
+      vars.pivotIds,
+      args.lastBidIndex,
+      args.kandelSize,
+      args.ratio,
+      args.spread
+    );
     console.log(toUnit(funds, 18), "eth used as provision");
+  }
+
+  function calculateBaseQuote(HeapArgs memory args) public view returns (KandelLib.Distribution memory distribution) {
+    (distribution, /* uint lastQuote */ ) =
+      KandelLib.calculateDistribution(args.from, args.to, args.volume, args.initQuote, args.ratio, args.kdl.PRECISION());
   }
 
   ///@notice evaluates Pivot ids for offers that need to be published on Mangrove
   ///@dev we use foundry cheats to revert all changes to the local node in order to prevent inconsistent tests.
-  function evaluatePivots(HeapArgs memory args, HeapVars memory vars) public {
-    vars.pivotIds = new uint[](args.to - args.from);
-
-    // will revert all the insertion to avoid changing the state of mangrove on the local node (might mess up tests)
+  function evaluatePivots(
+    KandelLib.Distribution memory distribution,
+    HeapArgs memory args,
+    HeapVars memory vars,
+    uint funds
+  ) public {
     vars.snapshotId = vm.snapshot();
-    uint quote_i = args.initQuote;
-    for (uint i = 0; i < vars.pivotIds.length; i++) {
-      vars.bidding = i <= args.lastBidIndex;
-      (address outbound, address inbound) =
-        vars.bidding ? (address(vars.QUOTE), address(vars.BASE)) : (address(vars.BASE), address(vars.QUOTE));
-
-      (uint wants, uint gives) = vars.bidding ? (args.volume, quote_i) : (quote_i, args.volume);
-      quote_i = (quote_i * args.ratio) / 10 ** 4;
-
-      if (gives > 0) {
-        vars.lastOfferId = vars.MGV.newOffer{value: vars.bidding ? vars.provBid : vars.provAsk}({
-          outbound_tkn: outbound,
-          inbound_tkn: inbound,
-          wants: wants,
-          gives: gives,
-          gasreq: vars.gasreq,
-          gasprice: 0,
-          pivotId: vars.lastOfferId
-        });
-        vars.pivotIds[i] = vars.MGV.offers(outbound, inbound, vars.lastOfferId).next();
-        if (vars.bidding) {
-          vars.quoteAmountRequired += gives;
-        } else {
-          vars.baseAmountRequired += gives;
-        }
-      }
-    }
+    (vars.pivotIds, vars.baseAmountRequired, vars.quoteAmountRequired) = KandelLib.estimatePivotsAndRequiredAmount(
+      distribution, args.kdl, args.lastBidIndex, args.kandelSize, args.ratio, args.spread, funds
+    );
     require(vm.revertTo(vars.snapshotId), "snapshot restore failed");
   }
 }

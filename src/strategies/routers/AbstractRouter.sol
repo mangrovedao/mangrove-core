@@ -60,7 +60,7 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice pulls liquidity from an offer maker's reserve to `msg.sender`'s balance
   ///@param token is the ERC20 managing the pulled asset
-  ///@param owner of the tokens that are being pulled
+  ///@param owner of the tokens that are being pulled. Public router must ensure that `owner` has approved `msg.sender` to use the funds
   ///@param amount of `token` the maker contract wishes to pull
   ///@param strict when the calling maker contract accepts to receive more `token` of `owner` than required (this may happen for gas optimization)
   function pull(IERC20 token, address owner, uint amount, bool strict) external onlyMakers returns (uint pulled) {
@@ -68,6 +68,7 @@ abstract contract AbstractRouter is AccessControlled {
   }
 
   ///@notice router-dependant implementation of the `pull` function
+  ///@dev if router is permissionless it must verify that owner approved `msg.sender` to pull the funds
   function __pull__(IERC20 token, address owner, uint amount, bool strict) internal virtual returns (uint);
 
   ///@notice pushes assets from maker contract's balance to the specified reserve
@@ -76,6 +77,7 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param amount is the amount of asset that should be transferred from the calling maker contract
   ///@return pushed fraction of `amount` that was successfully pushed to reserve.
   function push(IERC20 token, address owner, uint amount) external onlyMakers returns (uint pushed) {
+    require(owner != address(0), "Router/push/0xOwner");
     return __push__({token: token, owner: owner, amount: amount});
   }
 
@@ -84,6 +86,7 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice iterative `push` in a single call
   function flush(IERC20[] calldata tokens, address owner) external onlyMakers {
+    require(owner != address(0), "Router/push/0xOwner");
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);
       if (amount > 0) {

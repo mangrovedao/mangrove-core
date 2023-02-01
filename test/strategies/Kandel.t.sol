@@ -158,8 +158,8 @@ contract KandelTest is MangroveTest {
 
   ///@notice asserts status of index and verifies price based on geometric progressing quote.
   function assertStatus(uint index, OfferStatus status, uint q, uint b) internal {
-    (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
-    (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, index);
+    MgvStructs.OfferPacked bid = kdl.getOffer(Bid, index);
+    MgvStructs.OfferPacked ask = kdl.getOffer(Ask, index);
     bool bidLive = mgv.isLive(bid);
     bool askLive = mgv.isLive(ask);
 
@@ -280,7 +280,7 @@ contract KandelTest is MangroveTest {
     vm.prank(maker);
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
-    (MgvStructs.OfferPacked oldAsk,) = kdl.getOffer(Ask, index + STEP);
+    MgvStructs.OfferPacked oldAsk = kdl.getOffer(Ask, index + STEP);
     uint oldPending = pending(Ask);
 
     (uint successes, uint takerGot, uint takerGave,, uint fee) = sellToBestAs(taker, 1000 ether);
@@ -290,7 +290,7 @@ contract KandelTest is MangroveTest {
       expectedStatus[i] = i < index ? 1 : i == index ? 0 : 2;
     }
     assertStatus(expectedStatus);
-    (MgvStructs.OfferPacked newAsk,) = kdl.getOffer(Ask, index + STEP);
+    MgvStructs.OfferPacked newAsk = kdl.getOffer(Ask, index + STEP);
     assertTrue(newAsk.gives() <= takerGave + oldAsk.gives(), "Cannot give more than what was received");
     uint pendingDelta = pending(Ask) - oldPending;
     assertEq(pendingDelta + newAsk.gives(), oldAsk.gives() + takerGave, "Incorrect net promised asset");
@@ -313,7 +313,7 @@ contract KandelTest is MangroveTest {
     vm.prank(maker);
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
-    (MgvStructs.OfferPacked oldBid,) = kdl.getOffer(Bid, index - STEP);
+    MgvStructs.OfferPacked oldBid = kdl.getOffer(Bid, index - STEP);
     uint oldPending = pending(Bid);
 
     (uint successes, uint takerGot, uint takerGave,, uint fee) = buyFromBestAs(taker, 1000 ether);
@@ -324,7 +324,7 @@ contract KandelTest is MangroveTest {
       expectedStatus[i] = i < index ? 1 : i == index ? 0 : 2;
     }
     assertStatus(expectedStatus);
-    (MgvStructs.OfferPacked newBid,) = kdl.getOffer(Bid, index - STEP);
+    MgvStructs.OfferPacked newBid = kdl.getOffer(Bid, index - STEP);
     assertTrue(newBid.gives() <= takerGave + oldBid.gives(), "Cannot give more than what was received");
     uint pendingDelta = pending(Bid) - oldPending;
     assertEq(pendingDelta + newBid.gives(), oldBid.gives() + takerGave, "Incorrect net promised asset");
@@ -525,7 +525,7 @@ contract KandelTest is MangroveTest {
     uint numDead = 0;
     for (uint i = 0; i < params.length; i++) {
       OfferType ba = quote * midGives <= initBase * midWants ? Bid : Ask;
-      (MgvStructs.OfferPacked offer,) = kdl.getOffer(ba, i);
+      MgvStructs.OfferPacked offer = kdl.getOffer(ba, i);
       if (!mgv.isLive(offer)) {
         if (ba == Bid) {
           numBids++;
@@ -702,13 +702,13 @@ contract KandelTest is MangroveTest {
     uint index = 3;
     assertStatus(index, OfferStatus.Bid);
     uint offerId = kdl.offerIdOfIndex(Bid, index);
-    (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
+    MgvStructs.OfferPacked bid = kdl.getOffer(Bid, index);
 
     populateSingle(index, bid.wants() * 2, bid.gives() * 2, 0, 5, "");
 
     uint offerIdPost = kdl.offerIdOfIndex(Bid, index);
     assertEq(offerIdPost, offerId, "offerId should be unchanged (offer updated)");
-    (MgvStructs.OfferPacked bidPost,) = kdl.getOffer(Bid, index);
+    MgvStructs.OfferPacked bidPost = kdl.getOffer(Bid, index);
     assertEq(bidPost.gives(), bid.gives() * 2, "gives should be changed");
   }
 
@@ -716,8 +716,8 @@ contract KandelTest is MangroveTest {
     uint index = 4;
     uint offerId = kdl.offerIdOfIndex(Bid, index);
 
-    (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
-    (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, index + STEP);
+    MgvStructs.OfferPacked bid = kdl.getOffer(Bid, index);
+    MgvStructs.OfferPacked ask = kdl.getOffer(Ask, index + STEP);
 
     // Take almost all - offer will not be reposted due to density too low
     uint amount = bid.wants() - 1;
@@ -725,7 +725,7 @@ contract KandelTest is MangroveTest {
     mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
 
     // verify dual is increased
-    (MgvStructs.OfferPacked askPost,) = kdl.getOffer(Ask, index + STEP);
+    MgvStructs.OfferPacked askPost = kdl.getOffer(Ask, index + STEP);
     assertGt(askPost.gives(), ask.gives(), "Dual should offer more even though bid failed to post");
   }
 
@@ -737,8 +737,8 @@ contract KandelTest is MangroveTest {
     uint index = 3;
     uint offerId = kdl.offerIdOfIndex(Bid, index);
 
-    (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
-    (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, index + STEP);
+    MgvStructs.OfferPacked bid = kdl.getOffer(Bid, index);
+    MgvStructs.OfferPacked ask = kdl.getOffer(Ask, index + STEP);
 
     assertTrue(mgv.isLive(bid), "bid should be live");
     assertTrue(!mgv.isLive(ask), "ask should not be live");
@@ -748,7 +748,7 @@ contract KandelTest is MangroveTest {
     vm.prank(taker);
     (uint successes,,,,) = mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
     assertTrue(successes == 1, "Snipe failed");
-    (ask,) = kdl.getOffer(Ask, index + STEP);
+    ask = kdl.getOffer(Ask, index + STEP);
     assertTrue(!mgv.isLive(ask), "ask should still not be live");
   }
 
@@ -759,8 +759,8 @@ contract KandelTest is MangroveTest {
     uint index = 4;
     uint offerId = kdl.offerIdOfIndex(Bid, index);
 
-    (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, index);
-    (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, index + STEP);
+    MgvStructs.OfferPacked bid = kdl.getOffer(Bid, index);
+    MgvStructs.OfferPacked ask = kdl.getOffer(Ask, index + STEP);
 
     assertTrue(mgv.isLive(bid), "bid should be live");
     assertTrue(!mgv.isLive(ask), "ask should not be live");
@@ -771,7 +771,7 @@ contract KandelTest is MangroveTest {
     (uint successes,,,,) = mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
     assertTrue(successes == 1, "Snipe failed");
 
-    (ask,) = kdl.getOffer(Ask, index + STEP);
+    ask = kdl.getOffer(Ask, index + STEP);
     assertTrue(!mgv.isLive(ask), "ask should still not be live");
   }
 
@@ -955,7 +955,7 @@ contract KandelTest is MangroveTest {
       kdl.setCompoundRates(compoundRate, compoundRate);
       // This only verifies KandelLib
 
-      (MgvStructs.OfferPacked bid,) = kdl.getOffer(Bid, 0);
+      MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 0);
 
       deal($(usdc), address(kdl), bid.gives());
       deal($(weth), address(taker), bid.wants());
@@ -970,7 +970,7 @@ contract KandelTest is MangroveTest {
 
     uint[] memory statuses = new uint[](askIndex+2);
     if (partialTake) {
-      (MgvStructs.OfferPacked ask,) = kdl.getOffer(Ask, askIndex);
+      MgvStructs.OfferPacked ask = kdl.getOffer(Ask, askIndex);
       assertEq(1 ether * numTakes, ask.gives(), "ask should offer the provided 1 ether for each take");
       statuses[0] = uint(OfferStatus.Bid);
     }

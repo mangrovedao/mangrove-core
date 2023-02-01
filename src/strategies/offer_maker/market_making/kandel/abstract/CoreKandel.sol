@@ -203,15 +203,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     return ba == OfferType.Ask ? index + step >= length_ ? length_ - 1 : index + step : index < step ? 0 : index - step;
   }
 
-  function getOffer(OfferType ba, uint index)
-    public
-    view
-    returns (MgvStructs.OfferPacked offer, MgvStructs.OfferDetailPacked offerDetail)
-  {
+  function getOffer(OfferType ba, uint index) public view returns (MgvStructs.OfferPacked offer) {
     uint offerId = offerIdOfIndex(ba, index);
     (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
     offer = MGV.offers(address(outbound), address(inbound), offerId);
-    offerDetail = MGV.offerDetails(address(outbound), address(inbound), offerId);
   }
 
   ///@notice publishes (by either creating or updating) a bid/ask at a given price index
@@ -483,10 +478,10 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   /// @notice gets the total gives of all offers of the offer type
   /// @param ba offer type.
-  /// @dev function is very gas constly, for external calls only
+  /// @dev function is very gas costly, for external calls only
   function offeredVolume(OfferType ba) public view returns (uint volume) {
     for (uint index = 0; index < params.length; index++) {
-      (MgvStructs.OfferPacked offer,) = getOffer(ba, index);
+      MgvStructs.OfferPacked offer = getOffer(ba, index);
       volume += offer.gives();
     }
   }

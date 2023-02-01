@@ -27,11 +27,11 @@ contract KdlStatus is Deployer {
     IERC20 quote = kdl.QUOTE();
     uint baseDecimals = base.decimals();
     uint quoteDecimals = quote.decimals();
-    uint nslots = kdl.length();
+    uint length = kdl.length();
 
-    for (uint i; i < nslots; i++) {
-      (MgvStructs.OfferPacked ask,) = kdl.getOffer(OfferType.Ask, i);
-      (MgvStructs.OfferPacked bid,) = kdl.getOffer(OfferType.Bid, i);
+    for (uint i; i < length; i++) {
+      MgvStructs.OfferPacked ask = kdl.getOffer(OfferType.Ask, i);
+      MgvStructs.OfferPacked bid = kdl.getOffer(OfferType.Bid, i);
 
       if (ask.gives() > 0) {
         uint p = ask.wants() /*quote*/ * 10 ** baseDecimals / ask.gives(); /*base */

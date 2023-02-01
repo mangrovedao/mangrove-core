@@ -71,7 +71,8 @@ contract Mango is Direct {
     Direct(
       mgv,
       new SimpleRouter(), // routes liqudity between admin's account and this contract,
-      150_000
+      150_000,
+      deployer
     )
   {
     MangoStorage.Layout storage mStr = MangoStorage.getStorage();

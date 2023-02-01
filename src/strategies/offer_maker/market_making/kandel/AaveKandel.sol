@@ -21,9 +21,15 @@ import {OfferType} from "./abstract/Trade.sol";
 contract AaveKandel is CoreKandel {
   bytes32 constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, AavePooledRouter router_)
-    CoreKandel(mgv, base, quote, gasreq, gasprice, router_)
-  {}
+  constructor(
+    IMangrove mgv,
+    IERC20 base,
+    IERC20 quote,
+    uint gasreq,
+    uint gasprice,
+    AavePooledRouter router_,
+    address owner
+  ) CoreKandel(mgv, base, quote, gasreq, gasprice, router_, owner) {}
 
   ///@dev returns the router as an Aave router
   function pooledRouter() private view returns (AavePooledRouter) {
@@ -54,7 +60,7 @@ contract AaveKandel is CoreKandel {
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
   /// @param ba offer type.
   /// @return pending_ the pending amount
-  /// @dev Gas costly function, better suited for off chain calls.
+  /// @dev Gas costly function, better suited for off chain calls.git pu
   function pending(OfferType ba) external view returns (int pending_) {
     IERC20 token = outboundOfOfferType(ba);
     pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));

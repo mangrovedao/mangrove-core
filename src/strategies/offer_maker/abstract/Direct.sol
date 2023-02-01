@@ -21,12 +21,19 @@ import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
 /// `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
 abstract contract Direct is MangroveOffer {
-  ///@notice owner of strat funds
+  ///@notice owner of strat funds when using a router
+  ///@dev OWNER==address(0) will pass address(this) to the router for the owner field.
+  address immutable OWNER;
 
-  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq) MangroveOffer(mgv, gasreq) {
+  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq, address owner_) MangroveOffer(mgv, gasreq) {
     if (router_ != NO_ROUTER) {
       setRouter(router_);
     }
+    OWNER = owner_;
+  }
+
+  function owner() public view returns (address) {
+    return OWNER == address(0) ? address(this) : OWNER;
   }
 
   function _newOffer(OfferArgs memory args) internal returns (uint, bytes32) {
@@ -119,7 +126,7 @@ abstract contract Direct is MangroveOffer {
     if (router_ == NO_ROUTER) {
       return amount_;
     } else {
-      uint pulled = router_.pull(IERC20(order.outbound_tkn), admin(), amount_, false);
+      uint pulled = router_.pull(IERC20(order.outbound_tkn), owner(), amount_, false);
       return pulled >= amount_ ? 0 : amount_ - pulled;
     }
   }
@@ -135,15 +142,19 @@ abstract contract Direct is MangroveOffer {
     tokens[1] = IERC20(order.inbound_tkn); // flushing liquidity brought by taker
     AbstractRouter router_ = router();
     if (router_ != NO_ROUTER) {
-      router_.flush(tokens, admin());
+      router_.flush(tokens, owner());
     }
     // reposting offer residual if any
     return super.__posthookSuccess__(order, makerData);
   }
 
-  function __checkList__(IERC20 token, address owner) internal view virtual override {
+  function __checkList__(IERC20 token, address with_owner) internal view virtual override {
     // liquidity owner is an immutable of Direct strats
-    require(owner == admin(), "Direct/onlyAdminCanOwnOffers");
-    super.__checkList__(token, owner);
+    AbstractRouter router_ = router();
+    address admin_ = admin();
+
+    require(with_owner == admin_, "Direct/onlyAdminCanPostOffers");
+    require(router_ == NO_ROUTER || owner() == address(this) || owner() == admin_, "Direct/OwnerCannotUseRouter");
+    super.__checkList__(token, with_owner);
   }
 }

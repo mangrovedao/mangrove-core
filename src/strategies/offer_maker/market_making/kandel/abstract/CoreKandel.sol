@@ -32,10 +32,15 @@ abstract contract CoreKandel is Direct, AbstractKandel {
 
   Params public params;
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, AbstractRouter router_)
-    Direct(mgv, router_, gasreq)
-    AbstractKandel(mgv, base, quote)
-  {
+  constructor(
+    IMangrove mgv,
+    IERC20 base,
+    IERC20 quote,
+    uint gasreq,
+    uint gasprice,
+    AbstractRouter router_,
+    address owner
+  ) Direct(mgv, router_, gasreq, owner) AbstractKandel(mgv, base, quote) {
     BASE = base;
     QUOTE = quote;
 

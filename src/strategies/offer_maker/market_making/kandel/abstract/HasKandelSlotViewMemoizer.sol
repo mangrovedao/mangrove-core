@@ -15,15 +15,14 @@ import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {OfferType} from "./Trade.sol";
-import {HasIndexedOffers} from "./HasIndexedOffers.sol";
+import {IHasOfferIdIndexMap} from "./HasIndexedOffers.sol";
+import {IHasTokenPairOfOfferType} from "./TradesBaseQuote.sol";
 
-abstract contract HasKandelSlotViewMemoizer is HasIndexedOffers {
+abstract contract HasKandelSlotViewMemoizer is IHasTokenPairOfOfferType, IHasOfferIdIndexMap {
   IMangrove private immutable MGV;
 
-  constructor(HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote)
-    HasIndexedOffers(mangroveWithBaseQuote)
-  {
-    MGV = mangroveWithBaseQuote.mgv;
+  constructor(IMangrove mgv) {
+    MGV = mgv;
   }
 
   struct SlotViewMemoizer {

@@ -20,7 +20,7 @@ import {HasIndexedOffers} from "./HasIndexedOffers.sol";
 import {OfferType} from "./Trade.sol";
 import {TradesBaseQuote} from "./TradesBaseQuote.sol";
 
-abstract contract AbstractKandel is HasKandelSlotViewMemoizer {
+abstract contract AbstractKandel {
   ///@notice signals that the price has moved above Kandel's current price range
   event AllAsks();
   ///@notice signals that the price has moved below Kandel's current price range
@@ -44,12 +44,6 @@ abstract contract AbstractKandel is HasKandelSlotViewMemoizer {
   // `ratio`, `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals.
   // setting PRECISION higher than 4 might produce overflow in limit cases.
   uint8 public constant PRECISION = 4;
-
-  constructor(HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote)
-    HasKandelSlotViewMemoizer(mangroveWithBaseQuote)
-  {
-    emit NewKandel(msg.sender, mangroveWithBaseQuote.mgv, mangroveWithBaseQuote.base, mangroveWithBaseQuote.quote);
-  }
 
   ///@notice Kandel Params
   ///@param gasprice the gasprice to use for offers
@@ -78,7 +72,7 @@ abstract contract AbstractKandel is HasKandelSlotViewMemoizer {
   function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (OfferType baDual, SlotViewMemoizer memory viewDual, Direct.OfferArgs memory args);
+    returns (OfferType baDual, HasKandelSlotViewMemoizer.SlotViewMemoizer memory viewDual, Direct.OfferArgs memory args);
 
   function pending(OfferType ba) external view virtual returns (int pending_);
   function reserveBalance(IERC20 token) public view virtual returns (uint);

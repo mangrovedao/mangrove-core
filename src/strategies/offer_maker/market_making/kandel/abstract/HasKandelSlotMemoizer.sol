@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// HasKandelSlotViewMemoizer.sol
+// HasKandelSlotMemoizer.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -18,14 +18,14 @@ import {OfferType} from "./Trade.sol";
 import {IHasOfferIdIndexMap} from "./HasIndexedOffers.sol";
 import {IHasTokenPairOfOfferType} from "./TradesBaseQuote.sol";
 
-abstract contract HasKandelSlotViewMemoizer is IHasTokenPairOfOfferType, IHasOfferIdIndexMap {
+abstract contract HasKandelSlotMemoizer is IHasTokenPairOfOfferType, IHasOfferIdIndexMap {
   IMangrove private immutable MGV;
 
   constructor(IMangrove mgv) {
     MGV = mgv;
   }
 
-  struct SlotViewMemoizer {
+  struct SlotMemoizer {
     bool indexMemoized;
     uint index;
     bool offerIdMemoized;
@@ -34,13 +34,13 @@ abstract contract HasKandelSlotViewMemoizer is IHasTokenPairOfOfferType, IHasOff
     MgvStructs.OfferPacked offer;
   }
 
-  function _fresh(uint index) internal pure returns (SlotViewMemoizer memory v) {
+  function _fresh(uint index) internal pure returns (SlotMemoizer memory v) {
     v.indexMemoized = true;
     v.index = index;
     return v;
   }
 
-  function _offerId(OfferType ba, SlotViewMemoizer memory v) internal view returns (uint) {
+  function _offerId(OfferType ba, SlotMemoizer memory v) internal view returns (uint) {
     if (v.offerIdMemoized) {
       return v.offerId;
     } else {
@@ -51,7 +51,7 @@ abstract contract HasKandelSlotViewMemoizer is IHasTokenPairOfOfferType, IHasOff
     }
   }
 
-  function _index(OfferType ba, SlotViewMemoizer memory v) internal view returns (uint) {
+  function _index(OfferType ba, SlotMemoizer memory v) internal view returns (uint) {
     if (v.indexMemoized) {
       return v.index;
     } else {
@@ -62,7 +62,7 @@ abstract contract HasKandelSlotViewMemoizer is IHasTokenPairOfOfferType, IHasOff
     }
   }
 
-  function _offer(OfferType ba, SlotViewMemoizer memory v) internal view returns (MgvStructs.OfferPacked) {
+  function _offer(OfferType ba, SlotMemoizer memory v) internal view returns (MgvStructs.OfferPacked) {
     if (v.offerMemoized) {
       return v.offer;
     } else {

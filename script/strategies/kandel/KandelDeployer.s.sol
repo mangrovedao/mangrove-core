@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Kandel, IERC20, IMangrove, MgvStructs} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {HasIndexedOffers} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/HasIndexedOffers.sol";
+
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
 
@@ -48,11 +50,11 @@ contract KandelDeployer is Deployer {
     IMangrove mgv = IMangrove(fork.get("Mangrove"));
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
 
+    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
+      HasIndexedOffers.MangroveWithBaseQuote({mgv: mgv, base: IERC20(base), quote: IERC20(quote)});
     broadcast();
     current = new Kandel(
-      mgv,
-      IERC20(base),
-      IERC20(quote),
+      mangroveWithBaseQuote,
       gasreq,
       global.gasprice() * gaspriceFactor,
       broadcaster()

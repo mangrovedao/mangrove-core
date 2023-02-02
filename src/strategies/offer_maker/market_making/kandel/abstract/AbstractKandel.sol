@@ -16,7 +16,9 @@ import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Direct} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {HasKandelSlotViewMemoizer} from "./HasKandelSlotViewMemoizer.sol";
+import {HasIndexedOffers} from "./HasIndexedOffers.sol";
 import {OfferType} from "./Trade.sol";
+import {TradesBaseQuote} from "./TradesBaseQuote.sol";
 
 abstract contract AbstractKandel is HasKandelSlotViewMemoizer {
   ///@notice signals that the price has moved above Kandel's current price range
@@ -43,8 +45,10 @@ abstract contract AbstractKandel is HasKandelSlotViewMemoizer {
   // setting PRECISION higher than 4 might produce overflow in limit cases.
   uint8 public constant PRECISION = 4;
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote) HasKandelSlotViewMemoizer(mgv) {
-    emit NewKandel(msg.sender, mgv, base, quote);
+  constructor(HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote)
+    HasKandelSlotViewMemoizer(mangroveWithBaseQuote)
+  {
+    emit NewKandel(msg.sender, mangroveWithBaseQuote.mgv, mangroveWithBaseQuote.base, mangroveWithBaseQuote.quote);
   }
 
   ///@notice Kandel Params
@@ -63,38 +67,6 @@ abstract contract AbstractKandel is HasKandelSlotViewMemoizer {
     uint16 compoundRateQuote;
     uint8 spread;
     uint8 length;
-  }
-
-  ///@notice Mangrove's offer id of an ask at a given price index.
-  uint[] askOfferIdOfIndex;
-  ///@notice Mangrove's offer id of a bid at a given price index.
-  uint[] bidOfferIdOfIndex;
-
-  ///@notice maps index of offers to offer id on Mangrove.
-  function offerIdOfIndex(OfferType ba, uint index) public view override returns (uint) {
-    return ba == OfferType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
-  }
-
-  ///@notice An inverse mapping of askOfferIdOfIndex. E.g., indexOfAskOfferId[42] is the index in askOfferIdOfIndex at which ask of id #42 on Mangrove is stored.
-  mapping(uint => uint) indexOfAskOfferId;
-
-  ///@notice An inverse mapping of bidOfferIdOfIndex. E.g., indexOfBidOfferId[42] is the index in bidOfferIdOfIndex at which bid of id #42 on Mangrove is stored.
-  mapping(uint => uint) indexOfBidOfferId;
-
-  ///@notice Maps an offer type and Mangrove offer id to Kandel index.
-  function indexOfOfferId(OfferType ba, uint offerId) public view override returns (uint) {
-    return ba == OfferType.Ask ? indexOfAskOfferId[offerId] : indexOfBidOfferId[offerId];
-  }
-
-  ///@notice Sets the Mangrove offer id for a Kandel index and vice versa.
-  function setIndexMapping(OfferType ba, uint index, uint offerId) internal {
-    if (ba == OfferType.Ask) {
-      indexOfAskOfferId[offerId] = index;
-      askOfferIdOfIndex[index] = offerId;
-    } else {
-      indexOfBidOfferId[offerId] = index;
-      bidOfferIdOfIndex[index] = offerId;
-    }
   }
 
   ///@notice transport logic followed by Kandel

@@ -17,13 +17,17 @@ import {
 import {AbstractRouter, AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {OfferType} from "./abstract/Trade.sol";
+import {HasIndexedOffers} from "./abstract/HasIndexedOffers.sol";
 
 contract AaveKandel is CoreKandel {
   bytes32 constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address owner)
-    CoreKandel(mgv, base, quote, gasreq, gasprice, owner)
-  {}
+  constructor(
+    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote,
+    uint gasreq,
+    uint gasprice,
+    address owner
+  ) CoreKandel(mangroveWithBaseQuote, gasreq, gasprice, owner) {}
 
   ///@dev returns the router as an Aave router
   function pooledRouter() private view returns (AavePooledRouter) {

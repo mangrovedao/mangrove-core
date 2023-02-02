@@ -11,7 +11,7 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-import {IMangrove, IERC20, CoreKandel, Kandel, MgvStructs} from "./Kandel.sol";
+import {IMangrove, IERC20, CoreKandel, Kandel, MgvStructs, HasIndexedOffers} from "./Kandel.sol";
 import {AaveKandel, AavePooledRouter, AbstractRouter} from "./AaveKandel.sol";
 
 contract KandelSeeder {
@@ -54,15 +54,18 @@ contract KandelSeeder {
     (, MgvStructs.LocalPacked local) = MGV.config(address(seed.base), address(seed.quote));
     require(local.active(), "KandelSeeder/inactiveMarket");
 
+    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
+      HasIndexedOffers.MangroveWithBaseQuote({mgv: MGV, base: seed.base, quote: seed.quote});
+
     if (seed.onAave) {
-      AaveKandel aaveKdl = new AaveKandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
+      AaveKandel aaveKdl = new AaveKandel(mangroveWithBaseQuote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
       // Allowing newly deployed Kandel to bind to the AaveRouter
       AAVE_ROUTER.bind(address(aaveKdl));
       // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20
       aaveKdl.initialize(AAVE_ROUTER);
       kdl = CoreKandel(aaveKdl);
     } else {
-      kdl = new Kandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
+      kdl = new Kandel(mangroveWithBaseQuote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
     }
     kdl.setCompoundRates(seed.compoundRateBase, seed.compoundRateQuote);
     kdl.setAdmin(msg.sender);

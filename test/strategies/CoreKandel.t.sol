@@ -13,7 +13,8 @@ import {
   Kandel,
   MgvStructs,
   IMangrove,
-  OfferType
+  OfferType,
+  HasIndexedOffers
 } from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 import {console2} from "forge-std/Test.sol";
@@ -112,11 +113,12 @@ contract CoreKandelTest is MangroveTest {
   }
 
   function deployKandel() internal virtual returns (CoreKandel kdl_) {
+    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
+      HasIndexedOffers.MangroveWithBaseQuote({mgv: IMangrove($(mgv)), base: weth, quote: usdc});
+
     vm.prank(maker);
     kdl_ = new Kandel({
-      mgv: IMangrove($(mgv)), 
-      base: weth,
-      quote: usdc,
+      mangroveWithBaseQuote: mangroveWithBaseQuote,
       gasreq: GASREQ,
       gasprice: bufferedGasprice,
       owner: maker
@@ -990,12 +992,13 @@ contract CoreKandelTest is MangroveTest {
   function deployOtherKandel(uint base0, uint quote0, uint16 ratio, uint8 spread, uint8 kandelSize) internal {
     address otherMaker = freshAddress();
 
+    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
+      HasIndexedOffers.MangroveWithBaseQuote({mgv: IMangrove($(mgv)), base: weth, quote: usdc});
+
     vm.startPrank(otherMaker);
 
     Kandel otherKandel = new Kandel({
-      mgv: IMangrove($(mgv)), 
-      base: weth,
-      quote: usdc,
+      mangroveWithBaseQuote: mangroveWithBaseQuote,
       gasreq: GASREQ,
       gasprice: bufferedGasprice,
       owner: otherMaker

@@ -15,12 +15,15 @@ import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {OfferType} from "./Trade.sol";
+import {HasIndexedOffers} from "./HasIndexedOffers.sol";
 
-abstract contract HasKandelSlotViewMemoizer {
+abstract contract HasKandelSlotViewMemoizer is HasIndexedOffers {
   IMangrove private immutable MGV;
 
-  constructor(IMangrove mgv) {
-    MGV = mgv;
+  constructor(HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote)
+    HasIndexedOffers(mangroveWithBaseQuote)
+  {
+    MGV = mangroveWithBaseQuote.mgv;
   }
 
   struct SlotViewMemoizer {
@@ -31,10 +34,6 @@ abstract contract HasKandelSlotViewMemoizer {
     bool offerMemoized;
     MgvStructs.OfferPacked offer;
   }
-
-  function offerIdOfIndex(OfferType ba, uint index) public view virtual returns (uint);
-  function indexOfOfferId(OfferType ba, uint offerId) public view virtual returns (uint);
-  function tokenPairOfOfferType(OfferType ba) internal view virtual returns (IERC20, IERC20);
 
   function _fresh(uint index) internal pure returns (SlotViewMemoizer memory v) {
     v.indexMemoized = true;

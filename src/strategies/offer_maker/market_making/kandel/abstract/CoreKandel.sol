@@ -23,6 +23,8 @@ import {
 } from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
 import {OfferType} from "./Trade.sol";
+import {HasKandelSlotViewMemoizer} from "./HasKandelSlotViewMemoizer.sol";
+import {HasIndexedOffers} from "./HasIndexedOffers.sol";
 
 abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param indices the indices to populate, in ascending order
@@ -34,22 +36,15 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint[] indices;
   }
 
-  ///@notice base of the market Kandel is making
-  IERC20 public immutable BASE;
-  ///@notice quote of the market Kandel is making
-  IERC20 public immutable QUOTE;
-
   Params public params;
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address owner)
-    Direct(mgv, NO_ROUTER, gasreq, owner)
-    AbstractKandel(mgv, base, quote)
-  {
-    BASE = base;
-    QUOTE = quote;
-
+  constructor(
+    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote,
+    uint gasreq,
+    uint gasprice,
+    address owner
+  ) Direct(mangroveWithBaseQuote.mgv, NO_ROUTER, gasreq, owner) AbstractKandel(mangroveWithBaseQuote) {
     setGas(gasprice);
-    // approves Mangrove to pull base and quote token from this contract
   }
 
   /// @notice sets the gasprice and updates gasreq
@@ -98,49 +93,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     emit SetCompoundRates(compoundRateBase, compoundRateQuote);
     params.compoundRateBase = uint16(compoundRateBase);
     params.compoundRateQuote = uint16(compoundRateQuote);
-  }
-
-  function length() public view returns (uint) {
-    return params.length;
-  }
-
-  ///@notice turns an offer type into an (outbound, inbound) pair identifying an offer list
-  ///@param ba whether one wishes to access the offer lists where asks or bids are posted
-  function tokenPairOfOfferType(OfferType ba) internal view override returns (IERC20, IERC20) {
-    return ba == OfferType.Bid ? (QUOTE, BASE) : (BASE, QUOTE);
-  }
-
-  ///@notice returns the Kandel offer type of the offer list whose outbound token is given in the argument
-  ///@param outbound_tkn the outbound token of the offer list
-  function OfferTypeOfOutbound(IERC20 outbound_tkn) internal view returns (OfferType) {
-    return outbound_tkn == BASE ? OfferType.Ask : OfferType.Bid;
-  }
-
-  ///@notice returns the outbound token for the offer type
-  ///@param ba the offer type
-  function outboundOfOfferType(OfferType ba) internal view returns (IERC20 token) {
-    token = ba == OfferType.Ask ? BASE : QUOTE;
-  }
-
-  function wantsGivesOfBaseQuote(OfferType ba, uint baseAmount, uint quoteAmount)
-    internal
-    pure
-    returns (uint wants, uint gives)
-  {
-    if (ba == OfferType.Ask) {
-      wants = quoteAmount;
-      gives = baseAmount;
-    } else {
-      wants = baseAmount;
-      gives = quoteAmount;
-    }
-  }
-
-  ///@notice returns the dual offer type
-  ///@param ba whether the offer is an ask or a bid
-  ///@return dualBa is the dual offer type (ask for bid and conversely)
-  function dual(OfferType ba) public pure returns (OfferType dualBa) {
-    return OfferType((uint(ba) + 1) % 2);
   }
 
   /// @param baDual the dual offer type.
@@ -208,12 +160,6 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@param step the number of price steps improvements
   function better(OfferType ba, uint index, uint step, uint length_) public pure returns (uint) {
     return ba == OfferType.Ask ? index + step >= length_ ? length_ - 1 : index + step : index < step ? 0 : index - step;
-  }
-
-  function getOffer(OfferType ba, uint index) public view returns (MgvStructs.OfferPacked offer) {
-    uint offerId = offerIdOfIndex(ba, index);
-    (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
-    offer = MGV.offers(address(outbound), address(inbound), offerId);
   }
 
   ///@notice publishes (by either creating or updating) a bid/ask at a given price index
@@ -318,8 +264,7 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     Params memory memoryParams = params;
 
     if (memoryParams.length != kandelSize) {
-      askOfferIdOfIndex = new uint[](kandelSize);
-      bidOfferIdOfIndex = new uint[](kandelSize);
+      setLength(kandelSize);
       params.length = kandelSize;
     }
     if (memoryParams.ratio != ratio) {
@@ -482,15 +427,5 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     populateStatus = populateIndex(dualBa, viewDual, args);
 
     handlePopulate(dualBa, viewDual, args, populateStatus);
-  }
-
-  /// @notice gets the total gives of all offers of the offer type
-  /// @param ba offer type.
-  /// @dev function is very gas costly, for external calls only
-  function offeredVolume(OfferType ba) public view returns (uint volume) {
-    for (uint index = 0; index < params.length; index++) {
-      MgvStructs.OfferPacked offer = getOffer(ba, index);
-      volume += offer.gives();
-    }
   }
 }

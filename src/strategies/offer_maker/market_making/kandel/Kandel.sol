@@ -13,14 +13,18 @@ pragma solidity ^0.8.10;
 
 import {CoreKandel, IMangrove, IERC20, MgvStructs, AbstractRouter} from "./abstract/CoreKandel.sol";
 import {OfferType} from "./abstract/Trade.sol";
+import {HasIndexedOffers} from "./abstract/HasIndexedOffers.sol";
 
 contract Kandel is CoreKandel {
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address owner)
-    CoreKandel(mgv, base, quote, gasreq, gasprice, owner)
-  {
+  constructor(
+    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote,
+    uint gasreq,
+    uint gasprice,
+    address owner
+  ) CoreKandel(mangroveWithBaseQuote, gasreq, gasprice, owner) {
     // since we won't add a router later, we can activate the strat now
-    __activate__(base);
-    __activate__(quote);
+    __activate__(BASE);
+    __activate__(QUOTE);
   }
 
   function reserveBalance(IERC20 token) public view override returns (uint) {

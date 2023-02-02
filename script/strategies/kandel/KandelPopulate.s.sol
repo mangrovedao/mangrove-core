@@ -13,9 +13,10 @@ import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
  */
 
 /*
-  FROM=0 TO=10 LAST_BID_INDEX=4 SIZE=10 RATIO=10100 SPREAD=1 INIT_QUOTE=$(cast ff 6 100) VOLUME=$(cast ff 18 0.1) \
-  KANDEL=Kandel_WETH_USDC forge script KandelPopulate --fork-url $LOCALHOST_URL \
-  --private-key $MUMBAI_TESTER_PRIVATE_KEY --broadcast*/
+  # The following uses ~12 million gas - with 0 pivots it uses ~30 million gas
+  KANDEL=kdl5 FROM=0 TO=100 LAST_BID_INDEX=50 SIZE=100 RATIO=10100 SPREAD=1 \
+  INIT_QUOTE=$(cast ff 6 100) VOLUME=$(cast ff 18 0.1) \
+  forge script KandelPopulate --fork-url $LOCAL_URL*/
 
 contract KandelPopulate is Deployer {
   function run() public {
@@ -110,6 +111,39 @@ contract KandelPopulate is Deployer {
     prettyLog("Evaluating pivots and required collateral...");
     evaluatePivots(distribution, args, vars, funds);
     // after the above call, `vars.pivotIds` and `vars.base/quoteAmountRequired` are filled
+    prettyLog(
+      string.concat(
+        "Got required collateral of base=",
+        vm.toString(vars.baseAmountRequired),
+        " and quote=",
+        vm.toString(vars.quoteAmountRequired)
+      )
+    );
+
+    string memory deficit;
+
+    if (vars.BASE.balanceOf(broadcaster()) < vars.baseAmountRequired) {
+      deficit = string.concat(
+        "Not enough base (",
+        vm.toString(address(vars.BASE)),
+        "). Deficit: ",
+        vm.toString(vars.baseAmountRequired - vars.BASE.balanceOf(broadcaster()))
+      );
+    }
+    if (vars.QUOTE.balanceOf(broadcaster()) < vars.quoteAmountRequired) {
+      deficit = string.concat(
+        bytes(deficit).length > 0 ? string.concat(deficit, ". ") : "",
+        "Not enough quote (",
+        vm.toString(address(vars.QUOTE)),
+        "). Deficit: ",
+        vm.toString(vars.quoteAmountRequired - vars.QUOTE.balanceOf(broadcaster()))
+      );
+    }
+    if (bytes(deficit).length > 0) {
+      deficit = string.concat("broadcaster: ", vm.toString(broadcaster()), " ", deficit);
+      prettyLog(deficit);
+      revert(deficit);
+    }
 
     prettyLog("Approving base and quote...");
     broadcast();
@@ -117,15 +151,11 @@ contract KandelPopulate is Deployer {
     broadcast();
     vars.QUOTE.approve(address(args.kdl), vars.quoteAmountRequired);
 
-    prettyLog("Funding asks...");
+    prettyLog("Funding bids and asks...");
     broadcast();
-    args.kdl.depositFunds(dynamic([IERC20(vars.BASE)]), dynamic([uint(vars.baseAmountRequired)]));
-    console.log(toUnit(vars.baseAmountRequired, vars.BASE.decimals()), vars.BASE.name(), "deposited");
-
-    prettyLog("Funding bids...");
-    broadcast();
-    args.kdl.depositFunds(dynamic([IERC20(vars.QUOTE)]), dynamic([uint(vars.quoteAmountRequired)]));
-    console.log(toUnit(vars.quoteAmountRequired, vars.QUOTE.decimals()), vars.QUOTE.name(), "deposited");
+    args.kdl.depositFunds(
+      dynamic([IERC20(vars.BASE), vars.QUOTE]), dynamic([uint(vars.baseAmountRequired), vars.quoteAmountRequired])
+    );
 
     // baseDist is just uniform distribution here:
     uint[] memory baseDist = new uint[](args.to - args.from);
@@ -163,6 +193,7 @@ contract KandelPopulate is Deployer {
     uint funds
   ) public {
     vars.snapshotId = vm.snapshot();
+    vm.prank(broadcaster());
     (vars.pivotIds, vars.baseAmountRequired, vars.quoteAmountRequired) = KandelLib.estimatePivotsAndRequiredAmount(
       distribution, args.kdl, args.lastBidIndex, args.kandelSize, args.ratio, args.spread, funds
     );

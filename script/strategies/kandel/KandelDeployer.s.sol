@@ -9,6 +9,7 @@ import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
 /**
  * @notice deploys a Kandel instance on a given market
  * @dev since the max number of price slot Kandel can use is an immutable, one should deploy Kandel on a large price range.
+ * @dev Example: NAME=kandel1 BASE=WETH QUOTE=USDC GASPRICE_FACTOR=10 forge script KandelDeployer -f $LOCAL_URL -vvv
  */
 
 contract KandelDeployer is Deployer {
@@ -23,6 +24,7 @@ contract KandelDeployer is Deployer {
       compoundRateQuote: 10 ** 4, // default is 100% compounding for quote
       gasreq: 100_000
     });
+    outputDeployment();
   }
 
   /**
@@ -61,7 +63,6 @@ contract KandelDeployer is Deployer {
 
     string memory kandelName = getName(IERC20(base), IERC20(quote));
     fork.set(kandelName, address(current));
-    outputDeployment();
   }
 
   function getName(IERC20 base, IERC20 quote) public view returns (string memory) {

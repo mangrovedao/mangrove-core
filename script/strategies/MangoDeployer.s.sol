@@ -22,7 +22,7 @@ import {Deployer} from "../lib/Deployer.sol";
  *   BASE=WETH QUOTE=USDC BASE_0=$(cast ff 18 1) QUOTE_0=$(cast ff 6 800)\
  *   NSLOTS=100 PRICE_INCR=$(cast ff 6 10)\
  *   DEPLOYER=$MUMBAI_TESTER_ADDRESS\
- *   forge script --fork-url $LOCALHOST_URL  MangoDeployer --broadcast\
+ *   forge script --fork-url $LOCAL_URL  MangoDeployer --broadcast\
  *   --broadcast \
  *   MangoDeployer
  */

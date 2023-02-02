@@ -40,7 +40,7 @@ contract AaveKandel is CoreKandel {
   }
 
   ///@dev external wrapper for `_depositFunds`
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) external {
+  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) external override {
     // transfer funds from caller to this
     _depositFunds(tokens, amounts);
     // push funds on the router (and supply on AAVE)
@@ -48,7 +48,11 @@ contract AaveKandel is CoreKandel {
   }
 
   ///@dev external wrapper for `_withdrawFunds`
-  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) external onlyAdmin {
+  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
+    external
+    override
+    onlyAdmin
+  {
     for (uint i; i < tokens.length; i++) {
       pooledRouter().pull(tokens[i], admin(), amounts[i], true);
     }
@@ -56,7 +60,7 @@ contract AaveKandel is CoreKandel {
   }
 
   ///@notice returns the amount of tokens of the router's balance that belong to this contract
-  function reserveBalance(IERC20 token) public view returns (uint) {
+  function reserveBalance(IERC20 token) public view override returns (uint) {
     return pooledRouter().ownerBalance(token, admin());
   }
 
@@ -64,7 +68,7 @@ contract AaveKandel is CoreKandel {
   /// @param ba offer type.
   /// @return pending_ the pending amount
   /// @dev Gas costly function, better suited for off chain calls.
-  function pending(OfferType ba) external view returns (int pending_) {
+  function pending(OfferType ba) external view override returns (int pending_) {
     IERC20 token = outboundOfOfferType(ba);
     pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));
   }

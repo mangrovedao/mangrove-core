@@ -16,8 +16,12 @@ import {OfferType} from "./abstract/Trade.sol";
 
 contract Kandel is CoreKandel {
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address owner)
-    CoreKandel(mgv, base, quote, gasreq, gasprice, NO_ROUTER, owner)
-  {}
+    CoreKandel(mgv, base, quote, gasreq, gasprice, owner)
+  {
+    // since we won't add a router later, we can activate the strat now
+    __activate__(base);
+    __activate__(quote);
+  }
 
   function reserveBalance(IERC20 token) private view returns (uint) {
     return token.balanceOf(address(this));

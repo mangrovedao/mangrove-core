@@ -21,19 +21,22 @@ import {OfferType} from "./abstract/Trade.sol";
 contract AaveKandel is CoreKandel {
   bytes32 constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
-  constructor(
-    IMangrove mgv,
-    IERC20 base,
-    IERC20 quote,
-    uint gasreq,
-    uint gasprice,
-    AavePooledRouter router_,
-    address owner
-  ) CoreKandel(mgv, base, quote, gasreq, gasprice, router_, owner) {}
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address owner)
+    CoreKandel(mgv, base, quote, gasreq, gasprice, owner)
+  {}
 
   ///@dev returns the router as an Aave router
   function pooledRouter() private view returns (AavePooledRouter) {
-    return AavePooledRouter(address(router()));
+    AbstractRouter router_ = router();
+    require(router_ != NO_ROUTER, "AaveKandel/uninitialized");
+    return AavePooledRouter(address(router_));
+  }
+
+  function initialize(AavePooledRouter router_) external onlyAdmin {
+    setRouter(router_);
+    // calls below will fail if router's admin has not bound router to `this`.
+    __activate__(BASE);
+    __activate__(QUOTE);
   }
 
   ///@dev external wrapper for `_depositFunds`
@@ -60,7 +63,7 @@ contract AaveKandel is CoreKandel {
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
   /// @param ba offer type.
   /// @return pending_ the pending amount
-  /// @dev Gas costly function, better suited for off chain calls.git pu
+  /// @dev Gas costly function, better suited for off chain calls.
   function pending(OfferType ba) external view returns (int pending_) {
     IERC20 token = outboundOfOfferType(ba);
     pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));

@@ -26,10 +26,10 @@ contract CoreKandelTest is MangroveTest {
   address payable taker;
   CoreKandel kdl;
 
-  uint constant GASREQ = 138_000; // can be 77_000 when all offers are initialized.
+  uint GASREQ;
   uint8 constant STEP = 1;
   uint initQuote;
-  uint immutable initBase = uint(0.1 ether);
+  uint initBase = 0.1 ether;
   uint globalGasprice;
   uint bufferedGasprice;
 
@@ -51,6 +51,7 @@ contract CoreKandelTest is MangroveTest {
     // rename for convenience
     weth = base;
     usdc = quote;
+    GASREQ = 138_000; // can be 77_000 when all offers are initialized.
 
     initQuote = cash(usdc, 100); // quote given/wanted at index from
 
@@ -73,15 +74,8 @@ contract CoreKandelTest is MangroveTest {
     emit NewKandel(maker, IMangrove($(mgv)), weth, usdc);
     vm.expectEmit(true, true, true, true);
     emit SetGas(uint16(bufferedGasprice), uint24(GASREQ));
-    vm.prank(maker);
-    kdl = new Kandel({
-      mgv: IMangrove($(mgv)), 
-      base: weth,
-      quote: usdc,
-      gasreq: GASREQ,
-      gasprice: bufferedGasprice,
-      owner: maker
-    });
+
+    kdl = deployKandel();
 
     // funding Kandel on Mangrove
     uint provAsk = kdl.getMissingProvision(weth, usdc, kdl.offerGasreq(), bufferedGasprice, 0);
@@ -115,6 +109,18 @@ contract CoreKandelTest is MangroveTest {
     kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([pendingBase, pendingQuote]));
 
     vm.stopPrank();
+  }
+
+  function deployKandel() internal virtual returns (CoreKandel kdl_) {
+    vm.prank(maker);
+    kdl_ = new Kandel({
+      mgv: IMangrove($(mgv)), 
+      base: weth,
+      quote: usdc,
+      gasreq: GASREQ,
+      gasprice: bufferedGasprice,
+      owner: maker
+    });
   }
 
   function buyFromBestAs(address taker_, uint amount) internal returns (uint, uint, uint, uint, uint) {

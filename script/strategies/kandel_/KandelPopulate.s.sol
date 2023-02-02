@@ -14,10 +14,10 @@ import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 
 /*
   FROM=0 TO=10 LAST_BID_INDEX=4 SIZE=10 RATIO=10100 SPREAD=1 INIT_QUOTE=$(cast ff 6 100) VOLUME=$(cast ff 18 0.1) \
-  KANDEL=Kandel_WETH_USDC forge script KdlPopulate --fork-url $LOCALHOST_URL \
+  KANDEL=Kandel_WETH_USDC forge script KandelPopulate --fork-url $LOCALHOST_URL \
   --private-key $MUMBAI_TESTER_PRIVATE_KEY --broadcast*/
 
-contract KdlPopulate is Deployer {
+contract KandelPopulate is Deployer {
   function run() public {
     uint16 ratio = uint16(vm.envUint("RATIO"));
     require(ratio == vm.envUint("RATIO"), "Invalid RATIO");

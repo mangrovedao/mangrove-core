@@ -11,7 +11,7 @@ import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
  * @dev since the max number of price slot Kandel can use is an immutable, one should deploy Kandel on a large price range.
  */
 
-contract KdlDeployer is Deployer {
+contract KandelDeployer is Deployer {
   Kandel public current;
 
   function run() public {

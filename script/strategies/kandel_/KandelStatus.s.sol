@@ -17,7 +17,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
  * @notice Populate Kandel's distribution on Mangrove
  */
 
-contract KdlStatus is Deployer {
+contract KandelStatus is Deployer {
   function run() public view {
     innerRun({kdl: Kandel(envAddressOrName("KANDEL"))});
   }

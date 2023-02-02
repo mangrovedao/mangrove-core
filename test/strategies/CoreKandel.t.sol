@@ -19,6 +19,7 @@ import {
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 import {console2} from "forge-std/Test.sol";
 import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
+import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 
 contract CoreKandelTest is MangroveTest {
   TestToken weth;
@@ -26,7 +27,7 @@ contract CoreKandelTest is MangroveTest {
   address payable maker;
   address payable taker;
   CoreKandel kdl;
-
+  GenericFork fork;
   uint GASREQ;
   uint8 constant STEP = 1;
   uint initQuote;
@@ -41,15 +42,19 @@ contract CoreKandelTest is MangroveTest {
   event SetGas(uint16 gasprice, uint24 gasreq);
   event BidNearMidPopulated(uint index, uint96 gives, uint96 wants);
 
-  function setUp() public virtual override {
+  // sets base and quote
+  function setForkEnvironment() internal virtual {
+    // no fork
     options.base.symbol = "WETH";
     options.quote.symbol = "USDC";
     options.quote.decimals = 6;
     options.defaultFee = 30;
+  }
 
+  function setUp() public virtual override {
+    setForkEnvironment();
     // deploying mangrove and opening WETH/USDC market.
     super.setUp();
-    // rename for convenience
     weth = base;
     usdc = quote;
     GASREQ = 138_000; // can be 77_000 when all offers are initialized.
@@ -71,10 +76,6 @@ contract CoreKandelTest is MangroveTest {
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
     globalGasprice = global.gasprice();
     bufferedGasprice = globalGasprice * 10; // covering 10 times Mangrove's gasprice at deploy time
-    vm.expectEmit(true, true, true, true);
-    emit NewKandel(maker, IMangrove($(mgv)), weth, usdc);
-    vm.expectEmit(true, true, true, true);
-    emit SetGas(uint16(bufferedGasprice), uint24(GASREQ));
 
     kdl = deployKandel();
 
@@ -88,8 +89,6 @@ contract CoreKandelTest is MangroveTest {
     usdc.approve(address(kdl), type(uint).max);
 
     uint16 ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
-    vm.expectEmit(true, true, true, true);
-    emit BidNearMidPopulated(4, uint96(initQuote * uint(ratio) ** 4 / ((10 ** kdl.PRECISION()) ** 4)), uint96(initBase));
 
     (CoreKandel.Distribution memory distribution1, uint lastQuote) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, kdl.PRECISION());

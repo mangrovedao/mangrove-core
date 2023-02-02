@@ -11,9 +11,7 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-import {
-  Kandel, OfferType
-} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {CoreKandel, OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 library KandelLib {
@@ -23,13 +21,11 @@ library KandelLib {
     uint[] indices;
   }
 
-  function calculateDistribution(
-    uint from,
-    uint to,
-    uint initBase,
-    uint initQuote,
-    uint ratio,
-    uint precision) internal pure returns (Distribution memory vars, uint lastQuote) {
+  function calculateDistribution(uint from, uint to, uint initBase, uint initQuote, uint ratio, uint precision)
+    internal
+    pure
+    returns (Distribution memory vars, uint lastQuote)
+  {
     vars.indices = new uint[](to-from);
     vars.baseDist = new uint[](to-from);
     vars.quoteDist = new uint[](to-from);
@@ -48,7 +44,7 @@ library KandelLib {
   /// @notice should be invoked as an rpc call or via snapshot-revert - populates and returns pivots and amounts.
   function estimatePivotsAndRequiredAmount(
     Distribution memory vars,
-    Kandel kandel,
+    CoreKandel kandel,
     uint lastBidIndex,
     uint8 kandelSize,
     uint16 ratio,
@@ -56,8 +52,10 @@ library KandelLib {
     uint funds
   ) internal returns (uint[] memory pivotIds, uint baseAmountRequired, uint quoteAmountRequired) {
     pivotIds = new uint[](vars.indices.length);
-    kandel.populate{value: funds}(vars.indices, vars.baseDist, vars.quoteDist, pivotIds, lastBidIndex, kandelSize, ratio, spread);
-    for(uint i = 0 ; i < pivotIds.length; i++) {
+    kandel.populate{value: funds}(
+      vars.indices, vars.baseDist, vars.quoteDist, pivotIds, lastBidIndex, kandelSize, ratio, spread
+    );
+    for (uint i = 0; i < pivotIds.length; i++) {
       uint index = vars.indices[i];
       OfferType ba = index <= lastBidIndex ? OfferType.Bid : OfferType.Ask;
       MgvStructs.OfferPacked offer = kandel.getOffer(ba, index);

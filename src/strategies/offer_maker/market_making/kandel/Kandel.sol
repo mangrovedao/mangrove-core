@@ -23,22 +23,26 @@ contract Kandel is CoreKandel {
     __activate__(quote);
   }
 
-  function reserveBalance(IERC20 token) private view returns (uint) {
+  function reserveBalance(IERC20 token) public view override returns (uint) {
     return token.balanceOf(address(this));
   }
 
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) external {
+  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) external override {
     _depositFunds(tokens, amounts);
   }
 
-  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) external onlyAdmin {
+  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
+    external
+    override
+    onlyAdmin
+  {
     _withdrawFunds(tokens, amounts, recipient);
   }
 
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
   /// @param ba offer type.
   /// @return pending_ the pending amount
-  function pending(OfferType ba) external view returns (int pending_) {
+  function pending(OfferType ba) external view override returns (int pending_) {
     IERC20 token = outboundOfOfferType(ba);
     pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));
   }

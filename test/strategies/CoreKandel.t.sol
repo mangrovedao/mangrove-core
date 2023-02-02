@@ -9,18 +9,22 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import {
-  Kandel, MgvStructs, IMangrove, OfferType
+  CoreKandel,
+  Kandel,
+  MgvStructs,
+  IMangrove,
+  OfferType
 } from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 import {console2} from "forge-std/Test.sol";
 import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
 
-contract KandelTest is MangroveTest {
+contract CoreKandelTest is MangroveTest {
   TestToken weth;
   TestToken usdc;
   address payable maker;
   address payable taker;
-  Kandel kdl;
+  CoreKandel kdl;
 
   uint constant GASREQ = 138_000; // can be 77_000 when all offers are initialized.
   uint8 constant STEP = 1;
@@ -777,7 +781,7 @@ contract KandelTest is MangroveTest {
     assertTrue(!mgv.isLive(ask), "ask should still not be live");
   }
 
-  function GetParams(Kandel aKandel) internal view returns (Kandel.Params memory params) {
+  function GetParams(CoreKandel aKandel) internal view returns (Kandel.Params memory params) {
     (
       uint16 gasprice,
       uint24 gasreq,

@@ -1065,6 +1065,11 @@ contract CoreKandelTest is MangroveTest {
       KandelLib.estimatePivotsAndRequiredAmount(distribution, kdl, t.lastBidIndex, t.kandelSize, t.ratio, 1, t.funds);
     require(vm.revertTo(t.snapshotId), "snapshot restore failed");
 
+    deal($(base), maker, t.baseAmountRequired);
+    deal($(quote), maker, t.quoteAmountRequired);
+    IERC20[] memory depositTokens = dynamic([IERC20(base), quote]);
+    uint[] memory depositAmounts = dynamic([uint(t.baseAmountRequired), t.quoteAmountRequired]);
+
     // with 0 pivots
     t.snapshotId = vm.snapshot();
     vm.prank(maker);
@@ -1076,8 +1081,8 @@ contract CoreKandelTest is MangroveTest {
       ratio: t.ratio,
       spread: 1,
       pivotIds: new uint[](t.kandelSize),
-      depositTokens: new IERC20[](0),
-      depositAmounts: new uint[](0)
+      depositTokens: depositTokens,
+      depositAmounts: depositAmounts
     });
     t.gas0Pivot = t.gas0Pivot - gasleft();
 
@@ -1093,13 +1098,13 @@ contract CoreKandelTest is MangroveTest {
       ratio: t.ratio,
       spread: 1,
       pivotIds: t.pivotIds,
-      depositTokens: new IERC20[](0),
-      depositAmounts: new uint[](0)
+      depositTokens: depositTokens,
+      depositAmounts: depositAmounts
     });
     t.gasPivots = t.gasPivots - gasleft();
 
-    assertEq(t.baseAmountRequired, uint(-kdl.pending(OfferType.Ask)), "required base amount should match pending");
-    assertEq(t.quoteAmountRequired, uint(-kdl.pending(OfferType.Bid)), "required base amount should match pending");
+    assertEq(0, kdl.pending(OfferType.Ask), "required base amount should be deposited");
+    assertEq(0, kdl.pending(OfferType.Bid), "required quote amount should be deposited");
 
     console.log("No pivot populate: %s PivotPopulate: %s", t.gas0Pivot, t.gasPivots);
 

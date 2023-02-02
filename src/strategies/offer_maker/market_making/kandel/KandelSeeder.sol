@@ -12,20 +12,17 @@
 pragma solidity ^0.8.10;
 
 import {IMangrove, IERC20, CoreKandel, Kandel, MgvStructs} from "./Kandel.sol";
-import {AaveKandel, AavePooledRouter} from "./AaveKandel.sol";
-import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
+import {AaveKandel, AavePooledRouter, AbstractRouter} from "./AaveKandel.sol";
 
-contract KandelSeeder is AccessControlled {
+contract KandelSeeder {
   AavePooledRouter public immutable AAVE_ROUTER;
   IMangrove public immutable MGV;
   uint public immutable AAVE_KANDEL_GASREQ;
   uint public immutable KANDEL_GASREQ;
 
-  constructor(address mgv, address addressesProvider_, uint routerGasreq, uint aaveKandelGasreq, uint kandelGasreq)
-    AccessControlled(msg.sender)
-  {
+  constructor(IMangrove mgv, address addressesProvider_, uint routerGasreq, uint aaveKandelGasreq, uint kandelGasreq) {
     AAVE_ROUTER = new AavePooledRouter(addressesProvider_, routerGasreq);
-    MGV = IMangrove(payable(mgv));
+    MGV = mgv;
     AAVE_KANDEL_GASREQ = aaveKandelGasreq;
     KANDEL_GASREQ = kandelGasreq;
   }
@@ -48,20 +45,22 @@ contract KandelSeeder is AccessControlled {
     bool liquiditySharing;
   }
 
-  function sow(KandelSeed calldata seed) internal returns (CoreKandel kdl) {
+  function sow(KandelSeed calldata seed) external returns (CoreKandel kdl) {
     // Seeder must set Kandel owner to an address that is controlled by `msg.sender` (msg.sender or Kandel's address for instance)
     // owner MUST not be freely chosen (it is immutable in Kandel) otherwise one would allow the newly deployed strat to pull from another's strat reserve
     // allowing owner to be modified by Kandel's admin would require approval from owner's address controller
     address owner = seed.liquiditySharing ? msg.sender : address(0);
 
     (, MgvStructs.LocalPacked local) = MGV.config(address(seed.base), address(seed.quote));
-    require(local.active(), "KandelSeeder/inactive");
+    require(local.active(), "KandelSeeder/inactiveMarket");
 
     if (seed.onAave) {
-      kdl = new AaveKandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, AAVE_ROUTER, owner);
-      AAVE_ROUTER.bind(address(kdl));
-      AAVE_ROUTER.activate(seed.base);
-      AAVE_ROUTER.activate(seed.quote);
+      AaveKandel aaveKdl = new AaveKandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
+      // Allowing newly deployed Kandel to bind to the AaveRouter
+      AAVE_ROUTER.bind(address(aaveKdl));
+      // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20
+      aaveKdl.initialize(AAVE_ROUTER);
+      kdl = CoreKandel(aaveKdl);
     } else {
       kdl = new Kandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
     }

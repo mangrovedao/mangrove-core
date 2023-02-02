@@ -51,8 +51,8 @@ contract KdlSeederDeployer is Deployer {
       baseName = "WETH";
       quoteName = "DAI";
     }
-    IERC20 base = IERC20(fork.get(baseName));
-    IERC20 quote = IERC20(fork.get(quoteName));
+    IERC20 base = IERC20(fork.get("WETH"));
+    IERC20 quote = IERC20(fork.get("DAI"));
 
     KandelSeeder.KandelSeed memory seed = KandelSeeder.KandelSeed({
       base: base,

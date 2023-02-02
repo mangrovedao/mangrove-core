@@ -23,11 +23,11 @@ import {
 } from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
 import {OfferType} from "./Trade.sol";
-import {HasKandelSlotViewMemoizer} from "./HasKandelSlotViewMemoizer.sol";
+import {HasKandelSlotMemoizer} from "./HasKandelSlotMemoizer.sol";
 import {HasIndexedOffers} from "./HasIndexedOffers.sol";
 import {TradesBaseQuote} from "./TradesBaseQuote.sol";
 
-abstract contract CoreKandel is HasIndexedOffers, Direct, HasKandelSlotViewMemoizer, AbstractKandel, TradesBaseQuote {
+abstract contract CoreKandel is HasIndexedOffers, Direct, HasKandelSlotMemoizer, AbstractKandel, TradesBaseQuote {
   ///@param indices the indices to populate, in ascending order
   ///@param baseDist base distribution for the indices
   ///@param quoteDist the distribution of quote for the indices
@@ -47,24 +47,32 @@ abstract contract CoreKandel is HasIndexedOffers, Direct, HasKandelSlotViewMemoi
   )
     Direct(mangroveWithBaseQuote.mgv, NO_ROUTER, gasreq, owner)
     HasIndexedOffers(mangroveWithBaseQuote.mgv)
-    HasKandelSlotViewMemoizer(mangroveWithBaseQuote.mgv)
+    HasKandelSlotMemoizer(mangroveWithBaseQuote.mgv)
     TradesBaseQuote(mangroveWithBaseQuote.base, mangroveWithBaseQuote.quote)
   {
     emit NewKandel(msg.sender, mangroveWithBaseQuote.mgv, mangroveWithBaseQuote.base, mangroveWithBaseQuote.quote);
-    setGas(gasprice);
+    setGasprice(gasprice);
   }
 
-  /// @notice sets the gasprice and updates gasreq
-  function setGas(uint gasprice) public onlyAdmin {
+  /// @notice records gasprice in params
+  function setGasprice(uint gasprice) public onlyAdmin {
     uint16 gasprice_ = uint16(gasprice);
-    // includes router gasreq
-    uint gasreq = offerGasreq();
-    uint24 gasreq_ = uint24(offerGasreq());
-    require(gasreq_ == gasreq, "Kandel/gasreqTooHigh");
+    // // includes router gasreq
+    // uint gasreq = offerGasreq();
+    // uint24 gasreq_ = uint24(offerGasreq());
+    // require(gasreq_ == gasreq, "Kandel/gasreqTooHigh");
     require(gasprice_ == gasprice, "Kandel/gaspriceTooHigh");
     params.gasprice = gasprice_;
+    // params.gasreq = gasreq_;
+    emit SetGasprice(gasprice_);
+  }
+
+  /// @notice records gasreq (including router's gasreq) in params
+  function setGasreq(uint gasreq) public onlyAdmin {
+    uint24 gasreq_ = uint24(gasreq);
+    require(gasreq_ == gasreq, "Kandel/gasreqTooHigh");
     params.gasreq = gasreq_;
-    emit SetGas(gasprice_, gasreq_);
+    emit SetGasreq(gasreq_);
   }
 
   /// @notice deposits funds on Kandel
@@ -175,10 +183,7 @@ abstract contract CoreKandel is HasIndexedOffers, Direct, HasKandelSlotViewMemoi
   ///@param args the argument of the offer.
   ///@return result from Mangrove on error and `args.noRevert` is `true`.
   ///@dev args.wants/gives must match the distribution at index
-  function populateIndex(OfferType ba, SlotViewMemoizer memory v, OfferArgs memory args)
-    internal
-    returns (bytes32 result)
-  {
+  function populateIndex(OfferType ba, SlotMemoizer memory v, OfferArgs memory args) internal returns (bytes32 result) {
     uint offerId = _offerId(ba, v);
     // if offer does not exist on mangrove yet
     if (offerId == 0) {
@@ -343,7 +348,7 @@ abstract contract CoreKandel is HasIndexedOffers, Direct, HasKandelSlotViewMemoi
     internal
     virtual
     override
-    returns (OfferType baDual, SlotViewMemoizer memory viewDual, OfferArgs memory args)
+    returns (OfferType baDual, SlotMemoizer memory viewDual, OfferArgs memory args)
   {
     uint index = indexOfOfferId(ba, order.offerId);
     Params memory memoryParams = params;
@@ -398,12 +403,9 @@ abstract contract CoreKandel is HasIndexedOffers, Direct, HasKandelSlotViewMemoi
   ///@param dualBa whether the offer is a bid or an ask
   ///@param viewDual the view Memoizer for the offer.
   ///@param args the argument of the offer.
-  function handlePopulate(
-    OfferType dualBa,
-    SlotViewMemoizer memory viewDual,
-    OfferArgs memory args,
-    bytes32 populateStatus
-  ) internal {
+  function handlePopulate(OfferType dualBa, SlotMemoizer memory viewDual, OfferArgs memory args, bytes32 populateStatus)
+    internal
+  {
     if (populateStatus == REPOST_SUCCESS || populateStatus == "" || populateStatus == "mgv/writeOffer/density/tooLow") {
       // Low density will mean some amount is not posted and will be available for withdrawal or later posting via populate.
       return;
@@ -430,7 +432,7 @@ abstract contract CoreKandel is HasIndexedOffers, Direct, HasKandelSlotViewMemoi
 
     // adds any unpublished liquidity to pending[Base/Quote]
     // preparing arguments for the dual offer
-    (OfferType dualBa, SlotViewMemoizer memory viewDual, OfferArgs memory args) = transportLogic(ba, order);
+    (OfferType dualBa, SlotMemoizer memory viewDual, OfferArgs memory args) = transportLogic(ba, order);
     populateStatus = populateIndex(dualBa, viewDual, args);
 
     handlePopulate(dualBa, viewDual, args, populateStatus);

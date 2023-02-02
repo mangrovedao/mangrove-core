@@ -25,6 +25,7 @@ contract Kandel is CoreKandel {
     // since we won't add a router later, we can activate the strat now
     __activate__(BASE);
     __activate__(QUOTE);
+    setGasreq(gasreq);
   }
 
   function reserveBalance(IERC20 token) public view override returns (uint) {

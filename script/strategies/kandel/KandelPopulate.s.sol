@@ -2,7 +2,13 @@
 pragma solidity ^0.8.13;
 
 import {Script, console2 as console} from "forge-std/Script.sol";
-import {Kandel, IERC20, IMangrove, OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {
+  CoreKandel,
+  Kandel,
+  IERC20,
+  IMangrove,
+  OfferType
+} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 import {AbstractKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/AbstractKandel.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
@@ -65,6 +71,7 @@ contract KandelPopulate is Deployer {
   }
 
   struct HeapVars {
+    CoreKandel.Distribution distribution;
     uint baseAmountRequired;
     uint quoteAmountRequired;
     uint[] pivotIds;
@@ -106,10 +113,10 @@ contract KandelPopulate is Deployer {
     uint funds = (vars.provAsk + vars.provBid) * (args.to - args.from);
 
     prettyLog("Calculating base and quote...");
-    KandelLib.Distribution memory distribution = calculateBaseQuote(args);
+    vars.distribution = calculateBaseQuote(args);
 
     prettyLog("Evaluating pivots and required collateral...");
-    evaluatePivots(distribution, args, vars, funds);
+    evaluatePivots(vars.distribution, args, vars, funds);
     // after the above call, `vars.pivotIds` and `vars.base/quoteAmountRequired` are filled
     prettyLog(
       string.concat(
@@ -151,35 +158,23 @@ contract KandelPopulate is Deployer {
     broadcast();
     vars.QUOTE.approve(address(args.kdl), vars.quoteAmountRequired);
 
-    prettyLog("Funding bids and asks...");
-    broadcast();
-    args.kdl.depositFunds(
-      dynamic([IERC20(vars.BASE), vars.QUOTE]), dynamic([uint(vars.baseAmountRequired), vars.quoteAmountRequired])
-    );
-
-    // baseDist is just uniform distribution here:
-    uint[] memory baseDist = new uint[](args.to - args.from);
-    for (uint i = 0; i < args.to - args.from; i++) {
-      baseDist[i] = args.volume;
-    }
-
     prettyLog("Populating Mangrove...");
 
     broadcast();
     args.kdl.populate{value: funds}(
-      distribution.indices,
-      distribution.baseDist,
-      distribution.quoteDist,
+      vars.distribution,
       vars.pivotIds,
       args.lastBidIndex,
       args.kandelSize,
       args.ratio,
-      args.spread
+      args.spread,
+      dynamic([IERC20(vars.BASE), vars.QUOTE]),
+      dynamic([uint(vars.baseAmountRequired), vars.quoteAmountRequired])
     );
     console.log(toUnit(funds, 18), "eth used as provision");
   }
 
-  function calculateBaseQuote(HeapArgs memory args) public view returns (KandelLib.Distribution memory distribution) {
+  function calculateBaseQuote(HeapArgs memory args) public view returns (CoreKandel.Distribution memory distribution) {
     (distribution, /* uint lastQuote */ ) =
       KandelLib.calculateDistribution(args.from, args.to, args.volume, args.initQuote, args.ratio, args.kdl.PRECISION());
   }
@@ -187,7 +182,7 @@ contract KandelPopulate is Deployer {
   ///@notice evaluates Pivot ids for offers that need to be published on Mangrove
   ///@dev we use foundry cheats to revert all changes to the local node in order to prevent inconsistent tests.
   function evaluatePivots(
-    KandelLib.Distribution memory distribution,
+    CoreKandel.Distribution memory distribution,
     HeapArgs memory args,
     HeapVars memory vars,
     uint funds

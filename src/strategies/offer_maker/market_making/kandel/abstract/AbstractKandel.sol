@@ -110,6 +110,6 @@ abstract contract AbstractKandel is HasKandelSlotViewMemoizer {
 
   function pending(OfferType ba) external view virtual returns (int pending_);
   function reserveBalance(IERC20 token) public view virtual returns (uint);
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) external virtual;
-  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) external virtual;
+  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual;
+  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) public virtual;
 }

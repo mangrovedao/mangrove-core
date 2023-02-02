@@ -27,12 +27,12 @@ contract Kandel is CoreKandel {
     return token.balanceOf(address(this));
   }
 
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) external override {
+  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public override {
     _depositFunds(tokens, amounts);
   }
 
   function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
-    external
+    public
     override
     onlyAdmin
   {

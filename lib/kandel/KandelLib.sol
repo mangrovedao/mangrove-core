@@ -13,18 +13,13 @@ pragma solidity ^0.8.10;
 
 import {CoreKandel, OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
 
 library KandelLib {
-  struct Distribution {
-    uint[] baseDist;
-    uint[] quoteDist;
-    uint[] indices;
-  }
-
   function calculateDistribution(uint from, uint to, uint initBase, uint initQuote, uint ratio, uint precision)
     internal
     pure
-    returns (Distribution memory vars, uint lastQuote)
+    returns (CoreKandel.Distribution memory vars, uint lastQuote)
   {
     vars.indices = new uint[](to-from);
     vars.baseDist = new uint[](to-from);
@@ -43,7 +38,7 @@ library KandelLib {
 
   /// @notice should be invoked as an rpc call or via snapshot-revert - populates and returns pivots and amounts.
   function estimatePivotsAndRequiredAmount(
-    Distribution memory vars,
+    CoreKandel.Distribution memory distribution,
     CoreKandel kandel,
     uint lastBidIndex,
     uint8 kandelSize,
@@ -51,12 +46,12 @@ library KandelLib {
     uint8 spread,
     uint funds
   ) internal returns (uint[] memory pivotIds, uint baseAmountRequired, uint quoteAmountRequired) {
-    pivotIds = new uint[](vars.indices.length);
+    pivotIds = new uint[](distribution.indices.length);
     kandel.populate{value: funds}(
-      vars.indices, vars.baseDist, vars.quoteDist, pivotIds, lastBidIndex, kandelSize, ratio, spread
+      distribution, pivotIds, lastBidIndex, kandelSize, ratio, spread, new IERC20[](0), new uint[](0)
     );
     for (uint i = 0; i < pivotIds.length; i++) {
-      uint index = vars.indices[i];
+      uint index = distribution.indices[i];
       OfferType ba = index <= lastBidIndex ? OfferType.Bid : OfferType.Ask;
       MgvStructs.OfferPacked offer = kandel.getOffer(ba, index);
       pivotIds[i] = offer.next();

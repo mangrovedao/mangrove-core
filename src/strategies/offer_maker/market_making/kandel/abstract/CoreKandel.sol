@@ -25,6 +25,15 @@ import {AbstractKandel} from "./AbstractKandel.sol";
 import {OfferType} from "./Trade.sol";
 
 abstract contract CoreKandel is Direct, AbstractKandel {
+  ///@param indices the indices to populate, in ascending order
+  ///@param baseDist base distribution for the indices
+  ///@param quoteDist the distribution of quote for the indices
+  struct Distribution {
+    uint[] baseDist;
+    uint[] quoteDist;
+    uint[] indices;
+  }
+
   ///@notice base of the market Kandel is making
   IERC20 public immutable BASE;
   ///@notice quote of the market Kandel is making
@@ -248,18 +257,17 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   ///@notice Publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
   ///@notice This function is used publicly after `populate` to reinitialize some indices or if multiple calls are needed for initialization.
   ///@notice This function is not payable, use `populate` to fund along with populate.
-  ///@param indices the indices to populate, in ascending order
-  ///@param baseDist base distribution for the indices
-  ///@param quoteDist the distribution of quote for the indices
+  ///@param distribution the distribution of base and quote for Kandel indices
   ///@param pivotIds the pivot to be used for the offer
   ///@param lastBidIndex the index after which offer should be an ask. First index will never be an ask, either a bid or not published.
-  function populateChunk(
-    uint[] calldata indices,
-    uint[] calldata baseDist,
-    uint[] calldata quoteDist,
-    uint[] calldata pivotIds,
-    uint lastBidIndex
-  ) public onlyAdmin {
+  function populateChunk(Distribution calldata distribution, uint[] calldata pivotIds, uint lastBidIndex)
+    public
+    onlyAdmin
+  {
+    uint[] calldata indices = distribution.indices;
+    uint[] calldata quoteDist = distribution.quoteDist;
+    uint[] calldata baseDist = distribution.baseDist;
+
     require(
       indices.length == baseDist.length && indices.length == quoteDist.length && indices.length == pivotIds.length,
       "Kandel/ArraysMustBeSameSize"
@@ -326,34 +334,36 @@ abstract contract CoreKandel is Direct, AbstractKandel {
   }
 
   ///@notice publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
-  ///@param indices the indices to populate, in ascending order
-  ///@param baseDist base distribution for the indices
-  ///@param quoteDist the distribution of quote for the indices
+  ///@param distribution the distribution of base and quote for Kandel indices
   ///@param pivotIds the pivot to be used for the offer
   ///@param lastBidIndex the index after which offer should be an ask. First index will never be an ask, either a bid or not published.
   ///@param kandelSize the number of price points
   ///@param ratio the rate of the geometric distribution with PRECISION decimals.
   ///@param spread the distance between a ask in the distribution and its corresponding bid.
+  ///@param depositTokens tokens to deposit.
+  ///@param depositAmounts amounts to deposit for the tokens.
   ///@dev This function is used at initialization and can fund with provision for the offers.
   ///@dev Use `populateChunk` to split up initialization or re-initialization with same parameters, as this function will emit.
   ///@dev If this function is invoked with different ratio, kandelSize, spread, then first retract all offers.
   ///@dev msg.value must be enough to provision all posted offers (for chunked initialization only one call needs to send native tokens).
   function populate(
-    uint[] calldata indices,
-    uint[] calldata baseDist,
-    uint[] calldata quoteDist,
+    Distribution calldata distribution,
     uint[] calldata pivotIds,
     uint lastBidIndex,
     uint8 kandelSize,
     uint16 ratio,
-    uint8 spread
+    uint8 spread,
+    IERC20[] calldata depositTokens,
+    uint[] calldata depositAmounts
   ) external payable onlyAdmin {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
     setParams(kandelSize, ratio, spread);
 
-    populateChunk(indices, baseDist, quoteDist, pivotIds, lastBidIndex);
+    depositFunds(depositTokens, depositAmounts);
+
+    populateChunk(distribution, pivotIds, lastBidIndex);
   }
 
   ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`

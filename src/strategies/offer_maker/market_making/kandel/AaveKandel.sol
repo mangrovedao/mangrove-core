@@ -40,7 +40,7 @@ contract AaveKandel is CoreKandel {
   }
 
   ///@dev external wrapper for `_depositFunds`
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) external override {
+  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public override {
     // transfer funds from caller to this
     _depositFunds(tokens, amounts);
     // push funds on the router (and supply on AAVE)
@@ -49,7 +49,7 @@ contract AaveKandel is CoreKandel {
 
   ///@dev external wrapper for `_withdrawFunds`
   function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
-    external
+    public
     override
     onlyAdmin
   {

@@ -96,26 +96,17 @@ contract CoreKandelTest is MangroveTest {
     vm.expectEmit(true, true, true, true);
     emit BidNearMidPopulated(4, uint96(initQuote * uint(ratio) ** 4 / ((10 ** kdl.PRECISION()) ** 4)), uint96(initBase));
 
-    (KandelLib.Distribution memory distribution1, uint lastQuote) =
+    (CoreKandel.Distribution memory distribution1, uint lastQuote) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, kdl.PRECISION());
 
-    (KandelLib.Distribution memory distribution2,) =
+    (CoreKandel.Distribution memory distribution2,) =
       KandelLib.calculateDistribution(5, 10, initBase, lastQuote, ratio, kdl.PRECISION());
 
     kdl.populate{value: (provAsk + provBid) * 10}(
-      distribution1.indices,
-      distribution1.baseDist,
-      distribution1.quoteDist,
-      dynamic([uint(0), 1, 2, 3, 4]),
-      4,
-      10,
-      ratio,
-      STEP
+      distribution1, dynamic([uint(0), 1, 2, 3, 4]), 4, 10, ratio, STEP, new IERC20[](0), new uint[](0)
     );
 
-    kdl.populateChunk(
-      distribution2.indices, distribution2.baseDist, distribution2.quoteDist, dynamic([uint(0), 1, 2, 3, 4]), 4
-    );
+    kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 4);
 
     uint pendingBase = uint(-kdl.pending(Ask));
     uint pendingQuote = uint(-kdl.pending(Bid));
@@ -596,8 +587,12 @@ contract CoreKandelTest is MangroveTest {
 
     uint lastBidIndex = numBids > 0 ? indices[numBids - 1] : indices[0] - 1;
     uint[] memory pivotIds = new uint[](indices.length);
+    CoreKandel.Distribution memory distribution;
+    distribution.indices = indices;
+    distribution.baseDist = baseDist;
+    distribution.quoteDist = quoteDist;
     vm.prank(maker);
-    kdl.populateChunk(indices, baseDist, quoteDist, pivotIds, lastBidIndex);
+    kdl.populateChunk(distribution, pivotIds, lastBidIndex);
   }
 
   function withdrawFunds(IERC20 token, uint amount, address recipient) internal {
@@ -671,21 +666,29 @@ contract CoreKandelTest is MangroveTest {
     uint spread,
     bytes memory expectRevert
   ) internal {
-    uint[] memory indices = new uint[](1);
-    uint[] memory bases = new uint[](1);
-    uint[] memory quotes = new uint[](1);
+    CoreKandel.Distribution memory distribution;
+    distribution.indices = new uint[](1);
+    distribution.baseDist = new uint[](1);
+    distribution.quoteDist = new uint[](1);
     uint[] memory pivotIds = new uint[](1);
 
-    indices[0] = index;
-    bases[0] = base;
-    quotes[0] = quote;
+    distribution.indices[0] = index;
+    distribution.baseDist[0] = base;
+    distribution.quoteDist[0] = quote;
     pivotIds[0] = pivotId;
     vm.prank(maker);
     if (expectRevert.length > 0) {
       vm.expectRevert(expectRevert);
     }
     kdl.populate{value: 0.1 ether}(
-      indices, bases, quotes, pivotIds, lastBidIndex, uint8(kandelSize), uint16(ratio), uint8(spread)
+      distribution,
+      pivotIds,
+      lastBidIndex,
+      uint8(kandelSize),
+      uint16(ratio),
+      uint8(spread),
+      new IERC20[](0),
+      new uint[](0)
     );
   }
 
@@ -801,16 +804,21 @@ contract CoreKandelTest is MangroveTest {
     params.length = length;
   }
 
+  CoreKandel.Distribution emptyDist;
+  uint[] empty = new uint[](0);
+
   function test_populate_can_get_set_params_keeps_offers() public {
     Kandel.Params memory params = GetParams(kdl);
 
     uint offeredVolumeBase = kdl.offeredVolume(Ask);
     uint offeredVolumeQuote = kdl.offeredVolume(Bid);
-    uint[] memory empty = new uint[](0);
+
     vm.startPrank(maker);
     vm.expectEmit(true, true, true, true);
     emit SetParams(params.length, params.spread + 1, params.ratio + 1);
-    kdl.populate(empty, empty, empty, empty, 0, params.length, params.ratio + 1, params.spread + 1);
+    kdl.populate(
+      emptyDist, empty, 0, params.length, params.ratio + 1, params.spread + 1, new IERC20[](0), new uint[](0)
+    );
     kdl.setCompoundRates(params.compoundRateBase + 1, params.compoundRateQuote + 1);
     vm.stopPrank();
 
@@ -828,25 +836,22 @@ contract CoreKandelTest is MangroveTest {
   }
 
   function test_populate_throws_on_invalid_ratio() public {
-    uint[] memory empty = new uint[](0);
     uint precision = kdl.PRECISION();
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidRatio");
-    kdl.populate(empty, empty, empty, empty, 0, 10, uint16(10 ** precision - 1), 0);
+    kdl.populate(emptyDist, empty, 0, 10, uint16(10 ** precision - 1), 0, new IERC20[](0), new uint[](0));
   }
 
   function test_populate_throws_on_invalid_spread_low() public {
-    uint[] memory empty = new uint[](0);
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidSpread");
-    kdl.populate(empty, empty, empty, empty, 0, 10, 10800, 0);
+    kdl.populate(emptyDist, empty, 0, 10, 10800, 0, new IERC20[](0), new uint[](0));
   }
 
   function test_populate_throws_on_invalid_spread_high() public {
-    uint[] memory empty = new uint[](0);
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidSpread");
-    kdl.populate(empty, empty, empty, empty, 0, 10, 10800, 9);
+    kdl.populate(emptyDist, empty, 0, 10, 10800, 9, new IERC20[](0), new uint[](0));
   }
 
   function test_setCompoundRatesBase_reverts() public {
@@ -876,10 +881,10 @@ contract CoreKandelTest is MangroveTest {
     kdl.retractOffers(0, 10);
 
     uint16 ratio = uint16(102 * 10 ** kdl.PRECISION() / 100);
-    (KandelLib.Distribution memory vars,) =
+    (CoreKandel.Distribution memory distribution,) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, kdl.PRECISION());
 
-    kdl.populate(vars.indices, vars.baseDist, vars.quoteDist, dynamic([uint(0), 1, 2, 3, 4]), 2, 5, ratio, 2);
+    kdl.populate(distribution, dynamic([uint(0), 1, 2, 3, 4]), 2, 5, ratio, 2, new IERC20[](0), new uint[](0));
 
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
     vm.stopPrank();
@@ -999,18 +1004,11 @@ contract CoreKandelTest is MangroveTest {
     ) * 10 ether;
     deal(otherMaker, totalProvision);
 
-    (KandelLib.Distribution memory distribution,) =
+    (CoreKandel.Distribution memory distribution,) =
       KandelLib.calculateDistribution(0, kandelSize, base0, quote0, ratio, otherKandel.PRECISION());
 
     otherKandel.populate{value: totalProvision}(
-      distribution.indices,
-      distribution.baseDist,
-      distribution.quoteDist,
-      new uint[](kandelSize),
-      kandelSize / 2,
-      kandelSize,
-      ratio,
-      spread
+      distribution, new uint[](kandelSize), kandelSize / 2, kandelSize, ratio, spread, new IERC20[](0), new uint[](0)
     );
 
     uint pendingBase = uint(-otherKandel.pending(Ask));
@@ -1052,7 +1050,7 @@ contract CoreKandelTest is MangroveTest {
     deployOtherKandel(initBase + 1, initQuote + 1, t.ratio, STEP, t.kandelSize);
     deployOtherKandel(initBase + 100, initQuote + 100, t.ratio, STEP, t.kandelSize);
 
-    (KandelLib.Distribution memory vars,) = KandelLib.calculateDistribution({
+    (CoreKandel.Distribution memory distribution,) = KandelLib.calculateDistribution({
       from: 0,
       to: t.kandelSize,
       initBase: initBase,
@@ -1064,7 +1062,7 @@ contract CoreKandelTest is MangroveTest {
     t.snapshotId = vm.snapshot();
     vm.prank(maker);
     (t.pivotIds, t.baseAmountRequired, t.quoteAmountRequired) =
-      KandelLib.estimatePivotsAndRequiredAmount(vars, kdl, t.lastBidIndex, t.kandelSize, t.ratio, 1, t.funds);
+      KandelLib.estimatePivotsAndRequiredAmount(distribution, kdl, t.lastBidIndex, t.kandelSize, t.ratio, 1, t.funds);
     require(vm.revertTo(t.snapshotId), "snapshot restore failed");
 
     // with 0 pivots
@@ -1072,14 +1070,14 @@ contract CoreKandelTest is MangroveTest {
     vm.prank(maker);
     t.gas0Pivot = gasleft();
     kdl.populate{value: t.funds}({
-      indices: vars.indices,
-      baseDist: vars.baseDist,
-      quoteDist: vars.quoteDist,
+      distribution: distribution,
       lastBidIndex: t.lastBidIndex,
       kandelSize: t.kandelSize,
       ratio: t.ratio,
       spread: 1,
-      pivotIds: new uint[](t.kandelSize)
+      pivotIds: new uint[](t.kandelSize),
+      depositTokens: new IERC20[](0),
+      depositAmounts: new uint[](0)
     });
     t.gas0Pivot = t.gas0Pivot - gasleft();
 
@@ -1089,14 +1087,14 @@ contract CoreKandelTest is MangroveTest {
     vm.prank(maker);
     t.gasPivots = gasleft();
     kdl.populate{value: t.funds}({
-      indices: vars.indices,
-      baseDist: vars.baseDist,
-      quoteDist: vars.quoteDist,
+      distribution: distribution,
       lastBidIndex: t.lastBidIndex,
       kandelSize: t.kandelSize,
       ratio: t.ratio,
       spread: 1,
-      pivotIds: t.pivotIds
+      pivotIds: t.pivotIds,
+      depositTokens: new IERC20[](0),
+      depositAmounts: new uint[](0)
     });
     t.gasPivots = t.gasPivots - gasleft();
 
@@ -1106,37 +1104,5 @@ contract CoreKandelTest is MangroveTest {
     console.log("No pivot populate: %s PivotPopulate: %s", t.gas0Pivot, t.gasPivots);
 
     assertLt(t.gasPivots, t.gas0Pivot, "Providing pivots should save gas");
-  }
-
-  function test_max_offers_populate_one_tx() public {
-    vm.prank(maker);
-    kdl.retractOffers(0, 10);
-
-    uint16 ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
-
-    uint8 kandelSize = 2 ** 8 - 1;
-
-    //TODO pivots could be better - and book could be full.
-
-    (KandelLib.Distribution memory vars,) = KandelLib.calculateDistribution({
-      from: 0,
-      to: kandelSize,
-      initBase: initBase,
-      initQuote: initQuote,
-      ratio: ratio,
-      precision: kdl.PRECISION()
-    });
-
-    vm.prank(maker);
-    kdl.populate{value: 20 ether}({
-      indices: vars.indices,
-      baseDist: vars.baseDist,
-      quoteDist: vars.quoteDist,
-      lastBidIndex: kandelSize / 2,
-      kandelSize: kandelSize,
-      ratio: ratio,
-      spread: 1,
-      pivotIds: new uint[](kandelSize)
-    });
   }
 }

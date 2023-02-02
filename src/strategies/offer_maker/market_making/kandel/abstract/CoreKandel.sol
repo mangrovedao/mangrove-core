@@ -25,8 +25,9 @@ import {AbstractKandel} from "./AbstractKandel.sol";
 import {OfferType} from "./Trade.sol";
 import {HasKandelSlotViewMemoizer} from "./HasKandelSlotViewMemoizer.sol";
 import {HasIndexedOffers} from "./HasIndexedOffers.sol";
+import {TradesBaseQuote} from "./TradesBaseQuote.sol";
 
-abstract contract CoreKandel is Direct, AbstractKandel {
+abstract contract CoreKandel is HasIndexedOffers, Direct, HasKandelSlotViewMemoizer, AbstractKandel, TradesBaseQuote {
   ///@param indices the indices to populate, in ascending order
   ///@param baseDist base distribution for the indices
   ///@param quoteDist the distribution of quote for the indices
@@ -43,7 +44,13 @@ abstract contract CoreKandel is Direct, AbstractKandel {
     uint gasreq,
     uint gasprice,
     address owner
-  ) Direct(mangroveWithBaseQuote.mgv, NO_ROUTER, gasreq, owner) AbstractKandel(mangroveWithBaseQuote) {
+  )
+    Direct(mangroveWithBaseQuote.mgv, NO_ROUTER, gasreq, owner)
+    HasIndexedOffers(mangroveWithBaseQuote.mgv)
+    HasKandelSlotViewMemoizer(mangroveWithBaseQuote.mgv)
+    TradesBaseQuote(mangroveWithBaseQuote.base, mangroveWithBaseQuote.quote)
+  {
+    emit NewKandel(msg.sender, mangroveWithBaseQuote.mgv, mangroveWithBaseQuote.base, mangroveWithBaseQuote.quote);
     setGas(gasprice);
   }
 

@@ -14,7 +14,13 @@ pragma solidity ^0.8.10;
 import {IERC20, MgvLib} from "mgv_src/MgvLib.sol";
 import {OfferType} from "./Trade.sol";
 
-abstract contract TradesBaseQuote {
+abstract contract IHasTokenPairOfOfferType {
+  ///@notice turns an offer type into an (outbound, inbound) pair identifying an offer list
+  ///@param ba whether one wishes to access the offer lists where asks or bids are posted
+  function tokenPairOfOfferType(OfferType ba) internal view virtual returns (IERC20, IERC20);
+}
+
+abstract contract TradesBaseQuote is IHasTokenPairOfOfferType {
   ///@notice base of the market Kandel is making
   IERC20 public immutable BASE;
   ///@notice quote of the market Kandel is making
@@ -25,9 +31,8 @@ abstract contract TradesBaseQuote {
     QUOTE = quote;
   }
 
-  ///@notice turns an offer type into an (outbound, inbound) pair identifying an offer list
-  ///@param ba whether one wishes to access the offer lists where asks or bids are posted
-  function tokenPairOfOfferType(OfferType ba) internal view returns (IERC20, IERC20) {
+  ///@inheritdoc IHasTokenPairOfOfferType
+  function tokenPairOfOfferType(OfferType ba) internal view override returns (IERC20, IERC20) {
     return ba == OfferType.Bid ? (QUOTE, BASE) : (BASE, QUOTE);
   }
 

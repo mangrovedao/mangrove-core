@@ -248,7 +248,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   ///@notice Hook that defines what needs to be done to the part of an offer provision that was added to the balance of `this` on Mangrove after an offer has failed.
-  ///@param order is a recal of the taker order that failed
+  ///@param order is a recall of the taker order that failed
   function __handleResidualProvision__(MgvLib.SingleOrder calldata order) internal virtual {
     order; //ssh
   }

@@ -12,12 +12,19 @@
 pragma solidity ^0.8.10;
 
 import {MgvStructs} from "mgv_src/MgvLib.sol";
-import {TradesBaseQuote} from "./TradesBaseQuote.sol";
+import {IHasTokenPairOfOfferType} from "./TradesBaseQuote.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OfferType} from "./Trade.sol";
 
-abstract contract HasIndexedOffers is TradesBaseQuote {
+abstract contract IHasOfferIdIndexMap {
+  ///@notice maps index of offers to offer id on Mangrove.
+  function offerIdOfIndex(OfferType ba, uint index) public view virtual returns (uint);
+  ///@notice Maps an offer type and Mangrove offer id to Kandel index.
+  function indexOfOfferId(OfferType ba, uint offerId) public view virtual returns (uint);
+}
+
+abstract contract HasIndexedOffers is IHasTokenPairOfOfferType, IHasOfferIdIndexMap {
   struct MangroveWithBaseQuote {
     IMangrove mgv;
     IERC20 base;
@@ -26,10 +33,8 @@ abstract contract HasIndexedOffers is TradesBaseQuote {
 
   IMangrove private immutable MGV;
 
-  constructor(MangroveWithBaseQuote memory mangroveWithBaseQuote)
-    TradesBaseQuote(mangroveWithBaseQuote.base, mangroveWithBaseQuote.quote)
-  {
-    MGV = mangroveWithBaseQuote.mgv;
+  constructor(IMangrove mgv) {
+    MGV = mgv;
   }
 
   ///@notice Mangrove's offer id of an ask at a given price index.
@@ -37,19 +42,19 @@ abstract contract HasIndexedOffers is TradesBaseQuote {
   ///@notice Mangrove's offer id of a bid at a given price index.
   uint[] bidOfferIdOfIndex;
 
-  ///@notice maps index of offers to offer id on Mangrove.
-  function offerIdOfIndex(OfferType ba, uint index) public view returns (uint) {
-    return ba == OfferType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
-  }
-
   ///@notice An inverse mapping of askOfferIdOfIndex. E.g., indexOfAskOfferId[42] is the index in askOfferIdOfIndex at which ask of id #42 on Mangrove is stored.
   mapping(uint => uint) indexOfAskOfferId;
 
   ///@notice An inverse mapping of bidOfferIdOfIndex. E.g., indexOfBidOfferId[42] is the index in bidOfferIdOfIndex at which bid of id #42 on Mangrove is stored.
   mapping(uint => uint) indexOfBidOfferId;
 
-  ///@notice Maps an offer type and Mangrove offer id to Kandel index.
-  function indexOfOfferId(OfferType ba, uint offerId) public view returns (uint) {
+  ///@inheritdoc IHasOfferIdIndexMap
+  function offerIdOfIndex(OfferType ba, uint index) public view override returns (uint) {
+    return ba == OfferType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
+  }
+
+  ///@inheritdoc IHasOfferIdIndexMap
+  function indexOfOfferId(OfferType ba, uint offerId) public view override returns (uint) {
     return ba == OfferType.Ask ? indexOfAskOfferId[offerId] : indexOfBidOfferId[offerId];
   }
 

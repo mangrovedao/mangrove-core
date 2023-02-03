@@ -25,9 +25,6 @@ abstract contract DirectWithDistribution is Direct, HasKandelSlotMemoizer, HasIn
     HasIndexedBidsAndAsks(mgv)
   {}
 
-  ///@notice a bid was populated near the mid (around lastBidIndex but not necessarily that one).
-  event BidNearMidPopulated(uint index, uint96 gives, uint96 wants);
-
   ///@param indices the indices to populate, in ascending order
   ///@param baseDist base distribution for the indices
   ///@param quoteDist the distribution of quote for the indices
@@ -79,10 +76,7 @@ abstract contract DirectWithDistribution is Direct, HasKandelSlotMemoizer, HasIn
 
       populateIndex(OfferType.Bid, _fresh(index), args);
     }
-    if (i > 0) {
-      // At least one bid has been populated, emit it to make price derivable
-      emit BidNearMidPopulated(indices[i - 1], uint96(args.gives), uint96(args.wants));
-    }
+
     (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(OfferType.Ask);
 
     for (; i < indices.length; i++) {

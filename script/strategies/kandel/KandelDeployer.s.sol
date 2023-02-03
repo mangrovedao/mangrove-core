@@ -2,9 +2,10 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Kandel, IERC20, IMangrove, MgvStructs} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
-import {HasIndexedOffers} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/HasIndexedOffers.sol";
-
+import {Kandel} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
 

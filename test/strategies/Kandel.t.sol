@@ -1,11 +1,28 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import "mgv_test/lib/MangroveTest.sol";
-import {CoreKandelTest, CoreKandel, IMangrove, HasIndexedOffers} from "./CoreKandel.t.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Kandel} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
+import {CoreKandelTest} from "./CoreKandel.t.sol";
+import {console2} from "forge-std/Test.sol";
 
 contract KandelTest is CoreKandelTest {
+  function __deployKandel__(address deployer) internal override returns (GeometricKandel kdl_) {
+    uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
+
+    vm.prank(deployer);
+    kdl_ = new Kandel({
+      mgv: IMangrove($(mgv)),
+      base: base,
+      quote: quote,
+      gasreq: GASREQ,
+      gasprice: bufferedGasprice,
+      owner: deployer
+    });
+  }
+
   function test_dualWantsGivesOfOffer_max_bits_partial() public {
     // this verifies uint160(givesR) != givesR in dualWantsGivesOfOffer
     dualWantsGivesOfOffer_max_bits(true, 2);

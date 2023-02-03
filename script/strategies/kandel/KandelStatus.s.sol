@@ -2,15 +2,10 @@
 pragma solidity ^0.8.13;
 
 import {Script, console2 as console} from "forge-std/Script.sol";
-import {
-  Kandel,
-  IERC20,
-  IMangrove,
-  MgvStructs,
-  OfferType
-} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
-import {AbstractKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/AbstractKandel.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
+import {OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/Trade.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /**
@@ -19,10 +14,10 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 contract KandelStatus is Deployer {
   function run() public view {
-    innerRun({kdl: Kandel(envAddressOrName("KANDEL"))});
+    innerRun({kdl: GeometricKandel(envAddressOrName("KANDEL"))});
   }
 
-  function innerRun(Kandel kdl) public view {
+  function innerRun(GeometricKandel kdl) public view {
     IERC20 base = kdl.BASE();
     IERC20 quote = kdl.QUOTE();
     uint baseDecimals = base.decimals();

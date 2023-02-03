@@ -1,10 +1,15 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import "mgv_test/lib/MangroveTest.sol";
-import {CoreKandelTest, CoreKandel, GeometricKandel, IMangrove, HasIndexedOffers, MgvLib} from "./CoreKandel.t.sol";
+import {CoreKandelTest} from "./CoreKandel.t.sol";
+import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {AaveKandel, AavePooledRouter} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandel.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
+import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
+import {console2} from "forge-std/Test.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 
 contract AaveKandelTest is CoreKandelTest {
   PinnedPolygonFork fork;

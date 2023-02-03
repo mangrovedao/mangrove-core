@@ -11,24 +11,16 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-import {
-  MangroveOffer,
-  Direct,
-  IMangrove,
-  IERC20,
-  MgvLib,
-  MgvStructs,
-  AbstractRouter,
-  TransferLib
-} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import {AbstractKandel} from "./AbstractKandel.sol";
+import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
+import {MgvLib} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
 import {OfferType} from "./Trade.sol";
-import {HasKandelSlotMemoizer} from "./HasKandelSlotMemoizer.sol";
-import {HasIndexedOffers} from "./HasIndexedOffers.sol";
-import {TradesBaseQuote} from "./TradesBaseQuote.sol";
 import {DirectWithDistribution} from "./DirectWithDistribution.sol";
 
 abstract contract CoreKandel is DirectWithDistribution {
+  constructor(IMangrove mgv, uint gasreq, address owner) DirectWithDistribution(mgv, gasreq, owner) {}
+
   ///@notice takes care of status for reposting residual offer in case of a partial fill and logging of potential issues.
   ///@param order a recap of the taker order
   ///@param makerData generated during `makerExecute` so as to log it if necessary

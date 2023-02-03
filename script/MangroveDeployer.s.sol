@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "mgv_src/Mangrove.sol";
-import "mgv_src/periphery/MgvReader.sol";
+import {Mangrove} from "mgv_src/Mangrove.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";

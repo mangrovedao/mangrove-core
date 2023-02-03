@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// HasIndexedOffers.sol
+// HasIndexedBidsAndAsks.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -24,7 +24,7 @@ abstract contract IHasOfferIdIndexMap {
   function indexOfOfferId(OfferType ba, uint offerId) public view virtual returns (uint);
 }
 
-abstract contract HasIndexedOffers is IHasTokenPairOfOfferType, IHasOfferIdIndexMap {
+abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType, IHasOfferIdIndexMap {
   IMangrove private immutable MGV;
 
   constructor(IMangrove mgv) {

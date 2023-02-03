@@ -33,7 +33,7 @@ abstract contract AbstractKandel {
   event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
 
   ///@notice the parameters for Kandel have been set.
-  event SetParams(uint8 kandelSize, uint8 spread, uint16 ratio);
+  event SetParams(uint8 pricePoints, uint8 spread, uint16 ratio);
 
   ///@notice the gasprice has been set.
   event SetGasprice(uint16 gasprice);
@@ -44,24 +44,6 @@ abstract contract AbstractKandel {
   // `ratio`, `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals.
   // setting PRECISION higher than 4 might produce overflow in limit cases.
   uint8 public constant PRECISION = 4;
-
-  ///@notice Kandel Params
-  ///@param gasprice the gasprice to use for offers
-  ///@param gasreq the gasreq to use for offers
-  ///@param ratio of price progression (`2**16 > ratio >= 10**PRECISION`) expressed with `PRECISION` decimals, so geometric ratio is `ratio/10**PRECISION`
-  ///@param compoundRateBase percentage of the spread that is to be compounded for base, expressed with `PRECISION` decimals (`compoundRateBase <= 10**PRECISION`). Real compound rate for base is `compoundRateBase/10**PRECISION`
-  ///@param compoundRateQuote percentage of the spread that is to be compounded for quote, expressed with `PRECISION` decimals (`compoundRateQuote <= 10**PRECISION`). Real compound rate for quote is `compoundRateQuote/10**PRECISION`
-  ///@param spread in amount of price slots for posting dual offer
-  ///@param precision number of decimals used for `ratio`, `compoundRateBase`, and `compoundRateQuote`.
-  struct Params {
-    uint16 gasprice;
-    uint24 gasreq;
-    uint16 ratio;
-    uint16 compoundRateBase;
-    uint16 compoundRateQuote;
-    uint8 spread;
-    uint8 length;
-  }
 
   function pending(OfferType ba) external view virtual returns (int pending_);
   function reserveBalance(IERC20 token) public view virtual returns (uint);

@@ -23,7 +23,7 @@ contract KandelTest is CoreKandelTest {
   // this makes share computation overflows in AaveKandel
   function dualWantsGivesOfOffer_max_bits(bool partialTake, uint numTakes) internal {
     uint8 spread = 8;
-    uint8 size = 2 ** 8 - 1;
+    uint8 pricePoints = 2 ** 8 - 1;
 
     uint96 base0 = 2 ** 96 - 1;
     uint96 quote0 = 2 ** 96 - 1;
@@ -40,7 +40,7 @@ contract KandelTest is CoreKandelTest {
         quote: quote0,
         pivotId: 0,
         lastBidIndex: 2,
-        kandelSize: size,
+        pricePoints: pricePoints,
         ratio: ratio,
         spread: spread,
         expectRevert: bytes("")

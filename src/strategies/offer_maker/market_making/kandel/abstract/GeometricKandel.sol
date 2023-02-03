@@ -30,6 +30,24 @@ import {DirectWithDistribution} from "./DirectWithDistribution.sol";
 import {CoreKandel} from "./CoreKandel.sol";
 
 abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote {
+  ///@notice Geometric Kandel parameters
+  ///@param gasprice the gasprice to use for offers
+  ///@param gasreq the gasreq to use for offers
+  ///@param ratio of price progression (`2**16 > ratio >= 10**PRECISION`) expressed with `PRECISION` decimals, so geometric ratio is `ratio/10**PRECISION`
+  ///@param compoundRateBase percentage of the spread that is to be compounded for base, expressed with `PRECISION` decimals (`compoundRateBase <= 10**PRECISION`). Real compound rate for base is `compoundRateBase/10**PRECISION`
+  ///@param compoundRateQuote percentage of the spread that is to be compounded for quote, expressed with `PRECISION` decimals (`compoundRateQuote <= 10**PRECISION`). Real compound rate for quote is `compoundRateQuote/10**PRECISION`
+  ///@param spread in amount of price slots to jump for posting dual offer. Must be less than or equal to 8.
+  ///@param pricePoints the number of price points for the Kandel instance.
+  struct Params {
+    uint16 gasprice;
+    uint24 gasreq;
+    uint16 ratio;
+    uint16 compoundRateBase;
+    uint16 compoundRateQuote;
+    uint8 spread;
+    uint8 pricePoints;
+  }
+
   Params public params;
 
   constructor(
@@ -64,13 +82,13 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     emit SetGasreq(gasreq_);
   }
 
-  function setParams(uint8 kandelSize, uint16 ratio, uint8 spread) private {
+  function setParams(uint8 pricePoints, uint16 ratio, uint8 spread) private {
     // Initializing arrays and parameters if needed
     Params memory memoryParams = params;
 
-    if (memoryParams.length != kandelSize) {
-      setLength(kandelSize);
-      params.length = kandelSize;
+    if (memoryParams.pricePoints != pricePoints) {
+      setLength(pricePoints);
+      params.pricePoints = pricePoints;
     }
     if (memoryParams.ratio != ratio) {
       require(ratio >= 10 ** PRECISION, "Kandel/invalidRatio");
@@ -80,7 +98,7 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
       require(spread > 0 && spread <= 8, "Kandel/invalidSpread");
       params.spread = spread;
     }
-    emit SetParams(kandelSize, spread, ratio);
+    emit SetParams(pricePoints, spread, ratio);
   }
 
   ///@notice set the compound rates. It will take effect for future compounding.
@@ -109,20 +127,20 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
   ///@param distribution the distribution of base and quote for Kandel indices
   ///@param pivotIds the pivot to be used for the offer
   ///@param lastBidIndex the index after which offer should be an ask. First index will never be an ask, either a bid or not published.
-  ///@param kandelSize the number of price points
+  ///@param pricePoints the number of price points
   ///@param ratio the rate of the geometric distribution with PRECISION decimals.
   ///@param spread the distance between a ask in the distribution and its corresponding bid.
   ///@param depositTokens tokens to deposit.
   ///@param depositAmounts amounts to deposit for the tokens.
   ///@dev This function is used at initialization and can fund with provision for the offers.
   ///@dev Use `populateChunk` to split up initialization or re-initialization with same parameters, as this function will emit.
-  ///@dev If this function is invoked with different ratio, kandelSize, spread, then first retract all offers.
+  ///@dev If this function is invoked with different ratio, pricePoints, spread, then first retract all offers.
   ///@dev msg.value must be enough to provision all posted offers (for chunked initialization only one call needs to send native tokens).
   function populate(
     Distribution calldata distribution,
     uint[] calldata pivotIds,
     uint lastBidIndex,
-    uint8 kandelSize,
+    uint8 pricePoints,
     uint16 ratio,
     uint8 spread,
     IERC20[] calldata depositTokens,
@@ -131,7 +149,7 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
-    setParams(kandelSize, ratio, spread);
+    setParams(pricePoints, ratio, spread);
 
     depositFunds(depositTokens, depositAmounts);
 
@@ -224,12 +242,12 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     if (index == 0) {
       emit AllAsks();
     }
-    if (index == memoryParams.length - 1) {
+    if (index == memoryParams.pricePoints - 1) {
       emit AllBids();
     }
     baDual = dual(ba);
 
-    viewDual = _fresh(better(baDual, index, memoryParams.spread, memoryParams.length));
+    viewDual = _fresh(better(baDual, index, memoryParams.spread, memoryParams.pricePoints));
 
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);

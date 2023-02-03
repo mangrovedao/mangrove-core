@@ -42,14 +42,14 @@ library KandelLib {
     CoreKandel.Distribution memory distribution,
     GeometricKandel kandel,
     uint lastBidIndex,
-    uint8 kandelSize,
+    uint8 pricePoints,
     uint16 ratio,
     uint8 spread,
     uint funds
   ) internal returns (uint[] memory pivotIds, uint baseAmountRequired, uint quoteAmountRequired) {
     pivotIds = new uint[](distribution.indices.length);
     kandel.populate{value: funds}(
-      distribution, pivotIds, lastBidIndex, kandelSize, ratio, spread, new IERC20[](0), new uint[](0)
+      distribution, pivotIds, lastBidIndex, pricePoints, ratio, spread, new IERC20[](0), new uint[](0)
     );
     for (uint i = 0; i < pivotIds.length; i++) {
       uint index = distribution.indices[i];

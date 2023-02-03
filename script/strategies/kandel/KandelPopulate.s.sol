@@ -15,7 +15,7 @@ import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 
 /*
   # The following uses ~12 million gas - with 0 pivots it uses ~30 million gas
-  KANDEL=kdl5 FROM=0 TO=100 LAST_BID_INDEX=50 SIZE=100 RATIO=10100 SPREAD=1 \
+  KANDEL=kdl5 FROM=0 TO=100 LAST_BID_INDEX=50 PRICE_POINTS=100 RATIO=10100 SPREAD=1 \
   INIT_QUOTE=$(cast ff 6 100) VOLUME=$(cast ff 18 0.1) \
   forge script KandelPopulate --fork-url $LOCAL_URL*/
 
@@ -23,8 +23,8 @@ contract KandelPopulate is Deployer {
   function run() public {
     uint16 ratio = uint16(vm.envUint("RATIO"));
     require(ratio == vm.envUint("RATIO"), "Invalid RATIO");
-    uint8 kandelSize = uint8(vm.envUint("SIZE"));
-    require(kandelSize == vm.envUint("SIZE"), "Invalid SIZE");
+    uint8 pricePoints = uint8(vm.envUint("PRICE_POINTS"));
+    require(pricePoints == vm.envUint("PRICE_POINTS"), "Invalid PRICE_POINTS");
     uint8 spread = uint8(vm.envUint("SPREAD"));
     require(spread == vm.envUint("SPREAD"), "Invalid SPREAD");
 
@@ -33,7 +33,7 @@ contract KandelPopulate is Deployer {
         from: vm.envUint("FROM"),
         to: vm.envUint("TO"),
         lastBidIndex: vm.envUint("LAST_BID_INDEX"),
-        kandelSize: kandelSize,
+        pricePoints: pricePoints,
         ratio: ratio,
         spread: spread,
         initQuote: vm.envUint("INIT_QUOTE"),
@@ -57,7 +57,7 @@ contract KandelPopulate is Deployer {
     uint from;
     uint to;
     uint lastBidIndex;
-    uint8 kandelSize;
+    uint8 pricePoints;
     uint16 ratio;
     uint8 spread;
     uint initQuote;
@@ -160,7 +160,7 @@ contract KandelPopulate is Deployer {
       vars.distribution,
       vars.pivotIds,
       args.lastBidIndex,
-      args.kandelSize,
+      args.pricePoints,
       args.ratio,
       args.spread,
       dynamic([IERC20(vars.BASE), vars.QUOTE]),
@@ -185,7 +185,7 @@ contract KandelPopulate is Deployer {
     vars.snapshotId = vm.snapshot();
     vm.prank(broadcaster());
     (vars.pivotIds, vars.baseAmountRequired, vars.quoteAmountRequired) = KandelLib.estimatePivotsAndRequiredAmount(
-      distribution, args.kdl, args.lastBidIndex, args.kandelSize, args.ratio, args.spread, funds
+      distribution, args.kdl, args.lastBidIndex, args.pricePoints, args.ratio, args.spread, funds
     );
     require(vm.revertTo(vars.snapshotId), "snapshot restore failed");
   }

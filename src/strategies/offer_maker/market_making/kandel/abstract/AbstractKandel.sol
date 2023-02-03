@@ -15,7 +15,7 @@ import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Direct} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
-import {HasKandelSlotViewMemoizer} from "./HasKandelSlotViewMemoizer.sol";
+import {HasKandelSlotMemoizer} from "./HasKandelSlotMemoizer.sol";
 import {HasIndexedOffers} from "./HasIndexedOffers.sol";
 import {OfferType} from "./Trade.sol";
 import {TradesBaseQuote} from "./TradesBaseQuote.sol";
@@ -35,8 +35,11 @@ abstract contract AbstractKandel {
   ///@notice the parameters for Kandel have been set.
   event SetParams(uint8 kandelSize, uint8 spread, uint16 ratio);
 
-  ///@notice the gasprice and gasreq have been set.
-  event SetGas(uint16 gasprice, uint24 gasreq);
+  ///@notice the gasprice has been set.
+  event SetGasprice(uint16 gasprice);
+
+  ///@notice the gasreq has been set.
+  event SetGasreq(uint24 gasreq);
 
   ///@notice a bid was populated near the mid (around lastBidIndex but not necessarily that one).
   event BidNearMidPopulated(uint index, uint96 gives, uint96 wants);
@@ -72,7 +75,7 @@ abstract contract AbstractKandel {
   function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (OfferType baDual, HasKandelSlotViewMemoizer.SlotViewMemoizer memory viewDual, Direct.OfferArgs memory args);
+    returns (OfferType baDual, HasKandelSlotMemoizer.SlotMemoizer memory viewDual, Direct.OfferArgs memory args);
 
   function pending(OfferType ba) external view virtual returns (int pending_);
   function reserveBalance(IERC20 token) public view virtual returns (uint);

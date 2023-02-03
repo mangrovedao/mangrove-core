@@ -41,6 +41,7 @@ contract AaveKandel is CoreKandel {
     // calls below will fail if router's admin has not bound router to `this`.
     __activate__(BASE);
     __activate__(QUOTE);
+    setGasreq(offerGasreq());
   }
 
   ///@dev external wrapper for `_depositFunds`

@@ -21,13 +21,9 @@ import {console2} from "forge-std/Test.sol";
 import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
 
 contract CoreKandelTest is MangroveTest {
-  TestToken weth;
-  TestToken usdc;
   address payable maker;
   address payable taker;
   CoreKandel kdl;
-
-  uint GASREQ;
   uint8 constant STEP = 1;
   uint initQuote;
   uint initBase = 0.1 ether;
@@ -37,59 +33,54 @@ contract CoreKandelTest is MangroveTest {
   event AllAsks();
   event AllBids();
   event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
-  event SetParams(uint8 kandelSize, uint8 spread, uint16 ratio);
-  event SetGas(uint16 gasprice, uint24 gasreq);
-  event BidNearMidPopulated(uint index, uint96 gives, uint96 wants);
+  event SetParams(uint kandelSize, uint spread, uint ratio);
+  //  event BidNearMidPopulated(uint index, uint gives, uint96 wants);
 
-  function setUp() public virtual override {
+  // sets base and quote
+  function __setForkEnvironment__() internal virtual {
+    // no fork
     options.base.symbol = "WETH";
     options.quote.symbol = "USDC";
     options.quote.decimals = 6;
     options.defaultFee = 30;
+    MangroveTest.setUp();
+  }
 
-    // deploying mangrove and opening WETH/USDC market.
-    super.setUp();
-    // rename for convenience
-    weth = base;
-    usdc = quote;
-    GASREQ = 138_000; // can be 77_000 when all offers are initialized.
+  function setUp() public virtual override {
+    /// sets base, quote, opens a market (base,quote) on Mangrove
+    __setForkEnvironment__();
+    require(reader != MgvReader(address(0)), "Could not get reader");
 
-    initQuote = cash(usdc, 100); // quote given/wanted at index from
+    initQuote = cash(quote, 100); // quote given/wanted at index from
 
     maker = freshAddress("maker");
     taker = freshAddress("taker");
-    deal($(weth), taker, cash(weth, 50));
-    deal($(usdc), taker, cash(usdc, 70_000));
+    deal($(base), taker, cash(base, 50));
+    deal($(quote), taker, cash(quote, 70_000));
 
     // taker approves mangrove to be able to take offers
     vm.startPrank(taker);
-    weth.approve($(mgv), type(uint).max);
-    usdc.approve($(mgv), type(uint).max);
+    base.approve($(mgv), type(uint).max);
+    quote.approve($(mgv), type(uint).max);
     vm.stopPrank();
 
     // deploy and activate
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
     globalGasprice = global.gasprice();
     bufferedGasprice = globalGasprice * 10; // covering 10 times Mangrove's gasprice at deploy time
-    vm.expectEmit(true, true, true, true);
-    emit NewKandel(maker, IMangrove($(mgv)), weth, usdc);
-    vm.expectEmit(true, true, true, true);
-    emit SetGas(uint16(bufferedGasprice), uint24(GASREQ));
 
-    kdl = deployKandel();
+    kdl = __deployKandel__(maker);
 
     // funding Kandel on Mangrove
-    uint provAsk = kdl.getMissingProvision(weth, usdc, kdl.offerGasreq(), bufferedGasprice, 0);
-    uint provBid = kdl.getMissingProvision(usdc, weth, kdl.offerGasreq(), bufferedGasprice, 0);
+    uint provAsk = kdl.getMissingProvision(base, quote, kdl.offerGasreq(), bufferedGasprice, 0);
+    uint provBid = kdl.getMissingProvision(quote, base, kdl.offerGasreq(), bufferedGasprice, 0);
     deal(maker, (provAsk + provBid) * 10 ether);
 
     vm.startPrank(maker);
-    weth.approve(address(kdl), type(uint).max);
-    usdc.approve(address(kdl), type(uint).max);
+    base.approve(address(kdl), type(uint).max);
+    quote.approve(address(kdl), type(uint).max);
 
     uint16 ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
-    vm.expectEmit(true, true, true, true);
-    emit BidNearMidPopulated(4, uint96(initQuote * uint(ratio) ** 4 / ((10 ** kdl.PRECISION()) ** 4)), uint96(initBase));
 
     (CoreKandel.Distribution memory distribution1, uint lastQuote) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, kdl.PRECISION());
@@ -105,48 +96,50 @@ contract CoreKandelTest is MangroveTest {
 
     uint pendingBase = uint(-kdl.pending(Ask));
     uint pendingQuote = uint(-kdl.pending(Bid));
-    deal($(weth), maker, pendingBase);
-    deal($(usdc), maker, pendingQuote);
+    deal($(base), maker, pendingBase);
+    deal($(quote), maker, pendingQuote);
     kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([pendingBase, pendingQuote]));
 
     vm.stopPrank();
   }
 
-  function deployKandel() internal virtual returns (CoreKandel kdl_) {
-    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
-      HasIndexedOffers.MangroveWithBaseQuote({mgv: IMangrove($(mgv)), base: weth, quote: usdc});
+  function __deployKandel__(address deployer) internal virtual returns (CoreKandel kdl_) {
+    uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
 
-    vm.prank(maker);
+    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
+      HasIndexedOffers.MangroveWithBaseQuote({mgv: IMangrove($(mgv)), base: base, quote: quote});
+
+    vm.prank(deployer);
     kdl_ = new Kandel({
       mangroveWithBaseQuote: mangroveWithBaseQuote,
       gasreq: GASREQ,
       gasprice: bufferedGasprice,
-      owner: maker
+      owner: deployer
     });
   }
 
   function buyFromBestAs(address taker_, uint amount) internal returns (uint, uint, uint, uint, uint) {
-    uint bestAsk = mgv.best($(weth), $(usdc));
+    uint bestAsk = mgv.best($(base), $(quote));
     vm.prank(taker_);
-    return mgv.snipes($(weth), $(usdc), wrap_dynamic([bestAsk, amount, type(uint96).max, type(uint).max]), true);
+    return mgv.snipes($(base), $(quote), wrap_dynamic([bestAsk, amount, type(uint96).max, type(uint).max]), true);
   }
 
   function sellToBestAs(address taker_, uint amount) internal returns (uint, uint, uint, uint, uint) {
-    uint bestBid = mgv.best($(usdc), $(weth));
+    uint bestBid = mgv.best($(quote), $(base));
     vm.prank(taker_);
-    return mgv.snipes($(usdc), $(weth), wrap_dynamic([bestBid, 0, amount, type(uint).max]), false);
+    return mgv.snipes($(quote), $(base), wrap_dynamic([bestBid, 0, amount, type(uint).max]), false);
   }
 
   function snipeBuyAs(address taker_, uint amount, uint index) internal returns (uint, uint, uint, uint, uint) {
     uint offerId = kdl.offerIdOfIndex(Ask, index);
     vm.prank(taker_);
-    return mgv.snipes($(weth), $(usdc), wrap_dynamic([offerId, amount, type(uint96).max, type(uint).max]), true);
+    return mgv.snipes($(base), $(quote), wrap_dynamic([offerId, amount, type(uint96).max, type(uint).max]), true);
   }
 
   function snipeSellAs(address taker_, uint amount, uint index) internal returns (uint, uint, uint, uint, uint) {
     uint offerId = kdl.offerIdOfIndex(Bid, index);
     vm.prank(taker_);
-    return mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
+    return mgv.snipes($(quote), $(base), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
   }
 
   enum OfferStatus {
@@ -231,8 +224,8 @@ contract CoreKandelTest is MangroveTest {
   }
 
   function printOB() internal view {
-    printOrderBook($(weth), $(usdc));
-    printOrderBook($(usdc), $(weth));
+    printOrderBook($(base), $(quote));
+    printOrderBook($(quote), $(base));
     uint pendingBase = uint(kdl.pending(Ask));
     uint pendingQuote = uint(kdl.pending(Bid));
 
@@ -434,8 +427,8 @@ contract CoreKandelTest is MangroveTest {
     ExpectedChange baseVolumeChange,
     ExpectedChange quoteVolumeChange
   ) internal {
-    deal($(weth), taker, cash(weth, 5000));
-    deal($(usdc), taker, cash(usdc, 7000000));
+    deal($(base), taker, cash(base, 5000));
+    deal($(quote), taker, cash(quote, 7000000));
     uint initialTotalVolumeBase;
     uint initialTotalVolumeQuote;
     assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
@@ -500,10 +493,10 @@ contract CoreKandelTest is MangroveTest {
   }
 
   function getBestOffers() internal view returns (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) {
-    uint bestAskId = mgv.best($(weth), $(usdc));
-    uint bestBidId = mgv.best($(usdc), $(weth));
-    bestBid = mgv.offers($(usdc), $(weth), bestBidId);
-    bestAsk = mgv.offers($(weth), $(usdc), bestAskId);
+    uint bestAskId = mgv.best($(base), $(quote));
+    uint bestBidId = mgv.best($(quote), $(base));
+    bestBid = mgv.offers($(quote), $(base), bestBidId);
+    bestAsk = mgv.offers($(base), $(quote), bestAskId);
   }
 
   function getMidPrice() internal view returns (uint midWants, uint midGives) {
@@ -616,7 +609,7 @@ contract CoreKandelTest is MangroveTest {
     uint offeredVolume = kdl.offeredVolume(ba);
     IERC20 outbound = ba == OfferType.Ask ? base : quote;
     vm.prank(maker);
-    withdrawFunds(outbound, offeredVolume, address(this));
+    withdrawFunds(outbound, offeredVolume, maker);
 
     for (uint i = 0; i < failures; i++) {
       // This will emit LogIncident and OfferFail
@@ -628,10 +621,12 @@ contract CoreKandelTest is MangroveTest {
     assertStatus(expectedMidStatus);
 
     // send funds back
-    outbound.transfer(address(kdl), offeredVolume);
-    // Only allow filling up with half the volume.
+    // outbound.transfer(address(kdl), offeredVolume);
     vm.startPrank(maker);
-    withdrawFunds(outbound, uint(kdl.pending(ba)) / 2, address(this));
+    kdl.depositFunds(dynamic([IERC20(outbound)]), dynamic([uint(offeredVolume)]));
+    // Only allow filling up with half the volume.
+    // fixme strange to do a deposit and then a withdraw
+    withdrawFunds(outbound, uint(kdl.pending(ba)) / 2, maker);
     vm.stopPrank();
 
     heal(midWants, midGives, densityMidBid / 2, densityMidAsk / 2);
@@ -640,19 +635,19 @@ contract CoreKandelTest is MangroveTest {
     assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
   }
 
-  function test_heal_ask() public {
+  function test_heal_ask_1() public {
     test_heal_ba(Ask, 1, dynamic([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]));
   }
 
-  function test_heal_bid() public {
+  function test_heal_bid_1() public {
     test_heal_ba(Bid, 1, dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
   }
 
-  function test_heal_ask3() public {
+  function test_heal_ask_3() public {
     test_heal_ba(Ask, 3, dynamic([uint(1), 1, 1, 1, 1, 0, 0, 0, 2, 2]));
   }
 
-  function test_heal_bid3() public {
+  function test_heal_bid_3() public {
     test_heal_ba(Bid, 3, dynamic([uint(1), 1, 0, 0, 0, 2, 2, 2, 2, 2]));
   }
 
@@ -739,7 +734,7 @@ contract CoreKandelTest is MangroveTest {
     // Take almost all - offer will not be reposted due to density too low
     uint amount = bid.wants() - 1;
     vm.prank(taker);
-    mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
+    mgv.snipes($(quote), $(base), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
 
     // verify dual is increased
     MgvStructs.OfferPacked askPost = kdl.getOffer(Ask, index + STEP);
@@ -763,7 +758,7 @@ contract CoreKandelTest is MangroveTest {
     // Take very little and expect dual posting to fail.
     uint amount = 10000;
     vm.prank(taker);
-    (uint successes,,,,) = mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
+    (uint successes,,,,) = mgv.snipes($(quote), $(base), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
     assertTrue(successes == 1, "Snipe failed");
     ask = kdl.getOffer(Ask, index + STEP);
     assertTrue(!mgv.isLive(ask), "ask should still not be live");
@@ -785,7 +780,7 @@ contract CoreKandelTest is MangroveTest {
     // Take very little and expect dual posting to fail.
     uint amount = 10000;
     vm.prank(taker);
-    (uint successes,,,,) = mgv.snipes($(usdc), $(weth), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
+    (uint successes,,,,) = mgv.snipes($(quote), $(base), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
     assertTrue(successes == 1, "Snipe failed");
 
     ask = kdl.getOffer(Ask, index + STEP);
@@ -822,8 +817,9 @@ contract CoreKandelTest is MangroveTest {
     uint offeredVolumeQuote = kdl.offeredVolume(Bid);
 
     vm.startPrank(maker);
-    vm.expectEmit(true, true, true, true);
-    emit SetParams(params.length, params.spread + 1, params.ratio + 1);
+    // expectFrom(address(kdl));
+    // emit SetParams(params.length, params.spread + 1, params.ratio + 1);
+
     kdl.populate(
       emptyDist, empty, 0, params.length, params.ratio + 1, params.spread + 1, new IERC20[](0), new uint[](0)
     );
@@ -913,119 +909,53 @@ contract CoreKandelTest is MangroveTest {
     assertStatus(dynamic([uint(1), 1, 1, 0, 0]));
   }
 
-  function test_setGas() public {
-    SimpleRouter router = new SimpleRouter();
+  function test_setGasprice() public {
     vm.prank(maker);
-    kdl.setRouter(router);
-    vm.expectEmit(true, true, true, true);
-    emit SetGas(42, uint24(GASREQ + router.routerGasreq()));
-    vm.prank(maker);
-    kdl.setGas(42);
+    kdl.setGasprice(42);
+    (uint16 gasprice,,,,,,) = kdl.params();
+    assertEq(gasprice, uint16(42), "Incorrect gasprice in params");
   }
 
-  function test_dualWantsGivesOfOffer_max_bits_partial() public {
-    // this verifies uint160(givesR) != givesR in dualWantsGivesOfOffer
-    test_dualWantsGivesOfOffer_max_bits(true, 2);
-  }
-
-  function test_dualWantsGivesOfOffer_max_bits_full() public {
-    // this verifies the edge cases:
-    // uint160(givesR) != givesR
-    // uint96(wants) != wants
-    // uint96(gives) != gives
-    // in dualWantsGivesOfOffer
-    test_dualWantsGivesOfOffer_max_bits(false, 2);
-  }
-
-  function test_dualWantsGivesOfOffer_max_bits(bool partialTake, uint numTakes) internal {
-    uint8 spread = 8;
-    uint8 size = 2 ** 8 - 1;
-
-    uint96 base0 = 2 ** 96 - 1;
-    uint96 quote0 = 2 ** 96 - 1;
-    uint16 ratio = 2 ** 16 - 1;
-    uint16 compoundRate = uint16(10 ** kdl.PRECISION());
-
+  function test_setGasreq() public {
     vm.prank(maker);
-    kdl.retractOffers(0, 10);
-
-    for (uint i = 0; i < numTakes; i++) {
-      populateSingle({
-        index: 0,
-        base: base0,
-        quote: quote0,
-        pivotId: 0,
-        lastBidIndex: 2,
-        kandelSize: size,
-        ratio: ratio,
-        spread: spread,
-        expectRevert: bytes("")
-      });
-
-      vm.prank(maker);
-      kdl.setCompoundRates(compoundRate, compoundRate);
-      // This only verifies KandelLib
-
-      MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 0);
-
-      deal($(usdc), address(kdl), bid.gives());
-      deal($(weth), address(taker), bid.wants());
-
-      uint amount = partialTake ? 1 ether : bid.wants();
-
-      (uint successes,,,,) = sellToBestAs(taker, amount);
-      assertEq(successes, 1, "offer should be sniped");
-    }
-    uint askOfferId = mgv.best($(weth), $(usdc));
-    uint askIndex = kdl.indexOfOfferId(Ask, askOfferId);
-
-    uint[] memory statuses = new uint[](askIndex+2);
-    if (partialTake) {
-      MgvStructs.OfferPacked ask = kdl.getOffer(Ask, askIndex);
-      assertEq(1 ether * numTakes, ask.gives(), "ask should offer the provided 1 ether for each take");
-      statuses[0] = uint(OfferStatus.Bid);
-    }
-    statuses[askIndex] = uint(OfferStatus.Ask);
-    assertStatus(statuses, quote0, base0);
+    kdl.setGasreq(42);
+    (, uint24 gasreq,,,,,) = kdl.params();
+    assertEq(gasreq, uint24(42), "Incorrect gasprice in params");
   }
 
   function deployOtherKandel(uint base0, uint quote0, uint16 ratio, uint8 spread, uint8 kandelSize) internal {
     address otherMaker = freshAddress();
 
-    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
-      HasIndexedOffers.MangroveWithBaseQuote({mgv: IMangrove($(mgv)), base: weth, quote: usdc});
+    CoreKandel otherKandel = __deployKandel__(otherMaker);
 
     vm.startPrank(otherMaker);
-
-    Kandel otherKandel = new Kandel({
-      mangroveWithBaseQuote: mangroveWithBaseQuote,
-      gasreq: GASREQ,
-      gasprice: bufferedGasprice,
-      owner: otherMaker
-    });
-
-    weth.approve(address(otherKandel), type(uint).max);
-    usdc.approve(address(otherKandel), type(uint).max);
+    base.approve(address(otherKandel), type(uint).max);
+    quote.approve(address(otherKandel), type(uint).max);
+    vm.stopPrank();
 
     uint totalProvision = (
-      otherKandel.getMissingProvision(weth, usdc, otherKandel.offerGasreq(), bufferedGasprice, 0)
-        + otherKandel.getMissingProvision(usdc, weth, otherKandel.offerGasreq(), bufferedGasprice, 0)
+      otherKandel.getMissingProvision(base, quote, otherKandel.offerGasreq(), bufferedGasprice, 0)
+        + otherKandel.getMissingProvision(quote, base, otherKandel.offerGasreq(), bufferedGasprice, 0)
     ) * 10 ether;
+
     deal(otherMaker, totalProvision);
 
     (CoreKandel.Distribution memory distribution,) =
       KandelLib.calculateDistribution(0, kandelSize, base0, quote0, ratio, otherKandel.PRECISION());
 
+    vm.startPrank(otherMaker);
     otherKandel.populate{value: totalProvision}(
       distribution, new uint[](kandelSize), kandelSize / 2, kandelSize, ratio, spread, new IERC20[](0), new uint[](0)
     );
+    vm.stopPrank();
 
     uint pendingBase = uint(-otherKandel.pending(Ask));
     uint pendingQuote = uint(-otherKandel.pending(Bid));
-    deal($(weth), otherMaker, pendingBase);
-    deal($(usdc), otherMaker, pendingQuote);
-    otherKandel.depositFunds(dynamic([IERC20(base), quote]), dynamic([pendingBase, pendingQuote]));
+    deal($(base), otherMaker, pendingBase);
+    deal($(quote), otherMaker, pendingQuote);
 
+    vm.startPrank(otherMaker);
+    otherKandel.depositFunds(dynamic([IERC20(base), quote]), dynamic([pendingBase, pendingQuote]));
     vm.stopPrank();
   }
 

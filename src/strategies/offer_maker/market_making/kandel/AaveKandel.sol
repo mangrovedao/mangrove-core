@@ -50,15 +50,13 @@ contract AaveKandel is GeometricKandel {
     setGasreq(offerGasreq());
   }
 
-  ///@dev external wrapper for `_depositFunds`
   function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public override {
     // transfer funds from caller to this
-    _depositFunds(tokens, amounts);
+    TransferLib.transferTokensFrom(tokens, msg.sender, address(this), amounts);
     // push funds on the router (and supply on AAVE)
     pooledRouter().pushAndSupply(tokens, amounts, admin());
   }
 
-  ///@dev external wrapper for `_withdrawFunds`
   function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
     public
     override
@@ -67,7 +65,7 @@ contract AaveKandel is GeometricKandel {
     for (uint i; i < tokens.length; i++) {
       pooledRouter().pull(tokens[i], admin(), amounts[i], true);
     }
-    _withdrawFunds(tokens, amounts, recipient);
+    TransferLib.transferTokens(tokens, amounts, recipient);
   }
 
   ///@notice returns the amount of tokens of the router's balance that belong to this contract

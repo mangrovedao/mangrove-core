@@ -152,26 +152,6 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     populateChunk(distribution, pivotIds, lastBidIndex, params.gasreq, params.gasprice);
   }
 
-  /// @notice deposits funds on Kandel
-  /// @param amounts to withdraw.
-  /// @param tokens addresses of tokens to withdraw.
-  function _depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) internal {
-    for (uint i; i < tokens.length; i++) {
-      require(TransferLib.transferTokenFrom(tokens[i], msg.sender, address(this), amounts[i]), "Kandel/depositFailed");
-    }
-  }
-
-  /// @notice withdraw `amount` of funds to `recipient`.
-  /// @param amounts to withdraw.
-  /// @param tokens addresses of tokens to withdraw.
-  /// @param recipient who receives the tokens.
-  /// @dev it is up to the caller to make sure there are still enough funds for live offers.
-  function _withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) internal {
-    for (uint i; i < tokens.length; i++) {
-      require(TransferLib.transferToken(tokens[i], recipient, amounts[i]), "Kandel/NotEnoughFunds");
-    }
-  }
-
   function dualWantsGivesOfOffer(
     OfferType baDual,
     uint offerGives,

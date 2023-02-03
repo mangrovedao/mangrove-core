@@ -14,6 +14,7 @@ pragma solidity ^0.8.10;
 import {GeometricKandel, IMangrove, IERC20, MgvStructs, AbstractRouter} from "./abstract/GeometricKandel.sol";
 import {OfferType} from "./abstract/Trade.sol";
 import {HasIndexedOffers} from "./abstract/HasIndexedOffers.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 contract Kandel is GeometricKandel {
   constructor(
@@ -33,7 +34,7 @@ contract Kandel is GeometricKandel {
   }
 
   function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public override {
-    _depositFunds(tokens, amounts);
+    TransferLib.transferTokensFrom(tokens, msg.sender, address(this), amounts);
   }
 
   function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
@@ -41,7 +42,7 @@ contract Kandel is GeometricKandel {
     override
     onlyAdmin
   {
-    _withdrawFunds(tokens, amounts, recipient);
+    TransferLib.transferTokens(tokens, amounts, recipient);
   }
 
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.

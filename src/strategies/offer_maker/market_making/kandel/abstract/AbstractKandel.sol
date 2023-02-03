@@ -66,5 +66,7 @@ abstract contract AbstractKandel {
   function pending(OfferType ba) external view virtual returns (int pending_);
   function reserveBalance(IERC20 token) public view virtual returns (uint);
   function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual;
+
+  /// @dev it is up to the caller to make sure there are still enough funds for live offers.
   function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) public virtual;
 }

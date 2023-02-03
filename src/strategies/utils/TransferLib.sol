@@ -70,4 +70,28 @@ library TransferLib {
       address(token).call(abi.encodeWithSelector(token.transferFrom.selector, spender, recipient, amount));
     return (success && (data.length == 0 || abi.decode(data, (bool))));
   }
+
+  ///@param tokens Tokens to be transferred
+  ///@param spender Address of the spender, where the tokens will be transferred from
+  ///@param recipient Address of the recipient, where the tokens will be transferred to
+  ///@param amounts The amounts of tokens to be transferred
+  ///@dev all individual transferTokenFrom calls are required to succeed
+  function transferTokensFrom(IERC20[] calldata tokens, address spender, address recipient, uint[] calldata amounts)
+    internal
+  {
+    for (uint i; i < tokens.length; i++) {
+      require(TransferLib.transferTokenFrom(tokens[i], spender, recipient, amounts[i]), "transferTokensFrom/failed");
+    }
+  }
+
+  ///@notice This transfer amount of token to recipient address
+  ///@param tokens Tokens to be transferred
+  ///@param recipient Address of the recipient the tokens will be transferred to
+  ///@param amounts The amounts of tokens to be transferred
+  ///@dev all individual transferToken calls are required to succeed
+  function transferTokens(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) internal {
+    for (uint i; i < tokens.length; i++) {
+      require(TransferLib.transferToken(tokens[i], recipient, amounts[i]), "transferTokens/failed");
+    }
+  }
 }

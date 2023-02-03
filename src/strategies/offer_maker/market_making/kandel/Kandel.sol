@@ -17,12 +17,9 @@ import {HasIndexedOffers} from "./abstract/HasIndexedOffers.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 contract Kandel is GeometricKandel {
-  constructor(
-    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote,
-    uint gasreq,
-    uint gasprice,
-    address owner
-  ) GeometricKandel(mangroveWithBaseQuote, gasreq, gasprice, owner) {
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address owner)
+    GeometricKandel(mgv, base, quote, gasreq, gasprice, owner)
+  {
     // since we won't add a router later, we can activate the strat now
     __activate__(BASE);
     __activate__(QUOTE);

@@ -25,12 +25,6 @@ abstract contract IHasOfferIdIndexMap {
 }
 
 abstract contract HasIndexedOffers is IHasTokenPairOfOfferType, IHasOfferIdIndexMap {
-  struct MangroveWithBaseQuote {
-    IMangrove mgv;
-    IERC20 base;
-    IERC20 quote;
-  }
-
   IMangrove private immutable MGV;
 
   constructor(IMangrove mgv) {

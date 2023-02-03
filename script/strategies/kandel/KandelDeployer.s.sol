@@ -50,11 +50,11 @@ contract KandelDeployer is Deployer {
     IMangrove mgv = IMangrove(fork.get("Mangrove"));
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
 
-    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
-      HasIndexedOffers.MangroveWithBaseQuote({mgv: mgv, base: IERC20(base), quote: IERC20(quote)});
     broadcast();
     current = new Kandel(
-      mangroveWithBaseQuote,
+      mgv,
+      IERC20(base),
+      IERC20(quote),
       gasreq,
       global.gasprice() * gaspriceFactor,
       broadcaster()

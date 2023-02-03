@@ -28,12 +28,9 @@ import {HasIndexedOffers} from "./abstract/HasIndexedOffers.sol";
 contract AaveKandel is GeometricKandel {
   bytes32 constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
-  constructor(
-    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote,
-    uint gasreq,
-    uint gasprice,
-    address owner
-  ) GeometricKandel(mangroveWithBaseQuote, gasreq, gasprice, owner) {}
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address owner)
+    GeometricKandel(mgv, base, quote, gasreq, gasprice, owner)
+  {}
 
   ///@dev returns the router as an Aave router
   function pooledRouter() private view returns (AavePooledRouter) {

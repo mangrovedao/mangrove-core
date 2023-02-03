@@ -50,18 +50,13 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
 
   Params public params;
 
-  constructor(
-    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote,
-    uint gasreq,
-    uint gasprice,
-    address owner
-  )
-    Direct(mangroveWithBaseQuote.mgv, NO_ROUTER, gasreq, owner)
-    HasIndexedOffers(mangroveWithBaseQuote.mgv)
-    HasKandelSlotMemoizer(mangroveWithBaseQuote.mgv)
-    TradesBaseQuote(mangroveWithBaseQuote.base, mangroveWithBaseQuote.quote)
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address owner)
+    Direct(mgv, NO_ROUTER, gasreq, owner)
+    HasIndexedOffers(mgv)
+    HasKandelSlotMemoizer(mgv)
+    TradesBaseQuote(base, quote)
   {
-    emit NewKandel(msg.sender, mangroveWithBaseQuote.mgv, mangroveWithBaseQuote.base, mangroveWithBaseQuote.quote);
+    emit NewKandel(msg.sender, mgv, base, quote);
     setGasprice(gasprice);
   }
 

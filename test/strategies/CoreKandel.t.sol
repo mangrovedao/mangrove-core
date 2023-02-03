@@ -110,12 +110,11 @@ contract CoreKandelTest is MangroveTest {
   function __deployKandel__(address deployer) internal virtual returns (GeometricKandel kdl_) {
     uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
 
-    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
-      HasIndexedOffers.MangroveWithBaseQuote({mgv: IMangrove($(mgv)), base: base, quote: quote});
-
     vm.prank(deployer);
     kdl_ = new Kandel({
-      mangroveWithBaseQuote: mangroveWithBaseQuote,
+      mgv: IMangrove($(mgv)),
+      base: base,
+      quote: quote,
       gasreq: GASREQ,
       gasprice: bufferedGasprice,
       owner: deployer

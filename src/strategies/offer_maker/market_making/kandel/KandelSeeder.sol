@@ -55,18 +55,15 @@ contract KandelSeeder {
     (, MgvStructs.LocalPacked local) = MGV.config(address(seed.base), address(seed.quote));
     require(local.active(), "KandelSeeder/inactiveMarket");
 
-    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
-      HasIndexedOffers.MangroveWithBaseQuote({mgv: MGV, base: seed.base, quote: seed.quote});
-
     if (seed.onAave) {
-      AaveKandel aaveKdl = new AaveKandel(mangroveWithBaseQuote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
+      AaveKandel aaveKdl = new AaveKandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
       // Allowing newly deployed Kandel to bind to the AaveRouter
       AAVE_ROUTER.bind(address(aaveKdl));
       // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20
       aaveKdl.initialize(AAVE_ROUTER);
       kdl = aaveKdl;
     } else {
-      kdl = new Kandel(mangroveWithBaseQuote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
+      kdl = new Kandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
     }
     kdl.setCompoundRates(seed.compoundRateBase, seed.compoundRateQuote);
     kdl.setAdmin(msg.sender);

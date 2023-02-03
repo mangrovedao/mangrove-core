@@ -27,11 +27,10 @@ contract AaveKandelTest is CoreKandelTest {
     uint router_gasreq = 318 * 1000;
     uint kandel_gasreq = 128 * 1000;
     router = new AavePooledRouter(fork.get("Aave"), router_gasreq);
-    HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
-      HasIndexedOffers.MangroveWithBaseQuote({mgv: IMangrove($(mgv)), base: base, quote: quote});
-
     aaveKandel = new AaveKandel({
-      mangroveWithBaseQuote: mangroveWithBaseQuote,
+      mgv: IMangrove($(mgv)),
+      base: base,
+      quote: quote,
       gasreq: kandel_gasreq,
       gasprice: 0,
       owner: deployer

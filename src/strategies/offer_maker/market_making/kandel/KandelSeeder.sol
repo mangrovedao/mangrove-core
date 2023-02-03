@@ -32,7 +32,7 @@ contract KandelSeeder {
     MGV = mgv;
     AAVE_KANDEL_GASREQ = aaveKandelGasreq;
     KANDEL_GASREQ = kandelGasreq;
-    router.setRewardsManager(msg.sender);
+    router.setAaveManager(msg.sender);
   }
 
   ///@notice Kandel deployment parameters

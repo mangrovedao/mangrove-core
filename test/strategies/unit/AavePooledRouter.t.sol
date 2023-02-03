@@ -10,18 +10,11 @@ contract AavePooledRouterTest is OfferLogicTest {
 
   uint constant GASREQ = 474 * 1000; // fail for GASREQ < 474K
 
-  event SetRewardsManager(address);
+  event SetAaveManager(address);
 
   IERC20 dai;
   address maker1;
   address maker2;
-
-  /// sets storage variable _firstPuller to mock up a market order with a particular `maker` as first offer
-  function getRewardsManager() internal view returns (address) {
-    /// firstPuller and offerId are packed in slot(0)
-    bytes32 slot = vm.load(address(pooledRouter), bytes32(uint(0)));
-    return address(uint160(uint(slot)));
-  }
 
   function setUp() public override {
     // deploying mangrove and opening WETH/USDC market.
@@ -97,18 +90,18 @@ contract AavePooledRouterTest is OfferLogicTest {
   }
 
   function test_rewards_manager_is_deployer() public {
-    assertEq(getRewardsManager(), deployer, "unexpected rewards manager");
+    assertEq(pooledRouter.aaveManager(), deployer, "unexpected rewards manager");
   }
 
-  function test_admin_can_set_rewards_manager() public {
+  function test_admin_can_set_aave_manager() public {
     vm.expectRevert("AccessControlled/Invalid");
-    pooledRouter.setRewardsManager($(this));
+    pooledRouter.setAaveManager($(this));
 
     expectFrom($(pooledRouter));
-    emit SetRewardsManager($(this));
+    emit SetAaveManager($(this));
     vm.prank(deployer);
-    pooledRouter.setRewardsManager($(this));
-    assertEq(getRewardsManager(), $(this), "unexpected rewards manager");
+    pooledRouter.setAaveManager($(this));
+    assertEq(pooledRouter.aaveManager(), $(this), "unexpected rewards manager");
   }
 
   function test_deposit_on_aave_maintains_reserve_and_total_balance() public {

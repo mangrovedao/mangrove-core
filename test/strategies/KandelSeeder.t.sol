@@ -47,6 +47,10 @@ contract KandelSeederTest is MangroveTest {
     });
   }
 
+  function test_aave_manager_is_attributed() public {
+    assertEq(seeder.AAVE_ROUTER().aaveManager(), address(this), "invalid aave Manager");
+  }
+
   function test_maker_deploys_shared_aaveKandel() public {
     GeometricKandel kdl;
     address maker = freshAddress("Maker");

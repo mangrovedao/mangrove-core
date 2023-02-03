@@ -30,10 +30,9 @@ import {HasAaveBalanceMemoizer, IERC20} from "./HasAaveBalanceMemoizer.sol";
 ///    * `__push__` transfers the requested amount of tokens from the calling maker contract and increases owner's shares, but does not supply on AAVE
 
 contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
-  // keep _rewardsManager on slot(0) to avoid breaking tests
-  address _rewardsManager;
+  address public aaveManager;
 
-  event SetRewardsManager(address);
+  event SetAaveManager(address);
 
   mapping(IERC20 => uint) internal _totalShares;
   mapping(IERC20 => mapping(address => uint)) internal _sharesOf;
@@ -48,7 +47,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     HasAaveBalanceMemoizer(_addressesProvider)
     AbstractRouter(overhead)
   {
-    setRewardsManager(msg.sender);
+    setAaveManager(msg.sender);
   }
 
   ///@notice returns the shares of this router's balance that a maker contract has
@@ -222,28 +221,40 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@notice revokes pool approval for a certain asset. This router will no longer be able to deposit on Pool
   ///@param token the address of the asset whose approval must be revoked.
-  function revokeLenderApproval(IERC20 token) external onlyAdmin {
+  function revokeLenderApproval(IERC20 token) external onlyCaller(aaveManager) {
     _approveLender(token, 0);
   }
 
-  ///@notice allows rewards manager to claim the rewards attributed to this router by AAVE
-  ///@param assets the list of overlyings (aToken, debtToken) whose rewards should be claimed
-  ///@dev if some rewards are elligible they are sent to `_rewardsManager`
-  ///@return rewardsList the addresses of the claimed rewards
-  ///@return claimedAmounts the amount of claimed rewards
+  ///@notice prevents aave from using a certain asset as collateral for lending
+  ///@param token the asset address
+  function exitMarket(IERC20 token) external onlyCaller(aaveManager) {
+    _exitMarket(token);
+  }
+
+  ///@notice re-allows aave to use certain assets as collateral for lending
+  ///@param tokens the asset addresses
+  function enterMarket(IERC20[] calldata tokens) external onlyCaller(aaveManager) {
+    _enterMarkets(tokens);
+  }
+
+  ///@notice allows aave manager to claim the aave attributed to this router by AAVE
+  ///@param assets the list of overlyings (aToken, debtToken) whose aave should be claimed
+  ///@dev if some aave are elligible they are sent to `aaveManager`
+  ///@return aaveList the addresses of the claimed aave
+  ///@return claimedAmounts the amount of claimed aave
   function claimRewards(address[] calldata assets)
     external
-    onlyCaller(_rewardsManager)
-    returns (address[] memory rewardsList, uint[] memory claimedAmounts)
+    onlyCaller(aaveManager)
+    returns (address[] memory aaveList, uint[] memory claimedAmounts)
   {
     return _claimRewards(assets, msg.sender);
   }
 
-  ///@notice sets a new rewards manager
-  ///@dev if any rewards is active for pure lenders, `_rewardsManager` will be able to claim them
-  function setRewardsManager(address rewardsManager) public onlyAdmin {
-    require(rewardsManager != address(0), "AavePooledReserve/0xrewardsManager");
-    _rewardsManager = rewardsManager;
-    emit SetRewardsManager(rewardsManager);
+  ///@notice sets a new aave manager
+  ///@dev if any aave is active for pure lenders, `aaveManager` will be able to claim them
+  function setAaveManager(address aaveManager_) public onlyAdmin {
+    require(aaveManager_ != address(0), "AavePooledReserve/0xaaveManager");
+    aaveManager = aaveManager_;
+    emit SetAaveManager(aaveManager_);
   }
 }

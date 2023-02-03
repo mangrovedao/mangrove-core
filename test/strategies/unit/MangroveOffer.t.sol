@@ -58,6 +58,11 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.activate(dynamic([IERC20(weth), usdc]));
   }
 
+  function test_checkList_fails_with_wrong_owner() public {
+    vm.expectRevert("Direct/invalidFundManager");
+    makerContract.checkList(dynamic([IERC20(weth)]), freshAddress());
+  }
+
   function test_a_checkList_with_router() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();

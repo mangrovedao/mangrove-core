@@ -21,19 +21,19 @@ import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
 /// `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
 abstract contract Direct is MangroveOffer {
-  ///@notice owner of strat funds when using a router
-  ///@dev OWNER==address(0) will pass address(this) to the router for the owner field.
-  address immutable OWNER;
+  ///@notice contract identifier when using a router
+  ///@dev CONTRACT_ID==address(0) will pass address(this) to the router for the id field.
+  address immutable CONTRACT_ID;
 
-  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq, address owner_) MangroveOffer(mgv, gasreq) {
+  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq, address reserveId_) MangroveOffer(mgv, gasreq) {
     if (router_ != NO_ROUTER) {
       setRouter(router_);
     }
-    OWNER = owner_;
+    CONTRACT_ID = reserveId_;
   }
 
-  function owner() public view returns (address) {
-    return OWNER == address(0) ? address(this) : OWNER;
+  function reserveId() public view returns (address) {
+    return CONTRACT_ID == address(0) ? address(this) : CONTRACT_ID;
   }
 
   function _newOffer(OfferArgs memory args) internal returns (uint, bytes32) {
@@ -46,7 +46,7 @@ abstract contract Direct is MangroveOffer {
       args.gasprice,
       args.pivotId
     ) returns (uint offerId) {
-      return (offerId, "");
+      return (offerId, NEW_OFFER_SUCCESS);
     } catch Error(string memory reason) {
       require(args.noRevert, reason);
       return (0, bytes32(bytes(reason)));
@@ -80,7 +80,7 @@ abstract contract Direct is MangroveOffer {
   ///@param outbound_tkn the outbound token of the offer list.
   ///@param inbound_tkn the inbound token of the offer list.
   ///@param offerId the identifier of the offer in the (`outbound_tkn`,`inbound_tkn`) offer list
-  ///@param deprovision if set to `true` if offer owner wishes to redeem the offer's provision.
+  ///@param deprovision if set to `true` if offer admin wishes to redeem the offer's provision.
   ///@return freeWei the amount of native tokens (in WEI) that have been retrieved by retracting the offer.
   ///@dev An offer that is retracted without `deprovision` is retracted from the offer list, but still has its provisions locked by Mangrove.
   ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
@@ -126,7 +126,7 @@ abstract contract Direct is MangroveOffer {
     if (router_ == NO_ROUTER) {
       return amount_;
     } else {
-      uint pulled = router_.pull(IERC20(order.outbound_tkn), owner(), amount_, false);
+      uint pulled = router_.pull(IERC20(order.outbound_tkn), reserveId(), amount_, false);
       return pulled >= amount_ ? 0 : amount_ - pulled;
     }
   }
@@ -142,19 +142,14 @@ abstract contract Direct is MangroveOffer {
     tokens[1] = IERC20(order.inbound_tkn); // flushing liquidity brought by taker
     AbstractRouter router_ = router();
     if (router_ != NO_ROUTER) {
-      router_.flush(tokens, owner());
+      router_.flush(tokens, reserveId());
     }
     // reposting offer residual if any
     return super.__posthookSuccess__(order, makerData);
   }
 
-  function __checkList__(IERC20 token, address with_owner) internal view virtual override {
-    // liquidity owner is an immutable of Direct strats
-    AbstractRouter router_ = router();
-    address admin_ = admin();
-
-    require(with_owner == admin_, "Direct/onlyAdminCanPostOffers");
-    require(router_ == NO_ROUTER || owner() == address(this) || owner() == admin_, "Direct/OwnerCannotUseRouter");
-    super.__checkList__(token, with_owner);
+  function __checkList__(IERC20 token, address reserveId_) internal view virtual override {
+    require(reserveId_ == reserveId(), "Direct/invalidFundManager");
+    super.__checkList__(token, reserveId_);
   }
 }

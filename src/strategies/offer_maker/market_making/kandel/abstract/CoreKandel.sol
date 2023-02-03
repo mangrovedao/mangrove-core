@@ -27,7 +27,7 @@ abstract contract CoreKandel is DirectWithDistribution {
   ///@param repostStatus from the super posthook
   function handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData, bytes32 repostStatus) internal {
     if (
-      repostStatus == "posthook/filled" || repostStatus == REPOST_SUCCESS
+      repostStatus == COMPLETE_FILL || repostStatus == REPOST_SUCCESS
         || repostStatus == "mgv/writeOffer/density/tooLow"
     ) {
       // Low density will mean some amount is not posted and will be available for withdrawal or later posting via populate.
@@ -47,7 +47,10 @@ abstract contract CoreKandel is DirectWithDistribution {
   function handlePopulate(OfferType dualBa, SlotMemoizer memory viewDual, OfferArgs memory args, bytes32 populateStatus)
     internal
   {
-    if (populateStatus == REPOST_SUCCESS || populateStatus == "" || populateStatus == "mgv/writeOffer/density/tooLow") {
+    if (
+      populateStatus == REPOST_SUCCESS || populateStatus == NEW_OFFER_SUCCESS
+        || populateStatus == "mgv/writeOffer/density/tooLow"
+    ) {
       // Low density will mean some amount is not posted and will be available for withdrawal or later posting via populate.
       return;
     }

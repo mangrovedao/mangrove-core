@@ -20,6 +20,7 @@ import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 ///@notice It is an IMaker for Mangrove.
 
 interface IOfferLogic is IMaker {
+
   ///@notice Log incident (during post trade execution)
   event LogIncident(
     IMangrove mangrove,

@@ -27,10 +27,12 @@ contract KandelSeeder {
   uint public immutable KANDEL_GASREQ;
 
   constructor(IMangrove mgv, address addressesProvider_, uint routerGasreq, uint aaveKandelGasreq, uint kandelGasreq) {
-    AAVE_ROUTER = new AavePooledRouter(addressesProvider_, routerGasreq);
+    AavePooledRouter router = new AavePooledRouter(addressesProvider_, routerGasreq);
+    AAVE_ROUTER = router;
     MGV = mgv;
     AAVE_KANDEL_GASREQ = aaveKandelGasreq;
     KANDEL_GASREQ = kandelGasreq;
+    router.setRewardsManager(msg.sender);
   }
 
   ///@notice Kandel deployment parameters

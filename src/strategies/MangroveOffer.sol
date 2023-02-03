@@ -29,10 +29,12 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   uint public immutable OFFER_GASREQ;
   IMangrove public immutable MGV;
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
+
   bytes32 constant OUT_OF_FUNDS = keccak256("mgv/insufficientProvision");
   bytes32 constant BELOW_DENSITY = keccak256("mgv/writeOffer/density/tooLow");
-  bytes32 constant REPOST_SUCCESS = "posthook/reposted";
-  bytes32 constant REPOST_FAILED = "posthook/repostFailed";
+  bytes32 constant REPOST_SUCCESS = "offer/partialFilled";
+  bytes32 constant NEW_OFFER_SUCCESS = "offer/created";
+  bytes32 constant COMPLETE_FILL = "offer/filled";
 
   ///@notice guards for restricting a function call to either `MGV` or `admin()`.
   ///@dev When `msg.sender` is `MGV`, the function is being called either via `makerExecute` or `makerPosthook`.
@@ -274,7 +276,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     // We only treat the special case of `gives==0` or `wants==0` (total fill).
     // Offer below the density will cause Mangrove to throw so we encapsulate the call to `updateOffer` in order not to revert posthook for posting at dust level.
     if (new_gives == 0 || new_wants == 0) {
-      return "posthook/filled";
+      return COMPLETE_FILL;
     }
     data = _updateOffer(
       OfferArgs({

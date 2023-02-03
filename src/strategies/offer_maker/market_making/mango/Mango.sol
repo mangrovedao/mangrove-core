@@ -302,7 +302,7 @@ contract Mango is Direct {
     MangoStorage.Layout storage mStr = MangoStorage.getStorage();
     bytes32 posthook_data = super.__posthookSuccess__(order, maker_data);
     // checking whether repost failed
-    bool repost_success = (posthook_data == "posthook/reposted" || posthook_data == "posthook/completeFill");
+    bool repost_success = (posthook_data == REPOST_SUCCESS || posthook_data == COMPLETE_FILL);
     if (order.outbound_tkn == address(BASE)) {
       if (!repost_success) {
         // residual could not be reposted --either below density or Mango went out of provision on Mangrove

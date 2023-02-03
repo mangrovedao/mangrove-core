@@ -21,13 +21,12 @@ contract DirectTester is ITesterContract, OfferMaker {
   // router_ needs to bind to this contract
   // since one cannot assume `this` is admin of router, one cannot do this here in general
   constructor(IMangrove mgv, AbstractRouter router_, address deployer, uint gasreq)
-    OfferMaker(mgv, router_, deployer, gasreq, deployer) // setting owner = deployer by default
+    OfferMaker(mgv, router_, deployer, gasreq, deployer) // setting reserveId = deployer by default
   {}
 
-  function tokenBalance(IERC20 token, address owner) external view override returns (uint) {
-    require(owner == admin());
+  function tokenBalance(IERC20 token, address reserveId) external view override returns (uint) {
     AbstractRouter router_ = router();
-    return router_ == NO_ROUTER ? token.balanceOf(address(this)) : router_.ownerBalance(token, owner);
+    return router_ == NO_ROUTER ? token.balanceOf(address(this)) : router_.balanceOfId(token, reserveId);
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)
@@ -37,7 +36,7 @@ contract DirectTester is ITesterContract, OfferMaker {
   {
     data = super.__posthookSuccess__(order, maker_data);
     require(
-      data == "posthook/reposted" || data == "posthook/filled",
+      data == REPOST_SUCCESS || data == COMPLETE_FILL,
       (data == "mgv/insufficientProvision")
         ? "mgv/insufficientProvision"
         : (data == "mgv/writeOffer/density/tooLow" ? "mgv/writeOffer/density/tooLow" : "posthook/failed")

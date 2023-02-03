@@ -60,37 +60,36 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice pulls liquidity from an offer maker's reserve to `msg.sender`'s balance
   ///@param token is the ERC20 managing the pulled asset
-  ///@param owner of the tokens that are being pulled. Public router must ensure that `owner` has approved `msg.sender` to use the funds
+  ///@param reserveId of the tokens that are being pulled. Public router must ensure that `msg.sender` is approved to use the funds of `reserveId`
   ///@param amount of `token` the maker contract wishes to pull
-  ///@param strict when the calling maker contract accepts to receive more `token` of `owner` than required (this may happen for gas optimization)
-  function pull(IERC20 token, address owner, uint amount, bool strict) external onlyMakers returns (uint pulled) {
-    pulled = __pull__({token: token, owner: owner, amount: amount, strict: strict});
+  ///@param strict when the calling maker contract accepts to receive more `reserveId` funds than required (this may happen for gas optimization)
+  function pull(IERC20 token, address reserveId, uint amount, bool strict) external onlyMakers returns (uint pulled) {
+    pulled = __pull__({token: token, reserveId: reserveId, amount: amount, strict: strict});
   }
 
   ///@notice router-dependant implementation of the `pull` function
-  ///@dev if router is permissionless it must verify that owner approved `msg.sender` to pull the funds
-  function __pull__(IERC20 token, address owner, uint amount, bool strict) internal virtual returns (uint);
+  function __pull__(IERC20 token, address reserveId, uint amount, bool strict) internal virtual returns (uint);
 
   ///@notice pushes assets from maker contract's balance to the specified reserve
   ///@param token is the asset the maker is pushing
-  ///@param owner of the tokens that are being pulled
+  ///@param reserveId of the tokens that are being pulled
   ///@param amount is the amount of asset that should be transferred from the calling maker contract
   ///@return pushed fraction of `amount` that was successfully pushed to reserve.
-  function push(IERC20 token, address owner, uint amount) external onlyMakers returns (uint pushed) {
-    require(owner != address(0), "Router/push/0xOwner");
-    return __push__({token: token, owner: owner, amount: amount});
+  function push(IERC20 token, address reserveId, uint amount) external onlyMakers returns (uint pushed) {
+    require(reserveId != address(0), "Router/push/0xOwner");
+    return __push__({token: token, reserveId: reserveId, amount: amount});
   }
 
   ///@notice router-dependant implementation of the `push` function
-  function __push__(IERC20 token, address owner, uint amount) internal virtual returns (uint);
+  function __push__(IERC20 token, address reserveId, uint amount) internal virtual returns (uint);
 
   ///@notice iterative `push` in a single call
-  function flush(IERC20[] calldata tokens, address owner) external onlyMakers {
-    require(owner != address(0), "Router/push/0xOwner");
+  function flush(IERC20[] calldata tokens, address reserveId) external onlyMakers {
+    require(reserveId != address(0), "Router/push/0xOwner");
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);
       if (amount > 0) {
-        require(__push__(tokens[i], owner, amount) == amount, "router/pushFailed");
+        require(__push__(tokens[i], reserveId, amount) == amount, "router/pushFailed");
       }
     }
   }
@@ -133,7 +132,7 @@ abstract contract AbstractRouter is AccessControlled {
   }
 
   ///@notice router-dependent implementation of the `checkList` function
-  function __checkList__(IERC20 token, address reserve) internal view virtual;
+  function __checkList__(IERC20 token, address owner) internal view virtual;
 
   ///@notice performs necessary approval to activate router function on a particular asset
   ///@param token the asset one wishes to use the router for
@@ -148,6 +147,6 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice Balance of a maker (possibly an EOA)
   ///@param token the asset one wishes to know the balance of
-  ///@param owner of the asset
-  function ownerBalance(IERC20 token, address owner) public view virtual returns (uint);
+  ///@param reserveId of the asset
+  function balanceOfId(IERC20 token, address reserveId) public view virtual returns (uint);
 }

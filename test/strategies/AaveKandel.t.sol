@@ -30,7 +30,7 @@ contract AaveKandelTest is CoreKandelTest {
     // 474_000 theoretical in mock up of router
     // 218_000 observed in tests of router
     uint router_gasreq = 318 * 1000;
-    uint kandel_gasreq = 128 * 1000;
+    uint kandel_gasreq = 138 * 1000;
     router = new AavePooledRouter(fork.get("Aave"), router_gasreq);
     aaveKandel = new AaveKandel({
       mgv: IMangrove($(mgv)),
@@ -52,7 +52,7 @@ contract AaveKandelTest is CoreKandelTest {
   function test_initialize() public {
     assertEq(address(kdl.router()), address(router), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
-    assertEq(kdl.owner(), maker, "Incorrect owner");
+    assertEq(kdl.reserveId(), maker, "Incorrect owner");
     assertEq(base.balanceOf(address(router)), 0, "Router should start with no base buffer");
     assertEq(quote.balanceOf(address(router)), 0, "Router should start with no quote buffer");
     assertTrue(kdl.reserveBalance(base) > 0, "Incorrect initial reserve balance of base");

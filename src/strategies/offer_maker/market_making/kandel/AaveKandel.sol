@@ -62,7 +62,7 @@ contract AaveKandel is GeometricKandel {
 
   ///@notice returns the amount of tokens of the router's balance that belong to this contract
   function reserveBalance(IERC20 token) public view override returns (uint) {
-    return pooledRouter().ownerBalance(token, admin());
+    return pooledRouter().balanceOfId(token, admin());
   }
 
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.

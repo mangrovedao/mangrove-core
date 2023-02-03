@@ -139,7 +139,7 @@ contract AmplifierForwarder is Forwarder {
     (IERC20 alt_stable, uint alt_offerId) =
       IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerPair.id2) : (STABLE1, offerPair.id1);
 
-    if (repost_status == "posthook/reposted") {
+    if (repost_status == REPOST_SUCCESS) {
       uint new_alt_gives = __residualGives__(order); // in base units
       MgvStructs.OfferPacked alt_offer = MGV.offers(order.outbound_tkn, address(alt_stable), alt_offerId);
 
@@ -164,7 +164,7 @@ contract AmplifierForwarder is Forwarder {
         }),
         alt_offerId
       );
-      if (reason != "posthook/reposted") {
+      if (reason != REPOST_SUCCESS) {
         // might want to Log an incident here because this should not be reachable
         return "posthook/altRepostFail";
       } else {

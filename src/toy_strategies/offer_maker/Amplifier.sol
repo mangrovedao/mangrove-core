@@ -127,7 +127,7 @@ contract Amplifier is Direct {
     (IERC20 alt_stable, uint alt_offerId) =
       IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerId2) : (STABLE1, offerId1);
 
-    if (repost_status == "posthook/reposted") {
+    if (repost_status == REPOST_SUCCESS) {
       uint new_alt_gives = __residualGives__(order); // in base units
       MgvStructs.OfferPacked alt_offer = MGV.offers(order.outbound_tkn, address(alt_stable), alt_offerId);
       MgvStructs.OfferDetailPacked alt_detail = MGV.offerDetails(order.outbound_tkn, address(alt_stable), alt_offerId);
@@ -156,7 +156,7 @@ contract Amplifier is Direct {
         }),
         alt_offerId
       );
-      if (reason != "posthook/reposted") {
+      if (reason != REPOST_SUCCESS) {
         return "posthook/altOfferRepostFail";
       } else {
         return "posthook/bothOfferReposted";

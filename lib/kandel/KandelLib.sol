@@ -12,6 +12,7 @@
 pragma solidity ^0.8.10;
 
 import {CoreKandel, OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
+import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
@@ -39,7 +40,7 @@ library KandelLib {
   /// @notice should be invoked as an rpc call or via snapshot-revert - populates and returns pivots and amounts.
   function estimatePivotsAndRequiredAmount(
     CoreKandel.Distribution memory distribution,
-    CoreKandel kandel,
+    GeometricKandel kandel,
     uint lastBidIndex,
     uint8 kandelSize,
     uint16 ratio,

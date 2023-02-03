@@ -18,6 +18,10 @@ abstract contract IHasTokenPairOfOfferType {
   ///@notice turns an offer type into an (outbound, inbound) pair identifying an offer list
   ///@param ba whether one wishes to access the offer lists where asks or bids are posted
   function tokenPairOfOfferType(OfferType ba) internal view virtual returns (IERC20, IERC20);
+
+  ///@notice returns the Kandel offer type of the offer list whose outbound token is given in the argument
+  ///@param outbound_tkn the outbound token of the offer list
+  function OfferTypeOfOutbound(IERC20 outbound_tkn) internal view virtual returns (OfferType);
 }
 
 abstract contract TradesBaseQuote is IHasTokenPairOfOfferType {
@@ -36,9 +40,8 @@ abstract contract TradesBaseQuote is IHasTokenPairOfOfferType {
     return ba == OfferType.Bid ? (QUOTE, BASE) : (BASE, QUOTE);
   }
 
-  ///@notice returns the Kandel offer type of the offer list whose outbound token is given in the argument
-  ///@param outbound_tkn the outbound token of the offer list
-  function OfferTypeOfOutbound(IERC20 outbound_tkn) internal view returns (OfferType) {
+  ///@inheritdoc IHasTokenPairOfOfferType
+  function OfferTypeOfOutbound(IERC20 outbound_tkn) internal view override returns (OfferType) {
     return outbound_tkn == BASE ? OfferType.Ask : OfferType.Bid;
   }
 

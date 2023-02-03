@@ -9,13 +9,14 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import {
-  CoreKandel,
   Kandel,
   MgvStructs,
   IMangrove,
   OfferType,
   HasIndexedOffers
 } from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {CoreKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
+import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 import {console2} from "forge-std/Test.sol";
 import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
@@ -23,7 +24,7 @@ import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
 contract CoreKandelTest is MangroveTest {
   address payable maker;
   address payable taker;
-  CoreKandel kdl;
+  GeometricKandel kdl;
   uint8 constant STEP = 1;
   uint initQuote;
   uint initBase = 0.1 ether;
@@ -103,7 +104,7 @@ contract CoreKandelTest is MangroveTest {
     vm.stopPrank();
   }
 
-  function __deployKandel__(address deployer) internal virtual returns (CoreKandel kdl_) {
+  function __deployKandel__(address deployer) internal virtual returns (GeometricKandel kdl_) {
     uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
 
     HasIndexedOffers.MangroveWithBaseQuote memory mangroveWithBaseQuote =
@@ -787,7 +788,7 @@ contract CoreKandelTest is MangroveTest {
     assertTrue(!mgv.isLive(ask), "ask should still not be live");
   }
 
-  function GetParams(CoreKandel aKandel) internal view returns (Kandel.Params memory params) {
+  function GetParams(GeometricKandel aKandel) internal view returns (Kandel.Params memory params) {
     (
       uint16 gasprice,
       uint24 gasreq,
@@ -926,7 +927,7 @@ contract CoreKandelTest is MangroveTest {
   function deployOtherKandel(uint base0, uint quote0, uint16 ratio, uint8 spread, uint8 kandelSize) internal {
     address otherMaker = freshAddress();
 
-    CoreKandel otherKandel = __deployKandel__(otherMaker);
+    GeometricKandel otherKandel = __deployKandel__(otherMaker);
 
     vm.startPrank(otherMaker);
     base.approve(address(otherKandel), type(uint).max);

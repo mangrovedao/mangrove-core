@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {CoreKandelTest, CoreKandel, IMangrove, HasIndexedOffers} from "./CoreKandel.t.sol";
+import {CoreKandelTest, CoreKandel, GeometricKandel, IMangrove, HasIndexedOffers} from "./CoreKandel.t.sol";
 import {AaveKandel, AavePooledRouter} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandel.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 
@@ -19,7 +19,7 @@ contract AaveKandelTest is CoreKandelTest {
     setupMarket(base, quote);
   }
 
-  function __deployKandel__(address deployer) internal virtual override returns (CoreKandel) {
+  function __deployKandel__(address deployer) internal virtual override returns (GeometricKandel) {
     // 474_000 theoretical in mock up of router
     // 218_000 observed in tests of router
     uint router_gasreq = 318 * 1000;

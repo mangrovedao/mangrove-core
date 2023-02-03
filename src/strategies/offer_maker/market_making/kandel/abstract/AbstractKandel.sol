@@ -63,17 +63,6 @@ abstract contract AbstractKandel {
     uint8 length;
   }
 
-  ///@notice transport logic followed by Kandel
-  ///@param ba whether the offer that was executed is a bid or an ask
-  ///@param order a recap of the taker order (order.offer is the executed offer)
-  ///@return baDual the type of offer that will re-invest inbound liquidity
-  ///@return viewDual the view Memoizer for the dual offer
-  ///@return args the argument for `populateIndex` specifying gives and wants
-  function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    returns (OfferType baDual, HasKandelSlotMemoizer.SlotMemoizer memory viewDual, Direct.OfferArgs memory args);
-
   function pending(OfferType ba) external view virtual returns (int pending_);
   function reserveBalance(IERC20 token) public view virtual returns (uint);
   function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual;

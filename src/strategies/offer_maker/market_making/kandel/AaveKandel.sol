@@ -12,14 +12,20 @@
 pragma solidity ^0.8.10;
 
 import {
-  MangroveOffer, CoreKandel, IMangrove, IERC20, AbstractKandel, MgvLib, MgvStructs
-} from "./abstract/CoreKandel.sol";
+  MangroveOffer,
+  GeometricKandel,
+  IMangrove,
+  IERC20,
+  AbstractKandel,
+  MgvLib,
+  MgvStructs
+} from "./abstract/GeometricKandel.sol";
 import {AbstractRouter, AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {OfferType} from "./abstract/Trade.sol";
 import {HasIndexedOffers} from "./abstract/HasIndexedOffers.sol";
 
-contract AaveKandel is CoreKandel {
+contract AaveKandel is GeometricKandel {
   bytes32 constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
   constructor(
@@ -27,7 +33,7 @@ contract AaveKandel is CoreKandel {
     uint gasreq,
     uint gasprice,
     address owner
-  ) CoreKandel(mangroveWithBaseQuote, gasreq, gasprice, owner) {}
+  ) GeometricKandel(mangroveWithBaseQuote, gasreq, gasprice, owner) {}
 
   ///@dev returns the router as an Aave router
   function pooledRouter() private view returns (AavePooledRouter) {

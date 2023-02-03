@@ -11,7 +11,8 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-import {IMangrove, IERC20, CoreKandel, Kandel, MgvStructs, HasIndexedOffers} from "./Kandel.sol";
+import {IMangrove, IERC20, Kandel, MgvStructs, HasIndexedOffers} from "./Kandel.sol";
+import {GeometricKandel} from "./abstract/GeometricKandel.sol";
 import {AaveKandel, AavePooledRouter, AbstractRouter} from "./AaveKandel.sol";
 
 contract KandelSeeder {
@@ -45,7 +46,7 @@ contract KandelSeeder {
     bool liquiditySharing;
   }
 
-  function sow(KandelSeed calldata seed) external returns (CoreKandel kdl) {
+  function sow(KandelSeed calldata seed) external returns (GeometricKandel kdl) {
     // Seeder must set Kandel owner to an address that is controlled by `msg.sender` (msg.sender or Kandel's address for instance)
     // owner MUST not be freely chosen (it is immutable in Kandel) otherwise one would allow the newly deployed strat to pull from another's strat reserve
     // allowing owner to be modified by Kandel's admin would require approval from owner's address controller
@@ -63,7 +64,7 @@ contract KandelSeeder {
       AAVE_ROUTER.bind(address(aaveKdl));
       // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20
       aaveKdl.initialize(AAVE_ROUTER);
-      kdl = CoreKandel(aaveKdl);
+      kdl = aaveKdl;
     } else {
       kdl = new Kandel(mangroveWithBaseQuote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
     }

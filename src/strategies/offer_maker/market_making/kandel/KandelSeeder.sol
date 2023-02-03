@@ -20,6 +20,11 @@ import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
+///@title Kandel strat deployer.
+///@notice This seeder deploys Kandel strats on demand and binds them to an AAVE router if needed.
+///@dev deployer of this contract will gain aave manager power on the AAVE router (power to claim rewards and enter/exit markets)
+///@dev when deployer is a contract one must therefore make sure it is able to call the corresponding functions on the router
+
 contract KandelSeeder {
   AavePooledRouter public immutable AAVE_ROUTER;
   IMangrove public immutable MGV;

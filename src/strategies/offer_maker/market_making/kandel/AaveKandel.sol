@@ -86,7 +86,7 @@ contract AaveKandel is GeometricKandel {
   /// @inheritdoc MangroveOffer
   function __lastLook__(MgvLib.SingleOrder calldata order) internal override returns (bytes32) {
     bytes32 makerData = super.__lastLook__(order);
-    return (IERC20(order.outbound_tkn).balanceOf(address(router())) > order.wants) ? IS_FIRST_PULLER : makerData;
+    return (IERC20(order.outbound_tkn).balanceOf(address(router())) < order.wants) ? IS_FIRST_PULLER : makerData;
   }
 
   ///@notice overrides and replaces Direct's posthook in order to push and supply on AAVE with a single call when offer logic is the first to pull funds from AAVE

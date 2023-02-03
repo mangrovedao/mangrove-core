@@ -35,7 +35,6 @@ contract CoreKandelTest is MangroveTest {
   event AllBids();
   event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
   event SetParams(uint kandelSize, uint spread, uint ratio);
-  //  event BidNearMidPopulated(uint index, uint gives, uint96 wants);
 
   // sets base and quote
   function __setForkEnvironment__() internal virtual {
@@ -77,9 +76,11 @@ contract CoreKandelTest is MangroveTest {
     uint provBid = kdl.getMissingProvision(quote, base, kdl.offerGasreq(), bufferedGasprice, 0);
     deal(maker, (provAsk + provBid) * 10 ether);
 
+    // maker approves Kandel to be able to deposit funds on it
     vm.startPrank(maker);
     base.approve(address(kdl), type(uint).max);
     quote.approve(address(kdl), type(uint).max);
+    vm.stopPrank();
 
     uint16 ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
 
@@ -89,19 +90,21 @@ contract CoreKandelTest is MangroveTest {
     (CoreKandel.Distribution memory distribution2,) =
       KandelLib.calculateDistribution(5, 10, initBase, lastQuote, ratio, kdl.PRECISION());
 
+    vm.prank(maker);
     kdl.populate{value: (provAsk + provBid) * 10}(
       distribution1, dynamic([uint(0), 1, 2, 3, 4]), 4, 10, ratio, STEP, new IERC20[](0), new uint[](0)
     );
 
+    vm.prank(maker);
     kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 4);
 
     uint pendingBase = uint(-kdl.pending(Ask));
     uint pendingQuote = uint(-kdl.pending(Bid));
     deal($(base), maker, pendingBase);
     deal($(quote), maker, pendingQuote);
-    kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([pendingBase, pendingQuote]));
 
-    vm.stopPrank();
+    vm.prank(maker);
+    kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([pendingBase, pendingQuote]));
   }
 
   function __deployKandel__(address deployer) internal virtual returns (GeometricKandel kdl_) {
@@ -238,6 +241,11 @@ contract CoreKandelTest is MangroveTest {
 
   function pending(OfferType ba) internal view returns (uint) {
     return uint(kdl.pending(ba));
+  }
+
+  function test_init() public {
+    assertEq(kdl.pending(Ask), kdl.pending(Bid), "Incorrect initial pending");
+    assertEq(kdl.pending(Ask), 0, "Incorrect initial pending");
   }
 
   function test_populates_order_book_correctly() public {

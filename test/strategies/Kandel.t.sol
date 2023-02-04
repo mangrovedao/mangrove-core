@@ -9,7 +9,7 @@ import {CoreKandelTest} from "./CoreKandel.t.sol";
 import {console2} from "forge-std/Test.sol";
 
 contract KandelTest is CoreKandelTest {
-  function __deployKandel__(address deployer) internal override returns (GeometricKandel kdl_) {
+  function __deployKandel__(address deployer, address reserveId) internal override returns (GeometricKandel kdl_) {
     uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
 
     vm.prank(deployer);
@@ -19,7 +19,7 @@ contract KandelTest is CoreKandelTest {
       quote: quote,
       gasreq: GASREQ,
       gasprice: bufferedGasprice,
-      owner: deployer
+      owner: reserveId
     });
   }
 

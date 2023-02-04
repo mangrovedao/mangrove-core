@@ -61,7 +61,7 @@ abstract contract CoreKandelTest is MangroveTest {
     globalGasprice = global.gasprice();
     bufferedGasprice = globalGasprice * 10; // covering 10 times Mangrove's gasprice at deploy time
 
-    kdl = __deployKandel__(maker);
+    kdl = __deployKandel__(maker, maker);
 
     // funding Kandel on Mangrove
     uint provAsk = kdl.getMissingProvision(base, quote, kdl.offerGasreq(), bufferedGasprice, 0);
@@ -99,7 +99,7 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([pendingBase, pendingQuote]));
   }
 
-  function __deployKandel__(address deployer) internal virtual returns (GeometricKandel kdl_);
+  function __deployKandel__(address deployer, address reserveId) internal virtual returns (GeometricKandel kdl_);
 
   function buyFromBestAs(address taker_, uint amount) internal returns (uint, uint, uint, uint, uint) {
     uint bestAsk = mgv.best($(base), $(quote));
@@ -921,7 +921,7 @@ abstract contract CoreKandelTest is MangroveTest {
   function deployOtherKandel(uint base0, uint quote0, uint16 ratio, uint8 spread, uint8 pricePoints) internal {
     address otherMaker = freshAddress();
 
-    GeometricKandel otherKandel = __deployKandel__(otherMaker);
+    GeometricKandel otherKandel = __deployKandel__(otherMaker, otherMaker);
 
     vm.prank(otherMaker);
     base.approve(address(otherKandel), type(uint).max);

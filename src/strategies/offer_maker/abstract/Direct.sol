@@ -19,21 +19,24 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
-/// `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
+///@title `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
 abstract contract Direct is MangroveOffer {
   ///@notice identifier of this contract's reserve when using a router
-  ///@dev CONTRACT_ID==address(0) will pass address(this) to the router for the id field.
-  address immutable CONTRACT_ID;
+  ///@dev RESERVE_ID==address(0) will pass address(this) to the router for the id field.
+  ///@dev two contracts using the same reserveId will share funds, therefore strat builder must make sure this contract is allowed to pulled into the given reserve Id.
+  ///@dev a safe value for `reserveId` is `address(this)` in which case the funds will never be shared with another maker contract.
+  address immutable RESERVE_ID;
 
   constructor(IMangrove mgv, AbstractRouter router_, uint gasreq, address reserveId_) MangroveOffer(mgv, gasreq) {
     if (router_ != NO_ROUTER) {
       setRouter(router_);
     }
-    CONTRACT_ID = reserveId_;
+    RESERVE_ID = reserveId_;
   }
 
+  ///@notice returns the reserve id that should be used when pulling or pushing funds with a router
   function reserveId() public view returns (address) {
-    return CONTRACT_ID == address(0) ? address(this) : CONTRACT_ID;
+    return RESERVE_ID == address(0) ? address(this) : RESERVE_ID;
   }
 
   function _newOffer(OfferArgs memory args) internal returns (uint, bytes32) {

@@ -42,7 +42,12 @@ contract HasAaveBalanceMemoizer is AaveV3Lender {
       return v_tkn.aaveBalance;
     } else {
       v_tkn.aaveBalanceMemoized = true;
-      v_tkn.aaveBalance = _overlying(token, v_tkn).balanceOf(owner);
+      IERC20 aToken = _overlying(token, v_tkn);
+      if (aToken == IERC20(address(0))) {
+        v_tkn.aaveBalance = 0;
+      } else {
+        v_tkn.aaveBalance = aToken.balanceOf(owner);
+      }
       return v_tkn.aaveBalance;
     }
   }

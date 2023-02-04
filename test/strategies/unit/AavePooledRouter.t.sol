@@ -11,6 +11,7 @@ contract AavePooledRouterTest is OfferLogicTest {
   uint constant GASREQ = 474 * 1000; // fail for GASREQ < 474K
 
   event SetAaveManager(address);
+  event AaveIncident(IERC20 indexed token, address indexed reserveId, uint amount, bytes32 aaveReason);
 
   IERC20 dai;
   address maker1;
@@ -89,6 +90,28 @@ contract AavePooledRouterTest is OfferLogicTest {
     pooledRouter.push(usdc, deployer, 10 ** 6);
   }
 
+  function test_supply_error_is_logged() public {
+    TestToken pixieDust = new TestToken({
+      admin: address(this),
+      name: "Pixe Dust",
+      symbol: "PXD",
+      _decimals: uint8(18)
+    });
+
+    deal($(pixieDust), address(makerContract), 1 ether);
+    vm.prank(address(makerContract));
+    pixieDust.approve($(pooledRouter), type(uint).max);
+    vm.prank(deployer);
+    pooledRouter.activate(pixieDust);
+
+    expectFrom($(pooledRouter));
+    emit AaveIncident({token: pixieDust, reserveId: owner, amount: 1 ether, aaveReason: "noReason"});
+    vm.prank(address(makerContract));
+    pooledRouter.pushAndSupply(dynamic([IERC20(pixieDust)]), dynamic([uint(1 ether)]), owner);
+    // although aave refused the deposit, funds should be on the router
+    assertEq(pooledRouter.balanceOfId(pixieDust, owner), 1 ether, "Incorrect balance on router");
+  }
+
   function test_rewards_manager_is_deployer() public {
     assertEq(pooledRouter.aaveManager(), deployer, "unexpected rewards manager");
   }
@@ -113,7 +136,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     uint totalBalance = pooledRouter.totalBalance(usdc);
 
     vm.prank(deployer);
-    pooledRouter.flushBuffer(usdc);
+    pooledRouter.flushBuffer(usdc, false);
 
     assertEq(reserveBalance, pooledRouter.balanceOfId(usdc, address(makerContract)), "Incorrect reserve balance");
     assertEq(totalBalance, pooledRouter.totalBalance(usdc), "Incorrect total balance");
@@ -159,7 +182,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     uint shallow_push_cost = gas - gasleft();
 
     vm.prank(deployer);
-    pooledRouter.flushBuffer(dai);
+    pooledRouter.flushBuffer(dai, false);
 
     vm.startPrank(maker1);
     gas = gasleft();

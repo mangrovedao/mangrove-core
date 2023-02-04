@@ -94,11 +94,20 @@ contract AaveV3Lender {
   ///@param token the asset one is supplying
   ///@param amount of assets to be transfered to the pool
   ///@param onBehalf address of the account whose collateral is being supplied to
-  function _supply(IERC20 token, uint amount, address onBehalf) internal {
+  ///@param noRevert does not revert if supplies throws
+  function _supply(IERC20 token, uint amount, address onBehalf, bool noRevert) internal returns (bytes32) {
     if (amount == 0) {
-      return;
+      return bytes32(0);
     } else {
-      POOL.supply(address(token), amount, onBehalf, 0);
+      try POOL.supply(address(token), amount, onBehalf, 0) {
+        return bytes32(0);
+      } catch Error(string memory reason) {
+        require(noRevert, reason);
+        return bytes32(bytes(reason));
+      } catch {
+        require(noRevert, "noReason");
+        return "noReason";
+      }
     }
   }
 

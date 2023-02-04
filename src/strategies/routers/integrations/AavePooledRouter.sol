@@ -33,6 +33,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   address public aaveManager;
 
   event SetAaveManager(address);
+  event AaveIncident(IERC20 indexed token, address indexed reserveId, uint amount, bytes32 aaveReason);
 
   mapping(IERC20 => uint) internal _totalShares;
   mapping(IERC20 => mapping(address => uint)) internal _sharesOf;
@@ -140,8 +141,8 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@notice deposit local balance of an asset on the pool
   ///@param token the address of the asset
-  function flushBuffer(IERC20 token) public makersOrAdmin {
-    _supply(token, token.balanceOf(address(this)), address(this));
+  function flushBuffer(IERC20 token, bool noRevert) public makersOrAdmin returns (bytes32) {
+    return _supply(token, token.balanceOf(address(this)), address(this), noRevert);
   }
 
   ///@notice push each token given in argument and supply the whole local balance on AAVE
@@ -160,7 +161,11 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     pushed = new uint[](tokens.length);
     for (uint i; i < tokens.length; i++) {
       pushed[i] = __push__(tokens[i], reserveId, amounts[i]);
-      flushBuffer(tokens[i]);
+      // if AAVE refuses deposit, funds are stored in `this` balance (with no yield)
+      bytes32 aaveData = flushBuffer(tokens[i], true);
+      if (aaveData != bytes32(0)) {
+        emit AaveIncident(tokens[i], reserveId, amounts[i], aaveData);
+      }
     }
   }
 

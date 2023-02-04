@@ -21,7 +21,7 @@ import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
 /// `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
 abstract contract Direct is MangroveOffer {
-  ///@notice contract identifier when using a router
+  ///@notice identifier of this contract's reserve when using a router
   ///@dev CONTRACT_ID==address(0) will pass address(this) to the router for the id field.
   address immutable CONTRACT_ID;
 

@@ -40,8 +40,8 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
 
   Params public params;
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address owner)
-    CoreKandel(mgv, gasreq, owner)
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
+    CoreKandel(mgv, gasreq, reserveId)
     TradesBaseQuote(base, quote)
   {
     emit NewKandel(msg.sender, mgv, base, quote);

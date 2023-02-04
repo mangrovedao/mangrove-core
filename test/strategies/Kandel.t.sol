@@ -19,7 +19,7 @@ contract KandelTest is CoreKandelTest {
       quote: quote,
       gasreq: GASREQ,
       gasprice: bufferedGasprice,
-      owner: reserveId
+      reserveId: reserveId
     });
   }
 

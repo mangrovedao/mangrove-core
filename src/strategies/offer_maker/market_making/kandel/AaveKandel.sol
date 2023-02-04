@@ -23,8 +23,8 @@ import {IERC20} from "mgv_src/IERC20.sol";
 contract AaveKandel is GeometricKandel {
   bytes32 constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address owner)
-    GeometricKandel(mgv, base, quote, gasreq, gasprice, owner)
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
+    GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId)
   {}
 
   ///@dev returns the router as an Aave router

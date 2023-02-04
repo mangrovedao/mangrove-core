@@ -18,8 +18,8 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
 contract Kandel is GeometricKandel {
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address owner)
-    GeometricKandel(mgv, base, quote, gasreq, gasprice, owner)
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
+    GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId)
   {
     // since we won't add a router later, we can activate the strat now
     __activate__(BASE);

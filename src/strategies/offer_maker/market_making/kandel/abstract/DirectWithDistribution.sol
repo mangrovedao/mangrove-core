@@ -19,8 +19,8 @@ import {HasIndexedBidsAndAsks} from "./HasIndexedBidsAndAsks.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 
 abstract contract DirectWithDistribution is Direct, HasKandelSlotMemoizer, HasIndexedBidsAndAsks {
-  constructor(IMangrove mgv, uint gasreq, address owner)
-    Direct(mgv, NO_ROUTER, gasreq, owner)
+  constructor(IMangrove mgv, uint gasreq, address reserveId)
+    Direct(mgv, NO_ROUTER, gasreq, reserveId)
     HasKandelSlotMemoizer(mgv)
     HasIndexedBidsAndAsks(mgv)
   {}

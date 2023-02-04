@@ -19,7 +19,7 @@ import {OfferType} from "./Trade.sol";
 import {DirectWithDistribution} from "./DirectWithDistribution.sol";
 
 abstract contract CoreKandel is DirectWithDistribution {
-  constructor(IMangrove mgv, uint gasreq, address owner) DirectWithDistribution(mgv, gasreq, owner) {}
+  constructor(IMangrove mgv, uint gasreq, address reserveId) DirectWithDistribution(mgv, gasreq, reserveId) {}
 
   ///@notice takes care of status for reposting residual offer in case of a partial fill and logging of potential issues.
   ///@param order a recap of the taker order
@@ -27,8 +27,7 @@ abstract contract CoreKandel is DirectWithDistribution {
   ///@param repostStatus from the super posthook
   function handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData, bytes32 repostStatus) internal {
     if (
-      repostStatus == COMPLETE_FILL || repostStatus == REPOST_SUCCESS
-        || repostStatus == "mgv/writeOffer/density/tooLow"
+      repostStatus == COMPLETE_FILL || repostStatus == REPOST_SUCCESS || repostStatus == "mgv/writeOffer/density/tooLow"
     ) {
       // Low density will mean some amount is not posted and will be available for withdrawal or later posting via populate.
       return;

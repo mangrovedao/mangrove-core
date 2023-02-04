@@ -38,7 +38,7 @@ contract AaveKandelTest is CoreKandelTest {
       quote: quote,
       gasreq: kandel_gasreq,
       gasprice: 0,
-      owner: id
+      reserveId: id
     });
 
     router.bind(address(aaveKandel));

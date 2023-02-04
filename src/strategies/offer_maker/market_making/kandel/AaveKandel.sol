@@ -46,7 +46,7 @@ contract AaveKandel is GeometricKandel {
     // transfer funds from caller to this
     TransferLib.transferTokensFrom(tokens, msg.sender, address(this), amounts);
     // push funds on the router (and supply on AAVE)
-    pooledRouter().pushAndSupply(tokens, amounts, admin());
+    pooledRouter().pushAndSupply(tokens, amounts, reserveId());
   }
 
   function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
@@ -55,14 +55,14 @@ contract AaveKandel is GeometricKandel {
     onlyAdmin
   {
     for (uint i; i < tokens.length; i++) {
-      pooledRouter().pull(tokens[i], admin(), amounts[i], true);
+      pooledRouter().pull(tokens[i], reserveId(), amounts[i], true);
     }
     TransferLib.transferTokens(tokens, amounts, recipient);
   }
 
   ///@notice returns the amount of tokens of the router's balance that belong to this contract
   function reserveBalance(IERC20 token) public view override returns (uint) {
-    return pooledRouter().balanceOfId(token, admin());
+    return pooledRouter().balanceOfId(token, reserveId());
   }
 
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
@@ -96,7 +96,7 @@ contract AaveKandel is GeometricKandel {
       amounts[0] = IERC20(order.outbound_tkn).balanceOf(address(this));
       amounts[1] = IERC20(order.inbound_tkn).balanceOf(address(this));
 
-      pooledRouter().pushAndSupply(tokens, amounts, admin());
+      pooledRouter().pushAndSupply(tokens, amounts, reserveId());
       // reposting offer residual if any
       return MangroveOffer.__posthookSuccess__(order, makerData);
     } else {

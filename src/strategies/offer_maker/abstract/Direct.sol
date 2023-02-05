@@ -11,12 +11,9 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
+import {MangroveOffer, IMangrove, AbstractRouter} from "mgv_src/strategies/MangroveOffer.sol";
 import {MgvLib, IERC20, MgvStructs} from "mgv_src/MgvLib.sol";
-import {MangroveOfferStorage as MOS} from "mgv_src/strategies/MangroveOfferStorage.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
-import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
 ///@title `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
@@ -34,12 +31,16 @@ abstract contract Direct is MangroveOffer {
     RESERVE_ID = reserveId_;
   }
 
-  ///@notice returns the reserve id that should be used when pulling or pushing funds with a router
+  ///@notice returns the reserve id that is used when pulling or pushing funds with a router
   function reserveId() public view returns (address) {
     return RESERVE_ID == address(0) ? address(this) : RESERVE_ID;
   }
 
-  function _newOffer(OfferArgs memory args) internal returns (uint, bytes32) {
+  /// @notice Creates a new offer in Mangrove Offer List.
+  /// @param args Function arguments stored in memory.
+  /// @return offerId Identifier of the newly created offer. Returns 0 if offer creation was rejected by Mangrove and `args.noRevert` is set to `true`.
+  /// @return status NEW_OFFER_SUCCESS if the offer was successfully posted on Mangrove. Returns Mangrove's revert reason otherwise.
+  function _newOffer(OfferArgs memory args) internal returns (uint offerId, bytes32 status) {
     try MGV.newOffer{value: args.fund}(
       address(args.outbound_tkn),
       address(args.inbound_tkn),
@@ -48,15 +49,20 @@ abstract contract Direct is MangroveOffer {
       args.gasreq >= type(uint24).max ? offerGasreq() : args.gasreq,
       args.gasprice,
       args.pivotId
-    ) returns (uint offerId) {
-      return (offerId, NEW_OFFER_SUCCESS);
+    ) returns (uint offerId_) {
+      offerId = offerId_;
+      status = NEW_OFFER_SUCCESS;
     } catch Error(string memory reason) {
       require(args.noRevert, reason);
-      return (0, bytes32(bytes(reason)));
+      status = bytes32(bytes(reason));
     }
   }
 
-  function _updateOffer(OfferArgs memory args, uint offerId) internal override returns (bytes32) {
+  /// @notice Updates the offer specified by `offerId` on Mangrove with the parameters in `args`.
+  /// @param args A memory struct containing the offer parameters to update.
+  /// @param offerId An unsigned integer representing the identifier of the offer to be updated.
+  /// @return status a `bytes32` value representing either `REPOST_SUCCESS` if the update is successful, or an error message if an error occurs and `OfferArgs.noRevert` is `true`. If `OfferArgs.noRevert` is `false`, the function reverts with the error message as the reason.
+  function _updateOffer(OfferArgs memory args, uint offerId) internal override returns (bytes32 status) {
     if (args.gasreq >= type(uint24).max) {
       MgvStructs.OfferDetailPacked detail =
         MGV.offerDetails(address(args.outbound_tkn), address(args.inbound_tkn), offerId);
@@ -72,10 +78,10 @@ abstract contract Direct is MangroveOffer {
       args.pivotId,
       offerId
     ) {
-      return REPOST_SUCCESS;
+      status = REPOST_SUCCESS;
     } catch Error(string memory reason) {
       require(args.noRevert, reason);
-      return bytes32(bytes(reason));
+      status = bytes32(bytes(reason));
     }
   }
 
@@ -106,20 +112,17 @@ abstract contract Direct is MangroveOffer {
     provision = _provisionOf(outbound_tkn, inbound_tkn, offerId);
   }
 
-  function __put__(uint, /*amount*/ MgvLib.SingleOrder calldata) internal virtual override returns (uint missing) {
-    // direct contract do not need to do anything specific with incoming funds during trade
-    // one should override this function if one wishes to leverage taker's fund during trade execution
-    // be aware that the incoming funds will be transferred back to the reserve in posthookSuccess using flush.
-    // this is done in posthook, to accumulate all taken offers and transfer everything in one transfer.
+  ///@notice direct contract do not need to do anything specific with incoming funds during trade
+  ///@dev one should override this function if one wishes to leverage taker's fund during trade execution
+  ///@inheritdoc MangroveOffer
+  function __put__(uint, MgvLib.SingleOrder calldata) internal virtual override returns (uint) {
     return 0;
   }
 
-  // default `__get__` hook for `Direct` is to pull liquidity from `reserve(admin())`
-  // letting router handle the specifics if any
+  ///@notice `__get__` hook for `Direct` is to ask the router to pull liquidity from `reserveId` if strat is using a router
+  /// otherwise the function simply returns what's missing in the local balance
+  ///@inheritdoc MangroveOffer
   function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint missing) {
-    // pulling liquidity from reserve
-    // depending on the router, this may result in pulling more/less liquidity than required
-    // so one should check local balance to compute missing liquidity
     uint amount_ = IERC20(order.outbound_tkn).balanceOf(address(this));
     if (amount_ >= amount) {
       return 0;
@@ -134,6 +137,8 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
+  ///@notice Direct posthook flushes outbound and inbound token back to the router (if any)
+  ///@inheritdoc MangroveOffer
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal
     virtual
@@ -151,6 +156,7 @@ abstract contract Direct is MangroveOffer {
     return super.__posthookSuccess__(order, makerData);
   }
 
+  ///@inheritdoc MangroveOffer
   function __checkList__(IERC20 token, address reserveId_) internal view virtual override {
     require(reserveId_ == reserveId(), "Direct/invalidFundManager");
     super.__checkList__(token, reserveId_);

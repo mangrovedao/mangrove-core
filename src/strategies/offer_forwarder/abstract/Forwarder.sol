@@ -124,7 +124,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// @dev If inside a hook, one should call `_newOffer` to create a new offer and not directly `MGV.newOffer` to make sure one is correctly dealing with:
   /// * offer ownership
   /// * offer provisions and gasprice
-  /// @param args memory location of the function's arguments
+  /// @param args function's arguments in memory
   /// @param owner the address of the offer owner
   /// @return offerId the identifier of the new offer on the offer list. Can be 0 if posting was rejected by Mangrove and `args.noRevert` is `true`.
   /// Forwarder logic does not manage user funds on Mangrove, as a consequence:
@@ -175,7 +175,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   ///@notice Internal `updateOffer`, using arguments and variables on memory to avoid stack too deep.
-  ///@return reason in {REPOST_FAILED_DUST, REPOST_FAILED} if update was rejected by Mangrove and `args.noRevert` is `true` or REPOST_SUCCESS otherwise
+  ///@return reason is either REPOST_SUCCESS or Mangrove's revert reason if update was rejected by Mangrove and `args.noRevert` is `true`.
   function _updateOffer(OfferArgs memory args, uint offerId) internal override returns (bytes32) {
     unchecked {
       UpdateOfferVars memory vars;

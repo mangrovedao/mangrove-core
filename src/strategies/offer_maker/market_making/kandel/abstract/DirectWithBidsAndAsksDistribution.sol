@@ -14,15 +14,13 @@ pragma solidity ^0.8.10;
 import {Direct} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OfferType} from "./TradesBaseQuotePair.sol";
-import {HasKandelSlotMemoizer} from "./HasKandelSlotMemoizer.sol";
 import {HasIndexedBidsAndAsks} from "./HasIndexedBidsAndAsks.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 
 ///@title `Direct` strat with an indexed collection of bids and asks which can be populated according to a desired base and quote distribution for gives and wants.
-abstract contract DirectWithBidsAndAsksDistribution is Direct, HasKandelSlotMemoizer, HasIndexedBidsAndAsks {
+abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAndAsks {
   constructor(IMangrove mgv, uint gasreq, address reserveId)
     Direct(mgv, NO_ROUTER, gasreq, reserveId)
-    HasKandelSlotMemoizer(mgv)
     HasIndexedBidsAndAsks(mgv)
   {}
 
@@ -75,7 +73,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasKandelSlotMemo
       args.gasprice = gasprice;
       args.pivotId = pivotIds[i];
 
-      populateIndex(OfferType.Bid, newSlotMemoizer(index), args);
+      populateIndex(OfferType.Bid, offerIdOfIndex(OfferType.Bid, index), index, args);
     }
 
     (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(OfferType.Ask);
@@ -88,20 +86,20 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasKandelSlotMemo
       args.gasprice = gasprice;
       args.pivotId = pivotIds[i];
 
-      populateIndex(OfferType.Ask, newSlotMemoizer(index), args);
+      populateIndex(OfferType.Ask, offerIdOfIndex(OfferType.Ask, index), index, args);
     }
   }
 
   ///@notice publishes (by either creating or updating) a bid/ask at a given price index.
   ///@param ba whether the offer is a bid or an ask.
-  ///@param memoizer the memoizer for the offer to be published.
+  ///@param offerId the Mangrove offer id (0 for a new offer).
+  ///@param index the price index.
   ///@param args the argument of the offer.
   ///@return result the result from Mangrove or Direct (an error if `args.noRevert` is `true`).
-  function populateIndex(OfferType ba, SlotMemoizer memory memoizer, OfferArgs memory args)
+  function populateIndex(OfferType ba, uint offerId, uint index, OfferArgs memory args)
     internal
     returns (bytes32 result)
   {
-    uint offerId = getOfferId(ba, memoizer);
     // if offer does not exist on mangrove yet
     if (offerId == 0) {
       // and offer should exist
@@ -109,7 +107,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasKandelSlotMemo
         // create it
         (offerId, result) = _newOffer(args);
         if (offerId != 0) {
-          setIndexMapping(ba, getIndex(ba, memoizer), offerId);
+          setIndexMapping(ba, index, offerId);
         }
       }
       // else offerId && gives are 0 and the offer is left not posted

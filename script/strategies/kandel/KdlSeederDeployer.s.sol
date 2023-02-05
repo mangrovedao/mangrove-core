@@ -8,8 +8,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
 
 /**
- * @notice deploys a Kandel instance on a given market
- * @dev since the max number of price slot Kandel can use is an immutable, one should deploy Kandel on a large price range.
+ * @notice deploys a Kandel seeder
  */
 
 contract KdlSeederDeployer is Deployer {

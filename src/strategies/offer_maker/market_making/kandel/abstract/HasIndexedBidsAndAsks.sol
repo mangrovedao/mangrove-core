@@ -12,18 +12,20 @@
 pragma solidity ^0.8.10;
 
 import {MgvStructs} from "mgv_src/MgvLib.sol";
-import {IHasTokenPairOfOfferType} from "./TradesBaseQuote.sol";
+import {IHasTokenPairOfOfferType, OfferType} from "./TradesBaseQuotePair.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {OfferType} from "./Trade.sol";
 
+///@title Interface contract for strats needing index <--> offer id map.
 abstract contract IHasOfferIdIndexMap {
   ///@notice maps index of offers to offer id on Mangrove.
   function offerIdOfIndex(OfferType ba, uint index) public view virtual returns (uint);
-  ///@notice Maps an offer type and Mangrove offer id to Kandel index.
+  ///@notice Maps an offer type and Mangrove offer id to index.
   function indexOfOfferId(OfferType ba, uint offerId) public view virtual returns (uint);
 }
 
+///@title Adds a [0..length] index <--> offerId map to a strat.
+///@dev utilizes the `IHasTokenPairOfOfferType` contract, and implements the `IHasOfferIdIndexMap` interface contract.
 abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType, IHasOfferIdIndexMap {
   IMangrove private immutable MGV;
 
@@ -31,9 +33,9 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType, IHasOfferId
     MGV = mgv;
   }
 
-  ///@notice Mangrove's offer id of an ask at a given price index.
+  ///@notice Mangrove's offer id of an ask at a given index.
   uint[] askOfferIdOfIndex;
-  ///@notice Mangrove's offer id of a bid at a given price index.
+  ///@notice Mangrove's offer id of a bid at a given index.
   uint[] bidOfferIdOfIndex;
 
   ///@notice An inverse mapping of askOfferIdOfIndex. E.g., indexOfAskOfferId[42] is the index in askOfferIdOfIndex at which ask of id #42 on Mangrove is stored.
@@ -52,7 +54,7 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType, IHasOfferId
     return ba == OfferType.Ask ? indexOfAskOfferId[offerId] : indexOfBidOfferId[offerId];
   }
 
-  ///@notice Sets the Mangrove offer id for a Kandel index and vice versa.
+  ///@notice Sets the Mangrove offer id for an index and vice versa.
   function setIndexMapping(OfferType ba, uint index, uint offerId) internal {
     if (ba == OfferType.Ask) {
       indexOfAskOfferId[offerId] = index;
@@ -63,20 +65,25 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType, IHasOfferId
     }
   }
 
+  ///@notice sets the length of the map. All existing offerIds will be lost.
+  ///@param length the new length.
   function setLength(uint length) internal {
     askOfferIdOfIndex = new uint[](length);
     bidOfferIdOfIndex = new uint[](length);
   }
 
+  ///@notice gets the Mangrove offer at the given index for the offer type.
+  ///@param ba the offer type.
+  ///@param index the index.
   function getOffer(OfferType ba, uint index) public view returns (MgvStructs.OfferPacked offer) {
     uint offerId = offerIdOfIndex(ba, index);
     (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
     offer = MGV.offers(address(outbound), address(inbound), offerId);
   }
 
-  /// @notice gets the total gives of all offers of the offer type
+  /// @notice gets the total gives of all offers of the offer type.
   /// @param ba offer type.
-  /// @dev function is very gas costly, for external calls only
+  /// @dev function is very gas costly, for external calls only.
   function offeredVolume(OfferType ba) public view returns (uint volume) {
     for (uint index = 0; index < askOfferIdOfIndex.length; index++) {
       MgvStructs.OfferPacked offer = getOffer(ba, index);

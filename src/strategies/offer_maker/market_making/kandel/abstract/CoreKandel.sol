@@ -15,11 +15,11 @@ import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {OfferType} from "./Trade.sol";
-import {DirectWithDistribution} from "./DirectWithDistribution.sol";
+import {OfferType} from "./TradesBaseQuotePair.sol";
+import {DirectWithBidsAndAsksDistribution} from "./DirectWithBidsAndAsksDistribution.sol";
 
-abstract contract CoreKandel is DirectWithDistribution {
-  constructor(IMangrove mgv, uint gasreq, address reserveId) DirectWithDistribution(mgv, gasreq, reserveId) {}
+abstract contract CoreKandel is DirectWithBidsAndAsksDistribution {
+  constructor(IMangrove mgv, uint gasreq, address reserveId) DirectWithBidsAndAsksDistribution(mgv, gasreq, reserveId) {}
 
   ///@notice takes care of status for reposting residual offer in case of a partial fill and logging of potential issues.
   ///@param order a recap of the taker order
@@ -70,7 +70,7 @@ abstract contract CoreKandel is DirectWithDistribution {
     returns (bytes32 populateStatus)
   {
     bytes32 repostStatus = super.__posthookSuccess__(order, makerData);
-    OfferType ba = OfferTypeOfOutbound(IERC20(order.outbound_tkn));
+    OfferType ba = offerTypeOfOutbound(IERC20(order.outbound_tkn));
     handleResidual(order, makerData, repostStatus);
 
     // adds any unpublished liquidity to pending[Base/Quote]

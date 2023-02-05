@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// TradesBaseQuote.sol
+// TradesBaseQuotePair.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -13,19 +13,27 @@ pragma solidity ^0.8.10;
 
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {OfferType} from "./Trade.sol";
 
-abstract contract IHasTokenPairOfOfferType {
-  ///@notice turns an offer type into an (outbound, inbound) pair identifying an offer list
-  ///@param ba whether one wishes to access the offer lists where asks or bids are posted
-  function tokenPairOfOfferType(OfferType ba) internal view virtual returns (IERC20, IERC20);
-
-  ///@notice returns the Kandel offer type of the offer list whose outbound token is given in the argument
-  ///@param outbound_tkn the outbound token of the offer list
-  function OfferTypeOfOutbound(IERC20 outbound_tkn) internal view virtual returns (OfferType);
+///@title a bid or an ask.
+enum OfferType {
+  Bid,
+  Ask
 }
 
-abstract contract TradesBaseQuote is IHasTokenPairOfOfferType {
+///@title Interface contract for strats needing offer type to token pair mapping.
+abstract contract IHasTokenPairOfOfferType {
+  ///@notice turns an offer type into an (outbound, inbound) pair identifying an offer list.
+  ///@param ba whether one wishes to access the offer lists where asks or bids are posted.
+  function tokenPairOfOfferType(OfferType ba) internal view virtual returns (IERC20, IERC20);
+
+  ///@notice returns the offer type of the offer list whose outbound token is given in the argument.
+  ///@param outbound_tkn the outbound token of the offer list.
+  function offerTypeOfOutbound(IERC20 outbound_tkn) internal view virtual returns (OfferType);
+}
+
+///@title Adds basic base/quote trading pair for bids and asks and couples it to Mangrove's gives, wants, outbound, inbound terminology.
+///@dev Implements the IHasTokenPairOfOfferType interface contract.
+abstract contract TradesBaseQuotePair is IHasTokenPairOfOfferType {
   ///@notice base of the market Kandel is making
   IERC20 public immutable BASE;
   ///@notice quote of the market Kandel is making
@@ -42,7 +50,7 @@ abstract contract TradesBaseQuote is IHasTokenPairOfOfferType {
   }
 
   ///@inheritdoc IHasTokenPairOfOfferType
-  function OfferTypeOfOutbound(IERC20 outbound_tkn) internal view override returns (OfferType) {
+  function offerTypeOfOutbound(IERC20 outbound_tkn) internal view override returns (OfferType) {
     return outbound_tkn == BASE ? OfferType.Ask : OfferType.Bid;
   }
 
@@ -52,6 +60,10 @@ abstract contract TradesBaseQuote is IHasTokenPairOfOfferType {
     token = ba == OfferType.Ask ? BASE : QUOTE;
   }
 
+  ///@notice returns the wants and gives for a Mangrove offer for the offer type given the base and quote amounts.
+  ///@param ba the offer type
+  ///@param baseAmount the amount of the base token
+  ///@param quoteAmount the amount of the quote token
   function wantsGivesOfBaseQuote(OfferType ba, uint baseAmount, uint quoteAmount)
     internal
     pure

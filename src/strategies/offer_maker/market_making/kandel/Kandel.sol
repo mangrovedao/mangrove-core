@@ -12,7 +12,7 @@
 pragma solidity ^0.8.10;
 
 import {GeometricKandel} from "./abstract/GeometricKandel.sol";
-import {OfferType} from "./abstract/Trade.sol";
+import {OfferType} from "./abstract/TradesBaseQuotePair.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
@@ -41,13 +41,5 @@ contract Kandel is GeometricKandel {
     onlyAdmin
   {
     TransferLib.transferTokens(tokens, amounts, recipient);
-  }
-
-  /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
-  /// @param ba offer type.
-  /// @return pending_ the pending amount
-  function pending(OfferType ba) external view override returns (int pending_) {
-    IERC20 token = outboundOfOfferType(ba);
-    pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));
   }
 }

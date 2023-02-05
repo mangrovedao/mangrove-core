@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// DirectWithDistribution.sol
+// DirectWithBidsAndAsksDistribution.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -13,12 +13,13 @@ pragma solidity ^0.8.10;
 
 import {Direct} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {OfferType} from "./Trade.sol";
+import {OfferType} from "./TradesBaseQuotePair.sol";
 import {HasKandelSlotMemoizer} from "./HasKandelSlotMemoizer.sol";
 import {HasIndexedBidsAndAsks} from "./HasIndexedBidsAndAsks.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 
-abstract contract DirectWithDistribution is Direct, HasKandelSlotMemoizer, HasIndexedBidsAndAsks {
+///@title `Direct` strat with an indexed collection of bids and asks which can be populated according to a desired base and quote distribution for gives and wants.
+abstract contract DirectWithBidsAndAsksDistribution is Direct, HasKandelSlotMemoizer, HasIndexedBidsAndAsks {
   constructor(IMangrove mgv, uint gasreq, address reserveId)
     Direct(mgv, NO_ROUTER, gasreq, reserveId)
     HasKandelSlotMemoizer(mgv)
@@ -26,20 +27,20 @@ abstract contract DirectWithDistribution is Direct, HasKandelSlotMemoizer, HasIn
   {}
 
   ///@param indices the indices to populate, in ascending order
-  ///@param baseDist base distribution for the indices
-  ///@param quoteDist the distribution of quote for the indices
+  ///@param baseDist base distribution for the indices (the `wants` for bids and the `gives` for asks)
+  ///@param quoteDist the distribution of quote for the indices (the `gives` for bids and the `wants` for asks)
   struct Distribution {
+    uint[] indices;
     uint[] baseDist;
     uint[] quoteDist;
-    uint[] indices;
   }
 
   ///@notice Publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
-  ///@notice This function is used publicly after `populate` to reinitialize some indices or if multiple calls are needed for initialization.
-  ///@notice This function is not payable, use `populate` to fund along with populate.
-  ///@param distribution the distribution of base and quote for Kandel indices
-  ///@param pivotIds the pivot to be used for the offer
-  ///@param lastBidIndex the index after which offer should be an ask. First index will never be an ask, either a bid or not published.
+  ///@param distribution the distribution of base and quote for indices.
+  ///@param pivotIds the pivots to be used for the offers.
+  ///@param lastBidIndex the index after which offers should be asks. 0th index will never be an ask, either a bid or not published.
+  ///@param gasreq the amount of gas units that are required to execute the trade.
+  ///@param gasprice the gasprice used to compute offer's provision.
   function populateChunk(
     Distribution calldata distribution,
     uint[] calldata pivotIds,
@@ -91,14 +92,16 @@ abstract contract DirectWithDistribution is Direct, HasKandelSlotMemoizer, HasIn
     }
   }
 
-  ///@notice publishes (by either creating or updating) a bid/ask at a given price index
-  ///@param ba whether the offer is a bid or an ask
-  ///@param v the view Memoizer for the offer to be published
+  ///@notice publishes (by either creating or updating) a bid/ask at a given price index.
+  ///@param ba whether the offer is a bid or an ask.
+  ///@param memoizer the Memoizer for the offer to be published.
   ///@param args the argument of the offer.
-  ///@return result from Mangrove on error and `args.noRevert` is `true`.
-  ///@dev args.wants/gives must match the distribution at index
-  function populateIndex(OfferType ba, SlotMemoizer memory v, OfferArgs memory args) internal returns (bytes32 result) {
-    uint offerId = _offerId(ba, v);
+  ///@return result the result from Mangrove or Direct (an error if `args.noRevert` is `true`).
+  function populateIndex(OfferType ba, SlotMemoizer memory memoizer, OfferArgs memory args)
+    internal
+    returns (bytes32 result)
+  {
+    uint offerId = _offerId(ba, memoizer);
     // if offer does not exist on mangrove yet
     if (offerId == 0) {
       // and offer should exist
@@ -106,7 +109,7 @@ abstract contract DirectWithDistribution is Direct, HasKandelSlotMemoizer, HasIn
         // create it
         (offerId, result) = _newOffer(args);
         if (offerId != 0) {
-          setIndexMapping(ba, _index(ba, v), offerId);
+          setIndexMapping(ba, _index(ba, memoizer), offerId);
         }
       }
       // else offerId && gives are 0 and the offer is left not posted
@@ -126,10 +129,10 @@ abstract contract DirectWithDistribution is Direct, HasKandelSlotMemoizer, HasIn
     }
   }
 
-  ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`
-  ///@param from the start index
-  ///@param to the end index
-  ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs
+  ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`.
+  ///@param from the start index.
+  ///@param to the end index.
+  ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs.
   function retractOffers(uint from, uint to) external onlyAdmin {
     (IERC20 outbound_tknAsk, IERC20 inbound_tknAsk) = tokenPairOfOfferType(OfferType.Ask);
     (IERC20 outbound_tknBid, IERC20 inbound_tknBid) = tokenPairOfOfferType(OfferType.Bid);

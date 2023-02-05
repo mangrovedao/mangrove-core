@@ -13,7 +13,7 @@ pragma solidity ^0.8.10;
 
 import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {OfferType} from "./Trade.sol";
+import {OfferType} from "./TradesBaseQuotePair.sol";
 
 abstract contract AbstractKandel {
   ///@notice signals that the price has moved above Kandel's current price range

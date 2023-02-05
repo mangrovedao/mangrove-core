@@ -15,7 +15,7 @@ import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {Kandel} from "./Kandel.sol";
 import {AaveKandel, AavePooledRouter} from "./AaveKandel.sol";
 import {GeometricKandel} from "./abstract/GeometricKandel.sol";
-import {OfferType} from "./abstract/Trade.sol";
+import {OfferType} from "./abstract/TradesBaseQuotePair.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";

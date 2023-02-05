@@ -15,11 +15,11 @@ import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
-import {OfferType} from "./Trade.sol";
-import {TradesBaseQuote} from "./TradesBaseQuote.sol";
+import {OfferType} from "./TradesBaseQuotePair.sol";
+import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {CoreKandel} from "./CoreKandel.sol";
 
-abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote {
+abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuotePair {
   ///@notice Geometric Kandel parameters
   ///@param gasprice the gasprice to use for offers
   ///@param gasreq the gasreq to use for offers
@@ -42,7 +42,7 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
     CoreKandel(mgv, gasreq, reserveId)
-    TradesBaseQuote(base, quote)
+    TradesBaseQuotePair(base, quote)
   {
     emit NewKandel(msg.sender, mgv, base, quote);
     setGasprice(gasprice);
@@ -106,6 +106,15 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     compoundRate = uint(baDual == OfferType.Ask ? memoryParams.compoundRateBase : memoryParams.compoundRateQuote);
   }
 
+  /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
+  /// @param ba offer type.
+  /// @return pending_ the pending amount
+  /// @dev Gas costly function, better suited for off chain calls.
+  function pending(OfferType ba) external view override returns (int pending_) {
+    IERC20 token = outboundOfOfferType(ba);
+    pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));
+  }
+
   ///@notice publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
   ///@param distribution the distribution of base and quote for Kandel indices
   ///@param pivotIds the pivot to be used for the offer
@@ -146,6 +155,12 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     populateChunk(distribution, pivotIds, lastBidIndex, params.gasreq, params.gasprice);
   }
 
+  ///@notice Publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
+  ///@notice This function is used publicly after `populate` to reinitialize some indices or if multiple transactions are needed to split initialization due to gas cost.
+  ///@notice This function is not payable, use `populate` to fund along with populate.
+  ///@param distribution the distribution of base and quote for Kandel indices.
+  ///@param pivotIds the pivot to be used for the offer.
+  ///@param lastBidIndex the index after which offer should be an ask. First index will never be an ask, either a bid or not published.
   function populateChunk(Distribution calldata distribution, uint[] calldata pivotIds, uint lastBidIndex)
     external
     onlyAdmin

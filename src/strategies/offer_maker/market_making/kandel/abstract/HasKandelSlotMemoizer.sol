@@ -14,9 +14,9 @@ pragma solidity ^0.8.10;
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {OfferType} from "./Trade.sol";
+import {OfferType} from "./TradesBaseQuotePair.sol";
 import {IHasOfferIdIndexMap} from "./HasIndexedBidsAndAsks.sol";
-import {IHasTokenPairOfOfferType} from "./TradesBaseQuote.sol";
+import {IHasTokenPairOfOfferType} from "./TradesBaseQuotePair.sol";
 
 abstract contract HasKandelSlotMemoizer is IHasTokenPairOfOfferType, IHasOfferIdIndexMap {
   IMangrove private immutable MGV;

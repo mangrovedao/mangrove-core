@@ -15,7 +15,7 @@ import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {AbstractRouter, AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
 import {GeometricKandel} from "./abstract/GeometricKandel.sol";
-import {OfferType} from "./abstract/Trade.sol";
+import {OfferType} from "./abstract/TradesBaseQuotePair.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
@@ -63,15 +63,6 @@ contract AaveKandel is GeometricKandel {
   ///@notice returns the amount of tokens of the router's balance that belong to this contract
   function reserveBalance(IERC20 token) public view override returns (uint) {
     return pooledRouter().balanceOfId(token, reserveId());
-  }
-
-  /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
-  /// @param ba offer type.
-  /// @return pending_ the pending amount
-  /// @dev Gas costly function, better suited for off chain calls.
-  function pending(OfferType ba) external view override returns (int pending_) {
-    IERC20 token = outboundOfOfferType(ba);
-    pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));
   }
 
   /// @notice Verifies, prior to pulling funds from the router, whether pull will be fetching funds on AAVE

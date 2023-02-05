@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
-import {OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/Trade.sol";
+import {OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/TradesBaseQuotePair.sol";
 import {CoreKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
 import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";

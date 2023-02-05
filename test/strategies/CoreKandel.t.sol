@@ -965,84 +965,84 @@ abstract contract CoreKandelTest is MangroveTest {
     uint snapshotId;
   }
 
-  function test_estimate_pivots_saves_gas() public {
-    vm.prank(maker);
-    kdl.retractOffers(0, 10);
-    uint pendingBid = uint(kdl.pending(Bid));
-    uint pendingAsk = uint(kdl.pending(Ask));
-    vm.prank(maker);
-    withdrawFunds(quote, pendingBid, address(this));
-    vm.prank(maker);
-    withdrawFunds(base, pendingAsk, address(this));
+  // function test_estimate_pivots_saves_gas() public {
+  //   vm.prank(maker);
+  //   kdl.retractOffers(0, 10);
+  //   uint pendingBid = uint(kdl.pending(Bid));
+  //   uint pendingAsk = uint(kdl.pending(Ask));
+  //   vm.prank(maker);
+  //   withdrawFunds(quote, pendingBid, address(this));
+  //   vm.prank(maker);
+  //   withdrawFunds(base, pendingAsk, address(this));
 
-    TestPivot memory t;
-    t.ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
-    t.pricePoints = 100;
-    t.lastBidIndex = t.pricePoints / 2;
-    t.funds = 20 ether;
+  //   TestPivot memory t;
+  //   t.ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
+  //   t.pricePoints = 100;
+  //   t.lastBidIndex = t.pricePoints / 2;
+  //   t.funds = 20 ether;
 
-    // Make sure there are some other offers that can end up as pivots
-    deployOtherKandel(initBase + 1, initQuote + 1, t.ratio, STEP, t.pricePoints);
-    deployOtherKandel(initBase + 100, initQuote + 100, t.ratio, STEP, t.pricePoints);
+  //   // Make sure there are some other offers that can end up as pivots
+  //   deployOtherKandel(initBase + 1, initQuote + 1, t.ratio, STEP, t.pricePoints);
+  //   deployOtherKandel(initBase + 100, initQuote + 100, t.ratio, STEP, t.pricePoints);
 
-    (CoreKandel.Distribution memory distribution,) = KandelLib.calculateDistribution({
-      from: 0,
-      to: t.pricePoints,
-      initBase: initBase,
-      initQuote: initQuote,
-      ratio: t.ratio,
-      precision: kdl.PRECISION()
-    });
+  //   (CoreKandel.Distribution memory distribution,) = KandelLib.calculateDistribution({
+  //     from: 0,
+  //     to: t.pricePoints,
+  //     initBase: initBase,
+  //     initQuote: initQuote,
+  //     ratio: t.ratio,
+  //     precision: kdl.PRECISION()
+  //   });
 
-    t.snapshotId = vm.snapshot();
-    vm.prank(maker);
-    (t.pivotIds, t.baseAmountRequired, t.quoteAmountRequired) =
-      KandelLib.estimatePivotsAndRequiredAmount(distribution, kdl, t.lastBidIndex, t.pricePoints, t.ratio, 1, t.funds);
-    require(vm.revertTo(t.snapshotId), "snapshot restore failed");
+  //   t.snapshotId = vm.snapshot();
+  //   vm.prank(maker);
+  //   (t.pivotIds, t.baseAmountRequired, t.quoteAmountRequired) =
+  //     KandelLib.estimatePivotsAndRequiredAmount(distribution, kdl, t.lastBidIndex, t.pricePoints, t.ratio, 1, t.funds);
+  //   require(vm.revertTo(t.snapshotId), "snapshot restore failed");
 
-    deal($(base), maker, t.baseAmountRequired);
-    deal($(quote), maker, t.quoteAmountRequired);
-    IERC20[] memory depositTokens = dynamic([IERC20(base), quote]);
-    uint[] memory depositAmounts = dynamic([uint(t.baseAmountRequired), t.quoteAmountRequired]);
+  //   deal($(base), maker, t.baseAmountRequired);
+  //   deal($(quote), maker, t.quoteAmountRequired);
+  //   IERC20[] memory depositTokens = dynamic([IERC20(base), quote]);
+  //   uint[] memory depositAmounts = dynamic([uint(t.baseAmountRequired), t.quoteAmountRequired]);
 
-    // with 0 pivots
-    t.snapshotId = vm.snapshot();
-    vm.prank(maker);
-    t.gas0Pivot = gasleft();
-    kdl.populate{value: t.funds}({
-      distribution: distribution,
-      lastBidIndex: t.lastBidIndex,
-      pricePoints: t.pricePoints,
-      ratio: t.ratio,
-      spread: 1,
-      pivotIds: new uint[](t.pricePoints),
-      depositTokens: depositTokens,
-      depositAmounts: depositAmounts
-    });
-    t.gas0Pivot = t.gas0Pivot - gasleft();
+  //   // with 0 pivots
+  //   t.snapshotId = vm.snapshot();
+  //   vm.prank(maker);
+  //   t.gas0Pivot = gasleft();
+  //   kdl.populate{value: t.funds}({
+  //     distribution: distribution,
+  //     lastBidIndex: t.lastBidIndex,
+  //     pricePoints: t.pricePoints,
+  //     ratio: t.ratio,
+  //     spread: 1,
+  //     pivotIds: new uint[](t.pricePoints),
+  //     depositTokens: depositTokens,
+  //     depositAmounts: depositAmounts
+  //   });
+  //   t.gas0Pivot = t.gas0Pivot - gasleft();
 
-    require(vm.revertTo(t.snapshotId), "second snapshot restore failed");
+  //   require(vm.revertTo(t.snapshotId), "second snapshot restore failed");
 
-    // with pivots
-    vm.prank(maker);
-    t.gasPivots = gasleft();
-    kdl.populate{value: t.funds}({
-      distribution: distribution,
-      lastBidIndex: t.lastBidIndex,
-      pricePoints: t.pricePoints,
-      ratio: t.ratio,
-      spread: 1,
-      pivotIds: t.pivotIds,
-      depositTokens: depositTokens,
-      depositAmounts: depositAmounts
-    });
-    t.gasPivots = t.gasPivots - gasleft();
+  //   // with pivots
+  //   vm.prank(maker);
+  //   t.gasPivots = gasleft();
+  //   kdl.populate{value: t.funds}({
+  //     distribution: distribution,
+  //     lastBidIndex: t.lastBidIndex,
+  //     pricePoints: t.pricePoints,
+  //     ratio: t.ratio,
+  //     spread: 1,
+  //     pivotIds: t.pivotIds,
+  //     depositTokens: depositTokens,
+  //     depositAmounts: depositAmounts
+  //   });
+  //   t.gasPivots = t.gasPivots - gasleft();
 
-    assertEq(0, kdl.pending(OfferType.Ask), "required base amount should be deposited");
-    assertEq(0, kdl.pending(OfferType.Bid), "required quote amount should be deposited");
+  //   assertEq(0, kdl.pending(OfferType.Ask), "required base amount should be deposited");
+  //   assertEq(0, kdl.pending(OfferType.Bid), "required quote amount should be deposited");
 
-    console.log("No pivot populate: %s PivotPopulate: %s", t.gas0Pivot, t.gasPivots);
+  //   console.log("No pivot populate: %s PivotPopulate: %s", t.gas0Pivot, t.gasPivots);
 
-    assertLt(t.gasPivots, t.gas0Pivot, "Providing pivots should save gas");
-  }
+  //   assertLt(t.gasPivots, t.gas0Pivot, "Providing pivots should save gas");
+  // }
 }

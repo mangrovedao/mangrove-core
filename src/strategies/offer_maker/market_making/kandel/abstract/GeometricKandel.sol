@@ -258,8 +258,8 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     // args.fund = 0; the offers are already provisioned
     // posthook should not fail if unable to post offers, we capture the error as incidents
     args.noRevert = true;
-    args.gasprice = params.gasprice;
-    args.gasreq = params.gasreq;
+    args.gasprice = memoryParams.gasprice;
+    args.gasreq = memoryParams.gasreq;
     args.pivotId = offer.gives() > 0 ? offer.next() : 0;
     return (baDual, memoizerDual, args);
   }

@@ -135,14 +135,13 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     tkr.take(ofr, 0.1 ether); // fails but we don't care
   }
 
-  function test_badReturn_succeeds() public {
+  function test_returnData_succeeds() public {
     mkr.provisionMgv(1 ether);
     deal($(base), address(mkr), 1 ether);
-    uint ofr = mkr.newOffer(1 ether, 1 ether, 50000, 0);
+    uint ofr = mkr.newOffer(1 ether, 1 ether, 50000, 0, OfferData({shouldRevert: false, executeData: "someData"}));
 
-    mkr.shouldAbort(true);
     bool success = tkr.take(ofr, 0.1 ether);
-    assertTrue(success, "take should fail");
+    assertTrue(success, "take should work");
   }
 
   function test_delete_restores_balance() public {

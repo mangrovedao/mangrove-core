@@ -128,12 +128,7 @@ contract AaveV3Lender {
   ///@notice gas costly function to verify whether an asset can be supplied on pool
   ///@param asset one wants to lend
   function checkAsset(IERC20 asset) public view returns (bool) {
-    address[] memory reserves = POOL.getReservesList();
-    for (uint i; i < reserves.length; i++) {
-      if (reserves[i] == address(asset)) {
-        return true;
-      }
-    }
-    return false;
+    IERC20 aToken = overlying(asset);
+    return address(aToken) != address(0);
   }
 }

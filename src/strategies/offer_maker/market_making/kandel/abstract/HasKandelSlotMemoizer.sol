@@ -18,6 +18,8 @@ import {OfferType} from "./TradesBaseQuotePair.sol";
 import {IHasOfferIdIndexMap} from "./HasIndexedBidsAndAsks.sol";
 import {IHasTokenPairOfOfferType} from "./TradesBaseQuotePair.sol";
 
+///@title Memoizes offer id, index, and the actual Mangrove offer for an index in a strat with an indexable collection of offers.
+///@dev Utilizes the IHasTokenPairOfOfferType and IHasOfferIdIndexMap interface contracts to perform the mapping.
 abstract contract HasKandelSlotMemoizer is IHasTokenPairOfOfferType, IHasOfferIdIndexMap {
   IMangrove private immutable MGV;
 
@@ -25,6 +27,12 @@ abstract contract HasKandelSlotMemoizer is IHasTokenPairOfOfferType, IHasOfferId
     MGV = mgv;
   }
 
+  ///@param indexMemoized whether the index has been memoized.
+  ///@param index the memoized index.
+  ///@param offerIdMemoized whether the offer id has been memoized.
+  ///@param the memoized offer id.
+  ///@param offerMemoized whether the offer has been memoized.
+  ///@param offer the memoized offer.
   struct SlotMemoizer {
     bool indexMemoized;
     uint index;
@@ -34,43 +42,54 @@ abstract contract HasKandelSlotMemoizer is IHasTokenPairOfOfferType, IHasOfferId
     MgvStructs.OfferPacked offer;
   }
 
-  function _fresh(uint index) internal pure returns (SlotMemoizer memory v) {
-    v.indexMemoized = true;
-    v.index = index;
-    return v;
+  ///@notice Initializes a new memoizer for the slot at the given index.
+  ///@param index the index in the offer collection.
+  function newSlotMemoizer(uint index) internal pure returns (SlotMemoizer memory m) {
+    m.indexMemoized = true;
+    m.index = index;
+    return m;
   }
 
-  function _offerId(OfferType ba, SlotMemoizer memory v) internal view returns (uint) {
-    if (v.offerIdMemoized) {
-      return v.offerId;
+  ///@notice Gets the Mangrove offer id for the indexed slot.
+  ///@param ba the offer type.
+  ///@param m the memoizer.
+  function getOfferId(OfferType ba, SlotMemoizer memory m) internal view returns (uint) {
+    if (m.offerIdMemoized) {
+      return m.offerId;
     } else {
-      require(v.indexMemoized, "Kandel/monad/UninitializedIndex");
-      v.offerIdMemoized = true;
-      v.offerId = offerIdOfIndex(ba, v.index);
-      return v.offerId;
+      require(m.indexMemoized, "HasKandelSlotMemoizer/UninitializedIndex");
+      m.offerIdMemoized = true;
+      m.offerId = offerIdOfIndex(ba, m.index);
+      return m.offerId;
     }
   }
 
-  function _index(OfferType ba, SlotMemoizer memory v) internal view returns (uint) {
-    if (v.indexMemoized) {
-      return v.index;
+  ///@notice Gets the index of the memoized slot.
+  ///@param ba the offer type.
+  ///@param m the memoizer.
+  function getIndex(OfferType ba, SlotMemoizer memory m) internal view returns (uint) {
+    if (m.indexMemoized) {
+      return m.index;
     } else {
-      require(v.offerIdMemoized, "Kandel/monad/UninitializedOfferId");
-      v.indexMemoized = true;
-      v.index = indexOfOfferId(ba, v.offerId);
-      return v.index;
+      require(m.offerIdMemoized, "HasKandelSlotMemoizer/UninitializedOfferId");
+      m.indexMemoized = true;
+      m.index = indexOfOfferId(ba, m.offerId);
+      return m.index;
     }
   }
 
-  function _offer(OfferType ba, SlotMemoizer memory v) internal view returns (MgvStructs.OfferPacked) {
-    if (v.offerMemoized) {
-      return v.offer;
+  ///@notice gets the Mangrove offer at the memoized index for the offer type.
+  ///@param ba the offer type.
+  ///@param m the memoizer.
+  function getOffer(OfferType ba, SlotMemoizer memory m) internal view returns (MgvStructs.OfferPacked) {
+    if (m.offerMemoized) {
+      return m.offer;
     } else {
-      v.offerMemoized = true;
-      uint id = _offerId(ba, v);
+      m.offerMemoized = true;
+      uint id = getOfferId(ba, m);
       (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
-      v.offer = MGV.offers(address(outbound), address(inbound), id);
-      return v.offer;
+      m.offer = MGV.offers(address(outbound), address(inbound), id);
+      return m.offer;
     }
   }
 }

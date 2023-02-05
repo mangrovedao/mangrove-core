@@ -75,7 +75,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasKandelSlotMemo
       args.gasprice = gasprice;
       args.pivotId = pivotIds[i];
 
-      populateIndex(OfferType.Bid, _fresh(index), args);
+      populateIndex(OfferType.Bid, newSlotMemoizer(index), args);
     }
 
     (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(OfferType.Ask);
@@ -88,20 +88,20 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasKandelSlotMemo
       args.gasprice = gasprice;
       args.pivotId = pivotIds[i];
 
-      populateIndex(OfferType.Ask, _fresh(index), args);
+      populateIndex(OfferType.Ask, newSlotMemoizer(index), args);
     }
   }
 
   ///@notice publishes (by either creating or updating) a bid/ask at a given price index.
   ///@param ba whether the offer is a bid or an ask.
-  ///@param memoizer the Memoizer for the offer to be published.
+  ///@param memoizer the memoizer for the offer to be published.
   ///@param args the argument of the offer.
   ///@return result the result from Mangrove or Direct (an error if `args.noRevert` is `true`).
   function populateIndex(OfferType ba, SlotMemoizer memory memoizer, OfferArgs memory args)
     internal
     returns (bytes32 result)
   {
-    uint offerId = _offerId(ba, memoizer);
+    uint offerId = getOfferId(ba, memoizer);
     // if offer does not exist on mangrove yet
     if (offerId == 0) {
       // and offer should exist
@@ -109,7 +109,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasKandelSlotMemo
         // create it
         (offerId, result) = _newOffer(args);
         if (offerId != 0) {
-          setIndexMapping(ba, _index(ba, memoizer), offerId);
+          setIndexMapping(ba, getIndex(ba, memoizer), offerId);
         }
       }
       // else offerId && gives are 0 and the offer is left not posted

@@ -41,11 +41,8 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution {
 
   ///@notice takes care of status for populating dual and logging of potential issues.
   ///@param ba whether the offer is a bid or an ask
-  ///@param memoizer the memoizer for the offer.
   ///@param args the arguments of the offer.
-  function handlePopulate(OfferType ba, SlotMemoizer memory memoizer, OfferArgs memory args, bytes32 populateStatus)
-    internal
-  {
+  function handlePopulate(OfferType ba, uint offerId, OfferArgs memory args, bytes32 populateStatus) internal {
     if (
       populateStatus == REPOST_SUCCESS || populateStatus == NEW_OFFER_SUCCESS
         || populateStatus == "mgv/writeOffer/density/tooLow"
@@ -53,7 +50,6 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution {
       // Low density will mean some amount is not posted and will be available for withdrawal or later posting via populate.
       return;
     }
-    uint offerId = getOfferId(ba, memoizer);
     if (offerId != 0) {
       emit LogIncident(MGV, args.outbound_tkn, args.inbound_tkn, offerId, "Kandel/updateOfferFailed", populateStatus);
     } else {
@@ -75,20 +71,17 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution {
 
     // adds any unpublished liquidity to pending[Base/Quote]
     // preparing arguments for the dual offer
-    (OfferType baDual, SlotMemoizer memory memoizerDual, OfferArgs memory args) = transportLogic(ba, order);
-    populateStatus = populateIndex(baDual, memoizerDual, args);
+    (OfferType baDual, uint offerId, uint index, OfferArgs memory args) = transportLogic(ba, order);
+    populateStatus = populateIndex(baDual, offerId, index, args);
 
-    handlePopulate(baDual, memoizerDual, args, populateStatus);
+    handlePopulate(baDual, offerId, args, populateStatus);
   }
 
   ///@notice transport logic followed by Kandel
   ///@param ba whether the offer that was executed is a bid or an ask
   ///@param order a recap of the taker order (order.offer is the executed offer)
-  ///@return baDual the type of dual offer that will re-invest inbound liquidity
-  ///@return memoizerDual the memoizer for the dual offer
-  ///@return args the argument for `populateIndex` specifying gives and wants
   function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (OfferType baDual, SlotMemoizer memory memoizerDual, OfferArgs memory args);
+    returns (OfferType baDual, uint offerId, uint index, OfferArgs memory args);
 }

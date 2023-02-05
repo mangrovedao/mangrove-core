@@ -232,7 +232,7 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     internal
     virtual
     override
-    returns (OfferType baDual, SlotMemoizer memory memoizerDual, OfferArgs memory args)
+    returns (OfferType baDual, uint offerId, uint dualOfferId, OfferArgs memory args)
   {
     uint index = indexOfOfferId(ba, order.offerId);
     Params memory memoryParams = params;
@@ -245,12 +245,14 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     }
     baDual = dual(ba);
 
-    memoizerDual = newSlotMemoizer(better(baDual, index, memoryParams.spread, memoryParams.pricePoints));
+    uint dualIndex = better(baDual, index, memoryParams.spread, memoryParams.pricePoints);
 
-    args.outbound_tkn = IERC20(order.inbound_tkn);
-    args.inbound_tkn = IERC20(order.outbound_tkn);
+    dualOfferId = offerIdOfIndex(baDual, dualIndex);
+    (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(baDual);
+    args.outbound_tkn = outbound;
+    args.inbound_tkn = inbound;
+    MgvStructs.OfferPacked offer = MGV.offers(address(outbound), address(inbound), dualOfferId);
 
-    MgvStructs.OfferPacked offer = getOffer(baDual, memoizerDual);
     // computing gives/wants for dual offer
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
@@ -261,6 +263,6 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     args.gasprice = params.gasprice;
     args.gasreq = params.gasreq;
     args.pivotId = offer.gives() > 0 ? offer.next() : 0;
-    return (baDual, memoizerDual, args);
+    return (baDual, dualOfferId, dualIndex, args);
   }
 }

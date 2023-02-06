@@ -119,20 +119,20 @@ abstract contract AbstractRouter is AccessControlled {
     _unbind(maker);
   }
 
-  ///@notice verifies all required approval involving `this` router (either as a spender or owner)
+  ///@notice verifies all required approval involving `this` router (either as a spender or reserveId)
   ///@dev `checkList` returns normally if all needed approval are strictly positive. It reverts otherwise with a reason.
   ///@param token is the asset (and possibly its overlyings) whose approval must be checked
-  ///@param owner of the tokens that are being pulled
-  function checkList(IERC20 token, address owner) external view {
+  ///@param reserveId of the tokens that are being pulled
+  function checkList(IERC20 token, address reserveId) external view {
     require(makers(msg.sender), "Router/callerIsNotBoundToRouter");
     // checking maker contract has approved this for token transfer (in order to push to reserve)
     require(token.allowance(msg.sender, address(this)) > 0, "Router/NotApprovedByMakerContract");
-    // pulling on behalf of `owner` might require a special approval (e.g if `owner` is some account on a protocol).
-    __checkList__(token, owner);
+    // pulling on behalf of `reserveId` might require a special approval (e.g if `reserveId` is some account on a protocol).
+    __checkList__(token, reserveId);
   }
 
   ///@notice router-dependent implementation of the `checkList` function
-  function __checkList__(IERC20 token, address owner) internal view virtual;
+  function __checkList__(IERC20 token, address reserveId) internal view virtual;
 
   ///@notice performs necessary approval to activate router function on a particular asset
   ///@param token the asset one wishes to use the router for

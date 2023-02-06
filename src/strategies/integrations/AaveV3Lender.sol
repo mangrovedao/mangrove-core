@@ -125,7 +125,7 @@ contract AaveV3Lender {
     (rewardsList, claimedAmounts) = rewardsController.claimAllRewards(assets, to);
   }
 
-  ///@notice gas costly function to verify whether an asset can be supplied on pool
+  ///@notice verifies whether an asset can be supplied on pool
   ///@param asset one wants to lend
   function checkAsset(IERC20 asset) public view returns (bool) {
     IERC20 aToken = overlying(asset);

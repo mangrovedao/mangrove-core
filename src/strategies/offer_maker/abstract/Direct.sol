@@ -63,11 +63,6 @@ abstract contract Direct is MangroveOffer {
   /// @param offerId An unsigned integer representing the identifier of the offer to be updated.
   /// @return status a `bytes32` value representing either `REPOST_SUCCESS` if the update is successful, or an error message if an error occurs and `OfferArgs.noRevert` is `true`. If `OfferArgs.noRevert` is `false`, the function reverts with the error message as the reason.
   function _updateOffer(OfferArgs memory args, uint offerId) internal override returns (bytes32 status) {
-    if (args.gasreq >= type(uint24).max) {
-      MgvStructs.OfferDetailPacked detail =
-        MGV.offerDetails(address(args.outbound_tkn), address(args.inbound_tkn), offerId);
-      args.gasreq = detail.gasreq();
-    }
     try MGV.updateOffer{value: args.fund}(
       address(args.outbound_tkn),
       address(args.inbound_tkn),

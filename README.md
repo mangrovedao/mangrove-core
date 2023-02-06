@@ -35,7 +35,7 @@ For Linux or macOS everything should work out of the box, if you are using Windo
 4. Clone the git repo with sub-modules
 
     ```shell
-    $ git clone --recurse-submodules https://github.com/mangrovedao/mangrove-ts.git
+    $ git clone --recurse-submodules https://github.com/mangrovedao/mangrove-core.git
     # Or set the global git config once: git config --global submodule.recurse true
     ```
 

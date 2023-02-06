@@ -59,6 +59,25 @@ $ cp .env.example .env
 
 And then open `.env` in your favorite editor and put in settings for, e.g., node urls, for instance pointing to [Alchemy](https://www.alchemy.com/). (The discussion around setting up an [environment for testing out the strat library on a local chain](https://docs.mangrove.exchange/strat-lib/getting-started/preparation#local-chain) on [docs.mangrove.exchange](https://docs.mangrove.exchange) might be helpful.)
 
+## Build
+
+To build, run
+
+```shell
+$ yarn build
+```
+
+## Tests
+
+To run all tests in the package, just run `yarn test`.
+
+This package contains a comprehensive test suite for Mangrove, implemented in Solidity using [Foundry](https://book.getfoundry.sh/index.html).
+
+The tests are located in [./test](./test).
+
+Refer to the documentation of [Foundry](https://book.getfoundry.sh/index.html) for details on how tests are structured and options for running it.
+
+
 # Foundry and its use in this package
 
 This package relies heavily on the [Foundry](https://book.getfoundry.sh/) development framework for Ethereum. It includes an [EVM interpreter](https://github.com/gakonst/ethers-rs) with special hooks for
@@ -73,16 +92,6 @@ string memory s = "Hello";
 uint n = 31;
 console.log("Message %s number %d",s,d);
 ```
-
-# Tests
-
-To run all tests in the package, just run `yarn test`.
-
-This package contains a comprehensive test suite for Mangrove, implemented in Solidity using [foundry](https://book.getfoundry.sh/index.html).
-
-The tests are located in [./test](./test).
-
-Refer to the documentation of [foundry](https://book.getfoundry.sh/index.html) for details on how tests are structured and options for running it.
 
 # Deploying on Mangrove
 

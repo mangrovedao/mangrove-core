@@ -145,11 +145,11 @@ abstract contract Direct is MangroveOffer {
     override
     returns (bytes32)
   {
-    IERC20[] memory tokens = new IERC20[](2);
-    tokens[0] = IERC20(order.outbound_tkn); // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
-    tokens[1] = IERC20(order.inbound_tkn); // flushing liquidity brought by taker
     AbstractRouter router_ = router();
     if (router_ != NO_ROUTER) {
+      IERC20[] memory tokens = new IERC20[](2);
+      tokens[0] = IERC20(order.outbound_tkn); // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
+      tokens[1] = IERC20(order.inbound_tkn); // flushing liquidity brought by taker
       router_.flush(tokens, reserveId());
     }
     // reposting offer residual if any

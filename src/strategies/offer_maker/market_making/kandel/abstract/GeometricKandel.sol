@@ -220,12 +220,26 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     }
   }
 
-  ///@notice returns a better (for Kandel) price index than the one given in argument
-  ///@param ba whether Kandel is bidding or asking
+  ///@notice returns the destination index to transport received liquidity to - a better (for Kandel) price index for the offer type.
+  ///@param ba the offer type to transport to
   ///@param index the price index one is willing to improve
   ///@param step the number of price steps improvements
-  function better(OfferType ba, uint index, uint step, uint length_) public pure returns (uint) {
-    return ba == OfferType.Ask ? index + step >= length_ ? length_ - 1 : index + step : index < step ? 0 : index - step;
+  function transportDestination(OfferType ba, uint index, uint step, uint pricePoints)
+    internal
+    pure
+    returns (uint better)
+  {
+    if (ba == OfferType.Ask) {
+      better = index + step;
+      if (better >= pricePoints) {
+        better = pricePoints - 1;
+      }
+    } else {
+      if (index >= step) {
+        better = index - step;
+      }
+      // else better is 0
+    }
   }
 
   function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
@@ -245,7 +259,7 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     }
     baDual = dual(ba);
 
-    memoizerDual = newSlotMemoizer(better(baDual, index, memoryParams.spread, memoryParams.pricePoints));
+    memoizerDual = newSlotMemoizer(transportDestination(baDual, index, memoryParams.spread, memoryParams.pricePoints));
 
     args.outbound_tkn = IERC20(order.inbound_tkn);
     args.inbound_tkn = IERC20(order.outbound_tkn);

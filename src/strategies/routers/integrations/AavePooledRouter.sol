@@ -256,6 +256,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   }
 
   ///@notice sets a new aave manager
+  ///@param aaveManager_ the new address of the aave manager
   ///@dev if any aave is active for pure lenders, `aaveManager` will be able to claim them
   function setAaveManager(address aaveManager_) public onlyAdmin {
     require(aaveManager_ != address(0), "AavePooledReserve/0xaaveManager");

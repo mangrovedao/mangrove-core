@@ -112,11 +112,11 @@ contract AavePooledRouterTest is OfferLogicTest {
     assertEq(pooledRouter.balanceOfId(pixieDust, owner), 1 ether, "Incorrect balance on router");
   }
 
-  function test_rewards_manager_is_deployer() public {
+  function test_initial_aave_manager_is_deployer() public {
     assertEq(pooledRouter.aaveManager(), deployer, "unexpected rewards manager");
   }
 
-  function test_admin_can_set_aave_manager() public {
+  function test_admin_can_set_new_aave_manager() public {
     vm.expectRevert("AccessControlled/Invalid");
     pooledRouter.setAaveManager($(this));
 
@@ -125,6 +125,42 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(deployer);
     pooledRouter.setAaveManager($(this));
     assertEq(pooledRouter.aaveManager(), $(this), "unexpected rewards manager");
+  }
+
+  function test_aave_manager_can_revoke_aave_approval() public {
+    assertTrue(
+      weth.allowance({spender: address(pooledRouter.POOL()), owner: $(pooledRouter)}) > 0,
+      "Allowance should be positive"
+    );
+    vm.prank(deployer);
+    pooledRouter.setAaveManager($(this));
+    pooledRouter.revokeLenderApproval(weth);
+    assertEq(
+      weth.allowance({spender: address(pooledRouter.POOL()), owner: $(pooledRouter)}), 0, "Allowance should be 0"
+    );
+  }
+
+  event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
+  event ReserveUsedAsCollateralDisabled(address indexed reserve, address indexed user);
+
+  function test_aave_manager_can_exit_market() public {
+    // pooled router has entered weth and usdc market when first supplying
+    vm.prank(deployer);
+    pooledRouter.setAaveManager($(this));
+    expectFrom(address(pooledRouter.POOL()));
+    emit ReserveUsedAsCollateralDisabled($(weth), $(pooledRouter));
+    pooledRouter.exitMarket(weth);
+  }
+
+  function test_aave_manager_can_reenter_market() public {
+    // pooled router has entered weth and usdc market when first supplying
+    vm.prank(deployer);
+    pooledRouter.setAaveManager($(this));
+    pooledRouter.exitMarket(weth);
+
+    expectFrom(address(pooledRouter.POOL()));
+    emit ReserveUsedAsCollateralEnabled($(weth), $(pooledRouter));
+    pooledRouter.enterMarket(dynamic([IERC20(weth)]));
   }
 
   function test_deposit_on_aave_maintains_reserve_and_total_balance() public {

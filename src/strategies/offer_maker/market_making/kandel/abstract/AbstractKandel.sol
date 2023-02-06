@@ -24,9 +24,6 @@ abstract contract AbstractKandel {
   ///@notice the compound rates have been set to `compoundRateBase` and `compoundRateQuote` which will take effect for future compounding.
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
 
-  ///@notice signals a new Kandel instance for the owner on the mangrove, for base and quote.
-  event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
-
   ///@notice the parameters for Kandel have been set.
   event SetParams(uint8 pricePoints, uint8 spread, uint16 ratio);
 

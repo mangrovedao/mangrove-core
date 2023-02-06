@@ -31,6 +31,11 @@ contract KandelSeeder {
   uint public immutable AAVE_KANDEL_GASREQ;
   uint public immutable KANDEL_GASREQ;
 
+  event NewAaveKandel(
+    address indexed owner, IERC20 indexed base, IERC20 indexed quote, address aaveKandel, address reserveId
+  );
+  event NewKandel(address indexed owner, IERC20 indexed base, IERC20 indexed quote, address kandel);
+
   constructor(IMangrove mgv, address addressesProvider_, uint routerGasreq, uint aaveKandelGasreq, uint kandelGasreq) {
     AavePooledRouter router = new AavePooledRouter(addressesProvider_, routerGasreq);
     AAVE_ROUTER = router;
@@ -74,8 +79,10 @@ contract KandelSeeder {
       // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20
       aaveKdl.initialize(AAVE_ROUTER);
       kdl = aaveKdl;
+      emit NewAaveKandel(msg.sender, seed.base, seed.quote, address(kdl), owner);
     } else {
       kdl = new Kandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
+      emit NewKandel(msg.sender, seed.base, seed.quote, address(kdl));
     }
     kdl.setCompoundRates(seed.compoundRateBase, seed.compoundRateQuote);
     kdl.setAdmin(msg.sender);

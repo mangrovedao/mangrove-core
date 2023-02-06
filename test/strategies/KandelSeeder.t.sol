@@ -13,6 +13,11 @@ contract KandelSeederTest is MangroveTest {
   PinnedPolygonFork fork;
   KandelSeeder seeder;
 
+  event NewAaveKandel(
+    address indexed owner, IERC20 indexed base, IERC20 indexed quote, address aaveKandel, address reserveId
+  );
+  event NewKandel(address indexed owner, IERC20 indexed base, IERC20 indexed quote, address kandel);
+
   function seed(bool onAave, bool sharing) internal view returns (KandelSeeder.KandelSeed memory seed_) {
     seed_ = KandelSeeder.KandelSeed({
       base: base,
@@ -49,6 +54,22 @@ contract KandelSeederTest is MangroveTest {
 
   function test_aave_manager_is_attributed() public {
     assertEq(seeder.AAVE_ROUTER().aaveManager(), address(this), "invalid aave Manager");
+  }
+
+  function test_logs_new_aaveKandel() public {
+    address maker = freshAddress("Maker");
+    expectFrom(address(seeder));
+    emit NewAaveKandel(maker, base, quote, 0xDD4c722d1614128933d6DC7EFA50A6913e804E12, maker);
+    vm.prank(maker);
+    seeder.sow(seed(true, true));
+  }
+
+  function test_logs_new_kandel() public {
+    address maker = freshAddress("Maker");
+    expectFrom(address(seeder));
+    emit NewKandel(maker, base, quote, 0xDD4c722d1614128933d6DC7EFA50A6913e804E12);
+    vm.prank(maker);
+    seeder.sow(seed(false, true));
   }
 
   function test_maker_deploys_shared_aaveKandel() public {

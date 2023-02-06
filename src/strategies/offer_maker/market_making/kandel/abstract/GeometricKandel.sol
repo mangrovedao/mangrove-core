@@ -44,7 +44,6 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     CoreKandel(mgv, gasreq, reserveId)
     TradesBaseQuotePair(base, quote)
   {
-    emit NewKandel(msg.sender, mgv, base, quote);
     setGasprice(gasprice);
   }
 

@@ -30,6 +30,12 @@ abstract contract AbstractKandel {
   ///@notice the gasreq has been set.
   event SetGasreq(uint value);
 
+  ///@notice the Kandel instance credited the amount of token to the recipient.
+  event Credit(address indexed recipient, IERC20 indexed token, uint amount);
+
+  ///@notice the spender send the amount of token to the Kandel instance.
+  event Debit(address indexed spender, IERC20 indexed token, uint amount);
+
   // `ratio`, `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals.
   // setting PRECISION higher than 4 might produce overflow in limit cases.
   uint8 public constant PRECISION = 4;
@@ -38,6 +44,10 @@ abstract contract AbstractKandel {
   function reserveBalance(IERC20 token) public view virtual returns (uint);
   function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual;
 
+  ///@notice withdraws the amounts of the given tokens to the recipient.
+  ///@param tokens the tokens to withdraw.
+  ///@param amounts the amounts of the tokens to withdraw.
+  ///@param recipient the recipient of the funds.
   /// @dev it is up to the caller to make sure there are still enough funds for live offers.
   function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) public virtual;
 }

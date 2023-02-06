@@ -176,7 +176,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   /// @inheritdoc IOfferLogic
-  function withdrawFromMangrove(uint amount, address payable receiver) external onlyAdmin {
+  function withdrawFromMangrove(uint amount, address payable receiver) public onlyAdmin {
     if (amount == type(uint).max) {
       amount = MGV.balanceOf(address(this));
     }

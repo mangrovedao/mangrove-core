@@ -131,7 +131,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
   ///@param from the start index.
   ///@param to the end index.
   ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs.
-  function retractOffers(uint from, uint to) external onlyAdmin {
+  function retractOffers(uint from, uint to) public onlyAdmin {
     (IERC20 outbound_tknAsk, IERC20 inbound_tknAsk) = tokenPairOfOfferType(OfferType.Ask);
     (IERC20 outbound_tknBid, IERC20 inbound_tknBid) = tokenPairOfOfferType(OfferType.Bid);
     for (uint index = from; index < to; index++) {

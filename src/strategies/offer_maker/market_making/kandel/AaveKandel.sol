@@ -16,7 +16,6 @@ import {MgvLib} from "mgv_src/MgvLib.sol";
 import {AbstractRouter, AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
 import {GeometricKandel} from "./abstract/GeometricKandel.sol";
 import {OfferType} from "./abstract/TradesBaseQuotePair.sol";
-import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
@@ -44,7 +43,7 @@ contract AaveKandel is GeometricKandel {
 
   function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public override {
     // transfer funds from caller to this
-    TransferLib.transferTokensFrom(tokens, msg.sender, address(this), amounts);
+    super.depositFunds(tokens, amounts);
     // push funds on the router (and supply on AAVE)
     pooledRouter().pushAndSupply(tokens, amounts, reserveId());
   }
@@ -57,7 +56,7 @@ contract AaveKandel is GeometricKandel {
     for (uint i; i < tokens.length; i++) {
       pooledRouter().pull(tokens[i], reserveId(), amounts[i], true);
     }
-    TransferLib.transferTokens(tokens, amounts, recipient);
+    super.withdrawFunds(tokens, amounts, recipient);
   }
 
   ///@notice returns the amount of tokens of the router's balance that belong to this contract

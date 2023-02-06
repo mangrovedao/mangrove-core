@@ -13,7 +13,6 @@ pragma solidity ^0.8.10;
 
 import {GeometricKandel} from "./abstract/GeometricKandel.sol";
 import {OfferType} from "./abstract/TradesBaseQuotePair.sol";
-import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
@@ -29,17 +28,5 @@ contract Kandel is GeometricKandel {
 
   function reserveBalance(IERC20 token) public view override returns (uint) {
     return token.balanceOf(address(this));
-  }
-
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public override {
-    TransferLib.transferTokensFrom(tokens, msg.sender, address(this), amounts);
-  }
-
-  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
-    public
-    override
-    onlyAdmin
-  {
-    TransferLib.transferTokens(tokens, amounts, recipient);
   }
 }

@@ -28,6 +28,8 @@ abstract contract CoreKandelTest is MangroveTest {
   event SetParams(uint pricePoints, uint spread, uint ratio);
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
   event SetGasreq(uint value);
+  event Credit(address indexed recipient, IERC20 indexed token, uint amount);
+  event Debit(address indexed spender, IERC20 indexed token, uint amount);
 
   // sets base and quote
   function __setForkEnvironment__() internal virtual {
@@ -100,6 +102,10 @@ abstract contract CoreKandelTest is MangroveTest {
     deal($(base), maker, pendingBase);
     deal($(quote), maker, pendingQuote);
 
+    expectFrom($(kdl));
+    emit Debit(maker, base, pendingBase);
+    expectFrom($(kdl));
+    emit Debit(maker, quote, pendingQuote);
     vm.prank(maker);
     kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([pendingBase, pendingQuote]));
   }
@@ -542,9 +548,10 @@ abstract contract CoreKandelTest is MangroveTest {
     // heal fills up offers to some designated volume starting from mid-price.
     // Designated volume should either be equally divided between holes, or be based on Kandel Density
     // Here we assume its some constant.
-    //TODO does not support no bids
-    //TODO Uses initQuote/initBase as starting point - not available on-chain
-    //TODO assumes mid-price and bid/asks on the book are not crossed.
+    // Note this example implementation
+    // * does not support no bids
+    // * uses initQuote/initBase as starting point - not available on-chain
+    // * assumes mid-price and bid/asks on the book are not crossed.
 
     uint baseDensity = densityBid;
     uint quoteDensity = densityAsk;
@@ -949,6 +956,8 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   function test_setGasprice() public {
+    expectFrom($(kdl));
+    emit SetGasprice(42);
     vm.prank(maker);
     kdl.setGasprice(42);
     (uint16 gasprice,,,,,,) = kdl.params();
@@ -956,10 +965,32 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   function test_setGasreq() public {
+    expectFrom($(kdl));
+    emit SetGasreq(42);
     vm.prank(maker);
     kdl.setGasreq(42);
     (, uint24 gasreq,,,,,) = kdl.params();
     assertEq(gasreq, uint24(42), "Incorrect gasprice in params");
+  }
+
+  function test_retractAndWithdraw() public {
+    address payable recipient = freshAddress();
+    uint baseBalance = kdl.reserveBalance(base);
+    uint quoteBalance = kdl.reserveBalance(quote);
+    expectFrom($(kdl));
+    emit Credit(recipient, base, baseBalance);
+    expectFrom($(kdl));
+    emit Credit(recipient, quote, quoteBalance);
+    vm.prank(maker);
+    kdl.retractAndWithdraw(
+      0, 10, dynamic([IERC20(base), IERC20(quote)]), dynamic([baseBalance, quoteBalance]), type(uint).max, recipient
+    );
+
+    assertEq(quoteBalance, quote.balanceOf(recipient), "quote balance should be sent to recipient");
+    assertEq(baseBalance, base.balanceOf(recipient), "quote balance should be sent to recipient");
+    assertGt(recipient.balance, 0, "wei should be at recipient");
+    assertEq(0, kdl.offeredVolume(Bid), "no bids should be live");
+    assertEq(0, kdl.offeredVolume(Ask), "no bids should be live");
   }
 
   function deployOtherKandel(uint base0, uint quote0, uint16 ratio, uint8 spread, uint8 pricePoints) internal {

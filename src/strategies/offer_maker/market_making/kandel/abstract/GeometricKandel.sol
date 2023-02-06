@@ -18,6 +18,7 @@ import {AbstractKandel} from "./AbstractKandel.sol";
 import {OfferType} from "./TradesBaseQuotePair.sol";
 import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {CoreKandel} from "./CoreKandel.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuotePair {
   ///@notice the parameters for Kandel have been set.
@@ -279,5 +280,44 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     args.gasreq = memoryParams.gasreq;
     args.pivotId = offer.gives() > 0 ? offer.next() : 0;
     return (baDual, dualOfferId, dualIndex, args);
+  }
+
+  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual override {
+    TransferLib.transferTokensFrom(tokens, msg.sender, address(this), amounts);
+    for (uint i; i < tokens.length; i++) {
+      emit Debit(msg.sender, tokens[i], amounts[i]);
+    }
+  }
+
+  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
+    public
+    virtual
+    override
+    onlyAdmin
+  {
+    TransferLib.transferTokens(tokens, amounts, recipient);
+    for (uint i; i < tokens.length; i++) {
+      emit Credit(recipient, tokens[i], amounts[i]);
+    }
+  }
+
+  ///@notice Retracts offers, withdraws funds, and withdraws free wei from Mangrove.
+  ///@param from retract offers starting from this index.
+  ///@param to retract offers until this index.
+  ///@param tokens the tokens to withdraw.
+  ///@param tokenAmounts the amounts of the tokens to withdraw.
+  ///@param freeWei the amount of wei to withdraw from Mangrove. Use type(uint).max to withdraw entire available balance.
+  ///@param recipient the recipient of the funds.
+  function retractAndWithdraw(
+    uint from,
+    uint to,
+    IERC20[] calldata tokens,
+    uint[] calldata tokenAmounts,
+    uint freeWei,
+    address payable recipient
+  ) external onlyAdmin {
+    retractOffers(from, to);
+    withdrawFunds(tokens, tokenAmounts, recipient);
+    withdrawFromMangrove(freeWei, recipient);
   }
 }

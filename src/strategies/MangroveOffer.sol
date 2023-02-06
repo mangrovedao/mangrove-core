@@ -30,8 +30,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   IMangrove public immutable MGV;
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
 
-  bytes32 constant OUT_OF_FUNDS = keccak256("mgv/insufficientProvision");
-  bytes32 constant BELOW_DENSITY = keccak256("mgv/writeOffer/density/tooLow");
   bytes32 constant REPOST_SUCCESS = "offer/partialFilled";
   bytes32 constant NEW_OFFER_SUCCESS = "offer/created";
   bytes32 constant COMPLETE_FILL = "offer/filled";

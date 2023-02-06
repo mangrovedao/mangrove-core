@@ -273,7 +273,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       // adapting residualGives to match initial price
       residualWants = (residualGives * tko.takerWants) / tko.takerGives;
     }
-    res.offerId = _newOffer(
+    (res.offerId,) = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,

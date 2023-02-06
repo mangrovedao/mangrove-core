@@ -32,7 +32,7 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
     payable
     returns (uint offerId)
   {
-    offerId = _newOffer(
+    (offerId,) = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,

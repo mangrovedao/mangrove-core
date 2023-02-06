@@ -12,6 +12,10 @@ contract KandelTest is CoreKandelTest {
   function __deployKandel__(address deployer, address reserveId) internal override returns (GeometricKandel kdl_) {
     uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
 
+    vm.expectEmit(true, true, true, true);
+    emit SetGasprice(bufferedGasprice);
+    vm.expectEmit(true, true, true, true);
+    emit SetGasreq(GASREQ);
     vm.prank(deployer);
     kdl_ = new Kandel({
       mgv: IMangrove($(mgv)),

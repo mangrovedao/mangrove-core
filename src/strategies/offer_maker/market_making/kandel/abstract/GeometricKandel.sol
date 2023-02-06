@@ -21,7 +21,7 @@ import {CoreKandel} from "./CoreKandel.sol";
 
 abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuotePair {
   ///@notice the parameters for Kandel have been set.
-  event SetParams(uint8 pricePoints, uint8 spread, uint16 ratio);
+  event SetParams(uint pricePoints, uint spread, uint ratio);
 
   ///@notice Geometric Kandel parameters
   ///@param gasprice the gasprice to use for offers

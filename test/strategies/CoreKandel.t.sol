@@ -25,8 +25,9 @@ abstract contract CoreKandelTest is MangroveTest {
   event AllAsks();
   event AllBids();
   event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
-  event SetParams(uint8 pricePoints, uint8 spread, uint16 ratio);
+  event SetParams(uint pricePoints, uint spread, uint ratio);
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
+  event SetGasreq(uint value);
 
   // sets base and quote
   function __setForkEnvironment__() internal virtual {

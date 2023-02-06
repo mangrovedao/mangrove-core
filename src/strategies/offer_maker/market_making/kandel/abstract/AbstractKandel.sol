@@ -25,10 +25,10 @@ abstract contract AbstractKandel {
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
 
   ///@notice the gasprice has been set.
-  event SetGasprice(uint16 gasprice);
+  event SetGasprice(uint value);
 
   ///@notice the gasreq has been set.
-  event SetGasreq(uint24 gasreq);
+  event SetGasreq(uint value);
 
   // `ratio`, `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals.
   // setting PRECISION higher than 4 might produce overflow in limit cases.

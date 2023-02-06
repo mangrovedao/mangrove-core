@@ -6,18 +6,58 @@ This package contains the Solidity implementation of Mangrove as well as deploym
 
 If you are looking for the Mangrove developer documentation, the site to go to is [docs.mangrove.exchange](https://docs.mangrove.exchange).
 
-# Installation
+# Prerequisites
 
-First, clone the repo and install the prerequisites for the monorepo described in the root [README.md](../../README.md).
+For Linux or macOS everything should work out of the box, if you are using Windows, then we recommend installing everything from within WSL2 and expect some quirks.
 
-Next, run the following commands:
+1. [Node.js](https://nodejs.org/en/) 14.14+, we recommend installation through [nvm](https://github.com/nvm-sh/nvm#installing-and-updating), e.g.:
+
+    ```shell
+    $ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+    # Reopen shell
+    $ nvm install --lts
+    ```
+
+2. [Yarn 2](https://yarnpkg.com/getting-started/install), with Node.js >= 16.10:
+
+    ```shell
+    $ corepack enable
+    ```
+
+3. [Foundry](https://book.getfoundry.sh/getting-started/installation.html):
+
+    ```shell
+    $ curl -L https://foundry.paradigm.xyz | bash
+    # Reopen shell
+    $ foundryup
+    ```
+
+4. Clone the git repo with sub-modules
+
+    ```shell
+    $ git clone --recurse-submodules https://github.com/mangrovedao/mangrove-ts.git
+    # Or set the global git config once: git config --global submodule.recurse true
+    ```
+
+# Usage
+
+The following sections describe the most common use cases in this repo.
+
+## Initial setup
+
+After cloning the repo, you should run `yarn install` in the root folder.
 
 ```shell
-$ yarn install   # Sets up Mangrove monorepo and install dependencies
-$ yarn build     # Compiles Mangrove and offer logics
+$ yarn install
 ```
 
-After the initial installation, it is sufficient to run `yarn build` after updating the clone - this will also run `yarn install`.
+The you need to setup the local environment (still in the root folder). Start by copying the test file provided:
+
+```shell
+$ cp .env.example .env
+```
+
+And then open `.env` in your favorite editor and put in settings for, e.g., node urls, for instance pointing to [Alchemy](https://www.alchemy.com/). (The discussion around setting up an [environment for testing out the strat library on a local chain](https://docs.mangrove.exchange/strat-lib/getting-started/preparation#local-chain) on [docs.mangrove.exchange](https://docs.mangrove.exchange) might be helpful.)
 
 # Foundry and its use in this package
 

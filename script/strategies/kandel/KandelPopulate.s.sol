@@ -21,21 +21,25 @@ import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 
 contract KandelPopulate is Deployer {
   function run() public {
-    uint16 ratio = uint16(vm.envUint("RATIO"));
-    require(ratio == vm.envUint("RATIO"), "Invalid RATIO");
-    uint8 pricePoints = uint8(vm.envUint("PRICE_POINTS"));
-    require(pricePoints == vm.envUint("PRICE_POINTS"), "Invalid PRICE_POINTS");
-    uint8 spread = uint8(vm.envUint("SPREAD"));
-    require(spread == vm.envUint("SPREAD"), "Invalid SPREAD");
+    Kandel.Params memory params;
+
+    params.ratio = uint16(vm.envUint("RATIO"));
+    require(params.ratio == vm.envUint("RATIO"), "Invalid RATIO");
+    params.pricePoints = uint8(vm.envUint("PRICE_POINTS"));
+    require(params.pricePoints == vm.envUint("PRICE_POINTS"), "Invalid PRICE_POINTS");
+    params.spread = uint8(vm.envUint("SPREAD"));
+    require(params.spread == vm.envUint("SPREAD"), "Invalid SPREAD");
+    params.compoundRateBase = uint16(vm.envUint("COMPOUND_RATE_BASE"));
+    require(params.compoundRateBase == vm.envUint("COMPOUND_RATE_BASE"), "Invalid COMPOUND_RATE_BASE");
+    params.compoundRateQuote = uint16(vm.envUint("COMPOUND_RATE_QUOTE"));
+    require(params.compoundRateQuote == vm.envUint("COMPOUND_RATE_QUOTE"), "Invalid COMPOUND_RATE_QUOTE");
 
     innerRun(
       HeapArgs({
         from: vm.envUint("FROM"),
         to: vm.envUint("TO"),
         lastBidIndex: vm.envUint("LAST_BID_INDEX"),
-        pricePoints: pricePoints,
-        ratio: ratio,
-        spread: spread,
+        params: params,
         initQuote: vm.envUint("INIT_QUOTE"),
         volume: vm.envUint("VOLUME"),
         kdl: Kandel(envAddressOrName("KANDEL"))
@@ -57,9 +61,7 @@ contract KandelPopulate is Deployer {
     uint from;
     uint to;
     uint lastBidIndex;
-    uint8 pricePoints;
-    uint16 ratio;
-    uint8 spread;
+    Kandel.Params params;
     uint initQuote;
     uint volume;
     Kandel kdl;
@@ -156,13 +158,12 @@ contract KandelPopulate is Deployer {
     prettyLog("Populating Mangrove...");
 
     broadcast();
+
     args.kdl.populate{value: funds}(
       vars.distribution,
       vars.pivotIds,
       args.lastBidIndex,
-      args.pricePoints,
-      args.ratio,
-      args.spread,
+      args.params,
       dynamic([IERC20(vars.BASE), vars.QUOTE]),
       dynamic([uint(vars.baseAmountRequired), vars.quoteAmountRequired])
     );
@@ -170,8 +171,9 @@ contract KandelPopulate is Deployer {
   }
 
   function calculateBaseQuote(HeapArgs memory args) public view returns (CoreKandel.Distribution memory distribution) {
-    (distribution, /* uint lastQuote */ ) =
-      KandelLib.calculateDistribution(args.from, args.to, args.volume, args.initQuote, args.ratio, args.kdl.PRECISION());
+    (distribution, /* uint lastQuote */ ) = KandelLib.calculateDistribution(
+      args.from, args.to, args.volume, args.initQuote, args.params.ratio, args.kdl.PRECISION()
+    );
   }
 
   ///@notice evaluates Pivot ids for offers that need to be published on Mangrove
@@ -184,9 +186,8 @@ contract KandelPopulate is Deployer {
   ) public {
     vars.snapshotId = vm.snapshot();
     vm.prank(broadcaster());
-    (vars.pivotIds, vars.baseAmountRequired, vars.quoteAmountRequired) = KandelLib.estimatePivotsAndRequiredAmount(
-      distribution, args.kdl, args.lastBidIndex, args.pricePoints, args.ratio, args.spread, funds
-    );
+    (vars.pivotIds, vars.baseAmountRequired, vars.quoteAmountRequired) =
+      KandelLib.estimatePivotsAndRequiredAmount(distribution, args.kdl, args.lastBidIndex, args.params, funds);
     require(vm.revertTo(vars.snapshotId), "snapshot restore failed");
   }
 }

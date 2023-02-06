@@ -24,9 +24,6 @@ abstract contract AbstractKandel {
   ///@notice the compound rates have been set to `compoundRateBase` and `compoundRateQuote` which will take effect for future compounding.
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
 
-  ///@notice the parameters for Kandel have been set.
-  event SetParams(uint8 pricePoints, uint8 spread, uint16 ratio);
-
   ///@notice the gasprice has been set.
   event SetGasprice(uint16 gasprice);
 

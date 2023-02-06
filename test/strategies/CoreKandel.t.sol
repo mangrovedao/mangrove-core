@@ -82,9 +82,13 @@ abstract contract CoreKandelTest is MangroveTest {
     (CoreKandel.Distribution memory distribution2,) =
       KandelLib.calculateDistribution(5, 10, initBase, lastQuote, ratio, kdl.PRECISION());
 
+    GeometricKandel.Params memory params;
+    params.ratio = ratio;
+    params.spread = STEP;
+    params.pricePoints = 10;
     vm.prank(maker);
     kdl.populate{value: (provAsk + provBid) * 10}(
-      distribution1, dynamic([uint(0), 1, 2, 3, 4]), 4, 10, ratio, STEP, new IERC20[](0), new uint[](0)
+      distribution1, dynamic([uint(0), 1, 2, 3, 4]), 4, params, new IERC20[](0), new uint[](0)
     );
 
     vm.prank(maker);
@@ -672,16 +676,12 @@ abstract contract CoreKandelTest is MangroveTest {
     if (expectRevert.length > 0) {
       vm.expectRevert(expectRevert);
     }
-    kdl.populate{value: 0.1 ether}(
-      distribution,
-      pivotIds,
-      lastBidIndex,
-      uint8(pricePoints),
-      uint16(ratio),
-      uint8(spread),
-      new IERC20[](0),
-      new uint[](0)
-    );
+    GeometricKandel.Params memory params;
+    params.pricePoints = uint8(pricePoints);
+    params.ratio = uint16(ratio);
+    params.spread = uint8(spread);
+
+    kdl.populate{value: 0.1 ether}(distribution, pivotIds, lastBidIndex, params, new IERC20[](0), new uint[](0));
   }
 
   function test_populate_retracts_at_zero() public {
@@ -808,24 +808,26 @@ abstract contract CoreKandelTest is MangroveTest {
     expectFrom(address(kdl));
     emit SetParams(params.pricePoints, params.spread + 1, params.ratio + 1);
 
-    vm.prank(maker);
-    kdl.populate(
-      emptyDist, empty, 0, params.pricePoints, params.ratio + 1, params.spread + 1, new IERC20[](0), new uint[](0)
-    );
+    GeometricKandel.Params memory paramsNew;
+    paramsNew.pricePoints = params.pricePoints;
+    paramsNew.ratio = params.ratio + 1;
+    paramsNew.spread = params.spread + 1;
+    paramsNew.compoundRateBase = params.compoundRateBase + 1;
+    paramsNew.compoundRateQuote = params.compoundRateQuote + 2;
 
     expectFrom(address(kdl));
-    emit SetCompoundRates(params.compoundRateBase + 1, params.compoundRateQuote + 1);
+    emit SetCompoundRates(paramsNew.compoundRateBase, paramsNew.compoundRateQuote);
 
     vm.prank(maker);
-    kdl.setCompoundRates(params.compoundRateBase + 1, params.compoundRateQuote + 1);
+    kdl.populate(emptyDist, empty, 0, paramsNew, new IERC20[](0), new uint[](0));
 
     GeometricKandel.Params memory params_ = GetParams(kdl);
 
     assertEq(params_.gasprice, params.gasprice, "gasprice cannot be changed");
     assertEq(params_.pricePoints, params.pricePoints, "pricePoints should not be changed");
-    assertEq(params_.ratio, params.ratio + 1, "ratio should be changed");
-    assertEq(params_.compoundRateBase, params.compoundRateBase + 1, "compoundRateBase should be changed");
-    assertEq(params_.compoundRateQuote, params.compoundRateQuote + 1, "compoundRateQuote should be changed");
+    assertEq(params_.ratio, paramsNew.ratio, "ratio should be changed");
+    assertEq(params_.compoundRateBase, paramsNew.compoundRateBase, "compoundRateBase should be changed");
+    assertEq(params_.compoundRateQuote, paramsNew.compoundRateQuote, "compoundRateQuote should be changed");
     assertEq(params_.spread, params.spread + 1, "spread should be changed");
     assertEq(offeredVolumeBase, kdl.offeredVolume(Ask), "ask volume should be unchanged");
     assertEq(offeredVolumeQuote, kdl.offeredVolume(Bid), "ask volume should be unchanged");
@@ -834,21 +836,55 @@ abstract contract CoreKandelTest is MangroveTest {
 
   function test_populate_throws_on_invalid_ratio() public {
     uint precision = kdl.PRECISION();
+    GeometricKandel.Params memory params;
+    params.pricePoints = 10;
+    params.ratio = uint16(10 ** precision - 1);
+    params.spread = 1;
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidRatio");
-    kdl.populate(emptyDist, empty, 0, 10, uint16(10 ** precision - 1), 0, new IERC20[](0), new uint[](0));
+    kdl.populate(emptyDist, empty, 0, params, new IERC20[](0), new uint[](0));
   }
 
   function test_populate_throws_on_invalid_spread_low() public {
+    GeometricKandel.Params memory params;
+    params.pricePoints = 10;
+    params.ratio = 10800;
+    params.spread = 0;
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidSpread");
-    kdl.populate(emptyDist, empty, 0, 10, 10800, 0, new IERC20[](0), new uint[](0));
+    kdl.populate(emptyDist, empty, 0, params, new IERC20[](0), new uint[](0));
   }
 
   function test_populate_throws_on_invalid_spread_high() public {
+    GeometricKandel.Params memory params;
+    params.pricePoints = 10;
+    params.ratio = 10800;
+    params.spread = 9;
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidSpread");
-    kdl.populate(emptyDist, empty, 0, 10, 10800, 9, new IERC20[](0), new uint[](0));
+    kdl.populate(emptyDist, empty, 0, params, new IERC20[](0), new uint[](0));
+  }
+
+  function test_populate_invalidCompoundRatesBase_reverts() public {
+    GeometricKandel.Params memory params;
+    params.pricePoints = 10;
+    params.ratio = 10800;
+    params.spread = 1;
+    params.compoundRateBase = 2 ** 16 - 1;
+    vm.prank(maker);
+    vm.expectRevert("Kandel/invalidCompoundRateBase");
+    kdl.populate(emptyDist, empty, 0, params, new IERC20[](0), new uint[](0));
+  }
+
+  function test_populate_invalidCompoundRatesQuote_reverts() public {
+    GeometricKandel.Params memory params;
+    params.pricePoints = 10;
+    params.ratio = 10800;
+    params.spread = 1;
+    params.compoundRateQuote = 2 ** 16 - 1;
+    vm.prank(maker);
+    vm.expectRevert("Kandel/invalidCompoundRateQuote");
+    kdl.populate(emptyDist, empty, 0, params, new IERC20[](0), new uint[](0));
   }
 
   function test_setCompoundRatesBase_reverts() public {
@@ -881,8 +917,15 @@ abstract contract CoreKandelTest is MangroveTest {
     (CoreKandel.Distribution memory distribution,) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, kdl.PRECISION());
 
+    GeometricKandel.Params memory params;
+    params.pricePoints = 5;
+    params.ratio = ratio;
+    params.spread = 2;
+    params.compoundRateBase = compoundRateBase;
+    params.compoundRateQuote = compoundRateQuote;
+
     vm.prank(maker);
-    kdl.populate(distribution, dynamic([uint(0), 1, 2, 3, 4]), 2, 5, ratio, 2, new IERC20[](0), new uint[](0));
+    kdl.populate(distribution, dynamic([uint(0), 1, 2, 3, 4]), 2, params, new IERC20[](0), new uint[](0));
 
     vm.prank(maker);
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
@@ -938,9 +981,13 @@ abstract contract CoreKandelTest is MangroveTest {
     (CoreKandel.Distribution memory distribution,) =
       KandelLib.calculateDistribution(0, pricePoints, base0, quote0, ratio, otherKandel.PRECISION());
 
+    GeometricKandel.Params memory params;
+    params.pricePoints = pricePoints;
+    params.ratio = ratio;
+    params.spread = spread;
     vm.prank(otherMaker);
     otherKandel.populate{value: totalProvision}(
-      distribution, new uint[](pricePoints), pricePoints / 2, pricePoints, ratio, spread, new IERC20[](0), new uint[](0)
+      distribution, new uint[](pricePoints), pricePoints / 2, params, new IERC20[](0), new uint[](0)
     );
 
     uint pendingBase = uint(-otherKandel.pending(Ask));

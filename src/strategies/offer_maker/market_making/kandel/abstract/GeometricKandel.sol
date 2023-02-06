@@ -20,6 +20,9 @@ import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {CoreKandel} from "./CoreKandel.sol";
 
 abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuotePair {
+  ///@notice the parameters for Kandel have been set.
+  event SetParams(uint8 pricePoints, uint8 spread, uint16 ratio);
+
   ///@notice Geometric Kandel parameters
   ///@param gasprice the gasprice to use for offers
   ///@param gasreq the gasreq to use for offers
@@ -118,9 +121,7 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
   ///@param distribution the distribution of base and quote for Kandel indices
   ///@param pivotIds the pivot to be used for the offer
   ///@param lastBidIndex the index after which offer should be an ask. First index will never be an ask, either a bid or not published.
-  ///@param pricePoints the number of price points
-  ///@param ratio the rate of the geometric distribution with PRECISION decimals.
-  ///@param spread the distance between a ask in the distribution and its corresponding bid.
+  ///@param parameters the parameters for Kandel
   ///@param depositTokens tokens to deposit.
   ///@param depositAmounts amounts to deposit for the tokens.
   ///@dev This function is used at initialization and can fund with provision for the offers.
@@ -131,16 +132,16 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     Distribution calldata distribution,
     uint[] calldata pivotIds,
     uint lastBidIndex,
-    uint8 pricePoints,
-    uint16 ratio,
-    uint8 spread,
+    Params calldata parameters,
     IERC20[] calldata depositTokens,
     uint[] calldata depositAmounts
   ) external payable onlyAdmin {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
-    setParams(pricePoints, ratio, spread);
+    setParams(parameters.pricePoints, parameters.ratio, parameters.spread);
+
+    setCompoundRates(parameters.compoundRateBase, parameters.compoundRateQuote);
 
     depositFunds(depositTokens, depositAmounts);
 

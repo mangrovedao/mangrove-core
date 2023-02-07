@@ -25,8 +25,9 @@ abstract contract CoreKandelTest is MangroveTest {
   event AllAsks();
   event AllBids();
   event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
-  event SetParams(uint pricePoints, uint spread, uint ratio);
+  event SetGeometricParams(uint spread, uint ratio);
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
+  event SetLength(uint value);
   event SetGasreq(uint value);
   event Credit(address indexed recipient, IERC20 indexed token, uint amount);
   event Debit(address indexed spender, IERC20 indexed token, uint amount);
@@ -813,16 +814,21 @@ abstract contract CoreKandelTest is MangroveTest {
     uint offeredVolumeBase = kdl.offeredVolume(Ask);
     uint offeredVolumeQuote = kdl.offeredVolume(Bid);
 
-    expectFrom(address(kdl));
-    emit SetParams(params.pricePoints, params.spread + 1, params.ratio + 1);
-
     GeometricKandel.Params memory paramsNew;
     paramsNew.pricePoints = params.pricePoints;
     paramsNew.ratio = params.ratio + 1;
     paramsNew.spread = params.spread + 1;
     paramsNew.compoundRateBase = params.compoundRateBase + 1;
     paramsNew.compoundRateQuote = params.compoundRateQuote + 2;
+    paramsNew.gasprice = params.gasprice + 1;
+    paramsNew.gasreq = params.gasreq + 1;
 
+    expectFrom(address(kdl));
+    emit SetGeometricParams(paramsNew.spread, paramsNew.ratio);
+    expectFrom(address(kdl));
+    emit SetGasprice(paramsNew.gasprice);
+    expectFrom(address(kdl));
+    emit SetGasreq(paramsNew.gasreq);
     expectFrom(address(kdl));
     emit SetCompoundRates(paramsNew.compoundRateBase, paramsNew.compoundRateQuote);
 
@@ -831,7 +837,8 @@ abstract contract CoreKandelTest is MangroveTest {
 
     GeometricKandel.Params memory params_ = GetParams(kdl);
 
-    assertEq(params_.gasprice, params.gasprice, "gasprice cannot be changed");
+    assertEq(params_.gasprice, paramsNew.gasprice, "gasprice should be changed");
+    assertEq(params_.gasreq, paramsNew.gasreq, "gasreq should be changed");
     assertEq(params_.pricePoints, params.pricePoints, "pricePoints should not be changed");
     assertEq(params_.ratio, paramsNew.ratio, "ratio should be changed");
     assertEq(params_.compoundRateBase, paramsNew.compoundRateBase, "compoundRateBase should be changed");
@@ -932,6 +939,8 @@ abstract contract CoreKandelTest is MangroveTest {
     params.compoundRateBase = compoundRateBase;
     params.compoundRateQuote = compoundRateQuote;
 
+    expectFrom(address(kdl));
+    emit SetLength(params.pricePoints);
     vm.prank(maker);
     kdl.populate(distribution, dynamic([uint(0), 1, 2, 3, 4]), 2, params, new IERC20[](0), new uint[](0));
 

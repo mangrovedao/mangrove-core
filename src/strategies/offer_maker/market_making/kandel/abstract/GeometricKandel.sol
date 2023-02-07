@@ -19,8 +19,8 @@ import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {CoreKandel} from "./CoreKandel.sol";
 
 abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
-  ///@notice the parameters for Kandel have been set.
-  event SetParams(uint pricePoints, uint spread, uint ratio);
+  ///@notice the parameters for Geometric Kandel have been set.
+  event SetGeometricParams(uint spread, uint ratio);
 
   ///@notice Geometric Kandel parameters
   ///@param gasprice the gasprice to use for offers
@@ -66,23 +66,44 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     emit SetGasreq(gasreq_);
   }
 
-  function setParams(uint8 pricePoints, uint16 ratio, uint8 spread) private {
-    // Initializing arrays and parameters if needed
-    Params memory memoryParams = params;
+  function setParams(Params calldata newParams) private {
+    Params memory oldParams = params;
 
-    if (memoryParams.pricePoints != pricePoints) {
-      setLength(pricePoints);
-      params.pricePoints = pricePoints;
+    if (oldParams.pricePoints != newParams.pricePoints) {
+      setLength(newParams.pricePoints);
+      params.pricePoints = newParams.pricePoints;
     }
-    if (memoryParams.ratio != ratio) {
-      require(ratio >= 10 ** PRECISION, "Kandel/invalidRatio");
-      params.ratio = ratio;
+
+    bool geometricChanged = false;
+    if (oldParams.ratio != newParams.ratio) {
+      require(newParams.ratio >= 10 ** PRECISION, "Kandel/invalidRatio");
+      params.ratio = newParams.ratio;
+      geometricChanged = true;
     }
-    if (memoryParams.spread != spread) {
-      require(spread > 0 && spread <= 8, "Kandel/invalidSpread");
-      params.spread = spread;
+    if (oldParams.spread != newParams.spread) {
+      require(newParams.spread > 0 && newParams.spread <= 8, "Kandel/invalidSpread");
+      params.spread = newParams.spread;
+      geometricChanged = true;
     }
-    emit SetParams(pricePoints, spread, ratio);
+
+    if (geometricChanged) {
+      emit SetGeometricParams(newParams.spread, newParams.ratio);
+    }
+
+    if (newParams.gasprice != 0 && newParams.gasprice != oldParams.gasprice) {
+      setGasprice(newParams.gasprice);
+    }
+
+    if (newParams.gasreq != 0 && newParams.gasreq != oldParams.gasreq) {
+      setGasreq(newParams.gasreq);
+    }
+
+    if (
+      oldParams.compoundRateBase != newParams.compoundRateBase
+        || oldParams.compoundRateQuote != newParams.compoundRateQuote
+    ) {
+      setCompoundRates(newParams.compoundRateBase, newParams.compoundRateQuote);
+    }
   }
 
   ///@notice set the compound rates. It will take effect for future compounding.
@@ -111,7 +132,7 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   ///@param distribution the distribution of base and quote for Kandel indices
   ///@param pivotIds the pivot to be used for the offer
   ///@param lastBidIndex the index after which offer should be an ask. First index will never be an ask, either a bid or not published.
-  ///@param parameters the parameters for Kandel
+  ///@param parameters the parameters for Kandel. Only changed parameters will cause updates. Set `gasreq` and `gasprice` to 0 to keep existing values.
   ///@param depositTokens tokens to deposit.
   ///@param depositAmounts amounts to deposit for the tokens.
   ///@dev This function is used at initialization and can fund with provision for the offers.
@@ -129,9 +150,7 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
-    setParams(parameters.pricePoints, parameters.ratio, parameters.spread);
-
-    setCompoundRates(parameters.compoundRateBase, parameters.compoundRateQuote);
+    setParams(parameters);
 
     depositFunds(depositTokens, depositAmounts);
 

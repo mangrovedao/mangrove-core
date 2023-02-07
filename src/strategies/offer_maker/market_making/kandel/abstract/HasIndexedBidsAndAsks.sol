@@ -29,6 +29,9 @@ abstract contract IHasOfferIdIndexMap {
 abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType, IHasOfferIdIndexMap {
   IMangrove private immutable MGV;
 
+  ///@notice the length of the index has been set.
+  event SetLength(uint value);
+
   constructor(IMangrove mgv) {
     MGV = mgv;
   }
@@ -70,6 +73,7 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType, IHasOfferId
   function setLength(uint length) internal {
     askOfferIdOfIndex = new uint[](length);
     bidOfferIdOfIndex = new uint[](length);
+    emit SetLength(length);
   }
 
   ///@notice gets the Mangrove offer at the given index for the offer type.

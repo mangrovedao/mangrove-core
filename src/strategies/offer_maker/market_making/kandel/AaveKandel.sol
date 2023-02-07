@@ -78,6 +78,7 @@ contract AaveKandel is GeometricKandel {
     override
     returns (bytes32)
   {
+    bytes32 repostStatus;
     if (makerData == IS_FIRST_PULLER) {
       IERC20[] memory tokens = new IERC20[](2);
       tokens[0] = IERC20(order.outbound_tkn); // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
@@ -88,9 +89,11 @@ contract AaveKandel is GeometricKandel {
 
       pooledRouter().pushAndSupply(tokens, amounts, reserveId());
       // reposting offer residual if any
-      return MangroveOffer.__posthookSuccess__(order, makerData);
+      repostStatus = MangroveOffer.__posthookSuccess__(order, makerData);
     } else {
-      return super.__posthookSuccess__(order, makerData);
+      repostStatus = super.__posthookSuccess__(order, makerData);
     }
+
+    return transportSuccessfulOrder(order, makerData, repostStatus);
   }
 }

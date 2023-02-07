@@ -8,7 +8,7 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 contract AavePooledRouterTest is OfferLogicTest {
   AavePooledRouter pooledRouter;
 
-  uint constant GASREQ = 474 * 1000; // fail for GASREQ < 474K
+  uint constant GASREQ = 474.125 * 1000; // fail for GASREQ < 474K
 
   event SetAaveManager(address);
   event AaveIncident(IERC20 indexed token, address indexed reserveId, uint amount, bytes32 aaveReason);
@@ -246,7 +246,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     deal($(dai), maker1, 10 ** 18);
     vm.prank(maker1);
     pooledRouter.push(dai, maker1, 10 ** 18);
-    assertEq(pooledRouter.sharesOf(dai, maker1), 10 ** 29, "Incorrect first shares");
+    assertEq(pooledRouter.sharesOf(dai, maker1), 10 ** pooledRouter.OFFSET(), "Incorrect first shares");
   }
 
   function test_pull_token_decreases_last_minter_shares_to_zero() public {
@@ -452,5 +452,82 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.expectRevert("AavePooledRouter/tokenNotLendableOnAave");
     vm.prank(maker1);
     pooledRouter.checkList(IERC20($(tkn)), maker1);
+  }
+
+  function empty_pool(IERC20 token, address id) internal {
+    // empty usdc reserve
+    vm.startPrank(address(makerContract));
+    pooledRouter.pull(token, owner, pooledRouter.balanceOfId(token, id), true);
+    vm.stopPrank();
+    assertEq(pooledRouter.balanceOfId(token, id), 0, "Non empty balance");
+
+    assertEq(token.balanceOf($(pooledRouter)), 0, "Non empty buffer");
+    assertEq(pooledRouter.overlying(token).balanceOf($(pooledRouter)), 0, "Non empty pool");
+  }
+
+  function test_overflow_shares(uint104 amount_) public {
+    uint amount = uint(amount_);
+    empty_pool(usdc, owner);
+    empty_pool(usdc, maker1);
+    empty_pool(usdc, maker2);
+
+    deal($(usdc), maker1, amount + 1);
+    // maker1 deposits 1 wei and gets 10**OFFSET shares
+    vm.prank(maker1);
+    pooledRouter.push(usdc, maker1, 1);
+    // maker1 now deposits max uint104
+    vm.prank(maker1);
+    pooledRouter.push(usdc, maker1, amount);
+
+    // computation below should not throw
+    assertEq(pooledRouter.balanceOfId(usdc, maker1), amount + 1, "Incorrect balance");
+  }
+
+  function test_underflow_shares_6dec(uint96 deposit_, uint96 donation_) public {
+    empty_pool(usdc, owner);
+    empty_pool(usdc, maker1);
+    empty_pool(usdc, maker2);
+
+    uint deposit = uint(deposit_);
+    uint donation = uint(donation_);
+    vm.assume(deposit > 1000); // assume deposits at least 10-^2 tokens with 6 decimals
+    vm.assume(donation > 1000 && donation < deposit * 1000);
+
+    deal($(usdc), maker1, donation + 1);
+    vm.prank(maker1);
+    pooledRouter.push(usdc, maker1, 1);
+
+    vm.prank(maker1);
+    usdc.transfer($(pooledRouter), donation);
+
+    deal($(usdc), maker2, deposit);
+    vm.prank(maker2);
+    pooledRouter.push(usdc, maker2, deposit);
+
+    assertApproxEqRel(deposit, pooledRouter.balanceOfId(usdc, maker2), 10 ** 16); // error not worth than 0.01% of the deposit
+  }
+
+  function test_underflow_shares_18dec(uint96 deposit_, uint96 donation_) public {
+    empty_pool(weth, owner);
+    empty_pool(weth, maker1);
+    empty_pool(weth, maker2);
+
+    uint deposit = uint(deposit_);
+    uint donation = uint(donation_);
+    vm.assume(deposit > 10 ** 13); // deposits at least 10^-5 ether
+    vm.assume(donation > 10 ** 13 && donation < deposit * 1000);
+
+    deal($(weth), maker1, donation + 1);
+    vm.prank(maker1);
+    pooledRouter.push(weth, maker1, 1);
+
+    vm.prank(maker1);
+    weth.transfer($(pooledRouter), donation);
+
+    deal($(weth), maker2, deposit);
+    vm.prank(maker2);
+    pooledRouter.push(weth, maker2, deposit);
+
+    assertApproxEqRel(deposit, pooledRouter.balanceOfId(weth, maker2), 10 ** 10); // error not worth than 10^-8% of the deposit
   }
 }

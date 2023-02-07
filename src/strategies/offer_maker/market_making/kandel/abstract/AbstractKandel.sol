@@ -48,6 +48,21 @@ abstract contract AbstractKandel {
   ///@param tokens the tokens to withdraw.
   ///@param amounts the amounts of the tokens to withdraw.
   ///@param recipient the recipient of the funds.
-  /// @dev it is up to the caller to make sure there are still enough funds for live offers.
+  ///@dev it is up to the caller to make sure there are still enough funds for live offers.
   function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) public virtual;
+
+  ///@notice set the compound rates. It will take effect for future compounding.
+  ///@param compoundRateBase the compound rate for base.
+  ///@param compoundRateQuote the compound rate for quote.
+  ///@dev For low compound rates Kandel can end up with everything as pending and nothing offered.
+  ///@dev To avoid this, then for equal compound rates `C` then $C >= 1/(sqrt(ratio^spread)+1)$.
+  ///@dev With one rate being 0 and the other 1 the amount earned from the spread will accumulate as pending
+  ///@dev for the token at 0 compounding and the offered volume will stay roughly static (modulo rounding).
+  function setCompoundRates(uint compoundRateBase, uint compoundRateQuote) public virtual;
+
+  ///@notice sets the gasprice for offers
+  function setGasprice(uint gasprice) public virtual;
+
+  ///@notice sets the gasreq (including router's gasreq) for offers
+  function setGasreq(uint gasreq) public virtual;
 }

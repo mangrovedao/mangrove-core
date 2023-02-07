@@ -17,6 +17,7 @@ import {IERC20} from "mgv_src/IERC20.sol";
 import {OfferType} from "./TradesBaseQuotePair.sol";
 import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {CoreKandel} from "./CoreKandel.sol";
+import {AbstractKandel} from "./AbstractKandel.sol";
 
 abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   ///@notice the parameters for Geometric Kandel have been set.
@@ -49,8 +50,8 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     setGasprice(gasprice);
   }
 
-  /// @notice records gasprice in params
-  function setGasprice(uint gasprice) public onlyAdmin {
+  /// @inheritdoc AbstractKandel
+  function setGasprice(uint gasprice) public override onlyAdmin {
     uint16 gasprice_ = uint16(gasprice);
     require(gasprice_ == gasprice, "Kandel/gaspriceTooHigh");
     params.gasprice = gasprice_;
@@ -58,8 +59,8 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     emit SetGasprice(gasprice_);
   }
 
-  /// @notice records gasreq (including router's gasreq) in params
-  function setGasreq(uint gasreq) public onlyAdmin {
+  /// @inheritdoc AbstractKandel
+  function setGasreq(uint gasreq) public override onlyAdmin {
     uint24 gasreq_ = uint24(gasreq);
     require(gasreq_ == gasreq, "Kandel/gasreqTooHigh");
     params.gasreq = gasreq_;
@@ -106,14 +107,8 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     }
   }
 
-  ///@notice set the compound rates. It will take effect for future compounding.
-  ///@param compoundRateBase the compound rate for base.
-  ///@param compoundRateQuote the compound rate for quote.
-  ///@dev For low compound rates Kandel can end up with everything as pending and nothing offered.
-  ///@dev To avoid this, then for equal compound rates `C` then $C >= 1/(sqrt(ratio^spread)+1)$.
-  ///@dev With one rate being 0 and the other 1 the amount earned from the spread will accumulate as pending
-  ///@dev for the token at 0 compounding and the offered volume will stay roughly static (modulo rounding).
-  function setCompoundRates(uint compoundRateBase, uint compoundRateQuote) public mgvOrAdmin {
+  /// @inheritdoc AbstractKandel
+  function setCompoundRates(uint compoundRateBase, uint compoundRateQuote) public override mgvOrAdmin {
     require(compoundRateBase <= 10 ** PRECISION, "Kandel/invalidCompoundRateBase");
     require(compoundRateQuote <= 10 ** PRECISION, "Kandel/invalidCompoundRateQuote");
     emit SetCompoundRates(compoundRateBase, compoundRateQuote);

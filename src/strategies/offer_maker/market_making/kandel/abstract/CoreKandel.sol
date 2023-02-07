@@ -17,8 +17,10 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OfferType} from "./TradesBaseQuotePair.sol";
 import {DirectWithBidsAndAsksDistribution} from "./DirectWithBidsAndAsksDistribution.sol";
+import {AbstractKandel} from "./AbstractKandel.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
-abstract contract CoreKandel is DirectWithBidsAndAsksDistribution {
+abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKandel {
   constructor(IMangrove mgv, uint gasreq, address reserveId) DirectWithBidsAndAsksDistribution(mgv, gasreq, reserveId) {}
 
   ///@notice takes care of status for reposting residual offer in case of a partial fill and logging of potential issues.
@@ -89,4 +91,52 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution {
     internal
     virtual
     returns (OfferType baDual, uint offerId, uint index, OfferArgs memory args);
+
+  /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
+  /// @param ba offer type.
+  /// @return pending_ the pending amount
+  /// @dev Gas costly function, better suited for off chain calls.
+  function pending(OfferType ba) external view override returns (int pending_) {
+    IERC20 token = outboundOfOfferType(ba);
+    pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));
+  }
+
+  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual override {
+    TransferLib.transferTokensFrom(tokens, msg.sender, address(this), amounts);
+    for (uint i; i < tokens.length; i++) {
+      emit Debit(msg.sender, tokens[i], amounts[i]);
+    }
+  }
+
+  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
+    public
+    virtual
+    override
+    onlyAdmin
+  {
+    TransferLib.transferTokens(tokens, amounts, recipient);
+    for (uint i; i < tokens.length; i++) {
+      emit Credit(recipient, tokens[i], amounts[i]);
+    }
+  }
+
+  ///@notice Retracts offers, withdraws funds, and withdraws free wei from Mangrove.
+  ///@param from retract offers starting from this index.
+  ///@param to retract offers until this index.
+  ///@param tokens the tokens to withdraw.
+  ///@param tokenAmounts the amounts of the tokens to withdraw.
+  ///@param freeWei the amount of wei to withdraw from Mangrove. Use type(uint).max to withdraw entire available balance.
+  ///@param recipient the recipient of the funds.
+  function retractAndWithdraw(
+    uint from,
+    uint to,
+    IERC20[] calldata tokens,
+    uint[] calldata tokenAmounts,
+    uint freeWei,
+    address payable recipient
+  ) external onlyAdmin {
+    retractOffers(from, to);
+    withdrawFunds(tokens, tokenAmounts, recipient);
+    withdrawFromMangrove(freeWei, recipient);
+  }
 }

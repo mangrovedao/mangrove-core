@@ -29,6 +29,10 @@ abstract contract IHasTokenPairOfOfferType {
   ///@notice returns the offer type of the offer list whose outbound token is given in the argument.
   ///@param outbound_tkn the outbound token of the offer list.
   function offerTypeOfOutbound(IERC20 outbound_tkn) internal view virtual returns (OfferType);
+
+  ///@notice returns the outbound token for the offer type
+  ///@param ba the offer type
+  function outboundOfOfferType(OfferType ba) internal view virtual returns (IERC20 token);
 }
 
 ///@title Adds basic base/quote trading pair for bids and asks and couples it to Mangrove's gives, wants, outbound, inbound terminology.
@@ -56,7 +60,7 @@ abstract contract TradesBaseQuotePair is IHasTokenPairOfOfferType {
 
   ///@notice returns the outbound token for the offer type
   ///@param ba the offer type
-  function outboundOfOfferType(OfferType ba) internal view returns (IERC20 token) {
+  function outboundOfOfferType(OfferType ba) internal view override returns (IERC20 token) {
     token = ba == OfferType.Ask ? BASE : QUOTE;
   }
 

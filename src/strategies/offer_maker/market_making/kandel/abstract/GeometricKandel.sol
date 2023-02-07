@@ -14,13 +14,11 @@ pragma solidity ^0.8.10;
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {AbstractKandel} from "./AbstractKandel.sol";
 import {OfferType} from "./TradesBaseQuotePair.sol";
 import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {CoreKandel} from "./CoreKandel.sol";
-import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
-abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuotePair {
+abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   ///@notice the parameters for Kandel have been set.
   event SetParams(uint pricePoints, uint spread, uint ratio);
 
@@ -107,15 +105,6 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
   /// @return compoundRate to use for the gives of the offer type. Asks give base so this would be the `compoundRateBase`, and vice versa.
   function compoundRateForDual(OfferType baDual, Params memory memoryParams) private pure returns (uint compoundRate) {
     compoundRate = uint(baDual == OfferType.Ask ? memoryParams.compoundRateBase : memoryParams.compoundRateQuote);
-  }
-
-  /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
-  /// @param ba offer type.
-  /// @return pending_ the pending amount
-  /// @dev Gas costly function, better suited for off chain calls.
-  function pending(OfferType ba) external view override returns (int pending_) {
-    IERC20 token = outboundOfOfferType(ba);
-    pending_ = int(reserveBalance(token)) - int(offeredVolume(ba));
   }
 
   ///@notice publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
@@ -280,44 +269,5 @@ abstract contract GeometricKandel is CoreKandel, AbstractKandel, TradesBaseQuote
     args.gasreq = memoryParams.gasreq;
     args.pivotId = offer.gives() > 0 ? offer.next() : 0;
     return (baDual, dualOfferId, dualIndex, args);
-  }
-
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual override {
-    TransferLib.transferTokensFrom(tokens, msg.sender, address(this), amounts);
-    for (uint i; i < tokens.length; i++) {
-      emit Debit(msg.sender, tokens[i], amounts[i]);
-    }
-  }
-
-  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
-    public
-    virtual
-    override
-    onlyAdmin
-  {
-    TransferLib.transferTokens(tokens, amounts, recipient);
-    for (uint i; i < tokens.length; i++) {
-      emit Credit(recipient, tokens[i], amounts[i]);
-    }
-  }
-
-  ///@notice Retracts offers, withdraws funds, and withdraws free wei from Mangrove.
-  ///@param from retract offers starting from this index.
-  ///@param to retract offers until this index.
-  ///@param tokens the tokens to withdraw.
-  ///@param tokenAmounts the amounts of the tokens to withdraw.
-  ///@param freeWei the amount of wei to withdraw from Mangrove. Use type(uint).max to withdraw entire available balance.
-  ///@param recipient the recipient of the funds.
-  function retractAndWithdraw(
-    uint from,
-    uint to,
-    IERC20[] calldata tokens,
-    uint[] calldata tokenAmounts,
-    uint freeWei,
-    address payable recipient
-  ) external onlyAdmin {
-    retractOffers(from, to);
-    withdrawFunds(tokens, tokenAmounts, recipient);
-    withdrawFromMangrove(freeWei, recipient);
   }
 }

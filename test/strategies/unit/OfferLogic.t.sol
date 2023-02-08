@@ -99,8 +99,9 @@ contract OfferLogicTest is MangroveTest {
     deal($(usdc), address(makerContract), cash(usdc, 2000));
   }
 
-  function test_checkList() public view {
-    makerContract.checkList(dynamic([IERC20(weth), usdc]), owner);
+  function test_checkList() public {
+    vm.prank(owner);
+    makerContract.checkList(dynamic([IERC20(weth), usdc]));
   }
 
   function test_maker_can_post_newOffer() public {

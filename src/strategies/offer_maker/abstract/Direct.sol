@@ -152,8 +152,9 @@ abstract contract Direct is MangroveOffer {
   }
 
   ///@inheritdoc MangroveOffer
-  function __checkList__(IERC20 token, address reserveId_) internal view virtual override {
-    require(reserveId_ == reserveId(), "Direct/invalidFundManager");
-    super.__checkList__(token, reserveId_);
+  function __checkList__(IERC20 token) internal view virtual override {
+    if (router() != NO_ROUTER) {
+      router().checkList(token, reserveId());
+    }
   }
 }

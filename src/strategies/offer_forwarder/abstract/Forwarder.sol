@@ -335,4 +335,12 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     // those free WEIs can be retrieved by offer owner, by calling `retractOffer` with the `deprovision` flag.
     semiBookOwnerData[order.offerId].weiBalance += uint96(approxReturnedProvision);
   }
+
+  ///@inheritdoc MangroveOffer
+  ///@notice verifies that msg.sender is allowed to trade tokens with this contract
+  function __checkList__(IERC20 token) internal view virtual override {
+    if (router() != NO_ROUTER) {
+      router().checkList(token, msg.sender);
+    }
+  }
 }

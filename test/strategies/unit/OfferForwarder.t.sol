@@ -45,6 +45,12 @@ contract OfferForwarderTest is OfferLogicTest {
     deal($(usdc), owner, cash(usdc, 2000));
   }
 
+  function test_checkList_fails_if_caller_has_not_approved_router() public {
+    vm.expectRevert("SimpleRouter/NotApprovedByOwner");
+    vm.prank(freshAddress());
+    makerContract.checkList(dynamic([IERC20(usdc), weth]));
+  }
+
   function test_derived_gasprice_is_accurate_enough(uint fund) public {
     vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0));
     vm.assume(fund < 5 ether); // too high provision would yield a gasprice overflow

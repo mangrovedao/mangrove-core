@@ -20,7 +20,6 @@ import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 ///@notice It is an IMaker for Mangrove.
 
 interface IOfferLogic is IMaker {
-
   ///@notice Log incident (during post trade execution)
   event LogIncident(
     IMangrove mangrove,
@@ -70,9 +69,10 @@ interface IOfferLogic is IMaker {
   ///@return provision the amount of native tokens that can be redeemed when deprovisioning the offer
   function provisionOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) external view returns (uint provision);
 
-  ///@notice verifies that this contract's current state is ready to be used by `owner` to post offers on Mangrove
+  ///@notice verifies that this contract's current state is ready to be used post offers on Mangrove
+  ///@param tokens the list of tokens that are traded by this contract
   ///@dev throws with a reason if something (e.g. an approval) is missing.
-  function checkList(IERC20[] calldata tokens, address owner) external view;
+  function checkList(IERC20[] calldata tokens) external view;
 
   /// @notice performs the required approvals so as to allow `this` to interact with Mangrove on a set of assets.
   /// @param tokens the ERC20 `this` will approve to be able to trade on Mangrove's corresponding markets.

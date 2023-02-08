@@ -57,11 +57,6 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.activate(dynamic([IERC20(weth), usdc]));
   }
 
-  function test_checkList_fails_with_wrong_owner() public {
-    vm.expectRevert("Direct/invalidFundManager");
-    makerContract.checkList(dynamic([IERC20(weth)]), freshAddress());
-  }
-
   function test_a_checkList_with_router() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
@@ -70,7 +65,7 @@ contract MangroveOfferTest is MangroveTest {
 
     IERC20[] memory tokens = dynamic([IERC20(weth)]);
     vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
-    makerContract.checkList(tokens, deployer);
+    makerContract.checkList(tokens);
   }
 
   function test_b_checkList_router_not_bound() public {
@@ -83,7 +78,7 @@ contract MangroveOfferTest is MangroveTest {
 
     IERC20[] memory tokens = dynamic([IERC20(weth)]);
     vm.expectRevert("Router/callerIsNotBoundToRouter");
-    makerContract.checkList(tokens, deployer);
+    makerContract.checkList(tokens);
   }
 
   function test_c_checkList_router_not_approved() public {
@@ -98,7 +93,7 @@ contract MangroveOfferTest is MangroveTest {
 
     IERC20[] memory tokens = dynamic([IERC20(weth)]);
     vm.expectRevert("Router/NotApprovedByMakerContract");
-    makerContract.checkList(tokens, deployer);
+    makerContract.checkList(tokens);
   }
 
   function test_d_checkList_router_not_approved_by_reserve() public {
@@ -115,7 +110,7 @@ contract MangroveOfferTest is MangroveTest {
 
     IERC20[] memory tokens = dynamic([IERC20(weth)]);
     vm.expectRevert("SimpleRouter/NotApprovedByOwner");
-    makerContract.checkList(tokens, deployer);
+    makerContract.checkList(tokens);
   }
 
   function test_e_checkList_completes() public {
@@ -133,7 +128,7 @@ contract MangroveOfferTest is MangroveTest {
     vm.stopPrank();
 
     IERC20[] memory tokens = dynamic([IERC20(weth)]);
-    makerContract.checkList(tokens, deployer);
+    makerContract.checkList(tokens);
     // ^^ should not throw
   }
 
@@ -148,7 +143,7 @@ contract MangroveOfferTest is MangroveTest {
     usdc.approve(toApprove, type(uint).max);
 
     makerContract.activate(tokens);
-    makerContract.checkList(tokens, deployer);
+    makerContract.checkList(tokens);
     vm.stopPrank();
   }
 

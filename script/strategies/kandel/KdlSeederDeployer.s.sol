@@ -65,6 +65,6 @@ contract KdlSeederDeployer is Deployer {
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;
-    kdl.checkList(tokens, address(this));
+    kdl.checkList(tokens);
   }
 }

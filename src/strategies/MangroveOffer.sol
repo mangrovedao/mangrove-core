@@ -158,9 +158,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   /// @inheritdoc IOfferLogic
-  function checkList(IERC20[] calldata tokens, address owner) external view override {
+  function checkList(IERC20[] calldata tokens) external view override {
     for (uint i = 0; i < tokens.length; i++) {
-      __checkList__(tokens[i], owner);
+      require(tokens[i].allowance(address(this), address(MGV)) > 0, "mgvOffer/LogicMustApproveMangrove");
+      __checkList__(tokens[i]);
     }
   }
 
@@ -180,17 +181,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     }
   }
 
-  ///@dev override conservatively to define strat-specific additional check list
   ///@custom:hook overrides of this hook should be conservative and call `super.__checkList__(token)`
-  function __checkList__(IERC20 token, address owner) internal view virtual {
-    AbstractRouter router_ = router();
-    // checking `this` contract's approval
-    require(token.allowance(address(this), address(MGV)) > 0, "mgvOffer/LogicMustApproveMangrove");
-    // if contract has a router, checking router is allowed to source liquidity
-    if (router_ != NO_ROUTER) {
-      router_.checkList(token, owner);
-    }
-  }
+  function __checkList__(IERC20 token) internal view virtual;
 
   /// @inheritdoc IOfferLogic
   function withdrawFromMangrove(uint amount, address payable receiver) public onlyAdmin {

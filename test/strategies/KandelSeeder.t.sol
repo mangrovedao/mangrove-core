@@ -84,7 +84,7 @@ contract KandelSeederTest is MangroveTest {
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;
-    kdl.checkList(tokens, kdl.reserveId());
+    kdl.checkList(tokens);
   }
 
   function test_maker_deploys_private_aaveKandel() public {
@@ -99,7 +99,7 @@ contract KandelSeederTest is MangroveTest {
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;
-    kdl.checkList(tokens, kdl.reserveId());
+    kdl.checkList(tokens);
   }
 
   function test_maker_deploys_private_kandel() public {
@@ -113,7 +113,7 @@ contract KandelSeederTest is MangroveTest {
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;
-    kdl.checkList(tokens, kdl.reserveId());
+    kdl.checkList(tokens);
   }
 
   function test_maker_deploys_shared_kandel() public {
@@ -127,6 +127,6 @@ contract KandelSeederTest is MangroveTest {
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;
-    kdl.checkList(tokens, kdl.reserveId());
+    kdl.checkList(tokens);
   }
 }

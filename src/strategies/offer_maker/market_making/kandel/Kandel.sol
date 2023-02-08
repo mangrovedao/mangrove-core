@@ -39,10 +39,10 @@ contract Kandel is GeometricKandel {
     override
     returns (bytes32 repostStatus)
   {
-    bool atEdge = transportSuccessfulOrder(order);
+    bool isOutOfRange = transportSuccessfulOrder(order);
     repostStatus = super.__posthookSuccess__(order, makerData);
-    if (atEdge) {
-      logAllSameOfferType(order, repostStatus);
+    if (isOutOfRange) {
+      logOutOfRange(order, repostStatus);
     }
   }
 }

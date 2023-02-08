@@ -64,24 +64,6 @@ abstract contract TradesBaseQuotePair is IHasTokenPairOfOfferType {
     token = ba == OfferType.Ask ? BASE : QUOTE;
   }
 
-  ///@notice returns the wants and gives for a Mangrove offer for the offer type given the base and quote amounts.
-  ///@param ba the offer type
-  ///@param baseAmount the amount of the base token
-  ///@param quoteAmount the amount of the quote token
-  function wantsGivesOfBaseQuote(OfferType ba, uint baseAmount, uint quoteAmount)
-    internal
-    pure
-    returns (uint wants, uint gives)
-  {
-    if (ba == OfferType.Ask) {
-      wants = quoteAmount;
-      gives = baseAmount;
-    } else {
-      wants = baseAmount;
-      gives = quoteAmount;
-    }
-  }
-
   ///@notice returns the dual offer type
   ///@param ba whether the offer is an ask or a bid
   ///@return baDual is the dual offer type (ask for bid and conversely)

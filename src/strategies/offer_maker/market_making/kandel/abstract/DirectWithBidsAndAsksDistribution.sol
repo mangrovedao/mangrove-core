@@ -50,11 +50,6 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
     uint[] calldata quoteDist = distribution.quoteDist;
     uint[] calldata baseDist = distribution.baseDist;
 
-    require(
-      indices.length == baseDist.length && indices.length == quoteDist.length && indices.length == pivotIds.length,
-      "Kandel/ArraysMustBeSameSize"
-    );
-
     uint i = 0;
 
     OfferArgs memory args;

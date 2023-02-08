@@ -781,6 +781,33 @@ abstract contract CoreKandelTest is MangroveTest {
     test_heal_someFailedOffers_reposts(Bid, 3, dynamic([uint(1), 1, 0, 0, 0, 2, 2, 2, 2, 2]));
   }
 
+  function test_populateChunk_invalidArrayLength_reverts() public {
+    vm.prank(maker);
+    // pivot
+    vm.expectRevert();
+    CoreKandel.Distribution memory dist;
+    dist.indices = new uint[](1);
+    dist.baseDist = new uint[](1);
+    dist.quoteDist = new uint[](1);
+    kdl.populateChunk(dist, new uint[](0), 0);
+
+    // base
+    vm.prank(maker);
+    vm.expectRevert();
+    dist.indices = new uint[](1);
+    dist.baseDist = new uint[](0);
+    dist.quoteDist = new uint[](1);
+    kdl.populateChunk(dist, new uint[](1), 0);
+
+    // quote
+    vm.prank(maker);
+    vm.expectRevert();
+    dist.indices = new uint[](1);
+    dist.baseDist = new uint[](1);
+    dist.quoteDist = new uint[](0);
+    kdl.populateChunk(dist, new uint[](1), 0);
+  }
+
   function populateSingle(uint index, uint base, uint quote, uint pivotId, uint lastBidIndex, bytes memory expectRevert)
     internal
   {
@@ -1094,7 +1121,7 @@ abstract contract CoreKandelTest is MangroveTest {
     assertStatus(dynamic([uint(1), 1, 1, 0, 0]));
   }
 
-  function test_setGasprice() public {
+  function test_setGasprice_valid_setsAndEmits() public {
     expectFrom($(kdl));
     emit SetGasprice(42);
     vm.prank(maker);
@@ -1103,13 +1130,25 @@ abstract contract CoreKandelTest is MangroveTest {
     assertEq(gasprice, uint16(42), "Incorrect gasprice in params");
   }
 
-  function test_setGasreq() public {
+  function test_setGasprice_invalid_reverts() public {
+    vm.prank(maker);
+    vm.expectRevert("Kandel/gaspriceTooHigh");
+    kdl.setGasprice(2 ** 16);
+  }
+
+  function test_setGasreq_valid_setsAndEmits() public {
     expectFrom($(kdl));
     emit SetGasreq(42);
     vm.prank(maker);
     kdl.setGasreq(42);
     (, uint24 gasreq,,,,,) = kdl.params();
     assertEq(gasreq, uint24(42), "Incorrect gasprice in params");
+  }
+
+  function test_setGasreq_invalid_reverts() public {
+    vm.prank(maker);
+    vm.expectRevert("Kandel/gasreqTooHigh");
+    kdl.setGasreq(2 ** 24);
   }
 
   function test_retractAndWithdraw() public {

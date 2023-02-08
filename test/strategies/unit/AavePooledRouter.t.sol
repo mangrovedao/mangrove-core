@@ -289,8 +289,11 @@ contract AavePooledRouterTest is OfferLogicTest {
 
   function test_non_strict_pull_with_insufficient_funds_throws_as_expected() public {
     vm.expectRevert("AavePooledRouter/insufficientFunds");
+    deal($(dai), maker1, 10);
     vm.prank(maker1);
-    pooledRouter.pull(dai, maker1, 1, false);
+    pooledRouter.push(dai, maker1, 10);
+    vm.prank(maker1);
+    pooledRouter.pull(dai, maker1, 11, false);
   }
 
   function test_strict_pull_transfers_only_amount() public {
@@ -456,8 +459,11 @@ contract AavePooledRouterTest is OfferLogicTest {
 
   function empty_pool(IERC20 token, address id) internal {
     // empty usdc reserve
-    vm.startPrank(address(makerContract));
-    pooledRouter.pull(token, owner, pooledRouter.balanceOfId(token, id), true);
+    uint bal = pooledRouter.balanceOfId(token, id);
+    if (bal > 0) {
+      vm.startPrank(address(makerContract));
+      pooledRouter.pull(token, owner, bal, true);
+    }
     vm.stopPrank();
     assertEq(pooledRouter.balanceOfId(token, id), 0, "Non empty balance");
 
@@ -465,7 +471,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     assertEq(pooledRouter.overlying(token).balanceOf($(pooledRouter)), 0, "Non empty pool");
   }
 
-  function test_overflow_shares(uint104 amount_) public {
+  function test_overflow_shares(uint96 amount_) public {
     uint amount = uint(amount_);
     empty_pool(usdc, owner);
     empty_pool(usdc, maker1);

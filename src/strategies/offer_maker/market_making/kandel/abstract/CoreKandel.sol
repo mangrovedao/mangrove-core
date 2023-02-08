@@ -41,7 +41,9 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKande
     }
   }
 
-  ///@notice repost dual offer according to transport logic
+  ///@notice update or create dual offer according to transport logic
+  ///@param order is a recall of the taker order that is at the origin of the current trade.
+  ///@return atEdge whether the taken offer was at the edge of the Kandel price range.
   function transportSuccessfulOrder(MgvLib.SingleOrder calldata order) internal returns (bool) {
     OfferType ba = offerTypeOfOutbound(IERC20(order.outbound_tkn));
 
@@ -53,14 +55,15 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKande
     return atEdge;
   }
 
-  function logAllSameOfferType(bool atEdge, MgvLib.SingleOrder calldata order, bytes32 repostStatus) internal {
-    if (atEdge) {
-      if (repostStatus != REPOST_SUCCESS) {
-        if (offerTypeOfOutbound(IERC20(order.outbound_tkn)) == OfferType.Bid) {
-          emit AllAsks();
-        } else {
-          emit AllBids();
-        }
+  ///@notice logs AllAsks or AllBids in case the last bid or ask is fully taken (or reposting fails)
+  ///@param order is a recall of the taker order that is at the origin of the current trade.
+  ///@param repostStatus the repostStatus from trying to repost the residual of the offer.
+  function logAllSameOfferType(MgvLib.SingleOrder calldata order, bytes32 repostStatus) internal {
+    if (repostStatus != REPOST_SUCCESS) {
+      if (offerTypeOfOutbound(IERC20(order.outbound_tkn)) == OfferType.Bid) {
+        emit AllAsks();
+      } else {
+        emit AllBids();
       }
     }
   }

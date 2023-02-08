@@ -41,6 +41,8 @@ contract Kandel is GeometricKandel {
   {
     bool atEdge = transportSuccessfulOrder(order);
     repostStatus = super.__posthookSuccess__(order, makerData);
-    logAllSameOfferType(atEdge, order, repostStatus);
+    if (atEdge) {
+      logAllSameOfferType(order, repostStatus);
+    }
   }
 }

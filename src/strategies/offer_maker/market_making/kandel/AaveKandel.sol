@@ -100,6 +100,8 @@ contract AaveKandel is GeometricKandel {
       // reposting offer residual if any - call super to let flush tokens to router
       repostStatus = super.__posthookSuccess__(order, makerData);
     }
-    logAllSameOfferType(atEdge, order, repostStatus);
+    if (atEdge) {
+      logAllSameOfferType(order, repostStatus);
+    }
   }
 }

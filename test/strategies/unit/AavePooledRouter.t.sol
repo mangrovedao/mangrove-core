@@ -496,8 +496,8 @@ contract AavePooledRouterTest is OfferLogicTest {
 
     uint deposit = uint(deposit_);
     uint donation = uint(donation_);
-    vm.assume(deposit > 1000); // assume deposits at least 10-^2 tokens with 6 decimals
-    vm.assume(donation > 1000 && donation < deposit * 1000);
+    vm.assume(deposit > 10 ** 5); // assume deposits at least 10-^2 tokens with 6 decimals
+    vm.assume(donation < deposit * 10_000);
 
     deal($(usdc), maker1, donation + 1);
     vm.prank(maker1);
@@ -510,7 +510,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(maker2);
     pooledRouter.push(usdc, maker2, deposit);
 
-    assertApproxEqRel(deposit, pooledRouter.balanceOfId(usdc, maker2), 10 ** 16); // error not worth than 0.01% of the deposit
+    assertApproxEqRel(deposit, pooledRouter.balanceOfId(usdc, maker2), 10 ** 13); // error not worth than 10^-7% of the deposit
   }
 
   function test_underflow_shares_18dec(uint96 deposit_, uint96 donation_) public {
@@ -521,7 +521,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     uint deposit = uint(deposit_);
     uint donation = uint(donation_);
     vm.assume(deposit > 10 ** 13); // deposits at least 10^-5 ether
-    vm.assume(donation > 10 ** 13 && donation < deposit * 1000);
+    vm.assume(donation < deposit * 10_000);
 
     deal($(weth), maker1, donation + 1);
     vm.prank(maker1);
@@ -534,6 +534,6 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(maker2);
     pooledRouter.push(weth, maker2, deposit);
 
-    assertApproxEqRel(deposit, pooledRouter.balanceOfId(weth, maker2), 10 ** 10); // error not worth than 10^-8% of the deposit
+    assertApproxEqRel(deposit, pooledRouter.balanceOfId(weth, maker2), 10 ** 5); // error not worth than 10^-15% of the deposit
   }
 }

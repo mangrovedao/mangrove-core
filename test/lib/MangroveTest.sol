@@ -258,6 +258,24 @@ contract MangroveTest is Test2, HasMgvEvents {
     return tt;
   }
 
+  function mockBuyOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
+    order.outbound_tkn = $(base);
+    order.inbound_tkn = $(quote);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    // complete fill (prev and next are bogus)
+    order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
+  }
+
+  function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
+    order.inbound_tkn = $(quote);
+    order.outbound_tkn = $(base);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    // complete fill (prev and next are bogus)
+    order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
+  }
+
   /* **** Token conversion *** */
   /* Interpret amount as a user-friendly amount, convert to real underlying
    * amount using token decimals.

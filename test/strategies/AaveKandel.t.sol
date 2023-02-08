@@ -73,20 +73,6 @@ contract AaveKandelTest is CoreKandelTest {
     );
   }
 
-  struct SingleOrder {
-    address outbound_tkn;
-    address inbound_tkn;
-    uint offerId;
-    MgvStructs.OfferPacked offer;
-    /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
-    uint wants;
-    uint gives;
-    /* `offerDetail` is only populated when necessary. */
-    MgvStructs.OfferDetailPacked offerDetail;
-    MgvStructs.GlobalPacked global;
-    MgvStructs.LocalPacked local;
-  }
-
   function test_first_offer_sends_first_puller_to_posthook() public {
     MgvLib.SingleOrder memory order;
     order.outbound_tkn = $(base);
@@ -125,14 +111,7 @@ contract AaveKandelTest is CoreKandelTest {
   }
 
   function test_first_puller_posthook_calls_pushAndSupply() public {
-    MgvLib.SingleOrder memory order;
-    order.outbound_tkn = $(base);
-    order.inbound_tkn = $(quote);
-    order.wants = 0.1 ether;
-    order.gives = 120 * 10 ** 6;
-    // complete fill (prev and next don't matter)
-    order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
-
+    MgvLib.SingleOrder memory order = mockBuyOrder({takerGives: 120 * 10 ** 6, takerWants: 0.1 ether});
     MgvLib.OrderResult memory result = MgvLib.OrderResult({makerData: "IS_FIRST_PULLER", mgvData: "mgv/tradeSuccess"});
 
     //1. faking accumulated outbound on the router

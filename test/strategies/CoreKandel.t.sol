@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
 import {OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/TradesBaseQuotePair.sol";
 import {CoreKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
 import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
@@ -1098,6 +1098,45 @@ abstract contract CoreKandelTest is MangroveTest {
     assertGt(recipient.balance, 0, "wei should be at recipient");
     assertEq(0, kdl.offeredVolume(Bid), "no bids should be live");
     assertEq(0, kdl.offeredVolume(Ask), "no bids should be live");
+  }
+
+  function test_marketOrder_dualOfferUpdate_expectedGasreq() public {
+    test_marketOrder_dualOffer_expectedGasreq(false, 87985);
+  }
+
+  function test_marketOrder_dualOfferNew_expectedGasreq() public {
+    test_marketOrder_dualOffer_expectedGasreq(true, 0);
+  }
+
+  function test_marketOrder_dualOffer_expectedGasreq(bool dualNew, uint deltaGasForNew) internal {
+    // Arrange
+    MgvLib.SingleOrder memory order = mockBuyOrder({takerGives: cash(quote, 100), takerWants: 0.1 ether});
+    order.offerId = kdl.offerIdOfIndex(Ask, dualNew ? 6 : 5);
+    console.log("OID %s", order.offerId);
+
+    // Act
+    vm.prank($(mgv));
+    uint gasTemp = gasleft();
+    bytes32 makerData = kdl.makerExecute(order);
+    uint makerExecuteCost = gasTemp - gasleft();
+
+    assertTrue(makerData == "mgvOffer/proceed" || makerData == "IS_FIRST_PULLER", "Unexpected returned data");
+
+    MgvLib.OrderResult memory result = MgvLib.OrderResult({makerData: makerData, mgvData: "mgv/tradeSuccess"});
+
+    vm.prank($(mgv));
+    gasTemp = gasleft();
+    kdl.makerPosthook(order, result);
+    uint posthookCost = gasTemp - gasleft();
+    // Assert
+    (, MgvStructs.LocalPacked local) = mgv.config(address(base), address(quote));
+    console.log("makerExecute: %d, posthook: %d, deltaGasForNew", makerExecuteCost, posthookCost, deltaGasForNew);
+    console.log(
+      "Strat gasreq (%d), mockup (%d)",
+      kdl.offerGasreq() + local.offer_gasbase(),
+      makerExecuteCost + posthookCost + deltaGasForNew
+    );
+    //assertTrue(makerExecuteCost + posthookCost <= kdl.offerGasreq() + local.offer_gasbase(), "Strat is spending more gas");
   }
 
   function deployOtherKandel(uint base0, uint quote0, uint16 ratio, uint8 spread, uint8 pricePoints) internal {

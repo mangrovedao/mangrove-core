@@ -22,29 +22,11 @@ import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKandel {
   constructor(IMangrove mgv, uint gasreq, address reserveId) DirectWithBidsAndAsksDistribution(mgv, gasreq, reserveId) {}
 
-  ///@notice takes care of status for reposting residual offer in case of a partial fill and logging of potential issues.
-  ///@param order a recap of the taker order
-  ///@param makerData generated during `makerExecute` so as to log it if necessary
-  ///@param repostStatus from the super posthook
-  function handleResidual(MgvLib.SingleOrder calldata order, bytes32 makerData, bytes32 repostStatus) internal {
-    if (
-      repostStatus == COMPLETE_FILL || repostStatus == REPOST_SUCCESS || repostStatus == "mgv/writeOffer/density/tooLow"
-    ) {
-      // Low density will mean some amount is not posted and will be available for withdrawal or later posting via populate.
-      return;
-    } else {
-      // Offer failed to repost for bad reason, logging the incident
-      emit LogIncident(
-        MGV, IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId, makerData, repostStatus
-        );
-    }
-  }
-
   ///@notice takes care of status for populating dual and logging of potential issues.
   ///@param offerId the Mangrove offer id (or 0 if newOffer failed).
   ///@param args the arguments of the offer.
   ///@param populateStatus the status returned from the populateIndex function.
-  function handlePopulate(uint offerId, OfferArgs memory args, bytes32 populateStatus) internal {
+  function logPopulateStatus(uint offerId, OfferArgs memory args, bytes32 populateStatus) internal {
     if (
       populateStatus == REPOST_SUCCESS || populateStatus == NEW_OFFER_SUCCESS
         || populateStatus == "mgv/writeOffer/density/tooLow"
@@ -60,19 +42,14 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKande
   }
 
   ///@notice repost dual offer according to transport logic
-  function transportSuccessfulOrder(MgvLib.SingleOrder calldata order, bytes32 makerData, bytes32 repostStatus)
-    internal
-    returns (bytes32 populateStatus)
-  {
+  function transportSuccessfulOrder(MgvLib.SingleOrder calldata order) internal {
     OfferType ba = offerTypeOfOutbound(IERC20(order.outbound_tkn));
-    handleResidual(order, makerData, repostStatus);
 
     // adds any unpublished liquidity to pending[Base/Quote]
     // preparing arguments for the dual offer
     (OfferType baDual, uint offerId, uint index, OfferArgs memory args) = transportLogic(ba, order);
-    populateStatus = populateIndex(baDual, offerId, index, args);
-
-    handlePopulate(offerId, args, populateStatus);
+    bytes32 populateStatus = populateIndex(baDual, offerId, index, args);
+    logPopulateStatus(offerId, args, populateStatus);
   }
 
   ///@notice transport logic followed by Kandel

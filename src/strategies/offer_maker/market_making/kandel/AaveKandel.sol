@@ -78,10 +78,14 @@ contract AaveKandel is GeometricKandel {
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal
     override
-    returns (bytes32)
+    returns (bytes32 repostStatus)
   {
-    bytes32 repostStatus;
+    // handle dual offer posting
+    transportSuccessfulOrder(order);
+
+    // handels pushing back liquidity to the router
     if (makerData == IS_FIRST_PULLER) {
+      // if first puller, then router should deposit liquidity on AAVE
       IERC20[] memory tokens = new IERC20[](2);
       tokens[0] = BASE; // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
       tokens[1] = QUOTE; // flushing liquidity brought by taker
@@ -96,7 +100,5 @@ contract AaveKandel is GeometricKandel {
       // reposting offer residual if any - call super to let flush tokens to router
       repostStatus = super.__posthookSuccess__(order, makerData);
     }
-
-    return transportSuccessfulOrder(order, makerData, repostStatus);
   }
 }

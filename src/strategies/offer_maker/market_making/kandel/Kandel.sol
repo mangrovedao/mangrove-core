@@ -39,7 +39,7 @@ contract Kandel is GeometricKandel {
     override
     returns (bytes32 populateStatus)
   {
-    bytes32 repostStatus = super.__posthookSuccess__(order, makerData);
-    return transportSuccessfulOrder(order, makerData, repostStatus);
+    transportSuccessfulOrder(order);
+    return super.__posthookSuccess__(order, makerData);
   }
 }

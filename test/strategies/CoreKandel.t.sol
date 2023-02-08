@@ -230,10 +230,6 @@ abstract contract CoreKandelTest is MangroveTest {
   OfferType constant Ask = OfferType.Ask;
   OfferType constant Bid = OfferType.Bid;
 
-  function pending(OfferType ba) internal view returns (uint) {
-    return uint(kdl.pending(ba));
-  }
-
   function test_init() public {
     assertEq(kdl.pending(Ask), kdl.pending(Bid), "Incorrect initial pending");
     assertEq(kdl.pending(Ask), 0, "Incorrect initial pending");
@@ -272,7 +268,7 @@ abstract contract CoreKandelTest is MangroveTest {
     test_bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
   }
 
-  function precisionForAssert() internal virtual returns (uint);
+  function precisionForAssert() internal pure virtual returns (uint);
 
   function test_bid_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote, uint index) internal {
     vm.assume(compoundRateBase <= 10_000);
@@ -281,7 +277,7 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
     MgvStructs.OfferPacked oldAsk = kdl.getOffer(Ask, index + STEP);
-    uint oldPending = pending(Ask);
+    int oldPending = kdl.pending(Ask);
 
     (uint successes, uint takerGot, uint takerGave,, uint fee) = sellToBestAs(taker, 1000 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
@@ -293,10 +289,13 @@ abstract contract CoreKandelTest is MangroveTest {
     assertStatus(expectedStatus);
     MgvStructs.OfferPacked newAsk = kdl.getOffer(Ask, index + STEP);
     assertTrue(newAsk.gives() <= takerGave + oldAsk.gives(), "Cannot give more than what was received");
-    uint pendingDelta = pending(Ask) - oldPending;
+    int pendingDelta = kdl.pending(Ask) - oldPending;
     // Allow a discrepancy of 1 for aave router shares
     assertApproxEqAbs(
-      pendingDelta + newAsk.gives(), oldAsk.gives() + takerGave, precisionForAssert(), "Incorrect net promised asset"
+      pendingDelta + int(newAsk.gives()),
+      int(oldAsk.gives() + takerGave),
+      precisionForAssert(),
+      "Incorrect net promised asset"
     );
     if (compoundRateBase == 10_000) {
       assertApproxEqAbs(pendingDelta, 0, precisionForAssert(), "Full compounding should not yield pending");
@@ -317,7 +316,7 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
     MgvStructs.OfferPacked oldBid = kdl.getOffer(Bid, index - STEP);
-    uint oldPending = pending(Bid);
+    int oldPending = kdl.pending(Bid);
 
     (uint successes, uint takerGot, uint takerGave,, uint fee) = buyFromBestAs(taker, 1000 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
@@ -329,10 +328,15 @@ abstract contract CoreKandelTest is MangroveTest {
     assertStatus(expectedStatus);
     MgvStructs.OfferPacked newBid = kdl.getOffer(Bid, index - STEP);
     assertTrue(newBid.gives() <= takerGave + oldBid.gives(), "Cannot give more than what was received");
-    uint pendingDelta = pending(Bid) - oldPending;
-    assertEq(pendingDelta + newBid.gives(), oldBid.gives() + takerGave, "Incorrect net promised asset");
+    int pendingDelta = kdl.pending(Bid) - oldPending;
+    assertApproxEqAbs(
+      pendingDelta + int(newBid.gives()),
+      int(oldBid.gives() + takerGave),
+      precisionForAssert(),
+      "Incorrect net promised asset"
+    );
     if (compoundRateQuote == 10_000) {
-      assertEq(pendingDelta, 0, "Full compounding should not yield pending");
+      assertApproxEqAbs(pendingDelta, 0, precisionForAssert(), "Full compounding should not yield pending");
       assertTrue(newBid.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
     } else {
       assertTrue(pendingDelta > 0, "Partial auto compounding should yield pending");

@@ -27,7 +27,7 @@ contract KandelTest is CoreKandelTest {
     });
   }
 
-  function precisionForAssert() internal override returns (uint) {
+  function precisionForAssert() internal pure override returns (uint) {
     return 0;
   }
 

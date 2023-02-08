@@ -49,7 +49,7 @@ contract AaveKandelTest is CoreKandelTest {
     return aaveKandel;
   }
 
-  function precisionForAssert() internal override returns (uint) {
+  function precisionForAssert() internal pure override returns (uint) {
     return 1;
   }
 

@@ -27,6 +27,10 @@ contract KandelTest is CoreKandelTest {
     });
   }
 
+  function precisionForAssert() internal pure override returns (uint) {
+    return 0;
+  }
+
   function test_dualWantsGivesOfOffer_max_bits_partial() public {
     // this verifies uint160(givesR) != givesR in dualWantsGivesOfOffer
     dualWantsGivesOfOffer_max_bits(true, 2);

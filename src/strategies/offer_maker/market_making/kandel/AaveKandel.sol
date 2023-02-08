@@ -78,21 +78,27 @@ contract AaveKandel is GeometricKandel {
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal
     override
-    returns (bytes32)
+    returns (bytes32 repostStatus)
   {
+    // handle dual offer posting
+    transportSuccessfulOrder(order);
+
+    // handels pushing back liquidity to the router
     if (makerData == IS_FIRST_PULLER) {
+      // if first puller, then router should deposit liquidity on AAVE
       IERC20[] memory tokens = new IERC20[](2);
-      tokens[0] = IERC20(order.outbound_tkn); // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
-      tokens[1] = IERC20(order.inbound_tkn); // flushing liquidity brought by taker
+      tokens[0] = BASE; // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
+      tokens[1] = QUOTE; // flushing liquidity brought by taker
       uint[] memory amounts = new uint[](2);
-      amounts[0] = IERC20(order.outbound_tkn).balanceOf(address(this));
-      amounts[1] = IERC20(order.inbound_tkn).balanceOf(address(this));
+      amounts[0] = BASE.balanceOf(address(this));
+      amounts[1] = QUOTE.balanceOf(address(this));
 
       pooledRouter().pushAndSupply(tokens, amounts, reserveId());
-      // reposting offer residual if any
-      return MangroveOffer.__posthookSuccess__(order, makerData);
+      // reposting offer residual if any - but do not call super, since Direct will flush tokens unnecessarily
+      repostStatus = MangroveOffer.__posthookSuccess__(order, makerData);
     } else {
-      return super.__posthookSuccess__(order, makerData);
+      // reposting offer residual if any - call super to let flush tokens to router
+      repostStatus = super.__posthookSuccess__(order, makerData);
     }
   }
 }

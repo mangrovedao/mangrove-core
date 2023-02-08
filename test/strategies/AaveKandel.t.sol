@@ -30,7 +30,7 @@ contract AaveKandelTest is CoreKandelTest {
     // 474_000 theoretical in mock up of router
     // 218_000 observed in tests of router
     uint router_gasreq = 318 * 1000;
-    uint kandel_gasreq = 138 * 1000;
+    uint kandel_gasreq = 338 * 1000;
     router = address(router) == address(0) ? new AavePooledRouter(fork.get("Aave"), router_gasreq) : router;
     aaveKandel = new AaveKandel({
       mgv: IMangrove($(mgv)),
@@ -47,6 +47,10 @@ contract AaveKandelTest is CoreKandelTest {
     aaveKandel.setAdmin(deployer);
     assertEq(aaveKandel.offerGasreq(), kandel_gasreq + router_gasreq, "Incorrect gasreq");
     return aaveKandel;
+  }
+
+  function precisionForAssert() internal pure override returns (uint) {
+    return 1;
   }
 
   function test_initialize() public {

@@ -104,7 +104,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     onlyCaller(address(MGV))
   {
     if (result.mgvData == "mgv/tradeSuccess") {
-      // top-level `__posthookSuccess__`'s return value is ignored.
       __posthookSuccess__(order, result.makerData);
     } else {
       // logging what went wrong during `makerExecute`
@@ -114,6 +113,24 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       // calling strat specific todos in case of failure
       __posthookFallback__(order, result);
       __handleResidualProvision__(order);
+    }
+  }
+
+  ///@notice takes care of status for reposting residual offer in case of a partial fill and logging of potential issues.
+  ///@param order a recap of the taker order
+  ///@param makerData generated during `makerExecute` so as to log it if necessary
+  ///@param repostStatus from the posthook that handles residual reposting
+  function logRepostStatus(MgvLib.SingleOrder calldata order, bytes32 makerData, bytes32 repostStatus) internal {
+    if (
+      repostStatus == COMPLETE_FILL || repostStatus == REPOST_SUCCESS || repostStatus == "mgv/writeOffer/density/tooLow"
+    ) {
+      // Low density will mean some amount is not posted and will be available for withdrawal or later posting via populate.
+      return;
+    } else {
+      // Offer failed to repost for bad reason, logging the incident
+      emit LogIncident(
+        MGV, IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId, makerData, repostStatus
+        );
     }
   }
 
@@ -255,18 +272,17 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   ///@notice Post-hook that implements default behavior when Taker Order's execution succeeded.
   ///@param order is a recall of the taker order that is at the origin of the current trade.
-  ///@param maker_data is the returned value of the `__lastLook__` hook, triggered during trade execution. The special value `"lastLook/retract"` should be treated as an instruction not to repost the offer on the book.
+  ///@param makerData is the returned value of the `__lastLook__` hook, triggered during trade execution. The special value `"lastLook/retract"` should be treated as an instruction not to repost the offer on the book.
   ///@return data can be:
   /// * `"posthook/filled"` when offer was completely filled
   /// * `"posthook/reposted"` when offer was partially filled and successfully reposted
   /// * Mangrove's revert reason (cast to a bytes32) when residual is below density or `this` balance on Mangrove is too low (and thus not reposted)
   /// @custom:hook overrides of this hook should be conservative and call `super.__posthookSuccess__(order, maker_data)`
-  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)
+  function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal
     virtual
     returns (bytes32 data)
   {
-    maker_data; // maker_data can be used in overrides to skip reposting for instance. It is ignored in the default behavior.
     // now trying to repost residual
     uint new_gives = __residualGives__(order);
     uint new_wants = __residualWants__(order);
@@ -290,6 +306,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       }),
       order.offerId
     );
+    // logs if anything went wrong
+    logRepostStatus(order, makerData, data);
   }
 
   ///@notice template for start specific update offer function

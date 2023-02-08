@@ -78,11 +78,15 @@ contract InvertedMangrove is AbstractMangrove {
     We choose `transferFrom`.
     */
 
-  function flashloan(MgvLib.SingleOrder calldata sor, address) external override returns (uint gasused) {
+  function flashloan(MgvLib.SingleOrder calldata sor, address)
+    external
+    override
+    returns (uint gasused, bytes32 makerData)
+  {
     unchecked {
       /* `invertedFlashloan` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would be fatal. */
       require(msg.sender == address(this), "mgv/invertedFlashloan/protected");
-      gasused = makerExecute(sor);
+      (gasused, makerData) = makerExecute(sor);
     }
   }
 }

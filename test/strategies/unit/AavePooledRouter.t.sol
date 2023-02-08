@@ -8,7 +8,7 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 contract AavePooledRouterTest is OfferLogicTest {
   AavePooledRouter pooledRouter;
 
-  uint constant GASREQ = 474.125 * 1000; // fail for GASREQ < 474K
+  uint constant GASREQ = 473.783 * 1000; // fail for lower GASREQ
 
   event SetAaveManager(address);
   event AaveIncident(IERC20 indexed token, address indexed reserveId, uint amount, bytes32 aaveReason);

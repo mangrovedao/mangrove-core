@@ -81,9 +81,9 @@ contract AaveKandel is GeometricKandel {
     returns (bytes32 repostStatus)
   {
     // handle dual offer posting
-    transportSuccessfulOrder(order);
+    bool atEdge = transportSuccessfulOrder(order);
 
-    // handels pushing back liquidity to the router
+    // handles pushing back liquidity to the router
     if (makerData == IS_FIRST_PULLER) {
       // if first puller, then router should deposit liquidity on AAVE
       IERC20[] memory tokens = new IERC20[](2);
@@ -100,5 +100,6 @@ contract AaveKandel is GeometricKandel {
       // reposting offer residual if any - call super to let flush tokens to router
       repostStatus = super.__posthookSuccess__(order, makerData);
     }
+    logAllSameOfferType(atEdge, order, repostStatus);
   }
 }

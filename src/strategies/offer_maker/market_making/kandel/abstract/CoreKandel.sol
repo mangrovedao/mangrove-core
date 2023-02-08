@@ -42,27 +42,41 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKande
   }
 
   ///@notice repost dual offer according to transport logic
-  function transportSuccessfulOrder(MgvLib.SingleOrder calldata order) internal {
+  function transportSuccessfulOrder(MgvLib.SingleOrder calldata order) internal returns (bool) {
     OfferType ba = offerTypeOfOutbound(IERC20(order.outbound_tkn));
 
     // adds any unpublished liquidity to pending[Base/Quote]
     // preparing arguments for the dual offer
-    (OfferType baDual, uint offerId, uint index, OfferArgs memory args) = transportLogic(ba, order);
+    (OfferType baDual, bool atEdge, uint offerId, uint index, OfferArgs memory args) = transportLogic(ba, order);
     bytes32 populateStatus = populateIndex(baDual, offerId, index, args);
     logPopulateStatus(offerId, args, populateStatus);
+    return atEdge;
+  }
+
+  function logAllSameOfferType(bool atEdge, MgvLib.SingleOrder calldata order, bytes32 repostStatus) internal {
+    if (atEdge) {
+      if (repostStatus != REPOST_SUCCESS) {
+        if (offerTypeOfOutbound(IERC20(order.outbound_tkn)) == OfferType.Bid) {
+          emit AllAsks();
+        } else {
+          emit AllBids();
+        }
+      }
+    }
   }
 
   ///@notice transport logic followed by Kandel
   ///@param ba whether the offer that was executed is a bid or an ask
   ///@param order a recap of the taker order (order.offer is the executed offer)
   ///@return baDual the type of dual offer that will re-invest inbound liquidity
+  ///@return atEdge whether the offer is either the last bid or ask
   ///@return offerId the offer id of the dual offer
   ///@return index the index of the dual offer
   ///@return args the argument for `populateIndex` specifying gives and wants
   function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (OfferType baDual, uint offerId, uint index, OfferArgs memory args);
+    returns (OfferType baDual, bool atEdge, uint offerId, uint index, OfferArgs memory args);
 
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
   /// @param ba offer type.

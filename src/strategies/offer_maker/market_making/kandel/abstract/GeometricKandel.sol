@@ -251,17 +251,13 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     internal
     virtual
     override
-    returns (OfferType baDual, uint dualOfferId, uint dualIndex, OfferArgs memory args)
+    returns (OfferType baDual, bool atEdge, uint dualOfferId, uint dualIndex, OfferArgs memory args)
   {
     uint index = indexOfOfferId(ba, order.offerId);
     Params memory memoryParams = params;
 
-    if (index == 0) {
-      emit AllAsks();
-    }
-    if (index == memoryParams.pricePoints - 1) {
-      emit AllBids();
-    }
+    atEdge = index == 0 || index == memoryParams.pricePoints - 1;
+
     baDual = dual(ba);
 
     dualIndex = transportDestination(baDual, index, memoryParams.spread, memoryParams.pricePoints);
@@ -282,6 +278,5 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     args.gasprice = memoryParams.gasprice;
     args.gasreq = memoryParams.gasreq;
     args.pivotId = offer.gives() > 0 ? offer.next() : 0;
-    return (baDual, dualOfferId, dualIndex, args);
   }
 }

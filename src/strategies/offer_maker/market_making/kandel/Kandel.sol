@@ -37,9 +37,10 @@ contract Kandel is GeometricKandel {
     internal
     virtual
     override
-    returns (bytes32 populateStatus)
+    returns (bytes32 repostStatus)
   {
-    transportSuccessfulOrder(order);
-    return super.__posthookSuccess__(order, makerData);
+    bool atEdge = transportSuccessfulOrder(order);
+    repostStatus = super.__posthookSuccess__(order, makerData);
+    logAllSameOfferType(atEdge, order, repostStatus);
   }
 }

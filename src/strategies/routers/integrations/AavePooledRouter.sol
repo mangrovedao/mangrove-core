@@ -132,10 +132,12 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@inheritdoc AbstractRouter
   function __push__(IERC20 token, address reserveId, uint amount) internal override returns (uint) {
-    BalanceMemoizer memory v_tkn;
-    _mintShares(token, reserveId, amount, v_tkn);
-    // Transfer must occur *after* _mintShares above
-    require(TransferLib.transferTokenFrom(token, msg.sender, address(this), amount), "AavePooledRouter/pushFailed");
+    if (amount > 0) {
+      BalanceMemoizer memory v_tkn;
+      _mintShares(token, reserveId, amount, v_tkn);
+      // Transfer must occur *after* _mintShares above
+      require(TransferLib.transferTokenFrom(token, msg.sender, address(this), amount), "AavePooledRouter/pushFailed");
+    }
     return amount;
   }
 

@@ -40,9 +40,21 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@notice initial shares to be minted
   ///@dev this amount must be big enough to avoid minting 0 shares via "donation"
-  ///see https://github.com/code-423n4/2022-09-y2k-finance-findings/issues/449
+  /// see https://github.com/code-423n4/2022-09-y2k-finance-findings/issues/449
   /// mitagation proposed here: https://ethereum-magicians.org/t/address-eip-4626-inflation-attacks-with-virtual-shares-and-assets/12677
-  uint constant INIT_SHARES = 10 ** 29;
+
+  uint public constant OFFSET = 19;
+  uint constant INIT_MINT = 10 ** OFFSET;
+
+  /// OVERFLOW analysis w.r.t offset choice:
+  /// worst case is:
+  /// 1. Alice, the first minter deposits 1 wei. She gets `10**OFFSET` shares for this.
+  /// 2. Alice deposits `amount` into the pool. She gets `10**OFFSET * amount / (amount + 1)` additional shares.
+  /// 3. Alice computes her balance. Total shares of the pool is the total share of Alice  ~ `amount * 10**OFFSET` and the pool has ~ `amount` tokens
+  ///  so Alice's balance is ~ `(amount * amount * 10**OFFSET) /10**OFFSET * amount`. This overflows if `amount * amount * 10**OFFSET` overflows.
+  ///  Suppose that amount is `2**x`. One must verify that 2*x + log2(10) * OFFSET < 256
+  ///  This imposes x < (256 - log2(10) * OFFSET) / 2
+  /// with OFFSET = 19 we get x < 101 so no overflow is guaranteed for a user balance that can hold on a `uint96`.
 
   constructor(address _addressesProvider, uint overhead)
     HasAaveBalanceMemoizer(_addressesProvider)
@@ -74,11 +86,11 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@dev this function relies on the aave promise that aToken are in one-to-one correspondance with claimable underlying and use the same decimals
   function totalBalance(IERC20 token) external view returns (uint balance) {
     BalanceMemoizer memory v_tkn;
-    balance = _balanceOf(token, address(this), v_tkn) + _balanceOfOverlying(token, address(this), v_tkn);
+    return _totalBalance(token, v_tkn);
   }
 
   ///@notice `totalBalance` with memoization of balance queries
-  function totalBalance(IERC20 token, BalanceMemoizer memory v_tkn) internal view returns (uint balance) {
+  function _totalBalance(IERC20 token, BalanceMemoizer memory v_tkn) internal view returns (uint balance) {
     balance = _balanceOf(token, address(this), v_tkn) + _balanceOfOverlying(token, address(this), v_tkn);
   }
 
@@ -86,24 +98,28 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@param token the asset one wants to know the balance of
   ///@param reserveId the reserve whose balance is queried
   function balanceOfId(IERC20 token, address reserveId) public view override returns (uint) {
-    uint totalShares_ = totalShares(token);
     BalanceMemoizer memory v_tkn;
-    return totalShares_ == 0 ? 0 : sharesOf(token, reserveId) * totalBalance(token, v_tkn) / totalShares_;
+    return _balanceOfId(token, reserveId, v_tkn);
   }
 
   ///@notice `balanceOfId` with memoization of balance queries
-  function balanceOfId(IERC20 token, address reserveId, BalanceMemoizer memory v_tkn) internal view returns (uint) {
+  function _balanceOfId(IERC20 token, address reserveId, BalanceMemoizer memory v_tkn)
+    internal
+    view
+    returns (uint balance)
+  {
     uint totalShares_ = totalShares(token);
-    return totalShares_ == 0 ? 0 : sharesOf(token, reserveId) * totalBalance(token, v_tkn) / totalShares_;
+    balance = totalShares_ == 0 ? 0 : sharesOf(token, reserveId) * _totalBalance(token, v_tkn) / totalShares_;
   }
 
   ///@notice computes how many shares an amount of tokens represents
   ///@param token the address of the asset
   ///@param amount of tokens
   ///@return shares the shares that correspond to amount
+  ///@dev if called in the context of `_burnShares` this function will return `INIT_MINT` to burn when router total shares of is 0.
   function _sharesOfamount(IERC20 token, uint amount, BalanceMemoizer memory v_tkn) internal view returns (uint shares) {
     uint totalShares_ = totalShares(token);
-    shares = totalShares_ == 0 ? INIT_SHARES : totalShares_ * amount / totalBalance(token, v_tkn);
+    shares = totalShares_ == 0 ? INIT_MINT : totalShares_ * amount / _totalBalance(token, v_tkn);
   }
 
   ///@notice mints a certain quantity of shares for a given asset and assigns them to a maker contract
@@ -180,10 +196,10 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     uint buffer = _balanceOf(token, address(this), v_tkn);
     if (strict) {
       // maker contract is making a deposit (not a call emanating from the offer logic)
-      toRedeem = buffer > amount ? 0 : amount - buffer;
+      toRedeem = buffer >= amount ? 0 : amount - buffer;
     } else {
       // we redeem all router's available balance from aave and transfer to maker all its balance
-      amount_ = balanceOfId(token, reserveId, v_tkn); // max possible transfer to maker
+      amount_ = _balanceOfId(token, reserveId, v_tkn); // max possible transfer to maker
       if (buffer < amount) {
         // this pull is the first of the market order (that requires funds from aave) so we redeem all the reserve from AAVE
         // note in theory we should check buffer == 0 but donation may have occurred.
@@ -191,7 +207,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
         toRedeem = _balanceOfOverlying(token, address(this), v_tkn);
       } else {
         // since buffer > amount, this call is not the first pull of the market order (unless a big donation occurred) and we do not withdraw from AAVE
-        amount_ = buffer > amount_ ? amount_ : buffer;
+        amount_ = buffer >= amount_ ? amount_ : buffer;
         // if buffer < amount_ we still have buffer > amount (maker initial quantity)
       }
     }

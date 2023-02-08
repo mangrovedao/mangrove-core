@@ -272,6 +272,8 @@ abstract contract CoreKandelTest is MangroveTest {
     test_bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
   }
 
+  function precisionForAssert() internal virtual returns (uint);
+
   function test_bid_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote, uint index) internal {
     vm.assume(compoundRateBase <= 10_000);
     vm.assume(compoundRateQuote <= 10_000);
@@ -284,6 +286,7 @@ abstract contract CoreKandelTest is MangroveTest {
     (uint successes, uint takerGot, uint takerGave,, uint fee) = sellToBestAs(taker, 1000 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
     uint[] memory expectedStatus = new uint[](10);
+    // Build this for index=5: assertStatus(dynamic([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]));
     for (uint i = 0; i < 10; i++) {
       expectedStatus[i] = i < index ? 1 : i == index ? 0 : 2;
     }
@@ -291,13 +294,15 @@ abstract contract CoreKandelTest is MangroveTest {
     MgvStructs.OfferPacked newAsk = kdl.getOffer(Ask, index + STEP);
     assertTrue(newAsk.gives() <= takerGave + oldAsk.gives(), "Cannot give more than what was received");
     uint pendingDelta = pending(Ask) - oldPending;
-    assertEq(pendingDelta + newAsk.gives(), oldAsk.gives() + takerGave, "Incorrect net promised asset");
+    // Allow a discrepancy of 1 for aave router shares
+    assertApproxEqAbs(
+      pendingDelta + newAsk.gives(), oldAsk.gives() + takerGave, precisionForAssert(), "Incorrect net promised asset"
+    );
     if (compoundRateBase == 10_000) {
-      assertEq(pendingDelta, 0, "Full compounding should not yield pending");
+      assertApproxEqAbs(pendingDelta, 0, precisionForAssert(), "Full compounding should not yield pending");
       assertTrue(newAsk.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
     } else {
       assertTrue(pendingDelta > 0, "Partial auto compounding should yield pending");
-      //      assertTrue(newAsk.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
     }
   }
 
@@ -331,7 +336,6 @@ abstract contract CoreKandelTest is MangroveTest {
       assertTrue(newBid.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
     } else {
       assertTrue(pendingDelta > 0, "Partial auto compounding should yield pending");
-      // assertTrue(newBid.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
     }
   }
 
@@ -492,6 +496,96 @@ abstract contract CoreKandelTest is MangroveTest {
 
   function test_take_full_bid_and_ask_10_times_zero_compound() public {
     test_take_full_bid_and_ask_repeatedly(10, 0, 0, ExpectedChange.Decrease, ExpectedChange.Decrease);
+  }
+
+  function retractDefaultSetup() internal {
+    uint baseFunds = kdl.offeredVolume(Ask) + uint(kdl.pending(Ask));
+    uint quoteFunds = kdl.offeredVolume(Bid) + uint(kdl.pending(Bid));
+    vm.prank(maker);
+    kdl.retractAndWithdraw(
+      0, 10, dynamic([IERC20(base), quote]), dynamic([baseFunds, quoteFunds]), type(uint).max, maker
+    );
+  }
+
+  function test_reserveBalance_withoutOffers_returnsFundAmount() public {
+    // Arrange
+    retractDefaultSetup();
+    assertEq(kdl.reserveBalance(base), 0, "Base balance should be empty");
+    assertEq(kdl.reserveBalance(quote), 0, "Quote balance should be empty");
+
+    vm.prank(maker);
+    kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(42), 43]));
+
+    // Act/assert
+    assertEq(kdl.reserveBalance(base), 42, "Base balance should be correct");
+    assertEq(kdl.reserveBalance(quote), 43, "Quote balance should be correct");
+  }
+
+  function populateFixedDistribution() internal {
+    CoreKandel.Distribution memory distribution;
+    distribution.indices = dynamic([uint(0), 1, 2, 3]);
+    distribution.baseDist = dynamic([uint(1 ether), 2 ether, 3 ether, 4 ether]);
+    distribution.quoteDist = dynamic([uint(5 ether), 6 ether, 7 ether, 8 ether]);
+
+    GeometricKandel.Params memory params = GetParams(kdl);
+    vm.prank(maker);
+    kdl.populate{value: maker.balance}(distribution, new uint[](4), 1, params, new IERC20[](0), new uint[](0));
+  }
+
+  function test_reserveBalance_withOffers_returnsFundAmount() public {
+    // Arrange
+    retractDefaultSetup();
+    populateFixedDistribution();
+
+    assertEq(kdl.reserveBalance(base), 0, "Base balance should be empty");
+    assertEq(kdl.reserveBalance(quote), 0, "Quote balance should be empty");
+
+    vm.prank(maker);
+    kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(42), 43]));
+
+    // Act/assert
+    assertEq(kdl.reserveBalance(base), 42, "Base balance should be correct");
+    assertEq(kdl.reserveBalance(quote), 43, "Quote balance should be correct");
+  }
+
+  function test_offeredVolume_withOffers_returnsSumOfGives() public {
+    // Arrange
+    retractDefaultSetup();
+
+    populateFixedDistribution();
+
+    // Act/assert
+    assertEq(kdl.offeredVolume(Bid), 5 ether + 6 ether, "Bid volume should be sum of quote dist");
+    assertEq(kdl.offeredVolume(Ask), 3 ether + 4 ether, "Ask volume should be sum of quote dist");
+  }
+
+  function test_pending_withoutOffers_returnsReserveBalance() public {
+    // Arrange
+    retractDefaultSetup();
+    assertEq(kdl.pending(Ask), 0, "Base pending should be empty");
+    assertEq(kdl.pending(Bid), 0, "Quote pending should be empty");
+
+    vm.prank(maker);
+    kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(42), 43]));
+
+    // Act/assert
+    assertEq(kdl.pending(Ask), 42, "Base pending should be correct");
+    assertEq(kdl.pending(Bid), 43, "Quote pending should be correct");
+  }
+
+  function test_pending_withOffers_disregardsOfferedVolume() public {
+    // Arrange
+    retractDefaultSetup();
+    populateFixedDistribution();
+
+    assertEq(-kdl.pending(Ask), 3 ether + 4 ether, "Base pending should be correct");
+    assertEq(-kdl.pending(Bid), 5 ether + 6 ether, "Quote pending should be correct");
+
+    vm.prank(maker);
+    kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(42), 43]));
+
+    assertEq(-kdl.pending(Ask), 3 ether + 4 ether - 42, "Base pending should be correct");
+    assertEq(-kdl.pending(Bid), 5 ether + 6 ether - 43, "Quote pending should be correct");
   }
 
   function getBestOffers() internal view returns (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) {
@@ -1053,12 +1147,7 @@ abstract contract CoreKandelTest is MangroveTest {
 
   function test_estimatePivotsAndRequiredAmount_withPivots_savesGas() public {
     // Arrange
-    uint offeredVolumeAsk = kdl.offeredVolume(Ask);
-    uint offeredVolumeBid = kdl.offeredVolume(Bid);
-    vm.prank(maker);
-    kdl.retractAndWithdraw(
-      0, 10, dynamic([IERC20(base), quote]), dynamic([offeredVolumeAsk, offeredVolumeBid]), type(uint).max, maker
-    );
+    retractDefaultSetup();
 
     // Use a large number of price points - the rest of the parameters are not too important
     GeometricKandel.Params memory params;
@@ -1129,9 +1218,8 @@ abstract contract CoreKandelTest is MangroveTest {
 
     // Assert
 
-    // Aave router is not 100% precise so it may differ by a wei.
-    assertApproxEqAbs(0, kdl.pending(OfferType.Ask), 1, "required base amount should be deposited");
-    assertApproxEqAbs(0, kdl.pending(OfferType.Bid), 1, "required quote amount should be deposited");
+    assertApproxEqAbs(0, kdl.pending(OfferType.Ask), precisionForAssert(), "required base amount should be deposited");
+    assertApproxEqAbs(0, kdl.pending(OfferType.Bid), precisionForAssert(), "required quote amount should be deposited");
 
     console.log("No pivot populate: %s PivotPopulate: %s", t.gas0Pivot, t.gasPivots);
 

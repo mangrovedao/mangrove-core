@@ -49,6 +49,10 @@ contract AaveKandelTest is CoreKandelTest {
     return aaveKandel;
   }
 
+  function precisionForAssert() internal override returns (uint) {
+    return 1;
+  }
+
   function test_initialize() public {
     assertEq(address(kdl.router()), address(router), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");

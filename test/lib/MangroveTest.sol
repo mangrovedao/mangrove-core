@@ -267,6 +267,29 @@ contract MangroveTest is Test2, HasMgvEvents {
     order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
   }
 
+  function mockBuyOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    IERC20 base_,
+    IERC20 quote_,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.outbound_tkn = $(base_);
+    order.inbound_tkn = $(quote_);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    // complete fill (prev and next are bogus)
+    order.offer = MgvStructs.Offer.pack({
+      __prev: 0,
+      __next: 0,
+      __wants: order.gives * partialFill,
+      __gives: order.wants * partialFill
+    });
+    result.makerData = makerData;
+    result.mgvData = "mgv/tradeSuccess";
+  }
+
   function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
     order.inbound_tkn = $(quote);
     order.outbound_tkn = $(base);
@@ -274,6 +297,29 @@ contract MangroveTest is Test2, HasMgvEvents {
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
     order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
+  }
+
+  function mockSellOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    IERC20 base_,
+    IERC20 quote_,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.inbound_tkn = $(quote_);
+    order.outbound_tkn = $(base_);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    // complete fill (prev and next are bogus)
+    order.offer = MgvStructs.Offer.pack({
+      __prev: 0,
+      __next: 0,
+      __wants: order.gives * partialFill,
+      __gives: order.wants * partialFill
+    });
+    result.makerData = makerData;
+    result.mgvData = "mgv/tradeSuccess";
   }
 
   /* **** Token conversion *** */

@@ -30,11 +30,11 @@ abstract contract AbstractKandel {
   ///@notice the gasreq has been set.
   event SetGasreq(uint value);
 
-  ///@notice the Kandel instance credited the amount of token to the recipient.
-  event Credit(address indexed recipient, IERC20 indexed token, uint amount);
+  ///@notice the Kandel instance is credited of `amount` by its owner
+  event Credit(IERC20 indexed token, uint amount);
 
-  ///@notice the spender send the amount of token to the Kandel instance.
-  event Debit(address indexed spender, IERC20 indexed token, uint amount);
+  ///@notice the Kandel instance is debited of `amount` by its owner
+  event Debit(IERC20 indexed token, uint amount);
 
   // `ratio`, `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals.
   // setting PRECISION higher than 4 might produce overflow in limit cases.

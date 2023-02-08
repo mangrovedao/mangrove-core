@@ -4,7 +4,6 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import {DirectTester, IMangrove, IERC20} from "mgv_src/strategies/offer_maker/DirectTester.sol";
 import {SimpleRouter, AbstractRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
-import {t_of_struct as packOffer} from "mgv_src/preprocessed/MgvOffer.post.sol";
 
 contract MangroveOfferTest is MangroveTest {
   TestToken weth;
@@ -197,6 +196,23 @@ contract MangroveOfferTest is MangroveTest {
       IMangrove(payable(mgv)), IERC20(address(0)), IERC20(address(0)), 0, result.makerData, result.mgvData
       );
     vm.prank(address(mgv));
+    makerContract.makerPosthook(order, result);
+  }
+
+  function test_failed_to_repost_is_logged() public {
+    (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockBuyOrder({
+      takerGives: 1500 * 10 ** 6,
+      takerWants: 1 ether,
+      partialFill: 2, // half of offer is consummed
+      base_: weth,
+      quote_: usdc,
+      makerData: "whatever"
+    });
+    expectFrom(address(makerContract));
+    emit LogIncident(IMangrove($(mgv)), weth, usdc, 0, "whatever", "mgv/updateOffer/unauthorized");
+    vm.expectRevert("posthook/failed");
+    /// since order.offerId is 0, updateOffer will revert. This revert should be caught and logged
+    vm.prank($(mgv));
     makerContract.makerPosthook(order, result);
   }
 

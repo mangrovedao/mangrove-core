@@ -90,7 +90,7 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKande
   function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual override {
     TransferLib.transferTokensFrom(tokens, msg.sender, address(this), amounts);
     for (uint i; i < tokens.length; i++) {
-      emit Debit(msg.sender, tokens[i], amounts[i]);
+      emit Credit(tokens[i], amounts[i]);
     }
   }
 
@@ -102,7 +102,7 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKande
   {
     TransferLib.transferTokens(tokens, amounts, recipient);
     for (uint i; i < tokens.length; i++) {
-      emit Credit(recipient, tokens[i], amounts[i]);
+      emit Debit(tokens[i], amounts[i]);
     }
   }
 

@@ -29,8 +29,8 @@ abstract contract CoreKandelTest is MangroveTest {
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
   event SetLength(uint value);
   event SetGasreq(uint value);
-  event Credit(address indexed recipient, IERC20 indexed token, uint amount);
-  event Debit(address indexed spender, IERC20 indexed token, uint amount);
+  event Credit(IERC20 indexed token, uint amount);
+  event Debit(IERC20 indexed token, uint amount);
 
   // sets base and quote
   function __setForkEnvironment__() internal virtual {
@@ -104,9 +104,9 @@ abstract contract CoreKandelTest is MangroveTest {
     deal($(quote), maker, pendingQuote);
 
     expectFrom($(kdl));
-    emit Debit(maker, base, pendingBase);
+    emit Credit(base, pendingBase);
     expectFrom($(kdl));
-    emit Debit(maker, quote, pendingQuote);
+    emit Credit(quote, pendingQuote);
     vm.prank(maker);
     kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([pendingBase, pendingQuote]));
   }
@@ -1156,9 +1156,9 @@ abstract contract CoreKandelTest is MangroveTest {
     uint baseBalance = kdl.reserveBalance(base);
     uint quoteBalance = kdl.reserveBalance(quote);
     expectFrom($(kdl));
-    emit Credit(recipient, base, baseBalance);
+    emit Debit(base, baseBalance);
     expectFrom($(kdl));
-    emit Credit(recipient, quote, quoteBalance);
+    emit Debit(quote, quoteBalance);
     vm.prank(maker);
     kdl.retractAndWithdraw(
       0, 10, dynamic([IERC20(base), IERC20(quote)]), dynamic([baseBalance, quoteBalance]), type(uint).max, recipient

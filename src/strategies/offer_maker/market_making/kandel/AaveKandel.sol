@@ -54,7 +54,9 @@ contract AaveKandel is GeometricKandel {
     onlyAdmin
   {
     for (uint i; i < tokens.length; i++) {
-      pooledRouter().pull(tokens[i], reserveId(), amounts[i], true);
+      if (amounts[i] != 0) {
+        pooledRouter().pull(tokens[i], reserveId(), amounts[i], true);
+      }
     }
     super.withdrawFunds(tokens, amounts, recipient);
   }

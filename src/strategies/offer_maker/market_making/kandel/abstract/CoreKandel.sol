@@ -19,6 +19,8 @@ import {DirectWithBidsAndAsksDistribution} from "./DirectWithBidsAndAsksDistribu
 import {AbstractKandel} from "./AbstractKandel.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
+///@title the core of Kandel strategies which creates or updates a dual offer whenever an offer is taken.
+///@notice `CoreKandel` is agnostic to the chosen price distribution.
 abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKandel {
   constructor(IMangrove mgv, uint gasreq, address reserveId) DirectWithBidsAndAsksDistribution(mgv, gasreq, reserveId) {}
 

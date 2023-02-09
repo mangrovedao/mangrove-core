@@ -19,6 +19,7 @@ import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {CoreKandel} from "./CoreKandel.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
 
+///@title Adds a geometric price progression to a `CoreKandel` strat without storing prices for individual price points.
 abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   ///@notice the parameters for Geometric Kandel have been set.
   event SetGeometricParams(uint spread, uint ratio);
@@ -41,6 +42,7 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     uint8 pricePoints;
   }
 
+  /// Storage of the parameters for the strat.
   Params public params;
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
@@ -67,7 +69,8 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     emit SetGasreq(gasreq_);
   }
 
-  function setParams(Params calldata newParams) private {
+  /// @notice Updates the params to new values.
+  function setParams(Params calldata newParams) internal {
     Params memory oldParams = params;
 
     if (oldParams.pricePoints != newParams.pricePoints) {
@@ -172,6 +175,7 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     populateChunk(distribution, pivotIds, lastBidIndex, params.gasreq, params.gasprice);
   }
 
+  ///@notice calculates the wants and gives for the dual offer according to the geometric price distribution.
   function dualWantsGivesOfOffer(
     OfferType baDual,
     uint offerGives,

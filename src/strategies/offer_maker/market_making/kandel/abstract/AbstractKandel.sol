@@ -15,10 +15,11 @@ import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {OfferType} from "./TradesBaseQuotePair.sol";
 
+///@title Core external functions and events for Kandel strats.
 abstract contract AbstractKandel {
-  ///@notice signals that the price has moved above Kandel's current price range
+  ///@notice signals that the price has moved above Kandel's current price range.
   event AllAsks();
-  ///@notice signals that the price has moved below Kandel's current price range
+  ///@notice signals that the price has moved below Kandel's current price range.
   event AllBids();
 
   ///@notice the compound rates have been set to `compoundRateBase` and `compoundRateQuote` which will take effect for future compounding.
@@ -30,18 +31,28 @@ abstract contract AbstractKandel {
   ///@notice the gasreq has been set.
   event SetGasreq(uint value);
 
-  ///@notice the Kandel instance is credited of `amount` by its owner
+  ///@notice the Kandel instance is credited of `amount` by its owner.
   event Credit(IERC20 indexed token, uint amount);
 
-  ///@notice the Kandel instance is debited of `amount` by its owner
+  ///@notice the Kandel instance is debited of `amount` by its owner.
   event Debit(IERC20 indexed token, uint amount);
 
-  // `ratio`, `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals.
-  // setting PRECISION higher than 4 might produce overflow in limit cases.
+  ///@notice `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals, and ditto for GeometricKandel's `ratio`.
+  ///@notice setting PRECISION higher than 4 will produce overflow in limit cases for GeometricKandel.
   uint8 public constant PRECISION = 4;
 
+  ///@notice the amount of liquidity that is available for the strat but not offered by the given offer type.
+  ///@param ba the offer type.
+  ///@return pending_ the amount of pending liquidity.
+  ///@dev Pending could be withdrawn or invested by increasing offered volume.
   function pending(OfferType ba) external view virtual returns (int pending_);
+
+  ///@notice the total balance of the token available for the strat.
+  ///@param token the token.
+  ///@return the balance of the token.
   function reserveBalance(IERC20 token) public view virtual returns (uint);
+
+  ///@notice deposits funds to be available for being offered. Will increase `pending`.
   function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual;
 
   ///@notice withdraws the amounts of the given tokens to the recipient.

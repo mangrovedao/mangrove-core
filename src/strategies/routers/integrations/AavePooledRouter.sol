@@ -41,7 +41,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@notice initial shares to be minted
   ///@dev this amount must be big enough to avoid minting 0 shares via "donation"
   /// see https://github.com/code-423n4/2022-09-y2k-finance-findings/issues/449
-  /// mitagation proposed here: https://ethereum-magicians.org/t/address-eip-4626-inflation-attacks-with-virtual-shares-and-assets/12677
+  /// mitigation proposed here: https://ethereum-magicians.org/t/address-eip-4626-inflation-attacks-with-virtual-shares-and-assets/12677
 
   uint public constant OFFSET = 19;
   uint constant INIT_MINT = 10 ** OFFSET;
@@ -65,7 +65,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@notice returns the shares of this router's balance that a maker contract has
   ///@param token the address of the asset
-  ///@param reserveId the address identifiying the shares owner
+  ///@param reserveId the address identifying the shares owner
   ///@return shares the amount of shares attributed to `reserveId`.
   ///@dev `sharesOf(token,owner)/totalShares(token)` represent the portion of this contract's balance of `token`s that the owner can claim
   function sharesOf(IERC20 token, address reserveId) public view returns (uint shares) {
@@ -83,7 +83,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@notice theoretically available funds to this router either in overlying or in tokens (part of it may be not redeemable from AAVE)
   ///@param token the asset whose balance one is querying
   ///@return balance of the asset
-  ///@dev this function relies on the aave promise that aToken are in one-to-one correspondance with claimable underlying and use the same decimals
+  ///@dev this function relies on the aave promise that aToken are in one-to-one correspondence with claimable underlying and use the same decimals
   function totalBalance(IERC20 token) external view returns (uint balance) {
     BalanceMemoizer memory v_tkn;
     return _totalBalance(token, v_tkn);
@@ -117,7 +117,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@param amount of tokens
   ///@return shares the shares that correspond to amount
   ///@dev if called in the context of `_burnShares` this function will return `INIT_MINT` to burn when router total shares of is 0.
-  function _sharesOfamount(IERC20 token, uint amount, BalanceMemoizer memory v_tkn) internal view returns (uint shares) {
+  function _sharesOfAmount(IERC20 token, uint amount, BalanceMemoizer memory v_tkn) internal view returns (uint shares) {
     uint totalShares_ = totalShares(token);
     shares = totalShares_ == 0 ? INIT_MINT : totalShares_ * amount / _totalBalance(token, v_tkn);
   }
@@ -128,7 +128,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@param amount the amount of assets added to maker's reserve
   function _mintShares(IERC20 token, address reserveId, uint amount, BalanceMemoizer memory v_tkn) internal {
     // computing how many shares should be minted for maker contract
-    uint sharesToMint = _sharesOfamount(token, amount, v_tkn);
+    uint sharesToMint = _sharesOfAmount(token, amount, v_tkn);
     _sharesOf[token][reserveId] += sharesToMint;
     _totalShares[token] += sharesToMint;
   }
@@ -139,7 +139,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@param amount the amount of assets withdrawn from maker's reserve
   function _burnShares(IERC20 token, address reserveId, uint amount, BalanceMemoizer memory v_tkn) internal {
     // computing how many shares should be minted for maker contract
-    uint sharesToBurn = _sharesOfamount(token, amount, v_tkn);
+    uint sharesToBurn = _sharesOfAmount(token, amount, v_tkn);
     uint ownerShares = _sharesOf[token][reserveId];
     require(sharesToBurn <= ownerShares, "AavePooledRouter/insufficientFunds");
     _sharesOf[token][reserveId] = ownerShares - sharesToBurn;
@@ -207,7 +207,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
       if (buffer < amount) {
         // this pull is the first of the market order (that requires funds from aave) so we redeem all the reserve from AAVE
         // note in theory we should check buffer == 0 but donation may have occurred.
-        // This check forces donation to be at least the amount of outbound tokens promised by caller to avoid grieffing (depositing a small donation to make offer fail).
+        // This check forces donation to be at least the amount of outbound tokens promised by caller to avoid griefing (depositing a small donation to make offer fail).
         toRedeem = _balanceOfOverlying(token, address(this), v_tkn);
       } else {
         // since buffer > amount, this call is not the first pull of the market order (unless a big donation occurred) and we do not withdraw from AAVE
@@ -224,14 +224,14 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
       _redeem(token, toRedeem, address(this));
     }
 
-    // Transfering funds to the maker contract, at this point we must revert if things go wrong because shares have been burnt on the premise that `amount_` will be transferred.
+    // Transferring funds to the maker contract, at this point we must revert if things go wrong because shares have been burnt on the premise that `amount_` will be transferred.
     require(TransferLib.transferToken(token, msg.sender, amount_), "AavePooledRouter/pullFailed");
     return amount_;
   }
 
   ///@inheritdoc AbstractRouter
   function __checkList__(IERC20 token, address reserveId) internal view override {
-    // any reserveId passes the checklist since this router does not pull or push liquidity to it (but unkown reserveId will have 0 shares)
+    // any reserveId passes the checklist since this router does not pull or push liquidity to it (but unknown reserveId will have 0 shares)
     reserveId;
     // we check that `token` is listed on AAVE
     require(checkAsset(token), "AavePooledRouter/tokenNotLendableOnAave");
@@ -264,7 +264,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@notice allows aave manager to claim the aave attributed to this router by AAVE
   ///@param assets the list of overlyings (aToken, debtToken) whose aave should be claimed
-  ///@dev if some aave are elligible they are sent to `aaveManager`
+  ///@dev if some aave are eligible they are sent to `aaveManager`
   ///@return aaveList the addresses of the claimed aave
   ///@return claimedAmounts the amount of claimed aave
   function claimRewards(address[] calldata assets)
@@ -279,7 +279,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@param aaveManager_ the new address of the aave manager
   ///@dev if any aave is active for pure lenders, `aaveManager` will be able to claim them
   function setAaveManager(address aaveManager_) public onlyAdmin {
-    require(aaveManager_ != address(0), "AavePooledReserve/0xaaveManager");
+    require(aaveManager_ != address(0), "AavePooledReserve/0xAaveManager");
     aaveManager = aaveManager_;
     emit SetAaveManager(aaveManager_);
   }

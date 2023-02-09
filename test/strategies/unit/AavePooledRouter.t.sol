@@ -93,7 +93,7 @@ contract AavePooledRouterTest is OfferLogicTest {
   function test_supply_error_is_logged() public {
     TestToken pixieDust = new TestToken({
       admin: address(this),
-      name: "Pixe Dust",
+      name: "Pixie Dust",
       symbol: "PXD",
       _decimals: uint8(18)
     });

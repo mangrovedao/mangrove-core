@@ -56,7 +56,7 @@ contract AaveKandelTest is CoreKandelTest {
   function test_initialize() public {
     assertEq(address(kdl.router()), address(router), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
-    assertEq(kdl.reserveId(), maker, "Incorrect owner");
+    assertEq(kdl.RESERVE_ID(), maker, "Incorrect owner");
     assertEq(base.balanceOf(address(router)), 0, "Router should start with no base buffer");
     assertEq(quote.balanceOf(address(router)), 0, "Router should start with no quote buffer");
     assertTrue(kdl.reserveBalance(base) > 0, "Incorrect initial reserve balance of base");
@@ -143,7 +143,7 @@ contract AaveKandelTest is CoreKandelTest {
     deal($(base), maker, baseAmount);
     deal($(quote), maker, quoteAmount);
     GeometricKandel kdl_ = __deployKandel__(maker, maker);
-    assertEq(kdl_.reserveId(), kdl.reserveId(), "Strats should have the same reserveId");
+    assertEq(kdl_.RESERVE_ID(), kdl.RESERVE_ID(), "Strats should have the same reserveId");
 
     uint baseBalance = kdl.reserveBalance(base);
     uint quoteBalance = kdl.reserveBalance(quote);
@@ -163,7 +163,7 @@ contract AaveKandelTest is CoreKandelTest {
     deal($(base), maker, baseAmount);
     deal($(quote), maker, quoteAmount);
     GeometricKandel kdl_ = __deployKandel__(maker, address(0));
-    assertTrue(kdl_.reserveId() != kdl.reserveId(), "Strats should not have the same reserveId");
+    assertTrue(kdl_.RESERVE_ID() != kdl.RESERVE_ID(), "Strats should not have the same reserveId");
     vm.prank(maker);
     kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(baseAmount), quoteAmount]));
 

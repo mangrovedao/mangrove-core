@@ -61,7 +61,7 @@ contract KdlSeederDeployer is Deployer {
     CoreKandel kdl = kdlseeder.sow(seed);
     require(address(kdl.router()) == address(kdlseeder.AAVE_ROUTER()), "Incorrect router address");
     require(kdl.admin() == address(this), "Incorrect admin");
-    require(kdl.reserveId() == kdl.admin(), "Incorrect id");
+    require(kdl.RESERVE_ID() == kdl.admin(), "Incorrect id");
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;

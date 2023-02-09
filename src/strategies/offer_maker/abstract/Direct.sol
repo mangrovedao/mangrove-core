@@ -20,25 +20,20 @@ import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 abstract contract Direct is MangroveOffer {
   ///@notice identifier of this contract's reserve when using a router
   ///@dev RESERVE_ID==address(0) will pass address(this) to the router for the id field.
-  ///@dev two contracts using the same reserveId will share funds, therefore strat builder must make sure this contract is allowed to pull into the given reserve Id.
-  ///@dev a safe value for `reserveId` is `address(this)` in which case the funds will never be shared with another maker contract.
-  address internal immutable RESERVE_ID;
+  ///@dev two contracts using the same RESERVE_ID will share funds, therefore strat builder must make sure this contract is allowed to pull into the given reserve Id.
+  ///@dev a safe value for `RESERVE_ID` is `address(this)` in which case the funds will never be shared with another maker contract.
+  address public immutable RESERVE_ID;
 
   ///@notice `Direct`'s constructor.
   ///@param mgv The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
   ///@param router_ the router that this contract will use to pull/push liquidity from offer maker's reserve. This can be `NO_ROUTER`.
   ///@param gasreq Gas requirement when posting offers via this strategy, excluding router requirement.
-  ///@param reserveId_ identifier of this contract's reserve when using a router.
-  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq, address reserveId_) MangroveOffer(mgv, gasreq) {
+  ///@param reserveId identifier of this contract's reserve when using a router.
+  constructor(IMangrove mgv, AbstractRouter router_, uint gasreq, address reserveId) MangroveOffer(mgv, gasreq) {
     if (router_ != NO_ROUTER) {
       setRouter(router_);
     }
-    RESERVE_ID = reserveId_;
-  }
-
-  ///@notice returns the reserve id that is used when pulling or pushing funds with a router
-  function reserveId() public view returns (address) {
-    return RESERVE_ID == address(0) ? address(this) : RESERVE_ID;
+    RESERVE_ID = reserveId == address(0) ? address(this) : reserveId;
   }
 
   /// @notice Inserts a new offer in Mangrove Offer List.
@@ -129,7 +124,7 @@ abstract contract Direct is MangroveOffer {
     if (router_ == NO_ROUTER) {
       return amount_;
     } else {
-      uint pulled = router_.pull(IERC20(order.outbound_tkn), reserveId(), amount_, false);
+      uint pulled = router_.pull(IERC20(order.outbound_tkn), RESERVE_ID, amount_, false);
       return pulled >= amount_ ? 0 : amount_ - pulled;
     }
   }
@@ -147,7 +142,7 @@ abstract contract Direct is MangroveOffer {
       IERC20[] memory tokens = new IERC20[](2);
       tokens[0] = IERC20(order.outbound_tkn); // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
       tokens[1] = IERC20(order.inbound_tkn); // flushing liquidity brought by taker
-      router_.flush(tokens, reserveId());
+      router_.flush(tokens, RESERVE_ID);
     }
     // reposting offer residual if any
     return super.__posthookSuccess__(order, makerData);
@@ -156,7 +151,7 @@ abstract contract Direct is MangroveOffer {
   ///@inheritdoc MangroveOffer
   function __checkList__(IERC20 token) internal view virtual override {
     if (router() != NO_ROUTER) {
-      router().checkList(token, reserveId());
+      router().checkList(token, RESERVE_ID);
     }
   }
 }

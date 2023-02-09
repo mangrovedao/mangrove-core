@@ -80,7 +80,7 @@ contract KandelSeederTest is MangroveTest {
 
     assertEq(address(kdl.router()), address(seeder.AAVE_ROUTER()), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
-    assertEq(kdl.reserveId(), kdl.admin(), "Incorrect owner");
+    assertEq(kdl.RESERVE_ID(), kdl.admin(), "Incorrect owner");
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;
@@ -95,7 +95,7 @@ contract KandelSeederTest is MangroveTest {
 
     assertEq(address(kdl.router()), address(seeder.AAVE_ROUTER()), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
-    assertEq(kdl.reserveId(), address(kdl), "Incorrect owner");
+    assertEq(kdl.RESERVE_ID(), address(kdl), "Incorrect owner");
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;
@@ -109,7 +109,7 @@ contract KandelSeederTest is MangroveTest {
     kdl = seeder.sow(seed(false, false));
     assertEq(address(kdl.router()), address(kdl.NO_ROUTER()), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
-    assertEq(kdl.reserveId(), address(kdl), "Incorrect owner");
+    assertEq(kdl.RESERVE_ID(), address(kdl), "Incorrect owner");
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;
@@ -123,7 +123,7 @@ contract KandelSeederTest is MangroveTest {
     kdl = seeder.sow(seed(false, true));
     assertEq(address(kdl.router()), address(kdl.NO_ROUTER()), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
-    assertEq(kdl.reserveId(), maker, "Incorrect owner");
+    assertEq(kdl.RESERVE_ID(), maker, "Incorrect owner");
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;

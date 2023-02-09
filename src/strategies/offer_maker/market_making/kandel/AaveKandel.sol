@@ -47,7 +47,7 @@ contract AaveKandel is GeometricKandel {
     // transfer funds from caller to this
     super.depositFunds(tokens, amounts);
     // push funds on the router (and supply on AAVE)
-    pooledRouter().pushAndSupply(tokens, amounts, reserveId());
+    pooledRouter().pushAndSupply(tokens, amounts, RESERVE_ID);
   }
 
   ///@inheritdoc AbstractKandel
@@ -58,7 +58,7 @@ contract AaveKandel is GeometricKandel {
   {
     for (uint i; i < tokens.length; i++) {
       if (amounts[i] != 0) {
-        pooledRouter().pull(tokens[i], reserveId(), amounts[i], true);
+        pooledRouter().pull(tokens[i], RESERVE_ID, amounts[i], true);
       }
     }
     super.withdrawFunds(tokens, amounts, recipient);
@@ -67,7 +67,7 @@ contract AaveKandel is GeometricKandel {
   ///@notice returns the amount of tokens of the router's balance that belong to this contract
   ///@inheritdoc AbstractKandel
   function reserveBalance(IERC20 token) public view override returns (uint) {
-    return pooledRouter().balanceOfId(token, reserveId());
+    return pooledRouter().balanceOfId(token, RESERVE_ID);
   }
 
   /// @notice Verifies, prior to pulling funds from the router, whether pull will be fetching funds on AAVE
@@ -97,7 +97,7 @@ contract AaveKandel is GeometricKandel {
       amounts[0] = BASE.balanceOf(address(this));
       amounts[1] = QUOTE.balanceOf(address(this));
 
-      pooledRouter().pushAndSupply(tokens, amounts, reserveId());
+      pooledRouter().pushAndSupply(tokens, amounts, RESERVE_ID);
       // reposting offer residual if any - but do not call super, since Direct will flush tokens unnecessarily
       repostStatus = MangroveOffer.__posthookSuccess__(order, makerData);
     } else {

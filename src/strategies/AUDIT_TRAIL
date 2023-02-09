@@ -1,0 +1,26 @@
+# Audit trail
+
+The following changes have been introduced along with smaller refactoring and comments:
+* IOfferLogic, MangroveOffer and downstream contracts have had the reserve concept simplified
+* IOfferLogic, Forwarder's retractOffer has been made internal and explicitly exposed on MangroveOrder
+* TransferLib has new functions for transferring multiple tokens in one go
+* Direct is used by the Kandel strat.
+
+The Kandel strat itself introduces the following building blocks:
+* Kandel: The direct Kandel contract without a router which utilizes the other building blocks.
+* AaveKandel: The AavePooledRouter version of the Kandel contract
+* KandelSeeder: A contract to do permissionless deploy the Kandel and AaveKandel contracts and bind to a shared router
+* AbstractKandel: Core abstract functions offered by Kandel strats
+* GeometricKandel: Implements the geometric price progression used in the Kandel strat without storing the actual prices
+* CoreKandel: Implements the core of the Kandel strat which updates a dual offer whenever an offer is taken, but is agnostic to the actual price distribution.
+* TradesBaseQuotePair: Implements helper functions for trading a base, quote pair of tokens using bid and ask terminology.
+* HasIndexedBidsAndAsks: Implements the ability to have a [0..length] indexed set of offers on Mangrove for both bids and asks
+* DirectWithBidsAndAskDistribution: Adorns the Direct strat with indexed bids and asks and allows the offers to be populated according to a given base and quote distribution.
+* AavePooledRouter: a new type of router able to deposit and withdraw funds on AAVE v3.
+* AaveV3Lender: a module that implements AAVE v3 interaction capacities.
+
+
+## Changes to already audited code
+
+### src/strategies/interfaces/IOfferLogic.sol
+

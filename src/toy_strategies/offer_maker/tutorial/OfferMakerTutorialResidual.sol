@@ -30,6 +30,17 @@ contract OfferMakerTutorialResidual is Direct, ILiquidityProvider {
   function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
     public
     payable
+    override
+    onlyAdmin
+    returns (uint offerId)
+  {
+    return newOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerGasreq());
+  }
+
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint gasreq)
+    public
+    payable
+    override
     onlyAdmin
     returns (uint offerId)
   {
@@ -39,7 +50,7 @@ contract OfferMakerTutorialResidual is Direct, ILiquidityProvider {
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: offerGasreq(),
+        gasreq: gasreq,
         gasprice: 0,
         pivotId: pivotId, // a best pivot estimate for cheap offer insertion in the offer list - this should be a parameter computed off-chain for cheaper insertion
         fund: msg.value, // WEIs in that are used to provision the offer.
@@ -49,19 +60,22 @@ contract OfferMakerTutorialResidual is Direct, ILiquidityProvider {
   }
 
   ///@inheritdoc ILiquidityProvider
-  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
-    public
-    payable
-    override
-    mgvOrAdmin
-  {
+  function updateOffer(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint pivotId,
+    uint offerId,
+    uint gasreq
+  ) public payable override mgvOrAdmin {
     _updateOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: offerGasreq(),
+        gasreq: gasreq,
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
@@ -69,6 +83,15 @@ contract OfferMakerTutorialResidual is Direct, ILiquidityProvider {
       }),
       offerId
     );
+  }
+
+  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+    public
+    payable
+    override
+    mgvOrAdmin
+  {
+    return updateOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerId, offerGasreq());
   }
 
   ///@inheritdoc ILiquidityProvider

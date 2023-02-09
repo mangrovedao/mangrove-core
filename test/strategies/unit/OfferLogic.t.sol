@@ -116,6 +116,20 @@ contract OfferLogicTest is MangroveTest {
     assertTrue(offerId != 0);
   }
 
+  // regression test since type(uint).max is no longer replaced by offerGasreq() automatically
+  function test_posting_new_offer_with_too_high_gasreq_reverts() public {
+    vm.expectRevert("mgv/writeOffer/gasreq/tooHigh");
+    vm.prank(owner);
+    makerContract.newOffer{value: 0.1 ether}({
+      outbound_tkn: weth,
+      inbound_tkn: usdc,
+      wants: 2000 * 10 ** 6,
+      gives: 1 * 10 ** 18,
+      pivotId: 0,
+      gasreq: type(uint).max
+    });
+  }
+
   function test_getMissingProvision_is_enough_to_post_newOffer() public {
     vm.startPrank(owner);
     uint offerId = makerContract.newOffer{value: makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0)}({

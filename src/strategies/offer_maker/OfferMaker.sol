@@ -28,8 +28,8 @@ contract OfferMaker is ILiquidityProvider, Direct {
   }
 
   ///@inheritdoc ILiquidityProvider
-  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
-    external
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint gasreq)
+    public
     payable
     override
     onlyAdmin
@@ -41,12 +41,49 @@ contract OfferMaker is ILiquidityProvider, Direct {
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: offerGasreq(),
+        gasreq: gasreq,
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
         noRevert: false
       })
+    );
+  }
+
+  ///@inheritdoc ILiquidityProvider
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
+    external
+    payable
+    override
+    onlyAdmin
+    returns (uint offerId)
+  {
+    return newOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerGasreq());
+  }
+
+  ///@inheritdoc ILiquidityProvider
+  function updateOffer(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint pivotId,
+    uint offerId,
+    uint gasreq
+  ) public payable override onlyAdmin {
+    _updateOffer(
+      OfferArgs({
+        outbound_tkn: outbound_tkn,
+        inbound_tkn: inbound_tkn,
+        wants: wants,
+        gives: gives,
+        gasreq: gasreq,
+        gasprice: 0,
+        pivotId: pivotId,
+        fund: msg.value,
+        noRevert: false
+      }),
+      offerId
     );
   }
 
@@ -57,20 +94,7 @@ contract OfferMaker is ILiquidityProvider, Direct {
     override
     onlyAdmin
   {
-    _updateOffer(
-      OfferArgs({
-        outbound_tkn: outbound_tkn,
-        inbound_tkn: inbound_tkn,
-        wants: wants,
-        gives: gives,
-        gasreq: offerGasreq(),
-        gasprice: 0,
-        pivotId: pivotId,
-        fund: msg.value,
-        noRevert: false
-      }),
-      offerId
-    );
+    updateOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerId, offerGasreq());
   }
 
   ///@inheritdoc ILiquidityProvider

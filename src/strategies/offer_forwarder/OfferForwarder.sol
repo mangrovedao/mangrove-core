@@ -66,7 +66,7 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
     args.inbound_tkn = inbound_tkn;
     args.wants = wants;
     args.gives = gives;
-    args.gasreq = type(uint).max; // this will force _updateOffer to use old gasreq of offer
+    args.gasreq = offerGasreq();
     args.pivotId = pivotId;
     args.noRevert = false; // will throw if Mangrove reverts
     // weiBalance is used to provision offer

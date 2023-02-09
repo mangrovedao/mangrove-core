@@ -187,7 +187,6 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
       vars.offerDetail = MGV.offerDetails(address(args.outbound_tkn), address(args.inbound_tkn), offerId);
 
       uint old_gasreq = vars.offerDetail.gasreq();
-      args.gasreq = args.gasreq >= type(uint24).max ? old_gasreq : args.gasreq;
       // re-deriving gasprice only if necessary
       if (
         args.fund > 0 // user adds more provision

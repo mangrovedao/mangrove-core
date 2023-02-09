@@ -40,7 +40,7 @@ interface IOfferLogic is IMaker {
   ///@notice Computes missing provision to repost `offerId` at given `gasreq` and `gasprice` ignoring current contract's balance on Mangrove.
   ///@param outbound_tkn the outbound token used to identify the order book
   ///@param inbound_tkn the inbound token used to identify the order book
-  ///@param gasreq the gas required by the offer. Give > type(uint24).max to use `this.offerGasreq()`
+  ///@param gasreq the gas required by the offer. Call offerGasreq to get the default.
   ///@param gasprice the upper bound on gas price. Give 0 to use Mangrove's gasprice
   ///@param offerId the offer id. Set this to 0 if one is not reposting an offer
   ///@dev if `offerId` is not in the Order Book, will simply return how much is needed to post
@@ -89,7 +89,7 @@ interface IOfferLogic is IMaker {
   ///@param inbound_tkn inbound token of the offer list.
   ///@param wants the amount of inbound tokens the maker wants for a complete fill.
   ///@param gives the amount of outbound tokens the maker gives for a complete fill.
-  ///@param gasreq the amount of gas units that are required to execute the trade (use type(uint).max for using `this.offerGasReq()`)
+  ///@param gasreq the amount of gas units that are required to execute the trade
   ///@param gasprice the gasprice used to compute offer's provision (use 0 to use Mangrove's gasprice)
   ///@param pivotId a best pivot estimate for cheap offer insertion in the offer list.
   ///@param fund WEIs in `this` contract's balance that are used to provision the offer.

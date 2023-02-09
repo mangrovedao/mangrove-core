@@ -46,7 +46,7 @@ abstract contract Direct is MangroveOffer {
       address(args.inbound_tkn),
       args.wants,
       args.gives,
-      args.gasreq >= type(uint24).max ? offerGasreq() : args.gasreq,
+      args.gasreq,
       args.gasprice,
       args.pivotId
     ) returns (uint offerId_) {

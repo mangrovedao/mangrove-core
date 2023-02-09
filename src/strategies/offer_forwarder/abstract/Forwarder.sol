@@ -152,7 +152,6 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// We assign this leftover to the corresponding `weiBalance` of `OwnerData`.
   function _newOffer(OfferArgs memory args, address owner) internal returns (uint offerId, bytes32 status) {
     // convention for default gasreq value
-    args.gasreq = (args.gasreq > type(uint24).max) ? offerGasreq() : args.gasreq;
     (uint gasprice, uint leftover) = deriveAndCheckGasprice(args);
 
     // the call below cannot revert for lack of provision (by design)

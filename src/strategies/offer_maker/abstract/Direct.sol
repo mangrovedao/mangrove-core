@@ -20,10 +20,15 @@ import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 abstract contract Direct is MangroveOffer {
   ///@notice identifier of this contract's reserve when using a router
   ///@dev RESERVE_ID==address(0) will pass address(this) to the router for the id field.
-  ///@dev two contracts using the same reserveId will share funds, therefore strat builder must make sure this contract is allowed to pulled into the given reserve Id.
+  ///@dev two contracts using the same reserveId will share funds, therefore strat builder must make sure this contract is allowed to pull into the given reserve Id.
   ///@dev a safe value for `reserveId` is `address(this)` in which case the funds will never be shared with another maker contract.
-  address immutable RESERVE_ID;
+  address internal immutable RESERVE_ID;
 
+  ///@notice `Direct`'s constructor.
+  ///@param mgv The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
+  ///@param router_ the router that this contract will use to pull/push liquidity from offer maker's reserve. This can be `NO_ROUTER`.
+  ///@param gasreq Gas requirement when posting offers via this strategy, excluding router requirement.
+  ///@param reserveId_ identifier of this contract's reserve when using a router.
   constructor(IMangrove mgv, AbstractRouter router_, uint gasreq, address reserveId_) MangroveOffer(mgv, gasreq) {
     if (router_ != NO_ROUTER) {
       setRouter(router_);
@@ -36,7 +41,7 @@ abstract contract Direct is MangroveOffer {
     return RESERVE_ID == address(0) ? address(this) : RESERVE_ID;
   }
 
-  /// @notice Creates a new offer in Mangrove Offer List.
+  /// @notice Inserts a new offer in Mangrove Offer List.
   /// @param args Function arguments stored in memory.
   /// @return offerId Identifier of the newly created offer. Returns 0 if offer creation was rejected by Mangrove and `args.noRevert` is set to `true`.
   /// @return status NEW_OFFER_SUCCESS if the offer was successfully posted on Mangrove. Returns Mangrove's revert reason otherwise.
@@ -58,10 +63,7 @@ abstract contract Direct is MangroveOffer {
     }
   }
 
-  /// @notice Updates the offer specified by `offerId` on Mangrove with the parameters in `args`.
-  /// @param args A memory struct containing the offer parameters to update.
-  /// @param offerId An unsigned integer representing the identifier of the offer to be updated.
-  /// @return status a `bytes32` value representing either `REPOST_SUCCESS` if the update is successful, or an error message if an error occurs and `OfferArgs.noRevert` is `true`. If `OfferArgs.noRevert` is `false`, the function reverts with the error message as the reason.
+  ///@inheritdoc MangroveOffer
   function _updateOffer(OfferArgs memory args, uint offerId) internal override returns (bytes32 status) {
     try MGV.updateOffer{value: args.fund}(
       address(args.outbound_tkn),

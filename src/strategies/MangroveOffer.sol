@@ -302,8 +302,11 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     logRepostStatus(order, makerData, data);
   }
 
-  ///@notice template for start specific update offer function
-  function _updateOffer(OfferArgs memory, uint) internal virtual returns (bytes32);
+  ///@notice Updates the offer specified by `offerId` on Mangrove with the parameters in `args`.
+  ///@param args A memory struct containing the offer parameters to update.
+  ///@param offerId An unsigned integer representing the identifier of the offer to be updated.
+  ///@return status a `bytes32` value representing either `REPOST_SUCCESS` if the update is successful, or an error message if an error occurs and `OfferArgs.noRevert` is `true`. If `OfferArgs.noRevert` is `false`, the function reverts with the error message as the reason.
+  function _updateOffer(OfferArgs memory args, uint offerId) internal virtual returns (bytes32);
 
   ///@notice computes the provision that can be redeemed if deprovisioning a certain offer
   ///@param outbound_tkn the outbound token of the offer list

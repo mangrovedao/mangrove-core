@@ -6,6 +6,8 @@ import {ToyENS} from "mgv_lib/ToyENS.sol";
 import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import {PolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {MumbaiFork} from "mgv_test/lib/forks/Mumbai.sol";
+import {EthereumFork} from "mgv_test/lib/forks/Ethereum.sol";
+import {GoerliFork} from "mgv_test/lib/forks/Goerli.sol";
 import {LocalFork} from "mgv_test/lib/forks/Local.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
@@ -51,6 +53,10 @@ abstract contract Deployer is Script2 {
         fork = new PolygonFork();
       } else if (block.chainid == 31337) {
         fork = new LocalFork();
+      } else if (block.chainid == 1) {
+        fork = new EthereumFork();
+      } else if (block.chainid == 5) {
+        fork = new GoerliFork();
       } else {
         revert(string.concat("Unknown chain id ", vm.toString(block.chainid), ", cannot deploy."));
       }

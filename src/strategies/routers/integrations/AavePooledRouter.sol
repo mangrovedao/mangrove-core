@@ -80,7 +80,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   }
 
   ///@notice theoretically available funds to this router either in overlying or in tokens (part of it may be not redeemable from AAVE)
-  ///@param token the asset whose balance one is querying
+  ///@param token the asset whose balance is required
   ///@return balance of the asset
   ///@dev this function relies on the aave promise that aToken are in one-to-one correspondence with claimable underlying and use the same decimals
   function totalBalance(IERC20 token) external view returns (uint balance) {
@@ -146,6 +146,8 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     _totalShares[token] -= sharesToBurn;
   }
 
+  ///@notice Letting the calling maker contract depositing funds on this router
+  ///@dev no transfer to AAVE is done at that moment.
   ///@inheritdoc AbstractRouter
   function __push__(IERC20 token, address reserveId, uint amount) internal override returns (uint) {
     BalanceMemoizer memory v_tkn;
@@ -161,10 +163,10 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     return _supply(token, token.balanceOf(address(this)), address(this), noRevert);
   }
 
-  ///@notice push each token given in argument and supply the whole local balance on AAVE
+  ///@notice pushes each token given in argument from calling maker contact to this router, then supplies the whole local balance on AAVE
   ///@param tokens the list of tokens that are being pushed to reserve
   ///@param amounts the quantities of tokens one wishes to push
-  ///@param reserveId the reserve that pushes funds to the router
+  ///@param reserveId the reserve whose shares should be increased
   ///@return pushed the pushed quantities for each token
   ///@dev an offer logic should call this instead of `flush` when it is the last posthook to be executed
   ///@dev this function is also to be used when user deposits funds on the maker contract
@@ -182,6 +184,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
         pushed[i] = __push__(token, reserveId, amount);
       }
       // if AAVE refuses deposit, funds are stored in `this` balance (with no yield)
+      // this may happen because max supply of `token` has been reached, or because `token` is not listed on AAVE (`overlying(token)` returns `IERC20(address(0))`)
       bytes32 aaveData = flushBuffer(token, true);
       if (aaveData != bytes32(0)) {
         emit AaveIncident(token, reserveId, amount, aaveData);

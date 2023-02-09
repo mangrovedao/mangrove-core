@@ -84,7 +84,7 @@ bf2c55a2df6687763aaea33c828998512b1aaa9d
 
   noop taken together
 
-then compare the audit/next branch commits with master
+then compare the audit branch's commits with master
 
 # Invariant notes
 

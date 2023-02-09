@@ -1190,7 +1190,7 @@ abstract contract CoreKandelTest is MangroveTest {
     bytes32 makerData = kdl.makerExecute(order);
     uint makerExecuteCost = gasTemp - gasleft();
 
-    assertTrue(makerData == "mgvOffer/proceed" || makerData == "IS_FIRST_PULLER", "Unexpected returned data");
+    assertTrue(makerData == bytes32(0) || makerData == "IS_FIRST_PULLER", "Unexpected returned data");
 
     MgvLib.OrderResult memory result = MgvLib.OrderResult({makerData: makerData, mgvData: "mgv/tradeSuccess"});
 

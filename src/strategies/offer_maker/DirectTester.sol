@@ -17,6 +17,7 @@ import {MgvLib} from "mgv_src/MgvLib.sol";
 
 contract DirectTester is ITesterContract, OfferMaker {
   mapping(address => address) public reserves;
+  bytes32 constant retdata = "lastlook/testdata";
 
   // router_ needs to bind to this contract
   // since one cannot assume `this` is admin of router, one cannot do this here in general
@@ -26,7 +27,11 @@ contract DirectTester is ITesterContract, OfferMaker {
 
   function tokenBalance(IERC20 token, address reserveId) external view override returns (uint) {
     AbstractRouter router_ = router();
-    return router_ == NO_ROUTER ? token.balanceOf(address(this)) : router_.balanceOfId(token, reserveId);
+    return router_ == NO_ROUTER ? token.balanceOf(address(this)) : router_.balanceOfReserve(token, reserveId);
+  }
+
+  function __lastLook__(MgvLib.SingleOrder calldata) internal virtual override returns (bytes32) {
+    return retdata;
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)

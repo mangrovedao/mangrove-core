@@ -46,7 +46,7 @@ abstract contract AbstractRouter is AccessControlled {
   }
 
   ///@notice getter for the `makers: addr => bool` mapping
-  ///@param mkr the address of a maker
+  ///@param mkr the address of a maker contract
   ///@return true if `mkr` is authorized to call this router.
   function makers(address mkr) public view returns (bool) {
     return ARSt.getStorage().makers[mkr];
@@ -58,11 +58,11 @@ abstract contract AbstractRouter is AccessControlled {
     return ROUTER_GASREQ;
   }
 
-  ///@notice pulls liquidity from an offer maker's reserve to `msg.sender`'s balance
+  ///@notice pulls liquidity from the reserve and sends it to the calling maker contract.
   ///@param token is the ERC20 managing the pulled asset
-  ///@param reserveId of the tokens that are being pulled. Public router must ensure that `msg.sender` is approved to use the funds of `reserveId`
-  ///@param amount of `token` the maker contract wishes to pull
-  ///@param strict when the calling maker contract accepts to receive more `reserveId` funds than required (this may happen for gas optimization)
+  ///@param reserveId determines the location of the reserve (router implementation dependant).
+  ///@param amount of `token` the maker contract wishes to pull from its reserve
+  ///@param strict when the calling maker contract accepts to receive more funds from reserve than required (this may happen for gas optimization)
   function pull(IERC20 token, address reserveId, uint amount, bool strict) external onlyMakers returns (uint pulled) {
     pulled = __pull__({token: token, reserveId: reserveId, amount: amount, strict: strict});
   }
@@ -70,9 +70,9 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice router-dependant implementation of the `pull` function
   function __pull__(IERC20 token, address reserveId, uint amount, bool strict) internal virtual returns (uint);
 
-  ///@notice pushes assets from maker contract's balance to the specified reserve
+  ///@notice pushes assets from calling's maker contract to a reserve
   ///@param token is the asset the maker is pushing
-  ///@param reserveId of the tokens that are being pulled
+  ///@param reserveId determines the location of the reserve (router implementation dependant).
   ///@param amount is the amount of asset that should be transferred from the calling maker contract
   ///@return pushed fraction of `amount` that was successfully pushed to reserve.
   function push(IERC20 token, address reserveId, uint amount) external onlyMakers returns (uint pushed) {
@@ -85,7 +85,6 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice iterative `push` in a single call
   function flush(IERC20[] calldata tokens, address reserveId) external onlyMakers {
-    require(reserveId != address(0), "Router/push/0xOwner");
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);
       if (amount > 0) {
@@ -148,5 +147,5 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice Balance of a maker (possibly an EOA)
   ///@param token the asset one wishes to know the balance of
   ///@param reserveId of the asset
-  function balanceOfId(IERC20 token, address reserveId) public view virtual returns (uint);
+  function balanceOfReserve(IERC20 token, address reserveId) public view virtual returns (uint);
 }

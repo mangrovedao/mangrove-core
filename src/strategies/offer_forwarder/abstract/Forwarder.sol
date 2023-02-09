@@ -329,10 +329,10 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   }
 
   ///@inheritdoc MangroveOffer
-  ///@notice verifies that msg.sender is allowed to trade tokens with this contract
+  ///@notice verifies that msg.sender is an allowed reserve id to trade tokens with this contract
   function __checkList__(IERC20 token) internal view virtual override {
-    if (router() != NO_ROUTER) {
-      router().checkList(token, msg.sender);
-    }
+    super.__checkList__(token);
+    AbstractRouter router_ = router();
+    router_.checkList(token, msg.sender);
   }
 }

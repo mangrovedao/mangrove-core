@@ -285,8 +285,8 @@ contract MangroveOrder_Test is MangroveTest {
       pivotId: 0,
       expiryDate: 0 //NA
     });
-    uint bal_quote_before = mgo.router().balanceOfId(quote, $(this));
-    uint bal_base_before = mgo.router().balanceOfId(quote, $(this));
+    uint bal_quote_before = mgo.router().balanceOfReserve(quote, $(this));
+    uint bal_base_before = mgo.router().balanceOfReserve(quote, $(this));
     assertEq(mgv.balanceOf($(mgo)), 0, "Invalid balance on Mangrove");
 
     IOrderLogic.TakerOrderResult memory expectedRes = IOrderLogic.TakerOrderResult({
@@ -314,8 +314,8 @@ contract MangroveOrder_Test is MangroveTest {
 
     // checking `mgo` mappings
     assertEq(mgo.ownerOf(quote, base, res.offerId), $(this), "Invalid offer owner");
-    assertEq(mgo.router().balanceOfId(quote, $(this)), bal_quote_before - res.takerGave, "Invalid quote balance");
-    assertEq(mgo.router().balanceOfId(base, $(this)), bal_base_before + res.takerGot, "Invalid base balance");
+    assertEq(mgo.router().balanceOfReserve(quote, $(this)), bal_quote_before - res.takerGave, "Invalid quote balance");
+    assertEq(mgo.router().balanceOfReserve(base, $(this)), bal_base_before + res.takerGot, "Invalid base balance");
   }
 
   function test_resting_buy_order_is_successfully_posted_after_empty_fill() public {
@@ -358,8 +358,8 @@ contract MangroveOrder_Test is MangroveTest {
       pivotId: 0,
       expiryDate: 0 //NA
     });
-    uint bal_quote_before = mgo.router().balanceOfId(quote, $(this));
-    uint bal_base_before = mgo.router().balanceOfId(quote, $(this));
+    uint bal_quote_before = mgo.router().balanceOfReserve(quote, $(this));
+    uint bal_base_before = mgo.router().balanceOfReserve(quote, $(this));
     assertEq(mgv.balanceOf($(mgo)), 0, "Invalid balance on Mangrove");
 
     IOrderLogic.TakerOrderResult memory expectedRes = IOrderLogic.TakerOrderResult({
@@ -387,8 +387,8 @@ contract MangroveOrder_Test is MangroveTest {
 
     // checking `mgo` mappings
     assertEq(mgo.ownerOf(base, quote, res.offerId), $(this), "Invalid offer owner");
-    assertEq(mgo.router().balanceOfId(quote, $(this)), bal_quote_before + res.takerGot, "Invalid quote balance");
-    assertEq(mgo.router().balanceOfId(base, $(this)), bal_base_before - res.takerGave, "Invalid base balance");
+    assertEq(mgo.router().balanceOfReserve(quote, $(this)), bal_quote_before + res.takerGot, "Invalid quote balance");
+    assertEq(mgo.router().balanceOfReserve(base, $(this)), bal_base_before - res.takerGave, "Invalid base balance");
   }
 
   function test_resting_sell_order_is_successfully_posted_after_empty_fill() public {
@@ -464,7 +464,7 @@ contract MangroveOrder_Test is MangroveTest {
     });
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     uint oldLocalBaseBal = base.balanceOf($(this));
-    uint oldRemoteQuoteBal = mgo.router().balanceOfId(quote, $(this)); // quote balance of test runner
+    uint oldRemoteQuoteBal = mgo.router().balanceOfReserve(quote, $(this)); // quote balance of test runner
 
     (bool success, uint sell_takerGot, uint sell_takerGave,, uint fee) =
       sell_taker.takeWithInfo({offerId: res.offerId, takerWants: 0.1 ether});
@@ -476,7 +476,7 @@ contract MangroveOrder_Test is MangroveTest {
     assertEq(base.balanceOf($(this)), oldLocalBaseBal + sell_takerGave, "Incorrect forwarded amount to initial taker");
 
     assertEq(
-      mgo.router().balanceOfId(quote, $(this)),
+      mgo.router().balanceOfReserve(quote, $(this)),
       oldRemoteQuoteBal - (sell_takerGot + fee),
       "Incorrect token balance on mgo"
     );
@@ -623,7 +623,7 @@ contract MangroveOrder_Test is MangroveTest {
 
     vm.prank($(mgv));
     bytes32 ret = mgo.makerExecute(order);
-    assertEq(ret, "mgvOffer/proceed", "logic should accept trade");
+    assertEq(ret, "", "logic should accept trade");
   }
 
   function test_offer_reneges_when_time_is_expired() public {

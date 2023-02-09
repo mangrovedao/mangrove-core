@@ -85,7 +85,6 @@ contract OfferMakerTutorialResidual is Direct, ILiquidityProvider {
   function __lastLook__(MgvLib.SingleOrder calldata order) internal override returns (bytes32 data) {
     data = super.__lastLook__(order);
     require(order.wants == order.offer.gives(), "tutorial/mustBeFullyTaken");
-    return "mgvOffer/proceed";
   }
 
   //----------------

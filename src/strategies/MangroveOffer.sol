@@ -157,10 +157,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     }
   }
 
+  ///@notice verifies that Mangrove is allowed to pull tokens from this contract.
   /// @inheritdoc IOfferLogic
   function checkList(IERC20[] calldata tokens) external view override {
     for (uint i = 0; i < tokens.length; i++) {
-      require(tokens[i].allowance(address(this), address(MGV)) > 0, "mgvOffer/LogicMustApproveMangrove");
       __checkList__(tokens[i]);
     }
   }
@@ -182,7 +182,9 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   ///@custom:hook overrides of this hook should be conservative and call `super.__checkList__(token)`
-  function __checkList__(IERC20 token) internal view virtual;
+  function __checkList__(IERC20 token) internal view virtual {
+    require(token.allowance(address(this), address(MGV)) > 0, "mgvOffer/LogicMustApproveMangrove");
+  }
 
   /// @inheritdoc IOfferLogic
   function withdrawFromMangrove(uint amount, address payable receiver) public onlyAdmin {
@@ -219,7 +221,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   /// @custom:hook overrides of this hook should be conservative and call `super.__lastLook__(order)`.
   function __lastLook__(MgvLib.SingleOrder calldata order) internal virtual returns (bytes32 data) {
     order; //shh
-    return "mgvOffer/proceed";
+    data = bytes32(0);
   }
 
   ///@notice Post-hook that implements fallback behavior when Taker Order's execution failed unexpectedly.
@@ -233,33 +235,33 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result)
     internal
     virtual
-    returns (bytes32)
+    returns (bytes32 data)
   {
     order;
     result;
-    return "";
+    data = bytes32(0);
   }
 
   ///@notice Given the current taker order that (partially) consumes an offer, this hook is used to declare how much `order.inbound_tkn` the offer wants after it is reposted.
   ///@param order is a recall of the taker order that is being treated.
-  ///@return new_wants the new volume of `inbound_tkn` the offer will ask for on Mangrove
+  ///@return newWants the new volume of `inbound_tkn` the offer will ask for on Mangrove
   ///@dev default is to require the original amount of tokens minus those that have been given by the taker during trade execution.
-  function __residualWants__(MgvLib.SingleOrder calldata order) internal virtual returns (uint new_wants) {
-    new_wants = order.offer.wants() - order.gives;
+  function __residualWants__(MgvLib.SingleOrder calldata order) internal virtual returns (uint newWants) {
+    newWants = order.offer.wants() - order.gives;
   }
 
   ///@notice Given the current taker order that (partially) consumes an offer, this hook is used to declare how much `order.outbound_tkn` the offer gives after it is reposted.
   ///@param order is a recall of the taker order that is being treated.
-  ///@return new_gives the new volume of `outbound_tkn` the offer will give if fully taken.
+  ///@return newGives the new volume of `outbound_tkn` the offer will give if fully taken.
   ///@dev default is to require the original amount of tokens minus those that have been sent to the taker during trade execution.
-  function __residualGives__(MgvLib.SingleOrder calldata order) internal virtual returns (uint new_gives) {
+  function __residualGives__(MgvLib.SingleOrder calldata order) internal virtual returns (uint newGives) {
     return order.offer.gives() - order.wants;
   }
 
   ///@notice Hook that defines what needs to be done to the part of an offer provision that was added to the balance of `this` on Mangrove after an offer has failed.
   ///@param order is a recall of the taker order that failed
   function __handleResidualProvision__(MgvLib.SingleOrder calldata order) internal virtual {
-    order; //ssh
+    order; // we leave the provision on Mangrove
   }
 
   ///@notice Post-hook that implements default behavior when Taker Order's execution succeeded.

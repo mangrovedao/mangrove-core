@@ -94,7 +94,7 @@ contract AaveKandelTest is CoreKandelTest {
     deal($(base), $(router), 1 ether);
     vm.prank($(mgv));
     bytes32 makerData = kdl.makerExecute(order);
-    assertEq(makerData, "mgvOffer/proceed", "Unexpected returned data");
+    assertEq(makerData, "", "Unexpected returned data");
   }
 
   function test_not_first_offer_sends_first_puller_to_posthook_when_buffer_is_small() public {

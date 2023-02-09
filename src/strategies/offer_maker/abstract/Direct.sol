@@ -148,8 +148,10 @@ abstract contract Direct is MangroveOffer {
     return super.__posthookSuccess__(order, makerData);
   }
 
+  ///@notice if strat has a router, verfies that the router is ready to pull/push on behalf of reserve id
   ///@inheritdoc MangroveOffer
   function __checkList__(IERC20 token) internal view virtual override {
+    super.__checkList__(token);
     if (router() != NO_ROUTER) {
       router().checkList(token, RESERVE_ID);
     }

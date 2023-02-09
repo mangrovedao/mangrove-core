@@ -69,7 +69,7 @@ interface IOfferLogic is IMaker {
   ///@return provision the amount of native tokens that can be redeemed when deprovisioning the offer
   function provisionOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) external view returns (uint provision);
 
-  ///@notice verifies that this contract's current state is ready to be used post offers on Mangrove
+  ///@notice verifies that this contract's current state is ready to be used to post offers on Mangrove
   ///@param tokens the list of tokens that are traded by this contract
   ///@dev throws with a reason if something (e.g. an approval) is missing.
   function checkList(IERC20[] calldata tokens) external view;

@@ -74,8 +74,8 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(address(makerContract));
     pooledRouter.pushAndSupply(dynamic([IERC20(weth), usdc]), dynamic([uint(1 ether), 2000 * 10 ** 6]), owner);
 
-    assertEq(pooledRouter.balanceOfId(weth, owner), 1 ether, "Incorrect weth balance");
-    assertEq(pooledRouter.balanceOfId(usdc, owner), 2000 * 10 ** 6, "Incorrect usdc balance");
+    assertEq(pooledRouter.balanceOfReserve(weth, owner), 1 ether, "Incorrect weth balance");
+    assertEq(pooledRouter.balanceOfReserve(usdc, owner), 2000 * 10 ** 6, "Incorrect usdc balance");
   }
 
   function test_only_makerContract_can_push() public {
@@ -109,7 +109,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(address(makerContract));
     pooledRouter.pushAndSupply(dynamic([IERC20(pixieDust)]), dynamic([uint(1 ether)]), owner);
     // although aave refused the deposit, funds should be on the router
-    assertEq(pooledRouter.balanceOfId(pixieDust, owner), 1 ether, "Incorrect balance on router");
+    assertEq(pooledRouter.balanceOfReserve(pixieDust, owner), 1 ether, "Incorrect balance on router");
   }
 
   function test_initial_aave_manager_is_deployer() public {
@@ -168,13 +168,13 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(address(makerContract));
     pooledRouter.push(usdc, address(makerContract), 10 ** 6);
 
-    uint reserveBalance = pooledRouter.balanceOfId(usdc, address(makerContract));
+    uint reserveBalance = pooledRouter.balanceOfReserve(usdc, address(makerContract));
     uint totalBalance = pooledRouter.totalBalance(usdc);
 
     vm.prank(deployer);
     pooledRouter.flushBuffer(usdc, false);
 
-    assertEq(reserveBalance, pooledRouter.balanceOfId(usdc, address(makerContract)), "Incorrect reserve balance");
+    assertEq(reserveBalance, pooledRouter.balanceOfReserve(usdc, address(makerContract)), "Incorrect reserve balance");
     assertEq(totalBalance, pooledRouter.totalBalance(usdc), "Incorrect total balance");
   }
 
@@ -272,12 +272,12 @@ contract AavePooledRouterTest is OfferLogicTest {
     dai.transfer($(pooledRouter), donation);
 
     uint expectedBalance = (uint(5) * 10 ** 18 + uint(donation)) / 5;
-    uint reserveBalance = pooledRouter.balanceOfId(dai, maker1);
+    uint reserveBalance = pooledRouter.balanceOfReserve(dai, maker1);
     assertEq(expectedBalance, reserveBalance, "Incorrect reserve for maker1");
 
     expectedBalance = uint(4) * (5 * 10 ** 18 + uint(donation)) / 5;
     vm.prank(maker2);
-    reserveBalance = pooledRouter.balanceOfId(dai, maker2);
+    reserveBalance = pooledRouter.balanceOfReserve(dai, maker2);
     assertEq(expectedBalance, reserveBalance, "Incorrect reserve for maker2");
   }
 
@@ -422,14 +422,14 @@ contract AavePooledRouterTest is OfferLogicTest {
     );
     vm.stopPrank();
 
-    uint old_reserve_weth = pooledRouter.balanceOfId(weth, maker1);
-    uint old_reserve_usdc = pooledRouter.balanceOfId(usdc, maker1);
-    uint old_reserve_dai = pooledRouter.balanceOfId(dai, maker1);
+    uint old_reserve_weth = pooledRouter.balanceOfReserve(weth, maker1);
+    uint old_reserve_usdc = pooledRouter.balanceOfReserve(usdc, maker1);
+    uint old_reserve_dai = pooledRouter.balanceOfReserve(dai, maker1);
     // // fast forwarding a year
     vm.warp(block.timestamp + 31536000);
-    uint new_reserve_weth = pooledRouter.balanceOfId(weth, maker1);
-    uint new_reserve_usdc = pooledRouter.balanceOfId(usdc, maker1);
-    uint new_reserve_dai = pooledRouter.balanceOfId(dai, maker1);
+    uint new_reserve_weth = pooledRouter.balanceOfReserve(weth, maker1);
+    uint new_reserve_usdc = pooledRouter.balanceOfReserve(usdc, maker1);
+    uint new_reserve_dai = pooledRouter.balanceOfReserve(dai, maker1);
     assertTrue(
       old_reserve_weth < new_reserve_weth && old_reserve_usdc < new_reserve_usdc && old_reserve_dai < new_reserve_dai,
       "No yield from AAVE"
@@ -459,13 +459,13 @@ contract AavePooledRouterTest is OfferLogicTest {
 
   function empty_pool(IERC20 token, address id) internal {
     // empty usdc reserve
-    uint bal = pooledRouter.balanceOfId(token, id);
+    uint bal = pooledRouter.balanceOfReserve(token, id);
     if (bal > 0) {
       vm.startPrank(address(makerContract));
       pooledRouter.pull(token, owner, bal, true);
     }
     vm.stopPrank();
-    assertEq(pooledRouter.balanceOfId(token, id), 0, "Non empty balance");
+    assertEq(pooledRouter.balanceOfReserve(token, id), 0, "Non empty balance");
 
     assertEq(token.balanceOf($(pooledRouter)), 0, "Non empty buffer");
     assertEq(pooledRouter.overlying(token).balanceOf($(pooledRouter)), 0, "Non empty pool");
@@ -486,7 +486,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     pooledRouter.push(usdc, maker1, amount);
 
     // computation below should not throw
-    assertEq(pooledRouter.balanceOfId(usdc, maker1), amount + 1, "Incorrect balance");
+    assertEq(pooledRouter.balanceOfReserve(usdc, maker1), amount + 1, "Incorrect balance");
   }
 
   function test_underflow_shares_6dec(uint96 deposit_, uint96 donation_) public {
@@ -510,7 +510,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(maker2);
     pooledRouter.push(usdc, maker2, deposit);
 
-    assertApproxEqRel(deposit, pooledRouter.balanceOfId(usdc, maker2), 10 ** 13); // error not worth than 10^-7% of the deposit
+    assertApproxEqRel(deposit, pooledRouter.balanceOfReserve(usdc, maker2), 10 ** 13); // error not worth than 10^-7% of the deposit
   }
 
   function test_underflow_shares_18dec(uint96 deposit_, uint96 donation_) public {
@@ -534,6 +534,6 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(maker2);
     pooledRouter.push(weth, maker2, deposit);
 
-    assertApproxEqRel(deposit, pooledRouter.balanceOfId(weth, maker2), 10 ** 5); // error not worth than 10^-15% of the deposit
+    assertApproxEqRel(deposit, pooledRouter.balanceOfReserve(weth, maker2), 10 ** 5); // error not worth than 10^-15% of the deposit
   }
 }

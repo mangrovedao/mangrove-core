@@ -67,7 +67,7 @@ contract AaveKandel is GeometricKandel {
   ///@notice returns the amount of tokens of the router's balance that belong to this contract
   ///@inheritdoc AbstractKandel
   function reserveBalance(IERC20 token) public view override returns (uint) {
-    return pooledRouter().balanceOfId(token, RESERVE_ID);
+    return pooledRouter().balanceOfReserve(token, RESERVE_ID);
   }
 
   /// @notice Verifies, prior to pulling funds from the router, whether pull will be fetching funds on AAVE

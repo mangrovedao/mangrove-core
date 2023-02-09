@@ -20,7 +20,7 @@ contract ForwarderTester is OfferForwarder, ITesterContract {
 
   function tokenBalance(IERC20 token, address owner) external view override returns (uint) {
     AbstractRouter router_ = router();
-    return router_.balanceOfId(token, owner);
+    return router_.balanceOfReserve(token, owner);
   }
 
   function internal_addOwner(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, address owner, uint leftover)

@@ -194,7 +194,7 @@ abstract contract CoreKandelTest is MangroveTest {
   ) internal {
     uint expectedBids = 0;
     uint expectedAsks = 0;
-    GeometricKandel.Params memory params = GetParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
     for (uint i = 0; i < offerStatuses.length; i++) {
       // `price = quote / initBase` used in assertApproxEqRel below
       OfferStatus offerStatus = OfferStatus(offerStatuses[i]);
@@ -563,7 +563,7 @@ abstract contract CoreKandelTest is MangroveTest {
     distribution.baseDist = dynamic([uint(1 ether), 2 ether, 3 ether, 4 ether]);
     distribution.quoteDist = dynamic([uint(5 ether), 6 ether, 7 ether, 8 ether]);
 
-    GeometricKandel.Params memory params = GetParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
     vm.prank(maker);
     kdl.populate{value: maker.balance}(distribution, new uint[](4), 1, params, new IERC20[](0), new uint[](0));
   }
@@ -643,7 +643,7 @@ abstract contract CoreKandelTest is MangroveTest {
     view
     returns (uint[] memory indices, uint[] memory quoteAtIndex, uint numBids)
   {
-    GeometricKandel.Params memory params = GetParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
 
     uint[] memory indicesPre = new uint[](params.pricePoints);
     quoteAtIndex = new uint[](params.pricePoints);
@@ -811,7 +811,7 @@ abstract contract CoreKandelTest is MangroveTest {
   function populateSingle(uint index, uint base, uint quote, uint pivotId, uint lastBidIndex, bytes memory expectRevert)
     internal
   {
-    GeometricKandel.Params memory params = GetParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
     populateSingle(
       index, base, quote, pivotId, lastBidIndex, params.pricePoints, params.ratio, params.spread, expectRevert
     );
@@ -942,7 +942,7 @@ abstract contract CoreKandelTest is MangroveTest {
     assertTrue(!mgv.isLive(ask), "ask should still not be live");
   }
 
-  function GetParams(GeometricKandel aKandel) internal view returns (GeometricKandel.Params memory params) {
+  function getParams(GeometricKandel aKandel) internal view returns (GeometricKandel.Params memory params) {
     (
       uint16 gasprice,
       uint24 gasreq,
@@ -966,7 +966,7 @@ abstract contract CoreKandelTest is MangroveTest {
   uint[] empty = new uint[](0);
 
   function test_populate_can_get_set_params_keeps_offers() public {
-    GeometricKandel.Params memory params = GetParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
 
     uint offeredVolumeBase = kdl.offeredVolume(Ask);
     uint offeredVolumeQuote = kdl.offeredVolume(Bid);
@@ -992,7 +992,7 @@ abstract contract CoreKandelTest is MangroveTest {
     vm.prank(maker);
     kdl.populate(emptyDist, empty, 0, paramsNew, new IERC20[](0), new uint[](0));
 
-    GeometricKandel.Params memory params_ = GetParams(kdl);
+    GeometricKandel.Params memory params_ = getParams(kdl);
 
     assertEq(params_.gasprice, paramsNew.gasprice, "gasprice should be changed");
     assertEq(params_.gasreq, paramsNew.gasreq, "gasreq should be changed");

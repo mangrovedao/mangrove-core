@@ -67,7 +67,7 @@ abstract contract TradesBaseQuotePair is IHasTokenPairOfOfferType {
   ///@notice returns the dual offer type
   ///@param ba whether the offer is an ask or a bid
   ///@return baDual is the dual offer type (ask for bid and conversely)
-  function dual(OfferType ba) public pure returns (OfferType baDual) {
+  function dual(OfferType ba) internal pure returns (OfferType baDual) {
     return OfferType((uint(ba) + 1) % 2);
   }
 }

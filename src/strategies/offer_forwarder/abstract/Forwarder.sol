@@ -120,6 +120,19 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     require(owner != address(0), "Forwarder/unknownOffer");
   }
 
+  /// @notice Derives the gas price for the new offer and verifies it against the global configuration.
+  function deriveAndCheckGasprice(OfferArgs memory args) internal view returns (uint gasprice, uint leftover) {
+    (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) =
+      MGV.config(address(args.outbound_tkn), address(args.inbound_tkn));
+    // computing max `gasprice` such that `offData.fund` covers `offData.gasreq` at `gasprice`
+    (gasprice, leftover) = deriveGasprice(args.gasreq, args.fund, local.offer_gasbase());
+    // mangrove will take max(`mko.gasprice`, `global.gasprice`)
+    // if `mko.gasprice < global.gasprice` Mangrove will use available provision of this contract to provision the offer
+    // this would potentially take native tokens that have been released after some offer managed by this contract have failed
+    // so one needs to make sure here that only provision of this call will be used to provision the offer on mangrove
+    require(gasprice >= global.gasprice(), "mgv/insufficientProvision");
+  }
+
   /// @notice Inserts a new offer on a Mangrove Offer List.
   /// @dev If inside a hook, one should call `_newOffer` to create a new offer and not directly `MGV.newOffer` to make sure one is correctly dealing with:
   /// * offer ownership
@@ -137,39 +150,19 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
   /// To do so, we do not let offer maker fix a gasprice. Rather we derive the gasprice based on `msg.value`.
   /// Because of rounding errors in `deriveGasprice` a small amount of WEIs will accumulate in mangrove's balance of `this` contract
   /// We assign this leftover to the corresponding `weiBalance` of `OwnerData`.
-  struct NewOfferVars {
-    MgvStructs.GlobalPacked global;
-    MgvStructs.LocalPacked local;
-    uint gasprice;
-    uint leftover;
-  }
-
   function _newOffer(OfferArgs memory args, address owner) internal returns (uint offerId, bytes32 status) {
-    NewOfferVars memory vars;
-    (vars.global, vars.local) = MGV.config(address(args.outbound_tkn), address(args.inbound_tkn));
     // convention for default gasreq value
     args.gasreq = (args.gasreq > type(uint24).max) ? offerGasreq() : args.gasreq;
-    // computing max `gasprice` such that `offData.fund` covers `offData.gasreq` at `gasprice`
-    (vars.gasprice, vars.leftover) = deriveGasprice(args.gasreq, args.fund, vars.local.offer_gasbase());
-    // mangrove will take max(`mko.gasprice`, `global.gasprice`)
-    // if `mko.gasprice < global.gasprice` Mangrove will use available provision of this contract to provision the offer
-    // this would potentially take native tokens that have been released after some offer managed by this contract have failed
-    // so one needs to make sure here that only provision of this call will be used to provision the offer on mangrove
-    require(vars.gasprice >= vars.global.gasprice(), "mgv/insufficientProvision");
+    (uint gasprice, uint leftover) = deriveAndCheckGasprice(args);
+
     // the call below cannot revert for lack of provision (by design)
     // it may still revert if `offData.fund` yields a gasprice that is too high (mangrove's gasprice is uint16)
     // or if `offData.gives` is below density (dust)
     try MGV.newOffer{value: args.fund}(
-      address(args.outbound_tkn),
-      address(args.inbound_tkn),
-      args.wants,
-      args.gives,
-      args.gasreq,
-      vars.gasprice,
-      args.pivotId
+      address(args.outbound_tkn), address(args.inbound_tkn), args.wants, args.gives, args.gasreq, gasprice, args.pivotId
     ) returns (uint offerId_) {
       // assign `offerId_` to caller
-      addOwner(args.outbound_tkn, args.inbound_tkn, offerId_, owner, vars.leftover);
+      addOwner(args.outbound_tkn, args.inbound_tkn, offerId_, owner, leftover);
       offerId = offerId_;
       status = NEW_OFFER_SUCCESS;
     } catch Error(string memory reason) {

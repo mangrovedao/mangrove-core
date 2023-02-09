@@ -1,0 +1,18 @@
+[
+  {
+    "address": "0x009D2F14FaA968bE219e1f8d950E93AD96e9fc21",
+    "name": "Mangrove"
+  },
+  {
+    "address": "0x5BAf6e7f4B41760330F4a101eb522f2D89078333",
+    "name": "MgvReader"
+  },
+  {
+    "address": "0x9F3D13ca5eEf545f5E3523aa3154495e7798B5cC",
+    "name": "MgvCleaner"
+  },
+  {
+    "address": "0x45112B7E55d2FC57A5b5dDFc29FBB2978c53f9D3",
+    "name": "MgvOracle"
+  }
+]

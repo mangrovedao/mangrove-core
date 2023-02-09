@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AaveModuleStorage.sol
+// AaveV3BorrowerStorage.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -22,14 +22,14 @@ import {ReserveConfiguration as RC} from "../vendor/aave/v3/ReserveConfiguration
 
 import "mgv_src/IMangrove.sol";
 
-library AaveV3ModuleStorage {
+library AaveV3BorrowerStorage {
   // address of the lendingPool
   // struct Layout {
   // }
 
   // function getStorage() internal pure returns (Layout storage st) {
   //   bytes32 storagePosition = keccak256(
-  //     "Mangrove.AaveV3ModuleStorageLib.Layout"
+  //     "Mangrove.AaveV3BorrowerStorageLib.Layout"
   //   );
   //   assembly {
   //     st.slot := storagePosition

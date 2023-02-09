@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AaveV3Module.sol
+// AaveV3Borrower.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -16,16 +16,16 @@ pragma solidity ^0.8.10;
  * @notice This contract provides a collection of interactions capabilities with AAVE-v3 to whichever contract inherits it
  */
 /**
- * `AaveV3Module` contracts are in particular able to perfom basic pool interactions (lending, borrowing, supplying and repaying)
+ * `AaveV3Borrower` contracts are in particular able to perfom basic pool interactions (lending, borrowing, supplying and repaying)
  */
 /**
  * @dev it is designed with a diamond storage scheme where core function implementations are delegated to an immutable `IMPLEMENTATION` address
  */
 
 import {AaveV3Lender} from "./AaveV3Lender.sol";
-import {AaveV3ModuleStorage as AMS} from "./AaveModuleStorage.sol";
+import {AaveV3BorrowerStorage as AMS} from "./AaveV3BorrowerStorage.sol";
 import {
-  AaveV3ModuleImplementation as AMI,
+  AaveV3BorrowerImplementation as AMI,
   IERC20,
   IRewardsControllerIsh,
   IPoolAddressesProvider,
@@ -34,9 +34,9 @@ import {
   IPool,
   IPriceOracleGetter,
   DataTypes
-} from "./AaveModuleImplementation.sol";
+} from "./AaveV3BorrowerImplementation.sol";
 
-contract AaveV3Module is AaveV3Lender {
+contract AaveV3Borrower is AaveV3Lender {
   /**
    * @notice address of the implementation contract
    */

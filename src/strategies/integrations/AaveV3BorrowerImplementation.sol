@@ -13,7 +13,7 @@
 pragma solidity ^0.8.10;
 
 import {
-  AaveV3ModuleStorage as AMS,
+  AaveV3BorrowerStorage as AMS,
   IRewardsControllerIsh,
   IPoolAddressesProvider,
   ICreditDelegationToken,
@@ -21,11 +21,11 @@ import {
   IPriceOracleGetter,
   DataTypes,
   RC
-} from "./AaveModuleStorage.sol";
+} from "./AaveV3BorrowerStorage.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 import "mgv_src/strategies/utils/TransferLib.sol";
 
-contract AaveV3ModuleImplementation {
+contract AaveV3BorrowerImplementation {
   IPool public immutable POOL;
   IPriceOracleGetter public immutable ORACLE;
 

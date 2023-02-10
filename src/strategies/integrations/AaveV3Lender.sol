@@ -12,27 +12,20 @@
 
 pragma solidity ^0.8.10;
 
-/**
- * @notice This contract provides a collection of lending capabilities with AAVE-v3 to whichever contract inherits it
- */
-
 import {IPool} from "../vendor/aave/v3/IPool.sol";
 import {IPoolAddressesProvider} from "../vendor/aave/v3/IPoolAddressesProvider.sol";
 import {IRewardsControllerIsh} from "../vendor/aave/v3/IRewardsControllerIsh.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 
+/// @title This contract provides a collection of lending capabilities with AAVE-v3 to whichever contract inherits it
 contract AaveV3Lender {
-  /**
-   * @notice address of the AAVE pool
-   */
+  ///@notice address of the AAVE pool
   IPool public immutable POOL;
   IPoolAddressesProvider public immutable ADDRESS_PROVIDER;
 
-  /**
-   * @notice contract's constructor
-   * @param _addressesProvider address of AAVE's address provider
-   */
+  /// @notice contract's constructor
+  /// @param _addressesProvider address of AAVE's address provider
   constructor(address _addressesProvider) {
     ADDRESS_PROVIDER = IPoolAddressesProvider(_addressesProvider);
 
@@ -42,41 +35,33 @@ contract AaveV3Lender {
     POOL = IPool(_lendingPool);
   }
 
-  /**
-   * @notice allows this contract to approve the POOL to transfer some underlying asset on its behalf
-   * @dev this is a necessary step prio to supplying tokens to the POOL or to repay a debt
-   * @param token the underlying asset for which approval is required
-   * @param amount the approval amount
-   */
+  /// @notice allows this contract to approve the POOL to transfer some underlying asset on its behalf
+  /// @dev this is a necessary step prior to supplying tokens to the POOL or to repay a debt
+  /// @param token the underlying asset for which approval is required
+  /// @param amount the approval amount
   function _approveLender(IERC20 token, uint amount) internal {
     token.approve(address(POOL), amount);
   }
 
-  /**
-   * @notice prevents the POOL to use some underlying as collateral
-   * @dev this call will revert if removing the asset from collateral would put the account into a liquidation state
-   * @param underlying the token one wishes to remove collateral
-   */
+  /// @notice prevents the POOL to use some underlying as collateral
+  /// @dev this call will revert if removing the asset from collateral would put the account into a liquidation state
+  /// @param underlying the token one wishes to remove collateral
   function _exitMarket(IERC20 underlying) internal {
     POOL.setUserUseReserveAsCollateral(address(underlying), false);
   }
 
-  /**
-   * @notice allows the POOL to use some underlying tokens as collateral
-   * @dev when supplying a token for the first time, it is automatically set as possible collateral so there is no need to call this function for it.
-   * @param underlyings the token one wishes to add as collateral
-   */
+  /// @notice allows the POOL to use some underlying tokens as collateral
+  /// @dev when supplying a token for the first time, it is automatically set as possible collateral so there is no need to call this function for it.
+  /// @param underlyings the token one wishes to add as collateral
   function _enterMarkets(IERC20[] calldata underlyings) internal {
     for (uint i = 0; i < underlyings.length; i++) {
       POOL.setUserUseReserveAsCollateral(address(underlyings[i]), true);
     }
   }
 
-  /**
-   * @notice convenience function to obtain the overlying of a given asset
-   * @param asset the underlying asset
-   * @return aToken the overlying asset
-   */
+  /// @notice convenience function to obtain the overlying of a given asset
+  /// @param asset the underlying asset
+  /// @return aToken the overlying asset
   function overlying(IERC20 asset) public view returns (IERC20 aToken) {
     aToken = IERC20(POOL.getReserveData(address(asset)).aTokenAddress);
   }
@@ -84,15 +69,15 @@ contract AaveV3Lender {
   ///@notice redeems funds from the pool
   ///@param token the asset one is trying to redeem
   ///@param amount of assets one wishes to redeem
-  ///@param to is the address where the redeemed assets should be transfered
-  ///@return redeemed the amount of asset that were transfered to `to`
+  ///@param to is the address where the redeemed assets should be transferred
+  ///@return redeemed the amount of asset that were transferred to `to`
   function _redeem(IERC20 token, uint amount, address to) internal returns (uint redeemed) {
     redeemed = (amount == 0) ? 0 : POOL.withdraw(address(token), amount, to);
   }
 
   ///@notice supplies funds to the pool
   ///@param token the asset one is supplying
-  ///@param amount of assets to be transfered to the pool
+  ///@param amount of assets to be transferred to the pool
   ///@param onBehalf address of the account whose collateral is being supplied to
   ///@param noRevert does not revert if supplies throws
   function _supply(IERC20 token, uint amount, address onBehalf, bool noRevert) internal returns (bytes32) {

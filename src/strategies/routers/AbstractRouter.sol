@@ -60,7 +60,7 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice pulls liquidity from the reserve and sends it to the calling maker contract.
   ///@param token is the ERC20 managing the pulled asset
-  ///@param reserveId determines the location of the reserve (router implementation dependant).
+  ///@param reserveId identifies the fund owner (router implementation dependant).
   ///@param amount of `token` the maker contract wishes to pull from its reserve
   ///@param strict when the calling maker contract accepts to receive more funds from reserve than required (this may happen for gas optimization)
   function pull(IERC20 token, address reserveId, uint amount, bool strict) external onlyMakers returns (uint pulled) {
@@ -76,14 +76,13 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param amount is the amount of asset that should be transferred from the calling maker contract
   ///@return pushed fraction of `amount` that was successfully pushed to reserve.
   function push(IERC20 token, address reserveId, uint amount) external onlyMakers returns (uint pushed) {
-    require(reserveId != address(0), "Router/push/0xOwner");
-    return __push__({token: token, reserveId: reserveId, amount: amount});
+    pushed = __push__({token: token, reserveId: reserveId, amount: amount});
   }
 
   ///@notice router-dependant implementation of the `push` function
   function __push__(IERC20 token, address reserveId, uint amount) internal virtual returns (uint);
 
-  ///@notice iterative `push` in a single call
+  ///@notice iterative `push` for the whole balance in a single call
   function flush(IERC20[] calldata tokens, address reserveId) external onlyMakers {
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);

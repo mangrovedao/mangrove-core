@@ -1464,8 +1464,10 @@ abstract contract CoreKandelTest is MangroveTest {
       kdl.withdrawFromMangrove(0, maker);
     } else if (i == 11) {
       kdl.withdrawFunds(new IERC20[](0), new uint[](0), maker);
+    } else if (i == 12) {
+      kdl.setCompoundRates(0, 0);
     }
-    return 12;
+    return 13;
   }
 
   function allOnlyMgvFunctions(uint i) internal virtual returns (uint count) {
@@ -1478,10 +1480,8 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   function allBothMgvAndAdminFunctions(uint i) internal virtual returns (uint count) {
-    if (i == 0) {
-      kdl.setCompoundRates(0, 0);
-    }
-    return 1;
+    i; // ssh
+    return 0;
   }
 
   function getAbiPath() internal pure virtual returns (string memory);
@@ -1501,30 +1501,27 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   function test_allExternalFunctions_differentCallers_correctAuth() public {
+    // Arrange
+    // Read all methodIdentifiers from ABI and assert that they are all called
     string memory root = vm.projectRoot();
     string memory path = string.concat(root, getAbiPath());
     string memory json = vm.readFile(path);
 
-    bytes memory jsonBytes = vm.parseJson(json, "methodIdentifiers[*]~");
-    uint numFunctions = jsonBytes.length / 3 / 32;
-    bytes[] memory selectors = new bytes[](numFunctions);
-    uint k = 0;
-    for (uint i = numFunctions * 32 + 32; i < jsonBytes.length; i += 64) {
-      bytes memory sb = new bytes(8);
-      uint offset = i;
-      for (uint j = 0; j < 8; j++) {
-        sb[j] = bytes1(jsonBytes[offset + j] & 0xFF);
-      }
-      bytes memory byteSelector = fromStringHex(sb);
-      selectors[k] = byteSelector;
-      k++;
+    // This reads the values of methodIdentifiers, but the "~" should make it read keys, so if this test starts failing that may be why.
+    string[] memory methodIdentifiers = stdJson.readStringArray(json, ".methodIdentifiers[*]~");
+    bytes[] memory selectors = new bytes[](methodIdentifiers.length);
+    for (uint i = 0; i < methodIdentifiers.length; i++) {
+      selectors[i] = fromStringHex(bytes(methodIdentifiers[i]));
     }
 
     assertGt(selectors.length, 0, "Some functions should be loaded");
 
     for (uint i = 0; i < selectors.length; i++) {
+      // Assert that all are called - to decode the selector search in the abi file
       vm.expectCall(address(kdl), selectors[i]);
     }
+
+    // Act - invoke all functions - if any are missing, add them.
     // No auth
     allPermissionlessFunctions();
 

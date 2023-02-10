@@ -111,7 +111,7 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   }
 
   /// @inheritdoc AbstractKandel
-  function setCompoundRates(uint compoundRateBase, uint compoundRateQuote) public override mgvOrAdmin {
+  function setCompoundRates(uint compoundRateBase, uint compoundRateQuote) public override onlyAdmin {
     require(compoundRateBase <= 10 ** PRECISION, "Kandel/invalidCompoundRateBase");
     require(compoundRateQuote <= 10 ** PRECISION, "Kandel/invalidCompoundRateQuote");
     emit SetCompoundRates(compoundRateBase, compoundRateQuote);

@@ -13,7 +13,6 @@
 pragma solidity ^0.8.10;
 
 import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
-import {AbstractRouterStorage as ARSt} from "./AbstractRouterStorage.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 
 /// @title AbstractRouter
@@ -21,16 +20,17 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 
 abstract contract AbstractRouter is AccessControlled {
   uint24 immutable ROUTER_GASREQ;
+  mapping(address => bool) boundMakerContracts;
 
   ///@notice This modifier verifies that `msg.sender` an allowed caller of this router.
-  modifier onlyMakers() {
-    require(makers(msg.sender), "AccessControlled/Invalid");
+  modifier onlyBound() {
+    require(isBound(msg.sender), "AccessControlled/Invalid");
     _;
   }
 
   ///@notice This modifier verifies that `msg.sender` is the admin or an allowed caller of this router.
-  modifier makersOrAdmin() {
-    require(msg.sender == admin() || makers(msg.sender), "AccessControlled/Invalid");
+  modifier boundOrAdmin() {
+    require(msg.sender == admin() || isBound(msg.sender), "AccessControlled/Invalid");
     _;
   }
 
@@ -48,8 +48,8 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice getter for the `makers: addr => bool` mapping
   ///@param mkr the address of a maker contract
   ///@return true if `mkr` is authorized to call this router.
-  function makers(address mkr) public view returns (bool) {
-    return ARSt.getStorage().makers[mkr];
+  function isBound(address mkr) public view returns (bool) {
+    return boundMakerContracts[mkr];
   }
 
   ///@notice view for gas overhead of this router.
@@ -63,7 +63,7 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param reserveId identifies the fund owner (router implementation dependant).
   ///@param amount of `token` the maker contract wishes to pull from its reserve
   ///@param strict when the calling maker contract accepts to receive more funds from reserve than required (this may happen for gas optimization)
-  function pull(IERC20 token, address reserveId, uint amount, bool strict) external onlyMakers returns (uint pulled) {
+  function pull(IERC20 token, address reserveId, uint amount, bool strict) external onlyBound returns (uint pulled) {
     pulled = __pull__({token: token, reserveId: reserveId, amount: amount, strict: strict});
   }
 
@@ -75,7 +75,7 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param reserveId determines the location of the reserve (router implementation dependant).
   ///@param amount is the amount of asset that should be transferred from the calling maker contract
   ///@return pushed fraction of `amount` that was successfully pushed to reserve.
-  function push(IERC20 token, address reserveId, uint amount) external onlyMakers returns (uint pushed) {
+  function push(IERC20 token, address reserveId, uint amount) external onlyBound returns (uint pushed) {
     pushed = __push__({token: token, reserveId: reserveId, amount: amount});
   }
 
@@ -83,7 +83,7 @@ abstract contract AbstractRouter is AccessControlled {
   function __push__(IERC20 token, address reserveId, uint amount) internal virtual returns (uint);
 
   ///@notice iterative `push` for the whole balance in a single call
-  function flush(IERC20[] calldata tokens, address reserveId) external onlyMakers {
+  function flush(IERC20[] calldata tokens, address reserveId) external onlyBound {
     for (uint i = 0; i < tokens.length; i++) {
       uint amount = tokens[i].balanceOf(msg.sender);
       if (amount > 0) {
@@ -96,19 +96,19 @@ abstract contract AbstractRouter is AccessControlled {
   ///@dev this function is callable by router's admin to bootstrap, but later on an allowed maker contract can add another address
   ///@param makerContract the maker contract address
   function bind(address makerContract) public onlyAdmin {
-    ARSt.getStorage().makers[makerContract] = true;
+    boundMakerContracts[makerContract] = true;
     emit MakerBind(makerContract);
   }
 
   ///@notice removes a maker contract address from the allowed makers of this router
   ///@param makerContract the maker contract address
   function _unbind(address makerContract) internal {
-    ARSt.getStorage().makers[makerContract] = false;
+    boundMakerContracts[makerContract] = false;
     emit MakerUnbind(makerContract);
   }
 
   ///@notice removes `msg.sender` from the allowed makers of this router
-  function unbind() external onlyMakers {
+  function unbind() external onlyBound {
     _unbind(msg.sender);
   }
 
@@ -117,24 +117,24 @@ abstract contract AbstractRouter is AccessControlled {
     _unbind(maker);
   }
 
-  ///@notice verifies all required approval involving `this` router (either as a spender or reserveId)
+  ///@notice allows a makerContract to verify it is ready to use `this` router for a particular reserve
   ///@dev `checkList` returns normally if all needed approval are strictly positive. It reverts otherwise with a reason.
   ///@param token is the asset (and possibly its overlyings) whose approval must be checked
   ///@param reserveId of the tokens that are being pulled
   function checkList(IERC20 token, address reserveId) external view {
-    require(makers(msg.sender), "Router/callerIsNotBoundToRouter");
+    require(isBound(msg.sender), "Router/callerIsNotBoundToRouter");
     // checking maker contract has approved this for token transfer (in order to push to reserve)
     require(token.allowance(msg.sender, address(this)) > 0, "Router/NotApprovedByMakerContract");
     // pulling on behalf of `reserveId` might require a special approval (e.g if `reserveId` is some account on a protocol).
     __checkList__(token, reserveId);
   }
 
-  ///@notice router-dependent implementation of the `checkList` function
+  ///@notice router-dependent additional checks
   function __checkList__(IERC20 token, address reserveId) internal view virtual;
 
   ///@notice performs necessary approval to activate router function on a particular asset
   ///@param token the asset one wishes to use the router for
-  function activate(IERC20 token) external makersOrAdmin {
+  function activate(IERC20 token) external boundOrAdmin {
     __activate__(token);
   }
 
@@ -143,8 +143,8 @@ abstract contract AbstractRouter is AccessControlled {
     token; //ssh
   }
 
-  ///@notice Balance of a maker (possibly an EOA)
+  ///@notice Balance of a reserve
   ///@param token the asset one wishes to know the balance of
-  ///@param reserveId of the asset
+  ///@param reserveId the identifier of the reserve
   function balanceOfReserve(IERC20 token, address reserveId) public view virtual returns (uint);
 }

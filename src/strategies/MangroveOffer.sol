@@ -12,7 +12,6 @@
 pragma solidity ^0.8.10;
 
 import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
-import {MangroveOfferStorage as MOS} from "./MangroveOfferStorage.sol";
 import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 import {MgvLib, IERC20, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
@@ -29,6 +28,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   uint public immutable OFFER_GASREQ;
   IMangrove public immutable MGV;
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
+  AbstractRouter private __router;
 
   bytes32 constant REPOST_SUCCESS = "offer/partialFilled";
   bytes32 constant NEW_OFFER_SUCCESS = "offer/created";
@@ -54,6 +54,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     require(uint24(gasreq) == gasreq, "mgvOffer/gasreqOverflow");
     MGV = mgv;
     OFFER_GASREQ = gasreq;
+  }
+
+  function router() public view override returns (AbstractRouter) {
+    return __router;
   }
 
   /// @inheritdoc IOfferLogic
@@ -136,13 +140,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   /// @inheritdoc IOfferLogic
   function setRouter(AbstractRouter router_) public override onlyAdmin {
-    MOS.getStorage().router = router_;
+    __router = router_;
     emit SetRouter(router_);
-  }
-
-  /// @inheritdoc IOfferLogic
-  function router() public view returns (AbstractRouter) {
-    return MOS.getStorage().router;
   }
 
   /// @inheritdoc IOfferLogic

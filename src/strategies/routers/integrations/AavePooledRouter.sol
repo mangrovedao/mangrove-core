@@ -163,7 +163,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@notice deposit local balance of an asset on the pool
   ///@param token the address of the asset
-  function flushBuffer(IERC20 token, bool noRevert) public makersOrAdmin returns (bytes32) {
+  function flushBuffer(IERC20 token, bool noRevert) public boundOrAdmin returns (bytes32) {
     return _supply(token, token.balanceOf(address(this)), address(this), noRevert);
   }
 
@@ -177,7 +177,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@dev this can be determined by checking during __lastLook__ whether the logic will trigger a withdraw from aave (this is the case is router's balance of token is empty)
   function pushAndSupply(IERC20[] calldata tokens, uint[] calldata amounts, address reserveId)
     external
-    onlyMakers
+    onlyBound
     returns (uint[] memory pushed)
   {
     pushed = new uint[](tokens.length);

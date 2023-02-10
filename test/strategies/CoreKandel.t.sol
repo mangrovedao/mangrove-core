@@ -549,15 +549,15 @@ abstract contract CoreKandelTest is MangroveTest {
   function test_reserveBalance_withoutOffers_returnsFundAmount() public {
     // Arrange
     retractDefaultSetup();
-    assertEq(kdl.reserveBalance(base), 0, "Base balance should be empty");
-    assertEq(kdl.reserveBalance(quote), 0, "Quote balance should be empty");
+    assertEq(kdl.reserveBalance(Ask), 0, "Base balance should be empty");
+    assertEq(kdl.reserveBalance(Bid), 0, "Quote balance should be empty");
 
     vm.prank(maker);
     kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(42), 43]));
 
     // Act/assert
-    assertEq(kdl.reserveBalance(base), 42, "Base balance should be correct");
-    assertEq(kdl.reserveBalance(quote), 43, "Quote balance should be correct");
+    assertEq(kdl.reserveBalance(Ask), 42, "Base balance should be correct");
+    assertEq(kdl.reserveBalance(Bid), 43, "Quote balance should be correct");
   }
 
   function populateFixedDistribution() internal {
@@ -576,15 +576,15 @@ abstract contract CoreKandelTest is MangroveTest {
     retractDefaultSetup();
     populateFixedDistribution();
 
-    assertEq(kdl.reserveBalance(base), 0, "Base balance should be empty");
-    assertEq(kdl.reserveBalance(quote), 0, "Quote balance should be empty");
+    assertEq(kdl.reserveBalance(Ask), 0, "Base balance should be empty");
+    assertEq(kdl.reserveBalance(Bid), 0, "Quote balance should be empty");
 
     vm.prank(maker);
     kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(42), 43]));
 
     // Act/assert
-    assertEq(kdl.reserveBalance(base), 42, "Base balance should be correct");
-    assertEq(kdl.reserveBalance(quote), 43, "Quote balance should be correct");
+    assertEq(kdl.reserveBalance(Ask), 42, "Base balance should be correct");
+    assertEq(kdl.reserveBalance(Bid), 43, "Quote balance should be correct");
   }
 
   function test_offeredVolume_withOffers_returnsSumOfGives() public {
@@ -1156,8 +1156,8 @@ abstract contract CoreKandelTest is MangroveTest {
 
   function test_retractAndWithdraw() public {
     address payable recipient = freshAddress();
-    uint baseBalance = kdl.reserveBalance(base);
-    uint quoteBalance = kdl.reserveBalance(quote);
+    uint baseBalance = kdl.reserveBalance(Ask);
+    uint quoteBalance = kdl.reserveBalance(Bid);
     expectFrom($(kdl));
     emit Debit(base, baseBalance);
     expectFrom($(kdl));
@@ -1428,7 +1428,7 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl.offeredVolume(Ask);
     kdl.params();
     kdl.pending(Ask);
-    kdl.reserveBalance(base);
+    kdl.reserveBalance(Ask);
     kdl.provisionOf(base, quote, 0);
     kdl.router();
   }

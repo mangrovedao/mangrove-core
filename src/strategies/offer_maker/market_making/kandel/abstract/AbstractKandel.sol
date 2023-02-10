@@ -43,14 +43,14 @@ abstract contract AbstractKandel {
 
   ///@notice the amount of liquidity that is available for the strat but not offered by the given offer type.
   ///@param ba the offer type.
-  ///@return pending_ the amount of pending liquidity.
+  ///@return the amount of pending liquidity. Will be negative if more is offered than is available on the reserve balance.
   ///@dev Pending could be withdrawn or invested by increasing offered volume.
-  function pending(OfferType ba) external view virtual returns (int pending_);
+  function pending(OfferType ba) external view virtual returns (int);
 
-  ///@notice the total balance of the token available for the strat.
-  ///@param token the token.
-  ///@return the balance of the token.
-  function reserveBalance(IERC20 token) public view virtual returns (uint);
+  ///@notice the total balance available for the strat of the offered token for the given offer type.
+  ///@param ba the offer type.
+  ///@return balance the balance of the token.
+  function reserveBalance(OfferType ba) public view virtual returns (uint balance);
 
   ///@notice deposits funds to be available for being offered. Will increase `pending`.
   function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual;

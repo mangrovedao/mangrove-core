@@ -64,9 +64,10 @@ contract AaveKandel is GeometricKandel {
     super.withdrawFunds(tokens, amounts, recipient);
   }
 
-  ///@notice returns the amount of tokens of the router's balance that belong to this contract
+  ///@notice returns the amount of the router's balance that belong to this contract for the token offered for the offer type.
   ///@inheritdoc AbstractKandel
-  function reserveBalance(IERC20 token) public view override returns (uint) {
+  function reserveBalance(OfferType ba) public view override returns (uint balance) {
+    IERC20 token = outboundOfOfferType(ba);
     return pooledRouter().balanceOfReserve(token, RESERVE_ID);
   }
 

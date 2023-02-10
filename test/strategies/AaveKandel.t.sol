@@ -77,16 +77,16 @@ contract AaveKandelTest is CoreKandelTest {
     assertEq(kdl.RESERVE_ID(), maker, "Incorrect owner");
     assertEq(base.balanceOf(address(router)), 0, "Router should start with no base buffer");
     assertEq(quote.balanceOf(address(router)), 0, "Router should start with no quote buffer");
-    assertTrue(kdl.reserveBalance(base) > 0, "Incorrect initial reserve balance of base");
-    assertTrue(kdl.reserveBalance(quote) > 0, "Incorrect initial reserve balance of quote");
+    assertTrue(kdl.reserveBalance(Ask) > 0, "Incorrect initial reserve balance of base");
+    assertTrue(kdl.reserveBalance(Bid) > 0, "Incorrect initial reserve balance of quote");
     assertEq(
       router.overlying(base).balanceOf(address(router)),
-      kdl.reserveBalance(base),
+      kdl.reserveBalance(Ask),
       "Router should have all its base on AAVE"
     );
     assertEq(
       router.overlying(quote).balanceOf(address(router)),
-      kdl.reserveBalance(quote),
+      kdl.reserveBalance(Bid),
       "Router should have all its quote on AAVE"
     );
   }
@@ -137,12 +137,12 @@ contract AaveKandelTest is CoreKandelTest {
     //2. faking accumulated inbound on kandel
     deal($(quote), $(kdl), 1000 * 10 ** 6);
 
-    uint makerBalance = kdl.reserveBalance(quote);
+    uint makerBalance = kdl.reserveBalance(Bid);
     uint baseAave = router.overlying(base).balanceOf(address(router));
     uint quoteAave = router.overlying(quote).balanceOf(address(router));
     vm.prank($(mgv));
     kdl.makerPosthook(order, result);
-    assertEq(kdl.reserveBalance(quote), makerBalance + 1000 * 10 ** 6, "Incorrect updated balance");
+    assertEq(kdl.reserveBalance(Bid), makerBalance + 1000 * 10 ** 6, "Incorrect updated balance");
     assertEq(base.balanceOf(address(router)), 0, "Router did not flush base buffer");
     assertEq(quote.balanceOf(address(router)), 0, "Router did not flush quote buffer");
     assertEq(
@@ -163,16 +163,16 @@ contract AaveKandelTest is CoreKandelTest {
     GeometricKandel kdl_ = __deployKandel__(maker, maker);
     assertEq(kdl_.RESERVE_ID(), kdl.RESERVE_ID(), "Strats should have the same reserveId");
 
-    uint baseBalance = kdl.reserveBalance(base);
-    uint quoteBalance = kdl.reserveBalance(quote);
+    uint baseBalance = kdl.reserveBalance(Ask);
+    uint quoteBalance = kdl.reserveBalance(Bid);
 
     vm.prank(maker);
     kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(baseAmount), quoteAmount]));
 
-    assertEq(kdl.reserveBalance(base), kdl_.reserveBalance(base), "funds are not shared");
-    assertEq(kdl.reserveBalance(quote), kdl_.reserveBalance(quote), "funds are not shared");
-    assertApproxEqAbs(kdl.reserveBalance(quote), quoteBalance + quoteAmount, 1, "Incorrect quote amount");
-    assertApproxEqAbs(kdl.reserveBalance(base), baseBalance + baseAmount, 1, "Incorrect base amount");
+    assertEq(kdl.reserveBalance(Ask), kdl_.reserveBalance(Ask), "funds are not shared");
+    assertEq(kdl.reserveBalance(Bid), kdl_.reserveBalance(Bid), "funds are not shared");
+    assertApproxEqAbs(kdl.reserveBalance(Bid), quoteBalance + quoteAmount, 1, "Incorrect quote amount");
+    assertApproxEqAbs(kdl.reserveBalance(Ask), baseBalance + baseAmount, 1, "Incorrect base amount");
   }
 
   function test_strats_wih_same_admin_but_different_id_do_not_share_liquidty(uint16 baseAmount, uint16 quoteAmount)
@@ -185,7 +185,7 @@ contract AaveKandelTest is CoreKandelTest {
     vm.prank(maker);
     kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(baseAmount), quoteAmount]));
 
-    assertEq(kdl_.reserveBalance(base), 0, "funds should not be shared");
-    assertEq(kdl_.reserveBalance(quote), 0, "funds should not be shared");
+    assertEq(kdl_.reserveBalance(Ask), 0, "funds should not be shared");
+    assertEq(kdl_.reserveBalance(Bid), 0, "funds should not be shared");
   }
 }

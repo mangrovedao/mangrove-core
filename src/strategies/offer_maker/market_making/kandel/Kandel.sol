@@ -31,7 +31,8 @@ contract Kandel is GeometricKandel {
   }
 
   ///@inheritdoc AbstractKandel
-  function reserveBalance(IERC20 token) public view override returns (uint) {
+  function reserveBalance(OfferType ba) public view override returns (uint balance) {
+    IERC20 token = outboundOfOfferType(ba);
     return token.balanceOf(address(this));
   }
 

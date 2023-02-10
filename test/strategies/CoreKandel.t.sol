@@ -12,8 +12,7 @@ import {console} from "forge-std/Test.sol";
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
-
-import {stdJson} from "forge-std/StdJson.sol";
+import {AllMethodIdentifiersTest} from "mgv_test/lib/AllMethodIdentifiersTest.sol";
 
 abstract contract CoreKandelTest is MangroveTest {
   address payable maker;
@@ -1486,33 +1485,9 @@ abstract contract CoreKandelTest is MangroveTest {
 
   function getAbiPath() internal pure virtual returns (string memory);
 
-  function charToHex(uint8 c) public pure returns (uint8) {
-    return (bytes1(c) >= bytes1("a"))
-      ? 10 + c - uint8(bytes1("a"))
-      : (bytes1(c) >= bytes1("A") ? 10 + c - uint8(bytes1("A")) : (c - uint8(bytes1("0"))));
-  }
-
-  function fromStringHex(bytes memory stringHex) internal pure returns (bytes memory) {
-    bytes memory b = new bytes(stringHex.length/2);
-    for (uint i = 0; i < b.length; i++) {
-      b[i] = bytes1(charToHex(uint8(stringHex[2 * i])) * 16 + charToHex(uint8(stringHex[2 * i + 1])));
-    }
-    return b;
-  }
-
   function test_allExternalFunctions_differentCallers_correctAuth() public {
     // Arrange
-    // Read all methodIdentifiers from ABI and assert that they are all called
-    string memory root = vm.projectRoot();
-    string memory path = string.concat(root, getAbiPath());
-    string memory json = vm.readFile(path);
-
-    // This reads the values of methodIdentifiers, but the "~" should make it read keys, so if this test starts failing that may be why.
-    string[] memory methodIdentifiers = stdJson.readStringArray(json, ".methodIdentifiers[*]~");
-    bytes[] memory selectors = new bytes[](methodIdentifiers.length);
-    for (uint i = 0; i < methodIdentifiers.length; i++) {
-      selectors[i] = fromStringHex(bytes(methodIdentifiers[i]));
-    }
+    bytes[] memory selectors = AllMethodIdentifiersTest.getAllMethodIdentifiers(vm, getAbiPath());
 
     assertGt(selectors.length, 0, "Some functions should be loaded");
 

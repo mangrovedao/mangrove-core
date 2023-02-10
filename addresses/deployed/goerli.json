@@ -18,5 +18,9 @@
   {
     "address": "0xE425F605F8bB2ce215C8151754A36d1Eaa2CCC3b",
     "name": "MgvGovernance"
+  },
+  {
+    "address": "0xc440c07Dc430427E2378B1959dc2D0b1DCd8A500",
+    "name": "MangroveOrderEnriched"
   }
 ]

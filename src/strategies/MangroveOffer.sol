@@ -34,13 +34,6 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   bytes32 constant NEW_OFFER_SUCCESS = "offer/created";
   bytes32 constant COMPLETE_FILL = "offer/filled";
 
-  ///@notice guards for restricting a function call to either `MGV` or `admin()`.
-  ///@dev When `msg.sender` is `MGV`, the function is being called either via `makerExecute` or `makerPosthook`.
-  modifier mgvOrAdmin() {
-    require(msg.sender == admin() || msg.sender == address(MGV), "mgvOffer/unauthorized");
-    _;
-  }
-
   ///@notice Mandatory function to allow `this` to receive native tokens from Mangrove after a call to `MGV.withdraw(...,deprovision:true)`
   ///@dev override this function if `this` contract needs to handle local accounting of user funds.
   receive() external payable virtual {}

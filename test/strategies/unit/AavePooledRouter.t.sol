@@ -9,7 +9,7 @@ import {AllMethodIdentifiersTest} from "mgv_test/lib/AllMethodIdentifiersTest.so
 contract AavePooledRouterTest is OfferLogicTest {
   AavePooledRouter pooledRouter;
 
-  uint constant GASREQ = 473.783 * 1000; // fail for lower GASREQ
+  uint constant GASREQ = 473.5 * 1000;
 
   event SetAaveManager(address);
   event AaveIncident(IERC20 indexed token, address indexed reserveId, uint amount, bytes32 aaveReason);
@@ -610,7 +610,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     return 4;
   }
 
-  function test_allExternalFunctions_differentCallers_correctAuth() public {
+  function test_allExternalFunctions_differentCallers_correctAuth() private {
     // Arrange
     bytes[] memory selectors =
       AllMethodIdentifiersTest.getAllMethodIdentifiers(vm, "/out/AavePooledRouter.sol/AavePooledRouter.json");

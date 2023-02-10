@@ -131,7 +131,7 @@ contract Mango is Direct {
     uint to, // last price position to be populated
     uint[][2] calldata pivotIds, // `pivotIds[0][i]` ith pivots for bids, `pivotIds[1][i]` ith pivot for asks
     uint[] calldata tokenAmounts // `tokenAmounts[i]` is the amount of `BASE` or `QUOTE` tokens (dePENDING on `withBase` flag) that is used to fixed one parameter of the price at position `from+i`.
-  ) public mgvOrAdmin {
+  ) public adminOrCaller(address(MGV)) {
     // making sure a router has been defined between deployment and initialization
     require(address(router()) != address(0), "Mango/initialize/0xRouter");
 
@@ -167,7 +167,7 @@ contract Mango is Direct {
     return MangoStorage.getStorage().delta;
   }
 
-  function setDelta(uint delta_) public mgvOrAdmin {
+  function setDelta(uint delta_) public adminOrCaller(address(MGV)) {
     MangoStorage.getStorage().delta = delta_;
   }
 
@@ -205,7 +205,7 @@ contract Mango is Direct {
   /**
    * New positions 0<= i < s are initialized with amount[i] in base tokens if `withBase`. In quote tokens otherwise
    */
-  function setShift(int s, bool withBase, uint[] calldata amounts) public mgvOrAdmin {
+  function setShift(int s, bool withBase, uint[] calldata amounts) public adminOrCaller(address(MGV)) {
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(MangoImplementation.$setShift.selector, s, withBase, amounts, offerGasreq())
     );
@@ -214,7 +214,7 @@ contract Mango is Direct {
     }
   }
 
-  function setMinOfferType(uint m) external mgvOrAdmin {
+  function setMinOfferType(uint m) external adminOrCaller(address(MGV)) {
     MangoStorage.getStorage().min_buffer = m;
   }
 
@@ -244,7 +244,7 @@ contract Mango is Direct {
 
   // starts reneging all offers
   // NB reneged offers will not be reposted
-  function pause() public mgvOrAdmin {
+  function pause() public adminOrCaller(address(MGV)) {
     MangoStorage.getStorage().paused = true;
   }
 

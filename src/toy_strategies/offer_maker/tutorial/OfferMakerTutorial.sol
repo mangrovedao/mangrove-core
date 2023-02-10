@@ -65,7 +65,7 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
     uint pivotId,
     uint offerId,
     uint gasreq
-  ) public payable override mgvOrAdmin {
+  ) public payable override adminOrCaller(address(MGV)) {
     _updateOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
@@ -86,7 +86,7 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
     public
     payable
     override
-    mgvOrAdmin
+    adminOrCaller(address(MGV))
   {
     updateOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerId, offerGasreq());
   }
@@ -94,7 +94,7 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
   ///@inheritdoc ILiquidityProvider
   function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
     public
-    mgvOrAdmin
+    adminOrCaller(address(MGV))
     returns (uint freeWei)
   {
     return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);

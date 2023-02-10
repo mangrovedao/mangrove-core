@@ -44,7 +44,7 @@ contract AaveV3Lender {
     token.approve(address(POOL), amount);
   }
 
-  /// @notice prevents the POOL to use some underlying as collateral
+  /// @notice prevents the POOL from using some underlying as collateral
   /// @dev this call will revert if removing the asset from collateral would put the account into a liquidation state
   /// @param underlying the token one wishes to remove collateral
   function _exitMarket(IERC20 underlying) internal {
@@ -79,7 +79,7 @@ contract AaveV3Lender {
   ///@notice supplies funds to the pool
   ///@param token the asset one is supplying
   ///@param amount of assets to be transferred to the pool
-  ///@param onBehalf address of the account whose collateral is being supplied to
+  ///@param onBehalf address of the account whose collateral is being supplied to and which will receive the overlying
   ///@param noRevert does not revert if supplies throws
   function _supply(IERC20 token, uint amount, address onBehalf, bool noRevert) internal returns (bytes32) {
     if (amount == 0) {
@@ -112,7 +112,7 @@ contract AaveV3Lender {
   }
 
   ///@notice verifies whether an asset can be supplied on pool
-  ///@param asset one wants to lend
+  ///@param asset the asset one wants to lend
   function checkAsset(IERC20 asset) public view returns (bool) {
     IERC20 aToken = overlying(asset);
     return address(aToken) != address(0);

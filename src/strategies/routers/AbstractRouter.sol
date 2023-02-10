@@ -84,7 +84,7 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice iterative `push` for the whole balance in a single call
   function flush(IERC20[] calldata tokens, address reserveId) external onlyBound {
-    for (uint i = 0; i < tokens.length; i++) {
+    for (uint i = 0; i < tokens.length; ++i) {
       uint amount = tokens[i].balanceOf(msg.sender);
       if (amount > 0) {
         require(__push__(tokens[i], reserveId, amount) == amount, "router/pushFailed");

@@ -79,7 +79,7 @@ library TransferLib {
   function transferTokensFrom(IERC20[] calldata tokens, address spender, address recipient, uint[] calldata amounts)
     internal
   {
-    for (uint i; i < tokens.length; i++) {
+    for (uint i; i < tokens.length; ++i) {
       require(TransferLib.transferTokenFrom(tokens[i], spender, recipient, amounts[i]), "transferTokensFrom/failed");
     }
   }
@@ -90,7 +90,7 @@ library TransferLib {
   ///@param amounts The amounts of tokens to be transferred
   ///@dev all individual transferToken calls are required to succeed
   function transferTokens(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) internal {
-    for (uint i; i < tokens.length; i++) {
+    for (uint i; i < tokens.length; ++i) {
       require(TransferLib.transferToken(tokens[i], recipient, amounts[i]), "transferTokens/failed");
     }
   }

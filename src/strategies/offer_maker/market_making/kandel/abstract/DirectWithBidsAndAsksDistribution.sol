@@ -57,7 +57,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
     // args.noRevert = false; we want revert in case of failure
 
     (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(OfferType.Bid);
-    for (i = 0; i < indices.length; i++) {
+    for (i = 0; i < indices.length; ++i) {
       uint index = indices[i];
       if (index > lastBidIndex) {
         break;
@@ -73,7 +73,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
 
     (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(OfferType.Ask);
 
-    for (; i < indices.length; i++) {
+    for (; i < indices.length; ++i) {
       uint index = indices[i];
       args.wants = quoteDist[i];
       args.gives = baseDist[i];
@@ -129,7 +129,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
   function retractOffers(uint from, uint to) public onlyAdmin {
     (IERC20 outbound_tknAsk, IERC20 inbound_tknAsk) = tokenPairOfOfferType(OfferType.Ask);
     (IERC20 outbound_tknBid, IERC20 inbound_tknBid) = tokenPairOfOfferType(OfferType.Bid);
-    for (uint index = from; index < to; index++) {
+    for (uint index = from; index < to; ++index) {
       // These offerIds could be recycled in a new populate
       uint offerId = offerIdOfIndex(OfferType.Ask, index);
       if (offerId != 0) {

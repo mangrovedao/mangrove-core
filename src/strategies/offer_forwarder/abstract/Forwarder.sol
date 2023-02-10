@@ -71,7 +71,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     returns (address[] memory offerOwners_)
   {
     offerOwners_ = new address[](offerIds.length);
-    for (uint i = 0; i < offerIds.length; i++) {
+    for (uint i = 0; i < offerIds.length; ++i) {
       offerOwners_[i] = ownerOf(outbound_tkn, inbound_tkn, offerIds[i]);
     }
   }

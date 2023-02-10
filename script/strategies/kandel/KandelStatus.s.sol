@@ -24,7 +24,7 @@ contract KandelStatus is Deployer {
     uint quoteDecimals = quote.decimals();
     (,,,,,, uint8 length) = kdl.params();
 
-    for (uint i; i < length; i++) {
+    for (uint i; i < length; ++i) {
       MgvStructs.OfferPacked ask = kdl.getOffer(OfferType.Ask, i);
       MgvStructs.OfferPacked bid = kdl.getOffer(OfferType.Bid, i);
 

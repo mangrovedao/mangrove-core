@@ -151,7 +151,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   /// @inheritdoc IOfferLogic
   function activate(IERC20[] calldata tokens) external override onlyAdmin {
-    for (uint i = 0; i < tokens.length; i++) {
+    for (uint i = 0; i < tokens.length; ++i) {
       __activate__(tokens[i]);
     }
   }
@@ -159,7 +159,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   ///@notice verifies that Mangrove is allowed to pull tokens from this contract.
   /// @inheritdoc IOfferLogic
   function checkList(IERC20[] calldata tokens) external view override {
-    for (uint i = 0; i < tokens.length; i++) {
+    for (uint i = 0; i < tokens.length; ++i) {
       __checkList__(tokens[i]);
     }
   }

@@ -26,13 +26,13 @@ library KandelLib {
     vars.baseDist = new uint[](to-from);
     vars.quoteDist = new uint[](to-from);
     uint i = 0;
-    for (; from < to; from++) {
+    for (; from < to; ++from) {
       vars.indices[i] = from;
       vars.baseDist[i] = initBase;
       vars.quoteDist[i] = initQuote;
       // the ratio gives the price difference between two price points - the spread is involved when calculating the jump between a bid and its dual ask.
       initQuote = (initQuote * uint(ratio)) / (10 ** precision);
-      i++;
+      ++i;
     }
     return (vars, initQuote);
   }
@@ -49,7 +49,7 @@ library KandelLib {
     kandel.populate{value: funds}(
       distribution, pivotIds, lastBidIndex, params, new IERC20[](0), new uint[](0)
     );
-    for (uint i = 0; i < pivotIds.length; i++) {
+    for (uint i = 0; i < pivotIds.length; ++i) {
       uint index = distribution.indices[i];
       OfferType ba = index <= lastBidIndex ? OfferType.Bid : OfferType.Ask;
       MgvStructs.OfferPacked offer = kandel.getOffer(ba, index);

@@ -89,7 +89,7 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType, IHasOfferId
   /// @param ba offer type.
   /// @dev function is very gas costly, for external calls only.
   function offeredVolume(OfferType ba) public view returns (uint volume) {
-    for (uint index = 0; index < askOfferIdOfIndex.length; index++) {
+    for (uint index = 0; index < askOfferIdOfIndex.length; ++index) {
       MgvStructs.OfferPacked offer = getOffer(ba, index);
       volume += offer.gives();
     }

@@ -139,7 +139,7 @@ abstract contract Deployer is Script2 {
 
     out = "";
     line("[");
-    for (uint i = 0; i < names.length; i++) {
+    for (uint i = 0; i < names.length; ++i) {
       bool end = i + 1 == names.length;
       line("  {");
       line(string.concat('    "address": "', vm.toString(addrs[i]), '",'));

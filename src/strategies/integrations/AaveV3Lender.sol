@@ -55,7 +55,7 @@ contract AaveV3Lender {
   /// @dev when supplying a token for the first time, it is automatically set as possible collateral so there is no need to call this function for it.
   /// @param underlyings the token one wishes to add as collateral
   function _enterMarkets(IERC20[] calldata underlyings) internal {
-    for (uint i = 0; i < underlyings.length; i++) {
+    for (uint i = 0; i < underlyings.length; ++i) {
       POOL.setUserUseReserveAsCollateral(address(underlyings[i]), true);
     }
   }

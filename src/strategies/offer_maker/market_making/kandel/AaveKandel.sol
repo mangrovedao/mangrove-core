@@ -56,7 +56,7 @@ contract AaveKandel is GeometricKandel {
     override
     onlyAdmin
   {
-    for (uint i; i < tokens.length; i++) {
+    for (uint i; i < tokens.length; ++i) {
       if (amounts[i] != 0) {
         pooledRouter().pull(tokens[i], RESERVE_ID, amounts[i], true);
       }

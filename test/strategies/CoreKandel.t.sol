@@ -33,6 +33,14 @@ abstract contract CoreKandelTest is MangroveTest {
   event SetGasreq(uint value);
   event Credit(IERC20 indexed token, uint amount);
   event Debit(IERC20 indexed token, uint amount);
+  event LogIncident(
+    IMangrove mangrove,
+    IERC20 indexed outbound_tkn,
+    IERC20 indexed inbound_tkn,
+    uint indexed offerId,
+    bytes32 makerData,
+    bytes32 mgvData
+  );
 
   // sets base and quote
   function __setForkEnvironment__() internal virtual {
@@ -879,6 +887,60 @@ abstract contract CoreKandelTest is MangroveTest {
     assertEq(offerIdPost, offerId, "offerId should be unchanged (offer updated)");
     MgvStructs.OfferPacked bidPost = kdl.getOffer(Bid, index);
     assertEq(bidPost.gives(), bid.gives() * 2, "gives should be changed");
+  }
+
+  function test_fail_to_create_dual_offer_logs_incident() public {
+    // closing bid market
+    vm.prank(mgv.governance());
+    mgv.deactivate(address(base), address(quote));
+    // taking a bid
+    uint offerId = kdl.offerIdOfIndex(Bid, 3);
+    MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 3);
+
+    (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockSellOrder({
+      takerGives: bid.wants(),
+      takerWants: bid.gives(),
+      partialFill: 1,
+      base_: base,
+      quote_: quote,
+      makerData: ""
+    });
+
+    order.offerId = offerId;
+    order.offer = bid;
+
+    expectFrom($(kdl));
+    emit LogIncident(IMangrove($(mgv)), base, quote, 0, "Kandel/newOfferFailed", "mgv/inactive");
+    vm.prank($(mgv));
+    kdl.makerPosthook(order, result);
+  }
+
+  function test_fail_to_update_dual_offer_logs_incident() public {
+    // closing bid market
+    vm.prank(mgv.governance());
+    mgv.deactivate(address(base), address(quote));
+    // taking a bid that already has a dual ask
+    uint offerId = kdl.offerIdOfIndex(Bid, 4);
+    uint offerId_ = kdl.offerIdOfIndex(Ask, 5);
+
+    MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 4);
+
+    (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockSellOrder({
+      takerGives: bid.wants(),
+      takerWants: bid.gives(),
+      partialFill: 1,
+      base_: base,
+      quote_: quote,
+      makerData: ""
+    });
+
+    order.offerId = offerId;
+    order.offer = bid;
+
+    expectFrom($(kdl));
+    emit LogIncident(IMangrove($(mgv)), base, quote, offerId_, "Kandel/updateOfferFailed", "mgv/inactive");
+    vm.prank($(mgv));
+    kdl.makerPosthook(order, result);
   }
 
   function test_posthook_density_too_low_still_posts_to_dual() public {

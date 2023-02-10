@@ -291,8 +291,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
-    order.inbound_tkn = $(quote);
-    order.outbound_tkn = $(base);
+    order.inbound_tkn = $(base);
+    order.outbound_tkn = $(quote);
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
@@ -307,8 +307,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     IERC20 quote_,
     bytes32 makerData
   ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
-    order.inbound_tkn = $(quote_);
-    order.outbound_tkn = $(base_);
+    order.inbound_tkn = $(base_);
+    order.outbound_tkn = $(quote_);
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)

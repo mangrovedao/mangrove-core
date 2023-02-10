@@ -36,10 +36,13 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType, IHasOfferId
     MGV = mgv;
   }
 
+  ///@notice the length of the map.
+  uint length;
+
   ///@notice Mangrove's offer id of an ask at a given index.
-  uint[] askOfferIdOfIndex;
+  mapping(uint => uint) askOfferIdOfIndex;
   ///@notice Mangrove's offer id of a bid at a given index.
-  uint[] bidOfferIdOfIndex;
+  mapping(uint => uint) bidOfferIdOfIndex;
 
   ///@notice An inverse mapping of askOfferIdOfIndex. E.g., indexOfAskOfferId[42] is the index in askOfferIdOfIndex at which ask of id #42 on Mangrove is stored.
   mapping(uint => uint) indexOfAskOfferId;
@@ -68,11 +71,10 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType, IHasOfferId
     }
   }
 
-  ///@notice sets the length of the map. All existing offerIds will be lost.
-  ///@param length the new length.
-  function setLength(uint length) internal {
-    askOfferIdOfIndex = new uint[](length);
-    bidOfferIdOfIndex = new uint[](length);
+  ///@notice sets the length of the map.
+  ///@param length_ the new length.
+  function setLength(uint length_) internal {
+    length = length_;
     emit SetLength(length);
   }
 
@@ -89,7 +91,7 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType, IHasOfferId
   /// @param ba offer type.
   /// @dev function is very gas costly, for external calls only.
   function offeredVolume(OfferType ba) public view returns (uint volume) {
-    for (uint index = 0; index < askOfferIdOfIndex.length; ++index) {
+    for (uint index = 0; index < length; ++index) {
       MgvStructs.OfferPacked offer = getOffer(ba, index);
       volume += offer.gives();
     }

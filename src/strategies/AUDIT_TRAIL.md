@@ -4,15 +4,15 @@
 
 ### src/strategies/offer_maker/market_making/kandel/Kandel.sol
 
-The direct Kandel contract without a router which utilizes the other building blocks.
+The direct Kandel AMM contract without a router.
 
 ### src/strategies/routers/integrations/AavePooledRouter.sol
 
-A new type of router able to deposit and withdraw funds on AAVE v3. This router is pooling liquidity of all the maker contracts that are bound to it. Balance of each maker is maintained by means of share balances.
+A new type of router able to deposit and withdraw funds on AAVE v3. This router is pooling liquidity of all the maker contracts that are bound to it. Balance of each maker is maintained by means of share balances. Shares are not transferable.
 
 ### src/strategies/offer_maker/market_making/kandel/AaveKandel.sol
 
-The AavePooledRouter version of the Kandel contract
+The AavePooledRouter version of the Kandel contract.
 
 ### src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol
 
@@ -31,10 +31,15 @@ Kandel type strategies and Aave router have the following dependencies:
 - AbstractRouter: the root contract for routers
 - AaveV3Lender: a module that implements AAVE v3 interaction capacities.
 - Direct: the basic strat building block for private maker contracts (as opposed to Forwarder contracts)
-- MangroveOffer: the root contract for strats (already audited, see minor changes below)
-- AccessControlled: admin management (already audited, unchanged)
+- MangroveOffer: the root contract for strats (already audited, see changes below)
+- AccessControlled: admin management (already audited, see changes below)
 
 ## Minor changes to already audited code
+
+### src/straregies/utils/AccessControlled.sol
+
+- Separate storage removed
+- new modifier `adminOrCaller` that tests caller first to optimize gas during offer logic execution
 
 ### src/strategies/MangroveOffer.sol
 

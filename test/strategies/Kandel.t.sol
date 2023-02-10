@@ -30,4 +30,8 @@ contract KandelTest is CoreKandelTest {
   function precisionForAssert() internal pure override returns (uint) {
     return 0;
   }
+
+  function getAbiPath() internal pure override returns (string memory) {
+    return "/out/Kandel.sol/Kandel.json";
+  }
 }

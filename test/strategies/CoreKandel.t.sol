@@ -11,6 +11,9 @@ import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 import {console} from "forge-std/Test.sol";
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
+
+import {stdJson} from "forge-std/StdJson.sol";
 
 abstract contract CoreKandelTest is MangroveTest {
   address payable maker;
@@ -1404,5 +1407,159 @@ abstract contract CoreKandelTest is MangroveTest {
     }
     statuses[askIndex] = uint(OfferStatus.Ask);
     assertStatus(statuses, quote0, base0);
+  }
+
+  function allPermissionlessFunctions() internal virtual {
+    kdl.BASE();
+    kdl.MGV();
+    kdl.NO_ROUTER();
+    kdl.OFFER_GASREQ();
+    kdl.PRECISION();
+    kdl.QUOTE();
+    kdl.RESERVE_ID();
+    kdl.admin();
+    kdl.checkList(new IERC20[](0));
+    kdl.depositFunds(new IERC20[](0), new uint[](0));
+    kdl.getMissingProvision(base, quote, kdl.offerGasreq(), bufferedGasprice, 0);
+    kdl.getOffer(Ask, 0);
+    kdl.indexOfOfferId(Ask, 42);
+    kdl.offerIdOfIndex(Ask, 0);
+    kdl.offerGasreq();
+    kdl.offeredVolume(Ask);
+    kdl.params();
+    kdl.pending(Ask);
+    kdl.reserveBalance(base);
+    kdl.provisionOf(base, quote, 0);
+    kdl.router();
+  }
+
+  function allOnlyAdminFunctions(uint i, AbstractRouter aRouter, GeometricKandel.Params memory someParams)
+    internal
+    virtual
+    returns (uint count)
+  {
+    if (i == 0) {
+      kdl.activate(dynamic([IERC20(base)]));
+    } else if (i == 1) {
+      kdl.approve(base, taker, 42);
+    } else if (i == 2) {
+      kdl.setAdmin(maker);
+    } else if (i == 3) {
+      kdl.retractAndWithdraw(0, 0, new IERC20[](0), new uint[](0), 0, maker);
+    } else if (i == 4) {
+      kdl.setGasprice(42);
+    } else if (i == 5) {
+      kdl.setGasreq(42);
+    } else if (i == 6) {
+      kdl.setRouter(aRouter);
+    } else if (i == 7) {
+      CoreKandel.Distribution memory dist;
+      kdl.populate(dist, new uint[](0), 0, someParams, new IERC20[](0), new uint[](0));
+    } else if (i == 8) {
+      CoreKandel.Distribution memory dist;
+      kdl.populateChunk(dist, new uint[](0), 42);
+    } else if (i == 9) {
+      kdl.retractOffers(0, 0);
+    } else if (i == 10) {
+      kdl.withdrawFromMangrove(0, maker);
+    } else if (i == 11) {
+      kdl.withdrawFunds(new IERC20[](0), new uint[](0), maker);
+    }
+    return 12;
+  }
+
+  function allOnlyMgvFunctions(uint i) internal virtual returns (uint count) {
+    if (i == 0) {
+      kdl.makerExecute(mockBuyOrder(1, 1));
+    } else if (i == 1) {
+      kdl.makerPosthook(mockBuyOrder(1, 1), MgvLib.OrderResult({makerData: bytes32(0), mgvData: "mgv/tradeSuccess"}));
+    }
+    return 2;
+  }
+
+  function allBothMgvAndAdminFunctions(uint i) internal virtual returns (uint count) {
+    if (i == 0) {
+      kdl.setCompoundRates(0, 0);
+    }
+    return 1;
+  }
+
+  function getAbiPath() internal pure virtual returns (string memory);
+
+  function charToHex(uint8 c) public pure returns (uint8) {
+    return (bytes1(c) >= bytes1("a"))
+      ? 10 + c - uint8(bytes1("a"))
+      : (bytes1(c) >= bytes1("A") ? 10 + c - uint8(bytes1("A")) : (c - uint8(bytes1("0"))));
+  }
+
+  function fromStringHex(bytes memory stringHex) internal pure returns (bytes memory) {
+    bytes memory b = new bytes(stringHex.length/2);
+    for (uint i = 0; i < b.length; i++) {
+      b[i] = bytes1(charToHex(uint8(stringHex[2 * i])) * 16 + charToHex(uint8(stringHex[2 * i + 1])));
+    }
+    return b;
+  }
+
+  function test_allExternalFunctions_differentCallers_correctAuth() public {
+    string memory root = vm.projectRoot();
+    string memory path = string.concat(root, getAbiPath());
+    string memory json = vm.readFile(path);
+
+    bytes memory jsonBytes = vm.parseJson(json, "methodIdentifiers[*]~");
+    uint numFunctions = jsonBytes.length / 3 / 32;
+    bytes[] memory selectors = new bytes[](numFunctions);
+    uint k = 0;
+    for (uint i = numFunctions * 32 + 32; i < jsonBytes.length; i += 64) {
+      bytes memory sb = new bytes(8);
+      uint offset = i;
+      for (uint j = 0; j < 8; j++) {
+        sb[j] = bytes1(jsonBytes[offset + j] & 0xFF);
+      }
+      bytes memory byteSelector = fromStringHex(sb);
+      selectors[k] = byteSelector;
+      k++;
+    }
+
+    assertGt(selectors.length, 0, "Some functions should be loaded");
+
+    for (uint i = 0; i < selectors.length; i++) {
+      vm.expectCall(address(kdl), selectors[i]);
+    }
+    // No auth
+    allPermissionlessFunctions();
+
+    // Only admin
+    AbstractRouter aRouter = kdl.router();
+    GeometricKandel.Params memory someParams = getParams(kdl);
+    for (uint i = 0; i < allOnlyAdminFunctions(type(uint).max, aRouter, someParams); i++) {
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyAdminFunctions(i, aRouter, someParams);
+      vm.prank($(mgv));
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyAdminFunctions(i, aRouter, someParams);
+      vm.prank(maker);
+      allOnlyAdminFunctions(i, aRouter, someParams);
+    }
+
+    // Only mgv
+    for (uint i = 0; i < allOnlyMgvFunctions(type(uint).max); i++) {
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyMgvFunctions(i);
+      vm.prank(maker);
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyMgvFunctions(i);
+      vm.prank($(mgv));
+      allOnlyMgvFunctions(i);
+    }
+
+    // Both mgv and admin
+    for (uint i = 0; i < allBothMgvAndAdminFunctions(type(uint).max); i++) {
+      vm.expectRevert("mgvOffer/unauthorized");
+      allBothMgvAndAdminFunctions(i);
+      vm.prank(maker);
+      allBothMgvAndAdminFunctions(i);
+      vm.prank($(mgv));
+      allBothMgvAndAdminFunctions(i);
+    }
   }
 }

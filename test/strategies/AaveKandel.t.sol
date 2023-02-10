@@ -10,6 +10,7 @@ import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
 import {console2} from "forge-std/Test.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 
 contract AaveKandelTest is CoreKandelTest {
   PinnedPolygonFork fork;
@@ -51,6 +52,23 @@ contract AaveKandelTest is CoreKandelTest {
 
   function precisionForAssert() internal pure override returns (uint) {
     return 1;
+  }
+
+  function getAbiPath() internal pure override returns (string memory) {
+    return "/out/AaveKandel.sol/AaveKandel.json";
+  }
+
+  function allOnlyAdminFunctions(uint i, AbstractRouter aRouter, GeometricKandel.Params memory someParams)
+    internal
+    override
+    returns (uint count)
+  {
+    count = super.allOnlyAdminFunctions(i, aRouter, someParams);
+
+    if (i == count) {
+      AaveKandel($(kdl)).initialize(AavePooledRouter($(aRouter)));
+    }
+    return count + 1;
   }
 
   function test_initialize() public {

@@ -12,22 +12,32 @@
 
 pragma solidity ^0.8.10;
 
-import {IERC20} from "../AbstractRouter.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
 import {AaveV3Lender} from "mgv_src/strategies/integrations/AaveV3Lender.sol";
 
+///@title Memoizes values for AAVE to reduce gas cost and simplify code flow.
 contract HasAaveBalanceMemoizer is AaveV3Lender {
+  ///@param balanceOf the owner's balance of the token
+  ///@param balanceOfMemoized whether the `balanceOf` has been memoized.
+  ///@param balanceOfOverlying the balance of the overlying.
+  ///@param balanceOfOverlyingMemoized whether the `balanceOfOverlying` has been memoized.
+  ///@param overlying the overlying
+  ///@param overlyingMemoized whether the `overlying` has been memoized.
   struct BalanceMemoizer {
-    uint localBalance;
-    bool localBalanceMemoized;
-    uint aaveBalance;
-    bool aaveBalanceMemoized;
+    uint balanceOf;
+    bool balanceOfMemoized;
+    uint balanceOfOverlying;
+    bool balanceOfOverlyingMemoized;
     IERC20 overlying;
     bool overlyingMemoized;
   }
 
   constructor(address addressesProvider) AaveV3Lender(addressesProvider) {}
 
-  function _overlying(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (IERC20) {
+  ///@notice Gets the overlying for the token.
+  ///@param token the token.
+  ///@param memoizer the memoizer.
+  function overlying(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (IERC20) {
     if (memoizer.overlyingMemoized) {
       return memoizer.overlying;
     } else {
@@ -37,32 +47,40 @@ contract HasAaveBalanceMemoizer is AaveV3Lender {
     }
   }
 
-  function _balanceOfOverlying(IERC20 token, address owner, BalanceMemoizer memory memoizer)
+  ///@notice Gets the balance for the owner on the overlying of the token, or 0 if there is no overlying.
+  ///@param token the token.
+  ///@param owner the owner.
+  ///@param memoizer the memoizer.
+  function balanceOfOverlying(IERC20 token, address owner, BalanceMemoizer memory memoizer)
     internal
     view
     returns (uint)
   {
-    if (memoizer.aaveBalanceMemoized) {
-      return memoizer.aaveBalance;
+    if (memoizer.balanceOfOverlyingMemoized) {
+      return memoizer.balanceOfOverlying;
     } else {
-      memoizer.aaveBalanceMemoized = true;
-      IERC20 aToken = _overlying(token, memoizer);
+      memoizer.balanceOfOverlyingMemoized = true;
+      IERC20 aToken = overlying(token, memoizer);
       if (aToken == IERC20(address(0))) {
-        memoizer.aaveBalance = 0;
+        memoizer.balanceOfOverlying = 0;
       } else {
-        memoizer.aaveBalance = aToken.balanceOf(owner);
+        memoizer.balanceOfOverlying = aToken.balanceOf(owner);
       }
-      return memoizer.aaveBalance;
+      return memoizer.balanceOfOverlying;
     }
   }
 
-  function _balanceOf(IERC20 token, address owner, BalanceMemoizer memory memoizer) internal view returns (uint) {
-    if (memoizer.localBalanceMemoized) {
-      return memoizer.localBalance;
+  ///@notice Gets the balance of the token for the owner.
+  ///@param token the token.
+  ///@param owner the owner.
+  ///@param memoizer the memoizer.
+  function balanceOf(IERC20 token, address owner, BalanceMemoizer memory memoizer) internal view returns (uint) {
+    if (memoizer.balanceOfMemoized) {
+      return memoizer.balanceOf;
     } else {
-      memoizer.localBalanceMemoized = true;
-      memoizer.localBalance = token.balanceOf(owner);
-      return memoizer.localBalance;
+      memoizer.balanceOfMemoized = true;
+      memoizer.balanceOf = token.balanceOf(owner);
+      return memoizer.balanceOf;
     }
   }
 }

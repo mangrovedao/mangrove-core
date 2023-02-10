@@ -90,7 +90,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@notice `totalBalance` with memoization of balance queries
   function _totalBalance(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (uint balance) {
-    balance = _balanceOf(token, address(this), memoizer) + _balanceOfOverlying(token, address(this), memoizer);
+    balance = balanceOf(token, address(this), memoizer) + balanceOfOverlying(token, address(this), memoizer);
   }
 
   ///@notice computes available funds (modulo available liquidity on aave) for a given reserve
@@ -204,7 +204,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     uint toRedeem;
     uint amount_ = amount;
     BalanceMemoizer memory memoizer;
-    uint buffer = _balanceOf(token, address(this), memoizer);
+    uint buffer = balanceOf(token, address(this), memoizer);
     if (strict) {
       // maker contract is making a deposit (not a call emanating from the offer logic)
       toRedeem = buffer >= amount ? 0 : amount - buffer;
@@ -215,7 +215,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
         // this pull is the first of the market order (that requires funds from aave) so we redeem all the reserve from AAVE
         // note in theory we should check buffer == 0 but donation may have occurred.
         // This check forces donation to be at least the amount of outbound tokens promised by caller to avoid griefing (depositing a small donation to make offer fail).
-        toRedeem = _balanceOfOverlying(token, address(this), memoizer);
+        toRedeem = balanceOfOverlying(token, address(this), memoizer);
       } else {
         // since buffer > amount, this call is not the first pull of the market order (unless a big donation occurred) and we do not withdraw from AAVE
         amount_ = buffer >= amount_ ? amount_ : buffer;

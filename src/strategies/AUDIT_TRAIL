@@ -1,12 +1,6 @@
 # Audit trail
 
-The following changes have been introduced along with smaller refactoring and comments:
-* IOfferLogic, MangroveOffer and downstream contracts have had the reserve concept simplified
-* IOfferLogic, Forwarder's retractOffer has been made internal and explicitly exposed on MangroveOrder
-* TransferLib has new functions for transferring multiple tokens in one go
-* Direct is used by the Kandel strat.
-
-The Kandel strat itself introduces the following building blocks:
+The Kandel strat depends on the following building blocks which should be audited:
 * Kandel: The direct Kandel contract without a router which utilizes the other building blocks.
 * AaveKandel: The AavePooledRouter version of the Kandel contract
 * KandelSeeder: A contract to do permissionless deploy the Kandel and AaveKandel contracts and bind to a shared router
@@ -17,10 +11,14 @@ The Kandel strat itself introduces the following building blocks:
 * HasIndexedBidsAndAsks: Implements the ability to have a [0..length] indexed set of offers on Mangrove for both bids and asks
 * DirectWithBidsAndAskDistribution: Adorns the Direct strat with indexed bids and asks and allows the offers to be populated according to a given base and quote distribution.
 * AavePooledRouter: a new type of router able to deposit and withdraw funds on AAVE v3.
+* AbstractRouter: the root contract for routers
 * AaveV3Lender: a module that implements AAVE v3 interaction capacities.
+* Direct: the basic strat building block for private maker contracts (as opposed to Forwarder contracts)
+* MangroveOffer: the root contract for strats (already audited, see minor changes below)
+* AccessControlled: admin management (already audited, unchanged)
 
 
-## changes to already audited code
+## Description of changes to already audited code
 
 ### src/strategies/MangroveOffer.sol (Minor)
 * cosmetic changes of variables and constant names
@@ -44,9 +42,10 @@ The Kandel strat itself introduces the following building blocks:
 * Offer owner can no longer be mapped to another address via the `__reserve__` hook that has disappeard (see `MangroveOffer` change). It has no impact on `MangroveOrder` which was not using this hook.
 
 ### src/strategies/routers/AbstractRouter.sol (Minor)
-* Cosmetic changes in naming
-* router's checklist has been simplified and can be called from an arbitrary address
-* `balanceOfReserve` is now a required function for all implementation of AbstractRouter
+* Cosmetic changes in naming. In particular auth error messages are made uniform. `reserve` has been replaced by `reserveId` to take into account the fact that routers interpret this field differently (SimpleRouter forwards liquidity to this address, AavePooledRouter just use the address to label shares of the pool). `reserveBalance` is now called `balanceOfReserve` and requires `reserveId` argument.
+* Log emition when binding/unbinding to a maker contract.
+* router's checklist has been simplified and can be called from an arbitrary address. 
+
 
 
 

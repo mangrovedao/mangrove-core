@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 import "./OfferLogic.t.sol";
 import {AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
+import {AllMethodIdentifiersTest} from "mgv_test/lib/AllMethodIdentifiersTest.sol";
 
 contract AavePooledRouterTest is OfferLogicTest {
   AavePooledRouter pooledRouter;
@@ -535,5 +536,186 @@ contract AavePooledRouterTest is OfferLogicTest {
     pooledRouter.push(weth, maker2, deposit);
 
     assertApproxEqRel(deposit, pooledRouter.balanceOfReserve(weth, maker2), 10 ** 5); // error not worth than 10^-15% of the deposit
+  }
+
+  function allPermissionlessFunctions() internal virtual {
+    pooledRouter.ADDRESS_PROVIDER();
+    pooledRouter.OFFSET();
+    pooledRouter.POOL();
+    pooledRouter.aaveManager();
+    pooledRouter.admin();
+    pooledRouter.routerGasreq();
+    pooledRouter.balanceOfReserve(dai, maker1);
+    pooledRouter.sharesOf(dai, maker1);
+    pooledRouter.totalBalance(dai);
+    pooledRouter.totalShares(dai);
+    pooledRouter.makers(maker1);
+    pooledRouter.overlying(dai);
+    pooledRouter.checkAsset(dai);
+    vm.prank(maker1);
+    pooledRouter.checkList(dai, maker1);
+  }
+
+  function allMakerOrAdminFunctions(uint i) internal virtual returns (uint count) {
+    if (i == 0) {
+      pooledRouter.flushBuffer(dai, true);
+    } else if (i == 1) {
+      pooledRouter.activate(dai);
+    }
+    return 2;
+  }
+
+  function allOnlyAdminFunctions(uint i, address admin, address freshMaker, address manager)
+    internal
+    virtual
+    returns (uint count)
+  {
+    if (i == 0) {
+      pooledRouter.setAdmin(admin);
+    } else if (i == 1) {
+      pooledRouter.bind(freshMaker);
+    } else if (i == 2) {
+      pooledRouter.unbind(freshMaker);
+    } else if (i == 3) {
+      pooledRouter.setAaveManager(manager);
+    }
+    return 4;
+  }
+
+  function allOnlyMakersFunctions(uint i) internal virtual returns (uint count) {
+    if (i == 0) {
+      pooledRouter.push(dai, maker1, 100);
+    } else if (i == 1) {
+      pooledRouter.pull(dai, maker1, 100, true);
+    } else if (i == 2) {
+      pooledRouter.flush(new IERC20[](0), owner);
+    } else if (i == 3) {
+      pooledRouter.pushAndSupply(new IERC20[](0), new uint[](0), owner);
+    } else if (i == 4) {
+      pooledRouter.unbind();
+    }
+    return 5;
+  }
+
+  function allOnlyManagerFunctions(uint i) internal virtual returns (uint count) {
+    if (i == 0) {
+      pooledRouter.enterMarket(new IERC20[](0));
+    } else if (i == 1) {
+      pooledRouter.claimRewards(new address[](0));
+    } else if (i == 2) {
+      pooledRouter.revokeLenderApproval(dai);
+    } else if (i == 3) {
+      pooledRouter.exitMarket(weth);
+    }
+    return 4;
+  }
+
+  function test_allExternalFunctions_differentCallers_correctAuth() public {
+    // Arrange
+    bytes[] memory selectors =
+      AllMethodIdentifiersTest.getAllMethodIdentifiers(vm, "/out/AavePooledRouter.sol/AavePooledRouter.json");
+
+    assertGt(selectors.length, 0, "Some functions should be loaded");
+
+    for (uint i = 0; i < selectors.length; i++) {
+      // Assert that all are called - to decode the selector search in the abi file
+      vm.expectCall(address(pooledRouter), selectors[i]);
+    }
+
+    address admin = freshAddress("newAdmin");
+    vm.prank(deployer);
+    pooledRouter.setAdmin(admin);
+
+    address manager = freshAddress("newManager");
+    vm.prank(admin);
+    pooledRouter.setAaveManager(manager);
+
+    // Act - invoke all functions - if any are missing, add them.
+    // No auth
+    allPermissionlessFunctions();
+
+    // Maker or admin
+    for (uint i = 0; i < allMakerOrAdminFunctions(type(uint).max); i++) {
+      vm.expectRevert("AccessControlled/Invalid");
+      allMakerOrAdminFunctions(i);
+      vm.prank($(mgv));
+      vm.expectRevert("AccessControlled/Invalid");
+      allMakerOrAdminFunctions(i);
+      vm.prank(manager);
+      vm.expectRevert("AccessControlled/Invalid");
+      allMakerOrAdminFunctions(i);
+
+      vm.prank(admin);
+      allMakerOrAdminFunctions(i);
+      vm.prank(maker1);
+      allMakerOrAdminFunctions(i);
+      vm.prank(maker2);
+      allMakerOrAdminFunctions(i);
+    }
+
+    address freshMaker = freshAddress("newMaker");
+    // Only admin
+    for (uint i = 0; i < allOnlyAdminFunctions(type(uint).max, admin, freshMaker, manager); i++) {
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyAdminFunctions(i, admin, freshMaker, manager);
+      vm.prank($(mgv));
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyAdminFunctions(i, admin, freshMaker, manager);
+      vm.prank(manager);
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyAdminFunctions(i, admin, freshMaker, manager);
+      vm.prank(maker1);
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyAdminFunctions(i, admin, freshMaker, manager);
+      vm.prank(maker2);
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyAdminFunctions(i, admin, freshMaker, manager);
+
+      vm.prank(admin);
+      allOnlyAdminFunctions(i, admin, freshMaker, manager);
+    }
+
+    deal($(dai), maker1, 1 * 10 ** 18);
+    deal($(dai), maker2, 1 * 10 ** 18);
+    // Only Makers
+    for (uint i = 0; i < allOnlyMakersFunctions(type(uint).max); i++) {
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyMakersFunctions(i);
+      vm.prank($(mgv));
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyMakersFunctions(i);
+      vm.prank(admin);
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyMakersFunctions(i);
+      vm.prank(manager);
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyMakersFunctions(i);
+
+      vm.prank(maker1);
+      allOnlyMakersFunctions(i);
+      vm.prank(maker2);
+      allOnlyMakersFunctions(i);
+    }
+
+    // Only manager
+    for (uint i = 0; i < allOnlyManagerFunctions(type(uint).max); i++) {
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyManagerFunctions(i);
+      vm.prank($(mgv));
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyManagerFunctions(i);
+      vm.prank(maker1);
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyManagerFunctions(i);
+      vm.prank(maker2);
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyManagerFunctions(i);
+      vm.prank(admin);
+      vm.expectRevert("AccessControlled/Invalid");
+      allOnlyManagerFunctions(i);
+
+      vm.prank(manager);
+      allOnlyManagerFunctions(i);
+    }
   }
 }

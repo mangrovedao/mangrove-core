@@ -21,6 +21,7 @@ The Kandel strat depends on the following building blocks which should be audite
 ## Description of changes to already audited code
 
 ### src/strategies/MangroveOffer.sol (Minor)
+* external storage contract is removed. It was planned for future extension of the strat that would yield a too large code, but it was detrimental to gas efficiency.
 * cosmetic changes of variables and constant names
 * `logRepostStatus` is called at the end of `__posthookSuccess__` in order to log unexpected failure to repost
 * `__reserve__` hook was removed (no clear use case and potentially bug prone). As a consequence offer owner in Forwarder strats (such as MangroveOrder) no longer have strat ready remapping of their address. Direct strats use a different scheme (reserve id).
@@ -42,10 +43,17 @@ The Kandel strat depends on the following building blocks which should be audite
 * Offer owner can no longer be mapped to another address via the `__reserve__` hook that has disappeard (see `MangroveOffer` change). It has no impact on `MangroveOrder` which was not using this hook.
 
 ### src/strategies/routers/AbstractRouter.sol (Minor)
+* external storage contract is removed (see MangroveOffer).
 * Cosmetic changes in naming. In particular auth error messages are made uniform. `reserve` has been replaced by `reserveId` to take into account the fact that routers interpret this field differently (SimpleRouter forwards liquidity to this address, AavePooledRouter just use the address to label shares of the pool). `reserveBalance` is now called `balanceOfReserve` and requires `reserveId` argument.
 * Log emition when binding/unbinding to a maker contract.
 * router's checklist has been simplified and can be called from an arbitrary address. 
 
+### src/strategies/routers/SimpleRouter.sol
+* propagating naming scheme changes from AbstractRouter. We use `owner` instead of `reserveId` in simple router to reflect the fact that funds are transfered to offer owners.
+
+### src/strategies/utils/TransferLib.sol
+* `transferTokensFrom` and `transferTokens` where added as plural implementation of `transferToken` and `transferTokenFrom` of the same library (in order to allow mutliple transfers in the same call).
+* note that these function do not return success but revert on failure (to avoid returning an unwieldy array of booleans).
 
 
 

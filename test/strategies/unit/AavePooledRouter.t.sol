@@ -550,79 +550,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     assertApproxEqRel(deposit, pooledRouter.balanceOfReserve(weth, maker2), 10 ** 5); // error not worth than 10^-15% of the deposit
   }
 
-  function allPermissionlessFunctions() internal virtual {
-    pooledRouter.ADDRESS_PROVIDER();
-    pooledRouter.OFFSET();
-    pooledRouter.POOL();
-    pooledRouter.aaveManager();
-    pooledRouter.admin();
-    pooledRouter.routerGasreq();
-    pooledRouter.balanceOfReserve(dai, maker1);
-    pooledRouter.sharesOf(dai, maker1);
-    pooledRouter.totalBalance(dai);
-    pooledRouter.totalShares(dai);
-    pooledRouter.isBound(maker1);
-    pooledRouter.overlying(dai);
-    pooledRouter.checkAsset(dai);
-    vm.prank(maker1);
-    pooledRouter.checkList(dai, maker1);
-  }
-
-  function allMakerOrAdminFunctions(uint i) internal virtual returns (uint count) {
-    if (i == 0) {
-      pooledRouter.flushBuffer(dai, true);
-    } else if (i == 1) {
-      pooledRouter.activate(dai);
-    }
-    return 2;
-  }
-
-  function allOnlyAdminFunctions(uint i, address admin, address freshMaker, address manager)
-    internal
-    virtual
-    returns (uint count)
-  {
-    if (i == 0) {
-      pooledRouter.setAdmin(admin);
-    } else if (i == 1) {
-      pooledRouter.bind(freshMaker);
-    } else if (i == 2) {
-      pooledRouter.unbind(freshMaker);
-    } else if (i == 3) {
-      pooledRouter.setAaveManager(manager);
-    }
-    return 4;
-  }
-
-  function allOnlyMakersFunctions(uint i) internal virtual returns (uint count) {
-    if (i == 0) {
-      pooledRouter.push(dai, maker1, 100);
-    } else if (i == 1) {
-      pooledRouter.pull(dai, maker1, 100, true);
-    } else if (i == 2) {
-      pooledRouter.flush(new IERC20[](0), owner);
-    } else if (i == 3) {
-      pooledRouter.pushAndSupply(new IERC20[](0), new uint[](0), owner);
-    } else if (i == 4) {
-      pooledRouter.unbind();
-    }
-    return 5;
-  }
-
-  function allOnlyManagerFunctions(uint i) internal virtual returns (uint count) {
-    if (i == 0) {
-      pooledRouter.enterMarket(new IERC20[](0));
-    } else if (i == 1) {
-      pooledRouter.claimRewards(new address[](0));
-    } else if (i == 2) {
-      pooledRouter.revokeLenderApproval(dai);
-    } else if (i == 3) {
-      pooledRouter.exitMarket(weth);
-    }
-    return 4;
-  }
-
-  function test_allExternalFunctions_differentCallers_correctAuth() private {
+  function test_allExternalFunctions_differentCallers_correctAuth() public {
     // Arrange
     bytes[] memory selectors =
       AllMethodIdentifiersTest.getAllMethodIdentifiers(vm, "/out/AavePooledRouter.sol/AavePooledRouter.json");
@@ -642,92 +570,61 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(admin);
     pooledRouter.setAaveManager(manager);
 
-    // Act - invoke all functions - if any are missing, add them.
+    // Act/assert - invoke all functions - if any are missing, add them.
+
     // No auth
-    allPermissionlessFunctions();
+    pooledRouter.ADDRESS_PROVIDER();
+    pooledRouter.OFFSET();
+    pooledRouter.POOL();
+    pooledRouter.aaveManager();
+    pooledRouter.admin();
+    pooledRouter.routerGasreq();
+    pooledRouter.balanceOfReserve(dai, maker1);
+    pooledRouter.sharesOf(dai, maker1);
+    pooledRouter.totalBalance(dai);
+    pooledRouter.totalShares(dai);
+    pooledRouter.isBound(maker1);
+    pooledRouter.overlying(dai);
+    pooledRouter.checkAsset(dai);
+    vm.prank(maker1);
+    pooledRouter.checkList(dai, maker1);
+
+    CheckAuthArgs memory args;
+    args.callee = $(pooledRouter);
+    args.callers = dynamic([address($(mgv)), maker1, maker2, admin, manager, $(this)]);
+    args.revertMessage = "AccessControlled/Invalid";
 
     // Maker or admin
-    for (uint i = 0; i < allMakerOrAdminFunctions(type(uint).max); i++) {
-      vm.expectRevert("AccessControlled/Invalid");
-      allMakerOrAdminFunctions(i);
-      vm.prank($(mgv));
-      vm.expectRevert("AccessControlled/Invalid");
-      allMakerOrAdminFunctions(i);
-      vm.prank(manager);
-      vm.expectRevert("AccessControlled/Invalid");
-      allMakerOrAdminFunctions(i);
+    args.allowed = dynamic([address(maker1), maker2, admin]);
+    checkAuth(args, abi.encodeCall(pooledRouter.flushBuffer, (dai, true)));
+    checkAuth(args, abi.encodeCall(pooledRouter.activate, dai));
 
-      vm.prank(admin);
-      allMakerOrAdminFunctions(i);
-      vm.prank(maker1);
-      allMakerOrAdminFunctions(i);
-      vm.prank(maker2);
-      allMakerOrAdminFunctions(i);
-    }
-
-    address freshMaker = freshAddress("newMaker");
     // Only admin
-    for (uint i = 0; i < allOnlyAdminFunctions(type(uint).max, admin, freshMaker, manager); i++) {
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyAdminFunctions(i, admin, freshMaker, manager);
-      vm.prank($(mgv));
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyAdminFunctions(i, admin, freshMaker, manager);
-      vm.prank(manager);
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyAdminFunctions(i, admin, freshMaker, manager);
-      vm.prank(maker1);
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyAdminFunctions(i, admin, freshMaker, manager);
-      vm.prank(maker2);
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyAdminFunctions(i, admin, freshMaker, manager);
+    args.allowed = dynamic([address(admin)]);
+    address freshMaker = freshAddress("newMaker");
+    checkAuth(args, abi.encodeCall(pooledRouter.setAdmin, admin));
+    checkAuth(args, abi.encodeCall(pooledRouter.bind, freshMaker));
+    checkAuth(args, abi.encodeWithSignature("unbind(address)", freshMaker));
 
-      vm.prank(admin);
-      allOnlyAdminFunctions(i, admin, freshMaker, manager);
-    }
-
+    // Only Makers
     deal($(dai), maker1, 1 * 10 ** 18);
     deal($(dai), maker2, 1 * 10 ** 18);
-    // Only Makers
-    for (uint i = 0; i < allOnlyMakersFunctions(type(uint).max); i++) {
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyMakersFunctions(i);
-      vm.prank($(mgv));
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyMakersFunctions(i);
-      vm.prank(admin);
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyMakersFunctions(i);
-      vm.prank(manager);
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyMakersFunctions(i);
-
-      vm.prank(maker1);
-      allOnlyMakersFunctions(i);
-      vm.prank(maker2);
-      allOnlyMakersFunctions(i);
-    }
+    args.allowed = dynamic([address(maker1), maker2]);
+    checkAuth(args, abi.encodeCall(pooledRouter.push, (dai, maker1, 100)));
+    checkAuth(args, abi.encodeCall(pooledRouter.pull, (dai, maker1, 100, true)));
+    checkAuth(args, abi.encodeCall(pooledRouter.flush, (new IERC20[](0), owner)));
+    checkAuth(args, abi.encodeCall(pooledRouter.pushAndSupply, (new IERC20[](0), new uint[](0), owner)));
+    checkAuth(args, abi.encodeWithSignature("unbind()"));
 
     // Only manager
-    for (uint i = 0; i < allOnlyManagerFunctions(type(uint).max); i++) {
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyManagerFunctions(i);
-      vm.prank($(mgv));
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyManagerFunctions(i);
-      vm.prank(maker1);
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyManagerFunctions(i);
-      vm.prank(maker2);
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyManagerFunctions(i);
-      vm.prank(admin);
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyManagerFunctions(i);
+    args.allowed = dynamic([address(manager)]);
+    checkAuth(args, abi.encodeCall(pooledRouter.enterMarket, new IERC20[](0)));
+    checkAuth(args, abi.encodeCall(pooledRouter.claimRewards, new address[](0)));
+    checkAuth(args, abi.encodeCall(pooledRouter.revokeLenderApproval, dai));
+    checkAuth(args, abi.encodeCall(pooledRouter.exitMarket, weth));
 
-      vm.prank(manager);
-      allOnlyManagerFunctions(i);
-    }
+    // Both manager and admin
+    args.allowed = dynamic([address(manager), admin]);
+    checkAuth(args, abi.encodeCall(pooledRouter.setAaveManager, manager));
   }
 }

@@ -1408,7 +1408,22 @@ abstract contract CoreKandelTest is MangroveTest {
     assertStatus(statuses, quote0, base0);
   }
 
-  function allPermissionlessFunctions() internal virtual {
+  function getAbiPath() internal pure virtual returns (string memory);
+
+  function test_allExternalFunctions_differentCallers_correctAuth() public virtual {
+    // Arrange
+    bytes[] memory selectors = AllMethodIdentifiersTest.getAllMethodIdentifiers(vm, getAbiPath());
+
+    assertGt(selectors.length, 0, "Some functions should be loaded");
+
+    for (uint i = 0; i < selectors.length; i++) {
+      // Assert that all are called - to decode the selector search in the abi file
+      vm.expectCall(address(kdl), selectors[i]);
+    }
+
+    // Act/assert - invoke all functions - if any are missing, add them.
+
+    // No auth
     kdl.BASE();
     kdl.MGV();
     kdl.NO_ROUTER();
@@ -1430,108 +1445,36 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl.reserveBalance(Ask);
     kdl.provisionOf(base, quote, 0);
     kdl.router();
-  }
 
-  function allOnlyAdminFunctions(uint i, AbstractRouter aRouter, GeometricKandel.Params memory someParams)
-    internal
-    virtual
-    returns (uint count)
-  {
-    if (i == 0) {
-      kdl.activate(dynamic([IERC20(base)]));
-    } else if (i == 1) {
-      kdl.approve(base, taker, 42);
-    } else if (i == 2) {
-      kdl.setAdmin(maker);
-    } else if (i == 3) {
-      kdl.retractAndWithdraw(0, 0, new IERC20[](0), new uint[](0), 0, maker);
-    } else if (i == 4) {
-      kdl.setGasprice(42);
-    } else if (i == 5) {
-      kdl.setGasreq(42);
-    } else if (i == 6) {
-      kdl.setRouter(aRouter);
-    } else if (i == 7) {
-      CoreKandel.Distribution memory dist;
-      kdl.populate(dist, new uint[](0), 0, someParams, new IERC20[](0), new uint[](0));
-    } else if (i == 8) {
-      CoreKandel.Distribution memory dist;
-      kdl.populateChunk(dist, new uint[](0), 42);
-    } else if (i == 9) {
-      kdl.retractOffers(0, 0);
-    } else if (i == 10) {
-      kdl.withdrawFromMangrove(0, maker);
-    } else if (i == 11) {
-      kdl.withdrawFunds(new IERC20[](0), new uint[](0), maker);
-    } else if (i == 12) {
-      kdl.setCompoundRates(0, 0);
-    }
-    return 13;
-  }
-
-  function allOnlyMgvFunctions(uint i) internal virtual returns (uint count) {
-    if (i == 0) {
-      kdl.makerExecute(mockBuyOrder(1, 1));
-    } else if (i == 1) {
-      kdl.makerPosthook(mockBuyOrder(1, 1), MgvLib.OrderResult({makerData: bytes32(0), mgvData: "mgv/tradeSuccess"}));
-    }
-    return 2;
-  }
-
-  function allBothMgvAndAdminFunctions(uint i) internal virtual returns (uint count) {
-    i; // ssh
-    return 0;
-  }
-
-  function getAbiPath() internal pure virtual returns (string memory);
-
-  function test_allExternalFunctions_differentCallers_correctAuth() public {
-    // Arrange
-    bytes[] memory selectors = AllMethodIdentifiersTest.getAllMethodIdentifiers(vm, getAbiPath());
-
-    assertGt(selectors.length, 0, "Some functions should be loaded");
-
-    for (uint i = 0; i < selectors.length; i++) {
-      // Assert that all are called - to decode the selector search in the abi file
-      vm.expectCall(address(kdl), selectors[i]);
-    }
-
-    // Act - invoke all functions - if any are missing, add them.
-    // No auth
-    allPermissionlessFunctions();
+    CoreKandel.Distribution memory dist;
+    CheckAuthArgs memory args;
+    args.callee = $(kdl);
+    args.callers = dynamic([address($(mgv)), maker, $(this)]);
+    args.revertMessage = "AccessControlled/Invalid";
 
     // Only admin
-    AbstractRouter aRouter = kdl.router();
-    GeometricKandel.Params memory someParams = getParams(kdl);
-    for (uint i = 0; i < allOnlyAdminFunctions(type(uint).max, aRouter, someParams); i++) {
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyAdminFunctions(i, aRouter, someParams);
-      vm.prank($(mgv));
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyAdminFunctions(i, aRouter, someParams);
-      vm.prank(maker);
-      allOnlyAdminFunctions(i, aRouter, someParams);
-    }
+    args.allowed = dynamic([address(maker)]);
+    checkAuth(args, abi.encodeCall(kdl.activate, dynamic([IERC20(base)])));
+    checkAuth(args, abi.encodeCall(kdl.activate, dynamic([IERC20(base)])));
+    checkAuth(args, abi.encodeCall(kdl.approve, (base, taker, 42)));
+    checkAuth(args, abi.encodeCall(kdl.setAdmin, (maker)));
+    checkAuth(args, abi.encodeCall(kdl.retractAndWithdraw, (0, 0, new IERC20[](0), new uint[](0), 0, maker)));
+    checkAuth(args, abi.encodeCall(kdl.setGasprice, (42)));
+    checkAuth(args, abi.encodeCall(kdl.setGasreq, (42)));
+    checkAuth(args, abi.encodeCall(kdl.setRouter, (kdl.router())));
+    checkAuth(
+      args, abi.encodeCall(kdl.populate, (dist, new uint[](0), 0, getParams(kdl), new IERC20[](0), new uint[](0)))
+    );
+    checkAuth(args, abi.encodeCall(kdl.populateChunk, (dist, new uint[](0), 42)));
+    checkAuth(args, abi.encodeCall(kdl.retractOffers, (0, 0)));
+    checkAuth(args, abi.encodeCall(kdl.withdrawFromMangrove, (0, maker)));
+    checkAuth(args, abi.encodeCall(kdl.withdrawFunds, (new IERC20[](0), new uint[](0), maker)));
+    checkAuth(args, abi.encodeCall(kdl.setCompoundRates, (0, 0)));
 
-    // Only mgv
-    for (uint i = 0; i < allOnlyMgvFunctions(type(uint).max); i++) {
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyMgvFunctions(i);
-      vm.prank(maker);
-      vm.expectRevert("AccessControlled/Invalid");
-      allOnlyMgvFunctions(i);
-      vm.prank($(mgv));
-      allOnlyMgvFunctions(i);
-    }
-
-    // Both mgv and admin
-    for (uint i = 0; i < allBothMgvAndAdminFunctions(type(uint).max); i++) {
-      vm.expectRevert("mgvOffer/unauthorized");
-      allBothMgvAndAdminFunctions(i);
-      vm.prank(maker);
-      allBothMgvAndAdminFunctions(i);
-      vm.prank($(mgv));
-      allBothMgvAndAdminFunctions(i);
-    }
+    // Only Mgv
+    MgvLib.OrderResult memory oResult = MgvLib.OrderResult({makerData: bytes32(0), mgvData: ""});
+    args.allowed = dynamic([address($(mgv))]);
+    checkAuth(args, abi.encodeCall(kdl.makerExecute, mockBuyOrder(1, 1)));
+    checkAuth(args, abi.encodeCall(kdl.makerPosthook, (mockBuyOrder(1, 1), oResult)));
   }
 }

@@ -58,17 +58,15 @@ contract AaveKandelTest is CoreKandelTest {
     return "/out/AaveKandel.sol/AaveKandel.json";
   }
 
-  function allOnlyAdminFunctions(uint i, AbstractRouter aRouter, GeometricKandel.Params memory someParams)
-    internal
-    override
-    returns (uint count)
-  {
-    count = super.allOnlyAdminFunctions(i, aRouter, someParams);
+  function test_allExternalFunctions_differentCallers_correctAuth() public override {
+    super.test_allExternalFunctions_differentCallers_correctAuth();
+    CheckAuthArgs memory args;
+    args.callee = $(kdl);
+    args.callers = dynamic([address($(mgv)), maker, $(this)]);
+    args.allowed = dynamic([address(maker)]);
+    args.revertMessage = "AccessControlled/Invalid";
 
-    if (i == count) {
-      AaveKandel($(kdl)).initialize(AavePooledRouter($(aRouter)));
-    }
-    return count + 1;
+    checkAuth(args, abi.encodeCall(AaveKandel($(kdl)).initialize, AavePooledRouter($(kdl.router()))));
   }
 
   function test_initialize() public {

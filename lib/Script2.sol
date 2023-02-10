@@ -693,6 +693,76 @@ contract Script2 is Script {
     }
   }
 
+  function dynamic(address[1] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[2] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[3] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[4] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[5] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[6] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[7] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[8] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[9] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[10] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
   /* Math abs */
   function abs(int i) internal pure returns (uint) {
     if (i < 0) {

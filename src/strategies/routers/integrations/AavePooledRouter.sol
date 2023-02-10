@@ -56,8 +56,8 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///  This imposes x < (256 - log2(10) * OFFSET) / 2
   /// with OFFSET = 19 we get x < 101 so no overflow is guaranteed for a user balance that can hold on a `uint96`.
 
-  constructor(address _addressesProvider, uint overhead)
-    HasAaveBalanceMemoizer(_addressesProvider)
+  constructor(address addressesProvider, uint overhead)
+    HasAaveBalanceMemoizer(addressesProvider)
     AbstractRouter(overhead)
   {
     setAaveManager(msg.sender);
@@ -84,49 +84,53 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@return balance of the asset
   ///@dev this function relies on the aave promise that aToken are in one-to-one correspondence with claimable underlying and use the same decimals
   function totalBalance(IERC20 token) external view returns (uint balance) {
-    BalanceMemoizer memory v_tkn;
-    return _totalBalance(token, v_tkn);
+    BalanceMemoizer memory memoizer;
+    return _totalBalance(token, memoizer);
   }
 
   ///@notice `totalBalance` with memoization of balance queries
-  function _totalBalance(IERC20 token, BalanceMemoizer memory v_tkn) internal view returns (uint balance) {
-    balance = _balanceOf(token, address(this), v_tkn) + _balanceOfOverlying(token, address(this), v_tkn);
+  function _totalBalance(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (uint balance) {
+    balance = _balanceOf(token, address(this), memoizer) + _balanceOfOverlying(token, address(this), memoizer);
   }
 
   ///@notice computes available funds (modulo available liquidity on aave) for a given reserve
   ///@param token the asset one wants to know the balance of
   ///@param reserveId the identifier of the reserve whose balance is queried
   function balanceOfReserve(IERC20 token, address reserveId) public view override returns (uint) {
-    BalanceMemoizer memory v_tkn;
-    return _balanceOfReserve(token, reserveId, v_tkn);
+    BalanceMemoizer memory memoizer;
+    return _balanceOfReserve(token, reserveId, memoizer);
   }
 
   ///@notice `balanceOfReserve` with memoization of balance queries
-  function _balanceOfReserve(IERC20 token, address reserveId, BalanceMemoizer memory v_tkn)
+  function _balanceOfReserve(IERC20 token, address reserveId, BalanceMemoizer memory memoizer)
     internal
     view
     returns (uint balance)
   {
     uint totalShares_ = totalShares(token);
-    balance = totalShares_ == 0 ? 0 : sharesOf(token, reserveId) * _totalBalance(token, v_tkn) / totalShares_;
+    balance = totalShares_ == 0 ? 0 : sharesOf(token, reserveId) * _totalBalance(token, memoizer) / totalShares_;
   }
 
   ///@notice computes how many shares an amount of tokens represents
   ///@param token the address of the asset
   ///@param amount of tokens
   ///@return shares the shares that correspond to amount
-  function _sharesOfAmount(IERC20 token, uint amount, BalanceMemoizer memory v_tkn) internal view returns (uint shares) {
+  function _sharesOfAmount(IERC20 token, uint amount, BalanceMemoizer memory memoizer)
+    internal
+    view
+    returns (uint shares)
+  {
     uint totalShares_ = totalShares(token);
-    shares = totalShares_ == 0 ? INIT_MINT : totalShares_ * amount / _totalBalance(token, v_tkn);
+    shares = totalShares_ == 0 ? INIT_MINT : totalShares_ * amount / _totalBalance(token, memoizer);
   }
 
   ///@notice mints a certain quantity of shares for a given asset and assigns them to a maker contract
   ///@param token the address of the asset
   ///@param reserveId the address of the reserve who will be assigned new shares
   ///@param amount the amount of assets added to maker's reserve
-  function _mintShares(IERC20 token, address reserveId, uint amount, BalanceMemoizer memory v_tkn) internal {
+  function _mintShares(IERC20 token, address reserveId, uint amount, BalanceMemoizer memory memoizer) internal {
     // computing how many shares should be minted for maker contract
-    uint sharesToMint = _sharesOfAmount(token, amount, v_tkn);
+    uint sharesToMint = _sharesOfAmount(token, amount, memoizer);
     _sharesOf[token][reserveId] += sharesToMint;
     _totalShares[token] += sharesToMint;
   }
@@ -137,9 +141,9 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@param amount the amount of assets withdrawn from maker's reserve
   ///@dev if one is trying to burn shares from a pool that doesn't have any, the call to `_sharesOfAmount` will return `INIT_MINT`
   ///@dev and thus this contract will throw with "AavePooledRouter/insufficientFunds", even if one is trying to burn 0 shares.
-  function _burnShares(IERC20 token, address reserveId, uint amount, BalanceMemoizer memory v_tkn) internal {
+  function _burnShares(IERC20 token, address reserveId, uint amount, BalanceMemoizer memory memoizer) internal {
     // computing how many shares should be minted for maker contract
-    uint sharesToBurn = _sharesOfAmount(token, amount, v_tkn);
+    uint sharesToBurn = _sharesOfAmount(token, amount, memoizer);
     uint ownerShares = _sharesOf[token][reserveId];
     require(sharesToBurn <= ownerShares, "AavePooledRouter/insufficientFunds");
     _sharesOf[token][reserveId] = ownerShares - sharesToBurn;
@@ -150,8 +154,8 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@dev no transfer to AAVE is done at that moment.
   ///@inheritdoc AbstractRouter
   function __push__(IERC20 token, address reserveId, uint amount) internal override returns (uint) {
-    BalanceMemoizer memory v_tkn;
-    _mintShares(token, reserveId, amount, v_tkn);
+    BalanceMemoizer memory memoizer;
+    _mintShares(token, reserveId, amount, memoizer);
     // Transfer must occur *after* _mintShares above
     require(TransferLib.transferTokenFrom(token, msg.sender, address(this), amount), "AavePooledRouter/pushFailed");
     return amount;
@@ -199,19 +203,19 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   function __pull__(IERC20 token, address reserveId, uint amount, bool strict) internal override returns (uint) {
     uint toRedeem;
     uint amount_ = amount;
-    BalanceMemoizer memory v_tkn;
-    uint buffer = _balanceOf(token, address(this), v_tkn);
+    BalanceMemoizer memory memoizer;
+    uint buffer = _balanceOf(token, address(this), memoizer);
     if (strict) {
       // maker contract is making a deposit (not a call emanating from the offer logic)
       toRedeem = buffer >= amount ? 0 : amount - buffer;
     } else {
       // we redeem all router's available balance from aave and transfer to maker all its balance
-      amount_ = _balanceOfReserve(token, reserveId, v_tkn); // max possible transfer to maker
+      amount_ = _balanceOfReserve(token, reserveId, memoizer); // max possible transfer to maker
       if (buffer < amount) {
         // this pull is the first of the market order (that requires funds from aave) so we redeem all the reserve from AAVE
         // note in theory we should check buffer == 0 but donation may have occurred.
         // This check forces donation to be at least the amount of outbound tokens promised by caller to avoid griefing (depositing a small donation to make offer fail).
-        toRedeem = _balanceOfOverlying(token, address(this), v_tkn);
+        toRedeem = _balanceOfOverlying(token, address(this), memoizer);
       } else {
         // since buffer > amount, this call is not the first pull of the market order (unless a big donation occurred) and we do not withdraw from AAVE
         amount_ = buffer >= amount_ ? amount_ : buffer;
@@ -219,7 +223,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
       }
     }
     // now that we know how much we send to maker contract, we try to burn the corresponding shares, this will underflow if owner does not have enough shares
-    _burnShares(token, reserveId, amount_, v_tkn);
+    _burnShares(token, reserveId, amount_, memoizer);
 
     // redeem does not change amount of shares. We do this after burning to avoid redeeming on AAVE if caller doesn't have the required funds.
     if (toRedeem > 0) {

@@ -20,19 +20,20 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 
 /// @title This contract provides a collection of lending capabilities with AAVE-v3 to whichever contract inherits it
 contract AaveV3Lender {
-  ///@notice address of the AAVE pool
+  ///@notice The AAVE pool retrieved from the pool provider.
   IPool public immutable POOL;
+  ///@notice The AAVE pool address provider.
   IPoolAddressesProvider public immutable ADDRESS_PROVIDER;
 
   /// @notice contract's constructor
-  /// @param _addressesProvider address of AAVE's address provider
-  constructor(address _addressesProvider) {
-    ADDRESS_PROVIDER = IPoolAddressesProvider(_addressesProvider);
+  /// @param addressesProvider address of AAVE's address provider
+  constructor(address addressesProvider) {
+    ADDRESS_PROVIDER = IPoolAddressesProvider(addressesProvider);
 
-    address _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
-    require(_lendingPool != address(0), "AaveModule/0xPool");
+    address lendingPool = IPoolAddressesProvider(addressesProvider).getPool();
+    require(lendingPool != address(0), "AaveV3Lender/0xPool");
 
-    POOL = IPool(_lendingPool);
+    POOL = IPool(lendingPool);
   }
 
   /// @notice allows this contract to approve the POOL to transfer some underlying asset on its behalf

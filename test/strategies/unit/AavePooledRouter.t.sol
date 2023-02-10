@@ -51,7 +51,7 @@ contract AavePooledRouterTest is OfferLogicTest {
   function setupLiquidityRouting() internal override {
     vm.startPrank(deployer);
     AavePooledRouter router = new AavePooledRouter({
-      _addressesProvider: fork.get("Aave"),
+      addressesProvider: fork.get("Aave"),
       overhead: 218_000 // fails < 218K
     });
     router.bind(address(makerContract));

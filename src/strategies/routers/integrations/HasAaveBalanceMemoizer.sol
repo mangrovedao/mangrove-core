@@ -25,40 +25,44 @@ contract HasAaveBalanceMemoizer is AaveV3Lender {
     bool overlyingMemoized;
   }
 
-  constructor(address _addressesProvider) AaveV3Lender(_addressesProvider) {}
+  constructor(address addressesProvider) AaveV3Lender(addressesProvider) {}
 
-  function _overlying(IERC20 token, BalanceMemoizer memory v_tkn) internal view returns (IERC20) {
-    if (v_tkn.overlyingMemoized) {
-      return v_tkn.overlying;
+  function _overlying(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (IERC20) {
+    if (memoizer.overlyingMemoized) {
+      return memoizer.overlying;
     } else {
-      v_tkn.overlyingMemoized = true;
-      v_tkn.overlying = overlying(token);
-      return v_tkn.overlying;
+      memoizer.overlyingMemoized = true;
+      memoizer.overlying = overlying(token);
+      return memoizer.overlying;
     }
   }
 
-  function _balanceOfOverlying(IERC20 token, address owner, BalanceMemoizer memory v_tkn) internal view returns (uint) {
-    if (v_tkn.aaveBalanceMemoized) {
-      return v_tkn.aaveBalance;
+  function _balanceOfOverlying(IERC20 token, address owner, BalanceMemoizer memory memoizer)
+    internal
+    view
+    returns (uint)
+  {
+    if (memoizer.aaveBalanceMemoized) {
+      return memoizer.aaveBalance;
     } else {
-      v_tkn.aaveBalanceMemoized = true;
-      IERC20 aToken = _overlying(token, v_tkn);
+      memoizer.aaveBalanceMemoized = true;
+      IERC20 aToken = _overlying(token, memoizer);
       if (aToken == IERC20(address(0))) {
-        v_tkn.aaveBalance = 0;
+        memoizer.aaveBalance = 0;
       } else {
-        v_tkn.aaveBalance = aToken.balanceOf(owner);
+        memoizer.aaveBalance = aToken.balanceOf(owner);
       }
-      return v_tkn.aaveBalance;
+      return memoizer.aaveBalance;
     }
   }
 
-  function _balanceOf(IERC20 token, address owner, BalanceMemoizer memory v_tkn) internal view returns (uint) {
-    if (v_tkn.localBalanceMemoized) {
-      return v_tkn.localBalance;
+  function _balanceOf(IERC20 token, address owner, BalanceMemoizer memory memoizer) internal view returns (uint) {
+    if (memoizer.localBalanceMemoized) {
+      return memoizer.localBalance;
     } else {
-      v_tkn.localBalanceMemoized = true;
-      v_tkn.localBalance = token.balanceOf(owner);
-      return v_tkn.localBalance;
+      memoizer.localBalanceMemoized = true;
+      memoizer.localBalance = token.balanceOf(owner);
+      return memoizer.localBalance;
     }
   }
 }

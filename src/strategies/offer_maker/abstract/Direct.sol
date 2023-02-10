@@ -114,7 +114,7 @@ abstract contract Direct is MangroveOffer {
   ///@notice `__get__` hook for `Direct` is to ask the router to pull liquidity from `reserveId` if strat is using a router
   /// otherwise the function simply returns what's missing in the local balance
   ///@inheritdoc MangroveOffer
-  function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint missing) {
+  function __get__(uint amount, MgvLib.SingleOrder calldata order) internal virtual override returns (uint) {
     uint amount_ = IERC20(order.outbound_tkn).balanceOf(address(this));
     if (amount_ >= amount) {
       return 0;

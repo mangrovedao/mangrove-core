@@ -14,5 +14,9 @@
   {
     "address": "0x45112B7E55d2FC57A5b5dDFc29FBB2978c53f9D3",
     "name": "MgvOracle"
+  },
+  {
+    "address": "0xE425F605F8bB2ce215C8151754A36d1Eaa2CCC3b",
+    "name": "MgvGovernance"
   }
 ]

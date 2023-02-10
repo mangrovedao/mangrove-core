@@ -265,6 +265,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   }
 
   ///@notice re-allows aave to use certain assets as collateral for lending
+  ///@dev market is automatically entered at first deposit
   ///@param tokens the asset addresses
   function enterMarket(IERC20[] calldata tokens) external onlyCaller(aaveManager) {
     _enterMarkets(tokens);

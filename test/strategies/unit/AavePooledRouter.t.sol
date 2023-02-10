@@ -549,7 +549,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     pooledRouter.sharesOf(dai, maker1);
     pooledRouter.totalBalance(dai);
     pooledRouter.totalShares(dai);
-    pooledRouter.makers(maker1);
+    pooledRouter.isBound(maker1);
     pooledRouter.overlying(dai);
     pooledRouter.checkAsset(dai);
     vm.prank(maker1);

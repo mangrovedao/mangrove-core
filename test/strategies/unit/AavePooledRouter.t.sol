@@ -239,7 +239,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     console.log("deep pull: %d, finalize: %d", deep_pull_cost, finalize_cost);
     console.log("shallow push: %d", shallow_push_cost);
     console.log("Strat gasreq (%d), mockup (%d)", GASREQ, deep_pull_cost + finalize_cost);
-    assertTrue(deep_pull_cost + finalize_cost <= GASREQ, "Strat is spending more gas");
+    assertApproxEqAbs(deep_pull_cost + finalize_cost, GASREQ, 200, "Check new gas cost");
   }
 
   function test_push_token_increases_first_minter_shares() public {

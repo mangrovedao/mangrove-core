@@ -889,6 +889,30 @@ abstract contract CoreKandelTest is MangroveTest {
     assertEq(bidPost.gives(), bid.gives() * 2, "gives should be changed");
   }
 
+  function test_step_higher_than_kandel_size_jumps_to_last() public {
+    uint n = getParams(kdl).pricePoints;
+    // placing a bid on the last position
+    // dual of this bid will try to place an ask at n+1 and should place it at n-1 instead of n
+    populateSingle(n - 1, 0.1 ether, 100 * 10 ** 6, 0, n, "");
+    MgvStructs.OfferPacked bid = kdl.getOffer(Bid, n - 1);
+    MgvStructs.OfferPacked ask = kdl.getOffer(Ask, n - 1);
+
+    (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockSellOrder({
+      takerGives: bid.wants(),
+      takerWants: bid.gives(),
+      partialFill: 1,
+      base_: base,
+      quote_: quote,
+      makerData: ""
+    });
+    order.offerId = kdl.offerIdOfIndex(Bid, n - 1);
+    order.offer = bid;
+    vm.prank($(mgv));
+    kdl.makerPosthook(order, result);
+    MgvStructs.OfferPacked ask_ = kdl.getOffer(Ask, n - 1);
+    assertTrue(ask.gives() < ask_.gives(), "Ask was not updated");
+  }
+
   function test_fail_to_create_dual_offer_logs_incident() public {
     // closing bid market
     vm.prank(mgv.governance());

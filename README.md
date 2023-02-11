@@ -6,6 +6,19 @@ This package contains the Solidity implementation of Mangrove as well as deploym
 
 If you are looking for the Mangrove developer documentation, the site to go to is [docs.mangrove.exchange](https://docs.mangrove.exchange).
 
+# Use as a foundry dependency
+
+Just `forge install mangrovedao/mangrove-core`.
+
+⚠️ You will not get the usual remapping `mangrove-core/=lib/mangrove-core/src/` (because forge's remapping generation heuristic sees the `preprocessing/lib/` directory and decides to remap to the parent dir). Instead, you will get:
+
+```
+mgv_src/=lib/mangrove-core/src/
+mgv_lib/=lib/mangrove-core/lib/
+mgv_test/=lib/mangrove-core/test/
+mgv_script/=lib/mangrove-core/script/
+```
+
 # Installation
 
 First, clone the repo and install the prerequisites for the monorepo described in the root [README.md](../../README.md).

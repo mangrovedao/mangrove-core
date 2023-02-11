@@ -1,5 +1,7 @@
 # next version
 
+- Do not override src/ & other remappings, because when imported forge fails to properly nest them.
+
 # 1.4.1 (January 2022)
 
 - Export SimpleTestMaker bytecode

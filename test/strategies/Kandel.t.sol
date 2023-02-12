@@ -8,7 +8,7 @@ import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kand
 import {CoreKandelTest} from "./CoreKandel.t.sol";
 import {console2} from "forge-std/Test.sol";
 
-contract KandelTest is CoreKandelTest {
+contract NoRouterKandelTest is CoreKandelTest {
   function __deployKandel__(address deployer, address reserveId) internal override returns (GeometricKandel kdl_) {
     uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
 

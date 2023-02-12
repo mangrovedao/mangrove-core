@@ -319,6 +319,108 @@ abstract contract CoreKandelTest is MangroveTest {
     test_ask_complete_fill(compoundRateBase, compoundRateQuote, 5);
   }
 
+  function test_update_compoundRateQuote(uint16 compoundRateQuote) public {
+    vm.assume(compoundRateQuote <= 10_000);
+    vm.assume(compoundRateQuote > 0);
+
+    GeometricKandel.Params memory params = getParams(kdl);
+    // taking ask #5
+    MgvStructs.OfferPacked ask = kdl.getOffer(Ask, 5);
+    // updates bid #4
+    MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 4);
+
+    (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockBuyOrder({
+      takerGives: ask.wants(),
+      takerWants: ask.gives(),
+      partialFill: 1,
+      base_: base,
+      quote_: quote,
+      makerData: ""
+    });
+    order.offerId = kdl.offerIdOfIndex(Ask, 5);
+    order.offer = ask;
+
+    MgvStructs.OfferPacked bid_;
+    uint gives_for_0;
+    uint snapshotId = vm.snapshot();
+    vm.prank($(mgv));
+    kdl.makerPosthook(order, result);
+    bid_ = kdl.getOffer(Bid, 4);
+    gives_for_0 = bid_.gives();
+    require(vm.revertTo(snapshotId), "snapshot restore failed");
+
+    // at 0% compouding, one wants to buy back what was sent
+    // computation might have rounding error because bid_.wants is derived from bid_.gives
+    console.log(bid_.wants(), bid.wants(), ask.gives());
+    assertApproxEqRel(bid_.wants(), bid.wants() + ask.gives(), 10 ** 9, "Incorrect wants when 0% compounding");
+
+    // changing compoundRates
+    vm.prank(maker);
+    kdl.setCompoundRates(params.compoundRateBase, compoundRateQuote);
+    vm.prank($(mgv));
+    kdl.makerPosthook(order, result);
+
+    bid_ = kdl.getOffer(Bid, 4);
+    if (compoundRateQuote == 10_000) {
+      // 100% compounding, one gives what one got
+      assertEq(bid_.gives(), bid.gives() + ask.wants(), "Incorrect gives when 100% compounding");
+    } else {
+      // in between one just checks that one is giving more than before
+      assertTrue(bid_.gives() > gives_for_0, "Incorrect gives compounding");
+    }
+  }
+
+  function test_update_compoundRateBase(uint16 compoundRateBase) public {
+    vm.assume(compoundRateBase <= 10_000);
+    vm.assume(compoundRateBase > 0);
+
+    GeometricKandel.Params memory params = getParams(kdl);
+    // taking bid #4
+    MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 4);
+    // updates ask #5
+    MgvStructs.OfferPacked ask = kdl.getOffer(Ask, 5);
+
+    (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockSellOrder({
+      takerGives: bid.wants(),
+      takerWants: bid.gives(),
+      partialFill: 1,
+      base_: base,
+      quote_: quote,
+      makerData: ""
+    });
+    order.offerId = kdl.offerIdOfIndex(Bid, 4);
+    order.offer = bid;
+
+    MgvStructs.OfferPacked ask_;
+    uint gives_for_0;
+    uint snapshotId = vm.snapshot();
+    vm.prank($(mgv));
+    kdl.makerPosthook(order, result);
+    ask_ = kdl.getOffer(Ask, 5);
+    gives_for_0 = ask_.gives();
+    require(vm.revertTo(snapshotId), "snapshot restore failed");
+
+    // at 0% compouding, one wants to buy back what was sent
+    // computation might have rounding error because ask_.wants is derived from ask_.gives
+    console.log(ask_.wants(), ask.wants(), bid.gives());
+    assertEq(ask_.wants(), ask.wants() + bid.gives(), "Incorrect wants when 0% compounding");
+
+    // changing compoundRates
+    vm.prank(maker);
+    kdl.setCompoundRates(compoundRateBase, params.compoundRateQuote);
+    vm.prank($(mgv));
+    kdl.makerPosthook(order, result);
+
+    ask_ = kdl.getOffer(Ask, 5);
+    if (compoundRateBase == 10_000) {
+      // 100% compounding, one gives what one got
+      assertEq(ask_.gives(), ask.gives() + bid.wants(), "Incorrect gives when 100% compounding");
+    } else {
+      // in between one just checks that one is giving more than before
+      assertTrue(ask_.gives() > gives_for_0, "Incorrect gives compounding");
+    }
+  }
+
   function test_ask_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote, uint index) internal {
     vm.assume(compoundRateBase <= 10_000);
     vm.assume(compoundRateQuote <= 10_000);
@@ -911,6 +1013,48 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl.makerPosthook(order, result);
     MgvStructs.OfferPacked ask_ = kdl.getOffer(Ask, n - 1);
     assertTrue(ask.gives() < ask_.gives(), "Ask was not updated");
+  }
+
+  function test_transport_below_min_price_accumulates_at_index_0() public {
+    uint16 ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
+
+    (CoreKandel.Distribution memory distribution1, uint lastQuote) =
+      KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, kdl.PRECISION());
+
+    (CoreKandel.Distribution memory distribution2,) =
+      KandelLib.calculateDistribution(5, 10, initBase, lastQuote, ratio, kdl.PRECISION());
+
+    // setting params.spread to 2
+    GeometricKandel.Params memory params = getParams(kdl);
+    params.spread = 4;
+    // repopulating to update the spread (but with the same distribution)
+    vm.prank(maker);
+    kdl.populate{value: 1 ether}(
+      distribution1, dynamic([uint(0), 1, 2, 3, 4]), 4, params, new IERC20[](0), new uint[](0)
+    );
+    vm.prank(maker);
+    kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 4);
+    // placing an ask at index 1
+    // dual of this ask will try to place a bid at -1 and should place it at 0
+    populateSingle(1, 0.1 ether, 100 * 10 ** 6, 0, 0, "");
+
+    MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 0);
+    MgvStructs.OfferPacked ask = kdl.getOffer(Ask, 1);
+
+    (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockBuyOrder({
+      takerGives: ask.wants(),
+      takerWants: ask.gives(),
+      partialFill: 1,
+      base_: base,
+      quote_: quote,
+      makerData: ""
+    });
+    order.offerId = kdl.offerIdOfIndex(Ask, 1);
+    order.offer = ask;
+    vm.prank($(mgv));
+    kdl.makerPosthook(order, result);
+    MgvStructs.OfferPacked bid_ = kdl.getOffer(Bid, 0);
+    assertTrue(bid.gives() < bid_.gives(), "Bid was not updated");
   }
 
   function test_fail_to_create_dual_offer_logs_incident() public {

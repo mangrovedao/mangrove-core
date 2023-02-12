@@ -39,7 +39,7 @@ abstract contract AbstractKandel {
 
   ///@notice `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals, and ditto for GeometricKandel's `ratio`.
   ///@notice setting PRECISION higher than 4 will produce overflow in limit cases for GeometricKandel.
-  uint8 public constant PRECISION = 4;
+  uint public constant PRECISION = 4;
 
   ///@notice the amount of liquidity that is available for the strat but not offered by the given offer type.
   ///@param ba the offer type.

@@ -186,7 +186,7 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     uint offerGives,
     MgvLib.SingleOrder calldata order,
     Params memory memoryParams
-  ) internal /*pure*/ returns (uint wants, uint gives) {
+  ) internal pure returns (uint wants, uint gives) {
     // computing gives/wants for dual offer
     // we verify we cannot overflow if PRECISION = 5
     // spread:8

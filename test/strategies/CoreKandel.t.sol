@@ -1604,10 +1604,8 @@ abstract contract CoreKandelTest is MangroveTest {
     uint8 spread = 8;
     uint8 pricePoints = type(uint8).max;
 
-    uint base0 = type(uint96).max;
-    uint quote0 = type(uint96).max;
-    uint ratio = 2 * 10 ** kdl.PRECISION(); // max ratio
-    uint compoundRate = 10 ** kdl.PRECISION(); // max compoundRate
+    uint prec = kdl.PRECISION();
+    uint compoundRate = 10 ** prec; // max compoundRate
 
     vm.prank(maker);
     kdl.retractOffers(0, 10);
@@ -1616,12 +1614,12 @@ abstract contract CoreKandelTest is MangroveTest {
       populateSingle({
         kandel: kdl,
         index: 0,
-        base: base0,
-        quote: quote0,
+        base: type(uint96).max,
+        quote: type(uint96).max,
         pivotId: 0,
         firstAskIndex: 2,
         pricePoints: pricePoints,
-        ratio: ratio,
+        ratio: 2 * 10 ** prec,
         spread: spread,
         expectRevert: bytes("")
       });
@@ -1650,7 +1648,7 @@ abstract contract CoreKandelTest is MangroveTest {
       statuses[0] = uint(OfferStatus.Bid);
     }
     statuses[askIndex] = uint(OfferStatus.Ask);
-    assertStatus(statuses, quote0, base0);
+    assertStatus(statuses, type(uint96).max, type(uint96).max);
   }
 
   function getAbiPath() internal pure virtual returns (string memory);

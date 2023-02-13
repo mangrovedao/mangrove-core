@@ -101,7 +101,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@notice `totalBalance` with memoization of balance queries
   function _totalBalance(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (uint balance) {
-    balance = balanceOf(token, address(this), memoizer) + balanceOfOverlying(token, address(this), memoizer);
+    balance = balanceOf(token, memoizer) + balanceOfOverlying(token, memoizer);
   }
 
   ///@notice computes available funds (modulo available liquidity on AAVE) for a given reserve

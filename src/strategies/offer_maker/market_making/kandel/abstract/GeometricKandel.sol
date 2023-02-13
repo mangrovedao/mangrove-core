@@ -18,7 +18,6 @@ import {OfferType} from "./TradesBaseQuotePair.sol";
 import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {CoreKandel} from "./CoreKandel.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
-// import {console} from "forge-std/Test.sol";
 
 ///@title Adds a geometric price progression to a `CoreKandel` strat without storing prices for individual price points.
 abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {

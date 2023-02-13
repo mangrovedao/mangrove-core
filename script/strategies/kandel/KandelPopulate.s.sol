@@ -38,7 +38,7 @@ contract KandelPopulate is Deployer {
       HeapArgs({
         from: vm.envUint("FROM"),
         to: vm.envUint("TO"),
-        lastBidIndex: vm.envUint("LAST_BID_INDEX"),
+        firstAskIndex: vm.envUint("FIRST_ASK_INDEX"),
         params: params,
         initQuote: vm.envUint("INIT_QUOTE"),
         volume: vm.envUint("VOLUME"),
@@ -49,7 +49,7 @@ contract KandelPopulate is Deployer {
 
   ///@notice Arguments for innerRun
   ///@param initQuote the amount of quote tokens that Kandel must want/give at `from` index
-  ///@param lastBidIndex indexes before this (included) must bid when populated. Indexes after this must ask.
+  ///@param firstAskIndex the (inclusive) index after which offer should be an ask.
   ///@param provBid the amount of provision (in native tokens) that are required to post a fresh bid
   ///@param provAsk the amount of provision (in native tokens) that are required to post a fresh ask
   ///@param kdl the Kandel instance
@@ -60,7 +60,7 @@ contract KandelPopulate is Deployer {
   struct HeapArgs {
     uint from;
     uint to;
-    uint lastBidIndex;
+    uint firstAskIndex;
     Kandel.Params params;
     uint initQuote;
     uint volume;
@@ -162,7 +162,7 @@ contract KandelPopulate is Deployer {
     args.kdl.populate{value: funds}(
       vars.distribution,
       vars.pivotIds,
-      args.lastBidIndex,
+      args.firstAskIndex,
       args.params,
       dynamic([IERC20(vars.BASE), vars.QUOTE]),
       dynamic([uint(vars.baseAmountRequired), vars.quoteAmountRequired])
@@ -187,7 +187,7 @@ contract KandelPopulate is Deployer {
     vars.snapshotId = vm.snapshot();
     vm.prank(broadcaster());
     (vars.pivotIds, vars.baseAmountRequired, vars.quoteAmountRequired) =
-      KandelLib.estimatePivotsAndRequiredAmount(distribution, args.kdl, args.lastBidIndex, args.params, funds);
+      KandelLib.estimatePivotsAndRequiredAmount(distribution, args.kdl, args.firstAskIndex, args.params, funds);
     require(vm.revertTo(vars.snapshotId), "snapshot restore failed");
   }
 }

@@ -102,11 +102,11 @@ abstract contract CoreKandelTest is MangroveTest {
     params.pricePoints = 10;
     vm.prank(maker);
     kdl.populate{value: (provAsk + provBid) * 10}(
-      distribution1, dynamic([uint(0), 1, 2, 3, 4]), 4, params, new IERC20[](0), new uint[](0)
+      distribution1, dynamic([uint(0), 1, 2, 3, 4]), 5, params, new IERC20[](0), new uint[](0)
     );
 
     vm.prank(maker);
-    kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 4);
+    kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 5);
 
     uint pendingBase = uint(-kdl.pending(Ask));
     uint pendingQuote = uint(-kdl.pending(Bid));
@@ -677,7 +677,7 @@ abstract contract CoreKandelTest is MangroveTest {
 
     GeometricKandel.Params memory params = getParams(kdl);
     vm.prank(maker);
-    kdl.populate{value: maker.balance}(distribution, new uint[](4), 1, params, new IERC20[](0), new uint[](0));
+    kdl.populate{value: maker.balance}(distribution, new uint[](4), 2, params, new IERC20[](0), new uint[](0));
   }
 
   function test_reserveBalance_withOffers_returnsFundAmount() public {
@@ -831,14 +831,14 @@ abstract contract CoreKandelTest is MangroveTest {
       quoteDist[uint(i)] = quoteAtIndex[indices[uint(i)]] * d / initBase;
     }
 
-    uint lastBidIndex = numBids > 0 ? indices[numBids - 1] : indices[0] - 1;
+    uint firstAskIndex = numAsks > 0 ? indices[numBids] : indices[indices.length - 1] + 1;
     uint[] memory pivotIds = new uint[](indices.length);
     CoreKandel.Distribution memory distribution;
     distribution.indices = indices;
     distribution.baseDist = baseDist;
     distribution.quoteDist = quoteDist;
     vm.prank(maker);
-    kdl.populateChunk(distribution, pivotIds, lastBidIndex);
+    kdl.populateChunk(distribution, pivotIds, firstAskIndex);
   }
 
   function withdrawFunds(IERC20 token, uint amount, address recipient) internal {
@@ -926,12 +926,12 @@ abstract contract CoreKandelTest is MangroveTest {
     uint base,
     uint quote,
     uint pivotId,
-    uint lastBidIndex,
+    uint firstAskIndex,
     bytes memory expectRevert
   ) internal {
     GeometricKandel.Params memory params = getParams(kdl);
     populateSingle(
-      kandel, index, base, quote, pivotId, lastBidIndex, params.pricePoints, params.ratio, params.spread, expectRevert
+      kandel, index, base, quote, pivotId, firstAskIndex, params.pricePoints, params.ratio, params.spread, expectRevert
     );
   }
 
@@ -941,7 +941,7 @@ abstract contract CoreKandelTest is MangroveTest {
     uint base,
     uint quote,
     uint pivotId,
-    uint lastBidIndex,
+    uint firstAskIndex,
     uint pricePoints,
     uint ratio,
     uint spread,
@@ -966,7 +966,7 @@ abstract contract CoreKandelTest is MangroveTest {
     params.ratio = uint16(ratio);
     params.spread = uint8(spread);
 
-    kandel.populate{value: 0.1 ether}(distribution, pivotIds, lastBidIndex, params, new IERC20[](0), new uint[](0));
+    kandel.populate{value: 0.1 ether}(distribution, pivotIds, firstAskIndex, params, new IERC20[](0), new uint[](0));
   }
 
   function test_populate_retracts_at_zero() public {
@@ -1037,10 +1037,10 @@ abstract contract CoreKandelTest is MangroveTest {
     // repopulating to update the spread (but with the same distribution)
     vm.prank(maker);
     kdl.populate{value: 1 ether}(
-      distribution1, dynamic([uint(0), 1, 2, 3, 4]), 4, params, new IERC20[](0), new uint[](0)
+      distribution1, dynamic([uint(0), 1, 2, 3, 4]), 5, params, new IERC20[](0), new uint[](0)
     );
     vm.prank(maker);
-    kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 4);
+    kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 5);
     // placing an ask at index 1
     // dual of this ask will try to place a bid at -1 and should place it at 0
     populateSingle(kdl, 1, 0.1 ether, 100 * 10 ** 6, 0, 0, "");
@@ -1338,7 +1338,7 @@ abstract contract CoreKandelTest is MangroveTest {
     expectFrom(address(kdl));
     emit SetLength(params.pricePoints);
     vm.prank(maker);
-    kdl.populate(distribution, dynamic([uint(0), 1, 2, 3, 4]), 2, params, new IERC20[](0), new uint[](0));
+    kdl.populate(distribution, dynamic([uint(0), 1, 2, 3, 4]), 3, params, new IERC20[](0), new uint[](0));
 
     vm.prank(maker);
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
@@ -1487,7 +1487,7 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   struct TestPivot {
-    uint lastBidIndex;
+    uint firstAskIndex;
     uint funds;
     uint[] pivotIds;
     uint gas0Pivot;
@@ -1508,7 +1508,7 @@ abstract contract CoreKandelTest is MangroveTest {
     params.spread = STEP;
 
     TestPivot memory t;
-    t.lastBidIndex = params.pricePoints / 2;
+    t.firstAskIndex = params.pricePoints / 2;
     t.funds = 20 ether;
 
     // Make sure there are some other offers that can end up as pivots - we deploy a couple of Kandels
@@ -1528,7 +1528,7 @@ abstract contract CoreKandelTest is MangroveTest {
     t.snapshotId = vm.snapshot();
     vm.prank(maker);
     (t.pivotIds, t.baseAmountRequired, t.quoteAmountRequired) =
-      KandelLib.estimatePivotsAndRequiredAmount(distribution, kdl, t.lastBidIndex, params, t.funds);
+      KandelLib.estimatePivotsAndRequiredAmount(distribution, kdl, t.firstAskIndex, params, t.funds);
     require(vm.revertTo(t.snapshotId), "snapshot restore failed");
 
     // Make sure we have enough funds
@@ -1545,7 +1545,7 @@ abstract contract CoreKandelTest is MangroveTest {
     t.gas0Pivot = gasleft();
     kdl.populate{value: t.funds}({
       distribution: distribution,
-      lastBidIndex: t.lastBidIndex,
+      firstAskIndex: t.firstAskIndex,
       parameters: params,
       pivotIds: new uint[](params.pricePoints),
       depositTokens: depositTokens,
@@ -1560,7 +1560,7 @@ abstract contract CoreKandelTest is MangroveTest {
     t.gasPivots = gasleft();
     kdl.populate{value: t.funds}({
       distribution: distribution,
-      lastBidIndex: t.lastBidIndex,
+      firstAskIndex: t.firstAskIndex,
       parameters: params,
       pivotIds: t.pivotIds,
       depositTokens: depositTokens,
@@ -1612,7 +1612,7 @@ abstract contract CoreKandelTest is MangroveTest {
         base: base0,
         quote: quote0,
         pivotId: 0,
-        lastBidIndex: 2,
+        firstAskIndex: 2,
         pricePoints: pricePoints,
         ratio: ratio,
         spread: spread,

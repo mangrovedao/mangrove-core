@@ -41,17 +41,17 @@ library KandelLib {
   function estimatePivotsAndRequiredAmount(
     CoreKandel.Distribution memory distribution,
     GeometricKandel kandel,
-    uint lastBidIndex,
+    uint firstAskIndex,
     GeometricKandel.Params memory params,
     uint funds
   ) internal returns (uint[] memory pivotIds, uint baseAmountRequired, uint quoteAmountRequired) {
     pivotIds = new uint[](distribution.indices.length);
     kandel.populate{value: funds}(
-      distribution, pivotIds, lastBidIndex, params, new IERC20[](0), new uint[](0)
+      distribution, pivotIds, firstAskIndex, params, new IERC20[](0), new uint[](0)
     );
     for (uint i = 0; i < pivotIds.length; ++i) {
       uint index = distribution.indices[i];
-      OfferType ba = index <= lastBidIndex ? OfferType.Bid : OfferType.Ask;
+      OfferType ba = index < firstAskIndex ? OfferType.Bid : OfferType.Ask;
       MgvStructs.OfferPacked offer = kandel.getOffer(ba, index);
       pivotIds[i] = offer.next();
       if (ba == OfferType.Bid) {

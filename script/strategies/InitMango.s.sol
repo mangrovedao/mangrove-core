@@ -14,7 +14,7 @@ import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_ma
  * MANGO=Mango_WETH_USDC \
  * DEFAULT_BASE_AMOUNT=$(cast ff 18 0.25) \
  * DEFAULT_QUOTE_AMOUNT=$(cast ff 6 1000) \
- * LAST_BID_INDEX=50 \
+ * FIRST_ASK_INDEX=50 \
  * BATCH_SIZE=10 \
  * COVER_FACTOR=2 \
  * forge script --fork-url $MUMBAI_NODE_URL \
@@ -28,7 +28,7 @@ contract InitMango is Deployer {
       $mgo: payable(envAddressOrName("MANGO")),
       default_base_amount: vm.envUint("DEFAULT_BASE_AMOUNT"),
       default_quote_amount: vm.envUint("DEFAULT_QUOTE_AMOUNT"),
-      lastBidIndex: vm.envUint("LAST_BID_INDEX"),
+      firstAskIndex: vm.envUint("FIRST_ASK_INDEX"),
       batch_size: vm.envUint("BATCH_SIZE"),
       cover_factor: vm.envUint("COVER_FACTOR")
     });
@@ -38,7 +38,7 @@ contract InitMango is Deployer {
     address payable $mgo,
     uint default_base_amount, // for asks
     uint default_quote_amount, // for bids
-    uint lastBidIndex,
+    uint firstAskIndex,
     uint batch_size, // number of offers to be posted in the same tx
     uint cover_factor
   ) public {
@@ -72,7 +72,7 @@ contract InitMango is Deployer {
     uint[] memory amounts = new uint[](n);
     uint[] memory pivotIds = new uint[](n);
     for (uint i = 0; i < amounts.length; i++) {
-      if (i <= lastBidIndex) {
+      if (i < firstAskIndex) {
         amounts[i] = default_quote_amount;
       } else {
         amounts[i] = default_base_amount;

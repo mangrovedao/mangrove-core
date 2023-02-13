@@ -24,20 +24,32 @@ import {IERC20} from "mgv_src/IERC20.sol";
 ///@notice This seeder deploys Kandel strats on demand and binds them to an AAVE router if needed.
 ///@dev deployer of this contract will gain aave manager power on the AAVE router (power to claim rewards and enter/exit markets)
 ///@dev when deployer is a contract one must therefore make sure it is able to call the corresponding functions on the router
-
 contract KandelSeeder {
   AavePooledRouter public immutable AAVE_ROUTER;
   IMangrove public immutable MGV;
   uint public immutable AAVE_KANDEL_GASREQ;
   uint public immutable KANDEL_GASREQ;
 
+  ///@notice a new Kandel with pooled AAVE router has been deployed.
+  ///@param owner the owner of the strat.
+  ///@param base the base token.
+  ///@param quote the quote token.
+  ///@param aaveKandel the address of the deployed strat.
+  ///@param reserveId the reserve identifier used for the router.
   event NewAaveKandel(
     address indexed owner, IERC20 indexed base, IERC20 indexed quote, address aaveKandel, address reserveId
   );
+
+  ///@notice a new Kandel has been deployed.
+  ///@param owner the owner of the strat.
+  ///@param base the base token.
+  ///@param quote the quote token.
+  ///@param kandel the address of the deployed strat.
   event NewKandel(address indexed owner, IERC20 indexed base, IERC20 indexed quote, address kandel);
 
-  constructor(IMangrove mgv, address addressesProvider_, uint routerGasreq, uint aaveKandelGasreq, uint kandelGasreq) {
-    AavePooledRouter router = new AavePooledRouter(addressesProvider_, routerGasreq);
+  ///@notice constructor for `KandelSeeder. Initializes an `AavePooledRouter` with this seeder as manager.
+  constructor(IMangrove mgv, address addressesProvider, uint routerGasreq, uint aaveKandelGasreq, uint kandelGasreq) {
+    AavePooledRouter router = new AavePooledRouter(addressesProvider, routerGasreq);
     AAVE_ROUTER = router;
     MGV = mgv;
     AAVE_KANDEL_GASREQ = aaveKandelGasreq;
@@ -63,7 +75,10 @@ contract KandelSeeder {
     bool liquiditySharing;
   }
 
-  function sow(KandelSeed calldata seed) external returns (GeometricKandel kdl) {
+  ///@notice deploys a new Kandel contract for the given seed.
+  ///@param seed the parameters for the Kandel strat
+  ///@return kandel the Kandel contract.
+  function sow(KandelSeed calldata seed) external returns (GeometricKandel kandel) {
     // Seeder must set Kandel owner to an address that is controlled by `msg.sender` (msg.sender or Kandel's address for instance)
     // owner MUST not be freely chosen (it is immutable in Kandel) otherwise one would allow the newly deployed strat to pull from another's strat reserve
     // allowing owner to be modified by Kandel's admin would require approval from owner's address controller
@@ -73,18 +88,18 @@ contract KandelSeeder {
     require(local.active(), "KandelSeeder/inactiveMarket");
 
     if (seed.onAave) {
-      AaveKandel aaveKdl = new AaveKandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
+      AaveKandel aaveKandel = new AaveKandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
       // Allowing newly deployed Kandel to bind to the AaveRouter
-      AAVE_ROUTER.bind(address(aaveKdl));
+      AAVE_ROUTER.bind(address(aaveKandel));
       // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20
-      aaveKdl.initialize(AAVE_ROUTER);
-      kdl = aaveKdl;
-      emit NewAaveKandel(msg.sender, seed.base, seed.quote, address(kdl), owner);
+      aaveKandel.initialize(AAVE_ROUTER);
+      kandel = aaveKandel;
+      emit NewAaveKandel(msg.sender, seed.base, seed.quote, address(kandel), owner);
     } else {
-      kdl = new Kandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
-      emit NewKandel(msg.sender, seed.base, seed.quote, address(kdl));
+      kandel = new Kandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
+      emit NewKandel(msg.sender, seed.base, seed.quote, address(kandel));
     }
-    kdl.setCompoundRates(seed.compoundRateBase, seed.compoundRateQuote);
-    kdl.setAdmin(msg.sender);
+    kandel.setCompoundRates(seed.compoundRateBase, seed.compoundRateQuote);
+    kandel.setAdmin(msg.sender);
   }
 }

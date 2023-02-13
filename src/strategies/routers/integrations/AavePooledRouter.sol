@@ -27,7 +27,7 @@ import {IERC20} from "mgv_src/IERC20.sol";
 ///    * in `__get__` the logic pulls liquidity from the router in a non strict manner
 ///    * in __posthookSuccess|Fallback__ the logic pushes both inbound and outbound tokens to the router. If message from makerExecute is `"firstCaller"`, the logic additionally asks the router to supply all its outbound and inbound tokens to AAVE. This can be done is a single step by calling `pushAndSupply`
 /// * on the router side:
-///    * `__pull__`  checks whether local balance of token is below required amount. If so it pulls all its funds from AAVE (this includes funds that do not belong to the owner of the calling contract) and sends to caller all the owner's reserve (according to the shares attributed to the owner). This router then decreases owner's shares accordingly. (note that if AAVE has no liquidity crisis, then the owner's shares will be temporarily 0)
+///    * `__pull__`  checks whether local balance of token is below required amount. If so it pulls all its funds from AAVE (this includes funds that do not belong to the owner of the calling contract) and sends to caller all the owner's reserve (according to the shares attributed to the owner - except in case of liquidity sharing where only requested amount is transferred). This router then decreases owner's shares accordingly. (note that if AAVE has no liquidity crisis, then the owner's shares will be temporarily 0)
 ///    * `__push__` transfers the requested amount of tokens from the calling maker contract and increases owner's shares, but does not supply on AAVE
 
 contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
@@ -231,9 +231,11 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
       amount_ = amount;
       toRedeem = buffer >= amount ? 0 : amount - buffer;
     } else {
-      // we redeem all router's available balance from AAVE and transfer to maker all of maker contract's balance given by its reserveId.
-      // the maker contract must push back the balance so that it is available for another maker contract with the same reserveId.
-      amount_ = _balanceOfReserve(token, reserveId, memoizer); // max possible transfer to maker
+      // We redeem all router's available balance from AAVE.
+      // If there is no liquidity sharing, then we transfer all of maker contract's balance so that it can fulfill multiple offers;
+      // otherwise, we only transfer the necessary amount for each offer, since an offer on another maker contract with the same reserveId
+      // may require the assets.
+      amount_ = reserveId == msg.sender ? _balanceOfReserve(token, reserveId, memoizer) : amount; // max possible transfer to maker
       if (buffer < amount) {
         // this pull is the first of the market order (that requires funds from AAVE) so we redeem all the reserve from AAVE
         // note in theory we should check buffer == 0 but donation may have occurred.

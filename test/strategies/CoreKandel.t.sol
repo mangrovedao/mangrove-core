@@ -920,16 +920,23 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl.populateChunk(dist, new uint[](1), 0);
   }
 
-  function populateSingle(uint index, uint base, uint quote, uint pivotId, uint lastBidIndex, bytes memory expectRevert)
-    internal
-  {
+  function populateSingle(
+    GeometricKandel kandel,
+    uint index,
+    uint base,
+    uint quote,
+    uint pivotId,
+    uint lastBidIndex,
+    bytes memory expectRevert
+  ) internal {
     GeometricKandel.Params memory params = getParams(kdl);
     populateSingle(
-      index, base, quote, pivotId, lastBidIndex, params.pricePoints, params.ratio, params.spread, expectRevert
+      kandel, index, base, quote, pivotId, lastBidIndex, params.pricePoints, params.ratio, params.spread, expectRevert
     );
   }
 
   function populateSingle(
+    GeometricKandel kandel,
     uint index,
     uint base,
     uint quote,
@@ -959,14 +966,14 @@ abstract contract CoreKandelTest is MangroveTest {
     params.ratio = uint16(ratio);
     params.spread = uint8(spread);
 
-    kdl.populate{value: 0.1 ether}(distribution, pivotIds, lastBidIndex, params, new IERC20[](0), new uint[](0));
+    kandel.populate{value: 0.1 ether}(distribution, pivotIds, lastBidIndex, params, new IERC20[](0), new uint[](0));
   }
 
   function test_populate_retracts_at_zero() public {
     uint index = 3;
     assertStatus(index, OfferStatus.Bid);
 
-    populateSingle(index, 123, 0, 0, 5, bytes(""));
+    populateSingle(kdl, index, 123, 0, 0, 5, bytes(""));
     // Bid should be retracted
     assertStatus(index, OfferStatus.Dead);
   }
@@ -974,7 +981,7 @@ abstract contract CoreKandelTest is MangroveTest {
   function test_populate_density_too_low_reverted() public {
     uint index = 3;
     assertStatus(index, OfferStatus.Bid);
-    populateSingle(index, 1, 123, 0, 5, "mgv/writeOffer/density/tooLow");
+    populateSingle(kdl, index, 1, 123, 0, 5, "mgv/writeOffer/density/tooLow");
   }
 
   function test_populate_existing_offer_is_updated() public {
@@ -983,7 +990,7 @@ abstract contract CoreKandelTest is MangroveTest {
     uint offerId = kdl.offerIdOfIndex(Bid, index);
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, index);
 
-    populateSingle(index, bid.wants() * 2, bid.gives() * 2, 0, 5, "");
+    populateSingle(kdl, index, bid.wants() * 2, bid.gives() * 2, 0, 5, "");
 
     uint offerIdPost = kdl.offerIdOfIndex(Bid, index);
     assertEq(offerIdPost, offerId, "offerId should be unchanged (offer updated)");
@@ -995,7 +1002,7 @@ abstract contract CoreKandelTest is MangroveTest {
     uint n = getParams(kdl).pricePoints;
     // placing a bid on the last position
     // dual of this bid will try to place an ask at n+1 and should place it at n-1 instead of n
-    populateSingle(n - 1, 0.1 ether, 100 * 10 ** 6, 0, n, "");
+    populateSingle(kdl, n - 1, 0.1 ether, 100 * 10 ** 6, 0, n, "");
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, n - 1);
     MgvStructs.OfferPacked ask = kdl.getOffer(Ask, n - 1);
 
@@ -1036,7 +1043,7 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 4);
     // placing an ask at index 1
     // dual of this ask will try to place a bid at -1 and should place it at 0
-    populateSingle(1, 0.1 ether, 100 * 10 ** 6, 0, 0, "");
+    populateSingle(kdl, 1, 0.1 ether, 100 * 10 ** 6, 0, 0, "");
 
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 0);
     MgvStructs.OfferPacked ask = kdl.getOffer(Ask, 1);
@@ -1600,6 +1607,7 @@ abstract contract CoreKandelTest is MangroveTest {
 
     for (uint i = 0; i < numTakes; i++) {
       populateSingle({
+        kandel: kdl,
         index: 0,
         base: base0,
         quote: quote0,

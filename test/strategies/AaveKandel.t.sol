@@ -173,7 +173,73 @@ contract AaveKandelTest is CoreKandelTest {
     assertApproxEqAbs(kdl.reserveBalance(Ask), baseBalance + baseAmount, 1, "Incorrect base amount");
   }
 
-  function test_strats_wih_same_admin_but_different_id_do_not_share_liquidty(uint16 baseAmount, uint16 quoteAmount)
+  function test_offerLogic_sharingLiquidityBetweenStratsNoDonation_offersSucceedAndFundsPushedToAave() public {
+    test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
+      donationMultiplier: 0,
+      allBaseOnAave: true,
+      allQuoteOnAave: true
+    });
+  }
+
+  function test_offerLogic_sharingLiquidityBetweenStratsFirstOfferDonated_offersSucceedAndPushesBaseToAave() public {
+    test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
+      donationMultiplier: 1,
+      allBaseOnAave: true,
+      allQuoteOnAave: false
+    });
+  }
+
+  function test_offerLogic_sharingLiquidityBetweenStratsBothOffersDonated_offersSucceedAndNoFundsPushedToAave() public {
+    test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
+      donationMultiplier: 3,
+      allBaseOnAave: false,
+      allQuoteOnAave: false
+    });
+  }
+
+  function test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave(
+    uint donationMultiplier,
+    bool allBaseOnAave,
+    bool allQuoteOnAave
+  ) internal {
+    GeometricKandel kdl_ = __deployKandel__(maker, maker);
+    assertEq(kdl_.RESERVE_ID(), kdl.RESERVE_ID(), "Strats should have the same reserveId");
+
+    (, MgvStructs.OfferPacked bestAsk) = getBestOffers();
+    populateSingle({
+      kandel: kdl_,
+      index: 4,
+      base: bestAsk.gives(),
+      quote: bestAsk.wants(),
+      pivotId: 0,
+      lastBidIndex: 0,
+      expectRevert: ""
+    });
+
+    deal($(base), $(router), donationMultiplier * bestAsk.gives());
+
+    vm.prank(taker);
+    (uint takerGot,,,) = mgv.marketOrder($(base), $(quote), bestAsk.gives() * 2, bestAsk.wants() * 2, true);
+
+    assertEq(takerGot, bestAsk.gives() * 2, "both asks should be taken");
+
+    if (allBaseOnAave) {
+      assertEq(
+        router.overlying(base).balanceOf(address(router)),
+        kdl.reserveBalance(Ask),
+        "Router should have all its base on AAVE unless donation made it unnecessary to pull from AAVE"
+      );
+    }
+    if (allQuoteOnAave) {
+      assertEq(
+        router.overlying(quote).balanceOf(address(router)),
+        kdl.reserveBalance(Bid),
+        "Router should have all its quote on AAVE unless donation made it unnecessary to pull from AAVE for first offer"
+      );
+    }
+  }
+
+  function test_strats_wih_same_admin_but_different_id_do_not_share_liquidity(uint16 baseAmount, uint16 quoteAmount)
     public
   {
     deal($(base), maker, baseAmount);

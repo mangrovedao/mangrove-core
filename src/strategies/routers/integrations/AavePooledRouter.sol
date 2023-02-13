@@ -62,8 +62,8 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   /// 1. Alice, the first minter deposits 1 wei. She gets `10**OFFSET` shares for this.
   /// 2. Alice deposits `amount` into the pool. She gets `10**OFFSET * amount / (amount + 1)` additional shares.
   /// 3. Alice computes her balance. Total shares of the pool is the total share of Alice  ~ `amount * 10**OFFSET` and the pool has ~ `amount` tokens
-  ///  so Alice's balance is ~ `(amount * amount * 10**OFFSET) /10**OFFSET * amount`. This overflows if `amount * amount * 10**OFFSET` overflows.
-  ///  Suppose that amount is `2**x`. One must verify that 2*x + log2(10) * OFFSET < 256
+  ///  so Alice's balance is ~ `(amount * amount * 10**OFFSET) / 10**OFFSET * amount`. This overflows if `amount * amount * 10**OFFSET` overflows.
+  ///  Suppose that amount is `2**x`. One must verify that x + x + log2(10) * OFFSET < 256
   ///  This imposes x < (256 - log2(10) * OFFSET) / 2
   /// with OFFSET = 19 we get x < 101 so no overflow is guaranteed for a user balance that can hold on a `uint96`.
 

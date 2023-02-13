@@ -45,7 +45,7 @@ contract KandelSeederTest is MangroveTest {
     setEnvironment();
     seeder = new KandelSeeder({
       mgv:IMangrove($(mgv)), 
-      addressesProvider_: fork.get('Aave'), 
+      addressesProvider: fork.get('Aave'), 
       routerGasreq: 500_000, 
       aaveKandelGasreq: 128_000, 
       kandelGasreq: 128_000

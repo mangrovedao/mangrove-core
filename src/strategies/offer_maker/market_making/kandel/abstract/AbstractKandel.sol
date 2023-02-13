@@ -37,10 +37,6 @@ abstract contract AbstractKandel {
   ///@notice the Kandel instance is debited of `amount` by its owner.
   event Debit(IERC20 indexed token, uint amount);
 
-  ///@notice `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals, and ditto for GeometricKandel's `ratio`.
-  ///@notice setting PRECISION higher than 4 will produce overflow in limit cases for GeometricKandel.
-  uint public constant PRECISION = 4;
-
   ///@notice the amount of liquidity that is available for the strat but not offered by the given offer type.
   ///@param ba the offer type.
   ///@return the amount of pending liquidity. Will be negative if more is offered than is available on the reserve balance.

@@ -23,15 +23,15 @@ contract KandelPopulate is Deployer {
   function run() public {
     Kandel.Params memory params;
 
-    params.ratio = uint16(vm.envUint("RATIO"));
+    params.ratio = uint24(vm.envUint("RATIO"));
     require(params.ratio == vm.envUint("RATIO"), "Invalid RATIO");
     params.pricePoints = uint8(vm.envUint("PRICE_POINTS"));
     require(params.pricePoints == vm.envUint("PRICE_POINTS"), "Invalid PRICE_POINTS");
     params.spread = uint8(vm.envUint("SPREAD"));
     require(params.spread == vm.envUint("SPREAD"), "Invalid SPREAD");
-    params.compoundRateBase = uint16(vm.envUint("COMPOUND_RATE_BASE"));
+    params.compoundRateBase = uint24(vm.envUint("COMPOUND_RATE_BASE"));
     require(params.compoundRateBase == vm.envUint("COMPOUND_RATE_BASE"), "Invalid COMPOUND_RATE_BASE");
-    params.compoundRateQuote = uint16(vm.envUint("COMPOUND_RATE_QUOTE"));
+    params.compoundRateQuote = uint24(vm.envUint("COMPOUND_RATE_QUOTE"));
     require(params.compoundRateQuote == vm.envUint("COMPOUND_RATE_QUOTE"), "Invalid COMPOUND_RATE_QUOTE");
 
     innerRun(
@@ -94,11 +94,11 @@ contract KandelPopulate is Deployer {
     (
       vars.gasprice,
       vars.gasreq,
-      /*uint16 ratio*/
+      /*uint24 ratio*/
       ,
-      /*uint16 compoundRateBase*/
+      /*uint24 compoundRateBase*/
       ,
-      /*uint16 compoundRateQuote*/
+      /*uint24 compoundRateQuote*/
       ,
       /*uint8 spread*/
       ,

@@ -19,15 +19,7 @@ contract KandelSeederTest is MangroveTest {
   event NewKandel(address indexed owner, IERC20 indexed base, IERC20 indexed quote, address kandel);
 
   function seed(bool onAave, bool sharing) internal view returns (KandelSeeder.KandelSeed memory seed_) {
-    seed_ = KandelSeeder.KandelSeed({
-      base: base,
-      quote: quote,
-      gasprice: 0,
-      onAave: onAave,
-      compoundRateBase: 10_000,
-      compoundRateQuote: 10_000,
-      liquiditySharing: sharing
-    });
+    seed_ = KandelSeeder.KandelSeed({base: base, quote: quote, gasprice: 0, onAave: onAave, liquiditySharing: sharing});
   }
 
   function setEnvironment() internal {

@@ -70,8 +70,6 @@ contract KandelSeeder {
     IERC20 quote;
     uint gasprice;
     bool onAave;
-    uint compoundRateBase;
-    uint compoundRateQuote;
     bool liquiditySharing;
   }
 
@@ -99,7 +97,8 @@ contract KandelSeeder {
       kandel = new Kandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
       emit NewKandel(msg.sender, seed.base, seed.quote, address(kandel));
     }
-    kandel.setCompoundRates(seed.compoundRateBase, seed.compoundRateQuote);
+    uint full_compound = 10 ** kandel.PRECISION();
+    kandel.setCompoundRates(full_compound, full_compound);
     kandel.setAdmin(msg.sender);
   }
 }

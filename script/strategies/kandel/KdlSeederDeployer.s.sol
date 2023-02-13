@@ -49,15 +49,8 @@ contract KdlSeederDeployer is Deployer {
     IERC20 base = IERC20(fork.get("WETH"));
     IERC20 quote = IERC20(fork.get("DAI"));
 
-    KandelSeeder.KandelSeed memory seed = KandelSeeder.KandelSeed({
-      base: base,
-      quote: quote,
-      gasprice: 0,
-      onAave: true,
-      compoundRateBase: 10_000,
-      compoundRateQuote: 10_000,
-      liquiditySharing: true
-    });
+    KandelSeeder.KandelSeed memory seed =
+      KandelSeeder.KandelSeed({base: base, quote: quote, gasprice: 0, onAave: true, liquiditySharing: true});
     CoreKandel kdl = kdlseeder.sow(seed);
     require(address(kdl.router()) == address(kdlseeder.AAVE_ROUTER()), "Incorrect router address");
     require(kdl.admin() == address(this), "Incorrect admin");

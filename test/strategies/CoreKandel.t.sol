@@ -88,7 +88,7 @@ abstract contract CoreKandelTest is MangroveTest {
     vm.prank(maker);
     quote.approve(address(kdl), type(uint).max);
 
-    uint16 ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
+    uint24 ratio = uint24(108 * 10 ** kdl.PRECISION() / 100);
 
     (CoreKandel.Distribution memory distribution1, uint lastQuote) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, kdl.PRECISION());
@@ -245,44 +245,48 @@ abstract contract CoreKandelTest is MangroveTest {
     assertEq(kdl.pending(Ask), 0, "Incorrect initial pending");
   }
 
+  function full_compound() internal view returns (uint24) {
+    return uint24(10 ** kdl.PRECISION());
+  }
+
   function test_populates_order_book_correctly() public {
     printOB();
     assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
   }
 
   function test_bid_complete_fill_compound_1() public {
-    test_bid_complete_fill(10_000, 0);
+    test_bid_complete_fill(full_compound(), 0);
   }
 
   function test_bid_complete_fill_compound_0() public {
-    test_bid_complete_fill(0, 10_000);
+    test_bid_complete_fill(0, full_compound());
   }
 
   function test_bid_complete_fill_compound_half() public {
-    test_bid_complete_fill(5_000, 10_000);
+    test_bid_complete_fill(5_000, full_compound());
   }
 
   function test_ask_complete_fill_compound_1() public {
-    test_ask_complete_fill(0, 10_000);
+    test_ask_complete_fill(0, full_compound());
   }
 
   function test_ask_complete_fill_compound_0() public {
-    test_ask_complete_fill(10_000, 0);
+    test_ask_complete_fill(full_compound(), 0);
   }
 
   function test_ask_complete_fill_compound_half() public {
-    test_ask_complete_fill(0, 5_000);
+    test_ask_complete_fill(0, full_compound() / 2);
   }
 
-  function test_bid_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote) public {
+  function test_bid_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote) public {
     test_bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
   }
 
   function precisionForAssert() internal pure virtual returns (uint);
 
-  function test_bid_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote, uint index) internal {
-    vm.assume(compoundRateBase <= 10_000);
-    vm.assume(compoundRateQuote <= 10_000);
+  function test_bid_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index) internal {
+    vm.assume(compoundRateBase <= full_compound());
+    vm.assume(compoundRateQuote <= full_compound());
     vm.prank(maker);
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
@@ -307,7 +311,7 @@ abstract contract CoreKandelTest is MangroveTest {
       precisionForAssert(),
       "Incorrect net promised asset"
     );
-    if (compoundRateBase == 10_000) {
+    if (compoundRateBase == full_compound()) {
       assertApproxEqAbs(pendingDelta, 0, precisionForAssert(), "Full compounding should not yield pending");
       assertTrue(newAsk.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
     } else {
@@ -315,12 +319,12 @@ abstract contract CoreKandelTest is MangroveTest {
     }
   }
 
-  function test_ask_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote) public {
+  function test_ask_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote) public {
     test_ask_complete_fill(compoundRateBase, compoundRateQuote, 5);
   }
 
-  function test_update_compoundRateQuote(uint16 compoundRateQuote) public {
-    vm.assume(compoundRateQuote <= 10_000);
+  function test_update_compoundRateQuote(uint24 compoundRateQuote) public {
+    vm.assume(compoundRateQuote <= full_compound());
     vm.assume(compoundRateQuote > 0);
 
     GeometricKandel.Params memory params = getParams(kdl);
@@ -361,7 +365,7 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl.makerPosthook(order, result);
 
     bid_ = kdl.getOffer(Bid, 4);
-    if (compoundRateQuote == 10_000) {
+    if (compoundRateQuote == full_compound()) {
       // 100% compounding, one gives what one got
       assertEq(bid_.gives(), bid.gives() + ask.wants(), "Incorrect gives when 100% compounding");
     } else {
@@ -370,8 +374,8 @@ abstract contract CoreKandelTest is MangroveTest {
     }
   }
 
-  function test_update_compoundRateBase(uint16 compoundRateBase) public {
-    vm.assume(compoundRateBase <= 10_000);
+  function test_update_compoundRateBase(uint24 compoundRateBase) public {
+    vm.assume(compoundRateBase <= full_compound());
     vm.assume(compoundRateBase > 0);
 
     GeometricKandel.Params memory params = getParams(kdl);
@@ -412,7 +416,7 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl.makerPosthook(order, result);
 
     ask_ = kdl.getOffer(Ask, 5);
-    if (compoundRateBase == 10_000) {
+    if (compoundRateBase == full_compound()) {
       // 100% compounding, one gives what one got
       assertEq(ask_.gives(), ask.gives() + bid.wants(), "Incorrect gives when 100% compounding");
     } else {
@@ -421,9 +425,9 @@ abstract contract CoreKandelTest is MangroveTest {
     }
   }
 
-  function test_ask_complete_fill(uint16 compoundRateBase, uint16 compoundRateQuote, uint index) internal {
-    vm.assume(compoundRateBase <= 10_000);
-    vm.assume(compoundRateQuote <= 10_000);
+  function test_ask_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index) internal {
+    vm.assume(compoundRateBase <= full_compound());
+    vm.assume(compoundRateQuote <= full_compound());
     vm.prank(maker);
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
@@ -447,7 +451,7 @@ abstract contract CoreKandelTest is MangroveTest {
       precisionForAssert(),
       "Incorrect net promised asset"
     );
-    if (compoundRateQuote == 10_000) {
+    if (compoundRateQuote == full_compound()) {
       assertApproxEqAbs(pendingDelta, 0, precisionForAssert(), "Full compounding should not yield pending");
       assertTrue(newBid.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
     } else {
@@ -576,8 +580,8 @@ abstract contract CoreKandelTest is MangroveTest {
 
   function test_take_full_bid_and_ask_repeatedly(
     uint loops,
-    uint16 compoundRateBase,
-    uint16 compoundRateQuote,
+    uint24 compoundRateBase,
+    uint24 compoundRateQuote,
     ExpectedChange baseVolumeChange,
     ExpectedChange quoteVolumeChange
   ) internal {
@@ -619,27 +623,29 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   function test_take_full_bid_and_ask_10_times_full_compound() public {
-    test_take_full_bid_and_ask_repeatedly(10, 10_000, 10_000, ExpectedChange.Increase, ExpectedChange.Increase);
+    test_take_full_bid_and_ask_repeatedly(
+      10, full_compound(), full_compound(), ExpectedChange.Increase, ExpectedChange.Increase
+    );
   }
 
   function test_take_full_bid_and_ask_10_times_zero_quote_compound() public {
-    test_take_full_bid_and_ask_repeatedly(10, 10_000, 0, ExpectedChange.Same, ExpectedChange.Same);
+    test_take_full_bid_and_ask_repeatedly(10, full_compound(), 0, ExpectedChange.Same, ExpectedChange.Same);
   }
 
   function test_take_full_bid_and_ask_10_times_zero_base_compound() public {
-    test_take_full_bid_and_ask_repeatedly(10, 0, 10_000, ExpectedChange.Same, ExpectedChange.Same);
+    test_take_full_bid_and_ask_repeatedly(10, 0, full_compound(), ExpectedChange.Same, ExpectedChange.Same);
   }
 
   function test_take_full_bid_and_ask_10_times_close_to_zero_base_compound() public {
-    test_take_full_bid_and_ask_repeatedly(10, 1, 10_000, ExpectedChange.Increase, ExpectedChange.Increase);
+    test_take_full_bid_and_ask_repeatedly(10, 1, full_compound(), ExpectedChange.Increase, ExpectedChange.Increase);
   }
 
   function test_take_full_bid_and_ask_10_times_partial_compound_increasing_boundary() public {
-    test_take_full_bid_and_ask_repeatedly(10, 4904, 4904, ExpectedChange.Increase, ExpectedChange.Increase);
+    test_take_full_bid_and_ask_repeatedly(10, 49040, 49040, ExpectedChange.Increase, ExpectedChange.Increase);
   }
 
   function test_take_full_bid_and_ask_10_times_partial_compound_decreasing_boundary() public {
-    test_take_full_bid_and_ask_repeatedly(10, 4903, 4903, ExpectedChange.Decrease, ExpectedChange.Decrease);
+    test_take_full_bid_and_ask_repeatedly(10, 49030, 49030, ExpectedChange.Decrease, ExpectedChange.Decrease);
   }
 
   function test_take_full_bid_and_ask_10_times_zero_compound() public {
@@ -963,7 +969,7 @@ abstract contract CoreKandelTest is MangroveTest {
     }
     GeometricKandel.Params memory params;
     params.pricePoints = uint8(pricePoints);
-    params.ratio = uint16(ratio);
+    params.ratio = uint24(ratio);
     params.spread = uint8(spread);
 
     kandel.populate{value: 0.1 ether}(distribution, pivotIds, firstAskIndex, params, new IERC20[](0), new uint[](0));
@@ -1023,7 +1029,7 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   function test_transport_below_min_price_accumulates_at_index_0() public {
-    uint16 ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
+    uint24 ratio = uint24(108 * 10 ** kdl.PRECISION() / 100);
 
     (CoreKandel.Distribution memory distribution1, uint lastQuote) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, kdl.PRECISION());
@@ -1185,9 +1191,9 @@ abstract contract CoreKandelTest is MangroveTest {
     (
       uint16 gasprice,
       uint24 gasreq,
-      uint16 ratio,
-      uint16 compoundRateBase,
-      uint16 compoundRateQuote,
+      uint24 ratio,
+      uint24 compoundRateBase,
+      uint24 compoundRateQuote,
       uint8 spread,
       uint8 pricePoints
     ) = aKandel.params();
@@ -1249,7 +1255,7 @@ abstract contract CoreKandelTest is MangroveTest {
     uint precision = kdl.PRECISION();
     GeometricKandel.Params memory params;
     params.pricePoints = 10;
-    params.ratio = uint16(10 ** precision - 1);
+    params.ratio = uint24(10 ** precision - 1);
     params.spread = 1;
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidRatio");
@@ -1259,7 +1265,7 @@ abstract contract CoreKandelTest is MangroveTest {
   function test_populate_throws_on_invalid_spread_low() public {
     GeometricKandel.Params memory params;
     params.pricePoints = 10;
-    params.ratio = 10800;
+    params.ratio = uint24(10 ** kdl.PRECISION());
     params.spread = 0;
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidSpread");
@@ -1269,7 +1275,7 @@ abstract contract CoreKandelTest is MangroveTest {
   function test_populate_throws_on_invalid_spread_high() public {
     GeometricKandel.Params memory params;
     params.pricePoints = 10;
-    params.ratio = 10800;
+    params.ratio = uint24(10 ** kdl.PRECISION());
     params.spread = 9;
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidSpread");
@@ -1279,9 +1285,9 @@ abstract contract CoreKandelTest is MangroveTest {
   function test_populate_invalidCompoundRatesBase_reverts() public {
     GeometricKandel.Params memory params;
     params.pricePoints = 10;
-    params.ratio = 10800;
+    params.ratio = uint24(10 ** kdl.PRECISION());
     params.spread = 1;
-    params.compoundRateBase = 2 ** 16 - 1;
+    params.compoundRateBase = uint24(10 ** kdl.PRECISION() + 1);
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidCompoundRateBase");
     kdl.populate(emptyDist, empty, 0, params, new IERC20[](0), new uint[](0));
@@ -1290,24 +1296,26 @@ abstract contract CoreKandelTest is MangroveTest {
   function test_populate_invalidCompoundRatesQuote_reverts() public {
     GeometricKandel.Params memory params;
     params.pricePoints = 10;
-    params.ratio = 10800;
+    params.ratio = uint24(10 ** kdl.PRECISION());
     params.spread = 1;
-    params.compoundRateQuote = 2 ** 16 - 1;
+    params.compoundRateQuote = uint24(10 ** kdl.PRECISION() + 1);
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidCompoundRateQuote");
     kdl.populate(emptyDist, empty, 0, params, new IERC20[](0), new uint[](0));
   }
 
   function test_setCompoundRatesBase_reverts() public {
+    uint wrong_rate = 10 ** kdl.PRECISION() + 1;
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidCompoundRateBase");
-    kdl.setCompoundRates(2 ** 16 - 1, 0);
+    kdl.setCompoundRates(wrong_rate, 0);
   }
 
   function test_setCompoundRatesQuote_reverts() public {
+    uint wrong_rate = 10 ** kdl.PRECISION() + 1;
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidCompoundRateQuote");
-    kdl.setCompoundRates(0, 2 ** 16 - 1);
+    kdl.setCompoundRates(0, wrong_rate);
   }
 
   function test_populate_can_repopulate_decreased_size_and_other_params_compoundRate0() public {
@@ -1315,16 +1323,16 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   function test_populate_can_repopulate_decreased_size_and_other_params_compoundRate1() public {
-    test_populate_can_repopulate_other_size_and_other_params(10_000, 10_000);
+    test_populate_can_repopulate_other_size_and_other_params(full_compound(), full_compound());
   }
 
-  function test_populate_can_repopulate_other_size_and_other_params(uint16 compoundRateBase, uint16 compoundRateQuote)
+  function test_populate_can_repopulate_other_size_and_other_params(uint24 compoundRateBase, uint24 compoundRateQuote)
     internal
   {
     vm.prank(maker);
     kdl.retractOffers(0, 10);
 
-    uint16 ratio = uint16(102 * 10 ** kdl.PRECISION() / 100);
+    uint24 ratio = uint24(102 * 10 ** kdl.PRECISION() / 100);
     (CoreKandel.Distribution memory distribution,) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, kdl.PRECISION());
 
@@ -1448,7 +1456,7 @@ abstract contract CoreKandelTest is MangroveTest {
     //assertTrue(makerExecuteCost + posthookCost <= kdl.offerGasreq() + local.offer_gasbase(), "Strat is spending more gas");
   }
 
-  function deployOtherKandel(uint base0, uint quote0, uint16 ratio, uint8 spread, uint8 pricePoints) internal {
+  function deployOtherKandel(uint base0, uint quote0, uint24 ratio, uint8 spread, uint8 pricePoints) internal {
     address otherMaker = freshAddress();
 
     GeometricKandel otherKandel = __deployKandel__(otherMaker, otherMaker);
@@ -1503,7 +1511,7 @@ abstract contract CoreKandelTest is MangroveTest {
 
     // Use a large number of price points - the rest of the parameters are not too important
     GeometricKandel.Params memory params;
-    params.ratio = uint16(108 * 10 ** kdl.PRECISION() / 100);
+    params.ratio = uint24(108 * 10 ** kdl.PRECISION() / 100);
     params.pricePoints = 100;
     params.spread = STEP;
 
@@ -1595,12 +1603,13 @@ abstract contract CoreKandelTest is MangroveTest {
   // this makes share computation overflows in AaveKandel
   function dualWantsGivesOfOffer_max_bits(bool partialTake, uint numTakes) internal {
     uint8 spread = 8;
-    uint8 pricePoints = 2 ** 8 - 1;
+    uint8 pricePoints = type(uint8).max;
 
-    uint96 base0 = 2 ** 96 - 1;
-    uint96 quote0 = 2 ** 96 - 1;
-    uint16 ratio = 2 ** 16 - 1;
-    uint16 compoundRate = uint16(10 ** kdl.PRECISION());
+    uint base0 = type(uint96).max;
+    uint quote0 = type(uint96).max;
+    uint prec = kdl.PRECISION();
+    uint ratio = 2 * 10 ** prec; // max ratio
+    uint compoundRate = 10 ** prec; // max compoundRate
 
     vm.prank(maker);
     kdl.retractOffers(0, 10);

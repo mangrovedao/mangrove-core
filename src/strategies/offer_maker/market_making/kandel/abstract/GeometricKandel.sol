@@ -18,9 +18,14 @@ import {OfferType} from "./TradesBaseQuotePair.sol";
 import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {CoreKandel} from "./CoreKandel.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
+// import {console} from "forge-std/Test.sol";
 
 ///@title Adds a geometric price progression to a `CoreKandel` strat without storing prices for individual price points.
 abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
+  ///@notice `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals, and ditto for GeometricKandel's `ratio`.
+  ///@notice setting PRECISION higher than 4 will produce overflow in limit cases for GeometricKandel.
+  uint public constant PRECISION = 5;
+
   ///@notice the parameters for Geometric Kandel have been set.
   event SetGeometricParams(uint spread, uint ratio);
 
@@ -35,9 +40,9 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   struct Params {
     uint16 gasprice;
     uint24 gasreq;
-    uint16 ratio;
-    uint16 compoundRateBase;
-    uint16 compoundRateQuote;
+    uint24 ratio; // max ratio is 2*10**5
+    uint24 compoundRateBase; // max compoundRate is 10**5
+    uint24 compoundRateQuote;
     uint8 spread;
     uint8 pricePoints;
   }
@@ -80,7 +85,7 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
 
     bool geometricChanged = false;
     if (oldParams.ratio != newParams.ratio) {
-      require(newParams.ratio >= 10 ** PRECISION, "Kandel/invalidRatio");
+      require(newParams.ratio >= 10 ** PRECISION && newParams.ratio <= 2 * 10 ** PRECISION, "Kandel/invalidRatio");
       params.ratio = newParams.ratio;
       geometricChanged = true;
     }
@@ -115,8 +120,8 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     require(compoundRateBase <= 10 ** PRECISION, "Kandel/invalidCompoundRateBase");
     require(compoundRateQuote <= 10 ** PRECISION, "Kandel/invalidCompoundRateQuote");
     emit SetCompoundRates(compoundRateBase, compoundRateQuote);
-    params.compoundRateBase = uint16(compoundRateBase);
-    params.compoundRateQuote = uint16(compoundRateQuote);
+    params.compoundRateBase = uint24(compoundRateBase);
+    params.compoundRateQuote = uint24(compoundRateQuote);
   }
 
   /// @param baDual the dual offer type.
@@ -181,23 +186,22 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     uint offerGives,
     MgvLib.SingleOrder calldata order,
     Params memory memoryParams
-  ) internal pure returns (uint wants, uint gives) {
+  ) internal /*pure*/ returns (uint wants, uint gives) {
     // computing gives/wants for dual offer
-    // we verify we cannot overflow if PRECISION = 4
+    // we verify we cannot overflow if PRECISION = 5
     // spread:8
     uint spread = uint(memoryParams.spread);
-    // compoundRate:16
+    // compoundRate <= 10**PRECISION hence compoundRate:PRECISION*log2(10)
     uint compoundRate = compoundRateForDual(baDual, memoryParams);
-    // params.ratio:16, and we want r:128, so spread<=8. r:16*8:128
+    // params.ratio <= 2*10**PRECISION, spread:8, r: 8 * (PRECISION*log2(10) + 1)
     uint r = uint(memoryParams.ratio) ** spread;
-    // log2(10) = 3.32 => p:PRECISION*3.32
     uint p = 10 ** PRECISION;
-    // (a) max (p - compoundRate): 4*log2(10) (for compoundRate = 0)
-    // (b) p**spread: 8*4*log2(10) < 107
-    // (a) * (b) : 32*log2(10) + 4*log2(10) = 36*log2(10) < 120
-    // max (compoundRate * r) : 4*log2(10)+128 < 142 (for compoundRate = 10**4)
-    // max(numerator) : 96 + 142 = 238 (for compoundRate = 10**4)
-    // r:128*p:4*log2(10) : 128 + 4*log2(10) = 142 and gives:96 as it should
+    // order.gives:96
+    // p ~ compoundRate : log2(10) * PRECISION
+    // p ** spread : 8 * log2(10) * PRECISION
+    // (p - compoundRate) * p ** spread : 9 * log2(10) * PRECISION (=150 for PRECISION = 5)
+    // compoundRate * r : PRECISION*log2(10) + 8 * (PRECISION*log2(10) + 1) (=157 for PRECISION = 5)
+    // 157 + 96 < 256
     gives = (order.gives * ((p - compoundRate) * p ** spread + compoundRate * r)) / (r * p);
 
     // adding to gives what the offer was already giving so gives could be greater than 2**96

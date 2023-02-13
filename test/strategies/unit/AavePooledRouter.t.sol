@@ -391,27 +391,6 @@ contract AavePooledRouterTest is OfferLogicTest {
   }
 
   function test_claim_rewards() public {
-    //// rewards not active on polygon, so we test only here call to INCENTIVE_CONTROLLER is OK
-    // deal($(dai), maker1, 10_000 * 10 ** 18);
-    // vm.prank(maker1);
-    // pooledRouter.push(dai, maker1, 10_000 * 10 ** 18);
-
-    // deal($(weth), maker1, 10 * 10 ** 18);
-    // vm.prank(maker1);
-    // pooledRouter.push(weth, maker1, 10 * 10 ** 18);
-
-    // deal($(usdc), maker1, 10_000 * 10 ** 6);
-    // vm.prank(maker1);
-    // pooledRouter.push(usdc, maker1, 10_000 * 10 ** 6);
-
-    // vm.startPrank(maker1);
-    // pooledRouter.flushBuffer(usdc);
-    // pooledRouter.flushBuffer(dai);
-    // pooledRouter.flushBuffer(weth);
-    // vm.stopPrank();
-
-    // // fast forwarding
-    // vm.warp(block.timestamp + 10**4);
     address[] memory assets = new address[](3);
     assets[0] = address(pooledRouter.overlying(usdc));
     assets[1] = address(pooledRouter.overlying(weth));

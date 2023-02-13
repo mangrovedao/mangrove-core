@@ -742,6 +742,32 @@ abstract contract CoreKandelTest is MangroveTest {
     assertEq(-kdl.pending(Bid), 5 ether + 6 ether - 43, "Quote pending should be correct");
   }
 
+  function test_populate_allBids_successful() public {
+    test_populate_allBidsAsks_successful(true);
+  }
+
+  function test_populate_allAsks_successful() public {
+    test_populate_allBidsAsks_successful(false);
+  }
+
+  function test_populate_allBidsAsks_successful(bool bids) internal {
+    retractDefaultSetup();
+
+    CoreKandel.Distribution memory distribution;
+    distribution.indices = dynamic([uint(0), 1, 2, 3]);
+    distribution.baseDist = dynamic([uint(1 ether), 1 ether, 1 ether, 1 ether]);
+    distribution.quoteDist = dynamic([uint(1 ether), 1 ether, 1 ether, 1 ether]);
+
+    uint firstAskIndex = bids ? 4 : 0;
+    vm.prank(maker);
+    mgv.fund{value: maker.balance}($(kdl));
+    vm.prank(maker);
+    kdl.populateChunk(distribution, new uint[](4), firstAskIndex);
+
+    uint status = bids ? uint(OfferStatus.Bid) : uint(OfferStatus.Ask);
+    assertStatus(dynamic([status, status, status, status]), type(uint).max, type(uint).max);
+  }
+
   function getBestOffers() internal view returns (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) {
     uint bestAskId = mgv.best($(base), $(quote));
     uint bestBidId = mgv.best($(quote), $(base));

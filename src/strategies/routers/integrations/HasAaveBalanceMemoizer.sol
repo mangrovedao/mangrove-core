@@ -16,6 +16,7 @@ import {IERC20} from "mgv_src/IERC20.sol";
 import {AaveV3Lender} from "mgv_src/strategies/integrations/AaveV3Lender.sol";
 
 ///@title Memoizes values for AAVE to reduce gas cost and simplify code flow.
+///@dev the memoizer works in the context of a single token and therefore should not be used across multiple tokens.
 contract HasAaveBalanceMemoizer is AaveV3Lender {
   ///@param balanceOf the owner's balance of the token
   ///@param balanceOfMemoized whether the `balanceOf` has been memoized.
@@ -47,15 +48,10 @@ contract HasAaveBalanceMemoizer is AaveV3Lender {
     }
   }
 
-  ///@notice Gets the balance for the owner on the overlying of the token, or 0 if there is no overlying.
+  ///@notice Gets the balance for the overlying of the token, or 0 if there is no overlying.
   ///@param token the token.
-  ///@param owner the owner.
   ///@param memoizer the memoizer.
-  function balanceOfOverlying(IERC20 token, address owner, BalanceMemoizer memory memoizer)
-    internal
-    view
-    returns (uint)
-  {
+  function balanceOfOverlying(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (uint) {
     if (memoizer.balanceOfOverlyingMemoized) {
       return memoizer.balanceOfOverlying;
     } else {
@@ -64,22 +60,21 @@ contract HasAaveBalanceMemoizer is AaveV3Lender {
       if (aToken == IERC20(address(0))) {
         memoizer.balanceOfOverlying = 0;
       } else {
-        memoizer.balanceOfOverlying = aToken.balanceOf(owner);
+        memoizer.balanceOfOverlying = aToken.balanceOf(address(this));
       }
       return memoizer.balanceOfOverlying;
     }
   }
 
-  ///@notice Gets the balance of the token for the owner.
+  ///@notice Gets the balance of the token
   ///@param token the token.
-  ///@param owner the owner.
   ///@param memoizer the memoizer.
-  function balanceOf(IERC20 token, address owner, BalanceMemoizer memory memoizer) internal view returns (uint) {
+  function balanceOf(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (uint) {
     if (memoizer.balanceOfMemoized) {
       return memoizer.balanceOf;
     } else {
       memoizer.balanceOfMemoized = true;
-      memoizer.balanceOf = token.balanceOf(owner);
+      memoizer.balanceOf = token.balanceOf(address(this));
       return memoizer.balanceOf;
     }
   }

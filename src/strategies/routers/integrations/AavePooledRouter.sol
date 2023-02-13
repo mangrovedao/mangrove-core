@@ -223,7 +223,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     uint amount_;
     BalanceMemoizer memory memoizer;
     // The local buffer of token to transfer in case funds have already been redeemed or due to a donation.
-    uint buffer = balanceOf(token, address(this), memoizer);
+    uint buffer = balanceOf(token, memoizer);
     // Determine the amount_ to transfer and how much should be redeemed from AAVE.
     if (strict) {
       // maker contract is making a withdraw (not a call emanating from the offer logic)
@@ -238,7 +238,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
         // this pull is the first of the market order (that requires funds from AAVE) so we redeem all the reserve from AAVE
         // note in theory we should check buffer == 0 but donation may have occurred.
         // This check forces donation to be at least the amount of outbound tokens promised by caller to avoid griefing (depositing a small donation to make offer fail).
-        toRedeem = balanceOfOverlying(token, address(this), memoizer);
+        toRedeem = balanceOfOverlying(token, memoizer);
       } else {
         // since buffer > amount, this call is not the first pull of the market order (unless a big donation occurred) and we do not withdraw from AAVE
         amount_ = buffer >= amount_ ? amount_ : buffer;

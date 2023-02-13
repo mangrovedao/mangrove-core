@@ -38,10 +38,10 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@notice An error occurred during deposit to AAVE.
   ///@param token the deposited token.
+  ///@param maker the maker contract that was calling `pushAndSupply`.
   ///@param reserveId the reserve identifier that was calling `pushAndSupply`.
-  ///@param amount the amount pushed to the router.
   ///@param aaveReason the reason from AAVE.
-  event AaveIncident(IERC20 indexed token, address indexed reserveId, uint amount, bytes32 aaveReason);
+  event AaveIncident(IERC20 indexed token, address indexed maker, address indexed reserveId, bytes32 aaveReason);
 
   ///@notice the total shares for each token, i.e. the total shares one would need to possess in order to claim the entire pool of tokens.
   mapping(IERC20 => uint) internal _totalShares;
@@ -207,7 +207,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
       // this may happen because max supply of `token` has been reached, or because `token` is not listed on AAVE (`overlying(token)` returns `IERC20(address(0))`)
       bytes32 aaveData = flushBuffer(token, true);
       if (aaveData != bytes32(0)) {
-        emit AaveIncident(token, reserveId, amount, aaveData);
+        emit AaveIncident(token, msg.sender, reserveId, aaveData);
       }
     }
   }
@@ -226,7 +226,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     uint buffer = balanceOf(token, address(this), memoizer);
     // Determine the amount_ to transfer and how much should be redeemed from AAVE.
     if (strict) {
-      // maker contract is making a deposit (not a call emanating from the offer logic)
+      // maker contract is making a withdraw (not a call emanating from the offer logic)
       // transfer the exact desired amount, and only redeem the necessary amount from AAVE and let the rest stay to generate yield.
       amount_ = amount;
       toRedeem = buffer >= amount ? 0 : amount - buffer;
@@ -293,15 +293,15 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     _enterMarkets(tokens);
   }
 
-  ///@notice allows AAVE manager to claim the AAVE attributed to this router by AAVE
-  ///@param assets the list of overlyings (aToken, debtToken) whose AAVE should be claimed
-  ///@dev if some AAVE are eligible they are sent to `aaveManager`
-  ///@return aaveList the addresses of the claimed AAVE
-  ///@return claimedAmounts the amount of claimed AAVE
+  ///@notice allows AAVE manager to claim the rewards attributed to this router by AAVE
+  ///@param assets the list of overlyings (aToken, debtToken) whose rewards should be claimed
+  ///@dev if some rewards are eligible they are sent to `aaveManager`
+  ///@return rewardList the addresses of the claimed rewards
+  ///@return claimedAmounts the amount of claimed rewards
   function claimRewards(address[] calldata assets)
     external
     onlyCaller(aaveManager)
-    returns (address[] memory aaveList, uint[] memory claimedAmounts)
+    returns (address[] memory rewardList, uint[] memory claimedAmounts)
   {
     return _claimRewards(assets, msg.sender);
   }

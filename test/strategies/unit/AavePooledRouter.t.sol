@@ -12,7 +12,7 @@ contract AavePooledRouterTest is OfferLogicTest {
   uint constant GASREQ = 473.5 * 1000;
 
   event SetAaveManager(address);
-  event AaveIncident(IERC20 indexed token, address indexed reserveId, uint amount, bytes32 aaveReason);
+  event AaveIncident(IERC20 indexed token, address indexed maker, address indexed reserveId, bytes32 aaveReason);
 
   IERC20 dai;
   address maker1;
@@ -106,7 +106,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     pooledRouter.activate(pixieDust);
 
     expectFrom($(pooledRouter));
-    emit AaveIncident({token: pixieDust, reserveId: owner, amount: 1 ether, aaveReason: "noReason"});
+    emit AaveIncident({token: pixieDust, maker: address(makerContract), reserveId: owner, aaveReason: "noReason"});
     vm.prank(address(makerContract));
     pooledRouter.pushAndSupply(dynamic([IERC20(pixieDust)]), dynamic([uint(1 ether)]), owner);
     // although aave refused the deposit, funds should be on the router

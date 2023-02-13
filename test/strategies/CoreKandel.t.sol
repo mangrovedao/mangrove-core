@@ -1600,16 +1600,14 @@ abstract contract CoreKandelTest is MangroveTest {
     dualWantsGivesOfOffer_max_bits(false, 2);
   }
 
-  // this makes share computation overflows in AaveKandel
   function dualWantsGivesOfOffer_max_bits(bool partialTake, uint numTakes) internal {
     uint8 spread = 8;
     uint8 pricePoints = type(uint8).max;
 
     uint base0 = type(uint96).max;
     uint quote0 = type(uint96).max;
-    uint prec = kdl.PRECISION();
-    uint ratio = 2 * 10 ** prec; // max ratio
-    uint compoundRate = 10 ** prec; // max compoundRate
+    uint ratio = 2 * 10 ** kdl.PRECISION(); // max ratio
+    uint compoundRate = 10 ** kdl.PRECISION(); // max compoundRate
 
     vm.prank(maker);
     kdl.retractOffers(0, 10);

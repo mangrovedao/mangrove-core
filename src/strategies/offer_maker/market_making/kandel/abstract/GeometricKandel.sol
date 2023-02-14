@@ -22,7 +22,7 @@ import {AbstractKandel} from "./AbstractKandel.sol";
 ///@title Adds a geometric price progression to a `CoreKandel` strat without storing prices for individual price points.
 abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   ///@notice `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals, and ditto for GeometricKandel's `ratio`.
-  ///@notice setting PRECISION higher than 4 will produce overflow in limit cases for GeometricKandel.
+  ///@notice setting PRECISION higher than 5 will produce overflow in limit cases for GeometricKandel.
   uint public constant PRECISION = 5;
 
   ///@notice the parameters for Geometric Kandel have been set.
@@ -212,7 +212,7 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
       gives = type(uint96).max;
     }
     // adjusting wants to price:
-    // gives * r : 96 + 128 = 224 so order.wants must be < 2**32 to completely avoid overflow.
+    // gives * r : 96 + 141 = 237 so order.wants must be < 2**18 to completely avoid overflow.
     // However, order.wants is often larger, but gives * r often does not use that many bits.
     // So we check whether the full precision can be used and only if not then we use less precision.
     uint givesR = gives * r;

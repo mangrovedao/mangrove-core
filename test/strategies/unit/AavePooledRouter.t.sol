@@ -309,15 +309,17 @@ contract AavePooledRouterTest is OfferLogicTest {
     pooledRouter.pull(dai, maker1, 11, false);
   }
 
-  function test_strict_pull_transfers_only_amount() public {
+  function test_strict_pull_transfers_only_amount_and_pulls_all_from_aave() public {
     deal($(weth), maker1, 1 ether);
     vm.startPrank(maker1);
     pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]), maker1);
+    // router has no weth on buffer and 1 weth on aave
     uint oldAWeth = pooledRouter.overlying(weth).balanceOf($(pooledRouter));
     uint pulled = pooledRouter.pull(weth, maker1, 0.5 ether, true);
     vm.stopPrank();
-    assertEq(weth.balanceOf(maker1), pulled, "Incorrect balance");
-    assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), oldAWeth - pulled, "Incorrect balance");
+    assertEq(weth.balanceOf(maker1), pulled, "Incorrect maker balance");
+    assertEq(weth.balanceOf($(pooledRouter)), oldAWeth - pulled, "Incorrect router balance");
+    assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), 0, "Incorrect aave balance");
   }
 
   function test_non_strict_pull_transfers_whole_balance() public {
@@ -334,6 +336,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.startPrank(maker1);
     pooledRouter.pushAndSupply(dynamic([IERC20(weth)]), dynamic([uint(1 ether)]), maker1);
     vm.stopPrank();
+    // small donation
     deal($(weth), $(pooledRouter), 10);
 
     uint oldAWeth = pooledRouter.overlying(weth).balanceOf($(pooledRouter));
@@ -341,7 +344,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     uint pulled = pooledRouter.pull(weth, maker1, 0.5 ether, true);
 
     assertEq(weth.balanceOf(maker1), pulled, "Incorrect weth balance");
-    assertEq(pooledRouter.overlying(weth).balanceOf($(pooledRouter)), oldAWeth - pulled + 10, "Incorrect aWeth balance");
+    assertEq(weth.balanceOf($(pooledRouter)), oldAWeth - pulled + 10, "Incorrect aWeth balance");
   }
 
   function test_non_strict_pull_with_small_buffer_triggers_aave_withdraw() public {
@@ -589,10 +592,12 @@ contract AavePooledRouterTest is OfferLogicTest {
     deal($(dai), maker1, 1 * 10 ** 18);
     deal($(dai), maker2, 1 * 10 ** 18);
     args.allowed = dynamic([address(maker1), maker2]);
-    checkAuth(args, abi.encodeCall(pooledRouter.push, (dai, maker1, 100)));
+    checkAuth(args, abi.encodeCall(pooledRouter.push, (dai, maker1, 1000)));
     checkAuth(args, abi.encodeCall(pooledRouter.pull, (dai, maker1, 100, true)));
     checkAuth(args, abi.encodeCall(pooledRouter.flush, (new IERC20[](0), owner)));
     checkAuth(args, abi.encodeCall(pooledRouter.pushAndSupply, (new IERC20[](0), new uint[](0), owner)));
+    checkAuth(args, abi.encodeCall(pooledRouter.withdraw, (dai, maker1, 100)));
+
     checkAuth(args, abi.encodeWithSignature("unbind()"));
 
     // Only manager

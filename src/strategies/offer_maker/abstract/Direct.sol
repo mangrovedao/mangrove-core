@@ -124,7 +124,8 @@ abstract contract Direct is MangroveOffer {
     if (router_ == NO_ROUTER) {
       return amount_;
     } else {
-      uint pulled = router_.pull(IERC20(order.outbound_tkn), RESERVE_ID, amount_, false);
+      // if RESERVE_ID is potentially shared by other contracts we are forced to pull in a strict fashion (otherwise another contract sharing funds that would be called in the same market order will fail to deliver)
+      uint pulled = router_.pull(IERC20(order.outbound_tkn), RESERVE_ID, amount_, RESERVE_ID != address(this));
       return pulled >= amount_ ? 0 : amount_ - pulled;
     }
   }

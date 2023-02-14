@@ -59,7 +59,7 @@ contract AaveKandel is GeometricKandel {
   {
     for (uint i; i < tokens.length; ++i) {
       if (amounts[i] != 0) {
-        pooledRouter().pull(tokens[i], RESERVE_ID, amounts[i], true);
+        pooledRouter().withdraw(tokens[i], RESERVE_ID, amounts[i]);
       }
     }
     super.withdrawFunds(tokens, amounts, recipient);

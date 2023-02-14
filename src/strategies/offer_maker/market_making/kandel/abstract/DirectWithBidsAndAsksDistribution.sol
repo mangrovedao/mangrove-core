@@ -98,7 +98,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
     // if offer does not exist on mangrove yet
     if (offerId == 0) {
       // and offer should exist
-      if (args.gives > 0) {
+      if (args.gives > 0 && args.wants > 0) {
         // create it
         (offerId, result) = _newOffer(args);
         if (offerId != 0) {
@@ -110,10 +110,10 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
     // else offer exists
     else {
       // but the offer should be dead since gives is 0
-      if (args.gives == 0) {
-        // so we retract the offer. This does not happen when gives comes from dualWantsGivesOfOffer,
-        // but may happen from populate in case of re-population where the offers in the spread
-        // are then retracted by setting gives to 0.
+      if (args.gives == 0 || args.wants == 0) {
+        // This may happen in the following cases:
+        // * `gives == 0` may not come from `DualWantsGivesOfOffer` computation, but `wants==0` might.
+        // * `gives == 0` may happen from populate in case of re-population where the offers in the spread are then retracted by setting gives to 0.
         _retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
       } else {
         // so the offer exists and it should, we simply update it with potentially new volume

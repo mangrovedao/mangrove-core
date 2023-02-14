@@ -37,7 +37,7 @@ contract AaveKandel is GeometricKandel {
 
   function initialize(AavePooledRouter router_) external onlyAdmin {
     setRouter(router_);
-    // calls below will fail if router's admin has not bound router to `this`.
+    // calls below will fail if router's admin has not bound router to `this`. We call __activate__ instead of activate just to save gas.
     __activate__(BASE);
     __activate__(QUOTE);
     setGasreq(offerGasreq());

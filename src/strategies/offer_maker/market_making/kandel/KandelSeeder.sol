@@ -62,8 +62,6 @@ contract KandelSeeder {
   ///@param quote ERC20 of Kandel's market
   ///@param gasprice one wants to use for Kandel's provision
   ///@param onAave whether AaveKandel should be deployed instead of Kandel
-  ///@param compoundRateBase amount (in bp) of incoming base tokens that should be automatically compounded
-  ///@param compoundRateQuote amount (in bp) of incoming quote tokens that should be automatically compounded
   ///@param liquiditySharing if true, `msg.sender` will be used to identify the shares of the deployed Kandel strat. If msg.sender deploys several instances, reserve of the strats will be shared, but this will require a transfer from router to maker contract for each taken offer, since we cannot transfer the full amount to the first maker contract hit in a market order in case later maker contracts need the funds. Still, only a single AAVE redeem will take place.
   struct KandelSeed {
     IERC20 base;
@@ -97,8 +95,8 @@ contract KandelSeeder {
       kandel = new Kandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
       emit NewKandel(msg.sender, seed.base, seed.quote, address(kandel));
     }
-    uint full_compound = 10 ** kandel.PRECISION();
-    kandel.setCompoundRates(full_compound, full_compound);
+    uint fullCompound = 10 ** kandel.PRECISION();
+    kandel.setCompoundRates(fullCompound, fullCompound);
     kandel.setAdmin(msg.sender);
   }
 }

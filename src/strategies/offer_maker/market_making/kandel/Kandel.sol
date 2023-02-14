@@ -24,7 +24,7 @@ contract Kandel is GeometricKandel {
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
     GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId)
   {
-    // since we won't add a router later, we can activate the strat now
+    // since we won't add a router later, we can activate the strat now.  We call __activate__ instead of activate just to save gas.
     __activate__(BASE);
     __activate__(QUOTE);
     setGasreq(gasreq);

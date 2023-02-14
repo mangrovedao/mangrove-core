@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// AaveV3Module.sol
+// AaveV3Borrower.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -16,15 +16,16 @@ pragma solidity ^0.8.10;
  * @notice This contract provides a collection of interactions capabilities with AAVE-v3 to whichever contract inherits it
  */
 /**
- * `AaveV3Module` contracts are in particular able to perfom basic pool interactions (lending, borrowing, supplying and repaying)
+ * `AaveV3Borrower` contracts are in particular able to perfom basic pool interactions (lending, borrowing, supplying and repaying)
  */
 /**
  * @dev it is designed with a diamond storage scheme where core function implementations are delegated to an immutable `IMPLEMENTATION` address
  */
 
-import {AaveV3ModuleStorage as AMS} from "./AaveModuleStorage.sol";
+import {AaveV3Lender} from "./AaveV3Lender.sol";
+import {AaveV3BorrowerStorage as AMS} from "./AaveV3BorrowerStorage.sol";
 import {
-  AaveV3ModuleImplementation as AMI,
+  AaveV3BorrowerImplementation as AMI,
   IERC20,
   IRewardsControllerIsh,
   IPoolAddressesProvider,
@@ -33,17 +34,13 @@ import {
   IPool,
   IPriceOracleGetter,
   DataTypes
-} from "./AaveModuleImplementation.sol";
+} from "./AaveV3BorrowerImplementation.sol";
 
-contract AaveV3Module {
+contract AaveV3Borrower is AaveV3Lender {
   /**
    * @notice address of the implementation contract
    */
   address public immutable IMPLEMENTATION;
-  /**
-   * @notice address of the AAVE pool
-   */
-  IPool public immutable POOL;
   /**
    * @notice address of AAVE price oracle (must be the price oracle used by the pool)
    */
@@ -60,57 +57,15 @@ contract AaveV3Module {
    * @param _referralCode code used by aave to identify certain partners, this can be safely set to 0
    * @param _interestRateMode interest rate mode for borrowing assets. 0 for none, 1 for stable, 2 for variable
    */
-  constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode) {
+  constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode) AaveV3Lender(_addressesProvider) {
     REFERRAL_CODE = uint16(_referralCode);
     INTEREST_RATE_MODE = _interestRateMode;
 
     address _priceOracle = IPoolAddressesProvider(_addressesProvider).getAddress("PRICE_ORACLE");
-    address _lendingPool = IPoolAddressesProvider(_addressesProvider).getPool();
     require(_priceOracle != address(0), "AaveModule/0xPriceOracle");
-    require(_lendingPool != address(0), "AaveModule/0xPool");
 
-    POOL = IPool(_lendingPool);
     ORACLE = IPriceOracleGetter(_priceOracle);
-    IMPLEMENTATION = address(new AMI(IPool(_lendingPool), IPriceOracleGetter(_priceOracle)));
-  }
-
-  /**
-   * @notice allows this contract to approve the POOL to transfer some underlying asset on its behalf
-   * @dev this is a necessary step prio to supplying tokens to the POOL or to repay a debt
-   * @param token the underlying asset for which approval is required
-   * @param amount the approval amount
-   */
-  function _approveLender(IERC20 token, uint amount) internal {
-    token.approve(address(POOL), amount);
-  }
-
-  /**
-   * @notice prevents the POOL to use some underlying as collateral
-   * @dev this call will revert if removing the asset from collateral would put the account into a liquidation state
-   * @param underlying the token one wishes to remove collateral
-   */
-  function _exitMarket(IERC20 underlying) internal {
-    POOL.setUserUseReserveAsCollateral(address(underlying), false);
-  }
-
-  /**
-   * @notice allows the POOL to use some underlying tokens as collateral
-   * @dev when supplying a token for the first time, it is automatically set as possible collateral so there is no need to call this function for it.
-   * @param underlyings the token one wishes to add as collateral
-   */
-  function _enterMarkets(IERC20[] calldata underlyings) internal {
-    for (uint i = 0; i < underlyings.length; i++) {
-      POOL.setUserUseReserveAsCollateral(address(underlyings[i]), true);
-    }
-  }
-
-  /**
-   * @notice convenience function to obtain the overlying of a given asset
-   * @param asset the underlying asset
-   * @return aToken the overlying asset
-   */
-  function overlying(IERC20 asset) public view returns (IERC20 aToken) {
-    aToken = IERC20(POOL.getReserveData(address(asset)).aTokenAddress);
+    IMPLEMENTATION = address(new AMI(POOL, IPriceOracleGetter(_priceOracle)));
   }
 
   /**
@@ -140,9 +95,9 @@ contract AaveV3Module {
   }
 
   /**
-   * @notice Returns max redeem and borrow capacity conditional on a potential redeem.
-   * @param asset the underlying asset to redeem and potentially borrow
-   * @param tryBorrow also computes borrow capacity after all redeem is complete (costs extra gas)
+   * @notice Returns max redeem R and borrow capacity B|R, which would occur after the redeem.
+   * @param asset the underlying asset to withdraw and potentially borrow
+   * @param tryBorrow also computes borrow capacity after all redeem is complete (costs extra gas).
    * @param onBehalf user for whom max redeem/borrow is computed
    * @return maxRedeemableUnderlying maximum amount `onBehalf` can redeem of `asset`
    * @return maxBorrowAfterRedeemInUnderlying max amount `onBehalf` can borrow in `asset` ater redeeming of `maxRedeemableUnderlying`.
@@ -167,9 +122,17 @@ contract AaveV3Module {
   }
 
   /**
-   * @notice
+   * @notice deposits assets on AAVE by first repaying debt if any and then supplying to the pool
+   * @param token the asset one is depositing
+   * @param onBehalf the account one is repaying and supplying for
+   * @param amount of asset one is repaying and supplying
    */
   function _repayThenDeposit(IERC20 token, address onBehalf, uint amount) internal {
+    // AAVE repay/deposit throws if amount == 0
+    if (amount == 0) {
+      return;
+    }
+
     (bool success, bytes memory retdata) = IMPLEMENTATION.delegatecall(
       abi.encodeWithSelector(AMI.$repayThenDeposit.selector, INTEREST_RATE_MODE, REFERRAL_CODE, token, onBehalf, amount)
     );
@@ -179,15 +142,16 @@ contract AaveV3Module {
   }
 
   /**
-   * @notice redeems liquidity on aave, if not enough liquidity is redeemed, tries to borrow what's missing.
+   * @notice withdraws liquidity on aave, if not enough liquidity is withdrawn, tries to borrow what's missing.
    * @param token the asset that needs to be redeemed
-   * @param onBehalf the account whose collateral is beeing redeemed and borrowed upon.
+   * @param onBehalf the account whose collateral is beeing withdrawn and borrowed upon.
    * @dev if `onBehalf != address(this)` then `this` needs to be approved by `onBehalf` using `approveDelegation` of the overlying debt token
    * @param amount the target amount of `token` one needs to redeem
    * @param strict whether call allows contract to redeem more than amount (for gas optimization).
    * @dev function will only try to borrow if less than `amount` was redeemed and will not try to borrow more than what is missing, even if `strict` is not required.
    * @dev this is forced by aave v3 currently not allowing to repay a debt that was incurred on the same block (so no gas optim can be used). Repaying on the next block would be dangerous as `onBehalf` position could possibly be liquidated
    * @param recipient the target address to which redeemed and borrowed tokens should be sent
+   * @return got how much asset was transfered to caller
    */
   function _redeemThenBorrow(IERC20 token, address onBehalf, uint amount, bool strict, address recipient)
     internal
@@ -205,36 +169,27 @@ contract AaveV3Module {
     }
   }
 
+  ///@notice tries to borrow some assets from the pool
+  ///@param token the asset one is borrowing
+  ///@param onBehalf the account whose collateral is being used to borrow (caller must be approved by `onBehalf` -if different- using `approveDelegation` from the corresponding debt token (variable or stable))
   function _borrow(IERC20 token, uint amount, address onBehalf) internal {
     POOL.borrow(address(token), amount, INTEREST_RATE_MODE, REFERRAL_CODE, onBehalf);
   }
 
-  function _redeem(IERC20 token, uint amount, address to) internal returns (uint redeemed) {
-    redeemed = (amount == 0) ? 0 : POOL.withdraw(address(token), amount, to);
-  }
-
-  function _supply(IERC20 token, uint amount, address onBehalf) internal {
-    if (amount == 0) {
-      return;
-    } else {
-      POOL.supply(address(token), amount, onBehalf, REFERRAL_CODE);
-    }
-  }
-
+  ///@notice repays debt to the pool
+  ///@param token the asset one is repaying
+  ///@param amount of assets one is repaying
+  ///@param onBehalf account whose debt is being repaid
   function _repay(IERC20 token, uint amount, address onBehalf) internal returns (uint repaid) {
     repaid = (amount == 0) ? 0 : POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf);
   }
 
-  // rewards claiming.
-  function _claimRewards(IRewardsControllerIsh rewardsController, address[] calldata assets)
-    internal
-    returns (address[] memory rewardsList, uint[] memory claimedAmounts)
-  {
-    (rewardsList, claimedAmounts) = rewardsController.claimAllRewardsToSelf(assets);
-  }
-
-  // @dev user can only borrow underlying in variable or stable, not both
-  function borrowed(address underlying, address account) public view returns (uint) {
+  ///@notice returns the debt of a user
+  ///@param underlying the asset whose debt balance is being viewed
+  ///@param account the account whose debt balance is being viewed
+  ///@return debt the amount of tokens (in units of `underlying`) that should be repaid to the pool
+  ///@dev user can only borrow underlying in variable or stable, not both
+  function borrowed(address underlying, address account) public view returns (uint debt) {
     DataTypes.ReserveData memory rd = POOL.getReserveData(underlying);
     return INTEREST_RATE_MODE == 1
       ? IERC20(rd.stableDebtTokenAddress).balanceOf(account)

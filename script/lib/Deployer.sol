@@ -87,6 +87,10 @@ abstract contract Deployer is Script2 {
     vm.broadcast(broadcaster());
   }
 
+  function prettyLog(string memory log) internal view {
+    console.log("\u001b[33m*\u001b[0m", log);
+  }
+
   function startBroadcast() public {
     vm.startBroadcast(broadcaster());
   }
@@ -135,7 +139,7 @@ abstract contract Deployer is Script2 {
 
     out = "";
     line("[");
-    for (uint i = 0; i < names.length; i++) {
+    for (uint i = 0; i < names.length; ++i) {
       bool end = i + 1 == names.length;
       line("  {");
       line(string.concat('    "address": "', vm.toString(addrs[i]), '",'));

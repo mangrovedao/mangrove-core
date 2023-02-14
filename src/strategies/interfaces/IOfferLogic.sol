@@ -40,7 +40,7 @@ interface IOfferLogic is IMaker {
   ///@notice Computes missing provision to repost `offerId` at given `gasreq` and `gasprice` ignoring current contract's balance on Mangrove.
   ///@param outbound_tkn the outbound token used to identify the order book
   ///@param inbound_tkn the inbound token used to identify the order book
-  ///@param gasreq the gas required by the offer. Give > type(uint24).max to use `this.offerGasreq()`
+  ///@param gasreq the gas required by the offer. Call offerGasreq to get the default.
   ///@param gasprice the upper bound on gas price. Give 0 to use Mangrove's gasprice
   ///@param offerId the offer id. Set this to 0 if one is not reposting an offer
   ///@dev if `offerId` is not in the Order Book, will simply return how much is needed to post
@@ -69,7 +69,8 @@ interface IOfferLogic is IMaker {
   ///@return provision the amount of native tokens that can be redeemed when deprovisioning the offer
   function provisionOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) external view returns (uint provision);
 
-  ///@notice verifies that this contract's current state is ready to be used by `msg.sender` to post offers on Mangrove
+  ///@notice verifies that this contract's current state is ready to be used to post offers on Mangrove
+  ///@param tokens the list of tokens that are traded by this contract
   ///@dev throws with a reason if something (e.g. an approval) is missing.
   function checkList(IERC20[] calldata tokens) external view;
 
@@ -88,7 +89,7 @@ interface IOfferLogic is IMaker {
   ///@param inbound_tkn inbound token of the offer list.
   ///@param wants the amount of inbound tokens the maker wants for a complete fill.
   ///@param gives the amount of outbound tokens the maker gives for a complete fill.
-  ///@param gasreq the amount of gas units that are required to execute the trade (use type(uint).max for using `this.offerGasReq()`)
+  ///@param gasreq the amount of gas units that are required to execute the trade
   ///@param gasprice the gasprice used to compute offer's provision (use 0 to use Mangrove's gasprice)
   ///@param pivotId a best pivot estimate for cheap offer insertion in the offer list.
   ///@param fund WEIs in `this` contract's balance that are used to provision the offer.
@@ -106,27 +107,6 @@ interface IOfferLogic is IMaker {
     uint fund;
     bool noRevert;
   }
-
-  ///@notice Retracts an offer from an Offer List of Mangrove.
-  ///@param outbound_tkn the outbound token of the offer list.
-  ///@param inbound_tkn the inbound token of the offer list.
-  ///@param offerId the identifier of the offer in the (`outbound_tkn`,`inbound_tkn`) offer list
-  ///@param deprovision positioned if `msg.sender` wishes to redeem the offer's provision.
-  ///@return received the amount of native tokens (in WEI) that have been retrieved by retracting the offer.
-  ///@dev An offer that is retracted without `deprovision` is retracted from the offer list, but still has its provisions locked by Mangrove.
-  ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
-  function retractOffer(
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint offerId,
-    bool deprovision // if set to `true`, `this` will receive the remaining provision (in WEI) associated to `offerId`.
-  ) external returns (uint received);
-
-  /// @notice getter of the reserve address of `maker`.
-  /// @param maker the address of the offer maker one wishes to know the reserve of.
-  /// @return reserve_ the address of the offer maker's reserve of liquidity.
-  /// @dev if no reserve is set for maker, default reserve is maker's address. Thus this function never returns `address(0)`.
-  function reserve(address maker) external view returns (address);
 
   /// @notice Contract's router getter.
   /// @dev if contract has a no router, function returns `NO_ROUTER`.

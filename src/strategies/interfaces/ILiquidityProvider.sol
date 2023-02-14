@@ -28,6 +28,13 @@ interface ILiquidityProvider is IOfferLogic {
     payable
     returns (uint);
 
+  ///@notice `newOffer` with additional parameters
+  ///@param gasreq the gas required by the offer logic
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint gasreq)
+    external
+    payable
+    returns (uint);
+
   ///@notice updates an offer existing on Mangrove (not necessarily live).
   ///@param outbound_tkn the outbound token of the offer list of the offer
   ///@param inbound_tkn the outbound token of the offer list of the offer
@@ -38,4 +45,28 @@ interface ILiquidityProvider is IOfferLogic {
   function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
     external
     payable;
+
+  ///@notice `updateOffer` with an override for gas requirement
+  ///@param gasreq the gas required by the offer logic
+  function updateOffer(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint pivotId,
+    uint offerId,
+    uint gasreq
+  ) external payable;
+
+  ///@notice Retracts an offer from an Offer List of Mangrove.
+  ///@param outbound_tkn the outbound token of the offer list.
+  ///@param inbound_tkn the inbound token of the offer list.
+  ///@param offerId the identifier of the offer in the (`outbound_tkn`,`inbound_tkn`) offer list
+  ///@param deprovision if set to `true` if offer owner wishes to redeem the offer's provision.
+  ///@return freeWei the amount of native tokens (in WEI) that have been retrieved by retracting the offer.
+  ///@dev An offer that is retracted without `deprovision` is retracted from the offer list, but still has its provisions locked by Mangrove.
+  ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    external
+    returns (uint freeWei);
 }

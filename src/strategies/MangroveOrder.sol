@@ -34,7 +34,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@notice MangroveOrder is a Forwarder logic with a simple router.
   ///@param mgv The mangrove contract on which this logic will run taker and maker orders.
   ///@param deployer The address of the admin of `this` at the end of deployment
-  ///@param gasreq The gas required for `this` to execute `makerExecute` and `makerPosthoook` when called by mangrove for a resting order.
+  ///@param gasreq The gas required for `this` to execute `makerExecute` and `makerPosthook` when called by mangrove for a resting order.
   constructor(IMangrove mgv, address deployer, uint gasreq) Forwarder(mgv, new SimpleRouter(), gasreq) {
     // adding `this` contract to authorized makers of the router before setting admin rights of the router to deployer
     router().bind(address(this));
@@ -85,6 +85,22 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     _updateOffer(args, offerId);
   }
 
+  ///@notice Retracts an offer from an Offer List of Mangrove.
+  ///@param outbound_tkn the outbound token of the offer list.
+  ///@param inbound_tkn the inbound token of the offer list.
+  ///@param offerId the identifier of the offer in the (`outbound_tkn`,`inbound_tkn`) offer list
+  ///@param deprovision if set to `true` if offer owner wishes to redeem the offer's provision.
+  ///@return freeWei the amount of native tokens (in WEI) that have been retrieved by retracting the offer.
+  ///@dev An offer that is retracted without `deprovision` is retracted from the offer list, but still has its provisions locked by Mangrove.
+  ///@dev Calling this function, with the `deprovision` flag, on an offer that is already retracted must be used to retrieve the locked provisions.
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    public
+    mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
+    returns (uint freeWei)
+  {
+    return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  }
+
   ///Checks the current timestamps and reneges on trade (by reverting) if the offer has expired.
   ///@inheritdoc MangroveOffer
   function __lastLook__(MgvLib.SingleOrder calldata order) internal virtual override returns (bytes32) {
@@ -112,7 +128,6 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // Checking whether order is expired
     require(tko.expiryDate == 0 || block.timestamp <= tko.expiryDate, "mgvOrder/expired");
 
-    address callerReserve = reserve(msg.sender);
     // Notations:
     // NAT_USER: initial value of `msg.sender.balance` (native balance of user)
     // OUT/IN_USER: initial value of `tko.[out|in]bound_tkn.balanceOf(reserve(msg.sender))` (user's reserve balance of tokens)
@@ -124,7 +139,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // * `this` balances: (NAT_THIS +`msg.value`, OUT_THIS, IN_THIS)
 
     // Pulling funds from `msg.sender`'s reserve
-    uint pulled = router().pull(tko.inbound_tkn, callerReserve, tko.takerGives, true);
+    uint pulled = router().pull(tko.inbound_tkn, msg.sender, tko.takerGives, true);
     require(pulled == tko.takerGives, "mgvOrder/transferInFail");
 
     // POST:
@@ -150,11 +165,11 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
     // sending inbound tokens to `msg.sender`'s reserve and sending back remaining outbound tokens
     if (res.takerGot > 0) {
-      require(router().push(tko.outbound_tkn, callerReserve, res.takerGot) == res.takerGot, "mgvOrder/pushFailed");
+      require(router().push(tko.outbound_tkn, msg.sender, res.takerGot) == res.takerGot, "mgvOrder/pushFailed");
     }
     uint inboundLeft = tko.takerGives - res.takerGave;
     if (inboundLeft > 0) {
-      require(router().push(tko.inbound_tkn, callerReserve, inboundLeft) == inboundLeft, "mgvOrder/pushFailed");
+      require(router().push(tko.inbound_tkn, msg.sender, inboundLeft) == inboundLeft, "mgvOrder/pushFailed");
     }
     // POST:
     // * (NAT_USER-`msg.value`, OUT_USER+`res.takerGot`, IN_USER-`res.takerGave`)
@@ -258,7 +273,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
       // adapting residualGives to match initial price
       residualWants = (residualGives * tko.takerWants) / tko.takerGives;
     }
-    res.offerId = _newOffer(
+    (res.offerId,) = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,

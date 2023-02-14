@@ -17,28 +17,27 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
       // Do not use a router - i.e., transfer tokens directly to and from the maker's reserve
       NO_ROUTER,
       // Store total gas requirement of this strategy
-      100_000
+      100_000,
+      deployer
     )
   {}
 
   //--------------
 
   ///@inheritdoc ILiquidityProvider
-  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint gasreq)
     public
-    // the function is payable to allow us to provision an offer
-    payable
-    // only the admin of this contract is allowed to post offers using this contract
-    onlyAdmin
+    payable /* the function is payable to allow us to provision an offer*/
+    onlyAdmin /* only the admin of this contract is allowed to post offers using this contract*/
     returns (uint offerId)
   {
-    offerId = _newOffer(
+    (offerId,) = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: offerGasreq(),
+        gasreq: gasreq,
         gasprice: 0,
         pivotId: pivotId, // a best pivot estimate for cheap offer insertion in the offer list - this should be a parameter computed off-chain for cheaper insertion
         fund: msg.value, // WEIs in that are used to provision the offer.
@@ -48,19 +47,32 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
   }
 
   ///@inheritdoc ILiquidityProvider
-  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
     public
     payable
-    override
-    mgvOrAdmin
+    onlyAdmin
+    returns (uint offerId)
   {
+    return newOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerGasreq());
+  }
+
+  ///@inheritdoc ILiquidityProvider
+  function updateOffer(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint pivotId,
+    uint offerId,
+    uint gasreq
+  ) public payable override adminOrCaller(address(MGV)) {
     _updateOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: offerGasreq(),
+        gasreq: gasreq,
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
@@ -68,6 +80,24 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
       }),
       offerId
     );
+  }
+
+  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+    public
+    payable
+    override
+    adminOrCaller(address(MGV))
+  {
+    updateOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerId, offerGasreq());
+  }
+
+  ///@inheritdoc ILiquidityProvider
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    public
+    adminOrCaller(address(MGV))
+    returns (uint freeWei)
+  {
+    return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
   //----------------

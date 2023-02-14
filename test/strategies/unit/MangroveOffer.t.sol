@@ -4,7 +4,6 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import {DirectTester, IMangrove, IERC20} from "mgv_src/strategies/offer_maker/DirectTester.sol";
 import {SimpleRouter, AbstractRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
-import {t_of_struct as packOffer} from "mgv_src/preprocessed/MgvOffer.post.sol";
 
 contract MangroveOfferTest is MangroveTest {
   TestToken weth;
@@ -44,7 +43,8 @@ contract MangroveOfferTest is MangroveTest {
     makerContract = new DirectTester({
       mgv: IMangrove($(mgv)),
       router_: AbstractRouter(address(0)), // no router
-      deployer: deployer
+      deployer: deployer,
+      gasreq: 50_000
     });
   }
 
@@ -57,115 +57,79 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.activate(dynamic([IERC20(weth), usdc]));
   }
 
-  function test_checkList_fails_if_caller_is_not_admin() public {
-    vm.expectRevert("Direct/onlyAdminCanOwnOffers");
-    makerContract.checkList(dynamic([IERC20(weth)]));
-  }
-
-  function test_checkList_throws_if_reserve_approval_is_missing() public {
-    vm.expectRevert("Direct/reserveMustApproveMakerContract");
-    vm.prank(deployer);
-    makerContract.checkList(dynamic([IERC20(weth)]));
-  }
-
-  function test_checkList_throws_if_Mangrove_is_not_approved() public {
-    address toApprove =
-      makerContract.router() == makerContract.NO_ROUTER() ? address(makerContract) : address(makerContract.router());
-
-    vm.startPrank(makerContract.reserve(deployer));
-    weth.approve(toApprove, type(uint).max);
-    usdc.approve(toApprove, type(uint).max);
+  function test_a_checkList_with_router() public {
+    vm.startPrank(deployer);
+    SimpleRouter router = new SimpleRouter();
+    makerContract.setRouter(router);
     vm.stopPrank();
 
+    IERC20[] memory tokens = dynamic([IERC20(weth)]);
     vm.expectRevert("mgvOffer/LogicMustApproveMangrove");
-    vm.prank(deployer);
-    makerContract.checkList(dynamic([IERC20(weth)]));
-  }
-
-  function test_checkList_takes_router_binding_into_account() public {
-    vm.startPrank(deployer);
-    SimpleRouter router = new SimpleRouter();
-    makerContract.setRouter(router);
-    vm.stopPrank();
-
-    IERC20[] memory tokens = dynamic([IERC20(weth)]);
-    vm.prank(deployer);
-    makerContract.approve(weth, $(mgv), type(uint).max);
-
-    vm.startPrank($(makerContract));
-    weth.approve(address(makerContract.router()), type(uint).max);
-    vm.stopPrank();
-
-    vm.expectRevert("Router/CallerIsNotAnApprovedMakerContract");
-    vm.prank(deployer);
     makerContract.checkList(tokens);
   }
 
-  function test_checkList_takes_router_approval_into_account() public {
+  function test_b_checkList_router_not_bound() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
     makerContract.setRouter(router);
+    // passes a
+    makerContract.approve(weth, $(mgv), type(uint).max);
     vm.stopPrank();
 
     IERC20[] memory tokens = dynamic([IERC20(weth)]);
-
-    vm.prank(deployer);
-    makerContract.approve(weth, $(mgv), type(uint).max);
-
-    vm.expectRevert("mgvOffer/LogicMustApproveRouter");
-    vm.prank(deployer);
+    vm.expectRevert("Router/callerIsNotBoundToRouter");
     makerContract.checkList(tokens);
   }
 
-  function test_checkList_takes_reserve_approval_into_account() public {
+  function test_c_checkList_router_not_approved() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
     makerContract.setRouter(router);
-    router.bind($(makerContract));
+    // passes a
+    makerContract.approve(weth, $(mgv), type(uint).max);
+    // passes b
+    router.bind(address(makerContract));
     vm.stopPrank();
 
     IERC20[] memory tokens = dynamic([IERC20(weth)]);
-
-    // makerContract approves Mangrove for weth transfer
-    vm.prank(deployer);
-    makerContract.approve(weth, $(mgv), type(uint).max);
-
-    // makerContract approves its router for weth transfer
-    vm.startPrank($(makerContract));
-    weth.approve(address(makerContract.router()), type(uint).max);
-    vm.stopPrank();
-
-    // missing reserve approves router
-    vm.expectRevert("SimpleRouter/NotApprovedByReserve");
-    vm.prank(deployer);
+    vm.expectRevert("Router/NotApprovedByMakerContract");
     makerContract.checkList(tokens);
   }
 
-  function test_checkList_succeeds_after_all_approvals_are_done() public {
+  function test_d_checkList_router_not_approved_by_reserve() public {
     vm.startPrank(deployer);
     SimpleRouter router = new SimpleRouter();
     makerContract.setRouter(router);
-    router.bind($(makerContract));
+    // passes a
+    makerContract.approve(weth, $(mgv), type(uint).max);
+    // passes b
+    router.bind(address(makerContract));
+    // passes c
+    makerContract.approve(weth, address(makerContract.router()), type(uint).max);
     vm.stopPrank();
 
     IERC20[] memory tokens = dynamic([IERC20(weth)]);
-
-    // makerContract approves Mangrove for weth transfer
-    vm.prank(deployer);
-    makerContract.approve(weth, $(mgv), type(uint).max);
-
-    // makerContract approves its router for weth transfer
-    vm.startPrank($(makerContract));
-    weth.approve(address(makerContract.router()), type(uint).max);
-    vm.stopPrank();
-
-    // reserve approves router for weth transfer
-    vm.startPrank(makerContract.reserve(deployer));
-    weth.approve(address(makerContract.router()), type(uint).max);
-    vm.stopPrank();
-
-    vm.prank(deployer);
+    vm.expectRevert("SimpleRouter/NotApprovedByOwner");
     makerContract.checkList(tokens);
+  }
+
+  function test_e_checkList_completes() public {
+    vm.startPrank(deployer);
+    SimpleRouter router = new SimpleRouter();
+    makerContract.setRouter(router);
+    // passes a
+    makerContract.approve(weth, $(mgv), type(uint).max);
+    // passes b
+    router.bind(address(makerContract));
+    // passes c
+    makerContract.approve(weth, address(makerContract.router()), type(uint).max);
+    // passes d
+    weth.approve(address(makerContract.router()), type(uint).max);
+    vm.stopPrank();
+
+    IERC20[] memory tokens = dynamic([IERC20(weth)]);
+    makerContract.checkList(tokens);
+    // ^^ should not throw
   }
 
   function test_activate_completes_checkList_for_deployer() public {
@@ -174,12 +138,10 @@ contract MangroveOfferTest is MangroveTest {
     address toApprove =
       makerContract.router() == makerContract.NO_ROUTER() ? address(makerContract) : address(makerContract.router());
 
-    vm.startPrank(makerContract.reserve(deployer));
+    vm.startPrank(deployer);
     weth.approve(toApprove, type(uint).max);
     usdc.approve(toApprove, type(uint).max);
-    vm.stopPrank();
 
-    vm.startPrank(deployer);
     makerContract.activate(tokens);
     makerContract.checkList(tokens);
     vm.stopPrank();
@@ -206,7 +168,7 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.makerExecute(order);
     vm.prank(address(mgv));
     bytes32 ret = makerContract.makerExecute(order);
-    assertEq(ret, "mgvOffer/proceed", "Incorrect returned data");
+    assertEq(ret, "lastlook/testdata", "Incorrect returned data");
   }
 
   function testCannot_call_makerPosthook_if_not_Mangrove() public {
@@ -232,13 +194,30 @@ contract MangroveOfferTest is MangroveTest {
     makerContract.makerPosthook(order, result);
   }
 
+  function test_failed_to_repost_is_logged() public {
+    (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockBuyOrder({
+      takerGives: 1500 * 10 ** 6,
+      takerWants: 1 ether,
+      partialFill: 2, // half of offer is consummed
+      base_: weth,
+      quote_: usdc,
+      makerData: "whatever"
+    });
+    expectFrom(address(makerContract));
+    emit LogIncident(IMangrove($(mgv)), weth, usdc, 0, "whatever", "mgv/updateOffer/unauthorized");
+    vm.expectRevert("posthook/failed");
+    /// since order.offerId is 0, updateOffer will revert. This revert should be caught and logged
+    vm.prank($(mgv));
+    makerContract.makerPosthook(order, result);
+  }
+
   function test_lastLook_returned_value_is_passed() public {
     MgvLib.SingleOrder memory order;
     order.outbound_tkn = $(weth);
     order.inbound_tkn = $(usdc);
     vm.prank(address(mgv));
     bytes32 data = makerContract.makerExecute(order);
-    assertEq(data, "mgvOffer/proceed");
+    assertEq(data, "lastlook/testdata");
   }
 
   function test_admin_can_withdrawFromMangrove() public {
@@ -273,10 +252,9 @@ contract MangroveOfferTest is MangroveTest {
 
   function test_get_fail_reverts() public {
     MgvLib.SingleOrder memory order;
-    deal($(usdc), makerContract.reserve($(this)), 0);
+    deal($(usdc), $(this), 0);
     order.outbound_tkn = address(usdc);
     order.wants = 10 ** 6;
-    console.log(order.wants);
     vm.expectRevert("mgvOffer/abort/getFailed");
     vm.prank($(mgv));
     makerContract.makerExecute(order);

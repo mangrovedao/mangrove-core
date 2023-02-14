@@ -64,7 +64,6 @@ contract AmplifierDeployer is Deployer {
     IERC20(base).approve(address(router), type(uint).max);
     IERC20[] memory tokens2 = new IERC20[](1);
     tokens2[0] = IERC20(base);
-    vm.prank(amplifier.admin());
     amplifier.checkList(tokens2);
   }
 }

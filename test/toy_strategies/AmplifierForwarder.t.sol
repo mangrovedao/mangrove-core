@@ -97,15 +97,17 @@ contract AmplifierForwarderTest is MangroveTest {
     uint prov1 = strat.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
     uint prov2 = strat.getMissingProvision(weth, dai, type(uint).max, 0, 0);
 
-    (offerId1, offerId2) = strat.newAmplifiedOffers{value: prov1 + prov2}({
-      gives: makerGivesAmount, // WETH
-      wants1: makerWantsAmountUSDC, // USDC
-      wants2: makerWantsAmountDAI, // DAI
-      pivot1: 0,
-      pivot2: 0,
-      fund1: prov1,
-      fund2: prov2
-    });
+    (offerId1, offerId2) = strat.newAmplifiedOffers{value: prov1 + prov2}(
+      AmplifierForwarder.NewOffersArgs({
+        gives: makerGivesAmount, // WETH
+        wants1: makerWantsAmountUSDC, // USDC
+        wants2: makerWantsAmountDAI, // DAI
+        pivot1: 0,
+        pivot2: 0,
+        fund1: prov1,
+        fund2: prov2
+      })
+    );
   }
 
   function takeOffer(uint makerGivesAmount, uint makerWantsAmount, IERC20 makerWantsToken, uint offerId)
@@ -314,15 +316,17 @@ contract AmplifierForwarderTest is MangroveTest {
 
     vm.expectRevert("AmplifierForwarder/offer1AlreadyActive");
 
-    strat.newAmplifiedOffers{value: prov1Tester + prov2Tester}({
-      gives: makerGivesAmount, // WETH
-      wants1: makerWantsAmountUSDC, // USDC
-      wants2: makerWantsAmountDAI, // DAI
-      pivot1: 0,
-      pivot2: 0,
-      fund1: prov1Tester,
-      fund2: prov2Tester
-    });
+    strat.newAmplifiedOffers{value: prov1Tester + prov2Tester}(
+      AmplifierForwarder.NewOffersArgs({
+        gives: makerGivesAmount, // WETH
+        wants1: makerWantsAmountUSDC, // USDC
+        wants2: makerWantsAmountDAI, // DAI
+        pivot1: 0,
+        pivot2: 0,
+        fund1: prov1Tester,
+        fund2: prov2Tester
+      })
+    );
 
     // post offers with Amplifier liquidity with test account
     vm.startPrank(maker);
@@ -338,15 +342,17 @@ contract AmplifierForwarderTest is MangroveTest {
 
     vm.expectRevert("AmplifierForwarder/offer2AlreadyActive");
 
-    strat.newAmplifiedOffers{value: prov1Maker + prov2Maker}({
-      gives: makerGivesAmount, // WETH
-      wants1: makerWantsAmountUSDC, // USDC
-      wants2: makerWantsAmountDAI, // DAI
-      pivot1: 0,
-      pivot2: 0,
-      fund1: prov1Maker,
-      fund2: prov2Maker
-    });
+    strat.newAmplifiedOffers{value: prov1Maker + prov2Maker}(
+      AmplifierForwarder.NewOffersArgs({
+        gives: makerGivesAmount, // WETH
+        wants1: makerWantsAmountUSDC, // USDC
+        wants2: makerWantsAmountDAI, // DAI
+        pivot1: 0,
+        pivot2: 0,
+        fund1: prov1Maker,
+        fund2: prov2Maker
+      })
+    );
     vm.stopPrank();
 
     // assert that neither offer posted by Amplifier are live (= have been retracted)

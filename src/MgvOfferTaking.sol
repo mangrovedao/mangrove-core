@@ -285,7 +285,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint successCount, uint snipesGot, uint snipesGave)
   {
     unchecked {
-      for (uint i = 0; i < targets.length; i++) {
+      for (uint i = 0; i < targets.length; ++i) {
         /* Reset these amounts since every snipe is treated individually. Only the total penalty is sent at the end of all snipes. */
         mor.totalGot = 0;
         mor.totalGave = 0;

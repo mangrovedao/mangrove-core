@@ -40,9 +40,6 @@ library MangoStorage {
     bool paused;
     // Base and quote router contract
     AbstractRouter router;
-    // reserve address for the router (external treasury -e.g EOA-, Mango or the router itself)
-    // if the router is lender based, this is the location of the overlying
-    address reserve;
   }
 
   function getStorage() internal pure returns (Layout storage st) {

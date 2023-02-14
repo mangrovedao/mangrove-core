@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-//AaveDeepRouter.sol
+// AaveV3BorrowerStorage.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -12,38 +12,36 @@
 
 pragma solidity ^0.8.10;
 
-import "./AaveRouter.sol";
+import "../vendor/aave/v3/IPool.sol";
+import {IPoolAddressesProvider} from "../vendor/aave/v3/IPoolAddressesProvider.sol";
+import {IRewardsControllerIsh} from "../vendor/aave/v3/IRewardsControllerIsh.sol";
+import {ICreditDelegationToken} from "../vendor/aave/v3/ICreditDelegationToken.sol";
 
-// Underlying on AAVE
-// Overlying on reserve
-// `this` must approve Lender for outbound token transfer (pull)
-// `this` must approve Lender for inbound token transfer (flush)
-// `this` must be approved by reserve for *overlying* of inbound token transfer
-// `this` must be approved by maker contract for outbound token transfer
+import "../vendor/aave/v3/IPriceOracleGetter.sol";
+import {ReserveConfiguration as RC} from "../vendor/aave/v3/ReserveConfiguration.sol";
 
-contract AaveDeepRouter is AaveRouter {
-  constructor(address _addressesProvider, uint _referralCode, uint _interestRateMode)
-    AaveRouter(_addressesProvider, _referralCode, _interestRateMode, 700_000)
-  {}
+import "mgv_src/IMangrove.sol";
 
-  // 1. pulls aTokens from aToken reserve. Borrows if necessary
-  // 2. redeems underlying on AAVE and forwards received tokens to maker contract
-  function __pull__(IERC20 token, address reserve, address maker, uint amount, bool strict)
-    internal
-    virtual
-    override
-    returns (uint pulled)
-  {
-    return _redeemThenBorrow(token, reserve, amount, strict, maker);
-  }
+library AaveV3BorrowerStorage {
+  // address of the lendingPool
+  // struct Layout {
+  // }
 
-  function __checkList__(IERC20 token, address reserve) internal view virtual override {
-    // additional allowance for `pull` in case of `borrow`
-    ICreditDelegationToken dTkn = debtToken(token);
-    require(
-      reserve == address(this) || dTkn.borrowAllowance(reserve, address(this)) > 0,
-      "AaveDeepRouter/NotDelegatedByReserve"
-    );
-    super.__checkList__(token, reserve);
+  // function getStorage() internal pure returns (Layout storage st) {
+  //   bytes32 storagePosition = keccak256(
+  //     "Mangrove.AaveV3BorrowerStorageLib.Layout"
+  //   );
+  //   assembly {
+  //     st.slot := storagePosition
+  //   }
+  // }
+
+  function revertWithData(bytes memory retdata) internal pure {
+    if (retdata.length == 0) {
+      revert("AaveModuleStorage/revertNoReason");
+    }
+    assembly {
+      revert(add(retdata, 32), mload(retdata))
+    }
   }
 }

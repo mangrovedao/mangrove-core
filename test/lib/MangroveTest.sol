@@ -258,6 +258,70 @@ contract MangroveTest is Test2, HasMgvEvents {
     return tt;
   }
 
+  function mockBuyOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
+    order.outbound_tkn = $(base);
+    order.inbound_tkn = $(quote);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    // complete fill (prev and next are bogus)
+    order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
+  }
+
+  function mockBuyOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    IERC20 base_,
+    IERC20 quote_,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.outbound_tkn = $(base_);
+    order.inbound_tkn = $(quote_);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    // complete fill (prev and next are bogus)
+    order.offer = MgvStructs.Offer.pack({
+      __prev: 0,
+      __next: 0,
+      __wants: order.gives * partialFill,
+      __gives: order.wants * partialFill
+    });
+    result.makerData = makerData;
+    result.mgvData = "mgv/tradeSuccess";
+  }
+
+  function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
+    order.inbound_tkn = $(base);
+    order.outbound_tkn = $(quote);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    // complete fill (prev and next are bogus)
+    order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
+  }
+
+  function mockSellOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    IERC20 base_,
+    IERC20 quote_,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.inbound_tkn = $(base_);
+    order.outbound_tkn = $(quote_);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    // complete fill (prev and next are bogus)
+    order.offer = MgvStructs.Offer.pack({
+      __prev: 0,
+      __next: 0,
+      __wants: order.gives * partialFill,
+      __gives: order.wants * partialFill
+    });
+    result.makerData = makerData;
+    result.mgvData = "mgv/tradeSuccess";
+  }
+
   /* **** Token conversion *** */
   /* Interpret amount as a user-friendly amount, convert to real underlying
    * amount using token decimals.
@@ -302,5 +366,47 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   function $(TestSender t) internal pure returns (address payable) {
     return payable(address(t));
+  }
+
+  struct CheckAuthArgs {
+    address[] allowed;
+    address[] callers;
+    address callee;
+    string revertMessage;
+  }
+
+  function checkAuth(CheckAuthArgs memory args, bytes memory data) internal {
+    checkAuth(args.allowed, args.callers, args.callee, args.revertMessage, data);
+  }
+
+  function checkAuth(
+    address[] memory allowed,
+    address[] memory callers,
+    address callee,
+    string memory revertMessage,
+    bytes memory data
+  ) internal {
+    for (uint i = 0; i < callers.length; ++i) {
+      bool skip = false;
+      address caller = callers[i];
+      for (uint j = 0; j < allowed.length; ++j) {
+        if (allowed[j] == caller) {
+          skip = true;
+          break;
+        }
+      }
+      if (skip) {
+        continue;
+      }
+      vm.prank(caller);
+      (bool success, bytes memory res) = callee.call(data);
+      assertFalse(success, "function should revert");
+      assertEq(revertMessage, getReason(res));
+    }
+    for (uint i = 0; i < allowed.length; i++) {
+      vm.prank(allowed[i]);
+      (bool success,) = callee.call(data);
+      assertTrue(success, "function should not revert");
+    }
   }
 }

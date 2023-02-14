@@ -27,18 +27,19 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
   }
 
   /// @inheritdoc ILiquidityProvider
-  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
-    external
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint gasreq)
+    public
     payable
+    override
     returns (uint offerId)
   {
-    offerId = _newOffer(
+    (offerId,) = _newOffer(
       OfferArgs({
         outbound_tkn: outbound_tkn,
         inbound_tkn: inbound_tkn,
         wants: wants,
         gives: gives,
-        gasreq: offerGasreq(),
+        gasreq: gasreq,
         gasprice: 0,
         pivotId: pivotId,
         fund: msg.value,
@@ -48,14 +49,26 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
     );
   }
 
+  /// @inheritdoc ILiquidityProvider
+  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
+    public
+    payable
+    returns (uint offerId)
+  {
+    return newOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerGasreq());
+  }
+
   ///@inheritdoc ILiquidityProvider
   ///@dev the `gasprice` argument is always ignored in `Forwarder` logic, since it has to be derived from `msg.value` of the call (see `_newOffer`).
-  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
-    external
-    payable
-    override
-    onlyOwner(outbound_tkn, inbound_tkn, offerId)
-  {
+  function updateOffer(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint wants,
+    uint gives,
+    uint pivotId,
+    uint offerId,
+    uint gasreq
+  ) public payable override onlyOwner(outbound_tkn, inbound_tkn, offerId) {
     OfferArgs memory args;
 
     // funds to compute new gasprice is msg.value. Will use old gasprice if no funds are given
@@ -66,11 +79,29 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
     args.inbound_tkn = inbound_tkn;
     args.wants = wants;
     args.gives = gives;
-    args.gasreq = type(uint).max; // this will force _updateOffer to use old gasreq of offer
+    args.gasreq = gasreq;
     args.pivotId = pivotId;
     args.noRevert = false; // will throw if Mangrove reverts
     // weiBalance is used to provision offer
     _updateOffer(args, offerId);
+  }
+
+  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
+    public
+    payable
+    override
+    onlyOwner(outbound_tkn, inbound_tkn, offerId)
+  {
+    updateOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerId, offerGasreq());
+  }
+
+  ///@inheritdoc ILiquidityProvider
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    public
+    mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
+    returns (uint freeWei)
+  {
+    return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)

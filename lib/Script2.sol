@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {console2 as console} from "forge-std/console2.sol";
 import {Script} from "forge-std/Script.sol";
-import {IERC20} from "mgv_src/MgvLib.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
 import {ToyENS} from "mgv_lib/ToyENS.sol";
 
 /* Some general utility methods.
@@ -688,6 +688,76 @@ contract Script2 is Script {
 
   function dynamic(string[10] memory a) internal pure returns (string[] memory ret) {
     ret = new string[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[1] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[2] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[3] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[4] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[5] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[6] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[7] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[8] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[9] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
+    for (uint i = 0; i < a.length; i++) {
+      ret[i] = a[i];
+    }
+  }
+
+  function dynamic(address[10] memory a) internal pure returns (address[] memory ret) {
+    ret = new address[](a.length);
     for (uint i = 0; i < a.length; i++) {
       ret[i] = a[i];
     }

@@ -15,7 +15,7 @@ contract Whatsup {
 
 contract WhatsupDeploy is Deployer {
   function run() public {
-    vm.broadcast();
+    broadcast();
     new Whatsup();
     outputDeployment();
   }

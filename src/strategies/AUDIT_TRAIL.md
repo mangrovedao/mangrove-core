@@ -1,6 +1,6 @@
 # Contracts in scope for the audit
 
-## Kandel and aave router
+## Kandel and AAVE router
 
 ### src/strategies/offer_maker/market_making/kandel/Kandel.sol
 
@@ -28,7 +28,7 @@ Kandel type strategies and Aave router have the following dependencies:
 - TradesBaseQuotePair: Implements helper functions for trading a base, quote pair of tokens using bid and ask terminology.
 - HasIndexedBidsAndAsks: Implements the ability to have a [0..length] indexed set of offers on Mangrove for both bids and asks
 - DirectWithBidsAndAskDistribution: Adorns the Direct strat with indexed bids and asks and allows the offers to be populated according to a given base and quote distribution.
-- AbstractRouter: the root contract for routers
+- AbstractRouter: the root contract for routers (already audited, see changes below)
 - AaveV3Lender: a module that implements AAVE v3 interaction capacities.
 - Direct: the basic strat building block for private maker contracts (as opposed to Forwarder contracts)
 - MangroveOffer: the root contract for strats (already audited, see changes below)
@@ -36,7 +36,7 @@ Kandel type strategies and Aave router have the following dependencies:
 
 ## Minor changes to already audited code
 
-### src/straregies/utils/AccessControlled.sol
+### src/strategies/utils/AccessControlled.sol
 
 - Separate storage removed
 - new modifier `adminOrCaller` that tests caller first to optimize gas during offer logic execution
@@ -65,20 +65,20 @@ Kandel type strategies and Aave router have the following dependencies:
 - `_newOffer`'s computation of new gasprice is factored out for clarity in `deriveAndCheckGasprice`. The computation is unchanged. Function now returns both the `offerId` assigned by Mangrove to the new offer and a byte32 which is non empty when Mangrove reverted with a reason, and `noRevert` argument was set to `true`.
 - giving `max(uint).type` in the `gasreq` argument of both `_updateOffer` and `_newOffer` is no longer interpreted as requiring `offerGasreq()`.
 - `retractOffer` is no longer a public function of Forwarder. An internal `_retractOffer` is provided for Forwarder starts (in accordance to the IOfferLogic interface change above).
-- Offer owner can no longer be mapped to another address via the `__reserve__` hook that has disappeard (see `MangroveOffer` change). It has no impact on `MangroveOrder` which was not using this hook.
+- Offer owner can no longer be mapped to another address via the `__reserve__` hook that has disappeared (see `MangroveOffer` change). It has no impact on `MangroveOrder` which was not using this hook.
 
 ### src/strategies/routers/AbstractRouter.sol
 
 - external storage contract is removed (see MangroveOffer).
 - Cosmetic changes in naming. In particular auth error messages are made uniform. `reserve` has been replaced by `reserveId` to take into account the fact that routers interpret this field differently (SimpleRouter forwards liquidity to this address, AavePooledRouter just use the address to label shares of the pool). `reserveBalance` is now called `balanceOfReserve` and requires `reserveId` argument.
-- Log emition when binding/unbinding to a maker contract.
+- Log emission when binding/unbinding to a maker contract.
 - router's checklist has been simplified and can be called from an arbitrary address.
 
 ### src/strategies/routers/SimpleRouter.sol
 
-- propagating naming scheme changes from AbstractRouter. We use `owner` instead of `reserveId` in simple router to reflect the fact that funds are transfered to offer owners.
+- propagating naming scheme changes from AbstractRouter. We use `owner` instead of `reserveId` in simple router to reflect the fact that funds are transferred to offer owners.
 
 ### src/strategies/utils/TransferLib.sol
 
-- `transferTokensFrom` and `transferTokens` where added as plural implementation of `transferToken` and `transferTokenFrom` of the same library (in order to allow mutliple transfers in the same call).
+- `transferTokensFrom` and `transferTokens` where added as plural implementation of `transferToken` and `transferTokenFrom` of the same library (in order to allow multiple transfers in the same call).
 - note that these function do not return success but revert on failure (to avoid returning an unwieldy array of booleans).

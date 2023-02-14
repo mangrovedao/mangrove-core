@@ -224,41 +224,54 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     BalanceMemoizer memory memoizer;
     // The local buffer of token to transfer in case funds have already been redeemed or due to a donation.
     uint buffer = balanceOf(token, memoizer);
-    // Determine the amount_ to transfer and how much should be redeemed from AAVE.
-    if (strict) {
-      // maker contract is making a withdraw (not a call emanating from the offer logic)
-      // transfer the exact desired amount, and only redeem the necessary amount from AAVE and let the rest stay to generate yield.
-      amount_ = amount;
-      toRedeem = buffer >= amount ? 0 : amount - buffer;
+    if (buffer < amount) {
+      // this pull is the first of the market order (that requires funds from AAVE) so we redeem all the reserve from AAVE
+      // note in theory we should check buffer == 0 but donation may have occurred.
+      // This check forces donation to be at least the amount of outbound tokens promised by caller to avoid griefing (depositing a small donation to make offer fail).
+      toRedeem = balanceOfOverlying(token, memoizer);
+      amount_ = strict ? amount : _balanceOfReserve(token, reserveId, memoizer);
     } else {
-      // We redeem all router's available balance from AAVE.
-      // If there is no liquidity sharing, then we transfer all of maker contract's balance so that it can fulfill multiple offers;
-      // otherwise, we only transfer the necessary amount for each offer, since an offer on another maker contract with the same reserveId
-      // may require the assets.
-      amount_ = reserveId == msg.sender ? _balanceOfReserve(token, reserveId, memoizer) : amount; // max possible transfer to maker
-      if (buffer < amount) {
-        // this pull is the first of the market order (that requires funds from AAVE) so we redeem all the reserve from AAVE
-        // note in theory we should check buffer == 0 but donation may have occurred.
-        // This check forces donation to be at least the amount of outbound tokens promised by caller to avoid griefing (depositing a small donation to make offer fail).
-        toRedeem = balanceOfOverlying(token, memoizer);
-      } else {
-        // since buffer > amount, this call is not the first pull of the market order (unless a big donation occurred) and we do not withdraw from AAVE
-        amount_ = buffer >= amount_ ? amount_ : buffer;
-        // if buffer < amount_ we still have buffer >= amount (since we are in the else-branch of that check)
-      }
+      // since buffer >= amount, this call is not the first pull of the market order (unless a big donation occurred) and we do not withdraw from AAVE
+      // we take all we can from the buffer (possibly less than amount_ computed above)
+      // toRedeem = 0
+      amount_ = strict ? amount : buffer;
+      // if buffer < amount_ we still have buffer >= amount (since we are in the else-branch of that check)
     }
-    // now that we know how much we send to maker contract, we try to burn the corresponding shares, this will underflow if owner does not have enough shares
-    _burnShares(token, reserveId, amount_, memoizer);
-
-    // redeem does not change amount of shares. We do this after burning to avoid redeeming on AAVE if caller doesn't have the required funds.
-    if (toRedeem > 0) {
-      // this call will throw if AAVE has a liquidity crisis
-      _redeem(token, toRedeem, address(this));
-    }
-
-    // Transferring funds to the maker contract, at this point we must revert if things go wrong because shares have been burnt on the premise that `amount_` will be transferred.
-    require(TransferLib.transferToken(token, msg.sender, amount_), "AavePooledRouter/pullFailed");
+    redeemAndTransfer(token, reserveId, amount_, toRedeem, memoizer);
     return amount_;
+  }
+
+  ///@notice redeems some funds from AAVE pool and transfer some amount to msg.sender.
+  ///@param token the asset to transfer
+  ///@param reserveId the shares on which funds are being drawn
+  ///@param amountToTransfer final amount of asset to transfer
+  ///@param amountToRedeem funds that need to be pulled from AAVE for final transfer to succeed
+  function redeemAndTransfer(
+    IERC20 token,
+    address reserveId,
+    uint amountToTransfer,
+    uint amountToRedeem,
+    BalanceMemoizer memory memoizer
+  ) internal {
+    _burnShares(token, reserveId, amountToTransfer, memoizer);
+    // redeem does not change amount of shares. We do this after burning to avoid redeeming on AAVE if caller doesn't have the required funds.
+    if (amountToRedeem > 0) {
+      // this call will throw if AAVE has a liquidity crisis
+      _redeem(token, amountToRedeem, address(this));
+    }
+    // Transferring funds to the maker contract, at this point we must revert if things go wrong because shares have been burnt on the premise that `amount_` will be transferred.
+    require(TransferLib.transferToken(token, msg.sender, amountToTransfer), "AavePooledRouter/withdrawFailed");
+  }
+
+  ///@notice withdraw funds from the pool on behalf of some reserve id
+  ///@param token the asset to withdraw
+  ///@param reserveId the identifier of the share holder
+  ///@param amount the amount to withdraw
+  function withdraw(IERC20 token, address reserveId, uint amount) external onlyBound {
+    BalanceMemoizer memory memoizer;
+    uint buffer = balanceOf(token, memoizer);
+    uint toRedeem = buffer > amount ? 0 : amount - buffer;
+    redeemAndTransfer(token, reserveId, amount, toRedeem, memoizer);
   }
 
   ///@inheritdoc AbstractRouter

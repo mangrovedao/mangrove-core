@@ -234,8 +234,8 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
       // since buffer >= amount, this call is not the first pull of the market order (unless a big donation occurred) and we do not withdraw from AAVE
       // we take all we can from the buffer (possibly less than amount_ computed above)
       // toRedeem = 0
-      amount_ = strict ? amount : buffer;
-      // if buffer < amount_ we still have buffer >= amount (since we are in the else-branch of that check)
+      uint reserveBalance = _balanceOfReserve(token, reserveId, memoizer);
+      amount_ = strict ? amount : (buffer > reserveBalance ? reserveBalance : buffer);
     }
     redeemAndTransfer(token, reserveId, amount_, toRedeem, memoizer);
     return amount_;

@@ -180,6 +180,16 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   }
 
   ///@notice calculates the wants and gives for the dual offer according to the geometric price distribution.
+  ///@dev Define the (maker) price of the order as `p_order := order.gives / order.wants` (what the taker gave divided by what the taker got).
+  /// the (maker) price of the dual order must be `p_dual := p_order / ratio^spread` at which one should buy back at least what was sold.
+  /// thus `min_offer_wants := order.wants` at price `p_dual`
+  /// with `min_offer_gives / min_offer_wants = p_dual` we derive `min_offer_gives = order.gives/ratio^spread`.
+  /// Now at maximal compounding, maker wants to give all what taker gave. That is `max_offer_gives := order.gives`
+  /// So with compound rate we have:
+  /// `offer_gives := min_offer_gives + (max_offer_gives - min_offer_gives) * compoundRate`.
+  /// and we derive the formula:
+  /// `offer_gives = order.gives * ( 1/ratio^spread + (1 - 1/ratio^spread) * compoundRate)`
+  /// which we use in the code below
   function dualWantsGivesOfOffer(
     OfferType baDual,
     uint offerGives,
@@ -212,20 +222,18 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
       gives = type(uint96).max;
     }
     // adjusting wants to price:
-    // gives * r : 96 + 141 = 237 so order.wants must be < 2**18 to completely avoid overflow.
-    // However, order.wants is often larger, but gives * r often does not use that many bits.
-    // So we check whether the full precision can be used and only if not then we use less precision.
+    // gives * r : 237 so order.wants must be < 2**18 to completely avoid overflow.
+    // Since order.wants is high when gives * r is, we check whether the full precision can be used and only if not then we use less precision.
     uint givesR = gives * r;
-    if (uint160(givesR) == givesR) {
+    if (uint160(givesR) == givesR || order.wants < 2 ** 18) {
       // using max precision
       wants = (order.wants * givesR) / (order.gives * (p ** spread));
     } else {
-      givesR /= order.gives;
-      if (uint160(givesR) == givesR) {
-        wants = (order.wants * givesR) / (p ** spread);
-      } else {
-        wants = order.wants * (givesR / (p ** spread));
-      }
+      // we divide `gives*r` by `order.gives` with max precision so that the resulting `givesR:160` in order to make sure it can be multiplied by `order.wants`
+      givesR = (givesR * 2 ** 19) / order.gives;
+      wants = (order.wants * givesR) / (p ** spread);
+      // we correct for the added precision above
+      wants /= 2 ** 19;
     }
     // wants is higher than order.wants
     // this may cause wants to be higher than 2**96 allowed by Mangrove (for instance if one needs many quotes to buy sell base tokens)

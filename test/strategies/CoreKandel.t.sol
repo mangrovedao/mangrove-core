@@ -1612,26 +1612,38 @@ abstract contract CoreKandelTest is MangroveTest {
     assertLt(t.gasPivots, t.gas0Pivot, "Providing pivots should save gas");
   }
 
-  function test_dualWantsGivesOfOffer_max_bits_partial() public {
-    // this verifies uint160(givesR) != givesR in dualWantsGivesOfOffer
-    dualWantsGivesOfOffer_max_bits(true, 2);
+  function test_dualWantsGivesOfOffer_maxBitsPartialTakeFullCompound_correctCalculation() public {
+    test_dualWantsGivesOfOffer_maxBits_correctCalculation(true, 2, true);
   }
 
-  function test_dualWantsGivesOfOffer_max_bits_full() public {
-    // this verifies the edge cases:
+  function test_dualWantsGivesOfOffer_maxBitsPartialTakeZeroCompound_correctCalculation() public {
+    test_dualWantsGivesOfOffer_maxBits_correctCalculation(true, 2, false);
+  }
+
+  function test_dualWantsGivesOfOffer_maxBitsFullTakeZeroCompound_correctCalculation() public {
+    test_dualWantsGivesOfOffer_maxBits_correctCalculation(false, 2, false);
+  }
+
+  function test_dualWantsGivesOfOffer_maxBitsFullTakeFullCompound_correctCalculation() public {
+    test_dualWantsGivesOfOffer_maxBits_correctCalculation(false, 2, true);
+  }
+
+  function test_dualWantsGivesOfOffer_maxBits_correctCalculation(bool partialTake, uint numTakes, bool fullCompound)
+    internal
+  {
+    // With partialTake false we verify uint160(givesR) != givesR in dualWantsGivesOfOffer
+    // With partialTake true we verify the edge cases
     // uint160(givesR) != givesR
     // uint96(wants) != wants
     // uint96(gives) != gives
     // in dualWantsGivesOfOffer
-    dualWantsGivesOfOffer_max_bits(false, 2);
-  }
 
-  function dualWantsGivesOfOffer_max_bits(bool partialTake, uint numTakes) internal {
     uint8 spread = 8;
     uint8 pricePoints = type(uint8).max;
 
-    uint prec = kdl.PRECISION();
-    uint compoundRate = 10 ** prec; // max compoundRate
+    uint precision = kdl.PRECISION();
+
+    uint compoundRate = fullCompound ? 10 ** precision : 0;
 
     vm.prank(maker);
     kdl.retractOffers(0, 10);
@@ -1645,7 +1657,7 @@ abstract contract CoreKandelTest is MangroveTest {
         pivotId: 0,
         firstAskIndex: 2,
         pricePoints: pricePoints,
-        ratio: 2 * 10 ** prec,
+        ratio: 2 * 10 ** precision,
         spread: spread,
         expectRevert: bytes("")
       });
@@ -1670,7 +1682,13 @@ abstract contract CoreKandelTest is MangroveTest {
     uint[] memory statuses = new uint[](askIndex+2);
     if (partialTake) {
       MgvStructs.OfferPacked ask = kdl.getOffer(Ask, askIndex);
-      assertEq(1 ether * numTakes, ask.gives(), "ask should offer the provided 1 ether for each take");
+      if (fullCompound) {
+        assertEq(1 ether * numTakes, ask.gives(), "ask should offer the provided 1 ether for each take");
+      } else {
+        assertGt(
+          1 ether * numTakes, ask.gives(), "due to low compound ask should not offer the full ether for each take"
+        );
+      }
       statuses[0] = uint(OfferStatus.Bid);
     }
     statuses[askIndex] = uint(OfferStatus.Ask);

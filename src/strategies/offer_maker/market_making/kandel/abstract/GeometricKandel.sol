@@ -220,7 +220,12 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
       // using max precision
       wants = (order.wants * givesR) / (order.gives * (p ** spread));
     } else {
-      wants = order.wants * (givesR / (order.gives * (p ** spread)));
+      givesR /= order.gives;
+      if (uint160(givesR) == givesR) {
+        wants = (order.wants * givesR) / (p ** spread);
+      } else {
+        wants = order.wants * (givesR / (p ** spread));
+      }
     }
     // wants is higher than order.wants
     // this may cause wants to be higher than 2**96 allowed by Mangrove (for instance if one needs many quotes to buy sell base tokens)

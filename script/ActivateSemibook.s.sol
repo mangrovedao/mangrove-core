@@ -7,7 +7,7 @@ import {Mangrove} from "mgv_src/Mangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
-uint constant COVER_FACTOR = 100;
+uint constant COVER_FACTOR = 1000;
 
 /* 
   Activates a semibook on mangrove.

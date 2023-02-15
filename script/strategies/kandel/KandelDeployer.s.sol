@@ -23,9 +23,9 @@ contract KandelDeployer is Deployer {
       base: envAddressOrName("BASE"),
       quote: envAddressOrName("QUOTE"),
       gaspriceFactor: vm.envUint("GASPRICE_FACTOR"),
-      compoundRateBase: 10 ** 4, // default is 100% compounding for base
-      compoundRateQuote: 10 ** 4, // default is 100% compounding for quote
-      gasreq: 100_000
+      compoundRateBase: vm.envUint("COMPOUND_RATE_BASE"),
+      compoundRateQuote: vm.envUint("COMPOUND_RATE_QUOTE"),
+      gasreq: 140_000
     });
     outputDeployment();
   }
@@ -46,8 +46,6 @@ contract KandelDeployer is Deployer {
     uint compoundRateBase,
     uint compoundRateQuote
   ) public {
-    require(uint24(compoundRateBase) == compoundRateBase, "compoundRateBase is too big");
-    require(uint24(compoundRateQuote) == compoundRateQuote, "compoundRateQuote is too big");
     IMangrove mgv = IMangrove(fork.get("Mangrove"));
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
 
@@ -62,7 +60,7 @@ contract KandelDeployer is Deployer {
     );
 
     broadcast();
-    current.setCompoundRates(uint24(compoundRateBase), uint24(compoundRateQuote));
+    current.setCompoundRates(compoundRateBase, compoundRateQuote);
 
     string memory kandelName = getName(IERC20(base), IERC20(quote));
     fork.set(kandelName, address(current));

@@ -8,52 +8,28 @@
     "name": "Tester"
   },
   {
-    "address": "0x5343b5bA672Ae99d627A1C87866b8E53F47Db2E6",
+    "address": "0xeb7A892BB04A8f836bDEeBbf60897A7Af1Bf5d7F",
     "name": "Aave"
   },
   {
-    "address": "0x6C9fB0D5bD9429eb9Cd96B85B81d872281771E6B",
+    "address": "0x0b913a76beff3887d35073b8e5530755d60f78c7",
     "name": "Aave Pool"
   },
   {
-    "address": "0x63E537A69b3f5B03F4f46c5765c82861BD874b6e",
+    "address": "0xD087ff96281dcf722AEa82aCA57E8545EA9e6C96",
     "name": "WETH"
   },
   {
-    "address": "0xF61Cffd6071a8DB7cD5E8DF1D3A5450D9903cF1c",
+    "address": "0xf237dE5664D3c2D2545684E76fef02A3A58A364c",
+    "name": "WMATIC"
+  },
+  {
+    "address": "0xe9DcE89B076BA6107Bb64EF30678efec11939234",
     "name": "USDC"
   },
   {
-    "address": "0xC87385b5E62099f92d490750Fcd6C901a524BBcA",
+    "address": "0xF14f9596430931E177469715c591513308244e8F",
     "name": "DAI"
-  },
-  {
-    "name": "DAI_AAVE",
-    "address": "0x9A753f0F7886C9fbF63cF59D0D4423C5eFaCE95B"
-  },
-  {
-    "address": "0xDD4f3Ee61466C4158D394d57f3D4C397E91fBc51",
-    "name": "ADAI"
-  },
-  {
-    "name": "USDC_AAVE",
-    "address": "0x9aa7fEc87CA69695Dd1f879567CcF49F3ba417E2"
-  },
-  {
-    "address": "0xCdc2854e97798AfDC74BC420BD5060e022D14607",
-    "name": "AUSDC"
-  },
-  {
-    "name": "USDT_AAVE",
-    "address": "0x21c561e551638401b937b03fe5a0a0652b99b7dd"
-  },
-  {
-    "address": "0x685bF4eab23993E94b4CFb9383599c926B66cF57",
-    "name": "AWETH"
-  },
-  {
-    "name": "WETH_AAVE",
-    "address": "0xd575d4047f8c667e064a4ad433d04e25187f40bb"
   },
   {
     "address": "0x11942A6952324f7Fc63Dc57Ed6Ec767b5fc263D6",

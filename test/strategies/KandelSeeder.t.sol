@@ -8,6 +8,7 @@ import {
   GeometricKandel
 } from "mgv_src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
+import {AavePooledRouter} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandel.sol";
 
 contract KandelSeederTest is MangroveTest {
   PinnedPolygonFork fork;
@@ -35,13 +36,15 @@ contract KandelSeederTest is MangroveTest {
   function setUp() public virtual override {
     /// sets base, quote, opens a market (base,quote) on Mangrove
     setEnvironment();
+    AavePooledRouter aavePooledRouter = new AavePooledRouter(fork.get('Aave'), 500_000);
+
     seeder = new KandelSeeder({
       mgv:IMangrove($(mgv)), 
-      addressesProvider: fork.get('Aave'), 
-      routerGasreq: 500_000, 
+      aavePooledRouter: aavePooledRouter,
       aaveKandelGasreq: 128_001, 
       kandelGasreq: 128_000
     });
+    aavePooledRouter.setAdmin(address(seeder));
   }
 
   function test_aave_manager_is_attributed() public {
@@ -51,7 +54,7 @@ contract KandelSeederTest is MangroveTest {
   function test_logs_new_aaveKandel() public {
     address maker = freshAddress("Maker");
     expectFrom(address(seeder));
-    emit NewAaveKandel(maker, base, quote, 0xDD4c722d1614128933d6DC7EFA50A6913e804E12, maker);
+    emit NewAaveKandel(maker, base, quote, 0xa38D17ef017A314cCD72b8F199C0e108EF7Ca04c, maker);
     vm.prank(maker);
     seeder.sow(seed(true, true));
   }
@@ -59,7 +62,7 @@ contract KandelSeederTest is MangroveTest {
   function test_logs_new_kandel() public {
     address maker = freshAddress("Maker");
     expectFrom(address(seeder));
-    emit NewKandel(maker, base, quote, 0xDD4c722d1614128933d6DC7EFA50A6913e804E12);
+    emit NewKandel(maker, base, quote, 0xa38D17ef017A314cCD72b8F199C0e108EF7Ca04c);
     vm.prank(maker);
     seeder.sow(seed(false, true));
   }

@@ -48,13 +48,11 @@ contract KandelSeeder {
   event NewKandel(address indexed owner, IERC20 indexed base, IERC20 indexed quote, address kandel);
 
   ///@notice constructor for `KandelSeeder`. Initializes an `AavePooledRouter` with this seeder as manager.
-  constructor(IMangrove mgv, address addressesProvider, uint routerGasreq, uint aaveKandelGasreq, uint kandelGasreq) {
-    AavePooledRouter router = new AavePooledRouter(addressesProvider, routerGasreq);
-    AAVE_ROUTER = router;
+  constructor(IMangrove mgv, AavePooledRouter aavePooledRouter, uint aaveKandelGasreq, uint kandelGasreq) {
+    AAVE_ROUTER = aavePooledRouter;
     MGV = mgv;
     AAVE_KANDEL_GASREQ = aaveKandelGasreq;
     KANDEL_GASREQ = kandelGasreq;
-    router.setAaveManager(msg.sender);
   }
 
   ///@notice Kandel deployment parameters

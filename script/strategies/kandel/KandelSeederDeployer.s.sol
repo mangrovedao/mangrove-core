@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import {Script, console} from "forge-std/Script.sol";
 import {IMangrove, IERC20, KandelSeeder} from "mgv_src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol";
 import {CoreKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
+import {AavePooledRouter} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandel.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
 
@@ -13,14 +14,14 @@ import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
 
 contract KandelSeederDeployer is Deployer {
   function run() public {
-    KandelSeeder seeder = innerRun({
+    innerRun({
       mgv: IMangrove(fork.get("Mangrove")),
       addressesProvider: fork.get("Aave"),
       aaveKandelGasreq: vm.envUint("AAVE_KANDEL_GASREQ"),
       kandelGasreq: vm.envUint("KANDEL_GASREQ"),
       aaveRouterGasreq: vm.envUint("AAVE_ROUTER_GASREQ")
     });
-    smokeTest(seeder);
+    smokeTest(KandelSeeder(fork.get("KandelSeeder")));
     outputDeployment();
   }
 
@@ -30,10 +31,19 @@ contract KandelSeederDeployer is Deployer {
     uint aaveRouterGasreq,
     uint aaveKandelGasreq,
     uint kandelGasreq
-  ) public returns (KandelSeeder seeder) {
+  ) public {
     prettyLog("Deploying Kandel seeder...");
+
+    prettyLog("Deploying AavePooledRouter...");
     broadcast();
-    seeder = new KandelSeeder(mgv, addressesProvider, aaveRouterGasreq, aaveKandelGasreq, kandelGasreq);
+    AavePooledRouter aavePooledRouter = new AavePooledRouter(addressesProvider, aaveRouterGasreq);
+
+    broadcast();
+    KandelSeeder seeder = new KandelSeeder(mgv, aavePooledRouter, aaveKandelGasreq, kandelGasreq);
+    broadcast();
+    aavePooledRouter.setAdmin(address(seeder));
+
+    fork.set("KandelSeeder", address(seeder));
     console.log("Deployed!");
   }
 

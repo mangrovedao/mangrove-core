@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// KandelDeployer.sol
+// KandelSeeder.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -47,7 +47,7 @@ contract KandelSeeder {
   ///@param kandel the address of the deployed strat.
   event NewKandel(address indexed owner, IERC20 indexed base, IERC20 indexed quote, address kandel);
 
-  ///@notice constructor for `KandelSeeder. Initializes an `AavePooledRouter` with this seeder as manager.
+  ///@notice constructor for `KandelSeeder`. Initializes an `AavePooledRouter` with this seeder as manager.
   constructor(IMangrove mgv, address addressesProvider, uint routerGasreq, uint aaveKandelGasreq, uint kandelGasreq) {
     AavePooledRouter router = new AavePooledRouter(addressesProvider, routerGasreq);
     AAVE_ROUTER = router;
@@ -92,7 +92,7 @@ contract KandelSeeder {
       kandel = aaveKandel;
       emit NewAaveKandel(msg.sender, seed.base, seed.quote, address(kandel), owner);
     } else {
-      kandel = new Kandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
+      kandel = new Kandel(MGV, seed.base, seed.quote, KANDEL_GASREQ, seed.gasprice, owner);
       emit NewKandel(msg.sender, seed.base, seed.quote, address(kandel));
     }
     uint fullCompound = 10 ** kandel.PRECISION();

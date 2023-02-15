@@ -39,7 +39,7 @@ contract KandelSeederTest is MangroveTest {
       mgv:IMangrove($(mgv)), 
       addressesProvider: fork.get('Aave'), 
       routerGasreq: 500_000, 
-      aaveKandelGasreq: 128_000, 
+      aaveKandelGasreq: 128_001, 
       kandelGasreq: 128_000
     });
   }
@@ -88,6 +88,8 @@ contract KandelSeederTest is MangroveTest {
     assertEq(address(kdl.router()), address(seeder.AAVE_ROUTER()), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
     assertEq(kdl.RESERVE_ID(), address(kdl), "Incorrect owner");
+    assertEq(kdl.offerGasreq(), 500_000 + 128_001);
+
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;
@@ -116,6 +118,7 @@ contract KandelSeederTest is MangroveTest {
     assertEq(address(kdl.router()), address(kdl.NO_ROUTER()), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
     assertEq(kdl.RESERVE_ID(), maker, "Incorrect owner");
+    assertEq(kdl.offerGasreq(), 128_000);
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;

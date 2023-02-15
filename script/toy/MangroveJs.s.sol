@@ -7,11 +7,13 @@ import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {MangroveOrderDeployer} from "mgv_script/strategies/MangroveOrderDeployer.s.sol";
+import {KandelSeederDeployer} from "mgv_script/strategies/kandel/KandelSeederDeployer.s.sol";
 import {MangroveOrder} from "mgv_src/strategies/MangroveOrderEnriched.sol";
 import {SimpleTestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {ActivateMarket} from "mgv_script/ActivateMarket.s.sol";
+import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
 
 /* 
 This script prepares a local server for testing by mangrove.js.
@@ -111,6 +113,20 @@ contract MangroveJsDeploy is Deployer {
 
     MangroveOrderDeployer mgoeDeployer = new MangroveOrderDeployer();
     mgoeDeployer.innerRun({admin: chief, mangrove: mgv});
+
+    address[] memory underlying =
+      dynamic([address(tokenA), address(tokenB), address(dai), address(usdc), address(weth)]);
+    broadcast();
+    address aaveAddressProvider = address(new PoolAddressProviderMock(underlying));
+
+    KandelSeederDeployer kandelSeederDeployer = new KandelSeederDeployer();
+    kandelSeederDeployer.innerRun({
+      mgv: IMangrove(payable(mgv)),
+      addressesProvider: aaveAddressProvider,
+      aaveRouterGasreq: 318_000,
+      aaveKandelGasreq: 338_000,
+      kandelGasreq: 128_000
+    });
 
     broadcast();
     mgo = new MangroveOrder({mgv: IMangrove(payable(mgv)), deployer: chief, gasreq:30_000});

@@ -11,20 +11,29 @@ import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kand
 import {console2} from "forge-std/Test.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
+import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
 
 contract AaveKandelTest is CoreKandelTest {
   PinnedPolygonFork fork;
   AavePooledRouter router;
   AaveKandel aaveKandel;
+  bool useForkAave = true;
+  address aave;
 
   function __setForkEnvironment__() internal override {
-    fork = new PinnedPolygonFork();
-    fork.setUp();
-    mgv = setupMangrove();
-    reader = new MgvReader($(mgv));
-    base = TestToken(fork.get("WETH"));
-    quote = TestToken(fork.get("USDC"));
-    setupMarket(base, quote);
+    if (useForkAave) {
+      fork = new PinnedPolygonFork();
+      fork.setUp();
+      mgv = setupMangrove();
+      reader = new MgvReader($(mgv));
+      base = TestToken(fork.get("WETH"));
+      quote = TestToken(fork.get("USDC"));
+      setupMarket(base, quote);
+      aave = fork.get("Aave");
+    } else {
+      super.__setForkEnvironment__();
+      aave = address(new PoolAddressProviderMock(dynamic([address(base), address(quote)])));
+    }
   }
 
   function __deployKandel__(address deployer, address id) internal virtual override returns (GeometricKandel) {
@@ -32,7 +41,7 @@ contract AaveKandelTest is CoreKandelTest {
     // 218_000 observed in tests of router
     uint router_gasreq = 318 * 1000;
     uint kandel_gasreq = 338 * 1000;
-    router = address(router) == address(0) ? new AavePooledRouter(fork.get("Aave"), router_gasreq) : router;
+    router = address(router) == address(0) ? new AavePooledRouter(aave, router_gasreq) : router;
     aaveKandel = new AaveKandel({
       mgv: IMangrove($(mgv)),
       base: base,
@@ -219,9 +228,9 @@ contract AaveKandelTest is CoreKandelTest {
     deal($(base), $(router), donationMultiplier * bestAsk.gives());
 
     vm.prank(taker);
-    (uint takerGot,,,) = mgv.marketOrder($(base), $(quote), bestAsk.gives() * 2, bestAsk.wants() * 2, true);
+    (uint takerGot,,, uint fee) = mgv.marketOrder($(base), $(quote), bestAsk.gives() * 2, bestAsk.wants() * 2, true);
 
-    assertEq(takerGot, bestAsk.gives() * 2, "both asks should be taken");
+    assertEq(takerGot + fee, bestAsk.gives() * 2, "both asks should be taken");
 
     if (allBaseOnAave) {
       assertEq(

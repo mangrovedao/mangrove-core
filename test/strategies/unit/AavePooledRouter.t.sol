@@ -5,8 +5,11 @@ import "./OfferLogic.t.sol";
 import {AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {AllMethodIdentifiersTest} from "mgv_test/lib/AllMethodIdentifiersTest.sol";
+import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
 
 contract AavePooledRouterTest is OfferLogicTest {
+  bool useForkAave = true; // false will make test_aave_generates_yield fail since mock tokens do not support yield.
+
   AavePooledRouter pooledRouter;
 
   uint constant GASREQ = 473.5 * 1000;
@@ -20,9 +23,11 @@ contract AavePooledRouterTest is OfferLogicTest {
 
   function setUp() public override {
     // deploying mangrove and opening WETH/USDC market.
-    fork = new PinnedPolygonFork();
+    if (useForkAave) {
+      fork = new PinnedPolygonFork();
+    }
     super.setUp();
-    dai = TestToken(fork.get("DAI"));
+
     vm.prank(deployer);
     makerContract.activate(dynamic([dai]));
     maker1 = freshAddress("maker1");
@@ -50,9 +55,14 @@ contract AavePooledRouterTest is OfferLogicTest {
   }
 
   function setupLiquidityRouting() internal override {
+    dai = useForkAave ? dai = TestToken(fork.get("DAI")) : new TestToken($(this),"Dai","Dai",options.base.decimals);
+    address aave = useForkAave
+      ? fork.get("Aave")
+      : address(new PoolAddressProviderMock(dynamic([address(dai), address(base), address(quote)])));
+
     vm.startPrank(deployer);
     AavePooledRouter router = new AavePooledRouter({
-      addressesProvider: fork.get("Aave"),
+      addressesProvider: aave,
       overhead: 218_000 // fails < 218K
     });
     router.bind(address(makerContract));

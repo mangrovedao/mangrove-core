@@ -22,10 +22,10 @@ contract KandelDeployer is Deployer {
     innerRun({
       base: envAddressOrName("BASE"),
       quote: envAddressOrName("QUOTE"),
-      gaspriceFactor: vm.envUint("GASPRICE_FACTOR"),
+      gaspriceFactor: vm.envUint("GASPRICE_FACTOR"), // 10 means cover 10x the current gasprice of Mangrove
       compoundRateBase: vm.envUint("COMPOUND_RATE_BASE"), // in percent
       compoundRateQuote: vm.envUint("COMPOUND_RATE_QUOTE"), // in percent
-      gasreq: 140_000
+      gasreq: 160_000
     });
     outputDeployment();
   }

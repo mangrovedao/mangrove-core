@@ -1,8 +1,11 @@
 # next version
 
-- Do not override src/ & other remappings, because when imported forge fails to properly nest them.
+# 1.4.2 (February 2023)
 
-# 1.4.1 (January 2022)
+- Do not override src/ & other remappings, because when imported forge fails to properly nest them.
+- new addresses for WETH, DAI and USDC on mumbai following addresses that are used by AAVE
+
+# 1.4.1 (January 2023)
 
 - Export SimpleTestMaker bytecode
 - Open markets in MangoveJsDeploy script

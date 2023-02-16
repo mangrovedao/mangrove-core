@@ -18,5 +18,13 @@
   {
     "address": "0x046963623BDB092A406ed051222e769D214bd107",
     "name": "MangroveOrderEnriched"
+  },
+  {
+    "address": "0x67CbCa7f1294cfF275c2e156D23F754Ba8Cd1D67",
+    "name": "Kandel_WETH_USDC"
+  },
+  {
+    "address": "0x349f8e8BbD5f1478A65fCCf0D354E24Ce0cac866",
+    "name": "Kandel_WETH_DAI"
   }
 ]

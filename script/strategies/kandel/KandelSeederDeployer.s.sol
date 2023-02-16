@@ -48,15 +48,6 @@ contract KandelSeederDeployer is Deployer {
   }
 
   function smokeTest(AbstractKandelSeeder kandelSeeder, AbstractRouter expectedRouter) internal {
-    string memory baseName;
-    string memory quoteName;
-    if (keccak256(abi.encode(fork.NAME())) == keccak256("mumbai")) {
-      baseName = "WETH_AAVE";
-      quoteName = "DAI_AAVE";
-    } else {
-      baseName = "WETH";
-      quoteName = "DAI";
-    }
     IERC20 base = IERC20(fork.get("WETH"));
     IERC20 quote = IERC20(fork.get("DAI"));
 

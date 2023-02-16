@@ -16,17 +16,20 @@ import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
  */
 
 /**
- *  KANDEL=Kandel_WETH_USDC FROM=0 TO=100 FIRST_ASK_INDEX=50 PRICE_POINTS=100\
- *  RATIO=101000 SPREAD=1 INIT_QUOTE=$(cast ff 6 100) VOLUME=$(cast ff 18 0.1)\
- *  forge script KandelPopulate --fork-url $LOCALHOST_URL --private-key $MUMBAI_PRIVATE_KEY --broadcast
+ * KANDEL=Kandel_WETH_USDC FROM=0 TO=100 FIRST_ASK_INDEX=50 PRICE_POINTS=100\
+ *    RATIO=101 SPREAD=1 INIT_QUOTE=$(cast ff 6 100) VOLUME=$(cast ff 18 0.1)\
+ *    forge script KandelPopulate --fork-url $LOCALHOST_URL --private-key $MUMBAI_PRIVATE_KEY --broadcast
  */
 
 contract KandelPopulate is Deployer {
   function run() public {
+    GeometricKandel kdl = Kandel(envAddressOrName("KANDEL"));
+    uint precision = kdl.PRECISION();
     Kandel.Params memory params;
 
-    params.ratio = uint24(vm.envUint("RATIO"));
-    require(params.ratio == vm.envUint("RATIO"), "Invalid RATIO");
+    uint ratio = vm.envUint("RATIO") * 10 ** (precision - 2);
+    params.ratio = uint24(ratio); // in percent
+    require(params.ratio == ratio, "Invalid RATIO");
     params.pricePoints = uint8(vm.envUint("PRICE_POINTS"));
     require(params.pricePoints == vm.envUint("PRICE_POINTS"), "Invalid PRICE_POINTS");
     params.spread = uint8(vm.envUint("SPREAD"));
@@ -40,7 +43,7 @@ contract KandelPopulate is Deployer {
         params: params,
         initQuote: vm.envUint("INIT_QUOTE"),
         volume: vm.envUint("VOLUME"),
-        kdl: Kandel(envAddressOrName("KANDEL"))
+        kdl: kdl
       })
     );
   }
@@ -62,7 +65,7 @@ contract KandelPopulate is Deployer {
     Kandel.Params params;
     uint initQuote;
     uint volume;
-    Kandel kdl;
+    GeometricKandel kdl;
   }
 
   struct HeapVars {
@@ -121,12 +124,14 @@ contract KandelPopulate is Deployer {
     prettyLog("Evaluating pivots and required collateral...");
     evaluatePivots(vars.distribution, args, vars, funds);
     // after the above call, `vars.pivotIds` and `vars.base/quoteAmountRequired` are filled
+    uint baseDecimals = vars.BASE.decimals();
+    uint quoteDecimals = vars.QUOTE.decimals();
     prettyLog(
       string.concat(
-        "Got required collateral of base=",
-        vm.toString(vars.baseAmountRequired),
-        " and quote=",
-        vm.toString(vars.quoteAmountRequired)
+        "Required collateral of base is ",
+        toUnit(vars.baseAmountRequired, baseDecimals),
+        " and quote is ",
+        toUnit(vars.quoteAmountRequired, quoteDecimals)
       )
     );
 
@@ -137,7 +142,7 @@ contract KandelPopulate is Deployer {
         "Not enough base (",
         vm.toString(address(vars.BASE)),
         "). Deficit: ",
-        vm.toString(vars.baseAmountRequired - vars.BASE.balanceOf(broadcaster()))
+        toUnit(vars.baseAmountRequired - vars.BASE.balanceOf(broadcaster()), baseDecimals)
       );
     }
     if (vars.QUOTE.balanceOf(broadcaster()) < vars.quoteAmountRequired) {
@@ -146,7 +151,7 @@ contract KandelPopulate is Deployer {
         "Not enough quote (",
         vm.toString(address(vars.QUOTE)),
         "). Deficit: ",
-        vm.toString(vars.quoteAmountRequired - vars.QUOTE.balanceOf(broadcaster()))
+        toUnit(vars.quoteAmountRequired - vars.QUOTE.balanceOf(broadcaster()), quoteDecimals)
       );
     }
     if (bytes(deficit).length > 0) {
@@ -173,7 +178,7 @@ contract KandelPopulate is Deployer {
       dynamic([IERC20(vars.BASE), vars.QUOTE]),
       dynamic([uint(vars.baseAmountRequired), vars.quoteAmountRequired])
     );
-    console.log(toUnit(funds, 18), "eth used as provision");
+    console.log(toUnit(funds, 18), "native tokens used as provision");
   }
 
   function calculateBaseQuote(HeapArgs memory args) public view returns (CoreKandel.Distribution memory distribution) {

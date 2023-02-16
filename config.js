@@ -15,6 +15,7 @@ exports.abi_exports = [
   "ILiquidityProvider",
   "AccessControlled",
   "AbstractKandel",
+  "GeometricKandel",
   "Kandel",
   "AaveKandel",
   "AbstractKandelSeeder",

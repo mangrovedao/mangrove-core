@@ -12,7 +12,7 @@ import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
 /**
  * @notice deploys a Kandel instance on a given market
  * @dev since the max number of price slot Kandel can use is an immutable, one should deploy Kandel on a large price range.
- * @dev Example: NAME=kandel1 BASE=WETH QUOTE=USDC GASPRICE_FACTOR=10 forge script KandelDeployer -f $LOCAL_URL -vvv
+ * @dev Example: WRITE_DEPLOY=true BASE=WETH QUOTE=USDC GASPRICE_FACTOR=10 COMPOUND_RATE_BASE=100 COMPOUND_RATE_QUOTE=100 forge script --fork-url $LOCALHOST_URL KandelDeployer --broadcast --private-key $MUMBAI_PRIVATE_KEY
  */
 
 contract KandelDeployer is Deployer {
@@ -23,9 +23,9 @@ contract KandelDeployer is Deployer {
       base: envAddressOrName("BASE"),
       quote: envAddressOrName("QUOTE"),
       gaspriceFactor: vm.envUint("GASPRICE_FACTOR"),
-      compoundRateBase: 10 ** 4, // default is 100% compounding for base
-      compoundRateQuote: 10 ** 4, // default is 100% compounding for quote
-      gasreq: 100_000
+      compoundRateBase: vm.envUint("COMPOUND_RATE_BASE"), // in percent
+      compoundRateQuote: vm.envUint("COMPOUND_RATE_QUOTE"), // in percent
+      gasreq: 140_000
     });
     outputDeployment();
   }
@@ -46,8 +46,6 @@ contract KandelDeployer is Deployer {
     uint compoundRateBase,
     uint compoundRateQuote
   ) public {
-    require(uint24(compoundRateBase) == compoundRateBase, "compoundRateBase is too big");
-    require(uint24(compoundRateQuote) == compoundRateQuote, "compoundRateQuote is too big");
     IMangrove mgv = IMangrove(fork.get("Mangrove"));
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
 
@@ -61,8 +59,9 @@ contract KandelDeployer is Deployer {
       broadcaster()
     );
 
+    uint precision = current.PRECISION();
     broadcast();
-    current.setCompoundRates(uint24(compoundRateBase), uint24(compoundRateQuote));
+    current.setCompoundRates(compoundRateBase * 10 ** (precision - 2), compoundRateQuote * 10 ** (precision - 2));
 
     string memory kandelName = getName(IERC20(base), IERC20(quote));
     fork.set(kandelName, address(current));

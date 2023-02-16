@@ -16,7 +16,11 @@ The AavePooledRouter version of the Kandel contract.
 
 ### src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol
 
-A contract to do permissionless deploy the Kandel and AaveKandel contracts and bind to a shared router
+A contract to do permissionless deploy the Kandel contract.
+
+### src/strategies/offer_maker/market_making/kandel/AaveKandelSeeder.sol
+
+A contract to do permissionless deploy the AaveKandel contract and bind to a shared router
 
 ### Dependencies
 

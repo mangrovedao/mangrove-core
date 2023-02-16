@@ -22,6 +22,10 @@ A contract to do permissionless deploy the Kandel contract.
 
 A contract to do permissionless deploy the AaveKandel contract and bind to a shared router
 
+### src/strategies/offer_maker/market_making/kandel/abstract/AbstractKandelSeeder.sol
+
+An abstract contract for the two seeders above.
+
 ### Dependencies
 
 Kandel type strategies and Aave router have the following dependencies:

@@ -7,13 +7,19 @@ import {
   IMangrove,
   GeometricKandel
 } from "mgv_src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol";
-import {AaveKandelSeeder} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandelSeeder.sol";
+import {
+  AaveKandelSeeder, AavePooledRouter
+} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandelSeeder.sol";
+import {AbstractKandelSeeder} from
+  "mgv_src/strategies/offer_maker/market_making/kandel/abstract/AbstractKandelSeeder.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
+import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 
 contract KandelSeederTest is MangroveTest {
   PinnedPolygonFork fork;
-  KandelSeeder seeder;
-  AaveKandelSeeder aaveSeeder;
+  AbstractKandelSeeder seeder;
+  AbstractKandelSeeder aaveSeeder;
+  AavePooledRouter aaveRouter;
 
   event NewAaveKandel(
     address indexed owner, IERC20 indexed base, IERC20 indexed quote, address aaveKandel, address reserveId
@@ -21,12 +27,14 @@ contract KandelSeederTest is MangroveTest {
   event NewKandel(address indexed owner, IERC20 indexed base, IERC20 indexed quote, address kandel);
 
   function sow(bool sharing) internal returns (GeometricKandel) {
-    return seeder.sow(KandelSeeder.KandelSeed({base: base, quote: quote, gasprice: 0, liquiditySharing: sharing}));
+    return
+      seeder.sow(AbstractKandelSeeder.KandelSeed({base: base, quote: quote, gasprice: 0, liquiditySharing: sharing}));
   }
 
   function sowAave(bool sharing) internal returns (GeometricKandel) {
-    return
-      aaveSeeder.sow(AaveKandelSeeder.KandelSeed({base: base, quote: quote, gasprice: 0, liquiditySharing: sharing}));
+    return aaveSeeder.sow(
+      AbstractKandelSeeder.KandelSeed({base: base, quote: quote, gasprice: 0, liquiditySharing: sharing})
+    );
   }
 
   function setEnvironment() internal {
@@ -47,16 +55,18 @@ contract KandelSeederTest is MangroveTest {
       kandelGasreq: 128_000
     });
 
-    aaveSeeder = new AaveKandelSeeder({
+    AaveKandelSeeder aaveKandelSeeder = new AaveKandelSeeder({
       mgv:IMangrove($(mgv)), 
       addressesProvider: fork.get('Aave'), 
       routerGasreq: 500_000, 
       aaveKandelGasreq: 128_001
     });
+    aaveSeeder = aaveKandelSeeder;
+    aaveRouter = aaveKandelSeeder.AAVE_ROUTER();
   }
 
   function test_aave_manager_is_attributed() public {
-    assertEq(aaveSeeder.AAVE_ROUTER().aaveManager(), address(this), "invalid aave Manager");
+    assertEq(aaveRouter.aaveManager(), address(this), "invalid aave Manager");
   }
 
   function test_logs_new_aaveKandel() public {
@@ -81,7 +91,7 @@ contract KandelSeederTest is MangroveTest {
     vm.prank(maker);
     kdl = sowAave(true);
 
-    assertEq(address(kdl.router()), address(aaveSeeder.AAVE_ROUTER()), "Incorrect router address");
+    assertEq(address(kdl.router()), address(aaveRouter), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
     assertEq(kdl.RESERVE_ID(), kdl.admin(), "Incorrect owner");
     IERC20[] memory tokens = new IERC20[](2);
@@ -96,7 +106,7 @@ contract KandelSeederTest is MangroveTest {
     vm.prank(maker);
     kdl = sowAave(false);
 
-    assertEq(address(kdl.router()), address(aaveSeeder.AAVE_ROUTER()), "Incorrect router address");
+    assertEq(address(kdl.router()), address(aaveRouter), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
     assertEq(kdl.RESERVE_ID(), address(kdl), "Incorrect owner");
     assertEq(kdl.offerGasreq(), 500_000 + 128_001);

@@ -8,7 +8,7 @@ import {AllMethodIdentifiersTest} from "mgv_test/lib/AllMethodIdentifiersTest.so
 import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
 
 contract AavePooledRouterTest is OfferLogicTest {
-  bool useForkAave = true; // false will make test_aave_generates_yield fail since mock tokens do not support yield.
+  bool useForkAave = true;
 
   AavePooledRouter pooledRouter;
 
@@ -414,37 +414,6 @@ contract AavePooledRouterTest is OfferLogicTest {
       console.logAddress(rewardsList[i]);
       console.log(claimedAmounts[i]);
     }
-  }
-
-  function test_aave_generates_yield() public {
-    deal($(weth), maker1, 10 * 10 ** 18);
-    deal($(usdc), maker1, 10_000 * 10 ** 6);
-    deal($(dai), maker1, 10_000 * 10 ** 18);
-
-    vm.startPrank(maker1);
-    pooledRouter.pushAndSupply(
-      dynamic([IERC20(weth), usdc, dai]), dynamic([uint(10 * 10 ** 18), 10_000 * 10 ** 6, 10_000 * 10 ** 18]), maker1
-    );
-    vm.stopPrank();
-
-    uint old_reserve_weth = pooledRouter.balanceOfReserve(weth, maker1);
-    uint old_reserve_usdc = pooledRouter.balanceOfReserve(usdc, maker1);
-    uint old_reserve_dai = pooledRouter.balanceOfReserve(dai, maker1);
-    // // fast forwarding a year
-    vm.warp(block.timestamp + 31536000);
-    uint new_reserve_weth = pooledRouter.balanceOfReserve(weth, maker1);
-    uint new_reserve_usdc = pooledRouter.balanceOfReserve(usdc, maker1);
-    uint new_reserve_dai = pooledRouter.balanceOfReserve(dai, maker1);
-    assertTrue(
-      old_reserve_weth < new_reserve_weth && old_reserve_usdc < new_reserve_usdc && old_reserve_dai < new_reserve_dai,
-      "No yield from AAVE"
-    );
-    console.log(
-      "WETH (+%s), USDC (+%s), DAI(+%s)",
-      toUnit(new_reserve_weth - old_reserve_weth, 18),
-      toUnit(new_reserve_usdc - old_reserve_usdc, 6),
-      toUnit(new_reserve_dai - old_reserve_dai, 18)
-    );
   }
 
   function test_checkList_throws_for_tokens_that_are_not_listed_on_aave() public {

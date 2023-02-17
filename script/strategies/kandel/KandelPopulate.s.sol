@@ -24,12 +24,9 @@ import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 contract KandelPopulate is Deployer {
   function run() public {
     GeometricKandel kdl = Kandel(envAddressOrName("KANDEL"));
-    uint precision = kdl.PRECISION();
     Kandel.Params memory params;
-
-    uint ratio = vm.envUint("RATIO") * 10 ** (precision - 2);
-    params.ratio = uint24(ratio); // in percent
-    require(params.ratio == ratio, "Invalid RATIO");
+    params.ratio = uint24(vm.envUint("RATIO"));
+    require(params.ratio == vm.envUint("RATIO"), "Invalid RATIO");
     params.pricePoints = uint8(vm.envUint("PRICE_POINTS"));
     require(params.pricePoints == vm.envUint("PRICE_POINTS"), "Invalid PRICE_POINTS");
     params.spread = uint8(vm.envUint("SPREAD"));
@@ -91,16 +88,13 @@ contract KandelPopulate is Deployer {
     vars.mgvReader = MgvReader(fork.get("MgvReader"));
     vars.BASE = args.kdl.BASE();
     vars.QUOTE = args.kdl.QUOTE();
-
     (
       vars.gasprice,
       vars.gasreq,
       /*uint24 ratio*/
       ,
-      /*uint24 compoundRateBase*/
-      ,
-      /*uint24 compoundRateQuote*/
-      ,
+      args.params.compoundRateBase,
+      args.params.compoundRateQuote,
       /*uint8 spread*/
       ,
       /*uint8 length*/

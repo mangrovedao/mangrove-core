@@ -6,7 +6,7 @@ import {MangroveDeployer} from "mgv_script/MangroveDeployer.s.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {MangroveOrderDeployer} from "mgv_script/strategies/MangroveOrder/MangroveOrderDeployer.s.sol";
+import {MangroveOrderDeployer} from "mgv_script/strategies/mangroveOrder/MangroveOrderDeployer.s.sol";
 import {KandelSeederDeployer} from "mgv_script/strategies/kandel/KandelSeederDeployer.s.sol";
 import {MangroveOrder} from "mgv_src/strategies/MangroveOrderEnriched.sol";
 import {SimpleTestMaker} from "mgv_test/lib/agents/TestMaker.sol";

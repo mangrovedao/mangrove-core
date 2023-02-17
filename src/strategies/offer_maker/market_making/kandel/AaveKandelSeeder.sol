@@ -1,6 +1,6 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// KandelSeeder.sol
+// AaveKandelSeeder.sol
 
 // Copyright (c) 2022 ADDMA. All rights reserved.
 
@@ -12,24 +12,28 @@
 pragma solidity ^0.8.10;
 
 import {MgvStructs} from "mgv_src/MgvLib.sol";
-import {Kandel} from "./Kandel.sol";
+import {AaveKandel, AavePooledRouter} from "./AaveKandel.sol";
 import {GeometricKandel} from "./abstract/GeometricKandel.sol";
 import {AbstractKandelSeeder} from "./abstract/AbstractKandelSeeder.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
-///@title Kandel strat deployer.
-///@notice This seeder deploys Kandel strats on demand and binds them to an AAVE router if needed.
+///@title AaveKandel strat deployer.
+///@notice This seeder deploys Kandel strats on demand and binds them to an AAVE router.
 ///@dev deployer of this contract will gain aave manager power on the AAVE router (power to claim rewards and enter/exit markets)
 ///@dev when deployer is a contract one must therefore make sure it is able to call the corresponding functions on the router
-contract KandelSeeder is AbstractKandelSeeder {
+contract AaveKandelSeeder is AbstractKandelSeeder {
+  AavePooledRouter public immutable AAVE_ROUTER;
   IMangrove public immutable MGV;
-  uint public immutable KANDEL_GASREQ;
+  uint public immutable AAVE_KANDEL_GASREQ;
 
-  ///@notice constructor for `KandelSeeder`.
-  constructor(IMangrove mgv, uint kandelGasreq) {
+  ///@notice constructor for `AaveKandelSeeder`. Initializes an `AavePooledRouter` with this seeder as manager.
+  constructor(IMangrove mgv, address addressesProvider, uint routerGasreq, uint aaveKandelGasreq) {
+    AavePooledRouter router = new AavePooledRouter(addressesProvider, routerGasreq);
+    AAVE_ROUTER = router;
     MGV = mgv;
-    KANDEL_GASREQ = kandelGasreq;
+    AAVE_KANDEL_GASREQ = aaveKandelGasreq;
+    router.setAaveManager(msg.sender);
   }
 
   ///@notice deploys a new Kandel contract for the given seed.
@@ -44,8 +48,13 @@ contract KandelSeeder is AbstractKandelSeeder {
     (, MgvStructs.LocalPacked local) = MGV.config(address(seed.base), address(seed.quote));
     require(local.active(), "KandelSeeder/inactiveMarket");
 
-    kandel = new Kandel(MGV, seed.base, seed.quote, KANDEL_GASREQ, seed.gasprice, owner);
-    emit NewKandel(msg.sender, seed.base, seed.quote, address(kandel));
+    AaveKandel aaveKandel = new AaveKandel(MGV, seed.base, seed.quote, AAVE_KANDEL_GASREQ, seed.gasprice, owner);
+    // Allowing newly deployed Kandel to bind to the AaveRouter
+    AAVE_ROUTER.bind(address(aaveKandel));
+    // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20
+    aaveKandel.initialize(AAVE_ROUTER);
+    kandel = aaveKandel;
+    emit NewAaveKandel(msg.sender, seed.base, seed.quote, address(kandel), owner);
 
     uint fullCompound = 10 ** kandel.PRECISION();
     kandel.setCompoundRates(fullCompound, fullCompound);

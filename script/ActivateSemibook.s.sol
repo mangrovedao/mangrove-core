@@ -3,11 +3,12 @@ pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Test2} from "mgv_lib/Test2.sol";
+import {console} from "forge-std/Test.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
-uint constant COVER_FACTOR = 100;
+uint constant COVER_FACTOR = 1000;
 
 /* 
   Activates a semibook on mangrove.
@@ -63,6 +64,7 @@ contract ActivateSemibook is Test2, Deployer {
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
     uint outbound_decimals = IERC20(outbound_tkn).decimals();
     uint density = (COVER_FACTOR * global.gasprice() * 10 ** outbound_decimals) / outbound_in_gwei;
+    console.log("Derived density (in wei per gas unit)", density);
 
     broadcast();
     mgv.activate({

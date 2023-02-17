@@ -15,7 +15,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 import {
   MangroveOrderDeployer, MangroveOrderEnriched
-} from "mgv_script/strategies/MangroveOrder/MangroveOrderDeployer.s.sol";
+} from "mgv_script/strategies/mangroveOrder/MangroveOrderDeployer.s.sol";
 
 contract MangroveOrderDeployerTest is Deployer, Test2 {
   MangroveOrderDeployer mgoDeployer;

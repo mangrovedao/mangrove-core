@@ -1587,7 +1587,7 @@ abstract contract CoreKandelTest is MangroveTest {
     });
     t.gas0Pivot = t.gas0Pivot - gasleft();
 
-    //   require(vm.revertTo(t.snapshotId), "second snapshot restore failed");
+    require(vm.revertTo(t.snapshotId), "second snapshot restore failed");
 
     // Populate with pivots
     vm.prank(maker);

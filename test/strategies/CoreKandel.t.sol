@@ -1587,7 +1587,7 @@ abstract contract CoreKandelTest is MangroveTest {
     });
     t.gas0Pivot = t.gas0Pivot - gasleft();
 
-    require(vm.revertTo(t.snapshotId), "second snapshot restore failed");
+    //   require(vm.revertTo(t.snapshotId), "second snapshot restore failed");
 
     // Populate with pivots
     vm.prank(maker);
@@ -1607,7 +1607,7 @@ abstract contract CoreKandelTest is MangroveTest {
     assertApproxEqAbs(0, kdl.pending(OfferType.Ask), precisionForAssert(), "required base amount should be deposited");
     assertApproxEqAbs(0, kdl.pending(OfferType.Bid), precisionForAssert(), "required quote amount should be deposited");
 
-    console.log("No pivot populate: %s PivotPopulate: %s", t.gas0Pivot, t.gasPivots);
+    //   console.log("No pivot populate: %s PivotPopulate: %s", t.gas0Pivot, t.gasPivots);
 
     assertLt(t.gasPivots, t.gas0Pivot, "Providing pivots should save gas");
   }

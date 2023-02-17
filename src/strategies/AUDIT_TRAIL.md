@@ -1,5 +1,7 @@
 # Contracts in scope for the audit
 
+![SVG Kandel overview](./kandel.drawio.svg)
+
 ## Kandel and AAVE router
 
 ### src/strategies/offer_maker/market_making/kandel/Kandel.sol

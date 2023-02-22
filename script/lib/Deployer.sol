@@ -10,6 +10,10 @@ import {LocalFork} from "mgv_test/lib/forks/Local.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
 address constant ANVIL_DEFAULT_FIRST_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+string constant SINGLETON_FORK = "Deployer:Fork";
+string constant SINGLETON_BROADCASTER = "Deployer:broadcaster";
+
+// TODO Add constants for singleton labels (instead of repeating the string everywhere)
 
 /* Writes deployments in 2 ways:
    1. In a json file. Easier to write one directly than to parse&transform
@@ -29,7 +33,7 @@ address constant ANVIL_DEFAULT_FIRST_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279c
 abstract contract Deployer is Script2 {
   // singleton Fork so all deploy scripts talk to the same backend
   // singleton method used for fork, so constructor-modified state is kept (just doing vm.etch forgets that state diff)
-  GenericFork fork = GenericFork(singleton("Deployer:Fork"));
+  GenericFork fork = GenericFork(singleton(SINGLETON_FORK));
   // This remote ENS cannot be set from the deployment script because anvil does not support cheatcodes. The client will use anvil_setCode at that address.
   ToyENS remoteEns = ToyENS(address(bytes20(hex"decaf0")));
 
@@ -39,11 +43,11 @@ abstract contract Deployer is Script2 {
   bytes32 salt; // salt used for create2 deployments
 
   constructor() {
-    vm.label(address(fork), "Deployer:Fork");
+    vm.label(address(fork), SINGLETON_FORK);
     vm.label(address(remoteEns), "Remote ENS");
 
     // detect if we've already created a fork -- the singleton method works as an inter-contract storage used for communication
-    if (singleton("Deployer:Fork") == address(0)) {
+    if (singleton(SINGLETON_FORK) == address(0)) {
       // depending on which fork the script is running on, choose whether to write the addresses to a file, get the right fork contract, and name the current network.
       if (block.chainid == 80001) {
         fork = new MumbaiFork();
@@ -59,10 +63,10 @@ abstract contract Deployer is Script2 {
         deployRemoteToyENS();
       }
 
-      singleton("Deployer:Fork", address(fork));
+      singleton(SINGLETON_FORK, address(fork));
       fork.setUp();
     } else {
-      fork = GenericFork(singleton("Deployer:Fork"));
+      fork = GenericFork(singleton(SINGLETON_FORK));
     }
 
     try vm.envBool("WRITE_DEPLOY") returns (bool writeDeploy_) {
@@ -102,28 +106,76 @@ abstract contract Deployer is Script2 {
 
   // compute & memoize the current broadcaster address
   function broadcaster() public returns (address) {
-    /* Memoize _broadcaster. Cannot just do it in constructor because tx.origin for script constructors does not depend on additional CLI args */
+    // console.log("_broadcaster");
+    // console.log(_broadcaster);
+    // console.log(vm.envString("BROADCASTER"));
+
+    // Memoize _broadcaster. Cannot just do it in constructor because tx.origin
+    // for script constructors does not depend on additional CLI args
+
+    // Note on how we ended up with a singleton(SINGLETON_BROADCASTER):
+    // Scripts must be tested. Tests must set the broadcaster used by scripts,
+    // recursively (scripts can call other scripts). The obvious solution is to
+    // read a BROADCASTER env var in scripts to determine who broadcasts, and to do
+    //
+    //   vm.setEnv("BROADCASTER",<my broadcaster address>);
+    //   (new Script()).innerRun(<args>)
+    //
+    // in tests. But tests are run in parallel. env is process-wide. So races
+    // will occur, i.e. tests of scripts will overwrite each other's
+    // broadcasters.  The solution is to write the broadcaster to a known
+    // address -- a state singleton.
+
+    // Note on why there is a BROADCASTER env var: we added the BROADCASTER env
+    // var because setting --sender to a contract address would make foundry
+    // throw. It seems not to be the case anymore, but we keep BROADCASTER
+    // because it means we can use our internal address names like so:
+    //
+    //   BROADCASTER=ADDMA forge script ....
+
+    // BROADCASTER has precedence over --sender
+    // --sender has precedence over *_PRIVATE_KEY.
     if (_broadcaster == address(0)) {
-      // In the default case, forge sets the broadcaster to be tx.origin.
-      // Using msg.sender would not work since we don't know how deep in the callstack we are.
-      _broadcaster = tx.origin;
-      // there are two possible default tx.origin depending on foundry version
-      if (_broadcaster == 0x00a329c0648769A73afAc7F9381E08FB43dBEA72 || _broadcaster == DEFAULT_SENDER) {
-        // we interpret the BROADCASTER variable because --sender fails immediately if it is a contract
-        // has precedence over *_PRIVATE_KEY
+      _broadcaster = singleton(SINGLETON_BROADCASTER);
+      console.log("Got broadcaster:", _broadcaster);
+      if (_broadcaster == address(0)) {
         if (envHas("BROADCASTER")) {
           _broadcaster = envAddressOrName("BROADCASTER");
-        } else {
-          string memory pkEnvVar = string.concat(simpleCapitalize(fork.NAME()), "_PRIVATE_KEY");
-          try vm.envUint(pkEnvVar) returns (uint key) {
-            _broadcaster = vm.rememberKey(key);
-          } catch {
-            console.log("%s not found or not parseable as uint, using default broadcast sender", pkEnvVar);
+        }
+        if (_broadcaster == address(0)) {
+          // In the default case, forge sets the broadcaster to be tx.origin.
+          // Using msg.sender would not work since we don't know how deep in the callstack we are.
+          _broadcaster = tx.origin;
+
+          // there are two possible default tx.origin depending on foundry version
+          if (_broadcaster == 0x00a329c0648769A73afAc7F9381E08FB43dBEA72 || _broadcaster == DEFAULT_SENDER) {
+            string memory pkEnvVar = string.concat(simpleCapitalize(fork.NAME()), "_PRIVATE_KEY");
+            try vm.envUint(pkEnvVar) returns (uint key) {
+              _broadcaster = vm.rememberKey(key);
+            } catch {
+              console.log("%s not found or not parseable as uint, using default broadcast sender", pkEnvVar);
+            }
           }
         }
+        // only set broadcaster globally if it was read from a global source
+        singleton(SINGLETON_BROADCASTER, _broadcaster);
       }
     }
     return _broadcaster;
+  }
+
+  // set the script broadcaster; if global, then set it for all scripts,
+  // otherwise just for this contract.
+  function broadcaster(address addr, bool global) public {
+    if (global) {
+      singleton(SINGLETON_BROADCASTER, addr);
+    } else {
+      _broadcaster = addr;
+    }
+  }
+
+  function broadcaster(address addr) public {
+    broadcaster(addr, true);
   }
 
   // buffer for output file

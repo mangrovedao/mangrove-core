@@ -1,18 +1,18 @@
 [
   {
-    "address": "0x092a975Eb93118F74E60877f3F08095A059262cb",
+    "address": "0x1bCd7f38F4c5B913D6afeDF738b1821a84a49A49",
     "name": "Mangrove"
   },
   {
-    "address": "0x1bCd7f38F4c5B913D6afeDF738b1821a84a49A49",
+    "address": "0x894E25062B75b82A9b62FF6733FC17383b0b270E",
     "name": "MgvReader"
   },
   {
-    "address": "0x894E25062B75b82A9b62FF6733FC17383b0b270E",
+    "address": "0xCcE4e993026bb44dA91CaE05d9B3a873e840445A",
     "name": "MgvCleaner"
   },
   {
-    "address": "0xCcE4e993026bb44dA91CaE05d9B3a873e840445A",
+    "address": "0x606e5E8e2Bea6221ab2663750E9924F192EDe156",
     "name": "MgvOracle"
   },
   {

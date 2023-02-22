@@ -26,5 +26,21 @@
   {
     "address": "0x349f8e8BbD5f1478A65fCCf0D354E24Ce0cac866",
     "name": "Kandel_WETH_DAI"
+  },
+  {
+    "address": "0x1E45CC2C980e566e03FD386c5E8C40E9A427C160",
+    "name": "Kandel_DAI_USDC"
+  },
+  {
+    "address": "0xa9Ac3dD1F9194fc39Ee9D1A1C05B5D7e41ba34B8",
+    "name": "KandelSeeder"
+  },
+  {
+    "address": "0x8BF378c56869071e8d2043C2e35f5FfbBF527D58",
+    "name": "AaveKandelSeeder"
+  },
+  {
+    "address": "0x5c0939dB7832bA134699E9384Cbeb042785faBb0",
+    "name": "AaveKandel_WETH_DAI"
   }
 ]

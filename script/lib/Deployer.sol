@@ -133,7 +133,6 @@ abstract contract Deployer is Script2 {
     // --sender has precedence over *_PRIVATE_KEY.
     if (_broadcaster == address(0)) {
       _broadcaster = singleton(SINGLETON_BROADCASTER);
-      console.log("Got broadcaster:", _broadcaster);
       if (_broadcaster == address(0)) {
         if (envHas("BROADCASTER")) {
           _broadcaster = envAddressOrName("BROADCASTER");

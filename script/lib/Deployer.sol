@@ -102,10 +102,6 @@ abstract contract Deployer is Script2 {
 
   // compute & memoize the current broadcaster address
   function broadcaster() public returns (address) {
-    // console.log("_broadcaster");
-    // console.log(_broadcaster);
-    // console.log(vm.envString("BROADCASTER"));
-
     // Memoize _broadcaster. Cannot just do it in constructor because tx.origin
     // for script constructors does not depend on additional CLI args
 
@@ -133,7 +129,6 @@ abstract contract Deployer is Script2 {
     // --sender has precedence over *_PRIVATE_KEY.
     if (_broadcaster == address(0)) {
       _broadcaster = singleton(SINGLETON_BROADCASTER);
-      console.log("Got broadcaster:", _broadcaster);
       if (_broadcaster == address(0)) {
         if (envHas("BROADCASTER")) {
           _broadcaster = envAddressOrName("BROADCASTER");

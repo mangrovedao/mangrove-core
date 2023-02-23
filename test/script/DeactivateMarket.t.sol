@@ -26,7 +26,7 @@ contract DeactivateMarketTest is Test2 {
     deployer.innerRun(chief, gasprice, gasmax);
   }
 
-  function test_updater(address tkn0, address tkn1) public {
+  function test_deactivate(address tkn0, address tkn1) public {
     Mangrove mgv = deployer.mgv();
     MgvReader reader = deployer.reader();
 
@@ -40,7 +40,7 @@ contract DeactivateMarketTest is Test2 {
     DeactivateMarket deactivator = new DeactivateMarket();
     // the script self-tests, so no need to test here. This file is only for
     // incorporating testing the script into the CI.
-    vm.setEnv("BROADCASTER", vm.toString(chief));
+    deactivator.broadcaster(chief);
     deactivator.innerRun(tkn0, tkn1);
   }
 }

@@ -1,5 +1,9 @@
 # next version
 
+# 1.4.3 (February 2023)
+
+- Add script to find the slot used by a token for store an account balance
+
 # 1.4.2 (February 2023)
 
 - Do not override src/ & other remappings, because when imported forge fails to properly nest them.

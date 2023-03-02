@@ -53,6 +53,11 @@ contract AaveV3BorrowerImplementation {
     uint balanceOfUnderlying;
   }
 
+  function $getCaps(address asset) public view returns (uint, uint) {
+    DataTypes.ReserveData memory reserveData = POOL.getReserveData(asset);
+    return (RC.getSupplyCap(reserveData.configuration), RC.getBorrowCap(reserveData.configuration));
+  }
+
   function $maxGettableUnderlying(address asset, bool tryBorrow, address onBehalf) public view returns (uint, uint) {
     Underlying memory underlying; // asset parameters
     Account memory account; // accound parameters

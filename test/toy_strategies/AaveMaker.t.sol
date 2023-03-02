@@ -77,10 +77,6 @@ contract AaveMakerTest is MangroveTest {
     fork = new PinnedPolygonFork(); // use polygon fork to use dai, usdc and weth addresses
     fork.setUp();
 
-    // use convenience helpers to setup Mangrove
-    mgv = setupMangrove();
-    reader = new MgvReader($(mgv));
-
     dai = IERC20(fork.get("DAI"));
     weth = IERC20(fork.get("WETH"));
     usdc = IERC20(fork.get("USDC"));

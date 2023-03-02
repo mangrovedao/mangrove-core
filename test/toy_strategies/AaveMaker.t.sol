@@ -56,6 +56,10 @@ contract AaveCaller is AaveV3Borrower, MangroveTest {
   function flashloan(IERC20 token, uint amount) public {
     POOL.flashLoanSimple(address(this), address(token), amount, new bytes(0), 0);
   }
+
+  function repay(IERC20 token, uint amount) public {
+    _repay(token, amount, address(this));
+  }
 }
 
 contract AaveMakerTest is MangroveTest {
@@ -87,49 +91,87 @@ contract AaveMakerTest is MangroveTest {
     s_attacker.setVictim(lender);
   }
 
-  function dry_pool(IERC20 asset, uint price, bool stable) internal {
-    uint dec = asset.decimals();
-    deal($(asset), address(lender), 1000 * 10 ** dec);
-    lender.approveLender(asset);
-    lender.supply(asset, 1000 * 10 ** dec);
+  struct HeapVars {
+    uint assetDecimals;
+    string assetSymbol;
+    uint collateralDecimals;
+    string collateralSymbol;
+    AaveCaller attacker;
+    uint assetSupply;
+    uint toMint;
+    uint borrowCaps;
+    uint maxBorrowable;
+    uint borrowable;
+    ICreditDelegationToken sdebt;
+    ICreditDelegationToken vdebt;
+  }
 
-    AaveCaller attacker = stable ? s_attacker : v_attacker;
-    uint assetSupply = attacker.get_supply(asset);
+  function dry_pool(IERC20 asset, IERC20 collateral, uint price, bool stable) internal {
+    HeapVars memory vars;
+    vars.assetDecimals = asset.decimals();
+    vars.assetSymbol = asset.symbol();
+    vars.collateralDecimals = collateral.decimals();
+    vars.collateralSymbol = collateral.symbol();
+
+    deal($(asset), address(lender), 1000 * 10 ** vars.assetDecimals);
+    lender.approveLender(asset);
+    lender.supply(asset, 1000 * 10 ** vars.assetDecimals);
+
+    vars.attacker = stable ? s_attacker : v_attacker;
+    vars.assetSupply = vars.attacker.get_supply(asset);
     // lending on pool to check wether funds can be redeemed during flashloan
 
-    console.log("Asset balance on pool is %s %s", toUnit(assetSupply, dec), asset.symbol());
+    console.log("Asset balance on pool is %s %s", toUnit(vars.assetSupply, vars.assetDecimals), vars.assetSymbol);
 
     // getting enough USDC to dry up the DAI pool
-    uint toMint = (assetSupply * price * 130) / 10 ** (dec - 4);
-    deal($(usdc), address(attacker), toMint);
-    attacker.approveLender(usdc);
-    attacker.supply(usdc, toMint);
-    (, uint borrowable) = attacker.maxGettableUnderlying(asset, true, address(attacker));
+    if (vars.assetDecimals >= vars.collateralDecimals) {
+      vars.toMint = (vars.assetSupply * price * 150) / 10 ** (vars.assetDecimals - (vars.collateralDecimals - 2));
+    } else {
+      vars.toMint = (vars.assetSupply * price * 150) * 10 ** (vars.collateralDecimals - vars.assetDecimals) / 10 ** 2;
+    }
+    deal($(collateral), address(vars.attacker), vars.toMint);
+    console.log("* Minting %s %s of collateral", toUnit(vars.toMint, vars.collateralDecimals), collateral.symbol());
+    vars.attacker.approveLender(collateral);
+    vars.attacker.supply(collateral, vars.toMint);
+    (, vars.borrowable) = vars.attacker.maxGettableUnderlying(asset, true, address(vars.attacker));
     console.log(
-      "* After supplying it to the pool, I could theoretically borrow %s %s", toUnit(borrowable, dec), asset.symbol()
+      "* After supplying it to the pool, I could theoretically borrow %s %s",
+      toUnit(vars.borrowable, vars.assetDecimals),
+      vars.assetSymbol
     );
-    (, uint borrowCaps) = attacker.getCaps(asset);
-    ICreditDelegationToken sdebt = attacker.debtToken(asset, 1);
-    ICreditDelegationToken vdebt = attacker.debtToken(asset, 2);
-    uint maxBorrowable = borrowCaps == 0 // no borrow cap
-      ? assetSupply - (IERC20(address(sdebt)).totalSupply() + IERC20(address(vdebt)).totalSupply())
-      : borrowCaps * 10 ** dec - (IERC20(address(sdebt)).totalSupply() + IERC20(address(vdebt)).totalSupply());
+    (, vars.borrowCaps) = vars.attacker.getCaps(asset);
+    ICreditDelegationToken sdebt = vars.attacker.debtToken(asset, 1);
+    ICreditDelegationToken vdebt = vars.attacker.debtToken(asset, 2);
+    vars.maxBorrowable = vars.borrowCaps == 0 // no borrow cap
+      ? vars.assetSupply - (IERC20(address(sdebt)).totalSupply() + IERC20(address(vdebt)).totalSupply())
+      : vars.borrowCaps * 10 ** vars.assetDecimals
+        - (IERC20(address(sdebt)).totalSupply() + IERC20(address(vdebt)).totalSupply());
 
-    console.log("* Asset borrow cap is:", toUnit(maxBorrowable, dec));
-    console.log("* Trying to borrow the whole asset supply...");
-    try attacker.borrow(asset, assetSupply) {}
+    console.log("* Asset borrow cap is:", toUnit(vars.maxBorrowable, vars.assetDecimals));
+    console.log("* Trying to borrow more than the cap...");
+    try vars.attacker.borrow(asset, vars.maxBorrowable + 1) {}
     catch Error(string memory reason) {
       assertEq(reason, "50");
       console.log("Failed: BORROW_CAP_EXCEEDED");
     }
 
-    console.log("* Trying to borrow the asset cap...");
+    console.log("* Trying to borrow maximum borrowable...");
     uint snapshotId = vm.snapshot();
-    try attacker.borrow(asset, maxBorrowable) {
-      lender.redeem(asset, 1000 * 10 ** dec);
-      console.log("Not enough to prevent redeem from lender");
+    uint tryBorrow = vars.maxBorrowable > vars.assetSupply ? vars.assetSupply : vars.maxBorrowable;
+    try vars.attacker.borrow(asset, tryBorrow) {
+      try lender.redeem(asset, 1000 * 10 ** vars.assetDecimals) {
+        console.log("Not enough to prevent redeem from lender");
+      } catch {
+        console.log(vdebt.balanceOf(address(vars.attacker)));
+        assertTrue(false, "attack succeeded!");
+        try vars.attacker.repay(asset, tryBorrow) {}
+        catch Error(string memory reason) {
+          assertEq(reason, "48"); // REPAY AND BORROW not allowed in the same block
+          console.log("But repay failed because of old version of Aave...");
+        }
+      }
     } catch Error(string memory reason) {
-      if (maxBorrowable == 0) {
+      if (vars.maxBorrowable == 0) {
         assertEq(reason, "26");
         console.log("Failed: can borrow 0");
       } else {
@@ -142,23 +184,33 @@ contract AaveMakerTest is MangroveTest {
       }
     }
     require(vm.revertTo(snapshotId), "snapshot restore failed");
-    console.log("* Trying to attack with AAVE flashloan of %s %s", toUnit(assetSupply, dec), asset.symbol());
-    attacker.flashloan(asset, assetSupply - 1 ** 10 ** dec);
+    console.log(
+      "* Trying to attack with AAVE flashloan of %s %s", toUnit(vars.assetSupply, vars.assetDecimals), vars.assetSymbol
+    );
+    vars.attacker.flashloan(asset, vars.assetSupply - 1 ** 10 ** vars.assetDecimals);
   }
 
   function test_dry_pool_dai_stable() public {
-    dry_pool(dai, 1, true);
+    dry_pool(dai, usdc, 1, true);
   }
 
   function test_dry_pool_dai_variable() public {
-    dry_pool(dai, 1, false);
+    dry_pool(dai, usdc, 1, false);
   }
 
   function test_dry_pool_weth_stable() public {
-    dry_pool(weth, 1600, true);
+    dry_pool(weth, usdc, 1600, true);
   }
 
   function test_dry_pool_weth_variable() public {
-    dry_pool(weth, 1600, false);
+    dry_pool(weth, usdc, 1600, false);
+  }
+
+  function test_dry_pool_usdc_stable() public {
+    dry_pool(usdc, dai, 1, true);
+  }
+
+  function test_dry_pool_usdc_variable() public {
+    dry_pool(usdc, dai, 1, false);
   }
 }

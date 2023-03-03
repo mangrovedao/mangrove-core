@@ -36,7 +36,7 @@
   ],
   "devDependencies": {
     "husky": "^8.0.3",
-    "lint-staged": "^13.0.3",
+    "lint-staged": "^13.1.2",
     "micromatch": "^4.0.5",
     "pinst": "^3.0.0",
     "prettier": "^2.8.4",

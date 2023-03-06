@@ -31,6 +31,8 @@ contract HasAaveBalanceMemoizer is AaveV3Lender {
     bool balanceOfOverlyingMemoized;
     IERC20 overlying;
     bool overlyingMemoized;
+    bool totalSupplyMemoized;
+    uint totalSupply;
   }
 
   constructor(address addressesProvider) AaveV3Lender(addressesProvider) {}
@@ -64,6 +66,15 @@ contract HasAaveBalanceMemoizer is AaveV3Lender {
       }
       return memoizer.balanceOfOverlying;
     }
+  }
+
+  function totalSupply(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (uint) {
+    if (!memoizer.totalSupplyMemoized) {
+      IERC20 aToken = overlying(token, memoizer);
+      memoizer.totalSupply = token.balanceOf(address(aToken));
+      memoizer.totalSupplyMemoized = true;
+    }
+    return memoizer.totalSupply;
   }
 
   ///@notice Gets the balance of the token

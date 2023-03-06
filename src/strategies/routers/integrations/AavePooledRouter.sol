@@ -222,6 +222,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     // The amount to transfer to the calling maker contract
     uint amount_;
     BalanceMemoizer memory memoizer;
+    require(totalSupply(token, memoizer) >= amount, "AavePooledRouter/IlliquidPool");
     // The local buffer of token to transfer in case funds have already been redeemed or due to a donation.
     uint buffer = balanceOf(token, memoizer);
     uint reserveBalance = _balanceOfReserve(token, reserveId, memoizer);

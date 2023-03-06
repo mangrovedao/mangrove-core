@@ -70,6 +70,6 @@ contract KandelSower is Deployer {
 
   function smokeTest(GeometricKandel kdl, bool onAave) internal {
     require(kdl.admin() == broadcaster(), "Incorrect admin for Kandel");
-    require(onAave || address(kdl.router()) == address(0), "Inccorrect router");
+    require(onAave || address(kdl.router()) == address(0), "Incorrect router");
   }
 }

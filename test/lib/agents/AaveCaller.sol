@@ -3,11 +3,14 @@ pragma solidity ^0.8.10;
 
 import {AaveV3Borrower, IERC20} from "mgv_src/strategies/integrations/AaveV3Borrower.sol";
 import {MangroveTest, console} from "mgv_test/lib/MangroveTest.sol";
+import {StdCheats} from "forge-std/StdCheats.sol";
 
-contract AaveCaller is AaveV3Borrower, MangroveTest {
+contract AaveCaller is AaveV3Borrower, StdCheats {
   constructor(address _addressesProvider, uint borrowMode) AaveV3Borrower(_addressesProvider, 0, borrowMode) {}
 
   address callback;
+
+  receive() external payable {}
 
   function setCallbackAddress(address cb) public {
     callback = cb;
@@ -35,12 +38,7 @@ contract AaveCaller is AaveV3Borrower, MangroveTest {
   {
     approveLender(IERC20(asset));
     deal(asset, address(this), amount + premium);
-    console.log(
-      "flashloan of %s succeeded, cost is %s %s",
-      toUnit(amount, IERC20(asset).decimals()),
-      toUnit(premium, IERC20(asset).decimals()),
-      IERC20(asset).symbol()
-    );
+    console.log("flashloan of %s succeeded, cost is %s %s", amount, premium, IERC20(asset).symbol());
     (bool success,) = callback.call(cd);
     // attack is a success is callback succeeds
     return success;

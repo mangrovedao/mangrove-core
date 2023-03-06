@@ -15,7 +15,7 @@ import {console} from "forge-std/Test.sol";
 import {IMangrove, AbstractRouter, OfferMaker, IERC20} from "./OfferMaker.sol";
 import {ITesterContract} from "mgv_src/strategies/interfaces/ITesterContract.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
-import {AaveV3Borrower, ICreditDelegationToken} from "mgv_src/strategies/integrations/aaveV3Borrower.sol";
+import {AaveV3Borrower, ICreditDelegationToken} from "mgv_src/strategies/integrations/AaveV3Borrower.sol";
 
 contract AaveMaker is ITesterContract, OfferMaker, AaveV3Borrower {
   mapping(address => address) public reserves;

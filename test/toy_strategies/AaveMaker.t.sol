@@ -140,7 +140,7 @@ contract AaveMakerTest is MangroveTest {
     }
   }
 
-  function executeAttack(address victim, IERC20 asset, uint amount) external {
+  function executeAttack(address payable victim, IERC20 asset, uint amount) external {
     console.log("reached");
     try AaveCaller(victim).redeem(asset, amount) {
       console.log("weird");

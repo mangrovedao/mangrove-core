@@ -123,7 +123,7 @@ abstract contract CoreKandelTest is MangroveTest {
 
   function __deployKandel__(address deployer, address reserveId) internal virtual returns (GeometricKandel kdl_);
 
-  function buyFromBestAs(address taker_, uint amount) internal returns (uint, uint, uint, uint, uint) {
+  function buyFromBestAs(address taker_, uint amount) public returns (uint, uint, uint, uint, uint) {
     uint bestAsk = mgv.best($(base), $(quote));
     vm.prank(taker_);
     return mgv.snipes($(base), $(quote), wrap_dynamic([bestAsk, amount, type(uint96).max, type(uint).max]), true);

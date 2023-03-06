@@ -4,63 +4,7 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/forks/Polygon.sol";
 import {ICreditDelegationToken, AaveV3Borrower} from "mgv_src/strategies/integrations/AaveV3Borrower.sol";
-import {console} from "forge-std/console.sol";
-
-contract AaveCaller is AaveV3Borrower, MangroveTest {
-  constructor(address _addressesProvider, uint borrowMode) AaveV3Borrower(_addressesProvider, 0, borrowMode) {}
-
-  AaveCaller victim;
-
-  function setVictim(AaveCaller c) public {
-    victim = c;
-  }
-
-  function approveLender(IERC20 token) public {
-    _approveLender(token, type(uint).max);
-  }
-
-  function supply(IERC20 token, uint amount) public {
-    _supply(token, amount, address(this), false);
-  }
-
-  function borrow(IERC20 token, uint amount) public {
-    _borrow(token, amount, address(this));
-  }
-
-  function redeem(IERC20 token, uint amount) public {
-    _redeem(token, amount, address(this));
-  }
-
-  function executeOperation(address asset, uint amount, uint premium, address, bytes calldata) external returns (bool) {
-    approveLender(IERC20(asset));
-    deal(asset, address(this), amount + premium);
-    console.log(
-      "flashloan of %s succeeded, cost is %s %s",
-      toUnit(amount, IERC20(asset).decimals()),
-      toUnit(premium, IERC20(asset).decimals()),
-      IERC20(asset).symbol()
-    );
-    // checking that victim can no longer redeem its balance
-    try victim.redeem(IERC20(asset), overlying(IERC20(asset)).balanceOf(address(victim))) {
-      console.log("Attack failed...");
-    } catch {
-      console.log("Attack succeeded!");
-    }
-    return true;
-  }
-
-  function get_supply(IERC20 asset) public view returns (uint) {
-    return asset.balanceOf(address(overlying(asset)));
-  }
-
-  function flashloan(IERC20 token, uint amount) public {
-    POOL.flashLoanSimple(address(this), address(token), amount, new bytes(0), 0);
-  }
-
-  function repay(IERC20 token, uint amount) public {
-    _repay(token, amount, address(this));
-  }
-}
+import {AaveCaller, console} from "mgv_test/lib/agents/AaveCaller.sol";
 
 contract AaveMakerTest is MangroveTest {
   IERC20 weth;
@@ -87,8 +31,6 @@ contract AaveMakerTest is MangroveTest {
     v_attacker = new AaveCaller(fork.get("Aave"), 2);
     s_attacker = new AaveCaller(fork.get("Aave"), 1);
     lender = new AaveCaller(fork.get("Aave"), 2);
-    v_attacker.setVictim(lender);
-    s_attacker.setVictim(lender);
   }
 
   struct HeapVars {
@@ -158,12 +100,12 @@ contract AaveMakerTest is MangroveTest {
     console.log("* Trying to borrow maximum borrowable...");
     uint snapshotId = vm.snapshot();
     uint tryBorrow = vars.maxBorrowable > vars.assetSupply ? vars.assetSupply : vars.maxBorrowable;
+
     try vars.attacker.borrow(asset, tryBorrow) {
       try lender.redeem(asset, 1000 * 10 ** vars.assetDecimals) {
         console.log("Not enough to prevent redeem from lender");
       } catch {
-        console.log(vdebt.balanceOf(address(vars.attacker)));
-        assertTrue(false, "attack succeeded!");
+        console.log("attack succeeded!");
         try vars.attacker.repay(asset, tryBorrow) {}
         catch Error(string memory reason) {
           assertEq(reason, "48"); // REPAY AND BORROW not allowed in the same block
@@ -187,7 +129,26 @@ contract AaveMakerTest is MangroveTest {
     console.log(
       "* Trying to attack with AAVE flashloan of %s %s", toUnit(vars.assetSupply, vars.assetDecimals), vars.assetSymbol
     );
-    vars.attacker.flashloan(asset, vars.assetSupply - 1 ** 10 ** vars.assetDecimals);
+    bytes memory cd =
+      abi.encodeWithSelector(this.executeAttack.selector, address(lender), asset, 1000 * 10 ** vars.assetDecimals);
+    vars.attacker.setCallbackAddress(address(this));
+    try vars.attacker.flashloan(asset, vars.assetSupply - 1 ** 10 ** vars.assetDecimals, cd) {
+      console.log("Attack succeeded");
+      assertTrue(true, "Flashloan attack succeeded");
+    } catch {
+      assertTrue(false, "Flashloan attack failed");
+    }
+  }
+
+  function executeAttack(address victim, IERC20 asset, uint amount) external {
+    console.log("reached");
+    try AaveCaller(victim).redeem(asset, amount) {
+      console.log("weird");
+      require(false, "attack failed"); // if victim can redeem we throw
+    } catch {
+      console.log("success");
+      return;
+    }
   }
 
   function test_dry_pool_dai_stable() public {

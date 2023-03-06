@@ -2,6 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {CoreKandelTest, IERC20} from "./CoreKandel.t.sol";
+import {console} from "forge-std/Test.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {AaveKandel, AavePooledRouter} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandel.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
@@ -11,11 +12,13 @@ import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kand
 import {console2} from "forge-std/Test.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
+import {AaveCaller} from "mgv_test/lib/agents/AaveCaller.sol";
 
 contract AaveKandelTest is CoreKandelTest {
   PinnedPolygonFork fork;
   AavePooledRouter router;
   AaveKandel aaveKandel;
+  address THIS = address(this);
 
   function __setForkEnvironment__() internal override {
     fork = new PinnedPolygonFork();
@@ -251,5 +254,29 @@ contract AaveKandelTest is CoreKandelTest {
 
     assertEq(kdl_.reserveBalance(Ask), 0, "funds should not be shared");
     assertEq(kdl_.reserveBalance(Bid), 0, "funds should not be shared");
+  }
+
+  function test_liquidity_attack() public {
+    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    attacker.setCallbackAddress(address(this));
+    bytes memory cd = abi.encodeWithSelector(this.executeAttack.selector, address(attacker));
+    uint assetSupply = attacker.get_supply(base);
+    try attacker.flashloan(base, assetSupply - 1, cd) {
+      assertTrue(true, "Flashloan attack succeeded");
+    } catch {
+      assertTrue(false, "Flashloan attack failed");
+    }
+  }
+
+  function executeAttack(address attacker) external {
+    deal($(quote), attacker, 1 ether);
+    vm.prank(attacker);
+    quote.approve({spender: address(mgv), amount: type(uint).max});
+    // context base should not be available to redeem for the router, for this attack to succeed
+    uint bestAsk = mgv.best($(base), $(quote));
+    vm.prank(attacker);
+    (,, uint takerGave, uint bounty,) =
+      mgv.snipes($(base), $(quote), wrap_dynamic([bestAsk, 0.1 ether, type(uint96).max, type(uint).max]), true);
+    require(takerGave == 0 && bounty > 0, "attack failed");
   }
 }

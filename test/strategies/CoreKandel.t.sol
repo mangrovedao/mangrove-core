@@ -47,7 +47,7 @@ abstract contract CoreKandelTest is MangroveTest {
     // no fork
     // options.base.symbol = "WETH";
     // options.quote.symbol = "USDC";
-    // options.quote.decimals = 6;
+    options.quote.decimals = 6;
     options.defaultFee = 30;
     options.gasprice = 40;
     MangroveTest.setUp();

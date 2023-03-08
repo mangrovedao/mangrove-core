@@ -14,6 +14,7 @@ pragma solidity ^0.8.10;
 import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {AbstractRouter, AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
+import {IATokenIsh} from "mgv_src/strategies/vendor/aave/v3/IATokenIsh.sol";
 import {GeometricKandel} from "./abstract/GeometricKandel.sol";
 import {AbstractKandel} from "./abstract/AbstractKandel.sol";
 import {OfferType} from "./abstract/TradesBaseQuotePair.sol";
@@ -26,7 +27,16 @@ contract AaveKandel is GeometricKandel {
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
     GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId)
-  {}
+  {
+    bool isOverlying;
+    try IATokenIsh(address(base)).UNDERLYING_ASSET_ADDRESS() returns (address) {
+      isOverlying = true;
+    } catch {}
+    try IATokenIsh(address(quote)).UNDERLYING_ASSET_ADDRESS() returns (address) {
+      isOverlying = true;
+    } catch {}
+    require(!isOverlying, "AaveKandel/cannotTradeAToken");
+  }
 
   ///@dev returns the router as an Aave router
   function pooledRouter() private view returns (AavePooledRouter) {
@@ -44,25 +54,28 @@ contract AaveKandel is GeometricKandel {
   }
 
   ///@inheritdoc AbstractKandel
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public override {
+  function depositFunds(uint baseAmount, uint quoteAmount) public override {
     // transfer funds from caller to this
-    super.depositFunds(tokens, amounts);
+    super.depositFunds(baseAmount, quoteAmount);
     // push funds on the router (and supply on AAVE)
+    IERC20[] memory tokens = new IERC20[](2);
+    tokens[0] = BASE;
+    tokens[1] = QUOTE;
+    uint[] memory amounts = new uint[](2);
+    amounts[0] = baseAmount;
+    amounts[1] = quoteAmount;
     pooledRouter().pushAndSupply(tokens, amounts, RESERVE_ID);
   }
 
   ///@inheritdoc AbstractKandel
-  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
-    public
-    override
-    onlyAdmin
-  {
-    for (uint i; i < tokens.length; ++i) {
-      if (amounts[i] != 0) {
-        pooledRouter().withdraw(tokens[i], RESERVE_ID, amounts[i]);
-      }
+  function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public override onlyAdmin {
+    if (baseAmount != 0) {
+      pooledRouter().withdraw(BASE, RESERVE_ID, baseAmount);
     }
-    super.withdrawFunds(tokens, amounts, recipient);
+    if (quoteAmount != 0) {
+      pooledRouter().withdraw(QUOTE, RESERVE_ID, quoteAmount);
+    }
+    super.withdrawFunds(baseAmount, quoteAmount, recipient);
   }
 
   ///@notice returns the amount of the router's balance that belong to this contract for the token offered for the offer type.

@@ -16,13 +16,17 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OfferType} from "./TradesBaseQuotePair.sol";
 import {DirectWithBidsAndAsksDistribution} from "./DirectWithBidsAndAsksDistribution.sol";
+import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 ///@title the core of Kandel strategies which creates or updates a dual offer whenever an offer is taken.
 ///@notice `CoreKandel` is agnostic to the chosen price distribution.
-abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKandel {
-  constructor(IMangrove mgv, uint gasreq, address reserveId) DirectWithBidsAndAsksDistribution(mgv, gasreq, reserveId) {}
+abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuotePair, AbstractKandel {
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, address reserveId)
+    TradesBaseQuotePair(base, quote)
+    DirectWithBidsAndAsksDistribution(mgv, gasreq, reserveId)
+  {}
 
   ///@notice takes care of status for populating dual and logging of potential issues.
   ///@param offerId the Mangrove offer id (or 0 if newOffer failed).
@@ -91,42 +95,37 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKande
     return int(reserveBalance(ba)) - int(offeredVolume(ba));
   }
 
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual override {
-    TransferLib.transferTokensFrom(tokens, msg.sender, address(this), amounts);
-    for (uint i; i < tokens.length; ++i) {
-      emit Credit(tokens[i], amounts[i]);
-    }
+  function depositFunds(uint baseAmount, uint quoteAmount) public virtual override {
+    TransferLib.transferTokenFrom(BASE, msg.sender, address(this), baseAmount);
+    emit Credit(BASE, baseAmount);
+    TransferLib.transferTokenFrom(QUOTE, msg.sender, address(this), quoteAmount);
+    emit Credit(QUOTE, quoteAmount);
   }
 
-  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
-    public
-    virtual
-    override
-    onlyAdmin
-  {
-    TransferLib.transferTokens(tokens, amounts, recipient);
-    for (uint i; i < tokens.length; ++i) {
-      emit Debit(tokens[i], amounts[i]);
-    }
+  function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public virtual override onlyAdmin {
+    require(TransferLib.transferToken(BASE, recipient, baseAmount), "Kandel/baseTransferFail");
+    emit Debit(BASE, baseAmount);
+    require(TransferLib.transferToken(QUOTE, recipient, quoteAmount), "Kandel/quoteTransferFail");
+    emit Debit(QUOTE, quoteAmount);
   }
 
   ///@notice Retracts offers, withdraws funds, and withdraws free wei from Mangrove.
   ///@param from retract offers starting from this index.
   ///@param to retract offers until this index.
-  ///@param tokens the tokens to withdraw.
-  ///@param tokenAmounts the amounts of the tokens to withdraw.
+  ///@param baseAmount the amount of base tokens to withdraw.
+  ///@param quoteAmount the amount of quote tokens to withdraw.
   ///@param freeWei the amount of wei to withdraw from Mangrove. Use type(uint).max to withdraw entire available balance.
   ///@param recipient the recipient of the funds.
   function retractAndWithdraw(
     uint from,
     uint to,
-    IERC20[] calldata tokens,
-    uint[] calldata tokenAmounts,
+    uint baseAmount,
+    uint quoteAmount,
     uint freeWei,
     address payable recipient
   ) external onlyAdmin {
     retractOffers(from, to);
-    withdrawFunds(tokens, tokenAmounts, recipient);
+    withdrawFunds(baseAmount, quoteAmount, recipient);
     withdrawFromMangrove(freeWei, recipient);
   }
 }

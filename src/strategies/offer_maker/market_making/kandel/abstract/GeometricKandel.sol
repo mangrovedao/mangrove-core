@@ -15,12 +15,11 @@ import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OfferType} from "./TradesBaseQuotePair.sol";
-import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {CoreKandel} from "./CoreKandel.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
 
 ///@title Adds a geometric price progression to a `CoreKandel` strat without storing prices for individual price points.
-abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
+abstract contract GeometricKandel is CoreKandel {
   ///@notice `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals, and ditto for GeometricKandel's `ratio`.
   ///@notice setting PRECISION higher than 5 will produce overflow in limit cases for GeometricKandel.
   uint public constant PRECISION = 5;
@@ -50,8 +49,7 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   Params public params;
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
-    CoreKandel(mgv, gasreq, reserveId)
-    TradesBaseQuotePair(base, quote)
+    CoreKandel(mgv, base, quote, gasreq, reserveId)
   {
     setGasprice(gasprice);
   }
@@ -135,8 +133,8 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   ///@param pivotIds the pivot to be used for the offer
   ///@param firstAskIndex the (inclusive) index after which offer should be an ask.
   ///@param parameters the parameters for Kandel. Only changed parameters will cause updates. Set `gasreq` and `gasprice` to 0 to keep existing values.
-  ///@param depositTokens tokens to deposit.
-  ///@param depositAmounts amounts to deposit for the tokens.
+  ///@param baseAmount base amount to deposit
+  ///@param quoteAmount quote amount to deposit
   ///@dev This function is used at initialization and can fund with provision for the offers.
   ///@dev Use `populateChunk` to split up initialization or re-initialization with same parameters, as this function will emit.
   ///@dev If this function is invoked with different ratio, pricePoints, spread, then first retract all offers.
@@ -146,15 +144,15 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     uint[] calldata pivotIds,
     uint firstAskIndex,
     Params calldata parameters,
-    IERC20[] calldata depositTokens,
-    uint[] calldata depositAmounts
+    uint baseAmount,
+    uint quoteAmount
   ) external payable onlyAdmin {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
     setParams(parameters);
 
-    depositFunds(depositTokens, depositAmounts);
+    depositFunds(baseAmount, quoteAmount);
 
     populateChunkInternal(distribution, pivotIds, firstAskIndex);
   }

@@ -12,7 +12,8 @@
 
 pragma solidity >=0.8.0;
 
-import {ILiquidityProvider, IMangrove, IERC20} from "./ILiquidityProvider.sol";
+import {ILiquidityProvider, IERC20} from "./ILiquidityProvider.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 
 ///@title Interface for testing Forwarder and Direct maker contracts with reserve setters.
 interface ITesterContract is ILiquidityProvider {

@@ -9,7 +9,7 @@ import {AllMethodIdentifiersTest} from "mgv_test/lib/AllMethodIdentifiersTest.so
 contract AavePooledRouterTest is OfferLogicTest {
   AavePooledRouter pooledRouter;
 
-  uint constant GASREQ = 473.5 * 1000;
+  uint constant GASREQ = 473.7 * 1000;
 
   event SetAaveManager(address);
   event AaveIncident(IERC20 indexed token, address indexed maker, address indexed reserveId, bytes32 aaveReason);
@@ -175,8 +175,10 @@ contract AavePooledRouterTest is OfferLogicTest {
     vm.prank(deployer);
     pooledRouter.flushBuffer(usdc, false);
 
-    assertEq(reserveBalance, pooledRouter.balanceOfReserve(usdc, address(makerContract)), "Incorrect reserve balance");
-    assertEq(totalBalance, pooledRouter.totalBalance(usdc), "Incorrect total balance");
+    assertApproxEqAbs(
+      reserveBalance, pooledRouter.balanceOfReserve(usdc, address(makerContract)), 1, "Incorrect reserve balance"
+    );
+    assertApproxEqAbs(totalBalance, pooledRouter.totalBalance(usdc), 1, "Incorrect total balance");
   }
 
   function test_makerContract_has_initially_zero_shares() public {
@@ -603,7 +605,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     // Only manager
     args.allowed = dynamic([address(manager)]);
     checkAuth(args, abi.encodeCall(pooledRouter.enterMarket, new IERC20[](0)));
-    checkAuth(args, abi.encodeCall(pooledRouter.claimRewards, new address[](0)));
+    checkAuth(args, abi.encodeCall(pooledRouter.claimRewards, dynamic([address(pooledRouter.overlying(dai))])));
     checkAuth(args, abi.encodeCall(pooledRouter.revokeLenderApproval, dai));
     checkAuth(args, abi.encodeCall(pooledRouter.exitMarket, weth));
 

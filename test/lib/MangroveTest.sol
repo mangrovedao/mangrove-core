@@ -43,6 +43,10 @@ contract MangroveTest is Test2, HasMgvEvents {
     TokenOptions base;
     TokenOptions quote;
     uint defaultFee;
+    uint gasprice;
+    uint gasbase;
+    uint gasmax;
+    uint density;
   }
 
   AbstractMangrove mgv;
@@ -54,7 +58,11 @@ contract MangroveTest is Test2, HasMgvEvents {
     invertedMangrove: false,
     base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
-    defaultFee: 0
+    defaultFee: 0,
+    gasprice: 40,
+    gasbase: 50_000,
+    density: 10,
+    gasmax: 2_000_000
   });
 
   constructor() {
@@ -196,14 +204,14 @@ contract MangroveTest is Test2, HasMgvEvents {
     if (inverted) {
       _mgv = new InvertedMangrove({
         governance: $(this),
-        gasprice: 40,
-        gasmax: 2_000_000
+        gasprice: options.gasprice,
+        gasmax: options.gasmax
       });
     } else {
       _mgv = new Mangrove({
         governance: $(this),
-        gasprice: 40,
-        gasmax: 2_000_000
+        gasprice: options.gasprice,
+        gasmax: options.gasmax
       });
     }
     vm.label($(_mgv), "Mangrove");
@@ -224,8 +232,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   function setupMarket(address $a, address $b, AbstractMangrove _mgv) internal {
     assertNot0x($a);
     assertNot0x($b);
-    _mgv.activate($a, $b, options.defaultFee, 10, 20_000);
-    _mgv.activate($b, $a, options.defaultFee, 10, 20_000);
+    _mgv.activate($a, $b, options.defaultFee, options.density, options.gasbase);
+    _mgv.activate($b, $a, options.defaultFee, options.density, options.gasbase);
     // logging
     vm.label($a, IERC20($a).symbol());
     vm.label($b, IERC20($b).symbol());

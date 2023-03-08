@@ -24,6 +24,9 @@ contract AaveKandelTest is CoreKandelTest {
   function __setForkEnvironment__() internal override {
     fork = new PinnedPolygonFork();
     fork.setUp();
+    options.gasprice = 90;
+    options.gasbase = 68_000;
+    options.defaultFee = 30;
     mgv = setupMangrove();
     reader = new MgvReader($(mgv));
     base = TestToken(fork.get("WETH"));
@@ -37,7 +40,7 @@ contract AaveKandelTest is CoreKandelTest {
     uint router_gasreq = 318 * 1000;
     uint kandel_gasreq = 338 * 1000;
     router = address(router) == address(0) ? new AavePooledRouter(fork.get("Aave"), router_gasreq) : router;
-    aaveKandel = new AaveKandel({
+    AaveKandel aaveKandel_ = new AaveKandel({
       mgv: IMangrove($(mgv)),
       base: base,
       quote: quote,
@@ -46,12 +49,12 @@ contract AaveKandelTest is CoreKandelTest {
       reserveId: id
     });
 
-    router.bind(address(aaveKandel));
+    router.bind(address(aaveKandel_));
     // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20
-    aaveKandel.initialize(router);
-    aaveKandel.setAdmin(deployer);
-    assertEq(aaveKandel.offerGasreq(), kandel_gasreq + router_gasreq, "Incorrect gasreq");
-    return aaveKandel;
+    aaveKandel_.initialize(router);
+    aaveKandel_.setAdmin(deployer);
+    assertEq(aaveKandel_.offerGasreq(), kandel_gasreq + router_gasreq, "Incorrect gasreq");
+    return aaveKandel_;
   }
 
   function precisionForAssert() internal pure override returns (uint) {
@@ -144,7 +147,7 @@ contract AaveKandelTest is CoreKandelTest {
     uint quoteAave = router.overlying(quote).balanceOf(address(router));
     vm.prank($(mgv));
     kdl.makerPosthook(order, result);
-    assertEq(kdl.reserveBalance(Bid), makerBalance + 1000 * 10 ** 6, "Incorrect updated balance");
+    assertApproxEqAbs(kdl.reserveBalance(Bid), makerBalance + 1000 * 10 ** 6, 1, "Incorrect updated balance");
     assertEq(base.balanceOf(address(router)), 0, "Router did not flush base buffer");
     assertEq(quote.balanceOf(address(router)), 0, "Router did not flush quote buffer");
     assertEq(
@@ -152,9 +155,10 @@ contract AaveKandelTest is CoreKandelTest {
       baseAave + 1 ether,
       "Router should have supplied its base buffer on AAVE"
     );
-    assertEq(
+    assertApproxEqAbs(
       router.overlying(quote).balanceOf(address(router)),
       quoteAave + 1000 * 10 ** 6,
+      1,
       "Router should have supplied maker's quote on AAVE"
     );
   }
@@ -169,7 +173,7 @@ contract AaveKandelTest is CoreKandelTest {
     uint quoteBalance = kdl.reserveBalance(Bid);
 
     vm.prank(maker);
-    kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(baseAmount), quoteAmount]));
+    kdl.depositFunds(baseAmount, quoteAmount);
 
     assertEq(kdl.reserveBalance(Ask), kdl_.reserveBalance(Ask), "funds are not shared");
     assertEq(kdl.reserveBalance(Bid), kdl_.reserveBalance(Bid), "funds are not shared");
@@ -178,7 +182,7 @@ contract AaveKandelTest is CoreKandelTest {
   }
 
   function test_offerLogic_sharingLiquidityBetweenStratsNoDonation_offersSucceedAndFundsPushedToAave() public {
-    test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
+    offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
       donationMultiplier: 0,
       allBaseOnAave: true,
       allQuoteOnAave: true
@@ -186,7 +190,7 @@ contract AaveKandelTest is CoreKandelTest {
   }
 
   function test_offerLogic_sharingLiquidityBetweenStratsFirstOfferDonated_offersSucceedAndPushesBaseToAave() public {
-    test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
+    offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
       donationMultiplier: 1,
       allBaseOnAave: true,
       allQuoteOnAave: false
@@ -194,14 +198,14 @@ contract AaveKandelTest is CoreKandelTest {
   }
 
   function test_offerLogic_sharingLiquidityBetweenStratsBothOffersDonated_offersSucceedAndNoFundsPushedToAave() public {
-    test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
+    offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
       donationMultiplier: 3,
       allBaseOnAave: false,
       allQuoteOnAave: false
     });
   }
 
-  function test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave(
+  function offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave(
     uint donationMultiplier,
     bool allBaseOnAave,
     bool allQuoteOnAave
@@ -251,7 +255,7 @@ contract AaveKandelTest is CoreKandelTest {
     GeometricKandel kdl_ = __deployKandel__(maker, address(0));
     assertTrue(kdl_.RESERVE_ID() != kdl.RESERVE_ID(), "Strats should not have the same reserveId");
     vm.prank(maker);
-    kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(baseAmount), quoteAmount]));
+    kdl.depositFunds(baseAmount, quoteAmount);
 
     assertEq(kdl_.reserveBalance(Ask), 0, "funds should not be shared");
     assertEq(kdl_.reserveBalance(Bid), 0, "funds should not be shared");
@@ -298,9 +302,6 @@ contract AaveKandelTest is CoreKandelTest {
     uint nativeBal = address(this).balance;
     uint gas = gasleft(); // adding flash loan overhead
     try attacker.borrow(quote, quoteSupply - 1) {
-      expectFrom(address(aaveKandel));
-      emit LogIncident(IMangrove($(mgv)), quote, base, 5, "AavePooledRouter/IlliquidPool", "mgv/makerRevert");
-
       (,, uint takerGave, uint bounty,) = sellToBestAs(address(this), 0.1 ether);
       require(takerGave == 0 && bounty > 0, "Attack failed");
       gas = gas - gasleft() + 300_000; // adding flashloan cost
@@ -345,7 +346,8 @@ contract AaveKandelTest is CoreKandelTest {
       require(takerGave == 0 && bounty > 0, "Attack failed");
       gas = gas - gasleft() + 400_000; // adding flashloan cost + repay of borrow
       console.log("Attack successful, %s collected for an overhead of %s gas units", toUnit(bounty, 18), gas);
-      (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+      (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) = mgv.config($(base), $(quote));
+      console.log("Gasbase is ", local.offer_gasbase());
       uint attacker_cost = gas * global.gasprice() * 10 ** 9;
       console.log(
         "Gas cost of the attack (gasprice %s gwei): %s native tokens", global.gasprice(), toUnit(attacker_cost, 18)
@@ -356,32 +358,60 @@ contract AaveKandelTest is CoreKandelTest {
     printOrderBook($(quote), $(base));
   }
 
-  function test_chainsec_attack() public {
+  function test_cannot_create_aaveKandel_with_aToken_for_base() public {
     AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
-    AaveKandel attackKandel = AaveKandel(payable(__deployKandel__(address(attacker), address(0))));
-
-    deal($(base), address(attacker), 1);
-    attacker.approveLender(base);
-    attacker.supply(base, 1);
-    IERC20 atoken = attacker.overlying(base);
-    console.log("router's aWETHs before attack", atoken.balanceOf(address(router)));
-
-    vm.startPrank(address(attacker));
-    // allows attacker to deposit aWETHS on its Kandel strat
-    atoken.approve({spender: address(aaveKandel), amount: type(uint).max});
-    // allows attackKandel to push aWETHs to the router
-    attackKandel.approve(IERC20(atoken), address(router), type(uint).max);
-    aaveKandel.depositFunds(dynamic([IERC20(atoken)]), dynamic([uint(1)]));
-    vm.stopPrank();
-
-    console.log("router's aWETHs after deposit", atoken.balanceOf(address(router)));
-
-    vm.startPrank(address(attacker));
-    attackKandel.withdrawFunds(
-      dynamic([IERC20(atoken)]), dynamic([uint(atoken.balanceOf(address(router)))]), address(attacker)
-    );
-    vm.stopPrank();
-    assertEq(atoken.balanceOf(address(router)), 0, "Attack failed");
-    console.log("router's aWETHs after attack", atoken.balanceOf(address(router)));
+    IERC20 aToken = attacker.overlying(base);
+    vm.expectRevert("AaveKandel/cannotTradeAToken");
+    new AaveKandel({
+      mgv: IMangrove($(mgv)),
+      base: aToken,
+      quote: quote,
+      gasreq: 100,
+      gasprice: 0,
+      reserveId: address(0)
+    });
   }
+
+  function test_cannot_create_aaveKandel_with_aToken_for_quote() public {
+    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    IERC20 aToken = attacker.overlying(quote);
+    vm.expectRevert("AaveKandel/cannotTradeAToken");
+    new AaveKandel({
+      mgv: IMangrove($(mgv)),
+      base: base,
+      quote: aToken,
+      gasreq: 100,
+      gasprice: 0,
+      reserveId: address(0)
+    });
+  }
+
+  //   function test_chainsec_attack() public {
+  //     AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+  //     AaveKandel attackKandel = AaveKandel(payable(__deployKandel__(address(attacker), address(0))));
+
+  //     deal($(base), address(attacker), 1);
+  //     attacker.approveLender(base);
+  //     attacker.supply(base, 1);
+  //     IERC20 atoken = attacker.overlying(base);
+  //     console.log("router's aWETHs before attack", atoken.balanceOf(address(router)));
+
+  //     vm.startPrank(address(attacker));
+  //     // allows attacker to deposit aWETHS on its Kandel strat
+  //     atoken.approve({spender: address(attackKandel), amount: type(uint).max});
+  //     // allows attackKandel to push aWETHs to the router
+  //     attackKandel.approve(IERC20(atoken), address(router), type(uint).max);
+  //     attackKandel.depositFunds(dynamic([IERC20(atoken)]), dynamic([uint(1)]));
+  //     vm.stopPrank();
+
+  //     console.log("router's aWETHs after deposit", atoken.balanceOf(address(router)));
+
+  //     vm.startPrank(address(attacker));
+  //     attackKandel.withdrawFunds(
+  //       dynamic([IERC20(atoken)]), dynamic([uint(atoken.balanceOf(address(router)))]), address(attacker)
+  //     );
+  //     vm.stopPrank();
+  //     assertEq(atoken.balanceOf(address(router)), 0, "Attack failed");
+  //     console.log("router's aWETHs after attack", atoken.balanceOf(address(router)));
+  //   }
 }

@@ -164,8 +164,8 @@ contract KandelPopulate is Deployer {
       vars.pivotIds,
       args.firstAskIndex,
       args.params,
-      dynamic([IERC20(vars.BASE), vars.QUOTE]),
-      dynamic([uint(vars.baseAmountRequired), vars.quoteAmountRequired])
+      vars.baseAmountRequired,
+      vars.quoteAmountRequired
     );
     console.log(toUnit(funds, 18), "eth used as provision");
   }

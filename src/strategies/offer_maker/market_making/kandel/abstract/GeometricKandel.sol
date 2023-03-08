@@ -59,7 +59,6 @@ abstract contract GeometricKandel is CoreKandel {
     uint16 gasprice_ = uint16(gasprice);
     require(gasprice_ == gasprice, "Kandel/gaspriceTooHigh");
     params.gasprice = gasprice_;
-    // params.gasreq = gasreq_;
     emit SetGasprice(gasprice_);
   }
 

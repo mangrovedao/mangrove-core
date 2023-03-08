@@ -1,5 +1,13 @@
 # Contracts in scope for the audit
 
+Initial commit: 94431a43e99348a16c609e5c0386c08d22f0e5eb
+Update: Added diagram and split KandelSeeder in two to reduce contract size.
+
+The following diagram shows an overview of components making up the Kandel AMM contract.
+![SVG Kandel overview](./kandel.drawio.svg)
+
+Kandel makes use of the same building blocks as MangroveOrder which was previously audited. MangroveOffer was a Forwarder strat - multiple accounts could interact with it. Kandel is a Direct strat and is managed by a single account. The green components are new for Kandel. The blue are not specific to Kandel, but changed and used by Kandel. Kandel can use AAVE via a router. The components making up the router are purple. Finally, the orange components make up the seeder contracts which are used to deploy Kandel contracts in a permissionless manner, but still bound to the router. The boxes with rounded corners are deployed while the others are abstract.
+
 ## Kandel and AAVE router
 
 ### src/strategies/offer_maker/market_making/kandel/Kandel.sol
@@ -16,7 +24,15 @@ The AavePooledRouter version of the Kandel contract.
 
 ### src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol
 
-A contract to do permissionless deploy the Kandel and AaveKandel contracts and bind to a shared router
+A contract to do permissionless deploy the Kandel contract.
+
+### src/strategies/offer_maker/market_making/kandel/AaveKandelSeeder.sol
+
+A contract to do permissionless deploy the AaveKandel contract and bind to a shared router
+
+### src/strategies/offer_maker/market_making/kandel/abstract/AbstractKandelSeeder.sol
+
+An abstract contract for the two seeders above.
 
 ### Dependencies
 

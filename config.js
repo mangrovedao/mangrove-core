@@ -14,6 +14,13 @@ exports.abi_exports = [
   "ICreditDelegationToken",
   "ILiquidityProvider",
   "AccessControlled",
+  "AbstractKandel",
+  "GeometricKandel",
+  "Kandel",
+  "AaveKandel",
+  "AbstractKandelSeeder",
+  "KandelSeeder",
+  "AaveKandelSeeder",
 ];
 
 // Contracts that should export their ABI + bytecode

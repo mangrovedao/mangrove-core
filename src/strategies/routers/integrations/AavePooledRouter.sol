@@ -55,7 +55,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   /// mitigation proposed here: https://ethereum-magicians.org/t/address-eip-4626-inflation-attacks-with-virtual-shares-and-assets/12677
 
   uint public constant OFFSET = 19;
-  uint constant INIT_MINT = 10 ** OFFSET;
+  uint internal constant INIT_MINT = 10 ** OFFSET;
 
   /// OVERFLOW analysis w.r.t offset choice:
   /// worst case is:

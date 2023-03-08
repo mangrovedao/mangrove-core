@@ -16,7 +16,7 @@
     "name": "MgvOracle"
   },
   {
-    "address": "0x046963623BDB092A406ed051222e769D214bd107",
+    "address": "0x3EFed2C3291E62a2c5B493737b78F1af18812b97",
     "name": "MangroveOrderEnriched"
   },
   {
@@ -58,5 +58,9 @@
   {
     "address": "0xAFda2F561418cE75cb457f4369601c640723Dda6",
     "name": "AaveKandel_DAI_USDC"
+  },
+  {
+    "address": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",
+    "name": "MgvGovernance"
   }
 ]

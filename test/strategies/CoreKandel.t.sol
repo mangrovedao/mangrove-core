@@ -45,8 +45,8 @@ abstract contract CoreKandelTest is MangroveTest {
   // sets base and quote
   function __setForkEnvironment__() internal virtual {
     // no fork
-    // options.base.symbol = "WETH";
-    // options.quote.symbol = "USDC";
+    options.base.symbol = "WETH";
+    options.quote.symbol = "USDC";
     options.quote.decimals = 6;
     options.defaultFee = 30;
     options.gasprice = 40;

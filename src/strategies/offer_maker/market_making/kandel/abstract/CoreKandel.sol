@@ -96,9 +96,9 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
   }
 
   function depositFunds(uint baseAmount, uint quoteAmount) public virtual override {
-    TransferLib.transferTokenFrom(BASE, msg.sender, address(this), baseAmount);
+    require(TransferLib.transferTokenFrom(BASE, msg.sender, address(this), baseAmount), "Kandel/baseTransferFail");
     emit Credit(BASE, baseAmount);
-    TransferLib.transferTokenFrom(QUOTE, msg.sender, address(this), quoteAmount);
+    require(TransferLib.transferTokenFrom(QUOTE, msg.sender, address(this), quoteAmount), "Kandel/quoteTransferFail");
     emit Credit(QUOTE, quoteAmount);
   }
 

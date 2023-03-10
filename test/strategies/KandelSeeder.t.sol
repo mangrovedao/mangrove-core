@@ -72,7 +72,7 @@ contract KandelSeederTest is MangroveTest {
   function test_logs_new_aaveKandel() public {
     address maker = freshAddress("Maker");
     expectFrom(address(aaveSeeder));
-    emit NewAaveKandel(maker, base, quote, 0x746326d3E4e54BA617F8aB39A21b7420aE8bF97d, maker);
+    emit NewAaveKandel(maker, base, quote, 0xf5Ba21691a8bC011B7b430854B41d5be0B78b938, maker);
     vm.prank(maker);
     sowAave(true);
   }
@@ -80,7 +80,7 @@ contract KandelSeederTest is MangroveTest {
   function test_logs_new_kandel() public {
     address maker = freshAddress("Maker");
     expectFrom(address(seeder));
-    emit NewKandel(maker, base, quote, 0x5B0091f49210e7B2A57B03dfE1AB9D08289d9294);
+    emit NewKandel(maker, base, quote, 0xa38D17ef017A314cCD72b8F199C0e108EF7Ca04c);
     vm.prank(maker);
     sow(true);
   }

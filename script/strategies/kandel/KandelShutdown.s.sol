@@ -28,15 +28,11 @@ contract KandelShutdown is Deployer {
     uint quoteBalance = quote.balanceOf(broadcaster());
     uint weiBalance = broadcaster().balance;
 
-    IERC20[] memory tokens = new IERC20[](2);
-    tokens[0] = base;
-    tokens[1] = quote;
-    uint[] memory tokenAmounts = new uint[](2);
-    tokenAmounts[0] = kdl.reserveBalance(OfferType.Ask); // base balance
-    tokenAmounts[1] = kdl.reserveBalance(OfferType.Bid); // quote balance
+    uint baseAmount = kdl.reserveBalance(OfferType.Ask); // base balance
+    uint quoteAmount = kdl.reserveBalance(OfferType.Bid); // quote balance
 
     broadcast();
-    kdl.retractAndWithdraw(0, length, tokens, tokenAmounts, type(uint).max, payable(broadcaster()));
+    kdl.retractAndWithdraw(0, length, baseAmount, quoteAmount, type(uint).max, payable(broadcaster()));
 
     baseBalance = base.balanceOf(broadcaster()) - baseBalance;
     quoteBalance = quote.balanceOf(broadcaster()) - quoteBalance;
@@ -53,15 +49,13 @@ contract KandelShutdown is Deployer {
     int pendingBase = kdl.pending(OfferType.Ask);
     int pendingQuote = kdl.pending(OfferType.Bid);
 
-    tokenAmounts[0] = (pendingBase > 0 ? uint(pendingBase) : 0);
-    tokenAmounts[1] = (pendingQuote > 0 ? uint(pendingQuote) : 0);
+    baseAmount = (pendingBase > 0 ? uint(pendingBase) : 0);
+    quoteAmount = (pendingQuote > 0 ? uint(pendingQuote) : 0);
     broadcast();
-    kdl.withdrawFunds(tokens, tokenAmounts, broadcaster());
+    kdl.withdrawFunds(baseAmount, quoteAmount, broadcaster());
 
     console.log(
-      "Retrieved %s base and %s quote tokens",
-      toUnit(tokenAmounts[0], baseDecimals),
-      toUnit(tokenAmounts[1], quoteDecimals)
+      "Retrieved %s base and %s quote tokens", toUnit(baseAmount, baseDecimals), toUnit(quoteAmount, quoteDecimals)
     );
   }
 }

@@ -12,25 +12,30 @@ contract Script2 is Script {
   /* *** Singleton ***
     Shared global refs for multiple contracts. Better than `vm.etch(hash(name),address(new Contract()).code)`, which does *not* carry over state modification caused by the constructor.
   */
-
   ToyENS _singletons = ToyENS(hashToAddress("Mangrove:Singletons"));
+
+  /* *** Contract initialization ***
+     Replaces a constructor; execution cannot be prevented
+  */
+  address private __dummy = script2Initialize();
+  function script2Initialize() private returns (address) {
+    // Initialize SingletonsENS
+    vm.etch(address(_singletons), address(new ToyENS()).code);
+    vm.label(address(_singletons),"SingletonsENS");
+    return address(0);
+  }
 
   // Computes address from last 20 bytes of hash
   function hashToAddress(string memory str) internal pure returns (address) {
       return address(uint160(uint256(keccak256(bytes(str)))));
   }
 
-  function singleton(string memory name) public returns (address) {
-    if (address(_singletons).code.length == 0) {
-      vm.etch(address(_singletons), address(new ToyENS()).code);
-      return address(0);
-    } else {
-      return _singletons._addrs(name);
-    }
+
+  function singleton(string memory name) public view returns (address) {
+    return _singletons._addrs(name);
   }
 
   function singleton(string memory name, address addr) public {
-    require(singleton(name) == address(0), "Script2: cannot update existing singleton");
     _singletons.set(name, addr);
   }
 

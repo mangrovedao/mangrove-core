@@ -65,7 +65,7 @@ contract MgvReader {
     MgvStructs.LocalUnpacked config10;
   }
 
-  IMangrove immutable MGV;
+  IMangrove public immutable MGV;
 
   constructor(address mgv) {
     MGV = IMangrove(payable(mgv));

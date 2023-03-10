@@ -20,9 +20,9 @@ contract KandelSeederDeployer is Deployer {
     (KandelSeeder seeder, AaveKandelSeeder aaveSeeder) = innerRun({
       mgv: IMangrove(fork.get("Mangrove")),
       addressesProvider: fork.get("Aave"),
-      aaveKandelGasreq: vm.envUint("AAVE_KANDEL_GASREQ"),
-      kandelGasreq: vm.envUint("KANDEL_GASREQ"),
-      aaveRouterGasreq: vm.envUint("AAVE_ROUTER_GASREQ")
+      aaveKandelGasreq: 160_000,
+      kandelGasreq: 160_000,
+      aaveRouterGasreq: 500_000
     });
     smokeTest(seeder, AbstractRouter(address(0)));
     smokeTest(aaveSeeder, aaveSeeder.AAVE_ROUTER());

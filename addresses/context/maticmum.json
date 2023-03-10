@@ -1,13 +1,5 @@
 [
   {
-    "address": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",
-    "name": "Deployer"
-  },
-  {
-    "address": "0x5a6272e5d8690ad47Df72BBf7Fb08cE1851b8f54",
-    "name": "Tester"
-  },
-  {
     "address": "0xeb7A892BB04A8f836bDEeBbf60897A7Af1Bf5d7F",
     "name": "Aave"
   },

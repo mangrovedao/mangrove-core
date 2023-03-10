@@ -28,6 +28,10 @@ contract AaveKandel is GeometricKandel {
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
     GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId)
   {
+    // one makes sure it is not possible to deploy an AAVE kandel on aTokens
+    // allowing Kandel to deposit aUSDC for instance would conflict with other Kandel instances bound to the same router
+    // and trading on USDC.
+    // The code below verifies that neither base nor quote are official AAVE overlyings.
     bool isOverlying;
     try IATokenIsh(address(base)).UNDERLYING_ASSET_ADDRESS() returns (address) {
       isOverlying = true;

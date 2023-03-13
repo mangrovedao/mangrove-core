@@ -352,7 +352,7 @@ abstract contract CoreKandelTest is MangroveTest {
     gives_for_0 = bid_.gives();
     require(vm.revertTo(snapshotId), "snapshot restore failed");
 
-    // at 0% compouding, one wants to buy back what was sent
+    // at 0% compounding, one wants to buy back what was sent
     // computation might have rounding error because bid_.wants is derived from bid_.gives
     console.log(bid_.wants(), bid.wants(), ask.gives());
     assertApproxEqRel(bid_.wants(), bid.wants() + ask.gives(), 10 ** 9, "Incorrect wants when 0% compounding");
@@ -403,7 +403,7 @@ abstract contract CoreKandelTest is MangroveTest {
     gives_for_0 = ask_.gives();
     require(vm.revertTo(snapshotId), "snapshot restore failed");
 
-    // at 0% compouding, one wants to buy back what was sent
+    // at 0% compounding, one wants to buy back what was sent
     // computation might have rounding error because ask_.wants is derived from ask_.gives
     console.log(ask_.wants(), ask.wants(), bid.gives());
     assertEq(ask_.wants(), ask.wants() + bid.gives(), "Incorrect wants when 0% compounding");

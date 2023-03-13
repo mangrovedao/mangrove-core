@@ -23,7 +23,7 @@ import {IERC20} from "mgv_src/IERC20.sol";
 
 ///@title A Kandel strat with geometric price progression which stores funds on AAVE to generate yield.
 contract AaveKandel is GeometricKandel {
-  bytes32 constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
+  bytes32 internal constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
     GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId)

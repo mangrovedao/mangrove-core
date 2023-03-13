@@ -18,7 +18,7 @@ contract AccessControlled {
   /// @notice logs new `admin` of `this`
   event SetAdmin(address admin);
 
-  address _admin;
+  address internal _admin;
 
   /**
    * @notice `AccessControlled`'s constructor

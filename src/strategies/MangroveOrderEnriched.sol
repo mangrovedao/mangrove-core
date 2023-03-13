@@ -21,7 +21,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 contract MangroveOrderEnriched is MangroveOrder {
   /// @notice This maintains a mapping of owners to offers via linked offerIds.
   /// @dev `next[outbound_tkn][inbound_tkn][owner][id] = id'` with `next[outbound_tkn][inbound_tkn][owner][0]==0` iff owner has no offers on the semi book (out,in)
-  mapping(IERC20 => mapping(IERC20 => mapping(address => mapping(uint => uint)))) next;
+  mapping(IERC20 => mapping(IERC20 => mapping(address => mapping(uint => uint)))) internal next;
 
   /**
    * @notice `MangroveOrderEnriched`'s constructor

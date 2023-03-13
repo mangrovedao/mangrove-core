@@ -16,10 +16,10 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 
 contract KandelSeederTest is MangroveTest {
-  PinnedPolygonFork fork;
-  AbstractKandelSeeder seeder;
-  AbstractKandelSeeder aaveSeeder;
-  AavePooledRouter aaveRouter;
+  PinnedPolygonFork internal fork;
+  AbstractKandelSeeder internal seeder;
+  AbstractKandelSeeder internal aaveSeeder;
+  AavePooledRouter internal aaveRouter;
 
   event NewAaveKandel(
     address indexed owner, IERC20 indexed base, IERC20 indexed quote, address aaveKandel, address reserveId
@@ -57,7 +57,7 @@ contract KandelSeederTest is MangroveTest {
 
     AaveKandelSeeder aaveKandelSeeder = new AaveKandelSeeder({
       mgv:IMangrove($(mgv)), 
-      addressesProvider: fork.get('Aave'), 
+      addressesProvider: fork.get("Aave"), 
       routerGasreq: 500_000, 
       aaveKandelGasreq: 128_001
     });
@@ -117,7 +117,7 @@ contract KandelSeederTest is MangroveTest {
     kdl.checkList(tokens);
   }
 
-  function test_maker_deploys_private_kandel() public {
+  function test_maker_deploys_kandel() public {
     GeometricKandel kdl;
     address maker = freshAddress("Maker");
     vm.prank(maker);
@@ -125,21 +125,6 @@ contract KandelSeederTest is MangroveTest {
     assertEq(address(kdl.router()), address(kdl.NO_ROUTER()), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
     assertEq(kdl.RESERVE_ID(), address(kdl), "Incorrect owner");
-    IERC20[] memory tokens = new IERC20[](2);
-    tokens[0] = base;
-    tokens[1] = quote;
-    kdl.checkList(tokens);
-  }
-
-  function test_maker_deploys_shared_kandel() public {
-    GeometricKandel kdl;
-    address maker = freshAddress("Maker");
-    vm.prank(maker);
-    kdl = sow(true);
-    assertEq(address(kdl.router()), address(kdl.NO_ROUTER()), "Incorrect router address");
-    assertEq(kdl.admin(), maker, "Incorrect admin");
-    assertEq(kdl.RESERVE_ID(), maker, "Incorrect owner");
-    assertEq(kdl.offerGasreq(), 128_000);
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;

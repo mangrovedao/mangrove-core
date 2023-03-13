@@ -1437,6 +1437,59 @@ abstract contract CoreKandelTest is MangroveTest {
     assertEq(0, kdl.offeredVolume(Ask), "no bids should be live");
   }
 
+  function test_depositFunds(uint96 baseAmount, uint96 quoteAmount) public {
+    deal($(base), address(this), baseAmount);
+    deal($(quote), address(this), quoteAmount);
+    base.approve($(kdl), baseAmount);
+    quote.approve($(kdl), quoteAmount);
+
+    uint quoteBalance = kdl.reserveBalance(Bid);
+    uint baseBalance = kdl.reserveBalance(Ask);
+
+    kdl.depositFunds(baseAmount, quoteAmount);
+
+    assertApproxEqRel(baseBalance + baseAmount, kdl.reserveBalance(Ask), 10 ** 10, "Incorrect base deposit");
+    assertApproxEqRel(quoteBalance + quoteAmount, kdl.reserveBalance(Bid), 10 ** 10, "Incorrect base deposit");
+  }
+
+  function test_deposit0Funds() public {
+    uint quoteBalance = kdl.reserveBalance(Bid);
+    uint baseBalance = kdl.reserveBalance(Ask);
+    kdl.depositFunds(0, 0);
+    assertEq(kdl.reserveBalance(Ask), baseBalance, "Incorrect base deposit");
+    assertEq(kdl.reserveBalance(Bid), quoteBalance, "Incorrect quote deposit");
+  }
+
+  function test_withdrawFunds(uint96 baseAmount, uint96 quoteAmount) public {
+    deal($(base), address(this), baseAmount);
+    deal($(quote), address(this), quoteAmount);
+    base.approve($(kdl), baseAmount);
+    quote.approve($(kdl), quoteAmount);
+
+    kdl.depositFunds(baseAmount, quoteAmount);
+
+    vm.prank(maker);
+    kdl.withdrawFunds(baseAmount, quoteAmount, address(this));
+    assertEq(base.balanceOf(address(this)), baseAmount, "Incorrect base withdrawal");
+    assertEq(quote.balanceOf(address(this)), quoteAmount, "Incorrect quote withdrawl");
+  }
+
+  function test_withdrawAll() public {
+    deal($(base), address(this), 1 ether);
+    deal($(quote), address(this), 100 * 10 ** 6);
+    base.approve($(kdl), 1 ether);
+    quote.approve($(kdl), 100 * 10 ** 6);
+
+    kdl.depositFunds(1 ether, 100 * 10 ** 6);
+    uint quoteBalance = kdl.reserveBalance(Bid);
+    uint baseBalance = kdl.reserveBalance(Ask);
+
+    vm.prank(maker);
+    kdl.withdrawFunds(type(uint).max, type(uint).max, address(this));
+    assertEq(base.balanceOf(address(this)), baseBalance, "Incorrect base withdrawal");
+    assertEq(quote.balanceOf(address(this)), quoteBalance, "Incorrect quote withdrawl");
+  }
+
   function test_marketOrder_dualOfferUpdate_expectedGasreq() public {
     test_marketOrder_dualOffer_expectedGasreq(false, 87985);
   }

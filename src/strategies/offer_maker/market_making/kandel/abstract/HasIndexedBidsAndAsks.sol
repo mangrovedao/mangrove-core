@@ -23,6 +23,8 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
 
   ///@notice the length of the index has been set.
   event SetLength(uint value);
+  ///@notice a new offer of type `ba` with `offerId` was created at price `index`
+  event SetIndexMapping(OfferType indexed ba, uint index, uint offerId);
 
   constructor(IMangrove mgv) {
     MGV = mgv;
@@ -61,6 +63,7 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
       indexOfBidOfferId[offerId] = index;
       bidOfferIdOfIndex[index] = offerId;
     }
+    emit SetIndexMapping(ba, index, offerId);
   }
 
   ///@notice sets the length of the map.

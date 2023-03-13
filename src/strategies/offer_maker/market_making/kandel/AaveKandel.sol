@@ -104,7 +104,7 @@ contract AaveKandel is GeometricKandel {
     returns (bytes32 repostStatus)
   {
     // handle dual offer posting
-    bool isOutOfRange = transportSuccessfulOrder(order);
+    transportSuccessfulOrder(order);
 
     // handles pushing back liquidity to the router
     if (makerData == IS_FIRST_PULLER) {
@@ -122,9 +122,6 @@ contract AaveKandel is GeometricKandel {
     } else {
       // reposting offer residual if any - call super to let flush tokens to router
       repostStatus = super.__posthookSuccess__(order, makerData);
-    }
-    if (isOutOfRange) {
-      logOutOfRange(order, repostStatus);
     }
   }
 }

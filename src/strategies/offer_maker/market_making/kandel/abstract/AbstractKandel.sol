@@ -17,11 +17,6 @@ import {OfferType} from "./TradesBaseQuotePair.sol";
 
 ///@title Core external functions and events for Kandel strats.
 abstract contract AbstractKandel {
-  ///@notice signals that the price has moved above Kandel's current price range.
-  event AllAsks();
-  ///@notice signals that the price has moved below Kandel's current price range.
-  event AllBids();
-
   ///@notice the compound rates have been set to `compoundRateBase` and `compoundRateQuote` which will take effect for future compounding.
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
 

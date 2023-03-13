@@ -464,62 +464,6 @@ abstract contract CoreKandelTest is MangroveTest {
     assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
   }
 
-  function test_posthookSuccess_lastBidCompletelyTaken_emitsAllAsks() public {
-    test_posthookSuccess_lastBidTaken_emitsAllAsksOnCompleteFill(false);
-  }
-
-  function testFail_posthookSuccess_lastBidPartiallyTaken_doesNotEmitAllAsks() public {
-    test_posthookSuccess_lastBidTaken_emitsAllAsksOnCompleteFill(true);
-  }
-
-  function test_posthookSuccess_lastBidTaken_emitsAllAsksOnCompleteFill(bool partialFill) internal {
-    // Arrange
-    sellToBestAs(taker, 1 ether);
-    sellToBestAs(taker, 1 ether);
-    sellToBestAs(taker, 1 ether);
-    sellToBestAs(taker, 1 ether);
-    assertStatus(dynamic([uint(1), 0, 2, 2, 2, 2, 2, 2, 2, 2]));
-    (, MgvStructs.OfferPacked best) = getBestOffers();
-
-    // Act/assert
-    expectFrom(address(kdl));
-    emit AllAsks();
-    if (partialFill) {
-      sellToBestAs(taker, best.gives() / 2);
-      assertStatus(dynamic([uint(1), 0, 2, 2, 2, 2, 2, 2, 2, 2]));
-    } else {
-      sellToBestAs(taker, 1 ether);
-      assertStatus(dynamic([uint(0), 2, 2, 2, 2, 2, 2, 2, 2, 2]));
-    }
-  }
-
-  function testFail_posthookSuccess_lastAskPartiallyTaken_doesNotEmitAllBids() public {
-    test_posthookSuccess_lastAskTaken_emitsAllBidsOnCompleteFill(true);
-  }
-
-  function test_posthookSuccess_lastAskCompletelyTaken_emitsAllBids() public {
-    test_posthookSuccess_lastAskTaken_emitsAllBidsOnCompleteFill(false);
-  }
-
-  function test_posthookSuccess_lastAskTaken_emitsAllBidsOnCompleteFill(bool partialFill) internal {
-    // Arrange
-    buyFromBestAs(taker, 1 ether);
-    buyFromBestAs(taker, 1 ether);
-    buyFromBestAs(taker, 1 ether);
-    buyFromBestAs(taker, 1 ether);
-    (MgvStructs.OfferPacked best,) = getBestOffers();
-    // Act/assert
-    expectFrom(address(kdl));
-    emit AllBids();
-    if (partialFill) {
-      buyFromBestAs(taker, best.gives() / 2);
-      assertStatus(dynamic([uint(1), 1, 1, 1, 1, 1, 1, 1, 0, 2]));
-    } else {
-      buyFromBestAs(taker, 1 ether);
-      assertStatus(dynamic([uint(1), 1, 1, 1, 1, 1, 1, 1, 1, 0]));
-    }
-  }
-
   function test_all_bids_all_asks_and_back() public {
     assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
     vm.prank(taker);

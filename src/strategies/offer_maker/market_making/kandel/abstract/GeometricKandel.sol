@@ -270,13 +270,10 @@ abstract contract GeometricKandel is CoreKandel {
     internal
     virtual
     override
-    returns (OfferType baDual, bool isOutOfRange, uint dualOfferId, uint dualIndex, OfferArgs memory args)
+    returns (OfferType baDual, uint dualOfferId, uint dualIndex, OfferArgs memory args)
   {
     uint index = indexOfOfferId(ba, order.offerId);
     Params memory memoryParams = params;
-
-    isOutOfRange = index == 0 || index == memoryParams.pricePoints - 1;
-
     baDual = dual(ba);
 
     // because of boundaries, actual spread might be lower than the one loaded in memoryParams

@@ -95,6 +95,9 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
     return int(reserveBalance(ba)) - int(offeredVolume(ba));
   }
 
+  ///@notice Deposits funds to the contract's reserve
+  ///@param baseAmount the amount of base tokens to deposit.
+  ///@param quoteAmount the amount of quote tokens to deposit.
   function depositFunds(uint baseAmount, uint quoteAmount) public virtual override {
     require(TransferLib.transferTokenFrom(BASE, msg.sender, address(this), baseAmount), "Kandel/baseTransferFail");
     emit Credit(BASE, baseAmount);
@@ -102,7 +105,17 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
     emit Credit(QUOTE, quoteAmount);
   }
 
+  ///@notice withdraws funds from the contract's reserve
+  ///@param baseAmount the amount of base tokens to withdraw. Use max uint to denote the entire reserve balance.
+  ///@param quoteAmount the amount of quote tokens to withdraw. Use max uint to denote the entire reserve balance.
+  ///@param recipient the address to which the withdrawn funds should be sent to.
   function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public virtual override onlyAdmin {
+    if (baseAmount == type(uint).max) {
+      baseAmount = BASE.balanceOf(address(this));
+    }
+    if (quoteAmount == type(uint).max) {
+      quoteAmount = QUOTE.balanceOf(address(this));
+    }
     require(TransferLib.transferToken(BASE, recipient, baseAmount), "Kandel/baseTransferFail");
     emit Debit(BASE, baseAmount);
     require(TransferLib.transferToken(QUOTE, recipient, quoteAmount), "Kandel/quoteTransferFail");
@@ -116,6 +129,7 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
   ///@param quoteAmount the amount of quote tokens to withdraw.
   ///@param freeWei the amount of wei to withdraw from Mangrove. Use type(uint).max to withdraw entire available balance.
   ///@param recipient the recipient of the funds.
+  ///@dev when base/quoteAmount is max uint, this is interpreted as a request to withdraw the whole reserve balance
   function retractAndWithdraw(
     uint from,
     uint to,

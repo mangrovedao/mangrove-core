@@ -214,7 +214,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@inheritdoc AbstractRouter
   ///@dev outside a market order (i.e if `__pull__` is not called during offer logic's execution) the `token` balance of this router should be empty.
-  /// This may not be the case when a "donation" occurred to this contract
+  /// This may not be the case when a "donation" occurred to this contract or if the maker posthook failed to push funds back to AAVE
   /// If the donation is large enough to cover the pull request we use the donation funds
   function __pull__(IERC20 token, address reserveId, uint amount, bool strict) internal override returns (uint) {
     // The amount to redeem from AAVE
@@ -266,9 +266,12 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@notice withdraw funds from the pool on behalf of some reserve id
   ///@param token the asset to withdraw
   ///@param reserveId the identifier of the share holder
-  ///@param amount the amount to withdraw
+  ///@param amount the amount to withdraw. Use max uint to require withdrawal of the total balance of the caller
   function withdraw(IERC20 token, address reserveId, uint amount) external onlyBound {
     BalanceMemoizer memory memoizer;
+    if (amount == type(uint).max) {
+      amount = _balanceOfReserve(token, reserveId, memoizer);
+    }
     uint buffer = balanceOf(token, memoizer);
     uint toRedeem = buffer > amount ? 0 : amount - buffer;
     redeemAndTransfer(token, reserveId, amount, toRedeem, memoizer);

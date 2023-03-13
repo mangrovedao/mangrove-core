@@ -245,10 +245,12 @@ abstract contract GeometricKandel is CoreKandel {
   ///@param ba the offer type to transport to
   ///@param index the price index one is willing to improve
   ///@param step the number of price steps improvements
+  ///@return better destination index
+  ///@return spread the size of the price jump, which is `step` if the index boundaries were not reached
   function transportDestination(OfferType ba, uint index, uint step, uint pricePoints)
     internal
     pure
-    returns (uint better)
+    returns (uint better, uint8 spread)
   {
     if (ba == OfferType.Ask) {
       better = index + step;
@@ -258,9 +260,9 @@ abstract contract GeometricKandel is CoreKandel {
     } else {
       if (index >= step) {
         better = index - step;
-      }
-      // else better is 0
+      } // else better = 0
     }
+    spread = uint8(index > better ? index - better : better - index);
   }
 
   ///@inheritdoc CoreKandel
@@ -277,10 +279,10 @@ abstract contract GeometricKandel is CoreKandel {
 
     baDual = dual(ba);
 
-    dualIndex = transportDestination(baDual, index, memoryParams.spread, memoryParams.pricePoints);
     // because of boundaries, actual spread might be lower than the one loaded in memoryParams
     // this would result populating a price index at a wrong price (too high for an Ask and too low for a Bid)
-    memoryParams.spread = uint8(index > dualIndex ? index - dualIndex : dualIndex - index);
+    (dualIndex, memoryParams.spread) =
+      transportDestination(baDual, index, memoryParams.spread, memoryParams.pricePoints);
 
     dualOfferId = offerIdOfIndex(baDual, dualIndex);
     (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(baDual);

@@ -18,6 +18,9 @@ import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 
 ///@title `Direct` strats is an extension of MangroveOffer that allows contract's admin to manage offers on Mangrove.
 abstract contract Direct is MangroveOffer {
+  ///@notice `reserveId` is set in the constructor
+  event SetReserveId(address indexed reserveId);
+
   ///@notice identifier of this contract's reserve when using a router
   ///@dev RESERVE_ID==address(0) will pass address(this) to the router for the id field.
   ///@dev two contracts using the same RESERVE_ID will share funds, therefore strat builder must make sure this contract is allowed to pull into the given reserve Id.
@@ -33,7 +36,9 @@ abstract contract Direct is MangroveOffer {
     if (router_ != NO_ROUTER) {
       setRouter(router_);
     }
-    RESERVE_ID = reserveId == address(0) ? address(this) : reserveId;
+    address reserveId_ = reserveId == address(0) ? address(this) : reserveId;
+    RESERVE_ID = reserveId_;
+    emit SetReserveId(reserveId_);
   }
 
   /// @notice Inserts a new offer in Mangrove Offer List.

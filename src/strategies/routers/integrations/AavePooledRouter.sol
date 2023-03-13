@@ -266,7 +266,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@notice withdraw funds from the pool on behalf of some reserve id
   ///@param token the asset to withdraw
   ///@param reserveId the identifier of the share holder
-  ///@param amount the amount to withdraw. Use max uint to require withdrawal of the total balance of the caller
+  ///@param amount the amount to withdraw. Use type(uint).max to require withdrawal of the total balance of the caller
   function withdraw(IERC20 token, address reserveId, uint amount) external onlyBound {
     BalanceMemoizer memory memoizer;
     if (amount == type(uint).max) {

@@ -106,8 +106,8 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
   }
 
   ///@notice withdraws funds from the contract's reserve
-  ///@param baseAmount the amount of base tokens to withdraw. Use max uint to denote the entire reserve balance.
-  ///@param quoteAmount the amount of quote tokens to withdraw. Use max uint to denote the entire reserve balance.
+  ///@param baseAmount the amount of base tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
+  ///@param quoteAmount the amount of quote tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
   ///@param recipient the address to which the withdrawn funds should be sent to.
   function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public virtual override onlyAdmin {
     if (baseAmount == type(uint).max) {
@@ -125,11 +125,10 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
   ///@notice Retracts offers, withdraws funds, and withdraws free wei from Mangrove.
   ///@param from retract offers starting from this index.
   ///@param to retract offers until this index.
-  ///@param baseAmount the amount of base tokens to withdraw.
-  ///@param quoteAmount the amount of quote tokens to withdraw.
+  ///@param baseAmount the amount of base tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
+  ///@param quoteAmount the amount of quote tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
   ///@param freeWei the amount of wei to withdraw from Mangrove. Use type(uint).max to withdraw entire available balance.
   ///@param recipient the recipient of the funds.
-  ///@dev when base/quoteAmount is max uint, this is interpreted as a request to withdraw the whole reserve balance
   function retractAndWithdraw(
     uint from,
     uint to,

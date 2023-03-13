@@ -44,6 +44,7 @@ contract KandelSeederDeployer is Deployer {
     broadcast();
     aaveSeeder = new AaveKandelSeeder(mgv, addressesProvider, aaveRouterGasreq, aaveKandelGasreq);
     fork.set("AaveKandelSeeder", address(aaveSeeder));
+    fork.set("AavePooledRouter", address(aaveSeeder.AAVE_ROUTER()));
     console.log("Deployed!");
   }
 

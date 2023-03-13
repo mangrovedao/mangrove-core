@@ -24,7 +24,7 @@ abstract contract AbstractKandelSeeder {
   IMangrove public immutable MGV;
   uint public immutable KANDEL_GASREQ;
 
-  ///@notice constructor for `KandelSeeder`.
+  ///@notice constructor for `AbstractKandelSeeder`.
   constructor(IMangrove mgv, uint kandelGasreq) {
     MGV = mgv;
     KANDEL_GASREQ = kandelGasreq;

@@ -13,12 +13,23 @@ pragma solidity ^0.8.10;
 
 import {GeometricKandel} from "./GeometricKandel.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 ///@title Abstract Kandel strat deployer.
 ///@notice This seeder deploys Kandel strats on demand and binds them to an AAVE router if needed.
 ///@dev deployer of this contract will gain aave manager power on the AAVE router (power to claim rewards and enter/exit markets)
 ///@dev when deployer is a contract one must therefore make sure it is able to call the corresponding functions on the router
 abstract contract AbstractKandelSeeder {
+  IMangrove public immutable MGV;
+  uint public immutable KANDEL_GASREQ;
+
+  ///@notice constructor for `KandelSeeder`.
+  constructor(IMangrove mgv, uint kandelGasreq) {
+    MGV = mgv;
+    KANDEL_GASREQ = kandelGasreq;
+  }
+
   ///@notice a new Kandel with pooled AAVE router has been deployed.
   ///@param owner the owner of the strat.
   ///@param base the base token.
@@ -51,5 +62,24 @@ abstract contract AbstractKandelSeeder {
   ///@notice deploys a new Kandel contract for the given seed.
   ///@param seed the parameters for the Kandel strat
   ///@return kandel the Kandel contract.
-  function sow(KandelSeed calldata seed) external virtual returns (GeometricKandel kandel);
+  function sow(KandelSeed calldata seed) external returns (GeometricKandel kandel) {
+    // Seeder must set Kandel owner to an address that is controlled by `msg.sender` (msg.sender or Kandel's address for instance)
+    // owner MUST not be freely chosen (it is immutable in Kandel) otherwise one would allow the newly deployed strat to pull from another's strat reserve
+    // allowing owner to be modified by Kandel's admin would require approval from owner's address controller
+
+    (, MgvStructs.LocalPacked local) = MGV.config(address(seed.base), address(seed.quote));
+    (, MgvStructs.LocalPacked local_) = MGV.config(address(seed.quote), address(seed.base));
+
+    require(local.active() && local_.active(), "KandelSeeder/inactiveMarket");
+
+    kandel = _deployKandel(seed);
+    uint fullCompound = 10 ** kandel.PRECISION();
+    kandel.setCompoundRates(fullCompound, fullCompound);
+    kandel.setAdmin(msg.sender);
+  }
+
+  ///@notice deploys a new Kandel contract for the given seed.
+  ///@param seed the parameters for the Kandel strat
+  ///@return kandel the Kandel contract.
+  function _deployKandel(KandelSeed calldata seed) internal virtual returns (GeometricKandel kandel);
 }

@@ -256,13 +256,19 @@ abstract contract GeometricKandel is CoreKandel {
       better = index + step;
       if (better >= pricePoints) {
         better = pricePoints - 1;
+        spread = uint8(better - index);
+      } else {
+        spread = uint8(step);
       }
     } else {
       if (index >= step) {
         better = index - step;
-      } // else better = 0
+        spread = uint8(step);
+      } else {
+        // else better = 0
+        spread = uint8(index - better);
+      }
     }
-    spread = uint8(index > better ? index - better : better - index);
   }
 
   ///@inheritdoc CoreKandel

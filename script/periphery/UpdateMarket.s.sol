@@ -27,7 +27,7 @@ contract UpdateMarket is Deployer {
   function innerRun(address tkn0, address tkn1, address mgvReaderAddress) public {
     reader = MgvReader(mgvReaderAddress);
 
-    console.log("Updating Market.  tkn0: %s, tkn1: %s", vm.toString(tkn0), vm.toString(tkn1));
+    console.log("Updating Market on MgvReader.  tkn0: %s, tkn1: %s", vm.toString(tkn0), vm.toString(tkn1));
     logReaderState("[before script]", tkn0, tkn1);
 
     broadcast();

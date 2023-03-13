@@ -45,8 +45,8 @@ abstract contract CoreKandelTest is MangroveTest {
   // sets base and quote
   function __setForkEnvironment__() internal virtual {
     // no fork
-    // options.base.symbol = "WETH";
-    // options.quote.symbol = "USDC";
+    options.base.symbol = "WETH";
+    options.quote.symbol = "USDC";
     options.quote.decimals = 6;
     options.defaultFee = 30;
     options.gasprice = 40;
@@ -1027,11 +1027,11 @@ abstract contract CoreKandelTest is MangroveTest {
 
   function test_step_higher_than_kandel_size_jumps_to_last() public {
     uint n = getParams(kdl).pricePoints;
+    MgvStructs.OfferPacked ask = kdl.getOffer(Ask, n - 1);
     // placing a bid on the last position
     // dual of this bid will try to place an ask at n+1 and should place it at n-1 instead of n
-    populateSingle(kdl, n - 1, 0.1 ether, 100 * 10 ** 6, 0, n, "");
+    populateSingle(kdl, n - 1, ask.gives(), ask.wants(), 0, n, "");
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, n - 1);
-    MgvStructs.OfferPacked ask = kdl.getOffer(Ask, n - 1);
 
     (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockSellOrder({
       takerGives: bid.wants(),
@@ -1046,7 +1046,9 @@ abstract contract CoreKandelTest is MangroveTest {
     vm.prank($(mgv));
     kdl.makerPosthook(order, result);
     MgvStructs.OfferPacked ask_ = kdl.getOffer(Ask, n - 1);
+
     assertTrue(ask.gives() < ask_.gives(), "Ask was not updated");
+    assertEq(ask.gives() * ask_.wants(), ask.wants() * ask_.gives(), "Incorrect price");
   }
 
   function test_transport_below_min_price_accumulates_at_index_0() public {

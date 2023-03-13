@@ -219,10 +219,10 @@ abstract contract GeometricKandel is CoreKandel {
       gives = type(uint96).max;
     }
     // adjusting wants to price:
-    // gives * r : 237 so order.wants must be < 2**18 to completely avoid overflow.
+    // gives * r : 237 so order.wants must be < 2**19 to completely avoid overflow.
     // Since order.wants is high when gives * r is, we check whether the full precision can be used and only if not then we use less precision.
     uint givesR = gives * r;
-    if (uint160(givesR) == givesR || order.wants < 2 ** 18) {
+    if (uint160(givesR) == givesR || order.wants < 2 ** 19) {
       // using max precision
       wants = (order.wants * givesR) / (order.gives * (p ** spread));
     } else {
@@ -278,6 +278,9 @@ abstract contract GeometricKandel is CoreKandel {
     baDual = dual(ba);
 
     dualIndex = transportDestination(baDual, index, memoryParams.spread, memoryParams.pricePoints);
+    // because of boundaries, actual spread might be lower than the one loaded in memoryParams
+    // this would result populating a price index at a wrong price (too high for an Ask and too low for a Bid)
+    memoryParams.spread = uint8(index > dualIndex ? index - dualIndex : dualIndex - index);
 
     dualOfferId = offerIdOfIndex(baDual, dualIndex);
     (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(baDual);
@@ -289,6 +292,7 @@ abstract contract GeometricKandel is CoreKandel {
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
     (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, offer.gives(), order, memoryParams);
+
     // args.fund = 0; the offers are already provisioned
     // posthook should not fail if unable to post offers, we capture the error as incidents
     args.noRevert = true;

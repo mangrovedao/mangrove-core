@@ -31,8 +31,6 @@ contract HasAaveBalanceMemoizer is AaveV3Lender {
     bool balanceOfOverlyingMemoized;
     IERC20 overlying;
     bool overlyingMemoized;
-    bool totalSupplyMemoized;
-    uint totalSupply;
   }
 
   constructor(address addressesProvider) AaveV3Lender(addressesProvider) {}

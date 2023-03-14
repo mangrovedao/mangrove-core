@@ -19,6 +19,9 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 
 ///@title `Direct` strat with an indexed collection of bids and asks which can be populated according to a desired base and quote distribution for gives and wants.
 abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAndAsks {
+  ///@notice logs a call to populate
+  event Populate();
+
   constructor(IMangrove mgv, uint gasreq, address reserveId)
     Direct(mgv, NO_ROUTER, gasreq, reserveId)
     HasIndexedBidsAndAsks(mgv)
@@ -83,6 +86,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
 
       populateIndex(OfferType.Ask, offerIdOfIndex(OfferType.Ask, index), index, args);
     }
+    emit Populate();
   }
 
   ///@notice publishes (by either creating or updating) a bid/ask at a given price index.

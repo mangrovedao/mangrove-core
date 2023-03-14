@@ -56,6 +56,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   uint public constant OFFSET = 19;
   uint internal constant INIT_MINT = 10 ** OFFSET;
+  mapping(IERC20 => uint) internal _bufferPercentage;
 
   /// OVERFLOW analysis w.r.t offset choice:
   /// worst case is:
@@ -176,14 +177,27 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@notice deposit router-local balance of an asset on the AAVE pool
   ///@param token the address of the asset
-  function flushBuffer(IERC20 token, bool noRevert) public boundOrAdmin returns (bytes32) {
-    return _supply(token, token.balanceOf(address(this)), address(this), noRevert);
+  function flushBuffer(IERC20 token, bool noRevert) public boundOrAdmin returns (bytes32 ret) {
+    uint balance = token.balanceOf(address(this));
+    BalanceMemoizer memory memoizer;
+    uint buffer = _bufferPercentage[token] * _totalBalance(token, memoizer);
+    if (balance >= buffer) {
+      ret = _supply(token, balance - buffer, address(this), noRevert);
+    }
+  }
+
+  function isFirstPuller(IERC20 token) public view returns (bool) {
+    BalanceMemoizer memory memoizer;
+    return balanceOfOverlying(token, memoizer) == 0;
+  }
+
+  function setBufferPercentage(IERC20 token, uint percentage) external onlyAdmin {
+    _bufferPercentage[token] = percentage;
   }
 
   ///@notice pushes each given token from the calling maker contract to this router, then supplies the whole router-local balance to AAVE
   ///@param tokens the list of tokens that are being pushed to the reserve
   ///@param amounts the quantities of tokens one wishes to push
-  ///@param reserveId the reserve whose shares should be increased
   ///@return pushed the pushed quantities for each token
   ///@dev an offer logic should call this instead of `flush` when it is the last posthook to be executed
   ///@dev this can be determined by checking during __lastLook__ whether the logic will trigger a withdraw from AAVE (this is the case if router's balance of token is empty)
@@ -217,27 +231,27 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   /// This may not be the case when a "donation" occurred to this contract or if the maker posthook failed to push funds back to AAVE
   /// If the donation is large enough to cover the pull request we use the donation funds
   function __pull__(IERC20 token, address reserveId, uint amount, bool strict) internal override returns (uint) {
-    // The amount to redeem from AAVE
-    uint toRedeem;
     // The amount to transfer to the calling maker contract
     uint amount_;
     BalanceMemoizer memory memoizer;
-    // The local buffer of token to transfer in case funds have already been redeemed or due to a donation.
-    uint buffer = balanceOf(token, memoizer);
-    uint reserveBalance = _balanceOfReserve(token, reserveId, memoizer);
-    if (buffer < amount) {
-      // this pull is the first of the market order (that requires funds from AAVE) so we redeem all the reserve from AAVE
-      // note in theory we should check buffer == 0 but donation may have occurred.
-      // This check forces donation to be at least the amount of outbound tokens promised by caller to avoid griefing (depositing a small donation to make offer fail).
-      toRedeem = balanceOfOverlying(token, memoizer);
-      amount_ = strict ? amount : reserveBalance;
-    } else {
-      // since buffer >= amount, this call is not the first pull of the market order (unless a big donation occurred) and we do not withdraw from AAVE
-      // we take all we can from the buffer (possibly less than amount_ computed above)
-      // toRedeem = 0
-      amount_ = strict ? amount : (buffer > reserveBalance ? reserveBalance : buffer);
+
+    uint overlyingBalance = balanceOfOverlying(token, memoizer);
+    if (overlyingBalance > 0) {
+      // we have not redeemed from aave.
+      try POOL.withdraw(address(token), overlyingBalance, address(this)) {
+        overlyingBalance = 0;
+      } catch {}
     }
-    redeemAndTransfer(token, reserveId, amount_, toRedeem, memoizer);
+    uint reserveBalance = _balanceOfReserve(token, reserveId, memoizer);
+    if (overlyingBalance > 0) {
+      // in crisis - do not deliver more than 1/80 of buffer - and do it strictly
+      uint maxTransfer = balanceOf(token, memoizer) / 80;
+      amount_ = amount > maxTransfer ? maxTransfer : amount;
+    } else {
+      // we have redeemed all from aave
+      amount_ = strict ? amount : reserveBalance;
+    }
+    redeemAndTransfer(token, reserveId, amount_, 0, memoizer);
     return amount_;
   }
 

@@ -180,7 +180,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   function flushBuffer(IERC20 token, bool noRevert) public boundOrAdmin returns (bytes32 ret) {
     uint balance = token.balanceOf(address(this));
     BalanceMemoizer memory memoizer;
-    uint buffer = _bufferPercentage[token] * _totalBalance(token, memoizer);
+    uint buffer = (_bufferPercentage[token] * _totalBalance(token, memoizer) / 100);
     if (balance >= buffer) {
       ret = _supply(token, balance - buffer, address(this), noRevert);
     }

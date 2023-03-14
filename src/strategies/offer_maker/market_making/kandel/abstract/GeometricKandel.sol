@@ -41,6 +41,8 @@ abstract contract GeometricKandel is CoreKandel {
     uint24 ratio; // max ratio is 2*10**5
     uint24 compoundRateBase; // max compoundRate is 10**5
     uint24 compoundRateQuote;
+    uint24 compoundTargetBase;
+    uint24 compoundTargetQuote;
     uint8 spread;
     uint8 pricePoints;
   }
@@ -276,10 +278,10 @@ abstract contract GeometricKandel is CoreKandel {
     internal
     virtual
     override
-    returns (OfferType baDual, uint dualOfferId, uint dualIndex, OfferArgs memory args)
+    returns (OfferType baDual, uint dualOfferId, uint dualIndex, OfferArgs memory args, Params memory memoryParams)
   {
     uint index = indexOfOfferId(ba, order.offerId);
-    Params memory memoryParams = params;
+    memoryParams = params;
     baDual = dual(ba);
 
     // because of boundaries, actual spread might be lower than the one loaded in memoryParams

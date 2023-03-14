@@ -25,9 +25,18 @@ import {IERC20} from "mgv_src/IERC20.sol";
 contract AaveKandel is GeometricKandel {
   bytes32 internal constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
-    GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId)
-  {
+  constructor(
+    IMangrove mgv,
+    IERC20 base,
+    IERC20 quote,
+    uint gasreq,
+    uint gasprice,
+    address reserveId,
+    uint compoundTargetBase,
+    uint compoundTargetQuote
+  ) GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId) {
+    params.compoundTargetBase = compoundTargetBase;
+    params.compoundTargetQuote = compoundTargetQuote;
     // one makes sure it is not possible to deploy an AAVE kandel on aTokens
     // allowing Kandel to deposit aUSDC for instance would conflict with other Kandel instances bound to the same router
     // and trading on USDC.
@@ -82,18 +91,26 @@ contract AaveKandel is GeometricKandel {
     super.withdrawFunds(baseAmount, quoteAmount, recipient);
   }
 
-  ///@notice returns the amount of the router's balance that belong to this contract for the token offered for the offer type.
+  ///@notice returns available funds for a particular offer type
   ///@inheritdoc AbstractKandel
   function reserveBalance(OfferType ba) public view override returns (uint balance) {
     IERC20 token = outboundOfOfferType(ba);
-    return pooledRouter().balanceOfReserve(token, RESERVE_ID);
+    return pooledRouter().balanceOfReserve(token, RESERVE_ID) + token.balanceOf(address(this));
   }
 
   /// @notice Verifies, prior to pulling funds from the router, whether pull will be fetching funds on AAVE
   /// @inheritdoc MangroveOffer
   function __lastLook__(MgvLib.SingleOrder calldata order) internal override returns (bytes32) {
     bytes32 makerData = super.__lastLook__(order);
-    return (IERC20(order.outbound_tkn).balanceOf(address(router())) < order.wants) ? IS_FIRST_PULLER : makerData;
+    uint localBuffer = IERC20(order.outbound_tkn).balanceOf(address(this));
+    return (
+      localBuffer < order.wants && IERC20(order.outbound_tkn).balanceOf(address(router())) + localBuffer < order.wants
+    ) ? IS_FIRST_PULLER : makerData;
+  }
+
+  function maintainBuffer(IERC20 token, uint compoundTarget) internal returns (uint toPush) {
+    uint bufferBalance = token.balanceOf(address(this));
+    toPush = (bufferBalance * compoundTarget) / 10 ** PRECISION;
   }
 
   ///@notice overrides and replaces Direct's posthook in order to push and supply on AAVE with a single call when offer logic is the first to pull funds from AAVE
@@ -103,24 +120,39 @@ contract AaveKandel is GeometricKandel {
     override
     returns (bytes32 repostStatus)
   {
-    // handle dual offer posting
+    // handles dual offer posting
     transportSuccessfulOrder(order);
 
     // handles pushing back liquidity to the router
     if (makerData == IS_FIRST_PULLER) {
-      // if first puller, then router should deposit liquidity on AAVE
-      IERC20[] memory tokens = new IERC20[](2);
-      tokens[0] = BASE; // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
-      tokens[1] = QUOTE; // flushing liquidity brought by taker
-      uint[] memory amounts = new uint[](2);
-      amounts[0] = BASE.balanceOf(address(this));
-      amounts[1] = QUOTE.balanceOf(address(this));
+      uint baseToPush = maintainBuffer(BASE, COMPOUND_BASE_TARGET);
+      uint quoteToPush = maintainBuffer(QUOTE, COMPOUND_QUOTE_TARGET);
 
-      pooledRouter().pushAndSupply(tokens, amounts, RESERVE_ID);
-      // reposting offer residual if any - but do not call super, since Direct will flush tokens unnecessarily
+      IERC20[] memory tokens;
+      uint[] memory amounts;
+
+      if (baseToPush > 0 && quoteToPush > 0) {
+        tokens = new IERC20[](2);
+        tokens[0] = BASE;
+        tokens[1] = QUOTE;
+        amounts = new uint[](2);
+        amounts[0] = baseToPush;
+        amounts[1] = quoteToPush;
+      } else {
+        if (baseToPush > 0 || quoteToPush > 0) {
+          tokens = new IERC20[](1);
+          tokens[0] = baseToPush > 0 ? BASE : QUOTE;
+          amounts = new uint[](1);
+          amounts[0] = baseToPush > 0 ? baseToPush : quoteToPush;
+        } // else tokens is empty
+      }
+      if (tokens.length > 0) {
+        pooledRouter().pushAndSupply(tokens, amounts, RESERVE_ID);
+      }
+      // handles residual reposting - but do not call super, since Direct will flush tokens unnecessarily
       repostStatus = MangroveOffer.__posthookSuccess__(order, makerData);
     } else {
-      // reposting offer residual if any - call super to let flush tokens to router
+      // handles residual reposting - call super to let flush tokens to router
       repostStatus = super.__posthookSuccess__(order, makerData);
     }
   }

@@ -33,6 +33,7 @@ abstract contract CoreKandelTest is MangroveTest {
   event SetGasreq(uint value);
   event Credit(IERC20 indexed token, uint amount);
   event Debit(IERC20 indexed token, uint amount);
+  event Populate();
   event LogIncident(
     IMangrove mangrove,
     IERC20 indexed outbound_tkn,
@@ -1331,6 +1332,12 @@ abstract contract CoreKandelTest is MangroveTest {
     buyFromBestAs(taker, 1 ether);
     buyFromBestAs(taker, 1 ether);
     assertStatus(dynamic([uint(1), 1, 1, 0, 0]));
+  }
+
+  function test_populates_emits() public {
+    expectFrom($(kdl));
+    emit Populate();
+    populateSingle(kdl, 1, 1 ether, 1 ether, 0, 2, bytes(""));
   }
 
   function test_setGasprice_valid_setsAndEmits() public {

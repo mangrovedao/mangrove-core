@@ -65,6 +65,16 @@ contract KandelSeederTest is MangroveTest {
     aaveRouter = aaveKandelSeeder.AAVE_ROUTER();
   }
 
+  function test_sow_fails_if_market_not_fully_active() public {
+    mgv.deactivate($(base), $(quote));
+    vm.expectRevert("KandelSeeder/inactiveMarket");
+    sow(false);
+    mgv.activate($(base), $(quote), 0, 10, 50_000);
+    mgv.deactivate($(quote), $(base));
+    vm.expectRevert("KandelSeeder/inactiveMarket");
+    sow(false);
+  }
+
   function test_aave_manager_is_attributed() public {
     assertEq(aaveRouter.aaveManager(), address(this), "invalid aave Manager");
   }

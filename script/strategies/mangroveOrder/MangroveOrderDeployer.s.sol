@@ -32,18 +32,6 @@ contract MangroveOrderDeployer is Deployer {
    */
   function innerRun(address admin, address mangrove) public {
     IMangrove mgv = IMangrove(payable(mangrove));
-
-    try fork.get("MangroveOrderEnriched") returns (address payable old_mgo_address) {
-      MangroveOrderEnriched old_mgo = MangroveOrderEnriched(old_mgo_address);
-      uint bal = mgv.balanceOf(old_mgo_address);
-      if (bal > 0) {
-        broadcast();
-        old_mgo.withdrawFromMangrove(bal, payable(admin));
-        console.log("Retrieved ", bal, "WEIs from old deployment", address(old_mgo));
-      }
-    } catch {
-      console.log("No existing Mangrove Order in ToyENS");
-    }
     console.log("Deploying Mangrove Order...");
 
     broadcast();
@@ -51,5 +39,11 @@ contract MangroveOrderDeployer is Deployer {
     fork.set("MangroveOrderEnriched", address(mgv_order));
     outputDeployment();
     console.log("Deployed!", address(mgv_order));
+    console.log("Used mangrove is %s", mangrove);
+    smokeTest(mgv_order, mgv);
+  }
+
+  function smokeTest(MangroveOrderEnriched mgvOrder, IMangrove mgv) internal view {
+    require(mgvOrder.MGV() == mgv, "Incorrect Mangrove address");
   }
 }

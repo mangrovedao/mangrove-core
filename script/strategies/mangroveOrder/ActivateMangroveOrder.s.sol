@@ -23,7 +23,8 @@ contract ActivateMangroveOrder is Deployer {
   }
 
   function innerRun(MangroveOrder mgvOrder, string[] memory tkns) public {
-    console.log("Activating the following tokens on MangroveOrder (%s):", address(mgvOrder));
+    console.log("MangroveOrder (%s) is acting of Mangrove (%s)", address(mgvOrder), address(mgvOrder.MGV()));
+    console.log("Activating tokens...");
     IERC20[] memory iercs = new IERC20[](tkns.length);
     for (uint i = 0; i < tkns.length; ++i) {
       iercs[i] = IERC20(fork.get(tkns[i]));

@@ -111,4 +111,7 @@ interface IOfferLogic is IMaker {
   /// @notice Contract's router getter.
   /// @dev if contract has a no router, function returns `NO_ROUTER`.
   function router() external view returns (AbstractRouter);
+
+  /// @notice Contract's Mangrove getter
+  function MGV() external view returns (IMangrove);
 }

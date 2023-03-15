@@ -56,6 +56,7 @@ includes = [
   "IOfferLogic",
   "IForwarder",
   "TransferLib",
+  "ILiquidityProvider",
 ];
 
 let anyFindings = false;

@@ -22,6 +22,7 @@ interface IForwarder {
   ///@param mangrove Mangrove contract on which the offer is posted
   ///@param outbound_tkn the outbound token of the offer list.
   ///@param inbound_tkn the inbound token of the offer list.
+  ///@param offerId the Mangrove offer id.
   ///@param owner the offer maker that can manage the offer.
   event NewOwnedOffer(
     IMangrove mangrove, IERC20 indexed outbound_tkn, IERC20 indexed inbound_tkn, uint indexed offerId, address owner

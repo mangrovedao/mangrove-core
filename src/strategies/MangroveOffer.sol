@@ -26,13 +26,20 @@ import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 /// `__f__() virtual internal`: descendant of this contract should override this function to specialize it to the needs of the strat.
 
 abstract contract MangroveOffer is AccessControlled, IOfferLogic {
+  ///@notice Gas requirement when posting offers via this strategy, excluding router requirement.
   uint public immutable OFFER_GASREQ;
+  ///@notice The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
   IMangrove public immutable MGV;
+  ///@notice constant for no router
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
+  ///@notice The router to use for this strategy.
   AbstractRouter private __router;
 
+  ///@notice The offer was successfully reposted.
   bytes32 internal constant REPOST_SUCCESS = "offer/updated";
+  ///@notice New offer successfully created.
   bytes32 internal constant NEW_OFFER_SUCCESS = "offer/created";
+  ///@notice The offer was completely filled.
   bytes32 internal constant COMPLETE_FILL = "offer/filled";
 
   /**
@@ -57,6 +64,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     emit Mgv(mgv);
   }
 
+  /// @inheritdoc IOfferLogic
   function router() public view override returns (AbstractRouter) {
     return __router;
   }
@@ -158,14 +166,14 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   }
 
   ///@notice verifies that Mangrove is allowed to pull tokens from this contract.
-  /// @inheritdoc IOfferLogic
+  ///@inheritdoc IOfferLogic
   function checkList(IERC20[] calldata tokens) external view override {
     for (uint i = 0; i < tokens.length; ++i) {
       __checkList__(tokens[i]);
     }
   }
 
-  ///@dev override conservatively to define strat-specific additional activation steps.
+  ///@notice override conservatively to define strat-specific additional activation steps.
   ///@param token the ERC20 one wishes this contract to trade on.
   ///@custom:hook overrides of this hook should be conservative and call `super.__activate__(token)`
   function __activate__(IERC20 token) internal virtual {
@@ -181,6 +189,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     }
   }
 
+  ///@notice verifies that Mangrove is allowed to pull tokens from this contract and other strat specific verifications.
+  ///@param token a token that is traded by this contract
   ///@custom:hook overrides of this hook should be conservative and call `super.__checkList__(token)`
   function __checkList__(IERC20 token) internal view virtual {
     require(token.allowance(address(this), address(MGV)) > 0, "mgvOffer/LogicMustApproveMangrove");
@@ -227,10 +237,9 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   ///@notice Post-hook that implements fallback behavior when Taker Order's execution failed unexpectedly.
   ///@param order is a recall of the taker order that is at the origin of the current trade.
   ///@param result contains information about trade.
-  /**
-   * @dev `result.mgvData` is Mangrove's verdict about trade success
-   * `result.makerData` either contains the first 32 bytes of revert reason if `makerExecute` reverted or the returned `bytes32`.
-   */
+  ///@return data contains verdict and reason about the executed trade.
+  ///@dev `result.mgvData` is Mangrove's verdict about trade success
+  ///@dev `result.makerData` either contains the first 32 bytes of revert reason if `makerExecute` reverted or the returned `bytes32`.
   /// @custom:hook overrides of this hook should be conservative and call `super.__posthookFallback__(order, result)`
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result)
     internal

@@ -1,5 +1,13 @@
 # next version
 
+# 1.4.3-0 (February 2023)
+
+- Strat: Kandel strat
+- Core: Mangrove-core transmit makerData all the time
+- Core: More typesafe calls in mangrove-core
+- Tooling: Deployer.broadcaster to globally set broadcast address
+- Tooling: Export context addresses
+
 # 1.4.2 (February 2023)
 
 - Do not override src/ & other remappings, because when imported forge fails to properly nest them.

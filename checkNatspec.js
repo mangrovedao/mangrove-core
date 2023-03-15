@@ -57,6 +57,8 @@ includes = [
   "IForwarder",
   "TransferLib",
   "ILiquidityProvider",
+  "OfferMakerTutorial",
+  "OfferMakerTutorialResidual",
 ];
 
 let anyFindings = false;

@@ -9,7 +9,11 @@ import {IERC20, MgvLib} from "mgv_src/MgvLib.sol";
 
 //----------------
 
+/// @title An example offer maker used in tutorials
 contract OfferMakerTutorial is Direct, ILiquidityProvider {
+  ///@notice Constructor
+  ///@param mgv The core Mangrove contract
+  ///@param deployer The address of the deployer
   constructor(IMangrove mgv, address deployer)
     // Pass on the reference to the core mangrove contract
     Direct(
@@ -82,6 +86,7 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
     );
   }
 
+  ///@inheritdoc ILiquidityProvider
   function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
     public
     payable
@@ -102,9 +107,12 @@ contract OfferMakerTutorial is Direct, ILiquidityProvider {
 
   //----------------
 
-  event OfferTakenSuccessfully(uint);
+  ///@notice Event emitted when the offer is taken successfully.
+  ///@param someData is a dummy parameter.
+  event OfferTakenSuccessfully(uint someData);
 
   ///@notice Post-hook that is invoked when the offer is taken successfully.
+  ///@inheritdoc Direct
   function __posthookSuccess__(MgvLib.SingleOrder calldata, bytes32) internal virtual override returns (bytes32) {
     emit OfferTakenSuccessfully(42);
     return 0;

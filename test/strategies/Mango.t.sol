@@ -95,13 +95,7 @@ contract MangoTest is MangroveTest {
     deal($(weth), maker, cash(weth, 17));
     deal($(usdc), maker, cash(usdc, 50000));
 
-    uint prov = mgo.getMissingProvision({
-      outbound_tkn: weth,
-      inbound_tkn: usdc,
-      gasreq: mgo.offerGasreq(),
-      gasprice: 0,
-      offerId: 0
-    });
+    uint prov = 0.1 ether;
 
     mgv.fund{value: prov * 20}($(mgo));
 

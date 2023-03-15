@@ -156,7 +156,7 @@ contract AaveKandelTest is CoreKandelTest {
     uint quoteAave = router.overlying(quote).balanceOf(address(router));
     vm.prank($(mgv));
     kdl.makerPosthook(order, result);
-    assertApproxEqAbs(kdl.reserveBalance(Bid), makerBalance + 1000 * 10 ** 6, 1, "Incorrect updated balance");
+    assertApproxEqAbs(kdl.reserveBalance(Bid), makerBalance, 1, "Maker balance should be invariant");
     assertEq(base.balanceOf(address(router)), 0, "Router did not flush base buffer");
     assertEq(quote.balanceOf(address(router)), 0, "Router did not flush quote buffer");
     assertEq(

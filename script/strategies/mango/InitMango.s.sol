@@ -46,17 +46,18 @@ contract InitMango is Deployer {
 
     uint n = Mango($mgo).NSLOTS();
     {
+      uint gasreq = Mango($mgo).offerGasreq();
       uint provAsk = Mango($mgo).getMissingProvision(
         Mango($mgo).BASE(), // outbound
         Mango($mgo).QUOTE(), // inbound
-        type(uint).max, // to use offer gasreq
+        gasreq, // to use offer gasreq
         0, // to use mangrove gasprice
         0 // not reposting an offer
       );
       uint provBid = Mango($mgo).getMissingProvision(
         Mango($mgo).QUOTE(), // outbound
         Mango($mgo).BASE(), // inbound
-        type(uint).max, // to use offer gasreq
+        gasreq, // to use offer gasreq
         0, // to use mangrove gasprice
         0 // not reposting an offer
       );

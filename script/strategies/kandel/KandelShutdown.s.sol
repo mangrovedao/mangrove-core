@@ -22,7 +22,7 @@ contract KandelShutdown is Deployer {
     IERC20 quote = kdl.QUOTE();
     uint baseDecimals = base.decimals();
     uint quoteDecimals = quote.decimals();
-    (,,,,,, uint8 length) = kdl.params();
+    (,,,,,,,, uint8 length) = kdl.params();
 
     uint baseBalance = base.balanceOf(broadcaster());
     uint quoteBalance = quote.balanceOf(broadcaster());

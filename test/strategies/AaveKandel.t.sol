@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {CoreKandelTest, IERC20} from "./CoreKandel.t.sol";
+import {CoreKandelTest, IERC20, OfferType} from "./CoreKandel.t.sol";
 import {console} from "forge-std/Test.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {AaveKandel, AavePooledRouter} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandel.sol";
@@ -16,11 +16,12 @@ import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
 import {AaveCaller} from "mgv_test/lib/agents/AaveCaller.sol";
 
 contract AaveKandelTest is CoreKandelTest {
-  PinnedPolygonFork fork;
-  AavePooledRouter router;
-  AaveKandel aaveKandel;
-  bool useForkAave = true;
-  address aave;
+  PinnedPolygonFork public fork;
+  AavePooledRouter public router;
+  bool public useForkAave = true;
+  address public aave;
+
+  event SetPoolTarget(OfferType ba, uint target);
 
   receive() external payable {}
 
@@ -55,7 +56,9 @@ contract AaveKandelTest is CoreKandelTest {
       quote: quote,
       gasreq: kandel_gasreq,
       gasprice: 0,
-      reserveId: id
+      reserveId: id,
+      poolTargetBase: 100_000,
+      poolTargetQuote: 100_000
     });
 
     router.bind(address(aaveKandel_));
@@ -83,6 +86,7 @@ contract AaveKandelTest is CoreKandelTest {
     args.revertMessage = "AccessControlled/Invalid";
 
     checkAuth(args, abi.encodeCall(AaveKandel($(kdl)).initialize, AavePooledRouter($(kdl.router()))));
+    checkAuth(args, abi.encodeCall(AaveKandel($(kdl)).setPoolTarget, (Bid, 100_000))); //AaveKandel specific
   }
 
   function test_initialize() public {
@@ -156,7 +160,7 @@ contract AaveKandelTest is CoreKandelTest {
     uint quoteAave = router.overlying(quote).balanceOf(address(router));
     vm.prank($(mgv));
     kdl.makerPosthook(order, result);
-    assertApproxEqAbs(kdl.reserveBalance(Bid), makerBalance + 1000 * 10 ** 6, 1, "Incorrect updated balance");
+    assertApproxEqAbs(kdl.reserveBalance(Bid), makerBalance, 1, "Balance should remain invariant");
     assertEq(base.balanceOf(address(router)), 0, "Router did not flush base buffer");
     assertEq(quote.balanceOf(address(router)), 0, "Router did not flush quote buffer");
     assertEq(
@@ -167,6 +171,65 @@ contract AaveKandelTest is CoreKandelTest {
     assertApproxEqAbs(
       router.overlying(quote).balanceOf(address(router)),
       quoteAave + 1000 * 10 ** 6,
+      1,
+      "Router should have supplied maker's quote on AAVE"
+    );
+  }
+
+  function test_setPoolTarget_logs() public {
+    expectFrom($(kdl));
+    emit SetPoolTarget(Bid, 10000);
+    vm.prank(maker);
+    AaveKandel($(kdl)).setPoolTarget(Bid, 10000);
+  }
+
+  function test_first_puller_posthook_calls_pushAndSupply_with_pool_target(uint24 target) public {
+    vm.assume(target < 10 ** kdl.PRECISION());
+
+    MgvLib.SingleOrder memory order = mockBuyOrder({takerGives: 120 * 10 ** 6, takerWants: 0.1 ether});
+    MgvLib.OrderResult memory result = MgvLib.OrderResult({makerData: "IS_FIRST_PULLER", mgvData: "mgv/tradeSuccess"});
+
+    //1. faking accumulated outbound on the router (funds of other kandel strats)
+    deal($(base), $(router), 1 ether);
+    //2. faking accumulated inbound on kandel (from taker)
+    deal($(quote), $(kdl), 1000 * 10 ** 6);
+    //3. faking excess outbound on kandel (when not sharing liquidity)
+    deal($(base), $(kdl), 0.5 ether);
+
+    uint makerBidBalance = kdl.reserveBalance(Bid);
+    uint makerAskBalance = kdl.reserveBalance(Ask);
+
+    uint baseAave = router.overlying(base).balanceOf(address(router));
+    uint quoteAave = router.overlying(quote).balanceOf(address(router));
+
+    vm.prank(maker);
+    AaveKandel($(kdl)).setPoolTarget(Bid, target);
+    vm.prank(maker);
+    AaveKandel($(kdl)).setPoolTarget(Ask, target);
+
+    uint expectedQuoteDeposit = uint(1000) * 10 ** 6 * target / 10 ** kdl.PRECISION();
+    uint expectedBaseDeposit = uint(0.5 ether) * target / 10 ** kdl.PRECISION();
+
+    vm.prank($(mgv));
+    kdl.makerPosthook(order, result);
+
+    assertEq(quote.balanceOf($(kdl)), 1000 * 10 ** 6 - expectedQuoteDeposit, "Incorrect quote buffer on Kandel");
+    assertApproxEqAbs(kdl.reserveBalance(Bid), makerBidBalance, 1, "Available quote balance should be unchanged");
+
+    assertEq(base.balanceOf($(kdl)), 0.5 ether - expectedBaseDeposit, "Incorrect base buffer on Kandel");
+    assertApproxEqAbs(kdl.reserveBalance(Ask), makerAskBalance, 1, "Available base balance should be unchanged");
+
+    assertEq(base.balanceOf(address(router)), 0, "Router did not flush base buffer");
+    assertEq(quote.balanceOf(address(router)), 0, "Router did not flush quote buffer");
+    assertApproxEqAbs(
+      router.overlying(base).balanceOf(address(router)),
+      baseAave + 1 ether + expectedBaseDeposit,
+      1,
+      "Router should have supplied its base buffer on AAVE"
+    );
+    assertApproxEqAbs(
+      router.overlying(quote).balanceOf(address(router)),
+      quoteAave + expectedQuoteDeposit,
       1,
       "Router should have supplied maker's quote on AAVE"
     );
@@ -377,7 +440,9 @@ contract AaveKandelTest is CoreKandelTest {
       quote: quote,
       gasreq: 100,
       gasprice: 0,
-      reserveId: address(0)
+      reserveId: address(0),
+      poolTargetBase: 10_000,
+      poolTargetQuote: 10_000
     });
   }
 
@@ -391,7 +456,9 @@ contract AaveKandelTest is CoreKandelTest {
       quote: aToken,
       gasreq: 100,
       gasprice: 0,
-      reserveId: address(0)
+      reserveId: address(0),
+      poolTargetBase: 10_000,
+      poolTargetQuote: 10_000
     });
   }
 

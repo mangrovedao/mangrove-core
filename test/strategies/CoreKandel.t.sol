@@ -15,14 +15,14 @@ import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 import {AllMethodIdentifiersTest} from "mgv_test/lib/AllMethodIdentifiersTest.sol";
 
 abstract contract CoreKandelTest is MangroveTest {
-  address payable maker;
-  address payable taker;
-  GeometricKandel kdl;
-  uint8 constant STEP = 1;
-  uint initQuote;
-  uint initBase = 0.1 ether;
-  uint globalGasprice;
-  uint bufferedGasprice;
+  address payable public maker;
+  address payable public taker;
+  GeometricKandel public kdl;
+  uint8 public constant STEP = 1;
+  uint public initQuote;
+  uint public initBase = 0.1 ether;
+  uint public globalGasprice;
+  uint public bufferedGasprice;
 
   event AllAsks();
   event AllBids();
@@ -237,8 +237,8 @@ abstract contract CoreKandelTest is MangroveTest {
     console.log("-------", toUnit(pendingBase, 18), toUnit(pendingQuote, 6), "-------");
   }
 
-  OfferType constant Ask = OfferType.Ask;
-  OfferType constant Bid = OfferType.Bid;
+  OfferType public constant Ask = OfferType.Ask;
+  OfferType public constant Bid = OfferType.Bid;
 
   function test_init() public {
     assertEq(kdl.pending(Ask), kdl.pending(Bid), "Incorrect initial pending");
@@ -1160,6 +1160,8 @@ abstract contract CoreKandelTest is MangroveTest {
       uint24 ratio,
       uint24 compoundRateBase,
       uint24 compoundRateQuote,
+      uint24 poolTargetBase,
+      uint24 poolTargetQuote,
       uint8 spread,
       uint8 pricePoints
     ) = aKandel.params();
@@ -1171,6 +1173,8 @@ abstract contract CoreKandelTest is MangroveTest {
     params.compoundRateQuote = compoundRateQuote;
     params.spread = spread;
     params.pricePoints = pricePoints;
+    params.poolTargetBase = poolTargetBase;
+    params.poolTargetQuote = poolTargetQuote;
   }
 
   CoreKandel.Distribution emptyDist;
@@ -1345,7 +1349,7 @@ abstract contract CoreKandelTest is MangroveTest {
     emit SetGasprice(42);
     vm.prank(maker);
     kdl.setGasprice(42);
-    (uint16 gasprice,,,,,,) = kdl.params();
+    (uint16 gasprice,,,,,,,,) = kdl.params();
     assertEq(gasprice, uint16(42), "Incorrect gasprice in params");
   }
 
@@ -1360,7 +1364,7 @@ abstract contract CoreKandelTest is MangroveTest {
     emit SetGasreq(42);
     vm.prank(maker);
     kdl.setGasreq(42);
-    (, uint24 gasreq,,,,,) = kdl.params();
+    (, uint24 gasreq,,,,,,,) = kdl.params();
     assertEq(gasreq, uint24(42), "Incorrect gasprice in params");
   }
 

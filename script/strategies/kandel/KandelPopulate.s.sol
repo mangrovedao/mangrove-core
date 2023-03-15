@@ -95,6 +95,10 @@ contract KandelPopulate is Deployer {
       ,
       args.params.compoundRateBase,
       args.params.compoundRateQuote,
+      /*poolTargetBase */
+      ,
+      /*poolTargetQuote */
+      ,
       /*uint8 spread*/
       ,
       /*uint8 length*/

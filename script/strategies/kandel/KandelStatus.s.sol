@@ -22,7 +22,7 @@ contract KandelStatus is Deployer {
     IERC20 quote = kdl.QUOTE();
     uint baseDecimals = base.decimals();
     uint quoteDecimals = quote.decimals();
-    (,,,,,, uint8 pricePoints) = kdl.params();
+    (,,,,,,,, uint8 pricePoints) = kdl.params();
 
     for (uint i; i < pricePoints; ++i) {
       MgvStructs.OfferPacked ask = kdl.getOffer(OfferType.Ask, i);

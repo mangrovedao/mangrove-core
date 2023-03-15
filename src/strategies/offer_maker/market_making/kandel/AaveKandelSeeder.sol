@@ -36,7 +36,7 @@ contract AaveKandelSeeder is AbstractKandelSeeder {
     // allowing owner to be modified by Kandel's admin would require approval from owner's address controller
     address owner = seed.liquiditySharing ? msg.sender : address(0);
 
-    kandel = new AaveKandel(MGV, seed.base, seed.quote, KANDEL_GASREQ, seed.gasprice, owner);
+    kandel = new AaveKandel(MGV, seed.base, seed.quote, KANDEL_GASREQ, seed.gasprice, owner, 9_000, 9_000);
     // Allowing newly deployed Kandel to bind to the AaveRouter
     AAVE_ROUTER.bind(address(kandel));
     // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20

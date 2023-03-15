@@ -42,15 +42,15 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
   uint internal length;
 
   ///@notice Mangrove's offer id of an ask at a given index.
-  mapping(uint => uint) internal askOfferIdOfIndex;
+  mapping(uint => uint) private askOfferIdOfIndex;
   ///@notice Mangrove's offer id of a bid at a given index.
-  mapping(uint => uint) internal bidOfferIdOfIndex;
+  mapping(uint => uint) private bidOfferIdOfIndex;
 
   ///@notice An inverse mapping of askOfferIdOfIndex. E.g., indexOfAskOfferId[42] is the index in askOfferIdOfIndex at which ask of id #42 on Mangrove is stored.
-  mapping(uint => uint) internal indexOfAskOfferId;
+  mapping(uint => uint) private indexOfAskOfferId;
 
   ///@notice An inverse mapping of bidOfferIdOfIndex. E.g., indexOfBidOfferId[42] is the index in bidOfferIdOfIndex at which bid of id #42 on Mangrove is stored.
-  mapping(uint => uint) internal indexOfBidOfferId;
+  mapping(uint => uint) private indexOfBidOfferId;
 
   ///@notice maps index of offers to offer id on Mangrove.
   ///@param ba the offer type

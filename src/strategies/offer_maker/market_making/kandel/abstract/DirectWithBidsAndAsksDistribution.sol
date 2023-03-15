@@ -64,7 +64,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
     // args.noRevert = false; we want revert in case of failure
 
     (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(OfferType.Bid);
-    for (i = 0; i < indices.length; ++i) {
+    for (; i < indices.length; ++i) {
       uint index = indices[i];
       if (index >= firstAskIndex) {
         break;

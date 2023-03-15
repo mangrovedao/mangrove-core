@@ -73,13 +73,7 @@ contract AaveKandel is GeometricKandel {
     // transfer funds from caller to this
     super.depositFunds(baseAmount, quoteAmount);
     // push funds on the router (and supply on AAVE)
-    IERC20[] memory tokens = new IERC20[](2);
-    tokens[0] = BASE;
-    tokens[1] = QUOTE;
-    uint[] memory amounts = new uint[](2);
-    amounts[0] = baseAmount;
-    amounts[1] = quoteAmount;
-    pooledRouter().pushAndSupply(tokens, amounts, RESERVE_ID);
+    pooledRouter().pushAndSupply(BASE, baseAmount, QUOTE, quoteAmount, RESERVE_ID);
   }
 
   ///@inheritdoc AbstractKandel
@@ -97,7 +91,7 @@ contract AaveKandel is GeometricKandel {
   ///@inheritdoc AbstractKandel
   function reserveBalance(OfferType ba) public view override returns (uint balance) {
     IERC20 token = outboundOfOfferType(ba);
-    return pooledRouter().balanceOfReserve(token, RESERVE_ID);
+    return pooledRouter().balanceOfReserve(token, RESERVE_ID) + super.reserveBalance(ba);
   }
 
   /// @notice Verifies, prior to pulling funds from the router, whether pull will be fetching funds on AAVE
@@ -120,14 +114,9 @@ contract AaveKandel is GeometricKandel {
     // handles pushing back liquidity to the router
     if (makerData == IS_FIRST_PULLER) {
       // if first puller, then router should deposit liquidity on AAVE
-      IERC20[] memory tokens = new IERC20[](2);
-      tokens[0] = BASE; // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
-      tokens[1] = QUOTE; // flushing liquidity brought by taker
-      uint[] memory amounts = new uint[](2);
-      amounts[0] = BASE.balanceOf(address(this));
-      amounts[1] = QUOTE.balanceOf(address(this));
-
-      pooledRouter().pushAndSupply(tokens, amounts, RESERVE_ID);
+      pooledRouter().pushAndSupply(
+        BASE, BASE.balanceOf(address(this)), QUOTE, QUOTE.balanceOf(address(this)), RESERVE_ID
+      );
       // reposting offer residual if any - but do not call super, since Direct will flush tokens unnecessarily
       repostStatus = MangroveOffer.__posthookSuccess__(order, makerData);
     } else {

@@ -24,8 +24,8 @@ abstract contract CoreKandelTest is MangroveTest {
   uint globalGasprice;
   uint bufferedGasprice;
 
-  event AllAsks();
-  event AllBids();
+  event Mgv(IMangrove mgv);
+  event Pair(IERC20 base, IERC20 quote);
   event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
   event SetGeometricParams(uint spread, uint ratio);
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
@@ -80,8 +80,8 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl = __deployKandel__(maker, maker);
 
     // funding Kandel on Mangrove
-    uint provAsk = kdl.getMissingProvision(base, quote, kdl.offerGasreq(), bufferedGasprice, 0);
-    uint provBid = kdl.getMissingProvision(quote, base, kdl.offerGasreq(), bufferedGasprice, 0);
+    uint provAsk = reader.getProvision($(base), $(quote), kdl.offerGasreq(), bufferedGasprice);
+    uint provBid = reader.getProvision($(quote), $(base), kdl.offerGasreq(), bufferedGasprice);
     deal(maker, (provAsk + provBid) * 10 ether);
 
     // maker approves Kandel to be able to deposit funds on it
@@ -1442,14 +1442,14 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   function test_marketOrder_dualOfferUpdate_expectedGasreq() public {
-    test_marketOrder_dualOffer_expectedGasreq(false, 87985);
+    marketOrder_dualOffer_expectedGasreq(false, 87985);
   }
 
   function test_marketOrder_dualOfferNew_expectedGasreq() public {
-    test_marketOrder_dualOffer_expectedGasreq(true, 0);
+    marketOrder_dualOffer_expectedGasreq(true, 0);
   }
 
-  function test_marketOrder_dualOffer_expectedGasreq(bool dualNew, uint deltaGasForNew) internal {
+  function marketOrder_dualOffer_expectedGasreq(bool dualNew, uint deltaGasForNew) internal {
     // Arrange
     MgvLib.SingleOrder memory order = mockBuyOrder({takerGives: cash(quote, 100), takerWants: 0.1 ether});
     order.offerId = kdl.offerIdOfIndex(Ask, dualNew ? 6 : 5);
@@ -1490,8 +1490,8 @@ abstract contract CoreKandelTest is MangroveTest {
     quote.approve(address(otherKandel), type(uint).max);
 
     uint totalProvision = (
-      otherKandel.getMissingProvision(base, quote, otherKandel.offerGasreq(), bufferedGasprice, 0)
-        + otherKandel.getMissingProvision(quote, base, otherKandel.offerGasreq(), bufferedGasprice, 0)
+      reader.getProvision($(base), $(quote), otherKandel.offerGasreq(), bufferedGasprice)
+        + reader.getProvision($(quote), $(base), otherKandel.offerGasreq(), bufferedGasprice)
     ) * 10 ether;
 
     deal(otherMaker, totalProvision);
@@ -1761,7 +1761,6 @@ abstract contract CoreKandelTest is MangroveTest {
     kdl.admin();
     kdl.checkList(new IERC20[](0));
     kdl.depositFunds(0, 0);
-    kdl.getMissingProvision(base, quote, kdl.offerGasreq(), bufferedGasprice, 0);
     kdl.getOffer(Ask, 0);
     kdl.indexOfOfferId(Ask, 42);
     kdl.offerIdOfIndex(Ask, 0);

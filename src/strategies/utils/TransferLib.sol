@@ -82,4 +82,22 @@ library TransferLib {
       address(token).call(abi.encodeWithSelector(token.transferFrom.selector, spender, recipient, amount));
     return (success && (data.length == 0 || abi.decode(data, (bool))));
   }
+
+  function _approveToken(IERC20 token, address spender, uint amount) private returns (bool) {
+    // This low level call will not revert but instead return success=false if callee reverts, so we
+    // verify that it does not revert by checking success, but we also have to check
+    // the returned data if any since some ERC20 tokens to not strictly follow the standard of reverting
+    // but instead return false.
+    (bool success, bytes memory data) =
+      address(token).call(abi.encodeWithSelector(token.approve.selector, spender, amount));
+    return (success && (data.length == 0 || abi.decode(data, (bool))));
+  }
+
+  ///@notice ERC20 approval, handling non standard approvals that do not return a value
+  ///@param token the ERC20
+  ///@param spender the address whose allowance is to be given
+  ///@param amount of the allowance
+  function approveToken(IERC20 token, address spender, uint amount) internal returns (bool) {
+    return _approveToken(token, spender, amount);
+  }
 }

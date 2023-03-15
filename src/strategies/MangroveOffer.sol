@@ -16,6 +16,7 @@ import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 import {MgvLib, IERC20, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 /// @title This contract is the basic building block for Mangrove strats.
 /// @notice It contains the mandatory interface expected by Mangrove (`IOfferLogic` is `IMaker`) and enforces additional functions implementations (via `IOfferLogic`).
@@ -35,11 +36,17 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   AbstractRouter private __router;
 
   ///@notice The offer was successfully reposted after being partially filled.
-  bytes32 internal constant REPOST_SUCCESS = "offer/partialFilled";
+  bytes32 internal constant REPOST_SUCCESS = "offer/updated";
   ///@notice New offer successfully created.
   bytes32 internal constant NEW_OFFER_SUCCESS = "offer/created";
   ///@notice The offer was completely filled.
   bytes32 internal constant COMPLETE_FILL = "offer/filled";
+
+  /**
+   * @notice The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
+   *   @param mgv The Mangrove deployment.
+   */
+  event Mgv(IMangrove mgv);
 
   ///@notice Mandatory function to allow `this` to receive native tokens from Mangrove after a call to `MGV.withdraw(...,deprovision:true)`
   ///@dev override this function if `this` contract needs to handle local accounting of user funds.
@@ -54,6 +61,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     require(uint24(gasreq) == gasreq, "mgvOffer/gasreqOverflow");
     MGV = mgv;
     OFFER_GASREQ = gasreq;
+    emit Mgv(mgv);
   }
 
   /// @inheritdoc IOfferLogic
@@ -147,7 +155,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   /// @inheritdoc IOfferLogic
   function approve(IERC20 token, address spender, uint amount) public override onlyAdmin returns (bool) {
-    return token.approve(spender, amount);
+    return TransferLib.approveToken(token, spender, amount);
   }
 
   /// @inheritdoc IOfferLogic
@@ -171,10 +179,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   function __activate__(IERC20 token) internal virtual {
     AbstractRouter router_ = router();
     // all strat require `this` to approve Mangrove for pulling `token` at the end of `makerExecute`
-    require(token.approve(address(MGV), type(uint).max), "mgvOffer/approveMangrove/Fail");
+    require(TransferLib.approveToken(token, address(MGV), type(uint).max), "mgvOffer/approveMangrove/Fail");
     if (router_ != NO_ROUTER) {
       // allowing router to pull `token` from this contract (for the `push` function of the router)
-      require(token.approve(address(router_), type(uint).max), "mgvOffer/approveRouterFail");
+      require(TransferLib.approveToken(token, address(router_), type(uint).max), "mgvOffer/approveRouterFail");
       // letting router performs additional necessary approvals (if any)
       // this will only work if `this` is an authorized maker of the router (i.e. `router.bind(address(this))` has been called by router's admin).
       router_.activate(token);
@@ -320,28 +328,5 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     unchecked {
       provision = offerDetail.gasprice() * 10 ** 9 * (offerDetail.offer_gasbase() + offerDetail.gasreq());
     }
-  }
-
-  /// @inheritdoc IOfferLogic
-  function getMissingProvision(IERC20 outbound_tkn, IERC20 inbound_tkn, uint gasreq, uint gasprice, uint offerId)
-    public
-    view
-    returns (uint)
-  {
-    (MgvStructs.GlobalPacked globalData, MgvStructs.LocalPacked localData) =
-      MGV.config(address(outbound_tkn), address(inbound_tkn));
-    MgvStructs.OfferDetailPacked offerDetailData =
-      MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
-    uint gp;
-    if (globalData.gasprice() > gasprice) {
-      gp = globalData.gasprice();
-    } else {
-      gp = gasprice;
-    }
-    uint bounty = (gasreq + localData.offer_gasbase()) * gp * 10 ** 9; // in WEI
-    // if `offerId` is not in the OfferList or deprovisioned, computed value below will be 0
-    uint currentProvisionLocked =
-      (offerDetailData.gasreq() + offerDetailData.offer_gasbase()) * offerDetailData.gasprice() * 10 ** 9;
-    return (currentProvisionLocked >= bounty ? 0 : bounty - currentProvisionLocked);
   }
 }

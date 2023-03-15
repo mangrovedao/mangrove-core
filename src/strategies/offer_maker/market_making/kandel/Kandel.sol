@@ -37,12 +37,6 @@ contract Kandel is GeometricKandel {
     setGasreq(gasreq);
   }
 
-  ///@inheritdoc AbstractKandel
-  function reserveBalance(OfferType ba) public view override returns (uint balance) {
-    IERC20 token = outboundOfOfferType(ba);
-    return token.balanceOf(address(this));
-  }
-
   ///@inheritdoc MangroveOffer
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal

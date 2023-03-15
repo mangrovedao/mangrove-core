@@ -34,6 +34,12 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
     DirectWithBidsAndAsksDistribution(mgv, gasreq, reserveId)
   {}
 
+  ///@inheritdoc AbstractKandel
+  function reserveBalance(OfferType ba) public view virtual override returns (uint balance) {
+    IERC20 token = outboundOfOfferType(ba);
+    return token.balanceOf(address(this));
+  }
+
   ///@notice takes care of status for populating dual and logging of potential issues.
   ///@param offerId the Mangrove offer id (or 0 if newOffer failed).
   ///@param args the arguments of the offer.

@@ -44,19 +44,6 @@ interface IOfferLogic is IMaker {
   ///@return total gas cost including router specific costs (if any).
   function offerGasreq() external view returns (uint total);
 
-  ///@notice Computes missing provision to repost `offerId` at given `gasreq` and `gasprice` ignoring current contract's balance on Mangrove.
-  ///@param outbound_tkn the outbound token used to identify the order book
-  ///@param inbound_tkn the inbound token used to identify the order book
-  ///@param gasreq the gas required by the offer. Call offerGasreq to get the default.
-  ///@param gasprice the upper bound on gas price. Give 0 to use Mangrove's gasprice
-  ///@param offerId the offer id. Set this to 0 if one is not reposting an offer
-  ///@dev if `offerId` is not in the Order Book, will simply return how much is needed to post
-  ///@return missingProvision to repost `offerId`.
-  function getMissingProvision(IERC20 outbound_tkn, IERC20 inbound_tkn, uint gasreq, uint gasprice, uint offerId)
-    external
-    view
-    returns (uint missingProvision);
-
   ///@notice sets a new router to pull outbound tokens from contract's reserve to `this` and push inbound tokens to reserve.
   ///@param router_ the new router contract that this contract should use. Use `NO_ROUTER` for no router.
   ///@dev new router needs to be approved by `this` to push funds to reserve (see `activate` function). It also needs to be approved by reserve to pull from it.

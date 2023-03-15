@@ -1,5 +1,9 @@
 # next version
 
+# 1.4.6-0 (March 2023)
+
+- Include no_env_vars config section
+
 # 1.4.5-0 (March 2023)
 
 - Deploy MangroveOrder, add mumbai gov address

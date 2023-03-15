@@ -16,6 +16,7 @@ import {IOfferLogic} from "mgv_src/strategies/interfaces/IOfferLogic.sol";
 import {MgvLib, IERC20, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 /// @title This contract is the basic building block for Mangrove strats.
 /// @notice It contains the mandatory interface expected by Mangrove (`IOfferLogic` is `IMaker`) and enforces additional functions implementations (via `IOfferLogic`).
@@ -146,7 +147,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   /// @inheritdoc IOfferLogic
   function approve(IERC20 token, address spender, uint amount) public override onlyAdmin returns (bool) {
-    return token.approve(spender, amount);
+    return TransferLib.approveToken(token, spender, amount);
   }
 
   /// @inheritdoc IOfferLogic
@@ -170,10 +171,10 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   function __activate__(IERC20 token) internal virtual {
     AbstractRouter router_ = router();
     // all strat require `this` to approve Mangrove for pulling `token` at the end of `makerExecute`
-    require(token.approve(address(MGV), type(uint).max), "mgvOffer/approveMangrove/Fail");
+    require(TransferLib.approveToken(token, address(MGV), type(uint).max), "mgvOffer/approveMangrove/Fail");
     if (router_ != NO_ROUTER) {
       // allowing router to pull `token` from this contract (for the `push` function of the router)
-      require(token.approve(address(router_), type(uint).max), "mgvOffer/approveRouterFail");
+      require(TransferLib.approveToken(token, address(router_), type(uint).max), "mgvOffer/approveRouterFail");
       // letting router performs additional necessary approvals (if any)
       // this will only work if `this` is an authorized maker of the router (i.e. `router.bind(address(this))` has been called by router's admin).
       router_.activate(token);

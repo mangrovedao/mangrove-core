@@ -19,7 +19,9 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 /// @notice Partial implementation and requirements for liquidity routers.
 
 abstract contract AbstractRouter is AccessControlled {
+  ///@notice the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
   uint24 internal immutable ROUTER_GASREQ;
+  ///@notice the bound maker contracts which are allowed to call this router.
   mapping(address => bool) internal boundMakerContracts;
 
   ///@notice This modifier verifies that `msg.sender` an allowed caller of this router.
@@ -34,8 +36,12 @@ abstract contract AbstractRouter is AccessControlled {
     _;
   }
 
-  ///@notice logging bound maker contracts
+  ///@notice logging bound maker contract
+  ///@param maker the maker address
   event MakerBind(address indexed maker);
+
+  ///@notice logging unbound maker contract
+  ///@param maker the maker address
   event MakerUnbind(address indexed maker);
 
   ///@notice constructor for abstract routers.
@@ -60,9 +66,10 @@ abstract contract AbstractRouter is AccessControlled {
 
   ///@notice pulls liquidity from the reserve and sends it to the calling maker contract.
   ///@param token is the ERC20 managing the pulled asset
-  ///@param reserveId identifies the fund owner (router implementation dependant).
+  ///@param reserveId identifies the fund owner (router implementation dependent).
   ///@param amount of `token` the maker contract wishes to pull from its reserve
   ///@param strict when the calling maker contract accepts to receive more funds from reserve than required (this may happen for gas optimization)
+  ///@return pulled the amount that was successfully pulled.
   function pull(IERC20 token, address reserveId, uint amount, bool strict) external onlyBound returns (uint pulled) {
     if (strict && amount == 0) {
       return 0;
@@ -70,12 +77,17 @@ abstract contract AbstractRouter is AccessControlled {
     pulled = __pull__({token: token, reserveId: reserveId, amount: amount, strict: strict});
   }
 
-  ///@notice router-dependant implementation of the `pull` function
+  ///@notice router-dependent implementation of the `pull` function
+  ///@param token Token to be transferred
+  ///@param reserveId determines the location of the reserve (router implementation dependent).
+  ///@param amount The amount of tokens to be transferred
+  ///@param strict wether the caller maker contract wishes to pull at most `amount` tokens of owner.
+  ///@return pulled The amount pulled if successful; otherwise, 0.
   function __pull__(IERC20 token, address reserveId, uint amount, bool strict) internal virtual returns (uint);
 
   ///@notice pushes assets from calling's maker contract to a reserve
   ///@param token is the asset the maker is pushing
-  ///@param reserveId determines the location of the reserve (router implementation dependant).
+  ///@param reserveId determines the location of the reserve (router implementation dependent).
   ///@param amount is the amount of asset that should be transferred from the calling maker contract
   ///@return pushed fraction of `amount` that was successfully pushed to reserve.
   function push(IERC20 token, address reserveId, uint amount) external onlyBound returns (uint pushed) {
@@ -85,10 +97,16 @@ abstract contract AbstractRouter is AccessControlled {
     pushed = __push__({token: token, reserveId: reserveId, amount: amount});
   }
 
-  ///@notice router-dependant implementation of the `push` function
-  function __push__(IERC20 token, address reserveId, uint amount) internal virtual returns (uint);
+  ///@notice router-dependent implementation of the `push` function
+  ///@param token Token to be transferred
+  ///@param reserveId determines the location of the reserve (router implementation dependent).
+  ///@param amount The amount of tokens to be transferred
+  ///@return pushed The amount pushed if successful; otherwise, 0.
+  function __push__(IERC20 token, address reserveId, uint amount) internal virtual returns (uint pushed);
 
   ///@notice iterative `push` for the whole balance in a single call
+  ///@param tokens to flush
+  ///@param reserveId determines the location of the reserve (router implementation dependent).
   function flush(IERC20[] calldata tokens, address reserveId) external onlyBound {
     for (uint i = 0; i < tokens.length; ++i) {
       uint amount = tokens[i].balanceOf(msg.sender);
@@ -119,8 +137,9 @@ abstract contract AbstractRouter is AccessControlled {
   }
 
   ///@notice removes a makerContract from the allowed makers of this router
-  function unbind(address maker) external onlyAdmin {
-    _unbind(maker);
+  ///@param makerContract the maker contract address
+  function unbind(address makerContract) external onlyAdmin {
+    _unbind(makerContract);
   }
 
   ///@notice allows a makerContract to verify it is ready to use `this` router for a particular reserve
@@ -136,6 +155,8 @@ abstract contract AbstractRouter is AccessControlled {
   }
 
   ///@notice router-dependent additional checks
+  ///@param token is the asset (and possibly its overlyings) whose approval must be checked
+  ///@param reserveId of the tokens that are being pulled
   function __checkList__(IERC20 token, address reserveId) internal view virtual;
 
   ///@notice performs necessary approval to activate router function on a particular asset
@@ -145,6 +166,7 @@ abstract contract AbstractRouter is AccessControlled {
   }
 
   ///@notice router-dependent implementation of the `activate` function
+  ///@param token the asset one wishes to use the router for
   function __activate__(IERC20 token) internal virtual {
     token; //ssh
   }
@@ -152,5 +174,6 @@ abstract contract AbstractRouter is AccessControlled {
   ///@notice Balance of a reserve
   ///@param token the asset one wishes to know the balance of
   ///@param reserveId the identifier of the reserve
+  ///@return the balance of the reserve
   function balanceOfReserve(IERC20 token, address reserveId) public view virtual returns (uint);
 }

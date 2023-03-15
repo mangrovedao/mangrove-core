@@ -15,8 +15,14 @@ pragma solidity ^0.8.10;
 /// @notice The contract stores an admin address which is checked against `msg.sender` in the `onlyAdmin` modifier.
 /// @notice Additionally, a specific `msg.sender` can be verified with the `onlyCaller` modifier.
 contract AccessControlled {
-  /// @notice logs new `admin` of `this`
+  /**
+   * @notice logs new `admin` of `this`
+   * @param admin The new admin.
+   */
   event SetAdmin(address admin);
+  /**
+   * @notice The admin address.
+   */
 
   address internal _admin;
 
@@ -58,8 +64,9 @@ contract AccessControlled {
 
   /**
    * @notice Retrieves the current admin.
+   * @return current admin.
    */
-  function admin() public view returns (address) {
+  function admin() public view returns (address current) {
     return _admin;
   }
 

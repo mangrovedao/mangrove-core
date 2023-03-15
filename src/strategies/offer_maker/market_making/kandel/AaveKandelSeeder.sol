@@ -18,9 +18,14 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 
 ///@title AaveKandel strat deployer.
 contract AaveKandelSeeder is AbstractKandelSeeder {
+  ///@notice the Aave router.
   AavePooledRouter public immutable AAVE_ROUTER;
 
   ///@notice constructor for `AaveKandelSeeder`. Initializes an `AavePooledRouter` with this seeder as manager.
+  ///@param mgv The Mangrove deployment.
+  ///@param addressesProvider address of AAVE's address provider
+  ///@param routerGasreq is the amount of gas that is required for the AavePooledRouter to be able to perform a `pull` and a `push`.
+  ///@param aaveKandelGasreq the gasreq to use for offers besides the routerGasreq.
   constructor(IMangrove mgv, address addressesProvider, uint routerGasreq, uint aaveKandelGasreq)
     AbstractKandelSeeder(mgv, aaveKandelGasreq)
   {

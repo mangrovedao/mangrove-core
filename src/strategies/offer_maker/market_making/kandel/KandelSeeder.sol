@@ -19,6 +19,8 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 ///@title Kandel strat deployer.
 contract KandelSeeder is AbstractKandelSeeder {
   ///@notice constructor for `KandelSeeder`.
+  ///@param mgv The Mangrove deployment.
+  ///@param kandelGasreq the gasreq to use for offers.
   constructor(IMangrove mgv, uint kandelGasreq) AbstractKandelSeeder(mgv, kandelGasreq) {}
 
   ///@inheritdoc AbstractKandelSeeder

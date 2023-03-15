@@ -1442,14 +1442,14 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   function test_marketOrder_dualOfferUpdate_expectedGasreq() public {
-    test_marketOrder_dualOffer_expectedGasreq(false, 87985);
+    marketOrder_dualOffer_expectedGasreq(false, 87985);
   }
 
   function test_marketOrder_dualOfferNew_expectedGasreq() public {
-    test_marketOrder_dualOffer_expectedGasreq(true, 0);
+    marketOrder_dualOffer_expectedGasreq(true, 0);
   }
 
-  function test_marketOrder_dualOffer_expectedGasreq(bool dualNew, uint deltaGasForNew) internal {
+  function marketOrder_dualOffer_expectedGasreq(bool dualNew, uint deltaGasForNew) internal {
     // Arrange
     MgvLib.SingleOrder memory order = mockBuyOrder({takerGives: cash(quote, 100), takerWants: 0.1 ether});
     order.offerId = kdl.offerIdOfIndex(Ask, dualNew ? 6 : 5);

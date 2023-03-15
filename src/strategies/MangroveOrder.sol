@@ -112,6 +112,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@notice compares a taker order with a market order result and checks whether the order was entirely filled
   ///@param tko the taker order
   ///@param res the market order result
+  ///@return true if the order was entirely filled, false otherwise.
   function checkCompleteness(TakerOrder calldata tko, TakerOrderResult memory res) internal pure returns (bool) {
     // The order can be incomplete if the price becomes too high or the end of the book is reached.
     if (tko.fillWants) {
@@ -227,6 +228,8 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   }
 
   ///@notice logs `OrderSummary`
+  ///@param tko the arguments in memory of the taker order
+  ///@param res the result of the taker order.
   ///@dev this function avoids loading too many variables on the stack
   function logOrderData(TakerOrder memory tko, TakerOrderResult memory res) internal {
     emit OrderSummary({
@@ -249,7 +252,12 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   }
 
   ///@notice posts a maker order on the (`outbound_tkn`, `inbound_tkn`) offer list.
+  ///@param tko the arguments in memory of the taker order
+  ///@param outbound_tkn the outbound token of the offer to post
+  ///@param inbound_tkn the inbound token of the offer to post
   ///@param fund amount of WEIs used to cover for the offer bounty (covered gasprice is derived from `fund`).
+  ///@param res the result of the taker order.
+  ///@return refund the amount to refund to the taker of the fund.
   ///@dev entailed price that should be preserved for the maker order are:
   /// * `tko.takerGives/tko.takerWants` for buy orders (i.e `fillWants==true`)
   /// * `tko.takerWants/tko.takerGives` for sell orders (i.e `fillWants==false`)

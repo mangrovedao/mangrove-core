@@ -67,6 +67,9 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///  This imposes x < (256 - log2(10) * OFFSET) / 2
   /// with OFFSET = 19 we get x < 101 so no overflow is guaranteed for a user balance that can hold on a `uint96`.
 
+  ///@notice contract's constructor
+  ///@param addressesProvider address of AAVE's address provider
+  ///@param overhead is the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
   constructor(address addressesProvider, uint overhead)
     HasAaveBalanceMemoizer(addressesProvider)
     AbstractRouter(overhead)
@@ -100,6 +103,9 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   }
 
   ///@notice `totalBalance` with memoization of balance queries
+  ///@param token the asset whose balance is required
+  ///@param memoizer the memoizer
+  ///@return balance of the asset
   function _totalBalance(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (uint balance) {
     balance = balanceOf(token, memoizer) + balanceOfOverlying(token, memoizer);
   }
@@ -107,12 +113,17 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@notice computes available funds (modulo available liquidity on AAVE) for a given reserve
   ///@param token the asset one wants to know the balance of
   ///@param reserveId the identifier of the reserve whose balance is queried
+  ///@return available funds for the reserve
   function balanceOfReserve(IERC20 token, address reserveId) public view override returns (uint) {
     BalanceMemoizer memory memoizer;
     return _balanceOfReserve(token, reserveId, memoizer);
   }
 
   ///@notice `balanceOfReserve` with memoization of balance queries
+  ///@param token the asset one wants to know the balance of
+  ///@param reserveId the identifier of the reserve whose balance is queried
+  ///@return balance available funds for the reserve
+  ///@param memoizer the memoizer
   function _balanceOfReserve(IERC20 token, address reserveId, BalanceMemoizer memory memoizer)
     internal
     view
@@ -125,6 +136,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@notice computes how many shares an amount of tokens represents
   ///@param token the address of the asset
   ///@param amount of tokens
+  ///@param memoizer the memoizer
   ///@return shares the shares that correspond to amount
   function _sharesOfAmount(IERC20 token, uint amount, BalanceMemoizer memory memoizer)
     internal
@@ -139,6 +151,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@param token the address of the asset
   ///@param reserveId the address of the reserve who will be assigned new shares
   ///@param amount the amount of assets added to the reserve
+  ///@param memoizer the memoizer
   function _mintShares(IERC20 token, address reserveId, uint amount, BalanceMemoizer memory memoizer) internal {
     // computing how many shares should be minted for reserve
     uint sharesToMint = _sharesOfAmount(token, amount, memoizer);
@@ -150,6 +163,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@param token the address of the asset
   ///@param reserveId the address of the reserve who will have shares burnt
   ///@param amount the amount of assets withdrawn from reserve
+  ///@param memoizer the memoizer
   ///@dev if one is trying to burn shares from a pool that doesn't have any, the call to `_sharesOfAmount` will return `INIT_MINT`
   ///@dev and thus this contract will throw with "AavePooledRouter/insufficientFunds", even if one is trying to burn 0 shares.
   function _burnShares(IERC20 token, address reserveId, uint amount, BalanceMemoizer memory memoizer) internal {
@@ -176,7 +190,9 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   ///@notice deposit router-local balance of an asset on the AAVE pool
   ///@param token the address of the asset
-  function flushBuffer(IERC20 token, bool noRevert) public boundOrAdmin returns (bytes32) {
+  ///@param noRevert does not revert if supplies throws
+  ///@return reason for revert from Aave.
+  function flushBuffer(IERC20 token, bool noRevert) public boundOrAdmin returns (bytes32 reason) {
     return _supply(token, token.balanceOf(address(this)), address(this), noRevert);
   }
 
@@ -246,6 +262,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@param reserveId the shares on which funds are being drawn
   ///@param amountToTransfer final amount of asset to transfer
   ///@param amountToRedeem funds that need to be pulled from AAVE for final transfer to succeed
+  ///@param memoizer the memoizer
   function redeemAndTransfer(
     IERC20 token,
     address reserveId,

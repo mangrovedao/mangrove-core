@@ -58,8 +58,9 @@ contract AccessControlled {
 
   /**
    * @notice Retrieves the current admin.
+   * @return current admin.
    */
-  function admin() public view returns (address) {
+  function admin() public view returns (address current) {
     return _admin;
   }
 

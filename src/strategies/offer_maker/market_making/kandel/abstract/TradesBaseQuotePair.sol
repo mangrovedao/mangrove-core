@@ -24,14 +24,17 @@ enum OfferType {
 abstract contract IHasTokenPairOfOfferType {
   ///@notice turns an offer type into an (outbound, inbound) pair identifying an offer list.
   ///@param ba whether one wishes to access the offer lists where asks or bids are posted.
-  function tokenPairOfOfferType(OfferType ba) internal view virtual returns (IERC20, IERC20);
+  ///@return pair the token pair
+  function tokenPairOfOfferType(OfferType ba) internal view virtual returns (IERC20, IERC20 pair);
 
   ///@notice returns the offer type of the offer list whose outbound token is given in the argument.
   ///@param outbound_tkn the outbound token of the offer list.
-  function offerTypeOfOutbound(IERC20 outbound_tkn) internal view virtual returns (OfferType);
+  ///@return ba the offer type
+  function offerTypeOfOutbound(IERC20 outbound_tkn) internal view virtual returns (OfferType ba);
 
   ///@notice returns the outbound token for the offer type
   ///@param ba the offer type
+  ///@return token the outbound token
   function outboundOfOfferType(OfferType ba) internal view virtual returns (IERC20 token);
 }
 
@@ -43,6 +46,9 @@ abstract contract TradesBaseQuotePair is IHasTokenPairOfOfferType {
   ///@notice quote of the market Kandel is making
   IERC20 public immutable QUOTE;
 
+  ///@notice Constructor
+  ///@param base Address of the base token of the market Kandel will act on
+  ///@param quote Address of the quote token of the market Kandel will act on
   constructor(IERC20 base, IERC20 quote) {
     BASE = base;
     QUOTE = quote;
@@ -58,8 +64,7 @@ abstract contract TradesBaseQuotePair is IHasTokenPairOfOfferType {
     return outbound_tkn == BASE ? OfferType.Ask : OfferType.Bid;
   }
 
-  ///@notice returns the outbound token for the offer type
-  ///@param ba the offer type
+  ///@inheritdoc IHasTokenPairOfOfferType
   function outboundOfOfferType(OfferType ba) internal view override returns (IERC20 token) {
     token = ba == OfferType.Ask ? BASE : QUOTE;
   }

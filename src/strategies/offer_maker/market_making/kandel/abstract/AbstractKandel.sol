@@ -44,6 +44,8 @@ abstract contract AbstractKandel {
   function reserveBalance(OfferType ba) public view virtual returns (uint balance);
 
   ///@notice deposits funds to be available for being offered. Will increase `pending`.
+  ///@param baseAmount the amount of base tokens to deposit.
+  ///@param quoteAmount the amount of quote tokens to deposit.
   function depositFunds(uint baseAmount, uint quoteAmount) public virtual;
 
   ///@notice withdraws the amounts of the given tokens to the recipient.
@@ -63,8 +65,10 @@ abstract contract AbstractKandel {
   function setCompoundRates(uint compoundRateBase, uint compoundRateQuote) public virtual;
 
   ///@notice sets the gasprice for offers
+  ///@param gasprice the gasprice.
   function setGasprice(uint gasprice) public virtual;
 
   ///@notice sets the gasreq (including router's gasreq) for offers
+  ///@param gasreq the gasreq.
   function setGasreq(uint gasreq) public virtual;
 }

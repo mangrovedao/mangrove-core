@@ -25,6 +25,13 @@ import {IERC20} from "mgv_src/IERC20.sol";
 contract AaveKandel is GeometricKandel {
   bytes32 internal constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
+  ///@notice Constructor
+  ///@param mgv The Mangrove deployment.
+  ///@param base Address of the base token of the market Kandel will act on
+  ///@param quote Address of the quote token of the market Kandel will act on
+  ///@param gasreq the gasreq to use for offers
+  ///@param gasprice the gasprice to use for offers
+  ///@param reserveId identifier of this contract's reserve when using a router.
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
     GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId)
   {
@@ -42,13 +49,16 @@ contract AaveKandel is GeometricKandel {
     require(!isOverlying, "AaveKandel/cannotTradeAToken");
   }
 
-  ///@dev returns the router as an Aave router
+  ///@notice returns the router as an Aave router
+  ///@return The aave router.
   function pooledRouter() private view returns (AavePooledRouter) {
     AbstractRouter router_ = router();
     require(router_ != NO_ROUTER, "AaveKandel/uninitialized");
     return AavePooledRouter(address(router_));
   }
 
+  ///@notice Sets the AaveRouter as router and activates router for base and quote
+  ///@param router_ the Aave router to use.
   function initialize(AavePooledRouter router_) external onlyAdmin {
     setRouter(router_);
     // calls below will fail if router's admin has not bound router to `this`. We call __activate__ instead of activate just to save gas.

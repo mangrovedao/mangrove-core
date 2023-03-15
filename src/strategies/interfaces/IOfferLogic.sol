@@ -59,6 +59,7 @@ interface IOfferLogic is IMaker {
   ///@param token the ERC20 token contract
   ///@param spender the approved spender
   ///@param amount the spending amount
+  ///@return result of token approval.
   ///@dev admin may use this function to revoke specific approvals of `this` that are set after a call to `activate`.
   function approve(IERC20 token, address spender, uint amount) external returns (bool);
 
@@ -109,9 +110,11 @@ interface IOfferLogic is IMaker {
   }
 
   /// @notice Contract's router getter.
+  /// @return the router.
   /// @dev if contract has a no router, function returns `NO_ROUTER`.
   function router() external view returns (AbstractRouter);
 
   /// @notice Contract's Mangrove getter
+  /// @return the Mangrove contract.
   function MGV() external view returns (IMangrove);
 }

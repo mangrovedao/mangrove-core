@@ -25,6 +25,8 @@ abstract contract AbstractKandelSeeder {
   uint public immutable KANDEL_GASREQ;
 
   ///@notice constructor for `AbstractKandelSeeder`.
+  ///@param mgv The Mangrove deployment.
+  ///@param kandelGasreq the gasreq to use for offers
   constructor(IMangrove mgv, uint kandelGasreq) {
     MGV = mgv;
     KANDEL_GASREQ = kandelGasreq;

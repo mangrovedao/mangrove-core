@@ -48,6 +48,13 @@ abstract contract GeometricKandel is CoreKandel {
   /// Storage of the parameters for the strat.
   Params public params;
 
+  ///@notice Constructor
+  ///@param mgv The Mangrove deployment.
+  ///@param base Address of the base token of the market Kandel will act on
+  ///@param quote Address of the quote token of the market Kandel will act on
+  ///@param gasreq the gasreq to use for offers
+  ///@param gasprice the gasprice to use for offers
+  ///@param reserveId identifier of this contract's reserve when using a router.
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
     CoreKandel(mgv, base, quote, gasreq, reserveId)
   {
@@ -71,6 +78,7 @@ abstract contract GeometricKandel is CoreKandel {
   }
 
   /// @notice Updates the params to new values.
+  /// @param newParams the new params to set.
   function setParams(Params calldata newParams) internal {
     Params memory oldParams = params;
 
@@ -120,6 +128,7 @@ abstract contract GeometricKandel is CoreKandel {
     params.compoundRateQuote = uint24(compoundRateQuote);
   }
 
+  /// @notice Gets the compound rate for the given offer type.
   /// @param baDual the dual offer type.
   /// @param memoryParams the Kandel params.
   /// @return compoundRate to use for the gives of the offer type. Asks give base so this would be the `compoundRateBase`, and vice versa.
@@ -156,7 +165,11 @@ abstract contract GeometricKandel is CoreKandel {
     populateChunkInternal(distribution, pivotIds, firstAskIndex);
   }
 
-  ///@notice internal version does not check onlyAdmin
+  ///@notice Publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
+  ///@dev internal version does not check onlyAdmin
+  ///@param distribution the distribution of base and quote for Kandel indices
+  ///@param pivotIds the pivot to be used for the offer
+  ///@param firstAskIndex the (inclusive) index after which offer should be an ask.
   function populateChunkInternal(Distribution calldata distribution, uint[] calldata pivotIds, uint firstAskIndex)
     internal
   {
@@ -177,6 +190,12 @@ abstract contract GeometricKandel is CoreKandel {
   }
 
   ///@notice calculates the wants and gives for the dual offer according to the geometric price distribution.
+  ///@param baDual the dual offer type.
+  ///@param offerGives the offers current gives
+  ///@param order a recap of the taker order (order.offer is the executed offer)
+  ///@param memoryParams the Kandel params (possibly with modified spread due to boundary condition)
+  ///@return wants the new wants for the dual offer
+  ///@return gives the new gives for the dual offer
   ///@dev Define the (maker) price of the order as `p_order := order.gives / order.wants` (what the taker gave divided by what the taker got).
   /// the (maker) price of the dual order must be `p_dual := p_order / ratio^spread` at which one should buy back at least what was sold.
   /// thus `min_offer_wants := order.wants` at price `p_dual`
@@ -245,6 +264,7 @@ abstract contract GeometricKandel is CoreKandel {
   ///@param ba the offer type to transport to
   ///@param index the price index one is willing to improve
   ///@param step the number of price steps improvements
+  ///@param pricePoints the number of price points
   ///@return better destination index
   ///@return spread the size of the price jump, which is `step` if the index boundaries were not reached
   function transportDestination(OfferType ba, uint index, uint step, uint pricePoints)

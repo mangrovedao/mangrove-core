@@ -44,11 +44,8 @@ contract SimpleRouter is
     }
   }
 
-  /// @notice router-dependent implementation of the `push` function
   /// @notice transfers an amount of tokens from the maker to the reserve.
-  /// @param token Token to be transferred
-  /// @param owner The address of the account to which the tokens will be transferred.
-  /// @param amount The amount of tokens to be transferred
+  /// @inheritdoc AbstractRouter
   function __push__(IERC20 token, address owner, uint amount) internal virtual override returns (uint) {
     bool success = TransferLib.transferTokenFrom(token, msg.sender, owner, amount);
     return success ? amount : 0;

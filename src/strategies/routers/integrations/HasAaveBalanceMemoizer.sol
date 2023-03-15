@@ -33,11 +33,14 @@ contract HasAaveBalanceMemoizer is AaveV3Lender {
     bool overlyingMemoized;
   }
 
+  ///@notice contract's constructor
+  ///@param addressesProvider address of AAVE's address provider
   constructor(address addressesProvider) AaveV3Lender(addressesProvider) {}
 
   ///@notice Gets the overlying for the token.
   ///@param token the token.
   ///@param memoizer the memoizer.
+  ///@return overlying for the token.
   function overlying(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (IERC20) {
     if (memoizer.overlyingMemoized) {
       return memoizer.overlying;
@@ -51,6 +54,7 @@ contract HasAaveBalanceMemoizer is AaveV3Lender {
   ///@notice Gets the balance for the overlying of the token, or 0 if there is no overlying.
   ///@param token the token.
   ///@param memoizer the memoizer.
+  ///@return balance of the overlying, or 0 if there is no overlying.
   function balanceOfOverlying(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (uint) {
     if (memoizer.balanceOfOverlyingMemoized) {
       return memoizer.balanceOfOverlying;
@@ -69,6 +73,7 @@ contract HasAaveBalanceMemoizer is AaveV3Lender {
   ///@notice Gets the balance of the token
   ///@param token the token.
   ///@param memoizer the memoizer.
+  ///@return balance of the token.
   function balanceOf(IERC20 token, BalanceMemoizer memory memoizer) internal view returns (uint) {
     if (memoizer.balanceOfMemoized) {
       return memoizer.balanceOf;

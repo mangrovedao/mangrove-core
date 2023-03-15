@@ -312,27 +312,4 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       provision = offerDetail.gasprice() * 10 ** 9 * (offerDetail.offer_gasbase() + offerDetail.gasreq());
     }
   }
-
-  /// @inheritdoc IOfferLogic
-  function getMissingProvision(IERC20 outbound_tkn, IERC20 inbound_tkn, uint gasreq, uint gasprice, uint offerId)
-    public
-    view
-    returns (uint)
-  {
-    (MgvStructs.GlobalPacked globalData, MgvStructs.LocalPacked localData) =
-      MGV.config(address(outbound_tkn), address(inbound_tkn));
-    MgvStructs.OfferDetailPacked offerDetailData =
-      MGV.offerDetails(address(outbound_tkn), address(inbound_tkn), offerId);
-    uint gp;
-    if (globalData.gasprice() > gasprice) {
-      gp = globalData.gasprice();
-    } else {
-      gp = gasprice;
-    }
-    uint bounty = (gasreq + localData.offer_gasbase()) * gp * 10 ** 9; // in WEI
-    // if `offerId` is not in the OfferList or deprovisioned, computed value below will be 0
-    uint currentProvisionLocked =
-      (offerDetailData.gasreq() + offerDetailData.offer_gasbase()) * offerDetailData.gasprice() * 10 ** 9;
-    return (currentProvisionLocked >= bounty ? 0 : bounty - currentProvisionLocked);
-  }
 }

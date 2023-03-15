@@ -19,11 +19,17 @@ import {IERC20} from "mgv_src/IERC20.sol";
 ///@title Adds a [0..length] index <--> offerId map to a strat.
 ///@dev utilizes the `IHasTokenPairOfOfferType` contract.
 abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
+  ///@notice The Mangrove deployment.
   IMangrove private immutable MGV;
 
   ///@notice the length of the index has been set.
+  ///@param value the length.
   event SetLength(uint value);
+
   ///@notice a new offer of type `ba` with `offerId` was created at price `index`
+  ///@param ba the offer type
+  ///@param index the index
+  ///@param offerId the Mangrove offer id.
   event SetIndexMapping(OfferType indexed ba, uint index, uint offerId);
 
   ///@notice Constructor
@@ -49,16 +55,16 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
   ///@notice maps index of offers to offer id on Mangrove.
   ///@param ba the offer type
   ///@param index the index
-  ///@return the Mangrove offer id.
-  function offerIdOfIndex(OfferType ba, uint index) public view returns (uint) {
+  ///@return offerId the Mangrove offer id.
+  function offerIdOfIndex(OfferType ba, uint index) public view returns (uint offerId) {
     return ba == OfferType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
   }
 
   ///@notice Maps an offer type and Mangrove offer id to index.
   ///@param ba the offer type
   ///@param offerId the Mangrove offer id.
-  ///@return the index.
-  function indexOfOfferId(OfferType ba, uint offerId) public view returns (uint) {
+  ///@return index the index.
+  function indexOfOfferId(OfferType ba, uint offerId) public view returns (uint index) {
     return ba == OfferType.Ask ? indexOfAskOfferId[offerId] : indexOfBidOfferId[offerId];
   }
 

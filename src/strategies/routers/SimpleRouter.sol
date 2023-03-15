@@ -16,7 +16,7 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {AbstractRouter} from "./AbstractRouter.sol";
 
-///@notice `SimpleRouter` instances pull (push) liquidity directly from (to) the an offer owner's account
+///@title `SimpleRouter` instances pull (push) liquidity directly from (to) the an offer owner's account
 ///@dev Maker contracts using this router must make sure that the reserve approves the router for all asset that will be pulled (outbound tokens)
 /// Thus a maker contract using a vault that is not an EOA must make sure this vault has approval capacities.
 contract SimpleRouter is

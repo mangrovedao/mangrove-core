@@ -19,7 +19,9 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 /// @notice Partial implementation and requirements for liquidity routers.
 
 abstract contract AbstractRouter is AccessControlled {
+  ///@notice the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
   uint24 internal immutable ROUTER_GASREQ;
+  ///@notice the bound maker contracts which are allowed to call this router.
   mapping(address => bool) internal boundMakerContracts;
 
   ///@notice This modifier verifies that `msg.sender` an allowed caller of this router.
@@ -34,8 +36,12 @@ abstract contract AbstractRouter is AccessControlled {
     _;
   }
 
-  ///@notice logging bound maker contracts
+  ///@notice logging bound maker contract
+  ///@param maker the maker address
   event MakerBind(address indexed maker);
+
+  ///@notice logging unbound maker contract
+  ///@param maker the maker address
   event MakerUnbind(address indexed maker);
 
   ///@notice constructor for abstract routers.

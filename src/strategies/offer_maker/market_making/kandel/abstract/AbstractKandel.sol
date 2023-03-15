@@ -18,18 +18,26 @@ import {OfferType} from "./TradesBaseQuotePair.sol";
 ///@title Core external functions and events for Kandel strats.
 abstract contract AbstractKandel {
   ///@notice the compound rates have been set to `compoundRateBase` and `compoundRateQuote` which will take effect for future compounding.
+  ///@param compoundRateBase the compound rate for base.
+  ///@param compoundRateQuote the compound rate for quote.
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
 
   ///@notice the gasprice has been set.
+  ///@param value the gasprice for offers.
   event SetGasprice(uint value);
 
   ///@notice the gasreq has been set.
+  ///@param value the gasreq (including router's gasreq) for offers
   event SetGasreq(uint value);
 
   ///@notice the Kandel instance is credited of `amount` by its owner.
+  ///@param token the asset.
+  ///@param amount the amount.
   event Credit(IERC20 indexed token, uint amount);
 
   ///@notice the Kandel instance is debited of `amount` by its owner.
+  ///@param token the asset.
+  ///@param amount the amount.
   event Debit(IERC20 indexed token, uint amount);
 
   ///@notice the amount of liquidity that is available for the strat but not offered by the given offer type.

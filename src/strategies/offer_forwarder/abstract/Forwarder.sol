@@ -23,7 +23,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 ///@notice This class implements IForwarder, which contains specific Forwarder logic functions in additions to IOfferLogic interface.
 
 abstract contract Forwarder is IForwarder, MangroveOffer {
-  // approx of amount of gas units required to complete `__posthookFallback__` when evaluating penalty.
+  ///@notice approx of amount of gas units required to complete `__posthookFallback__` when evaluating penalty.
   uint constant GAS_APPROX = 2000;
 
   ///@notice data associated to each offer published on Mangrove by this contract.

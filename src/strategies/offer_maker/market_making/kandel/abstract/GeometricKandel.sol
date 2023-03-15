@@ -25,6 +25,8 @@ abstract contract GeometricKandel is CoreKandel {
   uint public constant PRECISION = 5;
 
   ///@notice the parameters for Geometric Kandel have been set.
+  ///@param spread in amount of price slots to jump for posting dual offer
+  ///@param ratio of price progression
   event SetGeometricParams(uint spread, uint ratio);
 
   ///@notice Geometric Kandel parameters
@@ -45,7 +47,7 @@ abstract contract GeometricKandel is CoreKandel {
     uint8 pricePoints;
   }
 
-  /// Storage of the parameters for the strat.
+  ///@notice Storage of the parameters for the strat.
   Params public params;
 
   ///@notice Constructor

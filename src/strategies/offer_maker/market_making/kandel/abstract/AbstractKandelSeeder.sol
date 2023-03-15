@@ -21,7 +21,9 @@ import {MgvStructs} from "mgv_src/MgvLib.sol";
 ///@dev deployer of this contract will gain aave manager power on the AAVE router (power to claim rewards and enter/exit markets)
 ///@dev when deployer is a contract one must therefore make sure it is able to call the corresponding functions on the router
 abstract contract AbstractKandelSeeder {
+  ///@notice The Mangrove deployment.
   IMangrove public immutable MGV;
+  ///@notice the gasreq to use for offers.
   uint public immutable KANDEL_GASREQ;
 
   ///@notice constructor for `AbstractKandelSeeder`.

@@ -18,6 +18,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 
 ///@title AaveKandel strat deployer.
 contract AaveKandelSeeder is AbstractKandelSeeder {
+  ///@notice the Aave router.
   AavePooledRouter public immutable AAVE_ROUTER;
 
   ///@notice constructor for `AaveKandelSeeder`. Initializes an `AavePooledRouter` with this seeder as manager.

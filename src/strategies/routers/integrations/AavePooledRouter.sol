@@ -31,10 +31,12 @@ import {IERC20} from "mgv_src/IERC20.sol";
 ///    * `__push__` transfers the requested amount of tokens from the calling maker contract and increases owner's shares, but does not supply on AAVE
 
 contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
+  ///@notice the manager which controls which pools are allowed.
   address public aaveManager;
 
   ///@notice The `aaveManager` has been set.
-  event SetAaveManager(address);
+  ///@param manager the new manager.
+  event SetAaveManager(address manager);
 
   ///@notice An error occurred during deposit to AAVE.
   ///@param token the deposited token.
@@ -49,12 +51,13 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@notice the number of shares for a reserve for a token, i.e. the shares of this router that are attributed to a particular reserve.
   mapping(IERC20 => mapping(address => uint)) internal _sharesOf;
 
-  ///@notice initial shares to be minted
+  ///@notice offset for initial shares to be minted
   ///@dev this amount must be big enough to avoid minting 0 shares via "donation"
   /// see https://github.com/code-423n4/2022-09-y2k-finance-findings/issues/449
   /// mitigation proposed here: https://ethereum-magicians.org/t/address-eip-4626-inflation-attacks-with-virtual-shares-and-assets/12677
 
   uint public constant OFFSET = 19;
+  ///@notice initial shares to be minted
   uint internal constant INIT_MINT = 10 ** OFFSET;
 
   /// OVERFLOW analysis w.r.t offset choice:

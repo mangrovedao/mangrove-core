@@ -65,35 +65,48 @@ artifacts.forEach((file) => {
   }
   const j = read_artifact(file);
   const fname = j.ast.absolutePath;
-  const functions = j.ast.nodes
+  const relevant = j.ast.nodes
     .filter((x) => x.nodeType == "ContractDefinition")
-    .map((x) => x.nodes)
-    .flat()
-    .filter((x) => x.nodeType == "FunctionDefinition");
-  functions.forEach((x) => {
-    const doc = x?.documentation?.text ?? "";
-    if (doc.includes("@inheritdoc")) {
-      return;
-    }
+    .map((x) => {
+      if (!x.documentation.text.includes("@title")) {
+        anyFindings = true;
+        console.log(`${fname} - ${x.name} missing @title`);
+      }
+      return x.nodes;
+    })
+    .flat();
 
-    const name = x?.kind == "constructor" ? "constructor" : x.name;
-    if (!doc.includes("@notice")) {
-      anyFindings = true;
-      console.log(`${fname}: ${name} - no description`);
-    }
-    x.returnParameters.parameters.forEach((p) => {
-      if (!doc.includes(`@return ${p.name}`)) {
-        anyFindings = true;
-        console.log(`${fname}: ${name} - ${p.name} (return)`);
+  relevant
+    .filter(
+      (x) =>
+        x.nodeType == "FunctionDefinition" ||
+        x.nodeType == "EventDefinition" ||
+        x.nodeType == "VariableDeclaration"
+    )
+    .forEach((x) => {
+      const doc = x?.documentation?.text ?? "";
+      if (doc.includes("@inheritdoc")) {
+        return;
       }
-    });
-    x.parameters.parameters.forEach((p) => {
-      if (!doc.includes(`@param ${p.name}`)) {
+
+      const name = x?.kind == "constructor" ? "constructor" : x.name;
+      if (!doc.includes("@notice")) {
         anyFindings = true;
-        console.log(`${fname}: ${name} - ${p.name}`);
+        console.log(`${fname}: ${name} - no description`);
       }
+      x.returnParameters?.parameters.forEach((p) => {
+        if (!doc.includes(`@return ${p.name}`)) {
+          anyFindings = true;
+          console.log(`${fname}: ${name} - ${p.name} (return)`);
+        }
+      });
+      x.parameters?.parameters.forEach((p) => {
+        if (!doc.includes(`@param ${p.name}`)) {
+          anyFindings = true;
+          console.log(`${fname}: ${name} - ${p.name}`);
+        }
+      });
     });
-  });
 });
 
 if (anyFindings) {

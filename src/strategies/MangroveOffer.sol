@@ -25,13 +25,20 @@ import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 /// `__f__() virtual internal`: descendant of this contract should override this function to specialize it to the needs of the strat.
 
 abstract contract MangroveOffer is AccessControlled, IOfferLogic {
+  ///@notice Gas requirement when posting offers via this strategy, excluding router requirement.
   uint public immutable OFFER_GASREQ;
+  ///@notice The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
   IMangrove public immutable MGV;
+  ///@notice constant for no router
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
+  ///@notice The router to use for this strategy.
   AbstractRouter private __router;
 
+  ///@notice The offer was successfully reposted after being partially filled.
   bytes32 internal constant REPOST_SUCCESS = "offer/partialFilled";
+  ///@notice New offer successfully created.
   bytes32 internal constant NEW_OFFER_SUCCESS = "offer/created";
+  ///@notice The offer was completely filled.
   bytes32 internal constant COMPLETE_FILL = "offer/filled";
 
   ///@notice Mandatory function to allow `this` to receive native tokens from Mangrove after a call to `MGV.withdraw(...,deprovision:true)`

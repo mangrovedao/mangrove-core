@@ -46,6 +46,11 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     }
   }
 
+  ///@notice The expiry of the offer has been set
+  ///@param outbound_tkn the outbound token of the offer list.
+  ///@param inbound_tkn the inbound token of the offer list.
+  ///@param offerId the Mangrove offer id.
+  ///@param date in seconds since unix epoch
   event SetExpiry(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, uint date);
 
   ///@inheritdoc IOrderLogic

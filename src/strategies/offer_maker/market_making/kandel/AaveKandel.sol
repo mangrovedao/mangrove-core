@@ -23,6 +23,7 @@ import {IERC20} from "mgv_src/IERC20.sol";
 
 ///@title A Kandel strat with geometric price progression which stores funds on AAVE to generate yield.
 contract AaveKandel is GeometricKandel {
+  ///@notice Indication that this is first puller (returned from __lastLook__) so posthook should deposit liquidity on AAVE
   bytes32 internal constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
   ///@notice Constructor

@@ -20,44 +20,12 @@
     "name": "MangroveOrderEnriched"
   },
   {
-    "address": "0x67CbCa7f1294cfF275c2e156D23F754Ba8Cd1D67",
-    "name": "Kandel_WETH_USDC"
-  },
-  {
-    "address": "0x349f8e8BbD5f1478A65fCCf0D354E24Ce0cac866",
-    "name": "Kandel_WETH_DAI_on_v7"
-  },
-  {
-    "address": "0x1E45CC2C980e566e03FD386c5E8C40E9A427C160",
-    "name": "Kandel_DAI_USDC_on_v7"
-  },
-  {
-    "address": "0xa9Ac3dD1F9194fc39Ee9D1A1C05B5D7e41ba34B8",
-    "name": "KandelSeeder_on_v7"
-  },
-  {
-    "address": "0x8BF378c56869071e8d2043C2e35f5FfbBF527D58",
-    "name": "AaveKandelSeeder_on_v7"
-  },
-  {
-    "address": "0x82BC93704327f8D604df8fedDb87EdAbB4f26c13",
-    "name": "AaveKandel_WETH_DAI"
-  },
-  {
     "address": "0xe8904C912ffe1445cFb3f6d6643db6590639910f",
     "name": "KandelSeeder"
   },
   {
     "address": "0xAf89adc7B6D8A1cE5447D8bEEBd3f5b189491729",
     "name": "AaveKandelSeeder"
-  },
-  {
-    "address": "0x0d33e3E9Dd358192189876dEA273170b5a82b65B",
-    "name": "AaveKandel_WETH_USDC"
-  },
-  {
-    "address": "0xAFda2F561418cE75cb457f4369601c640723Dda6",
-    "name": "AaveKandel_DAI_USDC"
   },
   {
     "address": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",

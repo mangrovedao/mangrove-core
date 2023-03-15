@@ -34,6 +34,12 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   bytes32 internal constant NEW_OFFER_SUCCESS = "offer/created";
   bytes32 internal constant COMPLETE_FILL = "offer/filled";
 
+  /**
+   * @notice The Mangrove deployment that is allowed to call `this` for trade execution and posthook.
+   *   @param mgv The Mangrove deployment.
+   */
+  event Mgv(IMangrove mgv);
+
   ///@notice Mandatory function to allow `this` to receive native tokens from Mangrove after a call to `MGV.withdraw(...,deprovision:true)`
   ///@dev override this function if `this` contract needs to handle local accounting of user funds.
   receive() external payable virtual {}
@@ -47,6 +53,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
     require(uint24(gasreq) == gasreq, "mgvOffer/gasreqOverflow");
     MGV = mgv;
     OFFER_GASREQ = gasreq;
+    emit Mgv(mgv);
   }
 
   function router() public view override returns (AbstractRouter) {

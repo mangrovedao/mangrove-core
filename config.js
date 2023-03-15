@@ -9,8 +9,6 @@ exports.abi_exports = [
   "MangroveOrder",
   "MangroveOrderEnriched",
   "AbstractRouter",
-  "AaveDeepRouter",
-  "AaveV3Module",
   "ICreditDelegationToken",
   "ILiquidityProvider",
   "AccessControlled",

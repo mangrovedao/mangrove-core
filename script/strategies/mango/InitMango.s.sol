@@ -43,24 +43,10 @@ contract InitMango is Deployer {
     uint cover_factor
   ) public {
     require(cover_factor * batch_size > 0, "invalid arguments");
-
     uint n = Mango($mgo).NSLOTS();
     {
-      uint gasreq = Mango($mgo).offerGasreq();
-      uint provAsk = Mango($mgo).getMissingProvision(
-        Mango($mgo).BASE(), // outbound
-        Mango($mgo).QUOTE(), // inbound
-        gasreq, // to use offer gasreq
-        0, // to use mangrove gasprice
-        0 // not reposting an offer
-      );
-      uint provBid = Mango($mgo).getMissingProvision(
-        Mango($mgo).QUOTE(), // outbound
-        Mango($mgo).BASE(), // inbound
-        gasreq, // to use offer gasreq
-        0, // to use mangrove gasprice
-        0 // not reposting an offer
-      );
+      uint provAsk = 0.1 ether;
+      uint provBid = 0.1 ether;
 
       // funding Mangrove
       IMangrove mgv = Mango($mgo).MGV();

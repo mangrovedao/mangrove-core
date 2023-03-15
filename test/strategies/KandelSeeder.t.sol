@@ -51,15 +51,12 @@ contract KandelSeederTest is MangroveTest {
     /// sets base, quote, opens a market (base,quote) on Mangrove
     setEnvironment();
     seeder = new KandelSeeder({
-      mgv:IMangrove($(mgv)), 
-      kandelGasreq: 128_000
+      mgv:IMangrove($(mgv))
     });
 
     AaveKandelSeeder aaveKandelSeeder = new AaveKandelSeeder({
       mgv:IMangrove($(mgv)), 
-      addressesProvider: fork.get("Aave"), 
-      routerGasreq: 500_000, 
-      aaveKandelGasreq: 128_001
+      addressesProvider: fork.get("Aave")
     });
     aaveSeeder = aaveKandelSeeder;
     aaveRouter = aaveKandelSeeder.AAVE_ROUTER();
@@ -119,7 +116,7 @@ contract KandelSeederTest is MangroveTest {
     assertEq(address(kdl.router()), address(aaveRouter), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
     assertEq(kdl.RESERVE_ID(), address(kdl), "Incorrect owner");
-    assertEq(kdl.offerGasreq(), 500_000 + 128_001);
+    assertEq(kdl.offerGasreq(), 500_000 + 160_000);
 
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;

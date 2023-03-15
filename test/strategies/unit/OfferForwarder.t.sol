@@ -52,7 +52,7 @@ contract OfferForwarderTest is OfferLogicTest {
   }
 
   function test_derived_gasprice_is_accurate_enough(uint fund) public {
-    vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, makerContract.offerGasreq(), 0, 0));
+    vm.assume(fund >= 0.1 ether);
     vm.assume(fund < 5 ether); // too high provision would yield a gasprice overflow
     uint contractOldBalance = mgv.balanceOf(address(makerContract));
     vm.prank(owner);
@@ -125,7 +125,7 @@ contract OfferForwarderTest is OfferLogicTest {
   }
 
   function test_failed_offer_credits_maker(uint fund) public {
-    vm.assume(fund >= makerContract.getMissingProvision(weth, usdc, makerContract.offerGasreq(), 0, 0));
+    vm.assume(fund >= 0.1 ether);
     vm.assume(fund < 5 ether);
     vm.prank(owner);
     uint offerId = makerContract.newOffer{value: fund}({

@@ -94,8 +94,8 @@ contract AmplifierForwarderTest is MangroveTest {
     returns (uint offerId1, uint offerId2)
   {
     //Find missing provision for both markets
-    uint prov1 = strat.getMissingProvision(weth, usdc, strat.offerGasreq(), 0, 0);
-    uint prov2 = strat.getMissingProvision(weth, dai, strat.offerGasreq(), 0, 0);
+    uint prov1 = 0.1 ether;
+    uint prov2 = 0.1 ether;
 
     (offerId1, offerId2) = strat.newAmplifiedOffers{value: prov1 + prov2}(
       AmplifierForwarder.NewOffersArgs({
@@ -311,8 +311,8 @@ contract AmplifierForwarderTest is MangroveTest {
     (testOffer.daiOffer, testOffer.usdcOffer) =
       postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
     //Find missing provision for both markets
-    uint prov1Tester = strat.getMissingProvision(weth, usdc, strat.offerGasreq(), 0, 0);
-    uint prov2Tester = strat.getMissingProvision(weth, dai, strat.offerGasreq(), 0, 0);
+    uint prov1Tester = 0.1 ether;
+    uint prov2Tester = 0.1 ether;
 
     vm.expectRevert("AmplifierForwarder/offer1AlreadyActive");
 
@@ -337,8 +337,8 @@ contract AmplifierForwarderTest is MangroveTest {
 
     strat.retractOffer(weth, usdc, makerOffer.usdcOffer, false);
 
-    uint prov1Maker = strat.getMissingProvision(weth, usdc, strat.offerGasreq(), 0, 0);
-    uint prov2Maker = strat.getMissingProvision(weth, dai, strat.offerGasreq(), 0, 0);
+    uint prov1Maker = 0.1 ether;
+    uint prov2Maker = 0.1 ether;
 
     vm.expectRevert("AmplifierForwarder/offer2AlreadyActive");
 

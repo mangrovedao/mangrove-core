@@ -17,32 +17,24 @@ import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 
 contract KandelSeederDeployer is Deployer {
   function run() public {
-    (KandelSeeder seeder, AaveKandelSeeder aaveSeeder) = innerRun({
-      mgv: IMangrove(fork.get("Mangrove")),
-      addressesProvider: fork.get("Aave"),
-      aaveKandelGasreq: 160_000,
-      kandelGasreq: 160_000,
-      aaveRouterGasreq: 500_000
-    });
+    (KandelSeeder seeder, AaveKandelSeeder aaveSeeder) =
+      innerRun({mgv: IMangrove(fork.get("Mangrove")), addressesProvider: fork.get("Aave")});
     smokeTest(seeder, AbstractRouter(address(0)));
     smokeTest(aaveSeeder, aaveSeeder.AAVE_ROUTER());
     outputDeployment();
   }
 
-  function innerRun(
-    IMangrove mgv,
-    address addressesProvider,
-    uint aaveRouterGasreq,
-    uint aaveKandelGasreq,
-    uint kandelGasreq
-  ) public returns (KandelSeeder seeder, AaveKandelSeeder aaveSeeder) {
+  function innerRun(IMangrove mgv, address addressesProvider)
+    public
+    returns (KandelSeeder seeder, AaveKandelSeeder aaveSeeder)
+  {
     prettyLog("Deploying Kandel seeder...");
     broadcast();
-    seeder = new KandelSeeder(mgv, kandelGasreq);
+    seeder = new KandelSeeder(mgv);
     fork.set("KandelSeeder", address(seeder));
     prettyLog("Deploying AaveKandel seeder...");
     broadcast();
-    aaveSeeder = new AaveKandelSeeder(mgv, addressesProvider, aaveRouterGasreq, aaveKandelGasreq);
+    aaveSeeder = new AaveKandelSeeder(mgv, addressesProvider);
     fork.set("AaveKandelSeeder", address(aaveSeeder));
     fork.set("AavePooledRouter", address(aaveSeeder.AAVE_ROUTER()));
     console.log("Deployed!");

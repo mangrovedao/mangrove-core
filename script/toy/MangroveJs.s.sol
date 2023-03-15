@@ -120,13 +120,7 @@ contract MangroveJsDeploy is Deployer {
     address aaveAddressProvider = address(new PoolAddressProviderMock(underlying));
 
     KandelSeederDeployer kandelSeederDeployer = new KandelSeederDeployer();
-    kandelSeederDeployer.innerRun({
-      mgv: IMangrove(payable(mgv)),
-      addressesProvider: aaveAddressProvider,
-      aaveRouterGasreq: 318_000,
-      aaveKandelGasreq: 338_000,
-      kandelGasreq: 128_000
-    });
+    kandelSeederDeployer.innerRun({mgv: IMangrove(payable(mgv)), addressesProvider: aaveAddressProvider});
 
     broadcast();
     mgo = new MangroveOrder({mgv: IMangrove(payable(mgv)), deployer: chief, gasreq:30_000});

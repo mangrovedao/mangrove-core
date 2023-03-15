@@ -31,7 +31,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
   AbstractRouter public constant NO_ROUTER = AbstractRouter(address(0));
   AbstractRouter private __router;
 
-  bytes32 internal constant REPOST_SUCCESS = "offer/partialFilled";
+  bytes32 internal constant REPOST_SUCCESS = "offer/updated";
   bytes32 internal constant NEW_OFFER_SUCCESS = "offer/created";
   bytes32 internal constant COMPLETE_FILL = "offer/filled";
 

@@ -188,7 +188,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
   function isFirstPuller(IERC20 token) public view returns (bool) {
     BalanceMemoizer memory memoizer;
-    return balanceOfOverlying(token, memoizer) == 0;
+    return balanceOfOverlying(token, memoizer) > 0;
   }
 
   function setBufferPercentage(IERC20 token, uint percentage) external onlyAdmin {
@@ -237,7 +237,9 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
 
     uint overlyingBalance = balanceOfOverlying(token, memoizer);
     if (overlyingBalance > 0) {
-      // we have not redeemed from aave.
+      // we have not redeemed from aave yet - withdraw all - note we do this without verifying whether the caller
+      // has the right amount of shared. This means a larger gas usage in case of too little liquidity provided by maker.
+      // However, the maker should provide enough liquidity, and other makers can have caused a pull already.
       try POOL.withdraw(address(token), overlyingBalance, address(this)) {
         overlyingBalance = 0;
       } catch {}

@@ -1692,6 +1692,53 @@ abstract contract CoreKandelTest is MangroveTest {
     assertStatus(statuses, type(uint96).max, type(uint96).max);
   }
 
+  function test_dualWantsGivesOfOffer_bidNearBoundary_correctPrice() public {
+    test_dualWantsGivesOfOffer_nearBoundary_correctPrice(Bid);
+  }
+
+  function test_dualWantsGivesOfOffer_askNearBoundary_correctPrice() public {
+    test_dualWantsGivesOfOffer_nearBoundary_correctPrice(Ask);
+  }
+
+  function test_dualWantsGivesOfOffer_nearBoundary_correctPrice(OfferType ba) internal {
+    uint8 spread = 3;
+    uint8 pricePoints = 6;
+
+    uint precision = kdl.PRECISION();
+
+    vm.prank(maker);
+    kdl.retractOffers(0, 10);
+
+    populateSingle({
+      kandel: kdl,
+      index: ba == Bid ? 4 : 1,
+      base: initBase,
+      quote: initQuote,
+      pivotId: 0,
+      firstAskIndex: ba == Bid ? pricePoints : 0,
+      pricePoints: pricePoints,
+      ratio: 2 * 10 ** precision,
+      spread: spread,
+      expectRevert: bytes("")
+    });
+    uint compoundRate = full_compound();
+    vm.prank(maker);
+    kdl.setCompoundRates(compoundRate, compoundRate);
+
+    (uint successes,,,,) = ba == Bid ? sellToBestAs(taker, 1 ether) : buyFromBestAs(taker, 1 ether);
+    assertEq(successes, 1, "offer should be sniped");
+
+    if (ba == Bid) {
+      MgvStructs.OfferPacked ask = kdl.getOffer(Ask, 5);
+      assertEq(ask.gives(), initBase);
+      assertEq(ask.wants(), ask.gives() * 2 / 1000000000);
+    } else {
+      MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 0);
+      assertEq(bid.gives(), initQuote);
+      assertEq(bid.wants(), bid.gives() * 2 * 1000000000);
+    }
+  }
+
   function getAbiPath() internal pure virtual returns (string memory);
 
   function test_allExternalFunctions_differentCallers_correctAuth() public virtual {

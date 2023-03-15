@@ -53,7 +53,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
     uint[] calldata quoteDist = distribution.quoteDist;
     uint[] calldata baseDist = distribution.baseDist;
 
-    uint i = 0;
+    uint i;
 
     OfferArgs memory args;
     // args.fund = 0; offers are already funded
@@ -74,7 +74,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
       populateIndex(OfferType.Bid, offerIdOfIndex(OfferType.Bid, index), index, args);
     }
 
-    (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(OfferType.Ask);
+    (args.outbound_tkn, args.inbound_tkn) = (args.inbound_tkn, args.outbound_tkn);
 
     for (; i < indices.length; ++i) {
       uint index = indices[i];
@@ -132,7 +132,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
   ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs.
   function retractOffers(uint from, uint to) public onlyAdmin {
     (IERC20 outbound_tknAsk, IERC20 inbound_tknAsk) = tokenPairOfOfferType(OfferType.Ask);
-    (IERC20 outbound_tknBid, IERC20 inbound_tknBid) = tokenPairOfOfferType(OfferType.Bid);
+    (IERC20 outbound_tknBid, IERC20 inbound_tknBid) = (inbound_tknAsk, outbound_tknAsk);
     for (uint index = from; index < to; ++index) {
       // These offerIds could be recycled in a new populate
       uint offerId = offerIdOfIndex(OfferType.Ask, index);

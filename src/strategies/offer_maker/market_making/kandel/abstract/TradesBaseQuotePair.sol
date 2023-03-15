@@ -43,9 +43,15 @@ abstract contract TradesBaseQuotePair is IHasTokenPairOfOfferType {
   ///@notice quote of the market Kandel is making
   IERC20 public immutable QUOTE;
 
+  ///@notice The traded pair
+  ///@param base of the market Kandel is making
+  ///@param quote of the market Kandel is making
+  event Pair(IERC20 base, IERC20 quote);
+
   constructor(IERC20 base, IERC20 quote) {
     BASE = base;
     QUOTE = quote;
+    emit Pair(base, quote);
   }
 
   ///@inheritdoc IHasTokenPairOfOfferType

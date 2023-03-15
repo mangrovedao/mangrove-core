@@ -13,6 +13,10 @@ contract NoRouterKandelTest is CoreKandelTest {
     uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
 
     vm.expectEmit(true, true, true, true);
+    emit Mgv(IMangrove($(mgv)));
+    vm.expectEmit(true, true, true, true);
+    emit Pair(base, quote);
+    vm.expectEmit(true, true, true, true);
     emit SetGasprice(bufferedGasprice);
     vm.expectEmit(true, true, true, true);
     emit SetGasreq(GASREQ);

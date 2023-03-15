@@ -24,8 +24,8 @@ abstract contract CoreKandelTest is MangroveTest {
   uint globalGasprice;
   uint bufferedGasprice;
 
-  event AllAsks();
-  event AllBids();
+  event Mgv(IMangrove mgv);
+  event Pair(IERC20 base, IERC20 quote);
   event NewKandel(address indexed owner, IMangrove indexed mgv, IERC20 indexed base, IERC20 quote);
   event SetGeometricParams(uint spread, uint ratio);
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);

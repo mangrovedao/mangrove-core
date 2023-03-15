@@ -64,13 +64,6 @@ contract AaveKandel is GeometricKandel {
     emit SetPoolTarget(ba, target);
   }
 
-  ///@dev returns the router as an Aave router
-  function pooledRouter() private view returns (AavePooledRouter) {
-    AbstractRouter router_ = router();
-    require(router_ != NO_ROUTER, "AaveKandel/uninitialized");
-    return AavePooledRouter(address(router_));
-  }
-
   function initialize(AavePooledRouter router_) external onlyAdmin {
     setRouter(router_);
     // calls below will fail if router's admin has not bound router to `this`. We call __activate__ instead of activate just to save gas.
@@ -84,22 +77,17 @@ contract AaveKandel is GeometricKandel {
     // transfer funds from caller to this
     super.depositFunds(baseAmount, quoteAmount);
     // push funds on the router (and supply on AAVE)
-    IERC20[] memory tokens = new IERC20[](2);
-    tokens[0] = BASE;
-    tokens[1] = QUOTE;
-    uint[] memory amounts = new uint[](2);
-    amounts[0] = baseAmount;
-    amounts[1] = quoteAmount;
-    pooledRouter().pushAndSupply(tokens, amounts, RESERVE_ID);
+    AavePooledRouter(address(router())).pushAndSupply(BASE, baseAmount, QUOTE, quoteAmount, RESERVE_ID);
   }
 
   ///@inheritdoc AbstractKandel
   function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public override onlyAdmin {
+    address router_ = address(router());
     if (baseAmount != 0) {
-      pooledRouter().withdraw(BASE, RESERVE_ID, baseAmount);
+      AavePooledRouter(router_).withdraw(BASE, RESERVE_ID, baseAmount);
     }
     if (quoteAmount != 0) {
-      pooledRouter().withdraw(QUOTE, RESERVE_ID, quoteAmount);
+      AavePooledRouter(router_).withdraw(QUOTE, RESERVE_ID, quoteAmount);
     }
     super.withdrawFunds(baseAmount, quoteAmount, recipient);
   }
@@ -107,7 +95,7 @@ contract AaveKandel is GeometricKandel {
   ///@inheritdoc AbstractKandel
   function reserveBalance(OfferType ba) public view override returns (uint balance) {
     IERC20 token = outboundOfOfferType(ba);
-    balance = super.reserveBalance(ba) + pooledRouter().balanceOfReserve(token, RESERVE_ID);
+    balance = super.reserveBalance(ba) + AavePooledRouter(address(router())).balanceOfReserve(token, RESERVE_ID);
   }
 
   /// @notice Verifies, prior to pulling funds from the router, whether pull will be fetching funds on AAVE
@@ -140,14 +128,7 @@ contract AaveKandel is GeometricKandel {
     if (makerData == IS_FIRST_PULLER) {
       uint baseToPush = maintainBuffer(BASE, memoryParams.poolTargetBase);
       uint quoteToPush = maintainBuffer(QUOTE, memoryParams.poolTargetQuote);
-      IERC20[] memory tokens = new IERC20[](2);
-      uint[] memory amounts = new uint[](2);
-
-      tokens[0] = BASE;
-      tokens[1] = QUOTE;
-      amounts[0] = baseToPush;
-      amounts[1] = quoteToPush;
-      pooledRouter().pushAndSupply(tokens, amounts, RESERVE_ID);
+      AavePooledRouter(address(router())).pushAndSupply(BASE, baseToPush, QUOTE, quoteToPush, RESERVE_ID);
 
       // handles residual reposting - but do not call super, since Direct will flush tokens unnecessarily
       repostStatus = MangroveOffer.__posthookSuccess__(order, makerData);

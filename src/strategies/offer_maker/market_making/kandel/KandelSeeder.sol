@@ -19,11 +19,11 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 ///@title Kandel strat deployer.
 contract KandelSeeder is AbstractKandelSeeder {
   ///@notice constructor for `KandelSeeder`.
-  constructor(IMangrove mgv, uint kandelGasreq) AbstractKandelSeeder(mgv, kandelGasreq) {}
+  constructor(IMangrove mgv) AbstractKandelSeeder(mgv) {}
 
   ///@inheritdoc AbstractKandelSeeder
   function _deployKandel(KandelSeed calldata seed) internal override returns (GeometricKandel kandel) {
-    kandel = new Kandel(MGV, seed.base, seed.quote, KANDEL_GASREQ, seed.gasprice, address(0));
+    kandel = new Kandel(MGV, seed.base, seed.quote, 160_000, seed.gasprice, address(0));
     emit NewKandel(msg.sender, seed.base, seed.quote, address(kandel));
   }
 }

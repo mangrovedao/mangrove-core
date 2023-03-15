@@ -181,34 +181,39 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   }
 
   ///@notice pushes each given token from the calling maker contract to this router, then supplies the whole router-local balance to AAVE
-  ///@param tokens the list of tokens that are being pushed to the reserve
-  ///@param amounts the quantities of tokens one wishes to push
+  ///@param base the base token of the calling maker contract
+  ///@param baseAmount the amount of base token being pushed
+  ///@param quote the quote token of the calling maker contract
+  ///@param quoteAmount the amount of quote token being pushed
   ///@param reserveId the reserve whose shares should be increased
-  ///@return pushed the pushed quantities for each token
+  ///@return pushedBase the pushed quantity for base tokens
+  ///@return pushedQuote the pushed quantity of quote tokens
   ///@dev an offer logic should call this instead of `flush` when it is the last posthook to be executed
   ///@dev this can be determined by checking during __lastLook__ whether the logic will trigger a withdraw from AAVE (this is the case if router's balance of token is empty)
   ///@dev this call be performed even for tokens with 0 amount for the offer logic, since the logic can be the first in a chain and router needs to flush all
   ///@dev this function is also to be used when user deposits funds on the maker contract
-  function pushAndSupply(IERC20[] calldata tokens, uint[] calldata amounts, address reserveId)
+  function pushAndSupply(IERC20 base, uint baseAmount, IERC20 quote, uint quoteAmount, address reserveId)
     external
     onlyBound
-    returns (uint[] memory pushed)
+    returns (uint pushedBase, uint pushedQuote)
   {
-    pushed = new uint[](tokens.length);
-    for (uint i; i < tokens.length; i++) {
-      IERC20 token = tokens[i];
-      uint amount = amounts[i];
-      // Push will fail for amount of 0, but since this function is only called for the first maker contract in a chain
-      // it needs to also flush tokens with a contract-local 0 amount.
-      if (amount > 0) {
-        pushed[i] = __push__(token, reserveId, amount);
-      }
-      // if AAVE refuses deposit, funds are stored in `this` balance (with no yield)
-      // this may happen because max supply of `token` has been reached, or because `token` is not listed on AAVE (`overlying(token)` returns `IERC20(address(0))`)
-      bytes32 aaveData = flushBuffer(token, true);
-      if (aaveData != bytes32(0)) {
-        emit AaveIncident(token, msg.sender, reserveId, aaveData);
-      }
+    // Push will fail for amount of 0, but since this function is only called for the first maker contract in a chain
+    // it needs to also flush tokens with a contract-local 0 amount.
+    if (baseAmount > 0) {
+      pushedBase = __push__(base, reserveId, baseAmount);
+    }
+    if (quoteAmount > 0) {
+      pushedQuote = __push__(quote, reserveId, quoteAmount);
+    }
+    // if AAVE refuses deposit, funds are stored in `this` balance (with no yield)
+    // this may happen because max supply of `token` has been reached, or because `token` is not listed on AAVE (`overlying(token)` returns `IERC20(address(0))`)
+    bytes32 aaveData = flushBuffer(base, true);
+    if (aaveData != bytes32(0)) {
+      emit AaveIncident(base, msg.sender, reserveId, aaveData);
+    }
+    aaveData = flushBuffer(quote, true);
+    if (aaveData != bytes32(0)) {
+      emit AaveIncident(quote, msg.sender, reserveId, aaveData);
     }
   }
 

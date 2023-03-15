@@ -21,10 +21,8 @@ contract AaveKandelSeeder is AbstractKandelSeeder {
   AavePooledRouter public immutable AAVE_ROUTER;
 
   ///@notice constructor for `AaveKandelSeeder`. Initializes an `AavePooledRouter` with this seeder as manager.
-  constructor(IMangrove mgv, address addressesProvider, uint routerGasreq, uint aaveKandelGasreq)
-    AbstractKandelSeeder(mgv, aaveKandelGasreq)
-  {
-    AavePooledRouter router = new AavePooledRouter(addressesProvider, routerGasreq);
+  constructor(IMangrove mgv, address addressesProvider) AbstractKandelSeeder(mgv) {
+    AavePooledRouter router = new AavePooledRouter(addressesProvider, 500_000);
     AAVE_ROUTER = router;
     router.setAaveManager(msg.sender);
   }
@@ -36,7 +34,7 @@ contract AaveKandelSeeder is AbstractKandelSeeder {
     // allowing owner to be modified by Kandel's admin would require approval from owner's address controller
     address owner = seed.liquiditySharing ? msg.sender : address(0);
 
-    kandel = new AaveKandel(MGV, seed.base, seed.quote, KANDEL_GASREQ, seed.gasprice, owner, 9_000, 9_000);
+    kandel = new AaveKandel(MGV, seed.base, seed.quote, 160_000, seed.gasprice, owner, 95_000, 95_000);
     // Allowing newly deployed Kandel to bind to the AaveRouter
     AAVE_ROUTER.bind(address(kandel));
     // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20

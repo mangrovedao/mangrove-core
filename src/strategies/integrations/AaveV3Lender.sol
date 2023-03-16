@@ -82,6 +82,7 @@ contract AaveV3Lender {
   ///@param amount of assets to be transferred to the pool
   ///@param onBehalf address of the account whose collateral is being supplied to and which will receive the overlying
   ///@param noRevert does not revert if supplies throws
+  ///@return reason for revert from Aave.
   function _supply(IERC20 token, uint amount, address onBehalf, bool noRevert) internal returns (bytes32) {
     if (amount == 0) {
       return bytes32(0);
@@ -114,6 +115,7 @@ contract AaveV3Lender {
 
   ///@notice verifies whether an asset can be supplied on pool
   ///@param asset the asset one wants to lend
+  ///@return true if the asset can be supplied on pool
   function checkAsset(IERC20 asset) public view returns (bool) {
     IERC20 aToken = overlying(asset);
     return address(aToken) != address(0);

@@ -22,6 +22,10 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
   ///@notice logs a call to populate
   event Populate();
 
+  ///@notice Constructor
+  ///@param mgv The Mangrove deployment.
+  ///@param gasreq the gasreq to use for offers
+  ///@param reserveId identifier of this contract's reserve when using a router.
   constructor(IMangrove mgv, uint gasreq, address reserveId)
     Direct(mgv, NO_ROUTER, gasreq, reserveId)
     HasIndexedBidsAndAsks(mgv)

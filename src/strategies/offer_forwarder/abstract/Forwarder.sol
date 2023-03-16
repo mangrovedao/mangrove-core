@@ -23,7 +23,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 ///@notice This class implements IForwarder, which contains specific Forwarder logic functions in additions to IOfferLogic interface.
 
 abstract contract Forwarder is IForwarder, MangroveOffer {
-  // approx of amount of gas units required to complete `__posthookFallback__` when evaluating penalty.
+  ///@notice approx of amount of gas units required to complete `__posthookFallback__` when evaluating penalty.
   uint constant GAS_APPROX = 2000;
 
   ///@notice data associated to each offer published on Mangrove by this contract.
@@ -114,13 +114,17 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     }
   }
 
-  ///@inheritdoc IForwarder
+  /// @inheritdoc IForwarder
   function ownerOf(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId) public view override returns (address owner) {
     owner = ownerData[outbound_tkn][inbound_tkn][offerId].owner;
     require(owner != address(0), "Forwarder/unknownOffer");
   }
 
   /// @notice Derives the gas price for the new offer and verifies it against the global configuration.
+  /// @param args function's arguments in memory
+  /// @return gasprice the gas price that is covered by `provision` - `leftover`.
+  /// @return leftover the sub amount of `provision` that is not used to provision the offer.
+  /// @dev the returned gasprice is slightly lower than the real gasprice that the provision can cover because of the rounding error due to division
   function deriveAndCheckGasprice(OfferArgs memory args) internal view returns (uint gasprice, uint leftover) {
     (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) =
       MGV.config(address(args.outbound_tkn), address(args.inbound_tkn));
@@ -180,6 +184,7 @@ abstract contract Forwarder is IForwarder, MangroveOffer {
     MgvStructs.OfferDetailPacked offerDetail;
   }
 
+  ///@inheritdoc MangroveOffer
   function _updateOffer(OfferArgs memory args, uint offerId) internal override returns (bytes32) {
     unchecked {
       UpdateOfferVars memory vars;

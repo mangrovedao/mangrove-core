@@ -21,6 +21,12 @@ import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 
 interface IOfferLogic is IMaker {
   ///@notice Log incident (during post trade execution)
+  ///@param mangrove The mangrove deployment.
+  ///@param outbound_tkn the outbound token of the offer list.
+  ///@param inbound_tkn the inbound token of the offer list.
+  ///@param offerId the Mangrove offer id.
+  ///@param makerData from the maker.
+  ///@param mgvData from Mangrove.
   event LogIncident(
     IMangrove mangrove,
     IERC20 indexed outbound_tkn,
@@ -31,7 +37,8 @@ interface IOfferLogic is IMaker {
   );
 
   ///@notice Logging change of router address
-  event SetRouter(AbstractRouter);
+  ///@param router the new router address
+  event SetRouter(AbstractRouter router);
 
   ///@notice Actual gas requirement when posting offers via this strategy. Returned value may change if this contract's router is updated.
   ///@return total gas cost including router specific costs (if any).
@@ -46,6 +53,7 @@ interface IOfferLogic is IMaker {
   ///@param token the ERC20 token contract
   ///@param spender the approved spender
   ///@param amount the spending amount
+  ///@return result of token approval.
   ///@dev admin may use this function to revoke specific approvals of `this` that are set after a call to `activate`.
   function approve(IERC20 token, address spender, uint amount) external returns (bool);
 
@@ -96,9 +104,11 @@ interface IOfferLogic is IMaker {
   }
 
   /// @notice Contract's router getter.
+  /// @return the router.
   /// @dev if contract has a no router, function returns `NO_ROUTER`.
   function router() external view returns (AbstractRouter);
 
   /// @notice Contract's Mangrove getter
+  /// @return the Mangrove contract.
   function MGV() external view returns (IMangrove);
 }

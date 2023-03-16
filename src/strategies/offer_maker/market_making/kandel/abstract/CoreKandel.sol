@@ -23,6 +23,12 @@ import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 ///@title the core of Kandel strategies which creates or updates a dual offer whenever an offer is taken.
 ///@notice `CoreKandel` is agnostic to the chosen price distribution.
 abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuotePair, AbstractKandel {
+  ///@notice Constructor
+  ///@param mgv The Mangrove deployment.
+  ///@param base Address of the base token of the market Kandel will act on
+  ///@param quote Address of the quote token of the market Kandel will act on
+  ///@param gasreq the gasreq to use for offers
+  ///@param reserveId identifier of this contract's reserve when using a router.
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, address reserveId)
     TradesBaseQuotePair(base, quote)
     DirectWithBidsAndAsksDistribution(mgv, gasreq, reserveId)

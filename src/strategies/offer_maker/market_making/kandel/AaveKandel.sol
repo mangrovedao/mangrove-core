@@ -14,6 +14,7 @@ pragma solidity ^0.8.10;
 import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {AbstractRouter, AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
+import {IATokenIsh} from "mgv_src/strategies/vendor/aave/v3/IATokenIsh.sol";
 import {GeometricKandel} from "./abstract/GeometricKandel.sol";
 import {AbstractKandel} from "./abstract/AbstractKandel.sol";
 import {OfferType} from "./abstract/TradesBaseQuotePair.sol";
@@ -22,11 +23,24 @@ import {IERC20} from "mgv_src/IERC20.sol";
 
 ///@title A Kandel strat with geometric price progression which stores funds on AAVE to generate yield.
 contract AaveKandel is GeometricKandel {
-  bytes32 constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
+  bytes32 internal constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
     GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId)
-  {}
+  {
+    // one makes sure it is not possible to deploy an AAVE kandel on aTokens
+    // allowing Kandel to deposit aUSDC for instance would conflict with other Kandel instances bound to the same router
+    // and trading on USDC.
+    // The code below verifies that neither base nor quote are official AAVE overlyings.
+    bool isOverlying;
+    try IATokenIsh(address(base)).UNDERLYING_ASSET_ADDRESS() returns (address) {
+      isOverlying = true;
+    } catch {}
+    try IATokenIsh(address(quote)).UNDERLYING_ASSET_ADDRESS() returns (address) {
+      isOverlying = true;
+    } catch {}
+    require(!isOverlying, "AaveKandel/cannotTradeAToken");
+  }
 
   ///@dev returns the router as an Aave router
   function pooledRouter() private view returns (AavePooledRouter) {
@@ -44,32 +58,29 @@ contract AaveKandel is GeometricKandel {
   }
 
   ///@inheritdoc AbstractKandel
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public override {
+  function depositFunds(uint baseAmount, uint quoteAmount) public override {
     // transfer funds from caller to this
-    super.depositFunds(tokens, amounts);
+    super.depositFunds(baseAmount, quoteAmount);
     // push funds on the router (and supply on AAVE)
-    pooledRouter().pushAndSupply(tokens, amounts, RESERVE_ID);
+    pooledRouter().pushAndSupply(BASE, baseAmount, QUOTE, quoteAmount, RESERVE_ID);
   }
 
   ///@inheritdoc AbstractKandel
-  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
-    public
-    override
-    onlyAdmin
-  {
-    for (uint i; i < tokens.length; ++i) {
-      if (amounts[i] != 0) {
-        pooledRouter().withdraw(tokens[i], RESERVE_ID, amounts[i]);
-      }
+  function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public override onlyAdmin {
+    if (baseAmount != 0) {
+      pooledRouter().withdraw(BASE, RESERVE_ID, baseAmount);
     }
-    super.withdrawFunds(tokens, amounts, recipient);
+    if (quoteAmount != 0) {
+      pooledRouter().withdraw(QUOTE, RESERVE_ID, quoteAmount);
+    }
+    super.withdrawFunds(baseAmount, quoteAmount, recipient);
   }
 
   ///@notice returns the amount of the router's balance that belong to this contract for the token offered for the offer type.
   ///@inheritdoc AbstractKandel
   function reserveBalance(OfferType ba) public view override returns (uint balance) {
     IERC20 token = outboundOfOfferType(ba);
-    return pooledRouter().balanceOfReserve(token, RESERVE_ID);
+    return pooledRouter().balanceOfReserve(token, RESERVE_ID) + super.reserveBalance(ba);
   }
 
   /// @notice Verifies, prior to pulling funds from the router, whether pull will be fetching funds on AAVE
@@ -87,27 +98,19 @@ contract AaveKandel is GeometricKandel {
     returns (bytes32 repostStatus)
   {
     // handle dual offer posting
-    bool isOutOfRange = transportSuccessfulOrder(order);
+    transportSuccessfulOrder(order);
 
     // handles pushing back liquidity to the router
     if (makerData == IS_FIRST_PULLER) {
       // if first puller, then router should deposit liquidity on AAVE
-      IERC20[] memory tokens = new IERC20[](2);
-      tokens[0] = BASE; // flushing outbound tokens if this contract pulled more liquidity than required during `makerExecute`
-      tokens[1] = QUOTE; // flushing liquidity brought by taker
-      uint[] memory amounts = new uint[](2);
-      amounts[0] = BASE.balanceOf(address(this));
-      amounts[1] = QUOTE.balanceOf(address(this));
-
-      pooledRouter().pushAndSupply(tokens, amounts, RESERVE_ID);
+      pooledRouter().pushAndSupply(
+        BASE, BASE.balanceOf(address(this)), QUOTE, QUOTE.balanceOf(address(this)), RESERVE_ID
+      );
       // reposting offer residual if any - but do not call super, since Direct will flush tokens unnecessarily
       repostStatus = MangroveOffer.__posthookSuccess__(order, makerData);
     } else {
       // reposting offer residual if any - call super to let flush tokens to router
       repostStatus = super.__posthookSuccess__(order, makerData);
-    }
-    if (isOutOfRange) {
-      logOutOfRange(order, repostStatus);
     }
   }
 }

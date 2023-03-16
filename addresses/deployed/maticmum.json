@@ -1,22 +1,34 @@
 [
   {
-    "address": "0x823701dD29451766d5B9eF6b54ef42642F545cd7",
+    "address": "0xAd90a2a9BdcB630c976CaceA1253D89edf74da5e",
     "name": "Mangrove"
   },
   {
-    "address": "0x4aa55b5f46c42531ea4772ab8c808399d067BfF0",
+    "address": "0xE10B1Cc8e4e503e831f3ce8987C0D7b21E6cD85b",
     "name": "MgvReader"
   },
   {
-    "address": "0x028183b83d415f3EDfEc0163E5266Ac63Ad0FdE7",
+    "address": "0x27Cb3b3a727d5d38e9b5946F42cf1dcC1A16b49b",
     "name": "MgvCleaner"
   },
   {
-    "address": "0xcf32089F029AF15b7f8C20c046B13859AcaD791E",
+    "address": "0x61E52eF556FE0D632631C8C8B4AebB218d17D095",
     "name": "MgvOracle"
   },
   {
-    "address": "0x046963623BDB092A406ed051222e769D214bd107",
+    "address": "0x2286C097031B266cC5A1503B7b78c8E3CeA1Da00",
     "name": "MangroveOrderEnriched"
+  },
+  {
+    "address": "0xe8904C912ffe1445cFb3f6d6643db6590639910f",
+    "name": "KandelSeeder"
+  },
+  {
+    "address": "0xAf89adc7B6D8A1cE5447D8bEEBd3f5b189491729",
+    "name": "AaveKandelSeeder"
+  },
+  {
+    "address": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",
+    "name": "MgvGovernance"
   }
 ]

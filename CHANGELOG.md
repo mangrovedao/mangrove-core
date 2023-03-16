@@ -1,5 +1,25 @@
 # next version
 
+# 1.4.6-0 (March 2023)
+
+- Include no_env_vars config section
+
+# 1.4.5-0 (March 2023)
+
+- Deploy MangroveOrder, add mumbai gov address
+
+# 1.4.4-0 (March 2023)
+
+- Deploy MangroveOrder, add mumbai gov address
+
+# 1.4.3-0 (February 2023)
+
+- Strat: Kandel strat
+- Core: Mangrove-core transmit makerData all the time
+- Core: More typesafe calls in mangrove-core
+- Tooling: Deployer.broadcaster to globally set broadcast address
+- Tooling: Export context addresses
+
 # 1.4.2 (February 2023)
 
 - Do not override src/ & other remappings, because when imported forge fails to properly nest them.

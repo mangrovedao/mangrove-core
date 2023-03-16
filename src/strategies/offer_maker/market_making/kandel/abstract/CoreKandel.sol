@@ -16,13 +16,23 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OfferType} from "./TradesBaseQuotePair.sol";
 import {DirectWithBidsAndAsksDistribution} from "./DirectWithBidsAndAsksDistribution.sol";
+import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 ///@title the core of Kandel strategies which creates or updates a dual offer whenever an offer is taken.
 ///@notice `CoreKandel` is agnostic to the chosen price distribution.
-abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKandel {
-  constructor(IMangrove mgv, uint gasreq, address reserveId) DirectWithBidsAndAsksDistribution(mgv, gasreq, reserveId) {}
+abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuotePair, AbstractKandel {
+  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, address reserveId)
+    TradesBaseQuotePair(base, quote)
+    DirectWithBidsAndAsksDistribution(mgv, gasreq, reserveId)
+  {}
+
+  ///@inheritdoc AbstractKandel
+  function reserveBalance(OfferType ba) public view virtual override returns (uint balance) {
+    IERC20 token = outboundOfOfferType(ba);
+    return token.balanceOf(address(this));
+  }
 
   ///@notice takes care of status for populating dual and logging of potential issues.
   ///@param offerId the Mangrove offer id (or 0 if newOffer failed).
@@ -45,43 +55,27 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKande
 
   ///@notice update or create dual offer according to transport logic
   ///@param order is a recall of the taker order that is at the origin of the current trade.
-  ///@return isOutOfRange whether the taken offer was at the edge of the Kandel price range.
-  function transportSuccessfulOrder(MgvLib.SingleOrder calldata order) internal returns (bool) {
+  function transportSuccessfulOrder(MgvLib.SingleOrder calldata order) internal {
     OfferType ba = offerTypeOfOutbound(IERC20(order.outbound_tkn));
 
     // adds any unpublished liquidity to pending[Base/Quote]
     // preparing arguments for the dual offer
-    (OfferType baDual, bool isOutOfRange, uint offerId, uint index, OfferArgs memory args) = transportLogic(ba, order);
+    (OfferType baDual, uint offerId, uint index, OfferArgs memory args) = transportLogic(ba, order);
     bytes32 populateStatus = populateIndex(baDual, offerId, index, args);
     logPopulateStatus(offerId, args, populateStatus);
-    return isOutOfRange;
-  }
-
-  ///@notice logs AllAsks or AllBids in case the last bid or ask is fully taken (or reposting fails)
-  ///@param order is a recall of the taker order that is at the origin of the current trade.
-  ///@param repostStatus the repostStatus from trying to repost the residual of the offer.
-  function logOutOfRange(MgvLib.SingleOrder calldata order, bytes32 repostStatus) internal {
-    if (repostStatus != REPOST_SUCCESS) {
-      if (offerTypeOfOutbound(IERC20(order.outbound_tkn)) == OfferType.Bid) {
-        emit AllAsks();
-      } else {
-        emit AllBids();
-      }
-    }
   }
 
   ///@notice transport logic followed by Kandel
   ///@param ba whether the offer that was executed is a bid or an ask
   ///@param order a recap of the taker order (order.offer is the executed offer)
   ///@return baDual the type of dual offer that will re-invest inbound liquidity
-  ///@return isOutOfRange whether the offer is either the last bid or ask
   ///@return offerId the offer id of the dual offer
   ///@return index the index of the dual offer
   ///@return args the argument for `populateIndex` specifying gives and wants
   function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (OfferType baDual, bool isOutOfRange, uint offerId, uint index, OfferArgs memory args);
+    returns (OfferType baDual, uint offerId, uint index, OfferArgs memory args);
 
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
   /// @param ba offer type.
@@ -91,42 +85,50 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, AbstractKande
     return int(reserveBalance(ba)) - int(offeredVolume(ba));
   }
 
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual override {
-    TransferLib.transferTokensFrom(tokens, msg.sender, address(this), amounts);
-    for (uint i; i < tokens.length; ++i) {
-      emit Credit(tokens[i], amounts[i]);
-    }
+  ///@notice Deposits funds to the contract's reserve
+  ///@param baseAmount the amount of base tokens to deposit.
+  ///@param quoteAmount the amount of quote tokens to deposit.
+  function depositFunds(uint baseAmount, uint quoteAmount) public virtual override {
+    require(TransferLib.transferTokenFrom(BASE, msg.sender, address(this), baseAmount), "Kandel/baseTransferFail");
+    emit Credit(BASE, baseAmount);
+    require(TransferLib.transferTokenFrom(QUOTE, msg.sender, address(this), quoteAmount), "Kandel/quoteTransferFail");
+    emit Credit(QUOTE, quoteAmount);
   }
 
-  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient)
-    public
-    virtual
-    override
-    onlyAdmin
-  {
-    TransferLib.transferTokens(tokens, amounts, recipient);
-    for (uint i; i < tokens.length; ++i) {
-      emit Debit(tokens[i], amounts[i]);
+  ///@notice withdraws funds from the contract's reserve
+  ///@param baseAmount the amount of base tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
+  ///@param quoteAmount the amount of quote tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
+  ///@param recipient the address to which the withdrawn funds should be sent to.
+  function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public virtual override onlyAdmin {
+    if (baseAmount == type(uint).max) {
+      baseAmount = BASE.balanceOf(address(this));
     }
+    if (quoteAmount == type(uint).max) {
+      quoteAmount = QUOTE.balanceOf(address(this));
+    }
+    require(TransferLib.transferToken(BASE, recipient, baseAmount), "Kandel/baseTransferFail");
+    emit Debit(BASE, baseAmount);
+    require(TransferLib.transferToken(QUOTE, recipient, quoteAmount), "Kandel/quoteTransferFail");
+    emit Debit(QUOTE, quoteAmount);
   }
 
   ///@notice Retracts offers, withdraws funds, and withdraws free wei from Mangrove.
   ///@param from retract offers starting from this index.
   ///@param to retract offers until this index.
-  ///@param tokens the tokens to withdraw.
-  ///@param tokenAmounts the amounts of the tokens to withdraw.
+  ///@param baseAmount the amount of base tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
+  ///@param quoteAmount the amount of quote tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
   ///@param freeWei the amount of wei to withdraw from Mangrove. Use type(uint).max to withdraw entire available balance.
   ///@param recipient the recipient of the funds.
   function retractAndWithdraw(
     uint from,
     uint to,
-    IERC20[] calldata tokens,
-    uint[] calldata tokenAmounts,
+    uint baseAmount,
+    uint quoteAmount,
     uint freeWei,
     address payable recipient
   ) external onlyAdmin {
     retractOffers(from, to);
-    withdrawFunds(tokens, tokenAmounts, recipient);
+    withdrawFunds(baseAmount, quoteAmount, recipient);
     withdrawFromMangrove(freeWei, recipient);
   }
 }

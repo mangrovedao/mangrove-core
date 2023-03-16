@@ -23,24 +23,26 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
 
   ///@notice the length of the index has been set.
   event SetLength(uint value);
+  ///@notice a new offer of type `ba` with `offerId` was created at price `index`
+  event SetIndexMapping(OfferType indexed ba, uint index, uint offerId);
 
   constructor(IMangrove mgv) {
     MGV = mgv;
   }
 
   ///@notice the length of the map.
-  uint length;
+  uint internal length;
 
   ///@notice Mangrove's offer id of an ask at a given index.
-  mapping(uint => uint) askOfferIdOfIndex;
+  mapping(uint => uint) private askOfferIdOfIndex;
   ///@notice Mangrove's offer id of a bid at a given index.
-  mapping(uint => uint) bidOfferIdOfIndex;
+  mapping(uint => uint) private bidOfferIdOfIndex;
 
   ///@notice An inverse mapping of askOfferIdOfIndex. E.g., indexOfAskOfferId[42] is the index in askOfferIdOfIndex at which ask of id #42 on Mangrove is stored.
-  mapping(uint => uint) indexOfAskOfferId;
+  mapping(uint => uint) private indexOfAskOfferId;
 
   ///@notice An inverse mapping of bidOfferIdOfIndex. E.g., indexOfBidOfferId[42] is the index in bidOfferIdOfIndex at which bid of id #42 on Mangrove is stored.
-  mapping(uint => uint) indexOfBidOfferId;
+  mapping(uint => uint) private indexOfBidOfferId;
 
   ///@notice maps index of offers to offer id on Mangrove.
   function offerIdOfIndex(OfferType ba, uint index) public view returns (uint) {
@@ -61,6 +63,7 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
       indexOfBidOfferId[offerId] = index;
       bidOfferIdOfIndex[index] = offerId;
     }
+    emit SetIndexMapping(ba, index, offerId);
   }
 
   ///@notice sets the length of the map.

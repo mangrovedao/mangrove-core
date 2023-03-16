@@ -46,9 +46,7 @@ library KandelLib {
     uint funds
   ) internal returns (uint[] memory pivotIds, uint baseAmountRequired, uint quoteAmountRequired) {
     pivotIds = new uint[](distribution.indices.length);
-    kandel.populate{value: funds}(
-      distribution, pivotIds, firstAskIndex, params, new IERC20[](0), new uint[](0)
-    );
+    kandel.populate{value: funds}(distribution, pivotIds, firstAskIndex, params, 0, 0);
     for (uint i = 0; i < pivotIds.length; ++i) {
       uint index = distribution.indices[i];
       OfferType ba = index < firstAskIndex ? OfferType.Bid : OfferType.Ask;

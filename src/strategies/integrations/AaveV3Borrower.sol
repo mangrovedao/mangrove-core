@@ -71,10 +71,11 @@ contract AaveV3Borrower is AaveV3Lender {
   /**
    * @notice convenience function to obtain the address of the non transferrable debt token overlying of some asset
    * @param asset the underlying asset
+   * @param interestRateMode the interest rate (stable or variable) of the debt token
    * @return debtTkn the overlying debt token
    */
-  function debtToken(IERC20 asset) public view returns (ICreditDelegationToken debtTkn) {
-    debtTkn = INTEREST_RATE_MODE == 1
+  function debtToken(IERC20 asset, uint interestRateMode) public view returns (ICreditDelegationToken debtTkn) {
+    debtTkn = interestRateMode == 1
       ? ICreditDelegationToken(POOL.getReserveData(address(asset)).stableDebtTokenAddress)
       : ICreditDelegationToken(POOL.getReserveData(address(asset)).variableDebtTokenAddress);
   }
@@ -119,6 +120,16 @@ contract AaveV3Borrower is AaveV3Lender {
     } else {
       return abi.decode(retdata, (uint, uint));
     }
+  }
+
+  function getCaps(IERC20 asset) public view returns (uint supplyCap, uint borrowCap) {
+    (bool success, bytes memory retdata) = address(this).staticcall(
+      abi.encodeWithSelector(this._staticdelegatecall.selector, abi.encodeWithSelector(AMI.$getCaps.selector, asset))
+    );
+    if (!success) {
+      AMS.revertWithData(retdata);
+    }
+    (supplyCap, borrowCap) = abi.decode(retdata, (uint, uint));
   }
 
   /**

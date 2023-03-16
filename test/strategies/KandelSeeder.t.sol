@@ -16,10 +16,10 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 
 contract KandelSeederTest is MangroveTest {
-  PinnedPolygonFork fork;
-  AbstractKandelSeeder seeder;
-  AbstractKandelSeeder aaveSeeder;
-  AavePooledRouter aaveRouter;
+  PinnedPolygonFork internal fork;
+  AbstractKandelSeeder internal seeder;
+  AbstractKandelSeeder internal aaveSeeder;
+  AavePooledRouter internal aaveRouter;
 
   event NewAaveKandel(
     address indexed owner, IERC20 indexed base, IERC20 indexed quote, address aaveKandel, address reserveId
@@ -57,12 +57,22 @@ contract KandelSeederTest is MangroveTest {
 
     AaveKandelSeeder aaveKandelSeeder = new AaveKandelSeeder({
       mgv:IMangrove($(mgv)), 
-      addressesProvider: fork.get('Aave'), 
+      addressesProvider: fork.get("Aave"), 
       routerGasreq: 500_000, 
       aaveKandelGasreq: 128_001
     });
     aaveSeeder = aaveKandelSeeder;
     aaveRouter = aaveKandelSeeder.AAVE_ROUTER();
+  }
+
+  function test_sow_fails_if_market_not_fully_active() public {
+    mgv.deactivate($(base), $(quote));
+    vm.expectRevert("KandelSeeder/inactiveMarket");
+    sow(false);
+    mgv.activate($(base), $(quote), 0, 10, 50_000);
+    mgv.deactivate($(quote), $(base));
+    vm.expectRevert("KandelSeeder/inactiveMarket");
+    sow(false);
   }
 
   function test_aave_manager_is_attributed() public {
@@ -72,7 +82,7 @@ contract KandelSeederTest is MangroveTest {
   function test_logs_new_aaveKandel() public {
     address maker = freshAddress("Maker");
     expectFrom(address(aaveSeeder));
-    emit NewAaveKandel(maker, base, quote, 0x746326d3E4e54BA617F8aB39A21b7420aE8bF97d, maker);
+    emit NewAaveKandel(maker, base, quote, 0xf5Ba21691a8bC011B7b430854B41d5be0B78b938, maker);
     vm.prank(maker);
     sowAave(true);
   }
@@ -80,7 +90,7 @@ contract KandelSeederTest is MangroveTest {
   function test_logs_new_kandel() public {
     address maker = freshAddress("Maker");
     expectFrom(address(seeder));
-    emit NewKandel(maker, base, quote, 0x5B0091f49210e7B2A57B03dfE1AB9D08289d9294);
+    emit NewKandel(maker, base, quote, 0xa38D17ef017A314cCD72b8F199C0e108EF7Ca04c);
     vm.prank(maker);
     sow(true);
   }
@@ -117,7 +127,7 @@ contract KandelSeederTest is MangroveTest {
     kdl.checkList(tokens);
   }
 
-  function test_maker_deploys_private_kandel() public {
+  function test_maker_deploys_kandel() public {
     GeometricKandel kdl;
     address maker = freshAddress("Maker");
     vm.prank(maker);
@@ -125,21 +135,6 @@ contract KandelSeederTest is MangroveTest {
     assertEq(address(kdl.router()), address(kdl.NO_ROUTER()), "Incorrect router address");
     assertEq(kdl.admin(), maker, "Incorrect admin");
     assertEq(kdl.RESERVE_ID(), address(kdl), "Incorrect owner");
-    IERC20[] memory tokens = new IERC20[](2);
-    tokens[0] = base;
-    tokens[1] = quote;
-    kdl.checkList(tokens);
-  }
-
-  function test_maker_deploys_shared_kandel() public {
-    GeometricKandel kdl;
-    address maker = freshAddress("Maker");
-    vm.prank(maker);
-    kdl = sow(true);
-    assertEq(address(kdl.router()), address(kdl.NO_ROUTER()), "Incorrect router address");
-    assertEq(kdl.admin(), maker, "Incorrect admin");
-    assertEq(kdl.RESERVE_ID(), maker, "Incorrect owner");
-    assertEq(kdl.offerGasreq(), 128_000);
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;

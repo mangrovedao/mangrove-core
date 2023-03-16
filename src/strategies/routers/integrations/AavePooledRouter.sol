@@ -55,7 +55,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   /// mitigation proposed here: https://ethereum-magicians.org/t/address-eip-4626-inflation-attacks-with-virtual-shares-and-assets/12677
 
   uint public constant OFFSET = 19;
-  uint constant INIT_MINT = 10 ** OFFSET;
+  uint internal constant INIT_MINT = 10 ** OFFSET;
 
   /// OVERFLOW analysis w.r.t offset choice:
   /// worst case is:
@@ -181,40 +181,46 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   }
 
   ///@notice pushes each given token from the calling maker contract to this router, then supplies the whole router-local balance to AAVE
-  ///@param tokens the list of tokens that are being pushed to the reserve
-  ///@param amounts the quantities of tokens one wishes to push
+  ///@param token0 the first token to deposit
+  ///@param amount0 the amount of `token0` to deposit
+  ///@param token1 the second token to deposit
+  ///@param amount1 the amount of `token1` to deposit
   ///@param reserveId the reserve whose shares should be increased
-  ///@return pushed the pushed quantities for each token
+  ///@return pushed0 the amount of token0 that were successfully pushed
+  ///@return pushed1 the amount of token1 that were successfully pushed
+
   ///@dev an offer logic should call this instead of `flush` when it is the last posthook to be executed
   ///@dev this can be determined by checking during __lastLook__ whether the logic will trigger a withdraw from AAVE (this is the case if router's balance of token is empty)
   ///@dev this call be performed even for tokens with 0 amount for the offer logic, since the logic can be the first in a chain and router needs to flush all
   ///@dev this function is also to be used when user deposits funds on the maker contract
-  function pushAndSupply(IERC20[] calldata tokens, uint[] calldata amounts, address reserveId)
+  function pushAndSupply(IERC20 token0, uint amount0, IERC20 token1, uint amount1, address reserveId)
     external
     onlyBound
-    returns (uint[] memory pushed)
+    returns (uint pushed0, uint pushed1)
   {
-    pushed = new uint[](tokens.length);
-    for (uint i; i < tokens.length; i++) {
-      IERC20 token = tokens[i];
-      uint amount = amounts[i];
-      // Push will fail for amount of 0, but since this function is only called for the first maker contract in a chain
-      // it needs to also flush tokens with a contract-local 0 amount.
-      if (amount > 0) {
-        pushed[i] = __push__(token, reserveId, amount);
-      }
-      // if AAVE refuses deposit, funds are stored in `this` balance (with no yield)
-      // this may happen because max supply of `token` has been reached, or because `token` is not listed on AAVE (`overlying(token)` returns `IERC20(address(0))`)
-      bytes32 aaveData = flushBuffer(token, true);
-      if (aaveData != bytes32(0)) {
-        emit AaveIncident(token, msg.sender, reserveId, aaveData);
-      }
+    // Push will fail for amount of 0, but since this function is only called for the first maker contract in a chain
+    // it needs to also flush tokens with a contract-local 0 amount.
+    if (amount0 > 0) {
+      pushed0 = __push__(token0, reserveId, amount0);
+    }
+    if (amount1 > 0) {
+      pushed1 = __push__(token1, reserveId, amount1);
+    }
+    // if AAVE refuses deposit, funds are stored in `this` balance (with no yield)
+    // this may happen because max supply of `token` has been reached, or because `token` is not listed on AAVE (`overlying(token)` returns `IERC20(address(0))`)
+    bytes32 aaveData = flushBuffer(token0, true);
+    if (aaveData != bytes32(0)) {
+      emit AaveIncident(token0, msg.sender, reserveId, aaveData);
+    }
+    aaveData = flushBuffer(token1, true);
+    if (aaveData != bytes32(0)) {
+      emit AaveIncident(token1, msg.sender, reserveId, aaveData);
     }
   }
 
   ///@inheritdoc AbstractRouter
   ///@dev outside a market order (i.e if `__pull__` is not called during offer logic's execution) the `token` balance of this router should be empty.
-  /// This may not be the case when a "donation" occurred to this contract
+  /// This may not be the case when a "donation" occurred to this contract or if the maker posthook failed to push funds back to AAVE
   /// If the donation is large enough to cover the pull request we use the donation funds
   function __pull__(IERC20 token, address reserveId, uint amount, bool strict) internal override returns (uint) {
     // The amount to redeem from AAVE
@@ -266,9 +272,12 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
   ///@notice withdraw funds from the pool on behalf of some reserve id
   ///@param token the asset to withdraw
   ///@param reserveId the identifier of the share holder
-  ///@param amount the amount to withdraw
+  ///@param amount the amount to withdraw. Use type(uint).max to require withdrawal of the total balance of the caller
   function withdraw(IERC20 token, address reserveId, uint amount) external onlyBound {
     BalanceMemoizer memory memoizer;
+    if (amount == type(uint).max) {
+      amount = _balanceOfReserve(token, reserveId, memoizer);
+    }
     uint buffer = balanceOf(token, memoizer);
     uint toRedeem = buffer > amount ? 0 : amount - buffer;
     redeemAndTransfer(token, reserveId, amount, toRedeem, memoizer);

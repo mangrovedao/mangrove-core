@@ -10,7 +10,7 @@
 // 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-pragma solidity >=0.8.0;
+pragma solidity >=0.8.10;
 
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20, IMaker} from "mgv_src/MgvLib.sol";
@@ -36,19 +36,6 @@ interface IOfferLogic is IMaker {
   ///@notice Actual gas requirement when posting offers via this strategy. Returned value may change if this contract's router is updated.
   ///@return total gas cost including router specific costs (if any).
   function offerGasreq() external view returns (uint total);
-
-  ///@notice Computes missing provision to repost `offerId` at given `gasreq` and `gasprice` ignoring current contract's balance on Mangrove.
-  ///@param outbound_tkn the outbound token used to identify the order book
-  ///@param inbound_tkn the inbound token used to identify the order book
-  ///@param gasreq the gas required by the offer. Call offerGasreq to get the default.
-  ///@param gasprice the upper bound on gas price. Give 0 to use Mangrove's gasprice
-  ///@param offerId the offer id. Set this to 0 if one is not reposting an offer
-  ///@dev if `offerId` is not in the Order Book, will simply return how much is needed to post
-  ///@return missingProvision to repost `offerId`.
-  function getMissingProvision(IERC20 outbound_tkn, IERC20 inbound_tkn, uint gasreq, uint gasprice, uint offerId)
-    external
-    view
-    returns (uint missingProvision);
 
   ///@notice sets a new router to pull outbound tokens from contract's reserve to `this` and push inbound tokens to reserve.
   ///@param router_ the new router contract that this contract should use. Use `NO_ROUTER` for no router.
@@ -111,4 +98,7 @@ interface IOfferLogic is IMaker {
   /// @notice Contract's router getter.
   /// @dev if contract has a no router, function returns `NO_ROUTER`.
   function router() external view returns (AbstractRouter);
+
+  /// @notice Contract's Mangrove getter
+  function MGV() external view returns (IMangrove);
 }

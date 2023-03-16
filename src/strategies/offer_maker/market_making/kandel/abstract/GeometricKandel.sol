@@ -15,12 +15,11 @@ import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OfferType} from "./TradesBaseQuotePair.sol";
-import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {CoreKandel} from "./CoreKandel.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
 
 ///@title Adds a geometric price progression to a `CoreKandel` strat without storing prices for individual price points.
-abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
+abstract contract GeometricKandel is CoreKandel {
   ///@notice `compoundRateBase`, and `compoundRateQuote` have PRECISION decimals, and ditto for GeometricKandel's `ratio`.
   ///@notice setting PRECISION higher than 5 will produce overflow in limit cases for GeometricKandel.
   uint public constant PRECISION = 5;
@@ -50,8 +49,7 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   Params public params;
 
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
-    CoreKandel(mgv, gasreq, reserveId)
-    TradesBaseQuotePair(base, quote)
+    CoreKandel(mgv, base, quote, gasreq, reserveId)
   {
     setGasprice(gasprice);
   }
@@ -134,8 +132,8 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   ///@param pivotIds the pivot to be used for the offer
   ///@param firstAskIndex the (inclusive) index after which offer should be an ask.
   ///@param parameters the parameters for Kandel. Only changed parameters will cause updates. Set `gasreq` and `gasprice` to 0 to keep existing values.
-  ///@param depositTokens tokens to deposit.
-  ///@param depositAmounts amounts to deposit for the tokens.
+  ///@param baseAmount base amount to deposit
+  ///@param quoteAmount quote amount to deposit
   ///@dev This function is used at initialization and can fund with provision for the offers.
   ///@dev Use `populateChunk` to split up initialization or re-initialization with same parameters, as this function will emit.
   ///@dev If this function is invoked with different ratio, pricePoints, spread, then first retract all offers.
@@ -145,15 +143,15 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     uint[] calldata pivotIds,
     uint firstAskIndex,
     Params calldata parameters,
-    IERC20[] calldata depositTokens,
-    uint[] calldata depositAmounts
+    uint baseAmount,
+    uint quoteAmount
   ) external payable onlyAdmin {
     if (msg.value > 0) {
       MGV.fund{value: msg.value}();
     }
     setParams(parameters);
 
-    depositFunds(depositTokens, depositAmounts);
+    depositFunds(baseAmount, quoteAmount);
 
     populateChunkInternal(distribution, pivotIds, firstAskIndex);
   }
@@ -221,10 +219,10 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
       gives = type(uint96).max;
     }
     // adjusting wants to price:
-    // gives * r : 237 so order.wants must be < 2**18 to completely avoid overflow.
+    // gives * r : 237 so order.wants must be < 2**19 to completely avoid overflow.
     // Since order.wants is high when gives * r is, we check whether the full precision can be used and only if not then we use less precision.
     uint givesR = gives * r;
-    if (uint160(givesR) == givesR || order.wants < 2 ** 18) {
+    if (uint160(givesR) == givesR || order.wants < 2 ** 19) {
       // using max precision
       wants = (order.wants * givesR) / (order.gives * (p ** spread));
     } else {
@@ -247,21 +245,29 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
   ///@param ba the offer type to transport to
   ///@param index the price index one is willing to improve
   ///@param step the number of price steps improvements
+  ///@return better destination index
+  ///@return spread the size of the price jump, which is `step` if the index boundaries were not reached
   function transportDestination(OfferType ba, uint index, uint step, uint pricePoints)
     internal
     pure
-    returns (uint better)
+    returns (uint better, uint8 spread)
   {
     if (ba == OfferType.Ask) {
       better = index + step;
       if (better >= pricePoints) {
         better = pricePoints - 1;
+        spread = uint8(better - index);
+      } else {
+        spread = uint8(step);
       }
     } else {
       if (index >= step) {
         better = index - step;
+        spread = uint8(step);
+      } else {
+        // else better = 0
+        spread = uint8(index - better);
       }
-      // else better is 0
     }
   }
 
@@ -270,16 +276,16 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     internal
     virtual
     override
-    returns (OfferType baDual, bool isOutOfRange, uint dualOfferId, uint dualIndex, OfferArgs memory args)
+    returns (OfferType baDual, uint dualOfferId, uint dualIndex, OfferArgs memory args)
   {
     uint index = indexOfOfferId(ba, order.offerId);
     Params memory memoryParams = params;
-
-    isOutOfRange = index == 0 || index == memoryParams.pricePoints - 1;
-
     baDual = dual(ba);
 
-    dualIndex = transportDestination(baDual, index, memoryParams.spread, memoryParams.pricePoints);
+    // because of boundaries, actual spread might be lower than the one loaded in memoryParams
+    // this would result populating a price index at a wrong price (too high for an Ask and too low for a Bid)
+    (dualIndex, memoryParams.spread) =
+      transportDestination(baDual, index, memoryParams.spread, memoryParams.pricePoints);
 
     dualOfferId = offerIdOfIndex(baDual, dualIndex);
     (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(baDual);
@@ -291,6 +297,7 @@ abstract contract GeometricKandel is CoreKandel, TradesBaseQuotePair {
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
     (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, offer.gives(), order, memoryParams);
+
     // args.fund = 0; the offers are already provisioned
     // posthook should not fail if unable to post offers, we capture the error as incidents
     args.noRevert = true;

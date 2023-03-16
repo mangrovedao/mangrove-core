@@ -130,32 +130,6 @@ contract OfferLogicTest is MangroveTest {
     });
   }
 
-  function test_getMissingProvision_is_enough_to_post_newOffer() public {
-    vm.startPrank(owner);
-    uint offerId = makerContract.newOffer{value: makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0)}({
-      outbound_tkn: weth,
-      inbound_tkn: usdc,
-      wants: 2000 * 10 ** 6,
-      gives: 1 * 10 ** 18,
-      pivotId: 0
-    });
-    vm.stopPrank();
-    assertTrue(offerId != 0);
-  }
-
-  function test_getMissingProvision_is_strict() public {
-    uint minProv = makerContract.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
-    vm.expectRevert("mgv/insufficientProvision");
-    vm.prank(owner);
-    makerContract.newOffer{value: minProv - 1}({
-      outbound_tkn: weth,
-      inbound_tkn: usdc,
-      wants: 2000 * 10 ** 6,
-      gives: 1 * 10 ** 18,
-      pivotId: 0
-    });
-  }
-
   function test_newOffer_fails_when_provision_is_zero() public {
     vm.expectRevert("mgv/insufficientProvision");
     vm.prank(owner);

@@ -17,11 +17,6 @@ import {OfferType} from "./TradesBaseQuotePair.sol";
 
 ///@title Core external functions and events for Kandel strats.
 abstract contract AbstractKandel {
-  ///@notice signals that the price has moved above Kandel's current price range.
-  event AllAsks();
-  ///@notice signals that the price has moved below Kandel's current price range.
-  event AllBids();
-
   ///@notice the compound rates have been set to `compoundRateBase` and `compoundRateQuote` which will take effect for future compounding.
   event SetCompoundRates(uint compoundRateBase, uint compoundRateQuote);
 
@@ -49,14 +44,14 @@ abstract contract AbstractKandel {
   function reserveBalance(OfferType ba) public view virtual returns (uint balance);
 
   ///@notice deposits funds to be available for being offered. Will increase `pending`.
-  function depositFunds(IERC20[] calldata tokens, uint[] calldata amounts) public virtual;
+  function depositFunds(uint baseAmount, uint quoteAmount) public virtual;
 
   ///@notice withdraws the amounts of the given tokens to the recipient.
-  ///@param tokens the tokens to withdraw.
-  ///@param amounts the amounts of the tokens to withdraw.
+  ///@param baseAmount the amount of base tokens to withdraw.
+  ///@param quoteAmount the amount of quote tokens to withdraw.
   ///@param recipient the recipient of the funds.
   ///@dev it is up to the caller to make sure there are still enough funds for live offers.
-  function withdrawFunds(IERC20[] calldata tokens, uint[] calldata amounts, address recipient) public virtual;
+  function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public virtual;
 
   ///@notice set the compound rates. It will take effect for future compounding.
   ///@param compoundRateBase the compound rate for base.

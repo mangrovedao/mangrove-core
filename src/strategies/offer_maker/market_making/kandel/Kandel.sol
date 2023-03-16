@@ -30,12 +30,6 @@ contract Kandel is GeometricKandel {
     setGasreq(gasreq);
   }
 
-  ///@inheritdoc AbstractKandel
-  function reserveBalance(OfferType ba) public view override returns (uint balance) {
-    IERC20 token = outboundOfOfferType(ba);
-    return token.balanceOf(address(this));
-  }
-
   ///@inheritdoc MangroveOffer
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 makerData)
     internal
@@ -43,10 +37,7 @@ contract Kandel is GeometricKandel {
     override
     returns (bytes32 repostStatus)
   {
-    bool isOutOfRange = transportSuccessfulOrder(order);
+    transportSuccessfulOrder(order);
     repostStatus = super.__posthookSuccess__(order, makerData);
-    if (isOutOfRange) {
-      logOutOfRange(order, repostStatus);
-    }
   }
 }

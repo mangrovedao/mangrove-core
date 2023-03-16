@@ -22,22 +22,23 @@ contract KandelStatus is Deployer {
     IERC20 quote = kdl.QUOTE();
     uint baseDecimals = base.decimals();
     uint quoteDecimals = quote.decimals();
-    (,,,,,, uint8 length) = kdl.params();
+    (,,,,,, uint8 pricePoints) = kdl.params();
 
-    for (uint i; i < length; ++i) {
+    for (uint i; i < pricePoints; ++i) {
       MgvStructs.OfferPacked ask = kdl.getOffer(OfferType.Ask, i);
       MgvStructs.OfferPacked bid = kdl.getOffer(OfferType.Bid, i);
 
       if (ask.gives() > 0) {
         uint p = ask.wants() /*quote*/ * 10 ** baseDecimals / ask.gives(); /*base */
-        console.log("ask @ %s for %d %s", toUnit(p, quoteDecimals), toUnit(ask.gives(), baseDecimals), base.symbol());
-      } else {
+        console.log("ask @ %s for %s %s", toUnit(p, quoteDecimals), toUnit(ask.gives(), baseDecimals), base.symbol());
+      }
+      if (bid.gives() > 0) {
         uint p = bid.gives() /*quote*/ * 10 ** baseDecimals / bid.wants(); /*base */
-        console.log("bid @ %s for %d %s", toUnit(p, quoteDecimals), toUnit(bid.gives(), quoteDecimals), quote.symbol());
+        console.log("bid @ %s for %s %s", toUnit(p, quoteDecimals), toUnit(bid.gives(), quoteDecimals), quote.symbol());
       }
     }
     console.log(
-      "{",
+      "{ pending base: %d, pending quote: %s",
       toUnit(uint(kdl.pending(OfferType.Ask)), baseDecimals),
       toUnit(uint(kdl.pending(OfferType.Bid)), quoteDecimals),
       "}"

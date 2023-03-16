@@ -19,8 +19,8 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 /// @notice Partial implementation and requirements for liquidity routers.
 
 abstract contract AbstractRouter is AccessControlled {
-  uint24 immutable ROUTER_GASREQ;
-  mapping(address => bool) boundMakerContracts;
+  uint24 internal immutable ROUTER_GASREQ;
+  mapping(address => bool) internal boundMakerContracts;
 
   ///@notice This modifier verifies that `msg.sender` an allowed caller of this router.
   modifier onlyBound() {

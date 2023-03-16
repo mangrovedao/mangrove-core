@@ -1,6 +1,6 @@
 {
   "name": "@mangrovedao/mangrove-core",
-  "version": "1.4.4-0",
+  "version": "1.4.6-0",
   "author": "Mangrove DAO",
   "license": "(AGPL-3.0-only OR BSD-2-Clause)",
   "main": "index.js",
@@ -48,5 +48,5 @@
     "yargs": "^17.6.2"
   },
   "packageManager": "yarn@3.2.3",
-  "stableVersion": "1.4.3"
+  "stableVersion": "1.4.5-0"
 }

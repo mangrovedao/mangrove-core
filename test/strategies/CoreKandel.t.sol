@@ -33,7 +33,10 @@ abstract contract CoreKandelTest is MangroveTest {
   event SetGasreq(uint value);
   event Credit(IERC20 indexed token, uint amount);
   event Debit(IERC20 indexed token, uint amount);
-  event Populate();
+  event PopulateStart();
+  event PopulateEnd();
+  event RetractStart();
+  event RetractEnd();
   event LogIncident(
     IMangrove mangrove,
     IERC20 indexed outbound_tkn,
@@ -491,6 +494,14 @@ abstract contract CoreKandelTest is MangroveTest {
   function test_retractOffers() public {
     uint preBalance = maker.balance;
     uint preMgvBalance = mgv.balanceOf(address(kdl));
+
+    expectFrom($(kdl));
+    emit RetractStart();
+    expectFrom($(mgv));
+    emit OfferRetract(address(quote), address(base), kdl.offerIdOfIndex(Bid,0));
+    expectFrom($(kdl));
+    emit RetractEnd();
+
     vm.prank(maker);
     kdl.retractOffers(0, 5);
     vm.prank(maker);
@@ -1336,7 +1347,11 @@ abstract contract CoreKandelTest is MangroveTest {
 
   function test_populates_emits() public {
     expectFrom($(kdl));
-    emit Populate();
+    emit PopulateStart();
+    vm.expectEmit(false, false, false, false, $(mgv));
+    emit OfferWrite(address(0), address(0), address(0), 0, 0, 0, 0,0, 0);
+    expectFrom($(kdl));
+    emit PopulateEnd();
     populateSingle(kdl, 1, 1 ether, 1 ether, 0, 2, bytes(""));
   }
 

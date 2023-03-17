@@ -7,6 +7,8 @@ contract TestToken is ERC20BL {
   mapping(address => bool) admins;
   uint public __decimals; // full uint to help forge-std's stdstore
   bool returnFalse;
+  bool internal returnsBoolOnApproval_ = true;
+  bool internal returnsBoolOnTransfer_ = true;
 
   constructor(address admin, string memory name, string memory symbol, uint8 _decimals) ERC20BL(name, symbol) {
     admins[admin] = true;
@@ -15,6 +17,14 @@ contract TestToken is ERC20BL {
 
   function failSoftly(bool fail) public {
     returnFalse = fail;
+  }
+
+  function returnsBoolOnApproval(bool toggle) external {
+    returnsBoolOnApproval_ = toggle;
+  }
+
+  function returnsBoolOnTransfer(bool toggle) external {
+    returnsBoolOnTransfer_ = toggle;
   }
 
   function $(uint amount) public view returns (uint) {
@@ -59,16 +69,22 @@ contract TestToken is ERC20BL {
     _whitelists(account);
   }
 
-  function transfer(address to, uint amount) public override returns (bool) {
+  function transfer(address to, uint amount) public virtual override returns (bool) {
     if (returnFalse) {
       returnFalse = true;
       return false;
     } else {
-      return super.transfer(to, amount);
+      if (returnsBoolOnApproval_) {
+        return super.transfer(to, amount);
+      } else {
+        assembly {
+          return(0, 0)
+        }
+      }
     }
   }
 
-  function transferFrom(address from, address to, uint amount) public override returns (bool) {
+  function transferFrom(address from, address to, uint amount) public virtual override returns (bool) {
     if (returnFalse) {
       returnFalse = true;
       return false;
@@ -77,7 +93,7 @@ contract TestToken is ERC20BL {
     }
   }
 
-  function approve(address spender, uint amount) public override returns (bool) {
+  function approve(address spender, uint amount) public virtual override returns (bool) {
     if (returnFalse) {
       returnFalse = true;
       return false;

@@ -41,6 +41,8 @@ contract AaveKandelTest is CoreKandelTest {
       super.__setForkEnvironment__();
       aave = address(new PoolAddressProviderMock(dynamic([address(base), address(quote)])));
     }
+    options.base.returnsBoolOnTransfer = false;
+    options.quote.returnsBoolOnApproval = false;
   }
 
   function __deployKandel__(address deployer, address id) internal virtual override returns (GeometricKandel) {

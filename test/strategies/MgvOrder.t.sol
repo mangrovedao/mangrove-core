@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 import {MangroveTest, TestMaker, TestTaker, TestSender, console} from "mgv_test/lib/MangroveTest.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MangroveOrderEnriched as MgvOrder} from "mgv_src/strategies/MangroveOrderEnriched.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {IOrderLogic} from "mgv_src/strategies/interfaces/IOrderLogic.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 
@@ -38,6 +39,8 @@ contract MangroveOrder_Test is MangroveTest {
   receive() external payable {}
 
   function setUp() public override {
+    options.base.returnsBoolOnTransfer = false;
+    options.quote.returnsBoolOnApproval = false;
     super.setUp();
     mgv.setFee($(base), $(quote), 30);
     mgv.setFee($(quote), $(base), 30);
@@ -55,8 +58,8 @@ contract MangroveOrder_Test is MangroveTest {
     deal($(quote), $(this), 10 ether);
 
     // user approves `mgo` to pull quote or base when doing a market order
-    quote.approve($(mgo.router()), 10 ether);
-    base.approve($(mgo.router()), 10 ether);
+    TransferLib.approveToken(quote, $(mgo.router()), 10 ether);
+    TransferLib.approveToken(base, $(mgo.router()), 10 ether);
 
     // `sell_taker` will take resting bid
     sell_taker = setupTaker($(quote), $(base), "sell-taker");
@@ -64,10 +67,10 @@ contract MangroveOrder_Test is MangroveTest {
 
     // if seller wants to sell directly on mangrove
     vm.prank($(sell_taker));
-    base.approve($(mgv), 10 ether);
+    TransferLib.approveToken(base, $(mgv), 10 ether);
     // if seller wants to sell via mgo
     vm.prank($(sell_taker));
-    quote.approve($(mgv), 10 ether);
+    TransferLib.approveToken(quote, $(mgv), 10 ether);
 
     // populating order book with offers
     ask_maker = setupMaker($(base), $(quote), "ask-maker");
@@ -524,8 +527,8 @@ contract MangroveOrder_Test is MangroveTest {
     uint native_reserve_before = $(this).balance;
 
     // removing base/quote approval to make resting offer fail when matched
-    quote.approve($(mgo.router()), 0);
-    base.approve($(mgo.router()), 0);
+    TransferLib.approveToken(quote, $(mgo.router()), 0);
+    TransferLib.approveToken(base, $(mgo.router()), 0);
 
     (,,, uint bounty,) = sell_taker.takeWithInfo({offerId: res.offerId, takerWants: 1});
     assertTrue(bounty > 0, "snipe should have failed");
@@ -722,7 +725,7 @@ contract MangroveOrder_Test is MangroveTest {
     buy_taker.refuseNative();
 
     vm.startPrank($(buy_taker));
-    quote.approve($(mgo.router()), type(uint).max);
+    TransferLib.approveToken(quote, $(mgo.router()), type(uint).max);
     vm.stopPrank();
 
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({

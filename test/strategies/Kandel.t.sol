@@ -9,6 +9,12 @@ import {CoreKandelTest} from "./CoreKandel.t.sol";
 import {console2} from "forge-std/Test.sol";
 
 contract NoRouterKandelTest is CoreKandelTest {
+  function __setForkEnvironment__() internal virtual override {
+    super.__setForkEnvironment__();
+    options.base.returnsBoolOnTransfer = false;
+    options.quote.returnsBoolOnApproval = false;
+  }
+
   function __deployKandel__(address deployer, address reserveId) internal override returns (GeometricKandel kdl_) {
     uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
 

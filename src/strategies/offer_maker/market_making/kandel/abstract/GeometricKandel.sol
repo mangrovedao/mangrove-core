@@ -193,7 +193,7 @@ abstract contract GeometricKandel is CoreKandel {
 
   ///@notice calculates the wants and gives for the dual offer according to the geometric price distribution.
   ///@param baDual the dual offer type.
-  ///@param dualOfferGives the dual offer's current gives
+  ///@param dualOfferGives the dual offer's current gives (can be 0)
   ///@param order a recap of the taker order (order.offer is the executed offer)
   ///@param memoryParams the Kandel params (possibly with modified spread due to boundary condition)
   ///@return wants the new wants for the dual offer
@@ -314,18 +314,18 @@ abstract contract GeometricKandel is CoreKandel {
     (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(baDual);
     args.outbound_tkn = outbound;
     args.inbound_tkn = inbound;
-    MgvStructs.OfferPacked offer = MGV.offers(address(outbound), address(inbound), dualOfferId);
+    MgvStructs.OfferPacked dualOffer = MGV.offers(address(outbound), address(inbound), dualOfferId);
 
     // computing gives/wants for dual offer
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
-    (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, offer.gives(), order, memoryParams);
+    (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, dualOffer.gives(), order, memoryParams);
 
     // args.fund = 0; the offers are already provisioned
     // posthook should not fail if unable to post offers, we capture the error as incidents
     args.noRevert = true;
     args.gasprice = memoryParams.gasprice;
     args.gasreq = memoryParams.gasreq;
-    args.pivotId = offer.gives() > 0 ? offer.next() : 0;
+    args.pivotId = dualOffer.gives() > 0 ? dualOffer.next() : 0;
   }
 }

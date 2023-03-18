@@ -475,38 +475,39 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   function test_ask_partial_fill_existingDual() public {
-    test_partial_fill(Ask, true);
+    partial_fill(Ask, true);
   }
 
   function test_bid_partial_fill_existingDual() public {
-    test_partial_fill(Bid, true);
+    partial_fill(Bid, true);
   }
 
   function test_ask_partial_fill_noDual() public {
-    test_partial_fill(Ask, false);
+    partial_fill(Ask, false);
   }
 
   function test_bid_partial_fill_noDual() public {
-    test_partial_fill(Bid, false);
+    partial_fill(Bid, false);
   }
 
   function testFail_ask_partial_fill_noDual_noIncident() public {
     vm.expectEmit(false, false, false, false, $(kdl));
     emit LogIncident(IMangrove($(mgv)), base, quote, 0, "", "");
-    test_partial_fill(Ask, false);
+    partial_fill(Ask, false);
   }
 
-  function test_partial_fill(OfferType ba, bool existingDual) internal {
+  function partial_fill(OfferType ba, bool existingDual) internal {
     // Arrange
+    uint successes;
+    uint takerGot;
     if (!existingDual) {
       // Completely fill dual
-      (uint successes, uint takerGot,,,) =
-        ba == Bid ? buyFromBestAs(taker, 1000 ether) : sellToBestAs(taker, 1000 ether);
+      (successes, takerGot,,,) = ba == Bid ? buyFromBestAs(taker, 1000 ether) : sellToBestAs(taker, 1000 ether);
       assertTrue(successes == 1 && takerGot > 0, "Snipe of dual failed");
     }
 
     // Act
-    (uint successes, uint takerGot,,,) = ba == Ask ? buyFromBestAs(taker, 1 wei) : sellToBestAs(taker, 1 wei);
+    (successes, takerGot,,,) = ba == Ask ? buyFromBestAs(taker, 1 wei) : sellToBestAs(taker, 1 wei);
 
     // Assert
     assertTrue(successes == 1, "Snipe failed");

@@ -47,7 +47,7 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
   function logPopulateStatus(uint offerId, OfferArgs memory args, bytes32 populateStatus) internal {
     if (
       populateStatus == REPOST_SUCCESS || populateStatus == NEW_OFFER_SUCCESS
-        || populateStatus == "mgv/writeOffer/density/tooLow" || populateStatus == "Kandel/volumeTooLow"
+        || populateStatus == "mgv/writeOffer/density/tooLow" || populateStatus == LOW_VOLUME
     ) {
       // Low density will mean some amount is not posted and will be available for withdrawal or later posting via populate.
       return;

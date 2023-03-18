@@ -19,6 +19,9 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 
 ///@title `Direct` strat with an indexed collection of bids and asks which can be populated according to a desired base and quote distribution for gives and wants.
 abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAndAsks {
+  ///@notice The offer has too low volume to be posted.
+  bytes32 internal constant LOW_VOLUME = "Kandel/volumeTooLow";
+
   ///@notice logs the start of a call to populate
   event PopulateStart();
   ///@notice logs the end of a call to populate
@@ -122,7 +125,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
         }
       } else {
         // else offerId && gives are 0 and the offer is left not posted
-        result = "Kandel/volumeTooLow";
+        result = LOW_VOLUME;
       }
     }
     // else offer exists
@@ -133,7 +136,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
         // * `gives == 0` may not come from `DualWantsGivesOfOffer` computation, but `wants==0` might.
         // * `gives == 0` may happen from populate in case of re-population where the offers in the spread are then retracted by setting gives to 0.
         _retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
-        result = "Kandel/volumeTooLow";
+        result = LOW_VOLUME;
       } else {
         // so the offer exists and it should, we simply update it with potentially new volume
         result = _updateOffer(args, offerId);

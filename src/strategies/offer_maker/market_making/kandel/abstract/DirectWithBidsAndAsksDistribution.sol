@@ -120,8 +120,10 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
         if (offerId != 0) {
           setIndexMapping(ba, index, offerId);
         }
+      } else {
+        // else offerId && gives are 0 and the offer is left not posted
+        result = "Kandel/volumeTooLow";
       }
-      // else offerId && gives are 0 and the offer is left not posted
     }
     // else offer exists
     else {
@@ -131,6 +133,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
         // * `gives == 0` may not come from `DualWantsGivesOfOffer` computation, but `wants==0` might.
         // * `gives == 0` may happen from populate in case of re-population where the offers in the spread are then retracted by setting gives to 0.
         _retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
+        result = "Kandel/volumeTooLow";
       } else {
         // so the offer exists and it should, we simply update it with potentially new volume
         result = _updateOffer(args, offerId);

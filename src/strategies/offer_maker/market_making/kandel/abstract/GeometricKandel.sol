@@ -193,12 +193,12 @@ abstract contract GeometricKandel is CoreKandel {
 
   ///@notice calculates the wants and gives for the dual offer according to the geometric price distribution.
   ///@param baDual the dual offer type.
-  ///@param offerGives the offers current gives
+  ///@param dualOfferGives the dual offer's current gives
   ///@param order a recap of the taker order (order.offer is the executed offer)
   ///@param memoryParams the Kandel params (possibly with modified spread due to boundary condition)
   ///@return wants the new wants for the dual offer
   ///@return gives the new gives for the dual offer
-  ///@dev Define the (maker) price of the order as `p_order := order.gives / order.wants` (what the taker gave divided by what the taker got).
+  ///@dev Define the (maker) price of the order as `p_order := order.offer.wants() / order.offer.gives()` (what the offer originally wants by what the offer originally gives).
   /// the (maker) price of the dual order must be `p_dual := p_order / ratio^spread` at which one should buy back at least what was sold.
   /// thus `min_offer_wants := order.wants` at price `p_dual`
   /// with `min_offer_gives / min_offer_wants = p_dual` we derive `min_offer_gives = order.gives/ratio^spread`.
@@ -207,10 +207,10 @@ abstract contract GeometricKandel is CoreKandel {
   /// `offer_gives := min_offer_gives + (max_offer_gives - min_offer_gives) * compoundRate`.
   /// and we derive the formula:
   /// `offer_gives = order.gives * ( 1/ratio^spread + (1 - 1/ratio^spread) * compoundRate)`
-  /// which we use in the code below
+  /// which we use in the code below where we also account for existing gives of the dual offer.
   function dualWantsGivesOfOffer(
     OfferType baDual,
-    uint offerGives,
+    uint dualOfferGives,
     MgvLib.SingleOrder calldata order,
     Params memory memoryParams
   ) internal pure returns (uint wants, uint gives) {
@@ -233,27 +233,28 @@ abstract contract GeometricKandel is CoreKandel {
 
     // adding to gives what the offer was already giving so gives could be greater than 2**96
     // gives:97
-    gives += offerGives;
+    gives += dualOfferGives;
     if (uint96(gives) != gives) {
       // this should not be reached under normal circumstances unless strat is posting on top of an existing offer with an abnormal volume
       // to prevent gives to be too high, we let the surplus be pending
       gives = type(uint96).max;
     }
     // adjusting wants to price:
-    // gives * r : 237 so order.wants must be < 2**19 to completely avoid overflow.
-    // Since order.wants is high when gives * r is, we check whether the full precision can be used and only if not then we use less precision.
+    // gives * r : 237 so offerGives must be < 2**19 to completely avoid overflow.
+    // Since offerGives is high when gives * r is, we check whether the full precision can be used and only if not then we use less precision.
     uint givesR = gives * r;
-    if (uint160(givesR) == givesR || order.wants < 2 ** 19) {
+    uint offerGives = order.offer.gives();
+    if (uint160(givesR) == givesR || offerGives < 2 ** 19) {
       // using max precision
-      wants = (order.wants * givesR) / (order.gives * (p ** spread));
+      wants = (offerGives * givesR) / (order.offer.wants() * (p ** spread));
     } else {
-      // we divide `gives*r` by `order.gives` with max precision so that the resulting `givesR:160` in order to make sure it can be multiplied by `order.wants`
-      givesR = (givesR * 2 ** 19) / order.gives;
-      wants = (order.wants * givesR) / (p ** spread);
+      // we divide `gives*r` by `order.offer.wants()` with max precision so that the resulting `givesR:160` in order to make sure it can be multiplied by `offerGives`
+      givesR = (givesR * 2 ** 19) / order.offer.wants();
+      wants = (offerGives * givesR) / (p ** spread);
       // we correct for the added precision above
       wants /= 2 ** 19;
     }
-    // wants is higher than order.wants
+    // wants is higher than offerGives
     // this may cause wants to be higher than 2**96 allowed by Mangrove (for instance if one needs many quotes to buy sell base tokens)
     // so we adjust the price so as to want an amount of tokens that mangrove will accept.
     if (uint96(wants) != wants) {

@@ -468,6 +468,65 @@ abstract contract CoreKandelTest is MangroveTest {
     assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
   }
 
+  function test_ask_partial_fill() public {
+    (uint successes, uint takerGot,,,) = buyFromBestAs(taker, 0.01 ether);
+    assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
+    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
+  }
+
+  function test_ask_partial_fill_existingDual() public {
+    test_partial_fill(Ask, true);
+  }
+
+  function test_bid_partial_fill_existingDual() public {
+    test_partial_fill(Bid, true);
+  }
+
+  function test_ask_partial_fill_noDual() public {
+    test_partial_fill(Ask, false);
+  }
+
+  function test_bid_partial_fill_noDual() public {
+    test_partial_fill(Bid, false);
+  }
+
+  function testFail_ask_partial_fill_noDual_noIncident() public {
+    vm.expectEmit(false, false, false, false, $(kdl));
+    emit LogIncident(IMangrove($(mgv)), base, quote, 0, "", "");
+    test_partial_fill(Ask, false);
+  }
+
+  function test_partial_fill(OfferType ba, bool existingDual) internal {
+    // Arrange
+    if (!existingDual) {
+      // Completely fill dual
+      (uint successes, uint takerGot,,,) =
+        ba == Bid ? buyFromBestAs(taker, 1000 ether) : sellToBestAs(taker, 1000 ether);
+      assertTrue(successes == 1 && takerGot > 0, "Snipe of dual failed");
+    }
+
+    // Act
+    (uint successes, uint takerGot,,,) = ba == Ask ? buyFromBestAs(taker, 1 wei) : sellToBestAs(taker, 1 wei);
+
+    // Assert
+    assertTrue(successes == 1, "Snipe failed");
+    if (ba == Ask) {
+      // taker gets nothing for Bid due to sending so little and rounding
+      assertTrue(takerGot > 0, "Taker did not get expected");
+    }
+    if (existingDual) {
+      // a tiny bit ends up as pending - but all offers still live
+      assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
+    } else {
+      // the dual offer could not be made live due to too little transported - but residual still reposted
+      if (ba == Ask) {
+        assertStatus(dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
+      } else {
+        assertStatus(dynamic([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]));
+      }
+    }
+  }
+
   function test_all_bids_all_asks_and_back() public {
     assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
     vm.prank(taker);
@@ -498,7 +557,7 @@ abstract contract CoreKandelTest is MangroveTest {
     expectFrom($(kdl));
     emit RetractStart();
     expectFrom($(mgv));
-    emit OfferRetract(address(quote), address(base), kdl.offerIdOfIndex(Bid,0));
+    emit OfferRetract(address(quote), address(base), kdl.offerIdOfIndex(Bid, 0));
     expectFrom($(kdl));
     emit RetractEnd();
 
@@ -1349,7 +1408,7 @@ abstract contract CoreKandelTest is MangroveTest {
     expectFrom($(kdl));
     emit PopulateStart();
     vm.expectEmit(false, false, false, false, $(mgv));
-    emit OfferWrite(address(0), address(0), address(0), 0, 0, 0, 0,0, 0);
+    emit OfferWrite(address(0), address(0), address(0), 0, 0, 0, 0, 0, 0);
     expectFrom($(kdl));
     emit PopulateEnd();
     populateSingle(kdl, 1, 1 ether, 1 ether, 0, 2, bytes(""));

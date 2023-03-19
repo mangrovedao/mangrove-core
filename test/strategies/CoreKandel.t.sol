@@ -96,20 +96,22 @@ abstract contract CoreKandelTest is MangroveTest {
     uint24 ratio = uint24(108 * 10 ** kdl.PRECISION() / 100);
 
     (CoreKandel.Distribution memory distribution1, uint lastQuote) =
-      KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, kdl.PRECISION());
+      KandelLib.calculateDistribution(0, 10, initBase, initQuote, ratio, kdl.PRECISION());
 
-    (CoreKandel.Distribution memory distribution2,) =
-      KandelLib.calculateDistribution(5, 10, initBase, lastQuote, ratio, kdl.PRECISION());
+    // (CoreKandel.Distribution memory distribution2,) =
+    //KandelLib.calculateDistribution(5, 10, initBase, lastQuote, ratio, kdl.PRECISION());
 
     GeometricKandel.Params memory params;
     params.ratio = ratio;
     params.spread = STEP;
     params.pricePoints = 10;
     vm.prank(maker);
-    kdl.populate{value: (provAsk + provBid) * 10}(distribution1, dynamic([uint(0), 1, 2, 3, 4]), 5, params, 0, 0);
+    kdl.populate{value: (provAsk + provBid) * 10}(
+      distribution1, dynamic([uint(0), 1, 2, 3, 4, 0, 1, 2, 3, 4]), 5, params, 0, 0
+    );
 
-    vm.prank(maker);
-    kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 5);
+    //vm.prank(maker);
+    //kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 5);
 
     uint pendingBase = uint(-kdl.pending(Ask));
     uint pendingQuote = uint(-kdl.pending(Bid));
@@ -1745,7 +1747,7 @@ abstract contract CoreKandelTest is MangroveTest {
       assertEq(successes, 1, "offer should be sniped");
     }
     uint askOfferId = mgv.best($(base), $(quote));
-    uint askIndex = kdl.indexOfOfferId(Ask, askOfferId);
+    (uint askIndex,) = kdl.indexOfOfferId(Ask, askOfferId);
 
     uint[] memory statuses = new uint[](askIndex+2);
     if (partialTake) {

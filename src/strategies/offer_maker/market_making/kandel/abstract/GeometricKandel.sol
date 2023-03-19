@@ -11,6 +11,8 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
+import {console2 as console} from "forge-std/console2.sol";
+
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
@@ -212,8 +214,9 @@ abstract contract GeometricKandel is CoreKandel {
     OfferType baDual,
     uint dualOfferGives,
     MgvLib.SingleOrder calldata order,
-    Params memory memoryParams
-  ) internal pure returns (uint wants, uint gives) {
+    Params memory memoryParams,
+    uint dualPrice
+  ) internal returns (uint wants, uint gives) {
     // computing gives/wants for dual offer
     // we verify we cannot overflow if PRECISION = 5
     // spread:8
@@ -239,22 +242,17 @@ abstract contract GeometricKandel is CoreKandel {
       // to prevent gives to be too high, we let the surplus be pending
       gives = type(uint96).max;
     }
-    // adjusting wants to price:
-    // gives * r : 237 so offerGives must be < 2**19 to completely avoid overflow.
-    // Since offerGives is high when gives * r is, we check whether the full precision can be used and only if not then we use less precision.
-    uint givesR = gives * r;
-    uint offerGives = order.offer.gives();
-    if (uint160(givesR) == givesR || offerGives < 2 ** 19) {
-      // using max precision
-      wants = (offerGives * givesR) / (order.offer.wants() * (p ** spread));
+
+    if (baDual == OfferType.Ask) {
+      wants = (gives * dualPrice) / PRICE_PRECISION;
     } else {
-      // we divide `gives*r` by `order.offer.wants()` with max precision so that the resulting `givesR:160` in order to make sure it can be multiplied by `offerGives`
-      givesR = (givesR * 2 ** 19) / order.offer.wants();
-      wants = (offerGives * givesR) / (p ** spread);
-      // we correct for the added precision above
-      wants /= 2 ** 19;
+      wants = (gives * PRICE_PRECISION) / dualPrice;
     }
-    // wants is higher than offerGives
+    console.log("GIVES %s wants %s, dualPrice %s", gives, wants, dualPrice);
+    //outboing base of ask. orders.gives is in quote.
+    //price = (quoteDist[i]*PRICE_PRECISION)/baseDist[i];
+
+    // wants is higher than gives
     // this may cause wants to be higher than 2**96 allowed by Mangrove (for instance if one needs many quotes to buy sell base tokens)
     // so we adjust the price so as to want an amount of tokens that mangrove will accept.
     if (uint96(wants) != wants) {
@@ -263,45 +261,14 @@ abstract contract GeometricKandel is CoreKandel {
     }
   }
 
-  ///@notice returns the destination index to transport received liquidity to - a better (for Kandel) price index for the offer type.
-  ///@param ba the offer type to transport to
-  ///@param index the price index one is willing to improve
-  ///@param step the number of price steps improvements
-  ///@param pricePoints the number of price points
-  ///@return better destination index
-  ///@return spread the size of the price jump, which is `step` if the index boundaries were not reached
-  function transportDestination(OfferType ba, uint index, uint step, uint pricePoints)
-    internal
-    pure
-    returns (uint better, uint8 spread)
-  {
-    if (ba == OfferType.Ask) {
-      better = index + step;
-      if (better >= pricePoints) {
-        better = pricePoints - 1;
-        spread = uint8(better - index);
-      } else {
-        spread = uint8(step);
-      }
-    } else {
-      if (index >= step) {
-        better = index - step;
-        spread = uint8(step);
-      } else {
-        // else better = 0
-        spread = uint8(index - better);
-      }
-    }
-  }
-
   ///@inheritdoc CoreKandel
   function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
     override
-    returns (OfferType baDual, uint dualOfferId, uint dualIndex, OfferArgs memory args)
+    returns (OfferType baDual, uint dualOfferId, uint dualIndex, OfferArgs memory args, uint dualGives, uint oldPending)
   {
-    uint index = indexOfOfferId(ba, order.offerId);
+    (uint index, uint dualPrice) = indexOfOfferId(ba, order.offerId);
     Params memory memoryParams = params;
     baDual = dual(ba);
 
@@ -309,17 +276,18 @@ abstract contract GeometricKandel is CoreKandel {
     // this would result populating a price index at a wrong price (too high for an Ask and too low for a Bid)
     (dualIndex, memoryParams.spread) =
       transportDestination(baDual, index, memoryParams.spread, memoryParams.pricePoints);
-
-    dualOfferId = offerIdOfIndex(baDual, dualIndex);
+    (dualOfferId,, oldPending) = offerIdOfIndex2(baDual, dualIndex);
     (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(baDual);
     args.outbound_tkn = outbound;
     args.inbound_tkn = inbound;
     MgvStructs.OfferPacked dualOffer = MGV.offers(address(outbound), address(inbound), dualOfferId);
+    dualGives = dualOffer.gives();
 
     // computing gives/wants for dual offer
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
-    (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, dualOffer.gives(), order, memoryParams);
+    console.log("TRANSPORT dualPrice %s, offerId %s, index %s", dualPrice, order.offerId, index);
+    (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, dualGives + oldPending, order, memoryParams, dualPrice);
 
     // args.fund = 0; the offers are already provisioned
     // posthook should not fail if unable to post offers, we capture the error as incidents

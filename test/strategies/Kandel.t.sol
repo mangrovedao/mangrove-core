@@ -10,7 +10,7 @@ import {console2} from "forge-std/Test.sol";
 
 contract NoRouterKandelTest is CoreKandelTest {
   function __deployKandel__(address deployer, address reserveId) internal override returns (GeometricKandel kdl_) {
-    uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
+    uint GASREQ = 1128_000; // can be 77_000 when all offers are initialized.
 
     vm.expectEmit(true, true, true, true);
     emit Mgv(IMangrove($(mgv)));

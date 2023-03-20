@@ -16,6 +16,10 @@ contract MgvOracleForInternal is MgvOracle {
     authOnly();
   }
 
+  function _authOrMutatorOnly() public view {
+    authOrMutatorOnly();
+  }
+
   //To get mutator, used to get "setMutator". MgvOracle has no read for mutator
   function getMutator() public view returns (address) {
     return mutator;
@@ -45,16 +49,33 @@ contract MgvOracleTest is Test2 {
     mgvOracle._authOnly();
 
     address governance = freshAddress("governance");
-    mgvOracle = new MgvOracleForInternal( governance, address(0));
+    address mutator = freshAddress("mutator");
+    mgvOracle = new MgvOracleForInternal(governance, mutator);
 
     vm.expectRevert("MgvOracle/unauthorized");
     mgvOracle._authOnly();
 
+    vm.expectRevert("MgvOracle/unauthorized");
+    mgvOracle._authOrMutatorOnly();
+
     vm.prank(governance);
     mgvOracle._authOnly(); // does not revert
 
+    vm.prank(governance);
+    mgvOracle._authOrMutatorOnly(); // does not revert
+
+    vm.prank(mutator);
+    vm.expectRevert("MgvOracle/unauthorized");
+    mgvOracle._authOnly();
+
+    vm.prank(mutator);
+    mgvOracle._authOrMutatorOnly(); // does not revert
+
     vm.prank(address(mgvOracle));
     mgvOracle._authOnly(); // does not revert
+
+    vm.prank(address(mgvOracle));
+    mgvOracle._authOrMutatorOnly(); // does not revert
   }
 
   function test_setMutator() public {

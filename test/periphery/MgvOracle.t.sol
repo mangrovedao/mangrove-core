@@ -143,19 +143,19 @@ contract MgvOracleTest is Test2 {
     assertEq(mgvOracle.getDensity(), 40, "density should be set by mutator");
   }
 
-  function test_read() public {
+  function test_read(uint gasprice, uint density) public {
     address governance = freshAddress("governance");
     address mutator = freshAddress("mutator");
     MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator);
 
     vm.startPrank(governance);
-    mgvOracle.setDensity(20);
-    mgvOracle.setGasPrice(30);
+    mgvOracle.setDensity(density);
+    mgvOracle.setGasPrice(gasprice);
     vm.stopPrank();
 
-    (uint gas, uint density) = mgvOracle.read(address(0), address(0));
+    (uint outGasprice, uint outDensity) = mgvOracle.read(address(0), address(0));
 
-    assertEq(gas, 30, "gas should be 30");
-    assertEq(density, 20, "density should be 20");
+    assertEq(outGasprice, gasprice, "incorrect gasprice");
+    assertEq(outDensity, density, "incorrect density");
   }
 }

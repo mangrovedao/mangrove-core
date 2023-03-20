@@ -91,6 +91,7 @@ contract MgvOracle is IMgvMonitor {
   function read(address, /*outbound_tkn*/ address /*inbound_tkn*/ )
     external
     view
+    virtual
     override
     returns (uint gasprice, uint density)
   {

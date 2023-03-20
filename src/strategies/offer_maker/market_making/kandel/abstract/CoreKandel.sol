@@ -19,7 +19,6 @@ import {DirectWithBidsAndAsksDistribution} from "./DirectWithBidsAndAsksDistribu
 import {TradesBaseQuotePair} from "./TradesBaseQuotePair.sol";
 import {AbstractKandel} from "./AbstractKandel.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
-import {console2 as console} from "forge-std/console2.sol";
 
 ///@title the core of Kandel strategies which creates or updates a dual offer whenever an offer is taken.
 ///@notice `CoreKandel` is agnostic to the chosen price distribution.
@@ -71,19 +70,33 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
 
     // adds any unpublished liquidity to pending[Base/Quote]
     // preparing arguments for the dual offer
-    (OfferType baDual, uint offerId, uint index, OfferArgs memory args, uint oldGives, uint oldPending) =
-      transportLogic(ba, order);
-    (uint newOfferId, bytes32 populateStatus) = populateIndex(baDual, offerId, index, args);
-    bool offerUpdated = logPopulateStatus(offerId, args, populateStatus);
-    if (newOfferId != offerId) {
-      console.log("SETIND off %s, newOff %s, off %s", offerId, newOfferId, order.offerId);
-      setIndexAndPriceFromDual(baDual, newOfferId, index);
+    (
+      OfferType baDual,
+      uint dualOfferId,
+      uint dualIndex,
+      OfferArgs memory args,
+      uint oldGives,
+      uint oldPending,
+      uint index
+    ) = transportLogic(ba, order);
+    (uint newDualOfferId, bytes32 populateStatus) = populateIndex(baDual, dualOfferId, dualIndex, args);
+    bool offerUpdated = logPopulateStatus(dualOfferId, args, populateStatus);
+    if (newDualOfferId != dualOfferId) {
+      //index is current offer's index.
+      //the price of that index is not stored here yet.
+      //but it will be the price of the baDual at the same index.
+      //that price is stored at the dual of the baDual at the same index.
+      //TODO spread - would be more robust to set during populate
+      (uint dual2,) = transportDestination(ba, index, 1, length);
+      (uint dualDualOfferId,,) = offerIdOfIndex2(ba, dual2);
+      (, uint dualPrice) = indexOfOfferId(ba, dualDualOfferId);
+      setIndexAndPriceFromDual(baDual, newDualOfferId, dualIndex, dualPrice);
 
       OfferIdPending memory offerIdPending =
-        OfferIdPending(uint32(newOfferId), 0, 0, 0 /*pending is 0 since we posted new offer with it*/ );
-      setIndexMapping(baDual, index, offerIdPending);
+        OfferIdPending(uint32(newDualOfferId), 0, 0, 0 /*pending is 0 since we posted new offer with it*/ );
+      setIndexMapping(baDual, dualIndex, offerIdPending);
     } else {
-      setPendingInMapping(baDual, index, args.gives, offerUpdated, oldGives, oldPending);
+      setPendingInMapping(baDual, dualIndex, args.gives, offerUpdated, oldGives, oldPending);
     }
   }
 
@@ -97,7 +110,15 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
   function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     virtual
-    returns (OfferType baDual, uint dualOfferId, uint dualIndex, OfferArgs memory args, uint dualGives, uint oldPending);
+    returns (
+      OfferType baDual,
+      uint dualOfferId,
+      uint dualIndex,
+      OfferArgs memory args,
+      uint dualGives,
+      uint oldPending,
+      uint index
+    );
 
   //TODO pending is not the same as unpublished anymore.
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.

@@ -178,7 +178,10 @@ abstract contract CoreKandelTest is MangroveTest {
         assertTrue(bidLive && !askLive, "Kandel not bidding at index");
         if (q != type(uint).max) {
           assertApproxEqRel(
-            bid.gives() * b, q * bid.wants(), 1e11, "Bid price does not follow distribution within 0.00001%"
+            bid.gives() * b,
+            q * bid.wants(),
+            1e11,
+            string.concat("Bid price does not follow distribution within 0.00001% index=", vm.toString(index))
           );
         }
       } else {
@@ -186,7 +189,10 @@ abstract contract CoreKandelTest is MangroveTest {
           assertTrue(!bidLive && askLive, "Kandel is not asking at index");
           if (q != type(uint).max) {
             assertApproxEqRel(
-              ask.wants() * b, q * ask.gives(), 1e11, "Ask price does not follow distribution within 0.00001%"
+              ask.wants() * b,
+              q * ask.gives(),
+              1e11,
+              string.concat("Ask price does not follow distribution within 0.00001% index=", vm.toString(index))
             );
           }
         } else {
@@ -542,6 +548,18 @@ abstract contract CoreKandelTest is MangroveTest {
     vm.prank(taker);
     mgv.marketOrder($(base), $(quote), askVol / 2, type(uint96).max, true);
     assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
+  }
+
+  function logPrices() public {
+    uint pricePoints = getParams(kdl).pricePoints;
+    for (uint i = 0; i < pricePoints; i++) {
+      (uint offerId,, uint pending) = kdl.offerIdOfIndex2(Bid, i);
+      (, uint dualPrice) = kdl.indexOfOfferId(Bid, offerId);
+      console.log("bid %s dualPrice %s offer %s ", i, dualPrice, offerId);
+      (offerId,, pending) = kdl.offerIdOfIndex2(Ask, i);
+      (, dualPrice) = kdl.indexOfOfferId(Ask, offerId);
+      console.log("ask %s dualPrice %s offer %s ", i, dualPrice, offerId);
+    }
   }
 
   function test_take_new_offer() public {

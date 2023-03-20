@@ -11,8 +11,6 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-import {console2 as console} from "forge-std/console2.sol";
-
 import {Direct} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OfferType} from "./TradesBaseQuotePair.sol";
@@ -110,8 +108,6 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
     for (; i < indices.length; ++i) {
       uint index = indices[i];
       prices[index] = (quoteDist[i] * PRICE_PRECISION) / baseDist[i];
-      console.log("index %s price %s", index, prices[index]);
-      console.log("     quote %s / base %s  ", (quoteDist[i] * PRICE_PRECISION), baseDist[i]);
       (uint offerId,, uint oldPending) = offerIdOfIndex2(OfferType.Bid, index);
       if (offerId > 0) {
         setPendingInMapping(OfferType.Bid, index, 0, true, 0, oldPending);
@@ -146,8 +142,8 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
       (uint dualIndex,) = transportDestination(OfferType.Ask, index, 1, indices.length);
       uint dualPrice = prices[dualIndex];
 
-      console.log("dualIndex %s dualPrice %s index %s bid", dualIndex, dualPrice, index);
       (uint offerId,,) = offerIdOfIndex2(OfferType.Bid, index);
+
       (offerId,) = populateIndex(OfferType.Bid, offerId, index, args);
       setIndexAndPrice(OfferType.Bid, offerId, index, dualPrice);
       OfferIdPending memory offerIdPending =
@@ -164,11 +160,11 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
       args.gasreq = gasreq;
       args.gasprice = gasprice;
       args.pivotId = pivotIds[i];
+
       (uint dualIndex,) = transportDestination(OfferType.Bid, index, 1, indices.length);
       uint dualPrice = prices[dualIndex];
 
       (uint offerId,,) = offerIdOfIndex2(OfferType.Ask, index);
-      console.log("dualIndex %s dualPrice %s index %s ask", dualIndex, dualPrice, index);
 
       (offerId,) = populateIndex(OfferType.Ask, offerId, index, args);
       setIndexAndPrice(OfferType.Ask, offerId, index, dualPrice);

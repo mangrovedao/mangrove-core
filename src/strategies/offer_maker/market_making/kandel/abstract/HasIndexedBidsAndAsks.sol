@@ -15,7 +15,6 @@ import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {IHasTokenPairOfOfferType, OfferType} from "./TradesBaseQuotePair.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {console2 as console} from "forge-std/console2.sol";
 
 ///@title Adds a [0..length] index <--> offerId map to a strat.
 ///@dev utilizes the `IHasTokenPairOfOfferType` contract.
@@ -104,14 +103,7 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
   event SetPending(OfferType indexed ba, uint indexed index, uint pending);
   event SetIndexAndPrice(OfferType indexed ba, uint indexed offerId, uint indexed index, uint dualPrice);
 
-  function setIndexAndPriceFromDual(OfferType ba, uint offerId, uint index) internal {
-    OfferType baDual = ba == OfferType.Bid ? OfferType.Ask : OfferType.Bid;
-    (uint siblingOfferId,,) = offerIdOfIndex2(baDual, index);
-    (, uint dualPrice) = indexOfOfferId(baDual, siblingOfferId);
-    console.log("setIndexAndPriceFromDual index %s siblingOfferId %s dualPrice %s", index, siblingOfferId, dualPrice);
-    require(siblingOfferId > 0, "sibling must have existed"); //TODO will not hold if not populating spread
-    require(dualPrice > 0, "dual price not at index");
-
+  function setIndexAndPriceFromDual(OfferType ba, uint offerId, uint index, uint dualPrice) internal {
     IndexAndPrice memory indexAndPrice = IndexAndPrice(uint8(index), uint248(dualPrice));
 
     if (ba == OfferType.Ask) {

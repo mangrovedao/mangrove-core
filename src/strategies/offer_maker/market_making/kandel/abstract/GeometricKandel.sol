@@ -11,8 +11,6 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-import {console2 as console} from "forge-std/console2.sol";
-
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
@@ -248,9 +246,6 @@ abstract contract GeometricKandel is CoreKandel {
     } else {
       wants = (gives * PRICE_PRECISION) / dualPrice;
     }
-    console.log("GIVES %s wants %s, dualPrice %s", gives, wants, dualPrice);
-    //outboing base of ask. orders.gives is in quote.
-    //price = (quoteDist[i]*PRICE_PRECISION)/baseDist[i];
 
     // wants is higher than gives
     // this may cause wants to be higher than 2**96 allowed by Mangrove (for instance if one needs many quotes to buy sell base tokens)
@@ -266,9 +261,18 @@ abstract contract GeometricKandel is CoreKandel {
     internal
     virtual
     override
-    returns (OfferType baDual, uint dualOfferId, uint dualIndex, OfferArgs memory args, uint dualGives, uint oldPending)
+    returns (
+      OfferType baDual,
+      uint dualOfferId,
+      uint dualIndex,
+      OfferArgs memory args,
+      uint dualGives,
+      uint oldPending,
+      uint index
+    )
   {
-    (uint index, uint dualPrice) = indexOfOfferId(ba, order.offerId);
+    uint dualPrice;
+    (index, dualPrice) = indexOfOfferId(ba, order.offerId);
     Params memory memoryParams = params;
     baDual = dual(ba);
 
@@ -286,7 +290,6 @@ abstract contract GeometricKandel is CoreKandel {
     // computing gives/wants for dual offer
     // At least: gives = order.gives/ratio and wants is then order.wants
     // At most: gives = order.gives and wants is adapted to match the price
-    console.log("TRANSPORT dualPrice %s, offerId %s, index %s", dualPrice, order.offerId, index);
     (args.wants, args.gives) = dualWantsGivesOfOffer(baDual, dualGives + oldPending, order, memoryParams, dualPrice);
 
     // args.fund = 0; the offers are already provisioned

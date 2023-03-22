@@ -7,6 +7,7 @@ import {MangroveOrderEnriched as MgvOrder} from "mgv_src/strategies/MangroveOrde
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {IOrderLogic} from "mgv_src/strategies/interfaces/IOrderLogic.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
+import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 
 contract MangroveOrder_Test is MangroveTest {
   // to check ERC20 logging
@@ -39,9 +40,10 @@ contract MangroveOrder_Test is MangroveTest {
   receive() external payable {}
 
   function setUp() public override {
-    options.base.returnsBoolOnTransfer = false;
-    options.quote.returnsBoolOnApproval = false;
     super.setUp();
+    // Assume tokens behave weirdly here
+    base.transferResponse(TestToken.MethodResponse.MissingReturn);
+    quote.approveResponse(TestToken.MethodResponse.MissingReturn);
     mgv.setFee($(base), $(quote), 30);
     mgv.setFee($(quote), $(base), 30);
 
@@ -273,7 +275,7 @@ contract MangroveOrder_Test is MangroveTest {
       res.bounty,
       res.fee,
       res.offerId
-      );
+    );
   }
 
   function test_resting_buy_order_is_successfully_posted() public {

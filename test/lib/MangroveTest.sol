@@ -37,8 +37,6 @@ contract MangroveTest is Test2, HasMgvEvents {
     string name;
     string symbol;
     uint8 decimals;
-    bool returnsBoolOnApproval;
-    bool returnsBoolOnTransfer;
   }
 
   struct MangroveTestOptions {
@@ -59,20 +57,8 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   MangroveTestOptions internal options = MangroveTestOptions({
     invertedMangrove: false,
-    base: TokenOptions({
-      name: "Base Token",
-      symbol: "$(A)",
-      decimals: 18,
-      returnsBoolOnTransfer: options.base.returnsBoolOnTransfer,
-      returnsBoolOnApproval: options.base.returnsBoolOnApproval
-    }),
-    quote: TokenOptions({
-      name: "Quote Token",
-      symbol: "$(B)",
-      decimals: 18,
-      returnsBoolOnTransfer: options.quote.returnsBoolOnTransfer,
-      returnsBoolOnApproval: options.quote.returnsBoolOnApproval
-    }),
+    base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
+    quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
     defaultFee: 0,
     gasprice: 40,
     gasbase: 50_000,

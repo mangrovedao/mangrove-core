@@ -54,8 +54,6 @@ abstract contract CoreKandelTest is MangroveTest {
     options.quote.decimals = 6;
     options.defaultFee = 30;
     options.gasprice = 40;
-    options.base.returnsBoolOnTransfer = true;
-    options.quote.returnsBoolOnApproval = true;
 
     MangroveTest.setUp();
   }

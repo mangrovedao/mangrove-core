@@ -19,8 +19,18 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 
 ///@title `Direct` strat with an indexed collection of bids and asks which can be populated according to a desired base and quote distribution for gives and wants.
 abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAndAsks {
-  ///@notice logs a call to populate
-  event Populate();
+  ///@notice The offer has too low volume to be posted.
+  bytes32 internal constant LOW_VOLUME = "Kandel/volumeTooLow";
+
+  ///@notice logs the start of a call to populate
+  event PopulateStart();
+  ///@notice logs the end of a call to populate
+  event PopulateEnd();
+
+  ///@notice logs the start of a call to retractOffers
+  event RetractStart();
+  ///@notice logs the end of a call to retractOffers
+  event RetractEnd();
 
   ///@notice Constructor
   ///@param mgv The Mangrove deployment.
@@ -53,6 +63,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
     uint gasreq,
     uint gasprice
   ) internal {
+    emit PopulateStart();
     uint[] calldata indices = distribution.indices;
     uint[] calldata quoteDist = distribution.quoteDist;
     uint[] calldata baseDist = distribution.baseDist;
@@ -90,7 +101,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
 
       populateIndex(OfferType.Ask, offerIdOfIndex(OfferType.Ask, index), index, args);
     }
-    emit Populate();
+    emit PopulateEnd();
   }
 
   ///@notice publishes (by either creating or updating) a bid/ask at a given price index.
@@ -112,8 +123,10 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
         if (offerId != 0) {
           setIndexMapping(ba, index, offerId);
         }
+      } else {
+        // else offerId && gives are 0 and the offer is left not posted
+        result = LOW_VOLUME;
       }
-      // else offerId && gives are 0 and the offer is left not posted
     }
     // else offer exists
     else {
@@ -123,6 +136,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
         // * `gives == 0` may not come from `DualWantsGivesOfOffer` computation, but `wants==0` might.
         // * `gives == 0` may happen from populate in case of re-population where the offers in the spread are then retracted by setting gives to 0.
         _retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
+        result = LOW_VOLUME;
       } else {
         // so the offer exists and it should, we simply update it with potentially new volume
         result = _updateOffer(args, offerId);
@@ -135,6 +149,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
   ///@param to the end index.
   ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs.
   function retractOffers(uint from, uint to) public onlyAdmin {
+    emit RetractStart();
     (IERC20 outbound_tknAsk, IERC20 inbound_tknAsk) = tokenPairOfOfferType(OfferType.Ask);
     (IERC20 outbound_tknBid, IERC20 inbound_tknBid) = (inbound_tknAsk, outbound_tknAsk);
     for (uint index = from; index < to; ++index) {
@@ -148,5 +163,6 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
         _retractOffer(outbound_tknBid, inbound_tknBid, offerId, true);
       }
     }
+    emit RetractEnd();
   }
 }

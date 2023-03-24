@@ -87,9 +87,14 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
       //but it will be the price of the baDual at the same index.
       //that price is stored at the dual of the baDual at the same index.
       //TODO spread - would be more robust to set during populate
-      (uint dual2,) = transportDestination(ba, index, 1, length);
-      (uint dualDualOfferId,,) = offerIdOfIndex2(ba, dual2);
-      (, uint dualPrice) = indexOfOfferId(ba, dualDualOfferId);
+      //(uint dual2,) = transportDestination(ba, index, 1, length);
+      //(uint dualDualOfferId,,) = offerIdOfIndex2(ba, dual2);
+      //(, uint dualPrice) = indexOfOfferId(ba, dualDualOfferId);
+      //require(dualPrice > 0, "Kandel/zeroPriceDualDual");
+      uint dualPrice = ba == OfferType.Ask
+        ? (order.offer.wants() * PRICE_PRECISION) / order.offer.gives()
+        : (order.offer.gives() * PRICE_PRECISION) / order.offer.wants();
+
       setIndexAndPriceFromDual(baDual, newDualOfferId, dualIndex, dualPrice);
 
       OfferIdPending memory offerIdPending =

@@ -273,6 +273,8 @@ abstract contract GeometricKandel is CoreKandel {
   {
     uint dualPrice;
     (index, dualPrice) = indexOfOfferId(ba, order.offerId);
+    require(dualPrice > 0, "Kandel/zeroDualPrice");
+
     Params memory memoryParams = params;
     baDual = dual(ba);
 

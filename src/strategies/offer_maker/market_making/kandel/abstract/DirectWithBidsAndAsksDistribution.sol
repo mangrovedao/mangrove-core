@@ -103,8 +103,26 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
     uint[] calldata quoteDist = distribution.quoteDist;
     uint[] calldata baseDist = distribution.baseDist;
 
-    uint[] memory prices = new uint[](indices.length);
+    uint[] memory prices = new uint[](length);
     uint i;
+    // read existing prices if any
+    for (; i < length; i++) {
+      (uint offerId,,) = offerIdOfIndex2(OfferType.Bid, i);
+      (, uint dualPrice) = indexOfOfferId(OfferType.Bid, offerId);
+      //TODO spread
+      (uint dualIndex,) = transportDestination(OfferType.Ask, i, 1, length);
+
+      if (prices[dualIndex] == 0) {
+        prices[i] = dualPrice;
+      }
+      (offerId,,) = offerIdOfIndex2(OfferType.Ask, i);
+      (, dualPrice) = indexOfOfferId(OfferType.Ask, offerId);
+      (dualIndex,) = transportDestination(OfferType.Bid, i, 1, length);
+      if (prices[dualIndex] == 0) {
+        prices[i] = dualPrice;
+      }
+    }
+    i = 0;
     for (; i < indices.length; ++i) {
       uint index = indices[i];
       prices[index] = (quoteDist[i] * PRICE_PRECISION) / baseDist[i];
@@ -139,9 +157,9 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
       args.gasprice = gasprice;
       args.pivotId = pivotIds[i];
 
-      (uint dualIndex,) = transportDestination(OfferType.Ask, index, 1, indices.length);
+      (uint dualIndex,) = transportDestination(OfferType.Ask, index, 1, length);
       uint dualPrice = prices[dualIndex];
-
+      require(dualPrice > 0, "Kandel/zeroDualAsk");
       (uint offerId,,) = offerIdOfIndex2(OfferType.Bid, index);
 
       (offerId,) = populateIndex(OfferType.Bid, offerId, index, args);
@@ -161,8 +179,9 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
       args.gasprice = gasprice;
       args.pivotId = pivotIds[i];
 
-      (uint dualIndex,) = transportDestination(OfferType.Bid, index, 1, indices.length);
+      (uint dualIndex,) = transportDestination(OfferType.Bid, index, 1, length);
       uint dualPrice = prices[dualIndex];
+      require(dualPrice > 0, "Kandel/zeroDualBid");
 
       (uint offerId,,) = offerIdOfIndex2(OfferType.Ask, index);
 

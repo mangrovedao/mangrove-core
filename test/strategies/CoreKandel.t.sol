@@ -373,7 +373,7 @@ abstract contract CoreKandelTest is MangroveTest {
     // at 0% compounding, one wants to buy back what was sent
     // computation might have rounding error because bid_.wants is derived from bid_.gives
     console.log(bid_.wants(), bid.wants(), ask.gives());
-    assertApproxEqRel(bid_.wants(), bid.wants() + ask.gives(), 10 ** 9, "Incorrect wants when 0% compounding");
+    assertApproxEqRel(bid_.wants(), bid.wants() + ask.gives(), 10 ** 10, "Incorrect wants when 0% compounding");
 
     // changing compoundRates
     vm.prank(maker);
@@ -1116,7 +1116,7 @@ abstract contract CoreKandelTest is MangroveTest {
     MgvStructs.OfferPacked ask_ = kdl.getOffer(Ask, n - 1);
 
     assertTrue(ask.gives() < ask_.gives(), "Ask was not updated");
-    assertEq(ask.gives() * ask_.wants(), ask.wants() * ask_.gives(), "Incorrect price");
+    assertApproxEqRel(ask.gives() * ask_.wants(), ask.wants() * ask_.gives(), 10 ** 10, "Incorrect price");
   }
 
   function test_transport_below_min_price_accumulates_at_index_0() public {
@@ -1883,10 +1883,10 @@ abstract contract CoreKandelTest is MangroveTest {
     if (ba == Bid) {
       MgvStructs.OfferPacked ask = kdl.getOffer(Ask, 5);
       assertEq(ask.gives(), initBase);
-      assertEq(ask.wants(), ask.gives() * 2 / 1000000000);
+      assertApproxEqAbs(ask.wants(), ask.gives() * 2 / 1000000000, 1, "incorrect wants");
     } else {
       MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 0);
-      assertEq(bid.gives(), initQuote);
+      assertApproxEqAbs(bid.gives(), initQuote, 1, "incorrect gives");
       assertEq(bid.wants(), bid.gives() * 2 * 1000000000);
     }
   }

@@ -30,7 +30,7 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
   ///@param ba the offer type
   ///@param index the index
   ///@param offerId the Mangrove offer id.
-  event SetIndexMapping(OfferType indexed ba, uint index, uint offerId, uint dualOfferId);
+  event SetIndexMapping(OfferType indexed ba, uint index, uint offerId);
 
   ///@notice Constructor
   ///@param mgv The Mangrove deployment.
@@ -43,8 +43,6 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
 
   struct OfferIdPending {
     uint32 offerId;
-    uint32 dualOfferId;
-    uint8 TODO;
     uint96 pending;
   }
 
@@ -74,9 +72,9 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
   ///@param ba the offer type
   ///@param index the index
   ///@return offerId the Mangrove offer id.
-  function offerIdOfIndex(OfferType ba, uint index) public view returns (uint offerId, uint dualOfferId, uint pending) {
+  function offerIdOfIndex(OfferType ba, uint index) public view returns (uint offerId, uint pending) {
     OfferIdPending memory p = ba == OfferType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
-    return (p.offerId, p.dualOfferId, p.pending);
+    return (p.offerId, p.pending);
   }
 
   ///@notice Maps an offer type and Mangrove offer id to index.
@@ -99,7 +97,7 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
     } else {
       bidOfferIdOfIndex[index] = offerIdPending;
     }
-    emit SetIndexMapping(ba, index, offerIdPending.offerId, offerIdPending.dualOfferId);
+    emit SetIndexMapping(ba, index, offerIdPending.offerId);
   }
 
   event SetPending(OfferType indexed ba, uint indexed index, uint pending);
@@ -165,7 +163,7 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
   ///@param index the index.
   ///@return offer the Mangrove offer.
   function getOffer(OfferType ba, uint index) public view returns (MgvStructs.OfferPacked offer) {
-    (uint offerId,,) = offerIdOfIndex(ba, index);
+    (uint offerId,) = offerIdOfIndex(ba, index);
     (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
     offer = MGV.offers(address(outbound), address(inbound), offerId);
   }

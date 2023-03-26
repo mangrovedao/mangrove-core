@@ -88,7 +88,7 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
       setIndexAndPriceFromDual(baDual, newDualOfferId, dualIndex, dualPrice);
 
       OfferIdPending memory offerIdPending =
-        OfferIdPending(uint32(newDualOfferId), 0, 0, 0 /*pending is 0 since we posted new offer with it*/ );
+        OfferIdPending(uint32(newDualOfferId), 0 /*pending is 0 since we posted new offer with it*/ );
       setIndexMapping(baDual, dualIndex, offerIdPending);
     } else {
       setPendingInMapping(baDual, dualIndex, args.gives, offerUpdated, oldGives, oldPending);

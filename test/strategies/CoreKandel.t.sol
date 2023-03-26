@@ -143,7 +143,7 @@ abstract contract CoreKandelTest is MangroveTest {
   }
 
   function offerIdOfIndex(CoreKandel kdl_, OfferType ba, uint index) internal view returns (uint offerId) {
-    (offerId,,) = kdl_.offerIdOfIndex(ba, index);
+    (offerId,) = kdl_.offerIdOfIndex(ba, index);
   }
 
   function snipeBuyAs(address taker_, uint amount, uint index) internal returns (uint, uint, uint, uint, uint) {

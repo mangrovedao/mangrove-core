@@ -176,8 +176,17 @@ contract KandelPopulate is Deployer {
   }
 
   function calculateBaseQuote(HeapArgs memory args) public view returns (CoreKandel.Distribution memory distribution) {
-    (distribution, /* uint lastQuote */ ) = KandelLib.calculateDistribution(
-      args.from, args.to, args.volume, args.initQuote, args.params.ratio, args.kdl.PRECISION()
+    distribution = KandelLib.calculateDistribution(
+      args.from,
+      args.to,
+      args.volume,
+      args.initQuote,
+      args.params.ratio,
+      args.kdl.PRECISION(),
+      args.params.spread,
+      args.firstAskIndex,
+      args.kdl.PRICE_PRECISION(),
+      args.params.pricePoints
     );
   }
 

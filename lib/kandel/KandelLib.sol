@@ -17,24 +17,61 @@ import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
 library KandelLib {
-  function calculateDistribution(uint from, uint to, uint initBase, uint initQuote, uint ratio, uint precision)
+  // Copied from DirectWithBidsAndAskDistribution.sol
+  function transportDestination(OfferType ba, uint index, uint step, uint pricePoints)
     internal
     pure
-    returns (CoreKandel.Distribution memory vars, uint lastQuote)
+    returns (uint better)
+  {
+    if (ba == OfferType.Ask) {
+      better = index + step;
+      if (better >= pricePoints) {
+        better = pricePoints - 1;
+      }
+    } else {
+      if (index >= step) {
+        better = index - step;
+      }
+      // else better = 0
+    }
+  }
+
+
+  function getPrices(uint initBase, uint initQuote, uint ratio, uint precision, uint pricePoints, uint pricePrecision)
+    internal
+    pure
+    returns (uint[] memory prices)
+  {
+    prices = new uint[](pricePoints);
+    uint initPrice = (initQuote * pricePrecision) / initBase;
+    for (uint i = 0; i < pricePoints; ++i) {
+      prices[i] = initPrice;
+      initPrice = (initPrice * uint(ratio)) / (10 ** precision);
+    }
+  }
+
+  function calculateDistribution(uint from, uint to, uint initBase, uint initQuote, uint ratio, uint precision, uint spread, uint firstAskIndex, uint pricePrecision, uint pricePoints)
+    internal
+    pure
+    returns (CoreKandel.Distribution memory vars)
   {
     vars.indices = new uint[](to-from);
-    vars.baseDist = new uint[](to-from);
-    vars.quoteDist = new uint[](to-from);
+    vars.dualPrices = new uint[](to-from);
+    vars.prices = new uint[](to-from);
+    vars.gives = new uint[](to-from);
+
+    uint[] memory prices = getPrices(initBase, initQuote, ratio, precision, pricePoints, pricePrecision);
+
     uint i = 0;
     for (; from < to; ++from) {
       vars.indices[i] = from;
-      vars.baseDist[i] = initBase;
-      vars.quoteDist[i] = initQuote;
-      // the ratio gives the price difference between two price points - the spread is involved when calculating the jump between a bid and its dual ask.
-      initQuote = (initQuote * uint(ratio)) / (10 ** precision);
+      vars.gives[i] = from < firstAskIndex ? (initBase * prices[from]) / pricePrecision : initBase;
+      vars.prices[i] = prices[from];
+      uint dualIndex = transportDestination(from < firstAskIndex ? OfferType.Ask : OfferType.Bid, from, spread, pricePoints);
+      vars.dualPrices[i] = prices[dualIndex]; 
       ++i;
     }
-    return (vars, initQuote);
+    return vars;
   }
 
   /// @notice should be invoked as an rpc call or via snapshot-revert - populates and returns pivots and amounts.

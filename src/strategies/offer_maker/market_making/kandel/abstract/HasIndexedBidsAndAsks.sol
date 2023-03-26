@@ -48,6 +48,12 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
     uint96 pending;
   }
 
+  mapping(uint => uint) internal priceOfIndex;
+
+  function getPriceOfIndex(uint index) public view returns (uint price) {
+    return priceOfIndex[index];
+  }
+
   ///@notice Mangrove's offer id of an ask at a given index.
   mapping(uint => OfferIdPending) private askOfferIdOfIndex;
   ///@notice Mangrove's offer id of a bid at a given index.

@@ -144,6 +144,7 @@ contract AaveKandelTest is CoreKandelTest {
 
   function test_first_puller_posthook_calls_pushAndSupply() public {
     MgvLib.SingleOrder memory order = mockBuyOrder({takerGives: 120 * 10 ** 6, takerWants: 0.1 ether});
+    order.offerId = 4;
     MgvLib.OrderResult memory result = MgvLib.OrderResult({makerData: "IS_FIRST_PULLER", mgvData: "mgv/tradeSuccess"});
 
     //1. faking accumulated outbound on the router
@@ -226,8 +227,9 @@ contract AaveKandelTest is CoreKandelTest {
     populateSingle({
       kandel: kdl_,
       index: 4,
-      base: bestAsk.gives(),
-      quote: bestAsk.wants(),
+      gives: bestAsk.gives(),
+      price: (bestAsk.wants() * kdl.PRICE_PRECISION()) / bestAsk.gives(),
+      dualPrice: 108 * (bestAsk.wants() * kdl.PRICE_PRECISION()) / bestAsk.gives() / 100,
       pivotId: 0,
       firstAskIndex: 0,
       expectRevert: ""

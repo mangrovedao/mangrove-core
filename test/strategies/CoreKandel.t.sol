@@ -142,14 +142,18 @@ abstract contract CoreKandelTest is MangroveTest {
     return mgv.snipes($(quote), $(base), wrap_dynamic([bestBid, 0, amount, type(uint).max]), false);
   }
 
+  function offerIdOfIndex(CoreKandel kdl_, OfferType ba, uint index) internal view returns (uint offerId) {
+    (offerId,,) = kdl_.offerIdOfIndex(ba, index);
+  }
+
   function snipeBuyAs(address taker_, uint amount, uint index) internal returns (uint, uint, uint, uint, uint) {
-    uint offerId = kdl.offerIdOfIndex(Ask, index);
+    uint offerId = offerIdOfIndex(kdl, Ask, index);
     vm.prank(taker_);
     return mgv.snipes($(base), $(quote), wrap_dynamic([offerId, amount, type(uint96).max, type(uint).max]), true);
   }
 
   function snipeSellAs(address taker_, uint amount, uint index) internal returns (uint, uint, uint, uint, uint) {
-    uint offerId = kdl.offerIdOfIndex(Bid, index);
+    uint offerId = offerIdOfIndex(kdl, Bid, index);
     vm.prank(taker_);
     return mgv.snipes($(quote), $(base), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
   }
@@ -354,7 +358,7 @@ abstract contract CoreKandelTest is MangroveTest {
       quote_: quote,
       makerData: ""
     });
-    order.offerId = kdl.offerIdOfIndex(Ask, 5);
+    order.offerId = offerIdOfIndex(kdl, Ask, 5);
     order.offer = ask;
 
     MgvStructs.OfferPacked bid_;
@@ -405,7 +409,7 @@ abstract contract CoreKandelTest is MangroveTest {
       quote_: quote,
       makerData: ""
     });
-    order.offerId = kdl.offerIdOfIndex(Bid, 4);
+    order.offerId = offerIdOfIndex(kdl, Bid, 4);
     order.offer = bid;
 
     MgvStructs.OfferPacked ask_;
@@ -568,7 +572,7 @@ abstract contract CoreKandelTest is MangroveTest {
     expectFrom($(kdl));
     emit RetractStart();
     expectFrom($(mgv));
-    emit OfferRetract(address(quote), address(base), kdl.offerIdOfIndex(Bid, 0));
+    emit OfferRetract(address(quote), address(base), offerIdOfIndex(kdl, Bid, 0));
     expectFrom($(kdl));
     emit RetractEnd();
 
@@ -1078,12 +1082,12 @@ abstract contract CoreKandelTest is MangroveTest {
   function test_populate_existing_offer_is_updated() public {
     uint index = 3;
     assertStatus(index, OfferStatus.Bid);
-    uint offerId = kdl.offerIdOfIndex(Bid, index);
+    uint offerId = offerIdOfIndex(kdl, Bid, index);
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, index);
 
     populateSingle(kdl, index, bid.gives() * 2, kdl.PRICE_PRECISION(), kdl.PRICE_PRECISION(), 0, 5, "");
 
-    uint offerIdPost = kdl.offerIdOfIndex(Bid, index);
+    uint offerIdPost = offerIdOfIndex(kdl, Bid, index);
     assertEq(offerIdPost, offerId, "offerId should be unchanged (offer updated)");
     MgvStructs.OfferPacked bidPost = kdl.getOffer(Bid, index);
     assertEq(bidPost.gives(), bid.gives() * 2, "gives should be changed");
@@ -1105,7 +1109,7 @@ abstract contract CoreKandelTest is MangroveTest {
       quote_: quote,
       makerData: ""
     });
-    order.offerId = kdl.offerIdOfIndex(Bid, n - 1);
+    order.offerId = offerIdOfIndex(kdl, Bid, n - 1);
     order.offer = bid;
     vm.prank($(mgv));
     kdl.makerPosthook(order, result);
@@ -1147,7 +1151,7 @@ abstract contract CoreKandelTest is MangroveTest {
       quote_: quote,
       makerData: ""
     });
-    order.offerId = kdl.offerIdOfIndex(Ask, 1);
+    order.offerId = offerIdOfIndex(kdl, Ask, 1);
     order.offer = ask;
     vm.prank($(mgv));
     kdl.makerPosthook(order, result);
@@ -1160,7 +1164,7 @@ abstract contract CoreKandelTest is MangroveTest {
     vm.prank(mgv.governance());
     mgv.deactivate(address(base), address(quote));
     // taking a bid
-    uint offerId = kdl.offerIdOfIndex(Bid, 3);
+    uint offerId = offerIdOfIndex(kdl, Bid, 3);
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 3);
 
     (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockSellOrder({
@@ -1186,8 +1190,8 @@ abstract contract CoreKandelTest is MangroveTest {
     vm.prank(mgv.governance());
     mgv.deactivate(address(base), address(quote));
     // taking a bid that already has a dual ask
-    uint offerId = kdl.offerIdOfIndex(Bid, 4);
-    uint offerId_ = kdl.offerIdOfIndex(Ask, 5);
+    uint offerId = offerIdOfIndex(kdl, Bid, 4);
+    uint offerId_ = offerIdOfIndex(kdl, Ask, 5);
 
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 4);
 
@@ -1211,7 +1215,7 @@ abstract contract CoreKandelTest is MangroveTest {
 
   function test_posthook_density_too_low_still_posts_to_dual() public {
     uint index = 4;
-    uint offerId = kdl.offerIdOfIndex(Bid, index);
+    uint offerId = offerIdOfIndex(kdl, Bid, index);
 
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, index);
     MgvStructs.OfferPacked ask = kdl.getOffer(Ask, index + STEP);
@@ -1232,7 +1236,7 @@ abstract contract CoreKandelTest is MangroveTest {
     // assertStatus(dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
 
     uint index = 3;
-    uint offerId = kdl.offerIdOfIndex(Bid, index);
+    uint offerId = offerIdOfIndex(kdl, Bid, index);
 
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, index);
     MgvStructs.OfferPacked ask = kdl.getOffer(Ask, index + STEP);
@@ -1254,7 +1258,7 @@ abstract contract CoreKandelTest is MangroveTest {
     buyFromBestAs(taker, 1000 ether);
 
     uint index = 4;
-    uint offerId = kdl.offerIdOfIndex(Bid, index);
+    uint offerId = offerIdOfIndex(kdl, Bid, index);
 
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, index);
     MgvStructs.OfferPacked ask = kdl.getOffer(Ask, index + STEP);
@@ -1584,7 +1588,7 @@ abstract contract CoreKandelTest is MangroveTest {
   function marketOrder_dualOffer_expectedGasreq(bool dualNew, uint deltaGasForNew) internal {
     // Arrange
     MgvLib.SingleOrder memory order = mockBuyOrder({takerGives: cash(quote, 100), takerWants: 0.1 ether});
-    order.offerId = kdl.offerIdOfIndex(Ask, dualNew ? 6 : 5);
+    order.offerId = offerIdOfIndex(kdl, Ask, dualNew ? 6 : 5);
 
     // Act
     vm.prank($(mgv));

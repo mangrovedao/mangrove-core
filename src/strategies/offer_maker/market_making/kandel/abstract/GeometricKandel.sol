@@ -282,7 +282,7 @@ abstract contract GeometricKandel is CoreKandel {
     // this would result populating a price index at a wrong price (too high for an Ask and too low for a Bid)
     (dualIndex, memoryParams.spread) =
       transportDestination(baDual, index, memoryParams.spread, memoryParams.pricePoints);
-    (dualOfferId,, oldPending) = offerIdOfIndex2(baDual, dualIndex);
+    (dualOfferId,, oldPending) = offerIdOfIndex(baDual, dualIndex);
     (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(baDual);
     args.outbound_tkn = outbound;
     args.inbound_tkn = inbound;

@@ -122,7 +122,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
 
       uint dualPrice = dualPrices[i];
       require(dualPrice > 0, "Kandel/zeroDualAsk");
-      (uint offerId,,) = offerIdOfIndex2(OfferType.Bid, index);
+      (uint offerId,,) = offerIdOfIndex(OfferType.Bid, index);
 
       (offerId,) = populateIndex(offerId, args);
       setIndexAndPrice(OfferType.Bid, offerId, index, dualPrice);
@@ -147,7 +147,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
 
       uint dualPrice = dualPrices[i];
       require(dualPrice > 0, "Kandel/zeroDualBid");
-      (uint offerId,,) = offerIdOfIndex2(OfferType.Ask, index);
+      (uint offerId,,) = offerIdOfIndex(OfferType.Ask, index);
       (offerId,) = populateIndex(offerId, args);
       setIndexAndPrice(OfferType.Ask, offerId, index, dualPrice);
       OfferIdPending memory offerIdPending =
@@ -202,11 +202,11 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
     (IERC20 outbound_tknBid, IERC20 inbound_tknBid) = (inbound_tknAsk, outbound_tknAsk);
     for (uint index = from; index < to; ++index) {
       // These offerIds could be recycled in a new populate
-      (uint offerId,,) = offerIdOfIndex2(OfferType.Ask, index);
+      (uint offerId,,) = offerIdOfIndex(OfferType.Ask, index);
       if (offerId != 0) {
         _retractOffer(outbound_tknAsk, inbound_tknAsk, offerId, true);
       }
-      (offerId,,) = offerIdOfIndex2(OfferType.Bid, index);
+      (offerId,,) = offerIdOfIndex(OfferType.Bid, index);
       if (offerId != 0) {
         _retractOffer(outbound_tknBid, inbound_tknBid, offerId, true);
       }

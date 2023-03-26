@@ -74,13 +74,9 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
   ///@param ba the offer type
   ///@param index the index
   ///@return offerId the Mangrove offer id.
-  function offerIdOfIndex2(OfferType ba, uint index) public view returns (uint offerId, uint dualOfferId, uint pending) {
+  function offerIdOfIndex(OfferType ba, uint index) public view returns (uint offerId, uint dualOfferId, uint pending) {
     OfferIdPending memory p = ba == OfferType.Ask ? askOfferIdOfIndex[index] : bidOfferIdOfIndex[index];
     return (p.offerId, p.dualOfferId, p.pending);
-  }
-
-  function offerIdOfIndex(OfferType ba, uint index) public view returns (uint offerId) {
-    (offerId,,) = offerIdOfIndex2(ba, index);
   }
 
   ///@notice Maps an offer type and Mangrove offer id to index.
@@ -169,7 +165,7 @@ abstract contract HasIndexedBidsAndAsks is IHasTokenPairOfOfferType {
   ///@param index the index.
   ///@return offer the Mangrove offer.
   function getOffer(OfferType ba, uint index) public view returns (MgvStructs.OfferPacked offer) {
-    (uint offerId,,) = offerIdOfIndex2(ba, index);
+    (uint offerId,,) = offerIdOfIndex(ba, index);
     (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
     offer = MGV.offers(address(outbound), address(inbound), offerId);
   }

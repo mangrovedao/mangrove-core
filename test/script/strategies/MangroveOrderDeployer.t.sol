@@ -13,9 +13,7 @@ import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
-import {
-  MangroveOrderDeployer, MangroveOrderEnriched
-} from "mgv_script/strategies/mangroveOrder/MangroveOrderDeployer.s.sol";
+import {MangroveOrderDeployer, MangroveOrder} from "mgv_script/strategies/mangroveOrder/MangroveOrderDeployer.s.sol";
 
 contract MangroveOrderDeployerTest is Deployer, Test2 {
   MangroveOrderDeployer mgoDeployer;
@@ -33,22 +31,22 @@ contract MangroveOrderDeployerTest is Deployer, Test2 {
   }
 
   function test_normal_deploy() public {
-    // MangroveOrderEnriched - verify mgv is used and admin is chief
+    // MangroveOrder - verify mgv is used and admin is chief
     vm.setEnv("MANGROVE", ""); // make sure env MANGROVE not usable
     address mgv = fork.get("Mangrove");
     mgoDeployer.run();
-    MangroveOrderEnriched mgoe = MangroveOrderEnriched(fork.get("MangroveOrderEnriched"));
+    MangroveOrder mgoe = MangroveOrder(fork.get("MangroveOrder"));
 
     assertEq(mgoe.admin(), broadcaster());
     assertEq(address(mgoe.MGV()), mgv);
   }
 
   function test_with_env_var_deploy() public {
-    // MangroveOrderEnriched - verify mgv is used and admin is chief
+    // MangroveOrder - verify mgv is used and admin is chief
     address mgv = freshAddress("fakeMangrove");
     vm.setEnv("MANGROVE", vm.toString(mgv));
     mgoDeployer.run();
-    MangroveOrderEnriched mgoe = MangroveOrderEnriched(fork.get("MangroveOrderEnriched"));
+    MangroveOrder mgoe = MangroveOrder(fork.get("MangroveOrder"));
     assertEq(address(mgoe.MGV()), mgv);
   }
 }

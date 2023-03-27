@@ -9,7 +9,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /*  Allows MangroveOrder to trade on the tokens given in argument.
 
-    mgvOrder: address of MangroveOrder(Enriched) contract
+    mgvOrder: address of MangroveOrder contract
     tkns: array of token addresses to activate
    
     The TKNS env variable should be given as a comma-separated list of names (known by ens).
@@ -19,7 +19,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 contract ActivateMangroveOrder is Deployer {
   function run() public {
-    innerRun({mgvOrder: MangroveOrder(fork.get("MangroveOrderEnriched")), tkns: vm.envString("TKNS", ",")});
+    innerRun({mgvOrder: MangroveOrder(fork.get("MangroveOrder")), tkns: vm.envString("TKNS", ",")});
   }
 
   function innerRun(MangroveOrder mgvOrder, string[] memory tkns) public {

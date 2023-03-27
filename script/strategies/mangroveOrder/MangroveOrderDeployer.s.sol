@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MangroveOrderEnriched, IERC20, IMangrove} from "mgv_src/strategies/MangroveOrderEnriched.sol";
+import {MangroveOrder, IERC20, IMangrove} from "mgv_src/strategies/MangroveOrder.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /*  Deploys a MangroveOrder instance
@@ -14,7 +14,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
   You can specify a mangrove address with the MANGROVE env var.*/
 contract MangroveOrderDeployer is Deployer {
-  MangroveOrderEnriched mgv_order;
+  MangroveOrder mgv_order;
 
   function run() public {
     address mangrove;
@@ -35,15 +35,16 @@ contract MangroveOrderDeployer is Deployer {
     console.log("Deploying Mangrove Order...");
 
     broadcast();
-    mgv_order = new MangroveOrderEnriched(mgv, admin);
-    fork.set("MangroveOrderEnriched", address(mgv_order));
+    mgv_order = new MangroveOrder(mgv, admin, 30_000);
+    fork.set("MangroveOrder", address(mgv_order));
+    fork.set("MangroveOrder-Router", address(mgv_order.router()));
     outputDeployment();
     console.log("Deployed!", address(mgv_order));
     console.log("Used mangrove is %s", mangrove);
     smokeTest(mgv_order, mgv);
   }
 
-  function smokeTest(MangroveOrderEnriched mgvOrder, IMangrove mgv) internal view {
+  function smokeTest(MangroveOrder mgvOrder, IMangrove mgv) internal view {
     require(mgvOrder.MGV() == mgv, "Incorrect Mangrove address");
   }
 }

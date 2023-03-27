@@ -8,18 +8,18 @@ import {AllMethodIdentifiersTest} from "mgv_test/lib/AllMethodIdentifiersTest.so
 import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
 
 contract AavePooledRouterTest is OfferLogicTest {
-  bool useForkAave = true;
+  bool internal useForkAave = true;
 
-  AavePooledRouter pooledRouter;
+  AavePooledRouter internal pooledRouter;
 
-  uint constant GASREQ = 469.5 * 1000;
+  uint internal constant GASREQ = 469.5 * 1000;
 
   event SetAaveManager(address);
   event AaveIncident(IERC20 indexed token, address indexed maker, address indexed reserveId, bytes32 aaveReason);
 
-  IERC20 dai;
-  address maker1;
-  address maker2;
+  IERC20 internal dai;
+  address internal maker1;
+  address internal maker2;
 
   function setUp() public override {
     // deploying mangrove and opening WETH/USDC market.

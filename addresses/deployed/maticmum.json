@@ -16,6 +16,10 @@
     "name": "MgvOracle"
   },
   {
+    "address": "0x2286C097031B266cC5A1503B7b78c8E3CeA1Da00",
+    "name": "MangroveOrderEnriched"
+  },
+  {
     "address": "0xe8904C912ffe1445cFb3f6d6643db6590639910f",
     "name": "KandelSeeder"
   },

@@ -3,11 +3,13 @@ pragma solidity ^0.8.10;
 
 import {MangroveTest, TestMaker, TestTaker, TestSender, console} from "mgv_test/lib/MangroveTest.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {MangroveOrderEnriched as MgvOrder} from "mgv_src/strategies/MangroveOrderEnriched.sol";
+import {MangroveOrder as MgvOrder} from "mgv_src/strategies/MangroveOrder.sol";
 import {IOrderLogic} from "mgv_src/strategies/interfaces/IOrderLogic.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 
 contract MangroveOrder_Test is MangroveTest {
+  uint GASREQ = 30_000;
+
   // to check ERC20 logging
   event Transfer(address indexed from, address indexed to, uint value);
 
@@ -43,7 +45,7 @@ contract MangroveOrder_Test is MangroveTest {
     mgv.setFee($(quote), $(base), 30);
 
     // this contract is admin of MgvOrder and its router
-    mgo = new MgvOrder(IMangrove(payable(mgv)), $(this));
+    mgo = new MgvOrder(IMangrove(payable(mgv)), $(this), GASREQ);
     // mgvOrder needs to approve mangrove for inbound & outbound token transfer (inbound when acting as a taker, outbound when matched as a maker)
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;

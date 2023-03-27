@@ -7,7 +7,6 @@ exports.abi_exports = [
   "TestToken",
   "IERC20",
   "MangroveOrder",
-  "MangroveOrderEnriched",
   "AbstractRouter",
   "ICreditDelegationToken",
   "ILiquidityProvider",

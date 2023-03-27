@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {MangroveOrderEnriched, IERC20, IMangrove} from "mgv_src/strategies/MangroveOrderEnriched.sol";
+import {MangroveOrder, IERC20, IMangrove} from "mgv_src/strategies/MangroveOrder.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /*  Deploys a MangroveOrder instance
@@ -14,17 +14,12 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
   You can specify a mangrove address with the MANGROVE env var.*/
 contract MangroveOrderDeployer is Deployer {
-  MangroveOrderEnriched mgv_order;
-
   function run() public {
-    address mangrove;
-    // optionally read mangrove from environment
-    try vm.envAddress("MANGROVE") returns (address _mangrove) {
-      mangrove = _mangrove;
-    } catch (bytes memory) {
-      mangrove = fork.get("Mangrove");
-    }
-    innerRun({admin: broadcaster(), mangrove: mangrove});
+    address mgv = envHas("MANGROVE") ? envAddressOrName("MANGROVE") : fork.get("Mangrove");
+    address governance = envHas("MgvGovernance") ? envAddressOrName("MgvGovernance") : broadcaster();
+
+    innerRun({mangrove: mgv, admin: governance});
+    outputDeployment();
   }
 
   /**
@@ -32,18 +27,19 @@ contract MangroveOrderDeployer is Deployer {
    */
   function innerRun(address admin, address mangrove) public {
     IMangrove mgv = IMangrove(payable(mangrove));
-    console.log("Deploying Mangrove Order...");
-
+    MangroveOrder mgvOrder;
     broadcast();
-    mgv_order = new MangroveOrderEnriched(mgv, admin);
-    fork.set("MangroveOrderEnriched", address(mgv_order));
-    outputDeployment();
-    console.log("Deployed!", address(mgv_order));
-    console.log("Used mangrove is %s", mangrove);
-    smokeTest(mgv_order, mgv);
+    if (forMultisig) {
+      mgvOrder = new MangroveOrder{salt:salt}(mgv, admin, 30_000);
+    } else {
+      mgvOrder = new MangroveOrder(mgv, admin, 30_000);
+    }
+    fork.set("MangroveOrder", address(mgvOrder));
+    fork.set("MangroveOrder-Router", address(mgvOrder.router()));
+    smokeTest(mgvOrder, mgv);
   }
 
-  function smokeTest(MangroveOrderEnriched mgvOrder, IMangrove mgv) internal view {
+  function smokeTest(MangroveOrder mgvOrder, IMangrove mgv) internal view {
     require(mgvOrder.MGV() == mgv, "Incorrect Mangrove address");
   }
 }

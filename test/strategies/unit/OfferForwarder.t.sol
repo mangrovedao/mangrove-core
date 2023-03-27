@@ -61,7 +61,8 @@ contract OfferForwarderTest is OfferLogicTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: makerContract.offerGasreq()
     });
     uint derived_gp = mgv.offerDetails(address(weth), address(usdc), offerId).gasprice();
     uint gasbase = mgv.offerDetails(address(weth), address(usdc), offerId).offer_gasbase();
@@ -80,7 +81,8 @@ contract OfferForwarderTest is OfferLogicTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: makerContract.offerGasreq()
     });
     uint old_gasprice = mgv.offerDetails(address(weth), address(usdc), offerId).gasprice();
     vm.prank(owner);
@@ -90,7 +92,8 @@ contract OfferForwarderTest is OfferLogicTest {
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
       pivotId: 0,
-      offerId: offerId
+      offerId: offerId,
+      gasreq: makerContract.offerGasreq()
     });
     assertTrue(
       old_gasprice < mgv.offerDetails(address(weth), address(usdc), offerId).gasprice(),
@@ -107,7 +110,8 @@ contract OfferForwarderTest is OfferLogicTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: makerContract.offerGasreq()
     });
     result.mgvData = "anythingButSuccess";
     result.makerData = "failReason";
@@ -133,7 +137,8 @@ contract OfferForwarderTest is OfferLogicTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: makerContract.offerGasreq()
     });
     // revoking Mangrove's approvals to make `offerId` fail
     vm.prank(deployer);
@@ -168,7 +173,8 @@ contract OfferForwarderTest is OfferLogicTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: makerContract.offerGasreq()
     });
     assertEq(forwarder.ownerOf(weth, usdc, offerId), owner, "Invalid makership relation");
   }
@@ -185,23 +191,24 @@ contract OfferForwarderTest is OfferLogicTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: makerContract.offerGasreq()
     });
     assertEq(next_id, offerId, "Unexpected offer id");
   }
 
   function test_provision_too_high_reverts() public {
+    uint gasreq = makerContract.offerGasreq();
     vm.expectRevert("Forwarder/provisionTooHigh");
-
-    vm.startPrank(owner);
+    vm.prank(owner);
     makerContract.newOffer{value: 10 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: gasreq
     });
-    vm.stopPrank();
   }
 
   function test_updateOffer_with_no_funds_preserves_gasprice() public {
@@ -211,7 +218,8 @@ contract OfferForwarderTest is OfferLogicTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: makerContract.offerGasreq()
     });
     vm.stopPrank();
     MgvStructs.OfferDetailPacked detail = mgv.offerDetails($(weth), $(usdc), offerId);
@@ -224,7 +232,8 @@ contract OfferForwarderTest is OfferLogicTest {
       wants: 2000 * 10 ** 6,
       gives: 1.1 ether,
       pivotId: 0,
-      offerId: offerId
+      offerId: offerId,
+      gasreq: makerContract.offerGasreq()
     });
     vm.stopPrank();
     detail = mgv.offerDetails($(weth), $(usdc), offerId);
@@ -238,7 +247,8 @@ contract OfferForwarderTest is OfferLogicTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: makerContract.offerGasreq()
     });
     vm.stopPrank();
     MgvStructs.OfferDetailPacked detail = mgv.offerDetails($(weth), $(usdc), offerId);
@@ -250,7 +260,8 @@ contract OfferForwarderTest is OfferLogicTest {
       wants: 2000 * 10 ** 6,
       gives: 1.1 ether,
       pivotId: 0,
-      offerId: offerId
+      offerId: offerId,
+      gasreq: makerContract.offerGasreq()
     });
     vm.stopPrank();
     detail = mgv.offerDetails($(weth), $(usdc), offerId);
@@ -264,35 +275,37 @@ contract OfferForwarderTest is OfferLogicTest {
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: makerContract.offerGasreq()
     });
     vm.stopPrank();
     address new_maker = freshAddress("New maker");
     vm.deal(new_maker, 1 ether);
-    vm.prank(new_maker);
+    vm.startPrank(new_maker);
     uint offerId_ = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: makerContract.offerGasreq()
     });
+    vm.stopPrank();
     assertEq(forwarder.ownerOf(weth, usdc, offerId_), new_maker, "Incorrect maker");
     assertEq(forwarder.ownerOf(weth, usdc, offerId), owner, "Incorrect maker");
   }
 
   function test_put_fail_reverts_with_expected_reason() public {
     MgvLib.SingleOrder memory order;
-    vm.prank(owner);
+    vm.startPrank(owner);
     uint offerId = makerContract.newOffer{value: 0.1 ether}({
       outbound_tkn: weth,
       inbound_tkn: usdc,
       wants: 2000 * 10 ** 6,
       gives: 1 ether,
-      pivotId: 0
+      pivotId: 0,
+      gasreq: makerContract.offerGasreq()
     });
-
-    vm.startPrank(owner);
     usdc.approve($(makerContract.router()), 0);
     vm.stopPrank();
 

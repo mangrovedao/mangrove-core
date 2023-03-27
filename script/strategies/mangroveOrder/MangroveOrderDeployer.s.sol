@@ -14,25 +14,9 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
   You can specify a mangrove address with the MANGROVE env var.*/
 contract MangroveOrderDeployer is Deployer {
-  MangroveOrder mgvOrder;
-
   function run() public {
-    address mgv;
-    try vm.envAddress("MANGROVE") returns (address _mangrove) {
-      mgv = _mangrove;
-    } catch (bytes memory) {
-      mgv = fork.get("Mangrove");
-    }
-    address governance;
-    try vm.envAddress("MgvGovernance") returns (address _governance) {
-      governance = _governance;
-    } catch (bytes memory) {
-      try fork.get("MgvGovernance") returns (address payable _governance) {
-        governance = _governance;
-      } catch (bytes memory) {
-        governance = broadcaster();
-      }
-    }
+    address mgv = envHas("MANGROVE") ? envAddressOrName("MANGROVE") : fork.get("Mangrove");
+    address governance = envHas("MgvGovernance") ? envAddressOrName("MgvGovernance") : broadcaster();
 
     innerRun({mangrove: mgv, admin: governance});
     outputDeployment();
@@ -42,13 +26,20 @@ contract MangroveOrderDeployer is Deployer {
    * @param admin address of the admin on MangroveOrder after deployment
    */
   function innerRun(address admin, address mangrove) public {
+    IMangrove mgv = IMangrove(payable(mangrove));
+    MangroveOrder mgvOrder;
     broadcast();
     if (forMultisig) {
-      mgvOrder = new MangroveOrder{salt:salt}(IMangrove(payable(mangrove)), admin, 30_000);
+      mgvOrder = new MangroveOrder{salt:salt}(mgv, admin, 30_000);
     } else {
-      mgvOrder = new MangroveOrder(IMangrove(payable(mangrove)), admin, 30_000);
+      mgvOrder = new MangroveOrder(mgv, admin, 30_000);
     }
     fork.set("MangroveOrder", address(mgvOrder));
     fork.set("MangroveOrder-Router", address(mgvOrder.router()));
+    smokeTest(mgvOrder, mgv);
+  }
+
+  function smokeTest(MangroveOrder mgvOrder, IMangrove mgv) internal view {
+    require(mgvOrder.MGV() == mgv, "Incorrect Mangrove address");
   }
 }

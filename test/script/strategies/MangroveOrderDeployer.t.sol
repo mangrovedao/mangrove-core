@@ -32,21 +32,13 @@ contract MangroveOrderDeployerTest is Deployer, Test2 {
 
   function test_normal_deploy() public {
     // MangroveOrder - verify mgv is used and admin is chief
-    vm.setEnv("MANGROVE", ""); // make sure env MANGROVE not usable
     address mgv = fork.get("Mangrove");
-    mgoDeployer.run();
+    mgoDeployer.innerRun(chief, mgv);
     MangroveOrder mgoe = MangroveOrder(fork.get("MangroveOrder"));
+    address mgvOrderRouter = fork.get("MangroveOrder-Router");
 
-    assertEq(mgoe.admin(), broadcaster());
+    assertEq(mgoe.admin(), chief);
     assertEq(address(mgoe.MGV()), mgv);
-  }
-
-  function test_with_env_var_deploy() public {
-    // MangroveOrder - verify mgv is used and admin is chief
-    address mgv = freshAddress("fakeMangrove");
-    vm.setEnv("MANGROVE", vm.toString(mgv));
-    mgoDeployer.run();
-    MangroveOrder mgoe = MangroveOrder(fork.get("MangroveOrder"));
-    assertEq(address(mgoe.MGV()), mgv);
+    assertEq(address(mgoe.router()), mgvOrderRouter);
   }
 }

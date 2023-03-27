@@ -176,6 +176,9 @@ jobs:
     # == check docs can be created ==
     - run: yarn run doc
 
+    # == check precommit works ==
+    - run: yarn run precommit
+
     - name: Report Failure to Slack
       if: ${{ failure() && fromJSON(env.NOTIFY_SLACK_FOR_THIS_WORKFLOW_RUN) }}
       uses: ravsamhq/notify-slack-action@v2

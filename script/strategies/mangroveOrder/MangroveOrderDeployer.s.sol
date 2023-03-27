@@ -14,37 +14,41 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
   You can specify a mangrove address with the MANGROVE env var.*/
 contract MangroveOrderDeployer is Deployer {
-  MangroveOrder mgv_order;
+  MangroveOrder mgvOrder;
 
   function run() public {
-    address mangrove;
-    // optionally read mangrove from environment
+    address mgv;
     try vm.envAddress("MANGROVE") returns (address _mangrove) {
-      mangrove = _mangrove;
+      mgv = _mangrove;
     } catch (bytes memory) {
-      mangrove = fork.get("Mangrove");
+      mgv = fork.get("Mangrove");
     }
-    innerRun({admin: broadcaster(), mangrove: mangrove});
+    address governance;
+    try vm.envAddress("MgvGovernance") returns (address _governance) {
+      governance = _governance;
+    } catch (bytes memory) {
+      try fork.get("MgvGovernance") returns (address payable _governance) {
+        governance = _governance;
+      } catch (bytes memory) {
+        governance = broadcaster();
+      }
+    }
+
+    innerRun({mangrove: mgv, admin: governance});
+    outputDeployment();
   }
 
   /**
    * @param admin address of the admin on MangroveOrder after deployment
    */
   function innerRun(address admin, address mangrove) public {
-    IMangrove mgv = IMangrove(payable(mangrove));
-    console.log("Deploying Mangrove Order...");
-
     broadcast();
-    mgv_order = new MangroveOrder(mgv, admin, 30_000);
-    fork.set("MangroveOrder", address(mgv_order));
-    fork.set("MangroveOrder-Router", address(mgv_order.router()));
-    outputDeployment();
-    console.log("Deployed!", address(mgv_order));
-    console.log("Used mangrove is %s", mangrove);
-    smokeTest(mgv_order, mgv);
-  }
-
-  function smokeTest(MangroveOrder mgvOrder, IMangrove mgv) internal view {
-    require(mgvOrder.MGV() == mgv, "Incorrect Mangrove address");
+    if (forMultisig) {
+      mgvOrder = new MangroveOrder{salt:salt}(IMangrove(payable(mangrove)), admin, 30_000);
+    } else {
+      mgvOrder = new MangroveOrder(IMangrove(payable(mangrove)), admin, 30_000);
+    }
+    fork.set("MangroveOrder", address(mgvOrder));
+    fork.set("MangroveOrder-Router", address(mgvOrder.router()));
   }
 }

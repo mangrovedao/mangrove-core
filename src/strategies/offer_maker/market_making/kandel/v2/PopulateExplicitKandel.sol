@@ -1,8 +1,8 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 
-// CoreKandel.sol
+// ExplicitKandel.sol
 
-// Copyright (c) 2022 ADDMA. All rights reserved.
+// Copyright (c) 2023 ADDMA. All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -11,33 +11,37 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-import {MgvLib} from "mgv_src/MgvLib.sol";
-import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {DirectWithBidsAndAsksDistribution} from "./DirectWithBidsAndAsksDistribution.sol";
-import {TradesBaseQuotePair, OfferType} from "../abstract/TradesBaseQuotePair.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
+import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 import {AbstractKandel} from "../abstract/AbstractKandel.sol";
+import {TradesBaseQuotePair} from "../abstract/TradesBaseQuotePair.sol";
+import {ExplicitKandel, OfferType} from "./ExplicitKandel.sol";
+import {Direct, AbstractRouter} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
-///@title the core of Kandel strategies which creates or updates a dual offer whenever an offer is taken.
-///@notice `CoreKandel` is agnostic to the chosen price distribution.
-abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuotePair, AbstractKandel {
-  ///@notice Constructor
-  ///@param mgv The Mangrove deployment.
-  ///@param base Address of the base token of the market Kandel will act on
-  ///@param quote Address of the quote token of the market Kandel will act on
-  ///@param gasreq the gasreq to use for offers
-  ///@param reserveId identifier of this contract's reserve when using a router.
-  constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, address reserveId)
-    TradesBaseQuotePair(base, quote)
-    DirectWithBidsAndAsksDistribution(mgv, gasreq, reserveId)
-  {}
+///@title Explicit Kandel contract
 
-  ///@inheritdoc AbstractKandel
-  function reserveBalance(OfferType ba) public view virtual override returns (uint balance) {
-    IERC20 token = outboundOfOfferType(ba);
-    return token.balanceOf(address(this));
-  }
+abstract contract PopulateExplicitKandel is ExplicitKandel {
+  ///@notice logs the start of a call to populate
+  event PopulateStart();
+  ///@notice logs the end of a call to populate
+  event PopulateEnd();
+
+  ///@notice logs the start of a call to retractOffers
+  event RetractStart();
+  ///@notice logs the end of a call to retractOffers
+  event RetractEnd();
+
+  constructor(
+    IMangrove mgv,
+    AbstractRouter router_,
+    uint gasreq,
+    uint gasprice,
+    address reserveId,
+    uint[] memory bidPrices,
+    uint[] memory askPrices
+  ) ExplicitKandel(mgv, router_, gasreq, gasprice, reserveId, bidPrices, askPrices) {}
 
   ///@notice takes care of status for populating dual and logging of potential issues.
   ///@param offerId the Mangrove offer id (or 0 if newOffer failed).
@@ -58,29 +62,108 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
     }
   }
 
-  ///@notice update or create dual offer according to transport logic
-  ///@param order is a recall of the taker order that is at the origin of the current trade.
-  function transportSuccessfulOrder(MgvLib.SingleOrder calldata order) internal {
-    OfferType ba = offerTypeOfOutbound(IERC20(order.outbound_tkn));
-
-    // adds any unpublished liquidity to pending[Base/Quote]
-    // preparing arguments for the dual offer
-    (OfferType baDual, uint offerId, uint index, OfferArgs memory args) = transportLogic(ba, order);
-    bytes32 populateStatus = populateIndex(baDual, offerId, index, args);
-    logPopulateStatus(offerId, args, populateStatus);
+  ///@param indices the indices to populate, in ascending order
+  ///@param baseDist base distribution for the indices (the `wants` for bids and the `gives` for asks)
+  ///@param quoteDist the distribution of quote for the indices (the `gives` for bids and the `wants` for asks)
+  struct Distribution {
+    uint[] indices;
+    uint[] baseDist;
+    uint[] quoteDist;
   }
 
-  ///@notice transport logic followed by Kandel
-  ///@param ba whether the offer that was executed is a bid or an ask
-  ///@param order a recap of the taker order (order.offer is the executed offer)
-  ///@return baDual the type of dual offer that will re-invest inbound liquidity
-  ///@return offerId the offer id of the dual offer
-  ///@return index the index of the dual offer
-  ///@return args the argument for `populateIndex` specifying gives and wants
-  function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
-    internal
-    virtual
-    returns (OfferType baDual, OfferStatus memory, PriceIndex memory, OfferArgs memory args);
+  ///@notice Publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
+  ///@param distribution the distribution of base and quote for indices.
+  ///@param pivotIds the pivots to be used for the offers.
+  ///@param firstAskIndex the (inclusive) index after which offer should be an ask.
+  ///@param gasreq the amount of gas units that are required to execute the trade.
+  ///@param gasprice the gasprice used to compute offer's provision.
+  function populateChunk_(
+    Distribution calldata distribution,
+    uint[] calldata pivotIds,
+    uint firstAskIndex,
+    uint gasreq,
+    uint gasprice
+  ) internal {
+    emit PopulateStart();
+    uint[] calldata indices = distribution.indices;
+    uint[] calldata quoteDist = distribution.quoteDist;
+    uint[] calldata baseDist = distribution.baseDist;
+
+    uint i;
+
+    OfferArgs memory args;
+    // args.fund = 0; offers are already funded
+    // args.noRevert = false; we want revert in case of failure
+
+    (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(OfferType.Bid);
+    for (; i < indices.length; ++i) {
+      uint index = indices[i];
+      if (index >= firstAskIndex) {
+        break;
+      }
+      args.wants = baseDist[i];
+      args.gives = quoteDist[i];
+      args.gasreq = gasreq;
+      args.gasprice = gasprice;
+      args.pivotId = pivotIds[i];
+
+      populateIndex(OfferType.Bid, offerStatusOfIndex_[index], index, args);
+    }
+
+    (args.outbound_tkn, args.inbound_tkn) = (args.inbound_tkn, args.outbound_tkn);
+
+    for (; i < indices.length; ++i) {
+      uint index = indices[i];
+      args.wants = quoteDist[i];
+      args.gives = baseDist[i];
+      args.gasreq = gasreq;
+      args.gasprice = gasprice;
+      args.pivotId = pivotIds[i];
+
+      populateIndex(OfferType.Ask, offerStatusOfIndex_[index], index, args);
+    }
+    emit PopulateEnd();
+  }
+
+  ///@notice retracts and deprovisions offers of the distribution interval `[from, to[`.
+  ///@param from the start index.
+  ///@param to the end index.
+  ///@dev use in conjunction of `withdrawFromMangrove` if the user wishes to redeem the available WEIs.
+  function retractOffers(uint from, uint to) public onlyAdmin {
+    emit RetractStart();
+    (IERC20 outbound_tknAsk, IERC20 inbound_tknAsk) = tokenPairOfOfferType(OfferType.Ask);
+    (IERC20 outbound_tknBid, IERC20 inbound_tknBid) = (inbound_tknAsk, outbound_tknAsk);
+    for (uint index = from; index < to; ++index) {
+      // These offerIds could be recycled in a new populate
+      uint offerId = offerIdOfIndex(OfferType.Ask, index);
+      if (offerId != 0) {
+        _retractOffer(outbound_tknAsk, inbound_tknAsk, offerId, true);
+      }
+      offerId = offerIdOfIndex(OfferType.Bid, index);
+      if (offerId != 0) {
+        _retractOffer(outbound_tknBid, inbound_tknBid, offerId, true);
+      }
+    }
+    emit RetractEnd();
+  }
+
+  ///@inheritdoc AbstractKandel
+  function reserveBalance(OfferType ba) public view virtual override returns (uint balance) {
+    IERC20 token = outboundOfOfferType(ba);
+    return token.balanceOf(address(this));
+  }
+
+  /// @notice gets the total gives of all offers of the offer type.
+  /// @param ba offer type.
+  /// @return volume the total gives of all offers of the offer type.
+  /// @dev function is very gas costly, for external calls only.
+  function offeredVolume(OfferType ba) public view returns (uint volume) {
+    for (uint index = 0; index < LENGTH; ++index) {
+      (IERC20 outbound, IERC20 inbound) = tokenPairOfOfferType(ba);
+      MgvStructs.OfferPacked offer = MGV.offers(address(outbound), address(inbound), offerIdOfIndex(ba, index));
+      volume += offer.gives();
+    }
+  }
 
   /// @notice gets pending liquidity for base (ask) or quote (bid). Will be negative if funds are not enough to cover all offer's promises.
   /// @param ba offer type.

@@ -22,12 +22,13 @@ contract ExplicitKandelState {
   event SetIndexMapping(OfferType indexed ba, uint index, uint offerId);
 
   uint public constant PRICE_DECIMALS = 18;
+  uint public immutable LENGTH;
   uint internal immutable INIT_GASREQ;
   uint internal immutable INIT_GASPRICE;
 
   struct PriceIndex {
     uint16 index;
-    uint136 price; //price of dual offer
+    uint136 dualPrice; //price of dual offer
   }
 
   struct OfferStatus {
@@ -45,9 +46,13 @@ contract ExplicitKandelState {
   uint[] internal initialBidPrices_;
   uint[] internal initialAskPrices_;
 
-  constructor(uint gasreq, uint gasprice) {
+  constructor(uint gasreq, uint gasprice, uint[] memory bidPrices, uint[] memory askPrices) {
     INIT_GASREQ = gasreq;
     INIT_GASPRICE = gasprice;
+    require(askPrices.length == bidPrices.length, "ExplicitKandel/invalidPrices");
+    LENGTH = askPrices.length;
+    initialAskPrices_ = askPrices;
+    initialBidPrices_ = bidPrices;
   }
 
   // getter
@@ -56,11 +61,12 @@ contract ExplicitKandelState {
   }
 
   // setter
+
   function setIndexMapping(OfferType ba, uint index, uint offerId) internal {
     PriceIndex memory p;
     p.index = uint16(index);
     // price stored is the dual offer's price
-    p.price = uint136(ba == OfferType.Ask ? initialBidPrices_[index] : initialAskPrices_[index]);
+    p.dualPrice = uint136(ba == OfferType.Ask ? initialBidPrices_[index] : initialAskPrices_[index]);
     if (ba == OfferType.Ask) {
       priceIndexOfAskOfferId_[offerId] = p;
     } else {

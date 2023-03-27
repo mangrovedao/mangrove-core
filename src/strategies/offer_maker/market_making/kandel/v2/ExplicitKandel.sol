@@ -14,34 +14,51 @@ pragma solidity ^0.8.10;
 import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
-import {ExplicitKandelState} from "./ExplicitKandelState.sol";
-import {CoreKandel, OfferType} from "./CoreKandel.sol";
+import {AbstractKandel} from "../abstract/AbstractKandel.sol";
+import {TradesBaseQuotePair} from "../abstract/TradesBaseQuotePair.sol";
+import {ExplicitKandelState, OfferType} from "./ExplicitKandelState.sol";
+import {Direct, AbstractRouter} from "mgv_src/strategies/offer_maker/abstract/Direct.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
-///@title Explicit Kandel storage
+///@title Explicit Kandel contract
 
-abstract contract ExplicitKandel is ExplicitKandelState, CoreKandel {
-  constructor(uint gasreq, uint gasprice) ExplicitKandelState(gasreq, gasprice) {}
+abstract contract ExplicitKandel is AbstractKandel, TradesBaseQuotePair, ExplicitKandelState, Direct {
+  ///@notice The offer has too low volume to be posted.
+  bytes32 internal constant LOW_VOLUME = "Kandel/volumeTooLow";
 
-  function dualWantsGivesOfOffer(
-    OfferType ba,
-    uint dualOfferGives,
-    MgvLib.SingleOrder calldata order,
-    PriceIndex memory dualPriceIndex
-  ) internal pure returns (uint wants, uint gives) {
+  constructor(
+    IMangrove mgv,
+    AbstractRouter router_,
+    uint gasreq,
+    uint gasprice,
+    address reserveId,
+    uint[] memory bidPrices,
+    uint[] memory askPrices
+  ) ExplicitKandelState(gasreq, gasprice, bidPrices, askPrices) Direct(mgv, router_, gasreq, reserveId) {}
+
+  ///@notice returns wants and gives for the offer dual to the offer that is matched by the order given in argument
+  ///@param ba the type of the offer matched by the taker order
+  ///@param dualOfferGives what the dual offer already gives (including pending)
+  ///@param order a recap of the taker order
+  ///@param dualPrice the price at which the dual offer should be posted
+  function dualWantsGivesOfOffer(OfferType ba, uint dualOfferGives, MgvLib.SingleOrder calldata order, uint dualPrice)
+    internal
+    pure
+    returns (uint wants, uint gives)
+  {
     gives = dualOfferGives + order.gives;
     if (ba == OfferType.Bid) {
       // dual offer is an Ask so wants quote tokens
-      wants = gives * dualPriceIndex.price / 10 ** PRICE_DECIMALS;
+      wants = gives * dualPrice / 10 ** PRICE_DECIMALS;
     } else {
       // dual offer is a Bid so wants base tokens
-      wants = gives * (10 ** PRICE_DECIMALS / dualPriceIndex.price);
+      wants = gives * (10 ** PRICE_DECIMALS / dualPrice);
     }
   }
 
   function transportLogic(OfferType ba, MgvLib.SingleOrder calldata order)
     internal
     view
-    override
     returns (OfferType, OfferStatus memory, PriceIndex memory, OfferArgs memory)
   {
     mapping(uint => PriceIndex) storage dualPriceOfOfferId =
@@ -56,11 +73,45 @@ abstract contract ExplicitKandel is ExplicitKandelState, CoreKandel {
     (args.outbound_tkn, args.inbound_tkn) = tokenPairOfOfferType(dual(ba));
     // if OfferId == 0, dualOffer below has 0s everywhere
     MgvStructs.OfferPacked dualOffer = MGV.offers(address(args.outbound_tkn), address(args.inbound_tkn), dualOfferId);
-    (args.wants, args.gives) = dualWantsGivesOfOffer(ba, dualOffer.gives() + s.pending, order, p);
+    (args.wants, args.gives) = dualWantsGivesOfOffer(ba, dualOffer.gives() + s.pending, order, p.dualPrice);
     args.gasprice = s.gasprice;
     args.gasreq = s.gasreq;
     args.noRevert = true;
     args.pivotId = dualOffer.gives() > 0 ? dualOffer.next() : 0;
     return (dual(ba), s, p, args);
+  }
+
+  function populateIndex(OfferType ba, OfferStatus memory s, PriceIndex memory p, OfferArgs memory args)
+    internal
+    returns (bytes32 result)
+  {
+    uint offerId = ba == OfferType.Ask ? s.askId : s.bidId;
+    if (offerId == 0) {
+      if (args.gives > 0 && args.wants > 0) {
+        // create offer
+        (offerId, result) = _newOffer(args);
+        if (offerId != 0) {
+          // adds the mapping  offerId => {p.index, dualBaPrice} to priceIndexOf[ba]OfferId
+          setIndexMapping(ba, p.index, offerId);
+        }
+      } else {
+        // else offerId && gives are 0 and the offer is left not posted
+        result = LOW_VOLUME;
+      }
+    }
+    // else offer exists
+    else {
+      // but the offer should be dead since gives is 0
+      if (args.gives == 0 || args.wants == 0) {
+        // This may happen in the following cases:
+        // * `gives == 0` may not come from `DualWantsGivesOfOffer` computation, but `wants==0` might.
+        // * `gives == 0` may happen from populate in case of re-population where the offers in the spread are then retracted by setting gives to 0.
+        _retractOffer(args.outbound_tkn, args.inbound_tkn, offerId, false);
+        result = LOW_VOLUME;
+      } else {
+        // so the offer exists and it should, we simply update it with potentially new volume
+        result = _updateOffer(args, offerId);
+      }
+    }
   }
 }

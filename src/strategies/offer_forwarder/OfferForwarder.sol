@@ -49,7 +49,6 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
     );
   }
 
-  /// @inheritdoc ILiquidityProvider
   function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
     public
     payable
@@ -89,7 +88,6 @@ contract OfferForwarder is ILiquidityProvider, Forwarder {
   function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
     public
     payable
-    override
     onlyOwner(outbound_tkn, inbound_tkn, offerId)
   {
     updateOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerId, offerGasreq());

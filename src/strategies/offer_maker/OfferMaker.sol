@@ -50,11 +50,9 @@ contract OfferMaker is ILiquidityProvider, Direct {
     );
   }
 
-  ///@inheritdoc ILiquidityProvider
   function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
     external
     payable
-    override
     onlyAdmin
     returns (uint offerId)
   {
@@ -87,11 +85,9 @@ contract OfferMaker is ILiquidityProvider, Direct {
     );
   }
 
-  ///@inheritdoc ILiquidityProvider
   function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
     external
     payable
-    override
     onlyAdmin
   {
     updateOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerId, offerGasreq());

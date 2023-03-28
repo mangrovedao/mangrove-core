@@ -30,17 +30,6 @@ contract OfferMakerTutorialResidual is Direct, ILiquidityProvider {
   //--------------
 
   ///@inheritdoc ILiquidityProvider
-  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
-    public
-    payable
-    override
-    onlyAdmin
-    returns (uint offerId)
-  {
-    return newOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerGasreq());
-  }
-
-  ///@inheritdoc ILiquidityProvider
   function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint gasreq)
     public
     payable
@@ -87,16 +76,6 @@ contract OfferMakerTutorialResidual is Direct, ILiquidityProvider {
       }),
       offerId
     );
-  }
-
-  ///@inheritdoc ILiquidityProvider
-  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
-    public
-    payable
-    override
-    adminOrCaller(address(MGV))
-  {
-    return updateOffer(outbound_tkn, inbound_tkn, wants, gives, pivotId, offerId, offerGasreq());
   }
 
   ///@inheritdoc ILiquidityProvider

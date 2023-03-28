@@ -18,18 +18,6 @@ import {IOfferLogic} from "./IOfferLogic.sol";
 ///@title Completes IOfferLogic to provide an ABI for LiquidityProvider class of Mangrove's SDK
 
 interface ILiquidityProvider is IOfferLogic {
-  ///@notice creates a new offer on Mangrove.
-  ///@param outbound_tkn the outbound token of the offer list of the offer
-  ///@param inbound_tkn the outbound token of the offer list of the offer
-  ///@param wants the amount of outbound tokens the offer maker requires for a complete fill
-  ///@param gives the amount of inbound tokens the offer maker gives for a complete fill
-  ///@param pivotId the pivot to use for inserting the offer in the list
-  ///@return offerId the Mangrove offer id.
-  function newOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId)
-    external
-    payable
-    returns (uint offerId);
-
   ///@notice creates a new offer on Mangrove with an override for gas requirement
   ///@param outbound_tkn the outbound token of the offer list of the offer
   ///@param inbound_tkn the outbound token of the offer list of the offer
@@ -42,17 +30,6 @@ interface ILiquidityProvider is IOfferLogic {
     external
     payable
     returns (uint offerId);
-
-  ///@notice updates an offer existing on Mangrove (not necessarily live).
-  ///@param outbound_tkn the outbound token of the offer list of the offer
-  ///@param inbound_tkn the outbound token of the offer list of the offer
-  ///@param wants the new amount of outbound tokens the offer maker requires for a complete fill
-  ///@param gives the new amount of inbound tokens the offer maker gives for a complete fill
-  ///@param pivotId the pivot to use for re-inserting the offer in the list (use `offerId` if updated offer is live)
-  ///@param offerId the id of the offer in the offer list.
-  function updateOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint wants, uint gives, uint pivotId, uint offerId)
-    external
-    payable;
 
   ///@notice updates an offer existing on Mangrove (not necessarily live) with an override for gas requirement
   ///@param outbound_tkn the outbound token of the offer list of the offer

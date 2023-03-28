@@ -40,6 +40,10 @@ contract AaveKandelTest is CoreKandelTest {
     } else {
       super.__setForkEnvironment__();
       aave = address(new PoolAddressProviderMock(dynamic([address(base), address(quote)])));
+
+      // Assume tokens behave weirdly here
+      base.transferResponse(TestToken.MethodResponse.MissingReturn);
+      quote.approveResponse(TestToken.MethodResponse.MissingReturn);
     }
   }
 

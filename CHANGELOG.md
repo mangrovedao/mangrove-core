@@ -1,5 +1,10 @@
 # next version
 
+# 1.4.6-1 (March 2023)
+
+- Remove MangroveOrderEnriched
+- Deploy MangroveOrder and Kandel seeders
+
 # 1.4.6-0 (March 2023)
 
 - Include no_env_vars config section

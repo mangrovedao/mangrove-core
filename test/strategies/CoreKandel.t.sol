@@ -5,7 +5,7 @@ import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
 import {OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/TradesBaseQuotePair.sol";
-import {CoreKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
+import {CoreKandel, TransferLib} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
 import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 import {console} from "forge-std/Test.sol";
@@ -54,6 +54,7 @@ abstract contract CoreKandelTest is MangroveTest {
     options.quote.decimals = 6;
     options.defaultFee = 30;
     options.gasprice = 40;
+
     MangroveTest.setUp();
   }
 
@@ -71,9 +72,9 @@ abstract contract CoreKandelTest is MangroveTest {
 
     // taker approves mangrove to be able to take offers
     vm.prank(taker);
-    base.approve($(mgv), type(uint).max);
+    TransferLib.approveToken(base, $(mgv), type(uint).max);
     vm.prank(taker);
-    quote.approve($(mgv), type(uint).max);
+    TransferLib.approveToken(quote, $(mgv), type(uint).max);
 
     // deploy and activate
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
@@ -89,9 +90,9 @@ abstract contract CoreKandelTest is MangroveTest {
 
     // maker approves Kandel to be able to deposit funds on it
     vm.prank(maker);
-    base.approve(address(kdl), type(uint).max);
+    TransferLib.approveToken(base, address(kdl), type(uint).max);
     vm.prank(maker);
-    quote.approve(address(kdl), type(uint).max);
+    TransferLib.approveToken(quote, address(kdl), type(uint).max);
 
     uint24 ratio = uint24(108 * 10 ** kdl.PRECISION() / 100);
 
@@ -1466,8 +1467,8 @@ abstract contract CoreKandelTest is MangroveTest {
   function test_depositFunds(uint96 baseAmount, uint96 quoteAmount) public {
     deal($(base), address(this), baseAmount);
     deal($(quote), address(this), quoteAmount);
-    base.approve($(kdl), baseAmount);
-    quote.approve($(kdl), quoteAmount);
+    TransferLib.approveToken(base, $(kdl), baseAmount);
+    TransferLib.approveToken(quote, $(kdl), quoteAmount);
 
     uint quoteBalance = kdl.reserveBalance(Bid);
     uint baseBalance = kdl.reserveBalance(Ask);
@@ -1489,8 +1490,8 @@ abstract contract CoreKandelTest is MangroveTest {
   function test_withdrawFunds(uint96 baseAmount, uint96 quoteAmount) public {
     deal($(base), address(this), baseAmount);
     deal($(quote), address(this), quoteAmount);
-    base.approve($(kdl), baseAmount);
-    quote.approve($(kdl), quoteAmount);
+    TransferLib.approveToken(base, $(kdl), baseAmount);
+    TransferLib.approveToken(quote, $(kdl), quoteAmount);
 
     kdl.depositFunds(baseAmount, quoteAmount);
 
@@ -1503,8 +1504,8 @@ abstract contract CoreKandelTest is MangroveTest {
   function test_withdrawAll() public {
     deal($(base), address(this), 1 ether);
     deal($(quote), address(this), 100 * 10 ** 6);
-    base.approve($(kdl), 1 ether);
-    quote.approve($(kdl), 100 * 10 ** 6);
+    TransferLib.approveToken(base, $(kdl), 1 ether);
+    TransferLib.approveToken(quote, $(kdl), 100 * 10 ** 6);
 
     kdl.depositFunds(1 ether, 100 * 10 ** 6);
     uint quoteBalance = kdl.reserveBalance(Bid);
@@ -1560,9 +1561,9 @@ abstract contract CoreKandelTest is MangroveTest {
     GeometricKandel otherKandel = __deployKandel__(otherMaker, otherMaker);
 
     vm.prank(otherMaker);
-    base.approve(address(otherKandel), type(uint).max);
+    TransferLib.approveToken(base, address(otherKandel), type(uint).max);
     vm.prank(otherMaker);
-    quote.approve(address(otherKandel), type(uint).max);
+    TransferLib.approveToken(quote, address(otherKandel), type(uint).max);
 
     uint totalProvision = (
       reader.getProvision($(base), $(quote), otherKandel.offerGasreq(), bufferedGasprice)

@@ -16,19 +16,27 @@
     "name": "MgvOracle"
   },
   {
-    "address": "0x2286C097031B266cC5A1503B7b78c8E3CeA1Da00",
-    "name": "MangroveOrderEnriched"
-  },
-  {
-    "address": "0xe8904C912ffe1445cFb3f6d6643db6590639910f",
+    "address": "0x3F9f86DC6f5c6210bBEa0654b6688C5cEb65B331",
     "name": "KandelSeeder"
   },
   {
-    "address": "0xAf89adc7B6D8A1cE5447D8bEEBd3f5b189491729",
+    "address": "0xda7B6DaC78bA4fBD697C1D46B76E1D4b01430088",
     "name": "AaveKandelSeeder"
   },
   {
     "address": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",
     "name": "MgvGovernance"
+  },
+  {
+    "address": "0xF511135Bc98D7a5cf694Fa6751322de93e2135dA",
+    "name": "MangroveOrder"
+  },
+  {
+    "address": "0x9AA10fe3AfB439B3Ff47549B34aC5EC1591a1cf2",
+    "name": "MangroveOrder-Router"
+  },
+  {
+    "address": "0xC4C101B7462de98141d4249781BE5Aac5A0ac3c6",
+    "name": "AavePooledRouter"
   }
 ]

@@ -58,7 +58,11 @@ contract KandelSeederDeployer is Deployer {
 
     require(kandel.router() == expectedRouter, "Incorrect router address");
     require(kandel.admin() == address(this), "Incorrect admin");
-    require(kandel.RESERVE_ID() == kandel.admin(), "Incorrect id");
+    if (expectedRouter == kandel.NO_ROUTER()) {
+      require(kandel.RESERVE_ID() == address(kandel), "Incorrect id");
+    } else {
+      require(kandel.RESERVE_ID() == kandel.admin(), "Incorrect id");
+    }
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;
     tokens[1] = quote;

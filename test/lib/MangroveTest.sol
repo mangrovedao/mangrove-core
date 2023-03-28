@@ -9,6 +9,7 @@ import {TrivialTestMaker, TestMaker, OfferData} from "mgv_test/lib/agents/TestMa
 import {MakerDeployer} from "mgv_test/lib/agents/MakerDeployer.sol";
 import {TestMoriartyMaker} from "mgv_test/lib/agents/TestMoriartyMaker.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
@@ -49,12 +50,12 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint density;
   }
 
-  AbstractMangrove mgv;
-  MgvReader reader;
-  TestToken base;
-  TestToken quote;
+  AbstractMangrove internal mgv;
+  MgvReader internal reader;
+  TestToken internal base;
+  TestToken internal quote;
 
-  MangroveTestOptions options = MangroveTestOptions({
+  MangroveTestOptions internal options = MangroveTestOptions({
     invertedMangrove: false,
     base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
@@ -81,18 +82,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   */
   function setUp() public virtual {
     // tokens
-    base = new TestToken(
-      $(this),
-      options.base.name,
-      options.base.symbol,
-      options.base.decimals
-    );
-    quote = new TestToken(
-      $(this),
-      options.quote.name,
-      options.quote.symbol,
-      options.quote.decimals
-    );
+    base = new TestToken($(this), options.base.name, options.base.symbol, options.base.decimals);
+    quote = new TestToken($(this), options.quote.name, options.quote.symbol, options.quote.decimals);
     // mangrove deploy
     mgv = setupMangrove(base, quote, options.invertedMangrove);
     reader = new MgvReader($(mgv));
@@ -102,8 +93,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     //provision mangrove so that testRunner can post offers
     mgv.fund{value: 10 ether}();
     // approve mangrove so that testRunner can take offers on Mangrove
-    base.approve($(mgv), type(uint).max);
-    quote.approve($(mgv), type(uint).max);
+    TransferLib.approveToken(base, $(mgv), type(uint).max);
+    TransferLib.approveToken(quote, $(mgv), type(uint).max);
   }
 
   /* Log order book */

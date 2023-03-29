@@ -3,10 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
-import {AaveKandelSeeder} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandelSeeder.sol";
-import {
-  KandelSeeder, AbstractKandelSeeder
-} from "mgv_src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol";
+import {AbstractKandelSeeder} from "mgv_src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
@@ -41,8 +38,7 @@ contract KandelSower is Deployer {
   function innerRun(address base, address quote, uint gaspriceFactor, bool sharing, bool onAave) public {
     IMangrove mgv = IMangrove(fork.get("Mangrove"));
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    AbstractKandelSeeder seeder =
-      onAave ? AaveKandelSeeder(fork.get("AaveKandelSeeder")) : AaveKandelSeeder(fork.get("KandelSeeder"));
+    AbstractKandelSeeder seeder = AbstractKandelSeeder(onAave ? fork.get("AaveKandelSeeder") : fork.get("KandelSeeder"));
 
     broadcast();
     GeometricKandel kdl = seeder.sow(

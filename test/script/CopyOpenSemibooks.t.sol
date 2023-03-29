@@ -69,7 +69,9 @@ contract CopyOpenSemibooksTest is MangroveTest {
     assertEq(reader2.numOpenMarkets(), 1, "wrong changes in current reader");
     assertEq(reader2.isMarketOpen(tkn0, tkn1), true, "market should be open");
     assertEq(reader2.local(tkn0, tkn1).active(), true, "should be active");
-    assertEq(reader2.local(tkn1, tkn0).active(), false, "should be inactive");
+    if (tkn1 != tkn0) {
+      assertEq(reader2.local(tkn1, tkn0).active(), false, "should be inactive");
+    }
     assertEq(reader2.local(tkn0, tkn1).fee(), expectedFee, "wrong fee");
     assertEq(reader2.local(tkn0, tkn1).density(), expectedDensity, "wrong density");
     assertEq(reader2.local(tkn0, tkn1).offer_gasbase(), expectedOfferGasbase, "wrong gasbase");

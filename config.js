@@ -10,6 +10,7 @@ exports.abi_exports = [
   "AbstractRouter",
   "ICreditDelegationToken",
   "ILiquidityProvider",
+  "IOfferLogic",
   "AccessControlled",
   "AbstractKandel",
   "GeometricKandel",

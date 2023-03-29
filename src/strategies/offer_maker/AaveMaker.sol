@@ -62,7 +62,7 @@ contract AaveMaker is ITesterContract, OfferMaker, AaveV3Borrower {
     _approveLender(token, amount);
   }
 
-  function executeOperation(address token, uint amount, uint fees, address, bytes calldata) external {
+  function executeOperation(address token, uint, /* amount */ uint, /* fees */ address, bytes calldata) external {
     _approveLender(IERC20(token), type(uint).max);
     // console.log("flashloaned %s for a fee of %s", amount, fees);
   }

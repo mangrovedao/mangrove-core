@@ -1,5 +1,11 @@
 # next version
 
+# 1.4.6-2 (March 2023)
+
+- Remove console reference
+- Use TransferLib to enable non-standard ERC20s for tests
+- Export IOfferLogic
+
 # 1.4.6-1 (March 2023)
 
 - Remove MangroveOrderEnriched

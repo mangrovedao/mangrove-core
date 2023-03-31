@@ -148,7 +148,6 @@ contract Test2 is Test, Script2 {
 
   /* stop measuring gas and report */
   function gas_() internal virtual returns (uint) {
-
     vm.pauseGasMetering();
     uint checkpointGasLeft2 = gasleft();
 
@@ -169,6 +168,20 @@ contract Test2 is Test, Script2 {
 
     console2.log("Gas used in: %s: %s", gasLabel, gasDelta);
     // emit log_named_uint(string.concat("Gas used in: ",msg), gasDelta);
+    return gasDelta;
+  }
+
+  function gas_(bool silent) internal virtual returns (uint) {
+    vm.pauseGasMetering();
+    uint checkpointGasLeft2 = gasleft();
+
+    uint gasDelta = checkpointGasLeft - checkpointGasLeft2;
+    vm.resumeGasMetering();
+
+    // emit log_named_uint("Gas used", gasDelta);
+    if (!silent) {
+      console2.log("Gas used: %s", gasDelta);
+    }
     return gasDelta;
   }
 }

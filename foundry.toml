@@ -18,6 +18,7 @@ ffi=true
 [rpc_endpoints]
 polygon="${POLYGON_NODE_URL}"
 mumbai="${MUMBAI_NODE_URL}"
+ethereum="${ETHEREUM_NODE_URL}"
 [etherscan]
 mumbai={key="${POLYGON_API_KEY}"}
 

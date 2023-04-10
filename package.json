@@ -40,7 +40,7 @@
     "micromatch": "^4.0.5",
     "pinst": "^3.0.0",
     "prettier": "^2.8.6",
-    "rimraf": "^4.4.1",
+    "rimraf": "^5.0.0",
     "shelljs": "^0.8.4",
     "solcco": ">=1.0.11",
     "solhint": "^3.4.1",

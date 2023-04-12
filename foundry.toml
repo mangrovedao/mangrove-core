@@ -30,3 +30,9 @@ tab_width=2
 int_types="short"
 number_underscores="thousands"
 ignore = ['lib/**/*.sol','**/vendor/**/*.sol','**/preprocessed/**/*.sol']
+
+# If you use scripts from this repo but don't want to set/use config fields that
+# depend on environment variables, set FOUNDRY_PROFILE=no_env_vars. It's not
+# necessary to reset the [rpc_endpoints] section since it's lazily loaded.
+[profile.no_env_vars.etherscan]
+mumbai={key=""}

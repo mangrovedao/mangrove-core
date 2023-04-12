@@ -21,6 +21,7 @@ mumbai="${MUMBAI_NODE_URL}"
 ethereum="${ETHEREUM_NODE_URL}"
 [etherscan]
 mumbai={key="${POLYGON_API_KEY}"}
+polygon={key="${POLYGON_API_KEY}"}
 
 # The remappings are in remappings.txt so vscode solidity ext. can read them
 # The first lines are the manual remappings

@@ -10,7 +10,7 @@ import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 
 contract MangroveOrder_Test is MangroveTest {
-  uint GASREQ = 30_000;
+  uint constant GASREQ = 30_000;
 
   // to check ERC20 logging
   event Transfer(address indexed from, address indexed to, uint value);
@@ -44,8 +44,8 @@ contract MangroveOrder_Test is MangroveTest {
   function setUp() public override {
     super.setUp();
     // Assume tokens behave weirdly here
-    base.transferResponse(TestToken.MethodResponse.MissingReturn);
-    quote.approveResponse(TestToken.MethodResponse.MissingReturn);
+    // base.transferResponse(TestToken.MethodResponse.MissingReturn);
+    // quote.approveResponse(TestToken.MethodResponse.MissingReturn);
     mgv.setFee($(base), $(quote), 30);
     mgv.setFee($(quote), $(base), 30);
 
@@ -748,5 +748,37 @@ contract MangroveOrder_Test is MangroveTest {
     vm.prank($(buy_taker));
     // complete fill will not lead to a resting order
     mgo.take{value: 0.1 ether}(buyOrder);
+  }
+
+  function test_mockup_gas_cost() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      fillOrKill: false,
+      fillWants: true,
+      takerWants: 2 ether,
+      takerGives: 0.26 ether,
+      restingOrder: true,
+      pivotId: 0,
+      expiryDate: block.timestamp + 60
+    });
+    IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
+    assertTrue(res.offerId > 0, "resting order not posted");
+
+    (MgvLib.SingleOrder memory sellOrder, MgvLib.OrderResult memory result) =
+      mockSellOrder( /*gives base*/ 0.01 ether, 0.0013 ether, 10, base, quote, "");
+    // mock up mgv taker transfer to maker contract
+    base.transfer($(mgo), 0.01 ether);
+    sellOrder.offerId = res.offerId;
+    vm.prank($(mgv));
+    _gas();
+    mgo.makerExecute(sellOrder);
+    uint exec_gas = gas_(true);
+
+    vm.prank($(mgv));
+    _gas();
+    mgo.makerPosthook(sellOrder, result);
+    uint posthook_gas = gas_(true);
+    console.log("makerExecute: %d, makerPosthook:%d", exec_gas, posthook_gas);
   }
 }

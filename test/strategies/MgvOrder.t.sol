@@ -774,11 +774,12 @@ contract MangroveOrder_Test is MangroveTest {
     _gas();
     mgo.makerExecute(sellOrder);
     uint exec_gas = gas_(true);
-
     vm.prank($(mgv));
     _gas();
     mgo.makerPosthook(sellOrder, result);
     uint posthook_gas = gas_(true);
-    console.log("makerExecute: %d, makerPosthook:%d", exec_gas, posthook_gas);
+    console.log(
+      "MgvOrder's logic is %d (makerExecute: %d, makerPosthook:%d)", exec_gas + posthook_gas, exec_gas, posthook_gas
+    );
   }
 }

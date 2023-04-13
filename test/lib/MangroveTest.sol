@@ -145,9 +145,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     TestToken req_tk = TestToken($in);
     TestToken ofr_tk = TestToken($out);
 
-    console.log(
-      string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────")
-    );
+    console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
     while (offerId != 0) {
       (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo($out, $in, offerId);
       console.log(
@@ -406,6 +404,37 @@ contract MangroveTest is Test2, HasMgvEvents {
       vm.prank(allowed[i]);
       (bool success,) = callee.call(data);
       assertTrue(success, "function should not revert");
+    }
+  }
+
+  function densify(
+    address outbound,
+    address inbound,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint pivotId,
+    uint fold,
+    address caller
+  ) internal {
+    if (gives == 0) {
+      return;
+    }
+    uint prov = reader.getProvision(outbound, inbound, gasreq, 0);
+    while (fold > 0) {
+      vm.prank(caller);
+      pivotId = mgv.newOffer{value: prov}(outbound, inbound, wants, gives, gasreq, 0, pivotId);
+      fold--;
+    }
+  }
+
+  function densify(address outbound, address inbound, uint fromId, uint length, uint fold, address caller) internal {
+    while (length > 0 && fromId != 0) {
+      MgvStructs.OfferPacked offer = mgv.offers(outbound, inbound, fromId);
+      MgvStructs.OfferDetailPacked detail = mgv.offerDetails(outbound, inbound, fromId);
+      densify(outbound, inbound, offer.wants(), offer.gives(), detail.gasreq(), fromId, fold, caller);
+      length--;
+      fromId = offer.next();
     }
   }
 }

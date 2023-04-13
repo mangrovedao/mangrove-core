@@ -28,6 +28,8 @@ contract MangroveOrderDeployer is Deployer {
   function innerRun(address admin, address mangrove) public {
     IMangrove mgv = IMangrove(payable(mangrove));
     MangroveOrder mgvOrder;
+    // use 30K gasreq, this will be addeed to the SimpleRouter gasreq of 70K.
+    // tests show that MangroveOrder requires 65K under normal circumstances.
     broadcast();
     if (forMultisig) {
       mgvOrder = new MangroveOrder{salt:salt}(mgv, admin, 30_000);

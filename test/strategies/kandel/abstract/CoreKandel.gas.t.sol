@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 import "./KandelTest.t.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {Kandel} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 
 abstract contract CoreKandelGasTest is KandelTest {
   uint internal completeFill_;
@@ -15,26 +16,42 @@ abstract contract CoreKandelGasTest is KandelTest {
     kdl.setCompoundRates(10 ** PRECISION, 10 ** PRECISION);
   }
 
-  function densifyBids(uint fold) internal {
-    densify(address(base), address(quote), 1, 5, fold, address(this));
+  function __deployKandel__(address deployer, address) internal virtual override returns (GeometricKandel kdl_) {
+    vm.prank(deployer);
+    kdl_ = new Kandel({
+      mgv: IMangrove($(mgv)),
+      base: base,
+      quote: quote,
+      gasreq: 170_000,
+      gasprice: 0,
+      reserveId: address(0)
+    });
   }
 
-  function densifyAsks(uint fold) internal {
-    densify(address(quote), address(base), 5, 5, fold, address(this));
+  function __setForkEnvironment__() internal virtual override {
+    PinnedPolygonFork fork = new PinnedPolygonFork();
+    fork.setUp();
+    options.gasprice = 90;
+    options.gasbase = 68_000;
+    options.defaultFee = 30;
+    mgv = setupMangrove();
+    reader = new MgvReader($(mgv));
+    base = TestToken(fork.get("WETH"));
+    quote = TestToken(fork.get("USDC"));
+    setupMarket(base, quote);
   }
 
-  // function test_densify() public {
-  //   printOrderBook(address(base), address(quote));
-  //   printOrderBook(address(quote), address(base));
-
-  //   densifyBids(2);
-  //   printOrderBook(address(base), address(quote));
-  //   printOrderBook(address(quote), address(base));
-
-  //   densifyAsks(2);
-  //   printOrderBook(address(base), address(quote));
-  //   printOrderBook(address(quote), address(base));
-  // }
+  function densifyMissing(uint index, uint fold) internal {
+    IndexStatus memory idx = getStatus(index);
+    if (idx.status == OfferStatus.Bid) {
+      // densify Ask position
+      densify(address(base), address(quote), idx.bid.gives(), idx.bid.wants(), 0, 0, fold, address(this));
+    } else {
+      if (idx.status == OfferStatus.Ask) {
+        densify(address(quote), address(base), idx.ask.gives(), idx.ask.wants(), 0, 0, fold, address(this));
+      }
+    }
+  }
 
   function test_log_mgv_config() public view {
     (, MgvStructs.LocalPacked local) = mgv.config($(base), $(quote));
@@ -114,6 +131,7 @@ abstract contract CoreKandelGasTest is KandelTest {
 
   function test_offerLogic_partialFill_cost() public {
     // take Ask #5
+    uint gasreq = kdl.offerGasreq();
     MgvStructs.OfferPacked ask = kdl.getOffer(Ask, 6);
 
     (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockBuyOrder({
@@ -130,11 +148,15 @@ abstract contract CoreKandelGasTest is KandelTest {
     _gas();
     kdl.makerExecute(order);
     uint g = gas_(true);
+    assertTrue(gasreq >= g, "Execute ran out of gas!");
     console.log("makerExecute", g);
+
+    gasreq -= g;
     vm.prank($(mgv));
     _gas();
     kdl.makerPosthook(order, result);
     g = gas_(true);
+    assertTrue(gasreq >= g, "Posthook ran out of gas!");
     console.log("makerPosthook", g);
     assertStatus(6, OfferStatus.Ask);
     assertStatus(5, OfferStatus.Crossed);

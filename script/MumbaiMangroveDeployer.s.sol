@@ -5,7 +5,7 @@ import {ToyENS} from "mgv_lib/ToyENS.sol";
 import {MangroveDeployer} from "mgv_script/MangroveDeployer.s.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
-contract MumbaiDeploy is Deployer {
+contract MumbaiMangroveDeployer is Deployer {
   function run() public {
     new MangroveDeployer().innerRun({
       chief: broadcaster(),

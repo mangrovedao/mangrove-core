@@ -192,6 +192,30 @@ abstract contract KandelTest is MangroveTest {
     Crossed // both live
   }
 
+  struct IndexStatus {
+    MgvStructs.OfferPacked bid;
+    MgvStructs.OfferPacked ask;
+    OfferStatus status;
+  }
+
+  function getStatus(uint index) internal view returns (IndexStatus memory idx) {
+    idx.bid = kdl.getOffer(Bid, index);
+    idx.ask = kdl.getOffer(Ask, index);
+    if (idx.bid.gives() > 0 && idx.ask.gives() > 0) {
+      idx.status = OfferStatus.Crossed;
+    } else {
+      if (idx.bid.gives() > 0) {
+        idx.status = OfferStatus.Bid;
+      } else {
+        if (idx.ask.gives() > 0) {
+          idx.status = OfferStatus.Ask;
+        } else {
+          idx.status = OfferStatus.Dead;
+        }
+      }
+    }
+  }
+
   ///@notice asserts status of index.
   function assertStatus(uint index, OfferStatus status) internal {
     assertStatus(index, status, type(uint).max, type(uint).max);

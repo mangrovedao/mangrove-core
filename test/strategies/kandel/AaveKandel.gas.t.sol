@@ -5,8 +5,23 @@ import "./abstract/CoreKandel.gas.t.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {Kandel} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 
-contract HotKandelGasTest is CoreKandelGasTest {
-  uint constant CROWDYNESS = 0;
+contract AaveKandelGasTest is CoreKandelGasTest {
+  function __setForkEnvironment__() internal virtual override {
+    super.__setForkEnvironment__();
+  }
+
+  function __deployKandel__(address deployer, address reserveId) internal override returns (GeometricKandel kdl_) {
+    uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
+    vm.prank(deployer);
+    kdl_ = new Kandel({
+      mgv: IMangrove($(mgv)),
+      base: base,
+      quote: quote,
+      gasreq: GASREQ,
+      gasprice: bufferedGasprice,
+      reserveId: reserveId
+    });
+  }
 
   function setUp() public override {
     super.setUp();
@@ -22,11 +37,5 @@ contract HotKandelGasTest is CoreKandelGasTest {
     //printOB();
     completeFill_ = 0.108 ether;
     partialFill_ = 0.09 ether;
-
-    if (CROWDYNESS > 0) {
-      for (uint index; index < getParams(kdl).pricePoints; index++) {
-        densifyMissing(index, CROWDYNESS);
-      }
-    }
   }
 }

@@ -1445,7 +1445,7 @@ abstract contract CoreKandelTest is KandelTest {
     kdl.MGV();
     kdl.NO_ROUTER();
     kdl.OFFER_GASREQ();
-    PRECISION;
+    kdl.PRECISION();
     kdl.QUOTE();
     kdl.RESERVE_ID();
     kdl.admin();
@@ -1470,7 +1470,6 @@ abstract contract CoreKandelTest is KandelTest {
 
     // Only admin
     args.allowed = dynamic([address(maker)]);
-    checkAuth(args, abi.encodeCall(kdl.activate, dynamic([IERC20(base)])));
     checkAuth(args, abi.encodeCall(kdl.activate, dynamic([IERC20(base)])));
     checkAuth(args, abi.encodeCall(kdl.approve, (base, taker, 42)));
     checkAuth(args, abi.encodeCall(kdl.setAdmin, (maker)));

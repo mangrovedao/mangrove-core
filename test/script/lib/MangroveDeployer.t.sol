@@ -41,12 +41,20 @@ contract MangroveDeployerTest is Deployer, Test2 {
     address outbound_tkn = freshAddress("outbound_tkn");
     address inbound_tkn = freshAddress("inbound_tkn");
 
+    // Oracle - verify expected values have been passed in. We read from storage slots - alternatively, we should poke admin methods to verify correct setup.
+    MgvOracle oracle = mgvDeployer.oracle();
+    bytes32 oracleGovernance = vm.load(address(oracle), bytes32(uint(0)));
+    assertEq(chief, address(uint160(uint(oracleGovernance))));
+    bytes32 oracleMutator = vm.load(address(oracle), bytes32(uint(1)));
+    assertEq(gasbot, address(uint160(uint(oracleMutator))));
+
     // Mangrove - verify expected values have been passed in
     Mangrove mgv = mgvDeployer.mgv();
     assertEq(mgv.governance(), chief);
     (MgvStructs.GlobalPacked cfg,) = mgv.config(address(0), address(0));
-    assertEq(cfg.gasprice(), gasprice);
     assertEq(cfg.gasmax(), gasmax);
+    assertEq(cfg.monitor(), address(oracle), "monitor should be set to oracle");
+    assertTrue(cfg.useOracle(), "useOracle should be set");
 
     // Reader - verify mgv is used
     MgvReader reader = mgvDeployer.reader();
@@ -61,12 +69,5 @@ contract MangroveDeployerTest is Deployer, Test2 {
     );
     vm.expectRevert("mgv/inactive");
     cleaner.collect(outbound_tkn, inbound_tkn, targets, true);
-
-    // Oracle - verify expected values have been passed in. We read from storage slots - alternatively, we should poke admin methods to verify correct setup.
-    MgvOracle oracle = mgvDeployer.oracle();
-    bytes32 oracleGovernance = vm.load(address(oracle), bytes32(uint(0)));
-    assertEq(chief, address(uint160(uint(oracleGovernance))));
-    bytes32 oracleMutator = vm.load(address(oracle), bytes32(uint(1)));
-    assertEq(gasbot, address(uint160(uint(oracleMutator))));
   }
 }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
+import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import "mgv_src/Mangrove.sol";
 import {ERC20} from "mgv_src/toy/ERC20.sol";
@@ -22,7 +23,8 @@ contract ActivateMarket is Deployer {
       tkn2: envAddressOrName("TKN2"),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
-      fee: vm.envUint("FEE")
+      fee: vm.envUint("FEE"),
+      mgvReaderAddress: payable(envHas("MGV_READER") ? vm.envAddress("MGV_READER") : fork.get("MgvReader"))
     });
   }
 
@@ -42,7 +44,14 @@ contract ActivateMarket is Deployer {
     2. Multiply by 1e9
     3. Round to nearest integer
   */
-  function innerRun(address tkn1, address tkn2, uint tkn1_in_gwei, uint tkn2_in_gwei, uint fee) public {
+  function innerRun(
+    address tkn1,
+    address tkn2,
+    uint tkn1_in_gwei,
+    uint tkn2_in_gwei,
+    uint fee,
+    address mgvReaderAddress
+  ) public {
     new ActivateSemibook().innerRun({
       outbound_tkn: tkn1,
       inbound_tkn: tkn2,
@@ -56,5 +65,7 @@ contract ActivateMarket is Deployer {
       outbound_in_gwei: tkn2_in_gwei,
       fee: fee
     });
+
+    new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, mgvReaderAddress: mgvReaderAddress});
   }
 }

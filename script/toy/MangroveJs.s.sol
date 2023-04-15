@@ -43,6 +43,7 @@ contract MangroveJsDeploy is Deployer {
     mgvDeployer.innerRun({chief: chief, gasprice: gasprice, gasmax: gasmax});
 
     address mgv = address(mgvDeployer.mgv());
+    address mgvReader = address(mgvDeployer.reader());
 
     broadcast();
     tokenA = new TestToken({
@@ -99,17 +100,10 @@ contract MangroveJsDeploy is Deployer {
 
     ActivateMarket activateMarket = new ActivateMarket();
 
-    activateMarket.innerRun(address(tokenA), address(tokenB), 2 * 1e9, 3 * 1e9, 0);
-    activateMarket.innerRun(address(dai), address(usdc), 1e9 / 1000, 1e9 / 1000, 0);
-    activateMarket.innerRun(address(weth), address(dai), 1e9, 1e9 / 1000, 0);
-    activateMarket.innerRun(address(weth), address(usdc), 1e9, 1e9 / 1000, 0);
-
-    startBroadcast();
-    mgvDeployer.reader().updateMarket(address(tokenA), address(tokenB));
-    mgvDeployer.reader().updateMarket(address(dai), address(usdc));
-    mgvDeployer.reader().updateMarket(address(weth), address(dai));
-    mgvDeployer.reader().updateMarket(address(weth), address(usdc));
-    stopBroadcast();
+    activateMarket.innerRun(address(tokenA), address(tokenB), 2 * 1e9, 3 * 1e9, 0, mgvReader);
+    activateMarket.innerRun(address(dai), address(usdc), 1e9 / 1000, 1e9 / 1000, 0, mgvReader);
+    activateMarket.innerRun(address(weth), address(dai), 1e9, 1e9 / 1000, 0, mgvReader);
+    activateMarket.innerRun(address(weth), address(usdc), 1e9, 1e9 / 1000, 0, mgvReader);
 
     MangroveOrderDeployer mgoeDeployer = new MangroveOrderDeployer();
     mgoeDeployer.innerRun({admin: chief, mangrove: mgv});

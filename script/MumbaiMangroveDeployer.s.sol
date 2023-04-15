@@ -10,7 +10,8 @@ contract MumbaiMangroveDeployer is Deployer {
     new MangroveDeployer().innerRun({
       chief: broadcaster(),
       gasprice: 50,
-      gasmax: 1_000_000
+      gasmax: 1_000_000,
+      gasbot: envHas("GASBOT") ? vm.envAddress("GASBOT") : fork.get("Gasbot")
     });
     outputDeployment();
   }

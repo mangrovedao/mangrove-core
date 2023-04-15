@@ -18,6 +18,7 @@ contract MangroveDeployerTest is Deployer, Test2 {
   address chief;
   uint gasprice;
   uint gasmax;
+  address gasbot;
 
   function setUp() public {
     mgvDeployer = new MangroveDeployer();
@@ -25,7 +26,8 @@ contract MangroveDeployerTest is Deployer, Test2 {
     chief = freshAddress("chief");
     gasprice = 42;
     gasmax = 8_000_000;
-    mgvDeployer.innerRun(chief, gasprice, gasmax);
+    gasbot = freshAddress("gasbot");
+    mgvDeployer.innerRun(chief, gasprice, gasmax, gasbot);
   }
 
   function test_toy_ens_has_addresses() public {
@@ -65,6 +67,6 @@ contract MangroveDeployerTest is Deployer, Test2 {
     bytes32 oracleGovernance = vm.load(address(oracle), bytes32(uint(0)));
     assertEq(chief, address(uint160(uint(oracleGovernance))));
     bytes32 oracleMutator = vm.load(address(oracle), bytes32(uint(1)));
-    assertEq(chief, address(uint160(uint(oracleMutator))));
+    assertEq(gasbot, address(uint160(uint(oracleMutator))));
   }
 }

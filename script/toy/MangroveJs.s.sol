@@ -33,14 +33,14 @@ contract MangroveJsDeploy is Deployer {
   MangroveOrder mgo;
 
   function run() public {
-    innerRun({chief: broadcaster(), gasprice: 1, gasmax: 2_000_000});
+    innerRun({chief: broadcaster(), gasprice: 1, gasmax: 2_000_000, gasbot: broadcaster()});
     outputDeployment();
   }
 
-  function innerRun(address chief, uint gasprice, uint gasmax) public {
+  function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public {
     MangroveDeployer mgvDeployer = new MangroveDeployer();
 
-    mgvDeployer.innerRun({chief: chief, gasprice: gasprice, gasmax: gasmax});
+    mgvDeployer.innerRun({chief: chief, gasprice: gasprice, gasmax: gasmax, gasbot: gasbot});
 
     address mgv = address(mgvDeployer.mgv());
 

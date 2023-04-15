@@ -7,8 +7,8 @@ import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Deployer} from "./lib/Deployer.sol";
-import {MgvCleanerDeployer} from "./periphery/MgvCleaner.s.sol";
-import {MgvReaderDeployer} from "./periphery/MgvReader.s.sol";
+import {MgvCleanerDeployer} from "./periphery/MgvCleanerDeployer.s.sol";
+import {MgvReaderDeployer} from "./periphery/MgvReaderDeployer.s.sol";
 
 contract MangroveDeployer is Deployer {
   Mangrove public mgv;

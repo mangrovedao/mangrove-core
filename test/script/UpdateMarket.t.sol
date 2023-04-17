@@ -15,6 +15,7 @@ contract UpdateMarketTest is Test2 {
   address chief;
   uint gasprice;
   uint gasmax;
+  address gasbot;
 
   function setUp() public {
     deployer = new MangroveDeployer();
@@ -22,7 +23,8 @@ contract UpdateMarketTest is Test2 {
     chief = freshAddress("chief");
     gasprice = 42;
     gasmax = 8_000_000;
-    deployer.innerRun(chief, gasprice, gasmax);
+    gasbot = freshAddress("gasbot");
+    deployer.innerRun(chief, gasprice, gasmax, gasbot);
   }
 
   function test_updater(address tkn0, address tkn1) public {

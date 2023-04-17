@@ -7,6 +7,9 @@ import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import {PolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {MumbaiFork} from "mgv_test/lib/forks/Mumbai.sol";
 import {LocalFork} from "mgv_test/lib/forks/Local.sol";
+import {TestnetZkevm} from "mgv_test/lib/forks/TestnetZkevm.sol";
+import {Goerli} from "mgv_test/lib/forks/Goerli.sol";
+import {Zkevm} from "mgv_test/lib/forks/Zkevm.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
 address constant ANVIL_DEFAULT_FIRST_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -55,6 +58,12 @@ abstract contract Deployer is Script2 {
         fork = new PolygonFork();
       } else if (block.chainid == 31337) {
         fork = new LocalFork();
+      } else if (block.chainid == 1442) {
+        fork = new TestnetZkevm();
+      } else if (block.chainid == 1101) {
+        fork = new Zkevm();
+      } else if (block.chainid == 5) {
+        fork = new Goerli();
       } else {
         revert(string.concat("Unknown chain id ", vm.toString(block.chainid), ", cannot deploy."));
       }

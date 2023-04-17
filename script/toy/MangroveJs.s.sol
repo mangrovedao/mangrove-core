@@ -9,7 +9,9 @@ import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {MangroveOrderDeployer} from "mgv_script/strategies/mangroveOrder/MangroveOrderDeployer.s.sol";
 import {KandelSeederDeployer} from "mgv_script/strategies/kandel/KandelSeederDeployer.s.sol";
 import {MangroveOrder} from "mgv_src/strategies/MangroveOrder.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {SimpleTestMaker} from "mgv_test/lib/agents/TestMaker.sol";
+import {Mangrove} from "mgv_src/Mangrove.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {ActivateMarket} from "mgv_script/ActivateMarket.s.sol";
@@ -42,8 +44,8 @@ contract MangroveJsDeploy is Deployer {
 
     mgvDeployer.innerRun({chief: chief, gasprice: gasprice, gasmax: gasmax, gasbot: gasbot});
 
-    address mgv = address(mgvDeployer.mgv());
-    address mgvReader = address(mgvDeployer.reader());
+    Mangrove mgv = mgvDeployer.mgv();
+    MgvReader mgvReader = mgvDeployer.reader();
 
     broadcast();
     tokenA = new TestToken({
@@ -100,13 +102,13 @@ contract MangroveJsDeploy is Deployer {
 
     ActivateMarket activateMarket = new ActivateMarket();
 
-    activateMarket.innerRun(address(tokenA), address(tokenB), 2 * 1e9, 3 * 1e9, 0, mgvReader);
-    activateMarket.innerRun(address(dai), address(usdc), 1e9 / 1000, 1e9 / 1000, 0, mgvReader);
-    activateMarket.innerRun(address(weth), address(dai), 1e9, 1e9 / 1000, 0, mgvReader);
-    activateMarket.innerRun(address(weth), address(usdc), 1e9, 1e9 / 1000, 0, mgvReader);
+    activateMarket.innerRun(mgv, mgvReader, address(tokenA), address(tokenB), 2 * 1e9, 3 * 1e9, 0);
+    activateMarket.innerRun(mgv, mgvReader, address(dai), address(usdc), 1e9 / 1000, 1e9 / 1000, 0);
+    activateMarket.innerRun(mgv, mgvReader, address(weth), address(dai), 1e9, 1e9 / 1000, 0);
+    activateMarket.innerRun(mgv, mgvReader, address(weth), address(usdc), 1e9, 1e9 / 1000, 0);
 
     MangroveOrderDeployer mgoeDeployer = new MangroveOrderDeployer();
-    mgoeDeployer.innerRun({admin: chief, mangrove: mgv});
+    mgoeDeployer.innerRun({admin: chief, mgv: IMangrove(payable(mgv))});
 
     address[] memory underlying =
       dynamic([address(tokenA), address(tokenB), address(dai), address(usdc), address(weth)]);

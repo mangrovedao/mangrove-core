@@ -25,16 +25,15 @@ uint constant COVER_FACTOR = 1000;
 contract ActivateSemibook is Test2, Deployer {
   function run() public {
     innerRun({
-      outbound_tkn: vm.envAddress("OUTBOUND_TKN"),
-      inbound_tkn: vm.envAddress("INBOUND_TKN"),
+      mgv: Mangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
+      outbound_tkn: envAddressOrName("OUTBOUND_TKN"),
+      inbound_tkn: envAddressOrName("INBOUND_TKN"),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
       fee: vm.envUint("FEE")
     });
   }
 
-  function innerRun(address outbound_tkn, address inbound_tkn, uint outbound_in_gwei, uint fee) public {
-    Mangrove mgv = Mangrove(fork.get("Mangrove"));
-
+  function innerRun(Mangrove mgv, address outbound_tkn, address inbound_tkn, uint outbound_in_gwei, uint fee) public {
     /*
 
     The gasbase is the gas spent by Mangrove to manage one order execution.  We

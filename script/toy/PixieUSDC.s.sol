@@ -11,7 +11,7 @@ import {PixieUSDC} from "mgv_src/toy/PixieUSDC.sol";
 
 contract PixieUSDCDeployer is Deployer {
   function run() public {
-    innerRun({admin: fork.get("MgvGovernance")});
+    innerRun({admin: envHas("MGV_GOVERNANCE") ? envAddressOrName("MGV_GOVERNANCE") : fork.get("MgvGovernance")});
     outputDeployment();
   }
 

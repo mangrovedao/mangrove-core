@@ -14,10 +14,11 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 contract AmplifierDeployer is Deployer {
   function run() public {
     innerRun({
-      admin: vm.envAddress("ADMIN"),
-      base: fork.get("WETH"),
-      stable1: fork.get("USDC"),
-      stable2: fork.get("DAI")
+      mgv: IMangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
+      admin: envAddressOrName("ADMIN"),
+      base: envHas("BASE") ? envAddressOrName("BASE") : fork.get("WETH"),
+      stable1: envHas("STABLE1") ? envAddressOrName("STABLE1") : fork.get("USDC"),
+      stable2: envHas("STABLE2") ? envAddressOrName("STABLE2") : fork.get("DAI")
     });
   }
 
@@ -27,9 +28,7 @@ contract AmplifierDeployer is Deployer {
    * @param stable1 address of the first stable coin on Amplifier after deployment
    * @param stable2 address of the second stable coin on Amplifier after deployment
    */
-  function innerRun(address admin, address base, address stable1, address stable2) public {
-    IMangrove mgv = IMangrove(fork.get("Mangrove"));
-
+  function innerRun(IMangrove mgv, address admin, address base, address stable1, address stable2) public {
     try fork.get("Amplifier") returns (address payable old_amplifier_address) {
       Amplifier old_amplifier = Amplifier(old_amplifier_address);
       uint bal = mgv.balanceOf(old_amplifier_address);

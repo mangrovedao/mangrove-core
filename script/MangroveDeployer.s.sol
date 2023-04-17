@@ -18,10 +18,10 @@ contract MangroveDeployer is Deployer {
 
   function run() public {
     innerRun({
-      chief: envHas("CHIEF") ? vm.envAddress("CHIEF") : broadcaster(),
+      chief: envHas("CHIEF") ? envAddressOrName("CHIEF") : broadcaster(),
       gasprice: envHas("GASPRICE") ? vm.envUint("GASPRICE") : 1,
       gasmax: envHas("GASMAX") ? vm.envUint("GASMAX") : 2_000_000,
-      gasbot: envHas("GASBOT") ? vm.envAddress("GASBOT") : fork.get("Gasbot")
+      gasbot: envHas("GASBOT") ? envAddressOrName("GASBOT") : fork.get("Gasbot")
     });
     outputDeployment();
   }
@@ -50,10 +50,10 @@ contract MangroveDeployer is Deployer {
     broadcast();
     mgv.setGovernance(chief);
 
-    (new MgvReaderDeployer()).innerRun(address(mgv));
+    (new MgvReaderDeployer()).innerRun(mgv);
     reader = MgvReader(fork.get("MgvReader"));
 
-    (new MgvCleanerDeployer()).innerRun(address(mgv));
+    (new MgvCleanerDeployer()).innerRun(mgv);
     cleaner = MgvCleaner(fork.get("MgvCleaner"));
   }
 }

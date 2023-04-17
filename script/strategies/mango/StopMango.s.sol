@@ -24,7 +24,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 contract StopMango is Deployer {
   function run() public {
-    innerRun({$mgo: payable(vm.envAddress("MANGO")), from: vm.envUint("FROM"), to: vm.envUint("TO")});
+    innerRun({$mgo: payable(envAddressOrName("MANGO")), from: vm.envUint("FROM"), to: vm.envUint("TO")});
   }
 
   function innerRun(address payable $mgo, uint from, uint to) public {

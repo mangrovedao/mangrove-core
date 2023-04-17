@@ -32,17 +32,21 @@ contract MangoDeployer is Deployer {
 
   function run() public {
     innerRun({
+      mgv: IMangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
       base: envAddressOrName("BASE"),
       quote: envAddressOrName("QUOTE"),
       base_0: vm.envUint("BASE_0"),
       quote_0: vm.envUint("QUOTE_0"),
       nslots: vm.envUint("NSLOTS"),
       price_incr: vm.envUint("PRICE_INCR"),
-      admin: vm.envAddress("DEPLOYER")
+      admin: envAddressOrName("DEPLOYER"),
+      name: envHas("NAME") ? vm.envString("NAME") : ""
     });
+    outputDeployment();
   }
 
   /**
+   * @param mgv The Mangrove that Mango will trade on
    * @param base Address of the base currency of the market Mango will act upon
    * @param quote Addres of the quote of Mango's market
    * @param base_0 in units of base. Amounts of initial `makerGives` for Mango's asks
@@ -51,11 +55,19 @@ contract MangoDeployer is Deployer {
    * @param nslots the number of price slots of the Mango strat
    * @param price_incr in units of quote. Price(i+1) = price(i) + price_incr
    * @param admin address of the adim on Mango after deployment
+   * @param name The name to register the deployed Kandel instance under. If empty, a name will be generated
    */
-  function innerRun(address base, address quote, uint base_0, uint quote_0, uint nslots, uint price_incr, address admin)
-    public
-  {
-    IMangrove mgv = IMangrove(fork.get("Mangrove"));
+  function innerRun(
+    IMangrove mgv,
+    address base,
+    address quote,
+    uint base_0,
+    uint quote_0,
+    uint nslots,
+    uint price_incr,
+    address admin,
+    string memory name
+  ) public {
     broadcast();
     console.log(broadcaster(), broadcaster().balance);
     current = new Mango(
@@ -68,15 +80,14 @@ contract MangoDeployer is Deployer {
       price_incr,
       admin
     );
-    string memory mangoName = getName(IERC20(base), IERC20(quote));
+    string memory mangoName = getName(name, IERC20(base), IERC20(quote));
     fork.set(mangoName, address(current));
-    outputDeployment();
   }
 
-  function getName(IERC20 base, IERC20 quote) public view returns (string memory) {
-    try vm.envString("NAME") returns (string memory mangoName) {
-      return mangoName;
-    } catch {
+  function getName(string memory name, IERC20 base, IERC20 quote) public view returns (string memory) {
+    if (bytes(name).length > 0) {
+      return name;
+    } else {
       return string.concat("Mango_", base.symbol(), "_", quote.symbol());
     }
   }

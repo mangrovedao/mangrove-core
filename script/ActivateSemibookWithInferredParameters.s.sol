@@ -11,7 +11,7 @@ import {MgvStructs} from "mgv_src/MgvLib.sol";
 uint constant COVER_FACTOR = 1000;
 
 /* 
-  Activates a semibook on mangrove.
+  Activates a semibook on Mangrove.
     outbound: outbound token
     inbound: inbound token,
     outbound_in_gwei: price of one outbound token (display units) in gwei
@@ -22,7 +22,7 @@ uint constant COVER_FACTOR = 1000;
   2. Multiply by 10^9
   3. Round to nearest integer*/
 
-contract ActivateSemibook is Test2, Deployer {
+contract ActivateSemibookWithInferredParameters is Test2, Deployer {
   function run() public {
     innerRun({
       mgv: Mangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),

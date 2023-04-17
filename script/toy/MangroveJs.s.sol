@@ -14,7 +14,7 @@ import {SimpleTestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {ActivateMarket} from "mgv_script/ActivateMarket.s.sol";
+import {ActivateMarketWithInferredParameters} from "mgv_script/ActivateMarketWithInferredParameters.s.sol";
 import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
 
 /* 
@@ -100,7 +100,7 @@ contract MangroveJsDeploy is Deployer {
     });
     fork.set("SimpleTestMaker", address(simpleTestMaker));
 
-    ActivateMarket activateMarket = new ActivateMarket();
+    ActivateMarketWithInferredParameters activateMarket = new ActivateMarketWithInferredParameters();
 
     activateMarket.innerRun(mgv, mgvReader, address(tokenA), address(tokenB), 2 * 1e9, 3 * 1e9, 0);
     activateMarket.innerRun(mgv, mgvReader, address(dai), address(usdc), 1e9 / 1000, 1e9 / 1000, 0);

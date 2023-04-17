@@ -7,16 +7,16 @@ import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import "mgv_src/Mangrove.sol";
 import {ERC20} from "mgv_src/toy/ERC20.sol";
 
-import {ActivateSemibook} from "./ActivateSemibook.s.sol";
+import {ActivateSemibookWithInferredParameters} from "./ActivateSemibookWithInferredParameters.s.sol";
 /* Example: activate (USDC,WETH) offer lists. Assume $NATIVE_IN_USDC is the price of ETH/MATIC/native token in USDC; same for $NATIVE_IN_ETH.
  TKN1=USDC \
  TKN2=WETH \
  TKN1_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_USDC) gwei) \
  TKN2_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_ETH) gwei) \
  FEE=30 \
- forge script --fork-url mumbai ActivateMarket*/
+ forge script --fork-url mumbai ActivateMarketWithInferredParameters*/
 
-contract ActivateMarket is Deployer {
+contract ActivateMarketWithInferredParameters is Deployer {
   function run() public {
     innerRun({
       mgv: Mangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
@@ -54,7 +54,7 @@ contract ActivateMarket is Deployer {
     uint tkn2_in_gwei,
     uint fee
   ) public {
-    new ActivateSemibook().innerRun({
+    new ActivateSemibookWithInferredParameters().innerRun({
       mgv: mgv,
       outbound_tkn: tkn1,
       inbound_tkn: tkn2,
@@ -62,7 +62,7 @@ contract ActivateMarket is Deployer {
       fee: fee
     });
 
-    new ActivateSemibook().innerRun({
+    new ActivateSemibookWithInferredParameters().innerRun({
       mgv: mgv,
       outbound_tkn: tkn2,
       inbound_tkn: tkn1,

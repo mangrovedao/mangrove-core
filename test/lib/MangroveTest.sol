@@ -147,15 +147,20 @@ contract MangroveTest is Test2, HasMgvEvents {
 
     console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
     while (offerId != 0) {
-      (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo($out, $in, offerId);
+      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) =
+        mgv.offerInfo($out, $in, offerId);
       console.log(
         string.concat(
-          unicode"│ ",
-          string.concat(offerId < 9 ? " " : "", vm.toString(offerId)), // breaks on id>99
-          unicode" ┆ ",
-          string.concat(toUnit(ofr.wants, req_tk.decimals()), " ", req_tk.symbol()),
-          "  /  ",
-          string.concat(toUnit(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol())
+          string.concat(
+            unicode"│ ",
+            string.concat(offerId < 9 ? " " : "", vm.toString(offerId)), // breaks on id>99
+            unicode" ┆ ",
+            string.concat(toUnit(ofr.wants, req_tk.decimals()), " ", req_tk.symbol()),
+            "  /  ",
+            string.concat(toUnit(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol())
+          ),
+          " ",
+          vm.toString(detail.maker)
         )
       );
       offerId = ofr.next;

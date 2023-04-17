@@ -12,21 +12,21 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
  WRITE_DEPLOY=true forge script --fork-url mumbai MangroveOrderDeployer -vvv --broadcast --verify
     Remember to activate it using ActivateMangroveOrder
 
-  You can specify a mangrove address with the MANGROVE env var.*/
+  You can specify a mangrove address with the MGV env var.*/
 contract MangroveOrderDeployer is Deployer {
   function run() public {
-    address mgv = envHas("MANGROVE") ? envAddressOrName("MANGROVE") : fork.get("Mangrove");
-    address governance = envHas("MgvGovernance") ? envAddressOrName("MgvGovernance") : broadcaster();
-
-    innerRun({mangrove: mgv, admin: governance});
+    innerRun({
+      mgv: IMangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
+      admin: envHas("MGV_GOVERNANCE") ? envAddressOrName("MGV_GOVERNANCE") : broadcaster()
+    });
     outputDeployment();
   }
 
   /**
+   * @param mgv The Mangrove that MangroveOrder should operate on
    * @param admin address of the admin on MangroveOrder after deployment
    */
-  function innerRun(address admin, address mangrove) public {
-    IMangrove mgv = IMangrove(payable(mangrove));
+  function innerRun(IMangrove mgv, address admin) public {
     MangroveOrder mgvOrder;
     broadcast();
     if (forMultisig) {

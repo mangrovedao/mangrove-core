@@ -35,7 +35,7 @@ contract DeactivateMarketTest is Test2 {
     vm.prank(chief);
     mgv.activate(tkn0, tkn1, 1, 1, 1);
 
-    (new UpdateMarket()).innerRun(tkn0, tkn1, address(reader));
+    (new UpdateMarket()).innerRun(reader, tkn0, tkn1);
 
     assertEq(reader.isMarketOpen(tkn0, tkn1), true, "market should be open");
 
@@ -43,6 +43,6 @@ contract DeactivateMarketTest is Test2 {
     // the script self-tests, so no need to test here. This file is only for
     // incorporating testing the script into the CI.
     deactivator.broadcaster(chief);
-    deactivator.innerRun(tkn0, tkn1);
+    deactivator.innerRun(mgv, reader, tkn0, tkn1);
   }
 }

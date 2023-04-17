@@ -9,21 +9,23 @@ import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 /* Deactivate a market (aka two mangrove semibooks) & update MgvReader. */
 contract DeactivateMarket is Deployer {
   function run() public {
-    innerRun({tkn0: envAddressOrName("TKN0"), tkn1: envAddressOrName("TKN1")});
+    innerRun({
+      mgv: Mangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
+      reader: MgvReader(envHas("MGV_READER") ? envAddressOrName("MGV_READER") : fork.get("MgvReader")),
+      tkn0: envAddressOrName("TKN0"),
+      tkn1: envAddressOrName("TKN1")
+    });
     outputDeployment();
   }
 
-  function innerRun(address tkn0, address tkn1) public {
-    Mangrove mgv = Mangrove(fork.get("Mangrove"));
-    MgvReader reader = MgvReader(fork.get("MgvReader"));
-
+  function innerRun(Mangrove mgv, MgvReader reader, address tkn0, address tkn1) public {
     broadcast();
     mgv.deactivate(tkn0, tkn1);
 
     broadcast();
     mgv.deactivate(tkn1, tkn0);
 
-    (new UpdateMarket()).innerRun({tkn0: tkn0, tkn1: tkn1, mgvReaderAddress: address(reader)});
+    (new UpdateMarket()).innerRun({tkn0: tkn0, tkn1: tkn1, reader: reader});
 
     smokeTest(reader, tkn0, tkn1);
   }

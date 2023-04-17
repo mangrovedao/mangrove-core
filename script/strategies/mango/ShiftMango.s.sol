@@ -29,7 +29,7 @@ contract ShiftMango is Deployer {
 
   function run() public {
     innerRun({
-      mgo: payable(vm.envAddress("MANGO")),
+      mgo: payable(envAddressOrName("MANGO")),
       shift: vm.envInt("SHIFT"),
       default_gives_amount: vm.envUint("DEFAULT_GIVES_AMOUNT")
     });

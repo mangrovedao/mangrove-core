@@ -33,19 +33,19 @@ contract UpdateMarketTest is Test2 {
 
     UpdateMarket updater = new UpdateMarket();
 
-    updater.innerRun(tkn0, tkn1, address(reader));
+    updater.innerRun(reader, tkn0, tkn1);
     assertEq(reader.isMarketOpen(tkn0, tkn1), false);
 
     vm.prank(chief);
     mgv.activate(tkn0, tkn1, 1, 1, 1);
 
-    updater.innerRun(tkn0, tkn1, address(reader));
+    updater.innerRun(reader, tkn0, tkn1);
     assertEq(reader.isMarketOpen(tkn0, tkn1), true);
 
     vm.prank(chief);
     mgv.deactivate(tkn0, tkn1);
 
-    updater.innerRun(tkn0, tkn1, address(reader));
+    updater.innerRun(reader, tkn0, tkn1);
     assertEq(reader.isMarketOpen(tkn0, tkn1), false);
   }
 }

@@ -21,8 +21,8 @@ contract KandelDeployer is Deployer {
   function run() public {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
-      base: envAddressOrName("BASE"),
-      quote: envAddressOrName("QUOTE"),
+      base: IERC20(envAddressOrName("BASE")),
+      quote: IERC20(envAddressOrName("QUOTE")),
       gaspriceFactor: vm.envUint("GASPRICE_FACTOR"), // 10 means cover 10x the current gasprice of Mangrove
       compoundRateBase: vm.envUint("COMPOUND_RATE_BASE"), // in percent
       compoundRateQuote: vm.envUint("COMPOUND_RATE_QUOTE"), // in percent
@@ -33,8 +33,8 @@ contract KandelDeployer is Deployer {
   }
 
   /**
-   * @param base Address of the base token of the market Kandel will act on
-   * @param quote Address of the quote token of the market Kandel will act on
+   * @param base The base token of the market Kandel will act on
+   * @param quote The quote token of the market Kandel will act on
    * @param gasreq the gas required for the offer logic
    * @param gaspriceFactor multiplier of Mangrove's gasprice used to compute Kandel's provision
    * @param compoundRateBase <= 10**4, the proportion of the spread Kandel will reinvest automatically for base
@@ -43,8 +43,8 @@ contract KandelDeployer is Deployer {
    */
   function innerRun(
     IMangrove mgv,
-    address base,
-    address quote,
+    IERC20 base,
+    IERC20 quote,
     uint gasreq,
     uint gaspriceFactor,
     uint compoundRateBase,
@@ -56,8 +56,8 @@ contract KandelDeployer is Deployer {
     broadcast();
     current = new Kandel(
       mgv,
-      IERC20(base),
-      IERC20(quote),
+      base,
+      quote,
       gasreq,
       global.gasprice() * gaspriceFactor,
       broadcaster()
@@ -67,7 +67,7 @@ contract KandelDeployer is Deployer {
     broadcast();
     current.setCompoundRates(compoundRateBase * 10 ** (precision - 2), compoundRateQuote * 10 ** (precision - 2));
 
-    string memory kandelName = getName(name, IERC20(base), IERC20(quote));
+    string memory kandelName = getName(name, base, quote);
     fork.set(kandelName, address(current));
   }
 

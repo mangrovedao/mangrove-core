@@ -5,7 +5,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import "mgv_src/Mangrove.sol";
-import {ERC20} from "mgv_src/toy/ERC20.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
 
 import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 /* Example: activate (USDC,WETH) offer lists. Assume $NATIVE_IN_USDC is the price of ETH/MATIC/native token in USDC; same for $NATIVE_IN_ETH.
@@ -21,8 +21,8 @@ contract ActivateMarket is Deployer {
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
       reader: MgvReader(envAddressOrName("MGV_READER", fork.get("MgvReader"))),
-      tkn1: envAddressOrName("TKN1"),
-      tkn2: envAddressOrName("TKN2"),
+      tkn1: IERC20(envAddressOrName("TKN1")),
+      tkn2: IERC20(envAddressOrName("TKN2")),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
       fee: vm.envUint("FEE")
@@ -48,8 +48,8 @@ contract ActivateMarket is Deployer {
   function innerRun(
     Mangrove mgv,
     MgvReader reader,
-    address tkn1,
-    address tkn2,
+    IERC20 tkn1,
+    IERC20 tkn2,
     uint tkn1_in_gwei,
     uint tkn2_in_gwei,
     uint fee

@@ -102,10 +102,10 @@ contract MangroveJsDeploy is Deployer {
 
     ActivateMarket activateMarket = new ActivateMarket();
 
-    activateMarket.innerRun(mgv, mgvReader, address(tokenA), address(tokenB), 2 * 1e9, 3 * 1e9, 0);
-    activateMarket.innerRun(mgv, mgvReader, address(dai), address(usdc), 1e9 / 1000, 1e9 / 1000, 0);
-    activateMarket.innerRun(mgv, mgvReader, address(weth), address(dai), 1e9, 1e9 / 1000, 0);
-    activateMarket.innerRun(mgv, mgvReader, address(weth), address(usdc), 1e9, 1e9 / 1000, 0);
+    activateMarket.innerRun(mgv, mgvReader, tokenA, tokenB, 2 * 1e9, 3 * 1e9, 0);
+    activateMarket.innerRun(mgv, mgvReader, dai, usdc, 1e9 / 1000, 1e9 / 1000, 0);
+    activateMarket.innerRun(mgv, mgvReader, weth, dai, 1e9, 1e9 / 1000, 0);
+    activateMarket.innerRun(mgv, mgvReader, weth, usdc, 1e9, 1e9 / 1000, 0);
 
     MangroveOrderDeployer mgoeDeployer = new MangroveOrderDeployer();
     mgoeDeployer.innerRun({admin: chief, mgv: IMangrove(payable(mgv))});

@@ -21,11 +21,11 @@ contract KandelSower is Deployer {
     bool onAave = vm.envBool("ON_AAVE");
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
-      kandelSeeder: envHas("KANDEL_SEEDER")
-        ? envAddressOrName("KANDEL_SEEDER")
-        : onAave ? fork.get("AaveKandelSeeder") : fork.get("KandelSeeder"),
-      base: envAddressOrName("BASE"),
-      quote: envAddressOrName("QUOTE"),
+      kandelSeeder: AbstractKandelSeeder(
+        envAddressOrName("KANDEL_SEEDER", onAave ? fork.get("AaveKandelSeeder") : fork.get("KandelSeeder"))
+        ),
+      base: IERC20(envAddressOrName("BASE")),
+      quote: IERC20(envAddressOrName("QUOTE")),
       gaspriceFactor: vm.envUint("GASPRICE_FACTOR"), // 10 means cover 10x the current gasprice of Mangrove
       sharing: vm.envBool("SHARING"),
       onAave: onAave,
@@ -37,8 +37,8 @@ contract KandelSower is Deployer {
   /**
    * @param mgv The Mangrove Kandel will trade on
    * @param kandelSeeder The address of the (Aave)KandelSeeder
-   * @param base Address of the base token of the market Kandel will act on
-   * @param quote Address of the quote token of the market Kandel will act on
+   * @param base The base token of the market Kandel will act on
+   * @param quote The quote token of the market Kandel will act on
    * @param gaspriceFactor multiplier of Mangrove's gasprice used to compute Kandel's provision
    * @param sharing whether the deployed (aave) Kandel should allow shared liquidity
    * @param onAave whether AaveKandel should be deployed instead of Kandel
@@ -46,19 +46,18 @@ contract KandelSower is Deployer {
    */
   function innerRun(
     IMangrove mgv,
-    address kandelSeeder,
-    address base,
-    address quote,
+    AbstractKandelSeeder kandelSeeder,
+    IERC20 base,
+    IERC20 quote,
     uint gaspriceFactor,
     bool sharing,
     bool onAave,
     string memory name
   ) public {
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    AbstractKandelSeeder seeder = AbstractKandelSeeder(kandelSeeder);
 
     broadcast();
-    GeometricKandel kdl = seeder.sow(
+    GeometricKandel kdl = kandelSeeder.sow(
       AbstractKandelSeeder.KandelSeed({
         base: IERC20(base),
         quote: IERC20(quote),

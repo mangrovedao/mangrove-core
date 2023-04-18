@@ -33,8 +33,8 @@ contract MangoDeployer is Deployer {
   function run() public {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
-      base: envAddressOrName("BASE"),
-      quote: envAddressOrName("QUOTE"),
+      base: IERC20(envAddressOrName("BASE")),
+      quote: IERC20(envAddressOrName("QUOTE")),
       base_0: vm.envUint("BASE_0"),
       quote_0: vm.envUint("QUOTE_0"),
       nslots: vm.envUint("NSLOTS"),
@@ -47,8 +47,8 @@ contract MangoDeployer is Deployer {
 
   /**
    * @param mgv The Mangrove that Mango will trade on
-   * @param base Address of the base currency of the market Mango will act upon
-   * @param quote Addres of the quote of Mango's market
+   * @param base The base currency of the market Mango will act upon
+   * @param quote The quote currency of Mango's market
    * @param base_0 in units of base. Amounts of initial `makerGives` for Mango's asks
    * @param quote_0 in units of quote. Amounts of initial `makerGives` for Mango's bids
    * @notice min price of Mango is determined by `quote_0/base_0`
@@ -59,8 +59,8 @@ contract MangoDeployer is Deployer {
    */
   function innerRun(
     IMangrove mgv,
-    address base,
-    address quote,
+    IERC20 base,
+    IERC20 quote,
     uint base_0,
     uint quote_0,
     uint nslots,
@@ -72,15 +72,15 @@ contract MangoDeployer is Deployer {
     console.log(broadcaster(), broadcaster().balance);
     current = new Mango(
       mgv,
-      IERC20(base),
-      IERC20(quote),
+      base,
+      quote,
       base_0,
       quote_0,
       nslots,
       price_incr,
       admin
     );
-    string memory mangoName = getName(name, IERC20(base), IERC20(quote));
+    string memory mangoName = getName(name, base, quote);
     fork.set(mangoName, address(current));
   }
 

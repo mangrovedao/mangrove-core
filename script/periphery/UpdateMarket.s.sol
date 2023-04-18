@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import "forge-std/console.sol";
 
@@ -16,24 +17,24 @@ contract UpdateMarket is Deployer {
   function run() public {
     innerRun({
       reader: MgvReader(envAddressOrName("MGV_READER", fork.get("MgvReader"))),
-      tkn0: envAddressOrName("TKN0"),
-      tkn1: envAddressOrName("TKN1")
+      tkn0: IERC20(envAddressOrName("TKN0")),
+      tkn1: IERC20(envAddressOrName("TKN1"))
     });
     outputDeployment();
   }
 
-  function innerRun(MgvReader reader, address tkn0, address tkn1) public {
-    console.log("Updating Market on MgvReader.  tkn0: %s, tkn1: %s", vm.toString(tkn0), vm.toString(tkn1));
+  function innerRun(MgvReader reader, IERC20 tkn0, IERC20 tkn1) public {
+    console.log("Updating Market on MgvReader.  tkn0: %s, tkn1: %s", vm.toString(address(tkn0)), vm.toString(address(tkn1)));
     logReaderState("[before script]", reader, tkn0, tkn1);
 
     broadcast();
-    reader.updateMarket(tkn0, tkn1);
+    reader.updateMarket(address(tkn0), address(tkn1));
 
     logReaderState("[after  script]", reader, tkn0, tkn1);
   }
 
-  function logReaderState(string memory intro, MgvReader reader, address tkn0, address tkn1) internal view {
-    string memory open = reader.isMarketOpen(tkn0, tkn1) ? "open" : "closed";
+  function logReaderState(string memory intro, MgvReader reader, IERC20 tkn0, IERC20 tkn1) internal view {
+    string memory open = reader.isMarketOpen(address(tkn0), address(tkn1)) ? "open" : "closed";
     console.log("%s MgvReader sees market as: %s", intro, open);
   }
 }

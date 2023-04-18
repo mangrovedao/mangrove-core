@@ -29,18 +29,18 @@ contract ShiftMango is Deployer {
 
   function run() public {
     innerRun({
-      mgo: payable(envAddressOrName("MANGO")),
+      mgo: Mango(envAddressOrName("MANGO")),
       shift: vm.envInt("SHIFT"),
       default_gives_amount: vm.envUint("DEFAULT_GIVES_AMOUNT")
     });
   }
 
   function innerRun(
-    address payable mgo,
+    Mango mgo,
     int shift,
     uint default_gives_amount // in base amount if shift < 0, in quote amount otherwise
   ) public {
-    MGO = Mango(mgo);
+    MGO = mgo;
     require(MGO.admin() == broadcaster(), "This script requires admin rights");
     BASE = MGO.BASE();
     console.log("This mango uses", BASE.symbol(), "as base");

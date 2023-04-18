@@ -18,10 +18,10 @@ contract MangroveDeployer is Deployer {
 
   function run() public {
     innerRun({
-      chief: envHas("CHIEF") ? envAddressOrName("CHIEF") : broadcaster(),
+      chief: envAddressOrName("CHIEF", broadcaster()),
       gasprice: envHas("GASPRICE") ? vm.envUint("GASPRICE") : 1,
       gasmax: envHas("GASMAX") ? vm.envUint("GASMAX") : 2_000_000,
-      gasbot: envHas("GASBOT") ? envAddressOrName("GASBOT") : fork.get("Gasbot")
+      gasbot: envAddressOrName("GASBOT", fork.get("Gasbot"))
     });
     outputDeployment();
   }

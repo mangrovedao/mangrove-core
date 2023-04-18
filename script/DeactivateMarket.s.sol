@@ -10,8 +10,8 @@ import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 contract DeactivateMarket is Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
-      reader: MgvReader(envHas("MGV_READER") ? envAddressOrName("MGV_READER") : fork.get("MgvReader")),
+      mgv: Mangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      reader: MgvReader(envAddressOrName("MGV_READER", fork.get("MgvReader"))),
       tkn0: envAddressOrName("TKN0"),
       tkn1: envAddressOrName("TKN1")
     });

@@ -19,8 +19,8 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 contract ActivateMarket is Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
-      reader: MgvReader(envHas("MGV_READER") ? envAddressOrName("MGV_READER") : fork.get("MgvReader")),
+      mgv: Mangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      reader: MgvReader(envAddressOrName("MGV_READER", fork.get("MgvReader"))),
       tkn1: envAddressOrName("TKN1"),
       tkn2: envAddressOrName("TKN2"),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),

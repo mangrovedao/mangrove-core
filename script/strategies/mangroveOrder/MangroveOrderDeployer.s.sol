@@ -16,8 +16,8 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 contract MangroveOrderDeployer is Deployer {
   function run() public {
     innerRun({
-      mgv: IMangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
-      admin: envHas("MGV_GOVERNANCE") ? envAddressOrName("MGV_GOVERNANCE") : broadcaster()
+      mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      admin: envAddressOrName("MGV_GOVERNANCE", broadcaster())
     });
     outputDeployment();
   }

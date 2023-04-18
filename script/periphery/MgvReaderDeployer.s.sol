@@ -13,7 +13,7 @@ import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 
 contract MgvReaderDeployer is Deployer {
   function run() public {
-    innerRun({mgv: Mangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove"))});
+    innerRun({mgv: Mangrove(envAddressOrName("MGV", fork.get("Mangrove")))});
     outputDeployment();
   }
 

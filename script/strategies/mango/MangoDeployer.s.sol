@@ -32,7 +32,7 @@ contract MangoDeployer is Deployer {
 
   function run() public {
     innerRun({
-      mgv: IMangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
+      mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
       base: envAddressOrName("BASE"),
       quote: envAddressOrName("QUOTE"),
       base_0: vm.envUint("BASE_0"),

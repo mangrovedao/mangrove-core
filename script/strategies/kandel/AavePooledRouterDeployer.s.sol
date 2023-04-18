@@ -9,7 +9,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 contract AavePooledRouterDeployer is Deployer {
   function run() public {
     innerRun({
-      addressProvider: envHas("AAVE") ? envAddressOrName("AAVE") : fork.get("Aave"),
+      addressProvider: envAddressOrName("AAVE", fork.get("Aave")),
       overhead: vm.envUint("GASREQ")
     });
   }

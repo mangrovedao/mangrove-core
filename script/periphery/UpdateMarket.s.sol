@@ -15,7 +15,7 @@ import "forge-std/console.sol";
 contract UpdateMarket is Deployer {
   function run() public {
     innerRun({
-      reader: MgvReader(envHas("MGV_READER") ? envAddressOrName("MGV_READER") : fork.get("MgvReader")),
+      reader: MgvReader(envAddressOrName("MGV_READER", fork.get("MgvReader"))),
       tkn0: envAddressOrName("TKN0"),
       tkn1: envAddressOrName("TKN1")
     });

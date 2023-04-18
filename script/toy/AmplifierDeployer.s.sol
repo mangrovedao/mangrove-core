@@ -14,11 +14,11 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 contract AmplifierDeployer is Deployer {
   function run() public {
     innerRun({
-      mgv: IMangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
+      mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
       admin: envAddressOrName("ADMIN"),
-      base: envHas("BASE") ? envAddressOrName("BASE") : fork.get("WETH"),
-      stable1: envHas("STABLE1") ? envAddressOrName("STABLE1") : fork.get("USDC"),
-      stable2: envHas("STABLE2") ? envAddressOrName("STABLE2") : fork.get("DAI")
+      base: envAddressOrName("BASE", fork.get("WETH")),
+      stable1: envAddressOrName("STABLE1", fork.get("USDC")),
+      stable2: envAddressOrName("STABLE2", fork.get("DAI"))
     });
   }
 

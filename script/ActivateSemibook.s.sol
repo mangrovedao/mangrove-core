@@ -25,7 +25,7 @@ uint constant COVER_FACTOR = 1000;
 contract ActivateSemibook is Test2, Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
+      mgv: Mangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
       outbound_tkn: envAddressOrName("OUTBOUND_TKN"),
       inbound_tkn: envAddressOrName("INBOUND_TKN"),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),

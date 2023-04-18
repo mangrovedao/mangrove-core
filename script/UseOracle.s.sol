@@ -7,8 +7,8 @@ import {Mangrove} from "mgv_src/Mangrove.sol";
 contract UseOracle is Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")),
-      oracleAddress: envHas("ORACLE") ? envAddressOrName("ORACLE") : fork.get("MgvOracle")
+      mgv: Mangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      oracleAddress: envAddressOrName("ORACLE", fork.get("MgvOracle"))
     });
     outputDeployment();
   }

@@ -11,7 +11,7 @@ import {PixieMATIC} from "mgv_src/toy/PixieMATIC.sol";
 
 contract PixieMATICDeployer is Deployer {
   function run() public {
-    innerRun({admin: fork.get("MgvGovernance")});
+    innerRun({admin: envAddressOrName("MGV_GOVERNANCE", fork.get("MgvGovernance"))});
     outputDeployment();
   }
 

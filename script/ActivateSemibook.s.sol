@@ -25,16 +25,15 @@ uint constant COVER_FACTOR = 1000;
 contract ActivateSemibook is Test2, Deployer {
   function run() public {
     innerRun({
-      outbound_tkn: vm.envAddress("OUTBOUND_TKN"),
-      inbound_tkn: vm.envAddress("INBOUND_TKN"),
+      mgv: Mangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      outbound_tkn: IERC20(envAddressOrName("OUTBOUND_TKN")),
+      inbound_tkn: IERC20(envAddressOrName("INBOUND_TKN")),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
       fee: vm.envUint("FEE")
     });
   }
 
-  function innerRun(address outbound_tkn, address inbound_tkn, uint outbound_in_gwei, uint fee) public {
-    Mangrove mgv = Mangrove(fork.get("Mangrove"));
-
+  function innerRun(Mangrove mgv, IERC20 outbound_tkn, IERC20 inbound_tkn, uint outbound_in_gwei, uint fee) public {
     /*
 
     The gasbase is the gas spent by Mangrove to manage one order execution.  We
@@ -62,30 +61,30 @@ contract ActivateSemibook is Test2, Deployer {
        - so density is in (base token units token)/gas
     */
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    uint outbound_decimals = IERC20(outbound_tkn).decimals();
+    uint outbound_decimals = outbound_tkn.decimals();
     uint density = (COVER_FACTOR * global.gasprice() * 10 ** outbound_decimals) / outbound_in_gwei;
     console.log("Derived density (in wei per gas unit)", density);
 
     broadcast();
     mgv.activate({
-      outbound_tkn: outbound_tkn,
-      inbound_tkn: inbound_tkn,
+      outbound_tkn: address(outbound_tkn),
+      inbound_tkn: address(inbound_tkn),
       fee: fee,
       density: density,
       offer_gasbase: gasbase
     });
   }
 
-  function measureTransferGas(address tkn) internal returns (uint) {
+  function measureTransferGas(IERC20 tkn) internal returns (uint) {
     address someone = freshAddress();
     vm.prank(someone);
-    IERC20(tkn).approve(address(this), type(uint).max);
-    deal(tkn, someone, 10);
+    tkn.approve(address(this), type(uint).max);
+    deal(address(tkn), someone, 10);
     /* WARNING: gas metering is done by local execution, which means that on
      * networks that have different EIPs activated, there will be discrepancies. */
     uint post;
     uint pre = gasleft();
-    IERC20(tkn).transferFrom(someone, address(this), 1);
+    tkn.transferFrom(someone, address(this), 1);
     post = gasleft();
     return pre - post;
   }

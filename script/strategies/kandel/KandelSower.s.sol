@@ -18,30 +18,46 @@ import {MangroveTest, Test} from "mgv_test/lib/MangroveTest.sol";
 
 contract KandelSower is Deployer {
   function run() public {
+    bool onAave = vm.envBool("ON_AAVE");
     innerRun({
-      base: envAddressOrName("BASE"),
-      quote: envAddressOrName("QUOTE"),
+      mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      kandelSeeder: AbstractKandelSeeder(
+        envAddressOrName("KANDEL_SEEDER", onAave ? fork.get("AaveKandelSeeder") : fork.get("KandelSeeder"))
+        ),
+      base: IERC20(envAddressOrName("BASE")),
+      quote: IERC20(envAddressOrName("QUOTE")),
       gaspriceFactor: vm.envUint("GASPRICE_FACTOR"), // 10 means cover 10x the current gasprice of Mangrove
       sharing: vm.envBool("SHARING"),
-      onAave: vm.envBool("ON_AAVE")
+      onAave: onAave,
+      name: envHas("NAME") ? vm.envString("NAME") : ""
     });
     outputDeployment();
   }
 
   /**
-   * @param base Address of the base token of the market Kandel will act on
-   * @param quote Address of the quote token of the market Kandel will act on
+   * @param mgv The Mangrove Kandel will trade on
+   * @param kandelSeeder The address of the (Aave)KandelSeeder
+   * @param base The base token of the market Kandel will act on
+   * @param quote The quote token of the market Kandel will act on
    * @param gaspriceFactor multiplier of Mangrove's gasprice used to compute Kandel's provision
    * @param sharing whether the deployed (aave) Kandel should allow shared liquidity
    * @param onAave whether AaveKandel should be deployed instead of Kandel
+   * @param name The name to register the deployed Kandel instance under. If empty, a name will be generated
    */
-  function innerRun(address base, address quote, uint gaspriceFactor, bool sharing, bool onAave) public {
-    IMangrove mgv = IMangrove(fork.get("Mangrove"));
+  function innerRun(
+    IMangrove mgv,
+    AbstractKandelSeeder kandelSeeder,
+    IERC20 base,
+    IERC20 quote,
+    uint gaspriceFactor,
+    bool sharing,
+    bool onAave,
+    string memory name
+  ) public {
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    AbstractKandelSeeder seeder = AbstractKandelSeeder(onAave ? fork.get("AaveKandelSeeder") : fork.get("KandelSeeder"));
 
     broadcast();
-    GeometricKandel kdl = seeder.sow(
+    GeometricKandel kdl = kandelSeeder.sow(
       AbstractKandelSeeder.KandelSeed({
         base: IERC20(base),
         quote: IERC20(quote),
@@ -50,15 +66,15 @@ contract KandelSower is Deployer {
       })
     );
 
-    string memory kandelName = getName(IERC20(base), IERC20(quote), onAave);
+    string memory kandelName = getName(name, IERC20(base), IERC20(quote), onAave);
     fork.set(kandelName, address(kdl));
     smokeTest(kdl, onAave);
   }
 
-  function getName(IERC20 base, IERC20 quote, bool onAave) public view returns (string memory) {
-    try vm.envString("NAME") returns (string memory name) {
+  function getName(string memory name, IERC20 base, IERC20 quote, bool onAave) public view returns (string memory) {
+    if (bytes(name).length > 0) {
       return name;
-    } catch {
+    } else {
       string memory baseName = onAave ? "AaveKandel_" : "Kandel_";
       return string.concat(baseName, base.symbol(), "_", quote.symbol());
     }

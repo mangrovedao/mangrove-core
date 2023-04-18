@@ -20,40 +20,44 @@ contract KandelDeployer is Deployer {
 
   function run() public {
     innerRun({
-      base: envAddressOrName("BASE"),
-      quote: envAddressOrName("QUOTE"),
+      mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      base: IERC20(envAddressOrName("BASE")),
+      quote: IERC20(envAddressOrName("QUOTE")),
       gaspriceFactor: vm.envUint("GASPRICE_FACTOR"), // 10 means cover 10x the current gasprice of Mangrove
       compoundRateBase: vm.envUint("COMPOUND_RATE_BASE"), // in percent
       compoundRateQuote: vm.envUint("COMPOUND_RATE_QUOTE"), // in percent
-      gasreq: 160_000
+      gasreq: 160_000,
+      name: envHas("NAME") ? vm.envString("NAME") : ""
     });
     outputDeployment();
   }
 
   /**
-   * @param base Address of the base token of the market Kandel will act on
-   * @param quote Address of the quote token of the market Kandel will act on
+   * @param base The base token of the market Kandel will act on
+   * @param quote The quote token of the market Kandel will act on
    * @param gasreq the gas required for the offer logic
    * @param gaspriceFactor multiplier of Mangrove's gasprice used to compute Kandel's provision
    * @param compoundRateBase <= 10**4, the proportion of the spread Kandel will reinvest automatically for base
    * @param compoundRateQuote <= 10**4, the proportion of the spread Kandel will reinvest automatically for quote
+   * @param name The name to register the deployed Kandel instance under. If empty, a name will be generated
    */
   function innerRun(
-    address base,
-    address quote,
+    IMangrove mgv,
+    IERC20 base,
+    IERC20 quote,
     uint gasreq,
     uint gaspriceFactor,
     uint compoundRateBase,
-    uint compoundRateQuote
+    uint compoundRateQuote,
+    string memory name
   ) public {
-    IMangrove mgv = IMangrove(fork.get("Mangrove"));
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
 
     broadcast();
     current = new Kandel(
       mgv,
-      IERC20(base),
-      IERC20(quote),
+      base,
+      quote,
       gasreq,
       global.gasprice() * gaspriceFactor,
       broadcaster()
@@ -63,14 +67,14 @@ contract KandelDeployer is Deployer {
     broadcast();
     current.setCompoundRates(compoundRateBase * 10 ** (precision - 2), compoundRateQuote * 10 ** (precision - 2));
 
-    string memory kandelName = getName(IERC20(base), IERC20(quote));
+    string memory kandelName = getName(name, base, quote);
     fork.set(kandelName, address(current));
   }
 
-  function getName(IERC20 base, IERC20 quote) public view returns (string memory) {
-    try vm.envString("NAME") returns (string memory name) {
+  function getName(string memory name, IERC20 base, IERC20 quote) public view returns (string memory) {
+    if (bytes(name).length > 0) {
       return name;
-    } catch {
+    } else {
       return string.concat("Kandel_", base.symbol(), "_", quote.symbol());
     }
   }

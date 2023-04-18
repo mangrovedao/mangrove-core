@@ -232,6 +232,13 @@ abstract contract Deployer is Script2 {
     }
   }
 
+  function envAddressOrName(string memory envVar, address defaultAddress) internal view returns (address payable) {
+    if (envHas(envVar)) {
+      return envAddressOrName(envVar);
+    }
+    return payable(defaultAddress);
+  }
+
   function envHas(string memory envVar) internal view returns (bool) {
     try vm.envString(envVar) {
       return true;

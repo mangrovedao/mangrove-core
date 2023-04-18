@@ -3,9 +3,9 @@ pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
-import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import "mgv_src/Mangrove.sol";
-import {ERC20} from "mgv_src/toy/ERC20.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
 
 import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 /* Example: activate (USDC,WETH) offer lists. Assume $NATIVE_IN_USDC is the price of ETH/MATIC/native token in USDC; same for $NATIVE_IN_ETH.
@@ -19,12 +19,13 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 contract ActivateMarket is Deployer {
   function run() public {
     innerRun({
-      tkn1: envAddressOrName("TKN1"),
-      tkn2: envAddressOrName("TKN2"),
+      mgv: Mangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      reader: MgvReader(envAddressOrName("MGV_READER", fork.get("MgvReader"))),
+      tkn1: IERC20(envAddressOrName("TKN1")),
+      tkn2: IERC20(envAddressOrName("TKN2")),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
-      fee: vm.envUint("FEE"),
-      mgvReaderAddress: payable(envHas("MGV_READER") ? vm.envAddress("MGV_READER") : fork.get("MgvReader"))
+      fee: vm.envUint("FEE")
     });
   }
 
@@ -45,14 +46,16 @@ contract ActivateMarket is Deployer {
     3. Round to nearest integer
   */
   function innerRun(
-    address tkn1,
-    address tkn2,
+    Mangrove mgv,
+    MgvReader reader,
+    IERC20 tkn1,
+    IERC20 tkn2,
     uint tkn1_in_gwei,
     uint tkn2_in_gwei,
-    uint fee,
-    address mgvReaderAddress
+    uint fee
   ) public {
     new ActivateSemibook().innerRun({
+      mgv: mgv,
       outbound_tkn: tkn1,
       inbound_tkn: tkn2,
       outbound_in_gwei: tkn1_in_gwei,
@@ -60,12 +63,13 @@ contract ActivateMarket is Deployer {
     });
 
     new ActivateSemibook().innerRun({
+      mgv: mgv,
       outbound_tkn: tkn2,
       inbound_tkn: tkn1,
       outbound_in_gwei: tkn2_in_gwei,
       fee: fee
     });
 
-    new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, mgvReaderAddress: mgvReaderAddress});
+    new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, reader: reader});
   }
 }

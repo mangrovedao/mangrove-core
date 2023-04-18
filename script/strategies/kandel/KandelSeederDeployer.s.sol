@@ -18,8 +18,8 @@ import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 contract KandelSeederDeployer is Deployer {
   function run() public {
     (KandelSeeder seeder, AaveKandelSeeder aaveSeeder) = innerRun({
-      mgv: IMangrove(fork.get("Mangrove")),
-      addressesProvider: fork.get("Aave"),
+      mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      addressesProvider: envAddressOrName("AAVE", fork.get("Aave")),
       aaveKandelGasreq: 160_000,
       kandelGasreq: 160_000,
       aaveRouterGasreq: 500_000

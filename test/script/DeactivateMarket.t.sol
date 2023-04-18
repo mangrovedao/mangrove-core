@@ -3,13 +3,14 @@ pragma solidity ^0.8.10;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MangroveDeployer} from "mgv_script/MangroveDeployer.s.sol";
+import {DeactivateMarket} from "mgv_script/DeactivateMarket.s.sol";
+import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 
 import {Test2} from "mgv_lib/Test2.sol";
 
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
-import {DeactivateMarket} from "mgv_script/DeactivateMarket.s.sol";
-import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
+import {IERC20} from "mgv_src/IERC20.sol";
 
 contract DeactivateMarketTest is Test2 {
   MangroveDeployer deployer;
@@ -35,7 +36,7 @@ contract DeactivateMarketTest is Test2 {
     vm.prank(chief);
     mgv.activate(tkn0, tkn1, 1, 1, 1);
 
-    (new UpdateMarket()).innerRun(tkn0, tkn1, address(reader));
+    (new UpdateMarket()).innerRun(reader, IERC20(tkn0), IERC20(tkn1));
 
     assertEq(reader.isMarketOpen(tkn0, tkn1), true, "market should be open");
 
@@ -43,6 +44,6 @@ contract DeactivateMarketTest is Test2 {
     // the script self-tests, so no need to test here. This file is only for
     // incorporating testing the script into the CI.
     deactivator.broadcaster(chief);
-    deactivator.innerRun(tkn0, tkn1);
+    deactivator.innerRun(mgv, reader, IERC20(tkn0), IERC20(tkn1));
   }
 }

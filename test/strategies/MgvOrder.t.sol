@@ -167,7 +167,7 @@ contract MangroveOrder_Test is MangroveTest {
     vm.stopPrank();
   }
 
-  /// Tests with no resting orders
+  /// Tests taker side
 
   function test_partial_filled_buy_order_is_transfered_to_taker() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
@@ -292,7 +292,7 @@ contract MangroveOrder_Test is MangroveTest {
     assertEq(fresh_taker.balance, nativeBalBefore, "value was not returned to taker");
   }
 
-  //// Resting order tests
+  //// Test maker side
 
   function logOrderData(
     IMangrove iMgv,
@@ -416,7 +416,7 @@ contract MangroveOrder_Test is MangroveTest {
       inbound_tkn: base,
       fillOrKill: false,
       fillWants: false,
-      takerWants: 1991 * 2 ether, // k !=0 makes empty fill
+      takerWants: 1991 * 2 ether,
       takerGives: 2 ether,
       restingOrder: true,
       pivotId: 0,
@@ -501,119 +501,107 @@ contract MangroveOrder_Test is MangroveTest {
     assertEq(detail.maker(), address(mgo), "Incorrect maker");
   }
 
-  // function resting_buy_order_for_blacklisted_reserve_reverts() private {
-  //   IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-  //     outbound_tkn: base,
-  //     inbound_tkn: quote,
-  //     fillOrKill: false,
-  //     fillWants: true,
-  //     takerWants: 2 ether,
-  //     takerGives: 0.26 ether,
-  //     restingOrder: true,
-  //     pivotId: 0,
-  //     expiryDate: 0 //NA
-  //   });
+  function test_resting_buy_order_for_blacklisted_reserve_for_inbound_reverts() public {
+    IOrderLogic.TakerOrder memory sellOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: quote,
+      inbound_tkn: base,
+      fillOrKill: false,
+      fillWants: false,
+      takerWants: 1991 ether,
+      takerGives: 1 ether,
+      restingOrder: true,
+      pivotId: 0,
+      expiryDate: 0 //NA
+    });
+    address fresh_taker = freshTaker(1 ether, 0);
+    vm.mockCall(
+      $(quote),
+      abi.encodeWithSelector(
+        quote.transferFrom.selector, $(mgo), fresh_taker, reader.minusFee($(quote), $(base), 1991 ether)
+      ),
+      abi.encode(false)
+    );
+    vm.expectRevert("mgvOrder/pushFailed");
+    vm.prank(fresh_taker);
+    mgo.take{value: 0.1 ether}(sellOrder);
+  }
 
-  //   vm.expectRevert("mgvOrder/pushFailed");
-  //   mgo.take{value: 0.1 ether}(buyOrder);
-  // }
+  function test_resting_buy_order_failing_to_post_returns_tokens_and_provision() public {
+    IOrderLogic.TakerOrder memory sellOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: quote,
+      inbound_tkn: base,
+      fillOrKill: false,
+      fillWants: false,
+      takerWants: 1991 * 2 ether,
+      takerGives: 2 ether,
+      restingOrder: true,
+      pivotId: 0,
+      expiryDate: 0 //NA
+    });
+    //address(args.outbound_tkn), address(args.inbound_tkn), args.wants, args.gives, args.gasreq, gasprice, args.pivotId
+    address fresh_taker = freshTaker(2 ether, 0);
+    uint oldNativeBal = fresh_taker.balance;
+    // pretend new offer failed for some reason
+    vm.mockCall(
+      $(mgv),
+      abi.encodeWithSelector(
+        mgv.newOffer.selector, $(base), $(quote), 1991 ether, 1 ether, mgo.offerGasreq(), 595, /*I cheated*/ 0
+      ),
+      abi.encode(uint(0))
+    );
+    vm.prank(fresh_taker);
+    mgo.take{value: 0.1 ether}(sellOrder);
+    assertEq(fresh_taker.balance, oldNativeBal, "Taker's provision was not returned");
+  }
 
-  // function test_resting_buy_order_for_blacklisted_reserve_for_inbound_reverts() public {
-  //   // We cannot blacklist in quote as take will fail too early, use mocking instead
-  //   // quote.blacklists($(this));
-  //   vm.mockCall(
-  //     address(quote), abi.encodeWithSelector(base.transferFrom.selector, $(mgo), $(this), 0.13 ether), abi.encode(false)
-  //   );
-  //   resting_buy_order_for_blacklisted_reserve_reverts();
-  // }
+  /// Test resting order consumption
 
-  // function test_resting_buy_order_can_be_partially_filled() public {
-  //   IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-  //     outbound_tkn: base,
-  //     inbound_tkn: quote,
-  //     fillOrKill: false,
-  //     fillWants: true,
-  //     takerWants: 2 ether,
-  //     takerGives: 0.26 ether,
-  //     restingOrder: true,
-  //     pivotId: 0,
-  //     expiryDate: 0 //NA
-  //   });
-  //   IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
-  //   uint oldLocalBaseBal = base.balanceOf($(this));
-  //   uint oldRemoteQuoteBal = mgo.router().balanceOfReserve(quote, $(this)); // quote balance of test runner
+  function test_resting_buy_offer_can_be_partially_filled() public {
+    // sniping resting sell offer: 4 ┆ 1999 DAI  /  1 WETH 0xc7183455a4C133Ae270771860664b6B7ec320bB1
+    uint oldBaseBal = base.balanceOf($(this));
+    uint oldQuoteBal = quote.balanceOf($(this)); // quote balance of test runner
 
-  //   (bool success, uint sell_takerGot, uint sell_takerGave,, uint fee) =
-  //     sell_taker.takeWithInfo({offerId: cold_result.offerId, takerWants: 0.1 ether});
+    MgvStructs.OfferPacked offer = mgv.offers($(quote), $(base), cold_buyResult.offerId);
 
-  //   assertTrue(success, "Resting order failed");
-  //   // offer delivers
-  //   assertEq(sell_takerGot, reader.minusFee($(quote), $(base), 0.1 ether), "Incorrect received amount for seller taker");
-  //   // inbound token forwarded to test runner
-  //   assertEq(base.balanceOf($(this)), oldLocalBaseBal + sell_takerGave, "Incorrect forwarded amount to initial taker");
+    (, uint takerGot, uint takerGave,, uint fee) =
+      sell_taker.takeWithInfo({takerWants: 1000 ether, offerId: cold_buyResult.offerId});
 
-  //   assertEq(
-  //     mgo.router().balanceOfReserve(quote, $(this)),
-  //     oldRemoteQuoteBal - (sell_takerGot + fee),
-  //     "Incorrect token balance on mgo"
-  //   );
+    // offer delivers
+    assertEq(takerGot, 1000 ether - fee, "Incorrect received amount for seller taker");
+    // inbound token forwarded to test runner
+    assertEq(base.balanceOf($(this)), oldBaseBal + takerGave, "Incorrect base balance");
+    // outbound taken from test runner
+    assertEq(quote.balanceOf($(this)), oldQuoteBal - (takerGot + fee), "Incorrect quote balance");
+    // checking residual
+    MgvStructs.OfferPacked offer_ = mgv.offers($(quote), $(base), cold_buyResult.offerId);
+    assertEq(offer_.gives(), offer.gives() - (takerGot + fee), "Incorrect residual");
+  }
 
-  //   // checking resting order residual
-  //   MgvStructs.OfferPacked offer = mgv.offers($(quote), $(base), cold_result.offerId);
+  function test_failing_resting_offer_releases_uncollected_provision() public {
+    uint provision = mgo.provisionOf(quote, base, cold_buyResult.offerId);
+    // empty quotes so that cold buy offer fails
+    deal($(quote), address(this), 0);
+    _gas();
+    (,,, uint bounty,) = sell_taker.takeWithInfo({offerId: cold_buyResult.offerId, takerWants: 1991});
+    uint g = gas_(true);
 
-  //   assertEq(
-  //     offer.gives(), buyOrder.takerGives - cold_result.takerGave - 0.1 ether, "Incorrect gives for bid resting order"
-  //   );
-  // }
+    assertTrue(bounty > 0, "snipe should have failed");
+    assertTrue(
+      provision > mgo.provisionOf(quote, base, cold_buyResult.offerId),
+      "Remaining provision should be less than original"
+    );
+    assertTrue(mgo.provisionOf(quote, base, cold_buyResult.offerId) > 0, "Remaining provision should not be 0");
+    assertTrue(bounty > g * reader.global().gasprice(), "taker not compensated");
+    console.log("Taker gained %s matics", toUnit(bounty - g * reader.global().gasprice(), 18));
+  }
 
-  // function test_user_can_retract_resting_offer() public {
-  //   uint userWeiBalanceOld = $(this).balance;
-  //   uint credited = mgo.retractOffer(quote, base, cold_result.offerId, true);
-  //   assertEq($(this).balance, userWeiBalanceOld + credited, "Incorrect provision received");
-  // }
+  //// Tests offer management
 
-  // function test_failing_resting_offer_releases_uncollected_provision() public {
-  //   uint provision = 5 ether;
-  //   mgv.fund{value: provision}(address(mgo));
-
-  //   // native token reserve for user
-  //   uint native_reserve_before = $(this).balance;
-
-  //   // removing base/quote approval to make resting offer fail when matched
-  //   TransferLib.approveToken(quote, $(mgo.router()), 0);
-  //   TransferLib.approveToken(base, $(mgo.router()), 0);
-
-  //   (,,, uint bounty,) = sell_taker.takeWithInfo({offerId: cold_result.offerId, takerWants: 1});
-  //   assertTrue(bounty > 0, "snipe should have failed");
-  //   // collecting released provision
-  //   mgo.retractOffer(quote, base, cold_result.offerId, true);
-  //   uint native_reserve_after = $(this).balance;
-  //   uint userReleasedProvision = native_reserve_after - native_reserve_before;
-  //   assertTrue(userReleasedProvision > 0, "No released provision");
-  //   // making sure approx is not too bad (UserReleasedProvision in O(provision - cold_resultbounty))
-  //   assertEq((provision - cold_result.bounty) / userReleasedProvision, 1, "invalid amount of released provision");
-  // }
-
-  // function test_restingOrder_that_fail_to_post_release_provisions() public {
-  //   vm.deal(address(this), 2 ether);
-  //   uint native_balance_before = $(this).balance;
-  //   mgv.setDensity($(quote), $(base), 0.1 ether);
-  //   IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-  //     outbound_tkn: base,
-  //     inbound_tkn: quote,
-  //     fillOrKill: false,
-  //     fillWants: true,
-  //     takerWants: 1.000001 ether, // residual will be below density
-  //     takerGives: 0.13000013 ether,
-  //     restingOrder: true,
-  //     pivotId: 0,
-  //     expiryDate: 0 //NA
-  //   });
-  //   IOrderLogic.TakerOrderResult memory res = mgo.take{value: 2 ether}(buyOrder);
-  //   assertEq(cold_result.takerGot + cold_result.fee, 1 ether, "Market order failed");
-  //   assertEq(cold_result.offerId, 0, "Resting order should not be posted");
-  //   assertEq($(this).balance, native_balance_before, "Provision not released");
-  // }
+  function test_user_can_retract_resting_offer() public {
+    uint userWeiBalanceOld = $(this).balance;
+    uint credited = mgo.retractOffer(quote, base, cold_buyResult.offerId, true);
+    assertEq($(this).balance, userWeiBalanceOld + credited, "Incorrect provision received");
+  }
 
   // function test_restingOrder_that_fail_to_post_revert_if_no_partialFill() public {
   //   mgv.setDensity($(quote), $(base), 0.1 ether);

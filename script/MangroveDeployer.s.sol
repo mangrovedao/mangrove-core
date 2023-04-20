@@ -7,8 +7,8 @@ import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Deployer} from "./lib/Deployer.sol";
-import {MgvCleanerDeployer} from "./periphery/MgvCleaner.s.sol";
-import {MgvReaderDeployer} from "./periphery/MgvReader.s.sol";
+import {MgvCleanerDeployer} from "./periphery/MgvCleanerDeployer.s.sol";
+import {MgvReaderDeployer} from "./periphery/MgvReaderDeployer.s.sol";
 
 contract MangroveDeployer is Deployer {
   Mangrove public mgv;
@@ -18,34 +18,42 @@ contract MangroveDeployer is Deployer {
 
   function run() public {
     innerRun({
-      chief: envHas("CHIEF") ? vm.envAddress("CHIEF") : broadcaster(),
+      chief: envAddressOrName("CHIEF", broadcaster()),
       gasprice: envHas("GASPRICE") ? vm.envUint("GASPRICE") : 1,
-      gasmax: envHas("GASMAX") ? vm.envUint("GASMAX") : 2_000_000
+      gasmax: envHas("GASMAX") ? vm.envUint("GASMAX") : 2_000_000,
+      gasbot: envAddressOrName("GASBOT", "Gasbot")
     });
     outputDeployment();
   }
 
-  function innerRun(address chief, uint gasprice, uint gasmax) public {
+  function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public {
     broadcast();
     if (forMultisig) {
-      mgv = new Mangrove{salt:salt}({governance: chief, gasprice: gasprice, gasmax: gasmax});
+      oracle = new MgvOracle{salt: salt}({governance_: chief, initialMutator_: gasbot});
     } else {
-      mgv = new Mangrove({governance: chief, gasprice: gasprice, gasmax: gasmax});
+      oracle = new MgvOracle({governance_: chief, initialMutator_: gasbot});
+    }
+    fork.set("MgvOracle", address(oracle));
+
+    broadcast();
+    if (forMultisig) {
+      mgv = new Mangrove{salt:salt}({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax});
+    } else {
+      mgv = new Mangrove({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax});
     }
     fork.set("Mangrove", address(mgv));
 
-    (new MgvReaderDeployer()).innerRun(address(mgv));
+    broadcast();
+    mgv.setMonitor(address(oracle));
+    broadcast();
+    mgv.setUseOracle(true);
+    broadcast();
+    mgv.setGovernance(chief);
+
+    (new MgvReaderDeployer()).innerRun(mgv);
     reader = MgvReader(fork.get("MgvReader"));
 
-    (new MgvCleanerDeployer()).innerRun(address(mgv));
+    (new MgvCleanerDeployer()).innerRun(mgv);
     cleaner = MgvCleaner(fork.get("MgvCleaner"));
-
-    broadcast();
-    if (forMultisig) {
-      oracle = new MgvOracle{salt: salt}({governance_: chief, initialMutator_: chief});
-    } else {
-      oracle = new MgvOracle({governance_: chief, initialMutator_: chief});
-    }
-    fork.set("MgvOracle", address(oracle));
   }
 }

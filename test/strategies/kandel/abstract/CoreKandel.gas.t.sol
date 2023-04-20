@@ -61,8 +61,8 @@ abstract contract CoreKandelGasTest is KandelTest {
 
   function test_complete_fill_bid_order() public {
     uint completeFill = completeFill_;
-    _gas();
     vm.prank(taker);
+    _gas();
     // taking partial fill to have gas cost of reposting
     (uint takerGot,,,) = mgv.marketOrder($(base), $(quote), completeFill, type(uint160).max, true);
     gas_();
@@ -71,8 +71,8 @@ abstract contract CoreKandelGasTest is KandelTest {
 
   function test_bid_order_length_1() public {
     uint partialFill = partialFill_;
-    _gas();
     vm.prank(taker);
+    _gas();
     // taking partial fill to have gas cost of reposting (all offers give 0.108 ethers)
     (uint takerGot,,,) = mgv.marketOrder($(base), $(quote), partialFill, type(uint160).max, true);
     uint g = gas_(true);
@@ -84,8 +84,9 @@ abstract contract CoreKandelGasTest is KandelTest {
   function test_bid_order_length_2() public {
     uint completeFill = completeFill_;
     uint partialFill = partialFill_;
-    _gas();
+
     vm.prank(taker);
+    _gas();
     (uint takerGot,,,) = mgv.marketOrder($(base), $(quote), completeFill + partialFill, type(uint160).max, true);
     uint g = gas_(true);
     require(takerGot > 0);
@@ -96,8 +97,9 @@ abstract contract CoreKandelGasTest is KandelTest {
   function test_bid_order_length_3() public {
     uint completeFill = completeFill_;
     uint partialFill = partialFill_;
-    _gas();
+
     vm.prank(taker);
+    _gas();
     (uint takerGot,,,) = mgv.marketOrder($(base), $(quote), completeFill * 2 + partialFill, type(uint160).max, true);
     uint g = gas_(true);
     require(takerGot > 0);
@@ -108,8 +110,9 @@ abstract contract CoreKandelGasTest is KandelTest {
   function test_bid_order_length_4() public {
     uint completeFill = completeFill_;
     uint partialFill = partialFill_;
-    _gas();
+
     vm.prank(taker);
+    _gas();
     (uint takerGot,,,) = mgv.marketOrder($(base), $(quote), completeFill * 3 + partialFill, type(uint160).max, true);
     uint g = gas_(true);
     require(takerGot > 0);
@@ -120,8 +123,9 @@ abstract contract CoreKandelGasTest is KandelTest {
   function test_bid_order_length_5() public {
     uint completeFill = completeFill_;
     uint partialFill = partialFill_;
-    _gas();
+
     vm.prank(taker);
+    _gas();
     (uint takerGot,,,) = mgv.marketOrder($(base), $(quote), completeFill * 4 + partialFill, type(uint160).max, true);
     uint g = gas_(true);
     require(takerGot > 0);

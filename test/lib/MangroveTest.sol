@@ -411,6 +411,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
+  /// creates `fold` offers in the (outbound, inbound) market with the same `wants`, `gives` and `gasreq` and with `caller` as maker
   function densify(
     address outbound,
     address inbound,
@@ -432,6 +433,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
+  /// duplicates `fold` times all offers in the `outbound, inbound` list from id `fromId` and for `lenght` offers.
   function densify(address outbound, address inbound, uint fromId, uint length, uint fold, address caller) internal {
     while (length > 0 && fromId != 0) {
       MgvStructs.OfferPacked offer = mgv.offers(outbound, inbound, fromId);

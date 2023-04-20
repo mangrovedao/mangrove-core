@@ -24,11 +24,10 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 contract StopMango is Deployer {
   function run() public {
-    innerRun({$mgo: payable(vm.envAddress("MANGO")), from: vm.envUint("FROM"), to: vm.envUint("TO")});
+    innerRun({mgo: Mango(envAddressOrName("MANGO")), from: vm.envUint("FROM"), to: vm.envUint("TO")});
   }
 
-  function innerRun(address payable $mgo, uint from, uint to) public {
-    Mango mgo = Mango($mgo);
+  function innerRun(Mango mgo, uint from, uint to) public {
     uint n = mgo.NSLOTS();
     require(mgo.admin() == broadcaster(), "This script requires admin rights");
     require(from < n, "invalid start index");
@@ -39,7 +38,7 @@ contract StopMango is Deployer {
       from, // from
       to
     );
-    uint bal = mgo.MGV().balanceOf($mgo);
+    uint bal = mgo.MGV().balanceOf(payable(mgo));
     if (bal > 0) {
       collected += bal;
       broadcast();

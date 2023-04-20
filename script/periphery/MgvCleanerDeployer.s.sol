@@ -5,23 +5,25 @@ import {Script, console} from "forge-std/Script.sol";
 import {Deployer} from "../lib/Deployer.sol";
 
 import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
+import {Mangrove} from "mgv_src/Mangrove.sol";
+
 /**
  * @notice deploys a MgvReader instance
  */
 
 contract MgvCleanerDeployer is Deployer {
   function run() public {
-    innerRun({mgv: envHas("MGV") ? envAddressOrName("MGV") : fork.get("Mangrove")});
+    innerRun({mgv: Mangrove(envAddressOrName("MGV", "Mangrove"))});
     outputDeployment();
   }
 
-  function innerRun(address mgv) public {
+  function innerRun(Mangrove mgv) public {
     broadcast();
     MgvCleaner cleaner;
     if (forMultisig) {
-      cleaner = new MgvCleaner{salt:salt}({mgv: payable(mgv)});
+      cleaner = new MgvCleaner{salt:salt}({mgv: address(mgv)});
     } else {
-      cleaner = new MgvCleaner({mgv: payable(mgv)});
+      cleaner = new MgvCleaner({mgv: address(mgv)});
     }
     fork.set("MgvCleaner", address(cleaner));
   }

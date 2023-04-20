@@ -25,7 +25,7 @@ import {Mango, IERC20, IMangrove} from "mgv_src/strategies/offer_maker/market_ma
 contract InitMango is Deployer {
   function run() public {
     innerRun({
-      $mgo: payable(envAddressOrName("MANGO")),
+      mgo: Mango(envAddressOrName("MANGO")),
       default_base_amount: vm.envUint("DEFAULT_BASE_AMOUNT"),
       default_quote_amount: vm.envUint("DEFAULT_QUOTE_AMOUNT"),
       firstAskIndex: vm.envUint("FIRST_ASK_INDEX"),
@@ -35,7 +35,7 @@ contract InitMango is Deployer {
   }
 
   function innerRun(
-    address payable $mgo,
+    Mango mgo,
     uint default_base_amount, // for asks
     uint default_quote_amount, // for bids
     uint firstAskIndex,
@@ -44,17 +44,17 @@ contract InitMango is Deployer {
   ) public {
     require(cover_factor * batch_size > 0, "invalid arguments");
 
-    uint n = Mango($mgo).NSLOTS();
+    uint n = mgo.NSLOTS();
     {
       uint provAsk = 0.1 ether;
       uint provBid = 0.1 ether;
 
       // funding Mangrove
-      IMangrove mgv = Mango($mgo).MGV();
+      IMangrove mgv = mgo.MGV();
 
       console.log("Funding mangrove with", (provAsk + provBid) * n * cover_factor, "WEIs");
       broadcast();
-      mgv.fund{value: (provAsk + provBid) * n * cover_factor}($mgo);
+      mgv.fund{value: (provAsk + provBid) * n * cover_factor}(payable(mgo));
     }
 
     uint[] memory amounts = new uint[](n);
@@ -69,7 +69,7 @@ contract InitMango is Deployer {
     uint remainder = n;
     for (uint i = 0; i < n / batch_size; i++) {
       broadcast();
-      Mango($mgo).initialize(
+      mgo.initialize(
         true, // reset offers
         (n / 2) - 1, // last bid position
         batch_size * i, // from
@@ -81,7 +81,7 @@ contract InitMango is Deployer {
     }
     if (remainder > 0) {
       broadcast();
-      Mango($mgo).initialize(
+      mgo.initialize(
         true, // reset offers
         (n / 2) - 1, // last bid position
         n - remainder, // from
@@ -92,8 +92,8 @@ contract InitMango is Deployer {
     }
     // approving Mango to trade tester funds
     vm.startBroadcast();
-    Mango($mgo).BASE().approve(address(Mango($mgo).router()), type(uint).max);
-    Mango($mgo).QUOTE().approve(address(Mango($mgo).router()), type(uint).max);
+    mgo.BASE().approve(address(mgo.router()), type(uint).max);
+    mgo.QUOTE().approve(address(mgo.router()), type(uint).max);
     vm.stopBroadcast();
   }
 }

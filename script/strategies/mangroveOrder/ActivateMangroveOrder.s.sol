@@ -12,26 +12,33 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
     mgvOrder: address of MangroveOrder contract
     tkns: array of token addresses to activate
    
-    The TKNS env variable should be given as a comma-separated list of names (known by ens).
+    The TKNS env variable should be given as a comma-separated list of names (known by ens) or addresses.
     For instance:
 
   TKNS="DAI,USDC,WETH,DAI_AAVE,USDC_AAVE,WETH_AAVE" forge script --fork-url mumbai ActivateMangroveOrder*/
 
 contract ActivateMangroveOrder is Deployer {
   function run() public {
-    innerRun({mgvOrder: MangroveOrder(fork.get("MangroveOrder")), tkns: vm.envString("TKNS", ",")});
-  }
-
-  function innerRun(MangroveOrder mgvOrder, string[] memory tkns) public {
-    console.log("MangroveOrder (%s) is acting of Mangrove (%s)", address(mgvOrder), address(mgvOrder.MGV()));
-    console.log("Activating tokens...");
+    string[] memory tkns = vm.envString("TKNS", ",");
     IERC20[] memory iercs = new IERC20[](tkns.length);
     for (uint i = 0; i < tkns.length; ++i) {
-      iercs[i] = IERC20(fork.get(tkns[i]));
+      iercs[i] = IERC20(envAddressOrName(tkns[i]));
+    }
+
+    innerRun({
+      mgvOrder: MangroveOrder(envAddressOrName("MANGROVE_ORDER", "MangroveOrder")),
+      iercs: iercs
+    });
+  }
+
+  function innerRun(MangroveOrder mgvOrder, IERC20[] memory iercs) public {
+    console.log("MangroveOrder (%s) is acting of Mangrove (%s)", address(mgvOrder), address(mgvOrder.MGV()));
+    console.log("Activating tokens...");
+    for (uint i = 0; i < iercs.length; ++i) {
       console.log("%s (%s)", iercs[i].symbol(), address(iercs[i]));
     }
     broadcast();
-    MangroveOrder(payable(mgvOrder)).activate(iercs);
+    mgvOrder.activate(iercs);
     console.log("done!");
   }
 }

@@ -12,21 +12,21 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
  WRITE_DEPLOY=true forge script --fork-url mumbai MangroveOrderDeployer -vvv --broadcast --verify
     Remember to activate it using ActivateMangroveOrder
 
-  You can specify a mangrove address with the MANGROVE env var.*/
+  You can specify a mangrove address with the MGV env var.*/
 contract MangroveOrderDeployer is Deployer {
   function run() public {
-    address mgv = envHas("MANGROVE") ? envAddressOrName("MANGROVE") : fork.get("Mangrove");
-    address governance = envHas("MgvGovernance") ? envAddressOrName("MgvGovernance") : broadcaster();
-
-    innerRun({mangrove: mgv, admin: governance});
+    innerRun({
+      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
+      admin: envAddressOrName("MGV_GOVERNANCE", broadcaster())
+    });
     outputDeployment();
   }
 
   /**
+   * @param mgv The Mangrove that MangroveOrder should operate on
    * @param admin address of the admin on MangroveOrder after deployment
    */
-  function innerRun(address admin, address mangrove) public {
-    IMangrove mgv = IMangrove(payable(mangrove));
+  function innerRun(IMangrove mgv, address admin) public {
     MangroveOrder mgvOrder;
     // use 30K gasreq, this will be addeed to the SimpleRouter gasreq of 70K.
     // tests show that MangroveOrder requires 65K under normal circumstances.

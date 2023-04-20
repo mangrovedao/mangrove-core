@@ -40,7 +40,8 @@ contract KandelPopulate is Deployer {
         params: params,
         initQuote: vm.envUint("INIT_QUOTE"),
         volume: vm.envUint("VOLUME"),
-        kdl: kdl
+        kdl: kdl,
+        mgvReader: MgvReader(envAddressOrName("MGV_READER", "MgvReader"))
       })
     );
   }
@@ -54,6 +55,7 @@ contract KandelPopulate is Deployer {
   ///@param mgv is kdl.MGV()
   ///@param base is kdl.BASE()
   ///@param quote is kdl.QUOTE()
+  ///@param mgvReader the MgvReader
 
   struct HeapArgs {
     uint from;
@@ -63,6 +65,7 @@ contract KandelPopulate is Deployer {
     uint initQuote;
     uint volume;
     GeometricKandel kdl;
+    MgvReader mgvReader;
   }
 
   struct HeapVars {
@@ -85,7 +88,7 @@ contract KandelPopulate is Deployer {
   function innerRun(HeapArgs memory args) public {
     HeapVars memory vars;
 
-    vars.mgvReader = MgvReader(fork.get("MgvReader"));
+    vars.mgvReader = args.mgvReader;
     vars.BASE = args.kdl.BASE();
     vars.QUOTE = args.kdl.QUOTE();
     (

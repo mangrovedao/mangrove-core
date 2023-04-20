@@ -167,7 +167,9 @@ contract MangroveOrder_Test is MangroveTest {
     vm.stopPrank();
   }
 
-  /// Tests taker side
+  ////////////////////////
+  /// Tests taker side ///
+  ////////////////////////
 
   function test_partial_filled_buy_order_is_transfered_to_taker() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
@@ -710,8 +712,9 @@ contract MangroveOrder_Test is MangroveTest {
     (bool success,,,,) = sell_taker.takeWithInfo({offerId: cold_buyResult.offerId, takerWants: 1991});
     assertTrue(!success, "offer should have failed");
   }
-
-  //// Tests offer management
+  //////////////////////////////
+  /// Tests offer management ///
+  //////////////////////////////
 
   function test_user_can_retract_resting_offer() public {
     uint userWeiBalanceOld = $(this).balance;
@@ -749,7 +752,9 @@ contract MangroveOrder_Test is MangroveTest {
     mgo.updateOffer(quote, base, 1 ether, 2000 ether, cold_buyResult.offerId, cold_buyResult.offerId);
   }
 
-  /// Gas requirements tests
+  //////////////////////////////
+  /// Gas requirements tests ///
+  //////////////////////////////
 
   function test_mockup_routing_gas_cost() public {
     SimpleRouter router = SimpleRouter(address(mgo.router()));

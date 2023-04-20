@@ -118,7 +118,7 @@ contract MangroveOrder_Test is MangroveTest {
       takerGives: 1991 ether,
       restingOrder: true,
       pivotId: 0,
-      expiryDate: 0 //NA
+      expiryDate: block.timestamp + 1
     });
 
     sellOrder = IOrderLogic.TakerOrder({
@@ -130,7 +130,7 @@ contract MangroveOrder_Test is MangroveTest {
       takerGives: 1 ether,
       restingOrder: true,
       pivotId: 0,
-      expiryDate: 0 //NA
+      expiryDate: block.timestamp + 1
     });
 
     cold_buyResult = mgo.take{value: 0.1 ether}(buyOrder);
@@ -585,7 +585,7 @@ contract MangroveOrder_Test is MangroveTest {
     vm.mockCall(
       $(mgv),
       abi.encodeWithSelector(
-        mgv.newOffer.selector, $(base), $(quote), 1991 ether, 1 ether, mgo.offerGasreq(), 595, /*I cheated*/ 0
+        mgv.newOffer.selector, $(base), $(quote), 1991 ether, 1 ether, mgo.offerGasreq(), 531, /*I cheated*/ 0
       ),
       abi.encode(uint(0))
     );
@@ -612,7 +612,7 @@ contract MangroveOrder_Test is MangroveTest {
     vm.mockCall(
       $(mgv),
       abi.encodeWithSelector(
-        mgv.newOffer.selector, $(base), $(quote), 1991 ether, 1 ether, mgo.offerGasreq(), 595, /*I cheated*/ 0
+        mgv.newOffer.selector, $(base), $(quote), 1991 ether, 1 ether, mgo.offerGasreq(), 531, /*I cheated*/ 0
       ),
       abi.encode(uint(0))
     );
@@ -646,7 +646,7 @@ contract MangroveOrder_Test is MangroveTest {
     vm.mockCall(
       $(mgv),
       abi.encodeWithSelector(
-        mgv.newOffer.selector, $(base), $(quote), 1991 ether, 1 ether, mgo.offerGasreq(), 595, /*I cheated*/ 0
+        mgv.newOffer.selector, $(base), $(quote), 1991 ether, 1 ether, mgo.offerGasreq(), 531, /*I cheated*/ 0
       ),
       abi.encode(uint(0))
     );

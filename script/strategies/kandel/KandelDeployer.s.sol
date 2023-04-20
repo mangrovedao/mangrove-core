@@ -20,7 +20,7 @@ contract KandelDeployer is Deployer {
 
   function run() public {
     innerRun({
-      mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       base: IERC20(envAddressOrName("BASE")),
       quote: IERC20(envAddressOrName("QUOTE")),
       gaspriceFactor: vm.envUint("GASPRICE_FACTOR"), // 10 means cover 10x the current gasprice of Mangrove

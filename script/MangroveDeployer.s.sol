@@ -21,7 +21,7 @@ contract MangroveDeployer is Deployer {
       chief: envAddressOrName("CHIEF", broadcaster()),
       gasprice: envHas("GASPRICE") ? vm.envUint("GASPRICE") : 1,
       gasmax: envHas("GASMAX") ? vm.envUint("GASMAX") : 2_000_000,
-      gasbot: envAddressOrName("GASBOT", fork.get("Gasbot"))
+      gasbot: envAddressOrName("GASBOT", "Gasbot")
     });
     outputDeployment();
   }

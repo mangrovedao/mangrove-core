@@ -12,8 +12,8 @@ import {IERC20} from "mgv_src/IERC20.sol";
 contract DeactivateMarket is Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
-      reader: MgvReader(envAddressOrName("MGV_READER", fork.get("MgvReader"))),
+      mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
+      reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
       tkn0: IERC20(envAddressOrName("TKN0")),
       tkn1: IERC20(envAddressOrName("TKN1"))
     });

@@ -41,7 +41,7 @@ contract KandelPopulate is Deployer {
         initQuote: vm.envUint("INIT_QUOTE"),
         volume: vm.envUint("VOLUME"),
         kdl: kdl,
-        mgvReader: MgvReader(envAddressOrName("MGV_READER", fork.get("MgvReader")))
+        mgvReader: MgvReader(envAddressOrName("MGV_READER", "MgvReader"))
       })
     );
   }

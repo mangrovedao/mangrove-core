@@ -313,7 +313,6 @@ contract MangroveTest is Test2, HasMgvEvents {
     order.outbound_tkn = $(quote_);
     order.wants = takerWants;
     order.gives = takerGives;
-    // complete fill (prev and next are bogus)
     order.offer = MgvStructs.Offer.pack({
       __prev: 0,
       __next: 0,

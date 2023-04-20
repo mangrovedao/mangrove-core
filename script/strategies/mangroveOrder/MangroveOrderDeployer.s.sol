@@ -32,9 +32,9 @@ contract MangroveOrderDeployer is Deployer {
     // tests show that MangroveOrder requires 65K under normal circumstances.
     broadcast();
     if (forMultisig) {
-      mgvOrder = new MangroveOrder{salt:salt}(mgv, admin, 30_000);
+      mgvOrder = new MangroveOrder{salt:salt}(mgv, admin, 60_000);
     } else {
-      mgvOrder = new MangroveOrder(mgv, admin, 30_000);
+      mgvOrder = new MangroveOrder(mgv, admin, 60_000);
     }
     fork.set("MangroveOrder", address(mgvOrder));
     fork.set("MangroveOrder-Router", address(mgvOrder.router()));

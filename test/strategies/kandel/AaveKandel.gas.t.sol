@@ -6,10 +6,6 @@ import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {Kandel} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 
 contract AaveKandelGasTest is CoreKandelGasTest {
-  function __setForkEnvironment__() internal virtual override {
-    super.__setForkEnvironment__();
-  }
-
   function __deployKandel__(address deployer, address reserveId) internal override returns (GeometricKandel kdl_) {
     uint GASREQ = 128_000; // can be 77_000 when all offers are initialized.
     vm.prank(deployer);

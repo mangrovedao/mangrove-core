@@ -9,8 +9,8 @@ import {IMgvMonitor} from "mgv_src/MgvLib.sol";
 contract UseOracle is Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
-      oracle: IMgvMonitor(envAddressOrName("ORACLE", fork.get("MgvOracle")))
+      mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
+      oracle: IMgvMonitor(envAddressOrName("ORACLE", "MgvOracle"))
     });
     outputDeployment();
   }

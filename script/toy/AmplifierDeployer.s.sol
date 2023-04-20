@@ -15,11 +15,11 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 contract AmplifierDeployer is Deployer {
   function run() public {
     innerRun({
-      mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       admin: envAddressOrName("ADMIN"),
-      base: IERC20(envAddressOrName("BASE", fork.get("WETH"))),
-      stable1: IERC20(envAddressOrName("STABLE1", fork.get("USDC"))),
-      stable2: IERC20(envAddressOrName("STABLE2", fork.get("DAI")))
+      base: IERC20(envAddressOrName("BASE", "WETH")),
+      stable1: IERC20(envAddressOrName("STABLE1", "USDC")),
+      stable2: IERC20(envAddressOrName("STABLE2", "DAI"))
     });
   }
 

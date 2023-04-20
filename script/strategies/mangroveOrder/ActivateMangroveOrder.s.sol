@@ -26,7 +26,7 @@ contract ActivateMangroveOrder is Deployer {
     }
 
     innerRun({
-      mgvOrder: MangroveOrder(envAddressOrName("MANGROVE_ORDER", fork.get("MangroveOrder"))),
+      mgvOrder: MangroveOrder(envAddressOrName("MANGROVE_ORDER", "MangroveOrder")),
       iercs: iercs
     });
   }

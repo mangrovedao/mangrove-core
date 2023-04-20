@@ -20,7 +20,7 @@ contract KandelSower is Deployer {
   function run() public {
     bool onAave = vm.envBool("ON_AAVE");
     innerRun({
-      mgv: IMangrove(envAddressOrName("MGV", fork.get("Mangrove"))),
+      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       kandelSeeder: AbstractKandelSeeder(
         envAddressOrName("KANDEL_SEEDER", onAave ? fork.get("AaveKandelSeeder") : fork.get("KandelSeeder"))
         ),

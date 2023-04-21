@@ -4,13 +4,14 @@ set -ex
 # set -e
 
 MANGROVE_DEPLOYMENT_SCRIPT=MangroveDeployer
+
 CHAIN_NAME=polygon
-CHAIN_NUMBER
+CHAIN_NAME_UPPER=$(echo "$CHAIN_NAME" | awk '{print toupper($0)}')
 
-
-# Loading .env means we don't know which secrets were used, so should probably be avoided and replaced by explicitly making
-# env vars available, eg using `env -i VAR1="$VAR1" command`
-# DON'T DO THIS: source .env
+CHAIN_PRIVATE_KEY_VAR=${CHAIN_NAME_UPPER}_PRIVATE_KEY
+CHAIN_PRIVATE_ADDRESS_VAR=${CHAIN_NAME_UPPER}_PRIVATE_ADDRESS
+CHAIN_NODE_URL_VAR=${CHAIN_NAME_UPPER}_NODE_URL
+CHAIN_API_KEY_VAR=${CHAIN_NAME_UPPER}_API_KEY
 
 # Foundry automatically loads .env, so we need to circumvent this
 DOT_ENV_BACKUP=""
@@ -43,15 +44,15 @@ trap finish EXIT
 #   3. `PATH="$PATH"` is needed for forge to be found
 env -i \
 PATH="$PATH" \
-POLYGON_PRIVATE_KEY=$POLYGON_PRIVATE_KEY \
-POLYGON_PRIVATE_ADDRESS=$POLYGON_PRIVATE_ADDRESS \
-POLYGON_NODE_URL=$POLYGON_NODE_URL \
-POLYGON_API_KEY=$POLYGON_API_KEY \
+${CHAIN_PRIVATE_KEY_VAR}=${!CHAIN_PRIVATE_KEY_VAR} \
+${CHAIN_PRIVATE_ADDRESS_VAR}=${!CHAIN_PRIVATE_ADDRESS_VAR} \
+${CHAIN_NODE_URL_VAR}=${!CHAIN_NODE_URL_VAR} \
+${CHAIN_API_KEY_VAR}=${!CHAIN_API_KEY_VAR} \
 WRITE_DEPLOY=true \
 FOUNDRY_OPTIMIZER=true FOUNDRY_OPTIMIZER_RUNS=20000 \
 CHIEF=0x751a02217777b4B85848169A52d6b035D7Cf5DDd \
 GASPRICE=50 GASMAX=1000000 \
-forge script --fork-url polygon $MANGROVE_DEPLOYMENT_SCRIPT -vvv --broadcast --verify --legacy # NB legacy is for some reason needeed for local anvil fork
+forge script --fork-url $CHAIN_NAME $MANGROVE_DEPLOYMENT_SCRIPT -vvv --broadcast --verify --legacy # NB legacy is for some reason needeed for local anvil fork
 
 # TODO capture information about the deployment:
 # - this file

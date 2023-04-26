@@ -682,6 +682,28 @@ contract MangroveOrder_Test is MangroveTest {
     assertEq(offer_.gives(), offer.gives() - (takerGot + fee), "Incorrect residual");
   }
 
+  function test_resting_buy_offer_can_be_fully_consumed_at_minimum_approval() public {
+    TransferLib.approveToken(quote, $(mgo.router()), 2000 ether);
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      fillOrKill: false,
+      fillWants: true,
+      takerWants: 1 ether,
+      takerGives: 1000 ether,
+      restingOrder: true,
+      pivotId: 0,
+      expiryDate: block.timestamp + 1
+    });
+    IOrderLogic.TakerOrderResult memory buyResult = mgo.take{value: 0.1 ether}(buyOrder);
+
+    assertTrue(buyResult.offerId > 0, "Resting order should succeed");
+
+    (bool success,,,,) = sell_taker.takeWithInfo({takerWants: 40000 ether, offerId: buyResult.offerId});
+
+    assertTrue(success, "Offer should succeed");
+  }
+
   function test_failing_resting_offer_releases_uncollected_provision() public {
     uint provision = mgo.provisionOf(quote, base, cold_buyResult.offerId);
     // empty quotes so that cold buy offer fails

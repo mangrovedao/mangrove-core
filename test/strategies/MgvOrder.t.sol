@@ -171,7 +171,7 @@ contract MangroveOrder_Test is MangroveTest {
   /// Tests taker side ///
   ////////////////////////
 
-  function test_partial_filled_buy_order_is_transfered_to_taker() public {
+  function test_partial_filled_buy_order_is_transferred_to_taker() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       outbound_tkn: base,
       inbound_tkn: quote,
@@ -188,7 +188,7 @@ contract MangroveOrder_Test is MangroveTest {
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(buyOrder);
     assertEq(res.takerGot, reader.minusFee($(base), $(quote), 1 ether), "Incorrect partial fill of taker order");
     assertEq(res.takerGave, 1999 ether, "Incorrect partial fill of taker order");
-    assertEq(base.balanceOf(fresh_taker), res.takerGot, "Funds were not transfered to taker");
+    assertEq(base.balanceOf(fresh_taker), res.takerGot, "Funds were not transferred to taker");
   }
 
   function test_partial_filled_buy_order_reverts_when_FoK_enabled() public {
@@ -290,7 +290,7 @@ contract MangroveOrder_Test is MangroveTest {
     assertEq(fresh_taker.balance, nativeBalBefore, "value was not returned to taker");
   }
 
-  function test_filled_resting_buy_order_with_FoK_suceeds_and_returns_provision() public {
+  function test_filled_resting_buy_order_with_FoK_succeeds_and_returns_provision() public {
     IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
       outbound_tkn: base,
       inbound_tkn: quote,
@@ -523,7 +523,7 @@ contract MangroveOrder_Test is MangroveTest {
     assertEq(detail.maker(), address(mgo), "Incorrect maker");
   }
 
-  function test_resting_order_with_expriry_date_is_correctly_posted() public {
+  function test_resting_order_with_expiry_date_is_correctly_posted() public {
     IOrderLogic.TakerOrder memory sellOrder = IOrderLogic.TakerOrder({
       outbound_tkn: quote,
       inbound_tkn: base,
@@ -538,7 +538,7 @@ contract MangroveOrder_Test is MangroveTest {
     address fresh_taker = freshTaker(2 ether, 0);
     vm.prank(fresh_taker);
     IOrderLogic.TakerOrderResult memory res = mgo.take{value: 0.1 ether}(sellOrder);
-    assertEq(mgo.expiring(base, quote, res.offerId), block.timestamp + 1, "Incorrect expriry");
+    assertEq(mgo.expiring(base, quote, res.offerId), block.timestamp + 1, "Incorrect expiry");
   }
 
   function test_resting_buy_order_for_blacklisted_reserve_for_inbound_reverts() public {

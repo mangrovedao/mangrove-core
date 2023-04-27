@@ -439,8 +439,8 @@ contract AavePooledRouterTest is OfferLogicTest {
     if (bal > 0) {
       vm.startPrank(address(makerContract));
       pooledRouter.pull(token, owner, bal, true);
+      vm.stopPrank();
     }
-    vm.stopPrank();
     assertEq(pooledRouter.balanceOfReserve(token, id), 0, "Non empty balance");
 
     assertEq(token.balanceOf($(pooledRouter)), 0, "Non empty buffer");

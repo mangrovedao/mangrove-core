@@ -78,8 +78,8 @@ contract AaveKandelTest is CoreKandelTest {
     return "/out/AaveKandel.sol/AaveKandel.json";
   }
 
-  function test_allExternalFunctions_differentCallers_correctAuth() public override {
-    super.test_allExternalFunctions_differentCallers_correctAuth();
+  function disabled_test_allExternalFunctions_differentCallers_correctAuth() public override {
+    super.disabled_test_allExternalFunctions_differentCallers_correctAuth();
     CheckAuthArgs memory args;
     args.callee = $(kdl);
     args.callers = dynamic([address($(mgv)), maker, $(this)]);

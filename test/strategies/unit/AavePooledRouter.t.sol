@@ -513,7 +513,8 @@ contract AavePooledRouterTest is OfferLogicTest {
     assertApproxEqRel(deposit, pooledRouter.balanceOfReserve(weth, maker2), 10 ** 5); // error not worth than 10^-15% of the deposit
   }
 
-  function test_allExternalFunctions_differentCallers_correctAuth() public {
+  // Disabled until https://github.com/foundry-rs/foundry/issues/4844 is fixed
+  function disabled_test_allExternalFunctions_differentCallers_correctAuth() public {
     // Arrange
     bytes[] memory selectors =
       AllMethodIdentifiersTest.getAllMethodIdentifiers(vm, "/out/AavePooledRouter.sol/AavePooledRouter.json");

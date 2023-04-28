@@ -6,7 +6,7 @@ import {Vm} from "forge-std/Vm.sol";
 
 library AllMethodIdentifiersTest {
   ///@notice Reads all methodIdentifiers (selectors) from ABI pointed to by relative path from project root.
-  function getAllMethodIdentifiers(Vm vm, string memory relativeAbiPath) public view returns (bytes[] memory selectors) {
+  function getAllMethodIdentifiers(Vm vm, string memory relativeAbiPath) public returns (bytes[] memory selectors) {
     string memory root = vm.projectRoot();
     string memory path = string.concat(root, relativeAbiPath);
     string memory json = vm.readFile(path);

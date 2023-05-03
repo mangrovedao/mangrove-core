@@ -1,3 +1,11 @@
+The files in this repo are covered by different licenses:
+
+* Core Mangrove contracts are licensed under BUSL-1.1.
+* Tools are BSD-2.
+* Contract interfaces (ABIs) are public domain.
+
+Each file header contains the SPDX license identifier of the license for that file. The license texts can be found below
+
 Business Source License 1.1
 
 License text copyright (c) 2017 MariaDB Corporation Ab, All Rights Reserved.

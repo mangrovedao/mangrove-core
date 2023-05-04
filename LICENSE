@@ -3,8 +3,8 @@ Copyright (c)-2022 ADDMA (Mangrove Association). All rights reserved.
 The files in this repo are covered by different licenses:
 
 * Mangrove Core contracts are licensed under BUSL-1.1.
-* Tools are licensed under BSD-2.
 * Contract interfaces (ABIs) are public domain.
+* Tools and other pieces of code are licensed under BSD-2 or AGPL v3.
 
 Each file header contains the SPDX license identifier of the license for that file.
 

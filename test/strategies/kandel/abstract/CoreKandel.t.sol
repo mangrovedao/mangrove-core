@@ -1427,8 +1427,7 @@ abstract contract CoreKandelTest is KandelTest {
     }
   }
 
-  // Disabled until https://github.com/foundry-rs/foundry/issues/4844 is fixed
-  function disabled_test_allExternalFunctions_differentCallers_correctAuth() public virtual {
+  function test_allExternalFunctions_differentCallers_correctAuth() public virtual {
     // Arrange
     bytes[] memory selectors = AllMethodIdentifiersTest.getAllMethodIdentifiers(vm, getAbiPath());
 

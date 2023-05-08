@@ -133,5 +133,5 @@ forge script --fork-url $CHAIN_NAME $DEPLOYMENT_SOLIDITY_SCRIPT -vvv --broadcast
 # Copy broadcast log to deployment log w/o the RPC URL
 mkdir -p "${DEPLOYMENT_DIR}"
 jq --arg deployCommand "$0 $*" --arg packageVersion "$PACKAGE_VERSION" \
-   'del(.transactions[].rpc) | . + { packageVersion: $packageVersion, deployCommand: $deployCommand }' \
+   'del(.transactions[].rpc, .path) | . + { packageVersion: $packageVersion, deployCommand: $deployCommand }' \
    "${BROADCAST_LOG}" >"${DEPLOYMENT_LOG}"

@@ -22,6 +22,7 @@
 
 
 # NB: -x prints secrets, so shouldn't be used in anything public like GH actions
+# FIXME: Remove the following line:
 set -ex
 # set -e
 
@@ -50,57 +51,23 @@ function finish {
 }
 trap finish EXIT
 
+
 # Name parameters
+SCRIPT_NAME=$(basename $0)
 CHAIN_NAME=$1
-DEPLOYMENT_SOLIDITY_SCRIPT=$2
+DEPLOYMENT_SCRIPT=$2
 ENV_VAR_ARGUMENTS=${@:3}
 
-# Derive name of env vars with chain specific secrets and check that they are set
-CHAIN_NAME_UPPER=$(echo "$CHAIN_NAME" | awk '{print toupper($0)}')
-
-CHAIN_PRIVATE_KEY_VAR=${CHAIN_NAME_UPPER}_PRIVATE_KEY
-[ -z "${!CHAIN_PRIVATE_KEY_VAR}" ] && echo "$CHAIN_PRIVATE_KEY_VAR has not been set" && exit 1
-CHAIN_PRIVATE_ADDRESS_VAR=${CHAIN_NAME_UPPER}_PRIVATE_ADDRESS
-[ -z "${!CHAIN_PRIVATE_ADDRESS_VAR}" ] && echo "$CHAIN_PRIVATE_ADDRESS_VAR has not been set" && exit 1
-CHAIN_NODE_URL_VAR=${CHAIN_NAME_UPPER}_NODE_URL
-[ -z "${!CHAIN_NODE_URL_VAR}" ] && echo "$CHAIN_NODE_URL_VAR has not been set" && exit 1
-CHAIN_API_KEY_VAR=${CHAIN_NAME_UPPER}_API_KEY
-[ -z "${!CHAIN_API_KEY_VAR}" ] && echo "$CHAIN_API_KEY_VAR has not been set" && exit 1
-
-
-# Identify directories, files, and arguments
-# Structure:
-#    $ROOT_DIR
-#    ∟ $DEPLOYMENT_BASE_DIR
-#      ∟ $SCRIPT_DIR
-#      ∟ $DEPLOYMENT_SOLIDITY_SCRIPT.s.sol
-#        ∟ $CHAIN_ID
-#          ∟ $PACKAGE_VERSION       <- $DEPLOYMENT_DIR
-#            ∟ deployment-log.json  <- $DEPLOYMENT_LOG
-#    ∟ $BROADCAST_BASE_DIR
-#      ∟ $DEPLOYMENT_SOLIDITY_SCRIPT.s.sol
-#        ∟ $CHAIN_ID                <- $BROADCAST_DIR
-#          ∟ $BROADCAST_LOG         <- run-latest.json
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-DEPLOYMENT_BASE_DIR=$( dirname "$SCRIPT_DIR" )
-ROOT_DIR=$( dirname "$DEPLOYMENT_BASE_DIR" )
-
-CHAIN_ID=$( cast chain-id --rpc-url "${!CHAIN_NODE_URL_VAR}" )
-PACKAGE_VERSION=$( yarn package-version )
-
-BROADCAST_BASE_DIR="${ROOT_DIR}/broadcast/"
-BROADCAST_DIR="${BROADCAST_BASE_DIR}/${DEPLOYMENT_SOLIDITY_SCRIPT}.s.sol/${CHAIN_ID}"
-BROADCAST_LOG="${BROADCAST_DIR}/run-latest.json"
-
-DEPLOYMENT_DIR="${DEPLOYMENT_BASE_DIR}/${DEPLOYMENT_SOLIDITY_SCRIPT}.s.sol/${CHAIN_ID}/${PACKAGE_VERSION}"
-DEPLOYMENT_LOG="${DEPLOYMENT_DIR}/deployment-log.json"
+# Set internal script vars for secrets, paths, and files
+LIB_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${LIB_DIR}/internalScriptVars.sh"
 
 # FIXME: This shouldn't exit when running in verification mode
 if [ -f "$DEPLOYMENT_LOG" ]; then
   # The deployment already exists
   echo "Deployment log for this deployment script, chain, and version already exists, exiting"
   echo "  Deployment log: ${DEPLOYMENT_LOG}"
-  echo "  Deployment script: ${DEPLOYMENT_SOLIDITY_SCRIPT}"
+  echo "  Deployment script: ${DEPLOYMENT_SCRIPT}"
   echo "  Chain name: ${CHAIN_NAME}"
   echo "  Chain ID: ${CHAIN_ID}"
   echo "  Package version: ${PACKAGE_VERSION}"
@@ -127,11 +94,11 @@ ${CHAIN_NODE_URL_VAR}=${!CHAIN_NODE_URL_VAR} \
 ${CHAIN_API_KEY_VAR}=${!CHAIN_API_KEY_VAR} \
 WRITE_DEPLOY=true \
 $ENV_VAR_ARGUMENTS \
-forge script --fork-url $CHAIN_NAME $DEPLOYMENT_SOLIDITY_SCRIPT -vvv --broadcast --verify --legacy # NB legacy is for some reason needeed for local anvil fork
+forge script --fork-url $CHAIN_NAME $DEPLOYMENT_SCRIPT -vvv --broadcast --verify --legacy # NB legacy is for some reason needeed for local anvil fork
 
 
 # Copy broadcast log to deployment log w/o the RPC URL
 mkdir -p "${DEPLOYMENT_DIR}"
-jq --arg deployCommand "$0 $*" --arg packageVersion "$PACKAGE_VERSION" \
+jq --arg deployCommand "${SCRIPT_NAME} $*" --arg packageVersion "$PACKAGE_VERSION" \
    'del(.transactions[].rpc, .path) | . + { packageVersion: $packageVersion, deployCommand: $deployCommand }' \
    "${BROADCAST_LOG}" >"${DEPLOYMENT_LOG}"

@@ -4,7 +4,7 @@ set -ex
 # set -e
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-DEPLOYMENT_BASE_DIR=$( dirname "$SCRIPT_DIR" )
+DEPLOYMENT_BASE_DIR=$( cd "${SCRIPT_DIR}/../.." &> /dev/null && pwd )
 LIB_DIR="${DEPLOYMENT_BASE_DIR}/lib"
 CONTROLLED_ENV_DEPLOY_SCRIPT="${LIB_DIR}/controlledEnvDeploy.sh"
 

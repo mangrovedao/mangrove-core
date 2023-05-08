@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # NB: -x prints secrets, so shouldn't be used in anything public like GH actions
+# FIXME: Remove the following line:
 set -ex
 # set -e
 

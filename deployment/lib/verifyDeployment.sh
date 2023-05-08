@@ -25,40 +25,16 @@
 set -ex
 # set -e
 
-# NOTES:
-# - We should call the chain-specific deployment script
-#   - If we use a naming convention for those scripts (or folder structure) this should be derivable from (chain name, deploy script name)
-# 
 
-# TODO:
-# - take chain name and Solidity deployment script name as argument
-# - make secrets parametric in chain like in controlledContractDeployment
-# - find way to identify the contracts that have been deployed
-#   - we can read this from the broadcast log, right?
-#   - we can identify CREATE transactions
-#          "transactions": [
-    # {
-    #   "hash": "0x253f9ca88175937f93a23101f82eb8c6bca0e2a1066ebebf4ba742022395848a",
-    #   "transactionType": "CREATE",
-    #   "contractName": "Mangrove",
-    #   "contractAddress": "0x53e805542C3DE1718B3dA4C178b8533172aC76b0",
-    #   "function": null,
-    #   "arguments": [
-    #     "0x751a02217777b4B85848169A52d6b035D7Cf5DDd",
-    #     "50",
-    #     "1000000"
-    #   ],
-    #   "rpc": "http://127.0.0.1:8545",
-    #   "transaction": {
-    #     "type": "0x00",
-    #     "from": "0x5902976b1970d65c06a5c748cf28ba8b4373482d",
-    #     "gas": "0x5a9f6f",
-    #     "value": "0x0",
-    #     "data": <removed>
-    #     "nonce": "0x4"
-    #   },
-    #   "additionalContracts": [],
-    #   "isFixedGasLimit": false
+# Outline
+# 1. Get the contract names and addresses from the deployment log
+# 2. Get the lowest block number from the deployment log
+#    b. set BLOCKNUMBER=lowest - 1
+# 3. Run a local Anvil that forks the chain at BLOCKNUMBER
+# 4. For each contract:
+#    a. fetch the code from the real chain
+#    b. fetch the code from the fork
+#    c. compare and throw if different
 
 
 # Foundry automatically loads .env, so in order to prevent these secrets from affecting the deployment,
@@ -126,29 +102,18 @@ echo "  First block number in deployment: $BLOCKNUMBER"
 let "BLOCKNUMBER--"
 
 
-# TODO:
-# 1. [DONE] Get the contract names and addresses from the deployment log
-# 2. [DONE] Get the block numbers from the deployment log
-#    a. determine the lowest block number
-#    b. set BLOCKNUMBER=lowest - 1
-# 3. [DONE] Run a local Anvil that forks the chain at BLOCKNUMBER
-# 4. For each contract:
-#    a. fetch the code from the real chain
-#    b. fetch the code from the fork
-#    c. compare and throw if different
-
 ANVIL_PORT=8546
 ANVIL_URL="http://127.0.0.1:${ANVIL_PORT}"
 
 anvil --port $ANVIL_PORT --fork-url ${!CHAIN_NODE_URL_VAR} --fork-block-number $BLOCKNUMBER &
 ANVIL_PROCESS_ID=$!
 
-
 # Wait for Anvil to be ready
 sleep 2
 
+
 # Run deployment against the fork as if it were the real chain
-env ${CHAIN_NODE_URL_VAR}="$ANVIL_URL" $CHAIN_DEPLOYMENT_SCRIPT
+env ${CHAIN_NODE_URL_VAR}="$ANVIL_URL" DEPLOYMENT_VERIFICATION=true $CHAIN_DEPLOYMENT_SCRIPT
 
 
 echo "Verifying contracts..."

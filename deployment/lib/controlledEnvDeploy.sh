@@ -2,8 +2,9 @@
 # Runs a Solidity deployment script in a controlled environment, ie. an environment with only the given env vars.
 #
 # The broadcast log (cleaned for secrets) is stored for later reference and should be comitted to git.
+# NB: If the environment has DEPLOYMENT_VERIFICATION=true, then the deployment log is not stored.
 #
-# NB: Secrets must not be given as arguments to this script as the command
+# NB: Secrets must not be given as arguments to this script as the command, as the command is stored.
 # The script requires the presence of the following env vars in the environment:
 #
 #    ${CHAIN_NAME}_PRIVATE_KEY         The private key of the deployer EOA
@@ -63,7 +64,7 @@ LIB_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source "${LIB_DIR}/internalScriptVars.sh"
 
 # FIXME: This shouldn't exit when running in verification mode
-if [ -f "$DEPLOYMENT_LOG" ]; then
+if [[ -f "$DEPLOYMENT_LOG" && ("$DEPLOYMENT_VERIFICATION" != "true") ]]; then
   # The deployment already exists
   echo "Deployment log for this deployment script, chain, and version already exists, exiting"
   echo "  Deployment log: ${DEPLOYMENT_LOG}"
@@ -92,7 +93,7 @@ ${CHAIN_PRIVATE_KEY_VAR}=${!CHAIN_PRIVATE_KEY_VAR} \
 ${CHAIN_PRIVATE_ADDRESS_VAR}=${!CHAIN_PRIVATE_ADDRESS_VAR} \
 ${CHAIN_NODE_URL_VAR}=${!CHAIN_NODE_URL_VAR} \
 ${CHAIN_API_KEY_VAR}=${!CHAIN_API_KEY_VAR} \
-WRITE_DEPLOY=true \
+WRITE_DEPLOY=${WRITE_DEPLOY} \
 $ENV_VAR_ARGUMENTS \
 forge script --fork-url $CHAIN_NAME $DEPLOYMENT_SCRIPT -vvv --broadcast --verify --legacy # NB legacy is for some reason needeed for local anvil fork
 

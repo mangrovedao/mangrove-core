@@ -55,8 +55,8 @@ DEPLOYMENT_SCRIPT=$2
 ENV_VAR_ARGUMENTS=${@:3}
 
 # Set internal script vars for secrets, paths, and files
-LIB_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-source "${LIB_DIR}/internalScriptVars.sh"
+DEPLOYMENT_LIB_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${DEPLOYMENT_LIB_DIR}/internalScriptVars.sh"
 
 if [[ -f "$DEPLOYMENT_LOG" && ("$DEPLOYMENT_VERIFICATION" != "true") ]]; then
   # The deployment already exists

@@ -70,8 +70,8 @@ CHAIN_NAME=$1
 DEPLOYMENT_SCRIPT=$2
 
 # Set internal script vars for secrets, paths, and files
-LIB_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-source "${LIB_DIR}/internalScriptVars.sh"
+DEPLOYMENT_LIB_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${DEPLOYMENT_LIB_DIR}/internalScriptVars.sh"
 
 
 # Get the contracts and addresses 

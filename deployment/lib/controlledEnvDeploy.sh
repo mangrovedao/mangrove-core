@@ -35,6 +35,7 @@ if [ -f ".env" ]; then
   DOT_ENV_BACKUP=$(mktemp .env-backup-XXXXXX)
   $(mv ".env" $DOT_ENV_BACKUP)
   echo ".env renamed temporarily to $DOT_ENV_BACKUP to avoid implicit env vars"
+  echo ""
 fi
 
 function finish {
@@ -42,6 +43,7 @@ function finish {
   then
     # Restore the .env file
     $(mv $DOT_ENV_BACKUP ".env")
+    echo ""
     echo ".env restored from $DOT_ENV_BACKUP"
   fi
 }
@@ -61,11 +63,12 @@ source "${DEPLOYMENT_LIB_DIR}/internalScriptVars.sh"
 if [[ -f "$DEPLOYMENT_LOG" && ("$DEPLOYMENT_VERIFICATION" != "true") ]]; then
   # The deployment already exists
   echo "Deployment log for this deployment script, chain, and version already exists, exiting"
-  echo "  Deployment log: ${DEPLOYMENT_LOG}"
-  echo "  Deployment script: ${DEPLOYMENT_SCRIPT}"
-  echo "  Chain name: ${CHAIN_NAME}"
-  echo "  Chain ID: ${CHAIN_ID}"
-  echo "  Package version: ${PACKAGE_VERSION}"
+  echo ""
+  echo "Deployment log: ${DEPLOYMENT_LOG}"
+  echo "Deployment script: ${DEPLOYMENT_SCRIPT}"
+  echo "Chain name: ${CHAIN_NAME}"
+  echo "Chain ID: ${CHAIN_ID}"
+  echo "Package version: ${PACKAGE_VERSION}"
   exit 1
 fi
 

@@ -24,11 +24,11 @@ zkevm="https://zkevm-rpc.com"
 goerli="${GOERLI_NODE_URL}"
 
 [etherscan]
-goerli={key="${GOERLI_API_KEY}"}
-mumbai={key="${POLYGON_API_KEY}"}
-polygon={key="${POLYGON_API_KEY}"}
-testnet_zkevm={key="${ZKEVM_API_KEY}",chain=1442,url="https://api-testnet-zkevm.polygonscan.com/api"}
-zkevm={key="${ZKEVM_API_KEY}",chain=1101,url="https://api-zkevm.polygonscan.com/api"}
+goerli={key="${GOERLI_BLOCK_EXPLORER_API_KEY}"}
+mumbai={key="${MUMBAI_BLOCK_EXPLORER_API_KEY}"}
+polygon={key="${POLYGON_BLOCK_EXPLORER_API_KEY}"}
+testnet_zkevm={key="${ZKEVM_BLOCK_EXPLORER_API_KEY}",chain=1442,url="https://api-testnet-zkevm.polygonscan.com/api"}
+zkevm={key="${ZKEVM_BLOCK_EXPLORER_API_KEY}",chain=1101,url="https://api-zkevm.polygonscan.com/api"}
 
 # The remappings are in remappings.txt so vscode solidity ext. can read them
 # The first lines are the manual remappings

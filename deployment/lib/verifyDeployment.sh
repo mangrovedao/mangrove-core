@@ -96,8 +96,8 @@ do
 done
 
 BLOCKNUMBER_STRING=$( jq -r '[.receipts[].blockNumber] | map(.[2:]) | sort | .[0]' ${DEPLOYMENT_LOG} )
-echo "BLOCKNUMBER_STRING: '${BLOCKNUMBER_STRING}'"
 BLOCKNUMBER=$(( 16#$BLOCKNUMBER_STRING )) # Convert to decimal
+echo ""
 echo "  First block number in deployment: $BLOCKNUMBER"
 let "BLOCKNUMBER--"
 
@@ -107,7 +107,7 @@ ANVIL_URL="http://127.0.0.1:${ANVIL_PORT}"
 
 # NB: This does not work when the chain we're forking is an Anvil fork itself:
 #     That Anvil fork ignores the blocknumber in requests and instead returns the latest chain data.
-anvil --port $ANVIL_PORT --fork-url ${!CHAIN_NODE_URL_VAR} --fork-block-number $BLOCKNUMBER &
+anvil --silent --port $ANVIL_PORT --fork-url ${!CHAIN_NODE_URL_VAR} --fork-block-number $BLOCKNUMBER &
 ANVIL_PROCESS_ID=$!
 
 # Wait for Anvil to be ready
@@ -115,16 +115,19 @@ sleep 2
 
 
 # Run deployment against the fork as if it were the real chain
+echo ""
+echo "Running deployment script..."
 env ${CHAIN_NODE_URL_VAR}="$ANVIL_URL" DEPLOYMENT_VERIFICATION=true $CHAIN_DEPLOYMENT_SCRIPT
 
 
+echo ""
 echo "Verifying contracts..."
 for contract in "${CONTRACTS_ARY[@]}"
 do
   IFS=$'\t' read -ra TXINDEX_NAME_ADDRESS <<< "$contract"
   contract_name=${TXINDEX_NAME_ADDRESS[1]}
   contract_address=${TXINDEX_NAME_ADDRESS[2]}
-  echo "Verifying contract ${contract_name} at address ${contract_address}"
+  echo "  Verifying contract ${contract_name} at address ${contract_address}..."
 
   CHAIN_CODE=$( mktemp ${contract_name}-${CHAIN_NAME}-code-XXXXXX )
   LOCAL_CODE=$( mktemp ${contract_name}-local-code-XXXXXX )
@@ -134,7 +137,11 @@ do
 
   if ! cmp -s "$CHAIN_CODE" "$LOCAL_CODE"
   then
+    echo ""
+    >&2 echo "VERIFICATION FAILED!"
+    echo ""
     echo "Code for ${contract_name} on ${CHAIN_NAME} does not match local deploy!"
+    echo "The code can be found in ${CHAIN_CODE} and ${LOCAL_CODE}"
     exit 1
   fi
 done

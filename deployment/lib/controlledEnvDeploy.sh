@@ -104,7 +104,7 @@ forge script --fork-url $CHAIN_NAME $DEPLOYMENT_SCRIPT -vvv --broadcast $FORGE_E
 
 
 # Copy broadcast log to deployment log w/o the RPC URL
-mkdir -p "${DEPLOYMENT_DIR}"
+mkdir -p "${DEPLOYMENT_LOG_DIR}"
 jq --arg deployCommand "${SCRIPT_NAME} $*" --arg packageVersion "$PACKAGE_VERSION" \
    'del(.transactions[].rpc, .path) | . + { packageVersion: $packageVersion, deployCommand: $deployCommand }' \
    "${BROADCAST_LOG}" >"${DEPLOYMENT_LOG}"

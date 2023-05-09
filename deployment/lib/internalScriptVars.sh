@@ -22,7 +22,7 @@ CHAIN_API_KEY_VAR=${CHAIN_NAME_UPPER}_API_KEY
 #      ∟ logs                                       <- $DEPLOYMENT_LOGS_DIR
 #        ∟ $DEPLOYMENT_SCRIPT.s.sol
 #          ∟ $CHAIN_ID
-#            ∟ $PACKAGE_VERSION                     <- $DEPLOYMENT_DIR
+#            ∟ $PACKAGE_VERSION                     <- $DEPLOYMENT_LOG_DIR
 #              ∟ deployment-log.json                <- $DEPLOYMENT_LOG
 #      ∟ scripts
 #        ∟ $CHAIN_NAME
@@ -42,8 +42,8 @@ BROADCAST_DIR="${BROADCAST_BASE_DIR}/${DEPLOYMENT_SCRIPT}.s.sol/${CHAIN_ID}"
 BROADCAST_LOG="${BROADCAST_DIR}/run-latest.json"
 
 DEPLOYMENT_LOGS_DIR="${DEPLOYMENT_BASE_DIR}/logs"
-DEPLOYMENT_DIR="${DEPLOYMENT_LOGS_DIR}/${DEPLOYMENT_SCRIPT}.s.sol/${CHAIN_ID}/${PACKAGE_VERSION}"
-DEPLOYMENT_LOG="${DEPLOYMENT_DIR}/deployment-log.json"
+DEPLOYMENT_LOG_DIR="${DEPLOYMENT_LOGS_DIR}/${DEPLOYMENT_SCRIPT}.s.sol/${CHAIN_ID}/${PACKAGE_VERSION}"
+DEPLOYMENT_LOG="${DEPLOYMENT_LOG_DIR}/deployment-log.json"
 
 CHAIN_DEPLOYMENT_SCRIPT="${DEPLOYMENT_BASE_DIR}/scripts/${CHAIN_NAME}/run-${DEPLOYMENT_SCRIPT}-${CHAIN_NAME}.sh"
 

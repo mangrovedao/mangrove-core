@@ -35,6 +35,3 @@ addresses/deployed/local.json
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
-
-# Stil useful?
-*-mumbai.sh

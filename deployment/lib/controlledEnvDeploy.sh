@@ -108,3 +108,5 @@ mkdir -p "${DEPLOYMENT_DIR}"
 jq --arg deployCommand "${SCRIPT_NAME} $*" --arg packageVersion "$PACKAGE_VERSION" \
    'del(.transactions[].rpc, .path) | . + { packageVersion: $packageVersion, deployCommand: $deployCommand }' \
    "${BROADCAST_LOG}" >"${DEPLOYMENT_LOG}"
+echo ""
+echo "Deployment log stored in ${DEPLOYMENT_LOG}"

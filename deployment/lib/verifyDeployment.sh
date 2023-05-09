@@ -20,10 +20,10 @@
 # Example:
 #   verifyDeployment.sh polygon MangroveDeployer
 
-# NB: -x prints secrets, so shouldn't be used in anything public like GH actions
-# FIXME: Remove the following line:
-set -ex
-# set -e
+
+# NB: set -x prints secrets, so shouldn't be used in anything public like GH actions
+# Exit script on error
+set -e
 
 
 # Outline
@@ -105,6 +105,8 @@ let "BLOCKNUMBER--"
 ANVIL_PORT=8546
 ANVIL_URL="http://127.0.0.1:${ANVIL_PORT}"
 
+# NB: This does not work when the chain we're forking is an Anvil fork itself:
+#     That Anvil fork ignores the blocknumber in requests and instead returns the latest chain data.
 anvil --port $ANVIL_PORT --fork-url ${!CHAIN_NODE_URL_VAR} --fork-block-number $BLOCKNUMBER &
 ANVIL_PROCESS_ID=$!
 

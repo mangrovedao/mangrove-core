@@ -22,14 +22,9 @@
 #   controlledEnvDeploy.sh polygon MangroveDeployer CHIEF=0x751a02217777b4B85848169A52d6b035D7Cf5DDd GASPRICE=50 GASMAX=1000000 FOUNDRY_OPTIMIZER=true FOUNDRY_OPTIMIZER_RUNS=20000
 
 
-# NB: -x prints secrets, so shouldn't be used in anything public like GH actions
-# FIXME: Remove the following line:
-set -ex
-# set -e
-
-# TODO:
-# - Extract logic for secrets to reusable script?
-# - Add flags for controlling whether --legacy and --verify are passed to the deployment
+# NB: set -x prints secrets, so shouldn't be used in anything public like GH actions
+# Exit script on error
+set -e
 
 
 # Foundry automatically loads .env, so in order to prevent these secrets from affecting the deployment,
@@ -63,7 +58,6 @@ ENV_VAR_ARGUMENTS=${@:3}
 LIB_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source "${LIB_DIR}/internalScriptVars.sh"
 
-# FIXME: This shouldn't exit when running in verification mode
 if [[ -f "$DEPLOYMENT_LOG" && ("$DEPLOYMENT_VERIFICATION" != "true") ]]; then
   # The deployment already exists
   echo "Deployment log for this deployment script, chain, and version already exists, exiting"
@@ -86,7 +80,15 @@ fi
 #   2. Only copy secrets, all other values should be explicitly stated in ENV_VAR_ARGUMENTS
 #
 #   3. `PATH="$PATH"` is needed for forge to be found
-#
+FORGE_EXTRA_FLAGS=""
+if [ "$DEPLOYMENT_VERIFICATION" == "true" ]; then
+  # --legacy: Deployment verification runs against an Anvil fork where transactions fail if this flag isn't set.
+  FORGE_EXTRA_FLAGS="--legacy"
+else # real deployment
+  # --verify: We verify the deployed contracts on the block explorer (Etherscan, PolygonScan, ...)
+  FORGE_EXTRA_FLAGS="--verify"
+fi
+
 env -i \
 PATH="$PATH" \
 ${CHAIN_PRIVATE_KEY_VAR}=${!CHAIN_PRIVATE_KEY_VAR} \
@@ -95,7 +97,7 @@ ${CHAIN_NODE_URL_VAR}=${!CHAIN_NODE_URL_VAR} \
 ${CHAIN_API_KEY_VAR}=${!CHAIN_API_KEY_VAR} \
 WRITE_DEPLOY=${WRITE_DEPLOY} \
 $ENV_VAR_ARGUMENTS \
-forge script --fork-url $CHAIN_NAME $DEPLOYMENT_SCRIPT -vvv --broadcast --verify --legacy # NB legacy is for some reason needeed for local anvil fork
+forge script --fork-url $CHAIN_NAME $DEPLOYMENT_SCRIPT -vvv --broadcast $FORGE_EXTRA_FLAGS
 
 
 # Copy broadcast log to deployment log w/o the RPC URL

@@ -6,10 +6,11 @@ import {ToyENS} from "mgv_lib/ToyENS.sol";
 import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import {PolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {MumbaiFork} from "mgv_test/lib/forks/Mumbai.sol";
+import {EthereumFork} from "mgv_test/lib/forks/Ethereum.sol";
 import {LocalFork} from "mgv_test/lib/forks/Local.sol";
-import {TestnetZkevm} from "mgv_test/lib/forks/TestnetZkevm.sol";
-import {Goerli} from "mgv_test/lib/forks/Goerli.sol";
-import {Zkevm} from "mgv_test/lib/forks/Zkevm.sol";
+import {TestnetZkevmFork} from "mgv_test/lib/forks/TestnetZkevm.sol";
+import {GoerliFork} from "mgv_test/lib/forks/Goerli.sol";
+import {ZkevmFork} from "mgv_test/lib/forks/Zkevm.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
 address constant ANVIL_DEFAULT_FIRST_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -52,18 +53,20 @@ abstract contract Deployer is Script2 {
     // detect if we've already created a fork -- the singleton method works as an inter-contract storage used for communication
     if (singleton(SINGLETON_FORK) == address(0)) {
       // depending on which fork the script is running on, choose whether to write the addresses to a file, get the right fork contract, and name the current network.
-      if (block.chainid == 80001) {
-        fork = new MumbaiFork();
+      if (block.chainid == 1) {
+        fork = new EthereumFork();
+      } else if (block.chainid == 5) {
+        fork = new GoerliFork();
       } else if (block.chainid == 137) {
         fork = new PolygonFork();
+      } else if (block.chainid == 1101) {
+        fork = new ZkevmFork();
+      } else if (block.chainid == 1442) {
+        fork = new TestnetZkevmFork();
       } else if (block.chainid == 31337) {
         fork = new LocalFork();
-      } else if (block.chainid == 1442) {
-        fork = new TestnetZkevm();
-      } else if (block.chainid == 1101) {
-        fork = new Zkevm();
-      } else if (block.chainid == 5) {
-        fork = new Goerli();
+      } else if (block.chainid == 80001) {
+        fork = new MumbaiFork();
       } else {
         revert(string.concat("Unknown chain id ", vm.toString(block.chainid), ", cannot deploy."));
       }

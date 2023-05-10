@@ -61,6 +61,10 @@ abstract contract Deployer is Script2 {
         fork = new LocalFork();
       } else if (block.chainid == 5) {
         fork = new Goerli();
+      } else if (block.chainid == 1442) {
+        fork = new TestnetZkevm();
+      } else if (block.chainid == 1101) {
+        fork = new Zkevm();
       } else if (block.chainid == 1) {
         fork = new EthereumFork();
       } else {

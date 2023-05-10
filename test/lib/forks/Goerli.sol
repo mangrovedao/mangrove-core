@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import {GenericFork} from "./Generic.sol";
 
-contract Goerli is GenericFork {
+contract GoerliFork is GenericFork {
   constructor() {
     CHAIN_ID = 5;
     NAME = "goerli";

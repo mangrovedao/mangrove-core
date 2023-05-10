@@ -7,7 +7,6 @@ import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import {PolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {MumbaiFork} from "mgv_test/lib/forks/Mumbai.sol";
 import {EthereumFork} from "mgv_test/lib/forks/Ethereum.sol";
-import {GoerliFork} from "mgv_test/lib/forks/Goerli.sol";
 import {LocalFork} from "mgv_test/lib/forks/Local.sol";
 import {TestnetZkevm} from "mgv_test/lib/forks/TestnetZkevm.sol";
 import {Goerli} from "mgv_test/lib/forks/Goerli.sol";

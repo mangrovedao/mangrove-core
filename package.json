@@ -2,7 +2,7 @@
   "name": "@mangrovedao/mangrove-core",
   "version": "1.4.6-2",
   "author": "Mangrove DAO",
-  "license": "(AGPL-3.0-only OR BSD-2-Clause)",
+  "license": "SEE LICENSE IN LICENSE",
   "main": "index.js",
   "scripts": {
     "package-version": "echo $npm_package_version",

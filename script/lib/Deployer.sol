@@ -59,12 +59,12 @@ abstract contract Deployer is Script2 {
         fork = new GoerliFork();
       } else if (block.chainid == 137) {
         fork = new PolygonFork();
-      } else if (block.chainid == 31337) {
-        fork = new LocalFork();
-      } else if (block.chainid == 1442) {
-        fork = new TestnetZkevmFork();
       } else if (block.chainid == 1101) {
         fork = new ZkevmFork();
+      } else if (block.chainid == 1442) {
+        fork = new TestnetZkevmFork();
+      } else if (block.chainid == 31337) {
+        fork = new LocalFork();
       } else if (block.chainid == 80001) {
         fork = new MumbaiFork();
       } else {

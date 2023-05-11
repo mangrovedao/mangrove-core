@@ -11,7 +11,7 @@ import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 
 contract MangroveOrder_Test is MangroveTest {
-  uint constant GASREQ = 50_000;
+  uint constant GASREQ = 35_000;
 
   // to check ERC20 logging
   event Transfer(address indexed from, address indexed to, uint value);
@@ -807,13 +807,23 @@ contract MangroveOrder_Test is MangroveTest {
       quote_: quote,
       makerData: ""
     });
-    // mock up mgv taker transfer to maker contract
+    // pranking a fresh taker to avoid heating test runner balance
+    address fresh_taker = freshAddress("freshTaker");
+    deal($(base), fresh_taker, 0.5 ether);
+    vm.prank(fresh_taker);
     base.transfer($(mgo), 0.5 ether);
+
     sellOrder.offerId = cold_buyResult.offerId;
     vm.prank($(mgv));
     _gas();
     mgo.makerExecute(sellOrder);
     uint exec_gas = gas_(true);
+    // since offer reposts itself, making offer info, mgo credit on mangrove and mgv config hot in storage
+    mgv.config($(quote), $(base));
+    mgv.offers($(quote), $(base), sellOrder.offerId);
+    mgv.offerDetails($(quote), $(base), sellOrder.offerId);
+    mgv.fund{value: 1}($(mgo));
+
     vm.prank($(mgv));
     _gas();
     mgo.makerPosthook(sellOrder, result);

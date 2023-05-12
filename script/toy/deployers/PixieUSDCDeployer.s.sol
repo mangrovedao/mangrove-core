@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Deployer} from "../lib/Deployer.sol";
+import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {PixieUSDC} from "mgv_src/toy/PixieUSDC.sol";
 
 /**

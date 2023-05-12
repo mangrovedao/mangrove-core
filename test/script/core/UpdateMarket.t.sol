@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MangroveDeployer} from "mgv_script/MangroveDeployer.s.sol";
+import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 
 import {Test2} from "mgv_lib/Test2.sol";

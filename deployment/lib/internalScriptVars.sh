@@ -2,7 +2,7 @@
 # Sets variables used by the library scripts based on $CHAIN_NAME and $DEPLOYMENT_LIB_DIR
 
 # Derive name of env vars with chain specific secrets and check that they are set
-CHAIN_NAME_UPPER=$(echo "$CHAIN_NAME" | awk '{print toupper($0)}')
+CHAIN_NAME_UPPER=$( echo "$CHAIN_NAME" | awk '{print toupper($0)}' )
 
 CHAIN_PRIVATE_KEY_VAR=${CHAIN_NAME_UPPER}_PRIVATE_KEY
 [ -z "${!CHAIN_PRIVATE_KEY_VAR}" ] && echo "$CHAIN_PRIVATE_KEY_VAR has not been set" && exit 1

@@ -16,10 +16,17 @@
 #
 # Usage:
 #   controlledEnvDeploy.sh chain_name deployment_solidity_script ENV_VAR1=value ...
+# TODO: Idea of more flexible alternative:
+#   controlledEnvDeploy.sh chain_name deployment_solidity_script "ENV_VAR1=value1 ... ENV_VARn=valuen" <forge flags>
 #
 #
 # Example:
+# TODO: Consider using named CHIEF? Eg ADDMA_PROTOCOL_MS (must be defined in context addresses)
 #   controlledEnvDeploy.sh polygon MangroveDeployer CHIEF=0x751a02217777b4B85848169A52d6b035D7Cf5DDd GASPRICE=50 GASMAX=1000000 FOUNDRY_OPTIMIZER=true FOUNDRY_OPTIMIZER_RUNS=20000
+# TODO: Example of more flexible alternative:
+#   controlledEnvDeploy.sh polygon MangroveDeployer \
+#     "CHIEF=0x751a02217777b4B85848169A52d6b035D7Cf5DDd GASPRICE=50 GASMAX=1000000" \
+#     --optimize --optimizer-runs=20000
 
 
 # NB: set -x prints secrets, so shouldn't be used in anything public like GH actions
@@ -101,6 +108,10 @@ ${CHAIN_API_KEY_VAR}=${!CHAIN_API_KEY_VAR} \
 WRITE_DEPLOY=${WRITE_DEPLOY} \
 $ENV_VAR_ARGUMENTS \
 forge script --fork-url $CHAIN_NAME $DEPLOYMENT_SCRIPT -vvv --broadcast $FORGE_EXTRA_FLAGS
+# TODO: Flexibility that would be good here:
+#         - choosing between --broadcast and --resume
+#         - choosing the wallet options to allow eg the use of a keystore instead of a private key
+#       The simplest would probably be to let the caller pass forge parameters.
 
 
 # Copy broadcast log to deployment log w/o the RPC URL

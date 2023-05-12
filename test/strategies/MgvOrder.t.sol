@@ -808,9 +808,9 @@ contract MangroveOrder_Test is MangroveTest {
       makerData: ""
     });
     // pranking a fresh taker to avoid heating test runner balance
-    address fresh_taker = freshAddress("freshTaker");
-    deal($(base), fresh_taker, 0.5 ether);
-    vm.prank(fresh_taker);
+    vm.prank($(mgv));
+    base.transferFrom(address(sell_taker), $(mgv), 0.5 ether);
+    vm.prank($(mgv));
     base.transfer($(mgo), 0.5 ether);
 
     sellOrder.offerId = cold_buyResult.offerId;
@@ -838,14 +838,11 @@ contract MangroveOrder_Test is MangroveTest {
     // resting order buys 1 ether for 1991 dai
     // fresh taker sells 0.5 ether for 900 dai for any gasreq
     targets[0] = [cold_buyResult.offerId, 900 ether, 0.5 ether, type(uint).max];
-    address fresh_taker = freshAddress();
-    deal($(base), fresh_taker, 1 ether);
-    vm.prank(fresh_taker);
-    base.approve($(mgv), type(uint).max);
-
-    vm.prank(fresh_taker);
+    vm.prank(address(sell_taker));
     _gas();
-    (uint successes,,,,) = mgv.snipes($(quote), $(base), targets, false);
+    // cannot use TestTaker functions that have additional gas cost
+    // simply using sell_taker's approvals and already filled balances
+    (uint successes,,,,) = mgv.snipes($(quote), $(base), targets, true);
     gas_();
     assertTrue(successes == 1, "Snipe failed");
     assertTrue(mgv.offers($(quote), $(base), cold_buyResult.offerId).gives() > 0, "Update failed");

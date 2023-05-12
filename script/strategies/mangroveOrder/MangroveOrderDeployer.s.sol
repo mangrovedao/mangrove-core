@@ -28,13 +28,14 @@ contract MangroveOrderDeployer is Deployer {
    */
   function innerRun(IMangrove mgv, address admin) public {
     MangroveOrder mgvOrder;
-    // use 30K gasreq, this will be addeed to the SimpleRouter gasreq of 70K.
-    // tests show that MangroveOrder requires 65K under normal circumstances.
     broadcast();
+    // test show MangroveOrder can execute resting order using 105K (70K of simple router included)
+    // so setting offer logic's gasreq to 35K is enough
+    // we use 60K here in order to allow partial fills to repost on top of up to 5 identical offers.
     if (forMultisig) {
-      mgvOrder = new MangroveOrder{salt:salt}(mgv, admin, 50_000);
+      mgvOrder = new MangroveOrder{salt:salt}(mgv, admin, 60_000);
     } else {
-      mgvOrder = new MangroveOrder(mgv, admin, 50_000);
+      mgvOrder = new MangroveOrder(mgv, admin, 60_000);
     }
     fork.set("MangroveOrder", address(mgvOrder));
     fork.set("MangroveOrder-Router", address(mgvOrder.router()));

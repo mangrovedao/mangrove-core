@@ -39,6 +39,21 @@ contract TestToken is ERC20BL {
     _transferResponse = response;
   }
 
+  function stringOfMethodResponse(MethodResponse response) internal pure returns (string memory) {
+    if (response == MethodResponse.Normal) {
+      return "Normal";
+    }
+    if (response == MethodResponse.MissingReturn) {
+      return "MissingReturn";
+    } else {
+      return "NoRevert";
+    }
+  }
+
+  function getMethodResponse() external view returns (string memory, string memory) {
+    return (stringOfMethodResponse(_approveResponse), stringOfMethodResponse(_transferResponse));
+  }
+
   function $(uint amount) public view returns (uint) {
     return amount * 10 ** decimals();
   }

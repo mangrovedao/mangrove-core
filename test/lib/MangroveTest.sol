@@ -147,7 +147,8 @@ contract MangroveTest is Test2, HasMgvEvents {
 
     console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
     while (offerId != 0) {
-      (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo($out, $in, offerId);
+      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) =
+        mgv.offerInfo($out, $in, offerId);
       console.log(
         string.concat(
           unicode"│ ",
@@ -155,7 +156,9 @@ contract MangroveTest is Test2, HasMgvEvents {
           unicode" ┆ ",
           string.concat(toUnit(ofr.wants, req_tk.decimals()), " ", req_tk.symbol()),
           "  /  ",
-          string.concat(toUnit(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol())
+          string.concat(toUnit(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol()),
+          " ",
+          vm.toString(detail.maker)
         )
       );
       offerId = ofr.next;
@@ -308,7 +311,6 @@ contract MangroveTest is Test2, HasMgvEvents {
     order.outbound_tkn = $(quote_);
     order.wants = takerWants;
     order.gives = takerGives;
-    // complete fill (prev and next are bogus)
     order.offer = MgvStructs.Offer.pack({
       __prev: 0,
       __next: 0,
@@ -430,7 +432,9 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   /// duplicates `fold` times all offers in the `outbound, inbound` list from id `fromId` and for `lenght` offers.
-  function densify(address outbound, address inbound, uint fromId, uint length, uint fold, address caller) internal {
+  function densifyRange(address outbound, address inbound, uint fromId, uint length, uint fold, address caller)
+    internal
+  {
     while (length > 0 && fromId != 0) {
       MgvStructs.OfferPacked offer = mgv.offers(outbound, inbound, fromId);
       MgvStructs.OfferDetailPacked detail = mgv.offerDetails(outbound, inbound, fromId);

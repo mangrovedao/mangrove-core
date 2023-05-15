@@ -42,5 +42,13 @@
   {
     "address": "0x7ef18d0a9C3Fb1A716FF6c3ED0Edf52a2427F716",
     "name": "CWETH"
+  },
+  {
+    "address": "0x59a424169526ECae25856038598F862043DCeDf7",
+    "name": "ADDMA Protocol MS"
+  },
+  {
+    "address": "FIXME",
+    "name": "Gasbot"
   }
 ]

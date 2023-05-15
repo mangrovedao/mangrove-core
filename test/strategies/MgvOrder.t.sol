@@ -582,13 +582,7 @@ contract MangroveOrder_Test is MangroveTest {
     address fresh_taker = freshTaker(2 ether, 0);
     uint oldNativeBal = fresh_taker.balance;
     // pretend new offer failed for some reason
-    vm.mockCall(
-      $(mgv),
-      abi.encodeWithSelector(
-        mgv.newOffer.selector, $(base), $(quote), 1991 ether, 1 ether, mgo.offerGasreq(), 531, /*I cheated*/ 0
-      ),
-      abi.encode(uint(0))
-    );
+    vm.mockCall($(mgv), abi.encodeWithSelector(mgv.newOffer.selector), abi.encode(uint(0)));
     vm.prank(fresh_taker);
     mgo.take{value: 0.1 ether}(sellOrder);
     assertEq(fresh_taker.balance, oldNativeBal, "Taker's provision was not returned");
@@ -609,13 +603,7 @@ contract MangroveOrder_Test is MangroveTest {
     //address(args.outbound_tkn), address(args.inbound_tkn), args.wants, args.gives, args.gasreq, gasprice, args.pivotId
     address fresh_taker = freshTaker(2 ether, 0);
     // pretend new offer failed for some reason
-    vm.mockCall(
-      $(mgv),
-      abi.encodeWithSelector(
-        mgv.newOffer.selector, $(base), $(quote), 1991 ether, 1 ether, mgo.offerGasreq(), 531, /*I cheated*/ 0
-      ),
-      abi.encode(uint(0))
-    );
+    vm.mockCall($(mgv), abi.encodeWithSelector(mgv.newOffer.selector), abi.encode(uint(0)));
     vm.expectRevert("mgvOrder/partialFill");
     vm.prank(fresh_taker);
     mgo.take{value: 0.1 ether}(sellOrder);
@@ -643,13 +631,7 @@ contract MangroveOrder_Test is MangroveTest {
     TransferLib.approveToken(base, $(mgo.router()), type(uint).max);
     vm.stopPrank();
     // mocking MangroveOrder failure to post resting offer
-    vm.mockCall(
-      $(mgv),
-      abi.encodeWithSelector(
-        mgv.newOffer.selector, $(base), $(quote), 1991 ether, 1 ether, mgo.offerGasreq(), 531, /*I cheated*/ 0
-      ),
-      abi.encode(uint(0))
-    );
+    vm.mockCall($(mgv), abi.encodeWithSelector(mgv.newOffer.selector), abi.encode(uint(0)));
     /// since `sender` throws on `receive()`, this should fail.
     vm.expectRevert("mgvOrder/refundFail");
     vm.prank($(sender));

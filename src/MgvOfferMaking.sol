@@ -188,7 +188,7 @@ contract MgvOfferMaking is MgvHasOffers {
         // credit `balanceOf` and log transfer
         creditWei(msg.sender, provision);
       }
-      emit OfferRetract(outbound_tkn, inbound_tkn, offerId);
+      emit OfferRetract(outbound_tkn, inbound_tkn, offerId, deprovision);
     }
   }
 
@@ -267,7 +267,7 @@ contract MgvOfferMaking is MgvHasOffers {
       /* Log the write offer event. */
       emit OfferWrite(
         ofp.outbound_tkn, ofp.inbound_tkn, msg.sender, ofp.wants, ofp.gives, ofp.gasprice, ofp.gasreq, ofp.id, prev
-        );
+      );
 
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
       uint oldProvision;

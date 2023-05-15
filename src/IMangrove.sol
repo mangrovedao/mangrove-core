@@ -25,7 +25,7 @@ interface IMangrove {
     uint takerGives,
     bytes32 mgvData
   );
-  event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id);
+  event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id, bool deprovision);
   event OfferSuccess(
     address indexed outbound_tkn, address indexed inbound_tkn, uint id, address taker, uint takerWants, uint takerGives
   );

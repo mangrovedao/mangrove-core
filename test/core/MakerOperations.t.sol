@@ -158,7 +158,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 2300, 0);
     expectFrom($(mgv));
-    emit OfferRetract($(base), $(quote), ofr);
+    emit OfferRetract($(base), $(quote), ofr, true);
     mkr.retractOfferWithDeprovision(ofr);
   }
 
@@ -203,7 +203,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOffer(0.9 ether, 1 ether, 2300, 100);
     expectFrom($(mgv));
-    emit OfferRetract($(base), $(quote), ofr);
+    emit OfferRetract($(base), $(quote), ofr, false);
     mkr.retractOffer(ofr);
   }
 
@@ -557,7 +557,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       100_000,
       1,
       0
-      );
+    );
     expectFrom($(mgv));
     emit Debit(address(mkr), provision); // transfering missing provision into offer bounty
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0); // locking exact bounty
@@ -575,7 +575,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       100_000,
       ofr0,
       0
-      );
+    );
     expectFrom($(mgv));
     emit Debit(address(mkr), provision_ - provision); // transfering missing provision into offer bounty
     mkr.updateOffer(1.0 ether + 2, 1.0 ether, 100_000, ofr0, ofr0);

@@ -150,7 +150,7 @@ contract HasMgvEvents {
   );
 
   /* * `offerId` was present and is now removed from the book. */
-  event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id);
+  event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id, bool deprovision);
 }
 
 /* # IMaker interface */

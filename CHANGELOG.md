@@ -1,5 +1,7 @@
 # Next version
 
+- Fix: Add polygon to `no_env_var` profile in `foundry.toml`
+
 # 1.5.0
 
 - Deploy new, full testnet setup to Mumbai

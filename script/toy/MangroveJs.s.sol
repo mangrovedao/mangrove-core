@@ -48,6 +48,9 @@ contract MangroveJsDeploy is Deployer {
     MgvReader mgvReader = mgvDeployer.reader();
 
     broadcast();
+    mgv.setUseOracle(false);
+
+    broadcast();
     tokenA = new TestToken({
       admin: chief,
       name: "Token A",

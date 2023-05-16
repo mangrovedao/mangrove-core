@@ -45,6 +45,7 @@ ignore = ['lib/**/*.sol','**/vendor/**/*.sol','**/preprocessed/**/*.sol']
 # necessary to reset the [rpc_endpoints] section since it's lazily loaded.
 [profile.no_env_vars.etherscan]
 mumbai={key=""}
+polygon={key=""}
 goerli={key=""}
 testnet_zkevm={key="",chain=1442,url="https://api-testnet-zkevm.polygonscan.com/api"}
 zkevm={key="",chain=1101,url="https://api-zkevm.polygonscan.com/api"}

@@ -2,17 +2,31 @@
 pragma solidity ^0.8.13;
 
 import {ToyENS} from "mgv_lib/ToyENS.sol";
-import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol";
-import {Deployer} from "mgv_script/lib/Deployer.sol";
 
+import {Deployer} from "mgv_script/lib/Deployer.sol";
+import {MangroveDeployer} from "./MangroveDeployer.s.sol";
+
+/**
+ * Mumbai specific deployment of MangroveDeployer
+ */
 contract MumbaiMangroveDeployer is Deployer {
+  MangroveDeployer public mangroveDeployer;
+  uint public gasprice = 50;
+  uint public gasmax = 1_000_000;
+
   function run() public {
-    new MangroveDeployer().innerRun({
+    runWithChainSpecificParams();
+    outputDeployment();
+  }
+
+  function runWithChainSpecificParams() public {
+    mangroveDeployer = new MangroveDeployer();
+
+    mangroveDeployer.innerRun({
       chief: broadcaster(),
-      gasprice: 50,
-      gasmax: 1_000_000,
+      gasprice: gasprice,
+      gasmax: gasmax,
       gasbot: envAddressOrName("GASBOT", "Gasbot")
     });
-    outputDeployment();
   }
 }

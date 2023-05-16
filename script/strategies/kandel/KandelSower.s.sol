@@ -29,6 +29,7 @@ contract KandelSower is Deployer {
       gaspriceFactor: vm.envUint("GASPRICE_FACTOR"), // 10 means cover 10x the current gasprice of Mangrove
       sharing: vm.envBool("SHARING"),
       onAave: onAave,
+      registerNameOnFork: true,
       name: envHas("NAME") ? vm.envString("NAME") : ""
     });
     outputDeployment();
@@ -42,6 +43,7 @@ contract KandelSower is Deployer {
    * @param gaspriceFactor multiplier of Mangrove's gasprice used to compute Kandel's provision
    * @param sharing whether the deployed (aave) Kandel should allow shared liquidity
    * @param onAave whether AaveKandel should be deployed instead of Kandel
+   * @param registerNameOnFork whether to register the Kandel instance on the fork.
    * @param name The name to register the deployed Kandel instance under. If empty, a name will be generated
    */
   function innerRun(
@@ -52,6 +54,7 @@ contract KandelSower is Deployer {
     uint gaspriceFactor,
     bool sharing,
     bool onAave,
+    bool registerNameOnFork,
     string memory name
   ) public {
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
@@ -59,15 +62,18 @@ contract KandelSower is Deployer {
     broadcast();
     GeometricKandel kdl = kandelSeeder.sow(
       AbstractKandelSeeder.KandelSeed({
-        base: IERC20(base),
-        quote: IERC20(quote),
+        base: base,
+        quote: quote,
         gasprice: global.gasprice() * gaspriceFactor,
         liquiditySharing: sharing
       })
     );
 
-    string memory kandelName = getName(name, IERC20(base), IERC20(quote), onAave);
-    fork.set(kandelName, address(kdl));
+    if (registerNameOnFork) {
+      string memory kandelName = getName(name, base, quote, onAave);
+      fork.set(kandelName, address(kdl));
+    }
+
     smokeTest(kdl, onAave);
   }
 

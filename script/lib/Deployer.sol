@@ -6,7 +6,11 @@ import {ToyENS} from "mgv_lib/ToyENS.sol";
 import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import {PolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {MumbaiFork} from "mgv_test/lib/forks/Mumbai.sol";
+import {EthereumFork} from "mgv_test/lib/forks/Ethereum.sol";
 import {LocalFork} from "mgv_test/lib/forks/Local.sol";
+import {TestnetZkevmFork} from "mgv_test/lib/forks/TestnetZkevm.sol";
+import {GoerliFork} from "mgv_test/lib/forks/Goerli.sol";
+import {ZkevmFork} from "mgv_test/lib/forks/Zkevm.sol";
 import {console2 as console} from "forge-std/console2.sol";
 
 address constant ANVIL_DEFAULT_FIRST_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -49,12 +53,20 @@ abstract contract Deployer is Script2 {
     // detect if we've already created a fork -- the singleton method works as an inter-contract storage used for communication
     if (singleton(SINGLETON_FORK) == address(0)) {
       // depending on which fork the script is running on, choose whether to write the addresses to a file, get the right fork contract, and name the current network.
-      if (block.chainid == 80001) {
-        fork = new MumbaiFork();
+      if (block.chainid == 1) {
+        fork = new EthereumFork();
+      } else if (block.chainid == 5) {
+        fork = new GoerliFork();
       } else if (block.chainid == 137) {
         fork = new PolygonFork();
+      } else if (block.chainid == 1101) {
+        fork = new ZkevmFork();
+      } else if (block.chainid == 1442) {
+        fork = new TestnetZkevmFork();
       } else if (block.chainid == 31337) {
         fork = new LocalFork();
+      } else if (block.chainid == 80001) {
+        fork = new MumbaiFork();
       } else {
         revert(string.concat("Unknown chain id ", vm.toString(block.chainid), ", cannot deploy."));
       }
@@ -89,6 +101,10 @@ abstract contract Deployer is Script2 {
   // In practice, this means you can set your deployer key MUMBAI_PRIVATE_KEY in your .env, and you can override that using --private-key <pk>
   function broadcast() public {
     vm.broadcast(broadcaster());
+  }
+
+  function prettyLog(string memory log) internal view {
+    console.log("\u001b[33m*\u001b[0m", log);
   }
 
   function startBroadcast() public {
@@ -182,7 +198,7 @@ abstract contract Deployer is Script2 {
 
     out = "";
     line("[");
-    for (uint i = 0; i < names.length; i++) {
+    for (uint i = 0; i < names.length; ++i) {
       bool end = i + 1 == names.length;
       line("  {");
       line(string.concat('    "address": "', vm.toString(addrs[i]), '",'));
@@ -217,6 +233,20 @@ abstract contract Deployer is Script2 {
     } catch {
       return fork.get(vm.envString(envVar));
     }
+  }
+
+  function envAddressOrName(string memory envVar, address defaultAddress) internal view returns (address payable) {
+    if (envHas(envVar)) {
+      return envAddressOrName(envVar);
+    }
+    return payable(defaultAddress);
+  }
+
+  function envAddressOrName(string memory envVar, string memory defaultName) internal view returns (address payable) {
+    if (envHas(envVar)) {
+      return envAddressOrName(envVar);
+    }
+    return fork.get(defaultName);
   }
 
   function envHas(string memory envVar) internal view returns (bool) {

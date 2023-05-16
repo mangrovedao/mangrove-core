@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:	AGPL-3.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // MgvOfferTaking.sol
 
@@ -285,7 +285,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint successCount, uint snipesGot, uint snipesGave)
   {
     unchecked {
-      for (uint i = 0; i < targets.length; i++) {
+      for (uint i = 0; i < targets.length; ++i) {
         /* Reset these amounts since every snipe is treated individually. Only the total penalty is sent at the end of all snipes. */
         mor.totalGot = 0;
         mor.totalGave = 0;
@@ -440,13 +440,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
        * `msg.sender` is Mangrove itself in those calls -- all operations related to the actual caller should be done outside of this call.
        * any spurious exception due to an error in Mangrove code will be falsely blamed on the Maker, and its provision for the offer will be unfairly taken away.
        */
-      (bool success, bytes memory retdata) =
-        address(this).call(abi.encodeWithSelector(this.flashloan.selector, sor, mor.taker));
+      (bool success, bytes memory retdata) = address(this).call(abi.encodeCall(this.flashloan, (sor, mor.taker)));
 
       /* `success` is true: trade is complete */
       if (success) {
-        /* In case of success, `retdata` encodes the gas used by the offer. */
-        gasused = abi.decode(retdata, (uint));
+        /* In case of failure, `retdata` encodes the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
+        (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
         mgvData = bytes32("mgv/tradeSuccess");
         emit OfferSuccess(sor.outbound_tkn, sor.inbound_tkn, sor.offerId, mor.taker, sor.wants, sor.gives);
@@ -461,7 +460,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.totalGot += sor.wants;
         mor.totalGave += sor.gives;
       } else {
-        /* In case of failure, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
+        /* In case of success, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
         (mgvData, gasused, makerData) = innerDecode(retdata);
         /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {
@@ -493,14 +492,17 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* Externally called by `execute`, flashloan lends money (from the taker to the maker, or from the maker to the taker, depending on the implementation) then calls `makerExecute` to run the maker liquidity fetching code. If `makerExecute` is unsuccessful, `flashloan` reverts (but the larger orderbook traversal will continue). 
 
   All `flashloan` implementations must `require(msg.sender) == address(this))`. */
-  function flashloan(MgvLib.SingleOrder calldata sor, address taker) external virtual returns (uint gasused);
+  function flashloan(MgvLib.SingleOrder calldata sor, address taker)
+    external
+    virtual
+    returns (uint gasused, bytes32 makerData);
 
   /* ## Maker Execute */
   /* Called by `flashloan`, `makerExecute` runs the maker code and checks that it can safely send the desired assets to the taker. */
 
-  function makerExecute(MgvLib.SingleOrder calldata sor) internal returns (uint gasused) {
+  function makerExecute(MgvLib.SingleOrder calldata sor) internal returns (uint gasused, bytes32 makerData) {
     unchecked {
-      bytes memory cd = abi.encodeWithSelector(IMaker.makerExecute.selector, sor);
+      bytes memory cd = abi.encodeCall(IMaker.makerExecute, (sor));
 
       uint gasreq = sor.offerDetail.gasreq();
       address maker = sor.offerDetail.maker();
@@ -511,7 +513,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         innerRevert([bytes32("mgv/notEnoughGasForMakerTrade"), "", ""]);
       }
 
-      (bool callSuccess, bytes32 makerData) = controlledCall(maker, gasreq, cd);
+      bool callSuccess;
+      (callSuccess, makerData) = controlledCall(maker, gasreq, cd);
 
       gasused = oldGas - gasleft();
 
@@ -575,9 +578,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   {
     unchecked {
       /* At this point, mgvData can only be `"mgv/tradeSuccess"`, `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"` */
-      bytes memory cd = abi.encodeWithSelector(
-        IMaker.makerPosthook.selector, sor, MgvLib.OrderResult({makerData: makerData, mgvData: mgvData})
-      );
+      bytes memory cd =
+        abi.encodeCall(IMaker.makerPosthook, (sor, MgvLib.OrderResult({makerData: makerData, mgvData: mgvData})));
 
       address maker = sor.offerDetail.maker();
 

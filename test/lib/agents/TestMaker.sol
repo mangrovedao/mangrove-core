@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "mgv_src/AbstractMangrove.sol";
 import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
 import {Test} from "forge-std/Test.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 contract TrivialTestMaker is IMaker {
   function makerExecute(MgvLib.SingleOrder calldata) external virtual returns (bytes32) {
@@ -61,7 +62,7 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function approveMgv(IERC20 token, uint amount) public {
-    token.approve(address(mgv), amount);
+    TransferLib.approveToken(token, address(mgv), amount);
   }
 
   function expect(bytes32 mgvData) external {
@@ -69,7 +70,7 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function transferToken(IERC20 token, address to, uint amount) external {
-    token.transfer(to, amount);
+    TransferLib.transferToken(token, to, amount);
   }
 
   function makerExecute(MgvLib.SingleOrder calldata order) public virtual override returns (bytes32) {
@@ -84,7 +85,7 @@ contract SimpleTestMaker is TrivialTestMaker {
     }
 
     if (shouldFail_) {
-      IERC20(order.outbound_tkn).approve(address(mgv), 0);
+      TransferLib.approveToken(IERC20(order.outbound_tkn), address(mgv), 0);
     }
 
     emit Execute(msg.sender, order.outbound_tkn, order.inbound_tkn, order.offerId, order.wants, order.gives);

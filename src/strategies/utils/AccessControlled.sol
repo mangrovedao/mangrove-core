@@ -11,14 +11,20 @@
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pragma solidity ^0.8.10;
 
-import {AccessControlledStorage as ACS} from "./AccessControlledStorage.sol";
-
 /// @title This contract is used to restrict access to privileged functions of inheriting contracts through modifiers.
 /// @notice The contract stores an admin address which is checked against `msg.sender` in the `onlyAdmin` modifier.
 /// @notice Additionally, a specific `msg.sender` can be verified with the `onlyCaller` modifier.
 contract AccessControlled {
-  /// @notice logs new `admin` of `this`
+  /**
+   * @notice logs new `admin` of `this`
+   * @param admin The new admin.
+   */
   event SetAdmin(address admin);
+  /**
+   * @notice The admin address.
+   */
+
+  address internal _admin;
 
   /**
    * @notice `AccessControlled`'s constructor
@@ -26,7 +32,15 @@ contract AccessControlled {
    */
   constructor(address admin_) {
     require(admin_ != address(0), "AccessControlled/0xAdmin");
-    ACS.getStorage().admin = admin_;
+    _admin = admin_;
+  }
+
+  /**
+   * @notice This modifier verifies that `msg.sender` is the admin.
+   */
+  modifier onlyAdmin() {
+    require(msg.sender == _admin, "AccessControlled/Invalid");
+    _;
   }
 
   /**
@@ -39,18 +53,21 @@ contract AccessControlled {
   }
 
   /**
-   * @notice Retrieves the current admin.
+   * @notice This modifier verifies that `msg.sender` is either caller or the admin
+   * @param caller The address of a caller that can access the modified function.
    */
-  function admin() public view returns (address) {
-    return ACS.getStorage().admin;
+  modifier adminOrCaller(address caller) {
+    // test _admin second to save a storage read when possible
+    require(msg.sender == caller || msg.sender == _admin, "AccessControlled/Invalid");
+    _;
   }
 
   /**
-   * @notice This modifier verifies that `msg.sender` is the admin.
+   * @notice Retrieves the current admin.
+   * @return current admin.
    */
-  modifier onlyAdmin() {
-    require(msg.sender == admin(), "AccessControlled/Invalid");
-    _;
+  function admin() public view returns (address current) {
+    return _admin;
   }
 
   /**
@@ -59,7 +76,7 @@ contract AccessControlled {
    */
   function setAdmin(address admin_) public onlyAdmin {
     require(admin_ != address(0), "AccessControlled/0xAdmin");
-    ACS.getStorage().admin = admin_;
+    _admin = admin_;
     emit SetAdmin(admin_);
   }
 }

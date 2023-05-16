@@ -32,7 +32,7 @@ contract Amplifier is Direct {
   //    OfferForwarder  OfferMaker <-- new offer posting
 
   constructor(IMangrove mgv, IERC20 base, IERC20 stable1, IERC20 stable2, address admin)
-    Direct(mgv, NO_ROUTER, 100_000)
+    Direct(mgv, NO_ROUTER, 100_000, admin)
   {
     // SimpleRouter takes promised liquidity from admin's address (wallet)
     STABLE1 = stable1;
@@ -41,7 +41,7 @@ contract Amplifier is Direct {
     AbstractRouter router_ = new SimpleRouter();
     setRouter(router_);
     // adding `this` to the allowed makers of `router_` to pull/push liquidity
-    // Note: `reserve(admin)` needs to approve `this.router()` for base token transfer
+    // Note: `admin` needs to approve `this.router()` for base token transfer
     router_.bind(address(this));
     router_.setAdmin(admin);
     setAdmin(admin);
@@ -77,7 +77,7 @@ contract Amplifier is Direct {
     require(!MGV.isLive(MGV.offers(address(BASE), address(STABLE2), offerId2)), "Amplifier/offer2AlreadyActive");
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
-    offerId1 = _newOffer(
+    (offerId1,) = _newOffer(
       OfferArgs({
         outbound_tkn: BASE,
         inbound_tkn: STABLE1,
@@ -92,7 +92,7 @@ contract Amplifier is Direct {
     );
     // no need to fund this second call for provision
     // since the above call should be enough
-    offerId2 = _newOffer(
+    (offerId2,) = _newOffer(
       OfferArgs({
         outbound_tkn: BASE,
         inbound_tkn: STABLE2,
@@ -127,7 +127,7 @@ contract Amplifier is Direct {
     (IERC20 alt_stable, uint alt_offerId) =
       IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerId2) : (STABLE1, offerId1);
 
-    if (repost_status == "posthook/reposted") {
+    if (repost_status == REPOST_SUCCESS) {
       uint new_alt_gives = __residualGives__(order); // in base units
       MgvStructs.OfferPacked alt_offer = MGV.offers(order.outbound_tkn, address(alt_stable), alt_offerId);
       MgvStructs.OfferDetailPacked alt_detail = MGV.offerDetails(order.outbound_tkn, address(alt_stable), alt_offerId);
@@ -156,7 +156,7 @@ contract Amplifier is Direct {
         }),
         alt_offerId
       );
-      if (reason != "posthook/reposted") {
+      if (reason != REPOST_SUCCESS) {
         return "posthook/altOfferRepostFail";
       } else {
         return "posthook/bothOfferReposted";
@@ -173,9 +173,24 @@ contract Amplifier is Direct {
     }
   }
 
-  function retractOffers(bool deprovision) public {
-    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerId1, deprovision: deprovision});
-    retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerId2, deprovision: deprovision});
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    public
+    adminOrCaller(address(MGV))
+    returns (uint freeWei)
+  {
+    return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  }
+
+  function retractOffers(bool deprovision) external {
+    uint freeWei = retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerId1, deprovision: deprovision});
+    freeWei += retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerId2, deprovision: deprovision});
+    if (freeWei > 0) {
+      require(MGV.withdraw(freeWei), "Amplifier/withdrawFail");
+      // sending native tokens to `msg.sender` prevents reentrancy issues
+      // (the context call of `retractOffer` could be coming from `makerExecute` and a different recipient of transfer than `msg.sender` could use this call to make offer fail)
+      (bool noRevert,) = admin().call{value: freeWei}("");
+      require(noRevert, "Amplifier/weiTransferFail");
+    }
   }
 
   function __posthookFallback__(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata)

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:	AGPL-3.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // Mangrove.sol
 
@@ -39,7 +39,11 @@ contract Mangrove is AbstractMangrove {
      2. Runs `offerDetail.maker`'s `execute` function.
      3. Returns the result of the operations, with optional makerData to help the maker debug.
    */
-  function flashloan(MgvLib.SingleOrder calldata sor, address taker) external override returns (uint gasused) {
+  function flashloan(MgvLib.SingleOrder calldata sor, address taker)
+    external
+    override
+    returns (uint gasused, bytes32 makerData)
+  {
     unchecked {
       /* `flashloan` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would be fatal. */
       require(msg.sender == address(this), "mgv/flashloan/protected");
@@ -49,7 +53,7 @@ contract Mangrove is AbstractMangrove {
        if we incorrectly blame the taker, a blacklisted maker can block a pair forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume that Mangrove is not blacklisted. This 2-step transfer is incompatible with tokens that have transfer fees (more accurately, it uselessly incurs fees twice). */
       if (transferTokenFrom(sor.inbound_tkn, taker, address(this), sor.gives)) {
         if (transferToken(sor.inbound_tkn, sor.offerDetail.maker(), sor.gives)) {
-          gasused = makerExecute(sor);
+          (gasused, makerData) = makerExecute(sor);
         } else {
           innerRevert([bytes32("mgv/makerReceiveFail"), bytes32(0), ""]);
         }

@@ -53,16 +53,17 @@ contract AmplifierForwarder is Forwarder {
    * @dev these offer's provision must be in msg.value
    * @dev `reserve()` must have approved base for `this` contract transfer prior to calling this function
    */
-  function newAmplifiedOffers(
-    // this function posts two asks
-    uint gives,
-    uint wants1,
-    uint wants2,
-    uint pivot1,
-    uint pivot2,
-    uint fund1,
-    uint fund2
-  ) external payable returns (uint, uint) {
+  struct NewOffersArgs {
+    uint gives;
+    uint wants1;
+    uint wants2;
+    uint pivot1;
+    uint pivot2;
+    uint fund1;
+    uint fund2;
+  }
+
+  function newAmplifiedOffers(NewOffersArgs memory args) external payable returns (uint, uint) {
     // there is a cost of being paternalistic here, we read MGV storage
     // an offer can be in 4 states:
     // - not on mangrove (never has been)
@@ -81,16 +82,16 @@ contract AmplifierForwarder is Forwarder {
     );
     // FIXME the above requirements are not enough because offerId might be live on another base, stable market
 
-    uint _offerId1 = _newOffer(
+    (uint _offerId1, bytes32 status1) = _newOffer(
       OfferArgs({
         outbound_tkn: BASE,
         inbound_tkn: STABLE1,
-        wants: wants1,
-        gives: gives,
+        wants: args.wants1,
+        gives: args.gives,
         gasreq: offerGasreq(),
         gasprice: 0, // ignored
-        pivotId: pivot1,
-        fund: fund1,
+        pivotId: args.pivot1,
+        fund: args.fund1,
         noRevert: false
       }),
       msg.sender
@@ -99,24 +100,24 @@ contract AmplifierForwarder is Forwarder {
     offers[msg.sender].id1 = _offerId1;
     // no need to fund this second call for provision
     // since the above call should be enough
-    uint _offerId2 = _newOffer(
+    (uint _offerId2, bytes32 status2) = _newOffer(
       OfferArgs({
         outbound_tkn: BASE,
         inbound_tkn: STABLE2,
-        wants: wants2,
-        gives: gives,
+        wants: args.wants2,
+        gives: args.gives,
         gasreq: offerGasreq(),
         gasprice: 0, // ignored
-        pivotId: pivot2,
-        fund: fund2,
+        pivotId: args.pivot2,
+        fund: args.fund2,
         noRevert: false
       }),
       msg.sender
     );
     offers[msg.sender].id2 = _offerId2;
 
-    require(_offerId1 != 0, "AmplifierForwarder/newOffer1Failed");
-    require(_offerId2 != 0, "AmplifierForwarder/newOffer2Failed");
+    require(_offerId1 != 0, string(abi.encode(status1)));
+    require(_offerId2 != 0, string(abi.encode(status2)));
 
     return (_offerId1, _offerId2);
   }
@@ -139,7 +140,7 @@ contract AmplifierForwarder is Forwarder {
     (IERC20 alt_stable, uint alt_offerId) =
       IERC20(order.inbound_tkn) == STABLE1 ? (STABLE2, offerPair.id2) : (STABLE1, offerPair.id1);
 
-    if (repost_status == "posthook/reposted") {
+    if (repost_status == REPOST_SUCCESS) {
       uint new_alt_gives = __residualGives__(order); // in base units
       MgvStructs.OfferPacked alt_offer = MGV.offers(order.outbound_tkn, address(alt_stable), alt_offerId);
 
@@ -164,7 +165,7 @@ contract AmplifierForwarder is Forwarder {
         }),
         alt_offerId
       );
-      if (reason != "posthook/reposted") {
+      if (reason != REPOST_SUCCESS) {
         // might want to Log an incident here because this should not be reachable
         return "posthook/altRepostFail";
       } else {
@@ -190,7 +191,15 @@ contract AmplifierForwarder is Forwarder {
     }
   }
 
-  function retractOffers(bool deprovision) public {
+  function retractOffer(IERC20 outbound_tkn, IERC20 inbound_tkn, uint offerId, bool deprovision)
+    public
+    mgvOrOwner(outbound_tkn, inbound_tkn, offerId)
+    returns (uint freeWei)
+  {
+    return _retractOffer(outbound_tkn, inbound_tkn, offerId, deprovision);
+  }
+
+  function retractOffers(bool deprovision) external {
     OfferPair memory offerPair = offers[msg.sender];
     retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE1, offerId: offerPair.id1, deprovision: deprovision});
     retractOffer({outbound_tkn: BASE, inbound_tkn: STABLE2, offerId: offerPair.id2, deprovision: deprovision});

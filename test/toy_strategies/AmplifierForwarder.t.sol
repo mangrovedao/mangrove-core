@@ -94,18 +94,20 @@ contract AmplifierForwarderTest is MangroveTest {
     returns (uint offerId1, uint offerId2)
   {
     //Find missing provision for both markets
-    uint prov1 = strat.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
-    uint prov2 = strat.getMissingProvision(weth, dai, type(uint).max, 0, 0);
+    uint prov1 = 0.1 ether;
+    uint prov2 = 0.1 ether;
 
-    (offerId1, offerId2) = strat.newAmplifiedOffers{value: prov1 + prov2}({
-      gives: makerGivesAmount, // WETH
-      wants1: makerWantsAmountUSDC, // USDC
-      wants2: makerWantsAmountDAI, // DAI
-      pivot1: 0,
-      pivot2: 0,
-      fund1: prov1,
-      fund2: prov2
-    });
+    (offerId1, offerId2) = strat.newAmplifiedOffers{value: prov1 + prov2}(
+      AmplifierForwarder.NewOffersArgs({
+        gives: makerGivesAmount, // WETH
+        wants1: makerWantsAmountUSDC, // USDC
+        wants2: makerWantsAmountDAI, // DAI
+        pivot1: 0,
+        pivot2: 0,
+        fund1: prov1,
+        fund2: prov2
+      })
+    );
   }
 
   function takeOffer(uint makerGivesAmount, uint makerWantsAmount, IERC20 makerWantsToken, uint offerId)
@@ -309,20 +311,22 @@ contract AmplifierForwarderTest is MangroveTest {
     (testOffer.daiOffer, testOffer.usdcOffer) =
       postAndFundOffers(makerGivesAmount, makerWantsAmountDAI, makerWantsAmountUSDC);
     //Find missing provision for both markets
-    uint prov1Tester = strat.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
-    uint prov2Tester = strat.getMissingProvision(weth, dai, type(uint).max, 0, 0);
+    uint prov1Tester = reader.getProvision($(weth), $(usdc), strat.offerGasreq(), 0);
+    uint prov2Tester = reader.getProvision($(weth), $(dai), strat.offerGasreq(), 0);
 
     vm.expectRevert("AmplifierForwarder/offer1AlreadyActive");
 
-    strat.newAmplifiedOffers{value: prov1Tester + prov2Tester}({
-      gives: makerGivesAmount, // WETH
-      wants1: makerWantsAmountUSDC, // USDC
-      wants2: makerWantsAmountDAI, // DAI
-      pivot1: 0,
-      pivot2: 0,
-      fund1: prov1Tester,
-      fund2: prov2Tester
-    });
+    strat.newAmplifiedOffers{value: prov1Tester + prov2Tester}(
+      AmplifierForwarder.NewOffersArgs({
+        gives: makerGivesAmount, // WETH
+        wants1: makerWantsAmountUSDC, // USDC
+        wants2: makerWantsAmountDAI, // DAI
+        pivot1: 0,
+        pivot2: 0,
+        fund1: prov1Tester,
+        fund2: prov2Tester
+      })
+    );
 
     // post offers with Amplifier liquidity with test account
     vm.startPrank(maker);
@@ -333,20 +337,22 @@ contract AmplifierForwarderTest is MangroveTest {
 
     strat.retractOffer(weth, usdc, makerOffer.usdcOffer, false);
 
-    uint prov1Maker = strat.getMissingProvision(weth, usdc, type(uint).max, 0, 0);
-    uint prov2Maker = strat.getMissingProvision(weth, dai, type(uint).max, 0, 0);
+    uint prov1Maker = reader.getProvision($(weth), $(usdc), strat.offerGasreq(), 0);
+    uint prov2Maker = reader.getProvision($(weth), $(dai), strat.offerGasreq(), 0);
 
     vm.expectRevert("AmplifierForwarder/offer2AlreadyActive");
 
-    strat.newAmplifiedOffers{value: prov1Maker + prov2Maker}({
-      gives: makerGivesAmount, // WETH
-      wants1: makerWantsAmountUSDC, // USDC
-      wants2: makerWantsAmountDAI, // DAI
-      pivot1: 0,
-      pivot2: 0,
-      fund1: prov1Maker,
-      fund2: prov2Maker
-    });
+    strat.newAmplifiedOffers{value: prov1Maker + prov2Maker}(
+      AmplifierForwarder.NewOffersArgs({
+        gives: makerGivesAmount, // WETH
+        wants1: makerWantsAmountUSDC, // USDC
+        wants2: makerWantsAmountDAI, // DAI
+        pivot1: 0,
+        pivot2: 0,
+        fund1: prov1Maker,
+        fund2: prov2Maker
+      })
+    );
     vm.stopPrank();
 
     // assert that neither offer posted by Amplifier are live (= have been retracted)

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {ToyENS} from "mgv_lib/ToyENS.sol";
-import {MangroveDeployer} from "mgv_script/MangroveDeployer.s.sol";
+import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 contract Whatsup {
@@ -15,7 +15,7 @@ contract Whatsup {
 
 contract WhatsupDeploy is Deployer {
   function run() public {
-    vm.broadcast();
+    broadcast();
     new Whatsup();
     outputDeployment();
   }

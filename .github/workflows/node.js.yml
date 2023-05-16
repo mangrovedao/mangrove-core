@@ -5,9 +5,10 @@ on:
   push:
     branches: 
       - master
+      - develop
       - 'run-ci/**'
   pull_request_target:
-    branches: [ master, test-pr ]
+    branches: [ master, develop, test-pr ]
     types: [opened, synchronize, reopened, labeled]
 
 concurrency: 
@@ -36,7 +37,7 @@ jobs:
           !(   github.event_name != 'pull_request_target'
             || github.event.pull_request.head.repo.full_name == github.repository
             || contains(github.event.pull_request.labels.*.name, 'external PR') )
-      uses: peter-evans/create-or-update-comment@v2
+      uses: peter-evans/create-or-update-comment@v3
       with:
         issue-number: ${{ github.event.pull_request.number }}
         body: >
@@ -174,6 +175,9 @@ jobs:
 
     # == check docs can be created ==
     - run: yarn run doc
+
+    # == check precommit works ==
+    - run: yarn run precommit
 
     - name: Report Failure to Slack
       if: ${{ failure() && fromJSON(env.NOTIFY_SLACK_FOR_THIS_WORKFLOW_RUN) }}

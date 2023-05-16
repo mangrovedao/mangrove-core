@@ -1,5 +1,7 @@
 # Next version
 
+- Fix: Do not use oracle in MangroveJsDeploy
+
 # 1.5.1-0
 
 - Fix: Add polygon to `no_env_var` profile in `foundry.toml`

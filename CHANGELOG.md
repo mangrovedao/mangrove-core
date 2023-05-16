@@ -1,33 +1,14 @@
-# next version
+# Next version
 
-- `MangroveOffer.approve` reverts if approval fails. This avoids missing approve failure during offchains calls to this function.
+# 1.5.0
 
-# 1.4.6-2 (March 2023)
-
-- Remove console reference
+- Deploy new, full testnet setup to Mumbai
 - Use TransferLib to enable non-standard ERC20s for tests
+  - `MangroveOffer.approve` reverts if approval fails. This avoids missing approve failure during offchains calls to this function.
 - Export IOfferLogic
-
-# 1.4.6-1 (March 2023)
-
 - Remove MangroveOrderEnriched
-- Deploy MangroveOrder and Kandel seeders
-
-# 1.4.6-0 (March 2023)
-
 - Include no_env_vars config section
-
-# 1.4.5-0 (March 2023)
-
-- Deploy MangroveOrder, add mumbai gov address
-
-# 1.4.4-0 (March 2023)
-
-- Deploy MangroveOrder, add mumbai gov address
-
-# 1.4.3-0 (February 2023)
-
-- Strat: Kandel strat
+- Strat: Kandel strat, see https://docs.mangrove.exchange/kandel/
 - Core: Mangrove-core transmit makerData all the time
 - Core: More typesafe calls in mangrove-core
 - Tooling: Deployer.broadcaster to globally set broadcast address

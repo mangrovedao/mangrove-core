@@ -1,5 +1,7 @@
 # next version
 
+- `MangroveOffer.approve` reverts if approval fails. This avoids missing approve failure during offchains calls to this function.
+
 # 1.4.6-2 (March 2023)
 
 - Remove console reference

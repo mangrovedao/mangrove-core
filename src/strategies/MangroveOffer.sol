@@ -122,7 +122,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       // logging what went wrong during `makerExecute`
       emit LogIncident(
         MGV, IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId, result.makerData, result.mgvData
-        );
+      );
       // calling strat specific todos in case of failure
       __posthookFallback__(order, result);
       __handleResidualProvision__(order);
@@ -143,7 +143,7 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
       // Offer failed to repost for bad reason, logging the incident
       emit LogIncident(
         MGV, IERC20(order.outbound_tkn), IERC20(order.inbound_tkn), order.offerId, makerData, repostStatus
-        );
+      );
     }
   }
 
@@ -155,7 +155,8 @@ abstract contract MangroveOffer is AccessControlled, IOfferLogic {
 
   /// @inheritdoc IOfferLogic
   function approve(IERC20 token, address spender, uint amount) public override onlyAdmin returns (bool) {
-    return TransferLib.approveToken(token, spender, amount);
+    require(TransferLib.approveToken(token, spender, amount), "mgvOffer/approve/failed");
+    return true;
   }
 
   /// @inheritdoc IOfferLogic

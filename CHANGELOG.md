@@ -1,5 +1,7 @@
 # Next version
 
+# 1.5.1-0
+
 - Fix: Add polygon to `no_env_var` profile in `foundry.toml`
 
 # 1.5.0

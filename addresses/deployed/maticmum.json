@@ -24,10 +24,6 @@
     "name": "AaveKandelSeeder"
   },
   {
-    "address": "0x47897EE61498D02B18794601Ed3A71896A1Ff894",
-    "name": "MgvGovernance"
-  },
-  {
     "address": "0xF511135Bc98D7a5cf694Fa6751322de93e2135dA",
     "name": "MangroveOrder"
   },

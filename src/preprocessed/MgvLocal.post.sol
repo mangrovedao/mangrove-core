@@ -60,13 +60,13 @@ uint constant best_before          = lock_before          + lock_bits;
 uint constant last_before          = best_before          + best_bits;
 
 // cleanup-mask: 0s at field location, 1s elsewhere
-uint constant active_mask        = 0x00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-uint constant fee_mask           = 0xff0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-uint constant density_mask       = 0xffffff0000000000000000000000000000ffffffffffffffffffffffffffffff;
-uint constant offer_gasbase_mask = 0xffffffffffffffffffffffffffffffffff000000ffffffffffffffffffffffff;
-uint constant lock_mask          = 0xffffffffffffffffffffffffffffffffffffffff00ffffffffffffffffffffff;
-uint constant best_mask          = 0xffffffffffffffffffffffffffffffffffffffffff00000000ffffffffffffff;
-uint constant last_mask          = 0xffffffffffffffffffffffffffffffffffffffffffffffffff00000000ffffff;
+uint constant active_mask        = ~((ONES << 256 - active_bits) >> active_before);
+uint constant fee_mask           = ~((ONES << 256 - fee_bits) >> fee_before);
+uint constant density_mask       = ~((ONES << 256 - density_bits) >> density_before);
+uint constant offer_gasbase_mask = ~((ONES << 256 - offer_gasbase_bits) >> offer_gasbase_before);
+uint constant lock_mask          = ~((ONES << 256 - lock_bits) >> lock_before);
+uint constant best_mask          = ~((ONES << 256 - best_bits) >> best_before);
+uint constant last_mask          = ~((ONES << 256 - last_bits) >> last_before);
 
 library Library {
   function to_struct(LocalPacked __packed) internal pure returns (LocalUnpacked memory __s) { unchecked {

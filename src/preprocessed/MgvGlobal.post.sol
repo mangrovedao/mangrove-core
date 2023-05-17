@@ -57,12 +57,12 @@ uint constant gasmax_before    = gasprice_before  + gasprice_bits;
 uint constant dead_before      = gasmax_before    + gasmax_bits;
 
 // cleanup-mask: 0s at field location, 1s elsewhere
-uint constant monitor_mask   = 0x0000000000000000000000000000000000000000ffffffffffffffffffffffff;
-uint constant useOracle_mask = 0xffffffffffffffffffffffffffffffffffffffff00ffffffffffffffffffffff;
-uint constant notify_mask    = 0xffffffffffffffffffffffffffffffffffffffffff00ffffffffffffffffffff;
-uint constant gasprice_mask  = 0xffffffffffffffffffffffffffffffffffffffffffff0000ffffffffffffffff;
-uint constant gasmax_mask    = 0xffffffffffffffffffffffffffffffffffffffffffffffff000000ffffffffff;
-uint constant dead_mask      = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffff00ffffffff;
+uint constant monitor_mask   = ~((ONES << 256 - monitor_bits) >> monitor_before);
+uint constant useOracle_mask = ~((ONES << 256 - useOracle_bits) >> useOracle_before);
+uint constant notify_mask    = ~((ONES << 256 - notify_bits) >> notify_before);
+uint constant gasprice_mask  = ~((ONES << 256 - gasprice_bits) >> gasprice_before);
+uint constant gasmax_mask    = ~((ONES << 256 - gasmax_bits) >> gasmax_before);
+uint constant dead_mask      = ~((ONES << 256 - dead_bits) >> dead_before);
 
 library Library {
   function to_struct(GlobalPacked __packed) internal pure returns (GlobalUnpacked memory __s) { unchecked {

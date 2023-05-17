@@ -51,10 +51,10 @@ uint constant offer_gasbase_before = gasreq_before        + gasreq_bits;
 uint constant gasprice_before      = offer_gasbase_before + offer_gasbase_bits;
 
 // cleanup-mask: 0s at field location, 1s elsewhere
-uint constant maker_mask         = 0x0000000000000000000000000000000000000000ffffffffffffffffffffffff;
-uint constant gasreq_mask        = 0xffffffffffffffffffffffffffffffffffffffff000000ffffffffffffffffff;
-uint constant offer_gasbase_mask = 0xffffffffffffffffffffffffffffffffffffffffffffff000000ffffffffffff;
-uint constant gasprice_mask      = 0xffffffffffffffffffffffffffffffffffffffffffffffffffff0000ffffffff;
+uint constant maker_mask         = ~((ONES << 256 - maker_bits) >> maker_before);
+uint constant gasreq_mask        = ~((ONES << 256 - gasreq_bits) >> gasreq_before);
+uint constant offer_gasbase_mask = ~((ONES << 256 - offer_gasbase_bits) >> offer_gasbase_before);
+uint constant gasprice_mask      = ~((ONES << 256 - gasprice_bits) >> gasprice_before);
 
 library Library {
   function to_struct(OfferDetailPacked __packed) internal pure returns (OfferDetailUnpacked memory __s) { unchecked {

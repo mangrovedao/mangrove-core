@@ -30,6 +30,8 @@ class Field {
       mask: field_var(this.name, "mask"),
       bits: field_var(this.name, "bits"),
     };
+    // cleanup-mask: 1's everywhere at field location, 0's elsewhere
+    this.mask = `~((ONES << 256 - ${this.vars.bits}) >> ${this.vars.before})`;
   }
 
   extract(from) {
@@ -63,26 +65,10 @@ class Field {
       return val;
     }
   }
-
-  // cleanup-mask: 1's everywhere at field location, 0's elsewhere
-  mask() {
-    const before = this.before;
-    const bits = this.bits;
-    if (before % 4 != 0 || bits % 4 != 0) {
-      throw "preproc/mask/misaligned";
-    }
-    return (
-      "0x" +
-      "f".repeat(before / 4) +
-      "0".repeat(bits / 4) +
-      "f".repeat((256 - before - bits) / 4)
-    );
-  }
 }
 
 class Struct {
-  // validate struct_def: total size is <256 bits, each bitsize is divisible by
-  // 4 (for now).
+  // validate struct_def: correct types & sizes
   static validate(fields_def) {
     const red = (acc, field) => {
       const desc = util.inspect(field);
@@ -97,11 +83,7 @@ class Struct {
       if (field.type === "bool" && field.bits !== 8) {
         throw new Error(`bad field ${desc}, bools must have 8 bits`);
       }
-      if (field.bits % 4 != 0) {
-        throw new Error(`bad field ${desc}, bitsize must be divisible by 4`);
-      } else {
-        return acc + field.bits;
-      }
+      return acc + field.bits;
     };
     const bits = fields_def.reduce(red, 0);
     if (bits > 256) {
@@ -119,12 +101,7 @@ class Struct {
     this.Unpacked = `${this.Name}Unpacked`;
     this.filename = filenamer(this);
 
-    let before = 0;
-    this.fields = fields_def.map((data) => {
-      const f = new Field({ before, ...data });
-      before += data.bits;
-      return f;
-    });
+    this.fields = fields_def.map((data) => new Field(data));
   }
   unwrap(val) {
     return `${this.Packed}.unwrap(${val})`;

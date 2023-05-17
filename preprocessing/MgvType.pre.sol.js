@@ -44,7 +44,7 @@ ${tabulate(s.fields.map((f,i) => {
 
 // cleanup-mask: 0s at field location, 1s elsewhere
 ${tabulate(s.fields.map(f => 
-  [`uint constant ${f.vars.mask}`, ` = ${f.mask()};`]
+  [`uint constant ${f.vars.mask}`, ` = ${f.mask};`]
 ))}
 
 library Library {

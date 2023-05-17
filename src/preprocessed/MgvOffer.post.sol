@@ -51,10 +51,10 @@ uint constant wants_before = next_before  + next_bits;
 uint constant gives_before = wants_before + wants_bits;
 
 // cleanup-mask: 0s at field location, 1s elsewhere
-uint constant prev_mask  = 0x00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-uint constant next_mask  = 0xffffffff00000000ffffffffffffffffffffffffffffffffffffffffffffffff;
-uint constant wants_mask = 0xffffffffffffffff000000000000000000000000ffffffffffffffffffffffff;
-uint constant gives_mask = 0xffffffffffffffffffffffffffffffffffffffff000000000000000000000000;
+uint constant prev_mask  = ~((ONES << 256 - prev_bits) >> prev_before);
+uint constant next_mask  = ~((ONES << 256 - next_bits) >> next_before);
+uint constant wants_mask = ~((ONES << 256 - wants_bits) >> wants_before);
+uint constant gives_mask = ~((ONES << 256 - gives_bits) >> gives_before);
 
 library Library {
   function to_struct(OfferPacked __packed) internal pure returns (OfferUnpacked memory __s) { unchecked {

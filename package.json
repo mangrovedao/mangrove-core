@@ -1,8 +1,8 @@
 {
   "name": "@mangrovedao/mangrove-core",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "author": "Mangrove DAO",
-  "license": "(AGPL-3.0-only OR BSD-2-Clause)",
+  "license": "SEE LICENSE IN LICENSE",
   "main": "index.js",
   "scripts": {
     "package-version": "echo $npm_package_version",
@@ -11,7 +11,7 @@
     "postpack": "pinst --enable",
     "postinstall": "husky install",
     "corecov": "forge coverage --match-path 'test/core/*'",
-    "build": "forge build && node copyArtifacts && node buildIndex",
+    "build": "forge build && node copyArtifacts && node buildIndex && node checkNatspec",
     "clean": "forge clean; rimraf index.js dist",
     "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.js src/MgvLib.sol src/MgvRoot.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/AbstractMangrove.sol src/Mangrove.sol src/InvertedMangrove.sol",
     "preproc": "node preprocessing/run.js",
@@ -36,14 +36,16 @@
   ],
   "devDependencies": {
     "husky": "^8.0.3",
-    "lint-staged": "^13.1.2",
+    "lint-staged": "^13.2.2",
     "micromatch": "^4.0.5",
     "pinst": "^3.0.0",
-    "prettier": "^2.8.4",
-    "rimraf": "^4.1.3",
+    "prettier": "^2.8.7",
+    "rimraf": "^5.0.0",
     "shelljs": "^0.8.4",
     "solcco": ">=1.0.11",
-    "yargs": "^17.6.2"
+    "solhint": "^3.4.1",
+    "yargs": "^17.7.2"
   },
-  "packageManager": "yarn@3.2.3"
+  "packageManager": "yarn@3.5.0",
+  "stableVersion": "1.4.5-0"
 }

@@ -9,6 +9,7 @@ import {TrivialTestMaker, TestMaker, OfferData} from "mgv_test/lib/agents/TestMa
 import {MakerDeployer} from "mgv_test/lib/agents/MakerDeployer.sol";
 import {TestMoriartyMaker} from "mgv_test/lib/agents/TestMoriartyMaker.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
@@ -43,18 +44,26 @@ contract MangroveTest is Test2, HasMgvEvents {
     TokenOptions base;
     TokenOptions quote;
     uint defaultFee;
+    uint gasprice;
+    uint gasbase;
+    uint gasmax;
+    uint density;
   }
 
-  AbstractMangrove mgv;
-  MgvReader reader;
-  TestToken base;
-  TestToken quote;
+  AbstractMangrove internal mgv;
+  MgvReader internal reader;
+  TestToken internal base;
+  TestToken internal quote;
 
-  MangroveTestOptions options = MangroveTestOptions({
+  MangroveTestOptions internal options = MangroveTestOptions({
     invertedMangrove: false,
     base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
-    defaultFee: 0
+    defaultFee: 0,
+    gasprice: 40,
+    gasbase: 50_000,
+    density: 10,
+    gasmax: 2_000_000
   });
 
   constructor() {
@@ -73,18 +82,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   */
   function setUp() public virtual {
     // tokens
-    base = new TestToken(
-      $(this),
-      options.base.name,
-      options.base.symbol,
-      options.base.decimals
-    );
-    quote = new TestToken(
-      $(this),
-      options.quote.name,
-      options.quote.symbol,
-      options.quote.decimals
-    );
+    base = new TestToken($(this), options.base.name, options.base.symbol, options.base.decimals);
+    quote = new TestToken($(this), options.quote.name, options.quote.symbol, options.quote.decimals);
     // mangrove deploy
     mgv = setupMangrove(base, quote, options.invertedMangrove);
     reader = new MgvReader($(mgv));
@@ -94,8 +93,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     //provision mangrove so that testRunner can post offers
     mgv.fund{value: 10 ether}();
     // approve mangrove so that testRunner can take offers on Mangrove
-    base.approve($(mgv), type(uint).max);
-    quote.approve($(mgv), type(uint).max);
+    TransferLib.approveToken(base, $(mgv), type(uint).max);
+    TransferLib.approveToken(quote, $(mgv), type(uint).max);
   }
 
   /* Log order book */
@@ -146,11 +145,10 @@ contract MangroveTest is Test2, HasMgvEvents {
     TestToken req_tk = TestToken($in);
     TestToken ofr_tk = TestToken($out);
 
-    console.log(
-      string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────")
-    );
+    console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
     while (offerId != 0) {
-      (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo($out, $in, offerId);
+      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) =
+        mgv.offerInfo($out, $in, offerId);
       console.log(
         string.concat(
           unicode"│ ",
@@ -158,7 +156,9 @@ contract MangroveTest is Test2, HasMgvEvents {
           unicode" ┆ ",
           string.concat(toUnit(ofr.wants, req_tk.decimals()), " ", req_tk.symbol()),
           "  /  ",
-          string.concat(toUnit(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol())
+          string.concat(toUnit(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol()),
+          " ",
+          vm.toString(detail.maker)
         )
       );
       offerId = ofr.next;
@@ -196,14 +196,14 @@ contract MangroveTest is Test2, HasMgvEvents {
     if (inverted) {
       _mgv = new InvertedMangrove({
         governance: $(this),
-        gasprice: 40,
-        gasmax: 2_000_000
+        gasprice: options.gasprice,
+        gasmax: options.gasmax
       });
     } else {
       _mgv = new Mangrove({
         governance: $(this),
-        gasprice: 40,
-        gasmax: 2_000_000
+        gasprice: options.gasprice,
+        gasmax: options.gasmax
       });
     }
     vm.label($(_mgv), "Mangrove");
@@ -224,8 +224,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   function setupMarket(address $a, address $b, AbstractMangrove _mgv) internal {
     assertNot0x($a);
     assertNot0x($b);
-    _mgv.activate($a, $b, options.defaultFee, 10, 20_000);
-    _mgv.activate($b, $a, options.defaultFee, 10, 20_000);
+    _mgv.activate($a, $b, options.defaultFee, options.density, options.gasbase);
+    _mgv.activate($b, $a, options.defaultFee, options.density, options.gasbase);
     // logging
     vm.label($a, IERC20($a).symbol());
     vm.label($b, IERC20($b).symbol());
@@ -256,6 +256,69 @@ contract MangroveTest is Test2, HasMgvEvents {
     vm.deal(address(tt), 100 ether);
     vm.label(address(tt), label);
     return tt;
+  }
+
+  function mockBuyOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
+    order.outbound_tkn = $(base);
+    order.inbound_tkn = $(quote);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    // complete fill (prev and next are bogus)
+    order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
+  }
+
+  function mockBuyOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    IERC20 base_,
+    IERC20 quote_,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.outbound_tkn = $(base_);
+    order.inbound_tkn = $(quote_);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    // complete fill (prev and next are bogus)
+    order.offer = MgvStructs.Offer.pack({
+      __prev: 0,
+      __next: 0,
+      __wants: order.gives * partialFill,
+      __gives: order.wants * partialFill
+    });
+    result.makerData = makerData;
+    result.mgvData = "mgv/tradeSuccess";
+  }
+
+  function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
+    order.inbound_tkn = $(base);
+    order.outbound_tkn = $(quote);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    // complete fill (prev and next are bogus)
+    order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
+  }
+
+  function mockSellOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    IERC20 base_,
+    IERC20 quote_,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.inbound_tkn = $(base_);
+    order.outbound_tkn = $(quote_);
+    order.wants = takerWants;
+    order.gives = takerGives;
+    order.offer = MgvStructs.Offer.pack({
+      __prev: 0,
+      __next: 0,
+      __wants: order.gives * partialFill,
+      __gives: order.wants * partialFill
+    });
+    result.makerData = makerData;
+    result.mgvData = "mgv/tradeSuccess";
   }
 
   /* **** Token conversion *** */
@@ -302,5 +365,82 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   function $(TestSender t) internal pure returns (address payable) {
     return payable(address(t));
+  }
+
+  struct CheckAuthArgs {
+    address[] allowed;
+    address[] callers;
+    address callee;
+    string revertMessage;
+  }
+
+  function checkAuth(CheckAuthArgs memory args, bytes memory data) internal {
+    checkAuth(args.allowed, args.callers, args.callee, args.revertMessage, data);
+  }
+
+  function checkAuth(
+    address[] memory allowed,
+    address[] memory callers,
+    address callee,
+    string memory revertMessage,
+    bytes memory data
+  ) internal {
+    for (uint i = 0; i < callers.length; ++i) {
+      bool skip = false;
+      address caller = callers[i];
+      for (uint j = 0; j < allowed.length; ++j) {
+        if (allowed[j] == caller) {
+          skip = true;
+          break;
+        }
+      }
+      if (skip) {
+        continue;
+      }
+      vm.prank(caller);
+      (bool success, bytes memory res) = callee.call(data);
+      assertFalse(success, "function should revert");
+      assertEq(revertMessage, getReason(res));
+    }
+    for (uint i = 0; i < allowed.length; i++) {
+      vm.prank(allowed[i]);
+      (bool success,) = callee.call(data);
+      assertTrue(success, "function should not revert");
+    }
+  }
+
+  /// creates `fold` offers in the (outbound, inbound) market with the same `wants`, `gives` and `gasreq` and with `caller` as maker
+  function densify(
+    address outbound,
+    address inbound,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint pivotId,
+    uint fold,
+    address caller
+  ) internal {
+    if (gives == 0) {
+      return;
+    }
+    uint prov = reader.getProvision(outbound, inbound, gasreq, 0);
+    while (fold > 0) {
+      vm.prank(caller);
+      pivotId = mgv.newOffer{value: prov}(outbound, inbound, wants, gives, gasreq, 0, pivotId);
+      fold--;
+    }
+  }
+
+  /// duplicates `fold` times all offers in the `outbound, inbound` list from id `fromId` and for `lenght` offers.
+  function densifyRange(address outbound, address inbound, uint fromId, uint length, uint fold, address caller)
+    internal
+  {
+    while (length > 0 && fromId != 0) {
+      MgvStructs.OfferPacked offer = mgv.offers(outbound, inbound, fromId);
+      MgvStructs.OfferDetailPacked detail = mgv.offerDetails(outbound, inbound, fromId);
+      densify(outbound, inbound, offer.wants(), offer.gives(), detail.gasreq(), fromId, fold, caller);
+      length--;
+      fromId = offer.next();
+    }
   }
 }

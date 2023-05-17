@@ -5,6 +5,7 @@ pragma solidity ^0.8.10;
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {IERC20, ITaker} from "mgv_src/MgvLib.sol";
 import {Script2} from "mgv_lib/Script2.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 contract TestTaker is ITaker, Script2 {
   AbstractMangrove _mgv;
@@ -21,11 +22,11 @@ contract TestTaker is ITaker, Script2 {
   receive() external payable {}
 
   function approveMgv(IERC20 token, uint amount) external {
-    token.approve(address(_mgv), amount);
+    TransferLib.approveToken(token, address(_mgv), amount);
   }
 
   function approve(IERC20 token, address spender, uint amount) external {
-    token.approve(spender, amount);
+    TransferLib.approveToken(token, spender, amount);
   }
 
   function approveSpender(address spender, uint amount) external {

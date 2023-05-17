@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:	AGPL-3.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // MgvReader.sol
 
@@ -396,7 +396,7 @@ contract MgvReader {
     markets = new address[2][](maxLen);
     configs = new MarketConfig[](withConfig ? maxLen : 0);
     unchecked {
-      for (uint i = 0; i < maxLen; i++) {
+      for (uint i = 0; i < maxLen; ++i) {
         address tkn0 = _openMarkets[from + i][0];
         address tkn1 = _openMarkets[from + i][1];
         markets[i] = [tkn0, tkn1];

@@ -51,7 +51,7 @@ contract MangoTest is MangroveTest {
 
     vm.startPrank(maker);
     mgo = new Mango({
-      mgv: IMangrove($(mgv)), // TODO: remove IMangrove dependency?
+      mgv: IMangrove($(mgv)),
       base: weth,
       quote: usdc,
       base_0: cash(weth, 34, 2),
@@ -86,8 +86,7 @@ contract MangoTest is MangroveTest {
   }
 
   function part_deploy_strat() public prank(maker) {
-    // reserve has to approve liquidity router of Mango for ETH and USDC transfer
-    // since reserve here is an EOA we do it direclty
+    // admin (here maker) of Mango has to approve liquidity router of Mango for ETH and USDC transfer
     usdc.approve($(mgo.router()), type(uint).max);
     weth.approve($(mgo.router()), type(uint).max);
 
@@ -96,13 +95,7 @@ contract MangoTest is MangroveTest {
     deal($(weth), maker, cash(weth, 17));
     deal($(usdc), maker, cash(usdc, 50000));
 
-    uint prov = mgo.getMissingProvision({
-      outbound_tkn: weth,
-      inbound_tkn: usdc,
-      gasreq: mgo.offerGasreq(),
-      gasprice: 0,
-      offerId: 0
-    });
+    uint prov = 0.1 ether;
 
     mgv.fund{value: prov * 20}($(mgo));
 
@@ -116,13 +109,12 @@ contract MangoTest is MangroveTest {
 
   function part_market_order() public prank(taker) {
     (uint got, uint gave, uint bounty,) = mgv.marketOrder($(weth), $(usdc), cash(weth, 5, 1), cash(usdc, 3000), true);
-
     Book memory book = getOffers(false);
     assertEq(got, reader.minusFee($(weth), $(usdc), 0.5 ether), "incorrect received amount");
     assertEq(bounty, 0, "taker should not receive bounty");
+
     checkOB($(usdc), $(weth), book.bids, dynamic([int(1), 2, 3, 4, 5, 6, 0, 0, 0, 0]));
     checkOB($(weth), $(usdc), book.asks, dynamic([int(0), 0, 0, 0, 0, -1, 2, 3, 4, 5]));
-
     (got, gave, bounty,) = mgv.marketOrder($(usdc), $(weth), cash(usdc, 3500), cash(weth, 15, 1), true);
 
     assertEq(got, reader.minusFee($(usdc), $(weth), cash(usdc, 3500)), "incorrect received amount");

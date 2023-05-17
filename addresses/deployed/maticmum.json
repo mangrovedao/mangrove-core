@@ -1,26 +1,38 @@
 [
   {
-    "address": "0x823701dD29451766d5B9eF6b54ef42642F545cd7",
+    "address": "0xd1805f6Fe12aFF69D4264aE3e49ef320895e2D8b",
     "name": "Mangrove"
   },
   {
-    "address": "0x4aa55b5f46c42531ea4772ab8c808399d067BfF0",
+    "address": "0x82dA8C07b1E17eBDE8853405E11D89b410ec58E6",
     "name": "MgvReader"
   },
   {
-    "address": "0x028183b83d415f3EDfEc0163E5266Ac63Ad0FdE7",
+    "address": "0x2A36f6293bB1F35c84655DB5e6E34604EFCf739d",
     "name": "MgvCleaner"
   },
   {
-    "address": "0xcf32089F029AF15b7f8C20c046B13859AcaD791E",
+    "address": "0x8F8ff080cA0554b02BFC36A5aD465954416271eF",
     "name": "MgvOracle"
   },
   {
-    "address": "0x046963623BDB092A406ed051222e769D214bd107",
-    "name": "MangroveOrderEnriched"
+    "address": "0xb4A9Ac8Ae5b405193271A0e62682c9be47d578B9",
+    "name": "KandelSeeder"
   },
   {
-    "address": "0x75C19ecd2F817A173Ef8196D8CE8a219ee14a0fe",
-    "name": "Mango_WETH_USDC"
+    "address": "0x0295a7f3093Fb656d982B6E2c52B07699aDA9594",
+    "name": "AaveKandelSeeder"
+  },
+  {
+    "address": "0x756fAc8bb6fb96A3b005ad7b3337052aE69aAf65",
+    "name": "MangroveOrder"
+  },
+  {
+    "address": "0xADdF5388C695e3F23A2509AA73677ED4a219f834",
+    "name": "MangroveOrder-Router"
+  },
+  {
+    "address": "0xB3ba79DB150E8650efa5c534EEaf6404a25Fdf00",
+    "name": "AavePooledRouter"
   }
 ]

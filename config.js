@@ -7,13 +7,18 @@ exports.abi_exports = [
   "TestToken",
   "IERC20",
   "MangroveOrder",
-  "MangroveOrderEnriched",
   "AbstractRouter",
-  "AaveDeepRouter",
-  "AaveV3Module",
   "ICreditDelegationToken",
   "ILiquidityProvider",
+  "IOfferLogic",
   "AccessControlled",
+  "AbstractKandel",
+  "GeometricKandel",
+  "Kandel",
+  "AaveKandel",
+  "AbstractKandelSeeder",
+  "KandelSeeder",
+  "AaveKandelSeeder",
 ];
 
 // Contracts that should export their ABI + bytecode

@@ -13,6 +13,6 @@ contract PolygonFork is GenericFork {
 
 contract PinnedPolygonFork is PolygonFork {
   constructor() {
-    BLOCK_NUMBER = 26416000;
+    BLOCK_NUMBER = 39880000; // 26573831 sets AAVE rewards controller
   }
 }

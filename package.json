@@ -14,7 +14,7 @@
     "build": "forge build && node copyArtifacts && node buildIndex && node checkNatspec",
     "clean": "forge clean; rimraf index.js dist",
     "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.js src/MgvLib.sol src/MgvRoot.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/AbstractMangrove.sol src/Mangrove.sol src/InvertedMangrove.sol",
-    "preproc": "node preprocessing/run.js",
+    "preproc": "ts-node preprocessing/run.ts",
     "test": "forge test -vvv"
   },
   "lint-staged": {
@@ -35,6 +35,7 @@
     "/doc"
   ],
   "devDependencies": {
+    "@types/node": "^20.1.7",
     "husky": "^8.0.3",
     "lint-staged": "^13.2.2",
     "micromatch": "^4.0.5",
@@ -44,6 +45,7 @@
     "shelljs": "^0.8.4",
     "solcco": ">=1.0.11",
     "solhint": "^3.4.1",
+    "typescript": "^5.0.4",
     "yargs": "^17.7.2"
   },
   "packageManager": "yarn@3.5.0",

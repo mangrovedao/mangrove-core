@@ -1,10 +1,10 @@
-const util = require("util");
+import * as util from "util";
 
-exports.preamble = `/* ************************************************** *
+export const preamble = `/* ************************************************** *
             GENERATED FILE. DO NOT EDIT.
  * ************************************************** */`;
 
-exports.struct_utilities = `/* since you can't convert bool to uint in an expression without conditionals,
+export const struct_utilities = `/* since you can't convert bool to uint in an expression without conditionals,
  * we add a file-level function and rely on compiler optimization
  */
 function uint_of_bool(bool b) pure returns (uint u) {
@@ -13,14 +13,22 @@ function uint_of_bool(bool b) pure returns (uint u) {
 
 uint constant ONES = type(uint).max;`;
 
-const field_var = (_name, prop) => {
+const field_var = (_name:string, prop:string) => {
   return `${_name}_${prop}`;
 };
 
-const capitalize = (s) => s.slice(0, 1).toUpperCase() + s.slice(1);
+type field_def = { name: string; type: string; bits: number; };
+
+const capitalize = (s:string) => s.slice(0, 1).toUpperCase() + s.slice(1);
 
 class Field {
-  constructor(data) {
+  name: string;
+  type: string;
+  bits: number;
+  vars: { before: string; mask: string; bits: string; }
+  mask: string;
+
+  constructor(data: field_def) {
     this.name = data.name;
     this.type = data.type;
     this.bits = data.bits;
@@ -33,12 +41,12 @@ class Field {
     this.mask = `~((ONES << 256 - ${this.vars.bits}) >> ${this.vars.before})`;
   }
 
-  extract(from) {
+  extract(from: string) {
     const uint_val = `(${from} << ${this.vars.before}) >> (256 - ${this.vars.bits})`;
     return this.from_uint(uint_val);
   }
 
-  from_uint(uint_val) {
+  from_uint(uint_val: string) {
     if (this.type === "address") {
       return `address(uint160(${uint_val}))`;
     } else if (this.type === "bool") {
@@ -49,12 +57,12 @@ class Field {
     }
   }
 
-  inject(val) {
+  inject(val: string) {
     const uint_val = this.to_uint(val);
     return `(${uint_val} << (256 - ${this.vars.bits})) >> ${this.vars.before}`;
   }
 
-  to_uint(val) {
+  to_uint(val: string) {
     if (this.type === "address") {
       return `uint(uint160(${val}))`;
     } else if (this.type === "bool") {
@@ -68,8 +76,8 @@ class Field {
 
 class Struct {
   // validate struct_def: correct types & sizes
-  static validate(fields_def) {
-    const red = (acc, field) => {
+  static validate(fields_def: field_def[]) {
+    const red = (acc: any, field: field_def) => {
       const desc = util.inspect(field);
       if (!["uint", "address", "bool"].includes(field.type)) {
         throw new Error(
@@ -89,7 +97,14 @@ class Struct {
     }
   }
 
-  constructor(name, fields_def, filenamer) {
+  name: string;
+  Name: string;
+  Packed: string;
+  Unpacked: string;
+  filename: string;
+  fields: Field[];
+
+  constructor(name: string, fields_def: field_def[], filenamer: (_:Struct) => string) {
     Struct.validate(fields_def);
     this.name = name;
     this.Name = capitalize(this.name);
@@ -97,17 +112,17 @@ class Struct {
     this.Unpacked = `${this.Name}Unpacked`;
     this.filename = filenamer(this);
 
-    this.fields = fields_def.map((data) => new Field(data));
+    this.fields = fields_def.map((data: field_def) => new Field(data));
   }
-  unwrap(val) {
+  unwrap(val: any) {
     return `${this.Packed}.unwrap(${val})`;
   }
-  wrap(val) {
+  wrap(val: any) {
     return `${this.Packed}.wrap(${val})`;
   }
 }
 
-exports.make_structs = (struct_defs, filenamer) => {
+export const make_structs = (struct_defs: {[key:string]: field_def[]}, filenamer: (_:Struct) => string) => {
   return Object.entries(struct_defs).map(([name, fields_def]) => {
     return new Struct(name, fields_def, filenamer);
   });

@@ -1,6 +1,6 @@
-const { format, tabulate } = require("./lib/format.js");
+import { format, tabulate } from "./lib/format";
 
-exports.template = ({ preamble, struct_utilities, struct: s }) => {
+export const template = ({ preamble, struct_utilities, struct: s }) => {
   return format`// ${s.filename}
 
 // SPDX-License-Identifier: Unlicense

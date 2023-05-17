@@ -1,6 +1,6 @@
-const { format } = require("./lib/format.js");
+import { format } from "./lib/format";
 
-exports.template = ({ preamble, structs }) => {
+export const template = ({ preamble, structs }) => {
   return format`// SPDX-License-Identifier: Unlicense
 
 // MgvStructs.post.sol

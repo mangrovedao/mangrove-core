@@ -170,7 +170,7 @@ function t_of_struct(LocalUnpacked memory __s) pure returns (LocalPacked) { unch
 }}
 
 function pack(bool __active, uint __fee, uint __density, uint __offer_gasbase, bool __lock, uint __best, uint __last) pure returns (LocalPacked) { unchecked {
-  uint __packed = 0;
+  uint __packed;
   __packed |= (uint_of_bool(__active) << (256 - active_bits)) >> active_before;
   __packed |= (__fee << (256 - fee_bits)) >> fee_before;
   __packed |= (__density << (256 - density_bits)) >> density_before;

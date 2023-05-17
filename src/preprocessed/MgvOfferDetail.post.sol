@@ -122,7 +122,7 @@ function t_of_struct(OfferDetailUnpacked memory __s) pure returns (OfferDetailPa
 }}
 
 function pack(address __maker, uint __gasreq, uint __offer_gasbase, uint __gasprice) pure returns (OfferDetailPacked) { unchecked {
-  uint __packed = 0;
+  uint __packed;
   __packed |= (uint(uint160(__maker)) << (256 - maker_bits)) >> maker_before;
   __packed |= (__gasreq << (256 - gasreq_bits)) >> gasreq_before;
   __packed |= (__offer_gasbase << (256 - offer_gasbase_bits)) >> offer_gasbase_before;

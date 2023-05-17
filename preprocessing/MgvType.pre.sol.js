@@ -83,7 +83,7 @@ function t_of_struct(${s.Unpacked} memory __s) pure returns (${s.Packed}) { unch
 }}
 
 function pack(${s.fields.map(f => `${f.type} __${f.name}`).join(", ")}) pure returns (${s.Packed}) { unchecked {
-  uint __packed = 0;
+  uint __packed;
   ${s.fields.map(f => `__packed |= ${f.inject(`__${f.name}`)};`)}
   return ${s.wrap("__packed")};
 }}

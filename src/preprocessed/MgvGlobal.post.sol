@@ -154,7 +154,7 @@ function t_of_struct(GlobalUnpacked memory __s) pure returns (GlobalPacked) { un
 }}
 
 function pack(address __monitor, bool __useOracle, bool __notify, uint __gasprice, uint __gasmax, bool __dead) pure returns (GlobalPacked) { unchecked {
-  uint __packed = 0;
+  uint __packed;
   __packed |= (uint(uint160(__monitor)) << (256 - monitor_bits)) >> monitor_before;
   __packed |= (uint_of_bool(__useOracle) << (256 - useOracle_bits)) >> useOracle_before;
   __packed |= (uint_of_bool(__notify) << (256 - notify_bits)) >> notify_before;

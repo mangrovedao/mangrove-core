@@ -122,7 +122,7 @@ function t_of_struct(OfferUnpacked memory __s) pure returns (OfferPacked) { unch
 }}
 
 function pack(uint __prev, uint __next, uint __wants, uint __gives) pure returns (OfferPacked) { unchecked {
-  uint __packed = 0;
+  uint __packed;
   __packed |= (__prev << (256 - prev_bits)) >> prev_before;
   __packed |= (__next << (256 - next_bits)) >> next_before;
   __packed |= (__wants << (256 - wants_bits)) >> wants_before;

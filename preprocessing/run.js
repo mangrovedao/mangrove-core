@@ -1,40 +1,36 @@
-const fs = require('fs');
-const solpp = require('solpp');
-const path = require('path');
+const fs = require("fs");
 
-const defs = require('./structs.js');
+const run_preproc = async (pre_file, post_file, args) => {
+  const { template } = require(`./${pre_file}`);
+  const processed = template(args);
+  fs.writeFileSync(`./src/preprocessed/${post_file}`, processed);
+};
 
-const PRE = (name) => `./preprocessing/${name}`;
-const POST = (name) => `./src/preprocessed/${name}`;
+const struct_defs = require("./structs.js");
+const preproc = require("./lib/preproc.js");
 
-const opts_for = (ns) => {
-  return {
-    defs: {ns, ...defs},
-    noFlatten: true
+const structs = preproc.make_structs(
+  struct_defs,
+  (struct) => `Mgv${struct.Name}.post.sol`
+);
+
+const main = async () => {
+  await run_preproc("MgvStructs.pre.sol.js", "MgvStructs.post.sol", {
+    ...preproc,
+    structs,
+  });
+
+  for (const struct of structs) {
+    await run_preproc("MgvType.pre.sol.js", struct.filename, {
+      ...preproc,
+      struct,
+    });
   }
 };
 
-const run_process = async (pre_file, post_file, ns) => {
-  const processed = await solpp.processFile(pre_file, opts_for(ns));
-  fs.writeFileSync(post_file,processed);
-}
-
-const main = async () => {
-
-  await run_process(
-    PRE('MgvStructs.pre.sol'),
-    POST('MgvStructs.post.sol'),
-    undefined
-  );
-
-  for (const ns of defs.struct_defs) {
-    await run_process(
-      PRE('MgvType.pre.sol'),
-      POST(defs.filename(ns)),
-      ns
-    );
-  }
-
-}
-
-main().then(() => process.exit()).catch(e => { console.error(e); process.exit(1); });
+main()
+  .then(() => process.exit())
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

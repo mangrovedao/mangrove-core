@@ -25,7 +25,7 @@
 
 The current file (`structs.js`) is used in `MgvStructs.pre.sol` (not shown here) to generate the libraries in `MgvType.pre.sol`. Here is an example of js struct specification and of a generated library:
 ```
-structs = {
+struct_defs = {
   universe: [
     {name: "serialnumber", bits: 16, type: "uint"},
     {name: "hospitable",bits: 8, type:"bool"}
@@ -100,7 +100,7 @@ const id_field = (name) => {
 //+clear+
 /* `Offer`s hold the doubly-linked list pointers as well as price and volume information. 256 bits wide, so one storage read is enough. They have the following fields: */
 //+clear+
-const structs = {
+const struct_defs = {
   offer: [
     /* * `prev` points to immediately better offer. The best offer's `prev` is 0. _32 bits wide_. */
 
@@ -215,4 +215,4 @@ Note: An optimization in the `marketOrder` function relies on reentrancy being f
   ],
 };
 
-module.exports = preproc.structs_with_macros(structs);
+module.exports = struct_defs;

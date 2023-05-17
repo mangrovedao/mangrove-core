@@ -42,11 +42,11 @@ type LocalPacked is uint;
 using Library for LocalPacked global;
 
 // number of bits in each field
-uint constant active_bits        = 8;
+uint constant active_bits        = 1;
 uint constant fee_bits           = 16;
 uint constant density_bits       = 112;
 uint constant offer_gasbase_bits = 24;
-uint constant lock_bits          = 8;
+uint constant lock_bits          = 1;
 uint constant best_bits          = 32;
 uint constant last_bits          = 32;
 

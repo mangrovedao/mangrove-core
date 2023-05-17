@@ -42,11 +42,11 @@ using Library for GlobalPacked global;
 
 // number of bits in each field
 uint constant monitor_bits   = 160;
-uint constant useOracle_bits = 8;
-uint constant notify_bits    = 8;
+uint constant useOracle_bits = 1;
+uint constant notify_bits    = 1;
 uint constant gasprice_bits  = 16;
 uint constant gasmax_bits    = 24;
-uint constant dead_bits      = 8;
+uint constant dead_bits      = 1;
 
 // number of bits before each field
 uint constant monitor_before   = 0                + 0;

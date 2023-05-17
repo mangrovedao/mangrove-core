@@ -79,9 +79,6 @@ class Struct {
       if (field.type === "address" && field.bits !== 160) {
         throw new Error(`bad field ${desc}, addresses must have 160 bits`);
       }
-      if (field.type === "bool" && field.bits !== 8) {
-        throw new Error(`bad field ${desc}, bools must have 8 bits`);
-      }
       return acc + field.bits;
     };
     const bits = fields_def.reduce(red, 0);

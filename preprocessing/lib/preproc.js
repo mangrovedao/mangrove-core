@@ -24,7 +24,6 @@ class Field {
     this.name = data.name;
     this.type = data.type;
     this.bits = data.bits;
-    this.before = data.before;
     this.vars = {
       before: field_var(this.name, "before"),
       mask: field_var(this.name, "mask"),

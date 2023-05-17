@@ -29,7 +29,7 @@ class Field {
       mask: field_var(this.name, "mask"),
       bits: field_var(this.name, "bits"),
     };
-    // cleanup-mask: 1's everywhere at field location, 0's elsewhere
+    // cleanup-mask: 0s at field location, 1s elsewhere
     this.mask = `~((ONES << 256 - ${this.vars.bits}) >> ${this.vars.before})`;
   }
 

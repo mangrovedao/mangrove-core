@@ -66,7 +66,7 @@ __metadata:
     prettier: ^2.8.7
     rimraf: ^5.0.0
     shelljs: ^0.8.4
-    solcco: ">=1.0.11"
+    solcco: ">=1.0.13"
     solhint: ^3.4.1
     solpp: ^0.11.5
     yargs: ^17.7.2
@@ -2266,7 +2266,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prismjs@npm:^1.22.0":
+"prismjs@npm:^1.29.0":
   version: 1.29.0
   resolution: "prismjs@npm:1.29.0"
   checksum: 007a8869d4456ff8049dc59404e32d5666a07d99c3b0e30a18bd3b7676dfa07d1daae9d0f407f20983865fd8da56de91d09cb08e6aa61f5bc420a27c0beeaf93
@@ -2673,9 +2673,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"solcco@npm:>=1.0.11":
-  version: 1.0.12
-  resolution: "solcco@npm:1.0.12"
+"solcco@npm:>=1.0.13":
+  version: 1.0.13
+  resolution: "solcco@npm:1.0.13"
   dependencies:
     "@gerhobbelt/markdown-it-anchor": ^6.0.0-23
     "@iktakahiro/markdown-it-katex": ^4.0.1
@@ -2685,10 +2685,10 @@ __metadata:
     markdown-it-sub: ^1.0.0
     markdown-it-sup: ^1.0.0
     meow: ^8.0.0
-    prismjs: ^1.22.0
+    prismjs: ^1.29.0
   bin:
     solcco: solcco-cli.js
-  checksum: ff31afa38e671956e4133b471e261c00d5d9d3cb7312a7f7e3c8a17340938572885632c489205e4d7b34e7837e32a2b454b163152c10b103c13fa6ac348ed081
+  checksum: 0e6d54161f1045ef71e85e38d5cbf96f7c8aefc6c0937dbd60b5a2983c293266464b601b20e8ad01216f2c50905780eb2b73b14efd4bf6b9e8af8b1405fd6521
   languageName: node
   linkType: hard
 

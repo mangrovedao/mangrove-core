@@ -1,5 +1,13 @@
 # Next version
 
+# 1.5.1
+
+- License updates:
+  - Mangrove core is licensed under Business Source License 1.1
+  - UNLICENSED files are now licensed under Unlicense
+- Fix: Do not use oracle in MangroveJsDeploy
+- Fix: Add polygon to `no_env_var` profile in `foundry.toml`
+
 # 1.5.0
 
 - Deploy new, full testnet setup to Mumbai

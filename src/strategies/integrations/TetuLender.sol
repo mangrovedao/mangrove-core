@@ -77,16 +77,21 @@ contract TetuLender {
     }
   }
 
+  function _supplyAndInvest(uint amount, bool noRevert) internal returns (bytes32) {
+    try VAULT.depositAndInvest(amount) {
+      return bytes32(0);
+    } catch Error(string memory reason) {
+      require(noRevert, reason);
+      return bytes32(bytes(reason));
+    } catch {
+      require(noRevert, "noReason");
+      return "noReason";
+    }
+  }
+
   ///@notice rewards claiming.
   ///@param to whom the rewards should be sent
   function _claimRewards(address to) internal {
     VAULT.getAllRewardsAndRedirect(to);
-  }
-
-  ///@notice verifies whether an asset can be supplied on pool
-  ///@param asset the asset one wants to lend
-  ///@return true if the asset can be supplied on pool
-  function _checkAsset(IERC20 asset) internal view returns (bool) {
-    return asset == UNDERLYING;
   }
 }

@@ -21,6 +21,10 @@ contract TetuCaller is TetuLender, AccessControlled {
     _supply(amount, onbehalf, false);
   }
 
+  function supplyAndInvest(uint amount) public onlyAdmin {
+    _supplyAndInvest(amount, false);
+  }
+
   function redeem(uint amount, address to) public onlyAdmin {
     _redeem(amount, to);
   }
@@ -29,19 +33,14 @@ contract TetuCaller is TetuLender, AccessControlled {
     _approveLender(token, amount);
   }
 
+  // full_share --> getPricePerFullSHares
+  // 1 share --> getPricePerFullShares/full_shares
+  // overlying.balance  --> overlying.balance * getPricePerFullShares / full_shares
+
   function tokenBalance(IERC20 token, address reserveId) public view returns (uint balance) {
-    reserveId; //ssh
     if (token == UNDERLYING) {
-      balance = OVERLYING.balanceOf(address(this)) * VAULT.getPricePerFullShare();
+      balance = (OVERLYING.balanceOf(reserveId) * VAULT.getPricePerFullShare()) / OVERLYING.totalSupply();
     }
-    balance += token.balanceOf(address(this));
-  }
-
-  function underlying() public view returns (IERC20) {
-    return UNDERLYING;
-  }
-
-  function overlying() public view returns (IERC20) {
-    return OVERLYING;
+    balance += token.balanceOf(reserveId);
   }
 }

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.13;
 
 import {Mangrove} from "mgv_src/Mangrove.sol";

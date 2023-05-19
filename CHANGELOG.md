@@ -1,5 +1,13 @@
 # Next version
 
+# 1.5.1-1
+
+- Fix: Do not use oracle in MangroveJsDeploy
+
+# 1.5.1-0
+
+- Fix: Add polygon to `no_env_var` profile in `foundry.toml`
+
 # 1.5.0
 
 - Deploy new, full testnet setup to Mumbai

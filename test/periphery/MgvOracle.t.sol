@@ -16,6 +16,10 @@ contract MgvOracleForInternal is MgvOracle {
     authOnly();
   }
 
+  function _authOrMutatorOnly() public view {
+    authOrMutatorOnly();
+  }
+
   //To get mutator, used to get "setMutator". MgvOracle has no read for mutator
   function getMutator() public view returns (address) {
     return mutator;
@@ -45,16 +49,33 @@ contract MgvOracleTest is Test2 {
     mgvOracle._authOnly();
 
     address governance = freshAddress("governance");
-    mgvOracle = new MgvOracleForInternal( governance, address(0));
+    address mutator = freshAddress("mutator");
+    mgvOracle = new MgvOracleForInternal(governance, mutator);
 
     vm.expectRevert("MgvOracle/unauthorized");
     mgvOracle._authOnly();
 
+    vm.expectRevert("MgvOracle/unauthorized");
+    mgvOracle._authOrMutatorOnly();
+
     vm.prank(governance);
     mgvOracle._authOnly(); // does not revert
 
+    vm.prank(governance);
+    mgvOracle._authOrMutatorOnly(); // does not revert
+
+    vm.prank(mutator);
+    vm.expectRevert("MgvOracle/unauthorized");
+    mgvOracle._authOnly();
+
+    vm.prank(mutator);
+    mgvOracle._authOrMutatorOnly(); // does not revert
+
     vm.prank(address(mgvOracle));
     mgvOracle._authOnly(); // does not revert
+
+    vm.prank(address(mgvOracle));
+    mgvOracle._authOrMutatorOnly(); // does not revert
   }
 
   function test_setMutator() public {
@@ -122,19 +143,19 @@ contract MgvOracleTest is Test2 {
     assertEq(mgvOracle.getDensity(), 40, "density should be set by mutator");
   }
 
-  function test_read() public {
+  function test_read(uint gasprice, uint density) public {
     address governance = freshAddress("governance");
     address mutator = freshAddress("mutator");
     MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator);
 
     vm.startPrank(governance);
-    mgvOracle.setDensity(20);
-    mgvOracle.setGasPrice(30);
+    mgvOracle.setDensity(density);
+    mgvOracle.setGasPrice(gasprice);
     vm.stopPrank();
 
-    (uint gas, uint density) = mgvOracle.read(address(0), address(0));
+    (uint outGasprice, uint outDensity) = mgvOracle.read(address(0), address(0));
 
-    assertEq(gas, 30, "gas should be 30");
-    assertEq(density, 20, "density should be 20");
+    assertEq(outGasprice, gasprice, "incorrect gasprice");
+    assertEq(outDensity, density, "incorrect density");
   }
 }

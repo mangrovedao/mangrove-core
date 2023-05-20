@@ -27,13 +27,20 @@ contract MgvOracle is IMgvMonitor {
     lastReceivedDensity = type(uint).max;
   }
 
-  /* ## `authOnly` check */
-  // NOTE: Should use standard auth method, instead of this copy from MgvGovernable
+  /* ## authentication checks */
+  // NOTE: Should use standard auth method
+  function isGov() internal view returns (bool) {
+    return msg.sender == governance || msg.sender == address(this) || governance == address(0);
+  }
 
+  // Only allow governance or self (or anyone if gov is not set)
   function authOnly() internal view {
-    require(
-      msg.sender == governance || msg.sender == address(this) || governance == address(0), "MgvOracle/unauthorized"
-    );
+    require(isGov(), "MgvOracle/unauthorized");
+  }
+
+  // Only allow governance or the mutator
+  function authOrMutatorOnly() internal view {
+    require(msg.sender == mutator || isGov(), "MgvOracle/unauthorized");
   }
 
   function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external override {
@@ -50,17 +57,15 @@ contract MgvOracle is IMgvMonitor {
     mutator = mutator_;
   }
 
-  function setGasPrice(uint gasPrice) external {
-    // governance or mutator are allowed to update the gasprice
-    require(msg.sender == governance || msg.sender == mutator, "MgvOracle/unauthorized");
+  function setGasPrice(uint gasPrice) external virtual {
+    authOrMutatorOnly();
 
     lastReceivedGasPrice = gasPrice;
     emit SetGasprice(gasPrice);
   }
 
   function setDensity(uint density) external {
-    // governance or mutator are allowed to update the density
-    require(msg.sender == governance || msg.sender == mutator, "MgvOracle/unauthorized");
+    authOrMutatorOnly();
 
     lastReceivedDensity = density;
     emit SetDensity(density);
@@ -69,6 +74,7 @@ contract MgvOracle is IMgvMonitor {
   function read(address, /*outbound_tkn*/ address /*inbound_tkn*/ )
     external
     view
+    virtual
     override
     returns (uint gasprice, uint density)
   {

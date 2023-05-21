@@ -189,7 +189,7 @@ contract MangroveOfferTest is MangroveTest {
     vm.expectEmit(true, false, false, true);
     emit LogIncident(
       IMangrove(payable(mgv)), IERC20(address(0)), IERC20(address(0)), 0, result.makerData, result.mgvData
-      );
+    );
     vm.prank(address(mgv));
     makerContract.makerPosthook(order, result);
   }
@@ -280,5 +280,18 @@ contract MangroveOfferTest is MangroveTest {
     emit SetAdmin(deployer);
     vm.startPrank(deployer);
     makerContract.setAdmin(deployer);
+  }
+
+  function test_approves_token() public {
+    vm.prank(deployer);
+    makerContract.approve(weth, address(this), 42);
+    assertEq(weth.allowance({spender: address(this), owner: address(makerContract)}), 42, "Incorrect allowance");
+  }
+
+  function test_approves_reverts_when_erc20_approve_fails() public {
+    vm.mockCall($(weth), abi.encodeWithSelector(weth.approve.selector), abi.encode(false));
+    vm.expectRevert("mgvOffer/approve/failed");
+    vm.prank(deployer);
+    makerContract.approve(weth, address(this), 42);
   }
 }

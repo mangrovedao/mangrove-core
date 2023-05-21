@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
@@ -28,6 +28,9 @@ contract MangroveOrderDeployer is Deployer {
    */
   function innerRun(IMangrove mgv, address admin) public {
     MangroveOrder mgvOrder;
+    // Bug workaround: Foundry has a bug where the nonce is not incremented when MangroveOrder is deployed.
+    //                 We therefore ensure that this happens.
+    uint64 nonce = vm.getNonce(broadcaster());
     broadcast();
     // test show MangroveOrder can execute resting order using 105K (70K of simple router included)
     // so setting offer logic's gasreq to 35K is enough
@@ -37,6 +40,11 @@ contract MangroveOrderDeployer is Deployer {
     } else {
       mgvOrder = new MangroveOrder(mgv, admin, 60_000);
     }
+    // Bug workaround: See comment above `nonce` further up
+    if (nonce == vm.getNonce(broadcaster())) {
+      vm.setNonce(broadcaster(), nonce + 1);
+    }
+
     fork.set("MangroveOrder", address(mgvOrder));
     fork.set("MangroveOrder-Router", address(mgvOrder.router()));
     smokeTest(mgvOrder, mgv);

@@ -78,7 +78,7 @@ contract TetuCallerTest is MangroveTest {
 
   function depositFor(uint amount, address onBehalf) internal {
     deal($(usdt), address(caller), amount * 10 ** 6);
-    caller.approveLender(usdt, amount * 10 ** 6);
+    caller.approveLender(amount * 10 ** 6);
     caller.supply(amount * 10 ** 6, onBehalf);
   }
   // assume this is whitelisted

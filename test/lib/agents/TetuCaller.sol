@@ -29,8 +29,8 @@ contract TetuCaller is TetuLender, AccessControlled {
     _redeem(amount, to);
   }
 
-  function approveLender(IERC20 token, uint amount) public onlyAdmin {
-    _approveLender(token, amount);
+  function approveLender(uint amount) public onlyAdmin {
+    _approveLender(amount);
   }
 
   // full_share --> getPricePerFullSHares

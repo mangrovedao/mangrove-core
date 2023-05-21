@@ -6,6 +6,7 @@ import "mgv_test/lib/forks/Polygon.sol";
 import {TetuCaller} from "mgv_test/lib/agents/TetuCaller.sol";
 import {IController} from "mgv_src/strategies/vendor/tetu/IController.sol";
 import {IStrategy} from "mgv_src/strategies/vendor/tetu/IStrategy.sol";
+import {IStrategySplitter} from "mgv_src/strategies/vendor/tetu/IStrategySplitter.sol";
 import {console} from "forge-std/console.sol";
 
 contract TetuCallerTest is MangroveTest {
@@ -29,34 +30,46 @@ contract TetuCallerTest is MangroveTest {
     vm.prank(GOVERNANCE);
     CONTROLLER.changeWhiteListStatus(dynamic([address(caller)]), true);
     assertTrue(CONTROLLER.isAllowedUser(address(caller)), "White listing failed");
-    logStatus();
+    logStatus(false);
   }
 
-  function logStatus() internal view {
-    string memory investStatus = "false";
-    if (caller.VAULT().doHardWorkOnInvest()) {
-      investStatus = "true";
-    }
-    console.log("* doHardWorkOnInvest:", investStatus);
-    console.log("* overlying:", caller.OVERLYING().name());
-    console.log("* In vault: ", toUnit(caller.VAULT().underlyingBalanceInVault(), 6), "USDT");
+  function logStatus(bool balanceOnly) internal view {
+    IStrategy strategy = IStrategy(caller.VAULT().strategy());
+    uint stratBalance = strategy.underlyingBalance();
+    console.log("* In vault: ", toUnit(caller.VAULT().underlyingBalanceInVault(), 6), caller.UNDERLYING().name());
     console.log(
-      "* strategy:",
-      IStrategy(caller.VAULT().strategy()).STRATEGY_NAME(),
-      toUnit(IStrategy(caller.VAULT().strategy()).underlyingBalance(), 6),
-      "currently invested USDT"
+      "* strategy: %s %s [balance] %s [invested]",
+      strategy.STRATEGY_NAME(),
+      toUnit(stratBalance, 6),
+      toUnit(strategy.investedUnderlyingBalance() - stratBalance, 6)
     );
+    address[] memory strats = IStrategySplitter(caller.VAULT().strategy()).allStrategies();
+    for (uint i; i < strats.length; i++) {
+      console.log(
+        "\t strat[%d]: %s",
+        i,
+        IStrategy(strats[i]).STRATEGY_NAME(),
+        toUnit(IStrategy(strats[i]).investedUnderlyingBalance(), 6)
+      );
+    }
     console.log("* invest buffer:", toUnit(caller.VAULT().availableToInvestOut(), 6));
+    if (!balanceOnly) {
+      console.log("* doHardWorkOnInvest:", caller.VAULT().doHardWorkOnInvest());
+      console.log("* lockAllowed:", caller.VAULT().lockAllowed());
+      console.log("* lockPenalty:", caller.VAULT().lockPenalty());
+    }
+    console.log("----------------------");
   }
 
   function test_doHardWork() public {
     depositFor(1000000, address(this));
     vm.startPrank(GOVERNANCE);
     _gas();
+    // call below transfers funds to strategy (splitter)
     caller.VAULT().doHardWork();
     gas_();
     vm.stopPrank();
-    logStatus();
+    logStatus(true);
   }
 
   function test_can_talk_to_vault() public view {
@@ -76,8 +89,42 @@ contract TetuCallerTest is MangroveTest {
     uint balAfter = caller.OVERLYING().totalSupply();
     assertEq(balBefore + caller.OVERLYING().balanceOf(address(this)), balAfter, "Incorrect minted amount");
     assertEq(caller.UNDERLYING().balanceOf(address(this)), 0, "USDT not transferred");
-    logStatus();
+    logStatus(true);
   }
 
-  function test_withdraw_from_vault() public {}
+  function test_withdraw_from_vault() public {
+    IERC20 tUSDT = caller.OVERLYING();
+    // `this` receives tUSDT
+    depositFor(1_000_000, address(this));
+    uint tUSDTBal = tUSDT.balanceOf(address(this));
+    uint USDTBal = usdt.balanceOf(address(this));
+    logStatus(true);
+    // since `this` is not approved by TETU governance, it cannot withdraw the tokens and needs to send tUSDT to caller first
+    tUSDT.transfer(address(caller), tUSDTBal);
+    caller.redeem(tUSDTBal, address(this));
+    logStatus(true);
+    assertApproxEqAbs(usdt.balanceOf(address(this)), 1_000_000 * 10 ** 6 + USDTBal, 10 ** 6);
+  }
+
+  function test_withdraw_from_strategy() public {
+    IERC20 tUSDT = caller.OVERLYING();
+    // `this` receives tUSDT
+    depositFor(1_000_000, address(this));
+    vm.startPrank(GOVERNANCE);
+    caller.VAULT().doHardWork();
+    vm.stopPrank();
+
+    uint tUSDTBal = tUSDT.balanceOf(address(this));
+    uint USDTBal = usdt.balanceOf(address(this));
+    logStatus(true);
+    // since `this` is not approved by TETU governance, it cannot withdraw the tokens and needs to send tUSDT to caller first
+    tUSDT.transfer(address(caller), tUSDTBal);
+    // this withdraws more than what's available in the vault
+    // only the fraction of the strat funds that are necessary should be transfered (here 1_000_000)
+    // but the smartVault overestimates what needs to be pulled from the strat
+    // as a consequence all the funds of the strat are withdrawn to the vault!
+    caller.redeem(tUSDTBal, address(this));
+    logStatus(true);
+    assertApproxEqAbs(usdt.balanceOf(address(this)), 1_000_000 * 10 ** 6 + USDTBal, 10 ** 6, "funds not received");
+  }
 }

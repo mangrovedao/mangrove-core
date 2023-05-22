@@ -19,9 +19,9 @@ contract MumbaiKandelSeederDeployer is Deployer {
     return new KandelSeederDeployer().innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       addressesProvider: envAddressOrName("AAVE", "Aave"),
-      aaveKandelGasreq: 160_000,
-      kandelGasreq: 160_000,
-      aaveRouterGasreq: 500_000
+      aaveKandelGasreq: 200_000,
+      kandelGasreq: 200_000,
+      aaveRouterGasreq: 280_000
     });
   }
 }

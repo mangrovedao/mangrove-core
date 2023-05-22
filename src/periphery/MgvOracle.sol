@@ -17,10 +17,11 @@ contract MgvOracle is IMgvMonitor {
   uint lastReceivedGasPrice;
   uint lastReceivedDensity;
 
-  constructor(address governance_, address initialMutator_) {
+  constructor(address governance_, address initialMutator_, uint initialGasPrice_) {
     governance = governance_;
     mutator = initialMutator_;
 
+    lastReceivedGasPrice = initialGasPrice_;
     /* Set initial density from the MgvOracle to let Mangrove use its internal density by default.
 
       Mangrove will reject densities from the Monitor that don't fit in 32 bits and use its internal density instead, so setting this contract's density to `type(uint).max` is a way to let Mangrove deal with density on its own. */
@@ -42,6 +43,12 @@ contract MgvOracle is IMgvMonitor {
 
   function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external override {
     // Do nothing
+  }
+
+  function setGovernance(address governance_) external {
+    authOnly();
+
+    governance = governance_;
   }
 
   function setMutator(address mutator_) external {

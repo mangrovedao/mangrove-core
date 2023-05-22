@@ -29,9 +29,9 @@ contract MangroveDeployer is Deployer {
   function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public {
     broadcast();
     if (forMultisig) {
-      oracle = new MgvOracle{salt: salt}({governance_: chief, initialMutator_: gasbot});
+      oracle = new MgvOracle{salt: salt}({governance_: chief, initialMutator_: gasbot, initialGasPrice_: gasprice});
     } else {
-      oracle = new MgvOracle({governance_: chief, initialMutator_: gasbot});
+      oracle = new MgvOracle({governance_: chief, initialMutator_: gasbot, initialGasPrice_: gasprice});
     }
     fork.set("MgvOracle", address(oracle));
 

@@ -43,7 +43,9 @@ contract ActivateSemibook is Test2, Deployer {
     */
     uint outbound_gas = measureTransferGas(outbound_tkn);
     uint inbound_gas = measureTransferGas(inbound_tkn);
-    uint gasbase = 2 * (outbound_gas + inbound_gas);
+    // the formula below is a coarse over approx
+    // more accurate test would consider hot storage after first transfer
+    uint gasbase = 3 * (outbound_gas + inbound_gas) / 2;
 
     /* 
 

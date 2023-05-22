@@ -9,11 +9,18 @@ import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {Test2} from "mgv_lib/Test2.sol";
 
 contract MgvOracleForInternal is MgvOracle {
-  constructor(address _governance, address _initialMutator) MgvOracle(_governance, _initialMutator) {}
+  constructor(address _governance, address _initialMutator, uint _initialGasPrice)
+    MgvOracle(_governance, _initialMutator, _initialGasPrice)
+  {}
 
   //Only to test authOnly, which is an internal call
   function _authOnly() public view {
     authOnly();
+  }
+
+  //To get governance, used to get "setGovernance". MgvOracle has no read for governance
+  function getGovernance() public view returns (address) {
+    return governance;
   }
 
   //To get mutator, used to get "setMutator". MgvOracle has no read for mutator
@@ -39,13 +46,13 @@ contract MgvOracleTest is Test2 {
   event SetDensity(uint density);
 
   function test_authOnly() public {
-    MgvOracleForInternal mgvOracle = new MgvOracleForInternal( address(0), address(0));
+    MgvOracleForInternal mgvOracle = new MgvOracleForInternal( address(0), address(0), 0);
 
     //does not revert
     mgvOracle._authOnly();
 
     address governance = freshAddress("governance");
-    mgvOracle = new MgvOracleForInternal( governance, address(0));
+    mgvOracle = new MgvOracleForInternal( governance, address(0), 0);
 
     vm.expectRevert("MgvOracle/unauthorized");
     mgvOracle._authOnly();
@@ -57,8 +64,19 @@ contract MgvOracleTest is Test2 {
     mgvOracle._authOnly(); // does not revert
   }
 
+  function test_setGovernance() public {
+    MgvOracleForInternal mgvOracle = new MgvOracleForInternal( address(0), address(0), 0);
+
+    assertEq(mgvOracle.getGovernance(), address(0), "governance should not be set yet");
+
+    address governance = freshAddress("governance");
+    mgvOracle.setGovernance(governance);
+
+    assertEq(mgvOracle.getGovernance(), governance, "governance should be set");
+  }
+
   function test_setMutator() public {
-    MgvOracleForInternal mgvOracle = new MgvOracleForInternal( address(0), address(0));
+    MgvOracleForInternal mgvOracle = new MgvOracleForInternal( address(0), address(0), 0);
 
     assertEq(mgvOracle.getMutator(), address(0), "mutator should not be set yet");
 
@@ -71,9 +89,9 @@ contract MgvOracleTest is Test2 {
   function test_setGasPrice() public {
     address governance = freshAddress("governance");
     address mutator = freshAddress("mutator");
-    MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator);
+    MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator, 1);
 
-    assertEq(mgvOracle.getGasprice(), 0, "gas should not be set yet");
+    assertEq(mgvOracle.getGasprice(), 1, "gas should be set to the initial value");
 
     vm.expectRevert("MgvOracle/unauthorized");
     mgvOracle.setGasPrice(20);
@@ -98,7 +116,7 @@ contract MgvOracleTest is Test2 {
   function test_setDensity() public {
     address governance = freshAddress("governance");
     address mutator = freshAddress("mutator");
-    MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator);
+    MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator, 0);
 
     assertEq(mgvOracle.getDensity(), type(uint).max, "density should be set to max");
 
@@ -125,7 +143,7 @@ contract MgvOracleTest is Test2 {
   function test_read() public {
     address governance = freshAddress("governance");
     address mutator = freshAddress("mutator");
-    MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator);
+    MgvOracleForInternal mgvOracle = new MgvOracleForInternal(governance, mutator, 0);
 
     vm.startPrank(governance);
     mgvOracle.setDensity(20);

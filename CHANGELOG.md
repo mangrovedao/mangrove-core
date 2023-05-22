@@ -1,5 +1,8 @@
 # Next version
 
+- MgvOracle: Allow initial gas price to be set
+- MgvOracle: Allow governance to transfer ownership of the oracle
+
 # 1.5.1
 
 - License updates:

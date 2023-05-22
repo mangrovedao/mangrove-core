@@ -20,9 +20,9 @@ contract KandelSeederDeployer is Deployer {
     (KandelSeeder seeder, AaveKandelSeeder aaveSeeder) = innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       addressesProvider: envAddressOrName("AAVE", "Aave"),
-      aaveKandelGasreq: 160_000,
-      kandelGasreq: 160_000,
-      aaveRouterGasreq: 500_000
+      aaveKandelGasreq: 200_000,
+      kandelGasreq: 200_000,
+      aaveRouterGasreq: 280_000
     });
     smokeTest(seeder, AbstractRouter(address(0)));
     smokeTest(aaveSeeder, aaveSeeder.AAVE_ROUTER());

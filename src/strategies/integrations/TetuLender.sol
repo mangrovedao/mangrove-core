@@ -58,7 +58,7 @@ contract TetuLender {
   ///@param amount of assets to be transferred to the pool
   ///@param onBehalf address of the account whose collateral is being supplied to and which will receive the overlying
   ///@param noRevert does not revert if supplies throws
-  ///@return reason for revert from Aave.
+  ///@return reason for revert from vault.
   function _supply(uint amount, address onBehalf, bool noRevert) internal returns (bytes32) {
     if (amount == 0) {
       return bytes32(0);

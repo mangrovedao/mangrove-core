@@ -58,7 +58,7 @@ contract BeefyLender {
   ///@notice supplies funds to the vault
   ///@param amount of assets to be transferred to the pool
   ///@param noRevert does not revert if supplies throws
-  ///@return reason for revert from Aave.
+  ///@return reason for revert from Vault.
   function _supply(uint amount, bool noRevert) internal returns (bytes32) {
     if (amount == 0) {
       return bytes32(0);

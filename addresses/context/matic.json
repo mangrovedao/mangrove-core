@@ -46,5 +46,9 @@
   {
     "address": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
     "name": "USDT"
+  },
+  {
+    "address": "0xb5dfabd7ff7f83bab83995e72a52b97abb7bcf63",
+    "name": "USDR"
   }
 ]

@@ -18,8 +18,12 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 
 contract ActivateMarket is Deployer {
   function run() public {
+    Mangrove mgv_ = Mangrove(envAddressOrName("MGV", "Mangrove"));
+    (MgvStructs.GlobalPacked global,) = mgv_.config(address(0), address(0));
+
     innerRun({
-      mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
+      mgv: mgv_,
+      gasprice: global.gasprice(),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
       tkn1: IERC20(envAddressOrName("TKN1")),
       tkn2: IERC20(envAddressOrName("TKN2")),
@@ -47,6 +51,7 @@ contract ActivateMarket is Deployer {
   */
   function innerRun(
     Mangrove mgv,
+    uint gasprice,
     MgvReader reader,
     IERC20 tkn1,
     IERC20 tkn2,
@@ -56,6 +61,7 @@ contract ActivateMarket is Deployer {
   ) public {
     new ActivateSemibook().innerRun({
       mgv: mgv,
+      gasprice: gasprice,
       outbound_tkn: tkn1,
       inbound_tkn: tkn2,
       outbound_in_gwei: tkn1_in_gwei,
@@ -64,6 +70,7 @@ contract ActivateMarket is Deployer {
 
     new ActivateSemibook().innerRun({
       mgv: mgv,
+      gasprice: gasprice,
       outbound_tkn: tkn2,
       inbound_tkn: tkn1,
       outbound_in_gwei: tkn2_in_gwei,

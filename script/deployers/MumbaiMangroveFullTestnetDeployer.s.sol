@@ -33,14 +33,20 @@ import {console} from "forge-std/console.sol";
  * - open markets: DAI/USDC, WETH/DAI, WETH/USDC
  */
 contract MumbaiMangroveFullTestnetDeployer is Deployer {
+  uint internal maticPrice;
+
   function run() public {
     runWithChainSpecificParams();
     outputDeployment();
   }
 
+  function toGweiOfMatic(uint price) internal view returns (uint) {
+    return (price * 10 ** 9) / maticPrice;
+  }
+
   function runWithChainSpecificParams() public {
     // Deploy Mangrove
-    new MumbaiMangroveDeployer().runWithChainSpecificParams();
+    new MumbaiMangroveDeployer().runWithChainSpecificParams({gasprice_:1, gasmax_:1_000_000});
     Mangrove mgv = Mangrove(fork.get("Mangrove"));
     MgvReader reader = MgvReader(fork.get("MgvReader"));
     IPriceOracleGetter priceOracle =
@@ -60,36 +66,39 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
     IERC20 weth = IERC20(fork.get("WETH"));
 
     uint[] memory prices = priceOracle.getAssetsPrices(dynamic([address(dai), address(usdc), address(weth)]));
-    uint maticPrice = priceOracle.getAssetPrice(fork.get("WMATIC"));
+    maticPrice = priceOracle.getAssetPrice(fork.get("WMATIC"));
 
     // 1 token_i = (prices[i] / 10**8) USD
     // 1 USD = (10**8 / maticPrice) Matic
     // 1 token_i = (prices[i] * 10**9 / maticPrice) gwei of Matic
     new ActivateMarket().innerRun({
       mgv: mgv,
+      gasprice: 140,
       reader: reader,
       tkn1: dai,
       tkn2: usdc,
-      tkn1_in_gwei: (prices[0] * 10**9) / maticPrice,
-      tkn2_in_gwei: (prices[1] * 10**9) / maticPrice,
+      tkn1_in_gwei: toGweiOfMatic(prices[0]),
+      tkn2_in_gwei: toGweiOfMatic(prices[1]),
       fee: 0
     });
     new ActivateMarket().innerRun({
       mgv: mgv,
+      gasprice: 140,
       reader: reader,
       tkn1: weth,
       tkn2: dai,
-      tkn1_in_gwei: (prices[2] * 10**9) / maticPrice,
-      tkn2_in_gwei: (prices[0] * 10**9) / maticPrice,
+      tkn1_in_gwei: toGweiOfMatic(prices[2]),
+      tkn2_in_gwei: toGweiOfMatic(prices[0]),
       fee: 0
     });
     new ActivateMarket().innerRun({
       mgv: mgv,
+      gasprice: 140,
       reader: reader,
       tkn1: weth,
       tkn2: usdc,
-      tkn1_in_gwei: (prices[2] * 10**9) / maticPrice,
-      tkn2_in_gwei: (prices[1] * 10**9) / maticPrice,
+      tkn1_in_gwei: toGweiOfMatic(prices[2]),
+      tkn2_in_gwei: toGweiOfMatic(prices[1]),
       fee: 0
     });
 

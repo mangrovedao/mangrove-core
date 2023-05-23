@@ -26,7 +26,7 @@ contract MumbaiMangroveDeployerTest is BaseMangroveDeployerTest {
     gasprice = mumbaiMangroveDeployer.gasprice();
     gasmax = mumbaiMangroveDeployer.gasmax();
 
-    mumbaiMangroveDeployer.runWithChainSpecificParams();
+    mumbaiMangroveDeployer.runWithChainSpecificParams(gasprice, gasmax);
 
     mgvDeployer = mumbaiMangroveDeployer.mangroveDeployer();
   }

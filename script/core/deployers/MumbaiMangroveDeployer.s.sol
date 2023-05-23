@@ -15,17 +15,17 @@ contract MumbaiMangroveDeployer is Deployer {
   uint public gasmax = 1_000_000;
 
   function run() public {
-    runWithChainSpecificParams();
+    runWithChainSpecificParams(gasprice, gasmax);
     outputDeployment();
   }
 
-  function runWithChainSpecificParams() public {
+  function runWithChainSpecificParams(uint gasprice_, uint gasmax_) public {
     mangroveDeployer = new MangroveDeployer();
 
     mangroveDeployer.innerRun({
       chief: broadcaster(),
-      gasprice: gasprice,
-      gasmax: gasmax,
+      gasprice: gasprice_,
+      gasmax: gasmax_,
       gasbot: envAddressOrName("GASBOT", "Gasbot")
     });
   }

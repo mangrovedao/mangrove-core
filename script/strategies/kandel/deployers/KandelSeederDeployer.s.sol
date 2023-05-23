@@ -41,8 +41,15 @@ contract KandelSeederDeployer is Deployer {
     smokeTest(seeder, AbstractRouter(address(0)));
 
     prettyLog("Deploying AaveKandel seeder...");
+    // Bug workaround: Foundry has a bug where the nonce is not incremented when AaveKandelSeeder is deployed.
+    //                 We therefore ensure that this happens.
+    uint64 nonce = vm.getNonce(broadcaster());
     broadcast();
     aaveSeeder = new AaveKandelSeeder(mgv, addressesProvider, aaveRouterGasreq, aaveKandelGasreq);
+    // Bug workaround: See comment above `nonce` further up
+    if (nonce == vm.getNonce(broadcaster())) {
+      vm.setNonce(broadcaster(), nonce + 1);
+    }
     fork.set("AaveKandelSeeder", address(aaveSeeder));
     fork.set("AavePooledRouter", address(aaveSeeder.AAVE_ROUTER()));
     smokeTest(aaveSeeder, aaveSeeder.AAVE_ROUTER());

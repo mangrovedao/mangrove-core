@@ -17,9 +17,13 @@ import {
 import {ActivateMarket, IERC20} from "mgv_script/core/ActivateMarket.s.sol";
 import {ActivateMangroveOrder, MangroveOrder} from "mgv_script/strategies/mangroveOrder/ActivateMangroveOrder.s.sol";
 import {KandelSower, IMangrove} from "mgv_script/strategies/kandel/KandelSower.s.sol";
+import {IPoolAddressesProvider} from "mgv_src/strategies/vendor/aave/v3/IPoolAddressesProvider.sol";
+import {IPriceOracleGetter} from "mgv_src/strategies/vendor/aave/v3/IPriceOracleGetter.sol";
 
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+
+import {console} from "forge-std/console.sol";
 
 /**
  * Deploy and configure a complete Mangrove testnet deployment:
@@ -39,6 +43,9 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
     new MumbaiMangroveDeployer().runWithChainSpecificParams();
     Mangrove mgv = Mangrove(fork.get("Mangrove"));
     MgvReader reader = MgvReader(fork.get("MgvReader"));
+    IPriceOracleGetter priceOracle =
+      IPriceOracleGetter(IPoolAddressesProvider(fork.get("Aave")).getAddress("PRICE_ORACLE"));
+    IERC20 baseCurrency = IERC20(priceOracle.BASE_CURRENCY()); // 0x0 if base currency is USD
 
     // Deploy MangroveOrder
     new MumbaiMangroveOrderDeployer().runWithChainSpecificParams();
@@ -51,6 +58,10 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
     IERC20 dai = IERC20(fork.get("DAI"));
     IERC20 usdc = IERC20(fork.get("USDC"));
     IERC20 weth = IERC20(fork.get("WETH"));
+
+    uint[] memory prices = priceOracle.getAssetsPrices(dynamic([address(dai), address(usdc), address(weth)]));
+    console.log("dai %d, usdc %d, weth %d", prices[0], prices[1], prices[2]);
+
     new ActivateMarket().innerRun({
       mgv: mgv,
       reader: reader,

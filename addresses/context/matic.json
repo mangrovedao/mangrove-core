@@ -42,5 +42,13 @@
   {
     "address": "0x7ef18d0a9C3Fb1A716FF6c3ED0Edf52a2427F716",
     "name": "CWETH"
+  },
+  {
+    "address": "0x10B124Da45Bc440171664cee59Aafa23979C9616",
+    "name": "Gasbot"
+  },
+  {
+    "address": "0x59a424169526ECae25856038598F862043DCeDf7",
+    "name": "MgvGovernance"
   }
 ]

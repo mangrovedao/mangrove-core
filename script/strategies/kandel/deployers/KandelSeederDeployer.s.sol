@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {IMangrove, KandelSeeder} from "mgv_src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol";
-import {AaveKandelSeeder} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandelSeeder.sol";
+import {IMangrove, KandelSeeder, Kandel} from "mgv_src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol";
+import {AaveKandelSeeder, AaveKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandelSeeder.sol";
 import {AbstractKandelSeeder} from
   "mgv_src/strategies/offer_maker/market_making/kandel/abstract/AbstractKandelSeeder.sol";
 import {CoreKandel, IERC20} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
@@ -38,21 +38,48 @@ contract KandelSeederDeployer is Deployer {
     broadcast();
     seeder = new KandelSeeder(mgv, kandelGasreq);
     fork.set("KandelSeeder", address(seeder));
-    smokeTest(seeder, AbstractRouter(address(0)));
 
     prettyLog("Deploying AaveKandel seeder...");
+    // Bug workaround: Foundry has a bug where the nonce is not incremented when AaveKandelSeeder is deployed.
+    //                 We therefore ensure that this happens.
+    uint64 nonce = vm.getNonce(broadcaster());
     broadcast();
     aaveSeeder = new AaveKandelSeeder(mgv, addressesProvider, aaveRouterGasreq, aaveKandelGasreq);
+    // Bug workaround: See comment above `nonce` further up
+    if (nonce == vm.getNonce(broadcaster())) {
+      vm.setNonce(broadcaster(), nonce + 1);
+    }
     fork.set("AaveKandelSeeder", address(aaveSeeder));
     fork.set("AavePooledRouter", address(aaveSeeder.AAVE_ROUTER()));
-    smokeTest(aaveSeeder, aaveSeeder.AAVE_ROUTER());
+
+    console.log("Deploying Kandel instances for code verification...");
+    IERC20 weth = IERC20(fork.get("WETH"));
+    IERC20 dai = IERC20(fork.get("DAI"));
+
+    prettyLog("Deploying Kandel instance...");
+    broadcast();
+    new Kandel(mgv, weth, dai, 1, 1, address(0));
+
+    prettyLog("Deploying AaveKandel instance...");
+    broadcast();
+    new AaveKandel(mgv, weth, dai, 1, 1, address(0));
+
+    smokeTest(mgv, seeder, AbstractRouter(address(0)));
+    smokeTest(mgv, aaveSeeder, aaveSeeder.AAVE_ROUTER());
 
     console.log("Deployed!");
   }
 
-  function smokeTest(AbstractKandelSeeder kandelSeeder, AbstractRouter expectedRouter) internal {
+  function smokeTest(IMangrove mgv, AbstractKandelSeeder kandelSeeder, AbstractRouter expectedRouter) internal {
     IERC20 base = IERC20(fork.get("WETH"));
     IERC20 quote = IERC20(fork.get("DAI"));
+
+    // Ensure that WETH/DAI market is open on Mangrove
+    address mgvGovernance = fork.get("MgvGovernance");
+    vm.startPrank(mgvGovernance);
+    mgv.activate(address(base), address(quote), 0, 1, 1);
+    mgv.activate(address(quote), address(base), 0, 1, 1);
+    vm.stopPrank();
 
     AbstractKandelSeeder.KandelSeed memory seed =
       AbstractKandelSeeder.KandelSeed({base: base, quote: quote, gasprice: 0, liquiditySharing: true});

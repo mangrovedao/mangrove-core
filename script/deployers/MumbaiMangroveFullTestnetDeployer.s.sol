@@ -45,7 +45,7 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
     MgvReader reader = MgvReader(fork.get("MgvReader"));
     IPriceOracleGetter priceOracle =
       IPriceOracleGetter(IPoolAddressesProvider(fork.get("Aave")).getAddress("PRICE_ORACLE"));
-    IERC20 baseCurrency = IERC20(priceOracle.BASE_CURRENCY()); // 0x0 if base currency is USD
+    require(priceOracle.BASE_CURRENCY() == address(0), "script assumes base currency is in USD");
 
     // Deploy MangroveOrder
     new MumbaiMangroveOrderDeployer().runWithChainSpecificParams();
@@ -60,15 +60,18 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
     IERC20 weth = IERC20(fork.get("WETH"));
 
     uint[] memory prices = priceOracle.getAssetsPrices(dynamic([address(dai), address(usdc), address(weth)]));
-    console.log("dai %d, usdc %d, weth %d", prices[0], prices[1], prices[2]);
+    uint maticPrice = priceOracle.getAssetPrice(fork.get("WMATIC"));
 
+    // 1 token_i = (prices[i] / 10**8) USD
+    // 1 USD = (10**8 / maticPrice) Matic
+    // 1 token_i = (prices[i] * 10**9 / maticPrice) gwei of Matic
     new ActivateMarket().innerRun({
       mgv: mgv,
       reader: reader,
       tkn1: dai,
       tkn2: usdc,
-      tkn1_in_gwei: 35999750,
-      tkn2_in_gwei: 40000000,
+      tkn1_in_gwei: (prices[0] * 10**9) / maticPrice,
+      tkn2_in_gwei: (prices[1] * 10**9) / maticPrice,
       fee: 0
     });
     new ActivateMarket().innerRun({
@@ -76,8 +79,8 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
       reader: reader,
       tkn1: weth,
       tkn2: dai,
-      tkn1_in_gwei: 140245027725,
-      tkn2_in_gwei: 35999750,
+      tkn1_in_gwei: (prices[2] * 10**9) / maticPrice,
+      tkn2_in_gwei: (prices[0] * 10**9) / maticPrice,
       fee: 0
     });
     new ActivateMarket().innerRun({
@@ -85,8 +88,8 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
       reader: reader,
       tkn1: weth,
       tkn2: usdc,
-      tkn1_in_gwei: 140245027725,
-      tkn2_in_gwei: 40000000,
+      tkn1_in_gwei: (prices[2] * 10**9) / maticPrice,
+      tkn2_in_gwei: (prices[1] * 10**9) / maticPrice,
       fee: 0
     });
 

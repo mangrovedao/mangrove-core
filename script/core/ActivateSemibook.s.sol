@@ -65,7 +65,8 @@ contract ActivateSemibook is Test2, Deployer {
     (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
     uint outbound_decimals = outbound_tkn.decimals();
     uint density = (COVER_FACTOR * global.gasprice() * 10 ** outbound_decimals) / outbound_in_gwei;
-    console.log("Derived density (in wei per gas unit)", density);
+    console.log("With gasprice: %d gwei, cover factor:%d", global.gasprice(), COVER_FACTOR);
+    console.log("Derived density %s %s per gas unit", toUnit(density, outbound_decimals), outbound_tkn.symbol());
 
     broadcast();
     mgv.activate({

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {IMangrove, KandelSeeder} from "mgv_src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol";
-import {AaveKandelSeeder} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandelSeeder.sol";
+import {IMangrove, KandelSeeder, Kandel} from "mgv_src/strategies/offer_maker/market_making/kandel/KandelSeeder.sol";
+import {AaveKandelSeeder, AaveKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandelSeeder.sol";
 import {AbstractKandelSeeder} from
   "mgv_src/strategies/offer_maker/market_making/kandel/abstract/AbstractKandelSeeder.sol";
 import {CoreKandel, IERC20} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
@@ -51,6 +51,18 @@ contract KandelSeederDeployer is Deployer {
     }
     fork.set("AaveKandelSeeder", address(aaveSeeder));
     fork.set("AavePooledRouter", address(aaveSeeder.AAVE_ROUTER()));
+
+    console.log("Deploying Kandel instances for code verification...");
+    IERC20 weth = IERC20(fork.get("WETH"));
+    IERC20 dai = IERC20(fork.get("DAI"));
+
+    prettyLog("Deploying Kandel instance...");
+    broadcast();
+    new Kandel(mgv, weth, dai, 1, 1, address(0));
+
+    prettyLog("Deploying AaveKandel instance...");
+    broadcast();
+    new AaveKandel(mgv, weth, dai, 1, 1, address(0));
 
     smokeTest(mgv, seeder, AbstractRouter(address(0)));
     smokeTest(mgv, aaveSeeder, aaveSeeder.AAVE_ROUTER());

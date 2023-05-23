@@ -17,15 +17,13 @@ import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 
 contract KandelSeederDeployer is Deployer {
   function run() public {
-    (KandelSeeder seeder, AaveKandelSeeder aaveSeeder) = innerRun({
+    innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       addressesProvider: envAddressOrName("AAVE", "Aave"),
       aaveKandelGasreq: 200_000,
       kandelGasreq: 200_000,
       aaveRouterGasreq: 280_000
     });
-    smokeTest(seeder, AbstractRouter(address(0)));
-    smokeTest(aaveSeeder, aaveSeeder.AAVE_ROUTER());
     outputDeployment();
   }
 
@@ -40,11 +38,15 @@ contract KandelSeederDeployer is Deployer {
     broadcast();
     seeder = new KandelSeeder(mgv, kandelGasreq);
     fork.set("KandelSeeder", address(seeder));
+    smokeTest(seeder, AbstractRouter(address(0)));
+
     prettyLog("Deploying AaveKandel seeder...");
     broadcast();
     aaveSeeder = new AaveKandelSeeder(mgv, addressesProvider, aaveRouterGasreq, aaveKandelGasreq);
     fork.set("AaveKandelSeeder", address(aaveSeeder));
     fork.set("AavePooledRouter", address(aaveSeeder.AAVE_ROUTER()));
+    smokeTest(aaveSeeder, aaveSeeder.AAVE_ROUTER());
+
     console.log("Deployed!");
   }
 

@@ -1,23 +1,19 @@
 [
   {
-    "address": "0x2f5a51B09044754C7C8b1A9deE29E046b5432038",
+    "address": "0x9a58de548212F65c5406e46563372Ee6DcC0aC43",
     "name": "Mangrove"
   },
   {
-    "address": "0x09f8b6E32DB426aa477ad815544d0573FeFdBeEF",
+    "address": "0x692c15efcA8AABCda9511641F6ed9702d3f4cfb4",
     "name": "MgvOracle"
   },
   {
-    "address": "0xb2C51219745BDA3c812A6A144c8F78699d278810",
+    "address": "0x07e5a2DCf82D7b5b8ab684d9b40842E174e49908",
     "name": "MgvReader"
   },
   {
-    "address": "0x673b35A107a1299D0CaC48b9b25Ba1E3e9f9B54f",
+    "address": "0xa52ba5E5199bE4fD363B163bDe567606589eD2E2",
     "name": "MgvCleaner"
-  },
-  {
-    "address": "0x0813Ec5f3b54003197d8B40A36Ed570E803cfBF7",
-    "name": "MgvGovernance"
   },
   {
     "address": "0xB70041dC246412E0DCE34bd788062E969276E737",
@@ -28,7 +24,23 @@
     "name": "PxMATIC"
   },
   {
-    "address": "0x61e4e74ab24D7e136E375C8DDD9758F0793076E5",
-    "name": "MangroveOrderEnriched"
+    "address": "0xcf4ec117bc38d7D0fE8678B511Ff6a212c76d60B",
+    "name": "MangroveOrder"
+  },
+  {
+    "address": "0x6b08Cc8290302CB4659D7cEDa7016BEa20852D59",
+    "name": "MangroveOrder-Router"
+  },
+  {
+    "address": "0xA48B36E01919472fcdA56CAD574433BeCB7A87C5",
+    "name": "KandelSeeder"
+  },
+  {
+    "address": "0xded8E2fac702646dafE51d496d1217A837b0a424",
+    "name": "AaveKandelSeeder"
+  },
+  {
+    "address": "0xa92737e6917d4d76Fed72027Ccbf1E06094d65Bd",
+    "name": "AavePooledRouter"
   }
 ]

@@ -1,5 +1,10 @@
 # Next version
 
+# 1.5.2
+
+- deploy new Mangrove and periphery contracts to Polygon
+- deploy MangroveOrder to Polygon
+- deploy KandelSeeders to Polygon
 - MgvOracle: Allow initial gas price to be set
 - MgvOracle: Allow governance to transfer ownership of the oracle
 

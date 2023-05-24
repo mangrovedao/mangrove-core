@@ -52,7 +52,7 @@ contract ActivateMarket is Deployer {
     2. Multiply by 1e9
     3. Round to nearest integer
   */
-  function innerRun(
+  function innerRunWithOverrides(
     Mangrove mgv,
     uint gaspriceOverride,
     MgvReader reader,
@@ -95,6 +95,6 @@ contract ActivateMarket is Deployer {
     uint tkn2_in_gwei,
     uint fee
   ) public {
-    innerRun(mgv, currentGasprice, reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
+    innerRunWithOverrides(mgv, currentGasprice, reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
   }
 }

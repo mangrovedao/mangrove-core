@@ -11,21 +11,21 @@ import {MangroveDeployer} from "./MangroveDeployer.s.sol";
  */
 contract MumbaiMangroveDeployer is Deployer {
   MangroveDeployer public mangroveDeployer;
-  uint public gasprice = 50;
+  uint public gasprice = 1;
   uint public gasmax = 1_000_000;
 
   function run() public {
-    runWithChainSpecificParams(gasprice, gasmax);
+    runWithChainSpecificParams();
     outputDeployment();
   }
 
-  function runWithChainSpecificParams(uint gasprice_, uint gasmax_) public {
+  function runWithChainSpecificParams() public {
     mangroveDeployer = new MangroveDeployer();
 
     mangroveDeployer.innerRun({
       chief: broadcaster(),
-      gasprice: gasprice_,
-      gasmax: gasmax_,
+      gasprice: gasprice,
+      gasmax: gasmax,
       gasbot: envAddressOrName("GASBOT", "Gasbot")
     });
   }

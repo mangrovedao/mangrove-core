@@ -46,7 +46,7 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
 
   function runWithChainSpecificParams() public {
     // Deploy Mangrove
-    new MumbaiMangroveDeployer().runWithChainSpecificParams({gasprice_:1, gasmax_:1_000_000});
+    new MumbaiMangroveDeployer().runWithChainSpecificParams();
     Mangrove mgv = Mangrove(fork.get("Mangrove"));
     MgvReader reader = MgvReader(fork.get("MgvReader"));
     IPriceOracleGetter priceOracle =

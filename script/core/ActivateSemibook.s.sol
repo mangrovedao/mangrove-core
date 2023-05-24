@@ -50,9 +50,8 @@ contract ActivateSemibook is Test2, Deployer {
     */
     uint outbound_gas = measureTransferGas(outbound_tkn);
     uint inbound_gas = measureTransferGas(inbound_tkn);
-    // the formula below is a coarse over approx
-    // more accurate test would consider hot storage after first transfer
-    uint gasbase = 3 * (outbound_gas + inbound_gas) / 2;
+    uint gasbase = outbound_gas + inbound_gas;
+    console.log("Measured gasbase: %d", gasbase);
 
     /* 
 
@@ -91,15 +90,18 @@ contract ActivateSemibook is Test2, Deployer {
 
   function measureTransferGas(IERC20 tkn) internal returns (uint) {
     address someone = freshAddress();
+    address someoneElse = freshAddress();
     vm.prank(someone);
-    tkn.approve(address(this), type(uint).max);
+    tkn.approve(address(this), 2);
     deal(address(tkn), someone, 10);
     /* WARNING: gas metering is done by local execution, which means that on
      * networks that have different EIPs activated, there will be discrepancies. */
-    uint post;
-    uint pre = gasleft();
+    _gas();
     tkn.transferFrom(someone, address(this), 1);
-    post = gasleft();
-    return pre - post;
+    uint g = gas_(true);
+    _gas();
+    tkn.transfer(someoneElse, 1);
+    g += gas_(true);
+    return g;
   }
 }

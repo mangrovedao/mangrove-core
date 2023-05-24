@@ -32,5 +32,12 @@ interface IPriceOracleGetter {
    */
   function getAssetPrice(address asset) external view returns (uint);
 
-  function getAssetsPrices(address[] calldata _assets) external view returns (uint[] memory);
+  /**
+   * mangrove edit - missing in the originial interface
+   * @notice Returns the assets prices in the base currency.
+   * @param assets The addresses of the assets
+   * @return prices of the asset
+   *
+   */
+  function getAssetsPrices(address[] calldata assets) external view returns (uint[] memory prices);
 }

@@ -24,12 +24,8 @@ uint constant COVER_FACTOR = 1000;
 
 contract ActivateSemibook is Test2, Deployer {
   function run() public {
-    Mangrove mgv_ = Mangrove(envAddressOrName("MGV", "Mangrove"));
-    (MgvStructs.GlobalPacked global,) = mgv_.config(address(0), address(0));
-
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
-      gaspriceOverride: global.gasprice(),
       outbound_tkn: IERC20(envAddressOrName("OUTBOUND_TKN")),
       inbound_tkn: IERC20(envAddressOrName("INBOUND_TKN")),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
@@ -86,6 +82,11 @@ contract ActivateSemibook is Test2, Deployer {
       density: density,
       offer_gasbase: gasbase
     });
+  }
+
+  function innerRun(Mangrove mgv, IERC20 outbound_tkn, IERC20 inbound_tkn, uint outbound_in_gwei, uint fee) public {
+    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+    innerRun(mgv, global.gasprice(), outbound_tkn, inbound_tkn, outbound_in_gwei, fee);
   }
 
   function measureTransferGas(IERC20 tkn) internal returns (uint) {

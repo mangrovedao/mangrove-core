@@ -17,15 +17,9 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
  forge script --fork-url mumbai ActivateMarket*/
 
 contract ActivateMarket is Deployer {
-  uint currentGasprice;
-
   function run() public {
-    Mangrove mgv_ = Mangrove(envAddressOrName("MGV", "Mangrove"));
-    (MgvStructs.GlobalPacked global,) = mgv_.config(address(0), address(0));
-    currentGasprice = global.gasprice();
-
     innerRun({
-      mgv: mgv_,
+      mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
       tkn1: IERC20(envAddressOrName("TKN1")),
       tkn2: IERC20(envAddressOrName("TKN2")),
@@ -52,7 +46,7 @@ contract ActivateMarket is Deployer {
     2. Multiply by 1e9
     3. Round to nearest integer
   */
-  function innerRunWithOverrides(
+  function innerRun(
     Mangrove mgv,
     uint gaspriceOverride,
     MgvReader reader,
@@ -95,6 +89,7 @@ contract ActivateMarket is Deployer {
     uint tkn2_in_gwei,
     uint fee
   ) public {
-    innerRunWithOverrides(mgv, currentGasprice, reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
+    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+    innerRun(mgv, global.gasprice(), reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
   }
 }

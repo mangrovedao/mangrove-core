@@ -73,7 +73,7 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
     // 1 token_i = (prices[i] * 10**9 / maticPrice) gwei of Matic
     new ActivateMarket().innerRun({
       mgv: mgv,
-      gasprice: 140,
+      gaspriceOverride: 140, // this overrides Mangrove's gasprice for the computation of market's density
       reader: reader,
       tkn1: dai,
       tkn2: usdc,
@@ -83,7 +83,7 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
     });
     new ActivateMarket().innerRun({
       mgv: mgv,
-      gasprice: 140,
+      gaspriceOverride: 140,
       reader: reader,
       tkn1: weth,
       tkn2: dai,
@@ -93,7 +93,7 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
     });
     new ActivateMarket().innerRun({
       mgv: mgv,
-      gasprice: 140,
+      gaspriceOverride: 140,
       reader: reader,
       tkn1: weth,
       tkn2: usdc,

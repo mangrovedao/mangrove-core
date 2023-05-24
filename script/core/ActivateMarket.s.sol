@@ -17,13 +17,15 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
  forge script --fork-url mumbai ActivateMarket*/
 
 contract ActivateMarket is Deployer {
+  uint currentGasprice;
+
   function run() public {
     Mangrove mgv_ = Mangrove(envAddressOrName("MGV", "Mangrove"));
     (MgvStructs.GlobalPacked global,) = mgv_.config(address(0), address(0));
+    currentGasprice = global.gasprice();
 
     innerRun({
       mgv: mgv_,
-      gasprice: global.gasprice(),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
       tkn1: IERC20(envAddressOrName("TKN1")),
       tkn2: IERC20(envAddressOrName("TKN2")),
@@ -35,6 +37,7 @@ contract ActivateMarket is Deployer {
 
   /* Activates a market on mangrove. Two semibooks are activated, one where the first tokens is outbound and the second inbound, and the reverse.
     mgv: mangrove address
+    gaspriceOverride: overrides current mangrove's gasprice for the computation of density - default innerRun uses mangrove's gasprice
     tkn1: first tokens
     tkn2: second tokens,
     tkn1_in_gwei: price of one tkn1 (display units) in gwei
@@ -51,7 +54,7 @@ contract ActivateMarket is Deployer {
   */
   function innerRun(
     Mangrove mgv,
-    uint gasprice,
+    uint gaspriceOverride,
     MgvReader reader,
     IERC20 tkn1,
     IERC20 tkn2,
@@ -61,7 +64,7 @@ contract ActivateMarket is Deployer {
   ) public {
     new ActivateSemibook().innerRun({
       mgv: mgv,
-      gasprice: gasprice,
+      gaspriceOverride: gaspriceOverride,
       outbound_tkn: tkn1,
       inbound_tkn: tkn2,
       outbound_in_gwei: tkn1_in_gwei,
@@ -70,7 +73,7 @@ contract ActivateMarket is Deployer {
 
     new ActivateSemibook().innerRun({
       mgv: mgv,
-      gasprice: gasprice,
+      gaspriceOverride: gaspriceOverride,
       outbound_tkn: tkn2,
       inbound_tkn: tkn1,
       outbound_in_gwei: tkn2_in_gwei,
@@ -78,5 +81,20 @@ contract ActivateMarket is Deployer {
     });
 
     new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, reader: reader});
+  }
+
+  /**
+   * innerRun with no gasprice override (Mangrove's gasprice is used to compute density)
+   */
+  function innerRun(
+    Mangrove mgv,
+    MgvReader reader,
+    IERC20 tkn1,
+    IERC20 tkn2,
+    uint tkn1_in_gwei,
+    uint tkn2_in_gwei,
+    uint fee
+  ) public {
+    innerRun(mgv, currentGasprice, reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
   }
 }

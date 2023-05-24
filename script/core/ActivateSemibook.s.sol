@@ -29,7 +29,7 @@ contract ActivateSemibook is Test2, Deployer {
 
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
-      gasprice: global.gasprice(),
+      gaspriceOverride: global.gasprice(),
       outbound_tkn: IERC20(envAddressOrName("OUTBOUND_TKN")),
       inbound_tkn: IERC20(envAddressOrName("INBOUND_TKN")),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
@@ -39,7 +39,7 @@ contract ActivateSemibook is Test2, Deployer {
 
   function innerRun(
     Mangrove mgv,
-    uint gasprice,
+    uint gaspriceOverride,
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
     uint outbound_in_gwei,
@@ -74,8 +74,8 @@ contract ActivateSemibook is Test2, Deployer {
        - so density is in (base token units token)/gas
     */
     uint outbound_decimals = outbound_tkn.decimals();
-    uint density = (COVER_FACTOR * gasprice * 10 ** outbound_decimals) / outbound_in_gwei;
-    console.log("With gasprice: %d gwei, cover factor:%d", gasprice, COVER_FACTOR);
+    uint density = (COVER_FACTOR * gaspriceOverride * 10 ** outbound_decimals) / outbound_in_gwei;
+    console.log("With gasprice: %d gwei, cover factor:%d", gaspriceOverride, COVER_FACTOR);
     console.log("Derived density %s %s per gas unit", toUnit(density, outbound_decimals), outbound_tkn.symbol());
 
     broadcast();

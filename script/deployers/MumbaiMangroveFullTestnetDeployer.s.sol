@@ -31,6 +31,8 @@ import {console} from "forge-std/console.sol";
  * - MangroveOrder
  * - KandelSeeder and AaveKandelSeeder
  * - open markets: DAI/USDC, WETH/DAI, WETH/USDC
+ * - prices given by the oracle are in USD with 8 decimals of precision.
+ *      Script will throw if oracle uses ETH as base currency instead of USD (as oracle contract permits).
  */
 contract MumbaiMangroveFullTestnetDeployer is Deployer {
   uint internal maticPrice;

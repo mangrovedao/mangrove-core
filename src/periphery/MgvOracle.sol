@@ -1,21 +1,4 @@
 // SPDX-License-Identifier: BUSL-1.1
-
-// MgvOracle.sol
-
-// Copyright (C) 2021 ADDMA.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published
-// by the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 pragma solidity ^0.8.10;
 
 import "mgv_src/MgvLib.sol";
@@ -34,10 +17,11 @@ contract MgvOracle is IMgvMonitor {
   uint lastReceivedGasPrice;
   uint lastReceivedDensity;
 
-  constructor(address governance_, address initialMutator_) {
+  constructor(address governance_, address initialMutator_, uint initialGasPrice_) {
     governance = governance_;
     mutator = initialMutator_;
 
+    lastReceivedGasPrice = initialGasPrice_;
     /* Set initial density from the MgvOracle to let Mangrove use its internal density by default.
 
       Mangrove will reject densities from the Monitor that don't fit in 32 bits and use its internal density instead, so setting this contract's density to `type(uint).max` is a way to let Mangrove deal with density on its own. */
@@ -59,6 +43,12 @@ contract MgvOracle is IMgvMonitor {
 
   function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external override {
     // Do nothing
+  }
+
+  function setGovernance(address governance_) external {
+    authOnly();
+
+    governance = governance_;
   }
 
   function setMutator(address mutator_) external {

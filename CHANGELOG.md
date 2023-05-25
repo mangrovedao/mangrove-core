@@ -1,11 +1,14 @@
 # Next version
 
-# 1.5.1-1
+- MgvOracle: Allow initial gas price to be set
+- MgvOracle: Allow governance to transfer ownership of the oracle
 
+# 1.5.1
+
+- License updates:
+  - Mangrove core is licensed under Business Source License 1.1
+  - UNLICENSED files are now licensed under Unlicense
 - Fix: Do not use oracle in MangroveJsDeploy
-
-# 1.5.1-0
-
 - Fix: Add polygon to `no_env_var` profile in `foundry.toml`
 
 # 1.5.0

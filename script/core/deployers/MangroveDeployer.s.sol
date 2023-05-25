@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.13;
 
 import {Mangrove} from "mgv_src/Mangrove.sol";
@@ -29,9 +29,9 @@ contract MangroveDeployer is Deployer {
   function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public {
     broadcast();
     if (forMultisig) {
-      oracle = new MgvOracle{salt: salt}({governance_: chief, initialMutator_: gasbot});
+      oracle = new MgvOracle{salt: salt}({governance_: chief, initialMutator_: gasbot, initialGasPrice_: gasprice});
     } else {
-      oracle = new MgvOracle({governance_: chief, initialMutator_: gasbot});
+      oracle = new MgvOracle({governance_: chief, initialMutator_: gasbot, initialGasPrice_: gasprice});
     }
     fork.set("MgvOracle", address(oracle));
 

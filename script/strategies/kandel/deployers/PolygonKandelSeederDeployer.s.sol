@@ -9,7 +9,7 @@ import {AaveKandelSeeder} from "mgv_src/strategies/offer_maker/market_making/kan
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {KandelSeederDeployer} from "./KandelSeederDeployer.s.sol";
 
-contract MumbaiKandelSeederDeployer is Deployer {
+contract PolygonKandelSeederDeployer is Deployer {
   function run() public {
     runWithChainSpecificParams();
     outputDeployment();
@@ -17,8 +17,8 @@ contract MumbaiKandelSeederDeployer is Deployer {
 
   function runWithChainSpecificParams() public returns (KandelSeeder seeder, AaveKandelSeeder aaveSeeder) {
     return new KandelSeederDeployer().innerRun({
-      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
-      addressesProvider: envAddressOrName("AAVE", "Aave"),
+      mgv: IMangrove(fork.get("Mangrove")),
+      addressesProvider: fork.get("Aave"),
       aaveKandelGasreq: 200_000,
       kandelGasreq: 200_000,
       aaveRouterGasreq: 280_000

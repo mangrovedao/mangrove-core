@@ -9,11 +9,15 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 abstract contract CoreKandelGasTest is KandelTest {
   uint internal completeFill_;
   uint internal partialFill_;
+  PinnedPolygonFork internal fork;
 
   function setUp() public virtual override {
     super.setUp();
     vm.prank(maker);
     kdl.setCompoundRates(10 ** PRECISION, 10 ** PRECISION);
+    // non empty balances for tests
+    deal($(base), address(this), 1);
+    base.approve($(mgv), 1);
   }
 
   function __deployKandel__(address deployer, address) internal virtual override returns (GeometricKandel kdl_) {
@@ -22,14 +26,14 @@ abstract contract CoreKandelGasTest is KandelTest {
       mgv: IMangrove($(mgv)),
       base: base,
       quote: quote,
-      gasreq: 170_000,
+      gasreq: 160_000,
       gasprice: 0,
       reserveId: address(0)
     });
   }
 
   function __setForkEnvironment__() internal virtual override {
-    PinnedPolygonFork fork = new PinnedPolygonFork();
+    fork = new PinnedPolygonFork();
     fork.setUp();
     options.gasprice = 90;
     options.gasbase = 68_000;
@@ -137,6 +141,9 @@ abstract contract CoreKandelGasTest is KandelTest {
     // take Ask #5
     uint gasreq = kdl.offerGasreq();
     MgvStructs.OfferPacked ask = kdl.getOffer(Ask, 6);
+    // making quote hot
+    vm.prank($(mgv));
+    base.transferFrom(address(this), $(mgv), 1);
 
     (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) = mockBuyOrder({
       takerGives: ask.wants() / 2,
@@ -148,6 +155,10 @@ abstract contract CoreKandelGasTest is KandelTest {
     });
     order.offerId = kdl.offerIdOfIndex(Ask, 6);
     order.offer = ask;
+    // making mgv mappings hot
+    mgv.config($(base), $(quote));
+    mgv.config($(quote), $(base));
+
     vm.prank($(mgv));
     _gas();
     kdl.makerExecute(order);

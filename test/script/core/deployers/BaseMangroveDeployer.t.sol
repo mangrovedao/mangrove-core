@@ -22,6 +22,8 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
   uint gasprice;
   uint gasmax;
   address gasbot;
+  address outbound_tkn;
+  address inbound_tkn;
 
   function test_toy_ens_has_addresses() public {
     assertEq(fork.get("Mangrove"), address(mgvDeployer.mgv()));
@@ -31,8 +33,8 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
   }
 
   function test_contracts_instantiated_correctly() public {
-    address outbound_tkn = freshAddress("outbound_tkn");
-    address inbound_tkn = freshAddress("inbound_tkn");
+    outbound_tkn = freshAddress("outbound_tkn");
+    inbound_tkn = freshAddress("inbound_tkn");
 
     // Oracle - verify expected values have been passed in. We read from storage slots - alternatively, we should poke admin methods to verify correct setup.
     MgvOracle oracle = mgvDeployer.oracle();
@@ -40,6 +42,9 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     assertEq(chief, address(uint160(uint(oracleGovernance))));
     bytes32 oracleMutator = vm.load(address(oracle), bytes32(uint(1)));
     assertEq(gasbot, address(uint160(uint(oracleMutator))));
+    (uint gasprice_, uint density_) = oracle.read(outbound_tkn, inbound_tkn);
+    assertEq(gasprice, gasprice_);
+    assertEq(type(uint).max, density_);
 
     // Mangrove - verify expected values have been passed in
     Mangrove mgv = mgvDeployer.mgv();

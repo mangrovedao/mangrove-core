@@ -86,9 +86,7 @@ library Library {
   }}
 
   function active(LocalPacked __packed,bool val) internal pure returns(LocalPacked) { unchecked {
-    uint __clean_struct = LocalPacked.unwrap(__packed) & active_mask;
-    uint __clean_field  = (uint_of_bool(val) << (256 - active_bits)) >> active_before;
-    return LocalPacked.wrap(__clean_struct | __clean_field);
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & active_mask) | (uint_of_bool(val) << (256 - active_bits)) >> active_before);
   }}
   
   function fee(LocalPacked __packed) internal pure returns(uint) { unchecked {
@@ -96,9 +94,7 @@ library Library {
   }}
 
   function fee(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
-    uint __clean_struct = LocalPacked.unwrap(__packed) & fee_mask;
-    uint __clean_field  = (val << (256 - fee_bits)) >> fee_before;
-    return LocalPacked.wrap(__clean_struct | __clean_field);
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & fee_mask) | (val << (256 - fee_bits)) >> fee_before);
   }}
   
   function density(LocalPacked __packed) internal pure returns(uint) { unchecked {
@@ -106,9 +102,7 @@ library Library {
   }}
 
   function density(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
-    uint __clean_struct = LocalPacked.unwrap(__packed) & density_mask;
-    uint __clean_field  = (val << (256 - density_bits)) >> density_before;
-    return LocalPacked.wrap(__clean_struct | __clean_field);
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & density_mask) | (val << (256 - density_bits)) >> density_before);
   }}
   
   function offer_gasbase(LocalPacked __packed) internal pure returns(uint) { unchecked {
@@ -116,9 +110,7 @@ library Library {
   }}
 
   function offer_gasbase(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
-    uint __clean_struct = LocalPacked.unwrap(__packed) & offer_gasbase_mask;
-    uint __clean_field  = (val << (256 - offer_gasbase_bits)) >> offer_gasbase_before;
-    return LocalPacked.wrap(__clean_struct | __clean_field);
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & offer_gasbase_mask) | (val << (256 - offer_gasbase_bits)) >> offer_gasbase_before);
   }}
   
   function lock(LocalPacked __packed) internal pure returns(bool) { unchecked {
@@ -126,9 +118,7 @@ library Library {
   }}
 
   function lock(LocalPacked __packed,bool val) internal pure returns(LocalPacked) { unchecked {
-    uint __clean_struct = LocalPacked.unwrap(__packed) & lock_mask;
-    uint __clean_field  = (uint_of_bool(val) << (256 - lock_bits)) >> lock_before;
-    return LocalPacked.wrap(__clean_struct | __clean_field);
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & lock_mask) | (uint_of_bool(val) << (256 - lock_bits)) >> lock_before);
   }}
   
   function best(LocalPacked __packed) internal pure returns(uint) { unchecked {
@@ -136,9 +126,7 @@ library Library {
   }}
 
   function best(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
-    uint __clean_struct = LocalPacked.unwrap(__packed) & best_mask;
-    uint __clean_field  = (val << (256 - best_bits)) >> best_before;
-    return LocalPacked.wrap(__clean_struct | __clean_field);
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & best_mask) | (val << (256 - best_bits)) >> best_before);
   }}
   
   function last(LocalPacked __packed) internal pure returns(uint) { unchecked {
@@ -146,9 +134,7 @@ library Library {
   }}
 
   function last(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
-    uint __clean_struct = LocalPacked.unwrap(__packed) & last_mask;
-    uint __clean_field  = (val << (256 - last_bits)) >> last_before;
-    return LocalPacked.wrap(__clean_struct | __clean_field);
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & last_mask) | (val << (256 - last_bits)) >> last_before);
   }}
   
 }

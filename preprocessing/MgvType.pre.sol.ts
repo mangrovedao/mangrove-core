@@ -58,9 +58,7 @@ library Library {
   }}
 
   function ${f.name}(${s.Packed} __packed,${f.type} val) internal pure returns(${s.Packed}) { unchecked {
-    uint __clean_struct = ${s.unwrap("__packed")} & ${f.vars.mask};
-    uint __clean_field  = ${f.inject("val")};
-    return ${s.wrap("__clean_struct | __clean_field")};
+    return ${s.wrap(`(${s.unwrap("__packed")} & ${f.vars.mask}) | ${f.inject("val")}`)};
   }}
   `
   )}

@@ -80,9 +80,7 @@ library Library {
   }}
 
   function monitor(GlobalPacked __packed,address val) internal pure returns(GlobalPacked) { unchecked {
-    uint __clean_struct = GlobalPacked.unwrap(__packed) & monitor_mask;
-    uint __clean_field  = (uint(uint160(val)) << (256 - monitor_bits)) >> monitor_before;
-    return GlobalPacked.wrap(__clean_struct | __clean_field);
+    return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & monitor_mask) | (uint(uint160(val)) << (256 - monitor_bits)) >> monitor_before);
   }}
   
   function useOracle(GlobalPacked __packed) internal pure returns(bool) { unchecked {
@@ -90,9 +88,7 @@ library Library {
   }}
 
   function useOracle(GlobalPacked __packed,bool val) internal pure returns(GlobalPacked) { unchecked {
-    uint __clean_struct = GlobalPacked.unwrap(__packed) & useOracle_mask;
-    uint __clean_field  = (uint_of_bool(val) << (256 - useOracle_bits)) >> useOracle_before;
-    return GlobalPacked.wrap(__clean_struct | __clean_field);
+    return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & useOracle_mask) | (uint_of_bool(val) << (256 - useOracle_bits)) >> useOracle_before);
   }}
   
   function notify(GlobalPacked __packed) internal pure returns(bool) { unchecked {
@@ -100,9 +96,7 @@ library Library {
   }}
 
   function notify(GlobalPacked __packed,bool val) internal pure returns(GlobalPacked) { unchecked {
-    uint __clean_struct = GlobalPacked.unwrap(__packed) & notify_mask;
-    uint __clean_field  = (uint_of_bool(val) << (256 - notify_bits)) >> notify_before;
-    return GlobalPacked.wrap(__clean_struct | __clean_field);
+    return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & notify_mask) | (uint_of_bool(val) << (256 - notify_bits)) >> notify_before);
   }}
   
   function gasprice(GlobalPacked __packed) internal pure returns(uint) { unchecked {
@@ -110,9 +104,7 @@ library Library {
   }}
 
   function gasprice(GlobalPacked __packed,uint val) internal pure returns(GlobalPacked) { unchecked {
-    uint __clean_struct = GlobalPacked.unwrap(__packed) & gasprice_mask;
-    uint __clean_field  = (val << (256 - gasprice_bits)) >> gasprice_before;
-    return GlobalPacked.wrap(__clean_struct | __clean_field);
+    return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & gasprice_mask) | (val << (256 - gasprice_bits)) >> gasprice_before);
   }}
   
   function gasmax(GlobalPacked __packed) internal pure returns(uint) { unchecked {
@@ -120,9 +112,7 @@ library Library {
   }}
 
   function gasmax(GlobalPacked __packed,uint val) internal pure returns(GlobalPacked) { unchecked {
-    uint __clean_struct = GlobalPacked.unwrap(__packed) & gasmax_mask;
-    uint __clean_field  = (val << (256 - gasmax_bits)) >> gasmax_before;
-    return GlobalPacked.wrap(__clean_struct | __clean_field);
+    return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & gasmax_mask) | (val << (256 - gasmax_bits)) >> gasmax_before);
   }}
   
   function dead(GlobalPacked __packed) internal pure returns(bool) { unchecked {
@@ -130,9 +120,7 @@ library Library {
   }}
 
   function dead(GlobalPacked __packed,bool val) internal pure returns(GlobalPacked) { unchecked {
-    uint __clean_struct = GlobalPacked.unwrap(__packed) & dead_mask;
-    uint __clean_field  = (uint_of_bool(val) << (256 - dead_bits)) >> dead_before;
-    return GlobalPacked.wrap(__clean_struct | __clean_field);
+    return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & dead_mask) | (uint_of_bool(val) << (256 - dead_bits)) >> dead_before);
   }}
   
 }

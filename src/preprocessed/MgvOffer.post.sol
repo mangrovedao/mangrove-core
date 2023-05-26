@@ -68,9 +68,7 @@ library Library {
   }}
 
   function prev(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {
-    uint __clean_struct = OfferPacked.unwrap(__packed) & prev_mask;
-    uint __clean_field  = (val << (256 - prev_bits)) >> prev_before;
-    return OfferPacked.wrap(__clean_struct | __clean_field);
+    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & prev_mask) | (val << (256 - prev_bits)) >> prev_before);
   }}
   
   function next(OfferPacked __packed) internal pure returns(uint) { unchecked {
@@ -78,9 +76,7 @@ library Library {
   }}
 
   function next(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {
-    uint __clean_struct = OfferPacked.unwrap(__packed) & next_mask;
-    uint __clean_field  = (val << (256 - next_bits)) >> next_before;
-    return OfferPacked.wrap(__clean_struct | __clean_field);
+    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & next_mask) | (val << (256 - next_bits)) >> next_before);
   }}
   
   function wants(OfferPacked __packed) internal pure returns(uint) { unchecked {
@@ -88,9 +84,7 @@ library Library {
   }}
 
   function wants(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {
-    uint __clean_struct = OfferPacked.unwrap(__packed) & wants_mask;
-    uint __clean_field  = (val << (256 - wants_bits)) >> wants_before;
-    return OfferPacked.wrap(__clean_struct | __clean_field);
+    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & wants_mask) | (val << (256 - wants_bits)) >> wants_before);
   }}
   
   function gives(OfferPacked __packed) internal pure returns(uint) { unchecked {
@@ -98,9 +92,7 @@ library Library {
   }}
 
   function gives(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {
-    uint __clean_struct = OfferPacked.unwrap(__packed) & gives_mask;
-    uint __clean_field  = (val << (256 - gives_bits)) >> gives_before;
-    return OfferPacked.wrap(__clean_struct | __clean_field);
+    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & gives_mask) | (val << (256 - gives_bits)) >> gives_before);
   }}
   
 }

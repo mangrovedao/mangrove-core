@@ -68,9 +68,7 @@ library Library {
   }}
 
   function maker(OfferDetailPacked __packed,address val) internal pure returns(OfferDetailPacked) { unchecked {
-    uint __clean_struct = OfferDetailPacked.unwrap(__packed) & maker_mask;
-    uint __clean_field  = (uint(uint160(val)) << (256 - maker_bits)) >> maker_before;
-    return OfferDetailPacked.wrap(__clean_struct | __clean_field);
+    return OfferDetailPacked.wrap((OfferDetailPacked.unwrap(__packed) & maker_mask) | (uint(uint160(val)) << (256 - maker_bits)) >> maker_before);
   }}
   
   function gasreq(OfferDetailPacked __packed) internal pure returns(uint) { unchecked {
@@ -78,9 +76,7 @@ library Library {
   }}
 
   function gasreq(OfferDetailPacked __packed,uint val) internal pure returns(OfferDetailPacked) { unchecked {
-    uint __clean_struct = OfferDetailPacked.unwrap(__packed) & gasreq_mask;
-    uint __clean_field  = (val << (256 - gasreq_bits)) >> gasreq_before;
-    return OfferDetailPacked.wrap(__clean_struct | __clean_field);
+    return OfferDetailPacked.wrap((OfferDetailPacked.unwrap(__packed) & gasreq_mask) | (val << (256 - gasreq_bits)) >> gasreq_before);
   }}
   
   function offer_gasbase(OfferDetailPacked __packed) internal pure returns(uint) { unchecked {
@@ -88,9 +84,7 @@ library Library {
   }}
 
   function offer_gasbase(OfferDetailPacked __packed,uint val) internal pure returns(OfferDetailPacked) { unchecked {
-    uint __clean_struct = OfferDetailPacked.unwrap(__packed) & offer_gasbase_mask;
-    uint __clean_field  = (val << (256 - offer_gasbase_bits)) >> offer_gasbase_before;
-    return OfferDetailPacked.wrap(__clean_struct | __clean_field);
+    return OfferDetailPacked.wrap((OfferDetailPacked.unwrap(__packed) & offer_gasbase_mask) | (val << (256 - offer_gasbase_bits)) >> offer_gasbase_before);
   }}
   
   function gasprice(OfferDetailPacked __packed) internal pure returns(uint) { unchecked {
@@ -98,9 +92,7 @@ library Library {
   }}
 
   function gasprice(OfferDetailPacked __packed,uint val) internal pure returns(OfferDetailPacked) { unchecked {
-    uint __clean_struct = OfferDetailPacked.unwrap(__packed) & gasprice_mask;
-    uint __clean_field  = (val << (256 - gasprice_bits)) >> gasprice_before;
-    return OfferDetailPacked.wrap(__clean_struct | __clean_field);
+    return OfferDetailPacked.wrap((OfferDetailPacked.unwrap(__packed) & gasprice_mask) | (val << (256 - gasprice_bits)) >> gasprice_before);
   }}
   
 }

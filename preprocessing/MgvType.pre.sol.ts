@@ -34,7 +34,9 @@ ${tabulate(s.fields.map((f,i) => {
 ${tabulate(s.fields.map(f => 
   [`uint constant ${f.vars.mask}`, ` = ${f.mask};`]
 ))}
-
+${tabulate(s.fields.filter(f => f.vars.mask_inv).map(f => 
+  [`uint constant ${f.vars.mask_inv}`, ` = ${f.mask_inv};`]
+), "// bool-mask: 1s at field location, 0s elsewhere")}
 library Library {
   function to_struct(${s.Packed} __packed) internal pure returns (${s.Unpacked} memory __s) { unchecked {
     ${tabulate(s.fields.map(f => 

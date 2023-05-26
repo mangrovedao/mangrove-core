@@ -56,13 +56,17 @@ uint constant lock_mask          = ~((ONES << 256 - lock_bits) >> lock_before);
 uint constant best_mask          = ~((ONES << 256 - best_bits) >> best_before);
 uint constant last_mask          = ~((ONES << 256 - last_bits) >> last_before);
 
+// bool-mask: 1s at field location, 0s elsewhere
+uint constant active_mask_inv = ~active_mask;
+uint constant lock_mask_inv   = ~lock_mask;
+
 library Library {
   function to_struct(LocalPacked __packed) internal pure returns (LocalUnpacked memory __s) { unchecked {
-    __s.active        = (((LocalPacked.unwrap(__packed) << active_before) >> (256 - active_bits)) > 0);
+    __s.active        = (LocalPacked.unwrap(__packed) & active_mask_inv > 0);
     __s.fee           = (LocalPacked.unwrap(__packed) << fee_before) >> (256 - fee_bits);
     __s.density       = (LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits);
     __s.offer_gasbase = (LocalPacked.unwrap(__packed) << offer_gasbase_before) >> (256 - offer_gasbase_bits);
-    __s.lock          = (((LocalPacked.unwrap(__packed) << lock_before) >> (256 - lock_bits)) > 0);
+    __s.lock          = (LocalPacked.unwrap(__packed) & lock_mask_inv > 0);
     __s.best          = (LocalPacked.unwrap(__packed) << best_before) >> (256 - best_bits);
     __s.last          = (LocalPacked.unwrap(__packed) << last_before) >> (256 - last_bits);
   }}
@@ -72,17 +76,17 @@ library Library {
   }}
 
   function unpack(LocalPacked __packed) internal pure returns (bool __active, uint __fee, uint __density, uint __offer_gasbase, bool __lock, uint __best, uint __last) { unchecked {
-    __active        = (((LocalPacked.unwrap(__packed) << active_before) >> (256 - active_bits)) > 0);
+    __active        = (LocalPacked.unwrap(__packed) & active_mask_inv > 0);
     __fee           = (LocalPacked.unwrap(__packed) << fee_before) >> (256 - fee_bits);
     __density       = (LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits);
     __offer_gasbase = (LocalPacked.unwrap(__packed) << offer_gasbase_before) >> (256 - offer_gasbase_bits);
-    __lock          = (((LocalPacked.unwrap(__packed) << lock_before) >> (256 - lock_bits)) > 0);
+    __lock          = (LocalPacked.unwrap(__packed) & lock_mask_inv > 0);
     __best          = (LocalPacked.unwrap(__packed) << best_before) >> (256 - best_bits);
     __last          = (LocalPacked.unwrap(__packed) << last_before) >> (256 - last_bits);
   }}
 
   function active(LocalPacked __packed) internal pure returns(bool) { unchecked {
-    return (((LocalPacked.unwrap(__packed) << active_before) >> (256 - active_bits)) > 0);
+    return (LocalPacked.unwrap(__packed) & active_mask_inv > 0);
   }}
 
   function active(LocalPacked __packed,bool val) internal pure returns(LocalPacked) { unchecked {
@@ -114,7 +118,7 @@ library Library {
   }}
   
   function lock(LocalPacked __packed) internal pure returns(bool) { unchecked {
-    return (((LocalPacked.unwrap(__packed) << lock_before) >> (256 - lock_bits)) > 0);
+    return (LocalPacked.unwrap(__packed) & lock_mask_inv > 0);
   }}
 
   function lock(LocalPacked __packed,bool val) internal pure returns(LocalPacked) { unchecked {

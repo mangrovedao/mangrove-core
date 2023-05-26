@@ -33,9 +33,14 @@ contract ActivateSemibook is Test2, Deployer {
     });
   }
 
+  function innerRun(Mangrove mgv, IERC20 outbound_tkn, IERC20 inbound_tkn, uint outbound_in_gwei, uint fee) public {
+    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+    innerRun(mgv, global.gasprice(), outbound_tkn, inbound_tkn, outbound_in_gwei, fee);
+  }
+
   function innerRun(
     Mangrove mgv,
-    uint gaspriceOverride,
+    uint gaspriceOverride, // the gasprice that is used to compute density. Can be set higher that mangrove's gasprice to avoid dust without impacting user's bounty
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
     uint outbound_in_gwei,
@@ -81,11 +86,6 @@ contract ActivateSemibook is Test2, Deployer {
       density: density,
       offer_gasbase: gasbase
     });
-  }
-
-  function innerRun(Mangrove mgv, IERC20 outbound_tkn, IERC20 inbound_tkn, uint outbound_in_gwei, uint fee) public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    innerRun(mgv, global.gasprice(), outbound_tkn, inbound_tkn, outbound_in_gwei, fee);
   }
 
   function measureTransferGas(IERC20 tkn) internal returns (uint) {

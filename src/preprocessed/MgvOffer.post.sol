@@ -38,18 +38,24 @@ uint constant next_before  = prev_before  + prev_bits;
 uint constant wants_before = next_before  + next_bits;
 uint constant gives_before = wants_before + wants_bits;
 
+// focus-mask: 1s at field location, 0s elsewhere
+uint constant prev_mask_inv  = (ONES << 256 - prev_bits) >> prev_before;
+uint constant next_mask_inv  = (ONES << 256 - next_bits) >> next_before;
+uint constant wants_mask_inv = (ONES << 256 - wants_bits) >> wants_before;
+uint constant gives_mask_inv = (ONES << 256 - gives_bits) >> gives_before;
+
 // cleanup-mask: 0s at field location, 1s elsewhere
-uint constant prev_mask  = ~((ONES << 256 - prev_bits) >> prev_before);
-uint constant next_mask  = ~((ONES << 256 - next_bits) >> next_before);
-uint constant wants_mask = ~((ONES << 256 - wants_bits) >> wants_before);
-uint constant gives_mask = ~((ONES << 256 - gives_bits) >> gives_before);
+uint constant prev_mask  = ~prev_mask_inv;
+uint constant next_mask  = ~next_mask_inv;
+uint constant wants_mask = ~wants_mask_inv;
+uint constant gives_mask = ~gives_mask_inv;
 
 library Library {
   function to_struct(OfferPacked __packed) internal pure returns (OfferUnpacked memory __s) { unchecked {
-    __s.prev  = (OfferPacked.unwrap(__packed) << prev_before) >> (256 - prev_bits);
-    __s.next  = (OfferPacked.unwrap(__packed) << next_before) >> (256 - next_bits);
-    __s.wants = (OfferPacked.unwrap(__packed) << wants_before) >> (256 - wants_bits);
-    __s.gives = (OfferPacked.unwrap(__packed) << gives_before) >> (256 - gives_bits);
+    __s.prev  = (OfferPacked.unwrap(__packed) & prev_mask_inv) >> (256 - prev_bits - prev_before);
+    __s.next  = (OfferPacked.unwrap(__packed) & next_mask_inv) >> (256 - next_bits - next_before);
+    __s.wants = (OfferPacked.unwrap(__packed) & wants_mask_inv) >> (256 - wants_bits - wants_before);
+    __s.gives = (OfferPacked.unwrap(__packed) & gives_mask_inv) >> (256 - gives_bits - gives_before);
   }}
 
   function eq(OfferPacked __packed1, OfferPacked __packed2) internal pure returns (bool) { unchecked {
@@ -57,14 +63,14 @@ library Library {
   }}
 
   function unpack(OfferPacked __packed) internal pure returns (uint __prev, uint __next, uint __wants, uint __gives) { unchecked {
-    __prev  = (OfferPacked.unwrap(__packed) << prev_before) >> (256 - prev_bits);
-    __next  = (OfferPacked.unwrap(__packed) << next_before) >> (256 - next_bits);
-    __wants = (OfferPacked.unwrap(__packed) << wants_before) >> (256 - wants_bits);
-    __gives = (OfferPacked.unwrap(__packed) << gives_before) >> (256 - gives_bits);
+    __prev  = (OfferPacked.unwrap(__packed) & prev_mask_inv) >> (256 - prev_bits - prev_before);
+    __next  = (OfferPacked.unwrap(__packed) & next_mask_inv) >> (256 - next_bits - next_before);
+    __wants = (OfferPacked.unwrap(__packed) & wants_mask_inv) >> (256 - wants_bits - wants_before);
+    __gives = (OfferPacked.unwrap(__packed) & gives_mask_inv) >> (256 - gives_bits - gives_before);
   }}
 
   function prev(OfferPacked __packed) internal pure returns(uint) { unchecked {
-    return (OfferPacked.unwrap(__packed) << prev_before) >> (256 - prev_bits);
+    return (OfferPacked.unwrap(__packed) & prev_mask_inv) >> (256 - prev_bits - prev_before);
   }}
 
   function prev(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {
@@ -72,7 +78,7 @@ library Library {
   }}
   
   function next(OfferPacked __packed) internal pure returns(uint) { unchecked {
-    return (OfferPacked.unwrap(__packed) << next_before) >> (256 - next_bits);
+    return (OfferPacked.unwrap(__packed) & next_mask_inv) >> (256 - next_bits - next_before);
   }}
 
   function next(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {
@@ -80,7 +86,7 @@ library Library {
   }}
   
   function wants(OfferPacked __packed) internal pure returns(uint) { unchecked {
-    return (OfferPacked.unwrap(__packed) << wants_before) >> (256 - wants_bits);
+    return (OfferPacked.unwrap(__packed) & wants_mask_inv) >> (256 - wants_bits - wants_before);
   }}
 
   function wants(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {
@@ -88,7 +94,7 @@ library Library {
   }}
   
   function gives(OfferPacked __packed) internal pure returns(uint) { unchecked {
-    return (OfferPacked.unwrap(__packed) << gives_before) >> (256 - gives_bits);
+    return (OfferPacked.unwrap(__packed) & gives_mask_inv) >> (256 - gives_bits - gives_before);
   }}
 
   function gives(OfferPacked __packed,uint val) internal pure returns(OfferPacked) { unchecked {

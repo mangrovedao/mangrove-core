@@ -38,18 +38,24 @@ uint constant gasreq_before        = maker_before         + maker_bits;
 uint constant offer_gasbase_before = gasreq_before        + gasreq_bits;
 uint constant gasprice_before      = offer_gasbase_before + offer_gasbase_bits;
 
+// focus-mask: 1s at field location, 0s elsewhere
+uint constant maker_mask_inv         = (ONES << 256 - maker_bits) >> maker_before;
+uint constant gasreq_mask_inv        = (ONES << 256 - gasreq_bits) >> gasreq_before;
+uint constant offer_gasbase_mask_inv = (ONES << 256 - offer_gasbase_bits) >> offer_gasbase_before;
+uint constant gasprice_mask_inv      = (ONES << 256 - gasprice_bits) >> gasprice_before;
+
 // cleanup-mask: 0s at field location, 1s elsewhere
-uint constant maker_mask         = ~((ONES << 256 - maker_bits) >> maker_before);
-uint constant gasreq_mask        = ~((ONES << 256 - gasreq_bits) >> gasreq_before);
-uint constant offer_gasbase_mask = ~((ONES << 256 - offer_gasbase_bits) >> offer_gasbase_before);
-uint constant gasprice_mask      = ~((ONES << 256 - gasprice_bits) >> gasprice_before);
+uint constant maker_mask         = ~maker_mask_inv;
+uint constant gasreq_mask        = ~gasreq_mask_inv;
+uint constant offer_gasbase_mask = ~offer_gasbase_mask_inv;
+uint constant gasprice_mask      = ~gasprice_mask_inv;
 
 library Library {
   function to_struct(OfferDetailPacked __packed) internal pure returns (OfferDetailUnpacked memory __s) { unchecked {
-    __s.maker         = address(uint160((OfferDetailPacked.unwrap(__packed) << maker_before) >> (256 - maker_bits)));
-    __s.gasreq        = (OfferDetailPacked.unwrap(__packed) << gasreq_before) >> (256 - gasreq_bits);
-    __s.offer_gasbase = (OfferDetailPacked.unwrap(__packed) << offer_gasbase_before) >> (256 - offer_gasbase_bits);
-    __s.gasprice      = (OfferDetailPacked.unwrap(__packed) << gasprice_before) >> (256 - gasprice_bits);
+    __s.maker         = address(uint160((OfferDetailPacked.unwrap(__packed) & maker_mask_inv) >> (256 - maker_bits - maker_before)));
+    __s.gasreq        = (OfferDetailPacked.unwrap(__packed) & gasreq_mask_inv) >> (256 - gasreq_bits - gasreq_before);
+    __s.offer_gasbase = (OfferDetailPacked.unwrap(__packed) & offer_gasbase_mask_inv) >> (256 - offer_gasbase_bits - offer_gasbase_before);
+    __s.gasprice      = (OfferDetailPacked.unwrap(__packed) & gasprice_mask_inv) >> (256 - gasprice_bits - gasprice_before);
   }}
 
   function eq(OfferDetailPacked __packed1, OfferDetailPacked __packed2) internal pure returns (bool) { unchecked {
@@ -57,14 +63,14 @@ library Library {
   }}
 
   function unpack(OfferDetailPacked __packed) internal pure returns (address __maker, uint __gasreq, uint __offer_gasbase, uint __gasprice) { unchecked {
-    __maker         = address(uint160((OfferDetailPacked.unwrap(__packed) << maker_before) >> (256 - maker_bits)));
-    __gasreq        = (OfferDetailPacked.unwrap(__packed) << gasreq_before) >> (256 - gasreq_bits);
-    __offer_gasbase = (OfferDetailPacked.unwrap(__packed) << offer_gasbase_before) >> (256 - offer_gasbase_bits);
-    __gasprice      = (OfferDetailPacked.unwrap(__packed) << gasprice_before) >> (256 - gasprice_bits);
+    __maker         = address(uint160((OfferDetailPacked.unwrap(__packed) & maker_mask_inv) >> (256 - maker_bits - maker_before)));
+    __gasreq        = (OfferDetailPacked.unwrap(__packed) & gasreq_mask_inv) >> (256 - gasreq_bits - gasreq_before);
+    __offer_gasbase = (OfferDetailPacked.unwrap(__packed) & offer_gasbase_mask_inv) >> (256 - offer_gasbase_bits - offer_gasbase_before);
+    __gasprice      = (OfferDetailPacked.unwrap(__packed) & gasprice_mask_inv) >> (256 - gasprice_bits - gasprice_before);
   }}
 
   function maker(OfferDetailPacked __packed) internal pure returns(address) { unchecked {
-    return address(uint160((OfferDetailPacked.unwrap(__packed) << maker_before) >> (256 - maker_bits)));
+    return address(uint160((OfferDetailPacked.unwrap(__packed) & maker_mask_inv) >> (256 - maker_bits - maker_before)));
   }}
 
   function maker(OfferDetailPacked __packed,address val) internal pure returns(OfferDetailPacked) { unchecked {
@@ -72,7 +78,7 @@ library Library {
   }}
   
   function gasreq(OfferDetailPacked __packed) internal pure returns(uint) { unchecked {
-    return (OfferDetailPacked.unwrap(__packed) << gasreq_before) >> (256 - gasreq_bits);
+    return (OfferDetailPacked.unwrap(__packed) & gasreq_mask_inv) >> (256 - gasreq_bits - gasreq_before);
   }}
 
   function gasreq(OfferDetailPacked __packed,uint val) internal pure returns(OfferDetailPacked) { unchecked {
@@ -80,7 +86,7 @@ library Library {
   }}
   
   function offer_gasbase(OfferDetailPacked __packed) internal pure returns(uint) { unchecked {
-    return (OfferDetailPacked.unwrap(__packed) << offer_gasbase_before) >> (256 - offer_gasbase_bits);
+    return (OfferDetailPacked.unwrap(__packed) & offer_gasbase_mask_inv) >> (256 - offer_gasbase_bits - offer_gasbase_before);
   }}
 
   function offer_gasbase(OfferDetailPacked __packed,uint val) internal pure returns(OfferDetailPacked) { unchecked {
@@ -88,7 +94,7 @@ library Library {
   }}
   
   function gasprice(OfferDetailPacked __packed) internal pure returns(uint) { unchecked {
-    return (OfferDetailPacked.unwrap(__packed) << gasprice_before) >> (256 - gasprice_bits);
+    return (OfferDetailPacked.unwrap(__packed) & gasprice_mask_inv) >> (256 - gasprice_bits - gasprice_before);
   }}
 
   function gasprice(OfferDetailPacked __packed,uint val) internal pure returns(OfferDetailPacked) { unchecked {

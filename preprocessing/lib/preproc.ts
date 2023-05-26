@@ -1,5 +1,11 @@
 import * as util from "util";
 
+/*
+Note: without via_ir and using 0.8.17, changes that should reduce gas use increase it instead. Noting them down for later use:
+* unsafe cast uint known to be on 1 bit to bool (instead of using i>0 casting)
+* unsafe cast uint to address (instead of address(uint160(u)) when u is already safe
+*/
+
 export const preamble = `/* ************************************************** *
             GENERATED FILE. DO NOT EDIT.
  * ************************************************** */`;
@@ -25,7 +31,7 @@ class Field {
   name: string;
   type: string;
   bits: number;
-  vars: { before: string; mask: string; bits: string; mask_inv: string | undefined; }
+  vars: { before: string; mask: string; bits: string; mask_inv: string; }
   mask: string;
   mask_inv: string | undefined;
 
@@ -36,31 +42,30 @@ class Field {
     this.vars = {
       before: field_var(this.name, "before"),
       mask: field_var(this.name, "mask"),
-      mask_inv: this.type === "bool" ? field_var(this.name, "mask_inv") : undefined,
+      mask_inv: field_var(this.name, "mask_inv"),
       bits: field_var(this.name, "bits"),
     };
+    // focus-mask: 1s at field location, 0s elsewhere
+    this.mask_inv = `(ONES << 256 - ${this.vars.bits}) >> ${this.vars.before}`;
     // cleanup-mask: 0s at field location, 1s elsewhere
-    this.mask = `~((ONES << 256 - ${this.vars.bits}) >> ${this.vars.before})`;
-    // bool-mask: 1s at field location, 0s elsewhere
-    if (this.type === "bool") {
-      this.mask_inv = `~${this.vars.mask}`;
-    }
+    this.mask = `~${this.vars.mask_inv}`;
   }
 
   extract(from: string) {
+    let uint_val;
     if (this.type === "bool") {
-      return `(${from} & ${this.vars.mask_inv} > 0)`;
+      uint_val = `(${from} & ${this.vars.mask_inv})`;
     } else {
-      const uint_val = `(${from} << ${this.vars.before}) >> (256 - ${this.vars.bits})`;
-      return this.from_uint(uint_val);
+      uint_val = `(${from} & ${this.vars.mask_inv}) >> (256 - ${this.vars.bits} - ${this.vars.before})`;
     }
+    return this.from_uint(uint_val);
   }
 
   from_uint(uint_val: string) {
     if (this.type === "address") {
       return `address(uint160(${uint_val}))`;
     } else if (this.type === "bool") {
-      return `((${uint_val}) > 0)`;
+      return `(${uint_val} > 0)`;
     } else {
       // uint by default
       return uint_val;

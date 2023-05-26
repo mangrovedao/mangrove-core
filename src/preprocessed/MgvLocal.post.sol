@@ -47,28 +47,33 @@ uint constant lock_before          = offer_gasbase_before + offer_gasbase_bits;
 uint constant best_before          = lock_before          + lock_bits;
 uint constant last_before          = best_before          + best_bits;
 
-// cleanup-mask: 0s at field location, 1s elsewhere
-uint constant active_mask        = ~((ONES << 256 - active_bits) >> active_before);
-uint constant fee_mask           = ~((ONES << 256 - fee_bits) >> fee_before);
-uint constant density_mask       = ~((ONES << 256 - density_bits) >> density_before);
-uint constant offer_gasbase_mask = ~((ONES << 256 - offer_gasbase_bits) >> offer_gasbase_before);
-uint constant lock_mask          = ~((ONES << 256 - lock_bits) >> lock_before);
-uint constant best_mask          = ~((ONES << 256 - best_bits) >> best_before);
-uint constant last_mask          = ~((ONES << 256 - last_bits) >> last_before);
+// focus-mask: 1s at field location, 0s elsewhere
+uint constant active_mask_inv        = (ONES << 256 - active_bits) >> active_before;
+uint constant fee_mask_inv           = (ONES << 256 - fee_bits) >> fee_before;
+uint constant density_mask_inv       = (ONES << 256 - density_bits) >> density_before;
+uint constant offer_gasbase_mask_inv = (ONES << 256 - offer_gasbase_bits) >> offer_gasbase_before;
+uint constant lock_mask_inv          = (ONES << 256 - lock_bits) >> lock_before;
+uint constant best_mask_inv          = (ONES << 256 - best_bits) >> best_before;
+uint constant last_mask_inv          = (ONES << 256 - last_bits) >> last_before;
 
-// bool-mask: 1s at field location, 0s elsewhere
-uint constant active_mask_inv = ~active_mask;
-uint constant lock_mask_inv   = ~lock_mask;
+// cleanup-mask: 0s at field location, 1s elsewhere
+uint constant active_mask        = ~active_mask_inv;
+uint constant fee_mask           = ~fee_mask_inv;
+uint constant density_mask       = ~density_mask_inv;
+uint constant offer_gasbase_mask = ~offer_gasbase_mask_inv;
+uint constant lock_mask          = ~lock_mask_inv;
+uint constant best_mask          = ~best_mask_inv;
+uint constant last_mask          = ~last_mask_inv;
 
 library Library {
   function to_struct(LocalPacked __packed) internal pure returns (LocalUnpacked memory __s) { unchecked {
-    __s.active        = (LocalPacked.unwrap(__packed) & active_mask_inv > 0);
-    __s.fee           = (LocalPacked.unwrap(__packed) << fee_before) >> (256 - fee_bits);
-    __s.density       = (LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits);
-    __s.offer_gasbase = (LocalPacked.unwrap(__packed) << offer_gasbase_before) >> (256 - offer_gasbase_bits);
-    __s.lock          = (LocalPacked.unwrap(__packed) & lock_mask_inv > 0);
-    __s.best          = (LocalPacked.unwrap(__packed) << best_before) >> (256 - best_bits);
-    __s.last          = (LocalPacked.unwrap(__packed) << last_before) >> (256 - last_bits);
+    __s.active        = ((LocalPacked.unwrap(__packed) & active_mask_inv) > 0);
+    __s.fee           = (LocalPacked.unwrap(__packed) & fee_mask_inv) >> (256 - fee_bits - fee_before);
+    __s.density       = (LocalPacked.unwrap(__packed) & density_mask_inv) >> (256 - density_bits - density_before);
+    __s.offer_gasbase = (LocalPacked.unwrap(__packed) & offer_gasbase_mask_inv) >> (256 - offer_gasbase_bits - offer_gasbase_before);
+    __s.lock          = ((LocalPacked.unwrap(__packed) & lock_mask_inv) > 0);
+    __s.best          = (LocalPacked.unwrap(__packed) & best_mask_inv) >> (256 - best_bits - best_before);
+    __s.last          = (LocalPacked.unwrap(__packed) & last_mask_inv) >> (256 - last_bits - last_before);
   }}
 
   function eq(LocalPacked __packed1, LocalPacked __packed2) internal pure returns (bool) { unchecked {
@@ -76,17 +81,17 @@ library Library {
   }}
 
   function unpack(LocalPacked __packed) internal pure returns (bool __active, uint __fee, uint __density, uint __offer_gasbase, bool __lock, uint __best, uint __last) { unchecked {
-    __active        = (LocalPacked.unwrap(__packed) & active_mask_inv > 0);
-    __fee           = (LocalPacked.unwrap(__packed) << fee_before) >> (256 - fee_bits);
-    __density       = (LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits);
-    __offer_gasbase = (LocalPacked.unwrap(__packed) << offer_gasbase_before) >> (256 - offer_gasbase_bits);
-    __lock          = (LocalPacked.unwrap(__packed) & lock_mask_inv > 0);
-    __best          = (LocalPacked.unwrap(__packed) << best_before) >> (256 - best_bits);
-    __last          = (LocalPacked.unwrap(__packed) << last_before) >> (256 - last_bits);
+    __active        = ((LocalPacked.unwrap(__packed) & active_mask_inv) > 0);
+    __fee           = (LocalPacked.unwrap(__packed) & fee_mask_inv) >> (256 - fee_bits - fee_before);
+    __density       = (LocalPacked.unwrap(__packed) & density_mask_inv) >> (256 - density_bits - density_before);
+    __offer_gasbase = (LocalPacked.unwrap(__packed) & offer_gasbase_mask_inv) >> (256 - offer_gasbase_bits - offer_gasbase_before);
+    __lock          = ((LocalPacked.unwrap(__packed) & lock_mask_inv) > 0);
+    __best          = (LocalPacked.unwrap(__packed) & best_mask_inv) >> (256 - best_bits - best_before);
+    __last          = (LocalPacked.unwrap(__packed) & last_mask_inv) >> (256 - last_bits - last_before);
   }}
 
   function active(LocalPacked __packed) internal pure returns(bool) { unchecked {
-    return (LocalPacked.unwrap(__packed) & active_mask_inv > 0);
+    return ((LocalPacked.unwrap(__packed) & active_mask_inv) > 0);
   }}
 
   function active(LocalPacked __packed,bool val) internal pure returns(LocalPacked) { unchecked {
@@ -94,7 +99,7 @@ library Library {
   }}
   
   function fee(LocalPacked __packed) internal pure returns(uint) { unchecked {
-    return (LocalPacked.unwrap(__packed) << fee_before) >> (256 - fee_bits);
+    return (LocalPacked.unwrap(__packed) & fee_mask_inv) >> (256 - fee_bits - fee_before);
   }}
 
   function fee(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
@@ -102,7 +107,7 @@ library Library {
   }}
   
   function density(LocalPacked __packed) internal pure returns(uint) { unchecked {
-    return (LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits);
+    return (LocalPacked.unwrap(__packed) & density_mask_inv) >> (256 - density_bits - density_before);
   }}
 
   function density(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
@@ -110,7 +115,7 @@ library Library {
   }}
   
   function offer_gasbase(LocalPacked __packed) internal pure returns(uint) { unchecked {
-    return (LocalPacked.unwrap(__packed) << offer_gasbase_before) >> (256 - offer_gasbase_bits);
+    return (LocalPacked.unwrap(__packed) & offer_gasbase_mask_inv) >> (256 - offer_gasbase_bits - offer_gasbase_before);
   }}
 
   function offer_gasbase(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
@@ -118,7 +123,7 @@ library Library {
   }}
   
   function lock(LocalPacked __packed) internal pure returns(bool) { unchecked {
-    return (LocalPacked.unwrap(__packed) & lock_mask_inv > 0);
+    return ((LocalPacked.unwrap(__packed) & lock_mask_inv) > 0);
   }}
 
   function lock(LocalPacked __packed,bool val) internal pure returns(LocalPacked) { unchecked {
@@ -126,7 +131,7 @@ library Library {
   }}
   
   function best(LocalPacked __packed) internal pure returns(uint) { unchecked {
-    return (LocalPacked.unwrap(__packed) << best_before) >> (256 - best_bits);
+    return (LocalPacked.unwrap(__packed) & best_mask_inv) >> (256 - best_bits - best_before);
   }}
 
   function best(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
@@ -134,7 +139,7 @@ library Library {
   }}
   
   function last(LocalPacked __packed) internal pure returns(uint) { unchecked {
-    return (LocalPacked.unwrap(__packed) << last_before) >> (256 - last_bits);
+    return (LocalPacked.unwrap(__packed) & last_mask_inv) >> (256 - last_bits - last_before);
   }}
 
   function last(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {

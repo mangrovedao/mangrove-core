@@ -24,14 +24,14 @@ export const format = (strings:TemplateStringsArray, ...nuggets:any[]) => {
 // takes an array of arrays all of the same length
 // returns an array of strings with aligned columns (except the last)
 // example: [['s','= 123'],['long',''= 2']] becomes ['s   = 123','long=2']
-export const tabulate = (table:string[][], title?: string) => {
+export const tabulate = (table:string[][]) => {
   const zeroes = Array((table[0] ?? []).length).fill(0);
   const maxes = table.reduce(
     (acc, row) => acc.map((max, i) => Math.max(max, row[i].length)),
     zeroes
   );
   const tab = (cell, i) => " ".repeat(Math.max(maxes[i] - cell.length, 0));
-  const body = table.map((row) =>
+  return table.map((row) =>
     row
       .map((cell, i) => {
         const last = i + 1 >= row.length;
@@ -39,6 +39,4 @@ export const tabulate = (table:string[][], title?: string) => {
       })
       .join("")
   );
-
-  return (title && table.length ? ["", title].concat(body).concat([""]) : body);
 };

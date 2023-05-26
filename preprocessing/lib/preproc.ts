@@ -116,17 +116,16 @@ class Struct {
   Name: string;
   Packed: string;
   Unpacked: string;
-  filename: string;
+  filenames: {src: string, test: string};
   fields: Field[];
 
-  constructor(name: string, fields_def: field_def[], filenamer: (_:Struct) => string) {
+  constructor(name: string, fields_def: field_def[], filenamers: (_:Struct) => Struct['filenames']) {
     Struct.validate(fields_def);
     this.name = name;
     this.Name = capitalize(this.name);
     this.Packed = `${this.Name}Packed`;
     this.Unpacked = `${this.Name}Unpacked`;
-    this.filename = filenamer(this);
-
+    this.filenames = filenamers(this);
     this.fields = fields_def.map((data: field_def) => new Field(data));
   }
   unwrap(val: any) {
@@ -137,7 +136,7 @@ class Struct {
   }
 }
 
-export const make_structs = (struct_defs: {[key:string]: field_def[]}, filenamer: (_:Struct) => string) => {
+export const make_structs = (struct_defs: {[key:string]: field_def[]}, filenamer: (_:Struct) => Struct['filenames']) => {
   return Object.entries(struct_defs).map(([name, fields_def]) => {
     return new Struct(name, fields_def, filenamer);
   });

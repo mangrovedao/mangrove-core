@@ -11,7 +11,7 @@ ${preamble}
 
 ${structs.map(s => {
   return `
-import {${s.Packed}, ${s.Unpacked}} from "./${s.filename}";
-import "./${s.filename}" as ${s.Name};`;
+import {${s.Packed}, ${s.Unpacked}} from "./${s.filenames.src}";
+import "./${s.filenames.src}" as ${s.Name};`;
 })}`;
 };

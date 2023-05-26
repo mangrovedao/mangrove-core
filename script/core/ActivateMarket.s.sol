@@ -31,6 +31,7 @@ contract ActivateMarket is Deployer {
 
   /* Activates a market on mangrove. Two semibooks are activated, one where the first tokens is outbound and the second inbound, and the reverse.
     mgv: mangrove address
+    gaspriceOverride: overrides current mangrove's gasprice for the computation of density - default innerRun uses mangrove's gasprice
     tkn1: first tokens
     tkn2: second tokens,
     tkn1_in_gwei: price of one tkn1 (display units) in gwei
@@ -45,6 +46,7 @@ contract ActivateMarket is Deployer {
     2. Multiply by 1e9
     3. Round to nearest integer
   */
+
   function innerRun(
     Mangrove mgv,
     MgvReader reader,
@@ -54,8 +56,27 @@ contract ActivateMarket is Deployer {
     uint tkn2_in_gwei,
     uint fee
   ) public {
+    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+    innerRun(mgv, global.gasprice(), reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
+  }
+
+  /**
+   * innerRun with gasprice override to allow requiring a higher density without require more bounties from makers
+   */
+
+  function innerRun(
+    Mangrove mgv,
+    uint gaspriceOverride,
+    MgvReader reader,
+    IERC20 tkn1,
+    IERC20 tkn2,
+    uint tkn1_in_gwei,
+    uint tkn2_in_gwei,
+    uint fee
+  ) public {
     new ActivateSemibook().innerRun({
       mgv: mgv,
+      gaspriceOverride: gaspriceOverride,
       outbound_tkn: tkn1,
       inbound_tkn: tkn2,
       outbound_in_gwei: tkn1_in_gwei,
@@ -64,6 +85,7 @@ contract ActivateMarket is Deployer {
 
     new ActivateSemibook().innerRun({
       mgv: mgv,
+      gaspriceOverride: gaspriceOverride,
       outbound_tkn: tkn2,
       inbound_tkn: tkn1,
       outbound_in_gwei: tkn2_in_gwei,

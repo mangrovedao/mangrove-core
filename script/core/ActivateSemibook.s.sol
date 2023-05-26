@@ -14,11 +14,11 @@ uint constant COVER_FACTOR = 1000;
   Activates a semibook on mangrove.
     outbound: outbound token
     inbound: inbound token,
-    outbound_in_gwei: price of one outbound token (display units) in gwei
+    outbound_in_gwei: price of one outbound token (display units) in gwei of native token
     fee: fee in per 10_000
 
   outbound_in_gwei should be obtained like this:
-  1. Get the price of one outbound token display unit in ETH
+  1. Get the price of one outbound token display unit in native token
   2. Multiply by 10^9
   3. Round to nearest integer*/
 
@@ -34,6 +34,18 @@ contract ActivateSemibook is Test2, Deployer {
   }
 
   function innerRun(Mangrove mgv, IERC20 outbound_tkn, IERC20 inbound_tkn, uint outbound_in_gwei, uint fee) public {
+    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+    innerRun(mgv, global.gasprice(), outbound_tkn, inbound_tkn, outbound_in_gwei, fee);
+  }
+
+  function innerRun(
+    Mangrove mgv,
+    uint gaspriceOverride, // the gasprice that is used to compute density. Can be set higher that mangrove's gasprice to avoid dust without impacting user's bounty
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint outbound_in_gwei,
+    uint fee
+  ) public {
     /*
 
     The gasbase is the gas spent by Mangrove to manage one order execution.  We
@@ -43,9 +55,8 @@ contract ActivateSemibook is Test2, Deployer {
     */
     uint outbound_gas = measureTransferGas(outbound_tkn);
     uint inbound_gas = measureTransferGas(inbound_tkn);
-    // the formula below is a coarse over approx
-    // more accurate test would consider hot storage after first transfer
-    uint gasbase = 3 * (outbound_gas + inbound_gas) / 2;
+    uint gasbase = 2 * (outbound_gas + inbound_gas);
+    console.log("Measured gasbase: %d", gasbase);
 
     /* 
 
@@ -62,10 +73,10 @@ contract ActivateSemibook is Test2, Deployer {
        - global.gasprice() is in gwei/gas
        - so density is in (base token units token)/gas
     */
-    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
     uint outbound_decimals = outbound_tkn.decimals();
-    uint density = (COVER_FACTOR * global.gasprice() * 10 ** outbound_decimals) / outbound_in_gwei;
-    console.log("Derived density (in wei per gas unit)", density);
+    uint density = (COVER_FACTOR * gaspriceOverride * 10 ** outbound_decimals) / outbound_in_gwei;
+    console.log("With gasprice: %d gwei, cover factor:%d", gaspriceOverride, COVER_FACTOR);
+    console.log("Derived density %s %s per gas unit", toUnit(density, outbound_decimals), outbound_tkn.symbol());
 
     broadcast();
     mgv.activate({

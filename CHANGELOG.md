@@ -1,5 +1,7 @@
 # Next version
 
+- deploy scripts on mumbai uses chainling oracle for density parameters
+
 # 1.5.2
 
 - deploy new Mangrove and periphery contracts to Polygon

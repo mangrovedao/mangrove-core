@@ -8,7 +8,7 @@ import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 
 /**
- * @notice deploys a MgvReader instance
+ * @notice deploys a MgvCleaner instance
  */
 
 contract MgvCleanerDeployer is Deployer {

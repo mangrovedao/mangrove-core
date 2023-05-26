@@ -26,7 +26,7 @@ contract KandelDeployer is Deployer {
       gaspriceFactor: vm.envUint("GASPRICE_FACTOR"), // 10 means cover 10x the current gasprice of Mangrove
       compoundRateBase: vm.envUint("COMPOUND_RATE_BASE"), // in percent
       compoundRateQuote: vm.envUint("COMPOUND_RATE_QUOTE"), // in percent
-      gasreq: 160_000,
+      gasreq: 200_000,
       name: envHas("NAME") ? vm.envString("NAME") : ""
     });
     outputDeployment();

@@ -52,14 +52,19 @@ uint constant gasprice_mask  = ~((ONES << 256 - gasprice_bits) >> gasprice_befor
 uint constant gasmax_mask    = ~((ONES << 256 - gasmax_bits) >> gasmax_before);
 uint constant dead_mask      = ~((ONES << 256 - dead_bits) >> dead_before);
 
+// bool-mask: 1s at field location, 0s elsewhere
+uint constant useOracle_mask_inv = ~useOracle_mask;
+uint constant notify_mask_inv    = ~notify_mask;
+uint constant dead_mask_inv      = ~dead_mask;
+
 library Library {
   function to_struct(GlobalPacked __packed) internal pure returns (GlobalUnpacked memory __s) { unchecked {
     __s.monitor   = address(uint160((GlobalPacked.unwrap(__packed) << monitor_before) >> (256 - monitor_bits)));
-    __s.useOracle = (((GlobalPacked.unwrap(__packed) << useOracle_before) >> (256 - useOracle_bits)) > 0);
-    __s.notify    = (((GlobalPacked.unwrap(__packed) << notify_before) >> (256 - notify_bits)) > 0);
+    __s.useOracle = (GlobalPacked.unwrap(__packed) & useOracle_mask_inv > 0);
+    __s.notify    = (GlobalPacked.unwrap(__packed) & notify_mask_inv > 0);
     __s.gasprice  = (GlobalPacked.unwrap(__packed) << gasprice_before) >> (256 - gasprice_bits);
     __s.gasmax    = (GlobalPacked.unwrap(__packed) << gasmax_before) >> (256 - gasmax_bits);
-    __s.dead      = (((GlobalPacked.unwrap(__packed) << dead_before) >> (256 - dead_bits)) > 0);
+    __s.dead      = (GlobalPacked.unwrap(__packed) & dead_mask_inv > 0);
   }}
 
   function eq(GlobalPacked __packed1, GlobalPacked __packed2) internal pure returns (bool) { unchecked {
@@ -68,11 +73,11 @@ library Library {
 
   function unpack(GlobalPacked __packed) internal pure returns (address __monitor, bool __useOracle, bool __notify, uint __gasprice, uint __gasmax, bool __dead) { unchecked {
     __monitor   = address(uint160((GlobalPacked.unwrap(__packed) << monitor_before) >> (256 - monitor_bits)));
-    __useOracle = (((GlobalPacked.unwrap(__packed) << useOracle_before) >> (256 - useOracle_bits)) > 0);
-    __notify    = (((GlobalPacked.unwrap(__packed) << notify_before) >> (256 - notify_bits)) > 0);
+    __useOracle = (GlobalPacked.unwrap(__packed) & useOracle_mask_inv > 0);
+    __notify    = (GlobalPacked.unwrap(__packed) & notify_mask_inv > 0);
     __gasprice  = (GlobalPacked.unwrap(__packed) << gasprice_before) >> (256 - gasprice_bits);
     __gasmax    = (GlobalPacked.unwrap(__packed) << gasmax_before) >> (256 - gasmax_bits);
-    __dead      = (((GlobalPacked.unwrap(__packed) << dead_before) >> (256 - dead_bits)) > 0);
+    __dead      = (GlobalPacked.unwrap(__packed) & dead_mask_inv > 0);
   }}
 
   function monitor(GlobalPacked __packed) internal pure returns(address) { unchecked {
@@ -86,7 +91,7 @@ library Library {
   }}
   
   function useOracle(GlobalPacked __packed) internal pure returns(bool) { unchecked {
-    return (((GlobalPacked.unwrap(__packed) << useOracle_before) >> (256 - useOracle_bits)) > 0);
+    return (GlobalPacked.unwrap(__packed) & useOracle_mask_inv > 0);
   }}
 
   function useOracle(GlobalPacked __packed,bool val) internal pure returns(GlobalPacked) { unchecked {
@@ -96,7 +101,7 @@ library Library {
   }}
   
   function notify(GlobalPacked __packed) internal pure returns(bool) { unchecked {
-    return (((GlobalPacked.unwrap(__packed) << notify_before) >> (256 - notify_bits)) > 0);
+    return (GlobalPacked.unwrap(__packed) & notify_mask_inv > 0);
   }}
 
   function notify(GlobalPacked __packed,bool val) internal pure returns(GlobalPacked) { unchecked {
@@ -126,7 +131,7 @@ library Library {
   }}
   
   function dead(GlobalPacked __packed) internal pure returns(bool) { unchecked {
-    return (((GlobalPacked.unwrap(__packed) << dead_before) >> (256 - dead_bits)) > 0);
+    return (GlobalPacked.unwrap(__packed) & dead_mask_inv > 0);
   }}
 
   function dead(GlobalPacked __packed,bool val) internal pure returns(GlobalPacked) { unchecked {

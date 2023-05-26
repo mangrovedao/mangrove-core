@@ -25,8 +25,9 @@ class Field {
   name: string;
   type: string;
   bits: number;
-  vars: { before: string; mask: string; bits: string; }
+  vars: { before: string; mask: string; bits: string; mask_inv: string | undefined; }
   mask: string;
+  mask_inv: string | undefined;
 
   constructor(data: field_def) {
     this.name = data.name;
@@ -35,15 +36,24 @@ class Field {
     this.vars = {
       before: field_var(this.name, "before"),
       mask: field_var(this.name, "mask"),
+      mask_inv: this.type === "bool" ? field_var(this.name, "mask_inv") : undefined,
       bits: field_var(this.name, "bits"),
     };
     // cleanup-mask: 0s at field location, 1s elsewhere
     this.mask = `~((ONES << 256 - ${this.vars.bits}) >> ${this.vars.before})`;
+    // bool-mask: 1s at field location, 0s elsewhere
+    if (this.type === "bool") {
+      this.mask_inv = `~${this.vars.mask}`;
+    }
   }
 
   extract(from: string) {
-    const uint_val = `(${from} << ${this.vars.before}) >> (256 - ${this.vars.bits})`;
-    return this.from_uint(uint_val);
+    if (this.type === "bool") {
+      return `(${from} & ${this.vars.mask_inv} > 0)`;
+    } else {
+      const uint_val = `(${from} << ${this.vars.before}) >> (256 - ${this.vars.bits})`;
+      return this.from_uint(uint_val);
+    }
   }
 
   from_uint(uint_val: string) {

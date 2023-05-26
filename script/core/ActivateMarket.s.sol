@@ -46,6 +46,24 @@ contract ActivateMarket is Deployer {
     2. Multiply by 1e9
     3. Round to nearest integer
   */
+
+  function innerRun(
+    Mangrove mgv,
+    MgvReader reader,
+    IERC20 tkn1,
+    IERC20 tkn2,
+    uint tkn1_in_gwei,
+    uint tkn2_in_gwei,
+    uint fee
+  ) public {
+    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+    innerRun(mgv, global.gasprice(), reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
+  }
+
+  /**
+   * innerRun with gasprice override to allow requiring a higher density without require more bounties from makers
+   */
+
   function innerRun(
     Mangrove mgv,
     uint gaspriceOverride,
@@ -75,21 +93,5 @@ contract ActivateMarket is Deployer {
     });
 
     new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, reader: reader});
-  }
-
-  /**
-   * innerRun with no gasprice override (Mangrove's gasprice is used to compute density)
-   */
-  function innerRun(
-    Mangrove mgv,
-    MgvReader reader,
-    IERC20 tkn1,
-    IERC20 tkn2,
-    uint tkn1_in_gwei,
-    uint tkn2_in_gwei,
-    uint fee
-  ) public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    innerRun(mgv, global.gasprice(), reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
   }
 }

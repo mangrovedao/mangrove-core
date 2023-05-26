@@ -29,7 +29,7 @@ contract MintableERC20BLWithDecimals is
     admins[admin] = true;
   }
 
-  function mint(address to, uint amount) external {
+  function mint(address to, uint amount) external virtual {
     mintRestricted(to, amount);
   }
 

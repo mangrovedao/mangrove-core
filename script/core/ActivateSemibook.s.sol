@@ -50,7 +50,7 @@ contract ActivateSemibook is Test2, Deployer {
     */
     uint outbound_gas = measureTransferGas(outbound_tkn);
     uint inbound_gas = measureTransferGas(inbound_tkn);
-    uint gasbase = outbound_gas + inbound_gas;
+    uint gasbase = 2 * (outbound_gas + inbound_gas);
     console.log("Measured gasbase: %d", gasbase);
 
     /* 
@@ -90,18 +90,15 @@ contract ActivateSemibook is Test2, Deployer {
 
   function measureTransferGas(IERC20 tkn) internal returns (uint) {
     address someone = freshAddress();
-    address someoneElse = freshAddress();
     vm.prank(someone);
-    tkn.approve(address(this), 2);
+    tkn.approve(address(this), type(uint).max);
     deal(address(tkn), someone, 10);
     /* WARNING: gas metering is done by local execution, which means that on
      * networks that have different EIPs activated, there will be discrepancies. */
-    _gas();
+    uint post;
+    uint pre = gasleft();
     tkn.transferFrom(someone, address(this), 1);
-    uint g = gas_(true);
-    _gas();
-    tkn.transfer(someoneElse, 1);
-    g += gas_(true);
-    return g;
+    post = gasleft();
+    return pre - post;
   }
 }

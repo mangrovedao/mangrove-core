@@ -220,7 +220,9 @@ contract AavePooledRouterTest is OfferLogicTest {
     assertEq(pooledRouter.sharesOf(dai, maker1), 0, "Incorrect shares");
   }
 
-  function test_mockup_marketOrder_gas_cost() public {
+  // disabled; only works without optimizer=false
+  // TODO adapt to changing optimizer settings (or remove)
+  function disabled_test_mockup_marketOrder_gas_cost() public {
     deal($(dai), maker1, 10 ** 18);
 
     vm.startPrank(maker1);

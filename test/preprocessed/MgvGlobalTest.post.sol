@@ -37,11 +37,11 @@ contract MgvGlobalTest is Test {
 
       assertEq(modified.monitor(),monitor,"modified: bad monitor");
 
-      assertEq(modified.useOracle(),modified.useOracle(),"modified: bad useOracle");
-      assertEq(modified.notify(),modified.notify(),"modified: bad notify");
-      assertEq(modified.gasprice(),modified.gasprice(),"modified: bad gasprice");
-      assertEq(modified.gasmax(),modified.gasmax(),"modified: bad gasmax");
-      assertEq(modified.dead(),modified.dead(),"modified: bad dead");
+      assertEq(modified.useOracle(),packed.useOracle(),"modified: bad useOracle");
+      assertEq(modified.notify(),packed.notify(),"modified: bad notify");
+      assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
+      assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
+      assertEq(modified.dead(),packed.dead(),"modified: bad dead");
     }
   function test_set_useOracle(MgvStructs.GlobalPacked packed,bool useOracle) public {
       MgvStructs.GlobalPacked original = packed.useOracle(packed.useOracle());
@@ -51,11 +51,11 @@ contract MgvGlobalTest is Test {
 
       assertEq(modified.useOracle(),useOracle,"modified: bad useOracle");
 
-      assertEq(modified.monitor(),modified.monitor(),"modified: bad monitor");
-      assertEq(modified.notify(),modified.notify(),"modified: bad notify");
-      assertEq(modified.gasprice(),modified.gasprice(),"modified: bad gasprice");
-      assertEq(modified.gasmax(),modified.gasmax(),"modified: bad gasmax");
-      assertEq(modified.dead(),modified.dead(),"modified: bad dead");
+      assertEq(modified.monitor(),packed.monitor(),"modified: bad monitor");
+      assertEq(modified.notify(),packed.notify(),"modified: bad notify");
+      assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
+      assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
+      assertEq(modified.dead(),packed.dead(),"modified: bad dead");
     }
   function test_set_notify(MgvStructs.GlobalPacked packed,bool notify) public {
       MgvStructs.GlobalPacked original = packed.notify(packed.notify());
@@ -65,11 +65,11 @@ contract MgvGlobalTest is Test {
 
       assertEq(modified.notify(),notify,"modified: bad notify");
 
-      assertEq(modified.monitor(),modified.monitor(),"modified: bad monitor");
-      assertEq(modified.useOracle(),modified.useOracle(),"modified: bad useOracle");
-      assertEq(modified.gasprice(),modified.gasprice(),"modified: bad gasprice");
-      assertEq(modified.gasmax(),modified.gasmax(),"modified: bad gasmax");
-      assertEq(modified.dead(),modified.dead(),"modified: bad dead");
+      assertEq(modified.monitor(),packed.monitor(),"modified: bad monitor");
+      assertEq(modified.useOracle(),packed.useOracle(),"modified: bad useOracle");
+      assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
+      assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
+      assertEq(modified.dead(),packed.dead(),"modified: bad dead");
     }
   function test_set_gasprice(MgvStructs.GlobalPacked packed,uint gasprice) public {
       MgvStructs.GlobalPacked original = packed.gasprice(packed.gasprice());
@@ -79,11 +79,11 @@ contract MgvGlobalTest is Test {
 
       assertEq(modified.gasprice(),cast(gasprice,16),"modified: bad gasprice");
 
-      assertEq(modified.monitor(),modified.monitor(),"modified: bad monitor");
-      assertEq(modified.useOracle(),modified.useOracle(),"modified: bad useOracle");
-      assertEq(modified.notify(),modified.notify(),"modified: bad notify");
-      assertEq(modified.gasmax(),modified.gasmax(),"modified: bad gasmax");
-      assertEq(modified.dead(),modified.dead(),"modified: bad dead");
+      assertEq(modified.monitor(),packed.monitor(),"modified: bad monitor");
+      assertEq(modified.useOracle(),packed.useOracle(),"modified: bad useOracle");
+      assertEq(modified.notify(),packed.notify(),"modified: bad notify");
+      assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
+      assertEq(modified.dead(),packed.dead(),"modified: bad dead");
     }
   function test_set_gasmax(MgvStructs.GlobalPacked packed,uint gasmax) public {
       MgvStructs.GlobalPacked original = packed.gasmax(packed.gasmax());
@@ -93,11 +93,11 @@ contract MgvGlobalTest is Test {
 
       assertEq(modified.gasmax(),cast(gasmax,24),"modified: bad gasmax");
 
-      assertEq(modified.monitor(),modified.monitor(),"modified: bad monitor");
-      assertEq(modified.useOracle(),modified.useOracle(),"modified: bad useOracle");
-      assertEq(modified.notify(),modified.notify(),"modified: bad notify");
-      assertEq(modified.gasprice(),modified.gasprice(),"modified: bad gasprice");
-      assertEq(modified.dead(),modified.dead(),"modified: bad dead");
+      assertEq(modified.monitor(),packed.monitor(),"modified: bad monitor");
+      assertEq(modified.useOracle(),packed.useOracle(),"modified: bad useOracle");
+      assertEq(modified.notify(),packed.notify(),"modified: bad notify");
+      assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
+      assertEq(modified.dead(),packed.dead(),"modified: bad dead");
     }
   function test_set_dead(MgvStructs.GlobalPacked packed,bool dead) public {
       MgvStructs.GlobalPacked original = packed.dead(packed.dead());
@@ -107,11 +107,11 @@ contract MgvGlobalTest is Test {
 
       assertEq(modified.dead(),dead,"modified: bad dead");
 
-      assertEq(modified.monitor(),modified.monitor(),"modified: bad monitor");
-      assertEq(modified.useOracle(),modified.useOracle(),"modified: bad useOracle");
-      assertEq(modified.notify(),modified.notify(),"modified: bad notify");
-      assertEq(modified.gasprice(),modified.gasprice(),"modified: bad gasprice");
-      assertEq(modified.gasmax(),modified.gasmax(),"modified: bad gasmax");
+      assertEq(modified.monitor(),packed.monitor(),"modified: bad monitor");
+      assertEq(modified.useOracle(),packed.useOracle(),"modified: bad useOracle");
+      assertEq(modified.notify(),packed.notify(),"modified: bad notify");
+      assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
+      assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
     }
 
   function test_unpack(MgvStructs.GlobalPacked packed) public {

@@ -35,9 +35,9 @@ contract MgvOfferDetailTest is Test {
 
       assertEq(modified.maker(),maker,"modified: bad maker");
 
-      assertEq(modified.gasreq(),modified.gasreq(),"modified: bad gasreq");
-      assertEq(modified.offer_gasbase(),modified.offer_gasbase(),"modified: bad offer_gasbase");
-      assertEq(modified.gasprice(),modified.gasprice(),"modified: bad gasprice");
+      assertEq(modified.gasreq(),packed.gasreq(),"modified: bad gasreq");
+      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
     }
   function test_set_gasreq(MgvStructs.OfferDetailPacked packed,uint gasreq) public {
       MgvStructs.OfferDetailPacked original = packed.gasreq(packed.gasreq());
@@ -47,9 +47,9 @@ contract MgvOfferDetailTest is Test {
 
       assertEq(modified.gasreq(),cast(gasreq,24),"modified: bad gasreq");
 
-      assertEq(modified.maker(),modified.maker(),"modified: bad maker");
-      assertEq(modified.offer_gasbase(),modified.offer_gasbase(),"modified: bad offer_gasbase");
-      assertEq(modified.gasprice(),modified.gasprice(),"modified: bad gasprice");
+      assertEq(modified.maker(),packed.maker(),"modified: bad maker");
+      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
     }
   function test_set_offer_gasbase(MgvStructs.OfferDetailPacked packed,uint offer_gasbase) public {
       MgvStructs.OfferDetailPacked original = packed.offer_gasbase(packed.offer_gasbase());
@@ -59,9 +59,9 @@ contract MgvOfferDetailTest is Test {
 
       assertEq(modified.offer_gasbase(),cast(offer_gasbase,24),"modified: bad offer_gasbase");
 
-      assertEq(modified.maker(),modified.maker(),"modified: bad maker");
-      assertEq(modified.gasreq(),modified.gasreq(),"modified: bad gasreq");
-      assertEq(modified.gasprice(),modified.gasprice(),"modified: bad gasprice");
+      assertEq(modified.maker(),packed.maker(),"modified: bad maker");
+      assertEq(modified.gasreq(),packed.gasreq(),"modified: bad gasreq");
+      assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
     }
   function test_set_gasprice(MgvStructs.OfferDetailPacked packed,uint gasprice) public {
       MgvStructs.OfferDetailPacked original = packed.gasprice(packed.gasprice());
@@ -71,9 +71,9 @@ contract MgvOfferDetailTest is Test {
 
       assertEq(modified.gasprice(),cast(gasprice,16),"modified: bad gasprice");
 
-      assertEq(modified.maker(),modified.maker(),"modified: bad maker");
-      assertEq(modified.gasreq(),modified.gasreq(),"modified: bad gasreq");
-      assertEq(modified.offer_gasbase(),modified.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.maker(),packed.maker(),"modified: bad maker");
+      assertEq(modified.gasreq(),packed.gasreq(),"modified: bad gasreq");
+      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
     }
 
   function test_unpack(MgvStructs.OfferDetailPacked packed) public {

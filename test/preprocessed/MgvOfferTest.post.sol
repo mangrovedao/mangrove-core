@@ -35,9 +35,9 @@ contract MgvOfferTest is Test {
 
       assertEq(modified.prev(),cast(prev,32),"modified: bad prev");
 
-      assertEq(modified.next(),modified.next(),"modified: bad next");
-      assertEq(modified.wants(),modified.wants(),"modified: bad wants");
-      assertEq(modified.gives(),modified.gives(),"modified: bad gives");
+      assertEq(modified.next(),packed.next(),"modified: bad next");
+      assertEq(modified.wants(),packed.wants(),"modified: bad wants");
+      assertEq(modified.gives(),packed.gives(),"modified: bad gives");
     }
   function test_set_next(MgvStructs.OfferPacked packed,uint next) public {
       MgvStructs.OfferPacked original = packed.next(packed.next());
@@ -47,9 +47,9 @@ contract MgvOfferTest is Test {
 
       assertEq(modified.next(),cast(next,32),"modified: bad next");
 
-      assertEq(modified.prev(),modified.prev(),"modified: bad prev");
-      assertEq(modified.wants(),modified.wants(),"modified: bad wants");
-      assertEq(modified.gives(),modified.gives(),"modified: bad gives");
+      assertEq(modified.prev(),packed.prev(),"modified: bad prev");
+      assertEq(modified.wants(),packed.wants(),"modified: bad wants");
+      assertEq(modified.gives(),packed.gives(),"modified: bad gives");
     }
   function test_set_wants(MgvStructs.OfferPacked packed,uint wants) public {
       MgvStructs.OfferPacked original = packed.wants(packed.wants());
@@ -59,9 +59,9 @@ contract MgvOfferTest is Test {
 
       assertEq(modified.wants(),cast(wants,96),"modified: bad wants");
 
-      assertEq(modified.prev(),modified.prev(),"modified: bad prev");
-      assertEq(modified.next(),modified.next(),"modified: bad next");
-      assertEq(modified.gives(),modified.gives(),"modified: bad gives");
+      assertEq(modified.prev(),packed.prev(),"modified: bad prev");
+      assertEq(modified.next(),packed.next(),"modified: bad next");
+      assertEq(modified.gives(),packed.gives(),"modified: bad gives");
     }
   function test_set_gives(MgvStructs.OfferPacked packed,uint gives) public {
       MgvStructs.OfferPacked original = packed.gives(packed.gives());
@@ -71,9 +71,9 @@ contract MgvOfferTest is Test {
 
       assertEq(modified.gives(),cast(gives,96),"modified: bad gives");
 
-      assertEq(modified.prev(),modified.prev(),"modified: bad prev");
-      assertEq(modified.next(),modified.next(),"modified: bad next");
-      assertEq(modified.wants(),modified.wants(),"modified: bad wants");
+      assertEq(modified.prev(),packed.prev(),"modified: bad prev");
+      assertEq(modified.next(),packed.next(),"modified: bad next");
+      assertEq(modified.wants(),packed.wants(),"modified: bad wants");
     }
 
   function test_unpack(MgvStructs.OfferPacked packed) public {

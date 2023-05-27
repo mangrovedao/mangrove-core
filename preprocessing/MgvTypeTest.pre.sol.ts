@@ -47,7 +47,7 @@ contract Mgv${s.Name}Test is Test {
       }
 
       ${s.fields.filter(f2 => f2.name !== f.name).map(f2 =>
-        `assertEq(modified.${f2.name}(),modified.${f2.name}(),"modified: bad ${f2.name}");`
+        `assertEq(modified.${f2.name}(),packed.${f2.name}(),"modified: bad ${f2.name}");`
       )}
     }`
   )}

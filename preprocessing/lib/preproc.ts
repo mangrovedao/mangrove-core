@@ -19,19 +19,19 @@ function uint_of_bool(bool b) pure returns (uint u) {
 
 uint constant ONES = type(uint).max;`;
 
-const field_var = (_name:string, prop:string) => {
+const field_var = (_name: string, prop: string) => {
   return `${_name}_${prop}`;
 };
 
-type field_def = { name: string; type: string; bits: number; };
+type field_def = { name: string; type: string; bits: number };
 
-const capitalize = (s:string) => s.slice(0, 1).toUpperCase() + s.slice(1);
+const capitalize = (s: string) => s.slice(0, 1).toUpperCase() + s.slice(1);
 
 class Field {
   name: string;
   type: string;
   bits: number;
-  vars: { before: string; mask: string; bits: string; mask_inv: string; }
+  vars: { before: string; mask: string; bits: string; mask_inv: string };
   mask: string;
   mask_inv: string | undefined;
 
@@ -116,10 +116,14 @@ class Struct {
   Name: string;
   Packed: string;
   Unpacked: string;
-  filenames: {src: string, test: string};
+  filenames: { src: string; test: string };
   fields: Field[];
 
-  constructor(name: string, fields_def: field_def[], filenamers: (_:Struct) => Struct['filenames']) {
+  constructor(
+    name: string,
+    fields_def: field_def[],
+    filenamers: (_: Struct) => Struct["filenames"]
+  ) {
     Struct.validate(fields_def);
     this.name = name;
     this.Name = capitalize(this.name);
@@ -136,7 +140,10 @@ class Struct {
   }
 }
 
-export const make_structs = (struct_defs: {[key:string]: field_def[]}, filenamer: (_:Struct) => Struct['filenames']) => {
+export const make_structs = (
+  struct_defs: { [key: string]: field_def[] },
+  filenamer: (_: Struct) => Struct["filenames"]
+) => {
   return Object.entries(struct_defs).map(([name, fields_def]) => {
     return new Struct(name, fields_def, filenamer);
   });

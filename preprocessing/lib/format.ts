@@ -1,6 +1,6 @@
 // template tag that converts array to separate lines but keeps the current
 // indent level
-export const format = (strings:TemplateStringsArray, ...nuggets:any[]) => {
+export const format = (strings: TemplateStringsArray, ...nuggets: any[]) => {
   let output = "";
   strings.forEach((str, i) => {
     output += str;
@@ -24,7 +24,7 @@ export const format = (strings:TemplateStringsArray, ...nuggets:any[]) => {
 // takes an array of arrays all of the same length
 // returns an array of strings with aligned columns (except the last)
 // example: [['s','= 123'],['long',''= 2']] becomes ['s   = 123','long=2']
-export const tabulate = (table:string[][]) => {
+export const tabulate = (table: string[][]) => {
   const zeroes = Array((table[0] ?? []).length).fill(0);
   const maxes = table.reduce(
     (acc, row) => acc.map((max, i) => Math.max(max, row[i].length)),

@@ -1,2 +1,2 @@
 // Ignore preprocessing templates
-*.pre.sol.js
+*.pre.sol.ts

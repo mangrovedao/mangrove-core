@@ -88,7 +88,7 @@ const fields = {
   offer_gasbase: { name: "offer_gasbase", bits: 24, type: "uint" },
 };
 
-const id_field = (name:string) => {
+const id_field = (name: string) => {
   return { name, bits: 32, type: "uint" };
 };
 

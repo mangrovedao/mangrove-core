@@ -19,7 +19,7 @@
   },
   "lint-staged": {
     "*.sol": "forge fmt",
-    "*.{js,css,md,json}": "prettier --write --ignore-unknown"
+    "*.{js,css,md,json,ts}": "prettier --write --ignore-unknown"
   },
   "files": [
     "/dist",

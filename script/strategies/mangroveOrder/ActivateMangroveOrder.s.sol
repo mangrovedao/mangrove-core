@@ -25,10 +25,7 @@ contract ActivateMangroveOrder is Deployer {
       iercs[i] = IERC20(envAddressOrName(tkns[i]));
     }
 
-    innerRun({
-      mgvOrder: MangroveOrder(envAddressOrName("MANGROVE_ORDER", "MangroveOrder")),
-      iercs: iercs
-    });
+    innerRun({mgvOrder: MangroveOrder(envAddressOrName("MANGROVE_ORDER", "MangroveOrder")), iercs: iercs});
   }
 
   function innerRun(MangroveOrder mgvOrder, IERC20[] memory iercs) public {

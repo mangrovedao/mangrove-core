@@ -41,12 +41,11 @@ contract TakerOperationsTest is MangroveTest {
     failmkr.provisionMgv(1 ether);
     failmkr.approveMgv(base, 10 ether);
 
-    base.mint(address(mkr), 5 ether);
-    base.mint(address(failmkr), 5 ether);
-    base.mint(address(refusemkr), 5 ether);
+    deal($(base), address(mkr), 5 ether);
+    deal($(base), address(failmkr), 5 ether);
+    deal($(base), address(refusemkr), 5 ether);
 
-    quote.mint($(this), 5 ether);
-    quote.mint($(this), 5 ether);
+    deal($(quote), address(this), 10 ether);
   }
 
   function test_snipe_reverts_if_taker_is_blacklisted_for_quote() public {

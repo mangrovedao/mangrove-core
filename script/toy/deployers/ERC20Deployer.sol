@@ -6,7 +6,7 @@ import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 /* 
-This script deploys a testToken ERC20. Grants admin rights to `msg.sender`*/
+This script deploys a testToken ERC20. Grants admin rights to `broadcaster`*/
 /* Example:
 NAME="USDC" \
 SYMBOL=MGV_USDC \

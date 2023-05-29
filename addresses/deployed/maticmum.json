@@ -34,5 +34,17 @@
   {
     "address": "0xB3ba79DB150E8650efa5c534EEaf6404a25Fdf00",
     "name": "AavePooledRouter"
+  },
+  {
+    "address": "0x4eD5b78ad82E61CA64E91f3f561a6531718BC9c1",
+    "name": "MGV_USDC"
+  },
+  {
+    "address": "0x99E1cfAE2696649386F11adbba48bA2d813E5e52",
+    "name": "MGV_WETH"
+  },
+  {
+    "address": "0xdfD37aF9483BA2Eb06d6Eb48E9D8934763Ed73BE",
+    "name": "MGV_DAI"
   }
 ]

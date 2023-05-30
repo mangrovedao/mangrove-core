@@ -17,9 +17,13 @@ import {
 import {ActivateMarket, IERC20} from "mgv_script/core/ActivateMarket.s.sol";
 import {ActivateMangroveOrder, MangroveOrder} from "mgv_script/strategies/mangroveOrder/ActivateMangroveOrder.s.sol";
 import {KandelSower, IMangrove} from "mgv_script/strategies/kandel/KandelSower.s.sol";
+import {IPoolAddressesProvider} from "mgv_src/strategies/vendor/aave/v3/IPoolAddressesProvider.sol";
+import {IPriceOracleGetter} from "mgv_src/strategies/vendor/aave/v3/IPriceOracleGetter.sol";
 
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+
+import {console} from "forge-std/console.sol";
 
 /**
  * Deploy and configure a complete Mangrove testnet deployment:
@@ -27,11 +31,19 @@ import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
  * - MangroveOrder
  * - KandelSeeder and AaveKandelSeeder
  * - open markets: DAI/USDC, WETH/DAI, WETH/USDC
+ * - prices given by the oracle are in USD with 8 decimals of precision.
+ *      Script will throw if oracle uses ETH as base currency instead of USD (as oracle contract permits).
  */
 contract MumbaiMangroveFullTestnetDeployer is Deployer {
+  uint internal maticPrice;
+
   function run() public {
     runWithChainSpecificParams();
     outputDeployment();
+  }
+
+  function toGweiOfMatic(uint price) internal view returns (uint) {
+    return (price * 10 ** 9) / maticPrice;
   }
 
   function runWithChainSpecificParams() public {
@@ -39,6 +51,9 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
     new MumbaiMangroveDeployer().runWithChainSpecificParams();
     Mangrove mgv = Mangrove(fork.get("Mangrove"));
     MgvReader reader = MgvReader(fork.get("MgvReader"));
+    IPriceOracleGetter priceOracle =
+      IPriceOracleGetter(IPoolAddressesProvider(fork.get("Aave")).getAddress("PRICE_ORACLE"));
+    require(priceOracle.BASE_CURRENCY() == address(0), "script assumes base currency is in USD");
 
     // Deploy MangroveOrder
     new MumbaiMangroveOrderDeployer().runWithChainSpecificParams();
@@ -51,31 +66,41 @@ contract MumbaiMangroveFullTestnetDeployer is Deployer {
     IERC20 dai = IERC20(fork.get("DAI"));
     IERC20 usdc = IERC20(fork.get("USDC"));
     IERC20 weth = IERC20(fork.get("WETH"));
+
+    uint[] memory prices = priceOracle.getAssetsPrices(dynamic([address(dai), address(usdc), address(weth)]));
+    maticPrice = priceOracle.getAssetPrice(fork.get("WMATIC"));
+
+    // 1 token_i = (prices[i] / 10**8) USD
+    // 1 USD = (10**8 / maticPrice) Matic
+    // 1 token_i = (prices[i] * 10**9 / maticPrice) gwei of Matic
     new ActivateMarket().innerRun({
       mgv: mgv,
+      gaspriceOverride: 140, // this overrides Mangrove's gasprice for the computation of market's density
       reader: reader,
       tkn1: dai,
       tkn2: usdc,
-      tkn1_in_gwei: 35999750,
-      tkn2_in_gwei: 40000000,
+      tkn1_in_gwei: toGweiOfMatic(prices[0]),
+      tkn2_in_gwei: toGweiOfMatic(prices[1]),
       fee: 0
     });
     new ActivateMarket().innerRun({
       mgv: mgv,
+      gaspriceOverride: 140,
       reader: reader,
       tkn1: weth,
       tkn2: dai,
-      tkn1_in_gwei: 140245027725,
-      tkn2_in_gwei: 35999750,
+      tkn1_in_gwei: toGweiOfMatic(prices[2]),
+      tkn2_in_gwei: toGweiOfMatic(prices[0]),
       fee: 0
     });
     new ActivateMarket().innerRun({
       mgv: mgv,
+      gaspriceOverride: 140,
       reader: reader,
       tkn1: weth,
       tkn2: usdc,
-      tkn1_in_gwei: 140245027725,
-      tkn2_in_gwei: 40000000,
+      tkn1_in_gwei: toGweiOfMatic(prices[2]),
+      tkn2_in_gwei: toGweiOfMatic(prices[1]),
       fee: 0
     });
 

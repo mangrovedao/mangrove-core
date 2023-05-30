@@ -22,7 +22,7 @@ contract ActivateMangroveOrder is Deployer {
     string[] memory tkns = vm.envString("TKNS", ",");
     IERC20[] memory iercs = new IERC20[](tkns.length);
     for (uint i = 0; i < tkns.length; ++i) {
-      iercs[i] = IERC20(envAddressOrName(tkns[i]));
+      iercs[i] = IERC20(fork.get(tkns[i]));
     }
 
     innerRun({mgvOrder: MangroveOrder(envAddressOrName("MANGROVE_ORDER", "MangroveOrder")), iercs: iercs});

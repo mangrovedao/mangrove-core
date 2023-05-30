@@ -71,7 +71,7 @@ contract ScenariiTest is MangroveTest {
       deal($(base), address(maker), 5 ether);
     }
 
-    quote.mint(address(taker), 5 ether);
+    deal($(quote), address(taker), 5 ether);
     taker.approveMgv(quote, 5 ether);
     taker.approveMgv(base, 50 ether);
     saveBalances();

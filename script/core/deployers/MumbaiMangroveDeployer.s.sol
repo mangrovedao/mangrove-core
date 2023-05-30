@@ -11,7 +11,7 @@ import {MangroveDeployer} from "./MangroveDeployer.s.sol";
  */
 contract MumbaiMangroveDeployer is Deployer {
   MangroveDeployer public mangroveDeployer;
-  uint public gasprice = 50;
+  uint public gasprice = 1;
   uint public gasmax = 1_000_000;
 
   function run() public {

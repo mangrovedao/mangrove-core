@@ -15,24 +15,24 @@ contract TestTokenTest is MangroveTest {
   function test_mint_once_below_limit_succeeds(uint amount) public {
     vm.assume(amount < 100 * 10 ** base.decimals());
     uint b = base.balanceOf(address(this));
-    base.mint(address(this), 100);
+    base.mint(100);
     assertEq(base.balanceOf(address(this)), 100 + b, "mint failed");
   }
 
   function test_mint_once_above_limit_fails() public {
     uint amount = 101 * 10 ** base.decimals();
     vm.expectRevert("Too much minting required");
-    base.mint(address(this), amount);
+    base.mint(amount);
   }
 
   function test_mint_twice_below_limit_fails() public {
-    base.mint(address(this), 10);
+    base.mint(10);
     vm.expectRevert("Too frequent minting required");
-    base.mint(address(this), 10);
+    base.mint(10);
   }
 
   function test_admin_can_burn() public {
-    base.mint(address(this), 10);
+    base.mint(10);
     vm.expectRevert("TestToken/adminOnly");
     vm.prank(freshAddress());
     base.burn(address(this), 10);

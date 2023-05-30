@@ -16,6 +16,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {ActivateMarket} from "mgv_script/core/ActivateMarket.s.sol";
 import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
+import "forge-std/console.sol";
 
 /* 
 This script prepares a local server for testing by mangrove.js.
@@ -26,13 +27,13 @@ interact with.  b) For any additional deployments needed, those files should be
 hosted in mangrove.js.*/
 
 contract MangroveJsDeploy is Deployer {
-  TestToken tokenA;
-  TestToken tokenB;
-  IERC20 dai;
-  IERC20 usdc;
-  IERC20 weth;
-  SimpleTestMaker simpleTestMaker;
-  MangroveOrder mgo;
+  TestToken public tokenA;
+  TestToken public tokenB;
+  IERC20 public dai;
+  IERC20 public usdc;
+  IERC20 public weth;
+  SimpleTestMaker public simpleTestMaker;
+  MangroveOrder public mgo;
 
   function run() public {
     innerRun({chief: broadcaster(), gasprice: 1, gasmax: 2_000_000, gasbot: broadcaster()});
@@ -40,7 +41,9 @@ contract MangroveJsDeploy is Deployer {
   }
 
   function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public {
-    fork.set("MgvGovernance", chief);
+    if (chief != broadcaster()) {
+      console.log("Warning: chief is not the broadcaster; deployed contracts will not obey their orders.");
+    }
     MangroveDeployer mgvDeployer = new MangroveDeployer();
 
     mgvDeployer.innerRun({chief: chief, gasprice: gasprice, gasmax: gasmax, gasbot: gasbot});
@@ -58,7 +61,11 @@ contract MangroveJsDeploy is Deployer {
       symbol: "TokenA",
       _decimals: 18
     });
+
+    broadcast();
+    tokenA.setMintLimit(type(uint).max);
     fork.set("TokenA", address(tokenA));
+
     broadcast();
     tokenA.setMintLimit(type(uint).max);
 
@@ -69,7 +76,11 @@ contract MangroveJsDeploy is Deployer {
       symbol: "TokenB",
       _decimals: 6
     });
+
+    broadcast();
+    tokenB.setMintLimit(type(uint).max);
     fork.set("TokenB", address(tokenB));
+
     broadcast();
     tokenB.setMintLimit(type(uint).max);
 

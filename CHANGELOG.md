@@ -1,5 +1,8 @@
 # Next version
 
+- Fix: Make KandelSeederDeployer robust wrt missing `MgvGovernance` address
+- Fix: Set `MgvGovernance` in MangroveJsDeploy
+
 # 1.5.3
 
 - deploy WBTC, WMATIC, and USDT test tokens on Mumbai testnet

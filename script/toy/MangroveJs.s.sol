@@ -40,6 +40,7 @@ contract MangroveJsDeploy is Deployer {
   }
 
   function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public {
+    fork.set("MgvGovernance", chief);
     MangroveDeployer mgvDeployer = new MangroveDeployer();
 
     mgvDeployer.innerRun({chief: chief, gasprice: gasprice, gasmax: gasmax, gasbot: gasbot});

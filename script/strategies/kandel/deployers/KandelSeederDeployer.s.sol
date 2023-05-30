@@ -75,8 +75,7 @@ contract KandelSeederDeployer is Deployer {
     IERC20 quote = IERC20(fork.get("DAI"));
 
     // Ensure that WETH/DAI market is open on Mangrove
-    address mgvGovernance = fork.get("MgvGovernance");
-    vm.startPrank(mgvGovernance);
+    vm.startPrank(mgv.governance());
     mgv.activate(address(base), address(quote), 0, 1, 1);
     mgv.activate(address(quote), address(base), 0, 1, 1);
     vm.stopPrank();

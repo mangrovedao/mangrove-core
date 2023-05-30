@@ -8,6 +8,12 @@ import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 
 import {console} from "forge-std/console.sol";
 
+/**
+ * updates the mint limit of a faucet on mumbai
+ * usage:
+ * TOKEN=WMATIC AMOUNT=$(cast ff 18 100000) forge script --fork-url mumbai MumbaiFaucetSetLimit
+ */
+
 contract MumbaiFaucetSetLimit is Deployer {
   function run() public {
     TestToken token = TestToken(envAddressOrName("TOKEN"));

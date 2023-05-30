@@ -36,15 +36,15 @@
     "name": "AavePooledRouter"
   },
   {
-    "address": "0x4eD5b78ad82E61CA64E91f3f561a6531718BC9c1",
-    "name": "MGV_USDC"
+    "address": "0x193163EeFfc795F9d573b171aB12cCDdE10392e8",
+    "name": "WMATIC"
   },
   {
-    "address": "0x99E1cfAE2696649386F11adbba48bA2d813E5e52",
-    "name": "MGV_WETH"
+    "address": "0xf402f6197d979F0A4cba61596921a3d762520570",
+    "name": "WBTC"
   },
   {
-    "address": "0xdfD37aF9483BA2Eb06d6Eb48E9D8934763Ed73BE",
-    "name": "MGV_DAI"
+    "address": "0xe8099699aa4A79d89dBD20A63C50b7d35ED3CD9e",
+    "name": "USDT"
   }
 ]

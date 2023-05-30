@@ -1,6 +1,10 @@
 # Next version
 
-- deploy scripts on mumbai uses chainling oracle for density parameters
+# 1.5.3
+
+- deploy WBTC, WMATIC, and USDT test tokens on Mumbai testnet
+- Fix: Error in ActivateMangroveOrder script fixed
+- deploy scripts on Mumbai uses chainling oracle for density parameters
 
 # 1.5.2
 

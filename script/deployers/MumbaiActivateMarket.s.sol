@@ -5,20 +5,8 @@ import {ToyENS} from "mgv_lib/ToyENS.sol";
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 
-import {MumbaiMangroveDeployer} from "mgv_script/core/deployers/MumbaiMangroveDeployer.s.sol";
-import {MumbaiMangroveOrderDeployer} from
-  "mgv_script/strategies/mangroveOrder/deployers/MumbaiMangroveOrderDeployer.s.sol";
-import {
-  MumbaiKandelSeederDeployer,
-  KandelSeeder,
-  AaveKandelSeeder
-} from "mgv_script/strategies/kandel/deployers/MumbaiKandelSeederDeployer.s.sol";
-
 import {ActivateMarket, IERC20} from "mgv_script/core/ActivateMarket.s.sol";
 import {ActivateMangroveOrder, MangroveOrder} from "mgv_script/strategies/mangroveOrder/ActivateMangroveOrder.s.sol";
-import {KandelSower, IMangrove} from "mgv_script/strategies/kandel/KandelSower.s.sol";
-import {IPoolAddressesProvider} from "mgv_src/strategies/vendor/aave/v3/IPoolAddressesProvider.sol";
-import {IPriceOracleGetter} from "mgv_src/strategies/vendor/aave/v3/IPriceOracleGetter.sol";
 
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";

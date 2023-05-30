@@ -1,4 +1,8 @@
 // SPDX-License-Identifier:	AGPL-3.0
+// !!! Warning !!!
+// This is a faucet token contract with freely mintable token intended for testing purpose.
+// Do not use for value bearing tokens!
+
 pragma solidity ^0.8.10;
 
 import "mgv_src/toy/ERC20BL.sol";
@@ -15,10 +19,13 @@ contract TestToken is ERC20BL {
     NoRevert
   }
 
-  mapping(address => bool) admins;
+  mapping(address => bool) public admins;
   uint public __decimals; // full uint to help forge-std's stdstore
   // failSoftly triggers a `return false`, not a revert
-  bool _failSoftly = false;
+  bool internal _failSoftly = false;
+  // minting disabled by default
+  uint public mintLimit = 0;
+
   MethodResponse internal _approveResponse = MethodResponse.Normal;
   MethodResponse internal _transferResponse = MethodResponse.Normal;
 
@@ -27,15 +34,23 @@ contract TestToken is ERC20BL {
     __decimals = _decimals;
   }
 
+  function setMintLimit(uint limit) external {
+    requireAdmin();
+    mintLimit = limit;
+  }
+
   function failSoftly(bool toggle) public {
+    requireAdmin();
     _failSoftly = toggle;
   }
 
   function approveResponse(MethodResponse response) external {
+    requireAdmin();
     _approveResponse = response;
   }
 
   function transferResponse(MethodResponse response) external {
+    requireAdmin();
     _transferResponse = response;
   }
 
@@ -75,12 +90,23 @@ contract TestToken is ERC20BL {
     requireAdmin();
     admins[admin] = false;
   }
+  // freely mintable erc20
+  // mintLimit prevents minting too much by mistake
+  // hot SSLOAD detection prevents calling mint several times per tx
 
-  function mint(address to, uint amount) external {
-    requireAdmin();
+  function mint(uint amount) external {
+    mintTo(msg.sender, amount);
+  }
+
+  function mintTo(address to, uint amount) public {
+    uint g = gasleft();
+    uint limit = mintLimit; //SLOAD should be 2100 not 100
+    require(g - gasleft() > 2000, "Too frequent minting required");
+    require(amount <= limit, "Too much minting required");
     _mint(to, amount);
   }
 
+  // only admin can burn
   function burn(address from, uint amount) external {
     requireAdmin();
     _burn(from, amount);

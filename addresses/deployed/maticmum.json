@@ -34,5 +34,17 @@
   {
     "address": "0xB3ba79DB150E8650efa5c534EEaf6404a25Fdf00",
     "name": "AavePooledRouter"
+  },
+  {
+    "address": "0x193163EeFfc795F9d573b171aB12cCDdE10392e8",
+    "name": "WMATIC"
+  },
+  {
+    "address": "0xf402f6197d979F0A4cba61596921a3d762520570",
+    "name": "WBTC"
+  },
+  {
+    "address": "0xe8099699aa4A79d89dBD20A63C50b7d35ED3CD9e",
+    "name": "USDT"
   }
 ]

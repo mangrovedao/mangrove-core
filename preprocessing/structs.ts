@@ -25,7 +25,7 @@
 
 The current file (`structs.js`) is used in `MgvStructs.pre.sol` (not shown here) to generate the libraries in `MgvType.pre.sol`. Here is an example of js struct specification and of a generated library:
 ```
-structs = {
+struct_defs = {
   universe: [
     {name: "serialnumber", bits: 16, type: "uint"},
     {name: "hospitable",bits: 8, type:"bool"}
@@ -78,8 +78,6 @@ uni.hospitable(true);
 
 /* Struct-like data structures are stored in storage and memory as 256 bits words. We avoid using structs due to significant gas savings gained by extracting data from words only when needed. To make development easier, we use the preprocessor `solpp` and generate getters and setters for each struct we declare. The generation is defined in `lib/preproc.js`. */
 
-const preproc = require("./lib/preproc.js");
-
 /* Struct fields that are common to multiple structs are factored here. Multiple field names refer to offer identifiers, so the `id` field is a function that takes a name as argument. */
 
 const fields = {
@@ -90,7 +88,7 @@ const fields = {
   offer_gasbase: { name: "offer_gasbase", bits: 24, type: "uint" },
 };
 
-const id_field = (name) => {
+const id_field = (name: string) => {
   return { name, bits: 32, type: "uint" };
 };
 
@@ -100,7 +98,7 @@ const id_field = (name) => {
 //+clear+
 /* `Offer`s hold the doubly-linked list pointers as well as price and volume information. 256 bits wide, so one storage read is enough. They have the following fields: */
 //+clear+
-const structs = {
+const struct_defs = {
   offer: [
     /* * `prev` points to immediately better offer. The best offer's `prev` is 0. _32 bits wide_. */
 
@@ -176,22 +174,22 @@ They have the following fields: */
     /* * The `monitor` can provide realtime values for `gasprice` and `density` to the dex, and receive liquidity events notifications. */
     { name: "monitor", bits: 160, type: "address" },
     /* * If `useOracle` is true, the dex will use the monitor address as an oracle for `gasprice` and `density`, for every outbound_tkn/inbound_tkn pair. */
-    { name: "useOracle", bits: 8, type: "bool" },
+    { name: "useOracle", bits: 1, type: "bool" },
     /* * If `notify` is true, the dex will notify the monitor address after every offer execution. */
-    { name: "notify", bits: 8, type: "bool" },
+    { name: "notify", bits: 1, type: "bool" },
     /* * The `gasprice` is the amount of penalty paid by failed offers, in gwei per gas used. `gasprice` should approximate the average gas price and will be subject to regular updates. */
     fields.gasprice,
     /* * `gasmax` specifies how much gas an offer may ask for at execution time. An offer which asks for more gas than the block limit would live forever on the book. Nobody could take it or remove it, except its creator (who could cancel it). In practice, we will set this parameter to a reasonable limit taking into account both practical transaction sizes and the complexity of maker contracts.
      */
     { name: "gasmax", bits: 24, type: "uint" },
     /* * `dead` dexes cannot be resurrected. */
-    { name: "dead", bits: 8, type: "bool" },
+    { name: "dead", bits: 1, type: "bool" },
   ],
 
   /* ### Local configuration */
   local: [
     /* * A `outbound_tkn`,`inbound_tkn` pair is in`active` by default, but may be activated/deactivated by governance. */
-    { name: "active", bits: 8, type: "bool" },
+    { name: "active", bits: 1, type: "bool" },
     /* * `fee`, in basis points, of `outbound_tkn` given to the taker. This fee is sent to Mangrove. Fee is capped to 5%. */
     { name: "fee", bits: 16, type: "uint" },
     /* * `density` is similar to a 'dust' parameter. We prevent spamming of low-volume offers by asking for a minimum 'density' in `outbound_tkn` per gas requested. For instance, if `density == 10`, `offer_gasbase == 5000`, an offer with `gasreq == 30000` must promise at least _10 × (30000 + 5000) = 350000_ `outbound_tkn`. _112 bits wide_. */
@@ -207,7 +205,7 @@ They have the following fields: */
 
 Note: An optimization in the `marketOrder` function relies on reentrancy being forbidden.
      */
-    { name: "lock", bits: 8, type: "bool" },
+    { name: "lock", bits: 1, type: "bool" },
     /* * `best` holds the current best offer id. Has size of an id field. *Danger*: reading best inside a lock may give you a stale value. */
     id_field("best"),
     /* * `last` is a counter for offer ids, incremented every time a new offer is created. It can't go above $2^{32}-1$. */
@@ -215,4 +213,4 @@ Note: An optimization in the `marketOrder` function relies on reentrancy being f
   ],
 };
 
-module.exports = preproc.structs_with_macros(structs);
+export default struct_defs;

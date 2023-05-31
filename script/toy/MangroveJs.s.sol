@@ -16,6 +16,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {ActivateMarket} from "mgv_script/core/ActivateMarket.s.sol";
 import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
+import "forge-std/console.sol";
 
 /* 
 This script prepares a local server for testing by mangrove.js.
@@ -26,24 +27,23 @@ interact with.  b) For any additional deployments needed, those files should be
 hosted in mangrove.js.*/
 
 contract MangroveJsDeploy is Deployer {
-  TestToken tokenA;
-  TestToken tokenB;
-  IERC20 dai;
-  IERC20 usdc;
-  IERC20 weth;
-  SimpleTestMaker simpleTestMaker;
-  MangroveOrder mgo;
+  TestToken public tokenA;
+  TestToken public tokenB;
+  IERC20 public dai;
+  IERC20 public usdc;
+  IERC20 public weth;
+  SimpleTestMaker public simpleTestMaker;
+  MangroveOrder public mgo;
 
   function run() public {
-    innerRun({chief: broadcaster(), gasprice: 1, gasmax: 2_000_000, gasbot: broadcaster()});
+    innerRun({gasprice: 1, gasmax: 2_000_000, gasbot: broadcaster()});
     outputDeployment();
   }
 
-  function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public {
-    fork.set("MgvGovernance", chief);
+  function innerRun(uint gasprice, uint gasmax, address gasbot) public {
     MangroveDeployer mgvDeployer = new MangroveDeployer();
 
-    mgvDeployer.innerRun({chief: chief, gasprice: gasprice, gasmax: gasmax, gasbot: gasbot});
+    mgvDeployer.innerRun({chief: broadcaster(), gasprice: gasprice, gasmax: gasmax, gasbot: gasbot});
 
     Mangrove mgv = mgvDeployer.mgv();
     MgvReader mgvReader = mgvDeployer.reader();
@@ -53,29 +53,31 @@ contract MangroveJsDeploy is Deployer {
 
     broadcast();
     tokenA = new TestToken({
-      admin: chief,
+      admin: broadcaster(),
       name: "Token A",
       symbol: "TokenA",
       _decimals: 18
     });
-    fork.set("TokenA", address(tokenA));
+
     broadcast();
     tokenA.setMintLimit(type(uint).max);
+    fork.set("TokenA", address(tokenA));
 
     broadcast();
     tokenB = new TestToken({
-      admin: chief,
+      admin: broadcaster(),
       name: "Token B",
       symbol: "TokenB",
       _decimals: 6
     });
-    fork.set("TokenB", address(tokenB));
+
     broadcast();
     tokenB.setMintLimit(type(uint).max);
+    fork.set("TokenB", address(tokenB));
 
     broadcast();
     dai = new TestToken({
-      admin: chief,
+      admin: broadcaster(),
       name: "DAI",
       symbol: "DAI",
       _decimals: 18
@@ -84,7 +86,7 @@ contract MangroveJsDeploy is Deployer {
 
     broadcast();
     usdc = new TestToken({
-      admin: chief,
+      admin: broadcaster(),
       name: "USD Coin",
       symbol: "USDC",
       _decimals: 6
@@ -93,7 +95,7 @@ contract MangroveJsDeploy is Deployer {
 
     broadcast();
     weth = new TestToken({
-      admin: chief,
+      admin: broadcaster(),
       name: "Wrapped Ether",
       symbol: "WETH",
       _decimals: 18
@@ -116,7 +118,7 @@ contract MangroveJsDeploy is Deployer {
     activateMarket.innerRun(mgv, mgvReader, weth, usdc, 1e9, 1e9 / 1000, 0);
 
     MangroveOrderDeployer mgoeDeployer = new MangroveOrderDeployer();
-    mgoeDeployer.innerRun({admin: chief, mgv: IMangrove(payable(mgv))});
+    mgoeDeployer.innerRun({admin: broadcaster(), mgv: IMangrove(payable(mgv))});
 
     address[] memory underlying =
       dynamic([address(tokenA), address(tokenB), address(dai), address(usdc), address(weth)]);
@@ -133,7 +135,7 @@ contract MangroveJsDeploy is Deployer {
     });
 
     broadcast();
-    mgo = new MangroveOrder({mgv: IMangrove(payable(mgv)), deployer: chief, gasreq:30_000});
+    mgo = new MangroveOrder({mgv: IMangrove(payable(mgv)), deployer: broadcaster(), gasreq:30_000});
     fork.set("MangroveOrder", address(mgo));
   }
 }

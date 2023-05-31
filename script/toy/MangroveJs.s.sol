@@ -26,8 +26,8 @@ interact with.  b) For any additional deployments needed, those files should be
 hosted in mangrove.js.*/
 
 contract MangroveJsDeploy is Deployer {
-  IERC20 tokenA;
-  IERC20 tokenB;
+  TestToken tokenA;
+  TestToken tokenB;
   IERC20 dai;
   IERC20 usdc;
   IERC20 weth;
@@ -40,6 +40,7 @@ contract MangroveJsDeploy is Deployer {
   }
 
   function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public {
+    fork.set("MgvGovernance", chief);
     MangroveDeployer mgvDeployer = new MangroveDeployer();
 
     mgvDeployer.innerRun({chief: chief, gasprice: gasprice, gasmax: gasmax, gasbot: gasbot});
@@ -58,6 +59,8 @@ contract MangroveJsDeploy is Deployer {
       _decimals: 18
     });
     fork.set("TokenA", address(tokenA));
+    broadcast();
+    tokenA.setMintLimit(type(uint).max);
 
     broadcast();
     tokenB = new TestToken({
@@ -67,6 +70,8 @@ contract MangroveJsDeploy is Deployer {
       _decimals: 6
     });
     fork.set("TokenB", address(tokenB));
+    broadcast();
+    tokenB.setMintLimit(type(uint).max);
 
     broadcast();
     dai = new TestToken({

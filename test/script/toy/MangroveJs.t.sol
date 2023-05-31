@@ -15,7 +15,7 @@ contract MangroveJsDeployTest is MangroveTest {
     // execution
     MangroveJsDeploy deployer = new MangroveJsDeploy();
     deployer.broadcaster(chief);
-    deployer.innerRun(chief, gasprice, gasmax, gasbot);
+    deployer.innerRun(gasprice, gasmax, gasbot);
     // mintability of test tokens
     deployer.tokenA().mint(mintA);
     deployer.tokenB().mint(mintB);

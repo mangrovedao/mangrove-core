@@ -36,17 +36,14 @@ contract MangroveJsDeploy is Deployer {
   MangroveOrder public mgo;
 
   function run() public {
-    innerRun({chief: broadcaster(), gasprice: 1, gasmax: 2_000_000, gasbot: broadcaster()});
+    innerRun({gasprice: 1, gasmax: 2_000_000, gasbot: broadcaster()});
     outputDeployment();
   }
 
-  function innerRun(address chief, uint gasprice, uint gasmax, address gasbot) public {
-    if (chief != broadcaster()) {
-      console.log("Warning: chief is not the broadcaster; deployed contracts will not obey their orders.");
-    }
+  function innerRun(uint gasprice, uint gasmax, address gasbot) public {
     MangroveDeployer mgvDeployer = new MangroveDeployer();
 
-    mgvDeployer.innerRun({chief: chief, gasprice: gasprice, gasmax: gasmax, gasbot: gasbot});
+    mgvDeployer.innerRun({chief: broadcaster(), gasprice: gasprice, gasmax: gasmax, gasbot: gasbot});
 
     Mangrove mgv = mgvDeployer.mgv();
     MgvReader mgvReader = mgvDeployer.reader();
@@ -56,7 +53,7 @@ contract MangroveJsDeploy is Deployer {
 
     broadcast();
     tokenA = new TestToken({
-      admin: chief,
+      admin: broadcaster(),
       name: "Token A",
       symbol: "TokenA",
       _decimals: 18
@@ -68,7 +65,7 @@ contract MangroveJsDeploy is Deployer {
 
     broadcast();
     tokenB = new TestToken({
-      admin: chief,
+      admin: broadcaster(),
       name: "Token B",
       symbol: "TokenB",
       _decimals: 6
@@ -80,7 +77,7 @@ contract MangroveJsDeploy is Deployer {
 
     broadcast();
     dai = new TestToken({
-      admin: chief,
+      admin: broadcaster(),
       name: "DAI",
       symbol: "DAI",
       _decimals: 18
@@ -89,7 +86,7 @@ contract MangroveJsDeploy is Deployer {
 
     broadcast();
     usdc = new TestToken({
-      admin: chief,
+      admin: broadcaster(),
       name: "USD Coin",
       symbol: "USDC",
       _decimals: 6
@@ -98,7 +95,7 @@ contract MangroveJsDeploy is Deployer {
 
     broadcast();
     weth = new TestToken({
-      admin: chief,
+      admin: broadcaster(),
       name: "Wrapped Ether",
       symbol: "WETH",
       _decimals: 18
@@ -121,7 +118,7 @@ contract MangroveJsDeploy is Deployer {
     activateMarket.innerRun(mgv, mgvReader, weth, usdc, 1e9, 1e9 / 1000, 0);
 
     MangroveOrderDeployer mgoeDeployer = new MangroveOrderDeployer();
-    mgoeDeployer.innerRun({admin: chief, mgv: IMangrove(payable(mgv))});
+    mgoeDeployer.innerRun({admin: broadcaster(), mgv: IMangrove(payable(mgv))});
 
     address[] memory underlying =
       dynamic([address(tokenA), address(tokenB), address(dai), address(usdc), address(weth)]);
@@ -138,7 +135,7 @@ contract MangroveJsDeploy is Deployer {
     });
 
     broadcast();
-    mgo = new MangroveOrder({mgv: IMangrove(payable(mgv)), deployer: chief, gasreq:30_000});
+    mgo = new MangroveOrder({mgv: IMangrove(payable(mgv)), deployer: broadcaster(), gasreq:30_000});
     fork.set("MangroveOrder", address(mgo));
   }
 }

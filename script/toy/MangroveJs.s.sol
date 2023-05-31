@@ -67,9 +67,6 @@ contract MangroveJsDeploy is Deployer {
     fork.set("TokenA", address(tokenA));
 
     broadcast();
-    tokenA.setMintLimit(type(uint).max);
-
-    broadcast();
     tokenB = new TestToken({
       admin: chief,
       name: "Token B",
@@ -80,9 +77,6 @@ contract MangroveJsDeploy is Deployer {
     broadcast();
     tokenB.setMintLimit(type(uint).max);
     fork.set("TokenB", address(tokenB));
-
-    broadcast();
-    tokenB.setMintLimit(type(uint).max);
 
     broadcast();
     dai = new TestToken({

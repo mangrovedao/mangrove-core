@@ -158,10 +158,25 @@ contract KandelPopulate is Deployer {
     }
 
     prettyLog("Approving base and quote...");
+    // Bug workaround: Foundry has a bug where the nonce is not incremented when AaveKandelSeeder is deployed.
+    //                 We therefore ensure that this happens.
+    uint64 nonce = vm.getNonce(broadcaster());
     broadcast();
     vars.BASE.approve(address(args.kdl), vars.baseAmountRequired);
+    // Bug workaround: See comment above `nonce` further up
+    if (nonce == vm.getNonce(broadcaster())) {
+      vm.setNonce(broadcaster(), nonce + 1);
+    }
+
+    // Bug workaround: Foundry has a bug where the nonce is not incremented when AaveKandelSeeder is deployed.
+    //                 We therefore ensure that this happens.
+    nonce = vm.getNonce(broadcaster());
     broadcast();
     vars.QUOTE.approve(address(args.kdl), vars.quoteAmountRequired);
+    // Bug workaround: See comment above `nonce` further up
+    if (nonce == vm.getNonce(broadcaster())) {
+      vm.setNonce(broadcaster(), nonce + 1);
+    }
 
     prettyLog("Populating Mangrove...");
 

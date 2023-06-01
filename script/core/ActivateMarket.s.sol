@@ -92,6 +92,6 @@ contract ActivateMarket is Deployer {
       fee: fee
     });
 
-    new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, reader: reader});
+    // new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, reader: reader});
   }
 }

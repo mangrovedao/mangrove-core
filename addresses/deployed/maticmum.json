@@ -46,5 +46,13 @@
   {
     "address": "0xe8099699aa4A79d89dBD20A63C50b7d35ED3CD9e",
     "name": "USDT"
+  },
+  {
+    "address": "0x866320ea080545866c3f8de1599afaa4fb66e0f1",
+    "name": "Kandel_WMATIC_USDT"
+  },
+  {
+    "address": "0x33448bab0bf4a97c38365952d3136fb60e6cbd5b",
+    "name": "Kandel_WBTC_USDT"
   }
 ]

@@ -17,20 +17,22 @@ contract Keyrocker is ILiquidityProvider, OfferMaker, AaveV3Borrower {
   // router_ needs to bind to this contract
   // since one cannot assume `this` is admin of router, one cannot do this here in general
   constructor(IMangrove mgv, address deployer, uint gasreq, address addressesProvider)
-    OfferMaker(mgv, NO_ROUTER, deployer, gasreq, address(0))
+    OfferMaker(mgv, NO_ROUTER, deployer, gasreq, address(0)) // reserveID is this contract
     AaveV3Borrower(addressesProvider, 0, 2)
   {}
 
-  function tokenBalance(IERC20 token) external view returns (uint) {
-    return token.balanceOf(address(this)) + overlying(token).balanceOf(address(this));
+  function tokenBalance(IERC20 token) external view returns (uint local, uint onPool, uint debt) {
+    local = token.balanceOf(address(this));
+    onPool = overlying(token).balanceOf(RESERVE_ID);
+    debt = borrowed(address(token), RESERVE_ID);
   }
 
   function supply(IERC20 token, uint amount) public onlyAdmin {
-    _supply(token, amount, address(this), false);
+    _supply(token, amount, RESERVE_ID, false);
   }
 
   function borrow(IERC20 token, uint amount) public onlyAdmin {
-    _borrow(token, amount, address(this));
+    _borrow(token, amount, RESERVE_ID);
   }
 
   function approveLender(IERC20 token, uint amount) public onlyAdmin {
@@ -43,14 +45,19 @@ contract Keyrocker is ILiquidityProvider, OfferMaker, AaveV3Borrower {
       return 0;
     } else {
       amount = amount - outboundBalance;
-      uint got = _redeemThenBorrow(IERC20(order.inbound_tkn), address(this), amount, true, address(this));
+      uint got = _redeemThenBorrow(IERC20(order.inbound_tkn), RESERVE_ID, amount, true, address(this));
       return (amount >= got ? amount - got : 0);
     }
   }
 
   function __put__(uint amount, MgvLib.SingleOrder calldata order) internal override returns (uint) {
-    _repayThenDeposit(IERC20(order.inbound_tkn), address(this), amount);
+    _repayThenDeposit(IERC20(order.inbound_tkn), RESERVE_ID, amount);
     return 0;
+  }
+
+  function __activate__(IERC20 token) internal override {
+    super.__activate__(token);
+    _approveLender(token, type(uint).max);
   }
 
   function __posthookSuccess__(MgvLib.SingleOrder calldata order, bytes32 maker_data)

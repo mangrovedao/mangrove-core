@@ -31,7 +31,7 @@ contract AaveV3Lender {
   /// @param token the underlying asset for which approval is required
   /// @param amount the approval amount
   function _approveLender(IERC20 token, uint amount) internal {
-    TransferLib.approveToken(token, address(POOL), amount);
+    require(TransferLib.approveToken(token, address(POOL), amount), "AaveV3Lender/approvalFail");
   }
 
   /// @notice prevents the POOL from using some underlying as collateral

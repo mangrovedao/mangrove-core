@@ -11,7 +11,7 @@ contract KeyrockerDeployer is Deployer {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       admin: broadcaster(),
-      gasreq: 400_000,
+      gasreq: 600_000,
       addressesProvider: fork.get("Aave")
     });
   }

@@ -21,6 +21,8 @@ contract Keyrocker is ILiquidityProvider, OfferMaker, AaveV3Borrower {
     AaveV3Borrower(addressesProvider, 0, 2)
   {}
 
+  /////////////// AAVE Specific interactions ///////////////
+
   function tokenBalance(IERC20 token) external view returns (uint local, uint onPool, uint debt) {
     local = token.balanceOf(address(this));
     onPool = overlying(token).balanceOf(RESERVE_ID);
@@ -39,16 +41,38 @@ contract Keyrocker is ILiquidityProvider, OfferMaker, AaveV3Borrower {
     _approveLender(token, amount);
   }
 
+  // note it is not efficient to call this function if one has no debt since AAVE will trigger many calls to realize it.
+  function repayThenDeposit(IERC20 token, uint amount) public onlyAdmin {
+    _repayThenDeposit(token, RESERVE_ID, amount);
+  }
+
+  function redeemThenBorrow(IERC20 token, uint amount) public onlyAdmin returns (uint got) {
+    got = _redeemThenBorrow(token, RESERVE_ID, amount, true, address(this));
+  }
+
+  // withdraw type(uint).max to empty the pool (this will fail if a debt is ongoing)
+  function withdraw(IERC20 token, uint amount, address to) public onlyAdmin returns (uint) {
+    return _redeem(token, amount, to);
+  }
+
+  // repays debt in `token`. Use type(uint).max to repay the whole debt.
+  // funds need to be available on this contract's balance
+  function repay(IERC20 token, uint amount) public onlyAdmin {
+    _repay(token, amount, RESERVE_ID);
+  }
+
   function __get__(uint amount, MgvLib.SingleOrder calldata order) internal override returns (uint) {
-    uint outboundBalance = IERC20(order.inbound_tkn).balanceOf(address(this));
+    uint outboundBalance = IERC20(order.outbound_tkn).balanceOf(address(this));
     if (outboundBalance >= amount) {
       return 0;
     } else {
       amount = amount - outboundBalance;
-      uint got = _redeemThenBorrow(IERC20(order.inbound_tkn), RESERVE_ID, amount, true, address(this));
+      uint got = _redeemThenBorrow(IERC20(order.outbound_tkn), RESERVE_ID, amount, true, address(this));
       return (amount >= got ? amount - got : 0);
     }
   }
+
+  //////////////////// MANGROVE INTERACTIONS ///////////////////
 
   function __put__(uint amount, MgvLib.SingleOrder calldata order) internal override returns (uint) {
     _repayThenDeposit(IERC20(order.inbound_tkn), RESERVE_ID, amount);

@@ -337,12 +337,16 @@ contract MgvOfferMaking is MgvHasOffers {
       }
 
       /* * Pivot is better than `wants/gives`, we follow `next`. */
-      if (better(ofl, ofp, pivot, pivotId)) {
+      uint wants2 = ofp.wants;
+      uint gives2 = ofp.gives;
+      uint gasreq2 = ofp.gasreq;
+
+      if (better(ofl, wants2, gives2, gasreq2, pivot, pivotId)) {
         MgvStructs.OfferPacked pivotNext;
         while (pivot.next() != 0) {
           uint pivotNextId = pivot.next();
           pivotNext = ofl.offers[pivotNextId];
-          if (better(ofl, ofp, pivotNext, pivotNextId)) {
+          if (better(ofl, wants2, gives2, gasreq2, pivotNext, pivotNextId)) {
             pivotId = pivotNextId;
             pivot = pivotNext;
           } else {
@@ -358,7 +362,7 @@ contract MgvOfferMaking is MgvHasOffers {
         while (pivot.prev() != 0) {
           uint pivotPrevId = pivot.prev();
           pivotPrev = ofl.offers[pivotPrevId];
-          if (better(ofl, ofp, pivotPrev, pivotPrevId)) {
+          if (better(ofl, wants2, gives2, gasreq2, pivotPrev, pivotPrevId)) {
             break;
           } else {
             pivotId = pivotPrevId;
@@ -378,7 +382,7 @@ contract MgvOfferMaking is MgvHasOffers {
     "better" is defined on the lexicographic order $\textrm{price} \times_{\textrm{lex}} \textrm{density}^{-1}$. This means that for the same price, offers that deliver more volume per gas are taken first.
 
       In addition to `offer1`, we also provide its id, `offerId1` in order to save gas. If necessary (ie. if the prices `wants1/gives1` and `wants2/gives2` are the same), we read storage to get `gasreq1` at `offerDetails[offerId1]. */
-  function better(Ofl storage ofl, OfferPack memory ofp, MgvStructs.OfferPacked offer1, uint offerId1)
+  function better(Ofl storage ofl, uint wants2, uint gives2, uint gasreq2, MgvStructs.OfferPacked offer1, uint offerId1)
     internal
     view
     returns (bool)
@@ -390,13 +394,10 @@ contract MgvOfferMaking is MgvHasOffers {
       }
       uint wants1 = offer1.wants();
       uint gives1 = offer1.gives();
-      uint wants2 = ofp.wants;
-      uint gives2 = ofp.gives;
       uint weight1 = wants1 * gives2;
       uint weight2 = wants2 * gives1;
       if (weight1 == weight2) {
         uint gasreq1 = ofl.offerDetails[offerId1].gasreq();
-        uint gasreq2 = ofp.gasreq;
         return (gives1 * gasreq2 >= gives2 * gasreq1);
       } else {
         return weight1 < weight2;

@@ -11,8 +11,8 @@ contract MgvHasOffers is MgvRoot {
 
      The mappings are `outbound_tkn => inbound_tkn => offerId => MgvStructs.OfferPacked|MgvStructs.OfferDetailPacked`.
    */
-  mapping(address => mapping(address => mapping(uint => MgvStructs.OfferPacked))) public offers;
-  mapping(address => mapping(address => mapping(uint => MgvStructs.OfferDetailPacked))) public offerDetails;
+  // mapping(address => mapping(address => mapping(uint => MgvStructs.OfferPacked))) public offers;
+  // mapping(address => mapping(address => mapping(uint => MgvStructs.OfferDetailPacked))) public offerDetails;
 
   /* Makers provision their possible penalties in the `balanceOf` mapping.
 
@@ -26,22 +26,40 @@ contract MgvHasOffers is MgvRoot {
   /* Convenience function to get best offer of the given pair */
   function best(address outbound_tkn, address inbound_tkn) external view returns (uint) {
     unchecked {
-      MgvStructs.LocalPacked local = locals[outbound_tkn][inbound_tkn];
-      return local.best();
+      return ofls[outbound_tkn][inbound_tkn].local.best();
     }
   }
 
-  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offers[outbound_tkn][inbound_tkn]` and `offerDetails[outbound_tkn][inbound_tkn]` instead. */
+  /* Convenience function to get an offer in packed format */
+  function offers(address outbound_tkn, address inbound_tkn, uint offerId)
+    external
+    view
+    returns (MgvStructs.OfferPacked)
+  {
+    return ofls[outbound_tkn][inbound_tkn].offers[offerId];
+  }
+
+  /* Convenience function to get an offer detail in packed format */
+  function offerDetails(address outbound_tkn, address inbound_tkn, uint offerId)
+    external
+    view
+    returns (MgvStructs.OfferDetailPacked)
+  {
+    return ofls[outbound_tkn][inbound_tkn].offerDetails[offerId];
+  }
+
+  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `ofls[outbound_tkn][inbound_tkn].offers` and `ofls[outbound_tkn][inbound_tkn].offerDetails` instead. */
   function offerInfo(address outbound_tkn, address inbound_tkn, uint offerId)
     external
     view
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
   {
     unchecked {
-      MgvStructs.OfferPacked _offer = offers[outbound_tkn][inbound_tkn][offerId];
+      Ofl storage ofl = ofls[outbound_tkn][inbound_tkn];
+      MgvStructs.OfferPacked _offer = ofl.offers[offerId];
       offer = _offer.to_struct();
 
-      MgvStructs.OfferDetailPacked _offerDetail = offerDetails[outbound_tkn][inbound_tkn][offerId];
+      MgvStructs.OfferDetailPacked _offerDetail = ofl.offerDetails[offerId];
       offerDetail = _offerDetail.to_struct();
     }
   }
@@ -72,8 +90,7 @@ contract MgvHasOffers is MgvRoot {
 
      Now, when an offer is deleted, the offer can stay provisioned, or be `deprovision`ed. In the latter case, we set `gasprice` to 0, which induces a provision of 0. All code calling `dirtyDeleteOffer` with `deprovision` set to `true` must be careful to correctly account for where that provision is going (back to the maker's `balanceOf`, or sent to a taker as compensation). */
   function dirtyDeleteOffer(
-    address outbound_tkn,
-    address inbound_tkn,
+    Ofl storage ofl,
     uint offerId,
     MgvStructs.OfferPacked offer,
     MgvStructs.OfferDetailPacked offerDetail,
@@ -84,8 +101,8 @@ contract MgvHasOffers is MgvRoot {
       if (deprovision) {
         offerDetail = offerDetail.gasprice(0);
       }
-      offers[outbound_tkn][inbound_tkn][offerId] = offer;
-      offerDetails[outbound_tkn][inbound_tkn][offerId] = offerDetail;
+      ofl.offers[offerId] = offer;
+      ofl.offerDetails[offerId] = offerDetail;
     }
   }
 
@@ -96,22 +113,19 @@ contract MgvHasOffers is MgvRoot {
   **Warning**: calling with `betterId = 0` will set `worseId` as the best. So with `betterId = 0` and `worseId = 0`, it sets the book to empty and loses track of existing offers.
 
   **Warning**: may make memory copy of `local.best` stale. Returns new `local`. */
-  function stitchOffers(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint betterId,
-    uint worseId,
-    MgvStructs.LocalPacked local
-  ) internal returns (MgvStructs.LocalPacked) {
+  function stitchOffers(Ofl storage ofl, uint betterId, uint worseId, MgvStructs.LocalPacked local)
+    internal
+    returns (MgvStructs.LocalPacked)
+  {
     unchecked {
       if (betterId != 0) {
-        offers[outbound_tkn][inbound_tkn][betterId] = offers[outbound_tkn][inbound_tkn][betterId].next(worseId);
+        ofl.offers[betterId] = ofl.offers[betterId].next(worseId);
       } else {
         local = local.best(worseId);
       }
 
       if (worseId != 0) {
-        offers[outbound_tkn][inbound_tkn][worseId] = offers[outbound_tkn][inbound_tkn][worseId].prev(betterId);
+        ofl.offers[worseId] = ofl.offers[worseId].prev(betterId);
       }
 
       return local;

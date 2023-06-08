@@ -46,7 +46,8 @@ contract MgvGovernable is MgvRoot {
   function activate(address outbound_tkn, address inbound_tkn, uint fee, uint density, uint offer_gasbase) public {
     unchecked {
       authOnly();
-      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].active(true);
+      Ofl storage ofl = ofls[outbound_tkn][inbound_tkn];
+      ofl.local = ofl.local.active(true);
       emit SetActive(outbound_tkn, inbound_tkn, true);
       setFee(outbound_tkn, inbound_tkn, fee);
       setDensity(outbound_tkn, inbound_tkn, density);
@@ -56,7 +57,8 @@ contract MgvGovernable is MgvRoot {
 
   function deactivate(address outbound_tkn, address inbound_tkn) public {
     authOnly();
-    locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].active(false);
+    Ofl storage ofl = ofls[outbound_tkn][inbound_tkn];
+    ofl.local = ofl.local.active(false);
     emit SetActive(outbound_tkn, inbound_tkn, false);
   }
 
@@ -66,7 +68,8 @@ contract MgvGovernable is MgvRoot {
       authOnly();
       /* `fee` is in basis points, i.e. in percents of a percent. */
       require(fee <= 500, "mgv/config/fee/<=500"); // at most 5%
-      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].fee(fee);
+      Ofl storage ofl = ofls[outbound_tkn][inbound_tkn];
+      ofl.local = ofl.local.fee(fee);
       emit SetFee(outbound_tkn, inbound_tkn, fee);
     }
   }
@@ -79,7 +82,8 @@ contract MgvGovernable is MgvRoot {
 
       require(checkDensity(density), "mgv/config/density/112bits");
       //+clear+
-      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].density(density);
+      Ofl storage ofl = ofls[outbound_tkn][inbound_tkn];
+      ofl.local = ofl.local.density(density);
       emit SetDensity(outbound_tkn, inbound_tkn, density);
     }
   }
@@ -91,7 +95,8 @@ contract MgvGovernable is MgvRoot {
       /* Checking the size of `offer_gasbase` is necessary to prevent a) data loss when copied to an `OfferDetail` struct, and b) overflow when used in calculations. */
       require(uint24(offer_gasbase) == offer_gasbase, "mgv/config/offer_gasbase/24bits");
       //+clear+
-      locals[outbound_tkn][inbound_tkn] = locals[outbound_tkn][inbound_tkn].offer_gasbase(offer_gasbase);
+      Ofl storage ofl = ofls[outbound_tkn][inbound_tkn];
+      ofl.local = ofl.local.offer_gasbase(offer_gasbase);
       emit SetGasbase(outbound_tkn, inbound_tkn, offer_gasbase);
     }
   }

@@ -24,7 +24,6 @@ import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs, IERC20} from "./MgvLib.so
 
 /* `MgvRoot` contains state variables used everywhere in the operation of Mangrove and their related function. */
 contract MgvRoot is HasMgvEvents {
-  type OflPacked is uint;
   /* # State variables */
   //+clear+
 
@@ -36,18 +35,6 @@ contract MgvRoot is HasMgvEvents {
     MgvStructs.LocalPacked local;
     mapping(uint => MgvStructs.OfferPacked) offers;
     mapping(uint => MgvStructs.OfferDetailPacked) offerDetails;
-  }
-
-  function sr(OflPacked _ofl) internal pure returns (Ofl storage ofl) {
-    assembly ("memory-safe") {
-      ofl.slot := _ofl
-    }
-  }
-
-  function rs(Ofl storage _ofl) internal pure returns (OflPacked ofl) {
-    assembly ("memory-safe") {
-      ofl := _ofl.slot
-    }
   }
 
   mapping(address => mapping(address => Ofl)) internal ofls;

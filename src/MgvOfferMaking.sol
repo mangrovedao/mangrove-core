@@ -27,7 +27,6 @@ contract MgvOfferMaking is MgvHasOffers {
     MgvStructs.LocalPacked local;
     // used on update only
     MgvStructs.OfferPacked oldOffer;
-    OflPacked ofl;
   }
 
   /* The function `newOffer` is for market makers only; no match with the existing book is done. A maker specifies how much `inbound_tkn` it `wants` and how much `outbound_tkn` it `gives`.
@@ -78,10 +77,9 @@ contract MgvOfferMaking is MgvHasOffers {
       ofp.gasreq = gasreq;
       ofp.gasprice = gasprice;
       ofp.pivotId = pivotId;
-      ofp.ofl = rs(ofl);
 
       /* The second parameter to writeOffer indicates that we are creating a new offer, not updating an existing one. */
-      writeOffer(ofp, false);
+      writeOffer(ofl, ofp, false);
 
       /* Since we locally modified a field of the local configuration (`last`), we save the change to storage. Note that `writeOffer` may have further modified the local configuration by updating the current `best` offer. */
       ofl.local = ofp.local;
@@ -117,7 +115,6 @@ contract MgvOfferMaking is MgvHasOffers {
       OfferPack memory ofp;
       Ofl storage ofl;
       (ofp.global, ofp.local, ofl) = _config(outbound_tkn, inbound_tkn);
-      ofp.ofl = rs(ofl);
       unlockedMarketOnly(ofp.local);
       activeMarketOnly(ofp.global, ofp.local);
       if (msg.value > 0) {
@@ -132,11 +129,10 @@ contract MgvOfferMaking is MgvHasOffers {
       ofp.gasprice = gasprice;
       ofp.pivotId = pivotId;
       ofp.oldOffer = ofl.offers[offerId];
-      ofp.ofl = rs(ofl);
       // Save local config
       MgvStructs.LocalPacked oldLocal = ofp.local;
       /* The second argument indicates that we are updating an existing offer, not creating a new one. */
-      writeOffer(ofp, true);
+      writeOffer(ofl, ofp, true);
       /* We saved the current pair's configuration before calling `writeOffer`, since that function may update the current `best` offer. We now check for any change to the configuration and update it if needed. */
       if (!oldLocal.eq(ofp.local)) {
         ofl.local = ofp.local;
@@ -224,7 +220,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   /* ## Write Offer */
 
-  function writeOffer(OfferPack memory ofp, bool update) internal {
+  function writeOffer(Ofl storage ofl, OfferPack memory ofp, bool update) internal {
     unchecked {
       /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
       require(checkGasprice(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
@@ -251,7 +247,7 @@ contract MgvOfferMaking is MgvHasOffers {
        `findPosition` is only ever called here, but exists as a separate function to make the code easier to read.
 
     **Warning**: `findPosition` will call `better`, which may read the offer's `offerDetails`. So it is important to find the offer position _before_ we update its `offerDetail` in storage. We waste 1 (hot) read in that case but we deem that the code would get too ugly if we passed the old `offerDetail` as argument to `findPosition` and to `better`, just to save 1 hot read in that specific case.  */
-      (uint prev, uint next) = findPosition(ofp);
+      (uint prev, uint next) = findPosition(ofl, ofp);
 
       /* Log the write offer event. */
       emit OfferWrite(
@@ -261,7 +257,7 @@ contract MgvOfferMaking is MgvHasOffers {
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
       uint oldProvision;
       {
-        MgvStructs.OfferDetailPacked offerDetail = sr(ofp.ofl).offerDetails[ofp.id];
+        MgvStructs.OfferDetailPacked offerDetail = ofl.offerDetails[ofp.id];
         if (update) {
           require(msg.sender == offerDetail.maker(), "mgv/updateOffer/unauthorized");
           oldProvision = 10 ** 9 * offerDetail.gasprice() * (offerDetail.gasreq() + offerDetail.offer_gasbase());
@@ -273,7 +269,7 @@ contract MgvOfferMaking is MgvHasOffers {
             || offerDetail.offer_gasbase() != ofp.local.offer_gasbase()
         ) {
           uint offer_gasbase = ofp.local.offer_gasbase();
-          sr(ofp.ofl).offerDetails[ofp.id] = MgvStructs.OfferDetail.pack({
+          ofl.offerDetails[ofp.id] = MgvStructs.OfferDetail.pack({
             __maker: msg.sender,
             __gasreq: ofp.gasreq,
             __offer_gasbase: offer_gasbase,
@@ -299,26 +295,26 @@ contract MgvOfferMaking is MgvHasOffers {
       if (!isLive(ofp.oldOffer) || prev != ofp.oldOffer.prev()) {
         /* * If the offer is not the best one, we update its predecessor; otherwise we update the `best` value. */
         if (prev != 0) {
-          sr(ofp.ofl).offers[prev] = sr(ofp.ofl).offers[prev].next(ofp.id);
+          ofl.offers[prev] = ofl.offers[prev].next(ofp.id);
         } else {
           ofp.local = ofp.local.best(ofp.id);
         }
 
         /* * If the offer is not the last one, we update its successor. */
         if (next != 0) {
-          sr(ofp.ofl).offers[next] = sr(ofp.ofl).offers[next].prev(ofp.id);
+          ofl.offers[next] = ofl.offers[next].prev(ofp.id);
         }
 
         /* * Recall that in this branch, the offer has changed location, or is not currently in the book. If the offer is not new and already in the book, we must remove it from its previous location by stitching its previous prev/next. */
         if (update && isLive(ofp.oldOffer)) {
-          ofp.local = stitchOffers(sr(ofp.ofl), ofp.oldOffer.prev(), ofp.oldOffer.next(), ofp.local);
+          ofp.local = stitchOffers(ofl, ofp.oldOffer.prev(), ofp.oldOffer.next(), ofp.local);
         }
       }
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
       MgvStructs.OfferPacked ofr =
         MgvStructs.Offer.pack({__prev: prev, __next: next, __wants: ofp.wants, __gives: ofp.gives});
-      sr(ofp.ofl).offers[ofp.id] = ofr;
+      ofl.offers[ofp.id] = ofr;
     }
   }
 
@@ -326,12 +322,11 @@ contract MgvOfferMaking is MgvHasOffers {
   /* `findPosition` takes a price in the form of a (`ofp.wants`,`ofp.gives`) pair, an offer id (`ofp.pivotId`) and walks the book from that offer (backward or forward) until the right position for the price is found. The position is returned as a `(prev,next)` pair, with `prev` or `next` at 0 to mark the beginning/end of the book (no offer ever has id 0).
 
   If prices are equal, `findPosition` will put the newest offer last. */
-  function findPosition(OfferPack memory ofp) internal view returns (uint, uint) {
+  function findPosition(Ofl storage ofl, OfferPack memory ofp) internal view returns (uint, uint) {
     unchecked {
       uint prevId;
       uint nextId;
       uint pivotId = ofp.pivotId;
-      Ofl storage ofl = sr(ofp.ofl);
       /* Get `pivot`, optimizing for the case where pivot info is already known */
       MgvStructs.OfferPacked pivot = pivotId == ofp.id ? ofp.oldOffer : ofl.offers[pivotId];
 
@@ -342,12 +337,12 @@ contract MgvOfferMaking is MgvHasOffers {
       }
 
       /* * Pivot is better than `wants/gives`, we follow `next`. */
-      if (better(ofp, pivot, pivotId)) {
+      if (better(ofl, ofp, pivot, pivotId)) {
         MgvStructs.OfferPacked pivotNext;
         while (pivot.next() != 0) {
           uint pivotNextId = pivot.next();
           pivotNext = ofl.offers[pivotNextId];
-          if (better(ofp, pivotNext, pivotNextId)) {
+          if (better(ofl, ofp, pivotNext, pivotNextId)) {
             pivotId = pivotNextId;
             pivot = pivotNext;
           } else {
@@ -363,7 +358,7 @@ contract MgvOfferMaking is MgvHasOffers {
         while (pivot.prev() != 0) {
           uint pivotPrevId = pivot.prev();
           pivotPrev = ofl.offers[pivotPrevId];
-          if (better(ofp, pivotPrev, pivotPrevId)) {
+          if (better(ofl, ofp, pivotPrev, pivotPrevId)) {
             break;
           } else {
             pivotId = pivotPrevId;
@@ -383,7 +378,11 @@ contract MgvOfferMaking is MgvHasOffers {
     "better" is defined on the lexicographic order $\textrm{price} \times_{\textrm{lex}} \textrm{density}^{-1}$. This means that for the same price, offers that deliver more volume per gas are taken first.
 
       In addition to `offer1`, we also provide its id, `offerId1` in order to save gas. If necessary (ie. if the prices `wants1/gives1` and `wants2/gives2` are the same), we read storage to get `gasreq1` at `offerDetails[offerId1]. */
-  function better(OfferPack memory ofp, MgvStructs.OfferPacked offer1, uint offerId1) internal view returns (bool) {
+  function better(Ofl storage ofl, OfferPack memory ofp, MgvStructs.OfferPacked offer1, uint offerId1)
+    internal
+    view
+    returns (bool)
+  {
     unchecked {
       if (offerId1 == 0) {
         /* Happens on empty book. Returning `false` would work as well due to specifics of `findPosition` but true is more consistent. Here we just want to avoid reading `offerDetail[...][0]` for nothing. */
@@ -396,7 +395,7 @@ contract MgvOfferMaking is MgvHasOffers {
       uint weight1 = wants1 * gives2;
       uint weight2 = wants2 * gives1;
       if (weight1 == weight2) {
-        uint gasreq1 = sr(ofp.ofl).offerDetails[offerId1].gasreq();
+        uint gasreq1 = ofl.offerDetails[offerId1].gasreq();
         uint gasreq2 = ofp.gasreq;
         return (gives1 * gasreq2 >= gives2 * gasreq1);
       } else {

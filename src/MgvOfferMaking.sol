@@ -332,21 +332,25 @@ contract MgvOfferMaking is MgvHasOffers {
       uint nextId;
       uint pivotId = ofp.pivotId;
       /* Get `pivot`, optimizing for the case where pivot info is already known */
-      MgvStructs.OfferPacked pivot = pivotId == ofp.id ? ofp.oldOffer : ofl.offerData[pivotId].offer;
+      OfferData storage offerData = ofl.offerData[pivotId];
+      MgvStructs.OfferPacked pivot = pivotId == ofp.id ? ofp.oldOffer : offerData.offer;
 
       /* In case pivotId is not an active offer, it is unusable (since it is out of the book). We default to the current best offer. If the book is empty pivot will be 0. That is handled through a test in the `better` comparison function. */
       if (!isLive(pivot)) {
         pivotId = ofp.local.best();
-        pivot = ofl.offerData[pivotId].offer;
+        offerData = ofl.offerData[pivotId];
+        pivot = offerData.offer;
       }
 
       /* * Pivot is better than `wants/gives`, we follow `next`. */
-      if (better(ofl, ofp, pivot, pivotId)) {
+      /* On an empty book, going into either branch of the conditional would work, but true is more consistent, and we want to avoid going into `better` and making a useless SLOAD for offer details. */
+      if (pivotId == 0 || better(ofp, pivot, offerData)) {
         MgvStructs.OfferPacked pivotNext;
         while (pivot.next() != 0) {
           uint pivotNextId = pivot.next();
-          pivotNext = ofl.offerData[pivotNextId].offer;
-          if (better(ofl, ofp, pivotNext, pivotNextId)) {
+          offerData = ofl.offerData[pivotNextId];
+          pivotNext = offerData.offer;
+          if (better(ofp, pivotNext, offerData)) {
             pivotId = pivotNextId;
             pivot = pivotNext;
           } else {
@@ -361,8 +365,9 @@ contract MgvOfferMaking is MgvHasOffers {
         MgvStructs.OfferPacked pivotPrev;
         while (pivot.prev() != 0) {
           uint pivotPrevId = pivot.prev();
-          pivotPrev = ofl.offerData[pivotPrevId].offer;
-          if (better(ofl, ofp, pivotPrev, pivotPrevId)) {
+          offerData = ofl.offerData[pivotPrevId];
+          pivotPrev = offerData.offer;
+          if (better(ofp, pivotPrev, offerData)) {
             break;
           } else {
             pivotId = pivotPrevId;
@@ -381,17 +386,13 @@ contract MgvOfferMaking is MgvHasOffers {
   /* The utility method `better` takes an offer represented by `ofp` and another represented by `offer1`. It returns true iff `offer1` is better or as good as `ofp`.
     "better" is defined on the lexicographic order $\textrm{price} \times_{\textrm{lex}} \textrm{density}^{-1}$. This means that for the same price, offers that deliver more volume per gas are taken first.
 
-      In addition to `offer1`, we also provide its id, `offerId1` in order to save gas. If necessary (ie. if the prices `wants1/gives1` and `wants2/gives2` are the same), we read storage to get `gasreq1` at `offerData[offerId1]. */
-  function better(Ofl storage ofl, OfferPack memory ofp, MgvStructs.OfferPacked offer1, uint offerId1)
+      In addition to `offer1`, we also provide offerData1 in order to save gas. If necessary (ie. if the prices `wants1/gives1` and `wants2/gives2` are the same), we read storage to get `gasreq1` at `offerData.detail.detail. */
+  function better(OfferPack memory ofp, MgvStructs.OfferPacked offer1, OfferData storage offerData1)
     internal
     view
     returns (bool)
   {
     unchecked {
-      if (offerId1 == 0) {
-        /* Happens on empty book. Returning `false` would work as well due to specifics of `findPosition` but true is more consistent. Here we just want to avoid reading `offerDetail[...][0]` for nothing. */
-        return true;
-      }
       uint wants1 = offer1.wants();
       uint gives1 = offer1.gives();
       uint wants2 = ofp.wants;
@@ -399,7 +400,7 @@ contract MgvOfferMaking is MgvHasOffers {
       uint weight1 = wants1 * gives2;
       uint weight2 = wants2 * gives1;
       if (weight1 == weight2) {
-        uint gasreq1 = ofl.offerData[offerId1].detail.gasreq();
+        uint gasreq1 = offerData1.detail.gasreq();
         uint gasreq2 = ofp.gasreq;
         return (gives1 * gasreq2 >= gives2 * gasreq1);
       } else {

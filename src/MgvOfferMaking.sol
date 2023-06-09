@@ -291,7 +291,7 @@ contract MgvOfferMaking is MgvHasOffers {
       }
       /* We now place the offer in the book at the position found by `findPosition`. */
 
-      /* First, we test if the offer has moved in the book or is not currently in the book. If `!isLive(ofp.oldOffer`, we must update its prev/next. If it is live but its prev has changed, we must also update them. Note that checking both `prev = oldPrev` and `next == oldNext` would be redundant. If either is true, then the updated offer has not changed position and there is nothing to update.
+      /* First, we test if the offer has moved in the book or is not currently in the book. If `!isLive(ofp.oldOffer)`, we must update its prev/next. If it is live but its prev has changed, we must also update them. Note that checking both `prev = oldPrev` and `next == oldNext` would be redundant. If either is true, then the updated offer has not changed position and there is nothing to update.
 
     As a note for future changes, there is a tricky edge case where `prev == oldPrev` yet the prev/next should be changed: a previously-used offer being brought back in the book, and ending with the same prev it had when it was in the book. In that case, the neighbor is currently pointing to _another_ offer, and thus must be updated. With the current code structure, this is taken care of as a side-effect of checking `!isLive`, but should be kept in mind. The same goes in the `next == oldNext` case. */
       if (!isLive(ofp.oldOffer) || prev != ofp.oldOffer.prev()) {
@@ -354,6 +354,7 @@ contract MgvOfferMaking is MgvHasOffers {
           uint pivotNextId = pivot.next();
           offerData = ofl.offerData[pivotNextId];
           pivotNext = offerData.offer;
+          // No need to test for pivotNextId == 0, we tested it above
           if (better(wants2, gives2, gasreq2, pivotNext, offerData)) {
             pivotId = pivotNextId;
             pivot = pivotNext;
@@ -371,6 +372,7 @@ contract MgvOfferMaking is MgvHasOffers {
           uint pivotPrevId = pivot.prev();
           offerData = ofl.offerData[pivotPrevId];
           pivotPrev = offerData.offer;
+          // No need to test for pivotPrevId == 0, we tested it above
           if (better(wants2, gives2, gasreq2, pivotPrev, offerData)) {
             break;
           } else {

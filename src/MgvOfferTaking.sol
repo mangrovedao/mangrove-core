@@ -71,7 +71,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       (sor.global, sor.local, ofl) = _config(outbound_tkn, inbound_tkn);
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
       sor.offerId = sor.local.best();
-      sor.offer = ofl.offers[sor.offerId];
+      sor.offer = ofl.offerData[sor.offerId].offer;
       /* `sor.wants` and `sor.gives` may evolve, but they are initially however much remains in the market order. */
       sor.wants = takerWants;
       sor.gives = takerGives;
@@ -133,7 +133,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         bytes32 mgvData;
 
         /* Load additional information about the offer. We don't do it earlier to save one storage read in case `proceed` was false. */
-        sor.offerDetail = ofl.offerDetails[sor.offerId];
+        sor.offerDetail = ofl.offerData[sor.offerId].detail;
 
         /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way, [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/notExecuted","mgv/tradeSuccess"]` means the failure is the maker's fault. */
         /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. We will need it after the recursive call, so we save it in local variables. Same goes for `offerId`, `sor.offer` and `sor.offerDetail`. */
@@ -157,7 +157,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         */
           sor.gives = mor.initialGives - mor.totalGave;
           sor.offerId = sor.offer.next();
-          sor.offer = ofl.offers[sor.offerId];
+          sor.offer = ofl.offerData[sor.offerId].offer;
         }
 
         /* note that internalMarketOrder may be called twice with same offerId, but in that case `proceed` will be false! */
@@ -282,8 +282,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* Initialize single order struct. */
         sor.offerId = targets[i][0];
-        sor.offer = ofl.offers[sor.offerId];
-        sor.offerDetail = ofl.offerDetails[sor.offerId];
+        OfferData storage offerData = ofl.offerData[sor.offerId];
+        sor.offer = offerData.offer;
+        sor.offerDetail = offerData.detail;
 
         /* If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. A mismatched price will be detected by `execute`. */
         if (!isLive(sor.offer) || sor.offerDetail.gasreq() > targets[i][3]) {
@@ -472,7 +473,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
 
       /* Delete the offer. The last argument indicates whether the offer should be stripped of its provision (yes if execution failed, no otherwise). We cannot partially strip an offer provision (for instance, remove only the penalty from a failing offer and leave the rest) since the provision associated with an offer is always deduced from the (gasprice,gasbase,gasreq) parameters and not stored independently. We delete offers whether the amount remaining on offer is > density or not for the sake of uniformity (code is much simpler). We also expect prices to move often enough that the maker will want to update their price anyway. To simulate leaving the remaining volume in the offer, the maker can program their `makerPosthook` to `updateOffer` and put the remaining volume back in. */
-      dirtyDeleteOffer(ofl, sor.offerId, sor.offer, sor.offerDetail, mgvData != "mgv/tradeSuccess");
+      dirtyDeleteOffer(ofl.offerData[sor.offerId], sor.offer, sor.offerDetail, mgvData != "mgv/tradeSuccess");
     }
   }
 

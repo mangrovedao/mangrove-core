@@ -36,7 +36,7 @@ contract MgvHasOffers is MgvRoot {
     view
     returns (MgvStructs.OfferPacked)
   {
-    return ofls[outbound_tkn][inbound_tkn].offers[offerId];
+    return ofls[outbound_tkn][inbound_tkn].offerData[offerId].offer;
   }
 
   /* Convenience function to get an offer detail in packed format */
@@ -45,7 +45,7 @@ contract MgvHasOffers is MgvRoot {
     view
     returns (MgvStructs.OfferDetailPacked)
   {
-    return ofls[outbound_tkn][inbound_tkn].offerDetails[offerId];
+    return ofls[outbound_tkn][inbound_tkn].offerData[offerId].detail;
   }
 
   /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `ofls[outbound_tkn][inbound_tkn].offers` and `ofls[outbound_tkn][inbound_tkn].offerDetails` instead. */
@@ -55,12 +55,9 @@ contract MgvHasOffers is MgvRoot {
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
   {
     unchecked {
-      Ofl storage ofl = ofls[outbound_tkn][inbound_tkn];
-      MgvStructs.OfferPacked _offer = ofl.offers[offerId];
-      offer = _offer.to_struct();
-
-      MgvStructs.OfferDetailPacked _offerDetail = ofl.offerDetails[offerId];
-      offerDetail = _offerDetail.to_struct();
+      OfferData storage offerData = ofls[outbound_tkn][inbound_tkn].offerData[offerId];
+      offer = offerData.offer.to_struct();
+      offerDetail = offerData.detail.to_struct();
     }
   }
 
@@ -90,8 +87,7 @@ contract MgvHasOffers is MgvRoot {
 
      Now, when an offer is deleted, the offer can stay provisioned, or be `deprovision`ed. In the latter case, we set `gasprice` to 0, which induces a provision of 0. All code calling `dirtyDeleteOffer` with `deprovision` set to `true` must be careful to correctly account for where that provision is going (back to the maker's `balanceOf`, or sent to a taker as compensation). */
   function dirtyDeleteOffer(
-    Ofl storage ofl,
-    uint offerId,
+    OfferData storage offerData,
     MgvStructs.OfferPacked offer,
     MgvStructs.OfferDetailPacked offerDetail,
     bool deprovision
@@ -101,8 +97,8 @@ contract MgvHasOffers is MgvRoot {
       if (deprovision) {
         offerDetail = offerDetail.gasprice(0);
       }
-      ofl.offers[offerId] = offer;
-      ofl.offerDetails[offerId] = offerDetail;
+      offerData.offer = offer;
+      offerData.detail = offerDetail;
     }
   }
 
@@ -119,13 +115,15 @@ contract MgvHasOffers is MgvRoot {
   {
     unchecked {
       if (betterId != 0) {
-        ofl.offers[betterId] = ofl.offers[betterId].next(worseId);
+        OfferData storage offerData = ofl.offerData[betterId];
+        offerData.offer = offerData.offer.next(worseId);
       } else {
         local = local.best(worseId);
       }
 
       if (worseId != 0) {
-        ofl.offers[worseId] = ofl.offers[worseId].prev(betterId);
+        OfferData storage offerData = ofl.offerData[worseId];
+        offerData.offer = offerData.offer.prev(betterId);
       }
 
       return local;

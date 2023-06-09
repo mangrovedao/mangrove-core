@@ -32,10 +32,14 @@ contract MgvRoot is HasMgvEvents {
   MgvStructs.GlobalPacked internal internal_global;
   /* Configuration mapping for each token pair of the form `outbound_tkn => inbound_tkn => MgvStructs.LocalPacked`. The structure of each `MgvStructs.LocalPacked` value is detailed in [`structs.js`](#structs.js). It fits in one word. */
 
+  struct OfferData {
+    MgvStructs.OfferPacked offer;
+    MgvStructs.OfferDetailPacked detail;
+  }
+
   struct Ofl {
     MgvStructs.LocalPacked local;
-    mapping(uint => MgvStructs.OfferPacked) offers;
-    mapping(uint => MgvStructs.OfferDetailPacked) offerDetails;
+    mapping(uint => OfferData) offerData;
   }
 
   function sr(OflPacked _ofl) internal pure returns (Ofl storage ofl) {

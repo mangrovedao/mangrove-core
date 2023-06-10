@@ -29,20 +29,25 @@ contract MgvRoot is HasMgvEvents {
 
   /* Global mgv configuration, encoded in a 256 bits word. The information encoded is detailed in [`structs.js`](#structs.js). */
   MgvStructs.GlobalPacked internal internal_global;
-  /* Configuration mapping for each token pair of the form `outbound_tkn => inbound_tkn => MgvStructs.LocalPacked`. The structure of each `MgvStructs.LocalPacked` value is detailed in [`structs.js`](#structs.js). It fits in one word. */
+  /* `OfferData` contains all the information related to an offer. Each field contains packed information such as the volumes and the gas requried. See [`structs.js`](#structs.js) for more information. */
 
   struct OfferData {
     MgvStructs.OfferPacked offer;
     MgvStructs.OfferDetailPacked detail;
   }
+  /* `Pair` contains the information specific to an oriented `outbound_tkn,inbound_tkn` pair:
 
-  struct Ofl {
+    * `local` is the Mangrove configuration specific to the `outbound,inbound` pair. It contains e.g. the minimum offer `density`. It contains packed information, see [`structs.js`](#structs.js) for more.
+    * `offerData` maps from offer ids to offer data.
+  */
+
+  struct Pair {
     MgvStructs.LocalPacked local;
     mapping(uint => OfferData) offerData;
   }
 
-  mapping(address => mapping(address => Ofl)) internal ofls;
-  // mapping(address => mapping(address => MgvStructs.LocalPacked)) internal locals;
+  /* `pairs` maps from token pair to `Pair` information. */
+  mapping(address => mapping(address => Pair)) internal pairs;
 
   /* Checking the size of `density` is necessary to prevent overflow when `density` is used in calculations. */
   function checkDensity(uint density) internal pure returns (bool) {
@@ -70,15 +75,16 @@ contract MgvRoot is HasMgvEvents {
     }
   }
 
+  /* _config is the lower-level variant which opportunistically returns a pointer to the storage pair induced by `outbound_tkn`,`inbound_tkn`. */
   function _config(address outbound_tkn, address inbound_tkn)
     internal
     view
-    returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local, Ofl storage ofl)
+    returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local, Pair storage pair)
   {
     unchecked {
-      ofl = ofls[outbound_tkn][inbound_tkn];
+      pair = pairs[outbound_tkn][inbound_tkn];
       _global = internal_global;
-      _local = ofl.local;
+      _local = pair.local;
       if (_global.useOracle()) {
         (uint gasprice, uint density) = IMgvMonitor(_global.monitor()).read(outbound_tkn, inbound_tkn);
         if (checkGasprice(gasprice)) {
@@ -106,7 +112,7 @@ contract MgvRoot is HasMgvEvents {
 
   /* Convenience function to check whether given pair is locked */
   function locked(address outbound_tkn, address inbound_tkn) external view returns (bool) {
-    return ofls[outbound_tkn][inbound_tkn].local.lock();
+    return pairs[outbound_tkn][inbound_tkn].local.lock();
   }
 
   /*

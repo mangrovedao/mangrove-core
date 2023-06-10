@@ -7,13 +7,6 @@ import {MgvRoot} from "./MgvRoot.sol";
 /* `MgvHasOffers` contains the state variables and functions common to both market-maker operations and market-taker operations. Mostly: storing offers, removing them, updating market makers' provisions. */
 contract MgvHasOffers is MgvRoot {
   /* # State variables */
-  /* Given a `outbound_tkn`,`inbound_tkn` pair, the mappings `offers` and `offerDetails` associate two 256 bits words to each offer id. Those words encode information detailed in [`structs.js`](#structs.js).
-
-     The mappings are `outbound_tkn => inbound_tkn => offerId => MgvStructs.OfferPacked|MgvStructs.OfferDetailPacked`.
-   */
-  // mapping(address => mapping(address => mapping(uint => MgvStructs.OfferPacked))) public offers;
-  // mapping(address => mapping(address => mapping(uint => MgvStructs.OfferDetailPacked))) public offerDetails;
-
   /* Makers provision their possible penalties in the `balanceOf` mapping.
 
        Offers specify the amount of gas they require for successful execution ([`gasreq`](#structs.js/gasreq)). To minimize book spamming, market makers must provision a *penalty*, which depends on their `gasreq` and on the pair's [`offer_gasbase`](#structs.js/gasbase). This provision is deducted from their `balanceOf`. If an offer fails, part of that provision is given to the taker, as retribution. The exact amount depends on the gas used by the offer before failing.
@@ -26,7 +19,7 @@ contract MgvHasOffers is MgvRoot {
   /* Convenience function to get best offer of the given pair */
   function best(address outbound_tkn, address inbound_tkn) external view returns (uint) {
     unchecked {
-      return ofls[outbound_tkn][inbound_tkn].local.best();
+      return pairs[outbound_tkn][inbound_tkn].local.best();
     }
   }
 
@@ -36,7 +29,7 @@ contract MgvHasOffers is MgvRoot {
     view
     returns (MgvStructs.OfferPacked)
   {
-    return ofls[outbound_tkn][inbound_tkn].offerData[offerId].offer;
+    return pairs[outbound_tkn][inbound_tkn].offerData[offerId].offer;
   }
 
   /* Convenience function to get an offer detail in packed format */
@@ -45,17 +38,17 @@ contract MgvHasOffers is MgvRoot {
     view
     returns (MgvStructs.OfferDetailPacked)
   {
-    return ofls[outbound_tkn][inbound_tkn].offerData[offerId].detail;
+    return pairs[outbound_tkn][inbound_tkn].offerData[offerId].detail;
   }
 
-  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `ofls[outbound_tkn][inbound_tkn].offers` and `ofls[outbound_tkn][inbound_tkn].offerDetails` instead. */
+  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `pairs[outbound_tkn][inbound_tkn].offers` and `pairs[outbound_tkn][inbound_tkn].offerDetails` instead. */
   function offerInfo(address outbound_tkn, address inbound_tkn, uint offerId)
     external
     view
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
   {
     unchecked {
-      OfferData storage offerData = ofls[outbound_tkn][inbound_tkn].offerData[offerId];
+      OfferData storage offerData = pairs[outbound_tkn][inbound_tkn].offerData[offerId];
       offer = offerData.offer.to_struct();
       offerDetail = offerData.detail.to_struct();
     }
@@ -109,20 +102,20 @@ contract MgvHasOffers is MgvRoot {
   **Warning**: calling with `betterId = 0` will set `worseId` as the best. So with `betterId = 0` and `worseId = 0`, it sets the book to empty and loses track of existing offers.
 
   **Warning**: may make memory copy of `local.best` stale. Returns new `local`. */
-  function stitchOffers(Ofl storage ofl, uint betterId, uint worseId, MgvStructs.LocalPacked local)
+  function stitchOffers(Pair storage pair, uint betterId, uint worseId, MgvStructs.LocalPacked local)
     internal
     returns (MgvStructs.LocalPacked)
   {
     unchecked {
       if (betterId != 0) {
-        OfferData storage offerData = ofl.offerData[betterId];
+        OfferData storage offerData = pair.offerData[betterId];
         offerData.offer = offerData.offer.next(worseId);
       } else {
         local = local.best(worseId);
       }
 
       if (worseId != 0) {
-        OfferData storage offerData = ofl.offerData[worseId];
+        OfferData storage offerData = pair.offerData[worseId];
         offerData.offer = offerData.offer.prev(betterId);
       }
 

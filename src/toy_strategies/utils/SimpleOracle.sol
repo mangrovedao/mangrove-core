@@ -12,7 +12,7 @@ contract SimpleOracle is IOracle, AccessControlled {
 
   constructor(address base_, address admin) AccessControlled(admin) {
     base_token = IERC20(base_);
-    try IERC20(base_).decimals() returns (uint8 d) {
+    try base_token.decimals() returns (uint8 d) {
       require(d != 0, "Invalid decimals number for Oracle base");
     } catch {
       revert("Invalid Oracle base address");

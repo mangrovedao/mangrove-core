@@ -101,8 +101,12 @@ contract TestToken is ERC20BL {
   function mintTo(address to, uint amount) public {
     uint g = gasleft();
     uint limit = mintLimit; //SLOAD should be 2100 not 100
-    require(g - gasleft() > 2000, "Too frequent minting required");
-    require(amount <= limit, "Too much minting required");
+    g = g - gasleft();
+    if (limit != type(uint).max) {
+      // limit=uint.max encodes "no limit at all"
+      require(g > 2000, "Too frequent minting required");
+      require(amount <= limit, "Too much minting required");
+    }
     _mint(to, amount);
   }
 

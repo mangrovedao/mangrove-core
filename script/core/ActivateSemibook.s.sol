@@ -75,6 +75,8 @@ contract ActivateSemibook is Test2, Deployer {
     */
     uint outbound_decimals = outbound_tkn.decimals();
     uint density = (COVER_FACTOR * gaspriceOverride * 10 ** outbound_decimals) / outbound_in_gwei;
+    // min density of at least 1 wei of outbound token
+    density = density == 0 ? 1 : density;
     console.log("With gasprice: %d gwei, cover factor:%d", gaspriceOverride, COVER_FACTOR);
     console.log("Derived density %s %s per gas unit", toUnit(density, outbound_decimals), outbound_tkn.symbol());
 

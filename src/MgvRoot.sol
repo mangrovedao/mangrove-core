@@ -58,9 +58,11 @@ contract MgvRoot is HasMgvEvents {
       _local = locals[outbound_tkn][inbound_tkn];
       if (_global.useOracle()) {
         (uint gasprice, uint density) = IMgvMonitor(_global.monitor()).read(outbound_tkn, inbound_tkn);
+        /* Gas gasprice can be ignored by making sure the oracle's set gasprice does not pass the check below. */
         if (checkGasprice(gasprice)) {
           _global = _global.gasprice(gasprice);
         }
+        /* Oracle density can be ignored by making sure the oracle's set density does not pass the check below. */
         if (checkDensity(density)) {
           _local = _local.density(density);
         }

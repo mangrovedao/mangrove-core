@@ -2,11 +2,39 @@ This directory contains scripts (`*.s.sol`) for deploying, configuring, and gove
 
 # Principles for scripts
 
+This is a script example:
+
+```solidity
+// SPDX-License-Identifier:	AGPL-3.0
+// This script is SmallMgvReaderDeployer.s.sol
+pragma solidity ^0.8.13;
+
+import {Mangrove} from "mgv_src/Mangrove.sol";
+import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {Deployer} from "mgv_script/lib/Deployer.sol";
+import "forge-std/console.sol";
+
+contract SmallMgvReaderDeployer is Deployer {
+  TestToken public myToken;
+
+  function run() public {
+    innerRun({mgv: Mangrove(envAddressOrName("MGV_GOVERNANCE","MgvGovernance"))});
+    outputDeployment();
+  }
+
+  function innerRun(Mangrove mgv) public {
+    broadcast();
+    reader = new MgvReader({mgv: address(mgv)});
+    fork.set("MgvReader", address(reader));
+  }
+}
+```
+
 Scripts should follow these principles:
 
-1. They should follow the `*.s.sol` naming convention.
+1. They should contain a single `<Contract>` and their filename should be `<Contract>.s.sol`.
 
-2. Should have both a `run` and a `innerRun` function.
+2. They should have both a `run` and a `innerRun` function.
 
    The `run` function is called when the script is called from the command line. This function should only do the following:
 
@@ -23,11 +51,11 @@ Scripts should follow these principles:
 
 4. Env vars specifying contracts should always allow either a contract name or an address.
 
-   This is easily achieved by using the `envAddressOrName(envVarName<, optional default address>)` function from `Deployer`.
+   This is easily achieved by using the `envAddressOrName(envVarName<, optional default address or contract instance name>)` function from `Deployer`.
 
 5. Contract names should be resolved in the `run` function, not the `innerRun` function.
 
-   This helps ensure that contract addresses specified by the user when calling the outermost script are not ignored by another script (which could happen before because scripts relied on the address provided by fork.get for a hardcoded name).
+   For instance, you should not write `fork.get("MgvGovernance")` inside an `innerRun` function. Otherwise if your script is called by a "parent" script, it will ignore whatever Mangrove Governance address the user provided.
 
 6. The user should always have the option to specify contract addresses via env vars.
 

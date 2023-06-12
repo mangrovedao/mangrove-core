@@ -1,0 +1,19 @@
+# Automatically creates, updates or replaces a PR for merging master to develop.
+#
+# Wrapper for this reusable workflow: https://github.com/mangrovedao/.github/blob/master/.github/workflows/reusable-merge-master-to-develop.yml
+
+name: Merge `master` to `develop`
+
+on:
+  push:
+    branches:
+      - master
+
+permissions: write-all
+
+jobs:
+  call-reusable-workflow:
+    name: "Create/update PR from master to develop"
+    uses: mangrovedao/.github/.github/workflows/reusable-merge-master-to-develop.yml@master
+    secrets:
+      BOT_GH_PAT_TOKEN: ${{ secrets.BOT_GH_PAT_TOKEN }}

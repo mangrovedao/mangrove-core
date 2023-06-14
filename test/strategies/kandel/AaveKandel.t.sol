@@ -333,7 +333,7 @@ contract AaveKandelTest is CoreKandelTest {
 
   function test_liquidity_borrow_marketOrder_attack() public {
     /// adding as many offers as possible (adding more will stack overflow when failing offer will cascade)
-    deployOtherKandel(0.1 ether, 100 * 10 ** 6, uint24(1001 * 10 ** PRECISION / 1000), 1, 150);
+    deployOtherKandel(0.1 ether, 100 * 10 ** 6, uint24(1001 * 10 ** PRECISION / 1000), 1, 139);
     //printOrderBook($(quote), $(base));
     // base is weth and has a borrow cap, so trying the attack on quote
     address dai = fork.get("DAI");

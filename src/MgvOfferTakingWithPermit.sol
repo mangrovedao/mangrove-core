@@ -113,9 +113,10 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* Used by `*For` functions, its both checks that `msg.sender` was allowed to use the taker's funds, and decreases the former's allowance. */
   function deductSenderAllowance(address outbound_tkn, address inbound_tkn, address owner, uint amount) internal {
     unchecked {
-      uint allowed = allowances[outbound_tkn][inbound_tkn][owner][msg.sender];
+      mapping(address => uint) storage curriedAllow = allowances[outbound_tkn][inbound_tkn][owner];
+      uint allowed = curriedAllow[msg.sender];
       require(allowed >= amount, "mgv/lowAllowance");
-      allowances[outbound_tkn][inbound_tkn][owner][msg.sender] = allowed - amount;
+      curriedAllow[msg.sender] = allowed - amount;
 
       emit Approval(outbound_tkn, inbound_tkn, owner, msg.sender, allowed - amount);
     }

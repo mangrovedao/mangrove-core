@@ -1,6 +1,6 @@
 [![CI](https://github.com/mangrovedao/mangrove-core/actions/workflows/node.js.yml/badge.svg)](https://github.com/mangrovedao/mangrove-core/actions/workflows/node.js.yml)
 
-This package contains the Solidity implementation of Mangrove as well as deployment scripts and example Solidity offer logics.
+This package contains the Solidity implementation of Mangrove as well as deployment scripts and example Solidity offer logics and strats.
 
 # Documentation
 

@@ -8,7 +8,7 @@ on:
       - develop
       - 'run-ci/**'
   pull_request:
-    branches: [ master, develop, test-pr ]
+    branches: [ master, develop, test-pr, feat/simplifyci ]
     types: [opened, synchronize, reopened, labeled]
 
 concurrency: 
@@ -65,12 +65,11 @@ jobs:
       run: yarn run build
 
     # Pinned forks are used in tests and utilize secrets. For PRs from forks these are not available
-    # Let the tests attempt to run with the cached state, but if they fail, then the tests have to be disabled
-    # until the PR is merged.
+    # Let the tests attempt to run with demo endpoints which are more unstable.
     - name: Mangrove Solidity Tests
       run: yarn run test
       env:
-        POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL || 'http://localhost:4444' }}
+        POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL || 'https://polygon-mumbai.g.alchemy.com/v2/demo' }}
         MUMBAI_NODE_URL: ${{ secrets.MUMBAI_NODE_URL || 'http://localhost:4444' }}
 
     # For push runs we also create a coverage report

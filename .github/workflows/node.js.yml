@@ -8,7 +8,7 @@ on:
       - develop
       - 'run-ci/**'
   pull_request:
-    branches: [ master, develop, test-pr ]
+    branches: [ master, develop, test-pr, feat/simplifyci ]
     types: [opened, synchronize, reopened, labeled]
 
 concurrency: 

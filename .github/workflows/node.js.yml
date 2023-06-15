@@ -69,8 +69,8 @@ jobs:
     - name: Mangrove Solidity Tests
       run: yarn run test
       env:
-        POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL || 'https://polygon-mumbai.g.alchemy.com/v2/demo' }}
-        MUMBAI_NODE_URL: ${{ secrets.MUMBAI_NODE_URL || 'http://localhost:4444' }}
+        POLYGON_NODE_URL: ${{ secrets.POLYGON_NODE_URL || 'https://polygon.llamarpc.com' }}
+        MUMBAI_NODE_URL: ${{ secrets.MUMBAI_NODE_URL || 'unused' }}
 
     # For push runs we also create a coverage report
     - name: Create coverage report for mangrove-solidity

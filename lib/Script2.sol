@@ -20,8 +20,10 @@ contract Script2 is Script {
   address private __dummy = script2Initialize();
   function script2Initialize() private returns (address) {
     // Initialize SingletonsENS
-    vm.etch(address(_singletons), address(new ToyENS()).code);
-    vm.label(address(_singletons),"SingletonsENS");
+    if (address(_singletons).code.length == 0) {
+      vm.etch(address(_singletons), address(new ToyENS()).code);
+      vm.label(address(_singletons),"SingletonsENS");
+    }
     return address(0);
   }
 

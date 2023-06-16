@@ -135,7 +135,7 @@ They have the following fields: */
      
    (There is an inefficiency here. The overhead could be split into an "offer-local overhead" and a "general overhead". That general overhead gas penalty could be spread between all offers executed during an order, or all failing offers. It would still be possible for a cleaner to execute a failing offer alone and make them pay the entire general gas overhead. For the sake of simplicity we keep only one "offer overhead" value.)
 
-   If an offer fails, `gasprice` wei is taken from the
+   If an offer fails, `gasprice` gwei is taken from the
    provision per unit of gas used. `gasprice` should approximate the average gas
    price at offer creation time.
 

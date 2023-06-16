@@ -42,5 +42,9 @@
   {
     "address": "0xa92737e6917d4d76Fed72027Ccbf1E06094d65Bd",
     "name": "AavePooledRouter"
+  },
+  {
+    "address": "0xbd35f8faDCFb29FDB9Fa71a3698A4B2ed927a155",
+    "name": "Kandel_PxMATIC_PxUSDC"
   }
 ]

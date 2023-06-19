@@ -4,7 +4,7 @@
 
 Mangrove v5 is:
 
-mangrove-ts@2fc357f369416afdc2846cc9d5be483b75169e8d/packages/mangrove-solidity/contracts/\*.sol
+mangrove.js@2fc357f369416afdc2846cc9d5be483b75169e8d/packages/mangrove-solidity/contracts/\*.sol
 
 Which corresponds to:
 

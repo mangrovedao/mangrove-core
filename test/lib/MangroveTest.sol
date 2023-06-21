@@ -1,25 +1,79 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Test2} from "mgv_lib/Test2.sol";
-import {Test, console} from "forge-std/Test.sol";
+import {Test2, toFixed, Test, console} from "mgv_lib/Test2.sol";
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
 import {TestSender} from "mgv_test/lib/agents/TestSender.sol";
 import {TrivialTestMaker, TestMaker, OfferData} from "mgv_test/lib/agents/TestMaker.sol";
 import {MakerDeployer} from "mgv_test/lib/agents/MakerDeployer.sol";
 import {TestMoriartyMaker} from "mgv_test/lib/agents/TestMoriartyMaker.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
+import {TransferLib} from "mgv_lib/TransferLib.sol";
 
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
-import {IERC20, MgvLib, HasMgvEvents, IMaker, ITaker, IMgvMonitor, MgvStructs} from "mgv_src/MgvLib.sol";
+import {
+  IERC20,
+  MgvLib,
+  HasMgvEvents,
+  IMaker,
+  ITaker,
+  IMgvMonitor,
+  MgvStructs,
+  Leaf,
+  Field,
+  Tick,
+  LeafLib,
+  FieldLib,
+  TickLib
+} from "mgv_src/MgvLib.sol";
 import {console2 as csl} from "forge-std/console2.sol";
 
-// below imports are for the \$( function)
-import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
+struct Pair {
+  AbstractMangrove mgv;
+  MgvReader reader;
+  address outbound_tkn;
+  address inbound_tkn;
+}
+
+using PairLib for Pair global;
+
+library PairLib {
+  // function getPair
+  function leafs(Pair memory pair, int index) internal view returns (Leaf) {
+    return pair.mgv.leafs(pair.outbound_tkn, pair.inbound_tkn, index);
+  }
+
+  function offers(Pair memory pair, uint offerId) internal view returns (MgvStructs.OfferPacked) {
+    return pair.mgv.offers(pair.outbound_tkn, pair.inbound_tkn, offerId);
+  }
+
+  function offerDetails(Pair memory pair, uint offerId) internal view returns (MgvStructs.OfferDetailPacked) {
+    return pair.mgv.offerDetails(pair.outbound_tkn, pair.inbound_tkn, offerId);
+  }
+
+  function best(Pair memory pair) internal view returns (uint) {
+    return pair.mgv.best(pair.outbound_tkn, pair.inbound_tkn);
+  }
+
+  function nextOfferId(Pair memory pair, MgvStructs.OfferPacked offer) internal view returns (uint) {
+    return pair.reader.nextOfferId(pair.outbound_tkn, pair.inbound_tkn, offer);
+  }
+
+  function nextOfferIdById(Pair memory pair, uint offerId) internal view returns (uint) {
+    return pair.reader.nextOfferIdById(pair.outbound_tkn, pair.inbound_tkn, offerId);
+  }
+
+  function prevOfferId(Pair memory pair, MgvStructs.OfferPacked offer) internal view returns (uint) {
+    return pair.reader.prevOfferId(pair.outbound_tkn, pair.inbound_tkn, offer);
+  }
+
+  function prevOfferIdById(Pair memory pair, uint offerId) internal view returns (uint) {
+    return pair.reader.prevOfferIdById(pair.outbound_tkn, pair.inbound_tkn, offerId);
+  }
+}
 
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 
@@ -54,6 +108,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   MgvReader internal reader;
   TestToken internal base;
   TestToken internal quote;
+  Pair pair; // base,quote pair
+  Pair raip; // quote,base pair
 
   MangroveTestOptions internal options = MangroveTestOptions({
     invertedMangrove: false,
@@ -86,7 +142,11 @@ contract MangroveTest is Test2, HasMgvEvents {
     quote = new TestToken($(this), options.quote.name, options.quote.symbol, options.quote.decimals);
     // mangrove deploy
     mgv = setupMangrove(base, quote, options.invertedMangrove);
+
     reader = new MgvReader($(mgv));
+
+    pair = Pair(mgv, reader, $(base), $(quote));
+    raip = Pair(mgv, reader, $(quote), $(base));
 
     // below are necessary operations because testRunner acts as a taker/maker in some core protocol tests
     // TODO this should be done somewhere else
@@ -127,7 +187,7 @@ contract MangroveTest is Test2, HasMgvEvents {
       ids[c] = offerId;
       offers[c] = mgv.offers($out, $in, offerId);
       details[c] = mgv.offerDetails($out, $in, offerId);
-      offerId = offers[c].next();
+      offerId = reader.nextOfferId($out, $in, offers[c]);
       c++;
     }
     c = 0;
@@ -154,14 +214,14 @@ contract MangroveTest is Test2, HasMgvEvents {
           unicode"│ ",
           string.concat(offerId < 9 ? " " : "", vm.toString(offerId)), // breaks on id>99
           unicode" ┆ ",
-          string.concat(toFixed(ofr.wants, req_tk.decimals()), " ", req_tk.symbol()),
+          string.concat(toFixed(ofr.wants(), req_tk.decimals()), " ", req_tk.symbol()),
           "  /  ",
           string.concat(toFixed(ofr.gives, ofr_tk.decimals()), " ", ofr_tk.symbol()),
           " ",
           vm.toString(detail.maker)
         )
       );
-      offerId = ofr.next;
+      offerId = reader.nextOfferIdById($out, $in, offerId);
     }
     console.log(unicode"└────┴─────────────────────");
   }
@@ -265,6 +325,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
     order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
+
+    // order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: TickLib.tickFromVolumes(order.gives,order.wants), __gives: order.wants});
   }
 
   function mockBuyOrder(
@@ -347,10 +409,6 @@ contract MangroveTest is Test2, HasMgvEvents {
     return payable(address(t));
   }
 
-  function $(AccessControlled t) internal pure returns (address payable) {
-    return payable(address(t));
-  }
-
   function $(TestTaker t) internal pure returns (address payable) {
     return payable(address(t));
   }
@@ -410,23 +468,16 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   /// creates `fold` offers in the (outbound, inbound) market with the same `wants`, `gives` and `gasreq` and with `caller` as maker
-  function densify(
-    address outbound,
-    address inbound,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint pivotId,
-    uint fold,
-    address caller
-  ) internal {
+  function densify(address outbound, address inbound, uint wants, uint gives, uint gasreq, uint fold, address caller)
+    internal
+  {
     if (gives == 0) {
       return;
     }
     uint prov = reader.getProvision(outbound, inbound, gasreq, 0);
     while (fold > 0) {
       vm.prank(caller);
-      pivotId = mgv.newOffer{value: prov}(outbound, inbound, wants, gives, gasreq, 0, pivotId);
+      mgv.newOffer{value: prov}(outbound, inbound, wants, gives, gasreq, 0, 0);
       fold--;
     }
   }
@@ -438,9 +489,9 @@ contract MangroveTest is Test2, HasMgvEvents {
     while (length > 0 && fromId != 0) {
       MgvStructs.OfferPacked offer = mgv.offers(outbound, inbound, fromId);
       MgvStructs.OfferDetailPacked detail = mgv.offerDetails(outbound, inbound, fromId);
-      densify(outbound, inbound, offer.wants(), offer.gives(), detail.gasreq(), fromId, fold, caller);
+      densify(outbound, inbound, offer.wants(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
-      fromId = offer.next();
+      fromId = reader.nextOfferId(outbound, inbound, offer);
     }
   }
 }

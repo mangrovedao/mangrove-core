@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {HasMgvEvents, IMaker, IMgvMonitor, MgvLib, MgvStructs} from "./MgvLib.sol";
+import {
+  HasMgvEvents, IMaker, IMgvMonitor, MgvLib, MgvStructs, Leaf, Field, Tick, LeafLib, FieldLib
+} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
@@ -16,6 +18,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     address taker; // used globally
     bool fillWants; // used globally
     uint feePaid; // used globally
+    Leaf leaf;
+    Field level0;
+    Field level1;
+    Field level2;
   }
 
   /* # Market Orders */
@@ -37,6 +43,64 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     unchecked {
       return generalMarketOrder(outbound_tkn, inbound_tkn, takerWants, takerGives, fillWants, msg.sender);
     }
+  }
+
+  // get offer after current offer, will also erase the current offer's branch (which may not be necessary!)
+  function getNextBest(Pair storage pair, MultiOrder memory mor, MgvStructs.OfferPacked offer)
+    internal
+    returns (uint offerId)
+  {
+    Tick offerTick = offer.tick();
+    uint nextId = offer.next();
+
+    if (nextId == 0) {
+      int index = offerTick.leafIndex();
+      Leaf leaf = mor.leaf;
+      leaf = leaf.setTickFirst(offerTick, 0).setTickLast(offerTick, 0);
+      if (leaf.isEmpty()) {
+        pair.leafs[index] = leaf;
+        index = offerTick.level0Index();
+        Field field = mor.level0;
+        if (field.isEmpty()) {
+          field = pair.level0[index];
+        }
+        field = field.flipBitAtLevel0(offerTick);
+        if (field.isEmpty()) {
+          pair.level0[index] = field;
+          index = offerTick.level1Index();
+          field = mor.level1;
+          if (field.isEmpty()) {
+            field = pair.level1[index];
+          }
+          field = field.flipBitAtLevel1(offerTick);
+          if (field.isEmpty()) {
+            pair.level1[index] = field;
+            field = mor.level2;
+            if (field.isEmpty()) {
+              field = pair.level2;
+            }
+            field = field.flipBitAtLevel2(offerTick);
+            mor.level2 = field;
+            if (field.isEmpty()) {
+              mor.level1 = FieldLib.EMPTY;
+              mor.level0 = FieldLib.EMPTY;
+              mor.leaf = LeafLib.EMPTY;
+              return 0;
+            }
+            index = field.firstLevel1Index();
+            field = pair.level1[index];
+          }
+          mor.level1 = field;
+          index = field.firstLevel0Index(index);
+          field = pair.level0[index];
+        }
+        mor.level0 = field;
+        leaf = pair.leafs[field.firstLeafIndex(index)];
+      }
+      mor.leaf = leaf;
+      nextId = leaf.getNextOfferId();
+    }
+    return nextId;
   }
 
   /* # General Market Order */
@@ -70,7 +134,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       Pair storage pair;
       (sor.global, sor.local, pair) = _config(outbound_tkn, inbound_tkn);
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
-      sor.offerId = sor.local.best();
+
+      mor.leaf = pair.leafs[sor.local.tick().leafIndex()];
+      sor.offerId = mor.leaf.getNextOfferId();
       sor.offer = pair.offerData[sor.offerId].offer;
       /* `sor.wants` and `sor.gives` may evolve, but they are initially however much remains in the market order. */
       sor.wants = takerWants;
@@ -156,7 +222,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
            3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
         */
           sor.gives = mor.initialGives - mor.totalGave;
-          sor.offerId = sor.offer.next();
+          sor.offerId = getNextBest(pair, mor, sor.offer);
+
           sor.offer = pair.offerData[sor.offerId].offer;
         }
 
@@ -185,7 +252,34 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* If `proceed` is false, the taker has gotten its requested volume, or we have reached the end of the book, we conclude the market order. */
       } else {
         /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
-        sor.local = stitchOffers(pair, 0, sor.offerId, sor.local);
+        // sor.local = stitchOffers(sor.outbound_tkn, sor.inbound_tkn, 0, sor.offerId, sor.local);
+        // FIXME: REMOVE ME: temporarily leaving 'best' to avoid changing code everywhere
+        // (or should we keep it? to avoid additional reads?)
+        sor.local = sor.local.best(sor.offerId);
+        // INEFFICIENT find a way to avoid a read
+        // Or not inefficient because one fewer read to do when taking?
+        sor.local = sor.local.tick(pair.offerData[sor.local.best()].offer.tick());
+        // sor.local = stitchOffers(sor.outbound_tkn, sor.inbound_tkn, 0, sor.offerId, sor.local);
+
+        // maybe useless? if we don't update these we must take it into account elsewhere
+        if (Field.unwrap(pair.level2) != Field.unwrap(mor.level2)) {
+          pair.level2 = mor.level2;
+        }
+        Tick tick = sor.local.tick();
+        int index = tick.level1Index();
+        if (Field.unwrap(pair.level1[index]) != Field.unwrap(mor.level1)) {
+          pair.level1[index] = mor.level1;
+        }
+        index = sor.local.tick().level0Index();
+        if (Field.unwrap(pair.level0[index]) != Field.unwrap(mor.level0)) {
+          pair.level0[index] = mor.level0;
+        }
+        index = sor.local.tick().leafIndex();
+
+        if (Leaf.unwrap(pair.leafs[index]) != Leaf.unwrap(mor.leaf)) {
+          pair.leafs[index] = mor.leaf;
+        }
+
         /* <a id="internalMarketOrder/liftReentrancy"></a>Now that the market order is over, we can lift the lock on the book. In the same operation we
 
       * lift the reentrancy lock, and
@@ -287,14 +381,20 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         sor.offerDetail = offerData.detail;
 
         /* If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. A mismatched price will be detected by `execute`. */
-        if (!isLive(sor.offer) || sor.offerDetail.gasreq() > targets[i][3]) {
+        if (!sor.offer.isLive() || sor.offerDetail.gasreq() > targets[i][3]) {
           /* We move on to the next offer in the array. */
           continue;
         } else {
-          require(uint96(targets[i][1]) == targets[i][1], "mgv/snipes/takerWants/96bits");
-          require(uint96(targets[i][2]) == targets[i][2], "mgv/snipes/takerGives/96bits");
-          sor.wants = targets[i][1];
-          sor.gives = targets[i][2];
+          uint wants = targets[i][1];
+          uint gives = targets[i][2];
+          require(uint96(wants) == wants, "mgv/snipes/takerWants/96bits");
+          require(uint96(gives) == gives, "mgv/snipes/takerGives/96bits");
+          sor.wants = wants;
+          /* Wants gets normalized to the closest tick */
+          // note that `takerGives=0` is not possible here
+          // Tick tt = TickLib.tickFromVolumes(gives,wants);
+          // sor.tick = TickLib.tickFromVolumes(gives,wants);
+          sor.gives = gives;
 
           /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
           sor.local = sor.local.lock(true);
@@ -310,7 +410,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
           /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since offers in the `targets` array may be anywhere in the book. So we stitch together offers immediately after each `execute`. */
           if (mgvData != "mgv/notExecuted") {
-            sor.local = stitchOffers(pair, sor.offer.prev(), sor.offer.next(), sor.local);
+            // updates best&tick
+            sor.local = dislodgeOffer(pair, sor.offer, sor.local, true);
           }
 
           /* <a id="internalSnipes/liftReentrancy"></a> Now that the current snipe is over, we can lift the lock on the book. In the same operation we
@@ -365,65 +466,27 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         uint offerGives = sor.offer.gives();
         uint takerWants = sor.wants;
         uint takerGives = sor.gives;
+        // Since the offer's price was adjusted down, we also extract a tick down. Otherwise sniping is hard? But we want tick/volume, anyway.
+        // Tick tick = Ticklib.tickFromVolumes(taker
+        // Tick takerTick = TickLib.tickFromVolumes(sor.gives,sor.wants);
         /* <a id="MgvOfferTaking/checkPrice"></a>If the price is too high, we return early.
 
          Otherwise we now know we'll execute the offer. */
+
+        // if ow/og > tg/tw, ie if offer price higher than taker price
+        // the ow has been underestimated I think? so ow/og is underestimated.
         if (offerWants * takerWants > offerGives * takerGives) {
           return (0, bytes32(0), "mgv/notExecuted");
         }
-
-        /* ### Specification of value transfers:
-
-      Let $o_w$ be `offerWants`, $o_g$ be `offerGives`, $t_w$ be `takerWants`, $t_g$ be `takerGives`, and `f ∈ {w,g}` be $w$ if `fillWants` is true, $g$ otherwise.
-
-      Let $\textrm{got}$ be the amount that the taker will receive, and $\textrm{gave}$ be the amount that the taker will pay.
-
-      #### Case $f = w$
-
-      If $f = w$, let $\textrm{got} = \min(o_g,t_w)$, and let $\textrm{gave} = \left\lceil\dfrac{o_w \textrm{got}}{o_g}\right\rceil$. This is well-defined since, for live offers, $o_g > 0$.
-
-      In plain english, we only give to the taker up to what they wanted (or what the offer has to give), and follow the offer price to determine what the taker will give.
-
-      Since $\textrm{gave}$ is rounded up, the price might be overevaluated. Still, we cannot spend more than what the taker specified as `takerGives`. At this point [we know](#MgvOfferTaking/checkPrice) that $o_w t_w \leq o_g t_g$, so since $t_g$ is an integer we have
-      
-      $t_g \geq \left\lceil\dfrac{o_w t_w}{o_g}\right\rceil \geq \left\lceil\dfrac{o_w \textrm{got}}{o_g}\right\rceil = \textrm{gave}$.
-
-
-      #### Case $f = g$
-
-      If $f = g$, let $\textrm{gave} = \min(o_w,t_g)$, and $\textrm{got} = o_g$ if $o_w = 0$, $\textrm{got} = \left\lfloor\dfrac{o_g \textrm{gave}}{o_w}\right\rfloor$ otherwise.
-
-      In plain english, we spend up to what the taker agreed to pay (or what the offer wants), and follow the offer price to determine what the taker will get. This may exceed $t_w$.
-
-      #### Price adjustment
-
-      Prices are rounded up to ensure maker is not drained on small amounts. It's economically unlikely, but `density` protects the taker from being drained anyway so it is better to default towards protecting the maker here.
-      */
-
-        /*
-      ### Implementation
-
-      First we check the cases $(f=w \wedge o_g < t_w)\vee(f_g \wedge o_w < t_g)$, in which case the above spec simplifies to $\textrm{got} = o_g, \textrm{gave} = o_w$.
-
-      Otherwise the offer may be partially consumed.
-      
-      In the case $f=w$ we don't touch $\textrm{got}$ (which was initialized to $t_w$) and compute $\textrm{gave} = \left\lceil\dfrac{o_w t_w}{o_g}\right\rceil$. As shown above we have $\textrm{gave} \leq t_g$.
-
-      In the case $f=g$ we don't touch $\textrm{gave}$ (which was initialized to $t_g$) and compute $\textrm{got} = o_g$ if $o_w = 0$, and $\textrm{got} = \left\lfloor\dfrac{o_g t_g}{o_w}\right\rfloor$ otherwise.
-      */
         if ((mor.fillWants && offerGives < takerWants) || (!mor.fillWants && offerWants < takerGives)) {
           sor.wants = offerGives;
           sor.gives = offerWants;
         } else {
           if (mor.fillWants) {
-            uint product = offerWants * takerWants;
-            sor.gives = product / offerGives + (product % offerGives == 0 ? 0 : 1);
+            sor.gives = sor.offer.tick().inboundFromOutboundUp(takerWants);
           } else {
-            if (offerWants == 0) {
-              sor.wants = offerGives;
-            } else {
-              sor.wants = (offerGives * takerGives) / offerWants;
-            }
+            // offerWants = 0 is forbidden at offer writing
+            sor.wants = sor.offer.tick().outboundFromInbound(takerGives);
           }
         }
       }

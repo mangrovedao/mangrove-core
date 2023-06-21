@@ -2,7 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {Script2} from "mgv_lib/Script2.sol";
+import "mgv_lib/Script2.sol";
+import "mgv_lib/ToString.sol";
 
 /* Some ease-of-life additions to forge-std/Test.sol */
 /* You may want to inherit `MangroveTest` (which inherits `Test2`) rather than inherit `Test2` directly */
@@ -183,5 +184,10 @@ contract Test2 is Test, Script2 {
       console2.log("Gas used: %s", gasDelta);
     }
     return gasDelta;
+  }
+
+  // Returns a relative error in basis points, to be used by assertApproxEqRel*
+  function relError(uint basis_point) internal pure returns (uint) {
+    return 1e18*basis_point/10_000;
   }
 }

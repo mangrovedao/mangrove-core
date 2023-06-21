@@ -5,24 +5,29 @@ export const template = ({ preamble, struct_utilities, struct: s }) => {
 
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
+import "mgv_lib/Test2.sol";
 import "mgv_src/MgvLib.sol";
 
 // Warning: fuzzer will run tests with malformed packed arguments, e.g. bool fields that are > 1.
 
-contract Mgv${s.Name}Test is Test {
+contract Mgv${s.Name}Test is Test2 {
 
+  // cleanup arguments with variable number of bits since \`pack\` also does a cleanup
   function cast(uint u, uint8 to) internal pure returns (uint) {
     return u & (type(uint).max >> (256-to));
+  }
+
+  function cast(int u, uint8 to) internal pure returns (int) {
+    return u << (256-to) >> (256-to);
   }
 
   function test_pack(${s.fields.map(f => `${f.type} ${f.name}`).join(", ")}) public {
     MgvStructs.${s.Packed} packed = MgvStructs.${s.Name}.pack(${s.fields.map(f => `${f.name}`).join(", ")});
     ${s.fields.map(f => {
-      if (f.type === "uint") {
-        return `assertEq(packed.${f.name}(),cast(${f.name},${f.bits}),"bad ${f.name}");`
+      if (f.rawType === "uint" || f.rawType === "int" ) {
+        return `assertEq(${f.unwrapped(`packed.${f.name}()`)},cast(${f.unwrapped(f.name)},${f.bits}),"bad ${f.name}");`
       } else {
-        return `assertEq(packed.${f.name}(),${f.name},"bad ${f.name}");`
+        return `assertEq(${f.unwrapped(`packed.${f.name}()`)},${f.unwrapped(f.name)},"bad ${f.name}");`
       } 
     })}
   }
@@ -36,18 +41,18 @@ contract Mgv${s.Name}Test is Test {
   ${s.fields.map(f =>
     format`function test_set_${f.name}(MgvStructs.${s.Packed} packed,${f.type} ${f.name}) public {
       MgvStructs.${s.Packed} original = packed.${f.name}(packed.${f.name}());
-      assertEq(original.${f.name}(),packed.${f.name}(), "original: bad ${f.name}");
+      assertEq(${f.unwrapped(`original.${f.name}()`)},${f.unwrapped(`packed.${f.name}()`)}, "original: bad ${f.name}");
 
       MgvStructs.${s.Packed} modified = packed.${f.name}(${f.name});
 
-      ${f.type === "uint" ?
-        `assertEq(modified.${f.name}(),cast(${f.name},${f.bits}),"modified: bad ${f.name}");`
+      ${(f.rawType === "uint" || f.rawType === "int") ?
+        `assertEq(${f.unwrapped(`modified.${f.name}()`)},cast(${f.unwrapped(f.name)},${f.bits}),"modified: bad ${f.name}");`
         :
-        `assertEq(modified.${f.name}(),${f.name},"modified: bad ${f.name}");`
+        `assertEq(${f.unwrapped(`modified.${f.name}()`)},${f.unwrapped(f.name)},"modified: bad ${f.name}");`
       }
 
       ${s.fields.filter(f2 => f2.name !== f.name).map(f2 =>
-        `assertEq(modified.${f2.name}(),packed.${f2.name}(),"modified: bad ${f2.name}");`
+        `assertEq(${f2.unwrapped(`modified.${f2.name}()`)},${f2.unwrapped(`packed.${f2.name}()`)},"modified: bad ${f2.name}");`
       )}
     }`
   )}
@@ -56,7 +61,7 @@ contract Mgv${s.Name}Test is Test {
     (${s.fields.map(f => `${f.type} ${f.name}`).join(", ")}) = packed.unpack();
 
     ${s.fields.map(f =>
-      `assertEq(packed.${f.name}(),${f.name},"bad ${f.name}");`
+      `assertEq(${f.unwrapped(`packed.${f.name}()`)},${f.unwrapped(f.name)},"bad ${f.name}");`
     )}
   }
 
@@ -70,7 +75,7 @@ contract Mgv${s.Name}Test is Test {
   function test_inverse_1(MgvStructs.${s.Packed} packed) public {
     MgvStructs.${s.Unpacked} memory unpacked = packed.to_struct();
     ${s.fields.map(f =>
-      `assertEq(unpacked.${f.name},packed.${f.name}(),"bad ${f.name}");`
+      `assertEq(${f.unwrapped(`unpacked.${f.name}`)},${f.unwrapped(`packed.${f.name}()`)},"bad ${f.name}");`
     )}
   }
 
@@ -81,7 +86,7 @@ contract Mgv${s.Name}Test is Test {
       `packed2 = packed2.${f.name}(unpacked.${f.name});`
     )}
     ${s.fields.map(f =>
-      `assertEq(packed.${f.name}(),packed2.${f.name}(),"bad ${f.name}");`
+      `assertEq(${f.unwrapped(`packed.${f.name}()`)},${f.unwrapped(`packed2.${f.name}()`)},"bad ${f.name}");`
     )}
   }
 }

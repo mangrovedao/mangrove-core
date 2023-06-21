@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {IMaker, HasMgvEvents, MgvStructs} from "./MgvLib.sol";
+import {IMaker, HasMgvEvents, MgvStructs, Tick, TickLib, Leaf, Field} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
+import {Script2} from "mgv_lib/Script2.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
-contract MgvOfferMaking is MgvHasOffers {
+contract MgvOfferMaking is MgvHasOffers, Script2 {
   /* # Public Maker operations
      ## New Offer */
   //+clear+
@@ -22,7 +23,6 @@ contract MgvOfferMaking is MgvHasOffers {
     uint id;
     uint gasreq;
     uint gasprice;
-    uint pivotId;
     MgvStructs.GlobalPacked global;
     MgvStructs.LocalPacked local;
     // used on update only
@@ -64,6 +64,9 @@ contract MgvOfferMaking is MgvHasOffers {
       if (msg.value > 0) {
         creditWei(msg.sender, msg.value);
       }
+      // TODO this resolve to memory instead of a stackvalue
+      // Need a parametric function to get the nth tickleaf
+      // ofp.tickleaf = pair.leafs[tick. ..] tickleaf;
 
       ofp.id = 1 + ofp.local.last();
       require(uint32(ofp.id) == ofp.id, "mgv/offerIdOverflow");
@@ -76,13 +79,14 @@ contract MgvOfferMaking is MgvHasOffers {
       ofp.gives = gives;
       ofp.gasreq = gasreq;
       ofp.gasprice = gasprice;
-      ofp.pivotId = pivotId;
 
       /* The second parameter to writeOffer indicates that we are creating a new offer, not updating an existing one. */
       writeOffer(pair, ofp, false);
 
       /* Since we locally modified a field of the local configuration (`last`), we save the change to storage. Note that `writeOffer` may have further modified the local configuration by updating the current `best` offer. */
       pair.local = ofp.local;
+      // TODO only update tickleaf if it has changed?
+      // pair.level2 = ofp.level2;
       return ofp.id;
     }
   }
@@ -127,16 +131,19 @@ contract MgvOfferMaking is MgvHasOffers {
       ofp.id = offerId;
       ofp.gasreq = gasreq;
       ofp.gasprice = gasprice;
-      ofp.pivotId = pivotId;
       ofp.oldOffer = pair.offerData[offerId].offer;
       // Save local config
       MgvStructs.LocalPacked oldLocal = ofp.local;
+      // ofp.tick = Ticks.tickFromVolumes(wants,gives);
+      // ofp.tickleaf = tickleafs[outbound_tkn][inbound_tkn][ofp.tick];
       /* The second argument indicates that we are updating an existing offer, not creating a new one. */
       writeOffer(pair, ofp, true);
       /* We saved the current pair's configuration before calling `writeOffer`, since that function may update the current `best` offer. We now check for any change to the configuration and update it if needed. */
       if (!oldLocal.eq(ofp.local)) {
         pair.local = ofp.local;
       }
+      // TODO only update tickleaf if it has changed
+      // tickleaf = ofp.tickleaf;
     }
   }
 
@@ -156,9 +163,9 @@ contract MgvOfferMaking is MgvHasOffers {
       require(msg.sender == offerDetail.maker(), "mgv/retractOffer/unauthorized");
 
       /* Here, we are about to un-live an offer, so we start by taking it out of the book by stitching together its previous and next offers. Note that unconditionally calling `stitchOffers` would break the book since it would connect offers that may have since moved. */
-      if (isLive(offer)) {
+      if (offer.isLive()) {
         MgvStructs.LocalPacked oldLocal = local;
-        local = stitchOffers(pair, offer.prev(), offer.next(), local);
+        local = dislodgeOffer(pair, offer, local, true);
         /* If calling `stitchOffers` has changed the current `best` offer, we update the storage. */
         if (!oldLocal.eq(local)) {
           pair.local = local;
@@ -234,6 +241,8 @@ contract MgvOfferMaking is MgvHasOffers {
       require(ofp.gasreq <= ofp.global.gasmax(), "mgv/writeOffer/gasreq/tooHigh");
       /* * Make sure `gives > 0` -- division by 0 would throw in several places otherwise, and `isLive` relies on it. */
       require(ofp.gives > 0, "mgv/writeOffer/gives/tooLow");
+      /* * Make sure `wants > 0` -- price is stored as log_1BP(wants/gives). */
+      require(ofp.wants > 0, "mgv/writeOffer/wants/tooLow");
       /* * Make sure that the maker is posting a 'dense enough' offer: the ratio of `outbound_tkn` offered per gas consumed must be high enough. The actual gas cost paid by the taker is overapproximated by adding `offer_gasbase` to `gasreq`. */
       require(
         ofp.gives >= (ofp.gasreq + ofp.local.offer_gasbase()) * ofp.local.density(), "mgv/writeOffer/density/tooLow"
@@ -243,22 +252,26 @@ contract MgvOfferMaking is MgvHasOffers {
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
       require(uint96(ofp.wants) == ofp.wants, "mgv/writeOffer/wants/96bits");
 
-      /* The position of the new or updated offer is found using `findPosition`. If the offer is the best one, `prev == 0`, and if it's the last in the book, `next == 0`.
-
-       `findPosition` is only ever called here, but exists as a separate function to make the code easier to read.
-
-    **Warning**: `findPosition` will call `better`, which may read the offer's `offerDetails`. So it is important to find the offer position _before_ we update its `offerDetail` in storage. We waste 1 (hot) read in that case but we deem that the code would get too ugly if we passed the old `offerDetail` as argument to `findPosition` and to `better`, just to save 1 hot read in that specific case.  */
-      (uint prev, uint next) = findPosition(pair, ofp);
+      Tick insertionTick = TickLib.tickFromVolumes(ofp.wants, ofp.gives);
 
       /* Log the write offer event. */
+      uint ofrId = ofp.id;
       emit OfferWrite(
-        ofp.outbound_tkn, ofp.inbound_tkn, msg.sender, ofp.wants, ofp.gives, ofp.gasprice, ofp.gasreq, ofp.id, prev
+        ofp.outbound_tkn,
+        ofp.inbound_tkn,
+        msg.sender,
+        ofp.wants,
+        ofp.gives,
+        ofp.gasprice,
+        ofp.gasreq,
+        ofrId,
+        Tick.unwrap(insertionTick)
       );
 
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
       uint oldProvision;
       {
-        OfferData storage offerData = pair.offerData[ofp.id];
+        OfferData storage offerData = pair.offerData[ofrId];
         MgvStructs.OfferDetailPacked offerDetail = offerData.detail;
         if (update) {
           require(msg.sender == offerDetail.maker(), "mgv/updateOffer/unauthorized");
@@ -266,6 +279,7 @@ contract MgvOfferMaking is MgvHasOffers {
         }
 
         /* If the offer is new, has a new `gasprice`, `gasreq`, or if Mangrove's `offer_gasbase` configuration parameter has changed, we also update `offerDetails`. */
+        // TODO Can this be optimized to a single packed comparison? eg offerDetail != ofp.detail ?
         if (
           !update || offerDetail.gasreq() != ofp.gasreq || offerDetail.gasprice() != ofp.gasprice
             || offerDetail.offer_gasbase() != ofp.local.offer_gasbase()
@@ -289,102 +303,74 @@ contract MgvOfferMaking is MgvHasOffers {
           creditWei(msg.sender, oldProvision - provision);
         }
       }
-      /* We now place the offer in the book at the position found by `findPosition`. */
 
-      /* First, we test if the offer has moved in the book or is not currently in the book. If `!isLive(ofp.oldOffer)`, we must update its prev/next. If it is live but its prev has changed, we must also update them. Note that checking both `prev = oldPrev` and `next == oldNext` would be redundant. If either is true, then the updated offer has not changed position and there is nothing to update.
+      // Tick insertionTick = ofp.tick;
+      bool bestWillChange = ofp.local.best() == 0 || insertionTick.strictlyBetter(ofp.local.tick());
+      // mapping (uint => MgvStructs.OfferPacked) _offers = offers[ofp.outbound_tkn][ofp.inbound_tkn];
+      // remove offer from previous position
+      if (ofp.oldOffer.isLive()) {
+        // may modify ofp.local
+        // At this point only the in-memory local has the new best?
+        /* When to update local.best/tick:
+           - If removing this offer does not move tick: no
+           - Otherwise, if new tick < insertion tick, yes
+           - Otherwise, if new tick = insertion tick, yes because the inserted offer will be inserted at the end
+           - Otherwise, if new tick > insertion tick, no 
+           I cannot know new tick before checking it out. But it is >= current tick.
+           So:
+           - If current tick > insertion tick: no
+           - Otherwise yes because maybe current tick = insertion tick
+        */
+        // bool updateLocal = tick.strictlyBetter(ofp.local.tick().strictlyBetter(tick)
+        ofp.local = dislodgeOffer(pair, ofp.oldOffer, ofp.local, !bestWillChange);
+        bestWillChange = ofp.local.best() == 0 || insertionTick.strictlyBetter(ofp.local.tick());
+      }
 
-    As a note for future changes, there is a tricky edge case where `prev == oldPrev` yet the prev/next should be changed: a previously-used offer being brought back in the book, and ending with the same prev it had when it was in the book. In that case, the neighbor is currently pointing to _another_ offer, and thus must be updated. With the current code structure, this is taken care of as a side-effect of checking `!isLive`, but should be kept in mind. The same goes in the `next == oldNext` case. */
-      if (!isLive(ofp.oldOffer) || prev != ofp.oldOffer.prev()) {
-        /* * If the offer is not the best one, we update its predecessor; otherwise we update the `best` value. */
-        if (prev != 0) {
-          OfferData storage offerData = pair.offerData[prev];
-          offerData.offer = offerData.offer.next(ofp.id);
-        } else {
-          ofp.local = ofp.local.best(ofp.id);
+      // insertion
+      Leaf leaf = pair.leafs[insertionTick.leafIndex()];
+
+      // if leaf was empty flip tick on at level0
+      if (leaf.isEmpty()) {
+        Field field;
+        field = pair.level0[insertionTick.level0Index()];
+        pair.level0[insertionTick.level0Index()] = field.flipBitAtLevel0(insertionTick);
+        // if level0 was empty, flip tick on at level1
+        if (field.isEmpty()) {
+          field = pair.level1[insertionTick.level1Index()];
+          pair.level1[insertionTick.level1Index()] = field.flipBitAtLevel1(insertionTick);
+          // if level1 was empty, flip tick on at level2
+          if (field.isEmpty()) {
+            field = pair.level2;
+            pair.level2 = field.flipBitAtLevel2(insertionTick);
+          }
         }
+      }
+      // invariant
+      // tick empty -> firstId=lastId=0
+      // tick has 1 offer -> firstId=lastId!=0
+      // otherwise 0 != firstId != lastId != 0
+      uint lastId = leaf.lastOfTick(insertionTick);
+      if (lastId == 0) {
+        leaf = leaf.setTickFirst(insertionTick, ofrId);
+      } else {
+        OfferData storage offerData = pair.offerData[lastId];
+        offerData.offer = offerData.offer.next(ofrId);
+      }
 
-        /* * If the offer is not the last one, we update its successor. */
-        if (next != 0) {
-          OfferData storage offerData = pair.offerData[next];
-          offerData.offer = offerData.offer.prev(ofp.id);
-        }
+      // store offer at the end of the tick
+      leaf = leaf.setTickLast(insertionTick, ofrId);
+      pair.leafs[insertionTick.leafIndex()] = leaf;
 
-        /* * Recall that in this branch, the offer has changed location, or is not currently in the book. If the offer is not new and already in the book, we must remove it from its previous location by stitching its previous prev/next. */
-        if (update && isLive(ofp.oldOffer)) {
-          ofp.local = stitchOffers(pair, ofp.oldOffer.prev(), ofp.oldOffer.next(), ofp.local);
-        }
+      if (bestWillChange) {
+        // FIXME: remove best update, only here for compatibility
+        ofp.local = ofp.local.best(leaf.firstOfTick(insertionTick));
+        ofp.local = ofp.local.tick(insertionTick);
       }
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
       MgvStructs.OfferPacked ofr =
-        MgvStructs.Offer.pack({__prev: prev, __next: next, __wants: ofp.wants, __gives: ofp.gives});
-      pair.offerData[ofp.id].offer = ofr;
-    }
-  }
-
-  /* ## Find Position */
-  /* `findPosition` takes a price in the form of a (`ofp.wants`,`ofp.gives`) pair, an offer id (`ofp.pivotId`) and walks the book from that offer (backward or forward) until the right position for the price is found. The position is returned as a `(prev,next)` pair, with `prev` or `next` at 0 to mark the beginning/end of the book (no offer ever has id 0).
-
-  If prices are equal, `findPosition` will put the newest offer last. */
-  function findPosition(Pair storage pair, OfferPack memory ofp) internal view returns (uint, uint) {
-    unchecked {
-      uint prevId;
-      uint nextId;
-      uint pivotId = ofp.pivotId;
-      /* Get `pivot`, optimizing for the case where pivot info is already known */
-      OfferData storage offerData = pair.offerData[pivotId];
-      MgvStructs.OfferPacked pivot = pivotId == ofp.id ? ofp.oldOffer : offerData.offer;
-
-      /* In case pivotId is not an active offer, it is unusable (since it is out of the book). We default to the current best offer. If the book is empty pivot will be 0. That is handled through a test in the `better` comparison function. */
-      if (!isLive(pivot)) {
-        pivotId = ofp.local.best();
-        offerData = pair.offerData[pivotId];
-        pivot = offerData.offer;
-      }
-
-      /* * Pivot is better than `wants/gives`, we follow `next`. */
-      uint wants2 = ofp.wants;
-      uint gives2 = ofp.gives;
-      uint gasreq2 = ofp.gasreq;
-
-      /* On an empty book, going into either branch of the conditional would work, but true is more consistent, and we want to avoid going into `better` and making a useless SLOAD for offer details. */
-      if (pivotId == 0 || better(wants2, gives2, gasreq2, pivot, offerData)) {
-        MgvStructs.OfferPacked pivotNext;
-        while (pivot.next() != 0) {
-          uint pivotNextId = pivot.next();
-          offerData = pair.offerData[pivotNextId];
-          pivotNext = offerData.offer;
-          // No need to test for pivotNextId == 0, we tested it above
-          if (better(wants2, gives2, gasreq2, pivotNext, offerData)) {
-            pivotId = pivotNextId;
-            pivot = pivotNext;
-          } else {
-            break;
-          }
-        }
-        // gets here on empty book
-        (prevId, nextId) = (pivotId, pivot.next());
-
-        /* * Pivot is strictly worse than `wants/gives`, we follow `prev`. */
-      } else {
-        MgvStructs.OfferPacked pivotPrev;
-        while (pivot.prev() != 0) {
-          uint pivotPrevId = pivot.prev();
-          offerData = pair.offerData[pivotPrevId];
-          pivotPrev = offerData.offer;
-          // No need to test for pivotPrevId == 0, we tested it above
-          if (better(wants2, gives2, gasreq2, pivotPrev, offerData)) {
-            break;
-          } else {
-            pivotId = pivotPrevId;
-            pivot = pivotPrev;
-          }
-        }
-
-        (prevId, nextId) = (pivot.prev(), pivotId);
-      }
-
-      return (prevId == ofp.id ? ofp.oldOffer.prev() : prevId, nextId == ofp.id ? ofp.oldOffer.next() : nextId);
+        MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: insertionTick, __gives: ofp.gives});
+      pair.offerData[ofrId].offer = ofr;
     }
   }
 

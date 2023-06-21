@@ -20,7 +20,7 @@
 
 pragma solidity ^0.8.10;
 
-import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs, IERC20} from "./MgvLib.sol";
+import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs, IERC20, Leaf, Field} from "./MgvLib.sol";
 
 /* `MgvRoot` contains state variables used everywhere in the operation of Mangrove and their related function. */
 contract MgvRoot is HasMgvEvents {
@@ -41,18 +41,42 @@ contract MgvRoot is HasMgvEvents {
     * `offerData` maps from offer ids to offer data.
   */
 
+  /* Note that offers are structured into a tree with linked lists at its leves.
+     The root is level2, has 256 level1 node children, each has 256 level0 node children, each has 256 leaves, each has 4 ticks (it holds the first and last offer of each tick's linked list).
+     level2, level1 and level0 nodes are bitfield, a bit is set iff there is a tick set below them.
+  */
   struct Pair {
     MgvStructs.LocalPacked local;
     mapping(uint => OfferData) offerData;
+    mapping(int => Leaf) leafs;
+    mapping(int => Field) level0;
+    mapping(int => Field) level1;
+    Field level2;
   }
 
   /* `pairs` maps from token pair to `Pair` information. */
   mapping(address => mapping(address => Pair)) internal pairs;
 
+  function leafs(address outbound, address inbound, int index) external view returns (Leaf) {
+    return pairs[outbound][inbound].leafs[index];
+  }
+
+  function level0(address outbound, address inbound, int index) external view returns (Field) {
+    return pairs[outbound][inbound].level0[index];
+  }
+
+  function level1(address outbound, address inbound, int index) external view returns (Field) {
+    return pairs[outbound][inbound].level1[index];
+  }
+
+  function level2(address outbound, address inbound) external view returns (Field) {
+    return pairs[outbound][inbound].level2;
+  }
+
   /* Checking the size of `density` is necessary to prevent overflow when `density` is used in calculations. */
   function checkDensity(uint density) internal pure returns (bool) {
     unchecked {
-      return uint112(density) == density;
+      return (density & MgvStructs.Local.DENSITY_CAST_MASK) == density;
     }
   }
 

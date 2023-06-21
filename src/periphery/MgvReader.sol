@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvLib, MgvStructs, Tick, Leaf, Field} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 
 struct VolumeData {
@@ -78,7 +78,7 @@ contract MgvReader {
       uint currentId = startId;
 
       while (currentId != 0 && length < maxOffers) {
-        currentId = MGV.offers(outbound_tkn, inbound_tkn, currentId).next();
+        currentId = nextOfferId(outbound_tkn, inbound_tkn, MGV.offers(outbound_tkn, inbound_tkn, currentId));
         length = length + 1;
       }
 
@@ -105,7 +105,7 @@ contract MgvReader {
         offerIds[i] = currentId;
         offers[i] = MGV.offers(outbound_tkn, inbound_tkn, currentId);
         details[i] = MGV.offerDetails(outbound_tkn, inbound_tkn, currentId);
-        currentId = offers[i].next();
+        currentId = nextOfferId(outbound_tkn, inbound_tkn, offers[i]);
         i = i + 1;
       }
 
@@ -130,7 +130,7 @@ contract MgvReader {
       while (currentId != 0 && i < length) {
         offerIds[i] = currentId;
         (offers[i], details[i]) = MGV.offerInfo(outbound_tkn, inbound_tkn, currentId);
-        currentId = offers[i].next;
+        currentId = nextOfferIdById(outbound_tkn, inbound_tkn, currentId);
         i = i + 1;
       }
 
@@ -265,7 +265,7 @@ contract MgvReader {
           mr.numOffers++;
           mr.currentWants = mr.initialWants > mr.totalGot ? mr.initialWants - mr.totalGot : 0;
           mr.currentGives = mr.initialGives - mr.totalGave;
-          mr.offerId = mr.offer.next();
+          mr.offerId = nextOfferId(mr.outbound_tkn, mr.inbound_tkn, mr.offer);
           mr.offer = MGV.offers(mr.outbound_tkn, mr.inbound_tkn, mr.offerId);
         }
 
@@ -304,14 +304,9 @@ contract MgvReader {
           mr.currentGives = offerWants;
         } else {
           if (mr.fillWants) {
-            uint product = offerWants * takerWants;
-            mr.currentGives = product / offerGives + (product % offerGives == 0 ? 0 : 1);
+            mr.currentGives = mr.offer.tick().inboundFromOutboundUp(takerWants);
           } else {
-            if (offerWants == 0) {
-              mr.currentWants = offerGives;
-            } else {
-              mr.currentWants = (offerGives * takerGives) / offerWants;
-            }
+            mr.currentWants = (offerGives * takerGives) / offerWants;
           }
         }
       }
@@ -440,5 +435,111 @@ contract MgvReader {
       _openMarkets.pop();
       marketPositions[tkn0][tkn1] = 0;
     }
+  }
+
+  /* Next/Prev offers */
+
+  // FIXME subticks for gas?
+  // utility fn
+  // VERY similar to MgvOfferTaking's getNextBest
+  /// @notice Get the offer after a given offer, given its id
+  function nextOfferIdById(address outbound_tkn, address inbound_tkn, uint offerId) public view returns (uint) {
+    return nextOfferId(outbound_tkn, inbound_tkn, MGV.offers(outbound_tkn, inbound_tkn, offerId));
+  }
+
+  //FIXME replace these functions with "call mangrove for next offer, revert, return offer id"?
+  /// @notice Get the offer after a given offer
+  function nextOfferId(address outbound_tkn, address inbound_tkn, MgvStructs.OfferPacked offer)
+    public
+    view
+    returns (uint)
+  {
+    // WARNING
+    // If the offer is not actually recorded in the pair, results will be meaningless.
+    // if (offer.gives() == 0) {
+    //   revert("Offer is not live, prev/next meaningless.");
+    // }
+    Tick offerTick = offer.tick();
+    uint nextId = offer.next();
+    if (nextId == 0) {
+      int index = offerTick.leafIndex();
+      Leaf leaf = MGV.leafs(outbound_tkn, inbound_tkn, index);
+      leaf = leaf.eraseToTick(offerTick);
+      if (leaf.isEmpty()) {
+        index = offerTick.level0Index();
+        Field field = MGV.level0(outbound_tkn, inbound_tkn, index);
+        field = field.eraseToTick0(offerTick);
+        if (field.isEmpty()) {
+          index = offerTick.level1Index();
+          field = MGV.level1(outbound_tkn, inbound_tkn, index);
+          field = field.eraseToTick1(offerTick);
+          if (field.isEmpty()) {
+            field = MGV.level2(outbound_tkn, inbound_tkn);
+            field = field.eraseToTick2(offerTick);
+            // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+            if (field.isEmpty()) {
+              return 0;
+            }
+            index = field.firstLevel1Index();
+            field = MGV.level1(outbound_tkn, inbound_tkn, index);
+          }
+          index = field.firstLevel0Index(index);
+          field = MGV.level0(outbound_tkn, inbound_tkn, index);
+        }
+        leaf = MGV.leafs(outbound_tkn, inbound_tkn, field.firstLeafIndex(index));
+      }
+      nextId = leaf.getNextOfferId();
+    }
+    return nextId;
+  }
+
+  /// @notice Get the offer before a given offer, given its id
+  function prevOfferIdById(address outbound_tkn, address inbound_tkn, uint offerId) public view returns (uint) {
+    return prevOfferId(outbound_tkn, inbound_tkn, MGV.offers(outbound_tkn, inbound_tkn, offerId));
+  }
+
+  /// @notice Get the offer before a given offer
+  function prevOfferId(address outbound_tkn, address inbound_tkn, MgvStructs.OfferPacked offer)
+    public
+    view
+    returns (uint offerId)
+  {
+    // WARNING
+    // If the offer is not actually recorded in the pair, results will be meaningless.
+    // if (offer.gives() == 0) {
+    //   revert("Offer is not live, prev/next meaningless.");
+    // }
+    Tick offerTick = offer.tick();
+    uint prevId = offer.prev();
+    if (prevId == 0) {
+      int index = offerTick.leafIndex();
+      Leaf leaf = MGV.leafs(outbound_tkn, inbound_tkn, index);
+      leaf = leaf.eraseFromTick(offerTick);
+      if (leaf.isEmpty()) {
+        index = offerTick.level0Index();
+        Field field = MGV.level0(outbound_tkn, inbound_tkn, index);
+        field = field.eraseFromTick0(offerTick);
+        if (field.isEmpty()) {
+          index = offerTick.level1Index();
+          field = MGV.level1(outbound_tkn, inbound_tkn, index);
+          field = field.eraseFromTick1(offerTick);
+          if (field.isEmpty()) {
+            field = MGV.level2(outbound_tkn, inbound_tkn);
+            field = field.eraseFromTick2(offerTick);
+            // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+            if (field.isEmpty()) {
+              return 0;
+            }
+            index = field.lastLevel1Index();
+            field = MGV.level1(outbound_tkn, inbound_tkn, index);
+          }
+          index = field.lastLevel0Index(index);
+          field = MGV.level0(outbound_tkn, inbound_tkn, index);
+        }
+        leaf = MGV.leafs(outbound_tkn, inbound_tkn, field.lastLeafIndex(index));
+      }
+      prevId = leaf.getNextOfferId();
+    }
+    return prevId;
   }
 }

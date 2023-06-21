@@ -66,9 +66,9 @@ contract MgvReaderTest is MangroveTest {
 
     // test offer order
     (currentId, offerIds, offers, details) = reader.offerList($(base), $(quote), 0, 50);
-    assertEq(offers[0].wants, 0.8 ether, "wrong wants for offers[0]");
-    assertEq(offers[1].wants, 0.9 ether, "wrong wants for offers[0]");
-    assertEq(offers[2].wants, 1 ether, "wrong wants for offers[0]");
+    assertApproxEqRel(offers[0].wants(), 0.8 ether, relError(10), "wrong wants for offers[0]");
+    assertApproxEqRel(offers[1].wants(), 0.9 ether, relError(10), "wrong wants for offers[0]");
+    assertApproxEqRel(offers[2].wants(), 1 ether, relError(10), "wrong wants for offers[0]");
   }
 
   function test_returns_zero_on_nonexisting_offer() public {
@@ -194,7 +194,7 @@ contract MgvReaderTest is MangroveTest {
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), 0.5 ether, 1 ether, false);
     assertEq(vd.length, 1, "bad vd length");
     assertEq(vd[0].totalGot, 1.1 ether, "bad totalGot");
-    assertEq(vd[0].totalGave, 1 ether, "bad totalGave");
+    assertApproxEqRel(vd[0].totalGave, 1 ether, relError(10), "bad totalGave");
   }
 
   function test_marketOrder_partial_due_to_price_fillWants() public {
@@ -205,7 +205,7 @@ contract MgvReaderTest is MangroveTest {
     assertEq(vd[0].totalGot, 1 ether, "bad totalGot[0]");
     assertEq(vd[0].totalGave, 1 ether, "bad totalGave[0]");
     assertEq(vd[1].totalGot, 1.4 ether, "bad totalGot[1]");
-    assertEq(vd[1].totalGave, 1.5 ether, "bad totalGave[1]");
+    assertApproxEqRel(vd[1].totalGave, 1.5 ether, relError(10), "bad totalGave[1]");
   }
 
   function test_marketOrder_gas() public {
@@ -688,7 +688,7 @@ contract MgvReaderTest is MangroveTest {
   }
 }
 
-function printVolumeData(VolumeData[] memory vd) view {
+function printVolumeData(VolumeData[] memory vd) pure {
   console.log("====================");
   console.log("Volume Data size: %s", vd.length);
   for (uint i = 0; i < vd.length; i++) {

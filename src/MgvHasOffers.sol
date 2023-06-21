@@ -1,7 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs} from "./MgvLib.sol";
+import {
+  MgvLib,
+  HasMgvEvents,
+  IMgvMonitor,
+  MgvStructs,
+  Field,
+  Leaf,
+  Tick,
+  LEVEL2_SIZE,
+  LEVEL1_SIZE,
+  LEVEL0_SIZE
+} from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
 
 /* `MgvHasOffers` contains the state variables and functions common to both market-maker operations and market-taker operations. Mostly: storing offers, removing them, updating market makers' provisions. */
@@ -97,37 +108,92 @@ contract MgvHasOffers is MgvRoot {
 
   /* ## Stitching the orderbook */
 
-  /* Connect the offers `betterId` and `worseId` through their `next`/`prev` pointers. For more on the book structure, see [`structs.js`](#structs.js). Used after executing an offer (or a segment of offers), after removing an offer, or moving an offer.
-
-  **Warning**: calling with `betterId = 0` will set `worseId` as the best. So with `betterId = 0` and `worseId = 0`, it sets the book to empty and loses track of existing offers.
-
-  **Warning**: may make memory copy of `local.best` stale. Returns new `local`. */
-  function stitchOffers(Pair storage pair, uint betterId, uint worseId, MgvStructs.LocalPacked local)
-    internal
-    returns (MgvStructs.LocalPacked)
-  {
+  // shouldUpdateBest is true if we may want to update best, false if there is no way we want to update it (eg if we know we are about to reinsert the offer anyway and will update best then?)
+  function dislodgeOffer(
+    Pair storage pair,
+    MgvStructs.OfferPacked offer,
+    MgvStructs.LocalPacked local,
+    bool shouldUpdateBest
+  ) internal returns (MgvStructs.LocalPacked) {
     unchecked {
-      if (betterId != 0) {
-        OfferData storage offerData = pair.offerData[betterId];
-        offerData.offer = offerData.offer.next(worseId);
+      Leaf leaf;
+      uint prevId = offer.prev();
+      uint nextId = offer.next();
+      Tick offerTick = offer.tick();
+      if (prevId == 0 || nextId == 0) {
+        leaf = pair.leafs[offerTick.leafIndex()];
+      }
+
+      // if current tick is not strictly better,
+      // time to look for a new current tick
+      // NOTE: I used to name this var "shouldUpdateTick" and add "&& (prevId == 0 && nextId == 0)" because tick has not changed if you are not removing the last offer of a tick. But for now i want to return the NEW BEST (for compatibility reasons). Will edit later.
+      // note: adding offerId as an arg would let us replace
+      // prevId == 0 && !local.tick.strictlyBetter(offerTick)
+      // with
+      // offerId == local.best() (but best will maybe go away in the future)
+      shouldUpdateBest = shouldUpdateBest && prevId == 0 && !local.tick().strictlyBetter(offerTick);
+
+      if (prevId != 0) {
+        OfferData storage offerData = pair.offerData[prevId];
+        offerData.offer = offerData.offer.next(nextId);
       } else {
-        local = local.best(worseId);
+        leaf = leaf.setTickFirst(offerTick, nextId);
       }
 
-      if (worseId != 0) {
-        OfferData storage offerData = pair.offerData[worseId];
-        offerData.offer = offerData.offer.prev(betterId);
+      if (nextId != 0) {
+        OfferData storage offerData = pair.offerData[nextId];
+        offerData.offer = offerData.offer.prev(prevId);
+      } else {
+        leaf = leaf.setTickLast(offerTick, prevId);
       }
 
+      if (prevId == 0 || nextId == 0) {
+        pair.leafs[offerTick.leafIndex()] = leaf;
+        // if leaf now empty, flip ticks OFF up the tree
+        if (leaf.isEmpty()) {
+          int index = offerTick.level0Index(); // level0Index or level1Index
+          Field field = pair.level0[index]; // level 0, 1 or 2
+          field = field.flipBitAtLevel0(offerTick);
+          pair.level0[index] = field;
+          if (field.isEmpty()) {
+            index = offerTick.level1Index();
+            field = pair.level1[index].flipBitAtLevel1(offerTick);
+            pair.level1[index] = field;
+            if (field.isEmpty()) {
+              field = pair.level2.flipBitAtLevel2(offerTick);
+              pair.level2 = field;
+
+              // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+              if (field.isEmpty()) {
+                local = local.best(0);
+                local = local.tick(Tick.wrap(0));
+                return local;
+              }
+              // Note: no need to check for level2.isEmpty(), see def of log2OrZero
+              // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBest is false, because the
+              if (shouldUpdateBest) {
+                index = field.firstLevel1Index();
+                field = pair.level1[index];
+              }
+            }
+            if (shouldUpdateBest) {
+              index = field.firstLevel0Index(index);
+              field = pair.level0[index];
+            }
+          }
+          if (shouldUpdateBest) {
+            leaf = pair.leafs[field.firstLeafIndex(index)];
+          }
+        }
+        if (shouldUpdateBest) {
+          local = local.best(leaf.getNextOfferId());
+
+          // INEFFICIENT find a way to avoid a read
+          // Or not inefficient because one fewer read to do when taking?
+          local = local.tick(pair.offerData[local.best()].offer.tick());
+        }
+      }
       return local;
-    }
-  }
-
-  /* ## Check offer is live */
-  /* Check whether an offer is 'live', that is: inserted in the order book. The Mangrove holds a `outbound_tkn => inbound_tkn => id => MgvStructs.OfferPacked` mapping in storage. Offer ids that are not yet assigned or that point to since-deleted offer will point to an offer with `gives` field at 0. */
-  function isLive(MgvStructs.OfferPacked offer) public pure returns (bool) {
-    unchecked {
-      return offer.gives() > 0;
     }
   }
 }

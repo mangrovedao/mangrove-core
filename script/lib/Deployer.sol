@@ -103,7 +103,7 @@ abstract contract Deployer is Script2 {
     vm.broadcast(broadcaster());
   }
 
-  function prettyLog(string memory log) internal view {
+  function prettyLog(string memory log) internal pure {
     console.log("\u001b[33m*\u001b[0m", log);
   }
 

@@ -149,8 +149,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_set_density_ceiling() public {
-    vm.expectRevert("mgv/config/density/112bits");
-    mgv.setDensity($(base), $(quote), uint(type(uint112).max) + 1);
+    vm.expectRevert("mgv/config/density/88bits");
+    mgv.setDensity($(base), $(quote), uint(type(uint88).max) + 1);
   }
 
   function test_setGasprice_ceiling() public {
@@ -250,7 +250,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     expectFrom($(mgv));
     emit Debit(address(mkr), reader.getProvision($(base), $(quote), cfg.gasmax(), 0));
     uint ofr = mkr.newOffer(1 ether, 1 ether, cfg.gasmax(), 0);
-    assertTrue(mgv.isLive(mgv.offers($(base), $(quote), ofr)), "Offer should have been inserted");
+    assertTrue(mgv.offers($(base), $(quote), ofr).isLive(), "Offer should have been inserted");
   }
 
   function test_makerGasreq_lower_than_density_fails_newOffer() public {
@@ -281,7 +281,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     expectFrom($(mgv));
     emit Debit(address(mkr), reader.getProvision($(base), $(quote), 1, 0));
     uint ofr = mkr.newOffer(amount, amount, 1, 0);
-    assertTrue(mgv.isLive(mgv.offers($(base), $(quote), ofr)), "Offer should have been inserted");
+    assertTrue(mgv.offers($(base), $(quote), ofr).isLive(), "Offer should have been inserted");
   }
 
   function test_makerGasprice_wider_than_16_bits_fails_newOffer() public {
@@ -513,10 +513,24 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_marketOrder_on_posthook_succeeds() public {
-    uint ofr = mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 500_000, 0, 0);
-    mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 200_000, 0, 0);
+    mgv.setGasmax(10_000_000);
+    uint ofr = mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 3500_000, 0, 0);
+    mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 1800_000, 0, 0);
     posthook_cb = abi.encodeCall(this.marketOrderOK, ($(base), $(quote)));
     assertTrue(tkr.take(ofr, 0.6 ether), "take must succeed or test is void");
+    assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
+  }
+
+  // not gatekeeping! move me.
+  function test_no_execution_keeps_ticktree_ok() public {
+    mgv.setGasmax(10_000_000);
+    uint ofr = mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 3500_000, 0, 0);
+    (uint takerGot, uint takerGave) = tkr.marketOrder(0.5 ether, 0.3 ether);
+    // assertGt(takerGot,0,"mo should work");
+    assertEq(takerGot, 0, "mo should fail");
+    assertTrue(pair.offers(ofr).gives() > 0, "offer should still be live");
+    (takerGot, takerGave) = tkr.marketOrder(0.5 ether, 0.6 ether);
+    assertGt(takerGot, 0, "mo should work");
     assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
   }
 
@@ -661,7 +675,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.flashloan(sor, address(0));
   }
 
-  function test_configInfo(address tout, address tin, address monitor, uint112 density) public {
+  function test_configInfo(address tout, address tin, address monitor, uint88 density) public {
     mgv.activate(tout, tin, 0, density, 0);
     mgv.setMonitor(monitor);
     (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = mgv.configInfo(tout, tin);

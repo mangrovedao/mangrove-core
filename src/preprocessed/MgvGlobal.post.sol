@@ -28,6 +28,10 @@ struct GlobalUnpacked {
 type GlobalPacked is uint;
 using Library for GlobalPacked global;
 
+////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
+
+////////////// END OF ADDITIONAL DEFINITIONS /////////////////
+
 // number of bits in each field
 uint constant monitor_bits   = 160;
 uint constant useOracle_bits = 1;
@@ -61,32 +65,37 @@ uint constant gasmax_mask    = ~gasmax_mask_inv;
 uint constant dead_mask      = ~dead_mask_inv;
 
 library Library {
+  // from packed to in-memory struct
   function to_struct(GlobalPacked __packed) internal pure returns (GlobalUnpacked memory __s) { unchecked {
-    __s.monitor   = address(uint160((GlobalPacked.unwrap(__packed) & monitor_mask_inv) >> (256 - monitor_bits - monitor_before)));
+    __s.monitor   = address(uint160(uint(GlobalPacked.unwrap(__packed) << monitor_before) >> (256 - monitor_bits)));
     __s.useOracle = ((GlobalPacked.unwrap(__packed) & useOracle_mask_inv) > 0);
     __s.notify    = ((GlobalPacked.unwrap(__packed) & notify_mask_inv) > 0);
-    __s.gasprice  = (GlobalPacked.unwrap(__packed) & gasprice_mask_inv) >> (256 - gasprice_bits - gasprice_before);
-    __s.gasmax    = (GlobalPacked.unwrap(__packed) & gasmax_mask_inv) >> (256 - gasmax_bits - gasmax_before);
+    __s.gasprice  = uint(GlobalPacked.unwrap(__packed) << gasprice_before) >> (256 - gasprice_bits);
+    __s.gasmax    = uint(GlobalPacked.unwrap(__packed) << gasmax_before) >> (256 - gasmax_bits);
     __s.dead      = ((GlobalPacked.unwrap(__packed) & dead_mask_inv) > 0);
   }}
 
+  // equality checking
   function eq(GlobalPacked __packed1, GlobalPacked __packed2) internal pure returns (bool) { unchecked {
     return GlobalPacked.unwrap(__packed1) == GlobalPacked.unwrap(__packed2);
   }}
 
+  // from packed to a tuple
   function unpack(GlobalPacked __packed) internal pure returns (address __monitor, bool __useOracle, bool __notify, uint __gasprice, uint __gasmax, bool __dead) { unchecked {
-    __monitor   = address(uint160((GlobalPacked.unwrap(__packed) & monitor_mask_inv) >> (256 - monitor_bits - monitor_before)));
+    __monitor   = address(uint160(uint(GlobalPacked.unwrap(__packed) << monitor_before) >> (256 - monitor_bits)));
     __useOracle = ((GlobalPacked.unwrap(__packed) & useOracle_mask_inv) > 0);
     __notify    = ((GlobalPacked.unwrap(__packed) & notify_mask_inv) > 0);
-    __gasprice  = (GlobalPacked.unwrap(__packed) & gasprice_mask_inv) >> (256 - gasprice_bits - gasprice_before);
-    __gasmax    = (GlobalPacked.unwrap(__packed) & gasmax_mask_inv) >> (256 - gasmax_bits - gasmax_before);
+    __gasprice  = uint(GlobalPacked.unwrap(__packed) << gasprice_before) >> (256 - gasprice_bits);
+    __gasmax    = uint(GlobalPacked.unwrap(__packed) << gasmax_before) >> (256 - gasmax_bits);
     __dead      = ((GlobalPacked.unwrap(__packed) & dead_mask_inv) > 0);
   }}
 
+  // getters
   function monitor(GlobalPacked __packed) internal pure returns(address) { unchecked {
-    return address(uint160((GlobalPacked.unwrap(__packed) & monitor_mask_inv) >> (256 - monitor_bits - monitor_before)));
+    return address(uint160(uint(GlobalPacked.unwrap(__packed) << monitor_before) >> (256 - monitor_bits)));
   }}
 
+  // setters
   function monitor(GlobalPacked __packed,address val) internal pure returns(GlobalPacked) { unchecked {
     return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & monitor_mask) | (uint(uint160(val)) << (256 - monitor_bits)) >> monitor_before);
   }}
@@ -95,6 +104,7 @@ library Library {
     return ((GlobalPacked.unwrap(__packed) & useOracle_mask_inv) > 0);
   }}
 
+  // setters
   function useOracle(GlobalPacked __packed,bool val) internal pure returns(GlobalPacked) { unchecked {
     return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & useOracle_mask) | (uint_of_bool(val) << (256 - useOracle_bits)) >> useOracle_before);
   }}
@@ -103,22 +113,25 @@ library Library {
     return ((GlobalPacked.unwrap(__packed) & notify_mask_inv) > 0);
   }}
 
+  // setters
   function notify(GlobalPacked __packed,bool val) internal pure returns(GlobalPacked) { unchecked {
     return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & notify_mask) | (uint_of_bool(val) << (256 - notify_bits)) >> notify_before);
   }}
   
   function gasprice(GlobalPacked __packed) internal pure returns(uint) { unchecked {
-    return (GlobalPacked.unwrap(__packed) & gasprice_mask_inv) >> (256 - gasprice_bits - gasprice_before);
+    return uint(GlobalPacked.unwrap(__packed) << gasprice_before) >> (256 - gasprice_bits);
   }}
 
+  // setters
   function gasprice(GlobalPacked __packed,uint val) internal pure returns(GlobalPacked) { unchecked {
     return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & gasprice_mask) | (val << (256 - gasprice_bits)) >> gasprice_before);
   }}
   
   function gasmax(GlobalPacked __packed) internal pure returns(uint) { unchecked {
-    return (GlobalPacked.unwrap(__packed) & gasmax_mask_inv) >> (256 - gasmax_bits - gasmax_before);
+    return uint(GlobalPacked.unwrap(__packed) << gasmax_before) >> (256 - gasmax_bits);
   }}
 
+  // setters
   function gasmax(GlobalPacked __packed,uint val) internal pure returns(GlobalPacked) { unchecked {
     return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & gasmax_mask) | (val << (256 - gasmax_bits)) >> gasmax_before);
   }}
@@ -127,16 +140,19 @@ library Library {
     return ((GlobalPacked.unwrap(__packed) & dead_mask_inv) > 0);
   }}
 
+  // setters
   function dead(GlobalPacked __packed,bool val) internal pure returns(GlobalPacked) { unchecked {
     return GlobalPacked.wrap((GlobalPacked.unwrap(__packed) & dead_mask) | (uint_of_bool(val) << (256 - dead_bits)) >> dead_before);
   }}
   
 }
 
+// from in-memory struct to packed
 function t_of_struct(GlobalUnpacked memory __s) pure returns (GlobalPacked) { unchecked {
   return pack(__s.monitor, __s.useOracle, __s.notify, __s.gasprice, __s.gasmax, __s.dead);
 }}
 
+// from arguments to packed
 function pack(address __monitor, bool __useOracle, bool __notify, uint __gasprice, uint __gasmax, bool __dead) pure returns (GlobalPacked) { unchecked {
   uint __packed;
   __packed |= (uint(uint160(__monitor)) << (256 - monitor_bits)) >> monitor_before;

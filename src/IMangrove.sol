@@ -9,6 +9,7 @@ pragma solidity >=0.7.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
 import {MgvLib, MgvStructs, IMaker} from "./MgvLib.sol";
+import "./MgvLib.sol" as MgvLibWrapper;
 
 interface IMangrove {
   event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
@@ -38,7 +39,7 @@ interface IMangrove {
     uint gasprice,
     uint gasreq,
     uint id,
-    uint prev
+    int tick
   );
   event OrderComplete(
     address indexed outbound_tkn,
@@ -193,4 +194,12 @@ interface IMangrove {
   function withdraw(uint amount) external returns (bool noRevert);
 
   receive() external payable;
+
+  function leafs(address outbound, address inbound, int index) external view returns (MgvLibWrapper.Leaf);
+
+  function level0(address outbound, address inbound, int index) external view returns (MgvLibWrapper.Field);
+
+  function level1(address outbound, address inbound, int index) external view returns (MgvLibWrapper.Field);
+
+  function level2(address outbound, address inbound) external view returns (MgvLibWrapper.Field);
 }

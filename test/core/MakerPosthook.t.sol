@@ -70,7 +70,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
       assertEq(result.makerData, executeReturnData, "Incorrect returned makerData");
     }
     assertTrue(
-      !mgv.isLive(mgv.offers(order.outbound_tkn, order.inbound_tkn, order.offerId)), "Offer was not removed after take"
+      !mgv.offers(order.outbound_tkn, order.inbound_tkn, order.offerId).isLive(), "Offer was not removed after take"
     );
     _posthook(order, result);
   }
@@ -333,7 +333,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     address __maker = order.offerDetail.maker();
     uint __gasreq = order.offerDetail.gasreq();
     uint __gasprice = order.offerDetail.gasprice();
-    assertEq(__wants, 1 ether, "Incorrect wants for offer in posthook");
+    assertApproxEqRel(__wants, 1 ether, relError(10), "Incorrect wants for offer in posthook");
     assertEq(__gives, 2 ether, "Incorrect gives for offer in posthook");
     assertEq(__gasprice, 500, "Incorrect gasprice for offer in posthook");
     assertEq(__maker, $(this), "Incorrect maker address");

@@ -2,15 +2,20 @@
 
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
+import "mgv_lib/Test2.sol";
 import "mgv_src/MgvLib.sol";
 
 // Warning: fuzzer will run tests with malformed packed arguments, e.g. bool fields that are > 1.
 
-contract MgvGlobalTest is Test {
+contract MgvGlobalTest is Test2 {
 
+  // cleanup arguments with variable number of bits since `pack` also does a cleanup
   function cast(uint u, uint8 to) internal pure returns (uint) {
     return u & (type(uint).max >> (256-to));
+  }
+
+  function cast(int u, uint8 to) internal pure returns (int) {
+    return u << (256-to) >> (256-to);
   }
 
   function test_pack(address monitor, bool useOracle, bool notify, uint gasprice, uint gasmax, bool dead) public {

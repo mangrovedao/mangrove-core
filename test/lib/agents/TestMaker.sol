@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "mgv_src/AbstractMangrove.sol";
 import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
 import {Test} from "forge-std/Test.sol";
-import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
+import {TransferLib} from "mgv_lib/TransferLib.sol";
 
 contract TrivialTestMaker is IMaker {
   function makerExecute(MgvLib.SingleOrder calldata) external virtual returns (bytes32) {
@@ -114,7 +114,7 @@ contract SimpleTestMaker is TrivialTestMaker {
         order.offer.gives(),
         order.offerDetail.gasreq(),
         0,
-        order.offer.prev(),
+        0,
         order.offerId
       );
     }

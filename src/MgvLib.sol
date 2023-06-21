@@ -6,6 +6,7 @@ pragma solidity ^0.8.10;
 
 import "./preprocessed/MgvStructs.post.sol" as MgvStructs;
 import {IERC20} from "./IERC20.sol";
+import "mgv_lib/TickLib.sol";
 
 /* # Structs
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */
@@ -134,7 +135,7 @@ contract HasMgvEvents {
     uint gasprice,
     uint gasreq,
     uint id,
-    uint prev
+    int tick
   );
 
   /* * `offerId` was present and is now removed from the book. */

@@ -80,7 +80,7 @@ contract MgvGovernable is MgvRoot {
     unchecked {
       authOnly();
 
-      require(checkDensity(density), "mgv/config/density/112bits");
+      require(checkDensity(density), MgvStructs.Local.DENSITY_SIZE_ERROR);
       //+clear+
       Pair storage pair = pairs[outbound_tkn][inbound_tkn];
       pair.local = pair.local.density(density);

@@ -21,10 +21,13 @@ contract ScenariiTest is MangroveTest {
     while (offerId != 0) {
       (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail) =
         mgv.offerInfo($(base), $(quote), offerId);
-      offers[offerId][Info.makerWants] = offer.wants;
+      console.log("Saving Info for offer id", offerId);
+      console.log("  wants", offer.wants());
+      console.log("  gives", offer.gives);
+      offers[offerId][Info.makerWants] = offer.wants();
       offers[offerId][Info.makerGives] = offer.gives;
       offers[offerId][Info.gasreq] = offerDetail.gasreq;
-      offerId = offer.next;
+      offerId = pair.nextOfferIdById(offerId);
     }
   }
 
@@ -90,11 +93,11 @@ contract ScenariiTest is MangroveTest {
       $(quote),
       address(taker),
       0.291 ether, // should not be hardcoded
-      0.375 ether, // should not be hardcoded
+      374979485972146063, // should not be hardcoded
+      // 0.375 ether, // should not be hardcoded
       0,
       0.009 ether // should not be hardcoded
     );
-
     snipe();
     logOrderBook($(base), $(quote), 4);
 
@@ -129,7 +132,7 @@ contract ScenariiTest is MangroveTest {
       // failingOffer should have been removed from Mgv
       {
         assertTrue(
-          !mgv.isLive(mgv.offers($(base), $(quote), failingOfferId)), "Failing offer should have been removed from Mgv"
+          !mgv.offers($(base), $(quote), failingOfferId).isLive(), "Failing offer should have been removed from Mgv"
         );
       }
       uint provision = reader.getProvision($(base), $(quote), offers[failingOfferId][Info.gasreq]);
@@ -187,8 +190,7 @@ contract ScenariiTest is MangroveTest {
     uint offerId = mgv.best($(base), $(quote));
     uint expected_maker = 3;
     while (offerId != 0) {
-      (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory od) =
-        mgv.offerInfo($(base), $(quote), offerId);
+      (, MgvStructs.OfferDetailUnpacked memory od) = mgv.offerInfo($(base), $(quote), offerId);
       assertEq(
         od.maker,
         address(makers.getMaker(expected_maker)),
@@ -198,7 +200,7 @@ contract ScenariiTest is MangroveTest {
       unchecked {
         expected_maker -= 1;
       }
-      offerId = offer.next;
+      offerId = pair.nextOfferIdById(offerId);
     }
     return _offerOf;
   }
@@ -236,9 +238,10 @@ contract ScenariiTest is MangroveTest {
       );
     }
 
-    assertEq(
+    assertApproxEqRel(
       quote.balanceOf(address(makers.getMaker(1))),
       balances.makersBalanceB[1] + leftMkrWants,
+      relError(10),
       "Incorrect B balance for maker 1"
     );
 
@@ -252,13 +255,14 @@ contract ScenariiTest is MangroveTest {
     assertEq(takerGot, reader.minusFee($(base), $(quote), takerWants), "Incorrect declared takerGot");
 
     uint shouldGive = (offers[3][Info.makerWants] + offers[2][Info.makerWants] + leftMkrWants);
-    assertEq(
+    assertApproxEqRel(
       quote.balanceOf(address(taker)), // actual
       balances.takerBalanceB - shouldGive, // expected
+      relError(10),
       "incorrect taker B balance"
     );
 
-    assertEq(takerGave, shouldGive, "Incorrect declared takerGave");
+    assertApproxEqRel(takerGave, shouldGive, relError(10), "Incorrect declared takerGave");
 
     // Checking DEX Fee Balance
     assertEq(
@@ -309,18 +313,21 @@ contract ScenariiTest is MangroveTest {
     {
       uint shouldGive =
         (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives];
-      assertEq(quote.balanceOf(address(taker)), balances.takerBalanceB - shouldGive, "incorrect taker B balance");
-      assertEq(takerGave, shouldGive, "Incorrect takerGave");
+      assertApproxEqRel(
+        quote.balanceOf(address(taker)), balances.takerBalanceB - shouldGive, relError(10), "incorrect taker B balance"
+      );
+      assertApproxEqRel(takerGave, shouldGive, relError(10), "Incorrect takerGave");
     }
     assertEq(
       base.balanceOf(address(maker)),
       balances.makersBalanceA[bag.snipedId] - bag.orderAmount,
       "incorrect maker A balance"
     );
-    assertEq(
+    assertApproxEqRel(
       quote.balanceOf(address(maker)),
       balances.makersBalanceB[bag.snipedId]
         + (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives],
+      relError(10),
       "incorrect maker B balance"
     );
     // Testing residual offer

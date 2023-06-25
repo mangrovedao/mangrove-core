@@ -70,15 +70,17 @@ contract Script2 is Script {
 
   /* Return amt as a fractional representation of amt/10^unit, with dp decimal points
   */
-  function toUnit(uint amt, uint unit) internal pure returns (string memory) {
-    return toUnit(amt,unit,78/*max num of digits*/);
+  function toFixed(uint amt, uint unit) internal pure returns (string memory) {
+    return toFixed(amt,unit,78/*max num of digits*/);
   }
   /* This full version will show at most dp digits in the fractional part. */
-  function toUnit(uint amt, uint unit, uint dp) internal pure returns (string memory str) {
+  function toFixed(uint amt, uint unit, uint dp) internal pure returns (string memory str) {
     uint power; // current power of ten of amt being looked at
     uint digit; // factor of the current power of ten
     bool truncated; // whether we had to truncate due to dp
     bool nonNull; // have we seen a nonzero factor so far
+    // number -> string conversion, avoids polluting traces with vm.toString
+    string[10] memory digitStrings = ["0","1","2","3","4","5","6","7","8","9"];
     // prepend at least `unit` digits or until amt has been exhausted
     while (power < unit || amt > 0) {
       digit = amt % 10;
@@ -87,7 +89,7 @@ contract Script2 is Script {
       if (nonNull || power >= unit) {
         // write if shifting dp to the left puts us out of the fractional part
         if (dp + power >= unit) {
-          str = string.concat(vm.toString(digit), str);
+          str = string.concat(digitStrings[digit], str);
         } else {
           truncated = true;
         }

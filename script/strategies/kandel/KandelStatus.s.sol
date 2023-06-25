@@ -30,17 +30,19 @@ contract KandelStatus is Deployer {
 
       if (ask.gives() > 0) {
         uint p = ask.wants() /*quote*/ * 10 ** baseDecimals / ask.gives(); /*base */
-        console.log("ask @ %s for %s %s", toUnit(p, quoteDecimals), toUnit(ask.gives(), baseDecimals), base.symbol());
+        console.log("ask @ %s for %s %s", toFixed(p, quoteDecimals), toFixed(ask.gives(), baseDecimals), base.symbol());
       }
       if (bid.gives() > 0) {
         uint p = bid.gives() /*quote*/ * 10 ** baseDecimals / bid.wants(); /*base */
-        console.log("bid @ %s for %s %s", toUnit(p, quoteDecimals), toUnit(bid.gives(), quoteDecimals), quote.symbol());
+        console.log(
+          "bid @ %s for %s %s", toFixed(p, quoteDecimals), toFixed(bid.gives(), quoteDecimals), quote.symbol()
+        );
       }
     }
     console.log(
       "{ pending base: %d, pending quote: %s",
-      toUnit(uint(kdl.pending(OfferType.Ask)), baseDecimals),
-      toUnit(uint(kdl.pending(OfferType.Bid)), quoteDecimals),
+      toFixed(uint(kdl.pending(OfferType.Ask)), baseDecimals),
+      toFixed(uint(kdl.pending(OfferType.Bid)), quoteDecimals),
       "}"
     );
   }

@@ -294,7 +294,7 @@ contract AaveKandelTest is CoreKandelTest {
     try attacker.flashloan(base, assetSupply - 1, cd) {
       gas = gas - gasleft();
       assertTrue(true, "Flashloan attack succeeded!");
-      console.log("Total profit of the attack:", toUnit(address(this).balance - nativeBalance, 18));
+      console.log("Total profit of the attack:", toFixed(address(this).balance - nativeBalance, 18));
       console.log("Gas cost:", gas);
     } catch {
       assertTrue(false, "Flashloan attack failed");
@@ -320,12 +320,12 @@ contract AaveKandelTest is CoreKandelTest {
       gas = gas - gasleft() + 300_000; // adding flashloan cost
       console.log(
         "Attack successful, %s collected for an overhead of %s gas units",
-        toUnit(address(this).balance - nativeBal, 18),
+        toFixed(address(this).balance - nativeBal, 18),
         gas
       );
       (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
       uint attacker_cost = gas * global.gasprice() * 10 ** 9;
-      console.log("Gas cost of the attack: %s native tokens", toUnit(attacker_cost, 18));
+      console.log("Gas cost of the attack: %s native tokens", toFixed(attacker_cost, 18));
     } catch Error(string memory reason) {
       console.log(reason);
     }
@@ -358,12 +358,12 @@ contract AaveKandelTest is CoreKandelTest {
 
       require(takerGave == 0 && bounty > 0, "Attack failed");
       gas = gas - gasleft() + 400_000; // adding flashloan cost + repay of borrow
-      console.log("Attack successful, %s collected for an overhead of %s gas units", toUnit(bounty, 18), gas);
+      console.log("Attack successful, %s collected for an overhead of %s gas units", toFixed(bounty, 18), gas);
       (MgvStructs.GlobalPacked global, MgvStructs.LocalPacked local) = mgv.config($(base), $(quote));
       console.log("Gasbase is ", local.offer_gasbase());
       uint attacker_cost = gas * global.gasprice() * 10 ** 9;
       console.log(
-        "Gas cost of the attack (gasprice %s gwei): %s native tokens", global.gasprice(), toUnit(attacker_cost, 18)
+        "Gas cost of the attack (gasprice %s gwei): %s native tokens", global.gasprice(), toFixed(attacker_cost, 18)
       );
     } catch Error(string memory reason) {
       console.log(reason);

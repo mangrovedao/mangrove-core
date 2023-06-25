@@ -701,7 +701,7 @@ contract MangroveOrder_Test is MangroveTest {
     );
     assertTrue(mgo.provisionOf(quote, base, cold_buyResult.offerId) > 0, "Remaining provision should not be 0");
     assertTrue(bounty > g * reader.global().gasprice(), "taker not compensated");
-    console.log("Taker gained %s matics", toUnit(bounty - g * reader.global().gasprice(), 18));
+    console.log("Taker gained %s matics", toFixed(bounty - g * reader.global().gasprice(), 18));
   }
 
   function test_offer_succeeds_when_time_is_not_expired() public {

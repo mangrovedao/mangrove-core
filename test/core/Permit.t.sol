@@ -87,7 +87,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   }
 
   function newOffer(uint amount) internal {
-    mgv.newOffer($(base), $(quote), amount, amount, 100_000, 0, 0);
+    mgv.newOffer($(base), $(quote), amount, amount, 100_000, 0);
   }
 
   function test_no_allowance(uint value) external {

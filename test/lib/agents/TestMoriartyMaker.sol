@@ -33,11 +33,11 @@ contract TestMoriartyMaker is IMaker {
 
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) external override {}
 
-  function newOffer(uint wants, uint gives, uint gasreq, uint pivotId) public {
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0, pivotId);
+  function newOffer(uint wants, uint gives, uint gasreq) public {
+    mgv.newOffer(base, quote, wants, gives, gasreq, 0);
+    mgv.newOffer(base, quote, wants, gives, gasreq, 0);
+    mgv.newOffer(base, quote, wants, gives, gasreq, 0);
+    mgv.newOffer(base, quote, wants, gives, gasreq, 0);
     (, MgvStructs.LocalPacked cfg) = mgv.config(base, quote);
     uint density = cfg.density();
     uint offer_gasbase = cfg.offer_gasbase();
@@ -47,8 +47,7 @@ contract TestMoriartyMaker is IMaker {
       wants: 1,
       gives: (density > 0 ? density : 1) * (offer_gasbase + 100000),
       gasreq: 100000,
-      gasprice: 0,
-      pivotId: 0
+      gasprice: 0
     }); //dummy offer
   }
 

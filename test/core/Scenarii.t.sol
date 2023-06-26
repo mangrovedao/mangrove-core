@@ -102,7 +102,7 @@ contract ScenariiTest is MangroveTest {
     logOrderBook($(base), $(quote), 4);
 
     // restore offer that was deleted after partial fill, minus taken amount
-    makers.getMaker(2).updateOffer(1 ether - 0.375 ether, 0.8 ether - 0.3 ether, 80_000, 0, 2);
+    makers.getMaker(2).updateOffer(1 ether - 0.375 ether, 0.8 ether - 0.3 ether, 80_000, 2);
 
     logOrderBook($(base), $(quote), 4);
 
@@ -154,27 +154,23 @@ contract ScenariiTest is MangroveTest {
     _offerOf[1] = makers.getMaker(1).newOffer({ // offer 1
       wants: 1 ether,
       gives: 0.5 ether,
-      gasreq: 50_000,
-      pivotId: 0
+      gasreq: 50_000
     });
     _offerOf[2] = makers.getMaker(2).newOffer({ // offer 2
       wants: 1 ether,
       gives: 0.8 ether,
-      gasreq: 80_000,
-      pivotId: 1
+      gasreq: 80_000
     });
     _offerOf[3] = makers.getMaker(3).newOffer({ // offer 3
       wants: 0.5 ether,
       gives: 1 ether,
-      gasreq: 90_000,
-      pivotId: 72
+      gasreq: 90_000
     });
     (MgvStructs.GlobalPacked cfg,) = mgv.config($(base), $(quote));
     _offerOf[0] = makers.getMaker(0).newOffer({ //failer offer 4
       wants: 20 ether,
       gives: 10 ether,
-      gasreq: cfg.gasmax(),
-      pivotId: 0
+      gasreq: cfg.gasmax()
     });
     //Checking makers have correctly provisoned their offers
     for (uint i = 0; i < makers.length(); i++) {
@@ -357,7 +353,7 @@ contract DeepCollectTest is MangroveTest {
     deal($(base), address(evil), 5 ether);
     evil.approveMgv(base, 5 ether);
 
-    evil.newOffer({wants: 1 ether, gives: 0.5 ether, gasreq: 100000, pivotId: 0});
+    evil.newOffer({wants: 1 ether, gives: 0.5 ether, gasreq: 100000});
   }
 
   function test_market_with_failures() public {

@@ -117,15 +117,10 @@ interface IMangrove {
     address taker
   ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function newOffer(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId
-  ) external payable returns (uint);
+  function newOffer(address outbound_tkn, address inbound_tkn, uint wants, uint gives, uint gasreq, uint gasprice)
+    external
+    payable
+    returns (uint);
 
   function nonces(address) external view returns (uint);
 
@@ -187,7 +182,6 @@ interface IMangrove {
     uint gives,
     uint gasreq,
     uint gasprice,
-    uint pivotId,
     uint offerId
   ) external payable;
 

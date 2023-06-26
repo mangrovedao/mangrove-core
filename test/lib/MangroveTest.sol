@@ -477,7 +477,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint prov = reader.getProvision(outbound, inbound, gasreq, 0);
     while (fold > 0) {
       vm.prank(caller);
-      mgv.newOffer{value: prov}(outbound, inbound, wants, gives, gasreq, 0, 0);
+      mgv.newOffer{value: prov}(outbound, inbound, wants, gives, gasreq, 0);
       fold--;
     }
   }

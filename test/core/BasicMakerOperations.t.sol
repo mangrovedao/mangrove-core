@@ -26,7 +26,7 @@ contract BasicMakerOperationsTest is MangroveTest {
 
   function test_basic_newOffer_sets_best() public {
     mkr.provisionMgv(1 ether);
-    uint ofr = mkr.newOffer(0.1 ether, 0.05 ether, 200_000, 0, 0);
+    uint ofr = mkr.newOffer(0.1 ether, 0.05 ether, 200_000, 0);
     assertEq(mgv.best($(base), $(quote)), ofr);
   }
 }

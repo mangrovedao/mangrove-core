@@ -37,23 +37,17 @@ contract MgvOfferMaking is MgvHasOffers, Script2 {
 
     `gasreq`, together with `gasprice`, will contribute to determining the penalty provision set aside by Mangrove from the market maker's `balanceOf` balance.
 
-  Offers are always inserted at the correct place in the book. This requires walking through offers to find the correct insertion point. As in [Oasis](https://github.com/daifoundation/maker-otc/blob/f2060c5fe12fe3da71ac98e8f6acc06bca3698f5/src/matching_market.sol#L493), the maker should find the id of an offer close to its own and provide it as `pivotId`.
-
   An offer cannot be inserted in a closed market, nor when a reentrancy lock for `outbound_tkn`,`inbound_tkn` is on.
 
   No more than $2^{32}-1$ offers can ever be created for one `outbound_tkn`,`inbound_tkn` pair.
 
   The actual contents of the function is in `writeOffer`, which is called by both `newOffer` and `updateOffer`.
   */
-  function newOffer(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint pivotId
-  ) external payable returns (uint) {
+  function newOffer(address outbound_tkn, address inbound_tkn, uint wants, uint gives, uint gasreq, uint gasprice)
+    external
+    payable
+    returns (uint)
+  {
     unchecked {
       /* In preparation for calling `writeOffer`, we read the `outbound_tkn`,`inbound_tkn` pair configuration, check for reentrancy and market liveness, fill the `OfferPack` struct and increment the `outbound_tkn`,`inbound_tkn` pair's `last`. */
       OfferPack memory ofp;
@@ -95,7 +89,6 @@ contract MgvOfferMaking is MgvHasOffers, Script2 {
   //+clear+
   /* Very similar to `newOffer`, `updateOffer` prepares an `OfferPack` for `writeOffer`. Makers should use it for updating live offers, but also to save on gas by reusing old, already consumed offers.
 
-     A `pivotId` should still be given to minimise reads in the order book. It is OK to give the offers' own id as a pivot.
 
 
      Gas use is minimal when:
@@ -112,7 +105,6 @@ contract MgvOfferMaking is MgvHasOffers, Script2 {
     uint gives,
     uint gasreq,
     uint gasprice,
-    uint pivotId,
     uint offerId
   ) external payable {
     unchecked {

@@ -9,12 +9,15 @@ import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 contract MarketHealth is Test2, Deployer {
+  // needed if some offer fail, in order to receive bounty
+  receive() external payable {}
+
   function run() public {
     IERC20 inbTkn = IERC20(envAddressOrName("TKN_IN"));
     // dealing hopefully enough inbound token to execute a market order
     deal(address(inbTkn), address(this), 10_000_000 * 10 ** inbTkn.decimals());
     string memory filename;
-    try vm.envString("OUT") returns (string memory name) {
+    try vm.envString("FILENAME") returns (string memory name) {
       filename = name;
     } catch {
       filename = "marketData";
@@ -110,7 +113,7 @@ contract MarketHealth is Test2, Deployer {
         mgv.snipes(address(outTkn), address(inbTkn), targets, true);
       uint g = gas_(true);
       // substracting the empirical overhead of running snipe vs market order
-      vars.gasreq += g - 27_000; // vars.gasbase < g ? g - vars.gasbase : 0;
+      vars.gasreq += g - 30_000; // vars.gasbase < g ? g - vars.gasbase : 0;
       vars.successes += vars.snipesSuccesses;
       vars.failures = vars.snipesSuccesses == 0 ? vars.failures + 1 : vars.failures;
       vars.got += vars.snipesGot;

@@ -8,6 +8,21 @@ import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol"
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
+/**
+ * @notice Script to obtain data about a given mangrove half book
+ * @notice environment variables that control the script are:
+ * @param FILENAME the base name of the files in which data are outputted.
+ * <FILENAME>.static for published values (volume and density as promised by makers)
+ * <FILENAME>.dynamic for experimental values obtained by running market orders
+ * @param VOLUME the amount of outbound token that are required from the market
+ * @param TKN_IN the inbound token (token that are sent by the tester)
+ * @param TKN_OUT the outbound token (token that are required by the tester)
+ */
+/**
+ * Usage: testing status of buy orders on the WMATIC,USDT market for volumes of up to 100,000 WMATIC (display units)
+ *  FILENAME=marketHealth VOLUME=$(cast ff 18 100000) TKN_IN=USDT TKN_OUT=WMATIC \
+ *  forge script --fork-url mumbai MarketHealth
+ */
 contract MarketHealth is Test2, Deployer {
   // needed if some offer fail, in order to receive bounty
   receive() external payable {}

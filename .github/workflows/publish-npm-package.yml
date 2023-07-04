@@ -34,7 +34,7 @@ jobs:
       uses: ./.github/actions/foundry-setup
 
     - name: "Publish"
-      uses: ./.github//publish-npm-package
+      uses: ./.github/publish-npm-package
       with:
         versionBumpStrategy: ${{ inputs.versionBumpStrategy }}
 

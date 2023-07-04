@@ -33,6 +33,11 @@ jobs:
     - name: Foundry Setup
       uses: ./.github/actions/foundry-setup
 
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
     - name: "Publish"
       uses: ./.github/publish-npm-package
       with:

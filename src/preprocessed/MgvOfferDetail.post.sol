@@ -54,6 +54,18 @@ uint constant gasreq_mask        = ~gasreq_mask_inv;
 uint constant offer_gasbase_mask = ~offer_gasbase_mask_inv;
 uint constant gasprice_mask      = ~gasprice_mask_inv;
 
+// cast-mask: 0s followed by |field| trailing 1s
+uint constant maker_cast_mask         = ~(ONES << maker_bits);
+uint constant gasreq_cast_mask        = ~(ONES << gasreq_bits);
+uint constant offer_gasbase_cast_mask = ~(ONES << offer_gasbase_bits);
+uint constant gasprice_cast_mask      = ~(ONES << gasprice_bits);
+
+// size-related error message
+string constant maker_size_error         = "mgv/config/maker/160bits";
+string constant gasreq_size_error        = "mgv/config/gasreq/24bits";
+string constant offer_gasbase_size_error = "mgv/config/offer_gasbase/24bits";
+string constant gasprice_size_error      = "mgv/config/gasprice/16bits";
+
 library Library {
   // from packed to in-memory struct
   function to_struct(OfferDetailPacked __packed) internal pure returns (OfferDetailUnpacked memory __s) { unchecked {
@@ -129,3 +141,18 @@ function pack(address __maker, uint __gasreq, uint __offer_gasbase, uint __gaspr
   __packed |= (__gasprice << (256 - gasprice_bits)) >> gasprice_before;
   return OfferDetailPacked.wrap(__packed);
 }}
+
+// input checking
+function maker_check(address __maker) pure returns (bool) { unchecked {
+  return (uint(uint160(__maker)) & maker_cast_mask) == uint(uint160(__maker));
+}}
+function gasreq_check(uint __gasreq) pure returns (bool) { unchecked {
+  return (__gasreq & gasreq_cast_mask) == __gasreq;
+}}
+function offer_gasbase_check(uint __offer_gasbase) pure returns (bool) { unchecked {
+  return (__offer_gasbase & offer_gasbase_cast_mask) == __offer_gasbase;
+}}
+function gasprice_check(uint __gasprice) pure returns (bool) { unchecked {
+  return (__gasprice & gasprice_cast_mask) == __gasprice;
+}}
+

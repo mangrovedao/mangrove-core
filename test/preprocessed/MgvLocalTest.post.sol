@@ -18,11 +18,11 @@ contract MgvLocalTest is Test2 {
     return u << (256-to) >> (256-to);
   }
 
-  function test_pack(bool active, uint fee, uint density, Tick tick, uint offer_gasbase, bool lock, uint best, uint last) public {
+  function test_pack(bool active, uint fee, Density density, Tick tick, uint offer_gasbase, bool lock, uint best, uint last) public {
     MgvStructs.LocalPacked packed = MgvStructs.Local.pack(active, fee, density, tick, offer_gasbase, lock, best, last);
     assertEq(packed.active(),active,"bad active");
-    assertEq(packed.fee(),cast(fee,16),"bad fee");
-    assertEq(packed.density(),cast(density,88),"bad density");
+    assertEq(packed.fee(),cast(fee,8),"bad fee");
+    assertEq(Density.unwrap(packed.density()),cast(Density.unwrap(density),9),"bad density");
     assertEq(Tick.unwrap(packed.tick()),cast(Tick.unwrap(tick),24),"bad tick");
     assertEq(packed.offer_gasbase(),cast(offer_gasbase,24),"bad offer_gasbase");
     assertEq(packed.lock(),lock,"bad lock");
@@ -45,7 +45,7 @@ contract MgvLocalTest is Test2 {
       assertEq(modified.active(),active,"modified: bad active");
 
       assertEq(modified.fee(),packed.fee(),"modified: bad fee");
-      assertEq(modified.density(),packed.density(),"modified: bad density");
+      assertEq(Density.unwrap(modified.density()),Density.unwrap(packed.density()),"modified: bad density");
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
@@ -58,23 +58,23 @@ contract MgvLocalTest is Test2 {
 
       MgvStructs.LocalPacked modified = packed.fee(fee);
 
-      assertEq(modified.fee(),cast(fee,16),"modified: bad fee");
+      assertEq(modified.fee(),cast(fee,8),"modified: bad fee");
 
       assertEq(modified.active(),packed.active(),"modified: bad active");
-      assertEq(modified.density(),packed.density(),"modified: bad density");
+      assertEq(Density.unwrap(modified.density()),Density.unwrap(packed.density()),"modified: bad density");
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.best(),packed.best(),"modified: bad best");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_density(MgvStructs.LocalPacked packed,uint density) public {
+  function test_set_density(MgvStructs.LocalPacked packed,Density density) public {
       MgvStructs.LocalPacked original = packed.density(packed.density());
-      assertEq(original.density(),packed.density(), "original: bad density");
+      assertEq(Density.unwrap(original.density()),Density.unwrap(packed.density()), "original: bad density");
 
       MgvStructs.LocalPacked modified = packed.density(density);
 
-      assertEq(modified.density(),cast(density,88),"modified: bad density");
+      assertEq(Density.unwrap(modified.density()),cast(Density.unwrap(density),9),"modified: bad density");
 
       assertEq(modified.active(),packed.active(),"modified: bad active");
       assertEq(modified.fee(),packed.fee(),"modified: bad fee");
@@ -94,7 +94,7 @@ contract MgvLocalTest is Test2 {
 
       assertEq(modified.active(),packed.active(),"modified: bad active");
       assertEq(modified.fee(),packed.fee(),"modified: bad fee");
-      assertEq(modified.density(),packed.density(),"modified: bad density");
+      assertEq(Density.unwrap(modified.density()),Density.unwrap(packed.density()),"modified: bad density");
       assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.best(),packed.best(),"modified: bad best");
@@ -110,7 +110,7 @@ contract MgvLocalTest is Test2 {
 
       assertEq(modified.active(),packed.active(),"modified: bad active");
       assertEq(modified.fee(),packed.fee(),"modified: bad fee");
-      assertEq(modified.density(),packed.density(),"modified: bad density");
+      assertEq(Density.unwrap(modified.density()),Density.unwrap(packed.density()),"modified: bad density");
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.best(),packed.best(),"modified: bad best");
@@ -126,7 +126,7 @@ contract MgvLocalTest is Test2 {
 
       assertEq(modified.active(),packed.active(),"modified: bad active");
       assertEq(modified.fee(),packed.fee(),"modified: bad fee");
-      assertEq(modified.density(),packed.density(),"modified: bad density");
+      assertEq(Density.unwrap(modified.density()),Density.unwrap(packed.density()),"modified: bad density");
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
       assertEq(modified.best(),packed.best(),"modified: bad best");
@@ -142,7 +142,7 @@ contract MgvLocalTest is Test2 {
 
       assertEq(modified.active(),packed.active(),"modified: bad active");
       assertEq(modified.fee(),packed.fee(),"modified: bad fee");
-      assertEq(modified.density(),packed.density(),"modified: bad density");
+      assertEq(Density.unwrap(modified.density()),Density.unwrap(packed.density()),"modified: bad density");
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
@@ -158,7 +158,7 @@ contract MgvLocalTest is Test2 {
 
       assertEq(modified.active(),packed.active(),"modified: bad active");
       assertEq(modified.fee(),packed.fee(),"modified: bad fee");
-      assertEq(modified.density(),packed.density(),"modified: bad density");
+      assertEq(Density.unwrap(modified.density()),Density.unwrap(packed.density()),"modified: bad density");
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
@@ -166,11 +166,11 @@ contract MgvLocalTest is Test2 {
     }
 
   function test_unpack(MgvStructs.LocalPacked packed) public {
-    (bool active, uint fee, uint density, Tick tick, uint offer_gasbase, bool lock, uint best, uint last) = packed.unpack();
+    (bool active, uint fee, Density density, Tick tick, uint offer_gasbase, bool lock, uint best, uint last) = packed.unpack();
 
     assertEq(packed.active(),active,"bad active");
     assertEq(packed.fee(),fee,"bad fee");
-    assertEq(packed.density(),density,"bad density");
+    assertEq(Density.unwrap(packed.density()),Density.unwrap(density),"bad density");
     assertEq(Tick.unwrap(packed.tick()),Tick.unwrap(tick),"bad tick");
     assertEq(packed.offer_gasbase(),offer_gasbase,"bad offer_gasbase");
     assertEq(packed.lock(),lock,"bad lock");
@@ -189,7 +189,7 @@ contract MgvLocalTest is Test2 {
     MgvStructs.LocalUnpacked memory unpacked = packed.to_struct();
     assertEq(unpacked.active,packed.active(),"bad active");
     assertEq(unpacked.fee,packed.fee(),"bad fee");
-    assertEq(unpacked.density,packed.density(),"bad density");
+    assertEq(Density.unwrap(unpacked.density),Density.unwrap(packed.density()),"bad density");
     assertEq(Tick.unwrap(unpacked.tick),Tick.unwrap(packed.tick()),"bad tick");
     assertEq(unpacked.offer_gasbase,packed.offer_gasbase(),"bad offer_gasbase");
     assertEq(unpacked.lock,packed.lock(),"bad lock");
@@ -210,7 +210,7 @@ contract MgvLocalTest is Test2 {
     packed2 = packed2.last(unpacked.last);
     assertEq(packed.active(),packed2.active(),"bad active");
     assertEq(packed.fee(),packed2.fee(),"bad fee");
-    assertEq(packed.density(),packed2.density(),"bad density");
+    assertEq(Density.unwrap(packed.density()),Density.unwrap(packed2.density()),"bad density");
     assertEq(Tick.unwrap(packed.tick()),Tick.unwrap(packed2.tick()),"bad tick");
     assertEq(packed.offer_gasbase(),packed2.offer_gasbase(),"bad offer_gasbase");
     assertEq(packed.lock(),packed2.lock(),"bad lock");

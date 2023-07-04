@@ -42,8 +42,9 @@ class Field {
   // underlyingType if there is one, type otherwise
   rawType: string;
   bits: number;
-  vars: { before: string; mask: string; bits: string; mask_inv: string };
+  vars: { before: string; mask: string; bits: string; mask_inv: string; cast_mask: string; size_error:string;};
   mask: string;
+  cast_mask: string;
   mask_inv: string | undefined;
 
   constructor(data: field_def) {
@@ -56,13 +57,18 @@ class Field {
     this.vars = {
       before: field_var(this.name, "before"),
       mask: field_var(this.name, "mask"),
+      cast_mask: field_var(this.name, "cast_mask"),
       mask_inv: field_var(this.name, "mask_inv"),
+      size_error: field_var(this.name, "size_error"),
       bits: field_var(this.name, "bits"),
     };
     // focus-mask: 1s at field location, 0s elsewhere
     this.mask_inv = `(ONES << 256 - ${this.vars.bits}) >> ${this.vars.before}`;
     // cleanup-mask: 0s at field location, 1s elsewhere
     this.mask = `~${this.vars.mask_inv}`;
+    // cast-mask: 0s followed by |field| trailing 1s
+    this.cast_mask = `~(ONES << ${this.vars.bits})`;
+
   }
 
   static validate(data:field_def) {

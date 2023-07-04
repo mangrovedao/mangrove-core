@@ -85,7 +85,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_cannot_drain_maker() public {
-    mgv.setDensity($(base), $(quote), 0);
+    mgv.setDensityFixed($(base), $(quote), 0);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOffer(9, 10, 100_000, 0);
     uint oldBal = quote.balanceOf($(this));
@@ -531,7 +531,7 @@ contract TakerOperationsTest is MangroveTest {
 
     // vm.assume(takerWants > 0);
 
-    mgv.setDensity($(base), $(quote), 0);
+    mgv.setDensityFixed($(base), $(quote), 0);
     uint ofr = mkr.newOffer(makerWants, makerGives, 100_000, 0);
     MgvStructs.OfferPacked offer = pair.offers(ofr);
     pc = uint16(bound(pc, 0, 10_000));

@@ -370,36 +370,36 @@ library FieldLib {
     return level0Index * LEVEL0_SIZE + int(level0.lastOnePosition());
   }
 
-
-
-
-  // From solady
-  function log2(uint x) internal pure returns (uint r) {
-    /// @solidity memory-safe-assembly
-    assembly {
-      if iszero(x) {
-        // Store the function selector of `Log2Undefined()`.
-        mstore(0x00, 0x5be3aa5c)
-        // Revert with (offset, size).
-        revert(0x1c, 0x04)
-      }
-
-      r := shl(7, lt(0xffffffffffffffffffffffffffffffff, x))
-      r := or(r, shl(6, lt(0xffffffffffffffff, shr(r, x))))
-      r := or(r, shl(5, lt(0xffffffff, shr(r, x))))
-
-      // For the remaining 32 bits, use a De Bruijn lookup.
-      // See: https://graphics.stanford.edu/~seander/bithacks.html
-      x := shr(r, x)
-      x := or(x, shr(1, x))
-      x := or(x, shr(2, x))
-      x := or(x, shr(4, x))
-      x := or(x, shr(8, x))
-      x := or(x, shr(16, x))
-
-      // forgefmt: disable-next-item
-      r := or(r, byte(shr(251, mul(x, shl(224, 0x07c4acdd))),
-                0x0009010a0d15021d0b0e10121619031e080c141c0f111807131b17061a05041f))
-        }
-    }
  }
+
+// From Solady
+// https://github.com/Vectorized/solady/blob/a2fd11c87fd4941ef2a075177c03456fa227c7dc/src/utils/FixedPointMathLib.sol
+// MIT License, Copyright (c) 2022 Solady.
+function log2(uint x) pure returns (uint r) {
+  /// @solidity memory-safe-assembly
+  assembly {
+    if iszero(x) {
+      // Store the function selector of `Log2Undefined()`.
+      mstore(0x00, 0x5be3aa5c)
+      // Revert with (offset, size).
+      revert(0x1c, 0x04)
+    }
+
+    r := shl(7, lt(0xffffffffffffffffffffffffffffffff, x))
+    r := or(r, shl(6, lt(0xffffffffffffffff, shr(r, x))))
+    r := or(r, shl(5, lt(0xffffffff, shr(r, x))))
+
+    // For the remaining 32 bits, use a De Bruijn lookup.
+    // See: https://graphics.stanford.edu/~seander/bithacks.html
+    x := shr(r, x)
+    x := or(x, shr(1, x))
+    x := or(x, shr(2, x))
+    x := or(x, shr(4, x))
+    x := or(x, shr(8, x))
+    x := or(x, shr(16, x))
+
+    // forgefmt: disable-next-item
+    r := or(r, byte(shr(251, mul(x, shl(224, 0x07c4acdd))),
+              0x0009010a0d15021d0b0e10121619031e080c141c0f111807131b17061a05041f))
+      }
+  }

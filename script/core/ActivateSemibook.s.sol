@@ -5,7 +5,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import "mgv_lib/Test2.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvStructs, DensityLib} from "mgv_src/MgvLib.sol";
 
 uint constant COVER_FACTOR = 1000;
 
@@ -73,7 +73,13 @@ contract ActivateSemibook is Test2, Deployer {
        - so density is in (base token units token)/gas
     */
     uint outbound_decimals = outbound_tkn.decimals();
-    uint density = (COVER_FACTOR * gaspriceOverride * 10 ** outbound_decimals) / outbound_in_gwei;
+    uint density = DensityLib.fixedFromParams({
+      outbound_decimals: outbound_decimals,
+      gasprice_in_gwei: gaspriceOverride,
+      outbound_display_in_gwei: outbound_in_gwei,
+      cover_factor: COVER_FACTOR
+    });
+
     // min density of at least 1 wei of outbound token
     density = density == 0 ? 1 : density;
     console.log("With gasprice: %d gwei, cover factor:%d", gaspriceOverride, COVER_FACTOR);
@@ -84,7 +90,7 @@ contract ActivateSemibook is Test2, Deployer {
       outbound_tkn: address(outbound_tkn),
       inbound_tkn: address(inbound_tkn),
       fee: fee,
-      density: density,
+      densityFixed: density,
       offer_gasbase: gasbase
     });
   }

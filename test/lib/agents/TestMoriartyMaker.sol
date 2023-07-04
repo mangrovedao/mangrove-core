@@ -39,13 +39,12 @@ contract TestMoriartyMaker is IMaker {
     mgv.newOffer(base, quote, wants, gives, gasreq, 0);
     mgv.newOffer(base, quote, wants, gives, gasreq, 0);
     (, MgvStructs.LocalPacked cfg) = mgv.config(base, quote);
-    uint density = cfg.density();
     uint offer_gasbase = cfg.offer_gasbase();
     dummy = mgv.newOffer({
       outbound_tkn: base,
       inbound_tkn: quote,
       wants: 1,
-      gives: (density > 0 ? density : 1) * (offer_gasbase + 100000),
+      gives: cfg.density().multiplyUp(offer_gasbase + 100_000),
       gasreq: 100000,
       gasprice: 0
     }); //dummy offer

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Test2, toFixed, Test, console} from "mgv_lib/Test2.sol";
+import {Test2, toFixed, Test, console, toString} from "mgv_lib/Test2.sol";
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
 import {TestSender} from "mgv_test/lib/agents/TestSender.sol";
 import {TrivialTestMaker, TestMaker, OfferData} from "mgv_test/lib/agents/TestMaker.sol";
@@ -29,7 +29,6 @@ import {
   FieldLib,
   TickLib
 } from "mgv_src/MgvLib.sol";
-import {console2 as csl} from "forge-std/console2.sol";
 
 struct Pair {
   AbstractMangrove mgv;

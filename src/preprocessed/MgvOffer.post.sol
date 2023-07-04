@@ -98,6 +98,18 @@ uint constant next_mask  = ~next_mask_inv;
 uint constant tick_mask  = ~tick_mask_inv;
 uint constant gives_mask = ~gives_mask_inv;
 
+// cast-mask: 0s followed by |field| trailing 1s
+uint constant prev_cast_mask  = ~(ONES << prev_bits);
+uint constant next_cast_mask  = ~(ONES << next_bits);
+uint constant tick_cast_mask  = ~(ONES << tick_bits);
+uint constant gives_cast_mask = ~(ONES << gives_bits);
+
+// size-related error message
+string constant prev_size_error  = "mgv/config/prev/32bits";
+string constant next_size_error  = "mgv/config/next/32bits";
+string constant tick_size_error  = "mgv/config/tick/24bits";
+string constant gives_size_error = "mgv/config/gives/96bits";
+
 library Library {
   // from packed to in-memory struct
   function to_struct(OfferPacked __packed) internal pure returns (OfferUnpacked memory __s) { unchecked {
@@ -173,3 +185,18 @@ function pack(uint __prev, uint __next, Tick __tick, uint __gives) pure returns 
   __packed |= (__gives << (256 - gives_bits)) >> gives_before;
   return OfferPacked.wrap(__packed);
 }}
+
+// input checking
+function prev_check(uint __prev) pure returns (bool) { unchecked {
+  return (__prev & prev_cast_mask) == __prev;
+}}
+function next_check(uint __next) pure returns (bool) { unchecked {
+  return (__next & next_cast_mask) == __next;
+}}
+function tick_check(Tick __tick) pure returns (bool) { unchecked {
+  return (uint(Tick.unwrap(__tick)) & tick_cast_mask) == uint(Tick.unwrap(__tick));
+}}
+function gives_check(uint __gives) pure returns (bool) { unchecked {
+  return (__gives & gives_cast_mask) == __gives;
+}}
+

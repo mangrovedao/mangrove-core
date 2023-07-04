@@ -6,6 +6,7 @@ pragma solidity ^0.8.10;
 
 import "./preprocessed/MgvStructs.post.sol" as MgvStructs;
 import {IERC20} from "./IERC20.sol";
+import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/TickLib.sol";
 
 /* # Structs
@@ -62,7 +63,7 @@ contract HasMgvEvents {
   event SetUseOracle(bool value);
   event SetNotify(bool value);
   event SetGasmax(uint value);
-  event SetDensity(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
+  event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
   event SetGasprice(uint value);
 
   /* Market order execution */
@@ -174,5 +175,5 @@ interface IMgvMonitor {
 
   function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external;
 
-  function read(address outbound_tkn, address inbound_tkn) external view returns (uint gasprice, uint density);
+  function read(address outbound_tkn, address inbound_tkn) external view returns (uint gasprice, Density density);
 }

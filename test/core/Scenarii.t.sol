@@ -9,7 +9,7 @@ contract ScenariiTest is MangroveTest {
   TestTaker taker;
   MakerDeployer makers;
   Balances balances;
-  uint constant testFee = 300;
+  uint constant testFee = 250;
   uint[] offerOf;
 
   mapping(uint => mapping(Info => uint)) offers;
@@ -92,11 +92,10 @@ contract ScenariiTest is MangroveTest {
       $(base),
       $(quote),
       address(taker),
-      0.291 ether, // should not be hardcoded
+      0.3 ether * (10_000 - testFee) / 10_000,
       374979485972146063, // should not be hardcoded
-      // 0.375 ether, // should not be hardcoded
       0,
-      0.009 ether // should not be hardcoded
+      0.3 ether * testFee / 10_000
     );
     snipe();
     logOrderBook($(base), $(quote), 4);

@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {DensityLib} from "mgv_lib/DensityLib.sol";
 
 // In these tests, the testing contract is the market maker.
 contract GatekeepingTest is IMaker, MangroveTest {
@@ -69,13 +70,13 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_only_gov_can_set_density() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
-    mgv.setDensity($(base), $(quote), 0);
+    mgv.setDensityFixed($(base), $(quote), 0);
   }
 
   function test_set_zero_density() public {
     expectFrom($(mgv));
-    emit SetDensity($(base), $(quote), 0);
-    mgv.setDensity($(base), $(quote), 0);
+    emit SetDensityFixed($(base), $(quote), 0);
+    mgv.setDensityFixed($(base), $(quote), 0);
   }
 
   function test_only_gov_can_kill() public {
@@ -144,13 +145,13 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_set_fee_ceiling() public {
-    vm.expectRevert("mgv/config/fee/<=500");
-    mgv.setFee($(base), $(quote), 501);
+    vm.expectRevert("mgv/config/fee/8bits");
+    mgv.setFee($(base), $(quote), uint(type(uint8).max) + 1);
   }
 
   function test_set_density_ceiling() public {
-    vm.expectRevert("mgv/config/density/88bits");
-    mgv.setDensity($(base), $(quote), uint(type(uint88).max) + 1);
+    vm.expectRevert("mgv/config/density/128bits");
+    mgv.setDensityFixed($(base), $(quote), uint(type(uint128).max) + 1);
   }
 
   function test_setGasprice_ceiling() public {
@@ -254,17 +255,17 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_makerGasreq_lower_than_density_fails_newOffer() public {
-    mgv.setDensity($(base), $(quote), 100);
+    mgv.setDensityFixed($(base), $(quote), 100 << DensityLib.FIXED_FRACTIONAL_BITS);
     (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
-    uint amount = (1 + cfg.offer_gasbase()) * cfg.density();
+    uint amount = cfg.density().multiply(1 + cfg.offer_gasbase());
     vm.expectRevert("mgv/writeOffer/density/tooLow");
     mkr.newOffer(amount - 1, amount - 1, 1);
   }
 
   function test_makerGasreq_at_density_suceeds() public {
-    mgv.setDensity($(base), $(quote), 100);
+    mgv.setDensityFixed($(base), $(quote), 100 << DensityLib.FIXED_FRACTIONAL_BITS);
     (MgvStructs.GlobalPacked glob, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
-    uint amount = (1 + cfg.offer_gasbase()) * cfg.density();
+    uint amount = cfg.density().multiply(1 + cfg.offer_gasbase());
     // Logging tests
     expectFrom($(mgv));
     emit OfferWrite(
@@ -643,7 +644,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     expectFrom($(mgv));
     emit SetFee($(quote), $(base), 7);
     expectFrom($(mgv));
-    emit SetDensity($(quote), $(base), 0);
+    emit SetDensityFixed($(quote), $(base), 0);
     expectFrom($(mgv));
     emit SetGasbase($(quote), $(base), 3);
     mgv.activate($(quote), $(base), 7, 0, 3);
@@ -675,12 +676,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.flashloan(sor, address(0));
   }
 
-  function test_configInfo(address tout, address tin, address monitor, uint88 density) public {
-    mgv.activate(tout, tin, 0, density, 0);
+  function test_configInfo(address tout, address tin, address monitor, uint128 densityFixed) public {
+    mgv.activate(tout, tin, 0, densityFixed, 0);
     mgv.setMonitor(monitor);
     (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = mgv.configInfo(tout, tin);
     assertEq(g.monitor, monitor, "wrong monitor");
-    assertEq(l.density, density, "wrong density");
+    assertEq(l.density.toFixed(), DensityLib.fromFixed(densityFixed).toFixed(), "wrong density");
   }
 
   function test_nonadmin_cannot_withdrawERC20(address from, address token, uint amount) public {

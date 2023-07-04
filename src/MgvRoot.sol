@@ -20,7 +20,7 @@
 
 pragma solidity ^0.8.10;
 
-import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs, IERC20, Leaf, Field} from "./MgvLib.sol";
+import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs, IERC20, Leaf, Field, Density} from "./MgvLib.sol";
 
 /* `MgvRoot` contains state variables used everywhere in the operation of Mangrove and their related function. */
 contract MgvRoot is HasMgvEvents {
@@ -73,13 +73,6 @@ contract MgvRoot is HasMgvEvents {
     return pairs[outbound][inbound].level2;
   }
 
-  /* Checking the size of `density` is necessary to prevent overflow when `density` is used in calculations. */
-  function checkDensity(uint density) internal pure returns (bool) {
-    unchecked {
-      return (density & MgvStructs.Local.DENSITY_CAST_MASK) == density;
-    }
-  }
-
   /* Checking the size of `gasprice` is necessary to prevent a) data loss when `gasprice` is copied to an `OfferDetail` struct, and b) overflow when `gasprice` is used in calculations. */
   function checkGasprice(uint gasprice) internal pure returns (bool) {
     unchecked {
@@ -110,13 +103,16 @@ contract MgvRoot is HasMgvEvents {
       _global = internal_global;
       _local = pair.local;
       if (_global.useOracle()) {
-        (uint gasprice, uint density) = IMgvMonitor(_global.monitor()).read(outbound_tkn, inbound_tkn);
+        (uint gasprice, Density density) = IMgvMonitor(_global.monitor()).read(outbound_tkn, inbound_tkn);
         /* Gas gasprice can be ignored by making sure the oracle's set gasprice does not pass the check below. */
         if (checkGasprice(gasprice)) {
           _global = _global.gasprice(gasprice);
         }
-        /* Oracle density can be ignored by making sure the oracle's set density does not pass the check below. */
-        if (checkDensity(density)) {
+        /* Oracle density can be ignored by making sure the oracle's set density does not pass the checks below. */
+
+        /* Checking the size of `density` is necessary to prevent overflow when `density` is used in calculations. */
+
+        if (MgvStructs.Local.density_check(density)) {
           _local = _local.density(density);
         }
       }

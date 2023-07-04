@@ -4,12 +4,11 @@ pragma solidity ^0.8.10;
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol";
 
-import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
+import "mgv_test/lib/MangroveTest.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {CopyOpenSemibooks} from "mgv_script/periphery/CopyOpenSemibooks.s.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
-import "forge-std/console.sol";
 
 contract CopyOpenSemibooksTest is MangroveTest {
   // MangroveDeployer deployer;
@@ -55,7 +54,7 @@ contract CopyOpenSemibooksTest is MangroveTest {
     uint expectedDensity = 4;
     uint expectedOfferGasbase = 2;
     vm.prank(chief);
-    mgv.activate(tkn0, tkn1, expectedFee, expectedDensity, expectedOfferGasbase);
+    mgv.activate(tkn0, tkn1, expectedFee, expectedDensity >> 32, expectedOfferGasbase);
     reader.updateMarket(tkn0, tkn1);
 
     vm.prank(chief2);
@@ -72,8 +71,9 @@ contract CopyOpenSemibooksTest is MangroveTest {
     if (tkn1 != tkn0) {
       assertEq(reader2.local(tkn1, tkn0).active(), false, "should be inactive");
     }
+    console.log(toString(reader2.local(tkn0, tkn1)));
     assertEq(reader2.local(tkn0, tkn1).fee(), expectedFee, "wrong fee");
-    assertEq(reader2.local(tkn0, tkn1).density(), expectedDensity, "wrong density");
+    assertEq(reader2.local(tkn0, tkn1).density().toFixed(), expectedDensity >> 32, "wrong density");
     assertEq(reader2.local(tkn0, tkn1).offer_gasbase(), expectedOfferGasbase, "wrong gasbase");
   }
 }

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvLib, MgvStructs, Tick} from "mgv_src/MgvLib.sol";
+import {MgvLib, MgvStructs, Tick, DensityLib} from "mgv_src/MgvLib.sol";
 
 contract MonitorTest is MangroveTest {
   TestMaker mkr;
@@ -46,22 +46,25 @@ contract MonitorTest is MangroveTest {
   function test_set_oracle_density_with_useOracle_works() public {
     mgv.setMonitor(monitor);
     mgv.setUseOracle(true);
-    mgv.setDensity($(base), $(quote), 898);
-    expectToMockCall(monitor, monitor_read_cd, abi.encode(0, 1));
+    mgv.setDensityFixed($(base), $(quote), 898 << DensityLib.FIXED_FRACTIONAL_BITS);
+    expectToMockCall(
+      monitor, monitor_read_cd, abi.encode(0, DensityLib.fromFixed(1 << DensityLib.FIXED_FRACTIONAL_BITS))
+    );
     (, MgvStructs.LocalPacked config) = mgv.config($(base), $(quote));
-    assertEq(config.density(), 1, "density should be set oracle");
+    assertEq(config.density().toFixed(), 1 << DensityLib.FIXED_FRACTIONAL_BITS, "density should be set oracle");
   }
 
   function test_set_oracle_density_without_useOracle_fails() public {
     mgv.setMonitor(monitor);
-    mgv.setDensity($(base), $(quote), 898);
+    uint density = 898 << DensityLib.FIXED_FRACTIONAL_BITS;
+    mgv.setDensityFixed($(base), $(quote), density);
     (, MgvStructs.LocalPacked config) = mgv.config($(base), $(quote));
-    assertEq(config.density(), 898, "density should be set by mgv");
+    assertEq(config.density().toFixed(), DensityLib.fromFixed(density).toFixed(), "density should be set by mgv");
   }
 
   function test_set_oracle_gasprice_with_useOracle_works() public {
     mgv.setMonitor(monitor);
-    mgv.setDensity($(base), $(quote), 898);
+    mgv.setDensityFixed($(base), $(quote), 898 << DensityLib.FIXED_FRACTIONAL_BITS);
     mgv.setUseOracle(true);
     mgv.setGasprice(900);
     expectToMockCall(monitor, monitor_read_cd, abi.encode(1, 0));

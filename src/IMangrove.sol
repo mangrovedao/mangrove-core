@@ -53,7 +53,7 @@ interface IMangrove {
   event OrderStart();
   event PosthookFail(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, bytes32 posthookData);
   event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);
-  event SetDensity(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
+  event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
   event SetFee(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
   event SetGasbase(address indexed outbound_tkn, address indexed inbound_tkn, uint offer_gasbase);
   event SetGasmax(uint value);
@@ -148,6 +148,8 @@ interface IMangrove {
   function retractOffer(address outbound_tkn, address inbound_tkn, uint offerId, bool deprovision)
     external
     returns (uint provision);
+
+  function setDensityFixed(address outbound_tkn, address inbound_tkn, uint densityFixed) external;
 
   function setDensity(address outbound_tkn, address inbound_tkn, uint density) external;
 

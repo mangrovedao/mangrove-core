@@ -52,7 +52,7 @@ contract CopyOpenSemibooks is Deployer {
         outbound_tkn: tknA,
         inbound_tkn: tknB,
         fee: cAB.fee,
-        density: cAB.density,
+        densityFixed: cAB.density.toFixed(),
         offer_gasbase: cAB.offer_gasbase
       });
     }

@@ -5,6 +5,7 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import {MgvStructs, Leaf} from "mgv_src/MgvLib.sol";
 import {MgvRoot} from "mgv_src/MgvRoot.sol";
+import {DensityLib} from "mgv_lib/DensityLib.sol";
 
 contract MakerOperationsTest is MangroveTest, IMaker {
   TestMaker mkr;
@@ -311,18 +312,18 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_min_density_with_newOffer_ok() public {
     mkr.provisionMgv(1 ether);
-    uint density = 10 ** 7;
+    uint densityFixed = (10 ** 7) << DensityLib.FIXED_FRACTIONAL_BITS;
     mgv.setGasbase($(base), $(quote), 1);
-    mgv.setDensity($(base), $(quote), density);
-    mkr.newOffer(1 ether, density, 0, 0);
+    mgv.setDensityFixed($(base), $(quote), densityFixed);
+    mkr.newOffer(1 ether, DensityLib.fromFixed(densityFixed).multiply(1), 0, 0);
   }
 
   function test_low_density_fails_newOffer() public {
-    uint density = 10 ** 7;
+    uint densityFixed = (10 ** 7) << DensityLib.FIXED_FRACTIONAL_BITS;
     mgv.setGasbase($(base), $(quote), 1);
-    mgv.setDensity($(base), $(quote), density);
+    mgv.setDensityFixed($(base), $(quote), densityFixed);
     vm.expectRevert("mgv/writeOffer/density/tooLow");
-    mkr.newOffer(1 ether, density - 1, 0, 0);
+    mkr.newOffer(1 ether, DensityLib.fromFixed(densityFixed).multiply(1) - 1, 0, 0);
   }
 
   function test_maker_gets_no_mgv_balance_on_partial_fill() public {
@@ -741,7 +742,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     mgv.setGasbase($(base), $(quote), offer_gasbase);
     mgv.setGasprice(1);
-    mgv.setDensity($(base), $(quote), 0);
+    mgv.setDensityFixed($(base), $(quote), 0);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 0, 0);
     tkr.take(ofr, 0.1 ether);
     assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");
@@ -752,7 +753,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     mgv.setGasbase($(base), $(quote), offer_gasbase);
     mgv.setGasprice(1);
-    mgv.setDensity($(base), $(quote), 0);
+    mgv.setDensityFixed($(base), $(quote), 0);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 0, 0);
     tkr.take(ofr, 0.1 ether);
     assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");

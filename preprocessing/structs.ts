@@ -240,9 +240,13 @@ They have the following fields: */
       /* * A `outbound_tkn`,`inbound_tkn` pair is in`active` by default, but may be activated/deactivated by governance. */
       { name: "active", bits: 1, type: "bool" },
       /* * `fee`, in basis points, of `outbound_tkn` given to the taker. This fee is sent to Mangrove. Fee is capped to 5%. */
-      { name: "fee", bits: 16, type: "uint" },
-      /* * `density` is similar to a 'dust' parameter. We prevent spamming of low-volume offers by asking for a minimum 'density' in `outbound_tkn` per gas requested. For instance, if `density == 10`, `offer_gasbase == 5000`, an offer with `gasreq == 30000` must promise at least _10 × (30000 + 5000) = 350000_ `outbound_tkn`. _88 bits wide_. */
-      { name: "density", bits: 88, type: "uint" },
+      { name: "fee", bits: 8, type: "uint" },
+      /* * `density` is similar to a 'dust' parameter. We prevent spamming of low-volume offers by asking for a minimum 'density' in `outbound_tkn` per gas requested. For instance, if `density` is worth 10,, `offer_gasbase == 5000`, an offer with `gasreq == 30000` must promise at least _10 × (30000 + 5000) = 350000_ `outbound_tkn`. _9 bits wide_.
+
+      We store the density as a float with 2 bits for the mantissa, 7 for the exponent, and an exponent bias of 32, so density ranges from $2^{-32}$ to $1.75 \times 2^{95}$. For more information, see `DensityLib`.
+      
+      */
+      { name: "density", bits: 9, type: "Density", underlyingType: "uint"},
       { name: "tick", bits: 24, type: "Tick", underlyingType: "int" },
       /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. Local to a pair because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
       fields.offer_gasbase,
@@ -262,13 +266,24 @@ They have the following fields: */
       id_field("last"),
     ],
     additionalDefinitions: (struct) => `
-import {Tick} from "mgv_lib/TickLib.sol";
+import {Tick,Field} from "mgv_lib/TickLib.sol";
+import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 
-// Error message when governance sets wrong density
-string constant DENSITY_SIZE_ERROR = "mgv/config/density/${struct.get('density').bits}bits";
+using LocalPackedExtra for LocalPacked global;
+using LocalUnpackedExtra for LocalUnpacked global;
 
-uint constant DENSITY_CAST_MASK = ~(type(uint).max << ${struct.get('density').bits});
-    `,
+library LocalPackedExtra {
+  function densityFromFixed(LocalPacked local, uint densityFixed) internal pure returns (LocalPacked) { unchecked {
+    return local.density(DensityLib.fromFixed(densityFixed));
+  }}
+}
+
+library LocalUnpackedExtra {
+  function densityFromFixed(LocalUnpacked memory local, uint densityFixed) internal pure { unchecked {
+    local.density = DensityLib.fromFixed(densityFixed);
+  }}
+}
+`,
   }
 };
 

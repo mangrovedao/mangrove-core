@@ -45,6 +45,16 @@ ${tabulate(s.fields.map(f =>
   [`uint constant ${f.vars.mask}`, ` = ${f.mask};`]
 ))}
 
+// cast-mask: 0s followed by |field| trailing 1s
+${tabulate(s.fields.map(f => 
+  [`uint constant ${f.vars.cast_mask}`, ` = ${f.cast_mask};`]
+))}
+
+// size-related error message
+${tabulate(s.fields.map(f => 
+  [`string constant ${f.vars.size_error}`, ` = "mgv/config/${f.name}/${f.bits}bits";`]
+))}
+
 library Library {
   // from packed to in-memory struct
   function to_struct(${s.Packed} __packed) internal pure returns (${s.Unpacked} memory __s) { unchecked {
@@ -90,5 +100,13 @@ function pack(${s.fields.map(f => `${f.type} __${f.name}`).join(", ")}) pure ret
   ${s.fields.map(f => `__packed |= ${f.inject(`__${f.name}`)};`)}
   return ${s.wrap("__packed")};
 }}
+
+// input checking
+${s.fields.map(f => 
+`function ${f.name}_check(${f.type} __${f.name}) pure returns (bool) { unchecked {
+  return (${f.to_base(`__${f.name}`)} & ${f.vars.cast_mask}) == ${f.to_base(`__${f.name}`)};
+}}`
+)}
+
 `;
 };

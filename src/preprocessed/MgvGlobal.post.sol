@@ -64,6 +64,22 @@ uint constant gasprice_mask  = ~gasprice_mask_inv;
 uint constant gasmax_mask    = ~gasmax_mask_inv;
 uint constant dead_mask      = ~dead_mask_inv;
 
+// cast-mask: 0s followed by |field| trailing 1s
+uint constant monitor_cast_mask   = ~(ONES << monitor_bits);
+uint constant useOracle_cast_mask = ~(ONES << useOracle_bits);
+uint constant notify_cast_mask    = ~(ONES << notify_bits);
+uint constant gasprice_cast_mask  = ~(ONES << gasprice_bits);
+uint constant gasmax_cast_mask    = ~(ONES << gasmax_bits);
+uint constant dead_cast_mask      = ~(ONES << dead_bits);
+
+// size-related error message
+string constant monitor_size_error   = "mgv/config/monitor/160bits";
+string constant useOracle_size_error = "mgv/config/useOracle/1bits";
+string constant notify_size_error    = "mgv/config/notify/1bits";
+string constant gasprice_size_error  = "mgv/config/gasprice/16bits";
+string constant gasmax_size_error    = "mgv/config/gasmax/24bits";
+string constant dead_size_error      = "mgv/config/dead/1bits";
+
 library Library {
   // from packed to in-memory struct
   function to_struct(GlobalPacked __packed) internal pure returns (GlobalUnpacked memory __s) { unchecked {
@@ -163,3 +179,24 @@ function pack(address __monitor, bool __useOracle, bool __notify, uint __gaspric
   __packed |= (uint_of_bool(__dead) << (256 - dead_bits)) >> dead_before;
   return GlobalPacked.wrap(__packed);
 }}
+
+// input checking
+function monitor_check(address __monitor) pure returns (bool) { unchecked {
+  return (uint(uint160(__monitor)) & monitor_cast_mask) == uint(uint160(__monitor));
+}}
+function useOracle_check(bool __useOracle) pure returns (bool) { unchecked {
+  return (uint_of_bool(__useOracle) & useOracle_cast_mask) == uint_of_bool(__useOracle);
+}}
+function notify_check(bool __notify) pure returns (bool) { unchecked {
+  return (uint_of_bool(__notify) & notify_cast_mask) == uint_of_bool(__notify);
+}}
+function gasprice_check(uint __gasprice) pure returns (bool) { unchecked {
+  return (__gasprice & gasprice_cast_mask) == __gasprice;
+}}
+function gasmax_check(uint __gasmax) pure returns (bool) { unchecked {
+  return (__gasmax & gasmax_cast_mask) == __gasmax;
+}}
+function dead_check(bool __dead) pure returns (bool) { unchecked {
+  return (uint_of_bool(__dead) & dead_cast_mask) == uint_of_bool(__dead);
+}}
+

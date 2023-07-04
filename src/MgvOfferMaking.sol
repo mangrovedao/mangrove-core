@@ -237,7 +237,8 @@ contract MgvOfferMaking is MgvHasOffers, Script2 {
       require(ofp.wants > 0, "mgv/writeOffer/wants/tooLow");
       /* * Make sure that the maker is posting a 'dense enough' offer: the ratio of `outbound_tkn` offered per gas consumed must be high enough. The actual gas cost paid by the taker is overapproximated by adding `offer_gasbase` to `gasreq`. */
       require(
-        ofp.gives >= (ofp.gasreq + ofp.local.offer_gasbase()) * ofp.local.density(), "mgv/writeOffer/density/tooLow"
+        ofp.gives >= ofp.local.density().multiply(ofp.gasreq + ofp.local.offer_gasbase()),
+        "mgv/writeOffer/density/tooLow"
       );
 
       /* The following checks are for the maker's convenience only. */

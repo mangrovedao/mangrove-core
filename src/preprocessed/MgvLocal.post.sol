@@ -18,7 +18,7 @@ uint constant ONES = type(uint).max;
 struct LocalUnpacked {
   bool active;
   uint fee;
-  uint density;
+  Density density;
   Tick tick;
   uint offer_gasbase;
   bool lock;
@@ -32,19 +32,31 @@ using Library for LocalPacked global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
 
-import {Tick} from "mgv_lib/TickLib.sol";
+import {Tick,Field} from "mgv_lib/TickLib.sol";
+import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
+// import {densityToString} from "mgv_lib/MiscToString.sol";
 
-// Error message when governance sets wrong density
-string constant DENSITY_SIZE_ERROR = "mgv/config/density/88bits";
+using LocalPackedExtra for LocalPacked global;
+using LocalUnpackedExtra for LocalUnpacked global;
 
-uint constant DENSITY_CAST_MASK = ~(type(uint).max << 88);
-    
+library LocalPackedExtra {
+  function densityFromFixed(LocalPacked local, uint densityFixed) internal pure returns (LocalPacked) { unchecked {
+    return local.density(DensityLib.fromFixed(densityFixed));
+  }}
+}
+
+library LocalUnpackedExtra {
+  function densityFromFixed(LocalUnpacked memory local, uint densityFixed) internal pure { unchecked {
+    local.density = DensityLib.fromFixed(densityFixed);
+  }}
+}
+
 ////////////// END OF ADDITIONAL DEFINITIONS /////////////////
 
 // number of bits in each field
 uint constant active_bits        = 1;
-uint constant fee_bits           = 16;
-uint constant density_bits       = 88;
+uint constant fee_bits           = 8;
+uint constant density_bits       = 9;
 uint constant tick_bits          = 24;
 uint constant offer_gasbase_bits = 24;
 uint constant lock_bits          = 1;
@@ -81,12 +93,32 @@ uint constant lock_mask          = ~lock_mask_inv;
 uint constant best_mask          = ~best_mask_inv;
 uint constant last_mask          = ~last_mask_inv;
 
+// cast-mask: 0s followed by |field| trailing 1s
+uint constant active_cast_mask        = ~(ONES << active_bits);
+uint constant fee_cast_mask           = ~(ONES << fee_bits);
+uint constant density_cast_mask       = ~(ONES << density_bits);
+uint constant tick_cast_mask          = ~(ONES << tick_bits);
+uint constant offer_gasbase_cast_mask = ~(ONES << offer_gasbase_bits);
+uint constant lock_cast_mask          = ~(ONES << lock_bits);
+uint constant best_cast_mask          = ~(ONES << best_bits);
+uint constant last_cast_mask          = ~(ONES << last_bits);
+
+// size-related error message
+string constant active_size_error        = "mgv/config/active/1bits";
+string constant fee_size_error           = "mgv/config/fee/8bits";
+string constant density_size_error       = "mgv/config/density/9bits";
+string constant tick_size_error          = "mgv/config/tick/24bits";
+string constant offer_gasbase_size_error = "mgv/config/offer_gasbase/24bits";
+string constant lock_size_error          = "mgv/config/lock/1bits";
+string constant best_size_error          = "mgv/config/best/32bits";
+string constant last_size_error          = "mgv/config/last/32bits";
+
 library Library {
   // from packed to in-memory struct
   function to_struct(LocalPacked __packed) internal pure returns (LocalUnpacked memory __s) { unchecked {
     __s.active        = ((LocalPacked.unwrap(__packed) & active_mask_inv) > 0);
     __s.fee           = uint(LocalPacked.unwrap(__packed) << fee_before) >> (256 - fee_bits);
-    __s.density       = uint(LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits);
+    __s.density       = Density.wrap(uint(LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits));
     __s.tick          = Tick.wrap(int(int(LocalPacked.unwrap(__packed) << tick_before) >> (256 - tick_bits)));
     __s.offer_gasbase = uint(LocalPacked.unwrap(__packed) << offer_gasbase_before) >> (256 - offer_gasbase_bits);
     __s.lock          = ((LocalPacked.unwrap(__packed) & lock_mask_inv) > 0);
@@ -100,10 +132,10 @@ library Library {
   }}
 
   // from packed to a tuple
-  function unpack(LocalPacked __packed) internal pure returns (bool __active, uint __fee, uint __density, Tick __tick, uint __offer_gasbase, bool __lock, uint __best, uint __last) { unchecked {
+  function unpack(LocalPacked __packed) internal pure returns (bool __active, uint __fee, Density __density, Tick __tick, uint __offer_gasbase, bool __lock, uint __best, uint __last) { unchecked {
     __active        = ((LocalPacked.unwrap(__packed) & active_mask_inv) > 0);
     __fee           = uint(LocalPacked.unwrap(__packed) << fee_before) >> (256 - fee_bits);
-    __density       = uint(LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits);
+    __density       = Density.wrap(uint(LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits));
     __tick          = Tick.wrap(int(int(LocalPacked.unwrap(__packed) << tick_before) >> (256 - tick_bits)));
     __offer_gasbase = uint(LocalPacked.unwrap(__packed) << offer_gasbase_before) >> (256 - offer_gasbase_bits);
     __lock          = ((LocalPacked.unwrap(__packed) & lock_mask_inv) > 0);
@@ -130,13 +162,13 @@ library Library {
     return LocalPacked.wrap((LocalPacked.unwrap(__packed) & fee_mask) | (val << (256 - fee_bits)) >> fee_before);
   }}
   
-  function density(LocalPacked __packed) internal pure returns(uint) { unchecked {
-    return uint(LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits);
+  function density(LocalPacked __packed) internal pure returns(Density) { unchecked {
+    return Density.wrap(uint(LocalPacked.unwrap(__packed) << density_before) >> (256 - density_bits));
   }}
 
   // setters
-  function density(LocalPacked __packed,uint val) internal pure returns(LocalPacked) { unchecked {
-    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & density_mask) | (val << (256 - density_bits)) >> density_before);
+  function density(LocalPacked __packed,Density val) internal pure returns(LocalPacked) { unchecked {
+    return LocalPacked.wrap((LocalPacked.unwrap(__packed) & density_mask) | (Density.unwrap(val) << (256 - density_bits)) >> density_before);
   }}
   
   function tick(LocalPacked __packed) internal pure returns(Tick) { unchecked {
@@ -192,11 +224,11 @@ function t_of_struct(LocalUnpacked memory __s) pure returns (LocalPacked) { unch
 }}
 
 // from arguments to packed
-function pack(bool __active, uint __fee, uint __density, Tick __tick, uint __offer_gasbase, bool __lock, uint __best, uint __last) pure returns (LocalPacked) { unchecked {
+function pack(bool __active, uint __fee, Density __density, Tick __tick, uint __offer_gasbase, bool __lock, uint __best, uint __last) pure returns (LocalPacked) { unchecked {
   uint __packed;
   __packed |= (uint_of_bool(__active) << (256 - active_bits)) >> active_before;
   __packed |= (__fee << (256 - fee_bits)) >> fee_before;
-  __packed |= (__density << (256 - density_bits)) >> density_before;
+  __packed |= (Density.unwrap(__density) << (256 - density_bits)) >> density_before;
   __packed |= (uint(Tick.unwrap(__tick)) << (256 - tick_bits)) >> tick_before;
   __packed |= (__offer_gasbase << (256 - offer_gasbase_bits)) >> offer_gasbase_before;
   __packed |= (uint_of_bool(__lock) << (256 - lock_bits)) >> lock_before;
@@ -204,3 +236,30 @@ function pack(bool __active, uint __fee, uint __density, Tick __tick, uint __off
   __packed |= (__last << (256 - last_bits)) >> last_before;
   return LocalPacked.wrap(__packed);
 }}
+
+// input checking
+function active_check(bool __active) pure returns (bool) { unchecked {
+  return (uint_of_bool(__active) & active_cast_mask) == uint_of_bool(__active);
+}}
+function fee_check(uint __fee) pure returns (bool) { unchecked {
+  return (__fee & fee_cast_mask) == __fee;
+}}
+function density_check(Density __density) pure returns (bool) { unchecked {
+  return (Density.unwrap(__density) & density_cast_mask) == Density.unwrap(__density);
+}}
+function tick_check(Tick __tick) pure returns (bool) { unchecked {
+  return (uint(Tick.unwrap(__tick)) & tick_cast_mask) == uint(Tick.unwrap(__tick));
+}}
+function offer_gasbase_check(uint __offer_gasbase) pure returns (bool) { unchecked {
+  return (__offer_gasbase & offer_gasbase_cast_mask) == __offer_gasbase;
+}}
+function lock_check(bool __lock) pure returns (bool) { unchecked {
+  return (uint_of_bool(__lock) & lock_cast_mask) == uint_of_bool(__lock);
+}}
+function best_check(uint __best) pure returns (bool) { unchecked {
+  return (__best & best_cast_mask) == __best;
+}}
+function last_check(uint __last) pure returns (bool) { unchecked {
+  return (__last & last_cast_mask) == __last;
+}}
+

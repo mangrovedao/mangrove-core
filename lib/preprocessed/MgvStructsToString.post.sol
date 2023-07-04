@@ -43,5 +43,5 @@ import "../MiscToString.sol";
   }
 
   function toString(LocalUnpacked memory __unpacked) pure returns (string memory) {
-    return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", vm.toString(__unpacked.density), ", ", "tick: ", toString(__unpacked.tick), ", ", "offer_gasbase: ", vm.toString(__unpacked.offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "best: ", vm.toString(__unpacked.best), ", ", "last: ", vm.toString(__unpacked.last),"}");
+    return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "tick: ", toString(__unpacked.tick), ", ", "offer_gasbase: ", vm.toString(__unpacked.offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "best: ", vm.toString(__unpacked.best), ", ", "last: ", vm.toString(__unpacked.last),"}");
   }

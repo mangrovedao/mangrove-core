@@ -141,7 +141,7 @@ contract MgvReader {
   /* Returns the minimum outbound_tkn volume to give on the outbound_tkn/inbound_tkn offer list for an offer that requires gasreq gas. */
   function minVolume(address outbound_tkn, address inbound_tkn, uint gasreq) public view returns (uint) {
     MgvStructs.LocalPacked _local = local(outbound_tkn, inbound_tkn);
-    return (gasreq + _local.offer_gasbase()) * _local.density();
+    return _local.density().multiplyUp(gasreq + _local.offer_gasbase());
   }
 
   /* Returns the provision necessary to post an offer on the outbound_tkn/inbound_tkn offer list. You can set gasprice=0 or use the overload to use Mangrove's internal gasprice estimate. */

@@ -39,7 +39,7 @@ jobs:
         submodules: recursive
 
     - name: "Publish"
-      uses: ./.github/publish-npm-package
+      uses: ./.github/actions/publish-npm-package
       with:
         versionBumpStrategy: ${{ inputs.versionBumpStrategy }}
 

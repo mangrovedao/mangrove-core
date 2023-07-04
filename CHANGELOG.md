@@ -1,5 +1,9 @@
 # Next version
 
+# 1.5.5
+
+- Fix: added USDT address to Polygon
+
 # 1.5.4
 
 - Fix: Make KandelSeederDeployer robust wrt missing `MgvGovernance` address

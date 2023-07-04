@@ -7,20 +7,6 @@ name: "Publish npm package"
 
 on:
   workflow_dispatch:
-    inputs:
-      versionBumpStrategy: # Must be one of: prerelease, patch, minor, or major
-        description: 'Version bump strategy'
-        required: true
-        type: string
-    secrets:
-      BOT_GH_PAT_TOKEN:
-        required: true
-      BOT_NPM_TOKEN:
-        required: true
-      BOT_GPG_PRIVATE_KEY:
-        required: true
-      BOT_GPG_PASSPHRASE:
-        required: true
 
 
 jobs:

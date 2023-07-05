@@ -20,6 +20,10 @@
     "name": "USDC"
   },
   {
+    "address": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+    "name": "USDT"
+  },
+  {
     "address": "0xe50fA9b3c56FfB159cB0FCA61F5c9D750e8128c8",
     "name": "AWETH"
   },

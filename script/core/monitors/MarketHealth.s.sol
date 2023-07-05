@@ -9,18 +9,30 @@ import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 /**
- * @notice Script to obtain data about a given mangrove half book. Data is outputted to terminal as space separated values.
- * @notice retrieved data are:
- *  "tot_bounty": collected bounty
- *  "tot_failures": total failures
- *  "tot_gas_fail": gas consumed by failing offer
- *  "tot_gas_req": gas required by makers
- *  "tot_gas_used": gas consumed for the market order
- *  "tot_successes": number of successful offers
- *  "volume_received": volume received (in display units of outbound token)
- *  "volume_sent": volume sent (in display units of inbound token)
- *  "distance_to_density" : volume of outbound token that is in excess or missing wrt expected density if market order was a single offer
- *
+ * @notice Script to obtain data about a given mangrove offer list. Data is outputted to terminal as space separated values.
+ * @notice output is a json file with the following structure:
+ *  {
+ *   "blockNumber": <number>, // the block number at which data are collected
+ *   "totalVolume": <number>, // the max volume for the analysis
+ *   "failingIds": [ // the id of the offers that were failing at this block
+ *     <offerID>, ...
+ *   ],
+ *   "gas_used_for_volume": <number>, // the total gas cost for a market order of "Total volume" (arbitrary price)
+ *   "data_1": ...
+ *   ...
+ *   "data_i": { // data_i is a market order consumming i offers of the book
+ *     "bounty": <number>, // collected bounty after i offers were consummed
+ *     "distance_to_density": <float>, distance to min density if market order was a single offer of "volume_sent" and "gas_req". In display units of outbound tokens.
+ *     "successes": <number>, number (<=i) of successful offers
+ *     "failures": <number>, number (<= i - successes) of failed offers
+ *     "gas_fail": <number>, gas consummed to snipe failing offers
+ *     "gas_req": <number>, gas required by offer makers
+ *     "gas_used": <number>, approx of the gas used for this market order
+ *     "volume_received": <float>, amount of outbound tokens received (in display units)
+ *     "volume_sent": <float>, amount of inbount tokens sent (in display unit)
+ *   }
+ *   ...
+ * }
  * @notice environment variables that control the script are:
  * @param VOLUME the amount of outbound token that are required from the market
  * @param TKN_IN the inbound token (token that are sent by the tester)
@@ -138,12 +150,12 @@ contract MarketHealth is Test2, Deployer {
 
       vm.serializeString(vars.dataKey, "volume_received", toUnit(vars.got, vars.outDecimals));
       vm.serializeString(vars.dataKey, "volume_sent", toUnit(vars.gave, vars.inbDecimals));
-      vm.serializeUint(vars.dataKey, "tot_successes", vars.successes);
-      vm.serializeUint(vars.dataKey, "tot_failures", vars.failures);
-      vm.serializeUint(vars.dataKey, "tot_bounty", vars.collected);
-      vm.serializeUint(vars.dataKey, "tot_gas_fail", vars.gasFail);
-      vm.serializeUint(vars.dataKey, "tot_gas_used", vars.gasSpent);
-      vm.serializeUint(vars.dataKey, "tot_gas_req", vars.data[vars.successes + vars.failures - 1].totalGasreq);
+      vm.serializeUint(vars.dataKey, "successes", vars.successes);
+      vm.serializeUint(vars.dataKey, "failures", vars.failures);
+      vm.serializeUint(vars.dataKey, "bounty", vars.collected);
+      vm.serializeUint(vars.dataKey, "gas_fail", vars.gasFail);
+      vm.serializeUint(vars.dataKey, "gas_used", vars.gasSpent);
+      vm.serializeUint(vars.dataKey, "gas_req", vars.data[vars.successes + vars.failures - 1].totalGasreq);
       vars.dataKey = vm.serializeString(vars.dataKey, "distance_to_density", vars.distanceToDensity);
       vm.serializeString(
         vars.rootKey, string.concat("data_", vm.toString(vars.successes + vars.failures)), vars.dataKey
@@ -161,8 +173,7 @@ contract MarketHealth is Test2, Deployer {
     vm.serializeUint(vars.rootKey, "failingIds", vars.failingIds);
     vars.rootKey = vm.serializeUint(vars.rootKey, "gas_used_for_volume", vars.gasSpent);
     vm.writeJson(
-      vars.rootKey,
-      string.concat("./script/core/monitors/data_", outTkn.symbol(), "_", inbTkn.symbol(), "_", fork.NAME(), ".json")
+      vars.rootKey, string.concat("./analytics/data_", outTkn.symbol(), "_", inbTkn.symbol(), "_", fork.NAME(), ".json")
     );
   }
 }

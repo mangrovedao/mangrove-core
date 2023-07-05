@@ -19,6 +19,7 @@ import {MgvStructs} from "mgv_src/MgvLib.sol";
  *  "tot_successes": number of successful offers
  *  "volume_received": volume received (in display units of outbound token)
  *  "volume_sent": volume sent (in display units of inbound token)
+ *  "distance_to_density" : volume of outbound token that is in excess or missing wrt expected density if market order was a single offer
  *
  * @notice environment variables that control the script are:
  * @param VOLUME the amount of outbound token that are required from the market
@@ -74,6 +75,8 @@ contract MarketHealth is Test2, Deployer {
     string rootKey;
     string dataKey;
     uint[] failingIds;
+    string distanceToDensity;
+    uint minVolume;
   }
 
   function innerRun(IMangrove mgv, MgvReader reader, IERC20 inbTkn, IERC20 outTkn, uint outboundTknVolume) public {
@@ -124,6 +127,15 @@ contract MarketHealth is Test2, Deployer {
       vars.gave += vars.snipesGave;
       vars.collected += vars.snipesBounty;
 
+      vars.minVolume =
+        reader.minVolume(address(outTkn), address(inbTkn), vars.data[vars.successes + vars.failures - 1].totalGasreq);
+
+      if (vars.got > vars.minVolume) {
+        vars.distanceToDensity = toUnit(vars.got - vars.minVolume, vars.outDecimals);
+      } else {
+        vars.distanceToDensity = string.concat("-", toUnit(vars.minVolume - vars.got, vars.outDecimals));
+      }
+
       vm.serializeString(vars.dataKey, "volume_received", toUnit(vars.got, vars.outDecimals));
       vm.serializeString(vars.dataKey, "volume_sent", toUnit(vars.gave, vars.inbDecimals));
       vm.serializeUint(vars.dataKey, "tot_successes", vars.successes);
@@ -131,8 +143,8 @@ contract MarketHealth is Test2, Deployer {
       vm.serializeUint(vars.dataKey, "tot_bounty", vars.collected);
       vm.serializeUint(vars.dataKey, "tot_gas_fail", vars.gasFail);
       vm.serializeUint(vars.dataKey, "tot_gas_used", vars.gasSpent);
-      vars.dataKey =
-        vm.serializeUint(vars.dataKey, "tot_gas_req", vars.data[vars.successes + vars.failures - 1].totalGasreq);
+      vm.serializeUint(vars.dataKey, "tot_gas_req", vars.data[vars.successes + vars.failures - 1].totalGasreq);
+      vars.dataKey = vm.serializeString(vars.dataKey, "distance_to_density", vars.distanceToDensity);
       vm.serializeString(
         vars.rootKey, string.concat("data_", vm.toString(vars.successes + vars.failures)), vars.dataKey
       );

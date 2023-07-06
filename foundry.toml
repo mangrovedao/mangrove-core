@@ -7,7 +7,7 @@ test='test'
 out='out'
 libs=['lib']
 cache_path='cache'
-fs_permissions = [{ access = "read-write", path = "./addresses/"}, { access = "read", path = "./out/" }]
+fs_permissions = [{ access = "read-write", path = "./addresses/"}, { access = "read-write", path = "./analytics/"}, { access = "read", path = "./out/" }]
 solc_version="0.8.17"
 ffi=true
 # optimizer=true

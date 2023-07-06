@@ -1,5 +1,10 @@
 # Next version
 
+# 1.5.6
+
+- Fix: added USDC, WETH, DAI faucets to mumbai
+- Removed: useless context addresses for both mumbai and polygon
+
 # 1.5.5
 
 - Fix: added USDT address to Polygon

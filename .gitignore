@@ -13,7 +13,7 @@ index.js
 cache
 doc/MgvDoc.html
 lcov.info
-analytics/*
+analytics/*.json
 # broadcast files, ignore local deploys
 broadcast/*
 # ignore versioned deployment files

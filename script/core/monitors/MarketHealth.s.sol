@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Test2, console2 as console} from "mgv_lib/Test2.sol";
-import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";

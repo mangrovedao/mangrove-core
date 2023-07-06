@@ -312,7 +312,7 @@ abstract contract KandelTest is MangroveTest {
     uint pendingBase = uint(kdl.pending(Ask));
     uint pendingQuote = uint(kdl.pending(Bid));
 
-    console.log("-------", toUnit(pendingBase, 18), toUnit(pendingQuote, 6), "-------");
+    console.log("-------", toFixed(pendingBase, 18), toFixed(pendingQuote, 6), "-------");
   }
 
   function populateSingle(

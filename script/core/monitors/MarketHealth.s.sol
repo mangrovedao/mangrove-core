@@ -108,7 +108,7 @@ contract MarketHealth is Test2, Deployer {
     uint snapshotId = vm.snapshot();
     vars.rootKey = "root_key";
     vm.serializeUint(vars.rootKey, "blockNumber", block.number);
-    vm.serializeString(vars.rootKey, "totalVolume", toUnit(outboundTknVolume, vars.outDecimals));
+    vm.serializeString(vars.rootKey, "totalVolume", toFixed(outboundTknVolume, vars.outDecimals));
 
     while (vars.got < outboundTknVolume) {
       vars.dataKey = string.concat("data_", vm.toString(vars.successes + vars.failures));
@@ -142,13 +142,13 @@ contract MarketHealth is Test2, Deployer {
         reader.minVolume(address(outTkn), address(inbTkn), vars.data[vars.successes + vars.failures - 1].totalGasreq);
 
       if (vars.got > vars.minVolume) {
-        vars.distanceToDensity = toUnit(vars.got - vars.minVolume, vars.outDecimals);
+        vars.distanceToDensity = toFixed(vars.got - vars.minVolume, vars.outDecimals);
       } else {
-        vars.distanceToDensity = string.concat("-", toUnit(vars.minVolume - vars.got, vars.outDecimals));
+        vars.distanceToDensity = string.concat("-", toFixed(vars.minVolume - vars.got, vars.outDecimals));
       }
 
-      vm.serializeString(vars.dataKey, "volume_received", toUnit(vars.got, vars.outDecimals));
-      vm.serializeString(vars.dataKey, "volume_sent", toUnit(vars.gave, vars.inbDecimals));
+      vm.serializeString(vars.dataKey, "volume_received", toFixed(vars.got, vars.outDecimals));
+      vm.serializeString(vars.dataKey, "volume_sent", toFixed(vars.gave, vars.inbDecimals));
       vm.serializeUint(vars.dataKey, "successes", vars.successes);
       vm.serializeUint(vars.dataKey, "failures", vars.failures);
       vm.serializeUint(vars.dataKey, "bounty", vars.collected);

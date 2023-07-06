@@ -40,9 +40,9 @@ contract KandelShutdown is Deployer {
 
     console.log(
       "Recovered %s base, %s quote and %s native tokens",
-      toUnit(baseBalance, baseDecimals),
-      toUnit(quoteBalance, quoteDecimals),
-      toUnit(weiBalance, 18)
+      toFixed(baseBalance, baseDecimals),
+      toFixed(quoteBalance, quoteDecimals),
+      toFixed(weiBalance, 18)
     );
 
     console.log("Retrieving pending...");
@@ -55,7 +55,7 @@ contract KandelShutdown is Deployer {
     kdl.withdrawFunds(baseAmount, quoteAmount, broadcaster());
 
     console.log(
-      "Retrieved %s base and %s quote tokens", toUnit(baseAmount, baseDecimals), toUnit(quoteAmount, quoteDecimals)
+      "Retrieved %s base and %s quote tokens", toFixed(baseAmount, baseDecimals), toFixed(quoteAmount, quoteDecimals)
     );
   }
 }

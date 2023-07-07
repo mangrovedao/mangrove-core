@@ -248,6 +248,8 @@ They have the following fields: */
       */
       { name: "density", bits: 9, type: "Density", underlyingType: "uint"},
       { name: "tick", bits: 24, type: "Tick", underlyingType: "int" },
+      { name: "level0", bits: 64, type: "Field", underlyingType: "uint" },
+      { name: "level2", bits: 32, type: "Field", underlyingType: "uint" },
       /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. Local to a pair because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
       fields.offer_gasbase,
       /* * If `lock` is true, orders may not be added nor executed.

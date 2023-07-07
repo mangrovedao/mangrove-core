@@ -152,33 +152,39 @@ contract MgvHasOffers is MgvRoot {
         // if leaf now empty, flip ticks OFF up the tree
         if (leaf.isEmpty()) {
           int index = offerTick.level0Index(); // level0Index or level1Index
-          Field field = pair.level0[index]; // level 0, 1 or 2
-          field = field.flipBitAtLevel0(offerTick);
-          pair.level0[index] = field;
+          Field field;
+          if (index == local.tick().level0Index()) {
+            field = local.level0().flipBitAtLevel0(offerTick);
+            local = local.level0(field);
+          } else {
+            field = pair.level0[index].flipBitAtLevel0(offerTick);
+            pair.level0[index] = field;
+          }
           if (field.isEmpty()) {
             index = offerTick.level1Index();
             field = pair.level1[index].flipBitAtLevel1(offerTick);
             pair.level1[index] = field;
             if (field.isEmpty()) {
-              field = pair.level2.flipBitAtLevel2(offerTick);
-              pair.level2 = field;
+              local = local.level2(local.level2().flipBitAtLevel2(offerTick));
 
               // FIXME: should I let log2 not revert, but just return 0 if x is 0?
-              if (field.isEmpty()) {
+              if (local.level2().isEmpty()) {
                 local = local.best(0);
                 local = local.tick(Tick.wrap(0));
                 return local;
               }
-              // Note: no need to check for level2.isEmpty(), see def of log2OrZero
               // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBest is false, because the
               if (shouldUpdateBest) {
-                index = field.firstLevel1Index();
+                index = local.level2().firstLevel1Index();
+                // OPTIMIZE this is useless if we go down to same level1 as before
                 field = pair.level1[index];
               }
             }
+            // OPTIMIZE this is useless if we go down to same level0 as before
             if (shouldUpdateBest) {
               index = field.firstLevel0Index(index);
               field = pair.level0[index];
+              local = local.level0(field);
             }
           }
           if (shouldUpdateBest) {

@@ -1,11 +1,10 @@
 // SPDX-License-Identifier:	AGPL-2.0
 pragma solidity ^0.8.13;
 
-import {console2 as console} from "forge-std/console2.sol";
 import {Script} from "forge-std/Script.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {ToyENS} from "mgv_lib/ToyENS.sol";
-import "mgv_lib/ToString.sol";
+import "mgv_lib/Debug.sol";
 
 /* Some general utility methods.
 /* You may want to inherit `MangroveTest` (which inherits Test2` which inherits `Script2`) rather than inherit `Script2` directly */

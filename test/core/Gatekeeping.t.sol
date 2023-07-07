@@ -528,6 +528,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint ofr = mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 3500_000, 0);
     (uint takerGot, uint takerGave) = tkr.marketOrder(0.5 ether, 0.3 ether);
     // assertGt(takerGot,0,"mo should work");
+    // should execute 0 offers due to price mismatch
     assertEq(takerGot, 0, "mo should fail");
     assertTrue(pair.offers(ofr).gives() > 0, "offer should still be live");
     (takerGot, takerGave) = tkr.marketOrder(0.5 ether, 0.6 ether);
@@ -535,19 +536,15 @@ contract GatekeepingTest is IMaker, MangroveTest {
     assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
   }
 
+  // not gatekeeping! move me.
   function test_only_one_exec_keeps_ticktree_ok() public {
     mgv.setGasmax(10_000_000);
-
-    deal($(quote), address(tkr), 100 ether);
-    tkr.approveMgv(quote, 100 ether);
-
-    uint ofr = mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 3500_000, 0);
-    uint ofr2 = mgv.newOffer($(base), $(quote), 1 ether, 0.5 ether, 3500_000, 0);
-    (uint takerGot, uint takerGave) = tkr.marketOrder(1 ether, 1 ether);
-    // assertGt(takerGot,0,"mo should work");
-    assertEq(takerGot, 0.5 ether, "mo should only take ofr");
-    assertGt(pair.offers(ofr2).gives(), 0, "offer should still be live");
-    (takerGot, takerGave) = tkr.marketOrder(0.6 ether, 2 ether);
+    mgv.newOffer($(base), $(quote), 0.05 ether, 0.05 ether, 3500_000, 0);
+    uint ofr2 = mgv.newOffer($(base), $(quote), 0.1 ether, 0.05 ether, 3500_000, 0);
+    (uint takerGot, uint takerGave) = tkr.marketOrder(0.1 ether, 0.1 ether);
+    assertEq(takerGot, 0.05 ether, "mo should only take ofr");
+    assertGt(pair.offers(ofr2).gives(), 0, "ofr2 should still be live");
+    (takerGot, takerGave) = tkr.marketOrder(0.06 ether, 0.2 ether);
     assertGt(takerGot, 0, "mo should work");
     assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
   }

@@ -5,7 +5,7 @@ import * as preproc from "./lib/preproc";
 import { template as typeTemplate } from "./MgvType.pre.sol";
 import { template as testTemplate } from "./MgvTypeTest.pre.sol";
 import { template as structsTemplate } from "./MgvStructs.pre.sol";
-import { template as toStringTemplate } from "./MgvStructsToString.pre.sol";
+import { template as toStringTemplate } from "./ToString.pre.sol";
 
 const structs = preproc.make_structs(struct_defs, (struct) => ({
   src: `Mgv${struct.Name}.post.sol`,
@@ -17,7 +17,7 @@ const main = async () => {
   fs.writeFileSync(`./src/preprocessed/MgvStructs.post.sol`, processed);
 
   processed = toStringTemplate({... preproc, structs });
-  fs.writeFileSync(`./lib/preprocessed/MgvStructsToString.post.sol`, processed);
+  fs.writeFileSync(`./lib/preprocessed/ToString.post.sol`, processed);
 
   for (const struct of structs) {
     const processed = typeTemplate({ ...preproc, struct });

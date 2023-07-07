@@ -51,7 +51,6 @@ contract MgvRoot is HasMgvEvents {
     mapping(int => Leaf) leafs;
     mapping(int => Field) level0;
     mapping(int => Field) level1;
-    Field level2;
   }
 
   /* `pairs` maps from token pair to `Pair` information. */
@@ -62,7 +61,14 @@ contract MgvRoot is HasMgvEvents {
   }
 
   function level0(address outbound, address inbound, int index) external view returns (Field) {
-    return pairs[outbound][inbound].level0[index];
+    Pair storage pair = pairs[outbound][inbound];
+    MgvStructs.LocalPacked local = pair.local;
+
+    if (local.tick().level0Index() == index) {
+      return local.level0();
+    } else {
+      return pair.level0[index];
+    }
   }
 
   function level1(address outbound, address inbound, int index) external view returns (Field) {
@@ -70,7 +76,7 @@ contract MgvRoot is HasMgvEvents {
   }
 
   function level2(address outbound, address inbound) external view returns (Field) {
-    return pairs[outbound][inbound].level2;
+    return pairs[outbound][inbound].local.level2();
   }
 
   /* Checking the size of `gasprice` is necessary to prevent a) data loss when `gasprice` is copied to an `OfferDetail` struct, and b) overflow when `gasprice` is used in calculations. */

@@ -3,10 +3,9 @@ pragma solidity ^0.8.10;
 
 import {IMaker, HasMgvEvents, MgvStructs, Tick, TickLib, Leaf, Field} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
-import {Script2} from "mgv_lib/Script2.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
-contract MgvOfferMaking is MgvHasOffers, Script2 {
+contract MgvOfferMaking is MgvHasOffers {
   /* # Public Maker operations
      ## New Offer */
   //+clear+
@@ -321,20 +320,40 @@ contract MgvOfferMaking is MgvHasOffers, Script2 {
 
       // insertion
       Leaf leaf = pair.leafs[insertionTick.leafIndex()];
-
       // if leaf was empty flip tick on at level0
       if (leaf.isEmpty()) {
         Field field;
-        field = pair.level0[insertionTick.level0Index()];
-        pair.level0[insertionTick.level0Index()] = field.flipBitAtLevel0(insertionTick);
-        // if level0 was empty, flip tick on at level1
+        int insertionIndex = insertionTick.level0Index();
+
+        int currentIndex = ofp.local.tick().level0Index();
+        bool indexDiff = insertionIndex != currentIndex;
+        if (indexDiff) {
+          field = pair.level0[insertionIndex];
+        } else {
+          field = ofp.local.level0();
+        }
+
+        if (indexDiff && bestWillChange) {
+          pair.level0[currentIndex] = ofp.local.level0();
+        }
+
+        {
+          Field field2 = field.flipBitAtLevel0(insertionTick);
+
+          if (indexDiff && !bestWillChange) {
+            pair.level0[insertionIndex] = field2;
+          } else {
+            ofp.local = ofp.local.level0(field2);
+          }
+        }
+
         if (field.isEmpty()) {
-          field = pair.level1[insertionTick.level1Index()];
-          pair.level1[insertionTick.level1Index()] = field.flipBitAtLevel1(insertionTick);
+          insertionIndex = insertionTick.level1Index();
+          field = pair.level1[insertionIndex];
+          pair.level1[insertionIndex] = field.flipBitAtLevel1(insertionTick);
           // if level1 was empty, flip tick on at level2
           if (field.isEmpty()) {
-            field = pair.level2;
-            pair.level2 = field.flipBitAtLevel2(insertionTick);
+            ofp.local = ofp.local.level2(ofp.local.level2().flipBitAtLevel2(insertionTick));
           }
         }
       }

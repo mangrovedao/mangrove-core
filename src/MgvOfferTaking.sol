@@ -19,9 +19,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     bool fillWants; // used globally
     uint feePaid; // used globally
     Leaf leaf;
-    Field level0;
     Field level1;
-    Field level2;
   }
 
   /* # Market Orders */
@@ -46,25 +44,22 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   // get offer after current offer, will also erase the current offer's branch (which may not be necessary!)
-  function getNextBest(Pair storage pair, MultiOrder memory mor, MgvStructs.OfferPacked offer)
-    internal
-    returns (uint offerId)
-  {
+  function getNextBest(
+    Pair storage pair,
+    MultiOrder memory mor,
+    MgvStructs.OfferPacked offer,
+    MgvStructs.LocalPacked local
+  ) internal returns (uint offerId, MgvStructs.LocalPacked) {
     Tick offerTick = offer.tick();
     uint nextId = offer.next();
 
     if (nextId == 0) {
-      int index = offerTick.leafIndex();
       Leaf leaf = mor.leaf;
       leaf = leaf.setTickFirst(offerTick, 0).setTickLast(offerTick, 0);
       if (leaf.isEmpty()) {
-        pair.leafs[index] = leaf;
-        index = offerTick.level0Index();
-        Field field = mor.level0;
-        if (field.isEmpty()) {
-          field = pair.level0[index];
-        }
-        field = field.flipBitAtLevel0(offerTick);
+        pair.leafs[offerTick.leafIndex()] = leaf;
+        int index = offerTick.level0Index();
+        Field field = local.level0().flipBitAtLevel0(offerTick);
         if (field.isEmpty()) {
           pair.level0[index] = field;
           index = offerTick.level1Index();
@@ -75,17 +70,13 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           field = field.flipBitAtLevel1(offerTick);
           if (field.isEmpty()) {
             pair.level1[index] = field;
-            field = mor.level2;
+            field = local.level2().flipBitAtLevel2(offerTick);
+            local = local.level2(field);
             if (field.isEmpty()) {
-              field = pair.level2;
-            }
-            field = field.flipBitAtLevel2(offerTick);
-            mor.level2 = field;
-            if (field.isEmpty()) {
-              mor.level1 = FieldLib.EMPTY;
-              mor.level0 = FieldLib.EMPTY;
+              mor.level1 = field;
+              local = local.level0(field);
               mor.leaf = LeafLib.EMPTY;
-              return 0;
+              return (0, local);
             }
             index = field.firstLevel1Index();
             field = pair.level1[index];
@@ -94,13 +85,13 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           index = field.firstLevel0Index(index);
           field = pair.level0[index];
         }
-        mor.level0 = field;
+        local = local.level0(field);
         leaf = pair.leafs[field.firstLeafIndex(index)];
       }
       mor.leaf = leaf;
       nextId = leaf.getNextOfferId();
     }
-    return nextId;
+    return (nextId, local);
   }
 
   /* # General Market Order */
@@ -222,7 +213,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
            3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
         */
           sor.gives = mor.initialGives - mor.totalGave;
-          sor.offerId = getNextBest(pair, mor, sor.offer);
+          (sor.offerId, sor.local) = getNextBest(pair, mor, sor.offer, sor.local);
 
           sor.offer = pair.offerData[sor.offerId].offer;
         }
@@ -261,28 +252,22 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         sor.local = sor.local.tick(pair.offerData[sor.local.best()].offer.tick());
         // sor.local = stitchOffers(sor.outbound_tkn, sor.inbound_tkn, 0, sor.offerId, sor.local);
 
-        // maybe useless? if we don't update these we must take it into account elsewhere
-        // second conjunct is for when you did not ever read level2
-        if (Field.unwrap(pair.level2) != Field.unwrap(mor.level2) && (!mor.level2.isEmpty() && sor.offerId != 0)) {
-          pair.level2 = mor.level2;
-        }
+        // maybe some updates below are useless? if we don't update these we must take it into account elsewhere
+        // no need to test whether level2 has been reached since by default its stored in local
+
         Tick tick = sor.local.tick();
         int index = tick.level1Index();
         // second conjunct is for when you did not ever read level1
-        if (Field.unwrap(pair.level1[index]) != Field.unwrap(mor.level1) && !(mor.level1.isEmpty() && sor.offerId != 0))
-        {
+        if (!pair.level1[index].eq(mor.level1) && !(mor.level1.isEmpty() && sor.offerId != 0)) {
           pair.level1[index] = mor.level1;
         }
-        index = sor.local.tick().level0Index();
-        // second conjunct is for when you did not ever read level0
-        if (Field.unwrap(pair.level0[index]) != Field.unwrap(mor.level0) && !(mor.level0.isEmpty() && sor.offerId != 0))
-        {
-          pair.level0[index] = mor.level0;
-        }
-        index = sor.local.tick().leafIndex();
+        // no need to test whether mor.level2 != pair.level2 since update is ~free
+        // ! local.level0[sor.local.tick().level0Index()] is now wrong
+        // sor.local = sor.local.level0(mor.level0);
 
+        index = tick.leafIndex();
         // second conjunct is for when you did not ever read leaf
-        if (Leaf.unwrap(pair.leafs[index]) != Leaf.unwrap(mor.leaf) && !(mor.leaf.isEmpty() && sor.offerId != 0)) {
+        if (!pair.leafs[index].eq(mor.leaf) && !(mor.leaf.isEmpty() && sor.offerId != 0)) {
           pair.leafs[index] = mor.leaf;
         }
 

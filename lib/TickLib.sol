@@ -6,16 +6,19 @@ import {FixedPointMathLib as FP} from "solady/utils/FixedPointMathLib.sol";
 uint constant ONES = type(uint).max;
 uint constant TOPBIT = 1 << 255;
 
+// MIN_TICK and MAX_TICK should be inside the addressable range defined by the sum of the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2
 int constant MIN_TICK = -694605 ;
 int constant MAX_TICK = -MIN_TICK;
 
-uint constant TICK_BITS = 24; // must match structs.ts
-uint constant OFFER_BITS = 32; // MUST_MATCH struct.ts
+// sizes must match field sizes in structs.ts where relevant
+uint constant TICK_BITS = 24;
+uint constant OFFER_BITS = 32;
 
-uint constant LEAF_SIZE_BITS = 2;
-uint constant LEVEL0_SIZE_BITS = 8;
+// only power-of-two sizes are supported for LEAF_SIZE and LEVEL*_SIZE
+uint constant LEAF_SIZE_BITS = 2; 
+uint constant LEVEL0_SIZE_BITS = 6;
 uint constant LEVEL1_SIZE_BITS = 8;
-uint constant LEVEL2_SIZE_BITS = TICK_BITS - LEVEL1_SIZE_BITS - LEVEL0_SIZE_BITS - LEAF_SIZE_BITS;
+uint constant LEVEL2_SIZE_BITS = 5;
 
 int constant LEAF_SIZE = int(2 ** (LEAF_SIZE_BITS));
 int constant LEVEL0_SIZE = int(2 ** (LEVEL0_SIZE_BITS));
@@ -49,8 +52,12 @@ using TickLib for Tick global;
 library LeafLib {
   Leaf constant EMPTY = Leaf.wrap(uint(0));
 
+  function eq(Leaf leaf1, Leaf leaf2) internal pure returns (bool) {
+    return Leaf.unwrap(leaf1) == Leaf.unwrap(leaf2);
+  }
+
   function isEmpty(Leaf leaf) internal pure returns (bool) {
-    return Leaf.unwrap(leaf) == 0;
+    return leaf.eq(EMPTY);
   }
 
   function uint_of_bool(bool b) internal pure returns (uint u) {
@@ -273,11 +280,15 @@ library TickLib {
 
 }
 
+// In fields, positions are counted from the right
 library FieldLib {
   Field constant EMPTY = Field.wrap(uint(0));
+  function eq(Field field1, Field field2) internal pure returns (bool) {
+    return Field.unwrap(field1) == Field.unwrap(field2);
+  }
 
   function isEmpty(Field field) internal pure returns (bool) {
-    return Field.unwrap(field) == 0;
+    return field.eq(EMPTY);
   }
 
   // function unsetBitAtTick(Field field, Tick tick, uint level) internal pure returns (Field) {
@@ -288,66 +299,66 @@ library FieldLib {
 
   function flipBitAtLevel0(Field level0, Tick tick) internal pure returns (Field) {
     uint pos = tick.posInLevel0();
-    level0 = Field.wrap(Field.unwrap(level0) ^ (TOPBIT >> pos));
+    level0 = Field.wrap(Field.unwrap(level0) ^ (1 << pos));
     return level0;
   }
 
   function flipBitAtLevel1(Field level1, Tick tick) internal pure returns (Field) {
     uint pos = tick.posInLevel1();
-    level1 = Field.wrap(Field.unwrap(level1) ^ (TOPBIT >> pos));
+    level1 = Field.wrap(Field.unwrap(level1) ^ (1 << pos));
     return level1;
   }
 
   function flipBitAtLevel2(Field level2, Tick tick) internal pure returns (Field) {
     uint pos = tick.posInLevel2();
-    level2 = Field.wrap(Field.unwrap(level2) ^ (TOPBIT >> pos));
+    level2 = Field.wrap(Field.unwrap(level2) ^ (1 << pos));
     return level2;
   }
 
   // utility fn
   function eraseToTick0(Field field, Tick tick) internal pure returns (Field) {
-    uint mask = ONES >> (tick.posInLevel0() + 1);
+    uint mask = ONES << (tick.posInLevel0() + 1);
     return Field.wrap(Field.unwrap(field) & mask);
   }
 
   function eraseFromTick0(Field field, Tick tick) internal pure returns (Field) {
-    uint mask = ~(ONES >> tick.posInLevel0());
+    uint mask = ~(ONES << tick.posInLevel0());
     return Field.wrap(Field.unwrap(field) & mask);
   }
 
   // utility fn
   function eraseToTick1(Field field, Tick tick) internal pure returns (Field) {
-    uint mask = ONES >> (tick.posInLevel1() + 1);
+    uint mask = ONES << (tick.posInLevel1() + 1);
     return Field.wrap(Field.unwrap(field) & mask);
   }
 
   function eraseFromTick1(Field field, Tick tick) internal pure returns (Field) {
-    uint mask = ~(ONES >> tick.posInLevel1());
+    uint mask = ~(ONES << tick.posInLevel1());
     return Field.wrap(Field.unwrap(field) & mask);
   }
 
   // utility fn
   function eraseToTick2(Field field, Tick tick) internal pure returns (Field) {
-    uint mask = ONES >> (tick.posInLevel2() + 1);
+    uint mask = ONES << (tick.posInLevel2() + 1);
     return Field.wrap(Field.unwrap(field) & mask);
   }
 
   function eraseFromTick2(Field field, Tick tick) internal pure returns (Field) {
-    uint mask = ~(ONES >> tick.posInLevel2());
+    uint mask = ~(ONES << tick.posInLevel2());
     return Field.wrap(Field.unwrap(field) & mask);
   }
 
   // Will throw with Log2Undefined if field is empty
   function firstOnePosition(Field field) internal pure returns (uint) {
-    return 255 - log2(Field.unwrap(field));
+    int _field = int(Field.unwrap(field));
+    unchecked {
+      return log2(uint(_field & -_field));
+    }
   }
 
   // Will throw with Log2Undefined if field is empty
   function lastOnePosition(Field field) internal pure returns (uint) {
-    int _field = int(Field.unwrap(field));
-    unchecked {
-      return 255 - log2(uint(_field & -_field));
-    }
+    return log2(Field.unwrap(field));
   }
 
   // Get the index of the first level1 of a level2

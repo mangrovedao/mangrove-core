@@ -493,4 +493,25 @@ contract MangroveTest is Test2, HasMgvEvents {
       fromId = reader.nextOfferId(outbound, inbound, offer);
     }
   }
+
+  // logs an overview of the current branch
+  function logTickTreeBranch(address outbound_tkn, address inbound_tkn) public view {
+    console.log("--------CURRENT TICK TREE BRANCH--------");
+    MgvStructs.LocalPacked local = reader.local(outbound_tkn, inbound_tkn);
+    Tick tick = local.tick();
+    console.log("Current tick %s", toString(tick));
+    int leafIndex = tick.leafIndex();
+    console.log(
+      "Current leaf %s (index %s)", toString(mgv.leafs(outbound_tkn, inbound_tkn, leafIndex)), vm.toString(leafIndex)
+    );
+    console.log("Current level 0 %s (index %s)", toString(local.level0()), vm.toString(tick.level0Index()));
+    int level1Index = tick.level1Index();
+    console.log(
+      "Current level 1 %s (index %s)",
+      toString(mgv.level1(outbound_tkn, inbound_tkn, level1Index)),
+      vm.toString(level1Index)
+    );
+    console.log("Current level 2 %s", toString(local.level2()));
+    console.log("----------------------------------------");
+  }
 }

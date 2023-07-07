@@ -262,21 +262,27 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         // sor.local = stitchOffers(sor.outbound_tkn, sor.inbound_tkn, 0, sor.offerId, sor.local);
 
         // maybe useless? if we don't update these we must take it into account elsewhere
-        if (Field.unwrap(pair.level2) != Field.unwrap(mor.level2)) {
+        // second conjunct is for when you did not ever read level2
+        if (Field.unwrap(pair.level2) != Field.unwrap(mor.level2) && (!mor.level2.isEmpty() && sor.offerId != 0)) {
           pair.level2 = mor.level2;
         }
         Tick tick = sor.local.tick();
         int index = tick.level1Index();
-        if (Field.unwrap(pair.level1[index]) != Field.unwrap(mor.level1)) {
+        // second conjunct is for when you did not ever read level1
+        if (Field.unwrap(pair.level1[index]) != Field.unwrap(mor.level1) && !(mor.level1.isEmpty() && sor.offerId != 0))
+        {
           pair.level1[index] = mor.level1;
         }
         index = sor.local.tick().level0Index();
-        if (Field.unwrap(pair.level0[index]) != Field.unwrap(mor.level0)) {
+        // second conjunct is for when you did not ever read level0
+        if (Field.unwrap(pair.level0[index]) != Field.unwrap(mor.level0) && !(mor.level0.isEmpty() && sor.offerId != 0))
+        {
           pair.level0[index] = mor.level0;
         }
         index = sor.local.tick().leafIndex();
 
-        if (Leaf.unwrap(pair.leafs[index]) != Leaf.unwrap(mor.leaf)) {
+        // second conjunct is for when you did not ever read leaf
+        if (Leaf.unwrap(pair.leafs[index]) != Leaf.unwrap(mor.leaf) && !(mor.leaf.isEmpty() && sor.offerId != 0)) {
           pair.leafs[index] = mor.leaf;
         }
 

@@ -39,7 +39,10 @@ jobs:
         uses: ./.github/actions/publish-npm-package
         env:
           VERSION_BUMP_STRATEGY: ${{ github.event.inputs.versionBumpStrategy }}
-        
+          BOT_GH_PAT_TOKEN: ${{ secrets.BOT_GH_PAT_TOKEN }}
+          BOT_NPM_TOKEN: ${{ secrets.BOT_NPM_TOKEN }}
+          BOT_GPG_PRIVATE_KEY: ${{ secrets.BOT_GPG_PRIVATE_KEY }}
+          BOT_GPG_PASSPHRASE: ${{ secrets.BOT_GPG_PASSPHRASE }}
 
       
 

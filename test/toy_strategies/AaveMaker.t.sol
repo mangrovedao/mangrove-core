@@ -63,7 +63,7 @@ contract AaveMakerTest is MangroveTest {
     vars.assetSupply = vars.attacker.get_supply(asset);
     // lending on pool to check wether funds can be redeemed during flashloan
 
-    console.log("Asset balance on pool is %s %s", toUnit(vars.assetSupply, vars.assetDecimals), vars.assetSymbol);
+    console.log("Asset balance on pool is %s %s", toFixed(vars.assetSupply, vars.assetDecimals), vars.assetSymbol);
 
     // getting enough USDC to dry up the DAI pool
     if (vars.assetDecimals >= vars.collateralDecimals) {
@@ -72,13 +72,13 @@ contract AaveMakerTest is MangroveTest {
       vars.toMint = (vars.assetSupply * price * 150) * 10 ** (vars.collateralDecimals - vars.assetDecimals) / 10 ** 2;
     }
     deal($(collateral), address(vars.attacker), vars.toMint);
-    console.log("* Minting %s %s of collateral", toUnit(vars.toMint, vars.collateralDecimals), collateral.symbol());
+    console.log("* Minting %s %s of collateral", toFixed(vars.toMint, vars.collateralDecimals), collateral.symbol());
     vars.attacker.approveLender(collateral);
     vars.attacker.supply(collateral, vars.toMint);
     (, vars.borrowable) = vars.attacker.maxGettableUnderlying(asset, true, address(vars.attacker));
     console.log(
       "* After supplying it to the pool, I could theoretically borrow %s %s",
-      toUnit(vars.borrowable, vars.assetDecimals),
+      toFixed(vars.borrowable, vars.assetDecimals),
       vars.assetSymbol
     );
     (, vars.borrowCaps) = vars.attacker.getCaps(asset);
@@ -89,7 +89,7 @@ contract AaveMakerTest is MangroveTest {
       : vars.borrowCaps * 10 ** vars.assetDecimals
         - (IERC20(address(sdebt)).totalSupply() + IERC20(address(vdebt)).totalSupply());
 
-    console.log("* Asset borrow cap is:", toUnit(vars.maxBorrowable, vars.assetDecimals));
+    console.log("* Asset borrow cap is:", toFixed(vars.maxBorrowable, vars.assetDecimals));
     console.log("* Trying to borrow more than the cap...");
     try vars.attacker.borrow(asset, vars.maxBorrowable + 1) {}
     catch Error(string memory reason) {
@@ -127,7 +127,7 @@ contract AaveMakerTest is MangroveTest {
     }
     require(vm.revertTo(snapshotId), "snapshot restore failed");
     console.log(
-      "* Trying to attack with AAVE flashloan of %s %s", toUnit(vars.assetSupply, vars.assetDecimals), vars.assetSymbol
+      "* Trying to attack with AAVE flashloan of %s %s", toFixed(vars.assetSupply, vars.assetDecimals), vars.assetSymbol
     );
     bytes memory cd =
       abi.encodeWithSelector(this.executeAttack.selector, address(lender), asset, 1000 * 10 ** vars.assetDecimals);

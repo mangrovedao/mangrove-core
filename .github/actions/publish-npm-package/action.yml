@@ -6,12 +6,20 @@
 name: "Publish npm package"
 
 on:
-  workflow_dispatch:
-
-inputs:
-  versionBumpStrategy:
-    description: 'version bump strategy'
-    required: true
+  workflow_call:
+    inputs:
+      versionBumpStrategy:
+        description: 'version bump strategy'
+        required: true
+    secrets:
+      BOT_GH_PAT_TOKEN:
+        required: true
+      BOT_NPM_TOKEN:
+        required: true
+      BOT_GPG_PRIVATE_KEY:
+        required: true
+      BOT_GPG_PASSPHRASE:
+        required: true
 
 
 jobs:

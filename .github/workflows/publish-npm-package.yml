@@ -36,8 +36,9 @@ jobs:
 
     - name: "Publish"
       uses: ./.github/actions/publish-npm-package
-      with: |
-        versionBumpStrategy: ${{ github.event.inputs.versionBumpStrategy }}
+      with:
+        env:
+          VERSION_BUMP_STRATEGY: ${{ github.event.inputs.versionBumpStrategy }}
 
       
 

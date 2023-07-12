@@ -1,5 +1,7 @@
 # Next version
 
+- Fix: New publish workflow with foundry
+
 # 1.5.6
 
 - Fix: added USDC, WETH, DAI faucets to mumbai

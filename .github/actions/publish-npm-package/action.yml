@@ -8,6 +8,11 @@ name: "Publish npm package"
 on:
   workflow_dispatch:
 
+inputs:
+  versionBumpStrategy:
+    description: 'version bump strategy'
+    required: true
+
 
 jobs:
   call-reusable-workflow:

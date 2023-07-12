@@ -5,31 +5,14 @@
 # From the develop branch, package bumps can only be prerelease
 name: "Publish npm package"
 
-on:
-  workflow_call:
-    inputs:
-      versionBumpStrategy:
-        description: 'version bump strategy'
-        required: true
-    secrets:
-      BOT_GH_PAT_TOKEN:
-        required: true
-      BOT_NPM_TOKEN:
-        required: true
-      BOT_GPG_PRIVATE_KEY:
-        required: true
-      BOT_GPG_PASSPHRASE:
-        required: true
+description: "Publish"
 
 
-jobs:
-  call-reusable-workflow:
-    name: "Publish"
-    uses: mangrovedao/.github/.github/workflows/reusable-publish-npm-package.yml@master
-    with:
-      versionBumpStrategy: $VERSION_BUMP_STRATEGY
-    secrets:
-      BOT_GH_PAT_TOKEN: $BOT_GH_PAT_TOKEN
-      BOT_NPM_TOKEN: $BOT_NPM_TOKEN
-      BOT_GPG_PRIVATE_KEY: $BOT_GPG_PRIVATE_KEY
-      BOT_GPG_PASSPHRASE: $BOT_GPG_PASSPHRASE
+runs:
+  using: composite
+  steps:
+     -  name: "Publish"
+        uses: mangrovedao/.github/.github/workflows/reusable-publish-npm-package.yml@master
+        with:
+          versionBumpStrategy: $VERSION_BUMP_STRATEGY
+

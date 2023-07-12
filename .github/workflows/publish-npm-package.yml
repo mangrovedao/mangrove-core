@@ -25,20 +25,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+        
 
-    - name: Checkout
-      uses: actions/checkout@v3
-      with:
-        submodules: recursive
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
-    - name: Foundry Setup
-      uses: ./.github/actions/foundry-setup
+      - name: Foundry Setup
+        uses: ./.github/actions/foundry-setup
 
-    - name: "Publish"
-      uses: ./.github/actions/publish-npm-package
-      with:
+      - name: "Publish"
+        uses: ./.github/actions/publish-npm-package
         env:
           VERSION_BUMP_STRATEGY: ${{ github.event.inputs.versionBumpStrategy }}
+        
 
       
 

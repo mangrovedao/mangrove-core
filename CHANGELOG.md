@@ -1,5 +1,7 @@
 # Next version
 
+- Fix: New publish workflow with foundry
+
 # 1.5.4
 
 - Fix: Make KandelSeederDeployer robust wrt missing `MgvGovernance` address

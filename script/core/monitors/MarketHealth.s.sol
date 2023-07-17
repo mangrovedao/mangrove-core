@@ -50,6 +50,10 @@ contract MarketHealth is Test2, Deployer {
 
   function run() public {
     IERC20 inbTkn = IERC20(envAddressOrName("TKN_IN"));
+    uint densityOverrides;
+    try vm.envUint("DENSITY") returns (uint d) {
+      densityOverrides = d;
+    } catch {}
     // dealing hopefully enough inbound token to execute a market order
     deal(address(inbTkn), address(this), 10_000_000 * 10 ** inbTkn.decimals());
     innerRun({
@@ -57,7 +61,8 @@ contract MarketHealth is Test2, Deployer {
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
       inbTkn: inbTkn,
       outTkn: IERC20(envAddressOrName("TKN_OUT")),
-      outboundTknVolume: vm.envUint("VOLUME")
+      outboundTknVolume: vm.envUint("VOLUME"),
+      densityOverrides: densityOverrides
     });
   }
 
@@ -90,7 +95,18 @@ contract MarketHealth is Test2, Deployer {
     uint minVolume;
   }
 
-  function innerRun(IMangrove mgv, MgvReader reader, IERC20 inbTkn, IERC20 outTkn, uint outboundTknVolume) public {
+  function innerRun(
+    IMangrove mgv,
+    MgvReader reader,
+    IERC20 inbTkn,
+    IERC20 outTkn,
+    uint outboundTknVolume,
+    uint densityOverrides
+  ) public {
+    if (densityOverrides > 0) {
+      vm.prank(mgv.governance());
+      mgv.setDensity(address(outTkn), address(inbTkn), densityOverrides);
+    }
     HeapVars memory vars;
     vars.data =
       reader.marketOrder(address(outTkn), address(inbTkn), outboundTknVolume, inbTkn.balanceOf(address(this)), true);

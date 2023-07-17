@@ -14,6 +14,7 @@ on:
         default: 'prerelease'
         type: choice
         options:
+        - test
         - prerelease
         - patch
         - minor
@@ -22,7 +23,7 @@ on:
 jobs:
   call-reusable-workflow:
     name: "Publish"
-    uses: mangrovedao/.github/.github/workflows/reusable-publish-npm-package.yml@master
+    uses: mangrovedao/.github/.github/workflows/reusable-publish-npm-package-with-foundry.yml@master
     with:
       versionBumpStrategy: ${{ inputs.versionBumpStrategy }}
     secrets:

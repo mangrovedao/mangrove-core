@@ -7,6 +7,13 @@ import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol"
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
+/**
+ * Script simulates a series of snipes on the offer at coordinate (TKN_OUT, TKN_IN, OFFER_ID)
+ */
+/**
+ * It will try various quantities starting with taker gives 0 and outputs success or failure
+ */
+
 contract EvalSnipeOffer is Test2, Deployer {
   receive() external payable {}
 

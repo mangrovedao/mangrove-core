@@ -109,7 +109,7 @@ contract KandelPopulate is Deployer {
     if (broadcaster().balance < funds) {
       console.log(
         "Broadcaster does not have enough funds to provision offers. Missing",
-        toUnit(funds - broadcaster().balance, 18),
+        toFixed(funds - broadcaster().balance, 18),
         "native tokens"
       );
       require(false, "Not enough funds");
@@ -126,9 +126,9 @@ contract KandelPopulate is Deployer {
     prettyLog(
       string.concat(
         "Required collateral of base is ",
-        toUnit(vars.baseAmountRequired, baseDecimals),
+        toFixed(vars.baseAmountRequired, baseDecimals),
         " and quote is ",
-        toUnit(vars.quoteAmountRequired, quoteDecimals)
+        toFixed(vars.quoteAmountRequired, quoteDecimals)
       )
     );
 
@@ -139,7 +139,7 @@ contract KandelPopulate is Deployer {
         "Not enough base (",
         vm.toString(address(vars.BASE)),
         "). Deficit: ",
-        toUnit(vars.baseAmountRequired - vars.BASE.balanceOf(broadcaster()), baseDecimals)
+        toFixed(vars.baseAmountRequired - vars.BASE.balanceOf(broadcaster()), baseDecimals)
       );
     }
     if (vars.QUOTE.balanceOf(broadcaster()) < vars.quoteAmountRequired) {
@@ -148,7 +148,7 @@ contract KandelPopulate is Deployer {
         "Not enough quote (",
         vm.toString(address(vars.QUOTE)),
         "). Deficit: ",
-        toUnit(vars.quoteAmountRequired - vars.QUOTE.balanceOf(broadcaster()), quoteDecimals)
+        toFixed(vars.quoteAmountRequired - vars.QUOTE.balanceOf(broadcaster()), quoteDecimals)
       );
     }
     if (bytes(deficit).length > 0) {
@@ -175,7 +175,7 @@ contract KandelPopulate is Deployer {
       vars.baseAmountRequired,
       vars.quoteAmountRequired
     );
-    console.log(toUnit(funds, 18), "native tokens used as provision");
+    console.log(toFixed(funds, 18), "native tokens used as provision");
   }
 
   function calculateBaseQuote(HeapArgs memory args) public view returns (CoreKandel.Distribution memory distribution) {

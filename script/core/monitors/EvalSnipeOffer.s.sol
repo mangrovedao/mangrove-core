@@ -36,6 +36,7 @@ contract EvalSnipeOffer is Test2, Deployer {
   function innerRun(IMangrove mgv, IERC20 inbTkn, IERC20 outTkn, uint offerId) public {
     Heap memory heap;
     heap.offer = mgv.offers(address(outTkn), address(inbTkn), offerId);
+    require(mgv.isLive(heap.offer), "OfferId is not live on the book");
     heap.details = mgv.offerDetails(address(outTkn), address(inbTkn), offerId);
 
     deal(address(inbTkn), address(this), heap.offer.wants());

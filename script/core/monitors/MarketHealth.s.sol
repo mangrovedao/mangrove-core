@@ -83,11 +83,15 @@ contract MarketHealth is Test2, Deployer {
     uint gasFail;
     uint gasSpent;
     uint gasbase;
+    uint gasprice;
     uint best;
     uint takerWants;
     uint[4][] targets;
     uint g;
     MgvStructs.OfferPacked offer;
+    MgvStructs.OfferDetailPacked detail;
+    MgvStructs.GlobalPacked global;
+    MgvStructs.LocalPacked local;
     string rootKey;
     string dataKey;
     uint[] failingIds;
@@ -118,8 +122,7 @@ contract MarketHealth is Test2, Deployer {
     deal(address(inbTkn), address(this), vars.required * 2);
     inbTkn.approve(address(mgv), type(uint).max);
 
-    (, MgvStructs.LocalPacked local) = mgv.config(address(outTkn), address(inbTkn));
-    vars.gasbase = local.offer_gasbase();
+    (vars.global, vars.local) = mgv.config(address(outTkn), address(inbTkn));
 
     uint snapshotId = vm.snapshot();
     vars.rootKey = "root_key";
@@ -133,6 +136,8 @@ contract MarketHealth is Test2, Deployer {
         break;
       }
       vars.offer = mgv.offers(address(outTkn), address(inbTkn), vars.best);
+      vars.detail = mgv.offerDetails(address(outTkn), address(inbTkn), vars.best);
+
       vars.targets = new uint256[4][](1);
       vars.takerWants =
         vars.offer.gives() + vars.got > outboundTknVolume ? outboundTknVolume - vars.got : vars.offer.gives();
@@ -153,6 +158,9 @@ contract MarketHealth is Test2, Deployer {
       vars.got += vars.snipesGot;
       vars.gave += vars.snipesGave;
       vars.collected += vars.snipesBounty;
+      vars.gasprice = vars.detail.gasprice() > vars.global.gasprice()
+        ? vars.gasprice + vars.detail.gasprice() - vars.global.gasprice()
+        : vars.gasprice - vars.global.gasprice() - vars.detail.gasprice();
 
       vars.minVolume =
         reader.minVolume(address(outTkn), address(inbTkn), vars.data[vars.successes + vars.failures - 1].totalGasreq);
@@ -171,6 +179,7 @@ contract MarketHealth is Test2, Deployer {
       vm.serializeUint(vars.dataKey, "gas_fail", vars.gasFail);
       vm.serializeUint(vars.dataKey, "gas_used", vars.gasSpent);
       vm.serializeUint(vars.dataKey, "gas_req", vars.data[vars.successes + vars.failures - 1].totalGasreq);
+      vm.serializeUint(vars.dataKey, "gas_price", vars.gasprice);
       vars.dataKey = vm.serializeString(vars.dataKey, "distance_to_density", vars.distanceToDensity);
       vm.serializeString(
         vars.rootKey, string.concat("data_", vm.toString(vars.successes + vars.failures)), vars.dataKey

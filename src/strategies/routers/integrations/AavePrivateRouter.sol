@@ -11,6 +11,7 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
   ///@param addressesProvider address of AAVE's address provider
   ///@param interestRate interest rate mode for borrowing assets. 0 for none, 1 for stable, 2 for variable
   ///@param overhead is the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
+  ///@dev `msg.sender` will be admin of this router
   constructor(address addressesProvider, uint interestRate, uint overhead)
     AaveMemoizer(addressesProvider, interestRate)
     AbstractRouter(overhead)
@@ -24,16 +25,11 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
     return amount;
   }
 
-  ///@notice deposit router-local balance of an asset on the AAVE pool
+  ///@notice deposits router-local balance of an asset on the AAVE pool
   ///@param token the address of the asset
-  ///@param m memoizer
-  function _flushBuffer(IERC20 token, Memoizer memory m) internal {
-    _repayThenDeposit(token, address(this), balanceOf(token, m));
-  }
-
   function flushBuffer(IERC20 token) external onlyBound {
     Memoizer memory m;
-    _flushBuffer(token, m);
+    _repayThenDeposit(token, address(this), balanceOf(token, m));
   }
 
   ///@notice pushes each given token from the calling maker contract to this router, then supplies the whole router-local balance to AAVE
@@ -49,8 +45,8 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
     require(TransferLib.transferTokenFrom(token0, msg.sender, address(this), amount0), "AavePrivateRouter/pushFailed");
     require(TransferLib.transferTokenFrom(token1, msg.sender, address(this), amount1), "AavePrivateRouter/pushFailed");
     Memoizer memory m;
-    _flushBuffer(token0, m);
-    _flushBuffer(token1, m);
+    _repayThenDeposit(token0, address(this), balanceOf(token0, m));
+    _repayThenDeposit(token1, address(this), balanceOf(token1, m));
   }
 
   // structs to avoir stack too deep in maxGettableUnderlying
@@ -61,6 +57,10 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
     uint price;
   }
 
+  ///@notice returns line of credit of `this` contract in the form of a pair (maxRedeem, maxBorrow) corresponding respectively
+  ///to the max amount of `token` this contract can withdraw from the pool, and the max amount of `token` it can borrow in addition (after withdrawing `maxRedeem`)
+  ///@param token the asset one wishes to get from the pool
+  ///@param m the memoizer
   function maxGettableUnderlying(IERC20 token, Memoizer memory m) public view returns (uint, uint) {
     Underlying memory underlying; // asset parameters
     (
@@ -107,6 +107,12 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
     return (maxRedeemableUnderlying, maxBorrowAfterRedeemInUnderlying);
   }
 
+  ///@notice pulls tokens from the pool according to the following policy:
+  /// * if this contract's balance already has `amount` tokens, then those tokens are transferred w/o calling the pool
+  /// * otherwise, all tokens that can be withdrawn from this contract's account on the pool are withdrawn
+  /// * if withdrawal is insufficient to match `amount` the missing tokens are borrowed
+  /// * if pull is `strict` then only amount is sent to the calling maker contract, otherwise the totality of pulled funds are sent to maker
+  ///@dev if `strict` is enabled, then either `amount` is sent to maker of the call reverts.
   ///@inheritdoc AbstractRouter
   function __pull__(IERC20 token, address, uint amount, bool strict) internal override returns (uint pulled) {
     Memoizer memory m;
@@ -169,6 +175,8 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
     return _claimRewards(assets, msg.sender);
   }
 
+  ///@notice returns the amount of funds available to this contract, summing up redeem and borrow capacities
+  ///@param token the asset whose availability is being checked
   function balanceOfReserve(IERC20 token, address) public view override returns (uint) {
     Memoizer memory m;
     (uint r, uint b) = maxGettableUnderlying(token, m);

@@ -57,6 +57,29 @@ contract StableKandel is GeometricKandel {
     setGasreq(offerGasreq());
   }
 
+  ///@notice publishes bids/asks for the distribution in the `indices`. Caller should follow the desired distribution in `baseDist` and `quoteDist`.
+  ///@param distribution the distribution of base and quote for Kandel indices
+  ///@param pivotIds the pivot to be used for the offer
+  ///@param firstAskIndex the (inclusive) index after which offer should be an ask.
+  ///@param parameters the parameters for Kandel. Only changed parameters will cause updates. Set `gasreq` and `gasprice` to 0 to keep existing values.
+  ///@param token collateral type
+  ///@param amount amount of collateral to deposit
+  ///@dev This function is used at initialization and can fund with provision for the offers.
+  ///@dev Use `populateChunk` to split up initialization or re-initialization with same parameters, as this function will emit.
+  ///@dev If this function is invoked with different ratio, pricePoints, spread, then first retract all offers.
+  ///@dev msg.value must be enough to provision all posted offers (for chunked initialization only one call needs to send native tokens).
+  function populate(
+    Distribution calldata distribution,
+    uint[] calldata pivotIds,
+    uint firstAskIndex,
+    Params calldata parameters,
+    IERC20 token,
+    uint amount
+  ) external payable onlyAdmin {
+    _deposit(token, amount);
+    _populate(distribution, pivotIds, firstAskIndex, parameters, msg.value);
+  }
+
   function depositOnPool(IERC20 token, uint amount) external onlyAdmin {
     _deposit(token, amount);
     privateRouter().pushAndSupply(token, amount, IERC20(address(0)), 0);

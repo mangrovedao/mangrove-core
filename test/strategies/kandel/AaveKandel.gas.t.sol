@@ -7,7 +7,7 @@ import {AaveKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/Aa
 import {AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
 
 contract AaveKandelGasTest is CoreKandelGasTest {
-  function __deployKandel__(address deployer, address reserveId) internal override returns (GeometricKandel kdl_) {
+  function __deployKandel__(address deployer, address reserveId) internal override returns (FundedKandel kdl_) {
     uint GASREQ = 160_000;
     uint ROUTER_GASREQ = 280_000;
     vm.startPrank(deployer);

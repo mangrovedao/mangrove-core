@@ -93,7 +93,7 @@ abstract contract CoreKandelTest is KandelTest {
     vm.assume(compoundRateQuote <= full_compound());
     vm.assume(compoundRateQuote > 0);
 
-    GeometricKandel.Params memory params = getParams(kdl);
+    FundedKandel.Params memory params = getParams(kdl);
     // taking ask #5
     MgvStructs.OfferPacked ask = kdl.getOffer(Ask, 5);
     // updates bid #4
@@ -144,7 +144,7 @@ abstract contract CoreKandelTest is KandelTest {
     vm.assume(compoundRateBase <= full_compound());
     vm.assume(compoundRateBase > 0);
 
-    GeometricKandel.Params memory params = getParams(kdl);
+    FundedKandel.Params memory params = getParams(kdl);
     // taking bid #4
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 4);
     // updates ask #5
@@ -714,7 +714,7 @@ abstract contract CoreKandelTest is KandelTest {
       KandelLib.calculateDistribution(5, 10, initBase, lastQuote, ratio, PRECISION);
 
     // setting params.spread to 2
-    GeometricKandel.Params memory params = getParams(kdl);
+    FundedKandel.Params memory params = getParams(kdl);
     params.spread = 4;
     // repopulating to update the spread (but with the same distribution)
     vm.prank(maker);
@@ -865,12 +865,12 @@ abstract contract CoreKandelTest is KandelTest {
   uint[] empty = new uint[](0);
 
   function test_populate_can_get_set_params_keeps_offers() public {
-    GeometricKandel.Params memory params = getParams(kdl);
+    FundedKandel.Params memory params = getParams(kdl);
 
     uint offeredVolumeBase = kdl.offeredVolume(Ask);
     uint offeredVolumeQuote = kdl.offeredVolume(Bid);
 
-    GeometricKandel.Params memory paramsNew;
+    FundedKandel.Params memory paramsNew;
     paramsNew.pricePoints = params.pricePoints;
     paramsNew.ratio = params.ratio + 1;
     paramsNew.spread = params.spread + 1;
@@ -891,7 +891,7 @@ abstract contract CoreKandelTest is KandelTest {
     vm.prank(maker);
     kdl.populate(emptyDist, empty, 0, paramsNew, 0, 0);
 
-    GeometricKandel.Params memory params_ = getParams(kdl);
+    FundedKandel.Params memory params_ = getParams(kdl);
 
     assertEq(params_.gasprice, paramsNew.gasprice, "gasprice should be changed");
     assertEq(params_.gasreq, paramsNew.gasreq, "gasreq should be changed");
@@ -907,7 +907,7 @@ abstract contract CoreKandelTest is KandelTest {
 
   function test_populate_throws_on_invalid_ratio() public {
     uint precision = PRECISION;
-    GeometricKandel.Params memory params;
+    FundedKandel.Params memory params;
     params.pricePoints = 10;
     params.ratio = uint24(10 ** precision - 1);
     params.spread = 1;
@@ -917,7 +917,7 @@ abstract contract CoreKandelTest is KandelTest {
   }
 
   function test_populate_throws_on_invalid_spread_low() public {
-    GeometricKandel.Params memory params;
+    FundedKandel.Params memory params;
     params.pricePoints = 10;
     params.ratio = uint24(10 ** PRECISION);
     params.spread = 0;
@@ -927,7 +927,7 @@ abstract contract CoreKandelTest is KandelTest {
   }
 
   function test_populate_throws_on_invalid_spread_high() public {
-    GeometricKandel.Params memory params;
+    FundedKandel.Params memory params;
     params.pricePoints = 10;
     params.ratio = uint24(10 ** PRECISION);
     params.spread = 9;
@@ -937,7 +937,7 @@ abstract contract CoreKandelTest is KandelTest {
   }
 
   function test_populate_invalidCompoundRatesBase_reverts() public {
-    GeometricKandel.Params memory params;
+    FundedKandel.Params memory params;
     params.pricePoints = 10;
     params.ratio = uint24(10 ** PRECISION);
     params.spread = 1;
@@ -948,7 +948,7 @@ abstract contract CoreKandelTest is KandelTest {
   }
 
   function test_populate_invalidCompoundRatesQuote_reverts() public {
-    GeometricKandel.Params memory params;
+    FundedKandel.Params memory params;
     params.pricePoints = 10;
     params.ratio = uint24(10 ** PRECISION);
     params.spread = 1;
@@ -990,7 +990,7 @@ abstract contract CoreKandelTest is KandelTest {
     (CoreKandel.Distribution memory distribution,) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, PRECISION);
 
-    GeometricKandel.Params memory params;
+    FundedKandel.Params memory params;
     params.pricePoints = 5;
     params.ratio = ratio;
     params.spread = 2;
@@ -1174,7 +1174,7 @@ abstract contract CoreKandelTest is KandelTest {
   function deployOtherKandel(uint base0, uint quote0, uint24 ratio, uint8 spread, uint8 pricePoints) internal {
     address otherMaker = freshAddress();
 
-    GeometricKandel otherKandel = __deployKandel__(otherMaker, otherMaker);
+    FundedKandel otherKandel = __deployKandel__(otherMaker, otherMaker);
 
     vm.prank(otherMaker);
     TransferLib.approveToken(base, address(otherKandel), type(uint).max);
@@ -1191,7 +1191,7 @@ abstract contract CoreKandelTest is KandelTest {
     (CoreKandel.Distribution memory distribution,) =
       KandelLib.calculateDistribution(0, pricePoints, base0, quote0, ratio, otherKandel.PRECISION());
 
-    GeometricKandel.Params memory params;
+    FundedKandel.Params memory params;
     params.pricePoints = pricePoints;
     params.ratio = ratio;
     params.spread = spread;
@@ -1223,7 +1223,7 @@ abstract contract CoreKandelTest is KandelTest {
     retractDefaultSetup();
 
     // Use a large number of price points - the rest of the parameters are not too important
-    GeometricKandel.Params memory params;
+    FundedKandel.Params memory params;
     params.ratio = uint24(108 * 10 ** PRECISION / 100);
     params.pricePoints = 100;
     params.spread = STEP;

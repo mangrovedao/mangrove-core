@@ -8,7 +8,7 @@ import {AaveKandel, AavePooledRouter} from "mgv_src/strategies/offer_maker/marke
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
-import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
+import {FundedKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/FundedKandel.sol";
 import {console2} from "forge-std/Test.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
@@ -47,7 +47,7 @@ contract AaveKandelTest is CoreKandelTest {
     }
   }
 
-  function __deployKandel__(address deployer, address id) internal virtual override returns (GeometricKandel) {
+  function __deployKandel__(address deployer, address id) internal virtual override returns (FundedKandel) {
     // 474_000 theoretical in mock up of router
     // 218_000 observed in tests of router
     uint router_gasreq = 500 * 1000;
@@ -179,7 +179,7 @@ contract AaveKandelTest is CoreKandelTest {
   function test_sharing_liquidity_between_strats(uint16 baseAmount, uint16 quoteAmount) public {
     deal($(base), maker, baseAmount);
     deal($(quote), maker, quoteAmount);
-    GeometricKandel kdl_ = __deployKandel__(maker, maker);
+    FundedKandel kdl_ = __deployKandel__(maker, maker);
     assertEq(kdl_.RESERVE_ID(), kdl.RESERVE_ID(), "Strats should have the same reserveId");
 
     uint baseBalance = kdl.reserveBalance(Ask);
@@ -223,7 +223,7 @@ contract AaveKandelTest is CoreKandelTest {
     bool allBaseOnAave,
     bool allQuoteOnAave
   ) internal {
-    GeometricKandel kdl_ = __deployKandel__(maker, maker);
+    FundedKandel kdl_ = __deployKandel__(maker, maker);
     assertEq(kdl_.RESERVE_ID(), kdl.RESERVE_ID(), "Strats should have the same reserveId");
 
     (, MgvStructs.OfferPacked bestAsk) = getBestOffers();
@@ -265,7 +265,7 @@ contract AaveKandelTest is CoreKandelTest {
   {
     deal($(base), maker, baseAmount);
     deal($(quote), maker, quoteAmount);
-    GeometricKandel kdl_ = __deployKandel__(maker, address(0));
+    FundedKandel kdl_ = __deployKandel__(maker, address(0));
     assertTrue(kdl_.RESERVE_ID() != kdl.RESERVE_ID(), "Strats should not have the same reserveId");
     vm.prank(maker);
     kdl.depositFunds(baseAmount, quoteAmount);

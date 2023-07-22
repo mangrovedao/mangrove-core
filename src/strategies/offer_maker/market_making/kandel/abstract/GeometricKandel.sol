@@ -133,27 +133,18 @@ abstract contract GeometricKandel is CoreKandel {
   ///@param pivotIds the pivot to be used for the offer
   ///@param firstAskIndex the (inclusive) index after which offer should be an ask.
   ///@param parameters the parameters for Kandel. Only changed parameters will cause updates. Set `gasreq` and `gasprice` to 0 to keep existing values.
-  ///@param baseAmount base amount to deposit
-  ///@param quoteAmount quote amount to deposit
-  ///@dev This function is used at initialization and can fund with provision for the offers.
-  ///@dev Use `populateChunk` to split up initialization or re-initialization with same parameters, as this function will emit.
-  ///@dev If this function is invoked with different ratio, pricePoints, spread, then first retract all offers.
-  ///@dev msg.value must be enough to provision all posted offers (for chunked initialization only one call needs to send native tokens).
-  function populate(
+  ///@param funds native tokens that can be used to provision new offers
+  function _populate(
     Distribution calldata distribution,
     uint[] calldata pivotIds,
     uint firstAskIndex,
     Params calldata parameters,
-    uint baseAmount,
-    uint quoteAmount
-  ) external payable onlyAdmin {
-    if (msg.value > 0) {
+    uint funds
+  ) internal {
+    if (funds > 0) {
       MGV.fund{value: msg.value}();
     }
     setParams(parameters);
-
-    depositFunds(baseAmount, quoteAmount);
-
     populateChunkInternal(distribution, pivotIds, firstAskIndex);
   }
 

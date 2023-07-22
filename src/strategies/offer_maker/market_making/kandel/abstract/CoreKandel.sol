@@ -81,50 +81,20 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
     return int(reserveBalance(ba)) - int(offeredVolume(ba));
   }
 
-  ///@notice Deposits funds to the contract's reserve
-  ///@param baseAmount the amount of base tokens to deposit.
-  ///@param quoteAmount the amount of quote tokens to deposit.
-  function depositFunds(uint baseAmount, uint quoteAmount) public virtual override {
-    require(TransferLib.transferTokenFrom(BASE, msg.sender, address(this), baseAmount), "Kandel/baseTransferFail");
-    emit Credit(BASE, baseAmount);
-    require(TransferLib.transferTokenFrom(QUOTE, msg.sender, address(this), quoteAmount), "Kandel/quoteTransferFail");
-    emit Credit(QUOTE, quoteAmount);
+  ///@notice Deposits funds to the contract's balance
+  ///@param token the deposited asset
+  ///@param amount to deposit
+  function _deposit(IERC20 token, uint amount) internal {
+    require(TransferLib.transferTokenFrom(token, msg.sender, address(this), amount), "Kandel/baseTransferFail");
+    emit Credit(token, amount);
   }
 
   ///@notice withdraws funds from the contract's reserve
-  ///@param baseAmount the amount of base tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
-  ///@param quoteAmount the amount of quote tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
+  ///@param token the asset one wishes to withdraw
+  ///@param amount to withdraw
   ///@param recipient the address to which the withdrawn funds should be sent to.
-  function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public virtual override onlyAdmin {
-    if (baseAmount == type(uint).max) {
-      baseAmount = BASE.balanceOf(address(this));
-    }
-    if (quoteAmount == type(uint).max) {
-      quoteAmount = QUOTE.balanceOf(address(this));
-    }
-    require(TransferLib.transferToken(BASE, recipient, baseAmount), "Kandel/baseTransferFail");
-    emit Debit(BASE, baseAmount);
-    require(TransferLib.transferToken(QUOTE, recipient, quoteAmount), "Kandel/quoteTransferFail");
-    emit Debit(QUOTE, quoteAmount);
-  }
-
-  ///@notice Retracts offers, withdraws funds, and withdraws free wei from Mangrove.
-  ///@param from retract offers starting from this index.
-  ///@param to retract offers until this index.
-  ///@param baseAmount the amount of base tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
-  ///@param quoteAmount the amount of quote tokens to withdraw. Use type(uint).max to denote the entire reserve balance.
-  ///@param freeWei the amount of wei to withdraw from Mangrove. Use type(uint).max to withdraw entire available balance.
-  ///@param recipient the recipient of the funds.
-  function retractAndWithdraw(
-    uint from,
-    uint to,
-    uint baseAmount,
-    uint quoteAmount,
-    uint freeWei,
-    address payable recipient
-  ) external onlyAdmin {
-    retractOffers(from, to);
-    withdrawFunds(baseAmount, quoteAmount, recipient);
-    withdrawFromMangrove(freeWei, recipient);
+  function _withdraw(IERC20 token, uint amount, address recipient) internal {
+    require(TransferLib.transferToken(token, recipient, amount), "Kandel/baseTransferFail");
+    emit Debit(token, amount);
   }
 }

@@ -41,18 +41,6 @@ abstract contract AbstractKandel {
   ///@return balance the balance of the token.
   function reserveBalance(OfferType ba) public view virtual returns (uint balance);
 
-  ///@notice deposits funds to be available for being offered. Will increase `pending`.
-  ///@param baseAmount the amount of base tokens to deposit.
-  ///@param quoteAmount the amount of quote tokens to deposit.
-  function depositFunds(uint baseAmount, uint quoteAmount) public virtual;
-
-  ///@notice withdraws the amounts of the given tokens to the recipient.
-  ///@param baseAmount the amount of base tokens to withdraw.
-  ///@param quoteAmount the amount of quote tokens to withdraw.
-  ///@param recipient the recipient of the funds.
-  ///@dev it is up to the caller to make sure there are still enough funds for live offers.
-  function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public virtual;
-
   ///@notice set the compound rates. It will take effect for future compounding.
   ///@param compoundRateBase the compound rate for base.
   ///@param compoundRateQuote the compound rate for quote.

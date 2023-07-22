@@ -5,14 +5,14 @@ import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {AbstractRouter, AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
 import {IATokenIsh} from "mgv_src/strategies/vendor/aave/v3/IATokenIsh.sol";
-import {GeometricKandel} from "./abstract/GeometricKandel.sol";
+import {FundedKandel} from "./abstract/FundedKandel.sol";
 import {AbstractKandel} from "./abstract/AbstractKandel.sol";
 import {OfferType} from "./abstract/TradesBaseQuotePair.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
 ///@title A Kandel strat with geometric price progression which stores funds on AAVE to generate yield.
-contract AaveKandel is GeometricKandel {
+contract AaveKandel is FundedKandel {
   ///@notice Indication that this is first puller (returned from __lastLook__) so posthook should deposit liquidity on AAVE
   bytes32 internal constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
@@ -24,7 +24,7 @@ contract AaveKandel is GeometricKandel {
   ///@param gasprice the gasprice to use for offers
   ///@param reserveId identifier of this contract's reserve when using a router.
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
-    GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId)
+    FundedKandel(mgv, base, quote, gasreq, gasprice, reserveId)
   {
     // one makes sure it is not possible to deploy an AAVE kandel on aTokens
     // allowing Kandel to deposit aUSDC for instance would conflict with other Kandel instances bound to the same router
@@ -41,7 +41,6 @@ contract AaveKandel is GeometricKandel {
   }
 
   ///@notice returns the router as an Aave router
-  ///@return The aave router.
   function pooledRouter() private view returns (AavePooledRouter) {
     AbstractRouter router_ = router();
     require(router_ != NO_ROUTER, "AaveKandel/uninitialized");
@@ -58,7 +57,9 @@ contract AaveKandel is GeometricKandel {
     setGasreq(offerGasreq());
   }
 
-  ///@inheritdoc AbstractKandel
+  ///@notice Deposits funds to the contract's reserve
+  ///@param baseAmount the amount of base tokens to deposit.
+  ///@param quoteAmount the amount of quote tokens to deposit.
   function depositFunds(uint baseAmount, uint quoteAmount) public override {
     // transfer funds from caller to this
     super.depositFunds(baseAmount, quoteAmount);
@@ -66,7 +67,10 @@ contract AaveKandel is GeometricKandel {
     pooledRouter().pushAndSupply(BASE, baseAmount, QUOTE, quoteAmount, RESERVE_ID);
   }
 
-  ///@inheritdoc AbstractKandel
+  ///@notice withdraws base and quote from the contract's reserve
+  ///@param baseAmount to withdraw (use uint(-1) for the whole balance)
+  ///@param quoteAmount to withdraw (use uint(-1) for the whole balance)
+  ///@param recipient the address to which the withdrawn funds should be sent to.
   function withdrawFunds(uint baseAmount, uint quoteAmount, address recipient) public override onlyAdmin {
     if (baseAmount != 0) {
       pooledRouter().withdraw(BASE, RESERVE_ID, baseAmount);
@@ -81,7 +85,7 @@ contract AaveKandel is GeometricKandel {
   ///@inheritdoc AbstractKandel
   function reserveBalance(OfferType ba) public view override returns (uint balance) {
     IERC20 token = outboundOfOfferType(ba);
-    return pooledRouter().balanceOfReserve(token, RESERVE_ID) + super.reserveBalance(ba);
+    return router().balanceOfReserve(token, RESERVE_ID) + super.reserveBalance(ba);
   }
 
   /// @notice Verifies, prior to pulling funds from the router, whether pull will be fetching funds on AAVE

@@ -40,7 +40,7 @@ contract AaveCaller is AaveV3Borrower, StdCheats {
     deal(asset, address(this), amount + premium);
     console.log("flashloan of %s succeeded, cost is %s %s", amount, premium, IERC20(asset).symbol());
     (bool success,) = callback.call(cd);
-    // attack is a success is callback succeeds
+    // attack is a success if callback succeeds
     return success;
   }
 

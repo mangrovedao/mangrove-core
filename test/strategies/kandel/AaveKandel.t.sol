@@ -309,9 +309,9 @@ contract AaveKandelTest is CoreKandelTest {
     base.approve({spender: address(mgv), amount: type(uint).max});
     uint quoteSupply = attacker.get_supply(quote); // quote in 6 decimals
     // mocking up a big flashloan of usdc
-    deal(dai, address(attacker), quoteSupply * 2 * 10 ** 12); // dai has 18 decimals
+    deal(dai, address(attacker), quoteSupply * 15 * 10 ** 11); // dai has 18 decimals, minting 1.5 times the amount one wants to borrow in order to have enough collateral
     attacker.approveLender(IERC20(dai));
-    attacker.supply(IERC20(dai), quoteSupply * 2 * 10 ** 12);
+    attacker.supply(IERC20(dai), quoteSupply * 15 * 10 ** 11);
     uint nativeBal = address(this).balance;
     uint gas = gasleft(); // adding flash loan overhead
     try attacker.borrow(quote, quoteSupply - 1) {

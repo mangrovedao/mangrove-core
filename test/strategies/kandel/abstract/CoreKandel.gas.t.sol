@@ -20,7 +20,7 @@ abstract contract CoreKandelGasTest is KandelTest {
     base.approve($(mgv), 1);
   }
 
-  function __deployKandel__(address deployer, address) internal virtual override returns (FundedKandel kdl_) {
+  function __deployKandel__(address deployer, address) internal virtual override returns (GeometricKandel kdl_) {
     vm.prank(deployer);
     kdl_ = new Kandel({
       mgv: IMangrove($(mgv)),

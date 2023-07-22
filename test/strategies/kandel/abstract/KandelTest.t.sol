@@ -6,7 +6,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
 import {OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/TradesBaseQuotePair.sol";
 import {CoreKandel, TransferLib} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
-import {FundedKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/FundedKandel.sol";
+import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 import {console} from "forge-std/Test.sol";
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
@@ -17,7 +17,7 @@ import {AllMethodIdentifiersTest} from "mgv_test/lib/AllMethodIdentifiersTest.so
 abstract contract KandelTest is MangroveTest {
   address payable maker;
   address payable taker;
-  FundedKandel kdl;
+  GeometricKandel kdl;
   uint8 constant STEP = 1;
   uint initQuote;
   uint initBase = 0.1 ether;
@@ -63,14 +63,14 @@ abstract contract KandelTest is MangroveTest {
   }
 
   // defines how to deploy a Kandel strat
-  function __deployKandel__(address deployer, address reserveId) internal virtual returns (FundedKandel kdl_);
+  function __deployKandel__(address deployer, address reserveId) internal virtual returns (GeometricKandel kdl_);
 
   function precisionForAssert() internal pure virtual returns (uint) {
     return 0;
   }
 
   function getAbiPath() internal pure virtual returns (string memory) {
-    return "/out/Kandel.sol/Kandel.json";
+    return "/out/CoreKandel.sol/CoreKandel.json";
   }
 
   function setUp() public virtual override {
@@ -118,27 +118,19 @@ abstract contract KandelTest is MangroveTest {
     (CoreKandel.Distribution memory distribution2,) =
       KandelLib.calculateDistribution(5, 10, initBase, lastQuote, ratio, PRECISION);
 
-    FundedKandel.Params memory params;
+    GeometricKandel.Params memory params;
     params.ratio = uint24(ratio);
     params.spread = STEP;
     params.pricePoints = 10;
     vm.prank(maker);
-    kdl.populate{value: (provAsk + provBid) * 10}(distribution1, dynamic([uint(0), 1, 2, 3, 4]), 5, params, 0, 0);
+    kdl.setParams(params);
+
+    mgv.fund{value: (provAsk + provBid) * 10}(address(kdl));
+    vm.prank(maker);
+    kdl.populateChunk(distribution1, dynamic([uint(0), 1, 2, 3, 4]), 5);
 
     vm.prank(maker);
     kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 5);
-
-    uint pendingBase = uint(-kdl.pending(Ask));
-    uint pendingQuote = uint(-kdl.pending(Bid));
-    deal($(base), maker, pendingBase);
-    deal($(quote), maker, pendingQuote);
-
-    expectFrom($(kdl));
-    emit Credit(base, pendingBase);
-    expectFrom($(kdl));
-    emit Credit(quote, pendingQuote);
-    vm.prank(maker);
-    kdl.depositFunds(pendingBase, pendingQuote);
   }
 
   function buyFromBestAs(address taker_, uint amount) public returns (uint, uint, uint, uint, uint) {
@@ -165,7 +157,7 @@ abstract contract KandelTest is MangroveTest {
     return mgv.snipes($(quote), $(base), wrap_dynamic([offerId, 0, amount, type(uint).max]), false);
   }
 
-  function getParams(FundedKandel aKandel) internal view returns (FundedKandel.Params memory params) {
+  function getParams(GeometricKandel aKandel) internal view returns (GeometricKandel.Params memory params) {
     (
       uint16 gasprice,
       uint24 gasreq,
@@ -266,7 +258,7 @@ abstract contract KandelTest is MangroveTest {
   ) internal {
     uint expectedBids = 0;
     uint expectedAsks = 0;
-    FundedKandel.Params memory params = getParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
     for (uint i = 0; i < offerStatuses.length; i++) {
       // `price = quote / initBase` used in assertApproxEqRel below
       OfferStatus offerStatus = OfferStatus(offerStatuses[i]);
@@ -316,7 +308,7 @@ abstract contract KandelTest is MangroveTest {
   }
 
   function populateSingle(
-    FundedKandel kandel,
+    GeometricKandel kandel,
     uint index,
     uint base,
     uint quote,
@@ -324,44 +316,62 @@ abstract contract KandelTest is MangroveTest {
     uint firstAskIndex,
     bytes memory expectRevert
   ) internal {
-    FundedKandel.Params memory params = getParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
     populateSingle(
-      kandel, index, base, quote, pivotId, firstAskIndex, params.pricePoints, params.ratio, params.spread, expectRevert
+      PopulateArgs({
+        kandel: kandel,
+        index: index,
+        base: base,
+        quote: quote,
+        pivotId: pivotId,
+        firstAskIndex: firstAskIndex,
+        pricePoints: params.pricePoints,
+        ratio: params.ratio,
+        spread: params.spread,
+        expectRevert: expectRevert
+      })
     );
   }
 
-  function populateSingle(
-    FundedKandel kandel,
-    uint index,
-    uint base,
-    uint quote,
-    uint pivotId,
-    uint firstAskIndex,
-    uint pricePoints,
-    uint ratio,
-    uint spread,
-    bytes memory expectRevert
-  ) internal {
+  struct PopulateArgs {
+    GeometricKandel kandel;
+    uint index;
+    uint base;
+    uint quote;
+    uint pivotId;
+    uint firstAskIndex;
+    uint pricePoints;
+    uint ratio;
+    uint spread;
+    bytes expectRevert;
+  }
+
+  function populateSingle(PopulateArgs memory args) internal {
     CoreKandel.Distribution memory distribution;
     distribution.indices = new uint[](1);
     distribution.baseDist = new uint[](1);
     distribution.quoteDist = new uint[](1);
     uint[] memory pivotIds = new uint[](1);
 
-    distribution.indices[0] = index;
-    distribution.baseDist[0] = base;
-    distribution.quoteDist[0] = quote;
-    pivotIds[0] = pivotId;
-    vm.prank(maker);
-    if (expectRevert.length > 0) {
-      vm.expectRevert(expectRevert);
-    }
-    FundedKandel.Params memory params;
-    params.pricePoints = uint8(pricePoints);
-    params.ratio = uint24(ratio);
-    params.spread = uint8(spread);
+    distribution.indices[0] = args.index;
+    distribution.baseDist[0] = args.base;
+    distribution.quoteDist[0] = args.quote;
+    pivotIds[0] = args.pivotId;
 
-    kandel.populate{value: 0.1 ether}(distribution, pivotIds, firstAskIndex, params, 0, 0);
+    GeometricKandel.Params memory params;
+    params.pricePoints = uint8(args.pricePoints);
+    params.ratio = uint24(args.ratio);
+    params.spread = uint8(args.spread);
+
+    vm.prank(maker);
+    mgv.fund{value: 0.1 ether}($(args.kandel));
+    vm.prank(maker);
+    args.kandel.setParams(params);
+    if (args.expectRevert.length > 0) {
+      vm.expectRevert(args.expectRevert);
+    }
+    vm.prank(maker);
+    args.kandel.populateChunk(distribution, pivotIds, args.firstAskIndex);
   }
 
   function populateFixedDistribution(uint size) internal returns (uint baseAmount, uint quoteAmount) {
@@ -381,9 +391,12 @@ abstract contract KandelTest is MangroveTest {
       }
     }
 
-    FundedKandel.Params memory params = getParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
+    mgv.fund{value: maker.balance}($(kdl));
     vm.prank(maker);
-    kdl.populate{value: maker.balance}(distribution, new uint[](size), size / 2, params, 0, 0);
+    kdl.setParams(params);
+    vm.prank(maker);
+    kdl.populateChunk(distribution, new uint[](size), size / 2);
   }
 
   function getBestOffers() internal view returns (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) {
@@ -405,7 +418,7 @@ abstract contract KandelTest is MangroveTest {
     view
     returns (uint[] memory indices, uint[] memory quoteAtIndex, uint numBids)
   {
-    FundedKandel.Params memory params = getParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
 
     uint[] memory indicesPre = new uint[](params.pricePoints);
     quoteAtIndex = new uint[](params.pricePoints);

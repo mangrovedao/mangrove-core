@@ -47,10 +47,10 @@ abstract contract CoreKandelTest is KandelTest {
   }
 
   function test_bid_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote) public {
-    test_bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
+    bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
   }
 
-  function test_bid_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index) internal {
+  function bid_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index) internal {
     vm.assume(compoundRateBase <= full_compound());
     vm.assume(compoundRateQuote <= full_compound());
     vm.prank(maker);
@@ -86,14 +86,14 @@ abstract contract CoreKandelTest is KandelTest {
   }
 
   function test_ask_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote) public {
-    test_ask_complete_fill(compoundRateBase, compoundRateQuote, 5);
+    ask_complete_fill(compoundRateBase, compoundRateQuote, 5);
   }
 
   function test_update_compoundRateQuote(uint24 compoundRateQuote) public {
     vm.assume(compoundRateQuote <= full_compound());
     vm.assume(compoundRateQuote > 0);
 
-    FundedKandel.Params memory params = getParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
     // taking ask #5
     MgvStructs.OfferPacked ask = kdl.getOffer(Ask, 5);
     // updates bid #4
@@ -144,7 +144,7 @@ abstract contract CoreKandelTest is KandelTest {
     vm.assume(compoundRateBase <= full_compound());
     vm.assume(compoundRateBase > 0);
 
-    FundedKandel.Params memory params = getParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
     // taking bid #4
     MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 4);
     // updates ask #5
@@ -191,7 +191,7 @@ abstract contract CoreKandelTest is KandelTest {
     }
   }
 
-  function test_ask_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index) internal {
+  function ask_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index) internal {
     vm.assume(compoundRateBase <= full_compound());
     vm.assume(compoundRateQuote <= full_compound());
     vm.prank(maker);
@@ -340,7 +340,7 @@ abstract contract CoreKandelTest is KandelTest {
     assertGt(maker.balance, preBalance, "maker should be credited");
   }
 
-  function test_take_full_bid_and_ask_repeatedly(
+  function take_full_bid_and_ask_repeatedly(
     uint loops,
     uint24 compoundRateBase,
     uint24 compoundRateQuote,
@@ -353,7 +353,7 @@ abstract contract CoreKandelTest is KandelTest {
     uint initialTotalVolumeQuote;
     assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
     for (uint i = 0; i < loops; i++) {
-      test_ask_complete_fill(compoundRateBase, compoundRateQuote, 5);
+      ask_complete_fill(compoundRateBase, compoundRateQuote, 5);
       assertStatus(dynamic([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]));
       if (i == 0) {
         // With the ask filled, what is the current volume for bids?
@@ -367,7 +367,7 @@ abstract contract CoreKandelTest is KandelTest {
         printOB();
       }
 
-      test_bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
+      bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
 
       assertStatus(dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
       if (i == 0) {
@@ -385,241 +385,33 @@ abstract contract CoreKandelTest is KandelTest {
   }
 
   function test_take_full_bid_and_ask_10_times_full_compound() public {
-    test_take_full_bid_and_ask_repeatedly(
+    take_full_bid_and_ask_repeatedly(
       10, full_compound(), full_compound(), ExpectedChange.Increase, ExpectedChange.Increase
     );
   }
 
   function test_take_full_bid_and_ask_10_times_zero_quote_compound() public {
-    test_take_full_bid_and_ask_repeatedly(10, full_compound(), 0, ExpectedChange.Same, ExpectedChange.Same);
+    take_full_bid_and_ask_repeatedly(10, full_compound(), 0, ExpectedChange.Same, ExpectedChange.Same);
   }
 
   function test_take_full_bid_and_ask_10_times_zero_base_compound() public {
-    test_take_full_bid_and_ask_repeatedly(10, 0, full_compound(), ExpectedChange.Same, ExpectedChange.Same);
+    take_full_bid_and_ask_repeatedly(10, 0, full_compound(), ExpectedChange.Same, ExpectedChange.Same);
   }
 
   function test_take_full_bid_and_ask_10_times_close_to_zero_base_compound() public {
-    test_take_full_bid_and_ask_repeatedly(10, 1, full_compound(), ExpectedChange.Increase, ExpectedChange.Increase);
+    take_full_bid_and_ask_repeatedly(10, 1, full_compound(), ExpectedChange.Increase, ExpectedChange.Increase);
   }
 
   function test_take_full_bid_and_ask_10_times_partial_compound_increasing_boundary() public {
-    test_take_full_bid_and_ask_repeatedly(10, 49040, 49040, ExpectedChange.Increase, ExpectedChange.Increase);
+    take_full_bid_and_ask_repeatedly(10, 49040, 49040, ExpectedChange.Increase, ExpectedChange.Increase);
   }
 
   function test_take_full_bid_and_ask_10_times_partial_compound_decreasing_boundary() public {
-    test_take_full_bid_and_ask_repeatedly(10, 49030, 49030, ExpectedChange.Decrease, ExpectedChange.Decrease);
+    take_full_bid_and_ask_repeatedly(10, 49030, 49030, ExpectedChange.Decrease, ExpectedChange.Decrease);
   }
 
   function test_take_full_bid_and_ask_10_times_zero_compound() public {
-    test_take_full_bid_and_ask_repeatedly(10, 0, 0, ExpectedChange.Decrease, ExpectedChange.Decrease);
-  }
-
-  function retractDefaultSetup() internal {
-    uint baseFunds = kdl.offeredVolume(Ask) + uint(kdl.pending(Ask));
-    uint quoteFunds = kdl.offeredVolume(Bid) + uint(kdl.pending(Bid));
-    vm.prank(maker);
-    kdl.retractAndWithdraw(0, 10, baseFunds, quoteFunds, type(uint).max, maker);
-  }
-
-  function test_reserveBalance_withoutOffers_returnsFundAmount() public {
-    // Arrange
-    retractDefaultSetup();
-    assertEq(kdl.reserveBalance(Ask), 0, "Base balance should be empty");
-    assertEq(kdl.reserveBalance(Bid), 0, "Quote balance should be empty");
-
-    vm.prank(maker);
-    kdl.depositFunds(42, 43);
-
-    // Act/assert
-    assertEq(kdl.reserveBalance(Ask), 42, "Base balance should be correct");
-    assertEq(kdl.reserveBalance(Bid), 43, "Quote balance should be correct");
-  }
-
-  function test_reserveBalance_withOffers_returnsFundAmount() public {
-    // Arrange
-    retractDefaultSetup();
-    populateFixedDistribution(4);
-
-    assertEq(kdl.reserveBalance(Ask), 0, "Base balance should be empty");
-    assertEq(kdl.reserveBalance(Bid), 0, "Quote balance should be empty");
-
-    vm.prank(maker);
-    kdl.depositFunds(42, 43);
-
-    // Act/assert
-    assertEq(kdl.reserveBalance(Ask), 42, "Base balance should be correct");
-    assertEq(kdl.reserveBalance(Bid), 43, "Quote balance should be correct");
-  }
-
-  function test_offeredVolume_withOffers_returnsSumOfGives() public {
-    // Arrange
-    retractDefaultSetup();
-
-    (uint baseAmount, uint quoteAmount) = populateFixedDistribution(4);
-
-    // Act/assert
-    assertEq(kdl.offeredVolume(Bid), quoteAmount, "Bid volume should be sum of quote dist");
-    assertEq(kdl.offeredVolume(Ask), baseAmount, "Ask volume should be sum of base dist");
-  }
-
-  function test_pending_withoutOffers_returnsReserveBalance() public {
-    // Arrange
-    retractDefaultSetup();
-    assertEq(kdl.pending(Ask), 0, "Base pending should be empty");
-    assertEq(kdl.pending(Bid), 0, "Quote pending should be empty");
-
-    vm.prank(maker);
-    kdl.depositFunds(42, 43);
-
-    // Act/assert
-    assertEq(kdl.pending(Ask), 42, "Base pending should be correct");
-    assertEq(kdl.pending(Bid), 43, "Quote pending should be correct");
-  }
-
-  function test_pending_withOffers_disregardsOfferedVolume() public {
-    // Arrange
-    retractDefaultSetup();
-    (uint baseAmount, uint quoteAmount) = populateFixedDistribution(4);
-
-    assertEq(-kdl.pending(Ask), int(baseAmount), "Base pending should be correct");
-    assertEq(-kdl.pending(Bid), int(quoteAmount), "Quote pending should be correct");
-
-    vm.prank(maker);
-    kdl.depositFunds(42, 43);
-
-    assertEq(-kdl.pending(Ask), int(baseAmount - 42), "Base pending should be correct");
-    assertEq(-kdl.pending(Bid), int(quoteAmount - 43), "Quote pending should be correct");
-  }
-
-  function test_populate_allBids_successful() public {
-    test_populate_allBidsAsks_successful(true);
-  }
-
-  function test_populate_allAsks_successful() public {
-    test_populate_allBidsAsks_successful(false);
-  }
-
-  function test_populate_allBidsAsks_successful(bool bids) internal {
-    retractDefaultSetup();
-
-    CoreKandel.Distribution memory distribution;
-    distribution.indices = dynamic([uint(0), 1, 2, 3]);
-    distribution.baseDist = dynamic([uint(1 ether), 1 ether, 1 ether, 1 ether]);
-    distribution.quoteDist = dynamic([uint(1 ether), 1 ether, 1 ether, 1 ether]);
-
-    uint firstAskIndex = bids ? 4 : 0;
-    vm.prank(maker);
-    mgv.fund{value: maker.balance}($(kdl));
-    vm.prank(maker);
-    kdl.populateChunk(distribution, new uint[](4), firstAskIndex);
-
-    uint status = bids ? uint(OfferStatus.Bid) : uint(OfferStatus.Ask);
-    assertStatus(dynamic([status, status, status, status]), type(uint).max, type(uint).max);
-  }
-
-  function heal(uint midWants, uint midGives, uint densityBid, uint densityAsk) internal {
-    // user can adjust pending by withdrawFunds or transferring to Kandel, then invoke heal.
-    // heal fills up offers to some designated volume starting from mid-price.
-    // Designated volume should either be equally divided between holes, or be based on Kandel Density
-    // Here we assume its some constant.
-    // Note this example implementation
-    // * does not support no bids
-    // * uses initQuote/initBase as starting point - not available on-chain
-    // * assumes mid-price and bid/asks on the book are not crossed.
-
-    uint baseDensity = densityBid;
-    uint quoteDensity = densityAsk;
-
-    (uint[] memory indices, uint[] memory quoteAtIndex, uint numBids) = getDeadOffers(midGives, midWants);
-
-    // build arrays for populate
-    uint[] memory quoteDist = new uint[](indices.length);
-    uint[] memory baseDist = new uint[](indices.length);
-
-    uint pendingQuote = uint(kdl.pending(Bid));
-    uint pendingBase = uint(kdl.pending(Ask));
-
-    if (numBids > 0 && baseDensity * numBids < pendingQuote) {
-      baseDensity = pendingQuote / numBids; // fill up (a tiny bit lost to rounding)
-    }
-    // fill up close to mid price first
-    for (int i = int(numBids) - 1; i >= 0; i--) {
-      uint d = pendingQuote < baseDensity ? pendingQuote : baseDensity;
-      pendingQuote -= d;
-      quoteDist[uint(i)] = d;
-      baseDist[uint(i)] = initBase * d / quoteAtIndex[indices[uint(i)]];
-    }
-
-    uint numAsks = indices.length - numBids;
-    if (numAsks > 0 && quoteDensity * numAsks < pendingBase) {
-      quoteDensity = pendingBase / numAsks; // fill up (a tiny bit lost to rounding)
-    }
-    // fill up close to mid price first
-    for (uint i = numBids; i < indices.length; i++) {
-      uint d = pendingBase < quoteDensity ? pendingBase : quoteDensity;
-      pendingBase -= d;
-      baseDist[uint(i)] = d;
-      quoteDist[uint(i)] = quoteAtIndex[indices[uint(i)]] * d / initBase;
-    }
-
-    uint firstAskIndex = numAsks > 0 ? indices[numBids] : indices[indices.length - 1] + 1;
-    uint[] memory pivotIds = new uint[](indices.length);
-    CoreKandel.Distribution memory distribution;
-    distribution.indices = indices;
-    distribution.baseDist = baseDist;
-    distribution.quoteDist = quoteDist;
-    vm.prank(maker);
-    kdl.populateChunk(distribution, pivotIds, firstAskIndex);
-  }
-
-  function test_heal_someFailedOffers_reposts(OfferType ba, uint failures, uint[] memory expectedMidStatus) internal {
-    // Arrange
-    (uint midWants, uint midGives) = getMidPrice();
-    (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) = getBestOffers();
-    uint densityMidBid = bestBid.gives();
-    uint densityMidAsk = bestAsk.gives();
-    IERC20 outbound = ba == OfferType.Ask ? base : quote;
-
-    // Fail some offers - make offers fail by removing approval
-    vm.prank(maker);
-    kdl.approve(outbound, $(mgv), 0);
-    for (uint i = 0; i < failures; i++) {
-      // This will emit LogIncident and OfferFail
-      (uint successes,,,,) = ba == Ask ? buyFromBestAs(taker, 1 ether) : sellToBestAs(taker, 1 ether);
-      assertTrue(successes == 0, "Snipe should fail");
-    }
-
-    // verify offers have gone
-    assertStatus(expectedMidStatus);
-
-    // reduce pending volume to let heal only use some of the original volume when healing
-    uint halfPending = uint(kdl.pending(ba)) / 2;
-    vm.prank(maker);
-    uint baseAmount = ba == Ask ? halfPending : 0;
-    uint quoteAmount = ba == Ask ? 0 : halfPending;
-    kdl.withdrawFunds(baseAmount, quoteAmount, maker);
-
-    // Act
-    heal(midWants, midGives, densityMidBid / 2, densityMidAsk / 2);
-
-    // Assert - verify status and prices
-    assertStatus(dynamic([uint(1), 1, 1, 1, 1, 2, 2, 2, 2, 2]));
-  }
-
-  function test_heal_1FailedAsk_reposts() public {
-    test_heal_someFailedOffers_reposts(Ask, 1, dynamic([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]));
-  }
-
-  function test_heal_1FailedBid_reposts() public {
-    test_heal_someFailedOffers_reposts(Bid, 1, dynamic([uint(1), 1, 1, 1, 0, 2, 2, 2, 2, 2]));
-  }
-
-  function test_heal_3FailedAsk_reposts() public {
-    test_heal_someFailedOffers_reposts(Ask, 3, dynamic([uint(1), 1, 1, 1, 1, 0, 0, 0, 2, 2]));
-  }
-
-  function test_heal_3FailedBid_reposts() public {
-    test_heal_someFailedOffers_reposts(Bid, 3, dynamic([uint(1), 1, 0, 0, 0, 2, 2, 2, 2, 2]));
+    take_full_bid_and_ask_repeatedly(10, 0, 0, ExpectedChange.Decrease, ExpectedChange.Decrease);
   }
 
   function test_populateChunk_invalidArrayLength_reverts() public {
@@ -714,11 +506,14 @@ abstract contract CoreKandelTest is KandelTest {
       KandelLib.calculateDistribution(5, 10, initBase, lastQuote, ratio, PRECISION);
 
     // setting params.spread to 2
-    FundedKandel.Params memory params = getParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
     params.spread = 4;
-    // repopulating to update the spread (but with the same distribution)
     vm.prank(maker);
-    kdl.populate{value: 1 ether}(distribution1, dynamic([uint(0), 1, 2, 3, 4]), 5, params, 0, 0);
+    kdl.setParams(params);
+    // repopulating to update the spread (but with the same distribution)
+    mgv.fund{value: 1 ether}($(kdl));
+    vm.prank(maker);
+    kdl.populateChunk(distribution1, dynamic([uint(0), 1, 2, 3, 4]), 5);
     vm.prank(maker);
     kdl.populateChunk(distribution2, dynamic([uint(0), 1, 2, 3, 4]), 5);
     // placing an ask at index 1
@@ -865,12 +660,12 @@ abstract contract CoreKandelTest is KandelTest {
   uint[] empty = new uint[](0);
 
   function test_populate_can_get_set_params_keeps_offers() public {
-    FundedKandel.Params memory params = getParams(kdl);
+    GeometricKandel.Params memory params = getParams(kdl);
 
     uint offeredVolumeBase = kdl.offeredVolume(Ask);
     uint offeredVolumeQuote = kdl.offeredVolume(Bid);
 
-    FundedKandel.Params memory paramsNew;
+    GeometricKandel.Params memory paramsNew;
     paramsNew.pricePoints = params.pricePoints;
     paramsNew.ratio = params.ratio + 1;
     paramsNew.spread = params.spread + 1;
@@ -887,11 +682,13 @@ abstract contract CoreKandelTest is KandelTest {
     emit SetGasreq(paramsNew.gasreq);
     expectFrom(address(kdl));
     emit SetCompoundRates(paramsNew.compoundRateBase, paramsNew.compoundRateQuote);
+    vm.prank(maker);
+    kdl.setParams(paramsNew);
 
     vm.prank(maker);
-    kdl.populate(emptyDist, empty, 0, paramsNew, 0, 0);
+    kdl.populateChunk(emptyDist, empty, 0);
 
-    FundedKandel.Params memory params_ = getParams(kdl);
+    GeometricKandel.Params memory params_ = getParams(kdl);
 
     assertEq(params_.gasprice, paramsNew.gasprice, "gasprice should be changed");
     assertEq(params_.gasreq, paramsNew.gasreq, "gasreq should be changed");
@@ -907,55 +704,55 @@ abstract contract CoreKandelTest is KandelTest {
 
   function test_populate_throws_on_invalid_ratio() public {
     uint precision = PRECISION;
-    FundedKandel.Params memory params;
+    GeometricKandel.Params memory params;
     params.pricePoints = 10;
     params.ratio = uint24(10 ** precision - 1);
     params.spread = 1;
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidRatio");
-    kdl.populate(emptyDist, empty, 0, params, 0, 0);
+    kdl.setParams(params);
   }
 
   function test_populate_throws_on_invalid_spread_low() public {
-    FundedKandel.Params memory params;
+    GeometricKandel.Params memory params;
     params.pricePoints = 10;
     params.ratio = uint24(10 ** PRECISION);
     params.spread = 0;
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidSpread");
-    kdl.populate(emptyDist, empty, 0, params, 0, 0);
+    kdl.setParams(params);
   }
 
   function test_populate_throws_on_invalid_spread_high() public {
-    FundedKandel.Params memory params;
+    GeometricKandel.Params memory params;
     params.pricePoints = 10;
     params.ratio = uint24(10 ** PRECISION);
     params.spread = 9;
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidSpread");
-    kdl.populate(emptyDist, empty, 0, params, 0, 0);
+    kdl.setParams(params);
   }
 
   function test_populate_invalidCompoundRatesBase_reverts() public {
-    FundedKandel.Params memory params;
+    GeometricKandel.Params memory params;
     params.pricePoints = 10;
     params.ratio = uint24(10 ** PRECISION);
     params.spread = 1;
     params.compoundRateBase = uint24(10 ** PRECISION + 1);
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidCompoundRateBase");
-    kdl.populate(emptyDist, empty, 0, params, 0, 0);
+    kdl.setParams(params);
   }
 
   function test_populate_invalidCompoundRatesQuote_reverts() public {
-    FundedKandel.Params memory params;
+    GeometricKandel.Params memory params;
     params.pricePoints = 10;
     params.ratio = uint24(10 ** PRECISION);
     params.spread = 1;
     params.compoundRateQuote = uint24(10 ** PRECISION + 1);
     vm.prank(maker);
     vm.expectRevert("Kandel/invalidCompoundRateQuote");
-    kdl.populate(emptyDist, empty, 0, params, 0, 0);
+    kdl.setParams(params);
   }
 
   function test_setCompoundRatesBase_reverts() public {
@@ -990,7 +787,7 @@ abstract contract CoreKandelTest is KandelTest {
     (CoreKandel.Distribution memory distribution,) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, PRECISION);
 
-    FundedKandel.Params memory params;
+    GeometricKandel.Params memory params;
     params.pricePoints = 5;
     params.ratio = ratio;
     params.spread = 2;
@@ -1000,7 +797,9 @@ abstract contract CoreKandelTest is KandelTest {
     expectFrom(address(kdl));
     emit SetLength(params.pricePoints);
     vm.prank(maker);
-    kdl.populate(distribution, dynamic([uint(0), 1, 2, 3, 4]), 3, params, 0, 0);
+    kdl.setParams(params);
+    vm.prank(maker);
+    kdl.populateChunk(distribution, dynamic([uint(0), 1, 2, 3, 4]), 3);
 
     vm.prank(maker);
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
@@ -1022,15 +821,16 @@ abstract contract CoreKandelTest is KandelTest {
     assertStatus(dynamic([uint(1), 1, 1, 0, 0]));
   }
 
-  function test_populates_emits() public {
-    expectFrom($(kdl));
-    emit PopulateStart();
-    vm.expectEmit(false, false, false, false, $(mgv));
-    emit OfferWrite(address(0), address(0), address(0), 0, 0, 0, 0, 0, 0);
-    expectFrom($(kdl));
-    emit PopulateEnd();
-    populateSingle(kdl, 1, 1 ether, 1 ether, 0, 2, bytes(""));
-  }
+  // function test_populates_emits() public {
+  //   expectFrom($(mgv));
+  //   emit Credit($(kdl), 0.1 ether);
+
+  //   // vm.expectEmit(false, false, false, false, $(mgv));
+  //   // emit OfferWrite(address(0), address(0), address(0), 0, 0, 0, 0, 0, 0);
+  //   // expectFrom($(kdl));
+  //   // emit PopulateEnd();
+  //   populateSingle(kdl, 1, 1 ether, 1 ether, 0, 2, bytes(""));
+  // }
 
   function test_setGasprice_valid_setsAndEmits() public {
     expectFrom($(kdl));
@@ -1060,77 +860,6 @@ abstract contract CoreKandelTest is KandelTest {
     vm.prank(maker);
     vm.expectRevert("Kandel/gasreqTooHigh");
     kdl.setGasreq(2 ** 24);
-  }
-
-  function test_retractAndWithdraw() public {
-    address payable recipient = freshAddress();
-    uint baseBalance = kdl.reserveBalance(Ask);
-    uint quoteBalance = kdl.reserveBalance(Bid);
-    expectFrom($(kdl));
-    emit Debit(base, baseBalance);
-    expectFrom($(kdl));
-    emit Debit(quote, quoteBalance);
-    vm.prank(maker);
-    kdl.retractAndWithdraw(0, 10, baseBalance, quoteBalance, type(uint).max, recipient);
-
-    assertEq(quoteBalance, quote.balanceOf(recipient), "quote balance should be sent to recipient");
-    assertEq(baseBalance, base.balanceOf(recipient), "quote balance should be sent to recipient");
-    assertGt(recipient.balance, 0, "wei should be at recipient");
-    assertEq(0, kdl.offeredVolume(Bid), "no bids should be live");
-    assertEq(0, kdl.offeredVolume(Ask), "no bids should be live");
-  }
-
-  function test_depositFunds(uint96 baseAmount, uint96 quoteAmount) public {
-    deal($(base), address(this), baseAmount);
-    deal($(quote), address(this), quoteAmount);
-    TransferLib.approveToken(base, $(kdl), baseAmount);
-    TransferLib.approveToken(quote, $(kdl), quoteAmount);
-
-    uint quoteBalance = kdl.reserveBalance(Bid);
-    uint baseBalance = kdl.reserveBalance(Ask);
-
-    kdl.depositFunds(baseAmount, quoteAmount);
-
-    assertApproxEqRel(baseBalance + baseAmount, kdl.reserveBalance(Ask), 10 ** 10, "Incorrect base deposit");
-    assertApproxEqRel(quoteBalance + quoteAmount, kdl.reserveBalance(Bid), 10 ** 10, "Incorrect base deposit");
-  }
-
-  function test_deposit0Funds() public {
-    uint quoteBalance = kdl.reserveBalance(Bid);
-    uint baseBalance = kdl.reserveBalance(Ask);
-    kdl.depositFunds(0, 0);
-    assertEq(kdl.reserveBalance(Ask), baseBalance, "Incorrect base deposit");
-    assertEq(kdl.reserveBalance(Bid), quoteBalance, "Incorrect quote deposit");
-  }
-
-  function test_withdrawFunds(uint96 baseAmount, uint96 quoteAmount) public {
-    deal($(base), address(this), baseAmount);
-    deal($(quote), address(this), quoteAmount);
-    TransferLib.approveToken(base, $(kdl), baseAmount);
-    TransferLib.approveToken(quote, $(kdl), quoteAmount);
-
-    kdl.depositFunds(baseAmount, quoteAmount);
-
-    vm.prank(maker);
-    kdl.withdrawFunds(baseAmount, quoteAmount, address(this));
-    assertEq(base.balanceOf(address(this)), baseAmount, "Incorrect base withdrawal");
-    assertEq(quote.balanceOf(address(this)), quoteAmount, "Incorrect quote withdrawl");
-  }
-
-  function test_withdrawAll() public {
-    deal($(base), address(this), 1 ether);
-    deal($(quote), address(this), 100 * 10 ** 6);
-    TransferLib.approveToken(base, $(kdl), 1 ether);
-    TransferLib.approveToken(quote, $(kdl), 100 * 10 ** 6);
-
-    kdl.depositFunds(1 ether, 100 * 10 ** 6);
-    uint quoteBalance = kdl.reserveBalance(Bid);
-    uint baseBalance = kdl.reserveBalance(Ask);
-
-    vm.prank(maker);
-    kdl.withdrawFunds(type(uint).max, type(uint).max, address(this));
-    assertEq(base.balanceOf(address(this)), baseBalance, "Incorrect base withdrawal");
-    assertEq(quote.balanceOf(address(this)), quoteBalance, "Incorrect quote withdrawl");
   }
 
   function test_marketOrder_dualOfferUpdate_expectedGasreq() public {
@@ -1171,42 +900,6 @@ abstract contract CoreKandelTest is KandelTest {
     //assertTrue(makerExecuteCost + posthookCost <= kdl.offerGasreq() + local.offer_gasbase(), "Strat is spending more gas");
   }
 
-  function deployOtherKandel(uint base0, uint quote0, uint24 ratio, uint8 spread, uint8 pricePoints) internal {
-    address otherMaker = freshAddress();
-
-    FundedKandel otherKandel = __deployKandel__(otherMaker, otherMaker);
-
-    vm.prank(otherMaker);
-    TransferLib.approveToken(base, address(otherKandel), type(uint).max);
-    vm.prank(otherMaker);
-    TransferLib.approveToken(quote, address(otherKandel), type(uint).max);
-
-    uint totalProvision = (
-      reader.getProvision($(base), $(quote), otherKandel.offerGasreq(), bufferedGasprice)
-        + reader.getProvision($(quote), $(base), otherKandel.offerGasreq(), bufferedGasprice)
-    ) * 10 ether;
-
-    deal(otherMaker, totalProvision);
-
-    (CoreKandel.Distribution memory distribution,) =
-      KandelLib.calculateDistribution(0, pricePoints, base0, quote0, ratio, otherKandel.PRECISION());
-
-    FundedKandel.Params memory params;
-    params.pricePoints = pricePoints;
-    params.ratio = ratio;
-    params.spread = spread;
-    vm.prank(otherMaker);
-    otherKandel.populate{value: totalProvision}(distribution, new uint[](pricePoints), pricePoints / 2, params, 0, 0);
-
-    uint pendingBase = uint(-otherKandel.pending(Ask));
-    uint pendingQuote = uint(-otherKandel.pending(Bid));
-    deal($(base), otherMaker, pendingBase);
-    deal($(quote), otherMaker, pendingQuote);
-
-    vm.prank(otherMaker);
-    otherKandel.depositFunds(pendingBase, pendingQuote);
-  }
-
   struct TestPivot {
     uint firstAskIndex;
     uint funds;
@@ -1216,85 +909,6 @@ abstract contract CoreKandelTest is KandelTest {
     uint baseAmountRequired;
     uint quoteAmountRequired;
     uint snapshotId;
-  }
-
-  function test_estimatePivotsAndRequiredAmount_withPivots_savesGas() public {
-    // Arrange
-    retractDefaultSetup();
-
-    // Use a large number of price points - the rest of the parameters are not too important
-    FundedKandel.Params memory params;
-    params.ratio = uint24(108 * 10 ** PRECISION / 100);
-    params.pricePoints = 100;
-    params.spread = STEP;
-
-    TestPivot memory t;
-    t.firstAskIndex = params.pricePoints / 2;
-    t.funds = 20 ether;
-
-    // Make sure there are some other offers that can end up as pivots - we deploy a couple of Kandels
-    deployOtherKandel(initBase + 1, initQuote + 1, params.ratio, params.spread, params.pricePoints);
-    deployOtherKandel(initBase + 100, initQuote + 100, params.ratio, params.spread, params.pricePoints);
-
-    (CoreKandel.Distribution memory distribution,) = KandelLib.calculateDistribution({
-      from: 0,
-      to: params.pricePoints,
-      initBase: initBase,
-      initQuote: initQuote,
-      ratio: params.ratio,
-      precision: PRECISION
-    });
-
-    // Get some reasonable pivots (use a snapshot to avoid actually posting offers yet)
-    t.snapshotId = vm.snapshot();
-    vm.prank(maker);
-    (t.pivotIds, t.baseAmountRequired, t.quoteAmountRequired) =
-      KandelLib.estimatePivotsAndRequiredAmount(distribution, kdl, t.firstAskIndex, params, t.funds);
-    require(vm.revertTo(t.snapshotId), "snapshot restore failed");
-
-    // Make sure we have enough funds
-    deal($(base), maker, t.baseAmountRequired);
-    deal($(quote), maker, t.quoteAmountRequired);
-
-    // Act
-
-    // Populate with 0-pivots
-    t.snapshotId = vm.snapshot();
-    vm.prank(maker);
-    t.gas0Pivot = gasleft();
-    kdl.populate{value: t.funds}({
-      distribution: distribution,
-      firstAskIndex: t.firstAskIndex,
-      parameters: params,
-      pivotIds: new uint[](params.pricePoints),
-      baseAmount: t.baseAmountRequired,
-      quoteAmount: t.quoteAmountRequired
-    });
-    t.gas0Pivot = t.gas0Pivot - gasleft();
-
-    require(vm.revertTo(t.snapshotId), "second snapshot restore failed");
-
-    // Populate with pivots
-    vm.prank(maker);
-    t.gasPivots = gasleft();
-    kdl.populate{value: t.funds}({
-      distribution: distribution,
-      firstAskIndex: t.firstAskIndex,
-      parameters: params,
-      pivotIds: t.pivotIds,
-      baseAmount: t.baseAmountRequired,
-      quoteAmount: t.quoteAmountRequired
-    });
-    t.gasPivots = t.gasPivots - gasleft();
-
-    // Assert
-
-    assertApproxEqAbs(0, kdl.pending(OfferType.Ask), precisionForAssert(), "required base amount should be deposited");
-    assertApproxEqAbs(0, kdl.pending(OfferType.Bid), precisionForAssert(), "required quote amount should be deposited");
-
-    //   console.log("No pivot populate: %s PivotPopulate: %s", t.gas0Pivot, t.gasPivots);
-
-    assertLt(t.gasPivots, t.gas0Pivot, "Providing pivots should save gas");
   }
 
   function test_dualWantsGivesOfOffer_maxBitsPartialTakeFullCompound_correctCalculation() public {
@@ -1334,18 +948,20 @@ abstract contract CoreKandelTest is KandelTest {
     kdl.retractOffers(0, 10);
 
     for (uint i = 0; i < numTakes; i++) {
-      populateSingle({
-        kandel: kdl,
-        index: 0,
-        base: type(uint96).max,
-        quote: type(uint96).max,
-        pivotId: 0,
-        firstAskIndex: 2,
-        pricePoints: pricePoints,
-        ratio: 2 * 10 ** precision,
-        spread: spread,
-        expectRevert: bytes("")
-      });
+      populateSingle(
+        PopulateArgs({
+          kandel: kdl,
+          index: 0,
+          base: type(uint96).max,
+          quote: type(uint96).max,
+          pivotId: 0,
+          firstAskIndex: 2,
+          pricePoints: pricePoints,
+          ratio: 2 * 10 ** precision,
+          spread: spread,
+          expectRevert: bytes("")
+        })
+      );
 
       vm.prank(maker);
       kdl.setCompoundRates(compoundRate, compoundRate);
@@ -1381,14 +997,14 @@ abstract contract CoreKandelTest is KandelTest {
   }
 
   function test_dualWantsGivesOfOffer_bidNearBoundary_correctPrice() public {
-    test_dualWantsGivesOfOffer_nearBoundary_correctPrice(Bid);
+    dualWantsGivesOfOffer_nearBoundary_correctPrice(Bid);
   }
 
   function test_dualWantsGivesOfOffer_askNearBoundary_correctPrice() public {
-    test_dualWantsGivesOfOffer_nearBoundary_correctPrice(Ask);
+    dualWantsGivesOfOffer_nearBoundary_correctPrice(Ask);
   }
 
-  function test_dualWantsGivesOfOffer_nearBoundary_correctPrice(OfferType ba) internal {
+  function dualWantsGivesOfOffer_nearBoundary_correctPrice(OfferType ba) internal {
     uint8 spread = 3;
     uint8 pricePoints = 6;
 
@@ -1397,18 +1013,20 @@ abstract contract CoreKandelTest is KandelTest {
     vm.prank(maker);
     kdl.retractOffers(0, 10);
 
-    populateSingle({
-      kandel: kdl,
-      index: ba == Bid ? 4 : 1,
-      base: initBase,
-      quote: initQuote,
-      pivotId: 0,
-      firstAskIndex: ba == Bid ? pricePoints : 0,
-      pricePoints: pricePoints,
-      ratio: 2 * 10 ** precision,
-      spread: spread,
-      expectRevert: bytes("")
-    });
+    populateSingle(
+      PopulateArgs({
+        kandel: kdl,
+        index: ba == Bid ? 4 : 1,
+        base: initBase,
+        quote: initQuote,
+        pivotId: 0,
+        firstAskIndex: ba == Bid ? pricePoints : 0,
+        pricePoints: pricePoints,
+        ratio: 2 * 10 ** precision,
+        spread: spread,
+        expectRevert: bytes("")
+      })
+    );
     uint compoundRate = full_compound();
     vm.prank(maker);
     kdl.setCompoundRates(compoundRate, compoundRate);
@@ -1450,7 +1068,6 @@ abstract contract CoreKandelTest is KandelTest {
     kdl.RESERVE_ID();
     kdl.admin();
     kdl.checkList(new IERC20[](0));
-    kdl.depositFunds(0, 0);
     kdl.getOffer(Ask, 0);
     kdl.indexOfOfferId(Ask, 42);
     kdl.offerIdOfIndex(Ask, 0);
@@ -1473,15 +1090,12 @@ abstract contract CoreKandelTest is KandelTest {
     checkAuth(args, abi.encodeCall(kdl.activate, dynamic([IERC20(base)])));
     checkAuth(args, abi.encodeCall(kdl.approve, (base, taker, 42)));
     checkAuth(args, abi.encodeCall(kdl.setAdmin, (maker)));
-    checkAuth(args, abi.encodeCall(kdl.retractAndWithdraw, (0, 0, 0, 0, 0, maker)));
     checkAuth(args, abi.encodeCall(kdl.setGasprice, (42)));
     checkAuth(args, abi.encodeCall(kdl.setGasreq, (42)));
     checkAuth(args, abi.encodeCall(kdl.setRouter, (kdl.router())));
-    checkAuth(args, abi.encodeCall(kdl.populate, (dist, new uint[](0), 0, getParams(kdl), 0, 0)));
     checkAuth(args, abi.encodeCall(kdl.populateChunk, (dist, new uint[](0), 42)));
     checkAuth(args, abi.encodeCall(kdl.retractOffers, (0, 0)));
     checkAuth(args, abi.encodeCall(kdl.withdrawFromMangrove, (0, maker)));
-    checkAuth(args, abi.encodeCall(kdl.withdrawFunds, (0, 0, maker)));
     checkAuth(args, abi.encodeCall(kdl.setCompoundRates, (0, 0)));
 
     // Only Mgv

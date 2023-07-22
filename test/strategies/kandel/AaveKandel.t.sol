@@ -1,21 +1,25 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {CoreKandelTest, IERC20} from "./abstract/CoreKandel.t.sol";
+import {FundedKandelTest} from "./FundedKandel.t.sol";
 import {console} from "forge-std/Test.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {AaveKandel, AavePooledRouter} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandel.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
-import {FundedKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/FundedKandel.sol";
+import {
+  FundedKandel,
+  GeometricKandel,
+  IERC20
+} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/FundedKandel.sol";
 import {console2} from "forge-std/Test.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
 import {AaveCaller} from "mgv_test/lib/agents/AaveCaller.sol";
 
-contract AaveKandelTest is CoreKandelTest {
+contract AaveKandelTest is FundedKandelTest {
   PinnedPolygonFork fork;
   AavePooledRouter router;
   AaveKandel aaveKandel;
@@ -47,7 +51,7 @@ contract AaveKandelTest is CoreKandelTest {
     }
   }
 
-  function __deployKandel__(address deployer, address id) internal virtual override returns (FundedKandel) {
+  function __deployKandel__(address deployer, address id) internal virtual override returns (GeometricKandel) {
     // 474_000 theoretical in mock up of router
     // 218_000 observed in tests of router
     uint router_gasreq = 500 * 1000;
@@ -179,14 +183,14 @@ contract AaveKandelTest is CoreKandelTest {
   function test_sharing_liquidity_between_strats(uint16 baseAmount, uint16 quoteAmount) public {
     deal($(base), maker, baseAmount);
     deal($(quote), maker, quoteAmount);
-    FundedKandel kdl_ = __deployKandel__(maker, maker);
+    FundedKandel kdl_ = FundedKandel($(__deployKandel__(maker, maker)));
     assertEq(kdl_.RESERVE_ID(), kdl.RESERVE_ID(), "Strats should have the same reserveId");
 
     uint baseBalance = kdl.reserveBalance(Ask);
     uint quoteBalance = kdl.reserveBalance(Bid);
 
     vm.prank(maker);
-    kdl.depositFunds(baseAmount, quoteAmount);
+    kdl_.depositFunds(baseAmount, quoteAmount);
 
     assertEq(kdl.reserveBalance(Ask), kdl_.reserveBalance(Ask), "funds are not shared");
     assertEq(kdl.reserveBalance(Bid), kdl_.reserveBalance(Bid), "funds are not shared");
@@ -223,7 +227,7 @@ contract AaveKandelTest is CoreKandelTest {
     bool allBaseOnAave,
     bool allQuoteOnAave
   ) internal {
-    FundedKandel kdl_ = __deployKandel__(maker, maker);
+    FundedKandel kdl_ = FundedKandel($(__deployKandel__(maker, maker)));
     assertEq(kdl_.RESERVE_ID(), kdl.RESERVE_ID(), "Strats should have the same reserveId");
 
     (, MgvStructs.OfferPacked bestAsk) = getBestOffers();
@@ -265,10 +269,10 @@ contract AaveKandelTest is CoreKandelTest {
   {
     deal($(base), maker, baseAmount);
     deal($(quote), maker, quoteAmount);
-    FundedKandel kdl_ = __deployKandel__(maker, address(0));
+    FundedKandel kdl_ = FundedKandel($(__deployKandel__(maker, address(0))));
     assertTrue(kdl_.RESERVE_ID() != kdl.RESERVE_ID(), "Strats should not have the same reserveId");
     vm.prank(maker);
-    kdl.depositFunds(baseAmount, quoteAmount);
+    kdl_.depositFunds(baseAmount, quoteAmount);
 
     assertEq(kdl_.reserveBalance(Ask), 0, "funds should not be shared");
     assertEq(kdl_.reserveBalance(Bid), 0, "funds should not be shared");

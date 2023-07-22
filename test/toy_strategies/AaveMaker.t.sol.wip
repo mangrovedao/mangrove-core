@@ -3,7 +3,8 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/forks/Polygon.sol";
-import {ICreditDelegationToken, AaveV3Borrower} from "mgv_src/strategies/integrations/AaveV3Borrower.sol";
+import {AaveV3Borrower} from "mgv_src/strategies/integrations/AaveV3Borrower.sol";
+import {ICreditDelegationToken} from "mgv_src/strategies/vendor/aave/v3/ICreditDelegationToken.sol";
 import {AaveCaller, console} from "mgv_test/lib/agents/AaveCaller.sol";
 
 contract AaveMakerTest is MangroveTest {
@@ -75,12 +76,12 @@ contract AaveMakerTest is MangroveTest {
     console.log("* Minting %s %s of collateral", toFixed(vars.toMint, vars.collateralDecimals), collateral.symbol());
     vars.attacker.approveLender(collateral);
     vars.attacker.supply(collateral, vars.toMint);
-    (, vars.borrowable) = vars.attacker.maxGettableUnderlying(asset, true, address(vars.attacker));
-    console.log(
-      "* After supplying it to the pool, I could theoretically borrow %s %s",
-      toFixed(vars.borrowable, vars.assetDecimals),
-      vars.assetSymbol
-    );
+    // (, vars.borrowable) = vars.attacker.maxGettableUnderlying(asset, true, address(vars.attacker));
+    // console.log(
+    //   "* After supplying it to the pool, I could theoretically borrow %s %s",
+    //   toFixed(vars.borrowable, vars.assetDecimals),
+    //   vars.assetSymbol
+    // );
     (, vars.borrowCaps) = vars.attacker.getCaps(asset);
     ICreditDelegationToken sdebt = vars.attacker.debtToken(asset, 1);
     ICreditDelegationToken vdebt = vars.attacker.debtToken(asset, 2);

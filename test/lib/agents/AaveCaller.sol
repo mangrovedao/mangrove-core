@@ -6,7 +6,7 @@ import {MangroveTest, console} from "mgv_test/lib/MangroveTest.sol";
 import {StdCheats} from "forge-std/StdCheats.sol";
 
 contract AaveCaller is AaveV3Borrower, StdCheats {
-  constructor(address _addressesProvider, uint borrowMode) AaveV3Borrower(_addressesProvider, 0, borrowMode) {}
+  constructor(address _addressesProvider, uint borrowMode) AaveV3Borrower(_addressesProvider, borrowMode) {}
 
   address callback;
 

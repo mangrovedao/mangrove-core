@@ -3,8 +3,6 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import "mgv_test/lib/forks/Polygon.sol";
-import {ICreditDelegationToken, AaveV3Borrower} from "mgv_src/strategies/integrations/AaveV3Borrower.sol";
-import {AaveCaller, console} from "mgv_test/lib/agents/AaveCaller.sol";
 
 contract TestTokenTest is MangroveTest {
   function setUp() public override {

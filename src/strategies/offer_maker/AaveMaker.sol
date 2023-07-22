@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import {IMangrove, AbstractRouter, OfferMaker, IERC20} from "./OfferMaker.sol";
 import {ITesterContract} from "mgv_src/strategies/interfaces/ITesterContract.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
-import {AaveV3Borrower, ICreditDelegationToken} from "mgv_src/strategies/integrations/AaveV3Borrower.sol";
+import {AaveV3Borrower} from "mgv_src/strategies/integrations/AaveV3Borrower.sol";
 
 contract AaveMaker is ITesterContract, OfferMaker, AaveV3Borrower {
   mapping(address => address) public reserves;
@@ -14,7 +14,7 @@ contract AaveMaker is ITesterContract, OfferMaker, AaveV3Borrower {
   // since one cannot assume `this` is admin of router, one cannot do this here in general
   constructor(IMangrove mgv, AbstractRouter router_, address deployer, uint gasreq, address addressesProvider)
     OfferMaker(mgv, router_, deployer, gasreq, deployer) // setting reserveId = deployer by default
-    AaveV3Borrower(addressesProvider, 0, 1)
+    AaveV3Borrower(addressesProvider, 1)
   {}
 
   function tokenBalance(IERC20 token, address reserveId) external view override returns (uint) {

@@ -20,7 +20,6 @@ abstract contract FundedKandel is GeometricKandel {
   ///@dev Use `populateChunk` to split up initialization or re-initialization with same parameters, as this function will emit.
   ///@dev If this function is invoked with different ratio, pricePoints, spread, then first retract all offers.
   ///@dev msg.value must be enough to provision all posted offers (for chunked initialization only one call needs to send native tokens).
-
   function populate(
     Distribution calldata distribution,
     uint[] calldata pivotIds,
@@ -31,7 +30,9 @@ abstract contract FundedKandel is GeometricKandel {
   ) external payable onlyAdmin {
     _deposit(BASE, baseAmount);
     _deposit(QUOTE, quoteAmount);
-    _populate(distribution, pivotIds, firstAskIndex, parameters, msg.value);
+    setParams(parameters);
+    MGV.fund{value: msg.value}();
+    _populateChunk(distribution, pivotIds, firstAskIndex, parameters.gasreq, parameters.gasprice);
   }
 
   ///@notice Deposits funds to the contract's reserve

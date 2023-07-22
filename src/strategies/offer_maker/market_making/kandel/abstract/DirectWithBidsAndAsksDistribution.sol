@@ -46,7 +46,7 @@ abstract contract DirectWithBidsAndAsksDistribution is Direct, HasIndexedBidsAnd
   ///@param firstAskIndex the (inclusive) index after which offer should be an ask.
   ///@param gasreq the amount of gas units that are required to execute the trade.
   ///@param gasprice the gasprice used to compute offer's provision.
-  function populateChunk(
+  function _populateChunk(
     Distribution calldata distribution,
     uint[] calldata pivotIds,
     uint firstAskIndex,

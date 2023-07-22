@@ -77,7 +77,9 @@ contract StableKandel is GeometricKandel {
     uint amount
   ) external payable onlyAdmin {
     _deposit(token, amount);
-    _populate(distribution, pivotIds, firstAskIndex, parameters, msg.value);
+    setParams(parameters);
+    MGV.fund{value: msg.value}();
+    _populateChunk(distribution, pivotIds, firstAskIndex, params.gasreq, params.gasprice);
   }
 
   function depositOnPool(IERC20 token, uint amount) external onlyAdmin {

@@ -12,7 +12,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
 ///@title A Kandel strat with geometric price progression which stores funds on AAVE to generate yield.
-contract StableKandel is GeometricKandel {
+contract LeveragedKandel is GeometricKandel {
   ///@notice Indication that this is first puller (returned from __lastLook__) so posthook should deposit liquidity on AAVE
   bytes32 internal constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
@@ -82,12 +82,12 @@ contract StableKandel is GeometricKandel {
     _populateChunk(distribution, pivotIds, firstAskIndex, params.gasreq, params.gasprice);
   }
 
-  function depositOnPool(IERC20 token, uint amount) external onlyAdmin {
+  function depositFunds(IERC20 token, uint amount) external onlyAdmin {
     _deposit(token, amount);
     privateRouter().pushAndSupply(token, amount, IERC20(address(0)), 0);
   }
 
-  function withdraw(IERC20 token, uint amount, address recipient) external onlyAdmin {
+  function withdrawFunds(IERC20 token, uint amount, address recipient) external onlyAdmin {
     if (amount != 0) {
       router().pull(token, RESERVE_ID, amount, true);
     }

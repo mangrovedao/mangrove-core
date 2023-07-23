@@ -65,12 +65,17 @@ contract AaveKandelTest is FundedKandelTest {
       gasprice: 0,
       reserveId: id
     });
-
+    // if router was already deployed
+    // address admin = router.admin();
+    // vm.prank(admin);
     router.bind(address(aaveKandel_));
+
     // Setting AaveRouter as Kandel's router and activating router on BASE and QUOTE ERC20
+
     aaveKandel_.initialize(router);
     aaveKandel_.setAdmin(deployer);
     assertEq(aaveKandel_.offerGasreq(), kandel_gasreq + router_gasreq, "Incorrect gasreq");
+
     return aaveKandel_;
   }
 
@@ -83,14 +88,27 @@ contract AaveKandelTest is FundedKandelTest {
   }
 
   function test_allExternalFunctions_differentCallers_correctAuth() public override {
+    // tests CoreKandel functions
     super.test_allExternalFunctions_differentCallers_correctAuth();
+
+    // NO AUTH
+    AaveKandel($(kdl)).depositFunds(0, 0);
+
+    // tests AaveKandel admin only functions
     CheckAuthArgs memory args;
     args.callee = $(kdl);
     args.callers = dynamic([address($(mgv)), maker, $(this)]);
     args.allowed = dynamic([address(maker)]);
     args.revertMessage = "AccessControlled/Invalid";
-
+    checkAuth(args, abi.encodeCall(AaveKandel($(kdl)).withdrawFunds, (0, 0, address(0))));
     checkAuth(args, abi.encodeCall(AaveKandel($(kdl)).initialize, AavePooledRouter($(kdl.router()))));
+    checkAuth(args, abi.encodeCall(AaveKandel($(kdl)).retractAndWithdraw, (0, 0, 0, 0, 0, payable(0))));
+    GeometricKandel.Distribution memory d;
+    uint[] memory pivotIds;
+    GeometricKandel.Params memory p;
+    p.ratio = uint24(10 ** uint(kdl.PRECISION()));
+    p.spread = 1;
+    checkAuth(args, abi.encodeCall(AaveKandel($(kdl)).populate, (d, pivotIds, 0, p, 0, 0)));
   }
 
   function test_initialize() public {
@@ -189,8 +207,13 @@ contract AaveKandelTest is FundedKandelTest {
     uint baseBalance = kdl.reserveBalance(Ask);
     uint quoteBalance = kdl.reserveBalance(Bid);
 
-    vm.prank(maker);
-    kdl_.depositFunds(baseAmount, quoteAmount);
+    vm.startPrank(maker);
+    {
+      base.approve($(kdl_), type(uint).max);
+      quote.approve($(kdl_), type(uint).max);
+      kdl_.depositFunds(baseAmount, quoteAmount);
+    }
+    vm.stopPrank();
 
     assertEq(kdl.reserveBalance(Ask), kdl_.reserveBalance(Ask), "funds are not shared");
     assertEq(kdl.reserveBalance(Bid), kdl_.reserveBalance(Bid), "funds are not shared");
@@ -272,7 +295,7 @@ contract AaveKandelTest is FundedKandelTest {
     FundedKandel kdl_ = FundedKandel($(__deployKandel__(maker, address(0))));
     assertTrue(kdl_.RESERVE_ID() != kdl.RESERVE_ID(), "Strats should not have the same reserveId");
     vm.prank(maker);
-    kdl_.depositFunds(baseAmount, quoteAmount);
+    FundedKandel($(kdl)).depositFunds(baseAmount, quoteAmount);
 
     assertEq(kdl_.reserveBalance(Ask), 0, "funds should not be shared");
     assertEq(kdl_.reserveBalance(Bid), 0, "funds should not be shared");

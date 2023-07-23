@@ -10,7 +10,7 @@ import {
 } from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/FundedKandel.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {KandelLib} from "lib/kandel/KandelLib.sol";
-import {CoreKandelTest} from "./abstract/CoreKandel.t.sol";
+import {CoreKandelTest} from "../abstract/CoreKandel.t.sol";
 import {console2} from "forge-std/Test.sol";
 
 contract FundedKandelTest is CoreKandelTest {
@@ -101,7 +101,7 @@ contract FundedKandelTest is CoreKandelTest {
   function retractDefaultSetup() internal {
     uint baseFunds = kdl.offeredVolume(Ask) + uint(kdl.pending(Ask));
     uint quoteFunds = kdl.offeredVolume(Bid) + uint(kdl.pending(Bid));
-    vm.startPrank(maker);
+    vm.prank(maker);
     FundedKandel($(kdl)).retractAndWithdraw(0, 10, baseFunds, quoteFunds, type(uint).max, maker);
   }
 

@@ -1097,6 +1097,10 @@ abstract contract CoreKandelTest is KandelTest {
     checkAuth(args, abi.encodeCall(kdl.retractOffers, (0, 0)));
     checkAuth(args, abi.encodeCall(kdl.withdrawFromMangrove, (0, maker)));
     checkAuth(args, abi.encodeCall(kdl.setCompoundRates, (0, 0)));
+    GeometricKandel.Params memory p;
+    p.ratio = 10 ** 5;
+    p.spread = 1;
+    checkAuth(args, abi.encodeCall(kdl.setParams, (p)));
 
     // Only Mgv
     MgvLib.OrderResult memory oResult = MgvLib.OrderResult({makerData: bytes32(0), mgvData: ""});

@@ -73,6 +73,14 @@ abstract contract KandelTest is MangroveTest {
     return "/out/CoreKandel.sol/CoreKandel.json";
   }
 
+  ///@notice setUp does the following:
+  /// * forks polygon or creates a simple foundry node
+  /// * creates a `maker` and a `taker` a
+  /// * deals base and quote to `taker` and prepare `taker` to trade on mgv via the proper approvals
+  /// * deploys a Kandel instance and stores its address as a `GeometricKandel` in the storage variable `kdl`
+  /// * populates `kdl` with bids and asks.
+  /// @notice since this contract is agnostic wrt kandel being a `FundedKandel` (having direct access to base and quotes) or not, the deployed `kdl` is not funded yet.
+
   function setUp() public virtual override {
     /// sets base, quote, opens a market (base,quote) on Mangrove
     __setForkEnvironment__();
@@ -392,11 +400,13 @@ abstract contract KandelTest is MangroveTest {
     }
 
     GeometricKandel.Params memory params = getParams(kdl);
-    mgv.fund{value: maker.balance}($(kdl));
-    vm.prank(maker);
-    kdl.setParams(params);
-    vm.prank(maker);
-    kdl.populateChunk(distribution, new uint[](size), size / 2);
+    vm.startPrank(maker);
+    {
+      mgv.fund{value: maker.balance}($(kdl));
+      kdl.setParams(params);
+      kdl.populateChunk(distribution, new uint[](size), size / 2);
+    }
+    vm.stopPrank();
   }
 
   function getBestOffers() internal view returns (MgvStructs.OfferPacked bestBid, MgvStructs.OfferPacked bestAsk) {

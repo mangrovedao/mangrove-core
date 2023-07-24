@@ -35,7 +35,7 @@
     "/doc"
   ],
   "devDependencies": {
-    "@types/node": "^20.2.6",
+    "@types/node": "^20.4.4",
     "husky": "^8.0.3",
     "lint-staged": "^13.2.2",
     "micromatch": "^4.0.5",

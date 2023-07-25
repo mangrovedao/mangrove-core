@@ -10,10 +10,10 @@ import {
 } from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/FundedKandel.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {KandelLib} from "lib/kandel/KandelLib.sol";
-import {CoreKandelTest} from "../abstract/CoreKandel.t.sol";
+import {GeometricKandelTest} from "../abstract/GeometricKandel.t.sol";
 import {console2} from "forge-std/Test.sol";
 
-contract FundedKandelTest is CoreKandelTest {
+contract FundedKandelTest is GeometricKandelTest {
   function setUp() public override {
     super.setUp();
     FundedKandel kdl_ = FundedKandel($(kdl));
@@ -103,6 +103,63 @@ contract FundedKandelTest is CoreKandelTest {
     uint quoteFunds = kdl.offeredVolume(Bid) + uint(kdl.pending(Bid));
     vm.prank(maker);
     FundedKandel($(kdl)).retractAndWithdraw(0, 10, baseFunds, quoteFunds, type(uint).max, maker);
+  }
+
+  // adding pending tests after ask complete_fill which are specific to FundedKandel
+  function ask_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index)
+    internal
+    virtual
+    override
+    returns (uint takerGot, uint takerGave, uint fee)
+  {
+    int oldPending = kdl.pending(Bid);
+    MgvStructs.OfferPacked oldBid = kdl.getOffer(Bid, index - STEP);
+
+    (takerGot, takerGave, fee) = super.ask_complete_fill(compoundRateBase, compoundRateQuote, index);
+
+    int pendingDelta = kdl.pending(Bid) - oldPending;
+    MgvStructs.OfferPacked newBid = kdl.getOffer(Bid, index - STEP);
+
+    assertApproxEqAbs(
+      pendingDelta + int(newBid.gives()),
+      int(oldBid.gives() + takerGave),
+      precisionForAssert(),
+      "Incorrect net promised asset"
+    );
+    if (compoundRateQuote == full_compound()) {
+      assertApproxEqAbs(pendingDelta, 0, precisionForAssert(), "Full compounding should not yield pending");
+    } else {
+      assertTrue(pendingDelta > 0, "Partial auto compounding should yield pending");
+    }
+  }
+
+  function bid_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index)
+    internal
+    override
+    returns (uint takerGot, uint takerGave, uint fee)
+  {
+    MgvStructs.OfferPacked oldAsk = kdl.getOffer(Ask, index + STEP);
+    int oldPending = kdl.pending(Ask);
+    (takerGot, takerGave, fee) = super.bid_complete_fill(compoundRateBase, compoundRateQuote, index);
+    MgvStructs.OfferPacked newAsk = kdl.getOffer(Ask, index + STEP);
+    int pendingDelta = kdl.pending(Ask) - oldPending;
+    // Allow a discrepancy of 1 for aave router shares
+    assertApproxEqAbs(
+      pendingDelta + int(newAsk.gives()),
+      int(oldAsk.gives() + takerGave),
+      precisionForAssert(),
+      "Incorrect net promised asset"
+    );
+    if (compoundRateBase == full_compound()) {
+      assertApproxEqAbs(pendingDelta, 0, precisionForAssert(), "Full compounding should not yield pending");
+    } else {
+      assertTrue(pendingDelta > 0, "Partial auto compounding should yield pending");
+    }
+  }
+
+  function test_init() public {
+    assertEq(kdl.pending(Ask), kdl.pending(Bid), "Incorrect initial pending");
+    assertEq(kdl.pending(Ask), 0, "Incorrect initial pending");
   }
 
   function test_reserveBalance_withoutOffers_returnsFundAmount() public {

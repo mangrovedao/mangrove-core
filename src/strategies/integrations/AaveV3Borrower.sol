@@ -43,18 +43,19 @@ contract AaveV3Borrower is AaveV3Lender {
    * @param onBehalf the account one is repaying and supplying for
    * @param amount of asset one is repaying and supplying
    */
-  function _repayThenDeposit(IERC20 token, address onBehalf, uint amount) internal {
+  function _repayThenDeposit(IERC20 token, address onBehalf, uint amount) internal returns (bytes32) {
     // AAVE repay/deposit throws if amount == 0
     if (amount == 0) {
-      return;
+      return bytes32(0);
     }
     try POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf) returns (uint repaid) {
       amount -= repaid;
     } catch {
       // repay will throw with reason "39" if there is no debt (of the corresponding mode) to repay
+      // one could check for debt before calling REPAY, but this would cost gas when debt is present
       // code is deliberately blank here
     }
-    POOL.supply(address(token), amount, onBehalf, 0);
+    return _supply(token, amount, onBehalf, true);
   }
 
   ///@notice tries to borrow some assets from the pool

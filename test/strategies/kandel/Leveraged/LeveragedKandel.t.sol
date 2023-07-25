@@ -13,12 +13,12 @@ import {
 } from "mgv_src/strategies/offer_maker/market_making/kandel/LeveragedKandel.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {KandelLib} from "lib/kandel/KandelLib.sol";
-import {CoreKandelTest} from "../abstract/CoreKandel.t.sol";
+import {GeometricKandelTest} from "../abstract/GeometricKandel.t.sol";
 import {console2 as console} from "forge-std/Test.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {AavePrivateRouter} from "mgv_src/strategies/routers/integrations/AavePrivateRouter.sol";
 
-contract LeveragedKandelTest is CoreKandelTest {
+contract LeveragedKandelTest is GeometricKandelTest {
   TestToken collateral;
   PinnedPolygonFork fork;
   AavePrivateRouter router;

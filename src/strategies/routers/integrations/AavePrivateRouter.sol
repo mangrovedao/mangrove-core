@@ -7,6 +7,8 @@ import {AaveMemoizer, ReserveConfiguration} from "./AaveMemoizer.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
 contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
+  event LogAaaveIncident(address indexed maker, address indexed asset, bytes32 aaveReason);
+
   ///@notice contract's constructor
   ///@param addressesProvider address of AAVE's address provider
   ///@param interestRate interest rate mode for borrowing assets. 0 for none, 1 for stable, 2 for variable
@@ -41,15 +43,23 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
   ///@dev this can be determined by checking during __lastLook__ whether the logic will trigger a withdraw from AAVE (this is the case if router's balance of token is empty)
   ///@dev this call be performed even for tokens with 0 amount for the offer logic, since the logic can be the first in a chain and router needs to flush all
   ///@dev this function is also to be used when user deposits funds on the maker contract
+  ///@dev if repay/supply should fail, funds are left on the router's balance, therefore bound maker must implement a public withdraw function to recover these funds if needed
   function pushAndSupply(IERC20 token0, uint amount0, IERC20 token1, uint amount1) external onlyBound {
     require(TransferLib.transferTokenFrom(token0, msg.sender, address(this), amount0), "AavePrivateRouter/pushFailed");
     require(TransferLib.transferTokenFrom(token1, msg.sender, address(this), amount1), "AavePrivateRouter/pushFailed");
     Memoizer memory m;
+    bytes32 reason;
     if (address(token0) != address(0) && amount0 != 0) {
-      _repayThenDeposit(token0, address(this), balanceOf(token0, m));
+      reason = _repayThenDeposit(token0, address(this), balanceOf(token0, m));
+    }
+    if (reason != bytes32(0)) {
+      emit LogAaaveIncident(msg.sender, address(token0), reason);
     }
     if (address(token1) != address(0) && amount1 != 0) {
       _repayThenDeposit(token1, address(this), balanceOf(token1, m));
+      if (reason != bytes32(0)) {
+        emit LogAaaveIncident(msg.sender, address(token1), reason);
+      }
     }
   }
 

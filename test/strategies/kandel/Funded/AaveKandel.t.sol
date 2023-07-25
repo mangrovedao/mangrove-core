@@ -88,7 +88,7 @@ contract AaveKandelTest is FundedKandelTest {
   }
 
   function test_allExternalFunctions_differentCallers_correctAuth() public override {
-    // tests CoreKandel functions
+    // tests GeometricKandel functions
     super.test_allExternalFunctions_differentCallers_correctAuth();
 
     // NO AUTH

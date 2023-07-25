@@ -5,7 +5,6 @@ import {IERC20} from "mgv_src/IERC20.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
 import {OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/TradesBaseQuotePair.sol";
-import {CoreKandel, TransferLib} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
 import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
 import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 import {console} from "forge-std/Test.sol";
@@ -13,6 +12,7 @@ import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
 import {AllMethodIdentifiersTest} from "mgv_test/lib/AllMethodIdentifiersTest.sol";
+import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 
 abstract contract KandelTest is MangroveTest {
   address payable maker;
@@ -70,7 +70,7 @@ abstract contract KandelTest is MangroveTest {
   }
 
   function getAbiPath() internal pure virtual returns (string memory) {
-    return "/out/CoreKandel.sol/CoreKandel.json";
+    return "/out/GeometricKandel.sol/GeometricKandel.json";
   }
 
   ///@notice setUp does the following:
@@ -120,10 +120,10 @@ abstract contract KandelTest is MangroveTest {
 
     uint ratio = 108 * 10 ** (PRECISION - 2);
 
-    (CoreKandel.Distribution memory distribution1, uint lastQuote) =
+    (GeometricKandel.Distribution memory distribution1, uint lastQuote) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, PRECISION);
 
-    (CoreKandel.Distribution memory distribution2,) =
+    (GeometricKandel.Distribution memory distribution2,) =
       KandelLib.calculateDistribution(5, 10, initBase, lastQuote, ratio, PRECISION);
 
     GeometricKandel.Params memory params;
@@ -355,7 +355,7 @@ abstract contract KandelTest is MangroveTest {
   }
 
   function populateSingle(PopulateArgs memory args) internal {
-    CoreKandel.Distribution memory distribution;
+    GeometricKandel.Distribution memory distribution;
     distribution.indices = new uint[](1);
     distribution.baseDist = new uint[](1);
     distribution.quoteDist = new uint[](1);
@@ -383,7 +383,7 @@ abstract contract KandelTest is MangroveTest {
   }
 
   function populateFixedDistribution(uint size) internal returns (uint baseAmount, uint quoteAmount) {
-    CoreKandel.Distribution memory distribution;
+    GeometricKandel.Distribution memory distribution;
 
     distribution.indices = new uint[](size);
     distribution.baseDist = new uint[](size);

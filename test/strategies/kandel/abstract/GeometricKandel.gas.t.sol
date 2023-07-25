@@ -6,7 +6,7 @@ import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {Kandel} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 
-abstract contract CoreKandelGasTest is KandelTest {
+abstract contract GeometricKandelGasTest is KandelTest {
   uint internal completeFill_;
   uint internal partialFill_;
   PinnedPolygonFork internal fork;

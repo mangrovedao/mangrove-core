@@ -4,12 +4,7 @@ pragma solidity ^0.8.10;
 import "./KandelTest.t.sol";
 import {console} from "forge-std/console.sol";
 
-abstract contract CoreKandelTest is KandelTest {
-  function test_init() public {
-    assertEq(kdl.pending(Ask), kdl.pending(Bid), "Incorrect initial pending");
-    assertEq(kdl.pending(Ask), 0, "Incorrect initial pending");
-  }
-
+abstract contract GeometricKandelTest is KandelTest {
   function full_compound() internal view returns (uint24) {
     return uint24(10 ** PRECISION);
   }
@@ -47,16 +42,19 @@ abstract contract CoreKandelTest is KandelTest {
     bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
   }
 
-  function bid_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index) internal {
+  function bid_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index)
+    internal
+    virtual
+    returns (uint takerGot, uint takerGave, uint fee)
+  {
     vm.assume(compoundRateBase <= full_compound());
     vm.assume(compoundRateQuote <= full_compound());
     vm.prank(maker);
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
     MgvStructs.OfferPacked oldAsk = kdl.getOffer(Ask, index + STEP);
-    int oldPending = kdl.pending(Ask);
-
-    (uint successes, uint takerGot, uint takerGave,, uint fee) = sellToBestAs(taker, 1000 ether);
+    uint successes;
+    (successes, takerGot, takerGave,, fee) = sellToBestAs(taker, 1000 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
     uint[] memory expectedStatus = new uint[](10);
     // Build this for index=5: assertStatus(dynamic([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]));
@@ -66,19 +64,9 @@ abstract contract CoreKandelTest is KandelTest {
     assertStatus(expectedStatus);
     MgvStructs.OfferPacked newAsk = kdl.getOffer(Ask, index + STEP);
     assertTrue(newAsk.gives() <= takerGave + oldAsk.gives(), "Cannot give more than what was received");
-    int pendingDelta = kdl.pending(Ask) - oldPending;
-    // Allow a discrepancy of 1 for aave router shares
-    assertApproxEqAbs(
-      pendingDelta + int(newAsk.gives()),
-      int(oldAsk.gives() + takerGave),
-      precisionForAssert(),
-      "Incorrect net promised asset"
-    );
+    assertTrue(newAsk.gives() > oldAsk.gives(), "Should give more than what was previously asked");
     if (compoundRateBase == full_compound()) {
-      assertApproxEqAbs(pendingDelta, 0, precisionForAssert(), "Full compounding should not yield pending");
       assertTrue(newAsk.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
-    } else {
-      assertTrue(pendingDelta > 0, "Partial auto compounding should yield pending");
     }
   }
 
@@ -188,17 +176,19 @@ abstract contract CoreKandelTest is KandelTest {
     }
   }
 
-  function ask_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index) internal {
+  function ask_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index)
+    internal
+    virtual
+    returns (uint takerGot, uint takerGave, uint fee)
+  {
     vm.assume(compoundRateBase <= full_compound());
     vm.assume(compoundRateQuote <= full_compound());
     vm.prank(maker);
     kdl.setCompoundRates(compoundRateBase, compoundRateQuote);
 
     MgvStructs.OfferPacked oldBid = kdl.getOffer(Bid, index - STEP);
-    int oldPending = kdl.pending(Bid);
-    console.log("oldPending: %s", vm.toString(oldPending));
-
-    (uint successes, uint takerGot, uint takerGave,, uint fee) = buyFromBestAs(taker, 1000 ether);
+    uint successes;
+    (successes, takerGot, takerGave,, fee) = buyFromBestAs(taker, 1000 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
     uint[] memory expectedStatus = new uint[](10);
     // Build this for index=5: assertStatus(dynamic([uint(1), 1, 1, 1, 1, 0, 2, 2, 2, 2]));
@@ -208,23 +198,10 @@ abstract contract CoreKandelTest is KandelTest {
     assertStatus(expectedStatus);
     MgvStructs.OfferPacked newBid = kdl.getOffer(Bid, index - STEP);
     assertTrue(newBid.gives() <= takerGave + oldBid.gives(), "Cannot give more than what was received");
-    int pendingDelta = kdl.pending(Bid) - oldPending;
-    console.log("delta pending:", vm.toString(pendingDelta));
-    console.log("new bid gives", oldBid.gives() + takerGave);
+    assertTrue(newBid.gives() > oldBid.gives(), "Should give more than previous value");
 
-    // (oldBid, ask) + oldPending --> (oldBid+incoming, 0) + oldPending + (takerGave - incoming)
-
-    assertApproxEqAbs(
-      pendingDelta + int(newBid.gives()),
-      int(oldBid.gives() + takerGave),
-      precisionForAssert(),
-      "Incorrect net promised asset"
-    );
     if (compoundRateQuote == full_compound()) {
-      assertApproxEqAbs(pendingDelta, 0, precisionForAssert(), "Full compounding should not yield pending");
       assertTrue(newBid.wants() >= takerGot + fee, "Auto compounding should want more than what taker gave");
-    } else {
-      assertTrue(pendingDelta > 0, "Partial auto compounding should yield pending");
     }
   }
 
@@ -421,7 +398,7 @@ abstract contract CoreKandelTest is KandelTest {
     vm.prank(maker);
     // pivot
     vm.expectRevert();
-    CoreKandel.Distribution memory dist;
+    GeometricKandel.Distribution memory dist;
     dist.indices = new uint[](1);
     dist.baseDist = new uint[](1);
     dist.quoteDist = new uint[](1);
@@ -502,10 +479,10 @@ abstract contract CoreKandelTest is KandelTest {
   function test_transport_below_min_price_accumulates_at_index_0() public {
     uint24 ratio = uint24(108 * 10 ** PRECISION / 100);
 
-    (CoreKandel.Distribution memory distribution1, uint lastQuote) =
+    (GeometricKandel.Distribution memory distribution1, uint lastQuote) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, PRECISION);
 
-    (CoreKandel.Distribution memory distribution2,) =
+    (GeometricKandel.Distribution memory distribution2,) =
       KandelLib.calculateDistribution(5, 10, initBase, lastQuote, ratio, PRECISION);
 
     // setting params.spread to 2
@@ -659,7 +636,7 @@ abstract contract CoreKandelTest is KandelTest {
     assertTrue(!mgv.isLive(ask), "ask should still not be live");
   }
 
-  CoreKandel.Distribution emptyDist;
+  GeometricKandel.Distribution emptyDist;
   uint[] empty = new uint[](0);
 
   function test_populate_can_get_set_params_keeps_offers() public {
@@ -787,7 +764,7 @@ abstract contract CoreKandelTest is KandelTest {
     kdl.retractOffers(0, 10);
 
     uint24 ratio = uint24(102 * 10 ** PRECISION / 100);
-    (CoreKandel.Distribution memory distribution,) =
+    (GeometricKandel.Distribution memory distribution,) =
       KandelLib.calculateDistribution(0, 5, initBase, initQuote, ratio, PRECISION);
 
     GeometricKandel.Params memory params;
@@ -915,22 +892,22 @@ abstract contract CoreKandelTest is KandelTest {
   }
 
   function test_dualWantsGivesOfOffer_maxBitsPartialTakeFullCompound_correctCalculation() public {
-    test_dualWantsGivesOfOffer_maxBits_correctCalculation(true, 2, true);
+    dualWantsGivesOfOffer_maxBits_correctCalculation(true, 2, true);
   }
 
   function test_dualWantsGivesOfOffer_maxBitsPartialTakeZeroCompound_correctCalculation() public {
-    test_dualWantsGivesOfOffer_maxBits_correctCalculation(true, 2, false);
+    dualWantsGivesOfOffer_maxBits_correctCalculation(true, 2, false);
   }
 
   function test_dualWantsGivesOfOffer_maxBitsFullTakeZeroCompound_correctCalculation() public {
-    test_dualWantsGivesOfOffer_maxBits_correctCalculation(false, 2, false);
+    dualWantsGivesOfOffer_maxBits_correctCalculation(false, 2, false);
   }
 
   function test_dualWantsGivesOfOffer_maxBitsFullTakeFullCompound_correctCalculation() public {
-    test_dualWantsGivesOfOffer_maxBits_correctCalculation(false, 2, true);
+    dualWantsGivesOfOffer_maxBits_correctCalculation(false, 2, true);
   }
 
-  function test_dualWantsGivesOfOffer_maxBits_correctCalculation(bool partialTake, uint numTakes, bool fullCompound)
+  function dualWantsGivesOfOffer_maxBits_correctCalculation(bool partialTake, uint numTakes, bool fullCompound)
     internal
   {
     // With partialTake false we verify uint160(givesR) != givesR in dualWantsGivesOfOffer
@@ -1082,7 +1059,7 @@ abstract contract CoreKandelTest is KandelTest {
     kdl.provisionOf(base, quote, 0);
     kdl.router();
 
-    CoreKandel.Distribution memory dist;
+    GeometricKandel.Distribution memory dist;
     CheckAuthArgs memory args;
     args.callee = $(kdl);
     args.callers = dynamic([address($(mgv)), maker, $(this)]);

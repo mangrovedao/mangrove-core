@@ -1,11 +1,11 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import "../abstract/CoreKandel.gas.t.sol";
+import "../abstract/GeometricKandel.gas.t.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {Kandel, FundedKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 
-contract HotKandelGasTest is CoreKandelGasTest {
+contract HotKandelGasTest is GeometricKandelGasTest {
   uint constant CROWDYNESS = 0;
 
   function setUp() public override {

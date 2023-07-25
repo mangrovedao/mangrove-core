@@ -2,12 +2,9 @@
 pragma solidity ^0.8.10;
 
 import "./KandelTest.t.sol";
+import {console} from "forge-std/console.sol";
 
 abstract contract CoreKandelTest is KandelTest {
-  function setUp() public virtual override {
-    super.setUp();
-  }
-
   function test_init() public {
     assertEq(kdl.pending(Ask), kdl.pending(Bid), "Incorrect initial pending");
     assertEq(kdl.pending(Ask), 0, "Incorrect initial pending");
@@ -199,6 +196,7 @@ abstract contract CoreKandelTest is KandelTest {
 
     MgvStructs.OfferPacked oldBid = kdl.getOffer(Bid, index - STEP);
     int oldPending = kdl.pending(Bid);
+    console.log("oldPending: %s", vm.toString(oldPending));
 
     (uint successes, uint takerGot, uint takerGave,, uint fee) = buyFromBestAs(taker, 1000 ether);
     assertTrue(successes == 1 && takerGot > 0, "Snipe failed");
@@ -211,6 +209,11 @@ abstract contract CoreKandelTest is KandelTest {
     MgvStructs.OfferPacked newBid = kdl.getOffer(Bid, index - STEP);
     assertTrue(newBid.gives() <= takerGave + oldBid.gives(), "Cannot give more than what was received");
     int pendingDelta = kdl.pending(Bid) - oldPending;
+    console.log("delta pending:", vm.toString(pendingDelta));
+    console.log("new bid gives", oldBid.gives() + takerGave);
+
+    // (oldBid, ask) + oldPending --> (oldBid+incoming, 0) + oldPending + (takerGave - incoming)
+
     assertApproxEqAbs(
       pendingDelta + int(newBid.gives()),
       int(oldBid.gives() + takerGave),

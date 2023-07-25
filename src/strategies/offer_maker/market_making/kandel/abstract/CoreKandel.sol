@@ -85,7 +85,7 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
   ///@param token the deposited asset
   ///@param amount to deposit
   function _deposit(IERC20 token, uint amount) internal {
-    require(TransferLib.transferTokenFrom(token, msg.sender, address(this), amount), "Kandel/baseTransferFail");
+    require(TransferLib.transferTokenFrom(token, msg.sender, address(this), amount), "Kandel/depositFail");
     emit Credit(token, amount);
   }
 
@@ -94,7 +94,7 @@ abstract contract CoreKandel is DirectWithBidsAndAsksDistribution, TradesBaseQuo
   ///@param amount to withdraw
   ///@param recipient the address to which the withdrawn funds should be sent to.
   function _withdraw(IERC20 token, uint amount, address recipient) internal {
-    require(TransferLib.transferToken(token, recipient, amount), "Kandel/baseTransferFail");
+    require(TransferLib.transferToken(token, recipient, amount), "Kandel/withdrawFail");
     emit Debit(token, amount);
   }
 }

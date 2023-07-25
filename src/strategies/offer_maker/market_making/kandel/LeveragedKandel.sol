@@ -37,13 +37,13 @@ contract LeveragedKandel is GeometricKandel {
     try IATokenIsh(address(quote)).UNDERLYING_ASSET_ADDRESS() returns (address) {
       isOverlying = true;
     } catch {}
-    require(!isOverlying, "StableKandel/cannotTradeAToken");
+    require(!isOverlying, "LeveragedKandel/cannotTradeAToken");
   }
 
   ///@notice returns the router as an Aave router
   function privateRouter() private view returns (AavePrivateRouter) {
     AbstractRouter router_ = router();
-    require(router_ != NO_ROUTER, "StableKandel/uninitialized");
+    require(router_ != NO_ROUTER, "LeveragedKandel/uninitialized");
     return AavePrivateRouter(address(router_));
   }
 

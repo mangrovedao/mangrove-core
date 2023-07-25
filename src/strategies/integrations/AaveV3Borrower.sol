@@ -48,7 +48,12 @@ contract AaveV3Borrower is AaveV3Lender {
     if (amount == 0) {
       return;
     }
-    amount -= POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf);
+    try POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf) returns (uint repaid) {
+      amount -= repaid;
+    } catch {
+      // repay will throw with reason "39" if there is no debt (of the corresponding mode) to repay
+      // code is deliberately blank here
+    }
     POOL.supply(address(token), amount, onBehalf, 0);
   }
 

@@ -45,8 +45,12 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
     require(TransferLib.transferTokenFrom(token0, msg.sender, address(this), amount0), "AavePrivateRouter/pushFailed");
     require(TransferLib.transferTokenFrom(token1, msg.sender, address(this), amount1), "AavePrivateRouter/pushFailed");
     Memoizer memory m;
-    _repayThenDeposit(token0, address(this), balanceOf(token0, m));
-    _repayThenDeposit(token1, address(this), balanceOf(token1, m));
+    if (address(token0) != address(0) && amount0 != 0) {
+      _repayThenDeposit(token0, address(this), balanceOf(token0, m));
+    }
+    if (address(token1) != address(0) && amount1 != 0) {
+      _repayThenDeposit(token1, address(this), balanceOf(token1, m));
+    }
   }
 
   // structs to avoir stack too deep in maxGettableUnderlying
@@ -117,8 +121,9 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
   function __pull__(IERC20 token, address, uint amount, bool strict) internal override returns (uint pulled) {
     Memoizer memory m;
     uint localBalance = balanceOf(token, m);
+    uint poolBalance = overlyingBalanceOf(token, m);
     if (amount > localBalance) {
-      localBalance += _redeem(token, type(uint).max, address(this));
+      localBalance += poolBalance > 0 ? _redeem(token, type(uint).max, address(this)) : 0;
       if (amount > localBalance) {
         _borrow(token, amount - localBalance, address(this));
         localBalance = amount;

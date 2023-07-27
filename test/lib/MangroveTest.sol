@@ -72,6 +72,18 @@ library PairLib {
   function prevOfferIdById(Pair memory pair, uint offerId) internal view returns (uint) {
     return pair.reader.prevOfferIdById(pair.outbound_tkn, pair.inbound_tkn, offerId);
   }
+
+  function level0(Pair memory pair, int index) internal view returns (Field) {
+    return pair.mgv.level0(pair.outbound_tkn, pair.inbound_tkn, index);
+  }
+
+  function level1(Pair memory pair, int index) internal view returns (Field) {
+    return pair.mgv.level1(pair.outbound_tkn, pair.inbound_tkn, index);
+  }
+
+  function level2(Pair memory pair) internal view returns (Field) {
+    return pair.mgv.level2(pair.outbound_tkn, pair.inbound_tkn);
+  }
 }
 
 /* *************************************************************** 
@@ -491,6 +503,22 @@ contract MangroveTest is Test2, HasMgvEvents {
       densify(outbound, inbound, offer.wants(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
       fromId = reader.nextOfferId(outbound, inbound, offer);
+    }
+  }
+
+  function assertEq(Field a, Field b) internal {
+    if (!a.eq(b)) {
+      emit log("Error: a == b not satisfied [Field]");
+      emit log_named_string("      Left", toString(a));
+      emit log_named_string("     Right", toString(b));
+      fail();
+    }
+  }
+
+  function assertEq(Field a, Field b, string memory err) internal {
+    if (!a.eq(b)) {
+      emit log_named_string("Error", err);
+      assertEq(a, b);
     }
   }
 

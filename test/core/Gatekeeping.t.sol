@@ -549,6 +549,31 @@ contract GatekeepingTest is IMaker, MangroveTest {
     assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
   }
 
+  // not gatekeeping! move me.
+  // Check that un-caching a nonempty level0 works
+  function test_remove_with_new_best_saves_previous_level0() public {
+    // make a great offer so its level0 is cached
+    uint ofr0 = mgv.newOffer($(base), $(quote), 0.01 ether, 1 ether, 1000000, 0);
+    // store some information in another level0
+    uint ofr1 = mgv.newOffer($(base), $(quote), 0.02 ether, 0.05 ether, 1000000, 0);
+    Tick tick1 = pair.offers(ofr1).tick();
+    int index1 = tick1.level0Index();
+    // make ofr1 the best offer (ofr1.level0 is now cached, but it also lives in its slot)
+    mgv.retractOffer($(base), $(quote), ofr0, true);
+    // make an offer worse than ofr1
+    uint ofr2 = mgv.newOffer($(base), $(quote), 0.05 ether, 0.05 ether, 1000000, 0);
+    Tick tick2 = pair.offers(ofr2).tick();
+    int index2 = tick2.level0Index();
+
+    // ofr2 is now best again. ofr1.level0 is not cached anymore.
+    // the question is: is ofr1.level0 in storage updated or not?
+    // (if it had originally been empty, the test would always succeed)
+    mgv.retractOffer($(base), $(quote), ofr1, true);
+    MgvStructs.LocalPacked local = reader.local($(base), $(quote));
+    assertTrue(index1 != index2, "test should construct ofr1/ofr2 so they are on different level0 nodes");
+    assertEq(pair.level0(index1), FieldLib.EMPTY, "ofr1's level0 should be empty");
+  }
+
   /* Snipe failure */
 
   function snipesKO(uint id) external {

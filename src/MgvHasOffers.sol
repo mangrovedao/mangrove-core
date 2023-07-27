@@ -14,6 +14,7 @@ import {
   LEVEL0_SIZE
 } from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
+import "mgv_lib/Debug.sol";
 
 /* `MgvHasOffers` contains the state variables and functions common to both market-maker operations and market-taker operations. Mostly: storing offers, removing them, updating market makers' provisions. */
 contract MgvHasOffers is MgvRoot {
@@ -156,6 +157,9 @@ contract MgvHasOffers is MgvRoot {
           if (index == local.tick().level0Index()) {
             field = local.level0().flipBitAtLevel0(offerTick);
             local = local.level0(field);
+            if (field.isEmpty()) {
+              pair.level0[index] = field;
+            }
           } else {
             field = pair.level0[index].flipBitAtLevel0(offerTick);
             pair.level0[index] = field;

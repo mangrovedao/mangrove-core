@@ -287,9 +287,10 @@ contract LongKandelTest is GeometricKandelTest {
 
     // Get some reasonable pivots (use a snapshot to avoid actually posting offers yet)
     t.snapshotId = vm.snapshot();
-    vm.prank(maker);
+    vm.startPrank(maker);
     (t.pivotIds, t.baseAmountRequired, t.quoteAmountRequired) =
       KandelLib.estimatePivotsAndRequiredAmount(distribution, LongKandel($(kdl)), t.firstAskIndex, params, t.funds);
+    vm.stopPrank();
     require(vm.revertTo(t.snapshotId), "snapshot restore failed");
 
     // Make sure we have enough funds

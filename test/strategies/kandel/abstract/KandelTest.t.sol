@@ -86,7 +86,7 @@ abstract contract KandelTest is MangroveTest {
     __setForkEnvironment__();
     require(reader != MgvReader(address(0)), "Could not get reader");
 
-    initQuote = cash(quote, 100); // quote given/wanted at index from
+    initQuote = cash(quote, 150); // quote given/wanted at index from
 
     maker = freshAddress("maker");
     taker = freshAddress("taker");

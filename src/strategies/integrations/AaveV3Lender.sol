@@ -61,6 +61,7 @@ contract AaveV3Lender {
   ///@param token the asset one is trying to redeem
   ///@param amount of assets one wishes to redeem
   ///@param to is the address where the redeemed assets should be transferred
+  ///@param noRevert whether Aave revert should be caught or not. If `noRevert` then revert message of aave is returned as a bytes32
   ///@return redeemed the amount of asset that were transferred to `to`
   function _redeem(IERC20 token, uint amount, address to, bool noRevert) internal returns (uint, bytes32) {
     if (amount == 0) {
@@ -78,7 +79,7 @@ contract AaveV3Lender {
   ///@param token the asset one is supplying
   ///@param amount of assets to be transferred to the pool
   ///@param onBehalf address of the account whose collateral is being supplied to and which will receive the overlying
-  ///@param noRevert does not revert if supplies throws
+  ///@param noRevert whether Aave revert should be caught or not. If `noRevert` then revert message of aave is returned as a bytes32
   ///@return reason for revert from Aave.
   function _supply(IERC20 token, uint amount, address onBehalf, bool noRevert) internal returns (bytes32) {
     if (amount == 0) {

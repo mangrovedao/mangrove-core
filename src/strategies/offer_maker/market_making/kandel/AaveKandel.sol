@@ -41,6 +41,7 @@ contract AaveKandel is LongKandel {
   }
 
   ///@notice returns the router as an Aave router
+  ///@return AavePooledRouter cast
   function pooledRouter() private view returns (AavePooledRouter) {
     AbstractRouter router_ = router();
     require(router_ != NO_ROUTER, "AaveKandel/uninitialized");

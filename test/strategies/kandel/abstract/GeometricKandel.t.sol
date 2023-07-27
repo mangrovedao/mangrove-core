@@ -338,13 +338,9 @@ abstract contract GeometricKandelTest is KandelTest {
       if (i == 0) {
         // With the ask filled, what is the current volume for bids?
         initialTotalVolumeQuote = kdl.offeredVolume(Bid);
-        console.log("Initial bids");
-        printOB();
       } else if (i == loops - 1) {
         // final loop - assert volume delta
         assertChange(quoteVolumeChange, initialTotalVolumeQuote, kdl.offeredVolume(Bid), "quote volume");
-        console.log("Final bids");
-        printOB();
       }
 
       bid_complete_fill(compoundRateBase, compoundRateQuote, 4);
@@ -353,13 +349,9 @@ abstract contract GeometricKandelTest is KandelTest {
       if (i == 0) {
         // With the bid filled, what is the current volume for asks?
         initialTotalVolumeBase = kdl.offeredVolume(Ask);
-        console.log("Initial asks");
-        printOB();
       } else if (i == loops - 1) {
         // final loop - assert volume delta
         assertChange(baseVolumeChange, initialTotalVolumeBase, kdl.offeredVolume(Ask), "base volume");
-        console.log("Final asks");
-        printOB();
       }
     }
   }
@@ -1016,12 +1008,12 @@ abstract contract GeometricKandelTest is KandelTest {
 
     if (ba == Bid) {
       MgvStructs.OfferPacked ask = kdl.getOffer(Ask, 5);
-      assertEq(ask.gives(), initBase);
-      assertEq(ask.wants(), ask.gives() * 2 / 1000000000);
+      assertEq(ask.gives(), initBase, "incorrect gives for ask");
+      assertEq(ask.wants(), initQuote * 2, "incorrect wants for ask");
     } else {
       MgvStructs.OfferPacked bid = kdl.getOffer(Bid, 0);
-      assertEq(bid.gives(), initQuote);
-      assertEq(bid.wants(), bid.gives() * 2 * 1000000000);
+      assertEq(bid.gives(), initQuote, "incorrect gives for bid");
+      assertEq(bid.wants(), initBase * 2, "incorrect wants for bid");
     }
   }
 

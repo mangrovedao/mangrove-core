@@ -244,16 +244,24 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
     uint local;
     uint onPool;
     uint debt;
-    uint debitLine;
+    uint liquid;
     uint creditLine;
   }
 
+  ///@notice returns important balances of a given asset
+  ///@param token the asset whose balances are queried
+  ///@return bal
+  /// .local the balance of the asset on the router
+  /// .onPool the amount of asset deposited on the pool
+  /// .debt the amount of asset that has been borrowed. A good invariant to check is `debt > 0 <=> local == 0 && onPool == 0`
+  /// .liquid is the amount of asset that can be withdrawn from the pool w/o incurring debt. Invariant is `liquid <= onPool`
+  /// .creditLine is the amount of asset that can be borrowed from the pool when all `liquid` asset have been withdrawn.
   function assetBalances(IERC20 token) public view returns (AssetBalances memory bal) {
     Memoizer memory m;
     bal.debt = debtBalanceOf(token, m);
     bal.local = balanceOf(token, m);
     bal.onPool = overlyingBalanceOf(token, m);
-    (bal.debitLine, bal.creditLine) = maxGettableUnderlying(token, m, true);
+    (bal.liquid, bal.creditLine) = maxGettableUnderlying(token, m, true);
   }
 
   ///@notice returns the amount of funds available to this contract, summing up redeem and borrow capacities
@@ -264,11 +272,5 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
     Memoizer memory m;
     (uint r, uint b) = maxGettableUnderlying(token, m, true);
     return (r + b);
-  }
-
-  ///@notice returns asset price in AAVE market base token units (e.g USD with 8 decimals)
-  function assetPrice(IERC20 token) public view returns (uint) {
-    Memoizer memory m;
-    return assetPrice(token, m);
   }
 }

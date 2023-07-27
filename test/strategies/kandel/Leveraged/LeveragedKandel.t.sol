@@ -115,12 +115,12 @@ contract LeveragedKandelTest is GeometricKandelTest {
 
     bal = router.assetBalances(quote);
     CL.balQuote.debt = bal.debt;
-    CL.balQuote.debitLine = bal.debitLine;
+    CL.balQuote.liquid = bal.liquid;
     CL.balQuote.creditLine = bal.creditLine;
 
     bal = router.assetBalances(base);
     CL.balBase.debt = bal.debt;
-    CL.balBase.debitLine = bal.debitLine;
+    CL.balBase.liquid = bal.liquid;
     CL.balBase.creditLine = bal.creditLine;
 
     // sends (borrows) quote, receives (supplies) base
@@ -128,19 +128,19 @@ contract LeveragedKandelTest is GeometricKandelTest {
 
     bal = router.assetBalances(quote);
     CL.balQuote_.debt = bal.debt;
-    CL.balQuote_.debitLine = bal.debitLine;
+    CL.balQuote_.liquid = bal.liquid;
     CL.balQuote_.creditLine = bal.creditLine;
 
     bal = router.assetBalances(base);
     CL.balBase_.debt = bal.debt;
-    CL.balBase_.debitLine = bal.debitLine;
+    CL.balBase_.liquid = bal.liquid;
     CL.balBase_.creditLine = bal.creditLine;
 
     // new quote debt is old quote debt + takerGot - available quote
     assertApproxEqAbs(
       CL.balQuote_.debt,
-      CL.balQuote.debt + takerGot + fee >= CL.balQuote.debitLine
-        ? CL.balQuote.debt + takerGot + fee - CL.balQuote.debitLine
+      CL.balQuote.debt + takerGot + fee >= CL.balQuote.liquid
+        ? CL.balQuote.debt + takerGot + fee - CL.balQuote.liquid
         : 0,
       1, // one wei precision
       "Unexpected quote debt, borrow failed?"
@@ -160,12 +160,12 @@ contract LeveragedKandelTest is GeometricKandelTest {
 
     bal = router.assetBalances(quote);
     CL.balQuote.debt = bal.debt;
-    CL.balQuote.debitLine = bal.debitLine;
+    CL.balQuote.liquid = bal.liquid;
     CL.balQuote.creditLine = bal.creditLine;
 
     bal = router.assetBalances(base);
     CL.balBase.debt = bal.debt;
-    CL.balBase.debitLine = bal.debitLine;
+    CL.balBase.liquid = bal.liquid;
     CL.balBase.creditLine = bal.creditLine;
 
     // sends (borrows) quote, receives (supplies) base
@@ -173,20 +173,18 @@ contract LeveragedKandelTest is GeometricKandelTest {
 
     bal = router.assetBalances(quote);
     CL.balQuote_.debt = bal.debt;
-    CL.balQuote_.debitLine = bal.debitLine;
+    CL.balQuote_.liquid = bal.liquid;
     CL.balQuote_.creditLine = bal.creditLine;
 
     bal = router.assetBalances(base);
     CL.balBase_.debt = bal.debt;
-    CL.balBase_.debitLine = bal.debitLine;
+    CL.balBase_.liquid = bal.liquid;
     CL.balBase_.creditLine = bal.creditLine;
 
     // new base debt is old base debt + takerGot - available base
     assertApproxEqAbs(
       CL.balBase_.debt,
-      CL.balBase.debt + takerGot + fee >= CL.balBase.debitLine
-        ? CL.balBase.debt + takerGot + fee - CL.balBase.debitLine
-        : 0,
+      CL.balBase.debt + takerGot + fee >= CL.balBase.liquid ? CL.balBase.debt + takerGot + fee - CL.balBase.liquid : 0,
       1, // one wei precision
       "Unexpected base debt, borrow failed?"
     );

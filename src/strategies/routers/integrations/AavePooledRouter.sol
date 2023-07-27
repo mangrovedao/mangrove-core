@@ -271,7 +271,7 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     // redeem does not change amount of shares. We do this after burning to avoid redeeming on AAVE if caller doesn't have the required funds.
     if (amountToRedeem > 0) {
       // this call will throw if AAVE has a liquidity crisis
-      _redeem(token, amountToRedeem, address(this));
+      _redeem(token, amountToRedeem, address(this), false);
     }
     // Transferring funds to the maker contract, at this point we must revert if things go wrong because shares have been burnt on the premise that `amount_` will be transferred.
     require(TransferLib.transferToken(token, msg.sender, amountToTransfer), "AavePooledRouter/withdrawFailed");

@@ -45,7 +45,7 @@ contract AaveMaker is ITesterContract, OfferMaker, AaveV3Borrower {
   }
 
   function borrow(IERC20 token, uint amount) public onlyAdmin {
-    _borrow(token, amount, address(this));
+    _borrow(token, amount, address(this), false);
   }
 
   function approveLender(IERC20 token, uint amount) public onlyAdmin {

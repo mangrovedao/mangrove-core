@@ -6,17 +6,17 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {Kandel, OfferType, IERC20} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 import {
-  FundedKandel, GeometricKandel
-} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/FundedKandel.sol";
+  LongKandel, GeometricKandel
+} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/LongKandel.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {KandelLib} from "lib/kandel/KandelLib.sol";
 import {GeometricKandelTest} from "../abstract/GeometricKandel.t.sol";
 import {console2} from "forge-std/Test.sol";
 
-contract FundedKandelTest is GeometricKandelTest {
+contract LongKandelTest is GeometricKandelTest {
   function setUp() public override {
     super.setUp();
-    FundedKandel kdl_ = FundedKandel($(kdl));
+    LongKandel kdl_ = LongKandel($(kdl));
     uint pendingBase = uint(-kdl.pending(Ask));
     uint pendingQuote = uint(-kdl.pending(Bid));
     deal($(base), maker, pendingBase);
@@ -59,7 +59,7 @@ contract FundedKandelTest is GeometricKandelTest {
   function deployOtherKandel(uint base0, uint quote0, uint24 ratio, uint8 spread, uint8 pricePoints) internal {
     address otherMaker = freshAddress();
 
-    FundedKandel otherKandel = FundedKandel($(__deployKandel__(otherMaker, otherMaker)));
+    LongKandel otherKandel = LongKandel($(__deployKandel__(otherMaker, otherMaker)));
 
     vm.prank(otherMaker);
     TransferLib.approveToken(base, address(otherKandel), type(uint).max);
@@ -102,10 +102,10 @@ contract FundedKandelTest is GeometricKandelTest {
     uint baseFunds = kdl.offeredVolume(Ask) + uint(kdl.pending(Ask));
     uint quoteFunds = kdl.offeredVolume(Bid) + uint(kdl.pending(Bid));
     vm.prank(maker);
-    FundedKandel($(kdl)).retractAndWithdraw(0, 10, baseFunds, quoteFunds, type(uint).max, maker);
+    LongKandel($(kdl)).retractAndWithdraw(0, 10, baseFunds, quoteFunds, type(uint).max, maker);
   }
 
-  // adding pending tests after ask complete_fill which are specific to FundedKandel
+  // adding pending tests after ask complete_fill which are specific to LongKandel
   function ask_complete_fill(uint24 compoundRateBase, uint24 compoundRateQuote, uint index)
     internal
     virtual
@@ -169,7 +169,7 @@ contract FundedKandelTest is GeometricKandelTest {
     assertEq(kdl.reserveBalance(Bid), 0, "Quote balance should be empty");
 
     vm.prank(maker);
-    FundedKandel($(kdl)).depositFunds(42, 43);
+    LongKandel($(kdl)).depositFunds(42, 43);
 
     // Act/assert
     assertEq(kdl.reserveBalance(Ask), 42, "Base balance should be correct");
@@ -185,7 +185,7 @@ contract FundedKandelTest is GeometricKandelTest {
     assertEq(kdl.reserveBalance(Bid), 0, "Quote balance should be empty");
 
     vm.prank(maker);
-    FundedKandel($(kdl)).depositFunds(42, 43);
+    LongKandel($(kdl)).depositFunds(42, 43);
 
     // Act/assert
     assertEq(kdl.reserveBalance(Ask), 42, "Base balance should be correct");
@@ -210,7 +210,7 @@ contract FundedKandelTest is GeometricKandelTest {
     assertEq(kdl.pending(Bid), 0, "Quote pending should be empty");
 
     vm.prank(maker);
-    FundedKandel($(kdl)).depositFunds(42, 43);
+    LongKandel($(kdl)).depositFunds(42, 43);
 
     // Act/assert
     assertEq(kdl.pending(Ask), 42, "Base pending should be correct");
@@ -226,7 +226,7 @@ contract FundedKandelTest is GeometricKandelTest {
     assertEq(-kdl.pending(Bid), int(quoteAmount), "Quote pending should be correct");
 
     vm.prank(maker);
-    FundedKandel($(kdl)).depositFunds(42, 43);
+    LongKandel($(kdl)).depositFunds(42, 43);
 
     assertEq(-kdl.pending(Ask), int(baseAmount - 42), "Base pending should be correct");
     assertEq(-kdl.pending(Bid), int(quoteAmount - 43), "Quote pending should be correct");
@@ -289,7 +289,7 @@ contract FundedKandelTest is GeometricKandelTest {
     t.snapshotId = vm.snapshot();
     vm.prank(maker);
     (t.pivotIds, t.baseAmountRequired, t.quoteAmountRequired) =
-      KandelLib.estimatePivotsAndRequiredAmount(distribution, FundedKandel($(kdl)), t.firstAskIndex, params, t.funds);
+      KandelLib.estimatePivotsAndRequiredAmount(distribution, LongKandel($(kdl)), t.firstAskIndex, params, t.funds);
     require(vm.revertTo(t.snapshotId), "snapshot restore failed");
 
     // Make sure we have enough funds
@@ -302,7 +302,7 @@ contract FundedKandelTest is GeometricKandelTest {
     t.snapshotId = vm.snapshot();
     vm.prank(maker);
     t.gas0Pivot = gasleft();
-    FundedKandel($(kdl)).populate{value: t.funds}({
+    LongKandel($(kdl)).populate{value: t.funds}({
       distribution: distribution,
       firstAskIndex: t.firstAskIndex,
       parameters: params,
@@ -317,7 +317,7 @@ contract FundedKandelTest is GeometricKandelTest {
     // Populate with pivots
     vm.prank(maker);
     t.gasPivots = gasleft();
-    FundedKandel($(kdl)).populate{value: t.funds}({
+    LongKandel($(kdl)).populate{value: t.funds}({
       distribution: distribution,
       firstAskIndex: t.firstAskIndex,
       parameters: params,
@@ -417,7 +417,7 @@ contract FundedKandelTest is GeometricKandelTest {
     vm.prank(maker);
     uint baseAmount = ba == Ask ? halfPending : 0;
     uint quoteAmount = ba == Ask ? 0 : halfPending;
-    FundedKandel($(kdl)).withdrawFunds(baseAmount, quoteAmount, maker);
+    LongKandel($(kdl)).withdrawFunds(baseAmount, quoteAmount, maker);
 
     // Act
     heal(midWants, midGives, densityMidBid / 2, densityMidAsk / 2);
@@ -451,7 +451,7 @@ contract FundedKandelTest is GeometricKandelTest {
     expectFrom($(kdl));
     emit Debit(quote, quoteBalance);
     vm.prank(maker);
-    FundedKandel($(kdl)).retractAndWithdraw(0, 10, baseBalance, quoteBalance, type(uint).max, recipient);
+    LongKandel($(kdl)).retractAndWithdraw(0, 10, baseBalance, quoteBalance, type(uint).max, recipient);
 
     assertEq(quoteBalance, quote.balanceOf(recipient), "quote balance should be sent to recipient");
     assertEq(baseBalance, base.balanceOf(recipient), "quote balance should be sent to recipient");
@@ -469,7 +469,7 @@ contract FundedKandelTest is GeometricKandelTest {
     uint quoteBalance = kdl.reserveBalance(Bid);
     uint baseBalance = kdl.reserveBalance(Ask);
 
-    FundedKandel($(kdl)).depositFunds(baseAmount, quoteAmount);
+    LongKandel($(kdl)).depositFunds(baseAmount, quoteAmount);
 
     assertApproxEqRel(baseBalance + baseAmount, kdl.reserveBalance(Ask), 10 ** 10, "Incorrect base deposit");
     assertApproxEqRel(quoteBalance + quoteAmount, kdl.reserveBalance(Bid), 10 ** 10, "Incorrect base deposit");
@@ -478,7 +478,7 @@ contract FundedKandelTest is GeometricKandelTest {
   function test_deposit0Funds() public {
     uint quoteBalance = kdl.reserveBalance(Bid);
     uint baseBalance = kdl.reserveBalance(Ask);
-    FundedKandel($(kdl)).depositFunds(0, 0);
+    LongKandel($(kdl)).depositFunds(0, 0);
     assertEq(kdl.reserveBalance(Ask), baseBalance, "Incorrect base deposit");
     assertEq(kdl.reserveBalance(Bid), quoteBalance, "Incorrect quote deposit");
   }
@@ -489,10 +489,10 @@ contract FundedKandelTest is GeometricKandelTest {
     TransferLib.approveToken(base, $(kdl), baseAmount);
     TransferLib.approveToken(quote, $(kdl), quoteAmount);
 
-    FundedKandel($(kdl)).depositFunds(baseAmount, quoteAmount);
+    LongKandel($(kdl)).depositFunds(baseAmount, quoteAmount);
 
     vm.prank(maker);
-    FundedKandel($(kdl)).withdrawFunds(baseAmount, quoteAmount, address(this));
+    LongKandel($(kdl)).withdrawFunds(baseAmount, quoteAmount, address(this));
     assertEq(base.balanceOf(address(this)), baseAmount, "Incorrect base withdrawal");
     assertEq(quote.balanceOf(address(this)), quoteAmount, "Incorrect quote withdrawl");
   }
@@ -503,12 +503,12 @@ contract FundedKandelTest is GeometricKandelTest {
     TransferLib.approveToken(base, $(kdl), 1 ether);
     TransferLib.approveToken(quote, $(kdl), 100 * 10 ** 6);
 
-    FundedKandel($(kdl)).depositFunds(1 ether, 100 * 10 ** 6);
+    LongKandel($(kdl)).depositFunds(1 ether, 100 * 10 ** 6);
     uint quoteBalance = kdl.reserveBalance(Bid);
     uint baseBalance = kdl.reserveBalance(Ask);
 
     vm.prank(maker);
-    FundedKandel($(kdl)).withdrawFunds(type(uint).max, type(uint).max, address(this));
+    LongKandel($(kdl)).withdrawFunds(type(uint).max, type(uint).max, address(this));
     assertEq(base.balanceOf(address(this)), baseBalance, "Incorrect base withdrawal");
     assertEq(quote.balanceOf(address(this)), quoteBalance, "Incorrect quote withdrawl");
   }

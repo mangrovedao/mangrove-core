@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import {IMangrove, IERC20, GeometricKandel} from "./GeometricKandel.sol";
 
 ///@title Adds functions that are used by all Kandel strats that have base and quote funds
-abstract contract FundedKandel is GeometricKandel {
+abstract contract LongKandel is GeometricKandel {
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
     GeometricKandel(mgv, base, quote, gasreq, gasprice, reserveId)
   {}

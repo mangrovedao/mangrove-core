@@ -79,7 +79,7 @@ abstract contract KandelTest is MangroveTest {
   /// * deals base and quote to `taker` and prepare `taker` to trade on mgv via the proper approvals
   /// * deploys a Kandel instance and stores its address as a `GeometricKandel` in the storage variable `kdl`
   /// * populates `kdl` with bids and asks.
-  /// @notice since this contract is agnostic wrt kandel being a `FundedKandel` (having direct access to base and quotes) or not, the deployed `kdl` is not funded yet.
+  /// @notice since this contract is agnostic wrt kandel being a `LongKandel` (having direct access to base and quotes) or not, the deployed `kdl` is not funded yet.
 
   function setUp() public virtual override {
     /// sets base, quote, opens a market (base,quote) on Mangrove

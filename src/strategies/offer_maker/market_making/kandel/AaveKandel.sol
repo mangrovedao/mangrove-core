@@ -5,14 +5,14 @@ import {MangroveOffer} from "mgv_src/strategies/MangroveOffer.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {AbstractRouter, AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
 import {IATokenIsh} from "mgv_src/strategies/vendor/aave/v3/IATokenIsh.sol";
-import {FundedKandel} from "./abstract/FundedKandel.sol";
+import {LongKandel} from "./abstract/LongKandel.sol";
 import {AbstractKandel} from "./abstract/AbstractKandel.sol";
 import {OfferType} from "./abstract/TradesBaseQuotePair.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
 ///@title A Kandel strat with geometric price progression which stores funds on AAVE to generate yield.
-contract AaveKandel is FundedKandel {
+contract AaveKandel is LongKandel {
   ///@notice Indication that this is first puller (returned from __lastLook__) so posthook should deposit liquidity on AAVE
   bytes32 internal constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
@@ -24,7 +24,7 @@ contract AaveKandel is FundedKandel {
   ///@param gasprice the gasprice to use for offers
   ///@param reserveId identifier of this contract's reserve when using a router.
   constructor(IMangrove mgv, IERC20 base, IERC20 quote, uint gasreq, uint gasprice, address reserveId)
-    FundedKandel(mgv, base, quote, gasreq, gasprice, reserveId)
+    LongKandel(mgv, base, quote, gasreq, gasprice, reserveId)
   {
     // one makes sure it is not possible to deploy an AAVE kandel on aTokens
     // allowing Kandel to deposit aUSDC for instance would conflict with other Kandel instances bound to the same router

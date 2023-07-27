@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import "../abstract/GeometricKandel.gas.t.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {AaveKandel, FundedKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandel.sol";
+import {AaveKandel, LongKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/AaveKandel.sol";
 import {AavePooledRouter} from "mgv_src/strategies/routers/integrations/AavePooledRouter.sol";
 
 contract AaveKandelGasTest is GeometricKandelGasTest {
@@ -32,7 +32,7 @@ contract AaveKandelGasTest is GeometricKandelGasTest {
     partialFill_ = 0.08 ether;
     // funding Kandel
 
-    FundedKandel kdl_ = FundedKandel($(kdl));
+    LongKandel kdl_ = LongKandel($(kdl));
     uint pendingBase = uint(-kdl.pending(Ask));
     uint pendingQuote = uint(-kdl.pending(Bid));
     deal($(base), maker, pendingBase);

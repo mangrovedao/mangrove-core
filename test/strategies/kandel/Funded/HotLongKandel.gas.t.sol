@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import "../abstract/GeometricKandel.gas.t.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {Kandel, FundedKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
+import {Kandel, LongKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 
 contract HotKandelGasTest is GeometricKandelGasTest {
   uint constant CROWDYNESS = 0;
@@ -11,7 +11,7 @@ contract HotKandelGasTest is GeometricKandelGasTest {
   function setUp() public override {
     super.setUp();
     // funding Kandel
-    FundedKandel kdl_ = FundedKandel($(kdl));
+    LongKandel kdl_ = LongKandel($(kdl));
     uint pendingBase = uint(-kdl.pending(Ask));
     uint pendingQuote = uint(-kdl.pending(Bid));
     deal($(base), maker, pendingBase);

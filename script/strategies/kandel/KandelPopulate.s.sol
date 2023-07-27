@@ -5,7 +5,7 @@ import {Script, console2 as console} from "forge-std/Script.sol";
 import {Kandel, IERC20, IMangrove, OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/Kandel.sol";
 import {CoreKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
 import {AbstractKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/AbstractKandel.sol";
-import {FundedKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/FundedKandel.sol";
+import {LongKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/LongKandel.sol";
 
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
@@ -23,7 +23,7 @@ import {KandelLib} from "mgv_lib/kandel/KandelLib.sol";
 
 contract KandelPopulate is Deployer {
   function run() public {
-    FundedKandel kdl = Kandel(envAddressOrName("KANDEL"));
+    LongKandel kdl = Kandel(envAddressOrName("KANDEL"));
     Kandel.Params memory params;
     params.ratio = uint24(vm.envUint("RATIO"));
     require(params.ratio == vm.envUint("RATIO"), "Invalid RATIO");
@@ -64,7 +64,7 @@ contract KandelPopulate is Deployer {
     Kandel.Params params;
     uint initQuote;
     uint volume;
-    FundedKandel kdl;
+    LongKandel kdl;
     MgvReader mgvReader;
   }
 
@@ -195,7 +195,7 @@ contract KandelPopulate is Deployer {
     vars.snapshotId = vm.snapshot();
     vm.startPrank(broadcaster());
     (vars.pivotIds, vars.baseAmountRequired, vars.quoteAmountRequired) = KandelLib.estimatePivotsAndRequiredAmount(
-      distribution, FundedKandel(args.kdl), args.firstAskIndex, args.params, funds
+      distribution, LongKandel(args.kdl), args.firstAskIndex, args.params, funds
     );
     vm.stopPrank();
     require(vm.revertTo(vars.snapshotId), "snapshot restore failed");

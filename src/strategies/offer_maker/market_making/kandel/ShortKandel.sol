@@ -12,7 +12,7 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
 ///@title A Kandel strat with geometric price progression which stores funds on AAVE to generate yield.
-contract LeveragedKandel is GeometricKandel {
+contract ShortKandel is GeometricKandel {
   ///@notice Indication that this is first puller (returned from __lastLook__) so posthook should deposit liquidity on AAVE
   bytes32 internal constant IS_FIRST_PULLER = "IS_FIRST_PULLER";
 
@@ -37,13 +37,13 @@ contract LeveragedKandel is GeometricKandel {
     try IATokenIsh(address(quote)).UNDERLYING_ASSET_ADDRESS() returns (address) {
       isOverlying = true;
     } catch {}
-    require(!isOverlying, "LeveragedKandel/cannotTradeAToken");
+    require(!isOverlying, "ShortKandel/cannotTradeAToken");
   }
 
   ///@notice returns the router as an Aave router
   function privateRouter() private view returns (AavePrivateRouter) {
     AbstractRouter router_ = router();
-    require(router_ != NO_ROUTER, "LeveragedKandel/uninitialized");
+    require(router_ != NO_ROUTER, "ShortKandel/uninitialized");
     return AavePrivateRouter(address(router_));
   }
 

@@ -6,11 +6,11 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {
-  LeveragedKandel,
+  ShortKandel,
   GeometricKandel,
   OfferType,
   IERC20
-} from "mgv_src/strategies/offer_maker/market_making/kandel/LeveragedKandel.sol";
+} from "mgv_src/strategies/offer_maker/market_making/kandel/ShortKandel.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {KandelLib} from "lib/kandel/KandelLib.sol";
 import {GeometricKandelTest} from "../abstract/GeometricKandel.t.sol";
@@ -18,21 +18,21 @@ import {console2 as console} from "forge-std/Test.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {AavePrivateRouter} from "mgv_src/strategies/routers/integrations/AavePrivateRouter.sol";
 
-contract LeveragedKandelTest is GeometricKandelTest {
+contract ShortKandelTest is GeometricKandelTest {
   TestToken internal collateral;
   PinnedPolygonFork internal fork;
   AavePrivateRouter internal router;
   uint internal interestRate = 2;
   uint internal constant INIT_COLLATERAL = 1_000_000 * 10 ** 18;
 
-  function Leveraged(GeometricKandel kdl) internal pure returns (LeveragedKandel) {
-    return LeveragedKandel($(kdl));
+  function Short(GeometricKandel kdl) internal pure returns (ShortKandel) {
+    return ShortKandel($(kdl));
   }
 
   function setUp() public override {
     super.setUp();
     collateral = TestToken(fork.get("DAI"));
-    LeveragedKandel kdl_ = LeveragedKandel($(kdl));
+    ShortKandel kdl_ = ShortKandel($(kdl));
 
     deal($(collateral), maker, INIT_COLLATERAL);
     vm.startPrank(maker);
@@ -79,7 +79,7 @@ contract LeveragedKandelTest is GeometricKandelTest {
     uint kandel_gasreq = 160 * 1000;
     router =
       address(router) == address(0) ? new AavePrivateRouter(fork.get("Aave"), interestRate, router_gasreq) : router;
-    LeveragedKandel lkdl = new LeveragedKandel({
+    ShortKandel lkdl = new ShortKandel({
       mgv: IMangrove($(mgv)),
       base: base,
       quote: quote,
@@ -269,7 +269,7 @@ contract LeveragedKandelTest is GeometricKandelTest {
 
   function test_sharing_collateral_between_strats(uint16 collateralAmount) public {
     deal($(collateral), maker, collateralAmount);
-    LeveragedKandel kdl_ = Leveraged(__deployKandel__(maker, maker));
+    ShortKandel kdl_ = Short(__deployKandel__(maker, maker));
     assertEq(kdl.reserveBalance(Ask), kdl_.reserveBalance(Ask), "funds are not shared");
     assertEq(kdl.reserveBalance(Bid), kdl_.reserveBalance(Bid), "funds are not shared");
 

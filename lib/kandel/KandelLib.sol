@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {CoreKandel, OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
-import {FundedKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/FundedKandel.sol";
+import {LongKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/LongKandel.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
@@ -30,9 +30,9 @@ library KandelLib {
   /// @notice should be invoked as an rpc call or via snapshot-revert - populates and returns pivots and amounts.
   function estimatePivotsAndRequiredAmount(
     CoreKandel.Distribution memory distribution,
-    FundedKandel kandel,
+    LongKandel kandel,
     uint firstAskIndex,
-    FundedKandel.Params memory params,
+    LongKandel.Params memory params,
     uint funds
   ) internal returns (uint[] memory pivotIds, uint baseAmountRequired, uint quoteAmountRequired) {
     pivotIds = new uint[](distribution.indices.length);

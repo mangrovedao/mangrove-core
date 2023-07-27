@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Script, console2 as console} from "forge-std/Script.sol";
-import {FundedKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/FundedKandel.sol";
+import {LongKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/LongKandel.sol";
 import {OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/TradesBaseQuotePair.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
@@ -14,10 +14,10 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 
 contract KandelShutdown is Deployer {
   function run() public {
-    innerRun({kdl: FundedKandel(envAddressOrName("KANDEL"))});
+    innerRun({kdl: LongKandel(envAddressOrName("KANDEL"))});
   }
 
-  function innerRun(FundedKandel kdl) public {
+  function innerRun(LongKandel kdl) public {
     IERC20 base = kdl.BASE();
     IERC20 quote = kdl.QUOTE();
     uint baseDecimals = base.decimals();

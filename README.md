@@ -64,7 +64,7 @@ After cloning the repo, you should run `yarn install` in the root folder.
 $ yarn install
 ```
 
-The you need to setup the local environment (still in the root folder). Start by copying the test file provided:
+Then you need to setup the local environment (still in the root folder). Start by copying the test file provided:
 
 ```shell
 $ cp .env.example .env

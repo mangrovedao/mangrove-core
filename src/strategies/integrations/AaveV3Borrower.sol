@@ -37,39 +37,28 @@ contract AaveV3Borrower is AaveV3Lender {
     ORACLE = IPriceOracleGetter(_priceOracle);
   }
 
-  /**
-   * @notice deposits assets on AAVE by first repaying debt if any and then supplying to the pool
-   * @param token the asset one is depositing
-   * @param onBehalf the account one is repaying and supplying for
-   * @param amount of asset one is repaying and supplying
-   */
-  function _repayThenDeposit(IERC20 token, address onBehalf, uint amount) internal returns (bytes32) {
-    // AAVE repay/deposit throws if amount == 0
-    if (amount == 0) {
-      return bytes32(0);
-    }
-    try POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf) returns (uint repaid) {
-      amount -= repaid;
-    } catch {
-      // repay will throw with reason "39" if there is no debt (of the corresponding mode) to repay
-      // one could check for debt before calling REPAY, but this would cost gas when debt is present
-      // code is deliberately blank here
-    }
-    return _supply(token, amount, onBehalf, true);
-  }
-
   ///@notice tries to borrow some assets from the pool
   ///@param token the asset one is borrowing
   ///@param onBehalf the account whose collateral is being used to borrow (caller must be approved by `onBehalf` -if different- using `approveDelegation` from the corresponding debt token (variable or stable))
-  function _borrow(IERC20 token, uint amount, address onBehalf) internal {
-    POOL.borrow(address(token), amount, INTEREST_RATE_MODE, REFERRAL_CODE, onBehalf);
+  function _borrow(IERC20 token, uint amount, address onBehalf, bool noRevert) internal returns (bytes32) {
+    try POOL.borrow(address(token), amount, INTEREST_RATE_MODE, REFERRAL_CODE, onBehalf) {
+      return bytes32(0);
+    } catch Error(string memory reason) {
+      require(noRevert, reason);
+      return bytes32(bytes(reason));
+    }
   }
 
   ///@notice repays debt to the pool
   ///@param token the asset one is repaying
   ///@param amount of assets one is repaying
   ///@param onBehalf account whose debt is being repaid
-  function _repay(IERC20 token, uint amount, address onBehalf) internal returns (uint repaid) {
-    repaid = (amount == 0) ? 0 : POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf);
+  function _repay(IERC20 token, uint amount, address onBehalf, bool noRevert) internal returns (uint, bytes32) {
+    try POOL.repay(address(token), amount, INTEREST_RATE_MODE, onBehalf) returns (uint repaid) {
+      return (repaid, bytes32(0));
+    } catch Error(string memory reason) {
+      require(noRevert, reason);
+      return (0, bytes32(bytes(reason)));
+    }
   }
 }

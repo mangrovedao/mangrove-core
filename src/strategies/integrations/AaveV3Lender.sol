@@ -62,8 +62,16 @@ contract AaveV3Lender {
   ///@param amount of assets one wishes to redeem
   ///@param to is the address where the redeemed assets should be transferred
   ///@return redeemed the amount of asset that were transferred to `to`
-  function _redeem(IERC20 token, uint amount, address to) internal returns (uint redeemed) {
-    redeemed = (amount == 0) ? 0 : POOL.withdraw(address(token), amount, to);
+  function _redeem(IERC20 token, uint amount, address to, bool noRevert) internal returns (uint, bytes32) {
+    if (amount == 0) {
+      return (0, bytes32(0));
+    }
+    try POOL.withdraw(address(token), amount, to) returns (uint withdrawn) {
+      return (withdrawn, bytes32(0));
+    } catch Error(string memory reason) {
+      require(noRevert, reason);
+      return (0, bytes32(bytes(reason)));
+    }
   }
 
   ///@notice supplies funds to the pool

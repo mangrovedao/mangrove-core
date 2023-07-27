@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {CoreKandel, OfferType} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/CoreKandel.sol";
-import {LongKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/LongKandel.sol";
+import {GeometricKandel} from "mgv_src/strategies/offer_maker/market_making/kandel/abstract/GeometricKandel.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
@@ -30,13 +30,15 @@ library KandelLib {
   /// @notice should be invoked as an rpc call or via snapshot-revert - populates and returns pivots and amounts.
   function estimatePivotsAndRequiredAmount(
     CoreKandel.Distribution memory distribution,
-    LongKandel kandel,
+    GeometricKandel kandel,
     uint firstAskIndex,
-    LongKandel.Params memory params,
+    GeometricKandel.Params memory params,
     uint funds
   ) internal returns (uint[] memory pivotIds, uint baseAmountRequired, uint quoteAmountRequired) {
     pivotIds = new uint[](distribution.indices.length);
-    kandel.populate{value: funds}(distribution, pivotIds, firstAskIndex, params, 0, 0);
+    kandel.setParams(params);
+    kandel.MGV().fund{value: funds}(address(kandel));
+    kandel.populateChunk(distribution, pivotIds, firstAskIndex);
     for (uint i = 0; i < pivotIds.length; ++i) {
       uint index = distribution.indices[i];
       OfferType ba = index < firstAskIndex ? OfferType.Bid : OfferType.Ask;

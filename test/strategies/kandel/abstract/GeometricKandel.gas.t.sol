@@ -35,8 +35,8 @@ abstract contract GeometricKandelGasTest is KandelTest {
   function __setForkEnvironment__() internal virtual override {
     fork = new PinnedPolygonFork();
     fork.setUp();
-    options.gasprice = 90;
-    options.gasbase = 68_000;
+    options.gasprice = 140;
+    options.gasbase = 120_000;
     options.defaultFee = 30;
     mgv = setupMangrove();
     reader = new MgvReader($(mgv));
@@ -70,7 +70,7 @@ abstract contract GeometricKandelGasTest is KandelTest {
     // taking partial fill to have gas cost of reposting
     (uint takerGot,,,) = mgv.marketOrder($(base), $(quote), completeFill, type(uint160).max, true);
     gas_();
-    require(takerGot > 0);
+    assertTrue(takerGot > 0, "market order failed");
   }
 
   function test_bid_order_length_1() public {

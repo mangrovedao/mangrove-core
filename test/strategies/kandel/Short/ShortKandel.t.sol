@@ -32,7 +32,7 @@ contract ShortKandelTest is GeometricKandelTest {
   function setUp() public override {
     super.setUp();
     collateral = TestToken(fork.get("DAI"));
-    ShortKandel kdl_ = ShortKandel($(kdl));
+    ShortKandel kdl_ = Short(kdl);
 
     deal($(collateral), maker, INIT_COLLATERAL);
     vm.startPrank(maker);
@@ -47,20 +47,11 @@ contract ShortKandelTest is GeometricKandelTest {
     vm.stopPrank();
   }
 
-  function logCollateralStatus() internal view {
-    console.log(
-      "base: %s, quote: %s, collateral: %s",
-      toFixed(router.balanceOfReserve(base, address(0)), base.decimals()),
-      toFixed(router.balanceOfReserve(quote, address(0)), quote.decimals()),
-      toFixed(router.balanceOfReserve(collateral, address(0)), collateral.decimals())
-    );
-  }
-
   function __setForkEnvironment__() internal override {
     fork = new PinnedPolygonFork();
     fork.setUp();
-    options.gasprice = 90;
-    options.gasbase = 68_000;
+    options.gasprice = 140;
+    options.gasbase = 120_000;
     options.defaultFee = 30;
     mgv = setupMangrove();
     reader = new MgvReader($(mgv));
@@ -75,10 +66,10 @@ contract ShortKandelTest is GeometricKandelTest {
     override
     returns (GeometricKandel kdl_)
   {
-    uint router_gasreq = 500 * 1000;
+    uint router_gasreq = 600 * 1000;
     uint kandel_gasreq = 160 * 1000;
     router =
-      address(router) == address(0) ? new AavePrivateRouter(fork.get("Aave"), interestRate, router_gasreq) : router;
+      address(router) == address(0) ? new AavePrivateRouter(fork.get("Aave"), interestRate, router_gasreq, 50) : router;
     ShortKandel lkdl = new ShortKandel({
       mgv: IMangrove($(mgv)),
       base: base,

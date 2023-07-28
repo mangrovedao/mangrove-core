@@ -263,7 +263,7 @@ They have the following fields: */
       */
       { name: "lock", bits: 1, type: "bool" },
       /* * `best` holds the current best offer id. Has size of an id field. *Danger*: reading best inside a lock may give you a stale value. */
-      id_field("best"),
+      // id_field("best"),
       /* * `last` is a counter for offer ids, incremented every time a new offer is created. It can't go above $2^{32}-1$. */
       id_field("last"),
     ],

@@ -31,7 +31,8 @@ contract MgvHasOffers is MgvRoot {
   /* Convenience function to get best offer of the given pair */
   function best(address outbound_tkn, address inbound_tkn) external view returns (uint) {
     unchecked {
-      return pairs[outbound_tkn][inbound_tkn].local.best();
+      Pair storage pair = pairs[outbound_tkn][inbound_tkn];
+      return pair.leafs[pair.local.tick().leafIndex()].getNextOfferId();
     }
   }
 
@@ -134,21 +135,26 @@ contract MgvHasOffers is MgvRoot {
       // offerId == local.best() (but best will maybe go away in the future)
       shouldUpdateBest = shouldUpdateBest && prevId == 0 && !local.tick().strictlyBetter(offerTick);
 
-      if (prevId != 0) {
-        OfferData storage offerData = pair.offerData[prevId];
-        offerData.offer = offerData.offer.next(nextId);
-      } else {
+      if (prevId == 0) {
+        // offer was tick's first. new first offer is offer.next (may be 0)
         leaf = leaf.setTickFirst(offerTick, nextId);
+      } else {
+        // offer.prev's next becomes offer.next
+        OfferData storage prevOfferData = pair.offerData[prevId];
+        prevOfferData.offer = prevOfferData.offer.next(nextId);
       }
 
-      if (nextId != 0) {
-        OfferData storage offerData = pair.offerData[nextId];
-        offerData.offer = offerData.offer.prev(prevId);
-      } else {
+      if (nextId == 0) {
+        // offer was tick's last. new last offer is offer.prev (may be 0)
         leaf = leaf.setTickLast(offerTick, prevId);
+      } else {
+        // offer.next's prev becomes offer.prev
+        OfferData storage nextOfferData = pair.offerData[nextId];
+        nextOfferData.offer = nextOfferData.offer.prev(prevId);
       }
 
       if (prevId == 0 || nextId == 0) {
+        // offer.tick's first or last offer changed, must update leaf
         pair.leafs[offerTick.leafIndex()] = leaf;
         // if leaf now empty, flip ticks OFF up the tree
         if (leaf.isEmpty()) {
@@ -172,8 +178,8 @@ contract MgvHasOffers is MgvRoot {
               local = local.level2(local.level2().flipBitAtLevel2(offerTick));
 
               // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+              // Why am I setting tick to 0 before I return?
               if (local.level2().isEmpty()) {
-                local = local.best(0);
                 local = local.tick(Tick.wrap(0));
                 return local;
               }
@@ -196,11 +202,11 @@ contract MgvHasOffers is MgvRoot {
           }
         }
         if (shouldUpdateBest) {
-          local = local.best(leaf.getNextOfferId());
+          // local = local.best(leaf.getNextOfferId());
 
-          // INEFFICIENT find a way to avoid a read
+          // INEFFICIENT find a way to avoid a read, this can be deduced from the above
           // Or not inefficient because one fewer read to do when taking?
-          local = local.tick(pair.offerData[local.best()].offer.tick());
+          local = local.tick(pair.offerData[leaf.getNextOfferId()].offer.tick());
         }
       }
       return local;

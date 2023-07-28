@@ -506,6 +506,15 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
+  function assertEq(Leaf a, Leaf b) internal {
+    if (!a.eq(b)) {
+      emit log("Error: a == b not satisfied [Leaf]");
+      emit log_named_string("      Left", toString(a));
+      emit log_named_string("     Right", toString(b));
+      fail();
+    }
+  }
+
   function assertEq(Field a, Field b) internal {
     if (!a.eq(b)) {
       emit log("Error: a == b not satisfied [Field]");

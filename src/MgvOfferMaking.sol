@@ -297,7 +297,7 @@ contract MgvOfferMaking is MgvHasOffers {
       }
 
       // Tick insertionTick = ofp.tick;
-      bool bestWillChange = ofp.local.best() == 0 || insertionTick.strictlyBetter(ofp.local.tick());
+      bool bestWillChange = ofp.local.level2().isEmpty() || insertionTick.strictlyBetter(ofp.local.tick());
       // mapping (uint => MgvStructs.OfferPacked) _offers = offers[ofp.outbound_tkn][ofp.inbound_tkn];
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {
@@ -315,7 +315,7 @@ contract MgvOfferMaking is MgvHasOffers {
         */
         // bool updateLocal = tick.strictlyBetter(ofp.local.tick().strictlyBetter(tick)
         ofp.local = dislodgeOffer(pair, ofp.oldOffer, ofp.local, !bestWillChange);
-        bestWillChange = ofp.local.best() == 0 || insertionTick.strictlyBetter(ofp.local.tick());
+        bestWillChange = ofp.local.level2().isEmpty() || insertionTick.strictlyBetter(ofp.local.tick());
       }
 
       // insertion
@@ -375,7 +375,6 @@ contract MgvOfferMaking is MgvHasOffers {
 
       if (bestWillChange) {
         // FIXME: remove best update, only here for compatibility
-        ofp.local = ofp.local.best(leaf.firstOfTick(insertionTick));
         ofp.local = ofp.local.tick(insertionTick);
       }
 

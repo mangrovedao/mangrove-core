@@ -226,7 +226,7 @@ contract MgvReader {
     mr.outbound_tkn = outbound_tkn;
     mr.inbound_tkn = inbound_tkn;
     (, mr.local) = MGV.config(outbound_tkn, inbound_tkn);
-    mr.offerId = mr.local.best();
+    mr.offerId = MGV.best(outbound_tkn, inbound_tkn);
     mr.offer = MGV.offers(outbound_tkn, inbound_tkn, mr.offerId);
     mr.currentWants = takerWants;
     mr.currentGives = takerGives;

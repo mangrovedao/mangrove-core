@@ -246,10 +246,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         // sor.local = stitchOffers(sor.outbound_tkn, sor.inbound_tkn, 0, sor.offerId, sor.local);
         // FIXME: REMOVE ME: temporarily leaving 'best' to avoid changing code everywhere
         // (or should we keep it? to avoid additional reads?)
-        sor.local = sor.local.best(sor.offerId);
         // INEFFICIENT find a way to avoid a read
         // Or not inefficient because one fewer read to do when taking?
-        sor.local = sor.local.tick(pair.offerData[sor.local.best()].offer.tick());
+        sor.local = sor.local.tick(pair.offerData[sor.offerId].offer.tick());
         // sor.local = stitchOffers(sor.outbound_tkn, sor.inbound_tkn, 0, sor.offerId, sor.local);
 
         // maybe some updates below are useless? if we don't update these we must take it into account elsewhere

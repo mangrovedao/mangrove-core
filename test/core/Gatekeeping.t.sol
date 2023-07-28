@@ -483,7 +483,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
     uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 90_000, 0);
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    assertTrue(mgv.best($(base), $(quote)) == 0, "retractOffer on posthook must work");
+    assertEq(mgv.best($(base), $(quote)), 0, "retractOffer on posthook must work");
   }
 
   /* Market Order failure */
@@ -554,7 +554,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_remove_with_new_best_saves_previous_level0() public {
     // make a great offer so its level0 is cached
     uint ofr0 = mgv.newOffer($(base), $(quote), 0.01 ether, 1 ether, 1000000, 0);
-    // store some information in another level0
+    // store some information in another level0 (a worse one)
     uint ofr1 = mgv.newOffer($(base), $(quote), 0.02 ether, 0.05 ether, 1000000, 0);
     Tick tick1 = pair.offers(ofr1).tick();
     int index1 = tick1.level0Index();
@@ -569,9 +569,16 @@ contract GatekeepingTest is IMaker, MangroveTest {
     // the question is: is ofr1.level0 in storage updated or not?
     // (if it had originally been empty, the test would always succeed)
     mgv.retractOffer($(base), $(quote), ofr1, true);
-    MgvStructs.LocalPacked local = reader.local($(base), $(quote));
     assertTrue(index1 != index2, "test should construct ofr1/ofr2 so they are on different level0 nodes");
     assertEq(pair.level0(index1), FieldLib.EMPTY, "ofr1's level0 should be empty");
+  }
+
+  // FIXME Not Gatekeeping!
+  function test_leaf_update_both_first_and_last() public {
+    uint ofr0 = mgv.newOffer($(base), $(quote), 0.01 ether, 1 ether, 1000000, 0);
+    Tick tick0 = pair.offers(ofr0).tick();
+    mgv.retractOffer($(base), $(quote), ofr0, true);
+    assertEq(pair.leafs(tick0.leafIndex()), LeafLib.EMPTY);
   }
 
   /* Snipe failure */

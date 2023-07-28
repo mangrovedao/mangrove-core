@@ -258,8 +258,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertTrue(mgv.offers($(base), $(quote), pair.nextOfferId(offer)).isLive(), "Invalid OB");
     MgvStructs.OfferPacked offer1 = mgv.offers($(base), $(quote), pair.nextOfferId(offer));
     assertEq(pair.prevOfferId(offer1), 0, "Invalid stitching for ofr1");
-    (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
-    assertEq(cfg.best(), ofr1, "Invalid best after retract");
+    assertEq(pair.best(), ofr1, "Invalid best after retract");
   }
 
   function test_retract_worst_offer_leaves_a_valid_book() public {
@@ -278,8 +277,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     MgvStructs.OfferPacked offer0 = mgv.offers($(base), $(quote), ofr0);
     assertTrue(offer0.isLive(), "Invalid OB");
     assertEq(reader.nextOfferId($(base), $(quote), offer0), 0, "Invalid stitching for ofr0");
-    (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
-    assertEq(cfg.best(), ofr0, "Invalid best after retract");
+    assertEq(pair.best(), ofr0, "Invalid best after retract");
   }
 
   function test_delete_wrong_offer_fails() public {
@@ -352,8 +350,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.1 ether, 1 ether, 50_000, 0);
     uint ofr01 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, MgvStructs.LocalPacked loc_cfg) = mgv.config($(base), $(quote));
-    assertEq(ofr0, loc_cfg.best(), "Wrong best offer");
+    assertEq(ofr0, pair.best(), "Wrong best offer");
     assertTrue(mgv.offers($(base), $(quote), ofr0).isLive(), "Oldest equivalent offer should be first");
     MgvStructs.OfferPacked offer = mgv.offers($(base), $(quote), ofr0);
     uint _ofr01 = reader.nextOfferId($(base), $(quote), offer);
@@ -381,33 +378,27 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
-    assertEq(ofr0, cfg.best(), "Wrong best offer");
+    assertEq(ofr0, pair.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_000, ofr0);
-    (, cfg) = mgv.config($(base), $(quote));
-    assertEq(ofr1, cfg.best(), "Best offer should have changed");
+    assertEq(ofr1, pair.best(), "Best offer should have changed");
   }
 
   function test_update_offer_price_nolonger_best() public {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
-    assertEq(ofr0, cfg.best(), "Wrong best offer");
+    assertEq(ofr0, pair.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether + 1, 1.0 ether, 100_000, ofr0);
-    (, cfg) = mgv.config($(base), $(quote));
-    assertEq(ofr1, cfg.best(), "Best offer should have changed");
+    assertEq(ofr1, pair.best(), "Best offer should have changed");
   }
 
   function test_update_offer_density_nolonger_best() public {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
-    (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
-    assertEq(ofr0, cfg.best(), "Wrong best offer");
+    assertEq(ofr0, pair.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 100_001, ofr0);
-    (, cfg) = mgv.config($(base), $(quote));
-    assertEq(ofr1, cfg.best(), "Best offer should have changed");
+    assertEq(ofr1, pair.best(), "Best offer should have changed");
   }
 
   // before ticks: worsening an offer's density keeps it in best position if it still has the best density
@@ -416,12 +407,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1.0 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1.0 ether, 100_000, 0);
-    (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
-    assertEq(ofr0, cfg.best(), "Wrong best offer");
+    assertEq(ofr0, pair.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 99_999, ofr1);
-    (, cfg) = mgv.config($(base), $(quote));
     logOrderBook($(base), $(quote), 2);
-    assertEq(cfg.best(), ofr0, "Best offer should not have changed");
+    assertEq(pair.best(), ofr0, "Best offer should not have changed");
   }
 
   function test_update_offer_price_changes_prevnext() public {
@@ -712,13 +701,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     mkr.newOffer(1.0 ether + 0.02 ether, 1 ether, 100_000, 0);
-    (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
-    assertEq(ofr0, cfg.best(), "Wrong best offer");
+    assertEq(ofr0, pair.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether + 0.01 ether, 1.0 ether, 100_000, ofr0);
-    (, cfg) = mgv.config($(base), $(quote));
     // csl.log(pair.offers(ofr0).tick().toString());
-    // csl.log(pair.offers(cfg.best()).tick().toString());
-    assertEq(ofr0, cfg.best(), "Best offer should not have changed");
+    assertEq(ofr0, pair.best(), "Best offer should not have changed");
   }
 
   // before ticks: worsening an offer's density keeps it in best position if it still has the best density
@@ -728,11 +714,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOffer(1.0 ether, 1 ether, 100_002, 0);
     uint ofr2 = mkr.newOffer(1.0 ether, 1 ether, 100_003, 0);
-    (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
-    assertEq(ofr0, cfg.best(), "Wrong best offer");
+    assertEq(ofr0, pair.best(), "Wrong best offer");
     mkr.updateOffer(1.0 ether, 1.0 ether, 99_000, ofr0);
-    (, cfg) = mgv.config($(base), $(quote));
-    assertEq(cfg.best(), ofr1, "Best offer should have changed");
+    assertEq(pair.best(), ofr1, "Best offer should have changed");
     assertEq(reader.nextOfferIdById($(base), $(quote), ofr2), ofr0, "ofr0 should come after ofr2");
     assertEq(reader.nextOfferIdById($(base), $(quote), ofr0), 0, "ofr0 should be last");
   }

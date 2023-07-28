@@ -98,7 +98,7 @@ contract MonitorTest is MangroveTest {
     uint[4][] memory targets = wrap_dynamic([ofrId, 0.04 ether, 0.05 ether, 100_000]);
 
     (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config($(base), $(quote));
-    _local = _local.best(1).lock(true);
+    _local = _local.lock(true);
 
     MgvLib.SingleOrder memory order = MgvLib.SingleOrder({
       outbound_tkn: $(base),
@@ -130,7 +130,7 @@ contract MonitorTest is MangroveTest {
 
     (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config($(base), $(quote));
     // config sent during maker callback has stale best and, is locked
-    _local = _local.best(1).lock(true);
+    _local = _local.lock(true);
 
     MgvLib.SingleOrder memory order = MgvLib.SingleOrder({
       outbound_tkn: $(base),

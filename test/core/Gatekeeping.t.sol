@@ -164,8 +164,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_setGasbase_ceiling() public {
-    vm.expectRevert("mgv/config/offer_gasbase/24bits");
-    mgv.setGasbase($(base), $(quote), uint(type(uint24).max) + 1);
+    vm.expectRevert("mgv/config/kilo_offer_gasbase/10bits");
+    mgv.setGasbase($(base), $(quote), 1e3 * (2 ** 10));
   }
 
   function test_setGasmax_ceiling() public {

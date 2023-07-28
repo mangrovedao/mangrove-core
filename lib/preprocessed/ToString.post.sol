@@ -32,7 +32,7 @@ function toString(OfferDetailPacked __packed) pure returns (string memory) {
 }
 
 function toString(OfferDetailUnpacked memory __unpacked) pure returns (string memory) {
-  return string.concat("OfferDetail{","maker: ", vm.toString(__unpacked.maker), ", ", "gasreq: ", vm.toString(__unpacked.gasreq), ", ", "offer_gasbase: ", vm.toString(__unpacked.offer_gasbase), ", ", "gasprice: ", vm.toString(__unpacked.gasprice),"}");
+  return string.concat("OfferDetail{","maker: ", vm.toString(__unpacked.maker), ", ", "gasreq: ", vm.toString(__unpacked.gasreq), ", ", "kilo_offer_gasbase: ", vm.toString(__unpacked.kilo_offer_gasbase), ", ", "gasprice: ", vm.toString(__unpacked.gasprice),"}");
 }
 
 import {GlobalPacked, GlobalUnpacked} from "mgv_src/preprocessed/MgvGlobal.post.sol";
@@ -50,7 +50,7 @@ function toString(LocalPacked __packed) pure returns (string memory) {
 }
 
 function toString(LocalUnpacked memory __unpacked) pure returns (string memory) {
-  return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "tick: ", toString(__unpacked.tick), ", ", "level0: ", toString(__unpacked.level0), ", ", "level2: ", toString(__unpacked.level2), ", ", "offer_gasbase: ", vm.toString(__unpacked.offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "last: ", vm.toString(__unpacked.last),"}");
+  return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "tick: ", toString(__unpacked.tick), ", ", "level0: ", toString(__unpacked.level0), ", ", "level2: ", toString(__unpacked.level2), ", ", "kilo_offer_gasbase: ", vm.toString(__unpacked.kilo_offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "last: ", vm.toString(__unpacked.last),"}");
 }
 
 function toString(Tick tick) pure returns (string memory ret) {

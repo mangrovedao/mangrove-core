@@ -18,15 +18,15 @@ contract MgvLocalTest is Test2 {
     return u << (256-to) >> (256-to);
   }
 
-  function test_pack(bool active, uint fee, Density density, Tick tick, Field level0, Field level2, uint offer_gasbase, bool lock, uint last) public {
-    MgvStructs.LocalPacked packed = MgvStructs.Local.pack(active, fee, density, tick, level0, level2, offer_gasbase, lock, last);
+  function test_pack(bool active, uint fee, Density density, Tick tick, Field level0, Field level2, uint kilo_offer_gasbase, bool lock, uint last) public {
+    MgvStructs.LocalPacked packed = MgvStructs.Local.pack(active, fee, density, tick, level0, level2, kilo_offer_gasbase, lock, last);
     assertEq(packed.active(),active,"bad active");
     assertEq(packed.fee(),cast(fee,8),"bad fee");
     assertEq(Density.unwrap(packed.density()),cast(Density.unwrap(density),9),"bad density");
     assertEq(Tick.unwrap(packed.tick()),cast(Tick.unwrap(tick),24),"bad tick");
     assertEq(Field.unwrap(packed.level0()),cast(Field.unwrap(level0),64),"bad level0");
     assertEq(Field.unwrap(packed.level2()),cast(Field.unwrap(level2),32),"bad level2");
-    assertEq(packed.offer_gasbase(),cast(offer_gasbase,24),"bad offer_gasbase");
+    assertEq(packed.kilo_offer_gasbase(),cast(kilo_offer_gasbase,10),"bad kilo_offer_gasbase");
     assertEq(packed.lock(),lock,"bad lock");
     assertEq(packed.last(),cast(last,32),"bad last");
   }
@@ -50,7 +50,7 @@ contract MgvLocalTest is Test2 {
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(Field.unwrap(modified.level0()),Field.unwrap(packed.level0()),"modified: bad level0");
       assertEq(Field.unwrap(modified.level2()),Field.unwrap(packed.level2()),"modified: bad level2");
-      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
@@ -67,7 +67,7 @@ contract MgvLocalTest is Test2 {
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(Field.unwrap(modified.level0()),Field.unwrap(packed.level0()),"modified: bad level0");
       assertEq(Field.unwrap(modified.level2()),Field.unwrap(packed.level2()),"modified: bad level2");
-      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
@@ -84,7 +84,7 @@ contract MgvLocalTest is Test2 {
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(Field.unwrap(modified.level0()),Field.unwrap(packed.level0()),"modified: bad level0");
       assertEq(Field.unwrap(modified.level2()),Field.unwrap(packed.level2()),"modified: bad level2");
-      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
@@ -101,7 +101,7 @@ contract MgvLocalTest is Test2 {
       assertEq(Density.unwrap(modified.density()),Density.unwrap(packed.density()),"modified: bad density");
       assertEq(Field.unwrap(modified.level0()),Field.unwrap(packed.level0()),"modified: bad level0");
       assertEq(Field.unwrap(modified.level2()),Field.unwrap(packed.level2()),"modified: bad level2");
-      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
@@ -118,7 +118,7 @@ contract MgvLocalTest is Test2 {
       assertEq(Density.unwrap(modified.density()),Density.unwrap(packed.density()),"modified: bad density");
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(Field.unwrap(modified.level2()),Field.unwrap(packed.level2()),"modified: bad level2");
-      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
@@ -135,17 +135,17 @@ contract MgvLocalTest is Test2 {
       assertEq(Density.unwrap(modified.density()),Density.unwrap(packed.density()),"modified: bad density");
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(Field.unwrap(modified.level0()),Field.unwrap(packed.level0()),"modified: bad level0");
-      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
-  function test_set_offer_gasbase(MgvStructs.LocalPacked packed,uint offer_gasbase) public {
-      MgvStructs.LocalPacked original = packed.offer_gasbase(packed.offer_gasbase());
-      assertEq(original.offer_gasbase(),packed.offer_gasbase(), "original: bad offer_gasbase");
+  function test_set_kilo_offer_gasbase(MgvStructs.LocalPacked packed,uint kilo_offer_gasbase) public {
+      MgvStructs.LocalPacked original = packed.kilo_offer_gasbase(packed.kilo_offer_gasbase());
+      assertEq(original.kilo_offer_gasbase(),packed.kilo_offer_gasbase(), "original: bad kilo_offer_gasbase");
 
-      MgvStructs.LocalPacked modified = packed.offer_gasbase(offer_gasbase);
+      MgvStructs.LocalPacked modified = packed.kilo_offer_gasbase(kilo_offer_gasbase);
 
-      assertEq(modified.offer_gasbase(),cast(offer_gasbase,24),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),cast(kilo_offer_gasbase,10),"modified: bad kilo_offer_gasbase");
 
       assertEq(modified.active(),packed.active(),"modified: bad active");
       assertEq(modified.fee(),packed.fee(),"modified: bad fee");
@@ -170,7 +170,7 @@ contract MgvLocalTest is Test2 {
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(Field.unwrap(modified.level0()),Field.unwrap(packed.level0()),"modified: bad level0");
       assertEq(Field.unwrap(modified.level2()),Field.unwrap(packed.level2()),"modified: bad level2");
-      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
       assertEq(modified.last(),packed.last(),"modified: bad last");
     }
   function test_set_last(MgvStructs.LocalPacked packed,uint last) public {
@@ -187,12 +187,12 @@ contract MgvLocalTest is Test2 {
       assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
       assertEq(Field.unwrap(modified.level0()),Field.unwrap(packed.level0()),"modified: bad level0");
       assertEq(Field.unwrap(modified.level2()),Field.unwrap(packed.level2()),"modified: bad level2");
-      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
       assertEq(modified.lock(),packed.lock(),"modified: bad lock");
     }
 
   function test_unpack(MgvStructs.LocalPacked packed) public {
-    (bool active, uint fee, Density density, Tick tick, Field level0, Field level2, uint offer_gasbase, bool lock, uint last) = packed.unpack();
+    (bool active, uint fee, Density density, Tick tick, Field level0, Field level2, uint kilo_offer_gasbase, bool lock, uint last) = packed.unpack();
 
     assertEq(packed.active(),active,"bad active");
     assertEq(packed.fee(),fee,"bad fee");
@@ -200,7 +200,7 @@ contract MgvLocalTest is Test2 {
     assertEq(Tick.unwrap(packed.tick()),Tick.unwrap(tick),"bad tick");
     assertEq(Field.unwrap(packed.level0()),Field.unwrap(level0),"bad level0");
     assertEq(Field.unwrap(packed.level2()),Field.unwrap(level2),"bad level2");
-    assertEq(packed.offer_gasbase(),offer_gasbase,"bad offer_gasbase");
+    assertEq(packed.kilo_offer_gasbase(),kilo_offer_gasbase,"bad kilo_offer_gasbase");
     assertEq(packed.lock(),lock,"bad lock");
     assertEq(packed.last(),last,"bad last");
   }
@@ -220,7 +220,7 @@ contract MgvLocalTest is Test2 {
     assertEq(Tick.unwrap(unpacked.tick),Tick.unwrap(packed.tick()),"bad tick");
     assertEq(Field.unwrap(unpacked.level0),Field.unwrap(packed.level0()),"bad level0");
     assertEq(Field.unwrap(unpacked.level2),Field.unwrap(packed.level2()),"bad level2");
-    assertEq(unpacked.offer_gasbase,packed.offer_gasbase(),"bad offer_gasbase");
+    assertEq(unpacked.kilo_offer_gasbase,packed.kilo_offer_gasbase(),"bad kilo_offer_gasbase");
     assertEq(unpacked.lock,packed.lock(),"bad lock");
     assertEq(unpacked.last,packed.last(),"bad last");
   }
@@ -234,7 +234,7 @@ contract MgvLocalTest is Test2 {
     packed2 = packed2.tick(unpacked.tick);
     packed2 = packed2.level0(unpacked.level0);
     packed2 = packed2.level2(unpacked.level2);
-    packed2 = packed2.offer_gasbase(unpacked.offer_gasbase);
+    packed2 = packed2.kilo_offer_gasbase(unpacked.kilo_offer_gasbase);
     packed2 = packed2.lock(unpacked.lock);
     packed2 = packed2.last(unpacked.last);
     assertEq(packed.active(),packed2.active(),"bad active");
@@ -243,7 +243,7 @@ contract MgvLocalTest is Test2 {
     assertEq(Tick.unwrap(packed.tick()),Tick.unwrap(packed2.tick()),"bad tick");
     assertEq(Field.unwrap(packed.level0()),Field.unwrap(packed2.level0()),"bad level0");
     assertEq(Field.unwrap(packed.level2()),Field.unwrap(packed2.level2()),"bad level2");
-    assertEq(packed.offer_gasbase(),packed2.offer_gasbase(),"bad offer_gasbase");
+    assertEq(packed.kilo_offer_gasbase(),packed2.kilo_offer_gasbase(),"bad kilo_offer_gasbase");
     assertEq(packed.lock(),packed2.lock(),"bad lock");
     assertEq(packed.last(),packed2.last(),"bad last");
   }

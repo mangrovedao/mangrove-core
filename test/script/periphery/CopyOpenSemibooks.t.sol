@@ -52,7 +52,7 @@ contract CopyOpenSemibooksTest is MangroveTest {
   function test_copy_already_open(address tkn0, address tkn1) public {
     uint expectedFee = 3;
     uint expectedDensity = 4;
-    uint expectedOfferGasbase = 2;
+    uint expectedOfferGasbase = 2000;
     vm.prank(chief);
     mgv.activate(tkn0, tkn1, expectedFee, expectedDensity >> 32, expectedOfferGasbase);
     reader.updateMarket(tkn0, tkn1);

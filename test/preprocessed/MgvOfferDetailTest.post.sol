@@ -18,11 +18,11 @@ contract MgvOfferDetailTest is Test2 {
     return u << (256-to) >> (256-to);
   }
 
-  function test_pack(address maker, uint gasreq, uint offer_gasbase, uint gasprice) public {
-    MgvStructs.OfferDetailPacked packed = MgvStructs.OfferDetail.pack(maker, gasreq, offer_gasbase, gasprice);
+  function test_pack(address maker, uint gasreq, uint kilo_offer_gasbase, uint gasprice) public {
+    MgvStructs.OfferDetailPacked packed = MgvStructs.OfferDetail.pack(maker, gasreq, kilo_offer_gasbase, gasprice);
     assertEq(packed.maker(),maker,"bad maker");
     assertEq(packed.gasreq(),cast(gasreq,24),"bad gasreq");
-    assertEq(packed.offer_gasbase(),cast(offer_gasbase,24),"bad offer_gasbase");
+    assertEq(packed.kilo_offer_gasbase(),cast(kilo_offer_gasbase,10),"bad kilo_offer_gasbase");
     assertEq(packed.gasprice(),cast(gasprice,16),"bad gasprice");
   }
 
@@ -41,7 +41,7 @@ contract MgvOfferDetailTest is Test2 {
       assertEq(modified.maker(),maker,"modified: bad maker");
 
       assertEq(modified.gasreq(),packed.gasreq(),"modified: bad gasreq");
-      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
       assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
     }
   function test_set_gasreq(MgvStructs.OfferDetailPacked packed,uint gasreq) public {
@@ -53,16 +53,16 @@ contract MgvOfferDetailTest is Test2 {
       assertEq(modified.gasreq(),cast(gasreq,24),"modified: bad gasreq");
 
       assertEq(modified.maker(),packed.maker(),"modified: bad maker");
-      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
       assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
     }
-  function test_set_offer_gasbase(MgvStructs.OfferDetailPacked packed,uint offer_gasbase) public {
-      MgvStructs.OfferDetailPacked original = packed.offer_gasbase(packed.offer_gasbase());
-      assertEq(original.offer_gasbase(),packed.offer_gasbase(), "original: bad offer_gasbase");
+  function test_set_kilo_offer_gasbase(MgvStructs.OfferDetailPacked packed,uint kilo_offer_gasbase) public {
+      MgvStructs.OfferDetailPacked original = packed.kilo_offer_gasbase(packed.kilo_offer_gasbase());
+      assertEq(original.kilo_offer_gasbase(),packed.kilo_offer_gasbase(), "original: bad kilo_offer_gasbase");
 
-      MgvStructs.OfferDetailPacked modified = packed.offer_gasbase(offer_gasbase);
+      MgvStructs.OfferDetailPacked modified = packed.kilo_offer_gasbase(kilo_offer_gasbase);
 
-      assertEq(modified.offer_gasbase(),cast(offer_gasbase,24),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),cast(kilo_offer_gasbase,10),"modified: bad kilo_offer_gasbase");
 
       assertEq(modified.maker(),packed.maker(),"modified: bad maker");
       assertEq(modified.gasreq(),packed.gasreq(),"modified: bad gasreq");
@@ -78,15 +78,15 @@ contract MgvOfferDetailTest is Test2 {
 
       assertEq(modified.maker(),packed.maker(),"modified: bad maker");
       assertEq(modified.gasreq(),packed.gasreq(),"modified: bad gasreq");
-      assertEq(modified.offer_gasbase(),packed.offer_gasbase(),"modified: bad offer_gasbase");
+      assertEq(modified.kilo_offer_gasbase(),packed.kilo_offer_gasbase(),"modified: bad kilo_offer_gasbase");
     }
 
   function test_unpack(MgvStructs.OfferDetailPacked packed) public {
-    (address maker, uint gasreq, uint offer_gasbase, uint gasprice) = packed.unpack();
+    (address maker, uint gasreq, uint kilo_offer_gasbase, uint gasprice) = packed.unpack();
 
     assertEq(packed.maker(),maker,"bad maker");
     assertEq(packed.gasreq(),gasreq,"bad gasreq");
-    assertEq(packed.offer_gasbase(),offer_gasbase,"bad offer_gasbase");
+    assertEq(packed.kilo_offer_gasbase(),kilo_offer_gasbase,"bad kilo_offer_gasbase");
     assertEq(packed.gasprice(),gasprice,"bad gasprice");
   }
 
@@ -101,7 +101,7 @@ contract MgvOfferDetailTest is Test2 {
     MgvStructs.OfferDetailUnpacked memory unpacked = packed.to_struct();
     assertEq(unpacked.maker,packed.maker(),"bad maker");
     assertEq(unpacked.gasreq,packed.gasreq(),"bad gasreq");
-    assertEq(unpacked.offer_gasbase,packed.offer_gasbase(),"bad offer_gasbase");
+    assertEq(unpacked.kilo_offer_gasbase,packed.kilo_offer_gasbase(),"bad kilo_offer_gasbase");
     assertEq(unpacked.gasprice,packed.gasprice(),"bad gasprice");
   }
 
@@ -110,11 +110,11 @@ contract MgvOfferDetailTest is Test2 {
     MgvStructs.OfferDetailPacked packed2;
     packed2 = packed2.maker(unpacked.maker);
     packed2 = packed2.gasreq(unpacked.gasreq);
-    packed2 = packed2.offer_gasbase(unpacked.offer_gasbase);
+    packed2 = packed2.kilo_offer_gasbase(unpacked.kilo_offer_gasbase);
     packed2 = packed2.gasprice(unpacked.gasprice);
     assertEq(packed.maker(),packed2.maker(),"bad maker");
     assertEq(packed.gasreq(),packed2.gasreq(),"bad gasreq");
-    assertEq(packed.offer_gasbase(),packed2.offer_gasbase(),"bad offer_gasbase");
+    assertEq(packed.kilo_offer_gasbase(),packed2.kilo_offer_gasbase(),"bad kilo_offer_gasbase");
     assertEq(packed.gasprice(),packed2.gasprice(),"bad gasprice");
   }
 }

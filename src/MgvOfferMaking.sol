@@ -280,7 +280,7 @@ contract MgvOfferMaking is MgvHasOffers {
           offerData.detail = MgvStructs.OfferDetail.pack({
             __maker: msg.sender,
             __gasreq: ofp.gasreq,
-            __offer_gasbase: offer_gasbase,
+            __kilo_offer_gasbase: offer_gasbase / 1e3,
             __gasprice: ofp.gasprice
           });
         }

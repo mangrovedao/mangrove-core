@@ -318,10 +318,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_low_density_fails_newOffer() public {
     uint densityFixed = (10 ** 7) << DensityLib.FIXED_FRACTIONAL_BITS;
-    mgv.setGasbase($(base), $(quote), 1);
+    mgv.setGasbase($(base), $(quote), 1000);
     mgv.setDensityFixed($(base), $(quote), densityFixed);
     vm.expectRevert("mgv/writeOffer/density/tooLow");
-    mkr.newOffer(1 ether, DensityLib.fromFixed(densityFixed).multiply(1) - 1, 0, 0);
+    mkr.newOffer(1 ether, DensityLib.fromFixed(densityFixed).multiply(1000) - 1, 0, 0);
   }
 
   function test_maker_gets_no_mgv_balance_on_partial_fill() public {
@@ -754,5 +754,59 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertTrue(gave == got && got == 0, "market Order should be noop");
     uint gotBack = mgv.balanceOf(address(mkr)) - oldProvision;
     assertEq(gotBack, 0, "Should not have gotten any provision back");
+  }
+
+  function test_offer_gasbase_conversion() public {
+    // Local, packed
+    MgvStructs.LocalPacked local;
+    local = local.offer_gasbase(1900);
+    assertEq(local.kilo_offer_gasbase(), 1, "local,packed: wrong kilo_offer_gasbase");
+    assertEq(local.offer_gasbase(), 1000, "local,packed: wrong offer_gasbase");
+    local = local.offer_gasbase(230_082);
+    assertEq(local.kilo_offer_gasbase(), 230, "local,packed: wrong kilo_offer_gasbase");
+    assertEq(local.offer_gasbase(), 230_000, "local,packed: wrong offer_gasbase");
+    local = local.kilo_offer_gasbase(31);
+    assertEq(local.offer_gasbase(), 31000, "local,packed: wrong offer_gasbase");
+    local = local.kilo_offer_gasbase(12);
+    assertEq(local.offer_gasbase(), 12000, "local,packed: wrong offer_gasbase");
+
+    // Local, unpacked
+    MgvStructs.LocalUnpacked memory u_local;
+    u_local.offer_gasbase(1900);
+    assertEq(u_local.kilo_offer_gasbase, 1, "local,unpacked: wrong kilo_offer_gasbase");
+    assertEq(u_local.offer_gasbase(), 1000, "local,unpacked: wrong offer_gasbase");
+    u_local.offer_gasbase(230_082);
+    assertEq(u_local.kilo_offer_gasbase, 230, "local,unpacked: wrong kilo_offer_gasbase");
+    assertEq(u_local.offer_gasbase(), 230_000, "local,unpacked: wrong offer_gasbase");
+    u_local.kilo_offer_gasbase = 31;
+    assertEq(u_local.offer_gasbase(), 31000, "local,unpacked: wrong offer_gasbase");
+    u_local.kilo_offer_gasbase = 12;
+    assertEq(u_local.offer_gasbase(), 12000, "local,unpacked: wrong offer_gasbase");
+
+    // OfferDetail, packed
+    MgvStructs.OfferDetailPacked offerDetail;
+    offerDetail = offerDetail.offer_gasbase(1900);
+    assertEq(offerDetail.kilo_offer_gasbase(), 1, "offerDetail,packed: wrong kilo_offer_gasbase");
+    assertEq(offerDetail.offer_gasbase(), 1000, "offerDetail,packed: wrong offer_gasbase");
+    offerDetail = offerDetail.offer_gasbase(230_082);
+    assertEq(offerDetail.kilo_offer_gasbase(), 230, "offerDetail,packed: wrong kilo_offer_gasbase");
+    assertEq(offerDetail.offer_gasbase(), 230_000, "offerDetail,packed: wrong offer_gasbase");
+    offerDetail = offerDetail.kilo_offer_gasbase(31);
+    assertEq(offerDetail.offer_gasbase(), 31000, "offerDetail,packed: wrong offer_gasbase");
+    offerDetail = offerDetail.kilo_offer_gasbase(12);
+    assertEq(offerDetail.offer_gasbase(), 12000, "offerDetail,packed: wrong offer_gasbase");
+
+    // OfferDetail, unpacked
+    MgvStructs.OfferDetailUnpacked memory u_offerDetail;
+    u_offerDetail.offer_gasbase(1900);
+    assertEq(u_offerDetail.kilo_offer_gasbase, 1, "offerDetail,unpacked: wrong kilo_offer_gasbase");
+    assertEq(u_offerDetail.offer_gasbase(), 1000, "offerDetail,unpacked: wrong offer_gasbase");
+    u_offerDetail.offer_gasbase(230_082);
+    assertEq(u_offerDetail.kilo_offer_gasbase, 230, ": wrong kilo_offer_gasbase");
+    assertEq(u_offerDetail.offer_gasbase(), 230_000, "offerDetail,unpacked: wrong offer_gasbase");
+    u_offerDetail.kilo_offer_gasbase = 31;
+    assertEq(u_offerDetail.offer_gasbase(), 31000, "offerDetail,unpacked: wrong offer_gasbase");
+    u_offerDetail.kilo_offer_gasbase = 12;
+    assertEq(u_offerDetail.offer_gasbase(), 12000, "offerDetail,unpacked: wrong offer_gasbase");
   }
 }

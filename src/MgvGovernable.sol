@@ -101,8 +101,9 @@ contract MgvGovernable is MgvRoot {
     unchecked {
       authOnly();
       /* Checking the size of `offer_gasbase` is necessary to prevent a) data loss when copied to an `OfferDetail` struct, and b) overflow when used in calculations. */
-
-      require(MgvStructs.Local.offer_gasbase_check(offer_gasbase), MgvStructs.Local.offer_gasbase_size_error);
+      require(
+        MgvStructs.Local.kilo_offer_gasbase_check(offer_gasbase / 1e3), MgvStructs.Local.kilo_offer_gasbase_size_error
+      );
       // require(uint24(offer_gasbase) == offer_gasbase, "mgv/config/offer_gasbase/24bits");
       //+clear+
       Pair storage pair = pairs[outbound_tkn][inbound_tkn];

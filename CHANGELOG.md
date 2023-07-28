@@ -1,6 +1,6 @@
 # Next version
 
-# 1.5.7-0
+# 1.5.7
 
 - Fix: New publish workflow with foundry
 

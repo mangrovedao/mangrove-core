@@ -1,6 +1,6 @@
 {
   "name": "@mangrovedao/mangrove-core",
-  "version": "1.5.7-0",
+  "version": "1.5.7",
   "author": "Mangrove DAO",
   "license": "SEE LICENSE IN LICENSE",
   "main": "index.js",

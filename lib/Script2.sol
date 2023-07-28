@@ -735,6 +735,39 @@ contract Script2 is Script {
     }
   }
 
+  /* Math Conversion  */
+  // to bin representation
+  function b2(uint x) internal pure returns (string memory str) {
+    bytes memory ar = '01';
+    for (uint i = 0;i<256;i++) {
+      str = string(bytes.concat(ar[x%2],bytes(str)));
+      x = x/2;
+    }
+  }
+
+  // to hex representation
+  function b16(uint x) internal pure returns (string memory str) {
+    bytes memory ar = '0123456789abcdef';
+    for (uint i=0;i<256;i=i+4) {
+      str = string(bytes.concat(ar[x%16],bytes(str)));
+      x = x/16;
+    }
+  }
+
+  // from binary representation to number
+  // zb stands for '0b' as in a 0b binary prefix
+  function zb(string memory b) internal pure returns (uint n) {
+    uint acc = 1;
+    for (uint i = 0;i<bytes(b).length;i++) {
+      if (bytes(b)[bytes(b).length-1-i] == '1') {
+        n = n + acc;
+      }
+      unchecked {
+        acc = acc * 2;
+      }
+    }
+  }
+
   /// @notice Convert a bytes32 array to a string array
   /// @param bs an array of bytes32
   /// @return ss an array of strings

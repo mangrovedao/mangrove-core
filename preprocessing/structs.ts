@@ -239,7 +239,7 @@ They have the following fields: */
     fields: [
       /* * A `outbound_tkn`,`inbound_tkn` pair is in`active` by default, but may be activated/deactivated by governance. */
       { name: "active", bits: 1, type: "bool" },
-      /* * `fee`, in basis points, of `outbound_tkn` given to the taker. This fee is sent to Mangrove. Fee is capped to 5%. */
+      /* * `fee`, in basis points, of `outbound_tkn` given to the taker. This fee is sent to Mangrove. Fee is capped to ~2.5%. */
       { name: "fee", bits: 8, type: "uint" },
       /* * `density` is similar to a 'dust' parameter. We prevent spamming of low-volume offers by asking for a minimum 'density' in `outbound_tkn` per gas requested. For instance, if `density` is worth 10,, `offer_gasbase == 5000`, an offer with `gasreq == 30000` must promise at least _10 × (30000 + 5000) = 350000_ `outbound_tkn`. _9 bits wide_.
 

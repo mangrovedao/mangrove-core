@@ -9,15 +9,20 @@ import {IERC20} from "mgv_src/IERC20.sol";
 contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
   event LogAaveIncident(address indexed maker, address indexed asset, bytes32 aaveReason);
 
+  uint internal immutable BUFFER_SIZE;
+
   ///@notice contract's constructor
   ///@param addressesProvider address of AAVE's address provider
   ///@param interestRate interest rate mode for borrowing assets. 0 for none, 1 for stable, 2 for variable
   ///@param overhead is the amount of gas that is required for this router to be able to perform a `pull` and a `push`.
   ///@dev `msg.sender` will be admin of this router
-  constructor(address addressesProvider, uint interestRate, uint overhead)
+  constructor(address addressesProvider, uint interestRate, uint overhead, uint buffer_size)
     AaveMemoizer(addressesProvider, interestRate)
     AbstractRouter(overhead)
-  {}
+  {
+    require(buffer_size <= 100, "PrivateRouter/InvalidBufferSize");
+    BUFFER_SIZE = buffer_size;
+  }
 
   ///@notice Deposit funds on this router from the calling maker contract
   ///@dev no transfer to AAVE is done at that moment.
@@ -173,7 +178,11 @@ contract AavePrivateRouter is AaveMemoizer, AbstractRouter {
       }
       if (amount > localBalance && amount - localBalance <= maxBorrow) {
         // missing funds and able to borrow what's missing
-        bytes32 reason = _borrow(token, amount - localBalance, address(this), true);
+        uint missing = amount - localBalance;
+        uint buffer = (BUFFER_SIZE * maxBorrow) / 100;
+        // if buffer < missing, we still borrow missing from the pool in order not to make offer fail if possible
+        uint toBorrow = buffer > missing ? buffer : missing;
+        bytes32 reason = _borrow(token, toBorrow, address(this), true);
         if (reason != bytes32(0)) {
           // we failed to borrow missing amount
           // note we do not try to borrow a part of missing for gas reason

@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import {Tick,Field} from "mgv_lib/TickLib.sol";
 
-import {log2} from "mgv_lib/TickLib.sol";
+import {BitLib} from "mgv_lib/BitLib.sol";
 
 /* Density
 
@@ -72,8 +72,8 @@ library DensityLib {
     if (densityFixed <= MANTISSA_MASK) {
       return Density.wrap(densityFixed);
     }
-    // invariant: exp >= 2
-    uint exp = log2(densityFixed);
+    // invariant: exp >= 2 (so not 0)
+    uint exp = BitLib.fls(densityFixed);
     return make(densityFixed >> (exp-MANTISSA_BITS),exp);
   }}
 

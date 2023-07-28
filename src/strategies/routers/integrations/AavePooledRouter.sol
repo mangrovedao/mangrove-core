@@ -5,6 +5,7 @@ import {AbstractRouter} from "../AbstractRouter.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {HasAaveBalanceMemoizer} from "./HasAaveBalanceMemoizer.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
+import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.sol";
 
 ///@title Router acting as a liquidity reserve on AAVE for multiple depositors (possibly coming from different maker contracts).
 ///@notice maker contracts deposit/withdraw their user(s) fund(s) on this router, which maintains an accounting of shares attributed to each depositor
@@ -252,6 +253,19 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     }
     redeemAndTransfer(token, reserveId, amount_, toRedeem, memoizer);
     return amount_;
+  }
+
+  ///@notice router-dependent implementation of the `pull` function
+  ///@return pulled The amount pulled if successful; otherwise, 0.
+  function __pull__(
+    IERC20, /*token*/
+    address, /*reserveId*/
+    uint, /*amount*/
+    bool, /*strict*/
+    ISignatureTransfer.PermitTransferFrom calldata, /*permit*/
+    bytes calldata /*signature*/
+  ) internal virtual override returns (uint) {
+    revert("AavePooledRouter/DoNotSupportPullWithUArg");
   }
 
   ///@notice redeems some funds from AAVE pool and transfer some amount to msg.sender.

@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 import {IERC20} from "mgv_src/MgvLib.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {AbstractRouter} from "./AbstractRouter.sol";
+import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.sol";
 
 ///@title `SimpleRouter` instances pull (push) liquidity directly from (to) the an offer owner's account
 ///@dev Maker contracts using this router must make sure that the reserve approves the router for all asset that will be pulled (outbound tokens)
@@ -31,6 +32,19 @@ contract SimpleRouter is
     } else {
       return 0;
     }
+  }
+
+  ///@notice router-dependent implementation of the `pull` function
+  ///@return pulled The amount pulled if successful; otherwise, 0.
+  function __pull__(
+    IERC20, /*token*/
+    address, /*reserveId*/
+    uint, /*amount*/
+    bool, /*strict*/
+    ISignatureTransfer.PermitTransferFrom calldata, /*permit*/
+    bytes calldata /*signature*/
+  ) internal virtual override returns (uint) {
+    revert("SimpleRouter/DoNotSupportPullWithUArg");
   }
 
   /// @notice transfers an amount of tokens from the maker to the reserve.

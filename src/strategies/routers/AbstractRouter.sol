@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
 import {IERC20} from "mgv_src/MgvLib.sol";
+import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.sol";
 
 /// @title AbstractRouter
 /// @notice Partial implementation and requirements for liquidity routers.
@@ -73,6 +74,49 @@ abstract contract AbstractRouter is AccessControlled {
   ///@param strict wether the caller maker contract wishes to pull at most `amount` tokens of owner.
   ///@return pulled The amount pulled if successful; otherwise, 0.
   function __pull__(IERC20 token, address reserveId, uint amount, bool strict) internal virtual returns (uint);
+
+  ///@notice pulls liquidity from the reserve and sends it to the calling maker contract.
+  ///@param token is the ERC20 managing the pulled asset
+  ///@param reserveId identifies the fund owner (router implementation dependent).
+  ///@param amount of `token` the maker contract wishes to pull from its reserve
+  ///@param strict when the calling maker contract accepts to receive more funds from reserve than required (this may happen for gas optimization)
+  ///@param signature signature provided by user
+  ///@return pulled the amount that was successfully pulled.
+  function pull(
+    IERC20 token,
+    address reserveId,
+    uint amount,
+    bool strict,
+    ISignatureTransfer.PermitTransferFrom calldata permit,
+    bytes calldata signature
+  ) external onlyBound returns (uint pulled) {
+    if (strict && amount == 0) {
+      return 0;
+    }
+    pulled = __pull__({
+      token: token,
+      reserveId: reserveId,
+      amount: amount,
+      strict: strict,
+      permit: permit,
+      signature: signature
+    });
+  }
+
+  ///@notice router-dependent implementation of the `pull` function
+  ///@param token Token to be transferred
+  ///@param reserveId determines the location of the reserve (router implementation dependent).
+  ///@param amount The amount of tokens to be transferred
+  ///@param signature signature provided by user
+  ///@return pulled The amount pulled if successful; otherwise, 0.
+  function __pull__(
+    IERC20 token,
+    address reserveId,
+    uint amount,
+    bool strict,
+    ISignatureTransfer.PermitTransferFrom calldata permit,
+    bytes calldata signature
+  ) internal virtual returns (uint);
 
   ///@notice pushes assets from calling's maker contract to a reserve
   ///@param token is the asset the maker is pushing

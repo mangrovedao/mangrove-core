@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import "../OfferLogic.t.sol";
-import "mgv_src/strategies/routers/Permit2Router.sol";
+import {Permit2Router} from "mgv_src/strategies/routers/Permit2Router.sol";
 import {IPermit2} from "lib/permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 

@@ -550,6 +550,23 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   // not gatekeeping! move me.
+  function test_leaf_is_flushed_case1() public {
+    mgv.setGasmax(10_000_000);
+    uint id = mgv.newOffer($(base), $(quote), 0.05 ether, 0.05 ether, 3500_000, 0);
+    MgvStructs.OfferPacked ofr = pair.offers(id);
+    // FIXME increasing tick by 2 because tick->price->tick does not round up currently
+    // when that is fixed, should replace with tick+1
+    Tick nextTick = Tick.wrap(Tick.unwrap(ofr.tick()) + 2);
+    uint gives = nextTick.outboundFromInbound(5 ether);
+    uint id2 = mgv.newOffer($(base), $(quote), 5 ether, gives, 3500_000, 0);
+    tkr.marketOrder(0.05 ether, 0.05 ether);
+    // low-level check
+    assertEq(pair.leafs(ofr.tick().leafIndex()).getNextOfferId(), id2);
+    // high-level check
+    assertTrue(mgv.best($(base), $(quote)) == id2, "2nd market order must have emptied mgv");
+  }
+
+  // not gatekeeping! move me.
   // Check that un-caching a nonempty level0 works
   function test_remove_with_new_best_saves_previous_level0() public {
     // make a great offer so its level0 is cached

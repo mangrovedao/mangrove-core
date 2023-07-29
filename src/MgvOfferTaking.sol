@@ -265,8 +265,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         // sor.local = sor.local.level0(mor.level0);
 
         index = tick.leafIndex();
+        // leaf cached in memory is flushed to storage everytime it gets emptied, but at the end of a market order we need to store it correctly
         // second conjunct is for when you did not ever read leaf
-        if (!pair.leafs[index].eq(mor.leaf) && !(mor.leaf.isEmpty() && sor.offerId != 0)) {
+        if (!pair.leafs[index].eq(mor.leaf)) {
           pair.leafs[index] = mor.leaf;
         }
 

@@ -85,7 +85,7 @@ const fields = {
   gives: { name: "gives", bits: 96, type: "uint" },
   gasprice: { name: "gasprice", bits: 16, type: "uint" },
   gasreq: { name: "gasreq", bits: 24, type: "uint" },
-  offer_gasbase: { name: "offer_gasbase", bits: 24, type: "uint" },
+  kilo_offer_gasbase: { name: "kilo_offer_gasbase", bits: 10, type: "uint" },
 };
 
 const id_field = (name: string) => {
@@ -172,7 +172,7 @@ They have the following fields: */
     */
       fields.gasreq,
       /*
-        * <a id="structs.js/gasbase"></a>  `offer_gasbase` represents the gas overhead used by processing the offer inside Mangrove + the overhead of initiating an entire order.
+        * <a id="structs.js/gasbase"></a>  `offer_gasbase` represents the gas overhead used by processing the offer inside Mangrove + the overhead of initiating an entire order, in 1k gas increments.
 
       The gas considered 'used' by an offer is the sum of
       * gas consumed during the call to the offer
@@ -184,10 +184,10 @@ They have the following fields: */
     provision per unit of gas used. `gasprice` should approximate the average gas
     price at offer creation time.
 
-    `offer_gasbase` is _24 bits wide_ -- note that if more room was needed, we could bring it down to 8 bits and have it represent 1k gas increments.
+    `kilo_offer_gasbase` is the actual field name, and is _10 bits wide_ and represents 1k gas increments. The accessor `offer_gasbase` returns `kilo_offer_gasbase * 1e3`.
 
-    `offer_gasbase` is also the name of a local Mangrove
-    parameters. When an offer is created, their current value is copied from Mangrove local configuration.  The maker does not choose it.
+    `kilo_offer_gasbase` is also the name of a local Mangrove
+    parameters. When an offer is created, their current value is copied from Mangrove local configuration. The maker does not choose it.
 
     So, when an offer is created, the maker is asked to provision the
     following amount of wei:
@@ -206,10 +206,32 @@ They have the following fields: */
     where `offer_gasbase` and `gasprice` are Mangrove's current configuration values.  The rest is given back to the maker.
 
       */
-      fields.offer_gasbase,
-      /* * `gasprice` is in gwei/gas and _16 bits wide_, which accomodates 1 to ~65k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gasprice`. */
+      fields.kilo_offer_gasbase,
+      /* * `gasprice` is in gwei/gas and _16 bits wide_, which accomodates 1 to ~65k gwei / gas.  `gasprice` is also the name of a global Mangrove parameter. When an offer is created, the offer's `gasprice` is set to the max of the user-specified `gasprice` and Mangrove's global `gsprice`. */
       fields.gasprice,
     ],
+    additionalDefinitions: (struct) => `
+using OfferDetailPackedExtra for OfferDetailPacked global;
+using OfferDetailUnpackedExtra for OfferDetailUnpacked global;
+
+library OfferDetailPackedExtra {
+  function offer_gasbase(OfferDetailPacked offerDetail) internal pure returns (uint) { unchecked {
+    return offerDetail.kilo_offer_gasbase() * 1e3;
+  }}
+  function offer_gasbase(OfferDetailPacked offerDetail,uint val) internal pure returns (OfferDetailPacked) { unchecked {
+    return offerDetail.kilo_offer_gasbase(val/1e3);
+  }}
+}
+
+library OfferDetailUnpackedExtra {
+  function offer_gasbase(OfferDetailUnpacked memory offerDetail) internal pure returns (uint) { unchecked {
+    return offerDetail.kilo_offer_gasbase * 1e3;
+  }}
+  function offer_gasbase(OfferDetailUnpacked memory offerDetail,uint val) internal pure { unchecked {
+    offerDetail.kilo_offer_gasbase = val/1e3;
+  }}
+}
+`,
   },
 
   /* ## Configuration and state
@@ -250,8 +272,8 @@ They have the following fields: */
       { name: "tick", bits: 24, type: "Tick", underlyingType: "int" },
       { name: "level0", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "level2", bits: 32, type: "Field", underlyingType: "uint" },
-      /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. Local to a pair because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
-      fields.offer_gasbase,
+      /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. The actual field name is `kilo_offer_gasbase` and the accessor `offer_gasbase` returns `kilo_offer_gasbase*1e3`. Local to a pair, because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
+      fields.kilo_offer_gasbase,
       /* * If `lock` is true, orders may not be added nor executed.
 
         Reentrancy during offer execution is not considered safe:
@@ -278,11 +300,23 @@ library LocalPackedExtra {
   function densityFromFixed(LocalPacked local, uint densityFixed) internal pure returns (LocalPacked) { unchecked {
     return local.density(DensityLib.fromFixed(densityFixed));
   }}
+  function offer_gasbase(LocalPacked local) internal pure returns (uint) { unchecked {
+    return local.kilo_offer_gasbase() * 1e3;
+  }}
+  function offer_gasbase(LocalPacked local,uint val) internal pure returns (LocalPacked) { unchecked {
+    return local.kilo_offer_gasbase(val/1e3);
+  }}
 }
 
 library LocalUnpackedExtra {
   function densityFromFixed(LocalUnpacked memory local, uint densityFixed) internal pure { unchecked {
     local.density = DensityLib.fromFixed(densityFixed);
+  }}
+  function offer_gasbase(LocalUnpacked memory local) internal pure returns (uint) { unchecked {
+    return local.kilo_offer_gasbase * 1e3;
+  }}
+  function offer_gasbase(LocalUnpacked memory local,uint val) internal pure { unchecked {
+    local.kilo_offer_gasbase = val/1e3;
   }}
 }
 `,

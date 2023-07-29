@@ -184,6 +184,9 @@ library TickLib {
   function priceFromTick_e18(Tick tick) internal pure returns (uint) {
     require(Tick.unwrap(tick) >= MIN_TICK,"mgv/tick/tooLow");
     require(Tick.unwrap(tick) <= MAX_TICK,"mgv/tick/tooHigh");
+    // FIXME this must round up so tick(price(tick)) = tick
+    // FIXME add a test for this
+    // Right now e.g. priceFromTick(1) is too low, and tickFromVolumes(1 ether,Tick(1).outboundFromInbound(1 ether)) is 0 (should be 1)
     return uint(FP.powWad(BP, Tick.unwrap(tick) * 1e18));
   }
 

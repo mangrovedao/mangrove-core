@@ -595,7 +595,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint ofr0 = mgv.newOffer($(base), $(quote), 0.01 ether, 1 ether, 1000000, 0);
     Tick tick0 = pair.offers(ofr0).tick();
     mgv.retractOffer($(base), $(quote), ofr0, true);
-    assertEq(pair.leafs(tick0.leafIndex()), LeafLib.EMPTY);
+    assertEq(pair.leafs(tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
 
   /* Snipe failure */

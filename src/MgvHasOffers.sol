@@ -115,7 +115,7 @@ contract MgvHasOffers is MgvRoot {
     Pair storage pair,
     MgvStructs.OfferPacked offer,
     MgvStructs.LocalPacked local,
-    bool shouldUpdateBest
+    bool shouldUpdateBranch
   ) internal returns (MgvStructs.LocalPacked) {
     unchecked {
       Leaf leaf;
@@ -133,7 +133,11 @@ contract MgvHasOffers is MgvRoot {
       // prevId == 0 && !local.tick.strictlyBetter(offerTick)
       // with
       // offerId == local.best() (but best will maybe go away in the future)
-      shouldUpdateBest = shouldUpdateBest && prevId == 0 && !local.tick().strictlyBetter(offerTick);
+
+      // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
+      // if local.tick < offerTick then a better branch is already cached. note that local.tick >= offerTick implies local.tick = offerTick
+      // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
+      shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !local.tick().strictlyBetter(offerTick);
 
       if (prevId == 0) {
         // offer was tick's first. new first offer is offer.next (may be 0)
@@ -171,42 +175,44 @@ contract MgvHasOffers is MgvRoot {
             pair.level0[index] = field;
           }
           if (field.isEmpty()) {
-            index = offerTick.level1Index();
-            field = pair.level1[index].flipBitAtLevel1(offerTick);
-            pair.level1[index] = field;
+            index = offerTick.level1Index(); // level0Index or level1Index
+            if (index == local.tick().level1Index()) {
+              field = local.level1().flipBitAtLevel1(offerTick);
+              local = local.level1(field);
+              if (field.isEmpty()) {
+                pair.level1[index] = field;
+              }
+            } else {
+              field = pair.level1[index].flipBitAtLevel1(offerTick);
+              pair.level1[index] = field;
+            }
             if (field.isEmpty()) {
               local = local.level2(local.level2().flipBitAtLevel2(offerTick));
 
               // FIXME: should I let log2 not revert, but just return 0 if x is 0?
               // Why am I setting tick to 0 before I return?
               if (local.level2().isEmpty()) {
-                local = local.tick(Tick.wrap(0));
                 return local;
               }
-              // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBest is false, because the
-              if (shouldUpdateBest) {
+              // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
+              if (shouldUpdateBranch) {
                 index = local.level2().firstLevel1Index();
-                // OPTIMIZE this is useless if we go down to same level1 as before
                 field = pair.level1[index];
+                local = local.level1(field);
               }
             }
-            // OPTIMIZE this is useless if we go down to same level0 as before
-            if (shouldUpdateBest) {
+            if (shouldUpdateBranch) {
               index = field.firstLevel0Index(index);
               field = pair.level0[index];
               local = local.level0(field);
             }
           }
-          if (shouldUpdateBest) {
+          if (shouldUpdateBranch) {
             leaf = pair.leafs[field.firstLeafIndex(index)];
           }
         }
-        if (shouldUpdateBest) {
-          // local = local.best(leaf.getNextOfferId());
-
-          // INEFFICIENT find a way to avoid a read, this can be deduced from the above
-          // Or not inefficient because one fewer read to do when taking?
-          local = local.tick(pair.offerData[leaf.getNextOfferId()].offer.tick());
+        if (shouldUpdateBranch) {
+          local = local.tickPosInLeaf(leaf.firstOfferPosition());
         }
       }
       return local;

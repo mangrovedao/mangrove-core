@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {Test2, toFixed, Test, console, toString} from "mgv_lib/Test2.sol";
+import {Test2, toFixed, Test, console, toString, vm} from "mgv_lib/Test2.sol";
 import {TestTaker} from "mgv_test/lib/agents/TestTaker.sol";
 import {TestSender} from "mgv_test/lib/agents/TestSender.sol";
 import {TrivialTestMaker, TestMaker, OfferData} from "mgv_test/lib/agents/TestMaker.sol";
@@ -57,6 +57,29 @@ library PairLib {
     return pair.mgv.best(pair.outbound_tkn, pair.inbound_tkn);
   }
 
+  function logTickTreeBranch(Pair memory pair) internal view {
+    console.log("--------CURRENT TICK TREE BRANCH--------");
+    MgvStructs.LocalPacked _local = pair.reader.local(pair.outbound_tkn, pair.inbound_tkn);
+    Tick tick = _local.tick();
+    console.log("Current tick %s", toString(tick));
+    console.log("Current posInLeaf %s", tick.posInLeaf());
+    int leafIndex = tick.leafIndex();
+    console.log(
+      "Current leaf %s (index %s)",
+      toString(pair.mgv.leafs(pair.outbound_tkn, pair.inbound_tkn, leafIndex)),
+      vm.toString(leafIndex)
+    );
+    console.log("Current level 0 %s (index %s)", toString(_local.level0()), vm.toString(tick.level0Index()));
+    int level1Index = tick.level1Index();
+    console.log(
+      "Current level 1 %s (index %s)",
+      toString(pair.mgv.level1(pair.outbound_tkn, pair.inbound_tkn, level1Index)),
+      vm.toString(level1Index)
+    );
+    console.log("Current level 2 %s", toString(_local.level2()));
+    console.log("----------------------------------------");
+  }
+
   function nextOfferId(Pair memory pair, MgvStructs.OfferPacked offer) internal view returns (uint) {
     return pair.reader.nextOfferId(pair.outbound_tkn, pair.inbound_tkn, offer);
   }
@@ -83,6 +106,10 @@ library PairLib {
 
   function level2(Pair memory pair) internal view returns (Field) {
     return pair.mgv.level2(pair.outbound_tkn, pair.inbound_tkn);
+  }
+
+  function local(Pair memory pair) internal view returns (MgvStructs.LocalPacked) {
+    return pair.reader.local(pair.outbound_tkn, pair.inbound_tkn);
   }
 }
 
@@ -515,6 +542,13 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
+  function assertEq(Leaf a, Leaf b, string memory err) internal {
+    if (!a.eq(b)) {
+      emit log_named_string("Error", err);
+      assertEq(a, b);
+    }
+  }
+
   function assertEq(Field a, Field b) internal {
     if (!a.eq(b)) {
       emit log("Error: a == b not satisfied [Field]");
@@ -533,22 +567,6 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   // logs an overview of the current branch
   function logTickTreeBranch(address outbound_tkn, address inbound_tkn) public view {
-    console.log("--------CURRENT TICK TREE BRANCH--------");
-    MgvStructs.LocalPacked local = reader.local(outbound_tkn, inbound_tkn);
-    Tick tick = local.tick();
-    console.log("Current tick %s", toString(tick));
-    int leafIndex = tick.leafIndex();
-    console.log(
-      "Current leaf %s (index %s)", toString(mgv.leafs(outbound_tkn, inbound_tkn, leafIndex)), vm.toString(leafIndex)
-    );
-    console.log("Current level 0 %s (index %s)", toString(local.level0()), vm.toString(tick.level0Index()));
-    int level1Index = tick.level1Index();
-    console.log(
-      "Current level 1 %s (index %s)",
-      toString(mgv.level1(outbound_tkn, inbound_tkn, level1Index)),
-      vm.toString(level1Index)
-    );
-    console.log("Current level 2 %s", toString(local.level2()));
-    console.log("----------------------------------------");
+    Pair({mgv: mgv, reader: reader, outbound_tkn: outbound_tkn, inbound_tkn: inbound_tkn}).logTickTreeBranch();
   }
 }

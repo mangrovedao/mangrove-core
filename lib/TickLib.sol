@@ -7,8 +7,8 @@ import {FixedPointMathLib as FP} from "solady/utils/FixedPointMathLib.sol";
 uint constant ONES = type(uint).max;
 uint constant TOPBIT = 1 << 255;
 
-// MIN_TICK and MAX_TICK should be inside the addressable range defined by the sum of the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2
-int constant MIN_TICK = -694605 ;
+// MIN_TICK and MAX_TICK should be inside the addressable range defined by the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2
+int constant MIN_TICK = -524287;
 int constant MAX_TICK = -MIN_TICK;
 
 // sizes must match field sizes in structs.ts where relevant
@@ -18,8 +18,8 @@ uint constant OFFER_BITS = 32;
 // only power-of-two sizes are supported for LEAF_SIZE and LEVEL*_SIZE
 uint constant LEAF_SIZE_BITS = 2; 
 uint constant LEVEL0_SIZE_BITS = 6;
-uint constant LEVEL1_SIZE_BITS = 8;
-uint constant LEVEL2_SIZE_BITS = 5;
+uint constant LEVEL1_SIZE_BITS = 6;
+uint constant LEVEL2_SIZE_BITS = 6;
 
 int constant LEAF_SIZE = int(2 ** (LEAF_SIZE_BITS));
 int constant LEVEL0_SIZE = int(2 ** (LEVEL0_SIZE_BITS));
@@ -119,6 +119,29 @@ library LeafLib {
     return uint(raw << (OFFER_BITS * ((index * 2) + 1)) >> (256 - OFFER_BITS));
   }
 
+  // TODO optimize with a hashmap
+  function firstOfferPosition(Leaf leaf) internal pure returns (uint ret) {
+    uint offerId = Leaf.unwrap(leaf) >> (OFFER_BITS * 7);
+    if (offerId != 0) {
+      ret = 0;
+    } else {
+      offerId = Leaf.unwrap(leaf) << (OFFER_BITS * 2) >> (OFFER_BITS * 7);
+      if (offerId != 0) {
+        ret = 1;
+      } else {
+        offerId = Leaf.unwrap(leaf) << (OFFER_BITS * 4) >> (OFFER_BITS * 7);
+        if (offerId != 0) {
+          ret = 2;
+        } else {
+          offerId = Leaf.unwrap(leaf) << (OFFER_BITS * 6) >> (OFFER_BITS * 7);
+          if (offerId != 0) {
+            ret = 3;
+          }
+        }
+      }
+    }
+  }
+
   // TODO: a debruijn hashtable would be less gasexpensive?
   // returns the 0 offer if empty
   // FIXME find a version with way fewer jumps
@@ -142,6 +165,18 @@ library TickLib {
   int constant BP = 1.0001 * 1e18;
   // FP.lnWad(BP)
   uint constant lnBP = 99995000333308;
+
+  function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2) internal pure returns (Tick) {
+    unchecked {
+      uint utick = tickPosInLeaf |
+        ((BitLib.ctz(Field.unwrap(level0)) |
+          (BitLib.ctz(Field.unwrap(level1)) |
+            uint((int(BitLib.ctz(Field.unwrap(level2)))-LEVEL2_SIZE/2) << LEVEL1_SIZE_BITS)) 
+            << LEVEL0_SIZE_BITS)
+          << LEAF_SIZE_BITS);
+      return Tick.wrap(int(utick));
+    }
+  }
 
   // returns log_(1.0001)(wants/gives)
   // with wants/gives on 96 bits, tick will be < 24bits

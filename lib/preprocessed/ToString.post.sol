@@ -50,7 +50,7 @@ function toString(LocalPacked __packed) pure returns (string memory) {
 }
 
 function toString(LocalUnpacked memory __unpacked) pure returns (string memory) {
-  return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "tick: ", toString(__unpacked.tick), ", ", "level0: ", toString(__unpacked.level0), ", ", "level2: ", toString(__unpacked.level2), ", ", "kilo_offer_gasbase: ", vm.toString(__unpacked.kilo_offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "last: ", vm.toString(__unpacked.last),"}");
+  return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "tickPosInLeaf: ", vm.toString(__unpacked.tickPosInLeaf), ", ", "level0: ", toString(__unpacked.level0), ", ", "level1: ", toString(__unpacked.level1), ", ", "level2: ", toString(__unpacked.level2), ", ", "kilo_offer_gasbase: ", vm.toString(__unpacked.kilo_offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "last: ", vm.toString(__unpacked.last),"}");
 }
 
 function toString(Tick tick) pure returns (string memory ret) {

@@ -269,9 +269,10 @@ library OfferDetailUnpackedExtra {
       
       */
       { name: "density", bits: 9, type: "Density", underlyingType: "uint"},
-      { name: "tick", bits: 24, type: "Tick", underlyingType: "int" },
+      { name: "tickPosInLeaf", bits: 2, type: "uint" },
       { name: "level0", bits: 64, type: "Field", underlyingType: "uint" },
-      { name: "level2", bits: 32, type: "Field", underlyingType: "uint" },
+      { name: "level1", bits: 64, type: "Field", underlyingType: "uint" },
+      { name: "level2", bits: 64, type: "Field", underlyingType: "uint" },
       /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. The actual field name is `kilo_offer_gasbase` and the accessor `offer_gasbase` returns `kilo_offer_gasbase*1e3`. Local to a pair, because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
       fields.kilo_offer_gasbase,
       /* * If `lock` is true, orders may not be added nor executed.
@@ -290,7 +291,7 @@ library OfferDetailUnpackedExtra {
       id_field("last"),
     ],
     additionalDefinitions: (struct) => `
-import {Tick,Field} from "mgv_lib/TickLib.sol";
+import {Tick,TickLib,Field} from "mgv_lib/TickLib.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 
 using LocalPackedExtra for LocalPacked global;
@@ -306,6 +307,9 @@ library LocalPackedExtra {
   function offer_gasbase(LocalPacked local,uint val) internal pure returns (LocalPacked) { unchecked {
     return local.kilo_offer_gasbase(val/1e3);
   }}
+  function tick(LocalPacked local) internal pure returns (Tick) {
+    return TickLib.tickFromBranch(local.tickPosInLeaf(),local.level0(),local.level1(),local.level2());
+  }
 }
 
 library LocalUnpackedExtra {
@@ -318,6 +322,9 @@ library LocalUnpackedExtra {
   function offer_gasbase(LocalUnpacked memory local,uint val) internal pure { unchecked {
     local.kilo_offer_gasbase = val/1e3;
   }}
+  function tick(LocalUnpacked memory local) internal pure returns (Tick) {
+    return TickLib.tickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2);
+  }
 }
 `,
   }

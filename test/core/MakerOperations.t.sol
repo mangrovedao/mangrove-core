@@ -809,4 +809,53 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     u_offerDetail.kilo_offer_gasbase = 12;
     assertEq(u_offerDetail.offer_gasbase(), 12000, "offerDetail,unpacked: wrong offer_gasbase");
   }
+
+  function test_update_branch_on_retract_posInLeaf() public {
+    mkr.provisionMgv(10 ether);
+    uint wants = 5 ether;
+    mkr.newOffer(wants, Tick.wrap(3).outboundFromInbound(wants), 100_000, 0);
+    uint posInLeaf = pair.local().tickPosInLeaf();
+    uint ofr = mkr.newOffer(wants, Tick.wrap(2).outboundFromInbound(wants), 100_000, 0);
+    assertGt(
+      posInLeaf, pair.local().tickPosInLeaf(), "test void if posInLeaf does not change when second offer is created"
+    );
+    mkr.retractOffer(ofr);
+    assertEq(posInLeaf, pair.local().tickPosInLeaf(), "posInLeaf should have been restored");
+  }
+
+  function test_update_branch_on_retract_level0() public {
+    mkr.provisionMgv(10 ether);
+    mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
+    Field level0 = pair.local().level0();
+    int level0Index = pair.local().tick().level0Index();
+    uint ofr = mkr.newOffer(1 ether, 10 ether, 100_000, 0);
+    assertGt(
+      level0Index, pair.local().tick().level0Index(), "test void if level0 does not change when second offer is created"
+    );
+    mkr.retractOffer(ofr);
+    assertEq(level0, pair.local().level0(), "level0 should have been restored");
+  }
+
+  function test_update_branch_on_retract_level1() public {
+    mkr.provisionMgv(10 ether);
+    mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
+    Field level1 = pair.local().level1();
+    int level1Index = pair.local().tick().level1Index();
+    uint ofr = mkr.newOffer(1 ether, 100 ether, 100_000, 0);
+    assertGt(
+      level1Index, pair.local().tick().level1Index(), "test void if level1 does not change when second offer is created"
+    );
+    mkr.retractOffer(ofr);
+    assertEq(level1, pair.local().level1(), "level1 should have been restored");
+  }
+
+  function test_update_branch_on_retract_level2() public {
+    mkr.provisionMgv(10 ether);
+    mkr.newOffer(1.0 ether, 1 ether, 100_000, 0);
+    Field level2 = pair.local().level2();
+    uint ofr = mkr.newOffer(1 ether, 100 ether, 100_000, 0);
+    assertTrue(!level2.eq(pair.local().level2()), "test void if level2 does not change when second offer is created");
+    mkr.retractOffer(ofr);
+    assertEq(level2, pair.local().level2(), "level2 should have been restored");
+  }
 }

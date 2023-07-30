@@ -72,7 +72,14 @@ contract MgvRoot is HasMgvEvents {
   }
 
   function level1(address outbound, address inbound, int index) external view returns (Field) {
-    return pairs[outbound][inbound].level1[index];
+    Pair storage pair = pairs[outbound][inbound];
+    MgvStructs.LocalPacked local = pair.local;
+
+    if (local.tick().level1Index() == index) {
+      return local.level1();
+    } else {
+      return pair.level1[index];
+    }
   }
 
   function level2(address outbound, address inbound) external view returns (Field) {

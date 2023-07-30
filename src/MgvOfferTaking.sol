@@ -63,17 +63,13 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         if (field.isEmpty()) {
           pair.level0[index] = field;
           index = offerTick.level1Index();
-          field = mor.level1;
-          if (field.isEmpty()) {
-            field = pair.level1[index];
-          }
-          field = field.flipBitAtLevel1(offerTick);
+          field = local.level1().flipBitAtLevel1(offerTick);
           if (field.isEmpty()) {
             pair.level1[index] = field;
             field = local.level2().flipBitAtLevel2(offerTick);
             local = local.level2(field);
             if (field.isEmpty()) {
-              mor.level1 = field;
+              local = local.level1(field);
               local = local.level0(field);
               mor.leaf = LeafLib.EMPTY;
               return (0, local);
@@ -81,7 +77,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
             index = field.firstLevel1Index();
             field = pair.level1[index];
           }
-          mor.level1 = field;
+          local = local.level1(field);
           index = field.firstLevel0Index(index);
           field = pair.level0[index];
         }
@@ -243,28 +239,17 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* If `proceed` is false, the taker has gotten its requested volume, or we have reached the end of the book, we conclude the market order. */
       } else {
         /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
-        // sor.local = stitchOffers(sor.outbound_tkn, sor.inbound_tkn, 0, sor.offerId, sor.local);
-        // FIXME: REMOVE ME: temporarily leaving 'best' to avoid changing code everywhere
-        // (or should we keep it? to avoid additional reads?)
-        // INEFFICIENT find a way to avoid a read
-        // Or not inefficient because one fewer read to do when taking?
-        sor.local = sor.local.tick(pair.offerData[sor.offerId].offer.tick());
-        // sor.local = stitchOffers(sor.outbound_tkn, sor.inbound_tkn, 0, sor.offerId, sor.local);
 
         // maybe some updates below are useless? if we don't update these we must take it into account elsewhere
         // no need to test whether level2 has been reached since by default its stored in local
 
+        sor.local = sor.local.tickPosInLeaf(mor.leaf.firstOfferPosition());
         Tick tick = sor.local.tick();
-        int index = tick.level1Index();
-        // second conjunct is for when you did not ever read level1
-        if (!pair.level1[index].eq(mor.level1) && !(mor.level1.isEmpty() && sor.offerId != 0)) {
-          pair.level1[index] = mor.level1;
-        }
         // no need to test whether mor.level2 != pair.level2 since update is ~free
         // ! local.level0[sor.local.tick().level0Index()] is now wrong
         // sor.local = sor.local.level0(mor.level0);
 
-        index = tick.leafIndex();
+        int index = tick.leafIndex();
         // leaf cached in memory is flushed to storage everytime it gets emptied, but at the end of a market order we need to store it correctly
         // second conjunct is for when you did not ever read leaf
         if (!pair.leafs[index].eq(mor.leaf)) {

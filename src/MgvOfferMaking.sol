@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 import {IMaker, HasMgvEvents, MgvStructs, Tick, TickLib, Leaf, Field} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
+import "mgv_lib/Debug.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
 contract MgvOfferMaking is MgvHasOffers {
@@ -297,7 +298,6 @@ contract MgvOfferMaking is MgvHasOffers {
       }
 
       // Tick insertionTick = ofp.tick;
-      bool bestWillChange = ofp.local.level2().isEmpty() || insertionTick.strictlyBetter(ofp.local.tick());
       // mapping (uint => MgvStructs.OfferPacked) _offers = offers[ofp.outbound_tkn][ofp.inbound_tkn];
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {
@@ -314,8 +314,7 @@ contract MgvOfferMaking is MgvHasOffers {
            - Otherwise yes because maybe current tick = insertion tick
         */
         // bool updateLocal = tick.strictlyBetter(ofp.local.tick().strictlyBetter(tick)
-        ofp.local = dislodgeOffer(pair, ofp.oldOffer, ofp.local, !bestWillChange);
-        bestWillChange = ofp.local.level2().isEmpty() || insertionTick.strictlyBetter(ofp.local.tick());
+        ofp.local = dislodgeOffer(pair, ofp.oldOffer, ofp.local, !insertionTick.strictlyBetter(ofp.local.tick()));
       }
 
       // insertion
@@ -324,33 +323,46 @@ contract MgvOfferMaking is MgvHasOffers {
       if (leaf.isEmpty()) {
         Field field;
         int insertionIndex = insertionTick.level0Index();
-
         int currentIndex = ofp.local.tick().level0Index();
-        bool indexDiff = insertionIndex != currentIndex;
-        if (indexDiff) {
+        // Get insertion level0
+        if (insertionIndex != currentIndex) {
           field = pair.level0[insertionIndex];
         } else {
           field = ofp.local.level0();
         }
 
-        if (indexDiff && bestWillChange) {
+        // Save current level0
+        if (insertionIndex < currentIndex) {
           pair.level0[currentIndex] = ofp.local.level0();
         }
 
-        {
-          Field field2 = field.flipBitAtLevel0(insertionTick);
-
-          if (indexDiff && !bestWillChange) {
-            pair.level0[insertionIndex] = field2;
-          } else {
-            ofp.local = ofp.local.level0(field2);
-          }
+        // Write insertion level0
+        if (insertionIndex <= currentIndex || ofp.local.level2().isEmpty()) {
+          ofp.local = ofp.local.level0(field.flipBitAtLevel0(insertionTick));
+        } else {
+          pair.level0[insertionIndex] = field.flipBitAtLevel0(insertionTick);
         }
 
         if (field.isEmpty()) {
+          // console.log("insertion tick is",toString(insertionTick));
           insertionIndex = insertionTick.level1Index();
-          field = pair.level1[insertionIndex];
-          pair.level1[insertionIndex] = field.flipBitAtLevel1(insertionTick);
+          currentIndex = ofp.local.tick().level1Index();
+
+          if (insertionIndex != currentIndex) {
+            field = pair.level1[insertionIndex];
+          } else {
+            field = ofp.local.level1();
+          }
+
+          if (insertionIndex < currentIndex) {
+            pair.level1[currentIndex] = ofp.local.level1();
+          }
+
+          if (insertionIndex <= currentIndex || ofp.local.level2().isEmpty()) {
+            ofp.local = ofp.local.level1(field.flipBitAtLevel1(insertionTick));
+          } else {
+            pair.level1[insertionIndex] = field.flipBitAtLevel1(insertionTick);
+          }
           // if level1 was empty, flip tick on at level2
           if (field.isEmpty()) {
             ofp.local = ofp.local.level2(ofp.local.level2().flipBitAtLevel2(insertionTick));
@@ -372,11 +384,7 @@ contract MgvOfferMaking is MgvHasOffers {
       // store offer at the end of the tick
       leaf = leaf.setTickLast(insertionTick, ofrId);
       pair.leafs[insertionTick.leafIndex()] = leaf;
-
-      if (bestWillChange) {
-        // FIXME: remove best update, only here for compatibility
-        ofp.local = ofp.local.tick(insertionTick);
-      }
+      ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
       MgvStructs.OfferPacked ofr =

@@ -41,6 +41,19 @@ contract LeafTest is Test2 {
     assertStr(leaf, "[32,0][19992,711][4,1][0,1208]");
   }
 
+  function test_firstOfferPosition() public {
+    Leaf leaf = LeafLib.EMPTY;
+    leaf = leaf.setTickFirst(Tick.wrap(1), 31);
+    leaf = leaf.setTickFirst(Tick.wrap(2), 14);
+    leaf = leaf.setTickFirst(Tick.wrap(3), 122);
+    assertEq(leaf.firstOfferPosition(), 1, "should be 1");
+    leaf = leaf.setTickFirst(Tick.wrap(0), 89);
+    assertEq(leaf.firstOfferPosition(), 0, "should be 0");
+    leaf = LeafLib.EMPTY;
+    leaf = leaf.setTickFirst(Tick.wrap(3), 91);
+    assertEq(leaf.firstOfferPosition(), 3, "should be 3");
+  }
+
   int constant BP = 1.0001 * 1e18;
   // current max tick with solady fixedpoint lib 1353127
 
@@ -105,7 +118,11 @@ contract TickTest is Test {
   function test_posInLevel2_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    assertEq(int(Tick.wrap(tick).posInLevel2()), tn / (LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE) % LEVEL2_SIZE);
+    assertEq(
+      int(Tick.wrap(tick).posInLevel2()),
+      tn / (LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE) % LEVEL2_SIZE,
+      "wrong posInLevel2"
+    );
   }
 
   // "price" is the price paid by takers
@@ -119,8 +136,11 @@ contract TickTest is Test {
     assertEq(TickLib.tickFromVolumes(2, 1), 6931);
     assertEq(TickLib.tickFromVolumes(1, 2), -6932);
     assertEq(TickLib.tickFromVolumes(1e18, 1), 414486);
-    assertEq(TickLib.tickFromVolumes(type(uint96).max, 1), 665454);
-    assertEq(TickLib.tickFromVolumes(1, type(uint96).max), -665454);
+    //FIXME when tick range is restored use uint96 again
+    // assertEq(TickLib.tickFromVolumes(type(uint96).max, 1), 665454);
+    // assertEq(TickLib.tickFromVolumes(1, type(uint96).max), -665454);
+    assertEq(TickLib.tickFromVolumes(type(uint72).max, 1), 499090);
+    assertEq(TickLib.tickFromVolumes(1, type(uint72).max), -499090);
     assertEq(TickLib.tickFromVolumes(999999, 1000000), -1);
     assertEq(TickLib.tickFromVolumes(1000000, 999999), 0);
     assertEq(TickLib.tickFromVolumes(1000000 * 1e18, 999999 * 1e18), 0);
@@ -135,10 +155,14 @@ contract TickTest is Test {
     // tick is ln_bp(1)
     // compares to 1.0001**tick*1e18
     assertApproxEqRel(Tick.wrap(0).priceFromTick_e18(), 1.0001 ** 0 * 1e18, err);
-    // tick is ln_bp(type(uint96).max)
-    // compares to 1.0001**tick*1e18
-    assertApproxEqRel(Tick.wrap(665454).priceFromTick_e18(), 79223695601626514454341026560883173411222330007, err);
-    // console.log(Tick.wrap(-421417).priceFromTick_e18());
+    // FIXME Tick example used to be 665454 but it's out of range for now
+    /* 
+      // tick is ln_bp(type(uint96).max)
+      // compares to 1.0001**tick*1e18
+      assertApproxEqRel(Tick.wrap(665454).priceFromTick_e18(), 79223695601626514454341026560883173411222330007, err);
+      // console.log(Tick.wrap(-421417).priceFromTick_e18());
+    */
+    assertApproxEqRel(Tick.wrap(524287).priceFromTick_e18(), 58661978243259926126959077156658796822528, err);
   }
 
   function showTickApprox(uint wants, uint gives) internal pure {
@@ -182,6 +206,20 @@ contract TickTest is Test {
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
     int index = tn / (LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE) - NUM_LEVEL1 / 2;
     assertEq(Tick.wrap(tick).level1Index(), index);
+  }
+
+  function test_tickFromBranch_matches_positions_accessor(uint tickPosInLeaf, uint _level0, uint _level1, uint _level2)
+    public
+  {
+    tickPosInLeaf = bound(tickPosInLeaf, 0, 3);
+    Field level0 = Field.wrap(bound(_level0, 1, uint(LEVEL0_SIZE) - 1));
+    Field level1 = Field.wrap(bound(_level1, 1, uint(LEVEL1_SIZE) - 1));
+    Field level2 = Field.wrap(bound(_level2, 1, uint(LEVEL2_SIZE) - 1));
+    Tick tick = TickLib.tickFromBranch(tickPosInLeaf, level0, level1, level2);
+    assertEq(tick.posInLeaf(), tickPosInLeaf, "wrong pos in leaf");
+    assertEq(tick.posInLevel0(), BitLib.ctz(Field.unwrap(level0)), "wrong pos in level0");
+    assertEq(tick.posInLevel1(), BitLib.ctz(Field.unwrap(level1)), "wrong pos in level1");
+    assertEq(tick.posInLevel2(), BitLib.ctz(Field.unwrap(level2)), "wrong pos in level2");
   }
 
   // HELPER FUNCTIONS

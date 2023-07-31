@@ -8,7 +8,7 @@ import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.
 import {SimpleRouter} from "./SimpleRouter.sol";
 
 contract Permit2Router is SimpleRouter {
-  IPermit2 permit2;
+  IPermit2 public permit2;
 
   constructor(IPermit2 _permit2) SimpleRouter() {
     permit2 = _permit2;

@@ -76,8 +76,11 @@ contract MangroveOrder_Test is MangroveTest, DeployPermit2 {
     deal($(quote), $(this), 10_000 ether);
 
     // user approves `mgo` to pull quote or base when doing a market order
-    TransferLib.approveToken(quote, $(mgo.router()), 10_000 ether);
-    TransferLib.approveToken(base, $(mgo.router()), 10 ether);
+    TransferLib.approveToken(base, address(permit2), 10 ether);
+    TransferLib.approveToken(quote, address(permit2), 10_000 ether);
+
+    permit2.approve(address(base), address(mgo.router()), type(uint160).max, type(uint48).max);
+    permit2.approve(address(quote), address(mgo.router()), type(uint160).max, type(uint48).max);
 
     // `sell_taker` will take resting bid
     sell_taker = setupTaker($(quote), $(base), "sell-taker");
@@ -166,9 +169,12 @@ contract MangroveOrder_Test is MangroveTest, DeployPermit2 {
     deal($(quote), fresh_taker, balQuote);
     deal($(base), fresh_taker, balBase);
     deal(fresh_taker, 1 ether);
+
     vm.startPrank(fresh_taker);
-    quote.approve(address(mgo.router()), type(uint).max);
-    base.approve(address(mgo.router()), type(uint).max);
+    permit2.approve(address(base), address(mgo.router()), type(uint160).max, type(uint48).max);
+    permit2.approve(address(quote), address(mgo.router()), type(uint160).max, type(uint48).max);
+    quote.approve(address(permit2), type(uint).max);
+    base.approve(address(permit2), type(uint).max);
     vm.stopPrank();
   }
 
@@ -633,7 +639,8 @@ contract MangroveOrder_Test is MangroveTest, DeployPermit2 {
     sender.refuseNative();
 
     vm.startPrank($(sender));
-    TransferLib.approveToken(base, $(mgo.router()), type(uint).max);
+    TransferLib.approveToken(base, address(permit2), type(uint).max);
+    permit2.approve(address(base), address(mgo.router()), type(uint160).max, type(uint48).max);
     vm.stopPrank();
     // mocking MangroveOrder failure to post resting offer
     vm.mockCall($(mgv), abi.encodeWithSelector(mgv.newOffer.selector), abi.encode(uint(0)));

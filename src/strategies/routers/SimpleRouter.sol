@@ -10,7 +10,7 @@ import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.
 ///@dev Maker contracts using this router must make sure that the reserve approves the router for all asset that will be pulled (outbound tokens)
 /// Thus a maker contract using a vault that is not an EOA must make sure this vault has approval capacities.
 contract SimpleRouter is
-  AbstractRouter(70_000) // fails for < 70K with Direct strat
+  AbstractRouter(74_000) // fails for < 70K with Direct strat
 {
   /// @notice transfers an amount of tokens from the reserve to the maker.
   /// @param token Token to be transferred

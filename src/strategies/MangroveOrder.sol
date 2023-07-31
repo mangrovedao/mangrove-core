@@ -22,8 +22,6 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@dev 0 means no expiry.
   mapping(IERC20 => mapping(IERC20 => mapping(uint => uint))) public expiring;
 
-  Permit2Router permit2Router;
-
   ///@notice MangroveOrder is a Forwarder logic with a simple router.
   ///@param mgv The mangrove contract on which this logic will run taker and maker orders.
   ///@param deployer The address of the admin of `this` at the end of deployment
@@ -34,7 +32,6 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // adding `this` contract to authorized makers of the router before setting admin rights of the router to deployer
     router().bind(address(this));
     router().setAdmin(deployer);
-    permit2Router = Permit2Router(address(router()));
     // if `msg.sender` is not `deployer`, setting admin of `this` to `deployer`.
     // `deployer` will thus be able to call `activate` on `this` to enable trading on particular assets.
     if (msg.sender != deployer) {

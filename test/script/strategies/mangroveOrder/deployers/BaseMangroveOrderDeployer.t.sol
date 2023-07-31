@@ -19,6 +19,9 @@ import {
   MangroveOrder
 } from "mgv_script/strategies/mangroveOrder/deployers/MangroveOrderDeployer.s.sol";
 
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
+
 /**
  * Base test suite for [Chain]MangroveOrderDeployer scripts
  */
@@ -29,7 +32,7 @@ abstract contract BaseMangroveOrderDeployerTest is Deployer, Test2 {
   function test_normal_deploy() public {
     // MangroveOrder - verify mgv is used and admin is chief
     address mgv = fork.get("Mangrove");
-    address permit2 = fork.get("Permit2");
+    IPermit2 permit2 = IPermit2(fork.get("Permit2"));
     mgoDeployer.innerRun(IMangrove(payable(mgv)), IPermit2(permit2), chief);
     MangroveOrder mgoe = MangroveOrder(fork.get("MangroveOrder"));
     address mgvOrderRouter = fork.get("MangroveOrder-Router");

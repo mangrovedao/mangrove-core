@@ -23,7 +23,7 @@ contract PolygonMangroveOrderDeployer is Deployer {
     mangroveOrderDeployer = new MangroveOrderDeployer();
     mangroveOrderDeployer.innerRun({
       mgv: IMangrove(fork.get("Mangrove")),
-      permit2: IPermit2(envAddressOrName("PERMIT2", "Permit2")),
+      permit2: IPermit2(envAddressOrName("Permit2", "Permit2")),
       admin: fork.get("MgvGovernance")
     });
   }

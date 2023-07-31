@@ -18,7 +18,7 @@ contract MangroveOrderDeployer is Deployer {
   function run() public {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
-      permit2: IPermit2(envAddressOrName("PERMIT2", "Permit2")),
+      permit2: IPermit2(envAddressOrName("Permit2", "Permit2")),
       admin: envAddressOrName("MGV_GOVERNANCE", broadcaster())
     });
     outputDeployment();

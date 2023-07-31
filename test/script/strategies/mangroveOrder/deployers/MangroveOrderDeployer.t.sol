@@ -19,9 +19,14 @@ import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractRouter} from "mgv_src/strategies/routers/AbstractRouter.sol";
+import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 
 contract MangroveOrderDeployerTest is BaseMangroveOrderDeployerTest {
   function setUp() public {
+    DeployPermit2 deployPermit2 = new DeployPermit2();
+    address permit2 = deployPermit2.deployPermit2();
+    fork.set("Permit2", permit2);
+
     chief = freshAddress("admin");
 
     address gasbot = freshAddress("gasbot");

@@ -30,5 +30,9 @@
   {
     "address": "0x59a424169526ECae25856038598F862043DCeDf7",
     "name": "MgvGovernance"
+  },
+  {
+    "address": "0x000000000022d473030f116ddee9f6b43ac78ba3",
+    "name": "Permit2"
   }
 ]

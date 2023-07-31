@@ -14,9 +14,14 @@ import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
+import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 
 contract PolygonMangroveDeployerTest is BaseMangroveDeployerTest {
   function setUp() public {
+    DeployPermit2 deployPermit2 = new DeployPermit2();
+    address permit2 = deployPermit2.deployPermit2();
+    fork.set("Permit2", permit2);
+
     chief = freshAddress("MgvGovernance");
     fork.set("MgvGovernance", chief);
     gasbot = freshAddress("Gasbot");

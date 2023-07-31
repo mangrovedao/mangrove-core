@@ -10,5 +10,9 @@
   {
     "address": "0xd77b79be3e85351ff0cbe78f1b58cf8d1064047c",
     "name": "DAI"
+  },
+  {
+    "address": "0x000000000022d473030f116ddee9f6b43ac78ba3",
+    "name": "Permit2"
   }
 ]

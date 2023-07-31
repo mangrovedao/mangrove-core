@@ -19,9 +19,14 @@ import {
   PolygonMangroveOrderDeployer,
   MangroveOrder
 } from "mgv_script/strategies/mangroveOrder/deployers/PolygonMangroveOrderDeployer.s.sol";
+import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 
 contract PolygonMangroveOrderDeployerTest is BaseMangroveOrderDeployerTest {
   function setUp() public {
+    DeployPermit2 deployPermit2 = new DeployPermit2();
+    address permit2 = deployPermit2.deployPermit2();
+    fork.set("Permit2", permit2);
+
     chief = freshAddress("chief");
     fork.set("MgvGovernance", chief);
 

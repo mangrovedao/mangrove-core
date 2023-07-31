@@ -16,6 +16,8 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {ActivateMarket} from "mgv_script/core/ActivateMarket.s.sol";
 import {PoolAddressProviderMock} from "mgv_script/toy/AaveMock.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 import "forge-std/console.sol";
 
 /* 
@@ -34,8 +36,11 @@ contract MangroveJsDeploy is Deployer {
   IERC20 public weth;
   SimpleTestMaker public simpleTestMaker;
   MangroveOrder public mgo;
+  IPermit2 public permit2;
 
   function run() public {
+    DeployPermit2 deployPermit2 = new DeployPermit2();
+    permit2 = IPermit2(deployPermit2.deployPermit2()); // deploy permit2 using the precompiled bytecode
     innerRun({gasprice: 1, gasmax: 2_000_000, gasbot: broadcaster()});
     outputDeployment();
   }
@@ -118,7 +123,7 @@ contract MangroveJsDeploy is Deployer {
     activateMarket.innerRun(mgv, mgvReader, weth, usdc, 1e9, 1e9 / 1000, 0);
 
     MangroveOrderDeployer mgoeDeployer = new MangroveOrderDeployer();
-    mgoeDeployer.innerRun({admin: broadcaster(), mgv: IMangrove(payable(mgv))});
+    mgoeDeployer.innerRun({admin: broadcaster(), mgv: IMangrove(payable(mgv)), permit2: permit2});
 
     address[] memory underlying =
       dynamic([address(tokenA), address(tokenB), address(dai), address(usdc), address(weth)]);
@@ -135,7 +140,7 @@ contract MangroveJsDeploy is Deployer {
     });
 
     broadcast();
-    mgo = new MangroveOrder({mgv: IMangrove(payable(mgv)), deployer: broadcaster(), gasreq:30_000});
+    mgo = new MangroveOrder({mgv: IMangrove(payable(mgv)), deployer: broadcaster(), gasreq:30_000, permit2: permit2});
     fork.set("MangroveOrder", address(mgo));
   }
 }

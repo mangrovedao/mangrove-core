@@ -3,14 +3,17 @@ pragma solidity ^0.8.10;
 
 import {MangroveTest, MgvReader, TestMaker, TestTaker, TestSender, console} from "mgv_test/lib/MangroveTest.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import {MangroveOrder as MgvOrder, SimpleRouter} from "mgv_src/strategies/MangroveOrder.sol";
+import {MangroveOrder as MgvOrder} from "mgv_src/strategies/MangroveOrder.sol";
+import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {IOrderLogic} from "mgv_src/strategies/interfaces/IOrderLogic.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
+import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
+import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 
-contract MangroveOrder_Test is MangroveTest {
+contract MangroveOrder_Test is MangroveTest, DeployPermit2 {
   uint constant GASREQ = 35_000;
 
   // to check ERC20 logging
@@ -34,6 +37,7 @@ contract MangroveOrder_Test is MangroveTest {
     uint restingOrderId
   );
 
+  IPermit2 internal permit2;
   MgvOrder internal mgo;
   TestMaker internal ask_maker;
   TestMaker internal bid_maker;
@@ -58,8 +62,9 @@ contract MangroveOrder_Test is MangroveTest {
     quote = TestToken(fork.get("DAI"));
     setupMarket(base, quote);
 
+    permit2 = IPermit2(deployPermit2());
     // this contract is admin of MgvOrder and its router
-    mgo = new MgvOrder(IMangrove(payable(mgv)), $(this), GASREQ);
+    mgo = new MgvOrder(IMangrove(payable(mgv)), permit2, $(this), GASREQ);
     // mgvOrder needs to approve mangrove for inbound & outbound token transfer (inbound when acting as a taker, outbound when matched as a maker)
     IERC20[] memory tokens = new IERC20[](2);
     tokens[0] = base;

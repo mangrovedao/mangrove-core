@@ -1,10 +1,11 @@
 // SPDX-License-Identifier:	BSD-2-Clause
 pragma solidity ^0.8.10;
 
+import {IPermit2} from "lib/permit2/src/interfaces/IPermit2.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Forwarder, MangroveOffer} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import {IOrderLogic} from "mgv_src/strategies/interfaces/IOrderLogic.sol";
-import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
+import {Permit2Router} from "mgv_src/strategies/routers/Permit2Router.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 
@@ -21,14 +22,19 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ///@dev 0 means no expiry.
   mapping(IERC20 => mapping(IERC20 => mapping(uint => uint))) public expiring;
 
+  Permit2Router permit2Router;
+
   ///@notice MangroveOrder is a Forwarder logic with a simple router.
   ///@param mgv The mangrove contract on which this logic will run taker and maker orders.
   ///@param deployer The address of the admin of `this` at the end of deployment
   ///@param gasreq The gas required for `this` to execute `makerExecute` and `makerPosthook` when called by mangrove for a resting order.
-  constructor(IMangrove mgv, address deployer, uint gasreq) Forwarder(mgv, new SimpleRouter(), gasreq) {
+  constructor(IMangrove mgv, IPermit2 permit2, address deployer, uint gasreq)
+    Forwarder(mgv, new Permit2Router(permit2), gasreq)
+  {
     // adding `this` contract to authorized makers of the router before setting admin rights of the router to deployer
     router().bind(address(this));
     router().setAdmin(deployer);
+    permit2Router = Permit2Router(address(router()));
     // if `msg.sender` is not `deployer`, setting admin of `this` to `deployer`.
     // `deployer` will thus be able to call `activate` on `this` to enable trading on particular assets.
     if (msg.sender != deployer) {

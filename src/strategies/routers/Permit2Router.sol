@@ -42,13 +42,34 @@ contract Permit2Router is SimpleRouter {
     bool strict,
     ISignatureTransfer.PermitTransferFrom calldata permit,
     bytes calldata signature
-  ) internal virtual override returns (uint pulled) {
+  ) internal returns (uint pulled) {
     amount = strict ? amount : token.balanceOf(owner);
     if (TransferLib.transferTokenFromWithPermit2Signature(permit2, owner, msg.sender, amount, permit, signature)) {
       return amount;
     } else {
       return 0;
     }
+  }
+
+  ///@notice pulls liquidity from the reserve and sends it to the calling maker contract.
+  ///@param token is the ERC20 managing the pulled asset
+  ///@param reserveId identifies the fund owner (router implementation dependent).
+  ///@param amount of `token` the maker contract wishes to pull from its reserve
+  ///@param strict when the calling maker contract accepts to receive more funds from reserve than required (this may happen for gas optimization)
+  ///@param signature signature provided by user
+  ///@return pulled the amount that was successfully pulled.
+  function pull(
+    IERC20 token,
+    address reserveId,
+    uint amount,
+    bool strict,
+    ISignatureTransfer.PermitTransferFrom calldata permit,
+    bytes calldata signature
+  ) external onlyBound returns (uint pulled) {
+    if (strict && amount == 0) {
+      return 0;
+    }
+    pulled = __pull__(token, reserveId, amount, strict, permit, signature);
   }
 
   ///@notice router-dependent implementation of the `checkList` function

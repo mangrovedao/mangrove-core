@@ -255,19 +255,6 @@ contract AavePooledRouter is HasAaveBalanceMemoizer, AbstractRouter {
     return amount_;
   }
 
-  ///@notice router-dependent implementation of the `pull` function
-  ///@return pulled The amount pulled if successful; otherwise, 0.
-  function __pull__(
-    IERC20, /*token*/
-    address, /*reserveId*/
-    uint, /*amount*/
-    bool, /*strict*/
-    ISignatureTransfer.PermitTransferFrom calldata, /*permit*/
-    bytes calldata /*signature*/
-  ) internal virtual override returns (uint) {
-    revert("AavePooledRouter/DoNotSupportPullWithUArg");
-  }
-
   ///@notice redeems some funds from AAVE pool and transfer some amount to msg.sender.
   ///@param token the asset to transfer
   ///@param reserveId the shares on which funds are being drawn

@@ -34,19 +34,6 @@ contract SimpleRouter is
     }
   }
 
-  ///@notice router-dependent implementation of the `pull` function
-  ///@return pulled The amount pulled if successful; otherwise, 0.
-  function __pull__(
-    IERC20, /*token*/
-    address, /*reserveId*/
-    uint, /*amount*/
-    bool, /*strict*/
-    ISignatureTransfer.PermitTransferFrom calldata, /*permit*/
-    bytes calldata /*signature*/
-  ) internal virtual override returns (uint) {
-    revert("SimpleRouter/DoNotSupportPullWithUArg");
-  }
-
   /// @notice transfers an amount of tokens from the maker to the reserve.
   /// @inheritdoc AbstractRouter
   function __push__(IERC20 token, address owner, uint amount) internal virtual override returns (uint) {

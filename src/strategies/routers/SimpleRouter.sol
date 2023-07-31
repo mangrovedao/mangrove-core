@@ -9,9 +9,8 @@ import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.
 ///@title `SimpleRouter` instances pull (push) liquidity directly from (to) the an offer owner's account
 ///@dev Maker contracts using this router must make sure that the reserve approves the router for all asset that will be pulled (outbound tokens)
 /// Thus a maker contract using a vault that is not an EOA must make sure this vault has approval capacities.
-contract SimpleRouter is
-  AbstractRouter(74_000) // fails for < 70K with Direct strat
-{
+contract SimpleRouterWithoutGasReq is AbstractRouter {
+  constructor(uint gasreq) AbstractRouter(gasreq) {}
   /// @notice transfers an amount of tokens from the reserve to the maker.
   /// @param token Token to be transferred
   /// @param owner The account from which the tokens will be transferred.
@@ -19,6 +18,7 @@ contract SimpleRouter is
   /// @param strict wether the caller maker contract wishes to pull at most `amount` tokens of owner.
   /// @return pulled The amount pulled if successful (will be equal to `amount`); otherwise, 0.
   /// @dev requires approval from `owner` for `this` to transfer `token`.
+
   function __pull__(IERC20 token, address owner, uint amount, bool strict)
     internal
     virtual
@@ -55,4 +55,7 @@ contract SimpleRouter is
     // verifying that `this` router can withdraw tokens from owner (required for `withdrawToken` and `pull`)
     require(token.allowance(owner, address(this)) > 0, "SimpleRouter/NotApprovedByOwner");
   }
+}
+
+contract SimpleRouter is SimpleRouterWithoutGasReq(70_000) { // fails for < 70K with Direct strat
 }

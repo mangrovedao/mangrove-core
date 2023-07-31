@@ -5,12 +5,12 @@ import {IERC20} from "mgv_src/MgvLib.sol";
 import {IPermit2} from "lib/permit2/src/interfaces/IPermit2.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.sol";
-import {SimpleRouter} from "./SimpleRouter.sol";
+import {SimpleRouterWithoutGasReq} from "./SimpleRouter.sol";
 
-contract Permit2Router is SimpleRouter {
+contract Permit2Router is SimpleRouterWithoutGasReq {
   IPermit2 public permit2;
 
-  constructor(IPermit2 _permit2) SimpleRouter() {
+  constructor(IPermit2 _permit2) SimpleRouterWithoutGasReq(74_000) {
     permit2 = _permit2;
   }
 

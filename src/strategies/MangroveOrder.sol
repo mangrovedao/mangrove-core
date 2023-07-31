@@ -7,6 +7,7 @@ import {Forwarder, MangroveOffer} from "mgv_src/strategies/offer_forwarder/abstr
 import {IOrderLogic} from "mgv_src/strategies/interfaces/IOrderLogic.sol";
 import {Permit2Router} from "mgv_src/strategies/routers/Permit2Router.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
+import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.sol";
 import {MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 
 ///@title MangroveOrder. A periphery contract to Mangrove protocol that implements "Good till cancelled" (GTC) orders as well as "Fill or kill" (FOK) orders.
@@ -122,23 +123,41 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     }
   }
 
+  function takerWithPermit2(
+    TakerOrder calldata tko,
+    ISignatureTransfer.PermitTransferFrom calldata permit,
+    bytes calldata signature
+  ) external payable returns (TakerOrderResult memory res) {
+    // Checking whether order is expired
+    require(tko.expiryDate == 0 || block.timestamp <= tko.expiryDate, "mgvOrder/expired");
+
+    Permit2Router router = Permit2Router(address(router()));
+    uint pulled = router.pull(tko.inbound_tkn, msg.sender, tko.takerGives, true, permit, signature);
+    return __take__(tko, pulled);
+  }
+
+  // Notations:
+  // NAT_USER: initial value of `msg.sender.balance` (native balance of user)
+  // OUT/IN_USER: initial value of `tko.[out|in]bound_tkn.balanceOf(reserve(msg.sender))` (user's reserve balance of tokens)
+  // NAT_THIS: initial value of `address(this).balance` (native balance of `this`)
+  // OUT/IN_THIS: initial value of `tko.[out|in]bound_tkn.balanceOf(address(this))` (`this` balance of tokens)
+
+  // PRE:
+  // * User balances: (NAT_USER -`msg.value`, OUT_USER, IN_USER)
+  // * `this` balances: (NAT_THIS +`msg.value`, OUT_THIS, IN_THIS)
+
   ///@inheritdoc IOrderLogic
   function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory res) {
     // Checking whether order is expired
     require(tko.expiryDate == 0 || block.timestamp <= tko.expiryDate, "mgvOrder/expired");
 
-    // Notations:
-    // NAT_USER: initial value of `msg.sender.balance` (native balance of user)
-    // OUT/IN_USER: initial value of `tko.[out|in]bound_tkn.balanceOf(reserve(msg.sender))` (user's reserve balance of tokens)
-    // NAT_THIS: initial value of `address(this).balance` (native balance of `this`)
-    // OUT/IN_THIS: initial value of `tko.[out|in]bound_tkn.balanceOf(address(this))` (`this` balance of tokens)
-
-    // PRE:
-    // * User balances: (NAT_USER -`msg.value`, OUT_USER, IN_USER)
-    // * `this` balances: (NAT_THIS +`msg.value`, OUT_THIS, IN_THIS)
-
     // Pulling funds from `msg.sender`'s reserve
     uint pulled = router().pull(tko.inbound_tkn, msg.sender, tko.takerGives, true);
+
+    return __take__(tko, pulled);
+  }
+
+  function __take__(TakerOrder calldata tko, uint pulled) internal returns (TakerOrderResult memory res) {
     require(pulled == tko.takerGives, "mgvOrder/transferInFail");
 
     // POST:

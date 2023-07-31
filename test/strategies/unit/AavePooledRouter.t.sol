@@ -574,7 +574,7 @@ contract AavePooledRouterTest is OfferLogicTest {
     deal($(dai), maker2, 1 * 10 ** 18);
     args.allowed = dynamic([address(maker1), maker2]);
     checkAuth(args, abi.encodeCall(pooledRouter.push, (dai, maker1, 1000)));
-    checkAuth(args, abi.encodeWithSignature("__pull__(IERC20,address,uint,bool)", dai, maker1, 100, true));
+    checkAuth(args, abi.encodeCall(pooledRouter.pull, (dai, maker1, 100, true)));
     checkAuth(args, abi.encodeCall(pooledRouter.flush, (new IERC20[](0), owner)));
     checkAuth(args, abi.encodeCall(pooledRouter.pushAndSupply, (dai, 0, dai, 0, owner)));
     checkAuth(args, abi.encodeCall(pooledRouter.withdraw, (dai, maker1, 100)));

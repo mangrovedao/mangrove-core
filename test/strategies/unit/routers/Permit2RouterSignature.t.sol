@@ -5,6 +5,7 @@ import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {Permit2Router} from "mgv_src/strategies/routers/Permit2Router.sol";
 import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.sol";
+import {IAllowanceTransfer} from "lib/permit2/src/interfaces/IAllowanceTransfer.sol";
 import {IPermit2} from "lib/permit2/src/interfaces/IPermit2.sol";
 import {PermitSignature} from "lib/permit2/test/utils/PermitSignature.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
@@ -14,11 +15,11 @@ contract Permit2RouterSignatureTest is MangroveTest, DeployPermit2, PermitSignat
   uint ownerPrivateKey;
   TestToken weth;
   TestToken usdc;
-  uint NONCE = 0;
+  uint48 NONCE = 0;
 
   bytes32 DOMAIN_SEPARATOR;
   uint48 EXPIRATION;
-  uint AMOUNT = 25;
+  uint160 AMOUNT = 25;
 
   Permit2Router router;
   IPermit2 permit2;
@@ -68,15 +69,36 @@ contract Permit2RouterSignatureTest is MangroveTest, DeployPermit2, PermitSignat
     return bytes.concat(r, s, bytes1(v));
   }
 
-  function test_pull_with_permit() public {
-    ISignatureTransfer.PermitTransferFrom memory permit = defaultERC20PermitTransfer(address(weth), NONCE);
-    bytes memory sig =
-      getPermitTransferSignatureWithSpecifiedAddress(permit, ownerPrivateKey, DOMAIN_SEPARATOR, address(router));
+  function test_pull_with_signature_transfer() public {
+    ISignatureTransfer.PermitTransferFrom memory transferDetails = defaultERC20PermitTransfer(address(weth), NONCE);
+    bytes memory sig = getPermitTransferSignatureWithSpecifiedAddress(
+      transferDetails, ownerPrivateKey, DOMAIN_SEPARATOR, address(router)
+    );
 
     uint startBalanceFrom = weth.balanceOf(owner);
     uint startBalanceTo = weth.balanceOf(address(this));
 
-    router.pull(weth, owner, AMOUNT, true, permit, sig);
+    router.pull(weth, owner, AMOUNT, true, transferDetails, sig);
+
+    assertEq(weth.balanceOf(owner), startBalanceFrom - AMOUNT);
+    assertEq(weth.balanceOf(address(this)), startBalanceTo + AMOUNT);
+  }
+
+  function test_pull_with_permit() public {
+    IAllowanceTransfer.PermitDetails memory permitDetails =
+      IAllowanceTransfer.PermitDetails({token: address(weth), amount: AMOUNT, expiration: EXPIRATION, nonce: NONCE});
+    IAllowanceTransfer.PermitSingle memory permit = IAllowanceTransfer.PermitSingle({
+      details: permitDetails,
+      spender: address(router),
+      sigDeadline: block.timestamp + 100
+    });
+    bytes memory sig = getPermitSignature(permit, ownerPrivateKey, DOMAIN_SEPARATOR);
+
+    uint startBalanceFrom = weth.balanceOf(owner);
+    uint startBalanceTo = weth.balanceOf(address(this));
+
+    permit2.permit(owner, permit, sig);
+    router.pull(weth, owner, AMOUNT, true);
 
     assertEq(weth.balanceOf(owner), startBalanceFrom - AMOUNT);
     assertEq(weth.balanceOf(address(this)), startBalanceTo + AMOUNT);

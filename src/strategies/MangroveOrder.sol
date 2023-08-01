@@ -26,6 +26,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
 
   ///@notice MangroveOrder is a Forwarder logic with a simple router.
   ///@param mgv The mangrove contract on which this logic will run taker and maker orders.
+  ///@param permit2 The permit2 contract
   ///@param deployer The address of the admin of `this` at the end of deployment
   ///@param gasreq The gas required for `this` to execute `makerExecute` and `makerPosthook` when called by mangrove for a resting order.
   constructor(IMangrove mgv, IPermit2 permit2, address deployer, uint gasreq)
@@ -125,8 +126,17 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   }
 
   //@notice pull inbound_tkn from the msg.sender with permit and then the forward market order to MGV
+  //@param outbound_tkn outbound_tkn
+  //@param inbound_tkn inbound_tkn
+  //@param takerWants Amount of outbound_tkn taker wants
+  //@param takerGives Amount of inbound_tkn taker gives
+  //@param fillWants isBid
   //@param permit The permit data signed over by the owner
   //@param signature The signature to verify
+  //@return totalGot Amount of outbound_tkn received
+  //@return totalGave Amount of inbound_tkn received
+  //@return totalPenalty Penalty received
+  //@return feePaid Fee paid
   function marketOrderWithTransferApproval(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
@@ -150,7 +160,6 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     }
   }
 
-  //@inheritdoc IOrderLogic
   //@param tko TakerOrder struct
   function __take__(TakerOrder calldata tko) internal returns (TakerOrderResult memory res) {
     // Checking whether order is expired
@@ -261,7 +270,7 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     return __take__(tko);
   }
 
-  //@inheritdoc IOrderLogic
+  //@notice call permit2 permit and then call take, this can be used to first approve and then take
   //@param tko TakerOrder struct
   //@param permit The permit data signed over by the owner
   //@param signature The signature to verify

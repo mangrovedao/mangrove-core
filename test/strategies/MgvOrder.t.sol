@@ -21,9 +21,20 @@ contract MangroveOrder_Test is MangroveTest, DeployPermit2, Permit2Helpers {
   uint constant GASREQ = 35_000;
 
   bytes32 DOMAIN_SEPARATOR;
+  uint48 EXPIRATION;
+  uint48 NONCE;
 
   // to check ERC20 logging
   event Transfer(address indexed from, address indexed to, uint value);
+
+  event Permit(
+    address indexed owner,
+    address indexed token,
+    address indexed spender,
+    uint160 amount,
+    uint48 expiration,
+    uint48 nonce
+  );
 
   event OrderSummary(
     IMangrove mangrove,
@@ -70,6 +81,8 @@ contract MangroveOrder_Test is MangroveTest, DeployPermit2, Permit2Helpers {
 
     permit2 = IPermit2(deployPermit2());
     DOMAIN_SEPARATOR = permit2.DOMAIN_SEPARATOR();
+    EXPIRATION = uint48(block.timestamp + 1000);
+    NONCE = 0;
     // this contract is admin of MgvOrder and its router
     mgo = new MgvOrder(IMangrove(payable(mgv)), permit2, $(this), GASREQ);
     // mgvOrder needs to approve mangrove for inbound & outbound token transfer (inbound when acting as a taker, outbound when matched as a maker)
@@ -882,18 +895,18 @@ contract MangroveOrder_Test is MangroveTest, DeployPermit2, Permit2Helpers {
     address fresh_taker = freshTakerForPermit2(0, 1998 ether, privKey);
 
     // generate permit to just in time approval
-    IAllowanceTransfer.PermitSingle memory permit = getPermit(
-      address(buyOrder.inbound_tkn),
-      uint160(buyOrder.takerGives),
-      uint48(block.timestamp + 1000),
-      0,
-      address(mgo.router())
-    );
+    IAllowanceTransfer.PermitSingle memory permit =
+      getPermit(address(buyOrder.inbound_tkn), uint160(buyOrder.takerGives), EXPIRATION, NONCE, address(mgo.router()));
 
     bytes memory signature = getPermitSignature(permit, privKey, DOMAIN_SEPARATOR);
     uint nativeBalBefore = fresh_taker.balance;
 
     // checking log emission
+    expectFrom(address(permit2));
+    emit Permit(
+      fresh_taker, address(buyOrder.inbound_tkn), address(mgo.router()), uint160(buyOrder.takerGives), EXPIRATION, NONCE
+    );
+
     expectFrom($(mgo));
     logOrderData(IMangrove(payable(mgv)), fresh_taker, buyOrder, expectedResult);
 
@@ -914,5 +927,33 @@ contract MangroveOrder_Test is MangroveTest, DeployPermit2, Permit2Helpers {
     assertEq(offer.wants(), 1 ether, "Incorrect offer wants");
     assertEq(offer.prev(), 0, "Offer should be best of the book");
     assertEq(detail.maker(), address(mgo), "Incorrect maker");
+  }
+
+  function test_empty_market_order_with_permit2_approvals() public {
+    uint takerWants = 1 ether;
+    uint takerGives = 1998 ether;
+    bool fillWants = true;
+
+    uint privKey = 0x1234;
+    address fresh_taker = freshTakerForPermit2(0, takerGives, privKey);
+    // generate transfer permit for just in time approval
+
+    ISignatureTransfer.PermitTransferFrom memory transferDetails =
+      getPermitTransferFrom(address(quote), takerGives, NONCE, EXPIRATION);
+
+    bytes memory signature =
+      getPermitTransferSignatureWithSpecifiedAddress(transferDetails, privKey, DOMAIN_SEPARATOR, address(mgo.router()));
+
+    expectFrom(address(quote));
+    emit Transfer(fresh_taker, address(mgo), takerGives);
+
+    vm.prank(fresh_taker);
+    (uint takerGot, uint takerGave, uint bounty, uint fee) =
+      mgo.marketOrderWithTransferApproval(base, quote, takerWants, takerGives, fillWants, transferDetails, signature);
+
+    assertEq(takerGot, 0 ether, "Incorrect taker got");
+    assertEq(takerGave, 0, "Incorrect taker gave");
+    assertEq(bounty, 0, "Offer bounty");
+    assertEq(fee, 0, "Offer fee");
   }
 }

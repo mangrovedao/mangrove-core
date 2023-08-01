@@ -28,7 +28,12 @@ interface IMangrove {
   );
   event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id, bool deprovision);
   event OfferSuccess(
-    address indexed outbound_tkn, address indexed inbound_tkn, uint id, address taker, uint takerWants, uint takerGives
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint id,
+    address indexed taker,
+    uint takerWants,
+    uint takerGives
   );
   event OfferWrite(
     address indexed outbound_tkn,

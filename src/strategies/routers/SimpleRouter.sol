@@ -11,6 +11,7 @@ import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.
 /// Thus a maker contract using a vault that is not an EOA must make sure this vault has approval capacities.
 contract SimpleRouterWithoutGasReq is AbstractRouter {
   constructor(uint gasreq) AbstractRouter(gasreq) {}
+
   /// @notice transfers an amount of tokens from the reserve to the maker.
   /// @param token Token to be transferred
   /// @param owner The account from which the tokens will be transferred.
@@ -18,7 +19,6 @@ contract SimpleRouterWithoutGasReq is AbstractRouter {
   /// @param strict wether the caller maker contract wishes to pull at most `amount` tokens of owner.
   /// @return pulled The amount pulled if successful (will be equal to `amount`); otherwise, 0.
   /// @dev requires approval from `owner` for `this` to transfer `token`.
-
   function __pull__(IERC20 token, address owner, uint amount, bool strict)
     internal
     virtual

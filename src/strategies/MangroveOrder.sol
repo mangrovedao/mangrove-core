@@ -124,6 +124,9 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     }
   }
 
+  //@notice pull inbound_tkn from the msg.sender with permit and then the forward market order to MGV
+  //@param permit The permit data signed over by the owner
+  //@param signature The signature to verify
   function marketOrderWithTransferApproval(
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
@@ -132,12 +135,20 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     bool fillWants,
     ISignatureTransfer.PermitTransferFrom calldata permit,
     bytes calldata signature
-  ) external returns (uint, uint, uint, uint) {
+  ) external returns (uint totalGot, uint totalGave, uint totalPenalty, uint feePaid) {
     uint pulled = Permit2Router(address(router())).pull(inbound_tkn, msg.sender, takerGives, true, permit, signature);
     require(pulled == takerGives, "mgvOrder/transferInFail");
-    return MGV.marketOrder(address(outbound_tkn), address(inbound_tkn), takerWants, takerGives, fillWants);
+    // (totalGot, totalGave, totalPenalty, feePaid) = MGV.marketOrder(address(outbound_tkn), address(inbound_tkn), takerWants, takerGives, fillWants);
+    //
+    // uint fund = takerGives - totalGave;
+    // if (fund > 0) {
+    //     (bool noRevert,) = Permit2Router(address(router())).push(inbound_tkn, msg.sender, fund).call();
+    //     require(success, "mgvOrder/refundInboundTknFail");
+    // }
   }
 
+  //@inheritdoc IOrderLogic
+  //@param tko TakerOrder struct
   function __take__(TakerOrder calldata tko) internal returns (TakerOrderResult memory res) {
     // Checking whether order is expired
     require(tko.expiryDate == 0 || block.timestamp <= tko.expiryDate, "mgvOrder/expired");
@@ -240,11 +251,18 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     return res;
   }
 
-  ///@inheritdoc IOrderLogic
+  //@inheritdoc IOrderLogic
+  //@param tko TakerOrder struct
+  //@return TakerOrderResult Result of the take call
   function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory) {
     return __take__(tko);
   }
 
+  //@inheritdoc IOrderLogic
+  //@param tko TakerOrder struct
+  //@param permit The permit data signed over by the owner
+  //@param signature The signature to verify
+  //@return TakerOrderResult Result of the take call
   function takeWithPermit(
     TakerOrder calldata tko,
     IAllowanceTransfer.PermitSingle memory permit,

@@ -14,6 +14,13 @@ contract Permit2Router is SimpleRouterWithoutGasReq {
     permit2 = _permit2;
   }
 
+  /// @notice transfers an amount of tokens from the reserve to the maker.
+  /// @param token Token to be transferred
+  /// @param owner The account from which the tokens will be transferred.
+  /// @param amount The amount of tokens to be transferred
+  /// @param strict wether the caller maker contract wishes to pull at most `amount` tokens of owner.
+  /// @return pulled The amount pulled if successful (will be equal to `amount`); otherwise, 0.
+  /// @dev requires approval from `owner` for `this` to transfer `token`.
   function __pull__(IERC20 token, address owner, uint amount, bool strict)
     internal
     virtual
@@ -33,18 +40,21 @@ contract Permit2Router is SimpleRouterWithoutGasReq {
   ///@param owner determines the location of the reserve (router implementation dependent).
   ///@param amount The amount of tokens to be transferred
   ///@param strict wether the caller maker contract wishes to pull at most `amount` tokens of owner.
-  ///@param permit provided by user
+  ///@param transferDetails The spender's requested transfer details for the permitted token
+  ///@param signature The signature to verify
   ///@return pulled The amount pulled if successful; otherwise, 0.
   function __pull__(
     IERC20 token,
     address owner,
     uint amount,
     bool strict,
-    ISignatureTransfer.PermitTransferFrom calldata permit,
+    ISignatureTransfer.PermitTransferFrom calldata transferDetails,
     bytes calldata signature
   ) internal returns (uint pulled) {
     amount = strict ? amount : token.balanceOf(owner);
-    if (TransferLib.transferTokenFromWithPermit2Signature(permit2, owner, msg.sender, amount, permit, signature)) {
+    if (
+      TransferLib.transferTokenFromWithPermit2Signature(permit2, owner, msg.sender, amount, transferDetails, signature)
+    ) {
       return amount;
     } else {
       return 0;
@@ -56,7 +66,8 @@ contract Permit2Router is SimpleRouterWithoutGasReq {
   ///@param reserveId identifies the fund owner (router implementation dependent).
   ///@param amount of `token` the maker contract wishes to pull from its reserve
   ///@param strict when the calling maker contract accepts to receive more funds from reserve than required (this may happen for gas optimization)
-  ///@param signature signature provided by user
+  ///@param permit The permit data signed over by the owner
+  ///@param signature The signature to verify
   ///@return pulled the amount that was successfully pulled.
   function pull(
     IERC20 token,

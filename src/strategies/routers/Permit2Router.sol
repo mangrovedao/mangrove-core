@@ -7,6 +7,8 @@ import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.sol";
 import {SimpleRouterWithoutGasReq} from "./SimpleRouter.sol";
 
+//@title `Permit2Router` instances pull (push) liquidity directly from (to) the an offer owner's account using permit2 contract
+//@dev Maker contracts using this router must make sure that the reserve approves the permit2 for all asset that will be pulled (outbound tokens), and then the user needs either approve router inside permit2 or he can use just in time signature to authorize transfer
 contract Permit2Router is SimpleRouterWithoutGasReq {
   IPermit2 public permit2;
 

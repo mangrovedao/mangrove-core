@@ -138,13 +138,16 @@ contract MangroveOrder is Forwarder, IOrderLogic {
   ) external returns (uint totalGot, uint totalGave, uint totalPenalty, uint feePaid) {
     uint pulled = Permit2Router(address(router())).pull(inbound_tkn, msg.sender, takerGives, true, permit, signature);
     require(pulled == takerGives, "mgvOrder/transferInFail");
-    // (totalGot, totalGave, totalPenalty, feePaid) = MGV.marketOrder(address(outbound_tkn), address(inbound_tkn), takerWants, takerGives, fillWants);
-    //
-    // uint fund = takerGives - totalGave;
-    // if (fund > 0) {
-    //     (bool noRevert,) = Permit2Router(address(router())).push(inbound_tkn, msg.sender, fund).call();
-    //     require(success, "mgvOrder/refundInboundTknFail");
-    // }
+    (totalGot, totalGave, totalPenalty, feePaid) =
+      MGV.marketOrder(address(outbound_tkn), address(inbound_tkn), takerWants, takerGives, fillWants);
+
+    uint fund = takerGives - totalGave;
+    if (fund > 0) {
+      // refund the sender
+      (bool noRevert,) =
+        address(router()).call(abi.encodeWithSelector(router().push.selector, inbound_tkn, msg.sender, fund));
+      require(noRevert, "mgvOrder/refundInboundTknFail");
+    }
   }
 
   //@inheritdoc IOrderLogic

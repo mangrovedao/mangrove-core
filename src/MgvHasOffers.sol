@@ -79,10 +79,27 @@ contract MgvHasOffers is MgvRoot {
     }
   }
 
+  function debitWei(address maker, uint amount, uint offerId) internal {
+    unchecked {
+      uint makerBalance = balanceOf[maker];
+      require(makerBalance >= amount, "mgv/insufficientProvision");
+      balanceOf[maker] = makerBalance - amount;
+      emit Debit(maker, amount, offerId);
+    }
+  }
+
   function creditWei(address maker, uint amount) internal {
     unchecked {
       balanceOf[maker] += amount;
       emit Credit(maker, amount);
+    }
+  }
+  /* We are using `int` for `offerId` because it can be negative, when we are fully deprovisioning an offer. */
+
+  function creditWei(address maker, uint amount, int offerId) internal {
+    unchecked {
+      balanceOf[maker] += amount;
+      emit Credit(maker, amount, offerId);
     }
   }
 

@@ -13,7 +13,9 @@ import "./MgvLib.sol" as MgvLibWrapper;
 
 interface IMangrove {
   event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
+  event Credit(address indexed maker, uint amount, int offerId);
   event Credit(address indexed maker, uint amount);
+  event Debit(address indexed maker, uint amount, uint offerId);
   event Debit(address indexed maker, uint amount);
   event Kill();
   event NewMgv();

@@ -51,8 +51,12 @@ contract HasMgvEvents {
   /* Mangrove adds or removes wei from `maker`'s account */
   /* * Credit event occurs when an offer is removed from Mangrove or when the `fund` function is called*/
   event Credit(address indexed maker, uint amount);
+  /* * Credit event with offerId occurs when a credit happens in context of an offer. If the offerId is negative, then we are fully deprovisioning the offer */
+  event Credit(address indexed maker, uint amount, int offerId);
   /* * Debit event occurs when an offer is posted or when the `withdraw` function is called */
   event Debit(address indexed maker, uint amount);
+  /* * Debit event with offerId occurs when a debit happens in context of an offer */
+  event Debit(address indexed maker, uint amount, uint offerId);
 
   /* * Mangrove reconfiguration */
   event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);

@@ -481,7 +481,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       0
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), provision); // transfering missing provision into offer bounty
+    emit Debit(address(mkr), provision, 1); // transfering missing provision into offer bounty
     uint ofr0 = mkr.newOffer(1.0 ether, 1 ether, 100_000, 0); // locking exact bounty
     mgv.setGasprice(gasprice + 1); //gasprice goes up
     uint provision_ = reader.getProvision($(base), $(quote), 100_000, gasprice + 1); // new theoretical provision
@@ -499,7 +499,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       0
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), provision_ - provision); // transfering missing provision into offer bounty
+    emit Debit(address(mkr), provision_ - provision, ofr0); // transfering missing provision into offer bounty
     mkr.updateOffer(1.0 ether + 2, 1.0 ether, 100_000, ofr0);
   }
 
@@ -511,7 +511,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.setGasprice(cfg.gasprice() - 1); //gasprice goes down
     uint _provision = reader.getProvision($(base), $(quote), 100_000);
     expectFrom($(mgv));
-    emit Credit(address(mkr), provision - _provision);
+    emit Credit(address(mkr), provision - _provision, int(ofr0));
     mkr.updateOffer(1.0 ether + 2, 1.0 ether, 100_000, ofr0);
     assertEq(mgv.balanceOf(address(mkr)), provision - _provision, "Maker balance is incorrect");
   }

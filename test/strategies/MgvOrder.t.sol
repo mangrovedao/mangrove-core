@@ -5,6 +5,7 @@ import {MangroveTest, MgvReader, TestMaker, TestTaker, TestSender, console} from
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MangroveOrder as MgvOrder} from "mgv_src/strategies/MangroveOrder.sol";
 import {SimpleRouter} from "mgv_src/strategies/routers/SimpleRouter.sol";
+import {Permit2Router} from "mgv_src/strategies/routers/Permit2Router.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {TransferLib} from "mgv_src/strategies/utils/TransferLib.sol";
 import {IOrderLogic} from "mgv_src/strategies/interfaces/IOrderLogic.sol";
@@ -12,9 +13,14 @@ import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {IPermit2} from "permit2/src/interfaces/IPermit2.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
+import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.sol";
+import {IAllowanceTransfer} from "lib/permit2/src/interfaces/IAllowanceTransfer.sol";
+import {Permit2Helpers} from "mgv_test/lib/permit2/permit2Helpers.sol";
 
-contract MangroveOrder_Test is MangroveTest, DeployPermit2 {
+contract MangroveOrder_Test is MangroveTest, DeployPermit2, Permit2Helpers {
   uint constant GASREQ = 35_000;
+
+  bytes32 DOMAIN_SEPARATOR;
 
   // to check ERC20 logging
   event Transfer(address indexed from, address indexed to, uint value);
@@ -63,6 +69,7 @@ contract MangroveOrder_Test is MangroveTest, DeployPermit2 {
     setupMarket(base, quote);
 
     permit2 = IPermit2(deployPermit2());
+    DOMAIN_SEPARATOR = permit2.DOMAIN_SEPARATOR();
     // this contract is admin of MgvOrder and its router
     mgo = new MgvOrder(IMangrove(payable(mgv)), permit2, $(this), GASREQ);
     // mgvOrder needs to approve mangrove for inbound & outbound token transfer (inbound when acting as a taker, outbound when matched as a maker)
@@ -164,18 +171,31 @@ contract MangroveOrder_Test is MangroveTest, DeployPermit2 {
     assertEq(mgv.governance(), mgo.admin(), "Invalid admin address");
   }
 
-  function freshTaker(uint balBase, uint balQuote) internal returns (address fresh_taker) {
-    fresh_taker = freshAddress("MgvOrderTester");
+  function __freshTaker__(uint balBase, uint balQuote, address fresh_taker) internal {
     deal($(quote), fresh_taker, balQuote);
     deal($(base), fresh_taker, balBase);
     deal(fresh_taker, 1 ether);
 
     vm.startPrank(fresh_taker);
-    permit2.approve(address(base), address(mgo.router()), type(uint160).max, type(uint48).max);
-    permit2.approve(address(quote), address(mgo.router()), type(uint160).max, type(uint48).max);
+    // always unlimitted approval permit2
     quote.approve(address(permit2), type(uint).max);
     base.approve(address(permit2), type(uint).max);
     vm.stopPrank();
+  }
+
+  function freshTaker(uint balBase, uint balQuote) internal returns (address fresh_taker) {
+    fresh_taker = freshAddress("MgvOrderTester");
+    __freshTaker__(balBase, balQuote, fresh_taker);
+    // allow router to pull funds from permit2
+    vm.startPrank(fresh_taker);
+    permit2.approve(address(base), address(mgo.router()), type(uint160).max, type(uint48).max);
+    permit2.approve(address(quote), address(mgo.router()), type(uint160).max, type(uint48).max);
+    vm.stopPrank();
+  }
+
+  function freshTakerForPermit2(uint balBase, uint balQuote, uint privKey) internal returns (address fresh_taker) {
+    fresh_taker = vm.addr(privKey);
+    __freshTaker__(balBase, balQuote, fresh_taker);
   }
 
   ////////////////////////
@@ -840,5 +860,59 @@ contract MangroveOrder_Test is MangroveTest, DeployPermit2 {
     gas_();
     assertTrue(successes == 1, "Snipe failed");
     assertTrue(mgv.offers($(quote), $(base), cold_buyResult.offerId).gives() > 0, "Update failed");
+  }
+
+  function test_empty_fill_buy_with_resting_order_is_correctly_posted_with_permit2_approvals() public {
+    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+      outbound_tkn: base,
+      inbound_tkn: quote,
+      fillOrKill: false,
+      fillWants: true,
+      takerWants: 1 ether,
+      takerGives: 1998 ether,
+      restingOrder: true,
+      pivotId: 0,
+      expiryDate: 0 //NA
+    });
+
+    IOrderLogic.TakerOrderResult memory expectedResult =
+      IOrderLogic.TakerOrderResult({takerGot: 0, takerGave: 0, bounty: 0, fee: 0, offerId: 5});
+
+    uint privKey = 0x1234;
+    address fresh_taker = freshTakerForPermit2(0, 1998 ether, privKey);
+
+    // generate permit to just in time approval
+    IAllowanceTransfer.PermitSingle memory permit = getPermit(
+      address(buyOrder.inbound_tkn),
+      uint160(buyOrder.takerGives),
+      uint48(block.timestamp + 1000),
+      0,
+      address(mgo.router())
+    );
+
+    bytes memory signature = getPermitSignature(permit, privKey, DOMAIN_SEPARATOR);
+    uint nativeBalBefore = fresh_taker.balance;
+
+    // checking log emission
+    expectFrom($(mgo));
+    logOrderData(IMangrove(payable(mgv)), fresh_taker, buyOrder, expectedResult);
+
+    vm.prank(fresh_taker);
+    IOrderLogic.TakerOrderResult memory res = mgo.takeWithPermit{value: 0.1 ether}(buyOrder, permit, signature);
+
+    assertTrue(res.offerId > 0, "Offer not posted");
+    assertEq(fresh_taker.balance, nativeBalBefore - 0.1 ether, "Value not deposited");
+    assertEq(mgo.provisionOf(quote, base, res.offerId), 0.1 ether, "Offer not provisioned");
+    // checking mappings
+    assertEq(mgo.ownerOf(quote, base, res.offerId), fresh_taker, "Invalid offer owner");
+    assertEq(quote.balanceOf(fresh_taker), 1998 ether, "Incorrect remaining quote balance");
+    assertEq(base.balanceOf(fresh_taker), 0, "Incorrect obtained base balance");
+    // checking price of offer
+    MgvStructs.OfferPacked offer = mgv.offers($(quote), $(base), res.offerId);
+    MgvStructs.OfferDetailPacked detail = mgv.offerDetails($(quote), $(base), res.offerId);
+    assertEq(offer.gives(), 1998 ether, "Incorrect offer gives");
+    assertEq(offer.wants(), 1 ether, "Incorrect offer wants");
+    assertEq(offer.prev(), 0, "Offer should be best of the book");
+    assertEq(detail.maker(), address(mgo), "Incorrect maker");
   }
 }

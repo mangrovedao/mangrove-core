@@ -7,10 +7,10 @@ import {Permit2Router} from "mgv_src/strategies/routers/Permit2Router.sol";
 import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.sol";
 import {IAllowanceTransfer} from "lib/permit2/src/interfaces/IAllowanceTransfer.sol";
 import {IPermit2} from "lib/permit2/src/interfaces/IPermit2.sol";
-import {PermitSignature} from "lib/permit2/test/utils/PermitSignature.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
+import {Permit2Helpers} from "mgv_test/lib/permit2/permit2Helpers.sol";
 
-contract Permit2RouterSignatureTest is MangroveTest, DeployPermit2, PermitSignature {
+contract Permit2RouterSignatureTest is MangroveTest, DeployPermit2, Permit2Helpers {
   address owner;
   uint ownerPrivateKey;
   TestToken weth;
@@ -50,27 +50,9 @@ contract Permit2RouterSignatureTest is MangroveTest, DeployPermit2, PermitSignat
     vm.stopPrank();
   }
 
-  function getPermitTransferSignatureWithSpecifiedAddress(
-    ISignatureTransfer.PermitTransferFrom memory permit,
-    uint privateKey,
-    bytes32 domainSeparator,
-    address addr
-  ) internal pure returns (bytes memory sig) {
-    bytes32 tokenPermissions = keccak256(abi.encode(_TOKEN_PERMISSIONS_TYPEHASH, permit.permitted));
-    bytes32 msgHash = keccak256(
-      abi.encodePacked(
-        "\x19\x01",
-        domainSeparator,
-        keccak256(abi.encode(_PERMIT_TRANSFER_FROM_TYPEHASH, tokenPermissions, addr, permit.nonce, permit.deadline))
-      )
-    );
-
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, msgHash);
-    return bytes.concat(r, s, bytes1(v));
-  }
-
   function test_pull_with_signature_transfer() public {
-    ISignatureTransfer.PermitTransferFrom memory transferDetails = defaultERC20PermitTransfer(address(weth), NONCE);
+    ISignatureTransfer.PermitTransferFrom memory transferDetails =
+      getPermitTransferFrom(address(weth), AMOUNT, NONCE, EXPIRATION);
     bytes memory sig = getPermitTransferSignatureWithSpecifiedAddress(
       transferDetails, ownerPrivateKey, DOMAIN_SEPARATOR, address(router)
     );
@@ -85,13 +67,7 @@ contract Permit2RouterSignatureTest is MangroveTest, DeployPermit2, PermitSignat
   }
 
   function test_pull_with_permit() public {
-    IAllowanceTransfer.PermitDetails memory permitDetails =
-      IAllowanceTransfer.PermitDetails({token: address(weth), amount: AMOUNT, expiration: EXPIRATION, nonce: NONCE});
-    IAllowanceTransfer.PermitSingle memory permit = IAllowanceTransfer.PermitSingle({
-      details: permitDetails,
-      spender: address(router),
-      sigDeadline: block.timestamp + 100
-    });
+    IAllowanceTransfer.PermitSingle memory permit = getPermit(address(weth), AMOUNT, EXPIRATION, NONCE, address(router));
     bytes memory sig = getPermitSignature(permit, ownerPrivateKey, DOMAIN_SEPARATOR);
 
     uint startBalanceFrom = weth.balanceOf(owner);

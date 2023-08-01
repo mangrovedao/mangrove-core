@@ -2,6 +2,8 @@
 pragma solidity ^0.8.10;
 
 import {IPermit2} from "lib/permit2/src/interfaces/IPermit2.sol";
+import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.sol";
+import {IAllowanceTransfer} from "lib/permit2/src/interfaces/IAllowanceTransfer.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {Forwarder, MangroveOffer} from "mgv_src/strategies/offer_forwarder/abstract/Forwarder.sol";
 import {IOrderLogic} from "mgv_src/strategies/interfaces/IOrderLogic.sol";
@@ -122,8 +124,21 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     }
   }
 
-  ///@inheritdoc IOrderLogic
-  function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory res) {
+  function marketOrderWithTransferApproval(
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint takerWants,
+    uint takerGives,
+    bool fillWants,
+    ISignatureTransfer.PermitTransferFrom calldata permit,
+    bytes calldata signature
+  ) external returns (uint, uint, uint, uint) {
+    uint pulled = Permit2Router(address(router())).pull(inbound_tkn, msg.sender, takerGives, true, permit, signature);
+    require(pulled == takerGives, "mgvOrder/transferInFail");
+    return MGV.marketOrder(address(outbound_tkn), address(inbound_tkn), takerWants, takerGives, fillWants);
+  }
+
+  function __take__(TakerOrder calldata tko) internal returns (TakerOrderResult memory res) {
     // Checking whether order is expired
     require(tko.expiryDate == 0 || block.timestamp <= tko.expiryDate, "mgvOrder/expired");
 
@@ -223,6 +238,20 @@ contract MangroveOrder is Forwarder, IOrderLogic {
     // * (NAT_THIS, OUT_THIS, IN_THIS)
     logOrderData(tko, res);
     return res;
+  }
+
+  ///@inheritdoc IOrderLogic
+  function take(TakerOrder calldata tko) external payable returns (TakerOrderResult memory) {
+    return __take__(tko);
+  }
+
+  function takeWithPermit(
+    TakerOrder calldata tko,
+    IAllowanceTransfer.PermitSingle memory permit,
+    bytes calldata signature
+  ) external payable returns (TakerOrderResult memory) {
+    Permit2Router(address(router())).permit2().permit(msg.sender, permit, signature);
+    return __take__(tko);
   }
 
   ///@notice logs `OrderSummary`

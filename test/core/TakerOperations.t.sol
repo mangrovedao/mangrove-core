@@ -123,7 +123,7 @@ contract TakerOperationsTest is MangroveTest {
     targets[j] = [ofrs[j], 0.8 ether, 1 ether, 100_000];
 
     expectFrom($(mgv));
-    emit OrderStart();
+    emit SnipeStart();
     expectFrom($(mgv));
     emit OrderComplete($(base), $(quote), $(this), 2.3 ether, 2.3 ether, 0, 0);
 

@@ -143,7 +143,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sor.local = sor.local.lock(true);
       pair.local = sor.local;
 
-      emit OrderStart();
+      emit OrderStart(outbound_tkn, inbound_tkn, takerWants, takerGives, fillWants, taker);
 
       /* Call recursive `internalMarketOrder` function.*/
       internalMarketOrder(pair, mor, sor, true);
@@ -317,7 +317,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       activeMarketOnly(sor.global, sor.local);
       unlockedMarketOnly(sor.local);
 
-      emit OrderStart();
+      emit SnipeStart();
 
       /* ### Main loop */
       //+clear+

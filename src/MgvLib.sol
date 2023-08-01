@@ -67,7 +67,10 @@ contract HasMgvEvents {
   event SetGasprice(uint value);
 
   /* Market order execution */
-  event OrderStart();
+  event SnipeStart();
+  event OrderStart(
+    address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants, address taker
+  );
   event OrderComplete(
     address indexed outbound_tkn,
     address indexed inbound_tkn,

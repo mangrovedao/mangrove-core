@@ -86,7 +86,7 @@ contract ScenariiTest is MangroveTest {
     saveBalances();
     saveOffers();
     expectFrom($(mgv));
-    emit OrderStart();
+    emit SnipeStart();
     expectFrom($(mgv));
     emit OrderComplete(
       $(base),

@@ -50,7 +50,10 @@ interface IMangrove {
     uint penalty,
     uint feePaid
   );
-  event OrderStart();
+  event SnipeStart();
+  event OrderStart(
+    address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants, address taker
+  );
   event PosthookFail(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, bytes32 posthookData);
   event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);
   event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint value);

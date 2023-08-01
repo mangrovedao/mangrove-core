@@ -11,6 +11,8 @@ import {ISignatureTransfer} from "lib/permit2/src/interfaces/ISignatureTransfer.
 /// Thus a maker contract using a vault that is not an EOA must make sure this vault has approval capacities.
 
 contract SimpleRouterWithoutGasReq is AbstractRouter {
+  ///@notice SimpleRouterWithoutGasReq constructor
+  ///@param gasreq Estimated gas req for router
   constructor(uint gasreq) AbstractRouter(gasreq) {}
 
   /// @notice transfers an amount of tokens from the reserve to the maker.

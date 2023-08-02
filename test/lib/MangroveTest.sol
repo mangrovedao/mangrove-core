@@ -19,7 +19,6 @@ import {IERC20, MgvLib, HasMgvEvents, IMaker, ITaker, IMgvMonitor, MgvStructs} f
 import {console2 as csl} from "forge-std/console2.sol";
 
 // below imports are for the \$( function)
-import {AccessControlled} from "mgv_src/strategies/utils/AccessControlled.sol";
 
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 
@@ -344,10 +343,6 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   /* **** Sugar for address conversion */
   function $(AbstractMangrove t) internal pure returns (address payable) {
-    return payable(address(t));
-  }
-
-  function $(AccessControlled t) internal pure returns (address payable) {
     return payable(address(t));
   }
 

@@ -473,12 +473,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       $(base),
       $(quote),
       address(mkr),
-      1.0 ether,
+      0, //tick
       1.0 ether,
       gasprice, // offer at old gasprice
       100_000,
-      1,
-      0
+      1
     );
     expectFrom($(mgv));
     emit Debit(address(mkr), provision); // transfering missing provision into offer bounty
@@ -491,12 +490,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       $(base),
       $(quote),
       address(mkr),
-      1.0 ether + 2,
+      0, //tick
       1.0 ether,
       cfg.gasprice(), // offer gasprice should be the new gasprice
       100_000,
-      ofr0,
-      0
+      ofr0
     );
     expectFrom($(mgv));
     emit Debit(address(mkr), provision_ - provision); // transfering missing provision into offer bounty

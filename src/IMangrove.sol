@@ -34,12 +34,11 @@ interface IMangrove {
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     address maker,
-    uint wants,
+    int tick,
     uint gives,
     uint gasprice,
     uint gasreq,
-    uint id,
-    int tick
+    uint id
   );
   event OrderComplete(
     address indexed outbound_tkn,
@@ -156,6 +155,11 @@ interface IMangrove {
     payable
     returns (uint);
 
+  function newOffer_new(address outbound_tkn, address inbound_tkn, int tick, uint gives, uint gasreq, uint gasprice)
+    external
+    payable
+    returns (uint);
+
   function nonces(address) external view returns (uint);
 
   function offerDetails(address, address, uint) external view returns (MgvStructs.OfferDetailPacked);
@@ -215,6 +219,16 @@ interface IMangrove {
     address outbound_tkn,
     address inbound_tkn,
     uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint offerId
+  ) external payable;
+
+  function updateOffer_new(
+    address outbound_tkn,
+    address inbound_tkn,
+    int tick,
     uint gives,
     uint gasreq,
     uint gasprice,

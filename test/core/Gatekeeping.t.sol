@@ -173,6 +173,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.setGasmax(uint(type(uint24).max) + 1);
   }
 
+  // FIXME: only relevant if we retain the old API
   function test_makerWants_wider_than_96_bits_fails_newOffer() public {
     vm.expectRevert("mgv/writeOffer/wants/96bits");
     mkr.newOffer(2 ** 96, 1 ether, 10_000, 0);
@@ -241,12 +242,11 @@ contract GatekeepingTest is IMaker, MangroveTest {
       $(base),
       $(quote),
       address(mkr),
-      1 ether, //base
+      0, //tick
       1 ether, //quote
       cfg.gasprice(), //gasprice
       cfg.gasmax(), //gasreq
-      1, //ofrId
-      0 // prev
+      1 //ofrId
     );
     expectFrom($(mgv));
     emit Debit(address(mkr), reader.getProvision($(base), $(quote), cfg.gasmax(), 0));
@@ -272,12 +272,11 @@ contract GatekeepingTest is IMaker, MangroveTest {
       $(base),
       $(quote),
       address(mkr),
-      amount, //base
+      0, //tick
       amount, //quote
       glob.gasprice(), //gasprice
       1, //gasreq
-      1, //ofrId
-      0 // prev
+      1 //ofrId
     );
     expectFrom($(mgv));
     emit Debit(address(mkr), reader.getProvision($(base), $(quote), 1, 0));

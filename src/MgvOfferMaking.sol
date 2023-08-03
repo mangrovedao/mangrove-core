@@ -18,7 +18,7 @@ contract MgvOfferMaking is MgvHasOffers {
   struct OfferPack {
     address outbound_tkn;
     address inbound_tkn;
-    uint wants;
+    Tick tick;
     uint gives;
     uint id;
     uint gasreq;
@@ -29,7 +29,7 @@ contract MgvOfferMaking is MgvHasOffers {
     MgvStructs.OfferPacked oldOffer;
   }
 
-  /* The function `newOffer` is for market makers only; no match with the existing book is done. A maker specifies how much `inbound_tkn` it `wants` and how much `outbound_tkn` it `gives`.
+  /* The function `newOffer` is for market makers only; no match with the existing book is done. A maker specifies how much `outbound_tkn` it `gives` at what price `tick`.
 
      It also specify with `gasreq` how much gas should be given when executing their offer.
 
@@ -43,8 +43,23 @@ contract MgvOfferMaking is MgvHasOffers {
 
   The actual contents of the function is in `writeOffer`, which is called by both `newOffer` and `updateOffer`.
   */
+  // FIXME: Remove once tick implementation satisfies the tests
   function newOffer(address outbound_tkn, address inbound_tkn, uint wants, uint gives, uint gasreq, uint gasprice)
     external
+    payable
+    returns (uint)
+  {
+    // FIXME: These validation are here to ensure tests pass with the expected revert reasons
+    require(wants > 0, "mgv/writeOffer/wants/tooLow");
+    require(gives > 0, "mgv/writeOffer/gives/tooLow");
+    require(uint96(gives) == gives, "mgv/writeOffer/gives/96bits");
+    require(uint96(wants) == wants, "mgv/writeOffer/wants/96bits");
+    return newOffer_new(outbound_tkn, inbound_tkn, Tick.unwrap(TickLib.tickFromVolumes(wants, gives)), gives, gasreq, gasprice);
+  }
+  function newOffer_new(address outbound_tkn, address inbound_tkn, int tick, uint gives, uint gasreq, uint gasprice)
+  // FIXME: public until old signature is removed
+  //  external
+    public
     payable
     returns (uint)
   {
@@ -69,7 +84,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
       ofp.outbound_tkn = outbound_tkn;
       ofp.inbound_tkn = inbound_tkn;
-      ofp.wants = wants;
+      ofp.tick = Tick.wrap(tick);
       ofp.gives = gives;
       ofp.gasreq = gasreq;
       ofp.gasprice = gasprice;
@@ -98,6 +113,7 @@ contract MgvOfferMaking is MgvHasOffers {
      4. `gasprice` has not changed since the offer was last written
      5. `gasprice` is greater than Mangrove's gasprice estimation
   */
+  // FIXME: Remove once tick implementation satisfies the tests
   function updateOffer(
     address outbound_tkn,
     address inbound_tkn,
@@ -107,6 +123,26 @@ contract MgvOfferMaking is MgvHasOffers {
     uint gasprice,
     uint offerId
   ) external payable {
+    // FIXME: These validation are here to ensure tests pass with the expected revert reasons
+    require(wants > 0, "mgv/writeOffer/wants/tooLow");
+    require(gives > 0, "mgv/writeOffer/gives/tooLow");
+    require(uint96(gives) == gives, "mgv/writeOffer/gives/96bits");
+    require(uint96(wants) == wants, "mgv/writeOffer/wants/96bits");
+    updateOffer_new(outbound_tkn, inbound_tkn, Tick.unwrap(TickLib.tickFromVolumes(wants, gives)), gives, gasreq, gasprice, offerId);
+  }
+  function updateOffer_new(
+    address outbound_tkn,
+    address inbound_tkn,
+    int tick,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint offerId
+  )
+  // FIXME: public until old signature is removed
+  //  external
+    public
+    payable {
     unchecked {
       OfferPack memory ofp;
       Pair storage pair;
@@ -118,7 +154,7 @@ contract MgvOfferMaking is MgvHasOffers {
       }
       ofp.outbound_tkn = outbound_tkn;
       ofp.inbound_tkn = inbound_tkn;
-      ofp.wants = wants;
+      ofp.tick = Tick.wrap(tick);
       ofp.gives = gives;
       ofp.id = offerId;
       ofp.gasreq = gasreq;
@@ -126,7 +162,7 @@ contract MgvOfferMaking is MgvHasOffers {
       ofp.oldOffer = pair.offerData[offerId].offer;
       // Save local config
       MgvStructs.LocalPacked oldLocal = ofp.local;
-      // ofp.tick = Ticks.tickFromVolumes(wants,gives);
+      // FIXME: What is this tickleaf here? Is it needed? (this code was commented out when I, Espen, got here)
       // ofp.tickleaf = tickleafs[outbound_tkn][inbound_tkn][ofp.tick];
       /* The second argument indicates that we are updating an existing offer, not creating a new one. */
       writeOffer(pair, ofp, true);
@@ -233,8 +269,6 @@ contract MgvOfferMaking is MgvHasOffers {
       require(ofp.gasreq <= ofp.global.gasmax(), "mgv/writeOffer/gasreq/tooHigh");
       /* * Make sure `gives > 0` -- division by 0 would throw in several places otherwise, and `isLive` relies on it. */
       require(ofp.gives > 0, "mgv/writeOffer/gives/tooLow");
-      /* * Make sure `wants > 0` -- price is stored as log_1BP(wants/gives). */
-      require(ofp.wants > 0, "mgv/writeOffer/wants/tooLow");
       /* * Make sure that the maker is posting a 'dense enough' offer: the ratio of `outbound_tkn` offered per gas consumed must be high enough. The actual gas cost paid by the taker is overapproximated by adding `offer_gasbase` to `gasreq`. */
       require(
         ofp.gives >= ofp.local.density().multiply(ofp.gasreq + ofp.local.offer_gasbase()),
@@ -243,9 +277,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
       /* The following checks are for the maker's convenience only. */
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
-      require(uint96(ofp.wants) == ofp.wants, "mgv/writeOffer/wants/96bits");
-
-      Tick insertionTick = TickLib.tickFromVolumes(ofp.wants, ofp.gives);
+      require(int24(Tick.unwrap(ofp.tick)) == Tick.unwrap(ofp.tick), "mgv/writeOffer/tick/24bits");
 
       /* Log the write offer event. */
       uint ofrId = ofp.id;
@@ -253,12 +285,11 @@ contract MgvOfferMaking is MgvHasOffers {
         ofp.outbound_tkn,
         ofp.inbound_tkn,
         msg.sender,
-        ofp.wants,
+        Tick.unwrap(ofp.tick),
         ofp.gives,
         ofp.gasprice,
         ofp.gasreq,
-        ofrId,
-        Tick.unwrap(insertionTick)
+        ofrId
       );
 
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
@@ -314,15 +345,15 @@ contract MgvOfferMaking is MgvHasOffers {
            - Otherwise yes because maybe current tick = insertion tick
         */
         // bool updateLocal = tick.strictlyBetter(ofp.local.tick().strictlyBetter(tick)
-        ofp.local = dislodgeOffer(pair, ofp.oldOffer, ofp.local, !insertionTick.strictlyBetter(ofp.local.tick()));
+        ofp.local = dislodgeOffer(pair, ofp.oldOffer, ofp.local, !ofp.tick.strictlyBetter(ofp.local.tick()));
       }
 
       // insertion
-      Leaf leaf = pair.leafs[insertionTick.leafIndex()];
+      Leaf leaf = pair.leafs[ofp.tick.leafIndex()];
       // if leaf was empty flip tick on at level0
       if (leaf.isEmpty()) {
         Field field;
-        int insertionIndex = insertionTick.level0Index();
+        int insertionIndex = ofp.tick.level0Index();
         int currentIndex = ofp.local.tick().level0Index();
         // Get insertion level0
         if (insertionIndex != currentIndex) {
@@ -338,14 +369,14 @@ contract MgvOfferMaking is MgvHasOffers {
 
         // Write insertion level0
         if (insertionIndex <= currentIndex || ofp.local.level2().isEmpty()) {
-          ofp.local = ofp.local.level0(field.flipBitAtLevel0(insertionTick));
+          ofp.local = ofp.local.level0(field.flipBitAtLevel0(ofp.tick));
         } else {
-          pair.level0[insertionIndex] = field.flipBitAtLevel0(insertionTick);
+          pair.level0[insertionIndex] = field.flipBitAtLevel0(ofp.tick);
         }
 
         if (field.isEmpty()) {
-          // console.log("insertion tick is",toString(insertionTick));
-          insertionIndex = insertionTick.level1Index();
+          // console.log("insertion tick is",toString(ofp.tick));
+          insertionIndex = ofp.tick.level1Index();
           currentIndex = ofp.local.tick().level1Index();
 
           if (insertionIndex != currentIndex) {
@@ -359,13 +390,13 @@ contract MgvOfferMaking is MgvHasOffers {
           }
 
           if (insertionIndex <= currentIndex || ofp.local.level2().isEmpty()) {
-            ofp.local = ofp.local.level1(field.flipBitAtLevel1(insertionTick));
+            ofp.local = ofp.local.level1(field.flipBitAtLevel1(ofp.tick));
           } else {
-            pair.level1[insertionIndex] = field.flipBitAtLevel1(insertionTick);
+            pair.level1[insertionIndex] = field.flipBitAtLevel1(ofp.tick);
           }
           // if level1 was empty, flip tick on at level2
           if (field.isEmpty()) {
-            ofp.local = ofp.local.level2(ofp.local.level2().flipBitAtLevel2(insertionTick));
+            ofp.local = ofp.local.level2(ofp.local.level2().flipBitAtLevel2(ofp.tick));
           }
         }
       }
@@ -373,47 +404,23 @@ contract MgvOfferMaking is MgvHasOffers {
       // tick empty -> firstId=lastId=0
       // tick has 1 offer -> firstId=lastId!=0
       // otherwise 0 != firstId != lastId != 0
-      uint lastId = leaf.lastOfTick(insertionTick);
+      uint lastId = leaf.lastOfTick(ofp.tick);
       if (lastId == 0) {
-        leaf = leaf.setTickFirst(insertionTick, ofrId);
+        leaf = leaf.setTickFirst(ofp.tick, ofrId);
       } else {
         OfferData storage offerData = pair.offerData[lastId];
         offerData.offer = offerData.offer.next(ofrId);
       }
 
       // store offer at the end of the tick
-      leaf = leaf.setTickLast(insertionTick, ofrId);
-      pair.leafs[insertionTick.leafIndex()] = leaf;
-      ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
+      leaf = leaf.setTickLast(ofp.tick, ofrId);
+      pair.leafs[ofp.tick.leafIndex()] = leaf;
+      ofp.local = ofp.local.tickPosInLeaf(ofp.tick.posInLeaf());
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
       MgvStructs.OfferPacked ofr =
-        MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: insertionTick, __gives: ofp.gives});
+        MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: ofp.tick, __gives: ofp.gives});
       pair.offerData[ofrId].offer = ofr;
-    }
-  }
-
-  /* ## Better */
-  /* The utility method `better` takes an offer represented by `wants2`,`gives2`, `gasreq2`, and another represented by `offer1`. It returns true iff `offer1` is the better or equal offer`.
-    "better" is defined on the lexicographic order $\textrm{price} \times_{\textrm{lex}} \textrm{density}^{-1}$. This means that for the same price, offers that deliver more volume per gas are taken first.
-
-      In addition to `offer1`, we also provide offerData1 in order to save gas. If necessary (ie. if the prices `wants1/gives1` and `wants2/gives2` are the same), we read storage to get `gasreq1` at `offerData.detail`. */
-  function better(uint wants2, uint gives2, uint gasreq2, MgvStructs.OfferPacked offer1, OfferData storage offerData1)
-    internal
-    view
-    returns (bool)
-  {
-    unchecked {
-      uint wants1 = offer1.wants();
-      uint gives1 = offer1.gives();
-      uint weight1 = wants1 * gives2;
-      uint weight2 = wants2 * gives1;
-      if (weight1 == weight2) {
-        uint gasreq1 = offerData1.detail.gasreq();
-        return (gives1 * gasreq2 >= gives2 * gasreq1);
-      } else {
-        return weight1 < weight2;
-      }
     }
   }
 }

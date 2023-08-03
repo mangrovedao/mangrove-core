@@ -97,7 +97,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     expectFrom($(mgv));
     // FIXME why does this pass?
-    emit OfferWrite($(base), $(quote), $(this), 1 ether, 1 ether, _gasprice, gasreq, ofr, 0);
+    emit OfferWrite($(base), $(quote), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
     bool success = tkr.take(ofr, 0.5 ether);
     assertTrue(success, "Snipe should succeed");
     assertTrue(called, "PostHook not called");
@@ -124,7 +124,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     // FIXME why does this expect pass?
     expectFrom($(mgv));
-    emit OfferWrite($(base), $(quote), $(this), 1 ether, 1 ether, _gasprice, gasreq, ofr, 0);
+    emit OfferWrite($(base), $(quote), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
     bool success = tkr.take(ofr, 2 ether);
     assertTrue(called, "PostHook not called");
     assertTrue(success, "Snipe should succeed");
@@ -144,7 +144,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     makerRevert = true;
 
     expectFrom($(mgv));
-    emit OfferWrite($(base), $(quote), $(this), 1 ether, 1 ether, _gasprice, gasreq, ofr, 0);
+    emit OfferWrite($(base), $(quote), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
     bool success = tkr.take(ofr, 2 ether);
     assertTrue(!success, "Snipe should fail");
     assertTrue(called, "PostHook not called");
@@ -203,7 +203,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     );
 
     expectFrom($(mgv));
-    emit OfferWrite($(base), $(quote), $(this), 1 ether, 1 ether, _gasprice, gasreq, ofr, 0);
+    emit OfferWrite($(base), $(quote), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
     bool success = tkr.take(ofr, 2 ether);
     assertTrue(success, "Snipe should succeed");
     assertTrue(called, "PostHook not called");

@@ -178,6 +178,14 @@ library TickLib {
     }
   }
 
+  function tickFromTakerVolumes(uint takerGives, uint takerWants) internal pure returns (Tick) {
+    if (takerGives == 0 || takerWants == 0) {
+      // If inboundAmt is 0 then the price is irrelevant for taker
+      return Tick.wrap(MAX_TICK);
+    }
+    return tickFromVolumes(takerGives, takerWants);
+  }
+
   // returns log_(1.0001)(wants/gives)
   // with wants/gives on 96 bits, tick will be < 24bits
   // never overstimates tick (but takes the highest tick that avoids doing so)
@@ -234,6 +242,16 @@ library TickLib {
     uint prod = tick.priceFromTick_e18() * outboundAmt;
     return prod/1e18 + (prod%1e18==0 ? 0 : 1);
   }
+
+  function inboundFromOutboundUpTick(Tick tick, uint outboundAmt) internal pure returns (uint) {
+    uint nextPrice_e18 = Tick.wrap(Tick.unwrap(tick)+1).priceFromTick_e18();
+    uint prod = nextPrice_e18 * outboundAmt;
+    prod = prod/1e18;
+    if (prod == 0) {
+      return 0;
+    }
+    return prod-1;
+  }  
 
   // tick underestimates the price, and we udnerestimate outbound here, so price will be overestimated here
   function outboundFromInbound(Tick tick, uint inboundAmt) internal pure returns (uint) {
@@ -316,6 +334,10 @@ library TickLib {
   function strictlyBetter(Tick tick1, Tick tick2) internal pure returns (bool) {
     return Tick.unwrap(tick1) < Tick.unwrap(tick2);
   }
+
+  function better(Tick tick1, Tick tick2) internal pure returns (bool) {
+    return Tick.unwrap(tick1) <= Tick.unwrap(tick2);
+  }  
 
 }
 

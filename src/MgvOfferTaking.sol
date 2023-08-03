@@ -5,6 +5,7 @@ import {
   HasMgvEvents, IMaker, IMgvMonitor, MgvLib, MgvStructs, Leaf, Field, Tick, LeafLib, FieldLib
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
+import {TickLib} from "./../lib/TickLib.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
   /* # MultiOrder struct */
@@ -20,6 +21,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint feePaid; // used globally
     Leaf leaf;
     Field level1;
+    Tick maxTick; // maxTick is the maximum tick that can be reached by the market order as a limit price.
   }
 
   /* # Market Orders */
@@ -111,6 +113,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       MultiOrder memory mor;
       mor.initialWants = takerWants;
       mor.initialGives = takerGives;
+      mor.maxTick = TickLib.tickFromTakerVolumes(takerGives, takerWants);
       mor.taker = taker;
       mor.fillWants = fillWants;
 
@@ -371,6 +374,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           // Tick tt = TickLib.tickFromVolumes(gives,wants);
           // sor.tick = TickLib.tickFromVolumes(gives,wants);
           sor.gives = gives;
+          mor.maxTick = TickLib.tickFromTakerVolumes(gives, wants);
 
           /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
           sor.local = sor.local.lock(true);
@@ -435,34 +439,30 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     unchecked {
       /* #### `Price comparison` */
       //+clear+
-      /* The current offer has a price `p = offerWants ÷ offerGives` and the taker is ready to accept a price up to `p' = takerGives ÷ takerWants`. Comparing `offerWants * takerWants` and `offerGives * takerGives` tels us whether `p < p'`.
+      /* The current offer has a price given by tick the taker is ready to accept a price up to `maxTick`.`.
        */
       {
+        /* <a id="MgvOfferTaking/checkPrice"></a>If the price is too high, we return early.
+
+         Otherwise we now know we'll execute the offer. */
+        Tick offerTick = sor.offer.tick();
+        if (!offerTick.better(mor.maxTick)) {
+          return (0, bytes32(0), "mgv/notExecuted");
+        }
+
         uint offerWants = sor.offer.wants();
         uint offerGives = sor.offer.gives();
         uint takerWants = sor.wants;
         uint takerGives = sor.gives;
-        // Since the offer's price was adjusted down, we also extract a tick down. Otherwise sniping is hard? But we want tick/volume, anyway.
-        // Tick tick = Ticklib.tickFromVolumes(taker
-        // Tick takerTick = TickLib.tickFromVolumes(sor.gives,sor.wants);
-        /* <a id="MgvOfferTaking/checkPrice"></a>If the price is too high, we return early.
-
-         Otherwise we now know we'll execute the offer. */
-
-        // if ow/og > tg/tw, ie if offer price higher than taker price
-        // the ow has been underestimated I think? so ow/og is underestimated.
-        if (offerWants * takerWants > offerGives * takerGives) {
-          return (0, bytes32(0), "mgv/notExecuted");
-        }
         if ((mor.fillWants && offerGives < takerWants) || (!mor.fillWants && offerWants < takerGives)) {
           sor.wants = offerGives;
           sor.gives = offerWants;
         } else {
           if (mor.fillWants) {
-            sor.gives = sor.offer.tick().inboundFromOutboundUp(takerWants);
+            sor.gives = offerTick.inboundFromOutboundUp(takerWants);
           } else {
             // offerWants = 0 is forbidden at offer writing
-            sor.wants = sor.offer.tick().outboundFromInbound(takerGives);
+            sor.wants = offerTick.outboundFromInbound(takerGives);
           }
         }
       }

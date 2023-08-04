@@ -36,11 +36,30 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   * If `fillWants` is true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained. With `fillWants` set to true, to buy a specific volume of `outbound_tkn` at any price, set `takerWants` to the amount desired and `takerGives` to $2^{160}-1$.
   * If `fillWants` is false, the taker is filling `gives` instead: the market order stops when `takerGives` units of `inbound_tkn` have been sold. With `fillWants` set to false, to sell a specific volume of `inbound_tkn` at any price, set `takerGives` to the amount desired and `takerWants` to $0$. */
   function marketOrder(address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants)
+    public
+    returns (uint, uint, uint, uint)
+  {
+    require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
+    require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
+    uint fillVolume = fillWants ? takerWants : takerGives;
+    int maxTick = Tick.unwrap(TickLib.tickFromTakerVolumes(takerGives, takerWants));
+    return marketOrder(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants);
+  }
+
+  function marketOrderPrice(address outbound_tkn, address inbound_tkn, uint priceLimit, uint fillVolume, bool fillWants)
     external
     returns (uint, uint, uint, uint)
   {
+    int maxTick = Tick.unwrap(TickLib.tickFromPrice_e18(priceLimit));
+    return marketOrder(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants);
+  }
+
+  function marketOrder(address outbound_tkn, address inbound_tkn, int limitTick, uint fillVolume, bool fillWants)
+    public
+    returns (uint, uint, uint, uint)
+  {
     unchecked {
-      return generalMarketOrder(outbound_tkn, inbound_tkn, takerWants, takerGives, fillWants, msg.sender);
+      return generalMarketOrder(outbound_tkn, inbound_tkn, Tick.wrap(limitTick), fillVolume, fillWants, msg.sender);
     }
   }
 
@@ -98,19 +117,19 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   function generalMarketOrder(
     address outbound_tkn,
     address inbound_tkn,
-    uint takerWants,
-    uint takerGives,
+    Tick maxTick,
+    uint fillVolume,
     bool fillWants,
     address taker
   ) internal returns (uint, uint, uint, uint) {
     unchecked {
+      //TODO is uint160 correct with new price limits?
       /* Since amounts stored in offers are 96 bits wide, checking that `takerWants` and `takerGives` fit in 160 bits prevents overflow during the main market order loop. */
-      require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
-      require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
+      require(uint160(fillVolume) == fillVolume, "mgv/mOrder/fillVolume/160bits");
 
       /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */
       MultiOrder memory mor;
-      mor.maxTick = TickLib.tickFromTakerVolumes(takerGives, takerWants);
+      mor.maxTick = maxTick;
       mor.taker = taker;
       mor.fillWants = fillWants;
 
@@ -126,7 +145,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sor.offerId = mor.leaf.getNextOfferId();
       sor.offer = pair.offerData[sor.offerId].offer;
       /* fillVolume evolves but is initially however much remains in the market order. */
-      mor.fillVolume = fillWants ? takerWants : takerGives;
+      mor.fillVolume = fillVolume;
 
       /* For the market order to even start, the market needs to be both active, and not currently protected from reentrancy. */
       activeMarketOnly(sor.global, sor.local);

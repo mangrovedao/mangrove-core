@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {HasMgvEvents} from "./MgvLib.sol";
+import {HasMgvEvents, Tick} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
+import {TickLib} from "./../lib/TickLib.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* Takers may provide allowances on specific pairs, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
@@ -82,9 +83,14 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     bool fillWants,
     address taker
   ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
+    require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
+    require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
+    uint fillVolume = fillWants ? takerWants : takerGives;
+    Tick maxTick = TickLib.tickFromTakerVolumes(takerGives, takerWants);
+
     unchecked {
       (takerGot, takerGave, bounty, feePaid) =
-        generalMarketOrder(outbound_tkn, inbound_tkn, takerWants, takerGives, fillWants, taker);
+        generalMarketOrder(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants, taker);
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
       deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
     }

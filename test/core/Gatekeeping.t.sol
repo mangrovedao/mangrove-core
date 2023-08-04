@@ -490,7 +490,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function marketOrderKO() external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.marketOrder($(base), $(quote), 0.2 ether, 0.2 ether, true);
+    mgv.marketOrder($(base), $(quote), uint(0.2 ether), 0.2 ether, true);
   }
 
   function test_marketOrder_on_reentrancy_fails() public {
@@ -502,7 +502,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* Market Order Success */
 
   function marketOrderOK(address _base, address _quote) external {
-    mgv.marketOrder(_base, _quote, 0.5 ether, 0.5 ether, true);
+    mgv.marketOrder(_base, _quote, uint(0.5 ether), 0.5 ether, true);
   }
 
   function test_marketOrder_on_reentrancy_succeeds() public {

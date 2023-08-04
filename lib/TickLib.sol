@@ -214,6 +214,12 @@ library TickLib {
       return Tick.wrap(lbpPrice);
     }
   }
+
+// FIXME: This is used from tests, so maybe it should be located elsewhere? If it stays here, maybe it should be optimized?
+  function tickFromPrice_e18(uint price) internal pure returns (Tick) {
+    return tickFromVolumes(price, 1 ether);
+  }
+
   // returns 1.0001^tick*1e18
   // TODO: returned an even more scaled up price, as much as possible
   //max pow before overflow when computing with fixedpointlib, and when overflow when multiplying 

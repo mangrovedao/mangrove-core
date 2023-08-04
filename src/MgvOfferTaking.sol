@@ -11,8 +11,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* # MultiOrder struct */
   /* The `MultiOrder` struct is used by market orders and snipes. Some of its fields are only used by market orders (`initialWants, initialGives`). We need a common data structure for both since low-level calls are shared between market orders and snipes. The struct is helpful in decreasing stack use. */
   struct MultiOrder {
-    uint initialWants; // used globally by market order, not used by snipes
-    uint initialGives; // used globally by market order, not used by snipes
     uint totalGot; // used globally by market order, per-offer by snipes
     uint totalGave; // used globally by market order, per-offer by snipes
     uint totalPenalty; // used globally
@@ -112,8 +110,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */
       MultiOrder memory mor;
-      mor.initialWants = takerWants;
-      mor.initialGives = takerGives;
       mor.maxTick = TickLib.tickFromTakerVolumes(takerGives, takerWants);
       mor.taker = taker;
       mor.fillWants = fillWants;
@@ -204,9 +200,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* If an execution was attempted, we move `sor` to the next offer. Note that the current state is inconsistent, since we have not yet updated `sor.offerDetails`. */
         if (mgvData != "mgv/notExecuted") {
-          mor.fillVolume = mor.fillWants
-            ? (mor.initialWants > mor.totalGot ? mor.initialWants - mor.totalGot : 0)
-            : (mor.initialGives - mor.totalGave);
+          mor.fillVolume -= mor.fillWants ? sor.wantsFromThisOffer : sor.givesToThisOffer;
           /* It is known statically that `mor.initialGives - mor.totalGave` does not underflow since
            1. `mor.totalGave` was increased by `sor.gives` during `execute`,
            2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,

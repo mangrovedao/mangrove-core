@@ -165,7 +165,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_setGasbase_ceiling() public {
     vm.expectRevert("mgv/config/kilo_offer_gasbase/10bits");
-    mgv.setGasbase($(base), $(quote), 1e3 * (2 ** 10));
+    mgv.setGasbase($(base), $(quote), 1e3 * (1 << 10));
   }
 
   function test_setGasmax_ceiling() public {
@@ -176,7 +176,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
   // FIXME: only relevant if we retain the old API
   function test_makerWants_wider_than_96_bits_fails_newOffer() public {
     vm.expectRevert("mgv/writeOffer/wants/96bits");
-    mkr.newOffer(2 ** 96, 1 ether, 10_000, 0);
+    mkr.newOffer(1 << 96, 1 ether, 10_000, 0);
+  }
+
+  function test_makerTick_wider_than_24_bits_fails_newOffer() public {
+    vm.expectRevert("mgv/writeOffer/tick/24bits");
+    mkr.newOfferAtTick(1 << 23, 1 ether, 10_000, 0);
   }
 
   function test_retractOffer_wrong_owner_fails() public {
@@ -220,12 +225,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_makerGives_wider_than_96_bits_fails_newOffer() public {
     vm.expectRevert("mgv/writeOffer/gives/96bits");
-    mkr.newOffer(1, 2 ** 96, 10_000);
+    mkr.newOffer(1, 1 << 96, 10_000);
   }
 
   function test_makerGasreq_wider_than_24_bits_fails_newOffer() public {
     vm.expectRevert("mgv/writeOffer/gasreq/tooHigh");
-    mkr.newOffer(1, 1, 2 ** 24);
+    mkr.newOffer(1, 1, 1 << 24);
   }
 
   function test_makerGasreq_bigger_than_gasmax_fails_newOffer() public {
@@ -286,17 +291,17 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_makerGasprice_wider_than_16_bits_fails_newOffer() public {
     vm.expectRevert("mgv/writeOffer/gasprice/16bits");
-    mkr.newOffer(1, 1, 1, 2 ** 16);
+    mkr.newOffer(1, 1, 1, 1 << 16);
   }
 
   function test_takerWants_wider_than_160_bits_fails_marketOrder() public {
     vm.expectRevert("mgv/mOrder/takerWants/160bits");
-    tkr.marketOrder(2 ** 160, 0);
+    tkr.marketOrder(1 << 160, 0);
   }
 
   function test_takerGives_wider_than_160_bits_fails_marketOrder() public {
     vm.expectRevert("mgv/mOrder/takerGives/160bits");
-    tkr.marketOrder(0, 2 ** 160);
+    tkr.marketOrder(0, 1 << 160);
   }
 
   function test_takerWants_above_96bits_fails_snipes() public {

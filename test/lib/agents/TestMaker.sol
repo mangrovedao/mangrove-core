@@ -205,6 +205,40 @@ contract SimpleTestMaker is TrivialTestMaker {
     return offerId;
   }
 
+  // FIXME: Consolidate tick functions with the other functions
+
+  function newOfferAtTick(int tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
+    return newOfferWithFunding(base, quote, tick, gives, gasreq, gasprice, 0);
+  }
+
+  function newOfferWithFunding(
+    address _base,
+    address _quote,
+    int tick,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint amount
+  ) public returns (uint) {
+    OfferData memory offerData;
+    return newOfferWithFunding(_base, _quote, tick, gives, gasreq, gasprice, amount, offerData);
+  }
+
+  function newOfferWithFunding(
+    address _base,
+    address _quote,
+    int tick,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint amount,
+    OfferData memory offerData
+  ) public returns (uint) {
+    uint offerId = mgv.newOffer_new{value: amount}(_base, _quote, tick, gives, gasreq, gasprice);
+    offerDatas[_base][_quote][offerId] = offerData;
+    return offerId;
+  }
+
   function updateOffer(uint wants, uint gives, uint gasreq, uint offerId, OfferData memory offerData) public {
     updateOfferWithFunding(wants, gives, gasreq, offerId, 0, offerData);
   }

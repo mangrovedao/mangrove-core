@@ -24,7 +24,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     if (makerRevert) {
       revert(sExecuteRevertData);
     }
-    emit Execute(msg.sender, trade.outbound_tkn, trade.inbound_tkn, trade.offerId, trade.wants, trade.gives);
+    emit Execute(
+      msg.sender, trade.outbound_tkn, trade.inbound_tkn, trade.offerId, trade.wantsFromThisOffer, trade.givesToThisOffer
+    );
     return executeReturnData;
   }
 

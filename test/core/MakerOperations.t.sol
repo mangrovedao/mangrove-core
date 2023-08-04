@@ -66,8 +66,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     assertEq(order.outbound_tkn, $(base), "wrong base");
     assertEq(order.inbound_tkn, $(quote), "wrong quote");
-    assertEq(order.wants, 0.05 ether, "wrong takerWants");
-    assertEq(order.gives, 0.05 ether, "wrong takerGives");
+    assertEq(order.wantsFromThisOffer, 0.05 ether, "wrong takerWants");
+    assertEq(order.givesToThisOffer, 0.05 ether, "wrong takerGives");
     assertEq(order.offerDetail.gasreq(), 200_000, "wrong gasreq");
     assertEq(order.offerId, 1, "wrong offerId");
     assertEq(order.offer.wants(), 0.05 ether, "wrong offerWants");

@@ -18,6 +18,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint totalPenalty; // used globally
     address taker; // used globally
     bool fillWants; // used globally
+    uint fillVolume; // used globally
     uint feePaid; // used globally
     Leaf leaf;
     Field level1;
@@ -128,9 +129,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       mor.leaf = pair.leafs[sor.local.tick().leafIndex()];
       sor.offerId = mor.leaf.getNextOfferId();
       sor.offer = pair.offerData[sor.offerId].offer;
-      /* `sor.wants` and `sor.gives` may evolve, but they are initially however much remains in the market order. */
-      sor.wants = takerWants;
-      sor.gives = takerGives;
+      /* fillVolume evolves but is initially however much remains in the market order. */
+      mor.fillVolume = fillWants ? takerWants : takerGives;
 
       /* For the market order to even start, the market needs to be both active, and not currently protected from reentrancy. */
       activeMarketOnly(sor.global, sor.local);
@@ -172,7 +172,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     unchecked {
       /* #### Case 1 : End of order */
       /* We execute the offer currently stored in `sor`. */
-      if (proceed && (mor.fillWants ? sor.wants > 0 : sor.gives > 0) && sor.offerId > 0) {
+      if (proceed && (mor.fillVolume > 0) && sor.offerId > 0) {
         uint gasused; // gas used by `makerExecute`
         bytes32 makerData; // data returned by maker
 
@@ -196,22 +196,23 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         (gasused, makerData, mgvData) = execute(pair, mor, sor);
 
-        /* Keep cached copy of current `sor` values. */
-        uint takerWants = sor.wants;
-        uint takerGives = sor.gives;
+        /* Keep cached copy of current `sor` values to restore them later to send to posthook. */
         uint offerId = sor.offerId;
+        uint takerWants = sor.wantsFromThisOffer;
+        uint takerGives = sor.givesToThisOffer;
         MgvStructs.OfferPacked offer = sor.offer;
         MgvStructs.OfferDetailPacked offerDetail = sor.offerDetail;
 
         /* If an execution was attempted, we move `sor` to the next offer. Note that the current state is inconsistent, since we have not yet updated `sor.offerDetails`. */
         if (mgvData != "mgv/notExecuted") {
-          sor.wants = mor.initialWants > mor.totalGot ? mor.initialWants - mor.totalGot : 0;
+          mor.fillVolume = mor.fillWants
+            ? (mor.initialWants > mor.totalGot ? mor.initialWants - mor.totalGot : 0)
+            : (mor.initialGives - mor.totalGave);
           /* It is known statically that `mor.initialGives - mor.totalGave` does not underflow since
            1. `mor.totalGave` was increased by `sor.gives` during `execute`,
            2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
            3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
         */
-          sor.gives = mor.initialGives - mor.totalGave;
           (sor.offerId, sor.local) = getNextBest(pair, mor, sor.offer, sor.local);
 
           sor.offer = pair.offerData[sor.offerId].offer;
@@ -228,8 +229,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* Restore `sor` values from to before recursive call */
         sor.offerId = offerId;
-        sor.wants = takerWants;
-        sor.gives = takerGives;
+        sor.wantsFromThisOffer = takerWants;
+        sor.givesToThisOffer = takerGives;
         sor.offer = offer;
         sor.offerDetail = offerDetail;
 
@@ -368,12 +369,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           uint gives = targets[i][2];
           require(uint96(wants) == wants, "mgv/snipes/takerWants/96bits");
           require(uint96(gives) == gives, "mgv/snipes/takerGives/96bits");
-          sor.wants = wants;
+          mor.fillVolume = mor.fillWants ? wants : gives;
           /* Wants gets normalized to the closest tick */
           // note that `takerGives=0` is not possible here
           // Tick tt = TickLib.tickFromVolumes(gives,wants);
           // sor.tick = TickLib.tickFromVolumes(gives,wants);
-          sor.gives = gives;
           mor.maxTick = TickLib.tickFromTakerVolumes(gives, wants);
 
           /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
@@ -450,19 +450,20 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           return (0, bytes32(0), "mgv/notExecuted");
         }
 
-        uint offerWants = sor.offer.wants();
+        uint fillVolume = mor.fillVolume;
         uint offerGives = sor.offer.gives();
-        uint takerWants = sor.wants;
-        uint takerGives = sor.gives;
-        if ((mor.fillWants && offerGives < takerWants) || (!mor.fillWants && offerWants < takerGives)) {
-          sor.wants = offerGives;
-          sor.gives = offerWants;
+        uint offerWants = sor.offer.wants();
+        if ((mor.fillWants && offerGives < fillVolume) || (!mor.fillWants && offerWants < fillVolume)) {
+          sor.wantsFromThisOffer = offerGives;
+          sor.givesToThisOffer = offerWants;
         } else {
           if (mor.fillWants) {
-            sor.gives = offerTick.inboundFromOutboundUp(takerWants);
+            sor.givesToThisOffer = offerTick.inboundFromOutboundUp(fillVolume);
+            sor.wantsFromThisOffer = fillVolume;
           } else {
             // offerWants = 0 is forbidden at offer writing
-            sor.wants = offerTick.outboundFromInbound(takerGives);
+            sor.wantsFromThisOffer = offerTick.outboundFromInbound(fillVolume);
+            sor.givesToThisOffer = fillVolume;
           }
         }
       }
@@ -478,7 +479,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
         mgvData = bytes32("mgv/tradeSuccess");
-        emit OfferSuccess(sor.outbound_tkn, sor.inbound_tkn, sor.offerId, mor.taker, sor.wants, sor.gives);
+        emit OfferSuccess(
+          sor.outbound_tkn, sor.inbound_tkn, sor.offerId, mor.taker, sor.wantsFromThisOffer, sor.givesToThisOffer
+        );
 
         /* If configured to do so, Mangrove notifies an external contract that a successful trade has taken place. */
         if (sor.global.notify()) {
@@ -487,14 +490,22 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* We update the totals in the multiorder based on the adjusted `sor.wants`/`sor.gives`. */
         /* overflow: sor.{wants,gives} are on 96bits, sor.total{Got,Gave} are on 256 bits. */
-        mor.totalGot += sor.wants;
-        mor.totalGave += sor.gives;
+        mor.totalGot += sor.wantsFromThisOffer;
+        mor.totalGave += sor.givesToThisOffer;
       } else {
         /* In case of success, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
         (mgvData, gasused, makerData) = innerDecode(retdata);
         /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {
-          emit OfferFail(sor.outbound_tkn, sor.inbound_tkn, sor.offerId, mor.taker, sor.wants, sor.gives, mgvData);
+          emit OfferFail(
+            sor.outbound_tkn,
+            sor.inbound_tkn,
+            sor.offerId,
+            mor.taker,
+            sor.wantsFromThisOffer,
+            sor.givesToThisOffer,
+            mgvData
+          );
 
           /* If configured to do so, Mangrove notifies an external contract that a failed trade has taken place. */
           if (sor.global.notify()) {
@@ -550,7 +561,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         innerRevert([bytes32("mgv/makerRevert"), bytes32(gasused), makerData]);
       }
 
-      bool transferSuccess = transferTokenFrom(sor.outbound_tkn, maker, address(this), sor.wants);
+      bool transferSuccess = transferTokenFrom(sor.outbound_tkn, maker, address(this), sor.wantsFromThisOffer);
 
       if (!transferSuccess) {
         innerRevert([bytes32("mgv/makerTransferFail"), bytes32(gasused), makerData]);

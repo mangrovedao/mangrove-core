@@ -24,8 +24,8 @@ library MgvLib {
     uint offerId;
     MgvStructs.OfferPacked offer;
     /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
-    uint wants;
-    uint gives;
+    uint wantsFromThisOffer;
+    uint givesToThisOffer;
     /* `offerDetail` is only populated when necessary. */
     MgvStructs.OfferDetailPacked offerDetail;
     MgvStructs.GlobalPacked global;

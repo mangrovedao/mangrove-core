@@ -359,10 +359,11 @@ contract MangroveTest is Test2, HasMgvEvents {
   function mockBuyOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
     order.outbound_tkn = $(base);
     order.inbound_tkn = $(quote);
-    order.wants = takerWants;
-    order.gives = takerGives;
+    order.wantsFromThisOffer = takerWants;
+    order.givesToThisOffer = takerGives;
     // complete fill (prev and next are bogus)
-    order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
+    order.offer =
+      MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.givesToThisOffer, __gives: order.wantsFromThisOffer});
 
     // order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: TickLib.tickFromVolumes(order.gives,order.wants), __gives: order.wants});
   }
@@ -377,14 +378,14 @@ contract MangroveTest is Test2, HasMgvEvents {
   ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
     order.outbound_tkn = $(base_);
     order.inbound_tkn = $(quote_);
-    order.wants = takerWants;
-    order.gives = takerGives;
+    order.wantsFromThisOffer = takerWants;
+    order.givesToThisOffer = takerGives;
     // complete fill (prev and next are bogus)
     order.offer = MgvStructs.Offer.pack({
       __prev: 0,
       __next: 0,
-      __wants: order.gives * partialFill,
-      __gives: order.wants * partialFill
+      __wants: order.givesToThisOffer * partialFill,
+      __gives: order.wantsFromThisOffer * partialFill
     });
     result.makerData = makerData;
     result.mgvData = "mgv/tradeSuccess";
@@ -393,10 +394,11 @@ contract MangroveTest is Test2, HasMgvEvents {
   function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
     order.inbound_tkn = $(base);
     order.outbound_tkn = $(quote);
-    order.wants = takerWants;
-    order.gives = takerGives;
+    order.wantsFromThisOffer = takerWants;
+    order.givesToThisOffer = takerGives;
     // complete fill (prev and next are bogus)
-    order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
+    order.offer =
+      MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.givesToThisOffer, __gives: order.wantsFromThisOffer});
   }
 
   function mockSellOrder(
@@ -409,13 +411,13 @@ contract MangroveTest is Test2, HasMgvEvents {
   ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
     order.inbound_tkn = $(base_);
     order.outbound_tkn = $(quote_);
-    order.wants = takerWants;
-    order.gives = takerGives;
+    order.wantsFromThisOffer = takerWants;
+    order.givesToThisOffer = takerGives;
     order.offer = MgvStructs.Offer.pack({
       __prev: 0,
       __next: 0,
-      __wants: order.gives * partialFill,
-      __gives: order.wants * partialFill
+      __wants: order.givesToThisOffer * partialFill,
+      __gives: order.wantsFromThisOffer * partialFill
     });
     result.makerData = makerData;
     result.mgvData = "mgv/tradeSuccess";

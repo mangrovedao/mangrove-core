@@ -88,9 +88,7 @@ contract SimpleTestMaker is TrivialTestMaker {
       TransferLib.approveToken(IERC20(order.outbound_tkn), address(mgv), 0);
     }
 
-    emit Execute(
-      msg.sender, order.outbound_tkn, order.inbound_tkn, order.offerId, order.wantsFromThisOffer, order.givesToThisOffer
-    );
+    emit Execute(msg.sender, order.outbound_tkn, order.inbound_tkn, order.offerId, order.wants, order.gives);
 
     return bytes32(bytes(offerData.executeData));
   }

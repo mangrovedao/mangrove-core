@@ -105,8 +105,8 @@ contract MonitorTest is MangroveTest {
       inbound_tkn: $(quote),
       offerId: ofrId,
       offer: offer,
-      wantsFromThisOffer: 0.04 ether,
-      givesToThisOffer: 0.04 ether, // wants has been updated to offer price
+      wants: 0.04 ether,
+      gives: 0.04 ether, // wants has been updated to offer price
       offerDetail: mgv.offerDetails($(base), $(quote), ofrId),
       global: _global,
       local: _local
@@ -137,8 +137,8 @@ contract MonitorTest is MangroveTest {
       inbound_tkn: $(quote),
       offerId: ofrId,
       offer: offer,
-      wantsFromThisOffer: 0.04 ether,
-      givesToThisOffer: 0.04 ether, // gives has been updated to offer price
+      wants: 0.04 ether,
+      gives: 0.04 ether, // gives has been updated to offer price
       offerDetail: offerDetail, // gasprice logged will still be as before failure
       global: _global,
       local: _local

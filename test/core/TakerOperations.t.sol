@@ -661,7 +661,7 @@ contract TakerOperationsTest is MangroveTest {
     // first two offers are at right price
     uint takerWants = 0.1 ether + 0.05 ether;
     uint takerGives = 0.1 ether + 0.1 ether;
-    mgv.marketOrder{gas: 350_000}($(base), $(quote), takerWants, takerGives, true);
+    mgv.marketOrder{gas: 450_000}($(base), $(quote), takerWants, takerGives, true);
   }
 
   function test_market_order_stops_for_filled_after_offer() public {
@@ -673,7 +673,7 @@ contract TakerOperationsTest is MangroveTest {
     // first two offers are at right price
     uint takerWants = 0.1 ether + 0.1 ether;
     uint takerGives = 0.1 ether + 0.2 ether;
-    mgv.marketOrder{gas: 350_000}($(base), $(quote), takerWants, takerGives, true);
+    mgv.marketOrder{gas: 450_000}($(base), $(quote), takerWants, takerGives, true);
   }
 
   function test_takerWants_wider_than_160_bits_fails_marketOrder() public {

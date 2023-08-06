@@ -116,4 +116,42 @@ contract GasTest is MangroveTest, IMaker {
     tkr.marketOrder(mgv, base, quote, 2 ether, 2 ether);
     gas_();
   }
+
+  function test_retract_cached() public {
+    (AbstractMangrove mgv,, address base, address quote,) = getStored();
+    mgv.newOffer(base, quote, 1 ether, 1 ether, 1_000_000, 0);
+    uint offer = mgv.newOffer(base, quote, 1.0001 ether, 1 ether, 1_000_000, 0);
+    _gas();
+    mgv.retractOffer(base, quote, offer, false);
+    gas_();
+  }
+
+  function test_retract_not_cached() public {
+    (AbstractMangrove mgv,, address base, address quote,) = getStored();
+    mgv.newOffer(base, quote, 1 ether, 1 ether, 1_000_000, 0);
+    uint offer = mgv.newOffer(base, quote, 1000 ether, 1 ether, 1_000_000, 0);
+    _gas();
+    mgv.retractOffer(base, quote, offer, false);
+    gas_();
+  }
+
+  function test_retract_best_new_is_not_cached() public {
+    (AbstractMangrove mgv,, address base, address quote,) = getStored();
+    mgv.newOffer(base, quote, 1 ether, 1 ether, 1_000_000, 0);
+    uint offer = mgv.newOffer(base, quote, 1 ether, 1000 ether, 1_000_000, 0);
+    _gas();
+    mgv.retractOffer(base, quote, offer, false);
+    gas_();
+  }
+
+  function test_retract_best_new_is_cached() public {
+    (AbstractMangrove mgv,, address base, address quote,) = getStored();
+    mgv.newOffer(base, quote, 1 ether, 1 ether, 1_000_000, 0);
+    uint offer = mgv.newOffer(base, quote, 1 ether, 1.0001 ether, 1_000_000, 0);
+    _gas();
+    mgv.retractOffer(base, quote, offer, false);
+    gas_();
+  }
+
+  // add best_cached
 }

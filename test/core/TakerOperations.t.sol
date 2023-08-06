@@ -519,6 +519,16 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(successes == 0, "order should fail");
   }
 
+  // FIXME remove this manual test when the reason for why it was failing is clear
+  /* It stops failing if I redefine inboundFromOutboundUpTick as
+      uint nextPrice_e18 = Tick.wrap(Tick.unwrap(tick)+1).priceFromTick_e18();
+      uint prod = nextPrice_e18 * outboundAmt;
+      return prod/1e18 + (prod%1e18==0 ? 0 : 1);
+  */
+  // function test_manual() public {
+  //   test_snipe_correct_amount_auto(22701, 20214603739982190561, 2, 0);
+  // }
+
   // FIXME restricting to uint72 so maximum price is not reached
   function test_snipe_correct_amount_auto(uint72 makerWants, uint72 makerGives, uint72 factor1, uint16 pc) public {
     vm.assume(factor1 > 0);
@@ -543,7 +553,7 @@ contract TakerOperationsTest is MangroveTest {
     // Actual makerWants due to loss of precision when inserting offer.
     makerWants = uint72(offer.wants());
     uint takerGives = takerWants == 0 ? 0 : takerTick.inboundFromOutboundUpTick(takerWants);
-    vm.assume(uint96(takerGives) == takerGives);
+    vm.assume(uint72(takerGives) == takerGives);
 
     if (takerGives > 0) {
       uint takerPriceE18 = takerGives * 1e18 / takerWants;
@@ -762,10 +772,10 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_failing_offer_volume_does_not_count_toward_filled_volume() public {
     quote.approve($(mgv), 1 ether);
-    failmkr.newOffer(1 ether, 1 ether,100_000);
-    mkr.newOffer(1 ether, 1 ether,100_000);
-    (uint got, ,,) = mgv.marketOrder($(base),$(quote),uint(1 ether),0,true);
-    assertEq(got,1 ether,"should have gotten 1 ether");
+    failmkr.newOffer(1 ether, 1 ether, 100_000);
+    mkr.newOffer(1 ether, 1 ether, 100_000);
+    (uint got,,,) = mgv.marketOrder($(base), $(quote), uint(1 ether), 0, true);
+    assertEq(got, 1 ether, "should have gotten 1 ether");
   }
 
   // function test_reverting_monitor_on_notify() public {

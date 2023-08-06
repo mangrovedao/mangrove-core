@@ -104,18 +104,48 @@ interface IMangrove {
 
   function locked(address outbound_tkn, address inbound_tkn) external view returns (bool);
 
-  function marketOrder(address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants)
-    external
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee);
+  function marketOrderByVolume(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint takerWants,
+    uint takerGives,
+    bool fillWants
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function marketOrderFor(
+  function marketOrderByPrice(address outbound_tkn, address inbound_tkn, uint maxPrice, uint fillVolume, bool fillWants)
+    external
+    returns (uint, uint, uint, uint);
+
+  function marketOrderByTick(address outbound_tkn, address inbound_tkn, int maxPrice, uint fillVolume, bool fillWants)
+    external
+    returns (uint, uint, uint, uint);
+
+  function marketOrderForByVolume(
     address outbound_tkn,
     address inbound_tkn,
     uint takerWants,
     uint takerGives,
     bool fillWants,
     address taker
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
+
+  function marketOrderForByPrice(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint maxPrice,
+    uint fillVolume,
+    bool fillWants,
+    address taker
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
+
+  function marketOrderForByTick(
+    address outbound_tkn,
+    address inbound_tkn,
+    int maxTick,
+    uint fillVolume,
+    bool fillWants,
+    address taker
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
   function newOffer(address outbound_tkn, address inbound_tkn, uint wants, uint gives, uint gasreq, uint gasprice)
     external

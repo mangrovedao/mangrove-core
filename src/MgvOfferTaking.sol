@@ -36,31 +36,34 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   The market order stops when the price has become too high, or when the end of the book has been reached, or:
   * If `fillWants` is true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained. With `fillWants` set to true, to buy a specific volume of `outbound_tkn` at any price, set `takerWants` to the amount desired and `takerGives` to $2^{160}-1$.
   * If `fillWants` is false, the taker is filling `gives` instead: the market order stops when `takerGives` units of `inbound_tkn` have been sold. With `fillWants` set to false, to sell a specific volume of `inbound_tkn` at any price, set `takerGives` to the amount desired and `takerWants` to $0$. */
-  function marketOrder(address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants)
-    public
-    returns (uint, uint, uint, uint)
-  {
+  function marketOrderByVolume(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint takerWants,
+    uint takerGives,
+    bool fillWants
+  ) public returns (uint, uint, uint, uint) {
     require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
     require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
     uint fillVolume = fillWants ? takerWants : takerGives;
     int maxTick = Tick.unwrap(TickLib.tickFromTakerVolumes(takerGives, takerWants));
-    return marketOrder(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants);
+    return marketOrderByTick(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants);
   }
 
-  function marketOrderPrice(address outbound_tkn, address inbound_tkn, uint priceLimit, uint fillVolume, bool fillWants)
+  function marketOrderByPrice(address outbound_tkn, address inbound_tkn, uint maxPrice, uint fillVolume, bool fillWants)
     external
     returns (uint, uint, uint, uint)
   {
-    int maxTick = Tick.unwrap(TickLib.tickFromPrice_e18(priceLimit));
-    return marketOrder(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants);
+    int maxTick = Tick.unwrap(TickLib.tickFromPrice_e18(maxPrice));
+    return marketOrderByTick(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants);
   }
 
-  function marketOrder(address outbound_tkn, address inbound_tkn, int limitTick, uint fillVolume, bool fillWants)
+  function marketOrderByTick(address outbound_tkn, address inbound_tkn, int maxTick, uint fillVolume, bool fillWants)
     public
     returns (uint, uint, uint, uint)
   {
     unchecked {
-      return generalMarketOrder(outbound_tkn, inbound_tkn, Tick.wrap(limitTick), fillVolume, fillWants, msg.sender);
+      return generalMarketOrder(outbound_tkn, inbound_tkn, Tick.wrap(maxTick), fillVolume, fillWants, msg.sender);
     }
   }
 

@@ -438,7 +438,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectedWants = 0.5 ether;
     expectedGives = 10 * uint(0.5 ether) / 11;
 
-    tkr.marketOrder(uint(0.5 ether), 0.5 ether);
+    tkr.marketOrder(0.5 ether, 0.5 ether);
   }
 
   // Check that a previously-executed posthook does not corrupt the current posthook (when fillWants=false)
@@ -460,6 +460,6 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectedGives = 0.5 ether;
     expectedWants = uint(0.5 ether) * 11 / 10;
 
-    tkr.marketOrder(uint(0.5 ether), 0.5 ether, false);
+    tkr.marketOrder(0.5 ether, 0.5 ether, false);
   }
 }

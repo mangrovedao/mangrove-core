@@ -190,35 +190,39 @@ library TickLib {
   // with wants/gives on 96 bits, tick will be < 24bits
   // never overstimates tick (but takes the highest tick that avoids doing so)
   // wants will be adjusted down from the original
+  // FIXME use unchecked math but specify precise bounds on what inputs do not overflow
   function tickFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (Tick) {
-    unchecked {
-      (uint num, uint den) = (inboundAmt,outboundAmt);
-      if (inboundAmt < outboundAmt) {
-        (num,den) = (den,num);
-      } else {
-      }
-      int lnPrice = FP.lnWad(int(num * 1e18/den));
-      // why is univ3 not doing that? Because they start from a ratio < 1 ?
-      int lbpPrice = int(FP.divWad(uint(lnPrice),lnBP)/1e18);
-      // note this implies the lowest tick will never be used! (could use for something else?)
-      if (inboundAmt < outboundAmt) {
-        lbpPrice = - lbpPrice;
-      }
-
-      uint pr = Tick.wrap(lbpPrice).priceFromTick_e18();
-      if (pr > inboundAmt * 1e18 / outboundAmt) {
-        lbpPrice = lbpPrice - 1;
-      } else {
-      }
-
-      return Tick.wrap(lbpPrice);
+    (uint num, uint den) = (inboundAmt,outboundAmt);
+    if (inboundAmt < outboundAmt) {
+      (num,den) = (den,num);
+    } else {
     }
+    int lnPrice = FP.lnWad(int(num * 1e18/den));
+    // why is univ3 not doing that? Because they start from a ratio < 1 ?
+    int lbpPrice = int(FP.divWad(uint(lnPrice),lnBP)/1e18);
+    // note this implies the lowest tick will never be used! (could use for something else?)
+    if (inboundAmt < outboundAmt) {
+      lbpPrice = - lbpPrice;
+    }
+
+    uint pr = Tick.wrap(lbpPrice).priceFromTick_e18();
+    if (pr > inboundAmt * 1e18 / outboundAmt) {
+      lbpPrice = lbpPrice - 1;
+    } else {
+    }
+
+    return Tick.wrap(lbpPrice);
   }
 
-// FIXME: This is used from tests, so maybe it should be located elsewhere? If it stays here, maybe it should be optimized?
   function tickFromPrice_e18(uint price) internal pure returns (Tick) {
     return tickFromVolumes(price, 1 ether);
   }
+
+  // priceFromTick_e18(Tick.wrap(MAX_TICK));
+  uint constant MAX_PRICE_E18 = 58661978243588296630604521258702056828566;
+  // priceFromTick_e18(Tick.wrap(MIN_TICK));
+  // FIXME: added 1 since it's currently 0, which is not a valid price
+  uint constant MIN_PRICE_E18 = 1;
 
   // returns 1.0001^tick*1e18
   // TODO: returned an even more scaled up price, as much as possible

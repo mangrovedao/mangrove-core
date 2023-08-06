@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MAX_TICK, MIN_TICK} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 
 // In these tests, the testing contract is the market maker.
@@ -767,5 +767,26 @@ contract GatekeepingTest is IMaker, MangroveTest {
     deal(address(token), address(mgv), amount - 1);
     vm.expectRevert("mgv/withdrawERC20Fail");
     mgv.withdrawERC20(address(token), amount);
+  }
+
+  function test_marketOrderByPrice_extrema() public {
+    vm.expectRevert("mgv/mOrder/maxPrice/tooHigh");
+    mgv.marketOrderByPrice($(base), $(quote), TickLib.MAX_PRICE_E18 + 1, 100, true);
+    vm.expectRevert("mgv/mOrder/maxPrice/tooLow");
+    mgv.marketOrderByPrice($(base), $(quote), TickLib.MIN_PRICE_E18 - 1, 100, true);
+  }
+
+  function test_marketOrderForByPrice_extrema() public {
+    vm.expectRevert("mgv/mOrder/maxPrice/tooHigh");
+    mgv.marketOrderForByPrice($(base), $(quote), TickLib.MAX_PRICE_E18 + 1, 100, true, address(this));
+    vm.expectRevert("mgv/mOrder/maxPrice/tooLow");
+    mgv.marketOrderForByPrice($(base), $(quote), TickLib.MIN_PRICE_E18 - 1, 100, true, address(this));
+  }
+
+  function test_marketOrderForByTick_extrema() public {
+    vm.expectRevert("mgv/mOrder/maxTick/tooHigh");
+    mgv.marketOrderForByTick($(base), $(quote), MAX_TICK + 1, 100, true, address(this));
+    vm.expectRevert("mgv/mOrder/maxTick/tooLow");
+    mgv.marketOrderForByTick($(base), $(quote), MIN_TICK - 1, 100, true, address(this));
   }
 }

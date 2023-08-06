@@ -6,7 +6,6 @@ import {
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickLib} from "./../lib/TickLib.sol";
-// import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
   /* # MultiOrder struct */
@@ -50,11 +49,17 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     return marketOrderByTick(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants);
   }
 
-  function marketOrderByPrice(address outbound_tkn, address inbound_tkn, uint maxPrice, uint fillVolume, bool fillWants)
-    external
-    returns (uint, uint, uint, uint)
-  {
-    int maxTick = Tick.unwrap(TickLib.tickFromPrice_e18(maxPrice));
+  function marketOrderByPrice(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint maxPrice_e18,
+    uint fillVolume,
+    bool fillWants
+  ) external returns (uint, uint, uint, uint) {
+    require(maxPrice_e18 <= TickLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
+    require(maxPrice_e18 >= TickLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
+
+    int maxTick = Tick.unwrap(TickLib.tickFromPrice_e18(maxPrice_e18));
     return marketOrderByTick(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants);
   }
 
@@ -130,6 +135,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       //TODO is uint160 correct with new price limits?
       /* Since amounts stored in offers are 96 bits wide, checking that `takerWants` and `takerGives` fit in 160 bits prevents overflow during the main market order loop. */
       require(uint160(fillVolume) == fillVolume, "mgv/mOrder/fillVolume/160bits");
+      require(Tick.unwrap(maxTick) <= MAX_TICK, "mgv/mOrder/maxTick/tooHigh");
+      require(Tick.unwrap(maxTick) >= MIN_TICK, "mgv/mOrder/maxTick/tooLow");
 
       /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */
       MultiOrder memory mor;

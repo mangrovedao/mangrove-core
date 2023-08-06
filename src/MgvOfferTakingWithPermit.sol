@@ -95,13 +95,15 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   function marketOrderForByPrice(
     address outbound_tkn,
     address inbound_tkn,
-    uint maxPrice,
+    uint maxPrice_e18,
     uint fillVolume,
     bool fillWants,
     address taker
   ) external returns (uint, uint, uint, uint) {
     unchecked {
-      int maxTick = Tick.unwrap(TickLib.tickFromPrice_e18(maxPrice));
+      require(maxPrice_e18 <= TickLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
+      require(maxPrice_e18 >= TickLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
+      int maxTick = Tick.unwrap(TickLib.tickFromPrice_e18(maxPrice_e18));
       return marketOrderForByTick(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants, taker);
     }
   }

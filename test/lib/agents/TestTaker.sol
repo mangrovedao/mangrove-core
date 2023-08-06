@@ -65,6 +65,10 @@ contract TestTaker is ITaker, Script2 {
     (takerGot, takerGave,,) = _mgv.marketOrder(_base, _quote, wants, gives, true);
   }
 
+  function marketOrder(uint wants, uint gives, bool fillWants) external returns (uint takerGot, uint takerGave) {
+    (takerGot, takerGave,,) = _mgv.marketOrder(_base, _quote, wants, gives, fillWants);
+  }
+
   function marketOrder(AbstractMangrove __mgv, address __base, address __quote, uint takerWants, uint takerGives)
     external
     returns (uint takerGot, uint takerGave)

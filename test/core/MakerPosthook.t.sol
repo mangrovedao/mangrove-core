@@ -412,4 +412,52 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     assertEq(balMaker - 1 ether, base.balanceOf($(this)), "Incorrect maker balance");
     assertEq(balTaker - 1 ether, quote.balanceOf(address(tkr)), "Incorrect taker balance");
   }
+
+  uint expectedWants;
+  uint expectedGives;
+  function checkSorWantsPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata) internal {
+    assertApproxEqRel(sor.givesToThisOffer,expectedGives,relError({basis_points:10}),"sor.gives not as expected");
+    assertApproxEqRel(sor.wantsFromThisOffer,expectedWants,relError({basis_points:10}),"sor.wants not as expected");
+  }
+
+
+  // Check that a previously-executed posthook does not corrupt the current posthook (when fillWants=true)
+  function test_failing_offer_does_not_get_corrupted_sor_wants_values_of_previous_offers_posthook_with_fillWants_true() public {
+    // This maker makes a succeeding offer, with a bad price
+    TestMaker mkr = setupMaker($(base), $(quote), "maker");
+    mkr.approveMgv(base, 10 ether);
+    mkr.provisionMgv(1 ether);
+    deal($(base), address(mkr), 5 ether);
+    mkr.newOffer(0.1 ether, 0.1 ether, 100_000);
+
+    // The test contract makes a failing offer, with a good price
+    _posthook = checkSorWantsPosthook;
+    makerRevert = true;
+    mgv.newOffer($(base),$(quote),1 ether, 1.1 ether, 100_000,0);
+
+    expectedWants = 0.5 ether;
+    expectedGives = 10 * uint(0.5 ether) / 11;
+
+    tkr.marketOrder(uint(0.5 ether),0.5 ether);
+  }
+
+  // Check that a previously-executed posthook does not corrupt the current posthook (when fillWants=false)
+  function test_failing_offer_does_not_get_corrupted_sor_gives_values_of_previous_offers_posthook_with_fillWants_false() public {
+    // This maker makes a succeeding offer, with a bad price
+    TestMaker mkr = setupMaker($(base), $(quote), "maker");
+    mkr.approveMgv(base, 10 ether);
+    mkr.provisionMgv(1 ether);
+    deal($(base), address(mkr), 5 ether);
+    mkr.newOffer(0.1 ether, 0.1 ether, 100_000);
+
+    // The test contract makes a failing offer, with a good price
+    _posthook = checkSorWantsPosthook;
+    makerRevert = true;
+    mgv.newOffer($(base),$(quote),1 ether, 1.1 ether, 100_000,0);
+
+    expectedGives = 0.5 ether;
+    expectedWants = uint(0.5 ether) * 11 / 10;
+
+    tkr.marketOrder(uint(0.5 ether),0.5 ether,false);
+  }
 }

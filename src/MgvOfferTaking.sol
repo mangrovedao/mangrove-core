@@ -209,10 +209,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way, [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/notExecuted","mgv/tradeSuccess"]` means the failure is the maker's fault. */
         /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. We will need it after the recursive call, so we save it in local variables. Same goes for `offerId`, `sor.offer` and `sor.offerDetail`. */
 
-        bool partialFill;
-        (gasused, makerData, mgvData, partialFill) = execute(pair, mor, sor);
+        (gasused, makerData, mgvData) = execute(pair, mor, sor);
 
         /* Keep cached copy of current `sor` values to restore them later to send to posthook. */
+        uint takerWants = sor.wantsFromThisOffer;
+        uint takerGives = sor.givesToThisOffer;
         uint offerId = sor.offerId;
         MgvStructs.OfferPacked offer = sor.offer;
         MgvStructs.OfferDetailPacked offerDetail = sor.offerDetail;
@@ -243,17 +244,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           mgvData != "mgv/notExecuted"
         );
 
-        /* Restore `sor` values from to before recursive call */
+        /* Restore `sor` values from before recursive call */
+        sor.wantsFromThisOffer = takerWants;
+        sor.givesToThisOffer = takerGives;
         sor.offerId = offerId;
         sor.offer = offer;
         sor.offerDetail = offerDetail;
-        // For partialFill this information is not touched and does not need to be restored.
-        // For full fills we need to restore it since it is used in posthook.
-        // TODO: Consider simply zeroing to indicate full fill for posthook.
-        if (!partialFill) {
-          sor.wantsFromThisOffer = sor.offer.gives();
-          sor.givesToThisOffer = sor.offer.wants();
-        }
 
         /* After an offer execution, we may run callbacks and increase the total penalty. As that part is common to market orders and snipes, it lives in its own `postExecute` function. */
         if (mgvData != "mgv/notExecuted") {
@@ -403,7 +399,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
           /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/tradeSuccess","mgv/notExecuted"]` means the failure is the maker's fault. */
           /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. */
-          (uint gasused, bytes32 makerData, bytes32 mgvData,) = execute(pair, mor, sor);
+          (uint gasused, bytes32 makerData, bytes32 mgvData) = execute(pair, mor, sor);
 
           if (mgvData == "mgv/tradeSuccess") {
             successCount += 1;
@@ -452,11 +448,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     * `gasused` is the gas consumed by the execution
     * `makerData` is the data returned after executing the offer
     * `mgvData` is an [internal Mangrove status code](#MgvOfferTaking/statusCodes).
-    * `partialFill` is true if the entire offer was not taken.
   */
   function execute(Pair storage pair, MultiOrder memory mor, MgvLib.SingleOrder memory sor)
     internal
-    returns (uint gasused, bytes32 makerData, bytes32 mgvData, bool partialFill)
+    returns (uint gasused, bytes32 makerData, bytes32 mgvData)
   {
     unchecked {
       /* #### `Price comparison` */
@@ -469,7 +464,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
          Otherwise we now know we'll execute the offer. */
         Tick offerTick = sor.offer.tick();
         if (!offerTick.better(mor.maxTick)) {
-          return (0, bytes32(0), "mgv/notExecuted", false);
+          return (0, bytes32(0), "mgv/notExecuted");
         }
 
         uint fillVolume = mor.fillVolume;
@@ -480,7 +475,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           sor.wantsFromThisOffer = offerGives;
           sor.givesToThisOffer = offerWants;
         } else {
-          partialFill = true;
           if (mor.fillWants) {
             sor.givesToThisOffer = offerTick.inboundFromOutboundUp(fillVolume);
             sor.wantsFromThisOffer = fillVolume;

@@ -217,9 +217,13 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         MgvStructs.OfferPacked offer = sor.offer;
         MgvStructs.OfferDetailPacked offerDetail = sor.offerDetail;
 
+        /* If execution was successful, we update fillVolume downwards. Assume `mor.fillWants`: it is known statically that `mor.fillVolume - sor.wantsFromThisOffer` does not underflow. See the [`execute` function](#MgvOfferTaking/computeVolume) for details. */
+        if (mgvData == "mgv/tradeSuccess") {
+          mor.fillVolume -= mor.fillWants ? sor.wantsFromThisOffer : sor.givesToThisOffer;
+        }
+
         /* If an execution was attempted, we move `sor` to the next offer. Note that the current state is inconsistent, since we have not yet updated `sor.offerDetails`. */
         if (mgvData != "mgv/notExecuted") {
-          mor.fillVolume -= mor.fillWants ? sor.wantsFromThisOffer : sor.givesToThisOffer;
           /* It is known statically that `mor.initialGives - mor.totalGave` does not underflow since
            1. `mor.totalGave` was increased by `sor.gives` during `execute`,
            2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
@@ -471,6 +475,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         uint fillVolume = mor.fillVolume;
         uint offerGives = sor.offer.gives();
         uint offerWants = sor.offer.wants();
+        /* <a id="MgvOfferTaking/computeVolume"></a> Volume requested depends on total gives (or wants) by taker. Let `volume = sor.wantsFromThisOffer` if `mor.fillWants` is true, and `volume = sor.GivesToThisOffer` otherwise; note that `volume <= fillVolume` in all cases. Example with `fillWants=true`: if `offerGives < fillVolume` the first branch of the outer `if` sets `volume = offerGives` and we are done; otherwise the 1st branch of the inner if is taken and sets `volume = fillVolume` and we are done. */
         if ((mor.fillWants && offerGives < fillVolume) || (!mor.fillWants && offerWants < fillVolume)) {
           sor.wantsFromThisOffer = offerGives;
           sor.givesToThisOffer = offerWants;

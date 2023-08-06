@@ -760,6 +760,14 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(gave, 0 ether, "Taker gave too much");
   }
 
+  function test_failing_offer_volume_does_not_count_toward_filled_volume() public {
+    quote.approve($(mgv), 1 ether);
+    failmkr.newOffer(1 ether, 1 ether,100_000);
+    mkr.newOffer(1 ether, 1 ether,100_000);
+    (uint got, ,,) = mgv.marketOrder($(base),$(quote),uint(1 ether),0,true);
+    assertEq(got,1 ether,"should have gotten 1 ether");
+  }
+
   // function test_reverting_monitor_on_notify() public {
   //   BadMonitor badMonitor = new BadMonitor({revertNotify:true,revertRead:false});
   //   mgv.setMonitor(badMonitor);

@@ -166,6 +166,10 @@ library TickLib {
   // FP.lnWad(BP)
   uint constant lnBP = 99995000333308;
 
+  function inRange(Tick tick) internal pure returns (bool) {
+    return Tick.unwrap(tick) >= MIN_TICK && Tick.unwrap(tick) <= MAX_TICK;
+  }
+
   function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2) internal pure returns (Tick) {
     unchecked {
       uint utick = tickPosInLeaf |
@@ -235,8 +239,7 @@ library TickLib {
     - with volumes on 96 bits, and a tick in range, there is no overflow doing bp^tick * 1e18 * volume / 1e18
     */
   function priceFromTick_e18(Tick tick) internal pure returns (uint) {
-    require(Tick.unwrap(tick) >= MIN_TICK,"mgv/tick/tooLow");
-    require(Tick.unwrap(tick) <= MAX_TICK,"mgv/tick/tooHigh");
+    require(inRange(tick),"mgv/priceFromTick/outOfRange");
     // FIXME this must round up so tick(price(tick)) = tick
     // FIXME add a test for this
     // Right now e.g. priceFromTick(1) is too low, and tickFromVolumes(1 ether,Tick(1).outboundFromInbound(1 ether)) is 0 (should be 1)

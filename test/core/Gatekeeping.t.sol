@@ -776,6 +776,13 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.marketOrderByPrice($(base), $(quote), TickLib.MIN_PRICE_E18 - 1, 100, true);
   }
 
+  function test_marketOrderByTick_extrema() public {
+    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
+    mgv.marketOrderByTick($(base), $(quote), MAX_TICK + 1, 100, true);
+    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
+    mgv.marketOrderByTick($(base), $(quote), MIN_TICK - 1, 100, true);
+  }
+
   function test_marketOrderForByPrice_extrema() public {
     vm.expectRevert("mgv/mOrder/maxPrice/tooHigh");
     mgv.marketOrderForByPrice($(base), $(quote), TickLib.MAX_PRICE_E18 + 1, 100, true, address(this));
@@ -784,9 +791,9 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_marketOrderForByTick_extrema() public {
-    vm.expectRevert("mgv/mOrder/maxTick/tooHigh");
+    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
     mgv.marketOrderForByTick($(base), $(quote), MAX_TICK + 1, 100, true, address(this));
-    vm.expectRevert("mgv/mOrder/maxTick/tooLow");
+    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
     mgv.marketOrderForByTick($(base), $(quote), MIN_TICK - 1, 100, true, address(this));
   }
 }

@@ -135,8 +135,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       //TODO is uint160 correct with new price limits?
       /* Since amounts stored in offers are 96 bits wide, checking that `takerWants` and `takerGives` fit in 160 bits prevents overflow during the main market order loop. */
       require(uint160(fillVolume) == fillVolume, "mgv/mOrder/fillVolume/160bits");
-      require(Tick.unwrap(maxTick) <= MAX_TICK, "mgv/mOrder/maxTick/tooHigh");
-      require(Tick.unwrap(maxTick) >= MIN_TICK, "mgv/mOrder/maxTick/tooLow");
+      require(TickLib.inRange(maxTick), "mgv/mOrder/maxTick/outOfRange");
 
       /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */
       MultiOrder memory mor;

@@ -33,14 +33,14 @@ contract TestMoriartyMaker is IMaker {
 
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) external override {}
 
-  function newOffer(uint wants, uint gives, uint gasreq) public {
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0);
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0);
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0);
-    mgv.newOffer(base, quote, wants, gives, gasreq, 0);
+  function newOfferByVolume(uint wants, uint gives, uint gasreq) public {
+    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
     (, MgvStructs.LocalPacked cfg) = mgv.config(base, quote);
     uint offer_gasbase = cfg.offer_gasbase();
-    dummy = mgv.newOffer({
+    dummy = mgv.newOfferByVolume({
       outbound_tkn: base,
       inbound_tkn: quote,
       wants: 1,

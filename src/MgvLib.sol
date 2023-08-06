@@ -131,7 +131,6 @@ contract HasMgvEvents {
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     address maker,
-    uint wants,
     uint gives,
     uint gasprice,
     uint gasreq,

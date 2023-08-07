@@ -69,9 +69,6 @@ contract MgvOfferMaking is MgvHasOffers {
 
       ofp.outbound_tkn = outbound_tkn;
       ofp.inbound_tkn = inbound_tkn;
-      console.log("offer id", ofp.id);
-      console.log("newOffer:");
-      console.log("gives", gives);
       ofp.wants = wants;
       ofp.gives = gives;
       ofp.gasreq = gasreq;

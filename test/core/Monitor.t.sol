@@ -92,7 +92,7 @@ contract MonitorTest is MangroveTest {
     mkr.approveMgv(base, 1 ether);
     mgv.setMonitor(monitor);
     mgv.setNotify(true);
-    uint ofrId = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
+    uint ofrId = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = mgv.offers($(base), $(quote), ofrId);
 
     uint[4][] memory targets = wrap_dynamic([ofrId, 0.04 ether, 0.05 ether, 100_000]);
@@ -122,7 +122,7 @@ contract MonitorTest is MangroveTest {
     deal($(quote), $(this), 10 ether);
     mgv.setMonitor(address(monitor));
     mgv.setNotify(true);
-    uint ofrId = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
+    uint ofrId = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = mgv.offers($(base), $(quote), ofrId);
     MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails($(base), $(quote), ofrId);
 

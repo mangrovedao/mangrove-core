@@ -43,8 +43,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   The actual contents of the function is in `writeOffer`, which is called by both `newOffer` and `updateOffer`.
   */
-  // FIXME: Remove once tick implementation is used everywhere (also other components)
-  function newOffer(address outbound_tkn, address inbound_tkn, uint wants, uint gives, uint gasreq, uint gasprice)
+  function newOfferByVolume(address outbound_tkn, address inbound_tkn, uint wants, uint gives, uint gasreq, uint gasprice)
     external
     payable
     returns (uint)
@@ -54,11 +53,11 @@ contract MgvOfferMaking is MgvHasOffers {
     require(gives > 0, "mgv/writeOffer/gives/tooLow");
     require(uint96(gives) == gives, "mgv/writeOffer/gives/96bits");
     require(uint96(wants) == wants, "mgv/writeOffer/wants/96bits");
-    return newOffer_new(outbound_tkn, inbound_tkn, Tick.unwrap(TickLib.tickFromVolumes(wants, gives)), gives, gasreq, gasprice);
+    return newOfferByTick(outbound_tkn, inbound_tkn, Tick.unwrap(TickLib.tickFromVolumes(wants, gives)), gives, gasreq, gasprice);
   }
-  // FIXME: Rename to `newOffer` when the old signature is removed
-  function newOffer_new(address outbound_tkn, address inbound_tkn, int tick, uint gives, uint gasreq, uint gasprice)
-  // FIXME: public until old signature is removed
+
+  function newOfferByTick(address outbound_tkn, address inbound_tkn, int tick, uint gives, uint gasreq, uint gasprice)
+  // FIXME: public until newOfferByVolume calls writeOffer
   //  external
     public
     payable
@@ -114,8 +113,7 @@ contract MgvOfferMaking is MgvHasOffers {
      4. `gasprice` has not changed since the offer was last written
      5. `gasprice` is greater than Mangrove's gasprice estimation
   */
-  // FIXME: Remove once tick implementation is used everywhere (also other components)
-  function updateOffer(
+  function updateOfferByVolume(
     address outbound_tkn,
     address inbound_tkn,
     uint wants,
@@ -129,10 +127,10 @@ contract MgvOfferMaking is MgvHasOffers {
     require(gives > 0, "mgv/writeOffer/gives/tooLow");
     require(uint96(gives) == gives, "mgv/writeOffer/gives/96bits");
     require(uint96(wants) == wants, "mgv/writeOffer/wants/96bits");
-    updateOffer_new(outbound_tkn, inbound_tkn, Tick.unwrap(TickLib.tickFromVolumes(wants, gives)), gives, gasreq, gasprice, offerId);
+    updateOfferByTick(outbound_tkn, inbound_tkn, Tick.unwrap(TickLib.tickFromVolumes(wants, gives)), gives, gasreq, gasprice, offerId);
   }
-  // FIXME: Rename to `updateOffer` when the old signature is removed
-  function updateOffer_new(
+
+  function updateOfferByTick(
     address outbound_tkn,
     address inbound_tkn,
     int tick,
@@ -141,7 +139,7 @@ contract MgvOfferMaking is MgvHasOffers {
     uint gasprice,
     uint offerId
   )
-  // FIXME: public until old signature is removed
+  // FIXME: public until updateOfferByVolume calls writeOffer
   //  external
     public
     payable {

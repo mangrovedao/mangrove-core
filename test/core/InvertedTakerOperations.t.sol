@@ -48,8 +48,8 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   }
 
   function test_taker_gets_sum_of_borrows_in_execute() public {
-    mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
-    mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
+    mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
+    mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     _takerTrade = checkPay;
     toPay = 0.2 ether;
     (, uint gave,,) = mgv.marketOrderByVolume($(base), $(quote), 0.2 ether, 0.2 ether, true);
@@ -63,8 +63,8 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   }
 
   function test_taker_reverts_during_trade() public {
-    uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
-    uint _ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
+    uint ofr = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
+    uint _ofr = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     _takerTrade = revertTrade;
     skipCheck = true;
     try mgv.marketOrderByVolume($(base), $(quote), 0.2 ether, 0.2 ether, true) {
@@ -85,7 +85,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   }
 
   function test_taker_refuses_to_deliver_during_trade() public {
-    mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
+    mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     _takerTrade = refusePayTrade;
     try mgv.marketOrderByVolume($(base), $(quote), 0.2 ether, 0.2 ether, true) {
       fail("Market order should have reverted");
@@ -97,7 +97,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   function test_mgv_keeps_quote_tokens_if_maker_is_blacklisted_for_quote() public {
     _takerTrade = noop;
     quote.blacklists(address(mkr));
-    uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
     uint mgvQuoteBal = quote.balanceOf(address(mgv));
 
     (uint successes,,,,) = mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]), true);
@@ -118,8 +118,8 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   }
 
   function test_taker_snipe_mgv_during_trade() public {
-    mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
-    mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
+    mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
+    mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     _takerTrade = reenter;
     expectFrom($(mgv));
     emit OfferSuccess($(base), $(quote), 1, $(this), 0.1 ether, 0.1 ether);
@@ -131,7 +131,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   }
 
   function test_taker_pays_back_correct_amount_1() public {
-    uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
+    uint ofr = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     uint bal = quote.balanceOf($(this));
     _takerTrade = noop;
     mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 0.05 ether, 0.05 ether, 100_000]), true);
@@ -139,7 +139,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   }
 
   function test_taker_pays_back_correct_amount_2() public {
-    uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
+    uint ofr = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     uint bal = quote.balanceOf($(this));
     _takerTrade = noop;
     mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 0.02 ether, 0.02 ether, 100_000]), true);

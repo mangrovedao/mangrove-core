@@ -46,6 +46,7 @@ import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {console2, StdStorage, stdStorage} from "forge-std/Test.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+import {MgvHelpers} from "mgv_src/MgvHelpers.sol";
 
 contract PermitTest is MangroveTest, TrivialTestMaker {
   using stdStorage for StdStorage;
@@ -83,7 +84,8 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   }
 
   function snipeFor(uint value, address who) internal returns (uint, uint, uint, uint, uint) {
-    return mgv.snipesForByVolume($(base), $(quote), wrap_dynamic([uint(1), value, value, 300_000]), true, who);
+    return
+      MgvHelpers.snipesForByVolume($(mgv), $(base), $(quote), wrap_dynamic([uint(1), value, value, 300_000]), true, who);
   }
 
   function newOffer(uint amount) internal {

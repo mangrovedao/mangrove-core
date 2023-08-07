@@ -7,11 +7,13 @@ import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol
 import {Test2, Test} from "mgv_lib/Test2.sol";
 
 import {MgvStructs, Density} from "mgv_src/MgvLib.sol";
+import {MgvHelpers} from "mgv_src/MgvHelpers.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
+import "mgv_lib/Debug.sol";
 
 /**
  * Base test suite for [Chain]MangroveDeployer scripts
@@ -62,8 +64,10 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     // Cleaner - verify mgv is used
     MgvCleaner cleaner = mgvDeployer.cleaner();
     uint[4][] memory targets = wrap_dynamic([uint(0), 0, 0, 0]);
+    uint[4][] memory convertedTargets = MgvHelpers.convertSnipeTargetsToTicks(targets, true);
+
     vm.expectCall(
-      address(mgv), abi.encodeCall(mgv.snipesForByVolume, (outbound_tkn, inbound_tkn, targets, true, address(this)))
+      address(mgv), abi.encodeCall(mgv.snipesFor, (outbound_tkn, inbound_tkn, convertedTargets, true, address(this)))
     );
     vm.expectRevert("mgv/inactive");
     cleaner.collect(outbound_tkn, inbound_tkn, targets, true);

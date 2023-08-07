@@ -5,6 +5,7 @@ import {HasMgvEvents, Tick} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
 import {TickLib} from "./../lib/TickLib.sol";
+import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* Takers may provide allowances on specific pairs, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
@@ -125,7 +126,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   }
 
   /* The delegate version of `snipesByTick` is `snipesForByTick`, which takes a `taker` address as additional argument. */
-  function snipesForByTick(
+  function snipesFor(
     address outbound_tkn,
     address inbound_tkn,
     uint[4][] calldata targets,
@@ -135,24 +136,6 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     unchecked {
       (successes, takerGot, takerGave, bounty, feePaid) =
         generalSnipes(outbound_tkn, inbound_tkn, targets, fillWants, taker);
-      /* The sender's allowance is verified after the order complete so that the actual amounts are checked against the allowance, instead of the declared `takerGives`. The former may be lower.
-    
-    An immediate consequence is that any funds available to Mangrove through `approve` can be used to clean offers. After a `snipesFor` where all offers have failed, all token transfers have been reverted, so `takerGave=0` and the check will succeed -- but the sender will still have received the bounty of the failing offers. */
-      deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
-    }
-  }
-
-  /* The delegate version of `snipesByVolume` is `snipesForByVolume`, which takes a `taker` address as additional argument. */
-  function snipesForByVolume(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint[4][] calldata targets,
-    bool fillWants,
-    address taker
-  ) external returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint feePaid) {
-    unchecked {
-      (successes, takerGot, takerGave, bounty, feePaid) =
-        generalSnipes(outbound_tkn, inbound_tkn, convertSnipeTargetsToTicks(targets, fillWants), fillWants, taker);
       /* The sender's allowance is verified after the order complete so that the actual amounts are checked against the allowance, instead of the declared `takerGives`. The former may be lower.
     
     An immediate consequence is that any funds available to Mangrove through `approve` can be used to clean offers. After a `snipesFor` where all offers have failed, all token transfers have been reverted, so `takerGave=0` and the check will succeed -- but the sender will still have received the bounty of the failing offers. */

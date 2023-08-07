@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import {MgvLib, MgvStructs, Tick, DensityLib} from "mgv_src/MgvLib.sol";
+import {MgvHelpers} from "mgv_src/MgvHelpers.sol";
 
 contract MonitorTest is MangroveTest {
   TestMaker mkr;
@@ -114,7 +115,7 @@ contract MonitorTest is MangroveTest {
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifySuccess, (order, $(this))), bytes(""));
 
-    (uint successes,,,,) = mgv.snipesByVolume($(base), $(quote), targets, true);
+    (uint successes,,,,) = MgvHelpers.snipesByVolume($(mgv), $(base), $(quote), targets, true);
     assertTrue(successes == 1, "snipe should succeed");
   }
 
@@ -146,7 +147,7 @@ contract MonitorTest is MangroveTest {
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifyFail, (order, $(this))), bytes(""));
 
-    (uint successes,,,,) = mgv.snipesByVolume($(base), $(quote), targets, true);
+    (uint successes,,,,) = MgvHelpers.snipesByVolume($(mgv), $(base), $(quote), targets, true);
     assertTrue(successes == 0, "snipe should fail");
   }
 }

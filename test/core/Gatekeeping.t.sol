@@ -5,6 +5,7 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import {MgvStructs, MAX_TICK, MIN_TICK} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
+import {MgvHelpers} from "mgv_src/MgvHelpers.sol";
 
 // In these tests, the testing contract is the market maker.
 contract GatekeepingTest is IMaker, MangroveTest {
@@ -305,14 +306,14 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000);
     uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
     vm.expectRevert("mgv/snipes/volume/96bits");
-    mgv.snipesByTick($(base), $(quote), targets, true);
+    mgv.snipes($(base), $(quote), targets, true);
   }
 
   function test_wants_volume_above_96bits_fails_snipes() public {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000);
     uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
     vm.expectRevert("mgv/snipes/volume/96bits");
-    mgv.snipesByTick($(base), $(quote), targets, false);
+    mgv.snipes($(base), $(quote), targets, false);
   }
 
   function test_initial_allowance_is_zero() public {
@@ -325,7 +326,9 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000);
 
     vm.expectRevert("mgv/lowAllowance");
-    mgv.snipesForByVolume($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 300_000]), true, address(tkr));
+    MgvHelpers.snipesForByVolume(
+      $(mgv), $(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 300_000]), true, address(tkr)
+    );
   }
 
   function test_cannot_marketOrderFor_for_without_allowance() public {
@@ -604,7 +607,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function snipesKO(uint id) external {
     uint[4][] memory targets = wrap_dynamic([id, 1 ether, type(uint96).max, type(uint48).max]);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.snipesByVolume($(base), $(quote), targets, true);
+    MgvHelpers.snipesByVolume($(mgv), $(base), $(quote), targets, true);
   }
 
   function test_snipe_on_reentrancy_fails() public {
@@ -617,7 +620,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function snipesOK(address _base, address _quote, uint id) external {
     uint[4][] memory targets = wrap_dynamic([id, 1 ether, type(uint96).max, type(uint48).max]);
-    mgv.snipesByVolume(_base, _quote, targets, true);
+    MgvHelpers.snipesByVolume($(mgv), _base, _quote, targets, true);
   }
 
   function test_snipes_on_reentrancy_succeeds() public {

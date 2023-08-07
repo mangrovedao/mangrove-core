@@ -311,47 +311,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Snipes */
   //+clear+
 
-  // utility
-
-  function convertSnipeTargetsToTicks(uint[4][] calldata targets, bool fillWants)
-    internal
-    pure
-    returns (uint[4][] memory)
-  {
-    uint[4][] memory newTargets = new uint[4][](targets.length);
-    // convert targets from [id,wants,gives,gasreq] to [id,tick,volume,gasreq]
-    uint volumeIndex = fillWants ? 1 : 2;
-    for (uint i = 0; i < targets.length; i++) {
-      // console.log("Converting...");
-      // console.log("wants,gives",targets[i][1],targets[i][2]);
-      newTargets[i][0] = targets[i][0];
-      newTargets[i][1] = uint(Tick.unwrap(TickLib.tickFromTakerVolumes(targets[i][2], targets[i][1])));
-      newTargets[i][2] = targets[i][volumeIndex];
-      newTargets[i][3] = targets[i][3];
-      // console.log("tick,volume",newTargets[i][1],newTargets[i][2]);
-    }
-    return newTargets;
-  }
-
-  // struct SnipeTarget {
-  //   uint offerId;
-  //   int tick;
-  //   uint fillVolume;
-  //   uint offerGasreq;
-  // }
   /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,tick,fillVolume,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty,feePaid)`. 
   Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`). */
-  function snipesByVolume(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants)
-    external
-    returns (uint, uint, uint, uint, uint)
-  {
-    unchecked {
-      return
-        generalSnipes(outbound_tkn, inbound_tkn, convertSnipeTargetsToTicks(targets, fillWants), fillWants, msg.sender);
-    }
-  }
 
-  function snipesByTick(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants)
+  function snipes(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants)
     external
     returns (uint, uint, uint, uint, uint)
   {

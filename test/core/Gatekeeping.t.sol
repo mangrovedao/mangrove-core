@@ -173,13 +173,13 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.setGasmax(uint(type(uint24).max) + 1);
   }
 
-  function test_makerWants_wider_than_96_bits_fails_newOfferByVolume() public {
+  function test_makerWants_too_big_fails_newOfferByVolume() public {
     vm.expectRevert("mgv/writeOffer/wants/96bits");
-    mkr.newOfferByVolume(1 << 96, 1 ether, 10_000, 0);
+    mkr.newOfferByVolume((1 << 96) + 1e28, 1 ether, 10_000, 0);
   }
 
   function test_makerTick_wider_than_24_bits_fails_newOfferByTick() public {
-    vm.expectRevert("mgv/writeOffer/tick/24bits");
+    vm.expectRevert("mgv/writeOffer/tick/outOfRange");
     mkr.newOfferByTick(1 << 23, 1 ether, 10_000, 0);
   }
 
@@ -197,7 +197,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_gives_0_rejected() public {
     vm.expectRevert("mgv/writeOffer/gives/tooLow");
-    mkr.newOfferByVolume(1 ether, 0 ether, 100_000, 0);
+    mkr.newOfferByTick(0, 0 ether, 100_000, 0);
   }
 
   function test_idOverflow_reverts(address tout, address tin) public {
@@ -223,7 +223,9 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_makerGives_wider_than_96_bits_fails_newOfferByVolume() public {
-    vm.expectRevert("mgv/writeOffer/gives/96bits");
+    // formerly:
+    // vm.expectRevert("mgv/writeOffer/gives/96bits");
+    vm.expectRevert("mgv/priceFromTick/outOfRange");
     mkr.newOfferByVolume(1, 1 << 96, 10_000);
   }
 

@@ -5,7 +5,6 @@ import {HasMgvEvents, Tick} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
 import {TickLib} from "./../lib/TickLib.sol";
-import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* Takers may provide allowances on specific pairs, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
@@ -125,7 +124,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     }
   }
 
-  /* The delegate version of `snipesByTick` is `snipesForByTick`, which takes a `taker` address as additional argument. */
+  /* The delegate version of `snipes` is `snipesFor`, which takes a `taker` address as additional argument. */
   function snipesFor(
     address outbound_tkn,
     address inbound_tkn,

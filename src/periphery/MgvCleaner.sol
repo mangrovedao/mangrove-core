@@ -4,7 +4,6 @@ pragma solidity ^0.8.10;
 import {MgvLib, MgvStructs} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import "mgv_src/MgvHelpers.sol";
-import "mgv_lib/Debug.sol";
 
 /* The purpose of the Cleaner contract is to execute failing offers and collect
  * their associated bounty. It takes an array of offers with same definition as

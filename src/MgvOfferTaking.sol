@@ -330,7 +330,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   function generalSnipes(
     address outbound_tkn,
     address inbound_tkn,
-    uint[4][] memory targets,
+    uint[4][] calldata targets,
     bool fillWants,
     address taker
   ) internal returns (uint successCount, uint snipesGot, uint snipesGave, uint totalPenalty, uint feePaid) {
@@ -374,7 +374,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     Pair storage pair,
     MultiOrder memory mor,
     MgvLib.SingleOrder memory sor,
-    uint[4][] memory targets
+    uint[4][] calldata targets
   ) internal returns (uint successCount, uint snipesGot, uint snipesGave) {
     unchecked {
       for (uint i = 0; i < targets.length; ++i) {

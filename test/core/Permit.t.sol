@@ -83,7 +83,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   }
 
   function snipeFor(uint value, address who) internal returns (uint, uint, uint, uint, uint) {
-    return mgv.snipesFor($(base), $(quote), wrap_dynamic([uint(1), value, value, 300_000]), true, who);
+    return mgv.snipesForByVolume($(base), $(quote), wrap_dynamic([uint(1), value, value, 300_000]), true, who);
   }
 
   function newOffer(uint amount) internal {

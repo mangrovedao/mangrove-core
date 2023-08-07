@@ -6,6 +6,7 @@ import {
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickLib} from "./../lib/TickLib.sol";
+import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
   /* # MultiOrder struct */
@@ -310,9 +311,47 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Snipes */
   //+clear+
 
-  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,takerWants,takerGives,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty,feePaid)`. 
+  // utility
+
+  function convertSnipeTargetsToTicks(uint[4][] calldata targets, bool fillWants)
+    internal
+    pure
+    returns (uint[4][] memory)
+  {
+    uint[4][] memory newTargets = new uint[4][](targets.length);
+    // convert targets from [id,wants,gives,gasreq] to [id,tick,volume,gasreq]
+    uint volumeIndex = fillWants ? 1 : 2;
+    for (uint i = 0; i < targets.length; i++) {
+      // console.log("Converting...");
+      // console.log("wants,gives",targets[i][1],targets[i][2]);
+      newTargets[i][0] = targets[i][0];
+      newTargets[i][1] = uint(Tick.unwrap(TickLib.tickFromTakerVolumes(targets[i][2], targets[i][1])));
+      newTargets[i][2] = targets[i][volumeIndex];
+      newTargets[i][3] = targets[i][3];
+      // console.log("tick,volume",newTargets[i][1],newTargets[i][2]);
+    }
+    return newTargets;
+  }
+
+  // struct SnipeTarget {
+  //   uint offerId;
+  //   int tick;
+  //   uint fillVolume;
+  //   uint offerGasreq;
+  // }
+  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,tick,fillVolume,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty,feePaid)`. 
   Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`). */
-  function snipes(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants)
+  function snipesByVolume(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants)
+    external
+    returns (uint, uint, uint, uint, uint)
+  {
+    unchecked {
+      return
+        generalSnipes(outbound_tkn, inbound_tkn, convertSnipeTargetsToTicks(targets, fillWants), fillWants, msg.sender);
+    }
+  }
+
+  function snipesByTick(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants)
     external
     returns (uint, uint, uint, uint, uint)
   {
@@ -322,14 +361,14 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /*
-     From an array of _n_ `[offerId, takerWants,takerGives,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty, feePaid)`. 
+     From an array of _n_ `[offerId, tick,volume,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty, feePaid)`. 
 
      Note that if this function is not internal, anyone can make anyone use Mangrove.
      Note that unlike general market order, the returned total values are _not_ `mor.totalGot` and `mor.totalGave`, since those are reset at every iteration of the `targets` array. Instead, accumulators `snipesGot` and `snipesGave` are used. */
   function generalSnipes(
     address outbound_tkn,
     address inbound_tkn,
-    uint[4][] calldata targets,
+    uint[4][] memory targets,
     bool fillWants,
     address taker
   ) internal returns (uint successCount, uint snipesGot, uint snipesGave, uint totalPenalty, uint feePaid) {
@@ -373,7 +412,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     Pair storage pair,
     MultiOrder memory mor,
     MgvLib.SingleOrder memory sor,
-    uint[4][] calldata targets
+    uint[4][] memory targets
   ) internal returns (uint successCount, uint snipesGot, uint snipesGave) {
     unchecked {
       for (uint i = 0; i < targets.length; ++i) {
@@ -383,25 +422,30 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* Initialize single order struct. */
         sor.offerId = targets[i][0];
+        // console.log("offer id in snipes",sor.offerId);
         OfferData storage offerData = pair.offerData[sor.offerId];
         sor.offer = offerData.offer;
         sor.offerDetail = offerData.detail;
+        // console.log("Current offer",toString(sor.offer));
 
         /* If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. A mismatched price will be detected by `execute`. */
         if (!sor.offer.isLive() || sor.offerDetail.gasreq() > targets[i][3]) {
           /* We move on to the next offer in the array. */
+          // console.log("skipping in internalSnipes",sor.offer.isLive());
+          // console.log(sor.offerDetail.gasreq());
+          // console.log(targets[i][3]);
           continue;
         } else {
-          uint wants = targets[i][1];
-          uint gives = targets[i][2];
-          require(uint96(wants) == wants, "mgv/snipes/takerWants/96bits");
-          require(uint96(gives) == gives, "mgv/snipes/takerGives/96bits");
-          mor.fillVolume = mor.fillWants ? wants : gives;
-          /* Wants gets normalized to the closest tick */
-          // note that `takerGives=0` is not possible here
-          // Tick tt = TickLib.tickFromVolumes(gives,wants);
-          // sor.tick = TickLib.tickFromVolumes(gives,wants);
-          mor.maxTick = TickLib.tickFromTakerVolumes(gives, wants);
+          {
+            Tick tick = Tick.wrap(int(targets[i][1]));
+            require(TickLib.inRange(tick), "mgv/snipes/tick/outOfRange");
+            mor.maxTick = tick;
+          }
+          {
+            uint volume = targets[i][2];
+            require(uint96(volume) == volume, "mgv/snipes/volume/96bits");
+            mor.fillVolume = volume;
+          }
 
           /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
           sor.local = sor.local.lock(true);
@@ -409,6 +453,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
           /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/tradeSuccess","mgv/notExecuted"]` means the failure is the maker's fault. */
           /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. */
+          // console.log("will execute...");
           (uint gasused, bytes32 makerData, bytes32 mgvData) = execute(pair, mor, sor);
 
           if (mgvData == "mgv/tradeSuccess") {
@@ -474,6 +519,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
          Otherwise we now know we'll execute the offer. */
         Tick offerTick = sor.offer.tick();
         if (!offerTick.better(mor.maxTick)) {
+          // console.log("skipping");
           return (0, bytes32(0), "mgv/notExecuted");
         }
 
@@ -501,8 +547,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
        */
       (bool success, bytes memory retdata) = address(this).call(abi.encodeCall(this.flashloan, (sor, mor.taker)));
 
+      // console.log("execution result:");
+
       /* `success` is true: trade is complete */
       if (success) {
+        // console.log("success!");
         /* In case of failure, `retdata` encodes the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
         (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
@@ -519,7 +568,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.totalGot += sor.wants;
         mor.totalGave += sor.gives;
       } else {
+        // console.log("failure!");
+        // console.logBytes32(mgvData);
         /* In case of success, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
+
         (mgvData, gasused, makerData) = innerDecode(retdata);
         /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {

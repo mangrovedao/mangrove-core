@@ -114,7 +114,7 @@ contract MonitorTest is MangroveTest {
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifySuccess, (order, $(this))), bytes(""));
 
-    (uint successes,,,,) = mgv.snipes($(base), $(quote), targets, true);
+    (uint successes,,,,) = mgv.snipesByVolume($(base), $(quote), targets, true);
     assertTrue(successes == 1, "snipe should succeed");
   }
 
@@ -146,7 +146,7 @@ contract MonitorTest is MangroveTest {
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifyFail, (order, $(this))), bytes(""));
 
-    (uint successes,,,,) = mgv.snipes($(base), $(quote), targets, true);
+    (uint successes,,,,) = mgv.snipesByVolume($(base), $(quote), targets, true);
     assertTrue(successes == 0, "snipe should fail");
   }
 }

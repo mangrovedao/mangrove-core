@@ -63,7 +63,7 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     MgvCleaner cleaner = mgvDeployer.cleaner();
     uint[4][] memory targets = wrap_dynamic([uint(0), 0, 0, 0]);
     vm.expectCall(
-      address(mgv), abi.encodeCall(mgv.snipesFor, (outbound_tkn, inbound_tkn, targets, true, address(this)))
+      address(mgv), abi.encodeCall(mgv.snipesForByVolume, (outbound_tkn, inbound_tkn, targets, true, address(this)))
     );
     vm.expectRevert("mgv/inactive");
     cleaner.collect(outbound_tkn, inbound_tkn, targets, true);

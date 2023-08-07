@@ -40,7 +40,8 @@ contract TestTaker is ITaker, Script2 {
 
   function takeWithInfo(uint offerId, uint takerWants) external returns (bool, uint, uint, uint, uint) {
     uint[4][] memory targets = wrap_dynamic([offerId, takerWants, type(uint96).max, type(uint48).max]);
-    (uint successes, uint got, uint gave, uint totalPenalty, uint feePaid) = _mgv.snipes(_base, _quote, targets, true);
+    (uint successes, uint got, uint gave, uint totalPenalty, uint feePaid) =
+      _mgv.snipesByVolume(_base, _quote, targets, true);
     return (successes == 1, got, gave, totalPenalty, feePaid);
     //return taken;
   }
@@ -55,7 +56,7 @@ contract TestTaker is ITaker, Script2 {
     uint gasreq
   ) external returns (bool) {
     uint[4][] memory targets = wrap_dynamic([offerId, takerWants, takerGives, gasreq]);
-    (uint successes,,,,) = __mgv.snipes(__base, __quote, targets, true);
+    (uint successes,,,,) = __mgv.snipesByVolume(__base, __quote, targets, true);
     return successes == 1;
   }
 

@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 import {MgvLib, MgvStructs} from "../MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
+import "mgv_lib/Debug.sol";
 
 /* The purpose of the Cleaner contract is to execute failing offers and collect
  * their associated bounty. It takes an array of offers with same definition as
@@ -30,7 +31,7 @@ contract MgvCleaner {
     returns (uint bal)
   {
     unchecked {
-      (uint successes,,,,) = MGV.snipesFor(outbound_tkn, inbound_tkn, targets, fillWants, msg.sender);
+      (uint successes,,,,) = MGV.snipesForByVolume(outbound_tkn, inbound_tkn, targets, fillWants, msg.sender);
       require(successes == 0, "mgvCleaner/anOfferDidNotFail");
       bal = address(this).balance;
       bool noRevert;
@@ -50,7 +51,7 @@ contract MgvCleaner {
     address takerToImpersonate
   ) external returns (uint bal) {
     unchecked {
-      (uint successes,,,,) = MGV.snipesFor(outbound_tkn, inbound_tkn, targets, fillWants, takerToImpersonate);
+      (uint successes,,,,) = MGV.snipesForByVolume(outbound_tkn, inbound_tkn, targets, fillWants, takerToImpersonate);
       require(successes == 0, "mgvCleaner/anOfferDidNotFail");
       bal = address(this).balance;
       bool noRevert;

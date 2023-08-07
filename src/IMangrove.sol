@@ -203,13 +203,29 @@ interface IMangrove {
 
   function setUseOracle(bool useOracle) external;
 
-  function snipes(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants)
+  function snipesByVolume(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants)
     external
     returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function snipesFor(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants, address taker)
+  function snipesByTick(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants)
     external
     returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
+
+  function snipesForByTick(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint[4][] memory targets,
+    bool fillWants,
+    address taker
+  ) external returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
+
+  function snipesForByVolume(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint[4][] memory targets,
+    bool fillWants,
+    address taker
+  ) external returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function updateOffer(
     address outbound_tkn,

@@ -100,7 +100,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
     uint mgvQuoteBal = quote.balanceOf(address(mgv));
 
-    (uint successes,,,,) = mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]), true);
+    (uint successes,,,,) = mgv.snipesByVolume($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]), true);
     assertTrue(successes == 1, "Trade should succeed");
     assertEq(quote.balanceOf(address(mgv)) - mgvQuoteBal, 1 ether, "Mgv balance should have increased");
   }
@@ -111,7 +111,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     _takerTrade = noop;
     skipCheck = true;
     (uint successes, uint totalGot, uint totalGave,,) =
-      mgv.snipes(_base, _quote, wrap_dynamic([uint(2), 0.1 ether, 0.1 ether, 100_000]), true);
+      mgv.snipesByVolume(_base, _quote, wrap_dynamic([uint(2), 0.1 ether, 0.1 ether, 100_000]), true);
     assertTrue(successes == 1, "Snipe on reentrancy should succeed");
     assertEq(totalGot, 0.1 ether, "Incorrect totalGot");
     assertEq(totalGave, 0.1 ether, "Incorrect totalGave");
@@ -134,7 +134,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     uint bal = quote.balanceOf($(this));
     _takerTrade = noop;
-    mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 0.05 ether, 0.05 ether, 100_000]), true);
+    mgv.snipesByVolume($(base), $(quote), wrap_dynamic([ofr, 0.05 ether, 0.05 ether, 100_000]), true);
     assertEq(quote.balanceOf($(this)), bal - 0.05 ether, "wrong taker balance");
   }
 
@@ -142,7 +142,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     uint bal = quote.balanceOf($(this));
     _takerTrade = noop;
-    mgv.snipes($(base), $(quote), wrap_dynamic([ofr, 0.02 ether, 0.02 ether, 100_000]), true);
+    mgv.snipesByVolume($(base), $(quote), wrap_dynamic([ofr, 0.02 ether, 0.02 ether, 100_000]), true);
     assertEq(quote.balanceOf($(this)), bal - 0.02 ether, "wrong taker balance");
   }
 }

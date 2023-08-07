@@ -384,18 +384,13 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* Initialize single order struct. */
         sor.offerId = targets[i][0];
-        // console.log("offer id in snipes",sor.offerId);
         OfferData storage offerData = pair.offerData[sor.offerId];
         sor.offer = offerData.offer;
         sor.offerDetail = offerData.detail;
-        // console.log("Current offer",toString(sor.offer));
 
         /* If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. A mismatched price will be detected by `execute`. */
         if (!sor.offer.isLive() || sor.offerDetail.gasreq() > targets[i][3]) {
           /* We move on to the next offer in the array. */
-          // console.log("skipping in internalSnipes",sor.offer.isLive());
-          // console.log(sor.offerDetail.gasreq());
-          // console.log(targets[i][3]);
           continue;
         } else {
           {
@@ -415,7 +410,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
           /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/tradeSuccess","mgv/notExecuted"]` means the failure is the maker's fault. */
           /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. */
-          // console.log("will execute...");
           (uint gasused, bytes32 makerData, bytes32 mgvData) = execute(pair, mor, sor);
 
           if (mgvData == "mgv/tradeSuccess") {
@@ -481,7 +475,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
          Otherwise we now know we'll execute the offer. */
         Tick offerTick = sor.offer.tick();
         if (!offerTick.better(mor.maxTick)) {
-          // console.log("skipping");
           return (0, bytes32(0), "mgv/notExecuted");
         }
 
@@ -509,11 +502,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
        */
       (bool success, bytes memory retdata) = address(this).call(abi.encodeCall(this.flashloan, (sor, mor.taker)));
 
-      // console.log("execution result:");
-
       /* `success` is true: trade is complete */
       if (success) {
-        // console.log("success!");
         /* In case of failure, `retdata` encodes the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
         (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
@@ -530,10 +520,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.totalGot += sor.wants;
         mor.totalGave += sor.gives;
       } else {
-        // console.log("failure!");
-        // console.logBytes32(mgvData);
         /* In case of success, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
-
         (mgvData, gasused, makerData) = innerDecode(retdata);
         /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {

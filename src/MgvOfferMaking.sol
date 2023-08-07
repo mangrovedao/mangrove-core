@@ -52,10 +52,8 @@ contract MgvOfferMaking is MgvHasOffers {
     uint gasprice
   ) external payable returns (uint) {
     unchecked {
-      // require(.expectRevert("mgv/writeOffer/wants/96bits");
-      console.log("W0", wants);
+      // FIXME checkwants size here?
       Tick tick = TickLib.tickFromVolumes(wants, gives);
-      console.log("deduced tick", toString(tick));
       return newOfferByTick(outbound_tkn, inbound_tkn, Tick.unwrap(tick), gives, gasreq, gasprice);
     }
   }
@@ -274,7 +272,6 @@ contract MgvOfferMaking is MgvHasOffers {
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
       {
         uint wants = insertionTick.inboundFromOutbound(ofp.gives);
-        console.log("WANTS", wants);
         /* * Make sure `wants > 0` -- price is stored as log_1BP(wants/gives). */
         require(wants > 0, "mgv/writeOffer/wants/tooLow");
         require(uint96(wants) == wants, "mgv/writeOffer/wants/96bits");

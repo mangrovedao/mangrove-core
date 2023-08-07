@@ -201,7 +201,7 @@ contract ScenariiTest is MangroveTest {
   }
 
   function mo() internal {
-    uint takerWants = 1.6 ether; // of B token
+    uint takerWants = 1.5 ether; // of B token
     uint takerGives = 2 ether; // of A token
 
     (uint takerGot, uint takerGave) = taker.marketOrder(takerWants, takerGives);

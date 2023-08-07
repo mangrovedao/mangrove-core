@@ -186,7 +186,7 @@ contract Test2 is Test, Script2 {
   }
 
   // Returns a relative error in basis points, to be used by assertApproxEqRel*
-  function relError(uint basis_point) internal pure returns (uint) {
-    return 1e18*basis_point/10_000;
+  function relError(uint basis_points) internal pure returns (uint) {
+    return 1e18*basis_points/10_000;
   }
 }

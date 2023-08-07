@@ -166,6 +166,10 @@ library TickLib {
   // FP.lnWad(BP)
   uint constant lnBP = 99995000333308;
 
+  function inRange(Tick tick) internal pure returns (bool) {
+    return Tick.unwrap(tick) >= MIN_TICK && Tick.unwrap(tick) <= MAX_TICK;
+  }
+
   function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2) internal pure returns (Tick) {
     unchecked {
       uint utick = tickPosInLeaf |
@@ -178,34 +182,52 @@ library TickLib {
     }
   }
 
+  function tickFromTakerVolumes(uint takerGives, uint takerWants) internal pure returns (Tick) {
+    if (takerGives == 0 || takerWants == 0) {
+      // If inboundAmt is 0 then the price is irrelevant for taker
+      return Tick.wrap(MAX_TICK);
+    }
+    return tickFromVolumes(takerGives, takerWants);
+  }
+
   // returns log_(1.0001)(wants/gives)
   // with wants/gives on 96 bits, tick will be < 24bits
   // never overstimates tick (but takes the highest tick that avoids doing so)
   // wants will be adjusted down from the original
+  // FIXME use unchecked math but specify precise bounds on what inputs do not overflow
   function tickFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (Tick) {
-    unchecked {
-      (uint num, uint den) = (inboundAmt,outboundAmt);
-      if (inboundAmt < outboundAmt) {
-        (num,den) = (den,num);
-      } else {
-      }
-      int lnPrice = FP.lnWad(int(num * 1e18/den));
-      // why is univ3 not doing that? Because they start from a ratio < 1 ?
-      int lbpPrice = int(FP.divWad(uint(lnPrice),lnBP)/1e18);
-      // note this implies the lowest tick will never be used! (could use for something else?)
-      if (inboundAmt < outboundAmt) {
-        lbpPrice = - lbpPrice;
-      }
-
-      uint pr = Tick.wrap(lbpPrice).priceFromTick_e18();
-      if (pr > inboundAmt * 1e18 / outboundAmt) {
-        lbpPrice = lbpPrice - 1;
-      } else {
-      }
-
-      return Tick.wrap(lbpPrice);
+    (uint num, uint den) = (inboundAmt,outboundAmt);
+    if (inboundAmt < outboundAmt) {
+      (num,den) = (den,num);
+    } else {
     }
+    int lnPrice = FP.lnWad(int(num * 1e18/den));
+    // why is univ3 not doing that? Because they start from a ratio < 1 ?
+    int lbpPrice = int(FP.divWad(uint(lnPrice),lnBP)/1e18);
+    // note this implies the lowest tick will never be used! (could use for something else?)
+    if (inboundAmt < outboundAmt) {
+      lbpPrice = - lbpPrice;
+    }
+
+    uint pr = Tick.wrap(lbpPrice).priceFromTick_e18();
+    if (pr > inboundAmt * 1e18 / outboundAmt) {
+      lbpPrice = lbpPrice - 1;
+    } else {
+    }
+
+    return Tick.wrap(lbpPrice);
   }
+
+  function tickFromPrice_e18(uint price) internal pure returns (Tick) {
+    return tickFromVolumes(price, 1 ether);
+  }
+
+  // priceFromTick_e18(Tick.wrap(MAX_TICK));
+  uint constant MAX_PRICE_E18 = 58661978243588296630604521258702056828566;
+  // priceFromTick_e18(Tick.wrap(MIN_TICK));
+  // FIXME: added 1 since it's currently 0, which is not a valid price
+  uint constant MIN_PRICE_E18 = 1;
+
   // returns 1.0001^tick*1e18
   // TODO: returned an even more scaled up price, as much as possible
   //max pow before overflow when computing with fixedpointlib, and when overflow when multiplying 
@@ -217,8 +239,7 @@ library TickLib {
     - with volumes on 96 bits, and a tick in range, there is no overflow doing bp^tick * 1e18 * volume / 1e18
     */
   function priceFromTick_e18(Tick tick) internal pure returns (uint) {
-    require(Tick.unwrap(tick) >= MIN_TICK,"mgv/tick/tooLow");
-    require(Tick.unwrap(tick) <= MAX_TICK,"mgv/tick/tooHigh");
+    require(inRange(tick),"mgv/priceFromTick/outOfRange");
     // FIXME this must round up so tick(price(tick)) = tick
     // FIXME add a test for this
     // Right now e.g. priceFromTick(1) is too low, and tickFromVolumes(1 ether,Tick(1).outboundFromInbound(1 ether)) is 0 (should be 1)
@@ -234,6 +255,16 @@ library TickLib {
     uint prod = tick.priceFromTick_e18() * outboundAmt;
     return prod/1e18 + (prod%1e18==0 ? 0 : 1);
   }
+
+  function inboundFromOutboundUpTick(Tick tick, uint outboundAmt) internal pure returns (uint) {
+    uint nextPrice_e18 = Tick.wrap(Tick.unwrap(tick)+1).priceFromTick_e18();
+    uint prod = nextPrice_e18 * outboundAmt;
+    prod = prod/1e18;
+    if (prod == 0) {
+      return 0;
+    }
+    return prod-1;
+  }  
 
   // tick underestimates the price, and we udnerestimate outbound here, so price will be overestimated here
   function outboundFromInbound(Tick tick, uint inboundAmt) internal pure returns (uint) {
@@ -316,6 +347,10 @@ library TickLib {
   function strictlyBetter(Tick tick1, Tick tick2) internal pure returns (bool) {
     return Tick.unwrap(tick1) < Tick.unwrap(tick2);
   }
+
+  function better(Tick tick1, Tick tick2) internal pure returns (bool) {
+    return Tick.unwrap(tick1) <= Tick.unwrap(tick2);
+  }  
 
 }
 

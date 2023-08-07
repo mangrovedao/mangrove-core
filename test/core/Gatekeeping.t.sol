@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MAX_TICK, MIN_TICK} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 
 // In these tests, the testing contract is the market maker.
@@ -332,7 +332,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mkr.approveMgv(base, 1 ether);
     mkr.newOffer(1 ether, 1 ether, 100_000);
     vm.expectRevert("mgv/lowAllowance");
-    mgv.marketOrderFor($(base), $(quote), 1 ether, 1 ether, true, address(tkr));
+    mgv.marketOrderForByVolume($(base), $(quote), 1 ether, 1 ether, true, address(tkr));
   }
 
   function test_can_marketOrderFor_for_with_allowance() public {
@@ -341,7 +341,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mkr.newOffer(1 ether, 1 ether, 100_000);
     tkr.approveSpender($(this), 1.2 ether);
     uint takerGot;
-    (takerGot,,,) = mgv.marketOrderFor($(base), $(quote), 1 ether, 1 ether, true, address(tkr));
+    (takerGot,,,) = mgv.marketOrderForByVolume($(base), $(quote), 1 ether, 1 ether, true, address(tkr));
     assertEq(
       mgv.allowances($(base), $(quote), address(tkr), $(this)), 0.2 ether, "allowance should have correctly reduced"
     );
@@ -490,7 +490,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function marketOrderKO() external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.marketOrder($(base), $(quote), 0.2 ether, 0.2 ether, true);
+    mgv.marketOrderByVolume($(base), $(quote), 0.2 ether, 0.2 ether, true);
   }
 
   function test_marketOrder_on_reentrancy_fails() public {
@@ -502,7 +502,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* Market Order Success */
 
   function marketOrderOK(address _base, address _quote) external {
-    mgv.marketOrder(_base, _quote, 0.5 ether, 0.5 ether, true);
+    mgv.marketOrderByVolume(_base, _quote, uint(0.5 ether), 0.5 ether, true);
   }
 
   function test_marketOrder_on_reentrancy_succeeds() public {
@@ -767,5 +767,33 @@ contract GatekeepingTest is IMaker, MangroveTest {
     deal(address(token), address(mgv), amount - 1);
     vm.expectRevert("mgv/withdrawERC20Fail");
     mgv.withdrawERC20(address(token), amount);
+  }
+
+  function test_marketOrderByPrice_extrema() public {
+    vm.expectRevert("mgv/mOrder/maxPrice/tooHigh");
+    mgv.marketOrderByPrice($(base), $(quote), TickLib.MAX_PRICE_E18 + 1, 100, true);
+    vm.expectRevert("mgv/mOrder/maxPrice/tooLow");
+    mgv.marketOrderByPrice($(base), $(quote), TickLib.MIN_PRICE_E18 - 1, 100, true);
+  }
+
+  function test_marketOrderByTick_extrema() public {
+    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
+    mgv.marketOrderByTick($(base), $(quote), MAX_TICK + 1, 100, true);
+    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
+    mgv.marketOrderByTick($(base), $(quote), MIN_TICK - 1, 100, true);
+  }
+
+  function test_marketOrderForByPrice_extrema() public {
+    vm.expectRevert("mgv/mOrder/maxPrice/tooHigh");
+    mgv.marketOrderForByPrice($(base), $(quote), TickLib.MAX_PRICE_E18 + 1, 100, true, address(this));
+    vm.expectRevert("mgv/mOrder/maxPrice/tooLow");
+    mgv.marketOrderForByPrice($(base), $(quote), TickLib.MIN_PRICE_E18 - 1, 100, true, address(this));
+  }
+
+  function test_marketOrderForByTick_extrema() public {
+    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
+    mgv.marketOrderForByTick($(base), $(quote), MAX_TICK + 1, 100, true, address(this));
+    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
+    mgv.marketOrderForByTick($(base), $(quote), MIN_TICK - 1, 100, true, address(this));
   }
 }

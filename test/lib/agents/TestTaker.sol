@@ -62,17 +62,21 @@ contract TestTaker is ITaker, Script2 {
   function takerTrade(address, address, uint, uint) external pure override {}
 
   function marketOrder(uint wants, uint gives) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave,,) = _mgv.marketOrder(_base, _quote, wants, gives, true);
+    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(_base, _quote, wants, gives, true);
+  }
+
+  function marketOrder(uint wants, uint gives, bool fillWants) external returns (uint takerGot, uint takerGave) {
+    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(_base, _quote, wants, gives, fillWants);
   }
 
   function marketOrder(AbstractMangrove __mgv, address __base, address __quote, uint takerWants, uint takerGives)
     external
     returns (uint takerGot, uint takerGave)
   {
-    (takerGot, takerGave,,) = __mgv.marketOrder(__base, __quote, takerWants, takerGives, true);
+    (takerGot, takerGave,,) = __mgv.marketOrderByVolume(__base, __quote, takerWants, takerGives, true);
   }
 
   function marketOrderWithFail(uint wants, uint gives) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave,,) = _mgv.marketOrder(_base, _quote, wants, gives, true);
+    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(_base, _quote, wants, gives, true);
   }
 }

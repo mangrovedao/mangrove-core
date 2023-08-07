@@ -258,7 +258,7 @@ contract MgvReaderTest is MangroveTest {
       sumGas += gas_("simulation");
     }
     _gas();
-    mgv.marketOrder($(base), $(quote), volume, volume, true);
+    mgv.marketOrderByVolume($(base), $(quote), volume, volume, true);
     sumGas += gas_("real");
     console.log("Total: %s", sumGas);
   }

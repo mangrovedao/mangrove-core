@@ -6,7 +6,6 @@ import {
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickLib} from "./../lib/TickLib.sol";
-import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
   /* # MultiOrder struct */
@@ -324,7 +323,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /*
-     From an array of _n_ `[offerId, tick,volume,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty, feePaid)`. 
+     From an array of _n_ `[offerId, tick,fillVolume,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty, feePaid)`. 
 
      Note that if this function is not internal, anyone can make anyone use Mangrove.
      Note that unlike general market order, the returned total values are _not_ `mor.totalGot` and `mor.totalGave`, since those are reset at every iteration of the `targets` array. Instead, accumulators `snipesGot` and `snipesGave` are used. */
@@ -405,9 +404,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
             mor.maxTick = tick;
           }
           {
-            uint volume = targets[i][2];
-            require(uint96(volume) == volume, "mgv/snipes/volume/96bits");
-            mor.fillVolume = volume;
+            uint fillVolume = targets[i][2];
+            require(uint96(fillVolume) == fillVolume, "mgv/snipes/volume/96bits");
+            mor.fillVolume = fillVolume;
           }
 
           /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */

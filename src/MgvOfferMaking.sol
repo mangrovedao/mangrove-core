@@ -247,7 +247,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   /* ## Write Offer */
 
-  function writeOffer(Pair storage pair, OfferPack memory ofp, Tick tick, bool update) internal {
+  function writeOffer(Pair storage pair, OfferPack memory ofp, Tick insertionTick, bool update) internal {
     unchecked {
       /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
       require(checkGasprice(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
@@ -268,10 +268,10 @@ contract MgvOfferMaking is MgvHasOffers {
 
       /* The following checks are for the maker's convenience only. */
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
-      require(TickLib.inRange(tick), "mgv/writeOffer/tick/outOfRange");
+      require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
       {
         // FIXME: This validation should be revisited once the TickLib calculation code is done
-        uint wants = tick.inboundFromOutbound(ofp.gives);
+        uint wants = insertionTick.inboundFromOutbound(ofp.gives);
         console.log(wants);
         /* * Make sure `wants > 0` -- price is stored as log_1BP(wants/gives). */
         require(wants > 0, "mgv/writeOffer/wants/tooLow");
@@ -281,7 +281,14 @@ contract MgvOfferMaking is MgvHasOffers {
       /* Log the write offer event. */
       uint ofrId = ofp.id;
       emit OfferWrite(
-        ofp.outbound_tkn, ofp.inbound_tkn, msg.sender, Tick.unwrap(tick), ofp.gives, ofp.gasprice, ofp.gasreq, ofrId
+        ofp.outbound_tkn,
+        ofp.inbound_tkn,
+        msg.sender,
+        Tick.unwrap(insertionTick),
+        ofp.gives,
+        ofp.gasprice,
+        ofp.gasreq,
+        ofrId
       );
 
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
@@ -320,7 +327,6 @@ contract MgvOfferMaking is MgvHasOffers {
         }
       }
 
-      // Tick insertionTick = tick;
       // mapping (uint => MgvStructs.OfferPacked) _offers = offers[ofp.outbound_tkn][ofp.inbound_tkn];
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {
@@ -337,15 +343,15 @@ contract MgvOfferMaking is MgvHasOffers {
            - Otherwise yes because maybe current tick = insertion tick
         */
         // bool updateLocal = tick.strictlyBetter(ofp.local.tick().strictlyBetter(tick)
-        ofp.local = dislodgeOffer(pair, ofp.oldOffer, ofp.local, !tick.strictlyBetter(ofp.local.tick()));
+        ofp.local = dislodgeOffer(pair, ofp.oldOffer, ofp.local, !insertionTick.strictlyBetter(ofp.local.tick()));
       }
 
       // insertion
-      Leaf leaf = pair.leafs[tick.leafIndex()];
+      Leaf leaf = pair.leafs[insertionTick.leafIndex()];
       // if leaf was empty flip tick on at level0
       if (leaf.isEmpty()) {
         Field field;
-        int insertionIndex = tick.level0Index();
+        int insertionIndex = insertionTick.level0Index();
         int currentIndex = ofp.local.tick().level0Index();
         // Get insertion level0
         if (insertionIndex != currentIndex) {
@@ -361,14 +367,14 @@ contract MgvOfferMaking is MgvHasOffers {
 
         // Write insertion level0
         if (insertionIndex <= currentIndex || ofp.local.level2().isEmpty()) {
-          ofp.local = ofp.local.level0(field.flipBitAtLevel0(tick));
+          ofp.local = ofp.local.level0(field.flipBitAtLevel0(insertionTick));
         } else {
-          pair.level0[insertionIndex] = field.flipBitAtLevel0(tick);
+          pair.level0[insertionIndex] = field.flipBitAtLevel0(insertionTick);
         }
 
         if (field.isEmpty()) {
           // console.log("insertion tick is",toString(tick));
-          insertionIndex = tick.level1Index();
+          insertionIndex = insertionTick.level1Index();
           currentIndex = ofp.local.tick().level1Index();
 
           if (insertionIndex != currentIndex) {
@@ -382,13 +388,13 @@ contract MgvOfferMaking is MgvHasOffers {
           }
 
           if (insertionIndex <= currentIndex || ofp.local.level2().isEmpty()) {
-            ofp.local = ofp.local.level1(field.flipBitAtLevel1(tick));
+            ofp.local = ofp.local.level1(field.flipBitAtLevel1(insertionTick));
           } else {
-            pair.level1[insertionIndex] = field.flipBitAtLevel1(tick);
+            pair.level1[insertionIndex] = field.flipBitAtLevel1(insertionTick);
           }
           // if level1 was empty, flip tick on at level2
           if (field.isEmpty()) {
-            ofp.local = ofp.local.level2(ofp.local.level2().flipBitAtLevel2(tick));
+            ofp.local = ofp.local.level2(ofp.local.level2().flipBitAtLevel2(insertionTick));
           }
         }
       }
@@ -396,21 +402,22 @@ contract MgvOfferMaking is MgvHasOffers {
       // tick empty -> firstId=lastId=0
       // tick has 1 offer -> firstId=lastId!=0
       // otherwise 0 != firstId != lastId != 0
-      uint lastId = leaf.lastOfTick(tick);
+      uint lastId = leaf.lastOfTick(insertionTick);
       if (lastId == 0) {
-        leaf = leaf.setTickFirst(tick, ofrId);
+        leaf = leaf.setTickFirst(insertionTick, ofrId);
       } else {
         OfferData storage offerData = pair.offerData[lastId];
         offerData.offer = offerData.offer.next(ofrId);
       }
 
       // store offer at the end of the tick
-      leaf = leaf.setTickLast(tick, ofrId);
-      pair.leafs[tick.leafIndex()] = leaf;
-      ofp.local = ofp.local.tickPosInLeaf(tick.posInLeaf());
+      leaf = leaf.setTickLast(insertionTick, ofrId);
+      pair.leafs[insertionTick.leafIndex()] = leaf;
+      ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
-      MgvStructs.OfferPacked ofr = MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: tick, __gives: ofp.gives});
+      MgvStructs.OfferPacked ofr =
+        MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: insertionTick, __gives: ofp.gives});
       pair.offerData[ofrId].offer = ofr;
     }
   }

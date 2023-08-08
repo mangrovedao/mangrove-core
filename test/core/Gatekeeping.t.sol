@@ -5,7 +5,6 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import {MgvStructs, MAX_TICK, MIN_TICK} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
-import {MgvHelpers} from "mgv_src/MgvHelpers.sol";
 
 // In these tests, the testing contract is the market maker.
 contract GatekeepingTest is IMaker, MangroveTest {
@@ -324,10 +323,11 @@ contract GatekeepingTest is IMaker, MangroveTest {
     deal($(base), address(mkr), 1 ether);
     mkr.approveMgv(base, 1 ether);
     uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000);
+    Tick offerTick = pair.offers(ofr).tick();
 
     vm.expectRevert("mgv/lowAllowance");
-    MgvHelpers.snipesForByVolume(
-      $(mgv), $(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 300_000]), true, address(tkr)
+    mgv.snipesFor(
+      $(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 300_000]), true, address(tkr)
     );
   }
 
@@ -605,9 +605,10 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* Snipe failure */
 
   function snipesKO(uint id) external {
-    uint[4][] memory targets = wrap_dynamic([id, 1 ether, type(uint96).max, type(uint48).max]);
+    Tick tick = pair.offers(id).tick();
+    uint[4][] memory targets = wrap_dynamic([id, uint(Tick.unwrap(tick)), type(uint96).max, type(uint48).max]);
     vm.expectRevert("mgv/reentrancyLocked");
-    MgvHelpers.snipesByVolume($(mgv), $(base), $(quote), targets, true);
+    mgv.snipes($(base), $(quote), targets, true);
   }
 
   function test_snipe_on_reentrancy_fails() public {
@@ -619,8 +620,9 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* Snipe success */
 
   function snipesOK(address _base, address _quote, uint id) external {
-    uint[4][] memory targets = wrap_dynamic([id, 1 ether, type(uint96).max, type(uint48).max]);
-    MgvHelpers.snipesByVolume($(mgv), _base, _quote, targets, true);
+    Tick tick = mgv.offers(_base, _quote, id).tick();
+    uint[4][] memory targets = wrap_dynamic([id, uint(Tick.unwrap(tick)), type(uint96).max, type(uint48).max]);
+    mgv.snipes(_base, _quote, targets, true);
   }
 
   function test_snipes_on_reentrancy_succeeds() public {

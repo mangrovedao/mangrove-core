@@ -4,7 +4,6 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import {MgvLib, MgvStructs, Tick, DensityLib} from "mgv_src/MgvLib.sol";
-import {MgvHelpers} from "mgv_src/MgvHelpers.sol";
 
 contract MonitorTest is MangroveTest {
   TestMaker mkr;
@@ -96,7 +95,8 @@ contract MonitorTest is MangroveTest {
     uint ofrId = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = mgv.offers($(base), $(quote), ofrId);
 
-    uint[4][] memory targets = wrap_dynamic([ofrId, 0.04 ether, 0.05 ether, 100_000]);
+    Tick tick = offer.tick();
+    uint[4][] memory targets = wrap_dynamic([ofrId, uint(Tick.unwrap(tick)), 0.04 ether, 100_000]);
 
     (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config($(base), $(quote));
     _local = _local.lock(true);
@@ -107,7 +107,7 @@ contract MonitorTest is MangroveTest {
       offerId: ofrId,
       offer: offer,
       wants: 0.04 ether,
-      gives: 0.04 ether, // wants has been updated to offer price
+      gives: 0.04 ether, // price is 1
       offerDetail: mgv.offerDetails($(base), $(quote), ofrId),
       global: _global,
       local: _local
@@ -115,7 +115,7 @@ contract MonitorTest is MangroveTest {
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifySuccess, (order, $(this))), bytes(""));
 
-    (uint successes,,,,) = MgvHelpers.snipesByVolume($(mgv), $(base), $(quote), targets, true);
+    (uint successes,,,,) = mgv.snipes($(base), $(quote), targets, true);
     assertTrue(successes == 1, "snipe should succeed");
   }
 
@@ -127,7 +127,8 @@ contract MonitorTest is MangroveTest {
     MgvStructs.OfferPacked offer = mgv.offers($(base), $(quote), ofrId);
     MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails($(base), $(quote), ofrId);
 
-    uint[4][] memory targets = wrap_dynamic([ofrId, 0.04 ether, 0.05 ether, 100_000]);
+    Tick tick = offer.tick();
+    uint[4][] memory targets = wrap_dynamic([ofrId, uint(Tick.unwrap(tick)), 0.04 ether, 100_000]);
 
     (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config($(base), $(quote));
     // config sent during maker callback has stale best and, is locked
@@ -139,7 +140,7 @@ contract MonitorTest is MangroveTest {
       offerId: ofrId,
       offer: offer,
       wants: 0.04 ether,
-      gives: 0.04 ether, // gives has been updated to offer price
+      gives: 0.04 ether, // price is 1
       offerDetail: offerDetail, // gasprice logged will still be as before failure
       global: _global,
       local: _local
@@ -147,7 +148,7 @@ contract MonitorTest is MangroveTest {
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifyFail, (order, $(this))), bytes(""));
 
-    (uint successes,,,,) = MgvHelpers.snipesByVolume($(mgv), $(base), $(quote), targets, true);
+    (uint successes,,,,) = mgv.snipes($(base), $(quote), targets, true);
     assertTrue(successes == 0, "snipe should fail");
   }
 }

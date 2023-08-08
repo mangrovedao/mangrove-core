@@ -3,7 +3,6 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvHelpers} from "mgv_src/MgvHelpers.sol";
 
 /* The following constructs an ERC20 with a transferFrom callback method,
    and a TestTaker which throws away any funds received upon getting
@@ -101,8 +100,9 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
     uint mgvQuoteBal = quote.balanceOf(address(mgv));
 
+    Tick tick = mgv.offers($(base), $(quote), ofr).tick();
     (uint successes,,,,) =
-      MgvHelpers.snipesByVolume($(mgv), $(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 50_000]), true);
+      mgv.snipes($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(tick)), 1 ether, 50_000]), true);
     assertTrue(successes == 1, "Trade should succeed");
     assertEq(quote.balanceOf(address(mgv)) - mgvQuoteBal, 1 ether, "Mgv balance should have increased");
   }
@@ -112,8 +112,10 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
   function reenter(address _base, address _quote, uint) internal {
     _takerTrade = noop;
     skipCheck = true;
+    uint ofr = 2;
+    Tick tick = mgv.offers(_base, _quote, ofr).tick();
     (uint successes, uint totalGot, uint totalGave,,) =
-      MgvHelpers.snipesByVolume($(mgv), _base, _quote, wrap_dynamic([uint(2), 0.1 ether, 0.1 ether, 100_000]), true);
+      mgv.snipes(_base, _quote, wrap_dynamic([ofr, uint(Tick.unwrap(tick)), 0.1 ether, 100_000]), true);
     assertTrue(successes == 1, "Snipe on reentrancy should succeed");
     assertEq(totalGot, 0.1 ether, "Incorrect totalGot");
     assertEq(totalGave, 0.1 ether, "Incorrect totalGave");
@@ -134,17 +136,19 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
 
   function test_taker_pays_back_correct_amount_1() public {
     uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
+    Tick tick = mgv.offers($(base), $(quote), ofr).tick();
     uint bal = quote.balanceOf($(this));
     _takerTrade = noop;
-    MgvHelpers.snipesByVolume($(mgv), $(base), $(quote), wrap_dynamic([ofr, 0.05 ether, 0.05 ether, 100_000]), true);
+    mgv.snipes($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(tick)), 0.05 ether, 100_000]), true);
     assertEq(quote.balanceOf($(this)), bal - 0.05 ether, "wrong taker balance");
   }
 
   function test_taker_pays_back_correct_amount_2() public {
     uint ofr = mkr.newOffer(0.1 ether, 0.1 ether, 100_000, 0);
+    Tick tick = mgv.offers($(base), $(quote), ofr).tick();
     uint bal = quote.balanceOf($(this));
     _takerTrade = noop;
-    MgvHelpers.snipesByVolume($(mgv), $(base), $(quote), wrap_dynamic([ofr, 0.02 ether, 0.02 ether, 100_000]), true);
+    mgv.snipes($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(tick)), 0.02 ether, 100_000]), true);
     assertEq(quote.balanceOf($(this)), bal - 0.02 ether, "wrong taker balance");
   }
 }

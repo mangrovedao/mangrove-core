@@ -221,7 +221,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
 
-    bool success = tkr.snipe(mgv, $(base), $(quote), ofr, 1 ether, 1 ether, gasreq - 1);
+    bool success = tkr.snipeByVolume(mgv, $(base), $(quote), ofr, 1 ether, gasreq - 1);
     assertTrue(!called, "PostHook was called");
     assertTrue(!success, "Snipe should fail");
   }
@@ -230,7 +230,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     executeReturnData = "NOK2";
     ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
 
-    bool success = tkr.snipe(mgv, $(base), $(quote), ofr, 1 ether, 1 ether, gasreq - 1);
+    bool success = tkr.snipeByVolume(mgv, $(base), $(quote), ofr, 1 ether, gasreq - 1);
     // using asserts in makerPosthook here
     assertTrue(!called, "PostHook was called");
     assertTrue(!success, "Snipe should fail");
@@ -239,7 +239,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_posthook_of_skipped_offer_wrong_price_should_not_be_called() public {
     _posthook = failer_posthook;
     ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
-    bool success = tkr.snipe(mgv, $(base), $(quote), ofr, 1.1 ether, 1 ether, gasreq);
+    Tick offerTick = mgv.offers($(base), $(quote), ofr).tick();
+    Tick snipeTick = Tick.wrap(Tick.unwrap(offerTick) - 1); // Snipe at a lower price tick
+    bool success = tkr.snipeByTick(mgv, $(base), $(quote), ofr, snipeTick, 1 ether, gasreq);
     assertTrue(!success, "Snipe should fail");
     assertTrue(!called, "PostHook was called");
   }

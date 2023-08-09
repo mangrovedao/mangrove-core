@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: Unlicense
 
-/* `MgvLib` contains data structures returned by external calls to Mangrove and the interfaces it uses for its own external calls. */
-
 pragma solidity ^0.8.10;
 
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import "mgv_lib/TickLib.sol";
 
 library MgvHelpers {
-  // Converts snipe targets from volume-based [id,wants,gives,gasreq] tick-based [id,tick,volume,gasreq]. volume will be wants if fillWsants is true, volume will be gives otherwise.
+  // Converts snipe targets from volume-based [id,wants,gives,gasreq] tick-based [id,tick,volume,gasreq]. volume will be wants if fillWsants is true, volume will be gives otherwise. Note that `tick` is fundamentally an int but arrays are homogenous so must be typed as a uint in the call.
   function convertSnipeTargetsToTicks(uint[4][] memory targets, bool fillWants)
     internal
     pure

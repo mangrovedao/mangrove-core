@@ -34,7 +34,7 @@ contract MgvReaderTest is MangroveTest {
     assertEq(offers.length, 0, "offers: wrong length on 1elem");
     assertEq(details.length, 0, "details: wrong length on 1elem");
     // test 1 elem
-    mkr.newOffer(1 ether, 1 ether, 10_000, 0);
+    mkr.newOfferByVolume(1 ether, 1 ether, 10_000, 0);
 
     (currentId, offerIds, offers, details) = reader.offerList($(base), $(quote), 0, 50);
 
@@ -43,7 +43,7 @@ contract MgvReaderTest is MangroveTest {
     assertEq(details.length, 1, "details: wrong length on 1elem");
 
     // test 2 elem
-    mkr.newOffer(0.9 ether, 1 ether, 10_000, 0);
+    mkr.newOfferByVolume(0.9 ether, 1 ether, 10_000, 0);
 
     (currentId, offerIds, offers, details) = reader.offerList($(base), $(quote), 0, 50);
 
@@ -58,7 +58,7 @@ contract MgvReaderTest is MangroveTest {
     assertEq(details.length, 1, "details: wrong length on 1elem");
 
     // test 3 elem read in chunks of 2
-    mkr.newOffer(0.8 ether, 1 ether, 10_000, 0);
+    mkr.newOfferByVolume(0.8 ether, 1 ether, 10_000, 0);
     (currentId, offerIds, offers, details) = reader.offerList($(base), $(quote), 0, 2);
     assertEq(offerIds.length, 2, "ids: wrong length on 3elem chunk size 2");
     assertEq(offers.length, 2, "offers: wrong length on 1elem");
@@ -72,7 +72,7 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_returns_zero_on_nonexisting_offer() public {
-    uint ofr = mkr.newOffer(1 ether, 1 ether, 10_000, 0);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 10_000, 0);
     mkr.retractOffer(ofr);
     (, uint[] memory offerIds,,) = reader.offerList($(base), $(quote), ofr, 50);
     assertEq(offerIds.length, 0, "should have 0 offers since starting point is out of the book");
@@ -108,7 +108,7 @@ contract MgvReaderTest is MangroveTest {
     uint startId;
     uint length;
     uint ofr;
-    ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
+    ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
 
     (startId, length) = reader.offerListEndPoints($(base), $(quote), 0, 0);
     assertEq(startId, 1, "1.0 wrong startId");
@@ -130,7 +130,7 @@ contract MgvReaderTest is MangroveTest {
   function try_provision() internal {
     uint prov = reader.getProvision($(base), $(quote), 0, 0);
     uint bal1 = mgv.balanceOf(address(mkr));
-    mkr.newOffer(1 ether, 1 ether, 0, 0);
+    mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
     uint bal2 = mgv.balanceOf(address(mkr));
     assertEq(bal1 - bal2, prov, "provision computation is wrong");
   }
@@ -159,14 +159,14 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_marketOrder_no_match() public {
-    mkr.newOffer(1.1 ether, 1 ether, 0, 0);
+    mkr.newOfferByVolume(1.1 ether, 1 ether, 0, 0);
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), 1 ether, 1 ether, true);
 
     assertEq(vd.length, 0);
   }
 
   function test_marketOrder_partial_fillWants() public {
-    mkr.newOffer(1 ether, 1 ether, 0, 0);
+    mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), 0.8 ether, 0.9 ether, true);
     assertEq(vd.length, 1, "bad vd length");
     assertEq(vd[0].totalGot, 0.8 ether, "bad totalGot");
@@ -174,7 +174,7 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_marketOrder_partial_noFillWants() public {
-    mkr.newOffer(1 ether, 1 ether, 0, 0);
+    mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), 0.3 ether, 0.9 ether, false);
     assertEq(vd.length, 1, "bad vd length");
     assertEq(vd[0].totalGot, 0.9 ether, "bad totalGot");
@@ -182,7 +182,7 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_marketOrder_full_fillWants() public {
-    mkr.newOffer(1 ether, 1 ether, 0, 0);
+    mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), 1 ether, 1 ether, true);
     assertEq(vd.length, 1, "bad vd length");
     assertEq(vd[0].totalGot, 1 ether, "bad totalGot");
@@ -190,7 +190,7 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_marketOrder_full_noFillWants() public {
-    mkr.newOffer(1 ether, 1.1 ether, 0, 0);
+    mkr.newOfferByVolume(1 ether, 1.1 ether, 0, 0);
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), 0.5 ether, 1 ether, false);
     assertEq(vd.length, 1, "bad vd length");
     assertEq(vd[0].totalGot, 1.1 ether, "bad totalGot");
@@ -198,8 +198,8 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_marketOrder_partial_due_to_price_fillWants() public {
-    mkr.newOffer(1 ether, 1 ether, 0, 0);
-    mkr.newOffer(1 ether, 0.8 ether, 0, 0);
+    mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
+    mkr.newOfferByVolume(1 ether, 0.8 ether, 0, 0);
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), 1.4 ether, 1.5 ether, true);
     assertEq(vd.length, 2, "bad vd length");
     assertEq(vd[0].totalGot, 1 ether, "bad totalGot[0]");
@@ -209,8 +209,8 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_marketOrder_gas() public {
-    mkr.newOffer(1 ether, 1 ether, 214_000, 0);
-    mkr.newOffer(1 ether, 1 ether, 216_000, 0);
+    mkr.newOfferByVolume(1 ether, 1 ether, 214_000, 0);
+    mkr.newOfferByVolume(1 ether, 1 ether, 216_000, 0);
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), 1.4 ether, 1.5 ether, true);
     assertEq(vd.length, 2, "bad vd length");
     assertEq(vd[0].totalGasreq, 214_000, "bad totalGasreq[0]");
@@ -220,7 +220,7 @@ contract MgvReaderTest is MangroveTest {
   function test_marketOrder_fee(uint8 fee) public {
     vm.assume(fee <= 500);
     mgv.setFee($(base), $(quote), fee);
-    mkr.newOffer(0.3 ether, 0.3 ether, 0, 0);
+    mkr.newOfferByVolume(0.3 ether, 0.3 ether, 0, 0);
     VolumeData[] memory vd = reader.marketOrder($(base), $(quote), 0.3 ether, 0.3 ether, true);
     assertEq(vd.length, 1, "bad vd length");
     assertEq(vd[0].totalGot, reader.minusFee($(base), $(quote), 0.3 ether), "bad totalGot");
@@ -230,7 +230,7 @@ contract MgvReaderTest is MangroveTest {
   function prepareOffers(uint numOffers) internal returns (uint) {
     uint unitVolume = 0.1 ether;
     for (uint i = 0; i < numOffers; i++) {
-      mkr.newOffer(unitVolume, unitVolume, 200_000, 0);
+      mkr.newOfferByVolume(unitVolume, unitVolume, 200_000, 0);
     }
     return unitVolume * numOffers;
   }

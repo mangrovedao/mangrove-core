@@ -34,12 +34,11 @@ interface IMangrove {
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     address maker,
-    uint wants,
+    int tick,
     uint gives,
     uint gasprice,
     uint gasreq,
-    uint id,
-    int tick
+    uint id
   );
   event OrderComplete(
     address indexed outbound_tkn,
@@ -151,7 +150,16 @@ interface IMangrove {
     address taker
   ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
-  function newOffer(address outbound_tkn, address inbound_tkn, uint wants, uint gives, uint gasreq, uint gasprice)
+  function newOfferByVolume(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice
+  ) external payable returns (uint);
+
+  function newOfferByTick(address outbound_tkn, address inbound_tkn, int tick, uint gives, uint gasreq, uint gasprice)
     external
     payable
     returns (uint);
@@ -211,10 +219,20 @@ interface IMangrove {
     external
     returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function updateOffer(
+  function updateOfferByVolume(
     address outbound_tkn,
     address inbound_tkn,
     uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint offerId
+  ) external payable;
+
+  function updateOfferByTick(
+    address outbound_tkn,
+    address inbound_tkn,
+    int tick,
     uint gives,
     uint gasreq,
     uint gasprice,

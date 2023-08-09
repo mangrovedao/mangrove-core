@@ -504,7 +504,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* `success` is true: trade is complete */
       if (success) {
-        /* In case of failure, `retdata` encodes the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
+        /* In case of success, `retdata` encodes the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
         (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
         mgvData = bytes32("mgv/tradeSuccess");
@@ -520,7 +520,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.totalGot += sor.wants;
         mor.totalGave += sor.gives;
       } else {
-        /* In case of success, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
+        /* In case of failure, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */
         (mgvData, gasused, makerData) = innerDecode(retdata);
         /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {

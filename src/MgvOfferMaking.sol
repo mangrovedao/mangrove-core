@@ -272,7 +272,6 @@ contract MgvOfferMaking is MgvHasOffers {
       {
         // FIXME: This validation should be revisited once the TickLib calculation code is done
         uint wants = insertionTick.inboundFromOutbound(ofp.gives);
-        console.log(wants);
         /* * Make sure `wants > 0` -- price is stored as log_1BP(wants/gives). */
         require(wants > 0, "mgv/writeOffer/wants/tooLow");
         require(uint96(wants) == wants, "mgv/writeOffer/wants/96bits");
@@ -346,6 +345,10 @@ contract MgvOfferMaking is MgvHasOffers {
         ofp.local = dislodgeOffer(pair, ofp.oldOffer, ofp.local, !insertionTick.strictlyBetter(ofp.local.tick()));
       }
 
+      if (insertionTick.strictlyBetter(ofp.local.tick())) {
+        ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
+      }
+
       // insertion
       Leaf leaf = pair.leafs[insertionTick.leafIndex()];
       // if leaf was empty flip tick on at level0
@@ -373,7 +376,6 @@ contract MgvOfferMaking is MgvHasOffers {
         }
 
         if (field.isEmpty()) {
-          // console.log("insertion tick is",toString(tick));
           insertionIndex = insertionTick.level1Index();
           currentIndex = ofp.local.tick().level1Index();
 
@@ -413,7 +415,6 @@ contract MgvOfferMaking is MgvHasOffers {
       // store offer at the end of the tick
       leaf = leaf.setTickLast(insertionTick, ofrId);
       pair.leafs[insertionTick.leafIndex()] = leaf;
-      ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
       MgvStructs.OfferPacked ofr =

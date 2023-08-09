@@ -150,10 +150,14 @@ interface IMangrove {
     address taker
   ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
-  function newOfferByVolume(address outbound_tkn, address inbound_tkn, uint wants, uint gives, uint gasreq, uint gasprice)
-    external
-    payable
-    returns (uint);
+  function newOfferByVolume(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice
+  ) external payable returns (uint);
 
   function newOfferByTick(address outbound_tkn, address inbound_tkn, int tick, uint gives, uint gasreq, uint gasprice)
     external

@@ -138,7 +138,10 @@ contract SimpleTestMaker is TrivialTestMaker {
     return newOfferByVolumeWithFunding(base, quote, wants, gives, gasreq, 0, amount, offerData);
   }
 
-  function newOfferByVolumeWithFunding(uint wants, uint gives, uint gasreq, uint gasprice, uint amount) public returns (uint) {
+  function newOfferByVolumeWithFunding(uint wants, uint gives, uint gasreq, uint gasprice, uint amount)
+    public
+    returns (uint)
+  {
     return newOfferByVolumeWithFunding(base, quote, wants, gives, gasreq, gasprice, amount);
   }
 
@@ -147,10 +150,14 @@ contract SimpleTestMaker is TrivialTestMaker {
     return newOfferByVolume(_base, _quote, wants, gives, gasreq, offerData);
   }
 
-  function newOfferByVolume(address _base, address _quote, uint wants, uint gives, uint gasreq, OfferData memory offerData)
-    public
-    returns (uint)
-  {
+  function newOfferByVolume(
+    address _base,
+    address _quote,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    OfferData memory offerData
+  ) public returns (uint) {
     return newOfferByVolumeWithFunding(_base, _quote, wants, gives, gasreq, 0, 0, offerData);
   }
 

@@ -85,14 +85,14 @@ contract GasTest is MangroveTest, IMaker {
   function test_take_offer() public {
     (AbstractMangrove mgv, TestTaker tkr, address base, address quote,) = getStored();
     _gas();
-    tkr.snipe(mgv, base, quote, 1, 1 ether, 1 ether, 100_000);
+    tkr.snipeByVolume(mgv, base, quote, 1, 1 ether, 100_000);
     gas_();
   }
 
   function test_partial_take_offer() public {
     (AbstractMangrove mgv, TestTaker tkr, address base, address quote,) = getStored();
     _gas();
-    tkr.snipe(mgv, base, quote, 1, 0.5 ether, 0.5 ether, 100_000);
+    tkr.snipeByVolume(mgv, base, quote, 1, 0.5 ether, 100_000);
     gas_();
   }
 

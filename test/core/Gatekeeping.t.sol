@@ -305,18 +305,19 @@ contract GatekeepingTest is IMaker, MangroveTest {
     tkr.marketOrder(0, 1 << 160);
   }
 
-  function test_takerWants_above_96bits_fails_snipes() public {
+  //FIXME Should add similar tests that make sure volume*price is not too big.
+  function test_gives_volume_above_96bits_fails_snipes() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    uint[4][] memory targets = wrap_dynamic([ofr, uint(type(uint96).max) + 1, type(uint96).max, type(uint).max]);
-    vm.expectRevert("mgv/snipes/takerWants/96bits");
+    uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
+    vm.expectRevert("mgv/snipes/volume/96bits");
     mgv.snipes($(base), $(quote), targets, true);
   }
 
-  function test_takerGives_above_96bits_fails_snipes() public {
+  function test_wants_volume_above_96bits_fails_snipes() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    uint[4][] memory targets = wrap_dynamic([ofr, type(uint96).max, uint(type(uint96).max) + 1, type(uint).max]);
-    vm.expectRevert("mgv/snipes/takerGives/96bits");
-    mgv.snipes($(base), $(quote), targets, true);
+    uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
+    vm.expectRevert("mgv/snipes/volume/96bits");
+    mgv.snipes($(base), $(quote), targets, false);
   }
 
   function test_initial_allowance_is_zero() public {
@@ -327,9 +328,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
     deal($(base), address(mkr), 1 ether);
     mkr.approveMgv(base, 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
+    Tick offerTick = pair.offers(ofr).tick();
 
     vm.expectRevert("mgv/lowAllowance");
-    mgv.snipesFor($(base), $(quote), wrap_dynamic([ofr, 1 ether, 1 ether, 300_000]), true, address(tkr));
+    mgv.snipesFor(
+      $(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 300_000]), true, address(tkr)
+    );
   }
 
   function test_cannot_marketOrderFor_for_without_allowance() public {
@@ -606,7 +610,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* Snipe failure */
 
   function snipesKO(uint id) external {
-    uint[4][] memory targets = wrap_dynamic([id, 1 ether, type(uint96).max, type(uint48).max]);
+    Tick tick = pair.offers(id).tick();
+    uint[4][] memory targets = wrap_dynamic([id, uint(Tick.unwrap(tick)), type(uint96).max, type(uint48).max]);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.snipes($(base), $(quote), targets, true);
   }
@@ -620,7 +625,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* Snipe success */
 
   function snipesOK(address _base, address _quote, uint id) external {
-    uint[4][] memory targets = wrap_dynamic([id, 1 ether, type(uint96).max, type(uint48).max]);
+    Tick tick = mgv.offers(_base, _quote, id).tick();
+    uint[4][] memory targets = wrap_dynamic([id, uint(Tick.unwrap(tick)), type(uint96).max, type(uint48).max]);
     mgv.snipes(_base, _quote, targets, true);
   }
 

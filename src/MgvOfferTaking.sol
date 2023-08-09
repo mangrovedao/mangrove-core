@@ -310,8 +310,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Snipes */
   //+clear+
 
-  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,takerWants,takerGives,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty,feePaid)`. 
+  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,tick,fillVolume,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty,feePaid)`. 
   Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`). */
+
   function snipes(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants)
     external
     returns (uint, uint, uint, uint, uint)
@@ -322,7 +323,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /*
-     From an array of _n_ `[offerId, takerWants,takerGives,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty, feePaid)`. 
+     From an array of _n_ `[offerId, tick,fillVolume,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty, feePaid)`. 
 
      Note that if this function is not internal, anyone can make anyone use Mangrove.
      Note that unlike general market order, the returned total values are _not_ `mor.totalGot` and `mor.totalGave`, since those are reset at every iteration of the `targets` array. Instead, accumulators `snipesGot` and `snipesGave` are used. */
@@ -392,16 +393,16 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           /* We move on to the next offer in the array. */
           continue;
         } else {
-          uint wants = targets[i][1];
-          uint gives = targets[i][2];
-          require(uint96(wants) == wants, "mgv/snipes/takerWants/96bits");
-          require(uint96(gives) == gives, "mgv/snipes/takerGives/96bits");
-          mor.fillVolume = mor.fillWants ? wants : gives;
-          /* Wants gets normalized to the closest tick */
-          // note that `takerGives=0` is not possible here
-          // Tick tt = TickLib.tickFromVolumes(gives,wants);
-          // sor.tick = TickLib.tickFromVolumes(gives,wants);
-          mor.maxTick = TickLib.tickFromTakerVolumes(gives, wants);
+          {
+            Tick tick = Tick.wrap(int(targets[i][1]));
+            require(TickLib.inRange(tick), "mgv/snipes/tick/outOfRange");
+            mor.maxTick = tick;
+          }
+          {
+            uint fillVolume = targets[i][2];
+            require(uint96(fillVolume) == fillVolume, "mgv/snipes/volume/96bits");
+            mor.fillVolume = fillVolume;
+          }
 
           /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
           sor.local = sor.local.lock(true);

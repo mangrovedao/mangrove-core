@@ -241,7 +241,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
     Tick offerTick = mgv.offers($(base), $(quote), ofr).tick();
     Tick snipeTick = Tick.wrap(Tick.unwrap(offerTick) - 1); // Snipe at a lower price tick
-    bool success = tkr.snipe(mgv, $(base), $(quote), ofr, 1.1 ether, 1 ether, gasreq);
+    bool success = tkr.snipeByTick(mgv, $(base), $(quote), ofr, snipeTick, 1 ether, gasreq);
     assertTrue(!success, "Snipe should fail");
     assertTrue(!called, "PostHook was called");
   }

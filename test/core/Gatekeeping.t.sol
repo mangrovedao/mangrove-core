@@ -315,7 +315,6 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_wants_volume_above_96bits_fails_snipes() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    uint ofr = mkr.newOffer(1 ether, 1 ether, 100_000);
     uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
     vm.expectRevert("mgv/snipes/volume/96bits");
     mgv.snipes($(base), $(quote), targets, false);

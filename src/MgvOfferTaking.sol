@@ -255,6 +255,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Call `internalSnipes` function. */
       (successCount, snipesGot, snipesGave) = internalSnipes(pair, mor, sor, targets);
 
+      require(successCount == 0, "mgv/clean/anOfferDidNotFail");
+
       /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
       //+clear+

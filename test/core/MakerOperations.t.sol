@@ -834,7 +834,18 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(level0, pair.local().level0(), "level0 should have been restored");
   }
 
-  function test_update_branch_on_retract_level1() public {}
+  function test_update_branch_on_retract_level1() public {
+    mkr.provisionMgv(10 ether);
+    mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
+    Field level1 = pair.local().level1();
+    int level1Index = pair.local().tick().level1Index();
+    uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
+    assertGt(
+      level1Index, pair.local().tick().level1Index(), "test void if level1 does not change when second offer is created"
+    );
+    mkr.retractOffer(ofr);
+    assertEq(level1, pair.local().level1(), "level1 should have been restored");
+  }
 
   function test_update_branch_on_retract_level2() public {
     mkr.provisionMgv(10 ether);

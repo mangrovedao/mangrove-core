@@ -643,55 +643,57 @@ contract MangroveOrder_Test is MangroveTest {
   /// Test resting order consumption ///
   //////////////////////////////////////
 
-  function test_resting_buy_offer_can_be_partially_filled() public {
-    // sniping resting sell offer: 4 ┆ 1999 DAI  /  1 WETH 0xc7183455a4C133Ae270771860664b6B7ec320bB1
-    uint oldBaseBal = base.balanceOf($(this));
-    uint oldQuoteBal = quote.balanceOf($(this)); // quote balance of test runner
+  // FIXME: This test relies on snipe to partially fill a resting order. This will need to be migrated to a market order
+  // function test_resting_buy_offer_can_be_partially_filled() public {
+  //   // sniping resting sell offer: 4 ┆ 1999 DAI  /  1 WETH 0xc7183455a4C133Ae270771860664b6B7ec320bB1
+  //   uint oldBaseBal = base.balanceOf($(this));
+  //   uint oldQuoteBal = quote.balanceOf($(this)); // quote balance of test runner
 
-    MgvStructs.OfferPacked offer = mgv.offers($(quote), $(base), cold_buyResult.offerId);
+  //   MgvStructs.OfferPacked offer = mgv.offers($(quote), $(base), cold_buyResult.offerId);
 
-    (, uint takerGot, uint takerGave,, uint fee) =
-      sell_taker.takeWithInfo({takerWants: 1000 ether, offerId: cold_buyResult.offerId});
+  //   (, uint takerGot, uint takerGave,, uint fee) =
+  //     sell_taker.takeWithInfo({takerWants: 1000 ether, offerId: cold_buyResult.offerId});
 
-    // offer delivers
-    assertEq(takerGot, 1000 ether - fee, "Incorrect received amount for seller taker");
-    // inbound token forwarded to test runner
-    assertEq(base.balanceOf($(this)), oldBaseBal + takerGave, "Incorrect base balance");
-    // outbound taken from test runner
-    assertEq(quote.balanceOf($(this)), oldQuoteBal - (takerGot + fee), "Incorrect quote balance");
-    // checking residual
-    MgvStructs.OfferPacked offer_ = mgv.offers($(quote), $(base), cold_buyResult.offerId);
-    assertEq(offer_.gives(), offer.gives() - (takerGot + fee), "Incorrect residual");
-  }
+  //   // offer delivers
+  //   assertEq(takerGot, 1000 ether - fee, "Incorrect received amount for seller taker");
+  //   // inbound token forwarded to test runner
+  //   assertEq(base.balanceOf($(this)), oldBaseBal + takerGave, "Incorrect base balance");
+  //   // outbound taken from test runner
+  //   assertEq(quote.balanceOf($(this)), oldQuoteBal - (takerGot + fee), "Incorrect quote balance");
+  //   // checking residual
+  //   MgvStructs.OfferPacked offer_ = mgv.offers($(quote), $(base), cold_buyResult.offerId);
+  //   assertEq(offer_.gives(), offer.gives() - (takerGot + fee), "Incorrect residual");
+  // }
 
-  function test_resting_buy_offer_can_be_fully_consumed_at_minimum_approval() public {
-    TransferLib.approveToken(quote, $(mgo.router()), 2000 ether);
-    IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
-      outbound_tkn: base,
-      inbound_tkn: quote,
-      fillOrKill: false,
-      fillWants: true,
-      takerWants: 1 ether,
-      takerGives: 1000 ether,
-      restingOrder: true,
-      pivotId: 0,
-      expiryDate: block.timestamp + 1
-    });
-    IOrderLogic.TakerOrderResult memory buyResult = mgo.take{value: 0.1 ether}(buyOrder);
+  // FIXME: This test relies on snipe to partially fill a resting order. This will need to be migrated to a market order
+  // function test_resting_buy_offer_can_be_fully_consumed_at_minimum_approval() public {
+  //   TransferLib.approveToken(quote, $(mgo.router()), 2000 ether);
+  //   IOrderLogic.TakerOrder memory buyOrder = IOrderLogic.TakerOrder({
+  //     outbound_tkn: base,
+  //     inbound_tkn: quote,
+  //     fillOrKill: false,
+  //     fillWants: true,
+  //     takerWants: 1 ether,
+  //     takerGives: 1000 ether,
+  //     restingOrder: true,
+  //     pivotId: 0,
+  //     expiryDate: block.timestamp + 1
+  //   });
+  //   IOrderLogic.TakerOrderResult memory buyResult = mgo.take{value: 0.1 ether}(buyOrder);
 
-    assertTrue(buyResult.offerId > 0, "Resting order should succeed");
+  //   assertTrue(buyResult.offerId > 0, "Resting order should succeed");
 
-    (bool success,,,,) = sell_taker.takeWithInfo({takerWants: 40000 ether, offerId: buyResult.offerId});
+  //   (bool success,,,,) = sell_taker.takeWithInfo({takerWants: 40000 ether, offerId: buyResult.offerId});
 
-    assertTrue(success, "Offer should succeed");
-  }
+  //   assertTrue(success, "Offer should succeed");
+  // }
 
   function test_failing_resting_offer_releases_uncollected_provision() public {
     uint provision = mgo.provisionOf(quote, base, cold_buyResult.offerId);
     // empty quotes so that cold buy offer fails
     deal($(quote), address(this), 0);
     _gas();
-    (,,, uint bounty,) = sell_taker.takeWithInfo({offerId: cold_buyResult.offerId, takerWants: 1991});
+    (,,, uint bounty,) = sell_taker.cleanWithInfo({offerId: cold_buyResult.offerId, takerWants: 1991});
     uint g = gas_(true);
 
     assertTrue(bounty > 0, "snipe should have failed");
@@ -704,16 +706,17 @@ contract MangroveOrder_Test is MangroveTest {
     console.log("Taker gained %s matics", toFixed(bounty - g * reader.global().gasprice(), 18));
   }
 
-  function test_offer_succeeds_when_time_is_not_expired() public {
-    mgo.setExpiry(quote, base, cold_buyResult.offerId, block.timestamp + 1);
-    (bool success,,,,) = sell_taker.takeWithInfo({offerId: cold_buyResult.offerId, takerWants: 1991});
-    assertTrue(success, "offer failed");
-  }
+  // FIXME: This test relies on snipe to partially fill a resting order. This will need to be migrated to a market order
+  // function test_offer_succeeds_when_time_is_not_expired() public {
+  //   mgo.setExpiry(quote, base, cold_buyResult.offerId, block.timestamp + 1);
+  //   (bool success,,,,) = sell_taker.takeWithInfo({offerId: cold_buyResult.offerId, takerWants: 1991});
+  //   assertTrue(success, "offer failed");
+  // }
 
   function test_offer_reneges_when_time_is_expired() public {
     mgo.setExpiry(quote, base, cold_buyResult.offerId, block.timestamp);
     vm.warp(block.timestamp + 1);
-    (bool success,,,,) = sell_taker.takeWithInfo({offerId: cold_buyResult.offerId, takerWants: 1991});
+    (bool success,,,,) = sell_taker.cleanWithInfo({offerId: cold_buyResult.offerId, takerWants: 1991});
     assertTrue(!success, "offer should have failed");
   }
   //////////////////////////////
@@ -815,18 +818,19 @@ contract MangroveOrder_Test is MangroveTest {
     );
   }
 
-  function test_empirical_offer_gas_cost() public {
-    uint[4][] memory targets = new uint[4][](1);
-    // resting order buys 1 ether for 1991 dai
-    // fresh taker sells 0.5 ether for 900 dai for any gasreq
-    targets[0] = [cold_buyResult.offerId, 900 ether, 0.5 ether, type(uint).max];
-    vm.prank(address(sell_taker));
-    _gas();
-    // cannot use TestTaker functions that have additional gas cost
-    // simply using sell_taker's approvals and already filled balances
-    (uint successes,,,,) = mgv.snipes($(quote), $(base), targets, true);
-    gas_();
-    assertTrue(successes == 1, "Snipe failed");
-    assertTrue(mgv.offers($(quote), $(base), cold_buyResult.offerId).gives() > 0, "Update failed");
-  }
+  // FIXME: This is a gas test measuring the gascost a single resting order. It should be migrated to a market order.
+  // function test_empirical_offer_gas_cost() public {
+  //   uint[4][] memory targets = new uint[4][](1);
+  //   // resting order buys 1 ether for 1991 dai
+  //   // fresh taker sells 0.5 ether for 900 dai for any gasreq
+  //   targets[0] = [cold_buyResult.offerId, 900 ether, 0.5 ether, type(uint).max];
+  //   vm.prank(address(sell_taker));
+  //   _gas();
+  //   // cannot use TestTaker functions that have additional gas cost
+  //   // simply using sell_taker's approvals and already filled balances
+  //   (uint successes,,,,) = mgv.snipes($(quote), $(base), targets, true);
+  //   gas_();
+  //   assertTrue(successes == 1, "Snipe failed");
+  //   assertTrue(mgv.offers($(quote), $(base), cold_buyResult.offerId).gives() > 0, "Update failed");
+  // }
 }

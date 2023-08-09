@@ -382,9 +382,9 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_newOffer_on_reentrancy_fails() public {
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 100_000, 0, 0);
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeCall(this.newOfferKO, ());
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    assertTrue(tkr.marketOrderAtAnyPrice(1 ether), "take must succeed or test is void");
   }
 
   /* New Offer success */
@@ -395,16 +395,16 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_newOffer_on_reentrancy_succeeds() public {
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 200_000, 0, 0);
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 200_000, 0, 0);
     trade_cb = abi.encodeCall(this.newOfferOK, ($(quote), $(base)));
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    assertTrue(tkr.marketOrderAtAnyPrice(1 ether), "take must succeed or test is void");
     assertTrue(mgv.best($(quote), $(base)) == 1, "newOffer on swapped pair must work");
   }
 
   function test_newOffer_on_posthook_succeeds() public {
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 200_000, 0, 0);
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 200_000, 0, 0);
     posthook_cb = abi.encodeCall(this.newOfferOK, ($(base), $(quote)));
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    assertTrue(tkr.marketOrderAtAnyPrice(1 ether), "take must succeed or test is void");
     assertTrue(mgv.best($(base), $(quote)) == 2, "newOffer on posthook must work");
   }
 
@@ -418,7 +418,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_updateOffer_on_reentrancy_fails() public {
     uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeCall(this.updateOfferKO, (ofr));
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    assertTrue(tkr.marketOrderAtAnyPrice(1 ether), "take must succeed or test is void");
   }
 
   /* Update offer success */
@@ -432,8 +432,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint other_ofr = mgv.newOffer($(quote), $(base), 1 ether, 1 ether, 100_000, 0, 0);
 
     trade_cb = abi.encodeCall(this.updateOfferOK, ($(quote), $(base), other_ofr));
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 400_000, 0, 0);
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 400_000, 0, 0);
+    assertTrue(tkr.marketOrderAtAnyPrice(1 ether), "take must succeed or test is void");
     assertTrue(
       mgv.offerDetails($(quote), $(base), other_ofr).gasreq() == 35_000, "updateOffer on swapped pair must work"
     );
@@ -442,8 +442,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_updateOffer_on_posthook_succeeds() public {
     uint other_ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 100_000, 0, 0);
     posthook_cb = abi.encodeCall(this.updateOfferOK, ($(base), $(quote), other_ofr));
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 300_000, 0, 0);
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 300_000, 0, 0);
+    assertTrue(tkr.marketOrderAtAnyPrice(1 ether), "take must succeed or test is void");
     assertTrue(mgv.offerDetails($(base), $(quote), other_ofr).gasreq() == 35_000, "updateOffer on posthook must work");
   }
 
@@ -457,7 +457,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_retractOffer_on_reentrancy_fails() public {
     uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeCall(this.retractOfferKO, (ofr));
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    assertTrue(tkr.marketOrderAtAnyPrice(1 ether), "take must succeed or test is void");
   }
 
   /* Cancel Offer success */
@@ -471,8 +471,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint other_ofr = mgv.newOffer($(quote), $(base), 1 ether, 1 ether, 90_000, 0, 0);
     trade_cb = abi.encodeCall(this.retractOfferOK, ($(quote), $(base), other_ofr));
 
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 90_000, 0, 0);
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 90_000, 0, 0);
+    assertTrue(tkr.marketOrderAtAnyPrice(1 ether), "take must succeed or test is void");
     assertTrue(mgv.best($(quote), $(base)) == 0, "retractOffer on swapped pair must work");
   }
 
@@ -480,8 +480,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint other_ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 190_000, 0, 0);
     posthook_cb = abi.encodeCall(this.retractOfferOK, ($(base), $(quote), other_ofr));
 
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 90_000, 0, 0);
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 90_000, 0, 0);
+    assertTrue(tkr.marketOrderAtAnyPrice(1 ether), "take must succeed or test is void");
     assertTrue(mgv.best($(base), $(quote)) == 0, "retractOffer on posthook must work");
   }
 
@@ -493,9 +493,9 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_marketOrder_on_reentrancy_fails() public {
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 100_000, 0, 0);
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 100_000, 0, 0);
     trade_cb = abi.encodeCall(this.marketOrderKO, ());
-    assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
+    assertTrue(tkr.marketOrderAtAnyPrice(0.1 ether), "take must succeed or test is void");
   }
 
   /* Market Order Success */
@@ -506,17 +506,17 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_marketOrder_on_reentrancy_succeeds() public {
     dual_mkr.newOffer(0.5 ether, 0.5 ether, 30_000, 0);
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 392_000, 0, 0);
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 392_000, 0, 0);
     trade_cb = abi.encodeCall(this.marketOrderOK, ($(quote), $(base)));
-    assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
+    assertTrue(tkr.marketOrderAtAnyPrice(0.1 ether), "take must succeed or test is void");
     assertTrue(mgv.best($(quote), $(base)) == 0, "2nd market order must have emptied mgv");
   }
 
   function test_marketOrder_on_posthook_succeeds() public {
-    uint ofr = mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 500_000, 0, 0);
+    mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 500_000, 0, 0);
     mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 200_000, 0, 0);
     posthook_cb = abi.encodeCall(this.marketOrderOK, ($(base), $(quote)));
-    assertTrue(tkr.take(ofr, 0.6 ether), "take must succeed or test is void");
+    assertTrue(tkr.marketOrderAtAnyPrice(0.6 ether), "take must succeed or test is void");
     assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
   }
 
@@ -531,7 +531,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_snipe_on_reentrancy_fails() public {
     uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 60_000, 0, 0);
     trade_cb = abi.encodeCall(this.snipesKO, (ofr));
-    assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
+    assertTrue(tkr.marketOrderAtAnyPrice(0.1 ether), "take must succeed or test is void");
   }
 
   /* Snipe success */
@@ -545,8 +545,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint other_ofr = dual_mkr.newOffer(1 ether, 1 ether, 30_000, 0);
     trade_cb = abi.encodeCall(this.snipesOK, ($(quote), $(base), other_ofr));
 
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 190_000, 0, 0);
-    assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 190_000, 0, 0);
+    assertTrue(tkr.marketOrderAtAnyPrice(0.1 ether), "take must succeed or test is void");
     assertTrue(mgv.best($(quote), $(base)) == 0, "snipe in swapped pair must work");
   }
 
@@ -554,8 +554,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint other_ofr = mkr.newOffer(1 ether, 1 ether, 30_000, 0);
     posthook_cb = abi.encodeCall(this.snipesOK, ($(base), $(quote), other_ofr));
 
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 190_000, 0, 0);
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 190_000, 0, 0);
+    assertTrue(tkr.marketOrderAtAnyPrice(1 ether), "take must succeed or test is void");
     assertTrue(mgv.best($(base), $(quote)) == 0, "snipe in posthook must work");
   }
 
@@ -568,11 +568,11 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* # Mangrove closed/inactive */
 
   function test_take_on_closed_fails() public {
-    uint ofr = mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 0, 0, 0);
+    mgv.newOffer($(base), $(quote), 1 ether, 1 ether, 0, 0, 0);
 
     mgv.kill();
     vm.expectRevert("mgv/dead");
-    tkr.take(ofr, 1 ether);
+    tkr.marketOrderAtAnyPrice(1 ether);
   }
 
   function test_newOffer_on_inactive_fails() public {
@@ -602,7 +602,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_snipe_on_closed_fails() public {
     mgv.kill();
     vm.expectRevert("mgv/dead");
-    tkr.take(0, 1 ether);
+    tkr.marketOrderAtAnyPrice(1 ether);
   }
 
   function test_withdraw_on_closed_ok() public {

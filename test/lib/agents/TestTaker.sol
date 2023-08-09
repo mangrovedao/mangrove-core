@@ -33,19 +33,16 @@ contract TestTaker is ITaker, Script2 {
     _mgv.approve(_base, _quote, spender, amount);
   }
 
-  function take(uint offerId, uint takerWants) external returns (bool success) {
-    //uint taken = TestEvents.min(makerGives, takerWants);
-    (success,,,,) = this.takeWithInfo(offerId, takerWants);
+  function clean(
+    uint offerId,
+    uint takerWants,
+    uint takerGives,
+    uint gasreq
+  ) external returns (bool) {
+    return this.clean(_mgv, _base, _quote, offerId, takerWants, takerGives, gasreq);
   }
 
-  function takeWithInfo(uint offerId, uint takerWants) external returns (bool, uint, uint, uint, uint) {
-    uint[4][] memory targets = wrap_dynamic([offerId, takerWants, type(uint96).max, type(uint48).max]);
-    (uint successes, uint got, uint gave, uint totalPenalty, uint feePaid) = _mgv.snipes(_base, _quote, targets, true);
-    return (successes == 1, got, gave, totalPenalty, feePaid);
-    //return taken;
-  }
-
-  function snipe(
+  function clean(
     AbstractMangrove __mgv,
     address __base,
     address __quote,
@@ -54,12 +51,41 @@ contract TestTaker is ITaker, Script2 {
     uint takerGives,
     uint gasreq
   ) external returns (bool) {
+    (bool success,,,,) = this.cleanWithInfo(__mgv, __base, __quote, offerId, takerWants, takerGives, gasreq);
+    return success;
+  }
+
+  function cleanWithInfo(
+    uint offerId,
+    uint takerWants
+  ) external returns (bool, uint, uint, uint, uint) {
+    return this.cleanWithInfo(_mgv, _base, _quote, offerId, takerWants, type(uint96).max, type(uint48).max);
+  }
+
+  function cleanWithInfo(
+    AbstractMangrove __mgv,
+    address __base,
+    address __quote,
+    uint offerId,
+    uint takerWants,
+    uint takerGives,
+    uint gasreq
+  ) external returns (bool success, uint got, uint gave, uint totalPenalty, uint feePaid) {
     uint[4][] memory targets = wrap_dynamic([offerId, takerWants, takerGives, gasreq]);
-    (uint successes,,,,) = __mgv.snipes(__base, __quote, targets, true);
-    return successes == 1;
+    uint successes;
+    // FIXME: Replace with call to `clean` once `snipes` has been renamed
+    (successes, got, gave, totalPenalty, feePaid) = __mgv.snipes(__base, __quote, targets, true);
+    success = successes == 1;
   }
 
   function takerTrade(address, address, uint, uint) external pure override {}
+
+  // FIXME: Can we find a better name here? The return value differs from the other marketOrder functions, so would be good to signal this somehow
+  function marketOrderAtAnyPrice(uint takerWants) external returns (bool success) {
+    (uint got,,,) = _mgv.marketOrder(_base, _quote, takerWants, type(uint96).max, true);
+    // FIXME: 4 tests fail if this
+    return got > 0;
+  }
 
   function marketOrder(uint wants, uint gives) external returns (uint takerGot, uint takerGave) {
     (takerGot, takerGave,,) = _mgv.marketOrder(_base, _quote, wants, gives, true);

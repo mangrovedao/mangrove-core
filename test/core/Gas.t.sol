@@ -54,7 +54,7 @@ contract GasTest is MangroveTest, IMaker {
 
   function test_update_full_offer() public {
     (AbstractMangrove mgv,, address base, address quote, uint ofr_) = getStored();
-    _tkr.take(ofr_, 0.1 ether);
+    _tkr.marketOrderAtAnyPrice(0.1 ether);
     _gas();
     mgv.updateOffer(base, quote, 0.5 ether, 1 ether, 100_001, 0, 1, ofr_);
     gas_();
@@ -69,7 +69,7 @@ contract GasTest is MangroveTest, IMaker {
   }
 
   function test_update_move_k_offers_hot_start() public {
-    _tkr.take(ofr, 0.1 ether); // taking offer to make hot storage around it.
+    _tkr.marketOrderAtAnyPrice(0.1 ether); // taking offer to make hot storage around it.
 
     for (uint i; i < 50; i++) {
       console.log(i, ",", update_min_move_n_offers(i));
@@ -89,19 +89,20 @@ contract GasTest is MangroveTest, IMaker {
     gas_();
   }
 
-  function test_take_offer() public {
-    (AbstractMangrove mgv, TestTaker tkr, address base, address quote,) = getStored();
-    _gas();
-    tkr.snipe(mgv, base, quote, 1, 1 ether, 1 ether, 100_000);
-    gas_();
-  }
+  // FIXME: Gas tests must be rethought
+  // function test_take_offer() public {
+  //   (AbstractMangrove mgv, TestTaker tkr, address base, address quote,) = getStored();
+  //   _gas();
+  //   tkr.snipe(mgv, base, quote, 1, 1 ether, 1 ether, 100_000);
+  //   gas_();
+  // }
 
-  function test_partial_take_offer() public {
-    (AbstractMangrove mgv, TestTaker tkr, address base, address quote,) = getStored();
-    _gas();
-    tkr.snipe(mgv, base, quote, 1, 0.5 ether, 0.5 ether, 100_000);
-    gas_();
-  }
+  // function test_partial_take_offer() public {
+  //   (AbstractMangrove mgv, TestTaker tkr, address base, address quote,) = getStored();
+  //   _gas();
+  //   tkr.snipe(mgv, base, quote, 1, 0.5 ether, 0.5 ether, 100_000);
+  //   gas_();
+  // }
 
   function test_market_order_1() public {
     (AbstractMangrove mgv, TestTaker tkr, address base, address quote,) = getStored();

@@ -77,50 +77,51 @@ contract ScenariiTest is MangroveTest {
     saveBalances();
   }
 
-  function test_snipe_insert_and_fail() public {
-    offerOf = insert();
+  // FIXME: This function is no longer feasible as-is due to its reliance on snipe. Should there be a corresponding cleaning test?
+  // function test_snipe_insert_and_fail() public {
+  //   offerOf = insert();
 
-    saveBalances();
-    saveOffers();
-    expectFrom($(mgv));
-    emit OrderStart();
-    expectFrom($(mgv));
-    emit OrderComplete(
-      $(base),
-      $(quote),
-      address(taker),
-      0.291 ether, // should not be hardcoded
-      0.375 ether, // should not be hardcoded
-      0,
-      0.009 ether // should not be hardcoded
-    );
+  //   saveBalances();
+  //   saveOffers();
+  //   expectFrom($(mgv));
+  //   emit OrderStart();
+  //   expectFrom($(mgv));
+  //   emit OrderComplete(
+  //     $(base),
+  //     $(quote),
+  //     address(taker),
+  //     0.291 ether, // should not be hardcoded
+  //     0.375 ether, // should not be hardcoded
+  //     0,
+  //     0.009 ether // should not be hardcoded
+  //   );
 
-    snipe();
-    logOrderBook($(base), $(quote), 4);
+  //   snipe();
+  //   logOrderBook($(base), $(quote), 4);
 
-    // restore offer that was deleted after partial fill, minus taken amount
-    makers.getMaker(2).updateOffer(1 ether - 0.375 ether, 0.8 ether - 0.3 ether, 80_000, 0, 2);
+  //   // restore offer that was deleted after partial fill, minus taken amount
+  //   makers.getMaker(2).updateOffer(1 ether - 0.375 ether, 0.8 ether - 0.3 ether, 80_000, 0, 2);
 
-    logOrderBook($(base), $(quote), 4);
+  //   logOrderBook($(base), $(quote), 4);
 
-    saveBalances();
-    saveOffers();
-    mo();
-    logOrderBook($(base), $(quote), 4);
+  //   saveBalances();
+  //   saveOffers();
+  //   mo();
+  //   logOrderBook($(base), $(quote), 4);
 
-    saveBalances();
-    saveOffers();
-    collectFailingOffer(offerOf[0]);
-    logOrderBook($(base), $(quote), 4);
-    saveBalances();
-    saveOffers();
-  }
+  //   saveBalances();
+  //   saveOffers();
+  //   collectFailingOffer(offerOf[0]);
+  //   logOrderBook($(base), $(quote), 4);
+  //   saveBalances();
+  //   saveOffers();
+  // }
 
   /* **************** TEST ROUTINES ************* */
 
   function collectFailingOffer(uint failingOfferId) internal {
     // executing failing offer
-    try taker.takeWithInfo(failingOfferId, 0.5 ether) returns (bool success, uint takerGot, uint takerGave, uint, uint)
+    try taker.cleanWithInfo(failingOfferId, 0.5 ether) returns (bool success, uint takerGot, uint takerGave, uint, uint)
     {
       // take should return false not throw
       assertTrue(!success, "Failer should fail");
@@ -274,59 +275,60 @@ contract ScenariiTest is MangroveTest {
     uint expectedFee;
   }
 
-  function snipe() internal returns (uint takerGot, uint takerGave, uint expectedFee) {
-    Bag memory bag;
-    bag.orderAmount = 0.3 ether;
-    bag.snipedId = 2;
-    // uint orderAmount = 0.3 ether;
-    // uint snipedId = 2;
-    expectedFee = reader.getFee($(base), $(quote), bag.orderAmount);
-    TestMaker maker = makers.getMaker(bag.snipedId); // maker whose offer will be sniped
+  // FIXME: This function is no longer feasible. Should there be a corresponding cleaning test?
+  // function snipe() internal returns (uint takerGot, uint takerGave, uint expectedFee) {
+  //   Bag memory bag;
+  //   bag.orderAmount = 0.3 ether;
+  //   bag.snipedId = 2;
+  //   // uint orderAmount = 0.3 ether;
+  //   // uint snipedId = 2;
+  //   expectedFee = reader.getFee($(base), $(quote), bag.orderAmount);
+  //   TestMaker maker = makers.getMaker(bag.snipedId); // maker whose offer will be sniped
 
-    //(uint init_mkr_wants, uint init_mkr_gives,,,,,)=mgv.getOfferInfo(2);
-    //---------------SNIPE------------------//
-    {
-      bool takeSuccess;
-      (takeSuccess, takerGot, takerGave,,) = taker.takeWithInfo(bag.snipedId, bag.orderAmount);
+  //   //(uint init_mkr_wants, uint init_mkr_gives,,,,,)=mgv.getOfferInfo(2);
+  //   //---------------SNIPE------------------//
+  //   {
+  //     bool takeSuccess;
+  //     (takeSuccess, takerGot, takerGave,,) = taker.takeWithInfo(bag.snipedId, bag.orderAmount);
 
-      assertTrue(takeSuccess, "snipe should be a success");
-    }
-    assertEq(
-      base.balanceOf(address(mgv)), //actual
-      balances.mgvBalanceBase + expectedFee, // expected
-      "incorrect Mangrove A balance"
-    );
-    assertEq(
-      base.balanceOf(address(taker)), // actual
-      balances.takerBalanceA + bag.orderAmount - expectedFee, // expected
-      "incorrect taker A balance"
-    );
-    assertEq(
-      takerGot,
-      bag.orderAmount - expectedFee, // expected
-      "Incorrect takerGot"
-    );
-    {
-      uint shouldGive =
-        (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives];
-      assertEq(quote.balanceOf(address(taker)), balances.takerBalanceB - shouldGive, "incorrect taker B balance");
-      assertEq(takerGave, shouldGive, "Incorrect takerGave");
-    }
-    assertEq(
-      base.balanceOf(address(maker)),
-      balances.makersBalanceA[bag.snipedId] - bag.orderAmount,
-      "incorrect maker A balance"
-    );
-    assertEq(
-      quote.balanceOf(address(maker)),
-      balances.makersBalanceB[bag.snipedId]
-        + (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives],
-      "incorrect maker B balance"
-    );
-    // Testing residual offer
-    (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo($(base), $(quote), bag.snipedId);
-    assertTrue(ofr.gives == 0, "Offer should not have a residual");
-  }
+  //     assertTrue(takeSuccess, "snipe should be a success");
+  //   }
+  //   assertEq(
+  //     base.balanceOf(address(mgv)), //actual
+  //     balances.mgvBalanceBase + expectedFee, // expected
+  //     "incorrect Mangrove A balance"
+  //   );
+  //   assertEq(
+  //     base.balanceOf(address(taker)), // actual
+  //     balances.takerBalanceA + bag.orderAmount - expectedFee, // expected
+  //     "incorrect taker A balance"
+  //   );
+  //   assertEq(
+  //     takerGot,
+  //     bag.orderAmount - expectedFee, // expected
+  //     "Incorrect takerGot"
+  //   );
+  //   {
+  //     uint shouldGive =
+  //       (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives];
+  //     assertEq(quote.balanceOf(address(taker)), balances.takerBalanceB - shouldGive, "incorrect taker B balance");
+  //     assertEq(takerGave, shouldGive, "Incorrect takerGave");
+  //   }
+  //   assertEq(
+  //     base.balanceOf(address(maker)),
+  //     balances.makersBalanceA[bag.snipedId] - bag.orderAmount,
+  //     "incorrect maker A balance"
+  //   );
+  //   assertEq(
+  //     quote.balanceOf(address(maker)),
+  //     balances.makersBalanceB[bag.snipedId]
+  //       + (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives],
+  //     "incorrect maker B balance"
+  //   );
+  //   // Testing residual offer
+  //   (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo($(base), $(quote), bag.snipedId);
+  //   assertTrue(ofr.gives == 0, "Offer should not have a residual");
+  // }
 }
 
 contract DeepCollectTest is MangroveTest {

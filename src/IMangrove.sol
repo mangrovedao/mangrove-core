@@ -211,6 +211,17 @@ interface IMangrove {
 
   function setUseOracle(bool useOracle) external;
 
+  function clean(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint offerId,
+    int tick,
+    uint gasreq,
+    uint fillVolume,
+    bool fillWants,
+    address taker
+  ) external returns (uint bounty);
+
   function snipes(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants)
     external
     returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);

@@ -47,6 +47,38 @@ contract TestTaker is ITaker, Script2 {
     //return taken;
   }
 
+  function clean(uint offerId, uint takerWants) public returns (bool success) {
+    return this.clean(_mgv, _base, _quote, offerId, takerWants, type(uint48).max);
+  }
+
+  function clean(uint offerId, uint takerWants, uint gasreq) public returns (bool success) {
+    return this.clean(_mgv, _base, _quote, offerId, takerWants, gasreq);
+  }
+
+  function clean(AbstractMangrove __mgv, address __base, address __quote, uint offerId, uint takerWants, uint gasreq)
+    public
+    returns (bool success)
+  {
+    uint bounty = this.cleanWithInfo(__mgv, __base, __quote, offerId, takerWants, gasreq);
+    return bounty > 0;
+  }
+
+  function cleanWithInfo(uint offerId, uint takerWants) public returns (uint bounty) {
+    return this.cleanWithInfo(_mgv, _base, _quote, offerId, takerWants, type(uint48).max);
+  }
+
+  function cleanWithInfo(
+    AbstractMangrove __mgv,
+    address __base,
+    address __quote,
+    uint offerId,
+    uint takerWants,
+    uint gasreq
+  ) public returns (uint bounty) {
+    Tick tick = __mgv.offers(__base, __quote, offerId).tick();
+    return __mgv.clean(__base, __quote, offerId, Tick.unwrap(tick), gasreq, takerWants, true, address(this));
+  }
+
   function snipeByVolume(
     AbstractMangrove __mgv,
     address __base,

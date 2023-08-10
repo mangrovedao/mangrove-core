@@ -607,6 +607,45 @@ contract GatekeepingTest is IMaker, MangroveTest {
     assertEq(pair.leafs(tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
 
+  /* Clean failure */
+
+  function cleanKO(uint id) external {
+    Tick tick = pair.offers(id).tick();
+    vm.expectRevert("mgv/reentrancyLocked");
+    mgv.clean($(base), $(quote), id, Tick.unwrap(tick), type(uint48).max, type(uint96).max, true, $(this));
+  }
+
+  function test_clean_on_reentrancy_fails() public {
+    uint ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 60_000, 0);
+    trade_cb = abi.encodeCall(this.cleanKO, (ofr));
+    assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
+  }
+
+  /* Clean success */
+
+  function cleanOK(address _base, address _quote, uint id) external {
+    Tick tick = mgv.offers(_base, _quote, id).tick();
+    mgv.clean(_base, _quote, id, Tick.unwrap(tick), type(uint48).max, type(uint96).max, true, $(this));
+  }
+
+  function test_clean_on_reentrancy_in_swapped_pair_succeeds() public {
+    uint other_ofr = dual_mkr.newOfferByVolume(1 ether, 1 ether, 30_000);
+    trade_cb = abi.encodeCall(this.cleanOK, ($(quote), $(base), other_ofr));
+
+    uint ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 190_000, 0);
+    assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
+    assertTrue(mgv.best($(quote), $(base)) == 0, "clean in swapped pair must work");
+  }
+
+  function test_clean_on_posthook_succeeds() public {
+    uint other_ofr = mkr.newOfferByVolume(1 ether, 1 ether, 30_000);
+    posthook_cb = abi.encodeCall(this.snipesOK, ($(base), $(quote), other_ofr));
+
+    uint ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 190_000, 0);
+    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    assertTrue(mgv.best($(base), $(quote)) == 0, "snipe in posthook must work");
+  }
+
   /* Snipe failure */
 
   function snipesKO(uint id) external {
@@ -648,13 +687,13 @@ contract GatekeepingTest is IMaker, MangroveTest {
     assertTrue(mgv.best($(base), $(quote)) == 0, "snipe in posthook must work");
   }
 
+  /* # Mangrove closed/inactive */
+
   function test_newOffer_on_closed_fails() public {
     mgv.kill();
     vm.expectRevert("mgv/dead");
     mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 0, 0);
   }
-
-  /* # Mangrove closed/inactive */
 
   function test_take_on_closed_fails() public {
     uint ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 0, 0);
@@ -686,6 +725,18 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.kill();
     vm.expectRevert("mgv/dead");
     tkr.marketOrder(1 ether, 1 ether);
+  }
+
+  function test_clean_on_closed_fails() public {
+    mgv.kill();
+    vm.expectRevert("mgv/dead");
+    tkr.clean(0, 1 ether);
+  }
+
+  function test_clean_on_inactive_fails() public {
+    mgv.deactivate($(base), $(quote));
+    vm.expectRevert("mgv/inactive");
+    tkr.clean(0, 1 ether);
   }
 
   function test_snipe_on_closed_fails() public {

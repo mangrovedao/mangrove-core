@@ -12,6 +12,7 @@ contract TakerOperationsTest is MangroveTest {
   TestMaker mkr;
   TestMaker refusemkr;
   TestMaker failmkr;
+  TestMaker failNonZeroMkr;
 
   bool refuseReceive = false;
 
@@ -33,6 +34,8 @@ contract TakerOperationsTest is MangroveTest {
     refusemkr.shouldFail(true);
     failmkr = setupMaker($(base), $(quote), "reverting mkr");
     failmkr.shouldRevert(true);
+    failNonZeroMkr = setupMaker($(base), $(quote), "reverting on non-zero mkr");
+    failNonZeroMkr.shouldRevertOnNonZeroGives(true);
 
     mkr.provisionMgv(10 ether);
     mkr.approveMgv(base, 10 ether);
@@ -41,10 +44,13 @@ contract TakerOperationsTest is MangroveTest {
     refusemkr.approveMgv(base, 10 ether);
     failmkr.provisionMgv(1 ether);
     failmkr.approveMgv(base, 10 ether);
+    failNonZeroMkr.provisionMgv(1 ether);
+    failNonZeroMkr.approveMgv(base, 10 ether);
 
     deal($(base), address(mkr), 5 ether);
     deal($(base), address(failmkr), 5 ether);
     deal($(base), address(refusemkr), 5 ether);
+    deal($(base), address(failNonZeroMkr), 5 ether);
 
     deal($(quote), address(this), 10 ether);
   }
@@ -850,6 +856,110 @@ contract TakerOperationsTest is MangroveTest {
     mkr2.newOfferByVolume(1 ether, 1 ether, 1, 0);
     vm.expectRevert("mgv/swapError");
     badMgv.marketOrderByVolume{gas: 150000}($(base), $(quote), 1 ether, 1 ether, true);
+  }
+
+  /* # Clean tests */
+  /* Clean parameter validation */
+  function test_gives_tick_outside_range_fails_clean() public {
+    uint ofr = mkr.newOfferByTick(0, 1 ether, 100_000);
+    vm.expectRevert("mgv/clean/tick/outOfRange");
+    mgv.clean($(base), $(quote), ofr, 1 << 23, 0, 1, true, $(this));
+  }
+
+  function test_gives_volume_above_96bits_fails_clean() public {
+    uint ofr = mkr.newOfferByTick(0, 1 ether, 100_000);
+    vm.expectRevert("mgv/clean/volume/96bits");
+    mgv.clean($(base), $(quote), ofr, 0, 0, 1 << 96, true, $(this));
+  }
+
+  /* Clean offer state&match validation */
+  function test_clean_on_nonexistent_offer_fails() public {
+    vm.expectRevert("mgv/clean/offerNotLive");
+    mgv.clean($(base), $(quote), 1, 0, 0, 1, true, $(this));
+  }
+
+  function test_clean_non_live_offer_fails() public {
+    uint ofr = mkr.newOfferByTick(0, 1 ether, 100_000);
+    mkr.retractOffer(ofr);
+    vm.expectRevert("mgv/clean/offerNotLive");
+    mgv.clean($(base), $(quote), ofr, 0, 100_000, 1, true, $(this));
+  }
+
+  function test_cleaning_with_exact_offer_details_succeeds() public {
+    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
+    uint bounty = mgv.clean($(base), $(quote), ofr, 0, 100_000, 0, true, $(this));
+    assertTrue(bounty > 0, "cleaning should have succeeded");
+  }
+
+  function test_giving_smaller_tick_to_clean_fails() public {
+    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
+    vm.expectRevert("mgv/clean/tickTooLow");
+    mgv.clean($(base), $(quote), ofr, -1, 100_000, 0, true, $(this));
+  }
+
+  function test_giving_bigger_tick_to_clean_succeeds() public {
+    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
+    uint bounty = mgv.clean($(base), $(quote), ofr, 1, 100_000, 0, true, $(this));
+    assertTrue(bounty > 0, "cleaning should have succeeded");
+  }
+
+  function test_giving_smaller_gasreq_to_clean_fails() public {
+    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
+    vm.expectRevert("mgv/clean/gasreqTooLow");
+    mgv.clean($(base), $(quote), ofr, 0, 99_000, 0, true, $(this));
+  }
+
+  function test_giving_bigger_gasreq_to_clean_succeeds() public {
+    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
+    uint bounty = mgv.clean($(base), $(quote), ofr, 0, 100_001, 0, true, $(this));
+    assertTrue(bounty > 0, "cleaning should have succeeded");
+  }
+
+  /* Clean - offer execution */
+  function test_cleaning_non_failing_offer_fails() public {
+    uint ofr = mkr.newOfferByTick(0, 1 ether, 100_000);
+    vm.expectRevert("mgv/clean/offerDidNotFail");
+    mgv.clean($(base), $(quote), ofr, 0, 100_000, 0, true, $(this));
+  }
+
+  function test_cleaning_failing_offer_transfers_bounty() public {
+    uint balanceBefore = $(this).balance;
+    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
+    uint bounty = mgv.clean($(base), $(quote), ofr, 0, 100_000, 0, true, $(this));
+    assertTrue(bounty > 0, "cleaning should have yielded a bounty");
+    uint balanceAfter = $(this).balance;
+    assertEq(balanceBefore + bounty, balanceAfter, "the bounty was not transfered to the cleaner");
+  }
+
+  function test_cleaning_by_impersonation_succeeds_and_does_not_transfer_funds() public {
+    uint ofr = failNonZeroMkr.newOfferByTick(0, 1 ether, 100_000);
+    // $this cannot clean with taker because of lack of funds/approval
+    vm.expectRevert("mgv/takerTransferFail");
+    mgv.clean($(base), $(quote), ofr, 0, 100_000, 1, true, $(this));
+
+    uint balanceNativeBefore = $(this).balance;
+    uint balanceBaseBefore = base.balanceOf($(this));
+    uint balanceQuoteBefore = quote.balanceOf($(this));
+
+    // Create another taker that has the needed funds and have approved Mangrove
+    TestTaker otherTkr = setupTaker($(base), $(quote), "otherTkr[$(A),$(B)]");
+    deal($(quote), $(otherTkr), 10 ether);
+    otherTkr.approveMgv(quote, 1 ether);
+    uint otherTkrBalanceNativeBefore = $(otherTkr).balance;
+    uint otherTkrBalanceBaseBefore = base.balanceOf($(otherTkr));
+    uint otherTkrBalanceQuoteBefore = quote.balanceOf($(otherTkr));
+
+    // Clean by impersonating the other taker
+    uint bounty = mgv.clean($(base), $(quote), ofr, 0, 100_000, 1, true, $(otherTkr));
+    assertTrue(bounty > 0, "cleaning should have yielded a bounty");
+
+    assertEq(balanceNativeBefore + bounty, $(this).balance, "the bounty was not transfered to the cleaner");
+    assertEq(balanceBaseBefore, base.balanceOf($(this)), "taker's base balance should not change");
+    assertEq(balanceQuoteBefore, quote.balanceOf($(this)), "taker's quote balance should not change");
+
+    assertEq(otherTkrBalanceNativeBefore, $(otherTkr).balance, "other taker's native balance should not have changed");
+    assertEq(otherTkrBalanceBaseBefore, base.balanceOf($(otherTkr)), "other taker's base balance should not change");
+    assertEq(otherTkrBalanceQuoteBefore, quote.balanceOf($(otherTkr)), "other taker's quote balance should not change");
   }
 }
 

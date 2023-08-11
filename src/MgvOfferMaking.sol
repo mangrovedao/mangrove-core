@@ -344,11 +344,8 @@ contract MgvOfferMaking is MgvHasOffers {
         }
       }
 
-      console.log("rx");
       Tick insertionTick = TickLib.fromLogPrice(insertionLogPrice, ofp.tickScale);
-      console.log("b");
 
-      // mapping (uint => MgvStructs.OfferPacked) _offers = offers[ofp.outbound_tkn][ofp.inbound_tkn];
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {
         // may modify ofp.local

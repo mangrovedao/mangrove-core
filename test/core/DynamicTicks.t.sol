@@ -18,23 +18,6 @@ contract DynamicTicksTest is MangroveTest {
 
   function setUp() public override {
     super.setUp();
-
-    // deal($(base), $(this), 10 ether);
-
-    // tkr = setupTaker($(base), $(quote), "taker[$(A),$(B)]");
-    // mkr = setupMaker($(base), $(quote), "maker[$(A),$(B)]");
-    // dual_mkr = setupMaker($(quote), $(base), "maker[$(B),$(A)]");
-
-    // mkr.provisionMgv(5 ether);
-    // dual_mkr.provisionMgv(5 ether);
-
-    // deal($(quote), address(tkr), 1 ether);
-    // deal($(quote), address(mkr), 1 ether);
-    // deal($(base), address(dual_mkr), 1 ether);
-
-    // tkr.approveMgv(quote, 1 ether);
-
-    // notAdmin = freshAddress();
   }
 
   function test_logPrice_to_tick(int96 logPrice, uint96 tickScale) public {

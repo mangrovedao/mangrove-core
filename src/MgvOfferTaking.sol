@@ -136,59 +136,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     }
     return (nextId, local);
   }
-  /* with sor (memory)
-  function getNextBest(
-    Pair storage pair,
-    MultiOrder memory mor,
-    MgvLib.SingleOrder memory sor
-    // uint tickScale,
-    // MgvStructs.OfferPacked offer,
-    // MgvStructs.LocalPacked local
-  ) internal {
-    Tick offerTick = sor.offer.tick(sor.tickScale);
-    sor.offerId = sor.offer.next();
-
-    if (sor.offerId == 0) {
-      Leaf leaf = mor.leaf;
-      leaf = leaf.setTickFirst(offerTick, 0).setTickLast(offerTick, 0);
-      if (leaf.isEmpty()) {
-        pair.leafs[offerTick.leafIndex()] = leaf;
-        int index = offerTick.level0Index();
-        Field field = sor.local.level0().flipBitAtLevel0(offerTick);
-        if (field.isEmpty()) {
-          pair.level0[index] = field;
-          index = offerTick.level1Index();
-          field = sor.local.level1().flipBitAtLevel1(offerTick);
-          if (field.isEmpty()) {
-            pair.level1[index] = field;
-            field = sor.local.level2().flipBitAtLevel2(offerTick);
-            sor.local = sor.local.level2(field);
-            if (field.isEmpty()) {
-              sor.local = sor.local.level1(field);
-              sor.local = sor.local.level0(field);
-              mor.leaf = LeafLib.EMPTY;
-              sor.offerId = 0;
-            }
-            index = field.firstLevel1Index();
-            field = pair.level1[index];
-          }
-          sor.local = sor.local.level1(field);
-          index = field.firstLevel0Index(index);
-          field = pair.level0[index];
-        }
-        sor.local = sor.local.level0(field);
-        leaf = pair.leafs[field.firstLeafIndex(index)];
-      }
-      mor.leaf = leaf;
-      sor.offerId = leaf.getNextOfferId();
-    }
-  }
-  */
-
   /* # General Market Order */
   //+clear+
   /* General market orders set up the market order with a given `taker` (`msg.sender` in the most common case). Returns `(totalGot, totalGave, penaltyReceived, feePaid)`.
   Note that the `taker` can be anyone. This is safe when `taker == msg.sender`, but `generalMarketOrder` must not be called with `taker != msg.sender` unless a security check is done after (see [`MgvOfferTakingWithPermit`](#mgvoffertakingwithpermit.sol)`. */
+
   function generalMarketOrder(
     address outbound_tkn,
     address inbound_tkn,
@@ -198,7 +150,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     bool fillWants,
     address taker
   ) internal returns (uint, uint, uint, uint) {
-    // console.log("market order logPrice",logPriceToString(logPrice));
     unchecked {
       //TODO is uint160 correct with new price limits?
       /* Since amounts stored in offers are 96 bits wide, checking that `takerWants` and `takerGives` fit in 160 bits prevents overflow during the main market order loop. */
@@ -545,15 +496,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* The current offer has a price given by tick the taker is ready to accept a price up to `maxTick`.`.
        */
       {
-        // console.log("execute offer",toString(sor.offer));
         /* <a id="MgvOfferTaking/checkPrice"></a>If the price is too high, we return early.
 
          Otherwise we now know we'll execute the offer. */
         if (mor.logPrice < sor.offer.logPrice()) {
-          // console.log("(will not execute)");
           return (0, bytes32(0), "mgv/notExecuted");
         }
-        // console.log("(will execute)");
 
         uint fillVolume = mor.fillVolume;
         uint offerGives = sor.offer.gives();

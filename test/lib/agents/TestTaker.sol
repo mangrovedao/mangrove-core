@@ -39,11 +39,7 @@ contract TestTaker is ITaker, Script2 {
     _mgv.approve(_base, _quote, spender, amount);
   }
 
-  function take(uint offerId, uint takerWants) external returns (bool success) {
-    //uint taken = TestEvents.min(makerGives, takerWants);
-    (success,,,,) = this.takeWithInfo(offerId, takerWants);
-  }
-
+  // FIXME: This is only by Scenarii.t.sol which is not easy to migrate nor determine if is still relevant
   function takeWithInfo(uint offerId, uint takerWants) external returns (bool, uint, uint, uint, uint) {
     Tick tick = _mgv.offers(_base, _quote, offerId).tick();
     uint[4][] memory targets = wrap_dynamic([offerId, uint(Tick.unwrap(tick)), takerWants, type(uint48).max]);
@@ -82,25 +78,47 @@ contract TestTaker is ITaker, Script2 {
     uint gasreq
   ) public returns (uint bounty) {
     Tick tick = __mgv.offers(__base, __quote, offerId).tick();
+    return cleanByTickWithInfo(__mgv, __base, __quote, offerId, tick, takerWants, gasreq);
+  }
+
+  function cleanByTick(uint offerId, Tick tick, uint takerWants, uint gasreq) public returns (bool success) {
+    return this.cleanByTick(_mgv, _base, _quote, offerId, tick, takerWants, gasreq);
+  }
+
+  function cleanByTick(
+    AbstractMangrove __mgv,
+    address __base,
+    address __quote,
+    uint offerId,
+    Tick tick,
+    uint takerWants,
+    uint gasreq
+  ) public returns (bool success) {
+    uint bounty = this.cleanByTickWithInfo(__mgv, __base, __quote, offerId, tick, takerWants, gasreq);
+    return bounty > 0;
+  }
+
+  function cleanByTickWithInfo(
+    AbstractMangrove __mgv,
+    address __base,
+    address __quote,
+    uint offerId,
+    Tick tick,
+    uint takerWants,
+    uint gasreq
+  ) public returns (uint bounty) {
     (, bounty) = __mgv.cleanByImpersonation(
       __base, __quote, wrap_dynamic(MgvLib.CleanTarget(offerId, Tick.unwrap(tick), gasreq, takerWants)), address(this)
     );
-  }
-
-  function snipeByVolume(uint offerId, uint takerWants, uint gasreq) external returns (bool) {
-    Tick tick = _mgv.offers(_base, _quote, offerId).tick();
-    uint[4][] memory targets = wrap_dynamic([offerId, uint(Tick.unwrap(tick)), takerWants, gasreq]);
-    (uint successes,,,,) = _testMgv.snipesInTest(_base, _quote, targets, true);
-    return successes == 1;
-  }
-
-  function snipeByTick(uint offerId, Tick tick, uint takerWants, uint gasreq) external returns (bool) {
-    uint[4][] memory targets = wrap_dynamic([offerId, uint(Tick.unwrap(tick)), takerWants, gasreq]);
-    (uint successes,,,,) = _testMgv.snipesInTest(_base, _quote, targets, true);
-    return successes == 1;
+    return bounty;
   }
 
   function takerTrade(address, address, uint, uint) external pure override {}
+
+  function marketOrderWithSuccess(uint takerWants) external returns (bool success) {
+    (uint got,,,) = _mgv.marketOrderByVolume(_base, _quote, takerWants, type(uint96).max, true);
+    return got > 0;
+  }
 
   function marketOrder(uint wants, uint gives) external returns (uint takerGot, uint takerGave) {
     (takerGot, takerGave,,) = _mgv.marketOrderByVolume(_base, _quote, wants, gives, true);

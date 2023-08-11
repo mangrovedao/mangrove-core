@@ -131,30 +131,30 @@ contract TickTest is Test {
   // * if price (wants/gives) < 1, then wants will be higher (ie price will be higher) than real
   // * if price (wants/gives) > 1, then wants will be lower (ie price will be lower) than real
   // * probably should always round price towards -infty
-  function test_tickFromVolumes() public {
-    assertEq(TickLib.tickFromVolumes(1, 1), 0);
-    assertEq(TickLib.tickFromVolumes(2, 1), 6931);
-    assertEq(TickLib.tickFromVolumes(1, 2), -6932);
-    assertEq(TickLib.tickFromVolumes(1e18, 1), 414486);
+  function test_logPriceFromVolumes() public {
+    assertEq(LogPriceLib.logPriceFromVolumes(1, 1), 0);
+    assertEq(LogPriceLib.logPriceFromVolumes(2, 1), 6931);
+    assertEq(LogPriceLib.logPriceFromVolumes(1, 2), -6932);
+    assertEq(LogPriceLib.logPriceFromVolumes(1e18, 1), 414486);
     //FIXME when tick range is restored use uint96 again
-    // assertEq(TickLib.tickFromVolumes(type(uint96).max, 1), 665454);
-    // assertEq(TickLib.tickFromVolumes(1, type(uint96).max), -665454);
-    assertEq(TickLib.tickFromVolumes(type(uint72).max, 1), 499090);
-    assertEq(TickLib.tickFromVolumes(1, type(uint72).max), -499090);
-    assertEq(TickLib.tickFromVolumes(999999, 1000000), -1);
-    assertEq(TickLib.tickFromVolumes(1000000, 999999), 0);
-    assertEq(TickLib.tickFromVolumes(1000000 * 1e18, 999999 * 1e18), 0);
+    // assertEq(LogPriceLib.logPriceFromVolumes(type(uint96).max, 1), 665454);
+    // assertEq(LogPriceLib.logPriceFromVolumes(1, type(uint96).max), -665454);
+    assertEq(LogPriceLib.logPriceFromVolumes(type(uint72).max, 1), 499090);
+    assertEq(LogPriceLib.logPriceFromVolumes(1, type(uint72).max), -499090);
+    assertEq(LogPriceLib.logPriceFromVolumes(999999, 1000000), -1);
+    assertEq(LogPriceLib.logPriceFromVolumes(1000000, 999999), 0);
+    assertEq(LogPriceLib.logPriceFromVolumes(1000000 * 1e18, 999999 * 1e18), 0);
   }
 
-  function test_priceFromTick() public {
+  function test_priceFromLogPrice() public {
     // 1bp of 1bp as 18 decimals fixed point number
     uint err = 1e18 / 100 / 100 / 100 / 100;
     // tick is ln_bp(1e6)
     // compares to 1.0001**tick*1e18
-    assertApproxEqRel(Tick.wrap(138162).priceFromTick_e18(), 999998678087145849760004, err);
+    assertApproxEqRel(LogPriceLib.priceFromLogPrice_e18(138162), 999998678087145849760004, err);
     // tick is ln_bp(1)
     // compares to 1.0001**tick*1e18
-    assertApproxEqRel(Tick.wrap(0).priceFromTick_e18(), 1.0001 ** 0 * 1e18, err);
+    assertApproxEqRel(LogPriceLib.priceFromLogPrice_e18(0), 1.0001 ** 0 * 1e18, err);
     // FIXME Tick example used to be 665454 but it's out of range for now
     /* 
       // tick is ln_bp(type(uint96).max)
@@ -162,14 +162,14 @@ contract TickTest is Test {
       assertApproxEqRel(Tick.wrap(665454).priceFromTick_e18(), 79223695601626514454341026560883173411222330007, err);
       // console.log(Tick.wrap(-421417).priceFromTick_e18());
     */
-    assertApproxEqRel(Tick.wrap(524287).priceFromTick_e18(), 58661978243259926126959077156658796822528, err);
+    assertApproxEqRel(LogPriceLib.priceFromLogPrice_e18(524287), 58661978243259926126959077156658796822528, err);
   }
 
-  function showTickApprox(uint wants, uint gives) internal pure {
-    Tick tick = TickLib.tickFromVolumes(wants, gives);
-    uint wants2 = tick.inboundFromOutbound(gives);
-    uint gives2 = tick.outboundFromInbound(wants);
-    console.log("tick  ", toString(tick));
+  function showLogPriceApprox(uint wants, uint gives) internal pure {
+    int logPrice = LogPriceLib.logPriceFromVolumes(wants, gives);
+    uint wants2 = LogPriceLib.inboundFromOutbound(logPrice, gives);
+    uint gives2 = LogPriceLib.outboundFromInbound(logPrice, wants);
+    console.log("logPrice  ", logPriceToString(logPrice));
     console.log("wants ", wants);
     console.log("wants2", wants2);
     console.log("--------------");
@@ -180,10 +180,10 @@ contract TickTest is Test {
     console.log("===========");
   }
 
-  function tickShifting() public pure {
-    showTickApprox(30 ether, 1 ether);
-    showTickApprox(30 ether, 30 * 30 ether);
-    showTickApprox(1 ether, 1 ether);
+  function logPriceShifting() public pure {
+    showLogPriceApprox(30 ether, 1 ether);
+    showLogPriceApprox(30 ether, 30 * 30 ether);
+    showLogPriceApprox(1 ether, 1 ether);
   }
 
   // int constant min_tick_abs = int(2**(TICK_BITS-1));

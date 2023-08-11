@@ -6,6 +6,7 @@ import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
 contract TestMoriartyMaker is IMaker {
+  uint constant DEFAULT_TICKSCALE = 1;
   AbstractMangrove mgv;
   address base;
   address quote;
@@ -34,15 +35,16 @@ contract TestMoriartyMaker is IMaker {
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) external override {}
 
   function newOfferByVolume(uint wants, uint gives, uint gasreq) public {
-    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
-    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
-    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
-    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
-    (, MgvStructs.LocalPacked cfg) = mgv.config(base, quote);
+    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, wants, gives, gasreq, 0);
+    (, MgvStructs.LocalPacked cfg) = mgv.config(base, quote, DEFAULT_TICKSCALE);
     uint offer_gasbase = cfg.offer_gasbase();
     dummy = mgv.newOfferByVolume({
       outbound_tkn: base,
       inbound_tkn: quote,
+      tickScale: DEFAULT_TICKSCALE,
       wants: 1,
       gives: cfg.density().multiplyUp(offer_gasbase + 100_000),
       gasreq: 100000,

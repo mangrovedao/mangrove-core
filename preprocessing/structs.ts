@@ -105,13 +105,13 @@ const struct_defs = {
       id_field("prev"),
       /* * `next` points to the immediately worse offer. The worst offer's `next` is 0. _32 bits wide_. */
       id_field("next"),
-      {name:"tick",bits:24,type:"Tick",underlyingType:"int"},
+      {name:"logPrice",bits:24,type:"int"},
       /* * `gives` is the amount of `outbound_tkn` the offer will give if successfully executed.
       _96 bits wide_, so assuming the usual 18 decimals, amounts can only go up to
       10 billions. */
       fields.gives,
     ],
-    additionalDefinitions: `import {Tick,TickLib} from "mgv_lib/TickLib.sol";
+    additionalDefinitions: `import {Tick,TickLib, LogPriceLib} from "mgv_lib/TickLib.sol";
 
 using OfferPackedExtra for OfferPacked global;
 using OfferUnpackedExtra for OfferUnpacked global;
@@ -119,7 +119,7 @@ using OfferUnpackedExtra for OfferUnpacked global;
 library OfferPackedExtra {
   // Compute wants from tick and gives
   function wants(OfferPacked offer) internal pure returns (uint) {
-    return offer.tick().inboundFromOutbound(offer.gives());
+    return LogPriceLib.inboundFromOutbound(offer.logPrice(),offer.gives());
   }
   // Sugar to test offer liveness
   function isLive(OfferPacked offer) internal pure returns (bool resp) {
@@ -128,12 +128,15 @@ library OfferPackedExtra {
       resp := iszero(iszero(gives))
     }
   }
+  function tick(OfferPacked offer, uint tickScale) internal pure returns (Tick) {
+    return TickLib.fromLogPrice(offer.logPrice(),tickScale);
+  }
 }
 
 library OfferUnpackedExtra {
   // Compute wants from tick and gives
   function wants(OfferUnpacked memory offer) internal pure returns (uint) {
-    return offer.tick.inboundFromOutbound(offer.gives);
+    return LogPriceLib.inboundFromOutbound(offer.logPrice,offer.gives);
   }
   // Sugar to test offer liveness
   function isLive(OfferUnpacked memory offer) internal pure returns (bool resp) {
@@ -141,6 +144,9 @@ library OfferUnpackedExtra {
     assembly {
       resp := iszero(iszero(gives))
     }
+  }
+  function tick(OfferUnpacked memory offer, uint tickScale) internal pure returns (Tick) {
+    return TickLib.fromLogPrice(offer.logPrice,tickScale);
   }
 
 }
@@ -151,7 +157,7 @@ function pack(uint __prev, uint __next, uint __wants, uint __gives) pure returns
   return pack({
     __prev: __prev,
     __next: __next,
-    __tick: TickLib.tickFromVolumes(__wants,__gives),
+    __logPrice: LogPriceLib.logPriceFromVolumes(__wants,__gives),
     __gives: __gives
   });
 }}

@@ -17,6 +17,7 @@ import "mgv_src/MgvHelpers.sol";
 
    Note: in the current version you do not need to set MgvCleaner's allowance in Mangrove. */
 contract MgvCleaner {
+  uint constant DEFAULT_TICKSCALE = 1;
   IMangrove immutable MGV;
 
   constructor(address mgv) {
@@ -31,8 +32,9 @@ contract MgvCleaner {
     returns (uint bal)
   {
     unchecked {
-      (uint successes,,,,) =
-        MgvHelpers.snipesForByVolume(address(MGV), outbound_tkn, inbound_tkn, targets, fillWants, msg.sender);
+      (uint successes,,,,) = MgvHelpers.snipesForByVolume(
+        address(MGV), outbound_tkn, inbound_tkn, DEFAULT_TICKSCALE, targets, fillWants, msg.sender
+      );
       require(successes == 0, "mgvCleaner/anOfferDidNotFail");
       bal = address(this).balance;
       bool noRevert;
@@ -52,8 +54,9 @@ contract MgvCleaner {
     address takerToImpersonate
   ) external returns (uint bal) {
     unchecked {
-      (uint successes,,,,) =
-        MgvHelpers.snipesForByVolume(address(MGV), outbound_tkn, inbound_tkn, targets, fillWants, takerToImpersonate);
+      (uint successes,,,,) = MgvHelpers.snipesForByVolume(
+        address(MGV), outbound_tkn, inbound_tkn, DEFAULT_TICKSCALE, targets, fillWants, takerToImpersonate
+      );
       require(successes == 0, "mgvCleaner/anOfferDidNotFail");
       bal = address(this).balance;
       bool noRevert;

@@ -29,39 +29,39 @@ contract MgvHasOffers is MgvRoot {
 
   /* # Read functions */
   /* Convenience function to get best offer of the given pair */
-  function best(address outbound_tkn, address inbound_tkn) external view returns (uint) {
+  function best(address outbound_tkn, address inbound_tkn, uint tickScale) external view returns (uint) {
     unchecked {
-      Pair storage pair = pairs[outbound_tkn][inbound_tkn];
+      Pair storage pair = pairs[outbound_tkn][inbound_tkn][tickScale];
       return pair.leafs[pair.local.tick().leafIndex()].getNextOfferId();
     }
   }
 
   /* Convenience function to get an offer in packed format */
-  function offers(address outbound_tkn, address inbound_tkn, uint offerId)
+  function offers(address outbound_tkn, address inbound_tkn, uint tickScale, uint offerId)
     external
     view
     returns (MgvStructs.OfferPacked)
   {
-    return pairs[outbound_tkn][inbound_tkn].offerData[offerId].offer;
+    return pairs[outbound_tkn][inbound_tkn][tickScale].offerData[offerId].offer;
   }
 
   /* Convenience function to get an offer detail in packed format */
-  function offerDetails(address outbound_tkn, address inbound_tkn, uint offerId)
+  function offerDetails(address outbound_tkn, address inbound_tkn, uint tickScale, uint offerId)
     external
     view
     returns (MgvStructs.OfferDetailPacked)
   {
-    return pairs[outbound_tkn][inbound_tkn].offerData[offerId].detail;
+    return pairs[outbound_tkn][inbound_tkn][tickScale].offerData[offerId].detail;
   }
 
   /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `pairs[outbound_tkn][inbound_tkn].offers` and `pairs[outbound_tkn][inbound_tkn].offerDetails` instead. */
-  function offerInfo(address outbound_tkn, address inbound_tkn, uint offerId)
+  function offerInfo(address outbound_tkn, address inbound_tkn, uint tickScale, uint offerId)
     external
     view
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
   {
     unchecked {
-      OfferData storage offerData = pairs[outbound_tkn][inbound_tkn].offerData[offerId];
+      OfferData storage offerData = pairs[outbound_tkn][inbound_tkn][tickScale].offerData[offerId];
       offer = offerData.offer.to_struct();
       offerDetail = offerData.detail.to_struct();
     }
@@ -113,6 +113,7 @@ contract MgvHasOffers is MgvRoot {
   // shouldUpdateBest is true if we may want to update best, false if there is no way we want to update it (eg if we know we are about to reinsert the offer anyway and will update best then?)
   function dislodgeOffer(
     Pair storage pair,
+    uint tickScale,
     MgvStructs.OfferPacked offer,
     MgvStructs.LocalPacked local,
     bool shouldUpdateBranch
@@ -121,7 +122,7 @@ contract MgvHasOffers is MgvRoot {
       Leaf leaf;
       uint prevId = offer.prev();
       uint nextId = offer.next();
-      Tick offerTick = offer.tick();
+      Tick offerTick = offer.tick(tickScale);
       if (prevId == 0 || nextId == 0) {
         leaf = pair.leafs[offerTick.leafIndex()];
       }

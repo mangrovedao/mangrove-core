@@ -13,6 +13,7 @@ import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
 contract DeactivateMarketTest is Test2 {
+  uint constant DEFAULT_TICKSCALE = 1;
   MangroveDeployer deployer;
   address chief;
   uint gasprice;
@@ -34,16 +35,16 @@ contract DeactivateMarketTest is Test2 {
     MgvReader reader = deployer.reader();
 
     vm.prank(chief);
-    mgv.activate(tkn0, tkn1, 1, 1, 1);
+    mgv.activate(tkn0, tkn1, DEFAULT_TICKSCALE, 1, 1, 1);
 
-    (new UpdateMarket()).innerRun(reader, IERC20(tkn0), IERC20(tkn1));
+    (new UpdateMarket()).innerRun(reader, IERC20(tkn0), IERC20(tkn1), DEFAULT_TICKSCALE);
 
-    assertEq(reader.isMarketOpen(tkn0, tkn1), true, "market should be open");
+    assertEq(reader.isMarketOpen(tkn0, tkn1, DEFAULT_TICKSCALE), true, "market should be open");
 
     DeactivateMarket deactivator = new DeactivateMarket();
     // the script self-tests, so no need to test here. This file is only for
     // incorporating testing the script into the CI.
     deactivator.broadcaster(chief);
-    deactivator.innerRun(mgv, reader, IERC20(tkn0), IERC20(tkn1));
+    deactivator.innerRun(mgv, reader, IERC20(tkn0), IERC20(tkn1), DEFAULT_TICKSCALE);
   }
 }

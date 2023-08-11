@@ -7,7 +7,7 @@ import "mgv_lib/TickLib.sol";
 
 library MgvHelpers {
   // Converts snipe targets from volume-based [id,wants,gives,gasreq] tick-based [id,tick,volume,gasreq]. volume will be wants if fillWsants is true, volume will be gives otherwise. Note that `tick` is fundamentally an int but arrays are homogenous so must be typed as a uint in the call.
-  function convertSnipeTargetsToTicks(uint[4][] memory targets, bool fillWants)
+  function convertSnipeTargetsToLogPrice(uint[4][] memory targets, bool fillWants)
     internal
     pure
     returns (uint[4][] memory)
@@ -17,7 +17,7 @@ library MgvHelpers {
     uint volumeIndex = fillWants ? 1 : 2;
     for (uint i = 0; i < targets.length; i++) {
       newTargets[i][0] = targets[i][0];
-      newTargets[i][1] = uint(Tick.unwrap(TickLib.tickFromTakerVolumes(targets[i][2], targets[i][1])));
+      newTargets[i][1] = uint(LogPriceLib.logPriceFromTakerVolumes(targets[i][2], targets[i][1]));
       newTargets[i][2] = targets[i][volumeIndex];
       newTargets[i][3] = targets[i][3];
     }
@@ -28,24 +28,26 @@ library MgvHelpers {
     address mgv,
     address outbound_tkn,
     address inbound_tkn,
+    uint tickScale,
     uint[4][] memory targets,
     bool fillWants,
     address taker
   ) internal returns (uint, uint, uint, uint, uint) {
-    uint[4][] memory newTargets = convertSnipeTargetsToTicks(targets, fillWants);
-    return IMangrove(payable(mgv)).snipesFor(outbound_tkn, inbound_tkn, newTargets, fillWants, taker);
+    uint[4][] memory newTargets = convertSnipeTargetsToLogPrice(targets, fillWants);
+    return IMangrove(payable(mgv)).snipesFor(outbound_tkn, inbound_tkn, tickScale, newTargets, fillWants, taker);
   }
 
   function snipesByVolume(
     address mgv,
     address outbound_tkn,
     address inbound_tkn,
+    uint tickScale,
     uint[4][] calldata targets,
     bool fillWants
   ) external returns (uint, uint, uint, uint, uint) {
     unchecked {
-      uint[4][] memory newTargets = convertSnipeTargetsToTicks(targets, fillWants);
-      return IMangrove(payable(mgv)).snipes(outbound_tkn, inbound_tkn, newTargets, fillWants);
+      uint[4][] memory newTargets = convertSnipeTargetsToLogPrice(targets, fillWants);
+      return IMangrove(payable(mgv)).snipes(outbound_tkn, inbound_tkn, tickScale, newTargets, fillWants);
     }
   }
 }

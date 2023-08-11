@@ -22,19 +22,29 @@ uint constant COVER_FACTOR = 1000;
   3. Round to nearest integer*/
 
 contract ActivateSemibook is Test2, Deployer {
+  uint constant DEFAULT_TICKSCALE = 1;
+
   function run() public {
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
       outbound_tkn: IERC20(envAddressOrName("OUTBOUND_TKN")),
       inbound_tkn: IERC20(envAddressOrName("INBOUND_TKN")),
+      tickScale: DEFAULT_TICKSCALE,
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
       fee: vm.envUint("FEE")
     });
   }
 
-  function innerRun(Mangrove mgv, IERC20 outbound_tkn, IERC20 inbound_tkn, uint outbound_in_gwei, uint fee) public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    innerRun(mgv, global.gasprice(), outbound_tkn, inbound_tkn, outbound_in_gwei, fee);
+  function innerRun(
+    Mangrove mgv,
+    IERC20 outbound_tkn,
+    IERC20 inbound_tkn,
+    uint tickScale,
+    uint outbound_in_gwei,
+    uint fee
+  ) public {
+    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0), 0);
+    innerRun(mgv, global.gasprice(), outbound_tkn, inbound_tkn, tickScale, outbound_in_gwei, fee);
   }
 
   function innerRun(
@@ -42,6 +52,7 @@ contract ActivateSemibook is Test2, Deployer {
     uint gaspriceOverride, // the gasprice that is used to compute density. Can be set higher that mangrove's gasprice to avoid dust without impacting user's bounty
     IERC20 outbound_tkn,
     IERC20 inbound_tkn,
+    uint tickScale,
     uint outbound_in_gwei,
     uint fee
   ) public {
@@ -89,6 +100,7 @@ contract ActivateSemibook is Test2, Deployer {
     mgv.activate({
       outbound_tkn: address(outbound_tkn),
       inbound_tkn: address(inbound_tkn),
+      tickScale: tickScale,
       fee: fee,
       densityFixed: density,
       offer_gasbase: gasbase

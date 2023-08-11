@@ -17,12 +17,15 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
  forge script --fork-url mumbai ActivateMarket*/
 
 contract ActivateMarket is Deployer {
+  uint constant DEFAULT_TICKSCALE = 1;
+
   function run() public {
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
       tkn1: IERC20(envAddressOrName("TKN1")),
       tkn2: IERC20(envAddressOrName("TKN2")),
+      tickScale: DEFAULT_TICKSCALE,
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
       fee: vm.envUint("FEE")
@@ -52,12 +55,13 @@ contract ActivateMarket is Deployer {
     MgvReader reader,
     IERC20 tkn1,
     IERC20 tkn2,
+    uint tickScale,
     uint tkn1_in_gwei,
     uint tkn2_in_gwei,
     uint fee
   ) public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    innerRun(mgv, global.gasprice(), reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
+    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0), 0);
+    innerRun(mgv, global.gasprice(), reader, tkn1, tkn2, tickScale, tkn1_in_gwei, tkn2_in_gwei, fee);
   }
 
   /**
@@ -70,6 +74,7 @@ contract ActivateMarket is Deployer {
     MgvReader reader,
     IERC20 tkn1,
     IERC20 tkn2,
+    uint tickScale,
     uint tkn1_in_gwei,
     uint tkn2_in_gwei,
     uint fee
@@ -79,6 +84,7 @@ contract ActivateMarket is Deployer {
       gaspriceOverride: gaspriceOverride,
       outbound_tkn: tkn1,
       inbound_tkn: tkn2,
+      tickScale: tickScale,
       outbound_in_gwei: tkn1_in_gwei,
       fee: fee
     });
@@ -88,10 +94,11 @@ contract ActivateMarket is Deployer {
       gaspriceOverride: gaspriceOverride,
       outbound_tkn: tkn2,
       inbound_tkn: tkn1,
+      tickScale: DEFAULT_TICKSCALE,
       outbound_in_gwei: tkn2_in_gwei,
       fee: fee
     });
 
-    new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, reader: reader});
+    new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, tickScale: DEFAULT_TICKSCALE, reader: reader});
   }
 }

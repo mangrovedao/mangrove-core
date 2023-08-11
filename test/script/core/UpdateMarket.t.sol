@@ -12,6 +12,7 @@ import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 
 contract UpdateMarketTest is Test2 {
+  uint constant DEFAULT_TICKSCALE = 1;
   MangroveDeployer deployer;
   address chief;
   uint gasprice;
@@ -34,19 +35,19 @@ contract UpdateMarketTest is Test2 {
 
     UpdateMarket updater = new UpdateMarket();
 
-    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1));
-    assertEq(reader.isMarketOpen(tkn0, tkn1), false);
+    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1), DEFAULT_TICKSCALE);
+    assertEq(reader.isMarketOpen(tkn0, tkn1, DEFAULT_TICKSCALE), false);
 
     vm.prank(chief);
-    mgv.activate(tkn0, tkn1, 1, 1, 1);
+    mgv.activate(tkn0, tkn1, DEFAULT_TICKSCALE, 1, 1, 1);
 
-    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1));
-    assertEq(reader.isMarketOpen(tkn0, tkn1), true);
+    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1), DEFAULT_TICKSCALE);
+    assertEq(reader.isMarketOpen(tkn0, tkn1, DEFAULT_TICKSCALE), true);
 
     vm.prank(chief);
-    mgv.deactivate(tkn0, tkn1);
+    mgv.deactivate(tkn0, tkn1, DEFAULT_TICKSCALE);
 
-    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1));
-    assertEq(reader.isMarketOpen(tkn0, tkn1), false);
+    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1), DEFAULT_TICKSCALE);
+    assertEq(reader.isMarketOpen(tkn0, tkn1, DEFAULT_TICKSCALE), false);
   }
 }

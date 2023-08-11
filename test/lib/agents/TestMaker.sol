@@ -24,19 +24,22 @@ contract SimpleTestMaker is TrivialTestMaker {
   AbstractMangrove public mgv;
   address public base;
   address public quote;
+  uint tickScale;
   bool shouldFail_; // will set mgv allowance to 0
   bool shouldRevert_; // will revert
   bool shouldRepost_; // will try to repost offer with identical parameters
   bytes32 expectedStatus;
   ///@notice stores parameters for each posted offer
   ///@notice overrides global @shouldFail/shouldReturn if true
+  uint constant DEFAULT_TICKSCALE = 1;
 
-  mapping(address => mapping(address => mapping(uint => OfferData))) offerDatas;
+  mapping(address => mapping(address => mapping(uint => mapping(uint => OfferData)))) offerDatas;
 
   constructor(AbstractMangrove _mgv, IERC20 _base, IERC20 _quote) {
     mgv = _mgv;
     base = address(_base);
     quote = address(_quote);
+    tickScale = DEFAULT_TICKSCALE;
   }
 
   receive() external payable {}
@@ -78,7 +81,7 @@ contract SimpleTestMaker is TrivialTestMaker {
       revert("testMaker/shouldRevert");
     }
 
-    OfferData memory offerData = offerDatas[order.outbound_tkn][order.inbound_tkn][order.offerId];
+    OfferData memory offerData = offerDatas[order.outbound_tkn][order.inbound_tkn][tickScale][order.offerId];
 
     if (offerData.shouldRevert) {
       revert(offerData.executeData);
@@ -110,6 +113,7 @@ contract SimpleTestMaker is TrivialTestMaker {
       mgv.updateOfferByVolume(
         order.outbound_tkn,
         order.inbound_tkn,
+        order.tickScale,
         order.offer.wants(),
         order.offer.gives(),
         order.offerDetail.gasreq(),
@@ -207,40 +211,40 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount,
     OfferData memory offerData
   ) public returns (uint) {
-    uint offerId = mgv.newOfferByVolume{value: amount}(_base, _quote, wants, gives, gasreq, gasprice);
-    offerDatas[_base][_quote][offerId] = offerData;
+    uint offerId = mgv.newOfferByVolume{value: amount}(_base, _quote, tickScale, wants, gives, gasreq, gasprice);
+    offerDatas[_base][_quote][tickScale][offerId] = offerData;
     return offerId;
   }
 
-  function newOfferByTick(int tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
-    return newOfferByTickWithFunding(base, quote, tick, gives, gasreq, gasprice, 0);
+  function newOfferByLogPrice(int logPrice, uint gives, uint gasreq, uint gasprice) public returns (uint) {
+    return newOfferByLogPriceWithFunding(base, quote, logPrice, gives, gasreq, gasprice, 0);
   }
 
-  function newOfferByTickWithFunding(
+  function newOfferByLogPriceWithFunding(
     address _base,
     address _quote,
-    int tick,
+    int logPrice,
     uint gives,
     uint gasreq,
     uint gasprice,
     uint amount
   ) public returns (uint) {
     OfferData memory offerData;
-    return newOfferByTickWithFunding(_base, _quote, tick, gives, gasreq, gasprice, amount, offerData);
+    return newOfferByLogPriceWithFunding(_base, _quote, logPrice, gives, gasreq, gasprice, amount, offerData);
   }
 
-  function newOfferByTickWithFunding(
+  function newOfferByLogPriceWithFunding(
     address _base,
     address _quote,
-    int tick,
+    int logPrice,
     uint gives,
     uint gasreq,
     uint gasprice,
     uint amount,
     OfferData memory offerData
   ) public returns (uint) {
-    uint offerId = mgv.newOfferByTick{value: amount}(_base, _quote, tick, gives, gasreq, gasprice);
-    offerDatas[_base][_quote][offerId] = offerData;
+    uint offerId = mgv.newOfferByLogPrice{value: amount}(_base, _quote, tickScale, logPrice, gives, gasreq, gasprice);
+    offerDatas[_base][_quote][tickScale][offerId] = offerData;
     return offerId;
   }
 
@@ -266,16 +270,16 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount,
     OfferData memory offerData
   ) public {
-    mgv.updateOfferByVolume{value: amount}(base, quote, wants, gives, gasreq, 0, offerId);
-    offerDatas[base][quote][offerId] = offerData;
+    mgv.updateOfferByVolume{value: amount}(base, quote, tickScale, wants, gives, gasreq, 0, offerId);
+    offerDatas[base][quote][tickScale][offerId] = offerData;
   }
 
   function retractOffer(uint offerId) public returns (uint) {
-    return mgv.retractOffer(base, quote, offerId, false);
+    return mgv.retractOffer(base, quote, DEFAULT_TICKSCALE, offerId, false);
   }
 
   function retractOfferWithDeprovision(uint offerId) public returns (uint) {
-    return mgv.retractOffer(base, quote, offerId, true);
+    return mgv.retractOffer(base, quote, DEFAULT_TICKSCALE, offerId, true);
   }
 
   function provisionMgv(uint amount) public payable {

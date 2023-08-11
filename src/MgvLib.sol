@@ -21,6 +21,7 @@ library MgvLib {
   struct SingleOrder {
     address outbound_tkn;
     address inbound_tkn;
+    uint tickScale;
     uint offerId;
     MgvStructs.OfferPacked offer;
     /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
@@ -55,15 +56,17 @@ contract HasMgvEvents {
   event Debit(address indexed maker, uint amount);
 
   /* * Mangrove reconfiguration */
-  event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);
-  event SetFee(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
-  event SetGasbase(address indexed outbound_tkn, address indexed inbound_tkn, uint offer_gasbase);
+  event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, bool value);
+  event SetFee(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint value);
+  event SetGasbase(
+    address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint offer_gasbase
+  );
   event SetGovernance(address value);
   event SetMonitor(address value);
   event SetUseOracle(bool value);
   event SetNotify(bool value);
   event SetGasmax(uint value);
-  event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
+  event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint value);
   event SetGasprice(uint value);
 
   /* Market order execution */
@@ -71,7 +74,8 @@ contract HasMgvEvents {
   event OrderComplete(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
-    address indexed taker,
+    uint indexed tickScale,
+    address taker,
     uint takerGot,
     uint takerGave,
     uint penalty,
@@ -82,6 +86,7 @@ contract HasMgvEvents {
   event OfferSuccess(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
+    uint indexed tickScale,
     uint id,
     // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
     address taker,
@@ -93,6 +98,7 @@ contract HasMgvEvents {
   event OfferFail(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
+    uint indexed tickScale,
     uint id,
     // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
     address taker,
@@ -103,7 +109,13 @@ contract HasMgvEvents {
   );
 
   /* Log information when a posthook reverts */
-  event PosthookFail(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, bytes32 posthookData);
+  event PosthookFail(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed tickScale,
+    uint offerId,
+    bytes32 posthookData
+  );
 
   /* * After `permit` and `approve` */
   event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
@@ -130,6 +142,7 @@ contract HasMgvEvents {
   event OfferWrite(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
+    uint indexed tickScale,
     address maker,
     int tick,
     uint gives,
@@ -139,7 +152,9 @@ contract HasMgvEvents {
   );
 
   /* * `offerId` was present and is now removed from the book. */
-  event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id, bool deprovision);
+  event OfferRetract(
+    address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint id, bool deprovision
+  );
 }
 
 /* # IMaker interface */
@@ -174,5 +189,8 @@ interface IMgvMonitor {
 
   function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external;
 
-  function read(address outbound_tkn, address inbound_tkn) external view returns (uint gasprice, Density density);
+  function read(address outbound_tkn, address inbound_tkn, uint tickScale)
+    external
+    view
+    returns (uint gasprice, Density density);
 }

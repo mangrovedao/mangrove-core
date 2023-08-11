@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {HasMgvEvents, Tick} from "./MgvLib.sol";
+import {HasMgvEvents, Tick, LogPriceLib} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
 import {TickLib} from "./../lib/TickLib.sol";
@@ -78,6 +78,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   function marketOrderForByVolume(
     address outbound_tkn,
     address inbound_tkn,
+    uint tickScale,
     uint takerWants,
     uint takerGives,
     bool fillWants,
@@ -87,38 +88,40 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
       require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
       uint fillVolume = fillWants ? takerWants : takerGives;
-      Tick maxTick = TickLib.tickFromTakerVolumes(takerGives, takerWants);
-      return marketOrderForByTick(outbound_tkn, inbound_tkn, Tick.unwrap(maxTick), fillVolume, fillWants, taker);
+      int logPrice = LogPriceLib.logPriceFromTakerVolumes(takerGives, takerWants);
+      return marketOrderForByLogPrice(outbound_tkn, inbound_tkn, tickScale, logPrice, fillVolume, fillWants, taker);
     }
   }
 
   function marketOrderForByPrice(
     address outbound_tkn,
     address inbound_tkn,
+    uint tickScale,
     uint maxPrice_e18,
     uint fillVolume,
     bool fillWants,
     address taker
   ) external returns (uint, uint, uint, uint) {
     unchecked {
-      require(maxPrice_e18 <= TickLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
-      require(maxPrice_e18 >= TickLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
-      int maxTick = Tick.unwrap(TickLib.tickFromPrice_e18(maxPrice_e18));
-      return marketOrderForByTick(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants, taker);
+      require(maxPrice_e18 <= LogPriceLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
+      require(maxPrice_e18 >= LogPriceLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
+      int logPrice = LogPriceLib.logPriceFromPrice_e18(maxPrice_e18);
+      return marketOrderForByLogPrice(outbound_tkn, inbound_tkn, tickScale, logPrice, fillVolume, fillWants, taker);
     }
   }
 
-  function marketOrderForByTick(
+  function marketOrderForByLogPrice(
     address outbound_tkn,
     address inbound_tkn,
-    int maxTick,
+    uint tickScale,
+    int logPrice,
     uint fillVolume,
     bool fillWants,
     address taker
   ) public returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
     unchecked {
       (takerGot, takerGave, bounty, feePaid) =
-        generalMarketOrder(outbound_tkn, inbound_tkn, Tick.wrap(maxTick), fillVolume, fillWants, taker);
+        generalMarketOrder(outbound_tkn, inbound_tkn, tickScale, logPrice, fillVolume, fillWants, taker);
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
       deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
     }
@@ -128,13 +131,14 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   function snipesFor(
     address outbound_tkn,
     address inbound_tkn,
+    uint tickScale,
     uint[4][] calldata targets,
     bool fillWants,
     address taker
   ) external returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint feePaid) {
     unchecked {
       (successes, takerGot, takerGave, bounty, feePaid) =
-        generalSnipes(outbound_tkn, inbound_tkn, targets, fillWants, taker);
+        generalSnipes(outbound_tkn, inbound_tkn, tickScale, targets, fillWants, taker);
       /* The sender's allowance is verified after the order complete so that the actual amounts are checked against the allowance, instead of the declared `takerGives`. The former may be lower.
     
     An immediate consequence is that any funds available to Mangrove through `approve` can be used to clean offers. After a `snipesFor` where all offers have failed, all token transfers have been reverted, so `takerGave=0` and the check will succeed -- but the sender will still have received the bounty of the failing offers. */

@@ -43,61 +43,68 @@ contract MgvGovernable is MgvRoot {
 
   /* ## Locals */
   /* ### `active` */
-  function activate(address outbound_tkn, address inbound_tkn, uint fee, uint densityFixed, uint offer_gasbase) public {
+  function activate(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint tickScale,
+    uint fee,
+    uint densityFixed,
+    uint offer_gasbase
+  ) public {
     unchecked {
       authOnly();
-      Pair storage pair = pairs[outbound_tkn][inbound_tkn];
+      Pair storage pair = pairs[outbound_tkn][inbound_tkn][tickScale];
       pair.local = pair.local.active(true);
-      emit SetActive(outbound_tkn, inbound_tkn, true);
-      setFee(outbound_tkn, inbound_tkn, fee);
-      setDensityFixed(outbound_tkn, inbound_tkn, densityFixed);
-      setGasbase(outbound_tkn, inbound_tkn, offer_gasbase);
+      emit SetActive(outbound_tkn, inbound_tkn, tickScale, true);
+      setFee(outbound_tkn, inbound_tkn, tickScale, fee);
+      setDensityFixed(outbound_tkn, inbound_tkn, tickScale, densityFixed);
+      setGasbase(outbound_tkn, inbound_tkn, tickScale, offer_gasbase);
     }
   }
 
-  function deactivate(address outbound_tkn, address inbound_tkn) public {
+  function deactivate(address outbound_tkn, address inbound_tkn, uint tickScale) public {
     authOnly();
-    Pair storage pair = pairs[outbound_tkn][inbound_tkn];
+    Pair storage pair = pairs[outbound_tkn][inbound_tkn][tickScale];
     pair.local = pair.local.active(false);
-    emit SetActive(outbound_tkn, inbound_tkn, false);
+    emit SetActive(outbound_tkn, inbound_tkn, tickScale, false);
   }
 
   /* ### `fee` */
-  function setFee(address outbound_tkn, address inbound_tkn, uint fee) public {
+  function setFee(address outbound_tkn, address inbound_tkn, uint tickScale, uint fee) public {
     unchecked {
       authOnly();
       /* `fee` is in basis points, i.e. in percents of a percent. */
       require(MgvStructs.Local.fee_check(fee), MgvStructs.Local.fee_size_error);
-      Pair storage pair = pairs[outbound_tkn][inbound_tkn];
+      Pair storage pair = pairs[outbound_tkn][inbound_tkn][tickScale];
       pair.local = pair.local.fee(fee);
-      emit SetFee(outbound_tkn, inbound_tkn, fee);
+      emit SetFee(outbound_tkn, inbound_tkn, tickScale, fee);
     }
   }
 
   /* ### `density` */
   /* Useless if `global.useOracle != 0` and oracle returns a valid density. */
   /* Density is given as a 96.32 fixed point number. It will be stored as a 9-bit float and be approximated towards 0. The maximum error is 20%. See `DensityLib` for more information. */
-  function setDensityFixed(address outbound_tkn, address inbound_tkn, uint densityFixed) public {
+  function setDensityFixed(address outbound_tkn, address inbound_tkn, uint tickScale, uint densityFixed) public {
     unchecked {
       authOnly();
 
       //+clear+
-      Pair storage pair = pairs[outbound_tkn][inbound_tkn];
+      Pair storage pair = pairs[outbound_tkn][inbound_tkn][tickScale];
       /* Checking the size of `density` is necessary to prevent overflow before storing density as a float. */
       require(DensityLib.checkFixedDensity(densityFixed), "mgv/config/density/128bits");
 
       pair.local = pair.local.densityFromFixed(densityFixed);
-      emit SetDensityFixed(outbound_tkn, inbound_tkn, densityFixed);
+      emit SetDensityFixed(outbound_tkn, inbound_tkn, tickScale, densityFixed);
     }
   }
 
   // FIXME Temporary, remove once all tooling has adapted to setDensityFixed
-  function setDensity(address outbound_tkn, address inbound_tkn, uint density) external {
-    setDensityFixed(outbound_tkn, inbound_tkn, density << DensityLib.FIXED_FRACTIONAL_BITS);
+  function setDensity(address outbound_tkn, address inbound_tkn, uint tickScale, uint density) external {
+    setDensityFixed(outbound_tkn, inbound_tkn, tickScale, density << DensityLib.FIXED_FRACTIONAL_BITS);
   }
 
   /* ### `gasbase` */
-  function setGasbase(address outbound_tkn, address inbound_tkn, uint offer_gasbase) public {
+  function setGasbase(address outbound_tkn, address inbound_tkn, uint tickScale, uint offer_gasbase) public {
     unchecked {
       authOnly();
       /* Checking the size of `offer_gasbase` is necessary to prevent a) data loss when copied to an `OfferDetail` struct, and b) overflow when used in calculations. */
@@ -106,9 +113,9 @@ contract MgvGovernable is MgvRoot {
       );
       // require(uint24(offer_gasbase) == offer_gasbase, "mgv/config/offer_gasbase/24bits");
       //+clear+
-      Pair storage pair = pairs[outbound_tkn][inbound_tkn];
+      Pair storage pair = pairs[outbound_tkn][inbound_tkn][tickScale];
       pair.local = pair.local.offer_gasbase(offer_gasbase);
-      emit SetGasbase(outbound_tkn, inbound_tkn, offer_gasbase);
+      emit SetGasbase(outbound_tkn, inbound_tkn, tickScale, offer_gasbase);
     }
   }
 

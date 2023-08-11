@@ -12,7 +12,14 @@ import {MgvLib, MgvStructs, IMaker} from "./MgvLib.sol";
 import "./MgvLib.sol" as MgvLibWrapper;
 
 interface IMangrove {
-  event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
+  event Approval(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed tickScale,
+    address owner,
+    address spender,
+    uint value
+  );
   event Credit(address indexed maker, uint amount);
   event Debit(address indexed maker, uint amount);
   event Kill();
@@ -20,21 +27,31 @@ interface IMangrove {
   event OfferFail(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
+    uint indexed tickScale,
     uint id,
     address taker,
     uint takerWants,
     uint takerGives,
     bytes32 mgvData
   );
-  event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id, bool deprovision);
+  event OfferRetract(
+    address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint id, bool deprovision
+  );
   event OfferSuccess(
-    address indexed outbound_tkn, address indexed inbound_tkn, uint id, address taker, uint takerWants, uint takerGives
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed tickScale,
+    uint id,
+    address taker,
+    uint takerWants,
+    uint takerGives
   );
   event OfferWrite(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
+    uint indexed tickScale,
     address maker,
-    int tick,
+    int logPrice,
     uint gives,
     uint gasprice,
     uint gasreq,
@@ -43,18 +60,27 @@ interface IMangrove {
   event OrderComplete(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
-    address indexed taker,
+    uint indexed tickScale,
+    address taker,
     uint takerGot,
     uint takerGave,
     uint penalty,
     uint feePaid
   );
   event OrderStart();
-  event PosthookFail(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, bytes32 posthookData);
-  event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);
-  event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
-  event SetFee(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
-  event SetGasbase(address indexed outbound_tkn, address indexed inbound_tkn, uint offer_gasbase);
+  event PosthookFail(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    uint indexed tickScale,
+    uint offerId,
+    bytes32 posthookData
+  );
+  event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, bool value);
+  event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint value);
+  event SetFee(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint value);
+  event SetGasbase(
+    address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint offer_gasbase
+  );
   event SetGasmax(uint value);
   event SetGasprice(uint value);
   event SetGovernance(address value);
@@ -67,7 +93,14 @@ interface IMangrove {
   function PERMIT_TYPEHASH() external view returns (bytes32);
 
   function withdrawERC20(address tokenAddress, uint value) external;
-  function activate(address outbound_tkn, address inbound_tkn, uint fee, uint density, uint offer_gasbase) external;
+  function activate(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint tickScale,
+    uint fee,
+    uint density,
+    uint offer_gasbase
+  ) external;
 
   function allowances(address, address, address, address) external view returns (uint);
 
@@ -75,19 +108,19 @@ interface IMangrove {
 
   function balanceOf(address) external view returns (uint);
 
-  function best(address outbound_tkn, address inbound_tkn) external view returns (uint);
+  function best(address outbound_tkn, address inbound_tkn, uint tickScale) external view returns (uint);
 
-  function config(address outbound_tkn, address inbound_tkn)
+  function config(address outbound_tkn, address inbound_tkn, uint tickScale)
     external
     view
     returns (MgvStructs.GlobalPacked, MgvStructs.LocalPacked);
 
-  function configInfo(address outbound_tkn, address inbound_tkn)
+  function configInfo(address outbound_tkn, address inbound_tkn, uint tickScale)
     external
     view
     returns (MgvStructs.GlobalUnpacked memory global, MgvStructs.LocalUnpacked memory local);
 
-  function deactivate(address outbound_tkn, address inbound_tkn) external;
+  function deactivate(address outbound_tkn, address inbound_tkn, uint tickScale) external;
 
   function flashloan(MgvLib.SingleOrder memory sor, address taker) external returns (uint gasused, bytes32 makerData);
 
@@ -101,23 +134,30 @@ interface IMangrove {
 
   function kill() external;
 
-  function locked(address outbound_tkn, address inbound_tkn) external view returns (bool);
+  function locked(address outbound_tkn, address inbound_tkn, uint tickScale) external view returns (bool);
 
   function marketOrderByVolume(
     address outbound_tkn,
     address inbound_tkn,
+    uint tickScale,
     uint takerWants,
     uint takerGives,
     bool fillWants
   ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function marketOrderByPrice(address outbound_tkn, address inbound_tkn, uint maxPrice, uint fillVolume, bool fillWants)
-    external
-    returns (uint, uint, uint, uint);
-
-  function marketOrderByTick(
+  function marketOrderByPrice(
     address outbound_tkn,
     address inbound_tkn,
+    uint tickScale,
+    uint maxPrice,
+    uint fillVolume,
+    bool fillWants
+  ) external returns (uint, uint, uint, uint);
+
+  function marketOrderByLogPrice(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint tickScale,
     int maxPrice_e18,
     uint fillVolume,
     bool fillWants
@@ -126,6 +166,7 @@ interface IMangrove {
   function marketOrderForByVolume(
     address outbound_tkn,
     address inbound_tkn,
+    uint tickScale,
     uint takerWants,
     uint takerGives,
     bool fillWants,
@@ -135,16 +176,18 @@ interface IMangrove {
   function marketOrderForByPrice(
     address outbound_tkn,
     address inbound_tkn,
+    uint tickScale,
     uint maxPrice_e18,
     uint fillVolume,
     bool fillWants,
     address taker
   ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
-  function marketOrderForByTick(
+  function marketOrderForByLogPrice(
     address outbound_tkn,
     address inbound_tkn,
-    int maxTick,
+    uint tickScale,
+    int logPrice,
     uint fillVolume,
     bool fillWants,
     address taker
@@ -153,27 +196,33 @@ interface IMangrove {
   function newOfferByVolume(
     address outbound_tkn,
     address inbound_tkn,
+    uint tickScale,
     uint wants,
     uint gives,
     uint gasreq,
     uint gasprice
   ) external payable returns (uint);
 
-  function newOfferByTick(address outbound_tkn, address inbound_tkn, int tick, uint gives, uint gasreq, uint gasprice)
-    external
-    payable
-    returns (uint);
+  function newOfferByLogPrice(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint tickScale,
+    int logPrice,
+    uint gives,
+    uint gasreq,
+    uint gasprice
+  ) external payable returns (uint);
 
   function nonces(address) external view returns (uint);
 
-  function offerDetails(address, address, uint) external view returns (MgvStructs.OfferDetailPacked);
+  function offerDetails(address, address, uint, uint) external view returns (MgvStructs.OfferDetailPacked);
 
-  function offerInfo(address outbound_tkn, address inbound_tkn, uint offerId)
+  function offerInfo(address outbound_tkn, address inbound_tkn, uint tickScale, uint offerId)
     external
     view
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail);
 
-  function offers(address, address, uint) external view returns (MgvStructs.OfferPacked);
+  function offers(address, address, uint, uint) external view returns (MgvStructs.OfferPacked);
 
   function permit(
     address outbound_tkn,
@@ -211,17 +260,23 @@ interface IMangrove {
 
   function setUseOracle(bool useOracle) external;
 
-  function snipes(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants)
+  function snipes(address outbound_tkn, address inbound_tkn, uint tickScale, uint[4][] memory targets, bool fillWants)
     external
     returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function snipesFor(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants, address taker)
-    external
-    returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
+  function snipesFor(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint tickScale,
+    uint[4][] memory targets,
+    bool fillWants,
+    address taker
+  ) external returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function updateOfferByVolume(
     address outbound_tkn,
     address inbound_tkn,
+    uint tickScale,
     uint wants,
     uint gives,
     uint gasreq,
@@ -229,10 +284,11 @@ interface IMangrove {
     uint offerId
   ) external payable;
 
-  function updateOfferByTick(
+  function updateOfferByLogPrice(
     address outbound_tkn,
     address inbound_tkn,
-    int tick,
+    uint tickScale,
+    int logPrice,
     uint gives,
     uint gasreq,
     uint gasprice,
@@ -243,11 +299,20 @@ interface IMangrove {
 
   receive() external payable;
 
-  function leafs(address outbound, address inbound, int index) external view returns (MgvLibWrapper.Leaf);
+  function leafs(address outbound, address inbound, uint tickScale, int index)
+    external
+    view
+    returns (MgvLibWrapper.Leaf);
 
-  function level0(address outbound, address inbound, int index) external view returns (MgvLibWrapper.Field);
+  function level0(address outbound, address inbound, uint tickScale, int index)
+    external
+    view
+    returns (MgvLibWrapper.Field);
 
-  function level1(address outbound, address inbound, int index) external view returns (MgvLibWrapper.Field);
+  function level1(address outbound, address inbound, uint tickScale, int index)
+    external
+    view
+    returns (MgvLibWrapper.Field);
 
-  function level2(address outbound, address inbound) external view returns (MgvLibWrapper.Field);
+  function level2(address outbound, address inbound, uint tickScale) external view returns (MgvLibWrapper.Field);
 }

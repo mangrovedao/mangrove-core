@@ -53,15 +53,15 @@ contract MgvRoot is HasMgvEvents {
     mapping(int => Field) level1;
   }
 
-  /* `pairs` maps from token pair to `Pair` information. */
-  mapping(address => mapping(address => Pair)) internal pairs;
+  /* `pairs` maps from token pair to tickScale to `Pair` information. */
+  mapping(address => mapping(address => mapping(uint => Pair))) internal pairs;
 
-  function leafs(address outbound, address inbound, int index) external view returns (Leaf) {
-    return pairs[outbound][inbound].leafs[index];
+  function leafs(address outbound, address inbound, uint tickScale, int index) external view returns (Leaf) {
+    return pairs[outbound][inbound][tickScale].leafs[index];
   }
 
-  function level0(address outbound, address inbound, int index) external view returns (Field) {
-    Pair storage pair = pairs[outbound][inbound];
+  function level0(address outbound, address inbound, uint tickScale, int index) external view returns (Field) {
+    Pair storage pair = pairs[outbound][inbound][tickScale];
     MgvStructs.LocalPacked local = pair.local;
 
     if (local.tick().level0Index() == index) {
@@ -71,8 +71,8 @@ contract MgvRoot is HasMgvEvents {
     }
   }
 
-  function level1(address outbound, address inbound, int index) external view returns (Field) {
-    Pair storage pair = pairs[outbound][inbound];
+  function level1(address outbound, address inbound, uint tickScale, int index) external view returns (Field) {
+    Pair storage pair = pairs[outbound][inbound][tickScale];
     MgvStructs.LocalPacked local = pair.local;
 
     if (local.tick().level1Index() == index) {
@@ -82,8 +82,8 @@ contract MgvRoot is HasMgvEvents {
     }
   }
 
-  function level2(address outbound, address inbound) external view returns (Field) {
-    return pairs[outbound][inbound].local.level2();
+  function level2(address outbound, address inbound, uint tickScale) external view returns (Field) {
+    return pairs[outbound][inbound][tickScale].local.level2();
   }
 
   /* Checking the size of `gasprice` is necessary to prevent a) data loss when `gasprice` is copied to an `OfferDetail` struct, and b) overflow when `gasprice` is used in calculations. */
@@ -95,28 +95,28 @@ contract MgvRoot is HasMgvEvents {
 
   /* # Configuration Reads */
   /* Reading the configuration for a pair involves reading the config global to all pairs and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
-  function config(address outbound_tkn, address inbound_tkn)
+  function config(address outbound_tkn, address inbound_tkn, uint tickScale)
     public
     view
     returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local)
   {
     unchecked {
-      (_global, _local,) = _config(outbound_tkn, inbound_tkn);
+      (_global, _local,) = _config(outbound_tkn, inbound_tkn, tickScale);
     }
   }
 
   /* _config is the lower-level variant which opportunistically returns a pointer to the storage pair induced by `outbound_tkn`,`inbound_tkn`. */
-  function _config(address outbound_tkn, address inbound_tkn)
+  function _config(address outbound_tkn, address inbound_tkn, uint tickScale)
     internal
     view
     returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local, Pair storage pair)
   {
     unchecked {
-      pair = pairs[outbound_tkn][inbound_tkn];
+      pair = pairs[outbound_tkn][inbound_tkn][tickScale];
       _global = internal_global;
       _local = pair.local;
       if (_global.useOracle()) {
-        (uint gasprice, Density density) = IMgvMonitor(_global.monitor()).read(outbound_tkn, inbound_tkn);
+        (uint gasprice, Density density) = IMgvMonitor(_global.monitor()).read(outbound_tkn, inbound_tkn, tickScale);
         /* Gas gasprice can be ignored by making sure the oracle's set gasprice does not pass the check below. */
         if (checkGasprice(gasprice)) {
           _global = _global.gasprice(gasprice);
@@ -133,21 +133,21 @@ contract MgvRoot is HasMgvEvents {
   }
 
   /* Returns the configuration in an ABI-compatible struct. Should not be called internally, would be a huge memory copying waste. Use `config` instead. */
-  function configInfo(address outbound_tkn, address inbound_tkn)
+  function configInfo(address outbound_tkn, address inbound_tkn, uint tickScale)
     external
     view
     returns (MgvStructs.GlobalUnpacked memory global, MgvStructs.LocalUnpacked memory local)
   {
     unchecked {
-      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = config(outbound_tkn, inbound_tkn);
+      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = config(outbound_tkn, inbound_tkn, tickScale);
       global = _global.to_struct();
       local = _local.to_struct();
     }
   }
 
   /* Convenience function to check whether given pair is locked */
-  function locked(address outbound_tkn, address inbound_tkn) external view returns (bool) {
-    return pairs[outbound_tkn][inbound_tkn].local.lock();
+  function locked(address outbound_tkn, address inbound_tkn, uint tickScale) external view returns (bool) {
+    return pairs[outbound_tkn][inbound_tkn][tickScale].local.lock();
   }
 
   /*

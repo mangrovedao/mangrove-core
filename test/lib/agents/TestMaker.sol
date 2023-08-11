@@ -225,6 +225,12 @@ contract SimpleTestMaker is TrivialTestMaker {
     return newOfferByTick(tick, gives, gasreq, 0);
   }
 
+  function newFailingOfferByTick(int tick, uint gives, uint gasreq) public returns (uint) {
+    return newOfferByTickWithFunding(
+      base, quote, tick, gives, gasreq, 0, 0, OfferData({shouldRevert: true, executeData: "someData"})
+    );
+  }
+
   function newOfferByTick(int tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
     return newOfferByTickWithFunding(base, quote, tick, gives, gasreq, gasprice, 0);
   }

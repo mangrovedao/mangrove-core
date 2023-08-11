@@ -83,8 +83,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     bool funded;
     (funded,) = $(mgv).call{value: 1 ether}("");
     deal($(base), $(this), 1 ether);
-    uint ofr = mgv.newOfferByVolume($(base), $(quote), 0.05 ether, 0.05 ether, 200_000, 0);
-    require(tkr.take(ofr, 0.05 ether), "take must work or test is void");
+    mgv.newOfferByVolume($(base), $(quote), 0.05 ether, 0.05 ether, 200_000, 0);
+    require(tkr.marketOrderWithSuccess(0.05 ether), "take must work or test is void");
   }
 
   function test_withdraw_removes_mgv_balance_and_ethers() public {
@@ -134,15 +134,15 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.setShouldFailHook(true);
     expectFrom($(mgv));
     emit PosthookFail($(base), $(quote), ofr, "posthookFail");
-    tkr.take(ofr, 0.1 ether); // fails but we don't care
+    tkr.marketOrderWithSuccess(0.1 ether); // fails but we don't care
   }
 
   function test_returnData_succeeds() public {
     mkr.provisionMgv(1 ether);
     deal($(base), address(mkr), 1 ether);
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50000, OfferData({shouldRevert: false, executeData: "someData"}));
+    mkr.newOfferByVolume(1 ether, 1 ether, 50000, OfferData({shouldRevert: false, executeData: "someData"}));
 
-    bool success = tkr.take(ofr, 0.1 ether);
+    bool success = tkr.marketOrderWithSuccess(0.1 ether);
     assertTrue(success, "take should work");
   }
 
@@ -187,7 +187,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     deal($(base), address(mkr), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
 
-    bool success = tkr.take(ofr, 0.1 ether);
+    bool success = tkr.marketOrderWithSuccess(0.1 ether);
     assertEq(success, true, "Snipe should succeed");
 
     uint bal1 = mgv.balanceOf(address(mkr));
@@ -327,9 +327,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_maker_gets_no_mgv_balance_on_partial_fill() public {
     mkr.provisionMgv(1 ether);
     deal($(base), address(mkr), 1 ether);
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     uint oldBalance = mgv.balanceOf(address(mkr));
-    bool success = tkr.take(ofr, 0.1 ether);
+    bool success = tkr.marketOrderWithSuccess(0.1 ether);
     assertTrue(success, "take must succeed");
     assertEq(mgv.balanceOf(address(mkr)), oldBalance, "mkr balance must not change");
   }
@@ -337,9 +337,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_maker_gets_no_mgv_balance_on_full_fill() public {
     mkr.provisionMgv(1 ether);
     deal($(base), address(mkr), 1 ether);
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     uint oldBalance = mgv.balanceOf(address(mkr));
-    bool success = tkr.take(ofr, 1 ether);
+    bool success = tkr.marketOrderWithSuccess(1 ether);
     assertTrue(success, "take must succeed");
     assertEq(mgv.balanceOf(address(mkr)), oldBalance, "mkr balance must not change");
   }
@@ -725,8 +725,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.setGasbase($(base), $(quote), offer_gasbase);
     mgv.setGasprice(1);
     mgv.setDensityFixed($(base), $(quote), 0);
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
-    tkr.take(ofr, 0.1 ether);
+    mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
+    tkr.marketOrderWithSuccess(0.1 ether);
     assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");
   }
 
@@ -736,8 +736,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.setGasbase($(base), $(quote), offer_gasbase);
     mgv.setGasprice(1);
     mgv.setDensityFixed($(base), $(quote), 0);
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
-    tkr.take(ofr, 0.1 ether);
+    mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
+    tkr.marketOrderWithSuccess(0.1 ether);
     assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");
   }
 

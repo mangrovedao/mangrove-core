@@ -80,6 +80,7 @@ contract ScenariiTest is MangroveTest {
     saveBalances();
   }
 
+  // FIXME: Can this test be made meaningful without snipe?
   function test_snipe_insert_and_fail() public {
     offerOf = insert();
 
@@ -122,12 +123,7 @@ contract ScenariiTest is MangroveTest {
 
   function collectFailingOffer(uint failingOfferId) internal {
     // executing failing offer
-    try taker.takeWithInfo(failingOfferId, 0.5 ether) returns (bool success, uint takerGot, uint takerGave, uint, uint)
-    {
-      // take should return false not throw
-      assertTrue(!success, "Failer should fail");
-      assertEq(takerGot, 0, "Failed offer should declare 0 takerGot");
-      assertEq(takerGave, 0, "Failed offer should declare 0 takerGave");
+    try taker.clean(failingOfferId, 0.5 ether) {
       // failingOffer should have been removed from Mgv
       {
         assertTrue(

@@ -350,7 +350,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       activeMarketOnly(sor.global, sor.local);
       unlockedMarketOnly(sor.local);
 
-      /* If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. A mismatched price will be detected by `execute`. */
+      /* FIXME: edit comment: If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. A mismatched price will be detected by `execute`. */
       require(sor.offer.isLive(), "mgv/clean/offerNotLive");
       require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
 

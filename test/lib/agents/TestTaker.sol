@@ -3,6 +3,8 @@
 pragma solidity ^0.8.10;
 
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+// FIXME: Temporarily use TestMangrove until all tests are migrated away from snipes
+import {TestMangrove} from "mgv_test/lib/MangroveTest.sol";
 import {IERC20, ITaker} from "mgv_src/MgvLib.sol";
 import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
@@ -10,12 +12,15 @@ import {Tick} from "mgv_lib/TickLib.sol";
 
 contract TestTaker is ITaker, Script2 {
   AbstractMangrove _mgv;
+  TestMangrove _testMgv;
   address _base;
   address _quote;
   bool acceptNative = true;
 
-  constructor(AbstractMangrove mgv, IERC20 base, IERC20 quote) {
+  // constructor(AbstractMangrove mgv, IERC20 base, IERC20 quote) {
+  constructor(TestMangrove mgv, IERC20 base, IERC20 quote) {
     _mgv = mgv;
+    _testMgv = mgv;
     _base = address(base);
     _quote = address(quote);
   }
@@ -42,7 +47,8 @@ contract TestTaker is ITaker, Script2 {
   function takeWithInfo(uint offerId, uint takerWants) external returns (bool, uint, uint, uint, uint) {
     Tick tick = _mgv.offers(_base, _quote, offerId).tick();
     uint[4][] memory targets = wrap_dynamic([offerId, uint(Tick.unwrap(tick)), takerWants, type(uint48).max]);
-    (uint successes, uint got, uint gave, uint totalPenalty, uint feePaid) = _mgv.snipes(_base, _quote, targets, true);
+    (uint successes, uint got, uint gave, uint totalPenalty, uint feePaid) =
+      _testMgv.snipesInTest(_base, _quote, targets, true);
     return (successes == 1, got, gave, totalPenalty, feePaid);
     //return taken;
   }
@@ -79,31 +85,16 @@ contract TestTaker is ITaker, Script2 {
     return __mgv.clean(__base, __quote, offerId, Tick.unwrap(tick), gasreq, takerWants, true, address(this));
   }
 
-  function snipeByVolume(
-    AbstractMangrove __mgv,
-    address __base,
-    address __quote,
-    uint offerId,
-    uint takerWants,
-    uint gasreq
-  ) external returns (bool) {
-    Tick tick = __mgv.offers(__base, __quote, offerId).tick();
+  function snipeByVolume(uint offerId, uint takerWants, uint gasreq) external returns (bool) {
+    Tick tick = _mgv.offers(_base, _quote, offerId).tick();
     uint[4][] memory targets = wrap_dynamic([offerId, uint(Tick.unwrap(tick)), takerWants, gasreq]);
-    (uint successes,,,,) = __mgv.snipes(__base, __quote, targets, true);
+    (uint successes,,,,) = _testMgv.snipesInTest(_base, _quote, targets, true);
     return successes == 1;
   }
 
-  function snipeByTick(
-    AbstractMangrove __mgv,
-    address __base,
-    address __quote,
-    uint offerId,
-    Tick tick,
-    uint takerWants,
-    uint gasreq
-  ) external returns (bool) {
+  function snipeByTick(uint offerId, Tick tick, uint takerWants, uint gasreq) external returns (bool) {
     uint[4][] memory targets = wrap_dynamic([offerId, uint(Tick.unwrap(tick)), takerWants, gasreq]);
-    (uint successes,,,,) = __mgv.snipes(__base, __quote, targets, true);
+    (uint successes,,,,) = _testMgv.snipesInTest(_base, _quote, targets, true);
     return successes == 1;
   }
 

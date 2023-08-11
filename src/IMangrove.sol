@@ -222,14 +222,6 @@ interface IMangrove {
     address taker
   ) external returns (uint bounty);
 
-  function snipes(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants)
-    external
-    returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
-
-  function snipesFor(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants, address taker)
-    external
-    returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
-
   function updateOfferByVolume(
     address outbound_tkn,
     address inbound_tkn,

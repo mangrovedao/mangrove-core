@@ -467,7 +467,8 @@ contract MgvReader {
         Market memory lastMarket = _openMarkets[numMarkets - 1];
 
         _openMarkets[position - 1] = lastMarket;
-        marketPositions[lastMarket.tkn0][lastMarket.tkn1][tickScale] = position;
+        //FIXME add tests that check the last component (lastMarket.tickScale) is correct
+        marketPositions[lastMarket.tkn0][lastMarket.tkn1][lastMarket.tickScale] = position;
       }
       _openMarkets.pop();
       marketPositions[tkn0][tkn1][tickScale] = 0;

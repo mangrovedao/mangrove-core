@@ -236,17 +236,17 @@ interface IMangrove {
     bytes32 s
   ) external;
 
-  function retractOffer(address outbound_tkn, address inbound_tkn, uint offerId, bool deprovision)
+  function retractOffer(address outbound_tkn, address inbound_tkn, uint tickScale, uint offerId, bool deprovision)
     external
     returns (uint provision);
 
-  function setDensityFixed(address outbound_tkn, address inbound_tkn, uint densityFixed) external;
+  function setDensityFixed(address outbound_tkn, address inbound_tkn, uint tickScale, uint densityFixed) external;
 
-  function setDensity(address outbound_tkn, address inbound_tkn, uint density) external;
+  function setDensity(address outbound_tkn, address inbound_tkn, uint tickScale, uint density) external;
 
-  function setFee(address outbound_tkn, address inbound_tkn, uint fee) external;
+  function setFee(address outbound_tkn, address inbound_tkn, uint tickScale, uint fee) external;
 
-  function setGasbase(address outbound_tkn, address inbound_tkn, uint offer_gasbase) external;
+  function setGasbase(address outbound_tkn, address inbound_tkn, uint tickScale, uint offer_gasbase) external;
 
   function setGasmax(uint gasmax) external;
 

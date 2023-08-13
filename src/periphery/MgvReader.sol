@@ -30,18 +30,22 @@ function order(address tkn0, address tkn1) pure returns (address, address) {
   return uint160(tkn0) < uint160(tkn1) ? (tkn0, tkn1) : (tkn1, tkn0);
 }
 
+// canonically order the tokens of a Market
+// modifies in-place
 function order(Market memory market) pure {
   (market.tkn0, market.tkn1) = order(market.tkn0, market.tkn1);
 }
 
+// flip tkn0/tkn1 of a market. Useful before conversion to OLKey
+// creates a copy
 function flipped(Market memory market) pure returns (Market memory) {
   return Market(market.tkn1, market.tkn0, market.tickScale);
 }
 
-function toOLKey(Market memory market) pure returns (OLKey memory olKey) {
-  assembly ("memory-safe") {
-    olKey := market
-  }
+// convert Market to OLKey
+// creates a copy
+function toOLKey(Market memory market) pure returns (OLKey memory) {
+  return OLKey(market.tkn0, market.tkn1, market.tickScale);
 }
 
 contract MgvReader {

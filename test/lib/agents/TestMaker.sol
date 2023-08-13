@@ -23,34 +23,29 @@ struct OfferData {
 
 contract SimpleTestMaker is TrivialTestMaker {
   AbstractMangrove public mgv;
-  address public base;
-  address public quote;
-  uint tickScale;
+  OL ol;
   bool shouldFail_; // will set mgv allowance to 0
   bool shouldRevert_; // will revert
   bool shouldRepost_; // will try to repost offer with identical parameters
   bytes32 expectedStatus;
   ///@notice stores parameters for each posted offer
   ///@notice overrides global @shouldFail/shouldReturn if true
-  uint constant DEFAULT_TICKSCALE = 1;
 
   mapping(bytes32 => mapping(uint => OfferData)) offerDatas;
 
-  constructor(AbstractMangrove _mgv, IERC20 _base, IERC20 _quote) {
+  constructor(AbstractMangrove _mgv, OL memory _ol) {
     mgv = _mgv;
-    base = address(_base);
-    quote = address(_quote);
-    tickScale = DEFAULT_TICKSCALE;
+    ol = _ol;
   }
 
   receive() external payable {}
 
-  event Execute(address mgv, address base, address quote, uint offerId, uint takerWants, uint takerGives);
+  event Execute(
+    address mgv, address base, address quote, uint tickScale, uint offerId, uint takerWants, uint takerGives
+  );
 
-  function logExecute(address _mgv, address _base, address _quote, uint offerId, uint takerWants, uint takerGives)
-    external
-  {
-    emit Execute(_mgv, _base, _quote, offerId, takerWants, takerGives);
+  function logExecute(address _mgv, OL calldata ol, uint offerId, uint takerWants, uint takerGives) external {
+    emit Execute(_mgv, ol.outbound, ol.inbound, ol.tickScale, offerId, takerWants, takerGives);
   }
 
   function shouldRevert(bool should) external {
@@ -92,7 +87,9 @@ contract SimpleTestMaker is TrivialTestMaker {
       TransferLib.approveToken(IERC20(order.ol.outbound), address(mgv), 0);
     }
 
-    emit Execute(msg.sender, order.ol.outbound, order.ol.inbound, order.offerId, order.wants, order.gives);
+    emit Execute(
+      msg.sender, order.ol.outbound, order.ol.inbound, order.ol.tickScale, order.offerId, order.wants, order.gives
+    );
 
     return bytes32(bytes(offerData.executeData));
   }
@@ -112,97 +109,81 @@ contract SimpleTestMaker is TrivialTestMaker {
 
     if (shouldRepost_) {
       mgv.updateOfferByVolume(
-        order.ol,
-        order.offer.wants(),
-        order.offer.gives(),
-        order.offerDetail.gasreq(),
-        0,
-        order.offerId
+        order.ol, order.offer.wants(), order.offer.gives(), order.offerDetail.gasreq(), 0, order.offerId
       );
     }
   }
 
   function newOfferByVolume(uint wants, uint gives, uint gasreq) public returns (uint) {
-    return newOfferByVolume(base, quote, wants, gives, gasreq);
+    return newOfferByVolume(ol, wants, gives, gasreq);
   }
 
   function newOfferByVolume(uint wants, uint gives, uint gasreq, OfferData memory offerData) public returns (uint) {
-    return newOfferByVolume(base, quote, wants, gives, gasreq, offerData);
+    return newOfferByVolume(ol, wants, gives, gasreq, offerData);
   }
 
   function newOfferByVolumeWithFunding(uint wants, uint gives, uint gasreq, uint amount) public returns (uint) {
-    return newOfferByVolumeWithFunding(base, quote, wants, gives, gasreq, 0, amount);
+    return newOfferByVolumeWithFunding(ol, wants, gives, gasreq, 0, amount);
   }
 
   function newOfferByVolumeWithFunding(uint wants, uint gives, uint gasreq, uint amount, OfferData memory offerData)
     public
     returns (uint)
   {
-    return newOfferByVolumeWithFunding(base, quote, wants, gives, gasreq, 0, amount, offerData);
+    return newOfferByVolumeWithFunding(ol, wants, gives, gasreq, 0, amount, offerData);
   }
 
   function newOfferByVolumeWithFunding(uint wants, uint gives, uint gasreq, uint gasprice, uint amount)
     public
     returns (uint)
   {
-    return newOfferByVolumeWithFunding(base, quote, wants, gives, gasreq, gasprice, amount);
+    return newOfferByVolumeWithFunding(ol, wants, gives, gasreq, gasprice, amount);
   }
 
-  function newOfferByVolume(address _base, address _quote, uint wants, uint gives, uint gasreq) public returns (uint) {
+  function newOfferByVolume(OL memory ol, uint wants, uint gives, uint gasreq) public returns (uint) {
     OfferData memory offerData;
-    return newOfferByVolume(_base, _quote, wants, gives, gasreq, offerData);
+    return newOfferByVolume(ol, wants, gives, gasreq, offerData);
   }
 
-  function newOfferByVolume(
-    address _base,
-    address _quote,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    OfferData memory offerData
-  ) public returns (uint) {
-    return newOfferByVolumeWithFunding(_base, _quote, wants, gives, gasreq, 0, 0, offerData);
-  }
-
-  function newOfferByVolumeWithFunding(address _base, address _quote, uint wants, uint gives, uint gasreq, uint amount)
+  function newOfferByVolume(OL memory ol, uint wants, uint gives, uint gasreq, OfferData memory offerData)
     public
     returns (uint)
   {
-    return newOfferByVolumeWithFunding(_base, _quote, wants, gives, gasreq, 0, amount);
+    return newOfferByVolumeWithFunding(ol, wants, gives, gasreq, 0, 0, offerData);
+  }
+
+  function newOfferByVolumeWithFunding(OL memory ol, uint wants, uint gives, uint gasreq, uint amount)
+    public
+    returns (uint)
+  {
+    return newOfferByVolumeWithFunding(ol, wants, gives, gasreq, 0, amount);
   }
 
   function newOfferByVolumeWithFunding(
-    address _base,
-    address _quote,
+    OL memory ol,
     uint wants,
     uint gives,
     uint gasreq,
     uint amount,
     OfferData memory offerData
   ) public returns (uint) {
-    return newOfferByVolumeWithFunding(_base, _quote, wants, gives, gasreq, 0, amount, offerData);
+    return newOfferByVolumeWithFunding(ol, wants, gives, gasreq, 0, amount, offerData);
   }
 
   function newOfferByVolume(uint wants, uint gives, uint gasreq, uint gasprice) public returns (uint) {
-    return newOfferByVolumeWithFunding(base, quote, wants, gives, gasreq, gasprice, 0);
+    return newOfferByVolumeWithFunding(ol, wants, gives, gasreq, gasprice, 0);
   }
 
-  function newOfferByVolumeWithFunding(
-    address _base,
-    address _quote,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint amount
-  ) public returns (uint) {
+  function newOfferByVolumeWithFunding(OL memory ol, uint wants, uint gives, uint gasreq, uint gasprice, uint amount)
+    public
+    returns (uint)
+  {
     OfferData memory offerData;
-    return newOfferByVolumeWithFunding(_base, _quote, wants, gives, gasreq, gasprice, amount, offerData);
+    return newOfferByVolumeWithFunding(ol, wants, gives, gasreq, gasprice, amount, offerData);
   }
 
   function newOfferByVolumeWithFunding(
-    address _base,
-    address _quote,
+    OL memory ol,
     uint wants,
     uint gives,
     uint gasreq,
@@ -210,18 +191,17 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount,
     OfferData memory offerData
   ) public returns (uint) {
-    uint offerId = mgv.newOfferByVolume{value: amount}(OL(_base, _quote, tickScale), wants, gives, gasreq, gasprice);
-    offerDatas[OL(_base,_quote,tickScale).id()][offerId] = offerData;
+    uint offerId = mgv.newOfferByVolume{value: amount}(ol, wants, gives, gasreq, gasprice);
+    offerDatas[ol.id()][offerId] = offerData;
     return offerId;
   }
 
   function newOfferByLogPrice(int logPrice, uint gives, uint gasreq, uint gasprice) public returns (uint) {
-    return newOfferByLogPriceWithFunding(base, quote, logPrice, gives, gasreq, gasprice, 0);
+    return newOfferByLogPriceWithFunding(ol, logPrice, gives, gasreq, gasprice, 0);
   }
 
   function newOfferByLogPriceWithFunding(
-    address _base,
-    address _quote,
+    OL memory ol,
     int logPrice,
     uint gives,
     uint gasreq,
@@ -229,12 +209,11 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount
   ) public returns (uint) {
     OfferData memory offerData;
-    return newOfferByLogPriceWithFunding(_base, _quote, logPrice, gives, gasreq, gasprice, amount, offerData);
+    return newOfferByLogPriceWithFunding(ol, logPrice, gives, gasreq, gasprice, amount, offerData);
   }
 
   function newOfferByLogPriceWithFunding(
-    address _base,
-    address _quote,
+    OL memory ol,
     int logPrice,
     uint gives,
     uint gasreq,
@@ -242,8 +221,8 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount,
     OfferData memory offerData
   ) public returns (uint) {
-    uint offerId = mgv.newOfferByLogPrice{value: amount}(OL(_base, _quote, tickScale), logPrice, gives, gasreq, gasprice);
-    offerDatas[OL(_base,_quote,tickScale).id()][offerId] = offerData;
+    uint offerId = mgv.newOfferByLogPrice{value: amount}(ol, logPrice, gives, gasreq, gasprice);
+    offerDatas[ol.id()][offerId] = offerData;
     return offerId;
   }
 
@@ -269,16 +248,16 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount,
     OfferData memory offerData
   ) public {
-    mgv.updateOfferByVolume{value: amount}(OL(base, quote, tickScale), wants, gives, gasreq, 0, offerId);
-    offerDatas[OL(base,quote,tickScale).id()][offerId] = offerData;
+    mgv.updateOfferByVolume{value: amount}(ol, wants, gives, gasreq, 0, offerId);
+    offerDatas[ol.id()][offerId] = offerData;
   }
 
   function retractOffer(uint offerId) public returns (uint) {
-    return mgv.retractOffer(OL(base,quote,DEFAULT_TICKSCALE), offerId, false);
+    return mgv.retractOffer(ol, offerId, false);
   }
 
   function retractOfferWithDeprovision(uint offerId) public returns (uint) {
-    return mgv.retractOffer(OL(base,quote,DEFAULT_TICKSCALE), offerId, true);
+    return mgv.retractOffer(ol, offerId, true);
   }
 
   function provisionMgv(uint amount) public payable {
@@ -295,7 +274,7 @@ contract SimpleTestMaker is TrivialTestMaker {
 }
 
 contract TestMaker is SimpleTestMaker, Test {
-  constructor(AbstractMangrove mgv, IERC20 base, IERC20 quote) SimpleTestMaker(mgv, base, quote) {}
+  constructor(AbstractMangrove mgv, OL memory ol) SimpleTestMaker(mgv, ol) {}
 
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) public virtual override {
     if (expectedStatus != bytes32("")) {

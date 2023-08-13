@@ -16,7 +16,7 @@ contract MonitorTest is MangroveTest {
   function setUp() public override {
     super.setUp();
 
-    mkr = setupMaker($(base), $(quote), "Maker[$(A),$(B)]");
+    mkr = setupMaker(ol, "Maker[$(A),$(B)]");
 
     monitor = freshAddress();
     monitor_read_cd = abi.encodeCall(IMgvMonitor.read, (ol));
@@ -101,7 +101,7 @@ contract MonitorTest is MangroveTest {
     _local = _local.lock(true);
 
     MgvLib.SingleOrder memory order = MgvLib.SingleOrder({
-      ol: OL( $(base), $(quote), DEFAULT_TICKSCALE),
+      ol: ol,
       offerId: ofrId,
       offer: offer,
       wants: 0.04 ether,
@@ -132,7 +132,7 @@ contract MonitorTest is MangroveTest {
     _local = _local.lock(true);
 
     MgvLib.SingleOrder memory order = MgvLib.SingleOrder({
-      ol: OL($(base), $(quote), DEFAULT_TICKSCALE),
+      ol: ol,
       offerId: ofrId,
       offer: offer,
       wants: 0.04 ether,

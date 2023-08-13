@@ -22,14 +22,12 @@ uint constant COVER_FACTOR = 1000;
   3. Round to nearest integer*/
 
 contract ActivateSemibook is Test2, Deployer {
-  uint constant DEFAULT_TICKSCALE = 1;
-
   function run() public {
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
       outbound_tkn: IERC20(envAddressOrName("OUTBOUND_TKN")),
       inbound_tkn: IERC20(envAddressOrName("INBOUND_TKN")),
-      tickScale: DEFAULT_TICKSCALE,
+      tickScale: vm.envUint("TICKSCALE"),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
       fee: vm.envUint("FEE")
     });
@@ -98,11 +96,7 @@ contract ActivateSemibook is Test2, Deployer {
 
     broadcast();
     mgv.activate({
-      ol: OL(
-        address(outbound_tkn),
-        address(inbound_tkn),
-        tickScale
-      ),
+      ol: OL(address(outbound_tkn), address(inbound_tkn), tickScale),
       fee: fee,
       densityFixed: density,
       offer_gasbase: gasbase

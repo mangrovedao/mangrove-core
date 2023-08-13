@@ -15,9 +15,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function setUp() public override {
     super.setUp();
 
-    mkr = setupMaker($(base), $(quote), "maker");
-    mkr2 = setupMaker($(base), $(quote), "maker2");
-    tkr = setupTaker($(base), $(quote), "taker");
+    mkr = setupMaker(ol, "maker");
+    mkr2 = setupMaker(ol, "maker2");
+    tkr = setupTaker(ol, "taker");
 
     mkr.approveMgv(base, 10 ether);
     mkr2.approveMgv(base, 10 ether);
@@ -66,7 +66,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     assertEq(order.ol.outbound, $(base), "wrong base");
     assertEq(order.ol.inbound, $(quote), "wrong quote");
-    assertEq(order.ol.tickScale, DEFAULT_TICKSCALE, "wrong quote");
+    assertEq(order.ol.tickScale, ol.tickScale, "wrong quote");
     assertEq(order.wants, 0.05 ether, "wrong takerWants");
     assertEq(order.gives, 0.05 ether, "wrong takerGives");
     assertEq(order.offerDetail.gasreq(), 200_000, "wrong gasreq");
@@ -268,7 +268,6 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr0 = mkr.newOfferByVolume(0.9 ether, 1 ether, 2300, 100);
     assertTrue(mgv.offers(ol, ofr).isLive(), "Offer was not removed from OB");
     MgvStructs.OfferPacked offerx = mgv.offers(ol, ofr);
-    console.log("PREV", reader.prevOfferId(ol, offerx));
     mkr.retractOffer(ofr);
     MgvStructs.OfferPacked offer = mgv.offers(ol, ofr);
     // note: a former version of this test was checking pair.prevOfferId(offer) and offer.next () but:
@@ -352,27 +351,19 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr1 = mkr.newOfferByVolume(1.1 ether, 1 ether, 50_000, 0);
     uint ofr01 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     assertEq(ofr0, pair.best(), "Wrong best offer");
-    assertTrue(
-      mgv.offers(ol, ofr0).isLive(), "Oldest equivalent offer should be first"
-    );
+    assertTrue(mgv.offers(ol, ofr0).isLive(), "Oldest equivalent offer should be first");
     MgvStructs.OfferPacked offer = mgv.offers(ol, ofr0);
     uint _ofr01 = reader.nextOfferId(ol, offer);
     assertEq(_ofr01, ofr01, "Wrong 2nd offer");
-    assertTrue(
-      mgv.offers(ol, _ofr01).isLive(), "Oldest equivalent offer should be first"
-    );
+    assertTrue(mgv.offers(ol, _ofr01).isLive(), "Oldest equivalent offer should be first");
     offer = mgv.offers(ol, _ofr01);
     uint _ofr2 = reader.nextOfferId(ol, offer);
     assertEq(_ofr2, ofr2, "Wrong 3rd offer");
-    assertTrue(
-      mgv.offers(ol, _ofr2).isLive(), "Oldest equivalent offer should be first"
-    );
+    assertTrue(mgv.offers(ol, _ofr2).isLive(), "Oldest equivalent offer should be first");
     offer = mgv.offers(ol, _ofr2);
     uint _ofr1 = reader.nextOfferId(ol, offer);
     assertEq(_ofr1, ofr1, "Wrong 4th offer");
-    assertTrue(
-      mgv.offers(ol, _ofr1).isLive(), "Oldest equivalent offer should be first"
-    );
+    assertTrue(mgv.offers(ol, _ofr1).isLive(), "Oldest equivalent offer should be first");
     offer = mgv.offers(ol, _ofr1);
     assertEq(reader.nextOfferId(ol, offer), 0, "Invalid OB");
   }
@@ -418,7 +409,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr1 = mkr.newOfferByVolume(1.0 ether, 1.0 ether, 100_000, 0);
     assertEq(ofr0, pair.best(), "Wrong best offer");
     mkr.updateOfferByVolume(1.0 ether, 1.0 ether, 99_999, ofr1);
-    logOrderBook($(base), $(quote), 2);
+    logOrderBook(ol, 2);
     assertEq(pair.best(), ofr0, "Best offer should not have changed");
   }
 
@@ -481,7 +472,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     emit OfferWrite(
       $(base),
       $(quote),
-      DEFAULT_TICKSCALE,
+      ol.tickScale,
       address(mkr),
       0, //tick
       1.0 ether,
@@ -499,7 +490,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     emit OfferWrite(
       $(base),
       $(quote),
-      DEFAULT_TICKSCALE,
+      ol.tickScale,
       address(mkr),
       0, //tick
       1.0 ether,
@@ -871,21 +862,21 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_update_branch_on_insert_posInLeaf() public {
     mkr.provisionMgv(10 ether);
     Tick tick0 = Tick.wrap(0);
-    mkr.newOfferByLogPrice(LogPriceLib.fromTick(tick0, DEFAULT_TICKSCALE), 1 ether, 100_000, 0);
+    mkr.newOfferByLogPrice(LogPriceLib.fromTick(tick0, ol.tickScale), 1 ether, 100_000, 0);
     uint ofr = mkr.newOfferByLogPrice(-46055, 100 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = pair.offers(ofr);
     assertTrue(
-      offer.tick(DEFAULT_TICKSCALE).posInLeaf() != Tick.wrap(0).posInLeaf(),
+      offer.tick(ol.tickScale).posInLeaf() != Tick.wrap(0).posInLeaf(),
       "test void if posInLeaf of second offer is not different"
     );
-    assertEq(pair.local().tickPosInLeaf(), offer.tick(DEFAULT_TICKSCALE).posInLeaf(), "posInLeaf should have changed");
+    assertEq(pair.local().tickPosInLeaf(), offer.tick(ol.tickScale).posInLeaf(), "posInLeaf should have changed");
   }
 
   function test_higher_tick() public {
     mgv.newOfferByLogPrice(ol, 2, 1 ether, 100_000, 0);
     (, MgvStructs.LocalPacked local) = mgv.config(ol);
     // console.log("pos in leaf", toString(local));
-    // console.log(LogPriceLib.priceFromLogPrice_e18(LogPriceLib.fromTick(local.tick(),DEFAULT_TICKSCALE)));
+    // console.log(LogPriceLib.priceFromLogPrice_e18(LogPriceLib.fromTick(local.tick(),ol.tickScale)));
 
     mgv.newOfferByLogPrice(ol, 3, 1 ether, 100_000, 0);
     (, local) = mgv.config(ol);

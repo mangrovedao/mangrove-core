@@ -10,8 +10,6 @@ import {OL} from "mgv_src/MgvLib.sol";
 
 /* Deactivate a market (aka two mangrove semibooks) & update MgvReader. */
 contract DeactivateMarket is Deployer {
-  uint constant DEFAULT_TICKSCALE = 1;
-
   function run() public {
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
@@ -19,7 +17,7 @@ contract DeactivateMarket is Deployer {
       market: MgvReader.Market({
         tkn0: envAddressOrName("TKN0"),
         tkn1: envAddressOrName("TKN1"),
-        tickScale: DEFAULT_TICKSCALE
+        tickScale: vm.envUint("TICKSCALE")
       })
     });
     outputDeployment();
@@ -27,10 +25,10 @@ contract DeactivateMarket is Deployer {
 
   function innerRun(Mangrove mgv, MgvReader reader, MgvReader.Market memory market) public {
     broadcast();
-    mgv.deactivate(OL(market.tkn0,market.tkn1,market.tickScale));
+    mgv.deactivate(OL(market.tkn0, market.tkn1, market.tickScale));
 
     broadcast();
-    mgv.deactivate(OL(market.tkn1,market.tkn0,market.tickScale));
+    mgv.deactivate(OL(market.tkn1, market.tkn0, market.tickScale));
 
     (new UpdateMarket()).innerRun({market: market, reader: reader});
 

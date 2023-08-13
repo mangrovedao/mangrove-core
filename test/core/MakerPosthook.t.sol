@@ -30,16 +30,12 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
   function renew_offer_at_posthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata) internal {
     called = true;
-    mgv.updateOfferByVolume(
-      order.ol, 1 ether, 1 ether, gasreq, _gasprice, order.offerId
-    );
+    mgv.updateOfferByVolume(order.ol, 1 ether, 1 ether, gasreq, _gasprice, order.offerId);
   }
 
   function update_gas_offer_at_posthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata) internal {
     called = true;
-    mgv.updateOfferByVolume(
-      order.ol, 1 ether, 1 ether, gasreq, _gasprice, order.offerId
-    );
+    mgv.updateOfferByVolume(order.ol, 1 ether, 1 ether, gasreq, _gasprice, order.offerId);
   }
 
   function failer_posthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) internal {
@@ -69,17 +65,14 @@ contract MakerPosthookTest is MangroveTest, IMaker {
       assertEq(result.mgvData, bytes32("mgv/tradeSuccess"), "mgvData should be tradeSuccess");
       assertEq(result.makerData, executeReturnData, "Incorrect returned makerData");
     }
-    assertTrue(
-      !mgv.offers(order.ol, order.offerId).isLive(),
-      "Offer was not removed after take"
-    );
+    assertTrue(!mgv.offers(order.ol, order.offerId).isLive(), "Offer was not removed after take");
     _posthook(order, result);
   }
 
   function setUp() public override {
     super.setUp();
 
-    tkr = setupTaker($(base), $(quote), "Taker");
+    tkr = setupTaker(ol, "Taker");
     deal($(base), $(this), 5 ether);
     deal($(quote), address(tkr), 1 ether);
 
@@ -226,7 +219,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, gasreq, _gasprice);
 
-    bool success = tkr.snipeByVolume(mgv, $(base), $(quote), ofr, 1 ether, gasreq - 1);
+    bool success = tkr.snipeByVolume(mgv, ol, ofr, 1 ether, gasreq - 1);
     assertTrue(!called, "PostHook was called");
     assertTrue(!success, "Snipe should fail");
   }
@@ -235,7 +228,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     executeReturnData = "NOK2";
     ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, gasreq, _gasprice);
 
-    bool success = tkr.snipeByVolume(mgv, $(base), $(quote), ofr, 1 ether, gasreq - 1);
+    bool success = tkr.snipeByVolume(mgv, ol, ofr, 1 ether, gasreq - 1);
     // using asserts in makerPosthook here
     assertTrue(!called, "PostHook was called");
     assertTrue(!success, "Snipe should fail");
@@ -246,7 +239,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, gasreq, _gasprice);
     int logPrice = mgv.offers(ol, ofr).logPrice();
     int newLogPrice = logPrice - 1; // Snipe at a lower price
-    bool success = tkr.snipeByLogPrice(mgv, $(base), $(quote), ofr, newLogPrice, 1 ether, gasreq);
+    bool success = tkr.snipeByLogPrice(mgv, ol, ofr, newLogPrice, 1 ether, gasreq);
     assertTrue(!success, "Snipe should fail");
     assertTrue(!called, "PostHook was called");
   }
@@ -431,7 +424,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     public
   {
     // This maker makes a succeeding offer, with a bad price
-    TestMaker mkr = setupMaker($(base), $(quote), "maker");
+    TestMaker mkr = setupMaker(ol, "maker");
     mkr.approveMgv(base, 10 ether);
     mkr.provisionMgv(1 ether);
     deal($(base), address(mkr), 5 ether);
@@ -453,7 +446,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     public
   {
     // This maker makes a succeeding offer, with a bad price
-    TestMaker mkr = setupMaker($(base), $(quote), "maker");
+    TestMaker mkr = setupMaker(ol, "maker");
     mkr.approveMgv(base, 10 ether);
     mkr.provisionMgv(1 ether);
     deal($(base), address(mkr), 5 ether);

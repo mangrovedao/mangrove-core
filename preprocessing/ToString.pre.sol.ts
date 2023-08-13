@@ -77,7 +77,7 @@ function toString(Field field) pure returns (string memory res) {
 }
 
 function toString(OL memory ol) pure returns (string memory res) {
-  res = string.concat("OL{out: ",vm.toString(ol.outbound)," in: ",vm.toString(ol.inbound)," sc: ",vm.toString(ol.tickScale),"}");
+  res = string.concat("OL{out: ",vm.toString(ol.outbound),", in: ",vm.toString(ol.inbound)," sc: ",vm.toString(ol.tickScale),"}");
 }
 
 /* *** Unit conversion *** */

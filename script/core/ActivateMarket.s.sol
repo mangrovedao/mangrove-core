@@ -18,15 +18,13 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
  forge script --fork-url mumbai ActivateMarket*/
 
 contract ActivateMarket is Deployer {
-  uint constant DEFAULT_TICKSCALE = 1;
-
   function run() public {
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
       tkn1: IERC20(envAddressOrName("TKN1")),
       tkn2: IERC20(envAddressOrName("TKN2")),
-      tickScale: DEFAULT_TICKSCALE,
+      tickScale: vm.envUint("TICKSCALE"),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
       fee: vm.envUint("FEE")
@@ -95,7 +93,7 @@ contract ActivateMarket is Deployer {
       gaspriceOverride: gaspriceOverride,
       outbound_tkn: tkn2,
       inbound_tkn: tkn1,
-      tickScale: DEFAULT_TICKSCALE,
+      tickScale: tickScale,
       outbound_in_gwei: tkn2_in_gwei,
       fee: fee
     });

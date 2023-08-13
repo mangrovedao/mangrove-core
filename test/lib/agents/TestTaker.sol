@@ -11,14 +11,12 @@ import {Tick} from "mgv_lib/TickLib.sol";
 contract TestTaker is ITaker, Script2 {
   uint constant DEFAULT_TICKSCALE = 1;
   AbstractMangrove _mgv;
-  address _base;
-  address _quote;
+  OL ol;
   bool acceptNative = true;
 
-  constructor(AbstractMangrove mgv, IERC20 base, IERC20 quote) {
+  constructor(AbstractMangrove mgv, OL memory _ol) {
     _mgv = mgv;
-    _base = address(base);
-    _quote = address(quote);
+    ol = _ol;
   }
 
   receive() external payable {}
@@ -32,7 +30,7 @@ contract TestTaker is ITaker, Script2 {
   }
 
   function approveSpender(address spender, uint amount) external {
-    _mgv.approve(_base, _quote, spender, amount);
+    _mgv.approve(ol.outbound, ol.inbound, spender, amount);
   }
 
   function take(uint offerId, uint takerWants) external returns (bool success) {
@@ -41,61 +39,54 @@ contract TestTaker is ITaker, Script2 {
   }
 
   function takeWithInfo(uint offerId, uint takerWants) external returns (bool, uint, uint, uint, uint) {
-    int logPrice = _mgv.offers(OL(_base, _quote, DEFAULT_TICKSCALE), offerId).logPrice();
+    int logPrice = _mgv.offers(ol, offerId).logPrice();
     uint[4][] memory targets = wrap_dynamic([offerId, uint(logPrice), takerWants, type(uint48).max]);
-    (uint successes, uint got, uint gave, uint totalPenalty, uint feePaid) =
-      _mgv.snipes(OL(_base, _quote, DEFAULT_TICKSCALE), targets, true);
+    (uint successes, uint got, uint gave, uint totalPenalty, uint feePaid) = _mgv.snipes(ol, targets, true);
     return (successes == 1, got, gave, totalPenalty, feePaid);
     //return taken;
   }
 
-  function snipeByVolume(
-    AbstractMangrove __mgv,
-    address __base,
-    address __quote,
-    uint offerId,
-    uint takerWants,
-    uint gasreq
-  ) external returns (bool) {
-    int logPrice = __mgv.offers(OL(__base, __quote, DEFAULT_TICKSCALE), offerId).logPrice();
+  function snipeByVolume(AbstractMangrove __mgv, OL memory ol, uint offerId, uint takerWants, uint gasreq)
+    external
+    returns (bool)
+  {
+    int logPrice = __mgv.offers(ol, offerId).logPrice();
     uint[4][] memory targets = wrap_dynamic([offerId, uint(logPrice), takerWants, gasreq]);
-    (uint successes,,,,) = __mgv.snipes(OL(__base, __quote, 1), targets, true);
+    (uint successes,,,,) = __mgv.snipes(ol, targets, true);
     return successes == 1;
   }
 
   function snipeByLogPrice(
     AbstractMangrove __mgv,
-    address __base,
-    address __quote,
+    OL memory ol,
     uint offerId,
     int logPrice,
     uint takerWants,
     uint gasreq
   ) external returns (bool) {
     uint[4][] memory targets = wrap_dynamic([offerId, uint(logPrice), takerWants, gasreq]);
-    (uint successes,,,,) = __mgv.snipes(OL(__base, __quote, DEFAULT_TICKSCALE), targets, true);
+    (uint successes,,,,) = __mgv.snipes(ol, targets, true);
     return successes == 1;
   }
 
-  function takerTrade(address, address, uint, uint) external pure override {}
+  function takerTrade(OL calldata, uint, uint) external pure override {}
 
   function marketOrder(uint wants, uint gives) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(OL(_base, _quote, DEFAULT_TICKSCALE), wants, gives, true);
+    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(ol, wants, gives, true);
   }
 
   function marketOrder(uint wants, uint gives, bool fillWants) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(OL(_base, _quote, DEFAULT_TICKSCALE), wants, gives, fillWants);
+    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(ol, wants, gives, fillWants);
   }
 
-  function marketOrder(AbstractMangrove __mgv, address __base, address __quote, uint takerWants, uint takerGives)
+  function marketOrder(AbstractMangrove __mgv, OL memory ol, uint takerWants, uint takerGives)
     external
     returns (uint takerGot, uint takerGave)
   {
-    (takerGot, takerGave,,) =
-      __mgv.marketOrderByVolume(OL(__base, __quote, DEFAULT_TICKSCALE), takerWants, takerGives, true);
+    (takerGot, takerGave,,) = __mgv.marketOrderByVolume(ol, takerWants, takerGives, true);
   }
 
   function marketOrderWithFail(uint wants, uint gives) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(OL(_base, _quote, DEFAULT_TICKSCALE), wants, gives, true);
+    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(ol, wants, gives, true);
   }
 }

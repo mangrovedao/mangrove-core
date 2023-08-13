@@ -105,13 +105,14 @@ contract GasTest is MangroveTest, IMaker {
 
   function test_market_order_8() public {
     (AbstractMangrove mgv, TestTaker tkr, address base, address quote,) = getStored();
-    mgv.newOfferByVolume(OL(base,quote,DEFAULT_TICKSCALE), 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(OL(base,quote,DEFAULT_TICKSCALE), 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(OL(base,quote,DEFAULT_TICKSCALE), 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(OL(base,quote,DEFAULT_TICKSCALE), 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(OL(base,quote,DEFAULT_TICKSCALE), 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(OL(base,quote,DEFAULT_TICKSCALE), 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(OL(base,quote,DEFAULT_TICKSCALE), 0.1 ether, 0.1 ether, 100_000, 0);
+    OL memory ol = OL(base,quote,DEFAULT_TICKSCALE);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
     _gas();
     tkr.marketOrder(mgv, base, quote, 2 ether, 2 ether);
     gas_();

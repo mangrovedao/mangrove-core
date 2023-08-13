@@ -7,10 +7,12 @@ test='test'
 out='out'
 libs=['lib']
 cache_path='cache'
+evm_version='paris'
 fs_permissions = [{ access = "read-write", path = "./addresses/"}, { access = "read", path = "./out/" }]
 solc_version="0.8.21"
 ffi=true
 optimizer=false
+
 # via_ir=true
 # optimizer_runs=200
 

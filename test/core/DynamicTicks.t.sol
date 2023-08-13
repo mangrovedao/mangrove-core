@@ -47,14 +47,14 @@ contract DynamicTicksTest is MangroveTest {
   function test_newOffer_store_and_retrieve(uint24 tickScale, uint24 badTickScale, int24 logPrice) public {
     vm.assume(tickScale != badTickScale);
     vm.assume(tickScale != 0);
-    mgv.activate(OL($(base),$(quote),tickScale), 0, 100, 0);
-    mgv.activate(OL($(base),$(quote),badTickScale),0, 100, 0);
+    mgv.activate(OL($(base), $(quote), tickScale), 0, 100, 0);
+    mgv.activate(OL($(base), $(quote), badTickScale), 0, 100, 0);
     logPrice = boundLogPrice(logPrice);
     uint gives = 1 ether;
     uint wants = LogPriceLib.inboundFromOutbound(logPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
-    uint ofr = mgv.newOfferByLogPrice(OL($(base),$(quote), tickScale), logPrice, gives, 100_000, 30);
+    uint ofr = mgv.newOfferByLogPrice(OL($(base), $(quote), tickScale), logPrice, gives, 100_000, 30);
     pair.ol.tickScale = badTickScale;
     assertEq(pair.offers(ofr).gives(), 0, "offer should not be at other tickscale");
     pair.ol.tickScale = tickScale;
@@ -116,13 +116,17 @@ contract DynamicTicksTest is MangroveTest {
   function test_noOfferAtZeroTickScale(int24 logPrice, uint96 gives) public {
     // TODO is it really necessary to constraint wants < 96 bits? Or can it go to any size no problem?
     logPrice = boundLogPrice(logPrice);
-    mgv.activate(OL($(base),$(quote), 0), 0, 100, 0);
+    mgv.activate(OL($(base), $(quote), 0), 0, 100, 0);
     uint wants = LogPriceLib.inboundFromOutbound(logPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
     vm.expectRevert(stdError.divisionError);
-    mgv.newOfferByLogPrice(OL($(base),$(quote), 0), logPrice, gives, 100_00, 30);
+    mgv.newOfferByLogPrice(OL($(base), $(quote), 0), logPrice, gives, 100_00, 30);
   }
 
   // FIXME think of more tests
+
+  function test_id_is_correct(OL memory ol) public {
+    assertEq(ol.id(), keccak256(abi.encode(ol)), "id() is hashing incorrect data");
+  }
 }

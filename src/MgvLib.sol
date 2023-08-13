@@ -11,14 +11,21 @@ import "mgv_lib/TickLib.sol";
 
 using OLLib for OL global;
 // OL is OfferList
+
 struct OL {
   address outbound;
   address inbound;
   uint tickScale;
 }
+
 library OLLib {
-  function id(OL memory ol) pure internal returns (bytes32) {
-    return keccak256(abi.encode(ol));
+  // The id should be keccak256(abi.encode(ol))
+  // To save gas, id() directly hashes the memory (which matches the ABI encoding)
+  // If the memory layout changes, this function must be updated
+  function id(OL memory ol) internal pure returns (bytes32 _id) {
+    assembly {
+      _id := keccak256(ol, 96)
+    }
   }
 }
 
@@ -200,8 +207,5 @@ interface IMgvMonitor {
 
   function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external;
 
-  function read(OL memory ol)
-    external
-    view
-    returns (uint gasprice, Density density);
+  function read(OL memory ol) external view returns (uint gasprice, Density density);
 }

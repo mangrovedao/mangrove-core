@@ -330,7 +330,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     deal($(base), address(mkr), 1 ether);
     mkr.approveMgv(base, 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    int logPrice = pair.offers(ofr).logPrice();
+    int logPrice = mgv.offers(ol, ofr).logPrice();
 
     vm.expectRevert("mgv/lowAllowance");
     mgv.snipesFor(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 300_000]), true, address(tkr));
@@ -537,7 +537,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     // assertGt(takerGot,0,"mo should work");
     // should execute 0 offers due to price mismatch
     assertEq(takerGot, 0, "mo should fail");
-    assertTrue(pair.offers(ofr).gives() > 0, "offer should still be live");
+    assertTrue(mgv.offers(ol, ofr).gives() > 0, "offer should still be live");
     (takerGot, takerGave) = tkr.marketOrder(0.5 ether, 0.6 ether);
     assertGt(takerGot, 0, "mo should work");
     assertTrue(mgv.best(ol) == 0, "2nd market order must have emptied mgv");
@@ -550,7 +550,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint ofr2 = mgv.newOfferByVolume(ol, 0.1 ether, 0.05 ether, 3500_000, 0);
     (uint takerGot, uint takerGave) = tkr.marketOrder(0.1 ether, 0.1 ether);
     assertEq(takerGot, 0.05 ether, "mo should only take ofr");
-    assertGt(pair.offers(ofr2).gives(), 0, "ofr2 should still be live");
+    assertGt(mgv.offers(ol, ofr2).gives(), 0, "ofr2 should still be live");
     (takerGot, takerGave) = tkr.marketOrder(0.06 ether, 0.2 ether);
     assertGt(takerGot, 0, "mo should work");
     assertTrue(mgv.best(ol) == 0, "2nd market order must have emptied mgv");
@@ -560,7 +560,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_leaf_is_flushed_case1() public {
     mgv.setGasmax(10_000_000);
     uint id = mgv.newOfferByVolume(ol, 0.05 ether, 0.05 ether, 3500_000, 0);
-    MgvStructs.OfferPacked ofr = pair.offers(id);
+    MgvStructs.OfferPacked ofr = mgv.offers(ol, id);
     // FIXME increasing tick by 2 because tick->price->tick does not round up currently
     // when that is fixed, should replace with tick+1
     Tick nextTick = Tick.wrap(Tick.unwrap(ofr.tick(ol.tickScale)) + 2);
@@ -568,7 +568,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint id2 = mgv.newOfferByVolume(ol, 5 ether, gives, 3500_000, 0);
     tkr.marketOrder(0.05 ether, 0.05 ether);
     // low-level check
-    assertEq(pair.leafs(ofr.tick(ol.tickScale).leafIndex()).getNextOfferId(), id2);
+    assertEq(mgv.leafs(ol, ofr.tick(ol.tickScale).leafIndex()).getNextOfferId(), id2);
     // high-level check
     assertTrue(mgv.best(ol) == id2, "2nd market order must have emptied mgv");
   }
@@ -580,13 +580,13 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint ofr0 = mgv.newOfferByVolume(ol, 0.01 ether, 1 ether, 1000000, 0);
     // store some information in another level0 (a worse one)
     uint ofr1 = mgv.newOfferByVolume(ol, 0.02 ether, 0.05 ether, 1000000, 0);
-    Tick tick1 = pair.offers(ofr1).tick(ol.tickScale);
+    Tick tick1 = mgv.offers(ol, ofr1).tick(ol.tickScale);
     int index1 = tick1.level0Index();
     // make ofr1 the best offer (ofr1.level0 is now cached, but it also lives in its slot)
     mgv.retractOffer(ol, ofr0, true);
     // make an offer worse than ofr1
     uint ofr2 = mgv.newOfferByVolume(ol, 0.05 ether, 0.05 ether, 1000000, 0);
-    Tick tick2 = pair.offers(ofr2).tick(ol.tickScale);
+    Tick tick2 = mgv.offers(ol, ofr2).tick(ol.tickScale);
     int index2 = tick2.level0Index();
 
     // ofr2 is now best again. ofr1.level0 is not cached anymore.
@@ -594,21 +594,22 @@ contract GatekeepingTest is IMaker, MangroveTest {
     // (if it had originally been empty, the test would always succeed)
     mgv.retractOffer(ol, ofr1, true);
     assertTrue(index1 != index2, "test should construct ofr1/ofr2 so they are on different level0 nodes");
-    assertEq(pair.level0(index1), FieldLib.EMPTY, "ofr1's level0 should be empty");
+    assertEq(mgv.level0(ol, index1), FieldLib.EMPTY, "ofr1's level0 should be empty");
   }
 
   // FIXME Not Gatekeeping!
   function test_leaf_update_both_first_and_last() public {
     uint ofr0 = mgv.newOfferByVolume(ol, 0.01 ether, 1 ether, 1000000, 0);
-    Tick tick0 = pair.offers(ofr0).tick(ol.tickScale);
+    Tick tick0 = mgv.offers(ol, ofr0).tick(ol.tickScale);
     mgv.retractOffer(ol, ofr0, true);
-    assertEq(pair.leafs(tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
+    assertEq(mgv.leafs(ol, tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
 
   /* Snipe failure */
 
   function snipesKO(uint id) external {
-    uint[4][] memory targets = wrap_dynamic([id, uint(pair.offers(id).logPrice()), type(uint96).max, type(uint48).max]);
+    uint[4][] memory targets =
+      wrap_dynamic([id, uint(mgv.offers(ol, id).logPrice()), type(uint96).max, type(uint48).max]);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.snipes(ol, targets, true);
   }

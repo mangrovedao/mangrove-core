@@ -27,7 +27,7 @@ contract ScenariiTest is MangroveTest {
       offers[offerId][Info.makerWants] = offer.wants();
       offers[offerId][Info.makerGives] = offer.gives;
       offers[offerId][Info.gasreq] = offerDetail.gasreq;
-      offerId = pair.nextOfferIdById(offerId);
+      offerId = reader.nextOfferIdById(ol, offerId);
     }
   }
 
@@ -194,7 +194,7 @@ contract ScenariiTest is MangroveTest {
       unchecked {
         expected_maker -= 1;
       }
-      offerId = pair.nextOfferIdById(offerId);
+      offerId = reader.nextOfferIdById(ol, offerId);
     }
     return _offerOf;
   }

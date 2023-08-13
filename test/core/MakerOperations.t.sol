@@ -229,18 +229,18 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     MgvStructs.OfferPacked offer = mgv.offers(ol, ofr);
     MgvStructs.OfferDetailPacked detail = mgv.offerDetails(ol, ofr);
 
-    assertEq(pair.prevOfferId(offer), ofr0, "Invalid prev");
-    assertEq(pair.nextOfferId(offer), ofr1, "Invalid next");
+    assertEq(reader.prevOfferId(ol, offer), ofr0, "Invalid prev");
+    assertEq(reader.nextOfferId(ol, offer), ofr1, "Invalid next");
     assertEq(offer.gives(), 0, "offer gives was not set to 0");
     assertEq(detail.gasprice(), 100, "offer gasprice is incorrect");
 
-    assertTrue(mgv.offers(ol, pair.prevOfferId(offer)).isLive(), "Invalid OB");
-    assertTrue(mgv.offers(ol, pair.nextOfferId(offer)).isLive(), "Invalid OB");
-    MgvStructs.OfferPacked offer0 = mgv.offers(ol, pair.prevOfferId(offer));
-    MgvStructs.OfferPacked offer1 = mgv.offers(ol, pair.nextOfferId(offer));
+    assertTrue(mgv.offers(ol, reader.prevOfferId(ol, offer)).isLive(), "Invalid OB");
+    assertTrue(mgv.offers(ol, reader.nextOfferId(ol, offer)).isLive(), "Invalid OB");
+    MgvStructs.OfferPacked offer0 = mgv.offers(ol, reader.prevOfferId(ol, offer));
+    MgvStructs.OfferPacked offer1 = mgv.offers(ol, reader.nextOfferId(ol, offer));
 
-    assertEq(pair.prevOfferId(offer1), ofr0, "Invalid stitching for ofr1");
-    assertEq(pair.nextOfferId(offer0), ofr1, "Invalid stitching for ofr0");
+    assertEq(reader.prevOfferId(ol, offer1), ofr0, "Invalid stitching for ofr1");
+    assertEq(reader.nextOfferId(ol, offer0), ofr1, "Invalid stitching for ofr0");
   }
 
   function test_retract_best_offer_leaves_a_valid_book() public {
@@ -251,15 +251,15 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertTrue(!mgv.offers(ol, ofr).isLive(), "Offer was not removed from OB");
     MgvStructs.OfferPacked offer = mgv.offers(ol, ofr);
     MgvStructs.OfferDetailPacked detail = mgv.offerDetails(ol, ofr);
-    assertEq(pair.prevOfferId(offer), 0, "Invalid prev");
-    assertEq(pair.nextOfferId(offer), ofr1, "Invalid next");
+    assertEq(reader.prevOfferId(ol, offer), 0, "Invalid prev");
+    assertEq(reader.nextOfferId(ol, offer), ofr1, "Invalid next");
     assertEq(offer.gives(), 0, "offer gives was not set to 0");
     assertEq(detail.gasprice(), 100, "offer gasprice is incorrect");
 
-    assertTrue(mgv.offers(ol, pair.nextOfferId(offer)).isLive(), "Invalid OB");
-    MgvStructs.OfferPacked offer1 = mgv.offers(ol, pair.nextOfferId(offer));
-    assertEq(pair.prevOfferId(offer1), 0, "Invalid stitching for ofr1");
-    assertEq(pair.best(), ofr1, "Invalid best after retract");
+    assertTrue(mgv.offers(ol, reader.nextOfferId(ol, offer)).isLive(), "Invalid OB");
+    MgvStructs.OfferPacked offer1 = mgv.offers(ol, reader.nextOfferId(ol, offer));
+    assertEq(reader.prevOfferId(ol, offer1), 0, "Invalid stitching for ofr1");
+    assertEq(mgv.best(ol), ofr1, "Invalid best after retract");
   }
 
   function test_retract_worst_offer_leaves_a_valid_book() public {
@@ -269,14 +269,14 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertTrue(mgv.offers(ol, ofr).isLive(), "Offer was not removed from OB");
     mkr.retractOffer(ofr);
     MgvStructs.OfferPacked offer = mgv.offers(ol, ofr);
-    // note: a former version of this test was checking pair.prevOfferId(offer) and offer.next () but:
+    // note: a former version of this test was checking reader.prevOfferId(ol,offer) and offer.next () but:
     // 1. There is no spec of what prev() next() are for a non-live offer (nor of what prev/nextOffer are)
     // 2. prev() and next() are not meaningful with tick trees
     assertEq(offer.gives(), 0, "offer gives was not set to 0");
     MgvStructs.OfferPacked offer0 = mgv.offers(ol, ofr0);
     assertTrue(offer0.isLive(), "Invalid OB");
     assertEq(reader.nextOfferId(ol, offer0), 0, "Invalid stitching for ofr0");
-    assertEq(pair.best(), ofr0, "Invalid best after retract");
+    assertEq(mgv.best(ol), ofr0, "Invalid best after retract");
   }
 
   function test_delete_wrong_offer_fails() public {
@@ -349,7 +349,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr0 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOfferByVolume(1.1 ether, 1 ether, 50_000, 0);
     uint ofr01 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
-    assertEq(ofr0, pair.best(), "Wrong best offer");
+    assertEq(ofr0, mgv.best(ol), "Wrong best offer");
     assertTrue(mgv.offers(ol, ofr0).isLive(), "Oldest equivalent offer should be first");
     MgvStructs.OfferPacked offer = mgv.offers(ol, ofr0);
     uint _ofr01 = reader.nextOfferId(ol, offer);
@@ -377,27 +377,27 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
-    assertEq(ofr0, pair.best(), "Wrong best offer");
+    assertEq(ofr0, mgv.best(ol), "Wrong best offer");
     mkr.updateOfferByVolume(1.0 ether, 1.0 ether, 100_000, ofr0);
-    assertEq(ofr1, pair.best(), "Best offer should have changed");
+    assertEq(ofr1, mgv.best(ol), "Best offer should have changed");
   }
 
   function test_update_offer_price_nolonger_best() public {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
-    assertEq(ofr0, pair.best(), "Wrong best offer");
+    assertEq(ofr0, mgv.best(ol), "Wrong best offer");
     mkr.updateOfferByVolume(1.0 ether + 1, 1.0 ether, 100_000, ofr0);
-    assertEq(ofr1, pair.best(), "Best offer should have changed");
+    assertEq(ofr1, mgv.best(ol), "Best offer should have changed");
   }
 
   function test_update_offer_density_nolonger_best() public {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
-    assertEq(ofr0, pair.best(), "Wrong best offer");
+    assertEq(ofr0, mgv.best(ol), "Wrong best offer");
     mkr.updateOfferByVolume(1.0 ether, 1.0 ether, 100_001, ofr0);
-    assertEq(ofr1, pair.best(), "Best offer should have changed");
+    assertEq(ofr1, mgv.best(ol), "Best offer should have changed");
   }
 
   // before ticks: worsening an offer's density keeps it in best position if it still has the best density
@@ -406,10 +406,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOfferByVolume(1.0 ether, 1.0 ether, 100_000, 0);
     uint ofr1 = mkr.newOfferByVolume(1.0 ether, 1.0 ether, 100_000, 0);
-    assertEq(ofr0, pair.best(), "Wrong best offer");
+    assertEq(ofr0, mgv.best(ol), "Wrong best offer");
     mkr.updateOfferByVolume(1.0 ether, 1.0 ether, 99_999, ofr1);
     logOrderBook(ol, 2);
-    assertEq(pair.best(), ofr0, "Best offer should not have changed");
+    assertEq(mgv.best(ol), ofr0, "Best offer should not have changed");
   }
 
   function test_update_offer_price_changes_prevnext() public {
@@ -422,13 +422,13 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     assertTrue(mgv.offers(ol, ofr).isLive(), "Insertion error");
     MgvStructs.OfferPacked offer = mgv.offers(ol, ofr);
-    assertEq(pair.prevOfferId(offer), ofr0, "Wrong prev offer");
-    assertEq(pair.nextOfferId(offer), ofr1, "Wrong next offer");
+    assertEq(reader.prevOfferId(ol, offer), ofr0, "Wrong prev offer");
+    assertEq(reader.nextOfferId(ol, offer), ofr1, "Wrong next offer");
     mkr.updateOfferByVolume(1.1 ether, 1.0 ether, 100_000, ofr);
     assertTrue(mgv.offers(ol, ofr).isLive(), "Insertion error");
     offer = mgv.offers(ol, ofr);
-    assertEq(pair.prevOfferId(offer), ofr2, "Wrong prev offer after update");
-    assertEq(pair.nextOfferId(offer), ofr3, "Wrong next offer after update");
+    assertEq(reader.prevOfferId(ol, offer), ofr2, "Wrong prev offer after update");
+    assertEq(reader.nextOfferId(ol, offer), ofr3, "Wrong next offer after update");
   }
 
   function test_update_offer_density_changes_prevnext() public {
@@ -441,13 +441,13 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     assertTrue(mgv.offers(ol, ofr).isLive(), "Insertion error");
     MgvStructs.OfferPacked offer = mgv.offers(ol, ofr);
-    assertEq(pair.prevOfferId(offer), ofr0, "Wrong prev offer");
-    assertEq(pair.nextOfferId(offer), ofr1, "Wrong next offer");
+    assertEq(reader.prevOfferId(ol, offer), ofr0, "Wrong prev offer");
+    assertEq(reader.nextOfferId(ol, offer), ofr1, "Wrong next offer");
     mkr.updateOfferByVolume(1.0 ether, 1.0 ether, 100_001, ofr);
     assertTrue(mgv.offers(ol, ofr).isLive(), "Update error");
     offer = mgv.offers(ol, ofr);
-    assertEq(pair.prevOfferId(offer), ofr3, "Wrong prev offer after update");
-    assertEq(pair.nextOfferId(offer), 0, "Wrong next offer after update");
+    assertEq(reader.prevOfferId(ol, offer), ofr3, "Wrong prev offer after update");
+    assertEq(reader.nextOfferId(ol, offer), 0, "Wrong next offer after update");
   }
 
   function test_update_offer_after_higher_gasprice_change_fails() public {
@@ -520,12 +520,12 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint left = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     uint right = mkr.newOfferByVolume(1 ether + 0.03 ether, 1 ether, 100_000, 0);
     uint center = mkr.newOfferByVolume(1 ether + 0.01 ether, 1 ether, 100_000, 0);
-    assertEq(pair.prevOfferId(pair.offers(center)), left, "wrong initial prev for center");
-    assertEq(pair.nextOfferId(pair.offers(center)), right, "wrong initial next for center");
+    assertEq(reader.prevOfferId(ol, mgv.offers(ol, center)), left, "wrong initial prev for center");
+    assertEq(reader.nextOfferId(ol, mgv.offers(ol, center)), right, "wrong initial next for center");
     mkr.updateOfferByVolume(1 ether + 0.02 ether, 1 ether, 100_000, center);
     MgvStructs.OfferPacked ofr = mgv.offers(ol, center);
-    assertEq(pair.prevOfferId(ofr), left, "ofr.prev should be unchanged");
-    assertEq(pair.nextOfferId(ofr), right, "ofr.next should be unchanged");
+    assertEq(reader.prevOfferId(ol, ofr), left, "ofr.prev should be unchanged");
+    assertEq(reader.nextOfferId(ol, ofr), right, "ofr.next should be unchanged");
   }
 
   function test_update_on_retracted_offer() public {
@@ -550,19 +550,19 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function testOBBest(uint id) internal {
     MgvStructs.OfferPacked ofr = mgv.offers(ol, id);
     assertEq(mgv.best(ol), id, "testOBBest: not best");
-    assertEq(pair.prevOfferId(ofr), 0, "testOBBest: prev not 0");
+    assertEq(reader.prevOfferId(ol, ofr), 0, "testOBBest: prev not 0");
   }
 
   function testOBWorst(uint id) internal {
     MgvStructs.OfferPacked ofr = mgv.offers(ol, id);
-    assertEq(pair.nextOfferId(ofr), 0, "testOBWorst fail");
+    assertEq(reader.nextOfferId(ol, ofr), 0, "testOBWorst fail");
   }
 
   function testOBLink(uint left, uint right) internal {
     MgvStructs.OfferPacked ofr = mgv.offers(ol, left);
-    assertEq(pair.nextOfferId(ofr), right, "testOBLink: wrong ofr.next");
+    assertEq(reader.nextOfferId(ol, ofr), right, "testOBLink: wrong ofr.next");
     ofr = mgv.offers(ol, right);
-    assertEq(pair.prevOfferId(ofr), left, "testOBLink: wrong ofr.prev");
+    assertEq(reader.prevOfferId(ol, ofr), left, "testOBLink: wrong ofr.prev");
   }
 
   function testOBOrder(uint[1] memory ids) internal {
@@ -688,22 +688,22 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint left = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     uint right = mkr.newOfferByVolume(1 ether + 0.03 ether, 1 ether, 100_000, 0);
     uint center = mkr.newOfferByVolume(1 ether + 0.02 ether, 1 ether, 100_000, 0);
-    assertEq(pair.prevOfferId(pair.offers(center)), left, "wrong initial prev for center");
-    assertEq(pair.nextOfferId(pair.offers(center)), right, "wrong initial next for center");
+    assertEq(reader.prevOfferId(ol, mgv.offers(ol, center)), left, "wrong initial prev for center");
+    assertEq(reader.nextOfferId(ol, mgv.offers(ol, center)), right, "wrong initial next for center");
     mkr.updateOfferByVolume(1 ether + 0.01 ether, 1 ether, 100_000, center);
     MgvStructs.OfferPacked ofr = mgv.offers(ol, center);
-    assertEq(pair.prevOfferId(ofr), left, "ofr.prev should be unchanged");
-    assertEq(pair.nextOfferId(ofr), right, "ofr.next should be unchanged");
+    assertEq(reader.prevOfferId(ol, ofr), left, "ofr.prev should be unchanged");
+    assertEq(reader.nextOfferId(ol, ofr), right, "ofr.next should be unchanged");
   }
 
   function test_update_offer_price_stays_best() public {
     mkr.provisionMgv(10 ether);
     uint ofr0 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     mkr.newOfferByVolume(1.0 ether + 0.02 ether, 1 ether, 100_000, 0);
-    assertEq(ofr0, pair.best(), "Wrong best offer");
+    assertEq(ofr0, mgv.best(ol), "Wrong best offer");
     mkr.updateOfferByVolume(1.0 ether + 0.01 ether, 1.0 ether, 100_000, ofr0);
-    // csl.log(pair.offers(ofr0).tick().toString());
-    assertEq(ofr0, pair.best(), "Best offer should not have changed");
+    // csl.log(mgv.offers(ol,ofr0).tick().toString());
+    assertEq(ofr0, mgv.best(ol), "Best offer should not have changed");
   }
 
   // before ticks: worsening an offer's density keeps it in best position if it still has the best density
@@ -713,9 +713,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr0 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     uint ofr1 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_002, 0);
     uint ofr2 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_003, 0);
-    assertEq(ofr0, pair.best(), "Wrong best offer");
+    assertEq(ofr0, mgv.best(ol), "Wrong best offer");
     mkr.updateOfferByVolume(1.0 ether, 1.0 ether, 99_000, ofr0);
-    assertEq(pair.best(), ofr1, "Best offer should have changed");
+    assertEq(mgv.best(ol), ofr1, "Best offer should have changed");
     assertEq(reader.nextOfferIdById(ol, ofr2), ofr0, "ofr0 should come after ofr2");
     assertEq(reader.nextOfferIdById(ol, ofr0), 0, "ofr0 should be last");
   }
@@ -813,49 +813,55 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint wants = 5 ether;
     mkr.newOfferByVolume(wants, LogPriceLib.outboundFromInbound(3, wants), 100_000, 0);
-    uint posInLeaf = pair.local().tickPosInLeaf();
+    uint posInLeaf = reader.local(ol).tickPosInLeaf();
     uint ofr = mkr.newOfferByVolume(wants, LogPriceLib.outboundFromInbound(2, wants), 100_000, 0);
     assertGt(
-      posInLeaf, pair.local().tickPosInLeaf(), "test void if posInLeaf does not change when second offer is created"
+      posInLeaf, reader.local(ol).tickPosInLeaf(), "test void if posInLeaf does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
-    assertEq(posInLeaf, pair.local().tickPosInLeaf(), "posInLeaf should have been restored");
+    assertEq(posInLeaf, reader.local(ol).tickPosInLeaf(), "posInLeaf should have been restored");
   }
 
   function test_update_branch_on_retract_level0() public {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
-    Field level0 = pair.local().level0();
-    int level0Index = pair.local().tick().level0Index();
+    Field level0 = reader.local(ol).level0();
+    int level0Index = reader.local(ol).tick().level0Index();
     uint ofr = mkr.newOfferByVolume(1 ether, 10 ether, 100_000, 0);
     assertGt(
-      level0Index, pair.local().tick().level0Index(), "test void if level0 does not change when second offer is created"
+      level0Index,
+      reader.local(ol).tick().level0Index(),
+      "test void if level0 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
-    assertEq(level0, pair.local().level0(), "level0 should have been restored");
+    assertEq(level0, reader.local(ol).level0(), "level0 should have been restored");
   }
 
   function test_update_branch_on_retract_level1() public {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
-    Field level1 = pair.local().level1();
-    int level1Index = pair.local().tick().level1Index();
+    Field level1 = reader.local(ol).level1();
+    int level1Index = reader.local(ol).tick().level1Index();
     uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
     assertGt(
-      level1Index, pair.local().tick().level1Index(), "test void if level1 does not change when second offer is created"
+      level1Index,
+      reader.local(ol).tick().level1Index(),
+      "test void if level1 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
-    assertEq(level1, pair.local().level1(), "level1 should have been restored");
+    assertEq(level1, reader.local(ol).level1(), "level1 should have been restored");
   }
 
   function test_update_branch_on_retract_level2() public {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
-    Field level2 = pair.local().level2();
+    Field level2 = reader.local(ol).level2();
     uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
-    assertTrue(!level2.eq(pair.local().level2()), "test void if level2 does not change when second offer is created");
+    assertTrue(
+      !level2.eq(reader.local(ol).level2()), "test void if level2 does not change when second offer is created"
+    );
     mkr.retractOffer(ofr);
-    assertEq(level2, pair.local().level2(), "level2 should have been restored");
+    assertEq(level2, reader.local(ol).level2(), "level2 should have been restored");
   }
 
   function test_update_branch_on_insert_posInLeaf() public {
@@ -863,12 +869,12 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     Tick tick0 = Tick.wrap(0);
     mkr.newOfferByLogPrice(LogPriceLib.fromTick(tick0, ol.tickScale), 1 ether, 100_000, 0);
     uint ofr = mkr.newOfferByLogPrice(-46055, 100 ether, 100_000, 0);
-    MgvStructs.OfferPacked offer = pair.offers(ofr);
+    MgvStructs.OfferPacked offer = mgv.offers(ol, ofr);
     assertTrue(
       offer.tick(ol.tickScale).posInLeaf() != Tick.wrap(0).posInLeaf(),
       "test void if posInLeaf of second offer is not different"
     );
-    assertEq(pair.local().tickPosInLeaf(), offer.tick(ol.tickScale).posInLeaf(), "posInLeaf should have changed");
+    assertEq(reader.local(ol).tickPosInLeaf(), offer.tick(ol.tickScale).posInLeaf(), "posInLeaf should have changed");
   }
 
   function test_higher_tick() public {

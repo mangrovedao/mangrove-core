@@ -47,17 +47,17 @@ contract DynamicTicksTest is MangroveTest {
   function test_newOffer_store_and_retrieve(uint24 tickScale, uint24 badTickScale, int24 logPrice) public {
     vm.assume(tickScale != badTickScale);
     vm.assume(tickScale != 0);
-    mgv.activate($(base), $(quote), tickScale, 0, 100, 0);
-    mgv.activate($(base), $(quote), badTickScale, 0, 100, 0);
+    mgv.activate(OL($(base),$(quote),tickScale), 0, 100, 0);
+    mgv.activate(OL($(base),$(quote),badTickScale),0, 100, 0);
     logPrice = boundLogPrice(logPrice);
     uint gives = 1 ether;
     uint wants = LogPriceLib.inboundFromOutbound(logPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
-    uint ofr = mgv.newOfferByLogPrice($(base), $(quote), tickScale, logPrice, gives, 100_000, 30);
-    pair.tickScale = badTickScale;
+    uint ofr = mgv.newOfferByLogPrice(OL($(base),$(quote), tickScale), logPrice, gives, 100_000, 30);
+    pair.ol.tickScale = badTickScale;
     assertEq(pair.offers(ofr).gives(), 0, "offer should not be at other tickscale");
-    pair.tickScale = tickScale;
+    pair.ol.tickScale = tickScale;
     assertEq(pair.offers(ofr).logPrice(), logPrice, "offer not saved");
   }
 
@@ -70,28 +70,28 @@ contract DynamicTicksTest is MangroveTest {
     uint wants = LogPriceLib.inboundFromOutbound(logPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
-    mgv.activate($(base), $(quote), tickScale, 0, 100, 0);
-    mgv.activate($(base), $(quote), otherTickScale, 0, 100, 0);
+    mgv.activate(OL($(base), $(quote), tickScale), 0, 100, 0);
+    mgv.activate(OL($(base), $(quote), otherTickScale), 0, 100, 0);
     console.log(logPrice);
-    uint ofr = mgv.newOfferByLogPrice($(base), $(quote), otherTickScale, 0, gives, 100_000, 30);
-    pair.tickScale = otherTickScale;
+    uint ofr = mgv.newOfferByLogPrice(OL($(base), $(quote), otherTickScale), 0, gives, 100_000, 30);
+    pair.ol.tickScale = otherTickScale;
     assertTrue(pair.offers(ofr).isLive(), "offer should be at otherTickScale");
     assertEq(pair.offers(ofr).logPrice(), 0, "offer should have correct price");
-    pair.tickScale = tickScale;
+    pair.ol.tickScale = tickScale;
     assertEq(pair.offers(ofr).gives(), 0, "offer should not be at tickScale");
 
     // test fails if no existing offer
     vm.expectRevert("mgv/updateOffer/unauthorized");
-    mgv.updateOfferByLogPrice($(base), $(quote), tickScale, logPrice, gives, 100_000, 30, ofr);
+    mgv.updateOfferByLogPrice(OL($(base), $(quote), tickScale), logPrice, gives, 100_000, 30, ofr);
 
     // test offers update does not touch another tickScale
-    uint ofr2 = mgv.newOfferByLogPrice($(base), $(quote), tickScale, 1, gives, 100_000, 30);
+    uint ofr2 = mgv.newOfferByLogPrice(OL($(base), $(quote), tickScale), 1, gives, 100_000, 30);
     assertEq(ofr, ofr2, "offer ids should be equal");
-    mgv.updateOfferByLogPrice($(base), $(quote), tickScale, logPrice, gives, 100_000, 30, ofr2);
-    pair.tickScale = otherTickScale;
+    mgv.updateOfferByLogPrice(OL($(base), $(quote), tickScale), logPrice, gives, 100_000, 30, ofr2);
+    pair.ol.tickScale = otherTickScale;
     assertTrue(pair.offers(ofr).isLive(), "offer should still be at otherTickScale");
     assertEq(pair.offers(ofr).logPrice(), 0, "offer should still have correct price");
-    pair.tickScale = tickScale;
+    pair.ol.tickScale = tickScale;
     assertTrue(pair.offers(ofr).isLive(), "offer should be at tickScale");
     assertEq(pair.offers(ofr).logPrice(), logPrice, "offer should have logPrice");
   }
@@ -103,10 +103,10 @@ contract DynamicTicksTest is MangroveTest {
     uint wants = LogPriceLib.inboundFromOutbound(logPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
-    mgv.activate($(base), $(quote), tickScale, 0, 100, 0);
-    mgv.newOfferByLogPrice($(base), $(quote), tickScale, logPrice, gives, 100_000, 30);
+    mgv.activate(OL($(base), $(quote), tickScale), 0, 100, 0);
+    mgv.newOfferByLogPrice(OL($(base), $(quote), tickScale), logPrice, gives, 100_000, 30);
     Tick tick = TickLib.fromLogPrice(logPrice, tickScale);
-    pair.tickScale = tickScale;
+    pair.ol.tickScale = tickScale;
     assertEq(pair.leafs(tick.leafIndex()).firstOfferPosition(), tick.posInLeaf());
     assertEq(pair.level0(tick.level0Index()).firstOnePosition(), tick.posInLevel0());
     assertEq(pair.level1(tick.level1Index()).firstOnePosition(), tick.posInLevel1());
@@ -116,12 +116,12 @@ contract DynamicTicksTest is MangroveTest {
   function test_noOfferAtZeroTickScale(int24 logPrice, uint96 gives) public {
     // TODO is it really necessary to constraint wants < 96 bits? Or can it go to any size no problem?
     logPrice = boundLogPrice(logPrice);
-    mgv.activate($(base), $(quote), 0, 0, 100, 0);
+    mgv.activate(OL($(base),$(quote), 0), 0, 100, 0);
     uint wants = LogPriceLib.inboundFromOutbound(logPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
     vm.expectRevert(stdError.divisionError);
-    mgv.newOfferByLogPrice($(base), $(quote), 0, logPrice, gives, 100_00, 30);
+    mgv.newOfferByLogPrice(OL($(base),$(quote), 0), logPrice, gives, 100_00, 30);
   }
 
   // FIXME think of more tests

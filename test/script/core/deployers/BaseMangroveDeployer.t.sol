@@ -6,7 +6,7 @@ import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol
 
 import {Test2, Test} from "mgv_lib/Test2.sol";
 
-import {MgvStructs, Density} from "mgv_src/MgvLib.sol";
+import {MgvStructs, Density, OL} from "mgv_src/MgvLib.sol";
 import {MgvHelpers} from "mgv_src/MgvHelpers.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
@@ -44,22 +44,22 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     assertEq(chief, address(uint160(uint(oracleGovernance))));
     bytes32 oracleMutator = vm.load(address(oracle), bytes32(uint(1)));
     assertEq(gasbot, address(uint160(uint(oracleMutator))));
-    (uint gasprice_, Density density_) = oracle.read(outbound_tkn, inbound_tkn, DEFAULT_TICKSCALE);
+    (uint gasprice_, Density density_) = oracle.read(OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE));
     assertEq(gasprice, gasprice_);
     assertEq(type(uint).max, Density.unwrap(density_));
 
     // Mangrove - verify expected values have been passed in
     Mangrove mgv = mgvDeployer.mgv();
     assertEq(mgv.governance(), chief);
-    (MgvStructs.GlobalPacked cfg,) = mgv.config(address(0), address(0), 0);
+    (MgvStructs.GlobalPacked cfg,) = mgv.config(OL(address(0), address(0), 0));
     assertEq(cfg.gasmax(), gasmax);
     assertEq(cfg.monitor(), address(oracle), "monitor should be set to oracle");
     assertTrue(cfg.useOracle(), "useOracle should be set");
 
     // Reader - verify mgv is used
     MgvReader reader = mgvDeployer.reader();
-    vm.expectCall(address(mgv), abi.encodeCall(mgv.config, (outbound_tkn, inbound_tkn, DEFAULT_TICKSCALE)));
-    reader.getProvision(outbound_tkn, inbound_tkn, DEFAULT_TICKSCALE, 0, 0);
+    vm.expectCall(address(mgv), abi.encodeCall(mgv.config, (OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE))));
+    reader.getProvision(OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE), 0, 0);
 
     // Cleaner - verify mgv is used
     MgvCleaner cleaner = mgvDeployer.cleaner();
@@ -69,7 +69,7 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     vm.expectCall(
       address(mgv),
       abi.encodeCall(
-        mgv.snipesFor, (outbound_tkn, inbound_tkn, DEFAULT_TICKSCALE, convertedTargets, true, address(this))
+        mgv.snipesFor, (OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE), convertedTargets, true, address(this))
       )
     );
     vm.expectRevert("mgv/inactive");

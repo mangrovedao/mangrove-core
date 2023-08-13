@@ -12,7 +12,8 @@ import {
   Tick,
   LeafLib,
   FieldLib,
-  LogPriceLib
+  LogPriceLib,
+  OL
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickLib} from "./../lib/TickLib.sol";
@@ -47,9 +48,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   * If `fillWants` is true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained. With `fillWants` set to true, to buy a specific volume of `outbound_tkn` at any price, set `takerWants` to the amount desired and `takerGives` to $2^{160}-1$.
   * If `fillWants` is false, the taker is filling `gives` instead: the market order stops when `takerGives` units of `inbound_tkn` have been sold. With `fillWants` set to false, to sell a specific volume of `inbound_tkn` at any price, set `takerGives` to the amount desired and `takerWants` to $0$. */
   function marketOrderByVolume(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint tickScale,
+    OL memory ol,
     uint takerWants,
     uint takerGives,
     bool fillWants
@@ -58,13 +57,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
     uint fillVolume = fillWants ? takerWants : takerGives;
     int logPrice = LogPriceLib.logPriceFromTakerVolumes(takerGives, takerWants);
-    return marketOrderByLogPrice(outbound_tkn, inbound_tkn, tickScale, logPrice, fillVolume, fillWants);
+    return marketOrderByLogPrice(ol, logPrice, fillVolume, fillWants);
   }
 
   function marketOrderByPrice(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint tickScale,
+    OL memory ol,
     uint maxPrice_e18,
     uint fillVolume,
     bool fillWants
@@ -73,19 +70,17 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     require(maxPrice_e18 >= LogPriceLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
 
     int logPrice = LogPriceLib.logPriceFromPrice_e18(maxPrice_e18);
-    return marketOrderByLogPrice(outbound_tkn, inbound_tkn, tickScale, logPrice, fillVolume, fillWants);
+    return marketOrderByLogPrice(ol, logPrice, fillVolume, fillWants);
   }
 
   function marketOrderByLogPrice(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint tickScale,
+    OL memory ol,
     int logPrice,
     uint fillVolume,
     bool fillWants
   ) public returns (uint, uint, uint, uint) {
     unchecked {
-      return generalMarketOrder(outbound_tkn, inbound_tkn, tickScale, logPrice, fillVolume, fillWants, msg.sender);
+      return generalMarketOrder(ol, logPrice, fillVolume, fillWants, msg.sender);
     }
   }
 
@@ -142,9 +137,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   Note that the `taker` can be anyone. This is safe when `taker == msg.sender`, but `generalMarketOrder` must not be called with `taker != msg.sender` unless a security check is done after (see [`MgvOfferTakingWithPermit`](#mgvoffertakingwithpermit.sol)`. */
 
   function generalMarketOrder(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint tickScale,
+    OL memory ol,
     int logPrice,
     uint fillVolume,
     bool fillWants,
@@ -164,11 +157,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* `SingleOrder` is defined in `MgvLib.sol` and holds information for ordering the execution of one offer. */
       MgvLib.SingleOrder memory sor;
-      sor.outbound_tkn = outbound_tkn;
-      sor.inbound_tkn = inbound_tkn;
-      sor.tickScale = tickScale;
+      sor.ol = ol;
       Pair storage pair;
-      (sor.global, sor.local, pair) = _config(outbound_tkn, inbound_tkn, tickScale);
+      (sor.global, sor.local, pair) = _config(ol);
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
 
       mor.leaf = pair.leafs[sor.local.tick().leafIndex()];
@@ -200,7 +191,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sendPenalty(mor.totalPenalty);
 
       emit OrderComplete(
-        outbound_tkn, inbound_tkn, tickScale, taker, mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid
+        ol.outbound, ol.inbound, ol.tickScale, taker, mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid
       );
 
       //+clear+
@@ -262,7 +253,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
            2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
            3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
         */
-          (sor.offerId, sor.local) = getNextBest(pair, mor, sor.offer, sor.local, sor.tickScale);
+          (sor.offerId, sor.local) = getNextBest(pair, mor, sor.offer, sor.local, sor.ol.tickScale);
 
           sor.offer = pair.offerData[sor.offerId].offer;
         }
@@ -335,12 +326,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,logPrice,fillVolume,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty,feePaid)`. 
   Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`). */
 
-  function snipes(address outbound_tkn, address inbound_tkn, uint tickScale, uint[4][] calldata targets, bool fillWants)
+  function snipes(OL memory ol, uint[4][] calldata targets, bool fillWants)
     external
     returns (uint, uint, uint, uint, uint)
   {
     unchecked {
-      return generalSnipes(outbound_tkn, inbound_tkn, tickScale, targets, fillWants, msg.sender);
+      return generalSnipes(ol, targets, fillWants, msg.sender);
     }
   }
 
@@ -350,9 +341,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
      Note that if this function is not internal, anyone can make anyone use Mangrove.
      Note that unlike general market order, the returned total values are _not_ `mor.totalGot` and `mor.totalGave`, since those are reset at every iteration of the `targets` array. Instead, accumulators `snipesGot` and `snipesGave` are used. */
   function generalSnipes(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint tickScale,
+    OL memory ol,
     uint[4][] calldata targets,
     bool fillWants,
     address taker
@@ -363,11 +352,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       mor.fillWants = fillWants;
 
       MgvLib.SingleOrder memory sor;
-      sor.outbound_tkn = outbound_tkn;
-      sor.inbound_tkn = inbound_tkn;
-      sor.tickScale = tickScale;
+      sor.ol = ol;
       Pair storage pair;
-      (sor.global, sor.local, pair) = _config(outbound_tkn, inbound_tkn, tickScale);
+      (sor.global, sor.local, pair) = _config(ol);
 
       /* For the snipes to even start, the market needs to be both active and not currently protected from reentrancy. */
       activeMarketOnly(sor.global, sor.local);
@@ -386,7 +373,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       //+clear+
 
       emit OrderComplete(
-        sor.outbound_tkn, sor.inbound_tkn, sor.tickScale, taker, snipesGot, snipesGave, mor.totalPenalty, mor.feePaid
+        sor.ol.outbound, sor.ol.inbound, sor.ol.tickScale, taker, snipesGot, snipesGave, mor.totalPenalty, mor.feePaid
       );
       totalPenalty = mor.totalPenalty;
       feePaid = mor.feePaid;
@@ -445,7 +432,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since offers in the `targets` array may be anywhere in the book. So we stitch together offers immediately after each `execute`. */
           if (mgvData != "mgv/notExecuted") {
             // updates best&tick
-            sor.local = dislodgeOffer(pair, sor.tickScale, sor.offer, sor.local, true);
+            sor.local = dislodgeOffer(pair, sor.ol.tickScale, sor.offer, sor.local, true);
           }
 
           /* <a id="internalSnipes/liftReentrancy"></a> Now that the current snipe is over, we can lift the lock on the book. In the same operation we
@@ -534,7 +521,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* `mgvData` indicates trade success */
         mgvData = bytes32("mgv/tradeSuccess");
         emit OfferSuccess(
-          sor.outbound_tkn, sor.inbound_tkn, sor.tickScale, sor.offerId, mor.taker, sor.wants, sor.gives
+          sor.ol.outbound, sor.ol.inbound, sor.ol.tickScale, sor.offerId, mor.taker, sor.wants, sor.gives
         );
 
         /* If configured to do so, Mangrove notifies an external contract that a successful trade has taken place. */
@@ -552,7 +539,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {
           emit OfferFail(
-            sor.outbound_tkn, sor.inbound_tkn, sor.tickScale, sor.offerId, mor.taker, sor.wants, sor.gives, mgvData
+            sor.ol.outbound, sor.ol.inbound, sor.ol.tickScale, sor.offerId, mor.taker, sor.wants, sor.gives, mgvData
           );
 
           /* If configured to do so, Mangrove notifies an external contract that a failed trade has taken place. */
@@ -609,7 +596,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         innerRevert([bytes32("mgv/makerRevert"), bytes32(gasused), makerData]);
       }
 
-      bool transferSuccess = transferTokenFrom(sor.outbound_tkn, maker, address(this), sor.wants);
+      bool transferSuccess = transferTokenFrom(sor.ol.outbound, maker, address(this), sor.wants);
 
       if (!transferSuccess) {
         innerRevert([bytes32("mgv/makerTransferFail"), bytes32(gasused), makerData]);
@@ -681,7 +668,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       gasused = oldGas - gasleft();
 
       if (!callSuccess) {
-        emit PosthookFail(sor.outbound_tkn, sor.inbound_tkn, sor.tickScale, sor.offerId, posthookData);
+        emit PosthookFail(sor.ol.outbound, sor.ol.inbound, sor.ol.tickScale, sor.offerId, posthookData);
       }
     }
   }
@@ -765,7 +752,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
       if (mor.totalGot > 0) {
         /* It should be statically provable that this transfer cannot return false under well-behaved ERC20s and a non-blacklisted, non-0 target, if governance does not call withdrawERC20 during order execution. */
-        require(transferToken(sor.outbound_tkn, mor.taker, mor.totalGot), "mgv/MgvFailToPayTaker");
+        require(transferToken(sor.ol.outbound, mor.taker, mor.totalGot), "mgv/MgvFailToPayTaker");
       }
     }
   }

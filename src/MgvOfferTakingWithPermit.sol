@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {HasMgvEvents, Tick, LogPriceLib} from "./MgvLib.sol";
+import {HasMgvEvents, Tick, LogPriceLib, OL} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
 import {TickLib} from "./../lib/TickLib.sol";
@@ -76,9 +76,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
 
   /* *Note:* `marketOrderFor` and `snipesFor` may emit ERC20 `Transfer` events of value 0 from `taker`, but that's already the case with common ERC20 implementations. */
   function marketOrderForByVolume(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint tickScale,
+    OL memory ol,
     uint takerWants,
     uint takerGives,
     bool fillWants,
@@ -89,14 +87,12 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
       uint fillVolume = fillWants ? takerWants : takerGives;
       int logPrice = LogPriceLib.logPriceFromTakerVolumes(takerGives, takerWants);
-      return marketOrderForByLogPrice(outbound_tkn, inbound_tkn, tickScale, logPrice, fillVolume, fillWants, taker);
+      return marketOrderForByLogPrice(ol, logPrice, fillVolume, fillWants, taker);
     }
   }
 
   function marketOrderForByPrice(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint tickScale,
+    OL memory ol,
     uint maxPrice_e18,
     uint fillVolume,
     bool fillWants,
@@ -106,14 +102,12 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       require(maxPrice_e18 <= LogPriceLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
       require(maxPrice_e18 >= LogPriceLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
       int logPrice = LogPriceLib.logPriceFromPrice_e18(maxPrice_e18);
-      return marketOrderForByLogPrice(outbound_tkn, inbound_tkn, tickScale, logPrice, fillVolume, fillWants, taker);
+      return marketOrderForByLogPrice(ol, logPrice, fillVolume, fillWants, taker);
     }
   }
 
   function marketOrderForByLogPrice(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint tickScale,
+    OL memory ol,
     int logPrice,
     uint fillVolume,
     bool fillWants,
@@ -121,28 +115,26 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   ) public returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
     unchecked {
       (takerGot, takerGave, bounty, feePaid) =
-        generalMarketOrder(outbound_tkn, inbound_tkn, tickScale, logPrice, fillVolume, fillWants, taker);
+        generalMarketOrder(ol, logPrice, fillVolume, fillWants, taker);
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
-      deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
+      deductSenderAllowance(ol.outbound, ol.inbound, taker, takerGave);
     }
   }
 
   /* The delegate version of `snipes` is `snipesFor`, which takes a `taker` address as additional argument. */
   function snipesFor(
-    address outbound_tkn,
-    address inbound_tkn,
-    uint tickScale,
+    OL memory ol,
     uint[4][] calldata targets,
     bool fillWants,
     address taker
   ) external returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint feePaid) {
     unchecked {
       (successes, takerGot, takerGave, bounty, feePaid) =
-        generalSnipes(outbound_tkn, inbound_tkn, tickScale, targets, fillWants, taker);
+        generalSnipes(ol, targets, fillWants, taker);
       /* The sender's allowance is verified after the order complete so that the actual amounts are checked against the allowance, instead of the declared `takerGives`. The former may be lower.
     
     An immediate consequence is that any funds available to Mangrove through `approve` can be used to clean offers. After a `snipesFor` where all offers have failed, all token transfers have been reverted, so `takerGave=0` and the check will succeed -- but the sender will still have received the bounty of the failing offers. */
-      deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
+      deductSenderAllowance(ol.outbound, ol.inbound, taker, takerGave);
     }
   }
 

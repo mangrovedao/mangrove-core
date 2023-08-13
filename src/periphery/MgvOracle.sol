@@ -77,7 +77,7 @@ contract MgvOracle is IMgvMonitor {
     emit SetDensityFixed(densityFixed);
   }
 
-  function read(address, /*outbound_tkn*/ address, /*inbound_tkn*/ uint /* tickScale */ )
+  function read(OL memory)
     external
     view
     override

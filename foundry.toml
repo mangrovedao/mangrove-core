@@ -8,11 +8,11 @@ out='out'
 libs=['lib']
 cache_path='cache'
 fs_permissions = [{ access = "read-write", path = "./addresses/"}, { access = "read", path = "./out/" }]
-solc_version="0.8.18"
+solc_version="0.8.21"
 ffi=true
-# optimizer=true
-# optimizer_runs=200
+optimizer=true
 # via_ir=true
+optimizer_runs=200
 
 # Private keys are expected to be of the form <NETWORK>_PRIVATE_KEY
 # The relevant code is in Deployer.sol

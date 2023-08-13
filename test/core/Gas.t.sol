@@ -14,7 +14,7 @@ contract GasTest is MangroveTest, IMaker {
   function setUp() public override {
     super.setUp();
 
-    mgv.newOfferByVolume($(base), $(quote), DEFAULT_TICKSCALE, 1 ether, 1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 1 ether, 1 ether, 100_000, 0);
 
     _tkr = setupTaker($(base), $(quote), "Taker");
     deal($(quote), address(_tkr), 2 ether);
@@ -23,14 +23,14 @@ contract GasTest is MangroveTest, IMaker {
     deal($(base), $(this), 100 ether);
 
     /* set lock to 1 to avoid spurious 15k gas cost */
-    ofr = mgv.newOfferByVolume($(base), $(quote), DEFAULT_TICKSCALE, 0.1 ether, 0.1 ether, 100_000, 0);
+    ofr = mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
 
     // will have i offers at the same price
     for (uint i; i < 50; i++) {
       // posting at price 0.1 ether + i wei
       uint wants = 0.1 ether + i;
       for (uint j; j < i; j++) {
-        mgv.newOfferByVolume{value: 0.1 ether}($(base), $(quote), DEFAULT_TICKSCALE, wants, 0.1 ether, 100_000, 0);
+        mgv.newOfferByVolume{value: 0.1 ether}(ol, wants, 0.1 ether, 100_000, 0);
       }
     }
   }
@@ -50,35 +50,35 @@ contract GasTest is MangroveTest, IMaker {
     (AbstractMangrove mgv,, address base, address quote, uint ofr_) = getStored();
     _tkr.take(ofr_, 0.1 ether);
     _gas();
-    mgv.updateOfferByVolume(base, quote, DEFAULT_TICKSCALE, 0.5 ether, 1 ether, 100_001, 0, ofr_);
+    mgv.updateOfferByVolume(OL(base, quote, DEFAULT_TICKSCALE), 0.5 ether, 1 ether, 100_001, 0, ofr_);
     gas_();
   }
 
   function update_min_move_n_offers(uint n) internal returns (uint) {
     (AbstractMangrove mgv,, address base, address quote, uint ofr_) = getStored();
     _gas();
-    mgv.updateOfferByVolume(base, quote, DEFAULT_TICKSCALE, 0.1 ether + n, 0.1 ether, 100_000, 0, ofr_);
+    mgv.updateOfferByVolume(OL(base, quote, DEFAULT_TICKSCALE), 0.1 ether + n, 0.1 ether, 100_000, 0, ofr_);
     return gas_(true);
   }
 
-  function test_update_move_k_offers_hot_start() public {
-    _tkr.take(ofr, 0.1 ether); // taking offer to make hot storage around it.
+  // function test_update_move_k_offers_hot_start() public {
+  //   _tkr.take(ofr, 0.1 ether); // taking offer to make hot storage around it.
 
-    for (uint i; i < 50; i++) {
-      console.log(i, ",", update_min_move_n_offers(i));
-    }
-  }
+  //   for (uint i; i < 50; i++) {
+  //     console.log(i, ",", update_min_move_n_offers(i));
+  //   }
+  // }
 
-  function test_update_move_k_offers_cold_start() public {
-    for (uint i; i < 50; i++) {
-      console.log(i, ",", update_min_move_n_offers(i));
-    }
-  }
+  // function test_update_move_k_offers_cold_start() public {
+  //   for (uint i; i < 50; i++) {
+  //     console.log(i, ",", update_min_move_n_offers(i));
+  //   }
+  // }
 
   function test_new_offer() public {
     (AbstractMangrove mgv,, address base, address quote,) = getStored();
     _gas();
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(OL(base, quote, DEFAULT_TICKSCALE), 0.1 ether, 0.1 ether, 100_000, 0);
     gas_();
   }
 
@@ -105,13 +105,14 @@ contract GasTest is MangroveTest, IMaker {
 
   function test_market_order_8() public {
     (AbstractMangrove mgv, TestTaker tkr, address base, address quote,) = getStored();
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 0.1 ether, 0.1 ether, 100_000, 0);
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 0.1 ether, 0.1 ether, 100_000, 0);
+    OL memory ol = OL(base, quote, DEFAULT_TICKSCALE);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
+    mgv.newOfferByVolume(ol, 0.1 ether, 0.1 ether, 100_000, 0);
     _gas();
     tkr.marketOrder(mgv, base, quote, 2 ether, 2 ether);
     gas_();
@@ -119,37 +120,39 @@ contract GasTest is MangroveTest, IMaker {
 
   function test_retract_cached() public {
     (AbstractMangrove mgv,, address base, address quote,) = getStored();
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 1 ether, 1 ether, 1_000_000, 0);
-    uint offer = mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 1.0001 ether, 1 ether, 1_000_000, 0);
+    mgv.newOfferByVolume(OL(base, quote, DEFAULT_TICKSCALE), 1 ether, 1 ether, 1_000_000, 0);
+    uint offer = mgv.newOfferByVolume(OL(base, quote, DEFAULT_TICKSCALE), 1.0001 ether, 1 ether, 1_000_000, 0);
     _gas();
-    mgv.retractOffer(base, quote, DEFAULT_TICKSCALE, offer, false);
+    mgv.retractOffer(OL(base, quote, DEFAULT_TICKSCALE), offer, false);
     gas_();
   }
 
   function test_retract_not_cached() public {
     (AbstractMangrove mgv,, address base, address quote,) = getStored();
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 1 ether, 1 ether, 1_000_000, 0);
-    uint offer = mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 1000 ether, 1 ether, 1_000_000, 0);
+    mgv.newOfferByVolume(OL(base, quote, DEFAULT_TICKSCALE), 1 ether, 1 ether, 1_000_000, 0);
+    uint offer = mgv.newOfferByVolume(OL(base, quote, DEFAULT_TICKSCALE), 1000 ether, 1 ether, 1_000_000, 0);
     _gas();
-    mgv.retractOffer(base, quote, DEFAULT_TICKSCALE, offer, false);
+    mgv.retractOffer(OL(base, quote, DEFAULT_TICKSCALE), offer, false);
     gas_();
   }
 
   function test_retract_best_new_is_not_cached() public {
     (AbstractMangrove mgv,, address base, address quote,) = getStored();
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 1 ether, 1 ether, 1_000_000, 0);
-    uint offer = mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 1 ether, 1000 ether, 1_000_000, 0);
+    OL memory ol = OL(base, quote, DEFAULT_TICKSCALE);
+    mgv.newOfferByVolume(ol, 1 ether, 1 ether, 1_000_000, 0);
+    uint offer = mgv.newOfferByVolume(ol, 1 ether, 1000 ether, 1_000_000, 0);
     _gas();
-    mgv.retractOffer(base, quote, DEFAULT_TICKSCALE, offer, false);
+    mgv.retractOffer(ol, offer, false);
     gas_();
   }
 
   function test_retract_best_new_is_cached() public {
     (AbstractMangrove mgv,, address base, address quote,) = getStored();
-    mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 1 ether, 1 ether, 1_000_000, 0);
-    uint offer = mgv.newOfferByVolume(base, quote, DEFAULT_TICKSCALE, 1 ether, 1.0001 ether, 1_000_000, 0);
+    OL memory ol = OL(base, quote, DEFAULT_TICKSCALE);
+    mgv.newOfferByVolume(ol, 1 ether, 1 ether, 1_000_000, 0);
+    uint offer = mgv.newOfferByVolume(ol, 1 ether, 1.0001 ether, 1_000_000, 0);
     _gas();
-    mgv.retractOffer(base, quote, DEFAULT_TICKSCALE, offer, false);
+    mgv.retractOffer(ol, offer, false);
     gas_();
   }
 

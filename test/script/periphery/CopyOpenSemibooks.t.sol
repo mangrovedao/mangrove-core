@@ -35,7 +35,7 @@ contract CopyOpenSemibooksTest is MangroveTest {
 
   function test_copy_simple(Market memory market) public {
     vm.prank(chief);
-    mgv.activate(toOL(market), 3, 4, 2);
+    mgv.activate(toOLKey(market), 3, 4, 2);
     reader.updateMarket(market);
 
     copier.broadcaster(chief2);
@@ -45,8 +45,8 @@ contract CopyOpenSemibooksTest is MangroveTest {
     assertEq(reader2.numOpenMarkets(), 1, "wrong changes in current reader");
     assertEq(reader2.isMarketOpen(market), true, "market should be open");
     assertEq(
-      MgvStructs.LocalPacked.unwrap(reader2.local(toOL(market))),
-      MgvStructs.LocalPacked.unwrap(reader.local(toOL(market)))
+      MgvStructs.LocalPacked.unwrap(reader2.local(toOLKey(market))),
+      MgvStructs.LocalPacked.unwrap(reader.local(toOLKey(market)))
     );
   }
 
@@ -55,12 +55,12 @@ contract CopyOpenSemibooksTest is MangroveTest {
     uint expectedDensity = 4;
     uint expectedOfferGasbase = 2000;
     vm.prank(chief);
-    mgv.activate(toOL(market), expectedFee, expectedDensity >> 32, expectedOfferGasbase);
+    mgv.activate(toOLKey(market), expectedFee, expectedDensity >> 32, expectedOfferGasbase);
 
     reader.updateMarket(market);
 
     vm.prank(chief2);
-    mgv2.activate(toOL(market), 1, 1, 1);
+    mgv2.activate(toOLKey(market), 1, 1, 1);
     reader2.updateMarket(market);
 
     copier.broadcaster(chief2);
@@ -69,13 +69,13 @@ contract CopyOpenSemibooksTest is MangroveTest {
     assertEq(reader.numOpenMarkets(), 1, "changes in previous reader");
     assertEq(reader2.numOpenMarkets(), 1, "wrong changes in current reader");
     assertEq(reader2.isMarketOpen(market), true, "market should be open");
-    assertEq(reader2.local(toOL(market)).active(), true, "should be active");
+    assertEq(reader2.local(toOLKey(market)).active(), true, "should be active");
     if (market.tkn1 != market.tkn0) {
-      assertEq(reader2.local(toOL(flipped(market))).active(), false, "should be inactive");
+      assertEq(reader2.local(toOLKey(flipped(market))).active(), false, "should be inactive");
     }
-    console.log(toString(reader2.local(toOL(market))));
-    assertEq(reader2.local(toOL(market)).fee(), expectedFee, "wrong fee");
-    assertEq(reader2.local(toOL(market)).density().toFixed(), expectedDensity >> 32, "wrong density");
-    assertEq(reader2.local(toOL(market)).offer_gasbase(), expectedOfferGasbase, "wrong gasbase");
+    console.log(toString(reader2.local(toOLKey(market))));
+    assertEq(reader2.local(toOLKey(market)).fee(), expectedFee, "wrong fee");
+    assertEq(reader2.local(toOLKey(market)).density().toFixed(), expectedDensity >> 32, "wrong density");
+    assertEq(reader2.local(toOLKey(market)).offer_gasbase(), expectedOfferGasbase, "wrong gasbase");
   }
 }

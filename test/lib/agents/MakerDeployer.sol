@@ -10,11 +10,11 @@ contract MakerDeployer {
   address payable[] makers;
   bool deployed;
   AbstractMangrove mgv;
-  OL ol;
+  OLKey olKey;
 
-  constructor(AbstractMangrove _mgv, OL memory _ol) {
+  constructor(AbstractMangrove _mgv, OLKey memory _ol) {
     mgv = _mgv;
-    ol = _ol;
+    olKey = _ol;
   }
 
   function dispatch() external {
@@ -40,8 +40,8 @@ contract MakerDeployer {
     if (!deployed) {
       makers = new address payable[](k);
       for (uint i = 0; i < k; i++) {
-        makers[i] = payable(address(new TestMaker(mgv, ol)));
-        TestMaker(makers[i]).approveMgv(TestToken(ol.outbound), 10 ether);
+        makers[i] = payable(address(new TestMaker(mgv, olKey)));
+        TestMaker(makers[i]).approveMgv(TestToken(olKey.outbound), 10 ether);
         TestMaker(makers[i]).shouldFail(i == 0); //maker-0 is failer
       }
     }

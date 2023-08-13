@@ -14,8 +14,8 @@ contract InvertedMangrove is AbstractMangrove {
   // execute taker trade
   function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal override {
     unchecked {
-      ITaker(mor.taker).takerTrade(sor.ol, mor.totalGot, mor.totalGave);
-      bool success = transferTokenFrom(sor.ol.inbound, mor.taker, address(this), mor.totalGave);
+      ITaker(mor.taker).takerTrade(sor.olKey, mor.totalGot, mor.totalGave);
+      bool success = transferTokenFrom(sor.olKey.inbound, mor.taker, address(this), mor.totalGave);
       require(success, "mgv/takerFailToPayTotal");
     }
   }
@@ -33,7 +33,7 @@ contract InvertedMangrove is AbstractMangrove {
   function beforePosthook(MgvLib.SingleOrder memory sor) internal override {
     unchecked {
       /* If `transferToken` returns false here, we're in a special (and bad) situation. The taker is returning part of their total loan to a maker, but the maker can't receive the tokens. Only case we can see: maker is blacklisted. In that case, we keep the tokens, so things have a chance of getting sorted out later. If that transfer fails there's nothing we can do -- reverting would punish the taker for the maker's blacklisting. */
-      transferToken(sor.ol.inbound, sor.offerDetail.maker(), sor.gives);
+      transferToken(sor.olKey.inbound, sor.offerDetail.maker(), sor.gives);
     }
   }
 

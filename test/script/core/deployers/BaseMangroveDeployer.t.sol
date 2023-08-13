@@ -6,7 +6,7 @@ import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol
 
 import {Test2, Test} from "mgv_lib/Test2.sol";
 
-import {MgvStructs, Density, OL} from "mgv_src/MgvLib.sol";
+import {MgvStructs, Density, OLKey} from "mgv_src/MgvLib.sol";
 import {MgvHelpers} from "mgv_src/MgvHelpers.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
@@ -32,7 +32,7 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
   }
 
   function test_contracts_instantiated_correctly(uint tickScale) public {
-    OL memory ol = OL(freshAddress("oubtound_tkn"), freshAddress("inbound_tkn"), tickScale);
+    OLKey memory olKey = OLKey(freshAddress("oubtound_tkn"), freshAddress("inbound_tkn"), tickScale);
 
     // Oracle - verify expected values have been passed in. We read from storage slots - alternatively, we should poke admin methods to verify correct setup.
     MgvOracle oracle = mgvDeployer.oracle();
@@ -40,14 +40,14 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     assertEq(chief, address(uint160(uint(oracleGovernance))));
     bytes32 oracleMutator = vm.load(address(oracle), bytes32(uint(1)));
     assertEq(gasbot, address(uint160(uint(oracleMutator))));
-    (uint gasprice_, Density density_) = oracle.read(ol);
+    (uint gasprice_, Density density_) = oracle.read(olKey);
     assertEq(gasprice, gasprice_);
     assertEq(type(uint).max, Density.unwrap(density_));
 
     // Mangrove - verify expected values have been passed in
     Mangrove mgv = mgvDeployer.mgv();
     assertEq(mgv.governance(), chief);
-    (MgvStructs.GlobalPacked cfg,) = mgv.config(OL(address(0), address(0), 0));
+    (MgvStructs.GlobalPacked cfg,) = mgv.config(OLKey(address(0), address(0), 0));
     assertEq(cfg.gasmax(), gasmax);
     assertEq(cfg.monitor(), address(oracle), "monitor should be set to oracle");
     assertTrue(cfg.useOracle(), "useOracle should be set");
@@ -57,8 +57,8 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
       // Reader - verify mgv is used
       MgvReader reader = mgvDeployer.reader();
 
-      vm.expectCall(address(mgv), abi.encodeCall(mgv.config, (ol)));
-      reader.getProvision(ol, 0, 0);
+      vm.expectCall(address(mgv), abi.encodeCall(mgv.config, (olKey)));
+      reader.getProvision(olKey, 0, 0);
     }
 
     // Cleaner - verify mgv is used
@@ -66,8 +66,8 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     uint[4][] memory targets = wrap_dynamic([uint(0), 0, 0, 0]);
     uint[4][] memory convertedTargets = MgvHelpers.convertSnipeTargetsToLogPrice(targets, true);
 
-    vm.expectCall(address(mgv), abi.encodeCall(mgv.snipesFor, (ol, convertedTargets, true, address(this))));
+    vm.expectCall(address(mgv), abi.encodeCall(mgv.snipesFor, (olKey, convertedTargets, true, address(this))));
     vm.expectRevert("mgv/inactive");
-    cleaner.collect(ol, targets, true);
+    cleaner.collect(olKey, targets, true);
   }
 }

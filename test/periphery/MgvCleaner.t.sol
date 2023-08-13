@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {MangroveTest, TestTaker, TestMaker} from "mgv_test/lib/MangroveTest.sol";
-import {OL} from "mgv_src/MgvLib.sol";
+import {OLKey} from "mgv_src/MgvLib.sol";
 // pragma experimental ABIEncoderV2;
 
 import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
@@ -17,7 +17,7 @@ contract MgvCleanerTest is MangroveTest {
 
   function setUp() public override {
     super.setUp();
-    mkr = setupMaker(ol, "maker");
+    mkr = setupMaker(olKey, "maker");
     cleaner = new MgvCleaner($(mgv));
     vm.label(address(cleaner), "cleaner");
 
@@ -38,7 +38,7 @@ contract MgvCleanerTest is MangroveTest {
 
     uint oldBal = $(this).balance;
 
-    cleaner.collect(ol, wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]), true);
+    cleaner.collect(olKey, wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]), true);
 
     uint newBal = $(this).balance;
 
@@ -61,7 +61,7 @@ contract MgvCleanerTest is MangroveTest {
 
     uint oldBal = $(this).balance;
 
-    cleaner.collectByImpersonation(ol, wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]), true, taker);
+    cleaner.collectByImpersonation(olKey, wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]), true, taker);
 
     uint newBal = $(this).balance;
 
@@ -79,7 +79,7 @@ contract MgvCleanerTest is MangroveTest {
     uint[4][] memory targets = new uint[4][](2);
     targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];
     targets[1] = [ofr2, 1 ether, 1 ether, type(uint).max];
-    cleaner.collect(ol, targets, true);
+    cleaner.collect(olKey, targets, true);
 
     uint newBal = $(this).balance;
 
@@ -95,7 +95,7 @@ contract MgvCleanerTest is MangroveTest {
     uint[4][] memory targets = wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]);
 
     vm.expectRevert("mgvCleaner/anOfferDidNotFail");
-    cleaner.collect(ol, targets, true);
+    cleaner.collect(olKey, targets, true);
 
     uint newBal = $(this).balance;
 
@@ -112,7 +112,7 @@ contract MgvCleanerTest is MangroveTest {
     address taker = setupTaker();
 
     vm.expectRevert("mgv/lowAllowance");
-    cleaner.collectByImpersonation(ol, targets, true, taker);
+    cleaner.collectByImpersonation(olKey, targets, true, taker);
 
     uint newBal = $(this).balance;
 

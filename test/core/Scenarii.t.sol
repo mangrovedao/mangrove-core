@@ -17,17 +17,17 @@ contract ScenariiTest is MangroveTest {
   //receive() external payable {}
 
   function saveOffers() internal {
-    uint offerId = mgv.best(ol);
+    uint offerId = mgv.best(olKey);
     while (offerId != 0) {
       (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail) =
-        mgv.offerInfo(ol, offerId);
+        mgv.offerInfo(olKey, offerId);
       console.log("Saving Info for offer id", offerId);
       console.log("  wants", offer.wants());
       console.log("  gives", offer.gives);
       offers[offerId][Info.makerWants] = offer.wants();
       offers[offerId][Info.makerGives] = offer.gives;
       offers[offerId][Info.gasreq] = offerDetail.gasreq;
-      offerId = reader.nextOfferIdById(ol, offerId);
+      offerId = reader.nextOfferIdById(olKey, offerId);
     }
   }
 
@@ -55,15 +55,15 @@ contract ScenariiTest is MangroveTest {
   function setUp() public override {
     super.setUp();
 
-    mgv.setFee(ol, testFee);
+    mgv.setFee(olKey, testFee);
 
-    makers = setupMakerDeployer(ol);
+    makers = setupMakerDeployer(olKey);
     makers.deploy(4);
     for (uint i = 1; i < makers.length(); i++) {
       vm.label(address(makers.getMaker(i)), string.concat("maker-", vm.toString(i)));
     }
     vm.label(address(makers.getMaker(0)), "failer");
-    taker = setupTaker(ol, "taker");
+    taker = setupTaker(olKey, "taker");
 
     deal(address(makers), 80 ether);
     makers.dispatch();
@@ -91,7 +91,7 @@ contract ScenariiTest is MangroveTest {
     emit OrderComplete(
       $(base),
       $(quote),
-      ol.tickScale,
+      olKey.tickScale,
       address(taker),
       0.3 ether * (10_000 - testFee) / 10_000,
       374979485972146063, // should not be hardcoded
@@ -99,22 +99,22 @@ contract ScenariiTest is MangroveTest {
       0.3 ether * testFee / 10_000
     );
     snipe();
-    logOrderBook(ol, 4);
+    logOrderBook(olKey, 4);
 
     // restore offer that was deleted after partial fill, minus taken amount
     makers.getMaker(2).updateOfferByVolume(1 ether - 0.375 ether, 0.8 ether - 0.3 ether, 80_000, 2);
 
-    logOrderBook(ol, 4);
+    logOrderBook(olKey, 4);
 
     saveBalances();
     saveOffers();
     mo();
-    logOrderBook(ol, 4);
+    logOrderBook(olKey, 4);
 
     saveBalances();
     saveOffers();
     collectFailingOffer(offerOf[0]);
-    logOrderBook(ol, 4);
+    logOrderBook(olKey, 4);
     saveBalances();
     saveOffers();
   }
@@ -131,9 +131,9 @@ contract ScenariiTest is MangroveTest {
       assertEq(takerGave, 0, "Failed offer should declare 0 takerGave");
       // failingOffer should have been removed from Mgv
       {
-        assertTrue(!mgv.offers(ol, failingOfferId).isLive(), "Failing offer should have been removed from Mgv");
+        assertTrue(!mgv.offers(olKey, failingOfferId).isLive(), "Failing offer should have been removed from Mgv");
       }
-      uint provision = reader.getProvision(ol, offers[failingOfferId][Info.gasreq], 0);
+      uint provision = reader.getProvision(olKey, offers[failingOfferId][Info.gasreq], 0);
       uint returned = mgv.balanceOf(address(makers.getMaker(0))) - balances.makersBalanceWei[0];
       assertEq(
         $(mgv).balance,
@@ -164,7 +164,7 @@ contract ScenariiTest is MangroveTest {
       gives: 1 ether,
       gasreq: 90_000
     });
-    (MgvStructs.GlobalPacked cfg,) = mgv.config(ol);
+    (MgvStructs.GlobalPacked cfg,) = mgv.config(olKey);
     _offerOf[0] = makers.getMaker(0).newOfferByVolume({ //failer offer 4
       wants: 20 ether,
       gives: 10 ether,
@@ -172,8 +172,8 @@ contract ScenariiTest is MangroveTest {
     });
     //Checking makers have correctly provisoned their offers
     for (uint i = 0; i < makers.length(); i++) {
-      uint gasreq_i = mgv.offerDetails(ol, _offerOf[i]).gasreq();
-      uint provision_i = reader.getProvision(ol, gasreq_i, 0);
+      uint gasreq_i = mgv.offerDetails(olKey, _offerOf[i]).gasreq();
+      uint provision_i = reader.getProvision(olKey, gasreq_i, 0);
       assertEq(
         mgv.balanceOf(address(makers.getMaker(i))),
         balances.makersBalanceWei[i] - provision_i,
@@ -181,10 +181,10 @@ contract ScenariiTest is MangroveTest {
       );
     }
     //Checking offers are correctly positioned (3 > 2 > 1 > 0)
-    uint offerId = mgv.best(ol);
+    uint offerId = mgv.best(olKey);
     uint expected_maker = 3;
     while (offerId != 0) {
-      (, MgvStructs.OfferDetailUnpacked memory od) = mgv.offerInfo(ol, offerId);
+      (, MgvStructs.OfferDetailUnpacked memory od) = mgv.offerInfo(olKey, offerId);
       assertEq(
         od.maker,
         address(makers.getMaker(expected_maker)),
@@ -194,7 +194,7 @@ contract ScenariiTest is MangroveTest {
       unchecked {
         expected_maker -= 1;
       }
-      offerId = reader.nextOfferIdById(ol, offerId);
+      offerId = reader.nextOfferIdById(olKey, offerId);
     }
     return _offerOf;
   }
@@ -242,11 +242,11 @@ contract ScenariiTest is MangroveTest {
     // Checking taker balance
     assertEq(
       base.balanceOf(address(taker)), // actual
-      balances.takerBalanceA + reader.minusFee(ol, takerWants), // expected
+      balances.takerBalanceA + reader.minusFee(olKey, takerWants), // expected
       "incorrect taker A balance"
     );
 
-    assertEq(takerGot, reader.minusFee(ol, takerWants), "Incorrect declared takerGot");
+    assertEq(takerGot, reader.minusFee(olKey, takerWants), "Incorrect declared takerGot");
 
     uint shouldGive = (offers[3][Info.makerWants] + offers[2][Info.makerWants] + leftMkrWants);
     assertApproxEqRel(
@@ -261,7 +261,7 @@ contract ScenariiTest is MangroveTest {
     // Checking DEX Fee Balance
     assertEq(
       base.balanceOf(address(mgv)), //actual
-      balances.mgvBalanceBase + reader.getFee(ol, takerWants), //expected
+      balances.mgvBalanceBase + reader.getFee(olKey, takerWants), //expected
       "incorrect Mangrove balances"
     );
   }
@@ -278,7 +278,7 @@ contract ScenariiTest is MangroveTest {
     bag.snipedId = 2;
     // uint orderAmount = 0.3 ether;
     // uint snipedId = 2;
-    expectedFee = reader.getFee(ol, bag.orderAmount);
+    expectedFee = reader.getFee(olKey, bag.orderAmount);
     TestMaker maker = makers.getMaker(bag.snipedId); // maker whose offer will be sniped
 
     //(uint init_mkr_wants, uint init_mkr_gives,,,,,)=mgv.getOfferInfo(2);
@@ -325,7 +325,7 @@ contract ScenariiTest is MangroveTest {
       "incorrect maker B balance"
     );
     // Testing residual offer
-    (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo(ol, bag.snipedId);
+    (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo(olKey, bag.snipedId);
     assertTrue(ofr.gives == 0, "Offer should not have a residual");
   }
 }
@@ -338,13 +338,13 @@ contract DeepCollectTest is MangroveTest {
 
   function setUp() public override {
     super.setUp();
-    tkr = setupTaker(ol, "taker");
+    tkr = setupTaker(olKey, "taker");
 
     deal($(quote), address(tkr), 5 ether);
     tkr.approveMgv(quote, 20 ether);
     tkr.approveMgv(base, 20 ether);
 
-    evil = new TestMoriartyMaker(mgv, ol);
+    evil = new TestMoriartyMaker(mgv, olKey);
     vm.label(address(evil), "Moriarty");
     deal(address(evil), 20 ether);
     evil.provisionMgv(10 ether);
@@ -360,6 +360,6 @@ contract DeepCollectTest is MangroveTest {
 
   function moWithFailures() internal {
     tkr.marketOrderWithFail({wants: 10 ether, gives: 30 ether});
-    assertTrue(reader.isEmptyOB(ol), "Order book should be empty");
+    assertTrue(reader.isEmptyOB(olKey), "Order book should be empty");
   }
 }

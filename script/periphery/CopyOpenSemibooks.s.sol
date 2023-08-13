@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "mgv_src/periphery/MgvReader.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MgvStructs, OL} from "mgv_src/MgvLib.sol";
+import {MgvStructs, OLKey} from "mgv_src/MgvLib.sol";
 
 /* 
 Given two instances of MgvReader (previousReader and currentReader), copy the
@@ -33,20 +33,20 @@ contract CopyOpenSemibooks is Deployer {
     console.log("Enabling semibooks...");
 
     for (uint i = 0; i < markets.length; i++) {
-      updateActivation(toOL(markets[i]), configs[i].config01);
-      updateActivation(toOL(flipped(markets[i])), configs[i].config10);
+      updateActivation(toOLKey(markets[i]), configs[i].config01);
+      updateActivation(toOLKey(flipped(markets[i])), configs[i].config10);
       broadcast();
       currentReader.updateMarket(markets[i]);
     }
     console.log("...done.");
   }
 
-  function updateActivation(OL memory ol, MgvStructs.LocalUnpacked memory cAB) internal {
+  function updateActivation(OLKey memory olKey, MgvStructs.LocalUnpacked memory cAB) internal {
     if (cAB.active) {
-      console.log(ol.outbound, ol.inbound);
+      console.log(olKey.outbound, olKey.inbound);
       broadcast();
       currentMangrove.activate({
-        ol: ol,
+        olKey: olKey,
         fee: cAB.fee,
         densityFixed: cAB.density.toFixed(),
         offer_gasbase: cAB.offer_gasbase()

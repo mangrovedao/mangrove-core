@@ -2,7 +2,7 @@
 
 /* `MgvRoot` and its descendants describe an orderbook-based exchange ("Mangrove") where market makers *do not have to provision their offer*. See `structs.js` for a longer introduction. In a nutshell: each offer created by a maker specifies an address (`maker`) to call upon offer execution by a taker. In the normal mode of operation, Mangrove transfers the amount to be paid by the taker to the maker, calls the maker, attempts to transfer the amount promised by the maker to the taker, and reverts if it cannot.
 
-   There is one Mangrove contract that manages all tradeable pairs. This reduces deployment costs for new pairs and lets market makers have all their provision for all pairs in the same place.
+   There is one Mangrove contract that manages all tradeable offerLists. This reduces deployment costs for new offerLists and lets market makers have all their provision for all offerLists in the same place.
 
    The interaction map between the different actors is as follows:
    <img src="./contactMap.png" width="190%"></img>
@@ -20,7 +20,7 @@
 
 pragma solidity ^0.8.10;
 
-import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs, IERC20, Leaf, Field, Density, OL} from "./MgvLib.sol";
+import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs, IERC20, Leaf, Field, Density, OLKey} from "./MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* `MgvRoot` contains state variables used everywhere in the operation of Mangrove and their related function. */
@@ -36,9 +36,9 @@ contract MgvRoot is HasMgvEvents {
     MgvStructs.OfferPacked offer;
     MgvStructs.OfferDetailPacked detail;
   }
-  /* `Pair` contains the information specific to an oriented `outbound_tkn,inbound_tkn` pair:
+  /* `OfferList` contains the information specific to an oriented `outbound_tkn,inbound_tkn`, `tickScale` offerList:
 
-    * `local` is the Mangrove configuration specific to the `outbound,inbound` pair. It contains e.g. the minimum offer `density`. It contains packed information, see [`structs.js`](#structs.js) for more.
+    * `local` is the Mangrove configuration specific to the `outbound,inbound,tickScale` offerList. It contains e.g. the minimum offer `density`. It contains packed information, see [`structs.js`](#structs.js) for more.
     * `offerData` maps from offer ids to offer data.
   */
 
@@ -46,8 +46,8 @@ contract MgvRoot is HasMgvEvents {
      The root is level2, has 256 level1 node children, each has 256 level0 node children, each has 256 leaves, each has 4 ticks (it holds the first and last offer of each tick's linked list).
      level2, level1 and level0 nodes are bitfield, a bit is set iff there is a tick set below them.
   */
-  // FIXME rename Pair to OLD (means OfferListData) or such
-  struct Pair {
+  // FIXME rename OfferList to OLD (means OfferListData) or such
+  struct OfferList {
     MgvStructs.LocalPacked local;
     mapping(uint => OfferData) offerData;
     mapping(int => Leaf) leafs;
@@ -55,37 +55,37 @@ contract MgvRoot is HasMgvEvents {
     mapping(int => Field) level1;
   }
 
-  /* `pairs` maps from token pair to tickScale to `Pair` information. */
-  mapping(bytes32 => Pair) internal pairs;
+  /* `offerLists` maps offer list id to offer list. */
+  mapping(bytes32 => OfferList) internal offerLists;
 
-  function leafs(OL memory ol, int index) external view returns (Leaf) {
-    return pairs[ol.id()].leafs[index];
+  function leafs(OLKey memory olKey, int index) external view returns (Leaf) {
+    return offerLists[olKey.hash()].leafs[index];
   }
 
-  function level0(OL memory ol, int index) external view returns (Field) {
-    Pair storage pair = pairs[ol.id()];
-    MgvStructs.LocalPacked local = pair.local;
+  function level0(OLKey memory olKey, int index) external view returns (Field) {
+    OfferList storage offerList = offerLists[olKey.hash()];
+    MgvStructs.LocalPacked local = offerList.local;
 
     if (local.tick().level0Index() == index) {
       return local.level0();
     } else {
-      return pair.level0[index];
+      return offerList.level0[index];
     }
   }
 
-  function level1(OL memory ol, int index) external view returns (Field) {
-    Pair storage pair = pairs[ol.id()];
-    MgvStructs.LocalPacked local = pair.local;
+  function level1(OLKey memory olKey, int index) external view returns (Field) {
+    OfferList storage offerList = offerLists[olKey.hash()];
+    MgvStructs.LocalPacked local = offerList.local;
 
     if (local.tick().level1Index() == index) {
       return local.level1();
     } else {
-      return pair.level1[index];
+      return offerList.level1[index];
     }
   }
 
-  function level2(OL memory ol) external view returns (Field) {
-    return pairs[ol.id()].local.level2();
+  function level2(OLKey memory olKey) external view returns (Field) {
+    return offerLists[olKey.hash()].local.level2();
   }
 
   /* Checking the size of `gasprice` is necessary to prevent a) data loss when `gasprice` is copied to an `OfferDetail` struct, and b) overflow when `gasprice` is used in calculations. */
@@ -96,29 +96,29 @@ contract MgvRoot is HasMgvEvents {
   }
 
   /* # Configuration Reads */
-  /* Reading the configuration for a pair involves reading the config global to all pairs and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
-  function config(OL memory ol)
+  /* Reading the configuration for an offer list involves reading the config global to all offerLists and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
+  function config(OLKey memory olKey)
     public
     view
     returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local)
   {
     unchecked {
-      (_global, _local,) = _config(ol);
+      (_global, _local,) = _config(olKey);
     }
   }
 
-  /* _config is the lower-level variant which opportunistically returns a pointer to the storage pair induced by `outbound_tkn`,`inbound_tkn`. */
-  function _config(OL memory ol)
+  /* _config is the lower-level variant which opportunistically returns a pointer to the storage offer list induced by `outbound_tkn`,`inbound_tkn`. */
+  function _config(OLKey memory olKey)
     internal
     view
-    returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local, Pair storage pair)
+    returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local, OfferList storage offerList)
   {
     unchecked {
-      pair = pairs[ol.id()];
+      offerList = offerLists[olKey.hash()];
       _global = internal_global;
-      _local = pair.local;
+      _local = offerList.local;
       if (_global.useOracle()) {
-        (uint gasprice, Density density) = IMgvMonitor(_global.monitor()).read(ol);
+        (uint gasprice, Density density) = IMgvMonitor(_global.monitor()).read(olKey);
         /* Gas gasprice can be ignored by making sure the oracle's set gasprice does not pass the check below. */
         if (checkGasprice(gasprice)) {
           _global = _global.gasprice(gasprice);
@@ -135,21 +135,21 @@ contract MgvRoot is HasMgvEvents {
   }
 
   /* Returns the configuration in an ABI-compatible struct. Should not be called internally, would be a huge memory copying waste. Use `config` instead. */
-  function configInfo(OL memory ol)
+  function configInfo(OLKey memory olKey)
     external
     view
     returns (MgvStructs.GlobalUnpacked memory global, MgvStructs.LocalUnpacked memory local)
   {
     unchecked {
-      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = config(ol);
+      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = config(olKey);
       global = _global.to_struct();
       local = _local.to_struct();
     }
   }
 
-  /* Convenience function to check whether given pair is locked */
-  function locked(OL memory ol) external view returns (bool) {
-    return pairs[ol.id()].local.lock();
+  /* Convenience function to check whether given an offer list is locked */
+  function locked(OLKey memory olKey) external view returns (bool) {
+    return offerLists[olKey.hash()].local.lock();
   }
 
   /*
@@ -173,7 +173,7 @@ contract MgvRoot is HasMgvEvents {
     require(!_global.dead(), "mgv/dead");
   }
 
-  /* When Mangrove is deployed, all pairs are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive pairs cannot be taken or created. They can be updated and retracted. */
+  /* When Mangrove is deployed, all offerLists are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive offerLists cannot be taken or created. They can be updated and retracted. */
   function activeMarketOnly(MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) internal pure {
     liveMgvOnly(_global);
     require(_local.active(), "mgv/inactive");

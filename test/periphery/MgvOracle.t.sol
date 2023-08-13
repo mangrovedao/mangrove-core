@@ -6,7 +6,7 @@ pragma solidity ^0.8.10;
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
-import {OL} from "mgv_src/MgvLib.sol";
+import {OLKey} from "mgv_src/MgvLib.sol";
 
 import {Test2} from "mgv_lib/Test2.sol";
 
@@ -160,7 +160,7 @@ contract MgvOracleTest is Test2 {
     mgvOracle.setGasPrice(30);
     vm.stopPrank();
 
-    (uint gas, Density density) = mgvOracle.read(OL(address(0), address(0), 0));
+    (uint gas, Density density) = mgvOracle.read(OLKey(address(0), address(0), 0));
 
     assertEq(gas, 30, "gas should be 30");
     assertEq(

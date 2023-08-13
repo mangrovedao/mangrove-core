@@ -13,9 +13,9 @@ contract BasicMakerOperationsTest is MangroveTest {
   function setUp() public override {
     super.setUp();
 
-    mkr = setupMaker(ol, "maker");
-    mkr2 = setupMaker(ol, "maker2");
-    tkr = setupTaker(ol, "taker");
+    mkr = setupMaker(olKey, "maker");
+    mkr2 = setupMaker(olKey, "maker2");
+    tkr = setupTaker(olKey, "taker");
 
     mkr.approveMgv(base, 10 ether);
     mkr2.approveMgv(base, 10 ether);
@@ -27,6 +27,6 @@ contract BasicMakerOperationsTest is MangroveTest {
   function test_basic_newOffer_sets_best() public {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOfferByVolume(0.1 ether, 0.05 ether, 200_000, 0);
-    assertEq(mgv.best(ol), ofr);
+    assertEq(mgv.best(olKey), ofr);
   }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {HasMgvEvents, MgvStructs, DensityLib, OL} from "./MgvLib.sol";
+import {HasMgvEvents, MgvStructs, DensityLib, OLKey} from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
 
 contract MgvGovernable is MgvRoot {
@@ -43,66 +43,61 @@ contract MgvGovernable is MgvRoot {
 
   /* ## Locals */
   /* ### `active` */
-  function activate(
-    OL memory ol,
-    uint fee,
-    uint densityFixed,
-    uint offer_gasbase
-  ) public {
+  function activate(OLKey memory olKey, uint fee, uint densityFixed, uint offer_gasbase) public {
     unchecked {
       authOnly();
-      Pair storage pair = pairs[ol.id()];
-      pair.local = pair.local.active(true);
-      emit SetActive(ol.outbound, ol.inbound, ol.tickScale, true);
-      setFee(ol, fee);
-      setDensityFixed(ol, densityFixed);
-      setGasbase(ol, offer_gasbase);
+      OfferList storage offerList = offerLists[olKey.hash()];
+      offerList.local = offerList.local.active(true);
+      emit SetActive(olKey.outbound, olKey.inbound, olKey.tickScale, true);
+      setFee(olKey, fee);
+      setDensityFixed(olKey, densityFixed);
+      setGasbase(olKey, offer_gasbase);
     }
   }
 
-  function deactivate(OL memory ol) public {
+  function deactivate(OLKey memory olKey) public {
     authOnly();
-    Pair storage pair = pairs[ol.id()];
-    pair.local = pair.local.active(false);
-    emit SetActive(ol.outbound, ol.inbound, ol.tickScale, false);
+    OfferList storage offerList = offerLists[olKey.hash()];
+    offerList.local = offerList.local.active(false);
+    emit SetActive(olKey.outbound, olKey.inbound, olKey.tickScale, false);
   }
 
   /* ### `fee` */
-  function setFee(OL memory ol, uint fee) public {
+  function setFee(OLKey memory olKey, uint fee) public {
     unchecked {
       authOnly();
       /* `fee` is in basis points, i.e. in percents of a percent. */
       require(MgvStructs.Local.fee_check(fee), MgvStructs.Local.fee_size_error);
-      Pair storage pair = pairs[ol.id()];
-      pair.local = pair.local.fee(fee);
-      emit SetFee(ol.outbound, ol.inbound, ol.tickScale, fee);
+      OfferList storage offerList = offerLists[olKey.hash()];
+      offerList.local = offerList.local.fee(fee);
+      emit SetFee(olKey.outbound, olKey.inbound, olKey.tickScale, fee);
     }
   }
 
   /* ### `density` */
   /* Useless if `global.useOracle != 0` and oracle returns a valid density. */
   /* Density is given as a 96.32 fixed point number. It will be stored as a 9-bit float and be approximated towards 0. The maximum error is 20%. See `DensityLib` for more information. */
-  function setDensityFixed(OL memory ol, uint densityFixed) public {
+  function setDensityFixed(OLKey memory olKey, uint densityFixed) public {
     unchecked {
       authOnly();
 
       //+clear+
-      Pair storage pair = pairs[ol.id()];
+      OfferList storage offerList = offerLists[olKey.hash()];
       /* Checking the size of `density` is necessary to prevent overflow before storing density as a float. */
       require(DensityLib.checkFixedDensity(densityFixed), "mgv/config/density/128bits");
 
-      pair.local = pair.local.densityFromFixed(densityFixed);
-      emit SetDensityFixed(ol.outbound, ol.inbound, ol.tickScale, densityFixed);
+      offerList.local = offerList.local.densityFromFixed(densityFixed);
+      emit SetDensityFixed(olKey.outbound, olKey.inbound, olKey.tickScale, densityFixed);
     }
   }
 
   // FIXME Temporary, remove once all tooling has adapted to setDensityFixed
-  function setDensity(OL memory ol, uint density) external {
-    setDensityFixed(ol, density << DensityLib.FIXED_FRACTIONAL_BITS);
+  function setDensity(OLKey memory olKey, uint density) external {
+    setDensityFixed(olKey, density << DensityLib.FIXED_FRACTIONAL_BITS);
   }
 
   /* ### `gasbase` */
-  function setGasbase(OL memory ol, uint offer_gasbase) public {
+  function setGasbase(OLKey memory olKey, uint offer_gasbase) public {
     unchecked {
       authOnly();
       /* Checking the size of `offer_gasbase` is necessary to prevent a) data loss when copied to an `OfferDetail` struct, and b) overflow when used in calculations. */
@@ -111,9 +106,9 @@ contract MgvGovernable is MgvRoot {
       );
       // require(uint24(offer_gasbase) == offer_gasbase, "mgv/config/offer_gasbase/24bits");
       //+clear+
-      Pair storage pair = pairs[ol.id()];
-      pair.local = pair.local.offer_gasbase(offer_gasbase);
-      emit SetGasbase(ol.outbound, ol.inbound, ol.tickScale, offer_gasbase);
+      OfferList storage offerList = offerLists[olKey.hash()];
+      offerList.local = offerList.local.offer_gasbase(offer_gasbase);
+      emit SetGasbase(olKey.outbound, olKey.inbound, olKey.tickScale, offer_gasbase);
     }
   }
 

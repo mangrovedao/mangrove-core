@@ -8,7 +8,7 @@ pragma solidity >=0.7.0 <0.9.0;
 
 pragma experimental ABIEncoderV2;
 
-import {MgvLib, MgvStructs, IMaker, OL} from "./MgvLib.sol";
+import {MgvLib, MgvStructs, IMaker, OLKey} from "./MgvLib.sol";
 import "./MgvLib.sol" as MgvLibWrapper;
 
 interface IMangrove {
@@ -93,12 +93,7 @@ interface IMangrove {
   function PERMIT_TYPEHASH() external view returns (bytes32);
 
   function withdrawERC20(address tokenAddress, uint value) external;
-  function activate(
-    OL memory ol,
-    uint fee,
-    uint density,
-    uint offer_gasbase
-  ) external;
+  function activate(OLKey memory olKey, uint fee, uint density, uint offer_gasbase) external;
 
   function allowances(address, address, address, address) external view returns (uint);
 
@@ -106,19 +101,16 @@ interface IMangrove {
 
   function balanceOf(address) external view returns (uint);
 
-  function best(OL memory ol) external view returns (uint);
+  function best(OLKey memory olKey) external view returns (uint);
 
-  function config(OL memory ol)
-    external
-    view
-    returns (MgvStructs.GlobalPacked, MgvStructs.LocalPacked);
+  function config(OLKey memory olKey) external view returns (MgvStructs.GlobalPacked, MgvStructs.LocalPacked);
 
-  function configInfo(OL memory ol)
+  function configInfo(OLKey memory olKey)
     external
     view
     returns (MgvStructs.GlobalUnpacked memory global, MgvStructs.LocalUnpacked memory local);
 
-  function deactivate(OL memory ol) external;
+  function deactivate(OLKey memory olKey) external;
 
   function flashloan(MgvLib.SingleOrder memory sor, address taker) external returns (uint gasused, bytes32 makerData);
 
@@ -132,79 +124,52 @@ interface IMangrove {
 
   function kill() external;
 
-  function locked(OL memory ol) external view returns (bool);
+  function locked(OLKey memory olKey) external view returns (bool);
 
-  function marketOrderByVolume(
-    OL memory ol,
-    uint takerWants,
-    uint takerGives,
-    bool fillWants
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
+  function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
+    external
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function marketOrderByPrice(
-    OL memory ol,
-    uint maxPrice,
-    uint fillVolume,
-    bool fillWants
-  ) external returns (uint, uint, uint, uint);
+  function marketOrderByPrice(OLKey memory olKey, uint maxPrice, uint fillVolume, bool fillWants)
+    external
+    returns (uint, uint, uint, uint);
 
-  function marketOrderByLogPrice(
-    OL memory ol,
-    int maxPrice_e18,
-    uint fillVolume,
-    bool fillWants
-  ) external returns (uint, uint, uint, uint);
+  function marketOrderByLogPrice(OLKey memory olKey, int maxPrice_e18, uint fillVolume, bool fillWants)
+    external
+    returns (uint, uint, uint, uint);
 
-  function marketOrderForByVolume(
-    OL memory ol,
-    uint takerWants,
-    uint takerGives,
-    bool fillWants,
-    address taker
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
+  function marketOrderForByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants, address taker)
+    external
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
-  function marketOrderForByPrice(
-    OL memory ol,
-    uint maxPrice_e18,
-    uint fillVolume,
-    bool fillWants,
-    address taker
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
+  function marketOrderForByPrice(OLKey memory olKey, uint maxPrice_e18, uint fillVolume, bool fillWants, address taker)
+    external
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
-  function marketOrderForByLogPrice(
-    OL memory ol,
-    int logPrice,
-    uint fillVolume,
-    bool fillWants,
-    address taker
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
+  function marketOrderForByLogPrice(OLKey memory olKey, int logPrice, uint fillVolume, bool fillWants, address taker)
+    external
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
-  function newOfferByVolume(
-    OL memory ol,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice
-  ) external payable returns (uint);
+  function newOfferByVolume(OLKey memory olKey, uint wants, uint gives, uint gasreq, uint gasprice)
+    external
+    payable
+    returns (uint);
 
-  function newOfferByLogPrice(
-    OL memory ol,
-    int logPrice,
-    uint gives,
-    uint gasreq,
-    uint gasprice
-  ) external payable returns (uint);
+  function newOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice)
+    external
+    payable
+    returns (uint);
 
   function nonces(address) external view returns (uint);
 
-  function offerDetails(OL memory ol, uint) external view returns (MgvStructs.OfferDetailPacked);
+  function offerDetails(OLKey memory olKey, uint) external view returns (MgvStructs.OfferDetailPacked);
 
-  function offerInfo(OL memory ol, uint offerId)
+  function offerInfo(OLKey memory olKey, uint offerId)
     external
     view
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail);
 
-  function offers(OL memory ol, uint) external view returns (MgvStructs.OfferPacked);
+  function offers(OLKey memory olKey, uint) external view returns (MgvStructs.OfferPacked);
 
   function permit(
     address outbound_tkn,
@@ -218,17 +183,15 @@ interface IMangrove {
     bytes32 s
   ) external;
 
-  function retractOffer(OL memory ol, uint offerId, bool deprovision)
-    external
-    returns (uint provision);
+  function retractOffer(OLKey memory olKey, uint offerId, bool deprovision) external returns (uint provision);
 
-  function setDensityFixed(OL memory ol, uint densityFixed) external;
+  function setDensityFixed(OLKey memory olKey, uint densityFixed) external;
 
-  function setDensity(OL memory ol, uint density) external;
+  function setDensity(OLKey memory olKey, uint density) external;
 
-  function setFee(OL memory ol, uint fee) external;
+  function setFee(OLKey memory olKey, uint fee) external;
 
-  function setGasbase(OL memory ol, uint offer_gasbase) external;
+  function setGasbase(OLKey memory olKey, uint offer_gasbase) external;
 
   function setGasmax(uint gasmax) external;
 
@@ -242,53 +205,31 @@ interface IMangrove {
 
   function setUseOracle(bool useOracle) external;
 
-  function snipes(OL memory ol, uint[4][] memory targets, bool fillWants)
+  function snipes(OLKey memory olKey, uint[4][] memory targets, bool fillWants)
     external
     returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function snipesFor(
-    OL memory ol,
-    uint[4][] memory targets,
-    bool fillWants,
-    address taker
-  ) external returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
+  function snipesFor(OLKey memory olKey, uint[4][] memory targets, bool fillWants, address taker)
+    external
+    returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function updateOfferByVolume(
-    OL memory ol,
-    uint wants,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint offerId
-  ) external payable;
+  function updateOfferByVolume(OLKey memory olKey, uint wants, uint gives, uint gasreq, uint gasprice, uint offerId)
+    external
+    payable;
 
-  function updateOfferByLogPrice(
-    OL memory ol,
-    int logPrice,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    uint offerId
-  ) external payable;
+  function updateOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice, uint offerId)
+    external
+    payable;
 
   function withdraw(uint amount) external returns (bool noRevert);
 
   receive() external payable;
 
-  function leafs(OL memory ol, int index)
-    external
-    view
-    returns (MgvLibWrapper.Leaf);
+  function leafs(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Leaf);
 
-  function level0(OL memory ol, int index)
-    external
-    view
-    returns (MgvLibWrapper.Field);
+  function level0(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
 
-  function level1(OL memory ol, int index)
-    external
-    view
-    returns (MgvLibWrapper.Field);
+  function level1(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
 
-  function level2(OL memory ol) external view returns (MgvLibWrapper.Field);
+  function level2(OLKey memory olKey) external view returns (MgvLibWrapper.Field);
 }

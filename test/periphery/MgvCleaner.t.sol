@@ -38,9 +38,7 @@ contract MgvCleanerTest is MangroveTest {
 
     uint oldBal = $(this).balance;
 
-    cleaner.collect(
-      OL($(base), $(quote), DEFAULT_TICKSCALE), wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]), true
-    );
+    cleaner.collect(ol, wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]), true);
 
     uint newBal = $(this).balance;
 
@@ -63,9 +61,7 @@ contract MgvCleanerTest is MangroveTest {
 
     uint oldBal = $(this).balance;
 
-    cleaner.collectByImpersonation(
-      OL($(base), $(quote), DEFAULT_TICKSCALE), wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]), true, taker
-    );
+    cleaner.collectByImpersonation(ol, wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]), true, taker);
 
     uint newBal = $(this).balance;
 
@@ -83,7 +79,7 @@ contract MgvCleanerTest is MangroveTest {
     uint[4][] memory targets = new uint[4][](2);
     targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];
     targets[1] = [ofr2, 1 ether, 1 ether, type(uint).max];
-    cleaner.collect(OL($(base), $(quote), DEFAULT_TICKSCALE), targets, true);
+    cleaner.collect(ol, targets, true);
 
     uint newBal = $(this).balance;
 
@@ -99,7 +95,7 @@ contract MgvCleanerTest is MangroveTest {
     uint[4][] memory targets = wrap_dynamic([ofr, 1 ether, 1 ether, type(uint).max]);
 
     vm.expectRevert("mgvCleaner/anOfferDidNotFail");
-    cleaner.collect(OL($(base), $(quote), DEFAULT_TICKSCALE), targets, true);
+    cleaner.collect(ol, targets, true);
 
     uint newBal = $(this).balance;
 
@@ -116,7 +112,7 @@ contract MgvCleanerTest is MangroveTest {
     address taker = setupTaker();
 
     vm.expectRevert("mgv/lowAllowance");
-    cleaner.collectByImpersonation(OL($(base), $(quote), DEFAULT_TICKSCALE), targets, true, taker);
+    cleaner.collectByImpersonation(ol, targets, true, taker);
 
     uint newBal = $(this).balance;
 

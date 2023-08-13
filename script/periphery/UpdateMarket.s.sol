@@ -1,10 +1,9 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import "forge-std/console.sol";
 
 /* Update market information on MgvReader.
    
@@ -17,12 +16,12 @@ contract UpdateMarket is Deployer {
   function run() public {
     innerRun({
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      market: MgvReader.Market(envAddressOrName("TKN0"), envAddressOrName("TKN1"), 1)
+      market: Market(envAddressOrName("TKN0"), envAddressOrName("TKN1"), 1)
     });
     outputDeployment();
   }
 
-  function innerRun(MgvReader reader, MgvReader.Market memory market) public {
+  function innerRun(MgvReader reader, Market memory market) public {
     console.log(
       "Updating Market on MgvReader.  tkn0: %s, tkn1: %s",
       vm.toString(market.tkn0),
@@ -37,10 +36,7 @@ contract UpdateMarket is Deployer {
     logReaderState("[after  script]", reader, market);
   }
 
-  function logReaderState(string memory intro, MgvReader reader, MgvReader.Market memory market)
-    internal
-    view
-  {
+  function logReaderState(string memory intro, MgvReader reader, Market memory market) internal view {
     string memory open = reader.isMarketOpen(market) ? "open" : "closed";
     console.log("%s MgvReader sees market as: %s", intro, open);
   }

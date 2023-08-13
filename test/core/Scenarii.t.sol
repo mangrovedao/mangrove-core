@@ -344,7 +344,7 @@ contract DeepCollectTest is MangroveTest {
     tkr.approveMgv(quote, 20 ether);
     tkr.approveMgv(base, 20 ether);
 
-    evil = new TestMoriartyMaker(mgv, $(base), $(quote));
+    evil = new TestMoriartyMaker(mgv, ol);
     vm.label(address(evil), "Moriarty");
     deal(address(evil), 20 ether);
     evil.provisionMgv(10 ether);

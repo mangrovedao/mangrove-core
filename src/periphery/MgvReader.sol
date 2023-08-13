@@ -11,14 +11,40 @@ struct VolumeData {
   uint totalGasreq;
 }
 
+struct Market {
+  address tkn0;
+  address tkn1;
+  uint tickScale;
+}
+
+/// @notice Config of a market. Assumes a context where `tkn0` and `tkn1` are defined. `config01` is the local config of the `tkn0/tkn1` offer list. `config10` is the config of the `tkn1/tkn0` offer list.
+struct MarketConfig {
+  MgvStructs.LocalUnpacked config01;
+  MgvStructs.LocalUnpacked config10;
+}
+
+/// @notice We choose a canonical orientation for all markets based on the numerical values of their token addresses. That way we can uniquely identify a market with two addresses given in any order.
+/// @return address the lowest of the given arguments (numerically)
+/// @return address the highest of the given arguments (numerically)
+function order(address tkn0, address tkn1) pure returns (address, address) {
+  return uint160(tkn0) < uint160(tkn1) ? (tkn0, tkn1) : (tkn1, tkn0);
+}
+
+function order(Market memory market) pure {
+  (market.tkn0, market.tkn1) = order(market.tkn0, market.tkn1);
+}
+
+function flipped(Market memory market) pure returns (Market memory) {
+  return Market(market.tkn1, market.tkn0, market.tickScale);
+}
+
+function toOL(Market memory market) pure returns (OL memory ol) {
+  assembly ("memory-safe") {
+    ol := market
+  }
+}
 
 contract MgvReader {
-
-  struct Market {
-    address tkn0;
-    address tkn1;
-    uint tickScale;
-  }
   struct MarketOrder {
     OL ol;
     uint initialWants;
@@ -43,16 +69,11 @@ contract MgvReader {
    * @notice In this contract, 'markets' are defined by non-oriented pairs. Usually markets come with a base/quote orientation. Please keep that in mind.
    * @notice A market {tkn0,tkn1} is open if either the tkn0/tkn1 offer list is active or the tkn1/tkn0 offer list is active.
    */
+
   Market[] internal _openMarkets;
 
   /// @notice Markets can be added or removed from `_openMarkets` array. To remove a market, we must remember its position in the array. The `marketPositions` mapping does that. The mapping goes outbound => inbound => tickScale => positions.
   mapping(address => mapping(address => mapping(uint => uint))) internal marketPositions;
-
-  /// @notice Config of a market. Assumes a context where `tkn0` and `tkn1` are defined. `config01` is the local config of the `tkn0/tkn1` offer list. `config10` is the config of the `tkn1/tkn0` offer list.
-  struct MarketConfig {
-    MgvStructs.LocalUnpacked config01;
-    MgvStructs.LocalUnpacked config10;
-  }
 
   IMangrove public immutable MGV;
 
@@ -84,8 +105,7 @@ contract MgvReader {
       uint currentId = startId;
 
       while (currentId != 0 && length < maxOffers) {
-        currentId =
-          nextOfferId(ol, MGV.offers(ol, currentId));
+        currentId = nextOfferId(ol, MGV.offers(ol, currentId));
         length = length + 1;
       }
 
@@ -107,8 +127,7 @@ contract MgvReader {
   {
     unchecked {
       OfferListArgs memory olh = OfferListArgs(ol, fromId, maxOffers);
-      (uint currentId, uint length) =
-        offerListEndPoints(olh.ol, olh.fromId, olh.maxOffers);
+      (uint currentId, uint length) = offerListEndPoints(olh.ol, olh.fromId, olh.maxOffers);
 
       uint[] memory offerIds = new uint[](length);
       MgvStructs.OfferPacked[] memory offers = new MgvStructs.OfferPacked[](length);
@@ -136,8 +155,7 @@ contract MgvReader {
   {
     unchecked {
       OfferListArgs memory olh = OfferListArgs(ol, fromId, maxOffers);
-      (uint currentId, uint length) =
-        offerListEndPoints(olh.ol, olh.fromId, olh.maxOffers);
+      (uint currentId, uint length) = offerListEndPoints(olh.ol, olh.fromId, olh.maxOffers);
 
       uint[] memory offerIds = new uint[](length);
       MgvStructs.OfferUnpacked[] memory offers = new MgvStructs.OfferUnpacked[](length);
@@ -162,14 +180,9 @@ contract MgvReader {
   }
 
   /* Returns the provision necessary to post an offer on the outbound_tkn/inbound_tkn offer list. You can set gasprice=0 or use the overload to use Mangrove's internal gasprice estimate. */
-  function getProvision(OL memory ol, uint ofr_gasreq, uint ofr_gasprice)
-    public
-    view
-    returns (uint)
-  {
+  function getProvision(OL memory ol, uint ofr_gasreq, uint ofr_gasprice) public view returns (uint) {
     unchecked {
-      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) =
-        MGV.config(ol);
+      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(ol);
       uint gp;
       uint global_gasprice = _global.gasprice();
       if (global_gasprice > ofr_gasprice) {
@@ -199,11 +212,7 @@ contract MgvReader {
   }
 
   /* Returns the given amount of outbound_tkn tokens minus the fee on Mangrove's outbound_tkn/inbound_tkn offer list. */
-  function minusFee(OL memory ol, uint outVolume)
-    public
-    view
-    returns (uint)
-  {
+  function minusFee(OL memory ol, uint outVolume) public view returns (uint) {
     (, MgvStructs.LocalPacked _local) = MGV.config(ol);
     return (outVolume * (10_000 - _local.fee())) / 10000;
   }
@@ -214,11 +223,7 @@ contract MgvReader {
     return _global;
   }
 
-  function local(OL memory ol)
-    public
-    view
-    returns (MgvStructs.LocalPacked)
-  {
+  function local(OL memory ol) public view returns (MgvStructs.LocalPacked) {
     (, MgvStructs.LocalPacked _local) = MGV.config(ol);
     return _local;
   }
@@ -227,11 +232,7 @@ contract MgvReader {
     return global().to_struct();
   }
 
-  function localUnpacked(OL memory ol)
-    public
-    view
-    returns (MgvStructs.LocalUnpacked memory)
-  {
+  function localUnpacked(OL memory ol) public view returns (MgvStructs.LocalUnpacked memory) {
     return local(ol).to_struct();
   }
 
@@ -241,13 +242,11 @@ contract MgvReader {
   * Calling this from a contract will let the contract choose what to do after receiving a response.
   * If `!accumulate`, only return the total cumulative volume.
   */
-  function marketOrder(
-    OL memory ol,
-    uint takerWants,
-    uint takerGives,
-    bool fillWants,
-    bool accumulate
-  ) public view returns (VolumeData[] memory) {
+  function marketOrder(OL memory ol, uint takerWants, uint takerGives, bool fillWants, bool accumulate)
+    public
+    view
+    returns (VolumeData[] memory)
+  {
     MarketOrder memory mr;
     mr.ol = ol;
     (, mr.local) = MGV.config(ol);
@@ -265,12 +264,11 @@ contract MgvReader {
     return mr.volumeData;
   }
 
-  function marketOrder(
-    OL memory ol,
-    uint takerWants,
-    uint takerGives,
-    bool fillWants
-  ) external view returns (VolumeData[] memory) {
+  function marketOrder(OL memory ol, uint takerWants, uint takerGives, bool fillWants)
+    external
+    view
+    returns (VolumeData[] memory)
+  {
     return marketOrder(ol, takerWants, takerGives, fillWants, true);
   }
 
@@ -414,18 +412,11 @@ contract MgvReader {
     }
   }
 
-  /// @notice We choose a canonical orientation for all markets based on the numerical values of their token addresses. That way we can uniquely identify a market with two addresses given in any order.
-  /// @return address the lowest of the given arguments (numerically)
-  /// @return address the highest of the given arguments (numerically)
-  function order(address tkn0, address tkn1) public pure returns (address, address) {
-    return uint160(tkn0) < uint160(tkn1) ? (tkn0, tkn1) : (tkn1, tkn0);
-  }
-
   /// @param market the market
   /// @return bool Whether the {tkn0,tkn1} market is open.
   /// @dev May not reflect the true state of the market on Mangrove if `updateMarket` was not called recently enough.
   function isMarketOpen(Market memory market) external view returns (bool) {
-    (market.tkn0, market.tkn1) = order(market.tkn0,market.tkn1);
+    (market.tkn0, market.tkn1) = order(market.tkn0, market.tkn1);
     return marketPositions[market.tkn0][market.tkn1][market.tickScale] > 0;
   }
 
@@ -434,7 +425,7 @@ contract MgvReader {
   /// @return config The market configuration. config01 and config10 follow the order given in arguments, not the canonical order
   /// @dev This function queries Mangrove so all the returned info is up-to-date.
   function marketConfig(Market memory market) external view returns (MarketConfig memory config) {
-    config.config01 = localUnpacked(OL(market.tkn0,market.tkn1,market.tickScale));
+    config.config01 = localUnpacked(OL(market.tkn0, market.tkn1, market.tickScale));
     config.config10 = localUnpacked(OL(market.tkn1, market.tkn0, market.tickScale));
   }
 
@@ -442,7 +433,8 @@ contract MgvReader {
   /// @notice Will consider a market open iff either the offer lists tkn0/tkn1 or tkn1/tkn0 are open on Mangrove.
   function updateMarket(Market memory market) external {
     (market.tkn0, market.tkn1) = order(market.tkn0, market.tkn1);
-    bool openOnMangrove = local(OL(market.tkn0,market.tkn1,market.tickScale)).active() || local(OL(market.tkn1,market.tkn0,market.tickScale)).active();
+    bool openOnMangrove = local(OL(market.tkn0, market.tkn1, market.tickScale)).active()
+      || local(OL(market.tkn1, market.tkn0, market.tickScale)).active();
     uint position = marketPositions[market.tkn0][market.tkn1][market.tickScale];
 
     if (openOnMangrove && position == 0) {
@@ -469,21 +461,13 @@ contract MgvReader {
   // utility fn
   // VERY similar to MgvOfferTaking's getNextBest
   /// @notice Get the offer after a given offer, given its id
-  function nextOfferIdById(OL memory ol, uint offerId)
-    public
-    view
-    returns (uint)
-  {
+  function nextOfferIdById(OL memory ol, uint offerId) public view returns (uint) {
     return nextOfferId(ol, MGV.offers(ol, offerId));
   }
 
   //FIXME replace these functions with "call mangrove for next offer, revert, return offer id"?
   /// @notice Get the offer after a given offer
-  function nextOfferId(OL memory ol, MgvStructs.OfferPacked offer)
-    public
-    view
-    returns (uint)
-  {
+  function nextOfferId(OL memory ol, MgvStructs.OfferPacked offer) public view returns (uint) {
     // WARNING
     // If the offer is not actually recorded in the pair, results will be meaningless.
     // if (offer.gives() == 0) {
@@ -524,20 +508,12 @@ contract MgvReader {
   }
 
   /// @notice Get the offer before a given offer, given its id
-  function prevOfferIdById(OL memory ol, uint offerId)
-    public
-    view
-    returns (uint)
-  {
+  function prevOfferIdById(OL memory ol, uint offerId) public view returns (uint) {
     return prevOfferId(ol, MGV.offers(ol, offerId));
   }
 
   /// @notice Get the offer before a given offer
-  function prevOfferId(OL memory ol, MgvStructs.OfferPacked offer)
-    public
-    view
-    returns (uint offerId)
-  {
+  function prevOfferId(OL memory ol, MgvStructs.OfferPacked offer) public view returns (uint offerId) {
     // WARNING
     // If the offer is not actually recorded in the pair, results will be meaningless.
     // if (offer.gives() == 0) {

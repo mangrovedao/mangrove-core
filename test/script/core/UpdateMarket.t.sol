@@ -8,7 +8,7 @@ import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 import {Test2} from "mgv_lib/Test2.sol";
 
 import {Mangrove} from "mgv_src/Mangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OL} from "mgv_src/MgvLib.sol";
 
@@ -31,7 +31,7 @@ contract UpdateMarketTest is Test2 {
   }
 
   function test_updater(OL memory ol) public {
-    MgvReader.Market memory market = MgvReader.Market(ol.outbound,ol.inbound,ol.tickScale);
+    Market memory market = Market(ol.outbound, ol.inbound, ol.tickScale);
     Mangrove mgv = deployer.mgv();
     MgvReader reader = deployer.reader();
 

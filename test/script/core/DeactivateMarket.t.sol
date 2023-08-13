@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol";
-import {DeactivateMarket} from "mgv_script/core/DeactivateMarket.s.sol";
+import "mgv_script/core/DeactivateMarket.s.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 
 import {Test2} from "mgv_lib/Test2.sol";
@@ -31,12 +31,12 @@ contract DeactivateMarketTest is Test2 {
     deployer.innerRun(chief, gasprice, gasmax, gasbot);
   }
 
-  function test_deactivate(MgvReader.Market memory market) public {
+  function test_deactivate(Market memory market) public {
     Mangrove mgv = deployer.mgv();
     MgvReader reader = deployer.reader();
 
     vm.prank(chief);
-    mgv.activate(OL(market.tkn0,market.tkn1,market.tickScale), 1, 1, 1);
+    mgv.activate(OL(market.tkn0, market.tkn1, market.tickScale), 1, 1, 1);
 
     (new UpdateMarket()).innerRun(reader, market);
 

@@ -23,7 +23,7 @@ library OLLib {
   // To save gas, id() directly hashes the memory (which matches the ABI encoding)
   // If the memory layout changes, this function must be updated
   function id(OL memory ol) internal pure returns (bytes32 _id) {
-    assembly {
+    assembly ("memory-safe") {
       _id := keccak256(ol, 96)
     }
   }

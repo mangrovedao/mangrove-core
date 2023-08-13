@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 
-import {MgvReader, VolumeData} from "mgv_src/periphery/MgvReader.sol";
+import "mgv_src/periphery/MgvReader.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import {stdError} from "forge-std/StdError.sol";
 
@@ -289,22 +289,23 @@ contract MgvReaderTest is MangroveTest {
 
   /* Market tracking test */
   /* Utility stuff */
-  MgvReader.Market[] expectedMarkets;
+  Market[] expectedMarkets;
   bool[2][] expectedActives;
 
   function resetExpectedMarkets() internal {
-    expectedMarkets = new MgvReader.Market[](0);
+    expectedMarkets = new Market[](0);
     expectedActives = new bool[2][](0);
   }
 
-  function pushExpectedMarket(address tknA, address tknB, bool activeAB, bool activeBA) internal {
-    (address tkn0, address tkn1) = reader.order(tknA, tknB);
-    expectedMarkets.push(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    expectedActives.push(tkn0 == tknA ? [activeAB, activeBA] : [activeBA, activeAB]);
+  function pushExpectedMarket(Market memory market, bool activeAB, bool activeBA) internal {
+    address tkn0 = market.tkn0;
+    order(market);
+    expectedMarkets.push(market);
+    expectedActives.push(tkn0 == market.tkn0 ? [activeAB, activeBA] : [activeBA, activeAB]);
   }
 
   function checkMarkets() internal {
-    (MgvReader.Market[] memory actualMarkets, MgvReader.MarketConfig[] memory config) = reader.openMarkets();
+    (Market[] memory actualMarkets, MarketConfig[] memory config) = reader.openMarkets();
     assertEq(actualMarkets.length, expectedMarkets.length, "markets lengths differ");
     for (uint i = 0; i < actualMarkets.length; i++) {
       string memory suffix = string.concat(": unexpected for market ", vm.toString(i));
@@ -316,24 +317,24 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function assumeDifferentPairs(address tknA, address tknB, address tkn0, address tkn1) internal view {
-    (tknA, tknB) = reader.order(tknA, tknB);
-    (tkn0, tkn1) = reader.order(tkn0, tkn1);
+    (tknA, tknB) = order(tknA, tknB);
+    (tkn0, tkn1) = order(tkn0, tkn1);
     vm.assume(tknA != tkn0 || tknB != tkn1);
   }
 
   // low-level market activation
-  function activateOfferList(address tkn0, address tkn1) internal {
-    mgv.activate(OL(tkn0, tkn1, DEFAULT_TICKSCALE), 0, 0, 0);
+  function activateOfferList(OL memory ol) internal {
+    mgv.activate(ol, 0, 0, 0);
   }
 
-  function activateMarket(address tkn0, address tkn1) internal {
-    activateOfferList(tkn0, tkn1);
-    activateOfferList(tkn1, tkn0);
+  function activateMarket(Market memory market) internal {
+    activateOfferList(toOL(market));
+    activateOfferList(toOL(flipped(market)));
   }
 
   /* Tests */
-  function test_initial_market_state_fuzz(address tkn0, address tkn1) public {
-    assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), false);
+  function test_initial_market_state_fuzz(Market memory market) public {
+    assertEq(reader.isMarketOpen(market), false);
   }
 
   function test_initial_market_state_length() public {
@@ -341,215 +342,208 @@ contract MgvReaderTest is MangroveTest {
     checkMarkets();
   }
 
-  function test_simple_add(address tkn0, address tkn1) public {
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
+  function test_simple_add(Market memory market) public {
+    // order(market);
+    activateMarket(market);
+    reader.updateMarket(market);
     assertEq(reader.numOpenMarkets(), 1, "initial length wrong");
-    assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "open failed");
-    pushExpectedMarket(tkn0, tkn1, true, true);
+    assertEq(reader.isMarketOpen(market), true, "open failed");
+    pushExpectedMarket(market, true, true);
     checkMarkets();
   }
 
-  function test_multi_add_1(address tknA, address tknB, address tkn0, address tkn1) public {
-    activateMarket(tknA, tknB);
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
+  function test_multi_add_1(Market memory mktA, Market memory mktB) public {
+    // address tknA, address tknB, address tkn0, address tkn1) public {
+    activateMarket(mktA);
+    activateMarket(mktB);
+    reader.updateMarket(mktA);
+    reader.updateMarket(mktB);
     assertEq(reader.numOpenMarkets(), 2, "length wrong");
-    assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "open failed for tkn0,tkn1");
-    assertEq(reader.isMarketOpen(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE)), true, "open failed for tkn0,tkn1");
-    pushExpectedMarket(tkn0, tkn1, true, true);
-    pushExpectedMarket(tknA, tknB, true, true);
+    assertEq(reader.isMarketOpen(mktA), true, "open failed for tkn0,tkn1");
+    assertEq(reader.isMarketOpen(mktB), true, "open failed for tkn0,tkn1");
+    pushExpectedMarket(mktA, true, true);
+    pushExpectedMarket(mktB, true, true);
     checkMarkets();
   }
 
-  function test_multi_add_2(address tknA, address tknB, address tkn0, address tkn1) public {
-    activateMarket(tknA, tknB);
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
+  // function test_multi_add_2(address tknA, address tknB, address tkn0, address tkn1) public {
+  function test_multi_add_2(Market memory mktA, Market memory mktB) public {
+    activateMarket(mktA);
+    activateMarket(mktB);
+    reader.updateMarket(mktA);
+    reader.updateMarket(mktB);
     assertEq(reader.numOpenMarkets(), 2, "length wrong");
-    assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "open failed for tkn0,tkn1");
-    assertEq(reader.isMarketOpen(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE)), true, "open failed for tkn0,tkn1");
-    pushExpectedMarket(tknA, tknB, true, true);
-    pushExpectedMarket(tkn0, tkn1, true, true);
+    assertEq(reader.isMarketOpen(mktA), true, "open failed for tkn0,tkn1");
+    assertEq(reader.isMarketOpen(mktB), true, "open failed for tkn0,tkn1");
+    pushExpectedMarket(mktA, true, true);
+    pushExpectedMarket(mktB, true, true);
     checkMarkets();
   }
 
-  function test_multi_add_triangle(address tkn0, address tkn1, address tkn2) public {
-    activateMarket(tkn0, tkn1);
-    activateMarket(tkn1, tkn2);
-    activateMarket(tkn2, tkn0);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn2, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn1, tkn2, DEFAULT_TICKSCALE));
-    assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "open failed for tkn0,tkn1");
-    assertEq(reader.isMarketOpen(MgvReader.Market(tkn2, tkn1, DEFAULT_TICKSCALE)), true, "open failed for tkn0,tkn1");
-    assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn2, DEFAULT_TICKSCALE)), true, "open failed for tkn0,tkn1");
-    pushExpectedMarket(tkn2, tkn0, true, true);
+  function test_multi_add_triangle(address tkn0, address tkn1, address tkn2, uint tickScale) public {
+    Market memory mktA = Market(tkn0, tkn1, tickScale);
+    Market memory mktB = Market(tkn1, tkn2, tickScale);
+    Market memory mktC = Market(tkn2, tkn0, tickScale);
+    activateMarket(mktA);
+    activateMarket(mktB);
+    activateMarket(mktC);
+    reader.updateMarket(mktC);
+    reader.updateMarket(mktA);
+    reader.updateMarket(mktB);
+    assertEq(reader.isMarketOpen(mktA), true, "open failed for tkn0,tkn1");
+    assertEq(reader.isMarketOpen(mktB), true, "open failed for tkn1,tkn2");
+    assertEq(reader.isMarketOpen(mktC), true, "open failed for tkn2,tkn0");
+    pushExpectedMarket(mktC, true, true);
     if (tkn1 != tkn2) {
-      pushExpectedMarket(tkn0, tkn1, true, true);
+      pushExpectedMarket(mktA, true, true);
     }
     if (tkn1 != tkn0 && tkn2 != tkn0) {
-      pushExpectedMarket(tkn2, tkn1, true, true);
+      pushExpectedMarket(mktB, true, true);
     }
     checkMarkets();
   }
 
-  function test_no_double_add(address tkn0, address tkn1) public {
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
+  function test_no_double_add(Market memory market) public {
+    activateMarket(market);
+    reader.updateMarket(market);
+    reader.updateMarket(market);
     assertEq(reader.numOpenMarkets(), 1, "length should not have changed");
-    assertEq(
-      reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "open status should not have changed"
-    );
-    pushExpectedMarket(tkn0, tkn1, true, true);
+    assertEq(reader.isMarketOpen(market), true, "open status should not have changed");
+    pushExpectedMarket(market, true, true);
     checkMarkets();
   }
 
-  function test_no_double_add_with_swap(address tkn0, address tkn1) public {
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn1, tkn0, DEFAULT_TICKSCALE));
+  function test_no_double_add_with_swap(Market memory market) public {
+    activateMarket(market);
+    reader.updateMarket(market);
+    reader.updateMarket(market);
     assertEq(reader.numOpenMarkets(), 1, "length should not have changed");
-    assertEq(
-      reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "open status should not have changed"
-    );
-    pushExpectedMarket(tkn0, tkn1, true, true);
+    assertEq(reader.isMarketOpen(market), true, "open status should not have changed");
+    pushExpectedMarket(market, true, true);
     checkMarkets();
   }
 
-  function test_remove(address tkn0, address tkn1) public {
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    mgv.deactivate(OL(tkn0, tkn1, DEFAULT_TICKSCALE));
-    mgv.deactivate(OL(tkn1, tkn0, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
+  function test_remove(Market memory market) public {
+    activateMarket(market);
+    reader.updateMarket(market);
+    mgv.deactivate(toOL(market));
+    mgv.deactivate(toOL(flipped(market)));
+    reader.updateMarket(market);
     assertEq(reader.numOpenMarkets(), 0, "wrong length");
-    assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), false, "status should be closed");
+    assertEq(reader.isMarketOpen(market), false, "status should be closed");
     checkMarkets();
   }
 
-  function test_add_partial(address tkn0, address tkn1) public {
-    activateOfferList(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
+  function test_add_partial(Market memory market) public {
+    activateOfferList(toOL(market));
+    reader.updateMarket(market);
     assertEq(reader.numOpenMarkets(), 1, "wrong length");
-    assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "status should be closed");
-    pushExpectedMarket(tkn0, tkn1, true, tkn0 == tkn1);
+    assertEq(reader.isMarketOpen(market), true, "status should be closed");
+    pushExpectedMarket(market, true, market.tkn0 == market.tkn1);
     checkMarkets();
   }
 
-  function test_remove_partial_1(address tkn0, address tkn1) public {
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    mgv.deactivate(OL(tkn1, tkn0, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    if (tkn0 == tkn1) {
+  function test_remove_partial_1(Market memory market) public {
+    activateMarket(market);
+    reader.updateMarket(market);
+    mgv.deactivate(toOL(flipped(market)));
+    reader.updateMarket(market);
+    if (market.tkn0 == market.tkn1) {
       assertEq(reader.numOpenMarkets(), 0, "wrong length");
-      assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), false, "status should be closed");
+      assertEq(reader.isMarketOpen(market), false, "status should be closed");
     } else {
       assertEq(reader.numOpenMarkets(), 1, "wrong length");
-      assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "status should be closed");
-      pushExpectedMarket(tkn0, tkn1, true, false);
+      assertEq(reader.isMarketOpen(market), true, "status should be closed");
+      pushExpectedMarket(market, true, false);
     }
     checkMarkets();
   }
 
-  function test_remove_partial_2(address tkn0, address tkn1) public {
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    mgv.deactivate(OL(tkn1, tkn0, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn1, tkn0, DEFAULT_TICKSCALE));
-    if (tkn0 == tkn1) {
+  function test_remove_partial_2(Market memory market) public {
+    activateMarket(market);
+    reader.updateMarket(market);
+    mgv.deactivate(toOL(flipped(market)));
+    reader.updateMarket(flipped(market));
+    if (market.tkn0 == market.tkn1) {
       assertEq(reader.numOpenMarkets(), 0, "wrong length");
-      assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), false, "status should be closed");
+      assertEq(reader.isMarketOpen(market), false, "status should be closed");
     } else {
       assertEq(reader.numOpenMarkets(), 1, "wrong length");
-      assertEq(reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "status should be closed");
-      pushExpectedMarket(tkn0, tkn1, true, false);
+      assertEq(reader.isMarketOpen(market), true, "status should be closed");
+      pushExpectedMarket(market, true, false);
     }
     checkMarkets();
   }
 
-  function test_no_double_remove(address tkn0, address tkn1) public {
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    mgv.deactivate(OL(tkn1, tkn0, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    if (tkn0 == tkn1) {
+  function test_no_double_remove(Market memory market) public {
+    activateMarket(market);
+    reader.updateMarket(market);
+    mgv.deactivate(toOL(flipped(market)));
+    reader.updateMarket(market);
+    reader.updateMarket(market);
+    if (market.tkn0 == market.tkn1) {
       assertEq(reader.numOpenMarkets(), 0, "length should still be 0");
-      assertEq(
-        reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), false, "status should still be closed"
-      );
+      assertEq(reader.isMarketOpen(market), false, "status should still be closed");
     } else {
       assertEq(reader.numOpenMarkets(), 1, "length should still be 0");
-      assertEq(
-        reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "status should still be closed"
-      );
-      pushExpectedMarket(tkn0, tkn1, true, false);
+      assertEq(reader.isMarketOpen(market), true, "status should still be closed");
+      pushExpectedMarket(market, true, false);
     }
     checkMarkets();
   }
 
-  function test_no_double_remove_long(address tknA, address tknB, address tkn0, address tkn1) public {
-    assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
-    activateMarket(tknA, tknB);
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    mgv.deactivate(OL(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    pushExpectedMarket(tknA, tknB, true, true);
+  function test_no_double_remove_long(Market memory mktA, Market memory mktB) public {
+    // address tknA, address tknB, address tkn0, address tkn1) public {
+    assumeDifferentPairs(mktA.tkn0, mktA.tkn1, mktB.tkn0, mktB.tkn1);
+    activateMarket(mktA);
+    reader.updateMarket(mktA);
+    activateMarket(mktB);
+    reader.updateMarket(mktB);
+    mgv.deactivate(toOL(mktB));
+    reader.updateMarket(mktB);
+    reader.updateMarket(mktB);
+    pushExpectedMarket(mktA, true, true);
 
-    if (tkn0 == tkn1) {
+    if (mktB.tkn0 == mktB.tkn1) {
       assertEq(reader.numOpenMarkets(), 1, "wrong length");
-      assertEq(
-        reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), false, "status should still be closed"
-      );
+      assertEq(reader.isMarketOpen(mktB), false, "status should still be closed");
     } else {
       assertEq(reader.numOpenMarkets(), 2, "wrong length");
-      assertEq(
-        reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "status should still be closed"
-      );
-      pushExpectedMarket(tkn0, tkn1, false, true);
+      assertEq(reader.isMarketOpen(mktB), true, "status should still be closed");
+      pushExpectedMarket(mktB, false, true);
     }
 
     checkMarkets();
   }
 
-  function test_no_double_remove_swap(address tkn0, address tkn1) public {
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    mgv.deactivate(OL(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn1, tkn0, DEFAULT_TICKSCALE));
+  function test_no_double_remove_swap(Market memory market) public {
+    activateMarket(market);
+    reader.updateMarket(market);
+    mgv.deactivate(toOL(market));
+    reader.updateMarket(market);
+    reader.updateMarket(flipped(market));
 
-    if (tkn0 == tkn1) {
+    if (market.tkn0 == market.tkn1) {
       assertEq(reader.numOpenMarkets(), 0, "length should still be 0");
-      assertEq(
-        reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), false, "status should still be closed"
-      );
+      assertEq(reader.isMarketOpen(market), false, "status should still be closed");
     } else {
       assertEq(reader.numOpenMarkets(), 1, "length should still be 0");
-      assertEq(
-        reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "status should still be closed"
-      );
-      pushExpectedMarket(tkn0, tkn1, false, true);
+      assertEq(reader.isMarketOpen(market), true, "status should still be closed");
+      pushExpectedMarket(market, false, true);
     }
 
     checkMarkets();
   }
 
-  function test_openMarkets_overloads(address tknA, address tknB, address tkn0, address tkn1) public {
+  function test_openMarkets_overloads(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
     assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    activateMarket(tknA, tknB);
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
-    MgvReader.MarketConfig[] memory configs;
+    Market memory mktA = Market(tknA, tknB, tickScale);
+    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    activateMarket(mktB);
+    reader.updateMarket(mktB);
+    activateMarket(mktA);
+    reader.updateMarket(mktA);
+    MarketConfig[] memory configs;
     (, configs) = reader.openMarkets(true);
     assertEq(configs.length, 2, "full: wrong config length");
     (, configs) = reader.openMarkets(false);
@@ -572,72 +566,76 @@ contract MgvReaderTest is MangroveTest {
     assertEq(configs.length, 0, "sliceX_none: wrong config length");
   }
 
-  function test_marketConfig(address tkn0, address tkn1) public {
-    activateOfferList(tkn0, tkn1);
-    MgvReader.MarketConfig memory config = reader.marketConfig(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
+  function test_marketConfig(Market memory market) public {
+    activateOfferList(toOL(market));
+    MarketConfig memory config = reader.marketConfig(market);
     assertEq(config.config01.active, true, "01-config01 wrong");
-    if (tkn0 != tkn1) {
+    if (market.tkn0 != market.tkn1) {
       assertEq(config.config10.active, false, "01-config10 wrong");
     }
-    config = reader.marketConfig(MgvReader.Market(tkn1, tkn0, DEFAULT_TICKSCALE));
-    if (tkn0 != tkn1) {
+    config = reader.marketConfig(flipped(market));
+    if (market.tkn0 != market.tkn1) {
       assertEq(config.config01.active, false, "10-config01 wrong");
     }
     assertEq(config.config10.active, true, "10-config10 wrong");
   }
 
-  function test_no_double_remove_long_swap(address tknA, address tknB, address tkn0, address tkn1) public {
+  function test_no_double_remove_long_swap(address tknA, address tknB, address tkn0, address tkn1, uint tickScale)
+    public
+  {
+    Market memory mktA = Market(tknA, tknB, tickScale);
+    Market memory mktB = Market(tkn0, tkn1, tickScale);
     assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
-    activateMarket(tknA, tknB);
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    mgv.deactivate(OL(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn1, tkn0, DEFAULT_TICKSCALE));
-    pushExpectedMarket(tknA, tknB, true, true);
+    activateMarket(mktA);
+    reader.updateMarket(mktA);
+    activateMarket(mktB);
+    reader.updateMarket(mktB);
+    mgv.deactivate(toOL(mktB));
+    reader.updateMarket(mktA);
+    reader.updateMarket(flipped(mktA));
+    pushExpectedMarket(mktA, true, true);
 
-    if (tkn0 == tkn1) {
+    if (mktB.tkn0 == mktB.tkn1) {
       assertEq(reader.numOpenMarkets(), 1, "wrong length");
-      assertEq(
-        reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), false, "status should still be closed"
-      );
+      assertEq(reader.isMarketOpen(mktB), false, "status should still be closed");
     } else {
       assertEq(reader.numOpenMarkets(), 2, "wrong length");
-      assertEq(
-        reader.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "status should still be closed"
-      );
-      pushExpectedMarket(tkn0, tkn1, false, true);
+      assertEq(reader.isMarketOpen(mktB), true, "status should still be closed");
+      pushExpectedMarket(mktB, false, true);
     }
 
     checkMarkets();
   }
 
-  function test_market_slice_zero(address tknA, address tknB, address tkn0, address tkn1) public {
-    activateMarket(tknA, tknB);
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    (MgvReader.Market[] memory slice,) = reader.openMarkets(0, 0);
+  function test_market_slice_zero(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
+    Market memory mktA = Market(tknA, tknB, tickScale);
+    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    activateMarket(mktA);
+    activateMarket(mktB);
+    reader.updateMarket(mktA);
+    reader.updateMarket(mktB);
+    (Market[] memory slice,) = reader.openMarkets(0, 0);
     assertEq(slice.length, 0);
   }
 
-  function test_market_slice_multi(address tknA, address tknB, address tkn0, address tkn1) public {
-    activateMarket(tknA, tknB);
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    MgvReader.Market[] memory slice;
+  function test_market_slice_multi(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
+    Market memory mktA = Market(tknA, tknB, tickScale);
+    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    activateMarket(mktA);
+    activateMarket(mktB);
+    reader.updateMarket(mktA);
+    reader.updateMarket(mktB);
+    Market[] memory slice;
     // first
     (slice,) = reader.openMarkets(0, 1);
     assertEq(slice.length, 1, "first: wrong slice length");
-    (tknA, tknB) = reader.order(tknA, tknB);
+    (tknA, tknB) = order(tknA, tknB);
     assertEq(slice[0].tkn0, tknA, "first: wrong tkn0");
     assertEq(slice[0].tkn1, tknB, "first: wrong tkn1");
     // last
     (slice,) = reader.openMarkets(1, 1);
     assertEq(slice.length, 1, "last: wrong slice length");
-    (tkn0, tkn1) = reader.order(tkn0, tkn1);
+    (tkn0, tkn1) = order(tkn0, tkn1);
     assertEq(slice[0].tkn0, tkn0, "last: wrong tkn0");
     assertEq(slice[0].tkn1, tkn1, "last: wrong tkn1");
     // full
@@ -656,54 +654,62 @@ contract MgvReaderTest is MangroveTest {
     assertEq(slice[1].tkn1, tkn1, "overflow 2: wrong tkn1");
   }
 
-  function test_market_slice_revert(address tknA, address tknB, address tkn0, address tkn1) public {
-    activateMarket(tknA, tknB);
-    activateMarket(tkn0, tkn1);
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
+  function test_market_slice_revert(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
+    Market memory mktA = Market(tknA, tknB, tickScale);
+    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    activateMarket(mktA);
+    activateMarket(mktB);
+    reader.updateMarket(mktA);
+    reader.updateMarket(mktB);
     vm.expectRevert(stdError.arithmeticError);
     reader.openMarkets(3, 0);
   }
 
-  function test_remove_2nd_to_last(address tknA, address tknB, address tkn0, address tkn1) public {
+  function test_remove_2nd_to_last(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
     assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
-    activateOfferList(tknA, tknB);
-    activateOfferList(tkn0, tkn1);
+    Market memory mktA = Market(tknA, tknB, tickScale);
+    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    activateOfferList(toOL(mktA));
+    activateOfferList(toOL(mktB));
     // remove 2nd-to-last
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    mgv.deactivate(OL(tknA, tknB, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
-    pushExpectedMarket(tkn0, tkn1, true, tkn0 == tkn1);
+    reader.updateMarket(mktA);
+    reader.updateMarket(mktB);
+    mgv.deactivate(toOL(mktA));
+    reader.updateMarket(mktA);
+    pushExpectedMarket(mktB, true, tkn0 == tkn1);
     checkMarkets();
   }
 
-  function test_remove_last_and_only(address tkn0, address tkn1) public {
-    activateOfferList(tkn0, tkn1);
+  function test_remove_last_and_only(Market memory market) public {
+    activateOfferList(toOL(market));
     // remove 2nd-to-last
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    mgv.deactivate(OL(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
+    reader.updateMarket(market);
+    mgv.deactivate(toOL(market));
+    reader.updateMarket(market);
     checkMarkets();
   }
 
-  function test_remove_last_not_only(address tknA, address tknB, address tkn0, address tkn1) public {
-    activateOfferList(tknA, tknB);
-    activateOfferList(tkn0, tkn1);
+  function test_remove_last_not_only(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
+    Market memory mktA = Market(tknA, tknB, tickScale);
+    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    activateOfferList(toOL(mktA));
+    activateOfferList(toOL(mktB));
     // remove 2nd-to-last
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    mgv.deactivate(OL(tkn0, tkn1, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    pushExpectedMarket(tknA, tknB, true, tknA == tknB);
+    reader.updateMarket(mktA);
+    reader.updateMarket(mktB);
+    mgv.deactivate(toOL(mktB));
+    reader.updateMarket(mktB);
+    pushExpectedMarket(mktA, true, tknA == tknB);
     checkMarkets();
   }
 
-  function test_update_already_absent(address tknA, address tknB, address tkn0, address tkn1) public {
-    activateOfferList(tknA, tknB);
-    reader.updateMarket(MgvReader.Market(tknA, tknB, DEFAULT_TICKSCALE));
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
-    pushExpectedMarket(tknA, tknB, true, tknA == tknB);
+  function test_update_already_absent(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
+    Market memory mktA = Market(tknA, tknB, tickScale);
+    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    activateOfferList(toOL(mktA));
+    reader.updateMarket(mktA);
+    reader.updateMarket(mktB);
+    pushExpectedMarket(mktA, true, tknA == tknB);
     checkMarkets();
   }
 }

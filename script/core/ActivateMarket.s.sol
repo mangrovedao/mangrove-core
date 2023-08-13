@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import "mgv_src/periphery/MgvReader.sol";
 import "mgv_src/Mangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OL} from "mgv_src/MgvLib.sol";
@@ -98,6 +98,6 @@ contract ActivateMarket is Deployer {
       fee: fee
     });
 
-    new UpdateMarket().innerRun({market: MgvReader.Market(address(tkn1), address(tkn2), tickScale), reader: reader});
+    new UpdateMarket().innerRun({market: Market(address(tkn1), address(tkn2), tickScale), reader: reader});
   }
 }

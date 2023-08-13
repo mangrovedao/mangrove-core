@@ -9,7 +9,6 @@ import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {Tick} from "mgv_lib/TickLib.sol";
 
 contract TestTaker is ITaker, Script2 {
-  uint constant DEFAULT_TICKSCALE = 1;
   AbstractMangrove _mgv;
   OL ol;
   bool acceptNative = true;

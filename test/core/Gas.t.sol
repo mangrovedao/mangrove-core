@@ -146,11 +146,32 @@ contract GasTest is MangroveTest, IMaker {
 
   function test_retract_best_new_is_cached() public {
     (AbstractMangrove mgv,, address base, address quote,) = getStored();
-    mgv.newOfferByVolume(OL(base,quote,DEFAULT_TICKSCALE), 1 ether, 1 ether, 1_000_000, 0);
-    uint offer = mgv.newOfferByVolume(OL(base,quote,DEFAULT_TICKSCALE), 1 ether, 1.0001 ether, 1_000_000, 0);
+    OL memory ol = OL(base,quote,DEFAULT_TICKSCALE);
+    mgv.newOfferByVolume(ol, 1 ether, 1 ether, 1_000_000, 0);
+    uint offer = mgv.newOfferByVolume(ol, 1 ether, 1.0001 ether, 1_000_000, 0);
     _gas();
-    mgv.retractOffer(OL(base,quote,DEFAULT_TICKSCALE), offer, false);
+    mgv.retractOffer(ol, offer, false);
     gas_();
+  }
+
+  function test_fine_gas() public {
+    (AbstractMangrove mgv,, address base, address quote,) = getStored();
+    uint g = gasleft();
+    OL memory ol = OL(base,quote,DEFAULT_TICKSCALE);
+    g = g-gasleft();
+    console.log("g1",g);
+    g=gasleft();
+    mgv.newOfferByVolume(ol, 1 ether, 1 ether, 1_000_000, 0);
+    g=g-gasleft();
+    console.log("g2",g);
+    g=gasleft();
+    uint offer = mgv.newOfferByVolume(ol, 1 ether, 1.0001 ether, 1_000_000, 0);
+    g=g-gasleft();
+    console.log("g3",g);
+    g=gasleft();
+    mgv.retractOffer(ol, offer, false);
+    g=g-gasleft();
+    console.log("g4",g);
   }
 
   // add best_cached

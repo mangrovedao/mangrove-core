@@ -2,16 +2,17 @@
 pragma solidity ^0.8.13;
 
 import "mgv_src/AbstractMangrove.sol";
-import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
+import {IERC20, MgvLib, IMaker, OL} from "mgv_src/MgvLib.sol";
 import {Test} from "forge-std/Test.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
+import "mgv_lib/Debug.sol";
 
 contract TrivialTestMaker is IMaker {
-  function makerExecute(MgvLib.SingleOrder calldata) external virtual returns (bytes32) {
+  function makerExecute(MgvLib.SingleOrder calldata, OL calldata ol) external virtual returns (bytes32) {
     return "";
   }
 
-  function makerPosthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) external virtual {}
+  function makerPosthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata, OL calldata ol) external virtual {}
 }
 
 //TODO add posthookShouldRevert/posthookReturnData
@@ -33,7 +34,7 @@ contract SimpleTestMaker is TrivialTestMaker {
   ///@notice overrides global @shouldFail/shouldReturn if true
   uint constant DEFAULT_TICKSCALE = 1;
 
-  mapping(address => mapping(address => mapping(uint => mapping(uint => OfferData)))) offerDatas;
+  mapping(bytes32 => mapping(uint => OfferData)) offerDatas;
 
   constructor(AbstractMangrove _mgv, IERC20 _base, IERC20 _quote) {
     mgv = _mgv;
@@ -76,22 +77,22 @@ contract SimpleTestMaker is TrivialTestMaker {
     TransferLib.transferToken(token, to, amount);
   }
 
-  function makerExecute(MgvLib.SingleOrder calldata order) public virtual override returns (bytes32) {
+  function makerExecute(MgvLib.SingleOrder calldata order, OL calldata ol) public virtual override returns (bytes32) {
     if (shouldRevert_) {
       revert("testMaker/shouldRevert");
     }
 
-    OfferData memory offerData = offerDatas[order.outbound_tkn][order.inbound_tkn][tickScale][order.offerId];
+    OfferData memory offerData = offerDatas[ol.id()][order.offerId];
 
     if (offerData.shouldRevert) {
       revert(offerData.executeData);
     }
 
     if (shouldFail_) {
-      TransferLib.approveToken(IERC20(order.outbound_tkn), address(mgv), 0);
+      TransferLib.approveToken(IERC20(ol.outbound), address(mgv), 0);
     }
 
-    emit Execute(msg.sender, order.outbound_tkn, order.inbound_tkn, order.offerId, order.wants, order.gives);
+    emit Execute(msg.sender, ol.outbound, ol.inbound, order.offerId, order.wants, order.gives);
 
     return bytes32(bytes(offerData.executeData));
   }
@@ -102,7 +103,7 @@ contract SimpleTestMaker is TrivialTestMaker {
     _shouldFailHook = should;
   }
 
-  function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) public virtual override {
+  function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result, OL calldata ol) public virtual override {
     order; //shh
     result; //shh
     if (_shouldFailHook) {
@@ -111,9 +112,7 @@ contract SimpleTestMaker is TrivialTestMaker {
 
     if (shouldRepost_) {
       mgv.updateOfferByVolume(
-        order.outbound_tkn,
-        order.inbound_tkn,
-        order.tickScale,
+        ol,
         order.offer.wants(),
         order.offer.gives(),
         order.offerDetail.gasreq(),
@@ -211,8 +210,8 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount,
     OfferData memory offerData
   ) public returns (uint) {
-    uint offerId = mgv.newOfferByVolume{value: amount}(_base, _quote, tickScale, wants, gives, gasreq, gasprice);
-    offerDatas[_base][_quote][tickScale][offerId] = offerData;
+    uint offerId = mgv.newOfferByVolume{value: amount}(OL(_base, _quote, tickScale), wants, gives, gasreq, gasprice);
+    offerDatas[OL(_base,_quote,tickScale).id()][offerId] = offerData;
     return offerId;
   }
 
@@ -243,8 +242,8 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount,
     OfferData memory offerData
   ) public returns (uint) {
-    uint offerId = mgv.newOfferByLogPrice{value: amount}(_base, _quote, tickScale, logPrice, gives, gasreq, gasprice);
-    offerDatas[_base][_quote][tickScale][offerId] = offerData;
+    uint offerId = mgv.newOfferByLogPrice{value: amount}(OL(_base, _quote, tickScale), logPrice, gives, gasreq, gasprice);
+    offerDatas[OL(_base,_quote,tickScale).id()][offerId] = offerData;
     return offerId;
   }
 
@@ -270,16 +269,16 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount,
     OfferData memory offerData
   ) public {
-    mgv.updateOfferByVolume{value: amount}(base, quote, tickScale, wants, gives, gasreq, 0, offerId);
-    offerDatas[base][quote][tickScale][offerId] = offerData;
+    mgv.updateOfferByVolume{value: amount}(OL(base, quote, tickScale), wants, gives, gasreq, 0, offerId);
+    offerDatas[OL(base,quote,tickScale).id()][offerId] = offerData;
   }
 
   function retractOffer(uint offerId) public returns (uint) {
-    return mgv.retractOffer(base, quote, DEFAULT_TICKSCALE, offerId, false);
+    return mgv.retractOffer(OL(base,quote,DEFAULT_TICKSCALE), offerId, false);
   }
 
   function retractOfferWithDeprovision(uint offerId) public returns (uint) {
-    return mgv.retractOffer(base, quote, DEFAULT_TICKSCALE, offerId, true);
+    return mgv.retractOffer(OL(base,quote,DEFAULT_TICKSCALE), offerId, true);
   }
 
   function provisionMgv(uint amount) public payable {
@@ -298,10 +297,10 @@ contract SimpleTestMaker is TrivialTestMaker {
 contract TestMaker is SimpleTestMaker, Test {
   constructor(AbstractMangrove mgv, IERC20 base, IERC20 quote) SimpleTestMaker(mgv, base, quote) {}
 
-  function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) public virtual override {
+  function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result, OL calldata ol) public virtual override {
     if (expectedStatus != bytes32("")) {
       assertEq(result.mgvData, expectedStatus, "Incorrect status message");
     }
-    super.makerPosthook(order, result);
+    super.makerPosthook(order, result, ol);
   }
 }

@@ -9,6 +9,19 @@ import {IERC20} from "./IERC20.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/TickLib.sol";
 
+using OLLib for OL global;
+// OL is OfferList
+struct OL {
+  address outbound;
+  address inbound;
+  uint tickScale;
+}
+library OLLib {
+  function id(OL memory ol) pure internal returns (bytes32) {
+    return keccak256(abi.encode(ol));
+  }
+}
+
 /* # Structs
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */
 
@@ -19,9 +32,7 @@ library MgvLib {
 
   /* `SingleOrder` holds data about an order-offer match in a struct. Used by `marketOrder` and `internalSnipes` (and some of their nested functions) to avoid stack too deep errors. */
   struct SingleOrder {
-    address outbound_tkn;
-    address inbound_tkn;
-    uint tickScale;
+    // OL ol;
     uint offerId;
     MgvStructs.OfferPacked offer;
     /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
@@ -163,10 +174,10 @@ interface IMaker {
   - If the call throws, Mangrove will not try to transfer funds and the first 32 bytes of revert reason are passed to `makerPosthook` as `makerData`
   - If the call returns normally, returndata is passed to `makerPosthook` as `makerData` and Mangrove will attempt to transfer the funds.
   */
-  function makerExecute(MgvLib.SingleOrder calldata order) external returns (bytes32);
+  function makerExecute(MgvLib.SingleOrder calldata order, OL calldata ol) external returns (bytes32);
 
   /* Called after all offers of an order have been executed. Posthook of the last executed order is called first and full reentrancy into Mangrove is enabled at this time. `order` recalls key arguments of the order that was processed and `result` recalls important information for updating the current offer. (see [above](#MgvLib/OrderResult))*/
-  function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) external;
+  function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result, OL memory ol) external;
 }
 
 /* # ITaker interface */
@@ -185,11 +196,11 @@ interface ITaker {
 /* # Monitor interface
 If enabled, the monitor receives notification after each offer execution and is read for each pair's `gasprice` and `density`. */
 interface IMgvMonitor {
-  function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external;
+  function notifySuccess(MgvLib.SingleOrder calldata sor, address taker, OL calldata ol) external;
 
-  function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external;
+  function notifyFail(MgvLib.SingleOrder calldata sor, address taker, OL calldata ol) external;
 
-  function read(address outbound_tkn, address inbound_tkn, uint tickScale)
+  function read(OL memory ol)
     external
     view
     returns (uint gasprice, Density density);

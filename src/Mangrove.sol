@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {MgvLib, MgvStructs} from "./MgvLib.sol";
+import {MgvLib, MgvStructs, OL} from "./MgvLib.sol";
 
 import {AbstractMangrove} from "./AbstractMangrove.sol";
 
@@ -11,9 +11,9 @@ contract Mangrove is AbstractMangrove {
     AbstractMangrove(governance, gasprice, gasmax, "Mangrove")
   {}
 
-  function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal override {}
+  function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor, OL memory ol) internal override {}
 
-  function beforePosthook(MgvLib.SingleOrder memory sor) internal override {}
+  function beforePosthook(MgvLib.SingleOrder memory sor, OL memory ol) internal override {}
 
   /* ## Flashloan */
   /*
@@ -22,7 +22,7 @@ contract Mangrove is AbstractMangrove {
      2. Runs `offerDetail.maker`'s `execute` function.
      3. Returns the result of the operations, with optional makerData to help the maker debug.
    */
-  function flashloan(MgvLib.SingleOrder calldata sor, address taker)
+  function flashloan(MgvLib.SingleOrder calldata sor, address taker, OL calldata ol)
     external
     override
     returns (uint gasused, bytes32 makerData)
@@ -34,9 +34,9 @@ contract Mangrove is AbstractMangrove {
        mgv->maker. With a direct taker->maker transfer, if one of taker/maker
        is blacklisted, we can't tell which one. We need to know which one:
        if we incorrectly blame the taker, a blacklisted maker can block a pair forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume that Mangrove is not blacklisted. This 2-step transfer is incompatible with tokens that have transfer fees (more accurately, it uselessly incurs fees twice). */
-      if (transferTokenFrom(sor.inbound_tkn, taker, address(this), sor.gives)) {
-        if (transferToken(sor.inbound_tkn, sor.offerDetail.maker(), sor.gives)) {
-          (gasused, makerData) = makerExecute(sor);
+      if (transferTokenFrom(ol.inbound, taker, address(this), sor.gives)) {
+        if (transferToken(ol.inbound, sor.offerDetail.maker(), sor.gives)) {
+          (gasused, makerData) = makerExecute(sor,ol);
         } else {
           innerRevert([bytes32("mgv/makerReceiveFail"), bytes32(0), ""]);
         }

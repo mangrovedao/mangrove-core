@@ -5,7 +5,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import "mgv_lib/Test2.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {MgvStructs, DensityLib} from "mgv_src/MgvLib.sol";
+import {MgvStructs, DensityLib, OL} from "mgv_src/MgvLib.sol";
 
 uint constant COVER_FACTOR = 1000;
 
@@ -43,7 +43,7 @@ contract ActivateSemibook is Test2, Deployer {
     uint outbound_in_gwei,
     uint fee
   ) public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0), 0);
+    (MgvStructs.GlobalPacked global,) = mgv.config(OL(address(0), address(0), 0));
     innerRun(mgv, global.gasprice(), outbound_tkn, inbound_tkn, tickScale, outbound_in_gwei, fee);
   }
 
@@ -98,9 +98,11 @@ contract ActivateSemibook is Test2, Deployer {
 
     broadcast();
     mgv.activate({
-      outbound_tkn: address(outbound_tkn),
-      inbound_tkn: address(inbound_tkn),
-      tickScale: tickScale,
+      ol: OL(
+        address(outbound_tkn),
+        address(inbound_tkn),
+        tickScale
+      ),
       fee: fee,
       densityFixed: density,
       offer_gasbase: gasbase

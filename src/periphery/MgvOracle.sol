@@ -37,11 +37,11 @@ contract MgvOracle is IMgvMonitor {
     );
   }
 
-  function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external override {
+  function notifySuccess(MgvLib.SingleOrder calldata sor, address taker, OL calldata ol) external override {
     // Do nothing
   }
 
-  function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external override {
+  function notifyFail(MgvLib.SingleOrder calldata sor, address taker, OL calldata ol) external override {
     // Do nothing
   }
 
@@ -77,7 +77,7 @@ contract MgvOracle is IMgvMonitor {
     emit SetDensityFixed(densityFixed);
   }
 
-  function read(address, /*outbound_tkn*/ address, /*inbound_tkn*/ uint /* tickScale */ )
+  function read(OL memory)
     external
     view
     override

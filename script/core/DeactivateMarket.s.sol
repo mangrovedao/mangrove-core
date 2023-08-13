@@ -6,6 +6,7 @@ import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
+import {OL} from "mgv_src/MgvLib.sol";
 
 /* Deactivate a market (aka two mangrove semibooks) & update MgvReader. */
 contract DeactivateMarket is Deployer {
@@ -15,28 +16,30 @@ contract DeactivateMarket is Deployer {
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      tkn0: IERC20(envAddressOrName("TKN0")),
-      tkn1: IERC20(envAddressOrName("TKN1")),
-      tickScale: DEFAULT_TICKSCALE
+      market: MgvReader.Market({
+        tkn0: envAddressOrName("TKN0"),
+        tkn1: envAddressOrName("TKN1"),
+        tickScale: DEFAULT_TICKSCALE
+      })
     });
     outputDeployment();
   }
 
-  function innerRun(Mangrove mgv, MgvReader reader, IERC20 tkn0, IERC20 tkn1, uint tickScale) public {
+  function innerRun(Mangrove mgv, MgvReader reader, MgvReader.Market memory market) public {
     broadcast();
-    mgv.deactivate(address(tkn0), address(tkn1), tickScale);
+    mgv.deactivate(OL(market.tkn0,market.tkn1,market.tickScale));
 
     broadcast();
-    mgv.deactivate(address(tkn1), address(tkn0), tickScale);
+    mgv.deactivate(OL(market.tkn1,market.tkn0,market.tickScale));
 
-    (new UpdateMarket()).innerRun({tkn0: tkn0, tkn1: tkn1, tickScale: DEFAULT_TICKSCALE, reader: reader});
+    (new UpdateMarket()).innerRun({market: market, reader: reader});
 
-    smokeTest(reader, tkn0, tkn1, tickScale);
+    smokeTest(reader, market);
   }
 
-  function smokeTest(MgvReader reader, IERC20 tkn0, IERC20 tkn1, uint tickScale) internal view {
-    MgvReader.MarketConfig memory config = reader.marketConfig(address(tkn0), address(tkn1), tickScale);
+  function smokeTest(MgvReader reader, MgvReader.Market memory market) internal view {
+    MgvReader.MarketConfig memory config = reader.marketConfig(market);
     require(!(config.config01.active || config.config10.active), "Market was not deactivated");
-    require(!reader.isMarketOpen(address(tkn0), address(tkn1), tickScale), "Reader state not updated");
+    require(!reader.isMarketOpen(market), "Reader state not updated");
   }
 }

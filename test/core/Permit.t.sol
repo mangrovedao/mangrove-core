@@ -47,6 +47,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {console2, StdStorage, stdStorage} from "forge-std/Test.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {TickLib, Tick, LogPriceLib} from "mgv_lib/TickLib.sol";
+import {OL} from "mgv_src/MgvLib.sol";
 
 contract PermitTest is MangroveTest, TrivialTestMaker {
   using stdStorage for StdStorage;
@@ -86,17 +87,17 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   function snipeFor(uint value, address who) internal returns (uint, uint, uint, uint, uint) {
     int logPrice = LogPriceLib.logPriceFromPrice_e18(1 ether);
     return mgv.snipesFor(
-      $(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([uint(1), uint(logPrice), value, 300_000]), true, who
+      OL($(base), $(quote), DEFAULT_TICKSCALE), wrap_dynamic([uint(1), uint(logPrice), value, 300_000]), true, who
     );
   }
 
   function newOfferByVolume(uint amount) internal {
-    mgv.newOfferByVolume($(base), $(quote), DEFAULT_TICKSCALE, amount, amount, 100_000, 0);
+    mgv.newOfferByVolume(ol, amount, amount, 100_000, 0);
   }
 
   function test_no_allowance(uint value) external {
     /* You can use 0 from someone who gave you an allowance of 0. */
-    value = bound(value, reader.minVolume($(base), $(quote), DEFAULT_TICKSCALE, 100_000), type(uint96).max); //can't create an offer below density
+    value = bound(value, reader.minVolume(ol, 100_000), type(uint96).max); //can't create an offer below density
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
     newOfferByVolume(value);

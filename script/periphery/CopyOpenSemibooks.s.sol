@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvStructs,OL} from "mgv_src/MgvLib.sol";
 import "forge-std/console.sol";
 
 /* 
@@ -40,7 +40,7 @@ contract CopyOpenSemibooks is Deployer {
       updateActivation(tkn0, tkn1, tickScale, configs[i].config01);
       updateActivation(tkn1, tkn0, tickScale, configs[i].config10);
       broadcast();
-      currentReader.updateMarket(tkn0, tkn1, tickScale);
+      currentReader.updateMarket(markets[i]);
     }
     console.log("...done.");
   }
@@ -50,9 +50,7 @@ contract CopyOpenSemibooks is Deployer {
       console.log(tknA, tknB);
       broadcast();
       currentMangrove.activate({
-        outbound_tkn: tknA,
-        inbound_tkn: tknB,
-        tickScale: tickScale,
+        ol: OL(tknA,tknB,tickScale),
         fee: cAB.fee,
         densityFixed: cAB.density.toFixed(),
         offer_gasbase: cAB.offer_gasbase()

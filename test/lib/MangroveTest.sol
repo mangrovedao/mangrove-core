@@ -118,7 +118,6 @@ library PairLib {
  */
 
 contract MangroveTest is Test2, HasMgvEvents {
-  uint constant DEFAULT_TICKSCALE = 1;
   // Configure the initial setup.
   // Add fields here to make MangroveTest more configurable.
 

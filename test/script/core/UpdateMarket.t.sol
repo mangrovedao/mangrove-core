@@ -13,7 +13,6 @@ import {IERC20} from "mgv_src/IERC20.sol";
 import {OL} from "mgv_src/MgvLib.sol";
 
 contract UpdateMarketTest is Test2 {
-  uint constant DEFAULT_TICKSCALE = 1;
   MangroveDeployer deployer;
   address chief;
   uint gasprice;

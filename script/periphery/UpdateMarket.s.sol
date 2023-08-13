@@ -8,7 +8,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 /* Update market information on MgvReader.
    
   Calls the permisionless function updateMarket of MgvReader. Ensures that
-  MgvReader knows the correct market state of the tkn0,tkn1 pair on Mangrove.
+  MgvReader knows the correct market state of the tkn0,tkn1,tickScale offer list on Mangrove.
 
   The token pair is not directed! You do not need to call it once with
   (tkn0,tkn1) then (tkn1,tkn0). Doing it once is fine.*/

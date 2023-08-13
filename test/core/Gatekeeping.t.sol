@@ -408,7 +408,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 200_000, 0);
     trade_cb = abi.encodeCall(this.newOfferOK, (lo));
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    assertTrue(mgv.best(lo) == 1, "newOfferByVolume on swapped pair must work");
+    assertTrue(mgv.best(lo) == 1, "newOfferByVolume on swapped offerList must work");
   }
 
   function test_newOffer_on_posthook_succeeds() public {
@@ -444,7 +444,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     trade_cb = abi.encodeCall(this.updateOfferOK, (lo, other_ofr));
     uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 400_000, 0);
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    assertTrue(mgv.offerDetails(lo, other_ofr).gasreq() == 35_000, "updateOffer on swapped pair must work");
+    assertTrue(mgv.offerDetails(lo, other_ofr).gasreq() == 35_000, "updateOffer on swapped offerList must work");
   }
 
   function test_updateOffer_on_posthook_succeeds() public {
@@ -481,7 +481,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
     uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 90_000, 0);
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    assertTrue(mgv.best(lo) == 0, "retractOffer on swapped pair must work");
+    assertTrue(mgv.best(lo) == 0, "retractOffer on swapped offerList must work");
   }
 
   function test_retractOffer_on_posthook_succeeds() public {
@@ -634,7 +634,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
     uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 190_000, 0);
     assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
-    assertTrue(mgv.best(lo) == 0, "snipe in swapped pair must work");
+    assertTrue(mgv.best(lo) == 0, "snipe in swapped offerList must work");
   }
 
   function test_snipes_on_posthook_succeeds() public {

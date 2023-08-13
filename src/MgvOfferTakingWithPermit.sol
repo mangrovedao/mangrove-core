@@ -7,7 +7,7 @@ import {MgvOfferTaking} from "./MgvOfferTaking.sol";
 import {TickLib} from "./../lib/TickLib.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
-  /* Takers may provide allowances on specific pairs, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
+  /* Takers may provide allowances on specific offerLists, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
 
   The mapping is `outbound_tkn => inbound_tkn => owner => spender => allowance` */
   mapping(address => mapping(address => mapping(address => mapping(address => uint)))) public allowances;
@@ -75,13 +75,10 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* The delegate version of `marketOrder` is `marketOrderFor`, which takes a `taker` address as additional argument. Penalties incurred by failed offers will still be sent to `msg.sender`, but exchanged amounts will be transferred from and to the `taker`. If the `msg.sender`'s allowance for the given `outbound_tkn`,`inbound_tkn` and `taker` are strictly less than the total amount eventually spent by `taker`, the call will fail. */
 
   /* *Note:* `marketOrderFor` and `snipesFor` may emit ERC20 `Transfer` events of value 0 from `taker`, but that's already the case with common ERC20 implementations. */
-  function marketOrderForByVolume(
-    OL memory ol,
-    uint takerWants,
-    uint takerGives,
-    bool fillWants,
-    address taker
-  ) external returns (uint, uint, uint, uint) {
+  function marketOrderForByVolume(OL memory ol, uint takerWants, uint takerGives, bool fillWants, address taker)
+    external
+    returns (uint, uint, uint, uint)
+  {
     unchecked {
       require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
       require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
@@ -91,13 +88,10 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     }
   }
 
-  function marketOrderForByPrice(
-    OL memory ol,
-    uint maxPrice_e18,
-    uint fillVolume,
-    bool fillWants,
-    address taker
-  ) external returns (uint, uint, uint, uint) {
+  function marketOrderForByPrice(OL memory ol, uint maxPrice_e18, uint fillVolume, bool fillWants, address taker)
+    external
+    returns (uint, uint, uint, uint)
+  {
     unchecked {
       require(maxPrice_e18 <= LogPriceLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
       require(maxPrice_e18 >= LogPriceLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
@@ -106,31 +100,24 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     }
   }
 
-  function marketOrderForByLogPrice(
-    OL memory ol,
-    int logPrice,
-    uint fillVolume,
-    bool fillWants,
-    address taker
-  ) public returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
+  function marketOrderForByLogPrice(OL memory ol, int logPrice, uint fillVolume, bool fillWants, address taker)
+    public
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
+  {
     unchecked {
-      (takerGot, takerGave, bounty, feePaid) =
-        generalMarketOrder(ol, logPrice, fillVolume, fillWants, taker);
+      (takerGot, takerGave, bounty, feePaid) = generalMarketOrder(ol, logPrice, fillVolume, fillWants, taker);
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
       deductSenderAllowance(ol.outbound, ol.inbound, taker, takerGave);
     }
   }
 
   /* The delegate version of `snipes` is `snipesFor`, which takes a `taker` address as additional argument. */
-  function snipesFor(
-    OL memory ol,
-    uint[4][] calldata targets,
-    bool fillWants,
-    address taker
-  ) external returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint feePaid) {
+  function snipesFor(OL memory ol, uint[4][] calldata targets, bool fillWants, address taker)
+    external
+    returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint feePaid)
+  {
     unchecked {
-      (successes, takerGot, takerGave, bounty, feePaid) =
-        generalSnipes(ol, targets, fillWants, taker);
+      (successes, takerGot, takerGave, bounty, feePaid) = generalSnipes(ol, targets, fillWants, taker);
       /* The sender's allowance is verified after the order complete so that the actual amounts are checked against the allowance, instead of the declared `takerGives`. The former may be lower.
     
     An immediate consequence is that any funds available to Mangrove through `approve` can be used to clean offers. After a `snipesFor` where all offers have failed, all token transfers have been reverted, so `takerGave=0` and the check will succeed -- but the sender will still have received the bounty of the failing offers. */

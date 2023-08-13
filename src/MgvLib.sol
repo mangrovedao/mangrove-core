@@ -64,7 +64,7 @@ library MgvLib {
 /* # Events
 The events emitted for use by bots are listed here: */
 contract HasMgvEvents {
-  /* * Emitted at the creation of the new Mangrove contract on the pair (`inbound_tkn`, `outbound_tkn`)*/
+  /* * Emitted at the creation of the new Mangrove contract */
   event NewMgv();
 
   /* Mangrove adds or removes wei from `maker`'s account */
@@ -200,7 +200,7 @@ interface ITaker {
 }
 
 /* # Monitor interface
-If enabled, the monitor receives notification after each offer execution and is read for each pair's `gasprice` and `density`. */
+If enabled, the monitor receives notification after each offer execution and is read for each offerList's `gasprice` and `density`. */
 interface IMgvMonitor {
   function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external;
 

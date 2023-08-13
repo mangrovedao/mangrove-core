@@ -66,7 +66,7 @@ contract MgvReader {
   /**
    * @notice Open markets tracking (below) provides information about which markets on Mangrove are open. Anyone can update a market status by calling `updateMarket`.
    * @notice The array of structs `_openMarkets` is the array of all currently open markets (up to a delay in calling `updateMarkets`). A market is a triplet of tokens `(tkn0,tkn1,tickScale)`. The which token is 0 which token is 1 is non-meaningful but canonical (see `order`).
-   * @notice In this contract, 'markets' are defined by non-oriented pairs. Usually markets come with a base/quote orientation. Please keep that in mind.
+   * @notice In this contract, 'markets' are defined by non-oriented offerLists. Usually markets come with a base/quote orientation. Please keep that in mind.
    * @notice A market {tkn0,tkn1} is open if either the tkn0/tkn1 offer list is active or the tkn1/tkn0 offer list is active.
    */
 
@@ -118,7 +118,7 @@ contract MgvReader {
     uint fromId;
     uint maxOffers;
   }
-  // Returns the orderbook for the outbound_tkn/inbound_tkn pair in packed form. First number is id of next offer (0 is we're done). First array is ids, second is offers (as bytes32), third is offerDetails (as bytes32). Array will be of size `min(# of offers in out/in list, maxOffers)`.
+  // Returns the orderbook for the outbound_tkn/inbound_tkn/tickScale offer list in packed form. First number is id of next offer (0 is we're done). First array is ids, second is offers (as bytes32), third is offerDetails (as bytes32). Array will be of size `min(# of offers in out/in list, maxOffers)`.
 
   function packedOfferList(OL memory ol, uint fromId, uint maxOffers)
     public
@@ -147,7 +147,7 @@ contract MgvReader {
     }
   }
 
-  // Returns the orderbook for the outbound_tkn/inbound_tkn pair in unpacked form. First number is id of next offer (0 if we're done). First array is ids, second is offers (as structs), third is offerDetails (as structs). Array will be of size `min(# of offers in out/in list, maxOffers)`.
+  // Returns the orderbook for the outbound_tkn/inbound_tkn/tickScale offer list in unpacked form. First number is id of next offer (0 if we're done). First array is ids, second is offers (as structs), third is offerDetails (as structs). Array will be of size `min(# of offers in out/in list, maxOffers)`.
   function offerList(OL memory ol, uint fromId, uint maxOffers)
     public
     view
@@ -469,7 +469,7 @@ contract MgvReader {
   /// @notice Get the offer after a given offer
   function nextOfferId(OL memory ol, MgvStructs.OfferPacked offer) public view returns (uint) {
     // WARNING
-    // If the offer is not actually recorded in the pair, results will be meaningless.
+    // If the offer is not actually recorded in the offer list, results will be meaningless.
     // if (offer.gives() == 0) {
     //   revert("Offer is not live, prev/next meaningless.");
     // }
@@ -515,7 +515,7 @@ contract MgvReader {
   /// @notice Get the offer before a given offer
   function prevOfferId(OL memory ol, MgvStructs.OfferPacked offer) public view returns (uint offerId) {
     // WARNING
-    // If the offer is not actually recorded in the pair, results will be meaningless.
+    // If the offer is not actually recorded in the offer list, results will be meaningless.
     // if (offer.gives() == 0) {
     //   revert("Offer is not live, prev/next meaningless.");
     // }

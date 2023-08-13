@@ -43,16 +43,11 @@ contract MgvGovernable is MgvRoot {
 
   /* ## Locals */
   /* ### `active` */
-  function activate(
-    OL memory ol,
-    uint fee,
-    uint densityFixed,
-    uint offer_gasbase
-  ) public {
+  function activate(OL memory ol, uint fee, uint densityFixed, uint offer_gasbase) public {
     unchecked {
       authOnly();
-      Pair storage pair = pairs[ol.id()];
-      pair.local = pair.local.active(true);
+      OfferList storage offerList = offerLists[ol.id()];
+      offerList.local = offerList.local.active(true);
       emit SetActive(ol.outbound, ol.inbound, ol.tickScale, true);
       setFee(ol, fee);
       setDensityFixed(ol, densityFixed);
@@ -62,8 +57,8 @@ contract MgvGovernable is MgvRoot {
 
   function deactivate(OL memory ol) public {
     authOnly();
-    Pair storage pair = pairs[ol.id()];
-    pair.local = pair.local.active(false);
+    OfferList storage offerList = offerLists[ol.id()];
+    offerList.local = offerList.local.active(false);
     emit SetActive(ol.outbound, ol.inbound, ol.tickScale, false);
   }
 
@@ -73,8 +68,8 @@ contract MgvGovernable is MgvRoot {
       authOnly();
       /* `fee` is in basis points, i.e. in percents of a percent. */
       require(MgvStructs.Local.fee_check(fee), MgvStructs.Local.fee_size_error);
-      Pair storage pair = pairs[ol.id()];
-      pair.local = pair.local.fee(fee);
+      OfferList storage offerList = offerLists[ol.id()];
+      offerList.local = offerList.local.fee(fee);
       emit SetFee(ol.outbound, ol.inbound, ol.tickScale, fee);
     }
   }
@@ -87,11 +82,11 @@ contract MgvGovernable is MgvRoot {
       authOnly();
 
       //+clear+
-      Pair storage pair = pairs[ol.id()];
+      OfferList storage offerList = offerLists[ol.id()];
       /* Checking the size of `density` is necessary to prevent overflow before storing density as a float. */
       require(DensityLib.checkFixedDensity(densityFixed), "mgv/config/density/128bits");
 
-      pair.local = pair.local.densityFromFixed(densityFixed);
+      offerList.local = offerList.local.densityFromFixed(densityFixed);
       emit SetDensityFixed(ol.outbound, ol.inbound, ol.tickScale, densityFixed);
     }
   }
@@ -111,8 +106,8 @@ contract MgvGovernable is MgvRoot {
       );
       // require(uint24(offer_gasbase) == offer_gasbase, "mgv/config/offer_gasbase/24bits");
       //+clear+
-      Pair storage pair = pairs[ol.id()];
-      pair.local = pair.local.offer_gasbase(offer_gasbase);
+      OfferList storage offerList = offerLists[ol.id()];
+      offerList.local = offerList.local.offer_gasbase(offer_gasbase);
       emit SetGasbase(ol.outbound, ol.inbound, ol.tickScale, offer_gasbase);
     }
   }

@@ -267,7 +267,6 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint ofr = mkr.newOfferByVolume({wants: 1 ether, gives: 1 ether, gasreq: 2300, gasprice: 100});
     uint ofr0 = mkr.newOfferByVolume(0.9 ether, 1 ether, 2300, 100);
     assertTrue(mgv.offers(ol, ofr).isLive(), "Offer was not removed from OB");
-    MgvStructs.OfferPacked offerx = mgv.offers(ol, ofr);
     mkr.retractOffer(ofr);
     MgvStructs.OfferPacked offer = mgv.offers(ol, ofr);
     // note: a former version of this test was checking pair.prevOfferId(offer) and offer.next () but:

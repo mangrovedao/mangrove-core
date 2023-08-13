@@ -316,7 +316,7 @@ contract MgvReaderTest is MangroveTest {
     }
   }
 
-  function assumeDifferentPairs(address tknA, address tknB, address tkn0, address tkn1) internal view {
+  function assumeDifferentPairs(address tknA, address tknB, address tkn0, address tkn1) internal pure {
     (tknA, tknB) = order(tknA, tknB);
     (tkn0, tkn1) = order(tkn0, tkn1);
     vm.assume(tknA != tkn0 || tknB != tkn1);

@@ -25,32 +25,25 @@ contract ActivateSemibook is Test2, Deployer {
   function run() public {
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
-      outbound_tkn: IERC20(envAddressOrName("OUTBOUND_TKN")),
-      inbound_tkn: IERC20(envAddressOrName("INBOUND_TKN")),
-      tickScale: vm.envUint("TICKSCALE"),
+      ol: OL({
+        outbound: envAddressOrName("OUTBOUND_TKN"),
+        inbound: envAddressOrName("INBOUND_TKN"),
+        tickScale: vm.envUint("TICKSCALE")
+      }),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
       fee: vm.envUint("FEE")
     });
   }
 
-  function innerRun(
-    Mangrove mgv,
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint tickScale,
-    uint outbound_in_gwei,
-    uint fee
-  ) public {
+  function innerRun(Mangrove mgv, OL memory ol, uint outbound_in_gwei, uint fee) public {
     (MgvStructs.GlobalPacked global,) = mgv.config(OL(address(0), address(0), 0));
-    innerRun(mgv, global.gasprice(), outbound_tkn, inbound_tkn, tickScale, outbound_in_gwei, fee);
+    innerRun(mgv, global.gasprice(), ol, outbound_in_gwei, fee);
   }
 
   function innerRun(
     Mangrove mgv,
     uint gaspriceOverride, // the gasprice that is used to compute density. Can be set higher that mangrove's gasprice to avoid dust without impacting user's bounty
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
-    uint tickScale,
+    OL memory ol,
     uint outbound_in_gwei,
     uint fee
   ) public {
@@ -61,8 +54,8 @@ contract ActivateSemibook is Test2, Deployer {
     sequence.
 
     */
-    uint outbound_gas = measureTransferGas(outbound_tkn);
-    uint inbound_gas = measureTransferGas(inbound_tkn);
+    uint outbound_gas = measureTransferGas(ol.outbound);
+    uint inbound_gas = measureTransferGas(ol.inbound);
     uint gasbase = 2 * (outbound_gas + inbound_gas);
     console.log("Measured gasbase: %d", gasbase);
 
@@ -81,7 +74,7 @@ contract ActivateSemibook is Test2, Deployer {
        - global.gasprice() is in gwei/gas
        - so density is in (base token units token)/gas
     */
-    uint outbound_decimals = outbound_tkn.decimals();
+    uint outbound_decimals = IERC20(ol.outbound).decimals();
     uint density = DensityLib.fixedFromParams({
       outbound_decimals: outbound_decimals,
       gasprice_in_gwei: gaspriceOverride,
@@ -92,27 +85,22 @@ contract ActivateSemibook is Test2, Deployer {
     // min density of at least 1 wei of outbound token
     density = density == 0 ? 1 : density;
     console.log("With gasprice: %d gwei, cover factor:%d", gaspriceOverride, COVER_FACTOR);
-    console.log("Derived density %s %s per gas unit", toFixed(density, outbound_decimals), outbound_tkn.symbol());
+    console.log("Derived density %s %s per gas unit", toFixed(density, outbound_decimals), IERC20(ol.outbound).symbol());
 
     broadcast();
-    mgv.activate({
-      ol: OL(address(outbound_tkn), address(inbound_tkn), tickScale),
-      fee: fee,
-      densityFixed: density,
-      offer_gasbase: gasbase
-    });
+    mgv.activate({ol: ol, fee: fee, densityFixed: density, offer_gasbase: gasbase});
   }
 
-  function measureTransferGas(IERC20 tkn) internal returns (uint) {
+  function measureTransferGas(address tkn) internal returns (uint) {
     address someone = freshAddress();
     vm.prank(someone);
-    tkn.approve(address(this), type(uint).max);
-    deal(address(tkn), someone, 10);
+    IERC20(tkn).approve(address(this), type(uint).max);
+    deal(tkn, someone, 10);
     /* WARNING: gas metering is done by local execution, which means that on
      * networks that have different EIPs activated, there will be discrepancies. */
     uint post;
     uint pre = gasleft();
-    tkn.transferFrom(someone, address(this), 1);
+    IERC20(tkn).transferFrom(someone, address(this), 1);
     post = gasleft();
     return pre - post;
   }

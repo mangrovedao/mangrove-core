@@ -44,84 +44,82 @@ contract DynamicTicksTest is MangroveTest {
     return int24(bound(logPrice, LogPriceLib.MIN_LOG_PRICE, LogPriceLib.MAX_LOG_PRICE));
   }
 
-  function test_newOffer_store_and_retrieve(uint24 tickScale, uint24 badTickScale, int24 logPrice) public {
-    vm.assume(tickScale != badTickScale);
+  function test_newOffer_store_and_retrieve(uint24 tickScale, uint24 tickScale2, int24 logPrice) public {
+    vm.assume(tickScale != tickScale2);
     vm.assume(tickScale != 0);
-    mgv.activate(OL($(base), $(quote), tickScale), 0, 100, 0);
-    mgv.activate(OL($(base), $(quote), badTickScale), 0, 100, 0);
+    ol.tickScale = tickScale;
+    OL memory ol2 = OL(ol.outbound, ol.inbound, tickScale2);
+    mgv.activate(ol, 0, 100, 0);
+    mgv.activate(ol2, 0, 100, 0);
     logPrice = boundLogPrice(logPrice);
     uint gives = 1 ether;
     uint wants = LogPriceLib.inboundFromOutbound(logPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
-    uint ofr = mgv.newOfferByLogPrice(OL($(base), $(quote), tickScale), logPrice, gives, 100_000, 30);
-    pair.ol.tickScale = badTickScale;
-    assertEq(pair.offers(ofr).gives(), 0, "offer should not be at other tickscale");
-    pair.ol.tickScale = tickScale;
-    assertEq(pair.offers(ofr).logPrice(), logPrice, "offer not saved");
+    uint ofr = mgv.newOfferByLogPrice(ol, logPrice, gives, 100_000, 30);
+    assertEq(mgv.offers(ol2, ofr).gives(), 0, "offer should not be at other tickscale");
+    assertEq(mgv.offers(ol, ofr).logPrice(), logPrice, "offer not saved");
   }
 
-  function test_updateOffer_store_and_retrieve(uint24 tickScale, uint24 otherTickScale, int24 logPrice) public {
+  function test_updateOffer_store_and_retrieve(uint24 tickScale, uint24 tickScale2, int24 logPrice) public {
     logPrice = boundLogPrice(logPrice);
-    vm.assume(tickScale != otherTickScale);
+    vm.assume(tickScale != tickScale2);
     vm.assume(tickScale != 0);
-    vm.assume(otherTickScale != 0);
+    vm.assume(tickScale2 != 0);
+    ol.tickScale = tickScale;
+    OL memory ol2 = OL(ol.outbound, ol.inbound, tickScale2);
     uint gives = 1 ether;
     uint wants = LogPriceLib.inboundFromOutbound(logPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
-    mgv.activate(OL($(base), $(quote), tickScale), 0, 100, 0);
-    mgv.activate(OL($(base), $(quote), otherTickScale), 0, 100, 0);
-    console.log(logPrice);
-    uint ofr = mgv.newOfferByLogPrice(OL($(base), $(quote), otherTickScale), 0, gives, 100_000, 30);
-    pair.ol.tickScale = otherTickScale;
-    assertTrue(pair.offers(ofr).isLive(), "offer should be at otherTickScale");
-    assertEq(pair.offers(ofr).logPrice(), 0, "offer should have correct price");
-    pair.ol.tickScale = tickScale;
-    assertEq(pair.offers(ofr).gives(), 0, "offer should not be at tickScale");
+    mgv.activate(ol, 0, 100, 0);
+    mgv.activate(ol2, 0, 100, 0);
+    uint ofr = mgv.newOfferByLogPrice(ol2, 0, gives, 100_000, 30);
+    assertTrue(mgv.offers(ol2, ofr).isLive(), "offer should be at tickScale2");
+    assertEq(mgv.offers(ol2, ofr).logPrice(), 0, "offer should have correct price");
+    assertEq(mgv.offers(ol, ofr).gives(), 0, "offer should not be at tickScale");
 
     // test fails if no existing offer
     vm.expectRevert("mgv/updateOffer/unauthorized");
-    mgv.updateOfferByLogPrice(OL($(base), $(quote), tickScale), logPrice, gives, 100_000, 30, ofr);
+    mgv.updateOfferByLogPrice(ol, logPrice, gives, 100_000, 30, ofr);
 
     // test offers update does not touch another tickScale
-    uint ofr2 = mgv.newOfferByLogPrice(OL($(base), $(quote), tickScale), 1, gives, 100_000, 30);
+    uint ofr2 = mgv.newOfferByLogPrice(ol, 1, gives, 100_000, 30);
     assertEq(ofr, ofr2, "offer ids should be equal");
-    mgv.updateOfferByLogPrice(OL($(base), $(quote), tickScale), logPrice, gives, 100_000, 30, ofr2);
-    pair.ol.tickScale = otherTickScale;
-    assertTrue(pair.offers(ofr).isLive(), "offer should still be at otherTickScale");
-    assertEq(pair.offers(ofr).logPrice(), 0, "offer should still have correct price");
-    pair.ol.tickScale = tickScale;
-    assertTrue(pair.offers(ofr).isLive(), "offer should be at tickScale");
-    assertEq(pair.offers(ofr).logPrice(), logPrice, "offer should have logPrice");
+    mgv.updateOfferByLogPrice(ol, logPrice, gives, 100_000, 30, ofr2);
+    assertTrue(mgv.offers(ol2, ofr).isLive(), "offer should still be at tickScale2");
+    assertEq(mgv.offers(ol2, ofr).logPrice(), 0, "offer should still have correct price");
+    assertTrue(mgv.offers(ol, ofr).isLive(), "offer should be at tickScale");
+    assertEq(mgv.offers(ol, ofr).logPrice(), logPrice, "offer should have logPrice");
   }
 
   function test_tickPlacement(uint24 tickScale, int24 logPrice) public {
+    ol.tickScale = tickScale;
     logPrice = boundLogPrice(logPrice);
     vm.assume(tickScale != 0);
     uint gives = 1 ether;
     uint wants = LogPriceLib.inboundFromOutbound(logPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
-    mgv.activate(OL($(base), $(quote), tickScale), 0, 100, 0);
-    mgv.newOfferByLogPrice(OL($(base), $(quote), tickScale), logPrice, gives, 100_000, 30);
+    mgv.activate(ol, 0, 100, 0);
+    mgv.newOfferByLogPrice(ol, logPrice, gives, 100_000, 30);
     Tick tick = TickLib.fromLogPrice(logPrice, tickScale);
-    pair.ol.tickScale = tickScale;
-    assertEq(pair.leafs(tick.leafIndex()).firstOfferPosition(), tick.posInLeaf());
-    assertEq(pair.level0(tick.level0Index()).firstOnePosition(), tick.posInLevel0());
-    assertEq(pair.level1(tick.level1Index()).firstOnePosition(), tick.posInLevel1());
-    assertEq(pair.level2().firstOnePosition(), tick.posInLevel2());
+    assertEq(mgv.leafs(ol, tick.leafIndex()).firstOfferPosition(), tick.posInLeaf());
+    assertEq(mgv.level0(ol, tick.level0Index()).firstOnePosition(), tick.posInLevel0());
+    assertEq(mgv.level1(ol, tick.level1Index()).firstOnePosition(), tick.posInLevel1());
+    assertEq(mgv.level2(ol).firstOnePosition(), tick.posInLevel2());
   }
 
   function test_noOfferAtZeroTickScale(int24 logPrice, uint96 gives) public {
     // TODO is it really necessary to constraint wants < 96 bits? Or can it go to any size no problem?
+    ol.tickScale = 0;
     logPrice = boundLogPrice(logPrice);
-    mgv.activate(OL($(base), $(quote), 0), 0, 100, 0);
+    mgv.activate(ol, 0, 100, 0);
     uint wants = LogPriceLib.inboundFromOutbound(logPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
     vm.expectRevert(stdError.divisionError);
-    mgv.newOfferByLogPrice(OL($(base), $(quote), 0), logPrice, gives, 100_00, 30);
+    mgv.newOfferByLogPrice(ol, logPrice, gives, 100_00, 30);
   }
 
   // FIXME think of more tests

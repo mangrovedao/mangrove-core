@@ -33,23 +33,20 @@ contract CopyOpenSemibooks is Deployer {
     console.log("Enabling semibooks...");
 
     for (uint i = 0; i < markets.length; i++) {
-      address tkn0 = markets[i].tkn0;
-      address tkn1 = markets[i].tkn1;
-      uint tickScale = markets[i].tickScale;
-      updateActivation(tkn0, tkn1, tickScale, configs[i].config01);
-      updateActivation(tkn1, tkn0, tickScale, configs[i].config10);
+      updateActivation(toOL(markets[i]), configs[i].config01);
+      updateActivation(toOL(flipped(markets[i])), configs[i].config10);
       broadcast();
       currentReader.updateMarket(markets[i]);
     }
     console.log("...done.");
   }
 
-  function updateActivation(address tknA, address tknB, uint tickScale, MgvStructs.LocalUnpacked memory cAB) internal {
+  function updateActivation(OL memory ol, MgvStructs.LocalUnpacked memory cAB) internal {
     if (cAB.active) {
-      console.log(tknA, tknB);
+      console.log(ol.outbound, ol.inbound);
       broadcast();
       currentMangrove.activate({
-        ol: OL(tknA, tknB, tickScale),
+        ol: ol,
         fee: cAB.fee,
         densityFixed: cAB.density.toFixed(),
         offer_gasbase: cAB.offer_gasbase()

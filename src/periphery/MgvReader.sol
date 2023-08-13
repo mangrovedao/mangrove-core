@@ -402,11 +402,12 @@ contract MgvReader {
         address tkn0 = _openMarkets[from + i].tkn0;
         address tkn1 = _openMarkets[from + i].tkn1;
         uint tickScale = _openMarkets[from + i].tickScale;
+        // copy
         markets[i] = Market({tkn0: tkn0, tkn1: tkn1, tickScale: tickScale});
 
         if (withConfig) {
-          configs[i].config01 = localUnpacked(OL(tkn0, tkn1, tickScale));
-          configs[i].config10 = localUnpacked(OL(tkn1, tkn0, tickScale));
+          configs[i].config01 = localUnpacked(toOL(markets[i]));
+          configs[i].config10 = localUnpacked(toOL(flipped(markets[i])));
         }
       }
     }
@@ -425,16 +426,15 @@ contract MgvReader {
   /// @return config The market configuration. config01 and config10 follow the order given in arguments, not the canonical order
   /// @dev This function queries Mangrove so all the returned info is up-to-date.
   function marketConfig(Market memory market) external view returns (MarketConfig memory config) {
-    config.config01 = localUnpacked(OL(market.tkn0, market.tkn1, market.tickScale));
-    config.config10 = localUnpacked(OL(market.tkn1, market.tkn0, market.tickScale));
+    config.config01 = localUnpacked(toOL(market));
+    config.config10 = localUnpacked(toOL(flipped(market)));
   }
 
   /// @notice Permisionless update of _openMarkets array.
   /// @notice Will consider a market open iff either the offer lists tkn0/tkn1 or tkn1/tkn0 are open on Mangrove.
   function updateMarket(Market memory market) external {
     (market.tkn0, market.tkn1) = order(market.tkn0, market.tkn1);
-    bool openOnMangrove = local(OL(market.tkn0, market.tkn1, market.tickScale)).active()
-      || local(OL(market.tkn1, market.tkn0, market.tickScale)).active();
+    bool openOnMangrove = local(toOL(market)).active() || local(toOL(flipped(market))).active();
     uint position = marketPositions[market.tkn0][market.tkn1][market.tickScale];
 
     if (openOnMangrove && position == 0) {

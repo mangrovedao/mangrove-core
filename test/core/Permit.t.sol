@@ -86,9 +86,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
 
   function snipeFor(uint value, address who) internal returns (uint, uint, uint, uint, uint) {
     int logPrice = LogPriceLib.logPriceFromPrice_e18(1 ether);
-    return mgv.snipesFor(
-      OL($(base), $(quote), DEFAULT_TICKSCALE), wrap_dynamic([uint(1), uint(logPrice), value, 300_000]), true, who
-    );
+    return mgv.snipesFor(ol, wrap_dynamic([uint(1), uint(logPrice), value, 300_000]), true, who);
   }
 
   function newOfferByVolume(uint amount) internal {

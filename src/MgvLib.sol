@@ -23,7 +23,7 @@ library OLLib {
   // To save gas, id() directly hashes the memory (which matches the ABI encoding)
   // If the memory layout changes, this function must be updated
   function id(OL memory ol) internal pure returns (bytes32 _id) {
-    assembly {
+    assembly ("memory-safe") {
       _id := keccak256(ol, 96)
     }
   }
@@ -191,8 +191,7 @@ interface IMaker {
 interface ITaker {
   /* Inverted mangrove only: call to taker after loans went through */
   function takerTrade(
-    address outbound_tkn,
-    address inbound_tkn,
+    OL calldata ol,
     // total amount of outbound_tkn token that was flashloaned to the taker
     uint totalGot,
     // total amount of inbound_tkn token that should be made available

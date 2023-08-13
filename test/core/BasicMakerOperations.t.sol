@@ -13,9 +13,9 @@ contract BasicMakerOperationsTest is MangroveTest {
   function setUp() public override {
     super.setUp();
 
-    mkr = setupMaker($(base), $(quote), "maker");
-    mkr2 = setupMaker($(base), $(quote), "maker2");
-    tkr = setupTaker($(base), $(quote), "taker");
+    mkr = setupMaker(ol, "maker");
+    mkr2 = setupMaker(ol, "maker2");
+    tkr = setupTaker(ol, "taker");
 
     mkr.approveMgv(base, 10 ether);
     mkr2.approveMgv(base, 10 ether);

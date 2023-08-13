@@ -176,6 +176,11 @@ library LogPriceLib {
     return logPriceFromVolumes(price_e18, 1 ether);
   }
 
+  // tick to price, price must not exceed max
+  // if tickscale is 1 maxtick is maxprice
+  // the only way there is a general max tickscale is if I cant have as many ticks as I want?
+  // 
+  // FIXME ensure that you only called tick*tickScale if you previously stored the tick as a result of logPrice/tickScale. Otherwise you may go beyond the MAX/MIN.
   function fromTick(Tick tick, uint tickScale) internal pure returns (int) {
     return Tick.unwrap(tick) * int(tickScale);
   }

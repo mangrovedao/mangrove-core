@@ -1,11 +1,10 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import "mgv_src/periphery/MgvReader.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MgvStructs,OL} from "mgv_src/MgvLib.sol";
-import "forge-std/console.sol";
+import {MgvStructs, OL} from "mgv_src/MgvLib.sol";
 
 /* 
 Given two instances of MgvReader (previousReader and currentReader), copy the
@@ -27,7 +26,7 @@ contract CopyOpenSemibooks is Deployer {
   function innerRun(MgvReader previousReader, MgvReader currentReader) public {
     console.log("Previous reader:", address(previousReader));
     console.log("Current reader: ", address(currentReader));
-    (MgvReader.Market[] memory markets, MgvReader.MarketConfig[] memory configs) = previousReader.openMarkets();
+    (Market[] memory markets, MarketConfig[] memory configs) = previousReader.openMarkets();
 
     currentMangrove = Mangrove(payable(currentReader.MGV()));
 
@@ -50,7 +49,7 @@ contract CopyOpenSemibooks is Deployer {
       console.log(tknA, tknB);
       broadcast();
       currentMangrove.activate({
-        ol: OL(tknA,tknB,tickScale),
+        ol: OL(tknA, tknB, tickScale),
         fee: cAB.fee,
         densityFixed: cAB.density.toFixed(),
         offer_gasbase: cAB.offer_gasbase()

@@ -17,7 +17,6 @@ import "mgv_src/MgvHelpers.sol";
 
    Note: in the current version you do not need to set MgvCleaner's allowance in Mangrove. */
 contract MgvCleaner {
-  uint constant DEFAULT_TICKSCALE = 1;
   IMangrove immutable MGV;
 
   constructor(address mgv) {
@@ -27,14 +26,9 @@ contract MgvCleaner {
   receive() external payable {}
 
   /* Returns the entire balance, not just the bounty collected */
-  function collect(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants)
-    external
-    returns (uint bal)
-  {
+  function collect(OL calldata ol, uint[4][] calldata targets, bool fillWants) external returns (uint bal) {
     unchecked {
-      (uint successes,,,,) = MgvHelpers.snipesForByVolume(
-        address(MGV), OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE), targets, fillWants, msg.sender
-      );
+      (uint successes,,,,) = MgvHelpers.snipesForByVolume(address(MGV), ol, targets, fillWants, msg.sender);
       require(successes == 0, "mgvCleaner/anOfferDidNotFail");
       bal = address(this).balance;
       bool noRevert;
@@ -47,16 +41,13 @@ contract MgvCleaner {
    * NB Returns the entire balance, not just the bounty collected
    */
   function collectByImpersonation(
-    address outbound_tkn,
-    address inbound_tkn,
+    OL calldata ol,
     uint[4][] calldata targets,
     bool fillWants,
     address takerToImpersonate
   ) external returns (uint bal) {
     unchecked {
-      (uint successes,,,,) = MgvHelpers.snipesForByVolume(
-        address(MGV), OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE), targets, fillWants, takerToImpersonate
-      );
+      (uint successes,,,,) = MgvHelpers.snipesForByVolume(address(MGV), ol, targets, fillWants, takerToImpersonate);
       require(successes == 0, "mgvCleaner/anOfferDidNotFail");
       bal = address(this).balance;
       bool noRevert;

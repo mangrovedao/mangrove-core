@@ -14,7 +14,7 @@ contract InvertedMangrove is AbstractMangrove {
   // execute taker trade
   function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal override {
     unchecked {
-      ITaker(mor.taker).takerTrade(sor.ol.outbound, sor.ol.inbound, mor.totalGot, mor.totalGave);
+      ITaker(mor.taker).takerTrade(sor.ol, mor.totalGot, mor.totalGave);
       bool success = transferTokenFrom(sor.ol.inbound, mor.taker, address(this), mor.totalGave);
       require(success, "mgv/takerFailToPayTotal");
     }

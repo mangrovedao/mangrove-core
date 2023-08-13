@@ -18,14 +18,11 @@ import {IMangrove} from "mgv_src/IMangrove.sol";
  * Base test suite for [Chain]MangroveDeployer scripts
  */
 abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
-  uint constant DEFAULT_TICKSCALE = 1;
   MangroveDeployer mgvDeployer;
   address chief;
   uint gasprice;
   uint gasmax;
   address gasbot;
-  address outbound_tkn;
-  address inbound_tkn;
 
   function test_toy_ens_has_addresses() public {
     assertEq(fork.get("Mangrove"), address(mgvDeployer.mgv()));
@@ -34,9 +31,8 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     assertEq(fork.get("MgvOracle"), address(mgvDeployer.oracle()));
   }
 
-  function test_contracts_instantiated_correctly() public {
-    outbound_tkn = freshAddress("outbound_tkn");
-    inbound_tkn = freshAddress("inbound_tkn");
+  function test_contracts_instantiated_correctly(uint tickScale) public {
+    OL memory ol = OL(freshAddress("oubtound_tkn"), freshAddress("inbound_tkn"), tickScale);
 
     // Oracle - verify expected values have been passed in. We read from storage slots - alternatively, we should poke admin methods to verify correct setup.
     MgvOracle oracle = mgvDeployer.oracle();
@@ -44,7 +40,7 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     assertEq(chief, address(uint160(uint(oracleGovernance))));
     bytes32 oracleMutator = vm.load(address(oracle), bytes32(uint(1)));
     assertEq(gasbot, address(uint160(uint(oracleMutator))));
-    (uint gasprice_, Density density_) = oracle.read(OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE));
+    (uint gasprice_, Density density_) = oracle.read(ol);
     assertEq(gasprice, gasprice_);
     assertEq(type(uint).max, Density.unwrap(density_));
 
@@ -56,23 +52,22 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     assertEq(cfg.monitor(), address(oracle), "monitor should be set to oracle");
     assertTrue(cfg.useOracle(), "useOracle should be set");
 
-    // Reader - verify mgv is used
-    MgvReader reader = mgvDeployer.reader();
-    vm.expectCall(address(mgv), abi.encodeCall(mgv.config, (OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE))));
-    reader.getProvision(OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE), 0, 0);
+    {
+      // prevent stack too deep
+      // Reader - verify mgv is used
+      MgvReader reader = mgvDeployer.reader();
+
+      vm.expectCall(address(mgv), abi.encodeCall(mgv.config, (ol)));
+      reader.getProvision(ol, 0, 0);
+    }
 
     // Cleaner - verify mgv is used
     MgvCleaner cleaner = mgvDeployer.cleaner();
     uint[4][] memory targets = wrap_dynamic([uint(0), 0, 0, 0]);
     uint[4][] memory convertedTargets = MgvHelpers.convertSnipeTargetsToLogPrice(targets, true);
 
-    vm.expectCall(
-      address(mgv),
-      abi.encodeCall(
-        mgv.snipesFor, (OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE), convertedTargets, true, address(this))
-      )
-    );
+    vm.expectCall(address(mgv), abi.encodeCall(mgv.snipesFor, (ol, convertedTargets, true, address(this))));
     vm.expectRevert("mgv/inactive");
-    cleaner.collect(outbound_tkn, inbound_tkn, targets, true);
+    cleaner.collect(ol, targets, true);
   }
 }

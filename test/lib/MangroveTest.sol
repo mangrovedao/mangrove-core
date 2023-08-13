@@ -65,17 +65,11 @@ library PairLib {
     console.log("Current tick %s", toString(tick));
     console.log("Current posInLeaf %s", tick.posInLeaf());
     int leafIndex = tick.leafIndex();
-    console.log(
-      "Current leaf %s (index %s)",
-      toString(pair.mgv.leafs(pair.ol, leafIndex)),
-      vm.toString(leafIndex)
-    );
+    console.log("Current leaf %s (index %s)", toString(pair.mgv.leafs(pair.ol, leafIndex)), vm.toString(leafIndex));
     console.log("Current level 0 %s (index %s)", toString(_local.level0()), vm.toString(tick.level0Index()));
     int level1Index = tick.level1Index();
     console.log(
-      "Current level 1 %s (index %s)",
-      toString(pair.mgv.level1(pair.ol, level1Index)),
-      vm.toString(level1Index)
+      "Current level 1 %s (index %s)", toString(pair.mgv.level1(pair.ol, level1Index)), vm.toString(level1Index)
     );
     console.log("Current level 2 %s", toString(_local.level2()));
     console.log("----------------------------------------");
@@ -126,6 +120,7 @@ library PairLib {
 contract MangroveTest is Test2, HasMgvEvents {
   // Configure the initial setup.
   // Add fields here to make MangroveTest more configurable.
+
   struct TokenOptions {
     string name;
     string symbol;
@@ -137,6 +132,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     TokenOptions base;
     TokenOptions quote;
     uint defaultFee;
+    uint defaultTickscale;
     uint gasprice;
     uint gasbase;
     uint gasmax;
@@ -147,20 +143,17 @@ contract MangroveTest is Test2, HasMgvEvents {
   MgvReader internal reader;
   TestToken internal base;
   TestToken internal quote;
-  uint tickScale;
   Pair pair; // base,quote pair
   Pair raip; // quote,base pair
   OL ol; // base,quote
   OL lo; //quote,base
-
-  // Use a named constant to make tests more readable
-  uint constant DEFAULT_TICKSCALE = 1;
 
   MangroveTestOptions internal options = MangroveTestOptions({
     invertedMangrove: false,
     base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
     defaultFee: 0,
+    defaultTickscale: 1,
     gasprice: 40,
     gasbase: 50_000,
     density: 10,
@@ -185,16 +178,15 @@ contract MangroveTest is Test2, HasMgvEvents {
     // tokens
     base = new TestToken($(this), options.base.name, options.base.symbol, options.base.decimals);
     quote = new TestToken($(this), options.quote.name, options.quote.symbol, options.quote.decimals);
-    tickScale = DEFAULT_TICKSCALE;
     // mangrove deploy
-    mgv = setupMangrove(base, quote, options.invertedMangrove);
+    ol = OL($(base), $(quote), options.defaultTickscale);
+    lo = OL($(quote), $(base), options.defaultTickscale);
 
+    mgv = setupMangrove(ol, options.invertedMangrove);
     reader = new MgvReader($(mgv));
 
-    pair = Pair(mgv, reader, OL($(base),$(quote), DEFAULT_TICKSCALE));
-    raip = Pair(mgv, reader, OL($(quote), $(base), DEFAULT_TICKSCALE));
-    ol = pair.ol;
-    lo = raip.ol;
+    pair = Pair(mgv, reader, ol);
+    raip = Pair(mgv, reader, lo);
 
     // below are necessary operations because testRunner acts as a taker/maker in some core protocol tests
     // TODO this should be done somewhere else
@@ -223,8 +215,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   event offers_head(address outbound, address inbound);
   event offers_line(uint id, uint wants, uint gives, address maker, uint gasreq);
 
-  function logOrderBook(address $out, address $in, uint size) internal {
-    uint offerId = mgv.best(OL($out,$in,DEFAULT_TICKSCALE));
+  function logOrderBook(OL memory _ol, uint size) internal {
+    uint offerId = mgv.best(_ol);
 
     // save call results so logs are easier to read
     uint[] memory ids = new uint[](size);
@@ -233,30 +225,29 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint c = 0;
     while ((offerId != 0) && (c < size)) {
       ids[c] = offerId;
-      offers[c] = mgv.offers(OL($out,$in,DEFAULT_TICKSCALE), offerId);
-      details[c] = mgv.offerDetails(OL($out,$in,DEFAULT_TICKSCALE), offerId);
-      offerId = reader.nextOfferId(OL($out,$in,DEFAULT_TICKSCALE), offers[c]);
+      offers[c] = mgv.offers(_ol, offerId);
+      details[c] = mgv.offerDetails(_ol, offerId);
+      offerId = reader.nextOfferId(_ol, offers[c]);
       c++;
     }
     c = 0;
-    emit offers_head($out, $in);
+    emit offers_head(ol.outbound, ol.inbound);
     while (c < size) {
       emit offers_line(ids[c], offers[c].wants(), offers[c].gives(), details[c].maker(), details[c].gasreq());
       c++;
     }
-    // emit OBState($out, $in, offerIds, wants, gives, makerAddr, gasreqs);
+    // emit OBState(ol.outbound, ol.inbound, offerIds, wants, gives, makerAddr, gasreqs);
   }
 
   /* Log OB with console */
-  function printOrderBook(address $out, address $in) internal view {
-    uint offerId = mgv.best(OL($out,$in,DEFAULT_TICKSCALE));
-    TestToken req_tk = TestToken($in);
-    TestToken ofr_tk = TestToken($out);
+  function printOrderBook(OL memory _ol) internal view {
+    uint offerId = mgv.best(_ol);
+    TestToken req_tk = TestToken(ol.inbound);
+    TestToken ofr_tk = TestToken(ol.outbound);
 
     console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
     while (offerId != 0) {
-      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) =
-        mgv.offerInfo(OL($out,$in,DEFAULT_TICKSCALE), offerId);
+      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) = mgv.offerInfo(_ol, offerId);
       console.log(
         string.concat(
           unicode"│ ",
@@ -269,7 +260,7 @@ contract MangroveTest is Test2, HasMgvEvents {
           vm.toString(detail.maker)
         )
       );
-      offerId = reader.nextOfferIdById(OL($out,$in,DEFAULT_TICKSCALE), offerId);
+      offerId = reader.nextOfferIdById(_ol, offerId);
     }
     console.log(unicode"└────┴─────────────────────");
   }
@@ -319,57 +310,51 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   // Deploy mangrove with a pair
-  function setupMangrove(IERC20 outbound_tkn, IERC20 inbound_tkn) public returns (AbstractMangrove) {
-    return setupMangrove(outbound_tkn, inbound_tkn, false);
+  function setupMangrove(OL memory _ol) public returns (AbstractMangrove) {
+    return setupMangrove(_ol, false);
   }
 
   // Deploy mangrove with a pair, inverted or not
-  function setupMangrove(IERC20 outbound_tkn, IERC20 inbound_tkn, bool inverted) public returns (AbstractMangrove _mgv) {
+  function setupMangrove(OL memory _ol, bool inverted) public returns (AbstractMangrove _mgv) {
     _mgv = setupMangrove(inverted);
-    setupMarket(address(outbound_tkn), address(inbound_tkn), _mgv);
+    setupMarket(_mgv, _ol);
   }
 
-  function setupMarket(address $a, address $b, AbstractMangrove _mgv) internal {
-    assertNot0x($a);
-    assertNot0x($b);
-    _mgv.activate(OL($a,$b,DEFAULT_TICKSCALE), options.defaultFee, options.density, options.gasbase);
-    _mgv.activate(OL($b,$a,DEFAULT_TICKSCALE), options.defaultFee, options.density, options.gasbase);
+  function setupMarket(AbstractMangrove _mgv, OL memory _ol) internal {
+    assertNot0x(ol.outbound);
+    assertNot0x(ol.inbound);
+    _mgv.activate(_ol, options.defaultFee, options.density, options.gasbase);
+    _mgv.activate(lo, options.defaultFee, options.density, options.gasbase);
     // logging
-    vm.label($a, IERC20($a).symbol());
-    vm.label($b, IERC20($b).symbol());
+    vm.label(ol.outbound, IERC20(ol.outbound).symbol());
+    vm.label(ol.inbound, IERC20(ol.inbound).symbol());
   }
 
-  function setupMarket(address $a, address $b) internal {
-    setupMarket($a, $b, mgv);
+  function setupMarket(OL memory _ol) internal {
+    setupMarket(mgv, _ol);
   }
 
-  function setupMarket(IERC20 a, IERC20 b) internal {
-    setupMarket(address(a), address(b), mgv);
-  }
-
-  function setupMaker(address $out, address $in, string memory label) public returns (TestMaker) {
-    TestMaker tm = new TestMaker(mgv, IERC20($out), IERC20($in));
+  function setupMaker(OL memory _ol, string memory label) public returns (TestMaker) {
+    TestMaker tm = new TestMaker(mgv, _ol);
     vm.deal(address(tm), 100 ether);
     vm.label(address(tm), label);
     return tm;
   }
 
-  function setupMakerDeployer(address $out, address $in) public returns (MakerDeployer) {
+  function setupMakerDeployer(OL memory _ol) public returns (MakerDeployer) {
     assertNot0x($(mgv));
-    return (new MakerDeployer(mgv, $out, $in));
+    return (new MakerDeployer(mgv, _ol));
   }
 
-  function setupTaker(address $out, address $in, string memory label) public returns (TestTaker) {
-    TestTaker tt = new TestTaker(mgv, IERC20($out), IERC20($in));
+  function setupTaker(OL memory _ol, string memory label) public returns (TestTaker) {
+    TestTaker tt = new TestTaker(mgv, _ol);
     vm.deal(address(tt), 100 ether);
     vm.label(address(tt), label);
     return tt;
   }
 
   function mockBuyOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
-    order.ol.outbound = $(base);
-    order.ol.outbound = $(quote);
-    order.ol.tickScale = tickScale;
+    order.ol = ol;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
@@ -378,17 +363,12 @@ contract MangroveTest is Test2, HasMgvEvents {
     // order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: TickLib.tickFromVolumes(order.gives,order.wants), __gives: order.wants});
   }
 
-  function mockBuyOrder(
-    uint takerGives,
-    uint takerWants,
-    uint partialFill,
-    IERC20 base_,
-    IERC20 quote_,
-    bytes32 makerData
-  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
-    order.ol.outbound = $(base_);
-    order.ol.inbound = $(quote_);
-    order.ol.tickScale;
+  function mockBuyOrder(uint takerGives, uint takerWants, uint partialFill, OL memory _ol, bytes32 makerData)
+    public
+    pure
+    returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result)
+  {
+    order.ol = _ol;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
@@ -403,26 +383,19 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
-    order.ol.inbound = $(base);
-    order.ol.outbound = $(quote);
-    order.ol.tickScale = tickScale;
+    order.ol = ol;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
     order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
   }
 
-  function mockSellOrder(
-    uint takerGives,
-    uint takerWants,
-    uint partialFill,
-    IERC20 base_,
-    IERC20 quote_,
-    bytes32 makerData
-  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
-    order.ol.inbound = $(base_);
-    order.ol.outbound = $(quote_);
-    order.ol.tickScale = DEFAULT_TICKSCALE;
+  function mockSellOrder(uint takerGives, uint takerWants, uint partialFill, OL memory _ol, bytes32 makerData)
+    public
+    pure
+    returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result)
+  {
+    order.ol = _ol;
     order.wants = takerWants;
     order.gives = takerGives;
     order.offer = MgvStructs.Offer.pack({
@@ -520,30 +493,26 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   /// creates `fold` offers in the (outbound, inbound) market with the same `wants`, `gives` and `gasreq` and with `caller` as maker
-  function densify(address outbound, address inbound, uint wants, uint gives, uint gasreq, uint fold, address caller)
-    internal
-  {
+  function densify(OL memory _ol, uint wants, uint gives, uint gasreq, uint fold, address caller) internal {
     if (gives == 0) {
       return;
     }
-    uint prov = reader.getProvision(OL(outbound,inbound,DEFAULT_TICKSCALE), gasreq, 0);
+    uint prov = reader.getProvision(_ol, gasreq, 0);
     while (fold > 0) {
       vm.prank(caller);
-      mgv.newOfferByVolume{value: prov}(OL(outbound,inbound,DEFAULT_TICKSCALE), wants, gives, gasreq, 0);
+      mgv.newOfferByVolume{value: prov}(_ol, wants, gives, gasreq, 0);
       fold--;
     }
   }
 
   /// duplicates `fold` times all offers in the `outbound, inbound` list from id `fromId` and for `lenght` offers.
-  function densifyRange(address outbound, address inbound, uint fromId, uint length, uint fold, address caller)
-    internal
-  {
+  function densifyRange(OL memory _ol, uint fromId, uint length, uint fold, address caller) internal {
     while (length > 0 && fromId != 0) {
-      MgvStructs.OfferPacked offer = mgv.offers(OL(outbound,inbound,DEFAULT_TICKSCALE), fromId);
-      MgvStructs.OfferDetailPacked detail = mgv.offerDetails(OL(outbound,inbound,DEFAULT_TICKSCALE), fromId);
-      densify(outbound, inbound, offer.wants(), offer.gives(), detail.gasreq(), fold, caller);
+      MgvStructs.OfferPacked offer = mgv.offers(_ol, fromId);
+      MgvStructs.OfferDetailPacked detail = mgv.offerDetails(_ol, fromId);
+      densify(_ol, offer.wants(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
-      fromId = reader.nextOfferId(OL(outbound,inbound,DEFAULT_TICKSCALE), offer);
+      fromId = reader.nextOfferId(_ol, offer);
     }
   }
 
@@ -581,7 +550,6 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   // logs an overview of the current branch
   function logTickTreeBranch(OL memory _ol) public view {
-    Pair({mgv: mgv, reader: reader, ol:_ol})
-      .logTickTreeBranch();
+    Pair({mgv: mgv, reader: reader, ol: _ol}).logTickTreeBranch();
   }
 }

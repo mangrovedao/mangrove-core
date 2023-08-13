@@ -18,7 +18,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
 
     deal($(quote), $(this), 10 ether);
 
-    mkr = setupMaker($(base), $(quote), "maker");
+    mkr = setupMaker(ol, "maker");
 
     deal($(base), address(mkr), 5 ether);
     mkr.provisionMgv(1 ether);
@@ -30,20 +30,20 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
 
   uint toPay;
 
-  function checkPay(address, address, uint totalGives) internal {
+  function checkPay(OL calldata, uint totalGives) internal {
     assertEq(toPay, totalGives, "totalGives should be the sum of taker flashborrows");
   }
 
   bool skipCheck;
 
-  function(address, address, uint) internal _takerTrade; // stored function pointer
+  function(OL calldata, uint) internal _takerTrade; // stored function pointer
 
-  function takerTrade(address _$base, address _$quote, uint totalGot, uint totalGives) public override {
+  function takerTrade(OL calldata ol, uint totalGot, uint totalGives) public override {
     require(msg.sender == $(mgv));
     if (!skipCheck) {
       assertEq(baseBalance + totalGot, base.balanceOf($(this)), "totalGot should be sum of maker flashloans");
     }
-    _takerTrade(_$base, _$quote, totalGives);
+    _takerTrade(ol, totalGives);
     // require(false);
   }
 
@@ -58,7 +58,7 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
 
   string constant REVERT_TRADE_REASON = "InvertedTakerOperationsTest/TradeFail";
 
-  function revertTrade(address, address, uint) internal pure {
+  function revertTrade(OL calldata, uint) internal pure {
     revert(REVERT_TRADE_REASON);
   }
 
@@ -76,12 +76,8 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     }
   }
 
-  function refuseFeeTrade(address _base, address, uint) external {
-    IERC20(_base).approve($(mgv), 0);
-  }
-
-  function refusePayTrade(address, address _quote, uint) internal {
-    IERC20(_quote).approve($(mgv), 0);
+  function refusePayTrade(OL calldata, uint) internal {
+    IERC20(ol.inbound).approve($(mgv), 0);
   }
 
   function test_taker_refuses_to_deliver_during_trade() public {
@@ -101,21 +97,20 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     uint mgvQuoteBal = quote.balanceOf(address(mgv));
 
     int logPrice = mgv.offers(ol, ofr).logPrice();
-    (uint successes,,,,) =
-      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
+    (uint successes,,,,) = mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
     assertTrue(successes == 1, "Trade should succeed");
     assertEq(quote.balanceOf(address(mgv)) - mgvQuoteBal, 1 ether, "Mgv balance should have increased");
   }
 
-  function noop(address, address, uint) internal {}
+  function noop(OL calldata, uint) internal {}
 
-  function reenter(address _base, address _quote, uint) internal {
+  function reenter(OL calldata ol, uint) internal {
     _takerTrade = noop;
     skipCheck = true;
     uint ofr = 2;
-    int logPrice = mgv.offers(OL(_base,_quote,DEFAULT_TICKSCALE), ofr).logPrice();
+    int logPrice = mgv.offers(ol, ofr).logPrice();
     (uint successes, uint totalGot, uint totalGave,,) =
-      mgv.snipes(OL(_base,_quote,DEFAULT_TICKSCALE), wrap_dynamic([ofr, uint(logPrice), 0.1 ether, 100_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 0.1 ether, 100_000]), true);
     assertTrue(successes == 1, "Snipe on reentrancy should succeed");
     assertEq(totalGot, 0.1 ether, "Incorrect totalGot");
     assertEq(totalGave, 0.1 ether, "Incorrect totalGave");

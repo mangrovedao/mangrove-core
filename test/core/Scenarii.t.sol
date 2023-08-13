@@ -57,13 +57,13 @@ contract ScenariiTest is MangroveTest {
 
     mgv.setFee(ol, testFee);
 
-    makers = setupMakerDeployer($(base), $(quote));
+    makers = setupMakerDeployer(ol);
     makers.deploy(4);
     for (uint i = 1; i < makers.length(); i++) {
       vm.label(address(makers.getMaker(i)), string.concat("maker-", vm.toString(i)));
     }
     vm.label(address(makers.getMaker(0)), "failer");
-    taker = setupTaker($(base), $(quote), "taker");
+    taker = setupTaker(ol, "taker");
 
     deal(address(makers), 80 ether);
     makers.dispatch();
@@ -91,7 +91,7 @@ contract ScenariiTest is MangroveTest {
     emit OrderComplete(
       $(base),
       $(quote),
-      DEFAULT_TICKSCALE,
+      ol.tickScale,
       address(taker),
       0.3 ether * (10_000 - testFee) / 10_000,
       374979485972146063, // should not be hardcoded
@@ -99,22 +99,22 @@ contract ScenariiTest is MangroveTest {
       0.3 ether * testFee / 10_000
     );
     snipe();
-    logOrderBook($(base), $(quote), 4);
+    logOrderBook(ol, 4);
 
     // restore offer that was deleted after partial fill, minus taken amount
     makers.getMaker(2).updateOfferByVolume(1 ether - 0.375 ether, 0.8 ether - 0.3 ether, 80_000, 2);
 
-    logOrderBook($(base), $(quote), 4);
+    logOrderBook(ol, 4);
 
     saveBalances();
     saveOffers();
     mo();
-    logOrderBook($(base), $(quote), 4);
+    logOrderBook(ol, 4);
 
     saveBalances();
     saveOffers();
     collectFailingOffer(offerOf[0]);
-    logOrderBook($(base), $(quote), 4);
+    logOrderBook(ol, 4);
     saveBalances();
     saveOffers();
   }
@@ -131,10 +131,7 @@ contract ScenariiTest is MangroveTest {
       assertEq(takerGave, 0, "Failed offer should declare 0 takerGave");
       // failingOffer should have been removed from Mgv
       {
-        assertTrue(
-          !mgv.offers(ol, failingOfferId).isLive(),
-          "Failing offer should have been removed from Mgv"
-        );
+        assertTrue(!mgv.offers(ol, failingOfferId).isLive(), "Failing offer should have been removed from Mgv");
       }
       uint provision = reader.getProvision(ol, offers[failingOfferId][Info.gasreq], 0);
       uint returned = mgv.balanceOf(address(makers.getMaker(0))) - balances.makersBalanceWei[0];
@@ -341,13 +338,13 @@ contract DeepCollectTest is MangroveTest {
 
   function setUp() public override {
     super.setUp();
-    tkr = setupTaker($(base), $(quote), "taker");
+    tkr = setupTaker(ol, "taker");
 
     deal($(quote), address(tkr), 5 ether);
     tkr.approveMgv(quote, 20 ether);
     tkr.approveMgv(base, 20 ether);
 
-    evil = new TestMoriartyMaker(mgv, $(base), $(quote));
+    evil = new TestMoriartyMaker(mgv, ol);
     vm.label(address(evil), "Moriarty");
     deal(address(evil), 20 ether);
     evil.provisionMgv(10 ether);

@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import "mgv_src/periphery/MgvReader.sol";
 import "mgv_src/Mangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OL} from "mgv_src/MgvLib.sol";
@@ -18,15 +18,13 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
  forge script --fork-url mumbai ActivateMarket*/
 
 contract ActivateMarket is Deployer {
-  uint constant DEFAULT_TICKSCALE = 1;
-
   function run() public {
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
       tkn1: IERC20(envAddressOrName("TKN1")),
       tkn2: IERC20(envAddressOrName("TKN2")),
-      tickScale: DEFAULT_TICKSCALE,
+      tickScale: vm.envUint("TICKSCALE"),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
       fee: vm.envUint("FEE")
@@ -95,11 +93,11 @@ contract ActivateMarket is Deployer {
       gaspriceOverride: gaspriceOverride,
       outbound_tkn: tkn2,
       inbound_tkn: tkn1,
-      tickScale: DEFAULT_TICKSCALE,
+      tickScale: tickScale,
       outbound_in_gwei: tkn2_in_gwei,
       fee: fee
     });
 
-    new UpdateMarket().innerRun({market: MgvReader.Market(address(tkn1), address(tkn2), tickScale), reader: reader});
+    new UpdateMarket().innerRun({market: Market(address(tkn1), address(tkn2), tickScale), reader: reader});
   }
 }

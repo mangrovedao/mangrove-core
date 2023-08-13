@@ -6,7 +6,7 @@ import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol
 
 import "mgv_test/lib/MangroveTest.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import "mgv_src/periphery/MgvReader.sol";
 import {CopyOpenSemibooks} from "mgv_script/periphery/CopyOpenSemibooks.s.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 
@@ -33,48 +33,49 @@ contract CopyOpenSemibooksTest is MangroveTest {
     copier = new CopyOpenSemibooks();
   }
 
-  function test_copy_simple(address tkn0, address tkn1) public {
+  function test_copy_simple(Market memory market) public {
     vm.prank(chief);
-    mgv.activate(OL(tkn0, tkn1, DEFAULT_TICKSCALE), 3, 4, 2);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
+    mgv.activate(toOL(market), 3, 4, 2);
+    reader.updateMarket(market);
 
     copier.broadcaster(chief2);
     copier.innerRun(reader, reader2);
 
     assertEq(reader.numOpenMarkets(), 1, "changes in previous reader");
     assertEq(reader2.numOpenMarkets(), 1, "wrong changes in current reader");
-    assertEq(reader2.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "market should be open");
+    assertEq(reader2.isMarketOpen(market), true, "market should be open");
     assertEq(
-      MgvStructs.LocalPacked.unwrap(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE))),
-      MgvStructs.LocalPacked.unwrap(reader.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE)))
+      MgvStructs.LocalPacked.unwrap(reader2.local(toOL(market))),
+      MgvStructs.LocalPacked.unwrap(reader.local(toOL(market)))
     );
   }
 
-  function test_copy_already_open(address tkn0, address tkn1) public {
+  function test_copy_already_open(Market memory market) public {
     uint expectedFee = 3;
     uint expectedDensity = 4;
     uint expectedOfferGasbase = 2000;
     vm.prank(chief);
-    mgv.activate(OL(tkn0, tkn1, DEFAULT_TICKSCALE), expectedFee, expectedDensity >> 32, expectedOfferGasbase);
-    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
+    mgv.activate(toOL(market), expectedFee, expectedDensity >> 32, expectedOfferGasbase);
+
+    reader.updateMarket(market);
 
     vm.prank(chief2);
-    mgv2.activate(OL(tkn0, tkn1, DEFAULT_TICKSCALE), 1, 1, 1);
-    reader2.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
+    mgv2.activate(toOL(market), 1, 1, 1);
+    reader2.updateMarket(market);
 
     copier.broadcaster(chief2);
     copier.innerRun(reader, reader2);
 
     assertEq(reader.numOpenMarkets(), 1, "changes in previous reader");
     assertEq(reader2.numOpenMarkets(), 1, "wrong changes in current reader");
-    assertEq(reader2.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "market should be open");
-    assertEq(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE)).active(), true, "should be active");
-    if (tkn1 != tkn0) {
-      assertEq(reader2.local(OL(tkn1, tkn0, DEFAULT_TICKSCALE)).active(), false, "should be inactive");
+    assertEq(reader2.isMarketOpen(market), true, "market should be open");
+    assertEq(reader2.local(toOL(market)).active(), true, "should be active");
+    if (market.tkn1 != market.tkn0) {
+      assertEq(reader2.local(toOL(flipped(market))).active(), false, "should be inactive");
     }
-    console.log(toString(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE))));
-    assertEq(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE)).fee(), expectedFee, "wrong fee");
-    assertEq(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE)).density().toFixed(), expectedDensity >> 32, "wrong density");
-    assertEq(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE)).offer_gasbase(), expectedOfferGasbase, "wrong gasbase");
+    console.log(toString(reader2.local(toOL(market))));
+    assertEq(reader2.local(toOL(market)).fee(), expectedFee, "wrong fee");
+    assertEq(reader2.local(toOL(market)).density().toFixed(), expectedDensity >> 32, "wrong density");
+    assertEq(reader2.local(toOL(market)).offer_gasbase(), expectedOfferGasbase, "wrong gasbase");
   }
 }

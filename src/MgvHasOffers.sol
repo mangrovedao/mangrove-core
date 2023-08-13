@@ -11,7 +11,8 @@ import {
   Tick,
   LEVEL2_SIZE,
   LEVEL1_SIZE,
-  LEVEL0_SIZE
+  LEVEL0_SIZE,
+  OL
 } from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
 import "mgv_lib/Debug.sol";
@@ -29,39 +30,39 @@ contract MgvHasOffers is MgvRoot {
 
   /* # Read functions */
   /* Convenience function to get best offer of the given pair */
-  function best(address outbound_tkn, address inbound_tkn, uint tickScale) external view returns (uint) {
+  function best(OL memory ol) external view returns (uint) {
     unchecked {
-      Pair storage pair = pairs[outbound_tkn][inbound_tkn][tickScale];
+      Pair storage pair = pairs[ol.id()];
       return pair.leafs[pair.local.tick().leafIndex()].getNextOfferId();
     }
   }
 
   /* Convenience function to get an offer in packed format */
-  function offers(address outbound_tkn, address inbound_tkn, uint tickScale, uint offerId)
+  function offers(OL memory ol, uint offerId)
     external
     view
     returns (MgvStructs.OfferPacked)
   {
-    return pairs[outbound_tkn][inbound_tkn][tickScale].offerData[offerId].offer;
+    return pairs[ol.id()].offerData[offerId].offer;
   }
 
   /* Convenience function to get an offer detail in packed format */
-  function offerDetails(address outbound_tkn, address inbound_tkn, uint tickScale, uint offerId)
+  function offerDetails(OL memory ol, uint offerId)
     external
     view
     returns (MgvStructs.OfferDetailPacked)
   {
-    return pairs[outbound_tkn][inbound_tkn][tickScale].offerData[offerId].detail;
+    return pairs[ol.id()].offerData[offerId].detail;
   }
 
   /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `pairs[outbound_tkn][inbound_tkn].offers` and `pairs[outbound_tkn][inbound_tkn].offerDetails` instead. */
-  function offerInfo(address outbound_tkn, address inbound_tkn, uint tickScale, uint offerId)
+  function offerInfo(OL memory ol, uint offerId)
     external
     view
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
   {
     unchecked {
-      OfferData storage offerData = pairs[outbound_tkn][inbound_tkn][tickScale].offerData[offerId];
+      OfferData storage offerData = pairs[ol.id()].offerData[offerId];
       offer = offerData.offer.to_struct();
       offerDetail = offerData.detail.to_struct();
     }

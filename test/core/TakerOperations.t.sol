@@ -58,7 +58,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.blacklists($(this));
 
     vm.expectRevert("mgv/takerTransferFail");
-    mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
+    mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
     assertEq(weiBalanceBefore, mgv.balanceOf($(this)), "Taker should not take bounty");
   }
 
@@ -71,7 +71,7 @@ contract TakerOperationsTest is MangroveTest {
     base.blacklists($(this));
 
     vm.expectRevert("mgv/MgvFailToPayTaker");
-    mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
+    mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
     assertEq(weiBalanceBefore, mgv.balanceOf($(this)), "Taker should not take bounty");
   }
 
@@ -82,7 +82,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
     (uint successes, uint got, uint gave,,) = mgv.snipes(
-      $(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice - 1), 0.5 ether, 100_000]), false
+      OL($(base), $(quote), DEFAULT_TICKSCALE), wrap_dynamic([ofr, uint(logPrice - 1), 0.5 ether, 100_000]), false
     );
     assertTrue(successes == 0, "Snipe should fail");
     assertEq(weiBalanceBefore, mgv.balanceOf($(this)), "Taker should not take bounty");
@@ -90,12 +90,12 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_cannot_drain_maker() public {
-    mgv.setDensityFixed($(base), $(quote), DEFAULT_TICKSCALE, 0);
+    mgv.setDensityFixed(ol, 0);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(9, 10, 100_000, 0);
     uint oldBal = quote.balanceOf($(this));
     mgv.snipes(
-      $(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(LogPriceLib.MAX_LOG_PRICE), 1, 100_000]), true
+      OL($(base), $(quote), DEFAULT_TICKSCALE), wrap_dynamic([ofr, uint(LogPriceLib.MAX_LOG_PRICE), 1, 100_000]), true
     );
     uint newBal = quote.balanceOf($(this));
     assertGt(oldBal, newBal, "oldBal should be strictly higher");
@@ -107,7 +107,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
     (uint successes, uint got, uint gave,,) = mgv.snipes(
-      $(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice + 1), 0.5 ether, 100_000]), true
+      OL($(base), $(quote), DEFAULT_TICKSCALE), wrap_dynamic([ofr, uint(logPrice + 1), 0.5 ether, 100_000]), true
     );
     assertTrue(successes == 1, "Snipe should not fail");
     assertEq(got, 0.5 ether, "Taker did not get correct amount");
@@ -120,7 +120,7 @@ contract TakerOperationsTest is MangroveTest {
     ofrs[i++] = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     ofrs[i++] = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     ofrs[i++] = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    int logPrice = mgv.offers($(base), $(quote), DEFAULT_TICKSCALE, ofrs[0]).logPrice();
+    int logPrice = mgv.offers(ol, ofrs[0]).logPrice();
 
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 3 ether);
@@ -135,9 +135,9 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(mgv));
     emit OrderStart();
     expectFrom($(mgv));
-    emit OrderComplete($(base), $(quote), DEFAULT_TICKSCALE, $(this), 2.3 ether, 2.3 ether, 0, 0);
+    emit OrderComplete(ol.outbound,ol.inbound,ol.tickScale, $(this), 2.3 ether, 2.3 ether, 0, 0);
 
-    (uint successes, uint got, uint gave,,) = mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, targets, true);
+    (uint successes, uint got, uint gave,,) = mgv.snipes(ol, targets, true);
     assertTrue(successes == 3, "Snipes should not fail");
     assertEq(got, 2.3 ether, "Taker did not get correct amount");
     assertEq(gave, 2.3 ether, "Taker did not give correct amount");
@@ -148,7 +148,7 @@ contract TakerOperationsTest is MangroveTest {
   function test_snipe_fillWants_zero() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     int logPrice = pair.offers(ofr).logPrice();
-    assertTrue(mgv.offers($(base), $(quote), DEFAULT_TICKSCALE, ofr).isLive(), "Offer should be in the book");
+    assertTrue(mgv.offers(ol, ofr).isLive(), "Offer should be in the book");
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
 
@@ -158,16 +158,16 @@ contract TakerOperationsTest is MangroveTest {
     emit Transfer($(mgv), address(mkr), 0);
 
     (uint successes, uint got, uint gave,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 0, 100_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 0, 100_000]), true);
     assertTrue(successes == 1, "Snipe should not fail");
     assertEq(got, 0 ether, "Taker had too much");
     assertEq(gave, 0 ether, "Taker gave too much");
-    assertTrue(!mgv.offers($(base), $(quote), DEFAULT_TICKSCALE, ofr).isLive(), "Offer should not be in the book");
+    assertTrue(!mgv.offers(ol, ofr).isLive(), "Offer should not be in the book");
   }
 
   function test_snipe_free_offer_fillWants_respects_spec() public {
     uint ofr = mkr.newOfferByVolume(1, 1 ether, 100_000, 0);
-    assertTrue(mgv.offers($(base), $(quote), DEFAULT_TICKSCALE, ofr).isLive(), "Offer should be in the book");
+    assertTrue(mgv.offers(ol, ofr).isLive(), "Offer should be in the book");
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
 
@@ -176,16 +176,16 @@ contract TakerOperationsTest is MangroveTest {
        We should still only receive 0.1 eth */
     int logPrice = LogPriceLib.logPriceFromPrice_e18(1 ether);
     (uint successes, uint got, uint gave,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 0.1 ether, 100_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 0.1 ether, 100_000]), true);
     assertTrue(successes == 1, "Snipe should not fail");
     assertApproxEqRel(got, 0.1 ether, relError(10), "Wrong got value");
     assertApproxEqRel(gave, 1, relError(10), "Wrong gave value");
-    assertTrue(!mgv.offers($(base), $(quote), DEFAULT_TICKSCALE, ofr).isLive(), "Offer should not be in the book");
+    assertTrue(!mgv.offers(ol, ofr).isLive(), "Offer should not be in the book");
   }
 
   function test_snipe_free_offer_fillGives_respects_spec() public {
     uint ofr = mkr.newOfferByVolume(0.01 ether, 1 ether, 100_000, 0);
-    assertTrue(mgv.offers($(base), $(quote), DEFAULT_TICKSCALE, ofr).isLive(), "Offer should be in the book");
+    assertTrue(mgv.offers(ol, ofr).isLive(), "Offer should be in the book");
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
 
@@ -195,26 +195,26 @@ contract TakerOperationsTest is MangroveTest {
 
     int logPrice = LogPriceLib.logPriceFromPrice_e18(1 ether);
     (uint successes, uint got, uint gave,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 0.01 ether, 100_000]), false);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 0.01 ether, 100_000]), false);
     assertTrue(successes == 1, "Snipe should not fail");
     assertApproxEqRel(got, 1 ether, relError(10), "Wrong got value");
     assertApproxEqRel(gave, 0.01 ether, relError(10), "Wrong gave value");
-    assertTrue(!mgv.offers($(base), $(quote), DEFAULT_TICKSCALE, ofr).isLive(), "Offer should not be in the book");
+    assertTrue(!mgv.offers(ol, ofr).isLive(), "Offer should not be in the book");
   }
 
   function test_snipe_fillGives_zero() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     int logPrice = pair.offers(ofr).logPrice();
-    assertTrue(mgv.offers($(base), $(quote), DEFAULT_TICKSCALE, ofr).isLive(), "Offer should be in the book");
+    assertTrue(mgv.offers(ol, ofr).isLive(), "Offer should be in the book");
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
 
     (uint successes, uint got, uint gave,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 0, 100_000]), false);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 0, 100_000]), false);
     assertTrue(successes == 1, "Snipe should not fail");
     assertEq(got, 0 ether, "Taker had too much");
     assertEq(gave, 0 ether, "Taker gave too much");
-    assertTrue(!mgv.offers($(base), $(quote), DEFAULT_TICKSCALE, ofr).isLive(), "Offer should not be in the book");
+    assertTrue(!mgv.offers(ol, ofr).isLive(), "Offer should not be in the book");
   }
 
   function test_snipe_fillGives() public {
@@ -224,7 +224,7 @@ contract TakerOperationsTest is MangroveTest {
 
     int logPrice = LogPriceLib.logPriceFromPrice_e18(1 ether);
     (uint successes, uint got, uint gave,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), false);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), false);
     assertTrue(successes == 1, "Snipe should not fail");
     assertEq(got, 1 ether, "Taker did not get correct amount");
     assertEq(gave, 1 ether, "Taker did not get correct amount");
@@ -235,7 +235,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
-    (uint got, uint gave,,) = mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 1.1 ether, 1.9 ether, true);
+    (uint got, uint gave,,) = mgv.marketOrderByVolume(ol, 1.1 ether, 1.9 ether, true);
     assertEq(got, 1.1 ether, "Taker did not get correct amount");
     assertEq(gave, 1.1 ether, "Taker did not get correct amount");
   }
@@ -244,7 +244,7 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     quote.approve($(mgv), 2 ether);
     assertEq(pair.best(), ofr, "wrong best offer");
-    mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 2 ether, 4 ether, true);
+    mgv.marketOrderByVolume(ol, 2 ether, 4 ether, true);
     assertEq(pair.best(), 0, "there should not be a best offer anymore");
   }
 
@@ -253,7 +253,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
-    (uint got, uint gave,,) = mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 1.1 ether, 1.9 ether, false);
+    (uint got, uint gave,,) = mgv.marketOrderByVolume(ol, 1.1 ether, 1.9 ether, false);
     assertEq(got, 1.9 ether, "Taker did not get correct amount");
     assertEq(gave, 1.9 ether, "Taker did not give correct amount");
   }
@@ -265,7 +265,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
     vm.expectRevert("mgv/takerTransferFail");
-    mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 0 ether, 3 ether, false);
+    mgv.marketOrderByVolume(ol, 0 ether, 3 ether, false);
   }
 
   function test_mo_fillGivesAll_succeeds() public {
@@ -274,13 +274,13 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 3 ether);
-    (uint got, uint gave,,) = mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 0 ether, 3 ether, false);
+    (uint got, uint gave,,) = mgv.marketOrderByVolume(ol, 0 ether, 3 ether, false);
     assertEq(got, 3 ether, "Taker did not get correct amount");
     assertEq(gave, 3 ether, "Taker did not get correct amount");
   }
 
   function test_taker_reimbursed_if_maker_doesnt_pay() public {
-    uint mkr_provision = reader.getProvision($(base), $(quote), DEFAULT_TICKSCALE, 100_000, 0);
+    uint mkr_provision = reader.getProvision(ol, 100_000, 0);
     quote.approve($(mgv), 1 ether);
     uint ofr = refusemkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     int logPrice = pair.offers(ofr).logPrice();
@@ -289,9 +289,9 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     expectFrom($(mgv));
-    emit OfferFail($(base), $(quote), DEFAULT_TICKSCALE, ofr, $(this), 1 ether, 1 ether, "mgv/makerTransferFail");
+    emit OfferFail(ol.outbound,ol.inbound,ol.tickScale, ofr, $(this), 1 ether, 1 ether, "mgv/makerTransferFail");
     (uint successes, uint takerGot, uint takerGave,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
     assertTrue(successes == 0, "Snipe should fail");
@@ -307,11 +307,11 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 1 ether);
 
     vm.expectRevert("mgv/sendPenaltyReverted");
-    mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
+    mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_base() public {
-    uint mkr_provision = reader.getProvision($(base), $(quote), DEFAULT_TICKSCALE, 100_000, 0);
+    uint mkr_provision = reader.getProvision(ol, 100_000, 0);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     int logPrice = pair.offers(ofr).logPrice();
@@ -322,9 +322,9 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     expectFrom($(mgv));
-    emit OfferFail($(base), $(quote), DEFAULT_TICKSCALE, ofr, $(this), 1 ether, 1 ether, "mgv/makerTransferFail");
+    emit OfferFail(ol.outbound,ol.inbound,ol.tickScale, ofr, $(this), 1 ether, 1 ether, "mgv/makerTransferFail");
     (uint successes, uint takerGot, uint takerGave,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
     assertTrue(successes == 0, "Snipe should fail");
@@ -334,7 +334,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_quote() public {
-    uint mkr_provision = reader.getProvision($(base), $(quote), DEFAULT_TICKSCALE, 100_000, 0);
+    uint mkr_provision = reader.getProvision(ol, 100_000, 0);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     int logPrice = pair.offers(ofr).logPrice();
@@ -346,9 +346,9 @@ contract TakerOperationsTest is MangroveTest {
 
     expectFrom($(mgv));
 
-    emit OfferFail($(base), $(quote), DEFAULT_TICKSCALE, ofr, $(this), 1 ether, 1 ether, "mgv/makerReceiveFail");
+    emit OfferFail(ol.outbound,ol.inbound,ol.tickScale, ofr, $(this), 1 ether, 1 ether, "mgv/makerReceiveFail");
     (uint successes, uint takerGot, uint takerGave,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
     assertTrue(successes == 0, "Snipe should fail");
@@ -364,14 +364,14 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     (uint successes, uint takerGot, uint takerGave,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 0, 100_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 0, 100_000]), true);
     assertTrue(successes == 0, "Snipe should fail");
     assertTrue(takerGot == takerGave && takerGave == 0, "Transaction data should be 0");
     assertTrue($(this).balance > beforeWei, "Taker was not compensated");
   }
 
   function test_taker_reimbursed_if_maker_reverts() public {
-    uint mkr_provision = reader.getProvision($(base), $(quote), DEFAULT_TICKSCALE, 50_000, 0);
+    uint mkr_provision = reader.getProvision(ol, 50_000, 0);
     quote.approve($(mgv), 1 ether);
     uint ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
     int logPrice = pair.offers(ofr).logPrice();
@@ -379,9 +379,9 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     expectFrom($(mgv));
-    emit OfferFail($(base), $(quote), DEFAULT_TICKSCALE, ofr, $(this), 1 ether, 1 ether, "mgv/makerRevert");
+    emit OfferFail(ol.outbound,ol.inbound,ol.tickScale, ofr, $(this), 1 ether, 1 ether, "mgv/makerRevert");
     (uint successes, uint takerGot, uint takerGave,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]), true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
     assertTrue(successes == 0, "Snipe should fail");
@@ -391,14 +391,14 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_hasnt_approved_base_succeeds_order_with_fee() public {
-    mgv.setFee($(base), $(quote), DEFAULT_TICKSCALE, 3);
+    mgv.setFee(ol, 3);
 
     uint balTaker = base.balanceOf($(this));
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
     int logPrice = pair.offers(ofr).logPrice();
     quote.approve($(mgv), 1 ether);
-    uint shouldGet = reader.minusFee($(base), $(quote), DEFAULT_TICKSCALE, 1 ether);
-    mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
+    uint shouldGet = reader.minusFee(ol, 1 ether);
+    mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
     assertEq(base.balanceOf($(this)) - balTaker, shouldGet, "Incorrect delivered amount");
   }
 
@@ -407,7 +407,7 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
     int logPrice = pair.offers(ofr).logPrice();
     quote.approve($(mgv), 1 ether);
-    mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
+    mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
     assertEq(base.balanceOf($(this)) - balTaker, 1 ether, "Incorrect delivered amount");
   }
 
@@ -417,7 +417,7 @@ contract TakerOperationsTest is MangroveTest {
     base.approve($(mgv), 1 ether);
 
     vm.expectRevert("mgv/takerTransferFail");
-    mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
+    mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
   }
 
   function test_simple_snipe() public {
@@ -440,7 +440,7 @@ contract TakerOperationsTest is MangroveTest {
       LogPriceLib.inboundFromOutbound(offer.logPrice(), 1 ether)
     );
     (uint successes, uint takerGot, uint takerGave,,) = mgv.snipes(
-      $(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(offer.logPrice()), 1 ether, 50_000]), true
+      OL($(base), $(quote), DEFAULT_TICKSCALE), wrap_dynamic([ofr, uint(offer.logPrice()), 1 ether, 50_000]), true
     );
     assertTrue(successes == 1, "Snipe should succeed");
     assertApproxEqRel(base.balanceOf($(this)) - balTaker, 1 ether, relError(10), "Incorrect delivered amount (taker)");
@@ -462,7 +462,7 @@ contract TakerOperationsTest is MangroveTest {
     uint balMaker = quote.balanceOf(address(mkr));
 
     (uint takerGot, uint takerGave,,) =
-      mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 2 ether, 4 ether, true);
+      mgv.marketOrderByVolume(ol, 2 ether, 4 ether, true);
     assertApproxEqRel(takerGot, 2 ether, relError(10), "Incorrect declared delivered amount (taker)");
     assertApproxEqRel(takerGave, 2.3 ether, relError(10), "Incorrect declared delivered amount (maker)");
     assertApproxEqRel(base.balanceOf($(this)) - balTaker, 2 ether, relError(10), "Incorrect delivered amount (taker)");
@@ -477,7 +477,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 10 ether);
 
     (uint takerGot, uint takerGave,,) =
-      mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 1 ether, 2 ether, true);
+      mgv.marketOrderByVolume(ol, 1 ether, 2 ether, true);
     assertEq(takerGot, 1 ether, "Incorrect declared delivered amount (taker)");
     assertEq(takerGave, 1 ether, "Incorrect declared delivered amount (maker)");
   }
@@ -488,7 +488,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 10 ether);
 
     (uint takerGot, uint takerGave,,) =
-      mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 1 ether, 2 ether, false);
+      mgv.marketOrderByVolume(ol, 1 ether, 2 ether, false);
     assertEq(takerGave, 2 ether, "Incorrect declared delivered amount (maker)");
     assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
   }
@@ -502,7 +502,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 10 ether);
 
     (uint successes, uint takerGot, uint takerGave,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 10, 300_000]), false);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 10, 300_000]), false);
     assertEq(successes, 1, "snipe should succeed");
     // console.log("offer wants",pair.offers(ofr).wants());
     // console.log("offer tick",pair.offers(ofr).tick().toString());
@@ -516,7 +516,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 10 ether);
 
     (uint takerGot, uint takerGave,,) =
-      mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 0 ether, 2 ether, false);
+      mgv.marketOrderByVolume(ol, 0 ether, 2 ether, false);
     assertEq(takerGave, 2 ether, "Incorrect declared delivered amount (maker)");
     assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
   }
@@ -527,7 +527,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 10 ether);
 
     (uint takerGot, uint takerGave,,) =
-      mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 0 ether, 2 ether, true);
+      mgv.marketOrderByVolume(ol, 0 ether, 2 ether, true);
     assertEq(takerGave, 0 ether, "Incorrect declared delivered amount (maker)");
     assertEq(takerGot, 0 ether, "Incorrect declared delivered amount (taker)");
   }
@@ -541,7 +541,7 @@ contract TakerOperationsTest is MangroveTest {
     base.approve($(mgv), 1 ether); // not necessary since no fee
 
     vm.expectRevert("mgv/takerTransferFail");
-    mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 2 ether, 100_000]), true);
+    mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 2 ether, 100_000]), true);
   }
 
   function test_maker_has_not_enough_base_fails_order() public {
@@ -566,7 +566,7 @@ contract TakerOperationsTest is MangroveTest {
       "mgv/makerTransferFail"
     );
     (uint successes,,,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 50 ether, 100_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 50 ether, 100_000]), true);
     assertTrue(successes == 0, "order should fail");
   }
 
@@ -652,8 +652,8 @@ contract TakerOperationsTest is MangroveTest {
     mkr.shouldRevert(true);
     quote.approve($(mgv), 1 ether);
     expectFrom($(mgv));
-    emit OfferFail($(base), $(quote), DEFAULT_TICKSCALE, ofr, $(this), 1 ether, 1 ether, "mgv/makerRevert");
-    mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
+    emit OfferFail(ol.outbound, ol.inbound, ol.tickScale, ofr, $(this), 1 ether, 1 ether, "mgv/makerRevert");
+    mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
   }
 
   function test_snipe_on_higher_price_fails() public {
@@ -662,7 +662,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 0.5 ether);
 
     (uint successes,,,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice - 1), 1 ether, 100_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice - 1), 1 ether, 100_000]), true);
     assertTrue(successes == 0, "Order should fail when order price is higher than offer");
   }
 
@@ -672,7 +672,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 1 ether);
 
     (uint successes,,,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 50_000]), true);
     assertTrue(successes == 0, "Order should fail when order gas is higher than offer");
   }
 
@@ -682,7 +682,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 100 ether);
 
     uint[4][] memory targets = wrap_dynamic([ofr, uint(logPrice), 1 ether, 100_000]);
-    bytes memory cd = abi.encodeCall(mgv.snipes, ($(base), $(quote), DEFAULT_TICKSCALE, targets, true));
+    bytes memory cd = abi.encodeCall(mgv.snipes, (ol, targets, true));
 
     (bool noRevert, bytes memory data) = $(mgv).call{gas: 130000}(cd);
     if (noRevert) {
@@ -700,7 +700,7 @@ contract TakerOperationsTest is MangroveTest {
     uint balMaker = quote.balanceOf(address(mkr));
 
     (uint successes,,,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice + 1), 1 ether, 100_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice + 1), 1 ether, 100_000]), true);
     assertTrue(successes == 1, "Order should succeed when order price is lower than offer");
     // checking order was executed at Maker's price
     assertEq(base.balanceOf($(this)) - balTaker, 1 ether, "Incorrect delivered amount (taker)");
@@ -723,7 +723,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.newOfferByVolume(0.1 ether, 0.1 ether, 50_000, 0);
     mkr.newOfferByVolume(0.1 ether, 0.1 ether, 50_000, 1);
     mkr.expect("mgv/tradeSuccess");
-    (uint takerGot,,,) = mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 0.15 ether, 0.15 ether, true);
+    (uint takerGot,,,) = mgv.marketOrderByVolume(ol, 0.15 ether, 0.15 ether, true);
     assertEq(takerGot, 0.15 ether, "Incorrect declared partial fill amount");
     assertEq(base.balanceOf($(this)), 0.15 ether, "incorrect partial fill");
   }
@@ -738,7 +738,7 @@ contract TakerOperationsTest is MangroveTest {
     // first two offers are at right price
     uint takerWants = 2 * (0.1 ether + 0.1 ether);
     uint takerGives = 2 * (0.1 ether + 0.2 ether);
-    mgv.marketOrderByVolume{gas: 350_000}($(base), $(quote), DEFAULT_TICKSCALE, takerWants, takerGives, true);
+    mgv.marketOrderByVolume{gas: 350_000}(ol, takerWants, takerGives, true);
   }
 
   // ! unreliable test, depends on gas use
@@ -751,7 +751,7 @@ contract TakerOperationsTest is MangroveTest {
     // first two offers are at right price
     uint takerWants = 0.1 ether + 0.05 ether;
     uint takerGives = 0.1 ether + 0.1 ether;
-    mgv.marketOrderByVolume{gas: 450_000}($(base), $(quote), DEFAULT_TICKSCALE, takerWants, takerGives, true);
+    mgv.marketOrderByVolume{gas: 450_000}(ol, takerWants, takerGives, true);
   }
 
   function test_market_order_stops_for_filled_after_offer() public {
@@ -763,12 +763,12 @@ contract TakerOperationsTest is MangroveTest {
     // first two offers are at right price
     uint takerWants = 0.1 ether + 0.1 ether;
     uint takerGives = 0.1 ether + 0.2 ether;
-    mgv.marketOrderByVolume{gas: 450_000}($(base), $(quote), DEFAULT_TICKSCALE, takerWants, takerGives, true);
+    mgv.marketOrderByVolume{gas: 450_000}(ol, takerWants, takerGives, true);
   }
 
   function test_takerWants_wider_than_160_bits_fails_marketOrder() public {
     vm.expectRevert("mgv/mOrder/takerWants/160bits");
-    mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 2 ** 160, 1, true);
+    mgv.marketOrderByVolume(ol, 2 ** 160, 1, true);
   }
 
   function test_snipe_with_0_wants_ejects_offer() public {
@@ -778,32 +778,32 @@ contract TakerOperationsTest is MangroveTest {
     int logPrice = pair.offers(ofr).logPrice();
 
     (uint successes,,,,) =
-      mgv.snipes($(base), $(quote), DEFAULT_TICKSCALE, wrap_dynamic([ofr, uint(logPrice), 0, 50_000]), true);
+      mgv.snipes(ol, wrap_dynamic([ofr, uint(logPrice), 0, 50_000]), true);
     assertTrue(successes == 1, "snipe should succeed");
-    assertEq(mgv.best($(base), $(quote), DEFAULT_TICKSCALE), 0, "offer should be gone");
+    assertEq(mgv.best(ol), 0, "offer should be gone");
     assertEq(base.balanceOf(address(mkr)), mkrBal, "mkr balance should not change");
   }
 
   function test_unsafe_gas_left_fails_order() public {
-    mgv.setGasbase($(base), $(quote), DEFAULT_TICKSCALE, 1);
+    mgv.setGasbase(ol, 1);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 120_000, 0);
     int logPrice = pair.offers(ofr).logPrice();
 
     uint[4][] memory targets = wrap_dynamic([ofr, uint(logPrice), 1 ether, 120_000]);
     vm.expectRevert("mgv/notEnoughGasForMakerTrade");
-    mgv.snipes{gas: 120_000}($(base), $(quote), DEFAULT_TICKSCALE, targets, true);
+    mgv.snipes{gas: 120_000}(ol, targets, true);
   }
 
   function test_unsafe_gas_left_fails_posthook() public {
-    mgv.setGasbase($(base), $(quote), DEFAULT_TICKSCALE, 1);
+    mgv.setGasbase(ol, 1);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 120_000, 0);
     int logPrice = pair.offers(ofr).logPrice();
 
     uint[4][] memory targets = wrap_dynamic([ofr, uint(logPrice), 1 ether, 120_000]);
     vm.expectRevert("mgv/notEnoughGasForMakerPosthook");
-    mgv.snipes{gas: 280_000}($(base), $(quote), DEFAULT_TICKSCALE, targets, true);
+    mgv.snipes{gas: 280_000}(ol, targets, true);
   }
 
   // FIXME Make a token that goes out of gas on transfer to taker
@@ -818,24 +818,24 @@ contract TakerOperationsTest is MangroveTest {
   // }
 
   function test_marketOrder_on_empty_book_does_not_revert() public {
-    mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 1 ether, 1 ether, true);
+    mgv.marketOrderByVolume(ol, 1 ether, 1 ether, true);
   }
 
   function test_marketOrder_on_empty_book_does_not_leave_lock_on() public {
-    mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 1 ether, 1 ether, true);
+    mgv.marketOrderByVolume(ol, 1 ether, 1 ether, true);
     assertTrue(
-      !mgv.locked($(base), $(quote), DEFAULT_TICKSCALE), "mgv should not be locked after marketOrder on empty OB"
+      !mgv.locked(ol), "mgv should not be locked after marketOrder on empty OB"
     );
   }
 
   function test_takerWants_is_zero_succeeds() public {
-    (uint got, uint gave,,) = mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 0, 1 ether, true);
+    (uint got, uint gave,,) = mgv.marketOrderByVolume(ol, 0, 1 ether, true);
     assertEq(got, 0, "Taker got too much");
     assertEq(gave, 0 ether, "Taker gave too much");
   }
 
   function test_takerGives_is_zero_succeeds() public {
-    (uint got, uint gave,,) = mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 1 ether, 0, true);
+    (uint got, uint gave,,) = mgv.marketOrderByVolume(ol, 1 ether, 0, true);
     assertEq(got, 0, "Taker got too much");
     assertEq(gave, 0 ether, "Taker gave too much");
   }
@@ -844,7 +844,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 1 ether);
     failmkr.newOfferByVolume(1 ether, 1 ether, 100_000);
     mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    (uint got,,,) = mgv.marketOrderByVolume($(base), $(quote), DEFAULT_TICKSCALE, 1 ether, 0, true);
+    (uint got,,,) = mgv.marketOrderByVolume(ol, 1 ether, 0, true);
     assertEq(got, 1 ether, "should have gotten 1 ether");
   }
 
@@ -869,13 +869,13 @@ contract TakerOperationsTest is MangroveTest {
       gasmax: 2_000_000
     });
     vm.label($(badMgv), "Bad Mangrove");
-    badMgv.activate($(base), $(quote), DEFAULT_TICKSCALE, 0, 0, 0);
+    badMgv.activate(ol, 0, 0, 0);
 
     TestMaker mkr2 = new TestMaker(badMgv,base,quote);
     badMgv.fund{value: 10 ether}($(mkr2));
     mkr2.newOfferByVolume(1 ether, 1 ether, 1, 0);
     vm.expectRevert("mgv/swapError");
-    badMgv.marketOrderByVolume{gas: 150000}($(base), $(quote), DEFAULT_TICKSCALE, 1 ether, 1 ether, true);
+    badMgv.marketOrderByVolume{gas: 150000}(ol, 1 ether, 1 ether, true);
   }
 }
 

@@ -17,33 +17,31 @@ contract UpdateMarket is Deployer {
   function run() public {
     innerRun({
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      tkn0: IERC20(envAddressOrName("TKN0")),
-      tkn1: IERC20(envAddressOrName("TKN1")),
-      tickScale: 1
+      market: MgvReader.Market(envAddressOrName("TKN0"), envAddressOrName("TKN1"), 1)
     });
     outputDeployment();
   }
 
-  function innerRun(MgvReader reader, IERC20 tkn0, IERC20 tkn1, uint tickScale) public {
+  function innerRun(MgvReader reader, MgvReader.Market memory market) public {
     console.log(
       "Updating Market on MgvReader.  tkn0: %s, tkn1: %s",
-      vm.toString(address(tkn0)),
-      vm.toString(address(tkn1)),
-      vm.toString(tickScale)
+      vm.toString(market.tkn0),
+      vm.toString(market.tkn1),
+      vm.toString(market.tickScale)
     );
-    logReaderState("[before script]", reader, tkn0, tkn1, tickScale);
+    logReaderState("[before script]", reader, market);
 
     broadcast();
-    reader.updateMarket(address(tkn0), address(tkn1), tickScale);
+    reader.updateMarket(market);
 
-    logReaderState("[after  script]", reader, tkn0, tkn1, tickScale);
+    logReaderState("[after  script]", reader, market);
   }
 
-  function logReaderState(string memory intro, MgvReader reader, IERC20 tkn0, IERC20 tkn1, uint tickScale)
+  function logReaderState(string memory intro, MgvReader reader, MgvReader.Market memory market)
     internal
     view
   {
-    string memory open = reader.isMarketOpen(address(tkn0), address(tkn1), tickScale) ? "open" : "closed";
+    string memory open = reader.isMarketOpen(market) ? "open" : "closed";
     console.log("%s MgvReader sees market as: %s", intro, open);
   }
 }

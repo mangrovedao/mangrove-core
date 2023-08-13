@@ -16,6 +16,7 @@ Vm constant vm = Vm(VM_ADDRESS);
 // Manual user-defined types
 import {Tick,Field,Leaf,MIN_TICK,MAX_TICK,LogPriceLib} from "mgv_lib/TickLib.sol";
 import {Density,DensityLib} from "mgv_lib/DensityLib.sol";
+import {OL} from "mgv_src/MgvLib.sol";
 
 
 ${structs.map(s => {
@@ -73,6 +74,10 @@ function toString(Field field) pure returns (string memory res) {
     }
   }
   res = string.concat(bytes(res).length==0?unicode"【empty":res, unicode"】");
+}
+
+function toString(OL memory ol) pure returns (string memory res) {
+  res = string.concat("OL{out: ",vm.toString(ol.outbound)," in: ",vm.toString(ol.inbound)," sc: ",vm.toString(ol.tickScale),"}");
 }
 
 /* *** Unit conversion *** */

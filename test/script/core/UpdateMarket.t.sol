@@ -10,6 +10,7 @@ import {Test2} from "mgv_lib/Test2.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
+import {OL} from "mgv_src/MgvLib.sol";
 
 contract UpdateMarketTest is Test2 {
   uint constant DEFAULT_TICKSCALE = 1;
@@ -29,25 +30,26 @@ contract UpdateMarketTest is Test2 {
     deployer.innerRun(chief, gasprice, gasmax, gasbot);
   }
 
-  function test_updater(address tkn0, address tkn1) public {
+  function test_updater(OL memory ol) public {
+    MgvReader.Market memory market = MgvReader.Market(ol.outbound,ol.inbound,ol.tickScale);
     Mangrove mgv = deployer.mgv();
     MgvReader reader = deployer.reader();
 
     UpdateMarket updater = new UpdateMarket();
 
-    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1), DEFAULT_TICKSCALE);
-    assertEq(reader.isMarketOpen(tkn0, tkn1, DEFAULT_TICKSCALE), false);
+    updater.innerRun(reader, market);
+    assertEq(reader.isMarketOpen(market), false);
 
     vm.prank(chief);
-    mgv.activate(tkn0, tkn1, DEFAULT_TICKSCALE, 1, 1, 1);
+    mgv.activate(ol, 1, 1, 1);
 
-    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1), DEFAULT_TICKSCALE);
-    assertEq(reader.isMarketOpen(tkn0, tkn1, DEFAULT_TICKSCALE), true);
+    updater.innerRun(reader, market);
+    assertEq(reader.isMarketOpen(market), true);
 
     vm.prank(chief);
-    mgv.deactivate(tkn0, tkn1, DEFAULT_TICKSCALE);
+    mgv.deactivate(ol);
 
-    updater.innerRun(reader, IERC20(tkn0), IERC20(tkn1), DEFAULT_TICKSCALE);
-    assertEq(reader.isMarketOpen(tkn0, tkn1, DEFAULT_TICKSCALE), false);
+    updater.innerRun(reader, market);
+    assertEq(reader.isMarketOpen(market), false);
   }
 }

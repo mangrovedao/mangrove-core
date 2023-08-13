@@ -35,18 +35,18 @@ contract CopyOpenSemibooksTest is MangroveTest {
 
   function test_copy_simple(address tkn0, address tkn1) public {
     vm.prank(chief);
-    mgv.activate(tkn0, tkn1, DEFAULT_TICKSCALE, 3, 4, 2);
-    reader.updateMarket(tkn0, tkn1, DEFAULT_TICKSCALE);
+    mgv.activate(OL(tkn0, tkn1, DEFAULT_TICKSCALE), 3, 4, 2);
+    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
 
     copier.broadcaster(chief2);
     copier.innerRun(reader, reader2);
 
     assertEq(reader.numOpenMarkets(), 1, "changes in previous reader");
     assertEq(reader2.numOpenMarkets(), 1, "wrong changes in current reader");
-    assertEq(reader2.isMarketOpen(tkn0, tkn1, DEFAULT_TICKSCALE), true, "market should be open");
+    assertEq(reader2.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "market should be open");
     assertEq(
-      MgvStructs.LocalPacked.unwrap(reader2.local(tkn0, tkn1, DEFAULT_TICKSCALE)),
-      MgvStructs.LocalPacked.unwrap(reader.local(tkn0, tkn1, DEFAULT_TICKSCALE))
+      MgvStructs.LocalPacked.unwrap(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE))),
+      MgvStructs.LocalPacked.unwrap(reader.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE)))
     );
   }
 
@@ -55,26 +55,26 @@ contract CopyOpenSemibooksTest is MangroveTest {
     uint expectedDensity = 4;
     uint expectedOfferGasbase = 2000;
     vm.prank(chief);
-    mgv.activate(tkn0, tkn1, DEFAULT_TICKSCALE, expectedFee, expectedDensity >> 32, expectedOfferGasbase);
-    reader.updateMarket(tkn0, tkn1, DEFAULT_TICKSCALE);
+    mgv.activate(OL(tkn0, tkn1, DEFAULT_TICKSCALE), expectedFee, expectedDensity >> 32, expectedOfferGasbase);
+    reader.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
 
     vm.prank(chief2);
-    mgv2.activate(tkn0, tkn1, DEFAULT_TICKSCALE, 1, 1, 1);
-    reader2.updateMarket(tkn0, tkn1, DEFAULT_TICKSCALE);
+    mgv2.activate(OL(tkn0, tkn1, DEFAULT_TICKSCALE), 1, 1, 1);
+    reader2.updateMarket(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE));
 
     copier.broadcaster(chief2);
     copier.innerRun(reader, reader2);
 
     assertEq(reader.numOpenMarkets(), 1, "changes in previous reader");
     assertEq(reader2.numOpenMarkets(), 1, "wrong changes in current reader");
-    assertEq(reader2.isMarketOpen(tkn0, tkn1, DEFAULT_TICKSCALE), true, "market should be open");
-    assertEq(reader2.local(tkn0, tkn1, DEFAULT_TICKSCALE).active(), true, "should be active");
+    assertEq(reader2.isMarketOpen(MgvReader.Market(tkn0, tkn1, DEFAULT_TICKSCALE)), true, "market should be open");
+    assertEq(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE)).active(), true, "should be active");
     if (tkn1 != tkn0) {
-      assertEq(reader2.local(tkn1, tkn0, DEFAULT_TICKSCALE).active(), false, "should be inactive");
+      assertEq(reader2.local(OL(tkn1, tkn0, DEFAULT_TICKSCALE)).active(), false, "should be inactive");
     }
-    console.log(toString(reader2.local(tkn0, tkn1, DEFAULT_TICKSCALE)));
-    assertEq(reader2.local(tkn0, tkn1, DEFAULT_TICKSCALE).fee(), expectedFee, "wrong fee");
-    assertEq(reader2.local(tkn0, tkn1, DEFAULT_TICKSCALE).density().toFixed(), expectedDensity >> 32, "wrong density");
-    assertEq(reader2.local(tkn0, tkn1, DEFAULT_TICKSCALE).offer_gasbase(), expectedOfferGasbase, "wrong gasbase");
+    console.log(toString(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE))));
+    assertEq(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE)).fee(), expectedFee, "wrong fee");
+    assertEq(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE)).density().toFixed(), expectedDensity >> 32, "wrong density");
+    assertEq(reader2.local(OL(tkn0, tkn1, DEFAULT_TICKSCALE)).offer_gasbase(), expectedOfferGasbase, "wrong gasbase");
   }
 }

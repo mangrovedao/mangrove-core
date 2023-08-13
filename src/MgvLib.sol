@@ -9,6 +9,19 @@ import {IERC20} from "./IERC20.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/TickLib.sol";
 
+using OLLib for OL global;
+// OL is OfferList
+struct OL {
+  address outbound;
+  address inbound;
+  uint tickScale;
+}
+library OLLib {
+  function id(OL memory ol) pure internal returns (bytes32) {
+    return keccak256(abi.encode(ol));
+  }
+}
+
 /* # Structs
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */
 
@@ -19,9 +32,7 @@ library MgvLib {
 
   /* `SingleOrder` holds data about an order-offer match in a struct. Used by `marketOrder` and `internalSnipes` (and some of their nested functions) to avoid stack too deep errors. */
   struct SingleOrder {
-    address outbound_tkn;
-    address inbound_tkn;
-    uint tickScale;
+    OL ol;
     uint offerId;
     MgvStructs.OfferPacked offer;
     /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
@@ -189,7 +200,7 @@ interface IMgvMonitor {
 
   function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external;
 
-  function read(address outbound_tkn, address inbound_tkn, uint tickScale)
+  function read(OL memory ol)
     external
     view
     returns (uint gasprice, Density density);

@@ -33,7 +33,7 @@ contract MgvCleaner {
   {
     unchecked {
       (uint successes,,,,) = MgvHelpers.snipesForByVolume(
-        address(MGV), outbound_tkn, inbound_tkn, DEFAULT_TICKSCALE, targets, fillWants, msg.sender
+        address(MGV), OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE), targets, fillWants, msg.sender
       );
       require(successes == 0, "mgvCleaner/anOfferDidNotFail");
       bal = address(this).balance;
@@ -55,7 +55,7 @@ contract MgvCleaner {
   ) external returns (uint bal) {
     unchecked {
       (uint successes,,,,) = MgvHelpers.snipesForByVolume(
-        address(MGV), outbound_tkn, inbound_tkn, DEFAULT_TICKSCALE, targets, fillWants, takerToImpersonate
+        address(MGV), OL(outbound_tkn,inbound_tkn,DEFAULT_TICKSCALE), targets, fillWants, takerToImpersonate
       );
       require(successes == 0, "mgvCleaner/anOfferDidNotFail");
       bal = address(this).balance;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {MgvLib, MgvStructs, Tick, Leaf, Field, LogPriceLib, OL} from "mgv_src/MgvLib.sol";
+import {MgvLib, MgvStructs, Tick, Leaf, Field, LogPriceLib, OLKey} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import "mgv_lib/Debug.sol";
 
@@ -38,15 +38,15 @@ function flipped(Market memory market) pure returns (Market memory) {
   return Market(market.tkn1, market.tkn0, market.tickScale);
 }
 
-function toOL(Market memory market) pure returns (OL memory ol) {
+function toOLKey(Market memory market) pure returns (OLKey memory olKey) {
   assembly ("memory-safe") {
-    ol := market
+    olKey := market
   }
 }
 
 contract MgvReader {
   struct MarketOrder {
-    OL ol;
+    OLKey olKey;
     uint initialWants;
     uint initialGives;
     uint totalGot;
@@ -90,22 +90,22 @@ contract MgvReader {
    * `length` is 0 if `startId == 0`. Other it is the number of live offers as good or worse than the offer with
    * id `startId`.
    */
-  function offerListEndPoints(OL memory ol, uint fromId, uint maxOffers)
+  function offerListEndPoints(OLKey memory olKey, uint fromId, uint maxOffers)
     public
     view
     returns (uint startId, uint length)
   {
     unchecked {
       if (fromId == 0) {
-        startId = MGV.best(ol);
+        startId = MGV.best(olKey);
       } else {
-        startId = MGV.offers(ol, fromId).gives() > 0 ? fromId : 0;
+        startId = MGV.offers(olKey, fromId).gives() > 0 ? fromId : 0;
       }
 
       uint currentId = startId;
 
       while (currentId != 0 && length < maxOffers) {
-        currentId = nextOfferId(ol, MGV.offers(ol, currentId));
+        currentId = nextOfferId(olKey, MGV.offers(olKey, currentId));
         length = length + 1;
       }
 
@@ -114,20 +114,20 @@ contract MgvReader {
   }
 
   struct OfferListArgs {
-    OL ol;
+    OLKey olKey;
     uint fromId;
     uint maxOffers;
   }
   // Returns the orderbook for the outbound_tkn/inbound_tkn/tickScale offer list in packed form. First number is id of next offer (0 is we're done). First array is ids, second is offers (as bytes32), third is offerDetails (as bytes32). Array will be of size `min(# of offers in out/in list, maxOffers)`.
 
-  function packedOfferList(OL memory ol, uint fromId, uint maxOffers)
+  function packedOfferList(OLKey memory olKey, uint fromId, uint maxOffers)
     public
     view
     returns (uint, uint[] memory, MgvStructs.OfferPacked[] memory, MgvStructs.OfferDetailPacked[] memory)
   {
     unchecked {
-      OfferListArgs memory olh = OfferListArgs(ol, fromId, maxOffers);
-      (uint currentId, uint length) = offerListEndPoints(olh.ol, olh.fromId, olh.maxOffers);
+      OfferListArgs memory olh = OfferListArgs(olKey, fromId, maxOffers);
+      (uint currentId, uint length) = offerListEndPoints(olh.olKey, olh.fromId, olh.maxOffers);
 
       uint[] memory offerIds = new uint[](length);
       MgvStructs.OfferPacked[] memory offers = new MgvStructs.OfferPacked[](length);
@@ -137,9 +137,9 @@ contract MgvReader {
 
       while (currentId != 0 && i < length) {
         offerIds[i] = currentId;
-        offers[i] = MGV.offers(ol, currentId);
-        details[i] = MGV.offerDetails(ol, currentId);
-        currentId = nextOfferId(ol, offers[i]);
+        offers[i] = MGV.offers(olKey, currentId);
+        details[i] = MGV.offerDetails(olKey, currentId);
+        currentId = nextOfferId(olKey, offers[i]);
         i = i + 1;
       }
 
@@ -148,14 +148,14 @@ contract MgvReader {
   }
 
   // Returns the orderbook for the outbound_tkn/inbound_tkn/tickScale offer list in unpacked form. First number is id of next offer (0 if we're done). First array is ids, second is offers (as structs), third is offerDetails (as structs). Array will be of size `min(# of offers in out/in list, maxOffers)`.
-  function offerList(OL memory ol, uint fromId, uint maxOffers)
+  function offerList(OLKey memory olKey, uint fromId, uint maxOffers)
     public
     view
     returns (uint, uint[] memory, MgvStructs.OfferUnpacked[] memory, MgvStructs.OfferDetailUnpacked[] memory)
   {
     unchecked {
-      OfferListArgs memory olh = OfferListArgs(ol, fromId, maxOffers);
-      (uint currentId, uint length) = offerListEndPoints(olh.ol, olh.fromId, olh.maxOffers);
+      OfferListArgs memory olh = OfferListArgs(olKey, fromId, maxOffers);
+      (uint currentId, uint length) = offerListEndPoints(olh.olKey, olh.fromId, olh.maxOffers);
 
       uint[] memory offerIds = new uint[](length);
       MgvStructs.OfferUnpacked[] memory offers = new MgvStructs.OfferUnpacked[](length);
@@ -164,8 +164,8 @@ contract MgvReader {
       uint i = 0;
       while (currentId != 0 && i < length) {
         offerIds[i] = currentId;
-        (offers[i], details[i]) = MGV.offerInfo(ol, currentId);
-        currentId = nextOfferIdById(ol, currentId);
+        (offers[i], details[i]) = MGV.offerInfo(olKey, currentId);
+        currentId = nextOfferIdById(olKey, currentId);
         i = i + 1;
       }
 
@@ -174,15 +174,15 @@ contract MgvReader {
   }
 
   /* Returns the minimum outbound_tkn volume to give on the outbound_tkn/inbound_tkn offer list for an offer that requires gasreq gas. */
-  function minVolume(OL memory ol, uint gasreq) public view returns (uint) {
-    MgvStructs.LocalPacked _local = local(ol);
+  function minVolume(OLKey memory olKey, uint gasreq) public view returns (uint) {
+    MgvStructs.LocalPacked _local = local(olKey);
     return _local.density().multiplyUp(gasreq + _local.offer_gasbase());
   }
 
   /* Returns the provision necessary to post an offer on the outbound_tkn/inbound_tkn offer list. You can set gasprice=0 or use the overload to use Mangrove's internal gasprice estimate. */
-  function getProvision(OL memory ol, uint ofr_gasreq, uint ofr_gasprice) public view returns (uint) {
+  function getProvision(OLKey memory olKey, uint ofr_gasreq, uint ofr_gasprice) public view returns (uint) {
     unchecked {
-      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(ol);
+      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(olKey);
       uint gp;
       uint global_gasprice = _global.gasprice();
       if (global_gasprice > ofr_gasprice) {
@@ -196,35 +196,35 @@ contract MgvReader {
 
   // FIXME: once out/in/scale are packed, we can re-add an overload function like this:
   // function getProvisionWithDefaultGasPrice(address outbound_tkn, address inbound_tkn, ..., uint gasreq) public view returns (uint) {
-  //   (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(ol);
+  //   (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(olKey);
   //   return ((gasreq + _local.offer_gasbase()) * uint(_global.gasprice()) * 10 ** 9);
   // }
 
   /* Sugar for checking whether a offer list is empty. There is no offer with id 0, so if the id of the offer list's best offer is 0, it means the offer list is empty. */
-  function isEmptyOB(OL memory ol) public view returns (bool) {
-    return MGV.best(ol) == 0;
+  function isEmptyOB(OLKey memory olKey) public view returns (bool) {
+    return MGV.best(olKey) == 0;
   }
 
   /* Returns the fee that would be extracted from the given volume of outbound_tkn tokens on Mangrove's outbound_tkn/inbound_tkn offer list. */
-  function getFee(OL memory ol, uint outVolume) public view returns (uint) {
-    (, MgvStructs.LocalPacked _local) = MGV.config(ol);
+  function getFee(OLKey memory olKey, uint outVolume) public view returns (uint) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(olKey);
     return ((outVolume * _local.fee()) / 10000);
   }
 
   /* Returns the given amount of outbound_tkn tokens minus the fee on Mangrove's outbound_tkn/inbound_tkn offer list. */
-  function minusFee(OL memory ol, uint outVolume) public view returns (uint) {
-    (, MgvStructs.LocalPacked _local) = MGV.config(ol);
+  function minusFee(OLKey memory olKey, uint outVolume) public view returns (uint) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(olKey);
     return (outVolume * (10_000 - _local.fee())) / 10000;
   }
 
   /* Sugar for getting only global/local config */
   function global() public view returns (MgvStructs.GlobalPacked) {
-    (MgvStructs.GlobalPacked _global,) = MGV.config(OL(address(0), address(0), 0));
+    (MgvStructs.GlobalPacked _global,) = MGV.config(OLKey(address(0), address(0), 0));
     return _global;
   }
 
-  function local(OL memory ol) public view returns (MgvStructs.LocalPacked) {
-    (, MgvStructs.LocalPacked _local) = MGV.config(ol);
+  function local(OLKey memory olKey) public view returns (MgvStructs.LocalPacked) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(olKey);
     return _local;
   }
 
@@ -232,8 +232,8 @@ contract MgvReader {
     return global().to_struct();
   }
 
-  function localUnpacked(OL memory ol) public view returns (MgvStructs.LocalUnpacked memory) {
-    return local(ol).to_struct();
+  function localUnpacked(OLKey memory olKey) public view returns (MgvStructs.LocalUnpacked memory) {
+    return local(olKey).to_struct();
   }
 
   /* marketOrder, internalMarketOrder, and execute all together simulate a market order on mangrove and return the cumulative totalGot, totalGave and totalGasreq for each offer traversed. We assume offer execution is successful and uses exactly its gasreq. 
@@ -242,16 +242,16 @@ contract MgvReader {
   * Calling this from a contract will let the contract choose what to do after receiving a response.
   * If `!accumulate`, only return the total cumulative volume.
   */
-  function marketOrder(OL memory ol, uint takerWants, uint takerGives, bool fillWants, bool accumulate)
+  function marketOrder(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants, bool accumulate)
     public
     view
     returns (VolumeData[] memory)
   {
     MarketOrder memory mr;
-    mr.ol = ol;
-    (, mr.local) = MGV.config(ol);
-    mr.offerId = MGV.best(ol);
-    mr.offer = MGV.offers(ol, mr.offerId);
+    mr.olKey = olKey;
+    (, mr.local) = MGV.config(olKey);
+    mr.offerId = MGV.best(olKey);
+    mr.offer = MGV.offers(olKey, mr.offerId);
     mr.currentWants = takerWants;
     mr.currentGives = takerGives;
     mr.initialWants = takerWants;
@@ -264,12 +264,12 @@ contract MgvReader {
     return mr.volumeData;
   }
 
-  function marketOrder(OL memory ol, uint takerWants, uint takerGives, bool fillWants)
+  function marketOrder(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
     external
     view
     returns (VolumeData[] memory)
   {
-    return marketOrder(ol, takerWants, takerGives, fillWants, true);
+    return marketOrder(olKey, takerWants, takerGives, fillWants, true);
   }
 
   function internalMarketOrder(MarketOrder memory mr, bool proceed) internal view {
@@ -277,7 +277,7 @@ contract MgvReader {
       if (proceed && (mr.fillWants ? mr.currentWants > 0 : mr.currentGives > 0) && mr.offerId > 0) {
         uint currentIndex = mr.numOffers;
 
-        mr.offerDetail = MGV.offerDetails(mr.ol, mr.offerId);
+        mr.offerDetail = MGV.offerDetails(mr.olKey, mr.offerId);
 
         bool executed = execute(mr);
 
@@ -289,8 +289,8 @@ contract MgvReader {
           mr.numOffers++;
           mr.currentWants = mr.initialWants > mr.totalGot ? mr.initialWants - mr.totalGot : 0;
           mr.currentGives = mr.initialGives - mr.totalGave;
-          mr.offerId = nextOfferId(mr.ol, mr.offer);
-          mr.offer = MGV.offers(mr.ol, mr.offerId);
+          mr.offerId = nextOfferId(mr.olKey, mr.offer);
+          mr.offer = MGV.offers(mr.olKey, mr.offerId);
         }
 
         internalMarketOrder(mr, executed);
@@ -406,8 +406,8 @@ contract MgvReader {
         markets[i] = Market({tkn0: tkn0, tkn1: tkn1, tickScale: tickScale});
 
         if (withConfig) {
-          configs[i].config01 = localUnpacked(toOL(markets[i]));
-          configs[i].config10 = localUnpacked(toOL(flipped(markets[i])));
+          configs[i].config01 = localUnpacked(toOLKey(markets[i]));
+          configs[i].config10 = localUnpacked(toOLKey(flipped(markets[i])));
         }
       }
     }
@@ -426,15 +426,15 @@ contract MgvReader {
   /// @return config The market configuration. config01 and config10 follow the order given in arguments, not the canonical order
   /// @dev This function queries Mangrove so all the returned info is up-to-date.
   function marketConfig(Market memory market) external view returns (MarketConfig memory config) {
-    config.config01 = localUnpacked(toOL(market));
-    config.config10 = localUnpacked(toOL(flipped(market)));
+    config.config01 = localUnpacked(toOLKey(market));
+    config.config10 = localUnpacked(toOLKey(flipped(market)));
   }
 
   /// @notice Permisionless update of _openMarkets array.
   /// @notice Will consider a market open iff either the offer lists tkn0/tkn1 or tkn1/tkn0 are open on Mangrove.
   function updateMarket(Market memory market) external {
     (market.tkn0, market.tkn1) = order(market.tkn0, market.tkn1);
-    bool openOnMangrove = local(toOL(market)).active() || local(toOL(flipped(market))).active();
+    bool openOnMangrove = local(toOLKey(market)).active() || local(toOLKey(flipped(market))).active();
     uint position = marketPositions[market.tkn0][market.tkn1][market.tickScale];
 
     if (openOnMangrove && position == 0) {
@@ -461,46 +461,46 @@ contract MgvReader {
   // utility fn
   // VERY similar to MgvOfferTaking's getNextBest
   /// @notice Get the offer after a given offer, given its id
-  function nextOfferIdById(OL memory ol, uint offerId) public view returns (uint) {
-    return nextOfferId(ol, MGV.offers(ol, offerId));
+  function nextOfferIdById(OLKey memory olKey, uint offerId) public view returns (uint) {
+    return nextOfferId(olKey, MGV.offers(olKey, offerId));
   }
 
   //FIXME replace these functions with "call mangrove for next offer, revert, return offer id"?
   /// @notice Get the offer after a given offer
-  function nextOfferId(OL memory ol, MgvStructs.OfferPacked offer) public view returns (uint) {
+  function nextOfferId(OLKey memory olKey, MgvStructs.OfferPacked offer) public view returns (uint) {
     // WARNING
     // If the offer is not actually recorded in the offer list, results will be meaningless.
     // if (offer.gives() == 0) {
     //   revert("Offer is not live, prev/next meaningless.");
     // }
-    Tick offerTick = offer.tick(ol.tickScale);
+    Tick offerTick = offer.tick(olKey.tickScale);
     uint nextId = offer.next();
     if (nextId == 0) {
       int index = offerTick.leafIndex();
-      Leaf leaf = MGV.leafs(ol, index);
+      Leaf leaf = MGV.leafs(olKey, index);
       leaf = leaf.eraseToTick(offerTick);
       if (leaf.isEmpty()) {
         index = offerTick.level0Index();
-        Field field = MGV.level0(ol, index);
+        Field field = MGV.level0(olKey, index);
         field = field.eraseToTick0(offerTick);
         if (field.isEmpty()) {
           index = offerTick.level1Index();
-          field = MGV.level1(ol, index);
+          field = MGV.level1(olKey, index);
           field = field.eraseToTick1(offerTick);
           if (field.isEmpty()) {
-            field = MGV.level2(ol);
+            field = MGV.level2(olKey);
             field = field.eraseToTick2(offerTick);
             // FIXME: should I let log2 not revert, but just return 0 if x is 0?
             if (field.isEmpty()) {
               return 0;
             }
             index = field.firstLevel1Index();
-            field = MGV.level1(ol, index);
+            field = MGV.level1(olKey, index);
           }
           index = field.firstLevel0Index(index);
-          field = MGV.level0(ol, index);
+          field = MGV.level0(olKey, index);
         }
-        leaf = MGV.leafs(ol, field.firstLeafIndex(index));
+        leaf = MGV.leafs(olKey, field.firstLeafIndex(index));
       }
       nextId = leaf.getNextOfferId();
     }
@@ -508,45 +508,45 @@ contract MgvReader {
   }
 
   /// @notice Get the offer before a given offer, given its id
-  function prevOfferIdById(OL memory ol, uint offerId) public view returns (uint) {
-    return prevOfferId(ol, MGV.offers(ol, offerId));
+  function prevOfferIdById(OLKey memory olKey, uint offerId) public view returns (uint) {
+    return prevOfferId(olKey, MGV.offers(olKey, offerId));
   }
 
   /// @notice Get the offer before a given offer
-  function prevOfferId(OL memory ol, MgvStructs.OfferPacked offer) public view returns (uint offerId) {
+  function prevOfferId(OLKey memory olKey, MgvStructs.OfferPacked offer) public view returns (uint offerId) {
     // WARNING
     // If the offer is not actually recorded in the offer list, results will be meaningless.
     // if (offer.gives() == 0) {
     //   revert("Offer is not live, prev/next meaningless.");
     // }
-    Tick offerTick = offer.tick(ol.tickScale);
+    Tick offerTick = offer.tick(olKey.tickScale);
     uint prevId = offer.prev();
     if (prevId == 0) {
       int index = offerTick.leafIndex();
-      Leaf leaf = MGV.leafs(ol, index);
+      Leaf leaf = MGV.leafs(olKey, index);
       leaf = leaf.eraseFromTick(offerTick);
       if (leaf.isEmpty()) {
         index = offerTick.level0Index();
-        Field field = MGV.level0(ol, index);
+        Field field = MGV.level0(olKey, index);
         field = field.eraseFromTick0(offerTick);
         if (field.isEmpty()) {
           index = offerTick.level1Index();
-          field = MGV.level1(ol, index);
+          field = MGV.level1(olKey, index);
           field = field.eraseFromTick1(offerTick);
           if (field.isEmpty()) {
-            field = MGV.level2(ol);
+            field = MGV.level2(olKey);
             field = field.eraseFromTick2(offerTick);
             // FIXME: should I let log2 not revert, but just return 0 if x is 0?
             if (field.isEmpty()) {
               return 0;
             }
             index = field.lastLevel1Index();
-            field = MGV.level1(ol, index);
+            field = MGV.level1(olKey, index);
           }
           index = field.lastLevel0Index(index);
-          field = MGV.level0(ol, index);
+          field = MGV.level0(olKey, index);
         }
-        leaf = MGV.leafs(ol, field.lastLeafIndex(index));
+        leaf = MGV.leafs(olKey, field.lastLeafIndex(index));
       }
       prevId = leaf.getNextOfferId();
     }

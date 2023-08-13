@@ -9,22 +9,22 @@ import {IERC20} from "./IERC20.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/TickLib.sol";
 
-using OLLib for OL global;
-// OL is OfferList
+using OLLib for OLKey global;
+// OLKey is OfferList
 
-struct OL {
+struct OLKey {
   address outbound;
   address inbound;
   uint tickScale;
 }
 
 library OLLib {
-  // The id should be keccak256(abi.encode(ol))
+  // The id should be keccak256(abi.encode(olKey))
   // To save gas, id() directly hashes the memory (which matches the ABI encoding)
   // If the memory layout changes, this function must be updated
-  function id(OL memory ol) internal pure returns (bytes32 _id) {
+  function hash(OLKey memory olKey) internal pure returns (bytes32 _id) {
     assembly ("memory-safe") {
-      _id := keccak256(ol, 96)
+      _id := keccak256(olKey, 96)
     }
   }
 }
@@ -39,7 +39,7 @@ library MgvLib {
 
   /* `SingleOrder` holds data about an order-offer match in a struct. Used by `marketOrder` and `internalSnipes` (and some of their nested functions) to avoid stack too deep errors. */
   struct SingleOrder {
-    OL ol;
+    OLKey olKey;
     uint offerId;
     MgvStructs.OfferPacked offer;
     /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
@@ -191,7 +191,7 @@ interface IMaker {
 interface ITaker {
   /* Inverted mangrove only: call to taker after loans went through */
   function takerTrade(
-    OL calldata ol,
+    OLKey calldata olKey,
     // total amount of outbound_tkn token that was flashloaned to the taker
     uint totalGot,
     // total amount of inbound_tkn token that should be made available
@@ -206,5 +206,5 @@ interface IMgvMonitor {
 
   function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external;
 
-  function read(OL memory ol) external view returns (uint gasprice, Density density);
+  function read(OLKey memory olKey) external view returns (uint gasprice, Density density);
 }

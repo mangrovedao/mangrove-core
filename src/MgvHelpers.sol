@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import "mgv_lib/TickLib.sol";
-import {OL} from "mgv_src/MgvLib.sol";
+import {OLKey} from "mgv_src/MgvLib.sol";
 
 library MgvHelpers {
   // Converts snipe targets from volume-based [id,wants,gives,gasreq] tick-based [id,tick,volume,gasreq]. volume will be wants if fillWsants is true, volume will be gives otherwise. Note that `tick` is fundamentally an int but arrays are homogenous so must be typed as a uint in the call.
@@ -25,26 +25,21 @@ library MgvHelpers {
     return newTargets;
   }
 
-  function snipesForByVolume(
-    address mgv,
-    OL memory ol,
-    uint[4][] memory targets,
-    bool fillWants,
-    address taker
-  ) internal returns (uint, uint, uint, uint, uint) {
+  function snipesForByVolume(address mgv, OLKey memory olKey, uint[4][] memory targets, bool fillWants, address taker)
+    internal
+    returns (uint, uint, uint, uint, uint)
+  {
     uint[4][] memory newTargets = convertSnipeTargetsToLogPrice(targets, fillWants);
-    return IMangrove(payable(mgv)).snipesFor(ol, newTargets, fillWants, taker);
+    return IMangrove(payable(mgv)).snipesFor(olKey, newTargets, fillWants, taker);
   }
 
-  function snipesByVolume(
-    address mgv,
-    OL memory ol,
-    uint[4][] calldata targets,
-    bool fillWants
-  ) external returns (uint, uint, uint, uint, uint) {
+  function snipesByVolume(address mgv, OLKey memory olKey, uint[4][] calldata targets, bool fillWants)
+    external
+    returns (uint, uint, uint, uint, uint)
+  {
     unchecked {
       uint[4][] memory newTargets = convertSnipeTargetsToLogPrice(targets, fillWants);
-      return IMangrove(payable(mgv)).snipes(ol, newTargets, fillWants);
+      return IMangrove(payable(mgv)).snipes(olKey, newTargets, fillWants);
     }
   }
 }

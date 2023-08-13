@@ -20,7 +20,7 @@
 
 pragma solidity ^0.8.10;
 
-import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs, IERC20, Leaf, Field, Density, OL} from "./MgvLib.sol";
+import {MgvLib, HasMgvEvents, IMgvMonitor, MgvStructs, IERC20, Leaf, Field, Density, OLKey} from "./MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* `MgvRoot` contains state variables used everywhere in the operation of Mangrove and their related function. */
@@ -58,12 +58,12 @@ contract MgvRoot is HasMgvEvents {
   /* `offerLists` maps offer list id to offer list. */
   mapping(bytes32 => OfferList) internal offerLists;
 
-  function leafs(OL memory ol, int index) external view returns (Leaf) {
-    return offerLists[ol.id()].leafs[index];
+  function leafs(OLKey memory olKey, int index) external view returns (Leaf) {
+    return offerLists[olKey.hash()].leafs[index];
   }
 
-  function level0(OL memory ol, int index) external view returns (Field) {
-    OfferList storage offerList = offerLists[ol.id()];
+  function level0(OLKey memory olKey, int index) external view returns (Field) {
+    OfferList storage offerList = offerLists[olKey.hash()];
     MgvStructs.LocalPacked local = offerList.local;
 
     if (local.tick().level0Index() == index) {
@@ -73,8 +73,8 @@ contract MgvRoot is HasMgvEvents {
     }
   }
 
-  function level1(OL memory ol, int index) external view returns (Field) {
-    OfferList storage offerList = offerLists[ol.id()];
+  function level1(OLKey memory olKey, int index) external view returns (Field) {
+    OfferList storage offerList = offerLists[olKey.hash()];
     MgvStructs.LocalPacked local = offerList.local;
 
     if (local.tick().level1Index() == index) {
@@ -84,8 +84,8 @@ contract MgvRoot is HasMgvEvents {
     }
   }
 
-  function level2(OL memory ol) external view returns (Field) {
-    return offerLists[ol.id()].local.level2();
+  function level2(OLKey memory olKey) external view returns (Field) {
+    return offerLists[olKey.hash()].local.level2();
   }
 
   /* Checking the size of `gasprice` is necessary to prevent a) data loss when `gasprice` is copied to an `OfferDetail` struct, and b) overflow when `gasprice` is used in calculations. */
@@ -97,24 +97,28 @@ contract MgvRoot is HasMgvEvents {
 
   /* # Configuration Reads */
   /* Reading the configuration for an offer list involves reading the config global to all offerLists and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
-  function config(OL memory ol) public view returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) {
+  function config(OLKey memory olKey)
+    public
+    view
+    returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local)
+  {
     unchecked {
-      (_global, _local,) = _config(ol);
+      (_global, _local,) = _config(olKey);
     }
   }
 
   /* _config is the lower-level variant which opportunistically returns a pointer to the storage offer list induced by `outbound_tkn`,`inbound_tkn`. */
-  function _config(OL memory ol)
+  function _config(OLKey memory olKey)
     internal
     view
     returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local, OfferList storage offerList)
   {
     unchecked {
-      offerList = offerLists[ol.id()];
+      offerList = offerLists[olKey.hash()];
       _global = internal_global;
       _local = offerList.local;
       if (_global.useOracle()) {
-        (uint gasprice, Density density) = IMgvMonitor(_global.monitor()).read(ol);
+        (uint gasprice, Density density) = IMgvMonitor(_global.monitor()).read(olKey);
         /* Gas gasprice can be ignored by making sure the oracle's set gasprice does not pass the check below. */
         if (checkGasprice(gasprice)) {
           _global = _global.gasprice(gasprice);
@@ -131,21 +135,21 @@ contract MgvRoot is HasMgvEvents {
   }
 
   /* Returns the configuration in an ABI-compatible struct. Should not be called internally, would be a huge memory copying waste. Use `config` instead. */
-  function configInfo(OL memory ol)
+  function configInfo(OLKey memory olKey)
     external
     view
     returns (MgvStructs.GlobalUnpacked memory global, MgvStructs.LocalUnpacked memory local)
   {
     unchecked {
-      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = config(ol);
+      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = config(olKey);
       global = _global.to_struct();
       local = _local.to_struct();
     }
   }
 
   /* Convenience function to check whether given an offer list is locked */
-  function locked(OL memory ol) external view returns (bool) {
-    return offerLists[ol.id()].local.lock();
+  function locked(OLKey memory olKey) external view returns (bool) {
+    return offerLists[olKey.hash()].local.lock();
   }
 
   /*

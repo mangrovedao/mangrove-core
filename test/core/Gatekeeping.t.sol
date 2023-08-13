@@ -19,8 +19,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
     super.setUp();
     deal($(base), $(this), 10 ether);
 
-    tkr = setupTaker(ol, "taker[$(A),$(B)]");
-    mkr = setupMaker(ol, "maker[$(A),$(B)]");
+    tkr = setupTaker(olKey, "taker[$(A),$(B)]");
+    mkr = setupMaker(olKey, "maker[$(A),$(B)]");
     dual_mkr = setupMaker(lo, "maker[$(B),$(A)]");
 
     mkr.provisionMgv(5 ether);
@@ -53,30 +53,30 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.setGovernance(notAdmin);
 
     vm.expectRevert("mgv/unauthorized");
-    mgv.setFee(ol, 0);
+    mgv.setFee(olKey, 0);
 
     expectFrom($(mgv));
-    emit SetFee(ol.outbound, ol.inbound, ol.tickScale, 1);
+    emit SetFee(olKey.outbound, olKey.inbound, olKey.tickScale, 1);
     vm.prank(notAdmin);
-    mgv.setFee(ol, 1);
+    mgv.setFee(olKey, 1);
   }
 
   function test_only_gov_can_set_fee() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
-    mgv.setFee(ol, 0);
+    mgv.setFee(olKey, 0);
   }
 
   function test_only_gov_can_set_density() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
-    mgv.setDensityFixed(ol, 0);
+    mgv.setDensityFixed(olKey, 0);
   }
 
   function test_set_zero_density() public {
     expectFrom($(mgv));
-    emit SetDensityFixed(ol.outbound, ol.inbound, ol.tickScale, 0);
-    mgv.setDensityFixed(ol, 0);
+    emit SetDensityFixed(olKey.outbound, olKey.inbound, olKey.tickScale, 0);
+    mgv.setDensityFixed(olKey, 0);
   }
 
   function test_only_gov_can_kill() public {
@@ -86,27 +86,27 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_killing_updates_config() public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(OL(address(0), address(0), 0));
+    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OL(address(0), address(0), 0));
+    (global,) = mgv.config(OLKey(address(0), address(0), 0));
     assertTrue(global.dead(), "mgv should be dead ");
   }
 
   function test_kill_is_idempotent() public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(OL(address(0), address(0), 0));
+    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OL(address(0), address(0), 0));
+    (global,) = mgv.config(OLKey(address(0), address(0), 0));
     assertTrue(global.dead(), "mgv should be dead");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OL(address(0), address(0), 0));
+    (global,) = mgv.config(OLKey(address(0), address(0), 0));
     assertTrue(global.dead(), "mgv should still be dead");
   }
 
@@ -137,7 +137,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_only_gov_can_setGasbase() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
-    mgv.setGasbase(ol, 0);
+    mgv.setGasbase(olKey, 0);
   }
 
   function test_empty_mgv_ok() public {
@@ -146,12 +146,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_set_fee_ceiling() public {
     vm.expectRevert("mgv/config/fee/8bits");
-    mgv.setFee(ol, uint(type(uint8).max) + 1);
+    mgv.setFee(olKey, uint(type(uint8).max) + 1);
   }
 
   function test_set_density_ceiling() public {
     vm.expectRevert("mgv/config/density/128bits");
-    mgv.setDensityFixed(ol, uint(type(uint128).max) + 1);
+    mgv.setDensityFixed(olKey, uint(type(uint128).max) + 1);
   }
 
   function test_setGasprice_ceiling() public {
@@ -160,12 +160,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_set_zero_gasbase() public {
-    mgv.setGasbase(ol, 0);
+    mgv.setGasbase(olKey, 0);
   }
 
   function test_setGasbase_ceiling() public {
     vm.expectRevert("mgv/config/kilo_offer_gasbase/10bits");
-    mgv.setGasbase(ol, 1e3 * (1 << 10));
+    mgv.setGasbase(olKey, 1e3 * (1 << 10));
   }
 
   function test_setGasmax_ceiling() public {
@@ -186,13 +186,13 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_retractOffer_wrong_owner_fails() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 10_000, 0);
     vm.expectRevert("mgv/retractOffer/unauthorized");
-    mgv.retractOffer(ol, ofr, false);
+    mgv.retractOffer(olKey, ofr, false);
   }
 
   function test_updateOffer_wrong_owner_fails() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     vm.expectRevert("mgv/updateOffer/unauthorized");
-    mgv.updateOfferByVolume(ol, 1 ether, 1 ether, 0, 0, ofr);
+    mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);
   }
 
   function test_gives_0_rejected() public {
@@ -200,8 +200,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mkr.newOfferByLogPrice(0, 0 ether, 100_000, 0);
   }
 
-  function test_idOverflow_reverts(OL memory ol) public {
-    mgv.activate(ol, 0, 0, 0);
+  function test_idOverflow_reverts(OLKey memory olKey) public {
+    mgv.activate(olKey, 0, 0, 0);
 
     // To test overflow, we surgically set 'last offer id' in mangrove storage
     // to uint32.max.
@@ -209,7 +209,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     // We use locked(out,in) as a proxy for getting the storage slot of
     // locals[out][in]
     vm.record();
-    mgv.locked(ol);
+    mgv.locked(olKey);
     (bytes32[] memory reads,) = vm.accesses(address(mgv));
     bytes32 slot = reads[0];
     bytes32 data = vm.load(address(mgv), slot);
@@ -219,7 +219,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
     // try new offer now that we set the last id to uint32.max
     vm.expectRevert("mgv/offerIdOverflow");
-    mgv.newOfferByVolume(ol, 1 ether, 1 ether, 0, 0);
+    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
   }
 
   function test_makerGives_wider_than_96_bits_fails_newOfferByVolume() public {
@@ -235,19 +235,19 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_makerGasreq_bigger_than_gasmax_fails_newOfferByVolume() public {
-    (MgvStructs.GlobalPacked cfg,) = mgv.config(ol);
+    (MgvStructs.GlobalPacked cfg,) = mgv.config(olKey);
     vm.expectRevert("mgv/writeOffer/gasreq/tooHigh");
     mkr.newOfferByVolume(1, 1, cfg.gasmax() + 1);
   }
 
   function test_makerGasreq_at_gasmax_succeeds_newOfferByVolume() public {
-    (MgvStructs.GlobalPacked cfg,) = mgv.config(ol);
+    (MgvStructs.GlobalPacked cfg,) = mgv.config(olKey);
     // Logging tests
     expectFrom($(mgv));
     emit OfferWrite(
       $(base),
       $(quote),
-      ol.tickScale,
+      olKey.tickScale,
       address(mkr),
       0, //tick
       1 ether, //quote
@@ -256,29 +256,29 @@ contract GatekeepingTest is IMaker, MangroveTest {
       1 //ofrId
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), reader.getProvision(ol, cfg.gasmax(), 0));
+    emit Debit(address(mkr), reader.getProvision(olKey, cfg.gasmax(), 0));
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, cfg.gasmax());
-    assertTrue(mgv.offers(ol, ofr).isLive(), "Offer should have been inserted");
+    assertTrue(mgv.offers(olKey, ofr).isLive(), "Offer should have been inserted");
   }
 
   function test_makerGasreq_lower_than_density_fails_newOfferByVolume() public {
-    mgv.setDensityFixed(ol, 100 << DensityLib.FIXED_FRACTIONAL_BITS);
-    (, MgvStructs.LocalPacked cfg) = mgv.config(ol);
+    mgv.setDensityFixed(olKey, 100 << DensityLib.FIXED_FRACTIONAL_BITS);
+    (, MgvStructs.LocalPacked cfg) = mgv.config(olKey);
     uint amount = cfg.density().multiply(1 + cfg.offer_gasbase());
     vm.expectRevert("mgv/writeOffer/density/tooLow");
     mkr.newOfferByVolume(amount - 1, amount - 1, 1);
   }
 
   function test_makerGasreq_at_density_suceeds() public {
-    mgv.setDensityFixed(ol, 100 << DensityLib.FIXED_FRACTIONAL_BITS);
-    (MgvStructs.GlobalPacked glob, MgvStructs.LocalPacked cfg) = mgv.config(ol);
+    mgv.setDensityFixed(olKey, 100 << DensityLib.FIXED_FRACTIONAL_BITS);
+    (MgvStructs.GlobalPacked glob, MgvStructs.LocalPacked cfg) = mgv.config(olKey);
     uint amount = cfg.density().multiply(1 + cfg.offer_gasbase());
     // Logging tests
     expectFrom($(mgv));
     emit OfferWrite(
       $(base),
       $(quote),
-      ol.tickScale,
+      olKey.tickScale,
       address(mkr),
       0, //tick
       amount, //quote
@@ -287,9 +287,9 @@ contract GatekeepingTest is IMaker, MangroveTest {
       1 //ofrId
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), reader.getProvision(ol, 1, 0));
+    emit Debit(address(mkr), reader.getProvision(olKey, 1, 0));
     uint ofr = mkr.newOfferByVolume(amount, amount, 1);
-    assertTrue(mgv.offers(ol, ofr).isLive(), "Offer should have been inserted");
+    assertTrue(mgv.offers(olKey, ofr).isLive(), "Offer should have been inserted");
   }
 
   function test_makerGasprice_wider_than_16_bits_fails_newOfferByVolume() public {
@@ -312,14 +312,14 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
     uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
     vm.expectRevert("mgv/snipes/volume/96bits");
-    mgv.snipes(ol, targets, true);
+    mgv.snipes(olKey, targets, true);
   }
 
   function test_wants_volume_above_96bits_fails_snipes() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
     uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
     vm.expectRevert("mgv/snipes/volume/96bits");
-    mgv.snipes(ol, targets, false);
+    mgv.snipes(olKey, targets, false);
   }
 
   function test_initial_allowance_is_zero() public {
@@ -330,10 +330,10 @@ contract GatekeepingTest is IMaker, MangroveTest {
     deal($(base), address(mkr), 1 ether);
     mkr.approveMgv(base, 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    int logPrice = mgv.offers(ol, ofr).logPrice();
+    int logPrice = mgv.offers(olKey, ofr).logPrice();
 
     vm.expectRevert("mgv/lowAllowance");
-    mgv.snipesFor(ol, wrap_dynamic([ofr, uint(logPrice), 1 ether, 300_000]), true, address(tkr));
+    mgv.snipesFor(olKey, wrap_dynamic([ofr, uint(logPrice), 1 ether, 300_000]), true, address(tkr));
   }
 
   function test_cannot_marketOrderFor_for_without_allowance() public {
@@ -341,7 +341,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mkr.approveMgv(base, 1 ether);
     mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
     vm.expectRevert("mgv/lowAllowance");
-    mgv.marketOrderForByVolume(ol, 1 ether, 1 ether, true, address(tkr));
+    mgv.marketOrderForByVolume(olKey, 1 ether, 1 ether, true, address(tkr));
   }
 
   function test_can_marketOrderFor_for_with_allowance() public {
@@ -350,7 +350,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
     tkr.approveSpender($(this), 1.2 ether);
     uint takerGot;
-    (takerGot,,,) = mgv.marketOrderForByVolume(ol, 1 ether, 1 ether, true, address(tkr));
+    (takerGot,,,) = mgv.marketOrderForByVolume(olKey, 1 ether, 1 ether, true, address(tkr));
     assertEq(
       mgv.allowances($(base), $(quote), address(tkr), $(this)), 0.2 ether, "allowance should have correctly reduced"
     );
@@ -388,11 +388,11 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function newOfferKO() external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.newOfferByVolume(ol, 1 ether, 1 ether, 30_000, 0);
+    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 30_000, 0);
   }
 
   function test_newOffer_on_reentrancy_fails() public {
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 100_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000, 0);
     trade_cb = abi.encodeCall(this.newOfferKO, ());
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
   }
@@ -400,33 +400,33 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* New Offer success */
 
   // ! may be called with inverted _base and _quote
-  function newOfferOK(OL memory ol) external {
-    mgv.newOfferByVolume(ol, 1 ether, 1 ether, 30_000, 0);
+  function newOfferOK(OLKey memory olKey) external {
+    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 30_000, 0);
   }
 
   function test_newOffer_on_reentrancy_succeeds() public {
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 200_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000, 0);
     trade_cb = abi.encodeCall(this.newOfferOK, (lo));
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
     assertTrue(mgv.best(lo) == 1, "newOfferByVolume on swapped offerList must work");
   }
 
   function test_newOffer_on_posthook_succeeds() public {
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 200_000, 0);
-    posthook_cb = abi.encodeCall(this.newOfferOK, (ol));
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000, 0);
+    posthook_cb = abi.encodeCall(this.newOfferOK, (olKey));
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    assertTrue(mgv.best(ol) == 2, "newOfferByVolume on posthook must work");
+    assertTrue(mgv.best(olKey) == 2, "newOfferByVolume on posthook must work");
   }
 
   /* Update offer failure */
 
   function updateOfferKO(uint ofr) external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.updateOfferByVolume(ol, 1 ether, 2 ether, 35_000, 0, ofr);
+    mgv.updateOfferByVolume(olKey, 1 ether, 2 ether, 35_000, 0, ofr);
   }
 
   function test_updateOffer_on_reentrancy_fails() public {
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 100_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000, 0);
     trade_cb = abi.encodeCall(this.updateOfferKO, (ofr));
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
   }
@@ -434,44 +434,44 @@ contract GatekeepingTest is IMaker, MangroveTest {
   /* Update offer success */
 
   // ! may be called with inverted _base and _quote
-  function updateOfferOK(OL memory ol, uint ofr) external {
-    mgv.updateOfferByVolume(ol, 1 ether, 2 ether, 35_000, 0, ofr);
+  function updateOfferOK(OLKey memory olKey, uint ofr) external {
+    mgv.updateOfferByVolume(olKey, 1 ether, 2 ether, 35_000, 0, ofr);
   }
 
   function test_updateOffer_on_reentrancy_succeeds() public {
     uint other_ofr = mgv.newOfferByVolume(lo, 1 ether, 1 ether, 100_000, 0);
 
     trade_cb = abi.encodeCall(this.updateOfferOK, (lo, other_ofr));
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 400_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 400_000, 0);
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
     assertTrue(mgv.offerDetails(lo, other_ofr).gasreq() == 35_000, "updateOffer on swapped offerList must work");
   }
 
   function test_updateOffer_on_posthook_succeeds() public {
-    uint other_ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 100_000, 0);
-    posthook_cb = abi.encodeCall(this.updateOfferOK, (ol, other_ofr));
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 300_000, 0);
+    uint other_ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000, 0);
+    posthook_cb = abi.encodeCall(this.updateOfferOK, (olKey, other_ofr));
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 300_000, 0);
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    assertTrue(mgv.offerDetails(ol, other_ofr).gasreq() == 35_000, "updateOffer on posthook must work");
+    assertTrue(mgv.offerDetails(olKey, other_ofr).gasreq() == 35_000, "updateOffer on posthook must work");
   }
 
   /* Cancel Offer failure */
 
   function retractOfferKO(uint id) external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.retractOffer(ol, id, false);
+    mgv.retractOffer(olKey, id, false);
   }
 
   function test_retractOffer_on_reentrancy_fails() public {
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 100_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000, 0);
     trade_cb = abi.encodeCall(this.retractOfferKO, (ofr));
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
   }
 
   /* Cancel Offer success */
 
-  function retractOfferOK(OL memory ol, uint id) external {
-    uint collected = mgv.retractOffer(ol, id, false);
+  function retractOfferOK(OLKey memory olKey, uint id) external {
+    uint collected = mgv.retractOffer(olKey, id, false);
     assertEq(collected, 0, "Unexpected collected provision after retract w/o deprovision");
   }
 
@@ -479,42 +479,42 @@ contract GatekeepingTest is IMaker, MangroveTest {
     uint other_ofr = mgv.newOfferByVolume(lo, 1 ether, 1 ether, 90_000, 0);
     trade_cb = abi.encodeCall(this.retractOfferOK, (lo, other_ofr));
 
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 90_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 90_000, 0);
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
     assertTrue(mgv.best(lo) == 0, "retractOffer on swapped offerList must work");
   }
 
   function test_retractOffer_on_posthook_succeeds() public {
-    uint other_ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 190_000, 0);
-    posthook_cb = abi.encodeCall(this.retractOfferOK, (ol, other_ofr));
+    uint other_ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 190_000, 0);
+    posthook_cb = abi.encodeCall(this.retractOfferOK, (olKey, other_ofr));
 
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 90_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 90_000, 0);
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    assertEq(mgv.best(ol), 0, "retractOffer on posthook must work");
+    assertEq(mgv.best(olKey), 0, "retractOffer on posthook must work");
   }
 
   /* Market Order failure */
 
   function marketOrderKO() external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.marketOrderByVolume(ol, 0.2 ether, 0.2 ether, true);
+    mgv.marketOrderByVolume(olKey, 0.2 ether, 0.2 ether, true);
   }
 
   function test_marketOrder_on_reentrancy_fails() public {
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 100_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000, 0);
     trade_cb = abi.encodeCall(this.marketOrderKO, ());
     assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
   }
 
   /* Market Order Success */
 
-  function marketOrderOK(OL memory ol) external {
-    mgv.marketOrderByVolume(ol, uint(0.5 ether), 0.5 ether, true);
+  function marketOrderOK(OLKey memory olKey) external {
+    mgv.marketOrderByVolume(olKey, uint(0.5 ether), 0.5 ether, true);
   }
 
   function test_marketOrder_on_reentrancy_succeeds() public {
     dual_mkr.newOfferByVolume(0.5 ether, 0.5 ether, 30_000, 0);
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 392_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 392_000, 0);
     trade_cb = abi.encodeCall(this.marketOrderOK, (lo));
     assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
     assertTrue(mgv.best(lo) == 0, "2nd market order must have emptied mgv");
@@ -522,140 +522,140 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_marketOrder_on_posthook_succeeds() public {
     mgv.setGasmax(10_000_000);
-    uint ofr = mgv.newOfferByVolume(ol, 0.5 ether, 0.5 ether, 3500_000, 0);
-    mgv.newOfferByVolume(ol, 0.5 ether, 0.5 ether, 1800_000, 0);
-    posthook_cb = abi.encodeCall(this.marketOrderOK, (ol));
+    uint ofr = mgv.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000, 0);
+    mgv.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 1800_000, 0);
+    posthook_cb = abi.encodeCall(this.marketOrderOK, (olKey));
     assertTrue(tkr.take(ofr, 0.6 ether), "take must succeed or test is void");
-    assertTrue(mgv.best(ol) == 0, "2nd market order must have emptied mgv");
+    assertTrue(mgv.best(olKey) == 0, "2nd market order must have emptied mgv");
   }
 
   // not gatekeeping! move me.
   function test_no_execution_keeps_ticktree_ok() public {
     mgv.setGasmax(10_000_000);
-    uint ofr = mgv.newOfferByVolume(ol, 0.5 ether, 0.5 ether, 3500_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000, 0);
     (uint takerGot, uint takerGave) = tkr.marketOrder(0.5 ether, 0.3 ether);
     // assertGt(takerGot,0,"mo should work");
     // should execute 0 offers due to price mismatch
     assertEq(takerGot, 0, "mo should fail");
-    assertTrue(mgv.offers(ol, ofr).gives() > 0, "offer should still be live");
+    assertTrue(mgv.offers(olKey, ofr).gives() > 0, "offer should still be live");
     (takerGot, takerGave) = tkr.marketOrder(0.5 ether, 0.6 ether);
     assertGt(takerGot, 0, "mo should work");
-    assertTrue(mgv.best(ol) == 0, "2nd market order must have emptied mgv");
+    assertTrue(mgv.best(olKey) == 0, "2nd market order must have emptied mgv");
   }
 
   // not gatekeeping! move me.
   function test_only_one_exec_keeps_ticktree_ok() public {
     mgv.setGasmax(10_000_000);
-    mgv.newOfferByVolume(ol, 0.05 ether, 0.05 ether, 3500_000, 0);
-    uint ofr2 = mgv.newOfferByVolume(ol, 0.1 ether, 0.05 ether, 3500_000, 0);
+    mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000, 0);
+    uint ofr2 = mgv.newOfferByVolume(olKey, 0.1 ether, 0.05 ether, 3500_000, 0);
     (uint takerGot, uint takerGave) = tkr.marketOrder(0.1 ether, 0.1 ether);
     assertEq(takerGot, 0.05 ether, "mo should only take ofr");
-    assertGt(mgv.offers(ol, ofr2).gives(), 0, "ofr2 should still be live");
+    assertGt(mgv.offers(olKey, ofr2).gives(), 0, "ofr2 should still be live");
     (takerGot, takerGave) = tkr.marketOrder(0.06 ether, 0.2 ether);
     assertGt(takerGot, 0, "mo should work");
-    assertTrue(mgv.best(ol) == 0, "2nd market order must have emptied mgv");
+    assertTrue(mgv.best(olKey) == 0, "2nd market order must have emptied mgv");
   }
 
   // not gatekeeping! move me.
   function test_leaf_is_flushed_case1() public {
     mgv.setGasmax(10_000_000);
-    uint id = mgv.newOfferByVolume(ol, 0.05 ether, 0.05 ether, 3500_000, 0);
-    MgvStructs.OfferPacked ofr = mgv.offers(ol, id);
+    uint id = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000, 0);
+    MgvStructs.OfferPacked ofr = mgv.offers(olKey, id);
     // FIXME increasing tick by 2 because tick->price->tick does not round up currently
     // when that is fixed, should replace with tick+1
-    Tick nextTick = Tick.wrap(Tick.unwrap(ofr.tick(ol.tickScale)) + 2);
-    uint gives = LogPriceLib.outboundFromInbound(LogPriceLib.fromTick(nextTick, ol.tickScale), 5 ether);
-    uint id2 = mgv.newOfferByVolume(ol, 5 ether, gives, 3500_000, 0);
+    Tick nextTick = Tick.wrap(Tick.unwrap(ofr.tick(olKey.tickScale)) + 2);
+    uint gives = LogPriceLib.outboundFromInbound(LogPriceLib.fromTick(nextTick, olKey.tickScale), 5 ether);
+    uint id2 = mgv.newOfferByVolume(olKey, 5 ether, gives, 3500_000, 0);
     tkr.marketOrder(0.05 ether, 0.05 ether);
     // low-level check
-    assertEq(mgv.leafs(ol, ofr.tick(ol.tickScale).leafIndex()).getNextOfferId(), id2);
+    assertEq(mgv.leafs(olKey, ofr.tick(olKey.tickScale).leafIndex()).getNextOfferId(), id2);
     // high-level check
-    assertTrue(mgv.best(ol) == id2, "2nd market order must have emptied mgv");
+    assertTrue(mgv.best(olKey) == id2, "2nd market order must have emptied mgv");
   }
 
   // not gatekeeping! move me.
   // Check that un-caching a nonempty level0 works
   function test_remove_with_new_best_saves_previous_level0() public {
     // make a great offer so its level0 is cached
-    uint ofr0 = mgv.newOfferByVolume(ol, 0.01 ether, 1 ether, 1000000, 0);
+    uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
     // store some information in another level0 (a worse one)
-    uint ofr1 = mgv.newOfferByVolume(ol, 0.02 ether, 0.05 ether, 1000000, 0);
-    Tick tick1 = mgv.offers(ol, ofr1).tick(ol.tickScale);
+    uint ofr1 = mgv.newOfferByVolume(olKey, 0.02 ether, 0.05 ether, 1000000, 0);
+    Tick tick1 = mgv.offers(olKey, ofr1).tick(olKey.tickScale);
     int index1 = tick1.level0Index();
     // make ofr1 the best offer (ofr1.level0 is now cached, but it also lives in its slot)
-    mgv.retractOffer(ol, ofr0, true);
+    mgv.retractOffer(olKey, ofr0, true);
     // make an offer worse than ofr1
-    uint ofr2 = mgv.newOfferByVolume(ol, 0.05 ether, 0.05 ether, 1000000, 0);
-    Tick tick2 = mgv.offers(ol, ofr2).tick(ol.tickScale);
+    uint ofr2 = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 1000000, 0);
+    Tick tick2 = mgv.offers(olKey, ofr2).tick(olKey.tickScale);
     int index2 = tick2.level0Index();
 
     // ofr2 is now best again. ofr1.level0 is not cached anymore.
     // the question is: is ofr1.level0 in storage updated or not?
     // (if it had originally been empty, the test would always succeed)
-    mgv.retractOffer(ol, ofr1, true);
+    mgv.retractOffer(olKey, ofr1, true);
     assertTrue(index1 != index2, "test should construct ofr1/ofr2 so they are on different level0 nodes");
-    assertEq(mgv.level0(ol, index1), FieldLib.EMPTY, "ofr1's level0 should be empty");
+    assertEq(mgv.level0(olKey, index1), FieldLib.EMPTY, "ofr1's level0 should be empty");
   }
 
   // FIXME Not Gatekeeping!
   function test_leaf_update_both_first_and_last() public {
-    uint ofr0 = mgv.newOfferByVolume(ol, 0.01 ether, 1 ether, 1000000, 0);
-    Tick tick0 = mgv.offers(ol, ofr0).tick(ol.tickScale);
-    mgv.retractOffer(ol, ofr0, true);
-    assertEq(mgv.leafs(ol, tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
+    uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
+    Tick tick0 = mgv.offers(olKey, ofr0).tick(olKey.tickScale);
+    mgv.retractOffer(olKey, ofr0, true);
+    assertEq(mgv.leafs(olKey, tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
 
   /* Snipe failure */
 
   function snipesKO(uint id) external {
     uint[4][] memory targets =
-      wrap_dynamic([id, uint(mgv.offers(ol, id).logPrice()), type(uint96).max, type(uint48).max]);
+      wrap_dynamic([id, uint(mgv.offers(olKey, id).logPrice()), type(uint96).max, type(uint48).max]);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.snipes(ol, targets, true);
+    mgv.snipes(olKey, targets, true);
   }
 
   function test_snipe_on_reentrancy_fails() public {
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 60_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 60_000, 0);
     trade_cb = abi.encodeCall(this.snipesKO, (ofr));
     assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
   }
 
   /* Snipe success */
 
-  function snipesOK(OL memory ol, uint id) external {
-    int logPrice = mgv.offers(ol, id).logPrice();
+  function snipesOK(OLKey memory olKey, uint id) external {
+    int logPrice = mgv.offers(olKey, id).logPrice();
     uint[4][] memory targets = wrap_dynamic([id, uint(logPrice), type(uint96).max, type(uint48).max]);
-    mgv.snipes(ol, targets, true);
+    mgv.snipes(olKey, targets, true);
   }
 
   function test_snipes_on_reentrancy_succeeds() public {
     uint other_ofr = dual_mkr.newOfferByVolume(1 ether, 1 ether, 30_000);
     trade_cb = abi.encodeCall(this.snipesOK, (lo, other_ofr));
 
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 190_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 190_000, 0);
     assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
     assertTrue(mgv.best(lo) == 0, "snipe in swapped offerList must work");
   }
 
   function test_snipes_on_posthook_succeeds() public {
     uint other_ofr = mkr.newOfferByVolume(1 ether, 1 ether, 30_000);
-    posthook_cb = abi.encodeCall(this.snipesOK, (ol, other_ofr));
+    posthook_cb = abi.encodeCall(this.snipesOK, (olKey, other_ofr));
 
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 190_000, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 190_000, 0);
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    assertTrue(mgv.best(ol) == 0, "snipe in posthook must work");
+    assertTrue(mgv.best(olKey) == 0, "snipe in posthook must work");
   }
 
   function test_newOffer_on_closed_fails() public {
     mgv.kill();
     vm.expectRevert("mgv/dead");
-    mgv.newOfferByVolume(ol, 1 ether, 1 ether, 0, 0);
+    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
   }
 
   /* # Mangrove closed/inactive */
 
   function test_take_on_closed_fails() public {
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 0, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
 
     mgv.kill();
     vm.expectRevert("mgv/dead");
@@ -663,9 +663,9 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_newOffer_on_inactive_fails() public {
-    mgv.deactivate(ol);
+    mgv.deactivate(olKey);
     vm.expectRevert("mgv/inactive");
-    mgv.newOfferByVolume(ol, 1 ether, 1 ether, 0, 0);
+    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
   }
 
   function test_receive_on_closed_fails() public {
@@ -698,16 +698,16 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_retractOffer_on_closed_ok() public {
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 0, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
     mgv.kill();
-    mgv.retractOffer(ol, ofr, false);
+    mgv.retractOffer(olKey, ofr, false);
   }
 
   function test_updateOffer_on_closed_fails() public {
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 0, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
     mgv.kill();
     vm.expectRevert("mgv/dead");
-    mgv.updateOfferByVolume(ol, 1 ether, 1 ether, 0, 0, ofr);
+    mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);
   }
 
   function test_activation_emits_events_in_order() public {
@@ -723,12 +723,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_updateOffer_on_inactive_fails() public {
-    uint ofr = mgv.newOfferByVolume(ol, 1 ether, 1 ether, 0, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
     expectFrom($(mgv));
-    emit SetActive(ol.outbound, ol.inbound, ol.tickScale, false);
-    mgv.deactivate(ol);
+    emit SetActive(olKey.outbound, olKey.inbound, olKey.tickScale, false);
+    mgv.deactivate(olKey);
     vm.expectRevert("mgv/inactive");
-    mgv.updateOfferByVolume(ol, 1 ether, 1 ether, 0, 0, ofr);
+    mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);
   }
 
   function test_inverted_mangrove_flashloan_fail_if_not_self(address caller) public {
@@ -748,10 +748,10 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.flashloan(sor, address(0));
   }
 
-  function test_configInfo(OL memory ol, address monitor, uint128 densityFixed) public {
-    mgv.activate(ol, 0, densityFixed, 0);
+  function test_configInfo(OLKey memory olKey, address monitor, uint128 densityFixed) public {
+    mgv.activate(olKey, 0, densityFixed, 0);
     mgv.setMonitor(monitor);
-    (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = mgv.configInfo(ol);
+    (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = mgv.configInfo(olKey);
     assertEq(g.monitor, monitor, "wrong monitor");
     assertEq(l.density.toFixed(), DensityLib.fromFixed(densityFixed).toFixed(), "wrong density");
   }
@@ -780,33 +780,33 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_marketOrderByPrice_extrema() public {
     vm.expectRevert("mgv/mOrder/maxPrice/tooHigh");
-    mgv.marketOrderByPrice(ol, LogPriceLib.MAX_PRICE_E18 + 1, 100, true);
+    mgv.marketOrderByPrice(olKey, LogPriceLib.MAX_PRICE_E18 + 1, 100, true);
     vm.expectRevert("mgv/mOrder/maxPrice/tooLow");
-    mgv.marketOrderByPrice(ol, LogPriceLib.MIN_PRICE_E18 - 1, 100, true);
+    mgv.marketOrderByPrice(olKey, LogPriceLib.MIN_PRICE_E18 - 1, 100, true);
   }
 
   function test_marketOrderByLogPrice_extrema() public {
-    int highLogPrice = LogPriceLib.fromTick(Tick.wrap(MAX_TICK + 1), ol.tickScale);
+    int highLogPrice = LogPriceLib.fromTick(Tick.wrap(MAX_TICK + 1), olKey.tickScale);
     vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
-    mgv.marketOrderByLogPrice(ol, highLogPrice, 100, true);
-    int lowLogPrice = LogPriceLib.fromTick(Tick.wrap(MIN_TICK - 1), ol.tickScale);
+    mgv.marketOrderByLogPrice(olKey, highLogPrice, 100, true);
+    int lowLogPrice = LogPriceLib.fromTick(Tick.wrap(MIN_TICK - 1), olKey.tickScale);
     vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
-    mgv.marketOrderByLogPrice(ol, lowLogPrice, 100, true);
+    mgv.marketOrderByLogPrice(olKey, lowLogPrice, 100, true);
   }
 
   function test_marketOrderForByPrice_extrema() public {
     vm.expectRevert("mgv/mOrder/maxPrice/tooHigh");
-    mgv.marketOrderForByPrice(ol, LogPriceLib.MAX_PRICE_E18 + 1, 100, true, address(this));
+    mgv.marketOrderForByPrice(olKey, LogPriceLib.MAX_PRICE_E18 + 1, 100, true, address(this));
     vm.expectRevert("mgv/mOrder/maxPrice/tooLow");
-    mgv.marketOrderForByPrice(ol, LogPriceLib.MIN_PRICE_E18 - 1, 100, true, address(this));
+    mgv.marketOrderForByPrice(olKey, LogPriceLib.MIN_PRICE_E18 - 1, 100, true, address(this));
   }
 
   function test_marketOrderForByLogPrice_extrema() public {
-    int highLogPrice = LogPriceLib.fromTick(Tick.wrap(MAX_TICK + 1), ol.tickScale);
+    int highLogPrice = LogPriceLib.fromTick(Tick.wrap(MAX_TICK + 1), olKey.tickScale);
     vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
-    mgv.marketOrderForByLogPrice(ol, highLogPrice, 100, true, address(this));
-    int lowLogPrice = LogPriceLib.fromTick(Tick.wrap(MIN_TICK - 1), ol.tickScale);
+    mgv.marketOrderForByLogPrice(olKey, highLogPrice, 100, true, address(this));
+    int lowLogPrice = LogPriceLib.fromTick(Tick.wrap(MIN_TICK - 1), olKey.tickScale);
     vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
-    mgv.marketOrderForByLogPrice(ol, lowLogPrice, 100, true, address(this));
+    mgv.marketOrderForByLogPrice(olKey, lowLogPrice, 100, true, address(this));
   }
 }

@@ -6,7 +6,7 @@ import {Mangrove} from "mgv_src/Mangrove.sol";
 import "mgv_src/periphery/MgvReader.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {OL} from "mgv_src/MgvLib.sol";
+import {OLKey} from "mgv_src/MgvLib.sol";
 
 /* Deactivate a market (aka two mangrove semibooks) & update MgvReader. */
 contract DeactivateMarket is Deployer {
@@ -21,10 +21,10 @@ contract DeactivateMarket is Deployer {
 
   function innerRun(Mangrove mgv, MgvReader reader, Market memory market) public {
     broadcast();
-    mgv.deactivate(toOL(market));
+    mgv.deactivate(toOLKey(market));
 
     broadcast();
-    mgv.deactivate(toOL(flipped(market)));
+    mgv.deactivate(toOLKey(flipped(market)));
 
     (new UpdateMarket()).innerRun({market: market, reader: reader});
 

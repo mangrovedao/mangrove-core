@@ -10,7 +10,7 @@ import {Test2} from "mgv_lib/Test2.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {OL} from "mgv_src/MgvLib.sol";
+import {OLKey} from "mgv_src/MgvLib.sol";
 
 contract UpdateMarketTest is Test2 {
   MangroveDeployer deployer;
@@ -29,8 +29,8 @@ contract UpdateMarketTest is Test2 {
     deployer.innerRun(chief, gasprice, gasmax, gasbot);
   }
 
-  function test_updater(OL memory ol) public {
-    Market memory market = Market(ol.outbound, ol.inbound, ol.tickScale);
+  function test_updater(OLKey memory olKey) public {
+    Market memory market = Market(olKey.outbound, olKey.inbound, olKey.tickScale);
     Mangrove mgv = deployer.mgv();
     MgvReader reader = deployer.reader();
 
@@ -40,13 +40,13 @@ contract UpdateMarketTest is Test2 {
     assertEq(reader.isMarketOpen(market), false);
 
     vm.prank(chief);
-    mgv.activate(ol, 1, 1, 1);
+    mgv.activate(olKey, 1, 1, 1);
 
     updater.innerRun(reader, market);
     assertEq(reader.isMarketOpen(market), true);
 
     vm.prank(chief);
-    mgv.deactivate(ol);
+    mgv.deactivate(olKey);
 
     updater.innerRun(reader, market);
     assertEq(reader.isMarketOpen(market), false);

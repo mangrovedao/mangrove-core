@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {IMaker, HasMgvEvents, MgvStructs, Tick, TickLib, Leaf, Field, LogPriceLib, OL} from "./MgvLib.sol";
+import {IMaker, HasMgvEvents, MgvStructs, Tick, TickLib, Leaf, Field, LogPriceLib, OLKey} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import "mgv_lib/Debug.sol";
 
@@ -16,7 +16,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   /* The following structs holds offer creation/update parameters in memory. This frees up stack space for local variables. */
   struct OfferPack {
-    OL ol;
+    OLKey olKey;
     uint gives;
     uint id;
     uint gasreq;
@@ -41,17 +41,17 @@ contract MgvOfferMaking is MgvHasOffers {
 
   The actual contents of the function is in `writeOffer`, which is called by both `newOffer` and `updateOffer`.
   */
-  function newOfferByVolume(OL memory ol, uint wants, uint gives, uint gasreq, uint gasprice)
+  function newOfferByVolume(OLKey memory olKey, uint wants, uint gives, uint gasreq, uint gasprice)
     external
     payable
     returns (uint)
   {
     unchecked {
-      return newOfferByLogPrice(ol, LogPriceLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice);
+      return newOfferByLogPrice(olKey, LogPriceLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice);
     }
   }
 
-  function newOfferByLogPrice(OL memory ol, int logPrice, uint gives, uint gasreq, uint gasprice)
+  function newOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice)
     public
     payable
     returns (uint)
@@ -60,7 +60,7 @@ contract MgvOfferMaking is MgvHasOffers {
       /* In preparation for calling `writeOffer`, we read the `outbound_tkn`,`inbound_tkn`, `tickScale` offerList configuration, check for reentrancy and market liveness, fill the `OfferPack` struct and increment the offerList's `last`. */
       OfferPack memory ofp;
       OfferList storage offerList;
-      (ofp.global, ofp.local, offerList) = _config(ol);
+      (ofp.global, ofp.local, offerList) = _config(olKey);
       unlockedMarketOnly(ofp.local);
       activeMarketOnly(ofp.global, ofp.local);
       if (msg.value > 0) {
@@ -75,7 +75,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
       ofp.local = ofp.local.last(ofp.id);
 
-      ofp.ol = ol;
+      ofp.olKey = olKey;
       ofp.gives = gives;
       ofp.gasreq = gasreq;
       ofp.gasprice = gasprice;
@@ -104,29 +104,29 @@ contract MgvOfferMaking is MgvHasOffers {
      4. `gasprice` has not changed since the offer was last written
      5. `gasprice` is greater than Mangrove's gasprice estimation
   */
-  function updateOfferByVolume(OL memory ol, uint wants, uint gives, uint gasreq, uint gasprice, uint offerId)
+  function updateOfferByVolume(OLKey memory olKey, uint wants, uint gives, uint gasreq, uint gasprice, uint offerId)
     external
     payable
   {
     unchecked {
-      updateOfferByLogPrice(ol, LogPriceLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice, offerId);
+      updateOfferByLogPrice(olKey, LogPriceLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice, offerId);
     }
   }
 
-  function updateOfferByLogPrice(OL memory ol, int logPrice, uint gives, uint gasreq, uint gasprice, uint offerId)
+  function updateOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice, uint offerId)
     public
     payable
   {
     unchecked {
       OfferPack memory ofp;
       OfferList storage offerList;
-      (ofp.global, ofp.local, offerList) = _config(ol);
+      (ofp.global, ofp.local, offerList) = _config(olKey);
       unlockedMarketOnly(ofp.local);
       activeMarketOnly(ofp.global, ofp.local);
       if (msg.value > 0) {
         creditWei(msg.sender, msg.value);
       }
-      ofp.ol = ol;
+      ofp.olKey = olKey;
       ofp.gives = gives;
       ofp.id = offerId;
       ofp.gasreq = gasreq;
@@ -149,9 +149,9 @@ contract MgvOfferMaking is MgvHasOffers {
   /* ## Retract Offer */
   //+clear+
   /* `retractOffer` takes the offer `offerId` out of the book. However, `deprovision == true` also refunds the provision associated with the offer. */
-  function retractOffer(OL memory ol, uint offerId, bool deprovision) external returns (uint provision) {
+  function retractOffer(OLKey memory olKey, uint offerId, bool deprovision) external returns (uint provision) {
     unchecked {
-      (, MgvStructs.LocalPacked local, OfferList storage offerList) = _config(ol);
+      (, MgvStructs.LocalPacked local, OfferList storage offerList) = _config(olKey);
       unlockedMarketOnly(local);
       OfferData storage offerData = offerList.offerData[offerId];
       MgvStructs.OfferPacked offer = offerData.offer;
@@ -161,7 +161,7 @@ contract MgvOfferMaking is MgvHasOffers {
       /* Here, we are about to un-live an offer, so we start by taking it out of the book by stitching together its previous and next offers. Note that unconditionally calling `stitchOffers` would break the book since it would connect offers that may have since moved. */
       if (offer.isLive()) {
         MgvStructs.LocalPacked oldLocal = local;
-        local = dislodgeOffer(offerList, ol.tickScale, offer, local, true);
+        local = dislodgeOffer(offerList, olKey.tickScale, offer, local, true);
         /* If calling `stitchOffers` has changed the current `best` offer, we update the storage. */
         if (!oldLocal.eq(local)) {
           offerList.local = local;
@@ -177,7 +177,7 @@ contract MgvOfferMaking is MgvHasOffers {
         // credit `balanceOf` and log transfer
         creditWei(msg.sender, provision);
       }
-      emit OfferRetract(ol.outbound, ol.inbound, ol.tickScale, offerId, deprovision);
+      emit OfferRetract(olKey.outbound, olKey.inbound, olKey.tickScale, offerId, deprovision);
     }
   }
 
@@ -192,7 +192,7 @@ contract MgvOfferMaking is MgvHasOffers {
   /* Fund should be called with a nonzero value (hence the `payable` modifier). The provision will be given to `maker`, not `msg.sender`. */
   function fund(address maker) public payable {
     unchecked {
-      (MgvStructs.GlobalPacked _global,) = config(OL(address(0), address(0), 0));
+      (MgvStructs.GlobalPacked _global,) = config(OLKey(address(0), address(0), 0));
       liveMgvOnly(_global);
       creditWei(maker, msg.value);
     }
@@ -257,9 +257,9 @@ contract MgvOfferMaking is MgvHasOffers {
       /* Log the write offer event. */
       uint ofrId = ofp.id;
       emit OfferWrite(
-        ofp.ol.outbound,
-        ofp.ol.inbound,
-        ofp.ol.tickScale,
+        ofp.olKey.outbound,
+        ofp.olKey.inbound,
+        ofp.olKey.tickScale,
         msg.sender,
         insertionLogPrice,
         ofp.gives,
@@ -304,7 +304,7 @@ contract MgvOfferMaking is MgvHasOffers {
         }
       }
 
-      Tick insertionTick = TickLib.fromLogPrice(insertionLogPrice, ofp.ol.tickScale);
+      Tick insertionTick = TickLib.fromLogPrice(insertionLogPrice, ofp.olKey.tickScale);
 
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {
@@ -322,7 +322,7 @@ contract MgvOfferMaking is MgvHasOffers {
         */
         // bool updateLocal = tick.strictlyBetter(ofp.local.tick().strictlyBetter(tick)
         ofp.local = dislodgeOffer(
-          offerList, ofp.ol.tickScale, ofp.oldOffer, ofp.local, !insertionTick.strictlyBetter(ofp.local.tick())
+          offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, !insertionTick.strictlyBetter(ofp.local.tick())
         );
       }
 

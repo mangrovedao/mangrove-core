@@ -11,7 +11,7 @@ import {Test2} from "mgv_lib/Test2.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {OL} from "mgv_src/MgvLib.sol";
+import {OLKey} from "mgv_src/MgvLib.sol";
 
 contract DeactivateMarketTest is Test2 {
   MangroveDeployer deployer;
@@ -35,7 +35,7 @@ contract DeactivateMarketTest is Test2 {
     MgvReader reader = deployer.reader();
 
     vm.prank(chief);
-    mgv.activate(toOL(market), 1, 1, 1);
+    mgv.activate(toOLKey(market), 1, 1, 1);
 
     (new UpdateMarket()).innerRun(reader, market);
 

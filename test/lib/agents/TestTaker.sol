@@ -3,19 +3,19 @@
 pragma solidity ^0.8.10;
 
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
-import {IERC20, ITaker, OL} from "mgv_src/MgvLib.sol";
+import {IERC20, ITaker, OLKey} from "mgv_src/MgvLib.sol";
 import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {Tick} from "mgv_lib/TickLib.sol";
 
 contract TestTaker is ITaker, Script2 {
   AbstractMangrove mgv;
-  OL ol;
+  OLKey olKey;
   bool acceptNative = true;
 
-  constructor(AbstractMangrove _mgv, OL memory _ol) {
+  constructor(AbstractMangrove _mgv, OLKey memory _ol) {
     mgv = _mgv;
-    ol = _ol;
+    olKey = _ol;
   }
 
   receive() external payable {}
@@ -29,7 +29,7 @@ contract TestTaker is ITaker, Script2 {
   }
 
   function approveSpender(address spender, uint amount) external {
-    mgv.approve(ol.outbound, ol.inbound, spender, amount);
+    mgv.approve(olKey.outbound, olKey.inbound, spender, amount);
   }
 
   function take(uint offerId, uint takerWants) external returns (bool success) {
@@ -38,14 +38,14 @@ contract TestTaker is ITaker, Script2 {
   }
 
   function takeWithInfo(uint offerId, uint takerWants) external returns (bool, uint, uint, uint, uint) {
-    int logPrice = mgv.offers(ol, offerId).logPrice();
+    int logPrice = mgv.offers(olKey, offerId).logPrice();
     uint[4][] memory targets = wrap_dynamic([offerId, uint(logPrice), takerWants, type(uint48).max]);
-    (uint successes, uint got, uint gave, uint totalPenalty, uint feePaid) = mgv.snipes(ol, targets, true);
+    (uint successes, uint got, uint gave, uint totalPenalty, uint feePaid) = mgv.snipes(olKey, targets, true);
     return (successes == 1, got, gave, totalPenalty, feePaid);
     //return taken;
   }
 
-  function snipeByVolume(AbstractMangrove _mgv, OL memory _ol, uint offerId, uint takerWants, uint gasreq)
+  function snipeByVolume(AbstractMangrove _mgv, OLKey memory _ol, uint offerId, uint takerWants, uint gasreq)
     external
     returns (bool)
   {
@@ -57,7 +57,7 @@ contract TestTaker is ITaker, Script2 {
 
   function snipeByLogPrice(
     AbstractMangrove _mgv,
-    OL memory _ol,
+    OLKey memory _ol,
     uint offerId,
     int logPrice,
     uint takerWants,
@@ -68,17 +68,17 @@ contract TestTaker is ITaker, Script2 {
     return successes == 1;
   }
 
-  function takerTrade(OL calldata, uint, uint) external pure override {}
+  function takerTrade(OLKey calldata, uint, uint) external pure override {}
 
   function marketOrder(uint wants, uint gives) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave,,) = mgv.marketOrderByVolume(ol, wants, gives, true);
+    (takerGot, takerGave,,) = mgv.marketOrderByVolume(olKey, wants, gives, true);
   }
 
   function marketOrder(uint wants, uint gives, bool fillWants) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave,,) = mgv.marketOrderByVolume(ol, wants, gives, fillWants);
+    (takerGot, takerGave,,) = mgv.marketOrderByVolume(olKey, wants, gives, fillWants);
   }
 
-  function marketOrder(AbstractMangrove _mgv, OL memory _ol, uint takerWants, uint takerGives)
+  function marketOrder(AbstractMangrove _mgv, OLKey memory _ol, uint takerWants, uint takerGives)
     external
     returns (uint takerGot, uint takerGave)
   {
@@ -86,6 +86,6 @@ contract TestTaker is ITaker, Script2 {
   }
 
   function marketOrderWithFail(uint wants, uint gives) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave,,) = mgv.marketOrderByVolume(ol, wants, gives, true);
+    (takerGot, takerGave,,) = mgv.marketOrderByVolume(olKey, wants, gives, true);
   }
 }

@@ -12,7 +12,7 @@ import {
   LEVEL2_SIZE,
   LEVEL1_SIZE,
   LEVEL0_SIZE,
-  OL
+  OLKey
 } from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
 import "mgv_lib/Debug.sol";
@@ -30,31 +30,31 @@ contract MgvHasOffers is MgvRoot {
 
   /* # Read functions */
   /* Convenience function to get best offer of the given offerList */
-  function best(OL memory ol) external view returns (uint) {
+  function best(OLKey memory olKey) external view returns (uint) {
     unchecked {
-      OfferList storage offerList = offerLists[ol.id()];
+      OfferList storage offerList = offerLists[olKey.hash()];
       return offerList.leafs[offerList.local.tick().leafIndex()].getNextOfferId();
     }
   }
 
   /* Convenience function to get an offer in packed format */
-  function offers(OL memory ol, uint offerId) external view returns (MgvStructs.OfferPacked) {
-    return offerLists[ol.id()].offerData[offerId].offer;
+  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked) {
+    return offerLists[olKey.hash()].offerData[offerId].offer;
   }
 
   /* Convenience function to get an offer detail in packed format */
-  function offerDetails(OL memory ol, uint offerId) external view returns (MgvStructs.OfferDetailPacked) {
-    return offerLists[ol.id()].offerData[offerId].detail;
+  function offerDetails(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferDetailPacked) {
+    return offerLists[olKey.hash()].offerData[offerId].detail;
   }
 
   /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offerLists[outbound_tkn][inbound_tkn].offers` and `offerLists[outbound_tkn][inbound_tkn].offerDetails` instead. */
-  function offerInfo(OL memory ol, uint offerId)
+  function offerInfo(OLKey memory olKey, uint offerId)
     external
     view
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
   {
     unchecked {
-      OfferData storage offerData = offerLists[ol.id()].offerData[offerId];
+      OfferData storage offerData = offerLists[olKey.hash()].offerData[offerId];
       offer = offerData.offer.to_struct();
       offerDetail = offerData.detail.to_struct();
     }

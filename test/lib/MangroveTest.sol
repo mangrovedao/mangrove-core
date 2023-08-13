@@ -14,6 +14,7 @@ import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 import {
   IERC20,
   MgvLib,
@@ -30,83 +31,6 @@ import {
   TickLib,
   OL
 } from "mgv_src/MgvLib.sol";
-
-// FIXME rename to MOL (Mangrove (with) OfferList)
-struct Pair {
-  AbstractMangrove mgv;
-  MgvReader reader;
-  OL ol;
-}
-
-using PairLib for Pair global;
-
-library PairLib {
-  // function getPair
-  function leafs(Pair memory pair, int index) internal view returns (Leaf) {
-    return pair.mgv.leafs(pair.ol, index);
-  }
-
-  function offers(Pair memory pair, uint offerId) internal view returns (MgvStructs.OfferPacked) {
-    return pair.mgv.offers(pair.ol, offerId);
-  }
-
-  function offerDetails(Pair memory pair, uint offerId) internal view returns (MgvStructs.OfferDetailPacked) {
-    return pair.mgv.offerDetails(pair.ol, offerId);
-  }
-
-  function best(Pair memory pair) internal view returns (uint) {
-    return pair.mgv.best(pair.ol);
-  }
-
-  function logTickTreeBranch(Pair memory pair) internal view {
-    console.log("--------CURRENT TICK TREE BRANCH--------");
-    MgvStructs.LocalPacked _local = pair.reader.local(pair.ol);
-    Tick tick = _local.tick();
-    console.log("Current tick %s", toString(tick));
-    console.log("Current posInLeaf %s", tick.posInLeaf());
-    int leafIndex = tick.leafIndex();
-    console.log("Current leaf %s (index %s)", toString(pair.mgv.leafs(pair.ol, leafIndex)), vm.toString(leafIndex));
-    console.log("Current level 0 %s (index %s)", toString(_local.level0()), vm.toString(tick.level0Index()));
-    int level1Index = tick.level1Index();
-    console.log(
-      "Current level 1 %s (index %s)", toString(pair.mgv.level1(pair.ol, level1Index)), vm.toString(level1Index)
-    );
-    console.log("Current level 2 %s", toString(_local.level2()));
-    console.log("----------------------------------------");
-  }
-
-  function nextOfferId(Pair memory pair, MgvStructs.OfferPacked offer) internal view returns (uint) {
-    return pair.reader.nextOfferId(pair.ol, offer);
-  }
-
-  function nextOfferIdById(Pair memory pair, uint offerId) internal view returns (uint) {
-    return pair.reader.nextOfferIdById(pair.ol, offerId);
-  }
-
-  function prevOfferId(Pair memory pair, MgvStructs.OfferPacked offer) internal view returns (uint) {
-    return pair.reader.prevOfferId(pair.ol, offer);
-  }
-
-  function prevOfferIdById(Pair memory pair, uint offerId) internal view returns (uint) {
-    return pair.reader.prevOfferIdById(pair.ol, offerId);
-  }
-
-  function level0(Pair memory pair, int index) internal view returns (Field) {
-    return pair.mgv.level0(pair.ol, index);
-  }
-
-  function level1(Pair memory pair, int index) internal view returns (Field) {
-    return pair.mgv.level1(pair.ol, index);
-  }
-
-  function level2(Pair memory pair) internal view returns (Field) {
-    return pair.mgv.level2(pair.ol);
-  }
-
-  function local(Pair memory pair) internal view returns (MgvStructs.LocalPacked) {
-    return pair.reader.local(pair.ol);
-  }
-}
 
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 
@@ -143,8 +67,6 @@ contract MangroveTest is Test2, HasMgvEvents {
   MgvReader internal reader;
   TestToken internal base;
   TestToken internal quote;
-  Pair pair; // base,quote pair
-  Pair raip; // quote,base pair
   OL ol; // base,quote
   OL lo; //quote,base
 
@@ -184,9 +106,6 @@ contract MangroveTest is Test2, HasMgvEvents {
 
     mgv = setupMangrove(ol, options.invertedMangrove);
     reader = new MgvReader($(mgv));
-
-    pair = Pair(mgv, reader, ol);
-    raip = Pair(mgv, reader, lo);
 
     // below are necessary operations because testRunner acts as a taker/maker in some core protocol tests
     // TODO this should be done somewhere else
@@ -309,12 +228,12 @@ contract MangroveTest is Test2, HasMgvEvents {
     return _mgv;
   }
 
-  // Deploy mangrove with a pair
+  // Deploy mangrove with an offerList
   function setupMangrove(OL memory _ol) public returns (AbstractMangrove) {
     return setupMangrove(_ol, false);
   }
 
-  // Deploy mangrove with a pair, inverted or not
+  // Deploy mangrove with an offerList
   function setupMangrove(OL memory _ol, bool inverted) public returns (AbstractMangrove _mgv) {
     _mgv = setupMangrove(inverted);
     setupMarket(_mgv, _ol);
@@ -550,6 +469,22 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   // logs an overview of the current branch
   function logTickTreeBranch(OL memory _ol) public view {
-    Pair({mgv: mgv, reader: reader, ol: _ol}).logTickTreeBranch();
+    logTickTreeBranch(reader, _ol);
+  }
+
+  function logTickTreeBranch(MgvReader _reader, OL memory _ol) internal view {
+    IMangrove _mgv = reader.MGV();
+    console.log("--------CURRENT TICK TREE BRANCH--------");
+    MgvStructs.LocalPacked _local = _reader.local(_ol);
+    Tick tick = _local.tick();
+    console.log("Current tick %s", toString(tick));
+    console.log("Current posInLeaf %s", tick.posInLeaf());
+    int leafIndex = tick.leafIndex();
+    console.log("Current leaf %s (index %s)", toString(_mgv.leafs(_ol, leafIndex)), vm.toString(leafIndex));
+    console.log("Current level 0 %s (index %s)", toString(_local.level0()), vm.toString(tick.level0Index()));
+    int level1Index = tick.level1Index();
+    console.log("Current level 1 %s (index %s)", toString(_mgv.level1(_ol, level1Index)), vm.toString(level1Index));
+    console.log("Current level 2 %s", toString(_local.level2()));
+    console.log("----------------------------------------");
   }
 }

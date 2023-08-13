@@ -35,7 +35,7 @@ contract DeactivateMarketTest is Test2 {
     MgvReader reader = deployer.reader();
 
     vm.prank(chief);
-    mgv.activate(OL(market.tkn0, market.tkn1, market.tickScale), 1, 1, 1);
+    mgv.activate(toOL(market), 1, 1, 1);
 
     (new UpdateMarket()).innerRun(reader, market);
 

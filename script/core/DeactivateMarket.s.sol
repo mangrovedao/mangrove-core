@@ -21,10 +21,10 @@ contract DeactivateMarket is Deployer {
 
   function innerRun(Mangrove mgv, MgvReader reader, Market memory market) public {
     broadcast();
-    mgv.deactivate(OL(market.tkn0, market.tkn1, market.tickScale));
+    mgv.deactivate(toOL(market));
 
     broadcast();
-    mgv.deactivate(OL(market.tkn1, market.tkn0, market.tickScale));
+    mgv.deactivate(toOL(flipped(market)));
 
     (new UpdateMarket()).innerRun({market: market, reader: reader});
 

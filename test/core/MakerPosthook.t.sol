@@ -310,7 +310,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
   function check_best_in_posthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) internal {
     called = true;
-    assertEq(pair.best(), ofr, "Incorrect best offer id in posthook");
+    assertEq(mgv.best(ol), ofr, "Incorrect best offer id in posthook");
   }
 
   function test_best_in_posthook_is_correct() public {

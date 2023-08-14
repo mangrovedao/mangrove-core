@@ -175,7 +175,6 @@ contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_T
   }
 }
 
-///
 abstract contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTick is SingleGasTestBase {
   function setUpOffers(uint count) internal {
     for (uint i; i < count; ++i) {

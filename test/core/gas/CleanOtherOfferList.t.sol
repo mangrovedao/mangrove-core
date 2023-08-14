@@ -19,6 +19,7 @@ import {
 import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
+import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 
 // Similar to RetractOffer tests.
 
@@ -280,5 +281,72 @@ contract ExternalCleanOfferOtherOfferList_WithPriorCleanOfferAndNoOtherOffersGas
     (,,, uint bounty,) = mgv.snipes(base, quote, targets, true);
     gas_();
     require(bounty > 0);
+  }
+}
+
+abstract contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest is SingleGasTestBase {
+  uint[4][] internal targets;
+
+  MgvCleaner internal cleaner;
+
+  function setUp() public virtual override {
+    super.setUp();
+    cleaner = new MgvCleaner($(mgv));
+  }
+
+  function setUpOffers(uint count) internal {
+    for (uint i; i < count; ++i) {
+      targets.push(
+        [
+          mgv.newOfferByTick($(base), $(quote), MIDDLE_TICK, 1 ether, 100_000, 0),
+          uint(MIDDLE_TICK),
+          0.05 ether,
+          100_000
+        ]
+      );
+    }
+    description =
+      string.concat(string.concat("MgvCleaner cleaning multiple offers - ", vm.toString(count), " offers at same tick"));
+  }
+
+  function makerExecute(MgvLib.SingleOrder calldata) external virtual override returns (bytes32) {
+    revert("fail"); // fail
+  }
+
+  function impl(AbstractMangrove, TestTaker taker, address base, address quote, uint) internal virtual override {
+    uint[4][] memory targets_ = targets;
+    vm.prank($(taker));
+    _gas();
+    uint bounty = cleaner.collect(base, quote, targets_, false);
+    gas_();
+    assertEq(0, mgv.best(base, quote));
+    require(bounty > 0);
+  }
+}
+
+contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest_1 is
+  ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpOffers(1);
+  }
+}
+
+contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest_2 is
+  ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpOffers(2);
+  }
+}
+
+contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest_4 is
+  ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest
+{
+  function setUp() public virtual override {
+    super.setUp();
+    setUpOffers(4);
   }
 }

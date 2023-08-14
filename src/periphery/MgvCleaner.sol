@@ -59,12 +59,19 @@ contract MgvCleaner {
     address inbound_tkn,
     uint[4][] calldata targets,
     bool fillWants,
-    address taker
+    address takerToImpersonate
   ) external returns (uint successes, uint bal) {
     unchecked {
       for (uint i = 0; i < targets.length; i++) {
         try MGV.clean(
-          outbound_tkn, inbound_tkn, targets[i][0], int(targets[i][1]), targets[i][3], targets[i][2], fillWants, taker
+          outbound_tkn,
+          inbound_tkn,
+          targets[i][0],
+          int(targets[i][1]),
+          targets[i][3],
+          targets[i][2],
+          fillWants,
+          takerToImpersonate
         ) {
           successes++;
         } catch {}

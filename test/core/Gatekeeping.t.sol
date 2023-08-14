@@ -639,7 +639,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_clean_on_posthook_succeeds() public {
     uint other_ofr = mkr.newOfferByVolume(1 ether, 1 ether, 30_000);
-    posthook_cb = abi.encodeCall(this.snipesOK, ($(base), $(quote), other_ofr));
+    posthook_cb = abi.encodeCall(this.cleanOK, ($(base), $(quote), other_ofr));
 
     uint ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 190_000, 0);
     assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");

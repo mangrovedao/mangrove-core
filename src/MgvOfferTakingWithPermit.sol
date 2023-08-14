@@ -124,18 +124,6 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     }
   }
 
-  // FIXME: This doesn't use permit or allowance at all, so perhaps it's better to move it to MgvOfferTaking? Or simply expose the `taker` parameter there?
-  /* The delegate version of `clean` is `cleanFor`, which takes a `taker` address as additional argument. */
-  // function cleanFor(address outbound_tkn, address inbound_tkn, uint offerId, int tick, uint fillVolume, bool fillWants, uint gasreq,
-  //   address taker) external returns (uint bounty) {
-  //   unchecked {
-  //     /* The sender's allowance is not checked as no allowance is spent on cleaning because it reverts if the offer succeeds.
-
-  //       An immediate consequence is that any funds available to Mangrove through `approve` can be used to clean offers. After a `cleanFor` where all offers have failed, all token transfers have been reverted -- but the sender will still have received the bounty of the failing offers. */
-  //     return generalClean(outbound_tkn, inbound_tkn, offerId, tick, fillVolume, fillWants, gasreq, taker);
-  //   }
-  // }
-
   /* # Misc. low-level functions */
 
   /* Used by `*For` functions, its both checks that `msg.sender` was allowed to use the taker's funds, and decreases the former's allowance. */

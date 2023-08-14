@@ -174,7 +174,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       emit OrderStart();
 
       /* Call recursive `internalMarketOrder` function.*/
-      internalMarketOrder(pair, mor, sor, true);
+      internalMarketOrder(pair, mor, sor);
 
       /* Over the course of the market order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
@@ -188,21 +188,16 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   /* ## Internal market order */
   //+clear+
-  /* `internalMarketOrder` works recursively. Going downward, each successive offer is executed until the market order stops (due to: volume exhausted, bad price, or empty book). Then the [reentrancy lock is lifted](#internalMarketOrder/liftReentrancy). Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book.
-
-    The last argument is a boolean named `proceed`. If an offer was not executed, it means the price has become too high. In that case, we notify the next recursive call that the market order should end. In this initial call, no offer has been executed yet so `proceed` is true. */
-  function internalMarketOrder(Pair storage pair, MultiOrder memory mor, MgvLib.SingleOrder memory sor, bool proceed)
-    internal
-  {
+  /* `internalMarketOrder` works recursively. Going downward, each successive offer is executed until the market order stops (due to: volume exhausted, bad price, or empty book). Then the [reentrancy lock is lifted](#internalMarketOrder/liftReentrancy). Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book. */
+  function internalMarketOrder(Pair storage pair, MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal {
     unchecked {
       /* #### Case 1 : End of order */
-      /* We execute the offer currently stored in `sor`. */
-      if (proceed && mor.fillVolume > 0 && sor.offerId > 0) {
+      /* We execute the offer currently stored in `sor` if its price is better than or equal to the price the taker is ready to accept (`maxTick`). */
+      if (mor.fillVolume > 0 && sor.offerId > 0 && sor.offer.tick().better(mor.maxTick)) {
         uint gasused; // gas used by `makerExecute`
         bytes32 makerData; // data returned by maker
 
         /* <a id="MgvOfferTaking/statusCodes"></a> `mgvData` is an internal Mangrove status code. It may appear in an [`OrderResult`](#MgvLib/OrderResult). Its possible values are:
-      * `"mgv/notExecuted"`: offer was not executed.
       * `"mgv/tradeSuccess"`: offer execution succeeded. Will appear in `OrderResult`.
       * `"mgv/notEnoughGasForMakerTrade"`: cannot give maker close enough to `gasreq`. Triggers a revert of the entire order.
       * `"mgv/makerRevert"`: execution of `makerExecute` reverted. Will appear in `OrderResult`.
@@ -233,26 +228,18 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           mor.fillVolume -= mor.fillWants ? sor.wants : sor.gives;
         }
 
-        /* If an execution was attempted, we move `sor` to the next offer. Note that the current state is inconsistent, since we have not yet updated `sor.offerDetails`. */
-        if (mgvData != "mgv/notExecuted") {
-          /* It is known statically that `mor.initialGives - mor.totalGave` does not underflow since
-           1. `mor.totalGave` was increased by `sor.gives` during `execute`,
-           2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
-           3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
+        /* We move `sor` to the next offer. Note that the current state is inconsistent, since we have not yet updated `sor.offerDetails`. */
+        /* It is known statically that `mor.initialGives - mor.totalGave` does not underflow since
+          1. `mor.totalGave` was increased by `sor.gives` during `execute`,
+          2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
+          3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
         */
-          (sor.offerId, sor.local) = getNextBest(pair, mor, sor.offer, sor.local);
+        (sor.offerId, sor.local) = getNextBest(pair, mor, sor.offer, sor.local);
 
-          sor.offer = pair.offerData[sor.offerId].offer;
-        }
+        sor.offer = pair.offerData[sor.offerId].offer;
 
         /* note that internalMarketOrder may be called twice with same offerId, but in that case `proceed` will be false! */
-        internalMarketOrder(
-          pair,
-          mor,
-          sor,
-          /* `proceed` value for next call. Currently, when an offer did not execute, it's because the offer's price was too high. In that case we interrupt the loop and let the taker leave with less than they asked for (but at a correct price). We could also revert instead of breaking; this could be a configurable flag for the taker to pick. */
-          mgvData != "mgv/notExecuted"
-        );
+        internalMarketOrder(pair, mor, sor);
 
         /* Restore `sor` values from before recursive call */
         sor.wants = takerWants;
@@ -261,13 +248,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         sor.offer = offer;
         sor.offerDetail = offerDetail;
 
-        /* After an offer execution, we may run callbacks and increase the total penalty. As that part is common to market orders and snipes, it lives in its own `postExecute` function. */
-        if (mgvData != "mgv/notExecuted") {
-          postExecute(mor, sor, gasused, makerData, mgvData);
-        }
+        /* After an offer execution, we may run callbacks and increase the total penalty. As that part is common to market orders and cleaning, it lives in its own `postExecute` function. */
+        postExecute(mor, sor, gasused, makerData, mgvData);
 
         /* #### Case 2 : End of market order */
-        /* If `proceed` is false, the taker has gotten its requested volume, or we have reached the end of the book, we conclude the market order. */
+        /* If `proceed` is false, the taker has gotten its requested volume, no more offers match, or we have reached the end of the book, we conclude the market order. */
       } else {
         /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
 
@@ -414,12 +399,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       pair.local = sor.local;
 
       {
-        /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/tradeSuccess","mgv/notExecuted"]` means the failure is the maker's fault. */
+        /* `execute` will adjust `sor.wants`,`sor.gives`, and will attempt to execute the offer. It is crucial that an error due to `taker` triggers a revert. That way [`mgvData`](#MgvOfferTaking/statusCodes) not equal to `"mgv/tradeSuccess"` means the failure is the maker's fault. */
         /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. */
         (uint gasused, bytes32 makerData, bytes32 mgvData) = execute(pair, mor, sor);
 
         require(mgvData != "mgv/tradeSuccess", "mgv/clean/offerDidNotFail");
-        require(mgvData != "mgv/notExecuted", "mgv/clean/tickTooLow");
 
         /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since the offer may be anywhere in the book. So we stitch together offers immediately after `execute`. */
         sor.local = dislodgeOffer(pair, sor.offer, sor.local, true);
@@ -447,10 +431,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /* # General execution */
-  /* During a market order or a snipes, offers get executed. The following code takes care of executing a single offer with parameters given by a `SingleOrder` within a larger context given by a `MultiOrder`. */
+  /* During a market order or a clean, offers get executed. The following code takes care of executing a single offer with parameters given by a `SingleOrder` within a larger context given by a `MultiOrder`. */
 
   /* ## Execute */
-  /* This function will compare `sor.wants` `sor.gives` with `sor.offer.wants` and `sor.offer.gives`. If the price of the offer is low enough, an execution will be attempted (with volume limited by the offer's advertised volume).
+  /* Execution of the offer will be attempted with volume limited by the offer's advertised volume.
+     NB: The caller must ensure that the price of the offer is low enough; This is not checked here.
 
      Summary of the meaning of the return values:
     * `gasused` is the gas consumed by the execution
@@ -462,19 +447,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint gasused, bytes32 makerData, bytes32 mgvData)
   {
     unchecked {
-      /* #### `Price comparison` */
-      //+clear+
-      /* The current offer has a price given by tick the taker is ready to accept a price up to `maxTick`.`.
-       */
       {
-        /* <a id="MgvOfferTaking/checkPrice"></a>If the price is too high, we return early.
-
-         Otherwise we now know we'll execute the offer. */
-        Tick offerTick = sor.offer.tick();
-        if (!offerTick.better(mor.maxTick)) {
-          return (0, bytes32(0), "mgv/notExecuted");
-        }
-
         uint fillVolume = mor.fillVolume;
         uint offerGives = sor.offer.gives();
         uint offerWants = sor.offer.wants();
@@ -483,6 +456,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           sor.wants = offerGives;
           sor.gives = offerWants;
         } else {
+          Tick offerTick = sor.offer.tick();
           if (mor.fillWants) {
             sor.gives = offerTick.inboundFromOutboundUp(fillVolume);
             sor.wants = fillVolume;

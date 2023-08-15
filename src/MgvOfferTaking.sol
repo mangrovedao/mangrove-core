@@ -32,7 +32,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint feePaid; // used globally
     Leaf leaf;
     Field level1;
-    int logPrice; // maxTick is the log of the max price that can be reached by the market order as a limit price.
+    int logPrice; // logPrice is the log of the max price that can be reached by the market order as a limit price.
   }
 
   /* # Market Orders */

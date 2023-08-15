@@ -171,7 +171,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sor.local = sor.local.lock(true);
       pair.local = sor.local;
 
-      emit OrderStart(outbound_tkn, inbound_tkn, takerWants, takerGives, fillWants, taker);
+      emit OrderStart(outbound_tkn, inbound_tkn, fillVolume, maxTick, fillWants, taker);
 
       /* Call recursive `internalMarketOrder` function.*/
       internalMarketOrder(pair, mor, sor, true);
@@ -711,7 +711,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
 
       /* Here we write to storage the new maker balance. This occurs _after_ possible reentrant calls. How do we know we're not crediting twice the same amounts? Because the `offer`'s provision was set to 0 in storage (through `dirtyDeleteOffer`) before the reentrant calls. In this function, we are working with cached copies of the offer as it was before it was consumed. */
-      creditWei(sor.offerDetail.maker(), provision - penalty, -1 * int(sor.offerId));
+      creditWei(sor.offerDetail.maker(), provision - penalty, penalty, sor.offerId);
 
       return penalty;
     }

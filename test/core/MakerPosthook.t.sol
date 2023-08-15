@@ -258,7 +258,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectFrom($(mgv));
     emit OfferSuccess($(base), $(quote), ofr, address(tkr), 1 ether, 1 ether);
     expectFrom($(mgv));
-    emit Credit($(this), mkr_provision, int(ofr));
+    emit Credit($(this), mkr_provision, ofr);
     expectFrom($(mgv));
     emit OfferRetract($(base), $(quote), ofr, true);
     bool success = tkr.take(ofr, 2 ether);
@@ -289,7 +289,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     emit OfferRetract($(base), $(quote), ofr, true);
     //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit Credit($(this), 0, /*penalty*/ int(ofr));
+    emit Credit($(this), 0, 0, /*penalty*/ ofr);
     bool success = tkr.take(ofr, 2 ether);
     assertTrue(!success, "Snipe should fail");
     uint penalty = weiBalMaker - mgv.balanceOf($(this));
@@ -378,7 +378,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     emit OfferRetract($(base), $(quote), ofr, true);
     //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit Credit($(this), 0, /*refund*/ -1 * int(ofr));
+    emit Credit($(this), 0, 0, /*refund*/ ofr);
     bool success = tkr.take(ofr, 2 ether);
     assertTrue(called, "PostHook not called");
 

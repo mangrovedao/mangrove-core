@@ -52,7 +52,9 @@ contract HasMgvEvents {
   /* * Credit event occurs when an offer is removed from Mangrove or when the `fund` function is called*/
   event Credit(address indexed maker, uint amount);
   /* * Credit event with offerId occurs when a credit happens in context of an offer. If the offerId is negative, then we are fully deprovisioning the offer */
-  event Credit(address indexed maker, uint amount, int offerId);
+  event Credit(address indexed maker, uint amount, uint offerId);
+  /* * Credit event with penalty occurs when an offer fails and needs to pay a penalty, the remaining provision is send to makers mangrove balance */
+  event Credit(address indexed maker, uint remainingProvision, uint penalty, uint offerId);
   /* * Debit event occurs when an offer is posted or when the `withdraw` function is called */
   event Debit(address indexed maker, uint amount);
   /* * Debit event with offerId occurs when a debit happens in context of an offer */
@@ -73,7 +75,7 @@ contract HasMgvEvents {
   /* Market order execution */
   event SnipeStart();
   event OrderStart(
-    address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants, address taker
+    address outbound_tkn, address inbound_tkn, uint fillVolume, Tick tickMax, bool fillWants, address taker
   );
   event OrderComplete(
     address indexed outbound_tkn,

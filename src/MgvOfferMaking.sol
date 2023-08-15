@@ -198,7 +198,7 @@ contract MgvOfferMaking is MgvHasOffers {
         provision = 10 ** 9 * offerDetail.gasprice() //gasprice is 0 if offer was deprovisioned
           * (offerDetail.gasreq() + offerDetail.offer_gasbase());
         // credit `balanceOf` and log transfer
-        creditWei(msg.sender, provision, int(offerId));
+        creditWei(msg.sender, provision, offerId);
       }
       emit OfferRetract(outbound_tkn, inbound_tkn, offerId, deprovision);
     }
@@ -322,7 +322,7 @@ contract MgvOfferMaking is MgvHasOffers {
         if (provision > oldProvision) {
           debitWei(msg.sender, provision - oldProvision, ofrId);
         } else if (provision < oldProvision) {
-          creditWei(msg.sender, oldProvision - provision, int(ofrId));
+          creditWei(msg.sender, oldProvision - provision, ofrId);
         }
       }
 

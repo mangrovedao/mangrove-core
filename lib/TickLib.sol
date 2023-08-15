@@ -283,7 +283,7 @@ library TickLib {
   }
 
   function fromLogPrice(int logPrice, uint tickScale) internal pure returns (Tick) {
-    // Do not force logPrices to fir the tickScale (aka logPrice%tickScale==0)
+    // Do not force logPrices to fit the tickScale (aka logPrice%tickScale==0)
     // Round all prices down (aka cheaper for taker)
     int tick = logPrice / int(tickScale);
     if (logPrice < 0 && tick % int(tickScale) != 0) {

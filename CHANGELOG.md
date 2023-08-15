@@ -1,5 +1,7 @@
 # Next version
 
+- Moved all strat related contracts, scripts, deployers, etc. to @mangrovedao/mangrove-strats.
+
 # 1.5.7
 
 - Fix: New publish workflow with foundry

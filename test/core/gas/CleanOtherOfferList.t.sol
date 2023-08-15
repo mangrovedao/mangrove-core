@@ -313,7 +313,7 @@ abstract contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickG
     uint[4][] memory targets_ = targets;
     vm.prank($(taker));
     _gas();
-    (, uint bounty) = cleaner.collect(base, quote, targets_, false);
+    (, uint bounty) = mgv.collect(base, quote, targets_, false, $(taker));
     gas_();
     assertEq(0, mgv.best(base, quote));
     require(bounty > 0);

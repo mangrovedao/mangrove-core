@@ -31,20 +31,21 @@ contract MgvCleaner {
     returns (uint successes, uint bal)
   {
     unchecked {
-      for (uint i = 0; i < targets.length; i++) {
-        try MGV.clean(
-          outbound_tkn,
-          inbound_tkn,
-          targets[i][0],
-          int(targets[i][1]),
-          targets[i][3],
-          targets[i][2],
-          fillWants,
-          msg.sender
-        ) {
-          successes++;
-        } catch {}
-      }
+      // for (uint i = 0; i < targets.length; i++) {
+      //   try MGV.clean(
+      //     outbound_tkn,
+      //     inbound_tkn,
+      //     targets[i][0],
+      //     int(targets[i][1]),
+      //     targets[i][3],
+      //     targets[i][2],
+      //     fillWants,
+      //     msg.sender
+      //   ) {
+      //     successes++;
+      //   } catch {}
+      // }
+      (successes,) = MGV.collect(outbound_tkn, inbound_tkn, targets, fillWants, msg.sender);
       bal = address(this).balance;
       bool noRevert;
       (noRevert,) = msg.sender.call{value: bal}("");

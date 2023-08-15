@@ -210,6 +210,9 @@ interface IMangrove {
   function setNotify(bool notify) external;
 
   function setUseOracle(bool useOracle) external;
+  function collect(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants, address taker)
+    external
+    returns (uint successes, uint bal);
 
   function clean(
     address outbound_tkn,

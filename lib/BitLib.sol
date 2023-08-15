@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 library BitLib {
-  // Returns the number of zeroes in x that do not have a 1 to their left, eg ctz(0)=256, ctz(1)=0
+  // Returns the number of zeroes in x that do not have a 1 to their right, eg ctz(0)=256, ctz(1)=0
   function ctz(uint x) internal pure returns (uint c) {
     assembly ("memory-safe") {
       // Isolate the least significant bit

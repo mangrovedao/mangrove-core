@@ -315,80 +315,80 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     // uint fillWants; SHOULD BE HERE
   }
 
-  function collect(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants, address taker)
-    external
-    returns (uint successes, uint bal)
-  {
-    unchecked {
-      // CleanTarget memory target;
-      for (uint i = 0; i < targets.length; ++i) {
-        // {
-        //   target.offerId = targets[i][0];
-        //   target.tick = int(targets[i][1]);
-        //   target.gasreq = targets[i][3];
-        //   target.fillVolume = targets[i][2];
-        // }
-        bytes memory encodedCall;
-        { 
-          uint[4] calldata target = targets[i];
-          encodedCall = abi.encodeCall(this.clean_new, (
-            outbound_tkn,
-            inbound_tkn,
-            // target,
-            target[0],
-            int(target[1]),
-            target[3],
-            target[2],
-            fillWants,
-            taker
-          ));
-        }
-        bytes memory retdata;
-        {
-          bool success;
-          (success, retdata) = address(this).call(encodedCall);
-
-          if (!success) continue;
-        }
-
-        successes++;
-
-        {
-          (uint bounty) = abi.decode(retdata, (uint));
-          // console.log(bounty);
-          bal += bounty;
-        }
-      }
-      sendPenalty(bal);
-    }
-  }
-
-
-  // function collect_opt(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants, address taker)
+  // function collect(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants, address taker)
   //   external
   //   returns (uint successes, uint bal)
   // {
   //   unchecked {
+  //     // CleanTarget memory target;
   //     for (uint i = 0; i < targets.length; ++i) {
-  //       uint[4] calldata target = targets[i];
-  //       (uint bounty) = clean_new(
-  //         outbound_tkn,
-  //         inbound_tkn,
-  //         // target,
-  //         target[0],
-  //         int(target[1]),
-  //         target[3],
-  //         target[2],
-  //         fillWants,
-  //         taker
-  //       );
+  //       // {
+  //       //   target.offerId = targets[i][0];
+  //       //   target.tick = int(targets[i][1]);
+  //       //   target.gasreq = targets[i][3];
+  //       //   target.fillVolume = targets[i][2];
+  //       // }
+  //       bytes memory encodedCall;
+  //       { 
+  //         uint[4] calldata target = targets[i];
+  //         encodedCall = abi.encodeCall(this.clean_new, (
+  //           outbound_tkn,
+  //           inbound_tkn,
+  //           // target,
+  //           target[0],
+  //           int(target[1]),
+  //           target[3],
+  //           target[2],
+  //           fillWants,
+  //           taker
+  //         ));
+  //       }
+  //       bytes memory retdata;
+  //       {
+  //         bool success;
+  //         (success, retdata) = address(this).call(encodedCall);
+
+  //         if (!success) continue;
+  //       }
 
   //       successes++;
-  //       bal += bounty;
+
+  //       {
+  //         (uint bounty) = abi.decode(retdata, (uint));
+  //         // console.log(bounty);
+  //         bal += bounty;
+  //       }
   //     }
   //     sendPenalty(bal);
   //   }
   // }
+
+
+  function collect_opt(address outbound_tkn, address inbound_tkn, uint[4][] calldata targets, bool fillWants, address taker)
+    external
+    returns (uint successes, uint bal)
+  {
+    unchecked {
+      for (uint i = 0; i < targets.length; ++i) {
+        uint[4] calldata target = targets[i];
+        (uint bounty) = clean_new(
+          outbound_tkn,
+          inbound_tkn,
+          // target,
+          target[0],
+          int(target[1]),
+          target[3],
+          target[2],
+          fillWants,
+          taker
+        );
+
+        successes++;
+        bal += bounty;
+      }
+      sendPenalty(bal);
+    }
+  }
 
   /* # Cleaning */
   // FIXME: Document cleaning
@@ -406,7 +406,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint fillVolume,
     bool fillWants,
     address taker
-  ) external returns (uint bounty) {
+  ) internal returns (uint bounty) {
     unchecked {
       MultiOrder memory mor;
       {

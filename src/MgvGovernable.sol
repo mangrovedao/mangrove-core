@@ -48,7 +48,7 @@ contract MgvGovernable is MgvRoot {
       authOnly();
       OfferList storage offerList = offerLists[olKey.hash()];
       offerList.local = offerList.local.active(true);
-      emit SetActive(olKey.outbound, olKey.inbound, olKey.tickScale, true);
+      emit SetActive(olKey.hash(), true);
       setFee(olKey, fee);
       setDensityFixed(olKey, densityFixed);
       setGasbase(olKey, offer_gasbase);
@@ -59,7 +59,7 @@ contract MgvGovernable is MgvRoot {
     authOnly();
     OfferList storage offerList = offerLists[olKey.hash()];
     offerList.local = offerList.local.active(false);
-    emit SetActive(olKey.outbound, olKey.inbound, olKey.tickScale, false);
+    emit SetActive(olKey.hash(), false);
   }
 
   /* ### `fee` */
@@ -70,7 +70,7 @@ contract MgvGovernable is MgvRoot {
       require(MgvStructs.Local.fee_check(fee), MgvStructs.Local.fee_size_error);
       OfferList storage offerList = offerLists[olKey.hash()];
       offerList.local = offerList.local.fee(fee);
-      emit SetFee(olKey.outbound, olKey.inbound, olKey.tickScale, fee);
+      emit SetFee(olKey.hash(), fee);
     }
   }
 
@@ -87,7 +87,7 @@ contract MgvGovernable is MgvRoot {
       require(DensityLib.checkFixedDensity(densityFixed), "mgv/config/density/128bits");
 
       offerList.local = offerList.local.densityFromFixed(densityFixed);
-      emit SetDensityFixed(olKey.outbound, olKey.inbound, olKey.tickScale, densityFixed);
+      emit SetDensityFixed(olKey.hash(), densityFixed);
     }
   }
 
@@ -108,7 +108,7 @@ contract MgvGovernable is MgvRoot {
       //+clear+
       OfferList storage offerList = offerLists[olKey.hash()];
       offerList.local = offerList.local.offer_gasbase(offer_gasbase);
-      emit SetGasbase(olKey.outbound, olKey.inbound, olKey.tickScale, offer_gasbase);
+      emit SetGasbase(olKey.hash(), offer_gasbase);
     }
   }
 

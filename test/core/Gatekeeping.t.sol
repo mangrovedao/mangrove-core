@@ -56,7 +56,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.setFee(olKey, 0);
 
     expectFrom($(mgv));
-    emit SetFee(olKey.outbound, olKey.inbound, olKey.tickScale, 1);
+    emit SetFee(olKey.hash(), 1);
     vm.prank(notAdmin);
     mgv.setFee(olKey, 1);
   }
@@ -75,7 +75,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_set_zero_density() public {
     expectFrom($(mgv));
-    emit SetDensityFixed(olKey.outbound, olKey.inbound, olKey.tickScale, 0);
+    emit SetDensityFixed(olKey.hash(), 0);
     mgv.setDensityFixed(olKey, 0);
   }
 
@@ -245,9 +245,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     // Logging tests
     expectFrom($(mgv));
     emit OfferWrite(
-      $(base),
-      $(quote),
-      olKey.tickScale,
+      olKey.hash(),
       address(mkr),
       0, //tick
       1 ether, //quote
@@ -276,9 +274,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     // Logging tests
     expectFrom($(mgv));
     emit OfferWrite(
-      $(base),
-      $(quote),
-      olKey.tickScale,
+      olKey.hash(),
       address(mkr),
       0, //tick
       amount, //quote
@@ -712,20 +708,20 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_activation_emits_events_in_order() public {
     expectFrom($(mgv));
-    emit SetActive(lo.outbound, lo.inbound, lo.tickScale, true);
+    emit SetActive(lo.hash(), true);
     expectFrom($(mgv));
-    emit SetFee(lo.outbound, lo.inbound, lo.tickScale, 7);
+    emit SetFee(lo.hash(), 7);
     expectFrom($(mgv));
-    emit SetDensityFixed(lo.outbound, lo.inbound, lo.tickScale, 0);
+    emit SetDensityFixed(lo.hash(), 0);
     expectFrom($(mgv));
-    emit SetGasbase(lo.outbound, lo.inbound, lo.tickScale, 3);
+    emit SetGasbase(lo.hash(), 3);
     mgv.activate(lo, 7, 0, 3);
   }
 
   function test_updateOffer_on_inactive_fails() public {
     uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
     expectFrom($(mgv));
-    emit SetActive(olKey.outbound, olKey.inbound, olKey.tickScale, false);
+    emit SetActive(olKey.hash(), false);
     mgv.deactivate(olKey);
     vm.expectRevert("mgv/inactive");
     mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);

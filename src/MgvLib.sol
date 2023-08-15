@@ -74,52 +74,39 @@ contract HasMgvEvents {
   event Debit(address indexed maker, uint amount);
 
   /* * Mangrove reconfiguration */
-  event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, bool value);
-  event SetFee(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint value);
-  event SetGasbase(
-    address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint offer_gasbase
-  );
+  event SetActive(bytes32 indexed olKeyHash, bool value);
+  event SetFee(bytes32 indexed olKeyHash, uint value);
+  event SetGasbase(bytes32 indexed olKeyHash, uint offer_gasbase);
   event SetGovernance(address value);
   event SetMonitor(address value);
   event SetUseOracle(bool value);
   event SetNotify(bool value);
   event SetGasmax(uint value);
-  event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint value);
+  event SetDensityFixed(bytes32 indexed olKeyHash, uint value);
   event SetGasprice(uint value);
 
   /* Market order execution */
   event OrderStart();
   event OrderComplete(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed tickScale,
-    address taker,
-    uint takerGot,
-    uint takerGave,
-    uint penalty,
-    uint feePaid
+    bytes32 indexed olKeyHash, address indexed taker, uint takerGot, uint takerGave, uint penalty, uint feePaid
   );
 
   /* * Offer execution */
   event OfferSuccess(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed tickScale,
+    bytes32 indexed olKeyHash,
     uint id,
     // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
-    address taker,
+    address indexed taker,
     uint takerWants,
     uint takerGives
   );
 
   /* Log information when a trade execution reverts or returns a non empty bytes32 word */
   event OfferFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed tickScale,
+    bytes32 indexed olKeyHash,
     uint id,
-    // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
-    address taker,
+    // `maker` is not logged because it can be retrieved from the state using `(olKeyHash)`.
+    address indexed taker,
     uint takerWants,
     uint takerGives,
     // `mgvData` may only be `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"`
@@ -127,13 +114,7 @@ contract HasMgvEvents {
   );
 
   /* Log information when a posthook reverts */
-  event PosthookFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed tickScale,
-    uint offerId,
-    bytes32 posthookData
-  );
+  event PosthookFail(bytes32 indexed olKeyHash, uint offerId, bytes32 posthookData);
 
   /* * After `permit` and `approve` */
   event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
@@ -158,21 +139,11 @@ contract HasMgvEvents {
   useless in client code.
   */
   event OfferWrite(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed tickScale,
-    address maker,
-    int logPrice,
-    uint gives,
-    uint gasprice,
-    uint gasreq,
-    uint id
+    bytes32 indexed olKeyHash, address indexed maker, int logPrice, uint gives, uint gasprice, uint gasreq, uint id
   );
 
   /* * `offerId` was present and is now removed from the book. */
-  event OfferRetract(
-    address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint id, bool deprovision
-  );
+  event OfferRetract(bytes32 indexed olKeyHash, uint id, bool deprovision);
 }
 
 /* # IMaker interface */

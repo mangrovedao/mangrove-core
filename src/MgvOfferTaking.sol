@@ -181,16 +181,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Over the course of the market order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
 
-      emit OrderComplete(
-        olKey.outbound,
-        olKey.inbound,
-        olKey.tickScale,
-        taker,
-        mor.totalGot,
-        mor.totalGave,
-        mor.totalPenalty,
-        mor.feePaid
-      );
+      emit OrderComplete(olKey.hash(), taker, mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid);
 
       //+clear+
       return (mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid);
@@ -371,16 +362,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sendPenalty(mor.totalPenalty);
       //+clear+
 
-      emit OrderComplete(
-        sor.olKey.outbound,
-        sor.olKey.inbound,
-        sor.olKey.tickScale,
-        taker,
-        snipesGot,
-        snipesGave,
-        mor.totalPenalty,
-        mor.feePaid
-      );
+      emit OrderComplete(olKey.hash(), taker, snipesGot, snipesGave, mor.totalPenalty, mor.feePaid);
       totalPenalty = mor.totalPenalty;
       feePaid = mor.feePaid;
     }
@@ -526,9 +508,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
         mgvData = bytes32("mgv/tradeSuccess");
-        emit OfferSuccess(
-          sor.olKey.outbound, sor.olKey.inbound, sor.olKey.tickScale, sor.offerId, mor.taker, sor.wants, sor.gives
-        );
+        emit OfferSuccess(sor.olKey.hash(), sor.offerId, mor.taker, sor.wants, sor.gives);
 
         /* If configured to do so, Mangrove notifies an external contract that a successful trade has taken place. */
         if (sor.global.notify()) {
@@ -544,16 +524,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         (mgvData, gasused, makerData) = innerDecode(retdata);
         /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {
-          emit OfferFail(
-            sor.olKey.outbound,
-            sor.olKey.inbound,
-            sor.olKey.tickScale,
-            sor.offerId,
-            mor.taker,
-            sor.wants,
-            sor.gives,
-            mgvData
-          );
+          emit OfferFail(sor.olKey.hash(), sor.offerId, mor.taker, sor.wants, sor.gives, mgvData);
 
           /* If configured to do so, Mangrove notifies an external contract that a failed trade has taken place. */
           if (sor.global.notify()) {
@@ -681,7 +652,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       gasused = oldGas - gasleft();
 
       if (!callSuccess) {
-        emit PosthookFail(sor.olKey.outbound, sor.olKey.inbound, sor.olKey.tickScale, sor.offerId, posthookData);
+        emit PosthookFail(sor.olKey.hash(), sor.offerId, posthookData);
       }
     }
   }

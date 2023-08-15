@@ -95,7 +95,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     expectFrom($(mgv));
     // FIXME why does this pass?
-    emit OfferWrite(olKey.outbound, olKey.inbound, olKey.tickScale, $(this), 0, 1 ether, _gasprice, gasreq, ofr);
+    emit OfferWrite(olKey.hash(), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
     bool success = tkr.take(ofr, 0.5 ether);
     assertTrue(success, "Snipe should succeed");
     assertTrue(called, "PostHook not called");
@@ -122,7 +122,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     // FIXME why does this expect pass?
     expectFrom($(mgv));
-    emit OfferWrite(olKey.outbound, olKey.inbound, olKey.tickScale, $(this), 0, 1 ether, _gasprice, gasreq, ofr);
+    emit OfferWrite(olKey.hash(), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
     bool success = tkr.take(ofr, 2 ether);
     assertTrue(called, "PostHook not called");
     assertTrue(success, "Snipe should succeed");
@@ -142,7 +142,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     makerRevert = true;
 
     expectFrom($(mgv));
-    emit OfferWrite(olKey.outbound, olKey.inbound, olKey.tickScale, $(this), 0, 1 ether, _gasprice, gasreq, ofr);
+    emit OfferWrite(olKey.hash(), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
     bool success = tkr.take(ofr, 2 ether);
     assertTrue(!success, "Snipe should fail");
     assertTrue(called, "PostHook not called");
@@ -165,9 +165,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
     makerRevert = true;
     expectFrom($(mgv));
-    emit OfferFail(
-      olKey.outbound, olKey.inbound, olKey.tickScale, ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert"
-    );
+    emit OfferFail(olKey.hash(), ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert");
     bool success = tkr.take(ofr, 1 ether);
     assertTrue(!success, "Snipe should fail");
     assertEq(base.balanceOf($(this)), balMaker, "Maker should not have been debited of her base tokens");
@@ -182,9 +180,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     makerRevert = true;
 
     expectFrom($(mgv));
-    emit OfferFail(
-      olKey.outbound, olKey.inbound, olKey.tickScale, ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert"
-    );
+    emit OfferFail(olKey.hash(), ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert");
     bool success = tkr.take(ofr, 1 ether);
     assertTrue(!success, "Snipe should fail");
     assertEq(base.balanceOf($(this)), balMaker, "Maker should not have been debited of her base tokens");
@@ -205,7 +201,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     );
 
     expectFrom($(mgv));
-    emit OfferWrite(olKey.outbound, olKey.inbound, olKey.tickScale, $(this), 0, 1 ether, _gasprice, gasreq, ofr);
+    emit OfferWrite(olKey.hash(), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
     bool success = tkr.take(ofr, 2 ether);
     assertTrue(success, "Snipe should succeed");
     assertTrue(called, "PostHook not called");
@@ -258,11 +254,11 @@ contract MakerPosthookTest is MangroveTest, IMaker {
       "Incorrect maker balance before take"
     );
     expectFrom($(mgv));
-    emit OfferSuccess(olKey.outbound, olKey.inbound, olKey.tickScale, ofr, address(tkr), 1 ether, 1 ether);
+    emit OfferSuccess(olKey.hash(), ofr, address(tkr), 1 ether, 1 ether);
     expectFrom($(mgv));
     emit Credit($(this), mkr_provision);
     expectFrom($(mgv));
-    emit OfferRetract(olKey.outbound, olKey.inbound, olKey.tickScale, ofr, true);
+    emit OfferRetract(olKey.hash(), ofr, true);
     bool success = tkr.take(ofr, 2 ether);
     assertTrue(success, "Snipe should succeed");
     assertTrue(called, "PostHook not called");
@@ -286,11 +282,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     );
     makerRevert = true;
     expectFrom($(mgv));
-    emit OfferFail(
-      olKey.outbound, olKey.inbound, olKey.tickScale, ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert"
-    );
+    emit OfferFail(olKey.hash(), ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert");
     expectFrom($(mgv));
-    emit OfferRetract(olKey.outbound, olKey.inbound, olKey.tickScale, ofr, true);
+    emit OfferRetract(olKey.hash(), ofr, true);
     //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(this), 0 /*penalty*/ );
@@ -304,9 +298,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     _posthook = retractOffer_posthook;
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
     expectFrom($(mgv));
-    emit OfferSuccess(olKey.outbound, olKey.inbound, olKey.tickScale, ofr, address(tkr), 1 ether, 1 ether);
+    emit OfferSuccess(olKey.hash(), ofr, address(tkr), 1 ether, 1 ether);
     expectFrom($(mgv));
-    emit OfferRetract(olKey.outbound, olKey.inbound, olKey.tickScale, ofr, true);
+    emit OfferRetract(olKey.hash(), ofr, true);
     bool success = tkr.take(ofr, 2 ether);
     assertTrue(called, "PostHook not called");
 
@@ -377,11 +371,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     );
     makerRevert = true; // maker should fail
     expectFrom($(mgv));
-    emit OfferFail(
-      olKey.outbound, olKey.inbound, olKey.tickScale, ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert"
-    );
+    emit OfferFail(olKey.hash(), ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert");
     expectFrom($(mgv));
-    emit OfferRetract(olKey.outbound, olKey.inbound, olKey.tickScale, ofr, true);
+    emit OfferRetract(olKey.hash(), ofr, true);
     //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(this), 0 /*refund*/ );
@@ -398,9 +390,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     makerRevert = true; // maker should fail
     bool success;
     expectFrom($(mgv));
-    emit OfferFail(
-      olKey.outbound, olKey.inbound, olKey.tickScale, ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert"
-    );
+    emit OfferFail(olKey.hash(), ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert");
     success = tkr.take(ofr, 2 ether);
   }
 

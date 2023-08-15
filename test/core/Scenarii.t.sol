@@ -89,9 +89,7 @@ contract ScenariiTest is MangroveTest {
     emit OrderStart();
     expectFrom($(mgv));
     emit OrderComplete(
-      $(base),
-      $(quote),
-      olKey.tickScale,
+      olKey.hash(),
       address(taker),
       0.3 ether * (10_000 - testFee) / 10_000,
       374979485972146063, // should not be hardcoded

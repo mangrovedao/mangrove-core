@@ -18,7 +18,6 @@ contract MgvOfferMaking is MgvHasOffers {
   struct OfferPack {
     address outbound_tkn;
     address inbound_tkn;
-    uint wants;
     uint gives;
     uint id;
     uint gasreq;
@@ -43,8 +42,23 @@ contract MgvOfferMaking is MgvHasOffers {
 
   The actual contents of the function is in `writeOffer`, which is called by both `newOffer` and `updateOffer`.
   */
-  function newOffer(address outbound_tkn, address inbound_tkn, uint wants, uint gives, uint gasreq, uint gasprice)
-    external
+  function newOfferByVolume(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint gasprice
+  ) external payable returns (uint) {
+    unchecked {
+      return newOfferByTick(
+        outbound_tkn, inbound_tkn, Tick.unwrap(TickLib.tickFromVolumes(wants, gives)), gives, gasreq, gasprice
+      );
+    }
+  }
+
+  function newOfferByTick(address outbound_tkn, address inbound_tkn, int tick, uint gives, uint gasreq, uint gasprice)
+    public
     payable
     returns (uint)
   {
@@ -69,13 +83,12 @@ contract MgvOfferMaking is MgvHasOffers {
 
       ofp.outbound_tkn = outbound_tkn;
       ofp.inbound_tkn = inbound_tkn;
-      ofp.wants = wants;
       ofp.gives = gives;
       ofp.gasreq = gasreq;
       ofp.gasprice = gasprice;
 
       /* The second parameter to writeOffer indicates that we are creating a new offer, not updating an existing one. */
-      writeOffer(pair, ofp, false);
+      writeOffer(pair, ofp, Tick.wrap(tick), false);
 
       /* Since we locally modified a field of the local configuration (`last`), we save the change to storage. Note that `writeOffer` may have further modified the local configuration by updating the current `best` offer. */
       pair.local = ofp.local;
@@ -98,7 +111,7 @@ contract MgvOfferMaking is MgvHasOffers {
      4. `gasprice` has not changed since the offer was last written
      5. `gasprice` is greater than Mangrove's gasprice estimation
   */
-  function updateOffer(
+  function updateOfferByVolume(
     address outbound_tkn,
     address inbound_tkn,
     uint wants,
@@ -107,6 +120,22 @@ contract MgvOfferMaking is MgvHasOffers {
     uint gasprice,
     uint offerId
   ) external payable {
+    unchecked {
+      updateOfferByTick(
+        outbound_tkn, inbound_tkn, Tick.unwrap(TickLib.tickFromVolumes(wants, gives)), gives, gasreq, gasprice, offerId
+      );
+    }
+  }
+
+  function updateOfferByTick(
+    address outbound_tkn,
+    address inbound_tkn,
+    int tick,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    uint offerId
+  ) public payable {
     unchecked {
       OfferPack memory ofp;
       Pair storage pair;
@@ -118,7 +147,6 @@ contract MgvOfferMaking is MgvHasOffers {
       }
       ofp.outbound_tkn = outbound_tkn;
       ofp.inbound_tkn = inbound_tkn;
-      ofp.wants = wants;
       ofp.gives = gives;
       ofp.id = offerId;
       ofp.gasreq = gasreq;
@@ -126,10 +154,9 @@ contract MgvOfferMaking is MgvHasOffers {
       ofp.oldOffer = pair.offerData[offerId].offer;
       // Save local config
       MgvStructs.LocalPacked oldLocal = ofp.local;
-      // ofp.tick = Ticks.tickFromVolumes(wants,gives);
       // ofp.tickleaf = tickleafs[outbound_tkn][inbound_tkn][ofp.tick];
       /* The second argument indicates that we are updating an existing offer, not creating a new one. */
-      writeOffer(pair, ofp, true);
+      writeOffer(pair, ofp, Tick.wrap(tick), true);
       /* We saved the current pair's configuration before calling `writeOffer`, since that function may update the current `best` offer. We now check for any change to the configuration and update it if needed. */
       if (!oldLocal.eq(ofp.local)) {
         pair.local = ofp.local;
@@ -220,7 +247,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
   /* ## Write Offer */
 
-  function writeOffer(Pair storage pair, OfferPack memory ofp, bool update) internal {
+  function writeOffer(Pair storage pair, OfferPack memory ofp, Tick insertionTick, bool update) internal {
     unchecked {
       /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
       require(checkGasprice(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
@@ -233,8 +260,6 @@ contract MgvOfferMaking is MgvHasOffers {
       require(ofp.gasreq <= ofp.global.gasmax(), "mgv/writeOffer/gasreq/tooHigh");
       /* * Make sure `gives > 0` -- division by 0 would throw in several places otherwise, and `isLive` relies on it. */
       require(ofp.gives > 0, "mgv/writeOffer/gives/tooLow");
-      /* * Make sure `wants > 0` -- price is stored as log_1BP(wants/gives). */
-      require(ofp.wants > 0, "mgv/writeOffer/wants/tooLow");
       /* * Make sure that the maker is posting a 'dense enough' offer: the ratio of `outbound_tkn` offered per gas consumed must be high enough. The actual gas cost paid by the taker is overapproximated by adding `offer_gasbase` to `gasreq`. */
       require(
         ofp.gives >= ofp.local.density().multiply(ofp.gasreq + ofp.local.offer_gasbase()),
@@ -243,9 +268,14 @@ contract MgvOfferMaking is MgvHasOffers {
 
       /* The following checks are for the maker's convenience only. */
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
-      require(uint96(ofp.wants) == ofp.wants, "mgv/writeOffer/wants/96bits");
-
-      Tick insertionTick = TickLib.tickFromVolumes(ofp.wants, ofp.gives);
+      require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
+      {
+        // FIXME: This validation should be revisited once the TickLib calculation code is done
+        uint wants = insertionTick.inboundFromOutbound(ofp.gives);
+        /* * Make sure `wants > 0` -- price is stored as log_1BP(wants/gives). */
+        require(wants > 0, "mgv/writeOffer/wants/tooLow");
+        require(uint96(wants) == wants, "mgv/writeOffer/wants/96bits");
+      }
 
       /* Log the write offer event. */
       uint ofrId = ofp.id;
@@ -253,12 +283,11 @@ contract MgvOfferMaking is MgvHasOffers {
         ofp.outbound_tkn,
         ofp.inbound_tkn,
         msg.sender,
-        ofp.wants,
+        Tick.unwrap(insertionTick),
         ofp.gives,
         ofp.gasprice,
         ofp.gasreq,
-        ofrId,
-        Tick.unwrap(insertionTick)
+        ofrId
       );
 
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
@@ -297,7 +326,6 @@ contract MgvOfferMaking is MgvHasOffers {
         }
       }
 
-      // Tick insertionTick = ofp.tick;
       // mapping (uint => MgvStructs.OfferPacked) _offers = offers[ofp.outbound_tkn][ofp.inbound_tkn];
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {
@@ -315,6 +343,10 @@ contract MgvOfferMaking is MgvHasOffers {
         */
         // bool updateLocal = tick.strictlyBetter(ofp.local.tick().strictlyBetter(tick)
         ofp.local = dislodgeOffer(pair, ofp.oldOffer, ofp.local, !insertionTick.strictlyBetter(ofp.local.tick()));
+      }
+
+      if (insertionTick.strictlyBetter(ofp.local.tick())) {
+        ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
       }
 
       // insertion
@@ -344,7 +376,6 @@ contract MgvOfferMaking is MgvHasOffers {
         }
 
         if (field.isEmpty()) {
-          // console.log("insertion tick is",toString(insertionTick));
           insertionIndex = insertionTick.level1Index();
           currentIndex = ofp.local.tick().level1Index();
 
@@ -384,36 +415,11 @@ contract MgvOfferMaking is MgvHasOffers {
       // store offer at the end of the tick
       leaf = leaf.setTickLast(insertionTick, ofrId);
       pair.leafs[insertionTick.leafIndex()] = leaf;
-      ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */
       MgvStructs.OfferPacked ofr =
         MgvStructs.Offer.pack({__prev: lastId, __next: 0, __tick: insertionTick, __gives: ofp.gives});
       pair.offerData[ofrId].offer = ofr;
-    }
-  }
-
-  /* ## Better */
-  /* The utility method `better` takes an offer represented by `wants2`,`gives2`, `gasreq2`, and another represented by `offer1`. It returns true iff `offer1` is the better or equal offer`.
-    "better" is defined on the lexicographic order $\textrm{price} \times_{\textrm{lex}} \textrm{density}^{-1}$. This means that for the same price, offers that deliver more volume per gas are taken first.
-
-      In addition to `offer1`, we also provide offerData1 in order to save gas. If necessary (ie. if the prices `wants1/gives1` and `wants2/gives2` are the same), we read storage to get `gasreq1` at `offerData.detail`. */
-  function better(uint wants2, uint gives2, uint gasreq2, MgvStructs.OfferPacked offer1, OfferData storage offerData1)
-    internal
-    view
-    returns (bool)
-  {
-    unchecked {
-      uint wants1 = offer1.wants();
-      uint gives1 = offer1.gives();
-      uint weight1 = wants1 * gives2;
-      uint weight2 = wants2 * gives1;
-      if (weight1 == weight2) {
-        uint gasreq1 = offerData1.detail.gasreq();
-        return (gives1 * gasreq2 >= gives2 * gasreq1);
-      } else {
-        return weight1 < weight2;
-      }
     }
   }
 }

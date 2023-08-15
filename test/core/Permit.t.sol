@@ -46,6 +46,7 @@ import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {console2, StdStorage, stdStorage} from "forge-std/Test.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+import {TickLib, Tick} from "mgv_lib/TickLib.sol";
 
 contract PermitTest is MangroveTest, TrivialTestMaker {
   using stdStorage for StdStorage;
@@ -83,11 +84,12 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   }
 
   function snipeFor(uint value, address who) internal returns (uint, uint, uint, uint, uint) {
-    return mgv.snipesFor($(base), $(quote), wrap_dynamic([uint(1), value, value, 300_000]), true, who);
+    Tick tick = TickLib.tickFromPrice_e18(1 ether);
+    return mgv.snipesFor($(base), $(quote), wrap_dynamic([uint(1), uint(Tick.unwrap(tick)), value, 300_000]), true, who);
   }
 
-  function newOffer(uint amount) internal {
-    mgv.newOffer($(base), $(quote), amount, amount, 100_000, 0);
+  function newOfferByVolume(uint amount) internal {
+    mgv.newOfferByVolume($(base), $(quote), amount, amount, 100_000, 0);
   }
 
   function test_no_allowance(uint value) external {
@@ -95,7 +97,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     value = bound(value, reader.minVolume($(base), $(quote), 100_000), type(uint96).max); //can't create an offer below density
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
-    newOffer(value);
+    newOfferByVolume(value);
     vm.expectRevert("mgv/lowAllowance");
     snipeFor(value, good_owner);
   }
@@ -158,7 +160,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
 
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
-    newOffer(value);
+    newOfferByVolume(value);
     (uint successes, uint takerGot, uint takerGave,,) = snipeFor(value / 2, good_owner);
     assertEq(successes, 1, "Snipe should succeed");
     assertEq(takerGot, value / 2, "takerGot should be 1 ether");

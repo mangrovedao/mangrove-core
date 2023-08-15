@@ -95,7 +95,7 @@ contract ActivateSemibook is Test2, Deployer {
     });
   }
 
-  function measureTransferGas(IERC20 tkn) internal returns (uint) {
+  function measureTransferGas(IERC20 tkn) public returns (uint) {
     address someone = freshAddress();
     vm.prank(someone);
     tkn.approve(address(this), type(uint).max);

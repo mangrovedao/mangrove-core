@@ -138,12 +138,11 @@ contract HasMgvEvents {
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     address maker,
-    uint wants,
+    int tick,
     uint gives,
     uint gasprice,
     uint gasreq,
-    uint id,
-    int tick
+    uint id
   );
 
   /* * `offerId` was present and is now removed from the book. */

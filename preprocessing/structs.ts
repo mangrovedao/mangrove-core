@@ -81,7 +81,6 @@ uni.hospitable(true);
 /* Struct fields that are common to multiple structs are factored here. Multiple field names refer to offer identifiers, so the `id` field is a function that takes a name as argument. */
 
 const fields = {
-  wants: { name: "wants", bits: 96, type: "uint" },
   gives: { name: "gives", bits: 96, type: "uint" },
   gasprice: { name: "gasprice", bits: 16, type: "uint" },
   gasreq: { name: "gasreq", bits: 24, type: "uint" },

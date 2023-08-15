@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {HasMgvEvents} from "./MgvLib.sol";
+import {HasMgvEvents, Tick} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
+import {TickLib} from "./../lib/TickLib.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* Takers may provide allowances on specific pairs, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
@@ -74,17 +75,50 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* The delegate version of `marketOrder` is `marketOrderFor`, which takes a `taker` address as additional argument. Penalties incurred by failed offers will still be sent to `msg.sender`, but exchanged amounts will be transferred from and to the `taker`. If the `msg.sender`'s allowance for the given `outbound_tkn`,`inbound_tkn` and `taker` are strictly less than the total amount eventually spent by `taker`, the call will fail. */
 
   /* *Note:* `marketOrderFor` and `snipesFor` may emit ERC20 `Transfer` events of value 0 from `taker`, but that's already the case with common ERC20 implementations. */
-  function marketOrderFor(
+  function marketOrderForByVolume(
     address outbound_tkn,
     address inbound_tkn,
     uint takerWants,
     uint takerGives,
     bool fillWants,
     address taker
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
+  ) external returns (uint, uint, uint, uint) {
+    unchecked {
+      require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
+      require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
+      uint fillVolume = fillWants ? takerWants : takerGives;
+      Tick maxTick = TickLib.tickFromTakerVolumes(takerGives, takerWants);
+      return marketOrderForByTick(outbound_tkn, inbound_tkn, Tick.unwrap(maxTick), fillVolume, fillWants, taker);
+    }
+  }
+
+  function marketOrderForByPrice(
+    address outbound_tkn,
+    address inbound_tkn,
+    uint maxPrice_e18,
+    uint fillVolume,
+    bool fillWants,
+    address taker
+  ) external returns (uint, uint, uint, uint) {
+    unchecked {
+      require(maxPrice_e18 <= TickLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
+      require(maxPrice_e18 >= TickLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
+      int maxTick = Tick.unwrap(TickLib.tickFromPrice_e18(maxPrice_e18));
+      return marketOrderForByTick(outbound_tkn, inbound_tkn, maxTick, fillVolume, fillWants, taker);
+    }
+  }
+
+  function marketOrderForByTick(
+    address outbound_tkn,
+    address inbound_tkn,
+    int maxTick,
+    uint fillVolume,
+    bool fillWants,
+    address taker
+  ) public returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
     unchecked {
       (takerGot, takerGave, bounty, feePaid) =
-        generalMarketOrder(outbound_tkn, inbound_tkn, takerWants, takerGives, fillWants, taker);
+        generalMarketOrder(outbound_tkn, inbound_tkn, Tick.wrap(maxTick), fillVolume, fillWants, taker);
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
       deductSenderAllowance(outbound_tkn, inbound_tkn, taker, takerGave);
     }

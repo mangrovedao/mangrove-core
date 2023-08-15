@@ -33,7 +33,7 @@ contract MgvCleanerTest is MangroveTest {
   function test_single_failing_offer() public {
     deal($(quote), $(this), 10 ether);
     mkr.shouldFail(true);
-    uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
 
     uint oldBal = $(this).balance;
 
@@ -54,7 +54,7 @@ contract MgvCleanerTest is MangroveTest {
 
   function test_single_failing_offer_impersonation() public {
     mkr.shouldFail(true);
-    uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
 
     address taker = setupTaker();
 
@@ -72,8 +72,8 @@ contract MgvCleanerTest is MangroveTest {
   function test_mult_failing_offer() public {
     deal($(quote), $(this), 10 ether);
     mkr.shouldFail(true);
-    uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
-    uint ofr2 = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
+    uint ofr2 = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
 
     uint oldBal = $(this).balance;
 
@@ -89,7 +89,7 @@ contract MgvCleanerTest is MangroveTest {
 
   function test_no_fail_no_cleaning() public {
     deal($(quote), $(this), 10 ether);
-    uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
 
     uint oldBal = $(this).balance;
 
@@ -104,7 +104,7 @@ contract MgvCleanerTest is MangroveTest {
   }
 
   function test_no_fail_no_cleaning_no_permit_impersonation() public {
-    uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000, 0);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
 
     uint oldBal = $(this).balance;
 
@@ -122,7 +122,7 @@ contract MgvCleanerTest is MangroveTest {
 
   // For now there is no need to approve
   // function test_no_approve_no_cleaning() public {
-  //   uint ofr = mkr.newOffer(1 ether, 1 ether, 50_000,0);
+  //   uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000,0);
 
   //   uint[4][] memory targets = new uint[4][](1);
   //   targets[0] = [ofr, 1 ether, 1 ether, type(uint).max];

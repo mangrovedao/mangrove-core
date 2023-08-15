@@ -55,7 +55,11 @@ contract GenericFork is Script {
     addr = getNoRevert(name);
     if (addr == address(0)) {
       revert(
-        "Fork::get(string name): no contract found for name argument, either in context nor in deployed addresses. Check the appropriate context/<chain>.json and deployed/<chain>.json, and make sure you are doing fork.set(name,address) for all your deployed contracts."
+        string.concat(
+          "Fork::get(string name)",
+          name,
+          ": no contract found for name argument, either in context nor in deployed addresses. Check the appropriate context/<chain>.json and deployed/<chain>.json, and make sure you are doing fork.set(name,address) for all your deployed contracts."
+        )
       );
     }
   }
@@ -70,16 +74,47 @@ contract GenericFork is Script {
 
   /* Read addresses from JSON files */
 
-  function addressesFile(string memory category, string memory suffix) public view returns (string memory) {
-    return string.concat(vm.projectRoot(), "/addresses/", category, "/", NETWORK, suffix, ".json");
+  function addressesFile(string memory root, string memory category, string memory suffix)
+    public
+    view
+    returns (string memory)
+  {
+    return string.concat(root, "/addresses/", category, "/", NETWORK, suffix, ".json");
   }
 
-  function addressesFile(string memory category) public view returns (string memory) {
-    return addressesFile(category, "");
+  function addressesFileNodeModules(string memory category, string memory suffix) public view returns (string memory) {
+    return addressesFile(string.concat(vm.projectRoot(), "/node_modules/@mangrovedao/mangrove-core"), category, suffix);
+  }
+
+  function addressesFileRoot(string memory category, string memory suffix) public view returns (string memory) {
+    return addressesFile(vm.projectRoot(), category, suffix);
+  }
+
+  function addressesFileNodeModules(string memory category) public view returns (string memory) {
+    return addressesFileNodeModules(category, "");
+  }
+
+  function addressesFileRoot(string memory category) public view returns (string memory) {
+    return addressesFileRoot(category, "");
   }
 
   function readAddresses(string memory category) internal returns (Record[] memory) {
-    string memory fileName = addressesFile(category);
+    string memory fileNameNodeModules = addressesFileNodeModules(category);
+    Record[] memory recordsFromNodeModules = readAddressesFromFileName(fileNameNodeModules);
+    string memory fileNameRoot = addressesFileRoot(category);
+    Record[] memory recordsFromRoot = readAddressesFromFileName(fileNameRoot);
+    Record[] memory records = new Record[](recordsFromNodeModules.length + recordsFromRoot.length);
+    uint i = 0;
+    for (; i < recordsFromNodeModules.length; i++) {
+      records[i] = recordsFromNodeModules[i];
+    }
+    for (uint j = 0; j < recordsFromRoot.length; j++) {
+      records[i + j] = recordsFromRoot[j];
+    }
+    return records;
+  }
+
+  function readAddressesFromFileName(string memory fileName) internal returns (Record[] memory) {
     try vm.readFile(fileName) returns (string memory addressesRaw) {
       if (bytes(addressesRaw).length == 0) {
         return (new Record[](0));

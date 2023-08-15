@@ -206,10 +206,10 @@ abstract contract Deployer is Script2 {
       line(end ? "  }" : "  },");
     }
     line("]");
-    string memory latestBackupFile = fork.addressesFile("deployed.backup", "-latest");
+    string memory latestBackupFile = fork.addressesFileRoot("deployed.backup", "-latest");
     string memory timestampedBackupFile =
-      fork.addressesFile("deployed.backup", string.concat("-", vm.toString(block.timestamp), ".backup"));
-    string memory mainFile = fork.addressesFile("deployed");
+      fork.addressesFileRoot("deployed.backup", string.concat("-", vm.toString(block.timestamp), ".backup"));
+    string memory mainFile = fork.addressesFileRoot("deployed");
     vm.writeFile(latestBackupFile, out);
     vm.writeFile(timestampedBackupFile, out);
     if (writeDeploy) {

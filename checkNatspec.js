@@ -27,39 +27,7 @@ const read_artifact = (file_path) => {
 // gather all artifact files
 const artifacts = all_files(path.join(cwd, "out"));
 
-includes = [
-  "AbstractKandelSeeder",
-  "AaveKandelSeeder",
-  "KandelSeeder",
-  "Direct",
-  "DirectWithBidsAndAsksDistribution",
-  "HasIndexedBidsAndAsks",
-  "AbstractKandel",
-  "CoreKandel",
-  "TradesBaseQuotePair",
-  "GeometricKandel",
-  "AaveKandel",
-  "Kandel",
-  "AaveV3Lender",
-  "HasAaveBalanceMemoizer",
-  "AbstractRouter",
-  "AavePooledRouter",
-  "MangroveOrder",
-  "IOrderLogic",
-  "Forwarder",
-  "AccessControlled",
-  "AbstractRouterStorage",
-  "AbstractRouter",
-  "SimpleRouter",
-  "MangroveOfferStorage",
-  "MangroveOffer",
-  "IOfferLogic",
-  "IForwarder",
-  "TransferLib",
-  "ILiquidityProvider",
-  "OfferMakerTutorial",
-  "OfferMakerTutorialResidual",
-];
+includes = ["TransferLib"];
 
 let anyFindings = false;
 artifacts.forEach((file) => {

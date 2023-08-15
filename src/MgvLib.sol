@@ -162,7 +162,7 @@ contract HasMgvEvents {
     address indexed inbound_tkn,
     uint indexed tickScale,
     address maker,
-    int tick,
+    int logPrice,
     uint gives,
     uint gasprice,
     uint gasreq,

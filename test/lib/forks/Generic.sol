@@ -83,7 +83,7 @@ contract GenericFork is Script {
   }
 
   function addressesFileCore(string memory category, string memory suffix) public view returns (string memory) {
-    return addressesFile(string.concat(vm.projectRoot(), "lib/mangrove-core.git"), category, suffix);
+    return addressesFile(string.concat(vm.projectRoot(), "/lib/mangrove-core.git"), category, suffix);
   }
 
   function addressesFileRoot(string memory category, string memory suffix) public view returns (string memory) {

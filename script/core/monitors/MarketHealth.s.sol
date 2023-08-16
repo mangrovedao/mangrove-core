@@ -5,7 +5,8 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
 import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
+import {Tick} from "mgv_lib/TickLib.sol";
 
 /**
  * @notice Script to obtain data about a given mangrove offer list. Data is outputted to terminal as space separated values.
@@ -85,9 +86,10 @@ contract MarketHealth is Test2, Deployer {
     uint gasbase;
     uint best;
     uint takerWants;
-    uint[4][] targets;
+    MgvLib.CleanTarget[] targets;
     uint g;
-    MgvStructs.OfferPacked offer;
+    MgvStructs.OfferUnpacked offer;
+    MgvStructs.OfferDetailUnpacked offerDetail;
     string rootKey;
     string dataKey;
     uint[] failingIds;
@@ -132,15 +134,17 @@ contract MarketHealth is Test2, Deployer {
       if (vars.best == 0) {
         break;
       }
-      vars.offer = mgv.offers(address(outTkn), address(inbTkn), vars.best);
-      vars.targets = new uint256[4][](1);
+      (vars.offer, vars.offerDetail) = mgv.offerInfo(address(outTkn), address(inbTkn), vars.best);
+      vars.targets = new MgvLib.CleanTarget[](1);
       vars.takerWants =
-        vars.offer.gives() + vars.got > outboundTknVolume ? outboundTknVolume - vars.got : vars.offer.gives();
+        vars.offer.gives + vars.got > outboundTknVolume ? outboundTknVolume - vars.got : vars.offer.gives;
+      // FIXME: This is no longer possible with the new clean function
       // offering a better price than what the offer requires
-      vars.targets[0] = [vars.best, vars.takerWants, vars.offer.wants(), type(uint).max];
+      vars.targets[0] =
+        MgvLib.CleanTarget(vars.best, Tick.unwrap(vars.offer.tick), vars.offerDetail.gasreq, vars.takerWants);
       _gas();
-      (vars.snipesSuccesses, vars.snipesGot, vars.snipesGave, vars.snipesBounty,) =
-        mgv.snipes(address(outTkn), address(inbTkn), vars.targets, true);
+      (vars.snipesSuccesses, vars.snipesBounty) =
+        mgv.cleanByImpersonation(address(outTkn), address(inbTkn), vars.targets, address(this));
       vars.g = gas_(true);
       if (vars.snipesBounty > 0) {
         // adding gas cost of snipe to gasCost if snipe failed

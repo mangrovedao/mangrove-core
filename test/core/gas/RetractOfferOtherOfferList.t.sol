@@ -150,6 +150,7 @@ abstract contract ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSam
   }
 
   function setUpTick(int tick_) public virtual override {
+    tick_; // silence irrelevant warning for override
     description =
       "Retracting an offer when another offer exists at various tick-distances to the offer price but also on the same tick";
   }

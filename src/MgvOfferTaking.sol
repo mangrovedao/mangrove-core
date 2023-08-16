@@ -32,7 +32,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint feePaid; // used globally
     Leaf leaf;
     Field level1;
-    int logPrice; // logPrice is the log of the max price that can be reached by the market order as a limit price.
+    int maxLogPrice; // maxLogPrice is the log of the max price that can be reached by the market order as a limit price.
   }
 
   /* # Market Orders */
@@ -54,8 +54,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
     require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
     uint fillVolume = fillWants ? takerWants : takerGives;
-    int logPrice = LogPriceLib.logPriceFromTakerVolumes(takerGives, takerWants);
-    return marketOrderByLogPrice(olKey, logPrice, fillVolume, fillWants);
+    int maxLogPrice = LogPriceLib.logPriceFromTakerVolumes(takerGives, takerWants);
+    return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants);
   }
 
   function marketOrderByPrice(OLKey memory olKey, uint maxPrice_e18, uint fillVolume, bool fillWants)
@@ -65,16 +65,16 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     require(maxPrice_e18 <= LogPriceLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
     require(maxPrice_e18 >= LogPriceLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
 
-    int logPrice = LogPriceLib.logPriceFromPrice_e18(maxPrice_e18);
-    return marketOrderByLogPrice(olKey, logPrice, fillVolume, fillWants);
+    int maxLogPrice = LogPriceLib.logPriceFromPrice_e18(maxPrice_e18);
+    return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants);
   }
 
-  function marketOrderByLogPrice(OLKey memory olKey, int logPrice, uint fillVolume, bool fillWants)
+  function marketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
     public
     returns (uint, uint, uint, uint)
   {
     unchecked {
-      return generalMarketOrder(olKey, logPrice, fillVolume, fillWants, msg.sender);
+      return generalMarketOrder(olKey, maxLogPrice, fillVolume, fillWants, msg.sender);
     }
   }
 
@@ -130,7 +130,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* General market orders set up the market order with a given `taker` (`msg.sender` in the most common case). Returns `(totalGot, totalGave, penaltyReceived, feePaid)`.
   Note that the `taker` can be anyone. This is safe when `taker == msg.sender`, but `generalMarketOrder` must not be called with `taker != msg.sender` unless a security check is done after (see [`MgvOfferTakingWithPermit`](#mgvoffertakingwithpermit.sol)`. */
 
-  function generalMarketOrder(OLKey memory olKey, int logPrice, uint fillVolume, bool fillWants, address taker)
+  function generalMarketOrder(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants, address taker)
     internal
     returns (uint, uint, uint, uint)
   {
@@ -138,11 +138,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       //TODO is uint160 correct with new price limits?
       /* Since amounts stored in offers are 96 bits wide, checking that `takerWants` and `takerGives` fit in 160 bits prevents overflow during the main market order loop. */
       require(uint160(fillVolume) == fillVolume, "mgv/mOrder/fillVolume/160bits");
-      require(LogPriceLib.inRange(logPrice), "mgv/mOrder/logPrice/outOfRange");
+      require(LogPriceLib.inRange(maxLogPrice), "mgv/mOrder/logPrice/outOfRange");
 
       /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */
       MultiOrder memory mor;
-      mor.logPrice = logPrice;
+      mor.maxLogPrice = maxLogPrice;
       mor.taker = taker;
       mor.fillWants = fillWants;
 
@@ -315,7 +315,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Snipes */
   //+clear+
 
-  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,logPrice,fillVolume,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty,feePaid)`. 
+  /* `snipes` executes multiple offers. It takes a `uint[4][]` as penultimate argument, with each array element of the form `[offerId,maxLogPrice,fillVolume,offerGasreq]`. The return parameters are of the form `(successes,snipesGot,snipesGave,bounty,feePaid)`. 
   Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`). */
 
   function snipes(OLKey memory olKey, uint[4][] calldata targets, bool fillWants)
@@ -328,7 +328,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   }
 
   /*
-     From an array of _n_ `[offerId, logPrice,fillVolume,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty, feePaid)`. 
+     From an array of _n_ `[offerId, maxLogPrice,fillVolume,gasreq]` elements, execute each snipe in sequence. Returns `(successes, takerGot, takerGave, bounty, feePaid)`. 
 
      Note that if this function is not internal, anyone can make anyone use Mangrove.
      Note that unlike general market order, the returned total values are _not_ `mor.totalGot` and `mor.totalGave`, since those are reset at every iteration of the `targets` array. Instead, accumulators `snipesGot` and `snipesGave` are used. */
@@ -395,9 +395,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           continue;
         } else {
           {
-            int logPrice = int(targets[i][1]);
-            require(LogPriceLib.inRange(logPrice), "mgv/snipes/tick/outOfRange");
-            mor.logPrice = logPrice;
+            int maxLogPrice = int(targets[i][1]);
+            require(LogPriceLib.inRange(maxLogPrice), "mgv/snipes/tick/outOfRange");
+            mor.maxLogPrice = maxLogPrice;
           }
           {
             uint fillVolume = targets[i][2];
@@ -474,7 +474,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* <a id="MgvOfferTaking/checkPrice"></a>If the price is too high, we return early.
 
          Otherwise we now know we'll execute the offer. */
-        if (mor.logPrice < sor.offer.logPrice()) {
+        if (mor.maxLogPrice < sor.offer.logPrice()) {
           return (0, bytes32(0), "mgv/notExecuted");
         }
 

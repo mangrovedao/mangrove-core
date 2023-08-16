@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {Test2, console2 as console} from "mgv_lib/Test2.sol";
+import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
 import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
@@ -183,7 +183,7 @@ contract MarketHealth is Test2, Deployer {
     }
     require(vm.revertTo(snapshotId), "snapshot restore failed");
     _gas();
-    mgv.marketOrder(address(outTkn), address(inbTkn), outboundTknVolume, type(uint160).max, true);
+    mgv.marketOrderByVolume(address(outTkn), address(inbTkn), outboundTknVolume, type(uint160).max, true);
     vars.gasSpent = gas_(true);
     vm.serializeUint(vars.rootKey, "failingIds", vars.failingIds);
     vars.rootKey = vm.serializeUint(vars.rootKey, "gas_used_for_volume", vars.gasSpent);

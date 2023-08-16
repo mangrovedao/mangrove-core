@@ -46,8 +46,7 @@ library MgvLib {
     uint offerId;
     int tick;
     uint gasreq;
-    uint fillVolume;
-    bool fillWants;
+    uint takerWants;
   }
 }
 

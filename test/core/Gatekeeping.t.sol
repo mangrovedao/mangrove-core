@@ -614,7 +614,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     (uint successes,) = mgv.cleanByImpersonation(
       $(base),
       $(quote),
-      wrap_dynamic(MgvLib.CleanTarget(id, Tick.unwrap(tick), type(uint48).max, type(uint96).max, true)),
+      wrap_dynamic(MgvLib.CleanTarget(id, Tick.unwrap(tick), type(uint48).max, type(uint96).max)),
       $(this)
     );
     assertEq(successes, 0, "clean should fail");
@@ -633,7 +633,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.cleanByImpersonation(
       _base,
       _quote,
-      wrap_dynamic(MgvLib.CleanTarget(id, Tick.unwrap(tick), type(uint48).max, type(uint96).max, true)),
+      wrap_dynamic(MgvLib.CleanTarget(id, Tick.unwrap(tick), type(uint48).max, type(uint96).max)),
       $(this)
     );
   }

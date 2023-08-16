@@ -314,7 +314,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`).
 
   Any `taker` can be impersonated when cleaning because the function reverts if the offer succeeds, cancelling any token transfers. And after a `clean` where the offer has failed, all token transfers have been reverted -- but the sender will still have received the bounty of the failing offers. */
-  // FIXME: This would be simpler if tick had to match exactly: Then `fillWants` wouldn't be needed and `fillVolume` could be simplified to either `takerWants` or `takerGives`.
   function cleanByImpersonation(
     address outbound_tkn,
     address inbound_tkn,
@@ -328,16 +327,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           MgvLib.CleanTarget calldata target = targets[i];
           encodedCall = abi.encodeCall(
             this.internalCleanByImpersonation,
-            (
-              outbound_tkn,
-              inbound_tkn,
-              target.offerId,
-              target.tick,
-              target.gasreq,
-              target.fillVolume,
-              target.fillWants,
-              taker
-            )
+            (outbound_tkn, inbound_tkn, target.offerId, target.tick, target.gasreq, target.takerWants, taker)
           );
         }
         bytes memory retdata;
@@ -366,8 +356,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint offerId,
     int tick,
     uint gasreq,
-    uint fillVolume,
-    bool fillWants,
+    uint takerWants,
     address taker
   ) external returns (uint bounty) {
     unchecked {
@@ -381,11 +370,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.maxTick = maxTick;
       }
       {
-        require(uint96(fillVolume) == fillVolume, "mgv/clean/volume/96bits");
-        mor.fillVolume = fillVolume;
+        require(uint96(takerWants) == takerWants, "mgv/clean/takerWants/96bits");
+        mor.fillVolume = takerWants;
       }
       mor.taker = taker;
-      mor.fillWants = fillWants;
+      mor.fillWants = true;
 
       /* Initialize single order struct. */
       MgvLib.SingleOrder memory sor;
@@ -405,6 +394,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* FIXME: edit comment: If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. A mismatched price will be detected by `execute`. */
       require(sor.offer.isLive(), "mgv/clean/offerNotLive");
       require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
+      require(Tick.unwrap(sor.offer.tick()) == tick, "mgv/clean/tickMismatch");
 
       emit OrderStart();
 

@@ -871,21 +871,21 @@ contract TakerOperationsTest is MangroveTest {
   function test_gives_tick_outside_range_fails_clean() public {
     uint ofr = mkr.newOfferByTick(0, 1 ether, 100_000);
     (uint successes,) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 1 << 23, 0, 1, true)), $(this));
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 1 << 23, 0, 1)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
   }
 
   function test_gives_volume_above_96bits_fails_clean() public {
     uint ofr = mkr.newOfferByTick(0, 1 ether, 100_000);
     (uint successes,) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 0, 1 << 96, true)), $(this));
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 0, 1 << 96)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
   }
 
   /* Clean offer state&match validation */
   function test_clean_on_nonexistent_offer_fails() public {
     (uint successes,) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(1, 0, 0, 1, true)), $(this));
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(1, 0, 0, 1)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
   }
 
@@ -893,42 +893,42 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOfferByTick(0, 1 ether, 100_000);
     mkr.retractOffer(ofr);
     (uint successes,) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1, true)), $(this));
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
   }
 
   function test_cleaning_with_exact_offer_details_succeeds() public {
     uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
     (uint successes,) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0, true)), $(this));
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0)), $(this));
     assertTrue(successes > 0, "cleaning should have succeeded");
   }
 
   function test_giving_smaller_tick_to_clean_fails() public {
     uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
     (uint successes,) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, -1, 100_000, 0, true)), $(this));
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, -1, 100_000, 0)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
   }
 
-  function test_giving_bigger_tick_to_clean_succeeds() public {
+  function test_giving_bigger_tick_to_clean_fails() public {
     uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
     (uint successes,) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 1, 100_000, 0, true)), $(this));
-    assertTrue(successes > 0, "cleaning should have succeeded");
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 1, 100_000, 0)), $(this));
+    assertEq(successes, 0, "cleaning should have succeeded");
   }
 
   function test_giving_smaller_gasreq_to_clean_fails() public {
     uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
     (uint successes,) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 99_000, 0, true)), $(this));
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 99_000, 0)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
   }
 
   function test_giving_bigger_gasreq_to_clean_succeeds() public {
     uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
     (uint successes,) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_001, 0, true)), $(this));
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_001, 0)), $(this));
     assertTrue(successes > 0, "cleaning should have succeeded");
   }
 
@@ -936,7 +936,7 @@ contract TakerOperationsTest is MangroveTest {
   function test_cleaning_non_failing_offer_fails() public {
     uint ofr = mkr.newOfferByTick(0, 1 ether, 100_000);
     (uint successes,) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0, true)), $(this));
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
   }
 
@@ -944,7 +944,7 @@ contract TakerOperationsTest is MangroveTest {
     uint balanceBefore = $(this).balance;
     uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
     (, uint bounty) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0, true)), $(this));
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0)), $(this));
     assertTrue(bounty > 0, "cleaning should have yielded a bounty");
     uint balanceAfter = $(this).balance;
     assertEq(balanceBefore + bounty, balanceAfter, "the bounty was not transfered to the cleaner");
@@ -957,8 +957,8 @@ contract TakerOperationsTest is MangroveTest {
     uint oldBal = $(this).balance;
 
     MgvLib.CleanTarget[] memory targets = new MgvLib.CleanTarget[](2);
-    targets[0] = MgvLib.CleanTarget(ofr, 0, 100_000, 0, true);
-    targets[1] = MgvLib.CleanTarget(ofr2, 0, 100_000, 0, true);
+    targets[0] = MgvLib.CleanTarget(ofr, 0, 100_000, 0);
+    targets[1] = MgvLib.CleanTarget(ofr2, 0, 100_000, 0);
     (uint successes, uint bounty) = mgv.cleanByImpersonation($(base), $(quote), targets, $(this));
 
     uint newBal = $(this).balance;
@@ -976,9 +976,9 @@ contract TakerOperationsTest is MangroveTest {
     uint oldBal = $(this).balance;
 
     MgvLib.CleanTarget[] memory targets = new MgvLib.CleanTarget[](3);
-    targets[0] = MgvLib.CleanTarget(ofr, 0, 100_000, 0, true);
-    targets[1] = MgvLib.CleanTarget(ofr2, 0, 100_000, 0, true);
-    targets[2] = MgvLib.CleanTarget(ofr3, 0, 100_000, 0, true);
+    targets[0] = MgvLib.CleanTarget(ofr, 0, 100_000, 0);
+    targets[1] = MgvLib.CleanTarget(ofr2, 0, 100_000, 0);
+    targets[2] = MgvLib.CleanTarget(ofr3, 0, 100_000, 0);
     (uint successes, uint bounty) = mgv.cleanByImpersonation($(base), $(quote), targets, $(this));
 
     uint newBal = $(this).balance;
@@ -991,7 +991,7 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = failNonZeroMkr.newOfferByTick(0, 1 ether, 100_000);
     // $this cannot clean with taker because of lack of funds/approval
     (, uint bounty) =
-      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1, true)), $(this));
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1)), $(this));
     assertEq(bounty, 0, "cleaning should have failed");
 
     uint balanceNativeBefore = $(this).balance;
@@ -1007,9 +1007,8 @@ contract TakerOperationsTest is MangroveTest {
     uint otherTkrBalanceQuoteBefore = quote.balanceOf($(otherTkr));
 
     // Clean by impersonating the other taker
-    (, bounty) = mgv.cleanByImpersonation(
-      $(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1, true)), $(otherTkr)
-    );
+    (, bounty) =
+      mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1)), $(otherTkr));
     assertTrue(bounty > 0, "cleaning should have yielded a bounty");
 
     assertEq(balanceNativeBefore + bounty, $(this).balance, "the bounty was not transfered to the cleaner");

@@ -82,7 +82,7 @@ contract TestTaker is ITaker, Script2 {
     uint gasreq
   ) public returns (uint bounty) {
     Tick tick = __mgv.offers(__base, __quote, offerId).tick();
-    (, bounty) = __mgv.clean(
+    (, bounty) = __mgv.cleanByImpersonation(
       __base,
       __quote,
       wrap_dynamic(MgvLib.CleanTarget(offerId, Tick.unwrap(tick), gasreq, takerWants, true)),

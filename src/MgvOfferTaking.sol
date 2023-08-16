@@ -308,24 +308,26 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   /* # Cleaning */
   // FIXME: Document cleaning
-  // FIXME: Rename to `cleanByImpersonation`
   /* Cleans multiple offers, i.e. executes them and remove them from the book if they fail, transferring the failure penaly as bounty to the caller. If an offer succeeds, the execution of that offer is reverted, it stays in the book, and no bounty is paid; The `clean` function itself will not revert.
   
   It takes a `CleanTarget[]` as penultimate argument, with each `CleanTarget` identifying an offer to clean and the execution parameters that will make it fail. The return values are the number of successfully cleaned offers and the total bounty received.
-  Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`). */
-  /* Any `taker` can be impersonated when cleaning because the function reverts if the offer succeeds, cancelling any token transfers. And after a `clean` where the offer has failed, all token transfers have been reverted -- but the sender will still have received the bounty of the failing offers. */
+  Note that we do not distinguish further between mismatched arguments/offer fields on the one hand, and an execution failure on the other. Still, a failed offer has to pay a penalty, and ultimately transaction logs explicitly mention execution failures (see `MgvLib.sol`).
+
+  Any `taker` can be impersonated when cleaning because the function reverts if the offer succeeds, cancelling any token transfers. And after a `clean` where the offer has failed, all token transfers have been reverted -- but the sender will still have received the bounty of the failing offers. */
   // FIXME: This would be simpler if tick had to match exactly: Then `fillWants` wouldn't be needed and `fillVolume` could be simplified to either `takerWants` or `takerGives`.
-  function clean(address outbound_tkn, address inbound_tkn, MgvLib.CleanTarget[] calldata targets, address taker)
-    external
-    returns (uint successes, uint bounty)
-  {
+  function cleanByImpersonation(
+    address outbound_tkn,
+    address inbound_tkn,
+    MgvLib.CleanTarget[] calldata targets,
+    address taker
+  ) external returns (uint successes, uint bounty) {
     unchecked {
       for (uint i = 0; i < targets.length; ++i) {
         bytes memory encodedCall;
         {
           MgvLib.CleanTarget calldata target = targets[i];
           encodedCall = abi.encodeCall(
-            this.internalClean,
+            this.internalCleanByImpersonation,
             (
               outbound_tkn,
               inbound_tkn,
@@ -358,7 +360,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     }
   }
 
-  function internalClean(
+  function internalCleanByImpersonation(
     address outbound_tkn,
     address inbound_tkn,
     uint offerId,

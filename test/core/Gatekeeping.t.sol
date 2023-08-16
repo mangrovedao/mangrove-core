@@ -611,7 +611,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function cleanKO(uint id) external {
     Tick tick = pair.offers(id).tick();
-    (uint successes,) = mgv.clean(
+    (uint successes,) = mgv.cleanByImpersonation(
       $(base),
       $(quote),
       wrap_dynamic(MgvLib.CleanTarget(id, Tick.unwrap(tick), type(uint48).max, type(uint96).max, true)),
@@ -630,7 +630,7 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function cleanOK(address _base, address _quote, uint id) external {
     Tick tick = mgv.offers(_base, _quote, id).tick();
-    mgv.clean(
+    mgv.cleanByImpersonation(
       _base,
       _quote,
       wrap_dynamic(MgvLib.CleanTarget(id, Tick.unwrap(tick), type(uint48).max, type(uint96).max, true)),

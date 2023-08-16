@@ -46,8 +46,9 @@ contract ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBas
     (AbstractMangrove mgv, TestTaker taker, address base, address quote, uint offerId) = getStored();
     vm.prank($(taker));
     _gas();
-    (, uint bounty) =
-      mgv.clean(base, quote, wrap_dynamic(MgvLib.CleanTarget(offerId, tick, 100_000, 0.05 ether, true)), $(taker));
+    (, uint bounty) = mgv.cleanByImpersonation(
+      base, quote, wrap_dynamic(MgvLib.CleanTarget(offerId, tick, 100_000, 0.05 ether, true)), $(taker)
+    );
     gas_();
     require(bounty > 0);
     printDescription();
@@ -270,11 +271,13 @@ contract ExternalCleanOfferOtherOfferList_WithPriorCleanOfferAndNoOtherOffersGas
 
   function impl(AbstractMangrove mgv, TestTaker taker, address base, address quote, uint, int tick) internal override {
     vm.prank($(taker));
-    mgv.clean(base, quote, wrap_dynamic(MgvLib.CleanTarget(offerId2, MIDDLE_TICK, 100_000, 0.05 ether, true)), $(taker));
+    mgv.cleanByImpersonation(
+      base, quote, wrap_dynamic(MgvLib.CleanTarget(offerId2, MIDDLE_TICK, 100_000, 0.05 ether, true)), $(taker)
+    );
 
     vm.prank($(taker));
     _gas();
-    (, uint bounty) = mgv.clean(
+    (, uint bounty) = mgv.cleanByImpersonation(
       base, quote, wrap_dynamic(MgvLib.CleanTarget(tickOfferIds[tick], tick, 1_000_000, 0.05 ether, true)), $(taker)
     );
     gas_();
@@ -313,7 +316,7 @@ abstract contract ExternalCleanOtherOfferList_WithMultipleOffersAtSameTickGasTes
     MgvLib.CleanTarget[] memory targets_ = targets;
     vm.prank($(taker));
     _gas();
-    (, uint bounty) = mgv.clean(base, quote, targets_, $(taker));
+    (, uint bounty) = mgv.cleanByImpersonation(base, quote, targets_, $(taker));
     gas_();
     assertEq(0, mgv.best(base, quote));
     require(bounty > 0);

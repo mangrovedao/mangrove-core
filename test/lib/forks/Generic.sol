@@ -82,16 +82,16 @@ contract GenericFork is Script {
     return string.concat(root, "/addresses/", category, "/", NETWORK, suffix, ".json");
   }
 
-  function addressesFileNodeModules(string memory category, string memory suffix) public view returns (string memory) {
-    return addressesFile(string.concat(vm.projectRoot(), "/node_modules/@mangrovedao/mangrove-core"), category, suffix);
+  function addressesFileCore(string memory category, string memory suffix) public view returns (string memory) {
+    return addressesFile(string.concat(vm.projectRoot(), "lib/mangrove-core.git"), category, suffix);
   }
 
   function addressesFileRoot(string memory category, string memory suffix) public view returns (string memory) {
     return addressesFile(vm.projectRoot(), category, suffix);
   }
 
-  function addressesFileNodeModules(string memory category) public view returns (string memory) {
-    return addressesFileNodeModules(category, "");
+  function addressesFileCore(string memory category) public view returns (string memory) {
+    return addressesFileCore(category, "");
   }
 
   function addressesFileRoot(string memory category) public view returns (string memory) {
@@ -99,7 +99,7 @@ contract GenericFork is Script {
   }
 
   function readAddresses(string memory category) internal returns (Record[] memory) {
-    string memory fileNameNodeModules = addressesFileNodeModules(category);
+    string memory fileNameNodeModules = addressesFileCore(category);
     Record[] memory recordsFromNodeModules = readAddressesFromFileName(fileNameNodeModules);
     string memory fileNameRoot = addressesFileRoot(category);
     Record[] memory recordsFromRoot = readAddressesFromFileName(fileNameRoot);

@@ -433,8 +433,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* No fees are paid since offer execution failed. */
 
         /* In an inverted Mangrove, amounts have been lent by each offer's maker to the taker. We now call the taker. This is a noop in a normal Mangrove. */
-        // FIXME: Is this needed when offer execution failed? I don't think so, but should be covered by tests
-        // executeEnd(mor, sor);
+        executeEnd(mor, sor);
 
         /* After an offer execution, we may run callbacks and increase the total penalty. As that part is common to market orders and snipes, it lives in its own `postExecute` function. */
         postExecute(mor, sor, gasused, makerData, mgvData);

@@ -19,7 +19,6 @@ import {
 import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
-import {MgvCleaner} from "mgv_src/periphery/MgvCleaner.sol";
 
 // Similar to RetractOffer tests.
 
@@ -47,7 +46,8 @@ contract ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBas
     (AbstractMangrove mgv, TestTaker taker, address base, address quote, uint offerId) = getStored();
     vm.prank($(taker));
     _gas();
-    uint bounty = mgv.clean(base, quote, offerId, tick, 100_000, 0.05 ether, true, $(taker));
+    (, uint bounty) =
+      mgv.clean(base, quote, wrap_dynamic(MgvLib.CleanTarget(offerId, tick, 100_000, 0.05 ether, true)), $(taker));
     gas_();
     require(bounty > 0);
     printDescription();
@@ -270,39 +270,39 @@ contract ExternalCleanOfferOtherOfferList_WithPriorCleanOfferAndNoOtherOffersGas
 
   function impl(AbstractMangrove mgv, TestTaker taker, address base, address quote, uint, int tick) internal override {
     vm.prank($(taker));
-    mgv.clean(base, quote, offerId2, MIDDLE_TICK, 100_000, 0.05 ether, true, $(taker));
+    mgv.clean(base, quote, wrap_dynamic(MgvLib.CleanTarget(offerId2, MIDDLE_TICK, 100_000, 0.05 ether, true)), $(taker));
 
     vm.prank($(taker));
     _gas();
-    uint bounty = mgv.clean(base, quote, tickOfferIds[tick], tick, 1_000_000, 0.05 ether, true, $(taker));
+    (, uint bounty) = mgv.clean(
+      base, quote, wrap_dynamic(MgvLib.CleanTarget(tickOfferIds[tick], tick, 1_000_000, 0.05 ether, true)), $(taker)
+    );
     gas_();
     require(bounty > 0);
   }
 }
 
-abstract contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest is SingleGasTestBase {
-  uint[4][] internal targets;
-
-  MgvCleaner internal cleaner;
+abstract contract ExternalCleanOtherOfferList_WithMultipleOffersAtSameTickGasTest is SingleGasTestBase {
+  MgvLib.CleanTarget[] internal targets;
 
   function setUp() public virtual override {
     super.setUp();
-    cleaner = new MgvCleaner($(mgv));
   }
 
   function setUpOffers(uint count) internal {
     for (uint i; i < count; ++i) {
       targets.push(
-        [
+        MgvLib.CleanTarget(
           mgv.newOfferByTick($(base), $(quote), MIDDLE_TICK, 1 ether, 100_000, 0),
-          uint(MIDDLE_TICK),
+          MIDDLE_TICK,
+          100_000,
           0.05 ether,
-          100_000
-        ]
+          false
+        )
       );
     }
     description =
-      string.concat(string.concat("MgvCleaner cleaning multiple offers - ", vm.toString(count), " offers at same tick"));
+      string.concat(string.concat("Mangrove cleaning multiple offers - ", vm.toString(count), " offers at same tick"));
   }
 
   function makerExecute(MgvLib.SingleOrder calldata) external virtual override returns (bytes32) {
@@ -310,18 +310,18 @@ abstract contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickG
   }
 
   function impl(AbstractMangrove, TestTaker taker, address base, address quote, uint) internal virtual override {
-    uint[4][] memory targets_ = targets;
+    MgvLib.CleanTarget[] memory targets_ = targets;
     vm.prank($(taker));
     _gas();
-    (, uint bounty) = cleaner.collect(base, quote, targets_, false);
+    (, uint bounty) = mgv.clean(base, quote, targets_, $(taker));
     gas_();
     assertEq(0, mgv.best(base, quote));
     require(bounty > 0);
   }
 }
 
-contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest_1 is
-  ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest
+contract ExternalCleanOtherOfferList_WithMultipleOffersAtSameTickGasTest_1 is
+  ExternalCleanOtherOfferList_WithMultipleOffersAtSameTickGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -329,8 +329,8 @@ contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest_1 
   }
 }
 
-contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest_2 is
-  ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest
+contract ExternalCleanOtherOfferList_WithMultipleOffersAtSameTickGasTest_2 is
+  ExternalCleanOtherOfferList_WithMultipleOffersAtSameTickGasTest
 {
   function setUp() public virtual override {
     super.setUp();
@@ -338,8 +338,8 @@ contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest_2 
   }
 }
 
-contract ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest_4 is
-  ExternalMgvCleanerOtherOfferList_WithMultipleOffersAtSameTickGasTest
+contract ExternalCleanOtherOfferList_WithMultipleOffersAtSameTickGasTest_4 is
+  ExternalCleanOtherOfferList_WithMultipleOffersAtSameTickGasTest
 {
   function setUp() public virtual override {
     super.setUp();

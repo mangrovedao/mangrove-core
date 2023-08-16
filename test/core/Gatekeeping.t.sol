@@ -611,8 +611,13 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function cleanKO(uint id) external {
     Tick tick = pair.offers(id).tick();
-    vm.expectRevert("mgv/reentrancyLocked");
-    mgv.clean($(base), $(quote), id, Tick.unwrap(tick), type(uint48).max, type(uint96).max, true, $(this));
+    (uint successes,) = mgv.clean(
+      $(base),
+      $(quote),
+      wrap_dynamic(MgvLib.CleanTarget(id, Tick.unwrap(tick), type(uint48).max, type(uint96).max, true)),
+      $(this)
+    );
+    assertEq(successes, 0, "clean should fail");
   }
 
   function test_clean_on_reentrancy_fails() public {
@@ -625,7 +630,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function cleanOK(address _base, address _quote, uint id) external {
     Tick tick = mgv.offers(_base, _quote, id).tick();
-    mgv.clean(_base, _quote, id, Tick.unwrap(tick), type(uint48).max, type(uint96).max, true, $(this));
+    mgv.clean(
+      _base,
+      _quote,
+      wrap_dynamic(MgvLib.CleanTarget(id, Tick.unwrap(tick), type(uint48).max, type(uint96).max, true)),
+      $(this)
+    );
   }
 
   function test_clean_on_reentrancy_in_swapped_pair_succeeds() public {
@@ -729,14 +739,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function test_clean_on_closed_fails() public {
     mgv.kill();
-    vm.expectRevert("mgv/dead");
-    tkr.clean(0, 1 ether);
+    assertEq(tkr.clean(0, 1 ether), false, "clean should fail on dead Mangrove");
   }
 
   function test_clean_on_inactive_fails() public {
     mgv.deactivate($(base), $(quote));
-    vm.expectRevert("mgv/inactive");
-    tkr.clean(0, 1 ether);
+    assertEq(tkr.clean(0, 1 ether), false, "clean should fail on closed market");
   }
 
   function test_snipe_on_closed_fails() public {

@@ -5,7 +5,7 @@ pragma solidity ^0.8.10;
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 // FIXME: Temporarily use TestMangrove until all tests are migrated away from snipes
 import {TestMangrove} from "mgv_test/lib/MangroveTest.sol";
-import {IERC20, ITaker} from "mgv_src/MgvLib.sol";
+import {IERC20, ITaker, MgvLib} from "mgv_src/MgvLib.sol";
 import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {Tick} from "mgv_lib/TickLib.sol";
@@ -82,7 +82,12 @@ contract TestTaker is ITaker, Script2 {
     uint gasreq
   ) public returns (uint bounty) {
     Tick tick = __mgv.offers(__base, __quote, offerId).tick();
-    return __mgv.clean(__base, __quote, offerId, Tick.unwrap(tick), gasreq, takerWants, true, address(this));
+    (, bounty) = __mgv.clean(
+      __base,
+      __quote,
+      wrap_dynamic(MgvLib.CleanTarget(offerId, Tick.unwrap(tick), gasreq, takerWants, true)),
+      address(this)
+    );
   }
 
   function snipeByVolume(uint offerId, uint takerWants, uint gasreq) external returns (bool) {

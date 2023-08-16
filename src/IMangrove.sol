@@ -211,9 +211,12 @@ interface IMangrove {
 
   function setUseOracle(bool useOracle) external;
 
-  function clean(address outbound_tkn, address inbound_tkn, MgvLib.CleanTarget[] calldata targets, address taker)
-    external
-    returns (uint successes, uint bal);
+  function cleanByImpersonation(
+    address outbound_tkn,
+    address inbound_tkn,
+    MgvLib.CleanTarget[] calldata targets,
+    address taker
+  ) external returns (uint successes, uint bal);
 
   function updateOfferByVolume(
     address outbound_tkn,

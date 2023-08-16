@@ -1,5 +1,22 @@
 # Next version
 
+# 1.5.8-0
+
+- Moved all strat related contracts, scripts, deployers, etc. to @mangrovedao/mangrove-strats.
+
+# 1.5.7
+
+- Fix: New publish workflow with foundry
+
+# 1.5.6
+
+- Fix: added USDC, WETH, DAI faucets to mumbai
+- Removed: useless context addresses for both mumbai and polygon
+
+# 1.5.5
+
+- Fix: added USDT address to Polygon
+
 # 1.5.4
 
 - Fix: Make KandelSeederDeployer robust wrt missing `MgvGovernance` address

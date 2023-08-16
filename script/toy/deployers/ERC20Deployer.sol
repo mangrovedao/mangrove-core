@@ -8,7 +8,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 /* 
 This script deploys a testToken ERC20. Grants admin rights to `broadcaster`*/
 /* Example:
-NAME="Mangrove Tesnet USDC token" \
+NAME="Mangrove Testnet USDC token" \
 SYMBOL=USDC \
 DECIMALS=6 \
 MINT_LIMIT=$(cast ff 6 10000) \

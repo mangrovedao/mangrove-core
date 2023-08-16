@@ -6,20 +6,7 @@ exports.abi_exports = [
   "MgvOracle",
   "TestToken",
   "IERC20",
-  "MangroveOrder",
-  "AbstractRouter",
-  "ICreditDelegationToken",
-  "ILiquidityProvider",
-  "IOfferLogic",
-  "AccessControlled",
-  "AbstractKandel",
-  "GeometricKandel",
-  "Kandel",
-  "AaveKandel",
-  "AbstractKandelSeeder",
-  "KandelSeeder",
-  "AaveKandelSeeder",
 ];
 
 // Contracts that should export their ABI + bytecode
-exports.full_exports = ["OfferMaker", "SimpleTestMaker"];
+exports.full_exports = ["SimpleTestMaker"];

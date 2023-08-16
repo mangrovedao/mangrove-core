@@ -238,7 +238,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         sor.offer = pair.offerData[sor.offerId].offer;
 
-        /* note that internalMarketOrder may be called twice with same offerId, but in that case `proceed` will be false! */
         internalMarketOrder(pair, mor, sor);
 
         /* Restore `sor` values from before recursive call */

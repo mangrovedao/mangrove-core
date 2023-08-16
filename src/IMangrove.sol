@@ -10,6 +10,7 @@ pragma experimental ABIEncoderV2;
 
 import {MgvLib, MgvStructs, IMaker} from "./MgvLib.sol";
 import "./MgvLib.sol" as MgvLibWrapper;
+import "mgv_lib/TickLib.sol";
 
 interface IMangrove {
   event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
@@ -58,9 +59,7 @@ interface IMangrove {
     uint feePaid
   );
   event SnipeStart();
-  event OrderStart(
-    address outbound_tkn, address inbound_tkn, uint takerWants, uint takerGives, bool fillWants, address taker
-  );
+  event OrderStart(uint indexed fillVolume, Tick indexed maxTick, bool indexed fillWants);
   event PosthookFail(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, bytes32 posthookData);
   event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);
   event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint value);

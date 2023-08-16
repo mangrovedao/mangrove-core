@@ -74,9 +74,7 @@ contract HasMgvEvents {
 
   /* Market order execution */
   event SnipeStart();
-  event OrderStart(
-    address outbound_tkn, address inbound_tkn, uint fillVolume, Tick tickMax, bool fillWants, address taker
-  );
+  event OrderStart(uint indexed fillVolume, Tick indexed maxTick, bool indexed fillWants);
   event OrderComplete(
     address indexed outbound_tkn,
     address indexed inbound_tkn,

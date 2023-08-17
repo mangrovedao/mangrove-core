@@ -275,7 +275,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_doesnt_pay() public {
-    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
+    // uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = refusemkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     Tick offerTick = pair.offers(ofr).tick();
@@ -286,7 +286,7 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerTransferFail");
     vm.expectEmit(true, false, false, false, $(mgv));
-    emit Credit($(refusemkr), 0);
+    emit Credit($(refusemkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
     (uint successes,) = mgv.cleanByImpersonation(
       $(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.unwrap(offerTick), 100_000, 1 ether)), $(this)
     );
@@ -307,7 +307,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_base() public {
-    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
+    // uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     Tick offerTick = pair.offers(ofr).tick();
@@ -319,6 +319,8 @@ contract TakerOperationsTest is MangroveTest {
 
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerTransferFail");
+    vm.expectEmit(true, false, false, false, $(mgv));
+    emit Credit($(mkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
     (uint successes, uint takerGot, uint takerGave,,) =
       testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 100_000]), true);
     uint penalty = $(this).balance - beforeWei;
@@ -326,11 +328,10 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(successes == 0, "Snipe should fail");
     assertTrue(takerGot == takerGave && takerGave == 0, "Incorrect transaction information");
     assertTrue(beforeQuote == quote.balanceOf($(this)), "taker balance should not be lower if maker doesn't pay back");
-    emit Credit(address(mkr), mkr_provision - penalty);
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_quote() public {
-    uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
+    // uint mkr_provision = reader.getProvision($(base), $(quote), 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     Tick offerTick = pair.offers(ofr).tick();
@@ -341,8 +342,9 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     expectFrom($(mgv));
-
     emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerReceiveFail");
+    vm.expectEmit(true, false, false, false, $(mgv));
+    emit Credit($(mkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
     (uint successes, uint takerGot, uint takerGave,,) =
       testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 100_000]), true);
     uint penalty = $(this).balance - beforeWei;
@@ -350,7 +352,6 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(successes == 0, "Snipe should fail");
     assertTrue(takerGot == takerGave && takerGave == 0, "Incorrect transaction information");
     assertTrue(beforeQuote == quote.balanceOf($(this)), "taker balance should not be lower if maker doesn't pay back");
-    emit Credit(address(mkr), mkr_provision - penalty);
   }
 
   function test_taker_collects_failing_offer() public {
@@ -367,7 +368,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_reverts() public {
-    uint mkr_provision = reader.getProvision($(base), $(quote), 50_000);
+    // uint mkr_provision = reader.getProvision($(base), $(quote), 50_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
     Tick offerTick = pair.offers(ofr).tick();
@@ -376,6 +377,8 @@ contract TakerOperationsTest is MangroveTest {
 
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerRevert");
+    vm.expectEmit(true, false, false, false, $(mgv));
+    emit Credit($(failmkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
     (uint successes, uint takerGot, uint takerGave,,) =
       testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 100_000]), true);
     uint penalty = $(this).balance - beforeWei;
@@ -383,7 +386,6 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(successes == 0, "Snipe should fail");
     assertTrue(takerGot == takerGave && takerGave == 0, "Incorrect transaction information");
     assertTrue(beforeQuote == quote.balanceOf($(this)), "taker balance should not be lower if maker doesn't pay back");
-    emit Credit(address(failmkr), mkr_provision - penalty);
   }
 
   function test_taker_hasnt_approved_base_succeeds_order_with_fee() public {
@@ -534,8 +536,8 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 0.5 ether);
     MgvStructs.OfferPacked offer = pair.offers(ofr);
 
-    expectFrom($(mgv));
     uint takerWants = 50 ether;
+    expectFrom($(mgv));
     emit OfferFail(
       $(base), $(quote), ofr, $(this), takerWants, offer.tick().inboundFromOutbound(takerWants), "mgv/makerTransferFail"
     );

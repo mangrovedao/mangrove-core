@@ -216,7 +216,7 @@ interface IMangrove {
     address inbound_tkn,
     MgvLib.CleanTarget[] calldata targets,
     address taker
-  ) external returns (uint successes, uint bal);
+  ) external returns (uint successes, uint bounty);
 
   function updateOfferByVolume(
     address outbound_tkn,

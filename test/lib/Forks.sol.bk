@@ -1,0 +1,85 @@
+/* I want to load addresses from generated .sol files (so I don't have access path issues).
+
+But: note that if I have a project root that depends on A and B, and that both depend on mangrove-core, my .sol-based solution means they may get different addresses, whereas a .json-based solution gives them a common address repository.
+
+So maybe not such a great solution.
+
+Anyway, my notes for my not-so-great solution:
+
+I can't have `address constant WETH = ...` because this cannot be dynamically loaded so all chains woulud need to have the same addresses.
+
+I want to be able to convert to .json. I cannot just write to .sol and write .json at the same time because context addresses are changed by-hand, not by scripts. So if someone changes context.sol by hand and no script is run on the network where the context change was made, the context.json will not be written.
+
+So I need in normal times to just write to .sol, and I need a script that loads all context and all deployed (ie for all chains) and writes all that to .json files. This goes to the dist/ directory and is part of the build process.
+
+I need a different `addAddress` function, one that just adds the mapping, and one that adds the mapping to a write queue.
+
+My idea is: 
+- One single Fork contract
+- One Chain.sol file that looks like (the diff. between passing a contract interface and passing a function is that in case 1, it shows in the trace, in case2 it does not)
+
+```
+import * as Mumbai from "mgv_addresses/maticmum.sol";
+import * as Matic from "mgv_addresses/matic.sol";
+
+function addChains(Fork f) {
+  addChain({
+    chainId: 80001,
+    name: "mumbai",
+    network: "maticmum",
+    loader: Mumbai.load
+  });
+
+  addChain({
+    chainId: ..,
+    name: "matic",
+    network: "matic",
+    loader: Matic.load
+  });
+}
+```
+
+
+and then Fork.sol looks like this
+```
+// SPDX-License-Identifier:	AGPL-3.0
+pragma solidity ^0.8.10;
+
+import {addChains} from from "chain.sol"
+
+contract Fork is GenericFork {
+  string name;
+  uint CHAIN_ID;
+  mapping(string => address) public addresses;
+
+  constructor(uint chainId) {
+    CHAIN_ID = chainId;
+    addChains(this);
+  }
+
+  function addChain(uint chainId, string memory name, string memory network, function(function(string memory,address)) load) virtual {
+    if (chainid = CHAIN_ID) {
+    currentChain= name;
+
+    names[chainId] = currentChain;
+    networks[chainId] = network;
+    load(addAddress);
+    }
+  }
+
+  function addAddress(string addressName, address addr) {
+    addresses[currentChain][addressName] = addr;
+  }
+}
+```
+
+and then WriteForksToJson.sol is this
+```
+contract WriteForksToJson is Fork {
+  function addChain(...) override {
+    // no chainid test
+    writeToJson(...)
+  }
+}
+```
+*/

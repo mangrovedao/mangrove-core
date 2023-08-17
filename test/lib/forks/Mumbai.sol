@@ -2,11 +2,13 @@
 pragma solidity ^0.8.10;
 
 import {GenericFork} from "./Generic.sol";
+import {load} from "mgv_addresses/maticmum.sol";
 
 contract MumbaiFork is GenericFork {
   constructor() {
     CHAIN_ID = 80001;
     NAME = "mumbai";
     NETWORK = "maticmum";
+    load(addAddress);
   }
 }

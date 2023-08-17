@@ -74,34 +74,48 @@ contract GenericFork is Script {
 
   /* Read addresses from JSON files */
 
-  function addressesFile(string memory root, string memory category, string memory suffix)
+  function addressesFile(string memory root, string memory category, string memory suffix, string memory extension)
     public
     view
     returns (string memory)
   {
-    return string.concat(root, "/addresses/", category, "/", NETWORK, suffix, ".json");
+    return string.concat(root, "/addresses/", category, "/", NETWORK, suffix, ".", extension);
   }
 
-  function addressesFileNodeModules(string memory category, string memory suffix) public view returns (string memory) {
-    return addressesFile(string.concat(vm.projectRoot(), "/node_modules/@mangrovedao/mangrove-core"), category, suffix);
+  function addressesFileNodeModules(string memory category, string memory suffix, string memory extension)
+    public
+    view
+    returns (string memory)
+  {
+    return addressesFile(
+      string.concat(vm.projectRoot(), "/node_modules/@mangrovedao/mangrove-core"), category, suffix, extension
+    );
   }
 
-  function addressesFileRoot(string memory category, string memory suffix) public view returns (string memory) {
-    return addressesFile(vm.projectRoot(), category, suffix);
+  function addressesFileRoot(string memory category, string memory suffix, string memory extension)
+    public
+    view
+    returns (string memory)
+  {
+    return addressesFile(vm.projectRoot(), category, suffix, extension);
   }
 
-  function addressesFileNodeModules(string memory category) public view returns (string memory) {
-    return addressesFileNodeModules(category, "");
+  function addressesFileNodeModules(string memory category, string memory extension)
+    public
+    view
+    returns (string memory)
+  {
+    return addressesFileNodeModules(category, "", extension);
   }
 
-  function addressesFileRoot(string memory category) public view returns (string memory) {
-    return addressesFileRoot(category, "");
+  function addressesFileRoot(string memory category, string memory extension) public view returns (string memory) {
+    return addressesFileRoot(category, "", extension);
   }
 
   function readAddresses(string memory category) internal returns (Record[] memory) {
-    string memory fileNameNodeModules = addressesFileNodeModules(category);
+    string memory fileNameNodeModules = addressesFileNodeModules(category, "json");
     Record[] memory recordsFromNodeModules = readAddressesFromFileName(fileNameNodeModules);
-    string memory fileNameRoot = addressesFileRoot(category);
+    string memory fileNameRoot = addressesFileRoot(category, "json");
     Record[] memory recordsFromRoot = readAddressesFromFileName(fileNameRoot);
     Record[] memory records = new Record[](recordsFromNodeModules.length + recordsFromRoot.length);
     uint i = 0;

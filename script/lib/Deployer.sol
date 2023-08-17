@@ -196,6 +196,32 @@ abstract contract Deployer is Script2 {
       remoteEns.set(names, addrs);
     }
 
+    // Solidity output
+    out = "";
+    line("// SPDX-License-Identifier: Unlicense");
+    line("pragma solidity >= 0.7.4;");
+    line("");
+    for (uint i = 0; i < names.length; ++i) {
+      bool end = i + 1 == names.length;
+      line(string.concat("address constant ", names[i], " = ", vm.toString(addrs[i]), '";'));
+    }
+    string memory latestBackupFile = fork.addressesFileRoot("deployed.backup", "-latest", "sol");
+    string memory timestampedBackupFile =
+      fork.addressesFileRoot("deployed.backup", string.concat("-", vm.toString(block.timestamp), ".backup"), "sol");
+    string memory mainFile = fork.addressesFileRoot("deployed", "sol");
+    vm.writeFile(latestBackupFile, out);
+    vm.writeFile(timestampedBackupFile, out);
+    if (writeDeploy) {
+      vm.writeFile(mainFile, out);
+    } else {
+      console.log(
+        "\u001b[33m Warning \u001b[0m You have not set WRITE_DEPLOY=true. \n The main deployment file will not be updated. To update it after running this script, copy %s to %s",
+        latestBackupFile,
+        mainFile
+      );
+    }
+
+    // JSON output
     out = "";
     line("[");
     for (uint i = 0; i < names.length; ++i) {
@@ -206,10 +232,10 @@ abstract contract Deployer is Script2 {
       line(end ? "  }" : "  },");
     }
     line("]");
-    string memory latestBackupFile = fork.addressesFileRoot("deployed.backup", "-latest");
-    string memory timestampedBackupFile =
-      fork.addressesFileRoot("deployed.backup", string.concat("-", vm.toString(block.timestamp), ".backup"));
-    string memory mainFile = fork.addressesFileRoot("deployed");
+    latestBackupFile = fork.addressesFileRoot("deployed.backup", "-latest", "json");
+    timestampedBackupFile =
+      fork.addressesFileRoot("deployed.backup", string.concat("-", vm.toString(block.timestamp), ".backup"), "json");
+    mainFile = fork.addressesFileRoot("deployed", "json");
     vm.writeFile(latestBackupFile, out);
     vm.writeFile(timestampedBackupFile, out);
     if (writeDeploy) {

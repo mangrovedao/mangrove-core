@@ -226,6 +226,9 @@ contract MgvOfferMaking is MgvHasOffers {
 
   function writeOffer(OfferList storage offerList, OfferPack memory ofp, int insertionLogPrice, bool update) internal {
     unchecked {
+      uint tickScale = ofp.olKey.tickScale;
+      // normalize logprice to tickscale
+      insertionLogPrice = LogPriceLib.fromTick(TickLib.fromLogPrice(insertionLogPrice, tickScale), tickScale);
       /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
       require(checkGasprice(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
 
@@ -294,7 +297,7 @@ contract MgvOfferMaking is MgvHasOffers {
         }
       }
 
-      Tick insertionTick = TickLib.fromLogPrice(insertionLogPrice, ofp.olKey.tickScale);
+      Tick insertionTick = TickLib.fromLogPrice(insertionLogPrice, tickScale);
 
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {

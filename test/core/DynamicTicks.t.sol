@@ -127,4 +127,21 @@ contract DynamicTicksTest is MangroveTest {
   function test_id_is_correct(OLKey memory olKey) public {
     assertEq(olKey.hash(), keccak256(abi.encode(olKey)), "id() is hashing incorrect data");
   }
+
+  function test_insertionLogPrice_normalization(int24 logPrice, uint64 tickScale) public {
+    vm.assume(tickScale != 0);
+    vm.assume(int(logPrice) % int(uint(tickScale)) != 0);
+    logPrice = boundLogPrice(logPrice);
+    olKey.tickScale = tickScale;
+    uint wants = LogPriceLib.inboundFromOutbound(logPrice, 1 ether);
+    vm.assume(wants > 0);
+    vm.assume(wants <= type(uint96).max);
+    mgv.activate(olKey, 0, 100, 0);
+    uint id = mgv.newOfferByLogPrice(olKey, logPrice, 1 ether, 100_00, 30);
+    assertEq(
+      int(mgv.offers(olKey, id).logPrice()) % int(uint(tickScale)),
+      0,
+      "recorded logPrice should be a multiple of tickScale"
+    );
+  }
 }

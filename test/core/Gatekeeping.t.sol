@@ -305,21 +305,6 @@ contract GatekeepingTest is IMaker, MangroveTest {
     tkr.marketOrder(0, 1 << 160);
   }
 
-  //FIXME Should add similar tests that make sure volume*price is not too big.
-  function test_gives_volume_above_96bits_fails_snipes() public {
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
-    vm.expectRevert("mgv/snipes/volume/96bits");
-    testMgv.snipesInTest($(base), $(quote), targets, true);
-  }
-
-  function test_wants_volume_above_96bits_fails_snipes() public {
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
-    vm.expectRevert("mgv/snipes/volume/96bits");
-    testMgv.snipesInTest($(base), $(quote), targets, false);
-  }
-
   function test_initial_allowance_is_zero() public {
     assertEq(mgv.allowances($(base), $(quote), address(tkr), $(this)), 0, "initial allowance should be 0");
   }
@@ -648,53 +633,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_clean_on_posthook_succeeds() public {
-    uint other_ofr = mkr.newOfferByVolume(1 ether, 1 ether, 30_000);
-    posthook_cb = abi.encodeCall(this.cleanOK, ($(base), $(quote), other_ofr));
-
-    mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 190_000, 0);
-    assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
-    assertTrue(mgv.best($(base), $(quote)) == 0, "snipe in posthook must work");
-  }
-
-  /* Snipe failure */
-
-  function snipesKO(uint id) external {
-    Tick tick = pair.offers(id).tick();
-    uint[4][] memory targets = wrap_dynamic([id, uint(Tick.unwrap(tick)), type(uint96).max, type(uint48).max]);
-    vm.expectRevert("mgv/reentrancyLocked");
-    testMgv.snipesInTest($(base), $(quote), targets, true);
-  }
-
-  function test_snipe_on_reentrancy_fails() public {
-    uint ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 60_000, 0);
-    trade_cb = abi.encodeCall(this.snipesKO, (ofr));
-    assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "take must succeed or test is void");
-  }
-
-  /* Snipe success */
-
-  function snipesOK(address _base, address _quote, uint id) external {
-    Tick tick = mgv.offers(_base, _quote, id).tick();
-    uint[4][] memory targets = wrap_dynamic([id, uint(Tick.unwrap(tick)), type(uint96).max, type(uint48).max]);
-    testMgv.snipesInTest(_base, _quote, targets, true);
-  }
-
-  function test_snipes_on_reentrancy_succeeds() public {
     uint other_ofr = dual_mkr.newOfferByVolume(1 ether, 1 ether, 30_000);
-    trade_cb = abi.encodeCall(this.snipesOK, ($(quote), $(base), other_ofr));
-
-    mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 190_000, 0);
-    assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "take must succeed or test is void");
-    assertTrue(mgv.best($(quote), $(base)) == 0, "snipe in swapped pair must work");
-  }
-
-  function test_snipes_on_posthook_succeeds() public {
-    uint other_ofr = mkr.newOfferByVolume(1 ether, 1 ether, 30_000);
-    posthook_cb = abi.encodeCall(this.snipesOK, ($(base), $(quote), other_ofr));
+    posthook_cb = abi.encodeCall(this.cleanOK, ($(quote), $(base), other_ofr));
 
     mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 190_000, 0);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
-    assertTrue(mgv.best($(base), $(quote)) == 0, "snipe in posthook must work");
+    assertTrue(mgv.best($(base), $(quote)) == 0, "clean in posthook must work");
   }
 
   /* # Mangrove closed/inactive */

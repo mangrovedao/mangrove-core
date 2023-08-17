@@ -255,8 +255,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     _posthook = failer_posthook;
     ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
     Tick offerTick = mgv.offers($(base), $(quote), ofr).tick();
-    Tick snipeTick = Tick.wrap(Tick.unwrap(offerTick) - 1); // Snipe at a lower price tick
-    assertFalse(tkr.cleanByTick(ofr, snipeTick, 1 ether, gasreq), "clean should fail");
+    Tick cleanTick = Tick.wrap(Tick.unwrap(offerTick) - 1); // Snipe at a lower price tick
+    assertFalse(tkr.cleanByTick(ofr, cleanTick, 1 ether, gasreq), "clean should fail");
     assertTrue(!called, "PostHook was called");
   }
 
@@ -422,7 +422,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
     bool success = tkr.marketOrderWithSuccess(1 ether);
-    assertTrue(success, "snipe should succeed");
+    assertTrue(success, "order should succeed");
     assertEq(balMaker - 1 ether, base.balanceOf($(this)), "Incorrect maker balance");
     assertEq(balTaker - 1 ether, quote.balanceOf(address(tkr)), "Incorrect taker balance");
   }

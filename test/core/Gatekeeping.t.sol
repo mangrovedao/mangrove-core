@@ -309,18 +309,6 @@ contract GatekeepingTest is IMaker, MangroveTest {
     assertEq(mgv.allowances($(base), $(quote), address(tkr), $(this)), 0, "initial allowance should be 0");
   }
 
-  function test_cannot_snipesFor_for_without_allowance() public {
-    deal($(base), address(mkr), 1 ether);
-    mkr.approveMgv(base, 1 ether);
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    Tick offerTick = pair.offers(ofr).tick();
-
-    vm.expectRevert("mgv/lowAllowance");
-    testMgv.snipesForInTest(
-      $(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 300_000]), true, address(tkr)
-    );
-  }
-
   function test_cannot_marketOrderFor_for_without_allowance() public {
     deal($(base), address(mkr), 1 ether);
     mkr.approveMgv(base, 1 ether);
@@ -689,12 +677,6 @@ contract GatekeepingTest is IMaker, MangroveTest {
   function test_clean_on_inactive_fails() public {
     mgv.deactivate($(base), $(quote));
     assertEq(tkr.clean(0, 1 ether), false, "clean should fail on closed market");
-  }
-
-  function test_snipe_on_closed_fails() public {
-    mgv.kill();
-    vm.expectRevert("mgv/dead");
-    tkr.marketOrderWithSuccess(1 ether);
   }
 
   function test_withdraw_on_closed_ok() public {

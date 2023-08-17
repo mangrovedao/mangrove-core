@@ -96,7 +96,6 @@ contract MonitorTest is MangroveTest {
     MgvStructs.OfferPacked offer = mgv.offers($(base), $(quote), ofrId);
 
     Tick tick = offer.tick();
-    uint[4][] memory targets = wrap_dynamic([ofrId, uint(Tick.unwrap(tick)), 0.04 ether, 100_000]);
 
     (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config($(base), $(quote));
     _local = _local.lock(true);
@@ -115,8 +114,8 @@ contract MonitorTest is MangroveTest {
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifySuccess, (order, $(this))), bytes(""));
 
-    (uint successes,,,,) = testMgv.snipesInTest($(base), $(quote), targets, true);
-    assertTrue(successes == 1, "snipe should succeed");
+    (uint got,,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(tick), 0.04 ether, true);
+    assertTrue(got > 0, "order should succeed");
   }
 
   function test_notify_works_on_fail_when_set() public {
@@ -128,7 +127,6 @@ contract MonitorTest is MangroveTest {
     MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails($(base), $(quote), ofrId);
 
     Tick tick = offer.tick();
-    uint[4][] memory targets = wrap_dynamic([ofrId, uint(Tick.unwrap(tick)), 0.04 ether, 100_000]);
 
     (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = mgv.config($(base), $(quote));
     // config sent during maker callback has stale best and, is locked
@@ -148,7 +146,7 @@ contract MonitorTest is MangroveTest {
 
     expectToMockCall(monitor, abi.encodeCall(IMgvMonitor.notifyFail, (order, $(this))), bytes(""));
 
-    (uint successes,,,,) = testMgv.snipesInTest($(base), $(quote), targets, true);
-    assertTrue(successes == 0, "snipe should fail");
+    (uint got,,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(tick), 0.04 ether, true);
+    assertTrue(got == 0, "order should fail");
   }
 }

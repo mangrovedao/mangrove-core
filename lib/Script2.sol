@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import {Script} from "forge-std/Script.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {ToyENS} from "mgv_lib/ToyENS.sol";
+import {MgvLib} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* Some general utility methods.
@@ -123,6 +124,12 @@ contract Script2 is Script {
 
   function wrap_dynamic(uint[4] memory a) internal pure returns (uint[4][] memory) {
     uint[4][] memory ret = new uint[4][](1);
+    ret[0] = a;
+    return ret;
+  }
+
+  function wrap_dynamic(MgvLib.CleanTarget memory a) internal pure returns (MgvLib.CleanTarget[] memory) {
+    MgvLib.CleanTarget[] memory ret = new MgvLib.CleanTarget[](1);
     ret[0] = a;
     return ret;
   }

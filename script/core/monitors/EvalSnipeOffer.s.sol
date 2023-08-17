@@ -5,7 +5,8 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
 import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
+import {Tick} from "mgv_lib/TickLib.sol";
 
 /**
  * Script simulates a series of snipes on the offer at coordinate (TKN_OUT, TKN_IN, OFFER_ID)
@@ -29,7 +30,7 @@ contract EvalSnipeOffer is Test2, Deployer {
   struct Heap {
     MgvStructs.OfferPacked offer;
     MgvStructs.OfferDetailPacked details;
-    uint[4][] target;
+    MgvLib.CleanTarget[] target;
     uint takerWants;
   }
 
@@ -39,7 +40,7 @@ contract EvalSnipeOffer is Test2, Deployer {
     heap.details = mgv.offerDetails(address(outTkn), address(inbTkn), offerId);
 
     deal(address(inbTkn), address(this), heap.offer.wants());
-    heap.target = new uint[4][](1);
+    heap.target = new MgvLib.CleanTarget[](1);
     inbTkn.approve(address(mgv), heap.offer.wants());
 
     for (uint i = 0; i < 11; i++) {
@@ -49,10 +50,12 @@ contract EvalSnipeOffer is Test2, Deployer {
       } else {
         heap.takerWants = heap.offer.gives() / i;
       }
-      heap.target[0] = [offerId, heap.takerWants, heap.offer.wants(), heap.details.gasreq()];
+      heap.target[0] =
+        MgvLib.CleanTarget(offerId, Tick.unwrap(heap.offer.tick()), heap.details.gasreq(), heap.takerWants);
       _gas();
       string memory fill_str = i == 0 ? "0" : string.concat(vm.toString(11 - i), "/10");
-      (uint successes,,, uint bounty,) = mgv.snipes(address(outTkn), address(inbTkn), heap.target, true);
+      (uint successes, uint bounty) =
+        mgv.cleanByImpersonation(address(outTkn), address(inbTkn), heap.target, address(this));
       uint g = gas_(true);
       if (successes == 0) {
         console.log("\u274c %s fill (%s %s)", fill_str, toFixed(heap.takerWants, inbTkn.decimals()), inbTkn.symbol());

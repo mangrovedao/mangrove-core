@@ -85,7 +85,9 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
 
   function snipeFor(uint value, address who) internal returns (uint, uint, uint, uint, uint) {
     Tick tick = TickLib.tickFromPrice_e18(1 ether);
-    return mgv.snipesFor($(base), $(quote), wrap_dynamic([uint(1), uint(Tick.unwrap(tick)), value, 300_000]), true, who);
+    return testMgv.snipesForInTest(
+      $(base), $(quote), wrap_dynamic([uint(1), uint(Tick.unwrap(tick)), value, 300_000]), true, who
+    );
   }
 
   function newOfferByVolume(uint amount) internal {

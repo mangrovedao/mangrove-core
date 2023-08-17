@@ -26,6 +26,7 @@ contract SimpleTestMaker is TrivialTestMaker {
   address public quote;
   bool shouldFail_; // will set mgv allowance to 0
   bool shouldRevert_; // will revert
+  bool shouldRevertOnNonZeroGives_; // will revert if makerGives > 0
   bool shouldRepost_; // will try to repost offer with identical parameters
   bytes32 expectedStatus;
   ///@notice stores parameters for each posted offer
@@ -53,6 +54,10 @@ contract SimpleTestMaker is TrivialTestMaker {
     shouldRevert_ = should;
   }
 
+  function shouldRevertOnNonZeroGives(bool should) external {
+    shouldRevertOnNonZeroGives_ = should;
+  }
+
   function shouldFail(bool should) external {
     shouldFail_ = should;
   }
@@ -76,6 +81,10 @@ contract SimpleTestMaker is TrivialTestMaker {
   function makerExecute(MgvLib.SingleOrder calldata order) public virtual override returns (bytes32) {
     if (shouldRevert_) {
       revert("testMaker/shouldRevert");
+    }
+
+    if (shouldRevertOnNonZeroGives_ && order.gives > 0) {
+      revert("testMaker/shouldRevertOnNonZeroGives");
     }
 
     OfferData memory offerData = offerDatas[order.outbound_tkn][order.inbound_tkn][order.offerId];
@@ -210,6 +219,16 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint offerId = mgv.newOfferByVolume{value: amount}(_base, _quote, wants, gives, gasreq, gasprice);
     offerDatas[_base][_quote][offerId] = offerData;
     return offerId;
+  }
+
+  function newOfferByTick(int tick, uint gives, uint gasreq) public returns (uint) {
+    return newOfferByTick(tick, gives, gasreq, 0);
+  }
+
+  function newFailingOfferByTick(int tick, uint gives, uint gasreq) public returns (uint) {
+    return newOfferByTickWithFunding(
+      base, quote, tick, gives, gasreq, 0, 0, OfferData({shouldRevert: true, executeData: "someData"})
+    );
   }
 
   function newOfferByTick(int tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {

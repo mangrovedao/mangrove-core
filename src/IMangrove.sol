@@ -211,13 +211,12 @@ interface IMangrove {
 
   function setUseOracle(bool useOracle) external;
 
-  function snipes(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants)
-    external
-    returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
-
-  function snipesFor(address outbound_tkn, address inbound_tkn, uint[4][] memory targets, bool fillWants, address taker)
-    external
-    returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
+  function cleanByImpersonation(
+    address outbound_tkn,
+    address inbound_tkn,
+    MgvLib.CleanTarget[] calldata targets,
+    address taker
+  ) external returns (uint successes, uint bal);
 
   function updateOfferByVolume(
     address outbound_tkn,

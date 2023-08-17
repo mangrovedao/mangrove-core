@@ -2,7 +2,6 @@
 exports.abi_exports = [
   "Mangrove",
   "MgvReader",
-  "MgvCleaner",
   "MgvOracle",
   "TestToken",
   "IERC20",

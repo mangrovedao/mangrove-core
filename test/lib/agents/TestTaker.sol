@@ -3,8 +3,6 @@
 pragma solidity ^0.8.10;
 
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
-// FIXME: Temporarily use TestMangrove until all tests are migrated away from snipes
-import {TestMangrove} from "mgv_test/lib/MangroveTest.sol";
 import {IERC20, ITaker, MgvLib} from "mgv_src/MgvLib.sol";
 import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
@@ -12,15 +10,12 @@ import {Tick} from "mgv_lib/TickLib.sol";
 
 contract TestTaker is ITaker, Script2 {
   AbstractMangrove _mgv;
-  TestMangrove _testMgv;
   address _base;
   address _quote;
   bool acceptNative = true;
 
-  // constructor(AbstractMangrove mgv, IERC20 base, IERC20 quote) {
-  constructor(TestMangrove mgv, IERC20 base, IERC20 quote) {
+  constructor(AbstractMangrove mgv, IERC20 base, IERC20 quote) {
     _mgv = mgv;
-    _testMgv = mgv;
     _base = address(base);
     _quote = address(quote);
   }
@@ -37,16 +32,6 @@ contract TestTaker is ITaker, Script2 {
 
   function approveSpender(address spender, uint amount) external {
     _mgv.approve(_base, _quote, spender, amount);
-  }
-
-  // FIXME: This is only by Scenarii.t.sol which is not easy to migrate nor determine if is still relevant
-  function takeWithInfo(uint offerId, uint takerWants) external returns (bool, uint, uint, uint, uint) {
-    Tick tick = _mgv.offers(_base, _quote, offerId).tick();
-    uint[4][] memory targets = wrap_dynamic([offerId, uint(Tick.unwrap(tick)), takerWants, type(uint48).max]);
-    (uint successes, uint got, uint gave, uint totalPenalty, uint feePaid) =
-      _testMgv.snipesInTest(_base, _quote, targets, true);
-    return (successes == 1, got, gave, totalPenalty, feePaid);
-    //return taken;
   }
 
   function clean(uint offerId, uint takerWants) public returns (bool success) {

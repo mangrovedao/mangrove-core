@@ -55,7 +55,10 @@ contract TakerOperationsTest is MangroveTest {
     deal($(quote), address(this), 10 ether);
   }
 
-  function test_snipe_reverts_if_taker_is_blacklisted_for_quote() public {
+  /* # `execute` tests */
+  /* Test of `execute` which cannot be tested directly, so we test it via `marketOrder`. */
+
+  function test_execute_reverts_if_taker_is_blacklisted_for_quote() public {
     uint weiBalanceBefore = mgv.balanceOf($(this));
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     Tick offerTick = pair.offers(ofr).tick();
@@ -64,11 +67,11 @@ contract TakerOperationsTest is MangroveTest {
     quote.blacklists($(this));
 
     vm.expectRevert("mgv/takerTransferFail");
-    testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 100_000]), true);
+    mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
     assertEq(weiBalanceBefore, mgv.balanceOf($(this)), "Taker should not take bounty");
   }
 
-  function test_snipe_reverts_if_taker_is_blacklisted_for_base() public {
+  function test_execute_reverts_if_taker_is_blacklisted_for_base() public {
     uint weiBalanceBefore = mgv.balanceOf($(this));
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     Tick offerTick = pair.offers(ofr).tick();
@@ -77,96 +80,29 @@ contract TakerOperationsTest is MangroveTest {
     base.blacklists($(this));
 
     vm.expectRevert("mgv/MgvFailToPayTaker");
-    testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 100_000]), true);
+    mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
     assertEq(weiBalanceBefore, mgv.balanceOf($(this)), "Taker should not take bounty");
   }
 
-  function test_snipe_fails_if_price_has_changed() public {
-    uint weiBalanceBefore = mgv.balanceOf($(this));
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    Tick offerTick = pair.offers(ofr).tick();
-    mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
-    quote.approve($(mgv), 1 ether);
-    (uint successes, uint got, uint gave,,) = testMgv.snipesInTest(
-      $(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick) - 1), 0.5 ether, 100_000]), false
-    );
-    assertTrue(successes == 0, "Snipe should fail");
-    assertEq(weiBalanceBefore, mgv.balanceOf($(this)), "Taker should not take bounty");
-    assertTrue((got == gave && gave == 0), "Taker should not give or take anything");
-  }
-
+  // FIXME: Not sure what this tests?
   function test_taker_cannot_drain_maker() public {
     mgv.setDensityFixed($(base), $(quote), 0);
     quote.approve($(mgv), 1 ether);
-    uint ofr = mkr.newOfferByVolume(9, 10, 100_000, 0);
+    mkr.newOfferByVolume(9, 10, 100_000, 0);
     uint oldBal = quote.balanceOf($(this));
-    testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(MAX_TICK), 1, 100_000]), true);
+    mgv.marketOrderByTick($(base), $(quote), MAX_TICK, 1, true);
     uint newBal = quote.balanceOf($(this));
     assertGt(oldBal, newBal, "oldBal should be strictly higher");
   }
 
-  function test_snipe_fillWants() public {
+  function test_execute_fillWants() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     Tick offerTick = pair.offers(ofr).tick();
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
-    (uint successes, uint got, uint gave,,) = testMgv.snipesInTest(
-      $(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick) + 1), 0.5 ether, 100_000]), true
-    );
-    assertTrue(successes == 1, "Snipe should not fail");
+    (uint got, uint gave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick) + 1, 0.5 ether, true);
     assertEq(got, 0.5 ether, "Taker did not get correct amount");
     assertEq(gave, 0.5 ether, "Taker did not give correct amount");
-  }
-
-  function test_multiple_snipes_fillWants() public {
-    uint i;
-    uint[] memory ofrs = new uint[](3);
-    ofrs[i++] = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    ofrs[i++] = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    ofrs[i++] = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    Tick offersTick = mgv.offers($(base), $(quote), ofrs[0]).tick();
-
-    mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
-    quote.approve($(mgv), 3 ether);
-    uint[4][] memory targets = new uint[4][](3);
-    uint j;
-    targets[j] = [ofrs[j], uint(Tick.unwrap(offersTick) + 2), 0.5 ether, 100_000];
-    j++;
-    targets[j] = [ofrs[j], uint(Tick.unwrap(offersTick)), 1 ether, 100_000];
-    j++;
-    targets[j] = [ofrs[j], uint(Tick.unwrap(offersTick) + 1), 0.8 ether, 100_000];
-
-    expectFrom($(mgv));
-    emit OrderStart();
-    expectFrom($(mgv));
-    emit OrderComplete($(base), $(quote), $(this), 2.3 ether, 2.3 ether, 0, 0);
-
-    (uint successes, uint got, uint gave,,) = testMgv.snipesInTest($(base), $(quote), targets, true);
-    assertTrue(successes == 3, "Snipes should not fail");
-    assertEq(got, 2.3 ether, "Taker did not get correct amount");
-    assertEq(gave, 2.3 ether, "Taker did not give correct amount");
-  }
-
-  event Transfer(address indexed from, address indexed to, uint value);
-
-  function test_snipe_fillWants_zero() public {
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    Tick offerTick = pair.offers(ofr).tick();
-    assertTrue(mgv.offers($(base), $(quote), ofr).isLive(), "Offer should be in the book");
-    mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
-    quote.approve($(mgv), 1 ether);
-
-    expectFrom($(quote));
-    emit Transfer($(this), address(mgv), 0);
-    expectFrom($(quote));
-    emit Transfer($(mgv), address(mkr), 0);
-
-    (uint successes, uint got, uint gave,,) =
-      testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 0, 100_000]), true);
-    assertTrue(successes == 1, "Snipe should not fail");
-    assertEq(got, 0 ether, "Taker had too much");
-    assertEq(gave, 0 ether, "Taker gave too much");
-    assertTrue(!mgv.offers($(base), $(quote), ofr).isLive(), "Offer should not be in the book");
   }
 
   function test_snipe_free_offer_fillWants_respects_spec() public {
@@ -237,14 +173,66 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(gave, 1 ether, "Taker did not get correct amount");
   }
 
+  event Transfer(address indexed from, address indexed to, uint value);
+
   function test_mo_fillWants() public {
-    mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    uint ofr1 = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    uint ofr2 = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    Tick offerTick1 = pair.offers(ofr1).tick();
+    Tick offerTick2 = pair.offers(ofr2).tick();
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
+
+    expectFrom($(mgv));
+    emit OrderStart();
+
+    expectFrom($(quote));
+    emit Transfer($(this), $(mgv), 1 ether);
+    expectFrom($(quote));
+    emit Transfer($(mgv), $(mkr), 1 ether);
+    expectFrom($(base));
+    emit Transfer($(mkr), $(mgv), 1 ether);
+    expectFrom($(mgv));
+    emit OfferSuccess($(base), $(quote), ofr1, $(this), 1 ether, offerTick1.inboundFromOutbound(1 ether));
+
+    expectFrom($(quote));
+    emit Transfer($(this), $(mgv), 0.1 ether);
+    expectFrom($(quote));
+    emit Transfer($(mgv), $(mkr), 0.1 ether);
+    expectFrom($(base));
+    emit Transfer($(mkr), $(mgv), 0.1 ether);
+    expectFrom($(mgv));
+    emit OfferSuccess($(base), $(quote), ofr2, $(this), 0.1 ether, offerTick2.inboundFromOutbound(0.1 ether));
+
+    expectFrom($(base));
+    emit Transfer($(mgv), $(this), 1.1 ether);
+    expectFrom($(mgv));
+    emit OrderComplete($(base), $(quote), $(this), 1.1 ether, 1.1 ether, 0, 0);
+
     (uint got, uint gave,,) = mgv.marketOrderByVolume($(base), $(quote), 1.1 ether, 1.9 ether, true);
+
     assertEq(got, 1.1 ether, "Taker did not get correct amount");
     assertEq(gave, 1.1 ether, "Taker did not get correct amount");
+    assertFalse(mgv.offers($(base), $(quote), ofr1).isLive(), "Offer 1 should not be in the book");
+    assertFalse(mgv.offers($(base), $(quote), ofr2).isLive(), "Offer 2 should not be in the book");
+  }
+
+  function test_mo_fillWants_zero() public {
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    Tick offerTick = pair.offers(ofr).tick();
+    assertTrue(mgv.offers($(base), $(quote), ofr).isLive(), "Offer should be in the book");
+    quote.approve($(mgv), 1 ether);
+
+    expectFrom($(mgv));
+    emit OrderStart();
+    expectFrom($(mgv));
+    emit OrderComplete($(base), $(quote), $(this), 0 ether, 0 ether, 0, 0);
+
+    (uint got, uint gave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 0, true);
+
+    assertEq(got, 0 ether, "Taker had too much");
+    assertEq(gave, 0 ether, "Taker gave too much");
+    assertTrue(mgv.offers($(base), $(quote), ofr).isLive(), "Offer should be in the book");
   }
 
   function test_mo_newBest() public {
@@ -297,14 +285,15 @@ contract TakerOperationsTest is MangroveTest {
 
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerTransferFail");
-    (uint successes, uint takerGot, uint takerGave,,) =
-      testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 100_000]), true);
+    vm.expectEmit(true, false, false, false, $(mgv));
+    emit Credit($(refusemkr), 0);
+    (uint successes,) = mgv.cleanByImpersonation(
+      $(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.unwrap(offerTick), 100_000, 1 ether)), $(this)
+    );
+    assertEq(successes, 1, "clean should succeed");
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
-    assertTrue(successes == 0, "Snipe should fail");
-    assertTrue(takerGot == takerGave && takerGave == 0, "Incorrect transaction information");
     assertTrue(beforeQuote == quote.balanceOf($(this)), "taker balance should not be lower if maker doesn't pay back");
-    emit Credit(address(refusemkr), mkr_provision - penalty);
   }
 
   function test_taker_reverts_on_penalty_triggers_revert() public {
@@ -434,10 +423,9 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 10 ether);
     uint balTaker = base.balanceOf($(this));
     uint balMaker = quote.balanceOf(address(mkr));
-    MgvStructs.OfferPacked offer = pair.offers(ofr);
 
     expectFrom($(mgv));
-    emit OfferSuccess($(base), $(quote), ofr, $(this), 1 ether, offer.tick().inboundFromOutbound(1 ether));
+    emit OfferSuccess($(base), $(quote), ofr, $(this), 1 ether, offerTick.inboundFromOutbound(1 ether));
     (uint successes, uint takerGot, uint takerGave,,) =
       testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 50_000]), true);
     assertTrue(successes == 1, "Snipe should succeed");

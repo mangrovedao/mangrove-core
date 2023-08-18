@@ -134,6 +134,21 @@ contract Script2 is Script {
     return ret;
   }
 
+  function wrap_dynamic(MgvLib.CleanTarget memory a, MgvLib.CleanTarget memory b) internal pure returns (MgvLib.CleanTarget[] memory) {
+    MgvLib.CleanTarget[] memory ret = new MgvLib.CleanTarget[](2);
+    ret[0] = a;
+    ret[1] = b;
+    return ret;
+  }
+
+  function wrap_dynamic(MgvLib.CleanTarget memory a, MgvLib.CleanTarget memory b, MgvLib.CleanTarget memory c) internal pure returns (MgvLib.CleanTarget[] memory) {
+    MgvLib.CleanTarget[] memory ret = new MgvLib.CleanTarget[](3);
+    ret[0] = a;
+    ret[1] = b;
+    ret[2] = c;
+    return ret;
+  }
+
   /* *****
   Internal utility: copy `words` words from `i_ptr` to `o_ptr`
   */

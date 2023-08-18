@@ -40,7 +40,6 @@ contract EvalSnipeOffer is Test2, Deployer {
     heap.details = mgv.offerDetails(address(outTkn), address(inbTkn), offerId);
 
     deal(address(inbTkn), address(this), heap.offer.wants());
-    heap.target = new MgvLib.CleanTarget[](1);
     inbTkn.approve(address(mgv), heap.offer.wants());
 
     for (uint i = 0; i < 11; i++) {
@@ -50,8 +49,9 @@ contract EvalSnipeOffer is Test2, Deployer {
       } else {
         heap.takerWants = heap.offer.gives() / i;
       }
-      heap.target[0] =
-        MgvLib.CleanTarget(offerId, Tick.unwrap(heap.offer.tick()), heap.details.gasreq(), heap.takerWants);
+      heap.target = wrap_dynamic(
+        MgvLib.CleanTarget(offerId, Tick.unwrap(heap.offer.tick()), heap.details.gasreq(), heap.takerWants)
+      );
       _gas();
       string memory fill_str = i == 0 ? "0" : string.concat(vm.toString(11 - i), "/10");
       (uint successes, uint bounty) =

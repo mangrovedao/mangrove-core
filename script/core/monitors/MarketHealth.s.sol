@@ -135,13 +135,13 @@ contract MarketHealth is Test2, Deployer {
         break;
       }
       (vars.offer, vars.offerDetail) = mgv.offerInfo(address(outTkn), address(inbTkn), vars.best);
-      vars.targets = new MgvLib.CleanTarget[](1);
       vars.takerWants =
         vars.offer.gives + vars.got > outboundTknVolume ? outboundTknVolume - vars.got : vars.offer.gives;
       // FIXME: This is no longer possible with the new clean function
       // offering a better price than what the offer requires
-      vars.targets[0] =
-        MgvLib.CleanTarget(vars.best, Tick.unwrap(vars.offer.tick), vars.offerDetail.gasreq, vars.takerWants);
+      vars.targets = wrap_dynamic(
+        MgvLib.CleanTarget(vars.best, Tick.unwrap(vars.offer.tick), vars.offerDetail.gasreq, vars.takerWants)
+      );
       _gas();
       (vars.snipesSuccesses, vars.snipesBounty) =
         mgv.cleanByImpersonation(address(outTkn), address(inbTkn), vars.targets, address(this));

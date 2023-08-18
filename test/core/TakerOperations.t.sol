@@ -956,9 +956,8 @@ contract TakerOperationsTest is MangroveTest {
 
     uint oldBal = $(this).balance;
 
-    MgvLib.CleanTarget[] memory targets = new MgvLib.CleanTarget[](2);
-    targets[0] = MgvLib.CleanTarget(ofr, 0, 100_000, 0);
-    targets[1] = MgvLib.CleanTarget(ofr2, 0, 100_000, 0);
+    MgvLib.CleanTarget[] memory targets =
+      wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0), MgvLib.CleanTarget(ofr2, 0, 100_000, 0));
     (uint successes, uint bounty) = mgv.cleanByImpersonation($(base), $(quote), targets, $(this));
 
     uint newBal = $(this).balance;
@@ -975,10 +974,11 @@ contract TakerOperationsTest is MangroveTest {
 
     uint oldBal = $(this).balance;
 
-    MgvLib.CleanTarget[] memory targets = new MgvLib.CleanTarget[](3);
-    targets[0] = MgvLib.CleanTarget(ofr, 0, 100_000, 0);
-    targets[1] = MgvLib.CleanTarget(ofr2, 0, 100_000, 0);
-    targets[2] = MgvLib.CleanTarget(ofr3, 0, 100_000, 0);
+    MgvLib.CleanTarget[] memory targets = wrap_dynamic(
+      MgvLib.CleanTarget(ofr, 0, 100_000, 0),
+      MgvLib.CleanTarget(ofr2, 0, 100_000, 0),
+      MgvLib.CleanTarget(ofr3, 0, 100_000, 0)
+    );
     (uint successes, uint bounty) = mgv.cleanByImpersonation($(base), $(quote), targets, $(this));
 
     uint newBal = $(this).balance;

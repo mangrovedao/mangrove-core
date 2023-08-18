@@ -119,16 +119,16 @@ contract DensityTest is Test2 {
     uint res = DensityLib.fixedFromParams({
       outbound_decimals: 6,
       gasprice_in_gwei: 250,
-      eth_in_dollarsx100: 1 * 100,
-      outbound_display_in_dollarsx100: 1000 * 100,
+      eth_in_usdx100: 1 * 100,
+      outbound_display_in_usdx100: 1000 * 100,
       cover_factor: 1000
     });
     assertEq(toString(DensityLib.fromFixed(res)), "1 * 2^-2");
     res = DensityLib.fixedFromParams({
       outbound_decimals: 18,
       gasprice_in_gwei: 2500,
-      eth_in_dollarsx100: 10000 * 100,
-      outbound_display_in_dollarsx100: 1 * 100,
+      eth_in_usdx100: 10000 * 100,
+      outbound_display_in_usdx100: 1 * 100,
       cover_factor: 1000
     });
     assertEq(toString(DensityLib.fromFixed(res)), "1.25 * 2^64");

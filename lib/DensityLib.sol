@@ -127,14 +127,14 @@ library DensityLib {
   function fixedFromParams(
     uint outbound_decimals, 
     uint gasprice_in_gwei, 
-    uint eth_in_dollarsx100, 
-    uint outbound_display_in_dollarsx100, 
+    uint eth_in_usdx100, 
+    uint outbound_display_in_usdx100, 
     uint cover_factor
   ) internal pure returns (uint) {
     require(uint8(outbound_decimals) == outbound_decimals,"DensityLib: decimals must be uint8");
-    uint num = cover_factor * gasprice_in_gwei * (10**outbound_decimals) * eth_in_dollarsx100;
+    uint num = cover_factor * gasprice_in_gwei * (10**outbound_decimals) * eth_in_usdx100;
     // use * instead of << to trigger overflow check
-    return (num * (1 << FIXED_FRACTIONAL_BITS)) / (outbound_display_in_dollarsx100 * 1e9);
+    return (num * (1 << FIXED_FRACTIONAL_BITS)) / (outbound_display_in_usdx100 * 1e9);
   }
 
   function fixedFromParams(

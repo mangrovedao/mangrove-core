@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MAX_TICK} from "mgv_lib/TickLib.sol";
+import {MAX_TICK, MIN_TICK} from "mgv_lib/TickLib.sol";
 
 /* The following constructs an ERC20 with a transferFrom callback method,
    and a TestTaker which throws away any funds received upon getting
@@ -1018,6 +1018,35 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(otherTkrBalanceNativeBefore, $(otherTkr).balance, "other taker's native balance should not have changed");
     assertEq(otherTkrBalanceBaseBefore, base.balanceOf($(otherTkr)), "other taker's base balance should not change");
     assertEq(otherTkrBalanceQuoteBefore, quote.balanceOf($(otherTkr)), "other taker's quote balance should not change");
+  }
+
+  function test_unconsumed_tick_leaves_correct_leaf_start_at_tick_leave_one_only(
+    int24 _tick,
+    bool crossTick,
+    bool leaveOneOnly
+  ) public {
+    quote.approve($(mgv), 10_000 ether);
+    _tick = int24(bound(_tick, -100, 100));
+    int24 _firstPostedTick = crossTick ? _tick - 1 : _tick;
+    mkr.newOfferByTick(_firstPostedTick, 1 ether, 100_000);
+    mkr.newOfferByTick(_tick, 1 ether, 100_000);
+    uint ofr3 = mkr.newOfferByTick(_tick, 1 ether, 100_000);
+    uint ofr4 = mkr.newOfferByTick(_tick, 1 ether, 100_000);
+    uint volume = leaveOneOnly ? 3 ether : 2 ether;
+    mgv.marketOrderByTick($(base), $(quote), _tick, volume, true);
+
+    Tick tick = Tick.wrap(_tick);
+
+    uint bestId = leaveOneOnly ? ofr4 : ofr3;
+    MgvStructs.OfferPacked best = pair.offers(bestId);
+    Leaf leaf = pair.leafs(best.tick().leafIndex());
+    assertEq(leaf.firstOfIndex(tick.posInLeaf()), bestId, "wrong first of tick");
+    assertEq(leaf.lastOfIndex(tick.posInLeaf()), ofr4, "wrong last of tick");
+    assertEq(pair.local().tickPosInLeaf(), tick.posInLeaf(), "wrong local.tickPosInleaf");
+    assertEq(best.prev(), 0, "best.prev should be 0");
+    Leaf emptyLeaf = leaf.setTickFirst(tick, 0).setTickLast(tick, 0);
+    assertTrue(emptyLeaf.isEmpty(), "leaf should have not other tick used");
+    // console.log(toString(pair.leafs(leafIndex)));
   }
 }
 

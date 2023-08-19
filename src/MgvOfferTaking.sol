@@ -72,7 +72,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     }
   }
 
-  // get offer after current offer, will also erase the current offer's branch (which may not be necessary!)
+  // get offer after current offer, will also remove the current offer and return the corresponding updated `local`
   function getNextBest(
     Pair storage pair,
     MultiOrder memory mor,
@@ -271,11 +271,19 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       } else {
         /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
 
+        // mark current offer as having no prev if necessary
+        // update leaf if necessary
+        MgvStructs.OfferPacked offer = sor.offer;
+        Tick tick = offer.tick();
+        if (offer.prev() != 0) {
+          pair.offerData[sor.offerId].offer = sor.offer.prev(0);
+          mor.leaf = mor.leaf.setTickFirst(tick, sor.offerId);
+        }
+
         // maybe some updates below are useless? if we don't update these we must take it into account elsewhere
         // no need to test whether level2 has been reached since by default its stored in local
 
         sor.local = sor.local.tickPosInLeaf(mor.leaf.firstOfferPosition());
-        Tick tick = sor.local.tick();
         // no need to test whether mor.level2 != pair.level2 since update is ~free
         // ! local.level0[sor.local.tick().level0Index()] is now wrong
         // sor.local = sor.local.level0(mor.level0);
@@ -283,6 +291,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         int index = tick.leafIndex();
         // leaf cached in memory is flushed to storage everytime it gets emptied, but at the end of a market order we need to store it correctly
         // second conjunct is for when you did not ever read leaf
+        // possible that this condition is false? (except if 0 offers executed)
         if (!pair.leafs[index].eq(mor.leaf)) {
           pair.leafs[index] = mor.leaf;
         }

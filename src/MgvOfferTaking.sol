@@ -171,7 +171,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sor.local = sor.local.lock(true);
       pair.local = sor.local;
 
-      emit OrderStart();
+      emit OrderStart(outbound_tkn, inbound_tkn, taker, Tick.unwrap(maxTick), fillVolume, fillWants);
 
       /* Call recursive `internalMarketOrder` function.*/
       internalMarketOrder(pair, mor, sor, true);
@@ -179,7 +179,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Over the course of the market order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
 
-      emit OrderComplete(outbound_tkn, inbound_tkn, taker, mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid);
+      emit OrderComplete(mor.feePaid);
 
       //+clear+
       return (mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid);
@@ -396,7 +396,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
       require(Tick.unwrap(sor.offer.tick()) == tick, "mgv/clean/tickMismatch");
 
-      emit OrderStart();
+      // FIXME: Not sure what events we need for cleaning? Maybe none?
+      // FIXME: NB: In another PR, this and OrderComplete are moved to the outer clean methos.
+      // emit OrderStart();
 
       /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
       sor.local = sor.local.lock(true);
@@ -436,7 +438,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       //+clear+
 
-      emit OrderComplete(outbound_tkn, inbound_tkn, taker, 0, 0, bounty, 0);
+      emit OrderComplete(0);
     }
   }
 
@@ -499,7 +501,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
         mgvData = bytes32("mgv/tradeSuccess");
-        emit OfferSuccess(sor.outbound_tkn, sor.inbound_tkn, sor.offerId, mor.taker, sor.wants, sor.gives);
+        emit OfferSuccess(sor.offerId, sor.wants, sor.gives);
 
         /* If configured to do so, Mangrove notifies an external contract that a successful trade has taken place. */
         if (sor.global.notify()) {
@@ -515,7 +517,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         (mgvData, gasused, makerData) = innerDecode(retdata);
         /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {
-          emit OfferFail(sor.outbound_tkn, sor.inbound_tkn, sor.offerId, mor.taker, sor.wants, sor.gives, mgvData);
+          // FIXME: Why don't we pay the penalty here? Because we may use more gas and thus incur a bigger penalty, according to a comment higher up.
+          // FIXME: Why don't we emit this later then?
+          emit OfferFail(sor.offerId, sor.wants, sor.gives, mgvData);
 
           /* If configured to do so, Mangrove notifies an external contract that a failed trade has taken place. */
           if (sor.global.notify()) {
@@ -643,7 +647,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       gasused = oldGas - gasleft();
 
       if (!callSuccess) {
-        emit PosthookFail(sor.outbound_tkn, sor.inbound_tkn, sor.offerId, posthookData);
+        emit PosthookFail(sor.offerId, posthookData);
       }
     }
   }
@@ -695,11 +699,17 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
 
       /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/notExecuted","mgv/tradeSuccess"]` */
+      // FIXME: nor if `mgvData` is in `["mgv/notEnoughGasForMakerTrade","mgv/takerTransferFail"]
       uint penalty = 10 ** 9 * sor.global.gasprice() * (gasused + sor.local.offer_gasbase());
 
       if (penalty > provision) {
         penalty = provision;
       }
+
+      // FIXME: Emitting OfferFail here means it'll be emitted after any posthook events... Is that what we want?
+      // emit OfferFail(sor.offerId, sor.wants, sor.gives, penalty, mgvData);
+      // FIXME: Alternatively, we can emit a OfferPenalty event here and then keep the OfferFail event where it was detected?
+      emit OfferPenalty(sor.offerId, penalty);
 
       /* Here we write to storage the new maker balance. This occurs _after_ possible reentrant calls. How do we know we're not crediting twice the same amounts? Because the `offer`'s provision was set to 0 in storage (through `dirtyDeleteOffer`) before the reentrant calls. In this function, we are working with cached copies of the offer as it was before it was consumed. */
       creditWei(sor.offerDetail.maker(), provision - penalty);

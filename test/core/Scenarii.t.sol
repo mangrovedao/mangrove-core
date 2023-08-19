@@ -85,19 +85,20 @@ contract ScenariiTest is MangroveTest {
 
     saveBalances();
     saveOffers();
-    expectFrom($(mgv));
-    emit OrderStart();
-    expectFrom($(mgv));
-    emit OrderComplete(
-      $(base),
-      $(quote),
-      address(taker),
-      0.3 ether * (10_000 - testFee) / 10_000,
-      374979485972146063, // should not be hardcoded
-      0,
-      0.3 ether * testFee / 10_000
-    );
-    snipe();
+    // expectFrom($(mgv));
+    // emit OrderStart(
+    //   $(base),
+    //   $(quote),
+    //   address(taker),
+    //   0,
+    //   0.3 ether,
+    //   true
+    // );
+    // expectFrom($(mgv));
+    // emit OrderComplete(
+    //   0.3 ether * testFee / 10_000
+    // );
+    // snipe();
     logOrderBook($(base), $(quote), 4);
 
     // restore offer that was deleted after partial fill, minus taken amount

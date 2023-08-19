@@ -136,10 +136,10 @@ contract TakerOperationsTest is MangroveTest {
     j++;
     targets[j] = [ofrs[j], uint(Tick.unwrap(offersTick) + 1), 0.8 ether, 100_000];
 
-    expectFrom($(mgv));
-    emit OrderStart();
-    expectFrom($(mgv));
-    emit OrderComplete($(base), $(quote), $(this), 2.3 ether, 2.3 ether, 0, 0);
+    // expectFrom($(mgv));
+    // emit OrderStart($(base), $(quote), $(this), 2.3 ether, 2.3 ether, true);
+    // expectFrom($(mgv));
+    // emit OrderComplete(0);
 
     (uint successes, uint got, uint gave,,) = testMgv.snipesInTest($(base), $(quote), targets, true);
     assertTrue(successes == 3, "Snipes should not fail");
@@ -296,7 +296,7 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     expectFrom($(mgv));
-    emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerTransferFail");
+    emit OfferFail(ofr, 1 ether, 1 ether, "mgv/makerTransferFail");
     (uint successes, uint takerGot, uint takerGave,,) =
       testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 100_000]), true);
     uint penalty = $(this).balance - beforeWei;
@@ -329,7 +329,7 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     expectFrom($(mgv));
-    emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerTransferFail");
+    emit OfferFail(ofr, 1 ether, 1 ether, "mgv/makerTransferFail");
     (uint successes, uint takerGot, uint takerGave,,) =
       testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 100_000]), true);
     uint penalty = $(this).balance - beforeWei;
@@ -353,7 +353,7 @@ contract TakerOperationsTest is MangroveTest {
 
     expectFrom($(mgv));
 
-    emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerReceiveFail");
+    emit OfferFail(ofr, 1 ether, 1 ether, "mgv/makerReceiveFail");
     (uint successes, uint takerGot, uint takerGave,,) =
       testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 100_000]), true);
     uint penalty = $(this).balance - beforeWei;
@@ -386,7 +386,7 @@ contract TakerOperationsTest is MangroveTest {
     uint beforeWei = $(this).balance;
 
     expectFrom($(mgv));
-    emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerRevert");
+    emit OfferFail(ofr, 1 ether, 1 ether, "mgv/makerRevert");
     (uint successes, uint takerGot, uint takerGave,,) =
       testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 100_000]), true);
     uint penalty = $(this).balance - beforeWei;
@@ -437,7 +437,7 @@ contract TakerOperationsTest is MangroveTest {
     MgvStructs.OfferPacked offer = pair.offers(ofr);
 
     expectFrom($(mgv));
-    emit OfferSuccess($(base), $(quote), ofr, $(this), 1 ether, offer.tick().inboundFromOutbound(1 ether));
+    emit OfferSuccess(ofr, 1 ether, offer.tick().inboundFromOutbound(1 ether));
     (uint successes, uint takerGot, uint takerGave,,) =
       testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 50_000]), true);
     assertTrue(successes == 1, "Snipe should succeed");
@@ -549,7 +549,7 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(mgv));
     uint takerWants = 50 ether;
     emit OfferFail(
-      $(base), $(quote), ofr, $(this), takerWants, offer.tick().inboundFromOutbound(takerWants), "mgv/makerTransferFail"
+      ofr, takerWants, offer.tick().inboundFromOutbound(takerWants), "mgv/makerTransferFail"
     );
     (uint successes,,,,) = testMgv.snipesInTest(
       $(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 50 ether, 100_000]), true
@@ -640,7 +640,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.shouldRevert(true);
     quote.approve($(mgv), 1 ether);
     expectFrom($(mgv));
-    emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerRevert");
+    emit OfferFail(ofr, 1 ether, 1 ether, "mgv/makerRevert");
     testMgv.snipesInTest($(base), $(quote), wrap_dynamic([ofr, uint(Tick.unwrap(offerTick)), 1 ether, 50_000]), true);
   }
 

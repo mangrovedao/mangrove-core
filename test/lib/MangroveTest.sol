@@ -647,7 +647,7 @@ abstract contract TestSnipingMangrove is MgvOfferTakingWithPermit {
       activeMarketOnly(sor.global, sor.local);
       unlockedMarketOnly(sor.local);
 
-      emit OrderStart();
+      // emit OrderStart();
 
       /* ### Main loop */
       //+clear+
@@ -659,7 +659,7 @@ abstract contract TestSnipingMangrove is MgvOfferTakingWithPermit {
       sendPenalty(mor.totalPenalty);
       //+clear+
 
-      emit OrderComplete(sor.outbound_tkn, sor.inbound_tkn, taker, snipesGot, snipesGave, mor.totalPenalty, mor.feePaid);
+      // emit OrderComplete(sor.outbound_tkn, sor.inbound_tkn, taker, snipesGot, snipesGave, mor.totalPenalty, mor.feePaid);
       totalPenalty = mor.totalPenalty;
       feePaid = mor.feePaid;
     }

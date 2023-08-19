@@ -75,43 +75,42 @@ contract HasMgvEvents {
   event SetGasprice(uint value);
 
   /* Market order execution */
-  event OrderStart();
-  event OrderComplete(
+  // FIXME: This provides the basis information for all following events
+  // FIXME: Observation: All other events follow from this one + the known state of the book
+  event OrderStart(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
     address indexed taker,
-    uint takerGot,
-    uint takerGave,
-    uint penalty,
-    uint feePaid
+    int maxTick,
+    uint fillVolume,
+    bool fillWants
   );
+  // FIXME: got, gave, bounty, and fee can be derived from previous events. 
+  // FIXME: Well, fees aren't actually explicitly included in any event... Could be included here or in OfferSuccess
+  event OrderComplete(uint fee);
 
   /* * Offer execution */
   event OfferSuccess(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint id,
-    // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
-    address taker,
-    uint takerWants,
-    uint takerGives
+    uint id, // FIXME: This could be inferred by indexing the book and simply walking it.
+    uint takerGot, // FIXME: The same goes for this and takerGave, since we can simulate the trade.
+    uint takerGave
+    // FIXME: Include fee?
   );
 
   /* Log information when a trade execution reverts or returns a non empty bytes32 word */
   event OfferFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
     uint id,
-    // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
-    address taker,
     uint takerWants,
     uint takerGives,
+    // uint penalty, // FIXME: Putting this here requires emitting the event later, as we don't know the penalty until after the posthook has executed
     // `mgvData` may only be `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"`
     bytes32 mgvData
   );
 
+  event OfferPenalty(uint id, uint penalty);
+
   /* Log information when a posthook reverts */
-  event PosthookFail(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, bytes32 posthookData);
+  event PosthookFail(uint offerId, bytes32 posthookData);
 
   /* * After `permit` and `approve` */
   event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);

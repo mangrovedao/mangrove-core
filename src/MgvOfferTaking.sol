@@ -6,6 +6,7 @@ import {
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickLib} from "./../lib/TickLib.sol";
+import {console} from "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
   /* # MultiOrder struct */
@@ -132,6 +133,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     address taker
   ) internal returns (uint, uint, uint, uint) {
     unchecked {
+      console.log("generalMarketOrder");
       //TODO is uint160 correct with new price limits?
       /* Since amounts stored in offers are 96 bits wide, checking that `takerWants` and `takerGives` fit in 160 bits prevents overflow during the main market order loop. */
       require(uint160(fillVolume) == fillVolume, "mgv/mOrder/fillVolume/160bits");
@@ -153,6 +155,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       mor.leaf = pair.leafs[sor.local.tick().leafIndex()];
       sor.offerId = mor.leaf.getNextOfferId();
+      console.log(sor.offerId);
       sor.offer = pair.offerData[sor.offerId].offer;
       /* fillVolume evolves but is initially however much remains in the market order. */
       mor.fillVolume = fillVolume;

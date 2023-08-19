@@ -495,12 +495,21 @@ contract GatekeepingTest is IMaker, MangroveTest {
     assertTrue(mgv.best($(quote), $(base)) == 0, "2nd market order must have emptied mgv");
   }
 
-  function test_marketOrder_on_posthook_succeeds() public {
+  function failIfOfferIsExecuted() external {
+    console.log("failIfOfferIsExecuted");
+    fail("offer should not be executed");
+  }
+  function marketOrderOKOld(address _base, address _quote, uint ofr) external {
+    assertFalse(mgv.offers(_base, _quote, ofr).isLive(), "offer should be taken");
+    trade_cb = abi.encodeCall(this.failIfOfferIsExecuted, ());
+    mgv.marketOrderByVolume(_base, _quote, 0.5 ether, 0.5 ether, true);
+  }
+  function test_marketOrder_on_posthook_succeeds_old() public {
     mgv.setGasmax(10_000_000);
-    mgv.newOfferByVolume($(base), $(quote), 0.5 ether, 0.5 ether, 3500_000, 0);
+    uint ofr = mgv.newOfferByVolume($(base), $(quote), 0.5 ether, 0.5 ether, 3500_000, 0);
     mgv.newOfferByVolume($(base), $(quote), 0.5 ether, 0.5 ether, 1800_000, 0);
-    posthook_cb = abi.encodeCall(this.marketOrderOK, ($(base), $(quote)));
-    assertTrue(tkr.marketOrderWithSuccess(0.6 ether), "take must succeed or test is void");
+    posthook_cb = abi.encodeCall(this.marketOrderOKOld, ($(base), $(quote), ofr));
+    assertTrue(tkr.marketOrderWithSuccess(0.5 ether), "take must succeed or test is void");
     assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
   }
 

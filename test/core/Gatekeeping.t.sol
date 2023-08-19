@@ -520,6 +520,25 @@ contract GatekeepingTest is IMaker, MangroveTest {
     assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
   }
 
+  function failIfOfferIsExecuted() external {
+    console.log("failIfOfferIsExecuted");
+    fail("offer should not be executed");
+  }
+  function marketOrderOKOld(address _base, address _quote, uint ofr) external {
+    console.log(mgv.offers(_base, _quote, ofr).gives());
+    assertFalse(mgv.offers(_base, _quote, ofr).gives() > 0, "offer should be taken");
+    trade_cb = abi.encodeCall(this.failIfOfferIsExecuted, ());
+    mgv.marketOrder(_base, _quote, 0.5 ether, 0.5 ether, true);
+  }
+  function test_marketOrder_on_posthook_succeeds_old() public {
+    mgv.setGasmax(10_000_000);
+    uint ofr = mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 3500_000, 0, 0);
+    mgv.newOffer($(base), $(quote), 0.5 ether, 0.5 ether, 1800_000, 0, 0);
+    posthook_cb = abi.encodeCall(this.marketOrderOKOld, ($(base), $(quote), ofr));
+    tkr.marketOrder(0.5 ether, 0.5 ether);
+    assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
+  }
+
   /* Snipe failure */
 
   function snipesKO(uint id) external {

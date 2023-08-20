@@ -414,7 +414,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function reverting_posthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) internal pure {
-    assert(false);
+    revert("reverting_posthook");
   }
 
   function test_reverting_posthook_does_not_revert_offer() public {
@@ -424,6 +424,10 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     _posthook = reverting_posthook;
 
     ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
+
+    expectFrom($(mgv));
+    emit PosthookFail($(base), $(quote), ofr, "reverting_posthook");
+
     bool success = tkr.marketOrderWithSuccess(1 ether);
     assertTrue(success, "order should succeed");
     assertEq(balMaker - 1 ether, base.balanceOf($(this)), "Incorrect maker balance");

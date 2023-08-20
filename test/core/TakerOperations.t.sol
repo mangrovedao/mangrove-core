@@ -101,6 +101,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
     (uint got, uint gave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick) + 1, 0.5 ether, true);
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(got, 0.5 ether, "Taker did not get correct amount");
     assertEq(gave, 0.5 ether, "Taker did not give correct amount");
   }
@@ -116,6 +117,7 @@ contract TakerOperationsTest is MangroveTest {
        We should still only receive 0.1 eth */
     Tick orderTick = TickLib.tickFromPrice_e18(1 ether);
     (uint got, uint gave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(orderTick), 0.1 ether, true);
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertApproxEqRel(got, 0.1 ether, relError(10), "Wrong got value");
     assertApproxEqRel(gave, 1, relError(10), "Wrong gave value");
     assertTrue(!mgv.offers($(base), $(quote), ofr).isLive(), "Offer should not be in the book");
@@ -132,18 +134,20 @@ contract TakerOperationsTest is MangroveTest {
        Here despite asking for .1eth the offer gives 1eth for ~0 so we should receive 1eth. */
     Tick orderTick = TickLib.tickFromPrice_e18(1 ether);
     (uint got, uint gave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(orderTick), 0.1 ether, false);
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertApproxEqRel(got, 1 ether, relError(10), "Wrong got value");
     assertApproxEqRel(gave, 0.01 ether, relError(10), "Wrong gave value");
     assertTrue(!mgv.offers($(base), $(quote), ofr).isLive(), "Offer should not be in the book");
   }
 
   function test_execute_fillGives() public {
-    mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
 
     Tick orderTick = TickLib.tickFromPrice_e18(1 ether);
     (uint got, uint gave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(orderTick), 1 ether, false);
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(got, 1 ether, "Taker did not get correct amount");
     assertEq(gave, 1 ether, "Taker did not get correct amount");
   }
@@ -190,6 +194,8 @@ contract TakerOperationsTest is MangroveTest {
 
     assertEq(got, 1.1 ether, "Taker did not get correct amount");
     assertEq(gave, 1.1 ether, "Taker did not get correct amount");
+    assertTrue(mkr.makerExecuteWasCalled(ofr1), "ofr1 must be executed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr2), "ofr2 must be executed or test is void");
     assertFalse(mgv.offers($(base), $(quote), ofr1).isLive(), "Offer 1 should not be in the book");
     assertFalse(mgv.offers($(base), $(quote), ofr2).isLive(), "Offer 2 should not be in the book");
   }
@@ -209,6 +215,7 @@ contract TakerOperationsTest is MangroveTest {
 
     assertEq(got, 0 ether, "Taker had too much");
     assertEq(gave, 0 ether, "Taker gave too much");
+    assertFalse(mkr.makerExecuteWasCalled(ofr), "ofr must not be executed or test is void");
     assertTrue(mgv.offers($(base), $(quote), ofr).isLive(), "Offer should be in the book");
   }
 
@@ -217,15 +224,18 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 2 ether);
     assertEq(pair.best(), ofr, "wrong best offer");
     mgv.marketOrderByVolume($(base), $(quote), 2 ether, 4 ether, true);
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(pair.best(), 0, "there should not be a best offer anymore");
   }
 
   function test_mo_fillGives() public {
-    mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    uint ofr2 = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 2 ether);
     (uint got, uint gave,,) = mgv.marketOrderByVolume($(base), $(quote), 1.1 ether, 1.9 ether, false);
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr2), "ofr2 must be executed or test is void");
     assertEq(got, 1.9 ether, "Taker did not get correct amount");
     assertEq(gave, 1.9 ether, "Taker did not give correct amount");
   }
@@ -245,6 +255,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint got, uint gave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 0 ether, false);
     assertEq(got, 0 ether, "Taker had too much");
     assertEq(gave, 0 ether, "Taker gave too much");
+    assertFalse(mkr.makerExecuteWasCalled(ofr), "ofr must not be executed or test is void");
     assertTrue(mgv.offers($(base), $(quote), ofr).isLive(), "Offer should be in the book");
   }
 
@@ -259,14 +270,17 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_mo_fillGivesAll_succeeds() public {
-    mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
-    mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    uint ofr1 = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    uint ofr2 = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    uint ofr3 = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 3 ether);
     (uint got, uint gave,,) = mgv.marketOrderByVolume($(base), $(quote), 0 ether, 3 ether, false);
     assertEq(got, 3 ether, "Taker did not get correct amount");
     assertEq(gave, 3 ether, "Taker did not get correct amount");
+    assertTrue(mkr.makerExecuteWasCalled(ofr1), "ofr1 must be executed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr2), "ofr2 must be executed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr3), "ofr2 must be executed or test is void");
   }
 
   function test_taker_reimbursed_if_maker_doesnt_pay() public {
@@ -289,6 +303,7 @@ contract TakerOperationsTest is MangroveTest {
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
     assertTrue(beforeQuote == quote.balanceOf($(this)), "taker balance should not be lower if maker doesn't pay back");
+    assertTrue(refusemkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
   }
 
   function test_taker_reverts_on_penalty_triggers_revert() public {
@@ -321,6 +336,7 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(penalty > 0, "Taker should have been compensated");
     assertTrue(takerGot == takerGave && takerGave == 0, "Incorrect transaction information");
     assertTrue(beforeQuote == quote.balanceOf($(this)), "taker balance should not be lower if maker doesn't pay back");
+    assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_quote() public {
@@ -343,23 +359,25 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(penalty > 0, "Taker should have been compensated");
     assertTrue(takerGot == takerGave && takerGave == 0, "Incorrect transaction information");
     assertTrue(beforeQuote == quote.balanceOf($(this)), "taker balance should not be lower if maker doesn't pay back");
+    assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
   }
 
   function test_taker_collects_failing_offer() public {
     quote.approve($(mgv), 1 ether);
-    uint ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
+    uint ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     Tick offerTick = pair.offers(ofr).tick();
     uint beforeWei = $(this).balance;
 
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
     assertTrue(takerGot == takerGave && takerGave == 0, "Transaction data should be 0");
     assertTrue($(this).balance > beforeWei, "Taker was not compensated");
+    assertTrue(failmkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
   }
 
   function test_taker_reimbursed_if_maker_reverts() public {
     // uint mkr_provision = reader.getProvision($(base), $(quote), 50_000);
     quote.approve($(mgv), 1 ether);
-    uint ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
+    uint ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     Tick offerTick = pair.offers(ofr).tick();
     uint beforeQuote = quote.balanceOf($(this));
     uint beforeWei = $(this).balance;
@@ -373,6 +391,7 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(penalty > 0, "Taker should have been compensated");
     assertTrue(takerGot == takerGave && takerGave == 0, "Incorrect transaction information");
     assertTrue(beforeQuote == quote.balanceOf($(this)), "taker balance should not be lower if maker doesn't pay back");
+    assertTrue(failmkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
   }
 
   function test_taker_hasnt_approved_base_succeeds_order_with_fee() public {
@@ -385,6 +404,7 @@ contract TakerOperationsTest is MangroveTest {
     uint shouldGet = reader.minusFee($(base), $(quote), 1 ether);
     mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
     assertEq(base.balanceOf($(this)) - balTaker, shouldGet, "Incorrect delivered amount");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr execute must be called or test is void");
   }
 
   function test_taker_hasnt_approved_base_succeeds_order_wo_fee() public {
@@ -394,6 +414,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 1 ether);
     mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
     assertEq(base.balanceOf($(this)) - balTaker, 1 ether, "Incorrect delivered amount");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr execute must be called or test is void");
   }
 
   function test_taker_hasnt_approved_quote_fails_order() public {
@@ -406,8 +427,8 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_simple_marketOrder() public {
-    mkr.newOfferByVolume(1.1 ether, 1 ether, 50_000, 0);
-    mkr.newOfferByVolume(1.2 ether, 1 ether, 50_000, 0);
+    uint ofr1 = mkr.newOfferByVolume(1.1 ether, 1 ether, 100_000, 0);
+    uint ofr2 = mkr.newOfferByVolume(1.2 ether, 1 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess");
 
     base.approve($(mgv), 10 ether);
@@ -416,6 +437,8 @@ contract TakerOperationsTest is MangroveTest {
     uint balMaker = quote.balanceOf(address(mkr));
 
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByVolume($(base), $(quote), 2 ether, 4 ether, true);
+    assertTrue(mkr.makerPosthookWasCalled(ofr1), "ofr1 posthook must be called or test is void");
+    assertTrue(mkr.makerPosthookWasCalled(ofr2), "ofr2 posthook must be called or test is void");
     assertApproxEqRel(takerGot, 2 ether, relError(10), "Incorrect declared delivered amount (taker)");
     assertApproxEqRel(takerGave, 2.3 ether, relError(10), "Incorrect declared delivered amount (maker)");
     assertApproxEqRel(base.balanceOf($(this)) - balTaker, 2 ether, relError(10), "Incorrect delivered amount (taker)");
@@ -425,21 +448,23 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_simple_fillWants() public {
-    mkr.newOfferByVolume(2 ether, 2 ether, 50_000, 0);
+    uint ofr = mkr.newOfferByVolume(2 ether, 2 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess");
     quote.approve($(mgv), 10 ether);
 
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByVolume($(base), $(quote), 1 ether, 2 ether, true);
+    assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
     assertEq(takerGot, 1 ether, "Incorrect declared delivered amount (taker)");
     assertEq(takerGave, 1 ether, "Incorrect declared delivered amount (maker)");
   }
 
   function test_simple_fillGives() public {
-    mkr.newOfferByVolume(2 ether, 2 ether, 50_000, 0);
+    uint ofr = mkr.newOfferByVolume(2 ether, 2 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess");
     quote.approve($(mgv), 10 ether);
 
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByVolume($(base), $(quote), 1 ether, 2 ether, false);
+    assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
     assertEq(takerGave, 2 ether, "Incorrect declared delivered amount (maker)");
     assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
   }
@@ -447,7 +472,7 @@ contract TakerOperationsTest is MangroveTest {
   // before ticks: testing whether a wants of 0 works
   // after ticks: wants of 0 not possible since we store log(wants/gives) as tick. Testing with an extremely small amount.
   function test_fillGives_at_0_wants_works() public {
-    uint ofr = mkr.newOfferByVolume(10, 2 ether, 50_000, 0);
+    uint ofr = mkr.newOfferByVolume(10, 2 ether, 100_000, 0);
     Tick offerTick = pair.offers(ofr).tick();
     mkr.expect("mgv/tradeSuccess");
     quote.approve($(mgv), 10 ether);
@@ -455,26 +480,29 @@ contract TakerOperationsTest is MangroveTest {
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 10, false);
     // console.log("offer wants",pair.offers(ofr).wants());
     // console.log("offer tick",pair.offers(ofr).tick().toString());
+    assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
     assertEq(takerGave, 10, "Incorrect declared delivered amount (maker)");
     assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
   }
 
   function test_empty_wants_fillGives() public {
-    mkr.newOfferByVolume(2 ether, 2 ether, 50_000, 0);
+    uint ofr = mkr.newOfferByVolume(2 ether, 2 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess");
     quote.approve($(mgv), 10 ether);
 
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByVolume($(base), $(quote), 0 ether, 2 ether, false);
+    assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
     assertEq(takerGave, 2 ether, "Incorrect declared delivered amount (maker)");
     assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
   }
 
   function test_empty_wants_fillWants() public {
-    mkr.newOfferByVolume(2 ether, 2 ether, 50_000, 0);
+    uint ofr = mkr.newOfferByVolume(2 ether, 2 ether, 100_000, 0);
     mkr.expect("mgv/tradeSuccess");
     quote.approve($(mgv), 10 ether);
 
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByVolume($(base), $(quote), 0 ether, 2 ether, true);
+    assertFalse(mkr.makerPosthookWasCalled(ofr), "ofr posthook must not be called or test is void");
     assertEq(takerGave, 0 ether, "Incorrect declared delivered amount (maker)");
     assertEq(takerGot, 0 ether, "Incorrect declared delivered amount (taker)");
   }
@@ -507,6 +535,7 @@ contract TakerOperationsTest is MangroveTest {
     );
     (,, uint bounty,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 50 ether, true);
     assertTrue(bounty > 0, "offer should fail");
+    assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
   }
 
   // FIXME remove this manual test when the reason for why it was failing is clear
@@ -594,6 +623,7 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerRevert");
     mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
+    assertFalse(mkr.makerPosthookWasCalled(ofr), "ofr posthook must not be called or test is void");
   }
 
   function test_detect_lowgas() public {
@@ -624,50 +654,79 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_partial_fill() public {
     quote.approve($(mgv), 1 ether);
-    mkr.newOfferByVolume(0.1 ether, 0.1 ether, 50_000, 0);
-    mkr.newOfferByVolume(0.1 ether, 0.1 ether, 50_000, 1);
+    uint ofr1 = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
+    uint ofr2 = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 1);
     mkr.expect("mgv/tradeSuccess");
     (uint takerGot,,,) = mgv.marketOrderByVolume($(base), $(quote), 0.15 ether, 0.15 ether, true);
     assertEq(takerGot, 0.15 ether, "Incorrect declared partial fill amount");
     assertEq(base.balanceOf($(this)), 0.15 ether, "incorrect partial fill");
+    assertTrue(mkr.makerPosthookWasCalled(ofr1), "ofr1 posthook must be called or test is void");
+    assertTrue(mkr.makerPosthookWasCalled(ofr2), "ofr2 posthook must be called or test is void");
   }
 
   // ! unreliable test, depends on gas use
   function test_market_order_stops_for_high_price() public {
     quote.approve($(mgv), 1 ether);
-    for (uint i = 0; i < 10; i++) {
-      mkr.newOfferByVolume((i + 1) * (0.1 ether), 0.1 ether, 50_000, i);
+    uint offerCount = 10;
+    uint offersExpectedTaken = 2;
+    uint[] memory ofrs = new uint[](offerCount);
+    for (uint i = 1; i <= offerCount; i++) {
+      ofrs[i - 1] = mkr.newOfferByVolume(i * (0.1 ether), 0.1 ether, 100_000, i - 1);
     }
     mkr.expect("mgv/tradeSuccess");
     // first two offers are at right price
-    uint takerWants = 2 * (0.1 ether + 0.1 ether);
-    uint takerGives = 2 * (0.1 ether + 0.2 ether);
-    mgv.marketOrderByVolume{gas: 350_000}($(base), $(quote), takerWants, takerGives, true);
+    uint takerWants = 0.1 ether + 0.1 ether;
+    uint takerGives = 2 * takerWants;
+    mgv.marketOrderByVolume{gas: 700_000}($(base), $(quote), takerWants, takerGives, true);
+    for (uint i = 0; i < offersExpectedTaken; i++) {
+      assertTrue(mkr.makerPosthookWasCalled(ofrs[i]), "ofr posthook must be called or test is void");
+    }
+    for (uint i = offersExpectedTaken; i < offerCount; i++) {
+      assertFalse(mkr.makerPosthookWasCalled(ofrs[i]), "ofr posthook must not be called or test is void");
+    }
   }
 
   // ! unreliable test, depends on gas use
   function test_market_order_stops_for_filled_mid_offer() public {
     quote.approve($(mgv), 1 ether);
-    for (uint i = 1; i < 11; i++) {
-      mkr.newOfferByVolume(i * (0.1 ether), 0.1 ether, 50_000, i);
+    uint offerCount = 10;
+    uint offersExpectedTaken = 2;
+    uint[] memory ofrs = new uint[](offerCount);
+    for (uint i = 1; i <= offerCount; i++) {
+      ofrs[i - 1] = mkr.newOfferByVolume(i * (0.1 ether), 0.1 ether, 100_000, i);
     }
     mkr.expect("mgv/tradeSuccess");
     // first two offers are at right price
     uint takerWants = 0.1 ether + 0.05 ether;
-    uint takerGives = 0.1 ether + 0.1 ether;
-    mgv.marketOrderByVolume{gas: 450_000}($(base), $(quote), takerWants, takerGives, true);
+    uint takerGives = 2 * takerWants;
+    mgv.marketOrderByVolume{gas: 700_000}($(base), $(quote), takerWants, takerGives, true);
+    for (uint i = 0; i < offersExpectedTaken; i++) {
+      assertTrue(mkr.makerPosthookWasCalled(ofrs[i]), "ofr posthook must be called or test is void");
+    }
+    for (uint i = offersExpectedTaken; i < offerCount; i++) {
+      assertFalse(mkr.makerPosthookWasCalled(ofrs[i]), "ofr posthook must not be called or test is void");
+    }
   }
 
   function test_market_order_stops_for_filled_after_offer() public {
     quote.approve($(mgv), 1 ether);
-    for (uint i = 1; i < 11; i++) {
-      mkr.newOfferByVolume(i * (0.1 ether), 0.1 ether, 50_000, i);
+    uint offerCount = 10;
+    uint offersExpectedTaken = 1;
+    uint[] memory ofrs = new uint[](offerCount);
+    for (uint i = 1; i <= offerCount; i++) {
+      ofrs[i - 1] = mkr.newOfferByVolume(i * (0.1 ether), 0.1 ether, 100_000, i);
     }
     mkr.expect("mgv/tradeSuccess");
     // first two offers are at right price
-    uint takerWants = 0.1 ether + 0.1 ether;
-    uint takerGives = 0.1 ether + 0.2 ether;
+    uint takerWants = 0.1 ether;
+    uint takerGives = 2 * takerWants;
     mgv.marketOrderByVolume{gas: 450_000}($(base), $(quote), takerWants, takerGives, true);
+    for (uint i = 0; i < offersExpectedTaken; i++) {
+      assertTrue(mkr.makerPosthookWasCalled(ofrs[i]), "ofr posthook must be called or test is void");
+    }
+    for (uint i = offersExpectedTaken; i < offerCount; i++) {
+      assertFalse(mkr.makerPosthookWasCalled(ofrs[i]), "ofr posthook must not be called or test is void");
+    }
   }
 
   function test_takerWants_wider_than_160_bits_fails_marketOrder() public {
@@ -678,13 +737,14 @@ contract TakerOperationsTest is MangroveTest {
   function test_clean_with_0_wants_ejects_offer() public {
     quote.approve($(mgv), 1 ether);
     uint mkrBal = base.balanceOf(address(mkr));
-    uint ofr = failmkr.newOfferByVolume(0.1 ether, 0.1 ether, 50_000, 0);
+    uint ofr = failmkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     Tick offerTick = pair.offers(ofr).tick();
 
     (uint successes,) = mgv.cleanByImpersonation(
-      $(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.unwrap(offerTick), 50_000, 0)), $(this)
+      $(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.unwrap(offerTick), 100_000, 0)), $(this)
     );
     assertTrue(successes == 1, "clean should succeed");
+    assertTrue(failmkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
     assertEq(mgv.best($(base), $(quote)), 0, "offer should be gone");
     assertEq(base.balanceOf(address(mkr)), mkrBal, "mkr balance should not change");
   }
@@ -743,9 +803,11 @@ contract TakerOperationsTest is MangroveTest {
 
   function test_failing_offer_volume_does_not_count_toward_filled_volume() public {
     quote.approve($(mgv), 1 ether);
-    failmkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
+    uint failing_ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 100_000);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
     (uint got,,,) = mgv.marketOrderByVolume($(base), $(quote), 1 ether, 0, true);
+    assertTrue(failmkr.makerPosthookWasCalled(failing_ofr), "failing_ofr posthook must be called or test is void");
+    assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
     assertEq(got, 1 ether, "should have gotten 1 ether");
   }
 
@@ -782,17 +844,19 @@ contract TakerOperationsTest is MangroveTest {
   /* # Clean tests */
   /* Clean parameter validation */
   function test_gives_tick_outside_range_fails_clean() public {
-    uint ofr = mkr.newOfferByTick(0, 1 ether, 100_000);
+    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
     (uint successes,) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 1 << 23, 0, 1)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
+    assertTrue(mgv.best($(base), $(quote)) == ofr, "clean must have left ofr in the book");
   }
 
   function test_gives_volume_above_96bits_fails_clean() public {
-    uint ofr = mkr.newOfferByTick(0, 1 ether, 100_000);
+    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
     (uint successes,) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 0, 1 << 96)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
+    assertTrue(mgv.best($(base), $(quote)) == ofr, "clean must have left ofr in the book");
   }
 
   /* Clean offer state&match validation */
@@ -803,11 +867,12 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_clean_non_live_offer_fails() public {
-    uint ofr = mkr.newOfferByTick(0, 1 ether, 100_000);
-    mkr.retractOffer(ofr);
+    uint ofr = failmkr.newOfferByTick(0, 1 ether, 100_000);
+    failmkr.retractOffer(ofr);
     (uint successes,) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
+    assertTrue(mgv.best($(base), $(quote)) == 0, "clean must not have changed the book");
   }
 
   function test_cleaning_with_exact_offer_details_succeeds() public {
@@ -815,6 +880,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes,) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0)), $(this));
     assertTrue(successes > 0, "cleaning should have succeeded");
+    assertTrue(mgv.best($(base), $(quote)) == 0, "clean must have emptied mgv");
   }
 
   function test_giving_smaller_tick_to_clean_fails() public {
@@ -822,6 +888,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes,) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, -1, 100_000, 0)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
+    assertTrue(mgv.best($(base), $(quote)) == ofr, "clean must have left ofr in the book");
   }
 
   function test_giving_bigger_tick_to_clean_fails() public {
@@ -829,6 +896,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes,) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 1, 100_000, 0)), $(this));
     assertEq(successes, 0, "cleaning should have succeeded");
+    assertTrue(mgv.best($(base), $(quote)) == ofr, "clean must have left ofr in the book");
   }
 
   function test_giving_smaller_gasreq_to_clean_fails() public {
@@ -836,6 +904,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes,) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 99_000, 0)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
+    assertTrue(mgv.best($(base), $(quote)) == ofr, "clean must have left ofr in the book");
   }
 
   function test_giving_bigger_gasreq_to_clean_succeeds() public {
@@ -843,6 +912,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes,) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_001, 0)), $(this));
     assertTrue(successes > 0, "cleaning should have succeeded");
+    assertTrue(mgv.best($(base), $(quote)) == 0, "clean must have emptied mgv");
   }
 
   /* Clean - offer execution */
@@ -865,6 +935,7 @@ contract TakerOperationsTest is MangroveTest {
     (uint successes,) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0)), $(this));
     assertEq(successes, 0, "cleaning should have failed");
+    assertTrue(mgv.best($(base), $(quote)) == ofr, "clean must have left ofr in the book");
   }
 
   function test_cleaning_failing_offer_transfers_bounty() public {
@@ -892,6 +963,7 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(bounty > 0, "cleaning should have yielded a bounty");
     uint balanceAfter = $(this).balance;
     assertEq(balanceBefore + bounty, balanceAfter, "the bounty was not transfered to the cleaner");
+    assertTrue(mgv.best($(base), $(quote)) == 0, "clean must have emptied mgv");
   }
 
   function test_clean_multiple_failing_offers() public {
@@ -933,6 +1005,7 @@ contract TakerOperationsTest is MangroveTest {
 
     assertEq(successes, 2, "both offers should have been cleaned");
     assertEq(newBal, oldBal + bounty, "balance should have increased by bounty");
+    assertTrue(mgv.best($(base), $(quote)) == 0, "clean must have emptied mgv");
   }
 
   function test_cleans_failing_offers_despite_one_not_failing() public {
@@ -986,6 +1059,7 @@ contract TakerOperationsTest is MangroveTest {
 
     assertEq(successes, 2, "cleaning should succeed for all but one offer");
     assertEq(newBal, oldBal + bounty, "balance should have increased by bounty");
+    assertTrue(mgv.best($(base), $(quote)) == ofr2, "clean must have left ofr2 in the book");
   }
 
   function test_cleaning_by_impersonation_succeeds_and_does_not_transfer_funds() public {
@@ -1026,6 +1100,7 @@ contract TakerOperationsTest is MangroveTest {
     (, bounty) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1)), $(otherTkr));
     assertTrue(bounty > 0, "cleaning should have yielded a bounty");
+    assertTrue(mgv.best($(base), $(quote)) == 0, "clean must have emptied mgv");
 
     assertEq(balanceNativeBefore + bounty, $(this).balance, "the bounty was not transfered to the cleaner");
     assertEq(balanceBaseBefore, base.balanceOf($(this)), "taker's base balance should not change");

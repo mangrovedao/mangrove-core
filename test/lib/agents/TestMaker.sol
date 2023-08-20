@@ -4,7 +4,9 @@ pragma solidity ^0.8.13;
 import "mgv_src/AbstractMangrove.sol";
 import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
 import {Test} from "forge-std/Test.sol";
+import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
+import {Tick} from "mgv_lib/TickLib.sol";
 
 contract TrivialTestMaker is IMaker {
   function makerExecute(MgvLib.SingleOrder calldata) external virtual returns (bytes32) {
@@ -20,7 +22,7 @@ struct OfferData {
   string executeData;
 }
 
-contract SimpleTestMaker is TrivialTestMaker {
+contract SimpleTestMaker is TrivialTestMaker, Script2 {
   AbstractMangrove public mgv;
   address public base;
   address public quote;
@@ -29,10 +31,22 @@ contract SimpleTestMaker is TrivialTestMaker {
   bool shouldRevertOnNonZeroGives_; // will revert if makerGives > 0
   bool shouldRepost_; // will try to repost offer with identical parameters
   bytes32 expectedStatus;
+  address tradeCallbackContract; // the `tradeCallback` will be called on this contract during makerExecute
+  bytes tradeCallback;
+  address posthookCallbackContract; // the `posthookCallback` will be called on this contract during makerExecute
+  bytes posthookCallback;
   ///@notice stores parameters for each posted offer
   ///@notice overrides global @shouldFail/shouldReturn if true
 
   mapping(address => mapping(address => mapping(uint => OfferData))) offerDatas;
+
+  ///@notice stores whether makerExecute was called for an offer.
+  ///@notice Only usable when makerExecute does not revert
+  mapping(address => mapping(address => mapping(uint => bool))) offersExecuted;
+
+  ///@notice stores whether makerPosthook was called for an offer.
+  ///@notice Only usable when makerPosthook does not revert
+  mapping(address => mapping(address => mapping(uint => bool))) offersPosthookExecuted;
 
   constructor(AbstractMangrove _mgv, IERC20 _base, IERC20 _quote) {
     mgv = _mgv;
@@ -48,6 +62,32 @@ contract SimpleTestMaker is TrivialTestMaker {
     external
   {
     emit Execute(_mgv, _base, _quote, offerId, takerWants, takerGives);
+  }
+
+  function makerExecuteWasCalled(uint offerId) external view returns (bool) {
+    return makerExecuteWasCalled(base, quote, offerId);
+  }
+
+  function makerExecuteWasCalled(address _base, address _quote, uint offerId) public view returns (bool) {
+    return offersExecuted[_base][_quote][offerId];
+  }
+
+  function makerPosthookWasCalled(uint offerId) external view returns (bool) {
+    return makerPosthookWasCalled(base, quote, offerId);
+  }
+
+  function makerPosthookWasCalled(address _base, address _quote, uint offerId) public view returns (bool) {
+    return offersPosthookExecuted[_base][_quote][offerId];
+  }
+
+  function setTradeCallback(address _tradeCallbackContract, bytes calldata _tradeCallback) external {
+    tradeCallbackContract = _tradeCallbackContract;
+    tradeCallback = _tradeCallback;
+  }
+
+  function setPosthookCallback(address _posthookCallbackContract, bytes calldata _posthookCallback) external {
+    posthookCallbackContract = _posthookCallbackContract;
+    posthookCallback = _posthookCallback;
   }
 
   function shouldRevert(bool should) external {
@@ -79,6 +119,8 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function makerExecute(MgvLib.SingleOrder calldata order) public virtual override returns (bytes32) {
+    offersExecuted[order.outbound_tkn][order.inbound_tkn][order.offerId] = true;
+
     if (shouldRevert_) {
       revert("testMaker/shouldRevert");
     }
@@ -97,6 +139,11 @@ contract SimpleTestMaker is TrivialTestMaker {
       TransferLib.approveToken(IERC20(order.outbound_tkn), address(mgv), 0);
     }
 
+    if (tradeCallbackContract != address(0) && tradeCallback.length > 0) {
+      (bool success,) = tradeCallbackContract.call(tradeCallback);
+      require(success, "makerExecute tradeCallback must work");
+    }
+
     emit Execute(msg.sender, order.outbound_tkn, order.inbound_tkn, order.offerId, order.wants, order.gives);
 
     return bytes32(bytes(offerData.executeData));
@@ -109,10 +156,16 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) public virtual override {
+    offersPosthookExecuted[order.outbound_tkn][order.inbound_tkn][order.offerId] = true;
     order; //shh
     result; //shh
     if (_shouldFailHook) {
       revert("posthookFail");
+    }
+
+    if (posthookCallbackContract != address(0) && posthookCallback.length > 0) {
+      (bool success,) = posthookCallbackContract.call(posthookCallback);
+      require(success, "makerExecute posthookCallback must work");
     }
 
     if (shouldRepost_) {
@@ -232,7 +285,18 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function newOfferByTick(int tick, uint gives, uint gasreq, uint gasprice) public returns (uint) {
-    return newOfferByTickWithFunding(base, quote, tick, gives, gasreq, gasprice, 0);
+    return newOfferByTick(base, quote, tick, gives, gasreq, gasprice);
+  }
+
+  function newOfferByTick(address _base, address _quote, int tick, uint gives, uint gasreq) public returns (uint) {
+    return newOfferByTick(_base, _quote, tick, gives, gasreq, 0);
+  }
+
+  function newOfferByTick(address _base, address _quote, int tick, uint gives, uint gasreq, uint gasprice)
+    public
+    returns (uint)
+  {
+    return newOfferByTickWithFunding(_base, _quote, tick, gives, gasreq, gasprice, 0);
   }
 
   function newOfferByTickWithFunding(
@@ -268,8 +332,12 @@ contract SimpleTestMaker is TrivialTestMaker {
   }
 
   function updateOfferByVolume(uint wants, uint gives, uint gasreq, uint offerId) public {
+    updateOfferByVolume(base, quote, wants, gives, gasreq, offerId);
+  }
+
+  function updateOfferByVolume(address _base, address _quote, uint wants, uint gives, uint gasreq, uint offerId) public {
     OfferData memory offerData;
-    updateOfferByVolumeWithFunding(wants, gives, gasreq, offerId, 0, offerData);
+    updateOfferByVolumeWithFunding(_base, _quote, wants, gives, gasreq, offerId, 0, offerData);
   }
 
   function updateOfferByVolumeWithFunding(uint wants, uint gives, uint gasreq, uint offerId, uint amount) public {
@@ -285,12 +353,29 @@ contract SimpleTestMaker is TrivialTestMaker {
     uint amount,
     OfferData memory offerData
   ) public {
-    mgv.updateOfferByVolume{value: amount}(base, quote, wants, gives, gasreq, 0, offerId);
+    updateOfferByVolumeWithFunding(base, quote, wants, gives, gasreq, offerId, amount, offerData);
+  }
+
+  function updateOfferByVolumeWithFunding(
+    address _base,
+    address _quote,
+    uint wants,
+    uint gives,
+    uint gasreq,
+    uint offerId,
+    uint amount,
+    OfferData memory offerData
+  ) public {
+    mgv.updateOfferByVolume{value: amount}(_base, _quote, wants, gives, gasreq, 0, offerId);
     offerDatas[base][quote][offerId] = offerData;
   }
 
   function retractOffer(uint offerId) public returns (uint) {
-    return mgv.retractOffer(base, quote, offerId, false);
+    return retractOffer(base, quote, offerId);
+  }
+
+  function retractOffer(address _base, address _quote, uint offerId) public returns (uint) {
+    return mgv.retractOffer(_base, _quote, offerId, false);
   }
 
   function retractOfferWithDeprovision(uint offerId) public returns (uint) {
@@ -307,6 +392,33 @@ contract SimpleTestMaker is TrivialTestMaker {
 
   function mgvBalance() public view returns (uint) {
     return mgv.balanceOf(address(this));
+  }
+
+  // Taker functions
+  function marketOrderByVolume(uint takerWants, uint takerGives) public returns (uint takerGot, uint takerGave) {
+    return marketOrderByVolume(base, quote, takerWants, takerGives);
+  }
+
+  function marketOrderByVolume(address _base, address _quote, uint takerWants, uint takerGives)
+    public
+    returns (uint takerGot, uint takerGave)
+  {
+    (takerGot, takerGave,,) = mgv.marketOrderByVolume(_base, _quote, takerWants, takerGives, true);
+  }
+
+  function clean(uint offerId, uint takerWants) public returns (bool success) {
+    return clean(base, quote, offerId, takerWants);
+  }
+
+  function clean(address _base, address _quote, uint offerId, uint takerWants) public returns (bool success) {
+    Tick tick = mgv.offers(_base, _quote, offerId).tick();
+    (uint successes,) = mgv.cleanByImpersonation(
+      _base,
+      _quote,
+      wrap_dynamic(MgvLib.CleanTarget(offerId, Tick.unwrap(tick), type(uint48).max, takerWants)),
+      address(this)
+    );
+    return successes > 0;
   }
 }
 

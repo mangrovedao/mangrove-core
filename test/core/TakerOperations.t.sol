@@ -294,8 +294,9 @@ contract TakerOperationsTest is MangroveTest {
 
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerTransferFail");
-    vm.expectEmit(true, false, false, false, $(mgv));
-    emit Credit($(refusemkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit Credit($(refusemkr), 0 /*mkr_provision - penalty*/ );
     (uint successes,) = mgv.cleanByImpersonation(
       $(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, Tick.unwrap(offerTick), 100_000, 1 ether)), $(this)
     );
@@ -329,8 +330,9 @@ contract TakerOperationsTest is MangroveTest {
 
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerTransferFail");
-    vm.expectEmit(true, false, false, false, $(mgv));
-    emit Credit($(mkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit Credit($(mkr), 0 /*mkr_provision - penalty*/ );
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
@@ -352,8 +354,9 @@ contract TakerOperationsTest is MangroveTest {
 
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerReceiveFail");
-    vm.expectEmit(true, false, false, false, $(mgv));
-    emit Credit($(mkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit Credit($(mkr), 0 /*mkr_provision - penalty*/ );
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
@@ -384,8 +387,9 @@ contract TakerOperationsTest is MangroveTest {
 
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 1 ether, 1 ether, "mgv/makerRevert");
-    vm.expectEmit(true, false, false, false, $(mgv));
-    emit Credit($(failmkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByTick($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
@@ -952,11 +956,12 @@ contract TakerOperationsTest is MangroveTest {
     emit Transfer($(mgv), $(failmkr), 0 ether);
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 0 ether, 0 ether, "mgv/makerRevert");
-    vm.expectEmit(true, false, false, false, $(mgv));
-    emit Credit($(failmkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
 
-    vm.expectEmit(true, true, true, false, $(mgv)); // Not checking data here as penalty is difficult to maintain
-    emit OrderComplete($(base), $(quote), $(this), 0 ether, 0 ether, 0, 0);
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit OrderComplete($(base), $(quote), $(this), 0 ether, 0 ether, 0, /*penalty*/ 0);
 
     (, uint bounty) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0)), $(this));
@@ -984,8 +989,9 @@ contract TakerOperationsTest is MangroveTest {
     emit Transfer($(mgv), $(failmkr), 0 ether);
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 0 ether, 0 ether, "mgv/makerRevert");
-    vm.expectEmit(true, false, false, false, $(mgv));
-    emit Credit($(failmkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
 
     expectFrom($(quote));
     emit Transfer($(this), $(mgv), 0 ether);
@@ -993,11 +999,12 @@ contract TakerOperationsTest is MangroveTest {
     emit Transfer($(mgv), $(failmkr), 0 ether);
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr2, $(this), 0 ether, 0 ether, "mgv/makerRevert");
-    vm.expectEmit(true, false, false, false, $(mgv));
-    emit Credit($(failmkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
 
-    vm.expectEmit(true, true, true, false, $(mgv)); // Not checking data here as penalty is difficult to maintain
-    emit OrderComplete($(base), $(quote), $(this), 0 ether, 0 ether, 0, 0);
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit OrderComplete($(base), $(quote), $(this), 0 ether, 0 ether, 0, /*penalty1 + penalty2*/ 0);
 
     (uint successes, uint bounty) = mgv.cleanByImpersonation($(base), $(quote), targets, $(this));
 
@@ -1031,8 +1038,9 @@ contract TakerOperationsTest is MangroveTest {
     emit Transfer($(mgv), $(failmkr), 0 ether);
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(this), 0 ether, 0 ether, "mgv/makerRevert");
-    vm.expectEmit(true, false, false, false, $(mgv));
-    emit Credit($(failmkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
 
     expectFrom($(quote));
     emit Transfer($(this), $(mgv), 0 ether);
@@ -1047,11 +1055,12 @@ contract TakerOperationsTest is MangroveTest {
     emit Transfer($(mgv), $(failmkr), 0 ether);
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr3, $(this), 0 ether, 0 ether, "mgv/makerRevert");
-    vm.expectEmit(true, false, false, false, $(mgv));
-    emit Credit($(failmkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
 
-    vm.expectEmit(true, true, true, false, $(mgv)); // Not checking data here as penalty is difficult to maintain
-    emit OrderComplete($(base), $(quote), $(this), 0 ether, 0 ether, 0, 0);
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit OrderComplete($(base), $(quote), $(this), 0 ether, 0 ether, 0, /*penalty1 + penalty3*/ 0);
 
     (uint successes, uint bounty) = mgv.cleanByImpersonation($(base), $(quote), targets, $(this));
 
@@ -1091,11 +1100,12 @@ contract TakerOperationsTest is MangroveTest {
     emit Transfer($(mgv), $(failNonZeroMkr), 1);
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, $(otherTkr), 1, 1, "mgv/makerRevert");
-    vm.expectEmit(true, false, false, false, $(mgv));
-    emit Credit($(failNonZeroMkr), 0); // credited amount should be "mkr_provision - penalty"; Not including this in the emit assertion, as penalty is difficult to maintain.
+    //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit Credit($(failNonZeroMkr), 0 /*mkr_provision - penalty*/ );
 
-    vm.expectEmit(true, true, true, false, $(mgv)); // Not checking data here as penalty is difficult to maintain
-    emit OrderComplete($(base), $(quote), $(this), 0 ether, 0 ether, 0, 0);
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit OrderComplete($(base), $(quote), $(this), 0 ether, 0 ether, 0, /*penalty*/ 0);
 
     (, bounty) =
       mgv.cleanByImpersonation($(base), $(quote), wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1)), $(otherTkr));

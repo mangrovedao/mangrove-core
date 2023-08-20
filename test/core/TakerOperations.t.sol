@@ -84,7 +84,9 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(weiBalanceBefore, mgv.balanceOf($(this)), "Taker should not take bounty");
   }
 
-  // FIXME: Not sure what this tests?
+  // The purpose of this test is to make sure inbound volumes are rounded up when partially
+  // taking an offer i.e. you can't have the taker pay 0 if the maker sends > 0 to the taker.
+  // The test sets this up with a wants=9, gives=10 offer, and the taker asks for a volume of 1.
   function test_taker_cannot_drain_maker() public {
     mgv.setDensityFixed($(base), $(quote), 0);
     quote.approve($(mgv), 1 ether);

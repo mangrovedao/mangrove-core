@@ -330,6 +330,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     address taker
   ) external returns (uint successes, uint bounty) {
     unchecked {
+      emit OrderStart();
+
       for (uint i = 0; i < targets.length; ++i) {
         bytes memory encodedCall;
         {
@@ -356,6 +358,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         }
       }
       sendPenalty(bounty);
+
+      emit OrderComplete(outbound_tkn, inbound_tkn, msg.sender, 0, 0, bounty, 0);
     }
   }
 
@@ -405,8 +409,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
       require(Tick.unwrap(sor.offer.tick()) == tick, "mgv/clean/tickMismatch");
 
-      emit OrderStart();
-
       /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
       sor.local = sor.local.lock(true);
       pair.local = sor.local;
@@ -441,11 +443,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
 
       bounty = mor.totalPenalty;
-
-      /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
-      //+clear+
-
-      emit OrderComplete(outbound_tkn, inbound_tkn, taker, 0, 0, bounty, 0);
     }
   }
 

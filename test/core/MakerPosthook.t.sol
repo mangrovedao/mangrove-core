@@ -98,7 +98,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectFrom($(mgv));
     // FIXME why does this pass?
     emit OfferWrite($(base), $(quote), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
-    bool success = tkr.take(ofr, 0.5 ether);
+    bool success = tkr.marketOrderWithSuccess(0.5 ether);
     assertTrue(success, "Snipe should succeed");
     assertTrue(called, "PostHook not called");
 
@@ -125,7 +125,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     // FIXME why does this expect pass?
     expectFrom($(mgv));
     emit OfferWrite($(base), $(quote), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
-    bool success = tkr.take(ofr, 2 ether);
+    bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(called, "PostHook not called");
     assertTrue(success, "Snipe should succeed");
 
@@ -145,7 +145,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     expectFrom($(mgv));
     emit OfferWrite($(base), $(quote), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
-    bool success = tkr.take(ofr, 2 ether);
+    bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(!success, "Snipe should fail");
     assertTrue(called, "PostHook not called");
 
@@ -168,6 +168,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function treat_fail_at_posthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata res) internal {
+    called = true;
     bool success = (res.mgvData == "mgv/tradeSuccess");
     assertTrue(!success, "Offer should be marked as failed");
     assertTrue(res.makerData == bExecuteRevertData, "Incorrect maker data");
@@ -183,8 +184,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     makerRevert = true;
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert");
-    bool success = tkr.take(ofr, 1 ether);
-    assertTrue(!success, "Snipe should fail");
+    bool success = tkr.marketOrderWithSuccess(1 ether);
+    assertTrue(!success, "market order should fail");
+    assertTrue(called, "PostHook not called");
     assertEq(base.balanceOf($(this)), balMaker, "Maker should not have been debited of her base tokens");
     assertEq(quote.balanceOf(address(tkr)), balTaker, "Taker should not have been debited of her quote tokens");
   }
@@ -198,8 +200,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert");
-    bool success = tkr.take(ofr, 1 ether);
-    assertTrue(!success, "Snipe should fail");
+    bool success = tkr.marketOrderWithSuccess(1 ether);
+    assertTrue(!success, "market order should fail");
+    assertTrue(called, "PostHook not called");
     assertEq(base.balanceOf($(this)), balMaker, "Maker should not have been debited of her base tokens");
     assertEq(quote.balanceOf(address(tkr)), balTaker, "Taker should not have been debited of her quote tokens");
   }
@@ -219,8 +222,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     expectFrom($(mgv));
     emit OfferWrite($(base), $(quote), $(this), 0, 1 ether, _gasprice, gasreq, ofr);
-    bool success = tkr.take(ofr, 2 ether);
-    assertTrue(success, "Snipe should succeed");
+    bool success = tkr.marketOrderWithSuccess(2 ether);
+    assertTrue(success, "market order should succeed");
     assertTrue(called, "PostHook not called");
 
     assertEq(
@@ -236,28 +239,27 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
 
-    bool success = tkr.snipeByVolume(ofr, 1 ether, gasreq - 1);
+    Tick offerTick = mgv.offers($(base), $(quote), ofr).tick();
+    assertFalse(tkr.cleanByTick(ofr, offerTick, 1 ether, gasreq - 1), "clean should fail");
     assertTrue(!called, "PostHook was called");
-    assertTrue(!success, "Snipe should fail");
   }
 
   function test_alter_revert_data() public {
     executeReturnData = "NOK2";
     ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
 
-    bool success = tkr.snipeByVolume(ofr, 1 ether, gasreq - 1);
+    Tick offerTick = mgv.offers($(base), $(quote), ofr).tick();
+    assertFalse(tkr.cleanByTick(ofr, offerTick, 1 ether, gasreq - 1), "clean should fail");
     // using asserts in makerPosthook here
     assertTrue(!called, "PostHook was called");
-    assertTrue(!success, "Snipe should fail");
   }
 
   function test_posthook_of_skipped_offer_wrong_price_should_not_be_called() public {
     _posthook = failer_posthook;
     ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
     Tick offerTick = mgv.offers($(base), $(quote), ofr).tick();
-    Tick snipeTick = Tick.wrap(Tick.unwrap(offerTick) - 1); // Snipe at a lower price tick
-    bool success = tkr.snipeByTick(ofr, snipeTick, 1 ether, gasreq);
-    assertTrue(!success, "Snipe should fail");
+    Tick cleanTick = Tick.wrap(Tick.unwrap(offerTick) - 1); // Snipe at a lower price tick
+    assertFalse(tkr.cleanByTick(ofr, cleanTick, 1 ether, gasreq), "clean should fail");
     assertTrue(!called, "PostHook was called");
   }
 
@@ -276,8 +278,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     emit Credit($(this), mkr_provision);
     expectFrom($(mgv));
     emit OfferRetract($(base), $(quote), ofr, true);
-    bool success = tkr.take(ofr, 2 ether);
-    assertTrue(success, "Snipe should succeed");
+    bool success = tkr.marketOrderWithSuccess(2 ether);
+    assertTrue(success, "market order should succeed");
     assertTrue(called, "PostHook not called");
 
     assertEq(
@@ -305,8 +307,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(this), 0 /*penalty*/ );
-    bool success = tkr.take(ofr, 2 ether);
-    assertTrue(!success, "Snipe should fail");
+    bool success = tkr.marketOrderWithSuccess(2 ether);
+    assertTrue(!success, "market order should fail");
+    assertTrue(called, "PostHook not called");
     uint penalty = weiBalMaker - mgv.balanceOf($(this));
     assertEq(penalty, address(tkr).balance - tkr_weis, "Incorrect overall balance after penalty for taker");
   }
@@ -318,10 +321,10 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     emit OfferSuccess($(base), $(quote), ofr, address(tkr), 1 ether, 1 ether);
     expectFrom($(mgv));
     emit OfferRetract($(base), $(quote), ofr, true);
-    bool success = tkr.take(ofr, 2 ether);
+    bool success = tkr.marketOrderWithSuccess(2 ether);
+    assertTrue(success, "market order should succeed");
     assertTrue(called, "PostHook not called");
 
-    assertTrue(success, "Snipe should succeed");
     mgv.updateOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice, ofr);
   }
 
@@ -333,11 +336,11 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_best_in_posthook_is_correct() public {
     mgv.newOfferByVolume($(base), $(quote), 2 ether, 1 ether, gasreq, _gasprice);
     ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
-    uint best = mgv.newOfferByVolume($(base), $(quote), 0.5 ether, 1 ether, gasreq, _gasprice);
+    mgv.newOfferByVolume($(base), $(quote), 0.5 ether, 1 ether, gasreq, _gasprice);
     _posthook = check_best_in_posthook;
-    bool success = tkr.take(best, 1 ether);
+    bool success = tkr.marketOrderWithSuccess(1 ether);
     assertTrue(called, "PostHook not called");
-    assertTrue(success, "Snipe should succeed");
+    assertTrue(success, "market order should succeed");
   }
 
   function check_offer_in_posthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata) internal {
@@ -357,9 +360,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_check_offer_in_posthook() public {
     ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 2 ether, gasreq, 500);
     _posthook = check_offer_in_posthook;
-    bool success = tkr.take(ofr, 2 ether);
+    bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(called, "PostHook not called");
-    assertTrue(success, "Snipe should succeed");
+    assertTrue(success, "market order should succeed");
   }
 
   function check_lastId_in_posthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata) internal {
@@ -372,9 +375,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
     ofr = mgv.newOfferByVolume($(base), $(quote), 0.5 ether, 1 ether, gasreq, _gasprice);
     _posthook = check_lastId_in_posthook;
-    bool success = tkr.take(ofr, 1 ether);
+    bool success = tkr.marketOrderWithSuccess(1 ether);
     assertTrue(called, "PostHook not called");
-    assertTrue(success, "Snipe should succeed");
+    assertTrue(success, "market order should succeed");
   }
 
   function test_retract_offer_after_fail_in_posthook() public {
@@ -394,10 +397,10 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(this), 0 /*refund*/ );
-    bool success = tkr.take(ofr, 2 ether);
+    bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(called, "PostHook not called");
 
-    assertTrue(!success, "Snipe should fail");
+    assertTrue(!success, "market order should fail");
 
     assertLt(mgv.balanceOf($(this)), weiBalMaker, "Maker balance after take should be less than original balance");
   }
@@ -405,14 +408,13 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_makerRevert_is_logged() public {
     ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
     makerRevert = true; // maker should fail
-    bool success;
     expectFrom($(mgv));
     emit OfferFail($(base), $(quote), ofr, address(tkr), 1 ether, 1 ether, "mgv/makerRevert");
-    success = tkr.take(ofr, 2 ether);
+    tkr.marketOrderWithSuccess(2 ether);
   }
 
   function reverting_posthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) internal pure {
-    assert(false);
+    revert("reverting_posthook");
   }
 
   function test_reverting_posthook_does_not_revert_offer() public {
@@ -422,8 +424,12 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     _posthook = reverting_posthook;
 
     ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, gasreq, _gasprice);
-    bool success = tkr.take(ofr, 1 ether);
-    assertTrue(success, "snipe should succeed");
+
+    expectFrom($(mgv));
+    emit PosthookFail($(base), $(quote), ofr, "reverting_posthook");
+
+    bool success = tkr.marketOrderWithSuccess(1 ether);
+    assertTrue(success, "order should succeed");
     assertEq(balMaker - 1 ether, base.balanceOf($(this)), "Incorrect maker balance");
     assertEq(balTaker - 1 ether, quote.balanceOf(address(tkr)), "Incorrect taker balance");
   }

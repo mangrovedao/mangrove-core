@@ -1045,7 +1045,7 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(pair.local().tickPosInLeaf(), tick.posInLeaf(), "wrong local.tickPosInleaf");
     assertEq(best.prev(), 0, "best.prev should be 0");
     Leaf emptyLeaf = leaf.setTickFirst(tick, 0).setTickLast(tick, 0);
-    assertTrue(emptyLeaf.isEmpty(), "leaf should have not other tick used");
+    assertTrue(emptyLeaf.isEmpty(), "leaf should not have other tick used");
     // console.log(toString(pair.leafs(leafIndex)));
   }
 }

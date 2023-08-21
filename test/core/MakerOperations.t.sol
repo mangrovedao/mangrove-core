@@ -133,7 +133,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     mkr.setShouldFailHook(true);
     expectFrom($(mgv));
-    emit PosthookFail(ofr, "posthookFail");
+    emit PosthookFail("posthookFail");
     tkr.take(ofr, 0.1 ether); // fails but we don't care
   }
 

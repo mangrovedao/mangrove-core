@@ -647,7 +647,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       gasused = oldGas - gasleft();
 
       if (!callSuccess) {
-        emit PosthookFail(sor.offerId, posthookData);
+        emit PosthookFail(posthookData);
       }
     }
   }
@@ -709,7 +709,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       // FIXME: Emitting OfferFail here means it'll be emitted after any posthook events... Is that what we want?
       // emit OfferFail(sor.offerId, sor.wants, sor.gives, penalty, mgvData);
       // FIXME: Alternatively, we can emit a OfferPenalty event here and then keep the OfferFail event where it was detected?
-      emit OfferPenalty(sor.offerId, penalty);
+      emit OfferPenalty(penalty);
 
       /* Here we write to storage the new maker balance. This occurs _after_ possible reentrant calls. How do we know we're not crediting twice the same amounts? Because the `offer`'s provision was set to 0 in storage (through `dirtyDeleteOffer`) before the reentrant calls. In this function, we are working with cached copies of the offer as it was before it was consumed. */
       creditWei(sor.offerDetail.maker(), provision - penalty);

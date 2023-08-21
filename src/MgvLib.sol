@@ -85,13 +85,13 @@ contract HasMgvEvents {
     uint fillVolume,
     bool fillWants
   );
-  // FIXME: got, gave, bounty, and fee can be derived from previous events. 
+  // FIXME: got, gave, bounty, and fee can be derived from previous events.
   // FIXME: Well, fees aren't actually explicitly included in any event... Could be included here or in OfferSuccess
   event OrderComplete(uint fee);
 
   /* * Offer execution */
   event OfferSuccess(
-    uint id, // FIXME: This could be inferred by indexing the book and simply walking it.
+    uint id, // FIXME: id could be inferred by indexing the book and simply walking it.
     uint takerGot, // FIXME: The same goes for this and takerGave, since we can simulate the trade.
     uint takerGave
     // FIXME: Include fee?
@@ -107,10 +107,10 @@ contract HasMgvEvents {
     bytes32 mgvData
   );
 
-  event OfferPenalty(uint id, uint penalty);
+  event OfferPenalty(uint penalty); // FIXME: The offer id can be inferred from the preceding OfferFail event
 
   /* Log information when a posthook reverts */
-  event PosthookFail(uint offerId, bytes32 posthookData);
+  event PosthookFail(bytes32 posthookData); // FIXME: The offer id can be inferred from the preceding OfferFail event
 
   /* * After `permit` and `approve` */
   event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);

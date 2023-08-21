@@ -91,6 +91,7 @@ contract HasMgvEvents {
 
   /* * Offer execution */
   event OfferSuccess(
+    address indexed maker, // FIXME: Included since consumers cannot be assumed to know the maker
     uint id, // FIXME: id could be inferred by indexing the book and simply walking it.
     uint takerGot, // FIXME: The same goes for this and takerGave, since we can simulate the trade.
     uint takerGave
@@ -99,6 +100,7 @@ contract HasMgvEvents {
 
   /* Log information when a trade execution reverts or returns a non empty bytes32 word */
   event OfferFail(
+    address indexed maker,
     uint id,
     uint takerWants,
     uint takerGives,
@@ -137,7 +139,7 @@ contract HasMgvEvents {
   event OfferWrite(
     address indexed outbound_tkn,
     address indexed inbound_tkn,
-    address maker,
+    address indexed maker,
     int tick,
     uint gives,
     uint gasprice,
@@ -146,7 +148,13 @@ contract HasMgvEvents {
   );
 
   /* * `offerId` was present and is now removed from the book. */
-  event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id, bool deprovision);
+  event OfferRetract(
+    address indexed outbound_tkn,
+    address indexed inbound_tkn,
+    address indexed maker,
+    uint id,
+    bool deprovision
+  );
 }
 
 /* # IMaker interface */

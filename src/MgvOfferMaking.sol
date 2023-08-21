@@ -200,7 +200,7 @@ contract MgvOfferMaking is MgvHasOffers {
         // credit `balanceOf` and log transfer
         creditWei(msg.sender, provision);
       }
-      emit OfferRetract(outbound_tkn, inbound_tkn, offerId, deprovision);
+      emit OfferRetract(outbound_tkn, inbound_tkn, offerDetail.maker(), offerId, deprovision);
     }
   }
 

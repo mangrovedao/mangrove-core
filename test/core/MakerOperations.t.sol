@@ -160,7 +160,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 2300, 0);
     expectFrom($(mgv));
-    emit OfferRetract($(base), $(quote), ofr, true);
+    emit OfferRetract($(base), $(quote), $(mkr), ofr, true);
     mkr.retractOfferWithDeprovision(ofr);
   }
 
@@ -205,7 +205,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOfferByVolume(0.9 ether, 1 ether, 2300, 100);
     expectFrom($(mgv));
-    emit OfferRetract($(base), $(quote), ofr, false);
+    emit OfferRetract($(base), $(quote), $(mkr), ofr, false);
     mkr.retractOffer(ofr);
   }
 

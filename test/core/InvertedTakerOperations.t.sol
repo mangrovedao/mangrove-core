@@ -128,9 +128,9 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     _takerTrade = reenter;
     expectFrom($(mgv));
-    emit OfferSuccess(1, 0.1 ether, 0.1 ether);
+    emit OfferSuccess($(mkr), 1, 0.1 ether, 0.1 ether);
     expectFrom($(mgv));
-    emit OfferSuccess(2, 0.1 ether, 0.1 ether);
+    emit OfferSuccess($(mkr), 2, 0.1 ether, 0.1 ether);
     (uint got, uint gave,,) = mgv.marketOrderByVolume($(base), $(quote), 0.1 ether, 0.1 ether, true);
     assertEq(quoteBalance - gave - 0.1 ether, quote.balanceOf($(this)), "Incorrect transfer (gave) during reentrancy");
     assertEq(baseBalance + got + 0.1 ether, base.balanceOf($(this)), "Incorrect transfer (got) during reentrancy");

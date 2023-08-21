@@ -501,7 +501,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
         mgvData = bytes32("mgv/tradeSuccess");
-        emit OfferSuccess(sor.offerId, sor.wants, sor.gives);
+        emit OfferSuccess(sor.offerDetail.maker(), sor.offerId, sor.wants, sor.gives);
 
         /* If configured to do so, Mangrove notifies an external contract that a successful trade has taken place. */
         if (sor.global.notify()) {
@@ -519,7 +519,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {
           // FIXME: Why don't we pay the penalty here? Because we may use more gas and thus incur a bigger penalty, according to a comment higher up.
           // FIXME: Why don't we emit this later then?
-          emit OfferFail(sor.offerId, sor.wants, sor.gives, mgvData);
+          emit OfferFail(sor.offerDetail.maker(), sor.offerId, sor.wants, sor.gives, mgvData);
 
           /* If configured to do so, Mangrove notifies an external contract that a failed trade has taken place. */
           if (sor.global.notify()) {

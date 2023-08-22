@@ -95,6 +95,25 @@ contract GenericFork is Script {
   }
 
   function readAddresses(string memory category) internal returns (Record[] memory) {
+    Record[] memory records = readEnvAddresses(category);
+    string memory pathFromRoot = addressesFileRoot(category);
+
+    bool readRoot = vm.envOr("READ_ROOT_ADDRESSES", true);
+    if (!readRoot) {
+      return records;
+    }
+    Record[] memory rootRecords = readAddressesFromFileName(pathFromRoot);
+    Record[] memory allRecords = new Record[](records.length + rootRecords.length);
+    for (uint i = 0; i < records.length; i++) {
+      allRecords[i] = records[i];
+    }
+    for (uint i = 0; i < rootRecords.length; i++) {
+      allRecords[records.length + i] = rootRecords[i];
+    }
+    return allRecords;
+  }
+
+  function readEnvAddresses(string memory category) internal returns (Record[] memory) {
     string memory paths = vm.envString("MGV_ADDRESSES_PATHS");
     if (bytes(paths).length > 0) {
       console.log("Fork: reading addresses from paths %s", paths);

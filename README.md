@@ -93,7 +93,7 @@ export MGV_ADDRESSES_PATHS='{ "paths": ["/addresses/"] }'
 export READ_ROOT_ADDRESSES=false
 ```
 
-In this example we disable the default path and set the path to `/addresses/`. Remember the path is relativ to the project root. This way you can easily read addresses from multiple sources.
+In this example we disable the default path and set the path to `/addresses/`. Remember the path is relative to the project root. This way you can easily read addresses from multiple sources.
 
 ## Tests
 

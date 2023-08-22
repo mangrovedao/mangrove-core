@@ -98,7 +98,7 @@ contract GenericFork is Script {
     Record[] memory records = readEnvAddresses(category);
     string memory pathFromRoot = addressesFileRoot(category);
 
-    bool readRoot = vm.envOr("READ_ROOT_ADDRESSES", true);
+    bool readRoot = vm.envOr("MGV_READ_ROOT_ADDRESSES", true);
     if (!readRoot) {
       return records;
     }

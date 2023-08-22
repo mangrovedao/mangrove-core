@@ -114,7 +114,8 @@ contract GenericFork is Script {
   }
 
   function readEnvAddresses(string memory category) internal returns (Record[] memory) {
-    string memory paths = vm.envString("MGV_ADDRESSES_PATHS");
+    string memory defaultPath = "";
+    string memory paths = vm.envOr("MGV_ADDRESSES_PATHS", defaultPath);
     if (bytes(paths).length > 0) {
       console.log("Fork: reading addresses from paths %s", paths);
       bytes memory encodedPaths = vm.parseJson(paths);

@@ -25,32 +25,32 @@ For Linux or macOS everything should work out of the box, if you are using Windo
 
 1. [Node.js](https://nodejs.org/en/) 14.14+, we recommend installation through [nvm](https://github.com/nvm-sh/nvm#installing-and-updating), e.g.:
 
-    ```shell
-    $ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
-    # Reopen shell
-    $ nvm install --lts
-    ```
+   ```shell
+   $ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+   # Reopen shell
+   $ nvm install --lts
+   ```
 
 2. [Yarn 2](https://yarnpkg.com/getting-started/install), with Node.js >= 16.10:
 
-    ```shell
-    $ corepack enable
-    ```
+   ```shell
+   $ corepack enable
+   ```
 
 3. [Foundry](https://book.getfoundry.sh/getting-started/installation.html):
 
-    ```shell
-    $ curl -L https://foundry.paradigm.xyz | bash
-    # Reopen shell
-    $ foundryup
-    ```
+   ```shell
+   $ curl -L https://foundry.paradigm.xyz | bash
+   # Reopen shell
+   $ foundryup
+   ```
 
 4. Clone the git repo with sub-modules
 
-    ```shell
-    $ git clone --recurse-submodules https://github.com/mangrovedao/mangrove-core.git
-    # Or set the global git config once: git config --global submodule.recurse true
-    ```
+   ```shell
+   $ git clone --recurse-submodules https://github.com/mangrovedao/mangrove-core.git
+   # Or set the global git config once: git config --global submodule.recurse true
+   ```
 
 # Usage
 
@@ -80,6 +80,21 @@ To build, run
 $ yarn build
 ```
 
+## Addresses
+
+When writing scripts that uses the `Generic.sol` script, you can control what addresses are read.
+
+By default, it will try and look into the `{projectRoot}/addresses` folder, this can be disabled by setting `MGV_READ_ROOT_ADDRESSES` to false.
+
+If you want to read addresses from other folders, you can set `MGV_ADDRESSES_PATHS` to the paths addresses should be read from. The variable is a JSON string, here is an example:
+
+```shell
+export MGV_ADDRESSES_PATHS='{ "paths": ["/addresses/"] }'
+export MGV_READ_ROOT_ADDRESSES=false
+```
+
+In this example we disable the default path and set the path to `/addresses/`. Remember the path is relative to the project root. This way you can easily read addresses from multiple sources.
+
 ## Tests
 
 To run all tests in the package, just run `yarn test`.
@@ -89,7 +104,6 @@ This package contains a comprehensive test suite for Mangrove, implemented in So
 The tests are located in [./test](./test).
 
 Refer to the documentation of [Foundry](https://book.getfoundry.sh/index.html) for details on how tests are structured and options for running it.
-
 
 # Foundry and its use in this package
 

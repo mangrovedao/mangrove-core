@@ -82,7 +82,11 @@ $ yarn build
 
 ## Addresses
 
-When writing scripts that uses the `Generic.sol` script, you can control what addresses are read As default it will try and look into the `{projectRoot}/addresses` folder, this can be disabled by setting `READ_ROOT_ADDRESSES` to false. If you want to read addresses from a different folder, you can set `READ_ADDRESSES_FROM` to the path of the folder you want to read from, the variable is a JSON string, here is an example:
+When writing scripts that uses the `Generic.sol` script, you can control what addresses are read.
+
+By default, it will try and look into the `{projectRoot}/addresses` folder, this can be disabled by setting `READ_ROOT_ADDRESSES` to false.
+
+If you want to read addresses from other folders, you can set `READ_ADDRESSES_FROM` to the paths addresses should be read from. The variable is a JSON string, here is an example:
 
 ```shell
 export MGV_ADDRESSES_PATHS='{ "paths": ["/addresses/"] }'

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {Script, console} from "forge-std/Script.sol";
+import {Script, console, stdJson} from "forge-std/Script.sol";
 import {ToyENS} from "mgv_lib/ToyENS.sol";
 
 /* A record entry in an addresses JSON file */
@@ -74,44 +74,56 @@ contract GenericFork is Script {
 
   /* Read addresses from JSON files */
 
-  function addressesFile(string memory root, string memory category, string memory suffix)
+  function addressesFile(string memory pathFromRoot, string memory category, string memory suffix)
     public
     view
     returns (string memory)
   {
-    return string.concat(root, "/addresses/", category, "/", NETWORK, suffix, ".json");
-  }
-
-  function addressesFileCore(string memory category, string memory suffix) public view returns (string memory) {
-    return addressesFile(string.concat(vm.projectRoot(), "/lib/mangrove-core.git"), category, suffix);
+    return string.concat(vm.projectRoot(), pathFromRoot, category, "/", NETWORK, suffix, ".json");
   }
 
   function addressesFileRoot(string memory category, string memory suffix) public view returns (string memory) {
-    return addressesFile(vm.projectRoot(), category, suffix);
-  }
-
-  function addressesFileCore(string memory category) public view returns (string memory) {
-    return addressesFileCore(category, "");
+    return addressesFile("addresses", category, suffix);
   }
 
   function addressesFileRoot(string memory category) public view returns (string memory) {
-    return addressesFileRoot(category, "");
+    return addressesFile("addresses", category, "");
+  }
+
+  struct Paths {
+    string[] paths;
   }
 
   function readAddresses(string memory category) internal returns (Record[] memory) {
-    string memory fileNameNodeModules = addressesFileCore(category);
-    Record[] memory recordsFromNodeModules = readAddressesFromFileName(fileNameNodeModules);
-    string memory fileNameRoot = addressesFileRoot(category);
-    Record[] memory recordsFromRoot = readAddressesFromFileName(fileNameRoot);
-    Record[] memory records = new Record[](recordsFromNodeModules.length + recordsFromRoot.length);
-    uint i = 0;
-    for (; i < recordsFromNodeModules.length; i++) {
-      records[i] = recordsFromNodeModules[i];
+    string memory paths = vm.envString("MGV_ADDRESSES_PATHS");
+    if (bytes(paths).length > 0) {
+      console.log("Fork: reading addresses from paths %s", paths);
+      bytes memory encodedPaths = vm.parseJson(paths);
+      Paths memory pathsAsArray = abi.decode(encodedPaths, (Paths));
+      Record[][] memory allRecords = new Record[][](pathsAsArray.paths.length);
+      for (uint i = 0; i < pathsAsArray.paths.length; i++) {
+        string memory pathFromRoot = addressesFile(pathsAsArray.paths[i], category, "");
+        Record[] memory records = readAddressesFromFileName(pathFromRoot);
+        if (records.length > 0) {
+          allRecords[i] = records;
+        }
+      }
+      uint totalLength = 0;
+      for (uint i = 0; i < allRecords.length; i++) {
+        totalLength += allRecords[i].length;
+      }
+      Record[] memory fullRecords = new Record[](totalLength);
+      uint index = 0;
+      for (uint i = 0; i < allRecords.length; i++) {
+        for (uint j = 0; j < allRecords[i].length; j++) {
+          fullRecords[index] = allRecords[i][j];
+          index++;
+        }
+      }
+      return fullRecords;
+    } else {
+      revert("Env: MGV_ADDRESSES_PATHS not set");
     }
-    for (uint j = 0; j < recordsFromRoot.length; j++) {
-      records[i + j] = recordsFromRoot[j];
-    }
-    return records;
   }
 
   function readAddressesFromFileName(string memory fileName) internal returns (Record[] memory) {

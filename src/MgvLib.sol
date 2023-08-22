@@ -37,7 +37,7 @@ library MgvLib {
    Some miscellaneous data types useful to `Mangrove` and external contracts */
   //+clear+
 
-  /* `SingleOrder` holds data about an order-offer match in a struct. Used by `marketOrder` and `internalSnipes` (and some of their nested functions) to avoid stack too deep errors. */
+  /* `SingleOrder` holds data about an order-offer match in a struct. Used by `marketOrder` (and some of its nested functions) to avoid stack too deep errors. */
   struct SingleOrder {
     OLKey olKey;
     uint offerId;
@@ -58,6 +58,14 @@ library MgvLib {
     bytes32 makerData;
     /* `mgvData` is an [internal Mangrove status code](#MgvOfferTaking/statusCodes) code. */
     bytes32 mgvData;
+  }
+
+  /* `CleanTarget` holds data about an offer that should be cleaned, i.e. made to fail by executing it with the specified volume. */
+  struct CleanTarget {
+    uint offerId;
+    int logPrice;
+    uint gasreq;
+    uint takerWants;
   }
 }
 

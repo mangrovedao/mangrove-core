@@ -11,6 +11,7 @@ import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+import {MgvOfferTakingWithPermit} from "mgv_src/MgvOfferTakingWithPermit.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
@@ -225,7 +226,6 @@ contract MangroveTest is Test2, HasMgvEvents {
       });
     }
     vm.label($(_mgv), "Mangrove");
-    return _mgv;
   }
 
   // Deploy mangrove with an offerList

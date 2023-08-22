@@ -84,9 +84,9 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     });
   }
 
-  function snipeFor(uint value, address who) internal returns (uint, uint, uint, uint, uint) {
+  function marketOrderFor(uint value, address who) internal returns (uint, uint, uint, uint) {
     int logPrice = LogPriceLib.logPriceFromPrice_e18(1 ether);
-    return mgv.snipesFor(olKey, wrap_dynamic([uint(1), uint(logPrice), value, 300_000]), true, who);
+    return mgv.marketOrderForByLogPrice(olKey, logPrice, value, true, who);
   }
 
   function newOfferByVolume(uint amount) internal {
@@ -100,7 +100,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     deal($(quote), good_owner, value);
     newOfferByVolume(value);
     vm.expectRevert("mgv/lowAllowance");
-    snipeFor(value, good_owner);
+    marketOrderFor(value, good_owner);
   }
 
   function test_wrong_owner() public {
@@ -162,8 +162,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
     newOfferByVolume(value);
-    (uint successes, uint takerGot, uint takerGave,,) = snipeFor(value / 2, good_owner);
-    assertEq(successes, 1, "Snipe should succeed");
+    (uint takerGot, uint takerGave,,) = marketOrderFor(value / 2, good_owner);
     assertEq(takerGot, value / 2, "takerGot should be 1 ether");
     assertEq(takerGave, value / 2, "takerGot should be 1 ether");
 

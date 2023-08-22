@@ -3,10 +3,9 @@
 pragma solidity ^0.8.10;
 
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
-import {IERC20, ITaker, OLKey} from "mgv_src/MgvLib.sol";
+import {IERC20, ITaker, MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
-import {Tick} from "mgv_lib/TickLib.sol";
 
 contract TestTaker is ITaker, Script2 {
   AbstractMangrove mgv;
@@ -32,43 +31,70 @@ contract TestTaker is ITaker, Script2 {
     mgv.approve(olKey.outbound, olKey.inbound, spender, amount);
   }
 
-  function take(uint offerId, uint takerWants) external returns (bool success) {
-    //uint taken = TestEvents.min(makerGives, takerWants);
-    (success,,,,) = this.takeWithInfo(offerId, takerWants);
+  function clean(uint offerId, uint takerWants) public returns (bool success) {
+    return this.clean(mgv, olKey, offerId, takerWants, type(uint48).max);
   }
 
-  function takeWithInfo(uint offerId, uint takerWants) external returns (bool, uint, uint, uint, uint) {
-    int logPrice = mgv.offers(olKey, offerId).logPrice();
-    uint[4][] memory targets = wrap_dynamic([offerId, uint(logPrice), takerWants, type(uint48).max]);
-    (uint successes, uint got, uint gave, uint totalPenalty, uint feePaid) = mgv.snipes(olKey, targets, true);
-    return (successes == 1, got, gave, totalPenalty, feePaid);
-    //return taken;
+  function clean(uint offerId, uint takerWants, uint gasreq) public returns (bool success) {
+    return this.clean(mgv, olKey, offerId, takerWants, gasreq);
   }
 
-  function snipeByVolume(AbstractMangrove _mgv, OLKey memory _ol, uint offerId, uint takerWants, uint gasreq)
-    external
-    returns (bool)
+  function clean(AbstractMangrove _mgv, OLKey memory _olKey, uint offerId, uint takerWants, uint gasreq)
+    public
+    returns (bool success)
   {
-    int logPrice = _mgv.offers(_ol, offerId).logPrice();
-    uint[4][] memory targets = wrap_dynamic([offerId, uint(logPrice), takerWants, gasreq]);
-    (uint successes,,,,) = _mgv.snipes(_ol, targets, true);
-    return successes == 1;
+    uint bounty = this.cleanWithInfo(_mgv, _olKey, offerId, takerWants, gasreq);
+    return bounty > 0;
   }
 
-  function snipeByLogPrice(
+  function cleanWithInfo(uint offerId, uint takerWants) public returns (uint bounty) {
+    return this.cleanWithInfo(mgv, olKey, offerId, takerWants, type(uint48).max);
+  }
+
+  function cleanWithInfo(AbstractMangrove _mgv, OLKey memory _olKey, uint offerId, uint takerWants, uint gasreq)
+    public
+    returns (uint bounty)
+  {
+    int logPrice = _mgv.offers(_olKey, offerId).logPrice();
+    return cleanByLogPriceWithInfo(_mgv, _olKey, offerId, logPrice, takerWants, gasreq);
+  }
+
+  function cleanByLogPrice(uint offerId, int logPrice, uint takerWants, uint gasreq) public returns (bool success) {
+    return this.cleanByLogPrice(mgv, olKey, offerId, logPrice, takerWants, gasreq);
+  }
+
+  function cleanByLogPrice(
     AbstractMangrove _mgv,
-    OLKey memory _ol,
+    OLKey memory _olKey,
     uint offerId,
     int logPrice,
     uint takerWants,
     uint gasreq
-  ) external returns (bool) {
-    uint[4][] memory targets = wrap_dynamic([offerId, uint(logPrice), takerWants, gasreq]);
-    (uint successes,,,,) = _mgv.snipes(_ol, targets, true);
-    return successes == 1;
+  ) public returns (bool success) {
+    uint bounty = this.cleanByLogPriceWithInfo(_mgv, _olKey, offerId, logPrice, takerWants, gasreq);
+    return bounty > 0;
+  }
+
+  function cleanByLogPriceWithInfo(
+    AbstractMangrove _mgv,
+    OLKey memory _olKey,
+    uint offerId,
+    int logPrice,
+    uint takerWants,
+    uint gasreq
+  ) public returns (uint bounty) {
+    (, bounty) = _mgv.cleanByImpersonation(
+      _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, logPrice, gasreq, takerWants)), address(this)
+    );
+    return bounty;
   }
 
   function takerTrade(OLKey calldata, uint, uint) external pure override {}
+
+  function marketOrderWithSuccess(uint takerWants) external returns (bool success) {
+    (uint got,,,) = mgv.marketOrderByVolume(olKey, takerWants, type(uint96).max, true);
+    return got > 0;
+  }
 
   function marketOrder(uint wants, uint gives) external returns (uint takerGot, uint takerGave) {
     (takerGot, takerGave,,) = mgv.marketOrderByVolume(olKey, wants, gives, true);

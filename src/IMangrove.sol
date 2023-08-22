@@ -205,13 +205,9 @@ interface IMangrove {
 
   function setUseOracle(bool useOracle) external;
 
-  function snipes(OLKey memory olKey, uint[4][] memory targets, bool fillWants)
+  function cleanByImpersonation(OLKey memory olKey, MgvLib.CleanTarget[] calldata targets, address taker)
     external
-    returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
-
-  function snipesFor(OLKey memory olKey, uint[4][] memory targets, bool fillWants, address taker)
-    external
-    returns (uint successes, uint takerGot, uint takerGave, uint bounty, uint fee);
+    returns (uint successes, uint bounty);
 
   function updateOfferByVolume(OLKey memory olKey, uint wants, uint gives, uint gasreq, uint gasprice, uint offerId)
     external

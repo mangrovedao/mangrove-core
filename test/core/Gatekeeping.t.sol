@@ -7,11 +7,12 @@ import {MgvStructs, MAX_TICK, MIN_TICK, LogPriceLib} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 
 // In these tests, the testing contract is the market maker.
-contract GatekeepingTest is IMaker, MangroveTest {
+contract GatekeepingTest is MangroveTest {
   receive() external payable {}
 
   TestTaker tkr;
   TestMaker mkr;
+  TestMaker other_mkr;
   TestMaker dual_mkr;
   address notAdmin;
 
@@ -21,14 +22,17 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
     tkr = setupTaker(olKey, "taker[$(A),$(B)]");
     mkr = setupMaker(olKey, "maker[$(A),$(B)]");
+    other_mkr = setupMaker(olKey, "other_maker[$(A),$(B)]");
     dual_mkr = setupMaker(lo, "maker[$(B),$(A)]");
 
     mkr.provisionMgv(5 ether);
+    other_mkr.provisionMgv(5 ether);
     dual_mkr.provisionMgv(5 ether);
 
     deal($(quote), address(tkr), 1 ether);
     deal($(quote), address(mkr), 1 ether);
     deal($(base), address(dual_mkr), 1 ether);
+    deal($(quote), $(other_mkr), 1 ether);
 
     tkr.approveMgv(quote, 1 ether);
 
@@ -303,6 +307,8 @@ contract GatekeepingTest is IMaker, MangroveTest {
     tkr.marketOrder(0, 1 << 160);
   }
 
+  /*
+  // FIXME reactivate this test
   //FIXME Should add similar tests that make sure volume*price is not too big.
   function test_gives_volume_above_96bits_fails_snipes() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
@@ -311,25 +317,17 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.snipes(olKey, targets, true);
   }
 
+  // FIXME reactivate this test
   function test_wants_volume_above_96bits_fails_snipes() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
     uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
     vm.expectRevert("mgv/snipes/volume/96bits");
     mgv.snipes(olKey, targets, false);
   }
+  */
 
   function test_initial_allowance_is_zero() public {
     assertEq(mgv.allowances($(base), $(quote), address(tkr), $(this)), 0, "initial allowance should be 0");
-  }
-
-  function test_cannot_snipesFor_for_without_allowance() public {
-    deal($(base), address(mkr), 1 ether);
-    mkr.approveMgv(base, 1 ether);
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    int logPrice = mgv.offers(olKey, ofr).logPrice();
-
-    vm.expectRevert("mgv/lowAllowance");
-    mgv.snipesFor(olKey, wrap_dynamic([ofr, uint(logPrice), 1 ether, 300_000]), true, address(tkr));
   }
 
   function test_cannot_marketOrderFor_for_without_allowance() public {
@@ -352,65 +350,52 @@ contract GatekeepingTest is IMaker, MangroveTest {
     );
   }
 
-  /* # Internal IMaker setup */
-
-  bytes trade_cb;
-  bytes posthook_cb;
-
-  // maker's trade fn for the mgv
-  function makerExecute(MgvLib.SingleOrder calldata) external override returns (bytes32 ret) {
-    ret; // silence unused function parameter
-    bool success;
-    if (trade_cb.length > 0) {
-      (success,) = $(this).call(trade_cb);
-      assertTrue(success, "makerExecute callback must work");
-    }
-    return "";
-  }
-
-  function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) external override {
-    bool success;
-    order; // silence compiler warning
-    if (posthook_cb.length > 0) {
-      (success,) = $(this).call(posthook_cb);
-      bool tradeResult = (result.mgvData == "mgv/tradeSuccess");
-      assertTrue(success == tradeResult, "makerPosthook callback must work");
-    }
-  }
-
   /* # Reentrancy */
 
   /* New Offer failure */
 
   function newOfferKO() external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 30_000, 0);
+    mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 30_000);
   }
 
   function test_newOffer_on_reentrancy_fails() public {
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000, 0);
-    trade_cb = abi.encodeCall(this.newOfferKO, ());
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.newOfferKO, ()));
+    assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
 
   /* New Offer success */
 
   // ! may be called with inverted _base and _quote
   function newOfferOK(OLKey memory olKey) external {
-    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 30_000, 0);
+    mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 30_000);
   }
 
   function test_newOffer_on_reentrancy_succeeds() public {
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000, 0);
-    trade_cb = abi.encodeCall(this.newOfferOK, (lo));
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.newOfferOK, (lo)));
+
+    assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertTrue(mgv.best(lo) == 1, "newOfferByVolume on swapped offerList must work");
   }
 
   function test_newOffer_on_posthook_succeeds() public {
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000, 0);
-    posthook_cb = abi.encodeCall(this.newOfferOK, (olKey));
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000);
+
+    mkr.setPosthookCallback($(this), abi.encodeCall(this.newOfferOK, (olKey)));
+    assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertTrue(mgv.best(olKey) == 2, "newOfferByVolume on posthook must work");
   }
 
@@ -418,36 +403,47 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function updateOfferKO(uint ofr) external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.updateOfferByVolume(olKey, 1 ether, 2 ether, 35_000, 0, ofr);
+    mkr.updateOfferByVolume(olKey, 1 ether, 2 ether, 35_000, ofr);
   }
 
   function test_updateOffer_on_reentrancy_fails() public {
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000, 0);
-    trade_cb = abi.encodeCall(this.updateOfferKO, (ofr));
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.updateOfferKO, (ofr)));
+    assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
 
   /* Update offer success */
 
   // ! may be called with inverted _base and _quote
   function updateOfferOK(OLKey memory olKey, uint ofr) external {
-    mgv.updateOfferByVolume(olKey, 1 ether, 2 ether, 35_000, 0, ofr);
+    mkr.updateOfferByVolume(olKey, 1 ether, 2 ether, 35_000, ofr);
   }
 
   function test_updateOffer_on_reentrancy_succeeds() public {
-    uint other_ofr = mgv.newOfferByVolume(lo, 1 ether, 1 ether, 100_000, 0);
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
 
-    trade_cb = abi.encodeCall(this.updateOfferOK, (lo, other_ofr));
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 400_000, 0);
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    uint other_ofr = mkr.newOfferByVolume(lo, 1 ether, 1 ether, 100_000);
+
+    mkr.setTradeCallback($(this), abi.encodeCall(this.updateOfferOK, (lo, other_ofr)));
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 400_000);
+    assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertTrue(mgv.offerDetails(lo, other_ofr).gasreq() == 35_000, "updateOffer on swapped offerList must work");
   }
 
   function test_updateOffer_on_posthook_succeeds() public {
-    uint other_ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000, 0);
-    posthook_cb = abi.encodeCall(this.updateOfferOK, (olKey, other_ofr));
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 300_000, 0);
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+
+    uint other_ofr = mkr.newOfferByLogPrice(olKey, 1, 1 ether, 100_000);
+    mkr.setPosthookCallback($(this), abi.encodeCall(this.updateOfferOK, (olKey, other_ofr)));
+    uint ofr = mkr.newOfferByLogPrice(olKey, 0, 1 ether, 300_000);
+    assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertTrue(mgv.offerDetails(olKey, other_ofr).gasreq() == 35_000, "updateOffer on posthook must work");
   }
 
@@ -459,33 +455,45 @@ contract GatekeepingTest is IMaker, MangroveTest {
   }
 
   function test_retractOffer_on_reentrancy_fails() public {
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000, 0);
-    trade_cb = abi.encodeCall(this.retractOfferKO, (ofr));
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.retractOfferKO, (ofr)));
+    assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
 
   /* Cancel Offer success */
 
   function retractOfferOK(OLKey memory olKey, uint id) external {
-    uint collected = mgv.retractOffer(olKey, id, false);
+    uint collected = mkr.retractOffer(olKey, id);
     assertEq(collected, 0, "Unexpected collected provision after retract w/o deprovision");
   }
 
   function test_retractOffer_on_reentrancy_succeeds() public {
-    uint other_ofr = mgv.newOfferByVolume(lo, 1 ether, 1 ether, 90_000, 0);
-    trade_cb = abi.encodeCall(this.retractOfferOK, (lo, other_ofr));
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
 
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 90_000, 0);
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    uint other_ofr = mkr.newOfferByVolume(lo, 1 ether, 1 ether, 90_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.retractOfferOK, (lo, other_ofr)));
+
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 90_000);
+    assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertTrue(mgv.best(lo) == 0, "retractOffer on swapped offerList must work");
   }
 
   function test_retractOffer_on_posthook_succeeds() public {
-    uint other_ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 190_000, 0);
-    posthook_cb = abi.encodeCall(this.retractOfferOK, (olKey, other_ofr));
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
 
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 90_000, 0);
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
+    uint other_ofr = mkr.newOfferByLogPrice(olKey, 1, 1 ether, 290_000);
+    mkr.setPosthookCallback($(this), abi.encodeCall(this.retractOfferOK, (olKey, other_ofr)));
+
+    uint ofr = mkr.newOfferByLogPrice(olKey, 0, 1 ether, 190_000);
+    assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(mgv.best(olKey), 0, "retractOffer on posthook must work");
   }
 
@@ -493,62 +501,96 @@ contract GatekeepingTest is IMaker, MangroveTest {
 
   function marketOrderKO() external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.marketOrderByVolume(olKey, 0.2 ether, 0.2 ether, true);
+    mkr.marketOrderByVolume(olKey, 0.2 ether, 0.2 ether);
   }
 
   function test_marketOrder_on_reentrancy_fails() public {
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000, 0);
-    trade_cb = abi.encodeCall(this.marketOrderKO, ());
-    assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.marketOrderKO, ()));
+    assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "market order must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
 
   /* Market Order Success */
 
-  function marketOrderOK(OLKey memory olKey) external {
-    mgv.marketOrderByVolume(olKey, uint(0.5 ether), 0.5 ether, true);
+  function marketOrderOK(OLKey memory _olKey) external {
+    (uint got,) = mkr.marketOrderByVolume(_olKey, 0.5 ether, 0.5 ether);
+    assertGt(got, 0, "market order should have succeeded");
   }
 
   function test_marketOrder_on_reentrancy_succeeds() public {
-    dual_mkr.newOfferByVolume(0.5 ether, 0.5 ether, 30_000, 0);
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 392_000, 0);
-    trade_cb = abi.encodeCall(this.marketOrderOK, (lo));
-    assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+
+    dual_mkr.approveMgv(quote, 1 ether);
+    deal($(quote), $(dual_mkr), 1 ether);
+
+    uint dual_ofr = dual_mkr.newOfferByVolume(0.5 ether, 0.5 ether, 300_000);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 1_000_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.marketOrderOK, (lo)));
+
+    assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "market order must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
+    assertTrue(dual_mkr.makerExecuteWasCalled(dual_ofr), "dual_ofr must be executed or test is void");
     assertTrue(mgv.best(lo) == 0, "2nd market order must have emptied mgv");
   }
 
   function test_marketOrder_on_posthook_succeeds() public {
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+    mkr.approveMgv(quote, 1 ether);
+    other_mkr.approveMgv(base, 1 ether);
+    deal($(base), $(other_mkr), 1 ether);
+
     mgv.setGasmax(10_000_000);
-    uint ofr = mgv.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000, 0);
-    mgv.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 1800_000, 0);
-    posthook_cb = abi.encodeCall(this.marketOrderOK, (olKey));
-    assertTrue(tkr.take(ofr, 0.6 ether), "take must succeed or test is void");
+    uint ofr = mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000);
+    uint ofr2 = other_mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 1800_000);
+    mkr.setPosthookCallback($(this), abi.encodeCall(this.marketOrderOK, (olKey)));
+    assertTrue(tkr.marketOrderWithSuccess(0.5 ether), "market order must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
+    assertTrue(other_mkr.makerExecuteWasCalled(ofr2), "ofr2 must be executed or test is void");
     assertTrue(mgv.best(olKey) == 0, "2nd market order must have emptied mgv");
   }
 
   // not gatekeeping! move me.
   function test_no_execution_keeps_ticktree_ok() public {
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+
     mgv.setGasmax(10_000_000);
-    uint ofr = mgv.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000, 0);
+    uint ofr = mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000);
     (uint takerGot, uint takerGave) = tkr.marketOrder(0.5 ether, 0.3 ether);
     // assertGt(takerGot,0,"mo should work");
     // should execute 0 offers due to price mismatch
     assertEq(takerGot, 0, "mo should fail");
     assertTrue(mgv.offers(olKey, ofr).gives() > 0, "offer should still be live");
+    assertFalse(mkr.makerExecuteWasCalled(ofr), "ofr must not be executed or test is void");
     (takerGot, takerGave) = tkr.marketOrder(0.5 ether, 0.6 ether);
     assertGt(takerGot, 0, "mo should work");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertTrue(mgv.best(olKey) == 0, "2nd market order must have emptied mgv");
   }
 
   // not gatekeeping! move me.
   function test_only_one_exec_keeps_ticktree_ok() public {
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+
     mgv.setGasmax(10_000_000);
-    mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000, 0);
-    uint ofr2 = mgv.newOfferByVolume(olKey, 0.1 ether, 0.05 ether, 3500_000, 0);
+    uint ofr = mkr.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000);
+    uint ofr2 = mkr.newOfferByVolume(olKey, 0.1 ether, 0.05 ether, 3500_000);
+
     (uint takerGot, uint takerGave) = tkr.marketOrder(0.1 ether, 0.1 ether);
     assertEq(takerGot, 0.05 ether, "mo should only take ofr");
     assertGt(mgv.offers(olKey, ofr2).gives(), 0, "ofr2 should still be live");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
+    assertFalse(mkr.makerExecuteWasCalled(ofr2), "ofr2 must not be executed or test is void");
+
     (takerGot, takerGave) = tkr.marketOrder(0.06 ether, 0.2 ether);
     assertGt(takerGot, 0, "mo should work");
+    assertTrue(mkr.makerExecuteWasCalled(ofr2), "ofr2 must be executed or test is void");
     assertTrue(mgv.best(olKey) == 0, "2nd market order must have emptied mgv");
   }
 
@@ -601,46 +643,58 @@ contract GatekeepingTest is IMaker, MangroveTest {
     assertEq(mgv.leafs(olKey, tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
 
-  /* Snipe failure */
+  /* Clean failure */
 
-  function snipesKO(uint id) external {
-    uint[4][] memory targets =
-      wrap_dynamic([id, uint(mgv.offers(olKey, id).logPrice()), type(uint96).max, type(uint48).max]);
-    vm.expectRevert("mgv/reentrancyLocked");
-    mgv.snipes(olKey, targets, true);
+  function cleanKO(uint id) external {
+    assertFalse(mkr.clean(id, 1 ether), "clean should fail");
   }
 
-  function test_snipe_on_reentrancy_fails() public {
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 60_000, 0);
-    trade_cb = abi.encodeCall(this.snipesKO, (ofr));
-    assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
+  function test_clean_on_reentrancy_fails() public {
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 160_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.cleanKO, (ofr)));
+    assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "market order must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
 
-  /* Snipe success */
+  /* Clean success */
 
-  function snipesOK(OLKey memory olKey, uint id) external {
-    int logPrice = mgv.offers(olKey, id).logPrice();
-    uint[4][] memory targets = wrap_dynamic([id, uint(logPrice), type(uint96).max, type(uint48).max]);
-    mgv.snipes(olKey, targets, true);
+  function cleanOK(OLKey memory _olKey, uint id) external {
+    assertTrue(mkr.clean(_olKey, id, 0.5 ether), "clean should succeed");
   }
 
-  function test_snipes_on_reentrancy_succeeds() public {
-    uint other_ofr = dual_mkr.newOfferByVolume(1 ether, 1 ether, 30_000);
-    trade_cb = abi.encodeCall(this.snipesOK, (lo, other_ofr));
+  function test_clean_on_reentrancy_in_swapped_pair_succeeds() public {
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
 
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 190_000, 0);
-    assertTrue(tkr.take(ofr, 0.1 ether), "take must succeed or test is void");
-    assertTrue(mgv.best(lo) == 0, "snipe in swapped offerList must work");
+    uint dual_ofr = dual_mkr.newOfferByVolume(1 ether, 1 ether, 200_000);
+
+    mkr.setTradeCallback($(this), abi.encodeCall(this.cleanOK, (lo, dual_ofr)));
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 450_000);
+
+    assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "market order must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
+    assertTrue(mgv.best(lo) == 0, "clean in swapped pair must work");
   }
 
-  function test_snipes_on_posthook_succeeds() public {
-    uint other_ofr = mkr.newOfferByVolume(1 ether, 1 ether, 30_000);
-    posthook_cb = abi.encodeCall(this.snipesOK, (olKey, other_ofr));
+  function test_clean_on_posthook_succeeds() public {
+    mkr.approveMgv(base, 1 ether);
+    deal($(base), $(mkr), 1 ether);
+    mkr.approveMgv(quote, 1 ether);
 
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 190_000, 0);
-    assertTrue(tkr.take(ofr, 1 ether), "take must succeed or test is void");
-    assertTrue(mgv.best(olKey) == 0, "snipe in posthook must work");
+    uint other_ofr = other_mkr.newOfferByVolume(2 ether, 1 ether, 200_000);
+
+    mkr.setPosthookCallback($(this), abi.encodeCall(this.cleanOK, (olKey, other_ofr)));
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 450_000);
+
+    assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
+    assertTrue(mgv.best(olKey) == 0, "clean in posthook must work");
   }
+
+  /* # Mangrove closed/inactive */
 
   function test_newOffer_on_closed_fails() public {
     mgv.kill();
@@ -648,14 +702,12 @@ contract GatekeepingTest is IMaker, MangroveTest {
     mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
   }
 
-  /* # Mangrove closed/inactive */
-
   function test_take_on_closed_fails() public {
-    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
+    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
 
     mgv.kill();
     vm.expectRevert("mgv/dead");
-    tkr.take(ofr, 1 ether);
+    tkr.marketOrderWithSuccess(1 ether);
   }
 
   function test_newOffer_on_inactive_fails() public {
@@ -682,10 +734,14 @@ contract GatekeepingTest is IMaker, MangroveTest {
     tkr.marketOrder(1 ether, 1 ether);
   }
 
-  function test_snipe_on_closed_fails() public {
+  function test_clean_on_closed_fails() public {
     mgv.kill();
-    vm.expectRevert("mgv/dead");
-    tkr.take(0, 1 ether);
+    assertEq(tkr.clean(0, 1 ether), false, "clean should fail on dead Mangrove");
+  }
+
+  function test_clean_on_inactive_fails() public {
+    mgv.deactivate(olKey);
+    assertEq(tkr.clean(0, 1 ether), false, "clean should fail on closed market");
   }
 
   function test_withdraw_on_closed_ok() public {

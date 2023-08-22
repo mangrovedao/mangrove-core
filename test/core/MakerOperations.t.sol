@@ -81,11 +81,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) external {}
 
   function test_calldata_and_balance_in_makerExecute_are_correct() public {
-    bool funded;
-    (funded,) = $(mgv).call{value: 1 ether}("");
-    deal($(base), $(this), 1 ether);
-    uint ofr = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 200_000, 0);
-    require(tkr.take(ofr, 0.05 ether), "take must work or test is void");
+    mkr.provisionMgv(1 ether);
+    deal($(base), $(mkr), 1 ether);
+    uint ofr = mkr.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 200_000);
+    require(tkr.marketOrderWithSuccess(0.05 ether), "take must work or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
 
   function test_withdraw_removes_mgv_balance_and_ethers() public {
@@ -116,35 +116,39 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     uint oldBal = mgv.balanceOf(address(mkr));
     expectFrom($(mgv));
     emit Credit(address(mkr), 1 ether);
-    mkr.newOfferByVolumeWithFunding(1 ether, 1 ether, 50000, 0, 1 ether);
+    mkr.newOfferByVolumeWithFunding(1 ether, 1 ether, 100_000, 0, 1 ether);
     assertGt(mgv.balanceOf(address(mkr)), oldBal, "balance should have increased");
   }
 
   function test_fund_updateOffer() public {
     mkr.provisionMgv(1 ether);
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50000, 0);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     expectFrom($(mgv));
     emit Credit(address(mkr), 0.9 ether);
-    mkr.updateOfferByVolumeWithFunding(1 ether, 1 ether, 50000, ofr, 0.9 ether);
+    mkr.updateOfferByVolumeWithFunding(1 ether, 1 ether, 100_000, ofr, 0.9 ether);
   }
 
   function test_posthook_fail_message() public {
     mkr.provisionMgv(1 ether);
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50000, 0);
+    deal($(base), address(mkr), 1 ether);
+    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
 
     mkr.setShouldFailHook(true);
     expectFrom($(mgv));
     emit PosthookFail(olKey.hash(), ofr, "posthookFail");
-    tkr.take(ofr, 0.1 ether); // fails but we don't care
+    tkr.marketOrderWithSuccess(0.1 ether); // fails but we don't care
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
 
   function test_returnData_succeeds() public {
     mkr.provisionMgv(1 ether);
     deal($(base), address(mkr), 1 ether);
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50000, OfferData({shouldRevert: false, executeData: "someData"}));
+    uint ofr =
+      mkr.newOfferByVolume(1 ether, 1 ether, 100_000, OfferData({shouldRevert: false, executeData: "someData"}));
 
-    bool success = tkr.take(ofr, 0.1 ether);
-    assertTrue(success, "take should work");
+    bool success = tkr.marketOrderWithSuccess(0.1 ether);
+    assertTrue(success, "market order should work");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
 
   function test_delete_restores_balance() public {
@@ -188,8 +192,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     deal($(base), address(mkr), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
 
-    bool success = tkr.take(ofr, 0.1 ether);
-    assertEq(success, true, "Snipe should succeed");
+    bool success = tkr.marketOrderWithSuccess(0.1 ether);
+    assertEq(success, true, "market order should succeed");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
 
     uint bal1 = mgv.balanceOf(address(mkr));
     mkr.retractOfferWithDeprovision(ofr);
@@ -328,8 +333,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     deal($(base), address(mkr), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     uint oldBalance = mgv.balanceOf(address(mkr));
-    bool success = tkr.take(ofr, 0.1 ether);
-    assertTrue(success, "take must succeed");
+    bool success = tkr.marketOrderWithSuccess(0.1 ether);
+    assertTrue(success, "market order must succeed");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(mgv.balanceOf(address(mkr)), oldBalance, "mkr balance must not change");
   }
 
@@ -338,8 +344,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     deal($(base), address(mkr), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     uint oldBalance = mgv.balanceOf(address(mkr));
-    bool success = tkr.take(ofr, 1 ether);
+    bool success = tkr.marketOrderWithSuccess(1 ether);
     assertTrue(success, "take must succeed");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(mgv.balanceOf(address(mkr)), oldBalance, "mkr balance must not change");
   }
 
@@ -723,7 +730,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.setGasprice(1);
     mgv.setDensityFixed(olKey, 0);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
-    tkr.take(ofr, 0.1 ether);
+    tkr.clean(ofr, 0.1 ether);
     assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");
   }
 
@@ -734,7 +741,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.setGasprice(1);
     mgv.setDensityFixed(olKey, 0);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
-    tkr.take(ofr, 0.1 ether);
+    tkr.clean(ofr, 0.1 ether);
     assertEq(mgv.balanceOf(address(mkr)), 1 ether - offer_gasbase * 10 ** 9, "Wrong gasbase deducted");
   }
 

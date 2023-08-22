@@ -117,7 +117,6 @@ contract GenericFork is Script {
     string memory defaultPath = "";
     string memory paths = vm.envOr("MGV_ADDRESSES_PATHS", defaultPath);
     if (bytes(paths).length > 0) {
-      console.log("Fork: reading addresses from paths %s", paths);
       bytes memory encodedPaths = vm.parseJson(paths);
       Paths memory pathsAsArray = abi.decode(encodedPaths, (Paths));
       Record[][] memory allRecords = new Record[][](pathsAsArray.paths.length);
@@ -142,7 +141,7 @@ contract GenericFork is Script {
       }
       return fullRecords;
     } else {
-      revert("Env: MGV_ADDRESSES_PATHS not set");
+      return (new Record[](0));
     }
   }
 

@@ -208,7 +208,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       `mgvData` should not be exploitable by the maker! */
         bytes32 mgvData;
 
-        /* Load additional information about the offer. We don't do it earlier to save one storage read in case `proceed` was false. */
+        /* Load additional information about the offer. */
         sor.offerDetail = pair.offerData[sor.offerId].detail;
 
         /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way, [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/notExecuted","mgv/tradeSuccess"]` means the failure is the maker's fault. */
@@ -251,7 +251,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         postExecute(mor, sor, gasused, makerData, mgvData);
 
         /* #### Case 2 : End of market order */
-        /* If `proceed` is false, the taker has gotten its requested volume, no more offers match, or we have reached the end of the book, we conclude the market order. */
+        /* The taker has gotten its requested volume, no more offers match, or we have reached the end of the book, we conclude the market order. */
       } else {
         /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
 

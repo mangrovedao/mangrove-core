@@ -182,7 +182,7 @@ contract GatekeepingTest is MangroveTest {
     mkr.newOfferByVolume((1 << 96) + 1e28, 1 ether, 10_000, 0);
   }
 
-  function test_makerTick_wider_than_24_bits_fails_newOfferByLogPrice() public {
+  function test_makerLogPrice_toolow_fails_newOfferByLogPrice() public {
     vm.expectRevert("mgv/writeOffer/logPrice/outOfRange");
     mkr.newOfferByLogPrice(LogPriceLib.MIN_LOG_PRICE - 1, 1 ether, 10_000, 0);
   }

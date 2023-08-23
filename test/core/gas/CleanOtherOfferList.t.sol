@@ -44,10 +44,11 @@ contract ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBas
 
   function test_clean() public {
     (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) = getStored();
+    int _logPrice = logPrice;
     vm.prank($(taker));
     _gas();
     (, uint bounty) = mgv.cleanByImpersonation(
-      _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, logPrice, 100_000, 0.05 ether)), $(taker)
+      _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, _logPrice, 100_000, 0.05 ether)), $(taker)
     );
     gas_();
     require(bounty > 0);

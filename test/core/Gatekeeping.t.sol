@@ -307,25 +307,6 @@ contract GatekeepingTest is MangroveTest {
     tkr.marketOrder(0, 1 << 160);
   }
 
-  /*
-  // FIXME reactivate this test
-  //FIXME Should add similar tests that make sure volume*price is not too big.
-  function test_gives_volume_above_96bits_fails_snipes() public {
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
-    vm.expectRevert("mgv/snipes/volume/96bits");
-    mgv.snipes(olKey, targets, true);
-  }
-
-  // FIXME reactivate this test
-  function test_wants_volume_above_96bits_fails_snipes() public {
-    uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    uint[4][] memory targets = wrap_dynamic([ofr, 0, 1 << 96, type(uint).max]);
-    vm.expectRevert("mgv/snipes/volume/96bits");
-    mgv.snipes(olKey, targets, false);
-  }
-  */
-
   function test_initial_allowance_is_zero() public {
     assertEq(mgv.allowances($(base), $(quote), address(tkr), $(this)), 0, "initial allowance should be 0");
   }

@@ -867,6 +867,8 @@ contract TakerOperationsTest is MangroveTest {
     assertTrue(mgv.best(olKey) == ofr, "clean must have left ofr in the book");
   }
 
+  // FIXME implement a test that checks a gives+price too high results in an error (should p
+
   /* Clean offer state&match validation */
   function test_clean_on_nonexistent_offer_fails() public {
     (uint successes,) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(1, 0, 0, 1)), $(this));

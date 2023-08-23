@@ -93,7 +93,7 @@ contract ActivateSemibook is Test2, Deployer {
     mgv.activate({olKey: olKey, fee: fee, densityFixed: density, offer_gasbase: gasbase});
   }
 
-  function measureTransferGas(address tkn) internal returns (uint) {
+  function measureTransferGas(address tkn) public returns (uint) {
     address someone = freshAddress();
     vm.prank(someone);
     IERC20(tkn).approve(address(this), type(uint).max);

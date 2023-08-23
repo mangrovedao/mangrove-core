@@ -155,9 +155,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     uint bal = mkr.mgvBalance(); // should be 1 ether
     uint offerId = mkr.newOfferByVolume(1 ether, 1 ether, 2300, 0);
-    uint bal_ = mkr.mgvBalance(); // 1 ether minus provision
+    uint _bal = mkr.mgvBalance(); // 1 ether minus provision
     uint collected = mkr.retractOfferWithDeprovision(offerId); // provision
-    assertEq(bal - bal_, collected, "retract does not return a correct amount");
+    assertEq(bal - _bal, collected, "retract does not return a correct amount");
     assertEq(mkr.mgvBalance(), bal, "delete has not restored balance");
   }
 
@@ -488,7 +488,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     emit Debit(address(mkr), provision); // transfering missing provision into offer bounty
     uint ofr0 = mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0); // locking exact bounty
     mgv.setGasprice(gasprice + 1); //gasprice goes up
-    uint provision_ = reader.getProvision(olKey, 100_000, gasprice + 1); // new theoretical provision
+    uint _provision = reader.getProvision(olKey, 100_000, gasprice + 1); // new theoretical provision
     (cfg,) = mgv.config(olKey);
     expectFrom($(mgv));
     emit OfferWrite(
@@ -501,7 +501,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       ofr0
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), provision_ - provision); // transfering missing provision into offer bounty
+    emit Debit(address(mkr), _provision - provision); // transfering missing provision into offer bounty
     mkr.updateOfferByVolume(1.0 ether + 2, 1.0 ether, 100_000, ofr0);
   }
 

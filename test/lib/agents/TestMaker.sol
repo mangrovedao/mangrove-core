@@ -24,10 +24,10 @@ struct OfferData {
 contract SimpleTestMaker is TrivialTestMaker, Script2 {
   AbstractMangrove public mgv;
   OLKey olKey;
-  bool shouldFail_; // will set mgv allowance to 0
-  bool shouldRevert_; // will revert
-  bool shouldRevertOnNonZeroGives_; // will revert if makerGives > 0
-  bool shouldRepost_; // will try to repost offer with identical parameters
+  bool _shouldFail; // will set mgv allowance to 0
+  bool _shouldRevert; // will revert
+  bool _shouldRevertOnNonZeroGives; // will revert if makerGives > 0
+  bool _shouldRepost; // will try to repost offer with identical parameters
   bytes32 expectedStatus;
   address tradeCallbackContract; // the `tradeCallback` will be called on this contract during makerExecute
   bytes tradeCallback;
@@ -88,19 +88,19 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
   }
 
   function shouldRevert(bool should) external {
-    shouldRevert_ = should;
+    _shouldRevert = should;
   }
 
   function shouldRevertOnNonZeroGives(bool should) external {
-    shouldRevertOnNonZeroGives_ = should;
+    _shouldRevertOnNonZeroGives = should;
   }
 
   function shouldFail(bool should) external {
-    shouldFail_ = should;
+    _shouldFail = should;
   }
 
   function shouldRepost(bool should) external {
-    shouldRepost_ = should;
+    _shouldRepost = should;
   }
 
   function approveMgv(IERC20 token, uint amount) public {
@@ -118,11 +118,11 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
   function makerExecute(MgvLib.SingleOrder calldata order) public virtual override returns (bytes32) {
     offersExecuted[order.olKey.hash()][order.offerId] = true;
 
-    if (shouldRevert_) {
+    if (_shouldRevert) {
       revert("testMaker/shouldRevert");
     }
 
-    if (shouldRevertOnNonZeroGives_ && order.gives > 0) {
+    if (_shouldRevertOnNonZeroGives && order.gives > 0) {
       revert("testMaker/shouldRevertOnNonZeroGives");
     }
 
@@ -132,7 +132,7 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
       revert(offerData.executeData);
     }
 
-    if (shouldFail_) {
+    if (_shouldFail) {
       TransferLib.approveToken(IERC20(order.olKey.outbound), address(mgv), 0);
     }
 
@@ -173,7 +173,7 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
       require(success, "makerExecute posthookCallback must work");
     }
 
-    if (shouldRepost_) {
+    if (_shouldRepost) {
       mgv.updateOfferByVolume(
         order.olKey, order.offer.wants(), order.offer.gives(), order.offerDetail.gasreq(), 0, order.offerId
       );

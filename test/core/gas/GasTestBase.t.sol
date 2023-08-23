@@ -7,21 +7,21 @@ import {MgvLib} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 import {TickLib, Tick, LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE, LEVEL2_SIZE} from "mgv_lib/TickLib.sol";
 
-// A tick with room for bits above and below at all levels, not actually mid of level2.
-int constant MIDDLE_TICK = /* mid leaf*/ LEAF_SIZE / 2 /* mid level0 */ + LEAF_SIZE * (LEVEL0_SIZE / 2) /* mid level 1 */
+// A log price with room for bits above and below at all tick levels, not actually mid of level2.
+int constant MIDDLE_LOG_PRICE = /* mid leaf */ LEAF_SIZE / 2 /* mid level0 */ + LEAF_SIZE * (LEVEL0_SIZE / 2) /* mid level 1 */
   + LEAF_SIZE * LEVEL0_SIZE * (LEVEL1_SIZE / 2);
 
-int constant LEAF_LOWER_TICK = MIDDLE_TICK - 1;
-int constant LEAF_HIGHER_TICK = MIDDLE_TICK + 1;
-int constant LEVEL0_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE;
-int constant LEVEL0_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE;
-int constant LEVEL1_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE * LEVEL0_SIZE;
-int constant LEVEL1_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE * LEVEL0_SIZE;
-int constant LEVEL2_LOWER_TICK = MIDDLE_TICK - LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
-int constant LEVEL2_HIGHER_TICK = MIDDLE_TICK + LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
+int constant LEAF_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - 1;
+int constant LEAF_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + 1;
+int constant LEVEL0_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE;
+int constant LEVEL0_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE;
+int constant LEVEL1_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * LEVEL0_SIZE;
+int constant LEVEL1_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * LEVEL0_SIZE;
+int constant LEVEL2_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
+int constant LEVEL2_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
 
 abstract contract GasTestBaseStored {
-  mapping(int tick => uint offerId) internal tickOfferIds;
+  mapping(int logPrice => uint offerId) internal logPriceOfferIds;
   string internal description = "TODO";
 
   function getStored() internal view virtual returns (AbstractMangrove, TestTaker, OLKey memory, uint);
@@ -30,26 +30,33 @@ abstract contract GasTestBaseStored {
     console.log("Description: %s", description);
   }
 
-  function newOfferOnAllTestTicks() public virtual {
-    this.newOfferOnAllLowerThanMiddleTestTicks();
-    // MIDDLE_TICK is often controlled in tests so leaving it out. mgv.newOfferByLogPrice(_olKey, MIDDLE_TICK, 1 ether, 1_000_000, 0);
-    this.newOfferOnAllHigherThanMiddleTestTicks();
+  function newOfferOnAllTestPrices() public virtual {
+    this.newOfferOnAllLowerThanMiddleTestPrices();
+    // MIDDLE_LOG_PRICE is often controlled in tests so leaving it out. mgv.newOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1 ether, 1_000_000, 0);
+    this.newOfferOnAllHigherThanMiddleTestPrices();
   }
 
-  function newOfferOnAllLowerThanMiddleTestTicks() public virtual {
+  function newOfferOnAllLowerThanMiddleTestPrices() public virtual {
     (AbstractMangrove mgv,, OLKey memory _olKey,) = getStored();
-    tickOfferIds[LEAF_LOWER_TICK] = mgv.newOfferByLogPrice(_olKey, LEAF_LOWER_TICK, 1 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL0_LOWER_TICK] = mgv.newOfferByLogPrice(_olKey, LEVEL0_LOWER_TICK, 1 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL1_LOWER_TICK] = mgv.newOfferByLogPrice(_olKey, LEVEL1_LOWER_TICK, 1 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL2_LOWER_TICK] = mgv.newOfferByLogPrice(_olKey, LEVEL2_LOWER_TICK, 1 ether, 1_000_000, 0);
+    logPriceOfferIds[LEAF_LOWER_LOG_PRICE] = mgv.newOfferByLogPrice(_olKey, LEAF_LOWER_LOG_PRICE, 1 ether, 1_000_000, 0);
+    logPriceOfferIds[LEVEL0_LOWER_LOG_PRICE] =
+      mgv.newOfferByLogPrice(_olKey, LEVEL0_LOWER_LOG_PRICE, 1 ether, 1_000_000, 0);
+    logPriceOfferIds[LEVEL1_LOWER_LOG_PRICE] =
+      mgv.newOfferByLogPrice(_olKey, LEVEL1_LOWER_LOG_PRICE, 1 ether, 1_000_000, 0);
+    logPriceOfferIds[LEVEL2_LOWER_LOG_PRICE] =
+      mgv.newOfferByLogPrice(_olKey, LEVEL2_LOWER_LOG_PRICE, 1 ether, 1_000_000, 0);
   }
 
-  function newOfferOnAllHigherThanMiddleTestTicks() public virtual {
+  function newOfferOnAllHigherThanMiddleTestPrices() public virtual {
     (AbstractMangrove mgv,, OLKey memory _olKey,) = getStored();
-    tickOfferIds[LEAF_HIGHER_TICK] = mgv.newOfferByLogPrice(_olKey, LEAF_HIGHER_TICK, 1 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL0_HIGHER_TICK] = mgv.newOfferByLogPrice(_olKey, LEVEL0_HIGHER_TICK, 1 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL1_HIGHER_TICK] = mgv.newOfferByLogPrice(_olKey, LEVEL1_HIGHER_TICK, 1 ether, 1_000_000, 0);
-    tickOfferIds[LEVEL2_HIGHER_TICK] = mgv.newOfferByLogPrice(_olKey, LEVEL2_HIGHER_TICK, 1 ether, 1_000_000, 0);
+    logPriceOfferIds[LEAF_HIGHER_LOG_PRICE] =
+      mgv.newOfferByLogPrice(_olKey, LEAF_HIGHER_LOG_PRICE, 1 ether, 1_000_000, 0);
+    logPriceOfferIds[LEVEL0_HIGHER_LOG_PRICE] =
+      mgv.newOfferByLogPrice(_olKey, LEVEL0_HIGHER_LOG_PRICE, 1 ether, 1_000_000, 0);
+    logPriceOfferIds[LEVEL1_HIGHER_LOG_PRICE] =
+      mgv.newOfferByLogPrice(_olKey, LEVEL1_HIGHER_LOG_PRICE, 1 ether, 1_000_000, 0);
+    logPriceOfferIds[LEVEL2_HIGHER_LOG_PRICE] =
+      mgv.newOfferByLogPrice(_olKey, LEVEL2_HIGHER_LOG_PRICE, 1 ether, 1_000_000, 0);
   }
 }
 
@@ -61,7 +68,10 @@ contract GasTestBase is MangroveTest, IMaker, GasTestBaseStored {
 
   function setUp() public virtual override {
     super.setUp();
-    require(olKey.tickScale == 1, "FIXME: this contract is not ready for tickScale!=1");
+    require(
+      olKey.tickScale == 1,
+      "FIXME: this contract is not ready for tickScale!=1 - depending on tickScale the logPrices should be changed to test the same boundary conditions"
+    );
 
     _taker = setupTaker(olKey, "Taker");
     deal($(quote), address(_taker), 200000 ether);

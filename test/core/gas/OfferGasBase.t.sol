@@ -7,7 +7,7 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {MIDDLE_TICK} from "./GasTestBase.t.sol";
+import {MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
 import {ActivateSemibook} from "mgv_script/core/ActivateSemibook.s.sol";
 import "mgv_lib/Debug.sol";
 import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
@@ -61,16 +61,16 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     vm.prank(maker);
     TransferLib.approveToken(quote, $(mgv), type(uint).max);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(olKey, MIDDLE_TICK, 1, 100000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1, 100000, 0);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(lo, MIDDLE_TICK, 1, 100000, 0);
+    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, 1, 100000, 0);
   }
 
   function test_gasbase_to_empty_book_base_quote() public {
     (AbstractMangrove _mgv,, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    _mgv.marketOrderByLogPrice(_olKey, MIDDLE_TICK, 1, false);
+    _mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
     gas_();
     description = string.concat(description, " - Case: base/quote gasbase for taking single offer to empty book");
     printDescription();
@@ -80,7 +80,7 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     (AbstractMangrove _mgv,, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    _mgv.marketOrderByLogPrice(_olKey, MIDDLE_TICK, 1, false);
+    _mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
     gas_();
     description = string.concat(description, " - Case: quote/base gasbase for taking single offer to empty book");
     printDescription();

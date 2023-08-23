@@ -5,15 +5,15 @@ pragma solidity ^0.8.18;
 import {
   SingleGasTestBase,
   GasTestBase,
-  MIDDLE_TICK,
-  LEAF_LOWER_TICK,
-  LEAF_HIGHER_TICK,
-  LEVEL0_LOWER_TICK,
-  LEVEL0_HIGHER_TICK,
-  LEVEL1_LOWER_TICK,
-  LEVEL1_HIGHER_TICK,
-  LEVEL2_LOWER_TICK,
-  LEVEL2_HIGHER_TICK
+  MIDDLE_LOG_PRICE,
+  LEAF_LOWER_LOG_PRICE,
+  LEAF_HIGHER_LOG_PRICE,
+  LEVEL0_LOWER_LOG_PRICE,
+  LEVEL0_HIGHER_LOG_PRICE,
+  LEVEL1_LOWER_LOG_PRICE,
+  LEVEL1_HIGHER_LOG_PRICE,
+  LEVEL2_LOWER_LOG_PRICE,
+  LEVEL2_HIGHER_LOG_PRICE
 } from "./GasTestBase.t.sol";
 import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
@@ -23,25 +23,25 @@ import {MgvStructs} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBase {
-  int internal tick;
+  int internal logPrice;
 
   function setUp() public virtual override {
     super.setUp();
-    tick = MIDDLE_TICK;
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_TICK, 1 ether, 100_000, 0);
+    logPrice = MIDDLE_LOG_PRICE;
+    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
     description = "Worst case scenario of taking the last offer from an offer list which now becomes empty";
   }
 
-  function setUpTick(int _tick) public virtual {
-    tick = _tick;
-    _offerId = mgv.newOfferByLogPrice(olKey, _tick, 1 ether, 100_000, 0);
+  function setUpLogPrice(int _logPrice) public virtual {
+    logPrice = _logPrice;
+    _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 1 ether, 100_000, 0);
   }
 
   function test_market_order_partial() public {
     (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByLogPrice(_olKey, MIDDLE_TICK, 1, false);
+    mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
     description = string.concat(description, " - Case: market order partial");
@@ -52,28 +52,28 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
     (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByLogPrice(_olKey, MIDDLE_TICK, 1, true);
+    mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, true);
     gas_();
     assertEq(0, mgv.best(_olKey));
     description = string.concat(description, " - Case: market order partial with fillwants=true");
     printDescription();
   }
 
-  function test_market_order_by_tick_full() public {
+  function test_market_order_by_log_price_full() public {
     (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByLogPrice(_olKey, MIDDLE_TICK, 1 ether, false);
+    mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1 ether, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
-    description = string.concat(description, " - Case: market order by tick full fill");
+    description = string.concat(description, " - Case: market order by log price full fill");
     printDescription();
   }
 
   function test_market_order_by_volume_full() public {
     (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     uint takerGives = 1 ether;
-    uint takerWants = LogPriceLib.outboundFromInbound(MIDDLE_TICK, takerGives);
+    uint takerWants = LogPriceLib.outboundFromInbound(MIDDLE_LOG_PRICE, takerGives);
     vm.prank($(taker));
     _gas();
     mgv.marketOrderByVolume(_olKey, takerWants, takerGives, false);
@@ -85,7 +85,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
 
   function test_market_order_by_price_full() public {
     (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
-    uint price = LogPriceLib.priceFromLogPrice_e18(MIDDLE_TICK);
+    uint price = LogPriceLib.priceFromLogPrice_e18(MIDDLE_LOG_PRICE);
     vm.prank($(taker));
     _gas();
     mgv.marketOrderByPrice(_olKey, price, 1 ether, false);
@@ -97,100 +97,100 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
 }
 
 abstract contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest is GasTestBase {
-  int internal tick;
+  int internal logPrice;
 
   function setUp() public virtual override {
     super.setUp();
     // The offer to take
-    tick = MIDDLE_TICK;
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_TICK, 1 ether, 100_000, 0);
+    logPrice = MIDDLE_LOG_PRICE;
+    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
     description = "Market order taking an offer which moves the price up various tick-distances";
   }
 
-  function setUpTick(int _tick) public virtual {
+  function setUpLogPrice(int _logPrice) public virtual {
     // The offer price ends up at
-    tick = _tick;
-    _offerId = mgv.newOfferByLogPrice(olKey, _tick, 1 ether, 100_000, 0);
+    logPrice = _logPrice;
+    _offerId = mgv.newOfferByLogPrice(olKey, _logPrice, 1 ether, 100_000, 0);
   }
 
   function test_market_order_partial() public {
     (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByLogPrice(_olKey, MIDDLE_TICK, 1, false);
+    mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    assertEq(tick, LogPriceLib.fromTick(local.tick(), _olKey.tickScale));
+    assertEq(logPrice, LogPriceLib.fromTick(local.tick(), _olKey.tickScale));
     printDescription();
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_MIDDLE_TICK is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_MIDDLE_LOG_PRICE is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(MIDDLE_TICK);
-    description = string.concat(description, " - Case: MIDDLE_TICK");
+    setUpLogPrice(MIDDLE_LOG_PRICE);
+    description = string.concat(description, " - Case: MIDDLE_LOG_PRICE");
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEAF_HIGHER_TICK is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEAF_HIGHER_LOG_PRICE is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEAF_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEAF_HIGHER_TICK");
+    setUpLogPrice(LEAF_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: LEAF_HIGHER_LOG_PRICE");
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL0_HIGHER_TICK is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL0_HIGHER_LOG_PRICE is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL0_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL0_HIGHER_TICK");
+    setUpLogPrice(LEVEL0_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: LEVEL0_HIGHER_LOG_PRICE");
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL1_HIGHER_TICK is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL1_HIGHER_LOG_PRICE is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL1_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL1_HIGHER_TICK");
+    setUpLogPrice(LEVEL1_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: LEVEL1_HIGHER_LOG_PRICE");
   }
 }
 
-contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_TICK is
+contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest_LEVEL2_HIGHER_LOG_PRICE is
   ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest
 {
   function setUp() public virtual override {
     super.setUp();
-    setUpTick(LEVEL2_HIGHER_TICK);
-    description = string.concat(description, " - Case: LEVEL2_HIGHER_TICK");
+    setUpLogPrice(LEVEL2_HIGHER_LOG_PRICE);
+    description = string.concat(description, " - Case: LEVEL2_HIGHER_LOG_PRICE");
   }
 }
 
 abstract contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTick is SingleGasTestBase {
   function setUpOffers(uint count) internal {
     for (uint i; i < count; ++i) {
-      _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_TICK, 1 ether, 100_000, 0);
+      _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
     }
-    mgv.newOfferByLogPrice(olKey, MIDDLE_TICK + 1, 1 ether, 100_000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE + 1, 1 ether, 100_000, 0);
     description = string.concat(string.concat("Market order taking ", vm.toString(count), " offers at same tick"));
   }
 
   function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint) internal virtual override {
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByLogPrice(_olKey, MIDDLE_TICK, 2 ** 96, false);
+    mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 2 ** 96, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    assertEq(MIDDLE_TICK + 1, LogPriceLib.fromTick(local.tick(), _olKey.tickScale));
+    assertEq(MIDDLE_LOG_PRICE + 1, LogPriceLib.fromTick(local.tick(), _olKey.tickScale));
     printDescription();
   }
 }
@@ -225,16 +225,20 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTick_4 is
 contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTicks is TickBoundariesGasTest, GasTestBase {
   function setUp() public virtual override {
     super.setUp();
-    this.newOfferOnAllTestTicks();
+    this.newOfferOnAllTestPrices();
     description = "Market order taking offers up to a tick with offers on all test ticks";
   }
 
-  function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int tick) internal virtual override {
+  function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int _logPrice)
+    internal
+    virtual
+    override
+  {
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByLogPrice(_olKey, tick, 2 ** 96, false);
+    mgv.marketOrderByLogPrice(_olKey, _logPrice, 2 ** 96, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    assertLt(tick, LogPriceLib.fromTick(local.tick(), _olKey.tickScale));
+    assertLt(_logPrice, LogPriceLib.fromTick(local.tick(), _olKey.tickScale));
   }
 }

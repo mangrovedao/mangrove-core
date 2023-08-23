@@ -2,32 +2,32 @@
 
 pragma solidity ^0.8.18;
 
-import {SingleGasTestBase, GasTestBase, MIDDLE_TICK} from "./GasTestBase.t.sol";
+import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
 import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
 import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE} from "mgv_lib/TickLib.sol";
 
-int constant LOW_TICK = MIDDLE_TICK - 2 * LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
+int constant LOW_LOG_PRICE = MIDDLE_LOG_PRICE - 2 * LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
 
 contract PosthookSuccessRetractOfferSameList_WithOtherOfferGasTest is TickBoundariesGasTest, GasTestBase {
   uint internal offerId2;
 
   function setUp() public virtual override {
     super.setUp();
-    this.newOfferOnAllTestTicks();
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_TICK, 1 ether, 1_000_000, 0);
-    tickOfferIds[MIDDLE_TICK] = _offerId;
-    // Offer to take at very low tick
-    mgv.newOfferByLogPrice(olKey, LOW_TICK, 2 ** 96 - 1, 1_000_000, 0);
-    offerId2 = mgv.newOfferByLogPrice(olKey, LOW_TICK, 2 * 96 - 1, 1_000_000, 0);
+    this.newOfferOnAllTestPrices();
+    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 1_000_000, 0);
+    logPriceOfferIds[MIDDLE_LOG_PRICE] = _offerId;
+    // Offer to take at very low price
+    mgv.newOfferByLogPrice(olKey, LOW_LOG_PRICE, 2 ** 96 - 1, 1_000_000, 0);
+    offerId2 = mgv.newOfferByLogPrice(olKey, LOW_LOG_PRICE, 2 * 96 - 1, 1_000_000, 0);
     description =
       "Retracting an offer in posthook for now empty offer list but where new offer has varying closeness to taken offer";
   }
 
   function makerPosthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) public virtual override {
     (AbstractMangrove mgv,, OLKey memory _olKey,) = getStored();
-    uint offerId = tickOfferIds[tick];
+    uint offerId = logPriceOfferIds[logPrice];
     _gas();
     mgv.retractOffer(_olKey, offerId, true);
     gas_();
@@ -35,7 +35,7 @@ contract PosthookSuccessRetractOfferSameList_WithOtherOfferGasTest is TickBounda
 
   function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int) internal override {
     vm.prank($(taker));
-    mgv.marketOrderByLogPrice(_olKey, LOW_TICK, 1, true);
+    mgv.marketOrderByLogPrice(_olKey, LOW_LOG_PRICE, 1, true);
   }
 }
 
@@ -45,7 +45,7 @@ contract PosthookSuccessRetractOfferSameList_WithPriorRetractOfferAndOtherOffers
   function setUp() public virtual override {
     super.setUp();
     description =
-      "Retracting a second offer at various tick-distances in posthook after retracting an offer at MIDDLE_TICK";
+      "Retracting a second offer at various tick-distances in posthook after retracting an offer at MIDDLE_LOG_PRICE";
   }
 
   function makerPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata result) public virtual override {

@@ -24,63 +24,21 @@ interface IMangrove {
   event Debit(address indexed maker, uint amount);
   event Kill();
   event NewMgv();
-  event OfferFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed tickScale,
-    uint id,
-    address taker,
-    uint takerWants,
-    uint takerGives,
-    bytes32 mgvData
-  );
-  event OfferRetract(
-    address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint id, bool deprovision
-  );
-  event OfferSuccess(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed tickScale,
-    uint id,
-    address taker,
-    uint takerWants,
-    uint takerGives
-  );
+  event OfferFail(bytes32 indexed olKeyHash, uint id, address taker, uint takerWants, uint takerGives, bytes32 mgvData);
+  event OfferRetract(bytes32 indexed olKeyHash, uint id, bool deprovision);
+  event OfferSuccess(bytes32 indexed olKeyHash, uint id, address taker, uint takerWants, uint takerGives);
   event OfferWrite(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed tickScale,
-    address maker,
-    int logPrice,
-    uint gives,
-    uint gasprice,
-    uint gasreq,
-    uint id
+    bytes32 indexed olKeyHash, address maker, int logPrice, uint gives, uint gasprice, uint gasreq, uint id
   );
   event OrderComplete(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed tickScale,
-    address taker,
-    uint takerGot,
-    uint takerGave,
-    uint penalty,
-    uint feePaid
+    bytes32 indexed olKeyHash, address taker, uint takerGot, uint takerGave, uint penalty, uint feePaid
   );
   event OrderStart();
-  event PosthookFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed tickScale,
-    uint offerId,
-    bytes32 posthookData
-  );
-  event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, bool value);
-  event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint value);
-  event SetFee(address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint value);
-  event SetGasbase(
-    address indexed outbound_tkn, address indexed inbound_tkn, uint indexed tickScale, uint offer_gasbase
-  );
+  event PosthookFail(bytes32 indexed olKeyHash, uint offerId, bytes32 posthookData);
+  event SetActive(bytes32 indexed olKeyHash, bool value);
+  event SetDensityFixed(bytes32 indexed olKeyHash, uint value);
+  event SetFee(bytes32 indexed olKeyHash, uint value);
+  event SetGasbase(bytes32 indexed olKeyHash, uint offer_gasbase);
   event SetGasmax(uint value);
   event SetGasprice(uint value);
   event SetGovernance(address value);

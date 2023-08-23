@@ -729,8 +729,8 @@ contract TakerOperationsTest is MangroveTest {
     }
     mkr.expect("mgv/tradeSuccess");
     // first two offers are at right price
-    uint takerWants = 0.1 ether + 0.1 ether;
-    uint takerGives = 0.1 ether + 0.2 ether;
+    uint takerWants = 0.1 ether;
+    uint takerGives = 2 * takerWants;
     mgv.marketOrderByVolume{gas: 450_000}(olKey, takerWants, takerGives, true);
     for (uint i = 0; i < offersExpectedTaken; i++) {
       assertTrue(mkr.makerPosthookWasCalled(ofrs[i]), "ofr posthook must be called or test is void");

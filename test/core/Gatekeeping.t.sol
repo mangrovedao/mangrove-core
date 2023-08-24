@@ -42,7 +42,7 @@ contract GatekeepingTest is MangroveTest {
   /* # Test Config */
 
   function test_gov_is_not_sender() public {
-    mgv = new Mangrove({governance: notAdmin, gasprice: 0, gasmax: 0});
+    Mangrove mgv = new Mangrove({governance: notAdmin, gasprice: 0, gasmax: 0});
     assertEq(mgv.governance(), notAdmin, "governance should not be msg.sender");
   }
 

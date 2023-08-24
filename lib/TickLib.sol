@@ -8,11 +8,14 @@ uint constant ONES = type(uint).max;
 uint constant TOPBIT = 1 << 255;
 
 // MIN_TICK and MAX_TICK should be inside the addressable range defined by the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2
-int constant MIN_TICK = -524287;
-int constant MAX_TICK = -MIN_TICK;
+//FIXME: This should be -524288 to match a 20 bit signed int
+int constant MIN_TICK = -524288;
+// int constant MIN_TICK = -524287;
+int constant MAX_TICK = -MIN_TICK - 1;
+// int constant MAX_TICK = -MIN_TICK;
 
 // sizes must match field sizes in structs.ts where relevant
-uint constant TICK_BITS = 24;
+uint constant TICK_BITS = 24; //FIXME: We only use 20 bit ticks currently?
 uint constant OFFER_BITS = 32;
 
 // only power-of-two sizes are supported for LEAF_SIZE and LEVEL*_SIZE
@@ -35,6 +38,18 @@ int constant NUM_LEVEL1 = int(LEVEL2_SIZE);
 int constant NUM_LEVEL0 = NUM_LEVEL1 * LEVEL1_SIZE;
 int constant NUM_LEAFS = NUM_LEVEL0 * LEVEL0_SIZE;
 int constant NUM_TICKS = NUM_LEAFS * LEAF_SIZE;
+
+// FIXME: Should these be here or placed somewhere else? Besides being useful in tests, they serve as documentation for the datastructure
+int constant MIN_LEAF_INDEX = -NUM_LEAFS / 2;
+int constant MAX_LEAF_INDEX = -MIN_LEAF_INDEX - 1;
+int constant MIN_LEVEL0_INDEX = -NUM_LEVEL0 / 2;
+int constant MAX_LEVEL0_INDEX = -MIN_LEVEL0_INDEX - 1;
+int constant MIN_LEVEL1_INDEX = -NUM_LEVEL1 / 2;
+int constant MAX_LEVEL1_INDEX = -MIN_LEVEL1_INDEX - 1;
+uint constant MAX_LEAF_POSITION = uint(LEAF_SIZE - 1);
+uint constant MAX_LEVEL0_POSITION = uint(LEVEL0_SIZE - 1);
+uint constant MAX_LEVEL1_POSITION = uint(LEVEL1_SIZE - 1);
+uint constant MAX_LEVEL2_POSITION = uint(LEVEL2_SIZE - 1);
 
 uint constant OFFER_MASK = ONES >> (256 - OFFER_BITS);
 
@@ -166,6 +181,7 @@ library LogPriceLib {
   // FP.lnWad(BP)
   uint constant lnBP = 99995000333308;
   // FIXME should depend on the min and max prices 
+  // FIXME: And on the tick datastructure limits
   int constant MIN_LOG_PRICE = -524287;
   int constant MAX_LOG_PRICE = -MIN_LOG_PRICE;
 
@@ -278,6 +294,10 @@ library LogPriceLib {
 
 library TickLib {
 
+  function eq(Tick tick1, Tick tick2) internal pure returns (bool) {
+    return Tick.unwrap(tick1) == Tick.unwrap(tick2);
+  }
+
   function inRange(Tick tick) internal pure returns (bool) {
     return Tick.unwrap(tick) >= MIN_TICK && Tick.unwrap(tick) <= MAX_TICK;
   }
@@ -355,7 +375,9 @@ library TickLib {
   // see note posIn*
   // note with int24 tick we only use 64 bits of level2 (64*256*256*4 is 2**24)
   // the goal is that have the bit positions in {} used:
-
+// FIXME: This is a non-standard way of writing bit positions, normally they're numbered right-to-left
+// FIXME: Also, the highest position in a field is 63 and is used for the highest tick in the level.
+//        This feels like it's conflicting with the stmt in the Excalidraw that says "ticks go right (cheap) to left (expensive)"
   //   level 2 single node
   // <--------------------->
   // {0.......63}64......255

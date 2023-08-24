@@ -65,7 +65,8 @@ contract MgvRoot is HasMgvEvents {
   function level0(OLKey memory olKey, int index) external view returns (Field) {
     OfferList storage offerList = offerLists[olKey.hash()];
     MgvStructs.LocalPacked local = offerList.local;
-
+    //FIXME: This is an optimization that saves a lookup in the `level0` mapping if the index coincides with that of the currently best tick.
+    //FIXME: Also, it's neccessary due to another optimization: level0 for the best tick isn't written to the mapping until it is no longer the best tick. So level0 must be read from `local` in that case. 
     if (local.tick().level0Index() == index) {
       return local.level0();
     } else {

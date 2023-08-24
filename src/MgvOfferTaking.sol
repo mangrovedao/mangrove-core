@@ -211,7 +211,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* Load additional information about the offer. */
         sor.offerDetail = pair.offerData[sor.offerId].detail;
 
-        /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way, [`mgvData`](#MgvOfferTaking/statusCodes) not in `["mgv/notExecuted","mgv/tradeSuccess"]` means the failure is the maker's fault. */
+        /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way, if [`mgvData`](#MgvOfferTaking/statusCodes) is not `"mgv/tradeSuccess"` then the maker is at fault. */
         /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. We will need it after the recursive call, so we save it in local variables. Same goes for `offerId`, `sor.offer` and `sor.offerDetail`. */
 
         (gasused, makerData, mgvData) = execute(pair, mor, sor);
@@ -500,7 +500,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           if (sor.global.notify()) {
             IMgvMonitor(sor.global.monitor()).notifyFail(sor, mor.taker);
           }
-          /* It is crucial that any error code which indicates an error caused by the taker triggers a revert, because functions that call `execute` consider that `mgvData` not in `["mgv/notExecuted","mgv/tradeSuccess"]` should be blamed on the maker. */
+          /* It is crucial that any error code which indicates an error caused by the taker triggers a revert, because functions that call `execute` consider that when `mgvData` is not `"mgv/tradeSuccess"`, then the maker should be blamed. */
         } else if (mgvData == "mgv/notEnoughGasForMakerTrade") {
           revert("mgv/notEnoughGasForMakerTrade");
         } else if (mgvData == "mgv/takerTransferFail") {
@@ -563,7 +563,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal virtual;
 
   /* ## Post execute */
-  /* At this point, we know `mgvData != "mgv/notExecuted"`. After executing an offer (whether in a market order or in snipes), we
+  /* At this point, we know an offer execution was attempted. After executing an offer (whether in a market order or in snipes), we
      1. Call the maker's posthook and sum the total gas used.
      2. If offer failed: sum total penalty due to msg.sender and give remainder to maker.
    */
@@ -673,7 +673,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         gasused = gasreq;
       }
 
-      /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/notExecuted","mgv/tradeSuccess"]` */
+      /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/tradeSuccess"]` */
       uint penalty = 10 ** 9 * sor.global.gasprice() * (gasused + sor.local.offer_gasbase());
 
       if (penalty > provision) {

@@ -92,7 +92,7 @@ interface IMangrove {
     external
     returns (uint, uint, uint, uint);
 
-  function marketOrderByLogPrice(OLKey memory olKey, int maxPrice_e18, uint fillVolume, bool fillWants)
+  function marketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
     external
     returns (uint, uint, uint, uint);
 

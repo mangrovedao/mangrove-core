@@ -83,11 +83,11 @@ contract GenericFork is Script {
   }
 
   function addressesFileRoot(string memory category, string memory suffix) public view returns (string memory) {
-    return addressesFile("addresses", category, suffix);
+    return addressesFile("/addresses/", category, suffix);
   }
 
   function addressesFileRoot(string memory category) public view returns (string memory) {
-    return addressesFile("addresses", category, "");
+    return addressesFile("/addresses/", category, "");
   }
 
   struct Paths {

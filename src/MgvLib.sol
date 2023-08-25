@@ -71,6 +71,7 @@ contract HasMgvEvents {
   event SetUseOracle(bool value);
   event SetNotify(bool value);
   event SetGasmax(uint value);
+  event SetMaxRecursionDepth(uint value);
   event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
   event SetGasprice(uint value);
 

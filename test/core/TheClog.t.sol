@@ -78,6 +78,22 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
     takeSome(minVolume);
     takeSome(minVolume + 1);
   }
+
+  function testFail_take_more_than_first_fails_for_deep_stack() public {
+    mgv.setMaxRecursionDepth(100);
+    gaslimit = 200_000_000;
+    // Taking more volume than the first offer delivers should succeed but will not deliver the full volume since only
+    // the first offer succeeds. All other offer fails.
+    takeSome(minVolume + 1);
+  }
+
+  function testFail_take_one_then_two_at_once_fails_for_deep_stack() public {
+    mgv.setMaxRecursionDepth(100);
+    gaslimit = 200_000_000;
+    // Same as testFail_take_more_than_first_fails_for_deep_stack, but verifies that the clog persists after a successful order.
+    takeSome(minVolume);
+    takeSome(minVolume + 1);
+  }
 }
 
 contract TooMuchGasClogTest is TooDeepRecursionClogTest {

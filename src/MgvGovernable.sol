@@ -17,6 +17,7 @@ contract MgvGovernable is MgvRoot {
       /* Set initial gasprice and gasmax. */
       setGasprice(_gasprice);
       setGasmax(gasmax);
+      setMaxRecursionDepth(40);
       /* Initialize governance to `_governance` after parameter setting. */
       setGovernance(_governance);
     }
@@ -145,6 +146,18 @@ contract MgvGovernable is MgvRoot {
       //+clear+
       internal_global = internal_global.gasmax(gasmax);
       emit SetGasmax(gasmax);
+    }
+  }
+
+  /* ### `maxRecursionDepth` */
+  function setMaxRecursionDepth(uint maxRecursionDepth) public {
+    unchecked {
+      authOnly();
+      require(
+        MgvStructs.Global.maxRecursionDepth_check(maxRecursionDepth), MgvStructs.Global.maxRecursionDepth_size_error
+      );
+      internal_global = internal_global.maxRecursionDepth(maxRecursionDepth);
+      emit SetMaxRecursionDepth(maxRecursionDepth);
     }
   }
 

@@ -191,13 +191,20 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* `internalMarketOrder` works recursively. Going downward, each successive offer is executed until the market order stops (due to: volume exhausted, bad price, or empty book). Then the [reentrancy lock is lifted](#internalMarketOrder/liftReentrancy). Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book. */
   function internalMarketOrder(Pair storage pair, MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal {
     unchecked {
+      if (mor.fillVolume == 0 || sor.offerId == 0 || !sor.offer.tick().better(mor.maxTick)) {
+        return endInternalMarketOrder(pair, mor, sor);
+      }
+
+      /* Load additional information about the offer. */
+      sor.offerDetail = pair.offerData[sor.offerId].detail;
+
       /* #### Case 1 : End of order */
       /* We execute the offer currently stored in `sor` if its price is better than or equal to the price the taker is ready to accept (`maxTick`). */
-      if (mor.fillVolume > 0 && sor.offerId > 0 && sor.offer.tick().better(mor.maxTick)) {
-        uint gasused; // gas used by `makerExecute`
-        bytes32 makerData; // data returned by maker
 
-        /* <a id="MgvOfferTaking/statusCodes"></a> `mgvData` is an internal Mangrove status code. It may appear in an [`OrderResult`](#MgvLib/OrderResult). Its possible values are:
+      uint gasused; // gas used by `makerExecute`
+      bytes32 makerData; // data returned by maker
+
+      /* <a id="MgvOfferTaking/statusCodes"></a> `mgvData` is an internal Mangrove status code. It may appear in an [`OrderResult`](#MgvLib/OrderResult). Its possible values are:
       * `"mgv/tradeSuccess"`: offer execution succeeded. Will appear in `OrderResult`.
       * `"mgv/notEnoughGasForMakerTrade"`: cannot give maker close enough to `gasreq`. Triggers a revert of the entire order.
       * `"mgv/makerRevert"`: execution of `makerExecute` reverted. Will appear in `OrderResult`.
@@ -206,97 +213,95 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       * `"mgv/takerTransferFail"`: taker could not send inbound_tkn tokens. Triggers a revert of the entire order.
 
       `mgvData` should not be exploitable by the maker! */
-        bytes32 mgvData;
+      bytes32 mgvData;
 
-        /* Load additional information about the offer. */
-        sor.offerDetail = pair.offerData[sor.offerId].detail;
+      /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way, if [`mgvData`](#MgvOfferTaking/statusCodes) is not `"mgv/tradeSuccess"` then the maker is at fault. */
+      /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. We will need it after the recursive call, so we save it in local variables. Same goes for `offerId`, `sor.offer` and `sor.offerDetail`. */
 
-        /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way, if [`mgvData`](#MgvOfferTaking/statusCodes) is not `"mgv/tradeSuccess"` then the maker is at fault. */
-        /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. We will need it after the recursive call, so we save it in local variables. Same goes for `offerId`, `sor.offer` and `sor.offerDetail`. */
+      (gasused, makerData, mgvData) = execute(pair, mor, sor);
 
-        (gasused, makerData, mgvData) = execute(pair, mor, sor);
+      /* Keep cached copy of current `sor` values to restore them later to send to posthook. */
+      uint takerWants = sor.wants;
+      uint takerGives = sor.gives;
+      uint offerId = sor.offerId;
+      MgvStructs.OfferPacked offer = sor.offer;
+      MgvStructs.OfferDetailPacked offerDetail = sor.offerDetail;
 
-        /* Keep cached copy of current `sor` values to restore them later to send to posthook. */
-        uint takerWants = sor.wants;
-        uint takerGives = sor.gives;
-        uint offerId = sor.offerId;
-        MgvStructs.OfferPacked offer = sor.offer;
-        MgvStructs.OfferDetailPacked offerDetail = sor.offerDetail;
+      /* If execution was successful, we update fillVolume downwards. Assume `mor.fillWants`: it is known statically that `mor.fillVolume - sor.wants` does not underflow. See the [`execute` function](#MgvOfferTaking/computeVolume) for details. */
+      if (mgvData == "mgv/tradeSuccess") {
+        mor.fillVolume -= mor.fillWants ? sor.wants : sor.gives;
+      }
 
-        /* If execution was successful, we update fillVolume downwards. Assume `mor.fillWants`: it is known statically that `mor.fillVolume - sor.wants` does not underflow. See the [`execute` function](#MgvOfferTaking/computeVolume) for details. */
-        if (mgvData == "mgv/tradeSuccess") {
-          mor.fillVolume -= mor.fillWants ? sor.wants : sor.gives;
-        }
+      /* We move `sor` to the next offer. Note that the current state is inconsistent, since we have not yet updated `sor.offerDetails`. */
+      /* It is known statically that `mor.initialGives - mor.totalGave` does not underflow since
+        1. `mor.totalGave` was increased by `sor.gives` during `execute`,
+        2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
+        3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
+      */
+      (sor.offerId, sor.local) = getNextBest(pair, mor, sor.offer, sor.local);
 
-        /* We move `sor` to the next offer. Note that the current state is inconsistent, since we have not yet updated `sor.offerDetails`. */
-        /* It is known statically that `mor.initialGives - mor.totalGave` does not underflow since
-          1. `mor.totalGave` was increased by `sor.gives` during `execute`,
-          2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
-          3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
-        */
-        (sor.offerId, sor.local) = getNextBest(pair, mor, sor.offer, sor.local);
+      sor.offer = pair.offerData[sor.offerId].offer;
 
-        sor.offer = pair.offerData[sor.offerId].offer;
+      internalMarketOrder(pair, mor, sor);
 
-        internalMarketOrder(pair, mor, sor);
+      /* Restore `sor` values from before recursive call */
+      sor.wants = takerWants;
+      sor.gives = takerGives;
+      sor.offerId = offerId;
+      sor.offer = offer;
+      sor.offerDetail = offerDetail;
 
-        /* Restore `sor` values from before recursive call */
-        sor.wants = takerWants;
-        sor.gives = takerGives;
-        sor.offerId = offerId;
-        sor.offer = offer;
-        sor.offerDetail = offerDetail;
+      /* After an offer execution, we may run callbacks and increase the total penalty. As that part is common to market orders and cleaning, it lives in its own `postExecute` function. */
+      postExecute(mor, sor, gasused, makerData, mgvData);
+    }
+  }
 
-        /* After an offer execution, we may run callbacks and increase the total penalty. As that part is common to market orders and cleaning, it lives in its own `postExecute` function. */
-        postExecute(mor, sor, gasused, makerData, mgvData);
+  /* #### Case 2 : End of market order */
+  /* The taker has gotten its requested volume, no more offers match, or we have reached the end of the book, we conclude the market order. */
 
-        /* #### Case 2 : End of market order */
-        /* The taker has gotten its requested volume, no more offers match, or we have reached the end of the book, we conclude the market order. */
-      } else {
-        /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
+  function endInternalMarketOrder(Pair storage pair, MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal {
+    /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
 
-        // mark current offer as having no prev if necessary
-        // update leaf if necessary
-        MgvStructs.OfferPacked offer = sor.offer;
-        Tick tick = offer.tick();
-        if (offer.prev() != 0) {
-          pair.offerData[sor.offerId].offer = sor.offer.prev(0);
-          mor.leaf = mor.leaf.setTickFirst(tick, sor.offerId);
-        }
+    // mark current offer as having no prev if necessary
+    // update leaf if necessary
+    MgvStructs.OfferPacked offer = sor.offer;
+    Tick tick = offer.tick();
+    if (offer.prev() != 0) {
+      pair.offerData[sor.offerId].offer = sor.offer.prev(0);
+      mor.leaf = mor.leaf.setTickFirst(tick, sor.offerId);
+    }
 
-        // maybe some updates below are useless? if we don't update these we must take it into account elsewhere
-        // no need to test whether level2 has been reached since by default its stored in local
+    // maybe some updates below are useless? if we don't update these we must take it into account elsewhere
+    // no need to test whether level2 has been reached since by default its stored in local
 
-        sor.local = sor.local.tickPosInLeaf(mor.leaf.firstOfferPosition());
-        // no need to test whether mor.level2 != pair.level2 since update is ~free
-        // ! local.level0[sor.local.tick().level0Index()] is now wrong
-        // sor.local = sor.local.level0(mor.level0);
+    sor.local = sor.local.tickPosInLeaf(mor.leaf.firstOfferPosition());
+    // no need to test whether mor.level2 != pair.level2 since update is ~free
+    // ! local.level0[sor.local.tick().level0Index()] is now wrong
+    // sor.local = sor.local.level0(mor.level0);
 
-        int index = tick.leafIndex();
-        // leaf cached in memory is flushed to storage everytime it gets emptied, but at the end of a market order we need to store it correctly
-        // second conjunct is for when you did not ever read leaf
-        // possible that this condition is false? (except if 0 offers executed)
-        if (!pair.leafs[index].eq(mor.leaf)) {
-          pair.leafs[index] = mor.leaf;
-        }
+    int index = tick.leafIndex();
+    // leaf cached in memory is flushed to storage everytime it gets emptied, but at the end of a market order we need to store it correctly
+    // second conjunct is for when you did not ever read leaf
+    // possible that this condition is false? (except if 0 offers executed)
+    if (!pair.leafs[index].eq(mor.leaf)) {
+      pair.leafs[index] = mor.leaf;
+    }
 
-        /* <a id="internalMarketOrder/liftReentrancy"></a>Now that the market order is over, we can lift the lock on the book. In the same operation we
+    /* <a id="internalMarketOrder/liftReentrancy"></a>Now that the market order is over, we can lift the lock on the book. In the same operation we
 
       * lift the reentrancy lock, and
       * update the storage
 
       so we are free from out of order storage writes.
       */
-        sor.local = sor.local.lock(false);
-        pair.local = sor.local;
+    sor.local = sor.local.lock(false);
+    pair.local = sor.local;
 
-        /* `payTakerMinusFees` keeps the fee in Mangrove, proportional to the amount purchased, and gives the rest to the taker */
-        payTakerMinusFees(mor, sor);
+    /* `payTakerMinusFees` keeps the fee in Mangrove, proportional to the amount purchased, and gives the rest to the taker */
+    payTakerMinusFees(mor, sor);
 
-        /* In an inverted Mangrove, amounts have been lent by each offer's maker to the taker. We now call the taker. This is a noop in a normal Mangrove. */
-        executeEnd(mor, sor);
-      }
-    }
+    /* In an inverted Mangrove, amounts have been lent by each offer's maker to the taker. We now call the taker. This is a noop in a normal Mangrove. */
+    executeEnd(mor, sor);
   }
 
   /* # Cleaning */

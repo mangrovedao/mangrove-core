@@ -21,6 +21,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     Leaf leaf;
     Field level1;
     Tick maxTick; // maxTick is the maximum tick that can be reached by the market order as a limit price.
+    uint gasreqLeft;
+    uint maxRecursionDepth;
   }
 
   /* # Market Orders */
@@ -149,6 +151,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sor.inbound_tkn = inbound_tkn;
       Pair storage pair;
       (sor.global, sor.local, pair) = _config(outbound_tkn, inbound_tkn);
+      mor.maxRecursionDepth = sor.global.maxRecursionDepth();
+      /* We set aside gas for ending a market order. */
+      mor.gasreqLeft = sor.local.offer_gasbase();
+
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
 
       mor.leaf = pair.leafs[sor.local.tick().leafIndex()];
@@ -191,12 +197,22 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* `internalMarketOrder` works recursively. Going downward, each successive offer is executed until the market order stops (due to: volume exhausted, bad price, or empty book). Then the [reentrancy lock is lifted](#internalMarketOrder/liftReentrancy). Going upward, each offer's `maker` contract is called again with its remaining gas and given the chance to update its offers on the book. */
   function internalMarketOrder(Pair storage pair, MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal {
     unchecked {
-      if (mor.fillVolume == 0 || sor.offerId == 0 || !sor.offer.tick().better(mor.maxTick)) {
+      if (
+        mor.fillVolume == 0 || sor.offerId == 0 || mor.maxRecursionDepth == 0 || !sor.offer.tick().better(mor.maxTick)
+      ) {
         return endInternalMarketOrder(pair, mor, sor);
       }
 
       /* Load additional information about the offer. */
       sor.offerDetail = pair.offerData[sor.offerId].detail;
+
+      mor.gasreqLeft += sor.offerDetail.gasreq();
+
+      if (gasleft() < mor.gasreqLeft + sor.local.offer_gasbase()) {
+        return endInternalMarketOrder(pair, mor, sor);
+      }
+
+      mor.maxRecursionDepth--;
 
       /* #### Case 1 : End of order */
       /* We execute the offer currently stored in `sor` if its price is better than or equal to the price the taker is ready to accept (`maxTick`). */
@@ -241,6 +257,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       (sor.offerId, sor.local) = getNextBest(pair, mor, sor.offer, sor.local);
 
       sor.offer = pair.offerData[sor.offerId].offer;
+      mor.gasreqLeft -= gasused;
 
       internalMarketOrder(pair, mor, sor);
 

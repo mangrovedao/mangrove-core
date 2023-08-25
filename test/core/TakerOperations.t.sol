@@ -632,8 +632,10 @@ contract TakerOperationsTest is MangroveTest {
     assertFalse(mkr.makerPosthookWasCalled(ofr), "ofr posthook must not be called or test is void");
   }
 
-  function test_detect_lowgas() public {
+  function test_detect_low_gas() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
+    // Change gasbase so that gas limit checks does not prevent execution attempt
+    mgv.setGasbase($(base), $(quote), 1);
     Tick offerTick = pair.offers(ofr).tick();
     quote.approve($(mgv), 100 ether);
 
@@ -756,13 +758,13 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_unsafe_gas_left_fails_order() public {
-    mgv.setGasbase($(base), $(quote), 1);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 120_000, 0);
+    mgv.setGasbase($(base), $(quote), 1);
     Tick offerTick = pair.offers(ofr).tick();
 
     vm.expectRevert("mgv/notEnoughGasForMakerTrade");
-    mgv.marketOrderByTick{gas: 120_000}($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
+    mgv.marketOrderByTick{gas: 130_000}($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
   }
 
   function test_unsafe_gas_left_fails_posthook() public {

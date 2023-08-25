@@ -252,6 +252,8 @@ library OfferDetailUnpackedExtra {
       { name: "gasmax", bits: 24, type: "uint" },
       /* * `dead` dexes cannot be resurrected. */
       { name: "dead", bits: 1, type: "bool" },
+      /* * `maxRecursionDepth` is the maximum number of times a market order can recursively execute offers. This is a protection against stack overflows. */
+      { name: "maxRecursionDepth", bits: 8, type: "uint" },
     ],
   },
 

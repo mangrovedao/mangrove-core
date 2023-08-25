@@ -41,7 +41,7 @@ function toString(GlobalPacked __packed) pure returns (string memory) {
 }
 
 function toString(GlobalUnpacked memory __unpacked) pure returns (string memory) {
-  return string.concat("Global{","monitor: ", vm.toString(__unpacked.monitor), ", ", "useOracle: ", vm.toString(__unpacked.useOracle), ", ", "notify: ", vm.toString(__unpacked.notify), ", ", "gasprice: ", vm.toString(__unpacked.gasprice), ", ", "gasmax: ", vm.toString(__unpacked.gasmax), ", ", "dead: ", vm.toString(__unpacked.dead),"}");
+  return string.concat("Global{","monitor: ", vm.toString(__unpacked.monitor), ", ", "useOracle: ", vm.toString(__unpacked.useOracle), ", ", "notify: ", vm.toString(__unpacked.notify), ", ", "gasprice: ", vm.toString(__unpacked.gasprice), ", ", "gasmax: ", vm.toString(__unpacked.gasmax), ", ", "dead: ", vm.toString(__unpacked.dead), ", ", "maxRecursionDepth: ", vm.toString(__unpacked.maxRecursionDepth),"}");
 }
 
 import {LocalPacked, LocalUnpacked} from "mgv_src/preprocessed/MgvLocal.post.sol";

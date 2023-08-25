@@ -115,13 +115,9 @@ interface IMangrove {
     external
     returns (uint, uint, uint, uint);
 
-  function marketOrderByTick(
-    address outbound_tkn,
-    address inbound_tkn,
-    int maxPrice_e18,
-    uint fillVolume,
-    bool fillWants
-  ) external returns (uint, uint, uint, uint);
+  function marketOrderByTick(address outbound_tkn, address inbound_tkn, int maxTick, uint fillVolume, bool fillWants)
+    external
+    returns (uint, uint, uint, uint);
 
   function marketOrderForByVolume(
     address outbound_tkn,

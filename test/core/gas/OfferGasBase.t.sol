@@ -68,7 +68,13 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     AbstractMangrove mgv_ = mgv;
     vm.prank($(taker));
     _gas();
-    mgv_.marketOrderByTick($(base), $(quote), MIDDLE_TICK, 1, false);
+    mgv_.marketOrderByTick({
+      outbound_tkn: $(base),
+      inbound_tkn: $(quote),
+      maxTick: MIDDLE_TICK,
+      fillVolume: 1,
+      fillWants: false
+    });
     gas_();
     description = string.concat(description, " - Case: base/quote gasbase for taking single offer to empty book");
     printDescription();

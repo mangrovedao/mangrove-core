@@ -3,7 +3,6 @@
 pragma solidity ^0.8.18;
 
 import {AbstractMangrove, TestTaker, MangroveTest, IMaker} from "mgv_test/lib/MangroveTest.sol";
-import {MgvLib} from "mgv_src/MgvLib.sol";
 import {
   IERC20,
   MgvLib,
@@ -109,13 +108,24 @@ contract TickTreeNewOfferTest is MangroveTest {
     uint gasprice;
   }
 
-  function createOfferData(Tick tick, uint gasreq, uint gasprice) internal returns (OfferData memory offerData) {
+  function createOfferData(Tick tick, uint gasreq, uint gasprice) internal view returns (OfferData memory offerData) {
     offerData.id = 0;
     offerData.tick = tick;
     offerData.logPrice = LogPriceLib.fromTick(tick, olKey.tickScale);
     offerData.gasreq = gasreq;
     offerData.gives = reader.minVolume(olKey, offerData.gasreq);
     offerData.gasprice = gasprice;
+  }
+
+  function snapshotOfferData(uint offerId) internal view returns (OfferData memory offerData) {
+    (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail) =
+      mgv.offerInfo(olKey, offerId);
+    offerData.id = offerId;
+    offerData.tick = offer.tick(olKey.tickScale);
+    offerData.logPrice = offer.logPrice;
+    offerData.gives = offer.gives;
+    offerData.gasreq = offerDetail.gasreq;
+    offerData.gasprice = offerDetail.gasprice;
   }
 
   function setBit(Field field, uint pos) internal pure returns (Field) {
@@ -227,13 +237,16 @@ contract TickTreeNewOfferTest is MangroveTest {
       "offer should be last in the tick list"
     );
     // Rest of leaf should be unchanged
-    for (uint i = 0; i < uint(LEAF_SIZE); ++i) {
-      if (i == expectedOfferData.tick.posInLeaf()) {
-        continue;
-      }
-      assertEq(leaf.firstOfIndex(i), offerBranchBefore.leaf.firstOfIndex(i), "other leaf positions should be unchanged");
-      assertEq(leaf.lastOfIndex(i), offerBranchBefore.leaf.lastOfIndex(i), "other leaf positions should be unchanged");
-    }
+    // FIXME: This is only relevant if the offer has not been moved to one of the other leaf positions, ie if this not an updateOffer
+    // FIXME: Therefore commmented out, so we can use this assert for updateOffer as well.
+    // FIXME: Can we check this elsewhere instead?
+    // for (uint i = 0; i < uint(LEAF_SIZE); ++i) {
+    //   if (i == expectedOfferData.tick.posInLeaf()) {
+    //     continue;
+    //   }
+    //   assertEq(leaf.firstOfIndex(i), offerBranchBefore.leaf.firstOfIndex(i), "other leaf positions should be unchanged");
+    //   assertEq(leaf.lastOfIndex(i), offerBranchBefore.leaf.lastOfIndex(i), "other leaf positions should be unchanged");
+    // }
 
     // Check that the levels are updated correctly
     assertEq(
@@ -363,21 +376,28 @@ contract TickTreeNewOfferTest is MangroveTest {
   function assertOfferUpdatedCorrectlyOnBranch(
     TickTreeBranch memory oldOfferBranchBefore,
     TickTreeBranch memory offerBranchBefore,
+    OfferData memory oldOfferData,
     OfferData memory expectedOfferData
   ) internal {
     MgvStructs.OfferPacked offer = mgv.offers(olKey, expectedOfferData.id);
     assertTrue(offer.isLive(), "should be live after update");
     // FIXME: Implement this
-
-    // FIXME: If offer was best, check that the best branch is updated correctly
+    // Cases:
+    // 1/ Offer was not live before -> same as assertOfferAddedCorrectlyToBranch. Can we call it directly?
+    // 2/ Offer was live before -> equivalent to combination of assertOfferRemovedCorrectlyFromBranch + assertOfferAddedCorrectlyToBranch.
+    // FIXME: This check would be more readable if we could call `isLive()` on the old offer
+    if (oldOfferData.gives != 0) {
+      console.log("oldOfferData.gives: %s", oldOfferData.gives);
+      assertOfferRemovedCorrectlyFromBranch(oldOfferBranchBefore, oldOfferData);
+      assertOfferAddedCorrectlyToBranch(offerBranchBefore, expectedOfferData);
+      // FIXME: If offer was best, check that the best branch is updated correctly
+    }
+    assertOfferAddedCorrectlyToBranch(offerBranchBefore, expectedOfferData);
   }
 
   function assertOfferRemovedCorrectlyFromBranch(TickTreeBranch memory offerBranchBefore, OfferData memory offerData)
     internal
   {
-    MgvStructs.OfferPacked offer = mgv.offers(olKey, offerData.id);
-    assertFalse(offer.isLive(), "should not be live after retract");
-
     uint offerIdBefore = offerBranchBefore.leaf.firstOfIndex(offerData.tick.posInLeaf());
     assertNotEq(offerIdBefore, 0, "tick list should not have been empty before offer was retracted");
     Leaf leaf = mgv.leafs(olKey, offerData.tick.leafIndex());
@@ -429,8 +449,10 @@ contract TickTreeNewOfferTest is MangroveTest {
     }
 
     // FIXME: If offer was best, check that the best branch is updated correctly
+    // NB: Not sure this is good to test here, since more might have happened than just the offer being removed (eg in updateOffer)
   }
 
+  // FIXME: Consider snapshotting the entire tick tree
   struct TickTreeBranch {
     Field level2;
     Field level1;
@@ -438,6 +460,7 @@ contract TickTreeNewOfferTest is MangroveTest {
     Leaf leaf;
     uint posInLeaf;
     Tick tick;
+    OfferPacked[] offers;
   }
 
   function snapshotTickTreeBranch(Tick tick) internal view returns (TickTreeBranch memory) {
@@ -448,6 +471,16 @@ contract TickTreeNewOfferTest is MangroveTest {
     branch.leaf = mgv.leafs(olKey, tick.leafIndex());
     branch.posInLeaf = reader.local(olKey).tickPosInLeaf();
     branch.tick = tick;
+
+    uint offerId = branch.leaf.firstOfIndex(branch.posInLeaf);
+    (, uint length) = reader.offerListEndPoints(olKey, offerId, type(uint).max);
+    branch.offers = new OfferPacked[](length);
+    for (uint i = 0; i < length; ++i) {
+      OfferPacked offer = mgv.offers(olKey, offerId);
+      branch.offers[i] = offer;
+      offerId = offer.next();
+    }
+
     return branch;
   }
 
@@ -508,6 +541,9 @@ contract TickTreeNewOfferTest is MangroveTest {
     assertTickTreeIsConsistent();
 
     assertOfferRemovedCorrectlyFromBranch(offerBranchBefore, offerData1);
+    // FIXME: This is not part of the assertOfferRemovedCorrectlyFromBranch because other things might also have changed, eg the offer could have been inserted somewhere else
+    MgvStructs.OfferPacked offer = mgv.offers(olKey, offerData1.id);
+    assertFalse(offer.isLive(), "should not be live after retract");
   }
 
   function test_update_only_offer() public {
@@ -518,6 +554,7 @@ contract TickTreeNewOfferTest is MangroveTest {
 
     offerData1.id =
       mgv.newOfferByLogPrice(olKey, offerData1.logPrice, offerData1.gives, offerData1.gasreq, offerData1.gasprice);
+    offerData1 = snapshotOfferData(offerData1.id);
     assertTickTreeIsConsistent();
 
     assertOfferAddedCorrectlyToBranch(offerBranchBefore, offerData1);
@@ -533,8 +570,41 @@ contract TickTreeNewOfferTest is MangroveTest {
     );
     assertTickTreeIsConsistent();
 
-    assertOfferUpdatedCorrectlyOnBranch(oldOfferBranchBefore, offerBranchBefore, offerData2);
+    assertOfferUpdatedCorrectlyOnBranch(oldOfferBranchBefore, offerBranchBefore, offerData1, offerData2);
   }
+
+  function test_update_retracted_offer_in_empty_book() public {
+    OfferData memory offerData1 = createOfferData(Tick.wrap(MAX_TICK), 100_000, 1);
+    OfferData memory offerData2 = createOfferData(Tick.wrap(MAX_TICK - 1), 200_000, 2);
+    TickTreeBranch memory offerBranchBefore = snapshotTickTreeBranch(offerData1.tick);
+    TickTreeBranch memory bestBranchBefore = snapshotBestTickTreeBranch();
+
+    offerData1.id =
+      mgv.newOfferByLogPrice(olKey, offerData1.logPrice, offerData1.gives, offerData1.gasreq, offerData1.gasprice);
+    offerData1 = snapshotOfferData(offerData1.id);
+    assertTickTreeIsConsistent();
+
+    assertOfferAddedCorrectlyToBranch(offerBranchBefore, offerData1);
+    assertBestBranchUpdatedCorrectly(bestBranchBefore, offerBranchBefore, offerData1);
+
+    mgv.retractOffer(olKey, offerData1.id, false);
+    assertTickTreeIsConsistent();
+    offerData1 = snapshotOfferData(offerData1.id);
+
+    TickTreeBranch memory oldOfferBranchBefore = snapshotTickTreeBranch(offerData1.tick);
+    offerBranchBefore = snapshotTickTreeBranch(offerData2.tick);
+    bestBranchBefore = snapshotBestTickTreeBranch();
+
+    offerData2.id = offerData1.id;
+    mgv.updateOfferByLogPrice(
+      olKey, offerData2.logPrice, offerData2.gives, offerData2.gasreq, offerData2.gasprice, offerData2.id
+    );
+    assertTickTreeIsConsistent();
+
+    assertOfferUpdatedCorrectlyOnBranch(oldOfferBranchBefore, offerBranchBefore, offerData1, offerData2);
+  }
+
+  // FIXME: Same as above, but using a retracted offer
 
   // Lasse: Can we add these assertions to existing tests? Eg by adding a wrapper to Mangrove and adding assertions to that
   //        Possibly via the IMangrove interface so we exercise it regularly

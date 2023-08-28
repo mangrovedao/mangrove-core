@@ -123,6 +123,7 @@ contract MgvReader {
     uint maxOffers;
   }
   // Returns the orderbook for the outbound_tkn/inbound_tkn/tickScale offer list in packed form. First number is id of next offer (0 is we're done). First array is ids, second is offers (as bytes32), third is offerDetails (as bytes32). Array will be of size `min(# of offers in out/in list, maxOffers)`.
+  // FIXME: This doesn't work for ticks, does it? Or rather, it only returns offers within one tick, right?
 
   function packedOfferList(OLKey memory olKey, uint fromId, uint maxOffers)
     public

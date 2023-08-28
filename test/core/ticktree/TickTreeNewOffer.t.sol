@@ -77,6 +77,7 @@ contract TickTreeNewOfferTest is MangroveTest {
   function test_ticks_are_at_expected_locations() public {
     assertTickAssumptions({
       tick: Tick.wrap(MIN_TICK),
+      // FIXME: This failed because MIN_TICK was 1 bigger than the smallest number representable by int20. I've changed MIN_TICK the min value of int20.
       posInLeaf: 0,
       leafIndex: MIN_LEAF_INDEX,
       posInLevel0: 0,
@@ -88,7 +89,6 @@ contract TickTreeNewOfferTest is MangroveTest {
 
     assertTickAssumptions({
       tick: Tick.wrap(MAX_TICK),
-      // FIXME: This failed because MIN_TICK was 1 bigger than the smallest number representable by int20. I've changed MIN_TICK the min value of int20.
       posInLeaf: MAX_LEAF_POSITION,
       leafIndex: MAX_LEAF_INDEX,
       posInLevel0: MAX_LEVEL0_POSITION,
@@ -264,10 +264,14 @@ contract TickTreeNewOfferTest is MangroveTest {
   function assertBestBranchUpdatedCorrectly(
     TickTreeBranch memory bestBranchBefore,
     TickTreeBranch memory offerBranchBefore,
-    OfferData memory expectedBestOfferData
+    uint bestOfferId,
+    bool wasOfferAlsoBestBefore // FIXME: This could be inferred if we had a more complete snapshot of before..
   ) internal {
-    MgvStructs.OfferPacked bestOffer = mgv.offers(olKey, expectedBestOfferData.id);
-    Tick tick = bestOffer.tick(olKey.tickScale);
+    Tick tick;
+    {
+      MgvStructs.OfferPacked bestOffer = mgv.offers(olKey, bestOfferId);
+      tick = bestOffer.tick(olKey.tickScale);
+    }
 
     // Check that local contains the offer's tick branch and that Mangrove reports it correctly
     {
@@ -303,7 +307,7 @@ contract TickTreeNewOfferTest is MangroveTest {
         "mgv.level0 should have bit set for best offer's tick branch"
       );
       assertEq(local.tickPosInLeaf(), tick.posInLeaf(), "local.tickPosInLeaf should be best offer's position in leaf");
-      assertEq(mgv.best(olKey), expectedBestOfferData.id, "offerId should be best");
+      assertEq(mgv.best(olKey), bestOfferId, "offerId should be best");
     }
 
     // Check that any part of the previous best branch that is no longer part of the best branch is unchanged and has been written to the mappings
@@ -360,39 +364,49 @@ contract TickTreeNewOfferTest is MangroveTest {
       );
     }
     if (posInLeafChanged) {
-      assertEq(
-        mgv.leafs(olKey, bestBranchBefore.tick.leafIndex()).firstOfIndex(bestBranchBefore.tick.posInLeaf()),
-        bestBranchBefore.leaf.firstOfIndex(bestBranchBefore.tick.posInLeaf()),
-        "first in posInLeaf for previous best branch should be unchanged"
-      );
-      assertEq(
-        mgv.leafs(olKey, bestBranchBefore.tick.leafIndex()).lastOfIndex(bestBranchBefore.tick.posInLeaf()),
-        bestBranchBefore.leaf.lastOfIndex(bestBranchBefore.tick.posInLeaf()),
-        "last in posInLeaf for previous best branch should be unchanged"
-      );
+      Leaf bestLeafBefore = mgv.leafs(olKey, bestBranchBefore.tick.leafIndex());
+      if (!wasOfferAlsoBestBefore) {
+        assertEq(
+          bestLeafBefore.firstOfIndex(bestBranchBefore.tick.posInLeaf()),
+          bestBranchBefore.leaf.firstOfIndex(bestBranchBefore.tick.posInLeaf()),
+          "first in posInLeaf for previous best branch should be unchanged"
+        );
+        assertEq(
+          bestLeafBefore.lastOfIndex(bestBranchBefore.tick.posInLeaf()),
+          bestBranchBefore.leaf.lastOfIndex(bestBranchBefore.tick.posInLeaf()),
+          "last in posInLeaf for previous best branch should be unchanged"
+        );
+      } else {
+        uint nextInOldBestTickList = bestBranchBefore.offers.length == 1 ? 0 : bestBranchBefore.offerIds[1];
+        uint lastInOldBestTickList =
+          bestBranchBefore.offers.length == 1 ? 0 : bestBranchBefore.leaf.lastOfIndex(bestBranchBefore.tick.posInLeaf());
+        assertEq(
+          bestLeafBefore.firstOfIndex(bestBranchBefore.tick.posInLeaf()),
+          nextInOldBestTickList,
+          "first in posInLeaf for previous best branch should be updated to the next in the tick list"
+        );
+        assertEq(
+          bestLeafBefore.lastOfIndex(bestBranchBefore.tick.posInLeaf()),
+          lastInOldBestTickList,
+          "last in posInLeaf for previous best branch should be unchanged unless offer was only one in tick list before"
+        );
+      }
     }
   }
 
   function assertOfferUpdatedCorrectlyOnBranch(
     TickTreeBranch memory oldOfferBranchBefore,
-    TickTreeBranch memory offerBranchBefore,
+    TickTreeBranch memory newOfferBranchBefore,
     OfferData memory oldOfferData,
     OfferData memory expectedOfferData
   ) internal {
     MgvStructs.OfferPacked offer = mgv.offers(olKey, expectedOfferData.id);
     assertTrue(offer.isLive(), "should be live after update");
-    // FIXME: Implement this
-    // Cases:
-    // 1/ Offer was not live before -> same as assertOfferAddedCorrectlyToBranch. Can we call it directly?
-    // 2/ Offer was live before -> equivalent to combination of assertOfferRemovedCorrectlyFromBranch + assertOfferAddedCorrectlyToBranch.
-    // FIXME: This check would be more readable if we could call `isLive()` on the old offer
     if (oldOfferData.gives != 0) {
-      console.log("oldOfferData.gives: %s", oldOfferData.gives);
       assertOfferRemovedCorrectlyFromBranch(oldOfferBranchBefore, oldOfferData);
-      assertOfferAddedCorrectlyToBranch(offerBranchBefore, expectedOfferData);
-      // FIXME: If offer was best, check that the best branch is updated correctly
+      assertOfferAddedCorrectlyToBranch(newOfferBranchBefore, expectedOfferData);
     }
-    assertOfferAddedCorrectlyToBranch(offerBranchBefore, expectedOfferData);
+    assertOfferAddedCorrectlyToBranch(newOfferBranchBefore, expectedOfferData);
   }
 
   function assertOfferRemovedCorrectlyFromBranch(TickTreeBranch memory offerBranchBefore, OfferData memory offerData)
@@ -447,9 +461,6 @@ contract TickTreeNewOfferTest is MangroveTest {
       );
       assertTrue(isBitSet(mgv.level2(olKey), offerData.tick.posInLevel2()), "level2 pos should be set for tick");
     }
-
-    // FIXME: If offer was best, check that the best branch is updated correctly
-    // NB: Not sure this is good to test here, since more might have happened than just the offer being removed (eg in updateOffer)
   }
 
   // FIXME: Consider snapshotting the entire tick tree
@@ -460,6 +471,7 @@ contract TickTreeNewOfferTest is MangroveTest {
     Leaf leaf;
     uint posInLeaf;
     Tick tick;
+    uint[] offerIds;
     OfferPacked[] offers;
   }
 
@@ -474,9 +486,11 @@ contract TickTreeNewOfferTest is MangroveTest {
 
     uint offerId = branch.leaf.firstOfIndex(branch.posInLeaf);
     (, uint length) = reader.offerListEndPoints(olKey, offerId, type(uint).max);
+    branch.offerIds = new uint[](length);
     branch.offers = new OfferPacked[](length);
     for (uint i = 0; i < length; ++i) {
       OfferPacked offer = mgv.offers(olKey, offerId);
+      branch.offerIds[i] = offerId;
       branch.offers[i] = offer;
       offerId = offer.next();
     }
@@ -518,7 +532,7 @@ contract TickTreeNewOfferTest is MangroveTest {
 
     // Lasse: Maybe these can be combined into one, clearer function
     assertOfferAddedCorrectlyToBranch(offerBranchBefore, offerData1);
-    assertBestBranchUpdatedCorrectly(bestBranchBefore, offerBranchBefore, offerData1);
+    assertBestBranchUpdatedCorrectly(bestBranchBefore, offerBranchBefore, offerData1.id, false);
   }
 
   function test_retract_only_offer() public {
@@ -532,7 +546,7 @@ contract TickTreeNewOfferTest is MangroveTest {
     assertTickTreeIsConsistent();
 
     assertOfferAddedCorrectlyToBranch(offerBranchBefore, offerData1);
-    assertBestBranchUpdatedCorrectly(bestBranchBefore, offerBranchBefore, offerData1);
+    assertBestBranchUpdatedCorrectly(bestBranchBefore, offerBranchBefore, offerData1.id, false);
 
     offerBranchBefore = snapshotTickTreeBranch(offerData1.tick);
     bestBranchBefore = snapshotBestTickTreeBranch();
@@ -558,7 +572,7 @@ contract TickTreeNewOfferTest is MangroveTest {
     assertTickTreeIsConsistent();
 
     assertOfferAddedCorrectlyToBranch(offerBranchBefore, offerData1);
-    assertBestBranchUpdatedCorrectly(bestBranchBefore, offerBranchBefore, offerData1);
+    assertBestBranchUpdatedCorrectly(bestBranchBefore, offerBranchBefore, offerData1.id, false);
 
     TickTreeBranch memory oldOfferBranchBefore = snapshotTickTreeBranch(offerData1.tick);
     offerBranchBefore = snapshotTickTreeBranch(offerData2.tick);
@@ -571,6 +585,7 @@ contract TickTreeNewOfferTest is MangroveTest {
     assertTickTreeIsConsistent();
 
     assertOfferUpdatedCorrectlyOnBranch(oldOfferBranchBefore, offerBranchBefore, offerData1, offerData2);
+    assertBestBranchUpdatedCorrectly(bestBranchBefore, offerBranchBefore, offerData1.id, true);
   }
 
   function test_update_retracted_offer_in_empty_book() public {
@@ -585,7 +600,7 @@ contract TickTreeNewOfferTest is MangroveTest {
     assertTickTreeIsConsistent();
 
     assertOfferAddedCorrectlyToBranch(offerBranchBefore, offerData1);
-    assertBestBranchUpdatedCorrectly(bestBranchBefore, offerBranchBefore, offerData1);
+    assertBestBranchUpdatedCorrectly(bestBranchBefore, offerBranchBefore, offerData1.id, false);
 
     mgv.retractOffer(olKey, offerData1.id, false);
     assertTickTreeIsConsistent();
@@ -602,9 +617,8 @@ contract TickTreeNewOfferTest is MangroveTest {
     assertTickTreeIsConsistent();
 
     assertOfferUpdatedCorrectlyOnBranch(oldOfferBranchBefore, offerBranchBefore, offerData1, offerData2);
+    assertBestBranchUpdatedCorrectly(bestBranchBefore, offerBranchBefore, offerData1.id, false);
   }
-
-  // FIXME: Same as above, but using a retracted offer
 
   // Lasse: Can we add these assertions to existing tests? Eg by adding a wrapper to Mangrove and adding assertions to that
   //        Possibly via the IMangrove interface so we exercise it regularly

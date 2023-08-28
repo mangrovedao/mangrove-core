@@ -89,7 +89,7 @@ By default, it will try and look into the `{projectRoot}/addresses` folder, this
 If you want to read addresses from other folders, you can set `MGV_ADDRESSES_PATHS` to the paths addresses should be read from. The variable is a JSON string, here is an example:
 
 ```shell
-export MGV_ADDRESSES_PATHS='{ "paths": ["/addresses/"] }'
+export MGV_ADDRESSES_PATHS='{ "addresses_paths": ["/addresses/"] }'
 export MGV_READ_ROOT_ADDRESSES=false
 ```
 

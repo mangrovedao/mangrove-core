@@ -91,25 +91,39 @@ contract GenericFork is Script {
   }
 
   struct Paths {
-    string[] paths;
+    string[] addresses_paths;
   }
 
   function readAddresses(string memory category) internal returns (Record[] memory) {
-    Record[] memory records = readEnvAddresses(category);
-    string memory pathFromRoot = addressesFileRoot(category);
-
+    Record[] memory envRecords = readEnvAddresses(category);
     bool readRoot = vm.envOr("MGV_READ_ROOT_ADDRESSES", true);
-    if (!readRoot) {
-      return records;
+    bool readMgvConfigPaths = vm.envOr("MGV_READ_ADDRESSES_PATHS", true);
+    if (!readRoot && !readMgvConfigPaths) {
+      return envRecords;
     }
-    Record[] memory rootRecords = readAddressesFromFileName(pathFromRoot);
-    Record[] memory allRecords = new Record[](records.length + rootRecords.length);
-    for (uint i = 0; i < records.length; i++) {
-      allRecords[i] = records[i];
+
+    Record[] memory rootRecords = new Record[](0);
+    if (readRoot) {
+      string memory pathFromRoot = addressesFileRoot(category);
+      rootRecords = readAddressesFromFileName(pathFromRoot);
+    }
+
+    Record[] memory mgvConfigRecords = new Record[](0);
+    if (readMgvConfigPaths) {
+      mgvConfigRecords = readMgvConfigAddresses(category);
+    }
+
+    Record[] memory allRecords = new Record[](envRecords.length + rootRecords.length + mgvConfigRecords.length);
+    for (uint i = 0; i < envRecords.length; i++) {
+      allRecords[i] = envRecords[i];
     }
     for (uint i = 0; i < rootRecords.length; i++) {
-      allRecords[records.length + i] = rootRecords[i];
+      allRecords[envRecords.length + i] = rootRecords[i];
     }
+    for (uint i = 0; i < mgvConfigRecords.length; i++) {
+      allRecords[envRecords.length + rootRecords.length + i] = mgvConfigRecords[i];
+    }
+
     return allRecords;
   }
 
@@ -118,31 +132,47 @@ contract GenericFork is Script {
     string memory paths = vm.envOr("MGV_ADDRESSES_PATHS", defaultPath);
     if (bytes(paths).length > 0) {
       bytes memory encodedPaths = vm.parseJson(paths);
-      Paths memory pathsAsArray = abi.decode(encodedPaths, (Paths));
-      Record[][] memory allRecords = new Record[][](pathsAsArray.paths.length);
-      for (uint i = 0; i < pathsAsArray.paths.length; i++) {
-        string memory pathFromRoot = addressesFile(pathsAsArray.paths[i], category, "");
-        Record[] memory records = readAddressesFromFileName(pathFromRoot);
-        if (records.length > 0) {
-          allRecords[i] = records;
-        }
-      }
-      uint totalLength = 0;
-      for (uint i = 0; i < allRecords.length; i++) {
-        totalLength += allRecords[i].length;
-      }
-      Record[] memory fullRecords = new Record[](totalLength);
-      uint index = 0;
-      for (uint i = 0; i < allRecords.length; i++) {
-        for (uint j = 0; j < allRecords[i].length; j++) {
-          fullRecords[index] = allRecords[i][j];
-          index++;
-        }
-      }
-      return fullRecords;
+      return readAddressesFromJson(encodedPaths, category);
     } else {
       return (new Record[](0));
     }
+  }
+
+  function readMgvConfigAddresses(string memory category) internal returns (Record[] memory) {
+    string memory root = vm.projectRoot();
+    string memory path = string.concat(root, "/mgvConfig.json");
+    string memory paths = vm.readFile(path);
+    if (bytes(paths).length > 0) {
+      bytes memory encodedPaths = vm.parseJson(paths);
+      return readAddressesFromJson(encodedPaths, category);
+    } else {
+      return (new Record[](0));
+    }
+  }
+
+  function readAddressesFromJson(bytes memory encodedPaths, string memory category) internal returns (Record[] memory) {
+    Paths memory pathsAsArray = abi.decode(encodedPaths, (Paths));
+    Record[][] memory allRecords = new Record[][](pathsAsArray.addresses_paths.length);
+    for (uint i = 0; i < pathsAsArray.addresses_paths.length; i++) {
+      string memory pathFromRoot = addressesFile(pathsAsArray.addresses_paths[i], category, "");
+      Record[] memory envRecords = readAddressesFromFileName(pathFromRoot);
+      if (envRecords.length > 0) {
+        allRecords[i] = envRecords;
+      }
+    }
+    uint totalLength = 0;
+    for (uint i = 0; i < allRecords.length; i++) {
+      totalLength += allRecords[i].length;
+    }
+    Record[] memory fullRecords = new Record[](totalLength);
+    uint index = 0;
+    for (uint i = 0; i < allRecords.length; i++) {
+      for (uint j = 0; j < allRecords[i].length; j++) {
+        fullRecords[index] = allRecords[i][j];
+        index++;
+      }
+    }
+    return fullRecords;
   }
 
   function readAddressesFromFileName(string memory fileName) internal returns (Record[] memory) {
@@ -151,8 +181,8 @@ contract GenericFork is Script {
         return (new Record[](0));
       }
       try vm.parseJson(addressesRaw) returns (bytes memory jsonBytes) {
-        try (new Parser()).parseJsonBytes(jsonBytes) returns (Record[] memory records) {
-          return records;
+        try (new Parser()).parseJsonBytes(jsonBytes) returns (Record[] memory envRecords) {
+          return envRecords;
         } catch {
           revert(string.concat("Fork: JSON to Record[] parsing error on file ", fileName));
         }
@@ -204,17 +234,17 @@ contract GenericFork is Script {
     vm.makePersistent(address(this));
 
     // read addresses from JSON files
-    Record[] memory records = readAddresses("context");
-    for (uint i = 0; i < records.length; i++) {
-      context.set(records[i].name, records[i].addr);
-      label(records[i].addr, records[i].name);
+    Record[] memory envRecords = readAddresses("context");
+    for (uint i = 0; i < envRecords.length; i++) {
+      context.set(envRecords[i].name, envRecords[i].addr);
+      label(envRecords[i].addr, envRecords[i].name);
     }
-    records = readAddresses("deployed");
-    for (uint i = 0; i < records.length; i++) {
-      set(records[i].name, records[i].addr);
+    envRecords = readAddresses("deployed");
+    for (uint i = 0; i < envRecords.length; i++) {
+      set(envRecords[i].name, envRecords[i].addr);
     }
 
-    // If a remote ToyENS is found, import its records.
+    // If a remote ToyENS is found, import its envRecords.
     ToyENS remoteEns = ToyENS(address(bytes20(hex"decaf0")));
     if (address(remoteEns).code.length > 0) {
       (string[] memory names, address[] memory addrs) = remoteEns.all();

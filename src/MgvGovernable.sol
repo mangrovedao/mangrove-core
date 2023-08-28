@@ -17,7 +17,8 @@ contract MgvGovernable is MgvRoot {
       /* Set initial gasprice and gasmax. */
       setGasprice(_gasprice);
       setGasmax(gasmax);
-      setMaxRecursionDepth(40);
+      /* Without optimizer enabled it fails above 79. Set default a bit lower to be safe. */
+      setMaxRecursionDepth(75);
       /* Initialize governance to `_governance` after parameter setting. */
       setGovernance(_governance);
     }

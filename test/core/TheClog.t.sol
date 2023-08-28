@@ -111,3 +111,151 @@ contract TooMuchGasClogTest is TooDeepRecursionClogTest {
     return super.makerExecute(order);
   }
 }
+
+contract MaxRecursionDepthFuzzTest is MangroveTest, IMaker {
+  mapping(uint => bool) internal shouldFailOffer;
+
+  TestTaker internal taker;
+  uint internal volume = 1 ether;
+  uint internal gasreq = 100_000;
+  uint internal gaslimit = 200_000_000;
+  uint internal expectedGot;
+
+  function makerExecute(MgvLib.SingleOrder calldata sor) public virtual override returns (bytes32 result) {
+    result = bytes32(0);
+    bool shouldFail = shouldFailOffer[sor.offerId];
+
+    if (shouldFail) {
+      revert("AH AH AH!");
+    }
+  }
+
+  function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata) external override {}
+
+  function setUp() public virtual override {
+    super.setUp();
+
+    // Some taker
+    taker = setupTaker($(base), $(quote), "Taker");
+    deal($(quote), address(taker), 100000 ether);
+    taker.approveMgv(quote, 100000 ether);
+
+    deal($(base), $(this), 100000 ether);
+  }
+
+  function createOffers(uint count, uint failureMode, uint seed, uint depth) internal {
+    for (uint i; i < count; ++i) {
+      bool fail;
+      if (failureMode == 0) {
+        fail = false;
+      } else if (failureMode == 1) {
+        fail = true;
+      } else if (failureMode == 2) {
+        fail = uint(keccak256(abi.encodePacked(seed, i))) % 2 == 0;
+      }
+      uint offerId = mgv.newOfferByTick($(base), $(quote), 0, volume, gasreq, 0);
+      if (!fail && depth > i) {
+        expectedGot += volume;
+      }
+      shouldFailOffer[offerId] = fail;
+    }
+  }
+
+  function takeSome(uint wants) public {
+    (uint takerGot,) = taker.marketOrder{gas: gaslimit}(0, wants, false);
+    assertEq(takerGot, expectedGot, "Taker should get volumes from successes");
+  }
+
+  function take_recursion_depth_with_parameterized_offers(uint8 depth, uint8 seed, uint failureMode, uint failDepth)
+    internal
+  {
+    vm.assume(depth > 0);
+    createOffers(200, failureMode, seed, depth);
+    mgv.setMaxRecursionDepth(depth);
+    try this.takeSome(200 ether) {
+      assertLe(depth, failDepth, "should only succeed at lower depths");
+    } catch {
+      assertGt(depth, failDepth, "should only fail for high depth");
+    }
+  }
+
+  function test_take_recursion_depth_succeeding_offers(uint8 depth) public {
+    take_recursion_depth_with_parameterized_offers(depth, 0, 0, 79);
+  }
+
+  function test_take_recursion_depth_failing_offers(uint8 depth) public {
+    take_recursion_depth_with_parameterized_offers(depth, 0, 1, 79);
+  }
+
+  function test_take_recursion_depth_random_failing_offers(uint8 depth, uint8 seed) public {
+    take_recursion_depth_with_parameterized_offers(depth, seed, 2, 79);
+  }
+}
+
+contract GasreqLeftFuzzTest is MangroveTest, IMaker {
+  mapping(uint => uint) internal gasleftAfterExecuteForOffers;
+  mapping(uint => uint) internal gasleftAfterPosthookForOffers;
+
+  TestTaker internal taker;
+  uint internal volume = 1 ether;
+  uint internal expectedGot;
+  uint internal offerGasbase;
+
+  function makerExecute(MgvLib.SingleOrder calldata sor) public virtual override returns (bytes32 result) {
+    result = bytes32(0);
+    uint gasleftForOffer = gasleftAfterExecuteForOffers[sor.offerId];
+    uint i;
+    while (gasleft() > gasleftForOffer) {
+      i++;
+    }
+  }
+
+  function makerPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata) external view override {
+    uint gasleftForOffer = gasleftAfterPosthookForOffers[sor.offerId];
+    uint i;
+    while (gasleft() > gasleftForOffer) {
+      i++;
+    }
+  }
+
+  function setUp() public virtual override {
+    super.setUp();
+
+    // Some taker
+    taker = setupTaker($(base), $(quote), "Taker");
+    deal($(quote), address(taker), 100000 ether);
+    taker.approveMgv(quote, 100000 ether);
+
+    deal($(base), $(this), 100000 ether);
+
+    (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
+    offerGasbase = cfg.offer_gasbase();
+  }
+
+  function take_all_some_gasreq(uint gasreq, uint gaslimit, uint8 seed) internal {
+    uint count = 100;
+    for (uint i; i < count; ++i) {
+      // leave up to gasreq gas behind, but sometimes much less after maker execute and posthook, thus failing
+      uint gasleftAfterExecuteForOffer = gasreq > 0 ? uint(keccak256(abi.encodePacked(seed, i))) % gasreq : 0;
+      uint gasleftAfterPosthookForOffer = gasreq > 0 ? uint(keccak256(abi.encodePacked(seed, i + count))) % gasreq : 0;
+      uint offerId = mgv.newOfferByTick($(base), $(quote), 0, volume, gasreq, 0);
+      gasleftAfterExecuteForOffers[offerId] = gasleftAfterExecuteForOffer;
+      gasleftAfterPosthookForOffers[offerId] = gasleftAfterPosthookForOffer;
+    }
+    // Should never revert
+    (uint takerGot,) = taker.marketOrder{gas: gaslimit}(0, 200 ether, false);
+    console.log("takerGot: %d", takerGot);
+  }
+
+  function test_take_all_gasreq_100000(uint32 gaslimit, uint8 seed) public {
+    take_all_some_gasreq(100_000, offerGasbase + uint(gaslimit), seed);
+  }
+
+  function test_take_all_gasreq_0_all_fail(uint32 gaslimit) public {
+    take_all_some_gasreq(0, offerGasbase + uint(gaslimit), 0);
+  }
+
+  function test_concrete_failure() public {
+    test_take_all_gasreq_0_all_fail(3681207);
+  }
+}

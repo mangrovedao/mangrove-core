@@ -14,7 +14,7 @@ import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
 
 abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
-  TestTaker taker;
+  TestTaker internal taker;
   PinnedPolygonFork internal fork;
 
   function getStored() internal view override returns (AbstractMangrove, TestTaker, address, address, uint) {

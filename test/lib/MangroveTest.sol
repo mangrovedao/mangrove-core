@@ -156,7 +156,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
     defaultFee: 0,
     gasprice: 40,
-    gasbase: 50_000,
+    //FIXME: measure gasbase and consider using different measurement method (see GasBaseTest.t.sol)
+    gasbase: 150_000,
     density: 10,
     gasmax: 2_000_000
   });

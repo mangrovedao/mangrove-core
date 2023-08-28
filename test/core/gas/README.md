@@ -6,6 +6,8 @@ To list gas usage for all scenarios run `./gas-measurement.sh`.
 
 We test gas usage for various scenarios. This can be used to determine gas usage for a strat's `makerExecute` or `makerPosthook` functions. The absolute values are rarely used, instead a strat builder should verify their gas usage in some specific scenario (e.g. with posthook updating the same offer list as its taken on, where the offer list has other offers on the same tick as a new offer is created on) and then compare deltas to other scenarios tested here and use it to set a `gasreq` for their strat which covers the desired worst-case scenarios. The gas measurements are for the inner-most operation.
 
+The measured functions often take a `logPrice` argument, but the gas differences are related to differences in the `tick` structures. So the actual `logPrice` is not important, it is the resulting `tick` that is important for gas estimates.
+
 ## Scenarios
 
 The main functions to test are:
@@ -102,7 +104,7 @@ Retracting offers is different from new and updated offers in that the retractio
   - retract last offer from offer list - with and without deprovision: `ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest`
   - retracting an offer when another offer exists at various tick-distances to the offer's price: `ExternalRetractOfferOtherOfferList_WithOtherOfferGasTest_*`
   - retracting an offer when another offer exists at various tick-distances to the offer price but also on the same tick: `ExternalRetractOfferOtherOfferList_WithOtherOfferAndOfferOnSameTickGasTest_*`
-  - retracting a second offer at various tick-distances after retracting an offer at MIDDLE_TICK: `ExternalRetractOfferOtherOfferList_WithPriorRetractOfferAndNoOtherOffersGasTest`
+  - retracting a second offer at various tick-distances after retracting an offer at MIDDLE_LOG_PRICE: `ExternalRetractOfferOtherOfferList_WithPriorRetractOfferAndNoOtherOffersGasTest`
 
 ### `marketOrder`
 

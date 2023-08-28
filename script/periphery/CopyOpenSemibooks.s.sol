@@ -1,11 +1,10 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import "mgv_src/periphery/MgvReader.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
-import "forge-std/console.sol";
+import {MgvStructs, OLKey} from "mgv_src/MgvLib.sol";
 
 /* 
 Given two instances of MgvReader (previousReader and currentReader), copy the
@@ -27,30 +26,27 @@ contract CopyOpenSemibooks is Deployer {
   function innerRun(MgvReader previousReader, MgvReader currentReader) public {
     console.log("Previous reader:", address(previousReader));
     console.log("Current reader: ", address(currentReader));
-    (address[2][] memory markets, MgvReader.MarketConfig[] memory configs) = previousReader.openMarkets();
+    (Market[] memory markets, MarketConfig[] memory configs) = previousReader.openMarkets();
 
     currentMangrove = Mangrove(payable(currentReader.MGV()));
 
     console.log("Enabling semibooks...");
 
     for (uint i = 0; i < markets.length; i++) {
-      address tkn0 = markets[i][0];
-      address tkn1 = markets[i][1];
-      updateActivation(tkn0, tkn1, configs[i].config01);
-      updateActivation(tkn1, tkn0, configs[i].config10);
+      updateActivation(toOLKey(markets[i]), configs[i].config01);
+      updateActivation(toOLKey(flipped(markets[i])), configs[i].config10);
       broadcast();
-      currentReader.updateMarket(tkn0, tkn1);
+      currentReader.updateMarket(markets[i]);
     }
     console.log("...done.");
   }
 
-  function updateActivation(address tknA, address tknB, MgvStructs.LocalUnpacked memory cAB) internal {
+  function updateActivation(OLKey memory olKey, MgvStructs.LocalUnpacked memory cAB) internal {
     if (cAB.active) {
-      console.log(tknA, tknB);
+      console.log(olKey.outbound, olKey.inbound);
       broadcast();
       currentMangrove.activate({
-        outbound_tkn: tknA,
-        inbound_tkn: tknB,
+        olKey: olKey,
         fee: cAB.fee,
         densityFixed: cAB.density.toFixed(),
         offer_gasbase: cAB.offer_gasbase()

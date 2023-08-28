@@ -9,6 +9,26 @@ import {IERC20} from "./IERC20.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/TickLib.sol";
 
+using OLLib for OLKey global;
+// OLKey is OfferList
+
+struct OLKey {
+  address outbound;
+  address inbound;
+  uint tickScale;
+}
+
+library OLLib {
+  // The id should be keccak256(abi.encode(olKey))
+  // To save gas, id() directly hashes the memory (which matches the ABI encoding)
+  // If the memory layout changes, this function must be updated
+  function hash(OLKey memory olKey) internal pure returns (bytes32 _id) {
+    assembly ("memory-safe") {
+      _id := keccak256(olKey, 96)
+    }
+  }
+}
+
 /* # Structs
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */
 
@@ -19,8 +39,7 @@ library MgvLib {
 
   /* `SingleOrder` holds data about an order-offer match in a struct. Used by `marketOrder` (and some of its nested functions) to avoid stack too deep errors. */
   struct SingleOrder {
-    address outbound_tkn;
-    address inbound_tkn;
+    OLKey olKey;
     uint offerId;
     MgvStructs.OfferPacked offer;
     /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
@@ -44,7 +63,7 @@ library MgvLib {
   /* `CleanTarget` holds data about an offer that should be cleaned, i.e. made to fail by executing it with the specified volume. */
   struct CleanTarget {
     uint offerId;
-    int tick;
+    int logPrice;
     uint gasreq;
     uint takerWants;
   }
@@ -53,7 +72,7 @@ library MgvLib {
 /* # Events
 The events emitted for use by bots are listed here: */
 contract HasMgvEvents {
-  /* * Emitted at the creation of the new Mangrove contract on the pair (`inbound_tkn`, `outbound_tkn`)*/
+  /* * Emitted at the creation of the new Mangrove contract */
   event NewMgv();
 
   /* Mangrove adds or removes wei from `maker`'s account */
@@ -63,47 +82,39 @@ contract HasMgvEvents {
   event Debit(address indexed maker, uint amount);
 
   /* * Mangrove reconfiguration */
-  event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);
-  event SetFee(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
-  event SetGasbase(address indexed outbound_tkn, address indexed inbound_tkn, uint offer_gasbase);
+  event SetActive(bytes32 indexed olKeyHash, bool value);
+  event SetFee(bytes32 indexed olKeyHash, uint value);
+  event SetGasbase(bytes32 indexed olKeyHash, uint offer_gasbase);
   event SetGovernance(address value);
   event SetMonitor(address value);
   event SetUseOracle(bool value);
   event SetNotify(bool value);
   event SetGasmax(uint value);
-  event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
+  event SetDensityFixed(bytes32 indexed olKeyHash, uint value);
   event SetGasprice(uint value);
 
   /* Market order execution */
   event OrderStart();
   event OrderComplete(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    address indexed taker,
-    uint takerGot,
-    uint takerGave,
-    uint penalty,
-    uint feePaid
+    bytes32 indexed olKeyHash, address indexed taker, uint takerGot, uint takerGave, uint penalty, uint feePaid
   );
 
   /* * Offer execution */
   event OfferSuccess(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
+    bytes32 indexed olKeyHash,
     uint id,
     // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
-    address taker,
+    address indexed taker,
     uint takerWants,
     uint takerGives
   );
 
   /* Log information when a trade execution reverts or returns a non empty bytes32 word */
   event OfferFail(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
+    bytes32 indexed olKeyHash,
     uint id,
-    // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
-    address taker,
+    // `maker` is not logged because it can be retrieved from the state using `(olKeyHash)`.
+    address indexed taker,
     uint takerWants,
     uint takerGives,
     // `mgvData` may only be `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"`
@@ -111,7 +122,7 @@ contract HasMgvEvents {
   );
 
   /* Log information when a posthook reverts */
-  event PosthookFail(address indexed outbound_tkn, address indexed inbound_tkn, uint offerId, bytes32 posthookData);
+  event PosthookFail(bytes32 indexed olKeyHash, uint offerId, bytes32 posthookData);
 
   /* * After `permit` and `approve` */
   event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
@@ -136,18 +147,11 @@ contract HasMgvEvents {
   useless in client code.
   */
   event OfferWrite(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    address maker,
-    int tick,
-    uint gives,
-    uint gasprice,
-    uint gasreq,
-    uint id
+    bytes32 indexed olKeyHash, address indexed maker, int logPrice, uint gives, uint gasprice, uint gasreq, uint id
   );
 
   /* * `offerId` was present and is now removed from the book. */
-  event OfferRetract(address indexed outbound_tkn, address indexed inbound_tkn, uint id, bool deprovision);
+  event OfferRetract(bytes32 indexed olKeyHash, uint id, bool deprovision);
 }
 
 /* # IMaker interface */
@@ -166,8 +170,7 @@ interface IMaker {
 interface ITaker {
   /* Inverted mangrove only: call to taker after loans went through */
   function takerTrade(
-    address outbound_tkn,
-    address inbound_tkn,
+    OLKey calldata olKey,
     // total amount of outbound_tkn token that was flashloaned to the taker
     uint totalGot,
     // total amount of inbound_tkn token that should be made available
@@ -176,11 +179,11 @@ interface ITaker {
 }
 
 /* # Monitor interface
-If enabled, the monitor receives notification after each offer execution and is read for each pair's `gasprice` and `density`. */
+If enabled, the monitor receives notification after each offer execution and is read for each offerList's `gasprice` and `density`. */
 interface IMgvMonitor {
   function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external;
 
   function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external;
 
-  function read(address outbound_tkn, address inbound_tkn) external view returns (uint gasprice, Density density);
+  function read(OLKey memory olKey) external view returns (uint gasprice, Density density);
 }

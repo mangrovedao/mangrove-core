@@ -2,12 +2,13 @@
 pragma solidity ^0.8.17;
 
 library BitLib {
+  // Returns the number of zeroes in x that do not have a 1 to their right, eg ctz(0)=256, ctz(1)=0
   function ctz(uint x) internal pure returns (uint c) {
     assembly ("memory-safe") {
       // Isolate the least significant bit
       x := and(x, add(not(x), 1))
 
-      // Get first 3 bits of c
+      // Get first 3 bits of c, this is the unusual part
       c := shl(5,shr(252,shl(shl(2,shr(250,mul(x, 0xb6db6db6ddddddddd34d34d349249249210842108c6318c639ce739cffffffff))),0x8040405543005266443200005020610674053026020000107506200176117077)))
 
       // Get last 5 bits of c

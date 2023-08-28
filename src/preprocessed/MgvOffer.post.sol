@@ -18,7 +18,7 @@ uint constant ONES = type(uint).max;
 struct OfferUnpacked {
   uint prev;
   uint next;
-  Tick tick;
+  int logPrice;
   uint gives;
 }
 
@@ -27,7 +27,7 @@ type OfferPacked is uint;
 using Library for OfferPacked global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
-import {Tick,TickLib} from "mgv_lib/TickLib.sol";
+import {Tick,TickLib, LogPriceLib} from "mgv_lib/TickLib.sol";
 
 using OfferPackedExtra for OfferPacked global;
 using OfferUnpackedExtra for OfferUnpacked global;
@@ -35,7 +35,7 @@ using OfferUnpackedExtra for OfferUnpacked global;
 library OfferPackedExtra {
   // Compute wants from tick and gives
   function wants(OfferPacked offer) internal pure returns (uint) {
-    return offer.tick().inboundFromOutbound(offer.gives());
+    return LogPriceLib.inboundFromOutbound(offer.logPrice(),offer.gives());
   }
   // Sugar to test offer liveness
   function isLive(OfferPacked offer) internal pure returns (bool resp) {
@@ -44,12 +44,15 @@ library OfferPackedExtra {
       resp := iszero(iszero(gives))
     }
   }
+  function tick(OfferPacked offer, uint tickScale) internal pure returns (Tick) {
+    return TickLib.fromLogPrice(offer.logPrice(),tickScale);
+  }
 }
 
 library OfferUnpackedExtra {
   // Compute wants from tick and gives
   function wants(OfferUnpacked memory offer) internal pure returns (uint) {
-    return offer.tick.inboundFromOutbound(offer.gives);
+    return LogPriceLib.inboundFromOutbound(offer.logPrice,offer.gives);
   }
   // Sugar to test offer liveness
   function isLive(OfferUnpacked memory offer) internal pure returns (bool resp) {
@@ -57,6 +60,9 @@ library OfferUnpackedExtra {
     assembly {
       resp := iszero(iszero(gives))
     }
+  }
+  function tick(OfferUnpacked memory offer, uint tickScale) internal pure returns (Tick) {
+    return TickLib.fromLogPrice(offer.logPrice,tickScale);
   }
 
 }
@@ -67,7 +73,7 @@ function pack(uint __prev, uint __next, uint __wants, uint __gives) pure returns
   return pack({
     __prev: __prev,
     __next: __next,
-    __tick: TickLib.tickFromVolumes(__wants,__gives),
+    __logPrice: LogPriceLib.logPriceFromVolumes(__wants,__gives),
     __gives: __gives
   });
 }}
@@ -75,48 +81,48 @@ function pack(uint __prev, uint __next, uint __wants, uint __gives) pure returns
 ////////////// END OF ADDITIONAL DEFINITIONS /////////////////
 
 // number of bits in each field
-uint constant prev_bits  = 32;
-uint constant next_bits  = 32;
-uint constant tick_bits  = 24;
-uint constant gives_bits = 96;
+uint constant prev_bits     = 32;
+uint constant next_bits     = 32;
+uint constant logPrice_bits = 24;
+uint constant gives_bits    = 96;
 
 // number of bits before each field
-uint constant prev_before  = 0           + 0;
-uint constant next_before  = prev_before + prev_bits;
-uint constant tick_before  = next_before + next_bits;
-uint constant gives_before = tick_before + tick_bits;
+uint constant prev_before     = 0               + 0;
+uint constant next_before     = prev_before     + prev_bits;
+uint constant logPrice_before = next_before     + next_bits;
+uint constant gives_before    = logPrice_before + logPrice_bits;
 
 // focus-mask: 1s at field location, 0s elsewhere
-uint constant prev_mask_inv  = (ONES << 256 - prev_bits) >> prev_before;
-uint constant next_mask_inv  = (ONES << 256 - next_bits) >> next_before;
-uint constant tick_mask_inv  = (ONES << 256 - tick_bits) >> tick_before;
-uint constant gives_mask_inv = (ONES << 256 - gives_bits) >> gives_before;
+uint constant prev_mask_inv     = (ONES << 256 - prev_bits) >> prev_before;
+uint constant next_mask_inv     = (ONES << 256 - next_bits) >> next_before;
+uint constant logPrice_mask_inv = (ONES << 256 - logPrice_bits) >> logPrice_before;
+uint constant gives_mask_inv    = (ONES << 256 - gives_bits) >> gives_before;
 
 // cleanup-mask: 0s at field location, 1s elsewhere
-uint constant prev_mask  = ~prev_mask_inv;
-uint constant next_mask  = ~next_mask_inv;
-uint constant tick_mask  = ~tick_mask_inv;
-uint constant gives_mask = ~gives_mask_inv;
+uint constant prev_mask     = ~prev_mask_inv;
+uint constant next_mask     = ~next_mask_inv;
+uint constant logPrice_mask = ~logPrice_mask_inv;
+uint constant gives_mask    = ~gives_mask_inv;
 
 // cast-mask: 0s followed by |field| trailing 1s
-uint constant prev_cast_mask  = ~(ONES << prev_bits);
-uint constant next_cast_mask  = ~(ONES << next_bits);
-uint constant tick_cast_mask  = ~(ONES << tick_bits);
-uint constant gives_cast_mask = ~(ONES << gives_bits);
+uint constant prev_cast_mask     = ~(ONES << prev_bits);
+uint constant next_cast_mask     = ~(ONES << next_bits);
+uint constant logPrice_cast_mask = ~(ONES << logPrice_bits);
+uint constant gives_cast_mask    = ~(ONES << gives_bits);
 
 // size-related error message
-string constant prev_size_error  = "mgv/config/prev/32bits";
-string constant next_size_error  = "mgv/config/next/32bits";
-string constant tick_size_error  = "mgv/config/tick/24bits";
-string constant gives_size_error = "mgv/config/gives/96bits";
+string constant prev_size_error     = "mgv/config/prev/32bits";
+string constant next_size_error     = "mgv/config/next/32bits";
+string constant logPrice_size_error = "mgv/config/logPrice/24bits";
+string constant gives_size_error    = "mgv/config/gives/96bits";
 
 library Library {
   // from packed to in-memory struct
   function to_struct(OfferPacked __packed) internal pure returns (OfferUnpacked memory __s) { unchecked {
-    __s.prev  = uint(OfferPacked.unwrap(__packed) << prev_before) >> (256 - prev_bits);
-    __s.next  = uint(OfferPacked.unwrap(__packed) << next_before) >> (256 - next_bits);
-    __s.tick  = Tick.wrap(int(int(OfferPacked.unwrap(__packed) << tick_before) >> (256 - tick_bits)));
-    __s.gives = uint(OfferPacked.unwrap(__packed) << gives_before) >> (256 - gives_bits);
+    __s.prev     = uint(OfferPacked.unwrap(__packed) << prev_before) >> (256 - prev_bits);
+    __s.next     = uint(OfferPacked.unwrap(__packed) << next_before) >> (256 - next_bits);
+    __s.logPrice = int(int(OfferPacked.unwrap(__packed) << logPrice_before) >> (256 - logPrice_bits));
+    __s.gives    = uint(OfferPacked.unwrap(__packed) << gives_before) >> (256 - gives_bits);
   }}
 
   // equality checking
@@ -125,11 +131,11 @@ library Library {
   }}
 
   // from packed to a tuple
-  function unpack(OfferPacked __packed) internal pure returns (uint __prev, uint __next, Tick __tick, uint __gives) { unchecked {
-    __prev  = uint(OfferPacked.unwrap(__packed) << prev_before) >> (256 - prev_bits);
-    __next  = uint(OfferPacked.unwrap(__packed) << next_before) >> (256 - next_bits);
-    __tick  = Tick.wrap(int(int(OfferPacked.unwrap(__packed) << tick_before) >> (256 - tick_bits)));
-    __gives = uint(OfferPacked.unwrap(__packed) << gives_before) >> (256 - gives_bits);
+  function unpack(OfferPacked __packed) internal pure returns (uint __prev, uint __next, int __logPrice, uint __gives) { unchecked {
+    __prev     = uint(OfferPacked.unwrap(__packed) << prev_before) >> (256 - prev_bits);
+    __next     = uint(OfferPacked.unwrap(__packed) << next_before) >> (256 - next_bits);
+    __logPrice = int(int(OfferPacked.unwrap(__packed) << logPrice_before) >> (256 - logPrice_bits));
+    __gives    = uint(OfferPacked.unwrap(__packed) << gives_before) >> (256 - gives_bits);
   }}
 
   // getters
@@ -151,13 +157,13 @@ library Library {
     return OfferPacked.wrap((OfferPacked.unwrap(__packed) & next_mask) | (val << (256 - next_bits)) >> next_before);
   }}
   
-  function tick(OfferPacked __packed) internal pure returns(Tick) { unchecked {
-    return Tick.wrap(int(int(OfferPacked.unwrap(__packed) << tick_before) >> (256 - tick_bits)));
+  function logPrice(OfferPacked __packed) internal pure returns(int) { unchecked {
+    return int(int(OfferPacked.unwrap(__packed) << logPrice_before) >> (256 - logPrice_bits));
   }}
 
   // setters
-  function tick(OfferPacked __packed,Tick val) internal pure returns(OfferPacked) { unchecked {
-    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & tick_mask) | (uint(Tick.unwrap(val)) << (256 - tick_bits)) >> tick_before);
+  function logPrice(OfferPacked __packed,int val) internal pure returns(OfferPacked) { unchecked {
+    return OfferPacked.wrap((OfferPacked.unwrap(__packed) & logPrice_mask) | (uint(val) << (256 - logPrice_bits)) >> logPrice_before);
   }}
   
   function gives(OfferPacked __packed) internal pure returns(uint) { unchecked {
@@ -173,15 +179,15 @@ library Library {
 
 // from in-memory struct to packed
 function t_of_struct(OfferUnpacked memory __s) pure returns (OfferPacked) { unchecked {
-  return pack(__s.prev, __s.next, __s.tick, __s.gives);
+  return pack(__s.prev, __s.next, __s.logPrice, __s.gives);
 }}
 
 // from arguments to packed
-function pack(uint __prev, uint __next, Tick __tick, uint __gives) pure returns (OfferPacked) { unchecked {
+function pack(uint __prev, uint __next, int __logPrice, uint __gives) pure returns (OfferPacked) { unchecked {
   uint __packed;
   __packed |= (__prev << (256 - prev_bits)) >> prev_before;
   __packed |= (__next << (256 - next_bits)) >> next_before;
-  __packed |= (uint(Tick.unwrap(__tick)) << (256 - tick_bits)) >> tick_before;
+  __packed |= (uint(__logPrice) << (256 - logPrice_bits)) >> logPrice_before;
   __packed |= (__gives << (256 - gives_bits)) >> gives_before;
   return OfferPacked.wrap(__packed);
 }}
@@ -193,8 +199,8 @@ function prev_check(uint __prev) pure returns (bool) { unchecked {
 function next_check(uint __next) pure returns (bool) { unchecked {
   return (__next & next_cast_mask) == __next;
 }}
-function tick_check(Tick __tick) pure returns (bool) { unchecked {
-  return (uint(Tick.unwrap(__tick)) & tick_cast_mask) == uint(Tick.unwrap(__tick));
+function logPrice_check(int __logPrice) pure returns (bool) { unchecked {
+  return (uint(__logPrice) & logPrice_cast_mask) == uint(__logPrice);
 }}
 function gives_check(uint __gives) pure returns (bool) { unchecked {
   return (__gives & gives_cast_mask) == __gives;

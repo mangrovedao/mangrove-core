@@ -15,6 +15,7 @@ import {MgvOfferTakingWithPermit} from "mgv_src/MgvOfferTakingWithPermit.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 import {
   IERC20,
   MgvLib,
@@ -28,91 +29,9 @@ import {
   Tick,
   LeafLib,
   FieldLib,
-  TickLib
+  TickLib,
+  OLKey
 } from "mgv_src/MgvLib.sol";
-
-struct Pair {
-  AbstractMangrove mgv;
-  MgvReader reader;
-  address outbound_tkn;
-  address inbound_tkn;
-}
-
-using PairLib for Pair global;
-
-library PairLib {
-  // function getPair
-  function leafs(Pair memory pair, int index) internal view returns (Leaf) {
-    return pair.mgv.leafs(pair.outbound_tkn, pair.inbound_tkn, index);
-  }
-
-  function offers(Pair memory pair, uint offerId) internal view returns (MgvStructs.OfferPacked) {
-    return pair.mgv.offers(pair.outbound_tkn, pair.inbound_tkn, offerId);
-  }
-
-  function offerDetails(Pair memory pair, uint offerId) internal view returns (MgvStructs.OfferDetailPacked) {
-    return pair.mgv.offerDetails(pair.outbound_tkn, pair.inbound_tkn, offerId);
-  }
-
-  function best(Pair memory pair) internal view returns (uint) {
-    return pair.mgv.best(pair.outbound_tkn, pair.inbound_tkn);
-  }
-
-  function logTickTreeBranch(Pair memory pair) internal view {
-    console.log("--------CURRENT TICK TREE BRANCH--------");
-    MgvStructs.LocalPacked _local = pair.reader.local(pair.outbound_tkn, pair.inbound_tkn);
-    Tick tick = _local.tick();
-    console.log("Current tick %s", toString(tick));
-    console.log("Current posInLeaf %s", tick.posInLeaf());
-    int leafIndex = tick.leafIndex();
-    console.log(
-      "Current leaf %s (index %s)",
-      toString(pair.mgv.leafs(pair.outbound_tkn, pair.inbound_tkn, leafIndex)),
-      vm.toString(leafIndex)
-    );
-    console.log("Current level 0 %s (index %s)", toString(_local.level0()), vm.toString(tick.level0Index()));
-    int level1Index = tick.level1Index();
-    console.log(
-      "Current level 1 %s (index %s)",
-      toString(pair.mgv.level1(pair.outbound_tkn, pair.inbound_tkn, level1Index)),
-      vm.toString(level1Index)
-    );
-    console.log("Current level 2 %s", toString(_local.level2()));
-    console.log("----------------------------------------");
-  }
-
-  function nextOfferId(Pair memory pair, MgvStructs.OfferPacked offer) internal view returns (uint) {
-    return pair.reader.nextOfferId(pair.outbound_tkn, pair.inbound_tkn, offer);
-  }
-
-  function nextOfferIdById(Pair memory pair, uint offerId) internal view returns (uint) {
-    return pair.reader.nextOfferIdById(pair.outbound_tkn, pair.inbound_tkn, offerId);
-  }
-
-  function prevOfferId(Pair memory pair, MgvStructs.OfferPacked offer) internal view returns (uint) {
-    return pair.reader.prevOfferId(pair.outbound_tkn, pair.inbound_tkn, offer);
-  }
-
-  function prevOfferIdById(Pair memory pair, uint offerId) internal view returns (uint) {
-    return pair.reader.prevOfferIdById(pair.outbound_tkn, pair.inbound_tkn, offerId);
-  }
-
-  function level0(Pair memory pair, int index) internal view returns (Field) {
-    return pair.mgv.level0(pair.outbound_tkn, pair.inbound_tkn, index);
-  }
-
-  function level1(Pair memory pair, int index) internal view returns (Field) {
-    return pair.mgv.level1(pair.outbound_tkn, pair.inbound_tkn, index);
-  }
-
-  function level2(Pair memory pair) internal view returns (Field) {
-    return pair.mgv.level2(pair.outbound_tkn, pair.inbound_tkn);
-  }
-
-  function local(Pair memory pair) internal view returns (MgvStructs.LocalPacked) {
-    return pair.reader.local(pair.outbound_tkn, pair.inbound_tkn);
-  }
-}
 
 /* *************************************************************** 
    import this file and inherit MangroveTest to get up and running 
@@ -126,6 +45,7 @@ library PairLib {
 contract MangroveTest is Test2, HasMgvEvents {
   // Configure the initial setup.
   // Add fields here to make MangroveTest more configurable.
+
   struct TokenOptions {
     string name;
     string symbol;
@@ -137,6 +57,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     TokenOptions base;
     TokenOptions quote;
     uint defaultFee;
+    uint defaultTickscale;
     uint gasprice;
     uint gasbase;
     uint gasmax;
@@ -147,14 +68,15 @@ contract MangroveTest is Test2, HasMgvEvents {
   MgvReader internal reader;
   TestToken internal base;
   TestToken internal quote;
-  Pair pair; // base,quote pair
-  Pair raip; // quote,base pair
+  OLKey olKey; // base,quote
+  OLKey lo; //quote,base
 
   MangroveTestOptions internal options = MangroveTestOptions({
     invertedMangrove: false,
     base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
     defaultFee: 0,
+    defaultTickscale: 1,
     gasprice: 40,
     gasbase: 50_000,
     density: 10,
@@ -180,12 +102,11 @@ contract MangroveTest is Test2, HasMgvEvents {
     base = new TestToken($(this), options.base.name, options.base.symbol, options.base.decimals);
     quote = new TestToken($(this), options.quote.name, options.quote.symbol, options.quote.decimals);
     // mangrove deploy
-    mgv = setupMangrove(base, quote, options.invertedMangrove);
+    olKey = OLKey($(base), $(quote), options.defaultTickscale);
+    lo = OLKey($(quote), $(base), options.defaultTickscale);
 
+    mgv = setupMangrove(olKey, options.invertedMangrove);
     reader = new MgvReader($(mgv));
-
-    pair = Pair(mgv, reader, $(base), $(quote));
-    raip = Pair(mgv, reader, $(quote), $(base));
 
     // below are necessary operations because testRunner acts as a taker/maker in some core protocol tests
     // TODO this should be done somewhere else
@@ -214,8 +135,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   event offers_head(address outbound, address inbound);
   event offers_line(uint id, uint wants, uint gives, address maker, uint gasreq);
 
-  function logOrderBook(address $out, address $in, uint size) internal {
-    uint offerId = mgv.best($out, $in);
+  function logOrderBook(OLKey memory _ol, uint size) internal {
+    uint offerId = mgv.best(_ol);
 
     // save call results so logs are easier to read
     uint[] memory ids = new uint[](size);
@@ -224,30 +145,29 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint c = 0;
     while ((offerId != 0) && (c < size)) {
       ids[c] = offerId;
-      offers[c] = mgv.offers($out, $in, offerId);
-      details[c] = mgv.offerDetails($out, $in, offerId);
-      offerId = reader.nextOfferId($out, $in, offers[c]);
+      offers[c] = mgv.offers(_ol, offerId);
+      details[c] = mgv.offerDetails(_ol, offerId);
+      offerId = reader.nextOfferId(_ol, offers[c]);
       c++;
     }
     c = 0;
-    emit offers_head($out, $in);
+    emit offers_head(olKey.outbound, olKey.inbound);
     while (c < size) {
       emit offers_line(ids[c], offers[c].wants(), offers[c].gives(), details[c].maker(), details[c].gasreq());
       c++;
     }
-    // emit OBState($out, $in, offerIds, wants, gives, makerAddr, gasreqs);
+    // emit OBState(olKey.outbound, olKey.inbound, offerIds, wants, gives, makerAddr, gasreqs);
   }
 
   /* Log OB with console */
-  function printOrderBook(address $out, address $in) internal view {
-    uint offerId = mgv.best($out, $in);
-    TestToken req_tk = TestToken($in);
-    TestToken ofr_tk = TestToken($out);
+  function printOrderBook(OLKey memory _ol) internal view {
+    uint offerId = mgv.best(_ol);
+    TestToken req_tk = TestToken(olKey.inbound);
+    TestToken ofr_tk = TestToken(olKey.outbound);
 
     console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
     while (offerId != 0) {
-      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) =
-        mgv.offerInfo($out, $in, offerId);
+      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) = mgv.offerInfo(_ol, offerId);
       console.log(
         string.concat(
           unicode"│ ",
@@ -260,7 +180,7 @@ contract MangroveTest is Test2, HasMgvEvents {
           vm.toString(detail.maker)
         )
       );
-      offerId = reader.nextOfferIdById($out, $in, offerId);
+      offerId = reader.nextOfferIdById(_ol, offerId);
     }
     console.log(unicode"└────┴─────────────────────");
   }
@@ -308,57 +228,52 @@ contract MangroveTest is Test2, HasMgvEvents {
     vm.label($(_mgv), "Mangrove");
   }
 
-  // Deploy mangrove with a pair
-  function setupMangrove(IERC20 outbound_tkn, IERC20 inbound_tkn) public returns (AbstractMangrove) {
-    return setupMangrove(outbound_tkn, inbound_tkn, false);
+  // Deploy mangrove with an offerList
+  function setupMangrove(OLKey memory _ol) public returns (AbstractMangrove) {
+    return setupMangrove(_ol, false);
   }
 
-  // Deploy mangrove with a pair, inverted or not
-  function setupMangrove(IERC20 outbound_tkn, IERC20 inbound_tkn, bool inverted) public returns (AbstractMangrove _mgv) {
+  // Deploy mangrove with an offerList
+  function setupMangrove(OLKey memory _ol, bool inverted) public returns (AbstractMangrove _mgv) {
     _mgv = setupMangrove(inverted);
-    setupMarket(address(outbound_tkn), address(inbound_tkn), _mgv);
+    setupMarket(_mgv, _ol);
   }
 
-  function setupMarket(address $a, address $b, AbstractMangrove _mgv) internal {
-    assertNot0x($a);
-    assertNot0x($b);
-    _mgv.activate($a, $b, options.defaultFee, options.density, options.gasbase);
-    _mgv.activate($b, $a, options.defaultFee, options.density, options.gasbase);
+  function setupMarket(AbstractMangrove _mgv, OLKey memory _ol) internal {
+    assertNot0x(olKey.outbound);
+    assertNot0x(olKey.inbound);
+    _mgv.activate(_ol, options.defaultFee, options.density, options.gasbase);
+    _mgv.activate(lo, options.defaultFee, options.density, options.gasbase);
     // logging
-    vm.label($a, IERC20($a).symbol());
-    vm.label($b, IERC20($b).symbol());
+    vm.label(olKey.outbound, IERC20(olKey.outbound).symbol());
+    vm.label(olKey.inbound, IERC20(olKey.inbound).symbol());
   }
 
-  function setupMarket(address $a, address $b) internal {
-    setupMarket($a, $b, mgv);
+  function setupMarket(OLKey memory _ol) internal {
+    setupMarket(mgv, _ol);
   }
 
-  function setupMarket(IERC20 a, IERC20 b) internal {
-    setupMarket(address(a), address(b), mgv);
-  }
-
-  function setupMaker(address $out, address $in, string memory label) public returns (TestMaker) {
-    TestMaker tm = new TestMaker(mgv, IERC20($out), IERC20($in));
+  function setupMaker(OLKey memory _ol, string memory label) public returns (TestMaker) {
+    TestMaker tm = new TestMaker(mgv, _ol);
     vm.deal(address(tm), 100 ether);
     vm.label(address(tm), label);
     return tm;
   }
 
-  function setupMakerDeployer(address $out, address $in) public returns (MakerDeployer) {
+  function setupMakerDeployer(OLKey memory _ol) public returns (MakerDeployer) {
     assertNot0x($(mgv));
-    return (new MakerDeployer(mgv, $out, $in));
+    return (new MakerDeployer(mgv, _ol));
   }
 
-  function setupTaker(address $out, address $in, string memory label) public returns (TestTaker) {
-    TestTaker tt = new TestTaker(mgv, IERC20($out), IERC20($in));
+  function setupTaker(OLKey memory _ol, string memory label) public returns (TestTaker) {
+    TestTaker tt = new TestTaker(mgv, _ol);
     vm.deal(address(tt), 100 ether);
     vm.label(address(tt), label);
     return tt;
   }
 
   function mockBuyOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
-    order.outbound_tkn = $(base);
-    order.inbound_tkn = $(quote);
+    order.olKey = olKey;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
@@ -367,16 +282,12 @@ contract MangroveTest is Test2, HasMgvEvents {
     // order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: TickLib.tickFromVolumes(order.gives,order.wants), __gives: order.wants});
   }
 
-  function mockBuyOrder(
-    uint takerGives,
-    uint takerWants,
-    uint partialFill,
-    IERC20 base_,
-    IERC20 quote_,
-    bytes32 makerData
-  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
-    order.outbound_tkn = $(base_);
-    order.inbound_tkn = $(quote_);
+  function mockBuyOrder(uint takerGives, uint takerWants, uint partialFill, OLKey memory _ol, bytes32 makerData)
+    public
+    pure
+    returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result)
+  {
+    order.olKey = _ol;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
@@ -391,24 +302,19 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
-    order.inbound_tkn = $(base);
-    order.outbound_tkn = $(quote);
+    order.olKey = olKey;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
     order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
   }
 
-  function mockSellOrder(
-    uint takerGives,
-    uint takerWants,
-    uint partialFill,
-    IERC20 base_,
-    IERC20 quote_,
-    bytes32 makerData
-  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
-    order.inbound_tkn = $(base_);
-    order.outbound_tkn = $(quote_);
+  function mockSellOrder(uint takerGives, uint takerWants, uint partialFill, OLKey memory _ol, bytes32 makerData)
+    public
+    pure
+    returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result)
+  {
+    order.olKey = _ol;
     order.wants = takerWants;
     order.gives = takerGives;
     order.offer = MgvStructs.Offer.pack({
@@ -506,30 +412,26 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   /// creates `fold` offers in the (outbound, inbound) market with the same `wants`, `gives` and `gasreq` and with `caller` as maker
-  function densify(address outbound, address inbound, uint wants, uint gives, uint gasreq, uint fold, address caller)
-    internal
-  {
+  function densify(OLKey memory _ol, uint wants, uint gives, uint gasreq, uint fold, address caller) internal {
     if (gives == 0) {
       return;
     }
-    uint prov = reader.getProvision(outbound, inbound, gasreq, 0);
+    uint prov = reader.getProvision(_ol, gasreq, 0);
     while (fold > 0) {
       vm.prank(caller);
-      mgv.newOfferByVolume{value: prov}(outbound, inbound, wants, gives, gasreq, 0);
+      mgv.newOfferByVolume{value: prov}(_ol, wants, gives, gasreq, 0);
       fold--;
     }
   }
 
   /// duplicates `fold` times all offers in the `outbound, inbound` list from id `fromId` and for `lenght` offers.
-  function densifyRange(address outbound, address inbound, uint fromId, uint length, uint fold, address caller)
-    internal
-  {
+  function densifyRange(OLKey memory _ol, uint fromId, uint length, uint fold, address caller) internal {
     while (length > 0 && fromId != 0) {
-      MgvStructs.OfferPacked offer = mgv.offers(outbound, inbound, fromId);
-      MgvStructs.OfferDetailPacked detail = mgv.offerDetails(outbound, inbound, fromId);
-      densify(outbound, inbound, offer.wants(), offer.gives(), detail.gasreq(), fold, caller);
+      MgvStructs.OfferPacked offer = mgv.offers(_ol, fromId);
+      MgvStructs.OfferDetailPacked detail = mgv.offerDetails(_ol, fromId);
+      densify(_ol, offer.wants(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
-      fromId = reader.nextOfferId(outbound, inbound, offer);
+      fromId = reader.nextOfferId(_ol, offer);
     }
   }
 
@@ -566,7 +468,23 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   // logs an overview of the current branch
-  function logTickTreeBranch(address outbound_tkn, address inbound_tkn) public view {
-    Pair({mgv: mgv, reader: reader, outbound_tkn: outbound_tkn, inbound_tkn: inbound_tkn}).logTickTreeBranch();
+  function logTickTreeBranch(OLKey memory _ol) public view {
+    logTickTreeBranch(reader, _ol);
+  }
+
+  function logTickTreeBranch(MgvReader _reader, OLKey memory _ol) internal view {
+    IMangrove _mgv = reader.MGV();
+    console.log("--------CURRENT TICK TREE BRANCH--------");
+    MgvStructs.LocalPacked _local = _reader.local(_ol);
+    Tick tick = _local.tick();
+    console.log("Current tick %s", toString(tick));
+    console.log("Current posInLeaf %s", tick.posInLeaf());
+    int leafIndex = tick.leafIndex();
+    console.log("Current leaf %s (index %s)", toString(_mgv.leafs(_ol, leafIndex)), vm.toString(leafIndex));
+    console.log("Current level 0 %s (index %s)", toString(_local.level0()), vm.toString(tick.level0Index()));
+    int level1Index = tick.level1Index();
+    console.log("Current level 1 %s (index %s)", toString(_mgv.level1(_ol, level1Index)), vm.toString(level1Index));
+    console.log("Current level 2 %s", toString(_local.level2()));
+    console.log("----------------------------------------");
   }
 }

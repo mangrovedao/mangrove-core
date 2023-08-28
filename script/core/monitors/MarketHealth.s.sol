@@ -5,7 +5,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
 import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {Tick} from "mgv_lib/TickLib.sol";
 
 /**
@@ -60,8 +60,7 @@ contract MarketHealth is Test2, Deployer {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      inbTkn: inbTkn,
-      outTkn: IERC20(envAddressOrName("TKN_OUT")),
+      olKey: OLKey(envAddressOrName("TKN_OUT"), address(inbTkn), vm.envUint("TICKSCALE")),
       outboundTknVolume: vm.envUint("VOLUME"),
       densityOverrides: densityOverrides
     });
@@ -97,21 +96,17 @@ contract MarketHealth is Test2, Deployer {
     uint minVolume;
   }
 
-  function innerRun(
-    IMangrove mgv,
-    MgvReader reader,
-    IERC20 inbTkn,
-    IERC20 outTkn,
-    uint outboundTknVolume,
-    uint densityOverrides
-  ) public {
+  function innerRun(IMangrove mgv, MgvReader reader, OLKey memory olKey, uint outboundTknVolume, uint densityOverrides)
+    public
+  {
+    IERC20 inbTkn = IERC20(olKey.inbound);
+    IERC20 outTkn = IERC20(olKey.outbound);
     if (densityOverrides > 0) {
       vm.prank(mgv.governance());
-      mgv.setDensity(address(outTkn), address(inbTkn), densityOverrides);
+      mgv.setDensity(olKey, densityOverrides);
     }
     HeapVars memory vars;
-    vars.data =
-      reader.marketOrder(address(outTkn), address(inbTkn), outboundTknVolume, inbTkn.balanceOf(address(this)), true);
+    vars.data = reader.marketOrder(olKey, outboundTknVolume, inbTkn.balanceOf(address(this)), true);
     vars.outDecimals = outTkn.decimals();
     vars.inbDecimals = inbTkn.decimals();
     // inbound volume required (if not offer is failing)
@@ -120,7 +115,7 @@ contract MarketHealth is Test2, Deployer {
     deal(address(inbTkn), address(this), vars.required * 2);
     inbTkn.approve(address(mgv), type(uint).max);
 
-    (, MgvStructs.LocalPacked local) = mgv.config(address(outTkn), address(inbTkn));
+    (, MgvStructs.LocalPacked local) = mgv.config(olKey);
     vars.gasbase = local.offer_gasbase();
 
     uint snapshotId = vm.snapshot();
@@ -130,21 +125,19 @@ contract MarketHealth is Test2, Deployer {
 
     while (vars.got < outboundTknVolume) {
       vars.dataKey = string.concat("data_", vm.toString(vars.successes + vars.failures));
-      vars.best = mgv.best(address(outTkn), address(inbTkn));
+      vars.best = mgv.best(olKey);
       if (vars.best == 0) {
         break;
       }
-      (vars.offer, vars.offerDetail) = mgv.offerInfo(address(outTkn), address(inbTkn), vars.best);
+      (vars.offer, vars.offerDetail) = mgv.offerInfo(olKey, vars.best);
       vars.takerWants =
         vars.offer.gives + vars.got > outboundTknVolume ? outboundTknVolume - vars.got : vars.offer.gives;
       // FIXME: This is no longer possible with the new clean function
       // offering a better price than what the offer requires
-      vars.targets = wrap_dynamic(
-        MgvLib.CleanTarget(vars.best, Tick.unwrap(vars.offer.tick), vars.offerDetail.gasreq, vars.takerWants)
-      );
+      vars.targets =
+        wrap_dynamic(MgvLib.CleanTarget(vars.best, vars.offer.logPrice, vars.offerDetail.gasreq, vars.takerWants));
       _gas();
-      (vars.snipesSuccesses, vars.snipesBounty) =
-        mgv.cleanByImpersonation(address(outTkn), address(inbTkn), vars.targets, address(this));
+      (vars.snipesSuccesses, vars.snipesBounty) = mgv.cleanByImpersonation(olKey, vars.targets, address(this));
       vars.g = gas_(true);
       if (vars.snipesBounty > 0) {
         // adding gas cost of snipe to gasCost if snipe failed
@@ -158,8 +151,7 @@ contract MarketHealth is Test2, Deployer {
       vars.gave += vars.snipesGave;
       vars.collected += vars.snipesBounty;
 
-      vars.minVolume =
-        reader.minVolume(address(outTkn), address(inbTkn), vars.data[vars.successes + vars.failures - 1].totalGasreq);
+      vars.minVolume = reader.minVolume(olKey, vars.data[vars.successes + vars.failures - 1].totalGasreq);
 
       if (vars.got > vars.minVolume) {
         vars.distanceToDensity = toFixed(vars.got - vars.minVolume, vars.outDecimals);
@@ -187,7 +179,7 @@ contract MarketHealth is Test2, Deployer {
     }
     require(vm.revertTo(snapshotId), "snapshot restore failed");
     _gas();
-    mgv.marketOrderByVolume(address(outTkn), address(inbTkn), outboundTknVolume, type(uint160).max, true);
+    mgv.marketOrderByVolume(olKey, outboundTknVolume, type(uint160).max, true);
     vars.gasSpent = gas_(true);
     vm.serializeUint(vars.rootKey, "failingIds", vars.failingIds);
     vars.rootKey = vm.serializeUint(vars.rootKey, "gas_used_for_volume", vars.gasSpent);

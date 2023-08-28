@@ -3,19 +3,17 @@ pragma solidity ^0.8.10;
 
 import "mgv_src/AbstractMangrove.sol";
 import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
-import {MgvStructs} from "mgv_src/MgvLib.sol";
+import {MgvStructs, OLKey} from "mgv_src/MgvLib.sol";
 
 contract TestMoriartyMaker is IMaker {
   AbstractMangrove mgv;
-  address base;
-  address quote;
+  OLKey olKey;
   bool succeed;
   uint dummy;
 
-  constructor(AbstractMangrove _mgv, address _base, address _quote) {
+  constructor(AbstractMangrove _mgv, OLKey memory _ol) {
     mgv = _mgv;
-    base = _base;
-    quote = _quote;
+    olKey = _ol;
     succeed = true;
   }
 
@@ -34,15 +32,14 @@ contract TestMoriartyMaker is IMaker {
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) external override {}
 
   function newOfferByVolume(uint wants, uint gives, uint gasreq) public {
-    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
-    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
-    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
-    mgv.newOfferByVolume(base, quote, wants, gives, gasreq, 0);
-    (, MgvStructs.LocalPacked cfg) = mgv.config(base, quote);
+    mgv.newOfferByVolume(olKey, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(olKey, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(olKey, wants, gives, gasreq, 0);
+    mgv.newOfferByVolume(olKey, wants, gives, gasreq, 0);
+    (, MgvStructs.LocalPacked cfg) = mgv.config(olKey);
     uint offer_gasbase = cfg.offer_gasbase();
     dummy = mgv.newOfferByVolume({
-      outbound_tkn: base,
-      inbound_tkn: quote,
+      olKey: olKey,
       wants: 1,
       gives: cfg.density().multiplyUp(offer_gasbase + 100_000),
       gasreq: 100000,

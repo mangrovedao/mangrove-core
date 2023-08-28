@@ -3,14 +3,16 @@ pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import "mgv_src/periphery/MgvReader.sol";
 import "mgv_src/Mangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
+import {OLKey} from "mgv_src/MgvLib.sol";
 
 import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 /* Example: activate (USDC,WETH) offer lists. Assume $NATIVE_IN_USDC is the price of ETH/MATIC/native token in USDC; same for $NATIVE_IN_ETH.
  TKN1=USDC \
  TKN2=WETH \
+ TICKSCALE=1 \
  TKN1_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_USDC) gwei) \
  TKN2_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_ETH) gwei) \
  FEE=30 \
@@ -21,8 +23,7 @@ contract ActivateMarket is Deployer {
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      tkn1: IERC20(envAddressOrName("TKN1")),
-      tkn2: IERC20(envAddressOrName("TKN2")),
+      market: Market({tkn0: envAddressOrName("TKN1"), tkn1: envAddressOrName("TKN2"), tickScale: vm.envUint("TICKSCALE")}),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
       fee: vm.envUint("FEE")
@@ -34,6 +35,7 @@ contract ActivateMarket is Deployer {
     gaspriceOverride: overrides current mangrove's gasprice for the computation of density - default innerRun uses mangrove's gasprice
     tkn1: first tokens
     tkn2: second tokens,
+    tickScale: tick scale,
     tkn1_in_gwei: price of one tkn1 (display units) in gwei
     tkn2_in_gwei: price of one tkn2 (display units) in gwei
     fee: fee in per 10_000
@@ -50,14 +52,13 @@ contract ActivateMarket is Deployer {
   function innerRun(
     Mangrove mgv,
     MgvReader reader,
-    IERC20 tkn1,
-    IERC20 tkn2,
+    Market memory market,
     uint tkn1_in_gwei,
     uint tkn2_in_gwei,
     uint fee
   ) public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    innerRun(mgv, global.gasprice(), reader, tkn1, tkn2, tkn1_in_gwei, tkn2_in_gwei, fee);
+    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
+    innerRun(mgv, global.gasprice(), reader, market, tkn1_in_gwei, tkn2_in_gwei, fee);
   }
 
   /**
@@ -68,8 +69,7 @@ contract ActivateMarket is Deployer {
     Mangrove mgv,
     uint gaspriceOverride,
     MgvReader reader,
-    IERC20 tkn1,
-    IERC20 tkn2,
+    Market memory market,
     uint tkn1_in_gwei,
     uint tkn2_in_gwei,
     uint fee
@@ -77,8 +77,7 @@ contract ActivateMarket is Deployer {
     new ActivateSemibook().innerRun({
       mgv: mgv,
       gaspriceOverride: gaspriceOverride,
-      outbound_tkn: tkn1,
-      inbound_tkn: tkn2,
+      olKey: toOLKey(market),
       outbound_in_gwei: tkn1_in_gwei,
       fee: fee
     });
@@ -86,12 +85,11 @@ contract ActivateMarket is Deployer {
     new ActivateSemibook().innerRun({
       mgv: mgv,
       gaspriceOverride: gaspriceOverride,
-      outbound_tkn: tkn2,
-      inbound_tkn: tkn1,
+      olKey: toOLKey(flipped(market)),
       outbound_in_gwei: tkn2_in_gwei,
       fee: fee
     });
 
-    new UpdateMarket().innerRun({tkn0: tkn1, tkn1: tkn2, reader: reader});
+    new UpdateMarket().innerRun({reader: reader, market: market});
   }
 }

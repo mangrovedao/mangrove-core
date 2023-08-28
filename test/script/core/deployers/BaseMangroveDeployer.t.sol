@@ -6,7 +6,7 @@ import {MangroveDeployer} from "mgv_script/core/deployers/MangroveDeployer.s.sol
 
 import {Test2, Test} from "mgv_lib/Test2.sol";
 
-import {MgvStructs, Density} from "mgv_src/MgvLib.sol";
+import {MgvStructs, Density, OLKey} from "mgv_src/MgvLib.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
@@ -21,8 +21,6 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
   uint gasprice;
   uint gasmax;
   address gasbot;
-  address outbound_tkn;
-  address inbound_tkn;
 
   function test_toy_ens_has_addresses() public {
     assertEq(fork.get("Mangrove"), address(mgvDeployer.mgv()));
@@ -30,9 +28,8 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     assertEq(fork.get("MgvOracle"), address(mgvDeployer.oracle()));
   }
 
-  function test_contracts_instantiated_correctly() public {
-    outbound_tkn = freshAddress("outbound_tkn");
-    inbound_tkn = freshAddress("inbound_tkn");
+  function test_contracts_instantiated_correctly(uint tickScale) public {
+    OLKey memory olKey = OLKey(freshAddress("oubtound_tkn"), freshAddress("inbound_tkn"), tickScale);
 
     // Oracle - verify expected values have been passed in. We read from storage slots - alternatively, we should poke admin methods to verify correct setup.
     MgvOracle oracle = mgvDeployer.oracle();
@@ -40,21 +37,21 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     assertEq(chief, address(uint160(uint(oracleGovernance))));
     bytes32 oracleMutator = vm.load(address(oracle), bytes32(uint(1)));
     assertEq(gasbot, address(uint160(uint(oracleMutator))));
-    (uint gasprice_, Density density_) = oracle.read(outbound_tkn, inbound_tkn);
+    (uint gasprice_, Density density_) = oracle.read(olKey);
     assertEq(gasprice, gasprice_);
     assertEq(type(uint).max, Density.unwrap(density_));
 
     // Mangrove - verify expected values have been passed in
     Mangrove mgv = mgvDeployer.mgv();
     assertEq(mgv.governance(), chief);
-    (MgvStructs.GlobalPacked cfg,) = mgv.config(address(0), address(0));
+    (MgvStructs.GlobalPacked cfg,) = mgv.config(OLKey(address(0), address(0), 0));
     assertEq(cfg.gasmax(), gasmax);
     assertEq(cfg.monitor(), address(oracle), "monitor should be set to oracle");
     assertTrue(cfg.useOracle(), "useOracle should be set");
 
     // Reader - verify mgv is used
     MgvReader reader = mgvDeployer.reader();
-    vm.expectCall(address(mgv), abi.encodeCall(mgv.config, (outbound_tkn, inbound_tkn)));
-    reader.getProvision(outbound_tkn, inbound_tkn, 0, 0);
+    vm.expectCall(address(mgv), abi.encodeCall(mgv.config, (olKey)));
+    reader.getProvision(olKey, 0, 0);
   }
 }

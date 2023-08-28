@@ -96,16 +96,9 @@ contract GenericFork is Script {
 
   function readAddresses(string memory category) internal returns (Record[] memory) {
     Record[] memory envRecords = readEnvAddresses(category);
-    bool readRoot = vm.envOr("MGV_READ_ROOT_ADDRESSES", true);
     bool readMgvConfigPaths = vm.envOr("MGV_READ_ADDRESSES_PATHS", true);
-    if (!readRoot && !readMgvConfigPaths) {
+    if (!readMgvConfigPaths) {
       return envRecords;
-    }
-
-    Record[] memory rootRecords = new Record[](0);
-    if (readRoot) {
-      string memory pathFromRoot = addressesFileRoot(category);
-      rootRecords = readAddressesFromFileName(pathFromRoot);
     }
 
     Record[] memory mgvConfigRecords = new Record[](0);
@@ -113,15 +106,12 @@ contract GenericFork is Script {
       mgvConfigRecords = readMgvConfigAddresses(category);
     }
 
-    Record[] memory allRecords = new Record[](envRecords.length + rootRecords.length + mgvConfigRecords.length);
+    Record[] memory allRecords = new Record[](envRecords.length + mgvConfigRecords.length);
     for (uint i = 0; i < envRecords.length; i++) {
       allRecords[i] = envRecords[i];
     }
-    for (uint i = 0; i < rootRecords.length; i++) {
-      allRecords[envRecords.length + i] = rootRecords[i];
-    }
     for (uint i = 0; i < mgvConfigRecords.length; i++) {
-      allRecords[envRecords.length + rootRecords.length + i] = mgvConfigRecords[i];
+      allRecords[envRecords.length + i] = mgvConfigRecords[i];
     }
 
     return allRecords;

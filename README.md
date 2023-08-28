@@ -88,9 +88,12 @@ By default, it will try and look into the `{projectRoot}/mgvConfig.json` file, i
 
 ```json
 {
-  "addresses_paths": ["./addresses/"]
+  "addresses_paths": ["addresses/"],
+  "deployment_addresses_path": "addresses/"
 }
 ```
+
+The `deployment_addresses_path` is the path to the folder where the addresses are written to when deploying. The `addresses_paths` is an array of paths to folders where the addresses are read from. The paths are relative to the project root.
 
 If you want to read addresses from other folders, then you can add paths to the json file. If you do not want to change the `mgvConfig.json` file, but still want to read some extra addresses. Then you you can set `MGV_ADDRESSES_PATHS` to the addresses paths that should be read from. And if you don't want to read the `mgvConfig.json` addresses at all, then you can set `MGV_READ_ADDRESSES_PATHS` to false. The `MGV_ADDRESSES_PATHS` variable has same structure as the `mgvConfig.json`. Here is an example:
 

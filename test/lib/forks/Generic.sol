@@ -10,6 +10,11 @@ struct Record {
   string name;
 }
 
+struct MgvConfig {
+  string[] addresses_paths;
+  string deployment_addresses_path;
+}
+
 /* 
 Note: when you add a *Fork contract, to have it available in deployment scripts,
 remember to add it to the initialized forks in Deployer.sol.*/
@@ -79,19 +84,24 @@ contract GenericFork is Script {
     view
     returns (string memory)
   {
-    return string.concat(vm.projectRoot(), pathFromRoot, category, "/", NETWORK, suffix, ".json");
+    return string.concat(vm.projectRoot(), "/", pathFromRoot, category, "/", NETWORK, suffix, ".json");
   }
 
-  function addressesFileRoot(string memory category, string memory suffix) public view returns (string memory) {
-    return addressesFile("/addresses/", category, suffix);
+  function readMgvConfig() public view returns (MgvConfig memory) {
+    string memory root = vm.projectRoot();
+    string memory path = string.concat(root, "/mgvConfig.json");
+    bytes memory json = vm.readFileBinary(path);
+    return abi.decode(json, (MgvConfig));
   }
 
-  function addressesFileRoot(string memory category) public view returns (string memory) {
-    return addressesFile("/addresses/", category, "");
+  function addressesFileDeployment(string memory category, string memory suffix) public view returns (string memory) {
+    MgvConfig memory config = readMgvConfig();
+    return addressesFile(config.deployment_addresses_path, category, suffix);
   }
 
-  struct Paths {
-    string[] addresses_paths;
+  function addressesFileDeployment(string memory category) public view returns (string memory) {
+    MgvConfig memory config = readMgvConfig();
+    return addressesFile(config.deployment_addresses_path, category, "");
   }
 
   function readAddresses(string memory category) internal returns (Record[] memory) {
@@ -141,10 +151,10 @@ contract GenericFork is Script {
   }
 
   function readAddressesFromJson(bytes memory encodedPaths, string memory category) internal returns (Record[] memory) {
-    Paths memory pathsAsArray = abi.decode(encodedPaths, (Paths));
-    Record[][] memory allRecords = new Record[][](pathsAsArray.addresses_paths.length);
-    for (uint i = 0; i < pathsAsArray.addresses_paths.length; i++) {
-      string memory pathFromRoot = addressesFile(pathsAsArray.addresses_paths[i], category, "");
+    MgvConfig memory mgvConfig = abi.decode(encodedPaths, (MgvConfig));
+    Record[][] memory allRecords = new Record[][](mgvConfig.addresses_paths.length);
+    for (uint i = 0; i < mgvConfig.addresses_paths.length; i++) {
+      string memory pathFromRoot = addressesFile(mgvConfig.addresses_paths[i], category, "");
       Record[] memory envRecords = readAddressesFromFileName(pathFromRoot);
       if (envRecords.length > 0) {
         allRecords[i] = envRecords;

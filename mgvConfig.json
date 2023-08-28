@@ -1,3 +1,4 @@
 {
-  "addresses_paths": ["/addresses/"]
+  "addresses_paths": ["addresses/"],
+  "deployment_addresses_path": "addresses/"
 }

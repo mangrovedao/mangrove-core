@@ -1,5 +1,7 @@
 # Next version
 
+# 1.5.8-1
+
 # 1.5.8-0
 
 - Moved all strat related contracts, scripts, deployers, etc. to @mangrovedao/mangrove-strats.

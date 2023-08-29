@@ -485,10 +485,9 @@ abstract contract TickTreeTest is MangroveTest {
     if (_tick.posInLevel2() < MAX_LEVEL2_POSITION) {
       ticks[next++] = tick + LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE; // in level2
     }
-    // FIXME: MAX_TICK is currently out of range
-    // if (tick < MAX_TICK) {
-    //   ticks[next++] = MAX_TICK; // at max tick
-    // }
+    if (tick < MAX_TICK) {
+      ticks[next++] = MAX_TICK; // at max tick
+    }
 
     int[] memory res = new int[](next);
     for (uint i = 0; i < next; ++i) {

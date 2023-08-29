@@ -49,8 +49,12 @@ contract TickTreeNewOfferTest is MangroveTest {
   function setUp() public override {
     super.setUp();
 
+    // generateInsertionTicks();
+    // generateTickScenarios();
+    // generateNewOfferScenarios();
+
     // Check that the tick tree is consistent after set up
-    assertTickTreeIsConsistent();
+    assertMgvTickTreeIsConsistent();
   }
 
   function assertTickAssumptions(
@@ -146,7 +150,7 @@ contract TickTreeNewOfferTest is MangroveTest {
   }
 
   // Traverses the tick tree and asserts that it is consistent
-  function assertTickTreeIsConsistent() internal {
+  function assertMgvTickTreeIsConsistent() internal {
     Field level2 = mgv.level2(olKey);
     for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
       if (!isBitSet(level2, level2Pos)) {
@@ -368,6 +372,7 @@ contract TickTreeNewOfferTest is MangroveTest {
   ) internal {
     // Update leaf and last offer
     Leaf leaf = tickTree.leafs[tick.leafIndex()];
+    // console.log("leaf before: %s", toString(leaf));
     uint lastId = leaf.lastOfIndex(tick.posInLeaf());
     if (lastId == 0) {
       leaf = leaf.setIndexFirstOrLast(tick.posInLeaf(), offerId, false);
@@ -375,6 +380,7 @@ contract TickTreeNewOfferTest is MangroveTest {
       tickTree.offers[lastId].offer = tickTree.offers[lastId].offer.next(offerId);
     }
     tickTree.leafs[tick.leafIndex()] = leaf.setIndexFirstOrLast(tick.posInLeaf(), offerId, true);
+    // console.log("leaf after: %s", toString(tickTree.leafs[tick.leafIndex()]));
 
     // Create offer
     tickTree.offers[offerId].offer =
@@ -509,6 +515,262 @@ contract TickTreeNewOfferTest is MangroveTest {
       }
     }
   }
+  // # New offer tests
+
+  // int[] insertionTicks;
+
+  // function generateInsertionTicks() internal  {
+  //   // FIXME: Create a more comprehensive set of insertion ticks
+  //   // FIXME: Min tick currently doesn't work, generates wants=0
+  //   // insertionTicks.push(MIN_TICK);
+  //   // FIXME: Max tick currently doesn't work, generates a too big wants
+  //   // insertionTicks.push(MAX_TICK);
+  //   // insertionTicks.push(0);
+  //   // insertionTicks.push(1);
+  //   // insertionTicks.push(2);
+  //   // insertionTicks.push(3);
+  //   insertionTicks.push(-1);
+  //   insertionTicks.push(-2);
+  //   insertionTicks.push(-3);
+  //   insertionTicks.push(-4);
+  // }
+
+  function generateHigherTickScenarios(int tick) internal pure returns (int[] memory) {
+    Tick _tick = Tick.wrap(tick);
+    uint next = 0;
+    int[] memory ticks = new int[](10);
+    if (_tick.posInLeaf() < MAX_LEAF_POSITION) {
+      ticks[next++] = tick + 1; // in leaf
+    }
+    if (_tick.posInLevel0() < MAX_LEVEL0_POSITION) {
+      ticks[next++] = tick + LEAF_SIZE; // in level0
+    }
+    if (_tick.posInLevel1() < MAX_LEVEL1_POSITION) {
+      ticks[next++] = tick + LEAF_SIZE * LEVEL0_SIZE; // in level1
+    }
+    if (_tick.posInLevel2() < MAX_LEVEL2_POSITION) {
+      ticks[next++] = tick + LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE; // in level2
+    }
+    // FIXME: MAX_TICK is currently out of range
+    // if (tick < MAX_TICK) {
+    //   ticks[next++] = MAX_TICK; // at max tick
+    // }
+
+    int[] memory res = new int[](next);
+    for (uint i = 0; i < next; ++i) {
+      res[i] = ticks[i];
+    }
+    return res;
+  }
+
+  function generateLowerTickScenarios(int tick) internal pure returns (int[] memory) {
+    Tick _tick = Tick.wrap(tick);
+    uint next = 0;
+    int[] memory ticks = new int[](10);
+    if (_tick.posInLeaf() > 0) {
+      ticks[next++] = tick - 1; // in leaf
+    }
+    if (_tick.posInLevel0() > 0) {
+      ticks[next++] = tick - LEAF_SIZE; // in level0
+    }
+    if (_tick.posInLevel1() > 0) {
+      ticks[next++] = tick - LEAF_SIZE * LEVEL0_SIZE; // in level1
+    }
+    if (_tick.posInLevel2() > 0) {
+      ticks[next++] = tick - LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE; // in level2
+    }
+    // FIXME: MIN_TICK is currently out of range
+    // if (tick > MIN_TICK) {
+    //   ticks[next++] = MIN_TICK; // at min tick
+    // }
+
+    int[] memory res = new int[](next);
+    for (uint i = 0; i < next; ++i) {
+      res[i] = ticks[i];
+    }
+    return res;
+  }
+
+  struct TickScenario {
+    int tick;
+    bool hasHigherTick;
+    int higherTick;
+    bool hasLowerTick;
+    int lowerTick;
+  }
+
+  struct NewOfferScenario {
+    TickScenario tickScenario;
+    uint insertionTickListSize;
+    uint higherTickListSize;
+    uint lowerTickListSize;
+  }
+
+  // TickScenario[] tickScenarios;
+
+  uint[] tickListSizeScenarios = [0, 1, 2]; // NB: 0 must be the first scenario, as we skip that for higher and lower tick scenarios
+
+  // function generateTickScenarios() internal {
+  //   for (uint i = 0; i < insertionTicks.length; ++i) {
+  //     int[] memory higherTicks = generateHigherTickScenarios(insertionTicks[i]);
+  //     int[] memory lowerTicks = generateLowerTickScenarios(insertionTicks[i]);
+  //     tickScenarios.push(TickScenario({tick: insertionTicks[i], hasHigherTick: false, higherTick: 0, hasLowerTick: false, lowerTick: 0}));
+  //     for (uint h = 0; h < higherTicks.length; ++h) {
+  //       tickScenarios.push(TickScenario({tick: insertionTicks[i], hasHigherTick: true, higherTick: higherTicks[h], hasLowerTick: false, lowerTick: 0}));
+  //     }
+  //     for (uint l = 0; l < lowerTicks.length; ++l) {
+  //       tickScenarios.push(TickScenario({tick: insertionTicks[i], hasHigherTick: false, higherTick: 0, hasLowerTick: true, lowerTick: lowerTicks[l]}));
+  //     }
+  //     for (uint h = 0; h < higherTicks.length; ++h) {
+  //       for (uint l = 0; l < lowerTicks.length; ++l) {
+  //         tickScenarios.push(TickScenario({tick: insertionTicks[i], hasHigherTick: true, higherTick: higherTicks[h], hasLowerTick: true, lowerTick: lowerTicks[l]}));
+  //       }
+  //     }
+  //   }
+  // }
+  function generateTickScenarios(int tick) internal pure returns (TickScenario[] memory) {
+    int[] memory higherTicks = generateHigherTickScenarios(tick);
+    int[] memory lowerTicks = generateLowerTickScenarios(tick);
+    TickScenario[] memory tickScenarios =
+      new TickScenario[](1 + higherTicks.length + lowerTicks.length + higherTicks.length * lowerTicks.length);
+    uint next = 0;
+    tickScenarios[next++] =
+      TickScenario({tick: tick, hasHigherTick: false, higherTick: 0, hasLowerTick: false, lowerTick: 0});
+    for (uint h = 0; h < higherTicks.length; ++h) {
+      tickScenarios[next++] =
+        TickScenario({tick: tick, hasHigherTick: true, higherTick: higherTicks[h], hasLowerTick: false, lowerTick: 0});
+    }
+    for (uint l = 0; l < lowerTicks.length; ++l) {
+      tickScenarios[next++] =
+        TickScenario({tick: tick, hasHigherTick: false, higherTick: 0, hasLowerTick: true, lowerTick: lowerTicks[l]});
+    }
+    for (uint h = 0; h < higherTicks.length; ++h) {
+      for (uint l = 0; l < lowerTicks.length; ++l) {
+        tickScenarios[next++] = TickScenario({
+          tick: tick,
+          hasHigherTick: true,
+          higherTick: higherTicks[h],
+          hasLowerTick: true,
+          lowerTick: lowerTicks[l]
+        });
+      }
+    }
+    return tickScenarios;
+  }
+
+  function add_n_offers_to_tick(int tick, uint n) internal {
+    for (uint i = 1; i <= n; ++i) {
+      mgv.newOfferByLogPrice(olKey, LogPriceLib.fromTick(Tick.wrap(tick), olKey.tickScale), 1 ether, i * 100_000, i);
+    }
+  }
+
+  function test_new_offer_for_tick0() public {
+    run_new_offer_scenarios_for_tick(0);
+  }
+
+  function test_new_offer_for_tick1() public {
+    run_new_offer_scenarios_for_tick(1);
+  }
+
+  // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
+  // We therefore have a test case per tick instead.
+  function run_new_offer_scenarios_for_tick(int tick) internal {
+    vm.pauseGasMetering();
+    TickScenario[] memory tickScenarios = generateTickScenarios(tick);
+    for (uint i = 0; i < tickScenarios.length; ++i) {
+      TickScenario memory tickScenario = tickScenarios[i];
+      for (uint j = 0; j < tickListSizeScenarios.length; ++j) {
+        uint insertionTickListSize = tickListSizeScenarios[j];
+        if (!tickScenario.hasHigherTick) {
+          if (!tickScenario.hasLowerTick) {
+            run_new_offer_scenario(
+              NewOfferScenario({
+                tickScenario: tickScenario,
+                insertionTickListSize: insertionTickListSize,
+                higherTickListSize: 0,
+                lowerTickListSize: 0
+              })
+            );
+          } else {
+            for (uint l = 1; l < tickListSizeScenarios.length; ++l) {
+              uint lowerTickListSize = tickListSizeScenarios[l];
+              run_new_offer_scenario(
+                NewOfferScenario({
+                  tickScenario: tickScenario,
+                  insertionTickListSize: insertionTickListSize,
+                  higherTickListSize: 0,
+                  lowerTickListSize: lowerTickListSize
+                })
+              );
+            }
+          }
+        } else if (!tickScenario.hasLowerTick) {
+          for (uint h = 1; h < tickListSizeScenarios.length; ++h) {
+            uint higherTickListSize = tickListSizeScenarios[h];
+            run_new_offer_scenario(
+              NewOfferScenario({
+                tickScenario: tickScenario,
+                insertionTickListSize: insertionTickListSize,
+                higherTickListSize: higherTickListSize,
+                lowerTickListSize: 0
+              })
+            );
+          }
+        }
+        // For higher and lower tick, we skip the empty tick list scenario as it's equivalent to has{Higher, Lower}Tick = false
+        for (uint k = 1; k < tickListSizeScenarios.length; ++k) {
+          uint higherTickListSize = tickListSizeScenarios[k];
+          for (uint l = 1; l < tickListSizeScenarios.length; ++l) {
+            uint lowerTickListSize = tickListSizeScenarios[l];
+            run_new_offer_scenario(
+              NewOfferScenario({
+                tickScenario: tickScenario,
+                insertionTickListSize: insertionTickListSize,
+                higherTickListSize: higherTickListSize,
+                lowerTickListSize: lowerTickListSize
+              })
+            );
+          }
+        }
+      }
+    }
+  }
+
+  function run_new_offer_scenario(NewOfferScenario memory scenario) internal {
+    console.log("new offer scenario");
+    console.log("  insertionTick: %s", toString(Tick.wrap(scenario.tickScenario.tick)));
+    console.log("  insertionTickListSize: %s", scenario.insertionTickListSize);
+    if (scenario.tickScenario.hasHigherTick) {
+      console.log("  higherTick: %s", toString(Tick.wrap(scenario.tickScenario.higherTick)));
+      console.log("  higherTickListSize: %s", scenario.higherTickListSize);
+    }
+    if (scenario.tickScenario.hasLowerTick) {
+      console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
+      console.log("  lowerTickListSize: %s", scenario.lowerTickListSize);
+    }
+    // TODO:
+    // 1. Capture state before test
+    uint vmSnapshotId = vm.snapshot();
+    // 2. Create scenario
+    add_n_offers_to_tick(scenario.tickScenario.tick, scenario.insertionTickListSize);
+    if (scenario.tickScenario.hasHigherTick) {
+      add_n_offers_to_tick(scenario.tickScenario.higherTick, scenario.higherTickListSize);
+    }
+    if (scenario.tickScenario.hasLowerTick) {
+      add_n_offers_to_tick(scenario.tickScenario.lowerTick, scenario.lowerTickListSize);
+    }
+    // 3. Snapshot tick tree
+    TickTree storage tickTree = snapshotTickTree();
+    // 4. Create new offer and add it to tick tree
+    Tick _insertionTick = Tick.wrap(scenario.tickScenario.tick);
+    int logPrice = LogPriceLib.fromTick(_insertionTick, olKey.tickScale);
+    mgv.newOfferByLogPrice(olKey, logPrice, 1 ether, 50_000, 50);
+    addOffer(tickTree, _insertionTick, logPrice, 1 ether, 50_000, 50, $(this));
+    // 5. Assert that Mangrove and tick tree are equal
+    assertMgvOfferListEqToTickTree(tickTree);
+    // 6. Restore state from before test
+    vm.revertTo(vmSnapshotId);
+  }
 
   //FIXME: Price calculations currently don't work for MIN_TICK and it is therefore impossible to post offers at MIN_TICK
   function testFail_new_offer_in_empty_tree_at_min_tick() public {
@@ -556,9 +818,21 @@ contract TickTreeNewOfferTest is MangroveTest {
 
   // # Update offer tests
 
-  function update_only_offer_to_other_tick(Tick firstTick, Tick secondTick) public {
-    OfferData memory offerData1 = createOfferData(firstTick, 100_000, 1);
-    OfferData memory offerData2 = createOfferData(secondTick, 200_000, 2);
+  // FIXME: This currently fails with "mgv/writeOffer/wants/tooLow", but I don't think it should.
+  function testFail_update_only_offer_to_other_tick_manual() public {
+    test_update_only_offer_to_other_tick(0, -1);
+  }
+
+  function test_update_only_offer_to_other_tick(int24 firstTick, int24 secondTick) public {
+    vm.assume(firstTick >= MIN_TICK && firstTick <= MAX_TICK);
+    vm.assume(secondTick >= MIN_TICK && secondTick <= MAX_TICK);
+    // FIXME: Limiting to non-negative ticks for now due to issue with "mgv/writeOffer/wants/tooLow"
+    vm.assume(firstTick >= 0 && secondTick >= 0);
+
+    Tick tick1 = Tick.wrap(firstTick);
+    Tick tick2 = Tick.wrap(secondTick);
+    OfferData memory offerData1 = createOfferData(tick1, 100_000, 1);
+    OfferData memory offerData2 = createOfferData(tick2, 200_000, 2);
 
     TickTree storage tickTree = snapshotTickTree();
 
@@ -588,42 +862,46 @@ contract TickTreeNewOfferTest is MangroveTest {
     assertMgvOfferListEqToTickTree(tickTree);
   }
 
+  function update_only_offer_to_other_tick(int firstTick, int secondTick) public {
+    test_update_only_offer_to_other_tick(int24(firstTick), int24(secondTick));
+  }
+
   // ## MAX TICK
 
   function test_update_only_offer_from_max_tick_to_max_tick() public {
-    update_only_offer_to_other_tick(Tick.wrap(MAX_TICK), Tick.wrap(MAX_TICK));
+    update_only_offer_to_other_tick(MAX_TICK, MAX_TICK);
   }
 
   function test_update_only_offer_from_max_tick_to_same_leaf() public {
-    update_only_offer_to_other_tick(Tick.wrap(MAX_TICK), Tick.wrap(MAX_TICK - 1));
+    update_only_offer_to_other_tick(MAX_TICK, MAX_TICK - 1);
   }
 
   function test_update_only_offer_to_max_tick_from_same_leaf() public {
-    update_only_offer_to_other_tick(Tick.wrap(MAX_TICK - 1), Tick.wrap(MAX_TICK));
+    update_only_offer_to_other_tick(MAX_TICK - 1, MAX_TICK);
   }
 
   function test_update_only_offer_from_max_tick_to_other_level0_pos() public {
-    update_only_offer_to_other_tick(Tick.wrap(MAX_TICK), Tick.wrap(MAX_TICK - LEAF_SIZE));
+    update_only_offer_to_other_tick(MAX_TICK, MAX_TICK - LEAF_SIZE);
   }
 
   function test_update_only_offer_to_max_tick_from_other_level0_pos() public {
-    update_only_offer_to_other_tick(Tick.wrap(MAX_TICK - LEAF_SIZE), Tick.wrap(MAX_TICK));
+    update_only_offer_to_other_tick(MAX_TICK - LEAF_SIZE, MAX_TICK);
   }
 
   function test_update_only_offer_from_max_tick_to_other_level1_pos() public {
-    update_only_offer_to_other_tick(Tick.wrap(MAX_TICK), Tick.wrap(MAX_TICK - LEAF_SIZE * LEVEL0_SIZE));
+    update_only_offer_to_other_tick(MAX_TICK, MAX_TICK - LEAF_SIZE * LEVEL0_SIZE);
   }
 
   function test_update_only_offer_to_max_tick_from_other_level1_pos() public {
-    update_only_offer_to_other_tick(Tick.wrap(MAX_TICK - LEAF_SIZE * LEVEL0_SIZE), Tick.wrap(MAX_TICK));
+    update_only_offer_to_other_tick(MAX_TICK - LEAF_SIZE * LEVEL0_SIZE, MAX_TICK);
   }
 
   function test_update_only_offer_from_max_tick_to_other_level2_pos() public {
-    update_only_offer_to_other_tick(Tick.wrap(MAX_TICK), Tick.wrap(MAX_TICK - LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE));
+    update_only_offer_to_other_tick(MAX_TICK, MAX_TICK - LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE);
   }
 
   function test_update_only_offer_to_max_tick_from_other_level2_pos() public {
-    update_only_offer_to_other_tick(Tick.wrap(MAX_TICK - LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE), Tick.wrap(MAX_TICK));
+    update_only_offer_to_other_tick(MAX_TICK - LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE, MAX_TICK);
   }
 
   function test_update_retracted_offer_in_empty_book() public {

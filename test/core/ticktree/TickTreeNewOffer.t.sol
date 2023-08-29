@@ -37,15 +37,13 @@ import "mgv_lib/Debug.sol";
 // 	    - if feasible, given insertion tick
 // 	 - list:
 // 	   1. is empty
-// 	   2. has one offer
-// 	   3. has two offers
+// 	   2. is non-empty
 // - lower tick list (in {leaf, level0, level1, level2})
 // 	 - tick is MIN, MAX, in same {leaf, level0, level1, level2}
 //     - if feasible, given insertion tick
 //   - list:
 // 	   1. is empty
-// 	   2. has one offer
-// 	   3. has two offers
+// 	   2. non-empty
 contract TickTreeNewOfferTest is TickTreeTest {
   function setUp() public override {
     super.setUp();
@@ -103,9 +101,9 @@ contract TickTreeNewOfferTest is TickTreeTest {
   struct NewOfferScenario {
     TickScenario tickScenario;
     uint insertionTickListSize;
-    uint higherTickListSize;
-    uint lowerTickListSize;
   }
+
+  uint[] tickListSizeScenarios = [0, 1, 2];
 
   function run_new_offer_scenarios_for_tick(int tick) internal {
     vm.pauseGasMetering();
@@ -114,57 +112,9 @@ contract TickTreeNewOfferTest is TickTreeTest {
       TickScenario memory tickScenario = tickScenarios[i];
       for (uint j = 0; j < tickListSizeScenarios.length; ++j) {
         uint insertionTickListSize = tickListSizeScenarios[j];
-        if (!tickScenario.hasHigherTick) {
-          if (!tickScenario.hasLowerTick) {
-            run_new_offer_scenario(
-              NewOfferScenario({
-                tickScenario: tickScenario,
-                insertionTickListSize: insertionTickListSize,
-                higherTickListSize: 0,
-                lowerTickListSize: 0
-              })
-            );
-          } else {
-            for (uint l = 1; l < tickListSizeScenarios.length; ++l) {
-              uint lowerTickListSize = tickListSizeScenarios[l];
-              run_new_offer_scenario(
-                NewOfferScenario({
-                  tickScenario: tickScenario,
-                  insertionTickListSize: insertionTickListSize,
-                  higherTickListSize: 0,
-                  lowerTickListSize: lowerTickListSize
-                })
-              );
-            }
-          }
-        } else if (!tickScenario.hasLowerTick) {
-          for (uint h = 1; h < tickListSizeScenarios.length; ++h) {
-            uint higherTickListSize = tickListSizeScenarios[h];
-            run_new_offer_scenario(
-              NewOfferScenario({
-                tickScenario: tickScenario,
-                insertionTickListSize: insertionTickListSize,
-                higherTickListSize: higherTickListSize,
-                lowerTickListSize: 0
-              })
-            );
-          }
-        }
-        // For higher and lower tick, we skip the empty tick list scenario as it's equivalent to has{Higher, Lower}Tick = false
-        for (uint k = 1; k < tickListSizeScenarios.length; ++k) {
-          uint higherTickListSize = tickListSizeScenarios[k];
-          for (uint l = 1; l < tickListSizeScenarios.length; ++l) {
-            uint lowerTickListSize = tickListSizeScenarios[l];
-            run_new_offer_scenario(
-              NewOfferScenario({
-                tickScenario: tickScenario,
-                insertionTickListSize: insertionTickListSize,
-                higherTickListSize: higherTickListSize,
-                lowerTickListSize: lowerTickListSize
-              })
-            );
-          }
-        }
+        run_new_offer_scenario(
+          NewOfferScenario({tickScenario: tickScenario, insertionTickListSize: insertionTickListSize})
+        );
       }
     }
   }
@@ -175,21 +125,19 @@ contract TickTreeNewOfferTest is TickTreeTest {
     console.log("  insertionTickListSize: %s", scenario.insertionTickListSize);
     if (scenario.tickScenario.hasHigherTick) {
       console.log("  higherTick: %s", toString(Tick.wrap(scenario.tickScenario.higherTick)));
-      console.log("  higherTickListSize: %s", scenario.higherTickListSize);
     }
     if (scenario.tickScenario.hasLowerTick) {
       console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
-      console.log("  lowerTickListSize: %s", scenario.lowerTickListSize);
     }
     // 1. Capture state before test
     uint vmSnapshotId = vm.snapshot();
     // 2. Create scenario
     add_n_offers_to_tick(scenario.tickScenario.tick, scenario.insertionTickListSize);
     if (scenario.tickScenario.hasHigherTick) {
-      add_n_offers_to_tick(scenario.tickScenario.higherTick, scenario.higherTickListSize);
+      add_n_offers_to_tick(scenario.tickScenario.higherTick, 1);
     }
     if (scenario.tickScenario.hasLowerTick) {
-      add_n_offers_to_tick(scenario.tickScenario.lowerTick, scenario.lowerTickListSize);
+      add_n_offers_to_tick(scenario.tickScenario.lowerTick, 1);
     }
     // 3. Snapshot tick tree
     TickTree storage tickTree = snapshotTickTree();

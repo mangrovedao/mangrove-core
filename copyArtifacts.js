@@ -32,7 +32,7 @@ const argv = require("yargs")
   .help().argv;
 
 // set abi export directory (create if necessary), clear it
-const distAbiDir = cwd + "/dist/mangrove-abis/";
+const distAbiDir = cwd + "/dist/abis/";
 if (!argv.noop) {
   console.log(`${script}: Copying distribution assets...`);
   shell.rm("-rf", distAbiDir);

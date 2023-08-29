@@ -251,6 +251,7 @@ contract MgvOfferMaking is MgvHasOffers {
       require(LogPriceLib.inRange(insertionLogPrice), "mgv/writeOffer/logPrice/outOfRange");
       {
         // FIXME: This validation should be revisited once the TickLib calculation code is done
+        // FIXME: This fails for tick=-1 and gives=reader.minVolume(olKey, gasreq);
         uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, ofp.gives);
         /* * Make sure `wants > 0` -- price is stored as log_1BP(wants/gives). */
         require(wants > 0, "mgv/writeOffer/wants/tooLow");

@@ -182,8 +182,10 @@ library LogPriceLib {
   uint constant lnBP = 99995000333308;
   // FIXME should depend on the min and max prices 
   // FIXME: And on the tick datastructure limits
-  int constant MIN_LOG_PRICE = -524287;
-  int constant MAX_LOG_PRICE = -MIN_LOG_PRICE;
+  // int constant MIN_LOG_PRICE = -524287;
+  int constant MIN_LOG_PRICE = -524288;
+  // int constant MAX_LOG_PRICE = -MIN_LOG_PRICE;
+  int constant MAX_LOG_PRICE = -MIN_LOG_PRICE - 1;
 
   function inRange(int logPrice) internal pure returns (bool) {
     return logPrice >= MIN_LOG_PRICE && logPrice <= MAX_LOG_PRICE;

@@ -764,7 +764,7 @@ contract TakerOperationsTest is MangroveTest {
     Tick offerTick = pair.offers(ofr).tick();
 
     vm.expectRevert("mgv/notEnoughGasForMakerTrade");
-    mgv.marketOrderByTick{gas: 130_000}($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
+    mgv.marketOrderByTick{gas: 145_000}($(base), $(quote), Tick.unwrap(offerTick), 1 ether, true);
   }
 
   function test_unsafe_gas_left_fails_posthook() public {

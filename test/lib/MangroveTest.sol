@@ -351,7 +351,11 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function setupTaker(address $out, address $in, string memory label) public returns (TestTaker) {
-    TestTaker tt = new TestTaker(mgv, IERC20($out), IERC20($in));
+    return setupTaker($out, $in, label, mgv);
+  }
+
+  function setupTaker(address $out, address $in, string memory label, AbstractMangrove _mgv) public returns (TestTaker) {
+    TestTaker tt = new TestTaker(_mgv, IERC20($out), IERC20($in));
     vm.deal(address(tt), 100 ether);
     vm.label(address(tt), label);
     return tt;

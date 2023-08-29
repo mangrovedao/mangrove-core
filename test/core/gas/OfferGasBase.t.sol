@@ -12,10 +12,12 @@ import {ActivateSemibook} from "mgv_script/core/ActivateSemibook.s.sol";
 import "mgv_lib/Debug.sol";
 import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
+import {OfferPosthookFailGasDeltaTest} from "./OfferPosthookFailGasDelta.t.sol";
 
 abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
   TestTaker internal taker;
   PinnedPolygonFork internal fork;
+  OfferPosthookFailGasDeltaTest internal gasDeltaTest;
 
   function getStored() internal view override returns (AbstractMangrove, TestTaker, address, address, uint) {
     return (mgv, taker, $(base), $(quote), 0);
@@ -30,6 +32,8 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     options.defaultFee = 30;
     mgv = setupMangrove();
     reader = new MgvReader($(mgv));
+    gasDeltaTest = new OfferPosthookFailGasDeltaTest();
+    gasDeltaTest.setUpGasTest(options);
     description = "Offer gasbase measurements";
   }
 
@@ -39,6 +43,7 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     address quoteAddress = fork.get(quoteToken);
     base = TestToken(baseAddress);
     quote = TestToken(quoteAddress);
+    gasDeltaTest.setUpTokens(base, quote);
     setupMarket(base, quote);
     setupMarket(quote, base);
 
@@ -64,29 +69,47 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     mgv.newOfferByTick($(quote), $(base), MIDDLE_TICK, 1, 100000, 0);
   }
 
-  function test_gasbase_to_empty_book_base_quote() public {
-    AbstractMangrove mgv_ = mgv;
+  function gasbase_to_empty_book(address outbound, address inbound) internal {
+    AbstractMangrove _mgv = mgv;
     vm.prank($(taker));
     _gas();
-    mgv_.marketOrderByTick({
-      outbound_tkn: $(base),
-      inbound_tkn: $(quote),
+    _mgv.marketOrderByTick({
+      outbound_tkn: outbound,
+      inbound_tkn: inbound,
       maxTick: MIDDLE_TICK,
       fillVolume: 1,
       fillWants: false
     });
     gas_();
+  }
+
+  function test_gasbase_to_empty_book_base_quote() public {
+    gasbase_to_empty_book($(base), $(quote));
     description = string.concat(description, " - Case: base/quote gasbase for taking single offer to empty book");
     printDescription();
   }
 
   function test_gasbase_to_empty_book_quote_base() public {
-    AbstractMangrove mgv_ = mgv;
-    vm.prank($(taker));
-    _gas();
-    mgv_.marketOrderByTick($(base), $(quote), MIDDLE_TICK, 1, false);
-    gas_();
+    gasbase_to_empty_book($(quote), $(base));
     description = string.concat(description, " - Case: quote/base gasbase for taking single offer to empty book");
+    printDescription();
+  }
+
+  function test_posthook_fail_delta_deep_order_base_quote() public {
+    gasDeltaTest.posthook_delta_deep_order($(base), $(quote));
+    description = string.concat(
+      description,
+      " - Case: quote/base posthook fail with failing posthook (worst case) delta for taking deep order - cost for 1 successful and 19 failing offers"
+    );
+    printDescription();
+  }
+
+  function test_posthook_fail_delta_deep_order_quote_base() public {
+    gasDeltaTest.posthook_delta_deep_order($(quote), $(base));
+    description = string.concat(
+      description,
+      " - Case: quote/base posthook fail with failing posthook (worst case) delta for taking deep order - cost for 1 successful and 19 failing offers"
+    );
     printDescription();
   }
 

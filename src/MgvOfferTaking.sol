@@ -206,7 +206,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Load additional information about the offer. */
       sor.offerDetail = pair.offerData[sor.offerId].detail;
 
-      mor.gasreqLeft += sor.offerDetail.gasreq();
+      mor.gasreqLeft += sor.offerDetail.gasreq() + 7000;
 
       if (gasleft() < mor.gasreqLeft + sor.local.offer_gasbase()) {
         return endInternalMarketOrder(pair, mor, sor);

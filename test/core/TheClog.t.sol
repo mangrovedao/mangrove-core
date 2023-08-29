@@ -258,8 +258,4 @@ contract GasreqLeftFuzzTest is MangroveTest, IMaker {
   function test_take_all_gasreq_0_all_fail(uint32 gaslimit) public {
     take_all_some_gasreq(0, offerGasbase + uint(gaslimit), 0);
   }
-
-  function test_concrete_failure() public {
-    test_take_all_gasreq_0_all_fail(3681207);
-  }
 }

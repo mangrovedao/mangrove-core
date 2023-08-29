@@ -366,11 +366,13 @@ contract TickTreeNewOfferTest is MangroveTest {
     uint gasprice,
     address maker
   ) internal {
-    // Update leaf
+    // Update leaf and last offer
     Leaf leaf = tickTree.leafs[tick.leafIndex()];
     uint lastId = leaf.lastOfIndex(tick.posInLeaf());
     if (lastId == 0) {
       leaf = leaf.setIndexFirstOrLast(tick.posInLeaf(), offerId, false);
+    } else {
+      tickTree.offers[lastId].offer = tickTree.offers[lastId].offer.next(offerId);
     }
     tickTree.leafs[tick.leafIndex()] = leaf.setIndexFirstOrLast(tick.posInLeaf(), offerId, true);
 
@@ -487,8 +489,10 @@ contract TickTreeNewOfferTest is MangroveTest {
             while (offerId != 0) {
               {
                 MgvStructs.OfferPacked offer = mgv.offers(olKey, offerId);
+                MgvStructs.OfferPacked offerTickTree = tickTree.offers[offerId].offer;
                 assertTrue(
-                  offer.eq(tickTree.offers[offerId].offer), string.concat("offer mismatch, offer:", toString(offer))
+                  offer.eq(offerTickTree),
+                  string.concat("offer mismatch | MGV ", toString(offer), " | tick tree ", toString(offerTickTree))
                 );
                 offerId = offer.next();
               }

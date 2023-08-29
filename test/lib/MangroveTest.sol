@@ -64,8 +64,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint density;
   }
 
-  // TestAbstractMangrove extends AbstractMangrove with functions that provide access to internal data structures so that they can be tested.
-  TestAbstractMangrove internal mgv;
+  AbstractMangrove internal mgv;
   MgvReader internal reader;
   TestToken internal base;
   TestToken internal quote;
@@ -207,20 +206,20 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   // Deploy mangrove
-  function setupMangrove() public returns (TestAbstractMangrove) {
+  function setupMangrove() public returns (AbstractMangrove) {
     return setupMangrove(false);
   }
 
   // Deploy mangrove, inverted or not
-  function setupMangrove(bool inverted) public returns (TestAbstractMangrove _mgv) {
+  function setupMangrove(bool inverted) public returns (AbstractMangrove _mgv) {
     if (inverted) {
-      _mgv = new TestInvertedMangrove({
+      _mgv = new InvertedMangrove({
         governance: $(this),
         gasprice: options.gasprice,
         gasmax: options.gasmax
       });
     } else {
-      _mgv = new TestMangrove({
+      _mgv = new Mangrove({
         governance: $(this),
         gasprice: options.gasprice,
         gasmax: options.gasmax
@@ -230,12 +229,12 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   // Deploy mangrove with an offerList
-  function setupMangrove(OLKey memory _ol) public returns (TestAbstractMangrove) {
+  function setupMangrove(OLKey memory _ol) public returns (AbstractMangrove) {
     return setupMangrove(_ol, false);
   }
 
   // Deploy mangrove with an offerList
-  function setupMangrove(OLKey memory _ol, bool inverted) public returns (TestAbstractMangrove _mgv) {
+  function setupMangrove(OLKey memory _ol, bool inverted) public returns (AbstractMangrove _mgv) {
     _mgv = setupMangrove(inverted);
     setupMarket(_mgv, _ol);
   }
@@ -504,23 +503,4 @@ contract MangroveTest is Test2, HasMgvEvents {
     console.log("Current level 2 %s", toString(_local.level2()));
     console.log("----------------------------------------");
   }
-}
-
-// `TestAbstractMangrove` extends `AbstractMangrove` with functions that provide access to internal data structures so that they can be tested.
-abstract contract TestAbstractMangrove is AbstractMangrove {
-  function level0FromMapping(OLKey memory olKey, int index) external view returns (Field) {
-    return offerLists[olKey.hash()].level0[index];
-  }
-
-  function level1FromMapping(OLKey memory olKey, int index) external view returns (Field) {
-    return offerLists[olKey.hash()].level1[index];
-  }
-}
-
-contract TestMangrove is Mangrove, TestAbstractMangrove {
-  constructor(address governance, uint gasprice, uint gasmax) Mangrove(governance, gasprice, gasmax) {}
-}
-
-contract TestInvertedMangrove is InvertedMangrove, TestAbstractMangrove {
-  constructor(address governance, uint gasprice, uint gasmax) InvertedMangrove(governance, gasprice, gasmax) {}
 }

@@ -90,8 +90,10 @@ contract GenericFork is Script {
   function readMgvConfig() public view returns (MgvConfig memory) {
     string memory root = vm.projectRoot();
     string memory path = string.concat(root, "/mgvConfig.json");
-    bytes memory json = vm.readFileBinary(path);
-    return abi.decode(json, (MgvConfig));
+    string memory json = vm.readFile(path);
+    bytes memory parsedJson = vm.parseJson(json);
+    MgvConfig memory config = abi.decode(parsedJson, (MgvConfig));
+    return config;
   }
 
   function addressesFileDeployment(string memory category, string memory suffix) public view returns (string memory) {

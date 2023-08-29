@@ -7,6 +7,45 @@ import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 // Tests of Mangrove.newOffer's interaction with the tick tree.
+//
+// The tests use the following pattern:
+// 1. we establish a Mangrove tick tree where there may be offers at:
+//   - the insertion tick
+//   - a higher tick
+//   - a lower tick
+// 2. we take a snapshot of Mangrove's tick tree
+// 3. we insert a new offer at the insertion tick in both Mangrove and in the snapshot tick tree
+// 4. we check that Mangrove's tick tree matches the test tick tree.
+//
+// The reason for a having higher/lower ticks is to test Mangrove's handling of the levels that are stored in `local`.
+// - if there are offers at a lower tick, the new offer will not be inserted on the best branch.
+//   - But part of the branch may be shared -> we need to test the different cases of branch sharing: leaf, level0, level1, level2
+// - if there are offers at a higher tick, those offer will not be be best after the new offer is inserted.
+//   - If they were before, their path may need to be written to the mappings
+//   - But part of the branch may be shared with the new best offer -> we need to test the different cases of branch sharing: leaf, level0, level1, level2
+//
+// The scenarios we want to test are:
+// - empty book (this happens when lower, higher, and insertion ticks are empty)
+// - insertion tick
+// 	  - tick is MIN, MAX, min&max&mid {leaf, level0, level1, level2}
+// 	  - list:
+// 	    1. is empty
+// 	    2. has one offer
+// 	    3. has two offers
+// - higher tick list
+//   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
+// 	    - if feasible, given insertion tick
+// 	 - list:
+// 	   1. is empty
+// 	   2. has one offer
+// 	   3. has two offers
+// - lower tick list (in {leaf, level0, level1, level2})
+// 	 - tick is MIN, MAX, in same {leaf, level0, level1, level2}
+//     - if feasible, given insertion tick
+//   - list:
+// 	   1. is empty
+// 	   2. has one offer
+// 	   3. has two offers
 contract TickTreeNewOfferTest is TickTreeTest {
   function setUp() public override {
     super.setUp();
@@ -61,42 +100,6 @@ contract TickTreeNewOfferTest is TickTreeTest {
     run_new_offer_scenarios_for_tick(MIN_TICK);
   }
 
-  // The tests use the following pattern:
-  // - we establish a Mangrove tick tree where there may be offers at:
-  //   - the insertion tick
-  //   - a higher tick
-  //   - a lower tick
-  // - we insert a new offer at the insertion tick
-  //
-  // The reason for a having higher/lower ticks is to test Mangrove's handling of the levels that are stored in `local`.
-  // - if there are offers at a lower tick, the new offer will not be inserted on the best branch.
-  //   - But part of the branch may be shared -> we need to test the different cases of branch sharing: leaf, level0, level1, level2
-  // - if there are offers at a higher tick, those offer will not be be best after the new offer is inserted.
-  //   - If they were before, their path may need to be written to the mappings
-  //   - But part of the branch may be shared with the new best offer -> we need to test the different cases of branch sharing: leaf, level0, level1, level2
-  //
-  // The scenarios we want to test are:
-  // - empty book (this happens when lower, higher, and insertion ticks are empty)
-  // - insertion tick
-  // 	  - tick is MIN, MAX, min&max&mid {leaf, level0, level1, level2}
-  // 	  - list:
-  // 	    1. is empty
-  // 	    2. has one offer
-  // 	    3. has two offers
-  // - higher tick list
-  //   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
-  // 	    - if feasible, given insertion tick
-  // 	 - list:
-  // 	   1. is empty
-  // 	   2. has one offer
-  // 	   3. has two offers
-  // - lower tick list (in {leaf, level0, level1, level2})
-  // 	 - tick is MIN, MAX, in same {leaf, level0, level1, level2}
-  //     - if feasible, given insertion tick
-  //   - list:
-  // 	   1. is empty
-  // 	   2. has one offer
-  // 	   3. has two offers
   struct NewOfferScenario {
     TickScenario tickScenario;
     uint insertionTickListSize;

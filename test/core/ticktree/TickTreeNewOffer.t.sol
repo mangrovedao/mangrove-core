@@ -49,10 +49,6 @@ contract TickTreeNewOfferTest is MangroveTest {
   function setUp() public override {
     super.setUp();
 
-    // generateInsertionTicks();
-    // generateTickScenarios();
-    // generateNewOfferScenarios();
-
     // Check that the tick tree is consistent after set up
     assertMgvTickTreeIsConsistent();
   }
@@ -515,25 +511,23 @@ contract TickTreeNewOfferTest is MangroveTest {
       }
     }
   }
+
   // # New offer tests
 
-  // int[] insertionTicks;
+  struct TickScenario {
+    int tick;
+    bool hasHigherTick;
+    int higherTick;
+    bool hasLowerTick;
+    int lowerTick;
+  }
 
-  // function generateInsertionTicks() internal  {
-  //   // FIXME: Create a more comprehensive set of insertion ticks
-  //   // FIXME: Min tick currently doesn't work, generates wants=0
-  //   // insertionTicks.push(MIN_TICK);
-  //   // FIXME: Max tick currently doesn't work, generates a too big wants
-  //   // insertionTicks.push(MAX_TICK);
-  //   // insertionTicks.push(0);
-  //   // insertionTicks.push(1);
-  //   // insertionTicks.push(2);
-  //   // insertionTicks.push(3);
-  //   insertionTicks.push(-1);
-  //   insertionTicks.push(-2);
-  //   insertionTicks.push(-3);
-  //   insertionTicks.push(-4);
-  // }
+  struct NewOfferScenario {
+    TickScenario tickScenario;
+    uint insertionTickListSize;
+    uint higherTickListSize;
+    uint lowerTickListSize;
+  }
 
   function generateHigherTickScenarios(int tick) internal pure returns (int[] memory) {
     Tick _tick = Tick.wrap(tick);
@@ -591,43 +585,8 @@ contract TickTreeNewOfferTest is MangroveTest {
     return res;
   }
 
-  struct TickScenario {
-    int tick;
-    bool hasHigherTick;
-    int higherTick;
-    bool hasLowerTick;
-    int lowerTick;
-  }
-
-  struct NewOfferScenario {
-    TickScenario tickScenario;
-    uint insertionTickListSize;
-    uint higherTickListSize;
-    uint lowerTickListSize;
-  }
-
-  // TickScenario[] tickScenarios;
-
   uint[] tickListSizeScenarios = [0, 1, 2]; // NB: 0 must be the first scenario, as we skip that for higher and lower tick scenarios
 
-  // function generateTickScenarios() internal {
-  //   for (uint i = 0; i < insertionTicks.length; ++i) {
-  //     int[] memory higherTicks = generateHigherTickScenarios(insertionTicks[i]);
-  //     int[] memory lowerTicks = generateLowerTickScenarios(insertionTicks[i]);
-  //     tickScenarios.push(TickScenario({tick: insertionTicks[i], hasHigherTick: false, higherTick: 0, hasLowerTick: false, lowerTick: 0}));
-  //     for (uint h = 0; h < higherTicks.length; ++h) {
-  //       tickScenarios.push(TickScenario({tick: insertionTicks[i], hasHigherTick: true, higherTick: higherTicks[h], hasLowerTick: false, lowerTick: 0}));
-  //     }
-  //     for (uint l = 0; l < lowerTicks.length; ++l) {
-  //       tickScenarios.push(TickScenario({tick: insertionTicks[i], hasHigherTick: false, higherTick: 0, hasLowerTick: true, lowerTick: lowerTicks[l]}));
-  //     }
-  //     for (uint h = 0; h < higherTicks.length; ++h) {
-  //       for (uint l = 0; l < lowerTicks.length; ++l) {
-  //         tickScenarios.push(TickScenario({tick: insertionTicks[i], hasHigherTick: true, higherTick: higherTicks[h], hasLowerTick: true, lowerTick: lowerTicks[l]}));
-  //       }
-  //     }
-  //   }
-  // }
   function generateTickScenarios(int tick) internal pure returns (TickScenario[] memory) {
     int[] memory higherTicks = generateHigherTickScenarios(tick);
     int[] memory lowerTicks = generateLowerTickScenarios(tick);
@@ -658,22 +617,72 @@ contract TickTreeNewOfferTest is MangroveTest {
     return tickScenarios;
   }
 
-  function add_n_offers_to_tick(int tick, uint n) internal {
-    for (uint i = 1; i <= n; ++i) {
-      mgv.newOfferByLogPrice(olKey, LogPriceLib.fromTick(Tick.wrap(tick), olKey.tickScale), 1 ether, i * 100_000, i);
+  // Calculates gives for a tick that Mangrove will accept
+  function getAcceptableGivesForTick(Tick tick, uint gasreq) internal view returns (uint gives) {
+    // First, try minVolume
+    gives = reader.minVolume(olKey, gasreq);
+    uint wants = LogPriceLib.inboundFromOutbound(LogPriceLib.fromTick(tick, olKey.tickScale), gives);
+    if (wants > 0 && uint96(wants) == wants) {
+      return gives;
     }
+    // Else, try max
+    gives = type(uint96).max;
   }
 
-  function test_new_offer_for_tick0() public {
-    run_new_offer_scenarios_for_tick(0);
-  }
-
-  function test_new_offer_for_tick1() public {
-    run_new_offer_scenarios_for_tick(1);
+  function add_n_offers_to_tick(int tick, uint n) internal {
+    Tick _tick = Tick.wrap(tick);
+    uint gives = getAcceptableGivesForTick(_tick, 100_000);
+    for (uint i = 1; i <= n; ++i) {
+      mgv.newOfferByLogPrice(olKey, LogPriceLib.fromTick(_tick, olKey.tickScale), gives, 100_000, 1);
+    }
   }
 
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
   // We therefore have a test case per tick instead.
+
+  function test_new_offer_for_tick_0() public {
+    run_new_offer_scenarios_for_tick(0);
+  }
+
+  function test_new_offer_for_tick_1() public {
+    run_new_offer_scenarios_for_tick(1);
+  }
+
+  function test_new_offer_for_tick_2() public {
+    run_new_offer_scenarios_for_tick(2);
+  }
+
+  function test_new_offer_for_tick_3() public {
+    run_new_offer_scenarios_for_tick(3);
+  }
+
+  function test_new_offer_for_tick_negative_1() public {
+    run_new_offer_scenarios_for_tick(-1);
+  }
+
+  function test_new_offer_for_tick_negative_2() public {
+    run_new_offer_scenarios_for_tick(-2);
+  }
+
+  function test_new_offer_for_tick_negative_3() public {
+    run_new_offer_scenarios_for_tick(-3);
+  }
+
+  function test_new_offer_for_tick_negative_4() public {
+    run_new_offer_scenarios_for_tick(-4);
+  }
+
+  // Can we make offers that keep within range?
+  function test_new_offer_for_tick_max() public {
+    run_new_offer_scenarios_for_tick(MAX_TICK);
+  }
+
+  // FIXME: This currently fails with mgv/writeOffer/wants/tooLow
+  // Can we make offers that keep within range? I don't think so, because we set gives to max in this case...
+  function testFail_new_offer_for_tick_min() public {
+    run_new_offer_scenarios_for_tick(MIN_TICK);
+  }
+
   function run_new_offer_scenarios_for_tick(int tick) internal {
     vm.pauseGasMetering();
     TickScenario[] memory tickScenarios = generateTickScenarios(tick);
@@ -748,7 +757,6 @@ contract TickTreeNewOfferTest is MangroveTest {
       console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
       console.log("  lowerTickListSize: %s", scenario.lowerTickListSize);
     }
-    // TODO:
     // 1. Capture state before test
     uint vmSnapshotId = vm.snapshot();
     // 2. Create scenario
@@ -764,38 +772,16 @@ contract TickTreeNewOfferTest is MangroveTest {
     // 4. Create new offer and add it to tick tree
     Tick _insertionTick = Tick.wrap(scenario.tickScenario.tick);
     int logPrice = LogPriceLib.fromTick(_insertionTick, olKey.tickScale);
-    mgv.newOfferByLogPrice(olKey, logPrice, 1 ether, 50_000, 50);
-    addOffer(tickTree, _insertionTick, logPrice, 1 ether, 50_000, 50, $(this));
+    uint gives = getAcceptableGivesForTick(_insertionTick, 50_000);
+    mgv.newOfferByLogPrice(olKey, logPrice, gives, 50_000, 50);
+    addOffer(tickTree, _insertionTick, logPrice, gives, 50_000, 50, $(this));
     // 5. Assert that Mangrove and tick tree are equal
     assertMgvOfferListEqToTickTree(tickTree);
     // 6. Restore state from before test
     vm.revertTo(vmSnapshotId);
   }
 
-  //FIXME: Price calculations currently don't work for MIN_TICK and it is therefore impossible to post offers at MIN_TICK
-  function testFail_new_offer_in_empty_tree_at_min_tick() public {
-    Tick tick = Tick.wrap(MIN_TICK);
-    int logPrice = LogPriceLib.fromTick(tick, olKey.tickScale);
-    uint gasreq = 100_000;
-    uint gives = reader.minVolume(olKey, gasreq);
-
-    uint ofr = mgv.newOfferByLogPrice(olKey, logPrice, gives, gasreq, 0);
-    assertEq(mgv.best(olKey), ofr);
-    //FIXME: Complete this test
-  }
-
-  function test_new_offer_in_empty_tree_at_max_tick() public {
-    OfferData memory offerData1 = createOfferData(Tick.wrap(MAX_TICK), 100_000, 1);
-
-    TickTree storage tickTree = snapshotTickTree();
-
-    offerData1.id =
-      mgv.newOfferByLogPrice(olKey, offerData1.logPrice, offerData1.gives, offerData1.gasreq, offerData1.gasprice);
-    addOffer(
-      tickTree, offerData1.tick, offerData1.logPrice, offerData1.gives, offerData1.gasreq, offerData1.gasprice, $(this)
-    );
-    assertMgvOfferListEqToTickTree(tickTree);
-  }
+  // # Retract offer tests
 
   function test_retract_only_offer() public {
     OfferData memory offerData1 = createOfferData(Tick.wrap(MAX_TICK), 100_000, 1);
@@ -949,8 +935,4 @@ contract TickTreeNewOfferTest is MangroveTest {
   //   - to other level2 position
   //   This may be easiest to do, if we make a test function, that is parametric in the old and new tick etc
   // - Test MgvOfferTaking operations
-
-  // Lasse: Can we add these assertions to existing tests? Eg by adding a wrapper to Mangrove and adding assertions to that
-  //        Possibly via the IMangrove interface so we exercise it regularly
-  // Lasse: Can we do fuzz/invariant testing with this? Could supplement the more structured tests
 }

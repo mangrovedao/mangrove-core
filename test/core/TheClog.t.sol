@@ -27,9 +27,7 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
   // Resets failure flag and reposts offer at same price.
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata) external override {
     shouldFail = false;
-    try mgv.updateOfferByTick(
-      address(order.outbound_tkn), address(order.inbound_tkn), 0, minVolume, gasreq, 0, order.offerId
-    ) {
+    try mgv.updateOfferByLogPrice(order.olKey, 0, minVolume, gasreq, 0, order.offerId) {
       // we do not fail if we cannot repost since we still need to set shouldFail to false.
     } catch {}
   }
@@ -38,16 +36,16 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
     super.setUp();
 
     // Some taker
-    taker = setupTaker($(base), $(quote), "Taker");
+    taker = setupTaker(olKey, "Taker");
     deal($(quote), address(taker), 1 ether);
     taker.approveMgv(quote, 1 ether);
 
     deal($(base), $(this), 5 ether);
-    minVolume = reader.minVolume($(base), $(quote), gasreq);
+    minVolume = reader.minVolume(olKey, gasreq);
 
     // 100 offers at same price at minimum volume.
     for (uint i; i < 100; ++i) {
-      mgv.newOfferByTick($(base), $(quote), 0, minVolume, gasreq, 0);
+      mgv.newOfferByLogPrice(olKey, 0, minVolume, gasreq, 0);
     }
   }
 
@@ -86,7 +84,7 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
     // the first offer succeeds. All other offer fails.
     vm.expectRevert();
     vm.prank($(taker));
-    mgv.marketOrderByVolume($(base), $(quote), 0, minVolume + 1, false);
+    mgv.marketOrderByVolume(olKey, 0, minVolume + 1, false);
   }
 
   function test_take_one_then_two_at_once_fails_for_deep_stack() public {
@@ -96,7 +94,7 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
     takeSome(minVolume);
     vm.expectRevert();
     vm.prank($(taker));
-    mgv.marketOrderByVolume($(base), $(quote), 0, minVolume + 1, false);
+    mgv.marketOrderByVolume(olKey, 0, minVolume + 1, false);
   }
 }
 
@@ -140,7 +138,7 @@ contract MaxRecursionDepthFuzzTest is MangroveTest, IMaker {
     super.setUp();
 
     // Some taker
-    taker = setupTaker($(base), $(quote), "Taker");
+    taker = setupTaker(olKey, "Taker");
     deal($(quote), address(taker), 100000 ether);
     taker.approveMgv(quote, 100000 ether);
 
@@ -157,7 +155,7 @@ contract MaxRecursionDepthFuzzTest is MangroveTest, IMaker {
       } else if (failureMode == 2) {
         fail = uint(keccak256(abi.encodePacked(seed, i))) % 2 == 0;
       }
-      uint offerId = mgv.newOfferByTick($(base), $(quote), 0, volume, gasreq, 0);
+      uint offerId = mgv.newOfferByLogPrice(olKey, 0, volume, gasreq, 0);
       if (!fail && depth > i) {
         expectedGot += volume;
       }
@@ -226,13 +224,13 @@ contract GasreqLeftFuzzTest is MangroveTest, IMaker {
     super.setUp();
 
     // Some taker
-    taker = setupTaker($(base), $(quote), "Taker");
+    taker = setupTaker(olKey, "Taker");
     deal($(quote), address(taker), 100000 ether);
     taker.approveMgv(quote, 100000 ether);
 
     deal($(base), $(this), 100000 ether);
 
-    (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
+    (, MgvStructs.LocalPacked cfg) = mgv.config(olKey);
     offerGasbase = cfg.offer_gasbase();
   }
 
@@ -242,7 +240,7 @@ contract GasreqLeftFuzzTest is MangroveTest, IMaker {
       // leave up to gasreq gas behind, but sometimes much less after maker execute and posthook, thus failing
       uint gasleftAfterExecuteForOffer = gasreq > 0 ? uint(keccak256(abi.encodePacked(seed, i))) % gasreq : 0;
       uint gasleftAfterPosthookForOffer = gasreq > 0 ? uint(keccak256(abi.encodePacked(seed, i + count))) % gasreq : 0;
-      uint offerId = mgv.newOfferByTick($(base), $(quote), 0, volume, gasreq, 0);
+      uint offerId = mgv.newOfferByLogPrice(olKey, 0, volume, gasreq, 0);
       gasleftAfterExecuteForOffers[offerId] = gasleftAfterExecuteForOffer;
       gasleftAfterPosthookForOffers[offerId] = gasleftAfterPosthookForOffer;
     }

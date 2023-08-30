@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs, MAX_TICK, MIN_TICK} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MAX_TICK, MIN_TICK, LogPriceLib} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 
 // In these tests, the testing contract is the market maker.
@@ -20,10 +20,10 @@ contract GatekeepingTest is MangroveTest {
     super.setUp();
     deal($(base), $(this), 10 ether);
 
-    tkr = setupTaker($(base), $(quote), "taker[$(A),$(B)]");
-    mkr = setupMaker($(base), $(quote), "maker[$(A),$(B)]");
-    other_mkr = setupMaker($(base), $(quote), "other_maker[$(A),$(B)]");
-    dual_mkr = setupMaker($(quote), $(base), "maker[$(B),$(A)]");
+    tkr = setupTaker(olKey, "taker[$(A),$(B)]");
+    mkr = setupMaker(olKey, "maker[$(A),$(B)]");
+    other_mkr = setupMaker(olKey, "other_maker[$(A),$(B)]");
+    dual_mkr = setupMaker(lo, "maker[$(B),$(A)]");
 
     mkr.provisionMgv(5 ether);
     other_mkr.provisionMgv(5 ether);
@@ -57,30 +57,30 @@ contract GatekeepingTest is MangroveTest {
     mgv.setGovernance(notAdmin);
 
     vm.expectRevert("mgv/unauthorized");
-    mgv.setFee($(base), $(quote), 0);
+    mgv.setFee(olKey, 0);
 
     expectFrom($(mgv));
-    emit SetFee($(base), $(quote), 1);
+    emit SetFee(olKey.hash(), 1);
     vm.prank(notAdmin);
-    mgv.setFee($(base), $(quote), 1);
+    mgv.setFee(olKey, 1);
   }
 
   function test_only_gov_can_set_fee() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
-    mgv.setFee($(base), $(quote), 0);
+    mgv.setFee(olKey, 0);
   }
 
   function test_only_gov_can_set_density() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
-    mgv.setDensityFixed($(base), $(quote), 0);
+    mgv.setDensityFixed(olKey, 0);
   }
 
   function test_set_zero_density() public {
     expectFrom($(mgv));
-    emit SetDensityFixed($(base), $(quote), 0);
-    mgv.setDensityFixed($(base), $(quote), 0);
+    emit SetDensityFixed(olKey.hash(), 0);
+    mgv.setDensityFixed(olKey, 0);
   }
 
   function test_only_gov_can_kill() public {
@@ -90,27 +90,27 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_killing_updates_config() public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(address(0), address(0));
+    (global,) = mgv.config(OLKey(address(0), address(0), 0));
     assertTrue(global.dead(), "mgv should be dead ");
   }
 
   function test_kill_is_idempotent() public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
+    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(address(0), address(0));
+    (global,) = mgv.config(OLKey(address(0), address(0), 0));
     assertTrue(global.dead(), "mgv should be dead");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(address(0), address(0));
+    (global,) = mgv.config(OLKey(address(0), address(0), 0));
     assertTrue(global.dead(), "mgv should still be dead");
   }
 
@@ -123,7 +123,7 @@ contract GatekeepingTest is MangroveTest {
   function test_only_gov_can_set_active() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
-    mgv.activate($(quote), $(base), 0, 100, 0);
+    mgv.activate(lo, 0, 100, 0);
   }
 
   function test_only_gov_can_setGasprice() public {
@@ -141,7 +141,7 @@ contract GatekeepingTest is MangroveTest {
   function test_only_gov_can_setGasbase() public {
     vm.expectRevert("mgv/unauthorized");
     vm.prank(notAdmin);
-    mgv.setGasbase($(base), $(quote), 0);
+    mgv.setGasbase(olKey, 0);
   }
 
   function test_empty_mgv_ok() public {
@@ -150,12 +150,12 @@ contract GatekeepingTest is MangroveTest {
 
   function test_set_fee_ceiling() public {
     vm.expectRevert("mgv/config/fee/8bits");
-    mgv.setFee($(base), $(quote), uint(type(uint8).max) + 1);
+    mgv.setFee(olKey, uint(type(uint8).max) + 1);
   }
 
   function test_set_density_ceiling() public {
     vm.expectRevert("mgv/config/density/128bits");
-    mgv.setDensityFixed($(base), $(quote), uint(type(uint128).max) + 1);
+    mgv.setDensityFixed(olKey, uint(type(uint128).max) + 1);
   }
 
   function test_setGasprice_ceiling() public {
@@ -164,12 +164,12 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_set_zero_gasbase() public {
-    mgv.setGasbase($(base), $(quote), 0);
+    mgv.setGasbase(olKey, 0);
   }
 
   function test_setGasbase_ceiling() public {
     vm.expectRevert("mgv/config/kilo_offer_gasbase/10bits");
-    mgv.setGasbase($(base), $(quote), 1e3 * (1 << 10));
+    mgv.setGasbase(olKey, 1e3 * (1 << 10));
   }
 
   function test_setGasmax_ceiling() public {
@@ -182,30 +182,30 @@ contract GatekeepingTest is MangroveTest {
     mkr.newOfferByVolume((1 << 96) + 1e28, 1 ether, 10_000, 0);
   }
 
-  function test_makerTick_wider_than_24_bits_fails_newOfferByTick() public {
-    vm.expectRevert("mgv/writeOffer/tick/outOfRange");
-    mkr.newOfferByTick(1 << 23, 1 ether, 10_000, 0);
+  function test_makerLogPrice_toolow_fails_newOfferByLogPrice() public {
+    vm.expectRevert("mgv/writeOffer/logPrice/outOfRange");
+    mkr.newOfferByLogPrice(LogPriceLib.MIN_LOG_PRICE - 1, 1 ether, 10_000, 0);
   }
 
   function test_retractOffer_wrong_owner_fails() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 10_000, 0);
     vm.expectRevert("mgv/retractOffer/unauthorized");
-    mgv.retractOffer($(base), $(quote), ofr, false);
+    mgv.retractOffer(olKey, ofr, false);
   }
 
   function test_updateOffer_wrong_owner_fails() public {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     vm.expectRevert("mgv/updateOffer/unauthorized");
-    mgv.updateOfferByVolume($(base), $(quote), 1 ether, 1 ether, 0, 0, ofr);
+    mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);
   }
 
   function test_gives_0_rejected() public {
     vm.expectRevert("mgv/writeOffer/gives/tooLow");
-    mkr.newOfferByTick(0, 0 ether, 100_000, 0);
+    mkr.newOfferByLogPrice(0, 0 ether, 100_000, 0);
   }
 
-  function test_idOverflow_reverts(address tout, address tin) public {
-    mgv.activate(tout, tin, 0, 0, 0);
+  function test_idOverflow_reverts(OLKey memory olKey) public {
+    mgv.activate(olKey, 0, 0, 0);
 
     // To test overflow, we surgically set 'last offer id' in mangrove storage
     // to uint32.max.
@@ -213,7 +213,7 @@ contract GatekeepingTest is MangroveTest {
     // We use locked(out,in) as a proxy for getting the storage slot of
     // locals[out][in]
     vm.record();
-    mgv.locked(tout, tin);
+    mgv.locked(olKey);
     (bytes32[] memory reads,) = vm.accesses(address(mgv));
     bytes32 slot = reads[0];
     bytes32 data = vm.load(address(mgv), slot);
@@ -223,13 +223,13 @@ contract GatekeepingTest is MangroveTest {
 
     // try new offer now that we set the last id to uint32.max
     vm.expectRevert("mgv/offerIdOverflow");
-    mgv.newOfferByVolume(tout, tin, 1 ether, 1 ether, 0, 0);
+    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
   }
 
   function test_makerGives_wider_than_96_bits_fails_newOfferByVolume() public {
     // formerly:
     // vm.expectRevert("mgv/writeOffer/gives/96bits");
-    vm.expectRevert("mgv/priceFromTick/outOfRange");
+    vm.expectRevert("mgv/priceFromLogPrice/outOfRange");
     mkr.newOfferByVolume(1, 1 << 96, 10_000);
   }
 
@@ -239,18 +239,17 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_makerGasreq_bigger_than_gasmax_fails_newOfferByVolume() public {
-    (MgvStructs.GlobalPacked cfg,) = mgv.config($(base), $(quote));
+    (MgvStructs.GlobalPacked cfg,) = mgv.config(olKey);
     vm.expectRevert("mgv/writeOffer/gasreq/tooHigh");
     mkr.newOfferByVolume(1, 1, cfg.gasmax() + 1);
   }
 
   function test_makerGasreq_at_gasmax_succeeds_newOfferByVolume() public {
-    (MgvStructs.GlobalPacked cfg,) = mgv.config($(base), $(quote));
+    (MgvStructs.GlobalPacked cfg,) = mgv.config(olKey);
     // Logging tests
     expectFrom($(mgv));
     emit OfferWrite(
-      $(base),
-      $(quote),
+      olKey.hash(),
       address(mkr),
       0, //tick
       1 ether, //quote
@@ -259,28 +258,27 @@ contract GatekeepingTest is MangroveTest {
       1 //ofrId
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), reader.getProvision($(base), $(quote), cfg.gasmax(), 0));
+    emit Debit(address(mkr), reader.getProvision(olKey, cfg.gasmax(), 0));
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, cfg.gasmax());
-    assertTrue(mgv.offers($(base), $(quote), ofr).isLive(), "Offer should have been inserted");
+    assertTrue(mgv.offers(olKey, ofr).isLive(), "Offer should have been inserted");
   }
 
   function test_makerGasreq_lower_than_density_fails_newOfferByVolume() public {
-    mgv.setDensityFixed($(base), $(quote), 100 << DensityLib.FIXED_FRACTIONAL_BITS);
-    (, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
+    mgv.setDensityFixed(olKey, 100 << DensityLib.FIXED_FRACTIONAL_BITS);
+    (, MgvStructs.LocalPacked cfg) = mgv.config(olKey);
     uint amount = cfg.density().multiply(1 + cfg.offer_gasbase());
     vm.expectRevert("mgv/writeOffer/density/tooLow");
     mkr.newOfferByVolume(amount - 1, amount - 1, 1);
   }
 
   function test_makerGasreq_at_density_suceeds() public {
-    mgv.setDensityFixed($(base), $(quote), 100 << DensityLib.FIXED_FRACTIONAL_BITS);
-    (MgvStructs.GlobalPacked glob, MgvStructs.LocalPacked cfg) = mgv.config($(base), $(quote));
+    mgv.setDensityFixed(olKey, 100 << DensityLib.FIXED_FRACTIONAL_BITS);
+    (MgvStructs.GlobalPacked glob, MgvStructs.LocalPacked cfg) = mgv.config(olKey);
     uint amount = cfg.density().multiply(1 + cfg.offer_gasbase());
     // Logging tests
     expectFrom($(mgv));
     emit OfferWrite(
-      $(base),
-      $(quote),
+      olKey.hash(),
       address(mkr),
       0, //tick
       amount, //quote
@@ -289,9 +287,9 @@ contract GatekeepingTest is MangroveTest {
       1 //ofrId
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), reader.getProvision($(base), $(quote), 1, 0));
+    emit Debit(address(mkr), reader.getProvision(olKey, 1, 0));
     uint ofr = mkr.newOfferByVolume(amount, amount, 1);
-    assertTrue(mgv.offers($(base), $(quote), ofr).isLive(), "Offer should have been inserted");
+    assertTrue(mgv.offers(olKey, ofr).isLive(), "Offer should have been inserted");
   }
 
   function test_makerGasprice_wider_than_16_bits_fails_newOfferByVolume() public {
@@ -318,7 +316,7 @@ contract GatekeepingTest is MangroveTest {
     mkr.approveMgv(base, 1 ether);
     mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
     vm.expectRevert("mgv/lowAllowance");
-    mgv.marketOrderForByVolume($(base), $(quote), 1 ether, 1 ether, true, address(tkr));
+    mgv.marketOrderForByVolume(olKey, 1 ether, 1 ether, true, address(tkr));
   }
 
   function test_can_marketOrderFor_for_with_allowance() public {
@@ -327,7 +325,7 @@ contract GatekeepingTest is MangroveTest {
     mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
     tkr.approveSpender($(this), 1.2 ether);
     uint takerGot;
-    (takerGot,,,) = mgv.marketOrderForByVolume($(base), $(quote), 1 ether, 1 ether, true, address(tkr));
+    (takerGot,,,) = mgv.marketOrderForByVolume(olKey, 1 ether, 1 ether, true, address(tkr));
     assertEq(
       mgv.allowances($(base), $(quote), address(tkr), $(this)), 0.2 ether, "allowance should have correctly reduced"
     );
@@ -339,14 +337,14 @@ contract GatekeepingTest is MangroveTest {
 
   function newOfferKO() external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 30_000);
+    mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 30_000);
   }
 
   function test_newOffer_on_reentrancy_fails() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 100_000);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000);
     mkr.setTradeCallback($(this), abi.encodeCall(this.newOfferKO, ()));
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
@@ -355,44 +353,44 @@ contract GatekeepingTest is MangroveTest {
   /* New Offer success */
 
   // ! may be called with inverted _base and _quote
-  function newOfferOK(address _base, address _quote) external {
-    mkr.newOfferByVolume(_base, _quote, 1 ether, 1 ether, 30_000);
+  function newOfferOK(OLKey memory olKey) external {
+    mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 30_000);
   }
 
   function test_newOffer_on_reentrancy_succeeds() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 200_000);
-    mkr.setTradeCallback($(this), abi.encodeCall(this.newOfferOK, ($(quote), $(base))));
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.newOfferOK, (lo)));
+
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.best($(quote), $(base)) == 1, "newOfferByVolume on swapped pair must work");
+    assertTrue(mgv.best(lo) == 1, "newOfferByVolume on swapped offerList must work");
   }
 
   function test_newOffer_on_posthook_succeeds() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000);
 
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 200_000);
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.newOfferOK, ($(base), $(quote))));
+    mkr.setPosthookCallback($(this), abi.encodeCall(this.newOfferOK, (olKey)));
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.best($(base), $(quote)) == 2, "newOfferByVolume on posthook must work");
+    assertTrue(mgv.best(olKey) == 2, "newOfferByVolume on posthook must work");
   }
 
   /* Update offer failure */
 
   function updateOfferKO(uint ofr) external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mkr.updateOfferByVolume($(base), $(quote), 1 ether, 2 ether, 35_000, ofr);
+    mkr.updateOfferByVolume(olKey, 1 ether, 2 ether, 35_000, ofr);
   }
 
   function test_updateOffer_on_reentrancy_fails() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
-
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 100_000);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000);
     mkr.setTradeCallback($(this), abi.encodeCall(this.updateOfferKO, (ofr)));
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
@@ -401,48 +399,47 @@ contract GatekeepingTest is MangroveTest {
   /* Update offer success */
 
   // ! may be called with inverted _base and _quote
-  function updateOfferOK(address _base, address _quote, uint ofr) external {
-    mkr.updateOfferByVolume(_base, _quote, 1 ether, 2 ether, 35_000, ofr);
+  function updateOfferOK(OLKey memory olKey, uint ofr) external {
+    mkr.updateOfferByVolume(olKey, 1 ether, 2 ether, 35_000, ofr);
   }
 
   function test_updateOffer_on_reentrancy_succeeds() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint other_ofr = mkr.newOfferByVolume($(quote), $(base), 1 ether, 1 ether, 100_000);
-    mkr.setTradeCallback($(this), abi.encodeCall(this.updateOfferOK, ($(quote), $(base), other_ofr)));
+    uint other_ofr = mkr.newOfferByVolume(lo, 1 ether, 1 ether, 100_000);
 
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 400_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.updateOfferOK, (lo, other_ofr)));
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 400_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertEq(mgv.offerDetails($(quote), $(base), other_ofr).gasreq(), 35_000, "updateOffer on swapped pair must work");
+    assertTrue(mgv.offerDetails(lo, other_ofr).gasreq() == 35_000, "updateOffer on swapped offerList must work");
   }
 
   function test_updateOffer_on_posthook_succeeds() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint other_ofr = mkr.newOfferByTick($(base), $(quote), 1, 1 ether, 100_000);
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.updateOfferOK, ($(base), $(quote), other_ofr)));
-
-    uint ofr = mkr.newOfferByTick($(base), $(quote), 0, 1 ether, 300_000);
+    uint other_ofr = mkr.newOfferByLogPrice(olKey, 1, 1 ether, 100_000);
+    mkr.setPosthookCallback($(this), abi.encodeCall(this.updateOfferOK, (olKey, other_ofr)));
+    uint ofr = mkr.newOfferByLogPrice(olKey, 0, 1 ether, 300_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertEq(mgv.offerDetails($(base), $(quote), other_ofr).gasreq(), 35_000, "updateOffer on posthook must work");
+    assertTrue(mgv.offerDetails(olKey, other_ofr).gasreq() == 35_000, "updateOffer on posthook must work");
   }
 
   /* Cancel Offer failure */
 
   function retractOfferKO(uint id) external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mkr.retractOffer(id);
+    mgv.retractOffer(olKey, id, false);
   }
 
   function test_retractOffer_on_reentrancy_fails() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 100_000);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000);
     mkr.setTradeCallback($(this), abi.encodeCall(this.retractOfferKO, (ofr)));
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
@@ -450,8 +447,8 @@ contract GatekeepingTest is MangroveTest {
 
   /* Cancel Offer success */
 
-  function retractOfferOK(address _base, address _quote, uint id) external {
-    uint collected = mkr.retractOffer(_base, _quote, id);
+  function retractOfferOK(OLKey memory olKey, uint id) external {
+    uint collected = mkr.retractOffer(olKey, id);
     assertEq(collected, 0, "Unexpected collected provision after retract w/o deprovision");
   }
 
@@ -459,40 +456,39 @@ contract GatekeepingTest is MangroveTest {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint other_ofr = mkr.newOfferByVolume($(quote), $(base), 1 ether, 1 ether, 90_000);
-    mkr.setTradeCallback($(this), abi.encodeCall(this.retractOfferOK, ($(quote), $(base), other_ofr)));
+    uint other_ofr = mkr.newOfferByVolume(lo, 1 ether, 1 ether, 90_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.retractOfferOK, (lo, other_ofr)));
 
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 90_000);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 90_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.best($(quote), $(base)) == 0, "retractOffer on swapped pair must work");
+    assertTrue(mgv.best(lo) == 0, "retractOffer on swapped offerList must work");
   }
 
   function test_retractOffer_on_posthook_succeeds() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint other_ofr = mkr.newOfferByTick($(base), $(quote), 1, 1 ether, 190_000);
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.retractOfferOK, ($(base), $(quote), other_ofr)));
+    uint other_ofr = mkr.newOfferByLogPrice(olKey, 1, 1 ether, 290_000);
+    mkr.setPosthookCallback($(this), abi.encodeCall(this.retractOfferOK, (olKey, other_ofr)));
 
-    uint ofr = mkr.newOfferByTick($(base), $(quote), 0, 1 ether, 90_000);
+    uint ofr = mkr.newOfferByLogPrice(olKey, 0, 1 ether, 190_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertEq(mgv.best($(base), $(quote)), 0, "retractOffer on posthook must work");
+    assertEq(mgv.best(olKey), 0, "retractOffer on posthook must work");
   }
 
   /* Market Order failure */
 
   function marketOrderKO() external {
     vm.expectRevert("mgv/reentrancyLocked");
-    mkr.marketOrderByVolume($(base), $(quote), 0.2 ether, 0.2 ether);
+    mkr.marketOrderByVolume(olKey, 0.2 ether, 0.2 ether);
   }
 
   function test_marketOrder_on_reentrancy_fails() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
-
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 100_000);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 100_000);
     mkr.setTradeCallback($(this), abi.encodeCall(this.marketOrderKO, ()));
     assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
@@ -500,8 +496,8 @@ contract GatekeepingTest is MangroveTest {
 
   /* Market Order Success */
 
-  function marketOrderOK(address _base, address _quote) external {
-    (uint got,) = mkr.marketOrderByVolume(_base, _quote, 0.5 ether, 0.5 ether);
+  function marketOrderOK(OLKey memory _olKey) external {
+    (uint got,) = mkr.marketOrderByVolume(_olKey, 0.5 ether, 0.5 ether);
     assertGt(got, 0, "market order should have succeeded");
   }
 
@@ -513,13 +509,13 @@ contract GatekeepingTest is MangroveTest {
     deal($(quote), $(dual_mkr), 1 ether);
 
     uint dual_ofr = dual_mkr.newOfferByVolume(0.5 ether, 0.5 ether, 300_000);
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 1_000_000);
-    mkr.setTradeCallback($(this), abi.encodeCall(this.marketOrderOK, ($(quote), $(base))));
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 1_000_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.marketOrderOK, (lo)));
 
     assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertTrue(dual_mkr.makerExecuteWasCalled(dual_ofr), "dual_ofr must be executed or test is void");
-    assertTrue(mgv.best($(quote), $(base)) == 0, "2nd market order must have emptied mgv");
+    assertTrue(mgv.best(lo) == 0, "2nd market order must have emptied mgv");
   }
 
   function test_marketOrder_on_posthook_succeeds() public {
@@ -530,13 +526,13 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(other_mkr), 1 ether);
 
     mgv.setGasmax(10_000_000);
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 0.5 ether, 0.5 ether, 3_500_000);
-    uint ofr2 = other_mkr.newOfferByVolume($(base), $(quote), 0.5 ether, 0.5 ether, 1_800_000);
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.marketOrderOK, ($(base), $(quote))));
+    uint ofr = mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000);
+    uint ofr2 = other_mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 1800_000);
+    mkr.setPosthookCallback($(this), abi.encodeCall(this.marketOrderOK, (olKey)));
     assertTrue(tkr.marketOrderWithSuccess(0.5 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertTrue(other_mkr.makerExecuteWasCalled(ofr2), "ofr2 must be executed or test is void");
-    assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
+    assertTrue(mgv.best(olKey) == 0, "2nd market order must have emptied mgv");
   }
 
   // not gatekeeping! move me.
@@ -545,19 +541,17 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
 
     mgv.setGasmax(10_000_000);
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 0.5 ether, 0.5 ether, 3500_000);
-
+    uint ofr = mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000);
     (uint takerGot, uint takerGave) = tkr.marketOrder(0.5 ether, 0.3 ether);
     // assertGt(takerGot,0,"mo should work");
     // should execute 0 offers due to price mismatch
     assertEq(takerGot, 0, "mo should fail");
-    assertTrue(pair.offers(ofr).isLive(), "offer should still be live");
+    assertTrue(mgv.offers(olKey, ofr).gives() > 0, "offer should still be live");
     assertFalse(mkr.makerExecuteWasCalled(ofr), "ofr must not be executed or test is void");
-
     (takerGot, takerGave) = tkr.marketOrder(0.5 ether, 0.6 ether);
     assertGt(takerGot, 0, "mo should work");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
+    assertTrue(mgv.best(olKey) == 0, "2nd market order must have emptied mgv");
   }
 
   // not gatekeeping! move me.
@@ -566,68 +560,68 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
 
     mgv.setGasmax(10_000_000);
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 0.05 ether, 0.05 ether, 3500_000);
-    uint ofr2 = mkr.newOfferByVolume($(base), $(quote), 0.1 ether, 0.05 ether, 3500_000);
+    uint ofr = mkr.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000);
+    uint ofr2 = mkr.newOfferByVolume(olKey, 0.1 ether, 0.05 ether, 3500_000);
 
     (uint takerGot, uint takerGave) = tkr.marketOrder(0.1 ether, 0.1 ether);
     assertEq(takerGot, 0.05 ether, "mo should only take ofr");
-    assertTrue(pair.offers(ofr2).isLive(), "ofr2 should still be live");
+    assertGt(mgv.offers(olKey, ofr2).gives(), 0, "ofr2 should still be live");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertFalse(mkr.makerExecuteWasCalled(ofr2), "ofr2 must not be executed or test is void");
 
     (takerGot, takerGave) = tkr.marketOrder(0.06 ether, 0.2 ether);
     assertGt(takerGot, 0, "mo should work");
     assertTrue(mkr.makerExecuteWasCalled(ofr2), "ofr2 must be executed or test is void");
-    assertTrue(mgv.best($(base), $(quote)) == 0, "2nd market order must have emptied mgv");
+    assertTrue(mgv.best(olKey) == 0, "2nd market order must have emptied mgv");
   }
 
   // not gatekeeping! move me.
   function test_leaf_is_flushed_case1() public {
     mgv.setGasmax(10_000_000);
-    uint id = mgv.newOfferByVolume($(base), $(quote), 0.05 ether, 0.05 ether, 3500_000, 0);
-    MgvStructs.OfferPacked ofr = pair.offers(id);
+    uint id = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 3500_000, 0);
+    MgvStructs.OfferPacked ofr = mgv.offers(olKey, id);
     // FIXME increasing tick by 2 because tick->price->tick does not round up currently
     // when that is fixed, should replace with tick+1
-    Tick nextTick = Tick.wrap(Tick.unwrap(ofr.tick()) + 2);
-    uint gives = nextTick.outboundFromInbound(5 ether);
-    uint id2 = mgv.newOfferByVolume($(base), $(quote), 5 ether, gives, 3500_000, 0);
+    Tick nextTick = Tick.wrap(Tick.unwrap(ofr.tick(olKey.tickScale)) + 2);
+    uint gives = LogPriceLib.outboundFromInbound(LogPriceLib.fromTick(nextTick, olKey.tickScale), 5 ether);
+    uint id2 = mgv.newOfferByVolume(olKey, 5 ether, gives, 3500_000, 0);
     tkr.marketOrder(0.05 ether, 0.05 ether);
     // low-level check
-    assertEq(pair.leafs(ofr.tick().leafIndex()).getNextOfferId(), id2);
+    assertEq(mgv.leafs(olKey, ofr.tick(olKey.tickScale).leafIndex()).getNextOfferId(), id2);
     // high-level check
-    assertTrue(mgv.best($(base), $(quote)) == id2, "2nd market order must have emptied mgv");
+    assertTrue(mgv.best(olKey) == id2, "2nd market order must have emptied mgv");
   }
 
   // not gatekeeping! move me.
   // Check that un-caching a nonempty level0 works
   function test_remove_with_new_best_saves_previous_level0() public {
     // make a great offer so its level0 is cached
-    uint ofr0 = mgv.newOfferByVolume($(base), $(quote), 0.01 ether, 1 ether, 1000000, 0);
+    uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
     // store some information in another level0 (a worse one)
-    uint ofr1 = mgv.newOfferByVolume($(base), $(quote), 0.02 ether, 0.05 ether, 1000000, 0);
-    Tick tick1 = pair.offers(ofr1).tick();
+    uint ofr1 = mgv.newOfferByVolume(olKey, 0.02 ether, 0.05 ether, 1000000, 0);
+    Tick tick1 = mgv.offers(olKey, ofr1).tick(olKey.tickScale);
     int index1 = tick1.level0Index();
     // make ofr1 the best offer (ofr1.level0 is now cached, but it also lives in its slot)
-    mgv.retractOffer($(base), $(quote), ofr0, true);
+    mgv.retractOffer(olKey, ofr0, true);
     // make an offer worse than ofr1
-    uint ofr2 = mgv.newOfferByVolume($(base), $(quote), 0.05 ether, 0.05 ether, 1000000, 0);
-    Tick tick2 = pair.offers(ofr2).tick();
+    uint ofr2 = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 1000000, 0);
+    Tick tick2 = mgv.offers(olKey, ofr2).tick(olKey.tickScale);
     int index2 = tick2.level0Index();
 
     // ofr2 is now best again. ofr1.level0 is not cached anymore.
     // the question is: is ofr1.level0 in storage updated or not?
     // (if it had originally been empty, the test would always succeed)
-    mgv.retractOffer($(base), $(quote), ofr1, true);
+    mgv.retractOffer(olKey, ofr1, true);
     assertTrue(index1 != index2, "test should construct ofr1/ofr2 so they are on different level0 nodes");
-    assertEq(pair.level0(index1), FieldLib.EMPTY, "ofr1's level0 should be empty");
+    assertEq(mgv.level0(olKey, index1), FieldLib.EMPTY, "ofr1's level0 should be empty");
   }
 
   // FIXME Not Gatekeeping!
   function test_leaf_update_both_first_and_last() public {
-    uint ofr0 = mgv.newOfferByVolume($(base), $(quote), 0.01 ether, 1 ether, 1000000, 0);
-    Tick tick0 = pair.offers(ofr0).tick();
-    mgv.retractOffer($(base), $(quote), ofr0, true);
-    assertEq(pair.leafs(tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
+    uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
+    Tick tick0 = mgv.offers(olKey, ofr0).tick(olKey.tickScale);
+    mgv.retractOffer(olKey, ofr0, true);
+    assertEq(mgv.leafs(olKey, tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }
 
   /* Clean failure */
@@ -640,7 +634,7 @@ contract GatekeepingTest is MangroveTest {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 60_000);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 160_000);
     mkr.setTradeCallback($(this), abi.encodeCall(this.cleanKO, (ofr)));
     assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
@@ -648,22 +642,22 @@ contract GatekeepingTest is MangroveTest {
 
   /* Clean success */
 
-  function cleanOK(address _base, address _quote, uint id) external {
-    assertTrue(mkr.clean(_base, _quote, id, 0.5 ether), "clean should succeed");
+  function cleanOK(OLKey memory _olKey, uint id) external {
+    assertTrue(mkr.clean(_olKey, id, 0.5 ether), "clean should succeed");
   }
 
   function test_clean_on_reentrancy_in_swapped_pair_succeeds() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
 
-    uint dual_ofr = dual_mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
+    uint dual_ofr = dual_mkr.newOfferByVolume(1 ether, 1 ether, 200_000);
 
-    mkr.setTradeCallback($(this), abi.encodeCall(this.cleanOK, ($(quote), $(base), dual_ofr)));
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 350_000);
+    mkr.setTradeCallback($(this), abi.encodeCall(this.cleanOK, (lo, dual_ofr)));
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 450_000);
 
     assertTrue(tkr.marketOrderWithSuccess(0.1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.best($(quote), $(base)) == 0, "clean in swapped pair must work");
+    assertTrue(mgv.best(lo) == 0, "clean in swapped pair must work");
   }
 
   function test_clean_on_posthook_succeeds() public {
@@ -673,12 +667,12 @@ contract GatekeepingTest is MangroveTest {
 
     uint other_ofr = other_mkr.newOfferByVolume(2 ether, 1 ether, 200_000);
 
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.cleanOK, ($(base), $(quote), other_ofr)));
-    uint ofr = mkr.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 450_000);
+    mkr.setPosthookCallback($(this), abi.encodeCall(this.cleanOK, (olKey, other_ofr)));
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 450_000);
 
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
-    assertTrue(mgv.best($(base), $(quote)) == 0, "clean in posthook must work");
+    assertTrue(mgv.best(olKey) == 0, "clean in posthook must work");
   }
 
   /* # Mangrove closed/inactive */
@@ -686,11 +680,11 @@ contract GatekeepingTest is MangroveTest {
   function test_newOffer_on_closed_fails() public {
     mgv.kill();
     vm.expectRevert("mgv/dead");
-    mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 0, 0);
+    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
   }
 
   function test_take_on_closed_fails() public {
-    mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 0, 0);
+    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
 
     mgv.kill();
     vm.expectRevert("mgv/dead");
@@ -698,9 +692,9 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_newOffer_on_inactive_fails() public {
-    mgv.deactivate($(base), $(quote));
+    mgv.deactivate(olKey);
     vm.expectRevert("mgv/inactive");
-    mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 0, 0);
+    mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
   }
 
   function test_receive_on_closed_fails() public {
@@ -727,7 +721,7 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_clean_on_inactive_fails() public {
-    mgv.deactivate($(base), $(quote));
+    mgv.deactivate(olKey);
     assertEq(tkr.clean(0, 1 ether), false, "clean should fail on closed market");
   }
 
@@ -737,37 +731,37 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_retractOffer_on_closed_ok() public {
-    uint ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 0, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
     mgv.kill();
-    mgv.retractOffer($(base), $(quote), ofr, false);
+    mgv.retractOffer(olKey, ofr, false);
   }
 
   function test_updateOffer_on_closed_fails() public {
-    uint ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 0, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
     mgv.kill();
     vm.expectRevert("mgv/dead");
-    mgv.updateOfferByVolume($(base), $(quote), 1 ether, 1 ether, 0, 0, ofr);
+    mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);
   }
 
   function test_activation_emits_events_in_order() public {
     expectFrom($(mgv));
-    emit SetActive($(quote), $(base), true);
+    emit SetActive(lo.hash(), true);
     expectFrom($(mgv));
-    emit SetFee($(quote), $(base), 7);
+    emit SetFee(lo.hash(), 7);
     expectFrom($(mgv));
-    emit SetDensityFixed($(quote), $(base), 0);
+    emit SetDensityFixed(lo.hash(), 0);
     expectFrom($(mgv));
-    emit SetGasbase($(quote), $(base), 3);
-    mgv.activate($(quote), $(base), 7, 0, 3);
+    emit SetGasbase(lo.hash(), 3);
+    mgv.activate(lo, 7, 0, 3);
   }
 
   function test_updateOffer_on_inactive_fails() public {
-    uint ofr = mgv.newOfferByVolume($(base), $(quote), 1 ether, 1 ether, 0, 0);
+    uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
     expectFrom($(mgv));
-    emit SetActive($(base), $(quote), false);
-    mgv.deactivate($(base), $(quote));
+    emit SetActive(olKey.hash(), false);
+    mgv.deactivate(olKey);
     vm.expectRevert("mgv/inactive");
-    mgv.updateOfferByVolume($(base), $(quote), 1 ether, 1 ether, 0, 0, ofr);
+    mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);
   }
 
   function test_inverted_mangrove_flashloan_fail_if_not_self(address caller) public {
@@ -787,10 +781,10 @@ contract GatekeepingTest is MangroveTest {
     mgv.flashloan(sor, address(0));
   }
 
-  function test_configInfo(address tout, address tin, address monitor, uint128 densityFixed) public {
-    mgv.activate(tout, tin, 0, densityFixed, 0);
+  function test_configInfo(OLKey memory olKey, address monitor, uint128 densityFixed) public {
+    mgv.activate(olKey, 0, densityFixed, 0);
     mgv.setMonitor(monitor);
-    (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = mgv.configInfo(tout, tin);
+    (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = mgv.configInfo(olKey);
     assertEq(g.monitor, monitor, "wrong monitor");
     assertEq(l.density.toFixed(), DensityLib.fromFixed(densityFixed).toFixed(), "wrong density");
   }
@@ -819,29 +813,33 @@ contract GatekeepingTest is MangroveTest {
 
   function test_marketOrderByPrice_extrema() public {
     vm.expectRevert("mgv/mOrder/maxPrice/tooHigh");
-    mgv.marketOrderByPrice($(base), $(quote), TickLib.MAX_PRICE_E18 + 1, 100, true);
+    mgv.marketOrderByPrice(olKey, LogPriceLib.MAX_PRICE_E18 + 1, 100, true);
     vm.expectRevert("mgv/mOrder/maxPrice/tooLow");
-    mgv.marketOrderByPrice($(base), $(quote), TickLib.MIN_PRICE_E18 - 1, 100, true);
+    mgv.marketOrderByPrice(olKey, LogPriceLib.MIN_PRICE_E18 - 1, 100, true);
   }
 
-  function test_marketOrderByTick_extrema() public {
-    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
-    mgv.marketOrderByTick($(base), $(quote), MAX_TICK + 1, 100, true);
-    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
-    mgv.marketOrderByTick($(base), $(quote), MIN_TICK - 1, 100, true);
+  function test_marketOrderByLogPrice_extrema() public {
+    int highLogPrice = LogPriceLib.fromTick(Tick.wrap(MAX_TICK + 1), olKey.tickScale);
+    vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
+    mgv.marketOrderByLogPrice(olKey, highLogPrice, 100, true);
+    int lowLogPrice = LogPriceLib.fromTick(Tick.wrap(MIN_TICK - 1), olKey.tickScale);
+    vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
+    mgv.marketOrderByLogPrice(olKey, lowLogPrice, 100, true);
   }
 
   function test_marketOrderForByPrice_extrema() public {
     vm.expectRevert("mgv/mOrder/maxPrice/tooHigh");
-    mgv.marketOrderForByPrice($(base), $(quote), TickLib.MAX_PRICE_E18 + 1, 100, true, address(this));
+    mgv.marketOrderForByPrice(olKey, LogPriceLib.MAX_PRICE_E18 + 1, 100, true, address(this));
     vm.expectRevert("mgv/mOrder/maxPrice/tooLow");
-    mgv.marketOrderForByPrice($(base), $(quote), TickLib.MIN_PRICE_E18 - 1, 100, true, address(this));
+    mgv.marketOrderForByPrice(olKey, LogPriceLib.MIN_PRICE_E18 - 1, 100, true, address(this));
   }
 
-  function test_marketOrderForByTick_extrema() public {
-    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
-    mgv.marketOrderForByTick($(base), $(quote), MAX_TICK + 1, 100, true, address(this));
-    vm.expectRevert("mgv/mOrder/maxTick/outOfRange");
-    mgv.marketOrderForByTick($(base), $(quote), MIN_TICK - 1, 100, true, address(this));
+  function test_marketOrderForByLogPrice_extrema() public {
+    int highLogPrice = LogPriceLib.fromTick(Tick.wrap(MAX_TICK + 1), olKey.tickScale);
+    vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
+    mgv.marketOrderForByLogPrice(olKey, highLogPrice, 100, true, address(this));
+    int lowLogPrice = LogPriceLib.fromTick(Tick.wrap(MIN_TICK - 1), olKey.tickScale);
+    vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
+    mgv.marketOrderForByLogPrice(olKey, lowLogPrice, 100, true, address(this));
   }
 }

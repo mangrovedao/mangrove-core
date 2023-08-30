@@ -7,7 +7,7 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {MIDDLE_TICK} from "./GasTestBase.t.sol";
+import {MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
 import {ActivateSemibook} from "mgv_script/core/ActivateSemibook.s.sol";
 import "mgv_lib/Debug.sol";
 import {AbstractMangrove, TestTaker, IMaker} from "mgv_test/lib/MangroveTest.sol";
@@ -49,9 +49,9 @@ contract BeforePosthookGasMeasuringMangrove is AbstractMangrove, Test2 {
       /* The transfer taker -> maker is in 2 steps. First, taker->mgv. Then
        mgv->maker. With a direct taker->maker transfer, if one of taker/maker
        is blacklisted, we can't tell which one. We need to know which one:
-       if we incorrectly blame the taker, a blacklisted maker can block a pair forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume that Mangrove is not blacklisted. This 2-step transfer is incompatible with tokens that have transfer fees (more accurately, it uselessly incurs fees twice). */
-      if (transferTokenFrom(sor.inbound_tkn, taker, address(this), sor.gives)) {
-        if (transferToken(sor.inbound_tkn, sor.offerDetail.maker(), sor.gives)) {
+       if we incorrectly blame the taker, a blacklisted maker can block an offer list forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume that Mangrove is not blacklisted. This 2-step transfer is incompatible with tokens that have transfer fees (more accurately, it uselessly incurs fees twice). */
+      if (transferTokenFrom(sor.olKey.inbound, taker, address(this), sor.gives)) {
+        if (transferToken(sor.olKey.inbound, sor.offerDetail.maker(), sor.gives)) {
           (gasused, makerData) = makerExecute(sor);
         } else {
           innerRevert([bytes32("mgv/makerReceiveFail"), bytes32(0), ""]);
@@ -91,10 +91,13 @@ contract OfferPosthookFailGasDeltaTest is MangroveTest, IMaker {
     base = _base;
     quote = _quote;
 
-    setupMarket($(base), $(quote));
-    setupMarket($(quote), $(base));
+    olKey = OLKey($(base), $(quote), options.defaultTickscale);
+    lo = OLKey($(quote), $(base), options.defaultTickscale);
 
-    taker = setupTaker($(base), $(quote), "Taker2");
+    setupMarket(olKey);
+    setupMarket(lo);
+
+    taker = setupTaker(olKey, "Taker2");
     deal($(base), $(taker), 200000 ether);
     deal($(quote), $(taker), 200000 ether);
     taker.approveMgv(quote, 200000 ether);
@@ -116,31 +119,25 @@ contract OfferPosthookFailGasDeltaTest is MangroveTest, IMaker {
 
     // A successful offer (both offer lists)
     vm.prank(maker);
-    mgv.newOfferByTick($(base), $(quote), MIDDLE_TICK, 1, 10000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1, 10000, 0);
     vm.prank(maker);
-    mgv.newOfferByTick($(quote), $(base), MIDDLE_TICK, 1, 10000, 0);
+    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, 1, 10000, 0);
 
     // Do not approve maker - we will let offers fail since then penalty must be calculated, which costs gas.
     for (uint i; i < 19; i++) {
-      mgv.newOfferByTick($(quote), $(base), MIDDLE_TICK, 1, 10000, 0);
-      mgv.newOfferByTick($(base), $(quote), MIDDLE_TICK, 1, 10000, 0);
+      mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, 1, 10000, 0);
+      mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1, 10000, 0);
     }
 
     // A successful offer (both offer lists)
     vm.prank(maker);
-    mgv.newOfferByTick($(base), $(quote), MIDDLE_TICK, 1, 10000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1, 10000, 0);
     vm.prank(maker);
-    mgv.newOfferByTick($(quote), $(base), MIDDLE_TICK, 1, 10000, 0);
+    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, 1, 10000, 0);
   }
 
-  function posthook_delta_deep_order(address outbound, address inbound) public {
+  function posthook_delta_deep_order(OLKey memory olKey) public {
     vm.prank($(taker));
-    mgv.marketOrderByTick({
-      outbound_tkn: outbound,
-      inbound_tkn: inbound,
-      maxTick: MIDDLE_TICK,
-      fillVolume: 1 ether,
-      fillWants: false
-    });
+    mgv.marketOrderByLogPrice({olKey: olKey, maxLogPrice: MIDDLE_LOG_PRICE, fillVolume: 1 ether, fillWants: false});
   }
 }

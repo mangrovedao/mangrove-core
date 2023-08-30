@@ -12,8 +12,9 @@ import {Vm} from "forge-std/Vm.sol";
 Vm constant vm = Vm(VM_ADDRESS);
 
 // Manual user-defined types
-import {Tick,Field,Leaf,MIN_TICK,MAX_TICK} from "mgv_lib/TickLib.sol";
+import {Tick,Field,Leaf,MIN_TICK,MAX_TICK,LogPriceLib} from "mgv_lib/TickLib.sol";
 import {Density,DensityLib} from "mgv_lib/DensityLib.sol";
+import {OLKey} from "mgv_src/MgvLib.sol";
 
 
 
@@ -23,7 +24,7 @@ function toString(OfferPacked __packed) pure returns (string memory) {
 }
 
 function toString(OfferUnpacked memory __unpacked) pure returns (string memory) {
-  return string.concat("Offer{","prev: ", vm.toString(__unpacked.prev), ", ", "next: ", vm.toString(__unpacked.next), ", ", "tick: ", toString(__unpacked.tick), ", ", "gives: ", vm.toString(__unpacked.gives),"}");
+  return string.concat("Offer{","prev: ", vm.toString(__unpacked.prev), ", ", "next: ", vm.toString(__unpacked.next), ", ", "logPrice: ", vm.toString(__unpacked.logPrice), ", ", "gives: ", vm.toString(__unpacked.gives),"}");
 }
 
 import {OfferDetailPacked, OfferDetailUnpacked} from "mgv_src/preprocessed/MgvOfferDetail.post.sol";
@@ -58,10 +59,16 @@ function toString(Tick tick) pure returns (string memory ret) {
   if (MIN_TICK > Tick.unwrap(tick) || Tick.unwrap(tick) > MAX_TICK) {
     suffix = "out of range";
   } else {
-    suffix = toFixed(tick.priceFromTick_e18(),18);
+    suffix = logPriceToString(LogPriceLib.fromTick(tick,1));
   }
 
-  ret = string.concat(unicode"「", vm.toString(Tick.unwrap(tick))," (" ,suffix,unicode")」");
+  ret = string.concat(unicode"「", vm.toString(Tick.unwrap(tick))," (default: " ,suffix,unicode")」");
+}
+
+function logPriceToString(int logPrice) pure returns (string memory ret) {
+  string memory str = toFixed(LogPriceLib.priceFromLogPrice_e18(logPrice),18);
+
+  ret = string.concat(unicode"⦗ ",vm.toString(logPrice),"|", str,unicode":1 ⦘");
 }
 
 function toString(Leaf leaf) pure returns (string memory ret) {
@@ -80,6 +87,10 @@ function toString(Field field) pure returns (string memory res) {
     }
   }
   res = string.concat(bytes(res).length==0?unicode"【empty":res, unicode"】");
+}
+
+function toString(OLKey memory olKey) pure returns (string memory res) {
+  res = string.concat("OLKey{out: ",vm.toString(olKey.outbound),", in: ",vm.toString(olKey.inbound)," sc: ",vm.toString(olKey.tickScale),"}");
 }
 
 /* *** Unit conversion *** */

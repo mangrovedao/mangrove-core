@@ -5,7 +5,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
 import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {MgvStructs, MgvLib} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {Tick} from "mgv_lib/TickLib.sol";
 
 /**
@@ -21,8 +21,7 @@ contract EvalSnipeOffer is Test2, Deployer {
   function run() public {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
-      inbTkn: IERC20(envAddressOrName("TKN_IN")),
-      outTkn: IERC20(envAddressOrName("TKN_OUT")),
+      olKey: OLKey(envAddressOrName("TKN_OUT"), envAddressOrName("TKN_IN"), vm.envUint("TICKSCALE")),
       offerId: vm.envUint("OFFER_ID")
     });
   }
@@ -34,10 +33,11 @@ contract EvalSnipeOffer is Test2, Deployer {
     uint takerWants;
   }
 
-  function innerRun(IMangrove mgv, IERC20 inbTkn, IERC20 outTkn, uint offerId) public {
+  function innerRun(IMangrove mgv, OLKey memory olKey, uint offerId) public {
+    IERC20 inbTkn = IERC20(olKey.inbound);
     Heap memory heap;
-    heap.offer = mgv.offers(address(outTkn), address(inbTkn), offerId);
-    heap.details = mgv.offerDetails(address(outTkn), address(inbTkn), offerId);
+    heap.offer = mgv.offers(olKey, offerId);
+    heap.details = mgv.offerDetails(olKey, offerId);
 
     deal(address(inbTkn), address(this), heap.offer.wants());
     inbTkn.approve(address(mgv), heap.offer.wants());
@@ -49,13 +49,11 @@ contract EvalSnipeOffer is Test2, Deployer {
       } else {
         heap.takerWants = heap.offer.gives() / i;
       }
-      heap.target = wrap_dynamic(
-        MgvLib.CleanTarget(offerId, Tick.unwrap(heap.offer.tick()), heap.details.gasreq(), heap.takerWants)
-      );
+      heap.target =
+        wrap_dynamic(MgvLib.CleanTarget(offerId, heap.offer.logPrice(), heap.details.gasreq(), heap.takerWants));
       _gas();
       string memory fill_str = i == 0 ? "0" : string.concat(vm.toString(11 - i), "/10");
-      (uint successes, uint bounty) =
-        mgv.cleanByImpersonation(address(outTkn), address(inbTkn), heap.target, address(this));
+      (uint successes, uint bounty) = mgv.cleanByImpersonation(olKey, heap.target, address(this));
       uint g = gas_(true);
       if (successes == 0) {
         console.log("\u274c %s fill (%s %s)", fill_str, toFixed(heap.takerWants, inbTkn.decimals()), inbTkn.symbol());

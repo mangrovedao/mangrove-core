@@ -3,27 +3,24 @@
 pragma solidity ^0.8.10;
 
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
-import {IERC20, ITaker, MgvLib} from "mgv_src/MgvLib.sol";
+import {IERC20, ITaker, MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
-import {Tick} from "mgv_lib/TickLib.sol";
 
 contract TestTaker is ITaker, Script2 {
-  AbstractMangrove _mgv;
-  address _base;
-  address _quote;
+  AbstractMangrove mgv;
+  OLKey olKey;
   bool acceptNative = true;
 
-  constructor(AbstractMangrove mgv, IERC20 base, IERC20 quote) {
-    _mgv = mgv;
-    _base = address(base);
-    _quote = address(quote);
+  constructor(AbstractMangrove _mgv, OLKey memory _ol) {
+    mgv = _mgv;
+    olKey = _ol;
   }
 
   receive() external payable {}
 
   function approveMgv(IERC20 token, uint amount) external {
-    TransferLib.approveToken(token, address(_mgv), amount);
+    TransferLib.approveToken(token, address(mgv), amount);
   }
 
   function approve(IERC20 token, address spender, uint amount) external {
@@ -31,96 +28,90 @@ contract TestTaker is ITaker, Script2 {
   }
 
   function approveSpender(address spender, uint amount) external {
-    _mgv.approve(_base, _quote, spender, amount);
+    mgv.approve(olKey.outbound, olKey.inbound, spender, amount);
   }
 
   function clean(uint offerId, uint takerWants) public returns (bool success) {
-    return this.clean(_mgv, _base, _quote, offerId, takerWants, type(uint48).max);
+    return this.clean(mgv, olKey, offerId, takerWants, type(uint48).max);
   }
 
   function clean(uint offerId, uint takerWants, uint gasreq) public returns (bool success) {
-    return this.clean(_mgv, _base, _quote, offerId, takerWants, gasreq);
+    return this.clean(mgv, olKey, offerId, takerWants, gasreq);
   }
 
-  function clean(AbstractMangrove __mgv, address __base, address __quote, uint offerId, uint takerWants, uint gasreq)
+  function clean(AbstractMangrove _mgv, OLKey memory _olKey, uint offerId, uint takerWants, uint gasreq)
     public
     returns (bool success)
   {
-    uint bounty = this.cleanWithInfo(__mgv, __base, __quote, offerId, takerWants, gasreq);
+    uint bounty = this.cleanWithInfo(_mgv, _olKey, offerId, takerWants, gasreq);
     return bounty > 0;
   }
 
   function cleanWithInfo(uint offerId, uint takerWants) public returns (uint bounty) {
-    return this.cleanWithInfo(_mgv, _base, _quote, offerId, takerWants, type(uint48).max);
+    return this.cleanWithInfo(mgv, olKey, offerId, takerWants, type(uint48).max);
   }
 
-  function cleanWithInfo(
-    AbstractMangrove __mgv,
-    address __base,
-    address __quote,
+  function cleanWithInfo(AbstractMangrove _mgv, OLKey memory _olKey, uint offerId, uint takerWants, uint gasreq)
+    public
+    returns (uint bounty)
+  {
+    int logPrice = _mgv.offers(_olKey, offerId).logPrice();
+    return cleanByLogPriceWithInfo(_mgv, _olKey, offerId, logPrice, takerWants, gasreq);
+  }
+
+  function cleanByLogPrice(uint offerId, int logPrice, uint takerWants, uint gasreq) public returns (bool success) {
+    return this.cleanByLogPrice(mgv, olKey, offerId, logPrice, takerWants, gasreq);
+  }
+
+  function cleanByLogPrice(
+    AbstractMangrove _mgv,
+    OLKey memory _olKey,
     uint offerId,
-    uint takerWants,
-    uint gasreq
-  ) public returns (uint bounty) {
-    Tick tick = __mgv.offers(__base, __quote, offerId).tick();
-    return cleanByTickWithInfo(__mgv, __base, __quote, offerId, tick, takerWants, gasreq);
-  }
-
-  function cleanByTick(uint offerId, Tick tick, uint takerWants, uint gasreq) public returns (bool success) {
-    return this.cleanByTick(_mgv, _base, _quote, offerId, tick, takerWants, gasreq);
-  }
-
-  function cleanByTick(
-    AbstractMangrove __mgv,
-    address __base,
-    address __quote,
-    uint offerId,
-    Tick tick,
+    int logPrice,
     uint takerWants,
     uint gasreq
   ) public returns (bool success) {
-    uint bounty = this.cleanByTickWithInfo(__mgv, __base, __quote, offerId, tick, takerWants, gasreq);
+    uint bounty = this.cleanByLogPriceWithInfo(_mgv, _olKey, offerId, logPrice, takerWants, gasreq);
     return bounty > 0;
   }
 
-  function cleanByTickWithInfo(
-    AbstractMangrove __mgv,
-    address __base,
-    address __quote,
+  function cleanByLogPriceWithInfo(
+    AbstractMangrove _mgv,
+    OLKey memory _olKey,
     uint offerId,
-    Tick tick,
+    int logPrice,
     uint takerWants,
     uint gasreq
   ) public returns (uint bounty) {
-    (, bounty) = __mgv.cleanByImpersonation(
-      __base, __quote, wrap_dynamic(MgvLib.CleanTarget(offerId, Tick.unwrap(tick), gasreq, takerWants)), address(this)
+    (, bounty) = _mgv.cleanByImpersonation(
+      _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, logPrice, gasreq, takerWants)), address(this)
     );
     return bounty;
   }
 
-  function takerTrade(address, address, uint, uint) external pure override {}
+  function takerTrade(OLKey calldata, uint, uint) external pure override {}
 
   function marketOrderWithSuccess(uint takerWants) external returns (bool success) {
-    (uint got,,,) = _mgv.marketOrderByVolume(_base, _quote, takerWants, type(uint96).max, true);
+    (uint got,,,) = mgv.marketOrderByVolume(olKey, takerWants, type(uint96).max, true);
     return got > 0;
   }
 
   function marketOrder(uint wants, uint gives) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(_base, _quote, wants, gives, true);
+    (takerGot, takerGave,,) = mgv.marketOrderByVolume(olKey, wants, gives, true);
   }
 
   function marketOrder(uint wants, uint gives, bool fillWants) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(_base, _quote, wants, gives, fillWants);
+    (takerGot, takerGave,,) = mgv.marketOrderByVolume(olKey, wants, gives, fillWants);
   }
 
-  function marketOrder(AbstractMangrove __mgv, address __base, address __quote, uint takerWants, uint takerGives)
+  function marketOrder(AbstractMangrove _mgv, OLKey memory _ol, uint takerWants, uint takerGives)
     external
     returns (uint takerGot, uint takerGave)
   {
-    (takerGot, takerGave,,) = __mgv.marketOrderByVolume(__base, __quote, takerWants, takerGives, true);
+    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(_ol, takerWants, takerGives, true);
   }
 
   function marketOrderWithFail(uint wants, uint gives) external returns (uint takerGot, uint takerGave) {
-    (takerGot, takerGave,,) = _mgv.marketOrderByVolume(_base, _quote, wants, gives, true);
+    (takerGot, takerGave,,) = mgv.marketOrderByVolume(olKey, wants, gives, true);
   }
 }

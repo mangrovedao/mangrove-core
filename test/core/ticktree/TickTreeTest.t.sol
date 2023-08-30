@@ -168,7 +168,14 @@ abstract contract TickTreeTest is MangroveTest {
                 MgvStructs.OfferPacked offerTickTree = tickTree.offers[offerId].offer;
                 assertTrue(
                   offer.eq(offerTickTree),
-                  string.concat("offer mismatch | MGV ", toString(offer), " | tick tree ", toString(offerTickTree))
+                  string.concat(
+                    "offer mismatch | offerId ",
+                    vm.toString(offerId),
+                    " | MGV ",
+                    toString(offer),
+                    " | tick tree ",
+                    toString(offerTickTree)
+                  )
                 );
                 offerId = offer.next();
               }
@@ -210,7 +217,7 @@ abstract contract TickTreeTest is MangroveTest {
   }
 
   function unsetBit(Field field, uint pos) internal pure returns (Field) {
-    return Field.wrap(Field.unwrap(field) & (0 << pos));
+    return Field.wrap(Field.unwrap(field) ^ (1 << pos));
   }
 
   function isBitSet(Field field, uint pos) internal pure returns (bool) {
@@ -428,18 +435,16 @@ abstract contract TickTreeTest is MangroveTest {
 
     // Update leaf and tick list
     Leaf leaf = tickTree.leafs[tick.leafIndex()];
-    uint currentId = leaf.firstOfIndex(tick.posInLeaf());
-    uint prevId = 0;
-    while (currentId != offerId) {
-      prevId = currentId;
-      currentId = tickTree.offers[currentId].offer.next();
-    }
-    if (prevId == 0) {
-      leaf = leaf.setIndexFirstOrLast(tick.posInLeaf(), offer.offer.next(), false);
+    uint prevId = offer.offer.prev();
+    uint nextId = offer.offer.next();
+    if (prevId != 0) {
+      tickTree.offers[prevId].offer = tickTree.offers[prevId].offer.next(nextId);
     } else {
-      tickTree.offers[prevId].offer = tickTree.offers[prevId].offer.next(offer.offer.next());
+      leaf = leaf.setIndexFirstOrLast(tick.posInLeaf(), nextId, false);
     }
-    if (offer.offer.next() == 0) {
+    if (nextId != 0) {
+      tickTree.offers[nextId].offer = tickTree.offers[nextId].offer.prev(prevId);
+    } else {
       leaf = leaf.setIndexFirstOrLast(tick.posInLeaf(), prevId, true);
     }
     tickTree.leafs[tick.leafIndex()] = leaf;

@@ -47,7 +47,7 @@ contract MgvOfferMaking is MgvHasOffers {
     returns (uint offerId)
   {
     unchecked {
-      return newOfferByLogPrice(olKey, LogPriceLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice);
+      return newOfferByLogPrice(olKey, LogPriceConversionLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice);
     }
   }
 
@@ -109,7 +109,9 @@ contract MgvOfferMaking is MgvHasOffers {
     payable
   {
     unchecked {
-      updateOfferByLogPrice(olKey, LogPriceLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice, offerId);
+      updateOfferByLogPrice(
+        olKey, LogPriceConversionLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice, offerId
+      );
     }
   }
 
@@ -250,10 +252,9 @@ contract MgvOfferMaking is MgvHasOffers {
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
       require(LogPriceLib.inRange(insertionLogPrice), "mgv/writeOffer/logPrice/outOfRange");
       {
-        // FIXME: This validation should be revisited once the TickLib calculation code is done
+        // wants=0 is fine, `execute` should ensure the taker never sends 0.
+        // However wants too big is not fine due to overflow risk in later manipulations of wants.
         uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, ofp.gives);
-        /* * Make sure `wants > 0` -- price is stored as log_1BP(wants/gives). */
-        require(wants > 0, "mgv/writeOffer/wants/tooLow");
         require(uint96(wants) == wants, "mgv/writeOffer/wants/96bits");
       }
 
@@ -298,6 +299,8 @@ contract MgvOfferMaking is MgvHasOffers {
       }
 
       Tick insertionTick = TickLib.fromLogPrice(insertionLogPrice, tickScale);
+      // FIXME remove if tick can accomodate > max price
+      require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
 
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {

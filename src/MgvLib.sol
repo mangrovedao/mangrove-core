@@ -9,6 +9,26 @@ import {IERC20} from "./IERC20.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/TickLib.sol";
 
+using OLLib for OLKey global;
+// OLKey is OfferList
+
+struct OLKey {
+  address outbound;
+  address inbound;
+  uint tickScale;
+}
+
+library OLLib {
+  // The id should be keccak256(abi.encode(olKey))
+  // To save gas, id() directly hashes the memory (which matches the ABI encoding)
+  // If the memory layout changes, this function must be updated
+  function hash(OLKey memory olKey) internal pure returns (bytes32 _id) {
+    assembly ("memory-safe") {
+      _id := keccak256(olKey, 96)
+    }
+  }
+}
+
 /* # Structs
 The structs defined in `structs.js` have their counterpart as solidity structs that are easy to manipulate for outside contracts / callers of view functions. */
 
@@ -19,8 +39,7 @@ library MgvLib {
 
   /* `SingleOrder` holds data about an order-offer match in a struct. Used by `marketOrder` (and some of its nested functions) to avoid stack too deep errors. */
   struct SingleOrder {
-    address outbound_tkn;
-    address inbound_tkn;
+    OLKey olKey;
     uint offerId;
     MgvStructs.OfferPacked offer;
     /* `wants`/`gives` mutate over execution. Initially the `wants`/`gives` from the taker's pov, then actual `wants`/`gives` adjusted by offer's price and volume. */
@@ -44,7 +63,7 @@ library MgvLib {
   /* `CleanTarget` holds data about an offer that should be cleaned, i.e. made to fail by executing it with the specified volume. */
   struct CleanTarget {
     uint offerId;
-    int tick;
+    int logPrice;
     uint gasreq;
     uint takerWants;
   }
@@ -53,7 +72,7 @@ library MgvLib {
 /* # Events
 The events emitted for use by bots are listed here: */
 contract HasMgvEvents {
-  /* * Emitted at the creation of the new Mangrove contract on the pair (`inbound_tkn`, `outbound_tkn`)*/
+  /* * Emitted at the creation of the new Mangrove contract */
   event NewMgv();
 
   /* Mangrove adds or removes wei from `maker`'s account */
@@ -63,40 +82,35 @@ contract HasMgvEvents {
   event Debit(address indexed maker, uint amount);
 
   /* * Mangrove reconfiguration */
-  event SetActive(address indexed outbound_tkn, address indexed inbound_tkn, bool value);
-  event SetFee(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
-  event SetGasbase(address indexed outbound_tkn, address indexed inbound_tkn, uint offer_gasbase);
+  event SetActive(bytes32 indexed olKeyHash, bool value);
+  event SetFee(bytes32 indexed olKeyHash, uint value);
+  event SetGasbase(bytes32 indexed olKeyHash, uint offer_gasbase);
   event SetGovernance(address value);
   event SetMonitor(address value);
   event SetUseOracle(bool value);
   event SetNotify(bool value);
   event SetGasmax(uint value);
-  event SetDensityFixed(address indexed outbound_tkn, address indexed inbound_tkn, uint value);
+  event SetDensityFixed(bytes32 indexed olKeyHash, uint value);
   event SetGasprice(uint value);
+
+  /* Clean order execution */
+  event CleanStart(bytes32 indexed olKeyHash, address indexed taker);
+  event CleanOffer(uint indexed offerId, address indexed taker, int logPrice, uint gasreq, uint takerWants);
 
   /* Market order execution */
   // FIXME: This provides the basis information for all following events
   // FIXME: Observation: All other events follow from this one + the known state of the book
-  event OrderStart(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    address indexed taker,
-    int maxTick,
-    uint fillVolume,
-    bool fillWants
-  );
+  event OrderStart(bytes32 indexed olKeyHash, address indexed taker, int maxLogPrice, uint fillVolume, bool fillWants);
   // FIXME: got, gave, bounty, and fee can be derived from previous events.
   // FIXME: Well, fees aren't actually explicitly included in any event... Could be included here or in OfferSuccess
   event OrderComplete(uint fee);
 
   /* * Offer execution */
-  event OfferSuccess(
-    address indexed maker, // FIXME: Included since consumers cannot be assumed to know the maker
-    uint id, // FIXME: id could be inferred by indexing the book and simply walking it.
-    uint takerGot, // FIXME: The same goes for this and takerGave, since we can simulate the trade.
-    uint takerGave
-    // FIXME: Include fee?
-  );
+  event OfferSuccess( // FIXME: Included since consumers cannot be assumed to know the maker
+    // FIXME: id could be inferred by indexing the book and simply walking it.
+    // FIXME: The same goes for this and takerGave, since we can simulate the trade.
+  address indexed maker, uint id, uint takerGot, uint takerGave);
+  // FIXME: Include fee?
 
   /* Log information when a trade execution reverts or returns a non empty bytes32 word */
   event OfferFail(
@@ -137,24 +151,11 @@ contract HasMgvEvents {
   useless in client code.
   */
   event OfferWrite(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    address indexed maker,
-    int tick,
-    uint gives,
-    uint gasprice,
-    uint gasreq,
-    uint id
+    bytes32 indexed olKeyHash, address indexed maker, int tick, uint gives, uint gasprice, uint gasreq, uint id
   );
 
   /* * `offerId` was present and is now removed from the book. */
-  event OfferRetract(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    address indexed maker,
-    uint id,
-    bool deprovision
-  );
+  event OfferRetract(bytes32 indexed olKeyHash, address indexed maker, uint id, bool deprovision);
 }
 
 /* # IMaker interface */
@@ -173,8 +174,7 @@ interface IMaker {
 interface ITaker {
   /* Inverted mangrove only: call to taker after loans went through */
   function takerTrade(
-    address outbound_tkn,
-    address inbound_tkn,
+    OLKey calldata olKey,
     // total amount of outbound_tkn token that was flashloaned to the taker
     uint totalGot,
     // total amount of inbound_tkn token that should be made available
@@ -183,11 +183,11 @@ interface ITaker {
 }
 
 /* # Monitor interface
-If enabled, the monitor receives notification after each offer execution and is read for each pair's `gasprice` and `density`. */
+If enabled, the monitor receives notification after each offer execution and is read for each offerList's `gasprice` and `density`. */
 interface IMgvMonitor {
   function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external;
 
   function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external;
 
-  function read(address outbound_tkn, address inbound_tkn) external view returns (uint gasprice, Density density);
+  function read(OLKey memory olKey) external view returns (uint gasprice, Density density);
 }

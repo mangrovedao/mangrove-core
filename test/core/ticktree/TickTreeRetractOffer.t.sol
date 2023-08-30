@@ -123,12 +123,6 @@ contract TickTreeRetractOfferTest is TickTreeTest {
   //   );
   // }
 
-  function logTickPositions(Tick tick) internal pure {
-    console.log("    posInLevel2: %s", vm.toString(tick.posInLevel2()));
-    console.log("    posInLevel1: %s", vm.toString(tick.posInLevel1()));
-    console.log("    posInLevel0: %s", vm.toString(tick.posInLevel0()));
-  }
-
   function run_retract_offer_scenario(RetractOfferScenario memory scenario) internal {
     Tick tick = Tick.wrap(scenario.tickScenario.tick);
     console.log("retract offer scenario");
@@ -148,9 +142,6 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     uint vmSnapshotId = vm.snapshot();
     // 2. Create scenario
     uint[] memory offerIds = add_n_offers_to_tick(scenario.tickScenario.tick, scenario.retractionTickListSize);
-    for (uint i = 0; i < offerIds.length; ++i) {
-      console.log("  offerIds[%s]: %s", i, offerIds[i]);
-    }
     if (scenario.tickScenario.hasHigherTick) {
       add_n_offers_to_tick(scenario.tickScenario.higherTick, 1);
     }

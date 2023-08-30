@@ -1,4 +1,4 @@
-// SPDX-License-Identifier:	AGPL-3.0
+// SPDX-License-Identifier: AGPL-3.0
 
 pragma solidity ^0.8.18;
 
@@ -27,23 +27,23 @@ import "mgv_lib/Debug.sol";
 // The scenarios we want to test are:
 // - empty book (this happens when lower, higher, and insertion ticks are empty)
 // - insertion tick
-// 	  - tick is MIN, MAX, min&max&mid {leaf, level0, level1, level2}
-// 	  - list:
-// 	    1. is empty
-// 	    2. has one offer
-// 	    3. has two offers
+//    - tick is MIN, MAX, min&max&mid {leaf, level0, level1, level2}
+//    - list:
+//      1. is empty
+//      2. has one offer
+//      3. has two offers
 // - higher tick list
 //   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
-// 	    - if feasible, given insertion tick
-// 	 - list:
-// 	   1. is empty
-// 	   2. is non-empty
+//      - if feasible, given insertion tick
+//   - list:
+//     1. is empty
+//     2. is non-empty
 // - lower tick list (in {leaf, level0, level1, level2})
-// 	 - tick is MIN, MAX, in same {leaf, level0, level1, level2}
+//   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
 //     - if feasible, given insertion tick
 //   - list:
-// 	   1. is empty
-// 	   2. non-empty
+//     1. is empty
+//     2. non-empty
 contract TickTreeNewOfferTest is TickTreeTest {
   function setUp() public override {
     super.setUp();
@@ -87,7 +87,6 @@ contract TickTreeNewOfferTest is TickTreeTest {
     run_new_offer_scenarios_for_tick(-4);
   }
 
-  // Can we make offers that keep within range?
   function test_new_offer_for_tick_max() public {
     run_new_offer_scenarios_for_tick(MAX_TICK);
   }

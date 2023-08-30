@@ -591,8 +591,8 @@ contract MgvReaderTest is MangroveTest {
     activateMarket(mktB);
     reader.updateMarket(mktB);
     mgv.deactivate(toOLKey(mktB));
-    reader.updateMarket(mktA);
-    reader.updateMarket(flipped(mktA));
+    reader.updateMarket(mktB);
+    reader.updateMarket(flipped(mktB));
     pushExpectedMarket(mktA, true, true);
 
     if (mktB.tkn0 == mktB.tkn1) {

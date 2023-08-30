@@ -59,7 +59,7 @@ jobs:
     - run: yarn install --immutable
 
     - name: Foundry Setup
-      uses: ./.github/actions/foundry-setup
+      uses: mangrovedao/.github/.github/actions/foundry-setup@master
 
     - name: Solidity Compile
       run: yarn run build

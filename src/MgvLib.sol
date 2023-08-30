@@ -151,7 +151,7 @@ contract HasMgvEvents {
   useless in client code.
   */
   event OfferWrite(
-    bytes32 indexed olKeyHash, address indexed maker, int tick, uint gives, uint gasprice, uint gasreq, uint id
+    bytes32 indexed olKeyHash, address indexed maker, int logPrice, uint gives, uint gasprice, uint gasreq, uint id
   );
 
   /* * `offerId` was present and is now removed from the book. */

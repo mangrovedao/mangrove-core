@@ -12,29 +12,23 @@ import {MgvLib, MgvStructs, IMaker, OLKey} from "./MgvLib.sol";
 import "./MgvLib.sol" as MgvLibWrapper;
 
 interface IMangrove {
-  event Approval(
-    address indexed outbound_tkn,
-    address indexed inbound_tkn,
-    uint indexed tickScale,
-    address owner,
-    address spender,
-    uint value
-  );
+  event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
   event Credit(address indexed maker, uint amount);
   event Debit(address indexed maker, uint amount);
   event Kill();
   event NewMgv();
-  event OfferFail(bytes32 indexed olKeyHash, uint id, address taker, uint takerWants, uint takerGives, bytes32 mgvData);
-  event OfferRetract(bytes32 indexed olKeyHash, uint id, bool deprovision);
-  event OfferSuccess(bytes32 indexed olKeyHash, uint id, address taker, uint takerWants, uint takerGives);
+  event OfferFail(address indexed maker, uint id, uint takerWants, uint takerGives, bytes32 mgvData);
+  event OfferRetract(bytes32 indexed olKeyHash, address indexed maker, uint id, bool deprovision);
+  event OfferSuccess(address indexed maker, uint id, uint takerGot, uint takerGave);
   event OfferWrite(
-    bytes32 indexed olKeyHash, address maker, int logPrice, uint gives, uint gasprice, uint gasreq, uint id
+    bytes32 indexed olKeyHash, address indexed maker, int logPrice, uint gives, uint gasprice, uint gasreq, uint id
   );
-  event OrderComplete(
-    bytes32 indexed olKeyHash, address taker, uint takerGot, uint takerGave, uint penalty, uint feePaid
-  );
+  event OrderComplete(uint fee);
+  event CleanStart(bytes32 indexed olKeyHash, address indexed taker);
+  event CleanOffer(uint indexed offerId, address indexed taker, int logPrice, uint gasreq, uint takerWants);
   event OrderStart(bytes32 indexed olKeyHash, address indexed taker, int maxLogPrice, uint fillVolume, bool fillWants);
-  event PosthookFail(bytes32 indexed olKeyHash, uint offerId, bytes32 posthookData);
+  event PosthookFail(bytes32 posthookData);
+  event OfferPenalty(uint penalty);
   event SetActive(bytes32 indexed olKeyHash, bool value);
   event SetDensityFixed(bytes32 indexed olKeyHash, uint value);
   event SetFee(bytes32 indexed olKeyHash, uint value);

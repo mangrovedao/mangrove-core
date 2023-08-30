@@ -128,7 +128,7 @@ abstract contract TickTreeTest is MangroveTest {
         assertEq(
           isBitSet(level1, level1Pos),
           isBitSet(tickTree.level1[level1Index], level1Pos),
-          string.concat("level1 bit mismatch, pos: ", vm.toString(level1Pos))
+          string.concat("level1 bit mismatch, branch: ", vm.toString(level2Pos), "->", vm.toString(level1Pos))
         );
         if (!isBitSet(level1, level1Pos)) {
           continue;
@@ -140,7 +140,14 @@ abstract contract TickTreeTest is MangroveTest {
           assertEq(
             isBitSet(level0, level0Pos),
             isBitSet(tickTree.level0[level0Index], level0Pos),
-            string.concat("level0 bit mismatch, pos: ", vm.toString(level0Pos))
+            string.concat(
+              "level0 bit mismatch, branch: ",
+              vm.toString(level2Pos),
+              "->",
+              vm.toString(level1Pos),
+              "->",
+              vm.toString(level0Pos)
+            )
           );
           if (!isBitSet(level0, level0Pos)) {
             continue;
@@ -181,9 +188,17 @@ abstract contract TickTreeTest is MangroveTest {
               }
               {
                 MgvStructs.OfferDetailPacked detail = mgv.offerDetails(olKey, offerId);
+                MgvStructs.OfferDetailPacked detailTickTree = tickTree.offers[offerId].detail;
                 assertTrue(
-                  detail.eq(tickTree.offers[offerId].detail),
-                  string.concat("offer detail mismatch, offer detail:", toString(detail))
+                  detail.eq(detailTickTree),
+                  string.concat(
+                    "offer detail mismatch | offerId ",
+                    vm.toString(offerId),
+                    " | MGV ",
+                    toString(detail),
+                    " | tick tree ",
+                    toString(detailTickTree)
+                  )
                 );
               }
             }
@@ -310,16 +325,15 @@ abstract contract TickTreeTest is MangroveTest {
 
           int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, level0Pos);
           Leaf leaf = tickTree.leafs[leafIndex];
-          console.log("      leaf: %s", leafIndex);
           for (uint leafPos = 0; leafPos <= MAX_LEAF_POSITION; ++leafPos) {
             Tick tick = tickFromLeafIndexAndPos(leafIndex, leafPos);
             uint offerId = leaf.firstOfIndex(leafPos);
             if (offerId == 0) {
               continue;
             }
-            console.log("        tick: %s", toString(tick));
+            console.log("      leaf: %s | tick: %s", leafPos, toString(tick));
             do {
-              console.log("          offer: %s", offerId);
+              console.log("        offer: %s", offerId);
               offerId = tickTree.offers[offerId].offer.next();
             } while (offerId != 0);
           }
@@ -371,26 +385,19 @@ abstract contract TickTreeTest is MangroveTest {
     tickTree.local = tickTree.local.tickPosInLeaf(tick.posInLeaf());
   }
 
-  function addOffer(
-    TickTree storage tickTree,
-    Tick tick,
-    int logPrice,
-    uint gives,
-    uint gasreq,
-    uint gasprice,
-    address maker
-  ) internal {
+  function addOffer(TickTree storage tickTree, Tick tick, uint gives, uint gasreq, uint gasprice, address maker)
+    internal
+  {
     uint offerId = 1 + tickTree.local.last();
     tickTree.local = tickTree.local.last(offerId);
 
-    addOffer(tickTree, offerId, tick, logPrice, gives, gasreq, gasprice, maker);
+    addOffer(tickTree, offerId, tick, gives, gasreq, gasprice, maker);
   }
 
   function addOffer(
     TickTree storage tickTree,
     uint offerId,
     Tick tick,
-    int logPrice,
     uint gives,
     uint gasreq,
     uint gasprice,
@@ -409,6 +416,7 @@ abstract contract TickTreeTest is MangroveTest {
     // console.log("leaf after: %s", toString(tickTree.leafs[tick.leafIndex()]));
 
     // Create offer
+    int logPrice = LogPriceLib.fromTick(tick, olKey.tickScale);
     tickTree.offers[offerId].offer =
       MgvStructs.Offer.pack({__prev: lastId, __next: 0, __logPrice: logPrice, __gives: gives});
     tickTree.offers[offerId].detail = MgvStructs.OfferDetail.pack({
@@ -464,14 +472,31 @@ abstract contract TickTreeTest is MangroveTest {
     updateLocalWithBestBranch(tickTree);
   }
 
+  function updateOffer(
+    TickTree storage tickTree,
+    uint offerId,
+    Tick newTick,
+    uint gives,
+    uint gasreq,
+    uint gasprice,
+    address maker
+  ) internal {
+    if (tickTree.offers[offerId].offer.isLive()) {
+      removeOffer(tickTree, offerId);
+    }
+    addOffer(tickTree, offerId, newTick, gives, gasreq, gasprice, maker);
+  }
+
   // # Tick scenario utility structs and functions
 
   struct TickScenario {
     int tick;
     bool hasHigherTick;
     int higherTick;
+    uint higherTickListSize;
     bool hasLowerTick;
     int lowerTick;
+    uint lowerTickListSize;
   }
 
   function generateHigherTickScenarios(int tick) internal pure returns (int[] memory) {
@@ -529,31 +554,66 @@ abstract contract TickTreeTest is MangroveTest {
     return res;
   }
 
-  function generateTickScenarios(int tick) internal pure returns (TickScenario[] memory) {
+  function generateTickScenarios(
+    int tick,
+    uint[] memory higherTickListSizeScenarios,
+    uint[] memory lowerTickListSizeScenarios
+  ) internal pure returns (TickScenario[] memory) {
     int[] memory higherTicks = generateHigherTickScenarios(tick);
     int[] memory lowerTicks = generateLowerTickScenarios(tick);
     TickScenario[] memory tickScenarios =
-      new TickScenario[](1 + higherTicks.length + lowerTicks.length + higherTicks.length * lowerTicks.length);
+    new TickScenario[](1 + higherTicks.length * higherTickListSizeScenarios.length + lowerTicks.length * lowerTickListSizeScenarios.length + higherTicks.length * lowerTicks.length * higherTickListSizeScenarios.length * lowerTickListSizeScenarios.length);
     uint next = 0;
-    tickScenarios[next++] =
-      TickScenario({tick: tick, hasHigherTick: false, higherTick: 0, hasLowerTick: false, lowerTick: 0});
+    tickScenarios[next++] = TickScenario({
+      tick: tick,
+      hasHigherTick: false,
+      higherTick: 0,
+      higherTickListSize: 0,
+      hasLowerTick: false,
+      lowerTick: 0,
+      lowerTickListSize: 0
+    });
     for (uint h = 0; h < higherTicks.length; ++h) {
-      tickScenarios[next++] =
-        TickScenario({tick: tick, hasHigherTick: true, higherTick: higherTicks[h], hasLowerTick: false, lowerTick: 0});
-    }
-    for (uint l = 0; l < lowerTicks.length; ++l) {
-      tickScenarios[next++] =
-        TickScenario({tick: tick, hasHigherTick: false, higherTick: 0, hasLowerTick: true, lowerTick: lowerTicks[l]});
-    }
-    for (uint h = 0; h < higherTicks.length; ++h) {
-      for (uint l = 0; l < lowerTicks.length; ++l) {
+      for (uint hs = 0; hs < higherTickListSizeScenarios.length; ++hs) {
         tickScenarios[next++] = TickScenario({
           tick: tick,
           hasHigherTick: true,
           higherTick: higherTicks[h],
-          hasLowerTick: true,
-          lowerTick: lowerTicks[l]
+          higherTickListSize: higherTickListSizeScenarios[hs],
+          hasLowerTick: false,
+          lowerTick: 0,
+          lowerTickListSize: 0
         });
+      }
+    }
+    for (uint l = 0; l < lowerTicks.length; ++l) {
+      for (uint ls = 0; ls < lowerTickListSizeScenarios.length; ++ls) {
+        tickScenarios[next++] = TickScenario({
+          tick: tick,
+          hasHigherTick: false,
+          higherTick: 0,
+          higherTickListSize: 0,
+          hasLowerTick: true,
+          lowerTick: lowerTicks[l],
+          lowerTickListSize: lowerTickListSizeScenarios[ls]
+        });
+      }
+    }
+    for (uint h = 0; h < higherTicks.length; ++h) {
+      for (uint l = 0; l < lowerTicks.length; ++l) {
+        for (uint hs = 0; hs < higherTickListSizeScenarios.length; ++hs) {
+          for (uint ls = 0; ls < lowerTickListSizeScenarios.length; ++ls) {
+            tickScenarios[next++] = TickScenario({
+              tick: tick,
+              hasHigherTick: true,
+              higherTick: higherTicks[h],
+              higherTickListSize: higherTickListSizeScenarios[hs],
+              hasLowerTick: true,
+              lowerTick: lowerTicks[l],
+              lowerTickListSize: lowerTickListSizeScenarios[ls]
+            });
+          }
+        }
       }
     }
     return tickScenarios;

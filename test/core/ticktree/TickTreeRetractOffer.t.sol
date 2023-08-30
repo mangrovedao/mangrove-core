@@ -47,9 +47,12 @@ contract TickTreeRetractOfferTest is TickTreeTest {
 
   struct RetractOfferScenario {
     TickScenario tickScenario;
-    uint retractionTickListSize;
+    uint offerTickListSize;
     uint offerPos;
   }
+
+  // (list size, offer pos)
+  uint[2][] tickListScenarios = [[1, 0], [2, 0], [2, 1], [3, 1]];
 
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
   // We therefore have a test case per tick instead.
@@ -96,12 +99,13 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     run_retract_offer_scenarios_for_tick(MIN_TICK);
   }
 
-  // (list size, offer pos)
-  uint[2][] tickListScenarios = [[1, 0], [2, 0], [2, 1], [3, 1]];
+  // size of {lower,higher}TickList if the tick is present in the scenario
+  uint[] otherTickListSizeScenarios = [1];
 
   function run_retract_offer_scenarios_for_tick(int tick) internal {
     vm.pauseGasMetering();
-    TickScenario[] memory tickScenarios = generateTickScenarios(tick);
+    TickScenario[] memory tickScenarios =
+      generateTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
     for (uint i = 0; i < tickScenarios.length; ++i) {
       TickScenario memory tickScenario = tickScenarios[i];
       for (uint j = 0; j < tickListScenarios.length; ++j) {
@@ -109,7 +113,7 @@ contract TickTreeRetractOfferTest is TickTreeTest {
         run_retract_offer_scenario(
           RetractOfferScenario({
             tickScenario: tickScenario,
-            retractionTickListSize: tickListScenario[0],
+            offerTickListSize: tickListScenario[0],
             offerPos: tickListScenario[1]
           })
         );
@@ -119,7 +123,7 @@ contract TickTreeRetractOfferTest is TickTreeTest {
 
   // function test_single_scenario() public {
   //   run_retract_offer_scenario(
-  //     RetractOfferScenario({tickScenario: TickScenario({tick: 0, hasHigherTick: true, higherTick: 4, hasLowerTick: false, lowerTick: 0}), retractionTickListSize: 1, offerPos: 0})
+  //     RetractOfferScenario({tickScenario: TickScenario({tick: 0, hasHigherTick: true, higherTick: 4, hasLowerTick: false, lowerTick: 0}), offerTickListSize: 1, offerPos: 0})
   //   );
   // }
 
@@ -127,13 +131,11 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     Tick tick = Tick.wrap(scenario.tickScenario.tick);
     console.log("retract offer scenario");
     console.log("  retractionTick: %s", toString(tick));
-    // logTickPositions(tick);
-    console.log("  retractionTickListSize: %s", scenario.retractionTickListSize);
+    console.log("  offerTickListSize: %s", scenario.offerTickListSize);
     console.log("  offerPos: %s", scenario.offerPos);
     if (scenario.tickScenario.hasHigherTick) {
       Tick higherTick = Tick.wrap(scenario.tickScenario.higherTick);
       console.log("  higherTick: %s", toString(higherTick));
-      // logTickPositions(higherTick);
     }
     if (scenario.tickScenario.hasLowerTick) {
       console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
@@ -141,12 +143,12 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     // 1. Capture state before test
     uint vmSnapshotId = vm.snapshot();
     // 2. Create scenario
-    uint[] memory offerIds = add_n_offers_to_tick(scenario.tickScenario.tick, scenario.retractionTickListSize);
+    uint[] memory offerIds = add_n_offers_to_tick(scenario.tickScenario.tick, scenario.offerTickListSize);
     if (scenario.tickScenario.hasHigherTick) {
-      add_n_offers_to_tick(scenario.tickScenario.higherTick, 1);
+      add_n_offers_to_tick(scenario.tickScenario.higherTick, scenario.tickScenario.higherTickListSize);
     }
     if (scenario.tickScenario.hasLowerTick) {
-      add_n_offers_to_tick(scenario.tickScenario.lowerTick, 1);
+      add_n_offers_to_tick(scenario.tickScenario.lowerTick, scenario.tickScenario.lowerTickListSize);
     }
     // 3. Snapshot tick tree
     TickTree storage tickTree = snapshotTickTree();

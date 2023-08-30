@@ -103,10 +103,13 @@ contract TickTreeNewOfferTest is TickTreeTest {
   }
 
   uint[] tickListSizeScenarios = [0, 1, 2];
+  // size of {lower,higher}TickList if the tick is present in the scenario
+  uint[] otherTickListSizeScenarios = [1];
 
   function run_new_offer_scenarios_for_tick(int tick) internal {
     vm.pauseGasMetering();
-    TickScenario[] memory tickScenarios = generateTickScenarios(tick);
+    TickScenario[] memory tickScenarios =
+      generateTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
     for (uint i = 0; i < tickScenarios.length; ++i) {
       TickScenario memory tickScenario = tickScenarios[i];
       for (uint j = 0; j < tickListSizeScenarios.length; ++j) {
@@ -133,10 +136,10 @@ contract TickTreeNewOfferTest is TickTreeTest {
     // 2. Create scenario
     add_n_offers_to_tick(scenario.tickScenario.tick, scenario.insertionTickListSize);
     if (scenario.tickScenario.hasHigherTick) {
-      add_n_offers_to_tick(scenario.tickScenario.higherTick, 1);
+      add_n_offers_to_tick(scenario.tickScenario.higherTick, scenario.tickScenario.higherTickListSize);
     }
     if (scenario.tickScenario.hasLowerTick) {
-      add_n_offers_to_tick(scenario.tickScenario.lowerTick, 1);
+      add_n_offers_to_tick(scenario.tickScenario.lowerTick, scenario.tickScenario.lowerTickListSize);
     }
     // 3. Snapshot tick tree
     TickTree storage tickTree = snapshotTickTree();
@@ -145,7 +148,7 @@ contract TickTreeNewOfferTest is TickTreeTest {
     int logPrice = LogPriceLib.fromTick(_insertionTick, olKey.tickScale);
     uint gives = getAcceptableGivesForTick(_insertionTick, 50_000);
     mgv.newOfferByLogPrice(olKey, logPrice, gives, 50_000, 50);
-    addOffer(tickTree, _insertionTick, logPrice, gives, 50_000, 50, $(this));
+    addOffer(tickTree, _insertionTick, gives, 50_000, 50, $(this));
     // 5. Assert that Mangrove and tick tree are equal
     assertMgvOfferListEqToTickTree(tickTree);
     // 6. Restore state from before test

@@ -7,7 +7,7 @@ import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
-import {MIDDLE_TICK} from "./GasTestBase.t.sol";
+import {MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
 import {ActivateSemibook} from "mgv_script/core/ActivateSemibook.s.sol";
 import "mgv_lib/Debug.sol";
 import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
@@ -17,8 +17,8 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
   TestTaker taker;
   PinnedPolygonFork internal fork;
 
-  function getStored() internal view override returns (AbstractMangrove, TestTaker, address, address, uint) {
-    return (mgv, taker, $(base), $(quote), 0);
+  function getStored() internal view override returns (AbstractMangrove, TestTaker, OLKey memory, uint) {
+    return (mgv, taker, olKey, 0);
   }
 
   function setUp() public virtual override {
@@ -39,10 +39,12 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     address quoteAddress = fork.get(quoteToken);
     base = TestToken(baseAddress);
     quote = TestToken(quoteAddress);
-    setupMarket(base, quote);
-    setupMarket(quote, base);
+    olKey = OLKey($(base), $(quote), options.defaultTickscale);
+    lo = OLKey($(quote), $(base), options.defaultTickscale);
+    setupMarket(olKey);
+    setupMarket(lo);
 
-    taker = setupTaker($(base), $(quote), "Taker");
+    taker = setupTaker(olKey, "Taker");
     deal($(base), address(taker), 200000 ether);
     deal($(quote), address(taker), 200000 ether);
     taker.approveMgv(quote, 200000 ether);
@@ -59,26 +61,26 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     vm.prank(maker);
     TransferLib.approveToken(quote, $(mgv), type(uint).max);
     vm.prank(maker);
-    mgv.newOfferByTick($(base), $(quote), MIDDLE_TICK, 1, 100000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1, 100000, 0);
     vm.prank(maker);
-    mgv.newOfferByTick($(quote), $(base), MIDDLE_TICK, 1, 100000, 0);
+    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, 1, 100000, 0);
   }
 
   function test_gasbase_to_empty_book_base_quote() public {
-    AbstractMangrove mgv_ = mgv;
+    (AbstractMangrove _mgv,, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv_.marketOrderByTick($(base), $(quote), MIDDLE_TICK, 1, false);
+    _mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
     gas_();
     description = string.concat(description, " - Case: base/quote gasbase for taking single offer to empty book");
     printDescription();
   }
 
   function test_gasbase_to_empty_book_quote_base() public {
-    AbstractMangrove mgv_ = mgv;
+    (AbstractMangrove _mgv,, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
-    mgv_.marketOrderByTick($(base), $(quote), MIDDLE_TICK, 1, false);
+    _mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
     gas_();
     description = string.concat(description, " - Case: quote/base gasbase for taking single offer to empty book");
     printDescription();
@@ -86,8 +88,8 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
 
   function test_gasbase_transfers_estimate() public {
     ActivateSemibook semibook = new ActivateSemibook();
-    uint outbound_gas = semibook.measureTransferGas(base);
-    uint inbound_gas = semibook.measureTransferGas(quote);
+    uint outbound_gas = semibook.measureTransferGas($(base));
+    uint inbound_gas = semibook.measureTransferGas($(quote));
     uint gasbase = 2 * (outbound_gas + inbound_gas);
     console.log("Gas used: %s", gasbase);
     description = string.concat(description, " - Case: ActivateSemibook transfers estimate");

@@ -23,7 +23,7 @@ the float <-> fixed conversion is format agnostic but the expectation is that fi
 
 The encoding is nonstandard so the code can be simpler.
 
-There are no subnormal floats in this encoding, [mantissa][exp] means:
+There are no subnormal floats in this encoding, [exp][mantissa] means:
 
   if exp is 0 or 1: 0bmantissa     * 2^-32
   otherwise:        0b1.mantissa * 2^(exp-32)

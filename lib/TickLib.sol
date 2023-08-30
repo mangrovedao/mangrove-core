@@ -160,42 +160,41 @@ library LeafLib {
 
 }
 
-library TickLib {
+library LogPriceLib {
   // Could have an INVALID tick that is > 24 bits? But in `local` how do I write "empty"?
   int constant BP = 1.0001 * 1e18;
   // FP.lnWad(BP)
   uint constant lnBP = 99995000333308;
+  // FIXME should depend on the min and max prices 
+  int constant MIN_LOG_PRICE = -524287;
+  int constant MAX_LOG_PRICE = -MIN_LOG_PRICE;
 
-  function inRange(Tick tick) internal pure returns (bool) {
-    return Tick.unwrap(tick) >= MIN_TICK && Tick.unwrap(tick) <= MAX_TICK;
+  function inRange(int logPrice) internal pure returns (bool) {
+    return logPrice >= MIN_LOG_PRICE && logPrice <= MAX_LOG_PRICE;
+  }
+  function logPriceFromPrice_e18(uint price_e18) internal pure returns (int) {
+    return logPriceFromVolumes(price_e18, 1 ether);
   }
 
-  function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2) internal pure returns (Tick) {
-    unchecked {
-      uint utick = tickPosInLeaf |
-        ((BitLib.ctz(Field.unwrap(level0)) |
-          (BitLib.ctz(Field.unwrap(level1)) |
-            uint((int(BitLib.ctz(Field.unwrap(level2)))-LEVEL2_SIZE/2) << LEVEL1_SIZE_BITS)) 
-            << LEVEL0_SIZE_BITS)
-          << LEAF_SIZE_BITS);
-      return Tick.wrap(int(utick));
-    }
+  // tick to price, price must not exceed max
+  // if tickscale is 1 maxtick is maxprice
+  // the only way there is a general max tickscale is if I cant have as many ticks as I want?
+  // 
+  // FIXME ensure that you only called tick*tickScale if you previously stored the tick as a result of logPrice/tickScale. Otherwise you may go beyond the MAX/MIN.
+  function fromTick(Tick tick, uint tickScale) internal pure returns (int) {
+    return Tick.unwrap(tick) * int(tickScale);
   }
 
-  function tickFromTakerVolumes(uint takerGives, uint takerWants) internal pure returns (Tick) {
+
+  function logPriceFromTakerVolumes(uint takerGives, uint takerWants) internal pure returns (int) {
     if (takerGives == 0 || takerWants == 0) {
       // If inboundAmt is 0 then the price is irrelevant for taker
-      return Tick.wrap(MAX_TICK);
+      return MAX_LOG_PRICE;
     }
-    return tickFromVolumes(takerGives, takerWants);
+    return logPriceFromVolumes(takerGives, takerWants);
   }
 
-  // returns log_(1.0001)(wants/gives)
-  // with wants/gives on 96 bits, tick will be < 24bits
-  // never overstimates tick (but takes the highest tick that avoids doing so)
-  // wants will be adjusted down from the original
-  // FIXME use unchecked math but specify precise bounds on what inputs do not overflow
-  function tickFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (Tick) {
+  function logPriceFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (int logPrice) {
     (uint num, uint den) = (inboundAmt,outboundAmt);
     if (inboundAmt < outboundAmt) {
       (num,den) = (den,num);
@@ -209,17 +208,13 @@ library TickLib {
       lbpPrice = - lbpPrice;
     }
 
-    uint pr = Tick.wrap(lbpPrice).priceFromTick_e18();
+    uint pr = priceFromLogPrice_e18(lbpPrice);
     if (pr > inboundAmt * 1e18 / outboundAmt) {
       lbpPrice = lbpPrice - 1;
     } else {
     }
 
-    return Tick.wrap(lbpPrice);
-  }
-
-  function tickFromPrice_e18(uint price) internal pure returns (Tick) {
-    return tickFromVolumes(price, 1 ether);
+    return lbpPrice;
   }
 
   // priceFromTick_e18(Tick.wrap(MAX_TICK));
@@ -238,26 +233,26 @@ library TickLib {
     - priceFromTick_e18 returns 1.0001^tick * 1e18
     - with volumes on 96 bits, and a tick in range, there is no overflow doing bp^tick * 1e18 * volume / 1e18
     */
-  function priceFromTick_e18(Tick tick) internal pure returns (uint) {
-    require(inRange(tick),"mgv/priceFromTick/outOfRange");
+  function priceFromLogPrice_e18(int logPrice) internal pure returns (uint) {
+    require(inRange(logPrice),"mgv/priceFromLogPrice/outOfRange");
     // FIXME this must round up so tick(price(tick)) = tick
     // FIXME add a test for this
     // Right now e.g. priceFromTick(1) is too low, and tickFromVolumes(1 ether,Tick(1).outboundFromInbound(1 ether)) is 0 (should be 1)
-    return uint(FP.powWad(BP, Tick.unwrap(tick) * 1e18));
+    return uint(FP.powWad(BP, logPrice * 1e18));
   }
 
   // tick underestimates the price, so we underestimate  inbound here, i.e. the inbound/outbound price will again be underestimated
-  function inboundFromOutbound(Tick tick, uint outboundAmt) internal pure returns (uint) {
-    return tick.priceFromTick_e18() * outboundAmt/1e18;
+  function inboundFromOutbound(int logPrice, uint outboundAmt) internal pure returns (uint) {
+    return priceFromLogPrice_e18(logPrice) * outboundAmt/1e18;
   }
 
-  function inboundFromOutboundUp(Tick tick, uint outboundAmt) internal pure returns (uint) {
-    uint prod = tick.priceFromTick_e18() * outboundAmt;
+  function inboundFromOutboundUp(int logPrice, uint outboundAmt) internal pure returns (uint) {
+    uint prod = priceFromLogPrice_e18(logPrice) * outboundAmt;
     return prod/1e18 + (prod%1e18==0 ? 0 : 1);
   }
 
-  function inboundFromOutboundUpTick(Tick tick, uint outboundAmt) internal pure returns (uint) {
-    uint nextPrice_e18 = Tick.wrap(Tick.unwrap(tick)+1).priceFromTick_e18();
+  function inboundFromOutboundUpTick(int logPrice, uint outboundAmt) internal pure returns (uint) {
+    uint nextPrice_e18 = priceFromLogPrice_e18(logPrice+1);
     uint prod = nextPrice_e18 * outboundAmt;
     prod = prod/1e18;
     if (prod == 0) {
@@ -267,17 +262,56 @@ library TickLib {
   }  
 
   // tick underestimates the price, and we udnerestimate outbound here, so price will be overestimated here
-  function outboundFromInbound(Tick tick, uint inboundAmt) internal pure returns (uint) {
-    return inboundAmt * 1e18/tick.priceFromTick_e18();
+  function outboundFromInbound(int logPrice, uint inboundAmt) internal pure returns (uint) {
+    return inboundAmt * 1e18/priceFromLogPrice_e18(logPrice);
   }
 
-  function outboundFromInboundUp(Tick tick, uint inboundAmt) internal pure returns (uint) {
+  function outboundFromInboundUp(int logPrice, uint inboundAmt) internal pure returns (uint) {
     uint prod = inboundAmt * 1e18;
-    uint price = tick.priceFromTick_e18();
+    uint price = priceFromLogPrice_e18(logPrice);
     return prod/price + (prod%price==0?0:1);
   }
 
 
+
+}
+
+library TickLib {
+
+  function inRange(Tick tick) internal pure returns (bool) {
+    return Tick.unwrap(tick) >= MIN_TICK && Tick.unwrap(tick) <= MAX_TICK;
+  }
+
+  function fromLogPrice(int logPrice, uint tickScale) internal pure returns (Tick) {
+    // Do not force logPrices to fit the tickScale (aka logPrice%tickScale==0)
+    // Round all prices down (aka cheaper for taker)
+    int tick = logPrice / int(tickScale);
+    if (logPrice < 0 && tick % int(tickScale) != 0) {
+      tick = tick - 1;
+    }
+    return Tick.wrap(tick);
+  }
+
+  function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2) internal pure returns (Tick) {
+    unchecked {
+      uint utick = tickPosInLeaf |
+        ((BitLib.ctz(Field.unwrap(level0)) |
+          (BitLib.ctz(Field.unwrap(level1)) |
+            uint((int(BitLib.ctz(Field.unwrap(level2)))-LEVEL2_SIZE/2) << LEVEL1_SIZE_BITS)) 
+            << LEVEL0_SIZE_BITS)
+          << LEAF_SIZE_BITS);
+      return Tick.wrap(int(utick));
+    }
+  }
+
+  // returns log_(1.0001)(wants/gives)
+  // with wants/gives on 96 bits, tick will be < 24bits
+  // never overstimates tick (but takes the highest tick that avoids doing so)
+  // wants will be adjusted down from the original
+  // FIXME use unchecked math but specify precise bounds on what inputs do not overflow
+  // function tickFromVolumes(uint inboundAmt, uint outboundAmt, uint tickScale) internal pure returns (Tick) {
+  //   return Tick.wrap(logPriceFromVolumes(inboundAmt,outboundAmt) * int(tickScale));
+  // }
 
   // I could revert to indices being uints if I do (+ BIG_NUMBER) systematically,
   // then / something. More gas costly (a little) but

@@ -5,7 +5,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import "mgv_lib/Test2.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
-import {MgvStructs, DensityLib} from "mgv_src/MgvLib.sol";
+import {MgvStructs, DensityLib, OLKey} from "mgv_src/MgvLib.sol";
 
 uint constant COVER_FACTOR = 1000;
 
@@ -25,23 +25,25 @@ contract ActivateSemibook is Test2, Deployer {
   function run() public {
     innerRun({
       mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
-      outbound_tkn: IERC20(envAddressOrName("OUTBOUND_TKN")),
-      inbound_tkn: IERC20(envAddressOrName("INBOUND_TKN")),
+      olKey: OLKey({
+        outbound: envAddressOrName("OUTBOUND_TKN"),
+        inbound: envAddressOrName("INBOUND_TKN"),
+        tickScale: vm.envUint("TICKSCALE")
+      }),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
       fee: vm.envUint("FEE")
     });
   }
 
-  function innerRun(Mangrove mgv, IERC20 outbound_tkn, IERC20 inbound_tkn, uint outbound_in_gwei, uint fee) public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(address(0), address(0));
-    innerRun(mgv, global.gasprice(), outbound_tkn, inbound_tkn, outbound_in_gwei, fee);
+  function innerRun(Mangrove mgv, OLKey memory olKey, uint outbound_in_gwei, uint fee) public {
+    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
+    innerRun(mgv, global.gasprice(), olKey, outbound_in_gwei, fee);
   }
 
   function innerRun(
     Mangrove mgv,
     uint gaspriceOverride, // the gasprice that is used to compute density. Can be set higher that mangrove's gasprice to avoid dust without impacting user's bounty
-    IERC20 outbound_tkn,
-    IERC20 inbound_tkn,
+    OLKey memory olKey,
     uint outbound_in_gwei,
     uint fee
   ) public {
@@ -52,8 +54,8 @@ contract ActivateSemibook is Test2, Deployer {
     sequence.
 
     */
-    uint outbound_gas = measureTransferGas(outbound_tkn);
-    uint inbound_gas = measureTransferGas(inbound_tkn);
+    uint outbound_gas = measureTransferGas(olKey.outbound);
+    uint inbound_gas = measureTransferGas(olKey.inbound);
     uint gasbase = 2 * (outbound_gas + inbound_gas);
     console.log("Measured gasbase: %d", gasbase);
 
@@ -72,7 +74,7 @@ contract ActivateSemibook is Test2, Deployer {
        - global.gasprice() is in gwei/gas
        - so density is in (base token units token)/gas
     */
-    uint outbound_decimals = outbound_tkn.decimals();
+    uint outbound_decimals = IERC20(olKey.outbound).decimals();
     uint density = DensityLib.fixedFromParams({
       outbound_decimals: outbound_decimals,
       gasprice_in_gwei: gaspriceOverride,
@@ -83,28 +85,24 @@ contract ActivateSemibook is Test2, Deployer {
     // min density of at least 1 wei of outbound token
     density = density == 0 ? 1 : density;
     console.log("With gasprice: %d gwei, cover factor:%d", gaspriceOverride, COVER_FACTOR);
-    console.log("Derived density %s %s per gas unit", toFixed(density, outbound_decimals), outbound_tkn.symbol());
+    console.log(
+      "Derived density %s %s per gas unit", toFixed(density, outbound_decimals), IERC20(olKey.outbound).symbol()
+    );
 
     broadcast();
-    mgv.activate({
-      outbound_tkn: address(outbound_tkn),
-      inbound_tkn: address(inbound_tkn),
-      fee: fee,
-      densityFixed: density,
-      offer_gasbase: gasbase
-    });
+    mgv.activate({olKey: olKey, fee: fee, densityFixed: density, offer_gasbase: gasbase});
   }
 
-  function measureTransferGas(IERC20 tkn) public returns (uint) {
+  function measureTransferGas(address tkn) public returns (uint) {
     address someone = freshAddress();
     vm.prank(someone);
-    tkn.approve(address(this), type(uint).max);
-    deal(address(tkn), someone, 10);
+    IERC20(tkn).approve(address(this), type(uint).max);
+    deal(tkn, someone, 10);
     /* WARNING: gas metering is done by local execution, which means that on
      * networks that have different EIPs activated, there will be discrepancies. */
     uint post;
     uint pre = gasleft();
-    tkn.transferFrom(someone, address(this), 1);
+    IERC20(tkn).transferFrom(someone, address(this), 1);
     post = gasleft();
     return pre - post;
   }

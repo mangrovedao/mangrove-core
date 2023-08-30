@@ -17,17 +17,17 @@ contract ScenariiTest is MangroveTest {
   //receive() external payable {}
 
   function saveOffers() internal {
-    uint offerId = mgv.best($(base), $(quote));
+    uint offerId = mgv.best(olKey);
     while (offerId != 0) {
       (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail) =
-        mgv.offerInfo($(base), $(quote), offerId);
+        mgv.offerInfo(olKey, offerId);
       console.log("Saving Info for offer id", offerId);
       console.log("  wants", offer.wants());
       console.log("  gives", offer.gives);
       offers[offerId][Info.makerWants] = offer.wants();
       offers[offerId][Info.makerGives] = offer.gives;
       offers[offerId][Info.gasreq] = offerDetail.gasreq;
-      offerId = pair.nextOfferIdById(offerId);
+      offerId = reader.nextOfferIdById(olKey, offerId);
     }
   }
 
@@ -55,15 +55,15 @@ contract ScenariiTest is MangroveTest {
   function setUp() public override {
     super.setUp();
 
-    mgv.setFee($(base), $(quote), testFee);
+    mgv.setFee(olKey, testFee);
 
-    makers = setupMakerDeployer($(base), $(quote));
+    makers = setupMakerDeployer(olKey);
     makers.deploy(4);
     for (uint i = 1; i < makers.length(); i++) {
       vm.label(address(makers.getMaker(i)), string.concat("maker-", vm.toString(i)));
     }
     vm.label(address(makers.getMaker(0)), "failer");
-    taker = setupTaker($(base), $(quote), "taker");
+    taker = setupTaker(olKey, "taker");
 
     deal(address(makers), 80 ether);
     makers.dispatch();
@@ -80,62 +80,55 @@ contract ScenariiTest is MangroveTest {
     saveBalances();
   }
 
-  function test_snipe_insert_and_fail() public {
-    offerOf = insert();
+  // FIXME: Can this test be made meaningful without snipe?
+  // function test_snipe_insert_and_fail() public {
+  //   offerOf = insert();
 
-    saveBalances();
-    saveOffers();
-    // expectFrom($(mgv));
-    // emit OrderStart(
-    //   $(base),
-    //   $(quote),
-    //   address(taker),
-    //   0,
-    //   0.3 ether,
-    //   true
-    // );
-    // expectFrom($(mgv));
-    // emit OrderComplete(
-    //   0.3 ether * testFee / 10_000
-    // );
-    // snipe();
-    logOrderBook($(base), $(quote), 4);
+  //   saveBalances();
+  //   saveOffers();
+  //   expectFrom($(mgv));
+  //   emit OrderStart();
+  //   expectFrom($(mgv));
+  //   emit OrderComplete(
+  //     $(base),
+  //     $(quote),
+  //     address(taker),
+  //     0.3 ether * (10_000 - testFee) / 10_000,
+  //     374979485972146063, // should not be hardcoded
+  //     0,
+  //     0.3 ether * testFee / 10_000
+  //   );
+  //   snipe();
+  //   logOrderBook($(base), $(quote), 4);
 
-    // restore offer that was deleted after partial fill, minus taken amount
-    makers.getMaker(2).updateOfferByVolume(1 ether - 0.375 ether, 0.8 ether - 0.3 ether, 80_000, 2);
+  //   // restore offer that was deleted after partial fill, minus taken amount
+  //   makers.getMaker(2).updateOfferByVolume(1 ether - 0.375 ether, 0.8 ether - 0.3 ether, 80_000, 2);
 
-    logOrderBook($(base), $(quote), 4);
+  //   logOrderBook($(base), $(quote), 4);
 
-    saveBalances();
-    saveOffers();
-    mo();
-    logOrderBook($(base), $(quote), 4);
+  //   saveBalances();
+  //   saveOffers();
+  //   mo();
+  //   logOrderBook($(base), $(quote), 4);
 
-    saveBalances();
-    saveOffers();
-    collectFailingOffer(offerOf[0]);
-    logOrderBook($(base), $(quote), 4);
-    saveBalances();
-    saveOffers();
-  }
+  //   saveBalances();
+  //   saveOffers();
+  //   collectFailingOffer(offerOf[0]);
+  //   logOrderBook($(base), $(quote), 4);
+  //   saveBalances();
+  //   saveOffers();
+  // }
 
   /* **************** TEST ROUTINES ************* */
 
   function collectFailingOffer(uint failingOfferId) internal {
     // executing failing offer
-    try taker.takeWithInfo(failingOfferId, 0.5 ether) returns (bool success, uint takerGot, uint takerGave, uint, uint)
-    {
-      // take should return false not throw
-      assertTrue(!success, "Failer should fail");
-      assertEq(takerGot, 0, "Failed offer should declare 0 takerGot");
-      assertEq(takerGave, 0, "Failed offer should declare 0 takerGave");
+    try taker.clean(failingOfferId, 0.5 ether) {
       // failingOffer should have been removed from Mgv
       {
-        assertTrue(
-          !mgv.offers($(base), $(quote), failingOfferId).isLive(), "Failing offer should have been removed from Mgv"
-        );
+        assertTrue(!mgv.offers(olKey, failingOfferId).isLive(), "Failing offer should have been removed from Mgv");
       }
-      uint provision = reader.getProvision($(base), $(quote), offers[failingOfferId][Info.gasreq]);
+      uint provision = reader.getProvision(olKey, offers[failingOfferId][Info.gasreq], 0);
       uint returned = mgv.balanceOf(address(makers.getMaker(0))) - balances.makersBalanceWei[0];
       assertEq(
         $(mgv).balance,
@@ -166,7 +159,7 @@ contract ScenariiTest is MangroveTest {
       gives: 1 ether,
       gasreq: 90_000
     });
-    (MgvStructs.GlobalPacked cfg,) = mgv.config($(base), $(quote));
+    (MgvStructs.GlobalPacked cfg,) = mgv.config(olKey);
     _offerOf[0] = makers.getMaker(0).newOfferByVolume({ //failer offer 4
       wants: 20 ether,
       gives: 10 ether,
@@ -174,8 +167,8 @@ contract ScenariiTest is MangroveTest {
     });
     //Checking makers have correctly provisoned their offers
     for (uint i = 0; i < makers.length(); i++) {
-      uint gasreq_i = mgv.offerDetails($(base), $(quote), _offerOf[i]).gasreq();
-      uint provision_i = reader.getProvision($(base), $(quote), gasreq_i);
+      uint gasreq_i = mgv.offerDetails(olKey, _offerOf[i]).gasreq();
+      uint provision_i = reader.getProvision(olKey, gasreq_i, 0);
       assertEq(
         mgv.balanceOf(address(makers.getMaker(i))),
         balances.makersBalanceWei[i] - provision_i,
@@ -183,10 +176,10 @@ contract ScenariiTest is MangroveTest {
       );
     }
     //Checking offers are correctly positioned (3 > 2 > 1 > 0)
-    uint offerId = mgv.best($(base), $(quote));
+    uint offerId = mgv.best(olKey);
     uint expected_maker = 3;
     while (offerId != 0) {
-      (, MgvStructs.OfferDetailUnpacked memory od) = mgv.offerInfo($(base), $(quote), offerId);
+      (, MgvStructs.OfferDetailUnpacked memory od) = mgv.offerInfo(olKey, offerId);
       assertEq(
         od.maker,
         address(makers.getMaker(expected_maker)),
@@ -196,7 +189,7 @@ contract ScenariiTest is MangroveTest {
       unchecked {
         expected_maker -= 1;
       }
-      offerId = pair.nextOfferIdById(offerId);
+      offerId = reader.nextOfferIdById(olKey, offerId);
     }
     return _offerOf;
   }
@@ -244,11 +237,11 @@ contract ScenariiTest is MangroveTest {
     // Checking taker balance
     assertEq(
       base.balanceOf(address(taker)), // actual
-      balances.takerBalanceA + reader.minusFee($(base), $(quote), takerWants), // expected
+      balances.takerBalanceA + reader.minusFee(olKey, takerWants), // expected
       "incorrect taker A balance"
     );
 
-    assertEq(takerGot, reader.minusFee($(base), $(quote), takerWants), "Incorrect declared takerGot");
+    assertEq(takerGot, reader.minusFee(olKey, takerWants), "Incorrect declared takerGot");
 
     uint shouldGive = (offers[3][Info.makerWants] + offers[2][Info.makerWants] + leftMkrWants);
     assertApproxEqRel(
@@ -263,7 +256,7 @@ contract ScenariiTest is MangroveTest {
     // Checking DEX Fee Balance
     assertEq(
       base.balanceOf(address(mgv)), //actual
-      balances.mgvBalanceBase + reader.getFee($(base), $(quote), takerWants), //expected
+      balances.mgvBalanceBase + reader.getFee(olKey, takerWants), //expected
       "incorrect Mangrove balances"
     );
   }
@@ -274,62 +267,63 @@ contract ScenariiTest is MangroveTest {
     uint expectedFee;
   }
 
-  function snipe() internal returns (uint takerGot, uint takerGave, uint expectedFee) {
-    Bag memory bag;
-    bag.orderAmount = 0.3 ether;
-    bag.snipedId = 2;
-    // uint orderAmount = 0.3 ether;
-    // uint snipedId = 2;
-    expectedFee = reader.getFee($(base), $(quote), bag.orderAmount);
-    TestMaker maker = makers.getMaker(bag.snipedId); // maker whose offer will be sniped
+  // FIXME: Can this meaningfully be converted to clean and/or marketOrder?
+  // function snipe() internal returns (uint takerGot, uint takerGave, uint expectedFee) {
+  //   Bag memory bag;
+  //   bag.orderAmount = 0.3 ether;
+  //   bag.snipedId = 2;
+  //   // uint orderAmount = 0.3 ether;
+  //   // uint snipedId = 2;
+  //   expectedFee = reader.getFee($(base), $(quote), bag.orderAmount);
+  //   TestMaker maker = makers.getMaker(bag.snipedId); // maker whose offer will be sniped
 
-    //(uint init_mkr_wants, uint init_mkr_gives,,,,,)=mgv.getOfferInfo(2);
-    //---------------SNIPE------------------//
-    {
-      bool takeSuccess;
-      (takeSuccess, takerGot, takerGave,,) = taker.takeWithInfo(bag.snipedId, bag.orderAmount);
+  //   //(uint init_mkr_wants, uint init_mkr_gives,,,,,)=mgv.getOfferInfo(2);
+  //   //---------------SNIPE------------------//
+  //   {
+  //     bool takeSuccess;
+  //     (takeSuccess, takerGot, takerGave,,) = taker.takeWithInfo(bag.snipedId, bag.orderAmount);
 
-      assertTrue(takeSuccess, "snipe should be a success");
-    }
-    assertEq(
-      base.balanceOf(address(mgv)), //actual
-      balances.mgvBalanceBase + expectedFee, // expected
-      "incorrect Mangrove A balance"
-    );
-    assertEq(
-      base.balanceOf(address(taker)), // actual
-      balances.takerBalanceA + bag.orderAmount - expectedFee, // expected
-      "incorrect taker A balance"
-    );
-    assertEq(
-      takerGot,
-      bag.orderAmount - expectedFee, // expected
-      "Incorrect takerGot"
-    );
-    {
-      uint shouldGive =
-        (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives];
-      assertApproxEqRel(
-        quote.balanceOf(address(taker)), balances.takerBalanceB - shouldGive, relError(10), "incorrect taker B balance"
-      );
-      assertApproxEqRel(takerGave, shouldGive, relError(10), "Incorrect takerGave");
-    }
-    assertEq(
-      base.balanceOf(address(maker)),
-      balances.makersBalanceA[bag.snipedId] - bag.orderAmount,
-      "incorrect maker A balance"
-    );
-    assertApproxEqRel(
-      quote.balanceOf(address(maker)),
-      balances.makersBalanceB[bag.snipedId]
-        + (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives],
-      relError(10),
-      "incorrect maker B balance"
-    );
-    // Testing residual offer
-    (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo($(base), $(quote), bag.snipedId);
-    assertTrue(ofr.gives == 0, "Offer should not have a residual");
-  }
+  //     assertTrue(takeSuccess, "snipe should be a success");
+  //   }
+  //   assertEq(
+  //     base.balanceOf(address(mgv)), //actual
+  //     balances.mgvBalanceBase + expectedFee, // expected
+  //     "incorrect Mangrove A balance"
+  //   );
+  //   assertEq(
+  //     base.balanceOf(address(taker)), // actual
+  //     balances.takerBalanceA + bag.orderAmount - expectedFee, // expected
+  //     "incorrect taker A balance"
+  //   );
+  //   assertEq(
+  //     takerGot,
+  //     bag.orderAmount - expectedFee, // expected
+  //     "Incorrect takerGot"
+  //   );
+  //   {
+  //     uint shouldGive =
+  //       (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives];
+  //     assertApproxEqRel(
+  //       quote.balanceOf(address(taker)), balances.takerBalanceB - shouldGive, relError(10), "incorrect taker B balance"
+  //     );
+  //     assertApproxEqRel(takerGave, shouldGive, relError(10), "Incorrect takerGave");
+  //   }
+  //   assertEq(
+  //     base.balanceOf(address(maker)),
+  //     balances.makersBalanceA[bag.snipedId] - bag.orderAmount,
+  //     "incorrect maker A balance"
+  //   );
+  //   assertApproxEqRel(
+  //     quote.balanceOf(address(maker)),
+  //     balances.makersBalanceB[bag.snipedId]
+  //       + (bag.orderAmount * offers[bag.snipedId][Info.makerWants]) / offers[bag.snipedId][Info.makerGives],
+  //     relError(10),
+  //     "incorrect maker B balance"
+  //   );
+  //   // Testing residual offer
+  //   (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo($(base), $(quote), bag.snipedId);
+  //   assertTrue(ofr.gives == 0, "Offer should not have a residual");
+  // }
 }
 
 contract DeepCollectTest is MangroveTest {
@@ -340,13 +334,13 @@ contract DeepCollectTest is MangroveTest {
 
   function setUp() public override {
     super.setUp();
-    tkr = setupTaker($(base), $(quote), "taker");
+    tkr = setupTaker(olKey, "taker");
 
     deal($(quote), address(tkr), 5 ether);
     tkr.approveMgv(quote, 20 ether);
     tkr.approveMgv(base, 20 ether);
 
-    evil = new TestMoriartyMaker(mgv, $(base), $(quote));
+    evil = new TestMoriartyMaker(mgv, olKey);
     vm.label(address(evil), "Moriarty");
     deal(address(evil), 20 ether);
     evil.provisionMgv(10 ether);
@@ -362,6 +356,6 @@ contract DeepCollectTest is MangroveTest {
 
   function moWithFailures() internal {
     tkr.marketOrderWithFail({wants: 10 ether, gives: 30 ether});
-    assertTrue(reader.isEmptyOB($(base), $(quote)), "Order book should be empty");
+    assertTrue(reader.isEmptyOB(olKey), "Order book should be empty");
   }
 }

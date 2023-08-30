@@ -46,7 +46,8 @@ import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {console2, StdStorage, stdStorage} from "forge-std/Test.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
-import {TickLib, Tick} from "mgv_lib/TickLib.sol";
+import {TickLib, Tick, LogPriceLib} from "mgv_lib/TickLib.sol";
+import {OLKey} from "mgv_src/MgvLib.sol";
 
 contract PermitTest is MangroveTest, TrivialTestMaker {
   using stdStorage for StdStorage;
@@ -83,25 +84,23 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     });
   }
 
-  function snipeFor(uint value, address who) internal returns (uint, uint, uint, uint, uint) {
-    Tick tick = TickLib.tickFromPrice_e18(1 ether);
-    return testMgv.snipesForInTest(
-      $(base), $(quote), wrap_dynamic([uint(1), uint(Tick.unwrap(tick)), value, 300_000]), true, who
-    );
+  function marketOrderFor(uint value, address who) internal returns (uint, uint, uint, uint) {
+    int logPrice = LogPriceLib.logPriceFromPrice_e18(1 ether);
+    return mgv.marketOrderForByLogPrice(olKey, logPrice, value, true, who);
   }
 
   function newOfferByVolume(uint amount) internal {
-    mgv.newOfferByVolume($(base), $(quote), amount, amount, 100_000, 0);
+    mgv.newOfferByVolume(olKey, amount, amount, 100_000, 0);
   }
 
   function test_no_allowance(uint value) external {
     /* You can use 0 from someone who gave you an allowance of 0. */
-    value = bound(value, reader.minVolume($(base), $(quote), 100_000), type(uint96).max); //can't create an offer below density
+    value = bound(value, reader.minVolume(olKey, 100_000), type(uint96).max); //can't create an offer below density
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
     newOfferByVolume(value);
     vm.expectRevert("mgv/lowAllowance");
-    snipeFor(value, good_owner);
+    marketOrderFor(value, good_owner);
   }
 
   function test_wrong_owner() public {
@@ -163,8 +162,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
     newOfferByVolume(value);
-    (uint successes, uint takerGot, uint takerGave,,) = snipeFor(value / 2, good_owner);
-    assertEq(successes, 1, "Snipe should succeed");
+    (uint takerGot, uint takerGave,,) = marketOrderFor(value / 2, good_owner);
     assertEq(takerGot, value / 2, "takerGot should be 1 ether");
     assertEq(takerGave, value / 2, "takerGot should be 1 ether");
 

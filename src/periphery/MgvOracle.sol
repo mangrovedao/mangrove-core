@@ -77,12 +77,7 @@ contract MgvOracle is IMgvMonitor {
     emit SetDensityFixed(densityFixed);
   }
 
-  function read(address, /*outbound_tkn*/ address /*inbound_tkn*/ )
-    external
-    view
-    override
-    returns (uint gasprice, Density density)
-  {
+  function read(OLKey memory) external view override returns (uint gasprice, Density density) {
     return (lastReceivedGasPrice, lastReceivedDensity);
   }
 }

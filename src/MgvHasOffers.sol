@@ -11,7 +11,8 @@ import {
   Tick,
   LEVEL2_SIZE,
   LEVEL1_SIZE,
-  LEVEL0_SIZE
+  LEVEL0_SIZE,
+  OLKey
 } from "./MgvLib.sol";
 import {MgvRoot} from "./MgvRoot.sol";
 import "mgv_lib/Debug.sol";
@@ -21,47 +22,39 @@ contract MgvHasOffers is MgvRoot {
   /* # State variables */
   /* Makers provision their possible penalties in the `balanceOf` mapping.
 
-       Offers specify the amount of gas they require for successful execution ([`gasreq`](#structs.js/gasreq)). To minimize book spamming, market makers must provision a *penalty*, which depends on their `gasreq` and on the pair's [`offer_gasbase`](#structs.js/gasbase). This provision is deducted from their `balanceOf`. If an offer fails, part of that provision is given to the taker, as retribution. The exact amount depends on the gas used by the offer before failing.
+       Offers specify the amount of gas they require for successful execution ([`gasreq`](#structs.js/gasreq)). To minimize book spamming, market makers must provision a *penalty*, which depends on their `gasreq` and on the offerList's [`offer_gasbase`](#structs.js/gasbase). This provision is deducted from their `balanceOf`. If an offer fails, part of that provision is given to the taker, as retribution. The exact amount depends on the gas used by the offer before failing.
 
        The Mangrove keeps track of their available balance in the `balanceOf` map, which is decremented every time a maker creates a new offer, and may be modified on offer updates/cancellations/takings.
      */
   mapping(address => uint) public balanceOf;
 
   /* # Read functions */
-  /* Convenience function to get best offer of the given pair */
-  function best(address outbound_tkn, address inbound_tkn) external view returns (uint) {
+  /* Convenience function to get best offer of the given offerList */
+  function best(OLKey memory olKey) external view returns (uint) {
     unchecked {
-      Pair storage pair = pairs[outbound_tkn][inbound_tkn];
-      return pair.leafs[pair.local.tick().leafIndex()].getNextOfferId();
+      OfferList storage offerList = offerLists[olKey.hash()];
+      return offerList.leafs[offerList.local.tick().leafIndex()].getNextOfferId();
     }
   }
 
   /* Convenience function to get an offer in packed format */
-  function offers(address outbound_tkn, address inbound_tkn, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferPacked)
-  {
-    return pairs[outbound_tkn][inbound_tkn].offerData[offerId].offer;
+  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked) {
+    return offerLists[olKey.hash()].offerData[offerId].offer;
   }
 
   /* Convenience function to get an offer detail in packed format */
-  function offerDetails(address outbound_tkn, address inbound_tkn, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferDetailPacked)
-  {
-    return pairs[outbound_tkn][inbound_tkn].offerData[offerId].detail;
+  function offerDetails(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferDetailPacked) {
+    return offerLists[olKey.hash()].offerData[offerId].detail;
   }
 
-  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `pairs[outbound_tkn][inbound_tkn].offers` and `pairs[outbound_tkn][inbound_tkn].offerDetails` instead. */
-  function offerInfo(address outbound_tkn, address inbound_tkn, uint offerId)
+  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offerLists[outbound_tkn][inbound_tkn].offers` and `offerLists[outbound_tkn][inbound_tkn].offerDetails` instead. */
+  function offerInfo(OLKey memory olKey, uint offerId)
     external
     view
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
   {
     unchecked {
-      OfferData storage offerData = pairs[outbound_tkn][inbound_tkn].offerData[offerId];
+      OfferData storage offerData = offerLists[olKey.hash()].offerData[offerId];
       offer = offerData.offer.to_struct();
       offerDetail = offerData.detail.to_struct();
     }
@@ -112,7 +105,8 @@ contract MgvHasOffers is MgvRoot {
 
   // shouldUpdateBest is true if we may want to update best, false if there is no way we want to update it (eg if we know we are about to reinsert the offer anyway and will update best then?)
   function dislodgeOffer(
-    Pair storage pair,
+    OfferList storage offerList,
+    uint tickScale,
     MgvStructs.OfferPacked offer,
     MgvStructs.LocalPacked local,
     bool shouldUpdateBranch
@@ -121,9 +115,9 @@ contract MgvHasOffers is MgvRoot {
       Leaf leaf;
       uint prevId = offer.prev();
       uint nextId = offer.next();
-      Tick offerTick = offer.tick();
+      Tick offerTick = offer.tick(tickScale);
       if (prevId == 0 || nextId == 0) {
-        leaf = pair.leafs[offerTick.leafIndex()];
+        leaf = offerList.leafs[offerTick.leafIndex()];
       }
 
       // if current tick is not strictly better,
@@ -144,7 +138,7 @@ contract MgvHasOffers is MgvRoot {
         leaf = leaf.setTickFirst(offerTick, nextId);
       } else {
         // offer.prev's next becomes offer.next
-        OfferData storage prevOfferData = pair.offerData[prevId];
+        OfferData storage prevOfferData = offerList.offerData[prevId];
         prevOfferData.offer = prevOfferData.offer.next(nextId);
       }
 
@@ -153,13 +147,13 @@ contract MgvHasOffers is MgvRoot {
         leaf = leaf.setTickLast(offerTick, prevId);
       } else {
         // offer.next's prev becomes offer.prev
-        OfferData storage nextOfferData = pair.offerData[nextId];
+        OfferData storage nextOfferData = offerList.offerData[nextId];
         nextOfferData.offer = nextOfferData.offer.prev(prevId);
       }
 
       if (prevId == 0 || nextId == 0) {
         // offer.tick's first or last offer changed, must update leaf
-        pair.leafs[offerTick.leafIndex()] = leaf;
+        offerList.leafs[offerTick.leafIndex()] = leaf;
         // if leaf now empty, flip ticks OFF up the tree
         if (leaf.isEmpty()) {
           int index = offerTick.level0Index(); // level0Index or level1Index
@@ -168,23 +162,30 @@ contract MgvHasOffers is MgvRoot {
             field = local.level0().flipBitAtLevel0(offerTick);
             local = local.level0(field);
             if (field.isEmpty()) {
-              pair.level0[index] = field;
+              offerList.level0[index] = field;
             }
           } else {
-            field = pair.level0[index].flipBitAtLevel0(offerTick);
-            pair.level0[index] = field;
+            field = offerList.level0[index].flipBitAtLevel0(offerTick);
+            offerList.level0[index] = field;
           }
           if (field.isEmpty()) {
             index = offerTick.level1Index(); // level0Index or level1Index
             if (index == local.tick().level1Index()) {
               field = local.level1().flipBitAtLevel1(offerTick);
               local = local.level1(field);
+              // FIXME: this should be moved to the matching if(shouldUpdateBranch)
+              // that would avoid an unnecessary write when !shouldUpdateBranch
+              // but we need to still have acces to the index
+              // and also must check that the case local.level2().isEmpty()
+              // does not result in corrupted data (eg a wrong yet trusted pair.level1[index])
+              // (answer is probably that local.level2().isEmpty should not return
+              // but rather let control flow continue, and that log2/ctz should not throw on 0
               if (field.isEmpty()) {
-                pair.level1[index] = field;
+                offerList.level1[index] = field;
               }
             } else {
-              field = pair.level1[index].flipBitAtLevel1(offerTick);
-              pair.level1[index] = field;
+              field = offerList.level1[index].flipBitAtLevel1(offerTick);
+              offerList.level1[index] = field;
             }
             if (field.isEmpty()) {
               local = local.level2(local.level2().flipBitAtLevel2(offerTick));
@@ -197,18 +198,18 @@ contract MgvHasOffers is MgvRoot {
               // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
               if (shouldUpdateBranch) {
                 index = local.level2().firstLevel1Index();
-                field = pair.level1[index];
+                field = offerList.level1[index];
                 local = local.level1(field);
               }
             }
             if (shouldUpdateBranch) {
               index = field.firstLevel0Index(index);
-              field = pair.level0[index];
+              field = offerList.level0[index];
               local = local.level0(field);
             }
           }
           if (shouldUpdateBranch) {
-            leaf = pair.leafs[field.firstLeafIndex(index)];
+            leaf = offerList.leafs[field.firstLeafIndex(index)];
           }
         }
         if (shouldUpdateBranch) {

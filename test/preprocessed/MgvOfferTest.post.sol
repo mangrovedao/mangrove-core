@@ -18,11 +18,11 @@ contract MgvOfferTest is Test2 {
     return u << (256-to) >> (256-to);
   }
 
-  function test_pack(uint prev, uint next, Tick tick, uint gives) public {
-    MgvStructs.OfferPacked packed = MgvStructs.Offer.pack(prev, next, tick, gives);
+  function test_pack(uint prev, uint next, int logPrice, uint gives) public {
+    MgvStructs.OfferPacked packed = MgvStructs.Offer.pack(prev, next, logPrice, gives);
     assertEq(packed.prev(),cast(prev,32),"bad prev");
     assertEq(packed.next(),cast(next,32),"bad next");
-    assertEq(Tick.unwrap(packed.tick()),cast(Tick.unwrap(tick),24),"bad tick");
+    assertEq(packed.logPrice(),cast(logPrice,24),"bad logPrice");
     assertEq(packed.gives(),cast(gives,96),"bad gives");
   }
 
@@ -41,7 +41,7 @@ contract MgvOfferTest is Test2 {
       assertEq(modified.prev(),cast(prev,32),"modified: bad prev");
 
       assertEq(modified.next(),packed.next(),"modified: bad next");
-      assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
+      assertEq(modified.logPrice(),packed.logPrice(),"modified: bad logPrice");
       assertEq(modified.gives(),packed.gives(),"modified: bad gives");
     }
   function test_set_next(MgvStructs.OfferPacked packed,uint next) public {
@@ -53,16 +53,16 @@ contract MgvOfferTest is Test2 {
       assertEq(modified.next(),cast(next,32),"modified: bad next");
 
       assertEq(modified.prev(),packed.prev(),"modified: bad prev");
-      assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
+      assertEq(modified.logPrice(),packed.logPrice(),"modified: bad logPrice");
       assertEq(modified.gives(),packed.gives(),"modified: bad gives");
     }
-  function test_set_tick(MgvStructs.OfferPacked packed,Tick tick) public {
-      MgvStructs.OfferPacked original = packed.tick(packed.tick());
-      assertEq(Tick.unwrap(original.tick()),Tick.unwrap(packed.tick()), "original: bad tick");
+  function test_set_logPrice(MgvStructs.OfferPacked packed,int logPrice) public {
+      MgvStructs.OfferPacked original = packed.logPrice(packed.logPrice());
+      assertEq(original.logPrice(),packed.logPrice(), "original: bad logPrice");
 
-      MgvStructs.OfferPacked modified = packed.tick(tick);
+      MgvStructs.OfferPacked modified = packed.logPrice(logPrice);
 
-      assertEq(Tick.unwrap(modified.tick()),cast(Tick.unwrap(tick),24),"modified: bad tick");
+      assertEq(modified.logPrice(),cast(logPrice,24),"modified: bad logPrice");
 
       assertEq(modified.prev(),packed.prev(),"modified: bad prev");
       assertEq(modified.next(),packed.next(),"modified: bad next");
@@ -78,15 +78,15 @@ contract MgvOfferTest is Test2 {
 
       assertEq(modified.prev(),packed.prev(),"modified: bad prev");
       assertEq(modified.next(),packed.next(),"modified: bad next");
-      assertEq(Tick.unwrap(modified.tick()),Tick.unwrap(packed.tick()),"modified: bad tick");
+      assertEq(modified.logPrice(),packed.logPrice(),"modified: bad logPrice");
     }
 
   function test_unpack(MgvStructs.OfferPacked packed) public {
-    (uint prev, uint next, Tick tick, uint gives) = packed.unpack();
+    (uint prev, uint next, int logPrice, uint gives) = packed.unpack();
 
     assertEq(packed.prev(),prev,"bad prev");
     assertEq(packed.next(),next,"bad next");
-    assertEq(Tick.unwrap(packed.tick()),Tick.unwrap(tick),"bad tick");
+    assertEq(packed.logPrice(),logPrice,"bad logPrice");
     assertEq(packed.gives(),gives,"bad gives");
   }
 
@@ -101,7 +101,7 @@ contract MgvOfferTest is Test2 {
     MgvStructs.OfferUnpacked memory unpacked = packed.to_struct();
     assertEq(unpacked.prev,packed.prev(),"bad prev");
     assertEq(unpacked.next,packed.next(),"bad next");
-    assertEq(Tick.unwrap(unpacked.tick),Tick.unwrap(packed.tick()),"bad tick");
+    assertEq(unpacked.logPrice,packed.logPrice(),"bad logPrice");
     assertEq(unpacked.gives,packed.gives(),"bad gives");
   }
 
@@ -110,11 +110,11 @@ contract MgvOfferTest is Test2 {
     MgvStructs.OfferPacked packed2;
     packed2 = packed2.prev(unpacked.prev);
     packed2 = packed2.next(unpacked.next);
-    packed2 = packed2.tick(unpacked.tick);
+    packed2 = packed2.logPrice(unpacked.logPrice);
     packed2 = packed2.gives(unpacked.gives);
     assertEq(packed.prev(),packed2.prev(),"bad prev");
     assertEq(packed.next(),packed2.next(),"bad next");
-    assertEq(Tick.unwrap(packed.tick()),Tick.unwrap(packed2.tick()),"bad tick");
+    assertEq(packed.logPrice(),packed2.logPrice(),"bad logPrice");
     assertEq(packed.gives(),packed2.gives(),"bad gives");
   }
 }

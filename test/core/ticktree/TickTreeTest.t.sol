@@ -559,11 +559,12 @@ abstract contract TickTreeTest is MangroveTest {
     return tickScenarios;
   }
 
-  function add_n_offers_to_tick(int tick, uint n) internal {
+  function add_n_offers_to_tick(int tick, uint n) internal returns (uint[] memory offerIds) {
     Tick _tick = Tick.wrap(tick);
     uint gives = getAcceptableGivesForTick(_tick, 100_000);
-    for (uint i = 1; i <= n; ++i) {
-      mgv.newOfferByLogPrice(olKey, LogPriceLib.fromTick(_tick, olKey.tickScale), gives, 100_000, 1);
+    offerIds = new uint[](n);
+    for (uint i = 0; i < n; ++i) {
+      offerIds[i] = mgv.newOfferByLogPrice(olKey, LogPriceLib.fromTick(_tick, olKey.tickScale), gives, 100_000, 1);
     }
   }
 

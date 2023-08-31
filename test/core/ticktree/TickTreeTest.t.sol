@@ -608,9 +608,9 @@ abstract contract TickTreeTest is MangroveTest {
 
   function generateTickScenarios(
     int tick,
-    uint[] memory higherTickListSizeScenarios,
-    uint[] memory lowerTickListSizeScenarios
-  ) internal pure returns (TickScenario[] memory) {
+    uint[] storage higherTickListSizeScenarios,
+    uint[] storage lowerTickListSizeScenarios
+  ) internal view returns (TickScenario[] memory) {
     int[] memory higherTicks = generateHigherTickScenarios(tick);
     int[] memory lowerTicks = generateLowerTickScenarios(tick);
     TickScenario[] memory tickScenarios =

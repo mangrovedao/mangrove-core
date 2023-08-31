@@ -67,11 +67,11 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
   uint[] emptyTickListSizeScenarios = [0];
   uint[] singletonTickListSizeScenarios = [1];
 
-  // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
-  // We therefore have a test case per tick instead.
+  // NB: We ran into this memory issue when running through too many scenarios in one test: https://github.com/foundry-rs/foundry/issues/3971
 
   // Foundry will run this test way more than the needed 4 times for each tick due to bools being passed as uints.
   // This variant therefore takes too much time to run:
+  //
   // function test_update_offer_for_tick_0(int24 tick, bool higherIsEmpty, bool lowerIsEmpty) public {
   //   vm.assume(Tick.wrap(tick).inRange());
   //   run_update_offer_scenarios_for_tick(
@@ -79,36 +79,131 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
   //     higherIsEmpty ? emptyTickListSizeScenarios : singletonTickListSizeScenarios,
   //     lowerIsEmpty ? emptyTickListSizeScenarios : singletonTickListSizeScenarios);
   // }
-  // Instead we make a test case for each combination of higherIsEmpty and lowerIsEmpty:
+  //
+  // Instead we make a test case for each combination of higherIsEmpty and lowerIsEmpty.
+  //
+  // NB: Fuzzing these tests for just the tick is super slow and also runs out of memory.
+  //
+  // function test_update_offer_for_tick_where_higher_is_empty_and_lower_is_empty(int24 tick) public {
+  //   vm.assume(Tick.wrap(tick).inRange());
+  //   run_update_offer_scenarios_for_tick(tick, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  // }
+  //
+  // We therefore restrict the ticks we test to select values, eg MIN, MAX, min&max&mid {leaf, level0, level1, level2}
 
-  // FIXME: Fuzzing these tests is super slow. We may want to restrict the ticks we test to select values, eg MIN, MAX, min&max&mid {leaf, level0, level1, level2}
-  function test_update_offer_for_tick_where_higher_is_empty_and_lower_is_empty(int24 tick) public {
-    vm.assume(Tick.wrap(tick).inRange());
-    run_update_offer_scenarios_for_tick(tick, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  // Tick 0 tests (start leaf, start level0, start level1, mid level 2)
+  function test_update_offer_for_tick_0_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(0, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
   }
 
-  function test_update_offer_for_tick_where_higher_is_empty_and_lower_is_not_empty(int24 tick) public {
-    vm.assume(Tick.wrap(tick).inRange());
-    run_update_offer_scenarios_for_tick(tick, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  function test_update_offer_for_tick_0_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(0, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
   }
 
-  function test_update_offer_for_tick_where_higher_is_not_empty_and_lower_is_empty(int24 tick) public {
-    vm.assume(Tick.wrap(tick).inRange());
-    run_update_offer_scenarios_for_tick(tick, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  // FIXME: This currently fails due to a bug in Mangrove, see specific test case further down
+  // function testFail_update_offer_for_tick_0_where_higher_is_not_empty_and_lower_is_empty() public {
+  //   run_update_offer_scenarios_for_tick(0, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  // }
+
+  function test_update_offer_for_tick_0_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(0, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
   }
 
-  function test_update_offer_for_tick_where_higher_is_not_empty_and_lower_is_not_empty(int24 tick) public {
-    vm.assume(Tick.wrap(tick).inRange());
-    run_update_offer_scenarios_for_tick(tick, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  // Tick 1 tests (mid leaf, start level0, start level1, mid level 2)
+  function test_update_offer_for_tick_1_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(1, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
   }
+
+  function test_update_offer_for_tick_1_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(1, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  // FIXME: This currently fails due to a bug in Mangrove, see specific test case further down
+  // function testFail_update_offer_for_tick_1_where_higher_is_not_empty_and_lower_is_empty() public {
+  //   run_update_offer_scenarios_for_tick(1, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  // }
+
+  function test_update_offer_for_tick_1_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(1, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  // Tick 3 tests (end leaf, start level0, start level1, mid level 2)
+  function test_update_offer_for_tick_3_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(3, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_tick_3_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(3, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  // FIXME: This currently fails due to a bug in Mangrove, see specific test case further down
+  // function testFail_update_offer_for_tick_3_where_higher_is_not_empty_and_lower_is_empty() public {
+  //   run_update_offer_scenarios_for_tick(3, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  // }
+
+  function test_update_offer_for_tick_3_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(3, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  // Tick -1 tests (end leaf, end level0, end level1, mid level 2)
+  function test_update_offer_for_tick_negative_1_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(-1, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_tick_negative_1_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(-1, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  // FIXME: This currently fails due to a bug in Mangrove, see specific test case further down
+  // function testFail_update_offer_for_tick_negative_1_where_higher_is_not_empty_and_lower_is_empty() public {
+  //   run_update_offer_scenarios_for_tick(-1, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  // }
+
+  function test_update_offer_for_tick_negative_1_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(-1, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  // MAX_TICK tests (end leaf, end level0, end level1, end level 2)
+  function test_update_offer_for_tick_MAX_TICK_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(MAX_TICK, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_tick_MAX_TICK_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(MAX_TICK, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  // FIXME: This currently fails due to a bug in Mangrove, see specific test case further down
+  // function testFail_update_offer_for_tick_MAX_TICK_where_higher_is_not_empty_and_lower_is_empty() public {
+  //   run_update_offer_scenarios_for_tick(MAX_TICK, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  // }
+
+  function test_update_offer_for_tick_MAX_TICK_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(MAX_TICK, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  // MIN_TICK tests (start leaf, start level0, start level1, start level 2)
+  // FIXME: The tests currently fails for MIN_TICK with mgv/writeOffer/wants/tooLow due to limitations Mangrove
+  // function test_update_offer_for_tick_MIN_TICK_where_higher_is_empty_and_lower_is_empty() public {
+  //   run_update_offer_scenarios_for_tick(MIN_TICK, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  // }
+
+  // function test_update_offer_for_tick_MIN_TICK_where_higher_is_empty_and_lower_is_not_empty() public {
+  //   run_update_offer_scenarios_for_tick(MIN_TICK, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  // }
+
+  // function testFail_update_offer_for_tick_MIN_TICK_where_higher_is_not_empty_and_lower_is_empty() public {
+  //   run_update_offer_scenarios_for_tick(MIN_TICK, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  // }
+
+  // function test_update_offer_for_tick_MIN_TICK_where_higher_is_not_empty_and_lower_is_not_empty() public {
+  //   run_update_offer_scenarios_for_tick(MIN_TICK, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  // }
 
   function run_update_offer_scenarios_for_tick(
     int tick,
-    uint[] memory higherTickListSizeScenarios,
-    uint[] memory lowerTickListSizeScenarios
+    uint[] storage higherTickListSizeScenarios,
+    uint[] storage lowerTickListSizeScenarios
   ) internal {
-    // FIXME: The tests currently fails for MIN_TICK with mgv/writeOffer/wants/tooLow due to limitations Mangrove
-    vm.assume(tick > MIN_TICK);
     vm.pauseGasMetering();
     TickScenario[] memory tickScenarios =
       generateTickScenarios(tick, higherTickListSizeScenarios, lowerTickListSizeScenarios);
@@ -122,7 +217,8 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
             newTick: tickScenario.tick,
             offerTickListSize: tickListScenario[0],
             offerPos: tickListScenario[1]
-          })
+          }),
+          false
         );
         if (tickScenario.hasHigherTick) {
           run_update_offer_scenario(
@@ -131,7 +227,8 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
               newTick: tickScenario.higherTick,
               offerTickListSize: tickListScenario[0],
               offerPos: tickListScenario[1]
-            })
+            }),
+            false
           );
         }
         if (tickScenario.hasLowerTick) {
@@ -141,11 +238,13 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
               newTick: tickScenario.lowerTick,
               offerTickListSize: tickListScenario[0],
               offerPos: tickListScenario[1]
-            })
+            }),
+            false
           );
         }
       }
     }
+    vm.resumeGasMetering();
   }
 
   // FIXME: This scenario triggers bug in Mangrove
@@ -164,26 +263,31 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
         offerTickListSize: 1,
         offerPos: 0,
         newTick: -16384
-      })
+      }),
+      true
     );
   }
 
-  function run_update_offer_scenario(UpdateOfferScenario memory scenario) internal {
-    // NB: Enabling all console.log statements will trigger an out-of-memory error when running through all test scenarios
-    // console.log("update offer scenario");
-    // console.log("  oldTick: %s", toString(Tick.wrap(scenario.tickScenario.tick)));
-    // console.log("  newTick: %s", toString(Tick.wrap(scenario.newTick)));
-    // console.log("  offerTickListSize: %s", scenario.offerTickListSize);
-    // console.log("  offerPos: %s", scenario.offerPos);
-    // if (scenario.tickScenario.hasHigherTick) {
-    //   Tick higherTick = Tick.wrap(scenario.tickScenario.higherTick);
-    //   console.log("  higherTick: %s", toString(higherTick));
-    //   console.log("  higherTickListSize: %s", vm.toString(scenario.tickScenario.higherTickListSize));
-    // }
-    // if (scenario.tickScenario.hasLowerTick) {
-    //   console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
-    //   console.log("  lowerTickListSize: %s", vm.toString(scenario.tickScenario.lowerTickListSize));
-    // }
+  function run_update_offer_scenario(UpdateOfferScenario memory scenario, bool printToConsole) internal {
+    // NB: Enabling all console.log statements will trigger an out-of-memory error when running through all test scenarios.
+    // `printToConsole` is used to enable logging for specific scenarios.
+
+    if (printToConsole) {
+      console.log("update offer scenario");
+      console.log("  oldTick: %s", toString(Tick.wrap(scenario.tickScenario.tick)));
+      console.log("  newTick: %s", toString(Tick.wrap(scenario.newTick)));
+      console.log("  offerTickListSize: %s", scenario.offerTickListSize);
+      console.log("  offerPos: %s", scenario.offerPos);
+      if (scenario.tickScenario.hasHigherTick) {
+        Tick higherTick = Tick.wrap(scenario.tickScenario.higherTick);
+        console.log("  higherTick: %s", toString(higherTick));
+        console.log("  higherTickListSize: %s", vm.toString(scenario.tickScenario.higherTickListSize));
+      }
+      if (scenario.tickScenario.hasLowerTick) {
+        console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
+        console.log("  lowerTickListSize: %s", vm.toString(scenario.tickScenario.lowerTickListSize));
+      }
+    }
 
     // 1. Capture VM state before scenario so we can restore it after
     uint vmSnapshotId = vm.snapshot();
@@ -205,11 +309,13 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
 
     // 3. Snapshot tick tree
     TickTree storage tickTree = snapshotTickTree();
-    // console.log("before update");
-    // console.log("  MGV OB");
-    // printOrderBook(olKey);
-    // console.log("  tick tree");
-    // logTickTree(tickTree);
+    if (printToConsole) {
+      console.log("before update");
+      console.log("  MGV OB");
+      printOrderBook(olKey);
+      console.log("  tick tree");
+      logTickTree(tickTree);
+    }
 
     // 4. Update the offer
     Tick newTick = Tick.wrap(scenario.newTick);
@@ -224,13 +330,15 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     );
     updateOffer(tickTree, offerId, newTick, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(this));
     assertMgvTickTreeIsConsistent();
-    // console.log("");
-    // console.log("after update");
-    // FIXME: Fails with "field is 0" when MGV tick tree is inconsistent
-    // console.log("  MGV OB");
-    // printOrderBook(olKey);
-    // console.log("  tick tree");
-    // logTickTree(tickTree);
+    if (printToConsole) {
+      console.log("");
+      console.log("after update");
+      // FIXME: Fails with "field is 0" when MGV tick tree is inconsistent
+      console.log("  MGV OB");
+      printOrderBook(olKey);
+      console.log("  tick tree");
+      logTickTree(tickTree);
+    }
 
     // 5. Assert that Mangrove and tick tree are equal
     assertMgvOfferListEqToTickTree(tickTree);

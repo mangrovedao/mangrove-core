@@ -79,7 +79,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     defaultTickscale: 1,
     gasprice: 40,
     gasbase: 50_000,
-    density: 10,
+    density: 2 ** 32,
     gasmax: 2_000_000
   });
 

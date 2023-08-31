@@ -50,6 +50,8 @@ library LocalPackedExtra {
   function offer_gasbase(LocalPacked local,uint val) internal pure returns (LocalPacked) { unchecked {
     return local.kilo_offer_gasbase(val/1e3);
   }}
+  // FIXME: Why isn't this called `bestTick`? 
+  // There's not a unique tick for level0, level1, level2, and posInLeaf. This returns the best of those that exist.
   function tick(LocalPacked local) internal pure returns (Tick) {
     return TickLib.tickFromBranch(local.tickPosInLeaf(),local.level0(),local.level1(),local.level2());
   }

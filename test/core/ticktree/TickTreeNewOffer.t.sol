@@ -147,8 +147,8 @@ contract TickTreeNewOfferTest is TickTreeTest {
     Tick _insertionTick = Tick.wrap(scenario.tickScenario.tick);
     int logPrice = LogPriceLib.fromTick(_insertionTick, olKey.tickScale);
     uint gives = getAcceptableGivesForTick(_insertionTick, 50_000);
-    mgv.newOfferByLogPrice(olKey, logPrice, gives, 50_000, 50);
-    addOffer(tickTree, _insertionTick, gives, 50_000, 50, $(this));
+    mkr.newOfferByLogPrice(logPrice, gives, 50_000, 50);
+    addOffer(tickTree, _insertionTick, gives, 50_000, 50, $(mkr));
     // 5. Assert that Mangrove and tick tree are equal
     assertMgvOfferListEqToTickTree(tickTree);
     // 6. Restore state from before test

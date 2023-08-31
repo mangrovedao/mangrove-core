@@ -154,7 +154,7 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     TickTree storage tickTree = snapshotTickTree();
     // 4. Retract the offer
     uint offerId = offerIds[scenario.offerPos];
-    mgv.retractOffer(olKey, offerId, false);
+    mkr.retractOffer(offerId);
     removeOffer(tickTree, offerId);
     // 5. Assert that Mangrove and tick tree are equal
     assertMgvOfferListEqToTickTree(tickTree);

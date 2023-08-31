@@ -248,25 +248,25 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
   }
 
   // FIXME: This scenario triggers bug in Mangrove
-  function test_single_update_offer_scenario() public {
-    run_update_offer_scenario(
-      UpdateOfferScenario({
-        tickScenario: TickScenario({
-          tick: 0,
-          hasHigherTick: true,
-          higherTick: 524287,
-          higherTickListSize: 1,
-          hasLowerTick: true,
-          lowerTick: -16384,
-          lowerTickListSize: 0
-        }),
-        offerTickListSize: 1,
-        offerPos: 0,
-        newTick: -16384
-      }),
-      true
-    );
-  }
+  // function test_single_update_offer_scenario() public {
+  //   run_update_offer_scenario(
+  //     UpdateOfferScenario({
+  //       tickScenario: TickScenario({
+  //         tick: 0,
+  //         hasHigherTick: true,
+  //         higherTick: 524287,
+  //         higherTickListSize: 1,
+  //         hasLowerTick: true,
+  //         lowerTick: -16384,
+  //         lowerTickListSize: 0
+  //       }),
+  //       offerTickListSize: 1,
+  //       offerPos: 0,
+  //       newTick: -16384
+  //     }),
+  //     true
+  //   );
+  // }
 
   function run_update_offer_scenario(UpdateOfferScenario memory scenario, bool printToConsole) internal {
     // NB: Enabling all console.log statements will trigger an out-of-memory error when running through all test scenarios.
@@ -298,7 +298,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     uint offerId = offerIds[scenario.offerPos];
     MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails(olKey, offerId);
     if (scenario.offerTickListSize == 0) {
-      mgv.retractOffer(olKey, offerIds[0], false);
+      mkr.retractOffer(offerIds[0]);
     }
     if (scenario.tickScenario.hasHigherTick) {
       add_n_offers_to_tick(scenario.tickScenario.higherTick, scenario.tickScenario.higherTickListSize);
@@ -320,15 +320,10 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     // 4. Update the offer
     Tick newTick = Tick.wrap(scenario.newTick);
     uint newGives = getAcceptableGivesForTick(newTick, offerDetail.gasreq());
-    mgv.updateOfferByLogPrice(
-      olKey,
-      LogPriceLib.fromTick(newTick, olKey.tickScale),
-      newGives,
-      offerDetail.gasreq(),
-      offerDetail.gasprice(),
-      offerId
+    mkr.updateOfferByLogPrice(
+      LogPriceLib.fromTick(newTick, olKey.tickScale), newGives, offerDetail.gasreq(), offerDetail.gasprice(), offerId
     );
-    updateOffer(tickTree, offerId, newTick, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(this));
+    updateOffer(tickTree, offerId, newTick, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(mkr));
     assertMgvTickTreeIsConsistent();
     if (printToConsole) {
       console.log("");

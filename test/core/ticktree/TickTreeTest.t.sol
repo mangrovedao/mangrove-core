@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import {AbstractMangrove, TestTaker, MangroveTest, IMaker} from "mgv_test/lib/MangroveTest.sol";
+import {AbstractMangrove, TestTaker, MangroveTest, IMaker, TestMaker} from "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
@@ -26,6 +26,21 @@ import "mgv_lib/Debug.sol";
 // 4. Perform equivalent operation on the snapshot tick tree
 // 5. Compare Mangrove's tick tree to the snapshot tick tree using `assertMgvOfferListEqToTickTree`
 abstract contract TickTreeTest is MangroveTest {
+  TestMaker mkr;
+
+  receive() external payable {}
+
+  function setUp() public virtual override {
+    super.setUp();
+
+    mkr = setupMaker(olKey, "maker");
+    mkr.approveMgv(base, type(uint).max);
+    mkr.provisionMgv(1 ether);
+
+    deal($(base), $(mkr), type(uint).max);
+    deal($(quote), $(this), type(uint).max);
+  }
+
   // # Offer utility functions
 
   struct OfferData {
@@ -672,11 +687,20 @@ abstract contract TickTreeTest is MangroveTest {
   }
 
   function add_n_offers_to_tick(int tick, uint n) internal returns (uint[] memory offerIds) {
+    return add_n_offers_to_tick(tick, n, false);
+  }
+
+  function add_n_offers_to_tick(int tick, uint n, bool offersFail) internal returns (uint[] memory offerIds) {
     Tick _tick = Tick.wrap(tick);
+    int logPrice = LogPriceLib.fromTick(_tick, olKey.tickScale);
     uint gives = getAcceptableGivesForTick(_tick, 100_000);
     offerIds = new uint[](n);
     for (uint i = 0; i < n; ++i) {
-      offerIds[i] = mgv.newOfferByLogPrice(olKey, LogPriceLib.fromTick(_tick, olKey.tickScale), gives, 100_000, 1);
+      if (offersFail) {
+        offerIds[i] = mkr.newFailingOfferByLogPrice(logPrice, gives, 100_000);
+      } else {
+        offerIds[i] = mkr.newOfferByLogPrice(logPrice, gives, 100_000);
+      }
     }
   }
 

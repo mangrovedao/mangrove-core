@@ -5,16 +5,21 @@ import "mgv_lib/Constants.sol";
 import "mgv_lib/BitLib.sol";
 
 library LogPriceConversionLib {
-  // returns a normalized price
-  // outbound constraint is for consistency, could be higher
+  // returns a normalized price within the max/min price range
+  // returns max_price if at least outboundAmt==0
+  // returns min_price if only inboundAmt==0
   function priceFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (uint mantissa, uint exp) {
     require(inboundAmt <= MAX_SAFE_VOLUME, "priceFromVolumes/inbound/tooBig");
     require(outboundAmt <= MAX_SAFE_VOLUME, "priceFromVolumes/outbound/tooBig");
-    require(outboundAmt != 0, "priceFromVolumes/outbound/0");
-    require(inboundAmt != 0, "priceFromVolumes/inbound/0");
+    if (outboundAmt == 0) {
+      return (MAX_PRICE_MANTISSA,uint(MAX_PRICE_EXP));
+    } else if (inboundAmt == 0) {
+      return (MIN_PRICE_MANTISSA,uint(MIN_PRICE_EXP));
+    }
     uint ratio = (inboundAmt << MANTISSA_BITS) / outboundAmt; 
     // ratio cannot be 0 as long as (1<<MANTISSA_BITS)/MAX_SAFE_VOLUME > 0
     uint log2 = BitLib.fls(ratio);
+    require(ratio != 0,"priceFromVolumes/zeroRatio");
     if (log2 > MANTISSA_BITS_MINUS_ONE) {
       uint diff = log2 - MANTISSA_BITS_MINUS_ONE;
       return (ratio >> diff, MANTISSA_BITS - diff);

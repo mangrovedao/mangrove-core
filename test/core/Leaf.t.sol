@@ -284,4 +284,18 @@ contract FieldTest is Test {
     assertEq(man, MAX_PRICE_MANTISSA);
     assertEq(int(exp), MAX_PRICE_EXP);
   }
+
+  function price_priceFromVolumes_not_zero_div() public {
+    // should not revert
+    (uint man, uint exp) = LogPriceConversionLib.priceFromVolumes(1, type(uint).max);
+    assertTrue(man != 0, "mantissa cannot be 0");
+  }
+
+  function price_priceFromVolumes_not_zero_div_fuzz(uint inbound, uint outbound) public {
+    vm.assume(inbound != 0);
+    vm.assume(outbound != 0);
+    // should not revert
+    (uint man, uint exp) = LogPriceConversionLib.priceFromVolumes(inbound, outbound);
+    assertTrue(man != 0, "mantissa cannot be 0");
+  }
 }

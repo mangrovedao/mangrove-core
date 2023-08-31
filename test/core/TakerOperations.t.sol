@@ -825,7 +825,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 1 ether);
     uint failing_ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 100_000);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    (uint got,,,) = mgv.marketOrderByVolume(olKey, 1 ether, 0, true);
+    (uint got,,,) = mgv.marketOrderByVolume(olKey, 1 ether, 1 ether, true);
     assertTrue(failmkr.makerPosthookWasCalled(failing_ofr), "failing_ofr posthook must be called or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
     assertEq(got, 1 ether, "should have gotten 1 ether");

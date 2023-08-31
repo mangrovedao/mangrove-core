@@ -53,7 +53,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     uint fillVolume = fillWants ? takerWants : takerGives;
-    int maxLogPrice = LogPriceLib.logPriceFromTakerVolumes(takerGives, takerWants);
+    int maxLogPrice = LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
     return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants);
   }
 

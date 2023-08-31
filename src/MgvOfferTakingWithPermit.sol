@@ -87,7 +87,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
       require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
       uint fillVolume = fillWants ? takerWants : takerGives;
-      int logPrice = LogPriceLib.logPriceFromTakerVolumes(takerGives, takerWants);
+      int logPrice = LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
       return marketOrderForByLogPrice(olKey, logPrice, fillVolume, fillWants, taker);
     }
   }

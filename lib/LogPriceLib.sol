@@ -16,15 +16,6 @@ library LogPriceLib {
     return Tick.unwrap(tick) * int(tickScale);
   }
 
-  function logPriceFromTakerVolumes(uint takerGives, uint takerWants) internal pure returns (int) {
-    if (takerGives == 0 || takerWants == 0) {
-
-      // If inboundAmt is 0 then the price is irrelevant for taker
-      return MAX_LOG_PRICE;
-    }
-    return LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
-  }
-
   // tick underestimates the price, so we underestimate  inbound here, i.e. the inbound/outbound price will again be underestimated
   // no overflow if outboundAmt is on 104 bits
   // rounds down

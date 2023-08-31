@@ -70,6 +70,10 @@ abstract contract TickTreeTest is MangroveTest {
 
       int level1Index = level1IndexFromLevel2Pos(level2Pos);
       Field level1 = mgv.level1(olKey, level1Index);
+      assertFalse(
+        level1.eq(FieldLib.EMPTY),
+        string.concat("level1 should not be empty when bit is set in level2 | tree branch: ", vm.toString(level2Pos))
+      );
       for (uint level1Pos = 0; level1Pos <= MAX_LEVEL1_POSITION; ++level1Pos) {
         if (!isBitSet(level1, level1Pos)) {
           continue;
@@ -77,6 +81,15 @@ abstract contract TickTreeTest is MangroveTest {
 
         int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, level1Pos);
         Field level0 = mgv.level0(olKey, level0Index);
+        assertFalse(
+          level0.eq(FieldLib.EMPTY),
+          string.concat(
+            "level0 should not be empty when bit is set in level1 | tree branch: ",
+            vm.toString(level2Pos),
+            "->",
+            vm.toString(level1Pos)
+          )
+        );
         for (uint level0Pos = 0; level0Pos <= MAX_LEVEL0_POSITION; ++level0Pos) {
           if (!isBitSet(level0, level0Pos)) {
             continue;
@@ -84,7 +97,17 @@ abstract contract TickTreeTest is MangroveTest {
 
           int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, level0Pos);
           Leaf leaf = mgv.leafs(olKey, leafIndex);
-          assertTrue(!leaf.eq(LeafLib.EMPTY), "leaf should not be empty when bit is set in higher levels");
+          assertFalse(
+            leaf.eq(LeafLib.EMPTY),
+            string.concat(
+              "leaf should not be empty when bit is set in level0 | tree branch: ",
+              vm.toString(level2Pos),
+              "->",
+              vm.toString(level1Pos),
+              "->",
+              vm.toString(level0Pos)
+            )
+          );
           for (uint leafPos = 0; leafPos <= MAX_LEAF_POSITION; ++leafPos) {
             Tick tick = tickFromLeafIndexAndPos(leafIndex, leafPos);
             uint offerId = leaf.firstOfIndex(leafPos);
@@ -93,16 +116,43 @@ abstract contract TickTreeTest is MangroveTest {
             }
             uint prev = 0;
             do {
-              console.log("level2Pos: %s, level1Pos: %s, level0Pos: %s", level2Pos, level1Pos, level0Pos);
-              console.log("  leafPos: %s, offerId: %s", leafPos, offerId);
               MgvStructs.OfferPacked offer = mgv.offers(olKey, offerId);
-              assertEq(offer.tick(olKey.tickScale), tick, "offer's tick does not match location in tick tree");
-              assertEq(offer.prev(), prev, "offer.prev does point to previous offer in tick list");
-              assertTrue(offer.isLive(), "offer in tick tree should be live");
+              assertEq(
+                offer.tick(olKey.tickScale),
+                tick,
+                string.concat(
+                  "offer[", vm.toString(offerId), "] tick does not match location in tick tree | tick: ", toString(tick)
+                )
+              );
+              assertEq(
+                offer.prev(),
+                prev,
+                string.concat(
+                  "offer[",
+                  vm.toString(offerId),
+                  "].prev does point to previous offer in tick list | tick: ",
+                  toString(tick)
+                )
+              );
+              assertTrue(
+                offer.isLive(),
+                string.concat("offer[", vm.toString(offerId), "] in tick tree should be live | tick: ", toString(tick))
+              );
               prev = offerId;
               offerId = offer.next();
             } while (offerId != 0);
-            assertEq(leaf.lastOfIndex(leafPos), prev, "last offer in tick does not match last offer in tick list");
+            assertEq(
+              leaf.lastOfIndex(leafPos),
+              prev,
+              string.concat(
+                "last offer[",
+                vm.toString(leaf.lastOfIndex(leafPos)),
+                "] in tick does not match last offer[",
+                vm.toString(prev),
+                "] in tick list | tick: ",
+                toString(tick)
+              )
+            );
           }
         }
       }
@@ -313,7 +363,7 @@ abstract contract TickTreeTest is MangroveTest {
         if (!isBitSet(level1, level1Pos)) {
           continue;
         }
-        console.log("  l1: %s", level1Pos);
+        console.log("  l1: %s (index: %s)", level1Pos, vm.toString(level1IndexFromLevel2Pos(level2Pos)));
 
         int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, level1Pos);
         Field level0 = tickTree.level0[level0Index];
@@ -321,7 +371,9 @@ abstract contract TickTreeTest is MangroveTest {
           if (!isBitSet(level0, level0Pos)) {
             continue;
           }
-          console.log("    l0: %s", level0Pos);
+          console.log(
+            "    l0: %s (index: %s)", level0Pos, vm.toString(level0IndexFromLevel1IndexAndPos(level1Index, level1Pos))
+          );
 
           int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, level0Pos);
           Leaf leaf = tickTree.leafs[leafIndex];
@@ -331,7 +383,7 @@ abstract contract TickTreeTest is MangroveTest {
             if (offerId == 0) {
               continue;
             }
-            console.log("      leaf: %s | tick: %s", leafPos, toString(tick));
+            console.log("      leaf: %s (index: %s) | tick: %s", leafPos, vm.toString(leafIndex), toString(tick));
             do {
               console.log("        offer: %s", offerId);
               offerId = tickTree.offers[offerId].offer.next();

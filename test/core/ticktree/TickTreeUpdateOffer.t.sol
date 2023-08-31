@@ -200,14 +200,15 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
       offerId
     );
     updateOffer(tickTree, offerId, newTick, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(this));
+    assertMgvTickTreeIsConsistent();
     console.log("");
     console.log("after update");
-    // FIXME: Fails with "field is 0"
-    // console.log("MGV OB after update");
+    // FIXME: Fails with "field is 0" when MGV tick tree is inconsistent
+    // console.log("  MGV OB");
     // printOrderBook(olKey);
     MgvStructs.OfferPacked mgvOfferAfter = mgv.offers(olKey, offerId);
     console.log("  offer ID %s: %s", vm.toString(offerId), toString(mgvOfferAfter));
-    console.log("  tick tree after update");
+    console.log("  tick tree");
     logTickTree(tickTree);
     // 5. Assert that Mangrove and tick tree are equal
     assertMgvOfferListEqToTickTree(tickTree);

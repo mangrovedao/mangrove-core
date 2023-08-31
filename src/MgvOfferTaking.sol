@@ -344,7 +344,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
       sendPenalty(bounty);
 
-      emit OrderComplete(0);
+      emit CleanComplete();
     }
   }
 
@@ -357,7 +357,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     address taker
   ) external returns (uint bounty) {
     unchecked {
-      emit CleanOffer(offerId, taker, logPrice, gasreq, takerWants);
       /* `internalClean` must be used with a call (hence the `external` modifier) so its effect can be reverted. But a call from the outside would mean the bounty would get stuck in Mangrove. */
       require(msg.sender == address(this), "mgv/clean/protected");
 
@@ -392,8 +391,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
       require(sor.offer.logPrice() == logPrice, "mgv/clean/tickMismatch");
       // FIXME: Not sure what events we need for cleaning? Maybe none?
-      // FIXME: NB: In another PR, this and OrderComplete are moved to the outer clean methos.
-      // emit OrderStart();
 
       /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
       sor.local = sor.local.lock(true);
@@ -431,8 +428,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       //+clear+
-
-      emit OrderComplete(0);
     }
   }
 

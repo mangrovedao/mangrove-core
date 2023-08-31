@@ -23,10 +23,10 @@ interface IMangrove {
   event OfferWrite(
     bytes32 indexed olKeyHash, address indexed maker, int logPrice, uint gives, uint gasprice, uint gasreq, uint id
   );
-  event OrderComplete(uint fee);
   event CleanStart(bytes32 indexed olKeyHash, address indexed taker);
-  event CleanOffer(uint indexed offerId, address indexed taker, int logPrice, uint gasreq, uint takerWants);
+  event CleanComplete();
   event OrderStart(bytes32 indexed olKeyHash, address indexed taker, int maxLogPrice, uint fillVolume, bool fillWants);
+  event OrderComplete(uint fee);
   event PosthookFail(bytes32 posthookData);
   event OfferPenalty(uint penalty);
   event SetActive(bytes32 indexed olKeyHash, bool value);

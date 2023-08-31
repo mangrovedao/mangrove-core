@@ -95,7 +95,7 @@ contract HasMgvEvents {
 
   /* Clean order execution */
   event CleanStart(bytes32 indexed olKeyHash, address indexed taker);
-  event CleanOffer(uint indexed offerId, address indexed taker, int logPrice, uint gasreq, uint takerWants);
+  event CleanComplete();
 
   /* Market order execution */
   // FIXME: This provides the basis information for all following events

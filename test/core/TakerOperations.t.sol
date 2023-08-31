@@ -952,7 +952,7 @@ contract TakerOperationsTest is MangroveTest {
     emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
 
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OrderComplete( /*penalty*/ 0);
+    emit CleanComplete();
 
     (, uint bounty) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 0)), $(this));
     assertTrue(bounty > 0, "cleaning should have yielded a bounty");
@@ -994,7 +994,7 @@ contract TakerOperationsTest is MangroveTest {
     emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
 
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OrderComplete( /*penalty1 + penalty2*/ 0);
+    emit CleanComplete();
 
     (uint successes, uint bounty) = mgv.cleanByImpersonation(olKey, targets, $(this));
 
@@ -1050,7 +1050,7 @@ contract TakerOperationsTest is MangroveTest {
     emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
 
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OrderComplete( /*penalty1 + penalty3*/ 0);
+    emit CleanComplete();
 
     (uint successes, uint bounty) = mgv.cleanByImpersonation(olKey, targets, $(this));
 
@@ -1094,7 +1094,7 @@ contract TakerOperationsTest is MangroveTest {
     emit Credit($(failNonZeroMkr), 0 /*mkr_provision - penalty*/ );
 
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OrderComplete( /*penalty*/ 0);
+    emit CleanComplete();
 
     (, bounty) = mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, 0, 100_000, 1)), $(otherTkr));
     assertTrue(bounty > 0, "cleaning should have yielded a bounty");

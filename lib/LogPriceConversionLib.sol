@@ -260,7 +260,6 @@ library LogPriceConversionLib {
     } else {
       mantissa = mantissa << uint(shift);
     }
-    log2price = BitLib.fls(mantissa);
     exp = exp + shift;
     if (exp < 0) {
       revert("mgv/normalizePrice/lowExp");

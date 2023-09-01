@@ -579,13 +579,26 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       if (gasused > gasreq) {
         gasused = gasreq;
       }
-
-      gasused = gasused + makerPosthook(sor, gasreq - gasused, makerData, mgvData);
+      (uint posthookGas, bool callSuccess, bytes32 posthookData) =
+        makerPosthook(sor, gasreq - gasused, makerData, mgvData);
+      gasused = gasused + posthookGas;
 
       if (mgvData != "mgv/tradeSuccess") {
-        mor.totalPenalty += applyPenalty(sor, gasused, mgvData);
+        uint penalty = applyPenalty(sor, gasused);
+        mor.totalPenalty += penalty;
+        if (!callSuccess) {
+          emit OfferFailWithPosthookData(
+            sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, penalty, mgvData, posthookData
+          );
+        } else {
+          emit OfferFail(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, penalty, mgvData);
+        }
       } else {
-        emit OfferSuccess(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives);
+        if (!callSuccess) {
+          emit OfferSuccessWithPosthookData(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, posthookData);
+        } else {
+          emit OfferSuccess(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives);
+        }
       }
     }
   }
@@ -598,7 +611,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Maker Posthook */
   function makerPosthook(MgvLib.SingleOrder memory sor, uint gasLeft, bytes32 makerData, bytes32 mgvData)
     internal
-    returns (uint gasused)
+    returns (uint gasused, bool callSuccess, bytes32 posthookData)
   {
     unchecked {
       /* At this point, mgvData can only be `"mgv/tradeSuccess"`, `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"` */
@@ -613,13 +626,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         revert("mgv/notEnoughGasForMakerPosthook");
       }
 
-      (bool callSuccess, bytes32 posthookData) = controlledCall(maker, gasLeft, cd);
+      (callSuccess, posthookData) = controlledCall(maker, gasLeft, cd);
 
       gasused = oldGas - gasleft();
-
-      if (!callSuccess) {
-        emit PosthookFail(sor.olKey.hash(), sor.offerId, posthookData);
-      }
     }
   }
 
@@ -658,7 +667,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
    * We do not consider the tx.gasprice.
    * `offerDetail.gasbase` and `offerDetail.gasprice` are the values of Mangrove parameters `config.offer_gasbase` and `config.gasprice` when the offer was created. Without caching those values, the provision set aside could end up insufficient to reimburse the maker (or to retribute the taker).
    */
-  function applyPenalty(MgvLib.SingleOrder memory sor, uint gasused, bytes32 mgvData) internal returns (uint) {
+  function applyPenalty(MgvLib.SingleOrder memory sor, uint gasused) internal returns (uint) {
     unchecked {
       uint gasreq = sor.offerDetail.gasreq();
 
@@ -678,8 +687,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* Here we write to storage the new maker balance. This occurs _after_ possible reentrant calls. How do we know we're not crediting twice the same amounts? Because the `offer`'s provision was set to 0 in storage (through `dirtyDeleteOffer`) before the reentrant calls. In this function, we are working with cached copies of the offer as it was before it was consumed. */
       creditWei(sor.offerDetail.maker(), provision - penalty);
-
-      emit OfferFail(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, penalty, mgvData);
 
       return penalty;
     }

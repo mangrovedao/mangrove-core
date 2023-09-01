@@ -135,7 +135,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     mkr.setShouldFailHook(true);
     expectFrom($(mgv));
-    emit PosthookFail(olKey.hash(), ofr, "posthookFail");
+    emit OfferSuccessWithPosthookData(olKey.hash(), ofr, 0.1 ether, 0.1 ether, "posthookFail");
     tkr.marketOrderWithSuccess(0.1 ether); // fails but we don't care
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }

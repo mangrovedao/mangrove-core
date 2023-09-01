@@ -113,6 +113,15 @@ interface HasMgvEvents {
     uint takerGives
   );
 
+  event OfferSuccessWithPosthookData(
+    bytes32 indexed olKeyHash,
+    uint id,
+    // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
+    uint takerWants,
+    uint takerGives,
+    bytes32 posthookData
+  );
+
   /* Log information when a trade execution reverts or returns a non empty bytes32 word */
   event OfferFail(
     bytes32 indexed olKeyHash,
@@ -125,8 +134,17 @@ interface HasMgvEvents {
     bytes32 mgvData
   );
 
-  /* Log information when a posthook reverts */
-  event PosthookFail(bytes32 indexed olKeyHash, uint offerId, bytes32 posthookData);
+  event OfferFailWithPosthookData(
+    bytes32 indexed olKeyHash,
+    uint id,
+    // `maker` is not logged because it can be retrieved from the state using `(olKeyHash)`.
+    uint takerWants,
+    uint takerGives,
+    uint penalty,
+    // `mgvData` may only be `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"`
+    bytes32 mgvData,
+    bytes32 posthookData
+  );
 
   /* * After `permit` and `approve` */
   event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);

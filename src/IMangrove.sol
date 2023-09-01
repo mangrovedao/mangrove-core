@@ -24,9 +24,9 @@ interface IMangrove {
   event Debit(address indexed maker, uint amount);
   event Kill();
   event NewMgv();
-  event OfferFail(bytes32 indexed olKeyHash, uint id, address taker, uint takerWants, uint takerGives, bytes32 mgvData);
+  event OfferFail(bytes32 indexed olKeyHash, uint id, uint takerWants, uint takerGives, uint penalty, bytes32 mgvData);
   event OfferRetract(bytes32 indexed olKeyHash, uint id, bool deprovision);
-  event OfferSuccess(bytes32 indexed olKeyHash, uint id, address taker, uint takerWants, uint takerGives);
+  event OfferSuccess(bytes32 indexed olKeyHash, uint id, uint takerWants, uint takerGives);
   event OfferWrite(
     bytes32 indexed olKeyHash, address maker, int logPrice, uint gives, uint gasprice, uint gasreq, uint id
   );

@@ -10,9 +10,12 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* Takers may provide allowances on specific offerLists, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
 
   The mapping is `outbound_tkn => inbound_tkn => owner => spender => allowance` */
-  mapping(address => mapping(address => mapping(address => mapping(address => uint)))) public allowances;
+  mapping(
+    address outbound_tkn
+      => mapping(address inbound_tkn => mapping(address owner => mapping(address spender => uint allowance)))
+  ) public allowances;
   /* Storing nonces avoids replay attacks. */
-  mapping(address => uint) public nonces;
+  mapping(address owner => uint nonce) public nonces;
   /* Following [EIP712](https://eips.ethereum.org/EIPS/eip-712), structured data signing has `keccak256("Permit(address outbound_tkn,address inbound_tkn,address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)")` in its prefix. */
   bytes32 public constant PERMIT_TYPEHASH = 0xb7bf278e51ab1478b10530c0300f911d9ed3562fc93ab5e6593368fe23c077a2;
   /* Initialized in the constructor, `DOMAIN_SEPARATOR` avoids cross-application permit reuse. */
@@ -77,7 +80,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* *Note:* `marketOrderFor` and `snipesFor` may emit ERC20 `Transfer` events of value 0 from `taker`, but that's already the case with common ERC20 implementations. */
   function marketOrderForByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants, address taker)
     external
-    returns (uint, uint, uint, uint)
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     unchecked {
       require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
@@ -90,7 +93,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
 
   function marketOrderForByPrice(OLKey memory olKey, uint maxPrice_e18, uint fillVolume, bool fillWants, address taker)
     external
-    returns (uint, uint, uint, uint)
+    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     unchecked {
       require(maxPrice_e18 <= LogPriceLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");

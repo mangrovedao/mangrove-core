@@ -28,13 +28,13 @@ import "mgv_lib/Debug.sol";
 //     4. the offer to be cleaned is middle of three offers
 // - higher tick list
 //   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
-//     - if feasible, given cleanion tick
+//     - if feasible, given cleaning tick
 //   - list:
 //     1. is empty
 //     2. is non-empty
 // - lower tick list
 //   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
-//     - if feasible, given cleanion tick
+//     - if feasible, given cleaning tick
 //   - list:
 //     1. is empty
 //     2. is non-empty
@@ -161,7 +161,7 @@ contract TickTreeCleanOfferTest is TickTreeTest {
     uint vmSnapshotId = vm.snapshot();
 
     // 2. Create scenario
-    uint[] memory offerIds =
+    (uint[] memory offerIds,) =
       add_n_offers_to_tick(scenario.tickScenario.tick, scenario.offerTickListSize, scenario.offerFail);
     uint offerId = offerIds[scenario.offerPos];
     MgvStructs.OfferPacked offer = mgv.offers(olKey, offerId);

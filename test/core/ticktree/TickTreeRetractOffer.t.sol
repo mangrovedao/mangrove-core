@@ -143,7 +143,7 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     // 1. Capture state before test
     uint vmSnapshotId = vm.snapshot();
     // 2. Create scenario
-    uint[] memory offerIds = add_n_offers_to_tick(scenario.tickScenario.tick, scenario.offerTickListSize);
+    (uint[] memory offerIds,) = add_n_offers_to_tick(scenario.tickScenario.tick, scenario.offerTickListSize);
     if (scenario.tickScenario.hasHigherTick) {
       add_n_offers_to_tick(scenario.tickScenario.higherTick, scenario.tickScenario.higherTickListSize);
     }

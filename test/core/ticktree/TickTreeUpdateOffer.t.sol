@@ -293,7 +293,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     uint vmSnapshotId = vm.snapshot();
 
     // 2. Create scenario
-    uint[] memory offerIds =
+    (uint[] memory offerIds,) =
       add_n_offers_to_tick(scenario.tickScenario.tick, scenario.offerTickListSize == 0 ? 1 : scenario.offerTickListSize);
     uint offerId = offerIds[scenario.offerPos];
     MgvStructs.OfferDetailPacked offerDetail = mgv.offerDetails(olKey, offerId);

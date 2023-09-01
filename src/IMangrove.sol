@@ -34,7 +34,6 @@ interface IMangrove {
     bytes32 indexed olKeyHash, address taker, uint takerGot, uint takerGave, uint penalty, uint feePaid
   );
   event OrderStart();
-  event PosthookFail(bytes32 indexed olKeyHash, uint offerId, bytes32 posthookData);
   event SetActive(bytes32 indexed olKeyHash, bool value);
   event SetDensityFixed(bytes32 indexed olKeyHash, uint value);
   event SetFee(bytes32 indexed olKeyHash, uint value);

@@ -3,13 +3,13 @@
 pragma solidity ^0.8.18;
 
 import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
-import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
-import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
 contract ExternalNewOfferOtherOfferList_AlwaysEmptyGasTest is SingleGasTestBase {
-  function impl(AbstractMangrove mgv, TestTaker, OLKey memory _olKey, uint) internal override {
+  function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint) internal override {
     _gas();
     mgv.newOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 0.1 ether, 100_000, 0);
     gas_();
@@ -29,7 +29,7 @@ contract ExternalNewOfferOtherOfferList_WithNoOtherOffersGasTest is SingleGasTes
       "Worst case scenario if strat posts on a different offer list which has become empty. This can happen in practice if offer list runs out of liquidity";
   }
 
-  function impl(AbstractMangrove mgv, TestTaker, OLKey memory _olKey, uint) internal virtual override {
+  function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint) internal virtual override {
     _gas();
     mgv.newOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 0.1 ether, 100_000, 0);
     gas_();
@@ -43,7 +43,7 @@ contract ExternalNewOfferOtherOfferList_WithOtherOfferGasTest is TickBoundariesG
     description = "Posting a new offer when another offer exists at various tick-distances to the new offer";
   }
 
-  function impl(AbstractMangrove mgv, TestTaker, OLKey memory _olKey, uint, int _logPrice) internal override {
+  function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint, int _logPrice) internal override {
     _gas();
     mgv.newOfferByLogPrice(_olKey, _logPrice, 1 ether, 100_000, 0);
     gas_();
@@ -69,7 +69,7 @@ contract ExternalNewOfferOtherOfferList_WithPriorNewOfferAndNoOtherOffersGasTest
     description = "Posting a second new offer at various tick-distances after posting an offer at MIDDLE_LOG_PRICE";
   }
 
-  function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) internal override {
+  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) internal override {
     mgv.newOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1 ether, 100_000, 0);
     super.impl(mgv, taker, _olKey, offerId);
   }

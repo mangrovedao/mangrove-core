@@ -71,7 +71,7 @@ library MgvLib {
 
 /* # Events
 The events emitted for use by bots are listed here: */
-contract HasMgvEvents {
+interface HasMgvEvents {
   /* * Emitted at the creation of the new Mangrove contract */
   event NewMgv();
 

@@ -78,8 +78,6 @@ interface IMangrove {
 
   function governance() external view returns (address);
 
-  function isLive(MgvStructs.OfferPacked offer) external pure returns (bool);
-
   function kill() external;
 
   function locked(OLKey memory olKey) external view returns (bool);

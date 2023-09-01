@@ -411,15 +411,15 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
-  /// creates `fold` offers in the (outbound, inbound) market with the same `wants`, `gives` and `gasreq` and with `caller` as maker
-  function densify(OLKey memory _ol, uint wants, uint gives, uint gasreq, uint fold, address caller) internal {
+  /// creates `fold` offers in the (outbound, inbound) market with the same `tick`, `gives` and `gasreq` and with `caller` as maker
+  function densify(OLKey memory _ol, int tick, uint gives, uint gasreq, uint fold, address caller) internal {
     if (gives == 0) {
       return;
     }
     uint prov = reader.getProvision(_ol, gasreq, 0);
     while (fold > 0) {
       vm.prank(caller);
-      mgv.newOfferByVolume{value: prov}(_ol, wants, gives, gasreq, 0);
+      mgv.newOfferByTick{value: prov}(_ol, tick, gives, gasreq, 0);
       fold--;
     }
   }
@@ -429,7 +429,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     while (length > 0 && fromId != 0) {
       MgvStructs.OfferPacked offer = mgv.offers(_ol, fromId);
       MgvStructs.OfferDetailPacked detail = mgv.offerDetails(_ol, fromId);
-      densify(_ol, offer.wants(), offer.gives(), detail.gasreq(), fold, caller);
+      densify(_ol, offer.tick(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
       fromId = reader.nextOfferId(_ol, offer);
     }

@@ -10,14 +10,14 @@ import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
 import {ActivateSemibook} from "mgv_script/core/ActivateSemibook.s.sol";
 import "mgv_lib/Debug.sol";
-import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
 
 abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
   TestTaker taker;
   PinnedPolygonFork internal fork;
 
-  function getStored() internal view override returns (AbstractMangrove, TestTaker, OLKey memory, uint) {
+  function getStored() internal view override returns (IMangrove, TestTaker, OLKey memory, uint) {
     return (mgv, taker, olKey, 0);
   }
 
@@ -70,7 +70,7 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
   }
 
   function test_gasbase_to_empty_book_base_quote() public {
-    (AbstractMangrove _mgv,, OLKey memory _olKey,) = getStored();
+    (IMangrove _mgv,, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
     _mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
@@ -80,7 +80,7 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
   }
 
   function test_gasbase_to_empty_book_quote_base() public {
-    (AbstractMangrove _mgv,, OLKey memory _olKey,) = getStored();
+    (IMangrove _mgv,, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
     _mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);

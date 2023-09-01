@@ -1,17 +1,17 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.10;
 
-import "mgv_src/AbstractMangrove.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20, MgvLib, IMaker} from "mgv_src/MgvLib.sol";
 import {MgvStructs, OLKey} from "mgv_src/MgvLib.sol";
 
 contract TestMoriartyMaker is IMaker {
-  AbstractMangrove mgv;
+  IMangrove mgv;
   OLKey olKey;
   bool succeed;
   uint dummy;
 
-  constructor(AbstractMangrove _mgv, OLKey memory _ol) {
+  constructor(IMangrove _mgv, OLKey memory _ol) {
     mgv = _mgv;
     olKey = _ol;
     succeed = true;

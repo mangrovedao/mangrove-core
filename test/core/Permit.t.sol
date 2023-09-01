@@ -45,7 +45,7 @@ import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {console2, StdStorage, stdStorage} from "forge-std/Test.sol";
-import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 import {TickLib, Tick, LogPriceLib} from "mgv_lib/TickLib.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
@@ -188,7 +188,7 @@ library mgvPermitData {
     // used at submit() time
     uint key;
     // easier to store here (avoids an extra `mgv` arg to lib fns)
-    AbstractMangrove mgv;
+    IMangrove mgv;
     // must preread from mangrove since calling mgv
     // just-in-time will trip up `expectRevert`
     // (looking for a fix to this)

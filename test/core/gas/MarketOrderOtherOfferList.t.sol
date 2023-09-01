@@ -15,7 +15,7 @@ import {
   LEVEL2_LOWER_LOG_PRICE,
   LEVEL2_HIGHER_LOG_PRICE
 } from "./GasTestBase.t.sol";
-import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
 import {TickLib, Tick, LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE, LEVEL2_SIZE} from "mgv_lib/TickLib.sol";
@@ -38,7 +38,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
   }
 
   function test_market_order_partial() public {
-    (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
+    (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
     mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
@@ -49,7 +49,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
   }
 
   function test_market_order_partial_fillwants() public {
-    (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
+    (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
     mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, true);
@@ -60,7 +60,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
   }
 
   function test_market_order_by_log_price_full() public {
-    (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
+    (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
     mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1 ether, false);
@@ -71,7 +71,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
   }
 
   function test_market_order_by_volume_full() public {
-    (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
+    (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     uint takerGives = 1 ether;
     uint takerWants = LogPriceLib.outboundFromInbound(MIDDLE_LOG_PRICE, takerGives);
     vm.prank($(taker));
@@ -84,7 +84,7 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
   }
 
   function test_market_order_by_price_full() public {
-    (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
+    (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     uint price = LogPriceLib.priceFromLogPrice_e18(MIDDLE_LOG_PRICE);
     vm.prank($(taker));
     _gas();
@@ -114,7 +114,7 @@ abstract contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest is Gas
   }
 
   function test_market_order_partial() public {
-    (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
+    (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
     vm.prank($(taker));
     _gas();
     mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
@@ -184,7 +184,7 @@ abstract contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTick
     description = string.concat(string.concat("Market order taking ", vm.toString(count), " offers at same tick"));
   }
 
-  function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint) internal virtual override {
+  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint) internal virtual override {
     vm.prank($(taker));
     _gas();
     mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 2 ** 96, false);
@@ -229,11 +229,7 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTicks is Tick
     description = "Market order taking offers up to a tick with offers on all test ticks";
   }
 
-  function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int _logPrice)
-    internal
-    virtual
-    override
-  {
+  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int _logPrice) internal virtual override {
     vm.prank($(taker));
     _gas();
     mgv.marketOrderByLogPrice(_olKey, _logPrice, 2 ** 96, false);

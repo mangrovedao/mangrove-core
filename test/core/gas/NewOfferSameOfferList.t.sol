@@ -3,7 +3,7 @@
 pragma solidity ^0.8.18;
 
 import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
-import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
 
@@ -27,7 +27,7 @@ contract PosthookSuccessNewOfferSameList_WithNoOtherOffersGasTest is TickBoundar
   }
 
   function makerPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata) public virtual override {
-    (AbstractMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
+    (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     if (sor.offerId == offerId) {
       int _logPrice = logPrice;
       _gas();
@@ -36,7 +36,7 @@ contract PosthookSuccessNewOfferSameList_WithNoOtherOffersGasTest is TickBoundar
     }
   }
 
-  function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int) internal virtual override {
+  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int) internal virtual override {
     vm.prank($(taker));
     mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, true);
   }
@@ -65,10 +65,7 @@ contract PosthookSuccessNewOfferSameList_WithOtherOfferAndOfferOnSameTickGasTest
       "Posting a new offer in posthook for offer list with other offer at same tick as taken but where new offer has varying closeness to taken offer, and is written where an offer already exists on that tick. This is only representative for ticks higher than the middle, as lower ticks would be taken by market order";
   }
 
-  function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId, int _logPrice)
-    internal
-    override
-  {
+  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId, int _logPrice) internal override {
     // Skip lower prices as they would be taken by market order if posted so they are not posted.
     if (_logPrice < MIDDLE_LOG_PRICE) {
       return;
@@ -87,7 +84,7 @@ contract PosthookSuccessNewOfferSameList_WithPriorNewOfferAndNoOtherOffersGasTes
   }
 
   function makerPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata result) public virtual override {
-    (AbstractMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
+    (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     if (sor.offerId == offerId) {
       // Insert at middle price - the measured one is at various tick-distances.
       mgv.newOfferByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1 ether, 1_000_000, 0);

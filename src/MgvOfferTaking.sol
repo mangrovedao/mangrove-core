@@ -49,7 +49,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   * If `fillWants` is false, the taker is filling `gives` instead: the market order stops when `takerGives` units of `inbound_tkn` have been sold. With `fillWants` set to false, to sell a specific volume of `inbound_tkn` at any price, set `takerGives` to the amount desired and `takerWants` to $0$. */
   function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
     public
-    returns (uint, uint, uint, uint)
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
     require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
@@ -60,7 +60,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   function marketOrderByPrice(OLKey memory olKey, uint maxPrice_e18, uint fillVolume, bool fillWants)
     external
-    returns (uint, uint, uint, uint)
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     require(maxPrice_e18 <= LogPriceLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
     require(maxPrice_e18 >= LogPriceLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
@@ -71,7 +71,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   function marketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
     public
-    returns (uint, uint, uint, uint)
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     unchecked {
       return generalMarketOrder(olKey, maxLogPrice, fillVolume, fillWants, msg.sender);
@@ -132,7 +132,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
   function generalMarketOrder(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants, address taker)
     internal
-    returns (uint, uint, uint, uint)
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     unchecked {
       //TODO is uint160 correct with new price limits?

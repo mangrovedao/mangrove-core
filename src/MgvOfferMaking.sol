@@ -44,7 +44,7 @@ contract MgvOfferMaking is MgvHasOffers {
   function newOfferByVolume(OLKey memory olKey, uint wants, uint gives, uint gasreq, uint gasprice)
     external
     payable
-    returns (uint)
+    returns (uint offerId)
   {
     unchecked {
       return newOfferByLogPrice(olKey, LogPriceLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice);
@@ -54,7 +54,7 @@ contract MgvOfferMaking is MgvHasOffers {
   function newOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice)
     public
     payable
-    returns (uint)
+    returns (uint offerId)
   {
     unchecked {
       /* In preparation for calling `writeOffer`, we read the `outbound_tkn`,`inbound_tkn`, `tickScale` offerList configuration, check for reentrancy and market liveness, fill the `OfferPack` struct and increment the offerList's `last`. */

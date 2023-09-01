@@ -138,12 +138,12 @@ contract MgvRoot is HasMgvEvents {
   function configInfo(OLKey memory olKey)
     external
     view
-    returns (MgvStructs.GlobalUnpacked memory global, MgvStructs.LocalUnpacked memory local)
+    returns (MgvStructs.GlobalUnpacked memory _global, MgvStructs.LocalUnpacked memory _local)
   {
     unchecked {
-      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = config(olKey);
-      global = _global.to_struct();
-      local = _local.to_struct();
+      (MgvStructs.GlobalPacked __global, MgvStructs.LocalPacked __local) = config(olKey);
+      _global = __global.to_struct();
+      _local = __local.to_struct();
     }
   }
 

@@ -16,7 +16,7 @@ import {
   LEVEL2_LOWER_LOG_PRICE,
   LEVEL2_HIGHER_LOG_PRICE
 } from "./GasTestBase.t.sol";
-import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
 
@@ -43,7 +43,7 @@ contract ExternalCleanOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestBas
   }
 
   function test_clean() public {
-    (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) = getStored();
+    (IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) = getStored();
     int _logPrice = logPrice;
     vm.prank($(taker));
     _gas();
@@ -270,7 +270,7 @@ contract ExternalCleanOfferOtherOfferList_WithPriorCleanOfferAndNoOtherOffersGas
     revert("fail"); // fail
   }
 
-  function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int _logPrice) internal override {
+  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int _logPrice) internal override {
     vm.prank($(taker));
     mgv.cleanByImpersonation(
       _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId2, MIDDLE_LOG_PRICE, 100_000, 0.05 ether)), $(taker)
@@ -309,7 +309,7 @@ abstract contract ExternalCleanOtherOfferList_WithMultipleOffersAtSameTickGasTes
     revert("fail"); // fail
   }
 
-  function impl(AbstractMangrove, TestTaker taker, OLKey memory _olKey, uint) internal virtual override {
+  function impl(IMangrove, TestTaker taker, OLKey memory _olKey, uint) internal virtual override {
     MgvLib.CleanTarget[] memory _targets = targets;
     vm.prank($(taker));
     _gas();

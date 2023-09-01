@@ -843,7 +843,7 @@ contract TakerOperationsTest is MangroveTest {
     vm.label($(badMgv), "Bad Mangrove");
     badMgv.activate(olKey, 0, 0, 0);
 
-    TestMaker mkr2 = new TestMaker(badMgv,olKey);
+    TestMaker mkr2 = new TestMaker(IMangrove($(badMgv)),olKey);
     badMgv.fund{value: 10 ether}($(mkr2));
     mkr2.newOfferByVolume(1 ether, 1 ether, 1, 0);
     vm.expectRevert("mgv/swapError");

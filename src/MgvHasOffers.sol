@@ -26,11 +26,11 @@ contract MgvHasOffers is MgvRoot {
 
        The Mangrove keeps track of their available balance in the `balanceOf` map, which is decremented every time a maker creates a new offer, and may be modified on offer updates/cancellations/takings.
      */
-  mapping(address => uint) public balanceOf;
+  mapping(address maker => uint balance) public balanceOf;
 
   /* # Read functions */
   /* Convenience function to get best offer of the given offerList */
-  function best(OLKey memory olKey) external view returns (uint) {
+  function best(OLKey memory olKey) external view returns (uint offerId) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       return offerList.leafs[offerList.local.tick().leafIndex()].getNextOfferId();
@@ -38,12 +38,16 @@ contract MgvHasOffers is MgvRoot {
   }
 
   /* Convenience function to get an offer in packed format */
-  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked) {
+  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer) {
     return offerLists[olKey.hash()].offerData[offerId].offer;
   }
 
   /* Convenience function to get an offer detail in packed format */
-  function offerDetails(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferDetailPacked) {
+  function offerDetails(OLKey memory olKey, uint offerId)
+    external
+    view
+    returns (MgvStructs.OfferDetailPacked offerDetail)
+  {
     return offerLists[olKey.hash()].offerData[offerId].detail;
   }
 

@@ -27,6 +27,11 @@ library OLLib {
       _id := keccak256(olKey, 96)
     }
   }
+
+  // Creates a flipped copy of the `olKey` with same `tickScale`.
+  function flipped(OLKey memory olKey) internal pure returns (OLKey memory) {
+    return OLKey(olKey.inbound, olKey.outbound, olKey.tickScale);
+  }
 }
 
 /* # Structs

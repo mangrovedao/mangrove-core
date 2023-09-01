@@ -132,6 +132,13 @@ contract DynamicTicksTest is MangroveTest {
     assertEq(olKey.hash(), keccak256(abi.encode(olKey)), "id() is hashing incorrect data");
   }
 
+  function test_flipped_is_correct(OLKey memory olKey) public {
+    OLKey memory flipped = olKey.flipped();
+    assertEq(flipped.inbound, olKey.outbound, "flipped() is incorrect");
+    assertEq(flipped.outbound, olKey.inbound, "flipped() is incorrect");
+    assertEq(flipped.tickScale, olKey.tickScale, "flipped() is incorrect");
+  }
+
   function test_insertionLogPrice_normalization(int24 logPrice, uint64 tickScale) public {
     vm.assume(tickScale != 0);
     vm.assume(int(logPrice) % int(uint(tickScale)) != 0);

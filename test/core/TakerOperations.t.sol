@@ -630,8 +630,8 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/makerRevert");
     mkr.shouldRevert(true);
     quote.approve($(mgv), 1 ether);
-    expectFrom($(mgv));
-    emit OfferFailWithPosthookData(olKey.hash(), ofr, 1 ether, 1 ether, 4000000000000000, "mgv/makerRevert", "");
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit OfferFailWithPosthookData(olKey.hash(), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert", "");
     mgv.marketOrderByLogPrice(olKey, logPrice, 1 ether, true);
     assertFalse(mkr.makerPosthookWasCalled(ofr), "ofr posthook must not be called or test is void");
   }

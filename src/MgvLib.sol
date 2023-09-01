@@ -104,7 +104,6 @@ contract HasMgvEvents {
     bytes32 indexed olKeyHash,
     uint id,
     // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
-    address indexed taker,
     uint takerWants,
     uint takerGives
   );
@@ -114,9 +113,9 @@ contract HasMgvEvents {
     bytes32 indexed olKeyHash,
     uint id,
     // `maker` is not logged because it can be retrieved from the state using `(olKeyHash)`.
-    address indexed taker,
     uint takerWants,
     uint takerGives,
+    uint penalty,
     // `mgvData` may only be `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"`
     bytes32 mgvData
   );

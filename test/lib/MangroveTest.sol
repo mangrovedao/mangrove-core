@@ -79,7 +79,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     defaultTickscale: 1,
     gasprice: 40,
     gasbase: 50_000,
-    density: 10,
+    density: 2 ** 32,
     gasmax: 2_000_000
   });
 
@@ -411,25 +411,25 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
-  /// creates `fold` offers in the (outbound, inbound) market with the same `wants`, `gives` and `gasreq` and with `caller` as maker
-  function densify(OLKey memory _ol, uint wants, uint gives, uint gasreq, uint fold, address caller) internal {
+  /// creates `fold` offers in the (outbound, inbound) market with the same `logPrice`, `gives` and `gasreq` and with `caller` as maker
+  function densify(OLKey memory _ol, int logPrice, uint gives, uint gasreq, uint fold, address caller) internal {
     if (gives == 0) {
       return;
     }
     uint prov = reader.getProvision(_ol, gasreq, 0);
     while (fold > 0) {
       vm.prank(caller);
-      mgv.newOfferByVolume{value: prov}(_ol, wants, gives, gasreq, 0);
+      mgv.newOfferByLogPrice{value: prov}(_ol, logPrice, gives, gasreq, 0);
       fold--;
     }
   }
 
-  /// duplicates `fold` times all offers in the `outbound, inbound` list from id `fromId` and for `lenght` offers.
+  /// duplicates `fold` times all offers in the `outbound, inbound` list from id `fromId` and for `length` offers.
   function densifyRange(OLKey memory _ol, uint fromId, uint length, uint fold, address caller) internal {
     while (length > 0 && fromId != 0) {
       MgvStructs.OfferPacked offer = mgv.offers(_ol, fromId);
       MgvStructs.OfferDetailPacked detail = mgv.offerDetails(_ol, fromId);
-      densify(_ol, offer.wants(), offer.gives(), detail.gasreq(), fold, caller);
+      densify(_ol, offer.logPrice(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
       fromId = reader.nextOfferId(_ol, offer);
     }

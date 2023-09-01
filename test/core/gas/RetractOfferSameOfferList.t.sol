@@ -7,6 +7,7 @@ import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
 import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE} from "mgv_lib/TickLib.sol";
+import "mgv_lib/Debug.sol";
 
 int constant LOW_LOG_PRICE = MIDDLE_LOG_PRICE - 2 * LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
 
@@ -16,11 +17,11 @@ contract PosthookSuccessRetractOfferSameList_WithOtherOfferGasTest is TickBounda
   function setUp() public virtual override {
     super.setUp();
     this.newOfferOnAllTestPrices();
-    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1 ether, 1_000_000, 0);
+    _offerId = mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1000 ether, 1_000_000, 0);
     logPriceOfferIds[MIDDLE_LOG_PRICE] = _offerId;
     // Offer to take at very low price
     mgv.newOfferByLogPrice(olKey, LOW_LOG_PRICE, 2 ** 96 - 1, 1_000_000, 0);
-    offerId2 = mgv.newOfferByLogPrice(olKey, LOW_LOG_PRICE, 2 * 96 - 1, 1_000_000, 0);
+    offerId2 = mgv.newOfferByLogPrice(olKey, LOW_LOG_PRICE, 2 ** 96 - 1, 1_000_000, 0);
     description =
       "Retracting an offer in posthook for now empty offer list but where new offer has varying closeness to taken offer";
   }

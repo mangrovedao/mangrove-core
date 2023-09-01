@@ -16,8 +16,7 @@ export const struct_utilities = `/* since you can't convert bool to uint in an e
 function uint_of_bool(bool b) pure returns (uint u) {
   assembly { u := b }
 }
-
-uint constant ONES = type(uint).max;`;
+import "mgv_lib/Constants.sol";`;
 
 const field_var = (_name: string, prop: string) => {
   return `${_name}_${prop}`;

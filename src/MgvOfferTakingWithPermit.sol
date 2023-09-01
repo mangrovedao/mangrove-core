@@ -5,6 +5,7 @@ import {HasMgvEvents, Tick, LogPriceLib, OLKey} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
 import {TickLib} from "./../lib/TickLib.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* Takers may provide allowances on specific offerLists, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
@@ -86,20 +87,22 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
       require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
       require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
       uint fillVolume = fillWants ? takerWants : takerGives;
-      int logPrice = LogPriceLib.logPriceFromTakerVolumes(takerGives, takerWants);
+      int logPrice = LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
       return marketOrderForByLogPrice(olKey, logPrice, fillVolume, fillWants, taker);
     }
   }
 
-  function marketOrderForByPrice(OLKey memory olKey, uint maxPrice_e18, uint fillVolume, bool fillWants, address taker)
-    external
-    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
-  {
+  function marketOrderForByPrice(
+    OLKey memory olKey,
+    uint maxPrice_mantissa,
+    int maxPrice_exp,
+    uint fillVolume,
+    bool fillWants,
+    address taker
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
     unchecked {
-      require(maxPrice_e18 <= LogPriceLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
-      require(maxPrice_e18 >= LogPriceLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
-      int logPrice = LogPriceLib.logPriceFromPrice_e18(maxPrice_e18);
-      return marketOrderForByLogPrice(olKey, logPrice, fillVolume, fillWants, taker);
+      int maxLogPrice = LogPriceConversionLib.logPriceFromPrice(maxPrice_mantissa, maxPrice_exp);
+      return marketOrderForByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, taker);
     }
   }
 

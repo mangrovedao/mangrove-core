@@ -17,6 +17,7 @@ import {
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickLib} from "./../lib/TickLib.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
@@ -45,27 +46,25 @@ abstract contract MgvOfferTaking is MgvHasOffers {
      The `takerGives/takerWants` ratio induces a maximum average price that the taker is ready to pay across all offers that will be executed during the market order. It is thus possible to execute an offer with a price worse than the initial (`takerGives`/`takerWants`) ratio given as argument to `marketOrder` if some cheaper offers were executed earlier in the market order.
 
   The market order stops when the price has become too high, or when the end of the book has been reached, or:
-  * If `fillWants` is true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained. With `fillWants` set to true, to buy a specific volume of `outbound_tkn` at any price, set `takerWants` to the amount desired and `takerGives` to $2^{160}-1$.
+  * If `fillWants` is true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained. With `fillWants` set to true, to buy a specific volume of `outbound_tkn` at any price, set `takerWants` to the amount desired and `takerGives` to $2^{104}-1$.
   * If `fillWants` is false, the taker is filling `gives` instead: the market order stops when `takerGives` units of `inbound_tkn` have been sold. With `fillWants` set to false, to sell a specific volume of `inbound_tkn` at any price, set `takerGives` to the amount desired and `takerWants` to $0$. */
   function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
     public
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
-    require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
-    require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
     uint fillVolume = fillWants ? takerWants : takerGives;
-    int maxLogPrice = LogPriceLib.logPriceFromTakerVolumes(takerGives, takerWants);
+    int maxLogPrice = LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
     return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants);
   }
 
-  function marketOrderByPrice(OLKey memory olKey, uint maxPrice_e18, uint fillVolume, bool fillWants)
-    external
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
-  {
-    require(maxPrice_e18 <= LogPriceLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
-    require(maxPrice_e18 >= LogPriceLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
-
-    int maxLogPrice = LogPriceLib.logPriceFromPrice_e18(maxPrice_e18);
+  function marketOrderByPrice(
+    OLKey memory olKey,
+    uint maxPrice_mantissa,
+    int maxPrice_exp,
+    uint fillVolume,
+    bool fillWants
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
+    int maxLogPrice = LogPriceConversionLib.logPriceFromPrice(maxPrice_mantissa, maxPrice_exp);
     return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants);
   }
 
@@ -135,9 +134,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     unchecked {
-      //TODO is uint160 correct with new price limits?
-      /* Since amounts stored in offers are 96 bits wide, checking that `takerWants` and `takerGives` fit in 160 bits prevents overflow during the main market order loop. */
-      require(uint160(fillVolume) == fillVolume, "mgv/mOrder/fillVolume/160bits");
+      /* Checking that `takerWants` and `takerGives` fit in 104 bits prevents overflow during the main market order loop. */
+      require(fillVolume <= MAX_SAFE_VOLUME, "mgv/mOrder/fillVolume/tooBig");
       require(LogPriceLib.inRange(maxLogPrice), "mgv/mOrder/logPrice/outOfRange");
 
       /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */

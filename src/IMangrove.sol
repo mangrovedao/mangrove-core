@@ -67,9 +67,13 @@ interface IMangrove is HasMgvEvents {
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function marketOrderByPrice(OLKey memory olKey, uint maxPrice_e18, uint fillVolume, bool fillWants)
-    external
-    returns (uint takerGot, uint takerGave, uint bounty, uint fee);
+  function marketOrderByPrice(
+    OLKey memory olKey,
+    uint maxPrice_mantissa,
+    int maxPrice_exp,
+    uint fillVolume,
+    bool fillWants
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function marketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
     external
@@ -79,9 +83,14 @@ interface IMangrove is HasMgvEvents {
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
-  function marketOrderForByPrice(OLKey memory olKey, uint maxPrice_e18, uint fillVolume, bool fillWants, address taker)
-    external
-    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
+  function marketOrderForByPrice(
+    OLKey memory olKey,
+    uint maxPrice_mantissa,
+    int maxPrice_exp,
+    uint fillVolume,
+    bool fillWants,
+    address taker
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
   function marketOrderForByLogPrice(OLKey memory olKey, int logPrice, uint fillVolume, bool fillWants, address taker)
     external

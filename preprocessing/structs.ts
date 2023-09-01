@@ -111,7 +111,9 @@ const struct_defs = {
       10 billions. */
       fields.gives,
     ],
-    additionalDefinitions: `import {Tick,TickLib, LogPriceLib} from "mgv_lib/TickLib.sol";
+    additionalDefinitions: `import "mgv_lib/TickLib.sol";
+import "mgv_lib/LogPriceLib.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 
 using OfferPackedExtra for OfferPacked global;
 using OfferUnpackedExtra for OfferUnpacked global;
@@ -157,7 +159,7 @@ function pack(uint __prev, uint __next, uint __wants, uint __gives) pure returns
   return pack({
     __prev: __prev,
     __next: __next,
-    __logPrice: LogPriceLib.logPriceFromVolumes(__wants,__gives),
+    __logPrice: LogPriceConversionLib.logPriceFromVolumes(__wants,__gives),
     __gives: __gives
   });
 }}

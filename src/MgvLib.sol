@@ -8,6 +8,8 @@ import "./preprocessed/MgvStructs.post.sol" as MgvStructs;
 import {IERC20} from "./IERC20.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/TickLib.sol";
+import "mgv_lib/LogPriceLib.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 
 using OLLib for OLKey global;
 // OLKey is OfferList

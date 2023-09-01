@@ -5,6 +5,7 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import {MgvStructs, MAX_TICK, MIN_TICK, LogPriceLib} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
+import "mgv_lib/Constants.sol";
 
 // In these tests, the testing contract is the market maker.
 contract GatekeepingTest is MangroveTest {
@@ -179,12 +180,44 @@ contract GatekeepingTest is MangroveTest {
 
   function test_makerWants_too_big_fails_newOfferByVolume() public {
     vm.expectRevert("mgv/writeOffer/wants/96bits");
-    mkr.newOfferByVolume((1 << 96) + 1e28, 1 ether, 10_000, 0);
+    // due to approximation doing max + 1 is not sufficient to trigger the error
+    mkr.newOfferByVolume((1 << 96) + (1 << 82), 1 ether, 10_000, 0);
   }
 
-  function test_makerLogPrice_toolow_fails_newOfferByLogPrice() public {
+  function test_newOfferByLogPrice_extrema_logPrice() public {
     vm.expectRevert("mgv/writeOffer/logPrice/outOfRange");
-    mkr.newOfferByLogPrice(LogPriceLib.MIN_LOG_PRICE - 1, 1 ether, 10_000, 0);
+    mkr.newOfferByLogPrice(MIN_LOG_PRICE - 1, 1 ether, 10_000, 0);
+    vm.expectRevert("mgv/writeOffer/logPrice/outOfRange");
+    mkr.newOfferByLogPrice(MAX_LOG_PRICE + 1, 1 ether, 10_000, 0);
+  }
+
+  function test_updateOfferByLogPrice_extrema_logPrice() public {
+    uint ofr = mkr.newOfferByLogPrice(0, 1 ether, 10_000, 0);
+    vm.expectRevert("mgv/writeOffer/logPrice/outOfRange");
+    mkr.updateOfferByLogPrice(MIN_LOG_PRICE - 1, 1 ether, 10_000, ofr);
+    vm.expectRevert("mgv/writeOffer/logPrice/outOfRange");
+    mkr.updateOfferByLogPrice(MAX_LOG_PRICE + 1, 1 ether, 10_000, ofr);
+  }
+
+  // FIXME remove when/if tick range is bigger than price range
+  function test_newOfferByLogPrice_extrema_tick() public {
+    mgv.setDensity(olKey,0);
+    olKey.tickScale = 1;
+    vm.expectRevert("mgv/writeOffer/tick/outOfRange");
+    mkr.newOfferByLogPrice(MIN_TICK - 1, type(uint96).max, 10_000, 0);
+    vm.expectRevert("mgv/writeOffer/tick/outOfRange");
+    mkr.newOfferByLogPrice(MAX_TICK + 1, 1, 10_000, 0);
+  }
+
+  // FIXME remove when/if tick range is bigger than price range
+  function test_updateOfferByLogPrice_extrema_tick() public {
+    mgv.setDensity(olKey,0);
+    olKey.tickScale = 1;
+    uint ofr = mkr.newOfferByLogPrice(0, 1 ether, 10_000, 0);
+    vm.expectRevert("mgv/writeOffer/tick/outOfRange");
+    mkr.updateOfferByLogPrice(MIN_TICK - 1, type(uint96).max, 10_000, ofr);
+    vm.expectRevert("mgv/writeOffer/tick/outOfRange");
+    mkr.updateOfferByLogPrice(MAX_TICK + 1, 1, 10_000, ofr);
   }
 
   function test_retractOffer_wrong_owner_fails() public {
@@ -227,9 +260,7 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_makerGives_wider_than_96_bits_fails_newOfferByVolume() public {
-    // formerly:
-    // vm.expectRevert("mgv/writeOffer/gives/96bits");
-    vm.expectRevert("mgv/priceFromLogPrice/outOfRange");
+    vm.expectRevert("mgv/writeOffer/gives/96bits");
     mkr.newOfferByVolume(1, 1 << 96, 10_000);
   }
 
@@ -295,16 +326,6 @@ contract GatekeepingTest is MangroveTest {
   function test_makerGasprice_wider_than_16_bits_fails_newOfferByVolume() public {
     vm.expectRevert("mgv/writeOffer/gasprice/16bits");
     mkr.newOfferByVolume(1, 1, 1, 1 << 16);
-  }
-
-  function test_takerWants_wider_than_160_bits_fails_marketOrder() public {
-    vm.expectRevert("mgv/mOrder/takerWants/160bits");
-    tkr.marketOrder(1 << 160, 0);
-  }
-
-  function test_takerGives_wider_than_160_bits_fails_marketOrder() public {
-    vm.expectRevert("mgv/mOrder/takerGives/160bits");
-    tkr.marketOrder(0, 1 << 160);
   }
 
   function test_initial_allowance_is_zero() public {
@@ -812,34 +833,38 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_marketOrderByPrice_extrema() public {
-    vm.expectRevert("mgv/mOrder/maxPrice/tooHigh");
-    mgv.marketOrderByPrice(olKey, LogPriceLib.MAX_PRICE_E18 + 1, 100, true);
-    vm.expectRevert("mgv/mOrder/maxPrice/tooLow");
-    mgv.marketOrderByPrice(olKey, LogPriceLib.MIN_PRICE_E18 - 1, 100, true);
+    vm.expectRevert("mgv/price/tooHigh");
+    mgv.marketOrderByPrice(olKey, MAX_PRICE_MANTISSA + 1, MAX_PRICE_EXP, 100, true);
+    vm.expectRevert("mgv/normalizePrice/lowExp");
+    mgv.marketOrderByPrice(olKey, MAX_PRICE_MANTISSA, MAX_PRICE_EXP - 1, 100, true);
+    vm.expectRevert("mgv/price/tooLow");
+    mgv.marketOrderByPrice(olKey, MIN_PRICE_MANTISSA - 1, MIN_PRICE_EXP, 100, true);
+    vm.expectRevert("mgv/price/tooLow");
+    mgv.marketOrderByPrice(olKey, MIN_PRICE_MANTISSA, MIN_PRICE_EXP + 1, 100, true);
   }
 
   function test_marketOrderByLogPrice_extrema() public {
-    int highLogPrice = LogPriceLib.fromTick(Tick.wrap(MAX_TICK + 1), olKey.tickScale);
     vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
-    mgv.marketOrderByLogPrice(olKey, highLogPrice, 100, true);
-    int lowLogPrice = LogPriceLib.fromTick(Tick.wrap(MIN_TICK - 1), olKey.tickScale);
+    mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE + 1, 100, true);
     vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
-    mgv.marketOrderByLogPrice(olKey, lowLogPrice, 100, true);
+    mgv.marketOrderByLogPrice(olKey, MIN_LOG_PRICE - 1, 100, true);
   }
 
-  function test_marketOrderForByPrice_extrema() public {
-    vm.expectRevert("mgv/mOrder/maxPrice/tooHigh");
-    mgv.marketOrderForByPrice(olKey, LogPriceLib.MAX_PRICE_E18 + 1, 100, true, address(this));
-    vm.expectRevert("mgv/mOrder/maxPrice/tooLow");
-    mgv.marketOrderForByPrice(olKey, LogPriceLib.MIN_PRICE_E18 - 1, 100, true, address(this));
+  function test_marketOrderForByPrice_extrema(address taker) public {
+    vm.expectRevert("mgv/price/tooHigh");
+    mgv.marketOrderForByPrice(olKey, MAX_PRICE_MANTISSA + 1, MAX_PRICE_EXP, 100, true, taker);
+    vm.expectRevert("mgv/normalizePrice/lowExp");
+    mgv.marketOrderForByPrice(olKey, MAX_PRICE_MANTISSA, MAX_PRICE_EXP - 1, 100, true, taker);
+    vm.expectRevert("mgv/price/tooLow");
+    mgv.marketOrderForByPrice(olKey, MIN_PRICE_MANTISSA - 1, MIN_PRICE_EXP, 100, true, taker);
+    vm.expectRevert("mgv/price/tooLow");
+    mgv.marketOrderForByPrice(olKey, MIN_PRICE_MANTISSA, MIN_PRICE_EXP + 1, 100, true, taker);
   }
 
-  function test_marketOrderForByLogPrice_extrema() public {
-    int highLogPrice = LogPriceLib.fromTick(Tick.wrap(MAX_TICK + 1), olKey.tickScale);
+  function test_marketOrderForByLogPrice_extrema(address taker) public {
     vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
-    mgv.marketOrderForByLogPrice(olKey, highLogPrice, 100, true, address(this));
-    int lowLogPrice = LogPriceLib.fromTick(Tick.wrap(MIN_TICK - 1), olKey.tickScale);
+    mgv.marketOrderForByLogPrice(olKey, MAX_LOG_PRICE + 1, 100, true, taker);
     vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
-    mgv.marketOrderForByLogPrice(olKey, lowLogPrice, 100, true, address(this));
+    mgv.marketOrderForByLogPrice(olKey, MIN_LOG_PRICE - 1, 100, true, taker);
   }
 }

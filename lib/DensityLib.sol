@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {Tick,Field} from "mgv_lib/TickLib.sol";
-
+import {MIN_LOG_PRICE,ONES} from "mgv_lib/Constants.sol";
 import {BitLib} from "mgv_lib/BitLib.sol";
 
 /* Density
@@ -43,8 +43,6 @@ so the small values have some holes:
 
 type Density is uint;
 using DensityLib for Density global;
-
-uint constant ONES = type(uint).max;
 
 library DensityLib {
   // Numbers in this file assume that density is 9 bits in structs.ts

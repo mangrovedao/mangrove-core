@@ -54,6 +54,9 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     deal($(base), maker, 200000 ether);
     deal($(quote), maker, 200000 ether);
     deal(maker, 1000 ether);
+    uint offerGivesOl = reader.minVolume(olKey, 100000);
+    uint offerGivesLo = reader.minVolume(lo, 100000);
+
     vm.prank(maker);
     mgv.fund{value: 10 ether}();
     vm.prank(maker);
@@ -61,9 +64,9 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     vm.prank(maker);
     TransferLib.approveToken(quote, $(mgv), type(uint).max);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1, 100000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 100000, 0);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, 1, 100000, 0);
+    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, offerGivesLo, 100000, 0);
   }
 
   function test_gasbase_to_empty_book_base_quote() public {

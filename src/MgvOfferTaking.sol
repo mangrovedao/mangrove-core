@@ -479,7 +479,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
         mgvData = bytes32("mgv/tradeSuccess");
-        emit OfferSuccess(sor.offerDetail.maker(), sor.offerId, sor.wants, sor.gives);
 
         /* If configured to do so, Mangrove notifies an external contract that a successful trade has taken place. */
         if (sor.global.notify()) {
@@ -495,10 +494,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         (mgvData, gasused, makerData) = innerDecode(retdata);
         /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {
-          // FIXME: Why don't we pay the penalty here? Because we may use more gas and thus incur a bigger penalty, according to a comment higher up.
-          // FIXME: Why don't we emit this later then?
-          emit OfferFail(sor.offerDetail.maker(), sor.offerId, sor.wants, sor.gives, mgvData);
-
           /* If configured to do so, Mangrove notifies an external contract that a failed trade has taken place. */
           if (sor.global.notify()) {
             IMgvMonitor(sor.global.monitor()).notifyFail(sor, mor.taker);
@@ -592,7 +587,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       gasused = gasused + makerPosthook(sor, gasreq - gasused, makerData, mgvData);
 
       if (mgvData != "mgv/tradeSuccess") {
-        mor.totalPenalty += applyPenalty(sor, gasused);
+        mor.totalPenalty += applyPenalty(sor, gasused, mgvData);
+      } else {
+        emit OfferSuccess(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives);
       }
     }
   }
@@ -665,7 +662,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
    * We do not consider the tx.gasprice.
    * `offerDetail.gasbase` and `offerDetail.gasprice` are the values of Mangrove parameters `config.offer_gasbase` and `config.gasprice` when the offer was created. Without caching those values, the provision set aside could end up insufficient to reimburse the maker (or to retribute the taker).
    */
-  function applyPenalty(MgvLib.SingleOrder memory sor, uint gasused) internal returns (uint) {
+  function applyPenalty(MgvLib.SingleOrder memory sor, uint gasused, bytes32 mgvData) internal returns (uint) {
     unchecked {
       uint gasreq = sor.offerDetail.gasreq();
 
@@ -691,6 +688,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* Here we write to storage the new maker balance. This occurs _after_ possible reentrant calls. How do we know we're not crediting twice the same amounts? Because the `offer`'s provision was set to 0 in storage (through `dirtyDeleteOffer`) before the reentrant calls. In this function, we are working with cached copies of the offer as it was before it was consumed. */
       creditWei(sor.offerDetail.maker(), provision - penalty);
+
+      emit OfferFail(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, penalty, mgvData);
 
       return penalty;
     }

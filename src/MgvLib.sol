@@ -106,19 +106,22 @@ contract HasMgvEvents {
   event OrderComplete(uint fee);
 
   /* * Offer execution */
-  event OfferSuccess( // FIXME: Included since consumers cannot be assumed to know the maker
-    // FIXME: id could be inferred by indexing the book and simply walking it.
-    // FIXME: The same goes for this and takerGave, since we can simulate the trade.
-  address indexed maker, uint id, uint takerGot, uint takerGave);
-  // FIXME: Include fee?
+  event OfferSuccess(
+    bytes32 indexed olKeyHash,
+    uint id,
+    // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
+    uint takerWants,
+    uint takerGives
+  );
 
   /* Log information when a trade execution reverts or returns a non empty bytes32 word */
   event OfferFail(
-    address indexed maker,
+    bytes32 indexed olKeyHash,
     uint id,
+    // `maker` is not logged because it can be retrieved from the state using `(olKeyHash)`.
     uint takerWants,
     uint takerGives,
-    // uint penalty, // FIXME: Putting this here requires emitting the event later, as we don't know the penalty until after the posthook has executed
+    uint penalty,
     // `mgvData` may only be `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"`
     bytes32 mgvData
   );

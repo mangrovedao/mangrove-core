@@ -165,6 +165,32 @@ contract TickTest is Test {
     assertApproxEqRel(LogPriceLib.priceFromLogPrice_e18(524287), 58661978243259926126959077156658796822528, err);
   }
 
+  function test_volume_inverse() public {
+    uint gives = 1 ether;
+    int logPrice = LogPriceLib.logPriceFromPrice_e18(2000e18);
+    uint wantsA = LogPriceLib.inboundFromOutbound(logPrice, gives);
+    uint wantsB = LogPriceLib.outboundFromInbound(-logPrice, gives);
+    uint givesAA = LogPriceLib.outboundFromInbound(logPrice, wantsA);
+    uint givesBA = LogPriceLib.inboundFromOutbound(-logPrice, wantsA);
+    uint givesAB = LogPriceLib.outboundFromInbound(logPrice, wantsB);
+    uint givesBB = LogPriceLib.inboundFromOutbound(-logPrice, wantsB);
+
+    console.log("Gives %s Wants %s", gives, wantsA);
+    console.log("WantsA %s WantsB %s", wantsA, wantsB);
+    console.log("givesAA %s givesBA %s", givesAA, givesBA);
+    console.log("givesAB %s givesBB %s", givesAB, givesBB);
+
+    /*
+  Running 1 test for test/core/Leaf.t.sol:TickTest
+  [PASS] test_volume_inverse() (gas: 30617)
+  Logs:
+  Gives 1000000000000000000 Wants 1999835018391757675359
+  WantsA 1999835018391757675359 WantsB 1999835018391760277054
+  givesAA 1000000000000000000 givesBA 999999999999998699
+  givesAB 1000000000000001300 givesBB 999999999999999999    
+    */
+  }
+
   function showLogPriceApprox(uint wants, uint gives) internal pure {
     int logPrice = LogPriceLib.logPriceFromVolumes(wants, gives);
     uint wants2 = LogPriceLib.inboundFromOutbound(logPrice, gives);

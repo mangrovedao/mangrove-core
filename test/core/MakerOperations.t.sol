@@ -4,7 +4,6 @@ pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
 import {MgvStructs, Leaf, LogPriceLib} from "mgv_src/MgvLib.sol";
-import {MgvRoot} from "mgv_src/MgvRoot.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 
 contract MakerOperationsTest is MangroveTest, IMaker {

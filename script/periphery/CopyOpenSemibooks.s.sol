@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import "mgv_src/periphery/MgvReader.sol";
-import {Mangrove} from "mgv_src/Mangrove.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MgvStructs, OLKey} from "mgv_src/MgvLib.sol";
 
@@ -13,7 +12,7 @@ previousReader's internal state) to currentReader's Mangrove.
 
 It will never close semibooks.*/
 contract CopyOpenSemibooks is Deployer {
-  Mangrove currentMangrove;
+  IMangrove currentMangrove;
 
   function run() public {
     innerRun({
@@ -28,7 +27,7 @@ contract CopyOpenSemibooks is Deployer {
     console.log("Current reader: ", address(currentReader));
     (Market[] memory markets, MarketConfig[] memory configs) = previousReader.openMarkets();
 
-    currentMangrove = Mangrove(payable(currentReader.MGV()));
+    currentMangrove = IMangrove(payable(currentReader.MGV()));
 
     console.log("Enabling semibooks...");
 

@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 import {IMaker, HasMgvEvents, MgvStructs, Tick, TickLib, Leaf, Field, LogPriceLib, OLKey} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
+import {LogPriceConversionLib} from "mgv_lib/LogPriceConversionLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
@@ -194,7 +195,7 @@ contract MgvOfferMaking is MgvHasOffers {
   /* Fund should be called with a nonzero value (hence the `payable` modifier). The provision will be given to `maker`, not `msg.sender`. */
   function fund(address maker) public payable {
     unchecked {
-      (MgvStructs.GlobalPacked _global,) = config(OLKey(address(0), address(0), 0));
+      (MgvStructs.GlobalPacked _global,,) = _config(OLKey(address(0), address(0), 0));
       liveMgvOnly(_global);
       creditWei(maker, msg.value);
     }
@@ -232,7 +233,7 @@ contract MgvOfferMaking is MgvHasOffers {
       // normalize logprice to tickscale
       insertionLogPrice = LogPriceLib.fromTick(TickLib.fromLogPrice(insertionLogPrice, tickScale), tickScale);
       /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
-      require(checkGasprice(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
+      require(MgvStructs.Global.gasprice_check(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
 
       if (ofp.gasprice < ofp.global.gasprice()) {
         ofp.gasprice = ofp.global.gasprice();

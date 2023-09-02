@@ -42,7 +42,7 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     assertEq(type(uint).max, Density.unwrap(density_));
 
     // Mangrove - verify expected values have been passed in
-    Mangrove mgv = mgvDeployer.mgv();
+    IMangrove mgv = mgvDeployer.mgv();
     assertEq(mgv.governance(), chief);
     (MgvStructs.GlobalPacked cfg,) = mgv.config(OLKey(address(0), address(0), 0));
     assertEq(cfg.gasmax(), gasmax);

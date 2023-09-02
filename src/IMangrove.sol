@@ -14,7 +14,7 @@ import "./MgvLib.sol" as MgvLibWrapper;
 interface IMangrove is HasMgvEvents {
   function DOMAIN_SEPARATOR() external view returns (bytes32);
 
-  function PERMIT_TYPEHASH() external view returns (bytes32);
+  function PERMIT_TYPEHASH() external pure returns (bytes32);
 
   function withdrawERC20(address tokenAddress, uint value) external;
   function activate(OLKey memory olKey, uint fee, uint densityFixed, uint offer_gasbase) external;
@@ -177,4 +177,6 @@ interface IMangrove is HasMgvEvents {
   function level1(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
 
   function level2(OLKey memory olKey) external view returns (MgvLibWrapper.Field);
+
+  fallback(bytes calldata callData) external returns (bytes memory);
 }

@@ -14,54 +14,35 @@ import {
   LEVEL0_SIZE,
   OLKey
 } from "./MgvLib.sol";
-import {MgvRoot} from "./MgvRoot.sol";
-import "mgv_lib/Debug.sol";
+import {MgvCommon} from "./MgvCommon.sol";
 
 /* `MgvHasOffers` contains the state variables and functions common to both market-maker operations and market-taker operations. Mostly: storing offers, removing them, updating market makers' provisions. */
-contract MgvHasOffers is MgvRoot {
-  /* # State variables */
-  /* Makers provision their possible penalties in the `balanceOf` mapping.
+contract MgvHasOffers is MgvCommon {
+  /*
+  # Gatekeeping
 
-       Offers specify the amount of gas they require for successful execution ([`gasreq`](#structs.js/gasreq)). To minimize book spamming, market makers must provision a *penalty*, which depends on their `gasreq` and on the offerList's [`offer_gasbase`](#structs.js/gasbase). This provision is deducted from their `balanceOf`. If an offer fails, part of that provision is given to the taker, as retribution. The exact amount depends on the gas used by the offer before failing.
+  Gatekeeping functions are safety checks called in various places.
+  */
 
-       The Mangrove keeps track of their available balance in the `balanceOf` map, which is decremented every time a maker creates a new offer, and may be modified on offer updates/cancellations/takings.
-     */
-  mapping(address maker => uint balance) public balanceOf;
-
-  /* # Read functions */
-  /* Convenience function to get best offer of the given offerList */
-  function best(OLKey memory olKey) external view returns (uint offerId) {
-    unchecked {
-      OfferList storage offerList = offerLists[olKey.hash()];
-      return offerList.leafs[offerList.local.tick().leafIndex()].getNextOfferId();
-    }
+  /* `unlockedMarketOnly` protects modifying the market while an order is in progress. Since external contracts are called during orders, allowing reentrancy would, for instance, let a market maker replace offers currently on the book with worse ones. Note that the external contracts _will_ be called again after the order is complete, this time without any lock on the market.  */
+  function unlockedMarketOnly(MgvStructs.LocalPacked local) internal pure {
+    require(!local.lock(), "mgv/reentrancyLocked");
   }
 
-  /* Convenience function to get an offer in packed format */
-  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer) {
-    return offerLists[olKey.hash()].offerData[offerId].offer;
+  /* <a id="Mangrove/definition/liveMgvOnly"></a>
+     In case of emergency, Mangrove can be `kill`ed. It cannot be resurrected. When a Mangrove is dead, the following operations are disabled :
+       * Executing an offer
+       * Sending ETH to Mangrove the normal way. Usual [shenanigans](https://medium.com/@alexsherbuck/two-ways-to-force-ether-into-a-contract-1543c1311c56) are possible.
+       * Creating a new offer
+   */
+  function liveMgvOnly(MgvStructs.GlobalPacked _global) internal pure {
+    require(!_global.dead(), "mgv/dead");
   }
 
-  /* Convenience function to get an offer detail in packed format */
-  function offerDetails(OLKey memory olKey, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferDetailPacked offerDetail)
-  {
-    return offerLists[olKey.hash()].offerData[offerId].detail;
-  }
-
-  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offerLists[outbound_tkn][inbound_tkn].offers` and `offerLists[outbound_tkn][inbound_tkn].offerDetails` instead. */
-  function offerInfo(OLKey memory olKey, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
-  {
-    unchecked {
-      OfferData storage offerData = offerLists[olKey.hash()].offerData[offerId];
-      offer = offerData.offer.to_struct();
-      offerDetail = offerData.detail.to_struct();
-    }
+  /* When Mangrove is deployed, all offerLists are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive offerLists cannot be taken or created. They can be updated and retracted. */
+  function activeMarketOnly(MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) internal pure {
+    liveMgvOnly(_global);
+    require(_local.active(), "mgv/inactive");
   }
 
   /* # Provision debit/credit utility functions */
@@ -69,16 +50,16 @@ contract MgvHasOffers is MgvRoot {
 
   function debitWei(address maker, uint amount) internal {
     unchecked {
-      uint makerBalance = balanceOf[maker];
+      uint makerBalance = _balanceOf[maker];
       require(makerBalance >= amount, "mgv/insufficientProvision");
-      balanceOf[maker] = makerBalance - amount;
+      _balanceOf[maker] = makerBalance - amount;
       emit Debit(maker, amount);
     }
   }
 
   function creditWei(address maker, uint amount) internal {
     unchecked {
-      balanceOf[maker] += amount;
+      _balanceOf[maker] += amount;
       emit Credit(maker, amount);
     }
   }

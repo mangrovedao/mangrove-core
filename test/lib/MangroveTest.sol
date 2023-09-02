@@ -488,7 +488,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     IMangrove _mgv = reader.MGV();
     console.log("--------CURRENT TICK TREE BRANCH--------");
     MgvStructs.LocalPacked _local = _reader.local(_ol);
-    Tick tick = _local.tick();
+    Tick tick = _local.bestTick();
     console.log("Current tick %s", toString(tick));
     console.log("Current posInLeaf %s", tick.posInLeaf());
     int leafIndex = tick.leafIndex();

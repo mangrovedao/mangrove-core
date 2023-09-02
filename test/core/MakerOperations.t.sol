@@ -831,11 +831,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     Field level0 = reader.local(olKey).level0();
-    int level0Index = reader.local(olKey).tick().level0Index();
+    int level0Index = reader.local(olKey).bestTick().level0Index();
     uint ofr = mkr.newOfferByVolume(1 ether, 10 ether, 100_000, 0);
     assertGt(
       level0Index,
-      reader.local(olKey).tick().level0Index(),
+      reader.local(olKey).bestTick().level0Index(),
       "test void if level0 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
@@ -846,11 +846,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     Field level1 = reader.local(olKey).level1();
-    int level1Index = reader.local(olKey).tick().level1Index();
+    int level1Index = reader.local(olKey).bestTick().level1Index();
     uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
     assertGt(
       level1Index,
-      reader.local(olKey).tick().level1Index(),
+      reader.local(olKey).bestTick().level1Index(),
       "test void if level1 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
@@ -888,7 +888,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   ofr is about to be inserted as the best offer, we don't go fetch the "next
   best offer" just after removing ofr. Instead we leave the updated tick branch
   in local as-is, to be flushed to storage when ofr gets inserted again. Since
-  `local.tick()` is deduced from branch stored in local, `local.tick()` becomes
+  `local.bestTick()` is deduced from branch stored in local, `local.bestTick()` becomes
   wrong (it becomes higher than it really is). So we must check that it gets
   cached, otherwise we will 
     a) fail to flush the local level0/level1 to the right index
@@ -922,28 +922,32 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     // Derive a "bad" local from it
     MgvStructs.LocalPacked badLocal = reader.local(olKey).level0(FieldLib.EMPTY).level1(FieldLib.EMPTY);
     // Make sure we changed the implied tick of badLocal
-    assertTrue(!badLocal.tick().eq(lowTick), "test setup: bad tick should not be original lowTick");
+    assertTrue(!badLocal.bestTick().eq(lowTick), "test setup: bad tick should not be original lowTick");
     // Make sure we have changed level indices
     assertTrue(
-      badLocal.tick().level0Index() != lowTick.level0Index(), "test setup: bad tick level0Index should be different"
+      badLocal.bestTick().level0Index() != lowTick.level0Index(), "test setup: bad tick level0Index should be different"
     );
     assertTrue(
-      badLocal.tick().level1Index() != lowTick.level1Index(), "test setup: bad tick level1Index should be different"
+      badLocal.bestTick().level1Index() != lowTick.level1Index(), "test setup: bad tick level1Index should be different"
     );
     // Create a tick there
-    mgv.newOfferByLogPrice(olKey, Tick.unwrap(badLocal.tick()), 1 ether, 10_000, 0);
+    mgv.newOfferByLogPrice(olKey, Tick.unwrap(badLocal.bestTick()), 1 ether, 10_000, 0);
     // Save level0, level1
-    Field highLevel0 = mgv.level0(olKey, badLocal.tick().level0Index());
-    Field highLevel1 = mgv.level1(olKey, badLocal.tick().level1Index());
+    Field highLevel0 = mgv.level0(olKey, badLocal.bestTick().level0Index());
+    Field highLevel1 = mgv.level1(olKey, badLocal.bestTick().level1Index());
     // Update the new tick to an even better tick
     mgv.updateOfferByLogPrice(olKey, Tick.unwrap(veryLowTick), 1 ether, 10_000, 0, ofr);
 
     // Make sure we the high offer's branch is still fine
     assertEq(
-      mgv.level0(olKey, badLocal.tick().level0Index()), highLevel0, "badLocal's tick's level0 should not have changed"
+      mgv.level0(olKey, badLocal.bestTick().level0Index()),
+      highLevel0,
+      "badLocal's tick's level0 should not have changed"
     );
     assertEq(
-      mgv.level1(olKey, badLocal.tick().level1Index()), highLevel1, "badLocal's tick's level1 should not have changed"
+      mgv.level1(olKey, badLocal.bestTick().level1Index()),
+      highLevel1,
+      "badLocal's tick's level1 should not have changed"
     );
     // Make sure the previously local offer's branch is now empty
     assertEq(mgv.level0(olKey, lowTick.level0Index()), FieldLib.EMPTY, "lowTick's level0 should have been flushed");

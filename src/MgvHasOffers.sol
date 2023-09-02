@@ -165,7 +165,7 @@ contract MgvHasOffers is MgvRoot {
           if (index == local.tick().level0Index()) {
             field = local.level0().flipBitAtLevel0(offerTick);
             local = local.level0(field);
-            if (field.isEmpty()) {
+            if (shouldUpdateBranch && field.isEmpty()) {
               offerList.level0[index] = field;
             }
           } else {
@@ -177,14 +177,7 @@ contract MgvHasOffers is MgvRoot {
             if (index == local.tick().level1Index()) {
               field = local.level1().flipBitAtLevel1(offerTick);
               local = local.level1(field);
-              // FIXME: this should be moved to the matching if(shouldUpdateBranch)
-              // that would avoid an unnecessary write when !shouldUpdateBranch
-              // but we need to still have acces to the index
-              // and also must check that the case local.level2().isEmpty()
-              // does not result in corrupted data (eg a wrong yet trusted pair.level1[index])
-              // (answer is probably that local.level2().isEmpty should not return
-              // but rather let control flow continue, and that log2/ctz should not throw on 0
-              if (field.isEmpty()) {
+              if (shouldUpdateBranch && field.isEmpty()) {
                 offerList.level1[index] = field;
               }
             } else {

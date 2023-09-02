@@ -3,7 +3,7 @@
 pragma solidity ^0.8.18;
 
 import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
-import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
 import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE} from "mgv_lib/TickLib.sol";
@@ -27,14 +27,14 @@ contract PosthookSuccessRetractOfferSameList_WithOtherOfferGasTest is TickBounda
   }
 
   function makerPosthook(MgvLib.SingleOrder calldata, MgvLib.OrderResult calldata) public virtual override {
-    (AbstractMangrove mgv,, OLKey memory _olKey,) = getStored();
+    (IMangrove mgv,, OLKey memory _olKey,) = getStored();
     uint offerId = logPriceOfferIds[logPrice];
     _gas();
     mgv.retractOffer(_olKey, offerId, true);
     gas_();
   }
 
-  function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int) internal override {
+  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint, int) internal override {
     vm.prank($(taker));
     mgv.marketOrderByLogPrice(_olKey, LOW_LOG_PRICE, 1, true);
   }
@@ -50,7 +50,7 @@ contract PosthookSuccessRetractOfferSameList_WithPriorRetractOfferAndOtherOffers
   }
 
   function makerPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata result) public virtual override {
-    (AbstractMangrove mgv,, OLKey memory _olKey,) = getStored();
+    (IMangrove mgv,, OLKey memory _olKey,) = getStored();
     // Retract near taken - the measured one is at various tick-distances.
     mgv.retractOffer(_olKey, offerId2, true);
     super.makerPosthook(sor, result);

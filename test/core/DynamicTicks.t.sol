@@ -6,6 +6,7 @@ import "mgv_test/lib/MangroveTest.sol";
 import {MgvStructs, MAX_TICK, MIN_TICK, LogPriceLib} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 import {stdError} from "forge-std/StdError.sol";
+import "mgv_lib/Constants.sol";
 
 // In these tests, the testing contract is the market maker.
 contract DynamicTicksTest is MangroveTest {
@@ -37,7 +38,7 @@ contract DynamicTicksTest is MangroveTest {
   }
 
   function boundLogPrice(int24 logPrice) internal view returns (int24) {
-    return int24(bound(logPrice, LogPriceLib.MIN_LOG_PRICE, LogPriceLib.MAX_LOG_PRICE));
+    return int24(bound(logPrice, MIN_LOG_PRICE, MAX_LOG_PRICE));
   }
 
   function test_newOffer_store_and_retrieve(uint24 tickScale, uint24 tickScale2, int24 logPrice) public {
@@ -130,6 +131,13 @@ contract DynamicTicksTest is MangroveTest {
 
   function test_id_is_correct(OLKey memory olKey) public {
     assertEq(olKey.hash(), keccak256(abi.encode(olKey)), "id() is hashing incorrect data");
+  }
+
+  function test_flipped_is_correct(OLKey memory olKey) public {
+    OLKey memory flipped = olKey.flipped();
+    assertEq(flipped.inbound, olKey.outbound, "flipped() is incorrect");
+    assertEq(flipped.outbound, olKey.inbound, "flipped() is incorrect");
+    assertEq(flipped.tickScale, olKey.tickScale, "flipped() is incorrect");
   }
 
   function test_insertionLogPrice_normalization(int24 logPrice, uint64 tickScale) public {

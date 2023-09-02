@@ -14,7 +14,9 @@ import {Vm} from "forge-std/Vm.sol";
 Vm constant vm = Vm(VM_ADDRESS);
 
 // Manual user-defined types
-import {Tick,Field,Leaf,MIN_TICK,MAX_TICK,LogPriceLib} from "mgv_lib/TickLib.sol";
+import "mgv_lib/TickLib.sol";
+import "mgv_lib/LogPriceLib.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 import {Density,DensityLib} from "mgv_lib/DensityLib.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
@@ -57,7 +59,8 @@ function toString(Tick tick) pure returns (string memory ret) {
 }
 
 function logPriceToString(int logPrice) pure returns (string memory ret) {
-  string memory str = toFixed(LogPriceLib.priceFromLogPrice_e18(logPrice),18);
+  (uint man, uint exp)  = LogPriceConversionLib.priceFromLogPrice(logPrice);
+  string memory str = toFixed(man,exp);
 
   ret = string.concat(unicode"⦗ ",vm.toString(logPrice),"|", str,unicode":1 ⦘");
 }

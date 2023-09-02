@@ -9,10 +9,10 @@ import "mgv_test/lib/tokens/TestToken.sol";
 contract MakerDeployer {
   address payable[] makers;
   bool deployed;
-  AbstractMangrove mgv;
+  IMangrove mgv;
   OLKey olKey;
 
-  constructor(AbstractMangrove _mgv, OLKey memory _ol) {
+  constructor(IMangrove _mgv, OLKey memory _ol) {
     mgv = _mgv;
     olKey = _ol;
   }

@@ -230,7 +230,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     TickTree storage tickTree = snapshotTickTree();
 
     // 4. Run the market order
-    mgv.marketOrderByLogPrice(olKey, LogPriceLib.MAX_LOG_PRICE, fillVolume, true);
+    mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, fillVolume, true);
     removeTakenOffers(tickTree, scenario.lowerTick, lowerOfferIds);
     removeTakenOffers(tickTree, scenario.middleTick, middleOfferIds);
     removeTakenOffers(tickTree, scenario.higherTick, higherOfferIds);

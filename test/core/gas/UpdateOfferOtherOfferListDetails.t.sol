@@ -3,7 +3,7 @@
 pragma solidity ^0.8.18;
 
 import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE, LEVEL1_HIGHER_LOG_PRICE} from "./GasTestBase.t.sol";
-import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
@@ -15,7 +15,7 @@ contract ExternalUpdateOfferOtherOfferList_DeadDeprovisioned is SingleGasTestBas
     description = "Update dead deprovisioned offer";
   }
 
-  function impl(AbstractMangrove mgv, TestTaker, OLKey memory _olKey, uint offerId) internal virtual override {
+  function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint offerId) internal virtual override {
     _gas();
     mgv.updateOfferByLogPrice(_olKey, LEVEL1_HIGHER_LOG_PRICE, 0.1 ether, 100_000, 0, offerId);
     gas_();
@@ -30,7 +30,7 @@ contract ExternalUpdateOfferOtherOfferList_DeadProvisioned is SingleGasTestBase 
     description = "Update dead provisioned offer";
   }
 
-  function impl(AbstractMangrove mgv, TestTaker, OLKey memory _olKey, uint offerId) internal virtual override {
+  function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint offerId) internal virtual override {
     _gas();
     mgv.updateOfferByLogPrice(_olKey, LEVEL1_HIGHER_LOG_PRICE, 0.1 ether, 100_000, 0, offerId);
     gas_();
@@ -45,7 +45,7 @@ contract ExternalUpdateOfferOtherOfferList_Gasreq is GasTestBase {
   }
 
   function test_live_far_away_same_gasreq() public {
-    (AbstractMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
+    (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     _gas();
     mgv.updateOfferByLogPrice(_olKey, LEVEL1_HIGHER_LOG_PRICE, 0.1 ether, 100_000, 0, offerId);
     gas_();
@@ -54,7 +54,7 @@ contract ExternalUpdateOfferOtherOfferList_Gasreq is GasTestBase {
   }
 
   function test_live_far_away_higher_gasreq() public {
-    (AbstractMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
+    (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     _gas();
     mgv.updateOfferByLogPrice(_olKey, LEVEL1_HIGHER_LOG_PRICE, 0.1 ether, 1_000_000, 0, offerId);
     gas_();
@@ -63,7 +63,7 @@ contract ExternalUpdateOfferOtherOfferList_Gasreq is GasTestBase {
   }
 
   function test_live_far_away_lower_gasreq() public {
-    (AbstractMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
+    (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     _gas();
     mgv.updateOfferByLogPrice(_olKey, LEVEL1_HIGHER_LOG_PRICE, 0.1 ether, 10_000, 0, offerId);
     gas_();

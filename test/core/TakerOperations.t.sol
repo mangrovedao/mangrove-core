@@ -3,7 +3,10 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MAX_TICK, MIN_TICK, LogPriceLib} from "mgv_lib/TickLib.sol";
+import "mgv_lib/Constants.sol";
+import "mgv_lib/TickLib.sol";
+import "mgv_lib/LogPriceLib.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 
 /* The following constructs an ERC20 with a transferFrom callback method,
    and a TestTaker which throws away any funds received upon getting
@@ -86,13 +89,14 @@ contract TakerOperationsTest is MangroveTest {
 
   // The purpose of this test is to make sure inbound volumes are rounded up when partially
   // taking an offer i.e. you can't have the taker pay 0 if the maker sends > 0 to the taker.
-  // The test sets this up with a wants=9, gives=10 offer, and the taker asks for a volume of 1.
+  // The test sets this up with a price slightly below 1/2, gives=10, and then taker asks for 1. So it should give < 1/2. If maker balance does not increase, it was drained.
   function test_taker_cannot_drain_maker() public {
     mgv.setDensityFixed(olKey, 0);
     quote.approve($(mgv), 1 ether);
-    mkr.newOfferByVolume(9, 10, 100_000, 0);
+    int tick = -7000; // price slightly < 1/2
+    mkr.newOfferByLogPrice(tick, 10, 100_000, 0);
     uint oldBal = quote.balanceOf($(this));
-    mgv.marketOrderByLogPrice(olKey, LogPriceLib.MAX_LOG_PRICE, 1, true);
+    mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, 1, true);
     uint newBal = quote.balanceOf($(this));
     assertGt(oldBal, newBal, "oldBal should be strictly higher");
   }
@@ -117,7 +121,7 @@ contract TakerOperationsTest is MangroveTest {
     /* Setting fillWants = true means we should not receive more than `wants`.
        Here we are asking for 0.1 eth to an offer that gives 1eth for ~nothing.
        We should still only receive 0.1 eth */
-    int logPrice = LogPriceLib.logPriceFromPrice_e18(1 ether);
+    int logPrice = LogPriceConversionLib.logPriceFromPrice(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 0.1 ether, true);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertApproxEqRel(got, 0.1 ether, relError(10), "Wrong got value");
@@ -134,7 +138,7 @@ contract TakerOperationsTest is MangroveTest {
     /* Setting fillWants = false means we should spend as little as possible to receive
        as much as possible.
        Here despite asking for .1eth the offer gives 1eth for ~0 so we should receive 1eth. */
-    int logPrice = LogPriceLib.logPriceFromPrice_e18(1 ether);
+    int logPrice = LogPriceConversionLib.logPriceFromPrice(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 0.1 ether, false);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertApproxEqRel(got, 1 ether, relError(10), "Wrong got value");
@@ -147,7 +151,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.expect("mgv/tradeSuccess"); // trade should be OK on the maker side
     quote.approve($(mgv), 1 ether);
 
-    int logPrice = LogPriceLib.logPriceFromPrice_e18(1 ether);
+    int logPrice = LogPriceConversionLib.logPriceFromPrice(1, 0);
     (uint got, uint gave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 1 ether, false);
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertEq(got, 1 ether, "Taker did not get correct amount");
@@ -474,19 +478,19 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
   }
 
-  // before ticks: testing whether a wants of 0 works
-  // after ticks: wants of 0 not possible since we store log(wants/gives) as tick. Testing with an extremely small amount.
+  // before ticks: testing that a wants of 0 works
+  // after ticks: wants of 0 as input not acceptd for now but *resulting* wants is doable thanks to approximatoin
+  // FIXME: maybe wants=0 should be allowed
   function test_fillGives_at_0_wants_works() public {
-    uint ofr = mkr.newOfferByVolume(10, 2 ether, 100_000, 0);
+    uint wants = 1;
+    uint ofr = mkr.newOfferByVolume(wants, 2 ether, 100_000, 0);
     int logPrice = mgv.offers(olKey, ofr).logPrice();
     mkr.expect("mgv/tradeSuccess");
     quote.approve($(mgv), 10 ether);
 
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 10, false);
-    // console.log("offer wants",mgv.offers(olKey,ofr).wants());
-    // console.log("offer tick",mgv.offers(olKey,ofr).tick().toString());
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
-    assertEq(takerGave, 10, "Incorrect declared delivered amount (maker)");
+    assertEq(takerGave, 0, "Incorrect declared delivered amount (maker)");
     assertEq(takerGot, 2 ether, "Incorrect declared delivered amount (taker)");
   }
 
@@ -539,7 +543,7 @@ contract TakerOperationsTest is MangroveTest {
       olKey.hash(),
       ofr,
       takerWants,
-      LogPriceLib.inboundFromOutbound(offer.logPrice(), takerWants),
+      LogPriceLib.inboundFromOutboundUp(offer.logPrice(), takerWants),
       /*penalty*/
       0,
       "mgv/makerTransferFail"
@@ -631,7 +635,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.shouldRevert(true);
     quote.approve($(mgv), 1 ether);
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert");
+    emit OfferFailWithPosthookData(olKey.hash(), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert", "");
     mgv.marketOrderByLogPrice(olKey, logPrice, 1 ether, true);
     assertFalse(mkr.makerPosthookWasCalled(ofr), "ofr posthook must not be called or test is void");
   }
@@ -739,9 +743,16 @@ contract TakerOperationsTest is MangroveTest {
     }
   }
 
-  function test_takerWants_wider_than_160_bits_fails_marketOrder() public {
-    vm.expectRevert("mgv/mOrder/takerWants/160bits");
-    mgv.marketOrderByVolume(olKey, 2 ** 160, 1, true);
+  // FIXME error should not depend on the other volume argument being > 0
+  function test_marketOrderByVolume_takerGives_extrema() public {
+    vm.expectRevert("priceFromVolumes/inbound/tooBig");
+    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME + 1, true);
+    vm.expectRevert("priceFromVolumes/outbound/tooBig");
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 1, true);
+    vm.expectRevert("priceFromVolumes/inbound/tooBig");
+    mgv.marketOrderByVolume(olKey, 1, MAX_SAFE_VOLUME + 1, false);
+    vm.expectRevert("priceFromVolumes/outbound/tooBig");
+    mgv.marketOrderByVolume(olKey, MAX_SAFE_VOLUME + 1, 1, false);
   }
 
   function test_clean_with_0_wants_ejects_offer() public {
@@ -814,7 +825,7 @@ contract TakerOperationsTest is MangroveTest {
     quote.approve($(mgv), 1 ether);
     uint failing_ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 100_000);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000);
-    (uint got,,,) = mgv.marketOrderByVolume(olKey, 1 ether, 0, true);
+    (uint got,,,) = mgv.marketOrderByVolume(olKey, 1 ether, 1 ether, true);
     assertTrue(failmkr.makerPosthookWasCalled(failing_ofr), "failing_ofr posthook must be called or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be called or test is void");
     assertEq(got, 1 ether, "should have gotten 1 ether");
@@ -843,7 +854,7 @@ contract TakerOperationsTest is MangroveTest {
     vm.label($(badMgv), "Bad Mangrove");
     badMgv.activate(olKey, 0, 0, 0);
 
-    TestMaker mkr2 = new TestMaker(badMgv,olKey);
+    TestMaker mkr2 = new TestMaker(IMangrove($(badMgv)),olKey);
     badMgv.fund{value: 10 ether}($(mkr2));
     mkr2.newOfferByVolume(1 ether, 1 ether, 1, 0);
     vm.expectRevert("mgv/swapError");

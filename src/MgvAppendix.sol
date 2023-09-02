@@ -30,7 +30,7 @@ contract MgvAppendix is MgvCommon {
     OfferList storage offerList = offerLists[olKey.hash()];
     MgvStructs.LocalPacked local = offerList.local;
 
-    if (local.tick().level0Index() == index) {
+    if (local.bestTick().level0Index() == index) {
       return local.level0();
     } else {
       return offerList.level0[index];
@@ -41,7 +41,7 @@ contract MgvAppendix is MgvCommon {
     OfferList storage offerList = offerLists[olKey.hash()];
     MgvStructs.LocalPacked local = offerList.local;
 
-    if (local.tick().level1Index() == index) {
+    if (local.bestTick().level1Index() == index) {
       return local.level1();
     } else {
       return offerList.level1[index];
@@ -75,7 +75,7 @@ contract MgvAppendix is MgvCommon {
   function best(OLKey memory olKey) external view returns (uint offerId) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      return offerList.leafs[offerList.local.tick().leafIndex()].getNextOfferId();
+      return offerList.leafs[offerList.local.bestTick().leafIndex()].getNextOfferId();
     }
   }
 

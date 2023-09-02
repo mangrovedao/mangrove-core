@@ -304,7 +304,7 @@ contract MgvOfferMaking is MgvHasOffers {
       require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
 
       // must cache tick because branch will be modified and tick information will be lost (in case an offer will be removed)
-      Tick cachedLocalTick = ofp.local.tick();
+      Tick cachedLocalTick = ofp.local.bestTick();
 
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {
@@ -320,13 +320,13 @@ contract MgvOfferMaking is MgvHasOffers {
            - If current tick > insertion tick: no
            - Otherwise yes because maybe current tick = insertion tick
         */
-        // bool updateLocal = tick.strictlyBetter(ofp.local.tick().strictlyBetter(tick)
-        bool shouldUpdateBranch = !insertionTick.strictlyBetter(ofp.local.tick());
+        // bool updateLocal = tick.strictlyBetter(ofp.local.bestTick().strictlyBetter(tick)
+        bool shouldUpdateBranch = !insertionTick.strictlyBetter(ofp.local.bestTick());
 
         ofp.local = dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, shouldUpdateBranch);
         // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
         if (shouldUpdateBranch) {
-          cachedLocalTick = ofp.local.tick();
+          cachedLocalTick = ofp.local.bestTick();
         }
       }
       if (insertionTick.strictlyBetter(cachedLocalTick)) {

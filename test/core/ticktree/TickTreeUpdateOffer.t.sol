@@ -182,22 +182,21 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
   }
 
   // MIN_TICK tests (start leaf, start level0, start level1, start level 2)
-  // FIXME: The tests currently fails for MIN_TICK with mgv/writeOffer/wants/tooLow due to limitations Mangrove
-  // function test_update_offer_for_tick_MIN_TICK_where_higher_is_empty_and_lower_is_empty() public {
-  //   run_update_offer_scenarios_for_tick(MIN_TICK, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
-  // }
+  function test_update_offer_for_tick_MIN_TICK_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(MIN_TICK, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
 
-  // function test_update_offer_for_tick_MIN_TICK_where_higher_is_empty_and_lower_is_not_empty() public {
-  //   run_update_offer_scenarios_for_tick(MIN_TICK, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
-  // }
+  function test_update_offer_for_tick_MIN_TICK_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(MIN_TICK, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
 
-  // function testFail_update_offer_for_tick_MIN_TICK_where_higher_is_not_empty_and_lower_is_empty() public {
-  //   run_update_offer_scenarios_for_tick(MIN_TICK, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  // }
+  function test_update_offer_for_tick_MIN_TICK_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(MIN_TICK, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
 
-  // function test_update_offer_for_tick_MIN_TICK_where_higher_is_not_empty_and_lower_is_not_empty() public {
-  //   run_update_offer_scenarios_for_tick(MIN_TICK, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
-  // }
+  function test_update_offer_for_tick_MIN_TICK_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(MIN_TICK, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
 
   function run_update_offer_scenarios_for_tick(
     int tick,

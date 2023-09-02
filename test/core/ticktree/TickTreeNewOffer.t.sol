@@ -91,9 +91,7 @@ contract TickTreeNewOfferTest is TickTreeTest {
     run_new_offer_scenarios_for_tick(MAX_TICK);
   }
 
-  // FIXME: This currently fails with mgv/writeOffer/wants/tooLow
-  // Can we make offers that keep within range? I don't think so, because we set gives to max in this case...
-  function testFail_new_offer_for_tick_min() public {
+  function test_new_offer_for_tick_min() public {
     run_new_offer_scenarios_for_tick(MIN_TICK);
   }
 

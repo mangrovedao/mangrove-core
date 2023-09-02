@@ -95,11 +95,9 @@ contract TickTreeCleanOfferTest is TickTreeTest {
     run_clean_offer_scenarios_for_tick(MAX_TICK);
   }
 
-  // FIXME: This currently fails with mgv/writeOffer/wants/tooLow
-  // Can we make offers that keep within range? I don't think so, because we set gives to max in this case...
-  // function test_clean_offer_for_tick_min() public {
-  //   run_clean_offer_scenarios_for_tick(MIN_TICK);
-  // }
+  function test_clean_offer_for_tick_min() public {
+    run_clean_offer_scenarios_for_tick(MIN_TICK);
+  }
 
   // size of {lower,higher}TickList if the tick is present in the scenario
   uint[] otherTickListSizeScenarios = [1];

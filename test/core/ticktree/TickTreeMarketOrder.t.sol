@@ -99,12 +99,10 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     run_market_order_scenarios_for_tick(MAX_TICK);
   }
 
-  // FIXME: This currently fails with mgv/writeOffer/wants/tooLow
-  // Can we make offers that keep within range? I don't think so, because we set gives to max in this case...
   // MIN_TICK tests (start leaf, start level0, start level1, start level 2)
-  // function test_market_order_for_tick_min() public {
-  //   run_market_order_scenarios_for_tick(MIN_TICK);
-  // }
+  function test_market_order_for_tick_min() public {
+    run_market_order_scenarios_for_tick(MIN_TICK);
+  }
 
   function run_market_order_scenarios_for_tick(int tick) internal {
     vm.pauseGasMetering();

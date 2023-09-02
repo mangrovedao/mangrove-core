@@ -201,7 +201,7 @@ contract GatekeepingTest is MangroveTest {
 
   // FIXME remove when/if tick range is bigger than price range
   function test_newOfferByLogPrice_extrema_tick() public {
-    mgv.setDensity(olKey,0);
+    mgv.setDensity(olKey, 0);
     olKey.tickScale = 1;
     vm.expectRevert("mgv/writeOffer/tick/outOfRange");
     mkr.newOfferByLogPrice(MIN_TICK - 1, type(uint96).max, 10_000, 0);
@@ -211,7 +211,7 @@ contract GatekeepingTest is MangroveTest {
 
   // FIXME remove when/if tick range is bigger than price range
   function test_updateOfferByLogPrice_extrema_tick() public {
-    mgv.setDensity(olKey,0);
+    mgv.setDensity(olKey, 0);
     olKey.tickScale = 1;
     uint ofr = mkr.newOfferByLogPrice(0, 1 ether, 10_000, 0);
     vm.expectRevert("mgv/writeOffer/tick/outOfRange");
@@ -832,33 +832,11 @@ contract GatekeepingTest is MangroveTest {
     mgv.withdrawERC20(address(token), amount);
   }
 
-  function test_marketOrderByPrice_extrema() public {
-    vm.expectRevert("mgv/price/tooHigh");
-    mgv.marketOrderByPrice(olKey, MAX_PRICE_MANTISSA + 1, MAX_PRICE_EXP, 100, true);
-    vm.expectRevert("mgv/normalizePrice/lowExp");
-    mgv.marketOrderByPrice(olKey, MAX_PRICE_MANTISSA, MAX_PRICE_EXP - 1, 100, true);
-    vm.expectRevert("mgv/price/tooLow");
-    mgv.marketOrderByPrice(olKey, MIN_PRICE_MANTISSA - 1, MIN_PRICE_EXP, 100, true);
-    vm.expectRevert("mgv/price/tooLow");
-    mgv.marketOrderByPrice(olKey, MIN_PRICE_MANTISSA, MIN_PRICE_EXP + 1, 100, true);
-  }
-
   function test_marketOrderByLogPrice_extrema() public {
     vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
     mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE + 1, 100, true);
     vm.expectRevert("mgv/mOrder/logPrice/outOfRange");
     mgv.marketOrderByLogPrice(olKey, MIN_LOG_PRICE - 1, 100, true);
-  }
-
-  function test_marketOrderForByPrice_extrema(address taker) public {
-    vm.expectRevert("mgv/price/tooHigh");
-    mgv.marketOrderForByPrice(olKey, MAX_PRICE_MANTISSA + 1, MAX_PRICE_EXP, 100, true, taker);
-    vm.expectRevert("mgv/normalizePrice/lowExp");
-    mgv.marketOrderForByPrice(olKey, MAX_PRICE_MANTISSA, MAX_PRICE_EXP - 1, 100, true, taker);
-    vm.expectRevert("mgv/price/tooLow");
-    mgv.marketOrderForByPrice(olKey, MIN_PRICE_MANTISSA - 1, MIN_PRICE_EXP, 100, true, taker);
-    vm.expectRevert("mgv/price/tooLow");
-    mgv.marketOrderForByPrice(olKey, MIN_PRICE_MANTISSA, MIN_PRICE_EXP + 1, 100, true, taker);
   }
 
   function test_marketOrderForByLogPrice_extrema(address taker) public {

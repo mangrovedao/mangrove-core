@@ -79,20 +79,6 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     }
   }
 
-  function marketOrderForByPrice(
-    OLKey memory olKey,
-    uint maxPrice_mantissa,
-    int maxPrice_exp,
-    uint fillVolume,
-    bool fillWants,
-    address taker
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
-    unchecked {
-      int maxLogPrice = LogPriceConversionLib.logPriceFromPrice(maxPrice_mantissa, maxPrice_exp);
-      return marketOrderForByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, taker);
-    }
-  }
-
   function marketOrderForByLogPrice(OLKey memory olKey, int logPrice, uint fillVolume, bool fillWants, address taker)
     public
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)

@@ -302,6 +302,9 @@ contract MgvOfferMaking is MgvHasOffers {
       // FIXME remove if tick can accomodate > max price
       require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
 
+      // must cache tick because branch will be modified and tick information will be lost (in case an offer will be removed)
+      Tick cachedLocalTick = ofp.local.tick();
+
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {
         // may modify ofp.local
@@ -317,12 +320,15 @@ contract MgvOfferMaking is MgvHasOffers {
            - Otherwise yes because maybe current tick = insertion tick
         */
         // bool updateLocal = tick.strictlyBetter(ofp.local.tick().strictlyBetter(tick)
-        ofp.local = dislodgeOffer(
-          offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, !insertionTick.strictlyBetter(ofp.local.tick())
-        );
-      }
+        bool shouldUpdateBranch = !insertionTick.strictlyBetter(ofp.local.tick());
 
-      if (insertionTick.strictlyBetter(ofp.local.tick())) {
+        ofp.local = dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, shouldUpdateBranch);
+        // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
+        if (shouldUpdateBranch) {
+          cachedLocalTick = ofp.local.tick();
+        }
+      }
+      if (insertionTick.strictlyBetter(cachedLocalTick)) {
         ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
       }
 
@@ -332,7 +338,7 @@ contract MgvOfferMaking is MgvHasOffers {
       if (leaf.isEmpty()) {
         Field field;
         int insertionIndex = insertionTick.level0Index();
-        int currentIndex = ofp.local.tick().level0Index();
+        int currentIndex = cachedLocalTick.level0Index();
         // Get insertion level0
         if (insertionIndex != currentIndex) {
           field = offerList.level0[insertionIndex];
@@ -354,7 +360,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
         if (field.isEmpty()) {
           insertionIndex = insertionTick.level1Index();
-          currentIndex = ofp.local.tick().level1Index();
+          currentIndex = cachedLocalTick.level1Index();
 
           if (insertionIndex != currentIndex) {
             field = offerList.level1[insertionIndex];

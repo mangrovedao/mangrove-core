@@ -128,6 +128,10 @@ library LeafLib {
 
 library TickLib {
 
+  function eq(Tick tick1, Tick tick2) internal pure returns (bool) {
+    return Tick.unwrap(tick1) == Tick.unwrap(tick2);
+  }
+
   function inRange(Tick tick) internal pure returns (bool) {
     return Tick.unwrap(tick) >= MIN_TICK && Tick.unwrap(tick) <= MAX_TICK;
   }

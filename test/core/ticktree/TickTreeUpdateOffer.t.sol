@@ -100,10 +100,9 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     run_update_offer_scenarios_for_tick(0, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
   }
 
-  // FIXME: This currently fails due to a bug in Mangrove, see specific test case further down
-  // function testFail_update_offer_for_tick_0_where_higher_is_not_empty_and_lower_is_empty() public {
-  //   run_update_offer_scenarios_for_tick(0, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  // }
+  function test_update_offer_for_tick_0_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(0, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
 
   function test_update_offer_for_tick_0_where_higher_is_not_empty_and_lower_is_not_empty() public {
     run_update_offer_scenarios_for_tick(0, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
@@ -118,10 +117,9 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     run_update_offer_scenarios_for_tick(1, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
   }
 
-  // FIXME: This currently fails due to a bug in Mangrove, see specific test case further down
-  // function testFail_update_offer_for_tick_1_where_higher_is_not_empty_and_lower_is_empty() public {
-  //   run_update_offer_scenarios_for_tick(1, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  // }
+  function test_update_offer_for_tick_1_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(1, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
 
   function test_update_offer_for_tick_1_where_higher_is_not_empty_and_lower_is_not_empty() public {
     run_update_offer_scenarios_for_tick(1, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
@@ -136,10 +134,9 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     run_update_offer_scenarios_for_tick(3, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
   }
 
-  // FIXME: This currently fails due to a bug in Mangrove, see specific test case further down
-  // function testFail_update_offer_for_tick_3_where_higher_is_not_empty_and_lower_is_empty() public {
-  //   run_update_offer_scenarios_for_tick(3, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  // }
+  function test_update_offer_for_tick_3_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(3, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
 
   function test_update_offer_for_tick_3_where_higher_is_not_empty_and_lower_is_not_empty() public {
     run_update_offer_scenarios_for_tick(3, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
@@ -154,10 +151,9 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     run_update_offer_scenarios_for_tick(-1, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
   }
 
-  // FIXME: This currently fails due to a bug in Mangrove, see specific test case further down
-  // function testFail_update_offer_for_tick_negative_1_where_higher_is_not_empty_and_lower_is_empty() public {
-  //   run_update_offer_scenarios_for_tick(-1, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  // }
+  function test_update_offer_for_tick_negative_1_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(-1, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
 
   function test_update_offer_for_tick_negative_1_where_higher_is_not_empty_and_lower_is_not_empty() public {
     run_update_offer_scenarios_for_tick(-1, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
@@ -172,10 +168,9 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     run_update_offer_scenarios_for_tick(MAX_TICK, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
   }
 
-  // FIXME: This currently fails due to a bug in Mangrove, see specific test case further down
-  // function testFail_update_offer_for_tick_MAX_TICK_where_higher_is_not_empty_and_lower_is_empty() public {
-  //   run_update_offer_scenarios_for_tick(MAX_TICK, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  // }
+  function test_update_offer_for_tick_MAX_TICK_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(MAX_TICK, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
 
   function test_update_offer_for_tick_MAX_TICK_where_higher_is_not_empty_and_lower_is_not_empty() public {
     run_update_offer_scenarios_for_tick(MAX_TICK, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
@@ -246,7 +241,6 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     vm.resumeGasMetering();
   }
 
-  // FIXME: This scenario triggers bug in Mangrove
   // function test_single_update_offer_scenario() public {
   //   run_update_offer_scenario(
   //     UpdateOfferScenario({

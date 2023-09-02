@@ -6,8 +6,6 @@ import "./TickTreeTest.t.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
-// FIXME: Do we need to test failing offers as well?
-// FIXME: Do we need to test partial fills?
 // Tests of Mangrove.marketOrder's interaction with the tick tree.
 //
 // The tests use the following pattern:
@@ -43,6 +41,9 @@ import "mgv_lib/Debug.sol";
 //     2. is fully taken
 //     3. is partially taken
 //     4. is not taken
+//
+// We do not test failing offers or partial fills specifically,
+// as they are not handled specially wrt the tick tree.
 contract TickTreeMarketOrderTest is TickTreeTest {
   function setUp() public override {
     super.setUp();

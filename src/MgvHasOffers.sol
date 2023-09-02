@@ -132,7 +132,7 @@ contract MgvHasOffers is MgvRoot {
       // with
       // offerId == local.best() (but best will maybe go away in the future)
 
-      // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now << FIXME: problem is that if we don't, we may flush an incorrect branch to storage when inserting
+      // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
       // if local.tick < offerTick then a better branch is already cached. note that local.tick >= offerTick implies local.tick = offerTick
       // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
       shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !local.tick().strictlyBetter(offerTick);

@@ -9,6 +9,9 @@ import "mgv_lib/LogPriceConversionLib.sol";
 import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
+  // Since DOMAIN_SEPARATOR is immutable, it cannot use MgvAppendix to provide an accessor (because the value will come from code, not from storage), so we generate the accessor here.
+  bytes32 public immutable DOMAIN_SEPARATOR;
+
   constructor(string memory contractName) {
     /* Initialize [EIP712](https://eips.ethereum.org/EIPS/eip-712) `DOMAIN_SEPARATOR`. */
     DOMAIN_SEPARATOR = keccak256(

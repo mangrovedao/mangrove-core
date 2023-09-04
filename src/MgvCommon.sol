@@ -136,7 +136,6 @@ contract MgvCommon is HasMgvEvents {
 
   /* Following [EIP712](https://eips.ethereum.org/EIPS/eip-712), structured data signing has `keccak256("Permit(address outbound_tkn,address inbound_tkn,address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)")` in its prefix. */
   bytes32 internal constant _PERMIT_TYPEHASH = 0xf0ea0a7146fb6eedb561d97b593d57d9b7df3c94d689372dc01302e5780248f4;
-  /* Initialized in the constructor, `DOMAIN_SEPARATOR` avoids cross-application permit reuse. */
-  // Since DOMAIN_SEPARATOR is immutable, it cannot use MgvAppendix to provide an accessor (because the value will come from code, not from storage), so we generate the accessor here.
-  bytes32 public immutable DOMAIN_SEPARATOR;
+  // If you are looking for DOMAIN_SEPARATOR, it is defined in MgvOfferTakingWithPermit
+  // If you define an immutable C, you must initialize it in the constructor of C, unless you use solidity >= 0.8.21. Then you can initialize it in the constructor of a contract that inherits from C. At the time of the writing 0.8.21 is too recent so we move DOMAIN_SEPARATOR to the contract with a constructor that initializes DOMAIN_SEPARATOR.
 }

@@ -7,7 +7,7 @@ import {MgvOfferMaking} from "./MgvOfferMaking.sol";
 import {MgvOfferTakingWithPermit} from "./MgvOfferTakingWithPermit.sol";
 import {MgvAppendix} from "mgv_src/MgvAppendix.sol";
 
-/* `AbstractMangrove` inherits the three contracts that implement generic Mangrove functionality (`MgvOfferTakingWithPermit` and `MgvOfferMaking`) but does not implement the abstract functions. */
+/* `AbstractMangrove` inherits the two contracts that implement generic Mangrove functionality (`MgvOfferTakingWithPermit` and `MgvOfferMaking`) but does not implement the abstract functions. */
 abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
   address immutable appendix;
 

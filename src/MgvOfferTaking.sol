@@ -184,7 +184,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Call recursive `internalMarketOrder` function.*/
       internalMarketOrder(offerList, mor, sor);
 
-      /* Over the course of the market order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
+      /* Over the course of the market order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occurred yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
 
       emit OrderComplete(olKey.hash(), taker, mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid);

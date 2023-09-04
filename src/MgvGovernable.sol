@@ -162,6 +162,19 @@ contract MgvGovernable is MgvRoot {
     }
   }
 
+  /* ### `maxGasreqForFailingOffers` */
+  function setMaxGasreqForFailingOffers(uint maxGasreqForFailingOffers) public {
+    unchecked {
+      authOnly();
+      require(
+        MgvStructs.Global.maxGasreqForFailingOffers_check(maxGasreqForFailingOffers),
+        MgvStructs.Global.maxGasreqForFailingOffers_size_error
+      );
+      internal_global = internal_global.maxGasreqForFailingOffers(maxGasreqForFailingOffers);
+      emit SetMaxGasreqForFailingOffers(maxGasreqForFailingOffers);
+    }
+  }
+
   /* ### `governance` */
   function setGovernance(address governanceAddress) public {
     unchecked {

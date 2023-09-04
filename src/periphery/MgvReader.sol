@@ -295,9 +295,6 @@ contract MgvReader {
   }
 
   function internalMarketOrder(MarketOrder memory mr) internal view {
-    console.log("internalMO");
-    console.log("  mr.maxLogPrice: %s", vm.toString(mr.maxLogPrice));
-    console.log("  mr.offerID: %s,  logPrice: %s", mr.offerId, vm.toString(mr.offer.logPrice()));
     unchecked {
       if (mr.currentFillVolume > 0 && mr.offerId > 0 && mr.offer.logPrice() <= mr.maxLogPrice) {
         uint currentIndex = mr.numOffers;

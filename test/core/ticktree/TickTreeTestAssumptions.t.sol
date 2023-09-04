@@ -9,7 +9,7 @@ import "mgv_lib/Debug.sol";
 // Tests of the assumptions made in the TickTreeTests.
 // FIXME: Not sure this is needed anymore?
 contract TickTreeTestAssumptionsTest is TickTreeTest {
-  // Cheks that the ticks used in these tests have the expected locations at various levels.
+  // Checks that the ticks used in these tests have the expected locations at various levels.
   // This also serves as a reading guide to the constants.
   function test_ticks_are_at_expected_locations() public {
     assertTickAssumptions({

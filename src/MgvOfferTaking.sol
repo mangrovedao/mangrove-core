@@ -151,7 +151,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       (sor.global, sor.local, offerList) = _config(olKey);
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
 
-      mor.leaf = offerList.leafs[sor.local.tick().leafIndex()];
+      mor.leaf = offerList.leafs[sor.local.bestTick().leafIndex()];
       sor.offerId = mor.leaf.getNextOfferId();
       sor.offer = offerList.offerData[sor.offerId].offer;
       /* fillVolume evolves but is initially however much remains in the market order. */
@@ -271,7 +271,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         sor.local = sor.local.tickPosInLeaf(mor.leaf.firstOfferPosition());
         // no need to test whether mor.level2 != offerList.level2 since update is ~free
-        // ! local.level0[sor.local.tick().level0Index()] is now wrong
+        // ! local.level0[sor.local.bestTick().level0Index()] is now wrong
         // sor.local = sor.local.level0(mor.level0);
 
         int index = tick.leafIndex();

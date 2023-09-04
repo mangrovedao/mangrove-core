@@ -173,6 +173,13 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
       mgv.allowances($(base), $(quote), good_owner, $(this)), value / 2 + (value % 2), "Allowance incorrectly decreased"
     );
   }
+
+  function test_permit_typehash() public {
+    bytes32 expected = keccak256(
+      "Permit(address outbound_tkn,address inbound_tkn,address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+    );
+    assertEq(mgv.PERMIT_TYPEHASH(), expected, "wrong PERMIT_TYPEHASH");
+  }
 }
 
 /* Permit utilities */

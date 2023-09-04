@@ -65,7 +65,8 @@ contract MgvRoot is HasMgvEvents {
   function level0(OLKey memory olKey, int index) external view returns (Field) {
     OfferList storage offerList = offerLists[olKey.hash()];
     MgvStructs.LocalPacked local = offerList.local;
-    if (local.tick().level0Index() == index) {
+
+    if (local.bestTick().level0Index() == index) {
       return local.level0();
     } else {
       return offerList.level0[index];
@@ -76,7 +77,7 @@ contract MgvRoot is HasMgvEvents {
     OfferList storage offerList = offerLists[olKey.hash()];
     MgvStructs.LocalPacked local = offerList.local;
 
-    if (local.tick().level1Index() == index) {
+    if (local.bestTick().level1Index() == index) {
       return local.level1();
     } else {
       return offerList.level1[index];

@@ -18,7 +18,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* Storing nonces avoids replay attacks. */
   mapping(address owner => uint nonce) public nonces;
   /* Following [EIP712](https://eips.ethereum.org/EIPS/eip-712), structured data signing has `keccak256("Permit(address outbound_tkn,address inbound_tkn,address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)")` in its prefix. */
-  bytes32 public constant PERMIT_TYPEHASH = 0xb7bf278e51ab1478b10530c0300f911d9ed3562fc93ab5e6593368fe23c077a2;
+  bytes32 public constant PERMIT_TYPEHASH = 0xf0ea0a7146fb6eedb561d97b593d57d9b7df3c94d689372dc01302e5780248f4;
   /* Initialized in the constructor, `DOMAIN_SEPARATOR` avoids cross-application permit reuse. */
   bytes32 public immutable DOMAIN_SEPARATOR;
 

@@ -33,7 +33,7 @@ contract MgvHasOffers is MgvRoot {
   function best(OLKey memory olKey) external view returns (uint offerId) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      return offerList.leafs[offerList.local.tick().leafIndex()].getNextOfferId();
+      return offerList.leafs[offerList.local.bestTick().leafIndex()].getNextOfferId();
     }
   }
 
@@ -135,7 +135,7 @@ contract MgvHasOffers is MgvRoot {
       // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
       // if local.tick < offerTick then a better branch is already cached. note that local.tick >= offerTick implies local.tick = offerTick
       // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
-      shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !local.tick().strictlyBetter(offerTick);
+      shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !local.bestTick().strictlyBetter(offerTick);
 
       if (prevId == 0) {
         // offer was tick's first. new first offer is offer.next (may be 0)
@@ -162,7 +162,7 @@ contract MgvHasOffers is MgvRoot {
         if (leaf.isEmpty()) {
           int index = offerTick.level0Index(); // level0Index or level1Index
           Field field;
-          if (index == local.tick().level0Index()) {
+          if (index == local.bestTick().level0Index()) {
             field = local.level0().flipBitAtLevel0(offerTick);
             local = local.level0(field);
             if (shouldUpdateBranch && field.isEmpty()) {
@@ -174,7 +174,7 @@ contract MgvHasOffers is MgvRoot {
           }
           if (field.isEmpty()) {
             index = offerTick.level1Index(); // level0Index or level1Index
-            if (index == local.tick().level1Index()) {
+            if (index == local.bestTick().level1Index()) {
               field = local.level1().flipBitAtLevel1(offerTick);
               local = local.level1(field);
               if (shouldUpdateBranch && field.isEmpty()) {

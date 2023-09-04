@@ -25,6 +25,8 @@ import "mgv_lib/Debug.sol";
 // 3. Perform some operation on Mangrove (eg add or remove an offer)
 // 4. Perform equivalent operation on the snapshot tick tree
 // 5. Compare Mangrove's tick tree to the snapshot tick tree using `assertMgvOfferListEqToTickTree`
+//
+// See README.md in this folder for more details.
 abstract contract TickTreeTest is MangroveTest {
   TestMaker mkr;
 

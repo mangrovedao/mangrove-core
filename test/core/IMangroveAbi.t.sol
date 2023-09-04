@@ -9,9 +9,7 @@ import {MgvAppendix} from "mgv_src/MgvAppendix.sol";
 
 using stdJson for string;
 
-abstract contract MangroveMix is Mangrove, MgvAppendix {
-// constructor() Mangrove(address(0),0,0) {}
-}
+abstract contract MangroveMix is Mangrove, MgvAppendix {}
 
 contract IMangroveAbiTest is Test2 {
   function test_abi_is_identical() public {
@@ -22,11 +20,6 @@ contract IMangroveAbiTest is Test2 {
     string memory interfaceJson = vm.readFile(interfacePath);
 
     string[] memory mangroveAbiElements = stdJson.readStringArray(mangroveJson, ".abi");
-    // string[] memory mangroveAbiElements = new string[](mangroveAbiElementsWithConstructor.length-1);
-    // Delete constructor definition as it is not present in interface
-    // for (uint i; i < mangroveAbiElements.length; ++i) {
-    //   mangroveAbiElements[i] = mangroveAbiElementsWithConstructor[i + 1];
-    // }
 
     string memory errorMessage = string.concat(
       "IMangrove and Mangrove ABIs are not identical, Compare the two files to see more detailed diff (ignore ctor) (",

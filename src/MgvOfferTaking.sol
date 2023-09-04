@@ -76,53 +76,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     }
   }
 
-  // get offer after current offer, will also remove the current offer and return the corresponding updated `local`
-  function getNextBest(
-    OfferList storage offerList,
-    MultiOrder memory mor,
-    MgvStructs.OfferPacked offer,
-    MgvStructs.LocalPacked local,
-    uint tickScale
-  ) internal returns (uint offerId, MgvStructs.LocalPacked) {
-    Tick offerTick = offer.tick(tickScale);
-    uint nextId = offer.next();
-
-    if (nextId == 0) {
-      Leaf leaf = mor.leaf;
-      leaf = leaf.setTickFirst(offerTick, 0).setTickLast(offerTick, 0);
-      if (leaf.isEmpty()) {
-        offerList.leafs[offerTick.leafIndex()] = leaf;
-        int index = offerTick.level0Index();
-        Field field = local.level0().flipBitAtLevel0(offerTick);
-        if (field.isEmpty()) {
-          offerList.level0[index] = field;
-          index = offerTick.level1Index();
-          field = local.level1().flipBitAtLevel1(offerTick);
-          if (field.isEmpty()) {
-            offerList.level1[index] = field;
-            field = local.level2().flipBitAtLevel2(offerTick);
-            local = local.level2(field);
-            if (field.isEmpty()) {
-              local = local.level1(field);
-              local = local.level0(field);
-              mor.leaf = LeafLib.EMPTY;
-              return (0, local);
-            }
-            index = field.firstLevel1Index();
-            field = offerList.level1[index];
-          }
-          local = local.level1(field);
-          index = field.firstLevel0Index(index);
-          field = offerList.level0[index];
-        }
-        local = local.level0(field);
-        leaf = offerList.leafs[field.firstLeafIndex(index)];
-      }
-      mor.leaf = leaf;
-      nextId = leaf.getNextOfferId();
-    }
-    return (nextId, local);
-  }
   /* # General Market Order */
   //+clear+
   /* General market orders set up the market order with a given `taker` (`msg.sender` in the most common case). Returns `(totalGot, totalGave, penaltyReceived, feePaid)`.
@@ -235,7 +188,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
           3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
         */
-        (sor.offerId, sor.local) = getNextBest(offerList, mor, sor.offer, sor.local, sor.olKey.tickScale);
+        (mor.leaf, sor.local) = dislodgeOffer(offerList, sor.olKey.tickScale, offer.prev(0), sor.local, true, mor.leaf);
+        sor.offerId = mor.leaf.getNextOfferId();
 
         sor.offer = offerList.offerData[sor.offerId].offer;
 
@@ -400,7 +354,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         require(mgvData != "mgv/tradeSuccess", "mgv/clean/offerDidNotFail");
 
         /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since the offer may be anywhere in the book. So we stitch together offers immediately after `execute`. */
-        sor.local = dislodgeOffer(offerList, sor.olKey.tickScale, sor.offer, sor.local, true);
+        (, sor.local) = dislodgeOffer(offerList, sor.olKey.tickScale, sor.offer, sor.local, true, LeafLib.EMPTY);
 
         /* <a id="internalSnipes/liftReentrancy"></a> Now that the current snipe is over, we can lift the lock on the book. In the same operation we
         * lift the reentrancy lock, and

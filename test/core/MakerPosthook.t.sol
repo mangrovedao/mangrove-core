@@ -181,8 +181,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
     makerRevert = true;
-    expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), ofr, 1 ether, 1 ether, 2375880000000000, "mgv/makerRevert");
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit OfferFail(olKey.hash(), $(tkr), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(1 ether);
     assertTrue(!success, "market order should fail");
     assertTrue(called, "PostHook not called");
@@ -197,8 +197,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
     makerRevert = true;
 
-    expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), ofr, 1 ether, 1 ether, 2517320000000000, "mgv/makerRevert");
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit OfferFail(olKey.hash(), $(tkr), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(1 ether);
     assertTrue(!success, "market order should fail");
     assertTrue(called, "PostHook not called");
@@ -276,7 +276,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectFrom($(mgv));
     emit OfferRetract(olKey.hash(), $(this), ofr, true);
     expectFrom($(mgv));
-    emit OfferSuccess(olKey.hash(), ofr, 1 ether, 1 ether);
+    emit OfferSuccess(olKey.hash(), $(tkr), $(this), ofr, 1 ether, 1 ether);
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(success, "market order should succeed");
     assertTrue(called, "PostHook not called");
@@ -304,8 +304,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(this), 0 /*penalty*/ );
-    expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), ofr, 1 ether, 1 ether, 3022440000000000, "mgv/makerRevert");
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit OfferFail(olKey.hash(), $(tkr), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(!success, "market order should fail");
     assertTrue(called, "PostHook not called");
@@ -319,7 +319,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     expectFrom($(mgv));
     emit OfferRetract(olKey.hash(), $(this), ofr, true);
     expectFrom($(mgv));
-    emit OfferSuccess(olKey.hash(), ofr, 1 ether, 1 ether);
+    emit OfferSuccess(olKey.hash(), $(tkr), $(this), ofr, 1 ether, 1 ether);
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(success, "market order should succeed");
     assertTrue(called, "PostHook not called");
@@ -394,8 +394,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(this), 0 /*refund*/ );
-    expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), ofr, 1 ether, 1 ether, 3022440000000000, "mgv/makerRevert");
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit OfferFail(olKey.hash(), $(tkr), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert");
     bool success = tkr.marketOrderWithSuccess(2 ether);
     assertTrue(called, "PostHook not called");
 
@@ -407,8 +407,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   function test_makerRevert_is_logged() public {
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
     makerRevert = true; // maker should fail
-    expectFrom($(mgv));
-    emit OfferFail(olKey.hash(), ofr, 1 ether, 1 ether, 2491160000000000, "mgv/makerRevert");
+    vm.expectEmit(true, true, true, false, $(mgv));
+    emit OfferFail(olKey.hash(), $(tkr), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert");
     tkr.marketOrderWithSuccess(2 ether);
   }
 

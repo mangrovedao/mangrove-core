@@ -94,31 +94,24 @@ contract HasMgvEvents {
   event SetGasprice(uint value);
 
   /* Clean order execution */
-  event CleanStart(bytes32 indexed olKeyHash, address indexed taker);
+  event CleanStart(bytes32 indexed olKeyHash, address indexed taker, uint offersToBeCleaned);
   event CleanComplete();
 
   /* Market order execution */
-  // FIXME: This provides the basis information for all following events
-  // FIXME: Observation: All other events follow from this one + the known state of the book
   event OrderStart(bytes32 indexed olKeyHash, address indexed taker, int maxLogPrice, uint fillVolume, bool fillWants);
-  // FIXME: got, gave, bounty, and fee can be derived from previous events.
-  // FIXME: Well, fees aren't actually explicitly included in any event... Could be included here or in OfferSuccess
   event OrderComplete(uint fee);
 
   /* * Offer execution */
   event OfferSuccess(
-    bytes32 indexed olKeyHash,
-    uint id,
-    // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
-    uint takerWants,
-    uint takerGives
+    bytes32 indexed olKeyHash, address indexed taker, address indexed maker, uint id, uint takerWants, uint takerGives
   );
 
   /* Log information when a trade execution reverts or returns a non empty bytes32 word */
   event OfferFail(
     bytes32 indexed olKeyHash,
+    address indexed taker,
+    address indexed maker,
     uint id,
-    // `maker` is not logged because it can be retrieved from the state using `(olKeyHash)`.
     uint takerWants,
     uint takerGives,
     uint penalty,
@@ -126,13 +119,13 @@ contract HasMgvEvents {
     bytes32 mgvData
   );
 
-  event OfferPenalty(uint penalty); // FIXME: The offer id can be inferred from the preceding OfferFail event
-
   /* Log information when a posthook reverts */
-  event PosthookFail(bytes32 posthookData); // FIXME: The offer id can be inferred from the preceding OfferFail event
+  event PosthookFail(bytes32 posthookData);
 
   /* * After `permit` and `approve` */
-  event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
+  event Approval(
+    address indexed outbound_tkn, address indexed inbound_tkn, address indexed owner, address spender, uint value
+  );
 
   /* * Mangrove closure */
   event Kill();

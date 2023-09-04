@@ -120,9 +120,9 @@ contract InvertedTakerOperationsTest is ITaker, MangroveTest {
     uint ofr2 = mkr.newOfferByVolume(0.1 ether, 0.1 ether, 100_000, 0);
     _takerTrade = reenter;
     expectFrom($(mgv));
-    emit OfferSuccess(olKey.hash(), ofr2, 0.1 ether, 0.1 ether);
+    emit OfferSuccess(olKey.hash(), $(this), $(mkr), ofr2, 0.1 ether, 0.1 ether);
     expectFrom($(mgv));
-    emit OfferSuccess(olKey.hash(), ofr1, 0.1 ether, 0.1 ether);
+    emit OfferSuccess(olKey.hash(), $(this), $(mkr), ofr1, 0.1 ether, 0.1 ether);
     (uint got, uint gave,,) = mgv.marketOrderByVolume(olKey, 0.1 ether, 0.1 ether, true);
     assertTrue(mkr.makerExecuteWasCalled(ofr1), "ofr1 must be executed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr2), "ofr2 must be executed or test is void");

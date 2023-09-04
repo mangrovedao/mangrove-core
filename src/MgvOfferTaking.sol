@@ -315,7 +315,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint successes, uint bounty)
   {
     unchecked {
-      emit CleanStart(olKey.hash(), taker);
+      emit CleanStart(olKey.hash(), taker, targets.length);
 
       for (uint i = 0; i < targets.length; ++i) {
         bytes memory encodedCall;
@@ -587,9 +587,13 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       gasused = gasused + makerPosthook(sor, gasreq - gasused, makerData, mgvData);
 
       if (mgvData != "mgv/tradeSuccess") {
-        mor.totalPenalty += applyPenalty(sor, gasused, mgvData);
+        uint penalty = applyPenalty(sor, gasused);
+        mor.totalPenalty += penalty;
+        emit OfferFail(
+          sor.olKey.hash(), mor.taker, sor.offerDetail.maker(), sor.offerId, sor.wants, sor.gives, penalty, mgvData
+        );
       } else {
-        emit OfferSuccess(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives);
+        emit OfferSuccess(sor.olKey.hash(), mor.taker, sor.offerDetail.maker(), sor.offerId, sor.wants, sor.gives);
       }
     }
   }
@@ -662,7 +666,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
    * We do not consider the tx.gasprice.
    * `offerDetail.gasbase` and `offerDetail.gasprice` are the values of Mangrove parameters `config.offer_gasbase` and `config.gasprice` when the offer was created. Without caching those values, the provision set aside could end up insufficient to reimburse the maker (or to retribute the taker).
    */
-  function applyPenalty(MgvLib.SingleOrder memory sor, uint gasused, bytes32 mgvData) internal returns (uint) {
+  function applyPenalty(MgvLib.SingleOrder memory sor, uint gasused) internal returns (uint) {
     unchecked {
       uint gasreq = sor.offerDetail.gasreq();
 
@@ -681,15 +685,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         penalty = provision;
       }
 
-      // FIXME: Emitting OfferFail here means it'll be emitted after any posthook events... Is that what we want?
-      // emit OfferFail(sor.offerId, sor.wants, sor.gives, penalty, mgvData);
-      // FIXME: Alternatively, we can emit a OfferPenalty event here and then keep the OfferFail event where it was detected?
-      emit OfferPenalty(penalty);
-
       /* Here we write to storage the new maker balance. This occurs _after_ possible reentrant calls. How do we know we're not crediting twice the same amounts? Because the `offer`'s provision was set to 0 in storage (through `dirtyDeleteOffer`) before the reentrant calls. In this function, we are working with cached copies of the offer as it was before it was consumed. */
       creditWei(sor.offerDetail.maker(), provision - penalty);
-
-      emit OfferFail(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, penalty, mgvData);
 
       return penalty;
     }

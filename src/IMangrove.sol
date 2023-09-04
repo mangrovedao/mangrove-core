@@ -27,7 +27,7 @@ interface IMangrove {
   event CleanComplete();
   event OrderStart(bytes32 indexed olKeyHash, address indexed taker, int maxLogPrice, uint fillVolume, bool fillWants);
   event OrderComplete(uint fee);
-  event PosthookFail(bytes32 posthookData);
+  event PosthookFail(bytes32 indexed olKeyHash, uint indexed offerId, bytes32 posthookData);
   event OfferPenalty(uint penalty);
   event SetActive(bytes32 indexed olKeyHash, bool value);
   event SetDensityFixed(bytes32 indexed olKeyHash, uint value);

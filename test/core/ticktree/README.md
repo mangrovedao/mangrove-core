@@ -24,7 +24,7 @@ For each Mangrove operation that modifies the tick tree, there is a separate con
 
 # Test scenarios
 
-Mangrove's tick tree is quite complex due to the different levels each being stored separately as well as some things being stored in `local`. There are there many scenarios to test, e.g, updating an offer to another tick within the same `Leaf` is different than updating it to a tick below a different level1 position.
+Mangrove's tick tree is quite complex due to the different levels each being stored separately as well as some things being stored in `local`. There are there many scenarios to test, e.g, updating an offer to another tick within the same `Leaf` is different than updating it to a tick below a different `level1` position.
 
 ## Tick scenarios
 

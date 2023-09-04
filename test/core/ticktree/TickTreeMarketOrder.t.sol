@@ -54,9 +54,9 @@ contract TickTreeMarketOrderTest is TickTreeTest {
 
   // Tick list               size  offersToTake
   // 1. is empty                0  0
-  // 2. is fully taken          1  1
-  // 3. is partially taken      2  1
-  // 4. is not taken            2  0
+  // 2. is fully taken          2  2
+  // 3. is partially taken      3  1
+  // 4. is not taken            3  0
   struct TickListScenario {
     Tick tick;
     uint size;
@@ -65,12 +65,12 @@ contract TickTreeMarketOrderTest is TickTreeTest {
 
   struct MarketOrderScenario {
     TickListScenario lowerTick;
-    TickListScenario middleTick; // ignored if lowerTickListScenario.size == 2 (scenario 3. and 4.)
-    TickListScenario higherTick; // ignored if {lower,middle}TickListScenario.size == 2 (scenario 3. and 4.)
+    TickListScenario middleTick; // ignored if lowerTickListScenario.size == 3 (scenario 3. and 4.)
+    TickListScenario higherTick; // ignored if {lower,middle}TickListScenario.size == 3 (scenario 3. and 4.)
   }
 
   // (list size, offers to take)
-  uint[2][] tickListScenarios = [[0, 0], [1, 1], [2, 1], [2, 0]];
+  uint[2][] tickListScenarios = [[0, 0], [2, 2], [3, 1], [3, 0]];
 
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
   // We therefore have a test case per tick instead.
@@ -139,7 +139,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
       for (uint ls = 1; ls < tickListScenarios.length; ++ls) {
         scenario.lowerTick.size = tickListScenarios[ls][0];
         scenario.lowerTick.offersToTake = tickListScenarios[ls][1];
-        if (scenario.lowerTick.size == 2) {
+        if (scenario.lowerTick.size == 3) {
           // Lower tick is not (fully) taken
           scenario.middleTick.size = 0;
           scenario.middleTick.offersToTake = 0;
@@ -154,7 +154,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
             scenario.middleTick.offersToTake = tickListScenarios[ms][1];
             scenario.higherTick.size = 0;
             scenario.higherTick.offersToTake = 0;
-            if (scenario.middleTick.size == 2) {
+            if (scenario.middleTick.size == 3) {
               // Middle tick is not (fully) taken
               run_market_order_scenario(scenario, printToConsole);
             } else {

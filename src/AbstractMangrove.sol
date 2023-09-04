@@ -6,6 +6,7 @@ import {MgvLib} from "./MgvLib.sol";
 import {MgvOfferMaking} from "./MgvOfferMaking.sol";
 import {MgvOfferTakingWithPermit} from "./MgvOfferTakingWithPermit.sol";
 import {MgvAppendix} from "mgv_src/MgvAppendix.sol";
+import {MgvGovernable} from "mgv_src/MgvGovernable.sol";
 
 /* `AbstractMangrove` inherits the two contracts that implement generic Mangrove functionality (`MgvOfferTakingWithPermit` and `MgvOfferMaking`) but does not implement the abstract functions. */
 abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
@@ -22,12 +23,12 @@ abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
       /* Initially, governance is open to anyone. */
       /* Set initial gasprice and gasmax. */
       bool success;
-      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvAppendix.setGasprice, (_gasprice)));
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGasprice, (_gasprice)));
       require(success, "mgv/ctor/gasprice");
-      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvAppendix.setGasmax, (gasmax)));
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGasmax, (gasmax)));
       require(success, "mgv/ctor/gasmax");
       /* Initialize governance to `_governance` after parameter setting. */
-      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvAppendix.setGovernance, (_governance)));
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGovernance, (_governance)));
       require(success, "mgv/ctor/governance");
     }
   }

@@ -32,7 +32,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint fillVolume; // used globally
     uint feePaid; // used globally
     Leaf leaf;
-    Field level1;
     int maxLogPrice; // maxLogPrice is the log of the max price that can be reached by the market order as a limit price.
   }
 

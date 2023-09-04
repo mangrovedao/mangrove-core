@@ -9,7 +9,7 @@ import {MgvAppendix} from "mgv_src/MgvAppendix.sol";
 
 /* `AbstractMangrove` inherits the two contracts that implement generic Mangrove functionality (`MgvOfferTakingWithPermit` and `MgvOfferMaking`) but does not implement the abstract functions. */
 abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
-  address immutable appendix;
+  address immutable APPENDIX;
 
   constructor(address _governance, uint _gasprice, uint gasmax, string memory contractName)
     MgvOfferTakingWithPermit(contractName)
@@ -17,23 +17,23 @@ abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
     unchecked {
       emit NewMgv();
 
-      appendix = address(new MgvAppendix());
+      APPENDIX = address(new MgvAppendix());
 
       /* Initially, governance is open to anyone. */
       /* Set initial gasprice and gasmax. */
       bool success;
-      (success,) = appendix.delegatecall(abi.encodeCall(MgvAppendix.setGasprice, (_gasprice)));
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvAppendix.setGasprice, (_gasprice)));
       require(success, "mgv/ctor/gasprice");
-      (success,) = appendix.delegatecall(abi.encodeCall(MgvAppendix.setGasmax, (gasmax)));
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvAppendix.setGasmax, (gasmax)));
       require(success, "mgv/ctor/gasmax");
       /* Initialize governance to `_governance` after parameter setting. */
-      (success,) = appendix.delegatecall(abi.encodeCall(MgvAppendix.setGovernance, (_governance)));
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvAppendix.setGovernance, (_governance)));
       require(success, "mgv/ctor/governance");
     }
   }
 
   fallback(bytes calldata callData) external returns (bytes memory) {
-    (bool success, bytes memory res) = appendix.delegatecall(callData);
+    (bool success, bytes memory res) = APPENDIX.delegatecall(callData);
     if (success) {
       return res;
     } else {

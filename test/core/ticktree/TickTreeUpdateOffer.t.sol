@@ -329,7 +329,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     if (printToConsole) {
       console.log("");
       console.log("after update");
-      // FIXME: Fails with "field is 0" when MGV tick tree is inconsistent
+      // NB: Fails with "field is 0" when MGV tick tree is inconsistent
       console.log("  MGV OB");
       printOrderBook(olKey);
       console.log("  tick tree");

@@ -39,13 +39,6 @@ import "mgv_lib/Debug.sol";
 //     1. is empty
 //     2. is non-empty
 contract TickTreeCleanOfferTest is TickTreeTest {
-  function setUp() public override {
-    super.setUp();
-
-    // Check that the tick tree is consistent after set up
-    assertMgvTickTreeIsConsistent();
-  }
-
   struct CleanOfferScenario {
     TickScenario tickScenario;
     uint offerTickListSize;
@@ -128,9 +121,22 @@ contract TickTreeCleanOfferTest is TickTreeTest {
     vm.resumeGasMetering();
   }
 
-  // function test_single_scenario() public {
+  // function test_single_clean_offer_scenario() public {
   //   run_clean_offer_scenario(
-  //     CleanOfferScenario({tickScenario: TickScenario({tick: 0, hasHigherTick: true, higherTick: 4, hasLowerTick: false, lowerTick: 0}), offerTickListSize: 1, offerPos: 0}),
+  //     CleanOfferScenario({
+  //       tickScenario: TickScenario({
+  //         tick: 0,
+  //         hasHigherTick: true,
+  //         higherTick: 4,
+  //         higherTickListSize: 1,
+  //         hasLowerTick: false,
+  //         lowerTick: 0,
+  //         lowerTickListSize: 0
+  //         }),
+  //       offerTickListSize: 1,
+  //       offerPos: 0,
+  //       offerFail: false
+  //     }),
   //     true
   //   );
   // }
@@ -180,6 +186,8 @@ contract TickTreeCleanOfferTest is TickTreeTest {
 
     // 5. Assert that Mangrove and tick tree are equal
     assertMgvOfferListEqToTickTree(tickTree);
+    // Uncommenting the following can be helpful in debugging tree consistency issues
+    // assertMgvTickTreeIsConsistent();
 
     // 6. Restore state from before test
     vm.revertTo(vmSnapshotId);

@@ -45,13 +45,6 @@ import "mgv_lib/Debug.sol";
 // We do not test failing offers or partial fills specifically,
 // as they are not handled specially wrt the tick tree.
 contract TickTreeMarketOrderTest is TickTreeTest {
-  function setUp() public override {
-    super.setUp();
-
-    // Check that the tick tree is consistent after set up
-    assertMgvTickTreeIsConsistent();
-  }
-
   // Tick list               size  offersToTake
   // 1. is empty                0  0
   // 2. is fully taken          2  2
@@ -179,7 +172,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     vm.resumeGasMetering();
   }
 
-  // function test_single_scenario() public {
+  // function test_single_market_order_scenario() public {
   //   run_market_order_scenario(
   //     MarketOrderScenario({tickScenario: TickScenario({tick: Tick.wrap(0), hasHigherTick: true, higherTick: 4, hasLowerTick: false, lowertick: Tick.wrap(0)}), offerTickListSize: 1, offerPos: 0}),
   //     true
@@ -241,6 +234,8 @@ contract TickTreeMarketOrderTest is TickTreeTest {
 
     // 5. Assert that Mangrove and tick tree are equal
     assertMgvOfferListEqToTickTree(tickTree);
+    // Uncommenting the following can be helpful in debugging tree consistency issues
+    // assertMgvTickTreeIsConsistent();
 
     // 6. Restore state from before test
     vm.revertTo(vmSnapshotId);

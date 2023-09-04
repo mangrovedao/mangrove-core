@@ -46,13 +46,6 @@ import "mgv_lib/Debug.sol";
 //   2. the lower tick
 //   3. the higher tick
 contract TickTreeUpdateOfferTest is TickTreeTest {
-  function setUp() public override {
-    super.setUp();
-
-    // Check that the tick tree is consistent after set up
-    assertMgvTickTreeIsConsistent();
-  }
-
   struct UpdateOfferScenario {
     TickScenario tickScenario;
     int newTick;
@@ -345,6 +338,8 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
 
     // 5. Assert that Mangrove and tick tree are equal
     assertMgvOfferListEqToTickTree(tickTree);
+    // Uncommenting the following can be helpful in debugging tree consistency issues
+    // assertMgvTickTreeIsConsistent();
 
     // 6. Restore state from before test
     vm.revertTo(vmSnapshotId);

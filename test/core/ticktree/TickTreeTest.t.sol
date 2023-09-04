@@ -81,25 +81,43 @@ abstract contract TickTreeTest is MangroveTest {
   function assertMgvTickTreeIsConsistent() internal {
     Field level2 = mgv.level2(olKey);
     for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
-      if (!isBitSet(level2, level2Pos)) {
-        continue;
-      }
-
+      bool level2PosIsSet = isBitSet(level2, level2Pos);
       int level1Index = level1IndexFromLevel2Pos(level2Pos);
       Field level1 = mgv.level1(olKey, level1Index);
-      assertFalse(
-        level1.eq(FieldLib.EMPTY),
+
+      if (!level2PosIsSet) {
+        assertTrue(
+          level1.eq(FieldLib.EMPTY),
+          string.concat("level1 should be empty when bit is not set in level2 | tree branch: ", vm.toString(level2Pos))
+        );
+        // checking that the entire subtree is empty is too expensive, so we stop here
+        continue;
+      }
+      assertTrue(
+        !level1.eq(FieldLib.EMPTY),
         string.concat("level1 should not be empty when bit is set in level2 | tree branch: ", vm.toString(level2Pos))
       );
-      for (uint level1Pos = 0; level1Pos <= MAX_LEVEL1_POSITION; ++level1Pos) {
-        if (!isBitSet(level1, level1Pos)) {
-          continue;
-        }
 
+      for (uint level1Pos = 0; level1Pos <= MAX_LEVEL1_POSITION; ++level1Pos) {
+        bool level1PosIsSet = isBitSet(level1, level1Pos);
         int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, level1Pos);
         Field level0 = mgv.level0(olKey, level0Index);
-        assertFalse(
-          level0.eq(FieldLib.EMPTY),
+
+        if (!level1PosIsSet) {
+          assertTrue(
+            level0.eq(FieldLib.EMPTY),
+            string.concat(
+              "level0 should be empty when bit is not set in level1 | tree branch: ",
+              vm.toString(level2Pos),
+              "->",
+              vm.toString(level1Pos)
+            )
+          );
+          // checking that the entire subtree is empty is too expensive, so we stop here
+          continue;
+        }
+        assertTrue(
+          !level0.eq(FieldLib.EMPTY),
           string.concat(
             "level0 should not be empty when bit is set in level1 | tree branch: ",
             vm.toString(level2Pos),
@@ -107,15 +125,29 @@ abstract contract TickTreeTest is MangroveTest {
             vm.toString(level1Pos)
           )
         );
-        for (uint level0Pos = 0; level0Pos <= MAX_LEVEL0_POSITION; ++level0Pos) {
-          if (!isBitSet(level0, level0Pos)) {
-            continue;
-          }
 
+        for (uint level0Pos = 0; level0Pos <= MAX_LEVEL0_POSITION; ++level0Pos) {
+          bool level0PosIsSet = isBitSet(level0, level0Pos);
           int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, level0Pos);
           Leaf leaf = mgv.leafs(olKey, leafIndex);
-          assertFalse(
-            leaf.eq(LeafLib.EMPTY),
+
+          if (!level0PosIsSet) {
+            assertTrue(
+              leaf.eq(LeafLib.EMPTY),
+              string.concat(
+                "leaf should be empty when bit is not set in level0 | tree branch: ",
+                vm.toString(level2Pos),
+                "->",
+                vm.toString(level1Pos),
+                "->",
+                vm.toString(level0Pos)
+              )
+            );
+            // checking that the entire subtree is empty is too expensive, so we stop here
+            continue;
+          }
+          assertTrue(
+            !level0PosIsSet || !leaf.eq(LeafLib.EMPTY),
             string.concat(
               "leaf should not be empty when bit is set in level0 | tree branch: ",
               vm.toString(level2Pos),
@@ -125,10 +157,12 @@ abstract contract TickTreeTest is MangroveTest {
               vm.toString(level0Pos)
             )
           );
+
           for (uint leafPos = 0; leafPos <= MAX_LEAF_POSITION; ++leafPos) {
             Tick tick = tickFromLeafIndexAndPos(leafIndex, leafPos);
             uint offerId = leaf.firstOfIndex(leafPos);
             if (offerId == 0) {
+              assertEq(leaf.lastOfIndex(leafPos), 0);
               continue;
             }
             uint prev = 0;

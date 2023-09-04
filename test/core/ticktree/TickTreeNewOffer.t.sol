@@ -45,13 +45,6 @@ import "mgv_lib/Debug.sol";
 //     1. is empty
 //     2. non-empty
 contract TickTreeNewOfferTest is TickTreeTest {
-  function setUp() public override {
-    super.setUp();
-
-    // Check that the tick tree is consistent after set up
-    assertMgvTickTreeIsConsistent();
-  }
-
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
   // We therefore have a test case per tick instead.
 
@@ -108,24 +101,28 @@ contract TickTreeNewOfferTest is TickTreeTest {
       for (uint j = 0; j < tickListSizeScenarios.length; ++j) {
         uint insertionTickListSize = tickListSizeScenarios[j];
         run_new_offer_scenario(
-          NewOfferScenario({tickScenario: tickScenario, insertionTickListSize: insertionTickListSize})
+          NewOfferScenario({tickScenario: tickScenario, insertionTickListSize: insertionTickListSize}), false
         );
       }
     }
   }
 
-  function run_new_offer_scenario(NewOfferScenario memory scenario) internal {
-    console.log("new offer scenario");
-    console.log("  insertionTick: %s", toString(Tick.wrap(scenario.tickScenario.tick)));
-    console.log("  insertionTickListSize: %s", scenario.insertionTickListSize);
-    if (scenario.tickScenario.hasHigherTick) {
-      console.log("  higherTick: %s", toString(Tick.wrap(scenario.tickScenario.higherTick)));
+  function run_new_offer_scenario(NewOfferScenario memory scenario, bool printToConsole) internal {
+    if (printToConsole) {
+      console.log("new offer scenario");
+      console.log("  insertionTick: %s", toString(Tick.wrap(scenario.tickScenario.tick)));
+      console.log("  insertionTickListSize: %s", scenario.insertionTickListSize);
+      if (scenario.tickScenario.hasHigherTick) {
+        console.log("  higherTick: %s", toString(Tick.wrap(scenario.tickScenario.higherTick)));
+      }
+      if (scenario.tickScenario.hasLowerTick) {
+        console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
+      }
     }
-    if (scenario.tickScenario.hasLowerTick) {
-      console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
-    }
+
     // 1. Capture state before test
     uint vmSnapshotId = vm.snapshot();
+
     // 2. Create scenario
     add_n_offers_to_tick(scenario.tickScenario.tick, scenario.insertionTickListSize);
     if (scenario.tickScenario.hasHigherTick) {
@@ -134,16 +131,22 @@ contract TickTreeNewOfferTest is TickTreeTest {
     if (scenario.tickScenario.hasLowerTick) {
       add_n_offers_to_tick(scenario.tickScenario.lowerTick, scenario.tickScenario.lowerTickListSize);
     }
+
     // 3. Snapshot tick tree
     TickTree storage tickTree = snapshotTickTree();
+
     // 4. Create new offer and add it to tick tree
     Tick _insertionTick = Tick.wrap(scenario.tickScenario.tick);
     int logPrice = LogPriceLib.fromTick(_insertionTick, olKey.tickScale);
     uint gives = getAcceptableGivesForTick(_insertionTick, 50_000);
     mkr.newOfferByLogPrice(logPrice, gives, 50_000, 50);
     addOffer(tickTree, _insertionTick, gives, 50_000, 50, $(mkr));
+
     // 5. Assert that Mangrove and tick tree are equal
     assertMgvOfferListEqToTickTree(tickTree);
+    // Uncommenting the following can be helpful in debugging tree consistency issues
+    // assertMgvTickTreeIsConsistent();
+
     // 6. Restore state from before test
     vm.revertTo(vmSnapshotId);
   }

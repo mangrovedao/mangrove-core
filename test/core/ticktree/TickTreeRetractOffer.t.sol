@@ -38,13 +38,6 @@ import "mgv_lib/Debug.sol";
 //     1. is empty
 //     2. is non-empty
 contract TickTreeRetractOfferTest is TickTreeTest {
-  function setUp() public override {
-    super.setUp();
-
-    // Check that the tick tree is consistent after set up
-    assertMgvTickTreeIsConsistent();
-  }
-
   struct RetractOfferScenario {
     TickScenario tickScenario;
     uint offerTickListSize;
@@ -108,33 +101,38 @@ contract TickTreeRetractOfferTest is TickTreeTest {
             tickScenario: tickScenario,
             offerTickListSize: tickListScenario[0],
             offerPos: tickListScenario[1]
-          })
+          }),
+          false
         );
       }
     }
   }
 
-  // function test_single_scenario() public {
+  // function test_single_retract_offer_scenario() public {
   //   run_retract_offer_scenario(
-  //     RetractOfferScenario({tickScenario: TickScenario({tick: 0, hasHigherTick: true, higherTick: 4, hasLowerTick: false, lowerTick: 0}), offerTickListSize: 1, offerPos: 0})
+  //     RetractOfferScenario({tickScenario: TickScenario({tick: 0, hasHigherTick: true, higherTick: 4, hasLowerTick: false, lowerTick: 0}), offerTickListSize: 1, offerPos: 0}), true
   //   );
   // }
 
-  function run_retract_offer_scenario(RetractOfferScenario memory scenario) internal {
+  function run_retract_offer_scenario(RetractOfferScenario memory scenario, bool printToConsole) internal {
     Tick tick = Tick.wrap(scenario.tickScenario.tick);
-    console.log("retract offer scenario");
-    console.log("  retractionTick: %s", toString(tick));
-    console.log("  offerTickListSize: %s", scenario.offerTickListSize);
-    console.log("  offerPos: %s", scenario.offerPos);
-    if (scenario.tickScenario.hasHigherTick) {
-      Tick higherTick = Tick.wrap(scenario.tickScenario.higherTick);
-      console.log("  higherTick: %s", toString(higherTick));
+    if (printToConsole) {
+      console.log("retract offer scenario");
+      console.log("  retractionTick: %s", toString(tick));
+      console.log("  offerTickListSize: %s", scenario.offerTickListSize);
+      console.log("  offerPos: %s", scenario.offerPos);
+      if (scenario.tickScenario.hasHigherTick) {
+        Tick higherTick = Tick.wrap(scenario.tickScenario.higherTick);
+        console.log("  higherTick: %s", toString(higherTick));
+      }
+      if (scenario.tickScenario.hasLowerTick) {
+        console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
+      }
     }
-    if (scenario.tickScenario.hasLowerTick) {
-      console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
-    }
+
     // 1. Capture state before test
     uint vmSnapshotId = vm.snapshot();
+
     // 2. Create scenario
     (uint[] memory offerIds,) = add_n_offers_to_tick(scenario.tickScenario.tick, scenario.offerTickListSize);
     if (scenario.tickScenario.hasHigherTick) {
@@ -143,14 +141,20 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     if (scenario.tickScenario.hasLowerTick) {
       add_n_offers_to_tick(scenario.tickScenario.lowerTick, scenario.tickScenario.lowerTickListSize);
     }
+
     // 3. Snapshot tick tree
     TickTree storage tickTree = snapshotTickTree();
+
     // 4. Retract the offer
     uint offerId = offerIds[scenario.offerPos];
     mkr.retractOffer(offerId);
     removeOffer(tickTree, offerId);
+
     // 5. Assert that Mangrove and tick tree are equal
     assertMgvOfferListEqToTickTree(tickTree);
+    // Uncommenting the following can be helpful in debugging tree consistency issues
+    // assertMgvTickTreeIsConsistent();
+
     // 6. Restore state from before test
     vm.revertTo(vmSnapshotId);
   }

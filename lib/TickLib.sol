@@ -1,42 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
+import "mgv_lib/Constants.sol";
 import {BitLib} from "mgv_lib/BitLib.sol";
-
-import {FixedPointMathLib as FP} from "solady/utils/FixedPointMathLib.sol";
-uint constant ONES = type(uint).max;
-uint constant TOPBIT = 1 << 255;
-
-// MIN_TICK and MAX_TICK should be inside the addressable range defined by the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2
-int constant MIN_TICK = -524287;
-int constant MAX_TICK = -MIN_TICK;
-
-// sizes must match field sizes in structs.ts where relevant
-uint constant TICK_BITS = 24;
-uint constant OFFER_BITS = 32;
-
-// only power-of-two sizes are supported for LEAF_SIZE and LEVEL*_SIZE
-uint constant LEAF_SIZE_BITS = 2; 
-uint constant LEVEL0_SIZE_BITS = 6;
-uint constant LEVEL1_SIZE_BITS = 6;
-uint constant LEVEL2_SIZE_BITS = 6;
-
-int constant LEAF_SIZE = int(2 ** (LEAF_SIZE_BITS));
-int constant LEVEL0_SIZE = int(2 ** (LEVEL0_SIZE_BITS));
-int constant LEVEL1_SIZE = int(2 ** (LEVEL1_SIZE_BITS));
-int constant LEVEL2_SIZE = int(2 ** (LEVEL2_SIZE_BITS));
-
-uint constant LEAF_SIZE_MASK = ~(ONES << LEAF_SIZE_BITS);
-uint constant LEVEL0_SIZE_MASK = ~(ONES << LEVEL0_SIZE_BITS);
-uint constant LEVEL1_SIZE_MASK = ~(ONES << LEVEL1_SIZE_BITS);
-uint constant LEVEL2_SIZE_MASK = ~(ONES << LEVEL2_SIZE_BITS);
-
-int constant NUM_LEVEL1 = int(LEVEL2_SIZE);
-int constant NUM_LEVEL0 = NUM_LEVEL1 * LEVEL1_SIZE;
-int constant NUM_LEAFS = NUM_LEVEL0 * LEVEL0_SIZE;
-int constant NUM_TICKS = NUM_LEAFS * LEAF_SIZE;
-
-uint constant OFFER_MASK = ONES >> (256 - OFFER_BITS);
 
 type Leaf is uint;
 
@@ -157,126 +123,14 @@ library LeafLib {
       }
     }
   }
-
 }
 
-library LogPriceLib {
-  // Could have an INVALID tick that is > 24 bits? But in `local` how do I write "empty"?
-  int constant BP = 1.0001 * 1e18;
-  // FP.lnWad(BP)
-  uint constant lnBP = 99995000333308;
-  // FIXME should depend on the min and max prices 
-  int constant MIN_LOG_PRICE = -524287;
-  int constant MAX_LOG_PRICE = -MIN_LOG_PRICE;
-
-  function inRange(int logPrice) internal pure returns (bool) {
-    return logPrice >= MIN_LOG_PRICE && logPrice <= MAX_LOG_PRICE;
-  }
-  function logPriceFromPrice_e18(uint price_e18) internal pure returns (int) {
-    return logPriceFromVolumes(price_e18, 1 ether);
-  }
-
-  // tick to price, price must not exceed max
-  // if tickscale is 1 maxtick is maxprice
-  // the only way there is a general max tickscale is if I cant have as many ticks as I want?
-  // 
-  // FIXME ensure that you only called tick*tickScale if you previously stored the tick as a result of logPrice/tickScale. Otherwise you may go beyond the MAX/MIN.
-  function fromTick(Tick tick, uint tickScale) internal pure returns (int) {
-    return Tick.unwrap(tick) * int(tickScale);
-  }
-
-
-  function logPriceFromTakerVolumes(uint takerGives, uint takerWants) internal pure returns (int) {
-    if (takerGives == 0 || takerWants == 0) {
-      // If inboundAmt is 0 then the price is irrelevant for taker
-      return MAX_LOG_PRICE;
-    }
-    return logPriceFromVolumes(takerGives, takerWants);
-  }
-
-  function logPriceFromVolumes(uint inboundAmt, uint outboundAmt) internal pure returns (int logPrice) {
-    (uint num, uint den) = (inboundAmt,outboundAmt);
-    if (inboundAmt < outboundAmt) {
-      (num,den) = (den,num);
-    } else {
-    }
-    int lnPrice = FP.lnWad(int(num * 1e18/den));
-    // why is univ3 not doing that? Because they start from a ratio < 1 ?
-    int lbpPrice = int(FP.divWad(uint(lnPrice),lnBP)/1e18);
-    // note this implies the lowest tick will never be used! (could use for something else?)
-    if (inboundAmt < outboundAmt) {
-      lbpPrice = - lbpPrice;
-    }
-
-    uint pr = priceFromLogPrice_e18(lbpPrice);
-    if (pr > inboundAmt * 1e18 / outboundAmt) {
-      lbpPrice = lbpPrice - 1;
-    } else {
-    }
-
-    return lbpPrice;
-  }
-
-  // priceFromTick_e18(Tick.wrap(MAX_TICK));
-  uint constant MAX_PRICE_E18 = 58661978243588296630604521258702056828566;
-  // priceFromTick_e18(Tick.wrap(MIN_TICK));
-  // FIXME: added 1 since it's currently 0, which is not a valid price
-  uint constant MIN_PRICE_E18 = 1;
-
-  // returns 1.0001^tick*1e18
-  // TODO: returned an even more scaled up price, as much as possible
-  //max pow before overflow when computing with fixedpointlib, and when overflow when multiplying 
-  /*
-    To avoid having to do a full-width mulDiv (or reducing the tick precision) when computing amounts from prices, we choose the following values:
-    - max tick is 694605 (a litte more than 1.3 * 2^19)
-    - min tick is -694605 (a litte more than 1.3 * 2^19)
-    - priceFromTick_e18 returns 1.0001^tick * 1e18
-    - with volumes on 96 bits, and a tick in range, there is no overflow doing bp^tick * 1e18 * volume / 1e18
-    */
-  function priceFromLogPrice_e18(int logPrice) internal pure returns (uint) {
-    require(inRange(logPrice),"mgv/priceFromLogPrice/outOfRange");
-    // FIXME this must round up so tick(price(tick)) = tick
-    // FIXME add a test for this
-    // Right now e.g. priceFromTick(1) is too low, and tickFromVolumes(1 ether,Tick(1).outboundFromInbound(1 ether)) is 0 (should be 1)
-    return uint(FP.powWad(BP, logPrice * 1e18));
-  }
-
-  // tick underestimates the price, so we underestimate  inbound here, i.e. the inbound/outbound price will again be underestimated
-  function inboundFromOutbound(int logPrice, uint outboundAmt) internal pure returns (uint) {
-    return priceFromLogPrice_e18(logPrice) * outboundAmt/1e18;
-  }
-
-  function inboundFromOutboundUp(int logPrice, uint outboundAmt) internal pure returns (uint) {
-    uint prod = priceFromLogPrice_e18(logPrice) * outboundAmt;
-    return prod/1e18 + (prod%1e18==0 ? 0 : 1);
-  }
-
-  function inboundFromOutboundUpTick(int logPrice, uint outboundAmt) internal pure returns (uint) {
-    uint nextPrice_e18 = priceFromLogPrice_e18(logPrice+1);
-    uint prod = nextPrice_e18 * outboundAmt;
-    prod = prod/1e18;
-    if (prod == 0) {
-      return 0;
-    }
-    return prod-1;
-  }  
-
-  // tick underestimates the price, and we udnerestimate outbound here, so price will be overestimated here
-  function outboundFromInbound(int logPrice, uint inboundAmt) internal pure returns (uint) {
-    return inboundAmt * 1e18/priceFromLogPrice_e18(logPrice);
-  }
-
-  function outboundFromInboundUp(int logPrice, uint inboundAmt) internal pure returns (uint) {
-    uint prod = inboundAmt * 1e18;
-    uint price = priceFromLogPrice_e18(logPrice);
-    return prod/price + (prod%price==0?0:1);
-  }
-
-
-
-}
 
 library TickLib {
+
+  function eq(Tick tick1, Tick tick2) internal pure returns (bool) {
+    return Tick.unwrap(tick1) == Tick.unwrap(tick2);
+  }
 
   function inRange(Tick tick) internal pure returns (bool) {
     return Tick.unwrap(tick) >= MIN_TICK && Tick.unwrap(tick) <= MAX_TICK;

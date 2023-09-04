@@ -111,7 +111,9 @@ const struct_defs = {
       10 billions. */
       fields.gives,
     ],
-    additionalDefinitions: `import {Tick,TickLib, LogPriceLib} from "mgv_lib/TickLib.sol";
+    additionalDefinitions: `import "mgv_lib/TickLib.sol";
+import "mgv_lib/LogPriceLib.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 
 using OfferPackedExtra for OfferPacked global;
 using OfferUnpackedExtra for OfferUnpacked global;
@@ -157,7 +159,7 @@ function pack(uint __prev, uint __next, uint __wants, uint __gives) pure returns
   return pack({
     __prev: __prev,
     __next: __next,
-    __logPrice: LogPriceLib.logPriceFromVolumes(__wants,__gives),
+    __logPrice: LogPriceConversionLib.logPriceFromVolumes(__wants,__gives),
     __gives: __gives
   });
 }}
@@ -312,7 +314,7 @@ library LocalPackedExtra {
   function offer_gasbase(LocalPacked local,uint val) internal pure returns (LocalPacked) { unchecked {
     return local.kilo_offer_gasbase(val/1e3);
   }}
-  function tick(LocalPacked local) internal pure returns (Tick) {
+  function bestTick(LocalPacked local) internal pure returns (Tick) {
     return TickLib.tickFromBranch(local.tickPosInLeaf(),local.level0(),local.level1(),local.level2());
   }
 }

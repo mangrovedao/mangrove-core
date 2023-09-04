@@ -408,7 +408,9 @@ contract MakerPosthookTest is MangroveTest, IMaker {
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
     makerRevert = true; // maker should fail
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(tkr), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert");
+    emit OfferFailWithPosthookData(
+      olKey.hash(), $(tkr), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert", ""
+    );
     tkr.marketOrderWithSuccess(2 ether);
   }
 
@@ -424,8 +426,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
     expectFrom($(mgv));
-    emit PosthookFail("reverting_posthook");
-
+    emit OfferSuccessWithPosthookData(olKey.hash(), $(tkr), $(this), ofr, 1 ether, 1 ether, "reverting_posthook");
     bool success = tkr.marketOrderWithSuccess(1 ether);
     assertTrue(success, "order should succeed");
     assertEq(balMaker - 1 ether, base.balanceOf($(this)), "Incorrect maker balance");

@@ -8,6 +8,8 @@ import "./preprocessed/MgvStructs.post.sol" as MgvStructs;
 import {IERC20} from "./IERC20.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 import "mgv_lib/TickLib.sol";
+import "mgv_lib/LogPriceLib.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 
 using OLLib for OLKey global;
 // OLKey is OfferList
@@ -26,6 +28,11 @@ library OLLib {
     assembly ("memory-safe") {
       _id := keccak256(olKey, 96)
     }
+  }
+
+  // Creates a flipped copy of the `olKey` with same `tickScale`.
+  function flipped(OLKey memory olKey) internal pure returns (OLKey memory) {
+    return OLKey(olKey.inbound, olKey.outbound, olKey.tickScale);
   }
 }
 
@@ -71,7 +78,7 @@ library MgvLib {
 
 /* # Events
 The events emitted for use by bots are listed here: */
-contract HasMgvEvents {
+interface HasMgvEvents {
   /* * Emitted at the creation of the new Mangrove contract */
   event NewMgv();
 
@@ -106,6 +113,17 @@ contract HasMgvEvents {
     bytes32 indexed olKeyHash, address indexed taker, address indexed maker, uint id, uint takerWants, uint takerGives
   );
 
+  event OfferSuccessWithPosthookData(
+    bytes32 indexed olKeyHash,
+    address indexed taker,
+    address indexed maker,
+    uint id,
+    // `maker` is not logged because it can be retrieved from the state using `(outbound_tkn,inbound_tkn,id)`.
+    uint takerWants,
+    uint takerGives,
+    bytes32 posthookData
+  );
+
   /* Log information when a trade execution reverts or returns a non empty bytes32 word */
   event OfferFail(
     bytes32 indexed olKeyHash,
@@ -119,8 +137,19 @@ contract HasMgvEvents {
     bytes32 mgvData
   );
 
-  /* Log information when a posthook reverts */
-  event PosthookFail(bytes32 posthookData);
+  event OfferFailWithPosthookData(
+    bytes32 indexed olKeyHash,
+    address indexed taker,
+    address indexed maker,
+    uint id,
+    // `maker` is not logged because it can be retrieved from the state using `(olKeyHash)`.
+    uint takerWants,
+    uint takerGives,
+    uint penalty,
+    // `mgvData` may only be `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"`
+    bytes32 mgvData,
+    bytes32 posthookData
+  );
 
   /* * After `permit` and `approve` */
   event Approval(

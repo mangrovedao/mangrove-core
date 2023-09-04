@@ -12,8 +12,7 @@ pragma solidity ^0.8.13;
 function uint_of_bool(bool b) pure returns (uint u) {
   assembly { u := b }
 }
-
-uint constant ONES = type(uint).max;
+import "mgv_lib/Constants.sol";
 
 struct OfferDetailUnpacked {
   address maker;

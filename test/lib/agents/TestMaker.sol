@@ -1,7 +1,7 @@
 // SPDX-License-Identifier:	AGPL-3.0
 pragma solidity ^0.8.13;
 
-import "mgv_src/AbstractMangrove.sol";
+import "mgv_src/IMangrove.sol";
 import {IERC20, MgvLib, IMaker, OLKey} from "mgv_src/MgvLib.sol";
 import {Test} from "forge-std/Test.sol";
 import {Script2} from "mgv_lib/Script2.sol";
@@ -22,7 +22,7 @@ struct OfferData {
 }
 
 contract SimpleTestMaker is TrivialTestMaker, Script2 {
-  AbstractMangrove public mgv;
+  IMangrove public mgv;
   OLKey olKey;
   bool _shouldFail; // will set mgv allowance to 0
   bool _shouldRevert; // will revert
@@ -46,7 +46,7 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
   ///@notice Only usable when makerPosthook does not revert
   mapping(bytes32 => mapping(uint => bool)) offersPosthookExecuted;
 
-  constructor(AbstractMangrove _mgv, OLKey memory _ol) {
+  constructor(IMangrove _mgv, OLKey memory _ol) {
     mgv = _mgv;
     olKey = _ol;
   }
@@ -317,6 +317,24 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
     return offerId;
   }
 
+  function updateOfferByLogPrice(int logPrice, uint gives, uint gasreq, uint offerId) public {
+    OfferData memory offerData;
+    updateOfferByLogPrice(olKey, logPrice, gives, gasreq, offerId, 0, offerData);
+  }
+
+  function updateOfferByLogPrice(
+    OLKey memory _olKey,
+    int logPrice,
+    uint gives,
+    uint gasreq,
+    uint offerId,
+    uint amount,
+    OfferData memory offerData
+  ) public {
+    mgv.updateOfferByLogPrice{value: amount}(_olKey, logPrice, gives, gasreq, 0, offerId);
+    offerDatas[_olKey.hash()][offerId] = offerData;
+  }
+
   function updateOfferByVolume(uint wants, uint gives, uint gasreq, uint offerId, OfferData memory offerData) public {
     updateOfferByVolumeWithFunding(wants, gives, gasreq, offerId, 0, offerData);
   }
@@ -410,7 +428,7 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
 }
 
 contract TestMaker is SimpleTestMaker, Test {
-  constructor(AbstractMangrove mgv, OLKey memory _ol) SimpleTestMaker(mgv, _ol) {}
+  constructor(IMangrove mgv, OLKey memory _ol) SimpleTestMaker(mgv, _ol) {}
 
   function makerPosthook(MgvLib.SingleOrder calldata order, MgvLib.OrderResult calldata result) public virtual override {
     if (expectedStatus != bytes32("")) {

@@ -135,7 +135,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     mkr.setShouldFailHook(true);
     expectFrom($(mgv));
-    emit PosthookFail("posthookFail");
+    emit OfferSuccessWithPosthookData(olKey.hash(), $(tkr), $(mkr), ofr, 0.1 ether, 0.1 ether, "posthookFail");
     tkr.marketOrderWithSuccess(0.1 ether); // fails but we don't care
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
@@ -831,11 +831,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     Field level0 = reader.local(olKey).level0();
-    int level0Index = reader.local(olKey).tick().level0Index();
+    int level0Index = reader.local(olKey).bestTick().level0Index();
     uint ofr = mkr.newOfferByVolume(1 ether, 10 ether, 100_000, 0);
     assertGt(
       level0Index,
-      reader.local(olKey).tick().level0Index(),
+      reader.local(olKey).bestTick().level0Index(),
       "test void if level0 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
@@ -846,11 +846,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
     Field level1 = reader.local(olKey).level1();
-    int level1Index = reader.local(olKey).tick().level1Index();
+    int level1Index = reader.local(olKey).bestTick().level1Index();
     uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
     assertGt(
       level1Index,
-      reader.local(olKey).tick().level1Index(),
+      reader.local(olKey).bestTick().level1Index(),
       "test void if level1 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
@@ -883,12 +883,83 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       reader.local(olKey).tickPosInLeaf(), offer.tick(olKey.tickScale).posInLeaf(), "posInLeaf should have changed"
     );
   }
+  /* 
+  When an offer ofr is updated, ofr is removed then re-added. In that case, if
+  ofr is about to be inserted as the best offer, we don't go fetch the "next
+  best offer" just after removing ofr. Instead we leave the updated tick branch
+  in local as-is, to be flushed to storage when ofr gets inserted again. Since
+  `local.bestTick()` is deduced from branch stored in local, `local.bestTick()` becomes
+  wrong (it becomes higher than it really is). So we must check that it gets
+  cached, otherwise we will 
+    a) fail to flush the local level0/level1 to the right index
+    b) flush the local level0/level1 to the wrong current index
+  To really test a), we need to have some data already where level0/level1
+  should be flushed (to check if the flushing has an effect), so we write an
+  offer there (at lowTick) before it's best, and then we make it best so it gets
+  cached to local (but the original data is still in storage)
+  */
+
+  function test_currentTick_is_cached_no_level01_erasure() public {
+    // Create a very low tick so that later the branch of lowTick will be both in storage and in cache
+    Tick veryLowTick = Tick.wrap(-100000);
+    uint ofr_veryLow = mgv.newOfferByLogPrice(olKey, Tick.unwrap(veryLowTick), 1 ether, 10_000, 0);
+
+    // Create an offer at lowTick
+    Tick lowTick = Tick.wrap(10);
+    uint ofr = mgv.newOfferByLogPrice(olKey, Tick.unwrap(lowTick), 1 ether, 10_000, 0);
+
+    // Make sure very low tick uses a different branch
+    assertTrue(
+      veryLowTick.level0Index() != lowTick.level0Index(), "test setup: [very]lowTick level0Index should be different"
+    );
+    assertTrue(
+      veryLowTick.level1Index() != lowTick.level1Index(), "test setup: [very]lowTick level1Index should be different"
+    );
+
+    // Remove veryLowTick. Now lowTick is the best, and its branch is in cache, but also in storage!
+    mgv.retractOffer(olKey, ofr_veryLow, true);
+
+    // Derive a "bad" local from it
+    MgvStructs.LocalPacked badLocal = reader.local(olKey).level0(FieldLib.EMPTY).level1(FieldLib.EMPTY);
+    // Make sure we changed the implied tick of badLocal
+    assertTrue(!badLocal.bestTick().eq(lowTick), "test setup: bad tick should not be original lowTick");
+    // Make sure we have changed level indices
+    assertTrue(
+      badLocal.bestTick().level0Index() != lowTick.level0Index(), "test setup: bad tick level0Index should be different"
+    );
+    assertTrue(
+      badLocal.bestTick().level1Index() != lowTick.level1Index(), "test setup: bad tick level1Index should be different"
+    );
+    // Create a tick there
+    mgv.newOfferByLogPrice(olKey, Tick.unwrap(badLocal.bestTick()), 1 ether, 10_000, 0);
+    // Save level0, level1
+    Field highLevel0 = mgv.level0(olKey, badLocal.bestTick().level0Index());
+    Field highLevel1 = mgv.level1(olKey, badLocal.bestTick().level1Index());
+    // Update the new tick to an even better tick
+    mgv.updateOfferByLogPrice(olKey, Tick.unwrap(veryLowTick), 1 ether, 10_000, 0, ofr);
+
+    // Make sure we the high offer's branch is still fine
+    assertEq(
+      mgv.level0(olKey, badLocal.bestTick().level0Index()),
+      highLevel0,
+      "badLocal's tick's level0 should not have changed"
+    );
+    assertEq(
+      mgv.level1(olKey, badLocal.bestTick().level1Index()),
+      highLevel1,
+      "badLocal's tick's level1 should not have changed"
+    );
+    // Make sure the previously local offer's branch is now empty
+    assertEq(mgv.level0(olKey, lowTick.level0Index()), FieldLib.EMPTY, "lowTick's level0 should have been flushed");
+    assertEq(mgv.level1(olKey, lowTick.level1Index()), FieldLib.EMPTY, "lowTick's level1 should have been flushed");
+  }
+
+  // FIXME
+  // fix test_higher_tick so I'm sure the posInLeaf I'm testing is right
 
   function test_higher_tick() public {
     mgv.newOfferByLogPrice(olKey, 2, 1 ether, 100_000, 0);
     (, MgvStructs.LocalPacked local) = mgv.config(olKey);
-    // console.log("pos in leaf", toString(local));
-    // console.log(LogPriceLib.priceFromLogPrice_e18(LogPriceLib.fromTick(local.tick(),olKey.tickScale)));
 
     mgv.newOfferByLogPrice(olKey, 3, 1 ether, 100_000, 0);
     (, local) = mgv.config(olKey);

@@ -12,8 +12,7 @@ pragma solidity ^0.8.13;
 function uint_of_bool(bool b) pure returns (uint u) {
   assembly { u := b }
 }
-
-uint constant ONES = type(uint).max;
+import "mgv_lib/Constants.sol";
 
 struct OfferUnpacked {
   uint prev;
@@ -27,7 +26,9 @@ type OfferPacked is uint;
 using Library for OfferPacked global;
 
 ////////////// ADDITIONAL DEFINITIONS, IF ANY ////////////////
-import {Tick,TickLib, LogPriceLib} from "mgv_lib/TickLib.sol";
+import "mgv_lib/TickLib.sol";
+import "mgv_lib/LogPriceLib.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 
 using OfferPackedExtra for OfferPacked global;
 using OfferUnpackedExtra for OfferUnpacked global;
@@ -73,7 +74,7 @@ function pack(uint __prev, uint __next, uint __wants, uint __gives) pure returns
   return pack({
     __prev: __prev,
     __next: __next,
-    __logPrice: LogPriceLib.logPriceFromVolumes(__wants,__gives),
+    __logPrice: LogPriceConversionLib.logPriceFromVolumes(__wants,__gives),
     __gives: __gives
   });
 }}

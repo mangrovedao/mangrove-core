@@ -26,24 +26,28 @@ contract MgvHasOffers is MgvRoot {
 
        The Mangrove keeps track of their available balance in the `balanceOf` map, which is decremented every time a maker creates a new offer, and may be modified on offer updates/cancellations/takings.
      */
-  mapping(address => uint) public balanceOf;
+  mapping(address maker => uint balance) public balanceOf;
 
   /* # Read functions */
   /* Convenience function to get best offer of the given offerList */
-  function best(OLKey memory olKey) external view returns (uint) {
+  function best(OLKey memory olKey) external view returns (uint offerId) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      return offerList.leafs[offerList.local.tick().leafIndex()].getNextOfferId();
+      return offerList.leafs[offerList.local.bestTick().leafIndex()].getNextOfferId();
     }
   }
 
   /* Convenience function to get an offer in packed format */
-  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked) {
+  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer) {
     return offerLists[olKey.hash()].offerData[offerId].offer;
   }
 
   /* Convenience function to get an offer detail in packed format */
-  function offerDetails(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferDetailPacked) {
+  function offerDetails(OLKey memory olKey, uint offerId)
+    external
+    view
+    returns (MgvStructs.OfferDetailPacked offerDetail)
+  {
     return offerLists[olKey.hash()].offerData[offerId].detail;
   }
 
@@ -131,7 +135,7 @@ contract MgvHasOffers is MgvRoot {
       // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
       // if local.tick < offerTick then a better branch is already cached. note that local.tick >= offerTick implies local.tick = offerTick
       // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
-      shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !local.tick().strictlyBetter(offerTick);
+      shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !local.bestTick().strictlyBetter(offerTick);
 
       if (prevId == 0) {
         // offer was tick's first. new first offer is offer.next (may be 0)
@@ -158,10 +162,10 @@ contract MgvHasOffers is MgvRoot {
         if (leaf.isEmpty()) {
           int index = offerTick.level0Index(); // level0Index or level1Index
           Field field;
-          if (index == local.tick().level0Index()) {
+          if (index == local.bestTick().level0Index()) {
             field = local.level0().flipBitAtLevel0(offerTick);
             local = local.level0(field);
-            if (field.isEmpty()) {
+            if (shouldUpdateBranch && field.isEmpty()) {
               offerList.level0[index] = field;
             }
           } else {
@@ -170,17 +174,10 @@ contract MgvHasOffers is MgvRoot {
           }
           if (field.isEmpty()) {
             index = offerTick.level1Index(); // level0Index or level1Index
-            if (index == local.tick().level1Index()) {
+            if (index == local.bestTick().level1Index()) {
               field = local.level1().flipBitAtLevel1(offerTick);
               local = local.level1(field);
-              // FIXME: this should be moved to the matching if(shouldUpdateBranch)
-              // that would avoid an unnecessary write when !shouldUpdateBranch
-              // but we need to still have acces to the index
-              // and also must check that the case local.level2().isEmpty()
-              // does not result in corrupted data (eg a wrong yet trusted pair.level1[index])
-              // (answer is probably that local.level2().isEmpty should not return
-              // but rather let control flow continue, and that log2/ctz should not throw on 0
-              if (field.isEmpty()) {
+              if (shouldUpdateBranch && field.isEmpty()) {
                 offerList.level1[index] = field;
               }
             } else {

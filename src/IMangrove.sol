@@ -8,71 +8,56 @@ pragma solidity >=0.7.0 <0.9.0;
 
 pragma experimental ABIEncoderV2;
 
-import {MgvLib, MgvStructs, IMaker, OLKey} from "./MgvLib.sol";
+import {MgvLib, MgvStructs, IMaker, OLKey, HasMgvEvents} from "./MgvLib.sol";
 import "./MgvLib.sol" as MgvLibWrapper;
 
-interface IMangrove {
-  event Approval(address indexed outbound_tkn, address indexed inbound_tkn, address owner, address spender, uint value);
-  event Credit(address indexed maker, uint amount);
-  event Debit(address indexed maker, uint amount);
-  event Kill();
-  event NewMgv();
-  event OfferRetract(bytes32 indexed olKeyHash, address indexed maker, uint id, bool deprovision);
-  event OfferFail(bytes32 indexed olKeyHash, uint id, uint takerWants, uint takerGives, uint penalty, bytes32 mgvData);
-  event OfferSuccess(bytes32 indexed olKeyHash, uint id, uint takerWants, uint takerGives);
-  event OfferWrite(
-    bytes32 indexed olKeyHash, address indexed maker, int logPrice, uint gives, uint gasprice, uint gasreq, uint id
-  );
-  event CleanStart(bytes32 indexed olKeyHash, address indexed taker);
-  event CleanComplete();
-  event OrderStart(bytes32 indexed olKeyHash, address indexed taker, int maxLogPrice, uint fillVolume, bool fillWants);
-  event OrderComplete(uint fee);
-  event PosthookFail(bytes32 indexed olKeyHash, uint indexed offerId, bytes32 posthookData);
-  event OfferPenalty(uint penalty);
-  event SetActive(bytes32 indexed olKeyHash, bool value);
-  event SetDensityFixed(bytes32 indexed olKeyHash, uint value);
-  event SetFee(bytes32 indexed olKeyHash, uint value);
-  event SetGasbase(bytes32 indexed olKeyHash, uint offer_gasbase);
-  event SetGasmax(uint value);
-  event SetGasprice(uint value);
-  event SetGovernance(address value);
-  event SetMonitor(address value);
-  event SetNotify(bool value);
-  event SetUseOracle(bool value);
-
+interface IMangrove is HasMgvEvents {
   function DOMAIN_SEPARATOR() external view returns (bytes32);
 
   function PERMIT_TYPEHASH() external view returns (bytes32);
 
   function withdrawERC20(address tokenAddress, uint value) external;
-  function activate(OLKey memory olKey, uint fee, uint density, uint offer_gasbase) external;
+  function activate(OLKey memory olKey, uint fee, uint densityFixed, uint offer_gasbase) external;
 
-  function allowances(address, address, address, address) external view returns (uint);
+  function allowances(address outbound_tkn, address inbound_tkn, address owner, address spender)
+    external
+    view
+    returns (uint allowance);
 
   function approve(address outbound_tkn, address inbound_tkn, address spender, uint value) external returns (bool);
 
-  function balanceOf(address) external view returns (uint);
+  function balanceOf(address maker) external view returns (uint balance);
 
-  function best(OLKey memory olKey) external view returns (uint);
+  function best(OLKey memory olKey) external view returns (uint offerId);
 
-  function config(OLKey memory olKey) external view returns (MgvStructs.GlobalPacked, MgvStructs.LocalPacked);
+  function config(OLKey memory olKey)
+    external
+    view
+    returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local);
 
   function configInfo(OLKey memory olKey)
     external
     view
-    returns (MgvStructs.GlobalUnpacked memory global, MgvStructs.LocalUnpacked memory local);
+    returns (MgvStructs.GlobalUnpacked memory _global, MgvStructs.LocalUnpacked memory _local);
 
   function deactivate(OLKey memory olKey) external;
 
   function flashloan(MgvLib.SingleOrder memory sor, address taker) external returns (uint gasused, bytes32 makerData);
+
+  function internalCleanByImpersonation(
+    OLKey memory olKey,
+    uint offerId,
+    int logPrice,
+    uint gasreq,
+    uint takerWants,
+    address taker
+  ) external returns (uint bounty);
 
   function fund(address maker) external payable;
 
   function fund() external payable;
 
   function governance() external view returns (address);
-
-  function isLive(MgvStructs.OfferPacked offer) external pure returns (bool);
 
   function kill() external;
 
@@ -82,21 +67,30 @@ interface IMangrove {
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function marketOrderByPrice(OLKey memory olKey, uint maxPrice, uint fillVolume, bool fillWants)
-    external
-    returns (uint, uint, uint, uint);
+  function marketOrderByPrice(
+    OLKey memory olKey,
+    uint maxPrice_mantissa,
+    int maxPrice_exp,
+    uint fillVolume,
+    bool fillWants
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function marketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
     external
-    returns (uint, uint, uint, uint);
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function marketOrderForByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants, address taker)
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
-  function marketOrderForByPrice(OLKey memory olKey, uint maxPrice_e18, uint fillVolume, bool fillWants, address taker)
-    external
-    returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
+  function marketOrderForByPrice(
+    OLKey memory olKey,
+    uint maxPrice_mantissa,
+    int maxPrice_exp,
+    uint fillVolume,
+    bool fillWants,
+    address taker
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
   function marketOrderForByLogPrice(OLKey memory olKey, int logPrice, uint fillVolume, bool fillWants, address taker)
     external
@@ -105,23 +99,26 @@ interface IMangrove {
   function newOfferByVolume(OLKey memory olKey, uint wants, uint gives, uint gasreq, uint gasprice)
     external
     payable
-    returns (uint);
+    returns (uint offerId);
 
   function newOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice)
     external
     payable
-    returns (uint);
+    returns (uint offerId);
 
-  function nonces(address) external view returns (uint);
+  function nonces(address owner) external view returns (uint nonce);
 
-  function offerDetails(OLKey memory olKey, uint) external view returns (MgvStructs.OfferDetailPacked);
+  function offerDetails(OLKey memory olKey, uint offerId)
+    external
+    view
+    returns (MgvStructs.OfferDetailPacked offerDetail);
 
   function offerInfo(OLKey memory olKey, uint offerId)
     external
     view
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail);
 
-  function offers(OLKey memory olKey, uint) external view returns (MgvStructs.OfferPacked);
+  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer);
 
   function permit(
     address outbound_tkn,

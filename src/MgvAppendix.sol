@@ -120,7 +120,7 @@ contract MgvAppendix is MgvCommon {
     nonce = _nonces[owner];
   }
 
-  // Note: the accessor for DOMAIN_SEPARATOR is defined in MgvStorage
+  // Note: the accessor for DOMAIN_SEPARATOR is defined in MgvCommon
   function PERMIT_TYPEHASH() external pure returns (bytes32) {
     return _PERMIT_TYPEHASH;
   }

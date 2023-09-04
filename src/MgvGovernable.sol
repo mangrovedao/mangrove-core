@@ -19,6 +19,8 @@ contract MgvGovernable is MgvRoot {
       setGasmax(gasmax);
       /* Without optimizer enabled it fails above 79. Set default a bit lower to be safe. */
       setMaxRecursionDepth(75);
+      /* Arbitrary initial limit for number of failing offers - let on average 10 failing offers consume up to gasmax*/
+      setMaxGasreqForFailingOffers(gasmax * 10);
       /* Initialize governance to `_governance` after parameter setting. */
       setGovernance(_governance);
     }

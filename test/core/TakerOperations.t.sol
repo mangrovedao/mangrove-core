@@ -644,14 +644,8 @@ contract TakerOperationsTest is MangroveTest {
     mgv.setGasbase(olKey, 1);
     quote.approve($(mgv), 100 ether);
 
-    bytes memory cd = abi.encodeCall(mgv.marketOrderByLogPrice, (olKey, logPrice, 1 ether, true));
-
-    (bool noRevert, bytes memory data) = $(mgv).call{gas: 130000}(cd);
-    if (noRevert) {
-      fail("take should fail due to low gas");
-    } else {
-      assertEq(getReason(data), "mgv/notEnoughGasForMakerTrade", "wrong revert reason");
-    }
+    vm.expectRevert("mgv/notEnoughGasForMakerTrade");
+    mgv.marketOrderByLogPrice{gas: 130000}(olKey, logPrice, 1 ether, true);
   }
 
   /* Note as for jan 5 2020: by locally pushing the block gas limit to 38M, you can go up to 162 levels of recursion before hitting "revert for an unknown reason" -- I'm assuming that's the stack limit. */

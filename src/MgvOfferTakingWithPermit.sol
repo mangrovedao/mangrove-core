@@ -5,6 +5,7 @@ import {HasMgvEvents, Tick, LogPriceLib, OLKey} from "./MgvLib.sol";
 
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
 import {TickLib} from "./../lib/TickLib.sol";
+import {MgvStructs} from "./MgvLib.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* Takers may provide allowances on specific offerLists, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
@@ -105,7 +106,9 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     unchecked {
-      (takerGot, takerGave, bounty, feePaid) = generalMarketOrder(olKey, logPrice, fillVolume, fillWants, taker);
+      (MgvStructs.GlobalPacked _global,,) = _config(olKey);
+      (takerGot, takerGave, bounty, feePaid) =
+        generalMarketOrder(olKey, logPrice, fillVolume, fillWants, taker, _global.maxGasreqForFailingOffers());
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
       deductSenderAllowance(olKey.outbound, olKey.inbound, taker, takerGave);
     }

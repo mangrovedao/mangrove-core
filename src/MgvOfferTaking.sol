@@ -33,7 +33,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     Leaf leaf;
     Field level1;
     int maxLogPrice; // maxLogPrice is the log of the max price that can be reached by the market order as a limit price.
-    uint gasreqLeft;
+    uint maxGasreqForFailingOffers;
+    uint gasreqForFailingOffers;
     uint maxRecursionDepth;
   }
 
@@ -76,7 +77,20 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint, uint, uint, uint)
   {
     unchecked {
-      return generalMarketOrder(olKey, maxLogPrice, fillVolume, fillWants, msg.sender);
+      (MgvStructs.GlobalPacked _global,,) = _config(olKey);
+      return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, _global.maxGasreqForFailingOffers());
+    }
+  }
+
+  function marketOrderByLogPrice(
+    OLKey memory olKey,
+    int maxLogPrice,
+    uint fillVolume,
+    bool fillWants,
+    uint maxGasreqForFailingOffers
+  ) public returns (uint, uint, uint, uint) {
+    unchecked {
+      return generalMarketOrder(olKey, maxLogPrice, fillVolume, fillWants, msg.sender, maxGasreqForFailingOffers);
     }
   }
 
@@ -132,10 +146,14 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* General market orders set up the market order with a given `taker` (`msg.sender` in the most common case). Returns `(totalGot, totalGave, penaltyReceived, feePaid)`.
   Note that the `taker` can be anyone. This is safe when `taker == msg.sender`, but `generalMarketOrder` must not be called with `taker != msg.sender` unless a security check is done after (see [`MgvOfferTakingWithPermit`](#mgvoffertakingwithpermit.sol)`. */
 
-  function generalMarketOrder(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants, address taker)
-    internal
-    returns (uint, uint, uint, uint)
-  {
+  function generalMarketOrder(
+    OLKey memory olKey,
+    int maxLogPrice,
+    uint fillVolume,
+    bool fillWants,
+    address taker,
+    uint maxGasreqForFailingOffers
+  ) internal returns (uint, uint, uint, uint) {
     unchecked {
       //TODO is uint160 correct with new price limits?
       /* Since amounts stored in offers are 96 bits wide, checking that `takerWants` and `takerGives` fit in 160 bits prevents overflow during the main market order loop. */
@@ -154,8 +172,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       OfferList storage offerList;
       (sor.global, sor.local, offerList) = _config(olKey);
       mor.maxRecursionDepth = sor.global.maxRecursionDepth();
-      /* We set aside gas for ending a market order. */
-      mor.gasreqLeft = sor.local.offer_gasbase();
+      /* We have an upper limit om total gasreq for failing offers to avoid failing offers delivering nothing and exhausting gaslimit for transaction. */
+      mor.maxGasreqForFailingOffers = maxGasreqForFailingOffers;
 
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
 
@@ -202,19 +220,14 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   {
     unchecked {
       if (
-        mor.fillVolume == 0 || sor.offerId == 0 || mor.maxRecursionDepth == 0 || sor.offer.logPrice() > mor.maxLogPrice
+        mor.fillVolume == 0 || sor.offer.logPrice() > mor.maxLogPrice || sor.offerId == 0 || mor.maxRecursionDepth == 0
+          || mor.gasreqForFailingOffers > mor.maxGasreqForFailingOffers
       ) {
         return endInternalMarketOrder(offerList, mor, sor);
       }
 
       /* Load additional information about the offer. */
       sor.offerDetail = offerList.offerData[sor.offerId].detail;
-
-      mor.gasreqLeft += sor.offerDetail.gasreq() + 7000;
-
-      if (gasleft() < mor.gasreqLeft + sor.local.offer_gasbase()) {
-        return endInternalMarketOrder(offerList, mor, sor);
-      }
 
       mor.maxRecursionDepth--;
 
@@ -261,7 +274,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       (sor.offerId, sor.local) = getNextBest(offerList, mor, sor.offer, sor.local, sor.olKey.tickScale);
 
       sor.offer = offerList.offerData[sor.offerId].offer;
-      mor.gasreqLeft -= gasused;
 
       internalMarketOrder(offerList, mor, sor);
 
@@ -516,6 +528,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {
           emit OfferFail(sor.olKey.hash(), sor.offerId, mor.taker, sor.wants, sor.gives, mgvData);
+          /* Update (an upper bound) on gasreq required for failing offers */
+          mor.gasreqForFailingOffers += sor.offerDetail.gasreq();
 
           /* If configured to do so, Mangrove notifies an external contract that a failed trade has taken place. */
           if (sor.global.notify()) {

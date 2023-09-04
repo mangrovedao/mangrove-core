@@ -95,6 +95,11 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     run_market_order_scenarios_for_tick(-1);
   }
 
+  // Tick -8323 tests (mid leaf, mid level0, mid level1, mid level 2)
+  function test_market_order_for_tick_negative_8323() public {
+    run_market_order_scenarios_for_tick(-8323);
+  }
+
   // MAX_TICK (end leaf, end level0, end level1, end level 2)
   function test_market_order_for_tick_max() public {
     run_market_order_scenarios_for_tick(MAX_TICK);

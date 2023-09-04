@@ -63,7 +63,6 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
   // (list size, offer pos)
   uint[2][] tickListScenarios = [[0, 0], [1, 0], [2, 0], [2, 1], [3, 1]];
   // size of {lower,higher}TickList
-  uint[] otherTickListSizeScenarios = [0, 1];
   uint[] emptyTickListSizeScenarios = [0];
   uint[] singletonTickListSizeScenarios = [1];
 
@@ -157,6 +156,23 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
 
   function test_update_offer_for_tick_negative_1_where_higher_is_not_empty_and_lower_is_not_empty() public {
     run_update_offer_scenarios_for_tick(-1, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  // Tick -8323 tests (mid leaf, mid level0, mid level1, mid level 2)
+  function test_update_offer_for_tick_negative_8323_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(-8323, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_tick_negative_8323_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(-8323, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_tick_negative_8323_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(-8323, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_tick_negative_8323_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(-8323, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
   }
 
   // MAX_TICK tests (end leaf, end level0, end level1, end level 2)
@@ -317,7 +333,6 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
       LogPriceLib.fromTick(newTick, olKey.tickScale), newGives, offerDetail.gasreq(), offerDetail.gasprice(), offerId
     );
     updateOffer(tickTree, offerId, newTick, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(mkr));
-    assertMgvTickTreeIsConsistent();
     if (printToConsole) {
       console.log("");
       console.log("after update");

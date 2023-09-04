@@ -55,42 +55,37 @@ contract TickTreeNewOfferTest is TickTreeTest {
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
   // We therefore have a test case per tick instead.
 
+  // Tick 0 (start leaf, start level0, start level1, mid level 2)
   function test_new_offer_for_tick_0() public {
     run_new_offer_scenarios_for_tick(0);
   }
 
+  // Tick 1 (mid leaf, start level0, start level1, mid level 2)
   function test_new_offer_for_tick_1() public {
     run_new_offer_scenarios_for_tick(1);
   }
 
-  function test_new_offer_for_tick_2() public {
-    run_new_offer_scenarios_for_tick(2);
-  }
-
+  // Tick 3 (end leaf, start level0, start level1, mid level 2)
   function test_new_offer_for_tick_3() public {
     run_new_offer_scenarios_for_tick(3);
   }
 
+  // Tick -1 tests (end leaf, end level0, end level1, mid level 2)
   function test_new_offer_for_tick_negative_1() public {
     run_new_offer_scenarios_for_tick(-1);
   }
 
-  function test_new_offer_for_tick_negative_2() public {
-    run_new_offer_scenarios_for_tick(-2);
+  // Tick -8323 tests (mid leaf, mid level0, mid level1, mid level 2)
+  function test_new_offer_for_tick_negative_8323() public {
+    run_new_offer_scenarios_for_tick(-8323);
   }
 
-  function test_new_offer_for_tick_negative_3() public {
-    run_new_offer_scenarios_for_tick(-3);
-  }
-
-  function test_new_offer_for_tick_negative_4() public {
-    run_new_offer_scenarios_for_tick(-4);
-  }
-
+  // MAX_TICK (end leaf, end level0, end level1, end level 2)
   function test_new_offer_for_tick_max() public {
     run_new_offer_scenarios_for_tick(MAX_TICK);
   }
 
+  // MIN_TICK tests (start leaf, start level0, start level1, start level 2)
   function test_new_offer_for_tick_min() public {
     run_new_offer_scenarios_for_tick(MIN_TICK);
   }

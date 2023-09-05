@@ -107,6 +107,25 @@ contract TickTreeNewOfferTest is TickTreeTest {
     }
   }
 
+  // This test is useful for debugging a single scneario
+  function test_single_new_offer_scenario() public {
+    run_new_offer_scenario(
+      NewOfferScenario({
+        tickScenario: TickScenario({
+          tick: 0,
+          hasHigherTick: true,
+          higherTick: 4,
+          higherTickListSize: 1,
+          hasLowerTick: false,
+          lowerTick: 0,
+          lowerTickListSize: 0
+        }),
+        insertionTickListSize: 0
+      }),
+      true
+    );
+  }
+
   function run_new_offer_scenario(NewOfferScenario memory scenario, bool printToConsole) internal {
     if (printToConsole) {
       console.log("new offer scenario");

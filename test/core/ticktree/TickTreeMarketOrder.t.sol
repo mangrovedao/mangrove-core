@@ -172,12 +172,17 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     vm.resumeGasMetering();
   }
 
-  // function test_single_market_order_scenario() public {
-  //   run_market_order_scenario(
-  //     MarketOrderScenario({tickScenario: TickScenario({tick: Tick.wrap(0), hasHigherTick: true, higherTick: 4, hasLowerTick: false, lowertick: Tick.wrap(0)}), offerTickListSize: 1, offerPos: 0}),
-  //     true
-  //   );
-  // }
+  // This test is useful for debugging a single scneario
+  function test_single_market_order_scenario() public {
+    run_market_order_scenario(
+      MarketOrderScenario({
+        lowerTick: TickListScenario({tick: Tick.wrap(-1), size: 2, offersToTake: 2}),
+        middleTick: TickListScenario({tick: Tick.wrap(0), size: 2, offersToTake: 2}),
+        higherTick: TickListScenario({tick: Tick.wrap(1), size: 3, offersToTake: 1})
+      }),
+      true
+    );
+  }
 
   function scenarioToString(TickListScenario memory scenario) internal pure returns (string memory) {
     string memory tickListScenario = scenario.size == 0

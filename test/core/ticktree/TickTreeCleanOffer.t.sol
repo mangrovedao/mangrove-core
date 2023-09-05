@@ -121,25 +121,26 @@ contract TickTreeCleanOfferTest is TickTreeTest {
     vm.resumeGasMetering();
   }
 
-  // function test_single_clean_offer_scenario() public {
-  //   run_clean_offer_scenario(
-  //     CleanOfferScenario({
-  //       tickScenario: TickScenario({
-  //         tick: 0,
-  //         hasHigherTick: true,
-  //         higherTick: 4,
-  //         higherTickListSize: 1,
-  //         hasLowerTick: false,
-  //         lowerTick: 0,
-  //         lowerTickListSize: 0
-  //         }),
-  //       offerTickListSize: 1,
-  //       offerPos: 0,
-  //       offerFail: false
-  //     }),
-  //     true
-  //   );
-  // }
+  // This test is useful for debugging a single scneario
+  function test_single_clean_offer_scenario() public {
+    run_clean_offer_scenario(
+      CleanOfferScenario({
+        tickScenario: TickScenario({
+          tick: 0,
+          hasHigherTick: true,
+          higherTick: 4,
+          higherTickListSize: 1,
+          hasLowerTick: false,
+          lowerTick: 0,
+          lowerTickListSize: 0
+        }),
+        offerTickListSize: 1,
+        offerPos: 0,
+        offerFail: false
+      }),
+      true
+    );
+  }
 
   function run_clean_offer_scenario(CleanOfferScenario memory scenario, bool printToConsole) internal {
     if (printToConsole) {

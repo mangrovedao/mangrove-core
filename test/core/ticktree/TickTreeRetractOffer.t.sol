@@ -108,11 +108,25 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     }
   }
 
-  // function test_single_retract_offer_scenario() public {
-  //   run_retract_offer_scenario(
-  //     RetractOfferScenario({tickScenario: TickScenario({tick: 0, hasHigherTick: true, higherTick: 4, hasLowerTick: false, lowerTick: 0}), offerTickListSize: 1, offerPos: 0}), true
-  //   );
-  // }
+  // This test is useful for debugging a single scneario
+  function test_single_retract_offer_scenario() public {
+    run_retract_offer_scenario(
+      RetractOfferScenario({
+        tickScenario: TickScenario({
+          tick: 0,
+          hasHigherTick: true,
+          higherTick: 4,
+          higherTickListSize: 1,
+          hasLowerTick: false,
+          lowerTick: 0,
+          lowerTickListSize: 0
+        }),
+        offerTickListSize: 1,
+        offerPos: 0
+      }),
+      true
+    );
+  }
 
   function run_retract_offer_scenario(RetractOfferScenario memory scenario, bool printToConsole) internal {
     Tick tick = Tick.wrap(scenario.tickScenario.tick);

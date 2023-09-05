@@ -250,25 +250,26 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     vm.resumeGasMetering();
   }
 
-  // function test_single_update_offer_scenario() public {
-  //   run_update_offer_scenario(
-  //     UpdateOfferScenario({
-  //       tickScenario: TickScenario({
-  //         tick: 0,
-  //         hasHigherTick: true,
-  //         higherTick: 524287,
-  //         higherTickListSize: 1,
-  //         hasLowerTick: true,
-  //         lowerTick: -16384,
-  //         lowerTickListSize: 0
-  //       }),
-  //       offerTickListSize: 1,
-  //       offerPos: 0,
-  //       newTick: -16384
-  //     }),
-  //     true
-  //   );
-  // }
+  // This test is useful for debugging a single scneario
+  function test_single_update_offer_scenario() public {
+    run_update_offer_scenario(
+      UpdateOfferScenario({
+        tickScenario: TickScenario({
+          tick: 0,
+          hasHigherTick: true,
+          higherTick: 524287,
+          higherTickListSize: 1,
+          hasLowerTick: true,
+          lowerTick: -16384,
+          lowerTickListSize: 0
+        }),
+        offerTickListSize: 1,
+        offerPos: 0,
+        newTick: -16384
+      }),
+      true
+    );
+  }
 
   function run_update_offer_scenario(UpdateOfferScenario memory scenario, bool printToConsole) internal {
     // NB: Enabling all console.log statements will trigger an out-of-memory error when running through all test scenarios.

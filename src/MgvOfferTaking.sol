@@ -406,7 +406,21 @@ abstract contract MgvOfferTaking is MgvHasOffers {
        * `msg.sender` is Mangrove itself in those calls -- all operations related to the actual caller should be done outside of this call.
        * any spurious exception due to an error in Mangrove code will be falsely blamed on the Maker, and its provision for the offer will be unfairly taken away.
        */
-      (bool success, bytes memory retdata) = address(this).call(abi.encodeCall(this.flashloan, (sor, mor.taker)));
+      bool success;
+      bytes memory retdata;
+      {
+        // Clear fields that maker must not see
+        MgvStructs.OfferPacked offer = sor.offer;
+        sor.offer = offer.clearFieldsForMaker();
+        MgvStructs.LocalPacked local = sor.local;
+        sor.local = local.clearFieldsForMaker();
+
+        (success, retdata) = address(this).call(abi.encodeCall(this.flashloan, (sor, mor.taker)));
+
+        // Restore cleared fields
+        sor.offer = offer;
+        sor.local = local;
+      }
 
       /* `success` is true: trade is complete */
       if (success) {

@@ -33,6 +33,9 @@ import "mgv_lib/LogPriceConversionLib.sol";
 using OfferPackedExtra for OfferPacked global;
 using OfferUnpackedExtra for OfferUnpacked global;
 
+// cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
+uint constant hide_fields_from_maker_mask = ~(prev_mask_inv | next_mask_inv);
+
 library OfferPackedExtra {
   // Compute wants from tick and gives
   function wants(OfferPacked offer) internal pure returns (uint) {
@@ -47,6 +50,13 @@ library OfferPackedExtra {
   }
   function tick(OfferPacked offer, uint tickScale) internal pure returns (Tick) {
     return TickLib.fromLogPrice(offer.logPrice(),tickScale);
+  }
+  function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
+    unchecked {
+      return OfferPacked.wrap(
+        OfferPacked.unwrap(offer)
+        & hide_fields_from_maker_mask);
+    }
   }
 }
 

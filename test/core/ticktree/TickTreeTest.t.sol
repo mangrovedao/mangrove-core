@@ -6,6 +6,17 @@ import {AbstractMangrove, TestTaker, MangroveTest, IMaker, TestMaker} from "mgv_
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
+int constant MIN_LEAF_INDEX = -NUM_LEAFS / 2;
+int constant MAX_LEAF_INDEX = -MIN_LEAF_INDEX - 1;
+int constant MIN_LEVEL0_INDEX = -NUM_LEVEL0 / 2;
+int constant MAX_LEVEL0_INDEX = -MIN_LEVEL0_INDEX - 1;
+int constant MIN_LEVEL1_INDEX = -NUM_LEVEL1 / 2;
+int constant MAX_LEVEL1_INDEX = -MIN_LEVEL1_INDEX - 1;
+uint constant MAX_LEAF_POSITION = uint(LEAF_SIZE - 1);
+uint constant MAX_LEVEL0_POSITION = uint(LEVEL0_SIZE - 1);
+uint constant MAX_LEVEL1_POSITION = uint(LEVEL1_SIZE - 1);
+uint constant MAX_LEVEL2_POSITION = uint(LEVEL2_SIZE - 1);
+
 // Base class for test of Mangrove's tick tree data structure
 //
 // Provides a simple tick tree data structure and operations on it that can be used to simulate Mangrove's tick tree

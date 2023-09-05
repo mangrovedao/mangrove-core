@@ -33,18 +33,6 @@ int constant NUM_LEVEL0 = NUM_LEVEL1 * LEVEL1_SIZE;
 int constant NUM_LEAFS = NUM_LEVEL0 * LEVEL0_SIZE;
 int constant NUM_TICKS = NUM_LEAFS * LEAF_SIZE;
 
-// FIXME: Should these be here or placed somewhere else? Besides being useful in tests, they serve as documentation for the datastructure
-int constant MIN_LEAF_INDEX = -NUM_LEAFS / 2;
-int constant MAX_LEAF_INDEX = -MIN_LEAF_INDEX - 1;
-int constant MIN_LEVEL0_INDEX = -NUM_LEVEL0 / 2;
-int constant MAX_LEVEL0_INDEX = -MIN_LEVEL0_INDEX - 1;
-int constant MIN_LEVEL1_INDEX = -NUM_LEVEL1 / 2;
-int constant MAX_LEVEL1_INDEX = -MIN_LEVEL1_INDEX - 1;
-uint constant MAX_LEAF_POSITION = uint(LEAF_SIZE - 1);
-uint constant MAX_LEVEL0_POSITION = uint(LEVEL0_SIZE - 1);
-uint constant MAX_LEVEL1_POSITION = uint(LEVEL1_SIZE - 1);
-uint constant MAX_LEVEL2_POSITION = uint(LEVEL2_SIZE - 1);
-
 uint constant OFFER_MASK = ONES >> (256 - OFFER_BITS);
 
 

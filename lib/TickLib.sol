@@ -109,7 +109,7 @@ library LeafLib {
   }
 
   // TODO: a debruijn hashtable would be less gasexpensive?
-  // returns the 0 offer if empty (relied on by the code)
+  // returns the 0 offer if empty
   // FIXME find a version with way fewer jumps
   function getNextOfferId(Leaf leaf) internal pure returns (uint offerId) {
     offerId = Leaf.unwrap(leaf) >> (OFFER_BITS * 7);

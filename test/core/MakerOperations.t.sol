@@ -152,7 +152,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     assertEq(order.olKey.outbound, $(base), "wrong base");
     assertEq(order.olKey.inbound, $(quote), "wrong quote");
-    assertEq(order.olKey.tickScale, olKey.tickScale, "wrong quote");
+    assertEq(order.olKey.tickScale, olKey.tickScale, "wrong tickscale");
     assertEq(order.wants, 0.05 ether, "wrong takerWants");
     assertEq(order.gives, 0.05 ether, "wrong takerGives");
     assertEq(order.offerDetail.gasreq(), 200_000, "wrong gasreq");
@@ -160,7 +160,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(order.offer.wants(), 0.05 ether, "wrong offerWants");
     assertEq(order.offer.gives(), 0.05 ether, "wrong offerGives");
     // test flashloan
-    assertEq(quote.balanceOf($(this)), 0.05 ether, "wrong quote balance");
+    assertEq(quote.balanceOf($(mkr)), 0.05 ether, "wrong quote balance");
     return "";
   }
 
@@ -168,6 +168,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_calldata_and_balance_in_makerExecute_are_correct() public {
     mkr.provisionMgv(1 ether);
+    mkr.setExecuteCallback($(this), this.makerExecute.selector);
     deal($(base), $(mkr), 1 ether);
     uint ofr = mkr.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 200_000);
     require(tkr.marketOrderWithSuccess(0.05 ether), "take must work or test is void");

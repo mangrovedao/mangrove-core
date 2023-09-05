@@ -147,4 +147,20 @@ contract MonitorTest is MangroveTest {
     (uint got,,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 0.04 ether, true);
     assertTrue(got == 0, "order should fail");
   }
+
+  // more a test of Mangrove's fallback implementation than of the Monitor
+  function test_monitor_fail_revData_is_correct(uint revLen, bytes1 byteData) public {
+    mgv.setMonitor(monitor);
+    mgv.setUseOracle(true);
+    revLen = bound(revLen, 0, 300);
+    bytes memory revData = new bytes(revLen);
+    for (uint i = 0; i < revLen; i++) {
+      revData[i] = byteData;
+    }
+
+    vm.mockCallRevert(monitor, abi.encodeCall(IMgvMonitor.read, (olKey)), revData);
+
+    vm.expectRevert(revData);
+    mgv.config(olKey);
+  }
 }

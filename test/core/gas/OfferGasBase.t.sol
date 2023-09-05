@@ -39,8 +39,8 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     address quoteAddress = fork.get(quoteToken);
     base = TestToken(baseAddress);
     quote = TestToken(quoteAddress);
-    olKey = OLKey($(base), $(quote), options.defaultTickscale);
-    lo = OLKey($(quote), $(base), options.defaultTickscale);
+    olKey = OLKey($(base), $(quote), options.defaultTickScale);
+    lo = OLKey($(quote), $(base), options.defaultTickScale);
     setupMarket(olKey);
     setupMarket(lo);
 

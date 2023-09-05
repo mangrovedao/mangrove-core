@@ -846,11 +846,15 @@ contract TakerOperationsTest is MangroveTest {
    * reaching the `revert("mgv/swapError")` statement. To trigger that error, I
    * make a BadMangrove contract with a misbehaving `flashloan` function. */
   function test_unreachable_swapError() public {
-    BadMangrove badMgv = new BadMangrove({
-      governance: $(this),
-      gasprice: 40,
-      gasmax: 2_000_000
-    });
+    IMangrove badMgv = IMangrove(
+      payable(
+        new BadMangrove({
+        governance: $(this),
+        gasprice: 40,
+        gasmax: 2_000_000
+        })
+      )
+    );
     vm.label($(badMgv), "Bad Mangrove");
     badMgv.activate(olKey, 0, 0, 0);
 

@@ -18,7 +18,6 @@ import {
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickLib} from "./../lib/TickLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
-import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
   /* # MultiOrder struct */
@@ -53,17 +52,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   {
     uint fillVolume = fillWants ? takerWants : takerGives;
     int maxLogPrice = LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
-    return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants);
-  }
-
-  function marketOrderByPrice(
-    OLKey memory olKey,
-    uint maxPrice_mantissa,
-    int maxPrice_exp,
-    uint fillVolume,
-    bool fillWants
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
-    int maxLogPrice = LogPriceConversionLib.logPriceFromPrice(maxPrice_mantissa, maxPrice_exp);
     return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants);
   }
 

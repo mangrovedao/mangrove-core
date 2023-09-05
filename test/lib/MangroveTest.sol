@@ -57,7 +57,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     TokenOptions base;
     TokenOptions quote;
     uint defaultFee;
-    uint defaultTickscale;
+    uint defaultTickScale;
     uint gasprice;
     uint gasbase;
     uint gasmax;
@@ -76,7 +76,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
     defaultFee: 0,
-    defaultTickscale: 1,
+    defaultTickScale: 1,
     gasprice: 40,
     gasbase: 50_000,
     density: 2 ** 32,
@@ -102,8 +102,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     base = new TestToken($(this), options.base.name, options.base.symbol, options.base.decimals);
     quote = new TestToken($(this), options.quote.name, options.quote.symbol, options.quote.decimals);
     // mangrove deploy
-    olKey = OLKey($(base), $(quote), options.defaultTickscale);
-    lo = OLKey($(quote), $(base), options.defaultTickscale);
+    olKey = OLKey($(base), $(quote), options.defaultTickScale);
+    lo = OLKey($(quote), $(base), options.defaultTickScale);
 
     mgv = setupMangrove(olKey, options.invertedMangrove);
     reader = new MgvReader($(mgv));
@@ -290,12 +290,14 @@ contract MangroveTest is Test2, HasMgvEvents {
     // order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: TickLib.tickFromVolumes(order.gives,order.wants), __gives: order.wants});
   }
 
-  function mockBuyOrder(uint takerGives, uint takerWants, uint partialFill, OLKey memory _ol, bytes32 makerData)
-    public
-    pure
-    returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result)
-  {
-    order.olKey = _ol;
+  function mockBuyOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    OLKey memory _olBaseQuote,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.olKey = _olBaseQuote;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
@@ -310,19 +312,21 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
-    order.olKey = olKey;
+    order.olKey = lo;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
     order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
   }
 
-  function mockSellOrder(uint takerGives, uint takerWants, uint partialFill, OLKey memory _ol, bytes32 makerData)
-    public
-    pure
-    returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result)
-  {
-    order.olKey = _ol;
+  function mockSellOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    OLKey memory _olBaseQuote,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.olKey = _olBaseQuote.flipped();
     order.wants = takerWants;
     order.gives = takerGives;
     order.offer = MgvStructs.Offer.pack({

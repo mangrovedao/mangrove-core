@@ -9,7 +9,7 @@ import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MgvReaderDeployer} from "mgv_script/periphery/deployers/MgvReaderDeployer.s.sol";
 
 contract MangroveDeployer is Deployer {
-  Mangrove public mgv;
+  IMangrove public mgv;
   MgvReader public reader;
   MgvOracle public oracle;
 
@@ -34,9 +34,11 @@ contract MangroveDeployer is Deployer {
 
     broadcast();
     if (forMultisig) {
-      mgv = new Mangrove{salt:salt}({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax});
+      mgv = IMangrove(
+        payable(address(new Mangrove{salt:salt}({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax})))
+      );
     } else {
-      mgv = new Mangrove({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax});
+      mgv = IMangrove(payable(address(new Mangrove({governance: broadcaster(), gasprice: gasprice, gasmax: gasmax}))));
     }
     fork.set("Mangrove", address(mgv));
 

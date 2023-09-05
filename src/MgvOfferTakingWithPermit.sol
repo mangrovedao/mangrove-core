@@ -6,20 +6,10 @@ import {HasMgvEvents, Tick, LogPriceLib, OLKey} from "./MgvLib.sol";
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
 import {TickLib} from "./../lib/TickLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
+import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
-  /* Takers may provide allowances on specific offerLists, so other addresses can execute orders in their name. Allowance may be set using the usual `approve` function, or through an [EIP712](https://eips.ethereum.org/EIPS/eip-712) `permit`.
-
-  The mapping is `outbound_tkn => inbound_tkn => owner => spender => allowance` */
-  mapping(
-    address outbound_tkn
-      => mapping(address inbound_tkn => mapping(address owner => mapping(address spender => uint allowance)))
-  ) public allowances;
-  /* Storing nonces avoids replay attacks. */
-  mapping(address owner => uint nonce) public nonces;
-  /* Following [EIP712](https://eips.ethereum.org/EIPS/eip-712), structured data signing has `keccak256("Permit(address outbound_tkn,address inbound_tkn,address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)")` in its prefix. */
-  bytes32 public constant PERMIT_TYPEHASH = 0xf0ea0a7146fb6eedb561d97b593d57d9b7df3c94d689372dc01302e5780248f4;
-  /* Initialized in the constructor, `DOMAIN_SEPARATOR` avoids cross-application permit reuse. */
+  // Since DOMAIN_SEPARATOR is immutable, it cannot use MgvAppendix to provide an accessor (because the value will come from code, not from storage), so we generate the accessor here.
   bytes32 public immutable DOMAIN_SEPARATOR;
 
   constructor(string memory contractName) {
@@ -52,25 +42,25 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     unchecked {
       require(deadline >= block.timestamp, "mgv/permit/expired");
 
-      uint nonce = nonces[owner]++;
+      uint nonce = _nonces[owner]++;
       bytes32 digest = keccak256(
         abi.encodePacked(
           "\x19\x01",
           DOMAIN_SEPARATOR,
-          keccak256(abi.encode(PERMIT_TYPEHASH, outbound_tkn, inbound_tkn, owner, spender, value, nonce, deadline))
+          keccak256(abi.encode(_PERMIT_TYPEHASH, outbound_tkn, inbound_tkn, owner, spender, value, nonce, deadline))
         )
       );
       address recoveredAddress = ecrecover(digest, v, r, s);
       require(recoveredAddress != address(0) && recoveredAddress == owner, "mgv/permit/invalidSignature");
 
-      allowances[outbound_tkn][inbound_tkn][owner][spender] = value;
+      _allowances[outbound_tkn][inbound_tkn][owner][spender] = value;
       emit Approval(outbound_tkn, inbound_tkn, owner, spender, value);
     }
   }
 
   function approve(address outbound_tkn, address inbound_tkn, address spender, uint value) external returns (bool) {
     unchecked {
-      allowances[outbound_tkn][inbound_tkn][msg.sender][spender] = value;
+      _allowances[outbound_tkn][inbound_tkn][msg.sender][spender] = value;
       emit Approval(outbound_tkn, inbound_tkn, msg.sender, spender, value);
       return true;
     }
@@ -92,20 +82,6 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     }
   }
 
-  function marketOrderForByPrice(
-    OLKey memory olKey,
-    uint maxPrice_mantissa,
-    int maxPrice_exp,
-    uint fillVolume,
-    bool fillWants,
-    address taker
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid) {
-    unchecked {
-      int maxLogPrice = LogPriceConversionLib.logPriceFromPrice(maxPrice_mantissa, maxPrice_exp);
-      return marketOrderForByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, taker);
-    }
-  }
-
   function marketOrderForByLogPrice(OLKey memory olKey, int logPrice, uint fillVolume, bool fillWants, address taker)
     public
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
@@ -122,7 +98,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   /* Used by `*For` functions, its both checks that `msg.sender` was allowed to use the taker's funds, and decreases the former's allowance. */
   function deductSenderAllowance(address outbound_tkn, address inbound_tkn, address owner, uint amount) internal {
     unchecked {
-      mapping(address => uint) storage curriedAllow = allowances[outbound_tkn][inbound_tkn][owner];
+      mapping(address => uint) storage curriedAllow = _allowances[outbound_tkn][inbound_tkn][owner];
       uint allowed = curriedAllow[msg.sender];
       require(allowed >= amount, "mgv/lowAllowance");
       curriedAllow[msg.sender] = allowed - amount;

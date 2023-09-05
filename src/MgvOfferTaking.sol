@@ -172,7 +172,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       OfferList storage offerList;
       (sor.global, sor.local, offerList) = _config(olKey);
       mor.maxRecursionDepth = sor.global.maxRecursionDepth();
-      /* We have an upper limit om total gasreq for failing offers to avoid failing offers delivering nothing and exhausting gaslimit for transaction. */
+      /* We have an upper limit on total gasreq for failing offers to avoid failing offers delivering nothing and exhausting gaslimit for the transaction. */
       mor.maxGasreqForFailingOffers = maxGasreqForFailingOffers;
 
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */

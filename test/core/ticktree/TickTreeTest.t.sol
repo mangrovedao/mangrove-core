@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 
 import {AbstractMangrove, TestTaker, MangroveTest, IMaker, TestMaker} from "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/MgvLib.sol";
+import {MgvRoot} from "mgv_src/MgvRoot.sol";
 import "mgv_lib/Debug.sol";
 
 int constant MIN_LEAF_INDEX = -NUM_LEAFS / 2;
@@ -56,15 +57,6 @@ abstract contract TickTreeTest is MangroveTest {
 
   // # Offer utility functions
 
-  struct OfferData {
-    uint id;
-    Tick tick;
-    int logPrice;
-    uint gives;
-    uint gasreq;
-    uint gasprice;
-  }
-
   // Calculates gives that Mangrove will accept for a tick & gasreq
   function getAcceptableGivesForTick(Tick tick, uint gasreq) internal view returns (uint gives) {
     // First, try minVolume
@@ -75,15 +67,6 @@ abstract contract TickTreeTest is MangroveTest {
     }
     // Else, try max
     gives = type(uint96).max;
-  }
-
-  function createOfferData(Tick tick, uint gasreq, uint gasprice) internal view returns (OfferData memory offerData) {
-    offerData.id = 0;
-    offerData.tick = tick;
-    offerData.logPrice = LogPriceLib.fromTick(tick, olKey.tickScale);
-    offerData.gasreq = gasreq;
-    offerData.gives = getAcceptableGivesForTick(tick, gasreq);
-    offerData.gasprice = gasprice;
   }
 
   // # Mangrove tick tree asserts
@@ -322,14 +305,9 @@ abstract contract TickTreeTest is MangroveTest {
 
   // # Test tick tree data structure and operations
 
-  struct Offer {
-    MgvStructs.OfferPacked offer;
-    MgvStructs.OfferDetailPacked detail;
-  }
-
   struct TickTree {
     MgvStructs.LocalPacked local;
-    mapping(uint => Offer) offers;
+    mapping(uint => MgvRoot.OfferData) offers;
     mapping(int => Leaf) leafs;
     mapping(int => Field) level0;
     mapping(int => Field) level1;
@@ -552,7 +530,7 @@ abstract contract TickTreeTest is MangroveTest {
   }
 
   function removeOffer(TickTree storage tickTree, uint offerId) internal {
-    Offer storage offer = tickTree.offers[offerId];
+    MgvRoot.OfferData storage offer = tickTree.offers[offerId];
     Tick tick = offer.offer.tick(olKey.tickScale);
 
     // Update leaf and tick list

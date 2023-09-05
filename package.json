@@ -13,7 +13,7 @@
     "corecov": "forge coverage --match-path 'test/core/*'",
     "build": "forge build && node copyArtifacts && node buildIndex && node checkNatspec",
     "clean": "forge clean; rimraf index.js dist",
-    "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.ts src/MgvLib.sol src/MgvGovernable.sol src/MgvAppendix.sol src/MgvCommon.sol src/MgvView.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/AbstractMangrove.sol src/Mangrove.sol src/InvertedMangrove.sol",
+    "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.ts src/MgvLib.sol src/MgvCommon.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/MgvView.sol src/MgvAppendix.sol src/AbstractMangrove.sol src/Mangrove.sol",
     "preproc": "ts-node preprocessing/run.ts",
     "test": "forge test -vvv"
   },

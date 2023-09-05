@@ -44,9 +44,12 @@ pragma solidity ^0.8.10;
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {console2, StdStorage, stdStorage} from "forge-std/Test.sol";
+import {console2 as console, StdStorage, stdStorage} from "forge-std/Test.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
-import {TickLib, Tick, LogPriceLib} from "mgv_lib/TickLib.sol";
+import "mgv_lib/TickLib.sol";
+import "mgv_lib/LogPriceLib.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
 contract PermitTest is MangroveTest, TrivialTestMaker {
@@ -85,7 +88,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
   }
 
   function marketOrderFor(uint value, address who) internal returns (uint, uint, uint, uint) {
-    int logPrice = LogPriceLib.logPriceFromPrice_e18(1 ether);
+    int logPrice = LogPriceConversionLib.logPriceFromPrice(1, 0);
     return mgv.marketOrderForByLogPrice(olKey, logPrice, value, true, who);
   }
 
@@ -170,6 +173,26 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
       mgv.allowances($(base), $(quote), good_owner, $(this)), value / 2 + (value % 2), "Allowance incorrectly decreased"
     );
   }
+
+  function test_correct_domain_separator() public {
+    bytes32 expected = keccak256(
+      abi.encode(
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+        keccak256(bytes("Mangrove")),
+        keccak256(bytes("1")),
+        block.chainid,
+        address(mgv)
+      )
+    );
+    assertEq(mgv.DOMAIN_SEPARATOR(), expected, "wrong DOMAIN_SEPARATOR");
+  }
+
+  function test_correct_permit_typehash() public {
+    bytes32 expected = keccak256(
+      "Permit(address outbound_tkn,address inbound_tkn,address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+    );
+    assertEq(mgv.PERMIT_TYPEHASH(), expected, "wrong PERMIT_TYPEHASH");
+  }
 }
 
 /* Permit utilities */
@@ -188,7 +211,7 @@ library mgvPermitData {
     // used at submit() time
     uint key;
     // easier to store here (avoids an extra `mgv` arg to lib fns)
-    AbstractMangrove mgv;
+    IMangrove mgv;
     // must preread from mangrove since calling mgv
     // just-in-time will trip up `expectRevert`
     // (looking for a fix to this)

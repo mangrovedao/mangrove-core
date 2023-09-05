@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 import {IMaker, HasMgvEvents, MgvStructs, Tick, TickLib, Leaf, Field, LogPriceLib, OLKey} from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
+import {LogPriceConversionLib} from "mgv_lib/LogPriceConversionLib.sol";
 import "mgv_lib/Debug.sol";
 
 /* `MgvOfferMaking` contains market-making-related functions. */
@@ -44,17 +45,17 @@ contract MgvOfferMaking is MgvHasOffers {
   function newOfferByVolume(OLKey memory olKey, uint wants, uint gives, uint gasreq, uint gasprice)
     external
     payable
-    returns (uint)
+    returns (uint offerId)
   {
     unchecked {
-      return newOfferByLogPrice(olKey, LogPriceLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice);
+      return newOfferByLogPrice(olKey, LogPriceConversionLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice);
     }
   }
 
   function newOfferByLogPrice(OLKey memory olKey, int logPrice, uint gives, uint gasreq, uint gasprice)
     public
     payable
-    returns (uint)
+    returns (uint offerId)
   {
     unchecked {
       /* In preparation for calling `writeOffer`, we read the `outbound_tkn`,`inbound_tkn`, `tickScale` offerList configuration, check for reentrancy and market liveness, fill the `OfferPack` struct and increment the offerList's `last`. */
@@ -109,7 +110,9 @@ contract MgvOfferMaking is MgvHasOffers {
     payable
   {
     unchecked {
-      updateOfferByLogPrice(olKey, LogPriceLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice, offerId);
+      updateOfferByLogPrice(
+        olKey, LogPriceConversionLib.logPriceFromVolumes(wants, gives), gives, gasreq, gasprice, offerId
+      );
     }
   }
 
@@ -161,7 +164,7 @@ contract MgvOfferMaking is MgvHasOffers {
       /* Here, we are about to un-live an offer, so we start by taking it out of the book by stitching together its previous and next offers. Note that unconditionally calling `stitchOffers` would break the book since it would connect offers that may have since moved. */
       if (offer.isLive()) {
         MgvStructs.LocalPacked oldLocal = local;
-        local = dislodgeOffer(offerList, olKey.tickScale, offer, local, true);
+        (, local) = dislodgeOffer(offerList, olKey.tickScale, offer, local, true, LeafLib.EMPTY);
         /* If calling `stitchOffers` has changed the current `best` offer, we update the storage. */
         if (!oldLocal.eq(local)) {
           offerList.local = local;
@@ -192,7 +195,7 @@ contract MgvOfferMaking is MgvHasOffers {
   /* Fund should be called with a nonzero value (hence the `payable` modifier). The provision will be given to `maker`, not `msg.sender`. */
   function fund(address maker) public payable {
     unchecked {
-      (MgvStructs.GlobalPacked _global,) = config(OLKey(address(0), address(0), 0));
+      (MgvStructs.GlobalPacked _global,,) = _config(OLKey(address(0), address(0), 0));
       liveMgvOnly(_global);
       creditWei(maker, msg.value);
     }
@@ -227,10 +230,10 @@ contract MgvOfferMaking is MgvHasOffers {
   function writeOffer(OfferList storage offerList, OfferPack memory ofp, int insertionLogPrice, bool update) internal {
     unchecked {
       uint tickScale = ofp.olKey.tickScale;
-      // normalize logprice to tickscale
+      // normalize logPrice to tickScale
       insertionLogPrice = LogPriceLib.fromTick(TickLib.fromLogPrice(insertionLogPrice, tickScale), tickScale);
       /* `gasprice`'s floor is Mangrove's own gasprice estimate, `ofp.global.gasprice`. We first check that gasprice fits in 16 bits. Otherwise it could be that `uint16(gasprice) < global_gasprice < gasprice`, and the actual value we store is `uint16(gasprice)`. */
-      require(checkGasprice(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
+      require(MgvStructs.Global.gasprice_check(ofp.gasprice), "mgv/writeOffer/gasprice/16bits");
 
       if (ofp.gasprice < ofp.global.gasprice()) {
         ofp.gasprice = ofp.global.gasprice();
@@ -250,10 +253,9 @@ contract MgvOfferMaking is MgvHasOffers {
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
       require(LogPriceLib.inRange(insertionLogPrice), "mgv/writeOffer/logPrice/outOfRange");
       {
-        // FIXME: This validation should be revisited once the TickLib calculation code is done
+        // wants=0 is fine, `execute` should ensure the taker never sends 0.
+        // However wants too big is not fine due to overflow risk in later manipulations of wants.
         uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, ofp.gives);
-        /* * Make sure `wants > 0` -- price is stored as log_1BP(wants/gives). */
-        require(wants > 0, "mgv/writeOffer/wants/tooLow");
         require(uint96(wants) == wants, "mgv/writeOffer/wants/96bits");
       }
 
@@ -298,6 +300,11 @@ contract MgvOfferMaking is MgvHasOffers {
       }
 
       Tick insertionTick = TickLib.fromLogPrice(insertionLogPrice, tickScale);
+      // FIXME remove if tick can accomodate > max price
+      require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
+
+      // must cache tick because branch will be modified and tick information will be lost (in case an offer will be removed)
+      Tick cachedLocalTick = ofp.local.bestTick();
 
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {
@@ -313,13 +320,17 @@ contract MgvOfferMaking is MgvHasOffers {
            - If current tick > insertion tick: no
            - Otherwise yes because maybe current tick = insertion tick
         */
-        // bool updateLocal = tick.strictlyBetter(ofp.local.tick().strictlyBetter(tick)
-        ofp.local = dislodgeOffer(
-          offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, !insertionTick.strictlyBetter(ofp.local.tick())
-        );
-      }
+        // bool updateLocal = tick.strictlyBetter(ofp.local.bestTick().strictlyBetter(tick)
+        bool shouldUpdateBranch = !insertionTick.strictlyBetter(ofp.local.bestTick());
 
-      if (insertionTick.strictlyBetter(ofp.local.tick())) {
+        (, ofp.local) =
+          dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, shouldUpdateBranch, LeafLib.EMPTY);
+        // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
+        if (shouldUpdateBranch) {
+          cachedLocalTick = ofp.local.bestTick();
+        }
+      }
+      if (insertionTick.strictlyBetter(cachedLocalTick)) {
         ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
       }
 
@@ -329,7 +340,7 @@ contract MgvOfferMaking is MgvHasOffers {
       if (leaf.isEmpty()) {
         Field field;
         int insertionIndex = insertionTick.level0Index();
-        int currentIndex = ofp.local.tick().level0Index();
+        int currentIndex = cachedLocalTick.level0Index();
         // Get insertion level0
         if (insertionIndex != currentIndex) {
           field = offerList.level0[insertionIndex];
@@ -351,7 +362,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
         if (field.isEmpty()) {
           insertionIndex = insertionTick.level1Index();
-          currentIndex = ofp.local.tick().level1Index();
+          currentIndex = cachedLocalTick.level1Index();
 
           if (insertionIndex != currentIndex) {
             field = offerList.level1[insertionIndex];

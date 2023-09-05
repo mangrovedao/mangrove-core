@@ -3,9 +3,9 @@ pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import "mgv_lib/Test2.sol";
-import {Mangrove} from "mgv_src/Mangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs, DensityLib, OLKey} from "mgv_src/MgvLib.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 
 uint constant COVER_FACTOR = 1000;
 
@@ -24,24 +24,24 @@ uint constant COVER_FACTOR = 1000;
 contract ActivateSemibook is Test2, Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
+      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       olKey: OLKey({
         outbound: envAddressOrName("OUTBOUND_TKN"),
         inbound: envAddressOrName("INBOUND_TKN"),
-        tickScale: vm.envUint("TICKSCALE")
+        tickScale: vm.envUint("TICK_SCALE")
       }),
       outbound_in_gwei: vm.envUint("OUTBOUND_IN_GWEI"),
       fee: vm.envUint("FEE")
     });
   }
 
-  function innerRun(Mangrove mgv, OLKey memory olKey, uint outbound_in_gwei, uint fee) public {
+  function innerRun(IMangrove mgv, OLKey memory olKey, uint outbound_in_gwei, uint fee) public {
     (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
     innerRun(mgv, global.gasprice(), olKey, outbound_in_gwei, fee);
   }
 
   function innerRun(
-    Mangrove mgv,
+    IMangrove mgv,
     uint gaspriceOverride, // the gasprice that is used to compute density. Can be set higher that mangrove's gasprice to avoid dust without impacting user's bounty
     OLKey memory olKey,
     uint outbound_in_gwei,

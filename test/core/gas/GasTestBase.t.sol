@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import {AbstractMangrove, TestTaker, MangroveTest, IMaker} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker, MangroveTest, IMaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 import {TickLib, Tick, LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE, LEVEL2_SIZE} from "mgv_lib/TickLib.sol";
@@ -24,7 +24,7 @@ abstract contract GasTestBaseStored {
   mapping(int logPrice => uint offerId) internal logPriceOfferIds;
   string internal description = "TODO";
 
-  function getStored() internal view virtual returns (AbstractMangrove, TestTaker, OLKey memory, uint);
+  function getStored() internal view virtual returns (IMangrove, TestTaker, OLKey memory, uint);
 
   function printDescription() public virtual {
     console.log("Description: %s", description);
@@ -37,7 +37,7 @@ abstract contract GasTestBaseStored {
   }
 
   function newOfferOnAllLowerThanMiddleTestPrices() public virtual {
-    (AbstractMangrove mgv,, OLKey memory _olKey,) = getStored();
+    (IMangrove mgv,, OLKey memory _olKey,) = getStored();
     logPriceOfferIds[LEAF_LOWER_LOG_PRICE] = mgv.newOfferByLogPrice(_olKey, LEAF_LOWER_LOG_PRICE, 1 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL0_LOWER_LOG_PRICE] =
       mgv.newOfferByLogPrice(_olKey, LEVEL0_LOWER_LOG_PRICE, 1 ether, 1_000_000, 0);
@@ -48,7 +48,7 @@ abstract contract GasTestBaseStored {
   }
 
   function newOfferOnAllHigherThanMiddleTestPrices() public virtual {
-    (AbstractMangrove mgv,, OLKey memory _olKey,) = getStored();
+    (IMangrove mgv,, OLKey memory _olKey,) = getStored();
     logPriceOfferIds[LEAF_HIGHER_LOG_PRICE] =
       mgv.newOfferByLogPrice(_olKey, LEAF_HIGHER_LOG_PRICE, 1 ether, 1_000_000, 0);
     logPriceOfferIds[LEVEL0_HIGHER_LOG_PRICE] =
@@ -81,7 +81,7 @@ contract GasTestBase is MangroveTest, IMaker, GasTestBaseStored {
   }
 
   /// preload stored vars for better gas estimate
-  function getStored() internal view override returns (AbstractMangrove, TestTaker, OLKey memory, uint) {
+  function getStored() internal view override returns (IMangrove, TestTaker, OLKey memory, uint) {
     return (mgv, _taker, olKey, _offerId);
   }
 
@@ -98,10 +98,10 @@ contract GasTestBase is MangroveTest, IMaker, GasTestBaseStored {
 
 abstract contract SingleGasTestBase is GasTestBase {
   function test_single_gas() public virtual {
-    (AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) = getStored();
+    (IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) = getStored();
     impl(mgv, taker, _olKey, offerId);
     printDescription();
   }
 
-  function impl(AbstractMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) internal virtual;
+  function impl(IMangrove mgv, TestTaker taker, OLKey memory _olKey, uint offerId) internal virtual;
 }

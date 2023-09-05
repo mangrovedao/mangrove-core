@@ -11,7 +11,7 @@ import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
 import {MIDDLE_LOG_PRICE} from "./GasTestBase.t.sol";
 import {ActivateSemibook} from "mgv_script/core/ActivateSemibook.s.sol";
 import "mgv_lib/Debug.sol";
-import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
 import {OfferPosthookFailGasDeltaTest} from "./OfferPosthookFailGasDelta.t.sol";
 
@@ -20,7 +20,7 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
   GenericFork internal fork;
   OfferPosthookFailGasDeltaTest internal gasDeltaTest;
 
-  function getStored() internal view override returns (AbstractMangrove, TestTaker, OLKey memory, uint) {
+  function getStored() internal view override returns (IMangrove, TestTaker, OLKey memory, uint) {
     return (mgv, taker, olKey, 0);
   }
 
@@ -55,8 +55,8 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     base = TestToken(baseAddress);
     quote = TestToken(quoteAddress);
     gasDeltaTest.setUpTokens(base, quote);
-    olKey = OLKey($(base), $(quote), options.defaultTickscale);
-    lo = OLKey($(quote), $(base), options.defaultTickscale);
+    olKey = OLKey($(base), $(quote), options.defaultTickScale);
+    lo = OLKey($(quote), $(base), options.defaultTickScale);
     setupMarket(olKey);
     setupMarket(lo);
 
@@ -70,6 +70,9 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     deal($(base), maker, 200000 ether);
     deal($(quote), maker, 200000 ether);
     deal(maker, 1000 ether);
+    uint offerGivesOl = reader.minVolume(olKey, 100000);
+    uint offerGivesLo = reader.minVolume(lo, 100000);
+
     vm.prank(maker);
     mgv.fund{value: 10 ether}();
     vm.prank(maker);
@@ -77,13 +80,13 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     vm.prank(maker);
     TransferLib.approveToken(quote, $(mgv), type(uint).max);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1, 100000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 100000, 0);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, 1, 100000, 0);
+    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, offerGivesLo, 100000, 0);
   }
 
   function gasbase_to_empty_book(OLKey memory _olKey) internal {
-    (AbstractMangrove _mgv,,,) = getStored();
+    (IMangrove _mgv,,,) = getStored();
     vm.prank($(taker));
     _gas();
     _mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
@@ -98,7 +101,6 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
 
   function test_gasbase_to_empty_book_quote_base() public {
     gasbase_to_empty_book(lo);
-
     description = string.concat(description, " - Case: quote/base gasbase for taking single offer to empty book");
     printDescription();
   }

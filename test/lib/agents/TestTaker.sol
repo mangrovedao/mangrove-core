@@ -2,17 +2,17 @@
 
 pragma solidity ^0.8.10;
 
-import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20, ITaker, MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 
 contract TestTaker is ITaker, Script2 {
-  AbstractMangrove mgv;
+  IMangrove mgv;
   OLKey olKey;
   bool acceptNative = true;
 
-  constructor(AbstractMangrove _mgv, OLKey memory _ol) {
+  constructor(IMangrove _mgv, OLKey memory _ol) {
     mgv = _mgv;
     olKey = _ol;
   }
@@ -39,7 +39,7 @@ contract TestTaker is ITaker, Script2 {
     return this.clean(mgv, olKey, offerId, takerWants, gasreq);
   }
 
-  function clean(AbstractMangrove _mgv, OLKey memory _olKey, uint offerId, uint takerWants, uint gasreq)
+  function clean(IMangrove _mgv, OLKey memory _olKey, uint offerId, uint takerWants, uint gasreq)
     public
     returns (bool success)
   {
@@ -51,7 +51,7 @@ contract TestTaker is ITaker, Script2 {
     return this.cleanWithInfo(mgv, olKey, offerId, takerWants, type(uint48).max);
   }
 
-  function cleanWithInfo(AbstractMangrove _mgv, OLKey memory _olKey, uint offerId, uint takerWants, uint gasreq)
+  function cleanWithInfo(IMangrove _mgv, OLKey memory _olKey, uint offerId, uint takerWants, uint gasreq)
     public
     returns (uint bounty)
   {
@@ -64,7 +64,7 @@ contract TestTaker is ITaker, Script2 {
   }
 
   function cleanByLogPrice(
-    AbstractMangrove _mgv,
+    IMangrove _mgv,
     OLKey memory _olKey,
     uint offerId,
     int logPrice,
@@ -76,7 +76,7 @@ contract TestTaker is ITaker, Script2 {
   }
 
   function cleanByLogPriceWithInfo(
-    AbstractMangrove _mgv,
+    IMangrove _mgv,
     OLKey memory _olKey,
     uint offerId,
     int logPrice,
@@ -104,7 +104,7 @@ contract TestTaker is ITaker, Script2 {
     (takerGot, takerGave,,) = mgv.marketOrderByVolume(olKey, wants, gives, fillWants);
   }
 
-  function marketOrder(AbstractMangrove _mgv, OLKey memory _ol, uint takerWants, uint takerGives)
+  function marketOrder(IMangrove _mgv, OLKey memory _ol, uint takerWants, uint takerGives)
     external
     returns (uint takerGot, uint takerGave)
   {

@@ -57,14 +57,14 @@ contract MangroveTest is Test2, HasMgvEvents {
     TokenOptions base;
     TokenOptions quote;
     uint defaultFee;
-    uint defaultTickscale;
+    uint defaultTickScale;
     uint gasprice;
     uint gasbase;
     uint gasmax;
     uint density;
   }
 
-  AbstractMangrove internal mgv;
+  IMangrove internal mgv;
   MgvReader internal reader;
   TestToken internal base;
   TestToken internal quote;
@@ -76,11 +76,11 @@ contract MangroveTest is Test2, HasMgvEvents {
     base: TokenOptions({name: "Base Token", symbol: "$(A)", decimals: 18}),
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
     defaultFee: 0,
-    defaultTickscale: 1,
+    defaultTickScale: 1,
     gasprice: 40,
     //Update `gasbase` by measuring using the test run `forge test --mc OfferGasBaseTest_Generic_A_B -vv`
     gasbase: 184048,
-    density: 10,
+    density: 2 ** 32,
     gasmax: 2_000_000
   });
 
@@ -103,8 +103,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     base = new TestToken($(this), options.base.name, options.base.symbol, options.base.decimals);
     quote = new TestToken($(this), options.quote.name, options.quote.symbol, options.quote.decimals);
     // mangrove deploy
-    olKey = OLKey($(base), $(quote), options.defaultTickscale);
-    lo = OLKey($(quote), $(base), options.defaultTickscale);
+    olKey = OLKey($(base), $(quote), options.defaultTickScale);
+    lo = OLKey($(quote), $(base), options.defaultTickScale);
 
     mgv = setupMangrove(olKey, options.invertedMangrove);
     reader = new MgvReader($(mgv));
@@ -207,40 +207,48 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   // Deploy mangrove
-  function setupMangrove() public returns (AbstractMangrove) {
+  function setupMangrove() public returns (IMangrove) {
     return setupMangrove(false);
   }
 
   // Deploy mangrove, inverted or not
-  function setupMangrove(bool inverted) public returns (AbstractMangrove _mgv) {
+  function setupMangrove(bool inverted) public returns (IMangrove _mgv) {
     if (inverted) {
-      _mgv = new InvertedMangrove({
-        governance: $(this),
-        gasprice: options.gasprice,
-        gasmax: options.gasmax
-      });
+      _mgv = IMangrove(
+        $(
+          new InvertedMangrove({
+          governance: $(this),
+          gasprice: options.gasprice,
+          gasmax: options.gasmax
+          })
+        )
+      );
     } else {
-      _mgv = new Mangrove({
-        governance: $(this),
-        gasprice: options.gasprice,
-        gasmax: options.gasmax
-      });
+      _mgv = IMangrove(
+        $(
+          new Mangrove({
+          governance: $(this),
+          gasprice: options.gasprice,
+          gasmax: options.gasmax
+          })
+        )
+      );
     }
     vm.label($(_mgv), "Mangrove");
   }
 
   // Deploy mangrove with an offerList
-  function setupMangrove(OLKey memory _ol) public returns (AbstractMangrove) {
+  function setupMangrove(OLKey memory _ol) public returns (IMangrove) {
     return setupMangrove(_ol, false);
   }
 
   // Deploy mangrove with an offerList
-  function setupMangrove(OLKey memory _ol, bool inverted) public returns (AbstractMangrove _mgv) {
+  function setupMangrove(OLKey memory _ol, bool inverted) public returns (IMangrove _mgv) {
     _mgv = setupMangrove(inverted);
-    setupMarket(_mgv, _ol);
+    setupMarket(IMangrove($(_mgv)), _ol);
   }
 
-  function setupMarket(AbstractMangrove _mgv, OLKey memory _ol) internal {
+  function setupMarket(IMangrove _mgv, OLKey memory _ol) internal {
     assertNot0x(olKey.outbound);
     assertNot0x(olKey.inbound);
     _mgv.activate(_ol, options.defaultFee, options.density, options.gasbase);
@@ -270,7 +278,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     return setupTaker(_ol, label, mgv);
   }
 
-  function setupTaker(OLKey memory _ol, string memory label, AbstractMangrove _mgv) public returns (TestTaker) {
+  function setupTaker(OLKey memory _ol, string memory label, IMangrove _mgv) public returns (TestTaker) {
     TestTaker tt = new TestTaker(_mgv, _ol);
     vm.deal(address(tt), 100 ether);
     vm.label(address(tt), label);
@@ -287,12 +295,14 @@ contract MangroveTest is Test2, HasMgvEvents {
     // order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: TickLib.tickFromVolumes(order.gives,order.wants), __gives: order.wants});
   }
 
-  function mockBuyOrder(uint takerGives, uint takerWants, uint partialFill, OLKey memory _ol, bytes32 makerData)
-    public
-    pure
-    returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result)
-  {
-    order.olKey = _ol;
+  function mockBuyOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    OLKey memory _olBaseQuote,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.olKey = _olBaseQuote;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
@@ -307,19 +317,21 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
-    order.olKey = olKey;
+    order.olKey = lo;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
     order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
   }
 
-  function mockSellOrder(uint takerGives, uint takerWants, uint partialFill, OLKey memory _ol, bytes32 makerData)
-    public
-    pure
-    returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result)
-  {
-    order.olKey = _ol;
+  function mockSellOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    OLKey memory _olBaseQuote,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.olKey = _olBaseQuote.flipped();
     order.wants = takerWants;
     order.gives = takerGives;
     order.offer = MgvStructs.Offer.pack({
@@ -355,6 +367,10 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   /* **** Sugar for address conversion */
   function $(AbstractMangrove t) internal pure returns (address payable) {
+    return payable(address(t));
+  }
+
+  function $(IMangrove t) internal pure returns (address payable) {
     return payable(address(t));
   }
 
@@ -416,25 +432,25 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
-  /// creates `fold` offers in the (outbound, inbound) market with the same `wants`, `gives` and `gasreq` and with `caller` as maker
-  function densify(OLKey memory _ol, uint wants, uint gives, uint gasreq, uint fold, address caller) internal {
+  /// creates `fold` offers in the (outbound, inbound) market with the same `logPrice`, `gives` and `gasreq` and with `caller` as maker
+  function densify(OLKey memory _ol, int logPrice, uint gives, uint gasreq, uint fold, address caller) internal {
     if (gives == 0) {
       return;
     }
     uint prov = reader.getProvision(_ol, gasreq, 0);
     while (fold > 0) {
       vm.prank(caller);
-      mgv.newOfferByVolume{value: prov}(_ol, wants, gives, gasreq, 0);
+      mgv.newOfferByLogPrice{value: prov}(_ol, logPrice, gives, gasreq, 0);
       fold--;
     }
   }
 
-  /// duplicates `fold` times all offers in the `outbound, inbound` list from id `fromId` and for `lenght` offers.
+  /// duplicates `fold` times all offers in the `outbound, inbound` list from id `fromId` and for `length` offers.
   function densifyRange(OLKey memory _ol, uint fromId, uint length, uint fold, address caller) internal {
     while (length > 0 && fromId != 0) {
       MgvStructs.OfferPacked offer = mgv.offers(_ol, fromId);
       MgvStructs.OfferDetailPacked detail = mgv.offerDetails(_ol, fromId);
-      densify(_ol, offer.wants(), offer.gives(), detail.gasreq(), fold, caller);
+      densify(_ol, offer.logPrice(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
       fromId = reader.nextOfferId(_ol, offer);
     }
@@ -481,7 +497,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     IMangrove _mgv = reader.MGV();
     console.log("--------CURRENT TICK TREE BRANCH--------");
     MgvStructs.LocalPacked _local = _reader.local(_ol);
-    Tick tick = _local.tick();
+    Tick tick = _local.bestTick();
     console.log("Current tick %s", toString(tick));
     console.log("Current posInLeaf %s", tick.posInLeaf());
     int leafIndex = tick.leafIndex();

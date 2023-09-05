@@ -5,12 +5,48 @@ import {MgvLib} from "./MgvLib.sol";
 
 import {MgvOfferMaking} from "./MgvOfferMaking.sol";
 import {MgvOfferTakingWithPermit} from "./MgvOfferTakingWithPermit.sol";
-import {MgvGovernable} from "./MgvGovernable.sol";
+import {MgvAppendix} from "mgv_src/MgvAppendix.sol";
+import {MgvGovernable} from "mgv_src/MgvGovernable.sol";
 
-/* `AbstractMangrove` inherits the three contracts that implement generic Mangrove functionality (`MgvGovernable`,`MgvOfferTakingWithPermit` and `MgvOfferMaking`) but does not implement the abstract functions. */
-abstract contract AbstractMangrove is MgvGovernable, MgvOfferTakingWithPermit, MgvOfferMaking {
-  constructor(address governance, uint gasprice, uint gasmax, string memory contractName)
+/* `AbstractMangrove` inherits the two contracts that implement generic Mangrove functionality (`MgvOfferTakingWithPermit` and `MgvOfferMaking`) but does not implement the abstract functions. */
+abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
+  address immutable APPENDIX;
+
+  constructor(address _governance, uint _gasprice, uint gasmax, string memory contractName)
     MgvOfferTakingWithPermit(contractName)
-    MgvGovernable(governance, gasprice, gasmax)
-  {}
+  {
+    unchecked {
+      emit NewMgv();
+
+      APPENDIX = address(new MgvAppendix());
+
+      /* Initially, governance is open to anyone. */
+      /* Set initial gasprice and gasmax. */
+      bool success;
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGasprice, (_gasprice)));
+      require(success, "mgv/ctor/gasprice");
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGasmax, (gasmax)));
+      require(success, "mgv/ctor/gasmax");
+      /* Without optimizer enabled it fails above 79. Set default a bit lower to be safe. */
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setMaxRecursionDepth, (75)));
+      require(success, "mgv/ctor/maxRecursionDepth");
+      /* Arbitrary initial limit for number of failing offers - let on average 10 failing offers consume up to gasmax*/
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setMaxGasreqForFailingOffers, (gasmax * 10)));
+      require(success, "mgv/ctor/maxGasreqForFailingOffers");
+      /* Initialize governance to `_governance` after parameter setting. */
+      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGovernance, (_governance)));
+      require(success, "mgv/ctor/governance");
+    }
+  }
+
+  fallback(bytes calldata callData) external returns (bytes memory) {
+    (bool success, bytes memory res) = APPENDIX.delegatecall(callData);
+    if (success) {
+      return res;
+    } else {
+      assembly ("memory-safe") {
+        revert(add(res, 32), mload(res))
+      }
+    }
+  }
 }

@@ -8,7 +8,7 @@ pragma solidity ^0.8.10;
 import "mgv_lib/Test2.sol";
 // import "abdk-libraries-solidity/ABDKMathQuad.sol";
 import "mgv_src/MgvLib.sol";
-import {FixedPointMathLib as FP} from "solady/utils/FixedPointMathLib.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 
 // In these tests, the testing contract is the market maker.
 contract LeafTest is Test2 {
@@ -125,48 +125,46 @@ contract TickTest is Test {
     );
   }
 
-  // "price" is the price paid by takers
-  // for now tick is rounded towards 0, ie:
-  // * gives is stored
-  // * if price (wants/gives) < 1, then wants will be higher (ie price will be higher) than real
-  // * if price (wants/gives) > 1, then wants will be lower (ie price will be lower) than real
-  // * probably should always round price towards -infty
+  // note that tick(p) is max {t | price(t) <= p}
   function test_logPriceFromVolumes() public {
-    assertEq(LogPriceLib.logPriceFromVolumes(1, 1), 0);
-    assertEq(LogPriceLib.logPriceFromVolumes(2, 1), 6931);
-    assertEq(LogPriceLib.logPriceFromVolumes(1, 2), -6932);
-    assertEq(LogPriceLib.logPriceFromVolumes(1e18, 1), 414486);
-    //FIXME when tick range is restored use uint96 again
-    // assertEq(LogPriceLib.logPriceFromVolumes(type(uint96).max, 1), 665454);
-    // assertEq(LogPriceLib.logPriceFromVolumes(1, type(uint96).max), -665454);
-    assertEq(LogPriceLib.logPriceFromVolumes(type(uint72).max, 1), 499090);
-    assertEq(LogPriceLib.logPriceFromVolumes(1, type(uint72).max), -499090);
-    assertEq(LogPriceLib.logPriceFromVolumes(999999, 1000000), -1);
-    assertEq(LogPriceLib.logPriceFromVolumes(1000000, 999999), 0);
-    assertEq(LogPriceLib.logPriceFromVolumes(1000000 * 1e18, 999999 * 1e18), 0);
+    assertEq(LogPriceConversionLib.logPriceFromVolumes(1, 1), 0);
+    assertEq(LogPriceConversionLib.logPriceFromVolumes(2, 1), 6931);
+    assertEq(LogPriceConversionLib.logPriceFromVolumes(1, 2), -6932);
+    assertEq(LogPriceConversionLib.logPriceFromVolumes(1e18, 1), 414486);
+    assertEq(LogPriceConversionLib.logPriceFromVolumes(type(uint96).max, 1), 665454);
+    assertEq(LogPriceConversionLib.logPriceFromVolumes(1, type(uint96).max), -665455);
+    assertEq(LogPriceConversionLib.logPriceFromVolumes(type(uint72).max, 1), 499090);
+    assertEq(LogPriceConversionLib.logPriceFromVolumes(1, type(uint72).max), -499091);
+    assertEq(LogPriceConversionLib.logPriceFromVolumes(999999, 1000000), -1);
+    assertEq(LogPriceConversionLib.logPriceFromVolumes(1000000, 999999), 0);
+    assertEq(LogPriceConversionLib.logPriceFromVolumes(1000000 * 1e18, 999999 * 1e18), 0);
   }
 
   function test_priceFromLogPrice() public {
-    // 1bp of 1bp as 18 decimals fixed point number
-    uint err = 1e18 / 100 / 100 / 100 / 100;
-    // tick is ln_bp(1e6)
-    // compares to 1.0001**tick*1e18
-    assertApproxEqRel(LogPriceLib.priceFromLogPrice_e18(138162), 999998678087145849760004, err);
-    // tick is ln_bp(1)
-    // compares to 1.0001**tick*1e18
-    assertApproxEqRel(LogPriceLib.priceFromLogPrice_e18(0), 1.0001 ** 0 * 1e18, err);
-    // FIXME Tick example used to be 665454 but it's out of range for now
-    /* 
-      // tick is ln_bp(type(uint96).max)
-      // compares to 1.0001**tick*1e18
-      assertApproxEqRel(Tick.wrap(665454).priceFromTick_e18(), 79223695601626514454341026560883173411222330007, err);
-      // console.log(Tick.wrap(-421417).priceFromTick_e18());
-    */
-    assertApproxEqRel(LogPriceLib.priceFromLogPrice_e18(524287), 58661978243259926126959077156658796822528, err);
+    inner_test_priceFromLogPrice({
+      tick: 2 ** 20 - 1,
+      expected_sig: 3441571814221581909035848501253497354125574144,
+      expected_exp: 0
+    });
+
+    inner_test_priceFromLogPrice({
+      tick: 138162,
+      expected_sig: 5444510673556857440102348422228887810808479744,
+      expected_exp: 132
+    });
+
+    //FIXME
+    // Do -1,0,1,max
+  }
+
+  function inner_test_priceFromLogPrice(int tick, uint expected_sig, uint expected_exp) internal {
+    (uint sig, uint exp) = LogPriceConversionLib.priceFromLogPrice(tick);
+    assertEq(expected_sig, sig, "wrong sig");
+    assertEq(expected_exp, exp, "wrong exp");
   }
 
   function showLogPriceApprox(uint wants, uint gives) internal pure {
-    int logPrice = LogPriceLib.logPriceFromVolumes(wants, gives);
+    int logPrice = LogPriceConversionLib.logPriceFromVolumes(wants, gives);
     uint wants2 = LogPriceLib.inboundFromOutbound(logPrice, gives);
     uint gives2 = LogPriceLib.outboundFromInbound(logPrice, wants);
     console.log("logPrice  ", logPriceToString(logPrice));
@@ -275,5 +273,29 @@ contract FieldTest is Test {
 
   function assertFirstOnePosition(uint field, uint pos) internal {
     assertEq(Field.wrap(field).firstOnePosition(), pos);
+  }
+
+  //FIXME move constants-related tests to a separate contract and test them all
+  function test_constants_min_max_price() public {
+    (uint man, uint exp) = LogPriceConversionLib.priceFromLogPrice(MIN_LOG_PRICE);
+    assertEq(man, MIN_PRICE_MANTISSA);
+    assertEq(int(exp), MIN_PRICE_EXP);
+    (man, exp) = LogPriceConversionLib.priceFromLogPrice(MAX_LOG_PRICE);
+    assertEq(man, MAX_PRICE_MANTISSA);
+    assertEq(int(exp), MAX_PRICE_EXP);
+  }
+
+  function price_priceFromVolumes_not_zero_div() public {
+    // should not revert
+    (uint man, uint exp) = LogPriceConversionLib.priceFromVolumes(1, type(uint).max);
+    assertTrue(man != 0, "mantissa cannot be 0");
+  }
+
+  function price_priceFromVolumes_not_zero_div_fuzz(uint inbound, uint outbound) public {
+    vm.assume(inbound != 0);
+    vm.assume(outbound != 0);
+    // should not revert
+    (uint man, uint exp) = LogPriceConversionLib.priceFromVolumes(inbound, outbound);
+    assertTrue(man != 0, "mantissa cannot be 0");
   }
 }

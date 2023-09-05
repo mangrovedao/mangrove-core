@@ -15,7 +15,7 @@ import {
   LEVEL2_LOWER_LOG_PRICE,
   LEVEL2_HIGHER_LOG_PRICE
 } from "./GasTestBase.t.sol";
-import {AbstractMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
+import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
 
@@ -33,7 +33,7 @@ contract ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestB
   }
 
   function test_retract_offer_deprovision() public {
-    (AbstractMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
+    (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     _gas();
     mgv.retractOffer(_olKey, offerId, true);
     gas_();
@@ -42,7 +42,7 @@ contract ExternalRetractOfferOtherOfferList_WithNoOtherOffersGasTest is GasTestB
   }
 
   function test_retract_offer_keep_provision() public {
-    (AbstractMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
+    (IMangrove mgv,, OLKey memory _olKey, uint offerId) = getStored();
     _gas();
     mgv.retractOffer(_olKey, offerId, false);
     gas_();
@@ -262,7 +262,7 @@ contract ExternalRetractOfferOtherOfferList_WithPriorRetractOfferAndNoOtherOffer
     description = "Retracting a second offer at various tick-distances after retracting an offer at MIDDLE_LOG_PRICE";
   }
 
-  function impl(AbstractMangrove mgv, TestTaker, OLKey memory _olKey, uint, int _logPrice) internal override {
+  function impl(IMangrove mgv, TestTaker, OLKey memory _olKey, uint, int _logPrice) internal override {
     mgv.retractOffer(_olKey, offerId2, false);
     uint offerId = logPriceOfferIds[_logPrice];
     _gas();

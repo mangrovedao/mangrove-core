@@ -17,7 +17,7 @@ import {
 } from "./MgvLib.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickLib} from "./../lib/TickLib.sol";
-import "mgv_lib/Debug.sol";
+import "mgv_lib/LogPriceConversionLib.sol";
 
 abstract contract MgvOfferTaking is MgvHasOffers {
   /* # MultiOrder struct */
@@ -31,7 +31,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint fillVolume; // used globally
     uint feePaid; // used globally
     Leaf leaf;
-    Field level1;
     int maxLogPrice; // maxLogPrice is the log of the max price that can be reached by the market order as a limit price.
     uint maxGasreqForFailingOffers;
     uint gasreqForFailingOffers;
@@ -48,33 +47,20 @@ abstract contract MgvOfferTaking is MgvHasOffers {
      The `takerGives/takerWants` ratio induces a maximum average price that the taker is ready to pay across all offers that will be executed during the market order. It is thus possible to execute an offer with a price worse than the initial (`takerGives`/`takerWants`) ratio given as argument to `marketOrder` if some cheaper offers were executed earlier in the market order.
 
   The market order stops when the price has become too high, or when the end of the book has been reached, or:
-  * If `fillWants` is true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained. With `fillWants` set to true, to buy a specific volume of `outbound_tkn` at any price, set `takerWants` to the amount desired and `takerGives` to $2^{160}-1$.
+  * If `fillWants` is true, the market order stops when `takerWants` units of `outbound_tkn` have been obtained. With `fillWants` set to true, to buy a specific volume of `outbound_tkn` at any price, set `takerWants` to the amount desired and `takerGives` to $2^{104}-1$.
   * If `fillWants` is false, the taker is filling `gives` instead: the market order stops when `takerGives` units of `inbound_tkn` have been sold. With `fillWants` set to false, to sell a specific volume of `inbound_tkn` at any price, set `takerGives` to the amount desired and `takerWants` to $0$. */
   function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
     public
-    returns (uint, uint, uint, uint)
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
-    require(uint160(takerWants) == takerWants, "mgv/mOrder/takerWants/160bits");
-    require(uint160(takerGives) == takerGives, "mgv/mOrder/takerGives/160bits");
     uint fillVolume = fillWants ? takerWants : takerGives;
-    int maxLogPrice = LogPriceLib.logPriceFromTakerVolumes(takerGives, takerWants);
-    return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants);
-  }
-
-  function marketOrderByPrice(OLKey memory olKey, uint maxPrice_e18, uint fillVolume, bool fillWants)
-    external
-    returns (uint, uint, uint, uint)
-  {
-    require(maxPrice_e18 <= LogPriceLib.MAX_PRICE_E18, "mgv/mOrder/maxPrice/tooHigh");
-    require(maxPrice_e18 >= LogPriceLib.MIN_PRICE_E18, "mgv/mOrder/maxPrice/tooLow");
-
-    int maxLogPrice = LogPriceLib.logPriceFromPrice_e18(maxPrice_e18);
+    int maxLogPrice = LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
     return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants);
   }
 
   function marketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
     public
-    returns (uint, uint, uint, uint)
+    returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     unchecked {
       (MgvStructs.GlobalPacked _global,,) = _config(olKey);
@@ -88,59 +74,12 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint fillVolume,
     bool fillWants,
     uint maxGasreqForFailingOffers
-  ) public returns (uint, uint, uint, uint) {
+  ) public returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
     unchecked {
       return generalMarketOrder(olKey, maxLogPrice, fillVolume, fillWants, msg.sender, maxGasreqForFailingOffers);
     }
   }
 
-  // get offer after current offer, will also remove the current offer and return the corresponding updated `local`
-  function getNextBest(
-    OfferList storage offerList,
-    MultiOrder memory mor,
-    MgvStructs.OfferPacked offer,
-    MgvStructs.LocalPacked local,
-    uint tickScale
-  ) internal returns (uint offerId, MgvStructs.LocalPacked) {
-    Tick offerTick = offer.tick(tickScale);
-    uint nextId = offer.next();
-
-    if (nextId == 0) {
-      Leaf leaf = mor.leaf;
-      leaf = leaf.setTickFirst(offerTick, 0).setTickLast(offerTick, 0);
-      if (leaf.isEmpty()) {
-        offerList.leafs[offerTick.leafIndex()] = leaf;
-        int index = offerTick.level0Index();
-        Field field = local.level0().flipBitAtLevel0(offerTick);
-        if (field.isEmpty()) {
-          offerList.level0[index] = field;
-          index = offerTick.level1Index();
-          field = local.level1().flipBitAtLevel1(offerTick);
-          if (field.isEmpty()) {
-            offerList.level1[index] = field;
-            field = local.level2().flipBitAtLevel2(offerTick);
-            local = local.level2(field);
-            if (field.isEmpty()) {
-              local = local.level1(field);
-              local = local.level0(field);
-              mor.leaf = LeafLib.EMPTY;
-              return (0, local);
-            }
-            index = field.firstLevel1Index();
-            field = offerList.level1[index];
-          }
-          local = local.level1(field);
-          index = field.firstLevel0Index(index);
-          field = offerList.level0[index];
-        }
-        local = local.level0(field);
-        leaf = offerList.leafs[field.firstLeafIndex(index)];
-      }
-      mor.leaf = leaf;
-      nextId = leaf.getNextOfferId();
-    }
-    return (nextId, local);
-  }
   /* # General Market Order */
   //+clear+
   /* General market orders set up the market order with a given `taker` (`msg.sender` in the most common case). Returns `(totalGot, totalGave, penaltyReceived, feePaid)`.
@@ -153,11 +92,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     bool fillWants,
     address taker,
     uint maxGasreqForFailingOffers
-  ) internal returns (uint, uint, uint, uint) {
+  ) internal returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
     unchecked {
-      //TODO is uint160 correct with new price limits?
-      /* Since amounts stored in offers are 96 bits wide, checking that `takerWants` and `takerGives` fit in 160 bits prevents overflow during the main market order loop. */
-      require(uint160(fillVolume) == fillVolume, "mgv/mOrder/fillVolume/160bits");
+      /* Checking that `takerWants` and `takerGives` fit in 104 bits prevents overflow during the main market order loop. */
+      require(fillVolume <= MAX_SAFE_VOLUME, "mgv/mOrder/fillVolume/tooBig");
       require(LogPriceLib.inRange(maxLogPrice), "mgv/mOrder/logPrice/outOfRange");
 
       /* `MultiOrder` (defined above) maintains information related to the entire market order. During the order, initial `wants`/`gives` values minus the accumulated amounts traded so far give the amounts that remain to be traded. */
@@ -177,7 +115,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
 
-      mor.leaf = offerList.leafs[sor.local.tick().leafIndex()];
+      mor.leaf = offerList.leafs[sor.local.bestTick().leafIndex()];
       sor.offerId = mor.leaf.getNextOfferId();
       sor.offer = offerList.offerData[sor.offerId].offer;
       /* fillVolume evolves but is initially however much remains in the market order. */
@@ -271,7 +209,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
         3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
       */
-      (sor.offerId, sor.local) = getNextBest(offerList, mor, sor.offer, sor.local, sor.olKey.tickScale);
+      (mor.leaf, sor.local) = dislodgeOffer(offerList, sor.olKey.tickScale, offer.prev(0), sor.local, true, mor.leaf);
+      sor.offerId = mor.leaf.getNextOfferId();
 
       sor.offer = offerList.offerData[sor.offerId].offer;
 
@@ -311,7 +250,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
     sor.local = sor.local.tickPosInLeaf(mor.leaf.firstOfferPosition());
     // no need to test whether mor.level2 != offerList.level2 since update is ~free
-    // ! local.level0[sor.local.tick().level0Index()] is now wrong
+    // ! local.level0[sor.local.bestTick().level0Index()] is now wrong
     // sor.local = sor.local.level0(mor.level0);
 
     int index = tick.leafIndex();
@@ -439,7 +378,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         require(mgvData != "mgv/tradeSuccess", "mgv/clean/offerDidNotFail");
 
         /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since the offer may be anywhere in the book. So we stitch together offers immediately after `execute`. */
-        sor.local = dislodgeOffer(offerList, sor.olKey.tickScale, sor.offer, sor.local, true);
+        (, sor.local) = dislodgeOffer(offerList, sor.olKey.tickScale, sor.offer, sor.local, true, LeafLib.EMPTY);
 
         /* <a id="internalSnipes/liftReentrancy"></a> Now that the current snipe is over, we can lift the lock on the book. In the same operation we
         * lift the reentrancy lock, and
@@ -511,7 +450,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         (gasused, makerData) = abi.decode(retdata, (uint, bytes32));
         /* `mgvData` indicates trade success */
         mgvData = bytes32("mgv/tradeSuccess");
-        emit OfferSuccess(sor.olKey.hash(), sor.offerId, mor.taker, sor.wants, sor.gives);
 
         /* If configured to do so, Mangrove notifies an external contract that a successful trade has taken place. */
         if (sor.global.notify()) {
@@ -527,10 +465,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         (mgvData, gasused, makerData) = innerDecode(retdata);
         /* Note that in the `if`s, the literals are bytes32 (stack values), while as revert arguments, they are strings (memory pointers). */
         if (mgvData == "mgv/makerRevert" || mgvData == "mgv/makerTransferFail" || mgvData == "mgv/makerReceiveFail") {
-          emit OfferFail(sor.olKey.hash(), sor.offerId, mor.taker, sor.wants, sor.gives, mgvData);
           /* Update (an upper bound) on gasreq required for failing offers */
           mor.gasreqForFailingOffers += sor.offerDetail.gasreq();
-
           /* If configured to do so, Mangrove notifies an external contract that a failed trade has taken place. */
           if (sor.global.notify()) {
             IMgvMonitor(sor.global.monitor()).notifyFail(sor, mor.taker);
@@ -620,11 +556,26 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       if (gasused > gasreq) {
         gasused = gasreq;
       }
-
-      gasused = gasused + makerPosthook(sor, gasreq - gasused, makerData, mgvData);
+      (uint posthookGas, bool callSuccess, bytes32 posthookData) =
+        makerPosthook(sor, gasreq - gasused, makerData, mgvData);
+      gasused = gasused + posthookGas;
 
       if (mgvData != "mgv/tradeSuccess") {
-        mor.totalPenalty += applyPenalty(sor, gasused);
+        uint penalty = applyPenalty(sor, gasused);
+        mor.totalPenalty += penalty;
+        if (!callSuccess) {
+          emit OfferFailWithPosthookData(
+            sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, penalty, mgvData, posthookData
+          );
+        } else {
+          emit OfferFail(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, penalty, mgvData);
+        }
+      } else {
+        if (!callSuccess) {
+          emit OfferSuccessWithPosthookData(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, posthookData);
+        } else {
+          emit OfferSuccess(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives);
+        }
       }
     }
   }
@@ -637,7 +588,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
   /* ## Maker Posthook */
   function makerPosthook(MgvLib.SingleOrder memory sor, uint gasLeft, bytes32 makerData, bytes32 mgvData)
     internal
-    returns (uint gasused)
+    returns (uint gasused, bool callSuccess, bytes32 posthookData)
   {
     unchecked {
       /* At this point, mgvData can only be `"mgv/tradeSuccess"`, `"mgv/makerRevert"`, `"mgv/makerTransferFail"` or `"mgv/makerReceiveFail"` */
@@ -652,13 +603,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         revert("mgv/notEnoughGasForMakerPosthook");
       }
 
-      (bool callSuccess, bytes32 posthookData) = controlledCall(maker, gasLeft, cd);
+      (callSuccess, posthookData) = controlledCall(maker, gasLeft, cd);
 
       gasused = oldGas - gasleft();
-
-      if (!callSuccess) {
-        emit PosthookFail(sor.olKey.hash(), sor.offerId, posthookData);
-      }
     }
   }
 

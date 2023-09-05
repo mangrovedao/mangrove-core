@@ -153,21 +153,21 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_marketOrder_0() public {
-    VolumeData[] memory vd = reader.marketOrder(olKey, 1 ether, 1 ether, true);
+    VolumeData[] memory vd = reader.marketOrderByVolume(olKey, 1 ether, 1 ether, true);
 
     assertEq(vd.length, 0);
   }
 
   function test_marketOrder_no_match() public {
     mkr.newOfferByVolume(1.1 ether, 1 ether, 0, 0);
-    VolumeData[] memory vd = reader.marketOrder(olKey, 1 ether, 1 ether, true);
+    VolumeData[] memory vd = reader.marketOrderByVolume(olKey, 1 ether, 1 ether, true);
 
     assertEq(vd.length, 0);
   }
 
   function test_marketOrder_partial_fillWants() public {
     mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
-    VolumeData[] memory vd = reader.marketOrder(olKey, 0.8 ether, 0.9 ether, true);
+    VolumeData[] memory vd = reader.marketOrderByVolume(olKey, 0.8 ether, 0.9 ether, true);
     assertEq(vd.length, 1, "bad vd length");
     assertEq(vd[0].totalGot, 0.8 ether, "bad totalGot");
     assertEq(vd[0].totalGave, 0.8 ether, "bad totalGave");
@@ -175,7 +175,7 @@ contract MgvReaderTest is MangroveTest {
 
   function test_marketOrder_partial_noFillWants() public {
     mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
-    VolumeData[] memory vd = reader.marketOrder(olKey, 0.3 ether, 0.9 ether, false);
+    VolumeData[] memory vd = reader.marketOrderByVolume(olKey, 0.3 ether, 0.9 ether, false);
     assertEq(vd.length, 1, "bad vd length");
     assertEq(vd[0].totalGot, 0.9 ether, "bad totalGot");
     assertEq(vd[0].totalGave, 0.9 ether, "bad totalGave");
@@ -183,7 +183,7 @@ contract MgvReaderTest is MangroveTest {
 
   function test_marketOrder_full_fillWants() public {
     mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
-    VolumeData[] memory vd = reader.marketOrder(olKey, 1 ether, 1 ether, true);
+    VolumeData[] memory vd = reader.marketOrderByVolume(olKey, 1 ether, 1 ether, true);
     assertEq(vd.length, 1, "bad vd length");
     assertEq(vd[0].totalGot, 1 ether, "bad totalGot");
     assertEq(vd[0].totalGave, 1 ether, "bad totalGave");
@@ -191,16 +191,16 @@ contract MgvReaderTest is MangroveTest {
 
   function test_marketOrder_full_noFillWants() public {
     mkr.newOfferByVolume(1 ether, 1.1 ether, 0, 0);
-    VolumeData[] memory vd = reader.marketOrder(olKey, 0.5 ether, 1 ether, false);
+    VolumeData[] memory vd = reader.marketOrderByVolume(olKey, 0.5 ether, 1 ether, false);
     assertEq(vd.length, 1, "bad vd length");
     assertEq(vd[0].totalGot, 1.1 ether, "bad totalGot");
     assertApproxEqRel(vd[0].totalGave, 1 ether, relError(10), "bad totalGave");
   }
 
-  function test_marketOrder_partial_due_to_price_fillWants() public {
+  function test_marketOrder_multiple_offers_last_partial_fillWants() public {
     mkr.newOfferByVolume(1 ether, 1 ether, 0, 0);
     mkr.newOfferByVolume(1 ether, 0.8 ether, 0, 0);
-    VolumeData[] memory vd = reader.marketOrder(olKey, 1.4 ether, 1.5 ether, true);
+    VolumeData[] memory vd = reader.marketOrderByVolume(olKey, 1.4 ether, 1.8 ether, true);
     assertEq(vd.length, 2, "bad vd length");
     assertEq(vd[0].totalGot, 1 ether, "bad totalGot[0]");
     assertEq(vd[0].totalGave, 1 ether, "bad totalGave[0]");
@@ -211,7 +211,7 @@ contract MgvReaderTest is MangroveTest {
   function test_marketOrder_gas() public {
     mkr.newOfferByVolume(1 ether, 1 ether, 214_000, 0);
     mkr.newOfferByVolume(1 ether, 1 ether, 216_000, 0);
-    VolumeData[] memory vd = reader.marketOrder(olKey, 1.4 ether, 1.5 ether, true);
+    VolumeData[] memory vd = reader.marketOrderByVolume(olKey, 1.4 ether, 1.5 ether, true);
     assertEq(vd.length, 2, "bad vd length");
     assertEq(vd[0].totalGasreq, 214_000, "bad totalGasreq[0]");
     assertEq(vd[1].totalGasreq, 214_000 + 216_000, "bad totalGasreq[1]");
@@ -221,7 +221,7 @@ contract MgvReaderTest is MangroveTest {
     vm.assume(fee <= 500);
     mgv.setFee(olKey, fee);
     mkr.newOfferByVolume(0.3 ether, 0.3 ether, 0, 0);
-    VolumeData[] memory vd = reader.marketOrder(olKey, 0.3 ether, 0.3 ether, true);
+    VolumeData[] memory vd = reader.marketOrderByVolume(olKey, 0.3 ether, 0.3 ether, true);
     assertEq(vd.length, 1, "bad vd length");
     assertEq(vd[0].totalGot, reader.minusFee(olKey, 0.3 ether), "bad totalGot");
     assertEq(vd[0].totalGave, 0.3 ether, "bad totalGave");
@@ -238,7 +238,7 @@ contract MgvReaderTest is MangroveTest {
   function test_marketOrder_volumeData_length(uint numOffers) public {
     numOffers = bound(numOffers, 0, 11);
     prepareOffers(numOffers);
-    VolumeData[] memory vd = reader.marketOrder(olKey, numOffers * 0.1 ether, numOffers * 0.1 ether, true);
+    VolumeData[] memory vd = reader.marketOrderByVolume(olKey, numOffers * 0.1 ether, numOffers * 0.1 ether, true);
     assertEq(vd.length, numOffers, "bad vd length");
     for (uint i = 0; i < numOffers; i++) {
       assertEq(vd[i].totalGot, (i + 1) * 0.1 ether, string.concat("bad totalGot ", vm.toString(i)));
@@ -254,7 +254,7 @@ contract MgvReaderTest is MangroveTest {
     uint volume = prepareOffers(numOffers);
     if (doSim) {
       _gas();
-      reader.marketOrder(olKey, volume, volume, true, true);
+      reader.marketOrderByVolume(olKey, volume, volume, true, true);
       sumGas += gas_("simulation");
     }
     _gas();
@@ -591,8 +591,8 @@ contract MgvReaderTest is MangroveTest {
     activateMarket(mktB);
     reader.updateMarket(mktB);
     mgv.deactivate(toOLKey(mktB));
-    reader.updateMarket(mktA);
-    reader.updateMarket(flipped(mktA));
+    reader.updateMarket(mktB);
+    reader.updateMarket(flipped(mktB));
     pushExpectedMarket(mktA, true, true);
 
     if (mktB.tkn0 == mktB.tkn1) {

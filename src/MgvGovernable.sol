@@ -1,30 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {HasMgvEvents, MgvStructs, DensityLib, OLKey} from "./MgvLib.sol";
-import {MgvRoot} from "./MgvRoot.sol";
+import {MgvLib, IMgvMonitor, MgvStructs, IERC20, Leaf, Field, Density, DensityLib, OLKey} from "./MgvLib.sol";
+import "mgv_src/MgvCommon.sol";
 
-contract MgvGovernable is MgvRoot {
-  /* The `governance` address. Governance is the only address that can configure parameters. */
-  address public governance;
-
-  constructor(address _governance, uint _gasprice, uint gasmax) MgvRoot() {
-    unchecked {
-      emit NewMgv();
-
-      /* Initially, governance is open to anyone. */
-
-      /* Set initial gasprice and gasmax. */
-      setGasprice(_gasprice);
-      setGasmax(gasmax);
-      /* Without optimizer enabled it fails above 79. Set default a bit lower to be safe. */
-      setMaxRecursionDepth(75);
-      /* Arbitrary initial limit for number of failing offers - let on average 10 failing offers consume up to gasmax*/
-      setMaxGasreqForFailingOffers(gasmax * 10);
-      /* Initialize governance to `_governance` after parameter setting. */
-      setGovernance(_governance);
-    }
-  }
+// Contains gov functions, to reduce Mangrove contract size
+contract MgvGovernable is MgvCommon {
+  /* Admin functions */
 
   /* ## `authOnly` check */
 

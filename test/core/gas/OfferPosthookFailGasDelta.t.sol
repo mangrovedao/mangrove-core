@@ -80,19 +80,26 @@ contract OfferPosthookFailGasDeltaTest is MangroveTest, IMaker {
   }
 
   function setUpGasTest(MangroveTestOptions memory options) public {
-    mgv = new BeforePosthookGasMeasuringMangrove({
-        governance: $(this),
-        gasprice: options.gasprice,
-        gasmax: options.gasmax
-      });
+    mgv = IMangrove(
+      payable(
+        address(
+          new BeforePosthookGasMeasuringMangrove({
+          governance: $(this),
+          gasprice: options.gasprice,
+          gasmax: options.gasmax
+          })
+        )
+      )
+    );
+    reader = new MgvReader($(mgv));
   }
 
   function setUpTokens(TestToken _base, TestToken _quote) public {
     base = _base;
     quote = _quote;
 
-    olKey = OLKey($(base), $(quote), options.defaultTickscale);
-    lo = OLKey($(quote), $(base), options.defaultTickscale);
+    olKey = OLKey($(base), $(quote), options.defaultTickScale);
+    lo = OLKey($(quote), $(base), options.defaultTickScale);
 
     setupMarket(olKey);
     setupMarket(lo);
@@ -110,6 +117,9 @@ contract OfferPosthookFailGasDeltaTest is MangroveTest, IMaker {
     deal($(base), maker, 200000 ether);
     deal($(quote), maker, 200000 ether);
     deal(maker, 1000 ether);
+    uint offerGivesOl = reader.minVolume(olKey, 100000);
+    uint offerGivesLo = reader.minVolume(lo, 100000);
+
     vm.prank(maker);
     mgv.fund{value: 10 ether}();
     vm.prank(maker);
@@ -119,21 +129,21 @@ contract OfferPosthookFailGasDeltaTest is MangroveTest, IMaker {
 
     // A successful offer (both offer lists)
     vm.prank(maker);
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1, 10000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 10000, 0);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, 1, 10000, 0);
+    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, offerGivesLo, 10000, 0);
 
     // Do not approve maker - we will let offers fail since then penalty must be calculated, which costs gas.
     for (uint i; i < 19; i++) {
-      mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, 1, 10000, 0);
-      mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1, 10000, 0);
+      mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 10000, 0);
+      mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, offerGivesLo, 10000, 0);
     }
 
     // A successful offer (both offer lists)
     vm.prank(maker);
-    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, 1, 10000, 0);
+    mgv.newOfferByLogPrice(olKey, MIDDLE_LOG_PRICE, offerGivesOl, 10000, 0);
     vm.prank(maker);
-    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, 1, 10000, 0);
+    mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, offerGivesLo, 10000, 0);
   }
 
   function posthook_delta_deep_order(OLKey memory olKey) public {

@@ -57,7 +57,7 @@ contract DynamicTicksTest is MangroveTest {
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
     uint ofr = mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_000, 30);
-    assertEq(mgv.offers(ol2, ofr).gives(), 0, "offer should not be at other tickscale");
+    assertEq(mgv.offers(ol2, ofr).gives(), 0, "offer should not be at other tick scale");
     assertEq(mgv.offers(olKey, ofr).logPrice(), insertionLogPrice, "offer not saved");
   }
 

@@ -14,7 +14,7 @@ contract DeactivateMarket is Deployer {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      market: Market({tkn0: envAddressOrName("TKN0"), tkn1: envAddressOrName("TKN1"), tickScale: vm.envUint("TICKSCALE")})
+      market: Market({tkn0: envAddressOrName("TKN0"), tkn1: envAddressOrName("TKN1"), tickScale: vm.envUint("TICK_SCALE")})
     });
     outputDeployment();
   }

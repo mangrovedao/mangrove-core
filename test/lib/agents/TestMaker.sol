@@ -415,11 +415,20 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
   }
 
   function clean(uint offerId, uint takerWants) public returns (bool success) {
-    return clean(olKey, offerId, takerWants);
+    int logPrice = mgv.offers(olKey, offerId).logPrice();
+    return clean(olKey, offerId, logPrice, takerWants);
+  }
+
+  function clean(uint offerId, int logPrice, uint takerWants) public returns (bool success) {
+    return clean(olKey, offerId, logPrice, takerWants);
   }
 
   function clean(OLKey memory _olKey, uint offerId, uint takerWants) public returns (bool success) {
     int logPrice = mgv.offers(olKey, offerId).logPrice();
+    return clean(_olKey, offerId, logPrice, takerWants);
+  }
+
+  function clean(OLKey memory _olKey, uint offerId, int logPrice, uint takerWants) public returns (bool success) {
     (uint successes,) = mgv.cleanByImpersonation(
       _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, logPrice, type(uint48).max, takerWants)), address(this)
     );

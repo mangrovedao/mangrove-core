@@ -44,7 +44,7 @@ function toString(${s.Unpacked} memory __unpacked) pure returns (string memory) 
 })}
 
 function tickBranchToString(Tick tick) pure returns (string memory) {
-  return string.concat(vm.toString(tick.posInLevel2()), "->", vm.toString(tick.posInLevel1()), "->", vm.toString(tick.posInLevel0()), "->", vm.toString(tick.posInLeaf()));
+  return string.concat(vm.toString(tick.posInLevel2()), "->", vm.toString(tick.posInLevel1()), "[", vm.toString(tick.level1Index()), "]->", vm.toString(tick.posInLevel0()), "[", vm.toString(tick.level0Index()), "]->", vm.toString(tick.posInLeaf()), "[", vm.toString(tick.leafIndex()), "]");
 }
 
 function toString(Tick tick) pure returns (string memory ret) {
@@ -55,7 +55,7 @@ function toString(Tick tick) pure returns (string memory ret) {
     suffix = logPriceToString(LogPriceLib.fromTick(tick,1));
   }
 
-  ret = string.concat(unicode"「", vm.toString(Tick.unwrap(tick))," (default: " ,suffix, ") [tree branch: ", tickBranchToString(tick), "]", unicode"」");
+  ret = string.concat(unicode"「", vm.toString(Tick.unwrap(tick))," (default: " ,suffix, ") {tree branch: ", tickBranchToString(tick), "}", unicode"」");
 }
 
 function logPriceToString(int logPrice) pure returns (string memory ret) {

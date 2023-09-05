@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import {TickTreeTest} from "./TickTreeTest.t.sol";
+import {TickTreeTest, TestTickTree} from "./TickTreeTest.t.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
@@ -311,13 +311,13 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     }
 
     // 3. Snapshot tick tree
-    TickTree storage tickTree = snapshotTickTree();
+    TestTickTree tickTree = snapshotTickTree();
     if (printToConsole) {
       console.log("before update");
       console.log("  MGV OB");
       printOrderBook(olKey);
       console.log("  tick tree");
-      logTickTree(tickTree);
+      tickTree.logTickTree();
     }
 
     // 4. Update the offer
@@ -326,7 +326,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     mkr.updateOfferByLogPrice(
       LogPriceLib.fromTick(newTick, olKey.tickScale), newGives, offerDetail.gasreq(), offerDetail.gasprice(), offerId
     );
-    updateOffer(tickTree, offerId, newTick, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(mkr));
+    tickTree.updateOffer(offerId, newTick, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(mkr));
     if (printToConsole) {
       console.log("");
       console.log("after update");
@@ -334,11 +334,11 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
       console.log("  MGV OB");
       printOrderBook(olKey);
       console.log("  tick tree");
-      logTickTree(tickTree);
+      tickTree.logTickTree();
     }
 
     // 5. Assert that Mangrove and tick tree are equal
-    assertMgvOfferListEqToTickTree(tickTree);
+    tickTree.assertEqToMgvOffer();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();
 

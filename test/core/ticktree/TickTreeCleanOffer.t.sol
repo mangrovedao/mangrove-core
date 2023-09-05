@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import {TickTreeTest} from "./TickTreeTest.t.sol";
+import {TickTreeTest, TestTickTree} from "./TickTreeTest.t.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
@@ -127,9 +127,9 @@ contract TickTreeCleanOfferTest is TickTreeTest {
       CleanOfferScenario({
         tickScenario: TickScenario({
           tick: 0,
-          hasHigherTick: true,
-          higherTick: 4,
-          higherTickListSize: 1,
+          hasHigherTick: false,
+          higherTick: 0,
+          higherTickListSize: 0,
           hasLowerTick: false,
           lowerTick: 0,
           lowerTickListSize: 0
@@ -175,18 +175,18 @@ contract TickTreeCleanOfferTest is TickTreeTest {
     }
 
     // 3. Snapshot tick tree
-    TickTree storage tickTree = snapshotTickTree();
+    TestTickTree tickTree = snapshotTickTree();
 
     // 4. Clean the offer
     mgv.cleanByImpersonation(
       olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, offer.logPrice(), offerDetail.gasreq(), 1 ether)), $(this)
     );
     if (scenario.offerFail) {
-      removeOffer(tickTree, offerId);
+      tickTree.removeOffer(offerId);
     }
 
     // 5. Assert that Mangrove and tick tree are equal
-    assertMgvOfferListEqToTickTree(tickTree);
+    tickTree.assertEqToMgvOffer();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();
 

@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import {TickTreeTest} from "./TickTreeTest.t.sol";
+import {TickTreeTest, TestTickTree} from "./TickTreeTest.t.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
@@ -157,15 +157,15 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     }
 
     // 3. Snapshot tick tree
-    TickTree storage tickTree = snapshotTickTree();
+    TestTickTree tickTree = snapshotTickTree();
 
     // 4. Retract the offer
     uint offerId = offerIds[scenario.offerPos];
     mkr.retractOffer(offerId);
-    removeOffer(tickTree, offerId);
+    tickTree.removeOffer(offerId);
 
     // 5. Assert that Mangrove and tick tree are equal
-    assertMgvOfferListEqToTickTree(tickTree);
+    tickTree.assertEqToMgvOffer();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();
 

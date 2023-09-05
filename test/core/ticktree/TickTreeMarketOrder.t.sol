@@ -199,11 +199,9 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     );
   }
 
-  function removeTakenOffers(TickTree storage tickTree, TickListScenario memory scenario, uint[] memory offerIds)
-    internal
-  {
+  function removeTakenOffers(TestTickTree tickTree, TickListScenario memory scenario, uint[] memory offerIds) internal {
     for (uint i = 0; i < scenario.offersToTake; ++i) {
-      removeOffer(tickTree, offerIds[i]);
+      tickTree.removeOffer(offerIds[i]);
     }
   }
 
@@ -229,7 +227,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
       + middleOffersGive * scenario.middleTick.offersToTake + higherOffersGive * scenario.higherTick.offersToTake;
 
     // 3. Snapshot tick tree
-    TickTree storage tickTree = snapshotTickTree();
+    TestTickTree tickTree = snapshotTickTree();
 
     // 4. Run the market order
     mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, fillVolume, true);
@@ -238,7 +236,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     removeTakenOffers(tickTree, scenario.higherTick, higherOfferIds);
 
     // 5. Assert that Mangrove and tick tree are equal
-    assertMgvOfferListEqToTickTree(tickTree);
+    tickTree.assertEqToMgvOffer();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();
 

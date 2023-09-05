@@ -9,16 +9,16 @@ The approach taken in these integration tests is to simulate what Mangrove shoul
 In overview, the tests are structured as follows:
 
 1. Set up Mangrove's initial state, i.e, post offers at relevant ticks (and possibly retract some of them).
-2. Take a snapshot of Mangrove's tick tree, i.e, a copy in the form of a test `TickTree`
+2. Take a snapshot of Mangrove's tick tree, i.e, a copy in the form of a `TestTickTree`
 3. Perform some operation on Mangrove (e.g, add or remove an offer)
-4. Perform equivalent operation(s) on the test `TickTree`
-5. Compare Mangrove's tick tree to the test `TickTree`.
+4. Perform equivalent operation(s) on the `TestTickTree`
+5. Compare Mangrove's tick tree to the `TestTickTree`.
 
 # Structure of the test contracts
 
-There are multiple test contracts named `TickTree*` all located in `test/core/ticktree`.
+The simple test tick tree is implemented in `test/lib/TestTickTree.sol`.
 
-The base contract is `TickTreeTest` and implements the test `TickTree` struct and operations on it as well as shared functions for the test contracts.
+The tests are all located in `test/core/ticktree` and they all extend the base contract `TickTreeTest`.
 
 For each Mangrove operation that modifies the tick tree, there is a separate contract which tests that operation on the tick tree. For example, `newOffer*` is tested in `TickTreeNewOfferTest`.
 

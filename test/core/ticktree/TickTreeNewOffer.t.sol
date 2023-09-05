@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.18;
 
-import {TickTreeTest} from "./TickTreeTest.t.sol";
+import {TickTreeTest, TestTickTree} from "./TickTreeTest.t.sol";
 import "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
@@ -152,17 +152,17 @@ contract TickTreeNewOfferTest is TickTreeTest {
     }
 
     // 3. Snapshot tick tree
-    TickTree storage tickTree = snapshotTickTree();
+    TestTickTree tickTree = snapshotTickTree();
 
     // 4. Create new offer and add it to tick tree
     Tick _insertionTick = Tick.wrap(scenario.tickScenario.tick);
     int logPrice = LogPriceLib.fromTick(_insertionTick, olKey.tickScale);
     uint gives = getAcceptableGivesForTick(_insertionTick, 50_000);
     mkr.newOfferByLogPrice(logPrice, gives, 50_000, 50);
-    addOffer(tickTree, _insertionTick, gives, 50_000, 50, $(mkr));
+    tickTree.addOffer(_insertionTick, gives, 50_000, 50, $(mkr));
 
     // 5. Assert that Mangrove and tick tree are equal
-    assertMgvOfferListEqToTickTree(tickTree);
+    tickTree.assertEqToMgvOffer();
     // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();
 

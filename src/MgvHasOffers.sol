@@ -9,59 +9,41 @@ import {
   Field,
   Leaf,
   Tick,
+  LeafLib,
   LEVEL2_SIZE,
   LEVEL1_SIZE,
   LEVEL0_SIZE,
   OLKey
 } from "./MgvLib.sol";
-import {MgvRoot} from "./MgvRoot.sol";
-import "mgv_lib/Debug.sol";
+import {MgvCommon} from "./MgvCommon.sol";
 
 /* `MgvHasOffers` contains the state variables and functions common to both market-maker operations and market-taker operations. Mostly: storing offers, removing them, updating market makers' provisions. */
-contract MgvHasOffers is MgvRoot {
-  /* # State variables */
-  /* Makers provision their possible penalties in the `balanceOf` mapping.
+contract MgvHasOffers is MgvCommon {
+  /*
+  # Gatekeeping
 
-       Offers specify the amount of gas they require for successful execution ([`gasreq`](#structs.js/gasreq)). To minimize book spamming, market makers must provision a *penalty*, which depends on their `gasreq` and on the offerList's [`offer_gasbase`](#structs.js/gasbase). This provision is deducted from their `balanceOf`. If an offer fails, part of that provision is given to the taker, as retribution. The exact amount depends on the gas used by the offer before failing.
+  Gatekeeping functions are safety checks called in various places.
+  */
 
-       The Mangrove keeps track of their available balance in the `balanceOf` map, which is decremented every time a maker creates a new offer, and may be modified on offer updates/cancellations/takings.
-     */
-  mapping(address maker => uint balance) public balanceOf;
-
-  /* # Read functions */
-  /* Convenience function to get best offer of the given offerList */
-  function best(OLKey memory olKey) external view returns (uint offerId) {
-    unchecked {
-      OfferList storage offerList = offerLists[olKey.hash()];
-      return offerList.leafs[offerList.local.bestTick().leafIndex()].getNextOfferId();
-    }
+  /* `unlockedMarketOnly` protects modifying the market while an order is in progress. Since external contracts are called during orders, allowing reentrancy would, for instance, let a market maker replace offers currently on the book with worse ones. Note that the external contracts _will_ be called again after the order is complete, this time without any lock on the market.  */
+  function unlockedMarketOnly(MgvStructs.LocalPacked local) internal pure {
+    require(!local.lock(), "mgv/reentrancyLocked");
   }
 
-  /* Convenience function to get an offer in packed format */
-  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer) {
-    return offerLists[olKey.hash()].offerData[offerId].offer;
+  /* <a id="Mangrove/definition/liveMgvOnly"></a>
+     In case of emergency, Mangrove can be `kill`ed. It cannot be resurrected. When a Mangrove is dead, the following operations are disabled :
+       * Executing an offer
+       * Sending ETH to Mangrove the normal way. Usual [shenanigans](https://medium.com/@alexsherbuck/two-ways-to-force-ether-into-a-contract-1543c1311c56) are possible.
+       * Creating a new offer
+   */
+  function liveMgvOnly(MgvStructs.GlobalPacked _global) internal pure {
+    require(!_global.dead(), "mgv/dead");
   }
 
-  /* Convenience function to get an offer detail in packed format */
-  function offerDetails(OLKey memory olKey, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferDetailPacked offerDetail)
-  {
-    return offerLists[olKey.hash()].offerData[offerId].detail;
-  }
-
-  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offerLists[outbound_tkn][inbound_tkn].offers` and `offerLists[outbound_tkn][inbound_tkn].offerDetails` instead. */
-  function offerInfo(OLKey memory olKey, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
-  {
-    unchecked {
-      OfferData storage offerData = offerLists[olKey.hash()].offerData[offerId];
-      offer = offerData.offer.to_struct();
-      offerDetail = offerData.detail.to_struct();
-    }
+  /* When Mangrove is deployed, all offerLists are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive offerLists cannot be taken or created. They can be updated and retracted. */
+  function activeMarketOnly(MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) internal pure {
+    liveMgvOnly(_global);
+    require(_local.active(), "mgv/inactive");
   }
 
   /* # Provision debit/credit utility functions */
@@ -69,16 +51,16 @@ contract MgvHasOffers is MgvRoot {
 
   function debitWei(address maker, uint amount) internal {
     unchecked {
-      uint makerBalance = balanceOf[maker];
+      uint makerBalance = _balanceOf[maker];
       require(makerBalance >= amount, "mgv/insufficientProvision");
-      balanceOf[maker] = makerBalance - amount;
+      _balanceOf[maker] = makerBalance - amount;
       emit Debit(maker, amount);
     }
   }
 
   function creditWei(address maker, uint amount) internal {
     unchecked {
-      balanceOf[maker] += amount;
+      _balanceOf[maker] += amount;
       emit Credit(maker, amount);
     }
   }
@@ -108,61 +90,77 @@ contract MgvHasOffers is MgvRoot {
   /* ## Stitching the orderbook */
 
   // shouldUpdateBest is true if we may want to update best, false if there is no way we want to update it (eg if we know we are about to reinsert the offer anyway and will update best then?)
+  // invariant: leaf!=EMPTY iff called from market order
+  // invariant: prev must be set to 0 when called from marketOrder, because by default offer's prev are kept stale but it would corrupt data in this function
+  // must return leaf values for caller (marketOrder) who does not want the leaf written
   function dislodgeOffer(
     OfferList storage offerList,
     uint tickScale,
     MgvStructs.OfferPacked offer,
     MgvStructs.LocalPacked local,
-    bool shouldUpdateBranch
-  ) internal returns (MgvStructs.LocalPacked) {
+    bool shouldUpdateBranch,
+    Leaf leaf
+  ) internal returns (Leaf, MgvStructs.LocalPacked) {
     unchecked {
-      Leaf leaf;
-      uint prevId = offer.prev();
+      bool inMarketOrder = !leaf.isEmpty();
       uint nextId = offer.next();
       Tick offerTick = offer.tick(tickScale);
-      if (prevId == 0 || nextId == 0) {
-        leaf = offerList.leafs[offerTick.leafIndex()];
-      }
+      Tick bestTick = inMarketOrder ? offerTick : local.bestTick();
 
-      // if current tick is not strictly better,
-      // time to look for a new current tick
-      // NOTE: I used to name this var "shouldUpdateTick" and add "&& (prevId == 0 && nextId == 0)" because tick has not changed if you are not removing the last offer of a tick. But for now i want to return the NEW BEST (for compatibility reasons). Will edit later.
-      // note: adding offerId as an arg would let us replace
-      // prevId == 0 && !local.tick.strictlyBetter(offerTick)
-      // with
-      // offerId == local.best() (but best will maybe go away in the future)
+      {
+        uint prevId = offer.prev();
+        if (!inMarketOrder && (prevId == 0 || nextId == 0)) {
+          leaf = offerList.leafs[offerTick.leafIndex()];
+        }
 
-      // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
-      // if local.tick < offerTick then a better branch is already cached. note that local.tick >= offerTick implies local.tick = offerTick
-      // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
-      shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !local.bestTick().strictlyBetter(offerTick);
+        // if current tick is not strictly better,
+        // time to look for a new current tick
+        // NOTE: I used to name this var "shouldUpdateTick" and add "&& (prevId == 0 && nextId == 0)" because tick has not changed if you are not removing the last offer of a tick. But for now i want to return the NEW BEST (for compatibility reasons). Will edit later.
+        // note: adding offerId as an arg would let us replace
+        // prevId == 0 && !local.tick.strictlyBetter(offerTick)
+        // with
+        // offerId == local.best() (but best will maybe go away in the future)
 
-      if (prevId == 0) {
-        // offer was tick's first. new first offer is offer.next (may be 0)
-        leaf = leaf.setTickFirst(offerTick, nextId);
-      } else {
-        // offer.prev's next becomes offer.next
-        OfferData storage prevOfferData = offerList.offerData[prevId];
-        prevOfferData.offer = prevOfferData.offer.next(nextId);
+        // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
+        // if local.tick < offerTick then a better branch is already cached. note that local.tick >= offerTick implies local.tick = offerTick
+        // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
+        shouldUpdateBranch =
+          shouldUpdateBranch && (inMarketOrder || (prevId == 0 && !bestTick.strictlyBetter(offerTick)));
+
+        if (prevId == 0) {
+          // offer was tick's first. new first offer is offer.next (may be 0)
+          leaf = leaf.setTickFirst(offerTick, nextId);
+        } else if (!inMarketOrder) {
+          // offer.prev's next becomes offer.next
+          OfferData storage prevOfferData = offerList.offerData[prevId];
+          prevOfferData.offer = prevOfferData.offer.next(nextId);
+        }
+
+        if (nextId == 0) {
+          // offer was tick's last. new last offer is offer.prev (may be 0)
+          leaf = leaf.setTickLast(offerTick, prevId);
+        } else if (!inMarketOrder) {
+          // offer.next's prev becomes offer.prev
+          OfferData storage nextOfferData = offerList.offerData[nextId];
+          nextOfferData.offer = nextOfferData.offer.prev(prevId);
+        }
+
+        // nextId is now an invalid id; it just encodes encodes prevId == 0 || nextId == 0
+        // this avoid stack too deep
+        nextId = nextId * prevId;
       }
 
       if (nextId == 0) {
-        // offer was tick's last. new last offer is offer.prev (may be 0)
-        leaf = leaf.setTickLast(offerTick, prevId);
-      } else {
-        // offer.next's prev becomes offer.prev
-        OfferData storage nextOfferData = offerList.offerData[nextId];
-        nextOfferData.offer = nextOfferData.offer.prev(prevId);
-      }
-
-      if (prevId == 0 || nextId == 0) {
         // offer.tick's first or last offer changed, must update leaf
-        offerList.leafs[offerTick.leafIndex()] = leaf;
+        // or we're in a market order in which case we only update empty leaf
+        if (!inMarketOrder || leaf.isEmpty()) {
+          offerList.leafs[offerTick.leafIndex()] = leaf;
+        }
         // if leaf now empty, flip ticks OFF up the tree
         if (leaf.isEmpty()) {
           int index = offerTick.level0Index(); // level0Index or level1Index
           Field field;
-          if (index == local.bestTick().level0Index()) {
+          if (index == bestTick.level0Index()) {
             field = local.level0().flipBitAtLevel0(offerTick);
             local = local.level0(field);
             if (shouldUpdateBranch && field.isEmpty()) {
@@ -174,7 +172,7 @@ contract MgvHasOffers is MgvRoot {
           }
           if (field.isEmpty()) {
             index = offerTick.level1Index(); // level0Index or level1Index
-            if (index == local.bestTick().level1Index()) {
+            if (index == bestTick.level1Index()) {
               field = local.level1().flipBitAtLevel1(offerTick);
               local = local.level1(field);
               if (shouldUpdateBranch && field.isEmpty()) {
@@ -185,16 +183,17 @@ contract MgvHasOffers is MgvRoot {
               offerList.level1[index] = field;
             }
             if (field.isEmpty()) {
-              local = local.level2(local.level2().flipBitAtLevel2(offerTick));
+              field = local.level2().flipBitAtLevel2(offerTick);
+              local = local.level2(field);
 
               // FIXME: should I let log2 not revert, but just return 0 if x is 0?
               // Why am I setting tick to 0 before I return?
-              if (local.level2().isEmpty()) {
-                return local;
+              if (field.isEmpty()) {
+                return (LeafLib.EMPTY, local);
               }
               // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
               if (shouldUpdateBranch) {
-                index = local.level2().firstLevel1Index();
+                index = field.firstLevel1Index();
                 field = offerList.level1[index];
                 local = local.level1(field);
               }
@@ -213,7 +212,7 @@ contract MgvHasOffers is MgvRoot {
           local = local.tickPosInLeaf(leaf.firstOfferPosition());
         }
       }
-      return local;
+      return (leaf, local);
     }
   }
 }

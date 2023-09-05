@@ -85,10 +85,9 @@ contract ExternalMarketOrderOtherOfferList_WithNoOtherOffersGasTest is GasTestBa
 
   function test_market_order_by_price_full() public {
     (IMangrove mgv, TestTaker taker, OLKey memory _olKey,) = getStored();
-    (uint mantissa, uint exp) = LogPriceConversionLib.priceFromLogPrice(MIDDLE_LOG_PRICE);
     vm.prank($(taker));
     _gas();
-    mgv.marketOrderByPrice(_olKey, mantissa, int(exp), 1 ether, false);
+    mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1 ether, false);
     gas_();
     assertEq(0, mgv.best(_olKey));
     description = string.concat(description, " - Case: market order by price full fill");

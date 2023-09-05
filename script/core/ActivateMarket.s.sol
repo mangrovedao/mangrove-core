@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 import "mgv_src/periphery/MgvReader.sol";
-import "mgv_src/Mangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {OLKey} from "mgv_src/MgvLib.sol";
 
@@ -21,7 +20,7 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 contract ActivateMarket is Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
+      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
       market: Market({tkn0: envAddressOrName("TKN1"), tkn1: envAddressOrName("TKN2"), tickScale: vm.envUint("TICKSCALE")}),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
@@ -50,7 +49,7 @@ contract ActivateMarket is Deployer {
   */
 
   function innerRun(
-    Mangrove mgv,
+    IMangrove mgv,
     MgvReader reader,
     Market memory market,
     uint tkn1_in_gwei,
@@ -66,7 +65,7 @@ contract ActivateMarket is Deployer {
    */
 
   function innerRun(
-    Mangrove mgv,
+    IMangrove mgv,
     uint gaspriceOverride,
     MgvReader reader,
     Market memory market,

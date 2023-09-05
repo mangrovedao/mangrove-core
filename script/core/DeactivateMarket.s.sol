@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
-import {Mangrove} from "mgv_src/Mangrove.sol";
+import {IMangrove} from "mgv_src/IMangrove.sol";
 import "mgv_src/periphery/MgvReader.sol";
 import {UpdateMarket} from "mgv_script/periphery/UpdateMarket.s.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
@@ -12,14 +12,14 @@ import {OLKey} from "mgv_src/MgvLib.sol";
 contract DeactivateMarket is Deployer {
   function run() public {
     innerRun({
-      mgv: Mangrove(envAddressOrName("MGV", "Mangrove")),
+      mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
       market: Market({tkn0: envAddressOrName("TKN0"), tkn1: envAddressOrName("TKN1"), tickScale: vm.envUint("TICKSCALE")})
     });
     outputDeployment();
   }
 
-  function innerRun(Mangrove mgv, MgvReader reader, Market memory market) public {
+  function innerRun(IMangrove mgv, MgvReader reader, Market memory market) public {
     broadcast();
     mgv.deactivate(toOLKey(market));
 

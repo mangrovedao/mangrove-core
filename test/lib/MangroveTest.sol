@@ -78,8 +78,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     defaultFee: 0,
     defaultTickscale: 1,
     gasprice: 40,
-    //FIXME: measure gasbase and consider using different measurement method (see GasBaseTest.t.sol)
-    gasbase: 150_000,
+    //Update `gasbase` by measuring using the test run `forge test --mc OfferGasBaseTest_Generic_A_B -vv`
+    gasbase: 184048,
     density: 10,
     gasmax: 2_000_000
   });

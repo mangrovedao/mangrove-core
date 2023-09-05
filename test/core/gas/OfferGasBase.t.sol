@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 import {MangroveTest, MgvReader, TestMaker, TestTaker, TestSender, console} from "mgv_test/lib/MangroveTest.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
+import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
@@ -16,14 +17,24 @@ import {OfferPosthookFailGasDeltaTest} from "./OfferPosthookFailGasDelta.t.sol";
 
 abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
   TestTaker internal taker;
-  PinnedPolygonFork internal fork;
+  GenericFork internal fork;
   OfferPosthookFailGasDeltaTest internal gasDeltaTest;
 
   function getStored() internal view override returns (AbstractMangrove, TestTaker, OLKey memory, uint) {
     return (mgv, taker, olKey, 0);
   }
 
-  function setUp() public virtual override {
+  function setUpGeneric() public virtual {
+    super.setUp();
+    fork = new GenericFork();
+    fork.set(options.base.symbol, $(base));
+    fork.set(options.quote.symbol, $(quote));
+    gasDeltaTest = new OfferPosthookFailGasDeltaTest();
+    gasDeltaTest.setUpGasTest(options);
+    description = "Offer gasbase measurements";
+  }
+
+  function setUpPolygon() public virtual {
     super.setUp();
     fork = new PinnedPolygonFork();
     fork.setUp();
@@ -121,9 +132,16 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
   }
 }
 
-contract OfferGasBaseTest_WETH_DAI is OfferGasBaseBaseTest {
+contract OfferGasBaseTest_Generic_A_B is OfferGasBaseBaseTest {
   function setUp() public override {
-    super.setUp();
+    super.setUpGeneric();
+    this.setUpTokens(options.base.symbol, options.quote.symbol);
+  }
+}
+
+contract OfferGasBaseTest_Polygon_WETH_DAI is OfferGasBaseBaseTest {
+  function setUp() public override {
+    super.setUpPolygon();
     this.setUpTokens("WETH", "DAI");
   }
 }

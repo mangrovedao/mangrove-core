@@ -290,12 +290,14 @@ contract MangroveTest is Test2, HasMgvEvents {
     // order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: TickLib.tickFromVolumes(order.gives,order.wants), __gives: order.wants});
   }
 
-  function mockBuyOrder(uint takerGives, uint takerWants, uint partialFill, OLKey memory _ol, bytes32 makerData)
-    public
-    pure
-    returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result)
-  {
-    order.olKey = _ol;
+  function mockBuyOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    OLKey memory _olBaseQuote,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.olKey = _olBaseQuote;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
@@ -310,19 +312,21 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
-    order.olKey = olKey;
+    order.olKey = lo;
     order.wants = takerWants;
     order.gives = takerGives;
     // complete fill (prev and next are bogus)
     order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
   }
 
-  function mockSellOrder(uint takerGives, uint takerWants, uint partialFill, OLKey memory _ol, bytes32 makerData)
-    public
-    pure
-    returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result)
-  {
-    order.olKey = _ol;
+  function mockSellOrder(
+    uint takerGives,
+    uint takerWants,
+    uint partialFill,
+    OLKey memory _olBaseQuote,
+    bytes32 makerData
+  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
+    order.olKey = _olBaseQuote.flipped();
     order.wants = takerWants;
     order.gives = takerGives;
     order.offer = MgvStructs.Offer.pack({

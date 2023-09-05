@@ -11,7 +11,7 @@ import {ActivateSemibook} from "./ActivateSemibook.s.sol";
 /* Example: activate (USDC,WETH) offer lists. Assume $NATIVE_IN_USDC is the price of ETH/MATIC/native token in USDC; same for $NATIVE_IN_ETH.
  TKN1=USDC \
  TKN2=WETH \
- TICKSCALE=1 \
+ TICK_SCALE=1 \
  TKN1_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_USDC) gwei) \
  TKN2_IN_GWEI=$(cast --to-wei $(bc -l <<< 1/$NATIVE_IN_ETH) gwei) \
  FEE=30 \
@@ -22,7 +22,7 @@ contract ActivateMarket is Deployer {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      market: Market({tkn0: envAddressOrName("TKN1"), tkn1: envAddressOrName("TKN2"), tickScale: vm.envUint("TICKSCALE")}),
+      market: Market({tkn0: envAddressOrName("TKN1"), tkn1: envAddressOrName("TKN2"), tickScale: vm.envUint("TICK_SCALE")}),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
       fee: vm.envUint("FEE")

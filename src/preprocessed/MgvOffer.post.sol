@@ -34,7 +34,7 @@ using OfferPackedExtra for OfferPacked global;
 using OfferUnpackedExtra for OfferUnpacked global;
 
 // cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant hide_fields_from_maker_mask = ~(prev_mask_inv | next_mask_inv);
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(prev_mask_inv | next_mask_inv);
 
 library OfferPackedExtra {
   // Compute wants from tick and gives
@@ -55,7 +55,7 @@ library OfferPackedExtra {
     unchecked {
       return OfferPacked.wrap(
         OfferPacked.unwrap(offer)
-        & hide_fields_from_maker_mask);
+        & HIDE_FIELDS_FROM_MAKER_MASK);
     }
   }
 }

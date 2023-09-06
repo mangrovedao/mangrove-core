@@ -40,7 +40,7 @@ using LocalPackedExtra for LocalPacked global;
 using LocalUnpackedExtra for LocalUnpacked global;
 
 // cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant hide_fields_from_maker_mask = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | last_mask_inv);
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | last_mask_inv);
 
 library LocalPackedExtra {
   function densityFromFixed(LocalPacked local, uint densityFixed) internal pure returns (LocalPacked) { unchecked {
@@ -59,7 +59,7 @@ library LocalPackedExtra {
     unchecked {
       return LocalPacked.wrap(
         LocalPacked.unwrap(local)
-        & hide_fields_from_maker_mask);
+        & HIDE_FIELDS_FROM_MAKER_MASK);
     }
   }
 }

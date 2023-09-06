@@ -56,6 +56,10 @@ function toString(LocalUnpacked memory __unpacked) pure returns (string memory) 
   return string.concat("Local{","active: ", vm.toString(__unpacked.active), ", ", "fee: ", vm.toString(__unpacked.fee), ", ", "density: ", toString(__unpacked.density), ", ", "tickPosInLeaf: ", vm.toString(__unpacked.tickPosInLeaf), ", ", "level0: ", toString(__unpacked.level0), ", ", "level1: ", toString(__unpacked.level1), ", ", "level2: ", toString(__unpacked.level2), ", ", "kilo_offer_gasbase: ", vm.toString(__unpacked.kilo_offer_gasbase), ", ", "lock: ", vm.toString(__unpacked.lock), ", ", "last: ", vm.toString(__unpacked.last),"}");
 }
 
+function tickBranchToString(Tick tick) pure returns (string memory) {
+  return string.concat(vm.toString(tick.posInLevel2()), "->", vm.toString(tick.posInLevel1()), "[", vm.toString(tick.level1Index()), "]->", vm.toString(tick.posInLevel0()), "[", vm.toString(tick.level0Index()), "]->", vm.toString(tick.posInLeaf()), "[", vm.toString(tick.leafIndex()), "]");
+}
+
 function toString(Tick tick) pure returns (string memory ret) {
   string memory suffix;
   if (MIN_TICK > Tick.unwrap(tick) || Tick.unwrap(tick) > MAX_TICK) {
@@ -64,7 +68,7 @@ function toString(Tick tick) pure returns (string memory ret) {
     suffix = logPriceToString(LogPriceLib.fromTick(tick,1));
   }
 
-  ret = string.concat(unicode"「", vm.toString(Tick.unwrap(tick))," (default: " ,suffix,unicode")」");
+  ret = string.concat(unicode"「", vm.toString(Tick.unwrap(tick))," (default: " ,suffix, ") {tree branch: ", tickBranchToString(tick), "}", unicode"」");
 }
 
 function logPriceToString(int logPrice) pure returns (string memory ret) {

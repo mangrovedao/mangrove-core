@@ -16,7 +16,7 @@ The main functions to test are:
 - `updateOffer` O(1) (live (different localities, higher/lower gasreq) or dead (deprovisioned or not))
 - `retractOffer` O(1) (deprovision or not)
 - `marketOrder` O(n) for n offers taken.
-- `snipe` O(1) but depends on gasreq.
+- `cleanByImpersonation` O(1) but depends on gasreq.
 
 These functions can be invoked from various places that affect their gas cost due to hot vs cold access:
 
@@ -120,9 +120,9 @@ We do not consider usage from maker contracts since it is unbounded, so only ext
 
 `OfferGasBaseBaseTest` outputs gas usage for a market order which takes the last available offer on an offer list. It also outputs the current estimate used for gasbase which comes from `ActivateSemibook`.
 
-### `snipe`
+### `cleanByImpersonation`
 
-We do not expect snipe to be used from maker contracts, so only external calls.
+We do not expect clean to be used from maker contracts, so only external calls.
 
 - `external`
   - same scenarios as `retractOffer` named `ExternalCleanOtherOfferList_*` instead of `ExternalRetractOfferOtherOfferList_*`.

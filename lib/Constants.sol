@@ -5,8 +5,8 @@ uint constant ONES = type(uint).max;
 uint constant TOPBIT = 1 << 255;
 
 // MIN_TICK and MAX_TICK should be inside the addressable range defined by the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2
-int constant MIN_TICK = -524287;
-int constant MAX_TICK = -MIN_TICK;
+int constant MIN_TICK = -524288;
+int constant MAX_TICK = -MIN_TICK - 1;
 
 // sizes must match field sizes in structs.ts where relevant
 uint constant TICK_BITS = 24;

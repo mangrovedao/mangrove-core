@@ -393,7 +393,7 @@ contract GatekeepingTest is MangroveTest {
   function test_newOffer_on_posthook_succeeds() public {
     mkr.approveMgv(base, 1 ether);
     deal($(base), $(mkr), 1 ether);
-    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 300_000);
 
     mkr.setPosthookCallback($(this), abi.encodeCall(this.newOfferOK, (olKey)));
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");

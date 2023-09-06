@@ -289,7 +289,7 @@ library OfferDetailUnpackedExtra {
       { name: "tickPosInLeaf", bits: 2, type: "uint" },
       { name: "level0", bits: 64, type: "Field", underlyingType: "uint" },
       { name: "level1", bits: 64, type: "Field", underlyingType: "uint" },
-      { name: "level2", bits: 64, type: "Field", underlyingType: "uint" },
+      { name: "tickPosInLevel2", bits: 8, type: "uint"},
       /* * `offer_gasbase` is an overapproximation of the gas overhead associated with processing one offer. The Mangrove considers that a failed offer has used at least `offer_gasbase` gas. The actual field name is `kilo_offer_gasbase` and the accessor `offer_gasbase` returns `kilo_offer_gasbase*1e3`. Local to a pair, because the costs of calling `outbound_tkn` and `inbound_tkn`'s `transferFrom` are part of `offer_gasbase`. Should only be updated when ERC20 contracts change or when opcode prices change. */
       fields.kilo_offer_gasbase,
       /* * If `lock` is true, orders may not be added nor executed.
@@ -315,7 +315,7 @@ using LocalPackedExtra for LocalPacked global;
 using LocalUnpackedExtra for LocalUnpacked global;
 
 // cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
-uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | last_mask_inv);
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | tickPosInLevel2_mask_inv | last_mask_inv);
 
 library LocalPackedExtra {
   function densityFromFixed(LocalPacked local, uint densityFixed) internal pure returns (LocalPacked) { unchecked {
@@ -328,7 +328,12 @@ library LocalPackedExtra {
     return local.kilo_offer_gasbase(val/1e3);
   }}
   function bestTick(LocalPacked local) internal pure returns (Tick) {
-    return TickLib.tickFromBranch(local.tickPosInLeaf(),local.level0(),local.level1(),local.level2());
+    Field level0 = local.level0();
+    if (level0.isEmpty()) {
+      return Tick.wrap(MAX_TICK+1);
+    } else {
+      return TickLib.tickFromBranch(local.tickPosInLeaf(),level0,local.level1(),local.tickPosInLevel2());
+    }
   }
   function clearFieldsForMaker(LocalPacked local) internal pure returns (LocalPacked) {
     unchecked {
@@ -350,7 +355,7 @@ library LocalUnpackedExtra {
     local.kilo_offer_gasbase = val/1e3;
   }}
   function bestTick(LocalUnpacked memory local) internal pure returns (Tick) {
-    return TickLib.tickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2);
+    return TickLib.tickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.tickPosInLevel2);
   }
 }
 `,

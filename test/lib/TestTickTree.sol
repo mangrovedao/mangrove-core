@@ -28,6 +28,7 @@ uint constant MAX_LEVEL2_POSITION = uint(LEVEL2_SIZE - 1);
 // NB: Inheriting from MangroveTest to get assert functions.
 contract TestTickTree is MangroveTest {
   MgvStructs.LocalPacked public local;
+  Field level2;
   mapping(uint => MgvCommon.OfferData) public offers;
   mapping(int => Leaf) public leafs;
   mapping(int => Field) public level0s;
@@ -45,9 +46,9 @@ contract TestTickTree is MangroveTest {
   // Creates a snapshot of the Mangrove tick tree
   function snapshotMgvTickTree() public {
     local = reader.local(olKey);
-    Field level2 = mgv.level2(olKey);
+    Field _level2 = mgv.level2(olKey);
     for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
-      if (!isBitSet(level2, level2Pos)) {
+      if (!isBitSet(_level2, level2Pos)) {
         continue;
       }
 
@@ -85,7 +86,7 @@ contract TestTickTree is MangroveTest {
 
   // Checks that the current Mangrove tick tree in olKey is consistent
   function assertMgvTickTreeIsConsistent() public {
-    Field level2 = mgv.level2(olKey);
+    Field _level2 = mgv.level2(olKey);
     for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
       bool level2PosIsSet = isBitSet(level2, level2Pos);
       int level1Index = level1IndexFromLevel2Pos(level2Pos);
@@ -218,11 +219,11 @@ contract TestTickTree is MangroveTest {
 
   // Checks that the current Mangrove tick tree in olKey is equal to the tick tree passed as argument
   function assertEqToMgvOffer() public {
-    Field level2 = mgv.level2(olKey);
+    Field _level2 = mgv.level2(olKey);
     for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
       assertEq(
+        isBitSet(_level2, level2Pos),
         isBitSet(level2, level2Pos),
-        isBitSet(local.level2(), level2Pos),
         string.concat("level2 bit mismatch, pos: ", vm.toString(level2Pos))
       );
       if (!isBitSet(level2, level2Pos)) {
@@ -316,7 +317,6 @@ contract TestTickTree is MangroveTest {
   }
 
   function logTickTree() public view {
-    Field level2 = local.level2();
     for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
       if (!isBitSet(level2, level2Pos)) {
         continue;
@@ -361,7 +361,6 @@ contract TestTickTree is MangroveTest {
   }
 
   function best() public view returns (uint bestOfferId, Tick bestTick) {
-    Field level2 = local.level2();
     for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
       if (!isBitSet(level2, level2Pos)) {
         continue;
@@ -420,7 +419,8 @@ contract TestTickTree is MangroveTest {
     });
 
     // Update levels
-    local = local.level2(setBit(local.level2(), tick.posInLevel2()));
+    level2 = setBit(level2, tick.posInLevel2());
+    local = local.tickPosInLevel2(tick.posInLevel2());
     // As an optimization, Mangrove only updates these for the part of the branch that is not best.
     // We don't do that here, as there's no reason for the complexity.
     level1s[tick.level1Index()] = setBit(level1s[tick.level1Index()], tick.posInLevel1());
@@ -456,7 +456,8 @@ contract TestTickTree is MangroveTest {
       if (level0s[tick.level0Index()].eq(FieldLib.EMPTY)) {
         level1s[tick.level1Index()] = unsetBit(level1s[tick.level1Index()], tick.posInLevel1());
         if (level1s[tick.level1Index()].eq(FieldLib.EMPTY)) {
-          local = local.level2(unsetBit(local.level2(), tick.posInLevel2()));
+          local = local.tickPosInLevel2(tick.posInLevel2());
+          level2 = unsetBit(level2, tick.posInLevel2());
         }
       }
     }
@@ -470,6 +471,7 @@ contract TestTickTree is MangroveTest {
     local = local.level1(level1s[tick.level1Index()]);
     local = local.level0(level0s[tick.level0Index()]);
     local = local.tickPosInLeaf(tick.posInLeaf());
+    local = local.tickPosInLevel2(tick.posInLevel2());
   }
 
   function addOffer(Tick tick, uint gives, uint gasreq, uint gasprice, address maker) public {

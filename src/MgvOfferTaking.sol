@@ -88,8 +88,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           field = local.level1().flipBitAtLevel1(offerTick);
           if (field.isEmpty()) {
             offerList.level1[index] = field;
-            field = local.level2().flipBitAtLevel2(offerTick);
-            local = local.level2(field);
+            field = offerList.level2.flipBitAtLevel2(offerTick);
+            // on an abstract level level2 should be cached and only flushed at the end of the market order,
+            // however it is highly unlikely that the level2 will be reached > 1 in a marketOrder
+            offerList.level2 = field;
             if (field.isEmpty()) {
               local = local.level1(field);
               local = local.level0(field);
@@ -256,7 +258,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         // maybe some updates below are useless? if we don't update these we must take it into account elsewhere
         // no need to test whether level2 has been reached since by default its stored in local
 
-        sor.local = sor.local.tickPosInLeaf(mor.leaf.firstOfferPosition());
+        sor.local = sor.local.tickPosInLeaf(tick.posInLeaf());
+        sor.local = sor.local.tickPosInLevel2(tick.posInLevel2());
         // no need to test whether mor.level2 != offerList.level2 since update is ~free
         // ! local.level0[sor.local.bestTick().level0Index()] is now wrong
         // sor.local = sor.local.level0(mor.level0);

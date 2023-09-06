@@ -146,12 +146,12 @@ library TickLib {
     return Tick.wrap(tick);
   }
 
-  function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2) internal pure returns (Tick) {
+  function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, uint tickPosInLevel2) internal pure returns (Tick) {
     unchecked {
       uint utick = tickPosInLeaf |
         ((BitLib.ctz(Field.unwrap(level0)) |
           (BitLib.ctz(Field.unwrap(level1)) |
-            uint((int(BitLib.ctz(Field.unwrap(level2)))-LEVEL2_SIZE/2) << LEVEL1_SIZE_BITS)) 
+            uint((int(tickPosInLevel2)-LEVEL2_SIZE/2) << LEVEL1_SIZE_BITS)) 
             << LEVEL0_SIZE_BITS)
           << LEAF_SIZE_BITS);
       return Tick.wrap(int(utick));

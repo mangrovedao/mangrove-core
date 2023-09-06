@@ -91,6 +91,13 @@ contract TestTaker is ITaker, Script2 {
 
   function takerTrade(OLKey calldata, uint, uint) external pure override {}
 
+  function marketOrderByLogPrice(int logPrice, uint fillVolume, bool fillWants)
+    external
+    returns (uint takerGot, uint takerGave)
+  {
+    (takerGot, takerGave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, fillVolume, fillWants);
+  }
+
   function marketOrderWithSuccess(uint takerWants) external returns (bool success) {
     (uint got,,,) = mgv.marketOrderByVolume(olKey, takerWants, type(uint96).max, true);
     return got > 0;

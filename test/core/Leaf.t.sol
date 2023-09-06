@@ -213,7 +213,7 @@ contract TickTest is Test {
     Field level0 = Field.wrap(bound(_level0, 1, uint(LEVEL0_SIZE) - 1));
     Field level1 = Field.wrap(bound(_level1, 1, uint(LEVEL1_SIZE) - 1));
     Field level2 = Field.wrap(bound(_level2, 1, uint(LEVEL2_SIZE) - 1));
-    Tick tick = TickLib.tickFromBranch(tickPosInLeaf, level0, level1, level2);
+    Tick tick = TickLib.tickFromBranch(tickPosInLeaf, level0, level1, level2.firstOnePosition());
     assertEq(tick.posInLeaf(), tickPosInLeaf, "wrong pos in leaf");
     assertEq(tick.posInLevel0(), BitLib.ctz(Field.unwrap(level0)), "wrong pos in level0");
     assertEq(tick.posInLevel1(), BitLib.ctz(Field.unwrap(level1)), "wrong pos in level1");

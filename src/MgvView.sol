@@ -20,11 +20,7 @@ contract MgvView is MgvCommon {
   }
 
   /* Reading the global configuration. In addition, a parameter (`gasprice`) may be read from the oracle. */
-  function configGlobal()
-    public
-    view
-    returns (MgvStructs.GlobalPacked _global)
-  {
+  function configGlobal() public view returns (MgvStructs.GlobalPacked _global) {
     unchecked {
       (_global,,) = _config(OLKey(address(0), address(0), 0));
     }
@@ -68,7 +64,7 @@ contract MgvView is MgvCommon {
     OfferList storage offerList = offerLists[olKey.hash()];
     MgvStructs.LocalPacked local = offerList.local;
     unlockedMarketOnly(local);
-    return local.level2();
+    return offerLists[olKey.hash()].level2;
   }
 
   /* Returns the configuration in an ABI-compatible struct. Should not be called internally, would be a huge memory copying waste. Use `config` instead. */
@@ -86,11 +82,7 @@ contract MgvView is MgvCommon {
   }
 
   /* Returns the global configuration in an ABI-compatible struct. Should not be called internally. */
-  function configGlobalInfo()
-    external
-    view
-    returns (MgvStructs.GlobalUnpacked memory _global)
-  {
+  function configGlobalInfo() external view returns (MgvStructs.GlobalUnpacked memory _global) {
     unchecked {
       MgvStructs.GlobalPacked __global = configGlobal();
       _global = __global.to_struct();

@@ -516,7 +516,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     console.log("Current level 0 %s (index %s)", toString(_local.level0()), vm.toString(tick.level0Index()));
     int level1Index = tick.level1Index();
     console.log("Current level 1 %s (index %s)", toString(_mgv.level1(_ol, level1Index)), vm.toString(level1Index));
-    console.log("Current level 2 %s", toString(_local.level2()));
+    console.log("Current local.posInLevel2 %s", _local.tickPosInLevel2());
+    console.log("Current level 2 %s", toString(_mgv.level2(_ol)));
     console.log("----------------------------------------");
   }
 }

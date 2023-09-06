@@ -332,6 +332,7 @@ contract MgvOfferMaking is MgvHasOffers {
       }
       if (insertionTick.strictlyBetter(cachedLocalTick)) {
         ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
+        ofp.local = ofp.local.tickPosInLevel2(insertionTick.posInLevel2());
       }
 
       // insertion
@@ -354,7 +355,21 @@ contract MgvOfferMaking is MgvHasOffers {
         }
 
         // Write insertion level0
-        if (insertionIndex <= currentIndex || ofp.local.level2().isEmpty()) {
+        /* 
+        Note :
+          2nd disjunct used to be "level2 empty" but this costs too much gas
+          now. Proof that it's fine to check level0.isEmpty() instead:
+
+          - if level2 is empty then level0 was empty
+          - if level2 is not empty we need 
+            (iIndex<=cIndex||level2E) iff (iIndex<=cIndex || level0E)
+            if shouldUpdateBranch then level0=0 -> level2=0, done
+            if !shouldUpdateBranch,
+              in the bad case: (iIndex<=cIndex||False)=iIndex<cIndex iff (iIndex<cIndex||True) = True
+              so we need l0E->iIndex<=cIndex, 
+              but by !shouldUpdateBranch iTick<cTick so iIndex<=cIndex so we're done
+          */
+        if (insertionIndex <= currentIndex || ofp.local.level0().isEmpty()) {
           ofp.local = ofp.local.level0(field.flipBitAtLevel0(insertionTick));
         } else {
           offerList.level0[insertionIndex] = field.flipBitAtLevel0(insertionTick);
@@ -374,14 +389,16 @@ contract MgvOfferMaking is MgvHasOffers {
             offerList.level1[currentIndex] = ofp.local.level1();
           }
 
-          if (insertionIndex <= currentIndex || ofp.local.level2().isEmpty()) {
+          // same reasoning as above (works for level1 too)
+          if (insertionIndex <= currentIndex || ofp.local.level0().isEmpty()) {
             ofp.local = ofp.local.level1(field.flipBitAtLevel1(insertionTick));
           } else {
             offerList.level1[insertionIndex] = field.flipBitAtLevel1(insertionTick);
           }
           // if level1 was empty, flip tick on at level2
           if (field.isEmpty()) {
-            ofp.local = ofp.local.level2(ofp.local.level2().flipBitAtLevel2(insertionTick));
+            field = offerList.level2.flipBitAtLevel2(insertionTick);
+            offerList.level2 = field;
           }
         }
       }

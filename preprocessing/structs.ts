@@ -118,6 +118,9 @@ import "mgv_lib/LogPriceConversionLib.sol";
 using OfferPackedExtra for OfferPacked global;
 using OfferUnpackedExtra for OfferUnpacked global;
 
+// cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(prev_mask_inv | next_mask_inv);
+
 library OfferPackedExtra {
   // Compute wants from tick and gives
   function wants(OfferPacked offer) internal pure returns (uint) {
@@ -132,6 +135,13 @@ library OfferPackedExtra {
   }
   function tick(OfferPacked offer, uint tickScale) internal pure returns (Tick) {
     return TickLib.fromLogPrice(offer.logPrice(),tickScale);
+  }
+  function clearFieldsForMaker(OfferPacked offer) internal pure returns (OfferPacked) {
+    unchecked {
+      return OfferPacked.wrap(
+        OfferPacked.unwrap(offer)
+        & HIDE_FIELDS_FROM_MAKER_MASK);
+    }
   }
 }
 
@@ -308,6 +318,9 @@ import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 using LocalPackedExtra for LocalPacked global;
 using LocalUnpackedExtra for LocalUnpacked global;
 
+// cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | last_mask_inv);
+
 library LocalPackedExtra {
   function densityFromFixed(LocalPacked local, uint densityFixed) internal pure returns (LocalPacked) { unchecked {
     return local.density(DensityLib.fromFixed(densityFixed));
@@ -320,6 +333,13 @@ library LocalPackedExtra {
   }}
   function bestTick(LocalPacked local) internal pure returns (Tick) {
     return TickLib.tickFromBranch(local.tickPosInLeaf(),local.level0(),local.level1(),local.level2());
+  }
+  function clearFieldsForMaker(LocalPacked local) internal pure returns (LocalPacked) {
+    unchecked {
+      return LocalPacked.wrap(
+        LocalPacked.unwrap(local)
+        & HIDE_FIELDS_FROM_MAKER_MASK);
+    }
   }
 }
 

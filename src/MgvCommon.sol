@@ -69,6 +69,33 @@ contract MgvCommon is HasMgvEvents {
      */
   mapping(address maker => uint balance) internal _balanceOf;
 
+  /*
+  # Gatekeeping
+
+  Gatekeeping functions are safety checks called in various places.
+  */
+
+  /* `unlockedMarketOnly` protects modifying the market while an order is in progress. Since external contracts are called during orders, allowing reentrancy would, for instance, let a market maker replace offers currently on the book with worse ones. Note that the external contracts _will_ be called again after the order is complete, this time without any lock on the market.  */
+  function unlockedMarketOnly(MgvStructs.LocalPacked local) internal pure {
+    require(!local.lock(), "mgv/reentrancyLocked");
+  }
+
+  /* <a id="Mangrove/definition/liveMgvOnly"></a>
+     In case of emergency, Mangrove can be `kill`ed. It cannot be resurrected. When a Mangrove is dead, the following operations are disabled :
+       * Executing an offer
+       * Sending ETH to Mangrove the normal way. Usual [shenanigans](https://medium.com/@alexsherbuck/two-ways-to-force-ether-into-a-contract-1543c1311c56) are possible.
+       * Creating a new offer
+   */
+  function liveMgvOnly(MgvStructs.GlobalPacked _global) internal pure {
+    require(!_global.dead(), "mgv/dead");
+  }
+
+  /* When Mangrove is deployed, all offerLists are inactive by default (since `locals[outbound_tkn][inbound_tkn]` is 0 by default). Offers on inactive offerLists cannot be taken or created. They can be updated and retracted. */
+  function activeMarketOnly(MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) internal pure {
+    liveMgvOnly(_global);
+    require(_local.active(), "mgv/inactive");
+  }
+
   /* This code exists in 2 copies one in Mangrove and one in MgvViewFns.
      We could have it only in Mangrove and get MgvViewFns to always call mgv.config but would be an extra call to mangrove for a lot of view functions, which can be avoided by just duplicating the code.
   */

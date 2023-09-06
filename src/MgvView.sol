@@ -15,6 +15,14 @@ contract MgvView is MgvCommon {
   {
     unchecked {
       (_global, _local,) = _config(olKey);
+      unlockedMarketOnly(_local);
+    }
+  }
+
+  /* Reading the global configuration. In addition, a parameter (`gasprice`) may be read from the oracle. */
+  function configGlobal() public view returns (MgvStructs.GlobalPacked _global) {
+    unchecked {
+      (_global,,) = _config(OLKey(address(0), address(0), 0));
     }
   }
 
@@ -23,12 +31,15 @@ contract MgvView is MgvCommon {
   }
 
   function leafs(OLKey memory olKey, int index) external view returns (Leaf) {
-    return offerLists[olKey.hash()].leafs[index];
+    OfferList storage offerList = offerLists[olKey.hash()];
+    unlockedMarketOnly(offerList.local);
+    return offerList.leafs[index];
   }
 
   function level0(OLKey memory olKey, int index) external view returns (Field) {
     OfferList storage offerList = offerLists[olKey.hash()];
     MgvStructs.LocalPacked local = offerList.local;
+    unlockedMarketOnly(local);
 
     if (local.bestTick().level0Index() == index) {
       return local.level0();
@@ -40,6 +51,7 @@ contract MgvView is MgvCommon {
   function level1(OLKey memory olKey, int index) external view returns (Field) {
     OfferList storage offerList = offerLists[olKey.hash()];
     MgvStructs.LocalPacked local = offerList.local;
+    unlockedMarketOnly(local);
 
     if (local.bestTick().level1Index() == index) {
       return local.level1();
@@ -49,7 +61,10 @@ contract MgvView is MgvCommon {
   }
 
   function level2(OLKey memory olKey) external view returns (Field) {
-    return offerLists[olKey.hash()].local.level2();
+    OfferList storage offerList = offerLists[olKey.hash()];
+    MgvStructs.LocalPacked local = offerList.local;
+    unlockedMarketOnly(local);
+    return local.level2();
   }
 
   /* Returns the configuration in an ABI-compatible struct. Should not be called internally, would be a huge memory copying waste. Use `config` instead. */
@@ -60,8 +75,17 @@ contract MgvView is MgvCommon {
   {
     unchecked {
       (MgvStructs.GlobalPacked __global, MgvStructs.LocalPacked __local) = config(olKey);
+      unlockedMarketOnly(__local);
       _global = __global.to_struct();
       _local = __local.to_struct();
+    }
+  }
+
+  /* Returns the global configuration in an ABI-compatible struct. Should not be called internally. */
+  function configGlobalInfo() external view returns (MgvStructs.GlobalUnpacked memory _global) {
+    unchecked {
+      MgvStructs.GlobalPacked __global = configGlobal();
+      _global = __global.to_struct();
     }
   }
 
@@ -75,13 +99,17 @@ contract MgvView is MgvCommon {
   function best(OLKey memory olKey) external view returns (uint offerId) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
-      return offerList.leafs[offerList.local.bestTick().leafIndex()].getNextOfferId();
+      MgvStructs.LocalPacked local = offerList.local;
+      unlockedMarketOnly(local);
+      return offerList.leafs[local.bestTick().leafIndex()].getNextOfferId();
     }
   }
 
   /* Convenience function to get an offer in packed format */
   function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer) {
-    return offerLists[olKey.hash()].offerData[offerId].offer;
+    OfferList storage offerList = offerLists[olKey.hash()];
+    unlockedMarketOnly(offerList.local);
+    return offerList.offerData[offerId].offer;
   }
 
   /* Convenience function to get an offer detail in packed format */
@@ -90,7 +118,9 @@ contract MgvView is MgvCommon {
     view
     returns (MgvStructs.OfferDetailPacked offerDetail)
   {
-    return offerLists[olKey.hash()].offerData[offerId].detail;
+    OfferList storage offerList = offerLists[olKey.hash()];
+    unlockedMarketOnly(offerList.local);
+    return offerList.offerData[offerId].detail;
   }
 
   /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offerLists[outbound_tkn][inbound_tkn].offers` and `offerLists[outbound_tkn][inbound_tkn].offerDetails` instead. */
@@ -100,7 +130,9 @@ contract MgvView is MgvCommon {
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
   {
     unchecked {
-      OfferData storage offerData = offerLists[olKey.hash()].offerData[offerId];
+      OfferList storage offerList = offerLists[olKey.hash()];
+      unlockedMarketOnly(offerList.local);
+      OfferData storage offerData = offerList.offerData[offerId];
       offer = offerData.offer.to_struct();
       offerDetail = offerData.detail.to_struct();
     }

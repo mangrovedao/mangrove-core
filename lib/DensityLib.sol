@@ -58,6 +58,10 @@ library DensityLib {
   uint constant FIXED_BITS = FIXED_INTEGER_BITS + FIXED_FRACTIONAL_BITS;
   uint constant FIXED_MASK = ~(ONES << FIXED_BITS);
 
+  function eq(Density a, Density b) internal pure returns (bool) { unchecked {
+    return Density.unwrap(a) == Density.unwrap(b);
+  }}
+
   // Check the size of a fixed-point formatted density
   function checkFixedDensity(uint densityFixed) internal pure returns (bool) { unchecked {
     return densityFixed & FIXED_MASK == densityFixed;

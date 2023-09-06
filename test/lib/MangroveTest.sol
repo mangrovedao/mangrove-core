@@ -456,6 +456,22 @@ contract MangroveTest is Test2, HasMgvEvents {
     }
   }
 
+  function assertEq(Tick a, Tick b) internal {
+    if (!a.eq(b)) {
+      emit log("Error: a == b not satisfied [Tick]");
+      emit log_named_string("      Left", toString(a));
+      emit log_named_string("     Right", toString(b));
+      fail();
+    }
+  }
+
+  function assertEq(Tick a, Tick b, string memory err) internal {
+    if (!a.eq(b)) {
+      emit log_named_string("Error", err);
+      assertEq(a, b);
+    }
+  }
+
   function assertEq(Leaf a, Leaf b) internal {
     if (!a.eq(b)) {
       emit log("Error: a == b not satisfied [Leaf]");

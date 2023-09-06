@@ -481,6 +481,7 @@ contract MgvReader {
 
   // FIXME subticks for gas?
   // utility fn
+  // VERY similar to MgvOfferTaking's getNextBest
   /// @notice Get the offer after a given offer, given its id
   function nextOfferIdById(OLKey memory olKey, uint offerId) public view returns (uint) {
     return nextOfferId(olKey, MGV.offers(olKey, offerId));

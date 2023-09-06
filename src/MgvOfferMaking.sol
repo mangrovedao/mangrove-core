@@ -164,7 +164,7 @@ contract MgvOfferMaking is MgvHasOffers {
       /* Here, we are about to un-live an offer, so we start by taking it out of the book by stitching together its previous and next offers. Note that unconditionally calling `stitchOffers` would break the book since it would connect offers that may have since moved. */
       if (offer.isLive()) {
         MgvStructs.LocalPacked oldLocal = local;
-        (, local) = dislodgeOffer(offerList, olKey.tickScale, offer, local, true, LeafLib.EMPTY);
+        local = dislodgeOffer(offerList, olKey.tickScale, offer, local, true);
         /* If calling `stitchOffers` has changed the current `best` offer, we update the storage. */
         if (!oldLocal.eq(local)) {
           offerList.local = local;
@@ -323,8 +323,7 @@ contract MgvOfferMaking is MgvHasOffers {
         // bool updateLocal = tick.strictlyBetter(ofp.local.bestTick().strictlyBetter(tick)
         bool shouldUpdateBranch = !insertionTick.strictlyBetter(ofp.local.bestTick());
 
-        (, ofp.local) =
-          dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, shouldUpdateBranch, LeafLib.EMPTY);
+        ofp.local = dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, shouldUpdateBranch);
         // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
         if (shouldUpdateBranch) {
           cachedLocalTick = ofp.local.bestTick();

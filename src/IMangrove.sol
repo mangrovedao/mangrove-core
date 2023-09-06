@@ -35,10 +35,14 @@ interface IMangrove is HasMgvEvents {
     view
     returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local);
 
+  function configGlobal() external view returns (MgvStructs.GlobalPacked _global);
+
   function configInfo(OLKey memory olKey)
     external
     view
     returns (MgvStructs.GlobalUnpacked memory _global, MgvStructs.LocalUnpacked memory _local);
+
+  function configGlobalInfo() external view returns (MgvStructs.GlobalUnpacked memory _global);
 
   function deactivate(OLKey memory olKey) external;
 

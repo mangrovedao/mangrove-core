@@ -1,0 +1,175 @@
+// SPDX-License-Identifier:  AGPL-3.0
+
+pragma solidity ^0.8.18;
+
+import {TickTreeTest, TestTickTree} from "./TickTreeTest.t.sol";
+import "mgv_src/MgvLib.sol";
+import "mgv_lib/Debug.sol";
+
+// Tests of Mangrove.retractOffer's interaction with the tick tree.
+//
+// The tests use the following pattern:
+// 1. we establish a Mangrove tick tree where there may be offers at:
+//   - the offer to be retracted's tick (including the offer itself)
+//   - a higher tick
+//   - a lower tick
+// 2. we take a snapshot of Mangrove's tick tree
+// 3. we retract the offer in both Mangrove and in the snapshot tick tree
+// 4. we check that Mangrove's tick tree matches the test tick tree.
+//
+// The scenarios we want to test are:
+// - retraction tick
+//   - tick is MIN, MAX, min&max&mid {leaf, level0, level1, level2}
+//   - list:
+//     1. the offer to be retracted is alone
+//     2. the offer to be retracted is first of two offers
+//     3. the offer to be retracted is last of two offers
+//     4. the offer to be retracted is middle of three offers
+// - higher tick list
+//   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
+//     - if feasible, given retraction tick
+//   - list:
+//     1. is empty
+//     2. is non-empty
+// - lower tick list
+//   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
+//     - if feasible, given retraction tick
+//   - list:
+//     1. is empty
+//     2. is non-empty
+contract TickTreeRetractOfferTest is TickTreeTest {
+  struct RetractOfferScenario {
+    TickScenario tickScenario;
+    uint offerTickListSize;
+    uint offerPos;
+  }
+
+  // (list size, offer pos)
+  uint[2][] tickListScenarios = [[1, 0], [2, 0], [2, 1], [3, 1]];
+
+  // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
+  // We therefore have a test case per tick instead.
+
+  // Tick 0 (start leaf, start level0, start level1, mid level 2)
+  function test_retract_offer_for_tick_0() public {
+    run_retract_offer_scenarios_for_tick(0);
+  }
+
+  // Tick 1 (mid leaf, start level0, start level1, mid level 2)
+  function test_retract_offer_for_tick_1() public {
+    run_retract_offer_scenarios_for_tick(1);
+  }
+
+  // Tick 3 (end leaf, start level0, start level1, mid level 2)
+  function test_retract_offer_for_tick_3() public {
+    run_retract_offer_scenarios_for_tick(3);
+  }
+
+  // Tick -1 tests (end leaf, end level0, end level1, mid level 2)
+  function test_retract_offer_for_tick_negative_1() public {
+    run_retract_offer_scenarios_for_tick(-1);
+  }
+
+  // Tick -8323 tests (mid leaf, mid level0, mid level1, mid level 2)
+  function test_retract_offer_for_tick_negative_8323() public {
+    run_retract_offer_scenarios_for_tick(-8323);
+  }
+
+  // MAX_TICK (end leaf, end level0, end level1, end level 2)
+  function test_retract_offer_for_tick_max() public {
+    run_retract_offer_scenarios_for_tick(MAX_TICK);
+  }
+
+  // MIN_TICK tests (start leaf, start level0, start level1, start level 2)
+  function test_retract_offer_for_tick_min() public {
+    run_retract_offer_scenarios_for_tick(MIN_TICK);
+  }
+
+  // size of {lower,higher}TickList if the tick is present in the scenario
+  uint[] otherTickListSizeScenarios = [1];
+
+  function run_retract_offer_scenarios_for_tick(int tick) internal {
+    vm.pauseGasMetering();
+    TickScenario[] memory tickScenarios =
+      generateTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
+    for (uint i = 0; i < tickScenarios.length; ++i) {
+      TickScenario memory tickScenario = tickScenarios[i];
+      for (uint j = 0; j < tickListScenarios.length; ++j) {
+        uint[2] storage tickListScenario = tickListScenarios[j];
+        run_retract_offer_scenario(
+          RetractOfferScenario({
+            tickScenario: tickScenario,
+            offerTickListSize: tickListScenario[0],
+            offerPos: tickListScenario[1]
+          }),
+          false
+        );
+      }
+    }
+  }
+
+  // This test is useful for debugging a single scneario
+  function test_single_retract_offer_scenario() public {
+    run_retract_offer_scenario(
+      RetractOfferScenario({
+        tickScenario: TickScenario({
+          tick: 0,
+          hasHigherTick: true,
+          higherTick: 4,
+          higherTickListSize: 1,
+          hasLowerTick: false,
+          lowerTick: 0,
+          lowerTickListSize: 0
+        }),
+        offerTickListSize: 1,
+        offerPos: 0
+      }),
+      true
+    );
+  }
+
+  function run_retract_offer_scenario(RetractOfferScenario memory scenario, bool printToConsole) internal {
+    Tick tick = Tick.wrap(scenario.tickScenario.tick);
+    if (printToConsole) {
+      console.log("retract offer scenario");
+      console.log("  retractionTick: %s", toString(tick));
+      console.log("  offerTickListSize: %s", scenario.offerTickListSize);
+      console.log("  offerPos: %s", scenario.offerPos);
+      if (scenario.tickScenario.hasHigherTick) {
+        Tick higherTick = Tick.wrap(scenario.tickScenario.higherTick);
+        console.log("  higherTick: %s", toString(higherTick));
+      }
+      if (scenario.tickScenario.hasLowerTick) {
+        console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
+      }
+    }
+
+    // 1. Capture state before test
+    uint vmSnapshotId = vm.snapshot();
+
+    // 2. Create scenario
+    (uint[] memory offerIds,) = add_n_offers_to_tick(scenario.tickScenario.tick, scenario.offerTickListSize);
+    if (scenario.tickScenario.hasHigherTick) {
+      add_n_offers_to_tick(scenario.tickScenario.higherTick, scenario.tickScenario.higherTickListSize);
+    }
+    if (scenario.tickScenario.hasLowerTick) {
+      add_n_offers_to_tick(scenario.tickScenario.lowerTick, scenario.tickScenario.lowerTickListSize);
+    }
+
+    // 3. Snapshot tick tree
+    TestTickTree tickTree = snapshotTickTree();
+
+    // 4. Retract the offer
+    uint offerId = offerIds[scenario.offerPos];
+    mkr.retractOffer(offerId);
+    tickTree.removeOffer(offerId);
+
+    // 5. Assert that Mangrove and tick tree are equal
+    tickTree.assertEqToMgvOffer();
+    // Uncommenting the following can be helpful in debugging tree consistency issues
+    // assertMgvTickTreeIsConsistent();
+
+    // 6. Restore state from before test
+    vm.revertTo(vmSnapshotId);
+  }
+}

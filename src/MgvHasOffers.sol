@@ -67,6 +67,7 @@ contract MgvHasOffers is MgvCommon {
     uint tickScale,
     MgvStructs.OfferPacked offer,
     MgvStructs.LocalPacked local,
+    Tick bestTick,
     bool shouldUpdateBranch
   ) internal returns (MgvStructs.LocalPacked) {
     unchecked {
@@ -89,7 +90,7 @@ contract MgvHasOffers is MgvCommon {
       // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
       // if local.tick < offerTick then a better branch is already cached. note that local.tick >= offerTick implies local.tick = offerTick
       // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
-      shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !local.bestTick().strictlyBetter(offerTick);
+      shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !bestTick.strictlyBetter(offerTick);
 
       if (prevId == 0) {
         // offer was tick's first. new first offer is offer.next (may be 0)
@@ -116,7 +117,7 @@ contract MgvHasOffers is MgvCommon {
         if (leaf.isEmpty()) {
           int index = offerTick.level0Index(); // level0Index or level1Index
           Field field;
-          if (index == local.bestTick().level0Index()) {
+          if (index == bestTick.level0Index()) {
             field = local.level0().flipBitAtLevel0(offerTick);
             local = local.level0(field);
             if (shouldUpdateBranch && field.isEmpty()) {
@@ -128,7 +129,7 @@ contract MgvHasOffers is MgvCommon {
           }
           if (field.isEmpty()) {
             index = offerTick.level1Index(); // level0Index or level1Index
-            if (index == local.bestTick().level1Index()) {
+            if (index == bestTick.level1Index()) {
               field = local.level1().flipBitAtLevel1(offerTick);
               local = local.level1(field);
               if (shouldUpdateBranch && field.isEmpty()) {

@@ -88,9 +88,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     unchecked {
-      (MgvStructs.GlobalPacked _global,,) = _config(olKey);
-      (takerGot, takerGave, bounty, feePaid) =
-        generalMarketOrder(olKey, logPrice, fillVolume, fillWants, taker, _global.maxGasreqForFailingOffers());
+      (takerGot, takerGave, bounty, feePaid) = generalMarketOrder(olKey, logPrice, fillVolume, fillWants, taker, 0, 0);
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
       deductSenderAllowance(olKey.outbound, olKey.inbound, taker, takerGave);
     }

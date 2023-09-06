@@ -84,7 +84,8 @@ interface IMangrove is HasMgvEvents {
     int maxLogPrice,
     uint fillVolume,
     bool fillWants,
-    uint maxGasreqForFailingOffers
+    uint maxGasreqForFailingOffers,
+    uint maxRecursionDepth
   ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function newOfferByVolume(OLKey memory olKey, uint wants, uint gives, uint gasreq, uint gasprice)

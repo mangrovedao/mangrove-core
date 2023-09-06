@@ -3,13 +3,28 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs, Leaf, LogPriceLib} from "mgv_src/MgvLib.sol";
-import {DensityLib} from "mgv_lib/DensityLib.sol";
+import {MgvStructs, Leaf, LogPriceLib, IMgvMonitor} from "mgv_src/MgvLib.sol";
+import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
+
+contract TestMonitor is IMgvMonitor {
+  function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external {}
+
+  function notifyFail(MgvLib.SingleOrder calldata sor, address taker) external {}
+
+  function read(OLKey memory olKey) external pure returns (uint gasprice, Density density) {
+    olKey; // shh
+    gasprice = 40;
+    density = Density.wrap(2 ** 32);
+  }
+}
 
 contract MakerOperationsTest is MangroveTest, IMaker {
   TestMaker mkr;
   TestMaker mkr2;
   TestTaker tkr;
+  TestMonitor monitor;
+  MgvStructs.LocalPacked localCopy;
+  MgvStructs.GlobalPacked globalCopy;
 
   function setUp() public override {
     super.setUp();
@@ -23,6 +38,78 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     deal($(quote), address(tkr), 1 ether);
     tkr.approveMgv(quote, 1 ether);
+  }
+
+  // checks that exactly the right SOR fields are hidden from maker
+  function assertSORFieldsFilteredCorrectly(MgvLib.SingleOrder calldata order) public {
+    // OLKey is not filtered
+    assertEq(order.olKey.outbound, $(base), "olKey.base should not be hidden");
+    assertEq(order.olKey.inbound, $(quote), "olKey.quote should not be hidden");
+    assertEq(order.olKey.tickScale, olKey.tickScale, "olKey.tickScale should not be hidden");
+
+    // OfferPacked is partially filtered
+    //   hidden
+    assertEq(order.offer.prev(), 0, "offer.prev should be hidden");
+    assertEq(order.offer.next(), 0, "offer.next should be hidden");
+    //   not hidden
+    assertEq(order.offer.logPrice(), 1, "offer.logPrice should not be hidden");
+    assertEq(order.offer.gives(), 1 ether, "offer.gives should not be hidden");
+
+    // OfferPackedDetail is not filtered
+    assertEq(order.offerDetail.maker(), $(mkr), "offerDetail.maker should not be hidden");
+    assertEq(order.offerDetail.gasprice(), globalCopy.gasprice(), "offerDetail.gasprice should not be hidden");
+    assertEq(
+      order.offerDetail.kilo_offer_gasbase(),
+      localCopy.kilo_offer_gasbase(),
+      "offerDetail.kilo_offer_gasbase should not be hidden"
+    );
+    assertEq(order.offerDetail.gasreq(), 200_000, "offerDetail.gasreq should not be hidden");
+
+    // wants and gives are not filtered
+    assertEq(order.wants, 0.1 ether, "wants should not be hidden");
+    assertEq(order.gives, 0.10001 ether, "gives should not be hidden");
+
+    // GloablPacked is not filtered
+    assertEq(order.global.monitor(), address(monitor), "global.monitor should not be hidden");
+    assertTrue(order.global.useOracle(), "global.useOracle should not be hidden");
+    assertTrue(order.global.notify(), "global.notify should not be hidden");
+    assertEq(order.global.gasprice(), globalCopy.gasprice(), "global.gasprice should not be hidden");
+    assertEq(order.global.gasmax(), globalCopy.gasmax(), "global.gasmax should not be hidden");
+    assertFalse(order.global.dead(), "global.dead should not be hidden");
+
+    // LocalPacked is partially filtered
+    //   hidden
+    assertEq(order.local.tickPosInLeaf(), 0, "tickPosInLeaf should be hidden");
+    assertEq(order.local.level0(), FieldLib.EMPTY, "level0 should be hidden");
+    assertEq(order.local.level1(), FieldLib.EMPTY, "level1 should be hidden");
+    assertEq(order.local.level2(), FieldLib.EMPTY, "level2 should be hidden");
+    assertEq(order.local.last(), 0, "last should be hidden");
+    //   not hidden
+    assertTrue(order.local.active(), "active should not be hidden");
+    assertEq(order.local.fee(), localCopy.fee(), "fee should not be hidden");
+    assertTrue(order.local.density().eq(localCopy.density()), "density should not be hidden");
+    assertEq(
+      order.local.kilo_offer_gasbase(), localCopy.kilo_offer_gasbase(), "kilo_offer_gasbase should not be hidden"
+    );
+    assertTrue(order.local.lock(), "lock should not be hidden");
+  }
+
+  function test_fields_are_hidden_correctly_in_makerExecute() public {
+    monitor = new TestMonitor();
+    mgv.setMonitor(address(monitor));
+    mgv.setUseOracle(true);
+    mgv.setNotify(true);
+    mgv.setFee(olKey, 1);
+    localCopy = reader.local(olKey);
+    globalCopy = reader.global();
+
+    mkr.provisionMgv(1 ether);
+    mkr.setExecuteCallback($(this), this.assertSORFieldsFilteredCorrectly.selector);
+    deal($(base), $(mkr), 1 ether);
+
+    uint ofr = mkr.newOfferByLogPrice(1, 1 ether, 200_000);
+    require(tkr.marketOrderWithSuccess(0.1 ether), "take must work or test is void");
+    assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
 
   function test_fund_maker_fn(address anyone, uint64 amount) public {
@@ -65,7 +152,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     assertEq(order.olKey.outbound, $(base), "wrong base");
     assertEq(order.olKey.inbound, $(quote), "wrong quote");
-    assertEq(order.olKey.tickScale, olKey.tickScale, "wrong quote");
+    assertEq(order.olKey.tickScale, olKey.tickScale, "wrong tickscale");
     assertEq(order.wants, 0.05 ether, "wrong takerWants");
     assertEq(order.gives, 0.05 ether, "wrong takerGives");
     assertEq(order.offerDetail.gasreq(), 200_000, "wrong gasreq");
@@ -73,7 +160,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(order.offer.wants(), 0.05 ether, "wrong offerWants");
     assertEq(order.offer.gives(), 0.05 ether, "wrong offerGives");
     // test flashloan
-    assertEq(quote.balanceOf($(this)), 0.05 ether, "wrong quote balance");
+    assertEq(quote.balanceOf($(mkr)), 0.05 ether, "wrong quote balance");
     return "";
   }
 
@@ -81,6 +168,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
   function test_calldata_and_balance_in_makerExecute_are_correct() public {
     mkr.provisionMgv(1 ether);
+    mkr.setExecuteCallback($(this), this.makerExecute.selector);
     deal($(base), $(mkr), 1 ether);
     uint ofr = mkr.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 200_000);
     require(tkr.marketOrderWithSuccess(0.05 ether), "take must work or test is void");

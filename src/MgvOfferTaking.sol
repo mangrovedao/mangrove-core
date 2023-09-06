@@ -456,6 +456,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       bytes memory retdata;
       {
         // Clear fields that maker must not see
+        /* NB: It should be more efficient to do this in `makerExecute` instead as we would not have to restore the fields afterwards.
+         * However, for unknown reasons that solution consumes significantly more gas, so we do it here instead. */
         MgvStructs.OfferPacked offer = sor.offer;
         sor.offer = offer.clearFieldsForMaker();
         MgvStructs.LocalPacked local = sor.local;

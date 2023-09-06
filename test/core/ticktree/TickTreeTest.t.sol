@@ -5,7 +5,6 @@ pragma solidity ^0.8.18;
 import {TestTickTree} from "mgv_test/lib/TestTickTree.sol";
 import {AbstractMangrove, TestTaker, MangroveTest, IMaker, TestMaker} from "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/MgvLib.sol";
-import {MgvRoot} from "mgv_src/MgvRoot.sol";
 import "mgv_lib/Debug.sol";
 
 int constant MIN_LEAF_INDEX = -NUM_LEAFS / 2;

@@ -6,7 +6,7 @@ import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import "mgv_src/MgvLib.sol";
-import {MgvRoot} from "mgv_src/MgvRoot.sol";
+import {MgvCommon} from "mgv_src/MgvCommon.sol";
 import "mgv_lib/Debug.sol";
 
 int constant MIN_LEAF_INDEX = -NUM_LEAFS / 2;
@@ -28,7 +28,7 @@ uint constant MAX_LEVEL2_POSITION = uint(LEVEL2_SIZE - 1);
 // NB: Inheriting from MangroveTest to get assert functions.
 contract TestTickTree is MangroveTest {
   MgvStructs.LocalPacked public local;
-  mapping(uint => MgvRoot.OfferData) public offers;
+  mapping(uint => MgvCommon.OfferData) public offers;
   mapping(int => Leaf) public leafs;
   mapping(int => Field) public level0s;
   mapping(int => Field) public level1s;
@@ -431,7 +431,7 @@ contract TestTickTree is MangroveTest {
   }
 
   function removeOffer(uint offerId) public {
-    MgvRoot.OfferData storage offer = offers[offerId];
+    MgvCommon.OfferData storage offer = offers[offerId];
     Tick tick = offer.offer.tick(olKey.tickScale);
 
     // Update leaf and tick list

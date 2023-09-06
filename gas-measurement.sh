@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x
 
 out_dir="out"
 default_json_file="${out_dir}/gas-measurement.json"

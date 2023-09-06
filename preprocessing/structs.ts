@@ -349,7 +349,7 @@ library LocalUnpackedExtra {
   function offer_gasbase(LocalUnpacked memory local,uint val) internal pure { unchecked {
     local.kilo_offer_gasbase = val/1e3;
   }}
-  function tick(LocalUnpacked memory local) internal pure returns (Tick) {
+  function bestTick(LocalUnpacked memory local) internal pure returns (Tick) {
     return TickLib.tickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2);
   }
 }

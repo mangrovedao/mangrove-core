@@ -27,7 +27,7 @@ contract CopyOpenSemibooksTest is MangroveTest {
     mgv.setGovernance(chief);
 
     chief2 = freshAddress("chief2");
-    mgv2 = IMangrove(payable(new Mangrove(chief2,reader.global().gasprice(),reader.global().gasmax())));
+    mgv2 = IMangrove(payable(new Mangrove(chief2,mgv.global().gasprice(),mgv.global().gasmax())));
     reader2 = new MgvReader(address(mgv2));
 
     copier = new CopyOpenSemibooks();
@@ -45,8 +45,8 @@ contract CopyOpenSemibooksTest is MangroveTest {
     assertEq(reader2.numOpenMarkets(), 1, "wrong changes in current reader");
     assertEq(reader2.isMarketOpen(market), true, "market should be open");
     assertEq(
-      MgvStructs.LocalPacked.unwrap(reader2.local(toOLKey(market))),
-      MgvStructs.LocalPacked.unwrap(reader.local(toOLKey(market)))
+      MgvStructs.LocalPacked.unwrap(mgv2.local(toOLKey(market))),
+      MgvStructs.LocalPacked.unwrap(mgv.local(toOLKey(market)))
     );
   }
 
@@ -69,13 +69,13 @@ contract CopyOpenSemibooksTest is MangroveTest {
     assertEq(reader.numOpenMarkets(), 1, "changes in previous reader");
     assertEq(reader2.numOpenMarkets(), 1, "wrong changes in current reader");
     assertEq(reader2.isMarketOpen(market), true, "market should be open");
-    assertEq(reader2.local(toOLKey(market)).active(), true, "should be active");
+    assertEq(mgv2.local(toOLKey(market)).active(), true, "should be active");
     if (market.tkn1 != market.tkn0) {
-      assertEq(reader2.local(toOLKey(flipped(market))).active(), false, "should be inactive");
+      assertEq(mgv2.local(toOLKey(flipped(market))).active(), false, "should be inactive");
     }
-    console.log(toString(reader2.local(toOLKey(market))));
-    assertEq(reader2.local(toOLKey(market)).fee(), expectedFee, "wrong fee");
-    assertEq(reader2.local(toOLKey(market)).density().toFixed(), expectedDensity >> 32, "wrong density");
-    assertEq(reader2.local(toOLKey(market)).offer_gasbase(), expectedOfferGasbase, "wrong gasbase");
+    console.log(toString(mgv2.local(toOLKey(market))));
+    assertEq(mgv2.local(toOLKey(market)).fee(), expectedFee, "wrong fee");
+    assertEq(mgv2.local(toOLKey(market)).density().toFixed(), expectedDensity >> 32, "wrong density");
+    assertEq(mgv2.local(toOLKey(market)).offer_gasbase(), expectedOfferGasbase, "wrong gasbase");
   }
 }

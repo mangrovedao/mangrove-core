@@ -11,6 +11,12 @@ pragma experimental ABIEncoderV2;
 import {MgvLib, MgvStructs, IMaker, OLKey, HasMgvEvents} from "./MgvLib.sol";
 import "./MgvLib.sol" as MgvLibWrapper;
 
+struct VolumeData {
+  uint totalGot;
+  uint totalGave;
+  uint totalGasreq;
+}
+
 interface IMangrove is HasMgvEvents {
   function DOMAIN_SEPARATOR() external view returns (bytes32);
 
@@ -28,27 +34,23 @@ interface IMangrove is HasMgvEvents {
 
   function balanceOf(address maker) external view returns (uint balance);
 
-  function best(OLKey memory olKey) external view returns (uint offerId);
-
   function config(OLKey memory olKey)
     external
     view
     returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local);
-
-  function configGlobal()
-    external
-    view
-    returns (MgvStructs.GlobalPacked _global);
 
   function configInfo(OLKey memory olKey)
     external
     view
     returns (MgvStructs.GlobalUnpacked memory _global, MgvStructs.LocalUnpacked memory _local);
 
-  function configGlobalInfo()
-    external
-    view
-    returns (MgvStructs.GlobalUnpacked memory _global);
+  function global() external view returns (MgvStructs.GlobalPacked);
+
+  function local(OLKey memory olKey) external view returns (MgvStructs.LocalPacked);
+
+  function globalUnpacked() external view returns (MgvStructs.GlobalUnpacked memory);
+
+  function localUnpacked(OLKey memory olKey) external view returns (MgvStructs.LocalUnpacked memory);
 
   function deactivate(OLKey memory olKey) external;
 
@@ -70,8 +72,6 @@ interface IMangrove is HasMgvEvents {
   function governance() external view returns (address);
 
   function kill() external;
-
-  function locked(OLKey memory olKey) external view returns (bool);
 
   function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
     external
@@ -101,6 +101,8 @@ interface IMangrove is HasMgvEvents {
 
   function nonces(address owner) external view returns (uint nonce);
 
+  // Offer view functions
+
   function offerDetails(OLKey memory olKey, uint offerId)
     external
     view
@@ -112,6 +114,77 @@ interface IMangrove is HasMgvEvents {
     returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail);
 
   function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer);
+
+  // Offer list view functions
+
+  function locked(OLKey memory olKey) external view returns (bool);
+
+  function best(OLKey memory olKey) external view returns (uint offerId);
+
+  function isEmptyOB(OLKey memory olKey) external view returns (bool);
+
+  function offerListEndPoints(OLKey memory olKey, uint fromId, uint maxOffers)
+    external
+    view
+    returns (uint startId, uint length);
+
+  function packedOfferList(OLKey memory olKey, uint fromId, uint maxOffers)
+    external
+    view
+    returns (uint, uint[] memory, MgvStructs.OfferPacked[] memory, MgvStructs.OfferDetailPacked[] memory);
+
+  function offerList(OLKey memory olKey, uint fromId, uint maxOffers)
+    external
+    view
+    returns (uint, uint[] memory, MgvStructs.OfferUnpacked[] memory, MgvStructs.OfferDetailUnpacked[] memory);
+
+  function nextOfferIdById(OLKey memory olKey, uint offerId) external view returns (uint);
+
+  function nextOfferId(OLKey memory olKey, MgvStructs.OfferPacked offer) external view returns (uint);
+
+  function prevOfferIdById(OLKey memory olKey, uint offerId) external view returns (uint);
+
+  function prevOfferId(OLKey memory olKey, MgvStructs.OfferPacked offer) external view returns (uint offerId);
+
+  // Offer list utility functions
+
+  function minVolume(OLKey memory olKey, uint gasreq) external view returns (uint);
+
+  function getProvision(OLKey memory olKey, uint ofr_gasreq, uint ofr_gasprice) external view returns (uint);
+
+  function getFee(OLKey memory olKey, uint outVolume) external view returns (uint);
+
+  function minusFee(OLKey memory olKey, uint outVolume) external view returns (uint);
+
+  // Simulation functions. These are a cheaper way to approximate the results of a market order than by actually executing it and reverting.
+
+  function simulateMarketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
+    external
+    view
+    returns (VolumeData[] memory);
+
+  function simulateMarketOrderByVolume(
+    OLKey memory olKey,
+    uint takerWants,
+    uint takerGives,
+    bool fillWants,
+    bool accumulate
+  ) external view returns (VolumeData[] memory);
+
+  function simulateMarketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
+    external
+    view
+    returns (VolumeData[] memory);
+
+  function simulateMarketOrderByLogPrice(
+    OLKey memory olKey,
+    int maxLogPrice,
+    uint fillVolume,
+    bool fillWants,
+    bool accumulate
+  ) external view returns (VolumeData[] memory);
+
+  // Permit functions
 
   function permit(
     address outbound_tkn,
@@ -126,6 +199,8 @@ interface IMangrove is HasMgvEvents {
   ) external;
 
   function retractOffer(OLKey memory olKey, uint offerId, bool deprovision) external returns (uint provision);
+
+  // Governance functions
 
   function setDensityFixed(OLKey memory olKey, uint densityFixed) external;
 
@@ -163,6 +238,8 @@ interface IMangrove is HasMgvEvents {
 
   receive() external payable;
 
+  // Tick tree functions
+
   function leafs(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Leaf);
 
   function level0(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
@@ -171,5 +248,6 @@ interface IMangrove is HasMgvEvents {
 
   function level2(OLKey memory olKey) external view returns (MgvLibWrapper.Field);
 
+  // Fall back function (forwards calls to `MgvAppendix`)
   fallback(bytes calldata callData) external returns (bytes memory);
 }

@@ -54,8 +54,8 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     deal($(base), maker, 200000 ether);
     deal($(quote), maker, 200000 ether);
     deal(maker, 1000 ether);
-    uint offerGivesOl = reader.minVolume(olKey, 100000);
-    uint offerGivesLo = reader.minVolume(lo, 100000);
+    uint offerGivesOl = mgv.minVolume(olKey, 100000);
+    uint offerGivesLo = mgv.minVolume(lo, 100000);
 
     vm.prank(maker);
     mgv.fund{value: 10 ether}();

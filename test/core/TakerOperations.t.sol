@@ -290,7 +290,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_doesnt_pay() public {
-    // uint mkr_provision = reader.getProvision(olKey, 100_000);
+    // uint mkr_provision = mgv.getProvision(olKey, 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = refusemkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     int logPrice = mgv.offers(olKey, ofr).logPrice();
@@ -323,7 +323,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_base() public {
-    // uint mkr_provision = reader.getProvision(olKey, 100_000);
+    // uint mkr_provision = mgv.getProvision(olKey, 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     int logPrice = mgv.offers(olKey, ofr).logPrice();
@@ -347,7 +347,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_is_blacklisted_for_quote() public {
-    // uint mkr_provision = reader.getProvision(olKey, 100_000);
+    // uint mkr_provision = mgv.getProvision(olKey, 100_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     int logPrice = mgv.offers(olKey, ofr).logPrice();
@@ -383,7 +383,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   function test_taker_reimbursed_if_maker_reverts() public {
-    // uint mkr_provision = reader.getProvision(olKey, 50_000);
+    // uint mkr_provision = mgv.getProvision(olKey, 50_000);
     quote.approve($(mgv), 1 ether);
     uint ofr = failmkr.newOfferByVolume(1 ether, 1 ether, 100_000, 0);
     int logPrice = mgv.offers(olKey, ofr).logPrice();
@@ -410,7 +410,7 @@ contract TakerOperationsTest is MangroveTest {
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 50_000, 0);
     int logPrice = mgv.offers(olKey, ofr).logPrice();
     quote.approve($(mgv), 1 ether);
-    uint shouldGet = reader.minusFee(olKey, 1 ether);
+    uint shouldGet = mgv.minusFee(olKey, 1 ether);
     mgv.marketOrderByLogPrice(olKey, logPrice, 1 ether, true);
     assertEq(base.balanceOf($(this)) - balTaker, shouldGet, "Incorrect delivered amount");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr execute must be called or test is void");

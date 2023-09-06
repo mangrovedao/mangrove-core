@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
-import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
+import {VolumeData, IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs, MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {Tick} from "mgv_lib/TickLib.sol";

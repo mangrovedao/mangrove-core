@@ -289,7 +289,7 @@ contract GatekeepingTest is MangroveTest {
       1 //ofrId
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), reader.getProvision(olKey, cfg.gasmax(), 0));
+    emit Debit(address(mkr), mgv.getProvision(olKey, cfg.gasmax(), 0));
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, cfg.gasmax());
     assertTrue(mgv.offers(olKey, ofr).isLive(), "Offer should have been inserted");
   }
@@ -318,7 +318,7 @@ contract GatekeepingTest is MangroveTest {
       1 //ofrId
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), reader.getProvision(olKey, 1, 0));
+    emit Debit(address(mkr), mgv.getProvision(olKey, 1, 0));
     uint ofr = mkr.newOfferByVolume(amount, amount, 1);
     assertTrue(mgv.offers(olKey, ofr).isLive(), "Offer should have been inserted");
   }

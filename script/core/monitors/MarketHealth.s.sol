@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {Test2, toFixed, console2 as console} from "mgv_lib/Test2.sol";
-import {MgvReader, VolumeData, IMangrove} from "mgv_src/periphery/MgvReader.sol";
+import {VolumeData, IMangrove} from "mgv_src/IMangrove.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {MgvStructs, MgvLib, OLKey} from "mgv_src/MgvLib.sol";
 import {Tick} from "mgv_lib/TickLib.sol";
@@ -59,7 +59,6 @@ contract MarketHealth is Test2, Deployer {
     deal(address(inbTkn), address(this), 10_000_000 * 10 ** inbTkn.decimals());
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
-      reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
       olKey: OLKey(envAddressOrName("TKN_OUT"), address(inbTkn), vm.envUint("TICK_SCALE")),
       outboundTknVolume: vm.envUint("VOLUME"),
       densityOverrides: densityOverrides
@@ -96,9 +95,7 @@ contract MarketHealth is Test2, Deployer {
     uint minVolume;
   }
 
-  function innerRun(IMangrove mgv, MgvReader reader, OLKey memory olKey, uint outboundTknVolume, uint densityOverrides)
-    public
-  {
+  function innerRun(IMangrove mgv, OLKey memory olKey, uint outboundTknVolume, uint densityOverrides) public {
     IERC20 inbTkn = IERC20(olKey.inbound);
     IERC20 outTkn = IERC20(olKey.outbound);
     if (densityOverrides > 0) {
@@ -106,7 +103,7 @@ contract MarketHealth is Test2, Deployer {
       mgv.setDensity(olKey, densityOverrides);
     }
     HeapVars memory vars;
-    vars.data = reader.marketOrderByVolume(olKey, outboundTknVolume, inbTkn.balanceOf(address(this)), true);
+    vars.data = mgv.simulateMarketOrderByVolume(olKey, outboundTknVolume, inbTkn.balanceOf(address(this)), true);
     vars.outDecimals = outTkn.decimals();
     vars.inbDecimals = inbTkn.decimals();
     // inbound volume required (if not offer is failing)
@@ -151,7 +148,7 @@ contract MarketHealth is Test2, Deployer {
       vars.gave += vars.snipesGave;
       vars.collected += vars.snipesBounty;
 
-      vars.minVolume = reader.minVolume(olKey, vars.data[vars.successes + vars.failures - 1].totalGasreq);
+      vars.minVolume = mgv.minVolume(olKey, vars.data[vars.successes + vars.failures - 1].totalGasreq);
 
       if (vars.got > vars.minVolume) {
         vars.distanceToDensity = toFixed(vars.got - vars.minVolume, vars.outDecimals);

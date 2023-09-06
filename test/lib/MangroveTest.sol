@@ -147,7 +147,7 @@ contract MangroveTest is Test2, HasMgvEvents {
       ids[c] = offerId;
       offers[c] = mgv.offers(_ol, offerId);
       details[c] = mgv.offerDetails(_ol, offerId);
-      offerId = reader.nextOfferId(_ol, offers[c]);
+      offerId = mgv.nextOfferId(_ol, offers[c]);
       c++;
     }
     c = 0;
@@ -180,7 +180,7 @@ contract MangroveTest is Test2, HasMgvEvents {
           vm.toString(detail.maker)
         )
       );
-      offerId = reader.nextOfferIdById(_ol, offerId);
+      offerId = mgv.nextOfferIdById(_ol, offerId);
     }
     console.log(unicode"└────┴─────────────────────");
   }
@@ -432,7 +432,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     if (gives == 0) {
       return;
     }
-    uint prov = reader.getProvision(_ol, gasreq, 0);
+    uint prov = mgv.getProvision(_ol, gasreq, 0);
     while (fold > 0) {
       vm.prank(caller);
       mgv.newOfferByLogPrice{value: prov}(_ol, logPrice, gives, gasreq, 0);
@@ -447,7 +447,7 @@ contract MangroveTest is Test2, HasMgvEvents {
       MgvStructs.OfferDetailPacked detail = mgv.offerDetails(_ol, fromId);
       densify(_ol, offer.logPrice(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
-      fromId = reader.nextOfferId(_ol, offer);
+      fromId = mgv.nextOfferId(_ol, offer);
     }
   }
 
@@ -501,13 +501,12 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   // logs an overview of the current branch
   function logTickTreeBranch(OLKey memory _ol) public view {
-    logTickTreeBranch(reader, _ol);
+    logTickTreeBranch(mgv, _ol);
   }
 
-  function logTickTreeBranch(MgvReader _reader, OLKey memory _ol) internal view {
-    IMangrove _mgv = reader.MGV();
+  function logTickTreeBranch(IMangrove _mgv, OLKey memory _ol) internal view {
     console.log("--------CURRENT TICK TREE BRANCH--------");
-    MgvStructs.LocalPacked _local = _reader.local(_ol);
+    MgvStructs.LocalPacked _local = _mgv.local(_ol);
     Tick tick = _local.bestTick();
     console.log("Current tick %s", toString(tick));
     console.log("Current posInLeaf %s", tick.posInLeaf());

@@ -8,7 +8,7 @@ import {Test2, Test} from "mgv_lib/Test2.sol";
 
 import {MgvStructs, Density, OLKey} from "mgv_src/MgvLib.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
-import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
+import {MgvReader, Market} from "mgv_src/periphery/MgvReader.sol";
 import {MgvOracle} from "mgv_src/periphery/MgvOracle.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 
@@ -51,7 +51,7 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
 
     // Reader - verify mgv is used
     MgvReader reader = mgvDeployer.reader();
-    vm.expectCall(address(mgv), abi.encodeCall(mgv.config, (olKey)));
-    reader.getProvision(olKey, 0, 0);
+    vm.expectCall(address(mgv), abi.encodeCall(mgv.localUnpacked, (olKey)));
+    reader.marketConfig(Market({tkn0: olKey.outbound, tkn1: olKey.inbound, tickScale: olKey.tickScale}));
   }
 }

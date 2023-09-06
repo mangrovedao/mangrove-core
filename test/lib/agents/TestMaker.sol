@@ -318,20 +318,25 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
   }
 
   function updateOfferByLogPrice(int logPrice, uint gives, uint gasreq, uint offerId) public {
-    OfferData memory offerData;
-    updateOfferByLogPrice(olKey, logPrice, gives, gasreq, offerId, 0, offerData);
+    updateOfferByLogPrice(logPrice, gives, gasreq, 0, offerId);
   }
 
-  function updateOfferByLogPrice(
+  function updateOfferByLogPrice(int logPrice, uint gives, uint gasreq, uint gasprice, uint offerId) public {
+    OfferData memory offerData;
+    updateOfferByLogPriceWithFunding(olKey, logPrice, gives, gasreq, gasprice, offerId, 0, offerData);
+  }
+
+  function updateOfferByLogPriceWithFunding(
     OLKey memory _olKey,
     int logPrice,
     uint gives,
     uint gasreq,
+    uint gasprice,
     uint offerId,
     uint amount,
     OfferData memory offerData
   ) public {
-    mgv.updateOfferByLogPrice{value: amount}(_olKey, logPrice, gives, gasreq, 0, offerId);
+    mgv.updateOfferByLogPrice{value: amount}(_olKey, logPrice, gives, gasreq, gasprice, offerId);
     offerDatas[_olKey.hash()][offerId] = offerData;
   }
 

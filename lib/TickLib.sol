@@ -209,7 +209,9 @@ library TickLib {
   // see note posIn*
   // note with int24 tick we only use 64 bits of level2 (64*256*256*4 is 2**24)
   // the goal is that have the bit positions in {} used:
-
+// FIXME: This is a non-standard way of writing bit positions, normally they're numbered right-to-left
+// FIXME: Also, the highest position in a field is 63 and is used for the highest tick in the level.
+//        This feels like it's conflicting with the stmt in the Excalidraw that says "ticks go right (cheap) to left (expensive)"
   //   level 2 single node
   // <--------------------->
   // {0.......63}64......255

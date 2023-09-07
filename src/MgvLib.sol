@@ -98,6 +98,7 @@ interface HasMgvEvents {
   event SetNotify(bool value);
   event SetGasmax(uint value);
   event SetDensityFixed(bytes32 indexed olKeyHash, uint value);
+  event SetMaxRecursionDepth(uint value);
   event SetMaxGasreqForFailingOffers(uint value);
   event SetGasprice(uint value);
 

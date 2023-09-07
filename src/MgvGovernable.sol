@@ -134,6 +134,18 @@ contract MgvGovernable is MgvCommon {
     }
   }
 
+  /* ### `maxRecursionDepth` */
+  function setMaxRecursionDepth(uint maxRecursionDepth) public {
+    unchecked {
+      authOnly();
+      require(
+        MgvStructs.Global.maxRecursionDepth_check(maxRecursionDepth), MgvStructs.Global.maxRecursionDepth_size_error
+      );
+      internal_global = internal_global.maxRecursionDepth(maxRecursionDepth);
+      emit SetMaxRecursionDepth(maxRecursionDepth);
+    }
+  }
+
   /* ### `maxGasreqForFailingOffers` */
   function setMaxGasreqForFailingOffers(uint maxGasreqForFailingOffers) public {
     unchecked {

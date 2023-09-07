@@ -15,7 +15,6 @@ import {
   LogPriceLib,
   OLKey
 } from "./MgvLib.sol";
-import {MAX_RECURSION_DEPTH} from "mgv_lib/Constants.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickLib} from "./../lib/TickLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
@@ -64,7 +63,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint takerGot, uint takerGave, uint bounty, uint fee)
   {
     unchecked {
-      return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, 0, 0);
+      return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, 0);
     }
   }
 
@@ -73,13 +72,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     int maxLogPrice,
     uint fillVolume,
     bool fillWants,
-    uint maxGasreqForFailingOffers,
-    uint maxRecursionDepth
+    uint maxGasreqForFailingOffers
   ) public returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
     unchecked {
-      return generalMarketOrder(
-        olKey, maxLogPrice, fillVolume, fillWants, msg.sender, maxGasreqForFailingOffers, maxRecursionDepth
-      );
+      return generalMarketOrder(olKey, maxLogPrice, fillVolume, fillWants, msg.sender, maxGasreqForFailingOffers);
     }
   }
 
@@ -141,8 +137,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     uint fillVolume,
     bool fillWants,
     address taker,
-    uint maxGasreqForFailingOffers,
-    uint maxRecursionDepth
+    uint maxGasreqForFailingOffers
   ) internal returns (uint takerGot, uint takerGave, uint bounty, uint fee) {
     unchecked {
       /* Checking that `takerWants` and `takerGives` fit in 104 bits prevents overflow during the main market order loop. */
@@ -160,7 +155,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sor.olKey = olKey;
       OfferList storage offerList;
       (sor.global, sor.local, offerList) = _config(olKey);
-      mor.maxRecursionDepth = maxRecursionDepth > 0 ? maxRecursionDepth : MAX_RECURSION_DEPTH;
+      mor.maxRecursionDepth = sor.global.maxRecursionDepth();
       /* We have an upper limit on total gasreq for failing offers to avoid failing offers delivering nothing and exhausting gaslimit for the transaction. */
       mor.maxGasreqForFailingOffers =
         maxGasreqForFailingOffers > 0 ? maxGasreqForFailingOffers : sor.global.maxGasreqForFailingOffers();

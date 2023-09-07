@@ -219,7 +219,20 @@ interface HasMgvEvents {
   The `olKeyHash` is indexed, so that we can filter on it when doing RPC calls.
   */
   event SetDensityFixed(bytes32 indexed olKeyHash, uint value);
+
+  /*
+  This event is emitted when the max recursion depth of Mangrove is set.
+
+  It emits the max depth `value`. By emitting this, an indexer will be able to keep track of what max recursion depth Mangrove has. Read more about Mangroves max recursion depth on [docs.mangrove.exchange](docs.mangrove.exchange)
+  */
+
   event SetMaxRecursionDepth(uint value);
+
+  /*
+  This event is emitted when the max gasreq for failing offers of Mangrove is set.
+
+  It emits the max gasreq for failing offers `value`. By emitting this, an indexer will be able to keep track of what max gasreq for failing offers Mangrove has. Read more about Mangroves max gasreq for failing offers on [docs.mangrove.exchange](docs.mangrove.exchange)
+  */
   event SetMaxGasreqForFailingOffers(uint value);
 
   /*

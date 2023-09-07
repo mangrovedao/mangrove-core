@@ -28,7 +28,7 @@ contract DeactivateMarketTest is Test2 {
     gasprice = 42;
     gasmax = 8_000_000;
     gasbot = freshAddress("gasbot");
-    deployer.innerRun(chief, gasprice, gasmax, gasbot);
+    deployer.innerRun(chief, gasprice, gasmax, gasmax * 10, gasbot);
   }
 
   function test_deactivate(Market memory market) public {

@@ -18,8 +18,8 @@ import {Test2} from "mgv_lib/Test2.sol";
 contract BeforePosthookGasMeasuringMangrove is AbstractMangrove, Test2 {
   uint internal numberCall;
 
-  constructor(address governance, uint gasprice, uint gasmax)
-    AbstractMangrove(governance, gasprice, gasmax, "Mangrove")
+  constructor(address governance, uint gasprice, uint gasmax, uint maxGasreqForFailingOffers)
+    AbstractMangrove(governance, gasprice, gasmax, maxGasreqForFailingOffers, "Mangrove")
   {
     // Warmup
     numberCall = 1;
@@ -86,7 +86,8 @@ contract OfferPosthookFailGasDeltaTest is MangroveTest, IMaker {
           new BeforePosthookGasMeasuringMangrove({
           governance: $(this),
           gasprice: options.gasprice,
-          gasmax: options.gasmax
+          gasmax: options.gasmax,
+          maxGasreqForFailingOffers: options.maxGasreqForFailingOffers
           })
         )
       )

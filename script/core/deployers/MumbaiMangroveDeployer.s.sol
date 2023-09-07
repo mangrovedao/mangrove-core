@@ -26,6 +26,7 @@ contract MumbaiMangroveDeployer is Deployer {
       chief: broadcaster(),
       gasprice: gasprice,
       gasmax: gasmax,
+      maxGasreqForFailingOffers: gasmax * 10,
       gasbot: envAddressOrName("GASBOT", "Gasbot")
     });
   }

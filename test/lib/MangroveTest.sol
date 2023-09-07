@@ -61,6 +61,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint gasprice;
     uint gasbase;
     uint gasmax;
+    uint maxGasreqForFailingOffers;
     uint density;
   }
 
@@ -81,7 +82,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     //Update `gasbase` by measuring using the test run `forge test --mc OfferGasBaseTest_Generic_A_B -vv`
     gasbase: 184048,
     density: 2 ** 32,
-    gasmax: 2_000_000
+    gasmax: 2_000_000,
+    maxGasreqForFailingOffers: 20_000_000
   });
 
   constructor() {
@@ -219,7 +221,8 @@ contract MangroveTest is Test2, HasMgvEvents {
           new InvertedMangrove({
           governance: $(this),
           gasprice: options.gasprice,
-          gasmax: options.gasmax
+          gasmax: options.gasmax,
+          maxGasreqForFailingOffers: options.maxGasreqForFailingOffers
           })
         )
       );
@@ -229,7 +232,8 @@ contract MangroveTest is Test2, HasMgvEvents {
           new Mangrove({
           governance: $(this),
           gasprice: options.gasprice,
-          gasmax: options.gasmax
+          gasmax: options.gasmax,
+          maxGasreqForFailingOffers: options.maxGasreqForFailingOffers
           })
         )
       );

@@ -7,8 +7,8 @@ import {AbstractMangrove} from "./AbstractMangrove.sol";
 
 /* <a id="InvertedMangrove"></a> The `InvertedMangrove` contract implements the "inverted" version of Mangrove, where each maker loans money to the taker. The taker is then called, and finally each maker is sent its payment and called again (with the orderbook unlocked). */
 contract InvertedMangrove is AbstractMangrove {
-  constructor(address governance, uint gasprice, uint gasmax)
-    AbstractMangrove(governance, gasprice, gasmax, "InvertedMangrove")
+  constructor(address governance, uint gasprice, uint gasmax, uint maxGasreqForFailingOffers)
+    AbstractMangrove(governance, gasprice, gasmax, maxGasreqForFailingOffers, "InvertedMangrove")
   {}
 
   // execute taker trade

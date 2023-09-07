@@ -43,7 +43,7 @@ contract GatekeepingTest is MangroveTest {
   /* # Test Config */
 
   function test_gov_is_not_sender() public {
-    mgv = IMangrove($(new Mangrove({governance: notAdmin, gasprice: 0, gasmax: 0})));
+    mgv = IMangrove($(new Mangrove({governance: notAdmin, gasprice: 0, gasmax: 0, maxGasreqForFailingOffers:0})));
     assertEq(mgv.governance(), notAdmin, "governance should not be msg.sender");
   }
 
@@ -861,7 +861,7 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_inverted_mangrove_flashloan_fail_if_not_self(address caller) public {
-    InvertedMangrove imgv = new InvertedMangrove(address(this),0,0);
+    InvertedMangrove imgv = new InvertedMangrove(address(this),0,0,0);
     vm.assume(caller != address(imgv));
     MgvLib.SingleOrder memory sor;
     vm.prank(caller);

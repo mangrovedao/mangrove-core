@@ -26,6 +26,7 @@ contract PolygonMangroveDeployer is Deployer {
       chief: fork.get("MgvGovernance"),
       gasprice: gasprice,
       gasmax: gasmax,
+      maxGasreqForFailingOffers: gasmax * 10,
       gasbot: fork.get("Gasbot")
     });
   }

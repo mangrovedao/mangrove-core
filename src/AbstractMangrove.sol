@@ -12,9 +12,13 @@ import {MgvGovernable} from "mgv_src/MgvGovernable.sol";
 abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
   address immutable APPENDIX;
 
-  constructor(address _governance, uint _gasprice, uint gasmax, string memory contractName)
-    MgvOfferTakingWithPermit(contractName)
-  {
+  constructor(
+    address _governance,
+    uint _gasprice,
+    uint gasmax,
+    uint maxGasreqForFailingOffers,
+    string memory contractName
+  ) MgvOfferTakingWithPermit(contractName) {
     unchecked {
       emit NewMgv();
 
@@ -27,8 +31,8 @@ abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
       require(success, "mgv/ctor/gasprice");
       (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGasmax, (gasmax)));
       require(success, "mgv/ctor/gasmax");
-      /* Arbitrary initial limit for number of failing offers - let on average 10 failing offers consume up to gasmax*/
-      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setMaxGasreqForFailingOffers, (gasmax * 10)));
+      (success,) =
+        APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setMaxGasreqForFailingOffers, (maxGasreqForFailingOffers)));
       require(success, "mgv/ctor/maxGasreqForFailingOffers");
       /* Initialize governance to `_governance` after parameter setting. */
       (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGovernance, (_governance)));

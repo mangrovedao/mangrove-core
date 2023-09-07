@@ -10,7 +10,7 @@ import {MgvGovernable} from "mgv_src/MgvGovernable.sol";
 
 /* `AbstractMangrove` inherits the two contracts that implement generic Mangrove functionality (`MgvOfferTakingWithPermit` and `MgvOfferMaking`) but does not implement the abstract functions. */
 abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
-  address immutable APPENDIX;
+  address internal immutable APPENDIX;
 
   constructor(
     address _governance,

@@ -142,7 +142,7 @@ The fields `offerlist key` and `taker` are indexed, so that we can filter on the
 
 This event is emitted when a Clean operation is completed.
 
-It does not emit any fields. This event is only needed in order to know that the clean operation is completed. This way an indexer can know exactly in what context we are in. It could emit the total bounty received, but in order to know who got the bounty, an indexer would still be needed or we would have to emit the taker address aswell, in order for an RPC call to find the data. But an indexer would still be able to find this info, buy collecting all the previous events. So we do not emit the bounty.
+It does not emit any fields. This event is only needed in order to know that the clean operation is completed. This way an indexer can know exactly in what context we are in. It could emit the total bounty received, but in order to know who got the bounty, an indexer would still be needed or we would have to emit the taker address as well, in order for an RPC call to find the data. But an indexer would still be able to find this info, by collecting all the previous events. So we do not emit the bounty.
 
 ### SetActive
 

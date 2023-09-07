@@ -220,6 +220,11 @@ contract TickTest is Test {
     assertEq(tick.posInLevel2(), BitLib.ctz(Field.unwrap(level2)), "wrong pos in level2");
   }
 
+  function test_bestTick_returns_maxTick_on_empty_level0(MgvStructs.LocalPacked local) public {
+    local = local.level0(FieldLib.EMPTY);
+    assertEq(local.bestTick(), MAX_TICK + 1);
+  }
+
   // HELPER FUNCTIONS
   function assertEq(Tick tick, int ticknum) internal {
     assertEq(Tick.unwrap(tick), ticknum);

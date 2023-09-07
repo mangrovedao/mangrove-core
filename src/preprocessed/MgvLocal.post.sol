@@ -52,8 +52,17 @@ library LocalPackedExtra {
   function offer_gasbase(LocalPacked local,uint val) internal pure returns (LocalPacked) { unchecked {
     return local.kilo_offer_gasbase(val/1e3);
   }}
+  // Returns MAX_TICK if branch in local is not valid (it has a field at zero)
+  // It should always be the case that a field is at zero if
+  // - the offerList is empty, in which case all levels are 0, or
+  // - local is in a temporary state in the middle of a call to writeOffer that retracts then reinserts an offers, in which case bestTick must not be called
   function bestTick(LocalPacked local) internal pure returns (Tick) {
-    return TickLib.tickFromBranch(local.tickPosInLeaf(),local.level0(),local.level1(),local.level2());
+    Field level0 = local.level0();
+    if (level0.isEmpty()) {
+      return Tick.wrap(MAX_TICK+1);
+    } else {
+      return TickLib.tickFromBranch(local.tickPosInLeaf(),level0,local.level1(),local.level2());
+    }
   }
   function clearFieldsForMaker(LocalPacked local) internal pure returns (LocalPacked) {
     unchecked {
@@ -75,7 +84,12 @@ library LocalUnpackedExtra {
     local.kilo_offer_gasbase = val/1e3;
   }}
   function bestTick(LocalUnpacked memory local) internal pure returns (Tick) {
-    return TickLib.tickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2);
+    Field level0 = local.level0;
+    if (level0.isEmpty()) {
+      return Tick.wrap(MAX_TICK+1);
+    } else {
+      return TickLib.tickFromBranch(local.tickPosInLeaf,level0,local.level1,local.level2);
+    }
   }
 }
 

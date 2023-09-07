@@ -146,6 +146,7 @@ library TickLib {
     return Tick.wrap(tick);
   }
 
+  // low-level function to get a tick from a branch, no protection against malformed branches
   function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2) internal pure returns (Tick) {
     unchecked {
       uint utick = tickPosInLeaf |

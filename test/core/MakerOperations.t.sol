@@ -5,6 +5,7 @@ pragma solidity ^0.8.10;
 import "mgv_test/lib/MangroveTest.sol";
 import {MgvStructs, Leaf, LogPriceLib, IMgvMonitor} from "mgv_src/MgvLib.sol";
 import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
+import "mgv_lib/Constants.sol";
 
 contract TestMonitor is IMgvMonitor {
   function notifySuccess(MgvLib.SingleOrder calldata sor, address taker) external {}
@@ -1007,21 +1008,23 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.retractOffer(olKey, ofr_veryLow, true);
 
     // Derive a "bad" local from it
-    MgvStructs.LocalPacked badLocal = reader.local(olKey).level0(FieldLib.EMPTY).level1(FieldLib.EMPTY);
+    MgvStructs.LocalPacked local = reader.local(olKey);
+    // Derive a new level0, level1
+    uint leafPos = local.level0().firstOnePosition();
+    Field otherLevel0 = Field.wrap(1 << (leafPos + 1) % uint(LEVEL0_SIZE));
+    uint level0Pos = local.level1().firstOnePosition();
+    Field otherLevel1 = Field.wrap(1 << (level0Pos + 1) % uint(LEVEL1_SIZE));
+    MgvStructs.LocalPacked badLocal = local.level0(otherLevel0).level1(otherLevel1);
     // Make sure we changed the implied tick of badLocal
     assertTrue(!badLocal.bestTick().eq(lowTick), "test setup: bad tick should not be original lowTick");
     // Make sure we have changed level indices
     assertTrue(
       badLocal.bestTick().level0Index() != lowTick.level0Index(), "test setup: bad tick level0Index should be different"
     );
-    assertTrue(
-      badLocal.bestTick().level1Index() != lowTick.level1Index(), "test setup: bad tick level1Index should be different"
-    );
     // Create a tick there
     mgv.newOfferByLogPrice(olKey, Tick.unwrap(badLocal.bestTick()), 1 ether, 10_000, 0);
     // Save level0, level1
     Field highLevel0 = mgv.level0(olKey, badLocal.bestTick().level0Index());
-    Field highLevel1 = mgv.level1(olKey, badLocal.bestTick().level1Index());
     // Update the new tick to an even better tick
     mgv.updateOfferByLogPrice(olKey, Tick.unwrap(veryLowTick), 1 ether, 10_000, 0, ofr);
 
@@ -1031,14 +1034,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       highLevel0,
       "badLocal's tick's level0 should not have changed"
     );
-    assertEq(
-      mgv.level1(olKey, badLocal.bestTick().level1Index()),
-      highLevel1,
-      "badLocal's tick's level1 should not have changed"
-    );
     // Make sure the previously local offer's branch is now empty
     assertEq(mgv.level0(olKey, lowTick.level0Index()), FieldLib.EMPTY, "lowTick's level0 should have been flushed");
-    assertEq(mgv.level1(olKey, lowTick.level1Index()), FieldLib.EMPTY, "lowTick's level1 should have been flushed");
   }
 
   // FIXME

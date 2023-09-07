@@ -27,11 +27,7 @@ contract CopyOpenSemibooksTest is MangroveTest {
     mgv.setGovernance(chief);
 
     chief2 = freshAddress("chief2");
-    mgv2 = IMangrove(
-      payable(
-        new Mangrove(chief2,reader.global().gasprice(),reader.global().gasmax(), reader.global().maxGasreqForFailingOffers())
-      )
-    );
+    mgv2 = IMangrove(payable(new Mangrove(chief2,reader.global().gasprice(),reader.global().gasmax())));
     reader2 = new MgvReader(address(mgv2));
 
     copier = new CopyOpenSemibooks();

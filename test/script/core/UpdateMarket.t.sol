@@ -27,7 +27,7 @@ contract UpdateMarketTest is Test2 {
     gasprice = 42;
     gasmax = 8_000_000;
     gasbot = freshAddress("gasbot");
-    deployer.innerRun(chief, gasprice, gasmax, gasmax * 10, gasbot);
+    deployer.innerRun(chief, gasprice, gasmax, gasbot);
   }
 
   function test_updater(OLKey memory olKey) public {

@@ -1153,7 +1153,7 @@ contract TakerOperationsTest is MangroveTest {
 
 contract BadMangrove is AbstractMangrove {
   constructor(address governance, uint gasprice, uint gasmax)
-    AbstractMangrove(governance, gasprice, gasmax, gasmax * 10, "BadMangrove")
+    AbstractMangrove(governance, gasprice, gasmax, "BadMangrove")
   {}
 
   function executeEnd(MultiOrder memory, MgvLib.SingleOrder memory) internal override {}

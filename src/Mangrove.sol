@@ -7,8 +7,8 @@ import {AbstractMangrove} from "./AbstractMangrove.sol";
 
 /* <a id="Mangrove"></a> The `Mangrove` contract implements the "normal" version of Mangrove, where the taker flashloans the desired amount to each maker. Each time, makers are called after the loan. When the order is complete, each maker is called once again (with the orderbook unlocked). */
 contract Mangrove is AbstractMangrove {
-  constructor(address governance, uint gasprice, uint gasmax, uint maxGasreqForFailingOffers)
-    AbstractMangrove(governance, gasprice, gasmax, maxGasreqForFailingOffers, "Mangrove")
+  constructor(address governance, uint gasprice, uint gasmax)
+    AbstractMangrove(governance, gasprice, gasmax, "Mangrove")
   {}
 
   function executeEnd(MultiOrder memory mor, MgvLib.SingleOrder memory sor) internal override {}

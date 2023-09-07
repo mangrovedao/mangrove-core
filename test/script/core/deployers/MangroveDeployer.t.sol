@@ -22,6 +22,6 @@ contract MangroveDeployerTest is BaseMangroveDeployerTest {
     gasprice = 42;
     gasmax = 8_000_000;
     gasbot = freshAddress("gasbot");
-    mgvDeployer.innerRun(chief, gasprice, gasmax, gasmax * 10, gasbot);
+    mgvDeployer.innerRun(chief, gasprice, gasmax, gasbot);
   }
 }

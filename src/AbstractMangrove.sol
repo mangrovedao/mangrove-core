@@ -13,13 +13,9 @@ import {INITIAL_MAX_RECURSION_DEPTH, INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTI
 abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
   address internal immutable APPENDIX;
 
-  constructor(
-    address _governance,
-    uint _gasprice,
-    uint gasmax,
-    uint maxGasreqForFailingOffers,
-    string memory contractName
-  ) MgvOfferTakingWithPermit(contractName) {
+  constructor(address _governance, uint _gasprice, uint gasmax, string memory contractName)
+    MgvOfferTakingWithPermit(contractName)
+  {
     unchecked {
       emit NewMgv();
 
@@ -32,7 +28,6 @@ abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
       require(success, "mgv/ctor/gasprice");
       (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGasmax, (gasmax)));
       require(success, "mgv/ctor/gasmax");
-      /* Without optimizer enabled it fails above 79. Set default a bit lower to be safe. */
       (success,) =
         APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setMaxRecursionDepth, (INITIAL_MAX_RECURSION_DEPTH)));
       require(success, "mgv/ctor/maxRecursionDepth");

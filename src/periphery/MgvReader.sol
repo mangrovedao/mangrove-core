@@ -300,15 +300,8 @@ contract MgvReader {
   function internalMarketOrder(MarketOrder memory mr) internal view {
     unchecked {
       if (
-        mr.currentFillVolume == 0 || mr.offer.logPrice() > mr.maxLogPrice || mr.offerId == 0
-          || mr.maxRecursionDepth == 0
+        mr.currentFillVolume > 0 && mr.offer.logPrice() <= mr.maxLogPrice && mr.offerId > 0 && mr.maxRecursionDepth > 0
       ) {
-        if (mr.accumulate) {
-          mr.volumeData = new VolumeData[](mr.numOffers);
-        } else {
-          mr.volumeData = new VolumeData[](1);
-        }
-      } else {
         uint currentIndex = mr.numOffers;
 
         mr.offerDetail = MGV.offerDetails(mr.olKey, mr.offerId);
@@ -332,6 +325,12 @@ contract MgvReader {
           uint concreteFee = (mr.totalGot * mr.local.fee()) / 10_000;
           mr.volumeData[currentIndex] =
             VolumeData({totalGot: totalGot - concreteFee, totalGave: totalGave, totalGasreq: totalGasreq});
+        }
+      } else {
+        if (mr.accumulate) {
+          mr.volumeData = new VolumeData[](mr.numOffers);
+        } else {
+          mr.volumeData = new VolumeData[](1);
         }
       }
     }

@@ -89,7 +89,7 @@ It emits `offerlist key`, `taker`, `maker`, the `offerId`, the offers `wants`, `
 
 If the posthook of the offer fails. Then we emit `OfferFailWithPosthookData` instead of just `OfferFail`. This event has one extra field, which is the reason for the posthook failure. By emitting the posthook data, an indexer can keep track of the reason posthook fails, this could for example be used for analytics.
 
-This event is emitted doring posthook end, we wait to emit this event to the end, because we need the information of `penalty`, which is only available at the end of the posthook. This means that `OfferFail` events are emitted in reverse order, compared to what order they are taken. This is do to the way we handle posthooks. The same goes for `OfferSuccess`.
+This event is emitted doring posthook end, we wait to emit this event to the end, because we need the information of `penalty`, which is only available at the end of the posthook. This means that `OfferFail` events are emitted in reverse order, compared to what order they are taken. This is due to the way we handle posthooks. The same goes for `OfferSuccess`.
 
 By emitting this event, an indexer can keep track of, if an offer failed and thereby if the offer is live. By emitting the wants and gives that the offer was taken with, then an indexer can keep track of these amounts, which could be useful for e.g. strategy manager, to know if their offers fail at a certain amount.
 

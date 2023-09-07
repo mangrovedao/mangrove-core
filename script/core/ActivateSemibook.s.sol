@@ -54,6 +54,7 @@ contract ActivateSemibook is Test2, Deployer {
     sequence.
 
     */
+    //FIXME: This underestimates, OfferGasBase.t.sol for better estimate.
     uint outbound_gas = measureTransferGas(olKey.outbound);
     uint inbound_gas = measureTransferGas(olKey.inbound);
     uint gasbase = 2 * (outbound_gas + inbound_gas);

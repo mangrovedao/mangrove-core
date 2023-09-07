@@ -133,6 +133,31 @@ contract MgvGovernable is MgvCommon {
     }
   }
 
+  /* ### `maxRecursionDepth` */
+  function setMaxRecursionDepth(uint maxRecursionDepth) public {
+    unchecked {
+      authOnly();
+      require(
+        MgvStructs.Global.maxRecursionDepth_check(maxRecursionDepth), MgvStructs.Global.maxRecursionDepth_size_error
+      );
+      internal_global = internal_global.maxRecursionDepth(maxRecursionDepth);
+      emit SetMaxRecursionDepth(maxRecursionDepth);
+    }
+  }
+
+  /* ### `maxGasreqForFailingOffers` */
+  function setMaxGasreqForFailingOffers(uint maxGasreqForFailingOffers) public {
+    unchecked {
+      authOnly();
+      require(
+        MgvStructs.Global.maxGasreqForFailingOffers_check(maxGasreqForFailingOffers),
+        MgvStructs.Global.maxGasreqForFailingOffers_size_error
+      );
+      internal_global = internal_global.maxGasreqForFailingOffers(maxGasreqForFailingOffers);
+      emit SetMaxGasreqForFailingOffers(maxGasreqForFailingOffers);
+    }
+  }
+
   /* ### `governance` */
   function setGovernance(address governanceAddress) public {
     unchecked {

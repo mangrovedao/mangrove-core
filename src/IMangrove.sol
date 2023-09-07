@@ -93,6 +93,14 @@ interface IMangrove is HasMgvEvents {
     external
     payable;
 
+  function marketOrderByLogPrice(
+    OLKey memory olKey,
+    int maxLogPrice,
+    uint fillVolume,
+    bool fillWants,
+    uint maxGasreqForFailingOffers
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
+
   function retractOffer(OLKey memory olKey, uint offerId, bool deprovision) external returns (uint provision);
 
   // # Global config view functions
@@ -143,6 +151,10 @@ interface IMangrove is HasMgvEvents {
   function setGasbase(OLKey memory olKey, uint offer_gasbase) external;
 
   function setGasmax(uint gasmax) external;
+
+  function setMaxRecursionDepth(uint maxRecursionDepth) external;
+
+  function setMaxGasreqForFailingOffers(uint maxGasreqForFailingOffers) external;
 
   function setGasprice(uint gasprice) external;
 

@@ -6,6 +6,7 @@ import {HasMgvEvents, Tick, LogPriceLib, OLKey} from "./MgvLib.sol";
 import {MgvOfferTaking} from "./MgvOfferTaking.sol";
 import {TickLib} from "./../lib/TickLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
+import {MgvStructs} from "./MgvLib.sol";
 import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
@@ -87,7 +88,7 @@ abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid)
   {
     unchecked {
-      (takerGot, takerGave, bounty, feePaid) = generalMarketOrder(olKey, logPrice, fillVolume, fillWants, taker);
+      (takerGot, takerGave, bounty, feePaid) = generalMarketOrder(olKey, logPrice, fillVolume, fillWants, taker, 0);
       /* The sender's allowance is verified after the order complete so that `takerGave` rather than `takerGives` is checked against the allowance. The former may be lower. */
       deductSenderAllowance(olKey.outbound, olKey.inbound, taker, takerGave);
     }

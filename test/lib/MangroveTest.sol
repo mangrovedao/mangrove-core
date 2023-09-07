@@ -78,7 +78,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     defaultFee: 0,
     defaultTickScale: 1,
     gasprice: 40,
-    gasbase: 50_000,
+    //Update `gasbase` by measuring using the test run `forge test --mc OfferGasBaseTest_Generic_A_B -vv`
+    gasbase: 184048,
     density: 2 ** 32,
     gasmax: 2_000_000
   });
@@ -274,7 +275,11 @@ contract MangroveTest is Test2, HasMgvEvents {
   }
 
   function setupTaker(OLKey memory _ol, string memory label) public returns (TestTaker) {
-    TestTaker tt = new TestTaker(mgv, _ol);
+    return setupTaker(_ol, label, mgv);
+  }
+
+  function setupTaker(OLKey memory _ol, string memory label, IMangrove _mgv) public returns (TestTaker) {
+    TestTaker tt = new TestTaker(_mgv, _ol);
     vm.deal(address(tt), 100 ether);
     vm.label(address(tt), label);
     return tt;

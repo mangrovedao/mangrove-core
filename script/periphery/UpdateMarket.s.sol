@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "mgv_src/periphery/MgvReader.sol";
 import {IERC20} from "mgv_src/IERC20.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
+import "mgv_lib/Debug.sol";
 
 /* Update market information on MgvReader.
    

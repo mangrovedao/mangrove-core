@@ -506,13 +506,12 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   // logs an overview of the current branch
   function logTickTreeBranch(OLKey memory _ol) public view {
-    logTickTreeBranch(reader, _ol);
+    logTickTreeBranch(mgv, _ol);
   }
 
-  function logTickTreeBranch(MgvReader _reader, OLKey memory _ol) internal view {
-    IMangrove _mgv = _reader.MGV();
+  function logTickTreeBranch(IMangrove _mgv, OLKey memory _ol) internal view {
     console.log("--------CURRENT TICK TREE BRANCH--------");
-    MgvStructs.LocalPacked _local = _reader.local(_ol);
+    MgvStructs.LocalPacked _local = _mgv.local(_ol);
     Tick tick = _local.bestTick();
     console.log("Current tick %s", toString(tick));
     console.log("Current posInLeaf %s", tick.posInLeaf());

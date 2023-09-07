@@ -109,6 +109,8 @@ interface IMangrove is HasMgvEvents {
 
   // # Offer list view functions
 
+  function local(OLKey memory olKey) external view returns (MgvStructs.LocalPacked _local);
+
   function config(OLKey memory olKey)
     external
     view

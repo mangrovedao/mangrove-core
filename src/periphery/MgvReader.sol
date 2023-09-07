@@ -103,18 +103,12 @@ contract MgvReader {
     }
   }
 
-  /* Sugar for getting only global/local config */
-  function local(OLKey memory olKey) public view returns (MgvStructs.LocalPacked) {
-    (, MgvStructs.LocalPacked _local) = MGV.config(olKey);
-    return _local;
-  }
-
   function globalUnpacked() public view returns (MgvStructs.GlobalUnpacked memory) {
     return MGV.global().to_struct();
   }
 
   function localUnpacked(OLKey memory olKey) public view returns (MgvStructs.LocalUnpacked memory) {
-    return local(olKey).to_struct();
+    return MGV.local(olKey).to_struct();
   }
 
   // # Offer view functions
@@ -331,7 +325,7 @@ contract MgvReader {
 
   /* Returns the minimum outbound_tkn volume to give on the outbound_tkn/inbound_tkn offer list for an offer that requires gasreq gas. */
   function minVolume(OLKey memory olKey, uint gasreq) public view returns (uint) {
-    MgvStructs.LocalPacked _local = local(olKey);
+    MgvStructs.LocalPacked _local = MGV.local(olKey);
     return _local.density().multiplyUp(gasreq + _local.offer_gasbase());
   }
 
@@ -589,7 +583,7 @@ contract MgvReader {
   /// @notice Will consider a market open iff either the offer lists tkn0/tkn1 or tkn1/tkn0 are open on Mangrove.
   function updateMarket(Market memory market) external {
     (market.tkn0, market.tkn1) = order(market.tkn0, market.tkn1);
-    bool openOnMangrove = local(toOLKey(market)).active() || local(toOLKey(flipped(market))).active();
+    bool openOnMangrove = MGV.local(toOLKey(market)).active() || MGV.local(toOLKey(flipped(market))).active();
     uint position = marketPositions[market.tkn0][market.tkn1][market.tickScale];
 
     if (openOnMangrove && position == 0) {

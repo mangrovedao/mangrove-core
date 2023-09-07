@@ -19,11 +19,10 @@ contract MgvView is MgvCommon {
     }
   }
 
-  /* Reading only global config. */
-  function global() external view returns (MgvStructs.GlobalPacked) {
+  /* Reading the global configuration. In addition, a parameter (`gasprice`) may be read from the oracle. */
+  function global() external view returns (MgvStructs.GlobalPacked _global) {
     unchecked {
-      (MgvStructs.GlobalPacked _global,) = config(OLKey(address(0), address(0), 0));
-      return _global;
+      (_global,,) = _config(OLKey(address(0), address(0), 0));
     }
   }
 
@@ -37,46 +36,46 @@ contract MgvView is MgvCommon {
 
   function leafs(OLKey memory olKey, int index) external view returns (Leaf) {
     unchecked {
-      OfferList storage _offerList = offerLists[olKey.hash()];
-      unlockedMarketOnly(_offerList.local);
-      return _offerList.leafs[index];
+      OfferList storage offerList = offerLists[olKey.hash()];
+      unlockedMarketOnly(offerList.local);
+      return offerList.leafs[index];
     }
   }
 
   function level0(OLKey memory olKey, int index) external view returns (Field) {
     unchecked {
-      OfferList storage _offerList = offerLists[olKey.hash()];
-      MgvStructs.LocalPacked _local = _offerList.local;
-      unlockedMarketOnly(_local);
+      OfferList storage offerList = offerLists[olKey.hash()];
+      MgvStructs.LocalPacked local = offerList.local;
+      unlockedMarketOnly(local);
 
-      if (_local.bestTick().level0Index() == index) {
-        return _local.level0();
+      if (local.bestTick().level0Index() == index) {
+        return local.level0();
       } else {
-        return _offerList.level0[index];
+        return offerList.level0[index];
       }
     }
   }
 
   function level1(OLKey memory olKey, int index) external view returns (Field) {
     unchecked {
-      OfferList storage _offerList = offerLists[olKey.hash()];
-      MgvStructs.LocalPacked _local = _offerList.local;
-      unlockedMarketOnly(_local);
+      OfferList storage offerList = offerLists[olKey.hash()];
+      MgvStructs.LocalPacked local = offerList.local;
+      unlockedMarketOnly(local);
 
-      if (_local.bestTick().level1Index() == index) {
-        return _local.level1();
+      if (local.bestTick().level1Index() == index) {
+        return local.level1();
       } else {
-        return _offerList.level1[index];
+        return offerList.level1[index];
       }
     }
   }
 
   function level2(OLKey memory olKey) external view returns (Field) {
     unchecked {
-      OfferList storage _offerList = offerLists[olKey.hash()];
-      MgvStructs.LocalPacked _local = _offerList.local;
-      unlockedMarketOnly(_local);
-      return _local.level2();
+      OfferList storage offerList = offerLists[olKey.hash()];
+      MgvStructs.LocalPacked local = offerList.local;
+      unlockedMarketOnly(local);
+      return local.level2();
     }
   }
 
@@ -84,16 +83,18 @@ contract MgvView is MgvCommon {
 
   /* Function to check whether given an offer list is locked. Contrary to other offer list view functions, this does not revert if the offer list is locked. */
   function locked(OLKey memory olKey) external view returns (bool) {
-    return offerLists[olKey.hash()].local.lock();
+    unchecked {
+      return offerLists[olKey.hash()].local.lock();
+    }
   }
 
   /* Convenience function to get best offer of the given offerList */
   function best(OLKey memory olKey) public view returns (uint offerId) {
     unchecked {
-      OfferList storage _offerList = offerLists[olKey.hash()];
-      MgvStructs.LocalPacked _local = _offerList.local;
-      unlockedMarketOnly(_local);
-      return _offerList.leafs[_local.bestTick().leafIndex()].getNextOfferId();
+      OfferList storage offerList = offerLists[olKey.hash()];
+      MgvStructs.LocalPacked local = offerList.local;
+      unlockedMarketOnly(local);
+      return offerList.leafs[local.bestTick().leafIndex()].getNextOfferId();
     }
   }
 
@@ -102,9 +103,9 @@ contract MgvView is MgvCommon {
   /* Get an offer in packed format */
   function offers(OLKey memory olKey, uint offerId) public view returns (MgvStructs.OfferPacked offer) {
     unchecked {
-      OfferList storage _offerList = offerLists[olKey.hash()];
-      unlockedMarketOnly(_offerList.local);
-      return _offerList.offerData[offerId].offer;
+      OfferList storage offerList = offerLists[olKey.hash()];
+      unlockedMarketOnly(offerList.local);
+      return offerList.offerData[offerId].offer;
     }
   }
 
@@ -115,9 +116,9 @@ contract MgvView is MgvCommon {
     returns (MgvStructs.OfferDetailPacked offerDetail)
   {
     unchecked {
-      OfferList storage _offerList = offerLists[olKey.hash()];
-      unlockedMarketOnly(_offerList.local);
-      return _offerList.offerData[offerId].detail;
+      OfferList storage offerList = offerLists[olKey.hash()];
+      unlockedMarketOnly(offerList.local);
+      return offerList.offerData[offerId].detail;
     }
   }
 
@@ -128,9 +129,9 @@ contract MgvView is MgvCommon {
     returns (MgvStructs.OfferPacked offer, MgvStructs.OfferDetailPacked offerDetail)
   {
     unchecked {
-      OfferList storage _offerList = offerLists[olKey.hash()];
-      unlockedMarketOnly(_offerList.local);
-      OfferData storage _offerData = _offerList.offerData[offerId];
+      OfferList storage offerList = offerLists[olKey.hash()];
+      unlockedMarketOnly(offerList.local);
+      OfferData storage _offerData = offerList.offerData[offerId];
       return (_offerData.offer, _offerData.detail);
     }
   }
@@ -142,15 +143,21 @@ contract MgvView is MgvCommon {
     view
     returns (uint allowance)
   {
-    allowance = _allowances[outbound_tkn][inbound_tkn][owner][spender];
+    unchecked {
+      allowance = _allowances[outbound_tkn][inbound_tkn][owner][spender];
+    }
   }
 
   function nonces(address owner) external view returns (uint nonce) {
-    nonce = _nonces[owner];
+    unchecked {
+      nonce = _nonces[owner];
+    }
   }
 
   // Note: the accessor for DOMAIN_SEPARATOR is defined in MgvStorage
   function PERMIT_TYPEHASH() external pure returns (bytes32) {
-    return _PERMIT_TYPEHASH;
+    unchecked {
+      return _PERMIT_TYPEHASH;
+    }
   }
 }

@@ -97,7 +97,7 @@ interface IMangrove is HasMgvEvents {
 
   // # Global config view functions
 
-  function global() external view returns (MgvStructs.GlobalPacked);
+  function global() external view returns (MgvStructs.GlobalPacked _global);
 
   // # Offer list view functions
 

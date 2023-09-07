@@ -27,9 +27,6 @@ abstract contract AbstractMangrove is MgvOfferTakingWithPermit, MgvOfferMaking {
       require(success, "mgv/ctor/gasprice");
       (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setGasmax, (gasmax)));
       require(success, "mgv/ctor/gasmax");
-      /* Without optimizer enabled it fails above 79. Set default a bit lower to be safe. */
-      (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setMaxRecursionDepth, (75)));
-      require(success, "mgv/ctor/maxRecursionDepth");
       /* Arbitrary initial limit for number of failing offers - let on average 10 failing offers consume up to gasmax*/
       (success,) = APPENDIX.delegatecall(abi.encodeCall(MgvGovernable.setMaxGasreqForFailingOffers, (gasmax * 10)));
       require(success, "mgv/ctor/maxGasreqForFailingOffers");

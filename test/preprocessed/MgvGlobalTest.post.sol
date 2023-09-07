@@ -18,15 +18,14 @@ contract MgvGlobalTest is Test2 {
     return u << (256-to) >> (256-to);
   }
 
-  function test_pack(address monitor, bool useOracle, bool notify, uint gasprice, uint gasmax, bool dead, uint maxRecursionDepth, uint maxGasreqForFailingOffers) public {
-    MgvStructs.GlobalPacked packed = MgvStructs.Global.pack(monitor, useOracle, notify, gasprice, gasmax, dead, maxRecursionDepth, maxGasreqForFailingOffers);
+  function test_pack(address monitor, bool useOracle, bool notify, uint gasprice, uint gasmax, bool dead, uint maxGasreqForFailingOffers) public {
+    MgvStructs.GlobalPacked packed = MgvStructs.Global.pack(monitor, useOracle, notify, gasprice, gasmax, dead, maxGasreqForFailingOffers);
     assertEq(packed.monitor(),monitor,"bad monitor");
     assertEq(packed.useOracle(),useOracle,"bad useOracle");
     assertEq(packed.notify(),notify,"bad notify");
     assertEq(packed.gasprice(),cast(gasprice,16),"bad gasprice");
     assertEq(packed.gasmax(),cast(gasmax,24),"bad gasmax");
     assertEq(packed.dead(),dead,"bad dead");
-    assertEq(packed.maxRecursionDepth(),cast(maxRecursionDepth,8),"bad maxRecursionDepth");
     assertEq(packed.maxGasreqForFailingOffers(),cast(maxGasreqForFailingOffers,32),"bad maxGasreqForFailingOffers");
   }
 
@@ -49,7 +48,6 @@ contract MgvGlobalTest is Test2 {
       assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
       assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
       assertEq(modified.dead(),packed.dead(),"modified: bad dead");
-      assertEq(modified.maxRecursionDepth(),packed.maxRecursionDepth(),"modified: bad maxRecursionDepth");
       assertEq(modified.maxGasreqForFailingOffers(),packed.maxGasreqForFailingOffers(),"modified: bad maxGasreqForFailingOffers");
     }
   function test_set_useOracle(MgvStructs.GlobalPacked packed,bool useOracle) public {
@@ -65,7 +63,6 @@ contract MgvGlobalTest is Test2 {
       assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
       assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
       assertEq(modified.dead(),packed.dead(),"modified: bad dead");
-      assertEq(modified.maxRecursionDepth(),packed.maxRecursionDepth(),"modified: bad maxRecursionDepth");
       assertEq(modified.maxGasreqForFailingOffers(),packed.maxGasreqForFailingOffers(),"modified: bad maxGasreqForFailingOffers");
     }
   function test_set_notify(MgvStructs.GlobalPacked packed,bool notify) public {
@@ -81,7 +78,6 @@ contract MgvGlobalTest is Test2 {
       assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
       assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
       assertEq(modified.dead(),packed.dead(),"modified: bad dead");
-      assertEq(modified.maxRecursionDepth(),packed.maxRecursionDepth(),"modified: bad maxRecursionDepth");
       assertEq(modified.maxGasreqForFailingOffers(),packed.maxGasreqForFailingOffers(),"modified: bad maxGasreqForFailingOffers");
     }
   function test_set_gasprice(MgvStructs.GlobalPacked packed,uint gasprice) public {
@@ -97,7 +93,6 @@ contract MgvGlobalTest is Test2 {
       assertEq(modified.notify(),packed.notify(),"modified: bad notify");
       assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
       assertEq(modified.dead(),packed.dead(),"modified: bad dead");
-      assertEq(modified.maxRecursionDepth(),packed.maxRecursionDepth(),"modified: bad maxRecursionDepth");
       assertEq(modified.maxGasreqForFailingOffers(),packed.maxGasreqForFailingOffers(),"modified: bad maxGasreqForFailingOffers");
     }
   function test_set_gasmax(MgvStructs.GlobalPacked packed,uint gasmax) public {
@@ -113,7 +108,6 @@ contract MgvGlobalTest is Test2 {
       assertEq(modified.notify(),packed.notify(),"modified: bad notify");
       assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
       assertEq(modified.dead(),packed.dead(),"modified: bad dead");
-      assertEq(modified.maxRecursionDepth(),packed.maxRecursionDepth(),"modified: bad maxRecursionDepth");
       assertEq(modified.maxGasreqForFailingOffers(),packed.maxGasreqForFailingOffers(),"modified: bad maxGasreqForFailingOffers");
     }
   function test_set_dead(MgvStructs.GlobalPacked packed,bool dead) public {
@@ -129,23 +123,6 @@ contract MgvGlobalTest is Test2 {
       assertEq(modified.notify(),packed.notify(),"modified: bad notify");
       assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
       assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
-      assertEq(modified.maxRecursionDepth(),packed.maxRecursionDepth(),"modified: bad maxRecursionDepth");
-      assertEq(modified.maxGasreqForFailingOffers(),packed.maxGasreqForFailingOffers(),"modified: bad maxGasreqForFailingOffers");
-    }
-  function test_set_maxRecursionDepth(MgvStructs.GlobalPacked packed,uint maxRecursionDepth) public {
-      MgvStructs.GlobalPacked original = packed.maxRecursionDepth(packed.maxRecursionDepth());
-      assertEq(original.maxRecursionDepth(),packed.maxRecursionDepth(), "original: bad maxRecursionDepth");
-
-      MgvStructs.GlobalPacked modified = packed.maxRecursionDepth(maxRecursionDepth);
-
-      assertEq(modified.maxRecursionDepth(),cast(maxRecursionDepth,8),"modified: bad maxRecursionDepth");
-
-      assertEq(modified.monitor(),packed.monitor(),"modified: bad monitor");
-      assertEq(modified.useOracle(),packed.useOracle(),"modified: bad useOracle");
-      assertEq(modified.notify(),packed.notify(),"modified: bad notify");
-      assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
-      assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
-      assertEq(modified.dead(),packed.dead(),"modified: bad dead");
       assertEq(modified.maxGasreqForFailingOffers(),packed.maxGasreqForFailingOffers(),"modified: bad maxGasreqForFailingOffers");
     }
   function test_set_maxGasreqForFailingOffers(MgvStructs.GlobalPacked packed,uint maxGasreqForFailingOffers) public {
@@ -162,11 +139,10 @@ contract MgvGlobalTest is Test2 {
       assertEq(modified.gasprice(),packed.gasprice(),"modified: bad gasprice");
       assertEq(modified.gasmax(),packed.gasmax(),"modified: bad gasmax");
       assertEq(modified.dead(),packed.dead(),"modified: bad dead");
-      assertEq(modified.maxRecursionDepth(),packed.maxRecursionDepth(),"modified: bad maxRecursionDepth");
     }
 
   function test_unpack(MgvStructs.GlobalPacked packed) public {
-    (address monitor, bool useOracle, bool notify, uint gasprice, uint gasmax, bool dead, uint maxRecursionDepth, uint maxGasreqForFailingOffers) = packed.unpack();
+    (address monitor, bool useOracle, bool notify, uint gasprice, uint gasmax, bool dead, uint maxGasreqForFailingOffers) = packed.unpack();
 
     assertEq(packed.monitor(),monitor,"bad monitor");
     assertEq(packed.useOracle(),useOracle,"bad useOracle");
@@ -174,7 +150,6 @@ contract MgvGlobalTest is Test2 {
     assertEq(packed.gasprice(),gasprice,"bad gasprice");
     assertEq(packed.gasmax(),gasmax,"bad gasmax");
     assertEq(packed.dead(),dead,"bad dead");
-    assertEq(packed.maxRecursionDepth(),maxRecursionDepth,"bad maxRecursionDepth");
     assertEq(packed.maxGasreqForFailingOffers(),maxGasreqForFailingOffers,"bad maxGasreqForFailingOffers");
   }
 
@@ -193,7 +168,6 @@ contract MgvGlobalTest is Test2 {
     assertEq(unpacked.gasprice,packed.gasprice(),"bad gasprice");
     assertEq(unpacked.gasmax,packed.gasmax(),"bad gasmax");
     assertEq(unpacked.dead,packed.dead(),"bad dead");
-    assertEq(unpacked.maxRecursionDepth,packed.maxRecursionDepth(),"bad maxRecursionDepth");
     assertEq(unpacked.maxGasreqForFailingOffers,packed.maxGasreqForFailingOffers(),"bad maxGasreqForFailingOffers");
   }
 
@@ -206,7 +180,6 @@ contract MgvGlobalTest is Test2 {
     packed2 = packed2.gasprice(unpacked.gasprice);
     packed2 = packed2.gasmax(unpacked.gasmax);
     packed2 = packed2.dead(unpacked.dead);
-    packed2 = packed2.maxRecursionDepth(unpacked.maxRecursionDepth);
     packed2 = packed2.maxGasreqForFailingOffers(unpacked.maxGasreqForFailingOffers);
     assertEq(packed.monitor(),packed2.monitor(),"bad monitor");
     assertEq(packed.useOracle(),packed2.useOracle(),"bad useOracle");
@@ -214,7 +187,6 @@ contract MgvGlobalTest is Test2 {
     assertEq(packed.gasprice(),packed2.gasprice(),"bad gasprice");
     assertEq(packed.gasmax(),packed2.gasmax(),"bad gasmax");
     assertEq(packed.dead(),packed2.dead(),"bad dead");
-    assertEq(packed.maxRecursionDepth(),packed2.maxRecursionDepth(),"bad maxRecursionDepth");
     assertEq(packed.maxGasreqForFailingOffers(),packed2.maxGasreqForFailingOffers(),"bad maxGasreqForFailingOffers");
   }
 }

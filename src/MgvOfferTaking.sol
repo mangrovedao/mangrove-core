@@ -416,7 +416,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         require(mgvData != "mgv/tradeSuccess", "mgv/clean/offerDidNotFail");
 
         /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since the offer may be anywhere in the book. So we stitch together offers immediately after `execute`. */
-        sor.local = dislodgeOffer(offerList, sor.olKey.tickScale, sor.offer, sor.local, true);
+        sor.local = dislodgeOffer(offerList, sor.olKey.tickScale, sor.offer, sor.local, sor.local.bestTick(), true);
 
         /* <a id="internalSnipes/liftReentrancy"></a> Now that the current snipe is over, we can lift the lock on the book. In the same operation we
         * lift the reentrancy lock, and

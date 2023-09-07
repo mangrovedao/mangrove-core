@@ -24,7 +24,7 @@ contract AavePooledRouterTest is OfferLogicTest {
   function setUp() public override {
     // deploying mangrove and opening WETH/USDC market.
     if (useForkAave) {
-      fork = new PinnedPolygonFork();
+      fork = new PinnedPolygonFork(39880000);
     }
     super.setUp();
 

@@ -47,7 +47,7 @@ contract MangroveOrder_Test is MangroveTest {
   receive() external payable {}
 
   function setUp() public override {
-    fork = new PinnedPolygonFork();
+    fork = new PinnedPolygonFork(39880000);
     fork.setUp();
     options.gasprice = 90;
     options.gasbase = 68_000;

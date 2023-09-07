@@ -22,7 +22,7 @@ contract AaveMakerTest is MangroveTest {
 
   function setUp() public override {
     // use the pinned Polygon fork
-    fork = new PinnedPolygonFork(); // use polygon fork to use dai, usdc and weth addresses
+    fork = new PinnedPolygonFork(39880000); // use polygon fork to use dai, usdc and weth addresses
     fork.setUp();
 
     dai = IERC20(fork.get("DAI"));

@@ -9,7 +9,7 @@ contract MgvView is MgvCommon {
   /* # Configuration Reads */
   /* Reading the configuration for an offer list involves reading the config global to all offerLists and the local one. In addition, a global parameter (`gasprice`) and a local one (`density`) may be read from the oracle. */
   function config(OLKey memory olKey)
-    public
+    external
     view
     returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local)
   {
@@ -89,7 +89,7 @@ contract MgvView is MgvCommon {
   }
 
   /* Convenience function to get best offer of the given offerList */
-  function best(OLKey memory olKey) public view returns (uint offerId) {
+  function best(OLKey memory olKey) external view returns (uint offerId) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       MgvStructs.LocalPacked local = offerList.local;
@@ -101,7 +101,7 @@ contract MgvView is MgvCommon {
   // # Offer view functions
 
   /* Get an offer in packed format */
-  function offers(OLKey memory olKey, uint offerId) public view returns (MgvStructs.OfferPacked offer) {
+  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer) {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       unlockedMarketOnly(offerList.local);
@@ -111,7 +111,7 @@ contract MgvView is MgvCommon {
 
   /* Get an offer detail in packed format */
   function offerDetails(OLKey memory olKey, uint offerId)
-    public
+    external
     view
     returns (MgvStructs.OfferDetailPacked offerDetail)
   {

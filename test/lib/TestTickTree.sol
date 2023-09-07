@@ -46,9 +46,9 @@ contract TestTickTree is MangroveTest {
   // Creates a snapshot of the Mangrove tick tree
   function snapshotMgvTickTree() public {
     local = reader.local(olKey);
-    Field _level2 = mgv.level2(olKey);
+    level2 = mgv.level2(olKey);
     for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
-      if (!isBitSet(_level2, level2Pos)) {
+      if (!isBitSet(level2, level2Pos)) {
         continue;
       }
 
@@ -88,7 +88,7 @@ contract TestTickTree is MangroveTest {
   function assertMgvTickTreeIsConsistent() public {
     Field _level2 = mgv.level2(olKey);
     for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
-      bool level2PosIsSet = isBitSet(level2, level2Pos);
+      bool level2PosIsSet = isBitSet(_level2, level2Pos);
       int level1Index = level1IndexFromLevel2Pos(level2Pos);
       Field level1 = mgv.level1(olKey, level1Index);
 

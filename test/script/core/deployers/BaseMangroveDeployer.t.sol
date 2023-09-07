@@ -51,7 +51,7 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
 
     // Reader - verify mgv is used
     MgvReader reader = mgvDeployer.reader();
-    vm.expectCall(address(mgv), abi.encodeCall(mgv.localUnpacked, (olKey)));
-    reader.marketConfig(Market({tkn0: olKey.outbound, tkn1: olKey.inbound, tickScale: olKey.tickScale}));
+    vm.expectCall(address(mgv), abi.encodeCall(mgv.config, (olKey)));
+    reader.getProvision(olKey, 0, 0);
   }
 }

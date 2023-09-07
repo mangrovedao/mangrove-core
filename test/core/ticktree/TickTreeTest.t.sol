@@ -69,7 +69,7 @@ abstract contract TickTreeTest is MangroveTest {
   // Calculates gives that Mangrove will accept for a tick & gasreq
   function getAcceptableGivesForTick(Tick tick, uint gasreq) internal view returns (uint gives) {
     // First, try minVolume
-    gives = mgv.minVolume(olKey, gasreq);
+    gives = reader.minVolume(olKey, gasreq);
     uint wants = LogPriceLib.inboundFromOutbound(LogPriceLib.fromTick(tick, olKey.tickScale), gives);
     if (wants > 0 && uint96(wants) == wants) {
       return gives;

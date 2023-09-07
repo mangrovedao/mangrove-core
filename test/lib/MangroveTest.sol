@@ -145,9 +145,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint c = 0;
     while ((offerId != 0) && (c < size)) {
       ids[c] = offerId;
-      offers[c] = mgv.offers(_ol, offerId);
-      details[c] = mgv.offerDetails(_ol, offerId);
-      offerId = mgv.nextOfferId(_ol, offers[c]);
+      (offers[c], details[c]) = mgv.offerData(_ol, offerId);
+      offerId = reader.nextOfferId(_ol, offers[c]);
       c++;
     }
     c = 0;
@@ -167,7 +166,8 @@ contract MangroveTest is Test2, HasMgvEvents {
 
     console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
     while (offerId != 0) {
-      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) = mgv.offerInfo(_ol, offerId);
+      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) =
+        reader.offerInfo(_ol, offerId);
       console.log(
         string.concat(
           unicode"│ ",
@@ -180,7 +180,7 @@ contract MangroveTest is Test2, HasMgvEvents {
           vm.toString(detail.maker)
         )
       );
-      offerId = mgv.nextOfferIdById(_ol, offerId);
+      offerId = reader.nextOfferIdById(_ol, offerId);
     }
     console.log(unicode"└────┴─────────────────────");
   }
@@ -432,7 +432,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     if (gives == 0) {
       return;
     }
-    uint prov = mgv.getProvision(_ol, gasreq, 0);
+    uint prov = reader.getProvision(_ol, gasreq, 0);
     while (fold > 0) {
       vm.prank(caller);
       mgv.newOfferByLogPrice{value: prov}(_ol, logPrice, gives, gasreq, 0);
@@ -447,7 +447,7 @@ contract MangroveTest is Test2, HasMgvEvents {
       MgvStructs.OfferDetailPacked detail = mgv.offerDetails(_ol, fromId);
       densify(_ol, offer.logPrice(), offer.gives(), detail.gasreq(), fold, caller);
       length--;
-      fromId = mgv.nextOfferId(_ol, offer);
+      fromId = reader.nextOfferId(_ol, offer);
     }
   }
 
@@ -501,12 +501,13 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   // logs an overview of the current branch
   function logTickTreeBranch(OLKey memory _ol) public view {
-    logTickTreeBranch(mgv, _ol);
+    logTickTreeBranch(reader, _ol);
   }
 
-  function logTickTreeBranch(IMangrove _mgv, OLKey memory _ol) internal view {
+  function logTickTreeBranch(MgvReader _reader, OLKey memory _ol) internal view {
+    IMangrove _mgv = _reader.MGV();
     console.log("--------CURRENT TICK TREE BRANCH--------");
-    MgvStructs.LocalPacked _local = _mgv.local(_ol);
+    MgvStructs.LocalPacked _local = _reader.local(_ol);
     Tick tick = _local.bestTick();
     console.log("Current tick %s", toString(tick));
     console.log("Current posInLeaf %s", tick.posInLeaf());

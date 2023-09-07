@@ -289,7 +289,7 @@ contract GatekeepingTest is MangroveTest {
       1 //ofrId
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), mgv.getProvision(olKey, cfg.gasmax(), 0));
+    emit Debit(address(mkr), reader.getProvision(olKey, cfg.gasmax(), 0));
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, cfg.gasmax());
     assertTrue(mgv.offers(olKey, ofr).isLive(), "Offer should have been inserted");
   }
@@ -318,7 +318,7 @@ contract GatekeepingTest is MangroveTest {
       1 //ofrId
     );
     expectFrom($(mgv));
-    emit Debit(address(mkr), mgv.getProvision(olKey, 1, 0));
+    emit Debit(address(mkr), reader.getProvision(olKey, 1, 0));
     uint ofr = mkr.newOfferByVolume(amount, amount, 1);
     assertTrue(mgv.offers(olKey, ofr).isLive(), "Offer should have been inserted");
   }
@@ -703,6 +703,7 @@ contract GatekeepingTest is MangroveTest {
     assertTrue(mgv.locked(olKey), "market must be locked");
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.config(olKey);
+    mgv.global();
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.leafs(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
@@ -712,15 +713,13 @@ contract GatekeepingTest is MangroveTest {
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.level2(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.configInfo(olKey);
-    vm.expectRevert("mgv/reentrancyLocked");
     mgv.best(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.offers(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.offerDetails(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.offerInfo(olKey, 0);
+    mgv.offerData(olKey, 0);
   }
 
   function test_offer_list_read_on_reentrancy_fails() public {
@@ -739,15 +738,15 @@ contract GatekeepingTest is MangroveTest {
   function olReadOK(OLKey memory olKey) external {
     assertTrue(!mgv.locked(olKey), "market must not be locked");
     mgv.config(olKey);
+    mgv.global();
     mgv.leafs(olKey, 0);
     mgv.level0(olKey, 0);
     mgv.level1(olKey, 0);
     mgv.level2(olKey);
-    mgv.configInfo(olKey);
     mgv.best(olKey);
     mgv.offers(olKey, 0);
     mgv.offerDetails(olKey, 0);
-    mgv.offerInfo(olKey, 0);
+    mgv.offerData(olKey, 0);
   }
 
   function test_offer_list_read_on_reentrancy_succeeds() public {
@@ -880,7 +879,7 @@ contract GatekeepingTest is MangroveTest {
   function test_configInfo(OLKey memory olKey, address monitor, uint128 densityFixed) public {
     mgv.activate(olKey, 0, densityFixed, 0);
     mgv.setMonitor(monitor);
-    (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = mgv.configInfo(olKey);
+    (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = reader.configInfo(olKey);
     assertEq(g.monitor, monitor, "wrong monitor");
     assertEq(l.density.toFixed(), DensityLib.fromFixed(densityFixed).toFixed(), "wrong density");
   }

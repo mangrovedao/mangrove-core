@@ -98,7 +98,7 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
 
   function test_no_allowance(uint value) external {
     /* You can use 0 from someone who gave you an allowance of 0. */
-    value = bound(value, mgv.minVolume(olKey, 100_000), type(uint96).max); //can't create an offer below density
+    value = bound(value, reader.minVolume(olKey, 100_000), type(uint96).max); //can't create an offer below density
     deal($(base), $(this), value);
     deal($(quote), good_owner, value);
     newOfferByVolume(value);

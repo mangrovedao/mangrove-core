@@ -17,6 +17,12 @@ struct MarketConfig {
   MgvStructs.LocalUnpacked config10;
 }
 
+struct VolumeData {
+  uint totalGot;
+  uint totalGave;
+  uint totalGasreq;
+}
+
 /// @notice We choose a canonical orientation for all markets based on the numerical values of their token addresses. That way we can uniquely identify a market with two addresses given in any order.
 /// @return address the lowest of the given arguments (numerically)
 /// @return address the highest of the given arguments (numerically)
@@ -119,8 +125,8 @@ contract MgvReader {
         markets[i] = Market({tkn0: tkn0, tkn1: tkn1, tickScale: tickScale});
 
         if (withConfig) {
-          configs[i].config01 = MGV.localUnpacked(toOLKey(markets[i]));
-          configs[i].config10 = MGV.localUnpacked(toOLKey(flipped(markets[i])));
+          configs[i].config01 = localUnpacked(toOLKey(markets[i]));
+          configs[i].config10 = localUnpacked(toOLKey(flipped(markets[i])));
         }
       }
     }
@@ -139,15 +145,15 @@ contract MgvReader {
   /// @return config The market configuration. config01 and config10 follow the order given in arguments, not the canonical order
   /// @dev This function queries Mangrove so all the returned info is up-to-date.
   function marketConfig(Market memory market) external view returns (MarketConfig memory config) {
-    config.config01 = MGV.localUnpacked(toOLKey(market));
-    config.config10 = MGV.localUnpacked(toOLKey(flipped(market)));
+    config.config01 = localUnpacked(toOLKey(market));
+    config.config10 = localUnpacked(toOLKey(flipped(market)));
   }
 
   /// @notice Permisionless update of _openMarkets array.
   /// @notice Will consider a market open iff either the offer lists tkn0/tkn1 or tkn1/tkn0 are open on Mangrove.
   function updateMarket(Market memory market) external {
     (market.tkn0, market.tkn1) = order(market.tkn0, market.tkn1);
-    bool openOnMangrove = MGV.local(toOLKey(market)).active() || MGV.local(toOLKey(flipped(market))).active();
+    bool openOnMangrove = local(toOLKey(market)).active() || local(toOLKey(flipped(market))).active();
     uint position = marketPositions[market.tkn0][market.tkn1][market.tickScale];
 
     if (openOnMangrove && position == 0) {
@@ -165,6 +171,434 @@ contract MgvReader {
       }
       _openMarkets.pop();
       marketPositions[market.tkn0][market.tkn1][market.tickScale] = 0;
+    }
+  }
+
+  // # Config view functions
+
+  /* Returns the configuration in an ABI-compatible struct. Should not be called internally, would be a huge memory copying waste. Use `config` instead. */
+  function configInfo(OLKey memory olKey)
+    external
+    view
+    returns (MgvStructs.GlobalUnpacked memory _global, MgvStructs.LocalUnpacked memory _local)
+  {
+    unchecked {
+      (MgvStructs.GlobalPacked __global, MgvStructs.LocalPacked __local) = MGV.config(olKey);
+      _global = __global.to_struct();
+      _local = __local.to_struct();
+    }
+  }
+
+  /* Sugar for getting only global/local config */
+  function local(OLKey memory olKey) public view returns (MgvStructs.LocalPacked) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(olKey);
+    return _local;
+  }
+
+  function globalUnpacked() public view returns (MgvStructs.GlobalUnpacked memory) {
+    return MGV.global().to_struct();
+  }
+
+  function localUnpacked(OLKey memory olKey) public view returns (MgvStructs.LocalUnpacked memory) {
+    return local(olKey).to_struct();
+  }
+
+  // # Offer view functions
+
+  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offerLists[outbound_tkn][inbound_tkn].offers` and `offerLists[outbound_tkn][inbound_tkn].offerDetails` instead. */
+  function offerInfo(OLKey memory olKey, uint offerId)
+    public
+    view
+    returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
+  {
+    unchecked {
+      (MgvStructs.OfferPacked _offer, MgvStructs.OfferDetailPacked _offerDetail) = MGV.offerData(olKey, offerId);
+      offer = _offer.to_struct();
+      offerDetail = _offerDetail.to_struct();
+    }
+  }
+
+  // # Offer list view functions
+
+  /* Convenience function for checking whether a offer list is empty. There is no offer with id 0, so if the id of the offer list's best offer is 0, it means the offer list is empty. */
+  function isEmptyOB(OLKey memory olKey) external view returns (bool) {
+    return MGV.best(olKey) == 0;
+  }
+
+  /*
+   * Returns two uints.
+   *
+   * `startId` is the id of the best live offer with id equal or greater than
+   * `fromId`, 0 if there is no such offer.
+   *
+   * `length` is 0 if `startId == 0`. Other it is the number of live offers as good or worse than the offer with
+   * id `startId`.
+   */
+  function offerListEndPoints(OLKey memory olKey, uint fromId, uint maxOffers)
+    public
+    view
+    returns (uint startId, uint length)
+  {
+    unchecked {
+      if (fromId == 0) {
+        startId = MGV.best(olKey);
+      } else {
+        startId = MGV.offers(olKey, fromId).isLive() ? fromId : 0;
+      }
+
+      uint currentId = startId;
+
+      while (currentId != 0 && length < maxOffers) {
+        currentId = nextOfferId(olKey, MGV.offers(olKey, currentId));
+        length = length + 1;
+      }
+
+      return (startId, length);
+    }
+  }
+
+  struct OfferListArgs {
+    OLKey olKey;
+    uint fromId;
+    uint maxOffers;
+  }
+  // Returns the orderbook for the outbound_tkn/inbound_tkn/tickScale offer list in packed form. First number is id of next offer (0 is we're done). First array is ids, second is offers (as bytes32), third is offerDetails (as bytes32). Array will be of size `min(# of offers in out/in list, maxOffers)`.
+
+  function packedOfferList(OLKey memory olKey, uint fromId, uint maxOffers)
+    public
+    view
+    returns (uint, uint[] memory, MgvStructs.OfferPacked[] memory, MgvStructs.OfferDetailPacked[] memory)
+  {
+    unchecked {
+      OfferListArgs memory olh = OfferListArgs(olKey, fromId, maxOffers);
+      (uint currentId, uint length) = offerListEndPoints(olh.olKey, olh.fromId, olh.maxOffers);
+
+      uint[] memory offerIds = new uint[](length);
+      MgvStructs.OfferPacked[] memory _offers = new MgvStructs.OfferPacked[](length);
+      MgvStructs.OfferDetailPacked[] memory details = new MgvStructs.OfferDetailPacked[](length);
+
+      uint i = 0;
+
+      while (currentId != 0 && i < length) {
+        offerIds[i] = currentId;
+        (_offers[i], details[i]) = MGV.offerData(olKey, currentId);
+        currentId = nextOfferId(olKey, _offers[i]);
+        i = i + 1;
+      }
+
+      return (currentId, offerIds, _offers, details);
+    }
+  }
+
+  // Returns the orderbook for the outbound_tkn/inbound_tkn/tickScale offer list in unpacked form. First number is id of next offer (0 if we're done). First array is ids, second is offers (as structs), third is offerDetails (as structs). Array will be of size `min(# of offers in out/in list, maxOffers)`.
+  function offerList(OLKey memory olKey, uint fromId, uint maxOffers)
+    public
+    view
+    returns (uint, uint[] memory, MgvStructs.OfferUnpacked[] memory, MgvStructs.OfferDetailUnpacked[] memory)
+  {
+    unchecked {
+      OfferListArgs memory olh = OfferListArgs(olKey, fromId, maxOffers);
+      (uint currentId, uint length) = offerListEndPoints(olh.olKey, olh.fromId, olh.maxOffers);
+
+      uint[] memory offerIds = new uint[](length);
+      MgvStructs.OfferUnpacked[] memory _offers = new MgvStructs.OfferUnpacked[](length);
+      MgvStructs.OfferDetailUnpacked[] memory details = new MgvStructs.OfferDetailUnpacked[](length);
+
+      uint i = 0;
+      while (currentId != 0 && i < length) {
+        offerIds[i] = currentId;
+        (_offers[i], details[i]) = offerInfo(olKey, currentId);
+        currentId = nextOfferIdById(olKey, currentId);
+        i = i + 1;
+      }
+
+      return (currentId, offerIds, _offers, details);
+    }
+  }
+
+  /* Next/Prev offers */
+  // FIXME subticks for gas?
+  // utility fn
+  // VERY similar to MgvOfferTaking's getNextBest
+  /// @notice Get the offer after a given offer, given its id
+  function nextOfferIdById(OLKey memory olKey, uint offerId) public view returns (uint) {
+    return nextOfferId(olKey, MGV.offers(olKey, offerId));
+  }
+
+  //FIXME replace these functions with "call mangrove for next offer, revert, return offer id"?
+  /// @notice Get the offer after a given offer
+  function nextOfferId(OLKey memory olKey, MgvStructs.OfferPacked offer) public view returns (uint) {
+    // WARNING
+    // If the offer is not actually recorded in the offer list, results will be meaningless.
+    // if (offer.gives() == 0) {
+    //   revert("Offer is not live, prev/next meaningless.");
+    // }
+    Tick offerTick = offer.tick(olKey.tickScale);
+    uint nextId = offer.next();
+    if (nextId == 0) {
+      int index = offerTick.leafIndex();
+      Leaf leaf = MGV.leafs(olKey, index);
+      leaf = leaf.eraseToTick(offerTick);
+      if (leaf.isEmpty()) {
+        index = offerTick.level0Index();
+        Field field = MGV.level0(olKey, index);
+        field = field.eraseToTick0(offerTick);
+        if (field.isEmpty()) {
+          index = offerTick.level1Index();
+          field = MGV.level1(olKey, index);
+          field = field.eraseToTick1(offerTick);
+          if (field.isEmpty()) {
+            field = MGV.level2(olKey);
+            field = field.eraseToTick2(offerTick);
+            // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+            if (field.isEmpty()) {
+              return 0;
+            }
+            index = field.firstLevel1Index();
+            field = MGV.level1(olKey, index);
+          }
+          index = field.firstLevel0Index(index);
+          field = MGV.level0(olKey, index);
+        }
+        leaf = MGV.leafs(olKey, field.firstLeafIndex(index));
+      }
+      nextId = leaf.getNextOfferId();
+    }
+    return nextId;
+  }
+
+  /// @notice Get the offer before a given offer, given its id
+  function prevOfferIdById(OLKey memory olKey, uint offerId) public view returns (uint) {
+    return prevOfferId(olKey, MGV.offers(olKey, offerId));
+  }
+
+  /// @notice Get the offer before a given offer
+  function prevOfferId(OLKey memory olKey, MgvStructs.OfferPacked offer) public view returns (uint offerId) {
+    // WARNING
+    // If the offer is not actually recorded in the offer list, results will be meaningless.
+    // if (offer.gives() == 0) {
+    //   revert("Offer is not live, prev/next meaningless.");
+    // }
+    Tick offerTick = offer.tick(olKey.tickScale);
+    uint prevId = offer.prev();
+    if (prevId == 0) {
+      int index = offerTick.leafIndex();
+      Leaf leaf = MGV.leafs(olKey, index);
+      leaf = leaf.eraseFromTick(offerTick);
+      if (leaf.isEmpty()) {
+        index = offerTick.level0Index();
+        Field field = MGV.level0(olKey, index);
+        field = field.eraseFromTick0(offerTick);
+        if (field.isEmpty()) {
+          index = offerTick.level1Index();
+          field = MGV.level1(olKey, index);
+          field = field.eraseFromTick1(offerTick);
+          if (field.isEmpty()) {
+            field = MGV.level2(olKey);
+            field = field.eraseFromTick2(offerTick);
+            // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+            if (field.isEmpty()) {
+              return 0;
+            }
+            index = field.lastLevel1Index();
+            field = MGV.level1(olKey, index);
+          }
+          index = field.lastLevel0Index(index);
+          field = MGV.level0(olKey, index);
+        }
+        leaf = MGV.leafs(olKey, field.lastLeafIndex(index));
+      }
+      prevId = leaf.getNextOfferId();
+    }
+    return prevId;
+  }
+
+  // # Offer list utility functions
+
+  /* Returns the minimum outbound_tkn volume to give on the outbound_tkn/inbound_tkn offer list for an offer that requires gasreq gas. */
+  function minVolume(OLKey memory olKey, uint gasreq) public view returns (uint) {
+    MgvStructs.LocalPacked _local = local(olKey);
+    return _local.density().multiplyUp(gasreq + _local.offer_gasbase());
+  }
+
+  /* Returns the provision necessary to post an offer on the outbound_tkn/inbound_tkn offer list. You can set gasprice=0 or use the overload to use Mangrove's internal gasprice estimate. */
+  function getProvision(OLKey memory olKey, uint ofr_gasreq, uint ofr_gasprice) public view returns (uint) {
+    unchecked {
+      (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(olKey);
+      uint gp;
+      uint global_gasprice = _global.gasprice();
+      if (global_gasprice > ofr_gasprice) {
+        gp = global_gasprice;
+      } else {
+        gp = ofr_gasprice;
+      }
+      return (ofr_gasreq + _local.offer_gasbase()) * gp * 10 ** 9;
+    }
+  }
+
+  // FIXME: once out/in/scale are packed, we can re-add an overload function like this:
+  // function getProvisionWithDefaultGasPrice(address outbound_tkn, address inbound_tkn, ..., uint gasreq) public view returns (uint) {
+  //   (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local) = MGV.config(olKey);
+  //   return ((gasreq + _local.offer_gasbase()) * uint(_global.gasprice()) * 10 ** 9);
+  // }
+
+  /* Returns the fee that would be extracted from the given volume of outbound_tkn tokens on Mangrove's outbound_tkn/inbound_tkn offer list. */
+  function getFee(OLKey memory olKey, uint outVolume) external view returns (uint) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(olKey);
+    return ((outVolume * _local.fee()) / 10000);
+  }
+
+  /* Returns the given amount of outbound_tkn tokens minus the fee on Mangrove's outbound_tkn/inbound_tkn offer list. */
+  function minusFee(OLKey memory olKey, uint outVolume) external view returns (uint) {
+    (, MgvStructs.LocalPacked _local) = MGV.config(olKey);
+    return (outVolume * (10_000 - _local.fee())) / 10000;
+  }
+
+  // # Simulation functions
+  // These are a cheaper way to approximate the results of a market order than by actually executing it and reverting.
+  /* `simulateMarketOrderBy*`, `simulateInternalMarketOrder`, and `simulateExecute` all together simulate a market order on Mangrove and return the cumulative `totalGot`, `totalGave`, and `totalGasreq` for each offer traversed. We assume offer execution is successful and uses exactly its `gasreq`. 
+  We do not account for gasbase.
+  * Calling this from an EOA will give you an estimate of the volumes you will receive, but you may as well `eth_call` Mangrove.
+  * Calling this from a contract will let the contract choose what to do after receiving a response.
+  * If `!accumulate`, only return the total cumulative volume.
+  */
+  function simulateMarketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
+    external
+    view
+    returns (VolumeData[] memory)
+  {
+    return simulateMarketOrderByVolume(olKey, takerWants, takerGives, fillWants, true);
+  }
+
+  function simulateMarketOrderByVolume(
+    OLKey memory olKey,
+    uint takerWants,
+    uint takerGives,
+    bool fillWants,
+    bool accumulate
+  ) public view returns (VolumeData[] memory) {
+    uint fillVolume = fillWants ? takerWants : takerGives;
+    int maxLogPrice = LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
+    return simulateMarketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, accumulate);
+  }
+
+  function simulateMarketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
+    public
+    view
+    returns (VolumeData[] memory)
+  {
+    return simulateMarketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, true);
+  }
+
+  function simulateMarketOrderByLogPrice(
+    OLKey memory olKey,
+    int maxLogPrice,
+    uint fillVolume,
+    bool fillWants,
+    bool accumulate
+  ) public view returns (VolumeData[] memory) {
+    MarketOrder memory mr;
+    mr.olKey = olKey;
+    (, mr.local) = MGV.config(olKey);
+    mr.offerId = MGV.best(olKey);
+    mr.offer = MGV.offers(olKey, mr.offerId);
+    mr.maxLogPrice = maxLogPrice;
+    mr.currentFillVolume = fillVolume;
+    mr.initialFillVolume = fillVolume;
+    mr.fillWants = fillWants;
+    mr.accumulate = accumulate;
+
+    simulateInternalMarketOrder(mr);
+
+    return mr.volumeData;
+  }
+
+  struct MarketOrder {
+    OLKey olKey;
+    int maxLogPrice;
+    uint initialFillVolume;
+    uint totalGot;
+    uint totalGave;
+    uint totalGasreq;
+    uint currentFillVolume;
+    uint currentWants;
+    uint currentGives;
+    bool fillWants;
+    uint offerId;
+    MgvStructs.OfferPacked offer;
+    MgvStructs.OfferDetailPacked offerDetail;
+    MgvStructs.LocalPacked local;
+    VolumeData[] volumeData;
+    uint numOffers;
+    bool accumulate;
+  }
+
+  function simulateInternalMarketOrder(MarketOrder memory mr) internal view {
+    unchecked {
+      if (mr.currentFillVolume > 0 && mr.offerId > 0 && mr.offer.logPrice() <= mr.maxLogPrice) {
+        uint currentIndex = mr.numOffers;
+
+        mr.offerDetail = MGV.offerDetails(mr.olKey, mr.offerId);
+
+        simulateExecute(mr);
+
+        uint totalGot = mr.totalGot;
+        uint totalGave = mr.totalGave;
+        uint totalGasreq = mr.totalGasreq;
+
+        mr.numOffers++;
+        mr.currentFillVolume -= mr.fillWants ? mr.currentWants : mr.currentGives;
+
+        mr.offerId = nextOfferId(mr.olKey, mr.offer);
+        mr.offer = MGV.offers(mr.olKey, mr.offerId);
+
+        simulateInternalMarketOrder(mr);
+
+        if (mr.accumulate || currentIndex == 0) {
+          uint concreteFee = (mr.totalGot * mr.local.fee()) / 10_000;
+          mr.volumeData[currentIndex] =
+            VolumeData({totalGot: totalGot - concreteFee, totalGave: totalGave, totalGasreq: totalGasreq});
+        }
+      } else {
+        if (mr.accumulate) {
+          mr.volumeData = new VolumeData[](mr.numOffers);
+        } else {
+          mr.volumeData = new VolumeData[](1);
+        }
+      }
+    }
+  }
+
+  function simulateExecute(MarketOrder memory mr) internal pure {
+    unchecked {
+      {
+        // caching
+        uint fillVolume = mr.currentFillVolume;
+        uint offerGives = mr.offer.gives();
+        uint offerWants = mr.offer.wants();
+
+        if ((mr.fillWants && offerGives < fillVolume) || (!mr.fillWants && offerWants < fillVolume)) {
+          mr.currentWants = offerGives;
+          mr.currentGives = offerWants;
+        } else {
+          if (mr.fillWants) {
+            mr.currentGives = LogPriceLib.inboundFromOutboundUp(mr.offer.logPrice(), fillVolume);
+            mr.currentWants = fillVolume;
+          } else {
+            // offerWants = 0 is forbidden at offer writing
+            mr.currentWants = LogPriceLib.outboundFromInbound(mr.offer.logPrice(), fillVolume);
+            mr.currentGives = fillVolume;
+          }
+        }
+      }
+
+      // flashloan would normally be called here
+
+      // if success branch of original mangrove code, assumed to be true
+      mr.totalGot += mr.currentWants;
+      mr.totalGave += mr.currentGives;
+      mr.totalGasreq += mr.offerDetail.gasreq();
+      /* end if success branch **/
     }
   }
 }

@@ -20,14 +20,14 @@ contract ScenariiTest is MangroveTest {
     uint offerId = mgv.best(olKey);
     while (offerId != 0) {
       (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail) =
-        mgv.offerInfo(olKey, offerId);
+        reader.offerInfo(olKey, offerId);
       console.log("Saving Info for offer id", offerId);
       console.log("  wants", offer.wants());
       console.log("  gives", offer.gives);
       offers[offerId][Info.makerWants] = offer.wants();
       offers[offerId][Info.makerGives] = offer.gives;
       offers[offerId][Info.gasreq] = offerDetail.gasreq;
-      offerId = mgv.nextOfferIdById(olKey, offerId);
+      offerId = reader.nextOfferIdById(olKey, offerId);
     }
   }
 
@@ -128,7 +128,7 @@ contract ScenariiTest is MangroveTest {
       {
         assertTrue(!mgv.offers(olKey, failingOfferId).isLive(), "Failing offer should have been removed from Mgv");
       }
-      uint provision = mgv.getProvision(olKey, offers[failingOfferId][Info.gasreq], 0);
+      uint provision = reader.getProvision(olKey, offers[failingOfferId][Info.gasreq], 0);
       uint returned = mgv.balanceOf(address(makers.getMaker(0))) - balances.makersBalanceWei[0];
       assertEq(
         $(mgv).balance,
@@ -168,7 +168,7 @@ contract ScenariiTest is MangroveTest {
     //Checking makers have correctly provisoned their offers
     for (uint i = 0; i < makers.length(); i++) {
       uint gasreq_i = mgv.offerDetails(olKey, _offerOf[i]).gasreq();
-      uint provision_i = mgv.getProvision(olKey, gasreq_i, 0);
+      uint provision_i = reader.getProvision(olKey, gasreq_i, 0);
       assertEq(
         mgv.balanceOf(address(makers.getMaker(i))),
         balances.makersBalanceWei[i] - provision_i,
@@ -179,7 +179,7 @@ contract ScenariiTest is MangroveTest {
     uint offerId = mgv.best(olKey);
     uint expected_maker = 3;
     while (offerId != 0) {
-      (, MgvStructs.OfferDetailUnpacked memory od) = mgv.offerInfo(olKey, offerId);
+      (, MgvStructs.OfferDetailUnpacked memory od) = reader.offerInfo(olKey, offerId);
       assertEq(
         od.maker,
         address(makers.getMaker(expected_maker)),
@@ -189,7 +189,7 @@ contract ScenariiTest is MangroveTest {
       unchecked {
         expected_maker -= 1;
       }
-      offerId = mgv.nextOfferIdById(olKey, offerId);
+      offerId = reader.nextOfferIdById(olKey, offerId);
     }
     return _offerOf;
   }
@@ -237,11 +237,11 @@ contract ScenariiTest is MangroveTest {
     // Checking taker balance
     assertEq(
       base.balanceOf(address(taker)), // actual
-      balances.takerBalanceA + mgv.minusFee(olKey, takerWants), // expected
+      balances.takerBalanceA + reader.minusFee(olKey, takerWants), // expected
       "incorrect taker A balance"
     );
 
-    assertEq(takerGot, mgv.minusFee(olKey, takerWants), "Incorrect declared takerGot");
+    assertEq(takerGot, reader.minusFee(olKey, takerWants), "Incorrect declared takerGot");
 
     uint shouldGive = (offers[3][Info.makerWants] + offers[2][Info.makerWants] + leftMkrWants);
     assertApproxEqRel(
@@ -256,7 +256,7 @@ contract ScenariiTest is MangroveTest {
     // Checking DEX Fee Balance
     assertEq(
       base.balanceOf(address(mgv)), //actual
-      balances.mgvBalanceBase + mgv.getFee(olKey, takerWants), //expected
+      balances.mgvBalanceBase + reader.getFee(olKey, takerWants), //expected
       "incorrect Mangrove balances"
     );
   }
@@ -274,7 +274,7 @@ contract ScenariiTest is MangroveTest {
   //   bag.snipedId = 2;
   //   // uint orderAmount = 0.3 ether;
   //   // uint snipedId = 2;
-  //   expectedFee = mgv.getFee($(base), $(quote), bag.orderAmount);
+  //   expectedFee = reader.getFee($(base), $(quote), bag.orderAmount);
   //   TestMaker maker = makers.getMaker(bag.snipedId); // maker whose offer will be sniped
 
   //   //(uint init_mkr_wants, uint init_mkr_gives,,,,,)=mgv.getOfferInfo(2);
@@ -321,7 +321,7 @@ contract ScenariiTest is MangroveTest {
   //     "incorrect maker B balance"
   //   );
   //   // Testing residual offer
-  //   (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo($(base), $(quote), bag.snipedId);
+  //   (MgvStructs.OfferUnpacked memory ofr,) = reader.offerInfo($(base), $(quote), bag.snipedId);
   //   assertTrue(ofr.gives == 0, "Offer should not have a residual");
   // }
 }
@@ -357,6 +357,6 @@ contract DeepCollectTest is MangroveTest {
 
   function moWithFailures() internal {
     tkr.marketOrderWithFail({wants: 10 ether, gives: 30 ether});
-    assertTrue(mgv.isEmptyOB(olKey), "Order book should be empty");
+    assertTrue(reader.isEmptyOB(olKey), "Order book should be empty");
   }
 }

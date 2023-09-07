@@ -83,7 +83,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_renew_offer_after_partial_fill() public {
-    uint mkr_provision = mgv.getProvision(olKey, gasreq, _gasprice);
+    uint mkr_provision = reader.getProvision(olKey, gasreq, _gasprice);
     _posthook = renew_offer_at_posthook;
 
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
@@ -109,7 +109,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_renew_offer_after_complete_fill() public {
-    uint mkr_provision = mgv.getProvision(olKey, gasreq, _gasprice);
+    uint mkr_provision = reader.getProvision(olKey, gasreq, _gasprice);
     _posthook = renew_offer_at_posthook;
 
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
@@ -207,8 +207,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_update_offer_with_more_gasprice() public {
-    uint mkr_provision = mgv.getProvision(olKey, gasreq, _gasprice);
-    uint standard_provision = mgv.getProvision(olKey, gasreq, 0);
+    uint mkr_provision = reader.getProvision(olKey, gasreq, _gasprice);
+    uint standard_provision = reader.getProvision(olKey, gasreq, 0);
     _posthook = update_gas_offer_at_posthook;
     // provision for mgv.global.gasprice
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, 0);
@@ -263,7 +263,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_retract_offer_in_posthook() public {
-    uint mkr_provision = mgv.getProvision(olKey, gasreq, _gasprice);
+    uint mkr_provision = reader.getProvision(olKey, gasreq, _gasprice);
     _posthook = retractOffer_posthook;
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
     assertEq(
@@ -289,7 +289,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_balance_after_fail_and_retract() public {
-    uint mkr_provision = mgv.getProvision(olKey, gasreq, _gasprice);
+    uint mkr_provision = reader.getProvision(olKey, gasreq, _gasprice);
     uint tkr_weis = address(tkr).balance;
     _posthook = retractOffer_posthook;
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
@@ -380,7 +380,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_retract_offer_after_fail_in_posthook() public {
-    uint mkr_provision = mgv.getProvision(olKey, gasreq, _gasprice);
+    uint mkr_provision = reader.getProvision(olKey, gasreq, _gasprice);
     _posthook = retractOffer_posthook;
     ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, gasreq, _gasprice);
     assertEq(
@@ -417,7 +417,7 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   }
 
   function test_reverting_posthook_does_not_revert_offer() public {
-    mgv.getProvision(olKey, gasreq, _gasprice);
+    reader.getProvision(olKey, gasreq, _gasprice);
     uint balMaker = base.balanceOf($(this));
     uint balTaker = quote.balanceOf(address(tkr));
     _posthook = reverting_posthook;

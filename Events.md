@@ -38,7 +38,7 @@ These are the scenarios where it can happen:
 - When updating an offer
   - Funding Mangrove or
   - the updated offer needs less provision, than it already has. Meaning the user gets credited the difference.
-- When retracting an offer and deprovisioning it.Meaning the user gets credited the provision that was locked by the offer.
+- When retracting an offer and deprovisioning it. Meaning the user gets credited the provision that was locked by the offer.
 - When an offer fails. The remaining provision gets credited back to the maker
 
 A challenge for an indexer is to know how much provision each offer locks. With the current events, an indexer is going to have to know the liveness, gasreq and gasprice of the offer. If the offer is not live, then also know if it has been deprovisioned. And know what the gasbase of the offerlist was when the offer was posted. With this information an indexer can calculate the exact provision locked by the offer.

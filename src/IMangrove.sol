@@ -35,20 +35,14 @@ interface IMangrove is HasMgvEvents {
     view
     returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local);
 
-  function configGlobal()
-    external
-    view
-    returns (MgvStructs.GlobalPacked _global);
+  function configGlobal() external view returns (MgvStructs.GlobalPacked _global);
 
   function configInfo(OLKey memory olKey)
     external
     view
     returns (MgvStructs.GlobalUnpacked memory _global, MgvStructs.LocalUnpacked memory _local);
 
-  function configGlobalInfo()
-    external
-    view
-    returns (MgvStructs.GlobalUnpacked memory _global);
+  function configGlobalInfo() external view returns (MgvStructs.GlobalUnpacked memory _global);
 
   function deactivate(OLKey memory olKey) external;
 
@@ -88,6 +82,14 @@ interface IMangrove is HasMgvEvents {
   function marketOrderForByLogPrice(OLKey memory olKey, int logPrice, uint fillVolume, bool fillWants, address taker)
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
+
+  function marketOrderByLogPrice(
+    OLKey memory olKey,
+    int maxLogPrice,
+    uint fillVolume,
+    bool fillWants,
+    uint maxGasreqForFailingOffers
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function newOfferByVolume(OLKey memory olKey, uint wants, uint gives, uint gasreq, uint gasprice)
     external
@@ -136,6 +138,10 @@ interface IMangrove is HasMgvEvents {
   function setGasbase(OLKey memory olKey, uint offer_gasbase) external;
 
   function setGasmax(uint gasmax) external;
+
+  function setMaxRecursionDepth(uint maxRecursionDepth) external;
+
+  function setMaxGasreqForFailingOffers(uint maxGasreqForFailingOffers) external;
 
   function setGasprice(uint gasprice) external;
 

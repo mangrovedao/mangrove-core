@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import {MgvLib, MgvStructs, Tick, Leaf, Field, LogPriceLib, OLKey} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import "mgv_lib/Debug.sol";
+import {LogPriceConversionLib} from "mgv_lib/LogPriceConversionLib.sol";
 
 struct VolumeData {
   uint totalGot;
@@ -67,6 +67,7 @@ contract MgvReader {
     VolumeData[] volumeData;
     uint numOffers;
     bool accumulate;
+    uint maxRecursionDepth;
   }
   /**
    * @notice Open markets tracking (below) provides information about which markets on Mangrove are open. Anyone can update a market status by calling `updateMarket`.
@@ -280,7 +281,8 @@ contract MgvReader {
   {
     MarketOrder memory mr;
     mr.olKey = olKey;
-    (, mr.local) = MGV.config(olKey);
+    MgvStructs.GlobalPacked _global;
+    (_global, mr.local) = MGV.config(olKey);
     mr.offerId = MGV.best(olKey);
     mr.offer = MGV.offers(olKey, mr.offerId);
     mr.maxLogPrice = maxLogPrice;
@@ -288,6 +290,7 @@ contract MgvReader {
     mr.initialFillVolume = fillVolume;
     mr.fillWants = fillWants;
     mr.accumulate = accumulate;
+    mr.maxRecursionDepth = _global.maxRecursionDepth();
 
     internalMarketOrder(mr);
 
@@ -296,10 +299,13 @@ contract MgvReader {
 
   function internalMarketOrder(MarketOrder memory mr) internal view {
     unchecked {
-      if (mr.currentFillVolume > 0 && mr.offerId > 0 && mr.offer.logPrice() <= mr.maxLogPrice) {
+      if (
+        mr.currentFillVolume > 0 && mr.offer.logPrice() <= mr.maxLogPrice && mr.offerId > 0 && mr.maxRecursionDepth > 0
+      ) {
         uint currentIndex = mr.numOffers;
 
         mr.offerDetail = MGV.offerDetails(mr.olKey, mr.offerId);
+        mr.maxRecursionDepth--;
 
         execute(mr);
 

@@ -192,14 +192,12 @@ contract TakerOperationsTest is MangroveTest {
     emit Transfer($(mgv), $(this), 1.1 ether);
     expectFrom($(mgv));
     emit OfferSuccess(
-      olKey.hash(), $(this), $(mkr), ofr2, 0.1 ether, LogPriceLib.inboundFromOutbound(offerLogPrice2, 0.1 ether)
+      olKey.hash(), $(this), ofr2, 0.1 ether, LogPriceLib.inboundFromOutbound(offerLogPrice2, 0.1 ether)
     );
     expectFrom($(mgv));
-    emit OfferSuccess(
-      olKey.hash(), $(this), $(mkr), ofr1, 1 ether, LogPriceLib.inboundFromOutbound(offerLogPrice1, 1 ether)
-    );
+    emit OfferSuccess(olKey.hash(), $(this), ofr1, 1 ether, LogPriceLib.inboundFromOutbound(offerLogPrice1, 1 ether));
     expectFrom($(mgv));
-    emit OrderComplete(0);
+    emit OrderComplete(olKey.hash(), $(this), 0);
 
     (uint got, uint gave,,) = mgv.marketOrderByVolume(olKey, 1.1 ether, 1.9 ether, true);
 
@@ -220,7 +218,7 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(mgv));
     emit OrderStart(olKey.hash(), $(this), logPrice, 0 ether, true);
     expectFrom($(mgv));
-    emit OrderComplete(0);
+    emit OrderComplete(olKey.hash(), $(this), 0);
 
     (uint got, uint gave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 0, true);
 
@@ -261,7 +259,7 @@ contract TakerOperationsTest is MangroveTest {
     expectFrom($(mgv));
     emit OrderStart(olKey.hash(), $(this), logPrice, 0 ether, false);
     expectFrom($(mgv));
-    emit OrderComplete(0);
+    emit OrderComplete(olKey.hash(), $(this), 0);
 
     (uint got, uint gave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 0 ether, false);
     assertEq(got, 0 ether, "Taker had too much");
@@ -307,7 +305,7 @@ contract TakerOperationsTest is MangroveTest {
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(refusemkr), 0 /*mkr_provision - penalty*/ );
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(this), $(refusemkr), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerTransferFail");
+    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerTransferFail");
     (uint successes,) =
       mgv.cleanByImpersonation(olKey, wrap_dynamic(MgvLib.CleanTarget(ofr, logPrice, 100_000, 1 ether)), $(this));
     assertEq(successes, 1, "clean should succeed");
@@ -342,7 +340,7 @@ contract TakerOperationsTest is MangroveTest {
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(mkr), 0 /*mkr_provision - penalty*/ );
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(this), $(mkr), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerTransferFail");
+    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerTransferFail");
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 1 ether, true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
@@ -366,7 +364,7 @@ contract TakerOperationsTest is MangroveTest {
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(mkr), 0 /*mkr_provision - penalty*/ );
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(this), $(mkr), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerReceiveFail");
+    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerReceiveFail");
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 1 ether, true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
@@ -399,7 +397,7 @@ contract TakerOperationsTest is MangroveTest {
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(this), $(failmkr), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert");
     (uint takerGot, uint takerGave,,) = mgv.marketOrderByLogPrice(olKey, logPrice, 1 ether, true);
     uint penalty = $(this).balance - beforeWei;
     assertTrue(penalty > 0, "Taker should have been compensated");
@@ -547,7 +545,6 @@ contract TakerOperationsTest is MangroveTest {
     emit OfferFail(
       olKey.hash(),
       $(this),
-      $(mkr),
       ofr,
       takerWants,
       LogPriceLib.inboundFromOutboundUp(offer.logPrice(), takerWants),
@@ -642,9 +639,7 @@ contract TakerOperationsTest is MangroveTest {
     mkr.shouldRevert(true);
     quote.approve($(mgv), 1 ether);
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFailWithPosthookData(
-      olKey.hash(), $(this), $(mkr), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert", ""
-    );
+    emit OfferFailWithPosthookData(olKey.hash(), $(this), ofr, 1 ether, 1 ether, /*penalty*/ 0, "mgv/makerRevert", "");
     mgv.marketOrderByLogPrice(olKey, logPrice, 1 ether, true);
     assertFalse(mkr.makerPosthookWasCalled(ofr), "ofr posthook must not be called or test is void");
   }
@@ -973,7 +968,7 @@ contract TakerOperationsTest is MangroveTest {
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(this), $(failmkr), ofr, 0 ether, 0 ether, /*penalty*/ 0, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(this), ofr, 0 ether, 0 ether, /*penalty*/ 0, "mgv/makerRevert");
 
     vm.expectEmit(true, true, true, false, $(mgv));
     emit CleanComplete();
@@ -1005,7 +1000,7 @@ contract TakerOperationsTest is MangroveTest {
     emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
     //TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(this), $(failmkr), ofr, 0 ether, 0 ether, /*penalty*/ 0, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(this), ofr, 0 ether, 0 ether, /*penalty*/ 0, "mgv/makerRevert");
 
     expectFrom($(quote));
     emit Transfer($(this), $(mgv), 0 ether);
@@ -1015,7 +1010,7 @@ contract TakerOperationsTest is MangroveTest {
     emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
     // TODO: when events can be checked instead of expected, take given penalty instead of ignoring it
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(this), $(failmkr), ofr2, 0 ether, 0 ether, /*penalty*/ 0, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(this), ofr2, 0 ether, 0 ether, /*penalty*/ 0, "mgv/makerRevert");
 
     vm.expectEmit(true, true, true, false, $(mgv));
     emit CleanComplete();
@@ -1053,7 +1048,7 @@ contract TakerOperationsTest is MangroveTest {
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(this), $(failmkr), ofr, 0 ether, 0 ether, /*penalty*/ 0, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(this), ofr, 0 ether, 0 ether, /*penalty*/ 0, "mgv/makerRevert");
 
     expectFrom($(quote));
     emit Transfer($(this), $(mgv), 0 ether);
@@ -1067,7 +1062,7 @@ contract TakerOperationsTest is MangroveTest {
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(failmkr), 0 /*mkr_provision - penalty*/ );
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(this), $(failmkr), ofr3, 0 ether, 0 ether, /*penalty*/ 0, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(this), ofr3, 0 ether, 0 ether, /*penalty*/ 0, "mgv/makerRevert");
 
     vm.expectEmit(true, true, true, false, $(mgv));
     emit CleanComplete();
@@ -1111,7 +1106,7 @@ contract TakerOperationsTest is MangroveTest {
     vm.expectEmit(true, true, true, false, $(mgv));
     emit Credit($(failNonZeroMkr), 0 /*mkr_provision - penalty*/ );
     vm.expectEmit(true, true, true, false, $(mgv));
-    emit OfferFail(olKey.hash(), $(otherTkr), $(failNonZeroMkr), ofr, 1, 1, /*penalty*/ 0, "mgv/makerRevert");
+    emit OfferFail(olKey.hash(), $(otherTkr), ofr, 1, 1, /*penalty*/ 0, "mgv/makerRevert");
 
     vm.expectEmit(true, true, true, false, $(mgv));
     emit CleanComplete();

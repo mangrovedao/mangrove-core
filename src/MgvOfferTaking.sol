@@ -179,7 +179,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Over the course of the market order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
 
-      emit OrderComplete(mor.feePaid);
+      emit OrderComplete(sor.olKey.hash(), taker, mor.feePaid);
 
       //+clear+
       return (mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid);
@@ -590,28 +590,18 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.totalPenalty += penalty;
         if (!callSuccess) {
           emit OfferFailWithPosthookData(
-            sor.olKey.hash(),
-            mor.taker,
-            sor.offerDetail.maker(),
-            sor.offerId,
-            sor.wants,
-            sor.gives,
-            penalty,
-            mgvData,
-            posthookData
+            sor.olKey.hash(), mor.taker, sor.offerId, sor.wants, sor.gives, penalty, mgvData, posthookData
           );
         } else {
-          emit OfferFail(
-            sor.olKey.hash(), mor.taker, sor.offerDetail.maker(), sor.offerId, sor.wants, sor.gives, penalty, mgvData
-          );
+          emit OfferFail(sor.olKey.hash(), mor.taker, sor.offerId, sor.wants, sor.gives, penalty, mgvData);
         }
       } else {
         if (!callSuccess) {
           emit OfferSuccessWithPosthookData(
-            sor.olKey.hash(), mor.taker, sor.offerDetail.maker(), sor.offerId, sor.wants, sor.gives, posthookData
+            sor.olKey.hash(), mor.taker, sor.offerId, sor.wants, sor.gives, posthookData
           );
         } else {
-          emit OfferSuccess(sor.olKey.hash(), mor.taker, sor.offerDetail.maker(), sor.offerId, sor.wants, sor.gives);
+          emit OfferSuccess(sor.olKey.hash(), mor.taker, sor.offerId, sor.wants, sor.gives);
         }
       }
     }

@@ -268,10 +268,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* After an offer execution, we may run callbacks and increase the total penalty. As that part is common to market orders and cleaning, it lives in its own `postExecute` function. */
         postExecute(mor, sor, gasused, makerData, mgvData);
+
         /* #### Case 2 : End of market order */
         /* The taker has gotten its requested volume, no more offers match, or we have reached the end of the book, we conclude the market order. */
-        /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
       } else {
+        /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
         // mark current offer as having no prev if necessary
         // update leaf if necessary
         MgvStructs.OfferPacked offer = sor.offer;

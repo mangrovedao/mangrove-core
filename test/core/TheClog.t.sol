@@ -78,23 +78,21 @@ contract TooDeepRecursionClogTest is MangroveTest, IMaker {
   }
 
   function test_take_more_than_first_fails_for_deep_stack() public {
-    mgv.setMaxRecursionDepth(100);
     gaslimit = 200_000_000;
     // Taking more volume than the first offer delivers should succeed but will not deliver the full volume since only
     // the first offer succeeds. All other offer fails.
     vm.expectRevert();
     vm.prank($(taker));
-    mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, minVolume + 1, false, type(uint).max);
+    mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, minVolume + 1, false, type(uint).max, 100);
   }
 
   function test_take_one_then_two_at_once_fails_for_deep_stack() public {
-    mgv.setMaxRecursionDepth(100);
     gaslimit = 200_000_000;
     // Same as testFail_take_more_than_first_fails_for_deep_stack, but verifies that the clog persists after a successful order.
     takeSome(minVolume);
     vm.expectRevert();
     vm.prank($(taker));
-    mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, minVolume + 1, false, type(uint).max);
+    mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, minVolume + 1, false, type(uint).max, 100);
   }
 }
 
@@ -174,8 +172,9 @@ contract MaxRecursionDepthFuzzTest is MangroveTest, IMaker {
   {
     vm.assume(depth > 0);
     createOffers(200, failureMode, seed, depth);
-    mgv.setMaxRecursionDepth(depth);
-    try this.takeSome(200 ether) {
+
+    vm.prank($(taker));
+    try mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, 200 ether, false, type(uint).max, depth) {
       assertLe(depth, failDepth, "should only succeed at lower depths");
     } catch {
       assertGt(depth, failDepth, "should only fail for high depth");
@@ -183,14 +182,14 @@ contract MaxRecursionDepthFuzzTest is MangroveTest, IMaker {
   }
 
   function test_take_recursion_depth_succeeding_offers(uint8 depth) public {
-    take_recursion_depth_with_parameterized_offers(depth, 0, 0, 78);
+    take_recursion_depth_with_parameterized_offers(depth, 0, 0, 79); // 80 with optimization and 200 runs
   }
 
   function test_take_recursion_depth_failing_offers(uint8 depth) public {
-    take_recursion_depth_with_parameterized_offers(depth, 0, 1, 78);
+    take_recursion_depth_with_parameterized_offers(depth, 0, 1, 79); // 80 with optimization and 200 runs
   }
 
   function test_take_recursion_depth_random_failing_offers(uint8 depth, uint8 seed) public {
-    take_recursion_depth_with_parameterized_offers(depth, seed, 2, 77);
+    take_recursion_depth_with_parameterized_offers(depth, seed, 2, 79); // 80 with optimization and 200 runs
   }
 }

@@ -140,8 +140,6 @@ interface IMangrove is HasMgvEvents {
 
   function setGasmax(uint gasmax) external;
 
-  function setMaxRecursionDepth(uint maxRecursionDepth) external;
-
   function setMaxGasreqForFailingOffers(uint maxGasreqForFailingOffers) external;
 
   function setGasprice(uint gasprice) external;

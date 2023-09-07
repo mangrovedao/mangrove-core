@@ -15,6 +15,7 @@ import {
   LogPriceLib,
   OLKey
 } from "./MgvLib.sol";
+import {MAX_RECURSION_DEPTH} from "mgv_lib/Constants.sol";
 import {MgvHasOffers} from "./MgvHasOffers.sol";
 import {TickLib} from "./../lib/TickLib.sol";
 import "mgv_lib/LogPriceConversionLib.sol";
@@ -159,7 +160,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sor.olKey = olKey;
       OfferList storage offerList;
       (sor.global, sor.local, offerList) = _config(olKey);
-      mor.maxRecursionDepth = maxRecursionDepth > 0 ? maxRecursionDepth : sor.global.maxRecursionDepth();
+      mor.maxRecursionDepth = maxRecursionDepth > 0 ? maxRecursionDepth : MAX_RECURSION_DEPTH;
       /* We have an upper limit on total gasreq for failing offers to avoid failing offers delivering nothing and exhausting gaslimit for the transaction. */
       mor.maxGasreqForFailingOffers =
         maxGasreqForFailingOffers > 0 ? maxGasreqForFailingOffers : sor.global.maxGasreqForFailingOffers();

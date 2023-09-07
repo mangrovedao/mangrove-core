@@ -43,7 +43,7 @@ These are the scenarios where it can happen:
 
 A challenge for an indexer is to know how much provision each offer locks. With the current events, an indexer is going to have to know the liveness, gasreq and gasprice of the offer. If the offer is not live, then also know if it has been deprovisioned. And know what the gasbase of the offerlist was when the offer was posted. With this information an indexer can calculate the exact provision locked by the offer.
 
-Another information that an indexer cannot deduce, is in what scenario the credit event happened. E.g. We don't know if the credit event happened because an offer failed or if the user simply funded Mangrove.
+The indexer also cannot deduce what scenario the credit event happened. E.g., we don't know if the credit event happened because an offer failed or because the user simply funded Mangrove.
 
 ### Debit
 

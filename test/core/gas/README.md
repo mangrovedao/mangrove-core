@@ -2,7 +2,9 @@
 
 Gas tests be run with `-vv` so correct gas estimates are shown.
 
-To list gas usage for all scenarios run `./gas-measurement.sh`.
+To list gas usage for all scenarios run `./gas-measurement.sh`. This generates `gas-measurement.{json,csv}` files with the gas measurements in the `out` folder.
+
+To get a diff in gas measurements (eg with different optimization settings or different code versions) first run `./gas-measurement.sh` in the before setup, and then run `./gas-measurement.sh --diff` in the after setup. This will generate `out/gas-measurement-diff.{json,csv}` files with the gas measurements before and after as well as the delta for each test.
 
 We test gas usage for various scenarios. This can be used to determine gas usage for a strat's `makerExecute` or `makerPosthook` functions. The absolute values are rarely used, instead a strat builder should verify their gas usage in some specific scenario (e.g. with posthook updating the same offer list as its taken on, where the offer list has other offers on the same tick as a new offer is created on) and then compare deltas to other scenarios tested here and use it to set a `gasreq` for their strat which covers the desired worst-case scenarios. The gas measurements are for the inner-most operation.
 
@@ -16,7 +18,7 @@ The main functions to test are:
 - `updateOffer` O(1) (live (different localities, higher/lower gasreq) or dead (deprovisioned or not))
 - `retractOffer` O(1) (deprovision or not)
 - `marketOrder` O(n) for n offers taken.
-- `snipe` O(1) but depends on gasreq.
+- `cleanByImpersonation` O(1) but depends on gasreq.
 
 These functions can be invoked from various places that affect their gas cost due to hot vs cold access:
 
@@ -120,9 +122,9 @@ We do not consider usage from maker contracts since it is unbounded, so only ext
 
 `OfferGasBaseBaseTest` outputs gas usage for a market order which takes the last available offer on an offer list. It also outputs the current estimate used for gasbase which comes from `ActivateSemibook`.
 
-### `snipe`
+### `cleanByImpersonation`
 
-We do not expect snipe to be used from maker contracts, so only external calls.
+We do not expect clean to be used from maker contracts, so only external calls.
 
 - `external`
   - same scenarios as `retractOffer` named `ExternalCleanOtherOfferList_*` instead of `ExternalRetractOfferOtherOfferList_*`.

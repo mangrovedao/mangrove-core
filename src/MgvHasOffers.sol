@@ -14,71 +14,25 @@ import {
   LEVEL0_SIZE,
   OLKey
 } from "./MgvLib.sol";
-import {MgvRoot} from "./MgvRoot.sol";
-import "mgv_lib/Debug.sol";
+import {MgvCommon} from "./MgvCommon.sol";
 
 /* `MgvHasOffers` contains the state variables and functions common to both market-maker operations and market-taker operations. Mostly: storing offers, removing them, updating market makers' provisions. */
-contract MgvHasOffers is MgvRoot {
-  /* # State variables */
-  /* Makers provision their possible penalties in the `balanceOf` mapping.
-
-       Offers specify the amount of gas they require for successful execution ([`gasreq`](#structs.js/gasreq)). To minimize book spamming, market makers must provision a *penalty*, which depends on their `gasreq` and on the offerList's [`offer_gasbase`](#structs.js/gasbase). This provision is deducted from their `balanceOf`. If an offer fails, part of that provision is given to the taker, as retribution. The exact amount depends on the gas used by the offer before failing.
-
-       The Mangrove keeps track of their available balance in the `balanceOf` map, which is decremented every time a maker creates a new offer, and may be modified on offer updates/cancellations/takings.
-     */
-  mapping(address maker => uint balance) public balanceOf;
-
-  /* # Read functions */
-  /* Convenience function to get best offer of the given offerList */
-  function best(OLKey memory olKey) external view returns (uint offerId) {
-    unchecked {
-      OfferList storage offerList = offerLists[olKey.hash()];
-      return offerList.leafs[offerList.local.bestTick().leafIndex()].getNextOfferId();
-    }
-  }
-
-  /* Convenience function to get an offer in packed format */
-  function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer) {
-    return offerLists[olKey.hash()].offerData[offerId].offer;
-  }
-
-  /* Convenience function to get an offer detail in packed format */
-  function offerDetails(OLKey memory olKey, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferDetailPacked offerDetail)
-  {
-    return offerLists[olKey.hash()].offerData[offerId].detail;
-  }
-
-  /* Returns information about an offer in ABI-compatible structs. Do not use internally, would be a huge memory-copying waste. Use `offerLists[outbound_tkn][inbound_tkn].offers` and `offerLists[outbound_tkn][inbound_tkn].offerDetails` instead. */
-  function offerInfo(OLKey memory olKey, uint offerId)
-    external
-    view
-    returns (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail)
-  {
-    unchecked {
-      OfferData storage offerData = offerLists[olKey.hash()].offerData[offerId];
-      offer = offerData.offer.to_struct();
-      offerDetail = offerData.detail.to_struct();
-    }
-  }
-
+contract MgvHasOffers is MgvCommon {
   /* # Provision debit/credit utility functions */
   /* `balanceOf` is in wei of ETH. */
 
   function debitWei(address maker, uint amount) internal {
     unchecked {
-      uint makerBalance = balanceOf[maker];
+      uint makerBalance = _balanceOf[maker];
       require(makerBalance >= amount, "mgv/insufficientProvision");
-      balanceOf[maker] = makerBalance - amount;
+      _balanceOf[maker] = makerBalance - amount;
       emit Debit(maker, amount);
     }
   }
 
   function creditWei(address maker, uint amount) internal {
     unchecked {
-      balanceOf[maker] += amount;
+      _balanceOf[maker] += amount;
       emit Credit(maker, amount);
     }
   }
@@ -113,6 +67,7 @@ contract MgvHasOffers is MgvRoot {
     uint tickScale,
     MgvStructs.OfferPacked offer,
     MgvStructs.LocalPacked local,
+    Tick bestTick,
     bool shouldUpdateBranch
   ) internal returns (MgvStructs.LocalPacked) {
     unchecked {
@@ -135,7 +90,7 @@ contract MgvHasOffers is MgvRoot {
       // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
       // if local.tick < offerTick then a better branch is already cached. note that local.tick >= offerTick implies local.tick = offerTick
       // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
-      shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !local.bestTick().strictlyBetter(offerTick);
+      shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !bestTick.strictlyBetter(offerTick);
 
       if (prevId == 0) {
         // offer was tick's first. new first offer is offer.next (may be 0)
@@ -162,7 +117,7 @@ contract MgvHasOffers is MgvRoot {
         if (leaf.isEmpty()) {
           int index = offerTick.level0Index(); // level0Index or level1Index
           Field field;
-          if (index == local.bestTick().level0Index()) {
+          if (index == bestTick.level0Index()) {
             field = local.level0().flipBitAtLevel0(offerTick);
             local = local.level0(field);
             if (shouldUpdateBranch && field.isEmpty()) {
@@ -174,7 +129,7 @@ contract MgvHasOffers is MgvRoot {
           }
           if (field.isEmpty()) {
             index = offerTick.level1Index(); // level0Index or level1Index
-            if (index == local.bestTick().level1Index()) {
+            if (index == bestTick.level1Index()) {
               field = local.level1().flipBitAtLevel1(offerTick);
               local = local.level1(field);
               if (shouldUpdateBranch && field.isEmpty()) {

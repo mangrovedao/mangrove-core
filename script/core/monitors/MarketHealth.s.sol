@@ -60,7 +60,7 @@ contract MarketHealth is Test2, Deployer {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      olKey: OLKey(envAddressOrName("TKN_OUT"), address(inbTkn), vm.envUint("TICKSCALE")),
+      olKey: OLKey(envAddressOrName("TKN_OUT"), address(inbTkn), vm.envUint("TICK_SCALE")),
       outboundTknVolume: vm.envUint("VOLUME"),
       densityOverrides: densityOverrides
     });
@@ -106,7 +106,7 @@ contract MarketHealth is Test2, Deployer {
       mgv.setDensity(olKey, densityOverrides);
     }
     HeapVars memory vars;
-    vars.data = reader.marketOrder(olKey, outboundTknVolume, inbTkn.balanceOf(address(this)), true);
+    vars.data = reader.marketOrderByVolume(olKey, outboundTknVolume, inbTkn.balanceOf(address(this)), true);
     vars.outDecimals = outTkn.decimals();
     vars.inbDecimals = inbTkn.decimals();
     // inbound volume required (if not offer is failing)

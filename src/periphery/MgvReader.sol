@@ -3,7 +3,7 @@ pragma solidity ^0.8.10;
 
 import {MgvLib, MgvStructs, Tick, Leaf, Field, LogPriceLib, OLKey} from "mgv_src/MgvLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
-import "mgv_lib/Debug.sol";
+import {LogPriceConversionLib} from "mgv_lib/LogPriceConversionLib.sol";
 
 struct VolumeData {
   uint totalGot;
@@ -51,11 +51,12 @@ function toOLKey(Market memory market) pure returns (OLKey memory) {
 contract MgvReader {
   struct MarketOrder {
     OLKey olKey;
-    uint initialWants;
-    uint initialGives;
+    int maxLogPrice;
+    uint initialFillVolume;
     uint totalGot;
     uint totalGave;
     uint totalGasreq;
+    uint currentFillVolume;
     uint currentWants;
     uint currentGives;
     bool fillWants;
@@ -66,6 +67,7 @@ contract MgvReader {
     VolumeData[] volumeData;
     uint numOffers;
     bool accumulate;
+    uint maxRecursionDepth;
   }
   /**
    * @notice Open markets tracking (below) provides information about which markets on Mangrove are open. Anyone can update a market status by calling `updateMarket`.
@@ -240,66 +242,86 @@ contract MgvReader {
     return local(olKey).to_struct();
   }
 
-  /* marketOrder, internalMarketOrder, and execute all together simulate a market order on mangrove and return the cumulative totalGot, totalGave and totalGasreq for each offer traversed. We assume offer execution is successful and uses exactly its gasreq. 
+  /* `marketOrderBy*`, `internalMarketOrder`, and `execute` all together simulate a market order on Mangrove and return the cumulative `totalGot`, `totalGave`, and `totalGasreq` for each offer traversed. We assume offer execution is successful and uses exactly its `gasreq`. 
   We do not account for gasbase.
   * Calling this from an EOA will give you an estimate of the volumes you will receive, but you may as well `eth_call` Mangrove.
   * Calling this from a contract will let the contract choose what to do after receiving a response.
   * If `!accumulate`, only return the total cumulative volume.
   */
-  function marketOrder(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants, bool accumulate)
+  function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
+    public
+    view
+    returns (VolumeData[] memory)
+  {
+    return marketOrderByVolume(olKey, takerWants, takerGives, fillWants, true);
+  }
+
+  function marketOrderByVolume(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants, bool accumulate)
+    public
+    view
+    returns (VolumeData[] memory)
+  {
+    uint fillVolume = fillWants ? takerWants : takerGives;
+    int maxLogPrice = LogPriceConversionLib.logPriceFromVolumes(takerGives, takerWants);
+    return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, accumulate);
+  }
+
+  function marketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
+    public
+    view
+    returns (VolumeData[] memory)
+  {
+    return marketOrderByLogPrice(olKey, maxLogPrice, fillVolume, fillWants, true);
+  }
+
+  function marketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants, bool accumulate)
     public
     view
     returns (VolumeData[] memory)
   {
     MarketOrder memory mr;
     mr.olKey = olKey;
-    (, mr.local) = MGV.config(olKey);
+    MgvStructs.GlobalPacked _global;
+    (_global, mr.local) = MGV.config(olKey);
     mr.offerId = MGV.best(olKey);
     mr.offer = MGV.offers(olKey, mr.offerId);
-    mr.currentWants = takerWants;
-    mr.currentGives = takerGives;
-    mr.initialWants = takerWants;
-    mr.initialGives = takerGives;
+    mr.maxLogPrice = maxLogPrice;
+    mr.currentFillVolume = fillVolume;
+    mr.initialFillVolume = fillVolume;
     mr.fillWants = fillWants;
     mr.accumulate = accumulate;
+    mr.maxRecursionDepth = _global.maxRecursionDepth();
 
-    internalMarketOrder(mr, true);
+    internalMarketOrder(mr);
 
     return mr.volumeData;
   }
 
-  function marketOrder(OLKey memory olKey, uint takerWants, uint takerGives, bool fillWants)
-    external
-    view
-    returns (VolumeData[] memory)
-  {
-    return marketOrder(olKey, takerWants, takerGives, fillWants, true);
-  }
-
-  function internalMarketOrder(MarketOrder memory mr, bool proceed) internal view {
+  function internalMarketOrder(MarketOrder memory mr) internal view {
     unchecked {
-      if (proceed && (mr.fillWants ? mr.currentWants > 0 : mr.currentGives > 0) && mr.offerId > 0) {
+      if (
+        mr.currentFillVolume > 0 && mr.offer.logPrice() <= mr.maxLogPrice && mr.offerId > 0 && mr.maxRecursionDepth > 0
+      ) {
         uint currentIndex = mr.numOffers;
 
         mr.offerDetail = MGV.offerDetails(mr.olKey, mr.offerId);
+        mr.maxRecursionDepth--;
 
-        bool executed = execute(mr);
+        execute(mr);
 
         uint totalGot = mr.totalGot;
         uint totalGave = mr.totalGave;
         uint totalGasreq = mr.totalGasreq;
 
-        if (executed) {
-          mr.numOffers++;
-          mr.currentWants = mr.initialWants > mr.totalGot ? mr.initialWants - mr.totalGot : 0;
-          mr.currentGives = mr.initialGives - mr.totalGave;
-          mr.offerId = nextOfferId(mr.olKey, mr.offer);
-          mr.offer = MGV.offers(mr.olKey, mr.offerId);
-        }
+        mr.numOffers++;
+        mr.currentFillVolume -= mr.fillWants ? mr.currentWants : mr.currentGives;
 
-        internalMarketOrder(mr, executed);
+        mr.offerId = nextOfferId(mr.olKey, mr.offer);
+        mr.offer = MGV.offers(mr.olKey, mr.offerId);
 
-        if (executed && (mr.accumulate || currentIndex == 0)) {
+        internalMarketOrder(mr);
+
+        if (mr.accumulate || currentIndex == 0) {
           uint concreteFee = (mr.totalGot * mr.local.fee()) / 10_000;
           mr.volumeData[currentIndex] =
             VolumeData({totalGot: totalGot - concreteFee, totalGave: totalGave, totalGasreq: totalGasreq});
@@ -314,40 +336,35 @@ contract MgvReader {
     }
   }
 
-  function execute(MarketOrder memory mr) internal pure returns (bool) {
+  function execute(MarketOrder memory mr) internal pure {
     unchecked {
       {
         // caching
-        uint offerWants = mr.offer.wants();
+        uint fillVolume = mr.currentFillVolume;
         uint offerGives = mr.offer.gives();
-        uint takerWants = mr.currentWants;
-        uint takerGives = mr.currentGives;
+        uint offerWants = mr.offer.wants();
 
-        if (offerWants * takerWants > offerGives * takerGives) {
-          return false;
-        }
-
-        if ((mr.fillWants && offerGives < takerWants) || (!mr.fillWants && offerWants < takerGives)) {
+        if ((mr.fillWants && offerGives < fillVolume) || (!mr.fillWants && offerWants < fillVolume)) {
           mr.currentWants = offerGives;
           mr.currentGives = offerWants;
         } else {
           if (mr.fillWants) {
-            mr.currentGives = LogPriceLib.inboundFromOutboundUp(mr.offer.logPrice(), takerWants);
+            mr.currentGives = LogPriceLib.inboundFromOutboundUp(mr.offer.logPrice(), fillVolume);
+            mr.currentWants = fillVolume;
           } else {
-            mr.currentWants = LogPriceLib.outboundFromInbound(mr.offer.logPrice(), takerGives);
+            // offerWants = 0 is forbidden at offer writing
+            mr.currentWants = LogPriceLib.outboundFromInbound(mr.offer.logPrice(), fillVolume);
+            mr.currentGives = fillVolume;
           }
         }
       }
 
       // flashloan would normally be called here
 
-      /**
-       * if success branch of original mangrove code, assumed to be true
-       */
+      // if success branch of original mangrove code, assumed to be true
       mr.totalGot += mr.currentWants;
       mr.totalGave += mr.currentGives;
       mr.totalGasreq += mr.offerDetail.gasreq();
-      return true;
       /* end if success branch **/
     }
   }

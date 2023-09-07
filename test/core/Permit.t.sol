@@ -44,7 +44,7 @@ pragma solidity ^0.8.10;
 import {MangroveTest} from "mgv_test/lib/MangroveTest.sol";
 import {TrivialTestMaker, TestMaker} from "mgv_test/lib/agents/TestMaker.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {console2, StdStorage, stdStorage} from "forge-std/Test.sol";
+import {console2 as console, StdStorage, stdStorage} from "forge-std/Test.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {AbstractMangrove} from "mgv_src/AbstractMangrove.sol";
 import "mgv_lib/TickLib.sol";
@@ -174,7 +174,20 @@ contract PermitTest is MangroveTest, TrivialTestMaker {
     );
   }
 
-  function test_permit_typehash() public {
+  function test_correct_domain_separator() public {
+    bytes32 expected = keccak256(
+      abi.encode(
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+        keccak256(bytes("Mangrove")),
+        keccak256(bytes("1")),
+        block.chainid,
+        address(mgv)
+      )
+    );
+    assertEq(mgv.DOMAIN_SEPARATOR(), expected, "wrong DOMAIN_SEPARATOR");
+  }
+
+  function test_correct_permit_typehash() public {
     bytes32 expected = keccak256(
       "Permit(address outbound_tkn,address inbound_tkn,address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
     );

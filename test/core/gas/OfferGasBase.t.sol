@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 import {MangroveTest, MgvReader, TestMaker, TestTaker, TestSender, console} from "mgv_test/lib/MangroveTest.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {PinnedPolygonFork} from "mgv_test/lib/forks/Polygon.sol";
+import {GenericFork} from "mgv_test/lib/forks/Generic.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 import {MgvStructs, MgvLib, IERC20} from "mgv_src/MgvLib.sol";
 import {TestToken} from "mgv_test/lib/tokens/TestToken.sol";
@@ -12,16 +13,28 @@ import {ActivateSemibook} from "mgv_script/core/ActivateSemibook.s.sol";
 import "mgv_lib/Debug.sol";
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {GasTestBaseStored} from "./GasTestBase.t.sol";
+import {OfferPosthookFailGasDeltaTest} from "./OfferPosthookFailGasDelta.t.sol";
 
 abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
-  TestTaker taker;
-  PinnedPolygonFork internal fork;
+  TestTaker internal taker;
+  GenericFork internal fork;
+  OfferPosthookFailGasDeltaTest internal gasDeltaTest;
 
   function getStored() internal view override returns (IMangrove, TestTaker, OLKey memory, uint) {
     return (mgv, taker, olKey, 0);
   }
 
-  function setUp() public virtual override {
+  function setUpGeneric() public virtual {
+    super.setUp();
+    fork = new GenericFork();
+    fork.set(options.base.symbol, $(base));
+    fork.set(options.quote.symbol, $(quote));
+    gasDeltaTest = new OfferPosthookFailGasDeltaTest();
+    gasDeltaTest.setUpGasTest(options);
+    description = "Offer gasbase measurements";
+  }
+
+  function setUpPolygon() public virtual {
     super.setUp();
     fork = new PinnedPolygonFork();
     fork.setUp();
@@ -30,6 +43,8 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     options.defaultFee = 30;
     mgv = setupMangrove();
     reader = new MgvReader($(mgv));
+    gasDeltaTest = new OfferPosthookFailGasDeltaTest();
+    gasDeltaTest.setUpGasTest(options);
     description = "Offer gasbase measurements";
   }
 
@@ -39,8 +54,9 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     address quoteAddress = fork.get(quoteToken);
     base = TestToken(baseAddress);
     quote = TestToken(quoteAddress);
-    olKey = OLKey($(base), $(quote), options.defaultTickscale);
-    lo = OLKey($(quote), $(base), options.defaultTickscale);
+    gasDeltaTest.setUpTokens(base, quote);
+    olKey = OLKey($(base), $(quote), options.defaultTickScale);
+    lo = OLKey($(quote), $(base), options.defaultTickScale);
     setupMarket(olKey);
     setupMarket(lo);
 
@@ -69,23 +85,41 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
     mgv.newOfferByLogPrice(lo, MIDDLE_LOG_PRICE, offerGivesLo, 100000, 0);
   }
 
-  function test_gasbase_to_empty_book_base_quote() public {
-    (IMangrove _mgv,, OLKey memory _olKey,) = getStored();
+  function gasbase_to_empty_book(OLKey memory _olKey) internal {
+    (IMangrove _mgv,,,) = getStored();
     vm.prank($(taker));
     _gas();
     _mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
     gas_();
+  }
+
+  function test_gasbase_to_empty_book_base_quote() public {
+    gasbase_to_empty_book(olKey);
     description = string.concat(description, " - Case: base/quote gasbase for taking single offer to empty book");
     printDescription();
   }
 
   function test_gasbase_to_empty_book_quote_base() public {
-    (IMangrove _mgv,, OLKey memory _olKey,) = getStored();
-    vm.prank($(taker));
-    _gas();
-    _mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
-    gas_();
+    gasbase_to_empty_book(lo);
     description = string.concat(description, " - Case: quote/base gasbase for taking single offer to empty book");
+    printDescription();
+  }
+
+  function test_posthook_fail_delta_deep_order_base_quote() public {
+    gasDeltaTest.posthook_delta_deep_order(olKey);
+    description = string.concat(
+      description,
+      " - Case: quote/base posthook fail with failing posthook (worst case) delta for taking deep order - cost for 1 successful and 19 failing offers"
+    );
+    printDescription();
+  }
+
+  function test_posthook_fail_delta_deep_order_quote_base() public {
+    gasDeltaTest.posthook_delta_deep_order(lo);
+    description = string.concat(
+      description,
+      " - Case: quote/base posthook fail with failing posthook (worst case) delta for taking deep order - cost for 1 successful and 19 failing offers"
+    );
     printDescription();
   }
 
@@ -100,9 +134,16 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
   }
 }
 
-contract OfferGasBaseTest_WETH_DAI is OfferGasBaseBaseTest {
+contract OfferGasBaseTest_Generic_A_B is OfferGasBaseBaseTest {
   function setUp() public override {
-    super.setUp();
+    super.setUpGeneric();
+    this.setUpTokens(options.base.symbol, options.quote.symbol);
+  }
+}
+
+contract OfferGasBaseTest_Polygon_WETH_DAI is OfferGasBaseBaseTest {
+  function setUp() public override {
+    super.setUpPolygon();
     this.setUpTokens("WETH", "DAI");
   }
 }

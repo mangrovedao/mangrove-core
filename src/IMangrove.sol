@@ -14,7 +14,7 @@ import "./MgvLib.sol" as MgvLibWrapper;
 interface IMangrove is HasMgvEvents {
   function DOMAIN_SEPARATOR() external view returns (bytes32);
 
-  function PERMIT_TYPEHASH() external view returns (bytes32);
+  function PERMIT_TYPEHASH() external pure returns (bytes32);
 
   function withdrawERC20(address tokenAddress, uint value) external;
   function activate(OLKey memory olKey, uint fee, uint densityFixed, uint offer_gasbase) external;
@@ -35,10 +35,14 @@ interface IMangrove is HasMgvEvents {
     view
     returns (MgvStructs.GlobalPacked _global, MgvStructs.LocalPacked _local);
 
+  function configGlobal() external view returns (MgvStructs.GlobalPacked _global);
+
   function configInfo(OLKey memory olKey)
     external
     view
     returns (MgvStructs.GlobalUnpacked memory _global, MgvStructs.LocalUnpacked memory _local);
+
+  function configGlobalInfo() external view returns (MgvStructs.GlobalUnpacked memory _global);
 
   function deactivate(OLKey memory olKey) external;
 
@@ -67,14 +71,6 @@ interface IMangrove is HasMgvEvents {
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
-  function marketOrderByPrice(
-    OLKey memory olKey,
-    uint maxPrice_mantissa,
-    int maxPrice_exp,
-    uint fillVolume,
-    bool fillWants
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
-
   function marketOrderByLogPrice(OLKey memory olKey, int maxLogPrice, uint fillVolume, bool fillWants)
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint fee);
@@ -83,18 +79,17 @@ interface IMangrove is HasMgvEvents {
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
 
-  function marketOrderForByPrice(
-    OLKey memory olKey,
-    uint maxPrice_mantissa,
-    int maxPrice_exp,
-    uint fillVolume,
-    bool fillWants,
-    address taker
-  ) external returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
-
   function marketOrderForByLogPrice(OLKey memory olKey, int logPrice, uint fillVolume, bool fillWants, address taker)
     external
     returns (uint takerGot, uint takerGave, uint bounty, uint feePaid);
+
+  function marketOrderByLogPrice(
+    OLKey memory olKey,
+    int maxLogPrice,
+    uint fillVolume,
+    bool fillWants,
+    uint maxGasreqForFailingOffers
+  ) external returns (uint takerGot, uint takerGave, uint bounty, uint fee);
 
   function newOfferByVolume(OLKey memory olKey, uint wants, uint gives, uint gasreq, uint gasprice)
     external
@@ -144,6 +139,10 @@ interface IMangrove is HasMgvEvents {
 
   function setGasmax(uint gasmax) external;
 
+  function setMaxRecursionDepth(uint maxRecursionDepth) external;
+
+  function setMaxGasreqForFailingOffers(uint maxGasreqForFailingOffers) external;
+
   function setGasprice(uint gasprice) external;
 
   function setGovernance(address governanceAddress) external;
@@ -177,4 +176,6 @@ interface IMangrove is HasMgvEvents {
   function level1(OLKey memory olKey, int index) external view returns (MgvLibWrapper.Field);
 
   function level2(OLKey memory olKey) external view returns (MgvLibWrapper.Field);
+
+  fallback(bytes calldata callData) external returns (bytes memory);
 }

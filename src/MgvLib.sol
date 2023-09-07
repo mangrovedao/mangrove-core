@@ -219,6 +219,8 @@ interface HasMgvEvents {
   The `olKeyHash` is indexed, so that we can filter on it when doing RPC calls.
   */
   event SetDensityFixed(bytes32 indexed olKeyHash, uint value);
+  event SetMaxRecursionDepth(uint value);
+  event SetMaxGasreqForFailingOffers(uint value);
 
   /*
   This event is emitted when the gasprice of Mangrove is set.

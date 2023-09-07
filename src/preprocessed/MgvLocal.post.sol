@@ -39,6 +39,9 @@ import {Density, DensityLib} from "mgv_lib/DensityLib.sol";
 using LocalPackedExtra for LocalPacked global;
 using LocalUnpackedExtra for LocalUnpacked global;
 
+// cleanup-mask: 0s at location of fields to hide from maker, 1s elsewhere
+uint constant HIDE_FIELDS_FROM_MAKER_MASK = ~(tickPosInLeaf_mask_inv | level0_mask_inv | level1_mask_inv | level2_mask_inv | last_mask_inv);
+
 library LocalPackedExtra {
   function densityFromFixed(LocalPacked local, uint densityFixed) internal pure returns (LocalPacked) { unchecked {
     return local.density(DensityLib.fromFixed(densityFixed));
@@ -52,6 +55,13 @@ library LocalPackedExtra {
   function bestTick(LocalPacked local) internal pure returns (Tick) {
     return TickLib.tickFromBranch(local.tickPosInLeaf(),local.level0(),local.level1(),local.level2());
   }
+  function clearFieldsForMaker(LocalPacked local) internal pure returns (LocalPacked) {
+    unchecked {
+      return LocalPacked.wrap(
+        LocalPacked.unwrap(local)
+        & HIDE_FIELDS_FROM_MAKER_MASK);
+    }
+  }
 }
 
 library LocalUnpackedExtra {
@@ -64,7 +74,7 @@ library LocalUnpackedExtra {
   function offer_gasbase(LocalUnpacked memory local,uint val) internal pure { unchecked {
     local.kilo_offer_gasbase = val/1e3;
   }}
-  function tick(LocalUnpacked memory local) internal pure returns (Tick) {
+  function bestTick(LocalUnpacked memory local) internal pure returns (Tick) {
     return TickLib.tickFromBranch(local.tickPosInLeaf,local.level0,local.level1,local.level2);
   }
 }

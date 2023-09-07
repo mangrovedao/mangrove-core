@@ -1,27 +1,12 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.10;
 
-import {HasMgvEvents, MgvStructs, DensityLib, OLKey} from "./MgvLib.sol";
-import {MgvRoot} from "./MgvRoot.sol";
+import {MgvLib, IMgvMonitor, MgvStructs, IERC20, Leaf, Field, Density, DensityLib, OLKey} from "./MgvLib.sol";
+import "mgv_src/MgvCommon.sol";
 
-contract MgvGovernable is MgvRoot {
-  /* The `governance` address. Governance is the only address that can configure parameters. */
-  address public governance;
-
-  constructor(address _governance, uint _gasprice, uint gasmax) MgvRoot() {
-    unchecked {
-      emit NewMgv();
-
-      /* Initially, governance is open to anyone. */
-
-      /* Set initial gasprice and gasmax. */
-      setGasprice(_gasprice);
-      setGasmax(gasmax);
-      /* Initialize governance to `_governance` after parameter setting. */
-      setGovernance(_governance);
-    }
-  }
-
+// Contains gov functions, to reduce Mangrove contract size
+contract MgvGovernable is MgvCommon {
+  /* Admin functions */
   /* ## `authOnly` check */
 
   function authOnly() internal view {
@@ -145,6 +130,31 @@ contract MgvGovernable is MgvRoot {
       //+clear+
       internal_global = internal_global.gasmax(gasmax);
       emit SetGasmax(gasmax);
+    }
+  }
+
+  /* ### `maxRecursionDepth` */
+  function setMaxRecursionDepth(uint maxRecursionDepth) public {
+    unchecked {
+      authOnly();
+      require(
+        MgvStructs.Global.maxRecursionDepth_check(maxRecursionDepth), MgvStructs.Global.maxRecursionDepth_size_error
+      );
+      internal_global = internal_global.maxRecursionDepth(maxRecursionDepth);
+      emit SetMaxRecursionDepth(maxRecursionDepth);
+    }
+  }
+
+  /* ### `maxGasreqForFailingOffers` */
+  function setMaxGasreqForFailingOffers(uint maxGasreqForFailingOffers) public {
+    unchecked {
+      authOnly();
+      require(
+        MgvStructs.Global.maxGasreqForFailingOffers_check(maxGasreqForFailingOffers),
+        MgvStructs.Global.maxGasreqForFailingOffers_size_error
+      );
+      internal_global = internal_global.maxGasreqForFailingOffers(maxGasreqForFailingOffers);
+      emit SetMaxGasreqForFailingOffers(maxGasreqForFailingOffers);
     }
   }
 

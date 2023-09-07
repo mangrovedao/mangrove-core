@@ -9,9 +9,10 @@ libs=['lib']
 cache_path='cache'
 evm_version='paris'
 fs_permissions = [{ access = "read-write", path = "./addresses/"}, { access = "read", path = "./out/" }]
-solc_version="0.8.21"
+solc_version="0.8.20"
 ffi=true
 optimizer=false
+memory_limit = 100000000 # 33554432 is default limit
 
 # via_ir=true
 # optimizer_runs=200

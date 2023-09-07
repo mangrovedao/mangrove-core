@@ -187,19 +187,19 @@ contract MgvReader {
       (uint currentId, uint length) = offerListEndPoints(olh.olKey, olh.fromId, olh.maxOffers);
 
       uint[] memory offerIds = new uint[](length);
-      MgvStructs.OfferPacked[] memory _offers = new MgvStructs.OfferPacked[](length);
+      MgvStructs.OfferPacked[] memory offers = new MgvStructs.OfferPacked[](length);
       MgvStructs.OfferDetailPacked[] memory details = new MgvStructs.OfferDetailPacked[](length);
 
       uint i = 0;
 
       while (currentId != 0 && i < length) {
         offerIds[i] = currentId;
-        (_offers[i], details[i]) = MGV.offerData(olKey, currentId);
-        currentId = nextOfferId(olKey, _offers[i]);
+        (offers[i], details[i]) = MGV.offerData(olKey, currentId);
+        currentId = nextOfferId(olKey, offers[i]);
         i = i + 1;
       }
 
-      return (currentId, offerIds, _offers, details);
+      return (currentId, offerIds, offers, details);
     }
   }
 
@@ -214,18 +214,18 @@ contract MgvReader {
       (uint currentId, uint length) = offerListEndPoints(olh.olKey, olh.fromId, olh.maxOffers);
 
       uint[] memory offerIds = new uint[](length);
-      MgvStructs.OfferUnpacked[] memory _offers = new MgvStructs.OfferUnpacked[](length);
+      MgvStructs.OfferUnpacked[] memory offers = new MgvStructs.OfferUnpacked[](length);
       MgvStructs.OfferDetailUnpacked[] memory details = new MgvStructs.OfferDetailUnpacked[](length);
 
       uint i = 0;
       while (currentId != 0 && i < length) {
         offerIds[i] = currentId;
-        (_offers[i], details[i]) = offerInfo(olKey, currentId);
+        (offers[i], details[i]) = offerInfo(olKey, currentId);
         currentId = nextOfferIdById(olKey, currentId);
         i = i + 1;
       }
 
-      return (currentId, offerIds, _offers, details);
+      return (currentId, offerIds, offers, details);
     }
   }
 

@@ -1,5 +1,9 @@
 # Next version
 
+# 1.5.8
+
+- Pinned fork to a block number as a constructor argument
+
 # 1.5.7
 
 - Fix: New publish workflow with foundry

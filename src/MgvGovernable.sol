@@ -7,7 +7,6 @@ import "mgv_src/MgvCommon.sol";
 // Contains gov functions, to reduce Mangrove contract size
 contract MgvGovernable is MgvCommon {
   /* Admin functions */
-
   /* ## `authOnly` check */
 
   function authOnly() internal view {

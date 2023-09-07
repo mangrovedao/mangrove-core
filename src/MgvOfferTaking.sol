@@ -208,9 +208,6 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.fillVolume > 0 && sor.offer.logPrice() <= mor.maxLogPrice && sor.offerId > 0 && mor.maxRecursionDepth > 0
           && mor.gasreqForFailingOffers <= mor.maxGasreqForFailingOffers
       ) {
-        /* Load additional information about the offer. */
-        sor.offerDetail = offerList.offerData[sor.offerId].detail;
-
         mor.maxRecursionDepth--;
 
         /* #### Case 1 : End of order */
@@ -229,6 +226,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       `mgvData` should not be exploitable by the maker! */
         bytes32 mgvData;
+
+        /* Load additional information about the offer. */
+        sor.offerDetail = offerList.offerData[sor.offerId].detail;
 
         /* `execute` will adjust `sor.wants`,`sor.gives`, and may attempt to execute the offer if its price is low enough. It is crucial that an error due to `taker` triggers a revert. That way, if [`mgvData`](#MgvOfferTaking/statusCodes) is not `"mgv/tradeSuccess"` then the maker is at fault. */
         /* Post-execution, `sor.wants`/`sor.gives` reflect how much was sent/taken by the offer. We will need it after the recursive call, so we save it in local variables. Same goes for `offerId`, `sor.offer` and `sor.offerDetail`. */
@@ -249,10 +249,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* We move `sor` to the next offer. Note that the current state is inconsistent, since we have not yet updated `sor.offerDetails`. */
         /* It is known statically that `mor.initialGives - mor.totalGave` does not underflow since
-        1. `mor.totalGave` was increased by `sor.gives` during `execute`,
-        2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
-        3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
-      */
+          1. `mor.totalGave` was increased by `sor.gives` during `execute`,
+          2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
+          3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
+        */
         (sor.offerId, sor.local) = getNextBest(offerList, mor, sor.offer, sor.local, sor.olKey.tickScale);
 
         sor.offer = offerList.offerData[sor.offerId].offer;
@@ -268,11 +268,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* After an offer execution, we may run callbacks and increase the total penalty. As that part is common to market orders and cleaning, it lives in its own `postExecute` function. */
         postExecute(mor, sor, gasused, makerData, mgvData);
-      } else {
         /* #### Case 2 : End of market order */
         /* The taker has gotten its requested volume, no more offers match, or we have reached the end of the book, we conclude the market order. */
         /* During the market order, all executed offers have been removed from the book. We end by stitching together the `best` offer pointer and the new best offer. */
-
+      } else {
         // mark current offer as having no prev if necessary
         // update leaf if necessary
         MgvStructs.OfferPacked offer = sor.offer;
@@ -299,11 +298,11 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
         /* <a id="internalMarketOrder/liftReentrancy"></a>Now that the market order is over, we can lift the lock on the book. In the same operation we
 
-        * lift the reentrancy lock, and
-        * update the storage
+      * lift the reentrancy lock, and
+      * update the storage
 
-        so we are free from out of order storage writes.
-        */
+      so we are free from out of order storage writes.
+      */
         sor.local = sor.local.lock(false);
         offerList.local = sor.local;
 

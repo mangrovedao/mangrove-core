@@ -1,5 +1,13 @@
 # Next version
 
+# 1.5.8-1
+
+- Added MgvConfig to configure addresses. (See README for more info)
+
+# 1.5.8-0
+
+- Moved all strat related contracts, scripts, deployers, etc. to @mangrovedao/mangrove-strats.
+
 # 1.5.7
 
 - Fix: New publish workflow with foundry

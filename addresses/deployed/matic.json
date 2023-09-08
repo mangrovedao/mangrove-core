@@ -22,25 +22,5 @@
   {
     "address": "0xba6fBacEeeE55D2d657Eb26023C64002e23Af5E8",
     "name": "PxMATIC"
-  },
-  {
-    "address": "0xcf4ec117bc38d7D0fE8678B511Ff6a212c76d60B",
-    "name": "MangroveOrder"
-  },
-  {
-    "address": "0x6b08Cc8290302CB4659D7cEDa7016BEa20852D59",
-    "name": "MangroveOrder-Router"
-  },
-  {
-    "address": "0xA48B36E01919472fcdA56CAD574433BeCB7A87C5",
-    "name": "KandelSeeder"
-  },
-  {
-    "address": "0xded8E2fac702646dafE51d496d1217A837b0a424",
-    "name": "AaveKandelSeeder"
-  },
-  {
-    "address": "0xa92737e6917d4d76Fed72027Ccbf1E06094d65Bd",
-    "name": "AavePooledRouter"
   }
 ]

@@ -304,7 +304,13 @@ contract MgvOfferMaking is MgvHasOffers {
       require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
 
       // must cache tick because branch will be modified and tick information will be lost (in case an offer will be removed)
-      Tick cachedLocalTick = ofp.local.bestTick();
+      Tick cachedLocalTick;
+      // force control flow through gas saving path if offer list is empty
+      if (ofp.local.level0().isEmpty()) {
+        cachedLocalTick = insertionTick;
+      } else {
+        cachedLocalTick = ofp.local.bestTick();
+      }
 
       // remove offer from previous position
       if (ofp.oldOffer.isLive()) {
@@ -326,11 +332,17 @@ contract MgvOfferMaking is MgvHasOffers {
         ofp.local =
           dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);
         // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
+        // FIXME check if shouldUpdateBranch was true but became false inside dislodgeOffer
         if (shouldUpdateBranch) {
-          cachedLocalTick = ofp.local.bestTick();
+          // force control flow through gas-saving path if retraction emptied the offer list
+          if (ofp.local.level0().isEmpty()) {
+            cachedLocalTick = insertionTick;
+          } else {
+            cachedLocalTick = ofp.local.bestTick();
+          }
         }
       }
-      if (insertionTick.strictlyBetter(cachedLocalTick)) {
+      if (!cachedLocalTick.strictlyBetter(insertionTick)) {
         ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
       }
 
@@ -399,6 +411,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
       // store offer at the end of the tick
       leaf = leaf.setTickLast(insertionTick, ofrId);
+      // FIXME check whether write necessary: when offer neither first nor last of tick
       offerList.leafs[insertionTick.leafIndex()] = leaf;
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */

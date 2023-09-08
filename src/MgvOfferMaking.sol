@@ -365,7 +365,7 @@ contract MgvOfferMaking is MgvHasOffers {
         }
 
         // Write insertion level0
-        if (insertionIndex <= currentIndex || ofp.local.level2().isEmpty()) {
+        if (insertionIndex <= currentIndex) {
           ofp.local = ofp.local.level0(field.flipBitAtLevel0(insertionTick));
         } else {
           offerList.level0[insertionIndex] = field.flipBitAtLevel0(insertionTick);
@@ -385,7 +385,7 @@ contract MgvOfferMaking is MgvHasOffers {
             offerList.level1[currentIndex] = ofp.local.level1();
           }
 
-          if (insertionIndex <= currentIndex || ofp.local.level2().isEmpty()) {
+          if (insertionIndex <= currentIndex) {
             ofp.local = ofp.local.level1(field.flipBitAtLevel1(insertionTick));
           } else {
             offerList.level1[insertionIndex] = field.flipBitAtLevel1(insertionTick);

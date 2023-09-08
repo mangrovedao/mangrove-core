@@ -410,7 +410,6 @@ contract MgvOfferMaking is MgvHasOffers {
 
       // store offer at the end of the tick
       leaf = leaf.setTickLast(insertionTick, ofrId);
-      // FIXME check whether write necessary: when offer neither first nor last of tick
       offerList.leafs[insertionTick.leafIndex()] = leaf;
 
       /* With the `prev`/`next` in hand, we finally store the offer in the `offers` map. */

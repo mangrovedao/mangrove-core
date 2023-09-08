@@ -704,7 +704,7 @@ contract GatekeepingTest is MangroveTest {
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.config(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.local();
+    mgv.local(olKey);
     mgv.global(); // global() is not locked by offer list lock
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.leafs(olKey, 0);
@@ -740,7 +740,7 @@ contract GatekeepingTest is MangroveTest {
   function olReadOK(OLKey memory olKey) external {
     assertTrue(!mgv.locked(olKey), "market must not be locked");
     mgv.config(olKey);
-    mgv.local();
+    mgv.local(olKey);
     mgv.global();
     mgv.leafs(olKey, 0);
     mgv.level0(olKey, 0);

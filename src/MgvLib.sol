@@ -141,11 +141,13 @@ interface HasMgvEvents {
   /*  
   This event is emitted when an offerList is activated or deactivated. Meaning one half of a market is opened.
 
-  It emits the `olKeyHash` and the boolean `value`. By emitting this, an indexer will be able to keep track of what offerLists are active.
+  It emits the `olKeyHash` and the boolean `value`. By emitting this, an indexer will be able to keep track of what offerLists are active and what their hash is.
 
-  The `olKeyHash` is indexed, so that we can filter on it when doing RPC calls.
+  The `olKeyHash` and both token addresses are indexed, so that we can filter on it when doing RPC calls.
   */
-  event SetActive(bytes32 indexed olKeyHash, bool value);
+  event SetActive(
+    bytes32 indexed olKeyHash, address indexed outbound_tkn, address indexed inbound_tkn, uint tickScale, bool value
+  );
 
   /*
   This event is emitted when the fee of an offerList is changed.

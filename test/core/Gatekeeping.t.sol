@@ -843,7 +843,7 @@ contract GatekeepingTest is MangroveTest {
 
   function test_activation_emits_events_in_order() public {
     expectFrom($(mgv));
-    emit SetActive(lo.hash(), true);
+    emit SetActive(lo.hash(), lo.outbound, lo.inbound, lo.tickScale, true);
     expectFrom($(mgv));
     emit SetFee(lo.hash(), 7);
     expectFrom($(mgv));
@@ -853,10 +853,66 @@ contract GatekeepingTest is MangroveTest {
     mgv.activate(lo, 7, 0, 3);
   }
 
+  function test_activation_updates_olKeys(OLKey memory _olKey) public {
+    vm.assume(_olKey.tickScale != 0);
+    bytes32 hash = _olKey.hash();
+    vm.assume(hash != olKey.hash());
+    vm.assume(hash != lo.hash());
+    // initially 0
+    OLKey memory _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, address(0), "outbound should be address 0");
+    assertEq(_olKey2.inbound, address(0), "inbound should be address 0");
+    assertEq(_olKey2.tickScale, 0, "tickScale should be 0");
+    mgv.activate(_olKey, 7, 0, 3);
+    // gets updated
+    _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
+    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
+    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale");
+  }
+
+  function test_deactivation_maintains_olKeys(OLKey memory _olKey) public {
+    vm.assume(_olKey.tickScale != 0);
+    bytes32 hash = _olKey.hash();
+    vm.assume(hash != olKey.hash());
+    vm.assume(hash != lo.hash());
+    mgv.activate(_olKey, 7, 0, 3);
+    // gets updated
+    OLKey memory _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
+    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
+    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale");
+    mgv.deactivate(_olKey);
+    // still there
+    _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound after deactivate");
+    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound after deactivate");
+    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale after deactivate");
+  }
+
+  function test_reactivation_maintains_olKeys(OLKey memory _olKey) public {
+    vm.assume(_olKey.tickScale != 0);
+    bytes32 hash = _olKey.hash();
+    vm.assume(hash != olKey.hash());
+    vm.assume(hash != lo.hash());
+    mgv.activate(_olKey, 7, 0, 3);
+    // gets updated
+    OLKey memory _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
+    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
+    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale");
+    mgv.activate(_olKey, 4, 0, 2);
+    // still there
+    _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound after reactivate");
+    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound after reactivate");
+    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale after reactivate");
+  }
+
   function test_updateOffer_on_inactive_fails() public {
     uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
     expectFrom($(mgv));
-    emit SetActive(olKey.hash(), false);
+    emit SetActive(olKey.hash(), olKey.outbound, olKey.inbound, olKey.tickScale, false);
     mgv.deactivate(olKey);
     vm.expectRevert("mgv/inactive");
     mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);

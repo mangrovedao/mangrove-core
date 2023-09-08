@@ -59,6 +59,8 @@ contract MgvCommon is HasMgvEvents {
 
   /* `offerLists` maps offer list id to offer list. */
   mapping(bytes32 => OfferList) internal offerLists;
+  /* Reverse mapping to fetch parameters from olKey hash */
+  mapping(bytes32 => OLKey) internal _olKeys;
 
   /* # State variables */
   /* Makers provision their possible penalties in the `balanceOf` mapping.

@@ -20,7 +20,7 @@ const exportAllIn = (exportName, dir) => {
   for (const fileName of fs.readdirSync(`${dir}`)) {
     const parsed = path.parse(fileName);
     lines.push(
-      `exports.${exportName}['${parsed.name}'] = require("./${dir}/${fileName}");`
+      `exports.${exportName}['${parsed.name}'] = require("./${dir}/${fileName}");`,
     );
   }
   return lines.join("\n");

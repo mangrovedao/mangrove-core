@@ -144,7 +144,9 @@ contract MangroveTest is Test2, HasMgvEvents {
     TestToken req_tk = TestToken($in);
     TestToken ofr_tk = TestToken($out);
 
-    console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
+    console.log(
+      string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────")
+    );
     while (offerId != 0) {
       (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) =
         mgv.offerInfo($out, $in, offerId);

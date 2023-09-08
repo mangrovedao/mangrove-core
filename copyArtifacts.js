@@ -65,7 +65,7 @@ const match_path = (artifacts, name) => {
   const filtered = artifacts.filter((p) => p.endsWith(`/${name}.json`));
   if (filtered.length > 1) {
     throw new Error(
-      `${script}: Ambiguous export name: ${name}, matched: ${filtered.toString()}`
+      `${script}: Ambiguous export name: ${name}, matched: ${filtered.toString()}`,
     );
   }
   if (filtered.length === 0) {
@@ -120,8 +120,8 @@ for (const { name, match, basename, data } of export_queue) {
     console.log(
       `${script}: Will export ${Object.keys(data)} to ${path.relative(
         cwd,
-        export_file
-      )}`
+        export_file,
+      )}`,
     );
     console.log();
   }

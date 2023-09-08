@@ -10,3 +10,9 @@ contract EthereumFork is GenericFork {
     NETWORK = "mainnet";
   }
 }
+
+contract PinnedEthereumFork is EthereumFork {
+  constructor(uint blockNumber) {
+    BLOCK_NUMBER = blockNumber;
+  }
+}

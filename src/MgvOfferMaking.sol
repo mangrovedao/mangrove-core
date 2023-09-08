@@ -326,7 +326,7 @@ contract MgvOfferMaking is MgvHasOffers {
             - Otherwise yes because maybe current tick = insertion tick
           */
           // bool updateLocal = tick.strictlyBetter(ofp.local.bestTick().strictlyBetter(tick)
-          bool shouldUpdateBranch = !insertionTick.strictlyBetter(ofp.local.bestTick());
+          bool shouldUpdateBranch = !insertionTick.strictlyBetter(cachedLocalTick);
 
           (ofp.local, shouldUpdateBranch) =
             dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);

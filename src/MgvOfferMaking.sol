@@ -310,35 +310,34 @@ contract MgvOfferMaking is MgvHasOffers {
         cachedLocalTick = insertionTick;
       } else {
         cachedLocalTick = ofp.local.bestTick();
-      }
+        // remove offer from previous position
+        if (ofp.oldOffer.isLive()) {
+          // may modify ofp.local
+          // At this point only the in-memory local has the new best?
+          /* When to update local.best/tick:
+            - If removing this offer does not move tick: no
+            - Otherwise, if new tick < insertion tick, yes
+            - Otherwise, if new tick = insertion tick, yes because the inserted offer will be inserted at the end
+            - Otherwise, if new tick > insertion tick, no 
+            I cannot know new tick before checking it out. But it is >= current tick.
+            So:
+            - If current tick > insertion tick: no
+            - Otherwise yes because maybe current tick = insertion tick
+          */
+          // bool updateLocal = tick.strictlyBetter(ofp.local.bestTick().strictlyBetter(tick)
+          bool shouldUpdateBranch = !insertionTick.strictlyBetter(ofp.local.bestTick());
 
-      // remove offer from previous position
-      if (ofp.oldOffer.isLive()) {
-        // may modify ofp.local
-        // At this point only the in-memory local has the new best?
-        /* When to update local.best/tick:
-           - If removing this offer does not move tick: no
-           - Otherwise, if new tick < insertion tick, yes
-           - Otherwise, if new tick = insertion tick, yes because the inserted offer will be inserted at the end
-           - Otherwise, if new tick > insertion tick, no 
-           I cannot know new tick before checking it out. But it is >= current tick.
-           So:
-           - If current tick > insertion tick: no
-           - Otherwise yes because maybe current tick = insertion tick
-        */
-        // bool updateLocal = tick.strictlyBetter(ofp.local.bestTick().strictlyBetter(tick)
-        bool shouldUpdateBranch = !insertionTick.strictlyBetter(ofp.local.bestTick());
-
-        ofp.local =
-          dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);
-        // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
-        // FIXME check if shouldUpdateBranch was true but became false inside dislodgeOffer
-        if (shouldUpdateBranch) {
-          // force control flow through gas-saving path if retraction emptied the offer list
-          if (ofp.local.level0().isEmpty()) {
-            cachedLocalTick = insertionTick;
-          } else {
-            cachedLocalTick = ofp.local.bestTick();
+          ofp.local =
+            dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);
+          // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
+          // FIXME check if shouldUpdateBranch was true but became false inside dislodgeOffer
+          if (shouldUpdateBranch) {
+            // force control flow through gas-saving path if retraction emptied the offer list
+            if (ofp.local.level0().isEmpty()) {
+              cachedLocalTick = insertionTick;
+            } else {
+              cachedLocalTick = ofp.local.bestTick();
+            }
           }
         }
       }

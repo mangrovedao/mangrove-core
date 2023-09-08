@@ -69,7 +69,7 @@ contract MgvHasOffers is MgvCommon {
     MgvStructs.LocalPacked local,
     Tick bestTick,
     bool shouldUpdateBranch
-  ) internal returns (MgvStructs.LocalPacked) {
+  ) internal returns (MgvStructs.LocalPacked, bool) {
     unchecked {
       Leaf leaf;
       uint prevId = offer.prev();
@@ -145,7 +145,7 @@ contract MgvHasOffers is MgvCommon {
               // FIXME: should I let log2 not revert, but just return 0 if x is 0?
               // Why am I setting tick to 0 before I return?
               if (local.level2().isEmpty()) {
-                return local;
+                return (local, shouldUpdateBranch); // shouldUpdateBranch always true here
               }
               // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
               if (shouldUpdateBranch) {
@@ -168,7 +168,7 @@ contract MgvHasOffers is MgvCommon {
           local = local.tickPosInLeaf(leaf.firstOfferPosition());
         }
       }
-      return local;
+      return (local, shouldUpdateBranch);
     }
   }
 }

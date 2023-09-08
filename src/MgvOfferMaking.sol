@@ -164,7 +164,7 @@ contract MgvOfferMaking is MgvHasOffers {
       /* Here, we are about to un-live an offer, so we start by taking it out of the book by stitching together its previous and next offers. Note that unconditionally calling `stitchOffers` would break the book since it would connect offers that may have since moved. */
       if (offer.isLive()) {
         MgvStructs.LocalPacked oldLocal = local;
-        local = dislodgeOffer(offerList, olKey.tickScale, offer, local, local.bestTick(), true);
+        (local,) = dislodgeOffer(offerList, olKey.tickScale, offer, local, local.bestTick(), true);
         /* If calling `stitchOffers` has changed the current `best` offer, we update the storage. */
         if (!oldLocal.eq(local)) {
           offerList.local = local;
@@ -326,12 +326,11 @@ contract MgvOfferMaking is MgvHasOffers {
             - Otherwise yes because maybe current tick = insertion tick
           */
           // bool updateLocal = tick.strictlyBetter(ofp.local.bestTick().strictlyBetter(tick)
-          bool shouldUpdateBranch = !insertionTick.strictlyBetter(ofp.local.bestTick());
+          bool shouldUpdateBranch = !insertionTick.strictlyBetter(cachedLocalTick);
 
-          ofp.local =
+          (ofp.local, shouldUpdateBranch) =
             dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);
           // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
-          // FIXME check if shouldUpdateBranch was true but became false inside dislodgeOffer
           if (shouldUpdateBranch) {
             // force control flow through gas-saving path if retraction emptied the offer list
             if (ofp.local.level0().isEmpty()) {

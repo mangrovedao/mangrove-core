@@ -106,14 +106,14 @@ contract MgvView is MgvCommon {
     }
   }
 
-  // # Offer view functions
-
   /* Get the olKey that corresponds to a hash, only works for offerLists that have been activated > 0 times */
   function olKeys(bytes32 olKeyHash) external view returns (OLKey memory olKey) {
     unchecked {
       olKey = _olKeys[olKeyHash];
     }
   }
+
+  // # Offer view functions
 
   /* Get an offer in packed format */
   function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer) {

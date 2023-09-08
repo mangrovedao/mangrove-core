@@ -120,9 +120,9 @@ interface IMangrove is HasMgvEvents {
 
   function best(OLKey memory olKey) external view returns (uint offerId);
 
-  // # Offer view functions
-
   function olKeys(bytes32 olKeyHash) external view returns (OLKey memory olKey);
+
+  // # Offer view functions
 
   function offers(OLKey memory olKey, uint offerId) external view returns (MgvStructs.OfferPacked offer);
 

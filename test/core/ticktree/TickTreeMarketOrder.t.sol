@@ -14,8 +14,10 @@ import "mgv_lib/Debug.sol";
 //   - a middle tick
 //   - a higher tick
 // 2. we take a snapshot of Mangrove's tick tree
-// 3. we run a market order in Mangrove and remove the corresponding offers in the snapshot tick tree
-// 4. we check that Mangrove's tick tree matches the test tick tree.
+// 4. we remove the offers the market order should take from the snapshot tick tree
+// 3. we run a market order in Mangrove
+//   - in the posthook of the last offer, we check that Mangrove's tick tree matches the test tick tree.
+//   - by doing this in the posthook, we ensure that the tick tree is updated when the first posthook runs.
 //
 // The scenarios we want to test are:
 // - lower tick list
@@ -64,6 +66,12 @@ contract TickTreeMarketOrderTest is TickTreeTest {
 
   // (list size, offers to take)
   uint[2][] tickListScenarios = [[0, 0], [2, 2], [3, 1], [3, 0]];
+
+  function setUp() public override {
+    super.setUp();
+
+    mkr.setPosthookCallback($(this), this.checkMgvTickTreeInLastOfferPosthook.selector);
+  }
 
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
   // We therefore have a test case per tick instead.
@@ -199,9 +207,36 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     );
   }
 
-  function removeTakenOffers(TestTickTree tickTree, TickListScenario memory scenario, uint[] memory offerIds) internal {
+  TestTickTree tickTree;
+  uint lastTakenOfferId;
+  bool lastTakenOfferPosthookCalled;
+
+  function removeTakenOffers(TickListScenario memory scenario, uint[] memory offerIds) internal {
     for (uint i = 0; i < scenario.offersToTake; ++i) {
       tickTree.removeOffer(offerIds[i]);
+    }
+  }
+
+  function getLastTakenOfferId(
+    MarketOrderScenario memory scenario,
+    uint[] memory lowerOfferIds,
+    uint[] memory middleOfferIds,
+    uint[] memory higherOfferIds
+  ) internal pure returns (uint) {
+    if (scenario.higherTick.offersToTake > 0) {
+      return higherOfferIds[scenario.higherTick.offersToTake - 1];
+    } else if (scenario.middleTick.offersToTake > 0) {
+      return middleOfferIds[scenario.middleTick.offersToTake - 1];
+    } else if (scenario.lowerTick.offersToTake > 0) {
+      return lowerOfferIds[scenario.lowerTick.offersToTake - 1];
+    }
+    return 0;
+  }
+
+  function checkMgvTickTreeInLastOfferPosthook(MgvLib.SingleOrder calldata order) external {
+    if (order.offerId == lastTakenOfferId) {
+      tickTree.assertEqToMgvOffer();
+      lastTakenOfferPosthookCalled = true;
     }
   }
 
@@ -225,22 +260,24 @@ contract TickTreeMarketOrderTest is TickTreeTest {
       add_n_offers_to_tick(Tick.unwrap(scenario.higherTick.tick), scenario.higherTick.size);
     uint fillVolume = lowerOffersGive * scenario.lowerTick.offersToTake
       + middleOffersGive * scenario.middleTick.offersToTake + higherOffersGive * scenario.higherTick.offersToTake;
+    lastTakenOfferId = getLastTakenOfferId(scenario, lowerOfferIds, middleOfferIds, higherOfferIds);
 
     // 3. Snapshot tick tree
-    TestTickTree tickTree = snapshotTickTree();
+    tickTree = snapshotTickTree();
 
-    // 4. Run the market order
+    // 4. Run the market order and check that the tick tree is updated as expected
+    // The check of the tick tree is done in the posthook of the last taken offer
+    // by the checkMgvTickTreeInLastOfferPosthook function.
+    // We therefore must update the test tick tree before the market order is run.
+    removeTakenOffers(scenario.lowerTick, lowerOfferIds);
+    removeTakenOffers(scenario.middleTick, middleOfferIds);
+    removeTakenOffers(scenario.higherTick, higherOfferIds);
     mgv.marketOrderByLogPrice(olKey, MAX_LOG_PRICE, fillVolume, true);
-    removeTakenOffers(tickTree, scenario.lowerTick, lowerOfferIds);
-    removeTakenOffers(tickTree, scenario.middleTick, middleOfferIds);
-    removeTakenOffers(tickTree, scenario.higherTick, higherOfferIds);
+    assertTrue(lastTakenOfferId == 0 || lastTakenOfferPosthookCalled, "last taken offer posthook not called");
 
-    // 5. Assert that Mangrove and tick tree are equal
-    tickTree.assertEqToMgvOffer();
-    // Uncommenting the following can be helpful in debugging tree consistency issues
     // assertMgvTickTreeIsConsistent();
 
-    // 6. Restore state from before test
+    // 5. Restore state from before test
     vm.revertTo(vmSnapshotId);
   }
 }

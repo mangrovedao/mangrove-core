@@ -31,9 +31,13 @@ contract MgvGovernable is MgvCommon {
   function activate(OLKey memory olKey, uint fee, uint densityFixed, uint offer_gasbase) public {
     unchecked {
       authOnly();
-      OfferList storage offerList = offerLists[olKey.hash()];
+      bytes32 olKeyHash = olKey.hash();
+      // save hash->key mapping
+      _olKeys[olKeyHash] = olKey;
+      OfferList storage offerList = offerLists[olKeyHash];
+      // activate market
       offerList.local = offerList.local.active(true);
-      emit SetActive(olKey.hash(), true);
+      emit SetActive(olKey.hash(), olKey.outbound, olKey.inbound, olKey.tickScale, true);
       setFee(olKey, fee);
       setDensityFixed(olKey, densityFixed);
       setGasbase(olKey, offer_gasbase);
@@ -44,7 +48,7 @@ contract MgvGovernable is MgvCommon {
     authOnly();
     OfferList storage offerList = offerLists[olKey.hash()];
     offerList.local = offerList.local.active(false);
-    emit SetActive(olKey.hash(), false);
+    emit SetActive(olKey.hash(), olKey.outbound, olKey.inbound, olKey.tickScale, false);
   }
 
   /* ### `fee` */

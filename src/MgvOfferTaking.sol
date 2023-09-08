@@ -182,7 +182,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       sor.local = sor.local.lock(true);
       offerList.local = sor.local;
 
-      emit OrderStart();
+      emit OrderStart(sor.olKey.hash(), taker, maxLogPrice, fillVolume, fillWants);
 
       /* Call recursive `internalMarketOrder` function.*/
       internalMarketOrder(offerList, mor, sor);
@@ -190,7 +190,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       /* Over the course of the market order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occurred yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
       sendPenalty(mor.totalPenalty);
 
-      emit OrderComplete(olKey.hash(), taker, mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid);
+      emit OrderComplete(sor.olKey.hash(), taker, mor.feePaid);
 
       //+clear+
       return (mor.totalGot, mor.totalGave, mor.totalPenalty, mor.feePaid);
@@ -329,7 +329,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     returns (uint successes, uint bounty)
   {
     unchecked {
-      emit OrderStart();
+      emit CleanStart(olKey.hash(), taker, targets.length);
 
       for (uint i = 0; i < targets.length; ++i) {
         bytes memory encodedCall;
@@ -358,7 +358,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
       sendPenalty(bounty);
 
-      emit OrderComplete(olKey.hash(), msg.sender, 0, 0, bounty, 0);
+      emit CleanComplete();
     }
   }
 
@@ -404,6 +404,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       require(sor.offer.isLive(), "mgv/clean/offerNotLive");
       require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
       require(sor.offer.logPrice() == logPrice, "mgv/clean/tickMismatch");
+      // FIXME: Not sure what events we need for cleaning? Maybe none?
 
       /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
       sor.local = sor.local.lock(true);
@@ -438,6 +439,9 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
 
       bounty = mor.totalPenalty;
+
+      /* Over the course of the snipes order, a penalty reserved for `msg.sender` has accumulated in `mor.totalPenalty`. No actual transfers have occured yet -- all the ethers given by the makers as provision are owned by Mangrove. `sendPenalty` finally gives the accumulated penalty to `msg.sender`. */
+      //+clear+
     }
   }
 
@@ -620,16 +624,18 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         mor.totalPenalty += penalty;
         if (!callSuccess) {
           emit OfferFailWithPosthookData(
-            sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, penalty, mgvData, posthookData
+            sor.olKey.hash(), mor.taker, sor.offerId, sor.wants, sor.gives, penalty, mgvData, posthookData
           );
         } else {
-          emit OfferFail(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, penalty, mgvData);
+          emit OfferFail(sor.olKey.hash(), mor.taker, sor.offerId, sor.wants, sor.gives, penalty, mgvData);
         }
       } else {
         if (!callSuccess) {
-          emit OfferSuccessWithPosthookData(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives, posthookData);
+          emit OfferSuccessWithPosthookData(
+            sor.olKey.hash(), mor.taker, sor.offerId, sor.wants, sor.gives, posthookData
+          );
         } else {
-          emit OfferSuccess(sor.olKey.hash(), sor.offerId, sor.wants, sor.gives);
+          emit OfferSuccess(sor.olKey.hash(), mor.taker, sor.offerId, sor.wants, sor.gives);
         }
       }
     }
@@ -711,6 +717,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       }
 
       /* As an invariant, `applyPenalty` is only called when `mgvData` is not in `["mgv/tradeSuccess"]` */
+      // FIXME: nor if `mgvData` is in `["mgv/notEnoughGasForMakerTrade","mgv/takerTransferFail"]
       uint penalty = 10 ** 9 * sor.global.gasprice() * (gasused + sor.local.offer_gasbase());
 
       if (penalty > provision) {

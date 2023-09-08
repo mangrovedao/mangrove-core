@@ -223,7 +223,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
 
     mkr.setShouldFailHook(true);
     expectFrom($(mgv));
-    emit OfferSuccessWithPosthookData(olKey.hash(), ofr, 0.1 ether, 0.1 ether, "posthookFail");
+    emit OfferSuccessWithPosthookData(olKey.hash(), $(tkr), ofr, 0.1 ether, 0.1 ether, "posthookFail");
     tkr.marketOrderWithSuccess(0.1 ether); // fails but we don't care
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
   }
@@ -253,7 +253,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOfferByVolume(1 ether, 1 ether, 2300, 0);
     expectFrom($(mgv));
-    emit OfferRetract(olKey.hash(), ofr, true);
+    emit OfferRetract(olKey.hash(), $(mkr), ofr, true);
     mkr.retractOfferWithDeprovision(ofr);
   }
 
@@ -299,7 +299,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(1 ether);
     uint ofr = mkr.newOfferByVolume(0.9 ether, 1 ether, 2300, 100);
     expectFrom($(mgv));
-    emit OfferRetract(olKey.hash(), ofr, false);
+    emit OfferRetract(olKey.hash(), $(mkr), ofr, false);
     mkr.retractOffer(ofr);
   }
 

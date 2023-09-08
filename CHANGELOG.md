@@ -2,6 +2,8 @@
 
 # 1.5.8-2
 
+- Can now pin fork to an arbitrary block number
+
 # 1.5.8-1
 
 - Added MgvConfig to configure addresses. (See README for more info)

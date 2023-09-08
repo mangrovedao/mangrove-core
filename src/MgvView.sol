@@ -79,10 +79,12 @@ contract MgvView is MgvCommon {
   }
 
   function level2(OLKey memory olKey) external view returns (Field) {
-    OfferList storage offerList = offerLists[olKey.hash()];
-    MgvStructs.LocalPacked local = offerList.local;
-    unlockedMarketOnly(local);
-    return offerLists[olKey.hash()].level2;
+    unchecked {
+      OfferList storage offerList = offerLists[olKey.hash()];
+      MgvStructs.LocalPacked local = offerList.local;
+      unlockedMarketOnly(local);
+      return offerLists[olKey.hash()].level2;
+    }
   }
 
   // # Offer list view functions

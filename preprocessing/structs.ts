@@ -270,6 +270,10 @@ library OfferDetailUnpackedExtra {
       { name: "gasmax", bits: 24, type: "uint" },
       /* * `dead` dexes cannot be resurrected. */
       { name: "dead", bits: 1, type: "bool" },
+      /* * `maxRecursionDepth` is the maximum number of times a market order can recursively execute offers. This is a protection against stack overflows. */
+      { name: "maxRecursionDepth", bits: 8, type: "uint" },      
+      /* * `maxGasreqForFailingOffers` is the maximum gasreq failing offers can consume in total. This is used in a protection against failing offers consuming gaslimit for transaction. Setting it too high would make it possible for successive failing offers to consume gaslimit, setting it too low will make a non-healthy book not execute enough offers. `gasmax` and `maxRecursionDepth` bit sizes constrain this.  */
+      { name: "maxGasreqForFailingOffers", bits: 32, type: "uint" },      
     ],
   },
 

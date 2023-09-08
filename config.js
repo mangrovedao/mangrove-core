@@ -1,5 +1,6 @@
 // Contracts that should export their ABI only
 exports.abi_exports = [
+  "IMangrove",
   "Mangrove",
   "MgvReader",
   "MgvOracle",

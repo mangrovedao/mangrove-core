@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "mgv_src/periphery/MgvReader.sol";
 import {Deployer} from "mgv_script/lib/Deployer.sol";
 import {MgvStructs, OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_lib/Debug.sol";
 
 /* 
 Given two instances of MgvReader (previousReader and currentReader), copy the

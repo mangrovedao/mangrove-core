@@ -45,8 +45,10 @@ contract TestTickTree is MangroveTest {
 
   // Creates a snapshot of the Mangrove tick tree
   function snapshotMgvTickTree() public {
-    local = reader.local(olKey);
+    local = mgv.local(olKey);
     level2 = mgv.level2(olKey);
+    // local = mgv.local(olKey);
+    // Field level2 = mgv.level2(olKey);
     for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
       if (!isBitSet(level2, level2Pos)) {
         continue;

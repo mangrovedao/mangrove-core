@@ -9,13 +9,22 @@ function run_gas_measurement() {
   forge test --mp "test/core/gas/*" -vv --silent --json > "${json_file}"
   # Forge is very verbose, so we filter the json to keep only the gas information
   jq '
-    map_values(
-      {
-        test: .test_results | keys_unsorted[]?,
-        description: .test_results[]? | select(.decoded_logs) | .decoded_logs[] | select(startswith("Description: ")) | sub("Description: "; ""),
-        gas: .test_results[]? | select(.decoded_logs) | .decoded_logs[] | select(startswith("Gas used: ")) | sub("Gas used: "; "") | tonumber
-      }
-    )' "${json_file}" > "${tmp_file}"
+    to_entries |
+    map(
+      {fileAndContract: .key} + 
+      (
+        .value.test_results |
+        to_entries |
+        map(
+          {
+            test: .key,
+            gas: (.value.decoded_logs[] | select(startswith("Gas used: ")) | sub("Gas used: "; "")) | tonumber,
+            description: (.value.decoded_logs[] | select(startswith("Description: ")) | sub("Description: "; ""))
+          }
+        )
+      )[]
+    ) |
+    flatten' "${json_file}" > "${tmp_file}"
   mv "${tmp_file}" "${json_file}"
 }
 
@@ -24,72 +33,64 @@ function compare_gas_measurement_json() {
   local json_file_new=$2
   local json_file_diff=$3
 
-  jq -s 'flatten | group_by(.key + .value.test) | map({key: .[0].key, value: {test: .[0].value.test, description: .[0].value.description, gas_before: .[0].value.gas, gas_after: .[1].value.gas, gas_delta: (.[1].value.gas - .[0].value.gas)}})' \
-    <(jq 'to_entries | map({key: .key, value: .value, source: "before"})' "${json_file_old}") \
-    <(jq 'to_entries | map({key: .key, value: .value, source: "after"})' "${json_file_new}") \
-    | jq 'map({(.key): .value}) | add' > "${json_file_diff}"
+  jq -s 'flatten | group_by(.fileAndContract + .test) | map({fileAndContract: .[0].fileAndContract, test: .[0].test, description: .[0].description, gas_before: .[0].gas, gas_after: .[1].gas, gas_delta: (.[1].gas - .[0].gas)})' \
+    <(jq '. | map({fileAndContract: .fileAndContract, test: .test, gas: .gas, description: .description, source: "before"})' "${json_file_old}") \
+    <(jq '. | map({fileAndContract: .fileAndContract, test: .test, gas: .gas, description: .description, source: "after"})' "${json_file_new}") \
+    > "${json_file_diff}"
 }
 
 function generate_csv_from_gas_measurement_json() {
   local json_file=$1
   local csv_file=$2
-  jq -r '# Add header row
-    [["file:class:test", "file:class", "test", "gas", "description"]]
 
-    # Union with the rest of the rows
-    + (
-      # Iterate over each key-value pair in the root object
-      to_entries |
+  jq -r '
+    # Add the header row to the CSV
+    ["file:class:test", "file:class", "test", "gas", "description"],
 
-      # Create an array for each row
-      map(
-      [
-        (.key + ":" + .value.test),
-        .key,
-        .value.test,
-        .value.gas,
-        .value.description
-      ])
-    )
+    # Transform each object in the JSON array
+    (
+      map({
+        # Create a new field that concatenates "fileAndContract" and "test" with a colon
+        fileClassTest: (.fileAndContract + ":" + .test),
 
-    # Flatten the array and join array elements with semicolons to create each row
-    | .[] | @csv
+        # Copy the other fields as-is
+        fileAndContract: .fileAndContract,
+        test: .test,
+        gas: .gas,
+        description: .description
+      })
+
+      # Map each transformed object to an array of values
+      | map([.fileClassTest, .fileAndContract, .test, .gas, .description])
+    )[]
+
+    # Format the array as a CSV row
+    | @csv
   ' "${json_file}" > "${csv_file}"
-  repeats=`cat out/gas-measurement.csv | cut -d ';' -f5 | grep -v "MISSING-DESCRIPTION" | sort | uniq -d`
-  if [ ! -z "$repeats" ]
-  then
-    echo "Repeated descriptions:"
-    echo "$repeats"
-    exit 1
-  fi
 }
 
 function generate_csv_from_diff_json() {
   local json_file=$1
   local csv_file=$2
-  jq -r '# Add header row
-    [["file:class:test", "file:class", "test", "gas before", "gas after", "gas delta", "description"]]
+  jq -r '
+    # Add the header row to the CSV
+    ["file:class:test", "file:class", "test", "gas before", "gas after", "gas delta", "description"],
 
-    # Union with the rest of the rows
-    + (
-      # Iterate over each key-value pair in the root object
-      to_entries |
-
-      # Create an array for each row
-      map(
-      [
-        (.key + ":" + .value.test),
-        .key,
-        .value.test,
-        .value.gas_before,
-        .value.gas_after,
-        .value.gas_delta,
-        .value.description
+    # Transform each object in the JSON array
+    (
+      map([
+        .fileAndContract + ":" + .test,
+        .fileAndContract,
+        .test,
+        .gas_before,
+        .gas_after,
+        .gas_delta,
+        .description
       ])
-    )
+    )[]
 
-    # Flatten the array and join array elements with semicolons to create each row
-    | .[] | @csv
+    # Format the array as a CSV row
+    | @csv
   ' "${json_file}" > "${csv_file}"
 }
 
@@ -117,9 +118,11 @@ else
   json_file="${default_json_file}"
   csv_file="${out_dir}/gas-measurement.csv"
 
+  echo "Running gas measurement..."
   run_gas_measurement "${json_file}"
+  echo "Generating CSV report..."
   generate_csv_from_gas_measurement_json "${json_file}" "${csv_file}"
 
-  echo "Gas measurement results: ${csv_file}"
+  echo "   Gas measurement results: ${csv_file}"
 fi
 

@@ -20,7 +20,7 @@ contract ScenariiTest is MangroveTest {
     uint offerId = mgv.best(olKey);
     while (offerId != 0) {
       (MgvStructs.OfferUnpacked memory offer, MgvStructs.OfferDetailUnpacked memory offerDetail) =
-        mgv.offerInfo(olKey, offerId);
+        reader.offerInfo(olKey, offerId);
       console.log("Saving Info for offer id", offerId);
       console.log("  wants", offer.wants());
       console.log("  gives", offer.gives);
@@ -179,7 +179,7 @@ contract ScenariiTest is MangroveTest {
     uint offerId = mgv.best(olKey);
     uint expected_maker = 3;
     while (offerId != 0) {
-      (, MgvStructs.OfferDetailUnpacked memory od) = mgv.offerInfo(olKey, offerId);
+      (, MgvStructs.OfferDetailUnpacked memory od) = reader.offerInfo(olKey, offerId);
       assertEq(
         od.maker,
         address(makers.getMaker(expected_maker)),
@@ -321,7 +321,7 @@ contract ScenariiTest is MangroveTest {
   //     "incorrect maker B balance"
   //   );
   //   // Testing residual offer
-  //   (MgvStructs.OfferUnpacked memory ofr,) = mgv.offerInfo($(base), $(quote), bag.snipedId);
+  //   (MgvStructs.OfferUnpacked memory ofr,) = reader.offerInfo($(base), $(quote), bag.snipedId);
   //   assertTrue(ofr.gives == 0, "Offer should not have a residual");
   // }
 }

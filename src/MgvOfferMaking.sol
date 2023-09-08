@@ -164,7 +164,7 @@ contract MgvOfferMaking is MgvHasOffers {
       /* Here, we are about to un-live an offer, so we start by taking it out of the book by stitching together its previous and next offers. Note that unconditionally calling `stitchOffers` would break the book since it would connect offers that may have since moved. */
       if (offer.isLive()) {
         MgvStructs.LocalPacked oldLocal = local;
-        local = dislodgeOffer(offerList, olKey.tickScale, offer, local, local.bestTick(), true);
+        (local,) = dislodgeOffer(offerList, olKey.tickScale, offer, local, local.bestTick(), true);
         /* If calling `stitchOffers` has changed the current `best` offer, we update the storage. */
         if (!oldLocal.eq(local)) {
           offerList.local = local;
@@ -180,7 +180,8 @@ contract MgvOfferMaking is MgvHasOffers {
         // credit `balanceOf` and log transfer
         creditWei(msg.sender, provision);
       }
-      emit OfferRetract(olKey.hash(), offerId, deprovision);
+
+      emit OfferRetract(olKey.hash(), offerDetail.maker(), offerId, deprovision);
     }
   }
 
@@ -304,33 +305,43 @@ contract MgvOfferMaking is MgvHasOffers {
       require(TickLib.inRange(insertionTick), "mgv/writeOffer/tick/outOfRange");
 
       // must cache tick because branch will be modified and tick information will be lost (in case an offer will be removed)
-      Tick cachedLocalTick = ofp.local.bestTick();
+      Tick cachedLocalTick;
+      // force control flow through gas saving path if offer list is empty
+      if (ofp.local.level0().isEmpty()) {
+        cachedLocalTick = insertionTick;
+      } else {
+        cachedLocalTick = ofp.local.bestTick();
+        // remove offer from previous position
+        if (ofp.oldOffer.isLive()) {
+          // may modify ofp.local
+          // At this point only the in-memory local has the new best?
+          /* When to update local.best/tick:
+            - If removing this offer does not move tick: no
+            - Otherwise, if new tick < insertion tick, yes
+            - Otherwise, if new tick = insertion tick, yes because the inserted offer will be inserted at the end
+            - Otherwise, if new tick > insertion tick, no 
+            I cannot know new tick before checking it out. But it is >= current tick.
+            So:
+            - If current tick > insertion tick: no
+            - Otherwise yes because maybe current tick = insertion tick
+          */
+          // bool updateLocal = tick.strictlyBetter(ofp.local.bestTick().strictlyBetter(tick)
+          bool shouldUpdateBranch = !insertionTick.strictlyBetter(cachedLocalTick);
 
-      // remove offer from previous position
-      if (ofp.oldOffer.isLive()) {
-        // may modify ofp.local
-        // At this point only the in-memory local has the new best?
-        /* When to update local.best/tick:
-           - If removing this offer does not move tick: no
-           - Otherwise, if new tick < insertion tick, yes
-           - Otherwise, if new tick = insertion tick, yes because the inserted offer will be inserted at the end
-           - Otherwise, if new tick > insertion tick, no 
-           I cannot know new tick before checking it out. But it is >= current tick.
-           So:
-           - If current tick > insertion tick: no
-           - Otherwise yes because maybe current tick = insertion tick
-        */
-        // bool updateLocal = tick.strictlyBetter(ofp.local.bestTick().strictlyBetter(tick)
-        bool shouldUpdateBranch = !insertionTick.strictlyBetter(ofp.local.bestTick());
-
-        ofp.local =
-          dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);
-        // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
-        if (shouldUpdateBranch) {
-          cachedLocalTick = ofp.local.bestTick();
+          (ofp.local, shouldUpdateBranch) =
+            dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);
+          // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
+          if (shouldUpdateBranch) {
+            // force control flow through gas-saving path if retraction emptied the offer list
+            if (ofp.local.level0().isEmpty()) {
+              cachedLocalTick = insertionTick;
+            } else {
+              cachedLocalTick = ofp.local.bestTick();
+            }
+          }
         }
       }
-      if (insertionTick.strictlyBetter(cachedLocalTick)) {
+      if (!cachedLocalTick.strictlyBetter(insertionTick)) {
         ofp.local = ofp.local.tickPosInLeaf(insertionTick.posInLeaf());
         ofp.local = ofp.local.tickPosInLevel2(insertionTick.posInLevel2());
       }
@@ -355,21 +366,7 @@ contract MgvOfferMaking is MgvHasOffers {
         }
 
         // Write insertion level0
-        /* 
-        Note :
-          2nd disjunct used to be "level2 empty" but this costs too much gas
-          now. Proof that it's fine to check level0.isEmpty() instead:
-
-          - if level2 is empty then level0 was empty
-          - if level2 is not empty we need 
-            (iIndex<=cIndex||level2E) iff (iIndex<=cIndex || level0E)
-            if shouldUpdateBranch then level0=0 -> level2=0, done
-            if !shouldUpdateBranch,
-              in the bad case: (iIndex<=cIndex||False)=iIndex<cIndex iff (iIndex<cIndex||True) = True
-              so we need l0E->iIndex<=cIndex, 
-              but by !shouldUpdateBranch iTick<cTick so iIndex<=cIndex so we're done
-          */
-        if (insertionIndex <= currentIndex || ofp.local.level0().isEmpty()) {
+        if (insertionIndex <= currentIndex) {
           ofp.local = ofp.local.level0(field.flipBitAtLevel0(insertionTick));
         } else {
           offerList.level0[insertionIndex] = field.flipBitAtLevel0(insertionTick);
@@ -389,8 +386,7 @@ contract MgvOfferMaking is MgvHasOffers {
             offerList.level1[currentIndex] = ofp.local.level1();
           }
 
-          // same reasoning as above (works for level1 too)
-          if (insertionIndex <= currentIndex || ofp.local.level0().isEmpty()) {
+          if (insertionIndex <= currentIndex) {
             ofp.local = ofp.local.level1(field.flipBitAtLevel1(insertionTick));
           } else {
             offerList.level1[insertionIndex] = field.flipBitAtLevel1(insertionTick);

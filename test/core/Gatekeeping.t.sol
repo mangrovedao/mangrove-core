@@ -704,6 +704,9 @@ contract GatekeepingTest is MangroveTest {
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.config(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
+    mgv.local();
+    mgv.global(); // global() is not locked by offer list lock
+    vm.expectRevert("mgv/reentrancyLocked");
     mgv.leafs(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.level0(olKey, 0);
@@ -712,15 +715,13 @@ contract GatekeepingTest is MangroveTest {
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.level2(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.configInfo(olKey);
-    vm.expectRevert("mgv/reentrancyLocked");
     mgv.best(olKey);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.offers(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
     mgv.offerDetails(olKey, 0);
     vm.expectRevert("mgv/reentrancyLocked");
-    mgv.offerInfo(olKey, 0);
+    mgv.offerData(olKey, 0);
   }
 
   function test_offer_list_read_on_reentrancy_fails() public {
@@ -739,15 +740,16 @@ contract GatekeepingTest is MangroveTest {
   function olReadOK(OLKey memory olKey) external {
     assertTrue(!mgv.locked(olKey), "market must not be locked");
     mgv.config(olKey);
+    mgv.local();
+    mgv.global();
     mgv.leafs(olKey, 0);
     mgv.level0(olKey, 0);
     mgv.level1(olKey, 0);
     mgv.level2(olKey);
-    mgv.configInfo(olKey);
     mgv.best(olKey);
     mgv.offers(olKey, 0);
     mgv.offerDetails(olKey, 0);
-    mgv.offerInfo(olKey, 0);
+    mgv.offerData(olKey, 0);
   }
 
   function test_offer_list_read_on_reentrancy_succeeds() public {
@@ -880,7 +882,7 @@ contract GatekeepingTest is MangroveTest {
   function test_configInfo(OLKey memory olKey, address monitor, uint128 densityFixed) public {
     mgv.activate(olKey, 0, densityFixed, 0);
     mgv.setMonitor(monitor);
-    (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = mgv.configInfo(olKey);
+    (MgvStructs.GlobalUnpacked memory g, MgvStructs.LocalUnpacked memory l) = reader.configInfo(olKey);
     assertEq(g.monitor, monitor, "wrong monitor");
     assertEq(l.density.toFixed(), DensityLib.fromFixed(densityFixed).toFixed(), "wrong density");
   }

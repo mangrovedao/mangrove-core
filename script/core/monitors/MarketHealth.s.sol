@@ -106,7 +106,7 @@ contract MarketHealth is Test2, Deployer {
       mgv.setDensity(olKey, densityOverrides);
     }
     HeapVars memory vars;
-    vars.data = reader.marketOrderByVolume(olKey, outboundTknVolume, inbTkn.balanceOf(address(this)), true);
+    vars.data = reader.simulateMarketOrderByVolume(olKey, outboundTknVolume, inbTkn.balanceOf(address(this)), true);
     vars.outDecimals = outTkn.decimals();
     vars.inbDecimals = inbTkn.decimals();
     // inbound volume required (if not offer is failing)
@@ -129,7 +129,7 @@ contract MarketHealth is Test2, Deployer {
       if (vars.best == 0) {
         break;
       }
-      (vars.offer, vars.offerDetail) = mgv.offerInfo(olKey, vars.best);
+      (vars.offer, vars.offerDetail) = reader.offerInfo(olKey, vars.best);
       vars.takerWants =
         vars.offer.gives + vars.got > outboundTknVolume ? outboundTknVolume - vars.got : vars.offer.gives;
       // FIXME: This is no longer possible with the new clean function

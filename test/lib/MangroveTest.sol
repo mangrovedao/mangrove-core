@@ -146,8 +146,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     uint c = 0;
     while ((offerId != 0) && (c < size)) {
       ids[c] = offerId;
-      offers[c] = mgv.offers(_ol, offerId);
-      details[c] = mgv.offerDetails(_ol, offerId);
+      (offers[c], details[c]) = mgv.offerData(_ol, offerId);
       offerId = reader.nextOfferId(_ol, offers[c]);
       c++;
     }
@@ -168,7 +167,8 @@ contract MangroveTest is Test2, HasMgvEvents {
 
     console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
     while (offerId != 0) {
-      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) = mgv.offerInfo(_ol, offerId);
+      (MgvStructs.OfferUnpacked memory ofr, MgvStructs.OfferDetailUnpacked memory detail) =
+        reader.offerInfo(_ol, offerId);
       console.log(
         string.concat(
           unicode"│ ",
@@ -506,13 +506,12 @@ contract MangroveTest is Test2, HasMgvEvents {
 
   // logs an overview of the current branch
   function logTickTreeBranch(OLKey memory _ol) public view {
-    logTickTreeBranch(reader, _ol);
+    logTickTreeBranch(mgv, _ol);
   }
 
-  function logTickTreeBranch(MgvReader _reader, OLKey memory _ol) internal view {
-    IMangrove _mgv = reader.MGV();
+  function logTickTreeBranch(IMangrove _mgv, OLKey memory _ol) internal view {
     console.log("--------CURRENT TICK TREE BRANCH--------");
-    MgvStructs.LocalPacked _local = _reader.local(_ol);
+    MgvStructs.LocalPacked _local = _mgv.local(_ol);
     Tick tick = _local.bestTick();
     console.log("Current tick %s", toString(tick));
     console.log("Current posInLeaf %s", tick.posInLeaf());

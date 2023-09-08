@@ -101,8 +101,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.setUseOracle(true);
     mgv.setNotify(true);
     mgv.setFee(olKey, 1);
-    localCopy = reader.local(olKey);
-    globalCopy = reader.global();
+    localCopy = mgv.local(olKey);
+    globalCopy = mgv.global();
 
     mkr.provisionMgv(1 ether);
     mkr.setExecuteCallback($(this), this.assertSORFieldsFilteredCorrectly.selector);
@@ -904,57 +904,55 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     uint wants = 5 ether;
     mkr.newOfferByVolume(wants, LogPriceLib.outboundFromInbound(3, wants), 100_000, 0);
-    uint posInLeaf = reader.local(olKey).tickPosInLeaf();
+    uint posInLeaf = mgv.local(olKey).tickPosInLeaf();
     uint ofr = mkr.newOfferByVolume(wants, LogPriceLib.outboundFromInbound(2, wants), 100_000, 0);
     assertGt(
-      posInLeaf,
-      reader.local(olKey).tickPosInLeaf(),
-      "test void if posInLeaf does not change when second offer is created"
+      posInLeaf, mgv.local(olKey).tickPosInLeaf(), "test void if posInLeaf does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
-    assertEq(posInLeaf, reader.local(olKey).tickPosInLeaf(), "posInLeaf should have been restored");
+    assertEq(posInLeaf, mgv.local(olKey).tickPosInLeaf(), "posInLeaf should have been restored");
   }
 
   function test_update_branch_on_retract_level0() public {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
-    Field level0 = reader.local(olKey).level0();
-    int level0Index = reader.local(olKey).bestTick().level0Index();
+    Field level0 = mgv.local(olKey).level0();
+    int level0Index = mgv.local(olKey).bestTick().level0Index();
     uint ofr = mkr.newOfferByVolume(1 ether, 10 ether, 100_000, 0);
     assertGt(
       level0Index,
-      reader.local(olKey).bestTick().level0Index(),
+      mgv.local(olKey).bestTick().level0Index(),
       "test void if level0 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
-    assertEq(level0, reader.local(olKey).level0(), "level0 should have been restored");
+    assertEq(level0, mgv.local(olKey).level0(), "level0 should have been restored");
   }
 
   function test_update_branch_on_retract_level1() public {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
-    Field level1 = reader.local(olKey).level1();
-    int level1Index = reader.local(olKey).bestTick().level1Index();
+    Field level1 = mgv.local(olKey).level1();
+    int level1Index = mgv.local(olKey).bestTick().level1Index();
     uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
     assertGt(
       level1Index,
-      reader.local(olKey).bestTick().level1Index(),
+      mgv.local(olKey).bestTick().level1Index(),
       "test void if level1 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
-    assertEq(level1, reader.local(olKey).level1(), "level1 should have been restored");
+    assertEq(level1, mgv.local(olKey).level1(), "level1 should have been restored");
   }
 
   function test_update_branch_on_retract_level2() public {
     mkr.provisionMgv(10 ether);
     mkr.newOfferByVolume(1.0 ether, 1 ether, 100_000, 0);
-    Field level2 = reader.local(olKey).level2();
+    Field level2 = mgv.local(olKey).level2();
     uint ofr = mkr.newOfferByVolume(1 ether, 100 ether, 100_000, 0);
     assertTrue(
-      !level2.eq(reader.local(olKey).level2()), "test void if level2 does not change when second offer is created"
+      !level2.eq(mgv.local(olKey).level2()), "test void if level2 does not change when second offer is created"
     );
     mkr.retractOffer(ofr);
-    assertEq(level2, reader.local(olKey).level2(), "level2 should have been restored");
+    assertEq(level2, mgv.local(olKey).level2(), "level2 should have been restored");
   }
 
   function test_update_branch_on_insert_posInLeaf() public {
@@ -967,9 +965,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       offer.tick(olKey.tickScale).posInLeaf() != Tick.wrap(0).posInLeaf(),
       "test void if posInLeaf of second offer is not different"
     );
-    assertEq(
-      reader.local(olKey).tickPosInLeaf(), offer.tick(olKey.tickScale).posInLeaf(), "posInLeaf should have changed"
-    );
+    assertEq(mgv.local(olKey).tickPosInLeaf(), offer.tick(olKey.tickScale).posInLeaf(), "posInLeaf should have changed");
   }
   /* 
   When an offer ofr is updated, ofr is removed then re-added. In that case, if
@@ -1008,7 +1004,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mgv.retractOffer(olKey, ofr_veryLow, true);
 
     // Derive a "bad" local from it
-    MgvStructs.LocalPacked local = reader.local(olKey);
+    MgvStructs.LocalPacked local = mgv.local(olKey);
     // Derive a new level0, level1
     uint leafPos = local.level0().firstOnePosition();
     Field otherLevel0 = Field.wrap(1 << (leafPos + 1) % uint(LEVEL0_SIZE));

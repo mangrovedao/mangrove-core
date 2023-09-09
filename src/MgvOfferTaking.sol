@@ -106,10 +106,18 @@ abstract contract MgvOfferTaking is MgvHasOffers {
             field = local.level2().flipBitAtLevel2(offerTick);
             local = local.level2(field);
             if (field.isEmpty()) {
-              local = local.level1(field);
-              local = local.level0(field);
-              mor.leaf = LeafLib.EMPTY;
-              return (0, local);
+              // NEXT STEP: complete this part
+
+              loadFull
+              spliceInFull
+              writeFull
+              (field,windowPos) = getCurrentWindow
+              if (field.isEmpty()) {
+                local = local.level1(field);
+                local = local.level0(field);
+                mor.leaf = LeafLib.EMPTY;
+                return (0, local);
+              }
             }
             index = field.firstLevel1Index();
             field = offerList.level1[index];

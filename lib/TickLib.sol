@@ -273,7 +273,8 @@ library FieldLib {
     return level1;
   }
 
-  function flipBitAtLevel2(Field level2, Tick tick) internal pure returns (Field) {
+  // 
+  function flipBitAtLevel2(Field level2, uint level2Shift, Tick tick) internal pure returns (Field) {
     uint pos = tick.posInLevel2();
     level2 = Field.wrap(Field.unwrap(level2) ^ (1 << pos));
     return level2;

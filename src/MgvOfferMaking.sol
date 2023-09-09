@@ -392,7 +392,20 @@ contract MgvOfferMaking is MgvHasOffers {
           }
           // if level1 was empty, flip tick on at level2
           if (field.isEmpty()) {
-            ofp.local = ofp.local.level2(ofp.local.level2().flipBitAtLevel2(insertionTick));
+            uint shift = local.level2WindowShift();
+            field = local.level2().toLevel2Full(shift); // << shift*32
+            field = field.flipBitAtLevel2(insertionTick); // may hit outside of window, this is fine
+            if (!insertionTick.inLevel2Window(shift)) {
+                uint mask = ~(LEVEL2_WINDOW_ONES.toFullLevel2(shift));
+                field = field ^ (offerList.level2Full & mask);
+                offerList.level2Full = field;
+            }
+
+            shift = field.bestShiftWithPreference(shift);
+            ofp.local = local.level2(field.toLevel2Window(shift)); // >> shift*32
+            ofp.local = local.shift(shift);
+
+            // ofp.local = ofp.local.level2(ofp.local.level2().flipBitAtLevel2(insertionTick));
           }
         }
       }

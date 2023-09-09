@@ -140,14 +140,67 @@ contract MgvHasOffers is MgvCommon {
               offerList.level1[index] = field;
             }
             if (field.isEmpty()) {
-              field = local.level2().flipBitAtLevel2(offerTick);
-              local = local.level2(field);
+              uint shift = local.level2WindowShift();
+              // field is now larger
+              // only window bits are meaningful
+              field = local.level2().toLevel2Full(shift); // << shift*32
+              field = field.flipBitAtLevel2(offerTick); // may hit outside of window, this is fine
 
-              // FIXME: should I let log2 not revert, but just return 0 if x is 0?
-              // Why am I setting tick to 0 before I return?
-              if (field.isEmpty()) {
-                return (local, shouldUpdateBranch); // shouldUpdateBranch always true here
+              // extend with storage data removed offer falls outside of current window
+              // if the removed offer felt outside of the window, offerList did not become empty
+              if (field.isEmpty() || !offerTick.inLevel2Window(shift)) {
+                uint mask = ~(LEVEL2_WINDOW_ONES.toFullLevel2(shift));
+                field = field ^ (offerList.level2Full & mask);
+                // update storage
+                // updating outside window is necessary since window does not cache that info
+                // updating inside window is necessary if next window has to change(?)
+              /*
+                should I always write it?
+                - if outside yes
+                - if window became empty, but there are bits elsewhere, yes
+                - if window became empty and the rest is empty not necessarily
+              */
+                offerList.level2Full = field
               }
+              // At this point field is the full level2 completely up to date
+              // or a shifted level2 window surrounded by 0s
+              // get the  best shift, with a preference to the current shift if it's compatible with the field as it is (this is the key point that prevents flip-flopping windows)
+              // TODO check that default case when field is empty works out
+              shift = field.bestShiftWithPreference(shift);
+              local = local.level2(field.toLevel2Window(shift)); // >> shift*32
+              local = local.shift(shift);
+              if (field.isEmpty()) {
+                return (local,shouldUpdateBranch)
+              }
+
+
+
+              // field.flipBitAtLevel2Full(offerTick)
+
+              
+
+              // // local = local.level2(field);
+
+              // // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+              // // Why am I setting tick to 0 before I return?
+              // if (field.isEmpty()) {
+              //   // load full
+              //   FullField full = offerList.level2Full;
+              //   // load shift
+              //   uint shift = local.level2WindowShift();
+              //   // zero out window
+              //   full = full & ~(LEVEL2_FULL_MASK << (shift+1));
+              //   (field,shift) = 
+              //   if (shouldUpdateBranch) {
+              //     offerList.level2Full = full;
+              //   }
+              //   spliceWindowInFull
+              //   writeFull
+              //   (field,windowPos) = getCurrentWindow(full)
+              //   if (field.isEmpty()) {
+              //     return (local, shouldUpdateBranch); // shouldUpdateBranch always true here
+              //   }
+              // }
               // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
               if (shouldUpdateBranch) {
                 index = field.firstLevel1Index();

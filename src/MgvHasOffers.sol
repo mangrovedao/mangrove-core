@@ -140,16 +140,17 @@ contract MgvHasOffers is MgvCommon {
               offerList.level1[index] = field;
             }
             if (field.isEmpty()) {
-              local = local.level2(local.level2().flipBitAtLevel2(offerTick));
+              field = local.level2().flipBitAtLevel2(offerTick);
+              local = local.level2(field);
 
               // FIXME: should I let log2 not revert, but just return 0 if x is 0?
               // Why am I setting tick to 0 before I return?
-              if (local.level2().isEmpty()) {
+              if (field.isEmpty()) {
                 return (local, shouldUpdateBranch); // shouldUpdateBranch always true here
               }
               // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
               if (shouldUpdateBranch) {
-                index = local.level2().firstLevel1Index();
+                index = field.firstLevel1Index();
                 field = offerList.level1[index];
                 local = local.level1(field);
               }

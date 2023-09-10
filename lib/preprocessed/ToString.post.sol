@@ -86,6 +86,10 @@ function toString(Leaf leaf) pure returns (string memory ret) {
   }
 }
 
+function toString(DirtyLeaf leaf) pure returns (string memory ret) {
+  return string.concat("<dirty[",leaf.isDirty() ? "yes" : "no","]",toString(leaf.clean()),">");
+}
+
 function toString(Field field) pure returns (string memory res) {
   for (uint i = 0; i < 256; i++) {
     if (Field.unwrap(field) & (1 << i) > 0) {
@@ -94,6 +98,10 @@ function toString(Field field) pure returns (string memory res) {
     }
   }
   res = string.concat(bytes(res).length==0?unicode"【empty":res, unicode"】");
+}
+
+function toString(DirtyField field) pure returns (string memory ret) {
+  return string.concat("<dirty[",field.isDirty() ? "yes" : "no","]",toString(field.clean()),">");
 }
 
 function toString(OLKey memory olKey) pure returns (string memory res) {

@@ -5,26 +5,68 @@ import "mgv_lib/Constants.sol";
 import {BitLib} from "mgv_lib/BitLib.sol";
 
 type Leaf is uint;
+type DirtyLeaf is uint;
 
 using LeafLib for Leaf global;
+using DirtyLeafLib for DirtyLeaf global;
 
 type Field is uint;
+type DirtyField is uint;
 
 using FieldLib for Field global;
+using DirtyFieldLib for DirtyField global;
 
 type Tick is int;
 
 using TickLib for Tick global;
 
+// Leafs are of the ford [id,id][id,id][id,id][id,id]
+// With the property that within a [id1,id2] pair, id1==0 iff id2==0
+// So 1 is not a valid leaf
+// We use that (for storage gas savings) yet the field is still considered empty
+// 1 is chosen as a special invalid leaf value to make dirty/clean more gas efficient
+library DirtyLeafLib {
+  // Return 0 if leaf is 1, leaf otherwise
+  function clean(DirtyLeaf leaf) internal pure returns (Leaf) {
+    unchecked {
+      assembly ("memory-safe") {
+        leaf := xor(eq(leaf,ONE),leaf)
+      }
+      return Leaf.wrap(DirtyLeaf.unwrap(leaf));
+    }
+  }
+  function isDirty(DirtyLeaf leaf) internal pure returns (bool) {
+    unchecked {
+      return DirtyLeaf.unwrap(leaf) == ONE;
+    }
+  }
+  function eq(DirtyLeaf leaf1, DirtyLeaf leaf2) internal pure returns (bool) {
+    unchecked {
+      return DirtyLeaf.unwrap(leaf1) == DirtyLeaf.unwrap(leaf2);
+    }
+  }
+}
+
 library LeafLib {
   Leaf constant EMPTY = Leaf.wrap(uint(0));
+
+  // Return 1 if leaf is 0, leaf otherwise
+  function dirty(Leaf leaf) internal pure returns (DirtyLeaf) {
+    unchecked {
+      assembly ("memory-safe") {
+        leaf := or(iszero(leaf),leaf)
+      }
+      return DirtyLeaf.wrap(Leaf.unwrap(leaf));
+    }
+  }
 
   function eq(Leaf leaf1, Leaf leaf2) internal pure returns (bool) {
     return Leaf.unwrap(leaf1) == Leaf.unwrap(leaf2);
   }
 
+  // Does not accept 1 as an empty value
   function isEmpty(Leaf leaf) internal pure returns (bool) {
-    return leaf.eq(EMPTY);
+    return Leaf.unwrap(leaf) == Leaf.unwrap(EMPTY);
   }
 
   function uint_of_bool(bool b) internal pure returns (uint u) {
@@ -85,7 +127,9 @@ library LeafLib {
     return uint(raw << (OFFER_BITS * ((index * 2) + 1)) >> (256 - OFFER_BITS));
   }
 
-  // TODO optimize with a hashmap
+  // TODO optimize with a hashmap, or:
+  // if > half: +=1; if += quarter: +=1, or:
+  // or nested if dichotomy
   function firstOfferPosition(Leaf leaf) internal pure returns (uint ret) {
     uint offerId = Leaf.unwrap(leaf) >> (OFFER_BITS * 7);
     if (offerId != 0) {
@@ -244,15 +288,52 @@ library TickLib {
 
 }
 
+
+// We use TOPBIT as the optimized in-storage value since 1 is a valid Field value
+library DirtyFieldLib {
+  // Return clean field with topbit set to 0
+  function clean(DirtyField field) internal pure returns (Field) {
+    unchecked {
+      assembly ("memory-safe") {
+        field := and(NOT_TOPBIT,field)
+      }
+      return Field.wrap(DirtyField.unwrap(field));
+    }
+  }
+  function isDirty(DirtyField field) internal pure returns (bool) {
+    unchecked {
+      return DirtyField.unwrap(field) & TOPBIT == TOPBIT;
+    }
+  }
+
+  function eq(DirtyField leaf1, DirtyField leaf2) internal pure returns (bool) {
+    unchecked {
+      return DirtyField.unwrap(leaf1) == DirtyField.unwrap(leaf2);
+    }
+  }
+}
+
 // In fields, positions are counted from the right
 library FieldLib {
   Field constant EMPTY = Field.wrap(uint(0));
+
+  // Return clean field with topbit set to 1
+  function dirty(Field field) internal pure returns (DirtyField) {
+    unchecked {
+      assembly ("memory-safe") {
+        field := or(TOPBIT,field)
+      }
+      return DirtyField.wrap(Field.unwrap(field));
+    }
+  }
+
   function eq(Field field1, Field field2) internal pure returns (bool) {
     return Field.unwrap(field1) == Field.unwrap(field2);
   }
 
+  // Does not accept TOPBIT as an empty value
   function isEmpty(Field field) internal pure returns (bool) {
-    return field.eq(EMPTY);
+    return Field.unwrap(field) == Field.unwrap(EMPTY);
   }
 
   // function unsetBitAtTick(Field field, Tick tick, uint level) internal pure returns (Field) {
@@ -312,19 +393,21 @@ library FieldLib {
     return Field.wrap(Field.unwrap(field) & mask);
   }
 
-  // Will throw with "field is 0" if field is empty
+  // Will throw if field is empty
   function firstOnePosition(Field field) internal pure returns (uint) {
     // FIXME stop checking for 0 or integrate it into ctz function in assembly
     require(!field.isEmpty(),"field is 0");
+    require(Field.unwrap(field) != TOPBIT,"field is optimized 0");
     unchecked {
       return BitLib.ctz(Field.unwrap(field));
     }
   }
 
-  // Will throw with "field is 0" if field is empty
+  // Will throw if field is empty
   function lastOnePosition(Field field) internal pure returns (uint) {
     // FIXME stop checking for 0 or integrate it into ctz function in assembly
-    require(!field.isEmpty(),"field is 0");
+    require(!field.isEmpty() ,"field is 0");
+    require(Field.unwrap(field) != TOPBIT,"field is optimized 0");
     return BitLib.fls(Field.unwrap(field));
   }
 

@@ -480,7 +480,7 @@ contract GatekeepingTest is MangroveTest {
     uint other_ofr = mkr.newOfferByVolume(lo, 1 ether, 1 ether, 90_000);
     mkr.setTradeCallback($(this), abi.encodeCall(this.retractOfferOK, (lo, other_ofr)));
 
-    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 90_000);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 110_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertTrue(mgv.best(lo) == 0, "retractOffer on swapped offerList must work");

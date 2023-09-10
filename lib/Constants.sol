@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.17;
 
+uint constant ONE = 1; // useful to name it for drawing attention sometimes
 uint constant ONES = type(uint).max;
 uint constant TOPBIT = 1 << 255;
+// can't write ~TOPBIT or ~uint(1 << 255) or constant cannot be referred to from assembly
+uint constant NOT_TOPBIT = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
 // MIN_TICK and MAX_TICK should be inside the addressable range defined by the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2
 int constant MIN_TICK = -524288;

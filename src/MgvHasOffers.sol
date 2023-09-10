@@ -78,7 +78,7 @@ contract MgvHasOffers is MgvCommon {
         uint prevId = offer.prev();
         uint nextId = offer.next();
         if (prevId == 0 || nextId == 0) {
-          leaf = offerList.leafs[offerTick.leafIndex()];
+          leaf = offerList.leafs[offerTick.leafIndex()].clean();
         }
 
         // if current tick is not strictly better,
@@ -117,7 +117,7 @@ contract MgvHasOffers is MgvCommon {
       }
 
       // offer.tick's first or last offer changed, must update leaf
-      offerList.leafs[offerTick.leafIndex()] = leaf;
+      offerList.leafs[offerTick.leafIndex()] = leaf.dirty();
       // if leaf now empty, flip ticks OFF up the tree
       if (leaf.isEmpty()) {
         int index = offerTick.level0Index(); // level0Index or level1Index
@@ -126,11 +126,12 @@ contract MgvHasOffers is MgvCommon {
           field = local.level0().flipBitAtLevel0(offerTick);
           local = local.level0(field);
           if (shouldUpdateBranch && field.isEmpty()) {
-            offerList.level0[index] = field;
+            offerList.level0[index] = field.dirty();
           }
         } else {
-          field = offerList.level0[index].flipBitAtLevel0(offerTick);
-          offerList.level0[index] = field;
+          // note: useless dirty/clean cycle here
+          field = offerList.level0[index].clean().flipBitAtLevel0(offerTick);
+          offerList.level0[index] = field.dirty();
         }
         if (field.isEmpty()) {
           index = offerTick.level1Index(); // level0Index or level1Index
@@ -138,11 +139,12 @@ contract MgvHasOffers is MgvCommon {
             field = local.level1().flipBitAtLevel1(offerTick);
             local = local.level1(field);
             if (shouldUpdateBranch && field.isEmpty()) {
-              offerList.level1[index] = field;
+              offerList.level1[index] = field.dirty();
             }
           } else {
-            field = offerList.level1[index].flipBitAtLevel1(offerTick);
-            offerList.level1[index] = field;
+            // note: useless dirty/clean cycle here
+            field = offerList.level1[index].clean().flipBitAtLevel1(offerTick);
+            offerList.level1[index] = field.dirty();
           }
           if (field.isEmpty()) {
             field = local.level2().flipBitAtLevel2(offerTick);
@@ -156,18 +158,18 @@ contract MgvHasOffers is MgvCommon {
             // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
             if (shouldUpdateBranch) {
               index = field.firstLevel1Index();
-              field = offerList.level1[index];
+              field = offerList.level1[index].clean();
               local = local.level1(field);
             }
           }
           if (shouldUpdateBranch) {
             index = field.firstLevel0Index(index);
-            field = offerList.level0[index];
+            field = offerList.level0[index].clean();
             local = local.level0(field);
           }
         }
         if (shouldUpdateBranch) {
-          leaf = offerList.leafs[field.firstLeafIndex(index)];
+          leaf = offerList.leafs[field.firstLeafIndex(index)].clean();
         }
       }
       if (shouldUpdateBranch) {

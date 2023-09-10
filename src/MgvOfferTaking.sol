@@ -12,6 +12,8 @@ import {
   Tick,
   LeafLib,
   FieldLib,
+  DirtyField,
+  DirtyLeaf,
   LogPriceLib,
   OLKey
 } from "./MgvLib.sol";
@@ -94,15 +96,15 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       Leaf leaf = mor.leaf;
       leaf = leaf.setTickFirst(offerTick, 0).setTickLast(offerTick, 0);
       if (leaf.isEmpty()) {
-        offerList.leafs[offerTick.leafIndex()] = leaf;
+        offerList.leafs[offerTick.leafIndex()] = leaf.dirty();
         int index = offerTick.level0Index();
         Field field = local.level0().flipBitAtLevel0(offerTick);
         if (field.isEmpty()) {
-          offerList.level0[index] = field;
+          offerList.level0[index] = field.dirty();
           index = offerTick.level1Index();
           field = local.level1().flipBitAtLevel1(offerTick);
           if (field.isEmpty()) {
-            offerList.level1[index] = field;
+            offerList.level1[index] = field.dirty();
             field = local.level2().flipBitAtLevel2(offerTick);
             local = local.level2(field);
             if (field.isEmpty()) {
@@ -112,14 +114,16 @@ abstract contract MgvOfferTaking is MgvHasOffers {
               return (0, local);
             }
             index = field.firstLevel1Index();
-            field = offerList.level1[index];
+            // Top bit cleaning will be done by level1(field) + field cannot be empty
+            field = Field.wrap(DirtyField.unwrap(offerList.level1[index]));
           }
           local = local.level1(field);
           index = field.firstLevel0Index(index);
-          field = offerList.level0[index];
+          // Top bit cleaning will be done by level0(field) + field cannot be empty
+          field = Field.wrap(DirtyField.unwrap(offerList.level0[index]));
         }
         local = local.level0(field);
-        leaf = offerList.leafs[field.firstLeafIndex(index)];
+        leaf = offerList.leafs[field.firstLeafIndex(index)].clean();
       }
       mor.leaf = leaf;
       nextId = leaf.getNextOfferId();
@@ -162,7 +166,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
 
-      mor.leaf = offerList.leafs[sor.local.bestTick().leafIndex()];
+      mor.leaf = offerList.leafs[sor.local.bestTick().leafIndex()].clean();
       sor.offerId = mor.leaf.getNextOfferId();
       sor.offer = offerList.offerData[sor.offerId].offer;
       /* fillVolume evolves but is initially however much remains in the market order. */
@@ -277,24 +281,29 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         // update leaf if necessary
         MgvStructs.OfferPacked offer = sor.offer;
         Tick tick = offer.tick(sor.olKey.tickScale);
-        if (offer.prev() != 0) {
-          offerList.offerData[sor.offerId].offer = sor.offer.prev(0);
-          mor.leaf = mor.leaf.setTickFirst(tick, sor.offerId);
-        }
 
-        // maybe some updates below are useless? if we don't update these we must take it into account elsewhere
-        // no need to test whether level2 has been reached since by default its stored in local
+        // Don't uselessly write empty leaf of tick 0
+        if (sor.offerId != 0) {
+          // Note: important to not update offer.prev before now or this test will fail spuriously
+          if (offer.prev() != 0) {
+            offerList.offerData[sor.offerId].offer = sor.offer.prev(0);
+            mor.leaf = mor.leaf.setTickFirst(tick, sor.offerId);
+          }
 
-        sor.local = sor.local.tickPosInLeaf(mor.leaf.firstOfferPosition());
-        // no need to test whether mor.level2 != offerList.level2 since update is ~free
-        // ! local.level0[sor.local.bestTick().level0Index()] is now wrong
-        // sor.local = sor.local.level0(mor.level0);
+          // no need to test whether level2 has been reached since by default its stored in local
 
-        int index = tick.leafIndex();
-        // leaf cached in memory is flushed to storage everytime it gets emptied, but at the end of a market order we need to store it correctly
-        // second conjunct is for when you did not ever read leaf
-        if (!offerList.leafs[index].eq(mor.leaf)) {
-          offerList.leafs[index] = mor.leaf;
+          sor.local = sor.local.tickPosInLeaf(mor.leaf.firstOfferPosition());
+          // no need to test whether mor.level2 != offerList.level2 since update is ~free
+          // ! local.level0[sor.local.bestTick().level0Index()] is now wrong
+          // sor.local = sor.local.level0(mor.level0);
+
+          int index = tick.leafIndex();
+          // leaf cached in memory is flushed to storage everytime it gets emptied, but at the end of a market order we need to store it correctly
+          // second conjunct is for when you did not ever read leaf
+          // If uselessly written, it's a hot write anyway
+          // Reading to check useless write would have same cost
+          // Caching info on staleness of mor.leaf is doable but makes code too complex
+          offerList.leafs[index] = mor.leaf.dirty();
         }
 
         /* <a id="internalMarketOrder/liftReentrancy"></a>Now that the market order is over, we can lift the lock on the book. In the same operation we

@@ -46,7 +46,7 @@ contract MgvView is MgvCommon {
     unchecked {
       OfferList storage offerList = offerLists[olKey.hash()];
       unlockedMarketOnly(offerList.local);
-      return offerList.leafs[index];
+      return offerList.leafs[index].clean();
     }
   }
 
@@ -59,7 +59,7 @@ contract MgvView is MgvCommon {
       if (_local.bestTick().level0Index() == index) {
         return _local.level0();
       } else {
-        return offerList.level0[index];
+        return offerList.level0[index].clean();
       }
     }
   }
@@ -73,7 +73,7 @@ contract MgvView is MgvCommon {
       if (_local.bestTick().level1Index() == index) {
         return _local.level1();
       } else {
-        return offerList.level1[index];
+        return offerList.level1[index].clean();
       }
     }
   }
@@ -102,7 +102,7 @@ contract MgvView is MgvCommon {
       OfferList storage offerList = offerLists[olKey.hash()];
       MgvStructs.LocalPacked _local = offerList.local;
       unlockedMarketOnly(_local);
-      return offerList.leafs[_local.bestTick().leafIndex()].getNextOfferId();
+      return offerList.leafs[_local.bestTick().leafIndex()].clean().getNextOfferId();
     }
   }
 

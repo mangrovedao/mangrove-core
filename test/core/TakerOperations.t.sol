@@ -786,7 +786,7 @@ contract TakerOperationsTest is MangroveTest {
     int logPrice = mgv.offers(olKey, ofr).logPrice();
 
     vm.expectRevert("mgv/notEnoughGasForMakerPosthook");
-    mgv.marketOrderByLogPrice{gas: 280_000}(olKey, logPrice, 1 ether, true);
+    mgv.marketOrderByLogPrice{gas: 291_000}(olKey, logPrice, 1 ether, true);
   }
 
   // FIXME Make a token that goes out of gas on transfer to taker

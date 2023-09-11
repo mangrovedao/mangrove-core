@@ -265,8 +265,8 @@ contract MgvOfferMaking is MgvHasOffers {
       emit OfferWrite(ofp.olKey.hash(), msg.sender, insertionLogPrice, ofp.gives, ofp.gasprice, ofp.gasreq, ofrId);
 
       /* We now write the new `offerDetails` and remember the previous provision (0 by default, for new offers) to balance out maker's `balanceOf`. */
-      uint oldProvision;
       {
+        uint oldProvision;
         OfferData storage offerData = offerList.offerData[ofrId];
         MgvStructs.OfferDetailPacked offerDetail = offerData.detail;
         if (update) {
@@ -288,10 +288,8 @@ contract MgvOfferMaking is MgvHasOffers {
             __gasprice: ofp.gasprice
           });
         }
-      }
 
-      /* With every change to an offer, a maker may deduct provisions from its `balanceOf` balance. It may also get provisions back if the updated offer requires fewer provisions than before. */
-      {
+        /* With every change to an offer, a maker may deduct provisions from its `balanceOf` balance. It may also get provisions back if the updated offer requires fewer provisions than before. */
         uint provision = (ofp.gasreq + ofp.local.offer_gasbase()) * ofp.gasprice * 10 ** 9;
         if (provision > oldProvision) {
           debitWei(msg.sender, provision - oldProvision);
@@ -361,7 +359,14 @@ contract MgvOfferMaking is MgvHasOffers {
 
         // Save current level0
         if (insertionIndex < currentIndex) {
-          offerList.level0[currentIndex] = ofp.local.level0().dirty();
+          Field localLeve0 = ofp.local.level0();
+          bool shouldSaveLevel0 = !localLeve0.isEmpty();
+          if (!shouldSaveLevel0) {
+            shouldSaveLevel0 = !offerList.level0[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
+          }
+          if (shouldSaveLevel0) {
+            offerList.level0[currentIndex] = localLeve0.dirty();
+          }
         }
 
         // Write insertion level0
@@ -382,7 +387,14 @@ contract MgvOfferMaking is MgvHasOffers {
           }
 
           if (insertionIndex < currentIndex) {
-            offerList.level1[currentIndex] = ofp.local.level1().dirty();
+            Field localLevel1 = ofp.local.level1();
+            bool shouldSaveLevel1 = !localLevel1.isEmpty();
+            if (!shouldSaveLevel1) {
+              shouldSaveLevel1 = !offerList.level1[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);
+            }
+            if (shouldSaveLevel1) {
+              offerList.level1[currentIndex] = localLevel1.dirty();
+            }
           }
 
           if (insertionIndex <= currentIndex) {

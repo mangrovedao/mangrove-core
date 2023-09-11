@@ -291,6 +291,9 @@ library TickLib {
 
 // We use TOPBIT as the optimized in-storage value since 1 is a valid Field value
 library DirtyFieldLib {
+  DirtyField constant DIRTY_EMPTY = DirtyField.wrap(TOPBIT);
+  DirtyField constant CLEAN_EMPTY = DirtyField.wrap(0);
+
   // Return clean field with topbit set to 0
   function clean(DirtyField field) internal pure returns (Field) {
     unchecked {

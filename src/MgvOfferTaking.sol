@@ -13,6 +13,7 @@ import {
   LeafLib,
   FieldLib,
   DirtyField,
+  DirtyFieldLib,
   DirtyLeaf,
   LogPriceLib,
   OLKey
@@ -100,11 +101,15 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         int index = offerTick.level0Index();
         Field field = local.level0().flipBitAtLevel0(offerTick);
         if (field.isEmpty()) {
-          offerList.level0[index] = field.dirty();
+          if (!offerList.level0[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+            offerList.level0[index] = DirtyFieldLib.DIRTY_EMPTY;
+          }
           index = offerTick.level1Index();
           field = local.level1().flipBitAtLevel1(offerTick);
           if (field.isEmpty()) {
-            offerList.level1[index] = field.dirty();
+            if (!offerList.level1[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+              offerList.level1[index] = DirtyFieldLib.CLEAN_EMPTY;
+            }
             field = local.level2().flipBitAtLevel2(offerTick);
             local = local.level2(field);
             if (field.isEmpty()) {

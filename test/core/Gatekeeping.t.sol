@@ -91,27 +91,27 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_killing_updates_config() public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
+    MgvStructs.GlobalPacked global = mgv.global();
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OLKey(address(0), address(0), 0));
+    global = mgv.global();
     assertTrue(global.dead(), "mgv should be dead ");
   }
 
   function test_kill_is_idempotent() public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
+    MgvStructs.GlobalPacked global = mgv.global();
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OLKey(address(0), address(0), 0));
+    global = mgv.global();
     assertTrue(global.dead(), "mgv should be dead");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OLKey(address(0), address(0), 0));
+    global = mgv.global();
     assertTrue(global.dead(), "mgv should still be dead");
   }
 

@@ -36,7 +36,7 @@ contract ActivateSemibook is Test2, Deployer {
   }
 
   function innerRun(IMangrove mgv, OLKey memory olKey, uint outbound_in_gwei, uint fee) public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
+    MgvStructs.GlobalPacked global = mgv.global();
     innerRun(mgv, global.gasprice(), olKey, outbound_in_gwei, fee);
   }
 

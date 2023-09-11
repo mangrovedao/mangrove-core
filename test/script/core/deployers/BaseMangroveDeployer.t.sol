@@ -44,7 +44,7 @@ abstract contract BaseMangroveDeployerTest is Deployer, Test2 {
     // Mangrove - verify expected values have been passed in
     IMangrove mgv = mgvDeployer.mgv();
     assertEq(mgv.governance(), chief);
-    (MgvStructs.GlobalPacked cfg,) = mgv.config(OLKey(address(0), address(0), 0));
+    MgvStructs.GlobalPacked cfg = mgv.global();
     assertEq(cfg.gasmax(), gasmax);
     assertEq(cfg.monitor(), address(oracle), "monitor should be set to oracle");
     assertTrue(cfg.useOracle(), "useOracle should be set");

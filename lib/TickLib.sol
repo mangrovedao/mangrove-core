@@ -400,7 +400,6 @@ library FieldLib {
   function firstOnePosition(Field field) internal pure returns (uint) {
     // FIXME stop checking for 0 or integrate it into ctz function in assembly
     require(!field.isEmpty(),"field is 0");
-    require(Field.unwrap(field) != TOPBIT,"field is optimized 0");
     unchecked {
       return BitLib.ctz(Field.unwrap(field));
     }
@@ -410,7 +409,6 @@ library FieldLib {
   function lastOnePosition(Field field) internal pure returns (uint) {
     // FIXME stop checking for 0 or integrate it into ctz function in assembly
     require(!field.isEmpty() ,"field is 0");
-    require(Field.unwrap(field) != TOPBIT,"field is optimized 0");
     return BitLib.fls(Field.unwrap(field));
   }
 

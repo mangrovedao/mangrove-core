@@ -12,8 +12,8 @@ library LogPriceLib {
   }
   // 
   // FIXME ensure that you only called tick*tickScale if you previously stored the tick as a result of logPrice/tickScale. Otherwise you may go beyond the MAX/MIN.
-  function fromTick(Tick tick, uint tickScale) internal pure returns (int) {
-    return Tick.unwrap(tick) * int(tickScale);
+  function fromTick(Tick tick, uint tickScale, int tickShift) internal pure returns (int) {
+    return (Tick.unwrap(tick) + tickShift) * int(tickScale);
   }
 
   // tick underestimates the price, so we underestimate  inbound here, i.e. the inbound/outbound price will again be underestimated

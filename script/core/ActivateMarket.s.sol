@@ -22,7 +22,12 @@ contract ActivateMarket is Deployer {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      market: Market({tkn0: envAddressOrName("TKN1"), tkn1: envAddressOrName("TKN2"), tickScale: vm.envUint("TICK_SCALE")}),
+      market: Market({
+        tkn0: envAddressOrName("TKN1"),
+        tkn1: envAddressOrName("TKN2"),
+        tickScale: vm.envUint("TICK_SCALE"),
+        tickShift: vm.envInt("TICK_SHIFT")
+      }),
       tkn1_in_gwei: vm.envUint("TKN1_IN_GWEI"),
       tkn2_in_gwei: vm.envUint("TKN2_IN_GWEI"),
       fee: vm.envUint("FEE")

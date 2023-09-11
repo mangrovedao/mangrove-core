@@ -175,7 +175,7 @@ contract TestTickTree is MangroveTest {
             do {
               MgvStructs.OfferPacked offer = mgv.offers(olKey, offerId);
               assertEq(
-                offer.tick(olKey.tickScale),
+                offer.tick(olKey.tickScale, olKey.tickShift),
                 tick,
                 string.concat(
                   "offer[", vm.toString(offerId), "] tick does not match location in tick tree | tick: ", toString(tick)
@@ -410,7 +410,7 @@ contract TestTickTree is MangroveTest {
     // console.log("leaf after: %s", toString(leafs[tick.leafIndex()]));
 
     // Create offer
-    int logPrice = LogPriceLib.fromTick(tick, olKey.tickScale);
+    int logPrice = LogPriceLib.fromTick(tick, olKey.tickScale, olKey.tickShift);
     offers[offerId].offer = MgvStructs.Offer.pack({__prev: lastId, __next: 0, __logPrice: logPrice, __gives: gives});
     offers[offerId].detail = MgvStructs.OfferDetail.pack({
       __maker: maker,
@@ -432,7 +432,7 @@ contract TestTickTree is MangroveTest {
 
   function removeOffer(uint offerId) public {
     MgvCommon.OfferData storage offer = offers[offerId];
-    Tick tick = offer.offer.tick(olKey.tickScale);
+    Tick tick = offer.offer.tick(olKey.tickScale, olKey.tickShift);
 
     // Update leaf and tick list
     Leaf leaf = leafs[tick.leafIndex()];

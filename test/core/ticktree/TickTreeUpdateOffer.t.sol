@@ -324,7 +324,11 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     Tick newTick = Tick.wrap(scenario.newTick);
     uint newGives = getAcceptableGivesForTick(newTick, offerDetail.gasreq());
     mkr.updateOfferByLogPrice(
-      LogPriceLib.fromTick(newTick, olKey.tickScale), newGives, offerDetail.gasreq(), offerDetail.gasprice(), offerId
+      LogPriceLib.fromTick(newTick, olKey.tickScale, olKey.tickShift),
+      newGives,
+      offerDetail.gasreq(),
+      offerDetail.gasprice(),
+      offerId
     );
     tickTree.updateOffer(offerId, newTick, newGives, offerDetail.gasreq(), offerDetail.gasprice(), $(mkr));
     if (printToConsole) {

@@ -156,7 +156,7 @@ contract TickTreeNewOfferTest is TickTreeTest {
 
     // 4. Create new offer and add it to tick tree
     Tick _insertionTick = Tick.wrap(scenario.tickScenario.tick);
-    int logPrice = LogPriceLib.fromTick(_insertionTick, olKey.tickScale);
+    int logPrice = LogPriceLib.fromTick(_insertionTick, olKey.tickScale, olKey.tickShift);
     uint gives = getAcceptableGivesForTick(_insertionTick, 50_000);
     mkr.newOfferByLogPrice(logPrice, gives, 50_000, 50);
     tickTree.addOffer(_insertionTick, gives, 50_000, 50, $(mkr));

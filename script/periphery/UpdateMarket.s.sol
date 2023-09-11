@@ -17,18 +17,16 @@ contract UpdateMarket is Deployer {
   function run() public {
     innerRun({
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      market: Market(envAddressOrName("TKN0"), envAddressOrName("TKN1"), vm.envUint("TICK_SCALE"))
+      market: Market(
+        envAddressOrName("TKN0"), envAddressOrName("TKN1"), vm.envUint("TICK_SCALE"), vm.envInt("TICK_SHIFT")
+        )
     });
     outputDeployment();
   }
 
   function innerRun(MgvReader reader, Market memory market) public {
-    console.log(
-      "Updating Market on MgvReader.  tkn0: %s, tkn1: %s",
-      vm.toString(market.tkn0),
-      vm.toString(market.tkn1),
-      vm.toString(market.tickScale)
-    );
+    console.log("Updating Market on MgvReader.  tkn0: %s, tkn1: %s", vm.toString(market.tkn0), vm.toString(market.tkn1));
+    console.log("    tick scale: %s, tick shift: %s", vm.toString(market.tickScale), vm.toString(market.tickShift));
     logReaderState("[before script]", reader, market);
 
     broadcast();

@@ -137,10 +137,10 @@ library TickLib {
     return Tick.unwrap(tick) >= MIN_TICK && Tick.unwrap(tick) <= MAX_TICK;
   }
 
-  function fromLogPrice(int logPrice, uint tickScale) internal pure returns (Tick) {
+  function fromLogPrice(int logPrice, uint tickScale, int tickShift) internal pure returns (Tick) {
     // Do not force logPrices to fit the tickScale (aka logPrice%tickScale==0)
     // Round all prices down (aka cheaper for taker)
-    int tick = logPrice / int(tickScale);
+    int tick = logPrice / int(tickScale) - tickShift;
     if (logPrice < 0 && logPrice % int(tickScale) != 0) {
       tick = tick - 1;
     }

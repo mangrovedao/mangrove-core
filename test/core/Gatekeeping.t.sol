@@ -603,12 +603,13 @@ contract GatekeepingTest is MangroveTest {
     MgvStructs.OfferPacked ofr = mgv.offers(olKey, id);
     // FIXME increasing tick by 2 because tick->price->tick does not round up currently
     // when that is fixed, should replace with tick+1
-    Tick nextTick = Tick.wrap(Tick.unwrap(ofr.tick(olKey.tickScale)) + 2);
-    uint gives = LogPriceLib.outboundFromInbound(LogPriceLib.fromTick(nextTick, olKey.tickScale), 5 ether);
+    Tick nextTick = Tick.wrap(Tick.unwrap(ofr.tick(olKey.tickScale, olKey.tickShift)) + 2);
+    uint gives =
+      LogPriceLib.outboundFromInbound(LogPriceLib.fromTick(nextTick, olKey.tickScale, olKey.tickShift), 5 ether);
     uint id2 = mgv.newOfferByVolume(olKey, 5 ether, gives, 3500_000, 0);
     tkr.marketOrder(0.05 ether, 0.05 ether);
     // low-level check
-    assertEq(mgv.leafs(olKey, ofr.tick(olKey.tickScale).leafIndex()).getNextOfferId(), id2);
+    assertEq(mgv.leafs(olKey, ofr.tick(olKey.tickScale, olKey.tickShift).leafIndex()).getNextOfferId(), id2);
     // high-level check
     assertTrue(mgv.best(olKey) == id2, "2nd market order must have emptied mgv");
   }
@@ -620,13 +621,13 @@ contract GatekeepingTest is MangroveTest {
     uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
     // store some information in another level0 (a worse one)
     uint ofr1 = mgv.newOfferByVolume(olKey, 0.02 ether, 0.05 ether, 1000000, 0);
-    Tick tick1 = mgv.offers(olKey, ofr1).tick(olKey.tickScale);
+    Tick tick1 = mgv.offers(olKey, ofr1).tick(olKey.tickScale, olKey.tickShift);
     int index1 = tick1.level0Index();
     // make ofr1 the best offer (ofr1.level0 is now cached, but it also lives in its slot)
     mgv.retractOffer(olKey, ofr0, true);
     // make an offer worse than ofr1
     uint ofr2 = mgv.newOfferByVolume(olKey, 0.05 ether, 0.05 ether, 1000000, 0);
-    Tick tick2 = mgv.offers(olKey, ofr2).tick(olKey.tickScale);
+    Tick tick2 = mgv.offers(olKey, ofr2).tick(olKey.tickScale, olKey.tickShift);
     int index2 = tick2.level0Index();
 
     // ofr2 is now best again. ofr1.level0 is not cached anymore.
@@ -640,7 +641,7 @@ contract GatekeepingTest is MangroveTest {
   // FIXME Not Gatekeeping!
   function test_leaf_update_both_first_and_last() public {
     uint ofr0 = mgv.newOfferByVolume(olKey, 0.01 ether, 1 ether, 1000000, 0);
-    Tick tick0 = mgv.offers(olKey, ofr0).tick(olKey.tickScale);
+    Tick tick0 = mgv.offers(olKey, ofr0).tick(olKey.tickScale, olKey.tickShift);
     mgv.retractOffer(olKey, ofr0, true);
     assertEq(mgv.leafs(olKey, tick0.leafIndex()), LeafLib.EMPTY, "leaf should be empty");
   }

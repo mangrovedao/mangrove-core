@@ -62,10 +62,10 @@ function tickBranchToString(Tick tick) pure returns (string memory) {
 
 function toString(Tick tick) pure returns (string memory ret) {
   string memory suffix;
-  if (MIN_TICK > Tick.unwrap(tick) || Tick.unwrap(tick) > MAX_TICK) {
-    suffix = "out of range";
+  if (tick.inRange()) {
+    suffix = logPriceToString(LogPriceLib.fromTick(tick,1,0));
   } else {
-    suffix = logPriceToString(LogPriceLib.fromTick(tick,1));
+    suffix = "out of range";
   }
 
   ret = string.concat(unicode"「", vm.toString(Tick.unwrap(tick))," (default: " ,suffix, ") {tree branch: ", tickBranchToString(tick), "}", unicode"」");

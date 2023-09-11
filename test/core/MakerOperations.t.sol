@@ -146,7 +146,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   // since we check calldata, execute must be internal
   function makerExecute(MgvLib.SingleOrder calldata order) external returns (bytes32 ret) {
     ret; // silence unused function parameter warning
-    uint num_args = 10; // UPDATE IF SIZE OF SingleOrder changes
+    uint num_args = 11; // UPDATE IF SIZE OF SingleOrder changes
     uint selector_bytes = 4;
     uint length = selector_bytes + num_args * 32;
     assertEq(msg.data.length, length, "calldata length in execute is incorrect");
@@ -958,14 +958,18 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_update_branch_on_insert_posInLeaf() public {
     mkr.provisionMgv(10 ether);
     Tick tick0 = Tick.wrap(0);
-    mkr.newOfferByLogPrice(LogPriceLib.fromTick(tick0, olKey.tickScale), 1 ether, 100_000, 0);
+    mkr.newOfferByLogPrice(LogPriceLib.fromTick(tick0, olKey.tickScale, olKey.tickShift), 1 ether, 100_000, 0);
     uint ofr = mkr.newOfferByLogPrice(-46055, 100 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofr);
     assertTrue(
-      offer.tick(olKey.tickScale).posInLeaf() != Tick.wrap(0).posInLeaf(),
+      offer.tick(olKey.tickScale, olKey.tickShift).posInLeaf() != Tick.wrap(0).posInLeaf(),
       "test void if posInLeaf of second offer is not different"
     );
-    assertEq(mgv.local(olKey).tickPosInLeaf(), offer.tick(olKey.tickScale).posInLeaf(), "posInLeaf should have changed");
+    assertEq(
+      mgv.local(olKey).tickPosInLeaf(),
+      offer.tick(olKey.tickScale, olKey.tickShift).posInLeaf(),
+      "posInLeaf should have changed"
+    );
   }
   /* 
   When an offer ofr is updated, ofr is removed then re-added. In that case, if

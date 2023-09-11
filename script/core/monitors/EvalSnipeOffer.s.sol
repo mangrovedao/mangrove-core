@@ -21,7 +21,9 @@ contract EvalSnipeOffer is Test2, Deployer {
   function run() public {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
-      olKey: OLKey(envAddressOrName("TKN_OUT"), envAddressOrName("TKN_IN"), vm.envUint("TICK_SCALE")),
+      olKey: OLKey(
+        envAddressOrName("TKN_OUT"), envAddressOrName("TKN_IN"), vm.envUint("TICK_SCALE"), vm.envInt("TICK_SHIFT")
+        ),
       offerId: vm.envUint("OFFER_ID")
     });
   }

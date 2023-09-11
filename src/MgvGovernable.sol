@@ -29,6 +29,7 @@ contract MgvGovernable is MgvCommon {
   /* ## Locals */
   /* ### `active` */
   function activate(OLKey memory olKey, uint fee, uint densityFixed, uint offer_gasbase) public {
+    // FIXME: Validate that tick shift is within the supported range? logPrice range vs tick range
     unchecked {
       authOnly();
       bytes32 olKeyHash = olKey.hash();

@@ -119,7 +119,7 @@ abstract contract ExternalMarketOrderOtherOfferList_WithOtherOfferGasTest is Gas
     mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 1, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    assertEq(logPrice, LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale));
+    assertEq(logPrice, LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale, _olKey.tickShift));
     printDescription();
   }
 }
@@ -189,7 +189,7 @@ abstract contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtSameTick
     mgv.marketOrderByLogPrice(_olKey, MIDDLE_LOG_PRICE, 2 ** 96, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    assertEq(MIDDLE_LOG_PRICE + 1, LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale));
+    assertEq(MIDDLE_LOG_PRICE + 1, LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale, _olKey.tickShift));
     printDescription();
   }
 }
@@ -234,6 +234,6 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTicks is Tick
     mgv.marketOrderByLogPrice(_olKey, _logPrice, 2 ** 96, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    assertLt(_logPrice, LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale));
+    assertLt(_logPrice, LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale, _olKey.tickShift));
   }
 }

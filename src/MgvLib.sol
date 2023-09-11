@@ -18,6 +18,7 @@ struct OLKey {
   address outbound;
   address inbound;
   uint tickScale;
+  int tickShift;
 }
 
 library OLLib {
@@ -26,13 +27,13 @@ library OLLib {
   // If the memory layout changes, this function must be updated
   function hash(OLKey memory olKey) internal pure returns (bytes32 _id) {
     assembly ("memory-safe") {
-      _id := keccak256(olKey, 96)
+      _id := keccak256(olKey, 128)
     }
   }
 
   // Creates a flipped copy of the `olKey` with same `tickScale`.
   function flipped(OLKey memory olKey) internal pure returns (OLKey memory) {
-    return OLKey(olKey.inbound, olKey.outbound, olKey.tickScale);
+    return OLKey(olKey.inbound, olKey.outbound, olKey.tickScale, olKey.tickShift);
   }
 }
 
@@ -145,6 +146,7 @@ interface HasMgvEvents {
 
   The `olKeyHash` and both token addresses are indexed, so that we can filter on it when doing RPC calls.
   */
+  //FIXME: Emit tick shift
   event SetActive(
     bytes32 indexed olKeyHash, address indexed outbound_tkn, address indexed inbound_tkn, uint tickScale, bool value
   );

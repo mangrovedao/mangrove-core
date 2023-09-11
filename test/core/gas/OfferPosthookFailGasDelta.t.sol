@@ -98,8 +98,8 @@ contract OfferPosthookFailGasDeltaTest is MangroveTest, IMaker {
     base = _base;
     quote = _quote;
 
-    olKey = OLKey($(base), $(quote), options.defaultTickScale);
-    lo = OLKey($(quote), $(base), options.defaultTickScale);
+    olKey = OLKey($(base), $(quote), options.defaultTickScale, options.defaultTickShift);
+    lo = OLKey($(quote), $(base), options.defaultTickScale, -options.defaultTickShift);
 
     setupMarket(olKey);
     setupMarket(lo);

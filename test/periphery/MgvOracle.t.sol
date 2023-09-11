@@ -160,7 +160,7 @@ contract MgvOracleTest is Test2 {
     mgvOracle.setGasPrice(30);
     vm.stopPrank();
 
-    (uint gas, Density density) = mgvOracle.read(OLKey(address(0), address(0), 0));
+    (uint gas, Density density) = mgvOracle.read(OLKey(address(0), address(0), 0, 0));
 
     assertEq(gas, 30, "gas should be 30");
     assertEq(

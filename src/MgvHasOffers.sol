@@ -64,7 +64,7 @@ contract MgvHasOffers is MgvCommon {
   // shouldUpdateBest is true if we may want to update best, false if there is no way we want to update it (eg if we know we are about to reinsert the offer anyway and will update best then?)
   function dislodgeOffer(
     OfferList storage offerList,
-    uint tickScale,
+    Tick offerTick,
     MgvStructs.OfferPacked offer,
     MgvStructs.LocalPacked local,
     Tick bestTick,
@@ -74,7 +74,6 @@ contract MgvHasOffers is MgvCommon {
       Leaf leaf;
       uint prevId = offer.prev();
       uint nextId = offer.next();
-      Tick offerTick = offer.tick(tickScale);
       if (prevId == 0 || nextId == 0) {
         leaf = offerList.leafs[offerTick.leafIndex()];
       }

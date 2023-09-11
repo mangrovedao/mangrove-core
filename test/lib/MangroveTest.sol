@@ -58,6 +58,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     TokenOptions quote;
     uint defaultFee;
     uint defaultTickScale;
+    int defaultTickShift;
     uint gasprice;
     uint gasbase;
     uint gasmax;
@@ -77,6 +78,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
     defaultFee: 0,
     defaultTickScale: 1,
+    defaultTickShift: 0,
     gasprice: 40,
     //Update `gasbase` by measuring using the test run `forge test --mc OfferGasBaseTest_Generic_A_B -vv`
     gasbase: 184048,
@@ -103,8 +105,8 @@ contract MangroveTest is Test2, HasMgvEvents {
     base = new TestToken($(this), options.base.name, options.base.symbol, options.base.decimals);
     quote = new TestToken($(this), options.quote.name, options.quote.symbol, options.quote.decimals);
     // mangrove deploy
-    olKey = OLKey($(base), $(quote), options.defaultTickScale);
-    lo = OLKey($(quote), $(base), options.defaultTickScale);
+    olKey = OLKey($(base), $(quote), options.defaultTickScale, options.defaultTickShift);
+    lo = OLKey($(quote), $(base), options.defaultTickScale, -options.defaultTickShift);
 
     mgv = setupMangrove(olKey, options.invertedMangrove);
     reader = new MgvReader($(mgv));

@@ -60,7 +60,7 @@ contract MarketHealth is Test2, Deployer {
     innerRun({
       mgv: IMangrove(envAddressOrName("MGV", "Mangrove")),
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      olKey: OLKey(envAddressOrName("TKN_OUT"), address(inbTkn), vm.envUint("TICK_SCALE")),
+      olKey: OLKey(envAddressOrName("TKN_OUT"), address(inbTkn), vm.envUint("TICK_SCALE"), vm.envInt("TICK_SHIFT")),
       outboundTknVolume: vm.envUint("VOLUME"),
       densityOverrides: densityOverrides
     });

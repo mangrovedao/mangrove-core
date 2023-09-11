@@ -85,9 +85,10 @@ abstract contract MgvOfferTaking is MgvHasOffers {
     MultiOrder memory mor,
     MgvStructs.OfferPacked offer,
     MgvStructs.LocalPacked local,
-    uint tickScale
+    uint tickScale,
+    int tickShift
   ) internal returns (uint offerId, MgvStructs.LocalPacked) {
-    Tick offerTick = offer.tick(tickScale);
+    Tick offerTick = offer.tick(tickScale, tickShift);
     uint nextId = offer.next();
 
     if (nextId == 0) {
@@ -253,7 +254,8 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           2. `sor.gives` was at most `mor.initialGives - mor.totalGave` from earlier step,
           3. `sor.gives` may have been clamped _down_ during `execute` (to "`offer.wants`" if the offer is entirely consumed, or to `makerWouldWant`, cf. code of `execute`).
         */
-        (sor.offerId, sor.local) = getNextBest(offerList, mor, sor.offer, sor.local, sor.olKey.tickScale);
+        (sor.offerId, sor.local) =
+          getNextBest(offerList, mor, sor.offer, sor.local, sor.olKey.tickScale, sor.olKey.tickShift);
 
         sor.offer = offerList.offerData[sor.offerId].offer;
 
@@ -276,7 +278,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         // mark current offer as having no prev if necessary
         // update leaf if necessary
         MgvStructs.OfferPacked offer = sor.offer;
-        Tick tick = offer.tick(sor.olKey.tickScale);
+        Tick tick = offer.tick(sor.olKey.tickScale, sor.olKey.tickShift);
         if (offer.prev() != 0) {
           offerList.offerData[sor.offerId].offer = sor.offer.prev(0);
           mor.leaf = mor.leaf.setTickFirst(tick, sor.offerId);
@@ -392,23 +394,31 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       OfferList storage offerList;
       (sor.global, sor.local, offerList) = _config(olKey);
       sor.offerId = offerId;
-      OfferData storage offerData = offerList.offerData[sor.offerId];
-      sor.offer = offerData.offer;
-      sor.offerDetail = offerData.detail;
+      {
+        OfferData storage offerData = offerList.offerData[sor.offerId];
+        sor.offer = offerData.offer;
+        sor.offerDetail = offerData.detail;
+      }
 
       /* For the snipes to even start, the market needs to be both active and not currently protected from reentrancy. */
-      activeMarketOnly(sor.global, sor.local);
-      unlockedMarketOnly(sor.local);
+      {
+        activeMarketOnly(sor.global, sor.local);
+        unlockedMarketOnly(sor.local);
+      }
 
       /* FIXME: edit comment: If we removed the `isLive` conditional, a single expired or nonexistent offer in `targets` would revert the entire transaction (by the division by `offer.gives` below since `offer.gives` would be 0). We also check that `gasreq` is not worse than specified. A taker who does not care about `gasreq` can specify any amount larger than $2^{24}-1$. A mismatched price will be detected by `execute`. */
-      require(sor.offer.isLive(), "mgv/clean/offerNotLive");
-      require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
-      require(sor.offer.logPrice() == logPrice, "mgv/clean/tickMismatch");
+      {
+        require(sor.offer.isLive(), "mgv/clean/offerNotLive");
+        require(sor.offerDetail.gasreq() <= gasreq, "mgv/clean/gasreqTooLow");
+        require(sor.offer.logPrice() == logPrice, "mgv/clean/tickMismatch");
+      }
       // FIXME: Not sure what events we need for cleaning? Maybe none?
 
       /* We start be enabling the reentrancy lock for this (`outbound_tkn`,`inbound_tkn`) pair. */
-      sor.local = sor.local.lock(true);
-      offerList.local = sor.local;
+      {
+        sor.local = sor.local.lock(true);
+        offerList.local = sor.local;
+      }
 
       {
         /* `execute` will adjust `sor.wants`,`sor.gives`, and will attempt to execute the offer. It is crucial that an error due to `taker` triggers a revert. That way [`mgvData`](#MgvOfferTaking/statusCodes) not equal to `"mgv/tradeSuccess"` means the failure is the maker's fault. */
@@ -418,7 +428,14 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         require(mgvData != "mgv/tradeSuccess", "mgv/clean/offerDidNotFail");
 
         /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since the offer may be anywhere in the book. So we stitch together offers immediately after `execute`. */
-        (sor.local,) = dislodgeOffer(offerList, olKey.tickScale, sor.offer, sor.local, sor.local.bestTick(), true);
+        {
+          uint tickScale = olKey.tickScale;
+          int tickShift = olKey.tickShift;
+          MgvStructs.OfferPacked offer = sor.offer;
+          MgvStructs.LocalPacked local = sor.local;
+          (sor.local,) =
+            dislodgeOffer(offerList, offer.tick(tickScale, tickShift), offer, local, local.bestTick(), true);
+        }
 
         /* <a id="internalSnipes/liftReentrancy"></a> Now that the current snipe is over, we can lift the lock on the book. In the same operation we
         * lift the reentrancy lock, and

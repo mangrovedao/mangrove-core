@@ -382,9 +382,9 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_multi_add_triangle(address tkn0, address tkn1, address tkn2, uint tickScale) public {
-    Market memory mktA = Market(tkn0, tkn1, tickScale);
-    Market memory mktB = Market(tkn1, tkn2, tickScale);
-    Market memory mktC = Market(tkn2, tkn0, tickScale);
+    Market memory mktA = Market(tkn0, tkn1, tickScale, 0); // FIXME tickShift parameter?
+    Market memory mktB = Market(tkn1, tkn2, tickScale, 0); // FIXME tickShift parameter?
+    Market memory mktC = Market(tkn2, tkn0, tickScale, 0); // FIXME tickShift parameter?
     activateMarket(mktA);
     activateMarket(mktB);
     activateMarket(mktC);
@@ -538,8 +538,8 @@ contract MgvReaderTest is MangroveTest {
 
   function test_openMarkets_overloads(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
     assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    Market memory mktA = Market(tknA, tknB, tickScale, 0); // FIXME tickShift parameter?
+    Market memory mktB = Market(tkn0, tkn1, tickScale, 0); // FIXME tickShift parameter?
     activateMarket(mktB);
     reader.updateMarket(mktB);
     activateMarket(mktA);
@@ -584,8 +584,8 @@ contract MgvReaderTest is MangroveTest {
   function test_no_double_remove_long_swap(address tknA, address tknB, address tkn0, address tkn1, uint tickScale)
     public
   {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    Market memory mktA = Market(tknA, tknB, tickScale, 0); // FIXME tickShift parameter?
+    Market memory mktB = Market(tkn0, tkn1, tickScale, 0); // FIXME tickShift parameter?
     assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
     activateMarket(mktA);
     reader.updateMarket(mktA);
@@ -609,8 +609,8 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_market_slice_zero(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    Market memory mktA = Market(tknA, tknB, tickScale, 0); // FIXME tickShift parameter?
+    Market memory mktB = Market(tkn0, tkn1, tickScale, 0); // FIXME tickShift parameter?
     activateMarket(mktA);
     activateMarket(mktB);
     reader.updateMarket(mktA);
@@ -620,8 +620,8 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_market_slice_multi(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    Market memory mktA = Market(tknA, tknB, tickScale, 0); // FIXME tickShift parameter?
+    Market memory mktB = Market(tkn0, tkn1, tickScale, 0); // FIXME tickShift parameter?
     activateMarket(mktA);
     activateMarket(mktB);
     reader.updateMarket(mktA);
@@ -656,8 +656,8 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_market_slice_revert(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    Market memory mktA = Market(tknA, tknB, tickScale, 0); // FIXME tickShift parameter?
+    Market memory mktB = Market(tkn0, tkn1, tickScale, 0); // FIXME tickShift parameter?
     activateMarket(mktA);
     activateMarket(mktB);
     reader.updateMarket(mktA);
@@ -668,8 +668,8 @@ contract MgvReaderTest is MangroveTest {
 
   function test_remove_2nd_to_last(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
     assumeDifferentPairs(tknA, tknB, tkn0, tkn1);
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    Market memory mktA = Market(tknA, tknB, tickScale, 0); // FIXME tickShift parameter?
+    Market memory mktB = Market(tkn0, tkn1, tickScale, 0); // FIXME tickShift parameter?
     activateOfferList(toOLKey(mktA));
     activateOfferList(toOLKey(mktB));
     // remove 2nd-to-last
@@ -691,8 +691,8 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_remove_last_not_only(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    Market memory mktA = Market(tknA, tknB, tickScale, 0); // FIXME tickShift parameter?
+    Market memory mktB = Market(tkn0, tkn1, tickScale, 0); // FIXME tickShift parameter?
     activateOfferList(toOLKey(mktA));
     activateOfferList(toOLKey(mktB));
     // remove 2nd-to-last
@@ -705,8 +705,8 @@ contract MgvReaderTest is MangroveTest {
   }
 
   function test_update_already_absent(address tknA, address tknB, address tkn0, address tkn1, uint tickScale) public {
-    Market memory mktA = Market(tknA, tknB, tickScale);
-    Market memory mktB = Market(tkn0, tkn1, tickScale);
+    Market memory mktA = Market(tknA, tknB, tickScale, 0); // FIXME tickShift parameter?
+    Market memory mktB = Market(tkn0, tkn1, tickScale, 0); // FIXME tickShift parameter?
     activateOfferList(toOLKey(mktA));
     reader.updateMarket(mktA);
     reader.updateMarket(mktB);

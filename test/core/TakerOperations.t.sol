@@ -585,7 +585,7 @@ contract TakerOperationsTest is MangroveTest {
   //   uint ofr = mkr.newOfferByVolume(makerWants, makerGives, 100_000, 0);
   //   MgvStructs.OfferPacked offer = mgv.offers(olKey,ofr);
   //   pc = uint16(bound(pc, 0, 10_000));
-  //   Tick takerTick = offer.tick(olKey.tickScale);
+  //   Tick takerTick = offer.tick(olKey.tickScale, olKey.tickShift);
   //   // if I round down takerGives: what? well I reudce the price allowed, and so might mistakenly think (in execute()) that the taker is not ok with the offer (because I reduced the price more here, than I reduced it when I stored the offer?).
   //   // but then if I round it up, somehow I get also a roudned down takerGave in execute(), that is even lower a.... ahhh?
 
@@ -1143,7 +1143,7 @@ contract TakerOperationsTest is MangroveTest {
 
     uint bestId = leaveOneOnly ? ofr4 : ofr3;
     MgvStructs.OfferPacked best = mgv.offers(olKey, bestId);
-    Leaf leaf = mgv.leafs(olKey, best.tick(olKey.tickScale).leafIndex());
+    Leaf leaf = mgv.leafs(olKey, best.tick(olKey.tickScale, olKey.tickShift).leafIndex());
     assertEq(leaf.firstOfIndex(tick.posInLeaf()), bestId, "wrong first of tick");
     assertEq(leaf.lastOfIndex(tick.posInLeaf()), ofr4, "wrong last of tick");
     (, MgvStructs.LocalPacked local) = mgv.config(olKey);

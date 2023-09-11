@@ -15,6 +15,7 @@ struct Market {
   address tkn0;
   address tkn1;
   uint tickScale;
+  int tickShift;
 }
 
 /// @notice Config of a market. Assumes a context where `tkn0` and `tkn1` are defined. `config01` is the local config of the `tkn0/tkn1` offer list. `config10` is the config of the `tkn1/tkn0` offer list.
@@ -39,13 +40,13 @@ function order(Market memory market) pure {
 // flip tkn0/tkn1 of a market. Useful before conversion to OLKey
 // creates a copy
 function flipped(Market memory market) pure returns (Market memory) {
-  return Market(market.tkn1, market.tkn0, market.tickScale);
+  return Market(market.tkn1, market.tkn0, market.tickScale, market.tickShift);
 }
 
 // convert Market to OLKey
 // creates a copy
 function toOLKey(Market memory market) pure returns (OLKey memory) {
-  return OLKey(market.tkn0, market.tkn1, market.tickScale);
+  return OLKey(market.tkn0, market.tkn1, market.tickScale, market.tickShift);
 }
 
 contract MgvReader {
@@ -241,7 +242,7 @@ contract MgvReader {
     // if (offer.gives() == 0) {
     //   revert("Offer is not live, prev/next meaningless.");
     // }
-    Tick offerTick = offer.tick(olKey.tickScale);
+    Tick offerTick = offer.tick(olKey.tickScale, olKey.tickShift);
     uint nextId = offer.next();
     if (nextId == 0) {
       int index = offerTick.leafIndex();
@@ -287,7 +288,7 @@ contract MgvReader {
     // if (offer.gives() == 0) {
     //   revert("Offer is not live, prev/next meaningless.");
     // }
-    Tick offerTick = offer.tick(olKey.tickScale);
+    Tick offerTick = offer.tick(olKey.tickScale, olKey.tickShift);
     uint prevId = offer.prev();
     if (prevId == 0) {
       int index = offerTick.leafIndex();
@@ -551,8 +552,9 @@ contract MgvReader {
         address tkn0 = _openMarkets[from + i].tkn0;
         address tkn1 = _openMarkets[from + i].tkn1;
         uint tickScale = _openMarkets[from + i].tickScale;
+        int tickShift = _openMarkets[from + i].tickShift;
         // copy
-        markets[i] = Market({tkn0: tkn0, tkn1: tkn1, tickScale: tickScale});
+        markets[i] = Market({tkn0: tkn0, tkn1: tkn1, tickScale: tickScale, tickShift: tickShift});
 
         if (withConfig) {
           configs[i].config01 = localUnpacked(toOLKey(markets[i]));

@@ -75,7 +75,7 @@ abstract contract TickTreeTest is MangroveTest {
     // First, try minVolume
     gives = reader.minVolume(olKey, gasreq);
     gives = gives == 0 ? 1 : gives;
-    uint wants = LogPriceLib.inboundFromOutbound(LogPriceLib.fromTick(tick, olKey.tickScale), gives);
+    uint wants = LogPriceLib.inboundFromOutbound(LogPriceLib.fromTick(tick, olKey.tickScale, olKey.tickShift), gives);
     if (wants > 0 && uint96(wants) == wants) {
       return gives;
     }
@@ -223,7 +223,7 @@ abstract contract TickTreeTest is MangroveTest {
     returns (uint[] memory offerIds, uint gives)
   {
     Tick _tick = Tick.wrap(tick);
-    int logPrice = LogPriceLib.fromTick(_tick, olKey.tickScale);
+    int logPrice = LogPriceLib.fromTick(_tick, olKey.tickScale, olKey.tickShift);
     uint gasreq = 1_300_000;
     gives = getAcceptableGivesForTick(_tick, gasreq);
     offerIds = new uint[](n);

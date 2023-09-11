@@ -30,7 +30,7 @@ contract MgvView is MgvCommon {
   /* Reading the global configuration. In addition, a parameter (`gasprice`) may be read from the oracle. */
   function global() external view returns (MgvStructs.GlobalPacked _global) {
     unchecked {
-      (_global,,) = _config(OLKey(address(0), address(0), 0));
+      (_global,,) = _config(OLKey(address(0), address(0), 0, 0));
     }
   }
 

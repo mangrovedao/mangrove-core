@@ -48,6 +48,9 @@ abstract contract TickTreeTest is MangroveTest {
   function setUp() public virtual override {
     super.setUp();
 
+    // Set density very low as the gasreq for the offers is very high
+    mgv.setDensity(olKey, 0);
+
     mkr = setupMaker(olKey, "maker");
     mkr.approveMgv(base, type(uint).max);
     mkr.provisionMgv(1 ether);
@@ -71,6 +74,7 @@ abstract contract TickTreeTest is MangroveTest {
   function getAcceptableGivesForTick(Tick tick, uint gasreq) internal view returns (uint gives) {
     // First, try minVolume
     gives = reader.minVolume(olKey, gasreq);
+    gives = gives == 0 ? 1 : gives;
     uint wants = LogPriceLib.inboundFromOutbound(LogPriceLib.fromTick(tick, olKey.tickScale), gives);
     if (wants > 0 && uint96(wants) == wants) {
       return gives;
@@ -220,13 +224,14 @@ abstract contract TickTreeTest is MangroveTest {
   {
     Tick _tick = Tick.wrap(tick);
     int logPrice = LogPriceLib.fromTick(_tick, olKey.tickScale);
-    gives = getAcceptableGivesForTick(_tick, 100_000);
+    uint gasreq = 1_300_000;
+    gives = getAcceptableGivesForTick(_tick, gasreq);
     offerIds = new uint[](n);
     for (uint i = 0; i < n; ++i) {
       if (offersFail) {
-        offerIds[i] = mkr.newFailingOfferByLogPrice(logPrice, gives, 100_000);
+        offerIds[i] = mkr.newFailingOfferByLogPrice(logPrice, gives, gasreq);
       } else {
-        offerIds[i] = mkr.newOfferByLogPrice(logPrice, gives, 100_000);
+        offerIds[i] = mkr.newOfferByLogPrice(logPrice, gives, gasreq);
       }
     }
   }

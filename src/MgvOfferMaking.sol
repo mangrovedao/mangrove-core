@@ -329,7 +329,7 @@ contract MgvOfferMaking is MgvHasOffers {
           bool shouldUpdateBranch = !insertionTick.strictlyBetter(cachedLocalTick);
 
           (ofp.local, shouldUpdateBranch) =
-            dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);
+            dislodgeOffer(offerList, tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);
           // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
           if (shouldUpdateBranch) {
             // force control flow through gas-saving path if retraction emptied the offer list

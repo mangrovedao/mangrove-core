@@ -14,8 +14,8 @@ import "mgv_lib/Debug.sol";
 //   - a middle tick
 //   - a higher tick
 // 2. we take a snapshot of Mangrove's tick tree
-// 4. we remove the offers the market order should take from the snapshot tick tree
-// 3. we run a market order in Mangrove
+// 3. we remove the offers the market order should take from the snapshot tick tree
+// 4. we run a market order in Mangrove
 //   - in the posthook of the last offer, we check that Mangrove's tick tree matches the test tick tree.
 //   - by doing this in the posthook, we ensure that the tick tree is updated when the first posthook runs.
 //

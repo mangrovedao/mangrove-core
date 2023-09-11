@@ -12,7 +12,8 @@ import {
   LEVEL2_SIZE,
   LEVEL1_SIZE,
   LEVEL0_SIZE,
-  OLKey
+  OLKey,
+  DirtyFieldLib
 } from "./MgvLib.sol";
 import {MgvCommon} from "./MgvCommon.sol";
 
@@ -126,7 +127,9 @@ contract MgvHasOffers is MgvCommon {
           field = local.level0().flipBitAtLevel0(offerTick);
           local = local.level0(field);
           if (shouldUpdateBranch && field.isEmpty()) {
-            offerList.level0[index] = field.dirty();
+            if (!offerList.level0[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+              offerList.level0[index] = DirtyFieldLib.DIRTY_EMPTY;
+            }
           }
         } else {
           // note: useless dirty/clean cycle here
@@ -139,7 +142,9 @@ contract MgvHasOffers is MgvCommon {
             field = local.level1().flipBitAtLevel1(offerTick);
             local = local.level1(field);
             if (shouldUpdateBranch && field.isEmpty()) {
-              offerList.level1[index] = field.dirty();
+              if (!offerList.level1[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+                offerList.level1[index] = DirtyFieldLib.DIRTY_EMPTY;
+              }
             }
           } else {
             // note: useless dirty/clean cycle here

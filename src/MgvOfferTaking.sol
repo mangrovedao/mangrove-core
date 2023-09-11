@@ -108,7 +108,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
           field = local.level1().flipBitAtLevel1(offerTick);
           if (field.isEmpty()) {
             if (!offerList.level1[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
-              offerList.level1[index] = DirtyFieldLib.CLEAN_EMPTY;
+              offerList.level1[index] = DirtyFieldLib.DIRTY_EMPTY;
             }
             field = local.level2().flipBitAtLevel2(offerTick);
             local = local.level2(field);

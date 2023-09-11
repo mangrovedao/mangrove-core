@@ -190,12 +190,14 @@ library TickLib {
     return Tick.wrap(tick);
   }
 
-  function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2) internal pure returns (Tick) {
+  function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2, Field level3) internal pure returns (Tick) {
     unchecked {
       uint utick = tickPosInLeaf |
         ((BitLib.ctz(Field.unwrap(level0)) |
           (BitLib.ctz(Field.unwrap(level1)) |
-            uint((int(BitLib.ctz(Field.unwrap(level2)))-LEVEL2_SIZE/2) << LEVEL1_SIZE_BITS)) 
+            (BitLib.ctz(Field.unwrap(level2)) |
+              uint((int(BitLib.ctz(Field.unwrap(level3)))-LEVEL3_SIZE/2) << LEVEL2_SIZE_BITS)) 
+              << LEVEL1_SIZE_BITS)
             << LEVEL0_SIZE_BITS)
           << LEAF_SIZE_BITS);
       return Tick.wrap(int(utick));
@@ -245,37 +247,29 @@ library TickLib {
     return Tick.unwrap(tick) >> (LEAF_SIZE_BITS + LEVEL0_SIZE_BITS + LEVEL1_SIZE_BITS);
   }
 
+  function level2Index(Tick tick) internal pure returns (int) {
+    return Tick.unwrap(tick) >> (LEAF_SIZE_BITS + LEVEL0_SIZE_BITS + LEVEL1_SIZE_BITS + LEVEL2_SIZE_BITS);
+  }
+
   // see note posIn*
   function posInLevel1(Tick tick) internal pure returns (uint) {
     return uint(tick.level0Index()) & LEVEL1_SIZE_MASK;
   }
 
+  function posInLevel2(Tick tick) internal pure returns (uint) {
+    return uint(tick.level1Index()) & LEVEL2_SIZE_MASK;
+  }
+
   // see note posIn*
-  // note with int24 tick we only use 64 bits of level2 (64*256*256*4 is 2**24)
-  // the goal is that have the bit positions in {} used:
-// FIXME: This is a non-standard way of writing bit positions, normally they're numbered right-to-left
-// FIXME: Also, the highest position in a field is 63 and is used for the highest tick in the level.
-//        This feels like it's conflicting with the stmt in the Excalidraw that says "ticks go right (cheap) to left (expensive)"
-  //   level 2 single node
+  // note with int24 tick we only use 2 bits in level3
+  //   level 3 single node
   // <--------------------->
-  // {0.......63}64......255
-
-  // we could start from the "normally-calculated" indices:
-
-  //    level 2 node 0       level 2 node 1
-  //  <----------------->  <--------------->
-  //  0......31{32.....63  0.....31}32...255
-
-  // then add 32 to get the bit positions, but we optimize:
-  // level 1 indices are
-
-  // lowest level 1 node              highest level 1 node
-  //        -32.............-1 0...............31
-
+  //  1                  0
+  //  ^initial level2
   // so we can immediately add 32 to that
   // and there is no need to take a modulo
-  function posInLevel2(Tick tick) internal pure returns (uint) {
-    return uint(tick.level1Index() + LEVEL2_SIZE / 2);
+  function posInLevel3(Tick tick) internal pure returns (uint) {
+    return uint(tick.level2Index() + LEVEL3_SIZE / 2);
   }
 
   function strictlyBetter(Tick tick1, Tick tick2) internal pure returns (bool) {
@@ -363,6 +357,12 @@ library FieldLib {
     return level2;
   }
 
+  function flipBitAtLevel3(Field level3, Tick tick) internal pure returns (Field) {
+    uint pos = tick.posInLevel3();
+    level3 = Field.wrap(Field.unwrap(level3) ^ (1 << pos));
+    return level3;
+  }
+
   // utility fn
   function eraseToTick0(Field field, Tick tick) internal pure returns (Field) {
     uint mask = ONES << (tick.posInLevel0() + 1);
@@ -396,6 +396,17 @@ library FieldLib {
     return Field.wrap(Field.unwrap(field) & mask);
   }
 
+  // utility fn
+  function eraseToTick3(Field field, Tick tick) internal pure returns (Field) {
+    uint mask = ONES << (tick.posInLevel3() + 1);
+    return Field.wrap(Field.unwrap(field) & mask);
+  }
+
+  function eraseFromTick3(Field field, Tick tick) internal pure returns (Field) {
+    uint mask = ~(ONES << tick.posInLevel3());
+    return Field.wrap(Field.unwrap(field) & mask);
+  }
+
   // Will throw if field is empty
   function firstOnePosition(Field field) internal pure returns (uint) {
     // FIXME stop checking for 0 or integrate it into ctz function in assembly
@@ -412,12 +423,18 @@ library FieldLib {
     return BitLib.fls(Field.unwrap(field));
   }
 
-  // Get the index of the first level1 of a level2
-  function firstLevel1Index(Field level2) internal pure returns (int) {
-    return int(level2.firstOnePosition()) - LEVEL2_SIZE / 2;
+  // Get the index of the first level(i) of a level(i+1)
+  function firstLevel2Index(Field level3) internal pure returns (int) {
+    return int(level3.firstOnePosition()) - LEVEL3_SIZE / 2;
   }
-  function lastLevel1Index(Field level2) internal pure returns (int) {
-    return int(level2.lastOnePosition()) - LEVEL2_SIZE / 2;
+  function lastLevel2Index(Field level3) internal pure returns (int) {
+    return int(level3.lastOnePosition()) - LEVEL3_SIZE / 2;
+  }
+  function firstLevel1Index(Field level2, int level2Index) internal pure returns (int) {
+    return level2Index * LEVEL2_SIZE + int(level2.firstOnePosition());
+  }
+  function lastLevel1Index(Field level2, int level2Index) internal pure returns (int) {
+    return level2Index * LEVEL2_SIZE + int(level2.lastOnePosition());
   }
   function firstLevel0Index(Field level1, int level1Index) internal pure returns (int) {
     return level1Index * LEVEL1_SIZE + int(level1.firstOnePosition());

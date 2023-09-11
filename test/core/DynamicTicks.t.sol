@@ -112,7 +112,8 @@ contract DynamicTicksTest is MangroveTest {
     assertEq(mgv.leafs(olKey, tick.leafIndex()).firstOfferPosition(), tick.posInLeaf(), "wrong pos in leaf");
     assertEq(mgv.level0(olKey, tick.level0Index()).firstOnePosition(), tick.posInLevel0(), "wrong pos in level0");
     assertEq(mgv.level1(olKey, tick.level1Index()).firstOnePosition(), tick.posInLevel1(), "wrong pos in level1");
-    assertEq(mgv.level2(olKey).firstOnePosition(), tick.posInLevel2(), "wrong pos in level2");
+    assertEq(mgv.level2(olKey, tick.level2Index()).firstOnePosition(), tick.posInLevel2(), "wrong pos in level2");
+    assertEq(mgv.level3(olKey).firstOnePosition(), tick.posInLevel3(), "wrong pos in level2");
   }
 
   function test_noOfferAtZeroTickScale(int24 logPrice, uint96 gives) public {

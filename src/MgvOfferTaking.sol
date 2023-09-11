@@ -110,15 +110,25 @@ abstract contract MgvOfferTaking is MgvHasOffers {
             if (!offerList.level1[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
               offerList.level1[index] = DirtyFieldLib.DIRTY_EMPTY;
             }
+            index = offerTick.level2Index();
             field = local.level2().flipBitAtLevel2(offerTick);
-            local = local.level2(field);
             if (field.isEmpty()) {
-              local = local.level1(field);
-              local = local.level0(field);
-              mor.leaf = LeafLib.EMPTY;
-              return (0, local);
+              // unlike level0&1, level2 cannot be CLEAN_EMPTY (dirtied in active())
+              offerList.level2[index] = DirtyFieldLib.DIRTY_EMPTY;
+              field = local.level3().flipBitAtLevel3(offerTick);
+              local = local.level3(field);
+              if (field.isEmpty()) {
+                local = local.level2(field);
+                local = local.level1(field);
+                local = local.level0(field);
+                mor.leaf = LeafLib.EMPTY;
+                return (0, local);
+              }
+              index = field.firstLevel2Index();
+              field = offerList.level2[index].clean();
             }
-            index = field.firstLevel1Index();
+            local = local.level2(field);
+            index = field.firstLevel1Index(index);
             // Top bit cleaning will be done by level1(field) + field cannot be empty
             field = Field.wrap(DirtyField.unwrap(offerList.level1[index]));
           }

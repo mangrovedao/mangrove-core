@@ -8,8 +8,8 @@ uint constant TOPBIT = 1 << 255;
 uint constant NOT_TOPBIT = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
 // MIN_TICK and MAX_TICK should be inside the addressable range defined by the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2
-int constant MIN_TICK = -524288;
-int constant MAX_TICK = -MIN_TICK - 1;
+int constant MIN_TICK = -1048576;
+int constant MAX_TICK = -MIN_TICK-1;
 
 // sizes must match field sizes in structs.ts where relevant
 uint constant TICK_BITS = 24;
@@ -20,18 +20,22 @@ uint constant LEAF_SIZE_BITS = 2;
 uint constant LEVEL0_SIZE_BITS = 6;
 uint constant LEVEL1_SIZE_BITS = 6;
 uint constant LEVEL2_SIZE_BITS = 6;
+uint constant LEVEL3_SIZE_BITS = 1;
 
 int constant LEAF_SIZE = int(2 ** (LEAF_SIZE_BITS));
 int constant LEVEL0_SIZE = int(2 ** (LEVEL0_SIZE_BITS));
 int constant LEVEL1_SIZE = int(2 ** (LEVEL1_SIZE_BITS));
 int constant LEVEL2_SIZE = int(2 ** (LEVEL2_SIZE_BITS));
+int constant LEVEL3_SIZE = int(2 ** (LEVEL3_SIZE_BITS));
 
 uint constant LEAF_SIZE_MASK = ~(ONES << LEAF_SIZE_BITS);
 uint constant LEVEL0_SIZE_MASK = ~(ONES << LEVEL0_SIZE_BITS);
 uint constant LEVEL1_SIZE_MASK = ~(ONES << LEVEL1_SIZE_BITS);
 uint constant LEVEL2_SIZE_MASK = ~(ONES << LEVEL2_SIZE_BITS);
+uint constant LEVEL3_SIZE_MASK = ~(ONES << LEVEL3_SIZE_BITS);
 
-int constant NUM_LEVEL1 = int(LEVEL2_SIZE);
+int constant NUM_LEVEL2 = int(LEVEL3_SIZE);
+int constant NUM_LEVEL1 = NUM_LEVEL2 * LEVEL2_SIZE;
 int constant NUM_LEVEL0 = NUM_LEVEL1 * LEVEL1_SIZE;
 int constant NUM_LEAFS = NUM_LEVEL0 * LEVEL0_SIZE;
 int constant NUM_TICKS = NUM_LEAFS * LEAF_SIZE;

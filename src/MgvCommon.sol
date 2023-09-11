@@ -55,6 +55,7 @@ contract MgvCommon is HasMgvEvents {
     mapping(int => DirtyLeaf) leafs;
     mapping(int => DirtyField) level0;
     mapping(int => DirtyField) level1;
+    mapping(int => DirtyField) level2;
   }
 
   /* `offerLists` maps offer list id to offer list. */

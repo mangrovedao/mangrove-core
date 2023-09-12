@@ -81,9 +81,9 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     // LocalPacked is partially filtered
     //   hidden
     assertEq(order.local.tickPosInLeaf(), 0, "tickPosInLeaf should be hidden");
-    assertEq(order.local.level0(), FieldLib.EMPTY, "level0 should be hidden");
-    assertEq(order.local.level1(), FieldLib.EMPTY, "level1 should be hidden");
-    assertEq(order.local.level2(), FieldLib.EMPTY, "level2 should be hidden");
+    assertTrue(order.local.level0().isEmpty(), "level0 should be hidden");
+    assertTrue(order.local.level1().isEmpty(), "level1 should be hidden");
+    assertTrue(order.local.level2().isEmpty(), "level2 should be hidden");
     assertEq(order.local.last(), 0, "last should be hidden");
     //   not hidden
     assertTrue(order.local.active(), "active should not be hidden");
@@ -1031,7 +1031,7 @@ contract MakerOperationsTest is MangroveTest, IMaker {
       "badLocal's tick's level0 should not have changed"
     );
     // Make sure the previously local offer's branch is now empty
-    assertEq(mgv.level0(olKey, lowTick.level0Index()), FieldLib.EMPTY, "lowTick's level0 should have been flushed");
+    assertTrue(mgv.level0(olKey, lowTick.level0Index()).isEmpty(), "lowTick's level0 should have been flushed");
   }
 
   // FIXME

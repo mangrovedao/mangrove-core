@@ -4,7 +4,7 @@
 
 pragma solidity ^0.8.10;
 
-// import "mgv_test/lib/MangroveTest.sol";
+import "mgv_test/lib/MangroveTest.sol";
 import "mgv_lib/Test2.sol";
 // import "abdk-libraries-solidity/ABDKMathQuad.sol";
 import "mgv_src/MgvLib.sol";
@@ -294,7 +294,7 @@ contract TickTest is Test {
   }
 }
 
-contract FieldTest is Test {
+contract FieldTest is Test, MangroveTest {
   function test_flipBit0(uint _field, uint8 posInLevel) public {
     posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL0_SIZE - 1)));
     bytes32 field = bytes32(_field);
@@ -382,70 +382,69 @@ contract FieldTest is Test {
 
   /* Field dirty/clean */
 
-  function test_clean_field_idempotent(DirtyField field) public {
+  function test_clean_field_idempotent(Field field) public {
     Field cleaned = field.clean();
-    assertTrue(cleaned.eq(DirtyField.wrap(Field.unwrap(cleaned)).clean()));
+    assertTrue(cleaned.eq(cleaned.clean()));
   }
 
   function test_dirty_field_idempotent(Field field) public {
-    // field = Field.wrap(Field.unwrap(field)& NOT_TOPBIT);
-    DirtyField dirtied = field.dirty();
-    assertTrue(dirtied.eq(Field.wrap(DirtyField.unwrap(dirtied)).dirty()));
+    Field dirtied = field.dirty();
+    assertTrue(dirtied.eq(dirtied.dirty()));
   }
 
-  function test_dirty_clean_inverse(uint field) public {
-    vm.assume(DirtyField.wrap(field).isDirty());
-    DirtyField inv = DirtyField.wrap(field).clean().dirty();
-    assertTrue(inv.eq(DirtyField.wrap(field)));
+  function test_dirty_clean_inverse(Field field) public {
+    vm.assume(field.isDirty());
+    Field inv = field.clean().dirty();
+    assertTrue(inv.eq(field));
   }
 
-  function test_dirty_invariant_under_clean(uint field) public {
-    DirtyField under = DirtyField.wrap(field).clean().dirty();
-    assertTrue(under.eq(Field.wrap(field).dirty()));
+  function test_dirty_invariant_under_clean(Field field) public {
+    Field under = field.clean().dirty();
+    assertTrue(under.eq(field.dirty()));
   }
 
-  function test_clean_dirty_inverse(uint field) public {
-    vm.assume(!DirtyField.wrap(field).isDirty());
-    Field inv = Field.wrap(field).dirty().clean();
-    assertTrue(inv.eq(Field.wrap(field)));
+  function test_clean_dirty_inverse(Field field) public {
+    vm.assume(!field.isDirty());
+    Field inv = field.dirty().clean();
+    assertTrue(inv.eq(field));
   }
 
-  function test_clean_invariant_under_dirty(uint field) public {
-    Field under = Field.wrap(field).dirty().clean();
-    assertTrue(under.eq(DirtyField.wrap(field).clean()));
+  function test_clean_invariant_under_dirty(Field field) public {
+    Field under = field.dirty().clean();
+    assertTrue(under.eq(field.clean()));
   }
 
   function test_clean_field_on_0() public {
-    uint ufield = Field.unwrap(DirtyField.wrap(0).clean());
-    assertEq(ufield, 0);
+    Field field = Field.wrap(0).clean();
+    assertEq(field, Field.wrap(0));
   }
 
   function test_clean_field_on_topbit() public {
-    uint ufield = Field.unwrap(DirtyField.wrap(TOPBIT).clean());
-    assertEq(ufield, 0);
+    Field field = Field.wrap(TOPBIT).clean();
+    assertEq(field, Field.wrap(0));
   }
 
-  function test_clean_field_fuzz(uint field) public {
-    vm.assume(!DirtyField.wrap(field).isDirty());
-    assertEq(Field.unwrap(DirtyField.wrap(field).clean()), field);
+  function test_clean_field_fuzz(Field field) public {
+    vm.assume(!field.isDirty());
+    assertEq(field.clean(), field);
   }
 
   function test_dirty_field_on_0() public {
-    uint ufield = DirtyField.unwrap(Field.wrap(0).dirty());
-    assertEq(ufield, TOPBIT);
+    Field field = Field.wrap(0).dirty();
+    assertEq(field, Field.wrap(TOPBIT));
   }
 
   function test_dirty_field_on_topbit() public {
-    uint ufield = DirtyField.unwrap(Field.wrap(TOPBIT).dirty());
-    assertEq(ufield, TOPBIT);
+    Field field = Field.wrap(TOPBIT).dirty();
+    assertEq(field, Field.wrap(TOPBIT));
   }
 
-  function test_dirty_field_fuzz(uint field) public {
-    vm.assume(DirtyField.wrap(field).isDirty());
-    assertEq(DirtyField.unwrap(Field.wrap(field).dirty()), field);
+  function test_dirty_field_fuzz(Field field) public {
+    vm.assume(field.isDirty());
+    assertEq(field.dirty(), field);
   }
 
-  function field_isDirty(DirtyField field) public {
-    assertEq(field.isDirty(), DirtyField.unwrap(field) & TOPBIT == TOPBIT);
+  function field_isDirty(Field field) public {
+    assertEq(field.isDirty(), Field.unwrap(field) & TOPBIT == TOPBIT);
   }
 }

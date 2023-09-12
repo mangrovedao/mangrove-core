@@ -638,7 +638,7 @@ contract GatekeepingTest is MangroveTest {
     // (if it had originally been empty, the test would always succeed)
     mgv.retractOffer(olKey, ofr1, true);
     assertTrue(index1 != index2, "test should construct ofr1/ofr2 so they are on different level0 nodes");
-    assertEq(mgv.level0(olKey, index1), FieldLib.EMPTY, "ofr1's level0 should be empty");
+    assertTrue(mgv.level0(olKey, index1).isEmpty(), "ofr1's level0 should be empty");
   }
 
   // FIXME Not Gatekeeping!

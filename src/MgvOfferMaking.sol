@@ -358,7 +358,7 @@ contract MgvOfferMaking is MgvHasOffers {
 
         // Save current level0
         if (insertionIndex < currentIndex) {
-          Field localLeve0 = ofp.local.level0();
+          Field localLevel0 = ofp.local.level0();
           bool shouldSaveLevel0 = !localLeve0.isEmpty();
           if (!shouldSaveLevel0) {
             shouldSaveLevel0 = !offerList.level0[currentIndex].eq(DirtyFieldLib.CLEAN_EMPTY);

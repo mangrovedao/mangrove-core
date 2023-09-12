@@ -13,7 +13,7 @@ import {
   LEVEL1_SIZE,
   LEVEL0_SIZE,
   OLKey,
-  DirtyFieldLib
+  FieldLib
 } from "./MgvLib.sol";
 import {MgvCommon} from "./MgvCommon.sol";
 
@@ -127,13 +127,13 @@ contract MgvHasOffers is MgvCommon {
           field = local.level0().flipBitAtLevel0(offerTick);
           local = local.level0(field);
           if (shouldUpdateBranch && field.isEmpty()) {
-            if (!offerList.level0[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
-              offerList.level0[index] = DirtyFieldLib.DIRTY_EMPTY;
+            if (!offerList.level0[index].eq(FieldLib.CLEAN_EMPTY)) {
+              offerList.level0[index] = FieldLib.DIRTY_EMPTY;
             }
           }
         } else {
           // note: useless dirty/clean cycle here
-          field = offerList.level0[index].clean().flipBitAtLevel0(offerTick);
+          field = offerList.level0[index].flipBitAtLevel0(offerTick);
           offerList.level0[index] = field.dirty();
         }
         if (field.isEmpty()) {
@@ -142,13 +142,13 @@ contract MgvHasOffers is MgvCommon {
             field = local.level1().flipBitAtLevel1(offerTick);
             local = local.level1(field);
             if (shouldUpdateBranch && field.isEmpty()) {
-              if (!offerList.level1[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
-                offerList.level1[index] = DirtyFieldLib.DIRTY_EMPTY;
+              if (!offerList.level1[index].eq(FieldLib.CLEAN_EMPTY)) {
+                offerList.level1[index] = FieldLib.DIRTY_EMPTY;
               }
             }
           } else {
             // note: useless dirty/clean cycle here
-            field = offerList.level1[index].clean().flipBitAtLevel1(offerTick);
+            field = offerList.level1[index].flipBitAtLevel1(offerTick);
             offerList.level1[index] = field.dirty();
           }
           if (field.isEmpty()) {
@@ -163,13 +163,13 @@ contract MgvHasOffers is MgvCommon {
             // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
             if (shouldUpdateBranch) {
               index = field.firstLevel1Index();
-              field = offerList.level1[index].clean();
+              field = offerList.level1[index];
               local = local.level1(field);
             }
           }
           if (shouldUpdateBranch) {
             index = field.firstLevel0Index(index);
-            field = offerList.level0[index].clean();
+            field = offerList.level0[index];
             local = local.level0(field);
           }
         }

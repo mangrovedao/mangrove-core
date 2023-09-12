@@ -11,10 +11,8 @@ using LeafLib for Leaf global;
 using DirtyLeafLib for DirtyLeaf global;
 
 type Field is uint;
-type DirtyField is uint;
 
 using FieldLib for Field global;
-using DirtyFieldLib for DirtyField global;
 
 type Tick is int;
 
@@ -289,44 +287,35 @@ library TickLib {
 }
 
 
-// We use TOPBIT as the optimized in-storage value since 1 is a valid Field value
-library DirtyFieldLib {
-  DirtyField constant DIRTY_EMPTY = DirtyField.wrap(TOPBIT);
-  DirtyField constant CLEAN_EMPTY = DirtyField.wrap(0);
 
-  // Return clean field with topbit set to 0
-  function clean(DirtyField field) internal pure returns (Field) {
+// In fields, positions are counted from the right
+library FieldLib {
+  // We use TOPBIT as the optimized in-storage value since 1 is a valid Field value
+  Field constant DIRTY_EMPTY = Field.wrap(TOPBIT);
+  Field constant CLEAN_EMPTY = Field.wrap(0);
+
+  function isDirty(Field field) internal pure returns (bool) {
+    unchecked {
+      return Field.unwrap(field) > TOPBIT;
+    }
+  }
+
+  function clean(Field field) internal pure returns (Field) {
     unchecked {
       assembly ("memory-safe") {
         field := and(NOT_TOPBIT,field)
       }
-      return Field.wrap(DirtyField.unwrap(field));
+      return field;
     }
   }
-  function isDirty(DirtyField field) internal pure returns (bool) {
-    unchecked {
-      return DirtyField.unwrap(field) & TOPBIT == TOPBIT;
-    }
-  }
-
-  function eq(DirtyField leaf1, DirtyField leaf2) internal pure returns (bool) {
-    unchecked {
-      return DirtyField.unwrap(leaf1) == DirtyField.unwrap(leaf2);
-    }
-  }
-}
-
-// In fields, positions are counted from the right
-library FieldLib {
-  Field constant EMPTY = Field.wrap(uint(0));
 
   // Return clean field with topbit set to 1
-  function dirty(Field field) internal pure returns (DirtyField) {
+  function dirty(Field field) internal pure returns (Field) {
     unchecked {
       assembly ("memory-safe") {
         field := or(TOPBIT,field)
       }
-      return DirtyField.wrap(Field.unwrap(field));
+      return field;
     }
   }
 
@@ -336,7 +325,7 @@ library FieldLib {
 
   // Does not accept TOPBIT as an empty value
   function isEmpty(Field field) internal pure returns (bool) {
-    return Field.unwrap(field) == Field.unwrap(EMPTY);
+    return (Field.unwrap(field)|TOPBIT) == TOPBIT;
   }
 
   // function unsetBitAtTick(Field field, Tick tick, uint level) internal pure returns (Field) {

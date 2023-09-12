@@ -93,14 +93,14 @@ contract TestTickTree is MangroveTest {
 
       if (!level2PosIsSet) {
         assertTrue(
-          level1.eq(FieldLib.EMPTY),
+          level1.isEmpty(),
           string.concat("level1 should be empty when bit is not set in level2 | tree branch: ", vm.toString(level2Pos))
         );
         // checking that the entire subtree is empty is too expensive, so we stop here
         continue;
       }
       assertTrue(
-        !level1.eq(FieldLib.EMPTY),
+        !level1.isEmpty(),
         string.concat("level1 should not be empty when bit is set in level2 | tree branch: ", vm.toString(level2Pos))
       );
 
@@ -111,7 +111,7 @@ contract TestTickTree is MangroveTest {
 
         if (!level1PosIsSet) {
           assertTrue(
-            level0.eq(FieldLib.EMPTY),
+            level0.isEmpty(),
             string.concat(
               "level0 should be empty when bit is not set in level1 | tree branch: ",
               vm.toString(level2Pos),
@@ -123,7 +123,7 @@ contract TestTickTree is MangroveTest {
           continue;
         }
         assertTrue(
-          !level0.eq(FieldLib.EMPTY),
+          !level0.isEmpty(),
           string.concat(
             "level0 should not be empty when bit is set in level1 | tree branch: ",
             vm.toString(level2Pos),
@@ -453,9 +453,9 @@ contract TestTickTree is MangroveTest {
     // Update levels
     if (leaf.eq(LeafLib.EMPTY)) {
       level0s[tick.level0Index()] = unsetBit(level0s[tick.level0Index()], tick.posInLevel0());
-      if (level0s[tick.level0Index()].eq(FieldLib.EMPTY)) {
+      if (level0s[tick.level0Index()].isEmpty()) {
         level1s[tick.level1Index()] = unsetBit(level1s[tick.level1Index()], tick.posInLevel1());
-        if (level1s[tick.level1Index()].eq(FieldLib.EMPTY)) {
+        if (level1s[tick.level1Index()].isEmpty()) {
           local = local.level2(unsetBit(local.level2(), tick.posInLevel2()));
         }
       }

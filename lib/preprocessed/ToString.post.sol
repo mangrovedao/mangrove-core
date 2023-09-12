@@ -91,17 +91,16 @@ function toString(DirtyLeaf leaf) pure returns (string memory ret) {
 }
 
 function toString(Field field) pure returns (string memory res) {
+  Field cleaned = field.clean();
   for (uint i = 0; i < 256; i++) {
-    if (Field.unwrap(field) & (1 << i) > 0) {
+    if (Field.unwrap(cleaned) & (1 << i) > 0) {
       string memory sep = bytes(res).length == 0 ?  unicode"【" : ", ";
       res = string.concat(res,sep,vm.toString(i));
     }
   }
   res = string.concat(bytes(res).length==0?unicode"【empty":res, unicode"】");
-}
 
-function toString(DirtyField field) pure returns (string memory ret) {
-  return string.concat("<dirty[",field.isDirty() ? "yes" : "no","]",toString(field.clean()),">");
+  res = string.concat(field.isDirty()?"(dirty)":"",res);
 }
 
 function toString(OLKey memory olKey) pure returns (string memory res) {

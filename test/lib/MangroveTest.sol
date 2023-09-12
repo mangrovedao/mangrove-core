@@ -78,7 +78,7 @@ contract MangroveTest is Test2, HasMgvEvents {
     quote: TokenOptions({name: "Quote Token", symbol: "$(B)", decimals: 18}),
     defaultFee: 0,
     defaultTickScale: 1,
-    defaultTickShift: 0,
+    defaultTickShift: 101,
     gasprice: 40,
     //Update `gasbase` by measuring using the test run `forge test --mc OfferGasBaseTest_Generic_A_B -vv`
     gasbase: 184048,

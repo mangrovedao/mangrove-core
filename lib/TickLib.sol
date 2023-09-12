@@ -409,7 +409,7 @@ library FieldLib {
   // Will throw if field is empty
   function lastOnePosition(Field field) internal pure returns (uint) {
     // FIXME stop checking for 0 or integrate it into ctz function in assembly
-    require(!field.isEmpty() ,"field is 0");
+    require(!field.isEmpty(), "field is 0");
     return BitLib.fls(Field.unwrap(field));
   }
 

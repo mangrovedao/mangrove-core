@@ -1131,15 +1131,17 @@ contract TakerOperationsTest is MangroveTest {
   ) public {
     quote.approve($(mgv), 10_000 ether);
     _tick = int24(bound(_tick, -100, 100));
-    int24 _firstPostedTick = crossTick ? _tick - 1 : _tick;
-    mkr.newOfferByLogPrice(_firstPostedTick, 1 ether, 100_000);
-    mkr.newOfferByLogPrice(_tick, 1 ether, 100_000);
-    uint ofr3 = mkr.newOfferByLogPrice(_tick, 1 ether, 100_000);
-    uint ofr4 = mkr.newOfferByLogPrice(_tick, 1 ether, 100_000);
-    uint volume = leaveOneOnly ? 3 ether : 2 ether;
-    mgv.marketOrderByLogPrice(olKey, _tick, volume, true);
-
     Tick tick = Tick.wrap(_tick);
+    Tick firstPostedTick = Tick.wrap(crossTick ? _tick - 1 : _tick);
+
+    int logPrice = LogPriceLib.fromTick(tick, olKey.tickScale, olKey.tickShift);
+    int firstPostedLogPrice = LogPriceLib.fromTick(firstPostedTick, olKey.tickScale, olKey.tickShift);
+    mkr.newOfferByLogPrice(firstPostedLogPrice, 1 ether, 100_000);
+    mkr.newOfferByLogPrice(logPrice, 1 ether, 100_000);
+    uint ofr3 = mkr.newOfferByLogPrice(logPrice, 1 ether, 100_000);
+    uint ofr4 = mkr.newOfferByLogPrice(logPrice, 1 ether, 100_000);
+    uint volume = leaveOneOnly ? 3 ether : 2 ether;
+    mgv.marketOrderByLogPrice(olKey, logPrice, volume, true);
 
     uint bestId = leaveOneOnly ? ofr4 : ofr3;
     MgvStructs.OfferPacked best = mgv.offers(olKey, bestId);

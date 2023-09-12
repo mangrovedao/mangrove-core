@@ -959,10 +959,11 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     mkr.provisionMgv(10 ether);
     Tick tick0 = Tick.wrap(0);
     mkr.newOfferByLogPrice(LogPriceLib.fromTick(tick0, olKey.tickScale, olKey.tickShift), 1 ether, 100_000, 0);
-    uint ofr = mkr.newOfferByLogPrice(-46055, 100 ether, 100_000, 0);
+    // FIXME: This logPrice should be derived - as is, the test is fragile
+    uint ofr = mkr.newOfferByLogPrice(-46055 + olKey.tickShift, 100 ether, 100_000, 0);
     MgvStructs.OfferPacked offer = mgv.offers(olKey, ofr);
     assertTrue(
-      offer.tick(olKey.tickScale, olKey.tickShift).posInLeaf() != Tick.wrap(0).posInLeaf(),
+      offer.tick(olKey.tickScale, olKey.tickShift).posInLeaf() != tick0.posInLeaf(),
       "test void if posInLeaf of second offer is not different"
     );
     assertEq(
@@ -1044,9 +1045,10 @@ contract MakerOperationsTest is MangroveTest, IMaker {
   function test_higher_tick() public {
     mgv.newOfferByLogPrice(olKey, 2, 1 ether, 100_000, 0);
     (, MgvStructs.LocalPacked local) = mgv.config(olKey);
+    uint posInLeafBefore = local.tickPosInLeaf();
 
     mgv.newOfferByLogPrice(olKey, 3, 1 ether, 100_000, 0);
     (, local) = mgv.config(olKey);
-    assertEq(local.tickPosInLeaf(), 2);
+    assertEq(local.tickPosInLeaf(), posInLeafBefore);
   }
 }

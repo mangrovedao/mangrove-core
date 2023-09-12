@@ -108,14 +108,16 @@ contract DynamicTicksTest is MangroveTest {
     logPrice = boundLogPrice(logPrice);
     vm.assume(tickScale != 0);
     uint gives = 1 ether;
-    int insertionLogPrice = int24(LogPriceLib.fromTick(TickLib.fromLogPrice(logPrice, tickScale, 0), tickScale, 0)); // FIXME: tickShift parameter?
+    int insertionLogPrice = int24(
+      LogPriceLib.fromTick(TickLib.fromLogPrice(logPrice, tickScale, olKey.tickShift), tickScale, olKey.tickShift)
+    ); // FIXME: tickShift parameter?
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
     uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
     mgv.activate(olKey, 0, 100, 0);
     mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_000, 30);
-    Tick tick = TickLib.fromLogPrice(insertionLogPrice, tickScale, 0); // FIXME: tickShift parameter?
+    Tick tick = TickLib.fromLogPrice(insertionLogPrice, tickScale, olKey.tickShift); // FIXME: tickShift parameter?
     assertEq(mgv.leafs(olKey, tick.leafIndex()).firstOfferPosition(), tick.posInLeaf(), "wrong pos in leaf");
     assertEq(mgv.level0(olKey, tick.level0Index()).firstOnePosition(), tick.posInLevel0(), "wrong pos in level0");
     assertEq(mgv.level1(olKey, tick.level1Index()).firstOnePosition(), tick.posInLevel1(), "wrong pos in level1");
@@ -152,7 +154,7 @@ contract DynamicTicksTest is MangroveTest {
     vm.assume(tickScale != 0);
     vm.assume(int(logPrice) % int(uint(tickScale)) != 0);
     logPrice = boundLogPrice(logPrice);
-    int insertionLogPrice = int24(LogPriceLib.fromTick(TickLib.fromLogPrice(logPrice, tickScale, 0), tickScale, 0));
+    int insertionLogPrice = int24(LogPriceLib.fromTick(TickLib.fromLogPrice(logPrice, tickScale, 0), tickScale, 0)); // FIXME: tickShift parameter?
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
     olKey.tickScale = tickScale;
     uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, 1 ether);

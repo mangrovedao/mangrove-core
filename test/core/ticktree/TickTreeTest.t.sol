@@ -233,13 +233,14 @@ abstract contract TickTreeTest is MangroveTest {
   {
     Tick _tick = Tick.wrap(tick);
     int logPrice = LogPriceLib.fromTick(_tick, olKey.tickScale);
-    gives = getAcceptableGivesForTick(_tick, 100_000);
+    uint gasreq = 1_300_000;
+    gives = getAcceptableGivesForTick(_tick, gasreq);
     offerIds = new uint[](n);
     for (uint i = 0; i < n; ++i) {
       if (offersFail) {
-        offerIds[i] = mkr.newFailingOfferByLogPrice(logPrice, gives, 100_000);
+        offerIds[i] = mkr.newFailingOfferByLogPrice(logPrice, gives, gasreq);
       } else {
-        offerIds[i] = mkr.newOfferByLogPrice(logPrice, gives, 100_000);
+        offerIds[i] = mkr.newOfferByLogPrice(logPrice, gives, gasreq);
       }
     }
   }

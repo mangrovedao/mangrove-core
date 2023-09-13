@@ -31,8 +31,10 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
   bytes32 expectedStatus;
   address tradeCallbackContract; // the `tradeCallback` will be called on this contract during makerExecute
   bytes tradeCallback;
-  address posthookCallbackContract; // the `posthookCallback` will be called on this contract during makerExecute
-  bytes posthookCallback;
+  address posthookNoArgCallbackContract; // the `posthookNoArgCallback` will be called on this contract during makerPosthook with no arguments
+  bytes posthookNoArgCallback;
+  address posthookCallbackContract; // the `posthookCallbackSelector` will be called on this contract during makerPosthook
+  bytes4 posthookCallbackSelector; // this function must take two arguments of type `MgvLib.SingleOrder`
   address executeCallbackContract; // the `executeCallbackSelector` will be called on this contract during makerExecute
   bytes4 executeCallbackSelector; // this function must take a single argument of type `MgvLib.SingleOrder`
   ///@notice stores parameters for each posted offer
@@ -89,9 +91,16 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
     tradeCallback = _tradeCallback;
   }
 
-  function setPosthookCallback(address _posthookCallbackContract, bytes calldata _posthookCallback) external {
+  function setPosthookNoArgCallback(address _posthookNoArgCallbackContract, bytes calldata _posthookNoArgCallback)
+    external
+  {
+    posthookNoArgCallbackContract = _posthookNoArgCallbackContract;
+    posthookNoArgCallback = _posthookNoArgCallback;
+  }
+
+  function setPosthookCallback(address _posthookCallbackContract, bytes4 _posthookCallbackSelector) external {
     posthookCallbackContract = _posthookCallbackContract;
-    posthookCallback = _posthookCallback;
+    posthookCallbackSelector = _posthookCallbackSelector;
   }
 
   function shouldRevert(bool should) external {
@@ -179,9 +188,14 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
       revert("posthookFail");
     }
 
-    if (posthookCallbackContract != address(0) && posthookCallback.length > 0) {
-      (bool success,) = posthookCallbackContract.call(posthookCallback);
-      require(success, "makerExecute posthookCallback must work");
+    if (posthookCallbackContract != address(0) && posthookCallbackSelector.length > 0) {
+      (bool success,) = posthookCallbackContract.call(abi.encodeWithSelector(posthookCallbackSelector, (order)));
+      require(success, "makerPosthook posthookCallback must work");
+    }
+
+    if (posthookNoArgCallbackContract != address(0) && posthookNoArgCallback.length > 0) {
+      (bool success,) = posthookNoArgCallbackContract.call(posthookNoArgCallback);
+      require(success, "makerPosthook posthookNoArgCallback must work");
     }
 
     if (_shouldRepost) {

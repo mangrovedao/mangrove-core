@@ -91,27 +91,27 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_killing_updates_config() public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
+    MgvStructs.GlobalPacked global = mgv.global();
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OLKey(address(0), address(0), 0));
+    global = mgv.global();
     assertTrue(global.dead(), "mgv should be dead ");
   }
 
   function test_kill_is_idempotent() public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
+    MgvStructs.GlobalPacked global = mgv.global();
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OLKey(address(0), address(0), 0));
+    global = mgv.global();
     assertTrue(global.dead(), "mgv should be dead");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OLKey(address(0), address(0), 0));
+    global = mgv.global();
     assertTrue(global.dead(), "mgv should still be dead");
   }
 
@@ -374,7 +374,7 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
     uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000);
 
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.newOfferOK, (olKey)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.newOfferOK, (olKey)));
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be executed or test is void");
     assertTrue(mgv.best(olKey) == 2, "newOfferByVolume on posthook must work");
@@ -421,7 +421,7 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
 
     uint other_ofr = mkr.newOfferByLogPrice(olKey, 1, 1 ether, 100_000);
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.updateOfferOK, (olKey, other_ofr)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.updateOfferOK, (olKey, other_ofr)));
     uint ofr = mkr.newOfferByLogPrice(olKey, 0, 1 ether, 300_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be executed or test is void");
@@ -470,7 +470,7 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
 
     uint other_ofr = mkr.newOfferByLogPrice(olKey, 1, 1 ether, 290_000);
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.retractOfferOK, (olKey, other_ofr)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.retractOfferOK, (olKey, other_ofr)));
 
     uint ofr = mkr.newOfferByLogPrice(olKey, 0, 1 ether, 190_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
@@ -528,7 +528,7 @@ contract GatekeepingTest is MangroveTest {
     mgv.setGasmax(10_000_000);
     uint ofr = mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000);
     uint ofr2 = other_mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 1800_000);
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.marketOrderOK, (olKey)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.marketOrderOK, (olKey)));
     assertTrue(tkr.marketOrderWithSuccess(0.5 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be executed or test is void");
     assertTrue(other_mkr.makerExecuteWasCalled(ofr2), "ofr2 must be executed or test is void");
@@ -668,7 +668,7 @@ contract GatekeepingTest is MangroveTest {
     int logPrice2 = LogPriceConversionLib.logPriceFromPrice(2, 0);
     uint other_ofr = other_mkr.newOfferByLogPrice(logPrice2, 1 ether, 200_000);
 
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.cleanOK, (olKey, other_ofr, logPrice2)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.cleanOK, (olKey, other_ofr, logPrice2)));
     uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 450_000);
 
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
@@ -750,7 +750,7 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
     uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000);
 
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.olReadOK, (olKey)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.olReadOK, (olKey)));
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be executed or test is void");
   }

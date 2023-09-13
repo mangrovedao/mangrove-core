@@ -3,6 +3,7 @@ pragma solidity ^0.8.17;
 
 import "mgv_lib/Constants.sol";
 import {BitLib} from "mgv_lib/BitLib.sol";
+import {console2 as csf} from "forge-std/console2.sol";
 
 type Leaf is uint;
 type DirtyLeaf is uint;
@@ -184,7 +185,7 @@ library TickLib {
     // Do not force logPrices to fit the tickScale (aka logPrice%tickScale==0)
     // Round all prices down (aka cheaper for taker)
     int tick = logPrice / int(tickScale);
-    if (logPrice < 0 && tick % int(tickScale) != 0) {
+    if (logPrice < 0 && logPrice % int(tickScale) != 0) {
       tick = tick - 1;
     }
     return Tick.wrap(tick);

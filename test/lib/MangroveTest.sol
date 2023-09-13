@@ -162,8 +162,8 @@ contract MangroveTest is Test2, HasMgvEvents {
   /* Log OB with console */
   function printOrderBook(OLKey memory _ol) internal view {
     uint offerId = mgv.best(_ol);
-    TestToken req_tk = TestToken(olKey.inbound);
-    TestToken ofr_tk = TestToken(olKey.outbound);
+    TestToken req_tk = TestToken(_ol.inbound);
+    TestToken ofr_tk = TestToken(_ol.outbound);
 
     console.log(string.concat(unicode"┌────┬──Best offer: ", vm.toString(offerId), unicode"──────"));
     while (offerId != 0) {

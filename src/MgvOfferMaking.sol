@@ -253,12 +253,6 @@ contract MgvOfferMaking is MgvHasOffers {
       /* The following checks are for the maker's convenience only. */
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
       require(LogPriceLib.inRange(insertionLogPrice), "mgv/writeOffer/logPrice/outOfRange");
-      {
-        // wants=0 is fine, `execute` should ensure the taker never sends 0.
-        // However wants too big is not fine due to overflow risk in later manipulations of wants.
-        uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, ofp.gives);
-        require(uint96(wants) == wants, "mgv/writeOffer/wants/96bits");
-      }
 
       /* Log the write offer event. */
       uint ofrId = ofp.id;
@@ -326,7 +320,7 @@ contract MgvOfferMaking is MgvHasOffers {
           bool shouldUpdateBranch = !insertionTick.strictlyBetter(cachedLocalTick);
 
           (ofp.local, shouldUpdateBranch) =
-            dislodgeOffer(offerList, ofp.olKey.tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);
+            dislodgeOffer(offerList, tickScale, ofp.oldOffer, ofp.local, cachedLocalTick, shouldUpdateBranch);
           // If !shouldUpdateBranch, then ofp.local.level0 and ofp.local.level1 reflect the removed tick's branch post-removal, so one cannot infer the tick by reading those fields. If shouldUpdateBranch, then the new tick must be inferred from the new info in local.
           if (shouldUpdateBranch) {
             // force control flow through gas-saving path if retraction emptied the offer list

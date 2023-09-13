@@ -21,27 +21,29 @@ contract DynamicTicksTest is MangroveTest {
     super.setUp();
   }
 
-  function test_logPrice_to_tick(int96 logPrice, uint96 tickScale) public {
+  function test_logPrice_to_tick(int96 logPrice, uint16 tickScale) public {
     Tick tick = Tick.wrap(logPrice);
     assertEq(LogPriceLib.fromTick(tick, tickScale), int(logPrice) * int(uint(tickScale)), "wrong tick -> logPrice");
   }
 
-  function test_tick_to_logPrice(int96 logPrice, uint96 _tickScale) public {
+  function test_tick_to_logPrice(int96 logPrice, uint16 _tickScale) public {
     vm.assume(_tickScale != 0);
     Tick tick = TickLib.fromLogPrice(logPrice, _tickScale);
     int tickScale = int(uint(_tickScale));
     int expectedTick = logPrice / tickScale;
-    if (logPrice < 0 && expectedTick % tickScale != 0) {
+    if (logPrice < 0 && logPrice % tickScale != 0) {
       expectedTick = expectedTick - 1;
     }
     assertEq(Tick.unwrap(tick), expectedTick, "wrong logPrice -> tick");
   }
 
+  // get a valid logPrice from a random int24
   function boundLogPrice(int24 logPrice) internal view returns (int24) {
     return int24(bound(logPrice, MIN_LOG_PRICE, MAX_LOG_PRICE));
   }
 
-  function test_newOffer_store_and_retrieve(uint24 tickScale, uint24 tickScale2, int24 logPrice) public {
+  // different tickScales map to different storage slots
+  function test_newOffer_store_and_retrieve(uint16 tickScale, uint16 tickScale2, int24 logPrice) public {
     vm.assume(tickScale != tickScale2);
     vm.assume(tickScale != 0);
     olKey.tickScale = tickScale;
@@ -57,11 +59,12 @@ contract DynamicTicksTest is MangroveTest {
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
     uint ofr = mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_000, 30);
-    assertEq(mgv.offers(ol2, ofr).gives(), 0, "offer should not be at other tick scale");
-    assertEq(mgv.offers(olKey, ofr).logPrice(), insertionLogPrice, "offer not saved");
+    assertEq(mgv.offers(ol2, ofr).gives(), 0, "ofr created at tickScale but found at tickScale2");
+    assertEq(mgv.offers(olKey, ofr).logPrice(), insertionLogPrice, "ofr foudn at tickScale but with wrong price");
   }
 
-  function test_updateOffer_store_and_retrieve(uint24 tickScale, uint24 tickScale2, int24 logPrice) public {
+  // more "tickScales do not interfere with one another"
+  function test_updateOffer_store_and_retrieve(uint16 tickScale, uint16 tickScale2, int24 logPrice) public {
     logPrice = boundLogPrice(logPrice);
     vm.assume(tickScale != tickScale2);
     vm.assume(tickScale != 0);
@@ -78,9 +81,9 @@ contract DynamicTicksTest is MangroveTest {
     mgv.activate(olKey, 0, 100, 0);
     mgv.activate(ol2, 0, 100, 0);
     uint ofr = mgv.newOfferByLogPrice(ol2, 0, gives, 100_000, 30);
-    assertTrue(mgv.offers(ol2, ofr).isLive(), "offer should be at tickScale2");
-    assertEq(mgv.offers(ol2, ofr).logPrice(), 0, "offer should have correct price");
-    assertEq(mgv.offers(olKey, ofr).gives(), 0, "offer should not be at tickScale");
+    assertTrue(mgv.offers(ol2, ofr).isLive(), "offer created at tickScale2 but not found there");
+    assertEq(mgv.offers(ol2, ofr).logPrice(), 0, "offer found at tickScale2 but with wrong price");
+    assertEq(mgv.offers(olKey, ofr).gives(), 0, "offer created at tickScale2 but found at tickScale");
 
     // test fails if no existing offer
     vm.expectRevert("mgv/updateOffer/unauthorized");
@@ -88,15 +91,19 @@ contract DynamicTicksTest is MangroveTest {
 
     // test offers update does not touch another tickScale
     uint ofr2 = mgv.newOfferByLogPrice(olKey, 1, gives, 100_000, 30);
-    assertEq(ofr, ofr2, "offer ids should be equal");
+    assertEq(ofr, ofr2, "tickScale and tickScale2 seem to shares offer IDs");
     mgv.updateOfferByLogPrice(olKey, logPrice, gives, 100_000, 30, ofr2);
-    assertTrue(mgv.offers(ol2, ofr).isLive(), "offer should still be at tickScale2");
-    assertEq(mgv.offers(ol2, ofr).logPrice(), 0, "offer should still have correct price");
-    assertTrue(mgv.offers(olKey, ofr).isLive(), "offer should be at tickScale");
-    assertEq(mgv.offers(olKey, ofr).logPrice(), insertionLogPrice, "offer should have logPrice");
+    assertTrue(
+      mgv.offers(ol2, ofr).isLive(),
+      "creating offer with same ID as ofr in a different tickScale seems to have deleted ofr"
+    );
+    assertEq(mgv.offers(ol2, ofr).logPrice(), 0, "creating offer with same ID as ofr seems to have changed its price");
+    assertTrue(mgv.offers(olKey, ofr).isLive(), "offer created at new tickScale but not found there");
+    assertEq(mgv.offers(olKey, ofr).logPrice(), insertionLogPrice, "offer found at new tickScale but with wrong price");
   }
 
-  function test_tickPlacement(uint24 tickScale, int24 logPrice) public {
+  // the storage of offers depends on the chosen tickScale
+  function test_tickPlacement(uint16 tickScale, int24 logPrice) public {
     olKey.tickScale = tickScale;
     logPrice = boundLogPrice(logPrice);
     vm.assume(tickScale != 0);
@@ -116,6 +123,7 @@ contract DynamicTicksTest is MangroveTest {
     assertEq(mgv.level3(olKey).firstOnePosition(), tick.posInLevel3(), "wrong pos in level2");
   }
 
+  // creating offer at zero tickScale is impossible
   function test_noOfferAtZeroTickScale(int24 logPrice, uint96 gives) public {
     // TODO is it really necessary to constraint wants < 96 bits? Or can it go to any size no problem?
     olKey.tickScale = 0;
@@ -141,7 +149,8 @@ contract DynamicTicksTest is MangroveTest {
     assertEq(flipped.tickScale, olKey.tickScale, "flipped() is incorrect");
   }
 
-  function test_insertionLogPrice_normalization(int24 logPrice, uint64 tickScale) public {
+  // logPrice given by taker is normalized and aligned to chosen tickScale
+  function test_insertionLogPrice_normalization(int24 logPrice, uint16 tickScale) public {
     vm.assume(tickScale != 0);
     vm.assume(int(logPrice) % int(uint(tickScale)) != 0);
     logPrice = boundLogPrice(logPrice);

@@ -4,6 +4,7 @@ pragma solidity ^0.8.18;
 
 import {
   TestTickTree,
+  TickTreeUtil,
   MIN_LEAF_INDEX,
   MIN_LEVEL0_INDEX,
   MIN_LEVEL1_INDEX,
@@ -13,7 +14,8 @@ import {
   MAX_LEAF_POSITION,
   MAX_LEVEL0_POSITION,
   MAX_LEVEL1_POSITION,
-  MAX_LEVEL2_POSITION
+  MAX_LEVEL2_POSITION,
+  MAX_LEVEL3_POSITION
 } from "mgv_test/lib/TestTickTree.sol";
 import {AbstractMangrove, TestTaker, MangroveTest, IMaker, TestMaker} from "mgv_test/lib/MangroveTest.sol";
 import "mgv_src/MgvLib.sol";
@@ -104,24 +106,44 @@ abstract contract TickTreeTest is MangroveTest {
   // FIXME: Update with level3
   function generateHigherTickScenarios(int tick) internal pure returns (int[] memory) {
     Tick _tick = Tick.wrap(tick);
+    Tick higherTick;
     uint next = 0;
     int[] memory ticks = new int[](10);
     if (_tick.posInLeaf() < MAX_LEAF_POSITION) {
-      ticks[next++] = tick + 1; // in leaf
+      // higher leaf position
+      higherTick = TickTreeUtil.tickFromBranch(
+        _tick.posInLevel3(), _tick.posInLevel2(), _tick.posInLevel1(), _tick.posInLevel0(), _tick.posInLeaf() + 1
+      );
+      ticks[next++] = Tick.unwrap(higherTick);
     }
     if (_tick.posInLevel0() < MAX_LEVEL0_POSITION) {
-      ticks[next++] = tick + LEAF_SIZE; // in level0
+      // higher level0 position
+      higherTick = TickTreeUtil.tickFromBranch(
+        _tick.posInLevel3(), _tick.posInLevel2(), _tick.posInLevel1(), _tick.posInLevel0() + 1, _tick.posInLeaf()
+      );
+      ticks[next++] = Tick.unwrap(higherTick);
     }
     if (_tick.posInLevel1() < MAX_LEVEL1_POSITION) {
-      ticks[next++] = tick + LEAF_SIZE * LEVEL0_SIZE; // in level1
+      // higher level1 position
+      higherTick = TickTreeUtil.tickFromBranch(
+        _tick.posInLevel3(), _tick.posInLevel2(), _tick.posInLevel1() + 1, _tick.posInLevel0(), _tick.posInLeaf()
+      );
+      ticks[next++] = Tick.unwrap(higherTick);
     }
     if (_tick.posInLevel2() < MAX_LEVEL2_POSITION) {
-      ticks[next++] = tick + LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE; // in level2
+      // higher level2 position
+      higherTick = TickTreeUtil.tickFromBranch(
+        _tick.posInLevel3(), _tick.posInLevel2() + 1, _tick.posInLevel1(), _tick.posInLevel0(), _tick.posInLeaf()
+      );
+      ticks[next++] = Tick.unwrap(higherTick);
     }
-    // FIXME: MAX_TICK currently hits the "mgv/writeOffer/wants/96bits" check even for gives = 1
-    // if (tick < MAX_TICK) {
-    //   ticks[next++] = MAX_TICK; // at max tick
-    // }
+    if (_tick.posInLevel3() < MAX_LEVEL3_POSITION) {
+      // higher level3 position
+      // Choosing MIN POSITION for level2, level1, level0, leaf to avoid hitting logPrice limits.
+      // The important thing is to have a higher position in level3.
+      higherTick = TickTreeUtil.tickFromBranch(_tick.posInLevel3() + 1, 0, 0, 0, 0);
+      ticks[next++] = Tick.unwrap(higherTick);
+    }
 
     int[] memory res = new int[](next);
     for (uint i = 0; i < next; ++i) {
@@ -133,24 +155,46 @@ abstract contract TickTreeTest is MangroveTest {
   // FIXME: Update with level3
   function generateLowerTickScenarios(int tick) internal pure returns (int[] memory) {
     Tick _tick = Tick.wrap(tick);
+    Tick lowerTick;
     uint next = 0;
     int[] memory ticks = new int[](10);
     if (_tick.posInLeaf() > 0) {
-      ticks[next++] = tick - 1; // in leaf
+      // lower leaf position
+      lowerTick = TickTreeUtil.tickFromBranch(
+        _tick.posInLevel3(), _tick.posInLevel2(), _tick.posInLevel1(), _tick.posInLevel0(), _tick.posInLeaf() - 1
+      );
+      ticks[next++] = Tick.unwrap(lowerTick);
     }
     if (_tick.posInLevel0() > 0) {
-      ticks[next++] = tick - LEAF_SIZE; // in level0
+      // lower level0 position
+      lowerTick = TickTreeUtil.tickFromBranch(
+        _tick.posInLevel3(), _tick.posInLevel2(), _tick.posInLevel1(), _tick.posInLevel0() - 1, _tick.posInLeaf()
+      );
+      ticks[next++] = Tick.unwrap(lowerTick);
     }
     if (_tick.posInLevel1() > 0) {
-      ticks[next++] = tick - LEAF_SIZE * LEVEL0_SIZE; // in level1
+      // lower level1 position
+      lowerTick = TickTreeUtil.tickFromBranch(
+        _tick.posInLevel3(), _tick.posInLevel2(), _tick.posInLevel1() - 1, _tick.posInLevel0(), _tick.posInLeaf()
+      );
+      ticks[next++] = Tick.unwrap(lowerTick);
     }
     if (_tick.posInLevel2() > 0) {
-      ticks[next++] = tick - LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE; // in level2
+      // lower level2 position
+      lowerTick = TickTreeUtil.tickFromBranch(
+        _tick.posInLevel3(), _tick.posInLevel2() - 1, _tick.posInLevel1(), _tick.posInLevel0(), _tick.posInLeaf()
+      );
+      ticks[next++] = Tick.unwrap(lowerTick);
     }
-    // FIXME: MIN_TICK currently hits the "absLogPrice/outOfBounds" check
-    // if (tick > MIN_TICK) {
-    //   ticks[next++] = MIN_TICK; // at min tick
-    // }
+    if (_tick.posInLevel3() > 0) {
+      // lower level3 position
+      // Choosing MAX POSITION for level2, level1, level0, leaf to avoid hitting logPrice limits.
+      // The important thing is to have a lower position in level3.
+      lowerTick = TickTreeUtil.tickFromBranch(
+        _tick.posInLevel3() - 1, MAX_LEVEL2_POSITION, MAX_LEVEL1_POSITION, MAX_LEVEL0_POSITION, MAX_LEAF_POSITION
+      );
+      ticks[next++] = Tick.unwrap(lowerTick);
+    }
 
     int[] memory res = new int[](next);
     for (uint i = 0; i < next; ++i) {
@@ -234,7 +278,7 @@ abstract contract TickTreeTest is MangroveTest {
   {
     Tick _tick = Tick.wrap(tick);
     int logPrice = LogPriceLib.fromTick(_tick, olKey.tickScale);
-    uint gasreq = 5_000_000;
+    uint gasreq = 10_000_000;
     gives = getAcceptableGivesForTick(_tick, gasreq);
     offerIds = new uint[](n);
     for (uint i = 0; i < n; ++i) {

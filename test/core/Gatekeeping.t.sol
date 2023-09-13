@@ -179,9 +179,13 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_makerWants_too_big_fails_newOfferByVolume() public {
-    vm.expectRevert("mgv/writeOffer/wants/96bits");
-    // due to approximation doing max + 1 is not sufficient to trigger the error
-    mkr.newOfferByVolume((1 << 96) + (1 << 82), 1 ether, 10_000, 0);
+    vm.expectRevert("priceFromVolumes/inbound/tooBig");
+    mkr.newOfferByVolume(MAX_SAFE_VOLUME + 1, 1 ether, 10_000, 0);
+  }
+
+  function test_makerGives_too_big_fails_newOfferByVolume() public {
+    vm.expectRevert("priceFromVolumes/outbound/tooBig");
+    mkr.newOfferByVolume(1 ether, MAX_SAFE_VOLUME + 1, 10_000, 0);
   }
 
   function test_newOfferByLogPrice_extrema_logPrice() public {

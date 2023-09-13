@@ -253,12 +253,6 @@ contract MgvOfferMaking is MgvHasOffers {
       /* The following checks are for the maker's convenience only. */
       require(uint96(ofp.gives) == ofp.gives, "mgv/writeOffer/gives/96bits");
       require(LogPriceLib.inRange(insertionLogPrice), "mgv/writeOffer/logPrice/outOfRange");
-      {
-        // wants=0 is fine, `execute` should ensure the taker never sends 0.
-        // However wants too big is not fine due to overflow risk in later manipulations of wants.
-        uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, ofp.gives);
-        require(uint96(wants) == wants, "mgv/writeOffer/wants/96bits");
-      }
 
       /* Log the write offer event. */
       uint ofrId = ofp.id;

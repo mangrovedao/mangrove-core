@@ -516,7 +516,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         }
 
         /* We update the totals in the multiorder based on the adjusted `sor.wants`/`sor.gives`. */
-        /* no overflow: sor.wants is on 96 bits */
+        /* no overflow: sor.wants is on <= 104 bits */
         mor.totalGot += sor.wants;
         /* sor.gives can be on 248 bits (max offer.gives * max price). Very remote overflow chances here. You would need both:
         a) sum of offer.wants() so far to > 256 bits. With a max offerGives volume on 96 bits and a max log_price of 2^20-1, wants is on 248 bits. So you'd need to go through 2^(256-248)=256 offers, which is currently above the max possible number of taken offers.

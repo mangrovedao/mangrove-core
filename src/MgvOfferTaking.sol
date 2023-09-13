@@ -516,8 +516,13 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         }
 
         /* We update the totals in the multiorder based on the adjusted `sor.wants`/`sor.gives`. */
-        /* overflow: sor.{wants,gives} are on 96bits, sor.total{Got,Gave} are on 256 bits. */
+        /* no overflow: sor.wants is on <= 104 bits */
         mor.totalGot += sor.wants;
+        /* sor.gives can be on 248 bits (max offer.gives * max price). Very remote overflow chances here. You would need both:
+        a) sum of offer.wants() so far to > 256 bits. With a max offerGives volume on 96 bits and a max log_price of 2^20-1, wants is on 248 bits. So you'd need to go through 2^(256-248)=256 offers, which is currently above the max possible number of taken offers.
+        b) taker able to transfer more than 2^255-1 tokens, since this value is updated after the execution of the offer. It is theoretically possible if the maker sends the tokens back to the taker for instance.
+
+        Even then, you'd only be returning an undervalued totalGave value. */
         mor.totalGave += sor.gives;
       } else {
         /* In case of failure, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */

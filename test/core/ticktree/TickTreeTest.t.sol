@@ -51,10 +51,11 @@ abstract contract TickTreeTest is MangroveTest {
     // Density is irrelevant when testing the tick tree data structure,
     // so we set it to 0 to avoid having to deal with it
     mgv.setDensity(olKey, 0);
+    mgv.setGasmax(10_000_000);
 
     mkr = setupMaker(olKey, "maker");
     mkr.approveMgv(base, type(uint).max);
-    mkr.provisionMgv(1 ether);
+    mkr.provisionMgv(100 ether);
 
     deal($(base), $(mkr), type(uint).max);
     deal($(quote), $(this), type(uint).max);
@@ -233,7 +234,7 @@ abstract contract TickTreeTest is MangroveTest {
   {
     Tick _tick = Tick.wrap(tick);
     int logPrice = LogPriceLib.fromTick(_tick, olKey.tickScale);
-    uint gasreq = 1_300_000;
+    uint gasreq = 5_000_000;
     gives = getAcceptableGivesForTick(_tick, gasreq);
     offerIds = new uint[](n);
     for (uint i = 0; i < n; ++i) {

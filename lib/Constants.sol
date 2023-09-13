@@ -7,7 +7,7 @@ uint constant TOPBIT = 1 << 255;
 // can't write ~TOPBIT or ~uint(1 << 255) or constant cannot be referred to from assembly
 uint constant NOT_TOPBIT = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
-// MIN_TICK and MAX_TICK should be inside the addressable range defined by the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2
+// MIN_TICK and MAX_TICK should be inside the addressable range defined by the sizes of LEAF, LEVEL0, LEVEL1, LEVEL2, LEVEL3
 int constant MIN_TICK = -1048576;
 int constant MAX_TICK = -MIN_TICK-1;
 

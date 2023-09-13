@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "mgv_src/IMangrove.sol";
 import {IERC20, MgvLib, IMaker, OLKey} from "mgv_src/MgvLib.sol";
 import {Test} from "forge-std/Test.sol";
-import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 
 contract TrivialTestMaker is IMaker {
@@ -21,7 +20,7 @@ struct OfferData {
   string executeData;
 }
 
-contract SimpleTestMaker is TrivialTestMaker, Script2 {
+contract SimpleTestMaker is TrivialTestMaker {
   IMangrove public mgv;
   OLKey olKey;
   bool _shouldFail; // will set mgv allowance to 0
@@ -459,9 +458,9 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
   }
 
   function clean(OLKey memory _olKey, uint offerId, int logPrice, uint takerWants) public returns (bool success) {
-    (uint successes,) = mgv.cleanByImpersonation(
-      _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, logPrice, type(uint48).max, takerWants)), address(this)
-    );
+    MgvLib.CleanTarget[] memory targets = new MgvLib.CleanTarget[](1);
+    targets[0] = MgvLib.CleanTarget(offerId, logPrice, type(uint48).max, takerWants);
+    (uint successes,) = mgv.cleanByImpersonation(_olKey, targets, address(this));
     return successes > 0;
   }
 }

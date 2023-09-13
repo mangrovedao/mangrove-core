@@ -132,9 +132,9 @@ contract MgvHasOffers is MgvCommon {
             }
           }
         } else {
-          // note: useless dirty/clean cycle here
+          // note: field is already dirty, no need to dirty it
           field = offerList.level0[index].flipBitAtLevel0(offerTick);
-          offerList.level0[index] = field.dirty();
+          offerList.level0[index] = field;
         }
         if (field.isEmpty()) {
           index = offerTick.level1Index(); // level0Index or level1Index
@@ -147,9 +147,9 @@ contract MgvHasOffers is MgvCommon {
               }
             }
           } else {
-            // note: useless dirty/clean cycle here
+            // note: field is already dirty, no need to dirty it
             field = offerList.level1[index].flipBitAtLevel1(offerTick);
-            offerList.level1[index] = field.dirty();
+            offerList.level1[index] = field;
           }
           if (field.isEmpty()) {
             field = local.level2().flipBitAtLevel2(offerTick);

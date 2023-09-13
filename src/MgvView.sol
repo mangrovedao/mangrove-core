@@ -59,7 +59,7 @@ contract MgvView is MgvCommon {
       if (_local.bestTick().level0Index() == index) {
         return _local.level0();
       } else {
-        return offerList.level0[index];
+        return offerList.level0[index].clean();
       }
     }
   }
@@ -73,7 +73,7 @@ contract MgvView is MgvCommon {
       if (_local.bestTick().level1Index() == index) {
         return _local.level1();
       } else {
-        return offerList.level1[index];
+        return offerList.level1[index].clean();
       }
     }
   }

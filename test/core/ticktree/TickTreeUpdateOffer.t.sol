@@ -19,7 +19,7 @@ import "mgv_lib/Debug.sol";
 //
 // The scenarios we want to test are:
 // - starting offer tick
-//   - tick is MIN, MAX, min&max&mid {leaf, level0, level1, level2}
+//   - tick is a *tick of interest* (ToI) as listed in TickTreeTest
 //   - list:
 //     1. offer is not live
 //     2. is singleton
@@ -30,13 +30,13 @@ import "mgv_lib/Debug.sol";
 //       - list length
 //       - offer pos
 // - higher tick list
-//   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
+//   - tick has higher position in same leaf or level0-3 as ToI
 //     - if feasible, given retraction tick
 //   - list:
 //     1. is empty
 //     2. is non-empty
 // - lower tick list
-//   - tick is MIN, MAX, in same {leaf, level0, level1, level2}
+//   - tick has lower position in same leaf or level0-3 as ToI
 //     - if feasible, given retraction tick
 //   - list:
 //     1. is empty
@@ -48,7 +48,7 @@ import "mgv_lib/Debug.sol";
 contract TickTreeUpdateOfferTest is TickTreeTest {
   struct UpdateOfferScenario {
     TickScenario tickScenario;
-    int newTick;
+    Tick newTick;
     uint offerTickListSize; // 0 -> offer is not live
     uint offerPos;
   }
@@ -81,131 +81,73 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
   //   run_update_offer_scenarios_for_tick(tick, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
   // }
   //
-  // We therefore restrict the ticks we test to select values, eg MIN, MAX, min&max&mid {leaf, level0, level1, level2}
+  // We therefore restrict the ticks we test to the ToI
 
-  // Tick 0 tests (start leaf, start level0, start level1, mid level 2)
-  function test_update_offer_for_tick_0_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(0, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  // TICK_MIN_L3_MAX_OTHERS tests
+  function test_update_offer_for_TICK_MIN_L3_MAX_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MIN_L3_MAX_OTHERS, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
   }
 
-  function test_update_offer_for_tick_0_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(0, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  function test_update_offer_for_TICK_MIN_L3_MAX_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_MIN_L3_MAX_OTHERS, emptyTickListSizeScenarios, singletonTickListSizeScenarios
+    );
   }
 
-  function test_update_offer_for_tick_0_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(0, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  function test_update_offer_for_TICK_MIN_L3_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_MIN_L3_MAX_OTHERS, singletonTickListSizeScenarios, emptyTickListSizeScenarios
+    );
   }
 
-  function test_update_offer_for_tick_0_where_higher_is_not_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(0, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  function test_update_offer_for_TICK_MIN_L3_MAX_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_MIN_L3_MAX_OTHERS, singletonTickListSizeScenarios, singletonTickListSizeScenarios
+    );
   }
 
-  // Tick 1 tests (mid leaf, start level0, start level1, mid level 2)
-  function test_update_offer_for_tick_1_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(1, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  // TICK_MAX_L3_MIN_OTHERS tests
+  function test_update_offer_for_TICK_MAX_L3_MIN_OTHERS_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MAX_L3_MIN_OTHERS, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
   }
 
-  function test_update_offer_for_tick_1_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(1, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  function test_update_offer_for_TICK_MAX_L3_MIN_OTHERS_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_MAX_L3_MIN_OTHERS, emptyTickListSizeScenarios, singletonTickListSizeScenarios
+    );
   }
 
-  function test_update_offer_for_tick_1_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(1, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  function test_update_offer_for_TICK_MAX_L3_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_MAX_L3_MIN_OTHERS, singletonTickListSizeScenarios, emptyTickListSizeScenarios
+    );
   }
 
-  function test_update_offer_for_tick_1_where_higher_is_not_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(1, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  function test_update_offer_for_TICK_MAX_L3_MIN_OTHERS_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_MAX_L3_MIN_OTHERS, singletonTickListSizeScenarios, singletonTickListSizeScenarios
+    );
   }
 
-  // Tick 3 tests (end leaf, start level0, start level1, mid level 2)
-  function test_update_offer_for_tick_3_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(3, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  // TICK_MIDDLE tests
+  function test_update_offer_for_TICK_MIDDLE_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MIDDLE, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
   }
 
-  function test_update_offer_for_tick_3_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(3, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  function test_update_offer_for_TICK_MIDDLE_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MIDDLE, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
   }
 
-  function test_update_offer_for_tick_3_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(3, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  function test_update_offer_for_TICK_MIDDLE_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MIDDLE, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
   }
 
-  function test_update_offer_for_tick_3_where_higher_is_not_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(3, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
+  function test_update_offer_for_TICK_MIDDLE_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MIDDLE, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
   }
-
-  // Tick -1 tests (end leaf, end level0, end level1, mid level 2)
-  function test_update_offer_for_tick_negative_1_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(-1, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_tick_negative_1_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(-1, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_tick_negative_1_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(-1, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_tick_negative_1_where_higher_is_not_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(-1, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
-  }
-
-  // Tick -8323 tests (mid leaf, mid level0, mid level1, mid level 2)
-  function test_update_offer_for_tick_negative_8323_where_higher_is_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(-8323, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_tick_negative_8323_where_higher_is_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(-8323, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_tick_negative_8323_where_higher_is_not_empty_and_lower_is_empty() public {
-    run_update_offer_scenarios_for_tick(-8323, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  }
-
-  function test_update_offer_for_tick_negative_8323_where_higher_is_not_empty_and_lower_is_not_empty() public {
-    run_update_offer_scenarios_for_tick(-8323, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
-  }
-
-  // MAX_TICK tests (end leaf, end level0, end level1, end level 2)
-  // FIXME: MAX_TICK currently hits the "mgv/writeOffer/wants/96bits" check even for gives = 1
-  // function test_update_offer_for_tick_MAX_TICK_where_higher_is_empty_and_lower_is_empty() public {
-  //   run_update_offer_scenarios_for_tick(MAX_TICK, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
-  // }
-
-  // function test_update_offer_for_tick_MAX_TICK_where_higher_is_empty_and_lower_is_not_empty() public {
-  //   run_update_offer_scenarios_for_tick(MAX_TICK, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
-  // }
-
-  // function test_update_offer_for_tick_MAX_TICK_where_higher_is_not_empty_and_lower_is_empty() public {
-  //   run_update_offer_scenarios_for_tick(MAX_TICK, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  // }
-
-  // function test_update_offer_for_tick_MAX_TICK_where_higher_is_not_empty_and_lower_is_not_empty() public {
-  //   run_update_offer_scenarios_for_tick(MAX_TICK, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
-  // }
-
-  // MIN_TICK tests (start leaf, start level0, start level1, start level 2)
-  // FIXME: MIN_TICK currently hits the "absLogPrice/outOfBounds" check
-  // function test_update_offer_for_tick_MIN_TICK_where_higher_is_empty_and_lower_is_empty() public {
-  //   run_update_offer_scenarios_for_tick(MIN_TICK, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
-  // }
-
-  // function test_update_offer_for_tick_MIN_TICK_where_higher_is_empty_and_lower_is_not_empty() public {
-  //   run_update_offer_scenarios_for_tick(MIN_TICK, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
-  // }
-
-  // function test_update_offer_for_tick_MIN_TICK_where_higher_is_not_empty_and_lower_is_empty() public {
-  //   run_update_offer_scenarios_for_tick(MIN_TICK, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
-  // }
-
-  // function test_update_offer_for_tick_MIN_TICK_where_higher_is_not_empty_and_lower_is_not_empty() public {
-  //   run_update_offer_scenarios_for_tick(MIN_TICK, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
-  // }
 
   function run_update_offer_scenarios_for_tick(
-    int tick,
+    Tick tick,
     uint[] storage higherTickListSizeScenarios,
     uint[] storage lowerTickListSizeScenarios
   ) internal {
@@ -257,17 +199,17 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     run_update_offer_scenario(
       UpdateOfferScenario({
         tickScenario: TickScenario({
-          tick: 0,
+          tick: Tick.wrap(0),
           hasHigherTick: true,
-          higherTick: 524287,
+          higherTick: Tick.wrap(524287),
           higherTickListSize: 1,
           hasLowerTick: true,
-          lowerTick: -16384,
+          lowerTick: Tick.wrap(-16384),
           lowerTickListSize: 0
         }),
         offerTickListSize: 1,
         offerPos: 0,
-        newTick: -16384
+        newTick: Tick.wrap(-16384)
       }),
       true
     );
@@ -279,17 +221,16 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
 
     if (printToConsole) {
       console.log("update offer scenario");
-      console.log("  oldTick: %s", toString(Tick.wrap(scenario.tickScenario.tick)));
-      console.log("  newTick: %s", toString(Tick.wrap(scenario.newTick)));
+      console.log("  oldTick: %s", toString(scenario.tickScenario.tick));
+      console.log("  newTick: %s", toString(scenario.newTick));
       console.log("  offerTickListSize: %s", scenario.offerTickListSize);
       console.log("  offerPos: %s", scenario.offerPos);
       if (scenario.tickScenario.hasHigherTick) {
-        Tick higherTick = Tick.wrap(scenario.tickScenario.higherTick);
-        console.log("  higherTick: %s", toString(higherTick));
+        console.log("  higherTick: %s", toString(scenario.tickScenario.higherTick));
         console.log("  higherTickListSize: %s", vm.toString(scenario.tickScenario.higherTickListSize));
       }
       if (scenario.tickScenario.hasLowerTick) {
-        console.log("  lowerTick: %s", toString(Tick.wrap(scenario.tickScenario.lowerTick)));
+        console.log("  lowerTick: %s", toString(scenario.tickScenario.lowerTick));
         console.log("  lowerTickListSize: %s", vm.toString(scenario.tickScenario.lowerTickListSize));
       }
     }
@@ -323,7 +264,7 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     }
 
     // 4. Update the offer
-    Tick newTick = Tick.wrap(scenario.newTick);
+    Tick newTick = scenario.newTick;
     uint newGives = getAcceptableGivesForTick(newTick, offerDetail.gasreq());
     mkr.updateOfferByLogPrice(
       LogPriceLib.fromTick(newTick, olKey.tickScale), newGives, offerDetail.gasreq(), offerDetail.gasprice(), offerId

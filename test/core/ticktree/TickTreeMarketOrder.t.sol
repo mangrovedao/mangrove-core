@@ -21,7 +21,7 @@ import "mgv_lib/Debug.sol";
 //
 // The scenarios we want to test are:
 // - lower tick list
-//   - tick is MIN, MAX, in same {leaf, level0, level1, level2} as middle tick
+//   - tick is a *tick of interest* (ToI) as listed in TickTreeTest
 //     - if feasible, given middle tick
 //   - list:
 //     1. is empty
@@ -29,14 +29,14 @@ import "mgv_lib/Debug.sol";
 //     3. is partially taken
 //     4. is not taken
 // - middle tick (in lower tick cases 1. and 2.)
-//   - tick is MIN, MAX, min&max&mid {leaf, level0, level1, level2}
+//   - tick has higher position in same leaf or level0-3 as ToI
 //   - list:
 //     1. is empty
 //     2. is fully taken
 //     3. is partially taken
 //     4. is not taken
 // - higher tick list (in middle tick cases 1. and 2.)
-//   - tick is MIN, MAX, in same {leaf, level0, level1, level2} as middle tick
+//   - tick has lower position in same leaf or level0-3 as ToI
 //     - if feasible, given middle tick
 //   - list:
 //     1. is empty
@@ -74,56 +74,30 @@ contract TickTreeMarketOrderTest is TickTreeTest {
   }
 
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
-  // We therefore have a test case per tick instead.
+  // We therefore have a test case per ToI instead.
 
-  // Tick 0 (start leaf, start level0, start level1, mid level 2)
-  function test_market_order_for_tick_0() public {
-    run_market_order_scenarios_for_tick(0);
+  function test_market_order_for_TICK_MIN_L3_MAX_OTHERS() public {
+    run_market_order_scenarios_for_tick(TICK_MIN_L3_MAX_OTHERS);
   }
 
-  // Tick 1 (mid leaf, start level0, start level1, mid level 2)
-  function test_market_order_for_tick_1() public {
-    run_market_order_scenarios_for_tick(1);
+  function test_market_order_for_TICK_MAX_L3_MIN_OTHERS() public {
+    run_market_order_scenarios_for_tick(TICK_MAX_L3_MIN_OTHERS);
   }
 
-  // Tick 3 (end leaf, start level0, start level1, mid level 2)
-  function test_market_order_for_tick_3() public {
-    run_market_order_scenarios_for_tick(3);
+  function test_market_order_for_TICK_MIDDLE() public {
+    run_market_order_scenarios_for_tick(TICK_MIDDLE);
   }
 
-  // Tick -1 tests (end leaf, end level0, end level1, mid level 2)
-  function test_market_order_for_tick_negative_1() public {
-    run_market_order_scenarios_for_tick(-1);
-  }
-
-  // Tick -8323 tests (mid leaf, mid level0, mid level1, mid level 2)
-  function test_market_order_for_tick_negative_8323() public {
-    run_market_order_scenarios_for_tick(-8323);
-  }
-
-  // MAX_TICK (end leaf, end level0, end level1, end level 2)
-  // FIXME: MAX_TICK currently hits the "mgv/writeOffer/wants/96bits" check even for gives = 1
-  // function test_market_order_for_tick_max() public {
-  //   run_market_order_scenarios_for_tick(MAX_TICK);
-  // }
-
-  // MIN_TICK tests (start leaf, start level0, start level1, start level 2)
-  // FIXME: MIN_TICK currently hits the "absLogPrice/outOfBounds" check
-  // function test_market_order_for_tick_min() public {
-  //   run_market_order_scenarios_for_tick(MIN_TICK);
-  // }
-
-  function run_market_order_scenarios_for_tick(int tick) internal {
+  function run_market_order_scenarios_for_tick(Tick tick) internal {
     vm.pauseGasMetering();
     bool printToConsole = false;
 
-    int[] memory higherTicks = generateHigherTickScenarios(tick);
-    int[] memory lowerTicks = generateLowerTickScenarios(tick);
-    Tick _tick = Tick.wrap(tick);
+    Tick[] memory higherTicks = generateHigherTickScenarios(tick);
+    Tick[] memory lowerTicks = generateLowerTickScenarios(tick);
 
     MarketOrderScenario memory scenario = MarketOrderScenario({
       lowerTick: TickListScenario({tick: Tick.wrap(0), size: 0, offersToTake: 0}),
-      middleTick: TickListScenario({tick: _tick, size: 0, offersToTake: 0}),
+      middleTick: TickListScenario({tick: tick, size: 0, offersToTake: 0}),
       higherTick: TickListScenario({tick: Tick.wrap(0), size: 0, offersToTake: 0})
     });
 
@@ -138,7 +112,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
 
     // Lower tick is non-empty
     for (uint l = 0; l < lowerTicks.length; ++l) {
-      scenario.lowerTick.tick = Tick.wrap(lowerTicks[l]);
+      scenario.lowerTick.tick = lowerTicks[l];
       for (uint ls = 1; ls < tickListScenarios.length; ++ls) {
         scenario.lowerTick.size = tickListScenarios[ls][0];
         scenario.lowerTick.offersToTake = tickListScenarios[ls][1];
@@ -165,7 +139,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
               // Hight tick is empty
               run_market_order_scenario(scenario, printToConsole);
               for (uint h = 0; h < higherTicks.length; ++h) {
-                scenario.higherTick.tick = Tick.wrap(higherTicks[h]);
+                scenario.higherTick.tick = higherTicks[h];
                 // Higher tick should be non-empty, empty is covered by the previous scenario
                 for (uint hs = 1; hs < tickListScenarios.length; ++hs) {
                   scenario.higherTick.size = tickListScenarios[hs][0];
@@ -255,11 +229,11 @@ contract TickTreeMarketOrderTest is TickTreeTest {
 
     // 2. Create scenario
     (uint[] memory lowerOfferIds, uint lowerOffersGive) =
-      add_n_offers_to_tick(Tick.unwrap(scenario.lowerTick.tick), scenario.lowerTick.size);
+      add_n_offers_to_tick(scenario.lowerTick.tick, scenario.lowerTick.size);
     (uint[] memory middleOfferIds, uint middleOffersGive) =
-      add_n_offers_to_tick(Tick.unwrap(scenario.middleTick.tick), scenario.middleTick.size);
+      add_n_offers_to_tick(scenario.middleTick.tick, scenario.middleTick.size);
     (uint[] memory higherOfferIds, uint higherOffersGive) =
-      add_n_offers_to_tick(Tick.unwrap(scenario.higherTick.tick), scenario.higherTick.size);
+      add_n_offers_to_tick(scenario.higherTick.tick, scenario.higherTick.size);
     uint fillVolume = lowerOffersGive * scenario.lowerTick.offersToTake
       + middleOffersGive * scenario.middleTick.offersToTake + higherOffersGive * scenario.higherTick.offersToTake;
     lastTakenOfferId = getLastTakenOfferId(scenario, lowerOfferIds, middleOfferIds, higherOfferIds);

@@ -30,13 +30,13 @@ contract TickTreeTestAssumptionsTest is TickTreeTest {
     // tick is max {leaf, level0, level1, level2}
     assertTickAssumptions({
       tick: Tick.wrap(MAX_TICK),
-      posInLeaf: MAX_LEAF_POSITION,
+      posInLeaf: MAX_LEAF_POS,
       leafIndex: MAX_LEAF_INDEX,
-      posInLevel0: MAX_LEVEL0_POSITION,
+      posInLevel0: MAX_LEVEL0_POS,
       level0Index: MAX_LEVEL0_INDEX,
-      posInLevel1: MAX_LEVEL1_POSITION,
+      posInLevel1: MAX_LEVEL1_POS,
       level1Index: MAX_LEVEL1_INDEX,
-      posInLevel2: MAX_LEVEL2_POSITION
+      posInLevel2: MAX_LEVEL2_POS
     });
 
     // tick is min {leaf, level0, level1}
@@ -49,7 +49,7 @@ contract TickTreeTestAssumptionsTest is TickTreeTest {
       level0Index: 0,
       posInLevel1: 0,
       level1Index: 0,
-      posInLevel2: MAX_LEVEL2_POSITION / 2 + 1
+      posInLevel2: MAX_LEVEL2_POS / 2 + 1
     });
 
     // tick is min {level0, level1}
@@ -57,13 +57,13 @@ contract TickTreeTestAssumptionsTest is TickTreeTest {
     // tick is mid {leaf}
     assertTickAssumptions({
       tick: Tick.wrap(1),
-      posInLeaf: MAX_LEAF_POSITION / 2,
+      posInLeaf: MAX_LEAF_POS / 2,
       leafIndex: 0,
       posInLevel0: 0,
       level0Index: 0,
       posInLevel1: 0,
       level1Index: 0,
-      posInLevel2: MAX_LEVEL2_POSITION / 2 + 1
+      posInLevel2: MAX_LEVEL2_POS / 2 + 1
     });
 
     // tick is min {level0, level1}
@@ -71,13 +71,13 @@ contract TickTreeTestAssumptionsTest is TickTreeTest {
     // tick is max {leaf}
     assertTickAssumptions({
       tick: Tick.wrap(3),
-      posInLeaf: MAX_LEAF_POSITION,
+      posInLeaf: MAX_LEAF_POS,
       leafIndex: 0,
       posInLevel0: 0,
       level0Index: 0,
       posInLevel1: 0,
       level1Index: 0,
-      posInLevel2: MAX_LEVEL2_POSITION / 2 + 1
+      posInLevel2: MAX_LEVEL2_POS / 2 + 1
     });
 
     // tick is negative
@@ -86,25 +86,25 @@ contract TickTreeTestAssumptionsTest is TickTreeTest {
     // tick is max {leaf}
     assertTickAssumptions({
       tick: Tick.wrap(-1),
-      posInLeaf: MAX_LEAF_POSITION,
+      posInLeaf: MAX_LEAF_POS,
       leafIndex: -1,
-      posInLevel0: MAX_LEVEL0_POSITION,
+      posInLevel0: MAX_LEVEL0_POS,
       level0Index: -1,
-      posInLevel1: MAX_LEVEL1_POSITION,
+      posInLevel1: MAX_LEVEL1_POS,
       level1Index: -1,
-      posInLevel2: MAX_LEVEL2_POSITION / 2
+      posInLevel2: MAX_LEVEL2_POS / 2
     });
 
     // tick is mid {leaf, level0, level1, level2}
     assertTickAssumptions({
       tick: Tick.wrap(-8323),
-      posInLeaf: MAX_LEAF_POSITION / 2,
+      posInLeaf: MAX_LEAF_POS / 2,
       leafIndex: -2081,
-      posInLevel0: MAX_LEVEL0_POSITION / 2,
+      posInLevel0: MAX_LEVEL0_POS / 2,
       level0Index: -33,
-      posInLevel1: MAX_LEVEL1_POSITION / 2,
+      posInLevel1: MAX_LEVEL1_POS / 2,
       level1Index: -1,
-      posInLevel2: MAX_LEVEL2_POSITION / 2
+      posInLevel2: MAX_LEVEL2_POS / 2
     });
   }
 }

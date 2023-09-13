@@ -25,32 +25,32 @@ For Linux or macOS everything should work out of the box, if you are using Windo
 
 1. [Node.js](https://nodejs.org/en/) 14.14+, we recommend installation through [nvm](https://github.com/nvm-sh/nvm#installing-and-updating), e.g.:
 
-    ```shell
-    $ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
-    # Reopen shell
-    $ nvm install --lts
-    ```
+   ```shell
+   $ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+   # Reopen shell
+   $ nvm install --lts
+   ```
 
 2. [Yarn 2](https://yarnpkg.com/getting-started/install), with Node.js >= 16.10:
 
-    ```shell
-    $ corepack enable
-    ```
+   ```shell
+   $ corepack enable
+   ```
 
 3. [Foundry](https://book.getfoundry.sh/getting-started/installation.html):
 
-    ```shell
-    $ curl -L https://foundry.paradigm.xyz | bash
-    # Reopen shell
-    $ foundryup
-    ```
+   ```shell
+   $ curl -L https://foundry.paradigm.xyz | bash
+   # Reopen shell
+   $ foundryup
+   ```
 
 4. Clone the git repo with sub-modules
 
-    ```shell
-    $ git clone --recurse-submodules https://github.com/mangrovedao/mangrove-core.git
-    # Or set the global git config once: git config --global submodule.recurse true
-    ```
+   ```shell
+   $ git clone --recurse-submodules https://github.com/mangrovedao/mangrove-core.git
+   # Or set the global git config once: git config --global submodule.recurse true
+   ```
 
 # Usage
 
@@ -80,6 +80,32 @@ To build, run
 $ yarn build
 ```
 
+## Address Configuration
+
+When writing scripts that uses the `Generic.sol` script, you can control what addresses are read.
+
+By default, it will try and look into the `{projectRoot}/mgvConfig.json` file, in order to find the paths to all the addresses folders you want to use. The file should look like this:
+
+```json
+{
+  "addresses_paths": ["addresses/"],
+  "deployment_addresses_path": "addresses/"
+}
+```
+
+The `deployment_addresses_path` is the path to the folder where the addresses are written to when deploying. The `addresses_paths` is an array of paths to folders where the addresses are read from. The paths are relative to the project root.
+
+If you want to read addresses from other folders, then you can add paths to the json file. If you do not want to change the `mgvConfig.json` file, but still want to read some extra addresses. Then you you can set `MGV_ADDRESSES_PATHS` to the addresses paths that should be read from. And if you don't want to read the `mgvConfig.json` addresses at all, then you can set `MGV_READ_ADDRESSES_PATHS` to false. The `MGV_ADDRESSES_PATHS` variable has same structure as the `mgvConfig.json`. Here is an example:
+
+```shell
+export MGV_ADDRESSES_PATHS='{ "addresses_paths": ["/addresses/"] }'
+export MGV_READ_ADDRESSES_PATHS=false
+```
+
+In this example we disable the default paths and set the path to `/addresses/`. Remember the path is relative to the project root. This way you can easily read addresses from multiple sources.
+
+When adding paths, then you have to remember to add the path in the `foundry.toml` file as well, in order for foundry to be able to read from that path.
+
 ## Tests
 
 To run all tests in the package, just run `yarn test`.
@@ -89,7 +115,6 @@ This package contains a comprehensive test suite for Mangrove, implemented in So
 The tests are located in [./test](./test).
 
 Refer to the documentation of [Foundry](https://book.getfoundry.sh/index.html) for details on how tests are structured and options for running it.
-
 
 # Foundry and its use in this package
 
@@ -152,11 +177,3 @@ It is tiring to always add `--private-key 0x..` to scripts, especially since the
 # Generate documentation
 
 The Mangrove Solidity files contain documentation that can be extracted to a nicely formatted and navigable HTML file by running `yarn doc` which will generate a `doc/MgvDoc.html`.
-
-# Configuration
-
-This package uses hierarchical configurations via [node-config](https://github.com/lorenwest/node-config). The main configuration is in [./config/default.js](./config/default.js) and the other .js files in the same directory specify environment/stage specific overrides. Please refer to the documentation for node-config for details on how the configuration hierarchy is resolved.
-
-It is possible to override parts of the configuration with environment variables. This is controlled by [./config/custom-environment-variables.json](./config/custom-environment-variables.json). The structure of this file mirrors the configuration structure but with names of environment variables in the places where these can override a part of the configuration.
-
-For more information, please refer to the node-config's documentation of this feature: https://github.com/lorenwest/node-config/wiki/Environment-Variables#custom-environment-variables .

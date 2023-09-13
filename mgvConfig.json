@@ -1,0 +1,4 @@
+{
+  "addresses_paths": ["addresses/"],
+  "deployment_addresses_path": "addresses/"
+}

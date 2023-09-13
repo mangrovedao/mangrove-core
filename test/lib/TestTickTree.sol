@@ -50,36 +50,37 @@ contract TestTickTree is MangroveTest {
   function snapshotMgvTickTree() public {
     local = mgv.local(olKey);
     Field level3 = mgv.level3(olKey);
-    for (uint level3Pos = 0; level3Pos <= MAX_LEVEL3_POSITION; ++level3Pos) {
-      if (!isBitSet(level3, level3Pos)) {
+    uint[4] memory levelPoss;
+    for (levelPoss[3] = 0; levelPoss[3] <= MAX_LEVEL3_POSITION; ++levelPoss[3]) {
+      if (!isBitSet(level3, levelPoss[3])) {
         continue;
       }
 
-      int level2Index = level2IndexFromLevel3Pos(level3Pos);
+      int level2Index = level2IndexFromLevel3Pos(levelPoss[3]);
       Field level2 = mgv.level2(olKey, level2Index);
       level2s[level2Index] = level2;
-      for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
-        if (!isBitSet(level2, level2Pos)) {
+      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL2_POSITION; ++levelPoss[2]) {
+        if (!isBitSet(level2, levelPoss[2])) {
           continue;
         }
 
-        int level1Index = level1IndexFromLevel2IndexAndPos(level2Index,level2Pos);
+        int level1Index = level1IndexFromLevel2IndexAndPos(level2Index, levelPoss[2]);
         Field level1 = mgv.level1(olKey, level1Index);
         level1s[level1Index] = level1;
-        for (uint level1Pos = 0; level1Pos <= MAX_LEVEL1_POSITION; ++level1Pos) {
-          if (!isBitSet(level1, level1Pos)) {
+        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL1_POSITION; ++levelPoss[1]) {
+          if (!isBitSet(level1, levelPoss[1])) {
             continue;
           }
 
-          int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, level1Pos);
+          int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, levelPoss[1]);
           Field level0 = mgv.level0(olKey, level0Index);
           level0s[level0Index] = level0;
-          for (uint level0Pos = 0; level0Pos <= MAX_LEVEL0_POSITION; ++level0Pos) {
-            if (!isBitSet(level0, level0Pos)) {
+          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL0_POSITION; ++levelPoss[0]) {
+            if (!isBitSet(level0, levelPoss[0])) {
               continue;
             }
 
-            int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, level0Pos);
+            int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, levelPoss[0]);
             Leaf leaf = mgv.leafs(olKey, leafIndex);
             leafs[leafIndex] = leaf;
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POSITION; ++leafPos) {
@@ -99,37 +100,39 @@ contract TestTickTree is MangroveTest {
   // Checks that the current Mangrove tick tree in olKey is consistent
   function assertMgvTickTreeIsConsistent() public {
     Field level3 = mgv.level3(olKey);
-    for (uint level3Pos = 0; level3Pos <= MAX_LEVEL3_POSITION; ++level3Pos) {
-      bool level3PosIsSet = isBitSet(level3, level3Pos);
-      int level2Index = level2IndexFromLevel3Pos(level3Pos);
+    uint[4] memory levelPoss;
+    for (levelPoss[3] = 0; levelPoss[3] <= MAX_LEVEL3_POSITION; ++levelPoss[3]) {
+      bool level3PosIsSet = isBitSet(level3, levelPoss[3]);
+      int level2Index = level2IndexFromLevel3Pos(levelPoss[3]);
       Field level2 = mgv.level2(olKey, level2Index);
 
       if (!level3PosIsSet) {
         assertTrue(
           level2.eq(FieldLib.EMPTY),
-          string.concat("level2 should be empty when bit is not set in level3 | tree branch: ", vm.toString(level3Pos))
+          string.concat(
+            "level2 should be empty when bit is not set in level3 | tree branch: ", branchToString(levelPoss, 3)
+          )
         );
         // checking that the entire subtree is empty is too expensive, so we stop here
         continue;
       }
       assertTrue(
         !level2.eq(FieldLib.EMPTY),
-        string.concat("level2 should not be empty when bit is set in level3 | tree branch: ", vm.toString(level3Pos))
+        string.concat(
+          "level2 should not be empty when bit is set in level3 | tree branch: ", branchToString(levelPoss, 3)
+        )
       );
 
-      for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
-        bool level2PosIsSet = isBitSet(level2, level2Pos);
-        int level1Index = level1IndexFromLevel2IndexAndPos(level2Index, level2Pos);
+      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL2_POSITION; ++levelPoss[2]) {
+        bool level2PosIsSet = isBitSet(level2, levelPoss[2]);
+        int level1Index = level1IndexFromLevel2IndexAndPos(level2Index, levelPoss[2]);
         Field level1 = mgv.level1(olKey, level1Index);
 
         if (!level2PosIsSet) {
           assertTrue(
             level2.eq(FieldLib.EMPTY),
             string.concat(
-              "level1 should be empty when bit is not set in level2 | tree branch: ",
-              vm.toString(level3Pos),
-              "->",
-              vm.toString(level2Pos)
+              "level1 should be empty when bit is not set in level2 | tree branch: ", branchToString(levelPoss, 2)
             )
           );
           // checking that the entire subtree is empty is too expensive, so we stop here
@@ -139,25 +142,22 @@ contract TestTickTree is MangroveTest {
           !level1.eq(FieldLib.EMPTY),
           string.concat(
             "level1 should not be empty when bit is set in level2 | tree branch: ",
-            vm.toString(level3Pos),
+            vm.toString(levelPoss[3]),
             "->",
-            vm.toString(level2Pos)
+            vm.toString(levelPoss[2])
           )
         );
 
-        for (uint level1Pos = 0; level1Pos <= MAX_LEVEL1_POSITION; ++level1Pos) {
-          bool level1PosIsSet = isBitSet(level1, level1Pos);
-          int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, level1Pos);
+        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL1_POSITION; ++levelPoss[1]) {
+          bool level1PosIsSet = isBitSet(level1, levelPoss[1]);
+          int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, levelPoss[1]);
           Field level0 = mgv.level0(olKey, level0Index);
 
           if (!level1PosIsSet) {
             assertTrue(
               level0.eq(FieldLib.EMPTY),
               string.concat(
-                "level0 should be empty when bit is not set in level1 | tree branch: ",
-                vm.toString(level2Pos),
-                "->",
-                vm.toString(level1Pos)
+                "level0 should be empty when bit is not set in level1 | tree branch: ", branchToString(levelPoss, 1)
               )
             );
             // checking that the entire subtree is empty is too expensive, so we stop here
@@ -166,42 +166,30 @@ contract TestTickTree is MangroveTest {
           assertTrue(
             !level0.eq(FieldLib.EMPTY),
             string.concat(
-              "level0 should not be empty when bit is set in level1 | tree branch: ",
-              vm.toString(level2Pos),
-              "->",
-              vm.toString(level1Pos)
+              "level0 should not be empty when bit is set in level1 | tree branch: ", branchToString(levelPoss, 1)
             )
           );
 
-          for (uint level0Pos = 0; level0Pos <= MAX_LEVEL0_POSITION; ++level0Pos) {
-            bool level0PosIsSet = isBitSet(level0, level0Pos);
-            int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, level0Pos);
+          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL0_POSITION; ++levelPoss[0]) {
+            bool level0PosIsSet = isBitSet(level0, levelPoss[0]);
+            int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, levelPoss[0]);
             Leaf leaf = mgv.leafs(olKey, leafIndex);
 
             if (!level0PosIsSet) {
               assertTrue(
                 leaf.eq(LeafLib.EMPTY),
                 string.concat(
-                  "leaf should be empty when bit is not set in level0 | tree branch: ",
-                  vm.toString(level2Pos),
-                  "->",
-                  vm.toString(level1Pos),
-                  "->",
-                  vm.toString(level0Pos)
+                  "leaf should be empty when bit is not set in level0 | tree branch: ", branchToString(levelPoss, 0)
                 )
               );
               // checking that the entire subtree is empty is too expensive, so we stop here
               continue;
             }
             assertTrue(
+              // FIXME: Should this be updated to handle dirty leafs?
               !level0PosIsSet || !leaf.eq(LeafLib.EMPTY),
               string.concat(
-                "leaf should not be empty when bit is set in level0 | tree branch: ",
-                vm.toString(level2Pos),
-                "->",
-                vm.toString(level1Pos),
-                "->",
-                vm.toString(level0Pos)
+                "leaf should not be empty when bit is set in level0 | tree branch: ", branchToString(levelPoss, 0)
               )
             );
 
@@ -209,7 +197,11 @@ contract TestTickTree is MangroveTest {
               Tick tick = tickFromLeafIndexAndPos(leafIndex, leafPos);
               uint offerId = leaf.firstOfIndex(leafPos);
               if (offerId == 0) {
-                assertEq(leaf.lastOfIndex(leafPos), 0);
+                assertEq(
+                  leaf.lastOfIndex(leafPos),
+                  0,
+                  string.concat("last offer should be 0 when first is 0 | tick: ", toString(tick))
+                );
                 continue;
               }
               uint prev = 0;
@@ -219,7 +211,10 @@ contract TestTickTree is MangroveTest {
                   offer.tick(olKey.tickScale),
                   tick,
                   string.concat(
-                    "offer[", vm.toString(offerId), "] tick does not match location in tick tree | tick: ", toString(tick)
+                    "offer[",
+                    vm.toString(offerId),
+                    "] tick does not match location in tick tree | tick: ",
+                    toString(tick)
                   )
                 );
                 assertEq(
@@ -234,7 +229,9 @@ contract TestTickTree is MangroveTest {
                 );
                 assertTrue(
                   offer.isLive(),
-                  string.concat("offer[", vm.toString(offerId), "] in tick tree should be live | tick: ", toString(tick))
+                  string.concat(
+                    "offer[", vm.toString(offerId), "] in tick tree should be live | tick: ", toString(tick)
+                  )
                 );
                 prev = offerId;
                 offerId = offer.next();
@@ -259,74 +256,69 @@ contract TestTickTree is MangroveTest {
   }
 
   // Checks that the current Mangrove tick tree in olKey is equal to the tick tree passed as argument
-  function assertEqToMgvOffer() public {
+  function assertEqToMgvTickTree() public {
     Field level3 = mgv.level3(olKey);
-    for (uint level3Pos = 0; level3Pos <= MAX_LEVEL3_POSITION; ++level3Pos) {
+    uint[4] memory levelPoss;
+    for (levelPoss[3] = 0; levelPoss[3] <= MAX_LEVEL3_POSITION; ++levelPoss[3]) {
       assertEq(
-        isBitSet(level3, level3Pos),
-        isBitSet(local.level3(), level3Pos),
-        string.concat("level3 bit mismatch, pos: ", vm.toString(level3Pos))
+        isBitSet(level3, levelPoss[3]),
+        isBitSet(local.level3(), levelPoss[3]),
+        string.concat("level3 bit mismatch, branch: ", branchToString(levelPoss, 3))
       );
-      if (!isBitSet(level3, level3Pos)) {
+      if (!isBitSet(level3, levelPoss[3])) {
         continue;
       }
-      
-      int level2Index = level2IndexFromLevel3Pos(level3Pos);
+
+      int level2Index = level2IndexFromLevel3Pos(levelPoss[3]);
       Field level2 = mgv.level2(olKey, level2Index);
-      for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
+      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL2_POSITION; ++levelPoss[2]) {
         assertEq(
-          isBitSet(level2, level2Pos),
-          isBitSet(level2s[level2Index], level2Pos),
-          string.concat("level2 bit mismatch, branch: ", vm.toString(level3Pos), "->", vm.toString(level2Pos))
+          isBitSet(level2, levelPoss[2]),
+          isBitSet(level2s[level2Index], levelPoss[2]),
+          string.concat("level2 bit mismatch, branch: ", branchToString(levelPoss, 2))
         );
-        if (!isBitSet(level2, level2Pos)) {
+        if (!isBitSet(level2, levelPoss[2])) {
           continue;
         }
 
-        int level1Index = level1IndexFromLevel2IndexAndPos(level2Index,level2Pos);
+        int level1Index = level1IndexFromLevel2IndexAndPos(level2Index, levelPoss[2]);
         Field level1 = mgv.level1(olKey, level1Index);
-        for (uint level1Pos = 0; level1Pos <= MAX_LEVEL1_POSITION; ++level1Pos) {
+        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL1_POSITION; ++levelPoss[1]) {
           assertEq(
-            isBitSet(level1, level1Pos),
-            isBitSet(level1s[level1Index], level1Pos),
-            string.concat("level1 bit mismatch, branch: ", vm.toString(level2Pos), "->", vm.toString(level1Pos))
+            isBitSet(level1, levelPoss[1]),
+            isBitSet(level1s[level1Index], levelPoss[1]),
+            string.concat("level1 bit mismatch, branch: ", branchToString(levelPoss, 1))
           );
-          if (!isBitSet(level1, level1Pos)) {
+          if (!isBitSet(level1, levelPoss[1])) {
             continue;
           }
 
-          int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, level1Pos);
+          int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, levelPoss[1]);
           Field level0 = mgv.level0(olKey, level0Index);
-          for (uint level0Pos = 0; level0Pos <= MAX_LEVEL0_POSITION; ++level0Pos) {
+          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL0_POSITION; ++levelPoss[0]) {
             assertEq(
-              isBitSet(level0, level0Pos),
-              isBitSet(level0s[level0Index], level0Pos),
-              string.concat(
-                "level0 bit mismatch, branch: ",
-                vm.toString(level2Pos),
-                "->",
-                vm.toString(level1Pos),
-                "->",
-                vm.toString(level0Pos)
-              )
+              isBitSet(level0, levelPoss[0]),
+              isBitSet(level0s[level0Index], levelPoss[0]),
+              string.concat("level0 bit mismatch, branch: ", branchToString(levelPoss, 0))
             );
-            if (!isBitSet(level0, level0Pos)) {
+            if (!isBitSet(level0, levelPoss[0])) {
               continue;
             }
 
-            int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, level0Pos);
+            int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, levelPoss[0]);
             Leaf leaf = mgv.leafs(olKey, leafIndex);
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POSITION; ++leafPos) {
               {
+                Tick tick = tickFromLeafIndexAndPos(leafIndex, leafPos);
                 assertEq(
                   leaf.firstOfIndex(leafPos),
                   leafs[leafIndex].firstOfIndex(leafPos),
-                  string.concat("leaf first mismatch, pos: ", vm.toString(leafPos))
+                  string.concat("leaf first mismatch | tick: ", toString(tick))
                 );
                 assertEq(
                   leaf.lastOfIndex(leafPos),
                   leafs[leafIndex].lastOfIndex(leafPos),
-                  string.concat("leaf last mismatch, pos: ", vm.toString(leafPos))
+                  string.concat("leaf last mismatch | tick: ", toString(tick))
                 );
               }
               uint offerId = leaf.firstOfIndex(leafPos);
@@ -372,39 +364,46 @@ contract TestTickTree is MangroveTest {
 
   function logTickTree() public view {
     Field level3 = local.level3();
-    for (uint level3Pos = 0; level3Pos <= MAX_LEVEL3_POSITION; ++level3Pos) {
-      if (!isBitSet(level3, level3Pos)) {
+    uint[4] memory levelPoss;
+    for (levelPoss[3] = 0; levelPoss[3] <= MAX_LEVEL3_POSITION; ++levelPoss[3]) {
+      if (!isBitSet(level3, levelPoss[3])) {
         continue;
       }
-      console.log("l3: %s", level3Pos);
+      console.log("l3: %s", levelPoss[3]);
 
-      int level2Index = level2IndexFromLevel3Pos(level3Pos);
+      int level2Index = level2IndexFromLevel3Pos(levelPoss[3]);
       Field level2 = level2s[level2Index];
-      for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
-        if (!isBitSet(level2, level2Pos)) {
+      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL2_POSITION; ++levelPoss[2]) {
+        if (!isBitSet(level2, levelPoss[2])) {
           continue;
         }
-        console.log("  l2: %s (index: %s)", level2Pos, vm.toString(level2IndexFromLevel3Pos(level3Pos)));
+        console.log("  l2: %s (index: %s)", levelPoss[2], vm.toString(level2IndexFromLevel3Pos(levelPoss[3])));
 
-        int level1Index = level1IndexFromLevel2IndexAndPos(level2Index, level2Pos);
+        int level1Index = level1IndexFromLevel2IndexAndPos(level2Index, levelPoss[2]);
         Field level1 = level1s[level1Index];
-        for (uint level1Pos = 0; level1Pos <= MAX_LEVEL1_POSITION; ++level1Pos) {
-          if (!isBitSet(level1, level1Pos)) {
+        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL1_POSITION; ++levelPoss[1]) {
+          if (!isBitSet(level1, levelPoss[1])) {
             continue;
           }
-          console.log("  l1: %s (index: %s)", level1Pos, vm.toString(level1IndexFromLevel2IndexAndPos(level2Index,level2Pos)));
+          console.log(
+            "    l1: %s (index: %s)",
+            levelPoss[1],
+            vm.toString(level1IndexFromLevel2IndexAndPos(level2Index, levelPoss[2]))
+          );
 
-          int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, level1Pos);
+          int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, levelPoss[1]);
           Field level0 = level0s[level0Index];
-          for (uint level0Pos = 0; level0Pos <= MAX_LEVEL0_POSITION; ++level0Pos) {
-            if (!isBitSet(level0, level0Pos)) {
+          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL0_POSITION; ++levelPoss[0]) {
+            if (!isBitSet(level0, levelPoss[0])) {
               continue;
             }
             console.log(
-              "    l0: %s (index: %s)", level0Pos, vm.toString(level0IndexFromLevel1IndexAndPos(level1Index, level1Pos))
+              "      l0: %s (index: %s)",
+              levelPoss[0],
+              vm.toString(level0IndexFromLevel1IndexAndPos(level1Index, levelPoss[1]))
             );
 
-            int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, level0Pos);
+            int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, levelPoss[0]);
             Leaf leaf = leafs[leafIndex];
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POSITION; ++leafPos) {
               Tick tick = tickFromLeafIndexAndPos(leafIndex, leafPos);
@@ -412,9 +411,9 @@ contract TestTickTree is MangroveTest {
               if (offerId == 0) {
                 continue;
               }
-              console.log("      leaf: %s (index: %s) | tick: %s", leafPos, vm.toString(leafIndex), toString(tick));
+              console.log("        leaf: %s (index: %s) | tick: %s", leafPos, vm.toString(leafIndex), toString(tick));
               do {
-                console.log("        offer: %s", offerId);
+                console.log("          offer: %s", offerId);
                 offerId = offers[offerId].offer.next();
               } while (offerId != 0);
             }
@@ -425,30 +424,31 @@ contract TestTickTree is MangroveTest {
   }
 
   function best() public view returns (uint bestOfferId, Tick bestTick) {
-    for (uint level3Pos = 0; level3Pos <= MAX_LEVEL3_POSITION; ++level3Pos) {
-      if (!isBitSet(local.level3(), level3Pos)) {
+    uint[4] memory levelPoss;
+    for (levelPoss[3] = 0; levelPoss[3] <= MAX_LEVEL3_POSITION; ++levelPoss[3]) {
+      if (!isBitSet(local.level3(), levelPoss[3])) {
         continue;
       }
 
-      int level2Index = level2IndexFromLevel3Pos(level3Pos);
-      for (uint level2Pos = 0; level2Pos <= MAX_LEVEL2_POSITION; ++level2Pos) {
-        if (!isBitSet(level2s[level2Index], level2Pos)) {
+      int level2Index = level2IndexFromLevel3Pos(levelPoss[3]);
+      for (levelPoss[2] = 0; levelPoss[2] <= MAX_LEVEL2_POSITION; ++levelPoss[2]) {
+        if (!isBitSet(level2s[level2Index], levelPoss[2])) {
           continue;
         }
 
-        int level1Index = level1IndexFromLevel2IndexAndPos(level2Index,level2Pos);
-        for (uint level1Pos = 0; level1Pos <= MAX_LEVEL1_POSITION; ++level1Pos) {
-          if (!isBitSet(level1s[level1Index], level1Pos)) {
+        int level1Index = level1IndexFromLevel2IndexAndPos(level2Index, levelPoss[2]);
+        for (levelPoss[1] = 0; levelPoss[1] <= MAX_LEVEL1_POSITION; ++levelPoss[1]) {
+          if (!isBitSet(level1s[level1Index], levelPoss[1])) {
             continue;
           }
 
-          int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, level1Pos);
-          for (uint level0Pos = 0; level0Pos <= MAX_LEVEL0_POSITION; ++level0Pos) {
-            if (!isBitSet(level0s[level0Index], level0Pos)) {
+          int level0Index = level0IndexFromLevel1IndexAndPos(level1Index, levelPoss[1]);
+          for (levelPoss[0] = 0; levelPoss[0] <= MAX_LEVEL0_POSITION; ++levelPoss[0]) {
+            if (!isBitSet(level0s[level0Index], levelPoss[0])) {
               continue;
             }
 
-            int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, level0Pos);
+            int leafIndex = leafIndexFromLevel0IndexAndPos(level0Index, levelPoss[0]);
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POSITION; ++leafPos) {
               Tick tick = tickFromLeafIndexAndPos(leafIndex, leafPos);
               uint offerId = leafs[leafIndex].firstOfIndex(leafPos);
@@ -458,6 +458,19 @@ contract TestTickTree is MangroveTest {
               return (offerId, tick);
             }
           }
+        }
+      }
+    }
+  }
+
+  function branchToString(uint[4] memory levelPoss, uint toLevel) internal pure returns (string memory res) {
+    res = vm.toString(levelPoss[3]);
+    if (toLevel <= 2) {
+      res = string.concat(res, "->", vm.toString(levelPoss[2]));
+      if (toLevel <= 1) {
+        res = string.concat(res, "->", vm.toString(levelPoss[1]));
+        if (toLevel <= 0) {
+          res = string.concat(res, "->", vm.toString(levelPoss[0]));
         }
       }
     }
@@ -572,7 +585,7 @@ contract TestTickTree is MangroveTest {
   }
 
   function level2IndexFromLevel3Pos(uint pos) public pure returns (int) {
-    return int(pos) - LEVEL2_SIZE / 2;
+    return int(pos) - LEVEL3_SIZE / 2;
   }
 
   function level1IndexFromLevel2IndexAndPos(int level2Index, uint pos) public pure returns (int) {

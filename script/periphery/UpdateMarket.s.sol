@@ -17,7 +17,7 @@ contract UpdateMarket is Deployer {
   function run() public {
     innerRun({
       reader: MgvReader(envAddressOrName("MGV_READER", "MgvReader")),
-      market: Market(envAddressOrName("TKN0"), envAddressOrName("TKN1"), 1)
+      market: Market(envAddressOrName("TKN0"), envAddressOrName("TKN1"), vm.envUint("TICK_SCALE"))
     });
     outputDeployment();
   }

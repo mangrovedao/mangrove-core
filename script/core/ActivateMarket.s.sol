@@ -56,7 +56,7 @@ contract ActivateMarket is Deployer {
     uint tkn2_in_gwei,
     uint fee
   ) public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
+    MgvStructs.GlobalPacked global = mgv.global();
     innerRun(mgv, global.gasprice(), reader, market, tkn1_in_gwei, tkn2_in_gwei, fee);
   }
 

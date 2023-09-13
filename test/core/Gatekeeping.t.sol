@@ -91,27 +91,27 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_killing_updates_config() public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
+    MgvStructs.GlobalPacked global = mgv.global();
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OLKey(address(0), address(0), 0));
+    global = mgv.global();
     assertTrue(global.dead(), "mgv should be dead ");
   }
 
   function test_kill_is_idempotent() public {
-    (MgvStructs.GlobalPacked global,) = mgv.config(OLKey(address(0), address(0), 0));
+    MgvStructs.GlobalPacked global = mgv.global();
     assertTrue(!global.dead(), "mgv should not be dead ");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OLKey(address(0), address(0), 0));
+    global = mgv.global();
     assertTrue(global.dead(), "mgv should be dead");
     expectFrom($(mgv));
     emit Kill();
     mgv.kill();
-    (global,) = mgv.config(OLKey(address(0), address(0), 0));
+    global = mgv.global();
     assertTrue(global.dead(), "mgv should still be dead");
   }
 
@@ -179,9 +179,13 @@ contract GatekeepingTest is MangroveTest {
   }
 
   function test_makerWants_too_big_fails_newOfferByVolume() public {
-    vm.expectRevert("mgv/writeOffer/wants/96bits");
-    // due to approximation doing max + 1 is not sufficient to trigger the error
-    mkr.newOfferByVolume((1 << 96) + (1 << 82), 1 ether, 10_000, 0);
+    vm.expectRevert("priceFromVolumes/inbound/tooBig");
+    mkr.newOfferByVolume(MAX_SAFE_VOLUME + 1, 1 ether, 10_000, 0);
+  }
+
+  function test_makerGives_too_big_fails_newOfferByVolume() public {
+    vm.expectRevert("priceFromVolumes/outbound/tooBig");
+    mkr.newOfferByVolume(1 ether, MAX_SAFE_VOLUME + 1, 10_000, 0);
   }
 
   function test_newOfferByLogPrice_extrema_logPrice() public {
@@ -395,7 +399,7 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
     uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 300_000);
 
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.newOfferOK, (olKey)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.newOfferOK, (olKey)));
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be executed or test is void");
     assertTrue(mgv.best(olKey) == 2, "newOfferByVolume on posthook must work");
@@ -442,7 +446,7 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
 
     uint other_ofr = mkr.newOfferByLogPrice(olKey, 1, 1 ether, 100_000);
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.updateOfferOK, (olKey, other_ofr)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.updateOfferOK, (olKey, other_ofr)));
     uint ofr = mkr.newOfferByLogPrice(olKey, 0, 1 ether, 300_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be executed or test is void");
@@ -480,7 +484,7 @@ contract GatekeepingTest is MangroveTest {
     uint other_ofr = mkr.newOfferByVolume(lo, 1 ether, 1 ether, 90_000);
     mkr.setTradeCallback($(this), abi.encodeCall(this.retractOfferOK, (lo, other_ofr)));
 
-    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 90_000);
+    uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 110_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerExecuteWasCalled(ofr), "ofr must be executed or test is void");
     assertTrue(mgv.best(lo) == 0, "retractOffer on swapped offerList must work");
@@ -491,7 +495,7 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
 
     uint other_ofr = mkr.newOfferByLogPrice(olKey, 1, 1 ether, 290_000);
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.retractOfferOK, (olKey, other_ofr)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.retractOfferOK, (olKey, other_ofr)));
 
     uint ofr = mkr.newOfferByLogPrice(olKey, 0, 1 ether, 190_000);
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "market order must succeed or test is void");
@@ -549,7 +553,7 @@ contract GatekeepingTest is MangroveTest {
     mgv.setGasmax(10_000_000);
     uint ofr = mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 3500_000);
     uint ofr2 = other_mkr.newOfferByVolume(olKey, 0.5 ether, 0.5 ether, 1800_000);
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.marketOrderOK, (olKey)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.marketOrderOK, (olKey)));
     assertTrue(tkr.marketOrderWithSuccess(0.5 ether), "market order must succeed or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be executed or test is void");
     assertTrue(other_mkr.makerExecuteWasCalled(ofr2), "ofr2 must be executed or test is void");
@@ -689,7 +693,7 @@ contract GatekeepingTest is MangroveTest {
     int logPrice2 = LogPriceConversionLib.logPriceFromPrice(2, 0);
     uint other_ofr = other_mkr.newOfferByLogPrice(logPrice2, 1 ether, 200_000);
 
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.cleanOK, (olKey, other_ofr, logPrice2)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.cleanOK, (olKey, other_ofr, logPrice2)));
     uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 450_000);
 
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
@@ -768,7 +772,7 @@ contract GatekeepingTest is MangroveTest {
     deal($(base), $(mkr), 1 ether);
     uint ofr = mkr.newOfferByVolume(olKey, 1 ether, 1 ether, 200_000);
 
-    mkr.setPosthookCallback($(this), abi.encodeCall(this.olReadOK, (olKey)));
+    mkr.setPosthookNoArgCallback($(this), abi.encodeCall(this.olReadOK, (olKey)));
     assertTrue(tkr.marketOrderWithSuccess(1 ether), "take must succeed or test is void");
     assertTrue(mkr.makerPosthookWasCalled(ofr), "ofr posthook must be executed or test is void");
   }
@@ -843,7 +847,7 @@ contract GatekeepingTest is MangroveTest {
 
   function test_activation_emits_events_in_order() public {
     expectFrom($(mgv));
-    emit SetActive(lo.hash(), true);
+    emit SetActive(lo.hash(), lo.outbound, lo.inbound, lo.tickScale, true);
     expectFrom($(mgv));
     emit SetFee(lo.hash(), 7);
     expectFrom($(mgv));
@@ -853,10 +857,66 @@ contract GatekeepingTest is MangroveTest {
     mgv.activate(lo, 7, 0, 3);
   }
 
+  function test_activation_updates_olKeys(OLKey memory _olKey) public {
+    vm.assume(_olKey.tickScale != 0);
+    bytes32 hash = _olKey.hash();
+    vm.assume(hash != olKey.hash());
+    vm.assume(hash != lo.hash());
+    // initially 0
+    OLKey memory _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, address(0), "outbound should be address 0");
+    assertEq(_olKey2.inbound, address(0), "inbound should be address 0");
+    assertEq(_olKey2.tickScale, 0, "tickScale should be 0");
+    mgv.activate(_olKey, 7, 0, 3);
+    // gets updated
+    _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
+    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
+    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale");
+  }
+
+  function test_deactivation_maintains_olKeys(OLKey memory _olKey) public {
+    vm.assume(_olKey.tickScale != 0);
+    bytes32 hash = _olKey.hash();
+    vm.assume(hash != olKey.hash());
+    vm.assume(hash != lo.hash());
+    mgv.activate(_olKey, 7, 0, 3);
+    // gets updated
+    OLKey memory _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
+    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
+    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale");
+    mgv.deactivate(_olKey);
+    // still there
+    _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound after deactivate");
+    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound after deactivate");
+    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale after deactivate");
+  }
+
+  function test_reactivation_maintains_olKeys(OLKey memory _olKey) public {
+    vm.assume(_olKey.tickScale != 0);
+    bytes32 hash = _olKey.hash();
+    vm.assume(hash != olKey.hash());
+    vm.assume(hash != lo.hash());
+    mgv.activate(_olKey, 7, 0, 3);
+    // gets updated
+    OLKey memory _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound");
+    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound");
+    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale");
+    mgv.activate(_olKey, 4, 0, 2);
+    // still there
+    _olKey2 = mgv.olKeys(hash);
+    assertEq(_olKey2.outbound, _olKey.outbound, "wrong outbound after reactivate");
+    assertEq(_olKey2.inbound, _olKey.inbound, "wrong inbound after reactivate");
+    assertEq(_olKey2.tickScale, _olKey.tickScale, "wrong tickScale after reactivate");
+  }
+
   function test_updateOffer_on_inactive_fails() public {
     uint ofr = mgv.newOfferByVolume(olKey, 1 ether, 1 ether, 0, 0);
     expectFrom($(mgv));
-    emit SetActive(olKey.hash(), false);
+    emit SetActive(olKey.hash(), olKey.outbound, olKey.inbound, olKey.tickScale, false);
     mgv.deactivate(olKey);
     vm.expectRevert("mgv/inactive");
     mgv.updateOfferByVolume(olKey, 1 ether, 1 ether, 0, 0, ofr);

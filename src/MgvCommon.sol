@@ -20,7 +20,7 @@
 
 pragma solidity ^0.8.10;
 
-import {MgvStructs, Field, OLKey, HasMgvEvents, Density, IMgvMonitor, IERC20, Leaf} from "./MgvLib.sol";
+import {MgvStructs, DirtyField, OLKey, HasMgvEvents, Density, IMgvMonitor, IERC20, DirtyLeaf} from "./MgvLib.sol";
 
 /* `MgvRoot` contains state variables used everywhere in the operation of Mangrove and their related function. */
 contract MgvCommon is HasMgvEvents {
@@ -52,14 +52,16 @@ contract MgvCommon is HasMgvEvents {
   struct OfferList {
     MgvStructs.LocalPacked local;
     mapping(uint => OfferData) offerData;
-    mapping(int => Leaf) leafs;
-    mapping(int => Field) level0;
-    mapping(int => Field) level1;
-    Field level2;
+    mapping(int => DirtyLeaf) leafs;
+    mapping(int => DirtyField) level0;
+    mapping(int => DirtyField) level1;
+    DirtyField level2;
   }
 
   /* `offerLists` maps offer list id to offer list. */
   mapping(bytes32 => OfferList) internal offerLists;
+  /* Reverse mapping to fetch parameters from olKey hash */
+  mapping(bytes32 => OLKey) internal _olKeys;
 
   /* # State variables */
   /* Makers provision their possible penalties in the `balanceOf` mapping.

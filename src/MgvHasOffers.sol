@@ -12,7 +12,8 @@ import {
   LEVEL2_SIZE,
   LEVEL1_SIZE,
   LEVEL0_SIZE,
-  OLKey
+  OLKey,
+  DirtyFieldLib
 } from "./MgvLib.sol";
 import {MgvCommon} from "./MgvCommon.sol";
 
@@ -72,105 +73,115 @@ contract MgvHasOffers is MgvCommon {
   ) internal returns (MgvStructs.LocalPacked, bool) {
     unchecked {
       Leaf leaf;
-      uint prevId = offer.prev();
-      uint nextId = offer.next();
       Tick offerTick = offer.tick(tickScale);
-      if (prevId == 0 || nextId == 0) {
-        leaf = offerList.leafs[offerTick.leafIndex()];
+      // save stack space
+      {
+        uint prevId = offer.prev();
+        uint nextId = offer.next();
+        if (prevId == 0 || nextId == 0) {
+          leaf = offerList.leafs[offerTick.leafIndex()].clean();
+        }
+
+        // if current tick is not strictly better,
+        // time to look for a new current tick
+        // NOTE: I used to name this var "shouldUpdateTick" and add "&& (prevId == 0 && nextId == 0)" because tick has not changed if you are not removing the last offer of a tick. But for now i want to return the NEW BEST (for compatibility reasons). Will edit later.
+        // note: adding offerId as an arg would let us replace
+        // prevId == 0 && !local.tick.strictlyBetter(offerTick)
+        // with
+        // offerId == local.best() (but best will maybe go away in the future)
+
+        // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
+        // if local.tick < offerTick then a better branch is already cached. note that local.tick >= offerTick implies local.tick = offerTick
+        // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
+        shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !bestTick.strictlyBetter(offerTick);
+
+        if (prevId == 0) {
+          // offer was tick's first. new first offer is offer.next (may be 0)
+          leaf = leaf.setTickFirst(offerTick, nextId);
+        } else {
+          // offer.prev's next becomes offer.next
+          OfferData storage prevOfferData = offerList.offerData[prevId];
+          prevOfferData.offer = prevOfferData.offer.next(nextId);
+        }
+
+        if (nextId == 0) {
+          // offer was tick's last. new last offer is offer.prev (may be 0)
+          leaf = leaf.setTickLast(offerTick, prevId);
+        } else {
+          // offer.next's prev becomes offer.prev
+          OfferData storage nextOfferData = offerList.offerData[nextId];
+          nextOfferData.offer = nextOfferData.offer.prev(prevId);
+        }
+        if (prevId != 0 && nextId != 0) {
+          return (local, shouldUpdateBranch);
+        }
       }
 
-      // if current tick is not strictly better,
-      // time to look for a new current tick
-      // NOTE: I used to name this var "shouldUpdateTick" and add "&& (prevId == 0 && nextId == 0)" because tick has not changed if you are not removing the last offer of a tick. But for now i want to return the NEW BEST (for compatibility reasons). Will edit later.
-      // note: adding offerId as an arg would let us replace
-      // prevId == 0 && !local.tick.strictlyBetter(offerTick)
-      // with
-      // offerId == local.best() (but best will maybe go away in the future)
-
-      // If shouldUpdateBranch is false is means we are about to insert anyway, so no need to load the best branch right now
-      // if local.tick < offerTick then a better branch is already cached. note that local.tick >= offerTick implies local.tick = offerTick
-      // no need to check for prevId/nextId == 0: if offer is last of leaf, it will be checked by leaf.isEmpty()
-      shouldUpdateBranch = shouldUpdateBranch && prevId == 0 && !bestTick.strictlyBetter(offerTick);
-
-      if (prevId == 0) {
-        // offer was tick's first. new first offer is offer.next (may be 0)
-        leaf = leaf.setTickFirst(offerTick, nextId);
-      } else {
-        // offer.prev's next becomes offer.next
-        OfferData storage prevOfferData = offerList.offerData[prevId];
-        prevOfferData.offer = prevOfferData.offer.next(nextId);
-      }
-
-      if (nextId == 0) {
-        // offer was tick's last. new last offer is offer.prev (may be 0)
-        leaf = leaf.setTickLast(offerTick, prevId);
-      } else {
-        // offer.next's prev becomes offer.prev
-        OfferData storage nextOfferData = offerList.offerData[nextId];
-        nextOfferData.offer = nextOfferData.offer.prev(prevId);
-      }
-
-      if (prevId == 0 || nextId == 0) {
-        // offer.tick's first or last offer changed, must update leaf
-        offerList.leafs[offerTick.leafIndex()] = leaf;
-        // if leaf now empty, flip ticks OFF up the tree
-        if (leaf.isEmpty()) {
-          int index = offerTick.level0Index(); // level0Index or level1Index
-          Field field;
-          if (index == bestTick.level0Index()) {
-            field = local.level0().flipBitAtLevel0(offerTick);
-            local = local.level0(field);
+      // offer.tick's first or last offer changed, must update leaf
+      offerList.leafs[offerTick.leafIndex()] = leaf.dirty();
+      // if leaf now empty, flip ticks OFF up the tree
+      if (leaf.isEmpty()) {
+        int index = offerTick.level0Index(); // level0Index or level1Index
+        Field field;
+        if (index == bestTick.level0Index()) {
+          field = local.level0().flipBitAtLevel0(offerTick);
+          local = local.level0(field);
+          if (shouldUpdateBranch && field.isEmpty()) {
+            if (!offerList.level0[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+              offerList.level0[index] = DirtyFieldLib.DIRTY_EMPTY;
+            }
+          }
+        } else {
+          // note: useless dirty/clean cycle here
+          field = offerList.level0[index].clean().flipBitAtLevel0(offerTick);
+          offerList.level0[index] = field.dirty();
+        }
+        if (field.isEmpty()) {
+          index = offerTick.level1Index(); // level0Index or level1Index
+          if (index == bestTick.level1Index()) {
+            field = local.level1().flipBitAtLevel1(offerTick);
+            local = local.level1(field);
             if (shouldUpdateBranch && field.isEmpty()) {
-              offerList.level0[index] = field;
+              if (!offerList.level1[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+                offerList.level1[index] = DirtyFieldLib.DIRTY_EMPTY;
+              }
             }
           } else {
-            field = offerList.level0[index].flipBitAtLevel0(offerTick);
-            offerList.level0[index] = field;
+            // note: useless dirty/clean cycle here
+            field = offerList.level1[index].clean().flipBitAtLevel1(offerTick);
+            offerList.level1[index] = field.dirty();
           }
           if (field.isEmpty()) {
-            index = offerTick.level1Index(); // level0Index or level1Index
-            if (index == bestTick.level1Index()) {
-              field = local.level1().flipBitAtLevel1(offerTick);
-              local = local.level1(field);
-              if (shouldUpdateBranch && field.isEmpty()) {
-                offerList.level1[index] = field;
-              }
-            } else {
-              field = offerList.level1[index].flipBitAtLevel1(offerTick);
-              offerList.level1[index] = field;
-            }
-            if (field.isEmpty()) {
-              field = offerList.level2.flipBitAtLevel2(offerTick);
-              offerList.level2 = field;
+            field = offerList.level2.clean().flipBitAtLevel2(offerTick);
+            offerList.level2 = field.dirty();
 
-              // FIXME: should I let log2 not revert, but just return 0 if x is 0?
-              // Why am I setting tick to 0 before I return?
-              if (field.isEmpty()) {
-                return (local, shouldUpdateBranch); // shouldUpdateBranch always true here
-              }
-              // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
-              if (shouldUpdateBranch) {
-                local = local.tickPosInLevel2(field.firstOnePosition());
-                index = field.firstLevel1Index();
-                field = offerList.level1[index];
-                local = local.level1(field);
-              }
+            // FIXME: should I let log2 not revert, but just return 0 if x is 0?
+            // Why am I setting tick to 0 before I return?
+            if (field.isEmpty()) {
+              return (local, shouldUpdateBranch); // shouldUpdateBranch always true here
             }
+            // no need to check for level2.isEmpty(), if it's the case then shouldUpdateBranch is false, because the
             if (shouldUpdateBranch) {
-              index = field.firstLevel0Index(index);
-              field = offerList.level0[index];
-              local = local.level0(field);
+              local = local.tickPosInLevel2(field.firstOnePosition());
+              index = field.firstLevel1Index();
+              field = offerList.level1[index].clean();
+              local = local.level1(field);
             }
           }
           if (shouldUpdateBranch) {
-            leaf = offerList.leafs[field.firstLeafIndex(index)];
+            index = field.firstLevel0Index(index);
+            field = offerList.level0[index].clean();
+            local = local.level0(field);
           }
         }
         if (shouldUpdateBranch) {
-          local = local.tickPosInLeaf(leaf.firstOfferPosition());
+          leaf = offerList.leafs[field.firstLeafIndex(index)].clean();
         }
       }
-      return (local, shouldUpdateBranch);
+      if (shouldUpdateBranch) {
+        local = local.tickPosInLeaf(leaf.firstOfferPosition());
+      }
     }
+    return (local, shouldUpdateBranch);
   }
 }

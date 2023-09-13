@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "mgv_src/IMangrove.sol";
 import {IERC20, MgvLib, IMaker, OLKey} from "mgv_src/MgvLib.sol";
 import {Test} from "forge-std/Test.sol";
-import {Script2} from "mgv_lib/Script2.sol";
 import {TransferLib} from "mgv_lib/TransferLib.sol";
 
 contract TrivialTestMaker is IMaker {
@@ -21,7 +20,7 @@ struct OfferData {
   string executeData;
 }
 
-contract SimpleTestMaker is TrivialTestMaker, Script2 {
+contract SimpleTestMaker is TrivialTestMaker {
   IMangrove public mgv;
   OLKey olKey;
   bool _shouldFail; // will set mgv allowance to 0
@@ -31,8 +30,10 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
   bytes32 expectedStatus;
   address tradeCallbackContract; // the `tradeCallback` will be called on this contract during makerExecute
   bytes tradeCallback;
-  address posthookCallbackContract; // the `posthookCallback` will be called on this contract during makerExecute
-  bytes posthookCallback;
+  address posthookNoArgCallbackContract; // the `posthookNoArgCallback` will be called on this contract during makerPosthook with no arguments
+  bytes posthookNoArgCallback;
+  address posthookCallbackContract; // the `posthookCallbackSelector` will be called on this contract during makerPosthook
+  bytes4 posthookCallbackSelector; // this function must take two arguments of type `MgvLib.SingleOrder`
   address executeCallbackContract; // the `executeCallbackSelector` will be called on this contract during makerExecute
   bytes4 executeCallbackSelector; // this function must take a single argument of type `MgvLib.SingleOrder`
   ///@notice stores parameters for each posted offer
@@ -89,9 +90,16 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
     tradeCallback = _tradeCallback;
   }
 
-  function setPosthookCallback(address _posthookCallbackContract, bytes calldata _posthookCallback) external {
+  function setPosthookNoArgCallback(address _posthookNoArgCallbackContract, bytes calldata _posthookNoArgCallback)
+    external
+  {
+    posthookNoArgCallbackContract = _posthookNoArgCallbackContract;
+    posthookNoArgCallback = _posthookNoArgCallback;
+  }
+
+  function setPosthookCallback(address _posthookCallbackContract, bytes4 _posthookCallbackSelector) external {
     posthookCallbackContract = _posthookCallbackContract;
-    posthookCallback = _posthookCallback;
+    posthookCallbackSelector = _posthookCallbackSelector;
   }
 
   function shouldRevert(bool should) external {
@@ -179,9 +187,14 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
       revert("posthookFail");
     }
 
-    if (posthookCallbackContract != address(0) && posthookCallback.length > 0) {
-      (bool success,) = posthookCallbackContract.call(posthookCallback);
-      require(success, "makerExecute posthookCallback must work");
+    if (posthookCallbackContract != address(0) && posthookCallbackSelector.length > 0) {
+      (bool success,) = posthookCallbackContract.call(abi.encodeWithSelector(posthookCallbackSelector, (order)));
+      require(success, "makerPosthook posthookCallback must work");
+    }
+
+    if (posthookNoArgCallbackContract != address(0) && posthookNoArgCallback.length > 0) {
+      (bool success,) = posthookNoArgCallbackContract.call(posthookNoArgCallback);
+      require(success, "makerPosthook posthookNoArgCallback must work");
     }
 
     if (_shouldRepost) {
@@ -445,9 +458,9 @@ contract SimpleTestMaker is TrivialTestMaker, Script2 {
   }
 
   function clean(OLKey memory _olKey, uint offerId, int logPrice, uint takerWants) public returns (bool success) {
-    (uint successes,) = mgv.cleanByImpersonation(
-      _olKey, wrap_dynamic(MgvLib.CleanTarget(offerId, logPrice, type(uint48).max, takerWants)), address(this)
-    );
+    MgvLib.CleanTarget[] memory targets = new MgvLib.CleanTarget[](1);
+    targets[0] = MgvLib.CleanTarget(offerId, logPrice, type(uint48).max, takerWants);
+    (uint successes,) = mgv.cleanByImpersonation(_olKey, targets, address(this));
     return successes > 0;
   }
 }

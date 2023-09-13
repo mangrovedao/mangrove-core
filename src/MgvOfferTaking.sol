@@ -12,6 +12,9 @@ import {
   Tick,
   LeafLib,
   FieldLib,
+  DirtyField,
+  DirtyFieldLib,
+  DirtyLeaf,
   LogPriceLib,
   OLKey
 } from "./MgvLib.sol";
@@ -94,19 +97,23 @@ abstract contract MgvOfferTaking is MgvHasOffers {
       Leaf leaf = mor.leaf;
       leaf = leaf.setTickFirst(offerTick, 0).setTickLast(offerTick, 0);
       if (leaf.isEmpty()) {
-        offerList.leafs[offerTick.leafIndex()] = leaf;
+        offerList.leafs[offerTick.leafIndex()] = leaf.dirty();
         int index = offerTick.level0Index();
         Field field = local.level0().flipBitAtLevel0(offerTick);
         if (field.isEmpty()) {
-          offerList.level0[index] = field;
+          if (!offerList.level0[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+            offerList.level0[index] = DirtyFieldLib.DIRTY_EMPTY;
+          }
           index = offerTick.level1Index();
           field = local.level1().flipBitAtLevel1(offerTick);
           if (field.isEmpty()) {
-            offerList.level1[index] = field;
-            field = offerList.level2.flipBitAtLevel2(offerTick);
+            if (!offerList.level1[index].eq(DirtyFieldLib.CLEAN_EMPTY)) {
+              offerList.level1[index] = DirtyFieldLib.DIRTY_EMPTY;
+            }
             // on an abstract level level2 should be cached and only flushed at the end of the market order,
             // however it is highly unlikely that the level2 will be reached > 1 in a marketOrder
-            offerList.level2 = field;
+            field = offerList.level2.clean().flipBitAtLevel2(offerTick);
+            offerList.level2 = field.dirty();
             if (field.isEmpty()) {
               local = local.level1(field);
               local = local.level0(field);
@@ -114,14 +121,16 @@ abstract contract MgvOfferTaking is MgvHasOffers {
               return (0, local);
             }
             index = field.firstLevel1Index();
-            field = offerList.level1[index];
+            // Top bit cleaning will be done by level1(field) + field cannot be empty
+            field = Field.wrap(DirtyField.unwrap(offerList.level1[index]));
           }
           local = local.level1(field);
           index = field.firstLevel0Index(index);
-          field = offerList.level0[index];
+          // Top bit cleaning will be done by level0(field) + field cannot be empty
+          field = Field.wrap(DirtyField.unwrap(offerList.level0[index]));
         }
         local = local.level0(field);
-        leaf = offerList.leafs[field.firstLeafIndex(index)];
+        leaf = offerList.leafs[field.firstLeafIndex(index)].clean();
       }
       mor.leaf = leaf;
       nextId = leaf.getNextOfferId();
@@ -164,7 +173,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
 
       /* Throughout the execution of the market order, the `sor`'s offer id and other parameters will change. We start with the current best offer id (0 if the book is empty). */
 
-      mor.leaf = offerList.leafs[sor.local.bestTick().leafIndex()];
+      mor.leaf = offerList.leafs[sor.local.bestTick().leafIndex()].clean();
       sor.offerId = mor.leaf.getNextOfferId();
       sor.offer = offerList.offerData[sor.offerId].offer;
       /* fillVolume evolves but is initially however much remains in the market order. */
@@ -279,25 +288,33 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         // update leaf if necessary
         MgvStructs.OfferPacked offer = sor.offer;
         Tick tick = offer.tick(sor.olKey.tickScale);
-        if (offer.prev() != 0) {
-          offerList.offerData[sor.offerId].offer = sor.offer.prev(0);
-          mor.leaf = mor.leaf.setTickFirst(tick, sor.offerId);
-        }
 
-        // maybe some updates below are useless? if we don't update these we must take it into account elsewhere
-        // no need to test whether level2 has been reached since by default its stored in local
+        // Don't uselessly write empty leaf of tick 0
+        if (sor.offerId != 0) {
+          // Note: important to not update offer.prev before now or this test will fail spuriously
+          if (offer.prev() != 0) {
+            offerList.offerData[sor.offerId].offer = sor.offer.prev(0);
+            mor.leaf = mor.leaf.setTickFirst(tick, sor.offerId);
+          }
 
-        sor.local = sor.local.tickPosInLeaf(tick.posInLeaf());
-        sor.local = sor.local.tickPosInLevel2(tick.posInLevel2());
-        // no need to test whether mor.level2 != offerList.level2 since update is ~free
-        // ! local.level0[sor.local.bestTick().level0Index()] is now wrong
-        // sor.local = sor.local.level0(mor.level0);
+          sor.local = sor.local.tickPosInLeaf(tick.posInLeaf());
+          sor.local = sor.local.tickPosInLevel2(tick.posInLevel2());
+          // no need to test whether mor.level2 != offerList.level2 since update is ~free
+          // ! local.level0[sor.local.bestTick().level0Index()] is now wrong
+          // sor.local = sor.local.level0(mor.level0);
 
-        int index = tick.leafIndex();
-        // leaf cached in memory is flushed to storage everytime it gets emptied, but at the end of a market order we need to store it correctly
-        // second conjunct is for when you did not ever read leaf
-        if (!offerList.leafs[index].eq(mor.leaf)) {
-          offerList.leafs[index] = mor.leaf;
+          sor.local = sor.local.tickPosInLeaf(mor.leaf.firstOfferPosition());
+          // no need to test whether mor.level2 != offerList.level2 since update is ~free
+          // ! local.level0[sor.local.bestTick().level0Index()] is now wrong
+          // sor.local = sor.local.level0(mor.level0);
+
+          int index = tick.leafIndex();
+          // leaf cached in memory is flushed to storage everytime it gets emptied, but at the end of a market order we need to store it correctly
+          // second conjunct is for when you did not ever read leaf
+          // If uselessly written, it's a hot write anyway
+          // Reading to check useless write would have same cost
+          // Caching info on staleness of mor.leaf is doable but makes code too complex
+          offerList.leafs[index] = mor.leaf.dirty();
         }
 
         /* <a id="internalMarketOrder/liftReentrancy"></a>Now that the market order is over, we can lift the lock on the book. In the same operation we
@@ -421,7 +438,7 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         require(mgvData != "mgv/tradeSuccess", "mgv/clean/offerDidNotFail");
 
         /* In the market order, we were able to avoid stitching back offers after every `execute` since we knew a continuous segment starting at best would be consumed. Here, we cannot do this optimisation since the offer may be anywhere in the book. So we stitch together offers immediately after `execute`. */
-        (sor.local,) = dislodgeOffer(offerList, sor.olKey.tickScale, sor.offer, sor.local, sor.local.bestTick(), true);
+        (sor.local,) = dislodgeOffer(offerList, olKey.tickScale, sor.offer, sor.local, sor.local.bestTick(), true);
 
         /* <a id="internalSnipes/liftReentrancy"></a> Now that the current snipe is over, we can lift the lock on the book. In the same operation we
         * lift the reentrancy lock, and
@@ -519,8 +536,13 @@ abstract contract MgvOfferTaking is MgvHasOffers {
         }
 
         /* We update the totals in the multiorder based on the adjusted `sor.wants`/`sor.gives`. */
-        /* overflow: sor.{wants,gives} are on 96bits, sor.total{Got,Gave} are on 256 bits. */
+        /* no overflow: sor.wants is on <= 104 bits */
         mor.totalGot += sor.wants;
+        /* sor.gives can be on 248 bits (max offer.gives * max price). Very remote overflow chances here. You would need both:
+        a) sum of offer.wants() so far to > 256 bits. With a max offerGives volume on 96 bits and a max log_price of 2^20-1, wants is on 248 bits. So you'd need to go through 2^(256-248)=256 offers, which is currently above the max possible number of taken offers.
+        b) taker able to transfer more than 2^255-1 tokens, since this value is updated after the execution of the offer. It is theoretically possible if the maker sends the tokens back to the taker for instance.
+
+        Even then, you'd only be returning an undervalued totalGave value. */
         mor.totalGave += sor.gives;
       } else {
         /* In case of failure, `retdata` encodes a short [status code](#MgvOfferTaking/statusCodes), the gas used by the offer, and an arbitrary 256 bits word sent by the maker.  */

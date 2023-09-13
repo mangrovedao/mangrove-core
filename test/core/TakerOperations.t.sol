@@ -786,7 +786,7 @@ contract TakerOperationsTest is MangroveTest {
     int logPrice = mgv.offers(olKey, ofr).logPrice();
 
     vm.expectRevert("mgv/notEnoughGasForMakerPosthook");
-    mgv.marketOrderByLogPrice{gas: 280_000}(olKey, logPrice, 1 ether, true);
+    mgv.marketOrderByLogPrice{gas: 291_000}(olKey, logPrice, 1 ether, true);
   }
 
   // FIXME Make a token that goes out of gas on transfer to taker
@@ -1151,6 +1151,21 @@ contract TakerOperationsTest is MangroveTest {
     assertEq(best.prev(), 0, "best.prev should be 0");
     Leaf emptyLeaf = leaf.setTickFirst(tick, 0).setTickLast(tick, 0);
     assertTrue(emptyLeaf.isEmpty(), "leaf should not have other tick used");
+  }
+
+  /* 
+  An attempt to check for overflow when accumulating sor.gives into mor.totalGave.
+  I have not found a way to actually trigger it by mutating state somewhere.
+  This test just considers as many offers as possible that each have a maximal `wants` and makes sure the error will be about stack overflow, not uint overflow. 
+  */
+  function test_maximal_wants_is_ok() public {
+    uint maxOfferWants = LogPriceLib.inboundFromOutboundUp(MAX_LOG_PRICE, type(uint96).max);
+    unchecked {
+      uint recp = mgv.global().maxRecursionDepth() + 1;
+      assertTrue(
+        maxOfferWants * recp / recp == maxOfferWants, "mor.totalGave += sor.gives could overflow, check MgvOfferTaking"
+      );
+    }
   }
 }
 

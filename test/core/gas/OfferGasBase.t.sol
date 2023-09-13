@@ -36,7 +36,7 @@ abstract contract OfferGasBaseBaseTest is MangroveTest, GasTestBaseStored {
 
   function setUpPolygon() public virtual {
     super.setUp();
-    fork = new PinnedPolygonFork();
+    fork = new PinnedPolygonFork(39880000);
     fork.setUp();
     options.gasprice = 90;
     options.gasbase = 200_000;

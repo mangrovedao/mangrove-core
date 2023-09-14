@@ -1,5 +1,17 @@
 # Next version
 
+# 1.5.8-2
+
+- Can now pin fork to an arbitrary block number
+
+# 1.5.8-1
+
+- Added MgvConfig to configure addresses. (See README for more info)
+
+# 1.5.8-0
+
+- Moved all strat related contracts, scripts, deployers, etc. to @mangrovedao/mangrove-strats.
+
 # 1.5.8
 
 - Pinned fork to a block number as a constructor argument

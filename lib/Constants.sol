@@ -58,3 +58,7 @@ uint constant MAX_SAFE_VOLUME = (1<<(256-MANTISSA_BITS+1))-1;
 // Without optimizer enabled it fails above 79. With optimizer and 200 runs it fails above 80. Set default a bit lower to be safe.
 uint constant INITIAL_MAX_RECURSION_DEPTH = 75;
 uint constant INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTIPLIER = 3;
+
+// Price math limits the allowed ticks to a subset of the full range
+int constant MIN_TICK_ALLOWED = MIN_LOG_PRICE;
+int constant MAX_TICK_ALLOWED = MAX_LOG_PRICE;

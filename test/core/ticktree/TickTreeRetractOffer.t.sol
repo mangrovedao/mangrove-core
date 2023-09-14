@@ -62,6 +62,14 @@ contract TickTreeRetractOfferTest is TickTreeTest {
     run_retract_offer_scenarios_for_tick(TICK_MIDDLE);
   }
 
+  function test_retract_offer_for_TICK_MIN_ALLOWED() public {
+    run_retract_offer_scenarios_for_tick(TICK_MIN_ALLOWED);
+  }
+
+  function test_retract_offer_for_TICK_MAX_ALLOWED() public {
+    run_retract_offer_scenarios_for_tick(TICK_MAX_ALLOWED);
+  }
+
   // size of {lower,higher}TickList if the tick is present in the scenario
   uint[] otherTickListSizeScenarios = [1];
 

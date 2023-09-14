@@ -64,6 +64,8 @@ function toString(Tick tick) pure returns (string memory ret) {
   string memory suffix;
   if (MIN_TICK > Tick.unwrap(tick) || Tick.unwrap(tick) > MAX_TICK) {
     suffix = "out of range";
+  } else if (MIN_TICK_ALLOWED > Tick.unwrap(tick) || Tick.unwrap(tick) > MAX_TICK_ALLOWED) {
+    suffix = "out of logPrice range";
   } else {
     suffix = logPriceToString(LogPriceLib.fromTick(tick,1));
   }

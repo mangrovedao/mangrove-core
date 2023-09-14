@@ -59,25 +59,34 @@ abstract contract TickTreeTest is MangroveTest {
 
   // # Ticks of interest
   // Levels&leaf are assumed independent, so we can test multiple equivalence clases with one tick.
+  //
   // Equivalence classes to test:
   // - leaf: min, max, mid
   // - levelX: min, max, mid
+  //
+  // In addition, we test the min and max ticks allowed by (log)Price math.
 
   // min L3, max L2-0, max leaf
   // We use this tick to test the case where the tick is at the max position in all levels except level3:
   // Max in all positions isn't supported by (log)price math.
-  Tick TICK_MIN_L3_MAX_OTHERS =
+  Tick immutable TICK_MIN_L3_MAX_OTHERS =
     TickTreeUtil.tickFromBranch(MIN_LEVEL3_POS, MAX_LEVEL2_POS, MAX_LEVEL1_POS, MAX_LEVEL0_POS, MAX_LEAF_POS);
 
   // max L3, min L2-0, min leaf
   // We use this tick to test the case where the tick is at the min position in all levels except level3:
   // Min in all positions isn't supported by (log)price math.
-  Tick TICK_MAX_L3_MIN_OTHERS =
+  Tick immutable TICK_MAX_L3_MIN_OTHERS =
     TickTreeUtil.tickFromBranch(MAX_LEVEL3_POS, MIN_LEVEL2_POS, MIN_LEVEL1_POS, MIN_LEVEL0_POS, MIN_LEAF_POS);
 
   // middle L3-0, middle leaf
-  Tick TICK_MIDDLE =
+  Tick immutable TICK_MIDDLE =
     TickTreeUtil.tickFromBranch(MID_LEVEL3_POS, MID_LEVEL2_POS, MID_LEVEL1_POS, MID_LEVEL0_POS, MID_LEAF_POS);
+
+  // min tick allowed by (log)price math
+  Tick immutable TICK_MIN_ALLOWED = Tick.wrap(MIN_TICK_ALLOWED);
+
+  // max tick allowed by (log)price math
+  Tick immutable TICK_MAX_ALLOWED = Tick.wrap(MAX_TICK_ALLOWED);
 
   function setUp() public virtual override {
     super.setUp();
@@ -126,7 +135,7 @@ abstract contract TickTreeTest is MangroveTest {
     uint lowerTickListSize;
   }
 
-  function generateHigherTickScenarios(Tick tick) internal pure returns (Tick[] memory) {
+  function generateHigherTickScenarios(Tick tick) internal view returns (Tick[] memory) {
     uint next = 0;
     Tick[] memory ticks = new Tick[](10);
     if (tick.posInLeaf() < MAX_LEAF_POS) {
@@ -134,30 +143,45 @@ abstract contract TickTreeTest is MangroveTest {
       ticks[next++] = TickTreeUtil.tickFromBranch(
         tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf() + 1
       );
+      if (!isAllowedByPriceMath(ticks[next - 1])) {
+        next--;
+      }
     }
     if (tick.posInLevel0() < MAX_LEVEL0_POS) {
       // higher level0 position
       ticks[next++] = TickTreeUtil.tickFromBranch(
         tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0() + 1, tick.posInLeaf()
       );
+      if (!isAllowedByPriceMath(ticks[next - 1])) {
+        next--;
+      }
     }
     if (tick.posInLevel1() < MAX_LEVEL1_POS) {
       // higher level1 position
       ticks[next++] = TickTreeUtil.tickFromBranch(
         tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1() + 1, tick.posInLevel0(), tick.posInLeaf()
       );
+      if (!isAllowedByPriceMath(ticks[next - 1])) {
+        next--;
+      }
     }
     if (tick.posInLevel2() < MAX_LEVEL2_POS) {
       // higher level2 position
       ticks[next++] = TickTreeUtil.tickFromBranch(
         tick.posInLevel3(), tick.posInLevel2() + 1, tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf()
       );
+      if (!isAllowedByPriceMath(ticks[next - 1])) {
+        next--;
+      }
     }
     if (tick.posInLevel3() < MAX_LEVEL3_POS) {
       // higher level3 position
       // Choosing MIN POSITION for level2, level1, level0, leaf to avoid hitting logPrice limits.
       // The important thing is to have a higher position in level3.
       ticks[next++] = TickTreeUtil.tickFromBranch(tick.posInLevel3() + 1, 0, 0, 0, 0);
+      if (!isAllowedByPriceMath(ticks[next - 1])) {
+        next--;
+      }
     }
 
     Tick[] memory res = new Tick[](next);
@@ -167,7 +191,7 @@ abstract contract TickTreeTest is MangroveTest {
     return res;
   }
 
-  function generateLowerTickScenarios(Tick tick) internal pure returns (Tick[] memory) {
+  function generateLowerTickScenarios(Tick tick) internal view returns (Tick[] memory) {
     uint next = 0;
     Tick[] memory ticks = new Tick[](10);
     if (tick.posInLeaf() > 0) {
@@ -175,24 +199,36 @@ abstract contract TickTreeTest is MangroveTest {
       ticks[next++] = TickTreeUtil.tickFromBranch(
         tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf() - 1
       );
+      if (!isAllowedByPriceMath(ticks[next - 1])) {
+        next--;
+      }
     }
     if (tick.posInLevel0() > 0) {
       // lower level0 position
       ticks[next++] = TickTreeUtil.tickFromBranch(
         tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1(), tick.posInLevel0() - 1, tick.posInLeaf()
       );
+      if (!isAllowedByPriceMath(ticks[next - 1])) {
+        next--;
+      }
     }
     if (tick.posInLevel1() > 0) {
       // lower level1 position
       ticks[next++] = TickTreeUtil.tickFromBranch(
         tick.posInLevel3(), tick.posInLevel2(), tick.posInLevel1() - 1, tick.posInLevel0(), tick.posInLeaf()
       );
+      if (!isAllowedByPriceMath(ticks[next - 1])) {
+        next--;
+      }
     }
     if (tick.posInLevel2() > 0) {
       // lower level2 position
       ticks[next++] = TickTreeUtil.tickFromBranch(
         tick.posInLevel3(), tick.posInLevel2() - 1, tick.posInLevel1(), tick.posInLevel0(), tick.posInLeaf()
       );
+      if (!isAllowedByPriceMath(ticks[next - 1])) {
+        next--;
+      }
     }
     if (tick.posInLevel3() > 0) {
       // lower level3 position
@@ -201,6 +237,9 @@ abstract contract TickTreeTest is MangroveTest {
       ticks[next++] = TickTreeUtil.tickFromBranch(
         tick.posInLevel3() - 1, MAX_LEVEL2_POS, MAX_LEVEL1_POS, MAX_LEVEL0_POS, MAX_LEAF_POS
       );
+      if (!isAllowedByPriceMath(ticks[next - 1])) {
+        next--;
+      }
     }
 
     Tick[] memory res = new Tick[](next);
@@ -208,6 +247,10 @@ abstract contract TickTreeTest is MangroveTest {
       res[i] = ticks[i];
     }
     return res;
+  }
+
+  function isAllowedByPriceMath(Tick tick) internal view returns (bool) {
+    return Tick.unwrap(TICK_MIN_ALLOWED) <= Tick.unwrap(tick) && Tick.unwrap(tick) <= Tick.unwrap(TICK_MAX_ALLOWED);
   }
 
   function generateTickScenarios(

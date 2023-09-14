@@ -146,6 +146,44 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     run_update_offer_scenarios_for_tick(TICK_MIDDLE, singletonTickListSizeScenarios, singletonTickListSizeScenarios);
   }
 
+  // TICK_MIN_ALLOWED tests
+  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MIN_ALLOWED, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MIN_ALLOWED, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MIN_ALLOWED, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_TICK_MIN_ALLOWED_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_MIN_ALLOWED, singletonTickListSizeScenarios, singletonTickListSizeScenarios
+    );
+  }
+
+  // TICK_MAX_ALLOWED tests
+  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MAX_ALLOWED, emptyTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MAX_ALLOWED, emptyTickListSizeScenarios, singletonTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_not_empty_and_lower_is_empty() public {
+    run_update_offer_scenarios_for_tick(TICK_MAX_ALLOWED, singletonTickListSizeScenarios, emptyTickListSizeScenarios);
+  }
+
+  function test_update_offer_for_TICK_MAX_ALLOWED_where_higher_is_not_empty_and_lower_is_not_empty() public {
+    run_update_offer_scenarios_for_tick(
+      TICK_MAX_ALLOWED, singletonTickListSizeScenarios, singletonTickListSizeScenarios
+    );
+  }
+
   function run_update_offer_scenarios_for_tick(
     Tick tick,
     uint[] storage higherTickListSizeScenarios,

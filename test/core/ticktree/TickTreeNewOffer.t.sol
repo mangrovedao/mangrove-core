@@ -60,6 +60,14 @@ contract TickTreeNewOfferTest is TickTreeTest {
     run_new_offer_scenarios_for_tick(TICK_MIDDLE);
   }
 
+  function test_new_offer_for_TICK_MIN_ALLOWED() public {
+    run_new_offer_scenarios_for_tick(TICK_MIN_ALLOWED);
+  }
+
+  function test_new_offer_for_TICK_MAX_ALLOWED() public {
+    run_new_offer_scenarios_for_tick(TICK_MAX_ALLOWED);
+  }
+
   struct NewOfferScenario {
     TickScenario tickScenario;
     uint insertionTickListSize;
@@ -82,6 +90,7 @@ contract TickTreeNewOfferTest is TickTreeTest {
         );
       }
     }
+    vm.resumeGasMetering();
   }
 
   // This test is useful for debugging a single scneario

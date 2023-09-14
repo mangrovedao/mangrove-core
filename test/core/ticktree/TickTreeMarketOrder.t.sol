@@ -88,6 +88,14 @@ contract TickTreeMarketOrderTest is TickTreeTest {
     run_market_order_scenarios_for_tick(TICK_MIDDLE);
   }
 
+  function test_market_order_for_TICK_MIN_ALLOWED() public {
+    run_market_order_scenarios_for_tick(TICK_MIN_ALLOWED);
+  }
+
+  function test_market_order_for_TICK_MAX_ALLOWED() public {
+    run_market_order_scenarios_for_tick(TICK_MAX_ALLOWED);
+  }
+
   function run_market_order_scenarios_for_tick(Tick tick) internal {
     vm.pauseGasMetering();
     bool printToConsole = false;
@@ -160,9 +168,9 @@ contract TickTreeMarketOrderTest is TickTreeTest {
   function test_single_market_order_scenario() public {
     run_market_order_scenario(
       MarketOrderScenario({
-        lowerTick: TickListScenario({tick: Tick.wrap(-1), size: 2, offersToTake: 2}),
-        middleTick: TickListScenario({tick: Tick.wrap(0), size: 2, offersToTake: 2}),
-        higherTick: TickListScenario({tick: Tick.wrap(1), size: 3, offersToTake: 1})
+        lowerTick: TickListScenario({tick: Tick.wrap(0), size: 0, offersToTake: 0}),
+        middleTick: TickListScenario({tick: Tick.wrap(-1048575), size: 2, offersToTake: 2}),
+        higherTick: TickListScenario({tick: Tick.wrap(0), size: 0, offersToTake: 0})
       }),
       true
     );
@@ -171,7 +179,7 @@ contract TickTreeMarketOrderTest is TickTreeTest {
   function scenarioToString(TickListScenario memory scenario) internal pure returns (string memory) {
     string memory tickListScenario = scenario.size == 0
       ? "empty          "
-      : scenario.size == 1 ? "fully taken    " : scenario.offersToTake == 1 ? "partially taken" : "not taken      ";
+      : scenario.size == 2 ? "fully taken    " : scenario.offersToTake == 1 ? "partially taken" : "not taken      ";
     return string.concat(
       tickListScenario,
       ", tick: ",

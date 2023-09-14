@@ -77,33 +77,24 @@ contract TickTreeCleanOfferTest is TickTreeTest {
 
   function run_clean_offer_scenarios_for_tick(Tick tick) internal {
     vm.pauseGasMetering();
-    TickScenario[] memory tickScenarios =
-      generateTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
-    for (uint i = 0; i < tickScenarios.length; ++i) {
-      TickScenario memory tickScenario = tickScenarios[i];
-      for (uint j = 0; j < tickListScenarios.length; ++j) {
-        uint[2] storage tickListScenario = tickListScenarios[j];
-        run_clean_offer_scenario(
-          CleanOfferScenario({
-            tickScenario: tickScenario,
-            offerTickListSize: tickListScenario[0],
-            offerPos: tickListScenario[1],
-            offerFail: true
-          }),
-          true
-        );
-        run_clean_offer_scenario(
-          CleanOfferScenario({
-            tickScenario: tickScenario,
-            offerTickListSize: tickListScenario[0],
-            offerPos: tickListScenario[1],
-            offerFail: false
-          }),
-          true
-        );
-      }
-    }
+    runTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
     vm.resumeGasMetering();
+  }
+
+  function runTickScenario(TickScenario memory tickScenario) internal override {
+    CleanOfferScenario memory scenario;
+    scenario.tickScenario = tickScenario;
+    for (uint j = 0; j < tickListScenarios.length; ++j) {
+      uint[2] storage tickListScenario = tickListScenarios[j];
+      scenario.offerTickListSize = tickListScenario[0];
+      scenario.offerPos = tickListScenario[1];
+
+      scenario.offerFail = true;
+      run_clean_offer_scenario(scenario, false);
+
+      scenario.offerFail = false;
+      run_clean_offer_scenario(scenario, false);
+    }
   }
 
   // This test is useful for debugging a single scneario
@@ -162,11 +153,6 @@ contract TickTreeCleanOfferTest is TickTreeTest {
 
     // 3. Snapshot tick tree
     TestTickTree tickTree = snapshotTickTree();
-    console.log("Before");
-    console.log("  test tick tree");
-    tickTree.logTickTree();
-    console.log("  MGV branch");
-    logTickTreeBranch(olKey);
 
     // 4. Clean the offer
     mgv.cleanByImpersonation(
@@ -175,12 +161,6 @@ contract TickTreeCleanOfferTest is TickTreeTest {
     if (scenario.offerFail) {
       tickTree.removeOffer(offerId);
     }
-    console.log("");
-    console.log("After");
-    console.log("  test tick tree");
-    tickTree.logTickTree();
-    console.log("  MGV branch");
-    logTickTreeBranch(olKey);
 
     // 5. Assert that Mangrove and tick tree are equal
     tickTree.assertEqToMgvTickTree();

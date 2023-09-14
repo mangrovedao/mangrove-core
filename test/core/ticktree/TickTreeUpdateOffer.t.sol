@@ -190,46 +190,29 @@ contract TickTreeUpdateOfferTest is TickTreeTest {
     uint[] storage lowerTickListSizeScenarios
   ) internal {
     vm.pauseGasMetering();
-    TickScenario[] memory tickScenarios =
-      generateTickScenarios(tick, higherTickListSizeScenarios, lowerTickListSizeScenarios);
-    for (uint i = 0; i < tickScenarios.length; ++i) {
-      TickScenario memory tickScenario = tickScenarios[i];
-      for (uint j = 0; j < tickListScenarios.length; ++j) {
-        uint[2] storage tickListScenario = tickListScenarios[j];
-        run_update_offer_scenario(
-          UpdateOfferScenario({
-            tickScenario: tickScenario,
-            newTick: tickScenario.tick,
-            offerTickListSize: tickListScenario[0],
-            offerPos: tickListScenario[1]
-          }),
-          false
-        );
-        if (tickScenario.hasHigherTick) {
-          run_update_offer_scenario(
-            UpdateOfferScenario({
-              tickScenario: tickScenario,
-              newTick: tickScenario.higherTick,
-              offerTickListSize: tickListScenario[0],
-              offerPos: tickListScenario[1]
-            }),
-            false
-          );
-        }
-        if (tickScenario.hasLowerTick) {
-          run_update_offer_scenario(
-            UpdateOfferScenario({
-              tickScenario: tickScenario,
-              newTick: tickScenario.lowerTick,
-              offerTickListSize: tickListScenario[0],
-              offerPos: tickListScenario[1]
-            }),
-            false
-          );
-        }
+    runTickScenarios(tick, higherTickListSizeScenarios, lowerTickListSizeScenarios);
+    vm.resumeGasMetering();
+  }
+
+  function runTickScenario(TickScenario memory tickScenario) internal override {
+    UpdateOfferScenario memory scenario;
+    scenario.tickScenario = tickScenario;
+    for (uint j = 0; j < tickListScenarios.length; ++j) {
+      uint[2] storage tickListScenario = tickListScenarios[j];
+      scenario.offerTickListSize = tickListScenario[0];
+      scenario.offerPos = tickListScenario[1];
+
+      scenario.newTick = tickScenario.tick;
+      run_update_offer_scenario(scenario, false);
+      if (tickScenario.hasHigherTick) {
+        scenario.newTick = tickScenario.higherTick;
+        run_update_offer_scenario(scenario, false);
+      }
+      if (tickScenario.hasLowerTick) {
+        scenario.newTick = tickScenario.lowerTick;
+        run_update_offer_scenario(scenario, false);
       }
     }
-    vm.resumeGasMetering();
   }
 
   // This test is useful for debugging a single scneario

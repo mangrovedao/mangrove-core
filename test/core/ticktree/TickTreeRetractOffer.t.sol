@@ -75,21 +75,18 @@ contract TickTreeRetractOfferTest is TickTreeTest {
 
   function run_retract_offer_scenarios_for_tick(Tick tick) internal {
     vm.pauseGasMetering();
-    TickScenario[] memory tickScenarios =
-      generateTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
-    for (uint i = 0; i < tickScenarios.length; ++i) {
-      TickScenario memory tickScenario = tickScenarios[i];
-      for (uint j = 0; j < tickListScenarios.length; ++j) {
-        uint[2] storage tickListScenario = tickListScenarios[j];
-        run_retract_offer_scenario(
-          RetractOfferScenario({
-            tickScenario: tickScenario,
-            offerTickListSize: tickListScenario[0],
-            offerPos: tickListScenario[1]
-          }),
-          false
-        );
-      }
+    runTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
+    vm.resumeGasMetering();
+  }
+
+  function runTickScenario(TickScenario memory tickScenario) internal override {
+    RetractOfferScenario memory scenario;
+    scenario.tickScenario = tickScenario;
+    for (uint j = 0; j < tickListScenarios.length; ++j) {
+      uint[2] storage tickListScenario = tickListScenarios[j];
+      scenario.offerTickListSize = tickListScenario[0];
+      scenario.offerPos = tickListScenario[1];
+      run_retract_offer_scenario(scenario, false);
     }
   }
 

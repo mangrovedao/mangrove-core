@@ -253,69 +253,65 @@ abstract contract TickTreeTest is MangroveTest {
     return Tick.unwrap(TICK_MIN_ALLOWED) <= Tick.unwrap(tick) && Tick.unwrap(tick) <= Tick.unwrap(TICK_MAX_ALLOWED);
   }
 
-  function generateTickScenarios(
+  // Implement this in subclasses and then call `runTickScenarios` to generate and run all scenarios
+  function runTickScenario(TickScenario memory scenario) internal virtual {}
+
+  // Generates all tick scenarios and calls `runTickScenario` for each one
+  function runTickScenarios(
     Tick tick,
     uint[] storage higherTickListSizeScenarios,
     uint[] storage lowerTickListSizeScenarios
-  ) internal view returns (TickScenario[] memory) {
+  ) internal {
     Tick[] memory higherTicks = generateHigherTickScenarios(tick);
     Tick[] memory lowerTicks = generateLowerTickScenarios(tick);
-    TickScenario[] memory tickScenarios =
-    new TickScenario[](1 + higherTicks.length * higherTickListSizeScenarios.length + lowerTicks.length * lowerTickListSizeScenarios.length + higherTicks.length * lowerTicks.length * higherTickListSizeScenarios.length * lowerTickListSizeScenarios.length);
-    uint next = 0;
-    tickScenarios[next++] = TickScenario({
-      tick: tick,
-      hasHigherTick: false,
-      higherTick: Tick.wrap(0),
-      higherTickListSize: 0,
-      hasLowerTick: false,
-      lowerTick: Tick.wrap(0),
-      lowerTickListSize: 0
-    });
+    TickScenario memory scenario;
+
+    scenario.tick = tick;
+    scenario.hasHigherTick = false;
+    scenario.higherTick = Tick.wrap(0);
+    scenario.higherTickListSize = 0;
+    scenario.hasLowerTick = false;
+    scenario.lowerTick = Tick.wrap(0);
+    scenario.lowerTickListSize = 0;
+
+    runTickScenario(scenario);
+
+    scenario.hasHigherTick = true;
     for (uint h = 0; h < higherTicks.length; ++h) {
+      scenario.higherTick = higherTicks[h];
       for (uint hs = 0; hs < higherTickListSizeScenarios.length; ++hs) {
-        tickScenarios[next++] = TickScenario({
-          tick: tick,
-          hasHigherTick: true,
-          higherTick: higherTicks[h],
-          higherTickListSize: higherTickListSizeScenarios[hs],
-          hasLowerTick: false,
-          lowerTick: Tick.wrap(0),
-          lowerTickListSize: 0
-        });
+        scenario.higherTickListSize = higherTickListSizeScenarios[hs];
+        runTickScenario(scenario);
       }
     }
+
+    scenario.hasHigherTick = false;
+    scenario.higherTick = Tick.wrap(0);
+    scenario.higherTickListSize = 0;
+    scenario.hasLowerTick = true;
     for (uint l = 0; l < lowerTicks.length; ++l) {
+      scenario.lowerTick = lowerTicks[l];
       for (uint ls = 0; ls < lowerTickListSizeScenarios.length; ++ls) {
-        tickScenarios[next++] = TickScenario({
-          tick: tick,
-          hasHigherTick: false,
-          higherTick: Tick.wrap(0),
-          higherTickListSize: 0,
-          hasLowerTick: true,
-          lowerTick: lowerTicks[l],
-          lowerTickListSize: lowerTickListSizeScenarios[ls]
-        });
+        scenario.lowerTickListSize = lowerTickListSizeScenarios[ls];
+        runTickScenario(scenario);
       }
     }
+
+    scenario.hasHigherTick = true;
+    scenario.hasLowerTick = true;
     for (uint h = 0; h < higherTicks.length; ++h) {
+      scenario.higherTick = higherTicks[h];
       for (uint l = 0; l < lowerTicks.length; ++l) {
+        scenario.lowerTick = lowerTicks[l];
         for (uint hs = 0; hs < higherTickListSizeScenarios.length; ++hs) {
+          scenario.higherTickListSize = higherTickListSizeScenarios[hs];
           for (uint ls = 0; ls < lowerTickListSizeScenarios.length; ++ls) {
-            tickScenarios[next++] = TickScenario({
-              tick: tick,
-              hasHigherTick: true,
-              higherTick: higherTicks[h],
-              higherTickListSize: higherTickListSizeScenarios[hs],
-              hasLowerTick: true,
-              lowerTick: lowerTicks[l],
-              lowerTickListSize: lowerTickListSizeScenarios[ls]
-            });
+            scenario.lowerTickListSize = lowerTickListSizeScenarios[ls];
+            runTickScenario(scenario);
           }
         }
       }
     }
-    return tickScenarios;
   }
 
   function add_n_offers_to_tick(Tick tick, uint n) internal returns (uint[] memory offerIds, uint gives) {

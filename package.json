@@ -15,7 +15,9 @@
     "clean": "forge clean; rimraf index.js dist",
     "doc": "solcco -f doc/MgvDoc.html preprocessing/structs.ts src/MgvLib.sol src/MgvCommon.sol src/MgvHasOffers.sol src/MgvOfferMaking.sol src/MgvOfferTaking.sol src/MgvOfferTakingWithPermit.sol src/MgvGovernable.sol src/MgvView.sol src/MgvAppendix.sol src/AbstractMangrove.sol src/Mangrove.sol",
     "preproc": "ts-node preprocessing/run.ts",
-    "test": "forge test -vvv"
+    "test": "forge test -vvv",
+    "test:memory-intensive": "forge test --match-contract TickTree",
+    "test:fast": "forge test --no-match-contract TickTree -vvv"
   },
   "lint-staged": {
     "*.sol": "forge fmt",

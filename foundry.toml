@@ -22,6 +22,7 @@ ethereum="${ETHEREUM_NODE_URL}"
 testnet_zkevm="https://rpc.public.zkevm-test.net"
 zkevm="https://zkevm-rpc.com"
 goerli="${GOERLI_NODE_URL}"
+arbitrum="${ARBITRUM_NODE_URL}"
 
 [etherscan]
 goerli={key="${GOERLI_API_KEY}"}
@@ -29,6 +30,7 @@ mumbai={key="${POLYGON_API_KEY}"}
 polygon={key="${POLYGON_API_KEY}"}
 testnet_zkevm={key="${ZKEVM_API_KEY}",chain=1442,url="https://api-testnet-zkevm.polygonscan.com/api"}
 zkevm={key="${ZKEVM_API_KEY}",chain=1101,url="https://api-zkevm.polygonscan.com/api"}
+arbitrum={key="${ARBITRUM_API_KEY}"}
 
 # The remappings are in remappings.txt so vscode solidity ext. can read them
 # The first lines are the manual remappings
@@ -49,3 +51,4 @@ polygon={key=""}
 goerli={key=""}
 testnet_zkevm={key="",chain=1442,url="https://api-testnet-zkevm.polygonscan.com/api"}
 zkevm={key="",chain=1101,url="https://api-zkevm.polygonscan.com/api"}
+arbitrum={key=""}

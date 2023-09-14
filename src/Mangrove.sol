@@ -34,8 +34,8 @@ contract Mangrove is AbstractMangrove {
        mgv->maker. With a direct taker->maker transfer, if one of taker/maker
        is blacklisted, we can't tell which one. We need to know which one:
        if we incorrectly blame the taker, a blacklisted maker can block an offer list forever; if we incorrectly blame the maker, a blacklisted taker can unfairly make makers fail all the time. Of course we assume that Mangrove is not blacklisted. This 2-step transfer is incompatible with tokens that have transfer fees (more accurately, it uselessly incurs fees twice). */
-      if (transferTokenFrom(sor.olKey.inbound, taker, address(this), sor.gives)) {
-        if (transferToken(sor.olKey.inbound, sor.offerDetail.maker(), sor.gives)) {
+      if (transferTokenFrom(sor.olKey.inbound, taker, address(this), sor.takerGives)) {
+        if (transferToken(sor.olKey.inbound, sor.offerDetail.maker(), sor.takerGives)) {
           (gasused, makerData) = makerExecute(sor);
         } else {
           innerRevert([bytes32("mgv/makerReceiveFail"), bytes32(0), ""]);

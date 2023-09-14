@@ -78,17 +78,6 @@ library OfferUnpackedExtra {
 
 }
 
-// Alternative pack function to derive tick from gives/wants
-// May be removed
-function pack(uint __prev, uint __next, uint __wants, uint __gives) pure returns (OfferPacked) { unchecked {
-  return pack({
-    __prev: __prev,
-    __next: __next,
-    __logPrice: LogPriceConversionLib.logPriceFromVolumes(__wants,__gives),
-    __gives: __gives
-  });
-}}
-
 ////////////// END OF ADDITIONAL DEFINITIONS /////////////////
 
 // number of bits in each field

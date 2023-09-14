@@ -52,7 +52,7 @@ artifacts.forEach((file) => {
       (x) =>
         x.nodeType == "FunctionDefinition" ||
         x.nodeType == "EventDefinition" ||
-        x.nodeType == "VariableDeclaration"
+        x.nodeType == "VariableDeclaration",
     )
     .forEach((x) => {
       const doc = x?.documentation?.text ?? "";

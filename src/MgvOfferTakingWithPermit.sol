@@ -11,6 +11,7 @@ import "mgv_lib/Debug.sol";
 
 abstract contract MgvOfferTakingWithPermit is MgvOfferTaking {
   // Since DOMAIN_SEPARATOR is immutable, it cannot use MgvAppendix to provide an accessor (because the value will come from code, not from storage), so we generate the accessor here.
+  bytes32 public constant PERMIT_TYPEHASH = 0xf0ea0a7146fb6eedb561d97b593d57d9b7df3c94d689372dc01302e5780248f4;
   bytes32 public immutable DOMAIN_SEPARATOR;
 
   constructor(string memory contractName) {

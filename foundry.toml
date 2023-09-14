@@ -8,7 +8,7 @@ out='out'
 libs=['lib']
 cache_path='cache'
 evm_version='paris'
-fs_permissions = [{ access = "read-write", path = "./addresses/"}, { access = "read", path = "./out/" }]
+fs_permissions = [{ access = "read-write", path = "./addresses/"}, { access = "read-write", path = "./analytics/"}, { access = "read", path = "./out/" }, { access = "read", path = "mgvConfig.json" }]
 solc_version="0.8.20"
 ffi=true
 optimizer=false

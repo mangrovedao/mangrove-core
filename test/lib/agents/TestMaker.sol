@@ -141,7 +141,7 @@ contract SimpleTestMaker is TrivialTestMaker {
       revert("testMaker/shouldRevert");
     }
 
-    if (_shouldRevertOnNonZeroGives && order.gives > 0) {
+    if (_shouldRevertOnNonZeroGives && order.takerGives > 0) {
       revert("testMaker/shouldRevertOnNonZeroGives");
     }
 
@@ -166,8 +166,8 @@ contract SimpleTestMaker is TrivialTestMaker {
       order.olKey.inbound,
       order.olKey.tickScale,
       order.offerId,
-      order.wants,
-      order.gives
+      order.takerWants,
+      order.takerGives
     );
 
     return bytes32(bytes(offerData.executeData));

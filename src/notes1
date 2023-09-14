@@ -1,0 +1,185 @@
+  DO: premises 1888                  GNB: premises 2010          OK
+  DO: -> index1 6197                 GNB: -> index1 5777         420
+  DO: rest 7129                      GNB: rest 6858              271
+
+  Total: 691
+
+  DO: premises 1888                  GNB: premises 2010          OK
+  DO: -> index1 6897                 GNB: -> index1 6477         420 (higher)
+  DO: rest 7129                      GNB: rest 6858              271
+
+  Total: 691
+
+  DO: premises 1888                  GNB: premises 2010          OK
+  DO: -> index1 6897                 GNB: -> index1 6477         420 (higher)
+  DO: --> flip2 3050                 GNB: --> flip2 2857         193
+  DO: --->end 913                    GNB: --->end 1138           OK
+
+  Total: 612
+
+
+  ----------------- total
+
+  DO: total 15792                    GNB: total 14631           1161
+  DO: total 16492                    GNB: total 15331           same
+
+  ------------------ details 1
+
+  DO: premises 1888                            GNB: premises 2010
+  DO: leafs[leafIndex] = leaf 3123             GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 532         GNB: field = local.level0.flipBit 329
+  DO: level0[index] = field 2469               GNB: level0[index] = field 2362
+  DO: -> index1 94                             GNB: -> index1 7
+  DO: premises 1888                            GNB: premises 2010
+  DO: leafs[leafIndex] = leaf 3123             GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 532         GNB: field = local.level0.flipBit 329
+  DO: level0[index] = field 3169               GNB: level0[index] = field 3062
+  DO: -> index1 94                             GNB: -> index1 7
+  DO: premises 1888                            GNB: premises 2010
+  DO: leafs[leafIndex] = leaf 3123             GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 532         GNB: field = local.level0.flipBit 329
+  DO: level0[index] = field 3169               GNB: level0[index] = field 3062
+  DO: -> index1 94                             GNB: -> index1 7
+  DO: premises 1888                            GNB: premises 2010
+  DO: leafs[leafIndex] = leaf 3123             GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 532         GNB: field = local.level0.flipBit 329
+  DO: level0[index] = field 3169               GNB: level0[index] = field 3062
+  DO: -> index1 94                             GNB: -> index1 7
+  DO: premises 1888                            GNB: premises 2010
+  DO: leafs[leafIndex] = leaf 3123             GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 532         GNB: field = local.level0.flipBit 329
+  DO: level0[index] = field 3169               GNB: level0[index] = field 3062
+  DO: -> index1 94                             GNB: -> index1 7
+  DO: premises 1888                            GNB: premises 2010
+  DO: leafs[leafIndex] = leaf 3123             GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 532         GNB: field = local.level0.flipBit 329
+  DO: level0[index] = field 3169               GNB: level0[index] = field 3062
+  DO: -> index1 94                             GNB: -> index1 7
+  DO: premises 1888                            GNB: premises 2010
+  DO: leafs[leafIndex] = leaf 3123             GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 532         GNB: field = local.level0.flipBit 329
+  DO: level0[index] = field 3169               GNB: level0[index] = field 3062
+  DO: -> index1 94                             GNB: -> index1 7
+  DO: premises 1888                            GNB: premises 2010
+  DO: leafs[leafIndex] = leaf 3123             GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 532         GNB: field = local.level0.flipBit 329
+  DO: level0[index] = field 3169               GNB: level0[index] = field 3062
+  DO: -> index1 94                             GNB: -> index1 7
+  DO: premises 1888                            GNB: premises 2010
+  DO: leafs[leafIndex] = leaf 3123             GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 532         GNB: field = local.level0.flipBit 329
+  DO: level0[index] = field 3169               GNB: level0[index] = field 3062
+  DO: -> index1 94                             GNB: -> index1 7
+  DO: premises 1888                            GNB: premises 2010
+  DO: leafs[leafIndex] = leaf 3123             GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 532         GNB: field = local.level0.flipBit 329
+  DO: level0[index] = field 3169               GNB: level0[index] = field 3062
+  DO: -> index1 94                             GNB: -> index1 7
+
+
+
+
+
+
+  ---------- via ir 200
+  DO: premises 591                           GNB: premises 646
+  DO: leafs[leafIndex] = leaf 3067           GNB: leafs[leafIndex] = leaf 3054
+  DO: field = local.level0.flipBit 154       GNB: field = local.level0.flipBit 89
+  DO: level0[index] = field 2412             GNB: level0[index] = field 2348
+  DO: -> index1 58                           GNB: -> index1 2
+  DO: premises 591                           GNB: premises 646
+  DO: leafs[leafIndex] = leaf 3067           GNB: leafs[leafIndex] = leaf 3054
+  DO: field = local.level0.flipBit 154       GNB: field = local.level0.flipBit 89
+  DO: level0[index] = field 3112             GNB: level0[index] = field 3048
+  DO: -> index1 58                           GNB: -> index1 2
+  DO: premises 591                           GNB: premises 646
+  DO: leafs[leafIndex] = leaf 3067           GNB: leafs[leafIndex] = leaf 3054
+  DO: field = local.level0.flipBit 154       GNB: field = local.level0.flipBit 89
+  DO: level0[index] = field 3112             GNB: level0[index] = field 3048
+  DO: -> index1 58                           GNB: -> index1 2
+  DO: premises 591                           GNB: premises 646
+  DO: leafs[leafIndex] = leaf 3067           GNB: leafs[leafIndex] = leaf 3054
+  DO: field = local.level0.flipBit 154       GNB: field = local.level0.flipBit 89
+  DO: level0[index] = field 3112             GNB: level0[index] = field 3048
+  DO: -> index1 58                           GNB: -> index1 2
+  DO: premises 591                           GNB: premises 646
+  DO: leafs[leafIndex] = leaf 3067           GNB: leafs[leafIndex] = leaf 3054
+  DO: field = local.level0.flipBit 154       GNB: field = local.level0.flipBit 89
+  DO: level0[index] = field 3112             GNB: level0[index] = field 3048
+  DO: -> index1 58                           GNB: -> index1 2
+  DO: premises 591                           GNB: premises 646
+  DO: leafs[leafIndex] = leaf 3067           GNB: leafs[leafIndex] = leaf 3054
+  DO: field = local.level0.flipBit 154       GNB: field = local.level0.flipBit 89
+  DO: level0[index] = field 3112             GNB: level0[index] = field 3048
+  DO: -> index1 58                           GNB: -> index1 2
+  DO: premises 591                           GNB: premises 646
+  DO: leafs[leafIndex] = leaf 3067           GNB: leafs[leafIndex] = leaf 3054
+  DO: field = local.level0.flipBit 154       GNB: field = local.level0.flipBit 89
+  DO: level0[index] = field 3112             GNB: level0[index] = field 3048
+  DO: -> index1 58                           GNB: -> index1 2
+  DO: premises 591                           GNB: premises 646
+  DO: leafs[leafIndex] = leaf 3067           GNB: leafs[leafIndex] = leaf 3054
+  DO: field = local.level0.flipBit 154       GNB: field = local.level0.flipBit 89
+  DO: level0[index] = field 3112             GNB: level0[index] = field 3048
+  DO: -> index1 58                           GNB: -> index1 2
+  DO: premises 591                           GNB: premises 646
+  DO: leafs[leafIndex] = leaf 3067           GNB: leafs[leafIndex] = leaf 3054
+  DO: field = local.level0.flipBit 154       GNB: field = local.level0.flipBit 89
+  DO: level0[index] = field 3112             GNB: level0[index] = field 3048
+  DO: -> index1 58                           GNB: -> index1 2
+  DO: premises 591                           GNB: premises 646
+  DO: leafs[leafIndex] = leaf 3067           GNB: leafs[leafIndex] = leaf 3054
+  DO: field = local.level0.flipBit 154       GNB: field = local.level0.flipBit 89
+  DO: level0[index] = field 3112             GNB: level0[index] = field 3048
+  DO: -> index1 58                           GNB: -> index1 2
+
+
+  ----------- via ir 200 / begin-end
+  DO: total 12158(12333)          GNB: total 11567 diff 591 (766)
+  DO: total 12858                 GNB: total 12267 diff same
+  DO: total 12858                 GNB: total 12267
+  DO: total 12858                 GNB: total 12267
+  DO: total 12858                 GNB: total 12267
+  DO: total 12858                 GNB: total 12267
+  DO: total 12858                 GNB: total 12267
+  DO: total 12858(13071)          GNB: total 12267 diff 591 (804)
+  DO: total 12858(10353)          GNB: total 12267 !!
+
+  DO total with last "getNextOfferId":   total DO 12333 (diff 766)
+
+  --------- via ir 200000 / begin-end
+
+  DO total 11674  GNB total 10947
+  DO total 12374  GNB total 11647
+  DO total 12374  GNB total 11647
+  DO total 12374  GNB total 11647
+  DO total 12374  GNB total 11647
+  DO total 12374  GNB total 11647
+  DO total 12374  GNB total 11647
+  DO total 12374  GNB total 11647
+  DO total 12374  GNB total 11647
+  DO total 9844  GNB total 9107
+
+  ---------------- 4_256
+
+  DO: premises 520                                        GNB: premises 526
+  DO: leafs[leafIndex] = leaf 3123                        GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 330                    GNB: field = local.level0.flipBit 228
+  DO: level0[index] = field 2469                          GNB: level0[index] = field 2362
+  DO: -> index1 94                                        GNB: -> index1 7
+  DO: rest 5874                                           GNB: rest 5577
+
+  DO: premises 520                                        GNB: premises 526
+  DO: leafs[leafIndex] = leaf 3123                        GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 330                    GNB: field = local.level0.flipBit 228
+  DO: level0[index] = field 3169                          GNB: level0[index] = field 3062
+  DO: -> index1 94                                        GNB: -> index1 7
+  DO: rest 5874                                           GNB: rest 5577
+
+  DO: premises 520                                        GNB: premises 526
+  DO: leafs[leafIndex] = leaf 3123                        GNB: leafs[leafIndex] = leaf 3098
+  DO: field = local.level0.flipBit 330                    GNB: field = local.level0.flipBit 228
+  DO: level0[index] = field 3169                          GNB: level0[index] = field 3062
+  DO: -> index1 94                                        GNB: -> index1 7
+  DO: --> flip2 2799                                      GNB: --> flip2 2577
+  DO: --->end 254                                         GNB: --->end 479

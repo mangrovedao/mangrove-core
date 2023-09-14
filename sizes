@@ -1,0 +1,85 @@
+
+# Base
+no-optim
+| Mangrove                    | 48.613    | -24.037     |
+
+classic 200 runs
+| Mangrove                    | 27.901    | -3.325      |
+
+classic 200000000 runs
+| Mangrove                    | 34.69     | -10.114     |
+
+via_ir 200 runs (3461.21s!!!)
+| Mangrove                    | 27.913    | -3.337      |
+
+# Just removing stuff
+
+## no view fns in MgvRoot
+
+classic 200 runs
+| Mangrove                    | 26.635    | -2.059      |
+
+## no view fns in MgvRoot nor in MgvHasOffers
+
+classic 200 runs
+| Mangrove                    | 25.777    | -1.201      |
+
+## no view fns in MgvRoot nor in MgvHasOffers - no marketOrder[For]ByPrice
+classic 200 runs
+| Mangrove                    | 25.14     | -0.564      |
+
+## no view fns in MgvRoot nor in MgvHasOffers - no marketOrder[For]ByPrice - no gov fns
+classic 200 runs
+| Mangrove                    | 22.447    | 2.129       |
+
+## no view fns in MgvRoot - no marketOrder[For]ByPrice - no gov fns
+classic 200 runs
+| Mangrove                    | 23.396    | 1.18        |
+
+## no marketOrder[For]ByPrice - no gov fns
+classic 200 runs
+| Mangrove                    | 24.64     | -0.064      |
+
+# ACTUALLY WORKING
+
+## all in MgvAppendix
+no-optim
+| Mangrove                    | 39.51     | -14.934     |
+
+classic 200 runs
+| Mangrove                    | 22.525    | 2.051       |
+
+classic 200000000 runs
+| Mangrove                    | 28.116    | -3.54       
+
+via_ir 200 runs
+| Mangrove                    | 21.813    | 2.763       |
+
+via_ir 200000000 runs
+| Mangrove                    | 27.818    | -3.242      |
+
+## all in MgvAppendix + no more ByPrice
+
+classic 200 runs
+| Mangrove                    | 21.886    | 2.69        |
+
+classic 200000000 runs
+| Mangrove                    | 27.247    | -2.671      |
+
+via_ir 200 runs
+| Mangrove                    | 22.853    | 1.723       |
+
+via_ir 200000000 runs
+| Mangrove                    | 28.959    | -4.383      |
+^what???
+
+## all in MgvAppendix + no more ByPrice + no more getNextBest
+
+classic 200 runs
+| Mangrove                    | 21.503    | 3.073       |
+
+classic 200000000 runs
+| Mangrove                    | 26.59     | -2.014      |
+
+via_ir 200 runs
+| Mangrove                    | 23.264    | 1.312       |

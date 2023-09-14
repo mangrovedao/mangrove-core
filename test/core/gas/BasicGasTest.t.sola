@@ -1,0 +1,72 @@
+// SPDX-License-Identifier:	AGPL-3.0
+
+pragma solidity ^0.8.18;
+
+import {MAX_LOG_PRICE} from "mgv_src/MgvLib.sol";
+import "mgv_test/lib/MangroveTest.sol";
+import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
+import "mgv_lib/Debug.sol";
+
+abstract contract BasicGasTestGeneral is MangroveTest {
+  TestMaker mkr;
+  TestTaker tkr;
+  uint num_offers;
+  uint logPrice_spacing;
+
+  constructor(uint _num_offers, uint _logPrice_spacing) {
+    num_offers = _num_offers;
+    logPrice_spacing = _logPrice_spacing;
+  }
+
+  function setUp() public virtual override {
+    super.setUp();
+    mkr = setupMaker(olKey, "maker");
+    tkr = setupTaker(olKey, "taker");
+
+    mkr.provisionMgv(1 ether);
+
+    deal($(quote), address(tkr), 1000 ether);
+    tkr.approveMgv(quote, 1000 ether);
+
+    deal($(base), address(mkr), 1000 ether);
+    mkr.approveMgv(base, 1000 ether);
+
+    require(num_offers * 0.1 ether < 1000 ether, "market order will fail");
+    for (uint i; i < num_offers; i++) {
+      mkr.newOfferByLogPrice(int(logPrice_spacing * i), 0.1 ether, 100_000);
+    }
+  }
+
+  function test_market_order() public {
+    (uint got,) = tkr.marketOrderByLogPrice(MAX_LOG_PRICE, 1000 ether, true);
+    assertGt(got, 0, "market order must work");
+  }
+}
+
+contract BasicGasTest0 is BasicGasTestGeneral {
+  constructor() BasicGasTestGeneral(10, 0) {}
+}
+
+contract BasicGasTest1 is BasicGasTestGeneral {
+  constructor() BasicGasTestGeneral(10, 1) {}
+}
+
+contract BasicGasTest10 is BasicGasTestGeneral {
+  constructor() BasicGasTestGeneral(10, 10) {}
+}
+
+contract BasicGasTest_10_256 is BasicGasTestGeneral {
+  constructor() BasicGasTestGeneral(10, 256) {}
+}
+
+contract BasicGasTest_4_256 is BasicGasTestGeneral {
+  constructor() BasicGasTestGeneral(4, 256) {}
+}
+
+contract BasicGasTest_4_1 is BasicGasTestGeneral {
+  constructor() BasicGasTestGeneral(4, 1) {}
+}
+
+contract BasicGasTest_20_256 is BasicGasTestGeneral {
+  constructor() BasicGasTestGeneral(20, 256) {}
+}

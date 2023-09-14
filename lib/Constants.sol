@@ -55,7 +55,7 @@ int constant MAX_PRICE_EXP = 0;
 uint constant MANTISSA_BITS = 152;
 uint constant MANTISSA_BITS_MINUS_ONE = MANTISSA_BITS-1;
 // Maximum volume that can be multiplied by a price mantissa
-uint constant MAX_SAFE_VOLUME = (1<<(256-MANTISSA_BITS+1))-1;
+uint constant MAX_SAFE_VOLUME = (1<<(256-MANTISSA_BITS))-1;
 // Without optimizer enabled it fails above 79. With optimizer and 200 runs it fails above 80. Set default a bit lower to be safe.
 uint constant INITIAL_MAX_RECURSION_DEPTH = 75;
 uint constant INITIAL_MAX_GASREQ_FOR_FAILING_OFFERS_MULTIPLIER = 3;

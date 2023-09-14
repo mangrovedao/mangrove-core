@@ -16,20 +16,20 @@ uint constant TICK_BITS = 24;
 uint constant OFFER_BITS = 32;
 uint constant MAX_LEVEL_SIZE = 64; // Constraint given by BitLib.ctz64
 
-// only power-of-two sizes are supported for LEAF_SIZE and LEVEL*_SIZE
-uint constant LEAF_SIZE_BITS = 2; 
+// only power-of-two sizes are supported for LEAF_POS_SIZE and LEVEL*_SIZE
+uint constant LEAF_POS_SIZE_BITS = 2; 
 uint constant LEVEL0_SIZE_BITS = 6;
 uint constant LEVEL1_SIZE_BITS = 6;
 uint constant LEVEL2_SIZE_BITS = 6;
 uint constant LEVEL3_SIZE_BITS = 1;
 
-int constant LEAF_SIZE = int(2 ** (LEAF_SIZE_BITS));
+int constant LEAF_POS_SIZE = int(2 ** (LEAF_POS_SIZE_BITS));
 int constant LEVEL0_SIZE = int(2 ** (LEVEL0_SIZE_BITS));
 int constant LEVEL1_SIZE = int(2 ** (LEVEL1_SIZE_BITS));
 int constant LEVEL2_SIZE = int(2 ** (LEVEL2_SIZE_BITS));
 int constant LEVEL3_SIZE = int(2 ** (LEVEL3_SIZE_BITS));
 
-uint constant LEAF_SIZE_MASK = ~(ONES << LEAF_SIZE_BITS);
+uint constant LEAF_POS_SIZE_MASK = ~(ONES << LEAF_POS_SIZE_BITS);
 uint constant LEVEL0_SIZE_MASK = ~(ONES << LEVEL0_SIZE_BITS);
 uint constant LEVEL1_SIZE_MASK = ~(ONES << LEVEL1_SIZE_BITS);
 uint constant LEVEL2_SIZE_MASK = ~(ONES << LEVEL2_SIZE_BITS);
@@ -39,7 +39,7 @@ int constant NUM_LEVEL2 = int(LEVEL3_SIZE);
 int constant NUM_LEVEL1 = NUM_LEVEL2 * LEVEL2_SIZE;
 int constant NUM_LEVEL0 = NUM_LEVEL1 * LEVEL1_SIZE;
 int constant NUM_LEAFS = NUM_LEVEL0 * LEVEL0_SIZE;
-int constant NUM_TICKS = NUM_LEAFS * LEAF_SIZE;
+int constant NUM_TICKS = NUM_LEAFS * LEAF_POS_SIZE;
 
 uint constant OFFER_MASK = ONES >> (256 - OFFER_BITS);
 

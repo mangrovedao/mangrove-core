@@ -180,7 +180,7 @@ library TickLib {
                 (int(BitLib.ctz64(Field.unwrap(local.level3())))-LEVEL3_SIZE/2) << LEVEL2_SIZE_BITS)) 
               << LEVEL1_SIZE_BITS)
             << LEVEL0_SIZE_BITS)
-          << LEAF_SIZE_BITS);
+          << LEAF_POS_SIZE_BITS);
       return Tick.wrap(int(utick));
     }
   }
@@ -199,7 +199,7 @@ library TickLib {
   // a) clearer
   // b) allows non-power-of-two sizes for "offers_per_leaf"
   function leafIndex(Tick tick) internal pure returns (int) {
-    return Tick.unwrap(tick) >> LEAF_SIZE_BITS;
+    return Tick.unwrap(tick) >> LEAF_POS_SIZE_BITS;
   }
 
   // ok because 2^TICK_BITS%TICKS_PER_LEAF=0
@@ -212,11 +212,11 @@ library TickLib {
   // a%b = sign(a) abs(a)%abs(b), e.g. -1%6=-1 when we would like -1%6=5
   // I could also do like uintX(intX(a%x)) but the method below means I don't need to edit all the code when I change mask sizes
   function posInLeaf(Tick tick) internal pure returns (uint) {
-    return uint(Tick.unwrap(tick)) & LEAF_SIZE_MASK;
+    return uint(Tick.unwrap(tick)) & LEAF_POS_SIZE_MASK;
   }
 
   function level0Index(Tick tick) internal pure returns (int) {
-    return Tick.unwrap(tick) >> (LEAF_SIZE_BITS + LEVEL0_SIZE_BITS);
+    return Tick.unwrap(tick) >> (LEAF_POS_SIZE_BITS + LEVEL0_SIZE_BITS);
   }
 
   // see note posIn*
@@ -225,11 +225,11 @@ library TickLib {
   }
 
   function level1Index(Tick tick) internal pure returns (int) {
-    return Tick.unwrap(tick) >> (LEAF_SIZE_BITS + LEVEL0_SIZE_BITS + LEVEL1_SIZE_BITS);
+    return Tick.unwrap(tick) >> (LEAF_POS_SIZE_BITS + LEVEL0_SIZE_BITS + LEVEL1_SIZE_BITS);
   }
 
   function level2Index(Tick tick) internal pure returns (int) {
-    return Tick.unwrap(tick) >> (LEAF_SIZE_BITS + LEVEL0_SIZE_BITS + LEVEL1_SIZE_BITS + LEVEL2_SIZE_BITS);
+    return Tick.unwrap(tick) >> (LEAF_POS_SIZE_BITS + LEVEL0_SIZE_BITS + LEVEL1_SIZE_BITS + LEVEL2_SIZE_BITS);
   }
 
   // see note posIn*

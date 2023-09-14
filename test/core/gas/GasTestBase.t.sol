@@ -5,20 +5,20 @@ pragma solidity ^0.8.18;
 import {IMangrove, TestTaker, MangroveTest, IMaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
-import {TickLib, Tick, LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE, LEVEL2_SIZE} from "mgv_lib/TickLib.sol";
+import {TickLib, Tick, LEAF_POS_SIZE, LEVEL0_SIZE, LEVEL1_SIZE, LEVEL2_SIZE} from "mgv_lib/TickLib.sol";
 
 // A log price with room for bits above and below at all tick levels, not actually mid of level2.
-int constant MIDDLE_LOG_PRICE = /* mid leaf */ LEAF_SIZE / 2 /* mid level0 */ + LEAF_SIZE * (LEVEL0_SIZE / 2) /* mid level 1 */
-  + LEAF_SIZE * LEVEL0_SIZE * (LEVEL1_SIZE / 2);
+int constant MIDDLE_LOG_PRICE = /* mid leaf */ LEAF_POS_SIZE / 2 /* mid level0 */ + LEAF_POS_SIZE * (LEVEL0_SIZE / 2) /* mid level 1 */
+  + LEAF_POS_SIZE * LEVEL0_SIZE * (LEVEL1_SIZE / 2);
 
 int constant LEAF_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - 1;
 int constant LEAF_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + 1;
-int constant LEVEL0_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE;
-int constant LEVEL0_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE;
-int constant LEVEL1_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * LEVEL0_SIZE;
-int constant LEVEL1_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * LEVEL0_SIZE;
-int constant LEVEL2_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
-int constant LEVEL2_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
+int constant LEVEL0_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_POS_SIZE;
+int constant LEVEL0_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_POS_SIZE;
+int constant LEVEL1_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_POS_SIZE * LEVEL0_SIZE;
+int constant LEVEL1_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_POS_SIZE * LEVEL0_SIZE;
+int constant LEVEL2_LOWER_LOG_PRICE = MIDDLE_LOG_PRICE - LEAF_POS_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
+int constant LEVEL2_HIGHER_LOG_PRICE = MIDDLE_LOG_PRICE + LEAF_POS_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
 
 abstract contract GasTestBaseStored {
   mapping(int logPrice => uint offerId) internal logPriceOfferIds;

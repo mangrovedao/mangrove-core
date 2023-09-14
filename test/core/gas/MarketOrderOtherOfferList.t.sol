@@ -18,7 +18,7 @@ import {
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {MgvLib} from "mgv_src/MgvLib.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
-import {TickLib, Tick, LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE, LEVEL2_SIZE} from "mgv_lib/TickLib.sol";
+import {TickLib, Tick, LEAF_POS_SIZE, LEVEL0_SIZE, LEVEL1_SIZE, LEVEL2_SIZE} from "mgv_lib/TickLib.sol";
 import {MgvStructs} from "mgv_src/MgvLib.sol";
 import "mgv_lib/Debug.sol";
 

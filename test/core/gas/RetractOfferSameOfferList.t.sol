@@ -6,10 +6,10 @@ import {SingleGasTestBase, GasTestBase, MIDDLE_LOG_PRICE} from "./GasTestBase.t.
 import {IMangrove, TestTaker} from "mgv_test/lib/MangroveTest.sol";
 import {TickBoundariesGasTest} from "./TickBoundariesGasTest.t.sol";
 import {MgvLib, OLKey} from "mgv_src/MgvLib.sol";
-import {LEAF_SIZE, LEVEL0_SIZE, LEVEL1_SIZE} from "mgv_lib/TickLib.sol";
+import {LEAF_POS_SIZE, LEVEL0_SIZE, LEVEL1_SIZE} from "mgv_lib/TickLib.sol";
 import "mgv_lib/Debug.sol";
 
-int constant LOW_LOG_PRICE = MIDDLE_LOG_PRICE - 2 * LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
+int constant LOW_LOG_PRICE = MIDDLE_LOG_PRICE - 2 * LEAF_POS_SIZE * LEVEL0_SIZE * LEVEL1_SIZE;
 
 contract PosthookSuccessRetractOfferSameList_WithOtherOfferGasTest is TickBoundariesGasTest, GasTestBase {
   uint internal offerId2;

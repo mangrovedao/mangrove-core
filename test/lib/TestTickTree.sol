@@ -24,7 +24,7 @@ uint constant MIN_LEVEL1_POS = 0;
 uint constant MIN_LEVEL2_POS = 0;
 uint constant MIN_LEVEL3_POS = 0;
 
-uint constant MAX_LEAF_POS = uint(LEAF_SIZE - 1);
+uint constant MAX_LEAF_POS = uint(LEAF_POS_SIZE - 1);
 uint constant MAX_LEVEL0_POS = uint(LEVEL0_SIZE - 1);
 uint constant MAX_LEVEL1_POS = uint(LEVEL1_SIZE - 1);
 uint constant MAX_LEVEL2_POS = uint(LEVEL2_SIZE - 1);
@@ -66,7 +66,7 @@ library TickTreeUtil {
   }
 
   function tickFromLeafIndexAndPos(int leafIndex, uint pos) public pure returns (Tick) {
-    return Tick.wrap((leafIndex << LEAF_SIZE_BITS) | int(pos));
+    return Tick.wrap((leafIndex << LEAF_POS_SIZE_BITS) | int(pos));
   }
 
   function tickFromBranch(uint posInLevel3, uint posInLevel2, uint posInLevel1, uint posInLevel0, uint posInLeaf)
@@ -83,7 +83,7 @@ library TickTreeUtil {
                 posInLevel1
                   | (posInLevel2 | uint((int(posInLevel3) - LEVEL3_SIZE / 2) << LEVEL2_SIZE_BITS)) << LEVEL1_SIZE_BITS
               ) << LEVEL0_SIZE_BITS
-          ) << LEAF_SIZE_BITS
+          ) << LEAF_POS_SIZE_BITS
         );
       return Tick.wrap(int(utick));
     }

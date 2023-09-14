@@ -173,20 +173,20 @@ contract TickTest is Test {
   function test_posInLeaf_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    assertEq(int(Tick.wrap(tick).posInLeaf()), tn % LEAF_SIZE);
+    assertEq(int(Tick.wrap(tick).posInLeaf()), tn % LEAF_POS_SIZE);
   }
 
   function test_posInLevel0_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    assertEq(int(Tick.wrap(tick).posInLevel0()), tn / LEAF_SIZE % LEVEL0_SIZE);
+    assertEq(int(Tick.wrap(tick).posInLevel0()), tn / LEAF_POS_SIZE % LEVEL0_SIZE);
   }
   // TODO test_posInLevel1_manual
 
   function test_posInLevel1_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    assertEq(int(Tick.wrap(tick).posInLevel1()), tn / (LEAF_SIZE * LEVEL0_SIZE) % LEVEL1_SIZE);
+    assertEq(int(Tick.wrap(tick).posInLevel1()), tn / (LEAF_POS_SIZE * LEVEL0_SIZE) % LEVEL1_SIZE);
   }
   // TODO test_posInLevel2_manual
 
@@ -195,7 +195,7 @@ contract TickTest is Test {
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
     assertEq(
       int(Tick.wrap(tick).posInLevel2()),
-      tn / (LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE) % LEVEL2_SIZE,
+      tn / (LEAF_POS_SIZE * LEVEL0_SIZE * LEVEL1_SIZE) % LEVEL2_SIZE,
       "wrong posInLevel2"
     );
   }
@@ -263,21 +263,21 @@ contract TickTest is Test {
   function test_leafIndex_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    int index = tn / LEAF_SIZE - NUM_LEAFS / 2;
+    int index = tn / LEAF_POS_SIZE - NUM_LEAFS / 2;
     assertEq(Tick.wrap(tick).leafIndex(), index);
   }
 
   function test_level0Index_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    int index = tn / (LEAF_SIZE * LEVEL0_SIZE) - NUM_LEVEL0 / 2;
+    int index = tn / (LEAF_POS_SIZE * LEVEL0_SIZE) - NUM_LEVEL0 / 2;
     assertEq(Tick.wrap(tick).level0Index(), index);
   }
 
   function test_level1Index_auto(int tick) public {
     tick = bound(tick, MIN_TICK, MAX_TICK);
     int tn = NUM_TICKS / 2 + tick; // normalize to positive
-    int index = tn / (LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE) - NUM_LEVEL1 / 2;
+    int index = tn / (LEAF_POS_SIZE * LEVEL0_SIZE * LEVEL1_SIZE) - NUM_LEVEL1 / 2;
     assertEq(Tick.wrap(tick).level1Index(), index);
   }
 
@@ -318,7 +318,7 @@ contract FieldTest is Test {
     posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL0_SIZE - 1)));
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
-    Tick tick = Tick.wrap(LEAF_SIZE * int(uint(posInLevel)));
+    Tick tick = Tick.wrap(LEAF_POS_SIZE * int(uint(posInLevel)));
     Field flipped = base.flipBitAtLevel0(tick);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
@@ -327,7 +327,7 @@ contract FieldTest is Test {
     posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL1_SIZE - 1)));
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
-    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL0_SIZE * int(uint(posInLevel)));
+    Tick tick = Tick.wrap(LEAF_POS_SIZE * LEVEL0_SIZE * int(uint(posInLevel)));
     Field flipped = base.flipBitAtLevel1(tick);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
@@ -336,7 +336,7 @@ contract FieldTest is Test {
     posInLevel = uint8(bound(posInLevel, 0, uint(LEVEL2_SIZE - 1)));
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
-    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * int(uint(posInLevel)));
+    Tick tick = Tick.wrap(LEAF_POS_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * int(uint(posInLevel)));
     Field flipped = base.flipBitAtLevel2(tick);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }
@@ -346,7 +346,7 @@ contract FieldTest is Test {
     bytes32 field = bytes32(_field);
     Field base = Field.wrap(uint(field));
     int adjustedPos = int(uint(posInLevel)) - LEVEL3_SIZE / 2;
-    Tick tick = Tick.wrap(LEAF_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * LEVEL2_SIZE * adjustedPos);
+    Tick tick = Tick.wrap(LEAF_POS_SIZE * LEVEL0_SIZE * LEVEL1_SIZE * LEVEL2_SIZE * adjustedPos);
     Field flipped = base.flipBitAtLevel3(tick);
     assertEq((Field.unwrap(base) ^ Field.unwrap(flipped)), 1 << posInLevel);
   }

@@ -45,6 +45,15 @@ import "mgv_lib/Debug.sol";
 //     1. is empty
 //     2. non-empty
 contract TickTreeNewOfferTest is TickTreeTest {
+  struct NewOfferScenario {
+    TickScenario tickScenario;
+    uint insertionTickListSize;
+  }
+
+  uint[] tickListSizeScenarios = [0, 1, 2];
+  // size of {lower,higher}TickList if the tick is present in the scenario
+  uint[] otherTickListSizeScenarios = [1];
+
   // NB: We ran into this memory issue when running through all test ticks in one test: https://github.com/foundry-rs/foundry/issues/3971
   // We therefore have a test case per ToI instead.
 
@@ -68,27 +77,18 @@ contract TickTreeNewOfferTest is TickTreeTest {
     run_new_offer_scenarios_for_tick(TICK_MAX_ALLOWED);
   }
 
-  struct NewOfferScenario {
-    TickScenario tickScenario;
-    uint insertionTickListSize;
-  }
-
-  uint[] tickListSizeScenarios = [0, 1, 2];
-  // size of {lower,higher}TickList if the tick is present in the scenario
-  uint[] otherTickListSizeScenarios = [1];
-
   function run_new_offer_scenarios_for_tick(Tick tick) internal {
     vm.pauseGasMetering();
-    TickScenario[] memory tickScenarios =
-      generateTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
-    for (uint i = 0; i < tickScenarios.length; ++i) {
-      TickScenario memory tickScenario = tickScenarios[i];
-      for (uint j = 0; j < tickListSizeScenarios.length; ++j) {
-        uint insertionTickListSize = tickListSizeScenarios[j];
-        run_new_offer_scenario(
-          NewOfferScenario({tickScenario: tickScenario, insertionTickListSize: insertionTickListSize}), false
-        );
-      }
+    runTickScenarios(tick, otherTickListSizeScenarios, otherTickListSizeScenarios);
+    vm.resumeGasMetering();
+  }
+
+  function runTickScenario(TickScenario memory tickScenario) internal override {
+    NewOfferScenario memory scenario;
+    scenario.tickScenario = tickScenario;
+    for (uint j = 0; j < tickListSizeScenarios.length; ++j) {
+      scenario.insertionTickListSize = tickListSizeScenarios[j];
+      run_new_offer_scenario(scenario, false);
     }
     vm.resumeGasMetering();
   }

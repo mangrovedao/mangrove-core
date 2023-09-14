@@ -12,7 +12,6 @@ fs_permissions = [{ access = "read-write", path = "./addresses/"}, { access = "r
 solc_version="0.8.20"
 ffi=true
 optimizer=false
-memory_limit = 100000000 # 33554432 is default limit
 
 # via_ir=true
 # optimizer_runs=200

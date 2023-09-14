@@ -253,7 +253,6 @@ contract TestTickTree is MangroveTest {
               continue;
             }
             assertTrue(
-              // FIXME: Should this be updated to handle dirty leafs?
               !level0PosIsSet || !leaf.eq(LeafLib.EMPTY),
               string.concat(
                 "leaf should not be empty when bit is set in level0 | tree branch: ", branchToString(levelPoss, 0)

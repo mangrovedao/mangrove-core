@@ -106,21 +106,12 @@ abstract contract TickTreeTest is MangroveTest {
 
   // # Offer utility functions
 
-  // FIXME: I think this is no longer needed since density is now 0
-  // Calculates gives that Mangrove will accept for a tick & gasreq
+  // Calculates gives that Mangrove will accept and can handle (eg in price math) for a tick & gasreq
   function getAcceptableGivesForTick(Tick tick, uint gasreq) internal pure returns (uint gives) {
     tick; //shh
     gasreq; //shh
+    // With density=0, Mangrove currently accepts and can handle gives=1 for both high and low prices
     return 1;
-    // // First, try minVolume
-    // gives = reader.minVolume(olKey, gasreq);
-    // gives = gives == 0 ? 1 : gives;
-    // uint wants = LogPriceLib.inboundFromOutbound(LogPriceLib.fromTick(tick, olKey.tickScale), gives);
-    // if (wants > 0 && uint96(wants) == wants) {
-    //   return gives;
-    // }
-    // // Else, try max
-    // gives = type(uint96).max;
   }
 
   // # Tick scenario utility structs and functions
@@ -310,19 +301,58 @@ abstract contract TickTreeTest is MangroveTest {
   function assertTickAssumptions(
     Tick tick,
     uint posInLeaf,
-    int leafIndex,
     uint posInLevel0,
-    int level0Index,
     uint posInLevel1,
-    int level1Index,
-    uint posInLevel2
+    uint posInLevel2,
+    uint posInLevel3
   ) internal {
-    assertEq(tick.posInLeaf(), posInLeaf, "tick's posInLeaf does not match expected value");
-    assertEq(tick.leafIndex(), leafIndex, "tick's leafIndex does not match expected value");
-    assertEq(tick.posInLevel0(), posInLevel0, "tick's posInLevel0 does not match expected value");
-    assertEq(tick.level0Index(), level0Index, "tick's level0Index does not match expected value");
-    assertEq(tick.posInLevel1(), posInLevel1, "tick's posInLevel1 does not match expected value");
-    assertEq(tick.level1Index(), level1Index, "tick's level1Index does not match expected value");
-    assertEq(tick.posInLevel2(), posInLevel2, "tick's posInLevel2 does not match expected value");
+    string memory tickString = toString(tick);
+    assertEq(
+      tick.posInLeaf(),
+      posInLeaf,
+      string.concat(
+        "tick's posInLeaf does not match expected value | posInLeaf: ", vm.toString(posInLeaf), ", tick: ", tickString
+      )
+    );
+    assertEq(
+      tick.posInLevel0(),
+      posInLevel0,
+      string.concat(
+        "tick's posInLevel0 does not match expected value | posInLevel0: ",
+        vm.toString(posInLevel0),
+        ", tick: ",
+        tickString
+      )
+    );
+    assertEq(
+      tick.posInLevel1(),
+      posInLevel1,
+      string.concat(
+        "tick's posInLevel1 does not match expected value | posInLevel1: ",
+        vm.toString(posInLevel1),
+        ", tick: ",
+        tickString
+      )
+    );
+    assertEq(
+      tick.posInLevel2(),
+      posInLevel2,
+      string.concat(
+        "tick's posInLevel2 does not match expected value | posInLevel2: ",
+        vm.toString(posInLevel2),
+        ", tick: ",
+        tickString
+      )
+    );
+    assertEq(
+      tick.posInLevel3(),
+      posInLevel3,
+      string.concat(
+        "tick's posInLevel3 does not match expected value | posInLevel3: ",
+        vm.toString(posInLevel3),
+        ", tick: ",
+        tickString
+      )
+    );
   }
 }

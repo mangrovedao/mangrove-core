@@ -67,8 +67,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(order.offerDetail.gasreq(), 200_000, "offerDetail.gasreq should not be hidden");
 
     // wants and gives are not filtered
-    assertEq(order.wants, 0.1 ether, "wants should not be hidden");
-    assertEq(order.gives, 0.10001 ether, "gives should not be hidden");
+    assertEq(order.takerWants, 0.1 ether, "wants should not be hidden");
+    assertEq(order.takerGives, 0.10001 ether, "gives should not be hidden");
 
     // GloablPacked is not filtered
     assertEq(order.global.monitor(), address(monitor), "global.monitor should not be hidden");
@@ -154,8 +154,8 @@ contract MakerOperationsTest is MangroveTest, IMaker {
     assertEq(order.olKey.outbound, $(base), "wrong base");
     assertEq(order.olKey.inbound, $(quote), "wrong quote");
     assertEq(order.olKey.tickScale, olKey.tickScale, "wrong tickscale");
-    assertEq(order.wants, 0.05 ether, "wrong takerWants");
-    assertEq(order.gives, 0.05 ether, "wrong takerGives");
+    assertEq(order.takerWants, 0.05 ether, "wrong takerWants");
+    assertEq(order.takerGives, 0.05 ether, "wrong takerGives");
     assertEq(order.offerDetail.gasreq(), 200_000, "wrong gasreq");
     assertEq(order.offerId, 1, "wrong offerId");
     assertEq(order.offer.wants(), 0.05 ether, "wrong offerWants");

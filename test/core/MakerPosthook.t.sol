@@ -19,12 +19,12 @@ contract MakerPosthookTest is MangroveTest, IMaker {
 
   event Execute(address mgv, address base, address quote, uint offerId, uint takerWants, uint takerGives);
 
-  function makerExecute(MgvLib.SingleOrder calldata trade) external override returns (bytes32) {
+  function makerExecute(MgvLib.SingleOrder calldata sor) external override returns (bytes32) {
     require(msg.sender == $(mgv));
     if (makerRevert) {
       revert(sExecuteRevertData);
     }
-    emit Execute(msg.sender, trade.olKey.outbound, trade.olKey.inbound, trade.offerId, trade.wants, trade.gives);
+    emit Execute(msg.sender, sor.olKey.outbound, sor.olKey.inbound, sor.offerId, sor.takerWants, sor.takerGives);
     return executeReturnData;
   }
 
@@ -435,8 +435,8 @@ contract MakerPosthookTest is MangroveTest, IMaker {
   uint expectedGives;
 
   function checkSorWantsPosthook(MgvLib.SingleOrder calldata sor, MgvLib.OrderResult calldata) internal {
-    assertApproxEqRel(sor.gives, expectedGives, relError({basis_points: 10}), "sor.gives not as expected");
-    assertApproxEqRel(sor.wants, expectedWants, relError({basis_points: 10}), "sor.wants not as expected");
+    assertApproxEqRel(sor.takerGives, expectedGives, relError({basis_points: 10}), "sor.takerGives not as expected");
+    assertApproxEqRel(sor.takerWants, expectedWants, relError({basis_points: 10}), "sor.takerWants not as expected");
   }
 
   // Check that a previously-executed posthook does not corrupt the current posthook (when fillWants=true)

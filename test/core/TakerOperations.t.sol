@@ -1154,7 +1154,7 @@ contract TakerOperationsTest is MangroveTest {
   }
 
   /* 
-  An attempt to check for overflow when accumulating sor.gives into mor.totalGave.
+  An attempt to check for overflow when accumulating sor.takerGives into mor.totalGave.
   I have not found a way to actually trigger it by mutating state somewhere.
   This test just considers as many offers as possible that each have a maximal `wants` and makes sure the error will be about stack overflow, not uint overflow. 
   */
@@ -1163,7 +1163,8 @@ contract TakerOperationsTest is MangroveTest {
     unchecked {
       uint recp = mgv.global().maxRecursionDepth() + 1;
       assertTrue(
-        maxOfferWants * recp / recp == maxOfferWants, "mor.totalGave += sor.gives could overflow, check MgvOfferTaking"
+        maxOfferWants * recp / recp == maxOfferWants,
+        "mor.totalGave += sor.takerGives could overflow, check MgvOfferTaking"
       );
     }
   }

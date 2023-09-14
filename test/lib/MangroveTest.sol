@@ -15,6 +15,7 @@ import {MgvOfferTakingWithPermit} from "mgv_src/MgvOfferTakingWithPermit.sol";
 import {Mangrove} from "mgv_src/Mangrove.sol";
 import {MgvReader} from "mgv_src/periphery/MgvReader.sol";
 import {InvertedMangrove} from "mgv_src/InvertedMangrove.sol";
+import {LogPriceLib} from "mgv_lib/LogPriceLib.sol";
 import {IMangrove} from "mgv_src/IMangrove.sol";
 import {
   IERC20,
@@ -285,61 +286,48 @@ contract MangroveTest is Test2, HasMgvEvents {
     return tt;
   }
 
-  function mockBuyOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
-    order.olKey = olKey;
-    order.wants = takerWants;
-    order.gives = takerGives;
+  function mockCompleteFillBuyOrder(uint takerWants, int logPrice) public view returns (MgvLib.SingleOrder memory sor) {
+    sor.olKey = olKey;
     // complete fill (prev and next are bogus)
-    order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
-
-    // order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __tick: TickLib.tickFromVolumes(order.gives,order.wants), __gives: order.wants});
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants});
+    sor.takerWants = sor.offer.gives();
+    sor.takerGives = sor.offer.wants();
   }
 
-  function mockBuyOrder(
-    uint takerGives,
+  function mockPartialFillBuyOrder(
     uint takerWants,
+    int logPrice,
     uint partialFill,
     OLKey memory _olBaseQuote,
     bytes32 makerData
-  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
-    order.olKey = _olBaseQuote;
-    order.wants = takerWants;
-    order.gives = takerGives;
-    // complete fill (prev and next are bogus)
-    order.offer = MgvStructs.Offer.pack({
-      __prev: 0,
-      __next: 0,
-      __wants: order.gives * partialFill,
-      __gives: order.wants * partialFill
-    });
+  ) public pure returns (MgvLib.SingleOrder memory sor, MgvLib.OrderResult memory result) {
+    sor.olKey = _olBaseQuote;
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants * partialFill});
+    sor.takerWants = takerWants;
+    sor.takerGives = LogPriceLib.inboundFromOutboundUp(logPrice, takerWants);
     result.makerData = makerData;
     result.mgvData = "mgv/tradeSuccess";
   }
 
-  function mockSellOrder(uint takerGives, uint takerWants) public view returns (MgvLib.SingleOrder memory order) {
-    order.olKey = lo;
-    order.wants = takerWants;
-    order.gives = takerGives;
+  function mockCompleteFillSellOrder(uint takerWants, int logPrice) public view returns (MgvLib.SingleOrder memory sor) {
+    sor.olKey = lo;
     // complete fill (prev and next are bogus)
-    order.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __wants: order.gives, __gives: order.wants});
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants});
+    sor.takerWants = sor.offer.gives();
+    sor.takerGives = sor.offer.wants();
   }
 
-  function mockSellOrder(
-    uint takerGives,
+  function mockPartialFillSellOrder(
     uint takerWants,
+    int logPrice,
     uint partialFill,
     OLKey memory _olBaseQuote,
     bytes32 makerData
-  ) public pure returns (MgvLib.SingleOrder memory order, MgvLib.OrderResult memory result) {
-    order.olKey = _olBaseQuote.flipped();
-    order.wants = takerWants;
-    order.gives = takerGives;
-    order.offer = MgvStructs.Offer.pack({
-      __prev: 0,
-      __next: 0,
-      __wants: order.gives * partialFill,
-      __gives: order.wants * partialFill
-    });
+  ) public pure returns (MgvLib.SingleOrder memory sor, MgvLib.OrderResult memory result) {
+    sor.olKey = _olBaseQuote.flipped();
+    sor.offer = MgvStructs.Offer.pack({__prev: 0, __next: 0, __logPrice: logPrice, __gives: takerWants * partialFill});
+    sor.takerWants = takerWants;
+    sor.takerGives = LogPriceLib.inboundFromOutboundUp(logPrice, takerWants);
     result.makerData = makerData;
     result.mgvData = "mgv/tradeSuccess";
   }

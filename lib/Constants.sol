@@ -14,6 +14,7 @@ int constant MAX_TICK = -MIN_TICK-1;
 // sizes must match field sizes in structs.ts where relevant
 uint constant TICK_BITS = 24;
 uint constant OFFER_BITS = 32;
+uint constant MAX_LEVEL_SIZE = 64; // Constraint given by BitLib.ctz64
 
 // only power-of-two sizes are supported for LEAF_SIZE and LEVEL*_SIZE
 uint constant LEAF_SIZE_BITS = 2; 

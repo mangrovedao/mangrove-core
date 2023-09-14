@@ -234,6 +234,9 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTicks is Tick
     mgv.marketOrderByLogPrice(_olKey, _logPrice, 2 ** 96, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    assertLt(_logPrice, LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale));
+    // In some tests the market order takes all offers, in others not
+    if (!local.level3().isEmpty()) {
+      assertLt(_logPrice, LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale));
+    }
   }
 }

@@ -2,21 +2,33 @@
 pragma solidity ^0.8.17;
 
 library BitLib {
-  // Returns the number of zeroes in x that do not have a 1 to their right, eg ctz(0)=256, ctz(1)=0
-  function ctz(uint x) internal pure returns (uint c) {
-    assembly ("memory-safe") {
-      // Isolate the least significant bit
-      x := and(x, add(not(x), 1))
+  // - if x is a nonzero uint64: 
+  //   return number of zeroes in x that do not have a 1 to their right
+  // - otherwise:
+  //    return 64
+  function ctz64(uint x) internal pure returns (uint256 c) {
+    unchecked {
+      assembly ("memory-safe") {
+        // clean
+        x:= and(x,0xffffffffffffffff)
 
-      // Get first 3 bits of c, this is the unusual part
-      c := shl(5,shr(252,shl(shl(2,shr(250,mul(x, 0xb6db6db6ddddddddd34d34d349249249210842108c6318c639ce739cffffffff))),0x8040405543005266443200005020610674053026020000107506200176117077)))
+        // 7th bit
+        c:= shl(6,iszero(x))
 
-      // Get last 5 bits of c
-      c := or(c, byte(shr(251, mul(shr(c, x), shl(224, 0x077cb531))), 
-          0x00011c021d0e18031e16140f191104081f1b0d17151310071a0c12060b050a09))
+        // isolate lsb
+        x := and(x, add(not(x), 1))
+
+        // 6th bit
+        c := or(c,shl(5, lt(0xffffffff, x)))
+
+        // debruijn lookup
+        c := or(c, byte(shr(251, mul(shr(c, x), shl(224, 0x077cb531))), 
+            0x00011c021d0e18031e16140f191104081f1b0d17151310071a0c12060b050a09))
+      }
     }
   }
 
+  // The fls function below is general-purpose and used by tests but not by Mangrove itself
   // Function fls is MIT License. Copyright (c) 2022 Solady.
 /// @dev find last set.
     /// Returns the index of the most significant bit of `x`,

@@ -234,6 +234,8 @@ contract ExternalMarketOrderOtherOfferList_WithMultipleOffersAtManyTicks is Tick
     mgv.marketOrderByLogPrice(_olKey, _logPrice, 2 ** 96, false);
     gas_();
     (, MgvStructs.LocalPacked local) = mgv.config(_olKey);
-    assertLt(_logPrice, LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale));
+    if (!local.level3().isEmpty()) {
+      assertLt(_logPrice, LogPriceLib.fromTick(local.bestTick(), _olKey.tickScale));
+    }
   }
 }

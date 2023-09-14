@@ -286,12 +286,18 @@ contract TickTest is Test {
     Field level1 = Field.wrap(bound(_level1, 1, uint(LEVEL1_SIZE) - 1));
     Field level2 = Field.wrap(bound(_level2, 1, uint(LEVEL2_SIZE) - 1));
     Field level3 = Field.wrap(bound(_level3, 1, uint(LEVEL3_SIZE) - 1));
-    Tick tick = TickLib.tickFromBranch(tickPosInLeaf, level0, level1, level2, level3);
+    MgvStructs.LocalPacked local;
+    local = local.tickPosInLeaf(tickPosInLeaf);
+    local = local.level0(level0);
+    local = local.level1(level1);
+    local = local.level2(level2);
+    local = local.level3(level3);
+    Tick tick = TickLib.tickFromLocal(local);
     assertEq(tick.posInLeaf(), tickPosInLeaf, "wrong pos in leaf");
-    assertEq(tick.posInLevel0(), BitLib.ctz(Field.unwrap(level0)), "wrong pos in level0");
-    assertEq(tick.posInLevel1(), BitLib.ctz(Field.unwrap(level1)), "wrong pos in level1");
-    assertEq(tick.posInLevel2(), BitLib.ctz(Field.unwrap(level2)), "wrong pos in level2");
-    assertEq(tick.posInLevel3(), BitLib.ctz(Field.unwrap(level3)), "wrong pos in level3");
+    assertEq(tick.posInLevel0(), BitLib.ctz64(Field.unwrap(level0)), "wrong pos in level0");
+    assertEq(tick.posInLevel1(), BitLib.ctz64(Field.unwrap(level1)), "wrong pos in level1");
+    assertEq(tick.posInLevel2(), BitLib.ctz64(Field.unwrap(level2)), "wrong pos in level2");
+    assertEq(tick.posInLevel3(), BitLib.ctz64(Field.unwrap(level3)), "wrong pos in level3");
   }
 
   // HELPER FUNCTIONS
@@ -351,7 +357,11 @@ contract FieldTest is Test {
     for (; i < 256; i++) {
       if (uint(b >> i) % 2 == 1) break;
     }
-    assertFirstOnePosition(uint(b), i);
+    assertFirstOnePosition(uint(b), i > MAX_LEVEL_SIZE ? MAX_LEVEL_SIZE : i);
+  }
+
+  function test_regress() public {
+    test_firstOnePosition_auto(14530771982722103506997891882992560810543470234613570268015259683728373317632);
   }
 
   function assertFirstOnePosition(uint field, uint pos) internal {
@@ -462,5 +472,13 @@ contract FieldTest is Test {
 
   function field_isDirty(DirtyField field) public {
     assertEq(field.isDirty(), DirtyField.unwrap(field) & TOPBIT == TOPBIT);
+  }
+
+  // Some BitLib.ctz64 relies on specific level sizes
+  function test_level_sizes() public {
+    assertLe(LEVEL3_SIZE, int(MAX_LEVEL_SIZE), "bad level3 size");
+    assertLe(LEVEL2_SIZE, int(MAX_LEVEL_SIZE), "bad level2 size");
+    assertLe(LEVEL1_SIZE, int(MAX_LEVEL_SIZE), "bad level1 size");
+    assertLe(LEVEL0_SIZE, int(MAX_LEVEL_SIZE), "bad level0 size");
   }
 }

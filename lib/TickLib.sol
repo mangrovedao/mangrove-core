@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import "mgv_lib/Constants.sol";
 import {BitLib} from "mgv_lib/BitLib.sol";
 import {console2 as csf} from "forge-std/console2.sol";
+import {LocalPacked} from "mgv_src/preprocessed/MgvLocal.post.sol";
 
 type Leaf is uint;
 type DirtyLeaf is uint;
@@ -191,13 +192,21 @@ library TickLib {
     return Tick.wrap(tick);
   }
 
+  // Utility for tests&unpacked structs, less gas-optimal
   function tickFromBranch(uint tickPosInLeaf,Field level0, Field level1, Field level2, Field level3) internal pure returns (Tick) {
+    LocalPacked local;
+    local = local.tickPosInLeaf(tickPosInLeaf).level0(level0).level1(level1).level2(level2).level3(level3);
+    return tickFromLocal(local);
+  }
+
+  function tickFromLocal(LocalPacked local) internal pure returns (Tick) {
     unchecked {
-      uint utick = tickPosInLeaf |
-        ((BitLib.ctz(Field.unwrap(level0)) |
-          (BitLib.ctz(Field.unwrap(level1)) |
-            (BitLib.ctz(Field.unwrap(level2)) |
-              uint((int(BitLib.ctz(Field.unwrap(level3)))-LEVEL3_SIZE/2) << LEVEL2_SIZE_BITS)) 
+      uint utick = local.tickPosInLeaf() |
+        ((BitLib.ctz64(Field.unwrap(local.level0())) |
+          (BitLib.ctz64(Field.unwrap(local.level1())) |
+            (BitLib.ctz64(Field.unwrap(local.level2())) |
+              uint(
+                (int(BitLib.ctz64(Field.unwrap(local.level3())))-LEVEL3_SIZE/2) << LEVEL2_SIZE_BITS)) 
               << LEVEL1_SIZE_BITS)
             << LEVEL0_SIZE_BITS)
           << LEAF_SIZE_BITS);
@@ -413,7 +422,7 @@ library FieldLib {
     // FIXME stop checking for 0 or integrate it into ctz function in assembly
     require(!field.isEmpty(),"field is 0");
     unchecked {
-      return BitLib.ctz(Field.unwrap(field));
+      return BitLib.ctz64(Field.unwrap(field));
     }
   }
 

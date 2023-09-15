@@ -60,8 +60,9 @@ contract DynamicTicksTest is MangroveTest {
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
     uint ofr = mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_000, 30);
-    assertEq(mgv.offers(ol2, ofr).gives(), 0, "ofr created at tickScale but found at tickScale2");
-    assertEq(mgv.offers(olKey, ofr).logPrice(), insertionLogPrice, "ofr foudn at tickScale but with wrong price");
+    assertTrue(mgv.offers(olKey, ofr).isLive(), "ofr created at tickScale but not found there");
+    assertFalse(mgv.offers(ol2, ofr).isLive(), "ofr created at tickScale but found at tickScale2");
+    assertEq(mgv.offers(olKey, ofr).logPrice(), insertionLogPrice, "ofr found at tickScale but with wrong price");
   }
 
   // more "tickScales do not interfere with one another"
@@ -85,7 +86,7 @@ contract DynamicTicksTest is MangroveTest {
     uint ofr = mgv.newOfferByLogPrice(ol2, 0, gives, 100_000, 30);
     assertTrue(mgv.offers(ol2, ofr).isLive(), "offer created at tickScale2 but not found there");
     assertEq(mgv.offers(ol2, ofr).logPrice(), 0, "offer found at tickScale2 but with wrong price");
-    assertEq(mgv.offers(olKey, ofr).gives(), 0, "offer created at tickScale2 but found at tickScale");
+    assertFalse(mgv.offers(olKey, ofr).isLive(), "offer created at tickScale2 but found at tickScale");
 
     // test fails if no existing offer
     vm.expectRevert("mgv/updateOffer/unauthorized");
@@ -110,20 +111,33 @@ contract DynamicTicksTest is MangroveTest {
     logPrice = boundLogPrice(logPrice);
     vm.assume(tickScale != 0);
     uint gives = 1 ether;
-    int insertionLogPrice =
-      int24(LogPriceLib.fromTick(TickLib.closestLowerTickToLogPrice(logPrice, tickScale), tickScale));
+    Tick insertionTick = TickLib.closestLowerTickToLogPrice(logPrice, tickScale);
+    int insertionLogPrice = int24(LogPriceLib.fromTick(insertionTick, tickScale));
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
     uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, gives);
     vm.assume(wants > 0);
     vm.assume(wants <= type(uint96).max);
     mgv.activate(olKey, 0, 100, 0);
     mgv.newOfferByLogPrice(olKey, logPrice, gives, 100_000, 30);
-    Tick tick = TickLib.closestLowerTickToLogPrice(insertionLogPrice, tickScale);
-    assertEq(mgv.leafs(olKey, tick.leafIndex()).firstOfferPosition(), tick.posInLeaf(), "wrong pos in leaf");
-    assertEq(mgv.level0(olKey, tick.level0Index()).firstOnePosition(), tick.posInLevel0(), "wrong pos in level0");
-    assertEq(mgv.level1(olKey, tick.level1Index()).firstOnePosition(), tick.posInLevel1(), "wrong pos in level1");
-    assertEq(mgv.level2(olKey, tick.level2Index()).firstOnePosition(), tick.posInLevel2(), "wrong pos in level2");
-    assertEq(mgv.level3(olKey).firstOnePosition(), tick.posInLevel3(), "wrong pos in level2");
+    assertEq(
+      mgv.leafs(olKey, insertionTick.leafIndex()).firstOfferPosition(), insertionTick.posInLeaf(), "wrong pos in leaf"
+    );
+    assertEq(
+      mgv.level0(olKey, insertionTick.level0Index()).firstOnePosition(),
+      insertionTick.posInLevel0(),
+      "wrong pos in level0"
+    );
+    assertEq(
+      mgv.level1(olKey, insertionTick.level1Index()).firstOnePosition(),
+      insertionTick.posInLevel1(),
+      "wrong pos in level1"
+    );
+    assertEq(
+      mgv.level2(olKey, insertionTick.level2Index()).firstOnePosition(),
+      insertionTick.posInLevel2(),
+      "wrong pos in level2"
+    );
+    assertEq(mgv.level3(olKey).firstOnePosition(), insertionTick.posInLevel3(), "wrong pos in level2");
   }
 
   // creating offer at zero tickScale is impossible
@@ -157,8 +171,8 @@ contract DynamicTicksTest is MangroveTest {
     vm.assume(tickScale != 0);
     vm.assume(int(logPrice) % int(uint(tickScale)) != 0);
     logPrice = boundLogPrice(logPrice);
-    int insertionLogPrice =
-      int24(LogPriceLib.fromTick(TickLib.closestLowerTickToLogPrice(logPrice, tickScale), tickScale));
+    Tick insertionTick = TickLib.closestLowerTickToLogPrice(logPrice, tickScale);
+    int insertionLogPrice = int24(LogPriceLib.fromTick(insertionTick, tickScale));
     vm.assume(LogPriceLib.inRange(insertionLogPrice));
     olKey.tickScale = tickScale;
     uint wants = LogPriceLib.inboundFromOutbound(insertionLogPrice, 1 ether);
@@ -166,6 +180,7 @@ contract DynamicTicksTest is MangroveTest {
     vm.assume(wants <= type(uint96).max);
     mgv.activate(olKey, 0, 100, 0);
     uint id = mgv.newOfferByLogPrice(olKey, logPrice, 1 ether, 100_00, 30);
+    assertEq(mgv.offers(olKey, id).logPrice(), insertionLogPrice, "recorded logPrice does not match closest lower tick");
     assertEq(
       int(mgv.offers(olKey, id).logPrice()) % int(uint(tickScale)),
       0,

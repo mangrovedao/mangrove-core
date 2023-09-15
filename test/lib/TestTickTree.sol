@@ -69,7 +69,7 @@ library TickTreeUtil {
     return Tick.wrap((leafIndex << LEAF_SIZE_BITS) | int(pos));
   }
 
-  function tickFromBranch(uint posInLevel3, uint posInLevel2, uint posInLevel1, uint posInLevel0, uint posInLeaf)
+  function bestTickFromBranch(uint posInLevel3, uint posInLevel2, uint posInLevel1, uint posInLevel0, uint posInLeaf)
     public
     pure
     returns (Tick)
@@ -151,7 +151,7 @@ contract TestTickTree is MangroveTest {
             Leaf leaf = mgv.leafs(olKey, leafIndex);
             leafs[leafIndex] = leaf;
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POS; ++leafPos) {
-              uint offerId = leaf.firstOfIndex(leafPos);
+              uint offerId = leaf.firstOfPos(leafPos);
               while (offerId != 0) {
                 offers[offerId].offer = mgv.offers(olKey, offerId);
                 offers[offerId].detail = mgv.offerDetails(olKey, offerId);
@@ -262,10 +262,10 @@ contract TestTickTree is MangroveTest {
 
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POS; ++leafPos) {
               Tick tick = TickTreeUtil.tickFromLeafIndexAndPos(leafIndex, leafPos);
-              uint offerId = leaf.firstOfIndex(leafPos);
+              uint offerId = leaf.firstOfPos(leafPos);
               if (offerId == 0) {
                 assertEq(
-                  leaf.lastOfIndex(leafPos),
+                  leaf.lastOfPos(leafPos),
                   0,
                   string.concat("last offer should be 0 when first is 0 | tick: ", toString(tick))
                 );
@@ -304,11 +304,11 @@ contract TestTickTree is MangroveTest {
                 offerId = offer.next();
               } while (offerId != 0);
               assertEq(
-                leaf.lastOfIndex(leafPos),
+                leaf.lastOfPos(leafPos),
                 prev,
                 string.concat(
                   "last offer[",
-                  vm.toString(leaf.lastOfIndex(leafPos)),
+                  vm.toString(leaf.lastOfPos(leafPos)),
                   "] in tick does not match last offer[",
                   vm.toString(prev),
                   "] in tick list | tick: ",
@@ -378,17 +378,17 @@ contract TestTickTree is MangroveTest {
               {
                 Tick tick = TickTreeUtil.tickFromLeafIndexAndPos(leafIndex, leafPos);
                 assertEq(
-                  leaf.firstOfIndex(leafPos),
-                  leafs[leafIndex].firstOfIndex(leafPos),
+                  leaf.firstOfPos(leafPos),
+                  leafs[leafIndex].firstOfPos(leafPos),
                   string.concat("leaf first mismatch | tick: ", toString(tick))
                 );
                 assertEq(
-                  leaf.lastOfIndex(leafPos),
-                  leafs[leafIndex].lastOfIndex(leafPos),
+                  leaf.lastOfPos(leafPos),
+                  leafs[leafIndex].lastOfPos(leafPos),
                   string.concat("leaf last mismatch | tick: ", toString(tick))
                 );
               }
-              uint offerId = leaf.firstOfIndex(leafPos);
+              uint offerId = leaf.firstOfPos(leafPos);
               while (offerId != 0) {
                 {
                   MgvStructs.OfferPacked offer = mgv.offers(olKey, offerId);
@@ -476,7 +476,7 @@ contract TestTickTree is MangroveTest {
             Leaf leaf = leafs[leafIndex];
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POS; ++leafPos) {
               Tick tick = TickTreeUtil.tickFromLeafIndexAndPos(leafIndex, leafPos);
-              uint offerId = leaf.firstOfIndex(leafPos);
+              uint offerId = leaf.firstOfPos(leafPos);
               if (offerId == 0) {
                 continue;
               }
@@ -520,7 +520,7 @@ contract TestTickTree is MangroveTest {
             int leafIndex = TickTreeUtil.leafIndexFromLevel0IndexAndPos(level0Index, levelPoss[0]);
             for (uint leafPos = 0; leafPos <= MAX_LEAF_POS; ++leafPos) {
               Tick tick = TickTreeUtil.tickFromLeafIndexAndPos(leafIndex, leafPos);
-              uint offerId = leafs[leafIndex].firstOfIndex(leafPos);
+              uint offerId = leafs[leafIndex].firstOfPos(leafPos);
               if (offerId == 0) {
                 continue;
               }
@@ -549,13 +549,13 @@ contract TestTickTree is MangroveTest {
     // Update leaf and last offer
     Leaf leaf = leafs[tick.leafIndex()];
     // console.log("leaf before: %s", toString(leaf));
-    uint lastId = leaf.lastOfIndex(tick.posInLeaf());
+    uint lastId = leaf.lastOfPos(tick.posInLeaf());
     if (lastId == 0) {
-      leaf = leaf.setIndexFirstOrLast(tick.posInLeaf(), offerId, false);
+      leaf = leaf.setPosFirstOrLast(tick.posInLeaf(), offerId, false);
     } else {
       offers[lastId].offer = offers[lastId].offer.next(offerId);
     }
-    leafs[tick.leafIndex()] = leaf.setIndexFirstOrLast(tick.posInLeaf(), offerId, true);
+    leafs[tick.leafIndex()] = leaf.setPosFirstOrLast(tick.posInLeaf(), offerId, true);
     // console.log("leaf after: %s", toString(leafs[tick.leafIndex()]));
 
     // Create offer
@@ -591,12 +591,12 @@ contract TestTickTree is MangroveTest {
     if (prevId != 0) {
       offers[prevId].offer = offers[prevId].offer.next(nextId);
     } else {
-      leaf = leaf.setIndexFirstOrLast(tick.posInLeaf(), nextId, false);
+      leaf = leaf.setPosFirstOrLast(tick.posInLeaf(), nextId, false);
     }
     if (nextId != 0) {
       offers[nextId].offer = offers[nextId].offer.prev(prevId);
     } else {
-      leaf = leaf.setIndexFirstOrLast(tick.posInLeaf(), prevId, true);
+      leaf = leaf.setPosFirstOrLast(tick.posInLeaf(), prevId, true);
     }
     leafs[tick.leafIndex()] = leaf;
 

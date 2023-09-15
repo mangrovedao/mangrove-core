@@ -83,10 +83,10 @@ library LeafLib {
     }
   }
 
-  // Set either tick's first (at index*size) or last (at index*size + 1)
-  function setIndexFirstOrLast(Leaf leaf, uint index, uint id, bool last) internal pure returns (Leaf) {
+  // Set either tick's first (at pos*size) or last (at pos*size + 1)
+  function setPosFirstOrLast(Leaf leaf, uint pos, uint id, bool last) internal pure returns (Leaf) {
     unchecked {
-      uint before = OFFER_BITS * ((index * 2) + uint_of_bool(last));
+      uint before = OFFER_BITS * ((pos * 2) + uint_of_bool(last));
 
       // cleanup necessary?
       uint cleanupMask = ~(OFFER_MASK << (256 - OFFER_BITS - before));
@@ -100,14 +100,14 @@ library LeafLib {
   function setTickFirst(Leaf leaf, Tick tick, uint id) internal pure returns (Leaf) {
     unchecked {
       uint posInLeaf = TickLib.posInLeaf(tick);
-      return setIndexFirstOrLast(leaf, posInLeaf, id, false);
+      return setPosFirstOrLast(leaf, posInLeaf, id, false);
     }
   }
 
   function setTickLast(Leaf leaf, Tick tick, uint id) internal pure returns (Leaf) {
     unchecked {
       uint posInLeaf = TickLib.posInLeaf(tick);
-      return setIndexFirstOrLast(leaf, posInLeaf, id, true);
+      return setPosFirstOrLast(leaf, posInLeaf, id, true);
     }
   }
 
@@ -129,27 +129,27 @@ library LeafLib {
 
   function firstOfTick(Leaf leaf, Tick tick) internal pure returns (uint) {
     unchecked {
-      return firstOfIndex(leaf, TickLib.posInLeaf(tick));
+      return firstOfPos(leaf, TickLib.posInLeaf(tick));
     }
   }
 
   function lastOfTick(Leaf leaf, Tick tick) internal pure returns (uint) {
     unchecked {
-      return lastOfIndex(leaf, TickLib.posInLeaf(tick));
+      return lastOfPos(leaf, TickLib.posInLeaf(tick));
     }
   }
 
-  function firstOfIndex(Leaf leaf, uint index) internal pure returns (uint) {
+  function firstOfPos(Leaf leaf, uint pos) internal pure returns (uint) {
     unchecked {
       uint raw = Leaf.unwrap(leaf);
-      return uint(raw << (index * OFFER_BITS * 2) >> (256 - OFFER_BITS));
+      return uint(raw << (pos * OFFER_BITS * 2) >> (256 - OFFER_BITS));
     }
   }
 
-  function lastOfIndex(Leaf leaf, uint index) internal pure returns (uint) {
+  function lastOfPos(Leaf leaf, uint pos) internal pure returns (uint) {
     unchecked {
       uint raw = Leaf.unwrap(leaf);
-      return uint(raw << (OFFER_BITS * ((index * 2) + 1)) >> (256 - OFFER_BITS));
+      return uint(raw << (OFFER_BITS * ((pos * 2) + 1)) >> (256 - OFFER_BITS));
     }
   }
 
@@ -165,7 +165,7 @@ library LeafLib {
 
   function getNextOfferId(Leaf leaf) internal pure returns (uint offerId) {
     unchecked {
-      return firstOfIndex(leaf,firstOfferPosition(leaf));
+      return firstOfPos(leaf,firstOfferPosition(leaf));
     }
   }
 }

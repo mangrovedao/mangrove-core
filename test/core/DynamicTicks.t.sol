@@ -164,7 +164,7 @@ contract DynamicTicksTest is MangroveTest {
     assertEq(flipped.tickScale, olKey.tickScale, "flipped() is incorrect");
   }
 
-  // logPrice given by taker is normalized and aligned to chosen tickScale
+  // logPrice given by maker is normalized and aligned to chosen tickScale
   function test_insertionLogPrice_normalization(int24 logPrice, uint16 tickScale) public {
     vm.assume(tickScale != 0);
     vm.assume(int(logPrice) % int(uint(tickScale)) != 0);

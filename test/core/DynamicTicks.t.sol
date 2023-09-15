@@ -3,7 +3,7 @@
 pragma solidity ^0.8.10;
 
 import "mgv_test/lib/MangroveTest.sol";
-import {MgvStructs, MAX_TICK, MIN_TICK, LogPriceLib} from "mgv_src/MgvLib.sol";
+import {MgvStructs, MAX_TICK, MIN_TICK, MAX_TICK_ALLOWED, MIN_TICK_ALLOWED, LogPriceLib} from "mgv_src/MgvLib.sol";
 import {DensityLib} from "mgv_lib/DensityLib.sol";
 import {stdError} from "forge-std/StdError.sol";
 import "mgv_lib/Constants.sol";
@@ -21,14 +21,19 @@ contract DynamicTicksTest is MangroveTest {
     super.setUp();
   }
 
-  function test_logPrice_to_tick(int96 logPrice, uint16 tickScale) public {
-    Tick tick = Tick.wrap(logPrice);
-    assertEq(LogPriceLib.fromTick(tick, tickScale), int(logPrice) * int(uint(tickScale)), "wrong tick -> logPrice");
+  function test_tick_to_logPrice(int24 _tick, uint16 tickScale) public {
+    vm.assume(tickScale != 0);
+    Tick tick = Tick.wrap(_tick);
+    assertEq(LogPriceLib.fromTick(tick, tickScale), int(_tick) * int(uint(tickScale)), "wrong tick -> logPrice");
   }
 
-  function test_tick_to_logPrice(int96 logPrice, uint16 _tickScale) public {
+  function test_logPrice_to_tick(int96 logPrice, uint16 _tickScale) public {
     vm.assume(_tickScale != 0);
     Tick tick = TickLib.closestLowerTickToLogPrice(logPrice, _tickScale);
+    assertLe(
+      LogPriceLib.fromTick(tick, _tickScale), logPrice, "logPrice -> tick -> logPrice must give same or lower logPrice"
+    );
+
     int tickScale = int(uint(_tickScale));
     int expectedTick = logPrice / tickScale;
     if (logPrice < 0 && logPrice % tickScale != 0) {
